@@ -586,84 +586,23 @@ unittest
 
 ///
 pragma(inline, true)
-bool atomic_compare_exchange_strong_explicit_impl(A, C)(shared(A)* obj, A* expected, C desired, memory_order succ, memory_order fail) @trusted
+bool atomic_compare_exchange_strong_explicit_impl(A, C)(shared(A)* obj, A* expected, C desired, memory_order succ, memory_order /*fail*/) @trusted
 {
     assert(obj !is null);
-    // We use these giant switch inside switch statements
-    //  because as of 2023 they are capable of being for the most part inlined by gdc & ldc when using literal arguments for memory_order.
+    // NOTE: To not have to deal with all invalid cases, the failure model is ignored for now.
 
     final switch(succ)
     {
         case memory_order.memory_order_relaxed:
-            final switch(fail)
-            {
-                case memory_order.memory_order_relaxed:
-                    return atomicCompareExchangeStrong!(memory_order.memory_order_relaxed, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_acquire:
-                    return atomicCompareExchangeStrong!(memory_order.memory_order_relaxed, memory_order.memory_order_acquire)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_release:
-                    return atomicCompareExchangeStrong!(memory_order.memory_order_relaxed, memory_order.memory_order_release)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_acq_rel:
-                    return atomicCompareExchangeStrong!(memory_order.memory_order_relaxed, memory_order.memory_order_acq_rel)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_seq_cst:
-                    return atomicCompareExchangeStrong!(memory_order.memory_order_relaxed, memory_order.memory_order_seq_cst)(cast(A*)obj, expected, cast(A)desired);
-            }
+            return atomicCompareExchangeStrong!(memory_order.memory_order_relaxed, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
         case memory_order.memory_order_acquire:
-            final switch(fail)
-            {
-                case memory_order.memory_order_relaxed:
-                    return atomicCompareExchangeStrong!(memory_order.memory_order_acquire, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_acquire:
-                    return atomicCompareExchangeStrong!(memory_order.memory_order_acquire, memory_order.memory_order_acquire)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_release:
-                    return atomicCompareExchangeStrong!(memory_order.memory_order_acquire, memory_order.memory_order_release)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_acq_rel:
-                    return atomicCompareExchangeStrong!(memory_order.memory_order_acquire, memory_order.memory_order_acq_rel)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_seq_cst:
-                    return atomicCompareExchangeStrong!(memory_order.memory_order_acquire, memory_order.memory_order_seq_cst)(cast(A*)obj, expected, cast(A)desired);
-            }
+            return atomicCompareExchangeStrong!(memory_order.memory_order_acquire, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
         case memory_order.memory_order_release:
-            final switch(fail)
-            {
-                case memory_order.memory_order_relaxed:
-                    return atomicCompareExchangeStrong!(memory_order.memory_order_release, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_acquire:
-                    return atomicCompareExchangeStrong!(memory_order.memory_order_release, memory_order.memory_order_acquire)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_release:
-                    return atomicCompareExchangeStrong!(memory_order.memory_order_release, memory_order.memory_order_release)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_acq_rel:
-                    return atomicCompareExchangeStrong!(memory_order.memory_order_release, memory_order.memory_order_acq_rel)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_seq_cst:
-                    return atomicCompareExchangeStrong!(memory_order.memory_order_release, memory_order.memory_order_seq_cst)(cast(A*)obj, expected, cast(A)desired);
-            }
+            return atomicCompareExchangeStrong!(memory_order.memory_order_release, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
         case memory_order.memory_order_acq_rel:
-            final switch(fail)
-            {
-                case memory_order.memory_order_relaxed:
-                    return atomicCompareExchangeStrong!(memory_order.memory_order_acq_rel, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_acquire:
-                    return atomicCompareExchangeStrong!(memory_order.memory_order_acq_rel, memory_order.memory_order_acquire)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_release:
-                    return atomicCompareExchangeStrong!(memory_order.memory_order_acq_rel, memory_order.memory_order_release)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_acq_rel:
-                    return atomicCompareExchangeStrong!(memory_order.memory_order_acq_rel, memory_order.memory_order_acq_rel)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_seq_cst:
-                    return atomicCompareExchangeStrong!(memory_order.memory_order_acq_rel, memory_order.memory_order_seq_cst)(cast(A*)obj, expected, cast(A)desired);
-            }
+            return atomicCompareExchangeStrong!(memory_order.memory_order_acq_rel, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
         case memory_order.memory_order_seq_cst:
-            final switch(fail)
-            {
-                case memory_order.memory_order_relaxed:
-                    return atomicCompareExchangeStrong!(memory_order.memory_order_seq_cst, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_acquire:
-                    return atomicCompareExchangeStrong!(memory_order.memory_order_seq_cst, memory_order.memory_order_acquire)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_release:
-                    return atomicCompareExchangeStrong!(memory_order.memory_order_seq_cst, memory_order.memory_order_release)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_acq_rel:
-                    return atomicCompareExchangeStrong!(memory_order.memory_order_seq_cst, memory_order.memory_order_acq_rel)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_seq_cst:
-                    return atomicCompareExchangeStrong!(memory_order.memory_order_seq_cst, memory_order.memory_order_seq_cst)(cast(A*)obj, expected, cast(A)desired);
-            }
+            return atomicCompareExchangeStrong!(memory_order.memory_order_seq_cst, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
     }
 }
 
@@ -677,84 +616,23 @@ unittest
 
 ///
 pragma(inline, true)
-bool atomic_compare_exchange_weak_explicit_impl(A, C)(shared(A)* obj, A* expected, C desired, memory_order succ, memory_order fail) @trusted
+bool atomic_compare_exchange_weak_explicit_impl(A, C)(shared(A)* obj, A* expected, C desired, memory_order succ, memory_order /*fail*/) @trusted
 {
     assert(obj !is null);
-    // We use these giant switch inside switch statements
-    //  because as of 2023 they are capable of being for the most part inlined by gdc & ldc when using literal arguments for memory_order.
+    // NOTE: To not have to deal with all invalid cases, the failure model is ignored for now.
 
     final switch(succ)
     {
         case memory_order.memory_order_relaxed:
-            final switch(fail)
-            {
-                case memory_order.memory_order_relaxed:
-                    return atomicCompareExchangeWeak!(memory_order.memory_order_relaxed, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_acquire:
-                    return atomicCompareExchangeWeak!(memory_order.memory_order_relaxed, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_release:
-                    return atomicCompareExchangeWeak!(memory_order.memory_order_relaxed, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_acq_rel:
-                    return atomicCompareExchangeWeak!(memory_order.memory_order_relaxed, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_seq_cst:
-                    return atomicCompareExchangeWeak!(memory_order.memory_order_relaxed, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
-            }
+            return atomicCompareExchangeWeak!(memory_order.memory_order_relaxed, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
         case memory_order.memory_order_acquire:
-            final switch(fail)
-            {
-                case memory_order.memory_order_relaxed:
-                    return atomicCompareExchangeWeak!(memory_order.memory_order_acquire, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_acquire:
-                    return atomicCompareExchangeWeak!(memory_order.memory_order_acquire, memory_order.memory_order_acquire)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_release:
-                    return atomicCompareExchangeWeak!(memory_order.memory_order_acquire, memory_order.memory_order_release)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_acq_rel:
-                    return atomicCompareExchangeWeak!(memory_order.memory_order_acquire, memory_order.memory_order_acq_rel)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_seq_cst:
-                    return atomicCompareExchangeWeak!(memory_order.memory_order_acquire, memory_order.memory_order_seq_cst)(cast(A*)obj, expected, cast(A)desired);
-            }
+            return atomicCompareExchangeWeak!(memory_order.memory_order_acquire, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
         case memory_order.memory_order_release:
-            final switch(fail)
-            {
-                case memory_order.memory_order_relaxed:
-                    return atomicCompareExchangeWeak!(memory_order.memory_order_release, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_acquire:
-                    return atomicCompareExchangeWeak!(memory_order.memory_order_release, memory_order.memory_order_acquire)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_release:
-                    return atomicCompareExchangeWeak!(memory_order.memory_order_release, memory_order.memory_order_release)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_acq_rel:
-                    return atomicCompareExchangeWeak!(memory_order.memory_order_release, memory_order.memory_order_acq_rel)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_seq_cst:
-                    return atomicCompareExchangeWeak!(memory_order.memory_order_release, memory_order.memory_order_seq_cst)(cast(A*)obj, expected, cast(A)desired);
-            }
+            return atomicCompareExchangeWeak!(memory_order.memory_order_release, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
         case memory_order.memory_order_acq_rel:
-            final switch(fail)
-            {
-                case memory_order.memory_order_relaxed:
-                    return atomicCompareExchangeWeak!(memory_order.memory_order_acq_rel, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_acquire:
-                    return atomicCompareExchangeWeak!(memory_order.memory_order_acq_rel, memory_order.memory_order_acquire)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_release:
-                    return atomicCompareExchangeWeak!(memory_order.memory_order_acq_rel, memory_order.memory_order_release)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_acq_rel:
-                    return atomicCompareExchangeWeak!(memory_order.memory_order_acq_rel, memory_order.memory_order_acq_rel)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_seq_cst:
-                    return atomicCompareExchangeWeak!(memory_order.memory_order_acq_rel, memory_order.memory_order_seq_cst)(cast(A*)obj, expected, cast(A)desired);
-            }
+            return atomicCompareExchangeWeak!(memory_order.memory_order_acq_rel, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
         case memory_order.memory_order_seq_cst:
-            final switch(fail)
-            {
-                case memory_order.memory_order_relaxed:
-                    return atomicCompareExchangeWeak!(memory_order.memory_order_seq_cst, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_acquire:
-                    return atomicCompareExchangeWeak!(memory_order.memory_order_seq_cst, memory_order.memory_order_acquire)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_release:
-                    return atomicCompareExchangeWeak!(memory_order.memory_order_seq_cst, memory_order.memory_order_release)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_acq_rel:
-                    return atomicCompareExchangeWeak!(memory_order.memory_order_seq_cst, memory_order.memory_order_acq_rel)(cast(A*)obj, expected, cast(A)desired);
-                case memory_order.memory_order_seq_cst:
-                    return atomicCompareExchangeWeak!(memory_order.memory_order_seq_cst, memory_order.memory_order_seq_cst)(cast(A*)obj, expected, cast(A)desired);
-            }
+            return atomicCompareExchangeWeak!(memory_order.memory_order_seq_cst, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
     }
 }
 
@@ -1014,7 +892,7 @@ A atomic_fetch_op(memory_order order, string op, A, M)(A* obj, M arg) @trusted
         {
             set = get;
             mixin("set " ~ op ~ " arg;"); // will error if op (which is not exposed to user) is invalid
-        } while (!atomicCompareExchangeWeak!(order, order)(obj, &get, set));
+        } while (!atomicCompareExchangeWeak!(order, MemoryOrder.raw)(obj, &get, set));
         return get; // unlike core.atomic we return the prior value, not the new one.
     }
 }
