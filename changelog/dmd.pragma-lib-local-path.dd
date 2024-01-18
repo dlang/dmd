@@ -13,7 +13,7 @@ version (linux) {
     pragma(libLocal, "bin/linux/library.a");
 }
 else version (Windows) {
-    pragma(libLocal, "bin/windows/library.lib");
+    pragma(libLocal, "bin\windows\library.lib");
 }
 else {
     static assert(0, "Platform is not supported.");

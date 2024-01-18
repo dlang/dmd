@@ -792,32 +792,13 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 Expression e = (*pd.args)[0];
 
-                assert(e.op == EXP.string_);
-
-                StringExp se = cast(StringExp)e;
-                char *name = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
-                se.writeTo(name, true);
+                auto se = e.isStringExp();
+                auto name = se.peekString();
 
                 auto fileName = FileName.toAbsolute(ds.loc.filename());
-                auto fileNameLen = strlen(fileName);
-                scope (exit) mem.xfree(cast(void*)fileName);
+                auto folder = FileName.path(fileName);;
 
-                size_t slashIndex = 0;
-                for (size_t i = fileNameLen; i > 0; i--)
-                {
-                    if (fileName[i] == '/' || fileName[i] == '\\')
-                    {
-                        slashIndex = i;
-                        break;
-                    }
-                }
-
-                auto folder = fileName[0 .. slashIndex];
-                auto lib = name[0 .. strlen(name)];
-
-                auto local = FileName.combine(folder, lib);
-
-                mem.xfree(name);
+                auto local = FileName.combine(folder, name);
 
                 /* Embed the library names into the object file.
                  * The linker will then automatically
