@@ -18,7 +18,7 @@ void test1()
 }
 
 /*
-TEST_OUTPUT:*
+TEST_OUTPUT:
 ---
 fail_compilation/fail14669.d(29): Error: cannot explicitly instantiate template function with `auto ref` parameter
 fail_compilation/fail14669.d(38): Error: template instance `fail14669.bar1!int` error instantiating
