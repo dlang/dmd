@@ -7,6 +7,8 @@
  *
  * $(NOTE The D shared type qualifier is the closest to the _Atomic type qualifier from C. It may be changed from shared in the future.)
  *
+ * $(NOTE Fail memory order is currently ignored due to limitations with internal implementation of atomics.)
+ *
  * Copyright: Copyright Richard (Rikki) Andrew Cattermole 2023.
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Authors:   Richard (Rikki) Andrew cattermole
@@ -194,7 +196,7 @@ bool atomic_flag_test_and_set_impl()(atomic_flag* obj)
 }
 
 ///
-unittest
+@trusted unittest
 {
     atomic_flag flag;
     assert(!atomic_flag_test_and_set_impl(&flag));
@@ -229,7 +231,7 @@ bool atomic_flag_test_and_set_explicit_impl()(atomic_flag* obj, memory_order ord
 }
 
 ///
-unittest
+@trusted unittest
 {
     atomic_flag flag;
     assert(!atomic_flag_test_and_set_explicit_impl(&flag, memory_order.memory_order_seq_cst));
@@ -252,6 +254,9 @@ unittest
 {
     shared int val;
     atomic_init(val, 2);
+
+    shared float valF;
+    atomic_init(valF, 3.2);
 }
 
 /// No-op function, doesn't apply to D
@@ -412,14 +417,17 @@ pragma(inline, true)
 void atomic_store_impl(A, C)(shared(A)* obj, C desired) @trusted
 {
     assert(obj !is null);
-    atomicStore(obj, cast(A)desired);
+    atomicStore(cast(A*)obj, cast(A)desired);
 }
 
 ///
-unittest
+@trusted unittest
 {
     shared(int) obj;
     atomic_store_impl(&obj, 3);
+
+    shared(float) objF;
+    atomic_store_impl(&objF, 3.21);
 }
 
 ///
@@ -431,31 +439,34 @@ void atomic_store_explicit_impl(A, C)(shared(A)* obj, C desired, memory_order or
     final switch (order)
     {
         case memory_order.memory_order_relaxed:
-            atomicStore!(memory_order.memory_order_relaxed)(obj, cast(A)desired);
+            atomicStore!(memory_order.memory_order_relaxed)(cast(A*)obj, cast(A)desired);
             break;
 
         case memory_order.memory_order_acquire:
         case memory_order.memory_order_acq_rel:
             // Ideally this would error at compile time but alas it is not an intrinsic.
             // Note: this is not a valid memory order for this operation.
-            atomicStore!(memory_order.memory_order_release)(obj, cast(A)desired);
+            atomicStore!(memory_order.memory_order_release)(cast(A*)obj, cast(A)desired);
             break;
 
         case memory_order.memory_order_release:
-            atomicStore!(memory_order.memory_order_release)(obj, cast(A)desired);
+            atomicStore!(memory_order.memory_order_release)(cast(A*)obj, cast(A)desired);
             break;
 
         case memory_order.memory_order_seq_cst:
-            atomicStore!(memory_order.memory_order_seq_cst)(obj, cast(A)desired);
+            atomicStore!(memory_order.memory_order_seq_cst)(cast(A*)obj, cast(A)desired);
             break;
     }
 }
 
 ///
-unittest
+@trusted unittest
 {
     shared(int) obj;
     atomic_store_explicit_impl(&obj, 3, memory_order.memory_order_seq_cst);
+
+    shared(float) objF;
+    atomic_store_explicit_impl(&objF, 3.21, memory_order.memory_order_seq_cst);
 }
 
 ///
@@ -463,14 +474,24 @@ pragma(inline, true)
 A atomic_load_impl(A)(const shared(A)* obj) @trusted
 {
     assert(obj !is null);
-    return atomicLoad(cast(shared(A)*)obj);
+    return atomicLoad(cast(A*)obj);
 }
 
 ///
-unittest
+@trusted unittest
 {
     shared(int) obj = 3;
     assert(atomic_load_impl(&obj) == 3);
+
+    shared(float) objF = 3.5;
+    assert(atomic_load_impl(&objF) > 3);
+
+    static struct S2
+    {
+        size_t[2] values;
+    }
+    shared(S2) objS2 = {[1, 2]};
+    assert(atomic_load_impl(&objS2).values == [1, 2]);
 }
 
 ///
@@ -482,27 +503,30 @@ A atomic_load_explicit_impl(A)(const shared(A)* obj, memory_order order) @truste
     final switch (order)
     {
         case memory_order.memory_order_relaxed:
-            return atomicLoad!(memory_order.memory_order_relaxed)(obj);
+            return atomicLoad!(memory_order.memory_order_relaxed)(cast(A*)obj);
 
         case memory_order.memory_order_acquire:
-            return atomicLoad!(memory_order.memory_order_acquire)(obj);
+            return atomicLoad!(memory_order.memory_order_acquire)(cast(A*)obj);
 
         case memory_order.memory_order_release:
         case memory_order.memory_order_acq_rel:
             // Ideally this would error at compile time but alas it is not an intrinsic.
             // Note: this is not a valid memory order for this operation.
-            return atomicLoad!(memory_order.memory_order_acquire)(obj);
+            return atomicLoad!(memory_order.memory_order_acquire)(cast(A*)obj);
 
         case memory_order.memory_order_seq_cst:
-            return atomicLoad!(memory_order.memory_order_seq_cst)(obj);
+            return atomicLoad!(memory_order.memory_order_seq_cst)(cast(A*)obj);
     }
 }
 
 ///
-unittest
+@trusted unittest
 {
     shared(int) obj = 3;
     assert(atomic_load_explicit_impl(&obj, memory_order.memory_order_seq_cst) == 3);
+
+    shared(float) objF = 3.5;
+    assert(atomic_load_explicit_impl(&objF, memory_order.memory_order_seq_cst) > 3);
 }
 
 ///
@@ -510,14 +534,17 @@ pragma(inline, true)
 A atomic_exchange_impl(A, C)(shared(A)* obj, C desired) @trusted
 {
     assert(obj !is null);
-    return atomicExchange(cast(shared(A)*)obj, cast(A)desired);
+    return atomicExchange(cast(A*)obj, cast(A)desired);
 }
 
 ///
-unittest
+@trusted unittest
 {
     shared(int) obj = 3;
     assert(atomic_exchange_impl(&obj, 2) == 3);
+
+    shared(float) objF = 3;
+    assert(atomic_exchange_impl(&objF, 2.1) > 2.5);
 }
 
 ///
@@ -529,40 +556,44 @@ A atomic_exchange_explicit_impl(A, C)(shared(A)* obj, C desired, memory_order or
     final switch (order)
     {
         case memory_order.memory_order_relaxed:
-            return atomicExchange!(memory_order.memory_order_relaxed)(obj, cast(A)desired);
+            return atomicExchange!(memory_order.memory_order_relaxed)(cast(A*)obj, cast(A)desired);
 
         case memory_order.memory_order_acquire:
             // Ideally this would error at compile time but alas it is not an intrinsic.
             // Note: this is not a valid memory order for this operation.
-            return atomicExchange!(memory_order.memory_order_seq_cst)(obj, cast(A)desired);
+            return atomicExchange!(memory_order.memory_order_seq_cst)(cast(A*)obj, cast(A)desired);
 
         case memory_order.memory_order_release:
-            return atomicExchange!(memory_order.memory_order_release)(obj, cast(A)desired);
+            return atomicExchange!(memory_order.memory_order_release)(cast(A*)obj, cast(A)desired);
 
         case memory_order.memory_order_acq_rel:
-            return atomicExchange!(memory_order.memory_order_acq_rel)(obj, cast(A)desired);
+            return atomicExchange!(memory_order.memory_order_acq_rel)(cast(A*)obj, cast(A)desired);
 
         case memory_order.memory_order_seq_cst:
-            return atomicExchange!(memory_order.memory_order_seq_cst)(obj, cast(A)desired);
+            return atomicExchange!(memory_order.memory_order_seq_cst)(cast(A*)obj, cast(A)desired);
     }
 }
 
 ///
-unittest
+@trusted unittest
 {
     shared(int) obj = 3;
     assert(atomic_exchange_explicit_impl(&obj, 2, memory_order.memory_order_seq_cst) == 3);
+
+    shared(float) objF = 1.5;
+    assert(atomic_exchange_explicit_impl(&objF, 2.1, memory_order.memory_order_seq_cst) < 2);
 }
 
 ///
 pragma(inline, true)
-bool atomic_compare_exchange_strong_impl(A, C)(shared(A)* obj, A* expected, C desired) @trusted
+bool atomic_compare_exchange_strong_impl(A, B, C)(shared(A)* obj, B* expected, C desired) @trusted
 {
-    return atomicCompareExchangeStrong(cast(A*)obj, expected, cast(A)desired);
+    static assert(is(shared(B) : A), "Both expected and object must be the same type");
+    return atomicCompareExchangeStrong(cast(B*)obj, expected, cast(B)desired);
 }
 
 ///
-unittest
+@trusted unittest
 {
     shared(int) obj = 3;
     int expected = 3;
@@ -570,14 +601,23 @@ unittest
 }
 
 ///
-pragma(inline, true)
-bool atomic_compare_exchange_weak_impl(A, C)(shared(A)* obj, A* expected, C desired) @trusted
+@trusted unittest
 {
-    return atomicCompareExchangeStrong(cast(A*)obj, expected, cast(A)desired);
+    shared(float) obj = 3;
+    float expected = 3;
+    assert(atomic_compare_exchange_strong_impl(&obj, &expected, 2.1));
 }
 
 ///
-unittest
+pragma(inline, true)
+bool atomic_compare_exchange_weak_impl(A, B, C)(shared(A)* obj, B* expected, C desired) @trusted
+{
+    static assert(is(shared(B) : A), "Both expected and object must be the same type");
+    return atomicCompareExchangeWeak(cast(B*)obj, expected, cast(B)desired);
+}
+
+///
+@trusted unittest
 {
     shared(int) obj = 3;
     int expected = 3;
@@ -585,29 +625,38 @@ unittest
 }
 
 ///
-pragma(inline, true)
-bool atomic_compare_exchange_strong_explicit_impl(A, C)(shared(A)* obj, A* expected, C desired, memory_order succ, memory_order /*fail*/) @trusted
+@trusted unittest
 {
+    shared(float) obj = 3;
+    float expected = 3;
+    static assert(__traits(compiles, {atomic_compare_exchange_weak_impl(&obj, &expected, 2.1);}));
+}
+
+///
+pragma(inline, true)
+bool atomic_compare_exchange_strong_explicit_impl(A, B, C)(shared(A)* obj, B* expected, C desired, memory_order succ, memory_order fail) @trusted
+{
+    static assert(is(shared(B) : A), "Both expected and object must be the same type");
     assert(obj !is null);
     // NOTE: To not have to deal with all invalid cases, the failure model is ignored for now.
 
     final switch(succ)
     {
         case memory_order.memory_order_relaxed:
-            return atomicCompareExchangeStrong!(memory_order.memory_order_relaxed, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
+            return atomicCompareExchangeStrong!(memory_order.memory_order_relaxed, memory_order.memory_order_relaxed)(cast(B*)obj, expected, cast(B)desired);
         case memory_order.memory_order_acquire:
-            return atomicCompareExchangeStrong!(memory_order.memory_order_acquire, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
+            return atomicCompareExchangeStrong!(memory_order.memory_order_acquire, memory_order.memory_order_relaxed)(cast(B*)obj, expected, cast(B)desired);
         case memory_order.memory_order_release:
-            return atomicCompareExchangeStrong!(memory_order.memory_order_release, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
+            return atomicCompareExchangeStrong!(memory_order.memory_order_release, memory_order.memory_order_relaxed)(cast(B*)obj, expected, cast(B)desired);
         case memory_order.memory_order_acq_rel:
-            return atomicCompareExchangeStrong!(memory_order.memory_order_acq_rel, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
+            return atomicCompareExchangeStrong!(memory_order.memory_order_acq_rel, memory_order.memory_order_relaxed)(cast(B*)obj, expected, cast(B)desired);
         case memory_order.memory_order_seq_cst:
-            return atomicCompareExchangeStrong!(memory_order.memory_order_seq_cst, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
+            return atomicCompareExchangeStrong!(memory_order.memory_order_seq_cst, memory_order.memory_order_relaxed)(cast(B*)obj, expected, cast(B)desired);
     }
 }
 
 ///
-unittest
+@trusted unittest
 {
     shared(int) obj = 3;
     int expected = 3;
@@ -615,32 +664,67 @@ unittest
 }
 
 ///
-pragma(inline, true)
-bool atomic_compare_exchange_weak_explicit_impl(A, C)(shared(A)* obj, A* expected, C desired, memory_order succ, memory_order /*fail*/) @trusted
+@trusted unittest
 {
+    shared(size_t[2]) obj = [3, 4];
+    size_t[2] expected = [3, 4];
+    size_t[2] toSwap = [1, 2];
+    assert(atomic_compare_exchange_strong_explicit_impl(&obj, &expected, toSwap, memory_order.memory_order_seq_cst, memory_order.memory_order_seq_cst));
+}
+
+///
+@trusted unittest
+{
+    shared(float) obj = 3;
+    float expected = 3;
+    assert(atomic_compare_exchange_strong_explicit_impl(&obj, &expected, 2.1, memory_order.memory_order_seq_cst, memory_order.memory_order_seq_cst));
+}
+
+///
+pragma(inline, true)
+bool atomic_compare_exchange_weak_explicit_impl(A, B, C)(shared(A)* obj, B* expected, C desired, memory_order succ, memory_order fail) @trusted
+{
+    static assert(is(shared(B) : A), "Both expected and object must be the same type");
     assert(obj !is null);
     // NOTE: To not have to deal with all invalid cases, the failure model is ignored for now.
 
     final switch(succ)
     {
         case memory_order.memory_order_relaxed:
-            return atomicCompareExchangeWeak!(memory_order.memory_order_relaxed, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
+            return atomicCompareExchangeWeak!(memory_order.memory_order_relaxed, memory_order.memory_order_relaxed)(cast(B*)obj, expected, cast(B)desired);
         case memory_order.memory_order_acquire:
-            return atomicCompareExchangeWeak!(memory_order.memory_order_acquire, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
+            return atomicCompareExchangeWeak!(memory_order.memory_order_acquire, memory_order.memory_order_relaxed)(cast(B*)obj, expected, cast(B)desired);
         case memory_order.memory_order_release:
-            return atomicCompareExchangeWeak!(memory_order.memory_order_release, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
+            return atomicCompareExchangeWeak!(memory_order.memory_order_release, memory_order.memory_order_relaxed)(cast(B*)obj, expected, cast(B)desired);
         case memory_order.memory_order_acq_rel:
-            return atomicCompareExchangeWeak!(memory_order.memory_order_acq_rel, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
+            return atomicCompareExchangeWeak!(memory_order.memory_order_acq_rel, memory_order.memory_order_relaxed)(cast(B*)obj, expected, cast(B)desired);
         case memory_order.memory_order_seq_cst:
-            return atomicCompareExchangeWeak!(memory_order.memory_order_seq_cst, memory_order.memory_order_relaxed)(cast(A*)obj, expected, cast(A)desired);
+            return atomicCompareExchangeWeak!(memory_order.memory_order_seq_cst, memory_order.memory_order_relaxed)(cast(B*)obj, expected, cast(B)desired);
     }
 }
 
 ///
-unittest
+@trusted unittest
 {
     shared(int) obj = 3;
     int expected = 3;
+    atomic_compare_exchange_weak_explicit_impl(&obj, &expected, 2, memory_order.memory_order_seq_cst, memory_order.memory_order_seq_cst);
+}
+
+///
+@trusted unittest
+{
+    shared(size_t[2]) obj = [3, 4];
+    size_t[2] expected = [3, 4];
+    size_t[2] toSwap = [1, 2];
+    assert(atomic_compare_exchange_weak_explicit_impl(&obj, &expected, toSwap, memory_order.memory_order_seq_cst, memory_order.memory_order_seq_cst));
+}
+
+///
+@trusted unittest
+{
+    shared(float) obj = 3;
+    float expected = 3;
     atomic_compare_exchange_weak_explicit_impl(&obj, &expected, 2, memory_order.memory_order_seq_cst, memory_order.memory_order_seq_cst);
 }
 
@@ -653,11 +737,15 @@ A atomic_fetch_add_impl(A, M)(shared(A)* obj, M arg) @trusted
 }
 
 ///
-unittest
+@trusted unittest
 {
     shared(int) val;
     atomic_fetch_add_impl(&val, 3);
     assert(atomic_load_impl(&val) == 3);
+
+    shared(float) valF = 0.5;
+    atomic_fetch_add_impl(&valF, 3);
+    assert(atomic_load_impl(&valF) > 3);
 }
 
 pragma(inline, true)
@@ -668,11 +756,15 @@ A atomic_fetch_sub_impl(A, M)(shared(A)* obj, M arg) @trusted
 }
 
 ///
-unittest
+@trusted unittest
 {
     shared(int) val = 3;
     atomic_fetch_sub_impl(&val, 3);
     assert(atomic_load_impl(&val) == 0);
+
+    shared(float) valF = 3;
+    atomic_fetch_sub_impl(&valF, 1);
+    assert(atomic_load_impl(&valF) < 3);
 }
 
 ///
@@ -697,11 +789,15 @@ A atomic_fetch_add_explicit_impl(A, M)(shared(A)* obj, M arg, memory_order order
 }
 
 ///
-unittest
+@trusted unittest
 {
     shared(int) val;
     atomic_fetch_add_explicit_impl(&val, 3, memory_order.memory_order_seq_cst);
     assert(atomic_load_impl(&val) == 3);
+
+    shared(float) valF = 3;
+    atomic_fetch_add_explicit_impl(&valF, 3, memory_order.memory_order_seq_cst);
+    assert(atomic_load_impl(&valF) > 3);
 }
 
 ///
@@ -726,11 +822,15 @@ A atomic_fetch_sub_explicit_impl(A, M)(shared(A)* obj, M arg, memory_order order
 }
 
 ///
-unittest
+@trusted unittest
 {
     shared(int) val = 3;
     atomic_fetch_sub_explicit_impl(&val, 3, memory_order.memory_order_seq_cst);
     assert(atomic_load_impl(&val) == 0);
+
+    shared(float) valF = 4;
+    atomic_fetch_sub_explicit_impl(&valF, 3, memory_order.memory_order_seq_cst);
+    assert(atomic_load_impl(&valF) < 4);
 }
 
 ///
@@ -742,7 +842,7 @@ A atomic_fetch_or_impl(A, M)(shared(A)* obj, M arg) @trusted
 }
 
 ///
-unittest
+@trusted unittest
 {
     shared(int) val = 5;
     atomic_fetch_or_impl(&val, 3);
@@ -771,7 +871,7 @@ A atomic_fetch_or_explicit_impl(A, M)(shared(A)* obj, M arg, memory_order order)
 }
 
 ///
-unittest
+@trusted unittest
 {
     shared(int) val = 5;
     atomic_fetch_or_explicit_impl(&val, 3, memory_order.memory_order_seq_cst);
@@ -787,7 +887,7 @@ A atomic_fetch_xor_impl(A, M)(shared(A)* obj, M arg) @trusted
 }
 
 ///
-unittest
+@trusted unittest
 {
     shared(int) val = 5;
     atomic_fetch_xor_impl(&val, 3);
@@ -816,7 +916,7 @@ A atomic_fetch_xor_explicit_impl(A, M)(shared(A)* obj, M arg, memory_order order
 }
 
 ///
-unittest
+@trusted unittest
 {
     shared(int) val = 5;
     atomic_fetch_xor_explicit_impl(&val, 3, memory_order.memory_order_seq_cst);
@@ -832,7 +932,7 @@ A atomic_fetch_and_impl(A, M)(shared(A)* obj, M arg) @trusted
 }
 
 ///
-unittest
+@trusted unittest
 {
     shared(int) val = 5;
     atomic_fetch_and_impl(&val, 3);
@@ -873,8 +973,9 @@ private:
 pragma(inline, true)
 A atomic_fetch_op(memory_order order, string op, A, M)(A* obj, M arg) @trusted
 {
-    static if (op == "+=" || op == "-=")
+    static if (is(A : ulong) && (op == "+=" || op == "-="))
     {
+        // these cannot handle floats
         static if (op == "+=")
         {
             return atomicFetchAdd!order(obj, arg);
