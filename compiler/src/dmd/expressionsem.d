@@ -6564,11 +6564,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         .errorSupplemental(exp.loc, "the following error occured while looking for a UFCS match");
                     }
 
-                    .error(exp.loc, "%s is not callable using argument types `%s`",
-                        exp.f.kind(), buf.peekChars());
-                    .errorSupplemental(exp.loc, "\t`%s%s`", exp.f.toPrettyChars(), parametersTypeToChars(tf.parameterList));
+                    .error(exp.loc, "%s `%s` is not callable using argument types `%s`",
+                        exp.f.kind(), exp.f.toChars(), buf.peekChars());
                     if (failMessage)
                         errorSupplemental(exp.loc, "%s", failMessage);
+                    .errorSupplemental(exp.f.loc, "`%s%s` declared here", exp.f.toPrettyChars(), parametersTypeToChars(tf.parameterList));
                     exp.f = null;
                 }
 

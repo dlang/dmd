@@ -3383,12 +3383,18 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         // all of overloads are templates
         if (td)
         {
-            const(char)* msg = "none of the overloads of %s `%s.%s` are callable using argument types `!(%s)%s`";
             if (!od && !td.overnext)
-                msg = "%s `%s.%s` is not callable using argument types `!(%s)%s`";
-            .error(loc, msg,
+            {
+                .error(loc, "%s `%s` is not callable using argument types `!(%s)%s`",
+                   td.kind(), td.ident.toChars(), tiargsBuf.peekChars(), fargsBuf.peekChars());
+            }
+            else
+            {
+                .error(loc, "none of the overloads of %s `%s.%s` are callable using argument types `!(%s)%s`",
                    td.kind(), td.parent.toPrettyChars(), td.ident.toChars(),
                    tiargsBuf.peekChars(), fargsBuf.peekChars());
+            }
+
 
             if (!global.gag || global.params.v.showGaggedErrors)
                 printCandidates(loc, td, sc.isDeprecated());
