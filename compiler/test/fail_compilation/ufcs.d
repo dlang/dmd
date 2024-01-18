@@ -3,11 +3,12 @@ TEST_OUTPUT:
 ---
 fail_compilation/ufcs.d(25): Error: no property `regularF` for `s` of type `S`
 fail_compilation/ufcs.d(25):        the following error occured while looking for a UFCS match
-fail_compilation/ufcs.d(25): Error: function `ufcs.regularF()` is not callable using argument types `(S)`
+fail_compilation/ufcs.d(25): Error: function `regularF` is not callable using argument types `(S)`
 fail_compilation/ufcs.d(25):        expected 0 argument(s), not 1
+fail_compilation/ufcs.d(30):        `ufcs.regularF()` declared here
 fail_compilation/ufcs.d(26): Error: no property `templateF` for `s` of type `S`
 fail_compilation/ufcs.d(26):        the following error occured while looking for a UFCS match
-fail_compilation/ufcs.d(26): Error: template `ufcs.templateF` is not callable using argument types `!()(S)`
+fail_compilation/ufcs.d(26): Error: template `templateF` is not callable using argument types `!()(S)`
 fail_compilation/ufcs.d(31):        Candidate is: `templateF()()`
 fail_compilation/ufcs.d(27): Error: no property `templateO` for `s` of type `S`
 fail_compilation/ufcs.d(27):        the following error occured while looking for a UFCS match
