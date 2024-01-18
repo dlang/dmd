@@ -4,7 +4,7 @@
  * utilities needed for arguments parsing, path manipulation, etc...
  * This file is not shared with other compilers which use the DMD front-end.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/mars.d, _mars.d)
@@ -15,15 +15,12 @@
 module dmd.mars;
 
 import core.stdc.ctype;
-import core.stdc.limits;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
 import dmd.arraytypes;
-import dmd.astcodegen;
 import dmd.astenums;
-import dmd.builtin;
 import dmd.cond;
 import dmd.console;
 import dmd.compiler;
@@ -39,7 +36,6 @@ import dmd.dtemplate;
 import dmd.dtoh;
 import dmd.errors;
 import dmd.expression;
-import dmd.file_manager;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
@@ -121,10 +117,10 @@ Where:
 %.*s", cast(int)inifileCanon.length, inifileCanon.ptr, cast(int)help.length, &help[0]);
 }
 
-extern (C++) void generateJson(Modules* modules)
+extern (C++) void generateJson(ref Modules modules)
 {
     OutBuffer buf;
-    json_generate(&buf, modules);
+    json_generate(modules, buf);
 
     // Write buf to file
     const(char)[] name = global.params.json.name;
@@ -157,7 +153,8 @@ extern (C++) void generateJson(Modules* modules)
             //    name = FileName::combine(dir, name);
             jsonfilename = FileName.forceExt(n, json_ext);
         }
-        writeFile(Loc.initial, jsonfilename, buf[]);
+        if (!writeFile(Loc.initial, jsonfilename, buf[]))
+            fatal();
     }
 }
 
@@ -378,6 +375,8 @@ void setDefaultLibrary(ref Param params, const ref Target target)
 
     if (driverParams.debuglibname is null)
         driverParams.debuglibname = driverParams.defaultlibname;
+    else if (!driverParams.debuglibname.length)  // if `-debuglib=` (i.e. an empty debuglib)
+        driverParams.debuglibname = null;
 }
 
 void printPredefinedVersions(FILE* stream)
@@ -533,7 +532,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
     static string checkOptionsMixin(string usageFlag, string missingMsg)
     {
         return q{
-            final switch (checkOptions(arg[len - 1 .. $], params.}~usageFlag~","~
+            final switch (checkOptions(arg[len - 1 .. $], params.help.}~usageFlag~","~
                           `"`~missingMsg~`"`~q{))
             {
                 case CheckOptions.error:
@@ -595,6 +594,9 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             printf("arguments[%d] = '%s'\n", i, arguments[i]);
         }
     }
+
+    files.reserve(arguments.length - 1);
+
     for (size_t i = 1; i < arguments.length; i++)
     {
         const(char)* p = arguments[i];
@@ -611,7 +613,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 }
                 if (arg == "/?")
                 {
-                    params.usage = true;
+                    params.help.usage = true;
                     return false;
                 }
             }
@@ -647,7 +649,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
              *    -checkaction=D|C|halt|context
              */
             enum len = "-checkaction=".length;
-            mixin(checkOptionsMixin("checkActionUsage",
+            mixin(checkOptionsMixin("checkAction",
                 "`-check=<behavior>` requires a behavior"));
             switch (arg[len .. $])
             {
@@ -665,14 +667,14 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 break;
             default:
                 errorInvalidSwitch(p);
-                params.checkActionUsage = true;
+                params.help.checkAction = true;
                 return false;
             }
         }
         else if (startsWith(p + 1, "check")) // https://dlang.org/dmd.html#switch-check
         {
             enum len = "-check=".length;
-            mixin(checkOptionsMixin("checkUsage",
+            mixin(checkOptionsMixin("check",
                 "`-check=<action>` requires an action"));
             /* Parse:
              *    -check=[assert|bounds|in|invariant|out|switch][=[on|off]]
@@ -728,7 +730,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                   check(checkarg, "switch",    params.useSwitchError)))
             {
                 errorInvalidSwitch(p);
-                params.checkUsage = true;
+                params.help.check = true;
                 return false;
             }
         }
@@ -742,10 +744,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 switch(arg[7 .. $])
                 {
                 case "on":
-                    params.color = true;
+                    params.v.color = true;
                     break;
                 case "off":
-                    params.color = false;
+                    params.v.color = false;
                     break;
                 case "auto":
                     break;
@@ -757,7 +759,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             else if (p[6])
                 goto Lerror;
             else
-                params.color = true;
+                params.v.color = true;
         }
         else if (startsWith(p + 1, "conf=")) // https://dlang.org/dmd.html#switch-conf
         {
@@ -787,6 +789,44 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-shared")
             driverParams.dll = true;
+        else if (startsWith(p + 1, "visibility="))
+        {
+            const(char)[] vis = arg["-visibility=".length .. $];
+
+            switch (vis)
+            {
+                case "default":
+                    driverParams.exportVisibility = ExpVis.default_;
+                    break;
+                case "hidden":
+                    driverParams.exportVisibility = ExpVis.hidden;
+                    break;
+                case "public":
+                    driverParams.exportVisibility = ExpVis.public_;
+                    break;
+                default:
+                    error("unknown visibility '%.*s', must be 'default', 'hidden' or 'public'", cast(int) vis.length, vis.ptr);
+            }
+        }
+        else if (startsWith(p + 1, "dllimport="))
+        {
+            const(char)[] imp = arg["-dllimport=".length .. $];
+
+            switch (imp)
+            {
+                case "none":
+                    driverParams.symImport = SymImport.none;
+                    break;
+                case "defaultLibsOnly":
+                    driverParams.symImport = SymImport.defaultLibsOnly;
+                    break;
+                case "all":
+                    driverParams.symImport = SymImport.all;
+                    break;
+                default:
+                    error("unknown dllimport '%.*s', must be 'none', 'defaultLibsOnly' or 'all'", cast(int) imp.length, imp.ptr);
+            }
+        }
         else if (arg == "-fIBT")
         {
             driverParams.ibt = true;
@@ -893,23 +933,23 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 params.trace = true;
         }
         else if (arg == "-v") // https://dlang.org/dmd.html#switch-v
-            params.verbose = true;
+            params.v.verbose = true;
         else if (arg == "-vcg-ast")
             params.vcg_ast = true;
         else if (arg == "-vasm") // https://dlang.org/dmd.html#switch-vasm
             driverParams.vasm = true;
         else if (arg == "-vtls") // https://dlang.org/dmd.html#switch-vtls
-            params.vtls = true;
+            params.v.tls = true;
         else if (startsWith(p + 1, "vtemplates")) // https://dlang.org/dmd.html#switch-vtemplates
         {
-            params.vtemplates = true;
+            params.v.templates = true;
             if (p[1 + "vtemplates".length] == '=')
             {
                 const(char)[] style = arg[1 + "vtemplates=".length .. $];
                 switch (style)
                 {
                 case "list-instances":
-                    params.vtemplatesListInstances = true;
+                    params.v.templatesListInstances = true;
                     break;
                 default:
                     error("unknown vtemplates style '%.*s', must be 'list-instances'", cast(int) style.length, style.ptr);
@@ -917,9 +957,9 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
         }
         else if (arg == "-vcolumns") // https://dlang.org/dmd.html#switch-vcolumns
-            params.showColumns = true;
+            params.v.showColumns = true;
         else if (arg == "-vgc") // https://dlang.org/dmd.html#switch-vgc
-            params.vgc = true;
+            params.v.gc = true;
         else if (startsWith(p + 1, "verrors")) // https://dlang.org/dmd.html#switch-verrors
         {
             if (p[8] != '=')
@@ -929,13 +969,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
             if (startsWith(p + 9, "spec"))
             {
-                params.showGaggedErrors = true;
+                params.v.showGaggedErrors = true;
             }
             else if (startsWith(p + 9, "context"))
             {
-                params.printErrorContext = true;
+                params.v.printErrorContext = true;
             }
-            else if (!params.errorLimit.parseDigits(p.toDString()[9 .. $]))
+            else if (!params.v.errorLimit.parseDigits(p.toDString()[9 .. $]))
             {
                 errorInvalidSwitch(p, "Only number, `spec`, or `context` are allowed for `-verrors`");
                 return true;
@@ -943,7 +983,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (startsWith(p + 1, "verror-supplements"))
         {
-            if (!params.errorSupplementLimit.parseDigits(p.toDString()[20 .. $]))
+            if (!params.v.errorSupplementLimit.parseDigits(p.toDString()[20 .. $]))
             {
                 errorInvalidSwitch(p, "Only a number is allowed for `-verror-supplements`");
                 return true;
@@ -956,10 +996,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             switch (style)
             {
             case "digitalmars":
-                params.messageStyle = MessageStyle.digitalmars;
+                params.v.messageStyle = MessageStyle.digitalmars;
                 break;
             case "gnu":
-                params.messageStyle = MessageStyle.gnu;
+                params.v.messageStyle = MessageStyle.gnu;
                 break;
             default:
                 error("unknown error style '%.*s', must be 'digitalmars' or 'gnu'", cast(int) style.length, style.ptr);
@@ -976,7 +1016,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             enum len = "-mcpu=".length;
             // Parse:
             //      -mcpu=identifier
-            mixin(checkOptionsMixin("mcpuUsage",
+            mixin(checkOptionsMixin("mcpu",
                 "`-mcpu=<architecture>` requires an architecture"));
             if (Identifier.isValidIdentifier(p + len))
             {
@@ -997,14 +1037,14 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     break;
                 default:
                     errorInvalidSwitch(p, "Only `baseline`, `avx`, `avx2` or `native` are allowed for `-mcpu`");
-                    params.mcpuUsage = true;
+                    params.help.mcpu = true;
                     return false;
                 }
             }
             else
             {
                 errorInvalidSwitch(p, "Only `baseline`, `avx`, `avx2` or `native` are allowed for `-mcpu`");
-                params.mcpuUsage = true;
+                params.help.mcpu = true;
                 return false;
             }
         }
@@ -1043,7 +1083,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             enum len = "-extern-std=".length;
             // Parse:
             //      -extern-std=identifier
-            mixin(checkOptionsMixin("externStdUsage",
+            mixin(checkOptionsMixin("externStd",
                 "`-extern-std=<standard>` requires a standard"));
             const(char)[] cpprev = arg[len .. $];
 
@@ -1066,7 +1106,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 break;
             default:
                 error("switch `%s` is invalid", p);
-                params.externStdUsage = true;
+                params.help.externStd = true;
                 return false;
             }
         }
@@ -1075,7 +1115,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             enum len = "-transition=".length;
             // Parse:
             //      -transition=number
-            mixin(checkOptionsMixin("transitionUsage",
+            mixin(checkOptionsMixin("transition",
                 "`-transition=<name>` requires a name"));
             if (!parseCLIOption!("transition", Usage.transitions)(params, arg))
             {
@@ -1092,7 +1132,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     switch (num)
                     {
                         case 3449:
-                            params.vfield = true;
+                            params.v.field = true;
                             break;
                         case 14_246:
                             params.dtorFields = FeatureState.enabled;
@@ -1104,7 +1144,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                             break;
                         default:
                             error("transition `%s` is invalid", p);
-                            params.transitionUsage = true;
+                            params.help.transition = true;
                             return false;
                     }
                 }
@@ -1121,12 +1161,12 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                             break;
                         default:
                             error("transition `%s` is invalid", p);
-                            params.transitionUsage = true;
+                            params.help.transition = true;
                             return false;
                     }
                 }
                 errorInvalidSwitch(p);
-                params.transitionUsage = true;
+                params.help.transition = true;
                 return false;
             }
         }
@@ -1135,13 +1175,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             enum len = "-preview=".length;
             // Parse:
             //      -preview=name
-            mixin(checkOptionsMixin("previewUsage",
+            mixin(checkOptionsMixin("preview",
                 "`-preview=<name>` requires a name"));
 
             if (!parseCLIOption!("preview", Usage.previews)(params, arg))
             {
                 error("preview `%s` is invalid", p);
-                params.previewUsage = true;
+                params.help.preview = true;
                 return false;
             }
 
@@ -1158,13 +1198,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             enum len = "-revert=".length;
             // Parse:
             //      -revert=name
-            mixin(checkOptionsMixin("revertUsage",
+            mixin(checkOptionsMixin("revert",
                 "`-revert=<name>` requires a name"));
 
             if (!parseCLIOption!("revert", Usage.reverts)(params, arg))
             {
                 error("revert `%s` is invalid", p);
-                params.revertUsage = true;
+                params.help.revert = true;
                 return false;
             }
         }
@@ -1174,8 +1214,9 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.warnings = DiagnosticReporting.inform;
         else if (arg == "-wo")  // https://dlang.org/dmd.html#switch-wo
         {
-            params.warnings = DiagnosticReporting.inform;
-            params.obsolete = true;
+            // Obsolete features has been obsoleted until a DIP for "additions"
+            // has been drafted and ratified in the language spec.
+            // Rather, these old features will just be accepted without warning.
         }
         else if (arg == "-O")   // https://dlang.org/dmd.html#switch-O
             driverParams.optimize = true;
@@ -1256,7 +1297,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 break;
             case '=':
                 enum len = "-HC=".length;
-                mixin(checkOptionsMixin("hcUsage", "`-HC=<mode>` requires a valid mode"));
+                mixin(checkOptionsMixin("hc", "`-HC=<mode>` requires a valid mode"));
                 const mode = arg[len .. $];
                 switch (mode)
                 {
@@ -1268,7 +1309,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                         break;
                     default:
                         errorInvalidSwitch(p);
-                        params.hcUsage = true;
+                        params.help.hc = true;
                         return false;
                 }
                 break;
@@ -1422,6 +1463,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             else
                 goto Lerror;
         }
+        else if (arg == "-nothrow") // https://dlang.org/dmd.html#switch-nothrow
+        {
+            params.useExceptions = false;
+        }
         else if (arg == "-unittest")
             params.useUnitTests = true;
         else if (p[1] == 'I')              // https://dlang.org/dmd.html#switch-I
@@ -1464,9 +1509,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 }
                 else if (Identifier.isValidIdentifier(p + 7))
                 {
-                    if (!params.debugids)
-                        params.debugids = new Array!(const(char)*);
-                    params.debugids.push(p + 7);
+                    DebugCondition.addGlobalIdent((p + 7).toDString());
                 }
                 else
                     goto Lerror;
@@ -1494,10 +1537,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 }
                 else if (Identifier.isValidIdentifier(p + 9))
                 {
-
-                    if (!params.versionids)
-                        params.versionids = new Array!(const(char)*);
-                    params.versionids.push(p + 9);
+                    VersionCondition.addGlobalIdent((p+9).toDString());
                 }
                 else
                     goto Lerror;
@@ -1514,14 +1554,14 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (arg == "--help" ||
                  arg == "-h")
         {
-            params.usage = true;
+            params.help.usage = true;
             return false;
         }
         else if (arg == "--r")
             driverParams.debugr = true;
         else if (arg == "--version")
         {
-            params.logo = true;
+            params.v.logo = true;
             return false;
         }
         else if (arg == "--x")
@@ -1594,7 +1634,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (startsWith(p + 1, "man"))   // https://dlang.org/dmd.html#switch-man
         {
-            params.manual = true;
+            params.help.manual = true;
             return false;
         }
         else if (arg == "-run")              // https://dlang.org/dmd.html#switch-run

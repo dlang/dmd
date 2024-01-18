@@ -1,7 +1,7 @@
 /**
  * Convert to Intermediate Representation (IR) for the back-end.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/_tocsym.d, _toir.d)
@@ -56,9 +56,6 @@ import dmd.mtype;
 import dmd.target;
 import dmd.tocvdebug;
 import dmd.tocsym;
-
-alias toSymbol = dmd.tocsym.toSymbol;
-alias toSymbol = dmd.glue.toSymbol;
 
 /****************************************
  * Our label symbol
@@ -158,8 +155,6 @@ struct IRState
     }
 }
 
-extern (C++):
-
 /*********************************************
  * Produce elem which increments the usage count for a particular line.
  * Sets corresponding bit in bitmap `m.covb[linnum]`.
@@ -177,22 +172,22 @@ extern (D) elem *incUsageElem(ref IRState irs, const ref Loc loc)
     uint linnum = loc.linnum;
 
     Module m = cast(Module)irs.blx._module;
+    //printf("m.cov %p linnum %d filename %s srcfile %s\n", m.cov, linnum, loc.filename, m.srcfile.toChars());
     if (!m.cov || !linnum ||
-        loc.filename != m.srcfile.toChars())
+        strcmp(loc.filename, m.srcfile.toChars()))
         return null;
 
-    //printf("cov = %p, covb = %p, linnum = %u\n", m.cov, m.covb, p, linnum);
+    //printf("cov = %p, covb = %p, linnum = %u\n", m.cov, m.covb.ptr, p, linnum);
 
     linnum--;           // from 1-based to 0-based
 
     /* Set bit in covb[] indicating this is a valid code line number
      */
-    uint *p = m.covb;
-    if (p)      // covb can be null if it has already been written out to its .obj file
+    if (m.covb.length)    // covb can be null if it has already been written out to its .obj file
     {
         assert(linnum < m.numlines);
-        p += linnum / ((*p).sizeof * 8);
-        *p |= 1 << (linnum & ((*p).sizeof * 8 - 1));
+        size_t i = linnum / (m.covb[0].sizeof * 8);
+        m.covb[i] |= 1 << (linnum & (m.covb[0].sizeof * 8 - 1));
     }
 
     /* Generate: *(m.cov + linnum * 4) += 1
@@ -749,7 +744,7 @@ uint setClosureVarOffset(FuncDeclaration fd)
             memalignsize = v.type.alignsize();
             xalign = v.alignment;
         }
-        AggregateDeclaration.alignmember(xalign, memalignsize, &offset);
+        offset = alignmember(xalign, memalignsize, offset);
         v.offset = offset;
         //printf("closure var %s, offset = %d\n", v.toChars(), v.offset);
 
@@ -983,6 +978,7 @@ void buildClosure(FuncDeclaration fd, ref IRState irs)
  * Reference:
  *      setClosureVarOffset
  */
+private
 uint setAlignSectionVarOffset(FuncDeclaration fd)
 {
     // Nothing to do
@@ -1005,7 +1001,7 @@ uint setAlignSectionVarOffset(FuncDeclaration fd)
         const memalignsize = v.type.alignsize();
         const xalign = v.alignment;
 
-        AggregateDeclaration.alignmember(xalign, memalignsize, &offset);
+        offset = alignmember(xalign, memalignsize, offset);
         v.offset = offset;
         //printf("align closure var %s, offset = %d\n", v.toChars(), offset);
 

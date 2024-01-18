@@ -7,7 +7,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/util2.d, backend/util2.d)
@@ -76,7 +76,7 @@ int binary(const(char)* p, const(char)*  *table,int high)
 version (X86asm)
 {
     alias len = high;        // reuse parameter storage
-    asm nothrow
+    asm nothrow @nogc
     {
 
 // First find the length of the identifier.

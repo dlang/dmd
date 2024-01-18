@@ -2,7 +2,7 @@
  * Generate code instructions
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgen.d, backend/cgen.d)
@@ -341,7 +341,8 @@ static if (TARGET_SEGMENTED)
             // outdata(Symbol *s)
             if (f.sym.Sseg == UNKNOWN)
             {
-                printf("Error: no definition for static %s\n", prettyident(f.sym)); // no definition found for static
+                error(null, 0, 0, "no definition found for static `%s` in this module, statics defined in one module cannot be referenced from another",
+                    prettyident(f.sym)); // no definition found for static
                 err_exit(); // BUG: do better
             }
         }

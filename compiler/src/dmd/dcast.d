@@ -1,7 +1,7 @@
 /**
  * Semantic analysis for cast-expressions.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dcast.d, _dcast.d)
@@ -20,9 +20,11 @@ import dmd.arraytypes;
 import dmd.astenums;
 import dmd.dclass;
 import dmd.declaration;
+import dmd.dinterpret;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
+import dmd.dsymbolsem;
 import dmd.errors;
 import dmd.escape;
 import dmd.expression;
@@ -32,19 +34,18 @@ import dmd.globals;
 import dmd.hdrgen;
 import dmd.location;
 import dmd.impcnvtab;
-import dmd.id;
 import dmd.importc;
 import dmd.init;
 import dmd.intrange;
 import dmd.mtype;
 import dmd.opover;
+import dmd.optimize;
 import dmd.root.ctfloat;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.utf;
 import dmd.tokens;
 import dmd.typesem;
-import dmd.visitor;
 
 enum LOG = false;
 
@@ -68,12 +69,11 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
     Expression visit(Expression e)
     {
         // printf("Expression.implicitCastTo(%s of type %s) => %s\n", e.toChars(), e.type.toChars(), t.toChars());
-
         if (const match = (sc && sc.flags & SCOPE.Cfile) ? e.cimplicitConvTo(t) : e.implicitConvTo(t))
         {
             // no need for an extra cast when matching is exact
 
-            if (match == MATCH.convert && e.type.isTypeNoreturn())
+            if (match == MATCH.convert && e.type.isTypeNoreturn() && e.op != EXP.type)
             {
                 return specialNoreturnCast(e, t);
             }
@@ -138,7 +138,7 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
         {
             if (!t.deco)
             {
-                e.error("forward reference to type `%s`", t.toChars());
+                error(e.loc, "forward reference to type `%s`", t.toChars());
             }
             else
             {
@@ -146,7 +146,7 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
                 //type = type.typeSemantic(loc, sc);
                 //printf("type %s t %s\n", type.deco, t.deco);
                 auto ts = toAutoQualChars(e.type, t);
-                e.error("cannot implicitly convert expression `%s` of type `%s` to `%s`",
+                error(e.loc, "cannot implicitly convert expression `%s` of type `%s` to `%s`",
                     e.toChars(), ts[0], ts[1]);
             }
         }
@@ -174,7 +174,7 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
     {
         //printf("FuncExp::implicitCastTo type = %p %s, t = %s\n", e.type, e.type ? e.type.toChars() : NULL, t.toChars());
         FuncExp fe;
-        if (e.matchType(t, sc, &fe) > MATCH.nomatch)
+        if (e.matchType(t, sc, &fe, global.errorSink) > MATCH.nomatch)
         {
             return fe;
         }
@@ -234,7 +234,7 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
  * Returns:
  *   The `MATCH` level between `e.type` and `t`.
  */
-MATCH implicitConvTo(Expression e, Type t)
+extern(C++) MATCH implicitConvTo(Expression e, Type t)
 {
     MATCH visit(Expression e)
     {
@@ -247,7 +247,7 @@ MATCH implicitConvTo(Expression e, Type t)
             return MATCH.nomatch;
         if (!e.type)
         {
-            e.error("`%s` is not an expression", e.toChars());
+            error(e.loc, "`%s` is not an expression", e.toChars());
             e.type = Type.terror;
         }
 
@@ -718,6 +718,14 @@ MATCH implicitConvTo(Expression e, Type t)
                     if (e.postfix != 'd')
                         m = MATCH.convert;
                     return m;
+                case Tint8:
+                case Tuns8:
+                    if (e.hexString)
+                    {
+                        m = MATCH.convert;
+                        return m;
+                    }
+                    break;
                 case Tenum:
                     if (tn.isTypeEnum().sym.isSpecial())
                     {
@@ -794,8 +802,8 @@ MATCH implicitConvTo(Expression e, Type t)
 
             return result;
         }
-        else if (tb.ty == Tvector && (typeb.ty == Tarray || typeb.ty == Tsarray))
-        {
+        else if (tb.ty == Tvector && (typeb.ty == Tarray || typeb.ty == Tsarray || typeb.ty == Tpointer))
+        {   // Tpointer because ImportC eagerly converts Tsarray to Tpointer
             result = MATCH.exact;
             // Convert array literal to vector type
             TypeVector tv = tb.isTypeVector();
@@ -1075,7 +1083,7 @@ MATCH implicitConvTo(Expression e, Type t)
     MATCH visitFunc(FuncExp e)
     {
         //printf("FuncExp::implicitConvTo type = %p %s, t = %s\n", e.type, e.type ? e.type.toChars() : NULL, t.toChars());
-        MATCH m = e.matchType(t, null, null, 1);
+        MATCH m = e.matchType(t, null, null, global.errorSinkNull);
         if (m > MATCH.nomatch)
         {
             return m;
@@ -1479,6 +1487,10 @@ MATCH cimplicitConvTo(Expression e, Type t)
 
     if (tb.equals(typeb))
         return MATCH.exact;
+
+    if (tb.isTypeVector() || typeb.isTypeVector())
+        return implicitConvTo(e, t);    // permissive checking doesn't apply to vectors
+
     if ((typeb.isintegral() || typeb.isfloating()) &&
         (tb.isintegral() || tb.isfloating()))
         return MATCH.convert;
@@ -1537,7 +1549,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         {
             return e;
         }
-        if (e.type.isTypeNoreturn())
+        if (e.type.isTypeNoreturn() && e.op != EXP.type)
         {
             return specialNoreturnCast(e, t);
         }
@@ -1623,6 +1635,13 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         }
         else if (tob.ty == Tvector && t1b.ty != Tvector)
         {
+            if (t1b.ty == Tsarray)
+            {
+                // Casting static array to vector with same size, e.g. `cast(int4) int[4]`
+                if (t1b.size(e.loc) != tob.size(e.loc))
+                    goto Lfail;
+                return new VectorExp(e.loc, e, tob).expressionSemantic(sc);
+            }
             //printf("test1 e = %s, e.type = %s, tob = %s\n", e.toChars(), e.type.toChars(), tob.toChars());
             TypeVector tv = tob.isTypeVector();
             Expression result = new CastExp(e.loc, e, tv.elementType());
@@ -1674,7 +1693,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 goto Lok;
 
             auto ts = toAutoQualChars(e.type, t);
-            e.error("cannot cast expression `%s` of type `%s` to `%s` because of different sizes",
+            error(e.loc, "cannot cast expression `%s` of type `%s` to `%s` because of different sizes",
                 e.toChars(), ts[0], ts[1]);
             return ErrorExp.get();
         }
@@ -1703,7 +1722,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                     const dim = t1b.isTypeSArray().dim.toInteger();
                     if (tsize == 0 || (dim * fsize) % tsize != 0)
                     {
-                        e.error("cannot cast expression `%s` of type `%s` to `%s` since sizes don't line up",
+                        error(e.loc, "cannot cast expression `%s` of type `%s` to `%s` since sizes don't line up",
                                 e.toChars(), e.type.toChars(), t.toChars());
                         return ErrorExp.get();
                     }
@@ -1746,7 +1765,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 // void delegate() dg;
                 // cast(U*)dg; // ==> cast(U*)dg.ptr;
                 // Note that it happens even when U is a Tfunction!
-                e.deprecation("casting from %s to %s is deprecated", e.type.toChars(), t.toChars());
+                deprecation(e.loc, "casting from %s to %s is deprecated", e.type.toChars(), t.toChars());
                 goto Lok;
             }
             goto Lfail;
@@ -1764,7 +1783,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 if (result)
                     return result;
             }
-            e.error("cannot cast expression `%s` of type `%s` to `%s`", e.toChars(), e.type.toChars(), t.toChars());
+            error(e.loc, "cannot cast expression `%s` of type `%s` to `%s`", e.toChars(), e.type.toChars(), t.toChars());
             return ErrorExp.get();
         }
 
@@ -1833,7 +1852,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         if (!e.committed && t.ty == Tpointer && t.nextOf().ty == Tvoid &&
             (!sc || !(sc.flags & SCOPE.Cfile)))
         {
-            e.error("cannot convert string literal to `void*`");
+            error(e.loc, "cannot convert string literal to `void*`");
             return ErrorExp.get();
         }
 
@@ -1971,7 +1990,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 {
                     dchar c;
                     if (const s = utf_decodeChar(se.peekString(), u, c))
-                        e.error("%.*s", cast(int)s.length, s.ptr);
+                        error(e.loc, "%.*s", cast(int)s.length, s.ptr);
                     else
                         buffer.writeUTF16(c);
                 }
@@ -1984,7 +2003,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 {
                     dchar c;
                     if (const s = utf_decodeChar(se.peekString(), u, c))
-                        e.error("%.*s", cast(int)s.length, s.ptr);
+                        error(e.loc, "%.*s", cast(int)s.length, s.ptr);
                     buffer.write4(c);
                     newlen++;
                 }
@@ -1996,7 +2015,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 {
                     dchar c;
                     if (const s = utf_decodeWchar(se.peekWstring(), u, c))
-                        e.error("%.*s", cast(int)s.length, s.ptr);
+                        error(e.loc, "%.*s", cast(int)s.length, s.ptr);
                     else
                         buffer.writeUTF8(c);
                 }
@@ -2009,7 +2028,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 {
                     dchar c;
                     if (const s = utf_decodeWchar(se.peekWstring(), u, c))
-                        e.error("%.*s", cast(int)s.length, s.ptr);
+                        error(e.loc, "%.*s", cast(int)s.length, s.ptr);
                     buffer.write4(c);
                     newlen++;
                 }
@@ -2021,7 +2040,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 {
                     uint c = se.peekDstring()[u];
                     if (!utf_isValidDchar(c))
-                        e.error("invalid UCS-32 char \\U%08x", c);
+                        error(e.loc, "invalid UCS-32 char \\U%08x", c);
                     else
                         buffer.writeUTF8(c);
                     newlen++;
@@ -2035,7 +2054,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 {
                     uint c = se.peekDstring()[u];
                     if (!utf_isValidDchar(c))
-                        e.error("invalid UCS-32 char \\U%08x", c);
+                        error(e.loc, "invalid UCS-32 char \\U%08x", c);
                     else
                         buffer.writeUTF16(c);
                     newlen++;
@@ -2283,9 +2302,10 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 ae.type = tp;
             }
         }
-        else if (tb.ty == Tvector && (typeb.ty == Tarray || typeb.ty == Tsarray))
+        else if (tb.ty == Tvector && (typeb.ty == Tarray || typeb.ty == Tsarray || typeb.ty == Tpointer))
         {
             // Convert array literal to vector type
+            // The Tpointer case comes from C eagerly converting Tsarray to Tpointer
             TypeVector tv = tb.isTypeVector();
             TypeSArray tbase = tv.basetype.isTypeSArray();
             assert(tbase.ty == Tsarray);
@@ -2395,7 +2415,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                     }
                     else if (f.needThis())
                     {
-                        e.error("no `this` to create delegate for `%s`", f.toChars());
+                        error(e.loc, "no `this` to create delegate for `%s`", f.toChars());
                         return ErrorExp.get();
                     }
                     else if (f.isNested())
@@ -2405,7 +2425,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                     }
                     else
                     {
-                        e.error("cannot cast from function pointer to delegate");
+                        error(e.loc, "cannot cast from function pointer to delegate");
                         return ErrorExp.get();
                     }
                 }
@@ -2446,7 +2466,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             int offset;
             e.func.tookAddressOf++;
             if (e.func.tintro && e.func.tintro.nextOf().isBaseOf(e.func.type.nextOf(), &offset) && offset)
-                e.error("%s", msg.ptr);
+                error(e.loc, "%s", msg.ptr);
             auto result = e.copy();
             result.type = t;
             return result;
@@ -2462,7 +2482,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 {
                     int offset;
                     if (f.tintro && f.tintro.nextOf().isBaseOf(f.type.nextOf(), &offset) && offset)
-                        e.error("%s", msg.ptr);
+                        error(e.loc, "%s", msg.ptr);
                     if (f != e.func)    // if address not already marked as taken
                         f.tookAddressOf++;
                     auto result = new DelegateExp(e.loc, e.e1, f, false, e.vthis2);
@@ -2470,7 +2490,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                     return result;
                 }
                 if (e.func.tintro)
-                    e.error("%s", msg.ptr);
+                    error(e.loc, "%s", msg.ptr);
             }
         }
 
@@ -2489,7 +2509,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
     {
         //printf("FuncExp::castTo type = %s, t = %s\n", e.type.toChars(), t.toChars());
         FuncExp fe;
-        if (e.matchType(t, sc, &fe, 1) > MATCH.nomatch)
+        if (e.matchType(t, sc, &fe, global.errorSinkNull) > MATCH.nomatch)
         {
             return fe;
         }
@@ -2599,7 +2619,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             }
         }
         auto ts = toAutoQualChars(tsa ? tsa : e.type, t);
-        e.error("cannot cast expression `%s` of type `%s` to `%s`",
+        error(e.loc, "cannot cast expression `%s` of type `%s` to `%s`",
             e.toChars(), ts[0], ts[1]);
         return ErrorExp.get();
     }
@@ -3613,7 +3633,7 @@ Expression integralPromotions(Expression e, Scope* sc)
     switch (e.type.toBasetype().ty)
     {
     case Tvoid:
-        e.error("void has no value");
+        error(e.loc, "void has no value");
         return ErrorExp.get();
 
     case Tint8:
@@ -3662,7 +3682,7 @@ void fix16997(Scope* sc, UnaExp ue)
             case Tchar:
             case Twchar:
             case Tdchar:
-                ue.deprecation("integral promotion not done for `%s`, remove '-revert=intpromote' switch or `%scast(int)(%s)`",
+                deprecation(ue.loc, "integral promotion not done for `%s`, remove '-revert=intpromote' switch or `%scast(int)(%s)`",
                     ue.toChars(), EXPtoString(ue.op).ptr, ue.e1.toChars());
                 break;
 
@@ -3678,7 +3698,7 @@ void fix16997(Scope* sc, UnaExp ue)
  * This is to enable comparing things like an immutable
  * array with a mutable one.
  */
-extern (C++) bool arrayTypeCompatibleWithoutCasting(Type t1, Type t2)
+extern (D) bool arrayTypeCompatibleWithoutCasting(Type t1, Type t2)
 {
     t1 = t1.toBasetype();
     t2 = t2.toBasetype();

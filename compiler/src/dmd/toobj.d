@@ -1,7 +1,7 @@
 /**
  * Convert an AST that went through all semantic phases into an object file.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _toobj.d)
@@ -18,13 +18,15 @@ import core.stdc.time;
 
 import dmd.root.array;
 import dmd.common.outbuffer;
+import dmd.common.smallbuffer : SmallBuffer;
 import dmd.root.rmem;
-import dmd.root.rootobject;
+import dmd.rootobject;
 
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.attrib;
+import dmd.dcast;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
@@ -35,6 +37,7 @@ import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
@@ -71,12 +74,6 @@ import dmd.backend.obj;
 import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
-
-extern (C++):
-
-alias toSymbol = dmd.tocsym.toSymbol;
-alias toSymbol = dmd.glue.toSymbol;
-
 
 /* ================================================================== */
 
@@ -217,6 +214,8 @@ void genModuleInfo(Module m)
     //////////////////////////////////////////////
 
     objmod.moduleinfo(msym);
+    if (driverParams.exportVisibility == ExpVis.public_)
+        objmod.export_symbol(msym, 0);
 }
 
 /*****************************************
@@ -246,27 +245,46 @@ void write_pointers(Type type, Symbol *s, uint offset)
 */
 void write_instance_pointers(Type type, Symbol *s, uint offset)
 {
+    import dmd.typesem : hasPointers;
     if (!type.hasPointers())
         return;
 
     Array!(ulong) data;
-    ulong sz = getTypePointerBitmap(Loc.initial, type, &data);
+    const ulong sz = getTypePointerBitmap(Loc.initial, type, data, global.errorSink);
     if (sz == ulong.max)
         return;
 
     const bytes_size_t = cast(size_t)Type.tsize_t.size(Loc.initial);
     const bits_size_t = bytes_size_t * 8;
     auto words = cast(size_t)(sz / bytes_size_t);
-    for (size_t i = 0; i < data.length; i++)
+    foreach (i, const element; data[])
     {
         size_t bits = words < bits_size_t ? words : bits_size_t;
-        for (size_t b = 0; b < bits; b++)
-            if (data[i] & (1L << b))
+        foreach (size_t b; 0 .. bits)
+            if (element & (1L << b))
             {
                 auto off = cast(uint) ((i * bits_size_t + b) * bytes_size_t);
                 objmod.write_pointerRef(s, off + offset);
             }
         words -= bits;
+    }
+}
+
+/****************************************************
+ * Put out instance of the `TypeInfo` object associated with `t` if it
+ * hasn't already been generated
+ * Params:
+ *      e   = if not null, then expression for pretty-printing errors
+ *      loc = the location for reporting line numbers in errors
+ *      t   = the type to generate the `TypeInfo` object for
+ */
+void TypeInfo_toObjFile(Expression e, const ref Loc loc, Type t)
+{
+    // printf("TypeInfo_toObjFIle() %s\n", torig.toChars());
+    if (genTypeInfo(e, loc, t, null))
+    {
+        // generate a COMDAT for other TypeInfos not available as builtins in druntime
+        toObjFile(t.vtinfo, global.params.multiobj);
     }
 }
 
@@ -315,7 +333,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             if (cd.type.ty == Terror)
             {
-                cd.error("had semantic errors when compiling");
+                .error(cd.loc, "%s `%s` had semantic errors when compiling", cd.kind, cd.toPrettyChars);
                 return;
             }
 
@@ -377,13 +395,15 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 sinit.Sdt = dtb.finish();
                 out_readonly(sinit);
                 outdata(sinit);
+                if (cd.isExport() || driverParams.exportVisibility == ExpVis.public_)
+                    objmod.export_symbol(sinit, 0);
             }
 
             //////////////////////////////////////////////
 
             // Put out the TypeInfo
             if (gentypeinfo)
-                genTypeInfo(null, cd.loc, cd.type, null);
+                TypeInfo_toObjFile(null, cd.loc, cd.type);
             //toObjFile(cd.type.vtinfo, multiobj);
 
             if (genclassinfo)
@@ -423,8 +443,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
             cd.vtblsym.csym.Sfl = FLdata;
             out_readonly(cd.vtblsym.csym);
             outdata(cd.vtblsym.csym);
-            if (cd.isExport())
-                objmod.export_symbol(cd.vtblsym.csym,0);
+            if (cd.isExport() || driverParams.exportVisibility == ExpVis.public_)
+                objmod.export_symbol(cd.vtblsym.csym, 0);
         }
 
         override void visit(InterfaceDeclaration id)
@@ -433,7 +453,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             if (id.type.ty == Terror)
             {
-                id.error("had semantic errors when compiling");
+                .error(id.loc, "had semantic errors when compiling", id.kind, id.toPrettyChars);
                 return;
             }
 
@@ -466,7 +486,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             // Put out the TypeInfo
             if (gentypeinfo)
             {
-                genTypeInfo(null, id.loc, id.type, null);
+                TypeInfo_toObjFile(null, id.loc, id.type);
                 id.type.vtinfo.accept(this);
             }
 
@@ -482,7 +502,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             if (sd.type.ty == Terror)
             {
-                sd.error("had semantic errors when compiling");
+                .error(sd.loc, "%s `%s` had semantic errors when compiling", sd.kind, sd.toPrettyChars);
                 return;
             }
 
@@ -502,7 +522,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     toDebug(sd);
 
                 if (global.params.useTypeInfo && Type.dtypeinfo)
-                    genTypeInfo(null, sd.loc, sd.type, null);
+                    TypeInfo_toObjFile(null, sd.loc, sd.type);
 
                 // Generate static initializer
                 auto sinit = toInitializer(sd);
@@ -529,6 +549,8 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     else
                         out_readonly(sinit);    // put in read-only segment
                     outdata(sinit);
+                    if (sd.isExport() || driverParams.exportVisibility == ExpVis.public_)
+                        objmod.export_symbol(sinit, 0);
                 }
 
                 // Put out the members
@@ -554,7 +576,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             if (vd.type.ty == Terror)
             {
-                vd.error("had semantic errors when compiling");
+                .error(vd.loc, "%s `%s` had semantic errors when compiling", vd.kind, vd.toPrettyChars);
                 return;
             }
 
@@ -577,12 +599,12 @@ void toObjFile(Dsymbol ds, bool multiobj)
             const sz64 = vd.type.size(vd.loc);
             if (sz64 == SIZE_INVALID)
             {
-                vd.error("size overflow");
+                .error(vd.loc, "%s `%s` size overflow", vd.kind, vd.toPrettyChars);
                 return;
             }
             if (sz64 > target.maxStaticDataSize)
             {
-                vd.error("size of 0x%llx exceeds max allowed size 0x%llx", sz64, target.maxStaticDataSize);
+                .error(vd.loc, "%s `%s` size of 0x%llx exceeds max allowed size 0x%llx", vd.kind, vd.toPrettyChars, sz64, target.maxStaticDataSize);
             }
             uint sz = cast(uint)sz64;
 
@@ -658,7 +680,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             outdata(s);
             if (vd.type.isMutable() || !vd._init)
                 write_pointers(vd.type, s, 0);
-            if (vd.isExport())
+            if (vd.isExport() || driverParams.exportVisibility == ExpVis.public_)
                 objmod.export_symbol(s, 0);
         }
 
@@ -670,7 +692,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             if (ed.errors || ed.type.ty == Terror)
             {
-                ed.error("had semantic errors when compiling");
+                .error(ed.loc, "%s `%s` had semantic errors when compiling", ed.kind, ed.toPrettyChars);
                 return;
             }
 
@@ -683,9 +705,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 toDebug(ed);
 
             if (global.params.useTypeInfo && Type.dtypeinfo)
-                genTypeInfo(null, ed.loc, ed.type, null);
+                TypeInfo_toObjFile(null, ed.loc, ed.type);
 
-            TypeEnum tc = cast(TypeEnum)ed.type;
+            TypeEnum tc = ed.type.isTypeEnum();
             if (!tc.sym.members || ed.type.isZeroInit(Loc.initial))
             {
             }
@@ -740,7 +762,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             }
 
             outdata(s);
-            if (tid.isExport())
+            if (tid.isExport() || driverParams.exportVisibility == ExpVis.public_)
                 objmod.export_symbol(s, 0);
         }
 
@@ -768,7 +790,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 assert(e.op == EXP.string_);
 
-                StringExp se = cast(StringExp)e;
+                StringExp se = e.isStringExp();
                 char *name = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
                 se.writeTo(name, true);
 
@@ -831,11 +853,15 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 assert(e.op == EXP.string_);
 
-                StringExp se = cast(StringExp)e;
-                char *directive = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
-                se.writeTo(directive, true);
+                StringExp se = e.isStringExp();
+                size_t length = se.numberOfCodeUnits() + 1;
+                debug enum LEN = 2; else enum LEN = 20;
+                char[LEN] buffer = void;
+                SmallBuffer!char directive = SmallBuffer!char(length, buffer);
 
-                obj_linkerdirective(directive);
+                se.writeTo(directive.ptr, true);
+
+                obj_linkerdirective(directive.ptr);
             }
 
             visit(cast(AttribDeclaration)pd);
@@ -909,17 +935,21 @@ void toObjFile(Dsymbol ds, bool multiobj)
             ExpInitializer ie = vd._init.isExpInitializer();
 
             Type tb = vd.type.toBasetype();
-            if (tb.ty == Tsarray && ie &&
-                !tb.nextOf().equals(ie.exp.type.toBasetype().nextOf()) &&
-                ie.exp.implicitConvTo(tb.nextOf())
-                )
+            if (auto tbsa = tb.isTypeSArray())
             {
-                auto dim = (cast(TypeSArray)tb).dim.toInteger();
-
-                // Duplicate Sdt 'dim-1' times, as we already have the first one
-                while (--dim > 0)
+                auto tbsaNext = tbsa.nextOf();
+                if (ie &&
+                    !tbsaNext.equals(ie.exp.type.toBasetype().nextOf()) &&
+                    ie.exp.implicitConvTo(tbsaNext)
+                    )
                 {
-                    Expression_toDt(ie.exp, dtb);
+                    auto dim = tbsa.dim.toInteger();
+
+                    // Duplicate Sdt 'dim-1' times, as we already have the first one
+                    while (--dim > 0)
+                    {
+                        Expression_toDt(ie.exp, dtb);
+                    }
                 }
             }
         }
@@ -1101,7 +1131,7 @@ private bool finishVtbl(ClassDeclaration cd)
                 continue;
             // Hiding detected: same name, overlapping specializations
             TypeFunction tf = fd.type.toTypeFunction();
-            cd.error("use of `%s%s` is hidden by `%s`; use `alias %s = %s.%s;` to introduce base class overload set",
+            .error(cd.loc, "%s `%s` use of `%s%s` is hidden by `%s`; use `alias %s = %s.%s;` to introduce base class overload set", cd.kind, cd.toPrettyChars,
                 fd.toPrettyChars(),
                 parametersTypeToChars(tf.parameterList),
                 cd.toChars(),
@@ -1218,11 +1248,34 @@ private size_t emitVtbl(ref DtBuilder dtb, BaseClass *b, ref FuncDeclarations bv
  */
 private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
 {
+    if (Type.typeinfoclass)
+    {
+        if (Type.typeinfoclass.structsize != target.classinfosize)
+        {
+            debug printf("target.classinfosize = x%x, Type.typeinfoclass.structsize = x%x\n", target.classinfosize, Type.typeinfoclass.structsize);
+            .error(cd.loc, "%s `%s` mismatch between dmd and object.d or object.di found. Check installation and import paths with -v compiler switch.", cd.kind, cd.toPrettyChars);
+            fatal();
+        }
+    }
+
     // Put out the ClassInfo, which will be the __ClassZ symbol in the object file
     SC scclass = SC.comdat;
     cd.csym.Sclass = scclass;
     cd.csym.Sfl = FLdata;
 
+    auto dtb = DtBuilder(0);
+
+    ClassInfoToDt(dtb, cd, sinit);
+
+    cd.csym.Sdt = dtb.finish();
+    // ClassInfo cannot be const data, because we use the monitor on it
+    outdata(cd.csym);
+    if (cd.isExport() || driverParams.exportVisibility == ExpVis.public_)
+        objmod.export_symbol(cd.csym, 0);
+}
+
+private void ClassInfoToDt(ref DtBuilder dtb, ClassDeclaration cd, Symbol* sinit)
+{
     /* The layout is:
        {
             void **vptr;
@@ -1235,26 +1288,17 @@ private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
             void* destructor;
             void function(Object) classInvariant;   // class invariant
             ClassFlags m_flags;
+            ushort depth;
             void* deallocator;
             OffsetTypeInfo[] offTi;
             void function(Object) defaultConstructor;
+            ulong[2] nameSig;
             //const(MemberInfo[]) function(string) xgetMembers;   // module getMembers() function
             immutable(void)* m_RTInfo;
             //TypeInfo typeinfo;
        }
      */
     uint offset = target.classinfosize;    // must be ClassInfo.size
-    if (Type.typeinfoclass)
-    {
-        if (Type.typeinfoclass.structsize != target.classinfosize)
-        {
-            debug printf("target.classinfosize = x%x, Type.typeinfoclass.structsize = x%x\n", offset, Type.typeinfoclass.structsize);
-            cd.error("mismatch between dmd and object.d or object.di found. Check installation and import paths with -v compiler switch.");
-            fatal();
-        }
-    }
-
-    auto dtb = DtBuilder(0);
 
     if (auto tic = Type.typeinfoclass)
     {
@@ -1353,7 +1397,13 @@ Louter:
             }
         }
     }
-    dtb.size(flags);
+
+    int depth = 0;
+    for (ClassDeclaration pc = cd; pc; pc = pc.baseClass)
+        ++depth;  // distance to Object
+
+    // m_flags and depth, align to size_t
+    dtb.size((depth << 16) | flags);
 
     // deallocator
     dtb.size(0);
@@ -1367,6 +1417,17 @@ Louter:
         dtb.xoff(toSymbol(cd.defaultCtor), 0, TYnptr);
     else
         dtb.size(0);
+
+    // ulong[2] nameSig
+    {
+        import dmd.common.md5;
+        MD5_CTX mdContext = void;
+        MD5Init(&mdContext);
+        MD5Update(&mdContext, cast(ubyte*)name, cast(uint)namelen);
+        MD5Final(&mdContext);
+        assert(mdContext.digest.length == 16);
+        dtb.nbytes(16, cast(char*)mdContext.digest.ptr);
+    }
 
     // m_RTInfo
     if (cd.getRTInfo)
@@ -1444,12 +1505,6 @@ Louter:
     dtb.nbytes(cast(uint)(namelen + 1), name);
     const size_t namepad = -(namelen + 1) & (target.ptrsize - 1); // align
     dtb.nzeros(cast(uint)namepad);
-
-    cd.csym.Sdt = dtb.finish();
-    // ClassInfo cannot be const data, because we use the monitor on it
-    outdata(cd.csym);
-    if (cd.isExport())
-        objmod.export_symbol(cd.csym, 0);
 }
 
 /******************************************************
@@ -1466,6 +1521,19 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
     id.csym.Sclass = scclass;
     id.csym.Sfl = FLdata;
 
+    auto dtb = DtBuilder(0);
+
+    InterfaceInfoToDt(dtb, id);
+
+    id.csym.Sdt = dtb.finish();
+    out_readonly(id.csym);
+    outdata(id.csym);
+    if (id.isExport() || driverParams.exportVisibility == ExpVis.public_)
+        objmod.export_symbol(id.csym, 0);
+}
+
+private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
+{
     /* The layout is:
        {
             void **vptr;
@@ -1478,16 +1546,16 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
             void* destructor;
             void function(Object) classInvariant;   // class invariant
             ClassFlags m_flags;
+            ushort depth;
             void* deallocator;
             OffsetTypeInfo[] offTi;
             void function(Object) defaultConstructor;
+            ulong[2] nameSig;
             //const(MemberInfo[]) function(string) xgetMembers;   // module getMembers() function
             immutable(void)* m_RTInfo;
             //TypeInfo typeinfo;
        }
      */
-    auto dtb = DtBuilder(0);
-
     if (auto tic = Type.typeinfoclass)
     {
         dtb.xoff(toVtblSymbol(tic), 0, TYnptr); // vtbl for ClassInfo
@@ -1523,7 +1591,7 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
         {
             if (Type.typeinfoclass.structsize != offset)
             {
-                id.error("mismatch between dmd and object.d or object.di found. Check installation and import paths with -v compiler switch.");
+                .error(id.loc, "%s `%s` mismatch between dmd and object.d or object.di found. Check installation and import paths with -v compiler switch.", id.kind, id.toPrettyChars);
                 fatal();
             }
         }
@@ -1547,7 +1615,7 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
     // flags
     ClassFlags flags = ClassFlags.hasOffTi | ClassFlags.hasTypeInfo;
     if (id.isCOMinterface()) flags |= ClassFlags.isCOMclass;
-    dtb.size(flags);
+    dtb.size(flags); // depth part is 0
 
     // deallocator
     dtb.size(0);
@@ -1558,6 +1626,17 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
 
     // defaultConstructor
     dtb.size(0);
+
+    // ulong[2] nameSig
+    {
+        import dmd.common.md5;
+        MD5_CTX mdContext = void;
+        MD5Init(&mdContext);
+        MD5Update(&mdContext, cast(ubyte*)name, cast(uint)namelen);
+        MD5Final(&mdContext);
+        assert(mdContext.digest.length == 16);
+        dtb.nbytes(16, cast(char*)mdContext.digest.ptr);
+    }
 
     // xgetMembers
     //dtb.size(0);

@@ -117,8 +117,8 @@ coverage()
     dmd -g -od=generated -of=$builder compiler/src/build
     # build dmd, druntime, and phobos
     $builder MODEL=$MODEL HOST_DMD=$DMD BUILD=$BUILD all
-    make -j$N -C druntime -f posix.mak MODEL=$MODEL BUILD=$BUILD
-    make -j$N -C ../phobos -f posix.mak MODEL=$MODEL BUILD=$BUILD
+    make -j$N -C druntime MODEL=$MODEL BUILD=$BUILD
+    make -j$N -C ../phobos MODEL=$MODEL BUILD=$BUILD
 
     # save the built dmd as host compiler this time
     # `generated` gets removed in 'clean', so we create another _generated
@@ -157,7 +157,7 @@ check_clean_git()
     rm -f compiler/test/compilable/vcg-ast.d.cg
     rm -f compiler/test/compilable/vcg-ast-arraylength.d.cg
     # Ensure that there are no untracked changes
-    make -f posix.mak check-clean-git
+    make check-clean-git HOST_DMD=dummy
 }
 
 # sanitycheck for the run_individual_tests script
@@ -189,8 +189,8 @@ test_cxx()
     source "$(CURL_USER_AGENT=\"$CURL_USER_AGENT\" bash ~/dlang/install.sh dmd-$HOST_DMD_VER --activate)"
     echo "Test CXX frontend.h header generation"
     ./compiler/src/build.d
-    make -j$N -C druntime -f posix.mak MODEL=$MODEL BUILD=$BUILD
-    make -j$N -C ../phobos -f posix.mak MODEL=$MODEL BUILD=$BUILD
+    make -j$N -C druntime MODEL=$MODEL BUILD=$BUILD
+    make -j$N -C ../phobos MODEL=$MODEL BUILD=$BUILD
     ./compiler/src/build.d cxx-headers-test
     deactivate
 }

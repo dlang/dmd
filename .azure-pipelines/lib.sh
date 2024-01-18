@@ -2,7 +2,7 @@
 
 CURL_USER_AGENT="DMD-CI $(curl --version | head -n 1)"
 DMD_DIR="$PWD"
-N=$(($(nproc)+1))
+N=$(nproc)
 
 clone() {
     local url="$1"

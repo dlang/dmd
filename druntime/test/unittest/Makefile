@@ -34,11 +34,12 @@ $(ROOT)/na.done: TESTTEXT=
 
 $(ROOT)/%.done: customhandler.d
 	@echo Testing $*
-	$(QUIET)$(DMD) $(DFLAGS) -of$(ROOT)/tester_$(patsubst %.done,%, $(notdir $@)) customhandler.d -version=$(VER)
+	$(QUIET)$(DMD) $(DFLAGS) -of$(ROOT)/tester_$(patsubst %.done,%, $(notdir $@))$(DOTEXE) customhandler.d -version=$(VER)
 	$(QUIET)$(TIMELIMIT)$(ROOT)/tester_$(patsubst %.done,%, $(notdir $@)) > $@ 2>&1; test $$? -eq $(RETCODE)
 	$(QUIET)test $(HASMAIN) -eq 0 || grep -q main $@
 	$(QUIET)test $(HASMAIN) -eq 1 || ! grep -q main $@
 	$(QUIET)test -z "$(TESTTEXT)" || grep -q "$(TESTTEXT) unittests" $@
 	$(QUIET)test -n "$(TESTTEXT)" || ! grep -q "unittests" $@
+
 clean:
 	rm -rf $(GENERATED)

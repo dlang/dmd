@@ -34,6 +34,7 @@ SRCS=\
 	src\core\internal\execinfo.d \
 	src\core\internal\hash.d \
 	src\core\internal\moving.d \
+	src\core\internal\newaa.d \
 	src\core\internal\parseoptions.d \
 	src\core\internal\postblit.d \
 	src\core\internal\qsort.d \
@@ -86,6 +87,7 @@ SRCS=\
 	src\core\internal\vararg\sysv_x64.d \
 	\
 	src\core\stdc\assert_.d \
+	src\core\stdc\stdatomic.d \
 	src\core\stdc\complex.d \
 	src\core\stdc\config.d \
 	src\core\stdc\ctype.d \
@@ -166,12 +168,16 @@ SRCS=\
 	src\core\sys\freebsd\dlfcn.d \
 	src\core\sys\freebsd\err.d \
 	src\core\sys\freebsd\execinfo.d \
-	src\core\sys\freebsd\netinet\in_.d \
+	src\core\sys\freebsd\ifaddrs.d \
 	src\core\sys\freebsd\pthread_np.d \
 	src\core\sys\freebsd\stdlib.d \
 	src\core\sys\freebsd\string.d \
 	src\core\sys\freebsd\time.d \
 	src\core\sys\freebsd\unistd.d \
+	\
+	src\core\sys\freebsd\net\if_dl.d \
+	\
+	src\core\sys\freebsd\netinet\in_.d \
 	\
 	src\core\sys\freebsd\sys\_bitset.d \
 	src\core\sys\freebsd\sys\_cpuset.d \
@@ -184,7 +190,9 @@ SRCS=\
 	src\core\sys\freebsd\sys\link_elf.d \
 	src\core\sys\freebsd\sys\mman.d \
 	src\core\sys\freebsd\sys\mount.d \
+	src\core\sys\freebsd\sys\socket.d \
 	src\core\sys\freebsd\sys\sysctl.d \
+	src\core\sys\freebsd\sys\types.d \
 	\
 	src\core\sys\dragonflybsd\dlfcn.d \
 	src\core\sys\dragonflybsd\err.d \
@@ -231,6 +239,9 @@ SRCS=\
 	src\core\sys\linux\timerfd.d \
 	src\core\sys\linux\tipc.d \
 	src\core\sys\linux\unistd.d \
+	\
+	src\core\sys\linux\linux\if_arp.d \
+	src\core\sys\linux\linux\if_packet.d \
 	\
 	src\core\sys\linux\netinet\in_.d \
 	src\core\sys\linux\netinet\tcp.d \

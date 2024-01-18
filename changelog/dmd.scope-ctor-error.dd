@@ -1,3 +1,0 @@
-Creating a `scope` class instance with a non-scope constructor is `@system` only with DIP1000
-
-The fix for [issue 23145](https://issues.dlang.org/show_bug.cgi?id=23145) broke existing code, so it's put behind `-preview=DIP1000` now, just like other `scope` related errors.

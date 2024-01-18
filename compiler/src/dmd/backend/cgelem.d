@@ -8,7 +8,7 @@
  * i.e. rewriting trees to less expensive trees.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgelem.d, backend/cgelem.d)
@@ -1669,27 +1669,28 @@ Lopt:
 }
 
 /***************************************
- * Fill in ops[maxops] with operands of repeated operator oper.
+ * Fill in ops[] with operands of repeated operator oper.
  * Returns:
  *      true    didn't fail
- *      false   more than maxops operands
+ *      false   more than ops.length operands
  */
 
 @trusted
-bool fillinops(elem **ops, int *opsi, int maxops, int oper, elem *e)
+private
+bool fillinops(elem*[] ops, ref size_t opsi, OPER oper, elem* e)
 {
     if (e.Eoper == oper)
     {
-        if (!fillinops(ops, opsi, maxops, oper, e.EV.E1) ||
-            !fillinops(ops, opsi, maxops, oper, e.EV.E2))
+        if (!fillinops(ops, opsi, oper, e.EV.E1) ||
+            !fillinops(ops, opsi, oper, e.EV.E2))
             return false;
     }
     else
     {
-        if (*opsi >= maxops)
+        if (opsi >= ops.length)
             return false;       // error, too many
-        ops[*opsi] = e;
-        *opsi += 1;
+        ops[opsi] = e;
+        opsi += 1;
     }
     return true;
 }
@@ -1843,15 +1844,14 @@ private elem *elor(elem *e, goal_t goal)
      */
     if (sz == 4 && OPTIMIZER)
     {
-        elem*[4] ops;
-        int opsi = 0;
-        if (fillinops(ops.ptr, &opsi, 4, OPor, e) && opsi == 4)
+        elem*[4] ops = void;
+        size_t opsi = 0;
+        if (fillinops(ops, opsi, OPor, e) && opsi == ops.length)
         {
             elem *ex = null;
             uint bmask = 0;
-            for (int i = 0; i < 4; i++)
+            foreach (eo; ops)
             {
-                elem *eo = ops[i];
                 elem *eo2;
                 int shift;
                 elem *eo111;
@@ -2870,7 +2870,7 @@ private bool optim_loglog(ref elem* pe)
         return false;
     uint ty = e.Ety;
 
-    import dmd.common.string : SmallBuffer;
+    import dmd.common.smallbuffer : SmallBuffer;
     elem*[100] tmp = void;
     auto sb = SmallBuffer!(elem*)(n, tmp[]);
     elem*[] array = sb[];
@@ -4633,6 +4633,13 @@ private elem * elbool(elem *e, goal_t goal)
         case OPnp_fp:
             e1.Eoper = e.Eoper;
             return optelem(el_selecte1(e), goal);
+
+        case OPcomma:
+            // Replace bool(x,y) with x,bool(y)
+            e.EV.E1 = e1.EV.E2;
+            e1.EV.E2 = e;
+            e1.Ety = e.Ety;
+            return optelem(e1, goal);
 
         default:
             break;

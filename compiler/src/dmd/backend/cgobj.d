@@ -3,7 +3,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgobj.d, backend/cgobj.d)
@@ -24,7 +24,6 @@ import dmd.backend.code_x86;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 import dmd.backend.el;
-import dmd.backend.md5;
 import dmd.backend.mem;
 import dmd.backend.global;
 import dmd.backend.obj;
@@ -33,6 +32,7 @@ import dmd.backend.rtlsym;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.common.md5;
 import dmd.common.outbuffer;
 
 nothrow:
@@ -1108,7 +1108,7 @@ void OmfObj_dosseg()
 @trusted
 private void obj_comment(ubyte x, const(char)* string, size_t len)
 {
-    import dmd.common.string : SmallBuffer;
+    import dmd.common.smallbuffer : SmallBuffer;
     char[128] buf = void;
     auto sb = SmallBuffer!char(2 + len, buf[]);
     char *library = sb.ptr;
@@ -1159,7 +1159,7 @@ bool OmfObj_includelib(scope const char[] name)
 *      true if operation is supported
 */
 
-bool OmfObj_linkerdirective(const(char)* name)
+bool OmfObj_linkerdirective(scope const(char)* name)
 {
     return false;
 }
@@ -3021,10 +3021,11 @@ L1:     { }
  * Append bytes to segment.
  */
 
-void OmfObj_write_bytes(seg_data *pseg, uint nbytes, const(void)* p)
+@trusted
+void OmfObj_write_bytes(seg_data *pseg, const(void[]) a)
 {
-    OmfObj_bytes(pseg.SDseg, pseg.SDoffset, nbytes, p);
-    pseg.SDoffset += nbytes;
+    OmfObj_bytes(pseg.SDseg, pseg.SDoffset, a.length, a.ptr);
+    pseg.SDoffset += a.length;
 }
 
 /************************************

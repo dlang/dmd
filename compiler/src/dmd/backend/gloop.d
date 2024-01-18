@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gloop.d, backend/gloop.d)
@@ -3635,7 +3635,7 @@ private void unrollWalker(elem* e, uint defnum, Symbol* v, targ_llong increment,
      * state == unrolls: done
      */
 
-    void walker(elem *e)
+    void walker(elem *e) @trusted
     {
         assert(e);
         const op = e.Eoper;
@@ -3643,7 +3643,7 @@ private void unrollWalker(elem* e, uint defnum, Symbol* v, targ_llong increment,
         {
             if (e.Edef != defnum)
             {
-                walker(e.EV.E2);
+                walker(e.EV.E2); // this function is @trusted because of this union access
                 walker(e.EV.E1);
             }
         }

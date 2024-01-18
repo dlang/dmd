@@ -1,7 +1,7 @@
 /**
  * Functions for raising errors.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/errors.d, _errors.d)
@@ -11,7 +11,7 @@
 
 module dmd.errors;
 
-import core.stdc.stdarg;
+public import core.stdc.stdarg;
 import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -457,12 +457,12 @@ extern (C++) void verrorReport(const ref Loc loc, const(char)* format, va_list a
         {
             info.headerColor = Classification.error;
             verrorPrint(format, ap, info);
-            if (global.params.errorLimit && global.errors >= global.params.errorLimit)
+            if (global.params.v.errorLimit && global.errors >= global.params.v.errorLimit)
                 fatal(); // moderate blizzard of cascading messages
         }
         else
         {
-            if (global.params.showGaggedErrors)
+            if (global.params.v.showGaggedErrors)
             {
                 info.headerColor = Classification.gagged;
                 verrorPrint(format, ap, info);
@@ -549,7 +549,7 @@ extern (C++) void verrorReportSupplemental(const ref Loc loc, const(char)* forma
     case ErrorKind.error:
         if (global.gag)
         {
-            if (!global.params.showGaggedErrors)
+            if (!global.params.v.showGaggedErrors)
                 return;
             info.headerColor = Classification.gagged;
         }
@@ -610,7 +610,7 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
         diagnosticHandler(info.loc, info.headerColor, header, format, ap, info.p1, info.p2))
         return;
 
-    if (global.params.showGaggedErrors && global.gag)
+    if (global.params.v.showGaggedErrors && global.gag)
         fprintf(stderr, "(spec:%d) ", global.gag);
     Console con = cast(Console) global.console;
     const p = info.loc.toChars();
@@ -650,7 +650,7 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
 
     __gshared Loc old_loc;
     Loc loc = info.loc;
-    if (global.params.printErrorContext &&
+    if (global.params.v.printErrorContext &&
         // ignore supplemental messages with same loc
         (loc != old_loc || !info.supplemental) &&
         // ignore invalid files
@@ -661,30 +661,34 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
     {
         import dmd.root.filename : FileName;
         const fileName = FileName(loc.filename.toDString);
-        if (auto file = global.fileManager.lookup(fileName))
+        if (auto text = global.fileManager.getFileContents(fileName))
         {
-            const(char)[][] lines = global.fileManager.getLines(fileName);
-            if (loc.linnum - 1 < lines.length)
+            auto range = global.fileManager.splitLines(cast(const(char[])) text);
+            size_t linnum;
+            foreach (line; range)
             {
-                auto line = lines[loc.linnum - 1];
+                ++linnum;
+                if (linnum != loc.linnum)
+                    continue;
                 if (loc.charnum < line.length)
                 {
                     fprintf(stderr, "%.*s\n", cast(int)line.length, line.ptr);
                     // The number of column bytes and the number of display columns
                     // occupied by a character are not the same for non-ASCII charaters.
                     // https://issues.dlang.org/show_bug.cgi?id=21849
-                    size_t c = 0;
-                    while (c < loc.charnum - 1)
+                    size_t col = 0;
+                    while (col < loc.charnum - 1)
                     {
                         import dmd.root.utf : utf_decodeChar;
                         dchar u;
-                        const msg = utf_decodeChar(line, c, u);
+                        const msg = utf_decodeChar(line, col, u);
                         assert(msg is null, msg);
                         fputc(' ', stderr);
                     }
                     fputc('^', stderr);
                     fputc('\n', stderr);
                 }
+                break;
             }
         }
     }
@@ -805,11 +809,7 @@ private void colorHighlightCode(ref OutBuffer buf)
     }
     ++nested;
 
-    __gshared ErrorSinkNull errorSinkNull;
-    if (!errorSinkNull)
-        errorSinkNull = new ErrorSinkNull;
-
-    scope Lexer lex = new Lexer(null, cast(char*)buf[].ptr, 0, buf.length - 1, 0, 1, errorSinkNull, &global.compileEnv);
+    scope Lexer lex = new Lexer(null, cast(char*)buf[].ptr, 0, buf.length - 1, 0, 1, global.errorSinkNull, &global.compileEnv);
     OutBuffer res;
     const(char)* lastp = cast(char*)buf[].ptr;
     //printf("colorHighlightCode('%.*s')\n", cast(int)(buf.length - 1), buf[].ptr);

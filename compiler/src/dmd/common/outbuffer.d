@@ -1,7 +1,7 @@
 /**
  * An expandable buffer in which you can write text or binary data.
  *
- * Copyright: Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, https://www.digitalmars.com
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/root/outbuffer.d, root/_outbuffer.d)
@@ -281,7 +281,7 @@ struct OutBuffer
         write(&v, v.sizeof);
     }
 
-    /// NOT zero-terminated
+    /// Buffer will NOT be zero-terminated
     extern (C++) void writestring(const(char)* s) pure nothrow @system
     {
         if (!s)
@@ -302,14 +302,14 @@ struct OutBuffer
         write(s);
     }
 
-    /// NOT zero-terminated, followed by newline
+    /// Buffer will NOT be zero-terminated, followed by newline
     void writestringln(const(char)[] s) pure nothrow @safe
     {
         writestring(s);
         writenl();
     }
 
-    /** Write string to buffer, ensure it is zero terminated
+    /** Write C string AND null byte
      */
     void writeStringz(const(char)* s) pure nothrow @system
     {

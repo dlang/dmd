@@ -1,7 +1,7 @@
 /**
  * Convert statements to Intermediate Representation (IR) for the back-end.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _s2ir.d)
@@ -19,7 +19,7 @@ import core.stdc.time;
 
 import dmd.root.array;
 import dmd.root.rmem;
-import dmd.root.rootobject;
+import dmd.rootobject;
 
 import dmd.aggregate;
 import dmd.astenums;
@@ -66,11 +66,6 @@ import dmd.backend.rtlsym;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
-
-extern (C++):
-
-alias toSymbol = dmd.tocsym.toSymbol;
-alias toSymbol = dmd.glue.toSymbol;
 
 alias StmtState = dmd.stmtstate.StmtState!block;
 
@@ -1383,11 +1378,11 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         block_next(blx,BCgoto,null);
         basm = blx.curblock;
         bpre.appendSucc(basm);
-        basm.Bcode = s.asmcode;
+        basm.Bcode = cast(code*)s.asmcode;
         basm.Balign = cast(ubyte)s.asmalign;
 
         // Loop through each instruction, fixing Dsymbols into Symbol's
-        for (code *c = s.asmcode; c; c = c.next)
+        for (code *c = cast(code*)s.asmcode; c; c = c.next)
         {
             switch (c.IFL1)
             {

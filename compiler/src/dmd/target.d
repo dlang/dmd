@@ -15,7 +15,7 @@
  * - $(LINK2 https://github.com/ldc-developers/ldc, LDC repository)
  * - $(LINK2 https://github.com/D-Programming-GDC/gcc, GDC repository)
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/target.d, _target.d)
@@ -414,7 +414,7 @@ extern (C++) struct Target
         // These have default values for 32 bit code, they get
         // adjusted for 64 bit code.
         ptrsize = 4;
-        classinfosize = 0x4C; // 76
+        classinfosize = 0x4C+16; // 92
 
         /* gcc uses int.max for 32 bit compilations, and long.max for 64 bit ones.
          * Set to int.max for both, because the rest of the compiler cannot handle
@@ -427,7 +427,7 @@ extern (C++) struct Target
         if (isLP64)
         {
             ptrsize = 8;
-            classinfosize = 0x98; // 152
+            classinfosize = 0x98+16; // 168
         }
         if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris))
         {
@@ -446,7 +446,7 @@ extern (C++) struct Target
             realsize = 10;
             realpad = 0;
             realalignsize = 2;
-            if (ptrsize == 4)
+            if (omfobj)
             {
                 /* Optlink cannot deal with individual data chunks
                  * larger than 16Mb
@@ -1206,6 +1206,7 @@ extern (C++) struct Target
         cppStd,
         floatAbi,
         objectFormat,
+        CET
     }
 
     /**
@@ -1248,6 +1249,8 @@ extern (C++) struct Target
                 return stringExp("");
             case cppStd.stringof:
                 return new IntegerExp(params.cplusplus);
+            case CET.stringof:
+                return new IntegerExp(driverParams.ibt);
 
             default:
                 return null;

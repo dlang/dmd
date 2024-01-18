@@ -10,7 +10,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod3.d, backend/cod3.d)
@@ -452,7 +452,7 @@ void cod3_align_bytes(int seg, size_t nbytes)
                 n = nops.length;
             p = cast(char*)nops;
         }
-        objmod.write_bytes(SegData[seg],cast(uint)n,cast(char*)p);
+        objmod.write_bytes(SegData[seg],p[0 .. n]);
         nbytes -= n;
     }
 }
@@ -1694,7 +1694,7 @@ void doswitch(ref CodeBuilder cdb, block *b)
 
         // Put into casevals[0..ncases] so we can sort then slice
 
-        import dmd.common.string : SmallBuffer;
+        import dmd.common.smallbuffer : SmallBuffer;
         CaseVal[10] tmp = void;
         auto sb = SmallBuffer!(CaseVal)(ncases, tmp[]);
         CaseVal[] casevals = sb[];
@@ -2124,27 +2124,15 @@ void outjmptab(block *b)
                 objmod.reftocodeseg(jmpseg,*poffset,targ);
             *poffset += 4;
         }
-        else if (config.exe & (EX_OSX | EX_OSX64))
+        else if (config.exe & (EX_OSX | EX_OSX64) || I64)
         {
-            targ_size_t val;
-            if (I64)
-                val = targ - b.Btableoffset;
-            else
-                val = targ - b.Btablebase;
-            objmod.write_bytes(SegData[jmpseg],4,&val);
+            const val = cast(uint)(targ - (I64 ? b.Btableoffset : b.Btablebase));
+            objmod.write_bytes(SegData[jmpseg],(&val)[0 .. 1]);
         }
         else
         {
-            if (I64)
-            {
-                targ_size_t val = targ - b.Btableoffset;
-                objmod.write_bytes(SegData[jmpseg],4,&val);
-            }
-            else
-            {
-                objmod.reftocodeseg(jmpseg,*poffset,targ);
-                *poffset += tysize(TYnptr);
-            }
+            objmod.reftocodeseg(jmpseg,*poffset,targ);
+            *poffset += tysize(TYnptr);
         }
 
         if (u == vmax)                  // for case that (vmax == ~0)
@@ -2177,7 +2165,7 @@ void outswitab(block *b)
     foreach (val; b.Bswitch)          // send out value table
     {
         //printf("\tcase %d, offset = x%x\n", n, *poffset);
-        objmod.write_bytes(SegData[seg],sz,&val);
+        objmod.write_bytes(SegData[seg],(cast(void*)&val)[0 .. sz]);
     }
     offset += alignbytes + sz * ncases;
     assert(*poffset == offset);
@@ -2188,7 +2176,7 @@ void outswitab(block *b)
         foreach (val; b.Bswitch)
         {
             auto msval = cast(targ_size_t)MSREG(val);
-            objmod.write_bytes(SegData[seg],REGSIZE,&msval);
+            objmod.write_bytes(SegData[seg],(cast(void*)&msval)[0 .. REGSIZE]);
         }
         offset += REGSIZE * ncases;
         assert(*poffset == offset);

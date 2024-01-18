@@ -2,7 +2,7 @@
  * This module contains the implementation of the C++ header generation available through
  * the command line switch -Hc.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dtohd, _dtoh.d)
@@ -20,9 +20,11 @@ import dmd.astenums;
 import dmd.arraytypes;
 import dmd.attrib;
 import dmd.dsymbol;
+import dmd.dsymbolsem;
 import dmd.errors;
 import dmd.globals;
 import dmd.hdrgen;
+import dmd.id;
 import dmd.identifier;
 import dmd.location;
 import dmd.root.filename;
@@ -199,7 +201,8 @@ struct _d_dynamicArray final
     else
     {
         const(char)[] name = FileName.combine(global.params.cxxhdr.dir, global.params.cxxhdr.name);
-        writeFile(Loc.initial, name, buf[]);
+        if (!writeFile(Loc.initial, name, buf[]))
+            return fatal();
     }
 }
 
@@ -776,6 +779,17 @@ public:
             }
         }
 
+        if (tf && tf.next)
+        {
+            // Ensure return type is declared before a function that returns that is declared.
+            if (auto sty = tf.next.isTypeStruct())
+                ensureDeclared(sty.sym);
+            //else if (auto cty = tf.next.isTypeClass())
+            //    includeSymbol(cty.sym); // classes are returned by pointer only need to forward declare
+            //else if (auto ety = tf.next.isTypeEnum())
+            //    ensureDeclared(ety.sym);
+        }
+
         writeProtection(fd.visibility.kind);
 
         if (tf && tf.linkage == LINK.c)
@@ -1044,6 +1058,10 @@ public:
     override void visit(AST.AliasDeclaration ad)
     {
         debug (Debug_DtoH) mixin(traceVisit!ad);
+
+        // Declared in object.d but already included in `#include`s
+        if (ad.ident == Id._size_t || ad.ident == Id._ptrdiff_t)
+            return;
 
         if (!shouldEmitAndMarkVisited(ad))
             return;
@@ -1807,7 +1825,7 @@ public:
         {
             buf.writestring("::");
 
-            import dmd.root.rootobject;
+            import dmd.rootobject;
             // Is this even possible?
             if (arg.dyncast != DYNCAST.identifier)
             {
@@ -2327,7 +2345,12 @@ public:
         {
             //printf("%s %d\n", p.defaultArg.toChars, p.defaultArg.op);
             buf.writestring(" = ");
+            // Always emit the FDN of a symbol for the default argument,
+            // to avoid generating an ambiguous assignment.
+            auto save = adparent;
+            adparent = null;
             printExpressionFor(p.type, p.defaultArg);
+            adparent = save;
         }
     }
 
@@ -2636,7 +2659,7 @@ public:
             import dmd.hdrgen;
             // Hex floating point literals were introduced in C++ 17
             const allowHex = global.params.cplusplus >= CppStdRevision.cpp17;
-            floatToBuffer(e.type, e.value, buf, allowHex);
+            floatToBuffer(e.type, e.value, *buf, allowHex);
         }
     }
 
@@ -3205,6 +3228,21 @@ const(char*) keywordClass(const Identifier ident)
             if (global.params.cplusplus >= CppStdRevision.cpp20)
                 return "keyword in C++20";
             return null;
+        case "restrict":
+        case "_Alignas":
+        case "_Alignof":
+        case "_Atomic":
+        case "_Bool":
+        //case "_Complex": // handled above in C++
+        case "_Generic":
+        case "_Imaginary":
+        case "_Noreturn":
+        case "_Static_assert":
+        case "_Thread_local":
+        case "_assert":
+        case "_import":
+        //case "__...": handled in default case below
+            return "Keyword in C";
 
         default:
             // Identifiers starting with __ are reserved
@@ -3257,7 +3295,7 @@ ASTCodegen.Dsymbol symbolFromType(ASTCodegen.Type t) @safe
  */
 ASTCodegen.Dsymbol findMember(ASTCodegen.Dsymbol sym, Identifier name)
 {
-    if (auto mem = sym.search(Loc.initial, name, ASTCodegen.IgnoreErrors))
+    if (auto mem = sym.search(Loc.initial, name, ASTCodegen.SearchOpt.ignoreErrors))
         return mem;
 
     // search doesn't work for declarations inside of uninstantiated

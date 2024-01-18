@@ -1,7 +1,7 @@
 /**
  * A library in the OMF format, a legacy format for 32-bit Windows.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/libomf.d, _libomf.d)
@@ -16,13 +16,11 @@ import core.stdc.string;
 import core.stdc.stdlib;
 import core.bitop;
 
-import dmd.globals;
 import dmd.utils;
 import dmd.lib;
 import dmd.location;
 
 import dmd.root.array;
-import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.rmem;
 import dmd.common.outbuffer;
@@ -38,6 +36,7 @@ extern (C++) Library LibOMF_factory()
 }
 
 private: // for the remainder of this module
+nothrow:
 
 enum LOG = false;
 
@@ -83,7 +82,7 @@ final class LibOMF : Library
 
         void corrupt(int reason)
         {
-            error("corrupt OMF object module %.*s %d",
+            eSink.error(loc, "corrupt OMF object module %.*s %d",
                   cast(int)module_name.length, module_name.ptr, reason);
         }
 
@@ -132,7 +131,7 @@ final class LibOMF : Library
         }
         else if (lh.recTyp == '!' && memcmp(lh, "!<arch>\n".ptr, 8) == 0)
         {
-            error("COFF libraries not supported");
+            eSink.error(loc, "COFF libraries not supported");
             return;
         }
         else
@@ -172,7 +171,7 @@ final class LibOMF : Library
 
     /*****************************************************************************/
 
-    void addSymbol(OmfObjModule* om, const(char)[] name, int pickAny = 0)
+    void addSymbol(OmfObjModule* om, const(char)[] name, int pickAny = 0) nothrow
     {
         assert(name.length == strlen(name.ptr));
         static if (LOG)
@@ -197,7 +196,7 @@ final class LibOMF : Library
                 const s2 = tab.lookup(name);
                 assert(s2);
                 const os = s2.value;
-                error("multiple definition of %.*s: %.*s and %.*s: %s",
+                eSink.error(loc, "multiple definition of %.*s: %.*s and %.*s: %s",
                     cast(int)om.name.length, om.name.ptr,
                     cast(int)name.length, name.ptr,
                     cast(int)os.om.name.length, os.om.name.ptr, os.name);
@@ -217,12 +216,12 @@ private:
             printf("LibMSCoff::scanObjModule(%s)\n", om.name.ptr);
         }
 
-        extern (D) void addSymbol(const(char)[] name, int pickAny)
+        extern (D) void addSymbol(const(char)[] name, int pickAny) nothrow
         {
             this.addSymbol(om, name, pickAny);
         }
 
-        scanOmfObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc);
+        scanOmfObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc, eSink);
     }
 
     /***********************************
@@ -369,7 +368,7 @@ private:
      *      dictionary header
      *      dictionary pages...
      */
-    protected override void WriteLibToBuffer(OutBuffer* libbuf)
+    protected override void writeLibToBuffer(ref OutBuffer libbuf)
     {
         /* Scan each of the object modules for symbols
          * to go into the dictionary
@@ -486,7 +485,7 @@ private:
         libHeader.ndicpages = ndicpages;
         libHeader.flags = 1; // always case sensitive
         // Write library header at start of buffer
-        memcpy(cast(void*)(*libbuf)[].ptr, &libHeader, (libHeader).sizeof);
+        memcpy(cast(void*)libbuf[].ptr, &libHeader, (libHeader).sizeof);
     }
 }
 

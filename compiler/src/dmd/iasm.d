@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/iasm.html, Inline Assembler)
  *
- *              Copyright (C) 2018-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2018-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/iasm.d, _iasm.d)
@@ -64,6 +64,7 @@ extern(C++) Statement asmSemantic(AsmStatement s, Scope *sc)
             return statementSemantic(se, sc);
         }
         auto ias = new InlineAsmStatement(s.loc, s.tokens);
+        ias.caseSensitive = s.caseSensitive;
         return inlineAsmSemantic(ias, sc);
     }
     else version (IN_GCC)

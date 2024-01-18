@@ -1,7 +1,7 @@
 /**
  * DMD-specific parameters.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmdparams.d, _dmdparams.d)
@@ -21,6 +21,22 @@ enum PIC : ubyte
     pie,                /// Position Independent Executable
 }
 
+/// export visibility
+enum ExpVis : ubyte
+{
+    default_,           /// hidden for Windows targets without -shared, otherwise public
+    hidden,             /// only export symbols marked with 'export'
+    public_,            /// export all symbols
+}
+
+/// symbol dllimport
+enum SymImport : ubyte
+{
+    none,               /// no symbols
+    defaultLibsOnly,    /// only druntime/phobos symbols
+    all,                /// all non-root symbols
+}
+
 struct DMDparams
 {
     bool alwaysframe;       // always emit standard stack frame
@@ -38,6 +54,8 @@ struct DMDparams
     bool ibt;               // generate indirect branch tracking
     PIC pic = PIC.fixed;    // generate fixed, pic or pie code
     bool stackstomp;        // add stack stomping code
+    ExpVis exportVisibility = ExpVis.hidden; // which symbols to "dllexport"
+    SymImport symImport;    // which symbols to "dllimport"
 
     bool symdebug;          // insert debug symbolic information
     bool symdebugref;       // insert debug information for all referenced types, too

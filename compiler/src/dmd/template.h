@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -96,12 +96,8 @@ public:
 
     Visibility visible() override;
 
-    MATCH leastAsSpecialized(Scope* sc, TemplateDeclaration* td2, ArgumentList argumentList);
-    RootObject *declareParameter(Scope *sc, TemplateParameter *tp, RootObject *o);
-
     TemplateDeclaration *isTemplateDeclaration() override { return this; }
 
-    TemplateTupleParameter *isVariadic();
     bool isDeprecated() const override;
     bool isOverloadable() const override;
 
@@ -294,11 +290,10 @@ public:
     TemplateInstance *syntaxCopy(Dsymbol *) override;
     Dsymbol *toAlias() override final;   // resolve real symbol
     const char *kind() const override;
-    bool oneMember(Dsymbol **ps, Identifier *ident) override;
+    bool oneMember(Dsymbol *&ps, Identifier *ident) override;
     const char *toChars() const override;
     const char* toPrettyCharsHelper() override final;
     Identifier *getIdent() override final;
-    hash_t toHash();
 
     bool isDiscardable();
     bool needsCodegen();
@@ -314,9 +309,8 @@ public:
 
     TemplateMixin *syntaxCopy(Dsymbol *s) override;
     const char *kind() const override;
-    bool oneMember(Dsymbol **ps, Identifier *ident) override;
+    bool oneMember(Dsymbol *&ps, Identifier *ident) override;
     bool hasPointers() override;
-    void setFieldOffset(AggregateDeclaration *ad, FieldState& fieldState, bool isunion) override;
     const char *toChars() const override;
 
     TemplateMixin *isTemplateMixin() override { return this; }
@@ -330,4 +324,4 @@ Tuple *isTuple(RootObject *o);
 Parameter *isParameter(RootObject *o);
 TemplateParameter *isTemplateParameter(RootObject *o);
 bool isError(const RootObject *const o);
-void printTemplateStats();
+void printTemplateStats(bool listInstances, ErrorSink* eSink);

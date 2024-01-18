@@ -6,7 +6,7 @@
  * utilities needed for arguments parsing, path manipulation, etc...
  * This file is not shared with other compilers which use the DMD front-end.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/main.d, _main.d)
@@ -161,16 +161,14 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     global.compileEnv.previewIn        = global.params.previewIn;
     global.compileEnv.ddocOutput       = global.params.ddoc.doOutput;
-    global.compileEnv.shortenedMethods = global.params.shortenedMethods;
-    global.compileEnv.obsolete         = global.params.obsolete;
 
-    if (params.usage)
+    if (params.help.usage)
     {
         usage();
         return EXIT_SUCCESS;
     }
 
-    if (params.logo)
+    if (params.v.logo)
     {
         logo();
         return EXIT_SUCCESS;
@@ -216,7 +214,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         foreach (n; params)
         {
             s ~= q{
-                if (params.}~n~q{Usage)
+                if (params.help.}~n~q{)
                     return printHelpUsage(CLIUsage.}~n~q{Usage);
             };
         }
@@ -226,7 +224,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     mixin(generateUsageChecks(["mcpu", "transition", "check", "checkAction",
         "preview", "revert", "externStd", "hc"]));
 
-    if (params.manual)
+    if (params.help.manual)
     {
         version (Windows)
         {
@@ -258,11 +256,11 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         return EXIT_SUCCESS;
     }
 
-    if (params.color)
+    if (params.v.color)
         global.console = cast(void*) createConsole(core.stdc.stdio.stderr);
 
     target.setCPU();
-    Loc.set(params.showColumns, params.messageStyle);
+    Loc.set(params.v.showColumns, params.v.messageStyle);
 
     if (global.errors)
     {
@@ -272,7 +270,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     {
         if (params.jsonFieldFlags)
         {
-            generateJson(null);
+            Modules modules;            // empty
+            generateJson(modules);
             return EXIT_SUCCESS;
         }
         usage();
@@ -280,15 +279,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
 
     reconcileCommands(params, target);
-
-    // Add in command line versions
-    if (params.versionids)
-        foreach (charz; *params.versionids)
-            VersionCondition.addGlobalIdent(charz.toDString());
-    if (params.debugids)
-        foreach (charz; *params.debugids)
-            DebugCondition.addGlobalIdent(charz.toDString());
-
     setDefaultLibrary(params, target);
 
     // Initialization
@@ -311,7 +301,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // Predefined version identifiers
     addDefaultVersionIdentifiers(params, target);
 
-    if (params.verbose)
+    if (params.v.verbose)
     {
         stdout.printPredefinedVersions();
         stdout.printGlobalConfigs();
@@ -356,13 +346,33 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         m.read(Loc.initial);
     }
 
+    OutBuffer ddocbuf;          // buffer for contents of .ddoc files
+    bool ddocbufIsRead;         // set when ddocbuf is filled
+
+    /* Read ddoc macro files named by the DDOCFILE environment variable and command line
+     * and concatenate the text into ddocbuf
+     */
+    void readDdocFiles(ref const Loc loc, ref const Strings ddocfiles, ref OutBuffer ddocbuf)
+    {
+        foreach (file; ddocfiles)
+        {
+            auto buffer = readFile(loc, file.toDString());
+            // BUG: convert file contents to UTF-8 before use
+            const data = buffer.data;
+            //printf("file: '%.*s'\n", cast(int)data.length, data.ptr);
+            ddocbuf.write(data);
+        }
+        ddocbufIsRead = true;
+    }
+
     // Parse files
     bool anydocfiles = false;
+    OutBuffer ddocOutputText;
     size_t filecount = modules.length;
     for (size_t filei = 0, modi = 0; filei < filecount; filei++, modi++)
     {
         Module m = modules[modi];
-        if (params.verbose)
+        if (params.v.verbose)
             message("parse     %s", m.toChars());
         if (!Module.rootModule)
             Module.rootModule = m;
@@ -388,7 +398,15 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         if (m.filetype == FileType.ddoc)
         {
             anydocfiles = true;
-            gendocfile(m, global.errorSink);
+            if (!ddocbufIsRead)
+                readDdocFiles(m.loc, global.params.ddoc.files, ddocbuf);
+
+            ddocOutputText.setsize(0);
+            gendocfile(m, ddocbuf[], global.datetime.ptr, global.errorSink, ddocOutputText);
+
+            if (!writeFile(m.loc, m.docfile.toString(), ddocOutputText[]))
+                fatal();
+
             // Remove m from list of modules
             modules.remove(modi);
             modi--;
@@ -421,13 +439,18 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
          * line switches and what else is imported, they are generated
          * before any semantic analysis.
          */
+        OutBuffer buf;
         foreach (m; modules)
         {
             if (m.filetype == FileType.dhdr)
                 continue;
-            if (params.verbose)
+            if (params.v.verbose)
                 message("import    %s", m.toChars());
-            genhdrfile(m);
+
+            buf.reset();         // reuse the buffer
+            genhdrfile(m, params.dihdr.fullOutput, buf);
+            if (!writeFile(m.loc, m.hdrfile.toString(), buf[]))
+                fatal();
         }
     }
     if (global.errors)
@@ -436,7 +459,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // load all unconditional imports for better symbol resolving
     foreach (m; modules)
     {
-        if (params.verbose)
+        if (params.v.verbose)
             message("importall %s", m.toChars());
         m.importAll(null);
     }
@@ -448,7 +471,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // Do semantic analysis
     foreach (m; modules)
     {
-        if (params.verbose)
+        if (params.v.verbose)
             message("semantic  %s", m.toChars());
         m.dsymbolSemantic(null);
     }
@@ -460,7 +483,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         for (size_t i = 0; i < Module.deferred.length; i++)
         {
             Dsymbol sd = Module.deferred[i];
-            sd.error("unable to resolve forward reference in definition");
+            error(sd.loc, "%s `%s` unable to resolve forward reference in definition", sd.kind(), sd.toPrettyChars());
         }
         //fatal();
     }
@@ -468,7 +491,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // Do pass 2 semantic analysis
     foreach (m; modules)
     {
-        if (params.verbose)
+        if (params.v.verbose)
             message("semantic2 %s", m.toChars());
         m.semantic2(null);
     }
@@ -479,7 +502,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // Do pass 3 semantic analysis
     foreach (m; modules)
     {
-        if (params.verbose)
+        if (params.v.verbose)
             message("semantic3 %s", m.toChars());
         m.semantic3(null);
     }
@@ -491,7 +514,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         {
             auto m = compiledImports[i];
             assert(m.isRoot);
-            if (params.verbose)
+            if (params.v.verbose)
                 message("semantic3 %s", m.toChars());
             m.semantic3(null);
             modules.push(m);
@@ -506,7 +529,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     {
         if (params.useInline || m.hasAlwaysInlines)
         {
-            if (params.verbose)
+            if (params.v.verbose)
                 message("inline scan %s", m.toChars());
             inlineScanModule(m);
         }
@@ -529,24 +552,34 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
         const data = (*ob)[];
         if (params.moduleDeps.name)
-            writeFile(Loc.initial, params.moduleDeps.name, data);
+        {
+            if (!writeFile(Loc.initial, params.moduleDeps.name, data))
+                fatal();
+        }
         else
             printf("%.*s", cast(int)data.length, data.ptr);
     }
 
     printCtfePerformanceStats();
-    printTemplateStats();
+    printTemplateStats(global.params.v.templatesListInstances, global.errorSink);
 
     // Generate output files
     if (params.json.doOutput)
     {
-        generateJson(&modules);
+        generateJson(modules);
     }
     if (!global.errors && params.ddoc.doOutput)
     {
         foreach (m; modules)
         {
-            gendocfile(m, global.errorSink);
+            if (!ddocbufIsRead)
+                readDdocFiles(m.loc, global.params.ddoc.files, ddocbuf);
+
+            ddocOutputText.setsize(0);
+            gendocfile(m, ddocbuf[], global.datetime.ptr, global.errorSink, ddocOutputText);
+
+            if (!writeFile(m.loc, m.docfile.toString(), ddocOutputText[]))
+                fatal();
         }
     }
     if (params.vcg_ast)
@@ -556,7 +589,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         {
             auto buf = OutBuffer();
             buf.doindent = 1;
-            moduleToBuffer(&buf, mod);
+            moduleToBuffer(buf, params.vcg_ast, mod);
 
             // write the output to $(filename).cg
             auto cgFilename = FileName.addExt(mod.srcfile.toString(), "cg");
@@ -586,7 +619,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     generateCodeAndWrite(modules[], libmodules[], params.libname, params.objdir,
                          driverParams.lib, params.obj, driverParams.oneobj, params.multiobj,
-                         params.verbose);
+                         params.v.verbose);
 
     backend_term();
 
@@ -639,7 +672,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
  * Params:
  *   argc = Number of arguments passed via command line
  *   argv = Array of string arguments passed via command line
- *   params = parametes from argv
+ *   params = parameters from argv
  *   files = files from argv
  * Returns: true on faiure
  */
@@ -665,7 +698,6 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     if (const(char)* missingFile = responseExpand(arguments)) // expand response files
         error(Loc.initial, "cannot open response file '%s'", missingFile);
     //for (size_t i = 0; i < arguments.length; ++i) printf("arguments[%d] = '%s'\n", i, arguments[i]);
-    files.reserve(arguments.length - 1);
     // Set default values
     params.argv0 = arguments[0].toDString;
 
@@ -737,6 +769,10 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
         return true;
     }
 
+    // DDOCFILE specified in the sc.ini file comes first and gets overridden by user specified files
+    if (char* p = getenv("DDOCFILE"))
+        global.params.ddoc.files.shift(p);
+
     if (target.isX86_64 != isX86_64)
         error(Loc.initial, "the architecture must not be changed in the %s section of %.*s",
               envsection.ptr, cast(int)global.inifilename.length, global.inifilename.ptr);
@@ -755,31 +791,31 @@ void emitMakeDeps(ref Param params)
     // start by resolving and writing the target (which is sometimes resolved during link phase)
     if (driverParams.link && params.exefile)
     {
-	buf.writeEscapedMakePath(&params.exefile[0]);
+        buf.writeEscapedMakePath(&params.exefile[0]);
     }
     else if (driverParams.lib)
     {
-	const(char)[] libname = params.libname ? params.libname : FileName.name(params.objfiles[0].toDString);
-	libname = FileName.forceExt(libname,target.lib_ext);
+        const(char)[] libname = params.libname ? params.libname : FileName.name(params.objfiles[0].toDString);
+        libname = FileName.forceExt(libname,target.lib_ext);
 
-	buf.writeEscapedMakePath(&libname[0]);
+        buf.writeEscapedMakePath(&libname[0]);
     }
     else if (params.objname)
     {
-	buf.writeEscapedMakePath(&params.objname[0]);
+        buf.writeEscapedMakePath(&params.objname[0]);
     }
     else if (params.objfiles.length)
     {
-	buf.writeEscapedMakePath(params.objfiles[0]);
-	foreach (of; params.objfiles[1 .. $])
-	{
-	    buf.writestring(" ");
-	    buf.writeEscapedMakePath(of);
-	}
+        buf.writeEscapedMakePath(params.objfiles[0]);
+        foreach (of; params.objfiles[1 .. $])
+        {
+            buf.writestring(" ");
+            buf.writeEscapedMakePath(of);
+        }
     }
     else
     {
-	assert(false, "cannot resolve makedeps target");
+        assert(false, "cannot resolve makedeps target");
     }
 
     buf.writestring(":");
@@ -787,17 +823,20 @@ void emitMakeDeps(ref Param params)
     // then output every dependency
     foreach (dep; params.makeDeps.files)
     {
-	buf.writestringln(" \\");
-	buf.writestring("  ");
-	buf.writeEscapedMakePath(dep);
+        buf.writestringln(" \\");
+        buf.writestring("  ");
+        buf.writeEscapedMakePath(dep);
     }
     buf.writenl();
 
     const data = buf[];
     if (params.makeDeps.name)
-	writeFile(Loc.initial, params.makeDeps.name, data);
+    {
+        if (!writeFile(Loc.initial, params.makeDeps.name, data))
+            fatal();
+    }
     else
-	printf("%.*s", cast(int) data.length, data.ptr);
+        printf("%.*s", cast(int) data.length, data.ptr);
 }
 
 // in druntime:

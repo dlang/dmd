@@ -1,7 +1,7 @@
 /**
  * Extract symbols from a Mach-O object file.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/scanmach.d, _scanmach.d)
@@ -13,12 +13,14 @@ module dmd.scanmach;
 
 import core.stdc.string;
 import core.stdc.stdint;
-import dmd.globals;
-import dmd.errors;
+
+import dmd.errorsink;
 import dmd.location;
 
 //import core.sys.darwin.mach.loader;
 import dmd.backend.mach;
+
+nothrow:
 
 private enum LOG = false;
 
@@ -30,9 +32,10 @@ private enum LOG = false;
  *      base =        array of contents of object module
  *      module_name = name of the object module (used for error messages)
  *      loc =         location to use for error printing
+ *      eSink =       where the error messages go
  */
-void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol,
-        const(ubyte)[] base, const(char)* module_name, Loc loc)
+void scanMachObjModule(void delegate(const(char)[] name, int pickAny) nothrow pAddSymbol,
+        const ubyte[] base, const char* module_name, Loc loc, ErrorSink eSink)
 {
     static if (LOG)
     {
@@ -41,7 +44,7 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol
 
     void corrupt(int reason)
     {
-        error(loc, "corrupt Mach-O object module `%s` %d", module_name, reason);
+        eSink.error(loc, "corrupt Mach-O object module `%s` %d", module_name, reason);
     }
 
     const buf = base.ptr;
@@ -58,12 +61,12 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol
     {
         if (header.cputype != CPU_TYPE_I386)
         {
-            error(loc, "Mach-O object module `%s` has cputype = %d, should be %d", module_name, header.cputype, CPU_TYPE_I386);
+            eSink.error(loc, "Mach-O object module `%s` has cputype = %d, should be %d", module_name, header.cputype, CPU_TYPE_I386);
             return;
         }
         if (header.filetype != MH_OBJECT)
         {
-            error(loc, "Mach-O object module `%s` has file type = %d, should be %d", module_name, header.filetype, MH_OBJECT);
+            eSink.error(loc, "Mach-O object module `%s` has file type = %d, should be %d", module_name, header.filetype, MH_OBJECT);
             return;
         }
         if (buflen < mach_header.sizeof + header.sizeofcmds)
@@ -77,12 +80,12 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol
             return corrupt(__LINE__);
         if (header64.cputype != CPU_TYPE_X86_64)
         {
-            error(loc, "Mach-O object module `%s` has cputype = %d, should be %d", module_name, header64.cputype, CPU_TYPE_X86_64);
+            eSink.error(loc, "Mach-O object module `%s` has cputype = %d, should be %d", module_name, header64.cputype, CPU_TYPE_X86_64);
             return;
         }
         if (header64.filetype != MH_OBJECT)
         {
-            error(loc, "Mach-O object module `%s` has file type = %d, should be %d", module_name, header64.filetype, MH_OBJECT);
+            eSink.error(loc, "Mach-O object module `%s` has file type = %d, should be %d", module_name, header64.filetype, MH_OBJECT);
             return;
         }
         if (buflen < mach_header_64.sizeof + header64.sizeofcmds)
@@ -95,7 +98,7 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol
     symtab_command* symtab_commands;
     // Commands immediately follow mach_header
     char* commands = cast(char*)buf + (header.magic == MH_MAGIC_64 ? mach_header_64.sizeof : mach_header.sizeof);
-    for (uint32_t i = 0; i < ncmds; i++)
+    foreach (i; 0 .. ncmds)
     {
         load_command* command = cast(load_command*)commands;
         //printf("cmd = 0x%02x, cmdsize = %u\n", command.cmd, command.cmdsize);
@@ -120,7 +123,7 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol
             return corrupt(__LINE__);
 
         // For each symbol
-        for (int i = 0; i < symtab_commands.nsyms; i++)
+        foreach (i; 0 .. symtab_commands.nsyms)
         {
             nlist_64* s = symtab + i;
             const(char)* name = strtab + s.n_strx;
@@ -171,7 +174,7 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) pAddSymbol
             return corrupt(__LINE__);
 
         // For each symbol
-        for (int i = 0; i < symtab_commands.nsyms; i++)
+        foreach (i; 0 .. symtab_commands.nsyms)
         {
             nlist* s = symtab + i;
             const(char)* name = strtab + s.n_strx;

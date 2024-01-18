@@ -3,7 +3,7 @@
  *
  * Currently includes functions from `std.math`, `core.math` and `core.bitop`.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/builtin.d, _builtin.d)
@@ -12,9 +12,6 @@
  */
 
 module dmd.builtin;
-
-import core.stdc.math;
-import core.stdc.string;
 
 import dmd.arraytypes;
 import dmd.astenums;
@@ -26,7 +23,6 @@ import dmd.globals;
 import dmd.location;
 import dmd.mtype;
 import dmd.root.ctfloat;
-import dmd.root.stringtable;
 import dmd.tokens;
 import dmd.id;
 static import core.bitop;

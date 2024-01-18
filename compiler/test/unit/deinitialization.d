@@ -123,8 +123,7 @@ unittest
 @("Expression.deinitialize")
 unittest
 {
-    import dmd.ctfeexpr : CTFEExp;
-    import dmd.expression : Expression;
+    import dmd.expression : Expression, CTFEExp;
 
     static void assertInitialState()
     {

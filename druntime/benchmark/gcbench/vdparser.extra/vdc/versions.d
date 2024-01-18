@@ -90,6 +90,9 @@ static @property int[string] sPredefinedVersions()
             "Alpha" : -1,
             "Alpha_SoftFloat" : -1,
             "Alpha_HardFloat" : -1,
+            "LoongArch64": -1,
+            "LoongArch_HardFloat": -1,
+            "LoongArch_SoftFloat": -1,
 
             "LittleEndian" : 1,
             "BigEndian" : -1,

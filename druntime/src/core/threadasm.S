@@ -229,6 +229,90 @@ fiber_switchContext:
 
     jr $ra // return
 
+#elif defined(__loongarch64)
+/************************************************************************************
+ * LoongArch64 ASM BITS
+ ************************************************************************************/
+
+/**
+ * Performs a context switch.
+ *
+ * Parameters:
+ * a0 - void** - ptr to old stack pointer
+ * a1 - void*  - new stack pointer
+ *
+ * For LoongArch registers and ABI information, you can refer to the following
+ * documentation:
+ * https://loongson.github.io/LoongArch-Documentation/LoongArch-ELF-ABI-EN.html
+ */
+ .text
+.globl fiber_switchContext
+fiber_switchContext:
+    .cfi_startproc
+    .cfi_undefined $ra
+    # reserve space on stack
+    addi.d  $sp, $sp, -19 * 8
+
+    # save fs0 - fs7
+    fst.d  $fs0, $sp, 0
+    fst.d  $fs1, $sp, 8
+    fst.d  $fs2, $sp, 16
+    fst.d  $fs3, $sp, 24
+    fst.d  $fs4, $sp, 32
+    fst.d  $fs5, $sp, 40
+    fst.d  $fs6, $sp, 48
+    fst.d  $fs7, $sp, 56
+    # save ra with fp registers
+    st.d   $ra,  $sp, 64
+
+    # save s0 - s8, fp
+    st.d  $s0, $sp, 72
+    st.d  $s1, $sp, 80
+    st.d  $s2, $sp, 88
+    st.d  $s3, $sp, 96
+    st.d  $s4, $sp, 104
+    st.d  $s5, $sp, 112
+    st.d  $s6, $sp, 120
+    st.d  $s7, $sp, 128
+    st.d  $s8, $sp, 136
+    st.d  $fp, $sp, 144
+
+    # adjust sp so that GC won't scan sp and fp registers in the stack frame
+    addi.d $sp, $sp, 9 * 8
+    # save current sp to oldp
+    st.d   $sp, $a0, 0
+    # use new sp from newp (with sp re-adjusted)
+    addi.d $sp, $a1, -9 * 8
+
+    # load fs0 - fs7
+    fld.d  $fs0, $sp, 0
+    fld.d  $fs1, $sp, 8
+    fld.d  $fs2, $sp, 16
+    fld.d  $fs3, $sp, 24
+    fld.d  $fs4, $sp, 32
+    fld.d  $fs5, $sp, 40
+    fld.d  $fs6, $sp, 48
+    fld.d  $fs7, $sp, 56
+    # load ra
+    ld.d   $ra,  $sp, 64
+
+    #load s0 - s8, fp
+    ld.d  $s0, $sp, 72
+    ld.d  $s1, $sp, 80
+    ld.d  $s2, $sp, 88
+    ld.d  $s3, $sp, 96
+    ld.d  $s4, $sp, 104
+    ld.d  $s5, $sp, 112
+    ld.d  $s6, $sp, 120
+    ld.d  $s7, $sp, 128
+    ld.d  $s8, $sp, 136
+    ld.d  $fp, $sp, 144
+
+    # restore stack
+    addi.d  $sp, $sp, 19 * 8
+
+    jr $ra
+    .cfi_endproc
 #elif defined(__arm__) && (defined(__ARM_EABI__) || defined(__APPLE__))
 /************************************************************************************
  * ARM ASM BITS

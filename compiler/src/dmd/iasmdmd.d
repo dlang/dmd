@@ -3,7 +3,7 @@
  * https://dlang.org/spec/iasm.html
  *
  * Copyright:   Copyright (c) 1992-1999 by Symantec
- *              Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     Mike Cote, John Micco and $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/iasmdmd.d, _iasmdmd.d)
@@ -21,6 +21,7 @@ import core.stdc.string;
 import dmd.astenums;
 import dmd.declaration;
 import dmd.denum;
+import dmd.dinterpret;
 import dmd.dmdparams;
 import dmd.dscope;
 import dmd.dsymbol;
@@ -41,7 +42,7 @@ import dmd.tokens;
 import dmd.root.ctfloat;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
-import dmd.root.rootobject;
+import dmd.rootobject;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
@@ -344,14 +345,15 @@ immutable:
     ubyte val;
     opflag_t ty;
 
-    bool isSIL_DIL_BPL_SPL() const @safe
+    bool isSIL_DIL_BPL_SPL() const @trusted
     {
+        bool caseSensitive = asmstate.statement.caseSensitive;
         // Be careful as these have the same val's as AH CH DH BH
         return ty == _r8 &&
-            ((val == _SIL && regstr == "SIL") ||
-             (val == _DIL && regstr == "DIL") ||
-             (val == _BPL && regstr == "BPL") ||
-             (val == _SPL && regstr == "SPL"));
+            ((val == _SIL && stringEq(regstr, "SIL", caseSensitive)) ||
+             (val == _DIL && stringEq(regstr, "DIL", caseSensitive)) ||
+             (val == _BPL && stringEq(regstr, "BPL", caseSensitive)) ||
+             (val == _SPL && stringEq(regstr, "SPL", caseSensitive)));
     }
 }
 
@@ -2161,9 +2163,9 @@ private @safe pure bool asm_isNonZeroInt(const ref OPND o)
 /*******************************
  */
 
-private @safe pure bool asm_is_fpreg(const(char)[] szReg)
+private @trusted bool asm_is_fpreg(const(char)[] szReg)
 {
-    return szReg == "ST";
+    return stringEq(szReg, "ST", asmstate.statement.caseSensitive);
 }
 
 /*******************************
@@ -3395,9 +3397,10 @@ immutable(REG)* asm_reg_lookup(const(char)[] s)
 {
     //dbg_printf("asm_reg_lookup('%s')\n",s);
 
+    bool caseSensitive = asmstate.statement.caseSensitive;
     for (int i = 0; i < regtab.length; i++)
     {
-        if (s == regtab[i].regstr)
+        if (stringEq(s, regtab[i].regstr, caseSensitive))
         {
             return &regtab[i];
         }
@@ -3406,7 +3409,7 @@ immutable(REG)* asm_reg_lookup(const(char)[] s)
     {
         for (int i = 0; i < regtab64.length; i++)
         {
-            if (s == regtab64[i].regstr)
+            if (stringEq(s, regtab64[i].regstr, caseSensitive))
             {
                 return &regtab64[i];
             }
@@ -4413,7 +4416,10 @@ void asm_primary_exp(out OPND o1)
                 if (asmstate.sc.func.labtab)
                     s = asmstate.sc.func.labtab.lookup(asmstate.tok.ident);
                 if (!s)
-                    s = asmstate.sc.search(Loc.initial, asmstate.tok.ident, null);
+                {
+                    Dsymbol pscopesym;
+                    s = asmstate.sc.search(Loc.initial, asmstate.tok.ident, pscopesym);
+                }
                 if (!s)
                 {
                     // Assume it is a label, and define that label
@@ -4647,4 +4653,45 @@ unittest
         assert( isOneOf(_8, _64_32_16_8));
         assert( isOneOf(_8, _anysize));
     }
+}
+
+/**********************************
+ * Case insensitive string compare
+ * Returns: true if equal
+ */
+
+bool stringEq(const(char)[] s1, const(char)[] s2, bool caseSensitive)
+{
+    if (caseSensitive)
+        return s1 == s2;
+
+    if (s1.length != s2.length)
+        return false;
+    foreach (i, c; s1)
+    {
+        char c1 = c;
+        if ('A' <= c1 && c1 <= 'Z')
+            c1 |= 0x20;
+        char c2 = s2[i];
+        if ('A' <= c2 && c2 <= 'Z')
+            c2 |= 0x20;
+
+        if (c1 != c2)
+            return false;
+    }
+    return true;
+}
+
+unittest
+{
+    assert(!stringEq("ABZ", "ABZX", true));
+
+    assert( stringEq("ABZ", "ABZ", true));
+    assert(!stringEq("aBz", "ABZ", true));
+    assert(!stringEq("ABZ", "ABz", true));
+
+    assert( stringEq("aBZ", "ABZ", false));
+    assert( stringEq("aBz", "AbZ", false));
+    assert( stringEq("ABZ", "ABz", false));
+    assert(!stringEq("3BZ", "ABz", false));
 }

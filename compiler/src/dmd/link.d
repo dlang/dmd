@@ -1,7 +1,7 @@
 /**
  * Invoke the linker as a separate process.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/link.d, _link.d)
@@ -19,6 +19,7 @@ import core.sys.posix.stdlib;
 import core.sys.posix.unistd;
 import core.sys.windows.winbase;
 import core.sys.windows.windef;
+import dmd.astenums;
 import dmd.dmdparams;
 import dmd.errors;
 import dmd.globals;
@@ -28,7 +29,7 @@ import dmd.root.env;
 import dmd.root.file;
 import dmd.root.filename;
 import dmd.common.outbuffer;
-import dmd.common.string;
+import dmd.common.smallbuffer;
 import dmd.root.rmem;
 import dmd.root.string;
 import dmd.utils;
@@ -268,7 +269,8 @@ public int runLINK()
                 setExeFile();
             }
             // Make sure path to exe file exists
-            ensurePathToNameExists(Loc.initial, global.params.exefile);
+            if (!ensurePathToNameExists(Loc.initial, global.params.exefile))
+                fatal();
             cmdbuf.writeByte(' ');
             if (global.params.mapfile)
             {
@@ -344,7 +346,8 @@ public int runLINK()
             if (p.length > 7000)
             {
                 lnkfilename = FileName.forceExt(global.params.exefile, "lnk");
-                writeFile(Loc.initial, lnkfilename, p);
+                if (!writeFile(Loc.initial, lnkfilename, p))
+                    fatal();
                 if (lnkfilename.length < p.length)
                 {
                     p[0] = '@';
@@ -390,7 +393,8 @@ public int runLINK()
                 setExeFile();
             }
             // Make sure path to exe file exists
-            ensurePathToNameExists(Loc.initial, global.params.exefile);
+            if (!ensurePathToNameExists(Loc.initial, global.params.exefile))
+                fatal();
             cmdbuf.writeByte(',');
             if (global.params.mapfile)
                 writeFilename(&cmdbuf, global.params.mapfile);
@@ -455,7 +459,8 @@ public int runLINK()
             if (p.length > 7000)
             {
                 lnkfilename = FileName.forceExt(global.params.exefile, "lnk");
-                writeFile(Loc.initial, lnkfilename, p);
+                if (!writeFile(Loc.initial, lnkfilename, p))
+                    fatal();
                 if (lnkfilename.length < p.length)
                 {
                     p[0] = '@';
@@ -575,7 +580,8 @@ public int runLINK()
             global.params.exefile = ex;
         }
         // Make sure path to exe file exists
-        ensurePathToNameExists(Loc.initial, global.params.exefile);
+        if (!ensurePathToNameExists(Loc.initial, global.params.exefile))
+            fatal();
         if (driverParams.symdebug)
             argv.push("-g");
         if (target.isX86_64)
@@ -773,17 +779,17 @@ public int runLINK()
             // Link against -lexecinfo for backtrace symbols
             argv.push("-lexecinfo");
         }
-        if (global.params.verbose)
+        OutBuffer buf;
+        foreach (i; 0 .. argv.length)
         {
-            // Print it
-            OutBuffer buf;
-            for (size_t i = 0; i < argv.length; i++)
-            {
-                buf.writestring(argv[i]);
-                buf.writeByte(' ');
-            }
-            message(buf.peekChars());
+            buf.writestring(argv[i]);
+            buf.writeByte(' ');
         }
+        const(char)* linkerCommand = buf.peekChars();
+
+        if (global.params.v.verbose)
+            message("%s", linkerCommand);
+
         argv.push(null);
         // set up pipes
         int[2] fds;
@@ -824,6 +830,7 @@ public int runLINK()
                 else
                 {
                     error(Loc.initial, "linker exited with status %d", status);
+                    errorSupplemental(Loc.initial, "%s", linkerCommand);
                     if (nme == 1)
                         error(Loc.initial, "no main function specified");
                 }
@@ -855,7 +862,7 @@ version (Windows)
     {
         int status;
         size_t len;
-        if (global.params.verbose)
+        if (global.params.v.verbose)
             message("%s %s", cmd, args);
         if (target.objectFormat() == Target.ObjectFormat.omf)
         {
@@ -917,7 +924,10 @@ version (Windows)
             if (status == -1)
                 error(Loc.initial, "can't run '%s', check PATH", cmd);
             else
+            {
                 error(Loc.initial, "linker exited with status %d", status);
+                errorSupplemental(Loc.initial, "%s %s", cmd, args);
+            }
         }
         return status;
     }
@@ -953,7 +963,7 @@ version (Windows)
 public int runProgram()
 {
     //printf("runProgram()\n");
-    if (global.params.verbose)
+    if (global.params.v.verbose)
     {
         OutBuffer buf;
         buf.writestring(global.params.exefile);
@@ -1035,19 +1045,50 @@ public int runProgram()
 /***************************************
  * Run the C preprocessor.
  * Params:
+ *    loc = source location where preprocess is requested from
  *    cpp = name of C preprocessor program
  *    filename = C source file name
  *    importc_h = filename of importc.h
  *    cppswitches = array of switches to pass to C preprocessor
- *    output = preprocessed output file name
  *    defines = buffer to append any `#define` and `#undef` lines encountered to
  * Returns:
- *    exit status.
+ *    the text of the preprocessed file
  */
-public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char)* importc_h, ref Array!(const(char)*) cppswitches,
-    const(char)[] output, OutBuffer* defines)
+public DArray!ubyte runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] filename, const(char)* importc_h, ref Array!(const(char)*) cppswitches,
+    ref OutBuffer defines)
 {
     //printf("runPreprocessor() cpp: %.*s filename: %.*s\n", cast(int)cpp.length, cpp.ptr, cast(int)filename.length, filename.ptr);
+
+    /*
+       To get sppn.exe: http://ftp.digitalmars.com/sppn.zip
+       To get the dmc C headers, dmc will need to be installed:
+       http://ftp.digitalmars.com/Digital_Mars_C++/Patch/dm857c.zip
+     */
+
+    // generate unique temporary file name for preprocessed output
+    const(char)* tmpname = tmpnam(null);
+    assert(tmpname);
+    const(char)[] ifilename = tmpname[0 .. strlen(tmpname) + 1];
+    ifilename = xarraydup(ifilename);
+    const(char)[] output = ifilename;
+
+    DArray!ubyte returnResult(int status)
+    {
+        if (status)
+        {
+            error(loc, "C preprocess command %.*s failed for file %s, exit status %d\n",
+                cast(int)cpp.length, cpp.ptr, filename.ptr, status);
+            fatal();
+        }
+        //printf("C preprocess succeeded %s\n", ifilename.ptr);
+        auto readResult = File.read(ifilename);
+        File.remove(ifilename.ptr);
+        Mem.xfree(cast(void*)ifilename.ptr);
+        if (!readResult.success)
+            return DArray!ubyte();
+        return DArray!ubyte(readResult.extractSlice());
+    }
+
     version (Windows)
     {
         // Build argv[]
@@ -1074,7 +1115,7 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
                     }
                 }
 
-                if (global.params.verbose)
+                if (global.params.v.verbose)
                     message(buf.peekChars());
 
                 ubyte[2048] buffer = void;
@@ -1131,7 +1172,7 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
                 if (linebuf.length && print)  // anything leftover from stdout collection
                     printf("%s\n", defines.peekChars());
 
-                return exitCode;
+                return returnResult(exitCode);
             }
             else
             {
@@ -1147,7 +1188,8 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
 
                 argv.push(null);                     // argv[] always ends with a null
                 // spawnlp returns intptr_t in some systems, not int
-                return spawnvp(_P_WAIT, "cl".ptr, argv.tdata());
+                auto exitCode = spawnvp(_P_WAIT, "cl".ptr, argv.tdata());
+                return returnResult(exitCode);
             }
         }
         else if (target.objectFormat() == Target.ObjectFormat.omf)
@@ -1177,7 +1219,7 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
                     }
                 }
 
-                if (global.params.verbose)
+                if (global.params.v.verbose)
                     message(buf.peekChars());
 
                 ubyte[2048] buffer = void;
@@ -1236,7 +1278,7 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
                 //printf("szCommand: %ls\n", szCommand.ptr);
                 int exitCode = runProcessCollectStdout(szCommand.ptr, buffer[], &sinkomf);
                 printf("\n");
-                return exitCode;
+                return returnResult(exitCode);
             }
             else
             {
@@ -1251,7 +1293,8 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
 
                 argv.push(null);              // argv[] always ends with a null
                 // spawnlp returns intptr_t in some systems, not int
-                return spawnvp(_P_WAIT, cmd, argv.tdata());
+                auto exitCode = spawnvp(_P_WAIT, cmd, argv.tdata());
+                return returnResult(exitCode);
             }
         }
         else
@@ -1300,7 +1343,7 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
         argv.push(output.xarraydup.ptr);    // and the output
         argv.push(null);                    // argv[] always ends with a null
 
-        if (global.params.verbose)
+        if (global.params.v.verbose)
         {
             OutBuffer buf;
 
@@ -1325,7 +1368,7 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
                     // If execv returns, it failed to execute
                     perror(fnp.ptr);
                 });
-            return -1;
+            return returnResult(-1);
         }
         int status;
         waitpid(childpid, &status, 0);
@@ -1339,7 +1382,7 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
             error(Loc.initial, "program killed by signal %d", WTERMSIG(status));
             status = 1;
         }
-        return status;
+        return returnResult(status);
     }
     else
     {
@@ -1432,16 +1475,19 @@ int runProcessCollectStdout(const(wchar)* szCommand, ubyte[] buffer, void delega
 
     while (true)
     {
+        bSuccess = GetExitCodeProcess(piProcInfo.hProcess, &exitCode);
+        // flush pipe even if program finished
         DWORD dwlen = cast(DWORD)buffer.length;
-        bSuccess = PeekNamedPipe(hStdOutRead, buffer.ptr + bytesFilled, dwlen - bytesFilled, &bytesRead, &bytesAvailable, null);
+        if (bSuccess)
+            bSuccess = PeekNamedPipe(hStdOutRead, buffer.ptr + bytesFilled, dwlen - bytesFilled, &bytesRead, &bytesAvailable, null);
         if (bSuccess && bytesRead > 0)
             bSuccess = ReadFile(hStdOutRead, buffer.ptr + bytesFilled, dwlen - bytesFilled, &bytesRead, null);
         if (bSuccess && bytesRead > 0)
         {
             sink(buffer[0 .. bytesRead]);
+            continue; // keep on reading from pipe before returning
         }
 
-        bSuccess = GetExitCodeProcess(piProcInfo.hProcess, &exitCode);
         if (!bSuccess || exitCode != 259) //259 == STILL_ACTIVE
         {
             break;

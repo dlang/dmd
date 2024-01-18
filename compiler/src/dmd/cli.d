@@ -5,7 +5,7 @@
  * However, this file will be used to generate the
  * $(LINK2 https://dlang.org/dmd-linux.html, online documentation) and MAN pages.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cli.d, _cli.d)
@@ -125,6 +125,7 @@ struct Usage
         string flag; /// The CLI flag without leading `-`, e.g. `color`
         string helpText; /// A detailed description of the flag
         TargetOS os = TargetOS.all; /// For which `TargetOS` the flags are applicable
+        bool documented = true; // whether this option should be shown in the documentation
 
         // Needs to be version-ed to prevent the text ending up in the binary
         // See also: https://issues.dlang.org/show_bug.cgi?id=18238
@@ -136,22 +137,25 @@ struct Usage
         *  helpText = detailed description of the flag
         *  os = for which `TargetOS` the flags are applicable
         *  ddocText = detailed description of the flag (in Ddoc)
+        *  documented = whether this option should be shown in the documentation
         */
-        this(string flag, string helpText, TargetOS os = TargetOS.all) @safe
+        this(string flag, string helpText, TargetOS os = TargetOS.all, bool documented = true) @safe
         {
             this.flag = flag;
             this.helpText = helpText;
             version(DdocOptions) this.ddocText = helpText;
             this.os = os;
+            this.documented = documented;
         }
 
         /// ditto
-        this(string flag, string helpText, string ddocText, TargetOS os = TargetOS.all) @safe
+        this(string flag, string helpText, string ddocText, TargetOS os = TargetOS.all, bool documented = true) @safe
         {
             this.flag = flag;
             this.helpText = helpText;
             version(DdocOptions) this.ddocText = ddocText;
             this.os = os;
+            this.documented = documented;
         }
     }
 
@@ -332,6 +336,15 @@ dmd -cov -unittest myprog.d
             With $(I filename), write module dependencies as text to $(I filename)
             (only imports).`,
         ),
+        Option("dllimport=<value>",
+            "Windows only: select symbols to dllimport (none/defaultLibsOnly/all)",
+            `Which global variables to dllimport implicitly if not defined in a root module
+            $(UL
+                $(LI $(I none): None)
+                $(LI $(I defaultLibsOnly): Only druntime/Phobos symbols)
+                $(LI $(I all): All)
+            )`,
+        ),
         Option("extern-std=<standard>",
             "set C++ name mangling compatibility with <standard>",
             "Standards supported are:
@@ -455,7 +468,7 @@ dmd -cov -unittest myprog.d
              $(P Note that multiple `-i=...` options are allowed, each one adds a pattern.)}"
         ),
         Option("ignore",
-            "ignore unsupported pragmas"
+            "deprecated flag, unsupported pragmas are always ignored now"
         ),
         Option("inline",
             "do function inlining",
@@ -606,6 +619,11 @@ dmd -cov -unittest myprog.d
             "no array bounds checking (deprecated, use -boundscheck=off)",
             `Turns off all array bounds checking, even for safe functions. $(RED Deprecated
             (use $(TT $(SWLINK -boundscheck)=off) instead).)`,
+        ),
+        Option("nothrow",
+            "assume no Exceptions will be thrown",
+            `Turns off generation of exception stack unwinding code, enables
+            more efficient code for RAII objects.`,
         ),
         Option("O",
             "optimize",
@@ -803,6 +821,14 @@ dmd -cov -unittest myprog.d
         Option("vgc",
             "list all gc allocations including hidden ones"
         ),
+        Option("visibility=<value>",
+            "default visibility of symbols (default/hidden/public)",
+            "$(UL
+               $(LI $(I default): Hidden for Windows targets without -shared, otherwise public)
+               $(LI $(I hidden):  Only export symbols marked with 'export')
+               $(LI $(I public):  Export all symbols)
+            )",
+        ),
         Option("vtls",
             "list all variables going into thread local storage"
         ),
@@ -826,7 +852,7 @@ dmd -cov -unittest myprog.d
         Option("wo",
             "warnings about use of obsolete features (compilation will continue)",
             `Enable warnings about use of obsolete features that may be problematic (compilation
-            still proceeds normally)`,
+            still proceeds normally)`, TargetOS.all, false,
         ),
         Option("X",
             "generate JSON file"
@@ -853,13 +879,13 @@ dmd -cov -unittest myprog.d
 
     /// Returns all available transitions
     static immutable transitions = [
-        Feature("field", "vfield",
+        Feature("field", "v.field",
             "list all non-mutable fields which occupy an object instance"),
-        Feature("complex", "vcomplex",
+        Feature("complex", "v.complex",
             "give deprecation messages about all usages of complex or imaginary types", true, true),
-        Feature("tls", "vtls",
+        Feature("tls", "v.tls",
             "list all variables going into thread local storage"),
-        Feature("in", "vin",
+        Feature("in", "v.vin",
             "list all usages of 'in' on parameter"),
     ];
 
@@ -899,7 +925,7 @@ dmd -cov -unittest myprog.d
         Feature("inclusiveincontracts", "inclusiveInContracts",
             "'in' contracts of overridden methods must be a superset of parent contract"),
         Feature("shortenedMethods", "shortenedMethods",
-            "allow use of => for methods and top-level functions in addition to lambdas", false, false),
+            "allow use of => for methods and top-level functions in addition to lambdas", false, true),
         Feature("fixImmutableConv", "fixImmutableConv",
             "disallow unsound immutable conversions that were formerly incorrectly permitted"),
         Feature("systemVariables", "systemVariables",
@@ -923,6 +949,8 @@ struct CLIUsage
             char[] buf;
             foreach (option; Usage.options)
             {
+                if (!option.documented)
+                    continue;
                 if (option.os.isCurrentTargetOS)
                 {
                     buf ~= "  -" ~ option.flag;

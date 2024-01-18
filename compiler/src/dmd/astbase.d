@@ -1,7 +1,7 @@
 /**
  * Defines AST nodes for the parsing stage.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/astbase.d, _astbase.d)
  * Documentation:  https://dlang.org/phobos/dmd_astbase.html
@@ -25,7 +25,7 @@ struct ASTBase
     import dmd.root.file;
     import dmd.root.filename;
     import dmd.root.array;
-    import dmd.root.rootobject;
+    import dmd.rootobject;
     import dmd.common.outbuffer;
     import dmd.root.ctfloat;
     import dmd.root.rmem;
@@ -100,13 +100,13 @@ struct ASTBase
             return ident ? ident.toChars() : "__anonymous";
         }
 
-        bool oneMember(Dsymbol *ps, Identifier ident)
+        bool oneMember(out Dsymbol ps, Identifier ident)
         {
-            *ps = this;
+            ps = this;
             return true;
         }
 
-        extern (D) static bool oneMembers(ref Dsymbols members, Dsymbol* ps, Identifier ident)
+        extern (D) static bool oneMembers(ref Dsymbols members, out Dsymbol ps, Identifier ident)
         {
             Dsymbol s = null;
             for (size_t i = 0; i < members.length; i++)
@@ -115,21 +115,21 @@ struct ASTBase
                 bool x = sx.oneMember(ps, ident);
                 if (!x)
                 {
-                    assert(*ps is null);
+                    assert(ps is null);
                     return false;
                 }
-                if (*ps)
+                if (ps)
                 {
                     assert(ident);
-                    if (!(*ps).ident || !(*ps).ident.equals(ident))
+                    if (!ps.ident || !ps.ident.equals(ident))
                         continue;
                     if (!s)
-                        s = *ps;
-                    else if (s.isOverloadable() && (*ps).isOverloadable())
+                        s = ps;
+                    else if (s.isOverloadable() && ps.isOverloadable())
                     {
                         // keep head of overload set
                         FuncDeclaration f1 = s.isFuncDeclaration();
-                        FuncDeclaration f2 = (*ps).isFuncDeclaration();
+                        FuncDeclaration f2 = ps.isFuncDeclaration();
                         if (f1 && f2)
                         {
                             for (; f1 != f2; f1 = f1.overnext0)
@@ -144,13 +144,13 @@ struct ASTBase
                     }
                     else // more than one symbol
                     {
-                        *ps = null;
+                        ps = null;
                         //printf("\tfalse 2\n");
                         return false;
                     }
                 }
             }
-            *ps = s;
+            ps = s;
             return true;
         }
 
@@ -163,25 +163,6 @@ struct ASTBase
         {
             return "symbol";
         }
-
-        static if (__VERSION__ < 2092)
-            final void error(const(char)* format, ...)
-            {
-                va_list ap;
-                va_start(ap, format);
-                // last parameter : toPrettyChars
-                verrorReport(loc, format, ap, ErrorKind.error, kind(), "");
-                va_end(ap);
-            }
-        else
-            pragma(printf) final void error(const(char)* format, ...)
-            {
-                va_list ap;
-                va_start(ap, format);
-                // last parameter : toPrettyChars
-                verrorReport(loc, format, ap, ErrorKind.error, kind(), "");
-                va_end(ap);
-            }
 
         inout(AttribDeclaration) isAttribDeclaration() inout
         {
@@ -410,7 +391,7 @@ struct ASTBase
         void addAlias(Identifier name, Identifier _alias)
         {
             if (isstatic)
-                error("cannot have an import bind list");
+                error(loc, "cannot have an import bind list");
             if (!aliasId)
                 this.ident = null;
 
@@ -947,7 +928,7 @@ struct ASTBase
             if (members && ident)
             {
                 Dsymbol s;
-                if (Dsymbol.oneMembers(*members, &s, ident) && s)
+                if (Dsymbol.oneMembers(*members, s, ident) && s)
                 {
                     onemember = s;
                     s.parent = this;
@@ -1510,7 +1491,7 @@ struct ASTBase
             {
                 // Look for special class names
                 if (id == Id.__sizeof || id == Id.__xalignof || id == Id._mangleof)
-                    error("illegal class name");
+                    error(loc, "illegal class name");
 
                 // BUG: What if this is the wrong TypeInfo, i.e. it is nested?
                 if (id.toChars()[0] == 'T')
@@ -1518,103 +1499,103 @@ struct ASTBase
                     if (id == Id.TypeInfo)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.dtypeinfo = this;
                     }
                     if (id == Id.TypeInfo_Class)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfoclass = this;
                     }
                     if (id == Id.TypeInfo_Interface)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfointerface = this;
                     }
                     if (id == Id.TypeInfo_Struct)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfostruct = this;
                     }
                     if (id == Id.TypeInfo_Pointer)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfopointer = this;
                     }
                     if (id == Id.TypeInfo_Array)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfoarray = this;
                     }
                     if (id == Id.TypeInfo_StaticArray)
                     {
                         //if (!inObject)
-                        //    Type.typeinfostaticarray.error("%s", msg.ptr);
+                        //    Type.typeinfostaticarray.error(loc, "%s", msg.ptr);
                         Type.typeinfostaticarray = this;
                     }
                     if (id == Id.TypeInfo_AssociativeArray)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfoassociativearray = this;
                     }
                     if (id == Id.TypeInfo_Enum)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfoenum = this;
                     }
                     if (id == Id.TypeInfo_Function)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfofunction = this;
                     }
                     if (id == Id.TypeInfo_Delegate)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfodelegate = this;
                     }
                     if (id == Id.TypeInfo_Tuple)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfotypelist = this;
                     }
                     if (id == Id.TypeInfo_Const)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfoconst = this;
                     }
                     if (id == Id.TypeInfo_Invariant)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfoinvariant = this;
                     }
                     if (id == Id.TypeInfo_Shared)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfoshared = this;
                     }
                     if (id == Id.TypeInfo_Wild)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfowild = this;
                     }
                     if (id == Id.TypeInfo_Vector)
                     {
                         if (!inObject)
-                            error("%s", msg.ptr);
+                            error(loc, "%s", msg.ptr);
                         Type.typeinfovector = this;
                     }
                 }
@@ -1622,32 +1603,32 @@ struct ASTBase
                 if (id == Id.Object)
                 {
                     if (!inObject)
-                        error("%s", msg.ptr);
+                        error(loc, "%s", msg.ptr);
                     object = this;
                 }
 
                 if (id == Id.Throwable)
                 {
                     if (!inObject)
-                        error("%s", msg.ptr);
+                        error(loc, "%s", msg.ptr);
                     throwable = this;
                 }
                 if (id == Id.Exception)
                 {
                     if (!inObject)
-                        error("%s", msg.ptr);
+                        error(loc, "%s", msg.ptr);
                     exception = this;
                 }
                 if (id == Id.Error)
                 {
                     if (!inObject)
-                        error("%s", msg.ptr);
+                        error(loc, "%s", msg.ptr);
                     errorException = this;
                 }
                 if (id == Id.cpp_type_info_ptr)
                 {
                     if (!inObject)
-                        error("%s", msg.ptr);
+                        error(loc, "%s", msg.ptr);
                     cpp_type_info_ptr = this;
                 }
             }
@@ -2162,16 +2143,20 @@ struct ASTBase
 
     extern (C++) final class SwitchStatement : Statement
     {
+        Parameter param;
         Expression condition;
         Statement _body;
         bool isFinal;
+        Loc endloc;             // location of closing curly bracket
 
-        extern (D) this(const ref Loc loc, Expression c, Statement b, bool isFinal)
+        extern (D) this(const ref Loc loc, Parameter param, Expression c, Statement b, bool isFinal, Loc endloc)
         {
             super(loc, STMT.Switch);
+            this.param = param;
             this.condition = c;
             this._body = b;
             this.isFinal = isFinal;
+            this.endloc = endloc;
         }
 
         override void accept(Visitor v)
@@ -6662,6 +6647,19 @@ struct ASTBase
         extern (D) this(const ref Loc loc)
         {
             super(loc, InitKind.void_);
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class DefaultInitializer : Initializer
+    {
+        extern (D) this(const ref Loc loc)
+        {
+            super(loc, InitKind.default_);
         }
 
         override void accept(Visitor v)

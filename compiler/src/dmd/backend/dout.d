@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/out.d, backend/out.d)
@@ -121,7 +121,7 @@ void outdata(Symbol *s)
                          dt.DTnbytes > config.threshold)
                 {
                 L1:
-                    objmod.write_bytes(SegData[dt.DTseg],dt.DTnbytes,dt.DTpbytes);
+                    objmod.write_bytes(SegData[dt.DTseg],dt.DTpbytes[0 .. dt.DTnbytes]);
                     break;
                 }
                 else
@@ -499,6 +499,8 @@ void outcommon(Symbol *s,targ_size_t n)
 @trusted
 void out_readonly(Symbol *s)
 {
+    if (config.flags2 & CFG2noreadonly)
+        return;
     if (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH)
     {
         /* Cannot have pointers in CDATA when compiling PIC code, because
@@ -1216,7 +1218,7 @@ static if (0)
         alignOffset(DATA, sz);
         s = symboldata(Offset(DATA),ty | mTYconst);
         s.Sseg = DATA;
-        objmod.write_bytes(SegData[DATA], len, p);
+        objmod.write_bytes(SegData[DATA], p[0 .. len]);
         //printf("s.Sseg = %d:x%x\n", s.Sseg, s.Soffset);
     }
 
@@ -1253,7 +1255,7 @@ static if (0)
 void out_readonly_comdat(Symbol *s, const(void)* p, uint len, uint nzeros)
 {
     objmod.readonly_comdat(s);         // create comdat segment
-    objmod.write_bytes(SegData[s.Sseg], len, cast(void *)p);
+    objmod.write_bytes(SegData[s.Sseg], p[0 .. len]);
     objmod.lidata(s.Sseg, len, nzeros);
 }
 

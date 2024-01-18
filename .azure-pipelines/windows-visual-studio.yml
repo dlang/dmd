@@ -8,7 +8,7 @@ steps:
     fetchDepth: 1
   - script: |
       bash --version
-      sh --login .azure-pipelines/windows-visual-studio.sh
+      bash --login .azure-pipelines/windows-visual-studio.sh
     displayName: Download required binaries
   - script: |
       call .azure-pipelines/windows-msbuild.bat
