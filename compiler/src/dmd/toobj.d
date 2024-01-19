@@ -1678,10 +1678,4 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
     dtb.nbytes(cast(uint)(namelen + 1), name);
     const size_t namepad =  -(namelen + 1) & (target.ptrsize - 1); // align
     dtb.nzeros(cast(uint)namepad);
-
-    id.csym.Sdt = dtb.finish();
-    out_readonly(id.csym);
-    outdata(id.csym);
-    if (id.isExport())
-        objmod.export_symbol(id.csym, 0);
 }
