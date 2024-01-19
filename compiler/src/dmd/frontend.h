@@ -8664,6 +8664,7 @@ struct Id final
     static Identifier* _d_arrayassign_r;
     static Identifier* Pinline;
     static Identifier* lib;
+    static Identifier* libLocal;
     static Identifier* linkerDirective;
     static Identifier* mangle;
     static Identifier* msg;

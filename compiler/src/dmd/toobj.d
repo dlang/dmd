@@ -818,7 +818,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 auto name = se.peekString();
 
                 auto fileName = FileName.toAbsolute(ds.loc.filename());
-                auto folder = FileName.path(fileName);;
+                auto folder = FileName.path(fileName[0 .. strlen(fileName)]);
 
                 auto local = FileName.combine(folder, name);
 
