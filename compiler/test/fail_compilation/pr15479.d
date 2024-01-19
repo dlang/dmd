@@ -14,4 +14,3 @@ import imports.pragma_lib_local;
 void main() {
     printf("%i\n", lib_get_int());
 }
-
