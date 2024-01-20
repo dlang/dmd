@@ -1461,8 +1461,7 @@ public:
     bool hasStaticCtorOrDtor() override;
     const char* kind() const override;
     const char* toChars() const override;
-    const char* toCharsNoConstraints() const;
-    const char* toCharsMaybeConstraints(bool includeConstraints) const;
+    void toCharsMaybeConstraints(bool includeConstraints, OutBuffer& buf) const;
     Visibility visible() override;
     const char* getConstraintEvalError(const char*& tip);
     Scope* scopeForTemplateParameters(TemplateInstance* ti, Scope* sc);

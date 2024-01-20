@@ -3580,7 +3580,9 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
 
             if (!print)
                 return true;
-            const tmsg = td.toCharsNoConstraints();
+            OutBuffer buf;
+            td.toCharsMaybeConstraints(false, buf);
+            const tmsg = buf.peekChars();
             const cmsg = td.getConstraintEvalError(constraintsTip);
 
             // add blank space if there are multiple candidates

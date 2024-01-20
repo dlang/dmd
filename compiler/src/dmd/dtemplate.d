@@ -743,22 +743,15 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
     override const(char)* toChars() const
     {
-        return toCharsMaybeConstraints(true);
-    }
-
-    /****************************
-     * Similar to `toChars`, but does not print the template constraints
-     */
-    const(char)* toCharsNoConstraints() const
-    {
-        return toCharsMaybeConstraints(false);
+        OutBuffer buf;
+        toCharsMaybeConstraints(true, buf);
+        return buf.extractChars();
     }
 
     // Note: this function is not actually `const`, because iterating the
     // function parameter list may run dsymbolsemantic on enum types
-    const(char)* toCharsMaybeConstraints(bool includeConstraints) const
+    void toCharsMaybeConstraints(bool includeConstraints, ref OutBuffer buf) const
     {
-        OutBuffer buf;
         HdrGenState hgs;
 
         buf.writestring(ident == Id.ctor ? "this" : ident.toString());
@@ -795,8 +788,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             toCBuffer(constraint, buf, hgs);
             buf.writeByte(')');
         }
-
-        return buf.extractChars();
     }
 
     override Visibility visible() pure nothrow @nogc @safe
@@ -7159,7 +7150,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 // Only one template, so we can give better error message
                 const(char)* msg = "does not match template declaration";
                 const(char)* tip;
-                const tmsg = tdecl.toCharsNoConstraints();
+                OutBuffer buf;
+                tdecl.toCharsMaybeConstraints(false, buf);
+                const tmsg = buf.peekChars();
                 const cmsg = tdecl.getConstraintEvalError(tip);
                 if (cmsg)
                 {
@@ -8562,15 +8555,19 @@ extern (C++) void printTemplateStats(bool listInstances, ErrorSink eSink)
 
     sortedStats.sort!(TemplateDeclarationStats.compare);
 
+    OutBuffer buf;
     foreach (const ref ss; sortedStats[])
     {
+        buf.reset();
+        ss.td.toCharsMaybeConstraints(false, buf);
+        const tchars = buf.peekChars();
         if (listInstances && ss.ts.allInstances)
         {
             eSink.message(ss.td.loc,
                     "vtemplate: %u (%u distinct) instantiation(s) of template `%s` found, they are:",
                     ss.ts.numInstantiations,
                     ss.ts.uniqueInstantiations,
-                    ss.td.toCharsNoConstraints());
+                    tchars);
             foreach (const ti; (*ss.ts.allInstances)[])
             {
                 if (ti.tinst)   // if has enclosing instance
@@ -8585,7 +8582,7 @@ extern (C++) void printTemplateStats(bool listInstances, ErrorSink eSink)
                     "vtemplate: %u (%u distinct) instantiation(s) of template `%s` found",
                     ss.ts.numInstantiations,
                     ss.ts.uniqueInstantiations,
-                    ss.td.toCharsNoConstraints());
+                    tchars);
         }
     }
 }
