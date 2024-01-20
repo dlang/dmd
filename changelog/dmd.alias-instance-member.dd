@@ -1,0 +1,24 @@
+Aliasing a member of a type instance is now deprecated
+
+Such an alias actually aliases a member of the instance's *type*, not
+the instance member itself. This can be confusing and is now deprecated.
+
+---
+struct Foo
+{
+    int v;
+    void test(Foo that) const
+    {
+        alias a = this.v; // OK
+        alias b = that.v; // Deprecated, use `typeof(that).v` instead
+        assert(&a is &b); // passes
+        assert(&b !is &that.v);
+    }
+}
+
+struct Bar
+{
+    Foo f;
+    alias v = f.v; // Deprecated, use `typeof(f).v`
+}
+---
