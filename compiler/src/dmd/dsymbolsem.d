@@ -5304,7 +5304,8 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
         if (tident.idents.length)
         {
             alias mt = tident;
-            Dsymbol s = sc.search(ds.loc, mt.ident, null);
+            Dsymbol pscopesym;
+            Dsymbol s = sc.search(ds.loc, mt.ident, pscopesym);
             // detect `alias a = var1.member_var;` which confusingly resolves to
             // `typeof(var1).member_var`, which can be valid inside the aggregate type
             if (s && s.isVarDeclaration() &&
