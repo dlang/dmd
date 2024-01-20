@@ -1023,19 +1023,23 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
      * Given that ti is an instance of this TemplateDeclaration,
      * deduce the types of the parameters to this, and store
      * those deduced types in dedtypes[].
-     * Input:
-     *      flag    1: don't do semantic() because of dummy types
-     *              2: don't change types in matchArg()
-     * Output:
-     *      dedtypes        deduced arguments
-     * Return match level.
+     * Params:
+     *  sc = context
+     *  td = template
+     *  ti = instance of td
+     *  dedtypes = fill in with deduced types
+     *  argumentList = arguments to template instance
+     *  flag = 1 - don't do semantic() because of dummy types
+     *         2 - don't change types in matchArg()
+     * Returns: match level.
      */
-    private MATCH matchWithInstance(Scope* sc, TemplateInstance ti, ref Objects dedtypes, ArgumentList argumentList, int flag)
+    static private
+    MATCH matchWithInstance(Scope* sc, TemplateDeclaration td, TemplateInstance ti, ref Objects dedtypes, ArgumentList argumentList, int flag)
     {
         enum LOGM = 0;
         static if (LOGM)
         {
-            printf("\n+TemplateDeclaration.matchWithInstance(this = %s, ti = %s, flag = %d)\n", toChars(), ti.toChars(), flag);
+            printf("\n+TemplateDeclaration.matchWithInstance(td = %s, ti = %s, flag = %d)\n", td.toChars(), ti.toChars(), flag);
         }
         version (none)
         {
@@ -1056,11 +1060,11 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         dedtypes.zero();
 
-        if (errors)
+        if (td.errors)
             return MATCH.nomatch;
 
-        size_t parameters_dim = parameters.length;
-        int variadic = isVariadic() !is null;
+        size_t parameters_dim = td.parameters.length;
+        int variadic = td.isVariadic() !is null;
 
         // If more arguments than parameters, no match
         if (ti.tiargs.length > parameters_dim && !variadic)
@@ -1075,17 +1079,17 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         assert(dedtypes_dim == parameters_dim);
         assert(dedtypes_dim >= ti.tiargs.length || variadic);
 
-        assert(_scope);
+        assert(td._scope);
 
         // Set up scope for template parameters
-        Scope* paramscope = scopeForTemplateParameters(ti,sc);
+        Scope* paramscope = td.scopeForTemplateParameters(ti,sc);
 
         // Attempt type deduction
         m = MATCH.exact;
         for (size_t i = 0; i < dedtypes_dim; i++)
         {
             MATCH m2;
-            TemplateParameter tp = (*parameters)[i];
+            TemplateParameter tp = (*td.parameters)[i];
             Declaration sparam;
 
             //printf("\targument [%d]\n", i);
@@ -1097,7 +1101,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                     printf("\tparameter[%d] is %s : %s\n", i, tp.ident.toChars(), ttp.specType ? ttp.specType.toChars() : "");
             }
 
-            m2 = tp.matchArg(ti.loc, paramscope, ti.tiargs, i, parameters, dedtypes, &sparam);
+            m2 = tp.matchArg(ti.loc, paramscope, ti.tiargs, i, td.parameters, dedtypes, &sparam);
             //printf("\tm2 = %d\n", m2);
             if (m2 == MATCH.nomatch)
             {
@@ -1136,15 +1140,15 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             }
         }
 
-        if (m > MATCH.nomatch && constraint && !flag)
+        if (m > MATCH.nomatch && td.constraint && !flag)
         {
-            if (ti.hasNestedArgs(ti.tiargs, this.isstatic)) // TODO: should gag error
+            if (ti.hasNestedArgs(ti.tiargs, td.isstatic)) // TODO: should gag error
                 ti.parent = ti.enclosing;
             else
-                ti.parent = this.parent;
+                ti.parent = td.parent;
 
             // Similar to doHeaderInstantiation
-            FuncDeclaration fd = onemember ? onemember.isFuncDeclaration() : null;
+            FuncDeclaration fd = td.onemember ? td.onemember.isFuncDeclaration() : null;
             if (fd)
             {
                 TypeFunction tf = fd.type.isTypeFunction().syntaxCopy();
@@ -1169,7 +1173,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 // Resolve parameter types and 'auto ref's.
                 tf.fargs = fargs;
                 uint olderrors = global.startGagging();
-                fd.type = tf.typeSemantic(loc, paramscope);
+                fd.type = tf.typeSemantic(td.loc, paramscope);
                 global.endGagging(olderrors);
                 if (fd.type.ty != Tfunction)
                     return nomatch();
@@ -1177,7 +1181,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             }
 
             // TODO: dedtypes => ti.tiargs ?
-            if (!evaluateConstraint(this, ti, sc, paramscope, &dedtypes, fd))
+            if (!evaluateConstraint(td, ti, sc, paramscope, &dedtypes, fd))
                 return nomatch();
         }
 
@@ -1212,7 +1216,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         paramscope.pop();
         static if (LOGM)
         {
-            printf("-TemplateDeclaration.matchWithInstance(this = %s, ti = %s) = %d\n", toChars(), ti.toChars(), m);
+            printf("-TemplateDeclaration.matchWithInstance(td = %s, ti = %s) = %d\n", td.toChars(), ti.toChars(), m);
         }
         return m;
     }
@@ -1258,7 +1262,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         Objects dedtypes = Objects(td2.parameters.length);
 
         // Attempt a type deduction
-        MATCH m = td2.matchWithInstance(sc, ti, dedtypes, argumentList, 1);
+        MATCH m = matchWithInstance(sc, td2, ti, dedtypes, argumentList, 1);
         if (m > MATCH.nomatch)
         {
             /* A non-variadic template is more specialized than a
@@ -2834,7 +2838,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             auto ti = new TemplateInstance(loc, td, tiargs);
             Objects dedtypes = Objects(td.parameters.length);
             assert(td.semanticRun != PASS.initial);
-            MATCH mta = td.matchWithInstance(sc, ti, dedtypes, argumentList, 0);
+            MATCH mta = TemplateDeclaration.matchWithInstance(sc, td, ti, dedtypes, argumentList, 0);
             //printf("matchWithInstance = %d\n", mta);
             if (mta == MATCH.nomatch || mta < ta_last)   // no match or less match
                 return 0;
@@ -6959,7 +6963,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             assert(tempdecl._scope);
             // Deduce tdtypes
             tdtypes.setDim(tempdecl.parameters.length);
-            if (!tempdecl.matchWithInstance(sc, this, tdtypes, argumentList, 2))
+            if (!TemplateDeclaration.matchWithInstance(sc, tempdecl, this, tdtypes, argumentList, 2))
             {
                 .error(loc, "%s `%s` incompatible arguments for template instantiation", kind, toPrettyChars);
                 return false;
@@ -7009,7 +7013,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 dedtypes.zero();
                 assert(td.semanticRun != PASS.initial);
 
-                MATCH m = td.matchWithInstance(sc, this, dedtypes, argumentList, 0);
+                MATCH m = TemplateDeclaration.matchWithInstance(sc, td, this, dedtypes, argumentList, 0);
                 //printf("matchWithInstance = %d\n", m);
                 if (m == MATCH.nomatch) // no match at all
                     return 0;
@@ -7289,7 +7293,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                             return 1;
                         }
                     }
-                    MATCH m = td.matchWithInstance(sc, this, dedtypes, ArgumentList(), 0);
+                    MATCH m = TemplateDeclaration.matchWithInstance(sc, td, this, dedtypes, ArgumentList(), 0);
                     if (m == MATCH.nomatch)
                         return 0;
                 }
