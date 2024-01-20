@@ -1099,7 +1099,8 @@ private bool finishVtbl(ClassDeclaration cd)
                 continue;
             if (fd2.isFuture())
                 continue;
-            if (!fd.leastAsSpecialized(fd2, null) && !fd2.leastAsSpecialized(fd, null))
+            if (!FuncDeclaration.leastAsSpecialized(fd, fd2, null) &&
+                !FuncDeclaration.leastAsSpecialized(fd2, fd, null))
                 continue;
             // Hiding detected: same name, overlapping specializations
             TypeFunction tf = fd.type.toTypeFunction();

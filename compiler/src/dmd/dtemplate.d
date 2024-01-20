@@ -2770,8 +2770,8 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
          * This is because f() is "more specialized."
          */
         {
-            MATCH c1 = fd.leastAsSpecialized(m.lastf, argumentList.names);
-            MATCH c2 = m.lastf.leastAsSpecialized(fd, argumentList.names);
+            MATCH c1 = FuncDeclaration.leastAsSpecialized(fd, m.lastf, argumentList.names);
+            MATCH c2 = FuncDeclaration.leastAsSpecialized(m.lastf, fd, argumentList.names);
             //printf("c1 = %d, c2 = %d\n", c1, c2);
             if (c1 > c2) return firstIsBetter();
             if (c1 < c2) return 0;
@@ -3055,8 +3055,8 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             }
             {
                 // Disambiguate by picking the most specialized FunctionDeclaration
-                MATCH c1 = fd.leastAsSpecialized(m.lastf, argumentList.names);
-                MATCH c2 = m.lastf.leastAsSpecialized(fd, argumentList.names);
+                MATCH c1 = FuncDeclaration.leastAsSpecialized(fd, m.lastf, argumentList.names);
+                MATCH c2 = FuncDeclaration.leastAsSpecialized(m.lastf, fd, argumentList.names);
                 //printf("3: c1 = %d, c2 = %d\n", c1, c2);
                 if (c1 > c2) goto Ltd;
                 if (c1 < c2) goto Ltd_best;
