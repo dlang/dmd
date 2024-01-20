@@ -1260,12 +1260,17 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     }
 
     /********************************************
-     * Determine partial specialization order of 'this' vs td2.
+     * Determine partial specialization order of `td` vs `td2`.
+     * Params:
+     *  sc = context
+     *  td = first template
+     *  td2 = second template
+     *  argumentList = arguments to template
      * Returns:
-     *      match   this is at least as specialized as td2
-     *      0       td2 is more specialized than this
+     *      MATCH - td is at least as specialized as td2
+     *      MATCH.nomatch - td2 is more specialized than td
      */
-    extern (D) MATCH leastAsSpecialized(Scope* sc, TemplateDeclaration td2, ArgumentList argumentList)
+    static MATCH leastAsSpecialized(Scope* sc, TemplateDeclaration td, TemplateDeclaration td2, ArgumentList argumentList)
     {
         enum LOG_LEASTAS = 0;
         static if (LOG_LEASTAS)
@@ -1283,8 +1288,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         // Set type arguments to dummy template instance to be types
         // generated from the parameters to this template declaration
         auto tiargs = new Objects();
-        tiargs.reserve(parameters.length);
-        foreach (tp; *parameters)
+        tiargs.reserve(td.parameters.length);
+        foreach (tp; *td.parameters)
         {
             if (tp.dependent)
                 break;
@@ -1294,7 +1299,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
             tiargs.push(p);
         }
-        scope TemplateInstance ti = new TemplateInstance(Loc.initial, ident, tiargs); // create dummy template instance
+        scope TemplateInstance ti = new TemplateInstance(Loc.initial, td.ident, tiargs); // create dummy template instance
 
         // Temporary Array to hold deduced types
         Objects dedtypes = Objects(td2.parameters.length);
@@ -1306,7 +1311,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             /* A non-variadic template is more specialized than a
              * variadic one.
              */
-            TemplateTupleParameter tp = isVariadic();
+            TemplateTupleParameter tp = td.isVariadic();
             if (tp && !tp.dependent && !td2.isVariadic())
                 goto L1;
 
@@ -3036,8 +3041,8 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             if (td_best)
             {
                 // Disambiguate by picking the most specialized TemplateDeclaration
-                MATCH c1 = td.leastAsSpecialized(sc, td_best, argumentList);
-                MATCH c2 = td_best.leastAsSpecialized(sc, td, argumentList);
+                MATCH c1 = TemplateDeclaration.leastAsSpecialized(sc, td, td_best, argumentList);
+                MATCH c2 = TemplateDeclaration.leastAsSpecialized(sc, td_best, td, argumentList);
                 //printf("1: c1 = %d, c2 = %d\n", c1, c2);
                 if (c1 > c2) goto Ltd;
                 if (c1 < c2) goto Ltd_best;
@@ -7060,8 +7065,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
                 // Disambiguate by picking the most specialized TemplateDeclaration
                 {
-                MATCH c1 = td.leastAsSpecialized(sc, td_best, argumentList);
-                MATCH c2 = td_best.leastAsSpecialized(sc, td, argumentList);
+                MATCH c1 = TemplateDeclaration.leastAsSpecialized(sc, td, td_best, argumentList);
+                MATCH c2 = TemplateDeclaration.leastAsSpecialized(sc, td_best, td, argumentList);
                 //printf("c1 = %d, c2 = %d\n", c1, c2);
                 if (c1 > c2) goto Ltd;
                 if (c1 < c2) goto Ltd_best;

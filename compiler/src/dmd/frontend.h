@@ -1432,6 +1432,21 @@ public:
     void accept(Visitor* v) override;
 };
 
+struct ArgumentList final
+{
+    Array<Expression* >* arguments;
+    Array<Identifier* >* names;
+    ArgumentList() :
+        arguments(),
+        names()
+    {
+    }
+    ArgumentList(Array<Expression* >* arguments, Array<Identifier* >* names = nullptr) :
+        arguments(arguments),
+        names(names)
+        {}
+};
+
 class TemplateDeclaration final : public ScopeDsymbol
 {
 public:
@@ -1466,6 +1481,7 @@ public:
     Visibility visible() override;
     const char* getConstraintEvalError(const char*& tip);
     Scope* scopeForTemplateParameters(TemplateInstance* ti, Scope* sc);
+    static MATCH leastAsSpecialized(Scope* sc, TemplateDeclaration* td, TemplateDeclaration* td2, ArgumentList argumentList);
     TemplateDeclaration* isTemplateDeclaration() override;
     bool isDeprecated() const override;
     bool isOverloadable() const override;
@@ -2320,21 +2336,6 @@ class AndExp final : public BinExp
 {
 public:
     void accept(Visitor* v) override;
-};
-
-struct ArgumentList final
-{
-    Array<Expression* >* arguments;
-    Array<Identifier* >* names;
-    ArgumentList() :
-        arguments(),
-        names()
-    {
-    }
-    ArgumentList(Array<Expression* >* arguments, Array<Identifier* >* names = nullptr) :
-        arguments(arguments),
-        names(names)
-        {}
 };
 
 class ArrayExp final : public UnaExp
