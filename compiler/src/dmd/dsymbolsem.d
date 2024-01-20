@@ -5312,7 +5312,9 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
             {
                 s = tident.toDsymbol(sc);
                 if (s && s.isVarDeclaration()) {
-                    // deprecated in 2.107
+                    // @@@DEPRECATED_2.118@@@
+                    // Deprecated in 2.108
+                    // Make an error in 2.118
                     deprecation(mt.loc, "cannot alias member of variable `%s`", mt.ident.toChars());
                     deprecationSupplemental(mt.loc, "Use `typeof(%s)` instead to preserve behaviour",
                         mt.ident.toChars());
