@@ -12,13 +12,13 @@ struct Foo
     int v;
     void test(Foo that) const
     {
-        alias a = this.v;
+        alias a = this.v; // OK
         alias b = that.v;
         assert(&a is &b);
     }
 }
 
-void main ()
+void main()
 {
     Foo a = Foo(1);
     Foo b = Foo(2);
