@@ -273,7 +273,7 @@ void atomic_signal_fence_impl()(memory_order order)
     final switch (order)
     {
         case memory_order.memory_order_relaxed:
-            atomicSignalFence!(memory_order.memory_order_relaxed);
+            // This is a no-op operation for relaxed memory orders.
             break;
 
         case memory_order.memory_order_acquire:
@@ -307,7 +307,7 @@ void atomic_thread_fence_impl()(memory_order order)
     final switch (order)
     {
         case memory_order.memory_order_relaxed:
-            atomicFence!(memory_order.memory_order_relaxed);
+            // This is a no-op operation for relaxed memory orders.
             break;
 
         case memory_order.memory_order_acquire:
