@@ -1320,6 +1320,7 @@ enum class ClassFlags : uint32_t
     isAbstract = 64u,
     isCPPclass = 128u,
     hasDtor = 256u,
+    hasNameSig = 512u,
 };
 
 struct MatchAccumulator final
