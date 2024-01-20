@@ -2247,6 +2247,37 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
             buf.writeByte(e.postfix);
     }
 
+    void visitInterpolation(InterpExp e)
+    {
+        buf.writeByte('i');
+        buf.writeByte('"');
+        const o = buf.length;
+
+        foreach (idx, str; e.interpolatedSet.parts)
+        {
+            if (idx % 2 == 0)
+            {
+                foreach(ch; str)
+                    writeCharLiteral(buf, ch);
+            }
+            else
+            {
+                buf.writeByte('$');
+                buf.writeByte('(');
+                foreach(ch; str)
+                    buf.writeByte(ch);
+                buf.writeByte(')');
+            }
+        }
+
+        if (hgs.ddoc)
+            escapeDdocString(buf, o);
+        buf.writeByte('"');
+        if (e.postfix)
+            buf.writeByte(e.postfix);
+
+    }
+
     void visitArrayLiteral(ArrayLiteralExp e)
     {
         buf.writeByte('[');
@@ -2827,6 +2858,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         case EXP.super_:        return visitSuper(e.isSuperExp());
         case EXP.null_:         return visitNull(e.isNullExp());
         case EXP.string_:       return visitString(e.isStringExp());
+        case EXP.interpolated:  return visitInterpolation(e.isInterpExp());
         case EXP.arrayLiteral:  return visitArrayLiteral(e.isArrayLiteralExp());
         case EXP.assocArrayLiteral:     return visitAssocArrayLiteral(e.isAssocArrayLiteralExp());
         case EXP.structLiteral: return visitStructLiteral(e.isStructLiteralExp());

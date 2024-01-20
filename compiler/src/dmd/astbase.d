@@ -4575,6 +4575,7 @@ struct ASTBase
             inout(SuperExp)     isSuperExp() { return op == EXP.super_ ? cast(typeof(return))this : null; }
             inout(NullExp)      isNullExp() { return op == EXP.null_ ? cast(typeof(return))this : null; }
             inout(StringExp)    isStringExp() { return op == EXP.string_ ? cast(typeof(return))this : null; }
+            inout(InterpExp)    isInterpExp() { return op == EXP.interpolated ? cast(typeof(return))this : null; }
             inout(TupleExp)     isTupleExp() { return op == EXP.tuple ? cast(typeof(return))this : null; }
             inout(ArrayLiteralExp) isArrayLiteralExp() { return op == EXP.arrayLiteral ? cast(typeof(return))this : null; }
             inout(AssocArrayLiteralExp) isAssocArrayLiteralExp() { return op == EXP.assocArrayLiteral ? cast(typeof(return))this : null; }
@@ -4906,6 +4907,25 @@ struct ASTBase
             v.visit(this);
         }
     }
+
+    extern (C++) final class InterpExp : Expression
+    {
+        InterpolatedSet* interpolatedSet;
+        char postfix = 0;   // 'c', 'w', 'd'
+
+        extern (D) this(const ref Loc loc, InterpolatedSet* interpolatedSet, char postfix = 0)
+        {
+            super(loc, EXP.interpolated, __traits(classInstanceSize, InterpExp));
+            this.interpolatedSet = interpolatedSet;
+            this.postfix = postfix;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
 
     extern (C++) final class StringExp : Expression
     {

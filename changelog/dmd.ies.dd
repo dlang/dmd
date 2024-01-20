@@ -1,0 +1,18 @@
+Add support for Interpolated Expression Sequences
+
+Interpolated Expression Sequences are a way to implement things like string interpolation in library code. Three forms of literals are added:
+
+```
+i"Content $(a + 4)"
+i`Content $(a + 4)`
+iq{Content $(a + 4)}
+```
+
+all provide the same thing: a tuple that can be passed to other functions, like `writeln` from `std.stdio` and `text` from `std.conv`:
+
+```
+int a = 6;
+writeln(i"Content $(a + 4)"); // prints "Content 10"
+```
+
+You can also pass them to other functions which understand the types in the new `core.interpolation` module. Numerous examples can be found documentation of that module or in this repository: https://github.com/adamdruppe/interpolation-examples/
