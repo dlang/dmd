@@ -1480,7 +1480,7 @@ public:
     Visibility visible() override;
     static bool evaluateConstraint(TemplateDeclaration* td, TemplateInstance* ti, Scope* sc, Scope* paramscope, Array<RootObject* >* dedargs, FuncDeclaration* fd);
     const char* getConstraintEvalError(const char*& tip);
-    Scope* scopeForTemplateParameters(TemplateInstance* ti, Scope* sc);
+    static Scope* createScopeForTemplateParameters(TemplateDeclaration* td, TemplateInstance* ti, Scope* sc);
     static MATCH leastAsSpecialized(Scope* sc, TemplateDeclaration* td, TemplateDeclaration* td2, ArgumentList argumentList);
     TemplateDeclaration* isTemplateDeclaration() override;
     bool isDeprecated() const override;
