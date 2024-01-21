@@ -743,20 +743,19 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
     override const(char)* toChars() const
     {
+        HdrGenState hgs;
         OutBuffer buf;
-        toCharsMaybeConstraints(true, buf);
+        toCharsMaybeConstraints(this, buf, hgs);
         return buf.extractChars();
     }
 
     // Note: this function is not actually `const`, because iterating the
     // function parameter list may run dsymbolsemantic on enum types
-    void toCharsMaybeConstraints(bool includeConstraints, ref OutBuffer buf) const
+    static void toCharsMaybeConstraints(const TemplateDeclaration td, ref OutBuffer buf, ref HdrGenState hgs)
     {
-        HdrGenState hgs;
-
-        buf.writestring(ident == Id.ctor ? "this" : ident.toString());
+        buf.writestring(td.ident == Id.ctor ? "this" : td.ident.toString());
         buf.writeByte('(');
-        foreach (i, const tp; *parameters)
+        foreach (i, const tp; *td.parameters)
         {
             if (i)
                 buf.writestring(", ");
@@ -764,9 +763,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         }
         buf.writeByte(')');
 
-        if (onemember)
+        if (td.onemember)
         {
-            if (const fd = onemember.isFuncDeclaration())
+            if (const fd = td.onemember.isFuncDeclaration())
             {
                 if (TypeFunction tf = cast(TypeFunction)fd.type.isTypeFunction())
                 {
@@ -781,11 +780,11 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             }
         }
 
-        if (includeConstraints &&
-            constraint)
+        if (!hgs.skipConstraints &&
+            td.constraint)
         {
             buf.writestring(" if (");
-            toCBuffer(constraint, buf, hgs);
+            toCBuffer(td.constraint, buf, hgs);
             buf.writeByte(')');
         }
     }
@@ -7151,7 +7150,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 const(char)* msg = "does not match template declaration";
                 const(char)* tip;
                 OutBuffer buf;
-                tdecl.toCharsMaybeConstraints(false, buf);
+                HdrGenState hgs;
+                hgs.skipConstraints = true;
+                TemplateDeclaration.toCharsMaybeConstraints(tdecl, buf, hgs);
                 const tmsg = buf.peekChars();
                 const cmsg = tdecl.getConstraintEvalError(tip);
                 if (cmsg)
@@ -8559,7 +8560,9 @@ extern (C++) void printTemplateStats(bool listInstances, ErrorSink eSink)
     foreach (const ref ss; sortedStats[])
     {
         buf.reset();
-        ss.td.toCharsMaybeConstraints(false, buf);
+        HdrGenState hgs;
+        hgs.skipConstraints = true;
+        TemplateDeclaration.toCharsMaybeConstraints(ss.td, buf, hgs);
         const tchars = buf.peekChars();
         if (listInstances && ss.ts.allInstances)
         {

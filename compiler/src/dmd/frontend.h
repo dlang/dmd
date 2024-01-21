@@ -147,6 +147,7 @@ class TemplateAliasParameter;
 class TemplateThisParameter;
 class TemplateTupleParameter;
 struct TemplatePrevious;
+struct HdrGenState;
 class TypeQualified;
 class TypeBasic;
 class TypeFunction;
@@ -1461,7 +1462,7 @@ public:
     bool hasStaticCtorOrDtor() override;
     const char* kind() const override;
     const char* toChars() const override;
-    void toCharsMaybeConstraints(bool includeConstraints, OutBuffer& buf) const;
+    static void toCharsMaybeConstraints(const TemplateDeclaration* const td, OutBuffer& buf, HdrGenState& hgs);
     Visibility visible() override;
     const char* getConstraintEvalError(const char*& tip);
     Scope* scopeForTemplateParameters(TemplateInstance* ti, Scope* sc);
@@ -4065,6 +4066,7 @@ struct HdrGenState final
     bool importcHdr;
     bool doFuncBodies;
     bool vcg_ast;
+    bool skipConstraints;
     bool fullQual;
     int32_t tpltMember;
     int32_t autoMember;
@@ -4080,6 +4082,7 @@ struct HdrGenState final
         importcHdr(),
         doFuncBodies(),
         vcg_ast(),
+        skipConstraints(),
         fullQual(),
         tpltMember(),
         autoMember(),
@@ -4090,13 +4093,14 @@ struct HdrGenState final
         inEnumDecl()
     {
     }
-    HdrGenState(bool hdrgen, bool ddoc = false, bool fullDump = false, bool importcHdr = false, bool doFuncBodies = false, bool vcg_ast = false, bool fullQual = false, int32_t tpltMember = 0, int32_t autoMember = 0, int32_t forStmtInit = 0, int32_t insideFuncBody = 0, int32_t insideAggregate = 0, bool declstring = false, EnumDeclaration* inEnumDecl = nullptr) :
+    HdrGenState(bool hdrgen, bool ddoc = false, bool fullDump = false, bool importcHdr = false, bool doFuncBodies = false, bool vcg_ast = false, bool skipConstraints = false, bool fullQual = false, int32_t tpltMember = 0, int32_t autoMember = 0, int32_t forStmtInit = 0, int32_t insideFuncBody = 0, int32_t insideAggregate = 0, bool declstring = false, EnumDeclaration* inEnumDecl = nullptr) :
         hdrgen(hdrgen),
         ddoc(ddoc),
         fullDump(fullDump),
         importcHdr(importcHdr),
         doFuncBodies(doFuncBodies),
         vcg_ast(vcg_ast),
+        skipConstraints(skipConstraints),
         fullQual(fullQual),
         tpltMember(tpltMember),
         autoMember(autoMember),
