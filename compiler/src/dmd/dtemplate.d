@@ -908,7 +908,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         assert(parameters && lastConstraintTiargs);
         if (parameters.length > 0)
         {
-            formatParamsWithTiargs(*lastConstraintTiargs, buf);
+            formatParamsWithTiargs(*parameters, *lastConstraintTiargs, isVariadic() !is null, buf);
             buf.writenl();
         }
         if (!full)
@@ -941,40 +941,47 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         return buf.extractChars();
     }
 
-    private void formatParamsWithTiargs(ref Objects tiargs, ref OutBuffer buf)
+    /*******************************************
+     * Append to buf a textual representation of template parameters with their arguments.
+     * Params:
+     *  parameters = the template parameters
+     *  tiargs = the correspondeing template arguments
+     *  variadic = if it's a variadic argument list
+     *  buf = where the text output goes
+     */
+    static private void formatParamsWithTiargs(ref TemplateParameters parameters, ref Objects tiargs, bool variadic, ref OutBuffer buf)
     {
         buf.writestring("  with `");
 
         // write usual arguments line-by-line
         // skips trailing default ones - they are not present in `tiargs`
-        const bool variadic = isVariadic() !is null;
-        const end = cast(int)parameters.length - (variadic ? 1 : 0);
-        uint i;
+        const end = parameters.length - (variadic ? 1 : 0);
+        size_t i;
         for (; i < tiargs.length && i < end; i++)
         {
-            if (i > 0)
+            if (i)
             {
                 buf.writeByte(',');
                 buf.writenl();
                 buf.writestring("       ");
             }
-            write(buf, (*parameters)[i]);
+            write(buf, parameters[i]);
             buf.writestring(" = ");
             write(buf, tiargs[i]);
         }
         // write remaining variadic arguments on the last line
         if (variadic)
         {
-            if (i > 0)
+            if (i)
             {
                 buf.writeByte(',');
                 buf.writenl();
                 buf.writestring("       ");
             }
-            write(buf, (*parameters)[end]);
+            write(buf, parameters[end]);
             buf.writestring(" = ");
             buf.writeByte('(');
-            if (cast(int)tiargs.length - end > 0)
+            if (end < tiargs.length)
             {
                 write(buf, tiargs[end]);
                 foreach (j; parameters.length .. tiargs.length)
