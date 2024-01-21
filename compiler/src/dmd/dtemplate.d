@@ -757,7 +757,8 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     /****************************
      * Check to see if constraint is satisfied.
      */
-    private bool evaluateConstraint(TemplateInstance ti, Scope* sc, Scope* paramscope, Objects* dedargs, FuncDeclaration fd)
+    private static
+    bool evaluateConstraint(TemplateDeclaration td, TemplateInstance ti, Scope* sc, Scope* paramscope, Objects* dedargs, FuncDeclaration fd)
     {
         /* Detect recursive attempts to instantiate this template declaration,
          * https://issues.dlang.org/show_bug.cgi?id=4072
@@ -772,7 +773,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
          * Workaround the problem by setting a flag to relax the checking on frame errors.
          */
 
-        for (TemplatePrevious* p = previous; p; p = p.prev)
+        for (TemplatePrevious* p = td.previous; p; p = p.prev)
         {
             if (!arrayObjectMatch(*p.dedargs, *dedargs))
                 continue;
@@ -795,10 +796,10 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         }
 
         TemplatePrevious pr;
-        pr.prev = previous;
+        pr.prev = td.previous;
         pr.sc = paramscope.callsc;
         pr.dedargs = dedargs;
-        previous = &pr; // add this to threaded list
+        td.previous = &pr; // add this to threaded list
 
         Scope* scx = paramscope.push(ti);
         scx.parent = ti;
@@ -846,35 +847,35 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
                 if (!ti.symtab)
                     ti.symtab = new DsymbolTable();
                 if (!scx.insert(v))
-                    .error(loc, "%s `%s` parameter `%s.%s` is already defined", kind, toPrettyChars, toChars(), v.toChars());
+                    .error(td.loc, "%s `%s` parameter `%s.%s` is already defined", td.kind, td.toPrettyChars, td.toChars(), v.toChars());
                 else
                     v.parent = fd;
             }
-            if (isstatic)
+            if (td.isstatic)
                 fd.storage_class |= STC.static_;
             fd.declareThis(scx);
         }
 
-        lastConstraint = constraint.syntaxCopy();
-        lastConstraintTiargs = ti.tiargs;
-        lastConstraintNegs.setDim(0);
+        td.lastConstraint = td.constraint.syntaxCopy();
+        td.lastConstraintTiargs = ti.tiargs;
+        td.lastConstraintNegs.setDim(0);
 
         import dmd.staticcond;
 
         assert(ti.inst is null);
         ti.inst = ti; // temporary instantiation to enable genIdent()
         bool errors;
-        const bool result = evalStaticCondition(scx, constraint, lastConstraint, errors, &lastConstraintNegs);
+        const bool result = evalStaticCondition(scx, td.constraint, td.lastConstraint, errors, &td.lastConstraintNegs);
         if (result || errors)
         {
-            lastConstraint = null;
-            lastConstraintTiargs = null;
-            lastConstraintNegs.setDim(0);
+            td.lastConstraint = null;
+            td.lastConstraintTiargs = null;
+            td.lastConstraintNegs.setDim(0);
         }
         ti.inst = null;
         ti.symtab = null;
         scx = scx.pop();
-        previous = pr.prev; // unlink from threaded list
+        td.previous = pr.prev; // unlink from threaded list
         if (errors)
             return false;
         return result;
@@ -1169,7 +1170,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             }
 
             // TODO: dedtypes => ti.tiargs ?
-            if (!evaluateConstraint(ti, sc, paramscope, &dedtypes, fd))
+            if (!evaluateConstraint(this, ti, sc, paramscope, &dedtypes, fd))
                 return nomatch();
         }
 
@@ -2216,7 +2217,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
 
         if (constraint)
         {
-            if (!evaluateConstraint(ti, sc, paramscope, dedargs, fd))
+            if (!evaluateConstraint(this, ti, sc, paramscope, dedargs, fd))
                 return nomatch();
         }
 
