@@ -147,7 +147,6 @@ class TemplateAliasParameter;
 class TemplateThisParameter;
 class TemplateTupleParameter;
 struct TemplatePrevious;
-struct HdrGenState;
 class TypeQualified;
 class TypeBasic;
 class TypeFunction;
@@ -1462,7 +1461,6 @@ public:
     bool hasStaticCtorOrDtor() override;
     const char* kind() const override;
     const char* toChars() const override;
-    static void toCharsMaybeConstraints(const TemplateDeclaration* const td, OutBuffer& buf, HdrGenState& hgs);
     Visibility visible() override;
     const char* getConstraintEvalError(const char*& tip);
     Scope* scopeForTemplateParameters(TemplateInstance* ti, Scope* sc);

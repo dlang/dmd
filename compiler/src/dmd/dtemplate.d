@@ -749,46 +749,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         return buf.extractChars();
     }
 
-    // Note: this function is not actually `const`, because iterating the
-    // function parameter list may run dsymbolsemantic on enum types
-    static void toCharsMaybeConstraints(const TemplateDeclaration td, ref OutBuffer buf, ref HdrGenState hgs)
-    {
-        buf.writestring(td.ident == Id.ctor ? "this" : td.ident.toString());
-        buf.writeByte('(');
-        foreach (i, const tp; *td.parameters)
-        {
-            if (i)
-                buf.writestring(", ");
-            toCBuffer(tp, buf, hgs);
-        }
-        buf.writeByte(')');
-
-        if (td.onemember)
-        {
-            if (const fd = td.onemember.isFuncDeclaration())
-            {
-                if (TypeFunction tf = cast(TypeFunction)fd.type.isTypeFunction())
-                {
-                    // !! Casted away const
-                    buf.writestring(parametersTypeToChars(tf.parameterList));
-                    if (tf.mod)
-                    {
-                        buf.writeByte(' ');
-                        buf.MODtoBuffer(tf.mod);
-                    }
-                }
-            }
-        }
-
-        if (!hgs.skipConstraints &&
-            td.constraint)
-        {
-            buf.writestring(" if (");
-            toCBuffer(td.constraint, buf, hgs);
-            buf.writeByte(')');
-        }
-    }
-
     override Visibility visible() pure nothrow @nogc @safe
     {
         return visibility;
@@ -7152,7 +7112,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 OutBuffer buf;
                 HdrGenState hgs;
                 hgs.skipConstraints = true;
-                TemplateDeclaration.toCharsMaybeConstraints(tdecl, buf, hgs);
+                toCharsMaybeConstraints(tdecl, buf, hgs);
                 const tmsg = buf.peekChars();
                 const cmsg = tdecl.getConstraintEvalError(tip);
                 if (cmsg)
@@ -8562,7 +8522,7 @@ extern (C++) void printTemplateStats(bool listInstances, ErrorSink eSink)
         buf.reset();
         HdrGenState hgs;
         hgs.skipConstraints = true;
-        TemplateDeclaration.toCharsMaybeConstraints(ss.td, buf, hgs);
+        toCharsMaybeConstraints(ss.td, buf, hgs);
         const tchars = buf.peekChars();
         if (listInstances && ss.ts.allInstances)
         {
