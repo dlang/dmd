@@ -77,7 +77,7 @@ jobs:
       OS_NAME: ${{ startsWith(matrix.os, 'ubuntu') && 'linux' || (startsWith(matrix.os, 'macos') && 'osx' || (startsWith(matrix.os, 'windows') && 'windows' || '')) }}
       MODEL: ${{ matrix.model || '64' }}
       HOST_DMD: ${{ matrix.host_dmd }}
-      N: ${{ startsWith(matrix.os, 'macos') && '3' || '2' }}
+      N: ${{ startsWith(matrix.os, 'macos') && '3' || '4' }}
       FULL_BUILD: true
       # for coverage:
       DMD_TEST_COVERAGE: ${{ matrix.coverage && '1' || '0' }}
