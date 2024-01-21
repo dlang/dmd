@@ -60,6 +60,7 @@ struct HdrGenState
     bool importcHdr;    /// true if generating a .di file from an ImportC file
     bool doFuncBodies;  /// include function bodies in output
     bool vcg_ast;       /// write out codegen-ast
+    bool skipConstraints;  // skip constraints when doing templates
 
     bool fullQual;      /// fully qualify types when printing
     int tpltMember;
