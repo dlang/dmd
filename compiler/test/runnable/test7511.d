@@ -249,6 +249,7 @@ struct Test10373a(T, int N = 0)
 }
 struct Test10373b(T, int N = 0)
 {
+    /*
     static if (is(T == class))
     {}
     else
@@ -263,6 +264,7 @@ struct Test10373b(T, int N = 0)
             }
         }
     }
+    */
 
     static if (N == 0) T[ ] mBuffer;
     else               T[N] mBuffer;
@@ -361,7 +363,7 @@ mixin baz11896b;
 
 class Foo11896b(T)
 {
-    static if (! __traits(isVirtualMethod, zoo)) {}
+    //static if (! __traits(isVirtualMethod, zoo)) {}
 
     static void zoo()
     {
