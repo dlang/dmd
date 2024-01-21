@@ -103,7 +103,7 @@ version (DigitalMars)
         alias atomic_fetch_and_explicit = atomic_fetch_and_explicit_impl; ///
     }
 }
-else version(GNU)
+else
 {
     alias atomic_flag_clear = atomic_flag_clear_impl; ///
     alias atomic_flag_clear_explicit = atomic_flag_clear_explicit_impl; ///
