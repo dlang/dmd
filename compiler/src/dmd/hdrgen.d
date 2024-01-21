@@ -1958,6 +1958,47 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
     s.accept(v);
 }
 
+// Note: this function is not actually `const`, because iterating the
+// function parameter list may run dsymbolsemantic on enum types
+public
+void toCharsMaybeConstraints(const TemplateDeclaration td, ref OutBuffer buf, ref HdrGenState hgs)
+{
+    buf.writestring(td.ident == Id.ctor ? "this" : td.ident.toString());
+    buf.writeByte('(');
+    foreach (i, const tp; *td.parameters)
+    {
+        if (i)
+            buf.writestring(", ");
+        toCBuffer(tp, buf, hgs);
+    }
+    buf.writeByte(')');
+
+    if (td.onemember)
+    {
+        if (const fd = td.onemember.isFuncDeclaration())
+        {
+            if (TypeFunction tf = cast(TypeFunction)fd.type.isTypeFunction())
+            {
+                // !! Casted away const
+                buf.writestring(parametersTypeToChars(tf.parameterList));
+                if (tf.mod)
+                {
+                    buf.writeByte(' ');
+                    buf.MODtoBuffer(tf.mod);
+                }
+            }
+        }
+    }
+
+    if (!hgs.skipConstraints &&
+        td.constraint)
+    {
+        buf.writestring(" if (");
+        toCBuffer(td.constraint, buf, hgs);
+        buf.writeByte(')');
+    }
+}
+
 
 /*****************************************
  * Pretty-print a template parameter list to a buffer.

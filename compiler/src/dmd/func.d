@@ -3583,7 +3583,7 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
             OutBuffer buf;
             HdrGenState hgs;
             hgs.skipConstraints = true;
-            TemplateDeclaration.toCharsMaybeConstraints(td, buf, hgs);
+            toCharsMaybeConstraints(td, buf, hgs);
             const tmsg = buf.peekChars();
             const cmsg = td.getConstraintEvalError(constraintsTip);
 
