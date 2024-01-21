@@ -46,6 +46,7 @@ import dmd.escape;
 import dmd.expression;
 import dmd.file_manager;
 import dmd.func;
+import dmd.funcsem;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
@@ -1579,7 +1580,7 @@ Lagain:
     if (auto f = s.isFuncDeclaration())
     {
         f = f.toAliasFunc();
-        if (!FuncDeclaration.functionSemantic(f))
+        if (!functionSemantic(f))
             return ErrorExp.get();
 
         if (!hasOverloads && f.checkForwardRef(loc))
@@ -2866,7 +2867,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
     // If inferring return type, and semantic3() needs to be run if not already run
     if (!tf.next && fd.inferRetType)
     {
-        FuncDeclaration.functionSemantic(fd);
+        functionSemantic(fd);
     }
     else if (fd && fd.parent)
     {
@@ -5444,7 +5445,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (fd)
         {
             //printf("L%d fd = %s\n", __LINE__, f.toChars());
-            if (!FuncDeclaration.functionSemantic(fd))
+            if (!functionSemantic(fd))
                 return setError();
         }
 
@@ -8249,7 +8250,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (FuncDeclaration fd = exp.var.isFuncDeclaration())
         {
             // for functions, do checks after overload resolution
-            if (!FuncDeclaration.functionSemantic(fd))
+            if (!functionSemantic(fd))
                 return setError();
 
             /* https://issues.dlang.org/show_bug.cgi?id=13843
@@ -9016,7 +9017,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         bool err = false;
         if (cd.dtor)
         {
-            err |= !FuncDeclaration.functionSemantic(cd.dtor);
+            err |= !functionSemantic(cd.dtor);
             err |= cd.dtor.checkPurity(exp.loc, sc);
             err |= cd.dtor.checkSafety(exp.loc, sc);
             err |= cd.dtor.checkNogc(exp.loc, sc);
@@ -14435,7 +14436,7 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
             if (auto f = s.isFuncDeclaration())
             {
                 //printf("it's a function\n");
-                if (!FuncDeclaration.functionSemantic(f))
+                if (!functionSemantic(f))
                     return ErrorExp.get();
                 Expression e;
                 if (f.needThis())

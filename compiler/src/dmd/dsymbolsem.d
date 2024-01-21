@@ -43,6 +43,7 @@ import dmd.escape;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
+import dmd.funcsem;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
@@ -3740,7 +3741,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         continue;
                     if (cbd.parent && cbd.parent.isTemplateInstance())
                     {
-                        if (!FuncDeclaration.functionSemantic(f2))
+                        if (!functionSemantic(f2))
                             goto Ldone;
                     }
                     may_override = true;
