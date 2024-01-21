@@ -65,6 +65,7 @@ import dmd.visitor;
  *  false if any errors exist in the signature.
  */
 public
+extern (C++)
 bool functionSemantic(FuncDeclaration fd)
 {
     //printf("functionSemantic() %p %s\n", this, toChars());
