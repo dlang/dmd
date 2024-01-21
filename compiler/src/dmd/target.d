@@ -560,7 +560,7 @@ extern (C++) struct Target
      */
     extern (C++) uint alignsize(Type type)
     {
-        assert(type.isTypeBasic());
+        assert(type.isTypeBasic() || type.ty == TY.Tstruct);
         switch (type.ty)
         {
         case TY.Tfloat80:
@@ -579,6 +579,29 @@ extern (C++) struct Target
             if (os & Target.OS.Posix)
                 return isX86_64 ? 8 : 4;
             break;
+        case TY.Tstruct:
+            auto ts = type.isTypeStruct();
+            if (ts.isShared())
+            {
+                // If the shared(struct) can map to a basic type, then it gets
+                // the same natural alignment.
+                switch (type.size(Loc.initial))
+                {
+                    case 1:
+                        return alignsize(Type.tuns8);
+                    case 2:
+                        return alignsize(Type.tuns16);
+                    case 4:
+                        return alignsize(Type.tuns32);
+                    case 8:
+                        return alignsize(Type.tuns64);
+                    case 16:
+                        return alignsize(Type.tuns128);
+                    default:
+                        break;
+                }
+            }
+            return ts.sym.alignsize;
         default:
             break;
         }

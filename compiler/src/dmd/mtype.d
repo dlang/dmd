@@ -5060,7 +5060,7 @@ extern (C++) final class TypeStruct : Type
     override uint alignsize()
     {
         sym.size(Loc.initial); // give error for forward references
-        return sym.alignsize;
+        return target.alignsize(this);
     }
 
     override TypeStruct syntaxCopy()
