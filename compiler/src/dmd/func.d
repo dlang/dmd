@@ -469,25 +469,27 @@ extern (C++) class FuncDeclaration : Declaration
     /****************************************************
      * Resolve forward reference of function signature -
      * parameter types, return type, and attributes.
+     * Params:
+     *  fd = function declaration
      * Returns:
      *  false if any errors exist in the signature.
      */
-    final bool functionSemantic()
+    static bool functionSemantic(FuncDeclaration fd)
     {
         //printf("functionSemantic() %p %s\n", this, toChars());
-        if (!_scope)
-            return !errors;
+        if (!fd._scope)
+            return !fd.errors;
 
-        this.cppnamespace = _scope.namespace;
+        fd.cppnamespace = fd._scope.namespace;
 
-        if (!originalType) // semantic not yet run
+        if (!fd.originalType) // semantic not yet run
         {
-            TemplateInstance spec = isSpeculative();
+            TemplateInstance spec = fd.isSpeculative();
             uint olderrs = global.errors;
             uint oldgag = global.gag;
             if (global.gag && !spec)
                 global.gag = 0;
-            dsymbolSemantic(this, _scope);
+            dsymbolSemantic(fd, fd._scope);
             global.gag = oldgag;
             if (spec && global.errors != olderrs)
                 spec.errors = (global.errors - olderrs != 0);
@@ -499,14 +501,14 @@ extern (C++) class FuncDeclaration : Declaration
         // - When the function body contains any errors, we cannot assume
         //   the inferred return type is valid.
         //   So, the body errors should become the function signature error.
-        if (inferRetType && type && !type.nextOf())
-            return functionSemantic3();
+        if (fd.inferRetType && fd.type && !fd.type.nextOf())
+            return fd.functionSemantic3();
 
         TemplateInstance ti;
-        if (isInstantiated() && !isVirtualMethod() &&
-            ((ti = parent.isTemplateInstance()) is null || ti.isTemplateMixin() || ti.tempdecl.ident == ident))
+        if (fd.isInstantiated() && !fd.isVirtualMethod() &&
+            ((ti = fd.parent.isTemplateInstance()) is null || ti.isTemplateMixin() || ti.tempdecl.ident == fd.ident))
         {
-            AggregateDeclaration ad = isMemberLocal();
+            AggregateDeclaration ad = fd.isMemberLocal();
             if (ad && ad.sizeok != Sizeok.done)
             {
                 /* Currently dmd cannot resolve forward references per methods,
@@ -516,13 +518,13 @@ extern (C++) class FuncDeclaration : Declaration
                 //ad.sizeok = Sizeok.fwd;
             }
             else
-                return functionSemantic3() || !errors;
+                return fd.functionSemantic3() || !fd.errors;
         }
 
-        if (storage_class & STC.inference)
-            return functionSemantic3() || !errors;
+        if (fd.storage_class & STC.inference)
+            return fd.functionSemantic3() || !fd.errors;
 
-        return !errors;
+        return !fd.errors;
     }
 
     /****************************************************
@@ -562,7 +564,7 @@ extern (C++) class FuncDeclaration : Declaration
      */
     extern (D) final bool checkForwardRef(const ref Loc loc)
     {
-        if (!functionSemantic())
+        if (!functionSemantic(this))
             return true;
 
         /* No deco means the functionSemantic() call could not resolve
@@ -3037,7 +3039,7 @@ Expression addInvariant(AggregateDeclaration ad, VarDeclaration vthis)
             // Workaround for https://issues.dlang.org/show_bug.cgi?id=13394
             // For the correct mangling,
             // run attribute inference on inv if needed.
-            inv.functionSemantic();
+            FuncDeclaration.functionSemantic(inv);
         }
 
         //e = new DsymbolExp(Loc.initial, inv);
@@ -3316,7 +3318,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         if (m.count == 1) // exactly one match
         {
             if (!(flags & FuncResolveFlag.quiet))
-                m.lastf.functionSemantic();
+                FuncDeclaration.functionSemantic(m.lastf);
             return m.lastf;
         }
         if ((flags & FuncResolveFlag.overloadOnly) && !tthis && m.lastf.needThis())

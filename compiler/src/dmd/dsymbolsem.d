@@ -3740,7 +3740,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         continue;
                     if (cbd.parent && cbd.parent.isTemplateInstance())
                     {
-                        if (!f2.functionSemantic())
+                        if (!FuncDeclaration.functionSemantic(f2))
                             goto Ldone;
                     }
                     may_override = true;

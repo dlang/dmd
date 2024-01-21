@@ -3795,7 +3795,7 @@ public:
     Array<Expression* >* fdrequireParams(Array<Expression* >* param);
     Array<Expression* >* fdensureParams(Array<Expression* >* param);
     FuncDeclaration* syntaxCopy(Dsymbol* s) override;
-    bool functionSemantic();
+    static bool functionSemantic(FuncDeclaration* fd);
     bool functionSemantic3();
     bool equals(const RootObject* const o) const final override;
     int32_t findVtblIndex(Array<Dsymbol* >* vtbl, int32_t dim);

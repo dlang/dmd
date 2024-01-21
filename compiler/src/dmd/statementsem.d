@@ -1284,7 +1284,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 Type tfront;
                 if (auto fd = sfront.isFuncDeclaration())
                 {
-                    if (!fd.functionSemantic())
+                    if (!FuncDeclaration.functionSemantic(fd))
                         return rangeError();
                     tfront = fd.type;
                 }

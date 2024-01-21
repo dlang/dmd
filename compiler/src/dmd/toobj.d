@@ -1075,7 +1075,7 @@ private bool finishVtbl(ClassDeclaration cd)
         }
         // Ensure function has a return value
         // https://issues.dlang.org/show_bug.cgi?id=4869
-        if (!fd.functionSemantic())
+        if (!FuncDeclaration.functionSemantic(fd))
         {
             hasError = true;
         }
