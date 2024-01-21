@@ -1316,7 +1316,7 @@ public:
             FuncDeclaration *fd = d->vtbl[i]->isFuncDeclaration();
             if (!fd || (!fd->fbody && d->isAbstract()))
                 continue;
-            if (!fd->functionSemantic())
+            if (!FuncDeclaration::functionSemantic(fd))
                 return;
             if (!d->isFuncHidden(fd) || fd->isFuture())
                 continue;
@@ -1452,7 +1452,7 @@ public:
         }
         if (FuncDeclaration *fd = decl->isFuncDeclaration())
         {
-            if (!fd->functionSemantic())
+            if (!FuncDeclaration::functionSemantic(fd))
                 return;
             if (fd->needThis() && !fd->isMember2())
                 return;

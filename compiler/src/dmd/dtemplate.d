@@ -6888,7 +6888,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 }
                 FuncDeclaration fd = sa.isFuncDeclaration();
                 if (fd)
-                    fd.functionSemantic();
+                    FuncDeclaration.functionSemantic(fd);
             }
             else if (isParameter(o))
             {

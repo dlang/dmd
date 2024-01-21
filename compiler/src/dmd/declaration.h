@@ -698,7 +698,7 @@ public:
     FuncDeclaration *fdensure(FuncDeclaration *fde);
     Expressions *fdrequireParams(Expressions *fdrp);
     Expressions *fdensureParams(Expressions *fdep);
-    bool functionSemantic();
+    static bool functionSemantic(FuncDeclaration* fd);
     bool functionSemantic3();
     bool equals(const RootObject * const o) const override final;
 

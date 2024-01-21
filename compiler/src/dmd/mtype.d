@@ -1693,7 +1693,7 @@ extern (C++) abstract class Type : ASTNode
         if (callable)
         {
             auto fd = resolveFuncCall(Loc.initial, null, callable, null, this, ArgumentList(), FuncResolveFlag.quiet);
-            if (!fd || fd.errors || !fd.functionSemantic())
+            if (!fd || fd.errors || !FuncDeclaration.functionSemantic(fd))
                 return Type.terror;
 
             auto t = fd.type.nextOf();
