@@ -642,7 +642,7 @@ else version (GNU)
             else static if (GNU_Have_LibAtomic)
             {
                 T value;
-                __atomic_load(T.sizeof, cast(shared)src, &value, order);
+                __atomic_load(T.sizeof, cast(shared)src, cast(void*)&value, order);
                 return *cast(typeof(return)*)&value;
             }
             else
