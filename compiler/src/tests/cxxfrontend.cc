@@ -1329,8 +1329,8 @@ public:
                     continue;
                 if (fd2->isFuture())
                     continue;
-                if (fd->leastAsSpecialized(fd2, NULL) != MATCH::nomatch ||
-                    fd2->leastAsSpecialized(fd, NULL) != MATCH::nomatch)
+                if (FuncDeclaration::leastAsSpecialized(fd, fd2, NULL) != MATCH::nomatch ||
+                    FuncDeclaration::leastAsSpecialized(fd2, fd, NULL) != MATCH::nomatch)
                 {
                     return;
                 }

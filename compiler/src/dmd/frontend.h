@@ -3799,7 +3799,7 @@ public:
     int32_t findVtblIndex(Array<Dsymbol* >* vtbl, int32_t dim);
     bool overloadInsert(Dsymbol* s) override;
     bool inUnittest();
-    MATCH leastAsSpecialized(FuncDeclaration* g, Array<Identifier* >* names);
+    static MATCH leastAsSpecialized(FuncDeclaration* f, FuncDeclaration* g, Array<Identifier* >* names);
     LabelDsymbol* searchLabel(Identifier* ident, const Loc& loc);
     enum : int32_t { LevelError = -2 };
 

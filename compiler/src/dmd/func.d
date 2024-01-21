@@ -1104,20 +1104,24 @@ extern (C++) class FuncDeclaration : Declaration
     }
 
     /*************************************
-     * Determine partial specialization order of 'this' vs g.
+     * Determine partial specialization order of functions `f` vs `g`.
      * This is very similar to TemplateDeclaration::leastAsSpecialized().
+     * Params:
+     *  f = first function
+     *  g = second function
+     *  names = names of parameters
      * Returns:
      *      match   'this' is at least as specialized as g
      *      0       g is more specialized than 'this'
      */
-    final MATCH leastAsSpecialized(FuncDeclaration g, Identifiers* names)
+    static MATCH leastAsSpecialized(FuncDeclaration f, FuncDeclaration g, Identifiers* names)
     {
         enum LOG_LEASTAS = 0;
         static if (LOG_LEASTAS)
         {
             import core.stdc.stdio : printf;
-            printf("%s.leastAsSpecialized(%s, %s)\n", toChars(), g.toChars(), names ? names.toChars() : "null");
-            printf("%s, %s\n", type.toChars(), g.type.toChars());
+            printf("leastAsSpecialized(%s, %s, %s)\n", f.toChars(), g.toChars(), names ? names.toChars() : "null");
+            printf("%s, %s\n", f.type.toChars(), g.type.toChars());
         }
 
         /* This works by calling g() with f()'s parameters, and
@@ -1125,15 +1129,15 @@ extern (C++) class FuncDeclaration : Declaration
          * as g() is.
          */
 
-        TypeFunction tf = type.toTypeFunction();
+        TypeFunction tf = f.type.toTypeFunction();
         TypeFunction tg = g.type.toTypeFunction();
 
         /* If both functions have a 'this' pointer, and the mods are not
          * the same and g's is not const, then this is less specialized.
          */
-        if (needThis() && g.needThis() && tf.mod != tg.mod)
+        if (f.needThis() && g.needThis() && tf.mod != tg.mod)
         {
-            if (isCtorDeclaration())
+            if (f.isCtorDeclaration())
             {
                 if (!MODimplicitConv(tg.mod, tf.mod))
                     return MATCH.nomatch;
