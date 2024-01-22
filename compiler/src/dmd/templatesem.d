@@ -117,7 +117,7 @@ MATCH matchWithInstance(Scope* sc, TemplateDeclaration td, TemplateInstance ti, 
     assert(td._scope);
 
     // Set up scope for template parameters
-    Scope* paramscope = td.scopeForTemplateParameters(ti,sc);
+    Scope* paramscope = TemplateDeclaration.createScopeForTemplateParameters(td, ti, sc);
 
     // Attempt type deduction
     m = MATCH.exact;

@@ -1004,16 +1004,17 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
      * If paramsym is null a new ScopeDsymbol is used in place of
      * paramsym.
      * Params:
+     *      td = template that ti is an instance of
      *      ti = the TemplateInstance whose parameters to generate the scope for.
      *      sc = the parent scope of ti
      * Returns:
-     *      a scope for the parameters of ti
+     *      new scope for the parameters of ti
      */
-    Scope* scopeForTemplateParameters(TemplateInstance ti, Scope* sc)
+    static Scope* createScopeForTemplateParameters(TemplateDeclaration td, TemplateInstance ti, Scope* sc)
     {
         ScopeDsymbol paramsym = new ScopeDsymbol();
-        paramsym.parent = _scope.parent;
-        Scope* paramscope = _scope.push(paramsym);
+        paramsym.parent = td._scope.parent;
+        Scope* paramscope = td._scope.push(paramsym);
         paramscope.tinst = ti;
         paramscope.minst = sc.minst;
         paramscope.callsc = sc;
@@ -1133,7 +1134,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             return MATCHpair(MATCH.nomatch, MATCH.nomatch);
 
         // Set up scope for parameters
-        Scope* paramscope = scopeForTemplateParameters(ti,sc);
+        Scope* paramscope = createScopeForTemplateParameters(this, ti,sc);
 
         MATCHpair nomatch()
         {
