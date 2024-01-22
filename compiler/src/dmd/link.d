@@ -1101,7 +1101,7 @@ public DArray!ubyte runPreprocessor(ref const Loc loc, const(char)[] cpp, const(
                  */
                 OutBuffer buf;
                 buf.writestring(cpp);
-                buf.printf(" /P /Zc:preprocessor /PD /nologo %.*s /FI%s /Fi%.*s",
+                buf.printf(" /P /Zc:preprocessor /PD /nologo /utf-8 %.*s /FI%s /Fi%.*s",
                     cast(int)filename.length, filename.ptr, importc_h, cast(int)output.length, output.ptr);
 
                 /* Append preprocessor switches to command line
