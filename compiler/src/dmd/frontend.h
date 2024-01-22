@@ -1823,7 +1823,6 @@ public:
     uinteger_t size();
     virtual uinteger_t size(const Loc& loc);
     virtual uint32_t alignsize();
-    Type* merge2();
     void modToBuffer(OutBuffer& buf) const;
     char* modToChars() const;
     virtual bool isintegral();
@@ -5439,6 +5438,8 @@ extern bool hasPointers(Type* t);
 extern bool isBaseOf(Type* tthis, Type* t, int32_t* poffset);
 
 extern Type* merge(Type* type);
+
+extern Type* merge2(Type* type);
 
 extern void purityLevel(TypeFunction* typeFunction);
 

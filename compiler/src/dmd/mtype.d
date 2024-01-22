@@ -602,29 +602,6 @@ extern (C++) abstract class Type : ASTNode
         return cast(uint)size(Loc.initial);
     }
 
-    /*************************************
-     * This version does a merge even if the deco is already computed.
-     * Necessary for types that have a deco, but are not merged.
-     */
-    final Type merge2()
-    {
-        //printf("merge2(%s)\n", toChars());
-        Type t = this;
-        assert(t);
-        if (!t.deco)
-            return t.merge();
-
-        auto sv = stringtable.lookup(t.deco, strlen(t.deco));
-        if (sv && sv.value)
-        {
-            t = sv.value;
-            assert(t.deco);
-        }
-        else
-            assert(0);
-        return t;
-    }
-
     /*********************************
      * Store this type's modifier name into buf.
      */

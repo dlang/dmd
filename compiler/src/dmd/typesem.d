@@ -2919,6 +2919,29 @@ extern (C++) Type merge(Type type)
     return type;
 }
 
+/*************************************
+ * This version does a merge even if the deco is already computed.
+ * Necessary for types that have a deco, but are not merged.
+ */
+extern(C++) Type merge2(Type type)
+{
+    //printf("merge2(%s)\n", toChars());
+    Type t = type;
+    assert(t);
+    if (!t.deco)
+        return t.merge();
+
+    auto sv = Type.stringtable.lookup(t.deco, strlen(t.deco));
+    if (sv && sv.value)
+    {
+        t = sv.value;
+        assert(t.deco);
+    }
+    else
+        assert(0);
+    return t;
+}
+
 /***************************************
  * Calculate built-in properties which just the type is necessary.
  *
