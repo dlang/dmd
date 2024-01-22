@@ -3796,7 +3796,6 @@ public:
     Array<Expression* >* fdrequireParams(Array<Expression* >* param);
     Array<Expression* >* fdensureParams(Array<Expression* >* param);
     FuncDeclaration* syntaxCopy(Dsymbol* s) override;
-    bool functionSemantic3();
     bool equals(const RootObject* const o) const final override;
     int32_t findVtblIndex(Array<Dsymbol* >* vtbl, int32_t dim);
     bool overloadInsert(Dsymbol* s) override;
@@ -7568,6 +7567,8 @@ extern Expression* toLvalue(Expression* _this, Scope* sc, const char* action);
 extern Expression* modifiableLvalue(Expression* _this, Scope* sc);
 
 extern bool functionSemantic(FuncDeclaration* fd);
+
+extern bool functionSemantic3(FuncDeclaration* fd);
 
 extern const char* toChars(const Expression* const e);
 

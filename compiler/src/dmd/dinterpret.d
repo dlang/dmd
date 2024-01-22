@@ -33,6 +33,7 @@ import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
+import dmd.funcsem;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
@@ -440,7 +441,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         fdError("circular dependency. Functions cannot be interpreted while being compiled");
         return CTFEExp.cantexp;
     }
-    if (!fd.functionSemantic3())
+    if (!functionSemantic3(fd))
         return CTFEExp.cantexp;
     if (fd.semanticRun < PASS.semantic3done)
     {

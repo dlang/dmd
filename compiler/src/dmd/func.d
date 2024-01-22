@@ -468,37 +468,6 @@ extern (C++) class FuncDeclaration : Declaration
     }
 
     /****************************************************
-     * Resolve forward reference of function body.
-     * Returns false if any errors exist in the body.
-     */
-    final bool functionSemantic3()
-    {
-        if (semanticRun < PASS.semantic3 && _scope)
-        {
-            /* Forward reference - we need to run semantic3 on this function.
-             * If errors are gagged, and it's not part of a template instance,
-             * we need to temporarily ungag errors.
-             */
-            TemplateInstance spec = isSpeculative();
-            uint olderrs = global.errors;
-            uint oldgag = global.gag;
-            if (global.gag && !spec)
-                global.gag = 0;
-            semantic3(this, _scope);
-            global.gag = oldgag;
-
-            // If it is a speculatively-instantiated template, and errors occur,
-            // we need to mark the template as having errors.
-            if (spec && global.errors != olderrs)
-                spec.errors = (global.errors - olderrs != 0);
-            if (olderrs != global.errors) // if errors compiling this function
-                return false;
-        }
-
-        return !errors && !this.hasSemantic3Errors();
-    }
-
-    /****************************************************
      * Check that this function type is properly resolved.
      * If not, report "forward reference error" and return true.
      */
