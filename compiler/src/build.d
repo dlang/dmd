@@ -1546,7 +1546,7 @@ auto sourceFiles()
             mtype.d mustuse.d nogc.d nspace.d ob.d objc.d opover.d optimize.d
             parse.d parsetimevisitor.d permissivevisitor.d postordervisitor.d printast.d rootobject.d safe.d sapply.d
             semantic2.d semantic3.d sideeffect.d statement.d statement_rewrite_walker.d
-            statementsem.d staticassert.d staticcond.d stmtstate.d target.d templateparamsem.d traits.d
+            statementsem.d staticassert.d staticcond.d stmtstate.d target.d templatesem.d templateparamsem.d traits.d
             transitivevisitor.d typesem.d typinf.d utils.d visitor.d foreachvar.d
             cparse.d
         "),

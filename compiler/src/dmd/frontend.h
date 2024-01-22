@@ -1462,6 +1462,7 @@ public:
     const char* kind() const override;
     const char* toChars() const override;
     Visibility visible() override;
+    static bool evaluateConstraint(TemplateDeclaration* td, TemplateInstance* ti, Scope* sc, Scope* paramscope, Array<RootObject* >* dedargs, FuncDeclaration* fd);
     const char* getConstraintEvalError(const char*& tip);
     Scope* scopeForTemplateParameters(TemplateInstance* ti, Scope* sc);
     TemplateDeclaration* isTemplateDeclaration() override;
