@@ -420,6 +420,10 @@ compilable/ddoc_markdown_breaks_verbose.d(13): Ddoc: converted '***' to a themat
         white-space: pre-wrap;
       }
 
+      .ddoc .code_lines pre {
+        display: contents;
+      }
+
       .ddoc .code_lines li:only-of-type::before {
         color: rgba(255, 255, 255, 1);
         content: " ";

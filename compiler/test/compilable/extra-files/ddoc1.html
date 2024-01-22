@@ -417,6 +417,10 @@
         white-space: pre-wrap;
       }
 
+      .ddoc .code_lines pre {
+        display: contents;
+      }
+
       .ddoc .code_lines li:only-of-type::before {
         color: rgba(255, 255, 255, 1);
         content: " ";
@@ -584,12 +588,12 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code">#include &lt;stdio.h&gt;
+        <li><pre><code class="code">#include &lt;stdio.h&gt;
 <span class="keyword">void</span> main()
 {
 	printf(<span class="string_literal">"hello\n"</span>);
 }
-</code></li>
+</code></pre></li>
       </ol>
     </div>
   </div>
