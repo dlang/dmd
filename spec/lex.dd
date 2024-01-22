@@ -546,6 +546,16 @@ $(GNAME EscapeSequence):
     $(B \u) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit)
     $(B \U) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit) $(GLINK HexDigit)
     $(B \\) $(GLINK2 entity, NamedCharacterEntity)
+
+$(GNAME OctalDigit):
+    $(B 0)
+    $(B 1)
+    $(B 2)
+    $(B 3)
+    $(B 4)
+    $(B 5)
+    $(B 6)
+    $(B 7)
 )
 
     $(LONGTABLE_2COLS 0.8, Escape Sequences,
@@ -636,7 +646,9 @@ $(GNAME IntegerSuffix):
     $(B LU)
     $(B uL)
     $(B UL)
+)
 
+$(GRAMMAR_LEX
 $(GNAME DecimalInteger):
     $(B 0) $(GLINK Underscores)$(OPT)
     $(GLINK NonZeroDigit)
@@ -645,16 +657,6 @@ $(GNAME DecimalInteger):
 $(GNAME Underscores):
     $(B _)
     $(GLINK Underscores) $(B _)
-
-$(GNAME BinaryInteger):
-    $(GLINK BinPrefix) $(GLINK BinaryDigitsNoSingleUS)
-
-$(GNAME BinPrefix):
-    $(B 0b)
-    $(B 0B)
-
-$(GNAME HexadecimalInteger):
-    $(GLINK HexPrefix) $(GLINK HexDigitsNoSingleUS)
 
 $(GNAME NonZeroDigit):
     $(B 1)
@@ -689,6 +691,15 @@ $(GNAME DecimalDigit):
 $(GNAME DecimalDigitUS):
     $(GLINK DecimalDigit)
     $(B _)
+)
+
+$(GRAMMAR_LEX
+$(GNAME BinaryInteger):
+    $(GLINK BinPrefix) $(GLINK BinaryDigitsNoSingleUS)
+
+$(GNAME BinPrefix):
+    $(B 0b)
+    $(B 0B)
 
 $(GNAME BinaryDigitsNoSingleUS):
     $(GLINK BinaryDigitsUS)$(OPT) $(GLINK BinaryDigit) $(GLINK BinaryDigitsUS)$(OPT)
@@ -704,16 +715,11 @@ $(GNAME BinaryDigit):
 $(GNAME BinaryDigitUS):
     $(GLINK BinaryDigit)
     $(B _)
+)
 
-$(GNAME OctalDigit):
-    $(B 0)
-    $(B 1)
-    $(B 2)
-    $(B 3)
-    $(B 4)
-    $(B 5)
-    $(B 6)
-    $(B 7)
+$(GRAMMAR_LEX
+$(GNAME HexadecimalInteger):
+    $(GLINK HexPrefix) $(GLINK HexDigitsNoSingleUS)
 
 $(GNAME HexDigits):
     $(GLINK HexDigit)
