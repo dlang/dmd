@@ -490,7 +490,7 @@ A atomic_load_impl(A)(const shared(A)* obj) @trusted
     {
         size_t[2] values;
     }
-    shared(S2) objS2 = {[1, 2]};
+    align(S2.sizeof) shared(S2) objS2 = {[1, 2]};
     assert(atomic_load_impl(&objS2).values == [1, 2]);
 }
 
@@ -666,7 +666,7 @@ bool atomic_compare_exchange_strong_explicit_impl(A, B, C)(shared(A)* obj, B* ex
 ///
 @trusted unittest
 {
-    shared(size_t[2]) obj = [3, 4];
+    align(size_t[2].sizeof) shared(size_t[2]) obj = [3, 4];
     size_t[2] expected = [3, 4];
     size_t[2] toSwap = [1, 2];
     assert(atomic_compare_exchange_strong_explicit_impl(&obj, &expected, toSwap, memory_order.memory_order_seq_cst, memory_order.memory_order_seq_cst));
@@ -714,7 +714,7 @@ bool atomic_compare_exchange_weak_explicit_impl(A, B, C)(shared(A)* obj, B* expe
 ///
 @trusted unittest
 {
-    shared(size_t[2]) obj = [3, 4];
+    align(size_t[2].sizeof) shared(size_t[2]) obj = [3, 4];
     size_t[2] expected = [3, 4];
     size_t[2] toSwap = [1, 2];
     assert(atomic_compare_exchange_weak_explicit_impl(&obj, &expected, toSwap, memory_order.memory_order_seq_cst, memory_order.memory_order_seq_cst));
