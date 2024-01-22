@@ -60,6 +60,7 @@ import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
+import dmd.funcsem;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
@@ -6897,7 +6898,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 }
                 FuncDeclaration fd = sa.isFuncDeclaration();
                 if (fd)
-                    FuncDeclaration.functionSemantic(fd);
+                    functionSemantic(fd);
             }
             else if (isParameter(o))
             {

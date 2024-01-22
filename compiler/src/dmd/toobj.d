@@ -40,6 +40,7 @@ import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.func;
+import dmd.funcsem;
 import dmd.globals;
 import dmd.glue;
 import dmd.hdrgen;
@@ -1075,7 +1076,7 @@ private bool finishVtbl(ClassDeclaration cd)
         }
         // Ensure function has a return value
         // https://issues.dlang.org/show_bug.cgi?id=4869
-        if (!FuncDeclaration.functionSemantic(fd))
+        if (!functionSemantic(fd))
         {
             hasError = true;
         }

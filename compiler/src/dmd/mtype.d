@@ -30,6 +30,7 @@ import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
+import dmd.funcsem;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
@@ -1693,7 +1694,7 @@ extern (C++) abstract class Type : ASTNode
         if (callable)
         {
             auto fd = resolveFuncCall(Loc.initial, null, callable, null, this, ArgumentList(), FuncResolveFlag.quiet);
-            if (!fd || fd.errors || !FuncDeclaration.functionSemantic(fd))
+            if (!fd || fd.errors || !functionSemantic(fd))
                 return Type.terror;
 
             auto t = fd.type.nextOf();
