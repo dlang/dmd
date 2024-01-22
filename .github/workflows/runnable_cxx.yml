@@ -135,6 +135,8 @@ jobs:
     # Using a specific version for reproductibility.
     # Feel free to update when a new release has matured.
     runs-on: ${{ matrix.os }}
+    env:
+      N: ${{ startsWith(matrix.os, 'macos') && '3' || '4' }}
     steps:
 
     ########################################
@@ -292,33 +294,31 @@ jobs:
     ########################################
     - name: '[Posix] Build compiler & standard library'
       if: runner.os != 'Windows'
-      # By default, VMs have 2 processors available, hence the `-j2`:
-      # https://help.github.com/en/actions/reference/virtual-environments-for-github-hosted-runners#supported-runners-and-hardware-resources
       run: |
         # All hosts are 64 bits but let's be explicit
-        ./dmd/compiler/src/build.d -j2 MODEL=64
-        make -C dmd/druntime -j2 MODEL=64
-        make -C phobos       -j2 MODEL=64
+        ./dmd/compiler/src/build.d -j$N MODEL=64
+        make -C dmd/druntime -j$N MODEL=64
+        make -C phobos       -j$N MODEL=64
         # Both version can live side by side (they end up in a different directory)
         # However, since clang does not provide a multilib package, only test 32 bits with g++
         if [ ${{ matrix.compiler }} == "g++" ]; then
-          ./dmd/compiler/src/build.d install -j2 MODEL=32
-          make -C dmd/druntime install -j2 MODEL=32
-          make -C phobos       install -j2 MODEL=32
+          ./dmd/compiler/src/build.d install -j$N MODEL=32
+          make -C dmd/druntime install -j$N MODEL=32
+          make -C phobos       install -j$N MODEL=32
         fi
 
     - name: '[Windows] Build compiler & standard library'
       if: runner.os == 'Windows'
       shell: bash
       run: |
-        dmd -run dmd/compiler/src/build.d -j2 MODEL=64
+        dmd -run dmd/compiler/src/build.d -j$N MODEL=64
         if [ $? -ne 0 ]; then return 1; fi
         # Note: Only CC for druntime and AR for Phobos are required ATM,
         # but providing all three to avoid surprise for future contributors
         # Those should really be in the path, though.
-        make -j2 -C dmd/druntime
+        make -j$N -C dmd/druntime
         if [ $? -ne 0 ]; then return 1; fi
-        make -j2 -C phobos
+        make -j$N -C phobos
         if [ $? -ne 0 ]; then return 1; fi
 
     ########################################
@@ -340,7 +340,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: bash
       run: |
-        make -j2 -C dmd/druntime test/stdcpp/.run
+        make -j$N -C dmd/druntime test/stdcpp/.run
         if [ $? -ne 0 ]; then return 1; fi
 
     ########################################
