@@ -1227,7 +1227,8 @@ private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
         if (Type.typeinfoclass.structsize != target.classinfosize)
         {
             debug printf("target.classinfosize = x%x, Type.typeinfoclass.structsize = x%x\n", target.classinfosize, Type.typeinfoclass.structsize);
-            .error(cd.loc, "%s `%s` mismatch between dmd and object.d or object.di found. Check installation and import paths with -v compiler switch.", cd.kind, cd.toPrettyChars);
+            .error(cd.loc, "%s `%s` mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found. Check installation and import paths with -v compiler switch.",
+                   cd.kind, cd.toPrettyChars, cast(uint)target.classinfosize, cast(uint)Type.typeinfoclass.structsize);
             fatal();
         }
     }
@@ -1266,10 +1267,10 @@ private void ClassInfoToDt(ref DtBuilder dtb, ClassDeclaration cd, Symbol* sinit
             void* deallocator;
             OffsetTypeInfo[] offTi;
             void function(Object) defaultConstructor;
-            ulong[2] nameSig;
             //const(MemberInfo[]) function(string) xgetMembers;   // module getMembers() function
             immutable(void)* m_RTInfo;
             //TypeInfo typeinfo;
+            uint[4] nameSig;
        }
      */
     uint offset = target.classinfosize;    // must be ClassInfo.size
@@ -1340,6 +1341,7 @@ private void ClassInfoToDt(ref DtBuilder dtb, ClassDeclaration cd, Symbol* sinit
     if (cd.isCPPclass()) flags |= ClassFlags.isCPPclass;
     flags |= ClassFlags.hasGetMembers;
     flags |= ClassFlags.hasTypeInfo;
+    flags |= ClassFlags.hasNameSig;
     if (cd.ctor)
         flags |= ClassFlags.hasCtor;
     for (ClassDeclaration pc = cd; pc; pc = pc.baseClass)
@@ -1392,17 +1394,6 @@ Louter:
     else
         dtb.size(0);
 
-    // ulong[2] nameSig
-    {
-        import dmd.common.md5;
-        MD5_CTX mdContext = void;
-        MD5Init(&mdContext);
-        MD5Update(&mdContext, cast(ubyte*)name, cast(uint)namelen);
-        MD5Final(&mdContext);
-        assert(mdContext.digest.length == 16);
-        dtb.nbytes(16, cast(char*)mdContext.digest.ptr);
-    }
-
     // m_RTInfo
     if (cd.getRTInfo)
         Expression_toDt(cd.getRTInfo, dtb);
@@ -1412,6 +1403,17 @@ Louter:
         dtb.size(1);
 
     //dtb.xoff(toSymbol(cd.type.vtinfo), 0, TYnptr); // typeinfo
+
+    // uint[4] nameSig
+    {
+        import dmd.common.md5;
+        MD5_CTX mdContext = void;
+        MD5Init(&mdContext);
+        MD5Update(&mdContext, cast(ubyte*)name, cast(uint)namelen);
+        MD5Final(&mdContext);
+        assert(mdContext.digest.length == 16);
+        dtb.nbytes(16, cast(char*)mdContext.digest.ptr);
+    }
 
     //////////////////////////////////////////////
 
@@ -1524,10 +1526,10 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
             void* deallocator;
             OffsetTypeInfo[] offTi;
             void function(Object) defaultConstructor;
-            ulong[2] nameSig;
             //const(MemberInfo[]) function(string) xgetMembers;   // module getMembers() function
             immutable(void)* m_RTInfo;
             //TypeInfo typeinfo;
+            uint[4] nameSig;
        }
      */
     if (auto tic = Type.typeinfoclass)
@@ -1565,7 +1567,8 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
         {
             if (Type.typeinfoclass.structsize != offset)
             {
-                .error(id.loc, "%s `%s` mismatch between dmd and object.d or object.di found. Check installation and import paths with -v compiler switch.", id.kind, id.toPrettyChars);
+                .error(id.loc, "%s `%s` mismatch between compiler (%d bytes) and object.d or object.di (%d bytes) found. Check installation and import paths with -v compiler switch.",
+                       id.kind, id.toPrettyChars, cast(uint)offset, cast(uint)Type.typeinfoclass.structsize);
                 fatal();
             }
         }
@@ -1589,6 +1592,7 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
     // flags
     ClassFlags flags = ClassFlags.hasOffTi | ClassFlags.hasTypeInfo;
     if (id.isCOMinterface()) flags |= ClassFlags.isCOMclass;
+    flags |= ClassFlags.hasNameSig;
     dtb.size(flags); // depth part is 0
 
     // deallocator
@@ -1601,17 +1605,6 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
     // defaultConstructor
     dtb.size(0);
 
-    // ulong[2] nameSig
-    {
-        import dmd.common.md5;
-        MD5_CTX mdContext = void;
-        MD5Init(&mdContext);
-        MD5Update(&mdContext, cast(ubyte*)name, cast(uint)namelen);
-        MD5Final(&mdContext);
-        assert(mdContext.digest.length == 16);
-        dtb.nbytes(16, cast(char*)mdContext.digest.ptr);
-    }
-
     // xgetMembers
     //dtb.size(0);
 
@@ -1622,6 +1615,17 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
         dtb.size(0);       // no pointers
 
     //dtb.xoff(toSymbol(id.type.vtinfo), 0, TYnptr); // typeinfo
+
+    // uint[4] nameSig
+    {
+        import dmd.common.md5;
+        MD5_CTX mdContext = void;
+        MD5Init(&mdContext);
+        MD5Update(&mdContext, cast(ubyte*)name, cast(uint)namelen);
+        MD5Final(&mdContext);
+        assert(mdContext.digest.length == 16);
+        dtb.nbytes(16, cast(char*)mdContext.digest.ptr);
+    }
 
     //////////////////////////////////////////////
 
