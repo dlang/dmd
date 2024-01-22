@@ -231,6 +231,7 @@ Note that these groups have no strict meaning, the category assignments are a bi
 |-----------------------------------------------------------------------------------|------------------------------------------------------------------|
 | [cppmangle.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/cppmangle.d)       | C++ name mangling                                                |
 | [cppmanglewin.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/cppmanglewin.d) | C++ name mangling for Windows                                    |
+| [basicmangle.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/basicmangle.d)   | D name mangling for basic types                                  |
 | [dmangle.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dmangle.d)           | D [name mangling](https://dlang.org/spec/abi.html#name_mangling) |
 
 ### Linking
