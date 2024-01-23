@@ -1086,6 +1086,7 @@ private struct Backref
         {
             if (t.isFunction_Delegate_PtrToFunction())
             {
+                import dmd.typesem : merge2;
                 t = t.merge2();
             }
         }
