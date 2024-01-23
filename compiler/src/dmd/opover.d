@@ -1719,7 +1719,14 @@ private FuncDeclaration findBestOpApplyMatch(Expression ethis, FuncDeclaration f
         if (f.isThis())
         {
             if (!MODimplicitConv(mod, tf.mod))
+            {
+                if (mod & MODFlags.const_)
+                {
+                    fd_best = f;
+                    return 0;
+                }
                 m = MATCH.nomatch;
+            }
             else if (mod != tf.mod)
                 m = MATCH.constant;
         }
