@@ -1393,6 +1393,19 @@ typedef uint32_t SearchOptFlags;
 
 enum : int32_t { IDX_NOTFOUND = 305419896 };
 
+struct MATCHpair final
+{
+    MATCH mta;
+    MATCH mfa;
+    MATCHpair()
+    {
+    }
+    MATCHpair(MATCH mta, MATCH mfa = (MATCH)0) :
+        mta(mta),
+        mfa(mfa)
+        {}
+};
+
 class TemplateParameter : public ASTNode
 {
 public:
@@ -5669,6 +5682,7 @@ struct ASTCodegen final
     using Ungag = ::Ungag;
     using Visibility = ::Visibility;
     using WithScopeSymbol = ::WithScopeSymbol;
+    using MATCHpair = ::MATCHpair;
     using TemplateAliasParameter = ::TemplateAliasParameter;
     using TemplateDeclaration = ::TemplateDeclaration;
     using TemplateInstance = ::TemplateInstance;
