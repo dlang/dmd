@@ -64,6 +64,8 @@ size_t strcspn(scope const char* s1, scope const char* s2) pure;
 ///
 char*  strdup(scope const char *s);
 ///
+char*  strndup(const char *str, size_t size);
+///
 char*  strerror(int errnum);
 // This `strerror_r` definition is not following the POSIX standard
 version (ReturnStrerrorR)
