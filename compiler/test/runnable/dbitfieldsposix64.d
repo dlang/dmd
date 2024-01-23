@@ -1,5 +1,5 @@
 /* test bitfields
- * REQUIRED_ARGS: -preview=bitfields
+ *
  * DISABLED: win32 win64 linux32 freebsd32 osx32
  * RUN_OUTPUT:
 ---
