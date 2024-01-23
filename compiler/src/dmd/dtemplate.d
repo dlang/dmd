@@ -375,7 +375,7 @@ Lnomatch:
 /************************************
  * Match an array of them.
  */
-private bool arrayObjectMatch(ref Objects oa1, ref Objects oa2)
+bool arrayObjectMatch(ref Objects oa1, ref Objects oa2)
 {
     if (&oa1 == &oa2)
         return true;
@@ -588,9 +588,9 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     // threaded list of previous instantiation attempts on stack
     TemplatePrevious* previous;
 
-    private Expression lastConstraint; /// the constraint after the last failed evaluation
-    private Array!Expression lastConstraintNegs; /// its negative parts
-    private Objects* lastConstraintTiargs; /// template instance arguments for `lastConstraint`
+    Expression lastConstraint; /// the constraint after the last failed evaluation
+    Array!Expression lastConstraintNegs; /// its negative parts
+    Objects* lastConstraintTiargs; /// template instance arguments for `lastConstraint`
 
     extern (D) this(const ref Loc loc, Identifier ident, TemplateParameters* parameters, Expression constraint, Dsymbols* decldefs, bool ismixin = false, bool literal = false)
     {
@@ -757,133 +757,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     }
 
     /****************************
-     * Check to see if constraint is satisfied.
-     */
-    static
-    bool evaluateConstraint(TemplateDeclaration td, TemplateInstance ti, Scope* sc, Scope* paramscope, Objects* dedargs, FuncDeclaration fd)
-    {
-        /* Detect recursive attempts to instantiate this template declaration,
-         * https://issues.dlang.org/show_bug.cgi?id=4072
-         *  void foo(T)(T x) if (is(typeof(foo(x)))) { }
-         *  static assert(!is(typeof(foo(7))));
-         * Recursive attempts are regarded as a constraint failure.
-         */
-        /* There's a chicken-and-egg problem here. We don't know yet if this template
-         * instantiation will be a local one (enclosing is set), and we won't know until
-         * after selecting the correct template. Thus, function we're nesting inside
-         * is not on the sc scope chain, and this can cause errors in FuncDeclaration.getLevel().
-         * Workaround the problem by setting a flag to relax the checking on frame errors.
-         */
-
-        for (TemplatePrevious* p = td.previous; p; p = p.prev)
-        {
-            if (!arrayObjectMatch(*p.dedargs, *dedargs))
-                continue;
-            //printf("recursive, no match p.sc=%p %p %s\n", p.sc, this, this.toChars());
-            /* It must be a subscope of p.sc, other scope chains are not recursive
-             * instantiations.
-             * the chain of enclosing scopes is broken by paramscope (its enclosing
-             * scope is _scope, but paramscope.callsc is the instantiating scope). So
-             * it's good enough to check the chain of callsc
-             */
-            for (Scope* scx = paramscope.callsc; scx; scx = scx.callsc)
-            {
-                // The first scx might be identical for nested eponymeous templates, e.g.
-                // template foo() { void foo()() {...} }
-                if (scx == p.sc && scx !is paramscope.callsc)
-                    return false;
-            }
-            /* BUG: should also check for ref param differences
-             */
-        }
-
-        TemplatePrevious pr;
-        pr.prev = td.previous;
-        pr.sc = paramscope.callsc;
-        pr.dedargs = dedargs;
-        td.previous = &pr; // add this to threaded list
-
-        Scope* scx = paramscope.push(ti);
-        scx.parent = ti;
-        scx.tinst = null;
-        scx.minst = null;
-        // Set SCOPE.constraint before declaring function parameters for the static condition
-        // (previously, this was immediately before calling evalStaticCondition), so the
-        // semantic pass knows not to issue deprecation warnings for these throw-away decls.
-        // https://issues.dlang.org/show_bug.cgi?id=21831
-        scx.flags |= SCOPE.constraint;
-
-        assert(!ti.symtab);
-        if (fd)
-        {
-            /* Declare all the function parameters as variables and add them to the scope
-             * Making parameters is similar to FuncDeclaration.semantic3
-             */
-            auto tf = fd.type.isTypeFunction();
-
-            scx.parent = fd;
-
-            Parameters* fparameters = tf.parameterList.parameters;
-            const nfparams = tf.parameterList.length;
-            foreach (i, fparam; tf.parameterList)
-            {
-                fparam.storageClass &= (STC.IOR | STC.lazy_ | STC.final_ | STC.TYPECTOR | STC.nodtor);
-                fparam.storageClass |= STC.parameter;
-                if (tf.parameterList.varargs == VarArg.typesafe && i + 1 == nfparams)
-                {
-                    fparam.storageClass |= STC.variadic;
-                    /* Don't need to set STC.scope_ because this will only
-                     * be evaluated at compile time
-                     */
-                }
-            }
-            foreach (fparam; *fparameters)
-            {
-                if (!fparam.ident)
-                    continue;
-                // don't add it, if it has no name
-                auto v = new VarDeclaration(fparam.loc, fparam.type, fparam.ident, null);
-                fparam.storageClass |= STC.parameter;
-                v.storage_class = fparam.storageClass;
-                v.dsymbolSemantic(scx);
-                if (!ti.symtab)
-                    ti.symtab = new DsymbolTable();
-                if (!scx.insert(v))
-                    .error(td.loc, "%s `%s` parameter `%s.%s` is already defined", td.kind, td.toPrettyChars, td.toChars(), v.toChars());
-                else
-                    v.parent = fd;
-            }
-            if (td.isstatic)
-                fd.storage_class |= STC.static_;
-            fd.declareThis(scx);
-        }
-
-        td.lastConstraint = td.constraint.syntaxCopy();
-        td.lastConstraintTiargs = ti.tiargs;
-        td.lastConstraintNegs.setDim(0);
-
-        import dmd.staticcond;
-
-        assert(ti.inst is null);
-        ti.inst = ti; // temporary instantiation to enable genIdent()
-        bool errors;
-        const bool result = evalStaticCondition(scx, td.constraint, td.lastConstraint, errors, &td.lastConstraintNegs);
-        if (result || errors)
-        {
-            td.lastConstraint = null;
-            td.lastConstraintTiargs = null;
-            td.lastConstraintNegs.setDim(0);
-        }
-        ti.inst = null;
-        ti.symtab = null;
-        scx = scx.pop();
-        td.previous = pr.prev; // unlink from threaded list
-        if (errors)
-            return false;
-        return result;
-    }
-
-    /****************************
      * Destructively get the error message from the last constraint evaluation
      * Params:
      *      tip = tip to show after printing all overloads
@@ -941,155 +814,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             tip = "not satisfied constraints are marked with `>`";
         }
         return buf.extractChars();
-    }
-
-    /*******************************************
-     * Append to buf a textual representation of template parameters with their arguments.
-     * Params:
-     *  parameters = the template parameters
-     *  tiargs = the correspondeing template arguments
-     *  variadic = if it's a variadic argument list
-     *  buf = where the text output goes
-     */
-    static private void formatParamsWithTiargs(ref TemplateParameters parameters, ref Objects tiargs, bool variadic, ref OutBuffer buf)
-    {
-        buf.writestring("  with `");
-
-        // write usual arguments line-by-line
-        // skips trailing default ones - they are not present in `tiargs`
-        const end = parameters.length - (variadic ? 1 : 0);
-        size_t i;
-        for (; i < tiargs.length && i < end; i++)
-        {
-            if (i)
-            {
-                buf.writeByte(',');
-                buf.writenl();
-                buf.writestring("       ");
-            }
-            write(buf, parameters[i]);
-            buf.writestring(" = ");
-            write(buf, tiargs[i]);
-        }
-        // write remaining variadic arguments on the last line
-        if (variadic)
-        {
-            if (i)
-            {
-                buf.writeByte(',');
-                buf.writenl();
-                buf.writestring("       ");
-            }
-            write(buf, parameters[end]);
-            buf.writestring(" = ");
-            buf.writeByte('(');
-            if (end < tiargs.length)
-            {
-                write(buf, tiargs[end]);
-                foreach (j; parameters.length .. tiargs.length)
-                {
-                    buf.writestring(", ");
-                    write(buf, tiargs[j]);
-                }
-            }
-            buf.writeByte(')');
-        }
-        buf.writeByte('`');
-    }
-
-    /******************************
-     * Create a scope for the parameters of the TemplateInstance
-     * `ti` in the parent scope sc from the ScopeDsymbol paramsym.
-     *
-     * If paramsym is null a new ScopeDsymbol is used in place of
-     * paramsym.
-     * Params:
-     *      td = template that ti is an instance of
-     *      ti = the TemplateInstance whose parameters to generate the scope for.
-     *      sc = the parent scope of ti
-     * Returns:
-     *      new scope for the parameters of ti
-     */
-    static Scope* createScopeForTemplateParameters(TemplateDeclaration td, TemplateInstance ti, Scope* sc)
-    {
-        ScopeDsymbol paramsym = new ScopeDsymbol();
-        paramsym.parent = td._scope.parent;
-        Scope* paramscope = td._scope.push(paramsym);
-        paramscope.tinst = ti;
-        paramscope.minst = sc.minst;
-        paramscope.callsc = sc;
-        paramscope.stc = 0;
-        return paramscope;
-    }
-
-    /********************************************
-     * Determine partial specialization order of `td` vs `td2`.
-     * Params:
-     *  sc = context
-     *  td = first template
-     *  td2 = second template
-     *  argumentList = arguments to template
-     * Returns:
-     *      MATCH - td is at least as specialized as td2
-     *      MATCH.nomatch - td2 is more specialized than td
-     */
-    static MATCH leastAsSpecialized(Scope* sc, TemplateDeclaration td, TemplateDeclaration td2, ArgumentList argumentList)
-    {
-        enum LOG_LEASTAS = 0;
-        static if (LOG_LEASTAS)
-        {
-            printf("%s.leastAsSpecialized(%s)\n", toChars(), td2.toChars());
-        }
-
-        /* This works by taking the template parameters to this template
-         * declaration and feeding them to td2 as if it were a template
-         * instance.
-         * If it works, then this template is at least as specialized
-         * as td2.
-         */
-
-        // Set type arguments to dummy template instance to be types
-        // generated from the parameters to this template declaration
-        auto tiargs = new Objects();
-        tiargs.reserve(td.parameters.length);
-        foreach (tp; *td.parameters)
-        {
-            if (tp.dependent)
-                break;
-            RootObject p = tp.dummyArg();
-            if (!p) //TemplateTupleParameter
-                break;
-
-            tiargs.push(p);
-        }
-        scope TemplateInstance ti = new TemplateInstance(Loc.initial, td.ident, tiargs); // create dummy template instance
-
-        // Temporary Array to hold deduced types
-        Objects dedtypes = Objects(td2.parameters.length);
-
-        // Attempt a type deduction
-        MATCH m = matchWithInstance(sc, td2, ti, dedtypes, argumentList, 1);
-        if (m > MATCH.nomatch)
-        {
-            /* A non-variadic template is more specialized than a
-             * variadic one.
-             */
-            TemplateTupleParameter tp = td.isVariadic();
-            if (tp && !tp.dependent && !td2.isVariadic())
-                goto L1;
-
-            static if (LOG_LEASTAS)
-            {
-                printf("  matches %d, so is least as specialized\n", m);
-            }
-            return m;
-        }
-    L1:
-        static if (LOG_LEASTAS)
-        {
-            printf("  doesn't match, so is not as specialized\n");
-        }
-        return MATCH.nomatch;
     }
 
     /*************************************************
@@ -2804,8 +2528,8 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             if (td_best)
             {
                 // Disambiguate by picking the most specialized TemplateDeclaration
-                MATCH c1 = TemplateDeclaration.leastAsSpecialized(sc, td, td_best, argumentList);
-                MATCH c2 = TemplateDeclaration.leastAsSpecialized(sc, td_best, td, argumentList);
+                MATCH c1 = leastAsSpecialized(sc, td, td_best, argumentList);
+                MATCH c2 = leastAsSpecialized(sc, td_best, td, argumentList);
                 //printf("1: c1 = %d, c2 = %d\n", c1, c2);
                 if (c1 > c2) goto Ltd;
                 if (c1 < c2) goto Ltd_best;
@@ -6828,8 +6552,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
                 // Disambiguate by picking the most specialized TemplateDeclaration
                 {
-                MATCH c1 = TemplateDeclaration.leastAsSpecialized(sc, td, td_best, argumentList);
-                MATCH c2 = TemplateDeclaration.leastAsSpecialized(sc, td_best, td, argumentList);
+                MATCH c1 = leastAsSpecialized(sc, td, td_best, argumentList);
+                MATCH c2 = leastAsSpecialized(sc, td_best, td, argumentList);
                 //printf("c1 = %d, c2 = %d\n", c1, c2);
                 if (c1 > c2) goto Ltd;
                 if (c1 < c2) goto Ltd_best;
@@ -8383,7 +8107,7 @@ private struct MATCHpair
     }
 }
 
-private void write(ref OutBuffer buf, RootObject obj)
+void write(ref OutBuffer buf, RootObject obj)
 {
     if (obj)
     {

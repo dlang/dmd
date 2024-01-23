@@ -1433,21 +1433,6 @@ public:
     void accept(Visitor* v) override;
 };
 
-struct ArgumentList final
-{
-    Array<Expression* >* arguments;
-    Array<Identifier* >* names;
-    ArgumentList() :
-        arguments(),
-        names()
-    {
-    }
-    ArgumentList(Array<Expression* >* arguments, Array<Identifier* >* names = nullptr) :
-        arguments(arguments),
-        names(names)
-        {}
-};
-
 class TemplateDeclaration final : public ScopeDsymbol
 {
 public:
@@ -1467,21 +1452,16 @@ public:
     bool deprecated_;
     Visibility visibility;
     TemplatePrevious* previous;
-private:
     Expression* lastConstraint;
     Array<Expression* > lastConstraintNegs;
     Array<RootObject* >* lastConstraintTiargs;
-public:
     TemplateDeclaration* syntaxCopy(Dsymbol* __param_0_) override;
     bool overloadInsert(Dsymbol* s) override;
     bool hasStaticCtorOrDtor() override;
     const char* kind() const override;
     const char* toChars() const override;
     Visibility visible() override;
-    static bool evaluateConstraint(TemplateDeclaration* td, TemplateInstance* ti, Scope* sc, Scope* paramscope, Array<RootObject* >* dedargs, FuncDeclaration* fd);
     const char* getConstraintEvalError(const char*& tip);
-    static Scope* createScopeForTemplateParameters(TemplateDeclaration* td, TemplateInstance* ti, Scope* sc);
-    static MATCH leastAsSpecialized(Scope* sc, TemplateDeclaration* td, TemplateDeclaration* td2, ArgumentList argumentList);
     TemplateDeclaration* isTemplateDeclaration() override;
     bool isDeprecated() const override;
     bool isOverloadable() const override;
@@ -2336,6 +2316,21 @@ class AndExp final : public BinExp
 {
 public:
     void accept(Visitor* v) override;
+};
+
+struct ArgumentList final
+{
+    Array<Expression* >* arguments;
+    Array<Identifier* >* names;
+    ArgumentList() :
+        arguments(),
+        names()
+    {
+    }
+    ArgumentList(Array<Expression* >* arguments, Array<Identifier* >* names = nullptr) :
+        arguments(arguments),
+        names(names)
+        {}
 };
 
 class ArrayExp final : public UnaExp
