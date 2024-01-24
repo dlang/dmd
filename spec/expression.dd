@@ -2006,6 +2006,43 @@ $(H3 $(LEGACY_LNAME2 StringLiteral, string_literals, String Literals))
         C style implicit concatenation without an intervening operator is
         error prone and not supported in D.)
 
+
+$(H3 $(LNAME2 hex_string_literals, Hex String Literals))
+    $(P Because hex string literals contain binary data not limited to textual data, they allow additional conversions over other string literals.)
+
+    $(P A hex string literal implicitly converts to a constant `byte[]` or `ubyte[]`.)
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        -------------
+        immutable ubyte[] b = x"3F 80 00 00";
+        const byte[] c = x"3F 80 00 00";
+        -------------
+        )
+
+    $(P A hex string literal can be explicitly cast to an array of integers with a larger size than 1.
+        A big endian byte order in the hex string will be assumed.)
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        -------------
+        immutable uint[] data = cast(immutable uint[]) x"AABBCCDD";
+        static assert(data[0] == 0xAABBCCDD);
+        -------------
+        )
+
+    $(P This requires the length of the hex string to be a multiple of the array element's size in bytes.)
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
+        -------------
+        auto e = cast(immutable ushort[]) x"AA BB CC";
+        // Error, length of 3 bytes is not a multiple of 2, the size of a `ushort`
+        -------------
+        )
+
+    $(P When a hex string literal gets constant folded, the result is no longer considered a hex string literal)
+        $(SPEC_RUNNABLE_EXAMPLE_FAIL
+        -------------
+        immutable byte[] b = x"AA" ~ "G"; // Error: cannot convert `string` to `immutable byte[]`
+        -------------
+        )
+
 $(H3 $(LNAME2 array_literals, Array Literals))
 
 $(GRAMMAR

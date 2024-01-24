@@ -291,10 +291,11 @@ $(GNAME StringLiteral):
     $(GLINK DoubleQuotedString)
     $(GLINK DelimitedString)
     $(GLINK TokenString)
+    $(GLINK HexString)
 )
 $(P
 A string literal is either a wysiwyg quoted string, a double quoted
-string, a delimited string, or a token string.
+string, a delimited string, a token string, or a hex string.
 )
 
 $(P In all string literal forms, an $(GLINK EndOfLine) is regarded as a single
@@ -490,6 +491,33 @@ $(GNAME TokenStringToken):
         // q{ __EOF__ }         // error
                                 // __EOF__ is not a token, it's end of file
         ---
+
+$(H3 $(LNAME2 hex_strings, Hex Strings))
+$(GRAMMAR
+$(GNAME HexString):
+    $(B x") $(GLINK HexStringChars)$(OPT) $(B ") $(GLINK StringPostfix)$(OPT)
+
+$(GNAME HexStringChars):
+    $(GLINK HexStringChar)
+    $(GLINK HexStringChar) $(GSELF HexStringChars)
+
+$(GNAME HexStringChar):
+    $(GLINK HexDigit)
+    $(GLINK WhiteSpace)
+    $(GLINK EndOfLine)
+)
+
+        $(P Hex strings allow string literals to be created using hex data.
+        The hex data need not form valid UTF characters.
+        )
+
+        ---
+        x"0A"              // same as "\x0A"
+        x"00 FBCD 32FD 0A" // same as "\x00\xFB\xCD\x32\xFD\x0A"
+        ---
+
+        $(P Whitespace and newlines are ignored, so the hex data can be easily
+        formatted. The number of hex characters must be a multiple of 2.)
 
 $(H3 $(LNAME2 string_postfix, String Postfix))
 
