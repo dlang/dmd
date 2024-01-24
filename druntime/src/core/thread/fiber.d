@@ -1065,11 +1065,8 @@ private:
     // Free this fiber's stack.
     //
     final void freeStack() nothrow @nogc
-    in
-    {
-        assert( m_pmem && m_ctxt );
-    }
-    do
+    in(m_pmem)
+    in(m_ctxt)
     {
         // NOTE: m_ctxt is guaranteed to be alive because it is held in the
         //       global context list.
