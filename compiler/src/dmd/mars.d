@@ -1471,8 +1471,6 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.useUnitTests = true;
         else if (p[1] == 'I')              // https://dlang.org/dmd.html#switch-I
         {
-            if (!params.imppath)
-                params.imppath = new Strings();
             params.imppath.push(p + 2 + (p[2] == '='));
         }
         else if (p[1] == 'm' && p[2] == 'v' && p[3] == '=') // https://dlang.org/dmd.html#switch-mv
