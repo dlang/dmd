@@ -665,12 +665,12 @@ nothrow:
      * Returns:
      *  if found, filename combined with path, otherwise null
      */
-    extern (C++) static const(char)* searchPath(Strings* path, const(char)* name, bool cwd)
+    extern (C++) static const(char)* searchPath(ref Strings path, const(char)* name, bool cwd)
     {
         return searchPath(path, name.toDString, cwd).ptr;
     }
 
-    extern (D) static const(char)[] searchPath(Strings* path, const(char)[] name, bool cwd)
+    extern (D) static const(char)[] searchPath(ref Strings path, const(char)[] name, bool cwd)
     {
         if (absolute(name))
         {
@@ -681,20 +681,17 @@ nothrow:
             if (exists(name))
                 return name;
         }
-        if (path)
-        {
-            foreach (p; *path)
-            {
-                auto n = combine(p.toDString, name);
-                if (exists(n))
-                    return n;
-                //combine might return name
-                if (n.ptr != name.ptr)
-                {
-                    mem.xfree(cast(void*)n.ptr);
-                }
-            }
-        }
+	foreach (p; path)
+	{
+	    auto n = combine(p.toDString, name);
+	    if (exists(n))
+		return n;
+	    //combine might return name
+	    if (n.ptr != name.ptr)
+	    {
+		mem.xfree(cast(void*)n.ptr);
+	    }
+	}
         return null;
     }
 
