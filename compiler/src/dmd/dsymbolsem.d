@@ -6282,7 +6282,7 @@ private extern(C++) class AddMemberVisitor : Visitor
             }
             else
             {
-                if (findCondition(m.debugidsNot, ds.ident))
+                if (m.debugidsNot && findCondition(*m.debugidsNot, ds.ident))
                 {
                     .error(ds.loc, "%s `%s` defined after use", ds.kind, ds.toPrettyChars);
                     ds.errors = true;
@@ -6320,7 +6320,7 @@ private extern(C++) class AddMemberVisitor : Visitor
             }
             else
             {
-                if (findCondition(m.versionidsNot, vs.ident))
+                if (m.versionidsNot && findCondition(*m.versionidsNot, vs.ident))
                 {
                     .error(vs.loc, "%s `%s` defined after use", vs.kind, vs.toPrettyChars);
                     vs.errors = true;

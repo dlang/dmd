@@ -381,16 +381,13 @@ void setDefaultLibrary(ref Param params, const ref Target target)
 
 void printPredefinedVersions(FILE* stream)
 {
-    if (global.versionids)
+    OutBuffer buf;
+    foreach (const str; global.versionids)
     {
-        OutBuffer buf;
-        foreach (const str; *global.versionids)
-        {
-            buf.writeByte(' ');
-            buf.writestring(str.toChars());
-        }
-        stream.fprintf("predefs  %s\n", buf.peekChars());
+        buf.writeByte(' ');
+        buf.writestring(str.toChars());
     }
+    stream.fprintf("predefs  %s\n", buf.peekChars());
 }
 
 extern(C) void printGlobalConfigs(FILE* stream)
