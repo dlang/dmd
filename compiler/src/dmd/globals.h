@@ -297,8 +297,8 @@ struct Global
 
     void* console;         // opaque pointer to console for controlling text attributes
 
-    Array<class Identifier*>* versionids; // command line versions and predefined versions
-    Array<class Identifier*>* debugids;   // command line debug versions and predefined versions
+    Array<class Identifier*> versionids; // command line versions and predefined versions
+    Array<class Identifier*> debugids;   // command line debug versions and predefined versions
 
     d_bool hasMainFunction;
     unsigned varSequenceNumber;
