@@ -34,6 +34,7 @@ import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
+import dmd.funcsem;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
@@ -354,7 +355,7 @@ bool evaluateConstraint(TemplateDeclaration td, TemplateInstance ti, Scope* sc, 
         }
         if (td.isstatic)
             fd.storage_class |= STC.static_;
-        fd.declareThis(scx);
+        declareThis(fd, scx);
     }
 
     td.lastConstraint = td.constraint.syntaxCopy();
