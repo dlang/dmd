@@ -335,7 +335,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         atexit(&flushMixins); // see comment for flushMixins
     }
     scope(exit) flushMixins();
-    global.path = buildPath(params.imppath);
+    global.path = buildPath(&params.imppath);
     global.filePath = buildPath(params.fileImppath);
 
     // Create Modules

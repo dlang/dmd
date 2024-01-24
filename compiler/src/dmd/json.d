@@ -905,12 +905,9 @@ public:
 
         propertyStart("importPaths");
         arrayStart();
-        if (global.params.imppath)
+        foreach (importPath; global.params.imppath[])
         {
-            foreach (importPath; *global.params.imppath)
-            {
-                item(importPath.toDString);
-            }
+            item(importPath.toDString);
         }
         arrayEnd();
 
