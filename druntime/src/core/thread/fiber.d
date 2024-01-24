@@ -1084,11 +1084,7 @@ private:
             {
                 munmap( m_pmem, m_size );
             }
-            else static if ( __traits( compiles, valloc ) )
-            {
-                free( m_pmem );
-            }
-            else static if ( __traits( compiles, malloc ) )
+            else
             {
                 free( m_pmem );
             }
