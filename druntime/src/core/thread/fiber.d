@@ -1015,13 +1015,11 @@ private:
             {
                 m_pmem = valloc( sz );
             }
-            else static if ( __traits( compiles, malloc ) )
-            {
-                m_pmem = malloc( sz );
-            }
             else
             {
-                m_pmem = null;
+                import core.stdc.stdlib : malloc;
+
+                m_pmem = malloc( sz );
             }
 
             if ( !m_pmem )
