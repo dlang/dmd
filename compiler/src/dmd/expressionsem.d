@@ -7629,7 +7629,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         se = se.toUTF8(sc);
 
         auto namez = se.toStringz();
-        if (!global.filePath)
+        if (!global.filePath.length)
         {
             error(e.loc, "need `-J` switch to import text file `%s`", namez.ptr);
             return setError();
@@ -7665,7 +7665,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             error(e.loc, "file `%s` cannot be found or not in a path specified with `-J`", se.toChars());
             errorSupplemental(e.loc, "Path(s) searched (as provided by `-J`):");
-            foreach (idx, path; *global.filePath)
+            foreach (idx, path; global.filePath[])
             {
                 const attr = FileName.exists(path);
                 const(char)* err = attr == 2 ? "" :

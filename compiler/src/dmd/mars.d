@@ -1484,8 +1484,6 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (p[1] == 'J')             // https://dlang.org/dmd.html#switch-J
         {
-            if (!params.fileImppath)
-                params.fileImppath = new Strings();
             params.fileImppath.push(p + 2 + (p[2] == '='));
         }
         else if (startsWith(p + 1, "debug") && p[6] != 'l') // https://dlang.org/dmd.html#switch-debug
