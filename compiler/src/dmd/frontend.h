@@ -3366,6 +3366,7 @@ public:
         char* string;
         char16_t* wstring;
         char32_t* dstring;
+        uint64_t* lstring;
     };
     size_t len;
     uint8_t sz;
@@ -3379,6 +3380,7 @@ public:
     size_t numberOfCodeUnits(int32_t tynto = 0) const;
     void writeTo(void* dest, bool zero, int32_t tyto = 0) const;
     char32_t getCodeUnit(size_t i) const;
+    uint64_t getIndex(size_t i) const;
     StringExp* toStringExp() override;
     int32_t compare(const StringExp* const se2) const;
     Optional<bool > toBool() override;

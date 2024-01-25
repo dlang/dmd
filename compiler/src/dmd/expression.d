@@ -1500,6 +1500,7 @@ extern (C++) final class StringExp : Expression
         char* string;   // if sz == 1
         wchar* wstring; // if sz == 2
         dchar* dstring; // if sz == 4
+        ulong* lstring; // if sz == 8
     }                   // (const if ownedByCtfe == OwnedBy.code)
     size_t len;         // number of code units
     ubyte sz = 1;       // 1: char, 2: wchar, 4: dchar
@@ -1663,6 +1664,13 @@ extern (C++) final class StringExp : Expression
      */
     dchar getCodeUnit(size_t i) const pure
     {
+        assert(this.sz <= dchar.sizeof);
+        return cast(dchar) getIndex(i);
+    }
+
+    /// Returns: integer at index `i`
+    ulong getIndex(size_t i) const pure
+    {
         assert(i < len);
         final switch (sz)
         {
@@ -1672,6 +1680,8 @@ extern (C++) final class StringExp : Expression
             return wstring[i];
         case 4:
             return dstring[i];
+        case 8:
+            return lstring[i];
         }
     }
 
@@ -1683,6 +1693,11 @@ extern (C++) final class StringExp : Expression
      */
     extern (D) void setCodeUnit(size_t i, dchar c)
     {
+        return setIndex(i, c);
+    }
+
+    extern (D) void setIndex(size_t i, long c)
+    {
         assert(i < len);
         final switch (sz)
         {
@@ -1693,7 +1708,10 @@ extern (C++) final class StringExp : Expression
             wstring[i] = cast(wchar)c;
             break;
         case 4:
-            dstring[i] = c;
+            dstring[i] = cast(dchar) c;
+            break;
+        case 8:
+            lstring[i] = c;
             break;
         }
     }

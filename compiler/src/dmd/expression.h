@@ -354,7 +354,7 @@ class StringExp final : public Expression
 public:
     utf8_t postfix;      // 'c', 'w', 'd'
     OwnedBy ownedByCtfe;
-    void *string;       // char, wchar, or dchar data
+    void *string;       // char, wchar, dchar, or long data
     size_t len;         // number of chars, wchars, or dchars
     unsigned char sz;   // 1: char, 2: wchar, 4: dchar
     d_bool committed;   // if type is committed
