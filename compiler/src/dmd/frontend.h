@@ -769,7 +769,7 @@ public:
     static const char* forceExt(const char* name, const char* ext);
     static bool equalsExt(const char* name, const char* ext);
     bool equalsExt(const char* ext) const;
-    static const char* searchPath(Array<const char* >& path, const char* name, bool cwd);
+    static const char* searchPath(const Array<const char* >& path, const char* const name, bool cwd);
     static int32_t exists(const char* name);
     static bool ensurePathExists(const char* path);
     static const char* canonicalName(const char* name);
