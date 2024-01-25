@@ -2,8 +2,8 @@
 TEST_OUTPUT:
 ---
 fail_compilation/hexstring.d(29): Error: cannot implicitly convert expression `"123F"` of type `string` to `immutable(ubyte[])`
-fail_compilation/hexstring.d(30): Error: cannot implicitly convert expression `"\x12?"c` of type `string` to `immutable(ubyte[])`
-fail_compilation/hexstring.d(31): Error: cannot implicitly convert expression `"\x12?"` of type `string` to `immutable(ubyte[])`
+fail_compilation/hexstring.d(30): Error: cannot implicitly convert expression `x"123F"c` of type `string` to `immutable(ubyte[])`
+fail_compilation/hexstring.d(31): Error: cannot implicitly convert expression `x"123F"` of type `string` to `immutable(ubyte[])`
 fail_compilation/hexstring.d(33): Error: hex string length 1 must be a multiple of 2 to cast to `immutable(ushort[])`
 fail_compilation/hexstring.d(34): Error: hex string length 3 must be a multiple of 4 to cast to `immutable(uint[])`
 fail_compilation/hexstring.d(35): Error: hex string length 5 must be a multiple of 8 to cast to `immutable(ulong[])`
@@ -13,7 +13,7 @@ fail_compilation/hexstring.d(37): Error: array cast from `string` to `immutable(
 fail_compilation/hexstring.d(38): Error: array cast from `string` to `immutable(ushort[])` is not supported at compile time
 fail_compilation/hexstring.d(39): Error: array cast from `string` to `immutable(uint[])` is not supported at compile time
 fail_compilation/hexstring.d(39):        perhaps remove postfix `c` from hex string
-fail_compilation/hexstring.d(28): Error: cannot implicitly convert expression `"\x12?"` of type `string` to `ubyte[]`
+fail_compilation/hexstring.d(28): Error: cannot implicitly convert expression `x"123F"` of type `string` to `ubyte[]`
 ---
 */
 
