@@ -3340,9 +3340,11 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         return null;
     }
 
-    .error(loc, "%s `%s%s%s` is not callable using argument types `%s`",
-           fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList),
-           tf.modToChars(), fargsBuf.peekChars());
+    .error(loc, "%s `%s` is not callable using argument types `%s`",
+           fd.kind(), fd.toChars(), fargsBuf.peekChars());
+
+    scope (exit)
+        .errorSupplemental(fd.loc, "`%s%s` declared here", fd.toPrettyChars(), parametersTypeToChars(tf.parameterList));
 
     // re-resolve to check for supplemental message
     if (!global.gag || global.params.v.showGaggedErrors)
