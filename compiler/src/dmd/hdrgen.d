@@ -2276,6 +2276,16 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitString(StringExp e)
     {
+        if (e.hexString || e.sz == 8)
+        {
+            buf.writeByte('x');
+            buf.writeByte('"');
+            buf.writeHexString(e.peekData, true);
+            buf.writeByte('"');
+            if (e.postfix)
+                buf.writeByte(e.postfix);
+            return;
+        }
         buf.writeByte('"');
         const o = buf.length;
         foreach (i; 0 .. e.len)

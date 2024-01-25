@@ -256,6 +256,10 @@ void testHexstring()
     // Test that mangling of StringExp with size 8 is the same as array literal mangling:
     void f(immutable ulong[] a)() {}
     static assert(f!y.mangleof == f!([0x1122334455667788, 0xAABBCCDDEEFF0099]).mangleof);
+
+    // Test printing StringExp with size 8
+    enum toStr(immutable ulong[] v) = v.stringof;
+    static assert(toStr!y == `x"88776655443322119900FFEEDDCCBBAA"`);
 }
 
 /***************************************************/

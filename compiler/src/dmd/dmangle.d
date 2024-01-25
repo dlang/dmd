@@ -1004,14 +1004,7 @@ public:
         buf.writeByte(m);
         buf.print(q.length);
         buf.writeByte('_');    // nbytes <= 11
-        auto slice = buf.allocate(2 * q.length);
-        foreach (i, c; q)
-        {
-            char hi = (c >> 4) & 0xF;
-            slice[i * 2] = cast(char)(hi < 10 ? hi + '0' : hi - 10 + 'a');
-            char lo = c & 0xF;
-            slice[i * 2 + 1] = cast(char)(lo < 10 ? lo + '0' : lo - 10 + 'a');
-        }
+        buf.writeHexString(cast(const(ubyte)[]) q, false);
     }
 
     override void visit(ArrayLiteralExp e)
