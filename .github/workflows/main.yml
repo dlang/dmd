@@ -94,6 +94,15 @@ jobs:
       - name: 'Posix: Install prerequisites'
         if: runner.os != 'Windows'
         run: ${{ runner.os == 'macOS' && 'ci/cirrusci.sh' || 'sudo -E ci/cirrusci.sh' }}
+      - name: "Windows: Increase page file size"
+        # workaround for:
+        # core.exception.OutOfMemoryError@src\core\internal\gc\impl\conservative\gc.d(512): Memory allocation failed
+        # for test:
+        # ../generated/windows/release/64/unittest/test_runner.exe core.internal.gc.impl.conservative.gc
+        if: runner.os == 'Windows'
+        uses: al-cheb/configure-pagefile-action@v1.3
+        with:
+          minimum-size: 8GB
       - name: 'Windows: Set up MSVC environment'
         if: runner.os == 'Windows'
         uses: seanmiddleditch/gha-setup-vsdevenv@v4
