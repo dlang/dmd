@@ -2963,7 +2963,7 @@ private struct Buffer
         }
     }
 
-    char[] append(scope const(char)[] val) return scope
+    void append(scope const(char)[] val) scope
     {
         version (DigitalMars) pragma(inline, false); // tame dmd inliner
 
@@ -2977,19 +2977,17 @@ private struct Buffer
             if ( dst.length - len >= val.length && &dst[len] == &val[0] )
             {
                 // data is already in place
-                auto t = dst[len .. len + val.length];
                 len += val.length;
-                return t;
+                return;
             }
+
             if ( dst.length - len >= val.length )
             {
                 dst[len .. len + val.length] = val[];
-                auto t = dst[len .. len + val.length];
                 len += val.length;
-                return t;
+                return;
             }
             overflow();
         }
-        return null;
     }
 }
