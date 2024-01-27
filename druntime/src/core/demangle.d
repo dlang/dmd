@@ -2932,38 +2932,33 @@ private struct Buffer
         return r;
     }
 
-    private void checkAndStretchBuf(scope const(char)[] val) scope
+    private void checkAndStretchBuf(size_t len_to_add) scope
     {
-        const required = len + val.length;
+        const required = len + len_to_add;
 
         if (required > dst.length)
             dst.length = dst.length + (required - dst.length);
     }
 
     // move val to the end of the dst buffer
-    BufSlice shift(scope const BufSlice _val) return scope
+    BufSlice shift(scope const BufSlice val) return scope
     {
         version (DigitalMars) pragma(inline, false); // tame dmd inliner
 
-        scope val = _val.getSlice();
-
         if (val.length)
         {
-            const ptrdiff_t s = _val.from;
+            const ptrdiff_t s = val.from;
             const size_t f = len;
 
-            import core.internal.dassert : miniFormat;
-
-            assert(contains( dst[0 .. len], _val ),
+            assert(contains( dst[0 .. len], val ),
                 "\ndst=\""~dst[0 .. len]~"\"\n"~
-                "val=\""~val.idup~"\"\n"~
-                "s="~miniFormat(s)~" f="~miniFormat(f)
+                "val=\""~val.getSlice~"\"\n"
             );
 
-            checkAndStretchBuf(val);
+            checkAndStretchBuf(val.length);
 
             // store value temporary over len index
-            dst[len .. len + val.length] = val[];
+            dst[len .. len + val.length] = val.getSlice();
 
             // shift all chars including temporary saved above
             // if buf was allocated above it will be leave for further usage
@@ -3006,7 +3001,7 @@ private struct Buffer
 
             debug(info) printf( "appending (%.*s)\n", cast(int) val.length, val.ptr );
 
-            checkAndStretchBuf(val);
+            checkAndStretchBuf(val.length);
 
             // data is already not in place?
             if ( &dst[len] != &val[0] )
