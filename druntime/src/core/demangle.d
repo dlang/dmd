@@ -2918,7 +2918,6 @@ private struct Buffer
     static bool contains(scope const(char)[] a, scope const BufSlice b) @safe
     {
         return
-            &a[0] == &(b.dst[0]) && // should be implemented as assert
             b.from < a.length &&
             b.to <= a.length;
     }
@@ -2950,18 +2949,25 @@ private struct Buffer
 
         if (val.length)
         {
+            const ptrdiff_t s = _val.from;
+            const size_t f = len;
+
             import core.internal.dassert : miniFormat;
 
-            assert( contains( dst[0 .. len], _val ),
+            assert(contains( dst[0 .. len], _val ),
                 "\ndst=\""~dst[0 .. len]~"\"\n"~
-                "val=\""~val~"\"\n"
+                "val=\""~val.idup~"\"\n"~
+                "s="~miniFormat(s)~" f="~miniFormat(f)
             );
 
-            if (len + val.length > dst.length)
-                overflow();
-            size_t v = &val[0] - &dst[0];
+            checkAndStretchBuf(val);
+
+            // store value temporary over len index
             dst[len .. len + val.length] = val[];
-            for (size_t p = v; p < len; p++)
+
+            // shift all chars including temporary saved above
+            // if buf was allocated above it will be leave for further usage
+            for (size_t p = s; p < f; p++)
                 dst[p] = dst[p + val.length];
 
             return bslice(len - val.length, len);
