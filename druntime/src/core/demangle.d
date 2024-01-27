@@ -121,7 +121,7 @@ pure @safe:
     BufSlice shift(scope const BufSlice val) return scope
     {
         if (mute)
-            return BufSlice.init;
+            return dst.bslice_empty;
         return dst.shift(val);
     }
 
@@ -707,7 +707,7 @@ pure @safe:
 
         static if (__traits(hasMember, Hooks, "parseType"))
         {
-            auto n = hooks.parseType(this, BufSlice.init);
+            auto n = hooks.parseType(this, dst.bslice_empty);
 
             if(n.length)
                 return n;
@@ -728,7 +728,7 @@ pure @safe:
             if (n == 0 || n > pos)
                 error("invalid back reference");
             if ( mute )
-                return BufSlice.init;
+                return dst.bslice_empty;
             auto savePos = pos;
             auto saveBrp = brp;
             scope(success) { pos = savePos; brp = saveBrp; }
@@ -1312,6 +1312,9 @@ pure @safe:
         debug(trace) printf( "parseValue+\n" );
         debug(trace) scope(success) printf( "parseValue-\n" );
 
+        if(name.dst is null)
+            name = dst.bslice_empty;
+
 //        printf( "*** %c\n", front );
         switch ( front )
         {
@@ -1438,6 +1441,9 @@ pure @safe:
     {
         debug(trace) printf( "parseIntegerValue+\n" );
         debug(trace) scope(success) printf( "parseIntegerValue-\n" );
+
+        if(name.dst is null)
+            name = dst.bslice_empty;
 
         switch ( type )
         {
@@ -1813,7 +1819,7 @@ pure @safe:
             dst.len = prevlen;
             brp = prevbrp;
         }
-        return BufSlice.init;
+        return dst.bslice_empty;
     }
 
     /*
@@ -1849,7 +1855,7 @@ pure @safe:
     {
         debug(trace) printf( "parseMangledName+\n" );
         debug(trace) scope(success) printf( "parseMangledName-\n" );
-        BufSlice name = BufSlice.init;
+        BufSlice name = dst.bslice_empty;
 
         auto end = pos + n;
 
@@ -2127,10 +2133,14 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
             return true;
         }
 
-        BufSlice parseType( ref Remangle d, BufSlice name = BufSlice.init ) return scope
+        BufSlice parseType( ref Remangle d, BufSlice name ) return scope
         {
             if (d.front != 'Q')
-                return BufSlice.init;
+            {
+                assert(name.length == 0);
+
+                return name; // name is always empty here
+            }
 
             flushPosition(d);
 
@@ -3023,6 +3033,11 @@ private struct Buffer
     {
         return BufSlice(dst, from, to);
     }
+
+    private scope bslice_empty() nothrow
+    {
+        return BufSlice(dst, 0, 0);
+    }
 }
 
 //~ private alias BufSlice = char[];
@@ -3035,6 +3050,11 @@ private struct BufSliceImpl
     @safe:
     pure:
     nothrow:
+
+    this(return scope char[] dst) scope nothrow
+    {
+        this(dst, 0, 0);
+    }
 
     this(return scope char[] dst, size_t from, size_t to, bool lastArgIsLen = false) scope nothrow
     {
