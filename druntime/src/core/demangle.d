@@ -3018,7 +3018,7 @@ private struct Buffer
 
     private scope bslice(size_t from, size_t to) nothrow
     {
-        return BufSliceImpl(dst, from, to);
+        return BufSlice(dst, from, to);
     }
 }
 
@@ -3033,9 +3033,9 @@ private struct BufSliceImpl
     pure:
     nothrow:
 
-    this(scope char[] dst, size_t from, size_t to, bool lastArgIsLen = false) scope nothrow
+    this(return scope char[] dst, size_t from, size_t to, bool lastArgIsLen = false) scope nothrow
     {
-        //~ this.dst = dst; //FIXME
+        this.dst = dst;
         this.from = from;
 
         if(lastArgIsLen)
