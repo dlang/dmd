@@ -140,8 +140,7 @@ pure @safe:
 
     void put(scope BufSlice val) return scope
     {
-        if (!mute)
-            dst.append(val);
+        put(val.getScopedSlice);
     }
 
     //FIXME: remove
@@ -151,6 +150,7 @@ pure @safe:
             return;
         dst.append(val);
     }
+
 
     void putAsHex( size_t val, int width = 0 )
     {
@@ -2975,11 +2975,6 @@ private struct Buffer
             for (size_t p = v; p < len; p++)
                 dst[p] = dst[p + val.length];
         }
-    }
-
-    void append(scope BufSlice val) scope
-    {
-        append(val.getScopedSlice);
     }
 
     void append(scope const(char)[] val) scope
