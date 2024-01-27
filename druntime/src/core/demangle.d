@@ -742,19 +742,19 @@ pure @safe:
             put( "shared(" );
             parseType();
             put( ')' );
-            return dst.bslice(beg);
+            return dst[beg .. $];
         case 'x': // Const (x Type)
             popFront();
             put( "const(" );
             parseType();
             put( ')' );
-            return dst.bslice(beg);
+            return dst[beg .. $];
         case 'y': // Immutable (y Type)
             popFront();
             put( "immutable(" );
             parseType();
             put( ')' );
-            return dst.bslice(beg);
+            return dst[beg .. $];
         case 'N':
             popFront();
             switch ( front )
@@ -762,20 +762,20 @@ pure @safe:
             case 'n': // Noreturn
                 popFront();
                 put("noreturn");
-                return dst.bslice(beg);
+                return dst[beg .. $];
             case 'g': // Wild (Ng Type)
                 popFront();
                 // TODO: Anything needed here?
                 put( "inout(" );
                 parseType();
                 put( ')' );
-                return dst.bslice(beg);
+                return dst[beg .. $];
             case 'h': // TypeVector (Nh Type)
                 popFront();
                 put( "__vector(" );
                 parseType();
                 put( ')' );
-                return dst.bslice(beg);
+                return dst[beg .. $];
             default:
                 error();
             }
@@ -783,7 +783,7 @@ pure @safe:
             popFront();
             parseType();
             put( "[]" );
-            return dst.bslice(beg);
+            return dst[beg .. $];
         case 'G': // TypeStaticArray (G Number Type)
             popFront();
             auto num = sliceNumber();
@@ -791,7 +791,7 @@ pure @safe:
             put( '[' );
             put( num );
             put( ']' );
-            return dst.bslice(beg);
+            return dst[beg .. $];
         case 'H': // TypeAssocArray (H Type Type)
             popFront();
             // skip t1
@@ -800,12 +800,12 @@ pure @safe:
             put( '[' );
             shift(tx);
             put( ']' );
-            return dst.bslice(beg);
+            return dst[beg .. $];
         case 'P': // TypePointer (P Type)
             popFront();
             parseType();
             put( '*' );
-            return dst.bslice(beg);
+            return dst[beg .. $];
         case 'F': case 'U': case 'W': case 'V': case 'R': // TypeFunction
             return parseTypeFunction();
         case 'C': // TypeClass (C LName)
@@ -814,7 +814,7 @@ pure @safe:
         case 'T': // TypeTypedef (T LName)
             popFront();
             parseQualifiedName();
-            return dst.bslice(beg);
+            return dst[beg .. $];
         case 'D': // TypeDelegate (D TypeFunction)
             popFront();
             auto modifiers = parseModifier();
@@ -831,15 +831,15 @@ pure @safe:
                     put(str);
                 }
             }
-            return dst.bslice(beg);
+            return dst[beg .. $];
         case 'n': // TypeNone (n)
             popFront();
             // TODO: Anything needed here?
-            return dst.bslice(beg);
+            return dst[beg .. $];
         case 'B': // TypeTuple (B Number Arguments)
             popFront();
             // TODO: Handle this.
-            return dst.bslice(beg);
+            return dst[beg .. $];
         case 'Z': // Internal symbol
             // This 'type' is used for untyped internal symbols, i.e.:
             // __array
@@ -849,13 +849,13 @@ pure @safe:
             // __Interface
             // __ModuleInfo
             popFront();
-            return dst.bslice(beg);
+            return dst[beg .. $];
         default:
             if (t >= 'a' && t <= 'w')
             {
                 popFront();
                 put( primitives[cast(size_t)(t - 'a')] );
-                return dst.bslice(beg);
+                return dst[beg .. $];
             }
             else if (t == 'z')
             {
@@ -865,11 +865,11 @@ pure @safe:
                 case 'i':
                     popFront();
                     put( "cent" );
-                    return dst.bslice(beg);
+                    return dst[beg .. $];
                 case 'k':
                     popFront();
                     put( "ucent" );
-                    return dst.bslice(beg);
+                    return dst[beg .. $];
                 default:
                     error();
                 }
@@ -1251,10 +1251,10 @@ pure @safe:
             auto retbeg = dst.length;
             parseType();
             put(' ');
-            shift(dst.bslice(argbeg, retbeg));
+            shift(dst[argbeg .. retbeg]);
         }
 
-        return dst.bslice(beg);
+        return dst[beg .. $];
     }
 
     static bool isCallConvention( char ch )
@@ -1802,7 +1802,7 @@ pure @safe:
                         put(str);
                         put(' ');
                     }
-                    attr = dst.bslice(prevlen);
+                    attr = dst[prevlen .. $];
                 }
 
                 put( '(' );
@@ -1882,7 +1882,7 @@ pure @safe:
                 attr = shift( attr );
                 nameEnd = dst.length - attr.length;  // name includes function arguments
             }
-            name = dst.bslice(beg, nameEnd);
+            name = dst[beg .. nameEnd];
 
             debug(info) printf( "name (%.*s)\n", cast(int) name.length, name.ptr );
             if ( 'M' == front )
