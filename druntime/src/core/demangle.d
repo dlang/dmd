@@ -1865,7 +1865,7 @@ pure @safe:
         {
             size_t  beg = dst.length;
             size_t  nameEnd = dst.length;
-            scope BufSlice attr;
+            BufSlice attr;
             do
             {
                 if ( attr.isNull )
@@ -2253,9 +2253,6 @@ char[] mangle(T)(return scope const(char)[] fqn, return scope char[] dst = null)
     }
     dst[i .. i + T.mangleof.length] = T.mangleof[];
     i += T.mangleof.length;
-
-    //~ scope buf = BufSlice(dst, 0, i);
-    //~ auto ret = buf.getSlice.dup;
 
     static if (hasTypeBackRef)
         return reencodeMangled(dst[0 .. i]);
@@ -2973,7 +2970,7 @@ private struct Buffer
             return bslice(len - val.length, len);
         }
 
-        return bslice(0);
+        return bslice_empty;
     }
 
     // remove val from dst buffer
@@ -3072,6 +3069,12 @@ private struct BufSliceImpl
 
     invariant()
     {
+        if(dst is null)
+        {
+            assert(from == 0);
+            assert(to == 0);
+        }
+
         assert(from <= to);
     }
 
