@@ -2915,15 +2915,12 @@ private struct Buffer
         return this.dst[from .. to];
     }
 
-    static bool contains(scope const(char)[] a, scope const(char)[] b) @trusted
+    static bool contains(scope const(char)[] a, scope const BufSlice b) @safe
     {
-        if (a.length && b.length)
-        {
-            auto bend = b.ptr + b.length;
-            auto aend = a.ptr + a.length;
-            return a.ptr <= b.ptr && bend <= aend;
-        }
-        return false;
+        return
+            &a[0] == &(b.dst[0]) && // should be implemented as assert
+            b.from < a.length &&
+            b.to <= a.length;
     }
 
     char[] copyInput(scope const(char)[] buf)
@@ -2947,7 +2944,7 @@ private struct Buffer
         {
             import core.internal.dassert : miniFormat;
 
-            assert( contains( dst[0 .. len], val ),
+            assert( contains( dst[0 .. len], _val ),
                 "\ndst=\""~dst[0 .. len]~"\"\n"~
                 "val=\""~val~"\"\n"
             );
@@ -2974,7 +2971,7 @@ private struct Buffer
 
         if ( val.length )
         {
-            assert( contains( dst[0 .. len], val ) );
+            assert( contains( dst[0 .. len], _val ) );
             debug(info) printf( "removing (%.*s)\n", cast(int) val.length, val.ptr );
             size_t v = &val[0] - &dst[0];
             assert( len >= val.length && len <= dst.length );
