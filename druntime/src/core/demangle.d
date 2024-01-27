@@ -118,10 +118,10 @@ pure @safe:
         error();
     }
 
-    char[] shift(scope const(char)[] val) return scope
+    BufSlice shift(scope const BufSlice val) return scope
     {
         if (mute)
-            return null;
+            return BufSlice.init;
         return dst.shift(val);
     }
 
@@ -136,6 +136,11 @@ pure @safe:
     {
         char[1] val = c;
         put(val[]);
+    }
+
+    void put(BufSlice val) return scope
+    {
+        return put(val.getSlice);
     }
 
     void put(scope const(char)[] val) return scope
@@ -671,7 +676,7 @@ pure @safe:
     TypeTuple:
         B Number Arguments
     */
-    char[] parseType() return scope
+    BufSlice parseType() return scope
     {
         static immutable string[23] primitives = [
             "char", // a
@@ -708,7 +713,7 @@ pure @safe:
         auto beg = dst.length;
         auto t = front;
 
-        char[] parseBackrefType(scope char[] delegate() pure @safe parseDg) pure @safe
+        BufSlice parseBackrefType(scope BufSlice delegate() pure @safe parseDg) pure @safe
         {
             if (pos == brp)
                 error("recursive back reference");
@@ -718,7 +723,7 @@ pure @safe:
             if (n == 0 || n > pos)
                 error("invalid back reference");
             if ( mute )
-                return null;
+                return BufSlice.init;
             auto savePos = pos;
             auto saveBrp = brp;
             scope(success) { pos = savePos; brp = saveBrp; }
@@ -737,19 +742,19 @@ pure @safe:
             put( "shared(" );
             parseType();
             put( ')' );
-            return dst[beg .. $];
+            return dst.bslice(beg);
         case 'x': // Const (x Type)
             popFront();
             put( "const(" );
             parseType();
             put( ')' );
-            return dst[beg .. $];
+            return dst.bslice(beg);
         case 'y': // Immutable (y Type)
             popFront();
             put( "immutable(" );
             parseType();
             put( ')' );
-            return dst[beg .. $];
+            return dst.bslice(beg);
         case 'N':
             popFront();
             switch ( front )
@@ -757,20 +762,20 @@ pure @safe:
             case 'n': // Noreturn
                 popFront();
                 put("noreturn");
-                return dst[beg .. $];
+                return dst.bslice(beg);
             case 'g': // Wild (Ng Type)
                 popFront();
                 // TODO: Anything needed here?
                 put( "inout(" );
                 parseType();
                 put( ')' );
-                return dst[beg .. $];
+                return dst.bslice(beg);
             case 'h': // TypeVector (Nh Type)
                 popFront();
                 put( "__vector(" );
                 parseType();
                 put( ')' );
-                return dst[beg .. $];
+                return dst.bslice(beg);
             default:
                 error();
             }
@@ -778,7 +783,7 @@ pure @safe:
             popFront();
             parseType();
             put( "[]" );
-            return dst[beg .. $];
+            return dst.bslice(beg);
         case 'G': // TypeStaticArray (G Number Type)
             popFront();
             auto num = sliceNumber();
@@ -786,7 +791,7 @@ pure @safe:
             put( '[' );
             put( num );
             put( ']' );
-            return dst[beg .. $];
+            return dst.bslice(beg);
         case 'H': // TypeAssocArray (H Type Type)
             popFront();
             // skip t1
@@ -795,12 +800,12 @@ pure @safe:
             put( '[' );
             shift(tx);
             put( ']' );
-            return dst[beg .. $];
+            return dst.bslice(beg);
         case 'P': // TypePointer (P Type)
             popFront();
             parseType();
             put( '*' );
-            return dst[beg .. $];
+            return dst.bslice(beg);
         case 'F': case 'U': case 'W': case 'V': case 'R': // TypeFunction
             return parseTypeFunction();
         case 'C': // TypeClass (C LName)
@@ -809,7 +814,7 @@ pure @safe:
         case 'T': // TypeTypedef (T LName)
             popFront();
             parseQualifiedName();
-            return dst[beg .. $];
+            return dst.bslice(beg);
         case 'D': // TypeDelegate (D TypeFunction)
             popFront();
             auto modifiers = parseModifier();
@@ -826,15 +831,15 @@ pure @safe:
                     put(str);
                 }
             }
-            return dst[beg .. $];
+            return dst.bslice(beg);
         case 'n': // TypeNone (n)
             popFront();
             // TODO: Anything needed here?
-            return dst[beg .. $];
+            return dst.bslice(beg);
         case 'B': // TypeTuple (B Number Arguments)
             popFront();
             // TODO: Handle this.
-            return dst[beg .. $];
+            return dst.bslice(beg);
         case 'Z': // Internal symbol
             // This 'type' is used for untyped internal symbols, i.e.:
             // __array
@@ -844,13 +849,13 @@ pure @safe:
             // __Interface
             // __ModuleInfo
             popFront();
-            return dst[beg .. $];
+            return dst.bslice(beg);
         default:
             if (t >= 'a' && t <= 'w')
             {
                 popFront();
                 put( primitives[cast(size_t)(t - 'a')] );
-                return dst[beg .. $];
+                return dst.bslice(beg);
             }
             else if (t == 'z')
             {
@@ -860,11 +865,11 @@ pure @safe:
                 case 'i':
                     popFront();
                     put( "cent" );
-                    return dst[beg .. $];
+                    return dst.bslice(beg);
                 case 'k':
                     popFront();
                     put( "ucent" );
-                    return dst[beg .. $];
+                    return dst.bslice(beg);
                 default:
                     error();
                 }
@@ -1215,7 +1220,7 @@ pure @safe:
         TypeFunction:
             CallConvention FuncAttrs Arguments ArgClose Type
     */
-    char[] parseTypeFunction(IsDelegate isdg = IsDelegate.no) return scope
+    BufSlice parseTypeFunction(IsDelegate isdg = IsDelegate.no) return scope
     {
         debug(trace) printf( "parseTypeFunction+\n" );
         debug(trace) scope(success) printf( "parseTypeFunction-\n" );
@@ -1246,10 +1251,10 @@ pure @safe:
             auto retbeg = dst.length;
             parseType();
             put(' ');
-            shift(dst[argbeg .. retbeg]);
+            shift(dst.bslice(argbeg, retbeg));
         }
 
-        return dst[beg .. $];
+        return dst.bslice(beg);
     }
 
     static bool isCallConvention( char ch )
@@ -1297,7 +1302,7 @@ pure @safe:
         E
         F
     */
-    void parseValue(scope  char[] name = null, char type = '\0' ) scope
+    void parseValue(scope BufSlice name = BufSlice.init, char type = '\0' ) scope
     {
         debug(trace) printf( "parseValue+\n" );
         debug(trace) scope(success) printf( "parseValue-\n" );
@@ -1424,7 +1429,7 @@ pure @safe:
     }
 
 
-    void parseIntegerValue( scope char[] name = null, char type = '\0' ) scope
+    void parseIntegerValue( scope BufSlice name = BufSlice.init, char type = '\0' ) scope
     {
         debug(trace) printf( "parseIntegerValue+\n" );
         debug(trace) scope(success) printf( "parseIntegerValue-\n" );
@@ -1562,7 +1567,7 @@ pure @safe:
                 char t = front; // peek at type for parseValue
                 if ( t == 'Q' )
                     t = peekBackref();
-                char[] name; silent( delegate void() { name = parseType(); } );
+                BufSlice name; silent( delegate void() { name = parseType(); } );
                 parseValue( name, t );
                 continue;
             case 'S':
@@ -1755,7 +1760,7 @@ pure @safe:
 
     // parse optional function arguments as part of a symbol name, i.e without return type
     // if keepAttr, the calling convention and function attributes are not discarded, but returned
-    char[] parseFunctionTypeNoReturn( bool keepAttr = false ) return scope
+    BufSlice parseFunctionTypeNoReturn( bool keepAttr = false ) return scope
     {
         // try to demangle a function, in case we are pointing to some function local
         auto prevpos = pos;
@@ -1777,7 +1782,7 @@ pure @safe:
             }
             if ( isCallConvention( front ) )
             {
-                char[] attr;
+                BufSlice attr;
                 // we don't want calling convention and attributes in the qualified name
                 parseCallConvention();
                 auto attributes = parseFuncAttr();
@@ -1787,7 +1792,7 @@ pure @safe:
                         put(str);
                         put(' ');
                     }
-                    attr = dst[prevlen .. $];
+                    attr = dst.bslice(prevlen);
                 }
 
                 put( '(' );
@@ -1803,7 +1808,7 @@ pure @safe:
             dst.len = prevlen;
             brp = prevbrp;
         }
-        return null;
+        return BufSlice.init;
     }
 
     /*
@@ -1839,7 +1844,7 @@ pure @safe:
     {
         debug(trace) printf( "parseMangledName+\n" );
         debug(trace) scope(success) printf( "parseMangledName-\n" );
-        char[] name = null;
+        BufSlice name = BufSlice.init;
 
         auto end = pos + n;
 
@@ -1849,10 +1854,10 @@ pure @safe:
         {
             size_t  beg = dst.length;
             size_t  nameEnd = dst.length;
-            char[] attr;
+            BufSlice attr;
             do
             {
-                if ( attr )
+                if ( attr.isNull )
                     dst.remove(attr); // dump attributes of parent symbols
                 if (beg != dst.length)
                     put( '.' );
@@ -1867,7 +1872,7 @@ pure @safe:
                 attr = shift( attr );
                 nameEnd = dst.length - attr.length;  // name includes function arguments
             }
-            name = dst[beg .. nameEnd];
+            name = dst.bslice(beg, nameEnd);
 
             debug(info) printf( "name (%.*s)\n", cast(int) name.length, name.ptr );
             if ( 'M' == front )
@@ -2234,10 +2239,12 @@ char[] mangle(T)(return scope const(char)[] fqn, return scope char[] dst = null)
     dst[i .. i + T.mangleof.length] = T.mangleof[];
     i += T.mangleof.length;
 
+    auto ret = BufSlice(0, i);
+
     static if (hasTypeBackRef)
-        return reencodeMangled(dst[0 .. i]);
+        return reencodeMangled(ret.getSlice);
     else
-        return dst[0 .. i];
+        return ret;
 }
 
 
@@ -2925,7 +2932,7 @@ private struct Buffer
     }
 
     // move val to the end of the dst buffer
-    char[] shift(scope const(char)[] val) return scope
+    BufSlice shift(scope const BufSlice val) return scope
     {
         version (DigitalMars) pragma(inline, false); // tame dmd inliner
 
@@ -2947,9 +2954,11 @@ private struct Buffer
     }
 
     // remove val from dst buffer
-    void remove(scope const(char)[] val) scope
+    void remove(scope BufSlice _val) scope
     {
         version (DigitalMars) pragma(inline, false); // tame dmd inliner
+
+        scope const(char)[] val = _val.getSlice;
 
         if ( val.length )
         {
@@ -2990,4 +2999,55 @@ private struct Buffer
             overflow();
         }
     }
+
+    private auto bslice(size_t from) nothrow
+    {
+        return BufSliceImpl(dst, from);
+    }
+
+    private auto bslice(size_t from, size_t to) nothrow
+    {
+        return BufSliceImpl(dst, from, to);
+    }
+}
+
+//~ private alias BufSlice = char[];
+private alias BufSlice = BufSliceImpl;
+
+private struct BufSliceImpl
+{
+    char[] dst;
+
+    @safe:
+    pure:
+    nothrow:
+
+    // from index to end of current buf
+    this(char[] dst, size_t from)
+    {
+        this(dst, from, dst.length, false);
+    }
+
+    this(char[] dst, size_t from, size_t to, bool lastArgIsLen = false) nothrow
+    {
+        this.dst = dst;
+        this.idx = from;
+
+        if(lastArgIsLen)
+            this.to = from + to;
+        else
+            this.to = to;
+    }
+
+    size_t from;
+    size_t to;
+
+    invariant()
+    {
+        assert(from <= to);
+    }
+
+    bool isNull() const { return to != from; }
+    char[] getSlice() nothrow { return dst[from .. to]; } //FIXME: remove
+    size_t length() const { return to - from; } //FIXME: remove?
 }
