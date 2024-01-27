@@ -1574,7 +1574,7 @@ pure @safe:
                 char t = front; // peek at type for parseValue
                 if ( t == 'Q' )
                     t = peekBackref();
-                BufSlice name; silent( delegate void() { name = parseType(); } );
+                BufSlice name = dst.bslice_empty; silent( delegate void() { name = parseType(); } );
                 parseValue( name, t );
                 continue;
             case 'S':
@@ -1789,7 +1789,7 @@ pure @safe:
             }
             if ( isCallConvention( front ) )
             {
-                BufSlice attr;
+                BufSlice attr = dst.bslice_empty;
                 // we don't want calling convention and attributes in the qualified name
                 parseCallConvention();
                 auto attributes = parseFuncAttr();
@@ -1861,7 +1861,7 @@ pure @safe:
         {
             size_t  beg = dst.length;
             size_t  nameEnd = dst.length;
-            BufSlice attr;
+            BufSlice attr = dst.bslice_empty;
             do
             {
                 if ( attr.isNull )
@@ -3036,6 +3036,8 @@ private struct BufSliceImpl
     @safe:
     pure:
     nothrow:
+
+    @disable this();
 
     this(return scope char[] dst) scope nothrow
     {
