@@ -140,7 +140,7 @@ pure @safe:
 
     void put(scope BufSlice val) return scope
     {
-        put(val.getScopedSlice);
+        put(val.getSlice);
     }
 
     //FIXME: remove
@@ -2946,7 +2946,7 @@ private struct Buffer
     {
         version (DigitalMars) pragma(inline, false); // tame dmd inliner
 
-        scope val = _val.getScopedSlice;
+        scope val = _val.getSlice;
 
         if ( val.length )
         {
@@ -3042,8 +3042,6 @@ private struct BufSliceImpl
     }
 
     bool isNull() const scope { return to != from; }
-    char[] getSlice() nothrow { return dst[from .. to]; } //FIXME: remove
-    auto getScopedSlice() nothrow scope { return dst[from .. to]; } //FIXME: remove
-    auto getSlice() const nothrow scope { return dst[from .. to]; } //FIXME: remove
-    size_t length() const scope { return to - from; } //FIXME: remove?
+    auto getSlice() const nothrow scope { return dst[from .. to]; }
+    size_t length() const scope { return to - from; }
 }
