@@ -143,7 +143,6 @@ pure @safe:
         put(val.getSlice);
     }
 
-    //FIXME: remove
     void put(scope const(char)[] val) return scope
     {
         if (mute)
