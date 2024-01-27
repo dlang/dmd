@@ -2989,7 +2989,7 @@ private struct Buffer
         {
             if ( !dst.length )
                 dst.length = minSize;
-            assert( !contains( dst[0 .. len], val ) );
+
             debug(info) printf( "appending (%.*s)\n", cast(int) val.length, val.ptr );
 
             if ( dst.length - len >= val.length && &dst[len] == &val[0] )
