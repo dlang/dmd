@@ -2941,20 +2941,17 @@ private struct Buffer
     }
 
     // remove val from dst buffer
-    void remove(scope BufSlice _val) scope
+    void remove(scope BufSlice val) scope
     {
         version (DigitalMars) pragma(inline, false); // tame dmd inliner
 
-        scope val = _val.getSlice;
-
         if ( val.length )
         {
-            assert( contains( dst[0 .. len], _val ) );
-            debug(info) printf( "removing (%.*s)\n", cast(int) val.length, val.ptr );
-            size_t v = &val[0] - &dst[0];
+            assert( contains( dst[0 .. len], val ) );
+
             assert( len >= val.length && len <= dst.length );
             len -= val.length;
-            for (size_t p = v; p < len; p++)
+            for (size_t p = val.from; p < len; p++)
                 dst[p] = dst[p + val.length];
         }
     }
@@ -2997,10 +2994,7 @@ private struct Buffer
     }
 }
 
-//~ private alias BufSlice = char[];
-private alias BufSlice = BufSliceImpl;
-
-private struct BufSliceImpl
+private struct BufSlice
 {
     char[] dst;
 
