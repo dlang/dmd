@@ -706,12 +706,8 @@ pure @safe:
         ];
 
         static if (__traits(hasMember, Hooks, "parseType"))
-        {
-            auto n = hooks.parseType(this, dst.bslice_empty);
-
-            if(n.length)
-                return n;
-        }
+            if (auto n = hooks.parseType(this, null))
+                return BufSlice(n, 0, n.length);
 
         debug(trace) printf( "parseType+\n" );
         debug(trace) scope(success) printf( "parseType-\n" );
@@ -2133,14 +2129,10 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
             return true;
         }
 
-        BufSlice parseType( ref Remangle d, BufSlice name ) return scope
+        char[] parseType( ref Remangle d, char[] name ) return scope
         {
             if (d.front != 'Q')
-            {
-                assert(name.length == 0);
-
-                return name; // name is always empty here
-            }
+                return null;
 
             flushPosition(d);
 
@@ -2155,7 +2147,7 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
             encodeBackref(reslen - npos);
 
             lastpos = d.pos;
-            return BufSlice(result, reslen, result.length); // anything but null
+            return result[reslen .. $]; // anything but null
         }
 
         void encodeBackref(size_t relpos) scope
