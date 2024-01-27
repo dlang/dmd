@@ -3012,7 +3012,7 @@ private struct Buffer
     // from index to end of current buf
     private scope bslice(size_t from) nothrow
     {
-        return bslice(from, dst.length);
+        return bslice(from, len);
     }
 
     private scope bslice(size_t from, size_t to) nothrow
