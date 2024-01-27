@@ -138,18 +138,19 @@ pure @safe:
         put(val[]);
     }
 
-    void put(BufSlice val) return scope
+    void put(scope BufSlice val) return scope
     {
-        return put(val.getSlice);
+        if (!mute)
+            dst.append(val);
     }
 
+    //FIXME: remove
     void put(scope const(char)[] val) return scope
     {
         if (mute)
             return;
         dst.append(val);
     }
-
 
     void putAsHex( size_t val, int width = 0 )
     {
@@ -706,7 +707,7 @@ pure @safe:
 
         static if (__traits(hasMember, Hooks, "parseType"))
             if (auto n = hooks.parseType(this, null))
-                return BufSliceImpl(n, 0);
+                return BufSlice.init; // BufSlice(n, 0); //FIXME
 
         debug(trace) printf( "parseType+\n" );
         debug(trace) scope(success) printf( "parseType-\n" );
@@ -1854,7 +1855,7 @@ pure @safe:
         {
             size_t  beg = dst.length;
             size_t  nameEnd = dst.length;
-            BufSlice attr;
+            scope BufSlice attr;
             do
             {
                 if ( attr.isNull )
@@ -2239,12 +2240,13 @@ char[] mangle(T)(return scope const(char)[] fqn, return scope char[] dst = null)
     dst[i .. i + T.mangleof.length] = T.mangleof[];
     i += T.mangleof.length;
 
-    scope ret = BufSlice(dst, 0, i).getSlice;
+    //~ scope buf = BufSlice(dst, 0, i);
+    //~ auto ret = buf.getSlice.dup;
 
     static if (hasTypeBackRef)
-        return reencodeMangled(ret);
+        return reencodeMangled(dst[0 .. i]);
     else
-        return ret;
+        return dst[0 .. i];
 }
 
 
@@ -2961,7 +2963,7 @@ private struct Buffer
     {
         version (DigitalMars) pragma(inline, false); // tame dmd inliner
 
-        scope const(char)[] val = _val.getSlice;
+        scope val = _val.getScopedSlice;
 
         if ( val.length )
         {
@@ -2973,6 +2975,11 @@ private struct Buffer
             for (size_t p = v; p < len; p++)
                 dst[p] = dst[p + val.length];
         }
+    }
+
+    void append(scope BufSlice val) scope
+    {
+        append(val.getScopedSlice);
     }
 
     void append(scope const(char)[] val) scope
@@ -3003,12 +3010,13 @@ private struct Buffer
         }
     }
 
-    private auto bslice(size_t from) nothrow
+    // from index to end of current buf
+    private scope bslice(size_t from) nothrow
     {
-        return BufSliceImpl(dst, from);
+        return bslice(from, dst.length);
     }
 
-    private auto bslice(size_t from, size_t to) nothrow
+    private scope bslice(size_t from, size_t to) nothrow
     {
         return BufSliceImpl(dst, from, to);
     }
@@ -3025,15 +3033,9 @@ private struct BufSliceImpl
     pure:
     nothrow:
 
-    // from index to end of current buf
-    this(char[] dst, size_t from)
+    this(scope char[] dst, size_t from, size_t to, bool lastArgIsLen = false) scope nothrow
     {
-        this(dst, from, dst.length, false);
-    }
-
-    this(char[] dst, size_t from, size_t to, bool lastArgIsLen = false) nothrow
-    {
-        this.dst = dst;
+        //~ this.dst = dst; //FIXME
         this.from = from;
 
         if(lastArgIsLen)
@@ -3050,8 +3052,9 @@ private struct BufSliceImpl
         assert(from <= to);
     }
 
-    bool isNull() const { return to != from; }
+    bool isNull() const scope { return to != from; }
     char[] getSlice() nothrow { return dst[from .. to]; } //FIXME: remove
-    const(char)[] getSlice() const nothrow { return dst[from .. to]; } //FIXME: remove
-    size_t length() const { return to - from; } //FIXME: remove?
+    auto getScopedSlice() nothrow scope { return dst[from .. to]; } //FIXME: remove
+    auto getSlice() const nothrow scope { return dst[from .. to]; } //FIXME: remove
+    size_t length() const scope { return to - from; } //FIXME: remove?
 }
