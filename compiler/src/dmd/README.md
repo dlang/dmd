@@ -110,7 +110,8 @@ Note that these groups have no strict meaning, the category assignments are a bi
 | File                                                                                      | Purpose                                                           |
 |-------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
 | [dsymbolsem.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dsymbolsem.d)             | Do semantic 1 pass (symbol identifiers/types)                     |
-| [funcsem.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/funcsem.d)                   | Function semantics                                                                                               |
+| [enumsem.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/enumsem.d)                   | Enum semantics                                                    |
+| [funcsem.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/funcsem.d)                   | Function semantics                                                |
 | [semantic2.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/semantic2.d)               | Do semantic 2 pass (symbol initializers)                          |
 | [semantic3.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/semantic3.d)               | Do semantic 3 pass (function bodies)                              |
 | [inline.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/inline.d)                     | Do inline pass (optimization pass that dmd does in the front-end) |

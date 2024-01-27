@@ -42,6 +42,7 @@ import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.errorsink;
+import dmd.enumsem;
 import dmd.escape;
 import dmd.expression;
 import dmd.file_manager;

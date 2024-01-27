@@ -35,6 +35,7 @@ import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
+import dmd.enumsem;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
