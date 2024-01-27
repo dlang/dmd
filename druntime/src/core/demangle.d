@@ -706,7 +706,7 @@ pure @safe:
 
         static if (__traits(hasMember, Hooks, "parseType"))
             if (auto n = hooks.parseType(this, null))
-                return n;
+                return BufSliceImpl(n, 0);
 
         debug(trace) printf( "parseType+\n" );
         debug(trace) scope(success) printf( "parseType-\n" );
@@ -2239,10 +2239,10 @@ char[] mangle(T)(return scope const(char)[] fqn, return scope char[] dst = null)
     dst[i .. i + T.mangleof.length] = T.mangleof[];
     i += T.mangleof.length;
 
-    auto ret = BufSlice(0, i);
+    scope ret = BufSlice(dst, 0, i).getSlice;
 
     static if (hasTypeBackRef)
-        return reencodeMangled(ret.getSlice);
+        return reencodeMangled(ret);
     else
         return ret;
 }
@@ -2932,9 +2932,11 @@ private struct Buffer
     }
 
     // move val to the end of the dst buffer
-    BufSlice shift(scope const BufSlice val) return scope
+    BufSlice shift(scope const BufSlice _val) return scope
     {
         version (DigitalMars) pragma(inline, false); // tame dmd inliner
+
+        scope val = _val.getSlice();
 
         if (val.length)
         {
@@ -2948,9 +2950,10 @@ private struct Buffer
             for (size_t p = v; p < len; p++)
                 dst[p] = dst[p + val.length];
 
-            return dst[len - val.length .. len];
+            return bslice(len - val.length, len);
         }
-        return null;
+
+        return bslice(0);
     }
 
     // remove val from dst buffer
@@ -3031,7 +3034,7 @@ private struct BufSliceImpl
     this(char[] dst, size_t from, size_t to, bool lastArgIsLen = false) nothrow
     {
         this.dst = dst;
-        this.idx = from;
+        this.from = from;
 
         if(lastArgIsLen)
             this.to = from + to;
@@ -3049,5 +3052,6 @@ private struct BufSliceImpl
 
     bool isNull() const { return to != from; }
     char[] getSlice() nothrow { return dst[from .. to]; } //FIXME: remove
+    const(char)[] getSlice() const nothrow { return dst[from .. to]; } //FIXME: remove
     size_t length() const { return to - from; } //FIXME: remove?
 }
