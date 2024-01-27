@@ -8703,6 +8703,7 @@ struct Id final
     static Identifier* InterpolatedExpression;
     static Identifier* Pinline;
     static Identifier* lib;
+    static Identifier* libLocal;
     static Identifier* linkerDirective;
     static Identifier* mangle;
     static Identifier* msg;

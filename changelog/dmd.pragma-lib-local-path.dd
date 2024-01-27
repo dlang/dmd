@@ -1,0 +1,37 @@
+`pragma(libLocal)` was added refer to a library in local path (relative to the module).
+
+This is useful to greatly simplify your build script, and makes it easier to distribute self-contained bindings to C libraries, or when you simply do not want to depend on `dub`.
+
+Example:
+
+
+demo/libs/library/package.d
+---
+module library;
+
+version (linux) {
+    pragma(libLocal, "bin/linux/library.a");
+}
+else version (Windows) {
+    pragma(libLocal, "bin\windows\library.lib");
+}
+else {
+    static assert(0, "Platform is not supported.");
+}
+
+extern(C) int library_get_int();
+---
+
+demo/app/main.d
+---
+import library;
+
+void main() {
+    assert(library_get_int() == 42);
+}
+---
+
+---
+cd demo/app/
+dmd -i -Ilibs/ -run main.d
+---

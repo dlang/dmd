@@ -808,6 +808,34 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     global.params.libfiles.push(name);
                 }
             }
+            else if (pd.ident == Id.libLocal)
+            {
+                import dmd.root.filename: FileName;
+                assert(pd.args && pd.args.length == 1);
+
+                Expression e = (*pd.args)[0];
+
+                auto se = e.isStringExp();
+                auto name = se.peekString();
+
+                auto fileName = FileName.toAbsolute(ds.loc.filename());
+                auto folder = FileName.path(fileName[0 .. strlen(fileName)]);
+
+                auto local = FileName.combine(folder, name);
+
+                /* Embed the library names into the object file.
+                 * The linker will then automatically
+                 * search that library, too.
+                 */
+                if (!obj_includelib(local))
+                {
+                    /* The format does not allow embedded library names,
+                     * so instead append the library name to the list to be passed
+                     * to the linker.
+                     */
+                    global.params.libfiles.push(local.ptr);
+                }
+            }
             else if (pd.ident == Id.startaddress)
             {
                 assert(pd.args && pd.args.length == 1);
