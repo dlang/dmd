@@ -1932,17 +1932,6 @@ pure @safe:
                 FUNC();
                 return dst[0 .. $];
             }
-            catch ( OverflowException e )
-            {
-                debug(trace) printf( "overflow... restarting\n" );
-                auto a = Buffer.minSize;
-                auto b = 2 * dst.dst.length;
-                auto newsz = a < b ? b : a;
-                debug(info) printf( "growing dst to %lu bytes\n", newsz );
-                dst.dst.length = newsz;
-                pos = dst.len = brp = 0;
-                continue;
-            }
             catch ( ParseException e )
             {
                 debug(info)
@@ -2862,15 +2851,6 @@ private class ParseException : Exception
 }
 
 /// Ditto
-private class OverflowException : Exception
-{
-    public this(string msg) @safe pure nothrow
-    {
-        super(msg);
-    }
-}
-
-/// Ditto
 private noreturn error(string msg = "Invalid symbol") @trusted pure
 {
     version (DigitalMars) pragma(inline, false); // tame dmd inliner
@@ -2879,16 +2859,6 @@ private noreturn error(string msg = "Invalid symbol") @trusted pure
     debug(info) printf( "error: %.*s\n", cast(int) msg.length, msg.ptr );
     throw __ctfe ? new ParseException(msg)
         : cast(ParseException) __traits(initSymbol, ParseException).ptr;
-}
-
-/// Ditto
-private noreturn overflow(string msg = "Buffer overflow") @trusted pure
-{
-    version (DigitalMars) pragma(inline, false); // tame dmd inliner
-
-    //throw new OverflowException( msg );
-    debug(info) printf( "overflow: %.*s\n", cast(int) msg.length, msg.ptr );
-    throw cast(OverflowException) __traits(initSymbol, OverflowException).ptr;
 }
 
 private struct Buffer
