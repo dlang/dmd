@@ -27,6 +27,7 @@ import dmd.denum;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
+import dmd.enumsem;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;

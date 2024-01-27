@@ -7100,8 +7100,6 @@ public:
     bool isDeprecated() const override;
     Visibility visible() override;
     bool isSpecial() const;
-    Expression* getDefaultValue(const Loc& loc);
-    Type* getMemtype(const Loc& loc);
     EnumDeclaration* isEnumDeclaration() override;
     Symbol* sinit;
     void accept(Visitor* v) override;
