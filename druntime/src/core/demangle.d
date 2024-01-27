@@ -1826,7 +1826,7 @@ pure @safe:
         SymbolName
         SymbolName QualifiedName
     */
-    char[] parseQualifiedName() return scope
+    BufSlice parseQualifiedName() return scope
     {
         debug(trace) printf( "parseQualifiedName+\n" );
         debug(trace) scope(success) printf( "parseQualifiedName-\n" );
@@ -1933,7 +1933,7 @@ pure @safe:
             {
                 debug(info) printf( "demangle(%.*s)\n", cast(int) buf.length, buf.ptr );
                 FUNC();
-                return dst[0 .. $];
+                return dst[0 .. $].getSlice;
             }
             catch ( ParseException e )
             {
@@ -2880,12 +2880,10 @@ private struct Buffer
         return this.len;
     }
 
-    public inout(char)[] opSlice (size_t from, size_t to)
-        inout return scope @safe pure nothrow @nogc
+    public BufSlice opSlice (size_t from, size_t to)
+        return scope @safe pure nothrow @nogc
     {
-        assert(from <= to);
-        assert(to <= len);
-        return this.dst[from .. to];
+        return bslice(from, to);
     }
 
     static bool contains(scope const(char)[] a, scope const BufSlice b) @safe
@@ -2981,6 +2979,8 @@ private struct Buffer
         }
     }
 
+    @nogc:
+
     // from index to end of current buf
     private scope bslice(size_t from) nothrow
     {
@@ -3008,12 +3008,12 @@ private struct BufSlice
 
     @disable this();
 
-    this(return scope char[] dst) scope nothrow
+    this(return scope char[] dst) scope nothrow @nogc
     {
         this(dst, 0, 0);
     }
 
-    this(return scope char[] dst, size_t from, size_t to, bool lastArgIsLen = false) scope nothrow
+    this(return scope char[] dst, size_t from, size_t to, bool lastArgIsLen = false) scope nothrow @nogc
     {
         this.dst = dst;
         this.from = from;
@@ -3039,6 +3039,6 @@ private struct BufSlice
     }
 
     bool isNull() const scope { return to != from; }
-    auto getSlice() const nothrow scope { return dst[from .. to]; }
+    auto getSlice() inout nothrow scope { return dst[from .. to]; }
     size_t length() const scope { return to - from; }
 }
