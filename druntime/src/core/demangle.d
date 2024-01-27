@@ -2908,7 +2908,7 @@ private struct Buffer
         const required = len + len_to_add;
 
         if (required > dst.length)
-            dst.length = dst.length + (required - dst.length);
+            dst.length = dst.length + len_to_add;
     }
 
     // move val to the end of the dst buffer
