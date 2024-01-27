@@ -706,8 +706,12 @@ pure @safe:
         ];
 
         static if (__traits(hasMember, Hooks, "parseType"))
-            if (auto n = hooks.parseType(this, null))
-                return BufSlice.init; // BufSlice(n, 0); //FIXME
+        {
+            auto n = hooks.parseType(this, BufSlice.init);
+
+            if(n.length)
+                return n;
+        }
 
         debug(trace) printf( "parseType+\n" );
         debug(trace) scope(success) printf( "parseType-\n" );
@@ -2123,10 +2127,10 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
             return true;
         }
 
-        char[] parseType( ref Remangle d, char[] name = null ) return scope
+        BufSlice parseType( ref Remangle d, BufSlice name = BufSlice.init ) return scope
         {
             if (d.front != 'Q')
-                return null;
+                return BufSlice.init;
 
             flushPosition(d);
 
@@ -2141,7 +2145,7 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
             encodeBackref(reslen - npos);
 
             lastpos = d.pos;
-            return result[reslen .. $]; // anything but null
+            return BufSlice(result, reslen, result.length); // anything but null
         }
 
         void encodeBackref(size_t relpos) scope
@@ -2942,8 +2946,12 @@ private struct Buffer
 
         if (val.length)
         {
-            assert( contains( dst[0 .. len], val ) );
-            debug(info) printf( "shifting (%.*s)\n", cast(int) val.length, val.ptr );
+            import core.internal.dassert : miniFormat;
+
+            assert( contains( dst[0 .. len], val ),
+                "\ndst=\""~dst[0 .. len]~"\"\n"~
+                "val=\""~val~"\"\n"
+            );
 
             if (len + val.length > dst.length)
                 overflow();
