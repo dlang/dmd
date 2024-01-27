@@ -1302,13 +1302,16 @@ pure @safe:
         E
         F
     */
-    void parseValue(scope BufSlice name = BufSlice.init, char type = '\0' ) scope
+
+    void parseValue() scope
+    {
+        parseValue(dst.bslice_empty);
+    }
+
+    void parseValue(scope BufSlice name, char type = '\0' ) scope
     {
         debug(trace) printf( "parseValue+\n" );
         debug(trace) scope(success) printf( "parseValue-\n" );
-
-        if(name.dst is null)
-            name = dst.bslice_empty;
 
 //        printf( "*** %c\n", front );
         switch ( front )
@@ -1431,14 +1434,15 @@ pure @safe:
         }
     }
 
+    void parseIntegerValue() scope
+    {
+        parseIntegerValue(dst.bslice_empty);
+    }
 
-    void parseIntegerValue( scope BufSlice name = BufSlice.init, char type = '\0' ) scope
+    void parseIntegerValue( scope BufSlice name, char type = '\0' ) scope
     {
         debug(trace) printf( "parseIntegerValue+\n" );
         debug(trace) scope(success) printf( "parseIntegerValue-\n" );
-
-        if(name.dst is null)
-            name = dst.bslice_empty;
 
         switch ( type )
         {
