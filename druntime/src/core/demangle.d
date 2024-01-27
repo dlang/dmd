@@ -2933,6 +2933,14 @@ private struct Buffer
         return r;
     }
 
+    private void checkAndStretchBuf(scope const(char)[] val) scope
+    {
+        const required = len + val.length;
+
+        if (required > dst.length)
+            dst.length = dst.length + (required - dst.length);
+    }
+
     // move val to the end of the dst buffer
     BufSlice shift(scope const BufSlice _val) return scope
     {
@@ -2992,20 +3000,13 @@ private struct Buffer
 
             debug(info) printf( "appending (%.*s)\n", cast(int) val.length, val.ptr );
 
-            if ( dst.length - len >= val.length && &dst[len] == &val[0] )
-            {
-                // data is already in place
-                len += val.length;
-                return;
-            }
+            checkAndStretchBuf(val);
 
-            if ( dst.length - len >= val.length )
-            {
+            // data is already not in place?
+            if ( &dst[len] != &val[0] )
                 dst[len .. len + val.length] = val[];
-                len += val.length;
-                return;
-            }
-            overflow();
+
+            len += val.length;
         }
     }
 
