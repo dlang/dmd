@@ -571,6 +571,10 @@ void enumMemberSemantic(Scope* sc, EnumMember em)
             em.origValue = e;
         }
         em.value = e;
+        // https://issues.dlang.org/show_bug.cgi?id=24311
+        // First enum member is .init value, which gets put into static segment
+        if (first)
+            lowerStaticAAs(e, sc);
     }
     else if (first)
     {
