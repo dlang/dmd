@@ -281,6 +281,19 @@ pure @safe:
             popFront();
     }
 
+    bool isSymbolNameFront(out bool err_status) nothrow
+    {
+        try
+            return isSymbolNameFront();
+        catch(ParseException)
+        {
+            err_status = true;
+            return false;
+        }
+        catch(Exception)
+            assert(false);
+    }
+
     bool isSymbolNameFront()
     {
         char val = front;
@@ -1873,6 +1886,16 @@ pure @safe:
         LName
         TemplateInstanceName
     */
+    bool parseSymbolName(bool unused_FIXME_remove) scope nothrow
+    {
+        try
+            parseSymbolName();
+        catch(Exception e)
+            return false;
+
+        return true;
+    }
+
     void parseSymbolName() scope
     {
         debug(trace) printf( "parseSymbolName+\n" );
@@ -2007,15 +2030,15 @@ pure @safe:
         _D QualifiedName Type
         _D QualifiedName M Type
     */
-    void parseMangledName(out bool err_status, bool displayType, size_t n = 0) scope nothrow
+    void parseMangledName(bool displayType, size_t n = 0) scope nothrow
     {
-        try
-            parseMangledName(displayType, n);
-        catch(Exception e)
-            err_status = true;
+        bool err_status;
+        parseMangledName(err_status, displayType, n);
+        if(err_status)
+            error();
     }
 
-    void parseMangledName(bool displayType, size_t n = 0) scope
+    void parseMangledName(out bool err_status, bool displayType, size_t n = 0) scope nothrow
     {
         debug(trace) printf( "parseMangledName+\n" );
         debug(trace) scope(success) printf( "parseMangledName-\n" );
@@ -2024,23 +2047,34 @@ pure @safe:
         auto end = pos + n;
 
         eat( '_' );
-        match( 'D' );
+        if(!_match( 'D' )) { err_status = true; return; } //FIXME: replace by mixin
+
         do
         {
             size_t  beg = dst.length;
             size_t  nameEnd = dst.length;
             BufSlice attr = dst.bslice_empty;
+            bool is_sym_name_front;
+
             do
             {
                 if ( attr.isNull )
                     dst.remove(attr); // dump attributes of parent symbols
                 if (beg != dst.length)
                     put( '.' );
-                parseSymbolName();
+
+                if(!parseSymbolName(err_status))
+                {
+                    err_status = true;
+                    return;
+                }
+
                 nameEnd = dst.length;
                 attr = parseFunctionTypeNoReturn( displayType );
 
-            } while ( isSymbolNameFront() );
+                is_sym_name_front = isSymbolNameFront(err_status);
+                if(err_status) return;
+            } while (is_sym_name_front);
 
             if ( displayType )
             {
@@ -3082,7 +3116,7 @@ private struct Buffer
     }
 
     // move val to the end of the dst buffer
-    BufSlice shift(scope const BufSlice val) return scope
+    BufSlice shift(scope const BufSlice val) return scope nothrow
     {
         version (DigitalMars) pragma(inline, false); // tame dmd inliner
 
@@ -3113,7 +3147,7 @@ private struct Buffer
     }
 
     // remove val from dst buffer
-    void remove(scope BufSlice val) scope
+    void remove(scope BufSlice val) scope nothrow
     {
         version (DigitalMars) pragma(inline, false); // tame dmd inliner
 
