@@ -219,14 +219,16 @@ pure @safe:
     }
 
 
-    void popFront()
+    void popFront() nothrow
     {
+        import core.exception : RangeError;
+
         if ( pos++ >= buf.length )
-            error();
+            throw new RangeError;
     }
 
 
-    void popFront(int i)
+    void popFront(int i) nothrow
     {
         while (i--)
             popFront();
