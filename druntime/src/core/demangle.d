@@ -307,6 +307,16 @@ pure @safe:
 
     size_t decodeBackref(size_t peekAt = 0)()
     {
+        auto r = decodeBackref!peekAt(false);
+
+        if(r == 0)
+            error("invalid back reference");
+
+        return r;
+    }
+
+    size_t decodeBackref(size_t peekAt = 0)(bool unused_FIXME_remove) nothrow
+    {
         enum base = 26;
         size_t n = 0;
         for (size_t p; ; p++)
@@ -323,8 +333,10 @@ pure @safe:
             }
             if (t < 'A' || t > 'Z')
             {
+                // invalid back reference?
                 if (t < 'a' || t > 'z')
-                    error("invalid back reference");
+                    return 0;
+
                 n = base * n + t - 'a';
                 return n;
             }
