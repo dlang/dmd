@@ -1973,22 +1973,19 @@ pure @safe:
         SymbolName
         SymbolName QualifiedName
     */
-    BufSlice parseQualifiedName(out bool err_status) return scope nothrow
+    void parseQualifiedName(out bool err_status) return scope nothrow
     {
         try
-            return parseQualifiedName();
+            parseQualifiedName();
         catch(Exception)
             err_status = true;
-
-        return BufSlice.init;
     }
 
-    //TODO: return value unused?
-    BufSlice parseQualifiedName() return scope
+    void parseQualifiedName() return scope
     {
         debug(trace) printf( "parseQualifiedName+\n" );
         debug(trace) scope(success) printf( "parseQualifiedName-\n" );
-        size_t  beg = dst.length;
+
         size_t  n   = 0;
 
         do
@@ -1999,7 +1996,6 @@ pure @safe:
             parseFunctionTypeNoReturn();
 
         } while ( isSymbolNameFront() );
-        return dst[beg .. $];
     }
 
 
