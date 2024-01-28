@@ -145,7 +145,7 @@ pure @safe:
         put(val.getSlice);
     }
 
-    void put(scope const(char)[] val) return scope
+    void put(scope const(char)[] val) return scope nothrow
     {
         if (mute)
             return;
@@ -516,44 +516,84 @@ pure @safe:
     */
     void parseLName() scope
     {
+        string err_status;
+        parseLName(err_status);
+        if(err_status !is null)
+            error(err_status);
+    }
+
+    void parseLName(out string err_status) scope nothrow
+    {
         debug(trace) printf( "parseLName+\n" );
         debug(trace) scope(success) printf( "parseLName-\n" );
 
         static if (__traits(hasMember, Hooks, "parseLName"))
-            if (hooks.parseLName(this))
+        {
+            //TODO: hooks.parseLName can be nothrow?
+
+            try
+            {
+                if (hooks.parseLName(this))
+                    return;
+            }
+            catch(Exception e)
+            {
+                err_status = e.msg;
                 return;
+            }
+        }
 
         if ( front == 'Q' )
         {
             // back reference to LName
             auto refPos = pos;
             popFront();
-            size_t n = decodeBackref();
+            size_t n = decodeBackref(false);
             if ( !n || n > refPos )
-                error( "Invalid LName back reference" );
+            {
+                err_status = "Invalid LName back reference";
+                return;
+            }
             if ( !mute )
             {
                 auto savePos = pos;
                 scope(exit) pos = savePos;
                 pos = refPos - n;
-                parseLName();
+                parseLName(err_status);
+                if(err_status) return; //FIXME: redundant?
             }
             return;
         }
-        auto n = decodeNumber();
+
+        bool err_flag;
+        auto n = decodeNumber(err_flag);
+        if(err_flag)
+        {
+            err_status = "Number overflow";
+        }
+
         if ( n == 0 )
         {
             put( "__anonymous" );
             return;
         }
         if ( n > buf.length || n > buf.length - pos )
-            error( "LName must be at least 1 character" );
+        {
+            err_status = "LName must be at least 1 character";
+            return;
+        }
         if ( '_' != front && !isAlpha( front ) )
-            error( "Invalid character in LName" );
+        {
+            err_status = "Invalid character in LName";
+            return;
+        }
         foreach (char e; buf[pos + 1 .. pos + n] )
         {
             if ( '_' != e && !isAlpha( e ) && !isDigit( e ) )
-                error( "Invalid character in LName" );
+            {
+                err_status = "Invalid character in LName";
+                return;
+            }
         }
 
         put( buf[pos .. pos + n] );
@@ -3001,7 +3041,7 @@ private struct Buffer
         return r;
     }
 
-    private void checkAndStretchBuf(size_t len_to_add) scope
+    private void checkAndStretchBuf(size_t len_to_add) scope nothrow
     {
         const required = len + len_to_add;
 
@@ -3056,7 +3096,7 @@ private struct Buffer
         }
     }
 
-    void append(scope const(char)[] val) scope
+    void append(scope const(char)[] val) scope nothrow
     {
         version (DigitalMars) pragma(inline, false); // tame dmd inliner
 
