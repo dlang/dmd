@@ -72,6 +72,7 @@ import dmd.utils;
 import dmd.statement;
 import dmd.target;
 import dmd.templateparamsem;
+import dmd.templatesem;
 import dmd.typesem;
 import dmd.visitor;
 
@@ -1963,143 +1964,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(TemplateDeclaration tempdecl)
     {
-        static if (LOG)
-        {
-            printf("TemplateDeclaration.dsymbolSemantic(this = %p, id = '%s')\n", this, tempdecl.ident.toChars());
-            printf("sc.stc = %llx\n", sc.stc);
-            printf("sc.module = %s\n", sc._module.toChars());
-        }
-        if (tempdecl.semanticRun != PASS.initial)
-            return; // semantic() already run
-
-        if (tempdecl._scope)
-        {
-            sc = tempdecl._scope;
-            tempdecl._scope = null;
-        }
-        if (!sc)
-            return;
-
-        // Remember templates defined in module object that we need to know about
-        if (sc._module && sc._module.ident == Id.object)
-        {
-            if (tempdecl.ident == Id.RTInfo)
-                Type.rtinfo = tempdecl;
-        }
-
-        /* Remember Scope for later instantiations, but make
-         * a copy since attributes can change.
-         */
-        if (!tempdecl._scope)
-        {
-            tempdecl._scope = sc.copy();
-            tempdecl._scope.setNoFree();
-        }
-
-        tempdecl.semanticRun = PASS.semantic;
-
-        tempdecl.parent = sc.parent;
-        tempdecl.visibility = sc.visibility;
-        tempdecl.userAttribDecl = sc.userAttribDecl;
-        tempdecl.cppnamespace = sc.namespace;
-        tempdecl.isstatic = tempdecl.toParent().isModule() || (tempdecl._scope.stc & STC.static_);
-        tempdecl.deprecated_ = !!(sc.stc & STC.deprecated_);
-
-        UserAttributeDeclaration.checkGNUABITag(tempdecl, sc.linkage);
-
-        if (!tempdecl.isstatic)
-        {
-            if (auto ad = tempdecl.parent.pastMixin().isAggregateDeclaration())
-                ad.makeNested();
-        }
-
-        // Set up scope for parameters
-        auto paramsym = new ScopeDsymbol();
-        paramsym.parent = tempdecl.parent;
-        Scope* paramscope = sc.push(paramsym);
-        paramscope.stc = 0;
-
-        if (global.params.ddoc.doOutput)
-        {
-            tempdecl.origParameters = new TemplateParameters(tempdecl.parameters.length);
-            for (size_t i = 0; i < tempdecl.parameters.length; i++)
-            {
-                TemplateParameter tp = (*tempdecl.parameters)[i];
-                (*tempdecl.origParameters)[i] = tp.syntaxCopy();
-            }
-        }
-
-        for (size_t i = 0; i < tempdecl.parameters.length; i++)
-        {
-            TemplateParameter tp = (*tempdecl.parameters)[i];
-            if (!tp.declareParameter(paramscope))
-            {
-                error(tp.loc, "parameter `%s` multiply defined", tp.ident.toChars());
-                tempdecl.errors = true;
-            }
-            if (!tp.tpsemantic(paramscope, tempdecl.parameters))
-            {
-                tempdecl.errors = true;
-            }
-            if (i + 1 != tempdecl.parameters.length && tp.isTemplateTupleParameter())
-            {
-                .error(tempdecl.loc, "%s `%s` template sequence parameter must be the last one", tempdecl.kind, tempdecl.toPrettyChars);
-                tempdecl.errors = true;
-            }
-        }
-
-        /* Calculate TemplateParameter.dependent
-         */
-        TemplateParameters tparams = TemplateParameters(1);
-        for (size_t i = 0; i < tempdecl.parameters.length; i++)
-        {
-            TemplateParameter tp = (*tempdecl.parameters)[i];
-            tparams[0] = tp;
-
-            for (size_t j = 0; j < tempdecl.parameters.length; j++)
-            {
-                // Skip cases like: X(T : T)
-                if (i == j)
-                    continue;
-
-                if (TemplateTypeParameter ttp = (*tempdecl.parameters)[j].isTemplateTypeParameter())
-                {
-                    if (reliesOnTident(ttp.specType, &tparams))
-                        tp.dependent = true;
-                }
-                else if (TemplateAliasParameter tap = (*tempdecl.parameters)[j].isTemplateAliasParameter())
-                {
-                    if (reliesOnTident(tap.specType, &tparams) ||
-                        reliesOnTident(isType(tap.specAlias), &tparams))
-                    {
-                        tp.dependent = true;
-                    }
-                }
-            }
-        }
-
-        paramscope.pop();
-
-        // Compute again
-        tempdecl.onemember = null;
-        if (tempdecl.members)
-        {
-            Dsymbol s;
-            if (Dsymbol.oneMembers(tempdecl.members, s, tempdecl.ident) && s)
-            {
-                tempdecl.onemember = s;
-                s.parent = tempdecl;
-            }
-        }
-
-        /* BUG: should check:
-         *  1. template functions must not introduce virtual functions, as they
-         *     cannot be accomodated in the vtbl[]
-         *  2. templates cannot introduce non-static data members (i.e. fields)
-         *     as they would change the instance size of the aggregate.
-         */
-
-        tempdecl.semanticRun = PASS.semanticdone;
+        templateDeclarationSemantic(sc, tempdecl);
     }
 
     override void visit(TemplateInstance ti)
