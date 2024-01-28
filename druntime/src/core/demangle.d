@@ -304,16 +304,18 @@ pure @safe:
 
         // check the back reference encoding after 'Q'
         val = peekBackref();
+        if(!val) return error("invalid back reference");
+
         return isDigit( val ); // identifier ref
     }
 
     // return the first character at the back reference
-    char peekBackref()
+    char peekBackref() nothrow
     {
         assert( front == 'Q' );
-        auto n = decodeBackref!1();
+        auto n = decodeBackref!1(false);
         if (!n || n > pos)
-            error("invalid back reference");
+            return 0; // invalid back reference
 
         return buf[pos - n];
     }
@@ -1759,7 +1761,10 @@ pure @safe:
                 //       decrement len and let put/append do its thing.
                 char t = front; // peek at type for parseValue
                 if ( t == 'Q' )
+                {
                     t = peekBackref();
+                    if(t == 0) error("invalid back reference");
+                }
                 BufSlice name = dst.bslice_empty; silent( delegate void() { name = parseType(); } );
                 parseValue( name, t );
                 continue;
