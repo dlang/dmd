@@ -1669,7 +1669,7 @@ extern (C++) final class StringExp : Expression
     }
 
     /// Returns: integer at index `i`
-    ulong getIndex(size_t i) const pure
+    dinteger_t getIndex(size_t i) const pure
     {
         assert(i < len);
         final switch (sz)
