@@ -212,12 +212,17 @@ pure @safe:
     }
 
 
+    //FIXME: remove?
     void test( char val )
     {
         if ( val != front )
             error();
     }
 
+    bool _test(char val) nothrow
+    {
+        return val == front;
+    }
 
     void popFront() nothrow
     {
@@ -237,18 +242,36 @@ pure @safe:
 
     void match( char val )
     {
-        test( val );
-        popFront();
+        if(!_match(val))
+            error();
     }
 
 
+    //FIXME: remove?
     void match( const(char)[] val )
     {
-        foreach (char e; val )
+        if(!_match(val))
+            error();
+    }
+
+    bool _match(char val) nothrow
+    {
+        if(!_test(val))
+            return false;
+        else
         {
-            test( e );
             popFront();
+            return true;
         }
+    }
+
+    bool _match(const(char)[] val) nothrow
+    {
+        foreach (char e; val )
+            if(!_match( e ))
+                return false;
+
+        return true;
     }
 
 
