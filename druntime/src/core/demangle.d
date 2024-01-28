@@ -2994,7 +2994,7 @@ private struct Buffer
 
     private scope bslice_empty() nothrow
     {
-        return BufSlice(dst, 0, 0);
+        return BufSlice(null, 0, 0);
     }
 }
 
