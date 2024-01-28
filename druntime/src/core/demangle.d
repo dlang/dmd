@@ -1727,13 +1727,12 @@ pure @safe:
                     auto l = dst.length;
                     auto p = pos;
                     auto b = brp;
-                    try
-                    {
-                        debug(trace) printf( "may be mangled name arg\n" );
-                        parseMangledNameArg();
+
+                    debug(trace) printf( "may be mangled name arg\n" );
+
+                    if(parseMangledNameArg(false))
                         continue;
-                    }
-                    catch ( ParseException e )
+                    else
                     {
                         dst.len = l;
                         pos = p;
@@ -1804,6 +1803,16 @@ pure @safe:
         }
     }
 
+
+    bool parseMangledNameArg(bool unused_FIXME_remove) nothrow
+    {
+        try
+            parseMangledNameArg();
+        catch(Exception e)
+            return false;
+
+        return true;
+    }
 
     void parseMangledNameArg()
     {
