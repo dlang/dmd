@@ -1751,7 +1751,9 @@ void MsCoffObj_export_symbol(Symbol *s,uint argsize)
     int seg = MsCoffObj_seg_drectve();
     //printf("MsCoffObj_export_symbol(%s,%d)\n",s.Sident.ptr,argsize);
     SegData[seg].SDbuf.write(" /EXPORT:".ptr, 9);
-    SegData[seg].SDbuf.write(dest.ptr, cast(uint)strlen(dest.ptr));
+    // obj_mangle2 may not use the buffer dest,
+    //  this will result in https://issues.dlang.org/show_bug.cgi?id=24340
+    SegData[seg].SDbuf.write(destr, cast(uint)strlen(destr));
 }
 
 /*******************************

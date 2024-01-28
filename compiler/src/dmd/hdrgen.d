@@ -1552,7 +1552,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         buf.writeByte('}');
         buf.writenl();
 
-        if (!hgs.importcHdr)
+        if (!hgs.importcHdr || !d.ident)
             return;
 
         /* C enums get their members inserted into the symbol table of the enum declaration.

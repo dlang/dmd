@@ -485,7 +485,7 @@ struct MachObjModule
     uint length; // in bytes
     uint offset; // offset from start of library
     const(char)[] name; // module name (file name) with terminating 0
-    c_long file_time; // file time
+    time_t file_time; // file time
     uint user_id;
     uint group_id;
     uint file_mode;

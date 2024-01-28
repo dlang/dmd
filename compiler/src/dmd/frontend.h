@@ -7638,6 +7638,8 @@ public:
     virtual void checkTupleof(Expression* expression, TypeClass* type) const = 0;
 };
 
+extern Expression* optimize(Expression* e, int32_t result, bool keepLvalue = false);
+
 template <typename AST>
 class PermissiveVisitor : public ParseTimeVisitor<AST >
 {
