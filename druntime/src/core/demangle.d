@@ -849,15 +849,23 @@ pure @safe:
         auto beg = dst.length;
         auto t = front;
 
-        BufSlice parseBackrefType(scope BufSlice delegate() pure @safe parseDg) pure @safe
+        BufSlice parseBackrefType(out string err_status, scope BufSlice delegate() pure @safe parseDg) pure @safe nothrow
         {
             if (pos == brp)
-                error("recursive back reference");
+            {
+                err_status = "recursive back reference";
+                return BufSlice.init;
+            }
+
             auto refPos = pos;
             popFront();
-            auto n = decodeBackref();
+            auto n = decodeBackref(false);
             if (n == 0 || n > pos)
-                error("invalid back reference");
+            {
+                err_status = "invalid back reference";
+                return BufSlice.init;
+            }
+
             if ( mute )
                 return dst.bslice_empty;
             auto savePos = pos;
@@ -865,8 +873,18 @@ pure @safe:
             scope(success) { pos = savePos; brp = saveBrp; }
             pos = refPos - n;
             brp = refPos;
-            auto ret = parseDg();
-            return ret;
+            try
+            {
+                auto ret = parseDg();
+                return ret;
+            }
+            catch(ParseException e)
+            {
+                err_status = e.msg;
+                return BufSlice.init;
+            }
+            catch(Exception)
+                assert(false);
         }
 
         // call parseType() and return error if occured
@@ -878,7 +896,10 @@ pure @safe:
         switch ( t )
         {
         case 'Q': // Type back reference
-            return parseBackrefType(() => parseType());
+            string err_msg;
+            auto r = parseBackrefType(err_msg, () => parseType());
+            if(err_msg !is null) return BufSlice.init;
+            return r;
         case 'O': // Shared (O Type)
             popFront();
             put( "shared(" );
@@ -966,9 +987,18 @@ pure @safe:
             popFront();
             auto modifiers = parseModifier();
             if ( front == 'Q' )
-                parseBackrefType(() => parseTypeFunction(IsDelegate.yes));
+            {
+                string err_msg;
+                auto r = parseBackrefType(err_msg, () => parseTypeFunction(IsDelegate.yes));
+                if(err_msg !is null) return BufSlice.init;
+                return r;
+            }
             else
-                parseTypeFunction(IsDelegate.yes);
+            {
+                parseTypeFunction(err_status, IsDelegate.yes);
+                if(err_status) return BufSlice.init;
+            }
+
             if (modifiers)
             {
                 // write modifiers behind the function arguments
