@@ -678,7 +678,16 @@ pure @safe:
     TypeTuple:
         B Number Arguments
     */
+    //FIXME: remove:
     BufSlice parseType() return scope
+    {
+        bool err_status;
+        auto r = parseType(err_status);
+        if(err_status) error();
+        return r;
+    }
+
+    BufSlice parseType(out bool err_status) return scope
     {
         static immutable string[23] primitives = [
             "char", // a
