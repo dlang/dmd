@@ -798,7 +798,7 @@ pure @safe:
         return r;
     }
 
-    BufSlice parseType(out bool err_status) return scope
+    BufSlice parseType(out bool err_status) return scope nothrow
     {
         static immutable string[23] primitives = [
             "char", // a
@@ -827,8 +827,20 @@ pure @safe:
         ];
 
         static if (__traits(hasMember, Hooks, "parseType"))
-            if (auto n = hooks.parseType(this, null))
-                return BufSlice(n, 0, n.length);
+        {
+            try
+            {
+                if (auto n = hooks.parseType(this, null))
+                    return BufSlice(n, 0, n.length);
+            }
+            catch(ParseException)
+            {
+                err_status = true;
+                return BufSlice.init;
+            }
+            catch(Exception)
+                assert(false);
+        }
 
         debug(trace) printf( "parseType+\n" );
         debug(trace) scope(success) printf( "parseType-\n" );
@@ -905,7 +917,8 @@ pure @safe:
                 put( ')' );
                 return dst[beg .. $];
             default:
-                error();
+                err_status = true;
+                return BufSlice.init;
             }
         case 'A': // TypeArray (A Type)
             popFront();
@@ -923,7 +936,8 @@ pure @safe:
         case 'H': // TypeAssocArray (H Type Type)
             popFront();
             // skip t1
-            auto tx = parseType();
+            auto tx = parseType(err_status);
+            if(err_status) return BufSlice.init;
             mixin(parseTypeOrF!());
             put( '[' );
             shift(tx);
@@ -935,13 +949,16 @@ pure @safe:
             put( '*' );
             return dst[beg .. $];
         case 'F': case 'U': case 'W': case 'V': case 'R': // TypeFunction
-            return parseTypeFunction();
+            auto r = parseTypeFunction(err_status);
+            if(err_status) return BufSlice.init;
+            return r;
         case 'C': // TypeClass (C LName)
         case 'S': // TypeStruct (S LName)
         case 'E': // TypeEnum (E LName)
         case 'T': // TypeTypedef (T LName)
             popFront();
-            parseQualifiedName();
+            parseQualifiedName(err_status);
+            if(err_status) return BufSlice.init;
             return dst[beg .. $];
         case 'D': // TypeDelegate (D TypeFunction)
             popFront();
@@ -999,10 +1016,12 @@ pure @safe:
                     put( "ucent" );
                     return dst[beg .. $];
                 default:
-                    error();
+                    err_status = true;
+                    return BufSlice.init;
                 }
             }
-            error();
+            err_status = true;
+            return BufSlice.init;
         }
     }
 
@@ -1363,6 +1382,19 @@ pure @safe:
         TypeFunction:
             CallConvention FuncAttrs Arguments ArgClose Type
     */
+    BufSlice parseTypeFunction(out bool err_status, IsDelegate isdg = IsDelegate.no) return scope nothrow
+    {
+        try
+            return parseTypeFunction(isdg);
+        catch(ParseException)
+        {
+            err_status = true;
+            return BufSlice.init;
+        }
+        catch(Exception)
+            assert(false);
+    }
+
     BufSlice parseTypeFunction(IsDelegate isdg = IsDelegate.no) return scope
     {
         debug(trace) printf( "parseTypeFunction+\n" );
@@ -2030,7 +2062,7 @@ pure @safe:
         _D QualifiedName Type
         _D QualifiedName M Type
     */
-    void parseMangledName(bool displayType, size_t n = 0) scope nothrow
+    void parseMangledName(bool displayType, size_t n = 0) scope
     {
         bool err_status;
         parseMangledName(err_status, displayType, n);
@@ -2088,7 +2120,9 @@ pure @safe:
                 popFront(); // has 'this' pointer
 
             auto lastlen = dst.length;
-            auto type = parseType();
+            auto type = parseType(err_status);
+            if(err_status) return;
+
             if ( displayType )
             {
                 if ( type.length )
@@ -3090,7 +3124,7 @@ private struct Buffer
         return bslice(from, to);
     }
 
-    static bool contains(scope const(char)[] a, scope const BufSlice b) @safe
+    static bool contains(scope const(char)[] a, scope const BufSlice b) @safe nothrow
     {
         return
             b.from < a.length &&
