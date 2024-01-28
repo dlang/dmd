@@ -2092,11 +2092,7 @@ pure @safe:
                 put( '.' );
 
             parseSymbolName(err_status);
-            if(err_status)
-            {
-                err_status = true;
-                return;
-            }
+            if(err_status) return;
 
             parseFunctionTypeNoReturn();
 
