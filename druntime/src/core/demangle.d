@@ -744,6 +744,12 @@ pure @safe:
             return ret;
         }
 
+        // call parseType() and return error if occured
+        template parseTypeOrF()
+        {
+            enum parseTypeOrF = "parseType(err_status); if(err_status) return BufSlice.init;";
+        }
+
         switch ( t )
         {
         case 'Q': // Type back reference
@@ -751,7 +757,7 @@ pure @safe:
         case 'O': // Shared (O Type)
             popFront();
             put( "shared(" );
-            parseType();
+            mixin(parseTypeOrF!());
             put( ')' );
             return dst[beg .. $];
         case 'x': // Const (x Type)
