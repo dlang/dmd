@@ -763,13 +763,13 @@ pure @safe:
         case 'x': // Const (x Type)
             popFront();
             put( "const(" );
-            parseType();
+            mixin(parseTypeOrF!());
             put( ')' );
             return dst[beg .. $];
         case 'y': // Immutable (y Type)
             popFront();
             put( "immutable(" );
-            parseType();
+            mixin(parseTypeOrF!());
             put( ')' );
             return dst[beg .. $];
         case 'N':
@@ -784,13 +784,13 @@ pure @safe:
                 popFront();
                 // TODO: Anything needed here?
                 put( "inout(" );
-                parseType();
+                mixin(parseTypeOrF!());
                 put( ')' );
                 return dst[beg .. $];
             case 'h': // TypeVector (Nh Type)
                 popFront();
                 put( "__vector(" );
-                parseType();
+                mixin(parseTypeOrF!());
                 put( ')' );
                 return dst[beg .. $];
             default:
@@ -798,13 +798,13 @@ pure @safe:
             }
         case 'A': // TypeArray (A Type)
             popFront();
-            parseType();
+            mixin(parseTypeOrF!());
             put( "[]" );
             return dst[beg .. $];
         case 'G': // TypeStaticArray (G Number Type)
             popFront();
             auto num = sliceNumber();
-            parseType();
+            mixin(parseTypeOrF!());
             put( '[' );
             put( num );
             put( ']' );
@@ -813,14 +813,14 @@ pure @safe:
             popFront();
             // skip t1
             auto tx = parseType();
-            parseType();
+            mixin(parseTypeOrF!());
             put( '[' );
             shift(tx);
             put( ']' );
             return dst[beg .. $];
         case 'P': // TypePointer (P Type)
             popFront();
-            parseType();
+            mixin(parseTypeOrF!());
             put( '*' );
             return dst[beg .. $];
         case 'F': case 'U': case 'W': case 'V': case 'R': // TypeFunction
@@ -1109,7 +1109,15 @@ pure @safe:
         return result;
     }
 
+    //FIXME: remove
     void parseFuncArguments() scope
+    {
+        bool err_status;
+        parseFuncArguments(err_status);
+        if(err_status) error();
+    }
+
+    void parseFuncArguments(out bool err_status) scope
     {
         // Arguments
         for ( size_t n = 0; true; n++ )
@@ -1201,6 +1209,13 @@ pure @safe:
                 else
                     pos--;
             }
+
+            // call parseType() and return error if occured
+            template parseTypeOrF()
+            {
+                enum parseTypeOrF = "parseType(err_status); if(err_status) return;";
+            }
+
             switch ( front )
             {
             case 'I': // in  (I Type)
@@ -1208,25 +1223,25 @@ pure @safe:
                 put("in ");
                 if (front == 'K')
                     goto case;
-                parseType();
+                mixin(parseTypeOrF!());
                 continue;
             case 'K': // ref (K Type)
                 popFront();
                 put( "ref " );
-                parseType();
+                mixin(parseTypeOrF!());
                 continue;
             case 'J': // out (J Type)
                 popFront();
                 put( "out " );
-                parseType();
+                mixin(parseTypeOrF!());
                 continue;
             case 'L': // lazy (L Type)
                 popFront();
                 put( "lazy " );
-                parseType();
+                mixin(parseTypeOrF!());
                 continue;
             default:
-                parseType();
+                mixin(parseTypeOrF!());
             }
         }
     }
