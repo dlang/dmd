@@ -1998,7 +1998,15 @@ pure @safe:
         _D QualifiedName Type
         _D QualifiedName M Type
     */
-    void parseMangledName( bool displayType, size_t n = 0 ) scope
+    void parseMangledName(out bool err_status, bool displayType, size_t n = 0) scope nothrow
+    {
+        try
+            parseMangledName(displayType, n);
+        catch(Exception e)
+            err_status = true;
+    }
+
+    void parseMangledName(bool displayType, size_t n = 0) scope
     {
         debug(trace) printf( "parseMangledName+\n" );
         debug(trace) scope(success) printf( "parseMangledName-\n" );
@@ -2066,6 +2074,11 @@ pure @safe:
             put( '.' );
 
         } while ( true );
+    }
+
+    void parseMangledName(out bool err_status)
+    {
+        parseMangledName(err_status, AddType.yes == addType);
     }
 
     void parseMangledName()
