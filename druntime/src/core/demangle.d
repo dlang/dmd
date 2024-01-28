@@ -1849,7 +1849,10 @@ pure @safe:
                         brp = b;
                     }
                 }
-                parseQualifiedName();
+
+                bool err_status;
+                parseQualifiedName(err_status);
+                if(err_status) return;
                 continue;
             case 'X':
                 popFront();
@@ -2069,15 +2072,6 @@ pure @safe:
         SymbolName
         SymbolName QualifiedName
     */
-    void parseQualifiedName() return scope
-    {
-        bool err_status;
-        parseQualifiedName(err_status);
-
-        if(err_status)
-            error();
-    }
-
     void parseQualifiedName(out bool err_status) return scope nothrow
     {
         debug(trace) printf( "parseQualifiedName+\n" );
