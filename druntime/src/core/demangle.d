@@ -1751,15 +1751,15 @@ pure @safe:
                     auto b = brp;
                     while ( qlen > 0 )
                     {
-                        try
+                        bool err_status;
+                        parseQualifiedName(err_status);
+
+                        if(!err_status)
                         {
-                            parseQualifiedName();
                             if ( pos == p + qlen )
                                 continue L_nextArg;
                         }
-                        catch ( ParseException e )
-                        {
-                        }
+
                         qlen /= 10; // retry with one digit less
                         pos = --p;
                         dst.len = l;
@@ -1983,6 +1983,7 @@ pure @safe:
         return BufSlice.init;
     }
 
+    //TODO: return value unused?
     BufSlice parseQualifiedName() return scope
     {
         debug(trace) printf( "parseQualifiedName+\n" );
