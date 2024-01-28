@@ -1730,7 +1730,7 @@ pure @safe:
 
                     debug(trace) printf( "may be mangled name arg\n" );
 
-                    if(parseMangledNameArg(false))
+                    if(parseMangledNameArg())
                         continue;
                     else
                     {
@@ -1803,28 +1803,26 @@ pure @safe:
         }
     }
 
-
-    bool parseMangledNameArg(bool unused_FIXME_remove) nothrow
-    {
-        try
-            parseMangledNameArg();
-        catch(Exception e)
-            return false;
-
-        return true;
-    }
-
-    void parseMangledNameArg()
+    bool parseMangledNameArg() nothrow
     {
         debug(trace) printf( "parseMangledNameArg+\n" );
         debug(trace) scope(success) printf( "parseMangledNameArg-\n" );
 
+        bool err_status;
+
         size_t n = 0;
         if ( isDigit( front ) )
-            n = decodeNumber();
-        parseMangledName( false, n );
-    }
+        {
+            n = decodeNumber(err_status);
 
+            if(err_status)
+                return false;
+        }
+
+        parseMangledName(err_status, false, n );
+
+        return !err_status;
+    }
 
     /*
     TemplateInstanceName:
