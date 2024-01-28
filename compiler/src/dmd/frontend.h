@@ -3380,7 +3380,7 @@ public:
     size_t numberOfCodeUnits(int32_t tynto = 0) const;
     void writeTo(void* dest, bool zero, int32_t tyto = 0) const;
     char32_t getCodeUnit(size_t i) const;
-    uint64_t getIndex(size_t i) const;
+    dinteger_t getIndex(size_t i) const;
     StringExp* toStringExp() override;
     int32_t compare(const StringExp* const se2) const;
     Optional<bool > toBool() override;
@@ -7093,6 +7093,7 @@ public:
 private:
     uint8_t bitFields;
 public:
+    Symbol* sinit;
     EnumDeclaration* syntaxCopy(Dsymbol* s) override;
     bool oneMember(Dsymbol*& ps, Identifier* ident) override;
     Type* getType() override;
@@ -7101,7 +7102,6 @@ public:
     Visibility visible() override;
     bool isSpecial() const;
     EnumDeclaration* isEnumDeclaration() override;
-    Symbol* sinit;
     void accept(Visitor* v) override;
 };
 

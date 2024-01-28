@@ -363,6 +363,7 @@ public:
     static StringExp *create(const Loc &loc, const void *s, d_size_t len);
     bool equals(const RootObject * const o) const override;
     char32_t getCodeUnit(d_size_t i) const;
+    dinteger_t getIndex(d_size_t i) const;
     StringExp *toStringExp() override;
     Optional<bool> toBool() override;
     bool isLvalue() override;
