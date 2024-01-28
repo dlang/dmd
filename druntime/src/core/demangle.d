@@ -2981,12 +2981,6 @@ private struct Buffer
 
     @nogc:
 
-    // from index to end of current buf
-    private scope bslice(size_t from) nothrow
-    {
-        return bslice(from, len);
-    }
-
     private scope bslice(size_t from, size_t to) nothrow
     {
         return BufSlice(dst, from, to);
