@@ -93,7 +93,7 @@ pure @safe:
     }
 
 
-    static bool isDigit( char val )
+    static bool isDigit( char val ) nothrow
     {
         return '0' <= val && '9' >= val;
     }
@@ -281,20 +281,18 @@ pure @safe:
             popFront();
     }
 
-    bool isSymbolNameFront(out bool err_status) nothrow
+    bool isSymbolNameFront()
     {
-        try
-            return isSymbolNameFront();
-        catch(ParseException)
-        {
-            err_status = true;
-            return false;
-        }
-        catch(Exception)
-            assert(false);
+        bool err_status;
+        auto r = isSymbolNameFront(err_status);
+
+        if(err_status)
+            error("invalid back reference");
+
+        return r;
     }
 
-    bool isSymbolNameFront()
+    bool isSymbolNameFront(out bool err_status) nothrow
     {
         char val = front;
         if ( isDigit( val ) || val == '_' )
@@ -304,7 +302,12 @@ pure @safe:
 
         // check the back reference encoding after 'Q'
         val = peekBackref();
-        if(!val) return error("invalid back reference");
+        if(val == 0)
+        {
+            // invalid back reference
+            err_status = true;
+            return false;
+        }
 
         return isDigit( val ); // identifier ref
     }
