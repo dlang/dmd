@@ -1915,7 +1915,7 @@ pure @safe:
 
     // parse optional function arguments as part of a symbol name, i.e without return type
     // if keepAttr, the calling convention and function attributes are not discarded, but returned
-    BufSlice parseFunctionTypeNoReturn( bool keepAttr = false ) return scope
+    BufSlice parseFunctionTypeNoReturn( bool keepAttr = false ) return scope nothrow
     {
         // try to demangle a function, in case we are pointing to some function local
         auto prevpos = pos;
@@ -1963,6 +1963,11 @@ pure @safe:
             dst.len = prevlen;
             brp = prevbrp;
         }
+        catch ( Exception )
+        {
+            assert(false);
+        }
+
         return dst.bslice_empty;
     }
 
