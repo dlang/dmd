@@ -1964,6 +1964,16 @@ pure @safe:
         SymbolName
         SymbolName QualifiedName
     */
+    BufSlice parseQualifiedName(out bool err_status) return scope nothrow
+    {
+        try
+            return parseQualifiedName();
+        catch(Exception)
+            err_status = true;
+
+        return BufSlice.init;
+    }
+
     BufSlice parseQualifiedName() return scope
     {
         debug(trace) printf( "parseQualifiedName+\n" );
