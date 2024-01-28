@@ -2069,29 +2069,41 @@ pure @safe:
         SymbolName
         SymbolName QualifiedName
     */
-    void parseQualifiedName(out bool err_status) return scope nothrow
+    void parseQualifiedName() return scope
     {
-        try
-            parseQualifiedName();
-        catch(Exception)
-            err_status = true;
+        bool err_status;
+        parseQualifiedName(err_status);
+
+        if(err_status)
+            error();
     }
 
-    void parseQualifiedName() return scope
+    void parseQualifiedName(out bool err_status) return scope nothrow
     {
         debug(trace) printf( "parseQualifiedName+\n" );
         debug(trace) scope(success) printf( "parseQualifiedName-\n" );
 
         size_t  n   = 0;
+        bool is_sym_name_front;
 
         do
         {
             if ( n++ )
                 put( '.' );
-            parseSymbolName();
+
+            parseSymbolName(err_status);
+            if(err_status)
+            {
+                err_status = true;
+                return;
+            }
+
             parseFunctionTypeNoReturn();
 
-        } while ( isSymbolNameFront() );
+            is_sym_name_front = isSymbolNameFront(err_status);
+            if(err_status) return;
+
+        } while ( is_sym_name_front );
     }
 
 
