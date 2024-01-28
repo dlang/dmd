@@ -1468,7 +1468,7 @@ Lmatch:
         sc2.minst = sc.minst;
         sc2.stc |= fd.storage_class & STC.deprecated_;
 
-        fd = td.doHeaderInstantiation(ti, sc2, fd, tthis, argumentList.arguments);
+        fd = doHeaderInstantiation(td, ti, sc2, fd, tthis, argumentList.arguments);
         sc2 = sc2.pop();
         sc2 = sc2.pop();
 
@@ -1494,4 +1494,93 @@ Lmatch:
     paramscope.pop();
     //printf("\tmatch %d\n", match);
     return MATCHpair(matchTiargs, match);
+}
+
+/*************************************************
+ * Limited function template instantiation for using fd.leastAsSpecialized()
+ */
+private
+FuncDeclaration doHeaderInstantiation(TemplateDeclaration td, TemplateInstance ti, Scope* sc2, FuncDeclaration fd, Type tthis, Expressions* fargs)
+{
+    assert(fd);
+    version (none)
+    {
+        printf("doHeaderInstantiation this = %s\n", toChars());
+    }
+
+    // function body and contracts are not need
+    if (fd.isCtorDeclaration())
+        fd = new CtorDeclaration(fd.loc, fd.endloc, fd.storage_class, fd.type.syntaxCopy());
+    else
+        fd = new FuncDeclaration(fd.loc, fd.endloc, fd.ident, fd.storage_class, fd.type.syntaxCopy());
+    fd.parent = ti;
+
+    assert(fd.type.ty == Tfunction);
+    auto tf = fd.type.isTypeFunction();
+    tf.fargs = fargs;
+
+    if (tthis)
+    {
+        // Match 'tthis' to any TemplateThisParameter's
+        bool hasttp = false;
+        foreach (tp; *td.parameters)
+        {
+            TemplateThisParameter ttp = tp.isTemplateThisParameter();
+            if (ttp)
+                hasttp = true;
+        }
+        if (hasttp)
+        {
+            tf = tf.addSTC(ModToStc(tthis.mod)).isTypeFunction();
+            assert(!tf.deco);
+        }
+    }
+
+    Scope* scx = sc2.push();
+
+    // Shouldn't run semantic on default arguments and return type.
+    foreach (ref params; *tf.parameterList.parameters)
+        params.defaultArg = null;
+    tf.incomplete = true;
+
+    if (fd.isCtorDeclaration())
+    {
+        // For constructors, emitting return type is necessary for
+        // isReturnIsolated() in functionResolve.
+        tf.isctor = true;
+
+        Dsymbol parent = td.toParentDecl();
+        Type tret;
+        AggregateDeclaration ad = parent.isAggregateDeclaration();
+        if (!ad || parent.isUnionDeclaration())
+        {
+            tret = Type.tvoid;
+        }
+        else
+        {
+            tret = ad.handleType();
+            assert(tret);
+            tret = tret.addStorageClass(fd.storage_class | scx.stc);
+            tret = tret.addMod(tf.mod);
+        }
+        tf.next = tret;
+        if (ad && ad.isStructDeclaration())
+            tf.isref = 1;
+        //printf("tf = %s\n", tf.toChars());
+    }
+    else
+        tf.next = null;
+    fd.type = tf;
+    fd.type = fd.type.addSTC(scx.stc);
+    fd.type = fd.type.typeSemantic(fd.loc, scx);
+    scx = scx.pop();
+
+    if (fd.type.ty != Tfunction)
+        return null;
+
+    fd.originalType = fd.type; // for mangling
+    //printf("\t[%s] fd.type = %s, mod = %x, ", loc.toChars(), fd.type.toChars(), fd.type.mod);
+    //printf("fd.needThis() = %d\n", fd.needThis());
+
+    return fd;
 }
