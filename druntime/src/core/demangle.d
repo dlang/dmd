@@ -1944,12 +1944,12 @@ pure @safe:
         auto sav = pos;
         auto saveBrp = brp;
 
-        //~ void call_if_failure() pure @safe nothrow;
-        //~ {
-            //~ pos = sav;
-            //~ brp = saveBrp;
-            //~ err_status = true; //FIXME: remove
-        //~ }
+        void call_if_failure()
+        {
+            pos = sav;
+            brp = saveBrp;
+            err_status = true;
+        }
 
         try {
 
@@ -1965,15 +1965,16 @@ pure @safe:
             error( "Template name length mismatch" );
         put( ')' );
 
+        return;
+
         }
         catch (ParseException)
         {
-            pos = sav;
-            brp = saveBrp;
-            err_status = true; //FIXME: remove
         }
         catch (Exception)
             assert(false);
+
+        call_if_failure();
     }
 
 
