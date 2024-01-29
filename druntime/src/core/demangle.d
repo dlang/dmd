@@ -1967,10 +1967,12 @@ pure @safe:
             mixin(check4err!());
         }
 
+        auto beg = pos;
+        err_status = !_match( "__T" );
+        mixin(check4err!());
+
         try {
 
-        auto beg = pos;
-        match( "__T" );
         parseLName();
         put( "!(" );
         parseTemplateArgs(err_status);
