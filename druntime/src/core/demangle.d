@@ -2130,7 +2130,7 @@ pure @safe:
 
             do
             {
-                if ( attr.isNull )
+                if ( attr.length )
                     dst.remove(attr); // dump attributes of parent symbols
                 if (beg != dst.length)
                     put( '.' );
@@ -3290,7 +3290,7 @@ private struct BufSlice
         this.dst = dst;
         this.from = from;
 
-        if(lastArgIsLen)
+        if (lastArgIsLen)
             this.to = from + to;
         else
             this.to = to;
@@ -3301,7 +3301,7 @@ private struct BufSlice
 
     invariant()
     {
-        if(dst is null)
+        if (dst is null)
         {
             assert(from == 0);
             assert(to == 0);
@@ -3310,7 +3310,6 @@ private struct BufSlice
         assert(from <= to);
     }
 
-    bool isNull() const scope { return to != from; }
     auto getSlice() inout nothrow scope { return dst[from .. to]; }
     size_t length() const scope { return to - from; }
 }
