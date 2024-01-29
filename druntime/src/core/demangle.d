@@ -1779,6 +1779,16 @@ pure @safe:
         S Number_opt QualifiedName
         X ExternallyMangledName
     */
+    void parseTemplateArgs(out bool err_status) scope nothrow
+    {
+        try
+            parseTemplateArgs();
+        catch(ParseException)
+            err_status = true;
+        catch(Exception)
+            assert(false);
+    }
+
     void parseTemplateArgs() scope
     {
         debug(trace) printf( "parseTemplateArgs+\n" );
@@ -1943,7 +1953,9 @@ pure @safe:
         match( "__T" );
         parseLName();
         put( "!(" );
-        parseTemplateArgs();
+        bool err_status;
+        parseTemplateArgs(err_status);
+        if (err_status) error();
         match( 'Z' );
         if ( hasNumber && pos - beg != n )
             error( "Template name length mismatch" );
