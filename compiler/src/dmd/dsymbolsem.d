@@ -2507,6 +2507,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         funcdecl._linkage = sc.linkage;
         if (sc.flags & SCOPE.Cfile && funcdecl.isFuncLiteralDeclaration())
             funcdecl._linkage = LINK.d; // so they are uniquely mangled
+        else
+            funcdecl._linkage = (funcdecl.isCrtCtor || funcdecl.isCrtDtor) ? LINK.c : sc.linkage;
 
         if (auto fld = funcdecl.isFuncLiteralDeclaration())
         {
@@ -2645,6 +2647,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 else if (tf.trust == TRUST.trusted)
                     sc.stc |= STC.trusted;
             }
+
+            if (funcdecl.isCrtCtor)
+                tf.trust = TRUST.system;
 
             if (funcdecl.isCtorDeclaration())
             {

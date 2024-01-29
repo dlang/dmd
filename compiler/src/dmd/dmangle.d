@@ -568,6 +568,7 @@ public:
 
     void mangleFunc(FuncDeclaration fd, bool inParent)
     {
+        //printf("mangleFunc(%s, %d)\n", fd.toChars(), inParent);
         //printf("deco = '%s'\n", fd.type.deco ? fd.type.deco : "null");
         //printf("fd.type = %s\n", fd.type.toChars());
         if (fd.needThis() || fd.isNested())
@@ -1328,6 +1329,7 @@ void realToMangleBuffer(ref OutBuffer buf, real_t value)
 private
 extern (D) const(char)[] externallyMangledIdentifier(Declaration d)
 {
+    //printf("externallyMangledIdentifier(%s)\n", d.toChars());
     assert(!d.mangleOverride, "mangle overrides should have been handled earlier");
 
     const linkage = d.resolvedLinkage();
@@ -1345,6 +1347,10 @@ extern (D) const(char)[] externallyMangledIdentifier(Declaration d)
             case LINK.d:
                 break;
             case LINK.c:
+                auto fd = d.isFuncDeclaration();
+                if (fd && (fd.isCrtCtor || fd.isCrtDtor))
+                    return null;        // pragma(crt_constructor) has D mangling with C ABI
+                goto case;
             case LINK.windows:
             case LINK.objc:
                 return d.ident.toString();
