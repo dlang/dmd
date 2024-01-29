@@ -824,18 +824,12 @@ pure @safe:
 
         static if (__traits(hasMember, Hooks, "parseType"))
         {
-            try
-            {
-                if (auto n = hooks.parseType(this, null))
-                    return BufSlice(n, 0, n.length);
-            }
-            catch(ParseException)
-            {
-                err_status = true;
+            auto n = hooks.parseType(err_status, this, null);
+
+            if (!err_status)
+                return BufSlice(n, 0, n.length);
+            else
                 return BufSlice.init;
-            }
-            catch(Exception)
-                assert(false);
         }
 
         debug(trace) printf( "parseType+\n" );
@@ -2439,7 +2433,7 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
             return true;
         }
 
-        char[] parseType( ref Remangle d, char[] name ) return scope
+        char[] parseType( out bool err_status, ref Remangle d, char[] name ) return scope nothrow
         {
             if (d.front != 'Q')
                 return null;
@@ -2448,9 +2442,13 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
 
             auto refPos = d.pos;
             d.popFront();
-            auto n = d.decodeBackref();
+            auto n = d.decodeBackref(false);
             if (n == 0 || n > refPos)
-                error("invalid back reference");
+            {
+                // invalid back reference
+                err_status = true;
+                return null;
+            }
 
             size_t npos = positionInResult(refPos - n);
             size_t reslen = result.length;
