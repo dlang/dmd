@@ -1971,12 +1971,20 @@ pure @safe:
         err_status = !_match( "__T" );
         mixin(check4err!());
 
+        {
+            string err_msg;
+            parseLName(err_msg);
+            err_status = err_msg !is null;
+            mixin(check4err!());
+        }
+
+        put( "!(" );
+
+        parseTemplateArgs(err_status);
+        mixin(check4err!());
+
         try {
 
-        parseLName();
-        put( "!(" );
-        parseTemplateArgs(err_status);
-        if (err_status) error();
         match( 'Z' );
         if ( hasNumber && pos - beg != n )
             error( "Template name length mismatch" );
