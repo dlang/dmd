@@ -118,10 +118,10 @@ pure @safe:
         error();
     }
 
-    char[] shift(scope const(char)[] val) return scope
+    BufSlice shift(scope const BufSlice val) return scope
     {
         if (mute)
-            return null;
+            return dst.bslice_empty;
         return dst.shift(val);
     }
 
@@ -136,6 +136,11 @@ pure @safe:
     {
         char[1] val = c;
         put(val[]);
+    }
+
+    void put(scope BufSlice val) return scope
+    {
+        put(val.getSlice);
     }
 
     void put(scope const(char)[] val) return scope
@@ -671,7 +676,7 @@ pure @safe:
     TypeTuple:
         B Number Arguments
     */
-    char[] parseType() return scope
+    BufSlice parseType() return scope
     {
         static immutable string[23] primitives = [
             "char", // a
@@ -701,14 +706,14 @@ pure @safe:
 
         static if (__traits(hasMember, Hooks, "parseType"))
             if (auto n = hooks.parseType(this, null))
-                return n;
+                return BufSlice(n, 0, n.length);
 
         debug(trace) printf( "parseType+\n" );
         debug(trace) scope(success) printf( "parseType-\n" );
         auto beg = dst.length;
         auto t = front;
 
-        char[] parseBackrefType(scope char[] delegate() pure @safe parseDg) pure @safe
+        BufSlice parseBackrefType(scope BufSlice delegate() pure @safe parseDg) pure @safe
         {
             if (pos == brp)
                 error("recursive back reference");
@@ -718,7 +723,7 @@ pure @safe:
             if (n == 0 || n > pos)
                 error("invalid back reference");
             if ( mute )
-                return null;
+                return dst.bslice_empty;
             auto savePos = pos;
             auto saveBrp = brp;
             scope(success) { pos = savePos; brp = saveBrp; }
@@ -1215,7 +1220,7 @@ pure @safe:
         TypeFunction:
             CallConvention FuncAttrs Arguments ArgClose Type
     */
-    char[] parseTypeFunction(IsDelegate isdg = IsDelegate.no) return scope
+    BufSlice parseTypeFunction(IsDelegate isdg = IsDelegate.no) return scope
     {
         debug(trace) printf( "parseTypeFunction+\n" );
         debug(trace) scope(success) printf( "parseTypeFunction-\n" );
@@ -1297,7 +1302,13 @@ pure @safe:
         E
         F
     */
-    void parseValue(scope  char[] name = null, char type = '\0' ) scope
+
+    void parseValue() scope
+    {
+        parseValue(dst.bslice_empty);
+    }
+
+    void parseValue(scope BufSlice name, char type = '\0' ) scope
     {
         debug(trace) printf( "parseValue+\n" );
         debug(trace) scope(success) printf( "parseValue-\n" );
@@ -1423,8 +1434,12 @@ pure @safe:
         }
     }
 
+    void parseIntegerValue() scope
+    {
+        parseIntegerValue(dst.bslice_empty);
+    }
 
-    void parseIntegerValue( scope char[] name = null, char type = '\0' ) scope
+    void parseIntegerValue( scope BufSlice name, char type = '\0' ) scope
     {
         debug(trace) printf( "parseIntegerValue+\n" );
         debug(trace) scope(success) printf( "parseIntegerValue-\n" );
@@ -1562,7 +1577,7 @@ pure @safe:
                 char t = front; // peek at type for parseValue
                 if ( t == 'Q' )
                     t = peekBackref();
-                char[] name; silent( delegate void() { name = parseType(); } );
+                BufSlice name = dst.bslice_empty; silent( delegate void() { name = parseType(); } );
                 parseValue( name, t );
                 continue;
             case 'S':
@@ -1755,7 +1770,7 @@ pure @safe:
 
     // parse optional function arguments as part of a symbol name, i.e without return type
     // if keepAttr, the calling convention and function attributes are not discarded, but returned
-    char[] parseFunctionTypeNoReturn( bool keepAttr = false ) return scope
+    BufSlice parseFunctionTypeNoReturn( bool keepAttr = false ) return scope
     {
         // try to demangle a function, in case we are pointing to some function local
         auto prevpos = pos;
@@ -1777,7 +1792,7 @@ pure @safe:
             }
             if ( isCallConvention( front ) )
             {
-                char[] attr;
+                BufSlice attr = dst.bslice_empty;
                 // we don't want calling convention and attributes in the qualified name
                 parseCallConvention();
                 auto attributes = parseFuncAttr();
@@ -1803,7 +1818,7 @@ pure @safe:
             dst.len = prevlen;
             brp = prevbrp;
         }
-        return null;
+        return dst.bslice_empty;
     }
 
     /*
@@ -1811,7 +1826,7 @@ pure @safe:
         SymbolName
         SymbolName QualifiedName
     */
-    char[] parseQualifiedName() return scope
+    BufSlice parseQualifiedName() return scope
     {
         debug(trace) printf( "parseQualifiedName+\n" );
         debug(trace) scope(success) printf( "parseQualifiedName-\n" );
@@ -1839,7 +1854,7 @@ pure @safe:
     {
         debug(trace) printf( "parseMangledName+\n" );
         debug(trace) scope(success) printf( "parseMangledName-\n" );
-        char[] name = null;
+        BufSlice name = dst.bslice_empty;
 
         auto end = pos + n;
 
@@ -1849,10 +1864,10 @@ pure @safe:
         {
             size_t  beg = dst.length;
             size_t  nameEnd = dst.length;
-            char[] attr;
+            BufSlice attr = dst.bslice_empty;
             do
             {
-                if ( attr )
+                if ( attr.length )
                     dst.remove(attr); // dump attributes of parent symbols
                 if (beg != dst.length)
                     put( '.' );
@@ -1918,18 +1933,7 @@ pure @safe:
             {
                 debug(info) printf( "demangle(%.*s)\n", cast(int) buf.length, buf.ptr );
                 FUNC();
-                return dst[0 .. $];
-            }
-            catch ( OverflowException e )
-            {
-                debug(trace) printf( "overflow... restarting\n" );
-                auto a = Buffer.minSize;
-                auto b = 2 * dst.dst.length;
-                auto newsz = a < b ? b : a;
-                debug(info) printf( "growing dst to %lu bytes\n", newsz );
-                dst.dst.length = newsz;
-                pos = dst.len = brp = 0;
-                continue;
+                return dst[0 .. $].getSlice;
             }
             catch ( ParseException e )
             {
@@ -2117,7 +2121,7 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
             return true;
         }
 
-        char[] parseType( ref Remangle d, char[] name = null ) return scope
+        char[] parseType( ref Remangle d, char[] name ) return scope
         {
             if (d.front != 'Q')
                 return null;
@@ -2850,15 +2854,6 @@ private class ParseException : Exception
 }
 
 /// Ditto
-private class OverflowException : Exception
-{
-    public this(string msg) @safe pure nothrow
-    {
-        super(msg);
-    }
-}
-
-/// Ditto
 private noreturn error(string msg = "Invalid symbol") @trusted pure
 {
     version (DigitalMars) pragma(inline, false); // tame dmd inliner
@@ -2867,16 +2862,6 @@ private noreturn error(string msg = "Invalid symbol") @trusted pure
     debug(info) printf( "error: %.*s\n", cast(int) msg.length, msg.ptr );
     throw __ctfe ? new ParseException(msg)
         : cast(ParseException) __traits(initSymbol, ParseException).ptr;
-}
-
-/// Ditto
-private noreturn overflow(string msg = "Buffer overflow") @trusted pure
-{
-    version (DigitalMars) pragma(inline, false); // tame dmd inliner
-
-    //throw new OverflowException( msg );
-    debug(info) printf( "overflow: %.*s\n", cast(int) msg.length, msg.ptr );
-    throw cast(OverflowException) __traits(initSymbol, OverflowException).ptr;
 }
 
 private struct Buffer
@@ -2895,23 +2880,17 @@ private struct Buffer
         return this.len;
     }
 
-    public inout(char)[] opSlice (size_t from, size_t to)
-        inout return scope @safe pure nothrow @nogc
+    public BufSlice opSlice (size_t from, size_t to)
+        return scope @safe pure nothrow @nogc
     {
-        assert(from <= to);
-        assert(to <= len);
-        return this.dst[from .. to];
+        return bslice(from, to);
     }
 
-    static bool contains(scope const(char)[] a, scope const(char)[] b) @trusted
+    static bool contains(scope const(char)[] a, scope const BufSlice b) @safe
     {
-        if (a.length && b.length)
-        {
-            auto bend = b.ptr + b.length;
-            auto aend = a.ptr + a.length;
-            return a.ptr <= b.ptr && bend <= aend;
-        }
-        return false;
+        return
+            b.from < a.length &&
+            b.to <= a.length;
     }
 
     char[] copyInput(scope const(char)[] buf)
@@ -2924,46 +2903,62 @@ private struct Buffer
         return r;
     }
 
+    private void checkAndStretchBuf(size_t len_to_add) scope
+    {
+        const required = len + len_to_add;
+
+        if (required > dst.length)
+            dst.length = dst.length + len_to_add;
+    }
+
     // move val to the end of the dst buffer
-    char[] shift(scope const(char)[] val) return scope
+    BufSlice shift(scope const BufSlice val) return scope
     {
         version (DigitalMars) pragma(inline, false); // tame dmd inliner
 
         if (val.length)
         {
-            assert( contains( dst[0 .. len], val ) );
-            debug(info) printf( "shifting (%.*s)\n", cast(int) val.length, val.ptr );
+            const ptrdiff_t s = val.from;
+            const size_t f = len;
 
-            if (len + val.length > dst.length)
-                overflow();
-            size_t v = &val[0] - &dst[0];
-            dst[len .. len + val.length] = val[];
-            for (size_t p = v; p < len; p++)
+            assert(contains( dst[0 .. len], val ),
+                "\ndst=\""~dst[0 .. len]~"\"\n"~
+                "val=\""~val.getSlice~"\"\n"
+            );
+
+            checkAndStretchBuf(val.length);
+
+            // store value temporary over len index
+            dst[len .. len + val.length] = val.getSlice();
+
+            // shift all chars including temporary saved above
+            // if buf was allocated above it will be leave for further usage
+            for (size_t p = s; p < f; p++)
                 dst[p] = dst[p + val.length];
 
-            return dst[len - val.length .. len];
+            return bslice(len - val.length, len);
         }
-        return null;
+
+        return bslice_empty;
     }
 
     // remove val from dst buffer
-    void remove(scope const(char)[] val) scope
+    void remove(scope BufSlice val) scope
     {
         version (DigitalMars) pragma(inline, false); // tame dmd inliner
 
         if ( val.length )
         {
             assert( contains( dst[0 .. len], val ) );
-            debug(info) printf( "removing (%.*s)\n", cast(int) val.length, val.ptr );
-            size_t v = &val[0] - &dst[0];
+
             assert( len >= val.length && len <= dst.length );
             len -= val.length;
-            for (size_t p = v; p < len; p++)
+            for (size_t p = val.from; p < len; p++)
                 dst[p] = dst[p + val.length];
         }
     }
 
-    char[] append(scope const(char)[] val) return scope
+    void append(scope const(char)[] val) scope
     {
         version (DigitalMars) pragma(inline, false); // tame dmd inliner
 
@@ -2971,25 +2966,78 @@ private struct Buffer
         {
             if ( !dst.length )
                 dst.length = minSize;
-            assert( !contains( dst[0 .. len], val ) );
+
             debug(info) printf( "appending (%.*s)\n", cast(int) val.length, val.ptr );
 
-            if ( dst.length - len >= val.length && &dst[len] == &val[0] )
-            {
-                // data is already in place
-                auto t = dst[len .. len + val.length];
-                len += val.length;
-                return t;
-            }
-            if ( dst.length - len >= val.length )
-            {
+            checkAndStretchBuf(val.length);
+
+            // data is already not in place?
+            if ( &dst[len] != &val[0] )
                 dst[len .. len + val.length] = val[];
-                auto t = dst[len .. len + val.length];
-                len += val.length;
-                return t;
-            }
-            overflow();
+
+            len += val.length;
         }
-        return null;
     }
+
+    @nogc:
+
+    // from index to end of current buf
+    private scope bslice(size_t from) nothrow
+    {
+        return bslice(from, len);
+    }
+
+    private scope bslice(size_t from, size_t to) nothrow
+    {
+        return BufSlice(dst, from, to);
+    }
+
+    private scope bslice_empty() nothrow
+    {
+        return BufSlice(null, 0, 0);
+    }
+}
+
+private struct BufSlice
+{
+    char[] dst;
+
+    @safe:
+    pure:
+    nothrow:
+
+    @disable this();
+
+    this(return scope char[] dst) scope nothrow @nogc
+    {
+        this(dst, 0, 0);
+    }
+
+    this(return scope char[] dst, size_t from, size_t to, bool lastArgIsLen = false) scope nothrow @nogc
+    {
+        this.dst = dst;
+        this.from = from;
+
+        if (lastArgIsLen)
+            this.to = from + to;
+        else
+            this.to = to;
+    }
+
+    size_t from;
+    size_t to;
+
+    invariant()
+    {
+        if (dst is null)
+        {
+            assert(from == 0);
+            assert(to == 0);
+        }
+
+        assert(from <= to);
+    }
+
+    auto getSlice() inout nothrow scope { return dst[from .. to]; }
+    size_t length() const scope { return to - from; }
 }
