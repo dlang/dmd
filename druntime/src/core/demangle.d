@@ -1951,9 +1951,24 @@ pure @safe:
             err_status = true;
         }
 
+        template check4err()
+        {
+            enum check4err =
+            "if (err_status) {"~
+            "   call_if_failure();"~
+            "   return;"~
+            "}";
+        }
+
+        size_t n = 0;
+        if (hasNumber)
+        {
+            n = decodeNumber(err_status);
+            mixin(check4err!());
+        }
+
         try {
 
-        auto n = hasNumber ? decodeNumber() : 0;
         auto beg = pos;
         match( "__T" );
         parseLName();
