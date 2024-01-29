@@ -1867,7 +1867,7 @@ pure @safe:
             BufSlice attr = dst.bslice_empty;
             do
             {
-                if ( attr.isNull )
+                if ( attr.length )
                     dst.remove(attr); // dump attributes of parent symbols
                 if (beg != dst.length)
                     put( '.' );
@@ -3038,7 +3038,6 @@ private struct BufSlice
         assert(from <= to);
     }
 
-    bool isNull() const scope { return to != from; }
     auto getSlice() inout nothrow scope { return dst[from .. to]; }
     size_t length() const scope { return to - from; }
 }
