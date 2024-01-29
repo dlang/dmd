@@ -1188,20 +1188,7 @@ pure @safe:
         }
     }
 
-    ushort parseFuncAttr(out bool err_status) return scope nothrow
-    {
-        try
-            return parseFuncAttr();
-        catch(ParseException)
-        {
-            err_status = true;
-            return 0;
-        }
-        catch(Exception)
-            assert(false);
-    }
-
-    ushort parseFuncAttr()
+    ushort parseFuncAttr(out bool err_status) nothrow
     {
         // FuncAttrs
         ushort result;
@@ -1278,7 +1265,8 @@ pure @safe:
                 result |= FuncAttributes.Live;
                 continue;
             default:
-                error();
+                err_status = true;
+                return 0;
             }
         }
         return result;
@@ -2079,7 +2067,8 @@ pure @safe:
                 bool err_status;
                 parseCallConvention(err_status);
                 if (err_status) error();
-                auto attributes = parseFuncAttr();
+                auto attributes = parseFuncAttr(err_status);
+                if (err_status) error();
                 if (keepAttr) {
                     while (auto str = funcAttrs.toStringConsume(attributes))
                     {
