@@ -852,7 +852,7 @@ pure @safe:
         auto beg = dst.length;
         auto t = front;
 
-        BufSlice parseBackrefType(out string err_status, scope BufSlice delegate() pure @safe parseDg) pure @safe nothrow
+        BufSlice parseBackrefType(out string err_status, scope BufSlice delegate(bool err_flag) pure @safe nothrow parseDg) pure @safe nothrow
         {
             if (pos == brp)
             {
@@ -876,18 +876,15 @@ pure @safe:
             scope(success) { pos = savePos; brp = saveBrp; }
             pos = refPos - n;
             brp = refPos;
-            try
+
+            bool err_flag;
+            auto ret = parseDg(err_flag);
+            if(err_flag)
             {
-                auto ret = parseDg();
-                return ret;
-            }
-            catch(ParseException e)
-            {
-                err_status = e.msg;
+                err_status = "parseDg error";
                 return BufSlice.init;
             }
-            catch(Exception)
-                assert(false);
+            return ret;
         }
 
         // call parseType() and return error if occured
@@ -900,7 +897,7 @@ pure @safe:
         {
         case 'Q': // Type back reference
             string err_msg;
-            auto r = parseBackrefType(err_msg, () => parseType());
+            auto r = parseBackrefType(err_msg, (e_flag) => parseType(e_flag));
             if(err_msg !is null) return BufSlice.init;
             return r;
         case 'O': // Shared (O Type)
@@ -992,7 +989,7 @@ pure @safe:
             if ( front == 'Q' )
             {
                 string err_msg;
-                auto r = parseBackrefType(err_msg, () => parseTypeFunction(IsDelegate.yes));
+                auto r = parseBackrefType(err_msg, (e_flag) => parseTypeFunction(e_flag, IsDelegate.yes));
                 if(err_msg !is null) return BufSlice.init;
                 return r;
             }
