@@ -3272,7 +3272,7 @@ private struct Buffer
 
 private struct BufSlice
 {
-    char[] dst;
+    char[] buf;
     size_t from;
     size_t to;
 
@@ -3282,14 +3282,14 @@ private struct BufSlice
 
     @disable this();
 
-    this(return scope char[] dst) scope nothrow @nogc
+    this(return scope char[] buf) scope nothrow @nogc
     {
-        this(dst, 0, 0);
+        this(buf, 0, 0);
     }
 
-    this(return scope char[] dst, size_t from, size_t to, bool lastArgIsLen = false) scope nothrow @nogc
+    this(return scope char[] buf, size_t from, size_t to, bool lastArgIsLen = false) scope nothrow @nogc
     {
-        this.dst = dst;
+        this.buf = buf;
         this.from = from;
 
         if (lastArgIsLen)
@@ -3300,7 +3300,7 @@ private struct BufSlice
 
     invariant()
     {
-        if (dst is null)
+        if (buf is null)
         {
             assert(from == 0);
             assert(to == 0);
@@ -3309,6 +3309,6 @@ private struct BufSlice
         assert(from <= to);
     }
 
-    auto getSlice() inout nothrow scope { return dst[from .. to]; }
+    auto getSlice() inout nothrow scope { return buf[from .. to]; }
     size_t length() const scope { return to - from; }
 }
