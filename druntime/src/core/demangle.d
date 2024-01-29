@@ -2020,17 +2020,7 @@ pure @safe:
         LName
         TemplateInstanceName
     */
-    bool parseSymbolName(bool unused_FIXME_remove) scope nothrow
-    {
-        try
-            parseSymbolName();
-        catch(Exception e)
-            return false;
-
-        return true;
-    }
-
-    void parseSymbolName() scope
+    void parseSymbolName(out bool err_status) scope nothrow
     {
         debug(trace) printf( "parseSymbolName+\n" );
         debug(trace) scope(success) printf( "parseSymbolName-\n" );
@@ -2041,9 +2031,7 @@ pure @safe:
         {
         case '_':
             // no length encoding for templates for new mangling
-            bool err_status;
             parseTemplateInstanceName(err_status, false);
-            if (err_status) error();
             return;
 
         case '0': .. case '9':
@@ -2051,15 +2039,11 @@ pure @safe:
             {
                 auto t = dst.length;
 
-                try
-                {
-                    debug(trace) printf( "may be template instance name\n" );
-                    bool err_status;
-                    parseTemplateInstanceName(err_status, true);
-                    if (err_status) error();
+                debug(trace) printf( "may be template instance name\n" );
+                parseTemplateInstanceName(err_status, true);
+                if (!err_status)
                     return;
-                }
-                catch ( ParseException e )
+                else
                 {
                     debug(trace) printf( "not a template instance name\n" );
                     dst.len = t;
@@ -2067,10 +2051,12 @@ pure @safe:
             }
             goto case;
         case 'Q':
-            parseLName();
+            string err_msg;
+            parseLName(err_msg);
+            err_status = err_msg !is null;
             return;
         default:
-            error();
+            err_status = true;
         }
     }
 
@@ -2200,11 +2186,8 @@ pure @safe:
                 if (beg != dst.length)
                     put( '.' );
 
-                if(!parseSymbolName(err_status))
-                {
-                    err_status = true;
-                    return;
-                }
+                parseSymbolName(err_status);
+                if (err_status) return;
 
                 nameEnd = dst.length;
                 attr = parseFunctionTypeNoReturn( displayType );
