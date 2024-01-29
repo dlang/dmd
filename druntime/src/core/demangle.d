@@ -547,18 +547,9 @@ pure @safe:
 
         static if (__traits(hasMember, Hooks, "parseLName"))
         {
-            //TODO: hooks.parseLName can be nothrow?
-
-            try
-            {
-                if (hooks.parseLName(this))
-                    return;
-            }
-            catch(Exception e)
-            {
-                err_status = e.msg;
-                return;
-            }
+            auto r = hooks.parseLName(err_status, this);
+            if (err_status !is null) return;
+            if (r) return;
         }
 
         if ( front == 'Q' )
@@ -2364,7 +2355,7 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
             }
         }
 
-        bool parseLName(scope ref Remangle d) scope @trusted
+        bool parseLName(out string err_msg, scope ref Remangle d) scope @trusted nothrow
         {
             flushPosition(d);
 
@@ -2377,21 +2368,36 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
                     scope(exit) result.length = reslen; // remove all intermediate additions
                     // only support identifier back references
                     d.popFront();
-                    size_t n = d.decodeBackref();
+                    size_t n = d.decodeBackref(false);
                     if (!n || n > refpos)
-                        error("invalid back reference");
-
+                    {
+                        err_msg = "invalid back reference";
+                        return false;
+                    }
                     auto savepos = d.pos;
                     scope(exit) d.pos = savepos;
                     size_t srcpos = refpos - n;
 
-                    auto idlen = d.decodeNumber();
+                    bool err_status;
+                    auto idlen = d.decodeNumber(err_status);
+                    if (err_status)
+                    {
+                        err_msg = "invalid number";
+                        return false;
+                    }
+
                     if (d.pos + idlen > d.buf.length)
-                        error("invalid back reference");
+                    {
+                        err_msg = "invalid back reference";
+                        return false;
+                    }
                     auto id = d.buf[d.pos .. d.pos + idlen];
                     auto pid = id in idpos;
                     if (!pid)
-                        error("invalid back reference");
+                    {
+                        err_msg = "invalid back reference";
+                        return false;
+                    }
                     npos = positionInResult(*pid);
                 }
                 encodeBackref(reslen - npos);
@@ -2400,9 +2406,19 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
             }
             else
             {
-                auto n = d.decodeNumber();
+                bool err_status;
+                auto n = d.decodeNumber(err_status);
+                if (err_status)
+                {
+                    err_msg = "invalid number";
+                    return false;
+                }
+
                 if (!n || n > d.buf.length || n > d.buf.length - d.pos)
-                    error("LName too shot or too long");
+                {
+                    err_msg = "LName too shot or too long";
+                    return false;
+                }
                 auto id = d.buf[d.pos .. d.pos + n];
                 d.pos += n;
                 if (auto pid = id in idpos)
