@@ -1951,14 +1951,18 @@ pure @safe:
     }
 
 
-    bool mayBeTemplateInstanceName() scope
+    bool mayBeTemplateInstanceName() scope nothrow
     {
         debug(trace) printf( "mayBeTemplateInstanceName+\n" );
         debug(trace) scope(success) printf( "mayBeTemplateInstanceName-\n" );
 
         auto p = pos;
         scope(exit) pos = p;
-        auto n = decodeNumber();
+
+        bool err_status;
+        auto n = decodeNumber(err_status);
+        if (err_status) return false;
+
         return n >= 5 &&
                pos < buf.length && '_' == buf[pos++] &&
                pos < buf.length && '_' == buf[pos++] &&
