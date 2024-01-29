@@ -2232,28 +2232,23 @@ pure @safe:
         parseMangledName( AddType.yes == addType );
     }
 
-    char[] doDemangle(alias FUNC)() return scope
+    char[] doDemangle(alias FUNC)() return scope nothrow
     {
         while ( true )
         {
-            try
+            debug(info) printf( "demangle(%.*s)\n", cast(int) buf.length, buf.ptr );
+
+            bool err_status;
+            FUNC(err_status);
+            if (!err_status)
             {
-                debug(info) printf( "demangle(%.*s)\n", cast(int) buf.length, buf.ptr );
-                FUNC();
                 return dst[0 .. $].getSlice;
             }
-            catch ( ParseException e )
+            else
             {
-                debug(info)
-                {
-                    auto msg = e.toString();
-                    printf( "error: %.*s\n", cast(int) msg.length, msg.ptr );
-                }
+                debug(info) printf( "error" );
+
                 return dst.copyInput(buf);
-            }
-            catch ( Exception e )
-            {
-                assert( false ); // no other exceptions thrown
             }
         }
     }
