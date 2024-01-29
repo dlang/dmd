@@ -1129,6 +1129,16 @@ pure @safe:
         Y     // variadic T t...) style
         Z     // not variadic
     */
+    void parseCallConvention(out bool err_status) nothrow
+    {
+        try
+            parseCallConvention();
+        catch(ParseException)
+            err_status = true;
+        catch(Exception)
+            assert(false);
+    }
+
     void parseCallConvention()
     {
         // CallConvention
@@ -1186,6 +1196,19 @@ pure @safe:
             return res;
         default: return TypeCtor.None;
         }
+    }
+
+    ushort parseFuncAttr(out bool err_status) return scope nothrow
+    {
+        try
+            return parseFuncAttr();
+        catch(ParseException)
+        {
+            err_status = true;
+            return 0;
+        }
+        catch(Exception)
+            assert(false);
     }
 
     ushort parseFuncAttr()
@@ -1416,30 +1439,21 @@ pure @safe:
     */
     BufSlice parseTypeFunction(out bool err_status, IsDelegate isdg = IsDelegate.no) return scope nothrow
     {
-        try
-            return parseTypeFunction(isdg);
-        catch(ParseException)
-        {
-            err_status = true;
-            return BufSlice.init;
-        }
-        catch(Exception)
-            assert(false);
-    }
-
-    BufSlice parseTypeFunction(IsDelegate isdg = IsDelegate.no) return scope
-    {
         debug(trace) printf( "parseTypeFunction+\n" );
         debug(trace) scope(success) printf( "parseTypeFunction-\n" );
         auto beg = dst.length;
 
-        parseCallConvention();
-        auto attributes = parseFuncAttr();
+        parseCallConvention(err_status);
+        if (err_status) return BufSlice.init;
+
+        auto attributes = parseFuncAttr(err_status);
+        if (err_status) return BufSlice.init;
 
         auto argbeg = dst.length;
         put(IsDelegate.yes == isdg ? "delegate" : "function");
         put( '(' );
-        parseFuncArguments();
+        parseFuncArguments(err_status);
+        if (err_status) return BufSlice.init;
         put( ')' );
         if (attributes)
         {
@@ -1456,7 +1470,8 @@ pure @safe:
         // e.g. `delegate(int) @safedouble ' => 'double delegate(int) @safe'
         {
             auto retbeg = dst.length;
-            parseType();
+            parseType(err_status);
+            if (err_status) return BufSlice.init;
             put(' ');
             shift(dst[argbeg .. retbeg]);
         }
