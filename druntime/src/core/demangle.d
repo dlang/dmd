@@ -3273,6 +3273,8 @@ private struct Buffer
 private struct BufSlice
 {
     char[] dst;
+    size_t from;
+    size_t to;
 
     @safe:
     pure:
@@ -3295,9 +3297,6 @@ private struct BufSlice
         else
             this.to = to;
     }
-
-    size_t from;
-    size_t to;
 
     invariant()
     {
