@@ -1936,30 +1936,44 @@ pure @safe:
     TemplateInstanceName:
         Number __T LName TemplateArgs Z
     */
-    void parseTemplateInstanceName(bool hasNumber) scope
+    void parseTemplateInstanceName(out bool err_status, bool hasNumber) scope nothrow
     {
         debug(trace) printf( "parseTemplateInstanceName+\n" );
         debug(trace) scope(success) printf( "parseTemplateInstanceName-\n" );
 
         auto sav = pos;
         auto saveBrp = brp;
-        scope(failure)
-        {
-            pos = sav;
-            brp = saveBrp;
-        }
+
+        //~ void call_if_failure() pure @safe nothrow;
+        //~ {
+            //~ pos = sav;
+            //~ brp = saveBrp;
+            //~ err_status = true; //FIXME: remove
+        //~ }
+
+        try {
+
         auto n = hasNumber ? decodeNumber() : 0;
         auto beg = pos;
         match( "__T" );
         parseLName();
         put( "!(" );
-        bool err_status;
         parseTemplateArgs(err_status);
         if (err_status) error();
         match( 'Z' );
         if ( hasNumber && pos - beg != n )
             error( "Template name length mismatch" );
         put( ')' );
+
+        }
+        catch (ParseException)
+        {
+            pos = sav;
+            brp = saveBrp;
+            err_status = true; //FIXME: remove
+        }
+        catch (Exception)
+            assert(false);
     }
 
 
@@ -2008,7 +2022,9 @@ pure @safe:
         {
         case '_':
             // no length encoding for templates for new mangling
-            parseTemplateInstanceName(false);
+            bool err_status;
+            parseTemplateInstanceName(err_status, false);
+            if (err_status) error();
             return;
 
         case '0': .. case '9':
@@ -2019,7 +2035,9 @@ pure @safe:
                 try
                 {
                     debug(trace) printf( "may be template instance name\n" );
-                    parseTemplateInstanceName(true);
+                    bool err_status;
+                    parseTemplateInstanceName(err_status, true);
+                    if (err_status) error();
                     return;
                 }
                 catch ( ParseException e )
