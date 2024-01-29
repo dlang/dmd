@@ -3898,15 +3898,27 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         }
 
-        if (global.params.useUnitTests)
-        {
-            if (!utd.type)
-                utd.type = new TypeFunction(ParameterList(), Type.tvoid, LINK.d, utd.storage_class);
-            Scope* sc2 = sc.push();
-            sc2.linkage = LINK.d;
-            funcDeclarationSemantic(utd);
-            sc2.pop();
+        if (!global.params.useUnitTests)
+            return;
+
+        final switch(global.params.unittestFilter) with (UnittestFilter) {
+            case all:
+                break;
+            case explicitOnly:
+                auto mod = utd.getModule();
+                if (mod.isSpecifiedOnCommandLine())
+                    break;
+                utd.skipCodegen = true;
+                return;
         }
+
+        auto mod = utd.getModule();
+        if (!utd.type)
+            utd.type = new TypeFunction(ParameterList(), Type.tvoid, LINK.d, utd.storage_class);
+        Scope* sc2 = sc.push();
+        sc2.linkage = LINK.d;
+        funcDeclarationSemantic(utd);
+        sc2.pop();
 
         version (none)
         {

@@ -144,6 +144,7 @@ extern (C++) struct Compiler
             {
                 if (global.params.v.verbose)
                     message("compileimport (%s)", m.srcfile.toChars);
+                m.specifiedOnCmdLine = false;
                 compiledImports.push(m);
                 return true; // this import will be compiled
             }
