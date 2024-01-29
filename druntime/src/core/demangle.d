@@ -1948,7 +1948,6 @@ pure @safe:
         {
             pos = sav;
             brp = saveBrp;
-            err_status = true;
         }
 
         template check4err()
@@ -1983,23 +1982,17 @@ pure @safe:
         parseTemplateArgs(err_status);
         mixin(check4err!());
 
-        try {
+        err_status = !_match( 'Z' );
+        mixin(check4err!());
 
-        match( 'Z' );
         if ( hasNumber && pos - beg != n )
-            error( "Template name length mismatch" );
-        put( ')' );
-
-        return;
-
-        }
-        catch (ParseException)
         {
+            // Template name length mismatch
+            err_status = true;
+            call_if_failure();
         }
-        catch (Exception)
-            assert(false);
 
-        call_if_failure();
+        put( ')' );
     }
 
 
