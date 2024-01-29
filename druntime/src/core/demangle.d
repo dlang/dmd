@@ -3018,7 +3018,7 @@ private struct BufSlice
         this.dst = dst;
         this.from = from;
 
-        if(lastArgIsLen)
+        if (lastArgIsLen)
             this.to = from + to;
         else
             this.to = to;
@@ -3029,7 +3029,7 @@ private struct BufSlice
 
     invariant()
     {
-        if(dst is null)
+        if (dst is null)
         {
             assert(from == 0);
             assert(to == 0);
