@@ -600,6 +600,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (ad)
             dsym.storage_class |= ad.storage_class & STC.TYPECTOR;
 
+        if (dsym.isImportedSymbol())
+        {
+            /* A module with imported symbols is an imported module
+             */
+            sc._module.isImportedModule = true;
+        }
+
         /* If auto type inference, do the inference
          */
         int inferred = 0;
@@ -2799,6 +2806,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (funcdecl.isAbstract() && funcdecl.isFinalFunc())
             .error(funcdecl.loc, "%s `%s` cannot be both `final` and `abstract`", funcdecl.kind, funcdecl.toPrettyChars);
+
+        if (funcdecl.isImportedSymbol())
+        {
+            /* A module with imported symbols is an imported module
+             */
+            sc._module.isImportedModule = true;
+        }
 
         if (funcdecl.printf || funcdecl.scanf)
         {

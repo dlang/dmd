@@ -75,6 +75,7 @@ public:
     FileType filetype;  // source file type
     d_bool hasAlwaysInlines; // contains references to functions that must be inlined
     d_bool isPackageFile; // if it is a package.d
+    d_bool isImportedModule; // module contains exported declarations, meaning it is an interface to a DLL
     Package *pkg;       // if isPackageFile is true, the Package that contains this package.d
     Strings contentImportedFiles;  // array of files whose content was imported
     int needmoduleinfo;

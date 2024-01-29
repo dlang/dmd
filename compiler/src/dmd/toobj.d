@@ -106,7 +106,7 @@ void genModuleInfo(Module m)
     for (size_t i = 0; i < m.aimports.length; i++)
     {
         Module mod = m.aimports[i];
-        if (!mod.needmoduleinfo)
+        if (!mod.needmoduleinfo || mod.isImportedModule)
             aimports_dim--;
     }
 
@@ -175,7 +175,7 @@ void genModuleInfo(Module m)
         {
             Module mod = m.aimports[i];
 
-            if (!mod.needmoduleinfo)
+            if (!mod.needmoduleinfo || mod.isImportedModule)
                 continue;
 
             Symbol *s = toSymbol(mod);
