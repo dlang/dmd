@@ -1131,16 +1131,6 @@ pure @safe:
     */
     void parseCallConvention(out bool err_status) nothrow
     {
-        try
-            parseCallConvention();
-        catch(ParseException)
-            err_status = true;
-        catch(Exception)
-            assert(false);
-    }
-
-    void parseCallConvention()
-    {
         // CallConvention
         switch ( front )
         {
@@ -1160,7 +1150,7 @@ pure @safe:
             put( "extern (C++) " );
             break;
         default:
-            error();
+            err_status = true;
         }
     }
 
@@ -2086,7 +2076,9 @@ pure @safe:
             {
                 BufSlice attr = dst.bslice_empty;
                 // we don't want calling convention and attributes in the qualified name
-                parseCallConvention();
+                bool err_status;
+                parseCallConvention(err_status);
+                if (err_status) error();
                 auto attributes = parseFuncAttr();
                 if (keepAttr) {
                     while (auto str = funcAttrs.toStringConsume(attributes))
