@@ -30,6 +30,7 @@ import dmd.escape;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
+import dmd.funcsem;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.location;
@@ -2185,7 +2186,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
 
         if (auto f = isFuncAddress(e))
         {
-            if (f.checkForwardRef(e.loc))
+            if (checkForwardRef(f, e.loc))
             {
                 return ErrorExp.get();
             }
@@ -2441,7 +2442,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
 
         if (auto f = isFuncAddress(e))
         {
-            if (f.checkForwardRef(e.loc))
+            if (checkForwardRef(f, e.loc))
             {
                 return ErrorExp.get();
             }
@@ -2496,7 +2497,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
 
         if (auto f = isFuncAddress(e))
         {
-            if (f.checkForwardRef(e.loc))
+            if (checkForwardRef(f, e.loc))
             {
                 return ErrorExp.get();
             }

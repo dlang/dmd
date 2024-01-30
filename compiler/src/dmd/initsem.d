@@ -30,6 +30,7 @@ import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
+import dmd.funcsem;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
@@ -1173,7 +1174,7 @@ Initializer inferType(Initializer init, Scope* sc)
         bool hasOverloads;
         if (auto f = isFuncAddress(init.exp, &hasOverloads))
         {
-            if (f.checkForwardRef(init.loc))
+            if (checkForwardRef(f, init.loc))
             {
                 return new ErrorInitializer();
             }

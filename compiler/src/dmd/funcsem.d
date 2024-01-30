@@ -1194,3 +1194,26 @@ extern (D) void declareThis(FuncDeclaration fd, Scope* sc)
     if (ad)
         fd.objc.selectorParameter = .objc.createSelectorParameter(fd, sc);
 }
+
+/****************************************************
+ * Check that this function type is properly resolved.
+ * If not, report "forward reference error" and return true.
+ */
+extern (D) bool checkForwardRef(FuncDeclaration fd, const ref Loc loc)
+{
+    if (!functionSemantic(fd))
+        return true;
+
+    /* No deco means the functionSemantic() call could not resolve
+     * forward referenes in the type of this function.
+     */
+    if (!fd.type.deco)
+    {
+        bool inSemantic3 = (fd.inferRetType && fd.semanticRun >= PASS.semantic3);
+        .error(loc, "forward reference to %s`%s`",
+            (inSemantic3 ? "inferred return type of function " : "").ptr,
+            fd.toChars());
+        return true;
+    }
+    return false;
+}
