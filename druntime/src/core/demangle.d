@@ -476,15 +476,15 @@ pure @safe:
         Namechar
         Namechar Namechars
     */
-    void parseLName(out string err_status) scope nothrow
+    void parseLName(out string err_msg) scope nothrow
     {
         debug(trace) printf( "parseLName+\n" );
         debug(trace) scope(success) printf( "parseLName-\n" );
 
         static if (__traits(hasMember, Hooks, "parseLName"))
         {
-            auto r = hooks.parseLName(err_status, this);
-            if (err_status !is null) return;
+            auto r = hooks.parseLName(err_msg, this);
+            if (err_msg !is null) return;
             if (r) return;
         }
 
@@ -496,7 +496,7 @@ pure @safe:
             size_t n = decodeBackref();
             if ( !n || n > refPos )
             {
-                err_status = "Invalid LName back reference";
+                err_msg = "Invalid LName back reference";
                 return;
             }
             if ( !mute )
@@ -504,7 +504,7 @@ pure @safe:
                 auto savePos = pos;
                 scope(exit) pos = savePos;
                 pos = refPos - n;
-                parseLName(err_status);
+                parseLName(err_msg);
             }
             return;
         }
@@ -513,7 +513,7 @@ pure @safe:
         auto n = decodeNumber(err_flag);
         if(err_flag)
         {
-            err_status = "Number overflow";
+            err_msg = "Number overflow";
             return;
         }
 
@@ -524,19 +524,19 @@ pure @safe:
         }
         if ( n > buf.length || n > buf.length - pos )
         {
-            err_status = "LName must be at least 1 character";
+            err_msg = "LName must be at least 1 character";
             return;
         }
         if ( '_' != front && !isAlpha( front ) )
         {
-            err_status = "Invalid character in LName";
+            err_msg = "Invalid character in LName";
             return;
         }
         foreach (char e; buf[pos + 1 .. pos + n] )
         {
             if ( '_' != e && !isAlpha( e ) && !isDigit( e ) )
             {
-                err_status = "Invalid character in LName";
+                err_msg = "Invalid character in LName";
                 return;
             }
         }
