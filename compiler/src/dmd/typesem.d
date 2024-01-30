@@ -41,6 +41,7 @@ import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
+import dmd.funcsem;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
@@ -3742,12 +3743,12 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
             // f might be a unittest declaration which is incomplete when compiled
             // without -unittest. That causes a segfault in checkForwardRef, see
             // https://issues.dlang.org/show_bug.cgi?id=20626
-            if ((!f.isUnitTestDeclaration() || global.params.useUnitTests) && f.checkForwardRef(loc))
+            if ((!f.isUnitTestDeclaration() || global.params.useUnitTests) && checkForwardRef(f, loc))
                 goto Lerr;
         }
         if (auto f = isFuncAddress(mt.exp))
         {
-            if (f.checkForwardRef(loc))
+            if (checkForwardRef(f, loc))
                 goto Lerr;
         }
 
