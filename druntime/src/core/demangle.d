@@ -107,7 +107,7 @@ pure @safe:
     }
 
 
-    static ubyte ascii2hex( out bool err_status, char val ) nothrow
+    static ubyte ascii2hex( out bool errStatus, char val ) nothrow
     {
         if (val >= 'a' && val <= 'f')
             return cast(ubyte)(val - 'a' + 10);
@@ -116,7 +116,7 @@ pure @safe:
         if (val >= '0' && val <= '9')
             return cast(ubyte)(val - '0');
 
-        err_status = true;
+        errStatus = true;
         return 0;
     }
 
@@ -236,7 +236,7 @@ pure @safe:
 
     bool match( char val ) nothrow
     {
-        if(!test(val))
+        if (!test(val))
             return false;
         else
         {
@@ -248,7 +248,7 @@ pure @safe:
     bool match( const(char)[] val ) nothrow
     {
         foreach (char e; val )
-            if(!match( e ))
+            if (!match( e ))
                 return false;
 
         return true;
@@ -261,7 +261,7 @@ pure @safe:
             popFront();
     }
 
-    bool isSymbolNameFront(out bool err_status) nothrow
+    bool isSymbolNameFront(out bool errStatus) nothrow
     {
         char val = front;
         if ( isDigit( val ) || val == '_' )
@@ -271,10 +271,10 @@ pure @safe:
 
         // check the back reference encoding after 'Q'
         val = peekBackref();
-        if(val == 0)
+        if (val == 0)
         {
             // invalid back reference
-            err_status = true;
+            errStatus = true;
             return false;
         }
 
@@ -348,15 +348,15 @@ pure @safe:
     }
 
 
-    size_t decodeNumber(out bool err_status) scope nothrow
+    size_t decodeNumber(out bool errStatus) scope nothrow
     {
         debug(trace) printf( "decodeNumber+\n" );
         debug(trace) scope(success) printf( "decodeNumber-\n" );
 
-        return decodeNumber( err_status, sliceNumber() );
+        return decodeNumber( errStatus, sliceNumber() );
     }
 
-    size_t decodeNumber( out bool err_status, scope const(char)[] num ) scope nothrow
+    size_t decodeNumber( out bool errStatus, scope const(char)[] num ) scope nothrow
     {
         debug(trace) printf( "decodeNumber+\n" );
         debug(trace) scope(success) printf( "decodeNumber-\n" );
@@ -372,7 +372,7 @@ pure @safe:
             val = addu(val, c - '0',  overflow);
             if (overflow)
             {
-                err_status = true;
+                errStatus = true;
                 return 0;
             }
         }
@@ -381,11 +381,11 @@ pure @safe:
 
     private template matchOrF(alias s)
     {
-        enum matchOrF = "err_status = !match("~s.stringof~");"~
-                        "if (err_status) return;";
+        enum matchOrF = "errStatus = !match("~s.stringof~");"~
+                        "if (errStatus) return;";
     }
 
-    void parseReal(out bool err_status) scope nothrow
+    void parseReal(out bool errStatus) scope nothrow
     {
         debug(trace) printf( "parseReal+\n" );
         debug(trace) scope(success) printf( "parseReal-\n" );
@@ -420,8 +420,9 @@ pure @safe:
 
         tbuf[tlen++] = '0';
         tbuf[tlen++] = 'X';
-        err_status = !isHexDigit( front );
-        if (err_status) return; // Expected hex digit
+        errStatus = !isHexDigit( front );
+        if (errStatus)
+            return; // Expected hex digit
 
         tbuf[tlen++] = front;
         tbuf[tlen++] = '.';
@@ -477,15 +478,16 @@ pure @safe:
         Namechar
         Namechar Namechars
     */
-    void parseLName(out string err_msg) scope nothrow
+    void parseLName(out string errMsg) scope nothrow
     {
         debug(trace) printf( "parseLName+\n" );
         debug(trace) scope(success) printf( "parseLName-\n" );
 
         static if (__traits(hasMember, Hooks, "parseLName"))
         {
-            auto r = hooks.parseLName(err_msg, this);
-            if (err_msg !is null) return;
+            auto r = hooks.parseLName(errMsg, this);
+            if (errMsg !is null)
+                return;
             if (r) return;
         }
 
@@ -497,7 +499,7 @@ pure @safe:
             size_t n = decodeBackref();
             if ( !n || n > refPos )
             {
-                err_msg = "Invalid LName back reference";
+                errMsg = "Invalid LName back reference";
                 return;
             }
             if ( !mute )
@@ -505,16 +507,16 @@ pure @safe:
                 auto savePos = pos;
                 scope(exit) pos = savePos;
                 pos = refPos - n;
-                parseLName(err_msg);
+                parseLName(errMsg);
             }
             return;
         }
 
         bool err_flag;
         auto n = decodeNumber(err_flag);
-        if(err_flag)
+        if (err_flag)
         {
-            err_msg = "Number overflow";
+            errMsg = "Number overflow";
             return;
         }
 
@@ -525,19 +527,19 @@ pure @safe:
         }
         if ( n > buf.length || n > buf.length - pos )
         {
-            err_msg = "LName must be at least 1 character";
+            errMsg = "LName must be at least 1 character";
             return;
         }
         if ( '_' != front && !isAlpha( front ) )
         {
-            err_msg = "Invalid character in LName";
+            errMsg = "Invalid character in LName";
             return;
         }
         foreach (char e; buf[pos + 1 .. pos + n] )
         {
             if ( '_' != e && !isAlpha( e ) && !isDigit( e ) )
             {
-                err_msg = "Invalid character in LName";
+                errMsg = "Invalid character in LName";
                 return;
             }
         }
@@ -722,7 +724,7 @@ pure @safe:
     TypeTuple:
         B Number Arguments
     */
-    BufSlice parseType(out bool err_status) return scope nothrow
+    BufSlice parseType(out bool errStatus) return scope nothrow
     {
         static immutable string[23] primitives = [
             "char", // a
@@ -752,11 +754,11 @@ pure @safe:
 
         static if (__traits(hasMember, Hooks, "parseType"))
         {
-            auto n = hooks.parseType(err_status, this, null);
-            if (err_status)
+            auto n = hooks.parseType(errStatus, this, null);
+            if (errStatus)
                 return dst.bslice_empty;
             else
-                if(n !is null)
+                if (n !is null)
                     return BufSlice(n, 0, n.length);
         }
 
@@ -765,11 +767,11 @@ pure @safe:
         auto beg = dst.length;
         auto t = front;
 
-        BufSlice parseBackrefType(out string err_status, scope BufSlice delegate(bool err_flag) pure @safe nothrow parseDg) pure @safe nothrow
+        BufSlice parseBackrefType(out string errStatus, scope BufSlice delegate(bool err_flag) pure @safe nothrow parseDg) pure @safe nothrow
         {
             if (pos == brp)
             {
-                err_status = "recursive back reference";
+                errStatus = "recursive back reference";
                 return dst.bslice_empty;
             }
 
@@ -778,7 +780,7 @@ pure @safe:
             auto n = decodeBackref();
             if (n == 0 || n > pos)
             {
-                err_status = "invalid back reference";
+                errStatus = "invalid back reference";
                 return dst.bslice_empty;
             }
 
@@ -792,9 +794,9 @@ pure @safe:
 
             bool err_flag;
             auto ret = parseDg(err_flag);
-            if(err_flag)
+            if (err_flag)
             {
-                err_status = "parseDg error";
+                errStatus = "parseDg error";
                 return dst.bslice_empty;
             }
 
@@ -802,34 +804,32 @@ pure @safe:
         }
 
         // call parseType() and return error if occured
-        template parseTypeOrF()
-        {
-            enum parseTypeOrF = "parseType(err_status); if(err_status) return dst.bslice_empty;";
-        }
+        enum parseTypeOrF = "parseType(errStatus); if (errStatus) return dst.bslice_empty;";
 
         switch ( t )
         {
         case 'Q': // Type back reference
-            string err_msg;
-            auto r = parseBackrefType(err_msg, (e_flag) => parseType(e_flag));
-            if(err_msg !is null) return dst.bslice_empty;
+            string errMsg;
+            auto r = parseBackrefType(errMsg, (e_flag) => parseType(e_flag));
+            if (errMsg !is null)
+                return dst.bslice_empty;
             return r;
         case 'O': // Shared (O Type)
             popFront();
             put( "shared(" );
-            mixin(parseTypeOrF!());
+            mixin(parseTypeOrF);
             put( ')' );
             return dst[beg .. $];
         case 'x': // Const (x Type)
             popFront();
             put( "const(" );
-            mixin(parseTypeOrF!());
+            mixin(parseTypeOrF);
             put( ')' );
             return dst[beg .. $];
         case 'y': // Immutable (y Type)
             popFront();
             put( "immutable(" );
-            mixin(parseTypeOrF!());
+            mixin(parseTypeOrF);
             put( ')' );
             return dst[beg .. $];
         case 'N':
@@ -844,28 +844,28 @@ pure @safe:
                 popFront();
                 // TODO: Anything needed here?
                 put( "inout(" );
-                mixin(parseTypeOrF!());
+                mixin(parseTypeOrF);
                 put( ')' );
                 return dst[beg .. $];
             case 'h': // TypeVector (Nh Type)
                 popFront();
                 put( "__vector(" );
-                mixin(parseTypeOrF!());
+                mixin(parseTypeOrF);
                 put( ')' );
                 return dst[beg .. $];
             default:
-                err_status = true;
+                errStatus = true;
                 return dst.bslice_empty;
             }
         case 'A': // TypeArray (A Type)
             popFront();
-            mixin(parseTypeOrF!());
+            mixin(parseTypeOrF);
             put( "[]" );
             return dst[beg .. $];
         case 'G': // TypeStaticArray (G Number Type)
             popFront();
             auto num = sliceNumber();
-            mixin(parseTypeOrF!());
+            mixin(parseTypeOrF);
             put( '[' );
             put( num );
             put( ']' );
@@ -873,44 +873,49 @@ pure @safe:
         case 'H': // TypeAssocArray (H Type Type)
             popFront();
             // skip t1
-            auto tx = parseType(err_status);
-            if(err_status) return dst.bslice_empty;
-            mixin(parseTypeOrF!());
+            auto tx = parseType(errStatus);
+            if (errStatus)
+                return dst.bslice_empty;
+            mixin(parseTypeOrF);
             put( '[' );
             shift(tx);
             put( ']' );
             return dst[beg .. $];
         case 'P': // TypePointer (P Type)
             popFront();
-            mixin(parseTypeOrF!());
+            mixin(parseTypeOrF);
             put( '*' );
             return dst[beg .. $];
         case 'F': case 'U': case 'W': case 'V': case 'R': // TypeFunction
-            auto r = parseTypeFunction(err_status);
-            if(err_status) return dst.bslice_empty;
+            auto r = parseTypeFunction(errStatus);
+            if (errStatus)
+                return dst.bslice_empty;
             return r;
         case 'C': // TypeClass (C LName)
         case 'S': // TypeStruct (S LName)
         case 'E': // TypeEnum (E LName)
         case 'T': // TypeTypedef (T LName)
             popFront();
-            parseQualifiedName(err_status);
-            if(err_status) return dst.bslice_empty;
+            parseQualifiedName(errStatus);
+            if (errStatus)
+                return dst.bslice_empty;
             return dst[beg .. $];
         case 'D': // TypeDelegate (D TypeFunction)
             popFront();
             auto modifiers = parseModifier();
             if ( front == 'Q' )
             {
-                string err_msg;
-                auto r = parseBackrefType(err_msg, (e_flag) => parseTypeFunction(e_flag, IsDelegate.yes));
-                if(err_msg !is null) return dst.bslice_empty;
+                string errMsg;
+                auto r = parseBackrefType(errMsg, (e_flag) => parseTypeFunction(e_flag, IsDelegate.yes));
+                if (errMsg !is null)
+                    return dst.bslice_empty;
                 return r;
             }
             else
             {
-                parseTypeFunction(err_status, IsDelegate.yes);
-                if(err_status) return dst.bslice_empty;
+                parseTypeFunction(errStatus, IsDelegate.yes);
+                if (errStatus)
+                    return dst.bslice_empty;
             }
 
             if (modifiers)
@@ -962,11 +967,11 @@ pure @safe:
                     put( "ucent" );
                     return dst[beg .. $];
                 default:
-                    err_status = true;
+                    errStatus = true;
                     return dst.bslice_empty;
                 }
             }
-            err_status = true;
+            errStatus = true;
             return dst.bslice_empty;
         }
     }
@@ -1043,7 +1048,7 @@ pure @safe:
         Y     // variadic T t...) style
         Z     // not variadic
     */
-    void parseCallConvention(out bool err_status) nothrow
+    void parseCallConvention(out bool errStatus) nothrow
     {
         // CallConvention
         switch ( front )
@@ -1064,7 +1069,7 @@ pure @safe:
             put( "extern (C++) " );
             break;
         default:
-            err_status = true;
+            errStatus = true;
         }
     }
 
@@ -1102,7 +1107,7 @@ pure @safe:
         }
     }
 
-    ushort parseFuncAttr(out bool err_status) nothrow
+    ushort parseFuncAttr(out bool errStatus) nothrow
     {
         // FuncAttrs
         ushort result;
@@ -1179,14 +1184,14 @@ pure @safe:
                 result |= FuncAttributes.Live;
                 continue;
             default:
-                err_status = true;
+                errStatus = true;
                 return 0;
             }
         }
         return result;
     }
 
-    void parseFuncArguments(out bool err_status) scope nothrow
+    void parseFuncArguments(out bool errStatus) scope nothrow
     {
         // Arguments
         for ( size_t n = 0; true; n++ )
@@ -1280,10 +1285,7 @@ pure @safe:
             }
 
             // call parseType() and return error if occured
-            template parseTypeOrF()
-            {
-                enum parseTypeOrF = "parseType(err_status); if(err_status) return;";
-            }
+            enum parseTypeOrF = "parseType(errStatus); if (errStatus) return;";
 
             switch ( front )
             {
@@ -1292,25 +1294,25 @@ pure @safe:
                 put("in ");
                 if (front == 'K')
                     goto case;
-                mixin(parseTypeOrF!());
+                mixin(parseTypeOrF);
                 continue;
             case 'K': // ref (K Type)
                 popFront();
                 put( "ref " );
-                mixin(parseTypeOrF!());
+                mixin(parseTypeOrF);
                 continue;
             case 'J': // out (J Type)
                 popFront();
                 put( "out " );
-                mixin(parseTypeOrF!());
+                mixin(parseTypeOrF);
                 continue;
             case 'L': // lazy (L Type)
                 popFront();
                 put( "lazy " );
-                mixin(parseTypeOrF!());
+                mixin(parseTypeOrF);
                 continue;
             default:
-                mixin(parseTypeOrF!());
+                mixin(parseTypeOrF);
             }
         }
     }
@@ -1321,23 +1323,26 @@ pure @safe:
         TypeFunction:
             CallConvention FuncAttrs Arguments ArgClose Type
     */
-    BufSlice parseTypeFunction(out bool err_status, IsDelegate isdg = IsDelegate.no) return scope nothrow
+    BufSlice parseTypeFunction(out bool errStatus, IsDelegate isdg = IsDelegate.no) return scope nothrow
     {
         debug(trace) printf( "parseTypeFunction+\n" );
         debug(trace) scope(success) printf( "parseTypeFunction-\n" );
         auto beg = dst.length;
 
-        parseCallConvention(err_status);
-        if (err_status) return dst.bslice_empty;
+        parseCallConvention(errStatus);
+        if (errStatus)
+            return dst.bslice_empty;
 
-        auto attributes = parseFuncAttr(err_status);
-        if (err_status) return dst.bslice_empty;
+        auto attributes = parseFuncAttr(errStatus);
+        if (errStatus)
+            return dst.bslice_empty;
 
         auto argbeg = dst.length;
         put(IsDelegate.yes == isdg ? "delegate" : "function");
         put( '(' );
-        parseFuncArguments(err_status);
-        if (err_status) return dst.bslice_empty;
+        parseFuncArguments(errStatus);
+        if (errStatus)
+            return dst.bslice_empty;
         put( ')' );
         if (attributes)
         {
@@ -1354,8 +1359,9 @@ pure @safe:
         // e.g. `delegate(int) @safedouble ' => 'double delegate(int) @safe'
         {
             auto retbeg = dst.length;
-            parseType(err_status);
-            if (err_status) return dst.bslice_empty;
+            parseType(errStatus);
+            if (errStatus)
+                return dst.bslice_empty;
             put(' ');
             shift(dst[argbeg .. retbeg]);
         }
@@ -1409,12 +1415,12 @@ pure @safe:
         F
     */
 
-    void parseValue(out bool err_status) scope nothrow
+    void parseValue(out bool errStatus) scope nothrow
     {
-        parseValue(err_status, dst.bslice_empty);
+        parseValue(errStatus, dst.bslice_empty);
     }
 
-    void parseValue(out bool err_status, scope BufSlice name, char type = '\0' ) scope nothrow
+    void parseValue(out bool errStatus, scope BufSlice name, char type = '\0' ) scope nothrow
     {
         debug(trace) printf( "parseValue+\n" );
         debug(trace) scope(success) printf( "parseValue-\n" );
@@ -1428,46 +1434,52 @@ pure @safe:
             return;
         case 'i':
             popFront();
-            err_status = ( '0' > front || '9' < front );
-            if(err_status) return; // Number expected
+            errStatus = ( '0' > front || '9' < front );
+            if (errStatus)
+                return; // Number expected
             goto case;
         case '0': .. case '9':
-            parseIntegerValue( err_status, name, type );
+            parseIntegerValue( errStatus, name, type );
             return;
         case 'N':
             popFront();
             put( '-' );
-            parseIntegerValue( err_status, name, type );
+            parseIntegerValue( errStatus, name, type );
             return;
         case 'e':
             popFront();
-            parseReal(err_status);
+            parseReal(errStatus);
             return;
         case 'c':
             popFront();
-            parseReal(err_status);
-            if (err_status) return;
+            parseReal(errStatus);
+            if (errStatus)
+                return;
             put( '+' );
             mixin(matchOrF!( 'c' ));
-            parseReal(err_status);
-            if (err_status) return;
+            parseReal(errStatus);
+            if (errStatus)
+                return;
             put( 'i' );
             return;
         case 'a': case 'w': case 'd':
             char t = front;
             popFront();
-            auto n = decodeNumber(err_status);
-            if (err_status) return;
+            auto n = decodeNumber(errStatus);
+            if (errStatus)
+                return;
             mixin(matchOrF!( '_' ));
             put( '"' );
             foreach (i; 0..n)
             {
-                auto a = ascii2hex( err_status, front );
-                if(err_status) return;
+                auto a = ascii2hex( errStatus, front );
+                if (errStatus)
+                    return;
                 popFront();
 
-                auto b = ascii2hex( err_status, front );
-                if(err_status) return;
+                auto b = ascii2hex( errStatus, front );
+                if (errStatus)
+                    return;
                 popFront();
 
                 auto v = cast(char)((a << 4) | b);
@@ -1499,13 +1511,15 @@ pure @safe:
             // An array literal. Value is repeated Number times.
             popFront();
             put( '[' );
-            auto n = decodeNumber(err_status);
-            if (err_status) return;
+            auto n = decodeNumber(errStatus);
+            if (errStatus)
+                return;
             foreach ( i; 0 .. n )
             {
                 putComma(i);
-                parseValue(err_status);
-                if (err_status) return;
+                parseValue(errStatus);
+                if (errStatus)
+                    return;
             }
             put( ']' );
             return;
@@ -1515,16 +1529,19 @@ pure @safe:
             // An associative array literal. Value is repeated 2*Number times.
             popFront();
             put( '[' );
-            auto n = decodeNumber(err_status);
-            if (err_status) return;
+            auto n = decodeNumber(errStatus);
+            if (errStatus)
+                return;
             foreach ( i; 0 .. n )
             {
                 putComma(i);
-                parseValue(err_status);
-                if (err_status) return;
+                parseValue(errStatus);
+                if (errStatus)
+                    return;
                 put(':');
-                parseValue(err_status);
-                if (err_status) return;
+                parseValue(errStatus);
+                if (errStatus)
+                    return;
             }
             put( ']' );
             return;
@@ -1535,13 +1552,15 @@ pure @safe:
             if ( name.length )
                 put( name );
             put( '(' );
-            auto n = decodeNumber(err_status);
-            if (err_status) return;
+            auto n = decodeNumber(errStatus);
+            if (errStatus)
+                return;
             foreach ( i; 0 .. n )
             {
                 putComma(i);
-                parseValue(err_status);
-                if (err_status) return;
+                parseValue(errStatus);
+                if (errStatus)
+                    return;
             }
             put( ')' );
             return;
@@ -1549,14 +1568,14 @@ pure @safe:
             // f MangledName
             // A function literal symbol
             popFront();
-            parseMangledName(err_status, false, 1);
+            parseMangledName(errStatus, false, 1);
             return;
         default:
-            err_status = true;
+            errStatus = true;
         }
     }
 
-    void parseIntegerValue( out bool err_status, scope BufSlice name, char type = '\0' ) scope nothrow
+    void parseIntegerValue( out bool errStatus, scope BufSlice name, char type = '\0' ) scope nothrow
     {
         debug(trace) printf( "parseIntegerValue+\n" );
         debug(trace) scope(success) printf( "parseIntegerValue-\n" );
@@ -1568,8 +1587,9 @@ pure @safe:
         case 'w': // dchar
         {
             auto val = sliceNumber();
-            auto num = decodeNumber( err_status, val );
-            if (err_status) return;
+            auto num = decodeNumber( errStatus, val );
+            if (errStatus)
+                return;
 
             switch ( num )
             {
@@ -1631,8 +1651,9 @@ pure @safe:
             }
         }
         case 'b': // bool
-            auto d = decodeNumber(err_status);
-            if (err_status) return;
+            auto d = decodeNumber(errStatus);
+            if (errStatus)
+                return;
             put( d ? "true" : "false" );
             return;
         case 'h', 't', 'k': // ubyte, ushort, uint
@@ -1669,7 +1690,7 @@ pure @safe:
         S Number_opt QualifiedName
         X ExternallyMangledName
     */
-    void parseTemplateArgs(out bool err_status) scope nothrow
+    void parseTemplateArgs(out bool errStatus) scope nothrow
     {
         debug(trace) printf( "parseTemplateArgs+\n" );
         debug(trace) scope(success) printf( "parseTemplateArgs-\n" );
@@ -1685,8 +1706,9 @@ pure @safe:
             case 'T':
                 popFront();
                 putComma(n);
-                parseType(err_status);
-                if (err_status) return;
+                parseType(errStatus);
+                if (errStatus)
+                    return;
                 continue;
             case 'V':
                 popFront();
@@ -1699,18 +1721,20 @@ pure @safe:
                 if ( t == 'Q' )
                 {
                     t = peekBackref();
-                    if(t == 0)
+                    if (t == 0)
                     {
                         // invalid back reference
-                        err_status = true;
+                        errStatus = true;
                         return;
                     }
                 }
                 BufSlice name = dst.bslice_empty;
-                silent( err_status, delegate void(out bool e_flg) nothrow { name = parseType(e_flg); } );
-                if (err_status) return;
-                parseValue( err_status, name, t );
-                if (err_status) return;
+                silent( errStatus, delegate void(out bool e_flg) nothrow { name = parseType(e_flg); } );
+                if (errStatus)
+                    return;
+                parseValue( errStatus, name, t );
+                if (errStatus)
+                    return;
                 continue;
             case 'S':
                 popFront();
@@ -1724,7 +1748,7 @@ pure @safe:
 
                     debug(trace) printf( "may be mangled name arg\n" );
 
-                    if(parseMangledNameArg())
+                    if (parseMangledNameArg())
                         continue;
                     else
                     {
@@ -1738,8 +1762,9 @@ pure @safe:
                 {
                     // ambiguity: length followed by qualified name (starting with number)
                     // try all possible pairs of numbers
-                    auto qlen = decodeNumber(err_status);
-                    if (err_status) return;
+                    auto qlen = decodeNumber(errStatus);
+                    if (errStatus)
+                        return;
 
                     qlen /= 10; // last digit needed for QualifiedName
                     pos--;
@@ -1748,10 +1773,10 @@ pure @safe:
                     auto b = brp;
                     while ( qlen > 0 )
                     {
-                        err_status = false;
-                        parseQualifiedName(err_status);
+                        errStatus = false;
+                        parseQualifiedName(errStatus);
 
-                        if(!err_status)
+                        if (!errStatus)
                         {
                             if ( pos == p + qlen )
                                 continue L_nextArg;
@@ -1764,16 +1789,18 @@ pure @safe:
                     }
                 }
 
-                parseQualifiedName(err_status);
-                if(err_status) return;
+                parseQualifiedName(errStatus);
+                if (errStatus)
+                    return;
                 continue;
             case 'X':
                 popFront();
                 putComma(n);
                 {
-                    string err_msg;
-                    parseLName(err_msg);
-                    if (err_msg) return;
+                    string errMsg;
+                    parseLName(errMsg);
+                    if (errMsg)
+                        return;
                 }
                 continue;
             default:
@@ -1788,24 +1815,24 @@ pure @safe:
         debug(trace) printf( "mayBeMangledNameArg+\n" );
         debug(trace) scope(success) printf( "mayBeMangledNameArg-\n" );
 
-        bool err_status;
+        bool errStatus;
         auto p = pos;
         scope(exit) pos = p;
 
         if ( isDigit( buf[pos] ) )
         {
-            auto n = decodeNumber(err_status);
+            auto n = decodeNumber(errStatus);
 
-            return !err_status && n >= 4 &&
+            return !errStatus && n >= 4 &&
                 pos < buf.length && '_' == buf[pos++] &&
                 pos < buf.length && 'D' == buf[pos++] &&
                 isDigit( buf[pos] );
         }
         else
         {
-            const isSNF = isSymbolNameFront(err_status);
+            const isSNF = isSymbolNameFront(errStatus);
 
-            return !err_status &&
+            return !errStatus &&
                    pos < buf.length && '_' == buf[pos++] &&
                    pos < buf.length && 'D' == buf[pos++] &&
                    isSNF;
@@ -1817,27 +1844,27 @@ pure @safe:
         debug(trace) printf( "parseMangledNameArg+\n" );
         debug(trace) scope(success) printf( "parseMangledNameArg-\n" );
 
-        bool err_status;
+        bool errStatus;
 
         size_t n = 0;
         if ( isDigit( front ) )
         {
-            n = decodeNumber(err_status);
+            n = decodeNumber(errStatus);
 
-            if(err_status)
+            if (errStatus)
                 return false;
         }
 
-        parseMangledName(err_status, false, n );
+        parseMangledName(errStatus, false, n );
 
-        return !err_status;
+        return !errStatus;
     }
 
     /*
     TemplateInstanceName:
         Number __T LName TemplateArgs Z
     */
-    void parseTemplateInstanceName(out bool err_status, bool hasNumber) scope nothrow
+    void parseTemplateInstanceName(out bool errStatus, bool hasNumber) scope nothrow
     {
         debug(trace) printf( "parseTemplateInstanceName+\n" );
         debug(trace) scope(success) printf( "parseTemplateInstanceName-\n" );
@@ -1854,7 +1881,7 @@ pure @safe:
         template check4err()
         {
             enum check4err =
-            "if (err_status) {"~
+            "if (errStatus) {"~
             "   call_if_failure();"~
             "   return;"~
             "}";
@@ -1863,33 +1890,33 @@ pure @safe:
         size_t n = 0;
         if (hasNumber)
         {
-            n = decodeNumber(err_status);
+            n = decodeNumber(errStatus);
             mixin(check4err!());
         }
 
         auto beg = pos;
-        err_status = !match( "__T" );
+        errStatus = !match( "__T" );
         mixin(check4err!());
 
         {
-            string err_msg;
-            parseLName(err_msg);
-            err_status = err_msg !is null;
+            string errMsg;
+            parseLName(errMsg);
+            errStatus = errMsg !is null;
             mixin(check4err!());
         }
 
         put( "!(" );
 
-        parseTemplateArgs(err_status);
+        parseTemplateArgs(errStatus);
         mixin(check4err!());
 
-        err_status = !match( 'Z' );
+        errStatus = !match( 'Z' );
         mixin(check4err!());
 
         if ( hasNumber && pos - beg != n )
         {
             // Template name length mismatch
-            err_status = true;
+            errStatus = true;
             call_if_failure();
         }
 
@@ -1905,9 +1932,10 @@ pure @safe:
         auto p = pos;
         scope(exit) pos = p;
 
-        bool err_status;
-        auto n = decodeNumber(err_status);
-        if (err_status) return false;
+        bool errStatus;
+        auto n = decodeNumber(errStatus);
+        if (errStatus)
+            return false;
 
         return n >= 5 &&
                pos < buf.length && '_' == buf[pos++] &&
@@ -1921,7 +1949,7 @@ pure @safe:
         LName
         TemplateInstanceName
     */
-    void parseSymbolName(out bool err_status) scope nothrow
+    void parseSymbolName(out bool errStatus) scope nothrow
     {
         debug(trace) printf( "parseSymbolName+\n" );
         debug(trace) scope(success) printf( "parseSymbolName-\n" );
@@ -1932,7 +1960,7 @@ pure @safe:
         {
         case '_':
             // no length encoding for templates for new mangling
-            parseTemplateInstanceName(err_status, false);
+            parseTemplateInstanceName(errStatus, false);
             return;
 
         case '0': .. case '9':
@@ -1941,8 +1969,8 @@ pure @safe:
                 auto t = dst.length;
 
                 debug(trace) printf( "may be template instance name\n" );
-                parseTemplateInstanceName(err_status, true);
-                if (!err_status)
+                parseTemplateInstanceName(errStatus, true);
+                if (!errStatus)
                     return;
                 else
                 {
@@ -1952,12 +1980,12 @@ pure @safe:
             }
             goto case;
         case 'Q':
-            string err_msg;
-            parseLName(err_msg);
-            err_status = err_msg !is null;
+            string errMsg;
+            parseLName(errMsg);
+            errStatus = errMsg !is null;
             return;
         default:
-            err_status = true;
+            errStatus = true;
         }
     }
 
@@ -1985,12 +2013,12 @@ pure @safe:
         {
             BufSlice attr = dst.bslice_empty;
             // we don't want calling convention and attributes in the qualified name
-            bool err_status;
-            parseCallConvention(err_status);
-            if (!err_status)
+            bool errStatus;
+            parseCallConvention(errStatus);
+            if (!errStatus)
             {
-                auto attributes = parseFuncAttr(err_status);
-                if (!err_status)
+                auto attributes = parseFuncAttr(errStatus);
+                if (!errStatus)
                 {
                     if (keepAttr) {
                         while (auto str = funcAttrs.toStringConsume(attributes))
@@ -2002,8 +2030,9 @@ pure @safe:
                     }
 
                     put( '(' );
-                    parseFuncArguments(err_status);
-                    if (err_status) return dst.bslice_empty;
+                    parseFuncArguments(errStatus);
+                    if (errStatus)
+                        return dst.bslice_empty;
                     put( ')' );
                     return attr;
                 }
@@ -2023,7 +2052,7 @@ pure @safe:
         SymbolName
         SymbolName QualifiedName
     */
-    void parseQualifiedName(out bool err_status) return scope nothrow
+    void parseQualifiedName(out bool errStatus) return scope nothrow
     {
         debug(trace) printf( "parseQualifiedName+\n" );
         debug(trace) scope(success) printf( "parseQualifiedName-\n" );
@@ -2036,13 +2065,15 @@ pure @safe:
             if ( n++ )
                 put( '.' );
 
-            parseSymbolName(err_status);
-            if(err_status) return;
+            parseSymbolName(errStatus);
+            if (errStatus)
+                return;
 
             parseFunctionTypeNoReturn();
 
-            is_sym_name_front = isSymbolNameFront(err_status);
-            if(err_status) return;
+            is_sym_name_front = isSymbolNameFront(errStatus);
+            if (errStatus)
+                return;
 
         } while ( is_sym_name_front );
     }
@@ -2053,7 +2084,7 @@ pure @safe:
         _D QualifiedName Type
         _D QualifiedName M Type
     */
-    void parseMangledName( out bool err_status, bool displayType, size_t n = 0 ) scope nothrow
+    void parseMangledName( out bool errStatus, bool displayType, size_t n = 0 ) scope nothrow
     {
         debug(trace) printf( "parseMangledName+\n" );
         debug(trace) scope(success) printf( "parseMangledName-\n" );
@@ -2062,8 +2093,9 @@ pure @safe:
         auto end = pos + n;
 
         eat( '_' );
-        err_status = !match( 'D' );
-        if (err_status) return;
+        errStatus = !match( 'D' );
+        if (errStatus)
+            return;
 
         do
         {
@@ -2079,14 +2111,16 @@ pure @safe:
                 if (beg != dst.length)
                     put( '.' );
 
-                parseSymbolName(err_status);
-                if (err_status) return;
+                parseSymbolName(errStatus);
+                if (errStatus)
+                    return;
 
                 nameEnd = dst.length;
                 attr = parseFunctionTypeNoReturn( displayType );
 
-                is_sym_name_front = isSymbolNameFront(err_status);
-                if(err_status) return;
+                is_sym_name_front = isSymbolNameFront(errStatus);
+                if (errStatus)
+                    return;
             } while (is_sym_name_front);
 
             if ( displayType )
@@ -2101,8 +2135,9 @@ pure @safe:
                 popFront(); // has 'this' pointer
 
             auto lastlen = dst.length;
-            auto type = parseType(err_status);
-            if(err_status) return;
+            auto type = parseType(errStatus);
+            if (errStatus)
+                return;
 
             if ( displayType )
             {
@@ -2134,9 +2169,9 @@ pure @safe:
         } while ( true );
     }
 
-    void parseMangledName(out bool err_status) nothrow
+    void parseMangledName(out bool errStatus) nothrow
     {
-        parseMangledName(err_status, AddType.yes == addType);
+        parseMangledName(errStatus, AddType.yes == addType);
     }
 
     char[] doDemangle(alias FUNC)() return scope nothrow
@@ -2145,9 +2180,9 @@ pure @safe:
         {
             debug(info) printf( "demangle(%.*s)\n", cast(int) buf.length, buf.ptr );
 
-            bool err_status;
-            FUNC(err_status);
-            if (!err_status)
+            bool errStatus;
+            FUNC(errStatus);
+            if (!errStatus)
             {
                 return dst[0 .. $].getSlice;
             }
@@ -2271,7 +2306,7 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
             }
         }
 
-        bool parseLName(out string err_msg, scope ref Remangle d) scope @trusted nothrow
+        bool parseLName(out string errMsg, scope ref Remangle d) scope @trusted nothrow
         {
             flushPosition(d);
 
@@ -2287,31 +2322,31 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
                     size_t n = d.decodeBackref();
                     if (!n || n > refpos)
                     {
-                        err_msg = "invalid back reference";
+                        errMsg = "invalid back reference";
                         return false;
                     }
                     auto savepos = d.pos;
                     scope(exit) d.pos = savepos;
                     size_t srcpos = refpos - n;
 
-                    bool err_status;
-                    auto idlen = d.decodeNumber(err_status);
-                    if (err_status)
+                    bool errStatus;
+                    auto idlen = d.decodeNumber(errStatus);
+                    if (errStatus)
                     {
-                        err_msg = "invalid number";
+                        errMsg = "invalid number";
                         return false;
                     }
 
                     if (d.pos + idlen > d.buf.length)
                     {
-                        err_msg = "invalid back reference";
+                        errMsg = "invalid back reference";
                         return false;
                     }
                     auto id = d.buf[d.pos .. d.pos + idlen];
                     auto pid = id in idpos;
                     if (!pid)
                     {
-                        err_msg = "invalid back reference";
+                        errMsg = "invalid back reference";
                         return false;
                     }
                     npos = positionInResult(*pid);
@@ -2322,17 +2357,17 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
             }
             else
             {
-                bool err_status;
-                auto n = d.decodeNumber(err_status);
-                if (err_status)
+                bool errStatus;
+                auto n = d.decodeNumber(errStatus);
+                if (errStatus)
                 {
-                    err_msg = "invalid number";
+                    errMsg = "invalid number";
                     return false;
                 }
 
                 if (!n || n > d.buf.length || n > d.buf.length - d.pos)
                 {
-                    err_msg = "LName too shot or too long";
+                    errMsg = "LName too shot or too long";
                     return false;
                 }
                 auto id = d.buf[d.pos .. d.pos + n];
@@ -2355,7 +2390,7 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
             return true;
         }
 
-        char[] parseType( out bool err_status, ref Remangle d, char[] name ) return scope nothrow
+        char[] parseType( out bool errStatus, ref Remangle d, char[] name ) return scope nothrow
         {
             if (d.front != 'Q')
                 return null;
@@ -2368,7 +2403,7 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
             if (n == 0 || n > refPos)
             {
                 // invalid back reference
-                err_status = true;
+                errStatus = true;
                 return null;
             }
 
@@ -2402,9 +2437,9 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
     d.hooks = PrependHooks();
     d.mute = true; // no demangled output
 
-    bool err_status;
-    d.parseMangledName(err_status);
-    if (err_status)
+    bool errStatus;
+    d.parseMangledName(errStatus);
+    if (errStatus)
     {
         // error cannot occur
         return mangled.dup;
