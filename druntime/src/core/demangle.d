@@ -180,11 +180,14 @@ pure @safe:
     }
 
 
-    void silent( void delegate() pure @safe nothrow dg ) nothrow
+    void silent( out bool err_status, void delegate(out bool err_status) pure @safe nothrow dg ) nothrow
     {
         debug(trace) printf( "silent+\n" );
         debug(trace) scope(success) printf( "silent-\n" );
-        auto n = dst.length; dg(); dst.len = n;
+        auto n = dst.length;
+        dg(err_status);
+        if(!err_status)
+            dst.len = n;
     }
 
 
@@ -1704,7 +1707,7 @@ pure @safe:
                     }
                 }
                 BufSlice name = dst.bslice_empty;
-                silent( delegate void() nothrow { name = parseType(err_status); } );
+                silent( err_status, delegate void(out bool e_flg) nothrow { name = parseType(e_flg); } );
                 if (err_status) return;
                 parseValue( err_status, name, t );
                 if (err_status) return;
