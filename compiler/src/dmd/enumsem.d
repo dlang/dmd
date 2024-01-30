@@ -503,6 +503,8 @@ void enumMemberSemantic(Scope* sc, EnumMember em)
     {
         Expression e = em.value;
         assert(e.dyncast() == DYNCAST.expression);
+        if (em.ed.memtype)
+            e = inferType(e, em.ed.memtype);
         e = e.expressionSemantic(sc);
         e = resolveProperties(sc, e);
         e = e.ctfeInterpret();
