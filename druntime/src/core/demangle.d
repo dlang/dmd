@@ -219,10 +219,8 @@ pure @safe:
 
     void popFront() nothrow
     {
-        import core.exception : RangeError;
-
         if ( pos++ >= buf.length )
-            throw new RangeError;
+            assert(false);
     }
 
 
