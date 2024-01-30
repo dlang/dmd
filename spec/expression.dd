@@ -2023,7 +2023,7 @@ $(H3 $(LNAME2 hex_string_literals, Hex String Literals))
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
         -------------
-        immutable uint[] data = cast(immutable uint[]) x"AABBCCDD";
+        static immutable uint[] data = cast(immutable uint[]) x"AABBCCDD";
         static assert(data[0] == 0xAABBCCDD);
         -------------
         )
@@ -2031,7 +2031,7 @@ $(H3 $(LNAME2 hex_string_literals, Hex String Literals))
     $(P This requires the length of the hex string to be a multiple of the array element's size in bytes.)
         $(SPEC_RUNNABLE_EXAMPLE_FAIL
         -------------
-        auto e = cast(immutable ushort[]) x"AA BB CC";
+        static e = cast(immutable ushort[]) x"AA BB CC";
         // Error, length of 3 bytes is not a multiple of 2, the size of a `ushort`
         -------------
         )
@@ -2039,7 +2039,7 @@ $(H3 $(LNAME2 hex_string_literals, Hex String Literals))
     $(P When a hex string literal gets constant folded, the result is no longer considered a hex string literal)
         $(SPEC_RUNNABLE_EXAMPLE_FAIL
         -------------
-        immutable byte[] b = x"AA" ~ "G"; // Error: cannot convert `string` to `immutable byte[]`
+        static immutable byte[] b = x"AA" ~ "G"; // Error: cannot convert `string` to `immutable byte[]`
         -------------
         )
 
