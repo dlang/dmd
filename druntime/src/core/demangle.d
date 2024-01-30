@@ -2405,7 +2405,7 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
     d.parseMangledName(err_status);
     if (err_status)
     {
-        // Error cannot occur
+        // error cannot occur
         return mangled.dup;
     }
 
@@ -3197,7 +3197,7 @@ private struct Buffer
         return BufSlice(dst, from, to);
     }
 
-    private scope bslice_empty() nothrow
+    private static scope bslice_empty() nothrow
     {
         return BufSlice.init;
     }
