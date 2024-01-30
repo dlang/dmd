@@ -721,11 +721,6 @@ extern(C++) MATCH implicitConvTo(Expression e, Type t)
                     return m;
                 case Tint8:
                 case Tuns8:
-                    if (e.hexString)
-                    {
-                        m = MATCH.convert;
-                        return m;
-                    }
                     break;
                 case Tenum:
                     if (tn.isTypeEnum().sym.isSpecial())
@@ -738,6 +733,14 @@ extern(C++) MATCH implicitConvTo(Expression e, Type t)
                     break;
                 default:
                     break;
+                }
+            }
+            if (e.hexString)
+            {
+                if (tn.isintegral && tn.size == e.sz)
+                {
+                    m = MATCH.convert;
+                    return m;
                 }
             }
             break;

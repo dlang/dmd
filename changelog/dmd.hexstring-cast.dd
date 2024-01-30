@@ -11,10 +11,19 @@ immutable uint[] data = cast(immutable uint[]) x"AABBCCDD";
 static assert(data[0] == 0xAABBCCDD);
 ---
 
-When the hex string has a character postfix, or its length is not a multiple of the element size, it is an error:
+Character postfixes can now also be used for integers of size 2 or 4:
+---
+immutable ushort[] f = x"80 3F"w;
+static assert(f[0] == 0x803F);
+
+immutable int[] f = x"80 35 FF FD"d;
+static assert(f[0] == 0x803FFF);
+---
+
+Formerly, they would pad each byte with 1 or 3 zeros, which did not serve a purpose (See [Issue 24363](https://issues.dlang.org/show_bug.cgi?id=24363)).
+
+If the string's byte length is not a multiple of the target element size, it is an error:
 
 ---
-auto e = cast(immutable ushort[]) x"AABBCC"; // Error, 3 bytes is not a multiple of `ushort.sizeof`
-
-auto f = cast(immutable ushort[]) x"AABB"w; // Error, hex string has wide character postfix
+immutable ushort[] e = x"AABBCC"w; // Error, 3 bytes is not a multiple of `ushort.sizeof`
 ---
