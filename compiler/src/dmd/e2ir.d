@@ -3292,7 +3292,7 @@ elem* toElem(Expression e, ref IRState irs)
 
     elem* visitCall(CallExp ce)
     {
-        printf("[%s] CallExp.toElem('%s') %p, %s\n", ce.loc.toChars(), ce.toChars(), ce, ce.type.toChars());
+        //printf("[%s] CallExp.toElem('%s') %p, %s\n", ce.loc.toChars(), ce.toChars(), ce, ce.type.toChars());
         assert(ce.e1.type);
         Type t1 = ce.e1.type.toBasetype();
         Type ectype = t1;
