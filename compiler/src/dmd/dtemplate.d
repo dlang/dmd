@@ -816,107 +816,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         return buf.extractChars();
     }
 
-    /**************************************************
-     * Declare template parameter tp with value o, and install it in the scope sc.
-     */
-    extern (D) RootObject declareParameter(Scope* sc, TemplateParameter tp, RootObject o)
-    {
-        //printf("TemplateDeclaration.declareParameter('%s', o = %p)\n", tp.ident.toChars(), o);
-        Type ta = isType(o);
-        Expression ea = isExpression(o);
-        Dsymbol sa = isDsymbol(o);
-        Tuple va = isTuple(o);
-
-        Declaration d;
-        VarDeclaration v = null;
-
-        if (ea)
-        {
-            if (ea.op == EXP.type)
-                ta = ea.type;
-            else if (auto se = ea.isScopeExp())
-                sa = se.sds;
-            else if (auto te = ea.isThisExp())
-                sa = te.var;
-            else if (auto se = ea.isSuperExp())
-                sa = se.var;
-            else if (auto fe = ea.isFuncExp())
-            {
-                if (fe.td)
-                    sa = fe.td;
-                else
-                    sa = fe.fd;
-            }
-        }
-
-        if (ta)
-        {
-            //printf("type %s\n", ta.toChars());
-            auto ad = new AliasDeclaration(Loc.initial, tp.ident, ta);
-            ad.storage_class |= STC.templateparameter;
-            d = ad;
-        }
-        else if (sa)
-        {
-            //printf("Alias %s %s;\n", sa.ident.toChars(), tp.ident.toChars());
-            auto ad = new AliasDeclaration(Loc.initial, tp.ident, sa);
-            ad.storage_class |= STC.templateparameter;
-            d = ad;
-        }
-        else if (ea)
-        {
-            // tdtypes.data[i] always matches ea here
-            Initializer _init = new ExpInitializer(loc, ea);
-            TemplateValueParameter tvp = tp.isTemplateValueParameter();
-            Type t = tvp ? tvp.valType : null;
-            v = new VarDeclaration(loc, t, tp.ident, _init);
-            v.storage_class = STC.manifest | STC.templateparameter;
-            d = v;
-        }
-        else if (va)
-        {
-            //printf("\ttuple\n");
-            d = new TupleDeclaration(loc, tp.ident, &va.objects);
-        }
-        else
-        {
-            assert(0);
-        }
-        d.storage_class |= STC.templateparameter;
-
-        if (ta)
-        {
-            Type t = ta;
-            // consistent with Type.checkDeprecated()
-            while (t.ty != Tenum)
-            {
-                if (!t.nextOf())
-                    break;
-                t = (cast(TypeNext)t).next;
-            }
-            if (Dsymbol s = t.toDsymbol(sc))
-            {
-                if (s.isDeprecated())
-                    d.storage_class |= STC.deprecated_;
-            }
-        }
-        else if (sa)
-        {
-            if (sa.isDeprecated())
-                d.storage_class |= STC.deprecated_;
-        }
-
-        if (!sc.insert(d))
-            .error(loc, "%s `%s` declaration `%s` is already defined", kind, toPrettyChars, tp.ident.toChars());
-        d.dsymbolSemantic(sc);
-        /* So the caller's o gets updated with the result of semantic() being run on o
-         */
-        if (v)
-            o = v._init.initializerToExpression();
-        return o;
-    }
-
-
     debug (FindExistingInstance)
     {
         __gshared uint nFound, nNotFound, nAdded, nRemoved;
@@ -6014,7 +5913,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         {
             TemplateParameter tp = (*tempdecl.parameters)[i];
             //printf("\ttdtypes[%d] = %p\n", i, o);
-            tempdecl.declareParameter(sc, tp, o);
+            declareParameter(tempdecl, sc, tp, o);
         }
     }
 
