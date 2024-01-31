@@ -1742,9 +1742,7 @@ public:
             {}
     };
 
-private:
     Mcache* mcache;
-public:
     Type* pto;
     Type* rto;
     Type* arrayof;
@@ -1841,7 +1839,6 @@ public:
     bool isSharedWild() const;
     bool isNaked() const;
     Type* nullAttributes() const;
-    Type* constOf();
     Type* immutableOf();
     Type* mutableOf();
     Type* sharedOf();
@@ -5439,6 +5436,8 @@ public:
     StaticAssert* isStaticAssert() override;
     void accept(Visitor* v) override;
 };
+
+extern Type* constOf(Type* type);
 
 extern Covariant covariant(Type* src, Type* t, uint64_t* pstc = nullptr, bool cppCovariant = false);
 

@@ -299,7 +299,7 @@ extern (C++) abstract class Type : ASTNode
         Type swto;      // MODFlags.shared_ | MODFlags.wild
         Type swcto;     // MODFlags.shared_ | MODFlags.wildconst
     }
-    private Mcache* mcache;
+    Mcache* mcache;
 
     Type pto;       // merged pointer to this type
     Type rto;       // reference to this type
@@ -782,26 +782,6 @@ extern (C++) abstract class Type : ASTNode
             (cast(TypeStruct)t).att = AliasThisRec.fwdref;
         if (t.ty == Tclass)
             (cast(TypeClass)t).att = AliasThisRec.fwdref;
-        return t;
-    }
-
-    /********************************
-     * Convert to 'const'.
-     */
-    final Type constOf()
-    {
-        //printf("Type::constOf() %p %s\n", this, toChars());
-        if (mod == MODFlags.const_)
-            return this;
-        if (mcache && mcache.cto)
-        {
-            assert(mcache.cto.mod == MODFlags.const_);
-            return mcache.cto;
-        }
-        Type t = makeConst();
-        t = t.merge();
-        t.fixTo(this);
-        //printf("-Type::constOf() %p %s\n", t, t.toChars());
         return t;
     }
 
@@ -1515,7 +1495,7 @@ extern (C++) abstract class Type : ASTNode
                     if (isWild())
                         t = wildConstOf();
                     else
-                        t = constOf();
+                        t = t.constOf();
                 }
                 break;
 
