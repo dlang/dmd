@@ -607,8 +607,10 @@ int ElfObj_string_literal_segment(uint sz)
      * .rodata.cstN   - N fixed size readonly constants N bytes in size,
      *              aligned to the same size
      */
-    static immutable char[4][3] name = [ "1.1", "2.2", "4.4" ];
-    const int i = (sz == 4) ? 2 : sz - 1;
+    import core.bitop : bsr, bsf;
+    assert(sz != 0 && bsr(sz) == bsf(sz)); // sz must be power of 2
+    static immutable char[4][4] name = [ "1.1", "2.2", "4.4", "8.8" ];
+    const int i = bsr(sz);
     // FIXME: can't use SHF_MERGE | SHF_STRINGS because of https://issues.dlang.org/show_bug.cgi?id=22483
     const IDXSEC seg = ElfObj_getsegment(".rodata.str".ptr, name[i].ptr, SHT_PROGBITS, SHF_ALLOC, sz);
     return seg;

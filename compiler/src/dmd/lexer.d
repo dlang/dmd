@@ -1568,8 +1568,13 @@ class Lexer
                     stringbuffer.writeByte(v);
                 }
                 t.setString(stringbuffer);
-                t.postfix = 'h';
                 stringPostfix(t);
+                if (*p == 'L')
+                {
+                    t.postfix = 'L';
+                    p++;
+                }
+
                 return TOK.hexadecimalString;
             default:
                 if (c >= '0' && c <= '9')

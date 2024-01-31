@@ -4248,6 +4248,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             const data = cast(const ubyte[]) e.peekString();
             switch (e.postfix)
             {
+                case 'L':
+                    e.sz = 8;
+                    e.type = Type.tuns64.immutableOf().arrayOf();
+                    break;
                 case 'd':
                     e.sz = 4;
                     e.type = Type.tdstring;
