@@ -268,6 +268,11 @@ void testHexstring()
     assert(wStr[0] == 0xAABB);
     assert(wStr[1] == 0xCCDD);
     assert(dStr[0] == 0xAABBCCDD);
+
+    // Test sliceCmpStringWithArray with size 8
+    static immutable ulong[] z0 = cast(immutable ulong[]) x"1111 1111 1111 1111 0000 000F 0000 0000";
+    static immutable ulong[] z1 = [0x1111_1111_1111_1111, 0x0000_000E_0000_0000];
+    static assert(z0 !is z1);
 }
 
 /***************************************************/
