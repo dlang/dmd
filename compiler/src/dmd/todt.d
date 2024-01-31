@@ -427,8 +427,9 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
                 }
                 else
                 {
-                    ubyte pow2 = e.sz == 4 ? 2 : 1;
-                    dtb.abytes(0, n * e.sz, p, cast(uint)e.sz, pow2);
+                    import core.bitop : bsr;
+                    const pow2 = cast(ubyte) bsr(e.sz);
+                    dtb.abytes(0, n * e.sz, p, cast(uint) e.sz, pow2);
                 }
                 break;
 
