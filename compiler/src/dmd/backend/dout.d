@@ -536,6 +536,9 @@ Symbol *out_string_literal(const(char)* str, uint len, uint sz)
         ty = TYchar16;
     else if (sz == 4)
         ty = TYdchar;
+    else if (sz == 8)
+        ty = TYulong;
+
     Symbol *s = symbol_generate(SC.static_,type_static_array(len, tstypes[ty]));
     switch (config.objfmt)
     {
@@ -576,6 +579,18 @@ Symbol *out_string_literal(const(char)* str, uint len, uint sz)
             foreach (i; 0 .. len)
             {
                 auto p = cast(const(uint)*)str;
+                if (p[i] == 0)
+                {
+                    s.Sseg = CDATA;
+                    break;
+                }
+            }
+            break;
+
+        case 8:
+            foreach (i; 0.. len)
+            {
+                auto p = cast(const(ulong)*)str;
                 if (p[i] == 0)
                 {
                     s.Sseg = CDATA;
