@@ -379,12 +379,6 @@ pure @safe:
         return val;
     }
 
-    private template matchOrF(alias s)
-    {
-        enum matchOrF = "errStatus = !match("~s.stringof~");"~
-                        "if (errStatus) return;";
-    }
-
     void parseReal(out bool errStatus) scope nothrow
     {
         debug(trace) printf( "parseReal+\n" );
@@ -394,9 +388,15 @@ pure @safe:
         size_t   tlen = 0;
         real     val  = void;
 
+        void onError()
+        {
+            errStatus = true;
+        }
+
         if ( 'I' == front )
         {
-            mixin(matchOrF!( "INF" ));
+            if (!match("INF"))
+                return onError();
             put( "real.infinity" );
             return;
         }
@@ -405,13 +405,15 @@ pure @safe:
             popFront();
             if ( 'I' == front )
             {
-                mixin(matchOrF!( "INF" ));
+                if (!match("INF"))
+                    return onError();
                 put( "-real.infinity" );
                 return;
             }
             if ( 'A' == front )
             {
-                mixin(matchOrF!( "AN" ));
+                if (!match("AN"))
+                    return onError();
                 put( "real.nan" );
                 return;
             }
@@ -433,7 +435,8 @@ pure @safe:
             tbuf[tlen++] = front;
             popFront();
         }
-        mixin(matchOrF!( 'P' ));
+        if (!match('P'))
+            return onError();
         tbuf[tlen++] = 'p';
         if ( 'N' == front )
         {
@@ -1425,6 +1428,11 @@ pure @safe:
         debug(trace) printf( "parseValue+\n" );
         debug(trace) scope(success) printf( "parseValue-\n" );
 
+        void onError()
+        {
+            errStatus = true;
+        }
+
 //        printf( "*** %c\n", front );
         switch ( front )
         {
@@ -1434,9 +1442,8 @@ pure @safe:
             return;
         case 'i':
             popFront();
-            errStatus = ( '0' > front || '9' < front );
-            if (errStatus)
-                return; // Number expected
+            if ('0' > front || '9' < front)
+                return onError(); // Number expected
             goto case;
         case '0': .. case '9':
             parseIntegerValue( errStatus, name, type );
@@ -1456,7 +1463,8 @@ pure @safe:
             if (errStatus)
                 return;
             put( '+' );
-            mixin(matchOrF!( 'c' ));
+            if (!match('c'))
+                return onError();
             parseReal(errStatus);
             if (errStatus)
                 return;
@@ -1468,7 +1476,8 @@ pure @safe:
             auto n = decodeNumber(errStatus);
             if (errStatus)
                 return;
-            mixin(matchOrF!( '_' ));
+            if (!match('_'))
+                return onError();
             put( '"' );
             foreach (i; 0..n)
             {
@@ -1872,52 +1881,46 @@ pure @safe:
         auto sav = pos;
         auto saveBrp = brp;
 
-        void call_if_failure()
+        void onError()
         {
+            errStatus = true;
             pos = sav;
             brp = saveBrp;
-        }
-
-        template check4err()
-        {
-            enum check4err =
-            "if (errStatus) {"~
-            "   call_if_failure();"~
-            "   return;"~
-            "}";
         }
 
         size_t n = 0;
         if (hasNumber)
         {
             n = decodeNumber(errStatus);
-            mixin(check4err!());
+            if (errStatus)
+                return onError();
         }
 
         auto beg = pos;
         errStatus = !match( "__T" );
-        mixin(check4err!());
+        if (errStatus)
+            return onError();
 
         {
             string errMsg;
             parseLName(errMsg);
-            errStatus = errMsg !is null;
-            mixin(check4err!());
+            if (errMsg !is null)
+                return onError();
         }
 
         put( "!(" );
 
         parseTemplateArgs(errStatus);
-        mixin(check4err!());
+        if (errStatus)
+            return onError();
 
-        errStatus = !match( 'Z' );
-        mixin(check4err!());
+        if (!match('Z'))
+            return onError();
 
         if ( hasNumber && pos - beg != n )
         {
             // Template name length mismatch
-            errStatus = true;
-            call_if_failure();
+            return onError();
         }
 
         put( ')' );
