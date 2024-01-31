@@ -629,7 +629,7 @@ MATCH implicitConvTo(Expression e, Type t)
 
         TY tyn = e.type.nextOf().ty;
 
-        if (!tyn.isSomeChar)
+        if (!tyn.isSomeChar && !e.hexString)
             return visit(e);
 
         switch (t.ty)

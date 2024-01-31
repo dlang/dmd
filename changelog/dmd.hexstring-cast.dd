@@ -11,13 +11,17 @@ immutable uint[] data = cast(immutable uint[]) x"AABBCCDD";
 static assert(data[0] == 0xAABBCCDD);
 ---
 
-Character postfixes can now also be used for integers of size 2 or 4:
+Character postfixes can now also be used for integers of size 2 or 4, while an `L` postfix can be used for size 8:
 ---
 immutable ushort[] f = x"80 3F"w;
 static assert(f[0] == 0x803F);
 
-immutable int[] f = x"80 35 FF FD"d;
-static assert(f[0] == 0x803FFF);
+immutable int[] g = x"80 35 FF FD"d;
+static assert(g[0] == 0x803FFFFD);
+
+auto h = x"0011 2233 4455 6677"L;
+static assert(h[0] == 0x0011_2233_4455_6677);
+static assert(is(typeof(h) == immutable ulong[]));
 ---
 
 Formerly, they would pad each byte with 1 or 3 zeros, which did not serve a purpose (See [Issue 24363](https://issues.dlang.org/show_bug.cgi?id=24363)).
