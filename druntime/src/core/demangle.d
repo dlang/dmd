@@ -79,6 +79,16 @@ pure @safe:
     AddType         addType = AddType.yes;
     bool            mute    = false;
     Hooks           hooks;
+    bool hasErrors = false;
+
+    /// Error function. Currently, errors simply make the function return
+    /// the mangled name, but as a future enhancement, error handlers can
+    /// be supplied through `Hooks`
+    void error(string msg = "error")
+    {
+        // import core.builtins; __ctfeWrite(msg);
+        hasErrors = true;
+    }
 
     //////////////////////////////////////////////////////////////////////////
     // Type Testing and Conversion
@@ -1865,7 +1875,8 @@ pure @safe:
         }
 
         parseMangledName(errStatus, false, n );
-
+        if (errStatus)
+            error();
         return !errStatus;
     }
 
@@ -2096,9 +2107,11 @@ pure @safe:
         auto end = pos + n;
 
         eat( '_' );
-        errStatus = !match( 'D' );
-        if (errStatus)
-            return;
+        if (!match('D'))
+        {
+            errStatus = true;
+            return error();
+        }
 
         do
         {
@@ -2116,14 +2129,14 @@ pure @safe:
 
                 parseSymbolName(errStatus);
                 if (errStatus)
-                    return;
+                    return error();
 
                 nameEnd = dst.length;
                 attr = parseFunctionTypeNoReturn( displayType );
 
                 is_sym_name_front = isSymbolNameFront(errStatus);
                 if (errStatus)
-                    return;
+                    return error();
             } while (is_sym_name_front);
 
             if ( displayType )
@@ -2140,7 +2153,7 @@ pure @safe:
             auto lastlen = dst.length;
             auto type = parseType(errStatus);
             if (errStatus)
-                return;
+                return error();
 
             if ( displayType )
             {
@@ -2442,7 +2455,7 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
 
     bool errStatus;
     d.parseMangledName(errStatus);
-    if (errStatus)
+    if (d.hasErrors)
     {
         // error cannot occur
         return mangled.dup;
