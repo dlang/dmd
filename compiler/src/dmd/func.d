@@ -58,6 +58,7 @@ import dmd.semantic3;
 import dmd.statement_rewrite_walker;
 import dmd.statement;
 import dmd.statementsem;
+import dmd.templatesem;
 import dmd.tokens;
 import dmd.visitor;
 
