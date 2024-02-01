@@ -507,17 +507,20 @@ pure @safe:
             if (r) return;
         }
 
+        void error(string msg)
+        {
+            errMsg = msg;
+        }
+
         if ( front == 'Q' )
         {
             // back reference to LName
             auto refPos = pos;
             popFront();
             size_t n = decodeBackref();
-            if ( !n || n > refPos )
-            {
-                errMsg = "Invalid LName back reference";
-                return;
-            }
+            if (!n || n > refPos)
+                return error("Invalid LName back reference");
+
             if ( !mute )
             {
                 auto savePos = pos;
@@ -531,10 +534,7 @@ pure @safe:
         bool err_flag;
         auto n = decodeNumber(err_flag);
         if (err_flag)
-        {
-            errMsg = "Number overflow";
-            return;
-        }
+            return error("Number overflow");
 
         if ( n == 0 )
         {
@@ -542,22 +542,15 @@ pure @safe:
             return;
         }
         if ( n > buf.length || n > buf.length - pos )
-        {
-            errMsg = "LName must be at least 1 character";
-            return;
-        }
+            return error("LName must be at least 1 character");
+
         if ( '_' != front && !isAlpha( front ) )
-        {
-            errMsg = "Invalid character in LName";
-            return;
-        }
+            return error("Invalid character in LName");
+
         foreach (char e; buf[pos + 1 .. pos + n] )
         {
             if ( '_' != e && !isAlpha( e ) && !isDigit( e ) )
-            {
-                errMsg = "Invalid character in LName";
-                return;
-            }
+                return error("Invalid character in LName");
         }
 
         put( buf[pos .. pos + n] );
@@ -2321,6 +2314,11 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
 
         bool parseLName(out string errMsg, scope ref Remangle d) scope @trusted nothrow
         {
+            bool error(string msg)
+            {
+                errMsg = msg;
+                return false;
+            }
             flushPosition(d);
 
             auto reslen = result.length;
@@ -2334,10 +2332,8 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
                     d.popFront();
                     size_t n = d.decodeBackref();
                     if (!n || n > refpos)
-                    {
-                        errMsg = "invalid back reference";
-                        return false;
-                    }
+                        return error("invalid back reference");
+
                     auto savepos = d.pos;
                     scope(exit) d.pos = savepos;
                     size_t srcpos = refpos - n;
@@ -2345,23 +2341,16 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
                     bool errStatus;
                     auto idlen = d.decodeNumber(errStatus);
                     if (errStatus)
-                    {
-                        errMsg = "invalid number";
-                        return false;
-                    }
+                        return error("invalid number");
 
                     if (d.pos + idlen > d.buf.length)
-                    {
-                        errMsg = "invalid back reference";
-                        return false;
-                    }
+                        return error("invalid back reference");
+
                     auto id = d.buf[d.pos .. d.pos + idlen];
                     auto pid = id in idpos;
                     if (!pid)
-                    {
-                        errMsg = "invalid back reference";
-                        return false;
-                    }
+                        return error("invalid back reference");
+
                     npos = positionInResult(*pid);
                 }
                 encodeBackref(reslen - npos);
@@ -2373,16 +2362,11 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
                 bool errStatus;
                 auto n = d.decodeNumber(errStatus);
                 if (errStatus)
-                {
-                    errMsg = "invalid number";
-                    return false;
-                }
+                    return error("invalid number");
 
                 if (!n || n > d.buf.length || n > d.buf.length - d.pos)
-                {
-                    errMsg = "LName too shot or too long";
-                    return false;
-                }
+                    return error("LName too short or too long");
+
                 auto id = d.buf[d.pos .. d.pos + n];
                 d.pos += n;
                 if (auto pid = id in idpos)
