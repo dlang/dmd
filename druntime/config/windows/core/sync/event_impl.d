@@ -7,6 +7,8 @@ import core.sys.windows.winbase /+: CreateEvent, CloseHandle, SetEvent, ResetEve
     WaitForSingleObject, INFINITE, WAIT_OBJECT_0+/;
 import core.time;
 
+package:
+
 nothrow @nogc:
 
 alias EventHandler = HANDLE;

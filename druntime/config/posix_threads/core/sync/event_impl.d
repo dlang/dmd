@@ -6,6 +6,8 @@ import core.sys.posix.sys.types;
 import core.sys.posix.time;
 import core.time;
 
+package:
+
 nothrow @nogc:
 
 struct EventHandler
