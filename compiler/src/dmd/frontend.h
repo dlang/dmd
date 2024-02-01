@@ -1839,15 +1839,6 @@ public:
     bool isSharedWild() const;
     bool isNaked() const;
     Type* nullAttributes() const;
-    Type* immutableOf();
-    Type* mutableOf();
-    Type* sharedOf();
-    Type* sharedConstOf();
-    Type* unSharedOf();
-    Type* wildOf();
-    Type* wildConstOf();
-    Type* sharedWildOf();
-    Type* sharedWildConstOf();
     Type* castMod(uint8_t mod);
     Type* addMod(uint8_t mod);
     virtual Type* addStorageClass(StorageClass stc);
@@ -5445,19 +5436,37 @@ extern Expression* defaultInit(Type* mt, const Loc& loc, const bool isCfile = fa
 
 extern bool hasPointers(Type* t);
 
+extern Type* immutableOf(Type* type);
+
 extern bool isBaseOf(Type* tthis, Type* t, int32_t* poffset);
 
 extern Type* merge(Type* type);
 
 extern Type* merge2(Type* type);
 
+extern Type* mutableOf(Type* type);
+
 extern void purityLevel(TypeFunction* typeFunction);
+
+extern Type* sharedConstOf(Type* type);
+
+extern Type* sharedOf(Type* type);
+
+extern Type* sharedWildConstOf(Type* type);
+
+extern Type* sharedWildOf(Type* type);
 
 extern Dsymbol* toDsymbol(Type* type, Scope* sc);
 
 extern Type* trySemantic(Type* type, const Loc& loc, Scope* sc);
 
 extern Type* typeSemantic(Type* type, const Loc& loc, Scope* sc);
+
+extern Type* unSharedOf(Type* type);
+
+extern Type* wildConstOf(Type* type);
+
+extern Type* wildOf(Type* type);
 
 struct UnionExp final
 {
