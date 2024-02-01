@@ -1839,7 +1839,6 @@ public:
     bool isSharedWild() const;
     bool isNaked() const;
     Type* nullAttributes() const;
-    Type* castMod(uint8_t mod);
     Type* addMod(uint8_t mod);
     virtual Type* addStorageClass(StorageClass stc);
     Type* pointerTo();
@@ -5427,6 +5426,8 @@ public:
     StaticAssert* isStaticAssert() override;
     void accept(Visitor* v) override;
 };
+
+extern Type* castMod(Type* type, uint8_t mod);
 
 extern Type* constOf(Type* type);
 

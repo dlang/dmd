@@ -1675,7 +1675,7 @@ void test_backend(FuncDeclaration *f, Type *t)
         t->accept(&v);
     else
     {
-        Type *tb = t->castMod(0);
+        Type *tb = castMod(t, 0);
         tb->accept(&v);
         (void)t->mod;
     }

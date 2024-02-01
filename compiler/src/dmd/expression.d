@@ -48,6 +48,7 @@ import dmd.root.string;
 import dmd.root.utf;
 import dmd.target;
 import dmd.tokens;
+import dmd.typesem;
 import dmd.visitor;
 
 enum LOGSEMANTIC = false;
@@ -3850,7 +3851,6 @@ extern (C++) final class CastExp : UnaExp
         //printf("e1.type = %s, to.type = %s\n", e1.type.toChars(), to.toChars());
         if (!e1.isLvalue())
             return false;
-        import dmd.typesem;
         return (to.ty == Tsarray && (e1.type.ty == Tvector || e1.type.ty == Tsarray)) ||
             e1.type.mutableOf.unSharedOf().equals(to.mutableOf().unSharedOf());
     }
