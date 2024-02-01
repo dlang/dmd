@@ -3806,7 +3806,6 @@ public:
     Array<Expression* >* fdensureParams(Array<Expression* >* param);
     FuncDeclaration* syntaxCopy(Dsymbol* s) override;
     bool equals(const RootObject* const o) const final override;
-    int32_t findVtblIndex(Array<Dsymbol* >* vtbl, int32_t dim);
     bool overloadInsert(Dsymbol* s) override;
     bool inUnittest();
     static MATCH leastAsSpecialized(FuncDeclaration* f, FuncDeclaration* g, Array<Identifier* >* names);

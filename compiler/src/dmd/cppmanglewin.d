@@ -25,6 +25,7 @@ import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
+import dmd.funcsem;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
@@ -513,7 +514,7 @@ extern(D):
             // Pivate methods always non-virtual in D and it should be mangled as non-virtual in C++
             //printf("%s: isVirtualMethod = %d, isVirtual = %d, vtblIndex = %d, interfaceVirtual = %p\n",
                 //d.toChars(), d.isVirtualMethod(), d.isVirtual(), cast(int)d.vtblIndex, d.interfaceVirtual);
-            if ((d.isVirtual() && (d.vtblIndex != -1 || d.interfaceVirtual || d.overrideInterface())) || (d.isDtorDeclaration() && d.parent.isClassDeclaration() && !d.isFinal()))
+            if ((d.isVirtual() && (d.vtblIndex != -1 || d.interfaceVirtual || overrideInterface(d))) || (d.isDtorDeclaration() && d.parent.isClassDeclaration() && !d.isFinal()))
             {
                 mangleVisibility(buf, d, "EMU");
             }
