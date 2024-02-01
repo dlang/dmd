@@ -1610,7 +1610,7 @@ public:
         }
         if (d->semanticRun < PASS::semantic3)
         {
-            d->functionSemantic3();
+            functionSemantic3(d);
             Module::runDeferredSemantic3();
         }
         if (global.errors)

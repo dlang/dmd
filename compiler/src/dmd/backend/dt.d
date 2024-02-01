@@ -291,7 +291,7 @@ nothrow:
      *  size = number of bytes pointed to by ptr
      *  ptr = points to data bytes
      *  nzeros = number of zero bytes to add to the end
-     *  _align = alignment of pointed-to data
+     *  _align = log2() of byte alignment of pointed-to data
      */
     @trusted
     void abytes(tym_t ty, uint offset, uint size, const(char)* ptr, uint nzeros, ubyte _align)

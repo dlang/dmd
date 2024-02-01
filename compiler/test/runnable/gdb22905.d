@@ -10,7 +10,7 @@ cont
 end
 run
 ---
-GDB_MATCH: _D7imports9gdb22905b5funcBFZv .. at runnable/imports/gdb22905b.d:7
+GDB_MATCH: (_D7imports9gdb22905b5funcBFZv|imports\.gdb22905b\.funcB\(\)) .. at runnable/imports/gdb22905b.d:7
 */
 import imports.gdb22905b;
 

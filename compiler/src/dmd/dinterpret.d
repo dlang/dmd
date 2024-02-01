@@ -33,6 +33,7 @@ import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
+import dmd.funcsem;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
@@ -49,6 +50,8 @@ import dmd.rootobject;
 import dmd.root.utf;
 import dmd.statement;
 import dmd.tokens;
+import dmd.typesem : mutableOf;
+import dmd.utils : arrayCastBigEndian;
 import dmd.visitor;
 
 /*************************************
@@ -440,7 +443,7 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         fdError("circular dependency. Functions cannot be interpreted while being compiled");
         return CTFEExp.cantexp;
     }
-    if (!fd.functionSemantic3())
+    if (!functionSemantic3(fd))
         return CTFEExp.cantexp;
     if (fd.semanticRun < PASS.semantic3done)
     {
@@ -6097,11 +6100,35 @@ public:
             result.type = e.to;
             return;
         }
+
         // Disallow array type painting, except for conversions between built-in
         // types of identical size.
         if ((e.to.ty == Tsarray || e.to.ty == Tarray) && (e1.type.ty == Tsarray || e1.type.ty == Tarray) && !isSafePointerCast(e1.type.nextOf(), e.to.nextOf()))
         {
+            auto se = e1.isStringExp();
+            // Allow casting a hex string literal to short[], int[] or long[]
+            if (se && se.hexString && se.postfix == StringExp.NoPostfix)
+            {
+                const sz = cast(size_t) e.to.nextOf().size;
+                if ((se.len % sz) != 0)
+                {
+                    error(e.loc, "hex string length %d must be a multiple of %d to cast to `%s`",
+                        cast(int) se.len, cast(int) sz, e.to.toChars());
+                    result = CTFEExp.cantexp;
+                    return;
+                }
+
+                auto str = arrayCastBigEndian((cast(const ubyte[]) se.peekString()), sz);
+                emplaceExp!(StringExp)(pue, e1.loc, str, se.len / sz, cast(ubyte) sz);
+                result = pue.exp();
+                result.type = e.to;
+                return;
+            }
             error(e.loc, "array cast from `%s` to `%s` is not supported at compile time", e1.type.toChars(), e.to.toChars());
+            if (se && se.hexString && se.postfix != StringExp.NoPostfix)
+                errorSupplemental(e.loc, "perhaps remove postfix `%s` from hex string",
+                    (cast(char) se.postfix ~ "\0").ptr);
+
             result = CTFEExp.cantexp;
             return;
         }

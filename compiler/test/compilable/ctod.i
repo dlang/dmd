@@ -27,6 +27,10 @@ extern (C)
 		int x = void;
 	}
 	alias T = S;
+	enum
+	{
+		A,
+	}
 	/+enum int __DATE__ = 1+/;
 	/+enum int __TIME__ = 1+/;
 	/+enum int __TIMESTAMP__ = 1+/;
@@ -69,3 +73,6 @@ typedef S T;
 #define __TIMESTAMP__  1
 #define __EOF__  1
 #define __VENDOR__  1
+
+// https://issues.dlang.org/show_bug.cgi?id=24326
+enum { A };

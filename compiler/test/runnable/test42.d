@@ -721,8 +721,16 @@ void test48()
 
 void test49()
 {
-    assert((25.5).stringof ~ (3.01).stringof == "25.53.01");
-    assert(25.5.stringof ~ 3.01.stringof == "25.53.01");
+    version(GNU)
+    {
+        assert((25.5).stringof ~ (3.0625).stringof == "2.55e+13.0625e+0");
+        assert(25.5.stringof ~ 3.0625.stringof == "2.55e+13.0625e+0");
+    }
+    else
+    {
+        assert((25.5).stringof ~ (3.01).stringof == "25.53.01");
+        assert(25.5.stringof ~ 3.01.stringof == "25.53.01");
+    }
 }
 
 /***************************************************/

@@ -42,6 +42,7 @@ import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.errorsink;
+import dmd.enumsem;
 import dmd.escape;
 import dmd.expression;
 import dmd.file_manager;
@@ -84,6 +85,7 @@ import dmd.traits;
 import dmd.typesem;
 import dmd.typinf;
 import dmd.utils;
+import dmd.utils : arrayCastBigEndian;
 import dmd.visitor;
 
 enum LOGSEMANTIC = false;
@@ -4241,7 +4243,33 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         size_t u;
         dchar c;
 
-        switch (e.postfix)
+        if (e.hexString)
+        {
+            const data = cast(const ubyte[]) e.peekString();
+            switch (e.postfix)
+            {
+                case 'd':
+                    e.sz = 4;
+                    e.type = Type.tdstring;
+                    break;
+                case 'w':
+                    e.sz = 2;
+                    e.type = Type.twstring;
+                    break;
+                case 'c':
+                default:
+                    e.type = Type.tstring;
+                    e.sz = 1;
+                    break;
+            }
+            if ((e.len % e.sz) != 0)
+                error(e.loc, "hex string with `%s` type needs to be multiple of %d bytes, not %d",
+                    e.type.toChars(), e.sz, cast(int) e.len);
+
+            e.setData(arrayCastBigEndian(data, e.sz).ptr, e.len / e.sz, e.sz);
+            e.committed = true;
+        }
+        else switch (e.postfix)
         {
         case 'd':
             for (u = 0; u < e.len;)
@@ -7629,7 +7657,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         se = se.toUTF8(sc);
 
         auto namez = se.toStringz();
-        if (!global.filePath)
+        if (!global.filePath.length)
         {
             error(e.loc, "need `-J` switch to import text file `%s`", namez.ptr);
             return setError();
@@ -7660,12 +7688,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
         }
 
-        auto resolvedNamez = FileName.searchPath(global.filePath, namez, false);
+        auto resolvedNamez = FileName.searchPath(global.filePath[], namez, false);
         if (!resolvedNamez)
         {
             error(e.loc, "file `%s` cannot be found or not in a path specified with `-J`", se.toChars());
             errorSupplemental(e.loc, "Path(s) searched (as provided by `-J`):");
-            foreach (idx, path; *global.filePath)
+            foreach (idx, path; global.filePath[])
             {
                 const attr = FileName.exists(path);
                 const(char)* err = attr == 2 ? "" :

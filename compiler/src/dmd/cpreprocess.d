@@ -51,7 +51,7 @@ DArray!ubyte preprocess(FileName csrcfile, ref const Loc loc, ref OutBuffer defi
 {
     /* Look for "importc.h" by searching along import path.
      */
-    const(char)* importc_h = findImportcH(global.path ? (*global.path)[] : null);
+    const(char)* importc_h = findImportcH(global.path[]);
 
     if (importc_h)
     {

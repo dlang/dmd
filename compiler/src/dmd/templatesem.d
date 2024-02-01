@@ -34,6 +34,7 @@ import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem;
 import dmd.func;
+import dmd.funcsem;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
@@ -50,9 +51,159 @@ import dmd.common.outbuffer;
 import dmd.rootobject;
 import dmd.semantic2;
 import dmd.semantic3;
+import dmd.templateparamsem;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
+
+/************************************
+ * Perform semantic analysis on template.
+ * Params:
+ *      sc = context
+ *      tempdecl = template declaration
+ */
+void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
+{
+    enum log = false;
+    static if (log)
+    {
+        printf("TemplateDeclaration.dsymbolSemantic(this = %p, id = '%s')\n", this, tempdecl.ident.toChars());
+        printf("sc.stc = %llx\n", sc.stc);
+        printf("sc.module = %s\n", sc._module.toChars());
+    }
+    if (tempdecl.semanticRun != PASS.initial)
+        return; // semantic() already run
+
+    if (tempdecl._scope)
+    {
+        sc = tempdecl._scope;
+        tempdecl._scope = null;
+    }
+    if (!sc)
+        return;
+
+    // Remember templates defined in module object that we need to know about
+    if (sc._module && sc._module.ident == Id.object)
+    {
+        if (tempdecl.ident == Id.RTInfo)
+            Type.rtinfo = tempdecl;
+    }
+
+    /* Remember Scope for later instantiations, but make
+     * a copy since attributes can change.
+     */
+    if (!tempdecl._scope)
+    {
+        tempdecl._scope = sc.copy();
+        tempdecl._scope.setNoFree();
+    }
+
+    tempdecl.semanticRun = PASS.semantic;
+
+    tempdecl.parent = sc.parent;
+    tempdecl.visibility = sc.visibility;
+    tempdecl.userAttribDecl = sc.userAttribDecl;
+    tempdecl.cppnamespace = sc.namespace;
+    tempdecl.isstatic = tempdecl.toParent().isModule() || (tempdecl._scope.stc & STC.static_);
+    tempdecl.deprecated_ = !!(sc.stc & STC.deprecated_);
+
+    UserAttributeDeclaration.checkGNUABITag(tempdecl, sc.linkage);
+
+    if (!tempdecl.isstatic)
+    {
+        if (auto ad = tempdecl.parent.pastMixin().isAggregateDeclaration())
+            ad.makeNested();
+    }
+
+    // Set up scope for parameters
+    auto paramsym = new ScopeDsymbol();
+    paramsym.parent = tempdecl.parent;
+    Scope* paramscope = sc.push(paramsym);
+    paramscope.stc = 0;
+
+    if (global.params.ddoc.doOutput)
+    {
+        tempdecl.origParameters = new TemplateParameters(tempdecl.parameters.length);
+        for (size_t i = 0; i < tempdecl.parameters.length; i++)
+        {
+            TemplateParameter tp = (*tempdecl.parameters)[i];
+            (*tempdecl.origParameters)[i] = tp.syntaxCopy();
+        }
+    }
+
+    for (size_t i = 0; i < tempdecl.parameters.length; i++)
+    {
+        TemplateParameter tp = (*tempdecl.parameters)[i];
+        if (!tp.declareParameter(paramscope))
+        {
+            error(tp.loc, "parameter `%s` multiply defined", tp.ident.toChars());
+            tempdecl.errors = true;
+        }
+        if (!tp.tpsemantic(paramscope, tempdecl.parameters))
+        {
+            tempdecl.errors = true;
+        }
+        if (i + 1 != tempdecl.parameters.length && tp.isTemplateTupleParameter())
+        {
+            .error(tempdecl.loc, "%s `%s` template sequence parameter must be the last one", tempdecl.kind, tempdecl.toPrettyChars);
+            tempdecl.errors = true;
+        }
+    }
+
+    /* Calculate TemplateParameter.dependent
+     */
+    TemplateParameters tparams = TemplateParameters(1);
+    for (size_t i = 0; i < tempdecl.parameters.length; i++)
+    {
+        TemplateParameter tp = (*tempdecl.parameters)[i];
+        tparams[0] = tp;
+
+        for (size_t j = 0; j < tempdecl.parameters.length; j++)
+        {
+            // Skip cases like: X(T : T)
+            if (i == j)
+                continue;
+
+            if (TemplateTypeParameter ttp = (*tempdecl.parameters)[j].isTemplateTypeParameter())
+            {
+                if (reliesOnTident(ttp.specType, &tparams))
+                    tp.dependent = true;
+            }
+            else if (TemplateAliasParameter tap = (*tempdecl.parameters)[j].isTemplateAliasParameter())
+            {
+                if (reliesOnTident(tap.specType, &tparams) ||
+                    reliesOnTident(isType(tap.specAlias), &tparams))
+                {
+                    tp.dependent = true;
+                }
+            }
+        }
+    }
+
+    paramscope.pop();
+
+    // Compute again
+    tempdecl.onemember = null;
+    if (tempdecl.members)
+    {
+        Dsymbol s;
+        if (Dsymbol.oneMembers(tempdecl.members, s, tempdecl.ident) && s)
+        {
+            tempdecl.onemember = s;
+            s.parent = tempdecl;
+        }
+    }
+
+    /* BUG: should check:
+     *  1. template functions must not introduce virtual functions, as they
+     *     cannot be accomodated in the vtbl[]
+     *  2. templates cannot introduce non-static data members (i.e. fields)
+     *     as they would change the instance size of the aggregate.
+     */
+
+    tempdecl.semanticRun = PASS.semanticdone;
+}
+
 
 /***************************************
  * Given that ti is an instance of this TemplateDeclaration,
@@ -354,7 +505,7 @@ bool evaluateConstraint(TemplateDeclaration td, TemplateInstance ti, Scope* sc, 
         }
         if (td.isstatic)
             fd.storage_class |= STC.static_;
-        fd.declareThis(scx);
+        declareThis(fd, scx);
     }
 
     td.lastConstraint = td.constraint.syntaxCopy();
@@ -1467,7 +1618,7 @@ Lmatch:
         sc2.minst = sc.minst;
         sc2.stc |= fd.storage_class & STC.deprecated_;
 
-        fd = td.doHeaderInstantiation(ti, sc2, fd, tthis, argumentList.arguments);
+        fd = doHeaderInstantiation(td, ti, sc2, fd, tthis, argumentList.arguments);
         sc2 = sc2.pop();
         sc2 = sc2.pop();
 
@@ -1493,4 +1644,193 @@ Lmatch:
     paramscope.pop();
     //printf("\tmatch %d\n", match);
     return MATCHpair(matchTiargs, match);
+}
+
+/*************************************************
+ * Limited function template instantiation for using fd.leastAsSpecialized()
+ */
+private
+FuncDeclaration doHeaderInstantiation(TemplateDeclaration td, TemplateInstance ti, Scope* sc2, FuncDeclaration fd, Type tthis, Expressions* fargs)
+{
+    assert(fd);
+    version (none)
+    {
+        printf("doHeaderInstantiation this = %s\n", toChars());
+    }
+
+    // function body and contracts are not need
+    if (fd.isCtorDeclaration())
+        fd = new CtorDeclaration(fd.loc, fd.endloc, fd.storage_class, fd.type.syntaxCopy());
+    else
+        fd = new FuncDeclaration(fd.loc, fd.endloc, fd.ident, fd.storage_class, fd.type.syntaxCopy());
+    fd.parent = ti;
+
+    assert(fd.type.ty == Tfunction);
+    auto tf = fd.type.isTypeFunction();
+    tf.fargs = fargs;
+
+    if (tthis)
+    {
+        // Match 'tthis' to any TemplateThisParameter's
+        bool hasttp = false;
+        foreach (tp; *td.parameters)
+        {
+            TemplateThisParameter ttp = tp.isTemplateThisParameter();
+            if (ttp)
+                hasttp = true;
+        }
+        if (hasttp)
+        {
+            tf = tf.addSTC(ModToStc(tthis.mod)).isTypeFunction();
+            assert(!tf.deco);
+        }
+    }
+
+    Scope* scx = sc2.push();
+
+    // Shouldn't run semantic on default arguments and return type.
+    foreach (ref params; *tf.parameterList.parameters)
+        params.defaultArg = null;
+    tf.incomplete = true;
+
+    if (fd.isCtorDeclaration())
+    {
+        // For constructors, emitting return type is necessary for
+        // isReturnIsolated() in functionResolve.
+        tf.isctor = true;
+
+        Dsymbol parent = td.toParentDecl();
+        Type tret;
+        AggregateDeclaration ad = parent.isAggregateDeclaration();
+        if (!ad || parent.isUnionDeclaration())
+        {
+            tret = Type.tvoid;
+        }
+        else
+        {
+            tret = ad.handleType();
+            assert(tret);
+            tret = tret.addStorageClass(fd.storage_class | scx.stc);
+            tret = tret.addMod(tf.mod);
+        }
+        tf.next = tret;
+        if (ad && ad.isStructDeclaration())
+            tf.isref = 1;
+        //printf("tf = %s\n", tf.toChars());
+    }
+    else
+        tf.next = null;
+    fd.type = tf;
+    fd.type = fd.type.addSTC(scx.stc);
+    fd.type = fd.type.typeSemantic(fd.loc, scx);
+    scx = scx.pop();
+
+    if (fd.type.ty != Tfunction)
+        return null;
+
+    fd.originalType = fd.type; // for mangling
+    //printf("\t[%s] fd.type = %s, mod = %x, ", loc.toChars(), fd.type.toChars(), fd.type.mod);
+    //printf("fd.needThis() = %d\n", fd.needThis());
+
+    return fd;
+}
+
+/**************************************************
+ * Declare template parameter tp with value o, and install it in the scope sc.
+ */
+extern (D) RootObject declareParameter(TemplateDeclaration td, Scope* sc, TemplateParameter tp, RootObject o)
+{
+    //printf("TemplateDeclaration.declareParameter('%s', o = %p)\n", tp.ident.toChars(), o);
+    Type ta = isType(o);
+    Expression ea = isExpression(o);
+    Dsymbol sa = isDsymbol(o);
+    Tuple va = isTuple(o);
+
+    Declaration d;
+    VarDeclaration v = null;
+
+    if (ea)
+    {
+        if (ea.op == EXP.type)
+            ta = ea.type;
+        else if (auto se = ea.isScopeExp())
+            sa = se.sds;
+        else if (auto te = ea.isThisExp())
+            sa = te.var;
+        else if (auto se = ea.isSuperExp())
+            sa = se.var;
+        else if (auto fe = ea.isFuncExp())
+        {
+            if (fe.td)
+                sa = fe.td;
+            else
+                sa = fe.fd;
+        }
+    }
+
+    if (ta)
+    {
+        //printf("type %s\n", ta.toChars());
+        auto ad = new AliasDeclaration(Loc.initial, tp.ident, ta);
+        ad.storage_class |= STC.templateparameter;
+        d = ad;
+    }
+    else if (sa)
+    {
+        //printf("Alias %s %s;\n", sa.ident.toChars(), tp.ident.toChars());
+        auto ad = new AliasDeclaration(Loc.initial, tp.ident, sa);
+        ad.storage_class |= STC.templateparameter;
+        d = ad;
+    }
+    else if (ea)
+    {
+        // tdtypes.data[i] always matches ea here
+        Initializer _init = new ExpInitializer(td.loc, ea);
+        TemplateValueParameter tvp = tp.isTemplateValueParameter();
+        Type t = tvp ? tvp.valType : null;
+        v = new VarDeclaration(td.loc, t, tp.ident, _init);
+        v.storage_class = STC.manifest | STC.templateparameter;
+        d = v;
+    }
+    else if (va)
+    {
+        //printf("\ttuple\n");
+        d = new TupleDeclaration(td.loc, tp.ident, &va.objects);
+    }
+    else
+    {
+        assert(0);
+    }
+    d.storage_class |= STC.templateparameter;
+
+    if (ta)
+    {
+        Type t = ta;
+        // consistent with Type.checkDeprecated()
+        while (t.ty != Tenum)
+        {
+            if (!t.nextOf())
+                break;
+            t = (cast(TypeNext)t).next;
+        }
+        if (Dsymbol s = t.toDsymbol(sc))
+        {
+            if (s.isDeprecated())
+                d.storage_class |= STC.deprecated_;
+        }
+    }
+    else if (sa)
+    {
+        if (sa.isDeprecated())
+            d.storage_class |= STC.deprecated_;
+    }
+
+    if (!sc.insert(d))
+        .error(td.loc, "%s `%s` declaration `%s` is already defined", td.kind, td.toPrettyChars, tp.ident.toChars());
+    d.dsymbolSemantic(sc);
+    /* So the caller's o gets updated with the result of semantic() being run on o
+     */
+    if (v)
+        o = v._init.initializerToExpression();
+    return o;
 }

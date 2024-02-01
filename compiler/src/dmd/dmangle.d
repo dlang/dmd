@@ -502,6 +502,20 @@ public:
             toBuffer(*buf, id.toString(), s);
     }
 
+    void mangleInteger(dinteger_t v)
+    {
+        if (cast(sinteger_t) v < 0)
+        {
+            buf.writeByte('N');
+            buf.print(-v);
+        }
+        else
+        {
+            buf.writeByte('i');
+            buf.print(v);
+        }
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     void mangleDecl(Declaration sthis)
     {
@@ -909,17 +923,7 @@ public:
 
     override void visit(IntegerExp e)
     {
-        const v = e.toInteger();
-        if (cast(sinteger_t)v < 0)
-        {
-            buf.writeByte('N');
-            buf.print(-v);
-        }
-        else
-        {
-            buf.writeByte('i');
-            buf.print(v);
-        }
+        mangleInteger(e.toInteger());
     }
 
     override void visit(RealExp e)
@@ -946,6 +950,15 @@ public:
         char m;
         OutBuffer tmp;
         const(char)[] q;
+
+        void mangleAsArray()
+        {
+            buf.writeByte('A');
+            buf.print(e.len);
+            foreach (i; 0 .. e.len)
+                mangleInteger(e.getIndex(i));
+        }
+
         /* Write string in UTF-8 format
          */
         switch (e.sz)
@@ -962,7 +975,7 @@ public:
             {
                 dchar c;
                 if (const s = utf_decodeWchar(slice, u, c))
-                    error(e.loc, "%.*s", cast(int)s.length, s.ptr);
+                    return mangleAsArray();
                 else
                     tmp.writeUTF8(c);
             }
@@ -976,14 +989,16 @@ public:
             foreach (c; slice)
             {
                 if (!utf_isValidDchar(c))
-                    error(e.loc, "invalid UCS-32 char \\U%08x", c);
+                    return mangleAsArray();
                 else
                     tmp.writeUTF8(c);
             }
             q = tmp[];
             break;
         }
-
+        case 8:
+            // String of size 8 has to be hexstring cast to long[], mangle as array literal
+            return mangleAsArray();
         default:
             assert(0);
         }
@@ -991,14 +1006,7 @@ public:
         buf.writeByte(m);
         buf.print(q.length);
         buf.writeByte('_');    // nbytes <= 11
-        auto slice = buf.allocate(2 * q.length);
-        foreach (i, c; q)
-        {
-            char hi = (c >> 4) & 0xF;
-            slice[i * 2] = cast(char)(hi < 10 ? hi + '0' : hi - 10 + 'a');
-            char lo = c & 0xF;
-            slice[i * 2 + 1] = cast(char)(lo < 10 ? lo + '0' : lo - 10 + 'a');
-        }
+        buf.writeHexString(cast(const(ubyte)[]) q, false);
     }
 
     override void visit(ArrayLiteralExp e)

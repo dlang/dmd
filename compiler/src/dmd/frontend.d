@@ -203,9 +203,6 @@ void addImport(const(char)[] path)
     import dmd.arraytypes : Strings;
     import std.string : toStringz;
 
-    if (global.path is null)
-        global.path = new Strings();
-
     global.path.push(path.toStringz);
 }
 
@@ -220,9 +217,6 @@ void addStringImport(const(char)[] path)
 
     import dmd.globals : global;
     import dmd.arraytypes : Strings;
-
-    if (global.filePath is null)
-        global.filePath = new Strings();
 
     global.filePath.push(path.toStringz);
 }

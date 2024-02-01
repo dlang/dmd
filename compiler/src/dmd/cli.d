@@ -417,22 +417,21 @@ dmd -cov -unittest myprog.d
         Option("Hf=<filename>",
             "write 'header' file to filename"
         ),
-        Option("HC[=[silent|verbose]]",
-            "generate C++ 'header' file",
-            `Generate C++ 'header' files using the given configuration:",
+        Option("HC[=[?|h|help|silent|verbose]]",
+            "write C++ 'header' equivalent to stdout",
+            `write C++ 'header' equivalent to stdout configured with:",
             $(DL
+            $(DT ?|h|help)$(DD list available options for C++ 'header' file generation)
             $(DT silent)$(DD only list extern(C[++]) declarations (default))
             $(DT verbose)$(DD also add comments for ignored declarations (e.g. extern(D)))
             )`,
         ),
-        Option("HC=[?|h|help]",
-            "list available modes for C++ 'header' file generation"
-        ),
         Option("HCd=<directory>",
-            "write C++ 'header' file to directory"
+            "write C++ 'header' file to directory",
+            "write C++ 'header' file to directory, ignored if -HCf=<filename> is not present",
         ),
         Option("HCf=<filename>",
-            "write C++ 'header' file to filename"
+            "write C++ 'header' file to filename instead of stdout"
         ),
         Option("-help",
             "print help and exit"

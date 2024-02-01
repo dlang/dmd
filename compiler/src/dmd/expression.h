@@ -55,6 +55,7 @@ Expression *resolveLoc(Expression *exp, const Loc &loc, Scope *sc);
 MATCH implicitConvTo(Expression *e, Type *t);
 Expression *toLvalue(Expression *_this, Scope *sc, const char* action);
 Expression *modifiableLvalue(Expression* exp, Scope *sc);
+Expression *optimize(Expression *exp, int result, bool keepLvalue = false);
 
 typedef unsigned char OwnedBy;
 enum
@@ -107,8 +108,6 @@ public:
     virtual bool checkValue();
     Expression *addressOf();
     Expression *deref();
-
-    Expression *optimize(int result, bool keepLvalue = false);
 
     int isConst();
     virtual bool isIdentical(const Expression *e) const;
@@ -354,7 +353,7 @@ class StringExp final : public Expression
 public:
     utf8_t postfix;      // 'c', 'w', 'd'
     OwnedBy ownedByCtfe;
-    void *string;       // char, wchar, or dchar data
+    void *string;       // char, wchar, dchar, or long data
     size_t len;         // number of chars, wchars, or dchars
     unsigned char sz;   // 1: char, 2: wchar, 4: dchar
     d_bool committed;   // if type is committed
@@ -364,6 +363,7 @@ public:
     static StringExp *create(const Loc &loc, const void *s, d_size_t len);
     bool equals(const RootObject * const o) const override;
     char32_t getCodeUnit(d_size_t i) const;
+    dinteger_t getIndex(d_size_t i) const;
     StringExp *toStringExp() override;
     Optional<bool> toBool() override;
     bool isLvalue() override;

@@ -31,6 +31,7 @@ struct IntRange;
 struct AttributeViolation;
 
 bool functionSemantic(FuncDeclaration* fd);
+bool functionSemantic3(FuncDeclaration* fd);
 
 //enum STC : ulong from astenums.d:
 
@@ -700,7 +701,6 @@ public:
     FuncDeclaration *fdensure(FuncDeclaration *fde);
     Expressions *fdrequireParams(Expressions *fdrp);
     Expressions *fdensureParams(Expressions *fdep);
-    bool functionSemantic3();
     bool equals(const RootObject * const o) const override final;
 
     int findVtblIndex(Dsymbols *vtbl, int dim);
