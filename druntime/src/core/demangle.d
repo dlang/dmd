@@ -79,6 +79,17 @@ pure @safe:
     AddType         addType = AddType.yes;
     bool            mute    = false;
     Hooks           hooks;
+    bool hasErrors = false;
+
+    /// Called when encountering an error / unrecognized mangle.
+    ///
+    /// Currently, errors simply make `demangle` return
+    /// the input string, but the `msg` string can be used for debugging.
+    /// As a future enhancement, error handlers can be supplied through `Hooks`
+    void error(string msg = "error")
+    {
+        hasErrors = true;
+    }
 
     //////////////////////////////////////////////////////////////////////////
     // Type Testing and Conversion
@@ -727,7 +738,7 @@ pure @safe:
     TypeTuple:
         B Number Arguments
     */
-    BufSlice parseType(out bool errStatus) return scope nothrow
+    BufSlice parseType() return scope nothrow
     {
         static immutable string[23] primitives = [
             "char", // a
@@ -757,8 +768,8 @@ pure @safe:
 
         static if (__traits(hasMember, Hooks, "parseType"))
         {
-            auto n = hooks.parseType(errStatus, this, null);
-            if (errStatus)
+            auto n = hooks.parseType(this, null);
+            if (this.hasErrors)
                 return dst.bslice_empty;
             else
                 if (n !is null)
@@ -770,11 +781,11 @@ pure @safe:
         auto beg = dst.length;
         auto t = front;
 
-        BufSlice parseBackrefType(out string errStatus, scope BufSlice delegate(bool err_flag) pure @safe nothrow parseDg) pure @safe nothrow
+        BufSlice parseBackrefType(scope BufSlice delegate() pure @safe nothrow parseDg) pure @safe nothrow
         {
             if (pos == brp)
             {
-                errStatus = "recursive back reference";
+                this.error("recursive back reference");
                 return dst.bslice_empty;
             }
 
@@ -783,7 +794,7 @@ pure @safe:
             auto n = decodeBackref();
             if (n == 0 || n > pos)
             {
-                errStatus = "invalid back reference";
+                this.error("invalid back reference");
                 return dst.bslice_empty;
             }
 
@@ -795,44 +806,31 @@ pure @safe:
             pos = refPos - n;
             brp = refPos;
 
-            bool err_flag;
-            auto ret = parseDg(err_flag);
-            if (err_flag)
-            {
-                errStatus = "parseDg error";
-                return dst.bslice_empty;
-            }
-
+            auto ret = parseDg();
             return ret;
         }
-
-        // call parseType() and return error if occured
-        enum parseTypeOrF = "parseType(errStatus); if (errStatus) return dst.bslice_empty;";
 
         switch ( t )
         {
         case 'Q': // Type back reference
-            string errMsg;
-            auto r = parseBackrefType(errMsg, (e_flag) => parseType(e_flag));
-            if (errMsg !is null)
-                return dst.bslice_empty;
+            auto r = parseBackrefType(() => parseType());
             return r;
         case 'O': // Shared (O Type)
             popFront();
             put( "shared(" );
-            mixin(parseTypeOrF);
+            parseType();
             put( ')' );
             return dst[beg .. $];
         case 'x': // Const (x Type)
             popFront();
             put( "const(" );
-            mixin(parseTypeOrF);
+            parseType();
             put( ')' );
             return dst[beg .. $];
         case 'y': // Immutable (y Type)
             popFront();
             put( "immutable(" );
-            mixin(parseTypeOrF);
+            parseType();
             put( ')' );
             return dst[beg .. $];
         case 'N':
@@ -847,28 +845,28 @@ pure @safe:
                 popFront();
                 // TODO: Anything needed here?
                 put( "inout(" );
-                mixin(parseTypeOrF);
+                parseType();
                 put( ')' );
                 return dst[beg .. $];
             case 'h': // TypeVector (Nh Type)
                 popFront();
                 put( "__vector(" );
-                mixin(parseTypeOrF);
+                parseType();
                 put( ')' );
                 return dst[beg .. $];
             default:
-                errStatus = true;
+                error();
                 return dst.bslice_empty;
             }
         case 'A': // TypeArray (A Type)
             popFront();
-            mixin(parseTypeOrF);
+            parseType();
             put( "[]" );
             return dst[beg .. $];
         case 'G': // TypeStaticArray (G Number Type)
             popFront();
             auto num = sliceNumber();
-            mixin(parseTypeOrF);
+            parseType();
             put( '[' );
             put( num );
             put( ']' );
@@ -876,29 +874,34 @@ pure @safe:
         case 'H': // TypeAssocArray (H Type Type)
             popFront();
             // skip t1
-            auto tx = parseType(errStatus);
-            if (errStatus)
+            auto tx = parseType();
+            if (this.hasErrors)
                 return dst.bslice_empty;
-            mixin(parseTypeOrF);
+            parseType();
             put( '[' );
             shift(tx);
             put( ']' );
             return dst[beg .. $];
         case 'P': // TypePointer (P Type)
             popFront();
-            mixin(parseTypeOrF);
+            parseType();
             put( '*' );
             return dst[beg .. $];
         case 'F': case 'U': case 'W': case 'V': case 'R': // TypeFunction
+            bool errStatus;
             auto r = parseTypeFunction(errStatus);
             if (errStatus)
+            {
+                error();
                 return dst.bslice_empty;
+            }
             return r;
         case 'C': // TypeClass (C LName)
         case 'S': // TypeStruct (S LName)
         case 'E': // TypeEnum (E LName)
         case 'T': // TypeTypedef (T LName)
             popFront();
+            bool errStatus;
             parseQualifiedName(errStatus);
             if (errStatus)
                 return dst.bslice_empty;
@@ -908,16 +911,20 @@ pure @safe:
             auto modifiers = parseModifier();
             if ( front == 'Q' )
             {
-                string errMsg;
-                auto r = parseBackrefType(errMsg, (e_flag) => parseTypeFunction(e_flag, IsDelegate.yes));
-                if (errMsg !is null)
+                bool errStatus;
+                auto r = parseBackrefType(() => parseTypeFunction(errStatus, IsDelegate.yes));
+                if (errStatus)
+                {
+                    error();
                     return dst.bslice_empty;
+                }
                 return r;
             }
             else
             {
+                bool errStatus;
                 parseTypeFunction(errStatus, IsDelegate.yes);
-                if (errStatus)
+                if (this.hasErrors || errStatus)
                     return dst.bslice_empty;
             }
 
@@ -970,11 +977,11 @@ pure @safe:
                     put( "ucent" );
                     return dst[beg .. $];
                 default:
-                    errStatus = true;
+                    error("unknown type");
                     return dst.bslice_empty;
                 }
             }
-            errStatus = true;
+            error("unknown type");
             return dst.bslice_empty;
         }
     }
@@ -1287,9 +1294,6 @@ pure @safe:
                     pos--;
             }
 
-            // call parseType() and return error if occured
-            enum parseTypeOrF = "parseType(errStatus); if (errStatus) return;";
-
             switch ( front )
             {
             case 'I': // in  (I Type)
@@ -1297,25 +1301,25 @@ pure @safe:
                 put("in ");
                 if (front == 'K')
                     goto case;
-                mixin(parseTypeOrF);
+                parseType();
                 continue;
             case 'K': // ref (K Type)
                 popFront();
                 put( "ref " );
-                mixin(parseTypeOrF);
+                parseType();
                 continue;
             case 'J': // out (J Type)
                 popFront();
                 put( "out " );
-                mixin(parseTypeOrF);
+                parseType();
                 continue;
             case 'L': // lazy (L Type)
                 popFront();
                 put( "lazy " );
-                mixin(parseTypeOrF);
+                parseType();
                 continue;
             default:
-                mixin(parseTypeOrF);
+                parseType();
             }
         }
     }
@@ -1362,8 +1366,8 @@ pure @safe:
         // e.g. `delegate(int) @safedouble ' => 'double delegate(int) @safe'
         {
             auto retbeg = dst.length;
-            parseType(errStatus);
-            if (errStatus)
+            parseType();
+            if (this.hasErrors)
                 return dst.bslice_empty;
             put(' ');
             shift(dst[argbeg .. retbeg]);
@@ -1577,7 +1581,9 @@ pure @safe:
             // f MangledName
             // A function literal symbol
             popFront();
-            parseMangledName(errStatus, false, 1);
+            parseMangledName(false, 1);
+            if (this.hasErrors)
+                errStatus = true;
             return;
         default:
             errStatus = true;
@@ -1715,9 +1721,12 @@ pure @safe:
             case 'T':
                 popFront();
                 putComma(n);
-                parseType(errStatus);
-                if (errStatus)
+                parseType();
+                if (this.hasErrors)
+                {
+                    errStatus = true;
                     return;
+                }
                 continue;
             case 'V':
                 popFront();
@@ -1738,7 +1747,7 @@ pure @safe:
                     }
                 }
                 BufSlice name = dst.bslice_empty;
-                silent( errStatus, delegate void(out bool e_flg) nothrow { name = parseType(e_flg); } );
+                silent( errStatus, delegate void(out bool e_flg) nothrow { name = parseType(); } );
                 if (errStatus)
                     return;
                 parseValue( errStatus, name, t );
@@ -1853,20 +1862,20 @@ pure @safe:
         debug(trace) printf( "parseMangledNameArg+\n" );
         debug(trace) scope(success) printf( "parseMangledNameArg-\n" );
 
-        bool errStatus;
-
         size_t n = 0;
         if ( isDigit( front ) )
         {
+            bool errStatus;
             n = decodeNumber(errStatus);
-
             if (errStatus)
+            {
+                error();
                 return false;
+            }
         }
 
-        parseMangledName(errStatus, false, n );
-
-        return !errStatus;
+        parseMangledName(false, n);
+        return !this.hasErrors;
     }
 
     /*
@@ -2087,7 +2096,7 @@ pure @safe:
         _D QualifiedName Type
         _D QualifiedName M Type
     */
-    void parseMangledName( out bool errStatus, bool displayType, size_t n = 0 ) scope nothrow
+    void parseMangledName(bool displayType, size_t n = 0 ) scope nothrow
     {
         debug(trace) printf( "parseMangledName+\n" );
         debug(trace) scope(success) printf( "parseMangledName-\n" );
@@ -2096,9 +2105,8 @@ pure @safe:
         auto end = pos + n;
 
         eat( '_' );
-        errStatus = !match( 'D' );
-        if (errStatus)
-            return;
+        if (!match('D'))
+            return error();
 
         do
         {
@@ -2114,16 +2122,17 @@ pure @safe:
                 if (beg != dst.length)
                     put( '.' );
 
+                bool errStatus;
                 parseSymbolName(errStatus);
                 if (errStatus)
-                    return;
+                    return error();
 
                 nameEnd = dst.length;
                 attr = parseFunctionTypeNoReturn( displayType );
 
                 is_sym_name_front = isSymbolNameFront(errStatus);
                 if (errStatus)
-                    return;
+                    return error();
             } while (is_sym_name_front);
 
             if ( displayType )
@@ -2138,8 +2147,8 @@ pure @safe:
                 popFront(); // has 'this' pointer
 
             auto lastlen = dst.length;
-            auto type = parseType(errStatus);
-            if (errStatus)
+            auto type = parseType();
+            if (this.hasErrors)
                 return;
 
             if ( displayType )
@@ -2172,9 +2181,9 @@ pure @safe:
         } while ( true );
     }
 
-    void parseMangledName(out bool errStatus) nothrow
+    void parseMangledName() nothrow
     {
-        parseMangledName(errStatus, AddType.yes == addType);
+        parseMangledName(AddType.yes == addType);
     }
 
     char[] doDemangle(alias FUNC)() return scope nothrow
@@ -2183,9 +2192,8 @@ pure @safe:
         {
             debug(info) printf( "demangle(%.*s)\n", cast(int) buf.length, buf.ptr );
 
-            bool errStatus;
-            FUNC(errStatus);
-            if (!errStatus)
+            FUNC();
+            if (!this.hasErrors)
             {
                 return dst[0 .. $].getSlice;
             }
@@ -2393,8 +2401,9 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
             return true;
         }
 
-        char[] parseType( out bool errStatus, ref Remangle d, char[] name ) return scope nothrow
+        char[] parseType(ref Remangle d, char[] name) return scope nothrow
         {
+            bool errStatus;
             if (d.front != 'Q')
                 return null;
 
@@ -2405,8 +2414,7 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
             auto n = d.decodeBackref();
             if (n == 0 || n > refPos)
             {
-                // invalid back reference
-                errStatus = true;
+                d.error("invalid back reference");
                 return null;
             }
 
@@ -2442,7 +2450,7 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
 
     bool errStatus;
     d.parseMangledName(errStatus);
-    if (errStatus)
+    if (d.hasErrors)
     {
         // error cannot occur
         return mangled.dup;
