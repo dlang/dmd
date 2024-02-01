@@ -11,13 +11,8 @@
  */
 module core.sync.event;
 
-import core.sys.windows.basetsd /+: HANDLE +/;
-import core.sys.windows.winerror /+: WAIT_TIMEOUT +/;
-import core.sys.windows.winbase /+: CreateEvent, CloseHandle, SetEvent, ResetEvent,
-    WaitForSingleObject, INFINITE, WAIT_OBJECT_0+/;
-
 import core.time;
-import core.internal.abort : abort;
+static import core.sync.event_impl;
 
 /**
  * represents an event. Clients of an event are suspended while waiting
@@ -58,6 +53,9 @@ struct ProcessFile
 struct Event
 {
 nothrow @nogc:
+
+    private core.sync.event_impl.EventHandler hdl;
+
     /**
      * Creates an event object.
      *
@@ -79,10 +77,10 @@ nothrow @nogc:
      */
     void initialize(bool manualReset, bool initialState)
     {
-        if (m_event)
+        if(hdl.initalized)
             return;
-        m_event = CreateEvent(null, manualReset, initialState, null);
-        m_event || abort("Error: CreateEvent failed.");
+
+        hdl = core.sync.event_impl.create(manualReset, initialState);
     }
 
     // copying not allowed, can produce resource leaks
@@ -100,9 +98,8 @@ nothrow @nogc:
     */
     void terminate()
     {
-        if (m_event)
-            CloseHandle(m_event);
-        m_event = null;
+        if (hdl.initalized)
+            core.sync.event_impl.destroy(hdl);
     }
 
     deprecated ("Use setIfInitialized() instead") void set()
@@ -113,15 +110,15 @@ nothrow @nogc:
     /// Set the event to "signaled", so that waiting clients are resumed
     void setIfInitialized()
     {
-        if (m_event)
-            SetEvent(m_event);
+        if (hdl.initalized)
+            core.sync.event_impl.set(hdl);
     }
 
     /// Reset the event manually
     void reset()
     {
-        if (m_event)
-            ResetEvent(m_event);
+        if (hdl.initalized)
+            core.sync.event_impl.reset(hdl);
     }
 
     /**
@@ -132,7 +129,7 @@ nothrow @nogc:
      */
     bool wait()
     {
-        return m_event && WaitForSingleObject(m_event, INFINITE) == WAIT_OBJECT_0;
+        return core.sync.event_impl.wait(hdl);
     }
 
     /**
@@ -146,21 +143,57 @@ nothrow @nogc:
      */
     bool wait(Duration tmout)
     {
-        if (!m_event)
+        if (!hdl.initalized)
             return false;
 
-        auto maxWaitMillis = dur!("msecs")(uint.max - 1);
+        return core.sync.event_impl.wait(hdl, tmout);
+    }
+}
 
-        while (tmout > maxWaitMillis)
-        {
-            auto res = WaitForSingleObject(m_event, uint.max - 1);
-            if (res != WAIT_TIMEOUT)
-                return res == WAIT_OBJECT_0;
-            tmout -= maxWaitMillis;
-        }
-        auto ms = cast(uint)(tmout.total!"msecs");
-        return WaitForSingleObject(m_event, ms) == WAIT_OBJECT_0;
+// Test single-thread (non-shared) use.
+@nogc nothrow unittest
+{
+    // auto-reset, initial state false
+    Event ev1 = Event(false, false);
+    assert(!ev1.wait(1.dur!"msecs"));
+    ev1.setIfInitialized();
+    assert(ev1.wait());
+    assert(!ev1.wait(1.dur!"msecs"));
+
+    // manual-reset, initial state true
+    Event ev2 = Event(true, true);
+    assert(ev2.wait());
+    assert(ev2.wait());
+    ev2.reset();
+    assert(!ev2.wait(1.dur!"msecs"));
+}
+
+unittest
+{
+    import core.thread, core.atomic;
+
+    scope event      = new Event(true, false);
+    int  numThreads = 10;
+    shared int numRunning = 0;
+
+    void testFn()
+    {
+        event.wait(8.dur!"seconds"); // timeout below limit for druntime test_runner
+        numRunning.atomicOp!"+="(1);
     }
 
-    private HANDLE m_event;
+    auto group = new ThreadGroup;
+
+    for (int i = 0; i < numThreads; ++i)
+        group.create(&testFn);
+
+    auto start = MonoTime.currTime;
+    assert(numRunning == 0);
+
+    event.setIfInitialized();
+    group.joinAll();
+
+    assert(numRunning == numThreads);
+
+    assert(MonoTime.currTime - start < 5.dur!"seconds");
 }
