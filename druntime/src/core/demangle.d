@@ -443,6 +443,8 @@ pure @safe:
 
         while ( isHexDigit( front ) )
         {
+            if (tlen >= tbuf.length)
+                return onError(); // Too many hex float digits
             tbuf[tlen++] = front;
             popFront();
         }
@@ -2799,6 +2801,9 @@ else
         ["_D3foo3FooQiMNgFNlNfZv",        "inout scope @safe void foo.Foo.foo()"],
         ["_D3foo3Foo4foorMNgFNjNfZv",     "inout return @safe void foo.Foo.foor()"],
         ["_D3foo3Foo3rabMNgFNlNjNfZv",    "inout scope return @safe void foo.Foo.rab()"],
+
+        // Hex float digit overflow
+        ["_D3foo__T1fVdeFA3D0FBFB72A3C33FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", "_D3foo__T1fVdeFA3D0FBFB72A3C33FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"],
     ];
 
 
