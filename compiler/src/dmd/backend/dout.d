@@ -126,7 +126,7 @@ void outdata(Symbol *s)
                 }
                 else
                 {
-                    alignOffset(CDATA, 2 << dt.DTalign);
+                    alignOffset(CDATA, 1 << dt.DTalign);
                     dt.DTabytes += objmod.data_readonly(cast(char*)dt.DTpbytes,dt.DTnbytes,&dt.DTseg);
                 }
                 break;
