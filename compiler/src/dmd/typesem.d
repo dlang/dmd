@@ -6106,6 +6106,26 @@ extern(C++) bool isBaseOf(Type tthis, Type t, int* poffset)
     return false;
 }
 
+/********************************
+ * Convert to 'const'.
+ */
+extern(C++) Type constOf(Type type)
+{
+    //printf("Type::constOf() %p %s\n", type, type.toChars());
+    if (type.mod == MODFlags.const_)
+        return type;
+    if (type.mcache && type.mcache.cto)
+    {
+        assert(type.mcache.cto.mod == MODFlags.const_);
+        return type.mcache.cto;
+    }
+    Type t = type.makeConst();
+    t = t.merge();
+    t.fixTo(type);
+    //printf("-Type::constOf() %p %s\n", t, t.toChars());
+    return t;
+}
+
 /******************************* Private *****************************************/
 
 private:

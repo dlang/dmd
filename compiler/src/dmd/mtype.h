@@ -142,11 +142,7 @@ public:
     TY ty;
     MOD mod;  // modifiers MODxxxx
     char *deco;
-
-private:
     void* mcache;
-
-public:
     Type *pto;          // merged pointer to this type
     Type *rto;          // reference to this type
     Type *arrayof;      // array of this type
@@ -257,7 +253,6 @@ public:
     bool isSharedWild() const  { return (mod & (MODshared | MODwild)) == (MODshared | MODwild); }
     bool isNaked() const       { return mod == 0; }
     Type *nullAttributes() const;
-    Type *constOf();
     Type *immutableOf();
     Type *mutableOf();
     Type *sharedOf();
@@ -909,3 +904,4 @@ bool isBaseOf(Type *tthis, Type *t, int *poffset);
 Type *trySemantic(Type *type, const Loc &loc, Scope *sc);
 void purityLevel(TypeFunction *type);
 Type *merge2(Type *type);
+Type *constOf(Type *type);
