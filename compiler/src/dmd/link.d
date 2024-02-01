@@ -1065,32 +1065,32 @@ public DArray!ubyte runPreprocessor(ref const Loc loc, const(char)[] cpp, const(
        http://ftp.digitalmars.com/Digital_Mars_C++/Patch/dm857c.zip
      */
 
-    // generate unique temporary file name for preprocessed output
-    const(char)* tmpname = tmpnam(null);
-    assert(tmpname);
-    const(char)[] ifilename = tmpname[0 .. strlen(tmpname) + 1];
-    ifilename = xarraydup(ifilename);
-    const(char)[] output = ifilename;
-
-    DArray!ubyte returnResult(int status)
-    {
-        if (status)
-        {
-            error(loc, "C preprocess command %.*s failed for file %s, exit status %d\n",
-                cast(int)cpp.length, cpp.ptr, filename.ptr, status);
-            fatal();
-        }
-        //printf("C preprocess succeeded %s\n", ifilename.ptr);
-        auto readResult = File.read(ifilename);
-        File.remove(ifilename.ptr);
-        Mem.xfree(cast(void*)ifilename.ptr);
-        if (!readResult.success)
-            return DArray!ubyte();
-        return DArray!ubyte(readResult.extractSlice());
-    }
-
     version (Windows)
     {
+        // generate unique temporary file name for preprocessed output
+        const(char)* tmpname = tmpnam(null);
+        assert(tmpname);
+        const(char)[] ifilename = tmpname[0 .. strlen(tmpname) + 1];
+        ifilename = xarraydup(ifilename);
+        const(char)[] output = ifilename;
+
+        DArray!ubyte returnResult(int status)
+        {
+            if (status)
+            {
+                error(loc, "C preprocess command %.*s failed for file %s, exit status %d\n",
+                    cast(int)cpp.length, cpp.ptr, filename.ptr, status);
+                fatal();
+            }
+            //printf("C preprocess succeeded %s\n", ifilename.ptr);
+            auto readResult = File.read(ifilename);
+            File.remove(ifilename.ptr);
+            Mem.xfree(cast(void*)ifilename.ptr);
+            if (!readResult.success)
+                return DArray!ubyte();
+            return DArray!ubyte(readResult.extractSlice());
+        }
+
         // Build argv[]
         Strings argv;
         if (target.objectFormat() == Target.ObjectFormat.coff)
@@ -1330,7 +1330,6 @@ public DArray!ubyte runPreprocessor(ref const Loc loc, const(char)[] cpp, const(
             argv.push("-include");          // OSX cpp has switch order dependencies
             argv.push(importc_h);
             argv.push(filename.xarraydup.ptr);  // and the input
-            argv.push("-o");                // specify output file
         }
         else
         {
@@ -1338,9 +1337,6 @@ public DArray!ubyte runPreprocessor(ref const Loc loc, const(char)[] cpp, const(
             argv.push("-include");
             argv.push(importc_h);
         }
-        if (target.os == Target.OS.FreeBSD || target.os == Target.OS.OpenBSD)
-            argv.push("-o");                // specify output file
-        argv.push(output.xarraydup.ptr);    // and the output
         argv.push(null);                    // argv[] always ends with a null
 
         if (global.params.v.verbose)
@@ -1359,17 +1355,47 @@ public DArray!ubyte runPreprocessor(ref const Loc loc, const(char)[] cpp, const(
             message(buf.peekChars());
         }
 
+        // pipe so we can read the output of the preprocssor
+        int[2] pipefd;      // [0] is read, [1] is write
+        if (pipe(&pipefd[0]) == -1) {
+            perror("pipe");     // failed to create pipe
+            fatal();
+        }
+
         pid_t childpid = fork();
+        if (childpid == -1) {
+            perror("fork");     // fork failed
+            fatal();
+        }
+
         if (childpid == 0)
-        {
+        {   // we're in the child process which will fork the preprocessor
+            close(pipefd[0]);  // don't need read
+            dup2(pipefd[1], STDOUT_FILENO);  // stdout to our pipe
+
             const(char)[] fn = argv[0].toDString();
             fn.toCStringThen!((fnp) {
                     execvp(fnp.ptr, argv.tdata());
-                    // If execv returns, it failed to execute
-                    perror(fnp.ptr);
+                    perror(fnp.ptr);   // execv returned, so it must have failed
+                    fatal();
                 });
-            return returnResult(-1);
+            assert(0);
         }
+
+        // Read the stdout from the preprocessor and append it to buffer
+        close(pipefd[1]);  // don't need write
+        OutBuffer buffer;
+        ubyte[1024] tmp = void;
+        ptrdiff_t nread;
+        while ((nread = read(pipefd[0], tmp.ptr, tmp.length)) > 0) {
+            buffer.write(tmp[0 .. nread]);
+        }
+
+        if (nread == -1) {
+            perror("read");
+            fatal();
+        }
+
         int status;
         waitpid(childpid, &status, 0);
         if (WIFEXITED(status))
@@ -1382,7 +1408,15 @@ public DArray!ubyte runPreprocessor(ref const Loc loc, const(char)[] cpp, const(
             error(Loc.initial, "program killed by signal %d", WTERMSIG(status));
             status = 1;
         }
-        return returnResult(status);
+
+        if (status)
+        {
+            error(loc, "C preprocess command %.*s failed for file %s, exit status %d\n",
+                cast(int)cpp.length, cpp.ptr, filename.ptr, status);
+            fatal();
+        }
+
+        return DArray!ubyte(cast(ubyte[])buffer.extractSlice(true));
     }
     else
     {
