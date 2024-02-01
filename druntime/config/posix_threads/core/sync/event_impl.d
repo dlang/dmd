@@ -51,8 +51,6 @@ EventHandler create(bool manualReset, bool initialState)
 
 void destroy(ref EventHandler h)
 {
-    assert(h.initalized);
-
     pthread_mutex_destroy(&(h.m_mutex)) == 0 ||
         abort("Error: pthread_mutex_destroy failed.");
 

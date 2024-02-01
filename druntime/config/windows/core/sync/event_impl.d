@@ -11,7 +11,7 @@ nothrow @nogc:
 
 alias EventHandler = HANDLE;
 
-bool initalized(in EventHandler h) const { return h !is null; }
+bool initalized(in EventHandler h) { return h !is null; }
 
 EventHandler create(bool manualReset, bool initialState)
 {
@@ -21,10 +21,8 @@ EventHandler create(bool manualReset, bool initialState)
     return m_event;
 }
 
-void destroy(EventHandler m_event)
+void destroy(ref EventHandler m_event)
 {
-    assert(m_event);
-
     CloseHandle(m_event);
     m_event = null;
 }
