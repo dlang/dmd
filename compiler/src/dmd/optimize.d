@@ -33,6 +33,7 @@ import dmd.printast;
 import dmd.root.ctfloat;
 import dmd.sideeffect;
 import dmd.tokens;
+import dmd.typesem;
 import dmd.visitor;
 
 /*************************************

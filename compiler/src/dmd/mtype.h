@@ -253,15 +253,6 @@ public:
     bool isSharedWild() const  { return (mod & (MODshared | MODwild)) == (MODshared | MODwild); }
     bool isNaked() const       { return mod == 0; }
     Type *nullAttributes() const;
-    Type *immutableOf();
-    Type *mutableOf();
-    Type *sharedOf();
-    Type *sharedConstOf();
-    Type *unSharedOf();
-    Type *wildOf();
-    Type *wildConstOf();
-    Type *sharedWildOf();
-    Type *sharedWildConstOf();
     Type *castMod(MOD mod);
     Type *addMod(MOD mod);
     virtual Type *addStorageClass(StorageClass stc);
@@ -905,3 +896,12 @@ Type *trySemantic(Type *type, const Loc &loc, Scope *sc);
 void purityLevel(TypeFunction *type);
 Type *merge2(Type *type);
 Type *constOf(Type *type);
+Type *immutableOf(Type *type);
+Type *mutableOf(Type *type);
+Type *sharedOf(Type *type);
+Type *sharedConstOf(Type *type);
+Type *unSharedOf(Type *type);
+Type *wildOf(Type *type);
+Type *wildConstOf(Type *type);
+Type *sharedWildOf(Type *type);
+Type *sharedWildConstOf(Type *type);

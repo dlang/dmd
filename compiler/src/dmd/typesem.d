@@ -6126,6 +6126,235 @@ extern(C++) Type constOf(Type type)
     return t;
 }
 
+/********************************
+ * Convert to 'immutable'.
+ */
+extern(C++) Type immutableOf(Type type)
+{
+    //printf("Type::immutableOf() %p %s\n", this, toChars());
+    if (type.isImmutable())
+        return type;
+    if (type.mcache && type.mcache.ito)
+    {
+        assert(type.mcache.ito.isImmutable());
+        return type.mcache.ito;
+    }
+    Type t = type.makeImmutable();
+    t = t.merge();
+    t.fixTo(type);
+    //printf("\t%p\n", t);
+    return t;
+}
+
+/********************************
+ * Make type mutable.
+ */
+extern(C++) Type mutableOf(Type type)
+{
+    //printf("Type::mutableOf() %p, %s\n", type, type.toChars());
+    Type t = type;
+    if (type.isImmutable())
+    {
+        type.getMcache();
+        t = type.mcache.ito; // immutable => naked
+        assert(!t || (t.isMutable() && !t.isShared()));
+    }
+    else if (type.isConst())
+    {
+        type.getMcache();
+        if (type.isShared())
+        {
+            if (type.isWild())
+                t = type.mcache.swcto; // shared wild const -> shared
+            else
+                t = type.mcache.sto; // shared const => shared
+        }
+        else
+        {
+            if (type.isWild())
+                t = type.mcache.wcto; // wild const -> naked
+            else
+                t = type.mcache.cto; // const => naked
+        }
+        assert(!t || t.isMutable());
+    }
+    else if (type.isWild())
+    {
+        type.getMcache();
+        if (type.isShared())
+            t = type.mcache.sto; // shared wild => shared
+        else
+            t = type.mcache.wto; // wild => naked
+        assert(!t || t.isMutable());
+    }
+    if (!t)
+    {
+        t = type.makeMutable();
+        t = t.merge();
+        t.fixTo(type);
+    }
+    else
+        t = t.merge();
+    assert(t.isMutable());
+    return t;
+}
+
+extern(C++) Type sharedOf(Type type)
+{
+    //printf("Type::sharedOf() %p, %s\n", type, type.toChars());
+    if (type.mod == MODFlags.shared_)
+        return type;
+    if (type.mcache && type.mcache.sto)
+    {
+        assert(type.mcache.sto.mod == MODFlags.shared_);
+        return type.mcache.sto;
+    }
+    Type t = type.makeShared();
+    t = t.merge();
+    t.fixTo(type);
+    //printf("\t%p\n", t);
+    return t;
+}
+
+extern(C++) Type sharedConstOf(Type type)
+{
+    //printf("Type::sharedConstOf() %p, %s\n", type, type.toChars());
+    if (type.mod == (MODFlags.shared_ | MODFlags.const_))
+        return type;
+    if (type.mcache && type.mcache.scto)
+    {
+        assert(type.mcache.scto.mod == (MODFlags.shared_ | MODFlags.const_));
+        return type.mcache.scto;
+    }
+    Type t = type.makeSharedConst();
+    t = t.merge();
+    t.fixTo(type);
+    //printf("\t%p\n", t);
+    return t;
+}
+
+/********************************
+ * Make type unshared.
+ *      0            => 0
+ *      const        => const
+ *      immutable    => immutable
+ *      shared       => 0
+ *      shared const => const
+ *      wild         => wild
+ *      wild const   => wild const
+ *      shared wild  => wild
+ *      shared wild const => wild const
+ */
+extern(C++) Type unSharedOf(Type type)
+{
+    //printf("Type::unSharedOf() %p, %s\n", type, type.toChars());
+    Type t = type;
+
+    if (type.isShared())
+    {
+        type.getMcache();
+        if (type.isWild())
+        {
+            if (type.isConst())
+                t = type.mcache.wcto; // shared wild const => wild const
+            else
+                t = type.mcache.wto; // shared wild => wild
+        }
+        else
+        {
+            if (type.isConst())
+                t = type.mcache.cto; // shared const => const
+            else
+                t = type.mcache.sto; // shared => naked
+        }
+        assert(!t || !t.isShared());
+    }
+
+    if (!t)
+    {
+        t = type.nullAttributes();
+        t.mod = type.mod & ~MODFlags.shared_;
+        t.ctype = type.ctype;
+        t = t.merge();
+        t.fixTo(type);
+    }
+    else
+        t = t.merge();
+    assert(!t.isShared());
+    return t;
+}
+
+/********************************
+ * Convert to 'wild'.
+ */
+extern(C++) Type wildOf(Type type)
+{
+    //printf("Type::wildOf() %p %s\n", type, type.toChars());
+    if (type.mod == MODFlags.wild)
+        return type;
+    if (type.mcache && type.mcache.wto)
+    {
+        assert(type.mcache.wto.mod == MODFlags.wild);
+        return type.mcache.wto;
+    }
+    Type t = type.makeWild();
+    t = t.merge();
+    t.fixTo(type);
+    //printf("\t%p %s\n", t, t.toChars());
+    return t;
+}
+
+extern(C++) Type wildConstOf(Type type)
+{
+    //printf("Type::wildConstOf() %p %s\n", type, type.toChars());
+    if (type.mod == MODFlags.wildconst)
+        return type;
+    if (type.mcache && type.mcache.wcto)
+    {
+        assert(type.mcache.wcto.mod == MODFlags.wildconst);
+        return type.mcache.wcto;
+    }
+    Type t = type.makeWildConst();
+    t = t.merge();
+    t.fixTo(type);
+    //printf("\t%p %s\n", t, t.toChars());
+    return t;
+}
+
+extern(C++) Type sharedWildOf(Type type)
+{
+    //printf("Type::sharedWildOf() %p, %s\n", type, type.toChars());
+    if (type.mod == (MODFlags.shared_ | MODFlags.wild))
+        return type;
+    if (type.mcache && type.mcache.swto)
+    {
+        assert(type.mcache.swto.mod == (MODFlags.shared_ | MODFlags.wild));
+        return type.mcache.swto;
+    }
+    Type t = type.makeSharedWild();
+    t = t.merge();
+    t.fixTo(type);
+    //printf("\t%p %s\n", t, t.toChars());
+    return t;
+}
+
+extern(C++) Type sharedWildConstOf(Type type)
+{
+    //printf("Type::sharedWildConstOf() %p, %s\n", type, type.toChars());
+    if (type.mod == (MODFlags.shared_ | MODFlags.wildconst))
+        return type;
+    if (type.mcache && type.mcache.swcto)
+    {
+        assert(type.mcache.swcto.mod == (MODFlags.shared_ | MODFlags.wildconst));
+        return type.mcache.swcto;
+    }
+    Type t = type.makeSharedWildConst();
+    t = t.merge();
+    t.fixTo(type);
+    //printf("\t%p %s\n", t, t.toChars());
+    return t;
+}
+
 /******************************* Private *****************************************/
 
 private:
