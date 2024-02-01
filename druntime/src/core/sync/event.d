@@ -12,7 +12,7 @@
 module core.sync.event;
 
 import core.time;
-static import core.sync.event_impl;
+import core.sync.event_impl;
 
 /**
  * represents an event. Clients of an event are suspended while waiting
