@@ -502,7 +502,7 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
         /* Find index of existing function in base class's vtbl[] to override
          * (the index will be the same as in cd's current vtbl[])
          */
-        int vi = cd.baseClass ? funcdecl.findVtblIndex(&cd.baseClass.vtbl, cast(int)cd.baseClass.vtbl.length) : -1;
+        int vi = cd.baseClass ? findVtblIndex(funcdecl, cd.baseClass.vtbl[]) : -1;
 
         bool doesoverride = false;
         switch (vi)
@@ -539,7 +539,7 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
                 /* if overriding an interface function, then this is not
                  * introducing and don't put it in the class vtbl[]
                  */
-                funcdecl.interfaceVirtual = funcdecl.overrideInterface();
+                funcdecl.interfaceVirtual = overrideInterface(funcdecl);
                 if (funcdecl.interfaceVirtual)
                 {
                     //printf("\tinterface function %s\n", toChars());
@@ -764,7 +764,7 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
         {
             foreach (b; bcd.interfaces)
             {
-                vi = funcdecl.findVtblIndex(&b.sym.vtbl, cast(int)b.sym.vtbl.length);
+                vi = findVtblIndex(funcdecl, b.sym.vtbl[]);
                 switch (vi)
                 {
                 case -1:
@@ -1216,4 +1216,154 @@ extern (D) bool checkForwardRef(FuncDeclaration fd, const ref Loc loc)
         return true;
     }
     return false;
+}
+
+/*************************************************
+ * Find index of function in vtbl[0..length] that
+ * this function overrides.
+ * Prefer an exact match to a covariant one.
+ * Params:
+ *      fd       = function
+ *      vtbl     = vtable to use
+ * Returns:
+ *      -1      didn't find one
+ *      -2      can't determine because of forward references
+ */
+int findVtblIndex(FuncDeclaration fd, Dsymbol[] vtbl)
+{
+    //printf("findVtblIndex() %s\n", toChars());
+    import dmd.typesem : covariant;
+
+    FuncDeclaration mismatch = null;
+    StorageClass mismatchstc = 0;
+    int mismatchvi = -1;
+    int exactvi = -1;
+    int bestvi = -1;
+    for (int vi = 0; vi < cast(int)vtbl.length; vi++)
+    {
+        FuncDeclaration fdv = vtbl[vi].isFuncDeclaration();
+        if (fdv && fdv.ident == fd.ident)
+        {
+            if (fd.type.equals(fdv.type)) // if exact match
+            {
+                if (fdv.parent.isClassDeclaration())
+                {
+                    if (fdv.isFuture())
+                    {
+                        bestvi = vi;
+                        continue;           // keep looking
+                    }
+                    return vi; // no need to look further
+                }
+
+                if (exactvi >= 0)
+                {
+                    .error(fd.loc, "%s `%s` cannot determine overridden function", fd.kind, fd.toPrettyChars);
+                    return exactvi;
+                }
+                exactvi = vi;
+                bestvi = vi;
+                continue;
+            }
+
+            StorageClass stc = 0;
+            const cov = fd.type.covariant(fdv.type, &stc);
+            //printf("\tbaseclass cov = %d\n", cov);
+            final switch (cov)
+            {
+            case Covariant.distinct:
+                // types are distinct
+                break;
+
+            case Covariant.yes:
+                bestvi = vi; // covariant, but not identical
+                break;
+                // keep looking for an exact match
+
+            case Covariant.no:
+                mismatchvi = vi;
+                mismatchstc = stc;
+                mismatch = fdv; // overrides, but is not covariant
+                break;
+                // keep looking for an exact match
+
+            case Covariant.fwdref:
+                return -2; // forward references
+            }
+        }
+    }
+    if (fd._linkage == LINK.cpp && bestvi != -1)
+    {
+        StorageClass stc = 0;
+        FuncDeclaration fdv = vtbl[bestvi].isFuncDeclaration();
+        assert(fdv && fdv.ident == fd.ident);
+        if (fd.type.covariant(fdv.type, &stc, /*cppCovariant=*/true) == Covariant.no)
+        {
+            /* https://issues.dlang.org/show_bug.cgi?id=22351
+             * Under D rules, `type` and `fdv.type` are covariant, but under C++ rules, they are not.
+             * For now, continue to allow D covariant rules to apply when `override` has been used,
+             * but issue a deprecation warning that this behaviour will change in the future.
+             * Otherwise, follow the C++ covariant rules, which will create a new vtable entry.
+             */
+            if (fd.isOverride())
+            {
+                /* @@@DEPRECATED_2.110@@@
+                 * After deprecation period has ended, be sure to remove this entire `LINK.cpp` branch,
+                 * but also the `cppCovariant` parameter from Type.covariant, and update the function
+                 * so that both `LINK.cpp` covariant conditions within are always checked.
+                 */
+                .deprecation(fd.loc, "overriding `extern(C++)` function `%s%s` with `const` qualified function `%s%s%s` is deprecated",
+                             fdv.toPrettyChars(), fdv.type.toTypeFunction().parameterList.parametersTypeToChars(),
+                              fd.toPrettyChars(),  fd.type.toTypeFunction().parameterList.parametersTypeToChars(), fd.type.modToChars());
+
+                const char* where = fd.type.isNaked() ? "parameters" : "type";
+                deprecationSupplemental(fd.loc, "Either remove `override`, or adjust the `const` qualifiers of the "
+                                        ~ "overriding function %s", where);
+            }
+            else
+            {
+                // Treat as if Covariant.no
+                mismatchvi = bestvi;
+                mismatchstc = stc;
+                mismatch = fdv;
+                bestvi = -1;
+            }
+        }
+    }
+    if (bestvi == -1 && mismatch)
+    {
+        //type.print();
+        //mismatch.type.print();
+        //printf("%s %s\n", type.deco, mismatch.type.deco);
+        //printf("stc = %llx\n", mismatchstc);
+        if (mismatchstc)
+        {
+            // Fix it by modifying the type to add the storage classes
+            fd.type = fd.type.addStorageClass(mismatchstc);
+            bestvi = mismatchvi;
+        }
+    }
+    return bestvi;
+}
+
+/*********************************
+ * If function is a function in a base class,
+ * return that base class.
+ * Params:
+ *  fd = function
+ * Returns:
+ *  base class if overriding, null if not
+ */
+BaseClass* overrideInterface(FuncDeclaration fd)
+{
+    for (ClassDeclaration cd = fd.toParent2().isClassDeclaration(); cd; cd = cd.baseClass)
+    {
+        foreach (b; cd.interfaces)
+        {
+            auto v = findVtblIndex(fd, b.sym.vtbl[]);
+            if (v >= 0)
+                return b;
+        }
+    }
+    return null;
 }

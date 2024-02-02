@@ -6290,7 +6290,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 auto ad2 = b.sym;
                 ue.e1 = ue.e1.castTo(sc, ad2.type.addMod(ue.e1.type.mod));
                 ue.e1 = ue.e1.expressionSemantic(sc);
-                auto vi = exp.f.findVtblIndex(&ad2.vtbl, cast(int)ad2.vtbl.length);
+                auto vi = findVtblIndex(exp.f, ad2.vtbl[]);
                 assert(vi >= 0);
                 exp.f = ad2.vtbl[vi].isFuncDeclaration();
                 assert(exp.f);
