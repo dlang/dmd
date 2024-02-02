@@ -17,7 +17,7 @@ immutable ushort[] f = x"80 3F"w;
 static assert(f[0] == 0x803F);
 
 immutable int[] g = x"80 35 FF FD"d;
-static assert(g[0] == 0x803FFFFD);
+static assert(g[0] == 0x8035FFFD);
 
 auto h = x"0011 2233 4455 6677"L;
 static assert(h[0] == 0x0011_2233_4455_6677);
