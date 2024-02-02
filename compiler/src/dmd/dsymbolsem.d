@@ -1343,9 +1343,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     dsym._init = dsym._init.initializerSemantic(sc, dsym.type, sc.intypeof == 1 ? INITnointerpret : INITinterpret);
                     import dmd.semantic2 : lowerStaticAAs;
                     lowerStaticAAs(dsym, sc);
-                    const init_err = dsym._init.isExpInitializer();
+                    auto init_err = dsym._init.isExpInitializer();
                     if (init_err && init_err.exp.op == EXP.showCtfeContext)
                     {
+                        init_err.exp = ErrorExp.get();
                         errorSupplemental(dsym.loc, "compile time context created here");
                     }
                 }
