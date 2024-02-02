@@ -6355,6 +6355,56 @@ extern(C++) Type sharedWildConstOf(Type type)
     return t;
 }
 
+/************************************
+ * Apply MODxxxx bits to existing type.
+ */
+extern(C++) Type castMod(Type type, MOD mod)
+{
+    Type t;
+    switch (mod)
+    {
+    case 0:
+        t = type.unSharedOf().mutableOf();
+        break;
+
+    case MODFlags.const_:
+        t = type.unSharedOf().constOf();
+        break;
+
+    case MODFlags.wild:
+        t = type.unSharedOf().wildOf();
+        break;
+
+    case MODFlags.wildconst:
+        t = type.unSharedOf().wildConstOf();
+        break;
+
+    case MODFlags.shared_:
+        t = type.mutableOf().sharedOf();
+        break;
+
+    case MODFlags.shared_ | MODFlags.const_:
+        t = type.sharedConstOf();
+        break;
+
+    case MODFlags.shared_ | MODFlags.wild:
+        t = type.sharedWildOf();
+        break;
+
+    case MODFlags.shared_ | MODFlags.wildconst:
+        t = type.sharedWildConstOf();
+        break;
+
+    case MODFlags.immutable_:
+        t = type.immutableOf();
+        break;
+
+    default:
+        assert(0);
+    }
+    return t;
+}
+
 /******************************* Private *****************************************/
 
 private:

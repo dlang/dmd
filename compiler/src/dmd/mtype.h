@@ -253,7 +253,6 @@ public:
     bool isSharedWild() const  { return (mod & (MODshared | MODwild)) == (MODshared | MODwild); }
     bool isNaked() const       { return mod == 0; }
     Type *nullAttributes() const;
-    Type *castMod(MOD mod);
     Type *addMod(MOD mod);
     virtual Type *addStorageClass(StorageClass stc);
     Type *pointerTo();
@@ -905,3 +904,4 @@ Type *wildOf(Type *type);
 Type *wildConstOf(Type *type);
 Type *sharedWildOf(Type *type);
 Type *sharedWildConstOf(Type *type);
+Type *castMod(Type *type, MOD mod);

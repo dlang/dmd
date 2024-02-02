@@ -970,6 +970,7 @@ extern (C++) struct Target
     {
         import dmd.id : Id;
         import dmd.argtypes_sysv_x64 : toArgTypes_sysv_x64;
+        import dmd.typesem : castMod;
 
         if (tf.isref)
         {

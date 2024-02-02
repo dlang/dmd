@@ -1186,56 +1186,6 @@ extern (C++) abstract class Type : ASTNode
     }
 
     /************************************
-     * Apply MODxxxx bits to existing type.
-     */
-    final Type castMod(MOD mod)
-    {
-        Type t;
-        switch (mod)
-        {
-        case 0:
-            t = this.unSharedOf().mutableOf();
-            break;
-
-        case MODFlags.const_:
-            t = this.unSharedOf().constOf();
-            break;
-
-        case MODFlags.wild:
-            t = this.unSharedOf().wildOf();
-            break;
-
-        case MODFlags.wildconst:
-            t = this.unSharedOf().wildConstOf();
-            break;
-
-        case MODFlags.shared_:
-            t = this.mutableOf().sharedOf();
-            break;
-
-        case MODFlags.shared_ | MODFlags.const_:
-            t = this.sharedConstOf();
-            break;
-
-        case MODFlags.shared_ | MODFlags.wild:
-            t = this.sharedWildOf();
-            break;
-
-        case MODFlags.shared_ | MODFlags.wildconst:
-            t = this.sharedWildConstOf();
-            break;
-
-        case MODFlags.immutable_:
-            t = this.immutableOf();
-            break;
-
-        default:
-            assert(0);
-        }
-        return t;
-    }
-
-    /************************************
      * Add MODxxxx bits to existing type.
      * We're adding, not replacing, so adding const to
      * a shared type => "shared const"

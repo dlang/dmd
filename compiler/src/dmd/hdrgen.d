@@ -50,6 +50,7 @@ import dmd.root.string;
 import dmd.statement;
 import dmd.staticassert;
 import dmd.tokens;
+import dmd.typesem;
 import dmd.visitor;
 
 struct HdrGenState

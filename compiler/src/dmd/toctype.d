@@ -29,6 +29,7 @@ import dmd.globals;
 import dmd.glue;
 import dmd.id;
 import dmd.mtype;
+import dmd.typesem;
 import dmd.tocvdebug;
 
 
