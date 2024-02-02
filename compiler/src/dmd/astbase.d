@@ -2549,6 +2549,23 @@ struct ASTBase
         }
     }
 
+    /************************************
+     * Convert MODxxxx to STCxxx
+     */
+    static StorageClass ModToStc(uint mod) pure nothrow @nogc @safe
+    {
+        StorageClass stc = 0;
+        if (mod & MODFlags.immutable_)
+            stc |= STC.immutable_;
+        if (mod & MODFlags.const_)
+            stc |= STC.const_;
+        if (mod & MODFlags.wild)
+            stc |= STC.wild;
+        if (mod & MODFlags.shared_)
+            stc |= STC.shared_;
+        return stc;
+    }
+
     extern (C++) abstract class Type : ASTNode
     {
         TY ty;
