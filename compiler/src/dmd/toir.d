@@ -935,7 +935,7 @@ void buildClosure(FuncDeclaration fd, ref IRState irs)
                 if (v.storage_class & STC.lazy_)
                     tym = TYdelegate;
             }
-            else if (ISREF(v) && !x64ref)
+            else if (v.isReference())
                 tym = TYnptr;   // reference parameters are just pointers
             else if (v.storage_class & STC.lazy_)
                 tym = TYdelegate;

@@ -84,19 +84,12 @@ import dmd.backend.util2 : mem_malloc2;
 
 private int registerSize() { return _tysize[TYnptr]; }
 
-/* If variable var is a reference
- */
-bool ISREF(Declaration var)
-{
-    if (var.isReference())
-    {
-        return true;
-    }
-
-    return ISX64REF(var);
-}
-
-/* If variable var of type typ is a reference due to x64 calling conventions
+/*****
+ * If variable var is a reference due to target calling conventions
+ * Params:
+ *      var = parameter variable
+ * Returns:
+ *      true if actually implicitly passed by reference
  */
 bool ISX64REF(Declaration var)
 {
@@ -706,7 +699,7 @@ elem* toElem(Expression e, ref IRState irs)
                 e = el_bin(OPadd, TYnptr, ethis, el_long(TYnptr, soffset));
                 if (se.op == EXP.variable)
                     e = el_una(OPind, TYnptr, e);
-                if (ISREF(se.var) && !(ISX64REF(se.var) && v && v.offset && !forceStackAccess))
+                if ((se.var.isReference() || ISX64REF(se.var)) && !(ISX64REF(se.var) && v && v.offset && !forceStackAccess))
                     e = el_una(OPind, s.Stype.Tty, e);
                 else if (se.op == EXP.symbolOffset && nrvo)
                 {
@@ -731,7 +724,7 @@ elem* toElem(Expression e, ref IRState irs)
                     e.ET = Type_toCtype(se.type);
                 elem_setLoc(e, se.loc);
             }
-            if (ISREF(se.var) && !ISX64REF(se.var))
+            if (se.var.isReference())
             {
                 e.Ety = TYnptr;
                 e = el_una(OPind, s.Stype.Tty, e);
@@ -767,7 +760,7 @@ elem* toElem(Expression e, ref IRState irs)
                 e = el_una(OPind,s.Stype.Tty,e);
             }
         }
-        else if (ISREF(se.var))
+        else if (se.var.isReference() || ISX64REF(se.var))
         {
             // Out parameters are really references
             e = el_var(s);
