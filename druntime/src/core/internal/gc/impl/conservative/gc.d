@@ -4941,6 +4941,7 @@ unittest
 // improve predictability of coverage of code that is eventually not hit by other tests
 debug (SENTINEL) {} else // cannot extend with SENTINEL
 debug (MARK_PRINTF) {} else // takes forever
+version (OnlyLowMemUnittests) {} else
 unittest
 {
     import core.memory;
