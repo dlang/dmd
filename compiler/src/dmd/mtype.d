@@ -52,6 +52,12 @@ enum LOGDEFAULTINIT = 0;    // log ::defaultInit()
 
 enum SIZE_INVALID = (~cast(uinteger_t)0);   // error return from size() functions
 
+static if (__VERSION__ < 2095)
+{
+    // Fix linker errors when building with older compilers.
+    // See: https://issues.dlang.org/show_bug.cgi?id=21299
+    private alias StringValueType = StringValue!Type;
+}
 
 /***************************
  * Return !=0 if modfrom can be implicitly converted to modto
