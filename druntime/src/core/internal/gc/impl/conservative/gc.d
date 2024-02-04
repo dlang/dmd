@@ -4988,24 +4988,34 @@ version (D_LP64) unittest
     {
         // only run if the system has enough physical memory
         size_t sz = 2L^^32;
-        //import core.stdc.stdio;
-        //printf("availphys = %lld", os_physical_mem(true));
-        if (os_physical_mem(true) > sz)
+        size_t phys_mem = os_physical_mem(true);
+        if (phys_mem > sz)
         {
             import core.memory;
+            import core.exception;
             GC.collect();
             GC.minimize();
-            auto stats = GC.stats();
-            auto ptr = GC.malloc(sz, BlkAttr.NO_SCAN);
-            auto info = GC.query(ptr);
-            //printf("info.size = %lld", info.size);
-            assert(info.size >= sz);
-            GC.free(ptr);
-            GC.minimize();
-            auto nstats = GC.stats();
-            assert(nstats.usedSize == stats.usedSize);
-            assert(nstats.freeSize == stats.freeSize);
-            assert(nstats.allocatedInCurrentThread - sz == stats.allocatedInCurrentThread);
+            try
+            {
+                auto stats = GC.stats();
+                auto ptr = GC.malloc(sz, BlkAttr.NO_SCAN);
+                auto info = GC.query(ptr);
+                //printf("info.size = %lld", info.size);
+                assert(info.size >= sz);
+                GC.free(ptr);
+                GC.minimize();
+                auto nstats = GC.stats();
+                assert(nstats.usedSize == stats.usedSize);
+                assert(nstats.freeSize == stats.freeSize);
+                assert(nstats.allocatedInCurrentThread - sz == stats.allocatedInCurrentThread);
+            }
+            catch (OutOfMemoryError)
+            {
+                // ignore if the system still doesn't have enough virtual memory
+                import core.stdc.stdio;
+                printf("%s(%d): out-of-memory execption ignored, phys_mem = %zd",
+                       __FILE__.ptr, __LINE__, phys_mem);
+            }
         }
     }
 }
