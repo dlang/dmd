@@ -10309,9 +10309,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     {
         static if (LOGSEMANTIC)
         {
-            if (exp.op == EXP.blit)      printf("BlitExp.toElem('%s')\n", exp.toChars());
-            if (exp.op == EXP.assign)    printf("AssignExp.toElem('%s')\n", exp.toChars());
-            if (exp.op == EXP.construct) printf("ConstructExp.toElem('%s')\n", exp.toChars());
+            if (exp.op == EXP.blit)      printf("BlitExp.semantic('%s')\n", exp.toChars());
+            if (exp.op == EXP.assign)    printf("AssignExp.semantic('%s')\n", exp.toChars());
+            if (exp.op == EXP.construct) printf("ConstructExp.semantic('%s')\n", exp.toChars());
         }
 
         void setResult(Expression e, int line = __LINE__)
