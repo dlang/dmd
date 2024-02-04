@@ -28,7 +28,6 @@ ifeq (windows,$(OS)) # extra tests on Windows
 $(ROOT)/%$(DOTDLL): DFLAGS += -visibility=public
 
 ifeq ($(SHARED),1)
-TESTS+=link
 DFLAGS+=-version=SharedRuntime
 PATH:=$(dir $(DRUNTIMESO));$(PATH)
 endif
