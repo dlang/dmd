@@ -5,7 +5,9 @@ include ../common.mak # affected by LINK_SHARED!
 
 ifneq (,$(LINK_SHARED))
     # TODO: enable tests on Windows
-    ifneq (windows,$(OS))
+    ifeq (windows,$(OS))
+        TESTS:=link linkD linkDR loadDR
+    else
         TESTS:=link load linkD linkDR loadDR host finalize dynamiccast \
                link_linkdep load_linkdep link_loaddep load_loaddep load_13414
     endif
@@ -21,6 +23,9 @@ DOTIMPLIB:=$(if $(findstring $(OS),windows),.lib,$(DOTDLL))
 all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
 
 ifeq (windows,$(OS)) # extra tests on Windows
+
+# dmd -shared does not (yet) imply -visibility=public
+$(ROOT)/%$(DOTDLL): DFLAGS += -visibility=public
 
 ifeq ($(SHARED),1)
 TESTS+=link
@@ -96,7 +101,7 @@ $(ROOT)/linkD$(DOTEXE): $(SRC)/linkD.c $(ROOT)/lib$(DOTDLL) $(DRUNTIMESO)
 	$(QUIET)$(CC) $(CFLAGS) $(CC_OUTFLAG)$@ $(if $(findstring $(OS),windows),/Fo$@.obj,) $< $(ROOT)/lib$(DOTIMPLIB) $(CC_EXTRAS)
 
 $(ROOT)/linkDR$(DOTEXE): $(SRC)/linkDR.c $(ROOT)/lib$(DOTDLL) $(DRUNTIMESO)
-	$(QUIET)$(CC) $(CFLAGS) $(CC_OUTFLAG)$@ $(if $(findstring $(OS),windows),/Fo$@.obj,) $< $(DRUNTIMESO) $(CC_EXTRAS)
+	$(QUIET)$(CC) $(CFLAGS) $(CC_OUTFLAG)$@ $(if $(findstring $(OS),windows),/Fo$@.obj,) $< $(DRUNTIME_IMPLIB) $(CC_EXTRAS)
 
 $(ROOT)/loadDR$(DOTEXE): $(SRC)/loadDR.c $(ROOT)/lib$(DOTDLL) $(DRUNTIMESO)
 	$(QUIET)$(CC) $(CFLAGS) $(CC_OUTFLAG)$@ $(if $(findstring $(OS),windows),/Fo$@.obj,) $< $(CC_EXTRAS)
