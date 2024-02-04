@@ -742,7 +742,7 @@ else version (GNU)
     }
 
     T atomicExchange(MemoryOrder order = MemoryOrder.seq, bool result = true, T)(T* dest, T value) pure nothrow @nogc @trusted
-        if (is(T : ulong) || is(T == class) || is(T == interface) || is(T U : U*))
+        if (CanCAS!T)
     {
         static assert(order != MemoryOrder.acq, "Invalid MemoryOrder for atomicExchange()");
 
