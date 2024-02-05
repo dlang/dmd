@@ -532,7 +532,7 @@ struct ElfLibHeader
     char[ELF_TRAILER_SIZE] trailer;
 }
 
-extern (C++) void ElfOmToHeader(ElfLibHeader* h, ElfObjModule* om)
+void ElfOmToHeader(ElfLibHeader* h, ElfObjModule* om)
 {
     char* buffer = cast(char*)h;
     // user_id and group_id are padded on 6 characters in Header struct.

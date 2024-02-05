@@ -213,7 +213,7 @@ bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
 
 /******************************************
  */
-extern (C++) void ObjectNotFound(Identifier id)
+void ObjectNotFound(Identifier id)
 {
     error(Loc.initial, "`%s` not found. object.d may be incorrectly installed or corrupt.", id.toChars());
     fatal();

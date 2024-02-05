@@ -645,7 +645,7 @@ struct MSCoffLibHeader
     char[MSCOFF_TRAILER_SIZE] trailer;
 }
 
-extern (C++) void MSCoffOmToHeader(MSCoffLibHeader* h, MSCoffObjModule* om)
+void MSCoffOmToHeader(MSCoffLibHeader* h, MSCoffObjModule* om)
 {
     size_t len;
     if (om.name_offset == -1)

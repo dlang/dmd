@@ -520,7 +520,7 @@ int mutabilityOfType(bool isref, Type t)
  * Set 'purity' field of 'typeFunction'.
  * Do this lazily, as the parameter types might be forward referenced.
  */
-extern(C++) void purityLevel(TypeFunction typeFunction)
+void purityLevel(TypeFunction typeFunction)
 {
     TypeFunction tf = typeFunction;
     if (tf.purity != PURE.fwdref)

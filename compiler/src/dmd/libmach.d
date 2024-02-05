@@ -511,7 +511,7 @@ struct MachLibHeader
     char[MACH_TRAILER_SIZE] trailer;
 }
 
-extern (C++) void MachOmToHeader(MachLibHeader* h, MachObjModule* om)
+void MachOmToHeader(MachLibHeader* h, MachObjModule* om)
 {
     const slen = om.name.length;
     int nzeros = 8 - ((slen + 4) & 7);

@@ -781,14 +781,6 @@ public:
     }
 };
 
-enum class MATCH
-{
-    nomatch = 0,
-    convert = 1,
-    constant = 2,
-    exact = 3,
-};
-
 enum class ThreeState : uint8_t
 {
     none = 0u,
@@ -1320,6 +1312,14 @@ enum class ClassFlags : uint32_t
     isCPPclass = 128u,
     hasDtor = 256u,
     hasNameSig = 512u,
+};
+
+enum class MATCH
+{
+    nomatch = 0,
+    convert = 1,
+    constant = 2,
+    exact = 3,
 };
 
 struct MatchAccumulator final
@@ -5446,8 +5446,6 @@ extern Type* merge2(Type* type);
 
 extern Type* mutableOf(Type* type);
 
-extern void purityLevel(TypeFunction* typeFunction);
-
 extern Type* sharedConstOf(Type* type);
 
 extern Type* sharedOf(Type* type);
@@ -6667,8 +6665,6 @@ extern const char* cppTypeInfoMangleDMC(Dsymbol* s);
 
 extern DArray<uint8_t > preprocess(FileName csrcfile, const Loc& loc, OutBuffer& defines);
 
-extern MATCH implicitConvTo(Expression* e, Type* t);
-
 struct BaseClass final
 {
     Type* type;
@@ -6752,8 +6748,6 @@ public:
     InterfaceDeclaration* isInterfaceDeclaration() override;
     void accept(Visitor* v) override;
 };
-
-extern void ObjectNotFound(Identifier* id);
 
 class Declaration : public Dsymbol
 {
@@ -7572,17 +7566,9 @@ public:
     void visit(StaticForeachDeclaration* _) override;
 };
 
-extern void setFieldOffset(Dsymbol* d, AggregateDeclaration* ad, FieldState* fieldState, bool isunion);
-
 extern void genCppHdrFiles(Array<Module* >& ms);
 
-extern Expression* resolveProperties(Scope* sc, Expression* e);
-
 extern Expression* expressionSemantic(Expression* e, Scope* sc);
-
-extern Expression* toLvalue(Expression* _this, Scope* sc, const char* action);
-
-extern Expression* modifiableLvalue(Expression* _this, Scope* sc);
 
 extern bool functionSemantic(FuncDeclaration* fd);
 
