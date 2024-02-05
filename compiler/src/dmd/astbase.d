@@ -2391,6 +2391,7 @@ struct ASTBase
     extern (C++) class AsmStatement : Statement
     {
         Token* tokens;
+        bool caseSensitive;
 
         extern (D) this(const ref Loc loc, Token* tokens)
         {
