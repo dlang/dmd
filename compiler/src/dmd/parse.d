@@ -8603,10 +8603,13 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             {
                 // Member of Operator
                 // ':' Identifier
-                nextToken();
 
-                if (token.value != TOK.identifier)
+                Token previous = this.token;
+                nextToken(); // consume ':'
+
+                if (peekNext() != TOK.identifier)
                 {
+                    this.token = previous;
                     error("identifier expected, not %s", token.toChars());
                     goto Lerr;
                 }
