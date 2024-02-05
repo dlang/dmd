@@ -2109,6 +2109,8 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
         //printf("CaseStatement::semantic() %s\n", toChars());
         sc = sc.startCTFE();
+        if (auto moexp = cs.exp.isMemberOfExp)
+            cs.exp = new DotIdExp(moexp.loc, sw.condition, moexp.ident);
         cs.exp = cs.exp.expressionSemantic(sc);
         cs.exp = resolveProperties(sc, cs.exp);
         sc = sc.endCTFE();
