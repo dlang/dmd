@@ -2523,7 +2523,7 @@ private bool checkRightThis(Expression e, Scope* sc)
     return false;
 }
 
-extern (C++) Expression resolveProperties(Scope* sc, Expression e)
+Expression resolveProperties(Scope* sc, Expression e)
 {
     //printf("resolveProperties(%s)\n", e.toChars());
     e = resolvePropertiesX(sc, e);
@@ -15534,7 +15534,7 @@ Expression addDtorHook(Expression e, Scope* sc)
  *     action = for error messages, what the lvalue is needed for (e.g. take address of for `&x`, modify for `x++`)
  * Returns: converted expression, or `ErrorExp` on error
 */
-extern(C++) Expression toLvalue(Expression _this, Scope* sc, const(char)* action)
+Expression toLvalue(Expression _this, Scope* sc, const(char)* action)
 {
     return toLvalueImpl(_this, sc, action, _this);
 }
@@ -15955,7 +15955,7 @@ Modifiable checkModifiable(Expression exp, Scope* sc, ModifyFlags flag = ModifyF
  *     sc = scope
  * Returns: `_this` converted to an lvalue, or an `ErrorExp`
  */
-extern(C++) Expression modifiableLvalue(Expression _this, Scope* sc)
+Expression modifiableLvalue(Expression _this, Scope* sc)
 {
     return modifiableLvalueImpl(_this, sc, _this);
 }

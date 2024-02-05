@@ -892,7 +892,6 @@ Dsymbol *toDsymbol(Type *t, Scope *sc);
 Covariant covariant(Type *, Type *, StorageClass * = NULL, bool = false);
 bool isBaseOf(Type *tthis, Type *t, int *poffset);
 Type *trySemantic(Type *type, const Loc &loc, Scope *sc);
-void purityLevel(TypeFunction *type);
 Type *merge2(Type *type);
 Type *constOf(Type *type);
 Type *immutableOf(Type *type);

@@ -77,7 +77,7 @@ tym_t modToTym(MOD mod) pure @safe
  * Returns:
  *      back end equivalent `type`
  */
-extern (C++) type* Type_toCtype(Type t)
+type* Type_toCtype(Type t)
 {
     if (t.ctype)
         return cast(type*)t.ctype;

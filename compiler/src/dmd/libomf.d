@@ -30,7 +30,7 @@ import dmd.root.stringtable;
 import dmd.scanomf;
 
 // Entry point (only public symbol in this module).
-extern (C++) Library LibOMF_factory()
+Library LibOMF_factory()
 {
     return new LibOMF();
 }
