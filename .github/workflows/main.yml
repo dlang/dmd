@@ -26,7 +26,7 @@ jobs:
           #   coverage: true
           - job_name: Ubuntu 22.04 x64, DMD (bootstrap)
             os: ubuntu-22.04
-            host_dmd: dmd-2.079.0
+            host_dmd: dmd-2.083.1
             disable_debug_for_dmd_unittests: true # no `-debug` - host frontend too old
           - job_name: Ubuntu 22.04 x86, DMD (latest)
             os: ubuntu-22.04

@@ -74,7 +74,7 @@ fi
 
 # no `-debug` for unittests build with old host compilers (to avoid compile errors)
 disable_debug_for_unittests=()
-if [[ "$HOST_DMD_VERSION" == "2.079.0" ]]; then
+if [[ "$HOST_DMD_VERSION" == "2.083.1" ]]; then
     disable_debug_for_unittests=(ENABLE_DEBUG=0)
 fi
 
@@ -137,7 +137,7 @@ fi
 
 targets=("all")
 args=('ARGS=-O -inline -g') # no -release for faster builds
-if [ "$HOST_DMD_VERSION" = "2.079.0" ] ; then
+if [ "$HOST_DMD_VERSION" = "2.083.1" ] ; then
     # skip runnable_cxx and unit_tests with older bootstrap compilers
     targets=("runnable" "compilable" "fail_compilation" "dshell")
     args=() # use default set of args

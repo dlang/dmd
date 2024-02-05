@@ -1457,17 +1457,6 @@ void processEnvironmentCxx()
     if (!sanitizers.empty)
         cxxFlags ~= "-fsanitize=" ~ sanitizers;
 
-    // Enable a temporary workaround in globals.h and rmem.h concerning
-    // wrong name mangling using DMD.
-    // Remove when the minimally required D version becomes 2.082 or later
-    if (env["HOST_DMD_KIND"] == "dmd")
-    {
-        const output = run([ env["HOST_DMD_RUN"], "--version" ]);
-
-        if (output.canFind("v2.079", "v2.080", "v2.081"))
-            cxxFlags ~= "-DDMD_VERSION=2080";
-    }
-
     // Retain user-defined flags
     flags["CXXFLAGS"] = cxxFlags ~= flags.get("CXXFLAGS", []);
 }

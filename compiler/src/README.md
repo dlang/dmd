@@ -11,7 +11,7 @@ The compiler can be built using the integrated build system `build.d`.
 ./build.d
 ```
 
-Building requires a host D compiler (DMD/LDC/GDC) of version 2.079.1 or above
+Building requires a host D compiler (DMD/LDC/GDC) of version 2.083.1 or above
 and defaults to `dmd` as found on the path. This behaviour can be overriden
 by explicitly specifying a different host compiler using the `HOST_DMD` variable.
 
