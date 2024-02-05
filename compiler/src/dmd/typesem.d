@@ -1011,8 +1011,24 @@ private extern(D) MATCH argumentMatchParameter (TypeFunction tf, Parameter p,
         }
         else
         {
+            import dmd.expressionsem : trySemantic;
             import dmd.dcast : cimplicitConvTo;
-            m = (sc && sc.flags & SCOPE.Cfile) ? arg.cimplicitConvTo(tprm) : arg.implicitConvTo(tprm);
+
+            if (sc && sc.flags & SCOPE.Cfile)
+                m = arg.cimplicitConvTo(tprm);
+            else if (auto moexp = arg.isMemberOfExp)
+            {
+                sc = sc.startCTFE();
+
+                TypeExp paramExpr = new TypeExp(moexp.loc, tprm);
+                Expression getMember = cast(Expression)new DotIdExp(moexp.loc, paramExpr, moexp.ident);
+                getMember = trySemantic(getMember, sc);
+
+                sc = sc.endCTFE();
+                m = getMember is null || !getMember.implicitConvTo(tprm) ? MATCH.nomatch : MATCH.convert;
+            }
+            else
+                m = arg.implicitConvTo(tprm);
         }
     }
 

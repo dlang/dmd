@@ -3149,6 +3149,14 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 if (!((hasCopyCtor && typesMatch) || tprm.equals(arg.type)))
                 {
                     //printf("arg.type = %s, p.type = %s\n", arg.type.toChars(), p.type.toChars());
+
+                    if (auto moexp = arg.isMemberOfExp)
+                    {
+                        TypeExp paramExpr = new TypeExp(moexp.loc, tprm);
+                        Expression getMember = cast(Expression)new DotIdExp(moexp.loc, paramExpr, moexp.ident);
+                        arg = getMember.expressionSemantic(sc);
+                    }
+
                     arg = arg.implicitCastTo(sc, tprm);
                     arg = arg.optimize(WANTvalue, p.isReference());
                 }
