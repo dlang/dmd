@@ -2506,6 +2506,11 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         {
             fd.hasReturnExp |= (fd.hasReturnExp & 1 ? 16 : 1);
 
+            if (auto moexp = rs.exp.isMemberOfExp)
+            {
+                rs.exp = new DotIdExp(moexp.loc, new TypeExp(moexp.loc, new TypeReturn(moexp.loc)), moexp.ident);
+            }
+
             FuncLiteralDeclaration fld = fd.isFuncLiteralDeclaration();
             if (tret)
                 rs.exp = inferType(rs.exp, tret);
