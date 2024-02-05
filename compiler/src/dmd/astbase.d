@@ -6841,7 +6841,7 @@ struct ASTBase
         }
     }
 
-    static bool stcToBuffer(OutBuffer* buf, StorageClass stc)
+    static bool stcToBuffer(ref OutBuffer buf, StorageClass stc)
     {
         bool result = false;
         if ((stc & (STC.return_ | STC.scope_)) == (STC.return_ | STC.scope_))
