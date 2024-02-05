@@ -5409,6 +5409,22 @@ struct ASTBase
         }
     }
 
+    extern (C++) class MemberOfOperatorExp : Expression
+    {
+        Identifier ident;
+
+        extern (D) this(const ref Loc loc, Identifier ident) scope @safe
+        {
+            super(loc, EXP.memberOf);
+            this.ident = ident;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
     extern (C++) class ThisExp : Expression
     {
         final extern (D) this(const ref Loc loc)
