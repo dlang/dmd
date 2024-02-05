@@ -95,9 +95,12 @@ enum class ThreeState : uint8_t
     yes,          // value is true
 };
 
-void dsymbolSemantic(Dsymbol *dsym, Scope *sc);
-void semantic2(Dsymbol *dsym, Scope *sc);
-void semantic3(Dsymbol *dsym, Scope* sc);
+namespace dmd
+{
+    void dsymbolSemantic(Dsymbol *dsym, Scope *sc);
+    void semantic2(Dsymbol *dsym, Scope *sc);
+    void semantic3(Dsymbol *dsym, Scope* sc);
+}
 
 struct Visibility
 {
@@ -425,7 +428,10 @@ public:
     size_t length() const;
 };
 
-void addMember(Dsymbol *dsym, Scope *sc, ScopeDsymbol *sds);
-Dsymbol *search(Dsymbol *d, const Loc &loc, Identifier *ident, SearchOptFlags flags = (SearchOptFlags)SearchOpt::localsOnly);
-void setScope(Dsymbol *d, Scope *sc);
-void importAll(Dsymbol *d, Scope *sc);
+namespace dmd
+{
+    void addMember(Dsymbol *dsym, Scope *sc, ScopeDsymbol *sds);
+    Dsymbol *search(Dsymbol *d, const Loc &loc, Identifier *ident, SearchOptFlags flags = (SearchOptFlags)SearchOpt::localsOnly);
+    void setScope(Dsymbol *d, Scope *sc);
+    void importAll(Dsymbol *d, Scope *sc);
+}

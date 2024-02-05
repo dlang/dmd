@@ -63,7 +63,7 @@ import dmd.visitor;
  * functions and may invoke a function that contains `ErrorStatement` in its body.
  * If that, the "CTFE failed because of previous errors" error is raised.
  */
-extern(C++) public Expression ctfeInterpret(Expression e)
+public Expression ctfeInterpret(Expression e)
 {
     switch (e.op)
     {

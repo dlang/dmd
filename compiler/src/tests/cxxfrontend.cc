@@ -24,6 +24,7 @@
 
 #include "aggregate.h"
 #include "aliasthis.h"
+#include "argtypes.h"
 #include "arraytypes.h"
 #include "ast_node.h"
 #include "attrib.h"
@@ -92,8 +93,8 @@ extern "C" void gc_enable();
 
 static void frontend_term()
 {
-  gc_enable();
-  rt_term();
+    gc_enable();
+    rt_term();
 }
 
 /**********************************/
@@ -220,7 +221,7 @@ void test_visitors()
     assert(tv.stmt == true);
 
     TypePointer *tp = TypePointer::create(Type::tvoid);
-    assert(hasPointers(tp) == true);
+    assert(dmd::hasPointers(tp) == true);
     tp->accept(&tv);
     assert(tv.type == true);
 
@@ -280,12 +281,12 @@ void test_semantic()
     m->src = src;
     m->parse();
     m->importedFrom = m;
-    importAll(m, NULL);
-    dsymbolSemantic(m, NULL);
-    semantic2(m, NULL);
-    semantic3(m, NULL);
+    dmd::importAll(m, NULL);
+    dmd::dsymbolSemantic(m, NULL);
+    dmd::semantic2(m, NULL);
+    dmd::semantic3(m, NULL);
 
-    Dsymbol *s = search(m, Loc(), Identifier::idPool("Error"));
+    Dsymbol *s = dmd::search(m, Loc(), Identifier::idPool("Error"));
     assert(s);
     AggregateDeclaration *ad = s->isAggregateDeclaration();
     assert(ad && ad->ctor && ad->sizeok == Sizeok::done);
@@ -317,9 +318,9 @@ void test_skip_importall()
     m->src = src;
     m->parse();
     m->importedFrom = m;
-    dsymbolSemantic(m, NULL);
-    semantic2(m, NULL);
-    semantic3(m, NULL);
+    dmd::dsymbolSemantic(m, NULL);
+    dmd::semantic2(m, NULL);
+    dmd::semantic3(m, NULL);
 
     assert(!global.endGagging(errors));
 }
@@ -330,7 +331,7 @@ void test_expression()
 {
     Loc loc;
     IntegerExp *ie = IntegerExp::create(loc, 42, Type::tint32);
-    Expression *e = ctfeInterpret(ie);
+    Expression *e = dmd::ctfeInterpret(ie);
 
     assert(e);
     assert(e->isConst());
@@ -459,7 +460,7 @@ void test_array()
 void test_outbuffer()
 {
     OutBuffer buf;
-    mangleToBuffer(Type::tint64, buf);
+    dmd::mangleToBuffer(Type::tint64, buf);
     assert(strcmp(buf.peekChars(), "l") == 0);
     buf.reset();
 
@@ -496,12 +497,12 @@ void test_cppmangle()
     m->src = src;
     m->parse();
     m->importedFrom = m;
-    importAll(m, NULL);
-    dsymbolSemantic(m, NULL);
-    semantic2(m, NULL);
-    semantic3(m, NULL);
+    dmd::importAll(m, NULL);
+    dmd::dsymbolSemantic(m, NULL);
+    dmd::semantic2(m, NULL);
+    dmd::semantic3(m, NULL);
 
-    Dsymbol *s = search(m, Loc(), Identifier::idPool("Derived"));
+    Dsymbol *s = dmd::search(m, Loc(), Identifier::idPool("Derived"));
     assert(s);
     ClassDeclaration *cd = s->isClassDeclaration();
     assert(cd && cd->sizeok == Sizeok::done);
@@ -511,12 +512,12 @@ void test_cppmangle()
 
     fd = (*cd->members)[0]->isFuncDeclaration();
     assert(fd);
-    mangle = cppThunkMangleItanium(fd, b->offset);
+    mangle = dmd::cppThunkMangleItanium(fd, b->offset);
     assert(strcmp(mangle, "_ZThn8_N7Derived9MethodCPPEv") == 0);
 
     fd = (*cd->members)[1]->isFuncDeclaration();
     assert(fd);
-    mangle = cppThunkMangleItanium(fd, b->offset);
+    mangle = dmd::cppThunkMangleItanium(fd, b->offset);
     assert(strcmp(mangle, "_ZThn8_N7Derived7MethodDEv") == 0);
 
     assert(!global.endGagging(errors));
@@ -690,11 +691,11 @@ public:
         Expressions *attrs = sym->userAttribDecl()->getAttributes();
         if (attrs)
         {
-            expandTuples(attrs);
+            dmd::expandTuples(attrs);
             for (size_t i = 0; i < attrs->length; i++)
             {
                 Expression *attr = (*attrs)[i];
-                Dsymbol *sym = toDsymbol(attr->type, 0);
+                Dsymbol *sym = dmd::toDsymbol(attr->type, 0);
                 if (!sym)
                 {
                     if (TemplateExp *te = attr->isTemplateExp())
@@ -708,7 +709,7 @@ public:
                 }
                 sym->getModule()->accept(this);
                 if (attr->op == EXP::call)
-                    attr = ctfeInterpret(attr);
+                    attr = dmd::ctfeInterpret(attr);
                 if (attr->op != EXP::structLiteral)
                     continue;
             }
@@ -1172,14 +1173,14 @@ public:
                 s->accept(this);
             }
             ClassDeclarations aclasses;
-            getLocalClasses(d, aclasses);
+            dmd::getLocalClasses(d, aclasses);
             for (size_t i = 0; i < d->aimports.length; i++)
             {
                 Module *mi = d->aimports[i];
                 if (mi->needmoduleinfo)
                     mi->accept(this);
             }
-            (void)findGetMembers(d);
+            (void)dmd::findGetMembers(d);
             (void)d->sctor;
             (void)d->sdtor;
             (void)d->ssharedctor;
@@ -1240,7 +1241,7 @@ public:
     }
     void visit(Nspace *d) override
     {
-        if (isError(d) || !d->members)
+        if (dmd::isError(d) || !d->members)
             return;
         for (size_t i = 0; i < d->members->length; i++)
             (*d->members)[i]->accept(this);
@@ -1262,7 +1263,7 @@ public:
     }
     void visit(TemplateInstance *d) override
     {
-        if (isError(d) || !d->members)
+        if (dmd::isError(d) || !d->members)
             return;
         if (!d->needsCodegen())
             return;
@@ -1271,7 +1272,7 @@ public:
     }
     void visit(TemplateMixin *d) override
     {
-        if (isError(d) || !d->members)
+        if (dmd::isError(d) || !d->members)
             return;
         for (size_t i = 0; i < d->members->length; i++)
             (*d->members)[i]->accept(this);
@@ -1316,7 +1317,7 @@ public:
             FuncDeclaration *fd = d->vtbl[i]->isFuncDeclaration();
             if (!fd || (!fd->fbody && d->isAbstract()))
                 continue;
-            if (!functionSemantic(fd))
+            if (!dmd::functionSemantic(fd))
                 return;
             if (!d->isFuncHidden(fd) || fd->isFuture())
                 continue;
@@ -1341,7 +1342,7 @@ public:
         (void)d->sinit;
         NewExp *ne = NewExp::create(d->loc, NULL, d->type, NULL);
         ne->type = d->type;
-        Expression *e = ctfeInterpret(ne);
+        Expression *e = dmd::ctfeInterpret(ne);
         assert(e->op == EXP::classReference);
         ClassReferenceExp *exp = e->isClassReferenceExp();
         ClassDeclaration *cd = exp->originalClass();
@@ -1452,7 +1453,7 @@ public:
         }
         if (FuncDeclaration *fd = decl->isFuncDeclaration())
         {
-            if (!functionSemantic(fd))
+            if (!dmd::functionSemantic(fd))
                 return;
             if (fd->needThis() && !fd->isMember2())
                 return;
@@ -1489,7 +1490,7 @@ public:
             {
                 if (vd->_init && !vd->_init->isVoidInitializer())
                 {
-                    Expression *ie = initializerToExpression(vd->_init);
+                    Expression *ie = dmd::initializerToExpression(vd->_init);
                     ie->accept(this);
                 }
             }
@@ -1552,7 +1553,7 @@ public:
             {
                 if (!d->_init->isVoidInitializer())
                 {
-                    Expression *e = initializerToExpression(d->_init, d->type);
+                    Expression *e = dmd::initializerToExpression(d->_init, d->type);
                     e->accept(this);
                 }
             }
@@ -1568,7 +1569,7 @@ public:
             if (d->_init && !d->_init->isVoidInitializer())
             {
                 ExpInitializer *vinit = d->_init->isExpInitializer();
-                initializerToExpression(vinit)->accept(this);
+                dmd::initializerToExpression(vinit)->accept(this);
                 if (d->needsScopeDtor())
                     d->edtor->accept(this);
             }
@@ -1610,7 +1611,7 @@ public:
         }
         if (d->semanticRun < PASS::semantic3)
         {
-            functionSemantic3(d);
+            dmd::functionSemantic3(d);
             Module::runDeferredSemantic3();
         }
         if (global.errors)
@@ -1659,15 +1660,6 @@ public:
     }
 };
 
-void test_typinf(Expression *e, const Loc &loc, Type *t, Scope *sc)
-{
-    // Link tests
-    genTypeInfo(e, loc, t, sc);
-    getTypeInfoType(loc, t, sc, false);
-    isSpeculativeType(t);
-    builtinTypeInfo(t);
-}
-
 void test_backend(FuncDeclaration *f, Type *t)
 {
     MiniGlueVisitor v(f);
@@ -1675,16 +1667,11 @@ void test_backend(FuncDeclaration *f, Type *t)
         t->accept(&v);
     else
     {
-        Type *tb = castMod(t, 0);
+        Type *tb = dmd::castMod(t, 0);
         tb->accept(&v);
         (void)t->mod;
     }
     f->fbody->accept(&v);
-}
-
-void link_test_typesem(Type *t1, Type *t2)
-{
-    covariant(t1, t2);
 }
 
 /**********************************/
@@ -1713,4 +1700,157 @@ int main(int argc, char **argv)
     frontend_term();
 
     return 0;
+}
+
+/**********************************/
+// Link Tests
+
+void aggregate_h(StructDeclaration *sd)
+{
+    dmd::search_toString(sd);
+    dmd::semanticTypeInfoMembers(sd);
+}
+
+void argtypes_h(Type *t)
+{
+    // LLVM-only
+    //dmd::toArgTypes_x86(t);
+    //dmd::toArgTypes_sysv_x64(t);
+    //dmd::toArgTypes_aarch64(t);
+    //dmd::isHFVA(t);
+}
+
+void declaration_h(FuncDeclaration *fd, const Loc &loc, Expressions* args)
+{
+    dmd::functionSemantic(fd);
+    dmd::functionSemantic3(fd);
+    ::eval_builtin(loc, fd, args);
+    ::isBuiltin(fd);
+}
+
+void doc_h(Module *m, const char *ptr, d_size_t length, const char *date,
+           ErrorSink *sink, OutBuffer &buf)
+{
+    dmd::gendocfile(m, ptr, length, date, sink, buf);
+}
+
+void dsymbol_h(Dsymbol *d, Scope *sc, ScopeDsymbol *sds, const Loc &loc, Identifier *ident)
+{
+    dmd::dsymbolSemantic(d, sc);
+    dmd::semantic2(d, sc);
+    dmd::semantic3(d, sc);
+    dmd::addMember(d, sc, sds);
+    dmd::search(d, loc, ident);
+    dmd::setScope(d, sc);
+    dmd::importAll(d, sc);
+}
+
+void expression_h(Expression *e, Scope *sc, Type *t, const Loc &loc, Expressions *es)
+{
+    dmd::expressionSemantic(e, sc);
+    dmd::defaultInit(t, loc);
+    dmd::ctfeInterpret(e);
+    dmd::expandTuples(es);
+    dmd::optimize(e, 0);
+}
+
+void hdrgen_h(Module *m, OutBuffer &buf, Modules &ms, ParameterList pl,
+              Expression *e, Initializer *i, Statement *s, Type *t)
+{
+    dmd::genhdrfile(m, true, buf);
+    dmd::genCppHdrFiles(ms);
+    dmd::moduleToBuffer(buf, true, m);
+    dmd::parametersTypeToChars(pl);
+    dmd::toChars(e);
+    dmd::toChars(i);
+    dmd::toChars(s);
+    dmd::toChars(t);
+}
+
+void init_h(Initializer *i, Type *t, Scope *sc, NeedInterpret ni)
+{
+    dmd::initializerToExpression(i, t, true);
+    dmd::initializerSemantic(i, sc, t, ni);
+}
+
+void json_h(Modules &ms, OutBuffer &buf, const char *name)
+{
+    dmd::json_generate(ms, buf);
+    dmd::tryParseJsonField(name);
+}
+
+void mangle_h(Dsymbol *s, FuncDeclaration *fd, Type *t, OutBuffer &buf,
+              Expression *e, TemplateInstance *ti)
+{
+    dmd::toCppMangleItanium(s);
+    dmd::cppTypeInfoMangleItanium(s);
+    dmd::cppThunkMangleItanium(fd, 42);
+    dmd::mangleExact(fd);
+    dmd::mangleToBuffer(t, buf);
+    dmd::mangleToBuffer(e, buf);
+    dmd::mangleToBuffer(s, buf);
+    dmd::mangleToBuffer(ti, buf);
+}
+
+void module_h(Module *m, Array<ClassDeclaration* >& acs, ScopeDsymbol *sds)
+{
+    dmd::getLocalClasses(m, acs);
+    dmd::findGetMembers(sds);
+}
+
+void mtype_h(Type *t1, Type *t2, const Loc &loc, Scope *sc, int *p)
+{
+    dmd::typeSemantic(t1, loc, sc);
+    dmd::merge(t1);
+    dmd::isAggregate(t1);
+    dmd::hasPointers(t1);
+    dmd::toDsymbol(t1, sc);
+    dmd::equivalent(t1, t2);
+    dmd::covariant(t1, t2);
+    dmd::isBaseOf(t1, t2, p);
+    dmd::trySemantic(t1, loc, sc);
+    dmd::merge2(t1);
+    dmd::constOf(t1);
+    dmd::immutableOf(t1);
+    dmd::mutableOf(t1);
+    dmd::sharedOf(t1);
+    dmd::sharedConstOf(t1);
+    dmd::unSharedOf(t1);
+    dmd::wildOf(t1);
+    dmd::wildConstOf(t1);
+    dmd::sharedWildOf(t1);
+    dmd::sharedWildConstOf(t1);
+    dmd::castMod(t1, 0);
+    dmd::addMod(t1, 0);
+    dmd::pointerTo(t1);
+    dmd::referenceTo(t1);
+}
+
+void statement_h(Statement *s, AsmStatement *as, GccAsmStatement *gas, Scope *sc)
+{
+    dmd::statementSemantic(s, sc);
+    dmd::asmSemantic(as, sc);
+    dmd::gccAsmSemantic(gas, sc);
+}
+
+void template_h(TemplateParameter *tp, Scope *sc, TemplateParameters *tps,
+                RootObject *o, ErrorSink *sink)
+{
+    dmd::tpsemantic(tp, sc, tps);
+    dmd::isExpression(o);
+    dmd::isDsymbol(o);
+    dmd::isType(o);
+    dmd::isTuple(o);
+    dmd::isParameter(o);
+    dmd::isTemplateParameter(o);
+    dmd::isError(o);
+    dmd::printTemplateStats(true, sink);
+}
+
+void typinf_h(Expression *e, const Loc &loc, Type *t, Scope *sc)
+{
+    dmd::genTypeInfo(e, loc, t, sc);
+    ::getTypeInfoType(loc, t, sc, false);
+    dmd::isSpeculativeType(t);
+    dmd::builtinTypeInfo(t);
 }

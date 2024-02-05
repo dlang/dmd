@@ -39,8 +39,11 @@ typedef union tree_node type;
 typedef struct TYPE type;
 #endif
 
-Type *typeSemantic(Type *t, const Loc &loc, Scope *sc);
-Type *merge(Type *type);
+namespace dmd
+{
+    Type *typeSemantic(Type *t, const Loc &loc, Scope *sc);
+    Type *merge(Type *type);
+}
 
 enum class TY : uint8_t
 {
@@ -878,28 +881,30 @@ public:
 
 /**************************************************************/
 
-
-// If the type is a class or struct, returns the symbol for it, else null.
-AggregateDeclaration *isAggregate(Type *t);
-bool hasPointers(Type *t);
-// return the symbol to which type t resolves
-Dsymbol *toDsymbol(Type *t, Scope *sc);
-bool equivalent(Type *src, Type *t);
-Covariant covariant(Type *, Type *, StorageClass * = NULL, bool = false);
-bool isBaseOf(Type *tthis, Type *t, int *poffset);
-Type *trySemantic(Type *type, const Loc &loc, Scope *sc);
-Type *pointerTo(Type *type);
-Type *referenceTo(Type *type);
-Type *merge2(Type *type);
-Type *constOf(Type *type);
-Type *immutableOf(Type *type);
-Type *mutableOf(Type *type);
-Type *sharedOf(Type *type);
-Type *sharedConstOf(Type *type);
-Type *unSharedOf(Type *type);
-Type *wildOf(Type *type);
-Type *wildConstOf(Type *type);
-Type *sharedWildOf(Type *type);
-Type *sharedWildConstOf(Type *type);
-Type *castMod(Type *type, MOD mod);
-Type *addMod(Type *type, MOD mod);
+namespace dmd
+{
+    // If the type is a class or struct, returns the symbol for it, else null.
+    AggregateDeclaration *isAggregate(Type *t);
+    bool hasPointers(Type *t);
+    // return the symbol to which type t resolves
+    Dsymbol *toDsymbol(Type *t, Scope *sc);
+    bool equivalent(Type *src, Type *t);
+    Covariant covariant(Type *, Type *, StorageClass * = NULL, bool = false);
+    bool isBaseOf(Type *tthis, Type *t, int *poffset);
+    Type *trySemantic(Type *type, const Loc &loc, Scope *sc);
+    Type *pointerTo(Type *type);
+    Type *referenceTo(Type *type);
+    Type *merge2(Type *type);
+    Type *constOf(Type *type);
+    Type *immutableOf(Type *type);
+    Type *mutableOf(Type *type);
+    Type *sharedOf(Type *type);
+    Type *sharedConstOf(Type *type);
+    Type *unSharedOf(Type *type);
+    Type *wildOf(Type *type);
+    Type *wildConstOf(Type *type);
+    Type *sharedWildOf(Type *type);
+    Type *sharedWildConstOf(Type *type);
+    Type *castMod(Type *type, MOD mod);
+    Type *addMod(Type *type, MOD mod);
+}

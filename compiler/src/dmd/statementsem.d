@@ -135,7 +135,7 @@ private Expression checkAssignmentAsCondition(Expression e, Scope* sc)
 }
 
 // Performs semantic analysis in Statement AST nodes
-extern(C++) Statement statementSemantic(Statement s, Scope* sc)
+Statement statementSemantic(Statement s, Scope* sc)
 {
     import dmd.compiler;
 

@@ -5643,7 +5643,7 @@ void attributesApply(const TypeFunction tf, void delegate(string) dg, TRUSTforma
  * If the type is a class or struct, returns the symbol for it,
  * else null.
  */
-extern (C++) AggregateDeclaration isAggregate(Type t)
+AggregateDeclaration isAggregate(Type t)
 {
     t = t.toBasetype();
     if (t.ty == Tclass)

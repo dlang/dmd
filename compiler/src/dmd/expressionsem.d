@@ -14203,7 +14203,7 @@ Expression binSemanticProp(BinExp e, Scope* sc)
 }
 
 // entrypoint for semantic ExpressionSemanticVisitor
-extern (C++) Expression expressionSemantic(Expression e, Scope* sc)
+Expression expressionSemantic(Expression e, Scope* sc)
 {
     scope v = new ExpressionSemanticVisitor(sc);
     e.accept(v);

@@ -299,7 +299,7 @@ Ldone:
  * Returns:
  *      the completed gcc asm statement, or null if errors occurred
  */
-extern (C++) public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
+public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
 {
     //printf("GccAsmStatement.semantic()\n");
     const bool doUnittests = global.params.parsingUnittestsRequired();
