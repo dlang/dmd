@@ -3984,9 +3984,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(MemberOfOperatorExp e)
     {
-        error(e.loc, "Member of operator may not used in infering of lhs for %s", e.ident.toChars());
-        result = ErrorExp.get();
-        setError();
+        // this will be handled elsewhere
+        e.type = Type.tmemberOfOperator;
+        result = e;
     }
 
     override void visit(DsymbolExp e)

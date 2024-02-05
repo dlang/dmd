@@ -199,6 +199,7 @@ enum TY : ubyte
     Tchar,
     Twchar,
     Tdchar,
+    Tmemberof,
     Terror,
     Tinstance,
     Ttypeof,
@@ -251,6 +252,7 @@ alias Tbool = TY.Tbool;
 alias Tchar = TY.Tchar;
 alias Twchar = TY.Twchar;
 alias Tdchar = TY.Tdchar;
+alias Tmemberof = TY.Tmemberof;
 alias Terror = TY.Terror;
 alias Tinstance = TY.Tinstance;
 alias Ttypeof = TY.Ttypeof;

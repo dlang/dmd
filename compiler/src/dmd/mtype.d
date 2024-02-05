@@ -354,6 +354,9 @@ extern (C++) abstract class Type : ASTNode
     extern (C++) __gshared Type tptrdiff_t;  // matches ptrdiff_t alias
     extern (C++) __gshared Type thash_t;     // matches hash_t alias
 
+    // for member of operator, shouldn't appear unless matching is delayed
+    extern (C++) __gshared Type tmemberOfOperator;
+
     extern (C++) __gshared ClassDeclaration dtypeinfo;
     extern (C++) __gshared ClassDeclaration typeinfoclass;
     extern (C++) __gshared ClassDeclaration typeinfointerface;
@@ -521,6 +524,7 @@ extern (C++) abstract class Type : ASTNode
             Tchar,
             Twchar,
             Tdchar,
+            Tmemberof,
             Terror
         ];
 
@@ -603,6 +607,8 @@ extern (C++) abstract class Type : ASTNode
         tsize_t    = basic[isLP64 ? Tuns64 : Tuns32];
         tptrdiff_t = basic[isLP64 ? Tint64 : Tint32];
         thash_t = tsize_t;
+
+        tmemberOfOperator = basic[Tmemberof];
     }
 
     /**
@@ -2471,6 +2477,10 @@ extern (C++) final class TypeBasic : Type
         case Tdchar:
             d = Token.toChars(TOK.dchar_);
             flags |= TFlags.integral | TFlags.unsigned;
+            break;
+
+        case Tmemberof:
+            d = "memberof";
             break;
 
         default:
@@ -5968,6 +5978,7 @@ mixin template VisitType(Result)
             case TY.Tchar:
             case TY.Twchar:
             case TY.Tdchar:
+            case TY.Tmemberof:
             case TY.Tint128:
             case TY.Tuns128:    mixin(visitTYCase("Basic"));
             case TY.Tarray:     mixin(visitTYCase("DArray"));

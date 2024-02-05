@@ -100,6 +100,7 @@ ImpCnvTab generateImpCnvTab()
         Tchar,
         Twchar,
         Tdchar,
+        Tmemberof,
         Terror,
         Tinstance,
         Ttypeof,
