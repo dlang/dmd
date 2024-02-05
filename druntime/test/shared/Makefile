@@ -24,10 +24,10 @@ all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
 
 ifeq (windows,$(OS)) # extra tests on Windows
 
+ifeq ($(SHARED),1)
 # dmd -shared does not (yet) imply -visibility=public
 $(ROOT)/%$(DOTDLL): DFLAGS += -visibility=public
 
-ifeq ($(SHARED),1)
 DFLAGS+=-version=SharedRuntime
 PATH:=$(dir $(DRUNTIMESO));$(PATH)
 endif
