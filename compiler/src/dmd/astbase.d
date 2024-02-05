@@ -95,6 +95,8 @@ struct ASTBase
                 this.comment = Lexer.combineComments(this.comment.toDString(), comment.toDString(), true);
         }
 
+        alias toPrettyChars = toChars;
+
         override const(char)* toChars() const
         {
             return ident ? ident.toChars() : "__anonymous";
