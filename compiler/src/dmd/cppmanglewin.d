@@ -65,27 +65,6 @@ const(char)* cppTypeInfoMangleDMC(Dsymbol s) @safe
     assert(0);
 }
 
-/**
- * Issues an ICE and returns true if `type` is shared or immutable
- *
- * Params:
- *      type = type to check
- *
- * Returns:
- *      true if type is shared or immutable
- *      false otherwise
- */
-private extern (D) bool checkImmutableShared(Type type, Loc loc)
-{
-    if (type.isImmutable() || type.isShared())
-    {
-        error(loc, "internal compiler error: `shared` or `immutable` types cannot be mapped to C++ (%s)", type.toChars());
-        fatal();
-        return true;
-    }
-    return false;
-}
-
 private final class VisualCPPMangler : Visitor
 {
     alias visit = Visitor.visit;
@@ -1116,6 +1095,27 @@ extern(D):
 
 private:
 extern(D):
+
+/**
+ * Issues an ICE and returns true if `type` is shared or immutable
+ *
+ * Params:
+ *      type = type to check
+ *
+ * Returns:
+ *      true if type is shared or immutable
+ *      false otherwise
+ */
+bool checkImmutableShared(Type type, Loc loc)
+{
+    if (type.isImmutable() || type.isShared())
+    {
+        error(loc, "internal compiler error: `shared` or `immutable` types cannot be mapped to C++ (%s)", type.toChars());
+        fatal();
+        return true;
+    }
+    return false;
+}
 
 /**
  * Computes mangling for symbols with special mangling.
