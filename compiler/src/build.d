@@ -756,7 +756,7 @@ alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
         .description("Build the C++ unittests")
         .msg("(DC) CXX-UNITTEST")
         .deps([lexer(null, null), cxxFrontend])
-        .sources(sources.dmd.driver ~ sources.dmd.frontend ~ sources.root ~ sources.common)
+        .sources(sources.dmd.driver ~ sources.dmd.frontend ~ sources.root ~ sources.common ~ env["D"].buildPath("cxxfrontend.d"))
         .target(env["G"].buildPath("cxx-unittest").exeName)
         .command([ env["HOST_DMD_RUN"], "-of=" ~ exeRule.target, "-vtls", "-J" ~ env["RES"],
                     "-L-lstdc++", "-version=NoMain", "-version=NoBackend"

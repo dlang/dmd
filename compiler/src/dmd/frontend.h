@@ -106,7 +106,6 @@ class DsymbolTable;
 struct MangleOverride;
 class AliasThis;
 class Expression;
-class TypeTuple;
 class Condition;
 class StaticForeach;
 struct UnionExp;
@@ -117,18 +116,19 @@ class ForeachStatement;
 class ForeachRangeStatement;
 struct OutBuffer;
 class TypeInfoClassDeclaration;
+class TypeTuple;
 class Initializer;
 struct IntRange;
 struct ModuleDeclaration;
 template <typename Datum>
 struct FileMapping;
 struct Escape;
-class ErrorSink;
 class LabelStatement;
 class SwitchStatement;
 class Statement;
 class TryFinallyStatement;
 class ScopeGuardStatement;
+class ErrorSink;
 struct DocComment;
 class WithStatement;
 struct AA;
@@ -1914,22 +1914,6 @@ public:
     MATCH matchAll(Type* tt);
 };
 
-extern Dsymbol* isDsymbol(RootObject* o);
-
-extern bool isError(const RootObject* const o);
-
-extern Expression* isExpression(RootObject* o);
-
-extern Parameter* isParameter(RootObject* o);
-
-extern TemplateParameter* isTemplateParameter(RootObject* o);
-
-extern Tuple* isTuple(RootObject* o);
-
-extern Type* isType(RootObject* o);
-
-extern void printTemplateStats(bool listInstances, ErrorSink* eSink);
-
 class DebugSymbol final : public Dsymbol
 {
 public:
@@ -3560,8 +3544,6 @@ public:
     void accept(Visitor* v) override;
 };
 
-extern void expandTuples(Array<Expression* >* exps, Array<Identifier* >* names = nullptr);
-
 enum : int32_t { stageApply = 8 };
 
 enum : int32_t { stageInlineScan = 16 };
@@ -4104,14 +4086,6 @@ struct HdrGenState final
 
 enum : int32_t { TEST_EMIT_ALL = 0 };
 
-extern void genhdrfile(Module* m, bool doFuncBodies, OutBuffer& buf);
-
-extern void moduleToBuffer(OutBuffer& buf, bool vcg_ast, Module* m);
-
-extern const char* parametersTypeToChars(ParameterList pl);
-
-extern const char* toChars(const Statement* const s);
-
 enum class InitKind : uint8_t
 {
     void_ = 0u,
@@ -4202,10 +4176,6 @@ public:
     Type* type;
     void accept(Visitor* v) override;
 };
-
-extern Initializer* initializerSemantic(Initializer* init, Scope* sc, Type*& tx, NeedInterpret needInterpret);
-
-extern Expression* initializerToExpression(Initializer* init, Type* itype = nullptr, const bool isCfile = false);
 
 enum class Covariant
 {
@@ -4790,8 +4760,6 @@ public:
     bool isZeroInit(const Loc& loc) override;
     void accept(Visitor* v) override;
 };
-
-extern AggregateDeclaration* isAggregate(Type* t);
 
 class Nspace final : public ScopeDsymbol
 {
@@ -5422,54 +5390,6 @@ public:
     void accept(Visitor* v) override;
 };
 
-extern Type* addMod(Type* type, uint8_t mod);
-
-extern Type* castMod(Type* type, uint8_t mod);
-
-extern Type* constOf(Type* type);
-
-extern Covariant covariant(Type* src, Type* t, uint64_t* pstc = nullptr, bool cppCovariant = false);
-
-extern Expression* defaultInit(Type* mt, const Loc& loc, const bool isCfile = false);
-
-extern bool equivalent(Type* src, Type* t);
-
-extern bool hasPointers(Type* t);
-
-extern Type* immutableOf(Type* type);
-
-extern bool isBaseOf(Type* tthis, Type* t, int32_t* poffset);
-
-extern Type* merge(Type* type);
-
-extern Type* merge2(Type* type);
-
-extern Type* mutableOf(Type* type);
-
-extern Type* pointerTo(Type* type);
-
-extern Type* referenceTo(Type* type);
-
-extern Type* sharedConstOf(Type* type);
-
-extern Type* sharedOf(Type* type);
-
-extern Type* sharedWildConstOf(Type* type);
-
-extern Type* sharedWildOf(Type* type);
-
-extern Dsymbol* toDsymbol(Type* type, Scope* sc);
-
-extern Type* trySemantic(Type* type, const Loc& loc, Scope* sc);
-
-extern Type* typeSemantic(Type* type, const Loc& loc, Scope* sc);
-
-extern Type* unSharedOf(Type* type);
-
-extern Type* wildConstOf(Type* type);
-
-extern Type* wildOf(Type* type);
-
 struct UnionExp final
 {
     #pragma pack(push, 8)
@@ -6041,15 +5961,6 @@ public:
     virtual void visit(LoweredAssignExp* e);
 };
 
-enum class JsonFieldFlags : uint32_t
-{
-    none = 0u,
-    compilerInfo = 1u,
-    buildInfo = 2u,
-    modules = 4u,
-    semantics = 8u,
-};
-
 class StoppableVisitor : public Visitor
 {
 public:
@@ -6235,6 +6146,15 @@ enum class CHECKACTION : uint8_t
     context = 3u,
 };
 
+enum class JsonFieldFlags : uint32_t
+{
+    none = 0u,
+    compilerInfo = 1u,
+    buildInfo = 2u,
+    modules = 4u,
+    semantics = 8u,
+};
+
 struct CompileEnv final
 {
     uint32_t versionNumber;
@@ -6330,14 +6250,6 @@ public:
     void accept(Visitor* v) override;
     bool isDeprecated() const override;
 };
-
-extern TypeTuple* toArgTypes_x86(Type* t);
-
-extern TypeTuple* toArgTypes_sysv_x64(Type* t);
-
-extern TypeTuple* toArgTypes_aarch64(Type* t);
-
-extern bool isHFVA(Type* t, int32_t maxNumElements = 4, Type** rewriteType = nullptr);
 
 struct structalign_t final
 {
@@ -6652,20 +6564,6 @@ public:
     StaticIfCondition* isStaticIfCondition() override;
     const char* toChars() const override;
 };
-
-extern const char* toCppMangleItanium(Dsymbol* s);
-
-extern const char* cppTypeInfoMangleItanium(Dsymbol* s);
-
-extern const char* cppThunkMangleItanium(FuncDeclaration* fd, int32_t offset);
-
-extern const char* toCppMangleMSVC(Dsymbol* s);
-
-extern const char* cppTypeInfoMangleMSVC(Dsymbol* s);
-
-extern const char* toCppMangleDMC(Dsymbol* s);
-
-extern const char* cppTypeInfoMangleDMC(Dsymbol* s);
 
 extern DArray<uint8_t > preprocess(FileName csrcfile, const Loc& loc, OutBuffer& defines);
 
@@ -7146,19 +7044,7 @@ public:
     void accept(Visitor* v) override;
 };
 
-extern Expression* ctfeInterpret(Expression* e);
-
 extern void printCtfePerformanceStats();
-
-extern const char* mangleExact(FuncDeclaration* fd);
-
-extern void mangleToBuffer(Type* t, OutBuffer& buf);
-
-extern void mangleToBuffer(Expression* e, OutBuffer& buf);
-
-extern void mangleToBuffer(Dsymbol* s, OutBuffer& buf);
-
-extern void mangleToBuffer(TemplateInstance* ti, OutBuffer& buf);
 
 class Package : public ScopeDsymbol
 {
@@ -7278,12 +7164,6 @@ struct ModuleDeclaration final
     {
     }
 };
-
-extern void getLocalClasses(Module* mod, Array<ClassDeclaration* >& aclasses);
-
-extern FuncDeclaration* findGetMembers(ScopeDsymbol* dsym);
-
-extern void gendocfile(Module* m, const char* const ddoctext_ptr, size_t ddoctext_length, const char* const datetime, ErrorSink* eSink, OutBuffer& outbuf);
 
 struct Scope final
 {
@@ -7413,8 +7293,6 @@ struct Scope final
         aliasAsg(aliasAsg)
         {}
 };
-
-extern FuncDeclaration* search_toString(StructDeclaration* sd);
 
 class StructDeclaration : public AggregateDeclaration
 {
@@ -7546,16 +7424,6 @@ public:
     DsymbolTable();
 };
 
-extern void dsymbolSemantic(Dsymbol* dsym, Scope* sc);
-
-extern void addMember(Dsymbol* dsym, Scope* sc, ScopeDsymbol* sds);
-
-extern Dsymbol* search(Dsymbol* d, const Loc& loc, Identifier* ident, uint32_t flags = 0u);
-
-extern void setScope(Dsymbol* d, Scope* sc);
-
-extern void importAll(Dsymbol* d, Scope* sc);
-
 class ImportAllVisitor : public Visitor
 {
 public:
@@ -7569,28 +7437,6 @@ public:
     void visit(StaticIfDeclaration* _) override;
     void visit(StaticForeachDeclaration* _) override;
 };
-
-extern void genCppHdrFiles(Array<Module* >& ms);
-
-extern Expression* expressionSemantic(Expression* e, Scope* sc);
-
-extern bool functionSemantic(FuncDeclaration* fd);
-
-extern bool functionSemantic3(FuncDeclaration* fd);
-
-extern const char* toChars(const Expression* const e);
-
-extern const char* toChars(const Initializer* const i);
-
-extern const char* toChars(const Type* const t);
-
-extern Statement* asmSemantic(AsmStatement* s, Scope* sc);
-
-extern Statement* gccAsmSemantic(GccAsmStatement* s, Scope* sc);
-
-extern void json_generate(Array<Module* >& modules, OutBuffer& buf);
-
-extern JsonFieldFlags tryParseJsonField(const char* fieldName);
 
 class NOGCVisitor final : public StoppableVisitor
 {
@@ -7640,8 +7486,6 @@ public:
     virtual void checkTupleof(Expression* expression, TypeClass* type) const = 0;
 };
 
-extern Expression* optimize(Expression* e, int32_t result, bool keepLvalue = false);
-
 template <typename AST>
 class PermissiveVisitor : public ParseTimeVisitor<AST >
 {
@@ -7656,14 +7500,6 @@ public:
     virtual void visit(typename AST::Condition ) override;
     virtual void visit(typename AST::Initializer ) override;
 };
-
-extern void semantic2(Dsymbol* dsym, Scope* sc);
-
-extern void semantic3(Dsymbol* dsym, Scope* sc);
-
-extern void semanticTypeInfoMembers(StructDeclaration* sd);
-
-extern Statement* statementSemantic(Statement* s, Scope* sc);
 
 struct Target final
 {
@@ -7811,15 +7647,7 @@ public:
 
 extern Target target;
 
-extern bool tpsemantic(TemplateParameter* tp, Scope* sc, Array<TemplateParameter* >* parameters);
-
-extern bool genTypeInfo(Expression* e, const Loc& loc, Type* torig, Scope* sc);
-
 extern Type* getTypeInfoType(const Loc& loc, Type* t, Scope* sc, bool genObjCode = true);
-
-extern bool isSpeculativeType(Type* t);
-
-extern bool builtinTypeInfo(Type* t);
 
 class SemanticTimeTransitiveVisitor : public SemanticTimePermissiveVisitor
 {

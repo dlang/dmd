@@ -15,8 +15,6 @@ import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.stddef;
 
-extern (C++):
-
 import dmd.globals;
 import dmd.dclass;
 import dmd.dmdparams;

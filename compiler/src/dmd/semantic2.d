@@ -73,7 +73,7 @@ enum LOG = false;
 /*************************************
  * Does semantic analysis on initializers and members of aggregates.
  */
-extern(C++) void semantic2(Dsymbol dsym, Scope* sc)
+void semantic2(Dsymbol dsym, Scope* sc)
 {
     scope v = new Semantic2Visitor(sc);
     dsym.accept(v);

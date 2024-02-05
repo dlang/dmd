@@ -38,9 +38,6 @@ import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
 
-extern (C++):
-
-
 const(char)* toCppMangleMSVC(Dsymbol s)
 {
     scope VisualCPPMangler v = new VisualCPPMangler(false, s.loc);
@@ -65,7 +62,7 @@ const(char)* cppTypeInfoMangleDMC(Dsymbol s) @safe
     assert(0);
 }
 
-private final class VisualCPPMangler : Visitor
+private extern (C++) final class VisualCPPMangler : Visitor
 {
     alias visit = Visitor.visit;
     Identifier[10] saved_idents;
