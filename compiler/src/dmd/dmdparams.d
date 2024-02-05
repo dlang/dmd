@@ -313,6 +313,20 @@ struct Triple
     }
 }
 
+/**
+Initializes Target settings to compile for the same target
+as the build compiler.
+*/
+void setTargetBuildDefaults(ref Target target)
+{
+    target = target.init;
+    target.os = defaultTargetOS();
+    target.osMajor = defaultTargetOSMajor();
+    target.cpu = CPU.baseline;
+    target.omfobj = false;
+    target.isX86_64 = (size_t.sizeof == 8);
+}
+
 void setTriple(ref Target target, const ref Triple triple) @safe
 {
     target.cpu     = triple.cpu;
