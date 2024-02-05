@@ -8604,22 +8604,16 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 // Member of Operator
                 // ':' Identifier
 
-                Token previous = this.token;
-                nextToken(); // consume ':'
-
                 if (peekNext() != TOK.identifier)
                 {
-                    this.token = previous;
                     error("identifier expected, not %s", token.toChars());
                     goto Lerr;
                 }
 
+                nextToken(); // consume ':'
                 e = new AST.MemberOfOperatorExp(loc, token.ident);
-
-                // consume the identifier
-                nextToken();
+                break;
             }
-            break;
 
         default:
             error("expression expected, not `%s`", token.toChars());
