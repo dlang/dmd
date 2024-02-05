@@ -8599,6 +8599,25 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 break;
             }
 
+        case TOK.colon:
+            {
+                // Member of Operator
+                // ':' Identifier
+                nextToken();
+
+                if (token.value != TOK.identifier)
+                {
+                    error("identifier expected, not %s", token.toChars());
+                    goto Lerr;
+                }
+
+                e = new AST.MemberOfOperatorExp(loc, token.ident);
+
+                // consume the identifier
+                nextToken();
+            }
+            break;
+
         default:
             error("expression expected, not `%s`", token.toChars());
         Lerr:
@@ -9673,6 +9692,7 @@ immutable PREC[EXP.max + 1] precedence =
     EXP.void_ : PREC.primary,
     EXP.vectorArray : PREC.primary,
     EXP._Generic : PREC.primary,
+    EXP.memberOf : PREC.primary,
 
     // post
     EXP.dotTemplateInstance : PREC.primary,

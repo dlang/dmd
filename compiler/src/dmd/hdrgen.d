@@ -4401,6 +4401,7 @@ string EXPtoString(EXP op)
         EXP.void_ : "void",
         EXP.vectorArray : "vectorarray",
         EXP._Generic : "_Generic",
+        EXP.memberOf : "memberofoperator",
 
         // post
         EXP.dotTemplateInstance : "dotti",

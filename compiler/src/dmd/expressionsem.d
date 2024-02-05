@@ -3982,6 +3982,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = ErrorExp.get();
     }
 
+    override void visit(MemberOfOperatorExp e)
+    {
+        error(e.loc, "Member of operator may not used in infering of lhs for %s", e.ident.toChars());
+        result = ErrorExp.get();
+        setError();
+    }
+
     override void visit(DsymbolExp e)
     {
         result = symbolToExp(e.s, e.loc, sc, e.hasOverloads);
@@ -10527,7 +10534,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
          * depends on the result of e1 in assignments.
          */
         {
+            // If the expression is a member of operator,
+            //  rewrite it to be typeof(var).Identifier
+            if (auto moexp = exp.e2.isMemberOfExp)
+                exp.e2 = new DotIdExp(exp.e2.loc, exp.e1, moexp.ident);
+
             Expression e2x = inferType(exp.e2, t1.baseElemOf());
+
             e2x = e2x.expressionSemantic(sc);
             if (!t1.isTypeSArray())
                 e2x = e2x.arrayFuncConv(sc);

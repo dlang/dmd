@@ -193,6 +193,7 @@ public:
     void visit(AST.TypeExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.ScopeExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.IdentifierExp e) { visit(cast(AST.Expression)e); }
+    void visit(AST.MemberOfOperatorExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.UnaExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.DefaultInitExp e) { visit(cast(AST.Expression)e); }
     void visit(AST.BinExp e) { visit(cast(AST.Expression)e); }

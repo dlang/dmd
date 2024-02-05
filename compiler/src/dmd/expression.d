@@ -717,6 +717,7 @@ extern (C++) abstract class Expression : ASTNode
         inout(ComplexExp)   isComplexExp() { return op == EXP.complex80 ? cast(typeof(return))this : null; }
         inout(IdentifierExp) isIdentifierExp() { return op == EXP.identifier ? cast(typeof(return))this : null; }
         inout(DollarExp)    isDollarExp() { return op == EXP.dollar ? cast(typeof(return))this : null; }
+        inout(MemberOfOperatorExp) isMemberOfExp() { return op == EXP.memberOf ? cast(typeof(return))this : null; }
         inout(DsymbolExp)   isDsymbolExp() { return op == EXP.dSymbol ? cast(typeof(return))this : null; }
         inout(ThisExp)      isThisExp() { return op == EXP.this_ ? cast(typeof(return))this : null; }
         inout(SuperExp)     isSuperExp() { return op == EXP.super_ ? cast(typeof(return))this : null; }
@@ -1344,6 +1345,27 @@ extern (C++) final class DollarExp : IdentifierExp
     extern (D) this(const ref Loc loc)
     {
         super(loc, Id.dollar);
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
+    }
+}
+
+extern (C++) class MemberOfOperatorExp : Expression
+{
+    Identifier ident;
+
+    extern (D) this(const ref Loc loc, Identifier ident) scope @safe
+    {
+        super(loc, EXP.memberOf);
+        this.ident = ident;
+    }
+
+    static MemberOfOperatorExp create(const ref Loc loc, Identifier ident) @safe
+    {
+        return new MemberOfOperatorExp(loc, ident);
     }
 
     override void accept(Visitor v)

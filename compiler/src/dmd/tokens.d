@@ -387,6 +387,7 @@ enum EXP : ubyte
     halt,
     tuple,
     error,
+    memberOf,
 
     // Basic types
     void_,
