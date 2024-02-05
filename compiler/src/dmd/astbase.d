@@ -4939,6 +4939,9 @@ struct ASTBase
         ubyte sz = 1;       // 1: char, 2: wchar, 4: dchar
         char postfix = 0;   // 'c', 'w', 'd'
 
+        /// If the string is parsed from a hex string literal
+        bool hexString = false;
+
         extern (D) this(const ref Loc loc, const(void)[] string)
         {
             super(loc, EXP.string_, __traits(classInstanceSize, StringExp));
