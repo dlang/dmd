@@ -82,6 +82,7 @@ immutable char[TMAX] mangleChar =
     Tmixin       : '@',
     Ttag         : '@',
     Tnoreturn    : '@',         // becomes 'Nn'
+    Tmemberof    : '@',         // member of is an internal rewrite for delayed semantic
 ];
 
 unittest
