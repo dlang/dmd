@@ -5413,7 +5413,7 @@ struct ASTBase
     {
         Identifier ident;
 
-        extern (D) this(const ref Loc loc, Identifier ident) scope @safe
+        extern (D) this(const ref Loc loc, Identifier ident)
         {
             super(loc, EXP.memberOf, __traits(classInstanceSize, MemberOfOperatorExp));
             this.ident = ident;
