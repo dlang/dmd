@@ -39,7 +39,6 @@ typedef union tree_node type;
 typedef struct TYPE type;
 #endif
 
-extern const char* toChars(const Type* const t);
 Type *typeSemantic(Type *t, const Loc &loc, Scope *sc);
 Type *merge(Type *type);
 
