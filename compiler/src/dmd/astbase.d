@@ -1696,6 +1696,7 @@ struct ASTBase
 
     extern (C++) final class Parameter : ASTNode
     {
+        Loc loc;
         StorageClass storageClass;
         Type type;
         Identifier ident;
@@ -1704,7 +1705,7 @@ struct ASTBase
 
         extern (D) alias ForeachDg = int delegate(size_t idx, Parameter param);
 
-        final extern (D) this(StorageClass storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl)
+        final extern (D) this(const ref Loc loc, StorageClass storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl)
         {
             this.storageClass = storageClass;
             this.type = type;
@@ -1777,7 +1778,7 @@ struct ASTBase
 
         Parameter syntaxCopy()
         {
-            return new Parameter(storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null, userAttribDecl ? userAttribDecl.syntaxCopy(null) : null);
+            return new Parameter(loc, storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null, userAttribDecl ? userAttribDecl.syntaxCopy(null) : null);
         }
 
         override void accept(Visitor v)
@@ -3684,7 +3685,7 @@ struct ASTBase
                     Expression e = (*exps)[i];
                     if (e.type.ty == Ttuple)
                         e.error("cannot form sequence of sequences");
-                    auto arg = new Parameter(STC.undefined_, e.type, null, null, null);
+                    auto arg = new Parameter(e.loc, STC.undefined_, e.type, null, null, null);
                     (*arguments)[i] = arg;
                 }
             }
