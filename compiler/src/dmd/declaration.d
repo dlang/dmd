@@ -1380,7 +1380,7 @@ extern (C++) class VarDeclaration : Declaration
      */
     final bool needsScopeDtor()
     {
-        //printf("VarDeclaration::needsScopeDtor() %s\n", toChars());
+        //printf("VarDeclaration::needsScopeDtor() %s %d\n", toChars(), edtor && !(storage_class & STC.nodtor));
         return edtor && !(storage_class & STC.nodtor);
     }
 

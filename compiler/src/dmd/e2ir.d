@@ -85,7 +85,7 @@ import dmd.backend.util2 : mem_malloc2;
 private int registerSize() { return _tysize[TYnptr]; }
 
 /*****
- * If variable var is a reference due to target calling conventions
+ * If variable var is a value that will actually be passed as a reference
  * Params:
  *      var = parameter variable
  * Returns:
@@ -95,7 +95,7 @@ bool ISX64REF(Declaration var)
 {
     if (var.isReference())
     {
-        return false;
+        return false; // it's not a value
     }
 
     if (var.isParameter())
@@ -6750,7 +6750,7 @@ elem *toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol *sym
 
 elem *appendDtors(ref IRState irs, elem *er, size_t starti, size_t endi)
 {
-    //printf("appendDtors(%d .. %d)\n", starti, endi);
+    //printf("appendDtors(%d .. %d)\n", cast(int)starti, cast(int)endi);
 
     /* Code gen can be improved by determining if no exceptions can be thrown
      * between the OPdctor and OPddtor, and eliminating the OPdctor and OPddtor.

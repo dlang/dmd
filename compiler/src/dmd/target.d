@@ -1265,6 +1265,11 @@ extern (C++) struct Target
      */
     extern (C++) bool isCalleeDestroyingArgs(TypeFunction tf) @safe
     {
+        /* BUG preventing this from working: https://github.com/dlang/dmd/pull/16145
+        if (tf.linkage == LINK.d)
+            return false;
+        */
+
         // On windows, the callee destroys arguments always regardless of function linkage,
         // and regardless of whether the caller or callee cleans the stack.
         return os == Target.OS.Windows ||
