@@ -51,6 +51,7 @@ struct CompileEnv
     bool previewIn;          /// `in` means `[ref] scope const`, accepts rvalues
     bool ddocOutput;         /// collect embedded documentation comments
     bool masm;               /// use MASM inline asm syntax
+    bool ignoreMemberOf;    /// ':' Identifier support in parser, needed for iasmgcc
 }
 
 /***********************************************************

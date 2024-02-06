@@ -303,7 +303,9 @@ extern (C++) public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
 {
     //printf("GccAsmStatement.semantic()\n");
     const bool doUnittests = global.params.parsingUnittestsRequired();
-    scope p = new Parser!ASTCodegen(sc._module, ";", false, global.errorSink, &global.compileEnv, doUnittests);
+    CompileEnv cenv = global.compileEnv;
+    cenv.ignoreMemberOf = true;
+    scope p = new Parser!ASTCodegen(sc._module, ";", false, global.errorSink, &cenv, doUnittests);
 
     // Make a safe copy of the token list before parsing.
     Token *toklist = null;
@@ -412,9 +414,13 @@ unittest
         const errors = global.errors;
         scope gas = new GccAsmStatement(Loc.initial, tokens);
         const bool doUnittests = false;
-        scope p = new Parser!ASTCodegen(null, ";", false, global.errorSink, &global.compileEnv, doUnittests);
+
+        CompileEnv cenv = global.compileEnv;
+        cenv.ignoreMemberOf = true;
+        scope p = new Parser!ASTCodegen(null, ";", false, global.errorSink, &cenv, doUnittests);
         p.token = *tokens;
-        p.parseGccAsm(gas);
+
+        GccAsmStatement s = p.parseGccAsm(gas);
         return global.errors - errors;
     }
 

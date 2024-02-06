@@ -8600,6 +8600,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             }
 
         case TOK.colon:
+            if (this.compileEnv.ignoreMemberOf)
+                goto default;
+            else
             {
                 // Member of Operator
                 // ':' Identifier
@@ -8609,9 +8612,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     error("identifier expected, not %s", token.toChars());
                     goto Lerr;
                 }
-
                 nextToken(); // consume ':'
+
                 e = new AST.MemberOfOperatorExp(loc, token.ident);
+                nextToken(); // consume Identifier
                 break;
             }
 
