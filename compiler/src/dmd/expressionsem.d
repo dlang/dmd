@@ -3464,12 +3464,12 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             eprefix = ae.expressionSemantic(sc);
         }
 
-        for (ptrdiff_t i = 0; i != nargs; i++)
+        foreach (ptrdiff_t i; 0 .. nargs)
         {
             Expression arg = (*arguments)[i];
             //printf("arg[%d]: %s\n", cast(int)i, arg.toChars());
 
-            Parameter parameter = (i >= nparams ? null : tf.parameterList[i]);
+            Parameter parameter = i < nparams ? tf.parameterList[i] : null;
             const bool isRef = parameter && parameter.isReference();
             const bool isLazy = parameter && parameter.isLazy();
 
@@ -3485,7 +3485,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
              * 'eprefix' will therefore finally contain all args up to and including 'lastPrefix',
              * excluding all lazy parameters.
              */
-            if (needsPrefix && (lastPrefix - i) >= 0)
+            if (needsPrefix && i <= lastPrefix)
             {
                 const bool needsDtor = !isRef && arg.type.needsDestruction() &&
                                        // Problem 3: last throwing arg doesn't require dtor patching
@@ -3496,7 +3496,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 auto tmp = copyToTemp(
                     (parameter ? parameter.storageClass : tf.parameterList.stc) & (STC.scope_),
                     needsDtor ? "__pfx" : "__pfy",
-                    !isRef ? arg : arg.addressOf());
+                    isRef ? arg.addressOf() : arg);
                 tmp.dsymbolSemantic(sc);
 
                 if (callerDestroysArgs)
