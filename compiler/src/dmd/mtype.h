@@ -82,6 +82,7 @@ enum class TY : uint8_t
     Tchar,
     Twchar,
     Tdchar,
+    Tmemberof,
     Terror,
     Tinstance,
     Ttypeof,
@@ -191,6 +192,7 @@ public:
     static Type *tsize_t;               // matches size_t alias
     static Type *tptrdiff_t;            // matches ptrdiff_t alias
     static Type *thash_t;               // matches hash_t alias
+    static Type *tmemberOfOperator;
 
     static ClassDeclaration *dtypeinfo;
     static ClassDeclaration *typeinfoclass;

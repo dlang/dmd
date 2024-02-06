@@ -397,6 +397,7 @@ enum class EXP : unsigned char
     halt,
     tuple,
     error,
+    memberOf,
 
     // Basic types
     void_,

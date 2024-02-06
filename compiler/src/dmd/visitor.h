@@ -190,6 +190,7 @@ class RealExp;
 class ComplexExp;
 class IdentifierExp;
 class DollarExp;
+class MemberOfOperatorExp;
 class DsymbolExp;
 class ThisExp;
 class SuperExp;
@@ -491,6 +492,7 @@ public:
     virtual void visit(TypeExp *e) { visit((Expression *)e); }
     virtual void visit(ScopeExp *e) { visit((Expression *)e); }
     virtual void visit(IdentifierExp *e) { visit((Expression *)e); }
+    virtual void visit(MemberOfOperatorExp *e) { visit((Expression *)e); }
     virtual void visit(UnaExp *e) { visit((Expression *)e); }
     virtual void visit(DefaultInitExp *e) { visit((Expression *)e); }
     virtual void visit(BinExp *e) { visit((Expression *)e); }

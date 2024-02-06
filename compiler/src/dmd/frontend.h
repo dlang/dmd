@@ -179,6 +179,7 @@ class RealExp;
 class ComplexExp;
 class IdentifierExp;
 class DollarExp;
+class MemberOfOperatorExp;
 class DsymbolExp;
 class ThisExp;
 class SuperExp;
@@ -1103,6 +1104,7 @@ public:
     virtual void visit(typename AST::TypeExp e);
     virtual void visit(typename AST::ScopeExp e);
     virtual void visit(typename AST::IdentifierExp e);
+    virtual void visit(typename AST::MemberOfOperatorExp e);
     virtual void visit(typename AST::UnaExp e);
     virtual void visit(typename AST::DefaultInitExp e);
     virtual void visit(typename AST::BinExp e);
@@ -1685,20 +1687,21 @@ enum class TY : uint8_t
     Tchar = 31u,
     Twchar = 32u,
     Tdchar = 33u,
-    Terror = 34u,
-    Tinstance = 35u,
-    Ttypeof = 36u,
-    Ttuple = 37u,
-    Tslice = 38u,
-    Treturn = 39u,
-    Tnull = 40u,
-    Tvector = 41u,
-    Tint128 = 42u,
-    Tuns128 = 43u,
-    Ttraits = 44u,
-    Tmixin = 45u,
-    Tnoreturn = 46u,
-    Ttag = 47u,
+    Tmemberof = 34u,
+    Terror = 35u,
+    Tinstance = 36u,
+    Ttypeof = 37u,
+    Ttuple = 38u,
+    Tslice = 39u,
+    Treturn = 40u,
+    Tnull = 41u,
+    Tvector = 42u,
+    Tint128 = 43u,
+    Tuns128 = 44u,
+    Ttraits = 45u,
+    Tmixin = 46u,
+    Tnoreturn = 47u,
+    Ttag = 48u,
 };
 
 typedef uint64_t dinteger_t;
@@ -1783,6 +1786,7 @@ public:
     static Type* tsize_t;
     static Type* tptrdiff_t;
     static Type* thash_t;
+    static Type* tmemberOfOperator;
     static ClassDeclaration* dtypeinfo;
     static ClassDeclaration* typeinfoclass;
     static ClassDeclaration* typeinfointerface;
@@ -1801,7 +1805,7 @@ public:
     static ClassDeclaration* typeinfoshared;
     static ClassDeclaration* typeinfowild;
     static TemplateDeclaration* rtinfo;
-    static Type* basic[48LLU];
+    static Type* basic[49LLU];
     virtual const char* kind() const;
     Type* copy() const;
     virtual Type* syntaxCopy();
@@ -2053,39 +2057,40 @@ enum class EXP : uint8_t
     halt = 92u,
     tuple = 93u,
     error = 94u,
-    void_ = 95u,
-    int64 = 96u,
-    float64 = 97u,
-    complex80 = 98u,
-    import_ = 99u,
-    delegate_ = 100u,
-    function_ = 101u,
-    mixin_ = 102u,
-    in_ = 103u,
-    break_ = 104u,
-    continue_ = 105u,
-    goto_ = 106u,
-    scope_ = 107u,
-    traits = 108u,
-    overloadSet = 109u,
-    line = 110u,
-    file = 111u,
-    fileFullPath = 112u,
-    moduleString = 113u,
-    functionString = 114u,
-    prettyFunction = 115u,
-    pow = 116u,
-    powAssign = 117u,
-    vector = 118u,
-    voidExpression = 119u,
-    cantExpression = 120u,
-    showCtfeContext = 121u,
-    objcClassReference = 122u,
-    vectorArray = 123u,
-    compoundLiteral = 124u,
-    _Generic_ = 125u,
-    interval = 126u,
-    loweredAssignExp = 127u,
+    memberOf = 95u,
+    void_ = 96u,
+    int64 = 97u,
+    float64 = 98u,
+    complex80 = 99u,
+    import_ = 100u,
+    delegate_ = 101u,
+    function_ = 102u,
+    mixin_ = 103u,
+    in_ = 104u,
+    break_ = 105u,
+    continue_ = 106u,
+    goto_ = 107u,
+    scope_ = 108u,
+    traits = 109u,
+    overloadSet = 110u,
+    line = 111u,
+    file = 112u,
+    fileFullPath = 113u,
+    moduleString = 114u,
+    functionString = 115u,
+    prettyFunction = 116u,
+    pow = 117u,
+    powAssign = 118u,
+    vector = 119u,
+    voidExpression = 120u,
+    cantExpression = 121u,
+    showCtfeContext = 122u,
+    objcClassReference = 123u,
+    vectorArray = 124u,
+    compoundLiteral = 125u,
+    _Generic_ = 126u,
+    interval = 127u,
+    loweredAssignExp = 128u,
 };
 
 struct complex_t final
@@ -2148,6 +2153,7 @@ public:
     ComplexExp* isComplexExp();
     IdentifierExp* isIdentifierExp();
     DollarExp* isDollarExp();
+    MemberOfOperatorExp* isMemberOfExp();
     DsymbolExp* isDsymbolExp();
     ThisExp* isThisExp();
     SuperExp* isSuperExp();
@@ -3066,6 +3072,13 @@ class LoweredAssignExp final : public AssignExp
 public:
     Expression* lowering;
     const char* toChars() const override;
+    void accept(Visitor* v) override;
+};
+
+class MemberOfOperatorExp : public Expression
+{
+public:
+    Identifier* ident;
     void accept(Visitor* v) override;
 };
 
@@ -5775,6 +5788,7 @@ struct ASTCodegen final
     using LineInitExp = ::LineInitExp;
     using LogicalExp = ::LogicalExp;
     using LoweredAssignExp = ::LoweredAssignExp;
+    using MemberOfOperatorExp = ::MemberOfOperatorExp;
     using MemorySet = ::MemorySet;
     using MinAssignExp = ::MinAssignExp;
     using MinExp = ::MinExp;
@@ -6243,6 +6257,7 @@ struct CompileEnv final
     bool previewIn;
     bool ddocOutput;
     bool masm;
+    bool ignoreMemberOf;
     CompileEnv() :
         versionNumber(),
         date(),
@@ -6251,10 +6266,11 @@ struct CompileEnv final
         timestamp(),
         previewIn(),
         ddocOutput(),
-        masm()
+        masm(),
+        ignoreMemberOf()
     {
     }
-    CompileEnv(uint32_t versionNumber, _d_dynamicArray< const char > date = {}, _d_dynamicArray< const char > time = {}, _d_dynamicArray< const char > vendor = {}, _d_dynamicArray< const char > timestamp = {}, bool previewIn = false, bool ddocOutput = false, bool masm = false) :
+    CompileEnv(uint32_t versionNumber, _d_dynamicArray< const char > date = {}, _d_dynamicArray< const char > time = {}, _d_dynamicArray< const char > vendor = {}, _d_dynamicArray< const char > timestamp = {}, bool previewIn = false, bool ddocOutput = false, bool masm = false, bool ignoreMemberOf = false) :
         versionNumber(versionNumber),
         date(date),
         time(time),
@@ -6262,7 +6278,8 @@ struct CompileEnv final
         timestamp(timestamp),
         previewIn(previewIn),
         ddocOutput(ddocOutput),
-        masm(masm)
+        masm(masm),
+        ignoreMemberOf(ignoreMemberOf)
         {}
 };
 

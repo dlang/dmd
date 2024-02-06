@@ -420,7 +420,7 @@ unittest
         scope p = new Parser!ASTCodegen(null, ";", false, global.errorSink, &cenv, doUnittests);
         p.token = *tokens;
 
-        GccAsmStatement s = p.parseGccAsm(gas);
+        p.parseGccAsm(gas);
         return global.errors - errors;
     }
 

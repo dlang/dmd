@@ -274,6 +274,8 @@ struct CompileEnv
     DString timestamp;
     d_bool previewIn;
     d_bool ddocOutput;
+    d_bool masm;
+    d_bool ignoreMemberOf;
 };
 
 struct Global

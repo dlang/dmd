@@ -1363,11 +1363,6 @@ extern (C++) class MemberOfOperatorExp : Expression
         this.ident = ident;
     }
 
-    static MemberOfOperatorExp create(const ref Loc loc, Identifier ident) @safe
-    {
-        return new MemberOfOperatorExp(loc, ident);
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);

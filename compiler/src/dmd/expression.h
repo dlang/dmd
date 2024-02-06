@@ -124,6 +124,7 @@ public:
     ComplexExp* isComplexExp();
     IdentifierExp* isIdentifierExp();
     DollarExp* isDollarExp();
+    MemberOfOperatorExp* isMemberOfExp();
     DsymbolExp* isDsymbolExp();
     ThisExp* isThisExp();
     SuperExp* isSuperExp();
@@ -1055,6 +1056,13 @@ class AddAssignExp final : public BinAssignExp
 {
 public:
     void accept(Visitor *v) override { v->visit(this); }
+};
+
+class MemberOfOperator : public Expression
+{
+public:
+    Identifier* ident;
+    void accept(Visitor* v) override { v->visit(this); }
 };
 
 class MinAssignExp final : public BinAssignExp
