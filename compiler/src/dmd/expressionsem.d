@@ -3511,15 +3511,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                     /* Problem 2: Modify the destructor so it only runs if gate==false,
                      * i.e., only if there was a throw while constructing the args
                      */
-                    if (!needsDtor)
-                    {
-                        if (tmp.edtor)
-                        {
-                            assert(i == lastPrefix);
-                            tmp.edtor = null;
-                        }
-                    }
-                    else
+                    if (needsDtor)
                     {
                         // edtor => (__gate || edtor)
                         assert(tmp.edtor);
@@ -3527,6 +3519,14 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                         e = new LogicalExp(e.loc, EXP.orOr, new VarExp(e.loc, gate), e);
                         tmp.edtor = e.expressionSemantic(sc);
                         //printf("edtor: %s\n", tmp.edtor.toChars());
+                    }
+                    else
+                    {
+                        if (tmp.edtor)
+                        {
+                            assert(i == lastPrefix);
+                            tmp.edtor = null;
+                        }
                     }
                 }
 
