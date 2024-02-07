@@ -1,7 +1,8 @@
-#!/usr/bin/env dub
-/+dub.sdl:
-dependency "dmd" path="../../.."
-+/
+module parser.test_astbase;
+
+// Simple test to check whether ASTBase respects the interface
+// that the parser expects from an AST family
+
 void main()
 {
     import dmd.astbase;
