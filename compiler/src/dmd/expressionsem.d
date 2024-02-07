@@ -3494,7 +3494,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 /* Declare temporary 'auto __pfx = arg' (needsDtor) or 'auto __pfy = arg' (!needsDtor)
                  */
                 auto tmp = copyToTemp(
-                    (parameter ? parameter.storageClass : tf.parameterList.stc) & (STC.scope_),
+                    (parameter ? parameter.storageClass : tf.parameterList.stc) & (STC.return_ | STC.scope_),
                     needsDtor ? "__pfx" : "__pfy",
                     isRef ? arg.addressOf() : arg);
                 tmp.dsymbolSemantic(sc);
