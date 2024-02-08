@@ -60,6 +60,7 @@ import dmd.statement;
 import dmd.statementsem;
 import dmd.templatesem;
 import dmd.tokens;
+import dmd.typesem;
 import dmd.visitor;
 
 version (IN_GCC) {}
