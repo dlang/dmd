@@ -343,6 +343,12 @@ The following is a list of all available settings:
                                             arguments: the regex
                                             note: patterns containing ')' must be quoted
 
+    UNICODE_NAMES:      file containing symbols with unicode characters in their name, which might
+                        not be supported on some specific platforms. It is currently ignored by the
+                        test runner, but serves as documentation of the test itself.
+                        default: (none)
+
+
 Environment variables
 ------------------------------
 
