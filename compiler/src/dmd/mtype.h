@@ -217,7 +217,6 @@ public:
     Type *copy() const;
     virtual Type *syntaxCopy();
     bool equals(const RootObject * const o) const override;
-    bool equivalent(Type *t);
     // kludge for template.isType()
     DYNCAST dyncast() const override final { return DYNCAST_TYPE; }
     size_t getUniqueID() const;
@@ -888,6 +887,7 @@ AggregateDeclaration *isAggregate(Type *t);
 bool hasPointers(Type *t);
 // return the symbol to which type t resolves
 Dsymbol *toDsymbol(Type *t, Scope *sc);
+bool equivalent(Type *src, Type *t);
 Covariant covariant(Type *, Type *, StorageClass * = NULL, bool = false);
 bool isBaseOf(Type *tthis, Type *t, int *poffset);
 Type *trySemantic(Type *type, const Loc &loc, Scope *sc);

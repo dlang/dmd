@@ -1806,7 +1806,6 @@ public:
     Type* copy() const;
     virtual Type* syntaxCopy();
     bool equals(const RootObject* const o) const override;
-    bool equivalent(Type* t);
     DYNCAST dyncast() const final override;
     size_t getUniqueID() const;
     const char* toChars() const final override;
@@ -5433,6 +5432,8 @@ extern Type* constOf(Type* type);
 extern Covariant covariant(Type* src, Type* t, uint64_t* pstc = nullptr, bool cppCovariant = false);
 
 extern Expression* defaultInit(Type* mt, const Loc& loc, const bool isCfile = false);
+
+extern bool equivalent(Type* src, Type* t);
 
 extern bool hasPointers(Type* t);
 

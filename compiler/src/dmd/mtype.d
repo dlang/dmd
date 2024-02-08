@@ -444,11 +444,6 @@ extern (C++) abstract class Type : ASTNode
         return false;
     }
 
-    final bool equivalent(Type t)
-    {
-        return immutableOf(this).equals(t.immutableOf());
-    }
-
     // kludge for template.isType()
     override final DYNCAST dyncast() const
     {
