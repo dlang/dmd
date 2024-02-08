@@ -6111,6 +6111,36 @@ extern(C++) bool equivalent(Type src, Type t)
     return immutableOf(src).equals(t.immutableOf());
 }
 
+extern(C++) Type pointerTo(Type type)
+{
+    if (type.ty == Terror)
+        return type;
+    if (!type.pto)
+    {
+        Type t = new TypePointer(type);
+        if (type.ty == Tfunction)
+        {
+            t.deco = t.merge().deco;
+            type.pto = t;
+        }
+        else
+            type.pto = t.merge();
+    }
+    return type.pto;
+}
+
+extern(C++) Type referenceTo(Type type)
+{
+    if (type.ty == Terror)
+        return type;
+    if (!type.rto)
+    {
+        Type t = new TypeReference(type);
+        type.rto = t.merge();
+    }
+    return type.rto;
+}
+
 /********************************
  * Convert to 'const'.
  */

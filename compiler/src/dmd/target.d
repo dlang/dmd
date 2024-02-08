@@ -290,6 +290,7 @@ extern (C++) struct Target
     import dmd.location;
     import dmd.astenums : LINK, TY;
     import dmd.mtype : Type, TypeFunction, TypeTuple;
+    import dmd.typesem : pointerTo;
     import dmd.root.ctfloat : real_t;
     import dmd.statement : Statement;
     import dmd.tokens : EXP;

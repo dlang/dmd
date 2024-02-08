@@ -1208,36 +1208,6 @@ extern (C++) abstract class Type : ASTNode
         return this.addMod(mod);
     }
 
-    final Type pointerTo()
-    {
-        if (ty == Terror)
-            return this;
-        if (!pto)
-        {
-            Type t = new TypePointer(this);
-            if (ty == Tfunction)
-            {
-                t.deco = t.merge().deco;
-                pto = t;
-            }
-            else
-                pto = t.merge();
-        }
-        return pto;
-    }
-
-    final Type referenceTo()
-    {
-        if (ty == Terror)
-            return this;
-        if (!rto)
-        {
-            Type t = new TypeReference(this);
-            rto = t.merge();
-        }
-        return rto;
-    }
-
     final Type arrayOf()
     {
         if (ty == Terror)

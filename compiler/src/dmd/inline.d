@@ -43,6 +43,7 @@ import dmd.printast;
 import dmd.postordervisitor;
 import dmd.statement;
 import dmd.tokens;
+import dmd.typesem : pointerTo;
 import dmd.visitor;
 import dmd.inlinecost;
 
