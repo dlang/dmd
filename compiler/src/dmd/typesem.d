@@ -6106,6 +6106,11 @@ extern(C++) bool isBaseOf(Type tthis, Type t, int* poffset)
     return false;
 }
 
+extern(C++) bool equivalent(Type src, Type t)
+{
+    return immutableOf(src).equals(t.immutableOf());
+}
+
 /********************************
  * Convert to 'const'.
  */
