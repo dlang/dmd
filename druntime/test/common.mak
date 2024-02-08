@@ -9,6 +9,7 @@ LINKDL:=
 QUIET:=
 TIMELIMIT:=
 PIC:=
+SHARED:=
 
 # Windows: set up bash shell
 ifeq (windows,$(OS))
@@ -28,7 +29,7 @@ ifeq (osx64,$(OS)$(MODEL))
 endif
 DFLAGS:=$(MODEL_FLAG) $(PIC) -w -I../../src -I../../import -I$(SRC) -defaultlib= -preview=dip1000 $(if $(findstring $(OS),windows),,-L-lpthread -L-lm $(LINKDL))
 # LINK_SHARED may be set by importing makefile
-DFLAGS+=$(if $(LINK_SHARED),-L$(DRUNTIME_IMPLIB) $(if $(findstring $(OS),windows),-dllimport=defaultLibsOnly),-L$(DRUNTIME))
+DFLAGS+=$(if $(LINK_SHARED),-L$(DRUNTIME_IMPLIB) $(if $(findstring $(OS),windows),-dllimport=all),-L$(DRUNTIME))
 ifeq ($(BUILD),debug)
     DFLAGS+=-g -debug
     CFLAGS:=$(CFLAGS_BASE) $(if $(findstring $(OS),windows),/Zi,-g)
