@@ -7180,6 +7180,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         }
         if (!isDeclarator(&t, &haveId, &haveTpl, endtok, needId != NeedDeclaratorId.mustIfDstyle))
             goto Lisnot;
+        // needed for `__traits(compiles, arr[0] = 0)`
+        if (!haveId && t.value == TOK.assign)
+            goto Lisnot;
         if ((needId == NeedDeclaratorId.no && !haveId) ||
             (needId == NeedDeclaratorId.opt) ||
             (needId == NeedDeclaratorId.must && haveId) ||
@@ -8384,18 +8387,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 ident = token.ident;
                 nextToken();
                 if (token.value == TOK.comma)
-                {
-                    // __traits(compiles, expr) - expr might not be a compile-time expression
-                    if (ident == Id.compiles)
-                    {
-                        nextToken();
-                        args = new AST.Objects();
-                        args.push(parseAssignExp());
-                        check(TOK.rightParenthesis);
-                    }
-                    else
-                        args = parseTemplateArgumentList(); // __traits(identifier, args...)
-                }
+                    args = parseTemplateArgumentList(); // __traits(identifier, args...)
                 else
                     check(TOK.rightParenthesis); // __traits(identifier)
 
