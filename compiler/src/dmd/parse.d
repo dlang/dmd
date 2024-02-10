@@ -8384,7 +8384,18 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 ident = token.ident;
                 nextToken();
                 if (token.value == TOK.comma)
-                    args = parseTemplateArgumentList(); // __traits(identifier, args...)
+                {
+                    // __traits(compiles, expr) - expr might not be a compile-time expression
+                    if (ident == Id.compiles)
+                    {
+                        nextToken();
+                        args = new AST.Objects();
+                        args.push(parseAssignExp());
+                        check(TOK.rightParenthesis);
+                    }
+                    else
+                        args = parseTemplateArgumentList(); // __traits(identifier, args...)
+                }
                 else
                     check(TOK.rightParenthesis); // __traits(identifier)
 
