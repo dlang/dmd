@@ -1005,6 +1005,7 @@ private void writefunc2(Symbol *sfunc)
     else
     {
         //printf("blockopt()\n");
+        scanForInlines(funcsym_p);      /* inline                       */
         blockopt(0);                    /* optimize                     */
     }
 
