@@ -624,6 +624,10 @@ dmd -cov -unittest myprog.d
             `Turns off generation of exception stack unwinding code, enables
             more efficient code for RAII objects.`,
         ),
+        Option("unwinding",
+            "generate eh_frame",
+            `Useful for generating backtraces, while still having static analysis for no EH.`,
+        ),
         Option("O",
             "optimize",
             `Optimize generated code. For fastest executables, compile

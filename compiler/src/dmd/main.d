@@ -969,6 +969,15 @@ void reconcileCommands(ref Param params, ref Target target)
         params.useExceptions = false;
         params.useGC = false;
     }
+
+
+    if (params.release)
+    {
+        if (params.betterC)
+        {
+            params.enableUnwinding = false;
+        }
+    }
 }
 
 /***********************************************

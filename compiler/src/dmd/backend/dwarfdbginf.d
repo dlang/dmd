@@ -114,7 +114,7 @@ static if (1)
          */
         assert(!(usednteh & ~(EHtry | EHcleanup)));
         return (usednteh & (EHtry | EHcleanup)) ||
-               (config.exe & (EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64)) && config.useExceptions;
+               (config.exe & (EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64)) && config.enableUnwinding;
     }
 
         SYMIDX MAP_SEG2SYMIDX(int seg) { return SegData[seg].SDsymidx; }

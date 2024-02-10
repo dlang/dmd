@@ -1464,6 +1464,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         {
             params.useExceptions = false;
         }
+        else if (arg == "-unwinding")
+        {
+            params.enableUnwinding = true;
+        }
         else if (arg == "-unittest")
             params.useUnitTests = true;
         else if (p[1] == 'I')              // https://dlang.org/dmd.html#switch-I

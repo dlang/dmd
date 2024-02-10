@@ -635,6 +635,7 @@ struct Config
     bool useModuleInfo;         // implement ModuleInfo
     bool useTypeInfo;           // implement TypeInfo
     bool useExceptions;         // implement exception handling
+    bool enableUnwinding;       // enable uwinding
     ubyte dwarf;                // DWARF version
 }
 
