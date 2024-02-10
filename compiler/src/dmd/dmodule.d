@@ -345,7 +345,6 @@ extern (C++) final class Module : Package
     uint errors;                // if any errors in file
     uint numlines;              // number of lines in source file
     FileType filetype;          // source file type
-    bool hasAlwaysInlines;      // contains references to functions that must be inlined
     bool isPackageFile;         // if it is a package.d
     Package pkg;                // if isPackageFile is true, the Package that contains this package.d
     Strings contentImportedFiles; // array of files whose content was imported

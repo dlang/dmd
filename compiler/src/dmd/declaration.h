@@ -617,8 +617,6 @@ public:
     // Sibling nested functions which called this one
     FuncDeclarations siblingCallers;
 
-    FuncDeclarations *inlinedNestedCallees;
-
     AttributeViolation* safetyViolation;
     AttributeViolation* nogcViolation;
     AttributeViolation* pureViolation;
@@ -666,8 +664,6 @@ public:
     bool inferRetType(bool v);
     bool hasDualContext() const;
     bool hasDualContext(bool v);
-    bool hasAlwaysInlines() const;
-    bool hasAlwaysInlines(bool v);
     bool isCrtCtor() const;
     bool isCrtCtor(bool v);
     bool isCrtDtor() const;

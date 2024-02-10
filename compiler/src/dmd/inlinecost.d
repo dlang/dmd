@@ -73,22 +73,6 @@ int inlineCostExpression(Expression e)
 }
 
 
-/*********************************
- * Determine cost of inlining function
- * Params:
- *      fd = function to determine cost of
- *      hasthis = if the function call has explicit 'this' expression
- *      hdrscan = if generating a header file
- * Returns:
- *      cost of inlining fd
- */
-int inlineCostFunction(FuncDeclaration fd, bool hasthis, bool hdrscan)
-{
-    scope InlineCostVisitor icv = new InlineCostVisitor(hasthis, hdrscan, false, fd);
-    fd.fbody.accept(icv);
-    return icv.cost;
-}
-
 /**
  * Indicates if a nested aggregate prevents or not a function to be inlined.
  * It's used to compute the cost but also to avoid a copy of the aggregate

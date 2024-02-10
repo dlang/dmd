@@ -40,7 +40,6 @@ import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
-import dmd.inline;
 import dmd.location;
 import dmd.json;
 import dmd.mtype;

@@ -73,7 +73,6 @@ public:
     unsigned errors;    // if any errors in file
     unsigned numlines;  // number of lines in source file
     FileType filetype;  // source file type
-    d_bool hasAlwaysInlines; // contains references to functions that must be inlined
     d_bool isPackageFile; // if it is a package.d
     Package *pkg;       // if isPackageFile is true, the Package that contains this package.d
     Strings contentImportedFiles;  // array of files whose content was imported
