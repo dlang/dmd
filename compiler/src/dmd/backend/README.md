@@ -63,8 +63,7 @@ Miscellaneous
 
 * **backend.d**       internal header file for the backend
 * **bcomplex.d**      our own complex number implementation
-* **md5.d**           implementation of MD5 message digest
-* **md5.di**          API for md5.d
+* **blake3.d**        implementation of blake3 hash
 * **os.d**            some operating system specific support
 * **cc.d**            common definitions
 * **cdef.d**          configuration

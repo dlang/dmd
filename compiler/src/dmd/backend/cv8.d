@@ -626,14 +626,14 @@ L1:
         ushort type = *cast(ushort *)(p + u);
         u += 2;
         if (type == 0x0110)
-            u += 16;            // MD5 checksum
+            u += 16;            // truncated blake3 hash
         u += 2;
     }
 
     // Not there. Add it.
     F4_buf.write32(off);
 
-    /* Write 10 01 [MD5 checksum]
+    /* Write 10 01 [blake3 hash]
      *   or
      * 00 00
      */

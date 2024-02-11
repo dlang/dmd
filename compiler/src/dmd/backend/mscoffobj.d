@@ -34,7 +34,6 @@ import dmd.backend.type;
 
 import dmd.backend.mscoff;
 
-import dmd.common.md5;
 import dmd.common.outbuffer;
 
 nothrow:
