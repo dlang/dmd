@@ -35,7 +35,7 @@ import dmd.backend.rtlsym;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-import dmd.common.md5;
+import dmd.common.blake3;
 import dmd.common.outbuffer;
 
 version (Windows)
@@ -2189,16 +2189,14 @@ size_t OmfObj_mangle(Symbol *s,char *dest)
         name2 = id_compress(name, cast(int)len, &len2);
         if (len2 > LIBIDMAX)            // still too long
         {
-            /* Form md5 digest of the name and store it in the
+            /* Form blake3 hash of the name and store it in the
              * last 32 bytes of the name.
              */
-            MD5_CTX mdContext;
-            MD5Init(&mdContext);
-            MD5Update(&mdContext, cast(ubyte *)name, cast(uint)len);
-            MD5Final(&mdContext);
+            const hash = blake3((cast(ubyte*)name)[0 .. len]);
+
             memcpy(name2, name, LIBIDMAX - 32);
             for (int i = 0; i < 16; i++)
-            {   ubyte c = mdContext.digest[i];
+            {   ubyte c = hash[i];
                 ubyte c1 = (c >> 4) & 0x0F;
                 ubyte c2 = c & 0x0F;
                 c1 += (c1 < 10) ? '0' : 'A' - 10;

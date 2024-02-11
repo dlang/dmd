@@ -228,12 +228,10 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
             void printHash()
             {
                 // Replace long string with hash of that string
-                import dmd.common.md5;
-                MD5_CTX mdContext = void;
-                MD5Init(&mdContext);
-                MD5Update(&mdContext, cast(ubyte*)str, cast(uint)(len * sz));
-                MD5Final(&mdContext);
-                foreach (u; mdContext.digest)
+                import dmd.common.blake3;
+                //only use the first 16 bytes to match the length of md5
+                const hash = blake3((cast(ubyte*)str)[0 .. len * sz]);
+                foreach (u; hash[0 .. 16])
                 {
                     ubyte u1 = u >> 4;
                     buf.writeByte((u1 < 10) ? u1 + '0' : u1 + 'A' - 10);
