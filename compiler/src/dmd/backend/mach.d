@@ -94,6 +94,12 @@ enum
     LC_SYMTAB       = 2,
     LC_DYSYMTAB     = 11,
     LC_SEGMENT_64   = 0x19,
+
+    /// Build for MacOSX min OS version.
+    LC_VERSION_MIN_MACOSX = 0x24,
+
+    /// Build for platform min OS version.
+    LC_BUILD_VERSION = 0x32,
 }
 
 struct load_command
@@ -406,4 +412,63 @@ struct scattered_relocation_info
     uint r_pcrel() { return (xxx >> (24 + 4 + 2)) & 1; }
 
     int r_value;
+}
+
+/**
+ * The version_min_command contains the min OS version on which this binary was
+ * built to run.
+ */
+struct version_min_command
+{
+    ///
+    uint cmd = LC_VERSION_MIN_MACOSX;
+
+    ///
+    uint cmdsize = typeof(this).sizeof;
+
+    /// X.Y.Z is encoded in nibbles xxxx.yy.zz
+    uint version_;
+
+    /// X.Y.Z is encoded in nibbles xxxx.yy.zz
+    uint sdk = 0;
+}
+
+/**
+ * The `build_version_command` contains the min OS version on which this binary
+ * was built to run for its platform.
+ */
+struct build_version_command
+{
+    ///
+    uint cmd = LC_BUILD_VERSION;
+
+    ///
+    uint cmdsize = typeof(this).sizeof;
+
+    /// Platform
+    uint platform = PLATFORM_MACOS;
+
+    /// X.Y.Z is encoded in nibbles xxxx.yy.zz
+    uint minos;
+
+    /// X.Y.Z is encoded in nibbles xxxx.yy.zz
+    uint sdk = 0;
+
+    /// Number of tool entries following this
+    uint ntools = 0;
+}
+
+/// Known values for the platform field in `build_version_command`
+enum
+{
+    PLATFORM_MACOS = 1,
+    PLATFORM_IOS = 2,
+    PLATFORM_TVOS = 3,
+    PLATFORM_WATCHOS = 4,
+    PLATFORM_BRIDGEOS = 5,
+    PLATFORM_MACCATALYST = 6,
+    PLATFORM_IOSSIMULATOR = 7,
+    PLATFORM_TVOSSIMULATOR = 8,
+    PLATFORM_WATCHOSSIMULATOR = 9,
+    PLATFORM_DRIVERKIT = 10
 }
