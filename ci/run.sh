@@ -58,10 +58,15 @@ clone() {
 
 # build dmd (incl. building and running the unittests), druntime, phobos
 build() {
+    BUILD_DFLAGS=
     if [ "$OS_NAME" != "windows" ]; then
         source ~/dlang/*/activate # activate host compiler, incl. setting `DMD`
     fi
-    $DMD compiler/src/build.d -ofgenerated/build
+    if [ "$OS_NAME" == "osx" ]; then
+	BUILD_DFLAGS="-L-platform_version -Lmacos -L${MACOSX_DEPLOYMENT_TARGET+10.9} -L0.0"
+	CI_DFLAGS="$CI_DFLAGS ${BUILD_DFLAGS}"
+    fi
+    $DMD compiler/src/build.d -ofgenerated/build $BUILD_DFLAGS
     generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" BUILD=debug unittest
     generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=1 dmd
     make -j$N -C druntime MODEL=$MODEL
