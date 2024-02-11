@@ -1002,9 +1002,6 @@ alias toolchainInfo = makeRule!((builder, rule) => builder
 
         app.put("==== Toolchain Information ====\n");
 
-        version (OSX)
-            show("OS", ["sw_vers"]);
-
         version (Windows)
             show("SYSTEM", ["systeminfo"]);
         else
