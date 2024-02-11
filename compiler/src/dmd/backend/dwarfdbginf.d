@@ -1734,7 +1734,7 @@ static if (1)
 
             uint *poffset = ehunwind ? &CIE_offset_unwind : &CIE_offset_no_unwind;
             if (*poffset == ~0)
-                *poffset = writeEhFrameHeader(dfseg, buf, getRtlsymPersonality(), ehunwind);
+                *poffset = writeEhFrameHeader(dfseg, buf, getRtlsymPersonality(), ehunwind && config.useTypeInfo);
 
             writeEhFrameFDE(dfseg, sfunc, ehunwind, *poffset);
         }
