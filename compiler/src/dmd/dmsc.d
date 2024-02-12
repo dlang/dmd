@@ -74,7 +74,7 @@ void backend_init()
         driverParams.nofloat,
         driverParams.vasm,
         params.v.verbose,
-        driverParams.optimize,
+        driverParams.optimize || params.useInline,
         driverParams.symdebug,
         driverParams.alwaysframe,
         driverParams.stackstomp,
