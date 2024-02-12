@@ -6436,7 +6436,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
 
             checkFunctionAttributes(exp, sc, exp.f);
-            checkAccess(exp.loc, sc, null, exp.f);
+            checkAccess(isSuper ? cd.baseClass : ad, exp.loc, sc, exp.f);
 
             exp.e1 = new DotVarExp(exp.e1.loc, exp.e1, exp.f, false);
             exp.e1 = exp.e1.expressionSemantic(sc);
