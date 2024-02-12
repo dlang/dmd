@@ -17,16 +17,14 @@ nothrow:
  **/
 public ubyte[32] blake3(const ubyte[] data)
 {
-
-
     ChunkState state;
     CVStack cvStack;
-
     size_t cursor = 0;
 
     //greater because if it's == we still need to finalize the last
     //chunk
-    while(data.length - cursor > ChunkLength){
+    while (data.length - cursor > ChunkLength)
+    {
 
         const ubyte[] chunk = data[cursor .. cursor + ChunkLength];
         updateChunkStateFull(state, chunk);
@@ -45,7 +43,8 @@ public ubyte[32] blake3(const ubyte[] data)
     //now handle the final chunk which might not be full
 
     //handle all but last block
-    while(data.length - cursor > BlockLength){
+    while (data.length - cursor > BlockLength)
+    {
         uint[16] blockWords = bytesToWords(data[cursor .. cursor + BlockLength]);
         with(state)
         {
