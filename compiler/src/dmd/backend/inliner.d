@@ -61,63 +61,84 @@ private enum log2 = false;
 @trusted
 bool canInlineFunction(Symbol *sfunc)
 {
-    if (log) debug printf("canInlineFunction(%s)\n",sfunc.Sident.ptr);
     auto f = sfunc.Sfunc;
+
+    bool no(int line)
+    {
+        f.Fflags &= ~Finline;   // don't check it again
+        if (log) debug printf("returns: %d\n", line);
+        return false;
+    }
+
+    if (log) debug printf("canInlineFunction(%s)\n", sfunc.Sident.ptr);
+
+    if (config.flags & CFGnoinlines ||
+        !(f.Fflags & Finline))
+        return false;
+
     auto t = sfunc.Stype;
     assert(f && tyfunc(t.Tty));
 
-    bool result = false;
-    if (!(config.flags & CFGnoinlines) && /* if inlining is turned on   */
-        f.Fflags & Finline &&
-        /* Cannot inline varargs or unprototyped functions      */
-        (t.Tflags & (TFfixed | TFprototype)) == (TFfixed | TFprototype) &&
-        !(t.Tty & mTYimport)           // do not inline imported functions
+    if (/* Cannot inline varargs or unprototyped functions      */
+        (t.Tflags & (TFfixed | TFprototype)) != (TFfixed | TFprototype) ||
+        (t.Tty & mTYimport)           // do not inline imported functions
        )
+        return no(__LINE__);
+
+    if (config.ehmethod == EHmethod.EH_WIN32 && !(f.Fflags3 & Feh_none))
+        return no(__LINE__);       // not working properly, so don't inline it
+
+    foreach (s; f.Flocsym[])
     {
-        auto b = f.Fstartblock;
-        if (!b)
-            return false;
-        if (config.ehmethod == EHmethod.EH_WIN32 && !(f.Fflags3 & Feh_none))
-            return false;       // not working properly, so don't inline it
+        assert(s);
+        if (s.Sclass == SC.bprel)
+            return no(__LINE__);
+    }
 
-        static if (1) // enable for the moment
-        while (b.BC == BCgoto && b.Bnext == b.nthSucc(0) && canInlineExpression(b.Belem))
-            b = b.Bnext;
+    auto b = f.Fstartblock;
+    if (!b)
+        return no(__LINE__);
 
+    while (1)
+    {
         switch (b.BC)
-        {   case BCret:
+        {
+            case BCgoto:
+                if (b.Bnext != b.nthSucc(0))
+                    return no(__LINE__);
+                b = b.Bnext;
+                continue;
+
+            case BCret:
                 if (tybasic(t.Tnext.Tty) != TYvoid
                     && !(f.Fflags & (Fctor | Fdtor | Finvariant))
                    )
                 {   // Message about no return value
                     // should already have been generated
-                    break;
+                    return no(__LINE__);
                 }
-                goto case BCretexp;
+                if (!b.Belem)
+                    return no(__LINE__);
+                break;
 
             case BCretexp:
-                if (b.Belem)
-                {
-                    result = canInlineExpression(b.Belem);
-                    if (log && !result) printf("not inlining function %s\n", sfunc.Sident.ptr);
-                }
                 break;
 
             default:
-                break;
+                return no(__LINE__);
         }
-
-        foreach (s; f.Flocsym[])
-        {
-            assert(s);
-            if (s.Sclass == SC.bprel)
-                return false;
-        }
+        break;
     }
-    if (!result)
-        f.Fflags &= ~Finline;
-    if (log) debug printf("returns: %d\n",result);
-    return result;
+
+    /* Do slowest check last */
+    for (b = f.Fstartblock; b; b = b.Bnext)
+    {
+        if (!canInlineExpression(b.Belem))
+            return no(__LINE__);
+    }
+
+    if (log) debug printf("returns: %d\n", true);
+    return true;
 }
 
 /**************************
