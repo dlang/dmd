@@ -318,5 +318,5 @@ mixin GetNamespaceTestTemplatedMixin!() GNTT;
 static assert (__traits(getCppNamespaces, GNTT.foo) == Seq!(`inst`,/*`decl`,*/ `f`));
 
 int[1] arr;
-// test parsing a non-compile-time expression
+// test that index assignment parses as an expression, not a type
 enum _ = __traits(compiles, arr[0] = 0);
