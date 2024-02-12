@@ -4996,7 +4996,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return setError();
 
                 checkFunctionAttributes(exp, sc, f);
-                checkAccess(cd, exp.loc, sc, f);
+                if (!checkSymbolAccess(sc, f))
+                {
+                    error(exp.loc, "%s `%s` is not accessible from module `%s`",
+                        f.kind(), f.toPrettyChars(), sc._module.toChars);
+                    return setError();
+                }
 
                 TypeFunction tf = f.type.isTypeFunction();
                 if (!exp.arguments)
@@ -6436,7 +6441,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
 
             checkFunctionAttributes(exp, sc, exp.f);
-            checkAccess(isSuper ? cd.baseClass : ad, exp.loc, sc, exp.f);
+            if (!checkSymbolAccess(sc, exp.f))
+            {
+                error(exp.loc, "%s `%s` is not accessible from module `%s`",
+                    exp.f.kind(), exp.f.toPrettyChars(), sc._module.toChars);
+                return setError();
+            }
 
             exp.e1 = new DotVarExp(exp.e1.loc, exp.e1, exp.f, false);
             exp.e1 = exp.e1.expressionSemantic(sc);
