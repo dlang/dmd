@@ -7582,6 +7582,10 @@ extern const char* toChars(const Initializer* const i);
 
 extern const char* toChars(const Type* const t);
 
+extern Statement* asmSemantic(AsmStatement* s, Scope* sc);
+
+extern Statement* gccAsmSemantic(GccAsmStatement* s, Scope* sc);
+
 extern void json_generate(Array<Module* >& modules, OutBuffer& buf);
 
 extern JsonFieldFlags tryParseJsonField(const char* fieldName);

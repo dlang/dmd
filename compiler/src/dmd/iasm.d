@@ -23,7 +23,10 @@ import dmd.tokens;
 import dmd.statement;
 import dmd.statementsem;
 
-version (IN_GCC)
+version (NoBackend)
+{
+}
+else version (IN_GCC)
 {
     import dmd.iasmgcc;
 }
@@ -48,7 +51,11 @@ extern(C++) Statement asmSemantic(AsmStatement s, Scope *sc)
     // Assume assembler code takes care of setting the return value
     sc.func.hasReturnExp |= 8;
 
-    version (MARS)
+    version (NoBackend)
+    {
+        return null;
+    }
+    else version (MARS)
     {
         /* If it starts with a string literal, it's gcc inline asm
          */
