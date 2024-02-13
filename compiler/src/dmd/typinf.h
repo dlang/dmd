@@ -17,6 +17,6 @@ class Type;
 struct Scope;
 
 bool genTypeInfo(Expression *e, const Loc &loc, Type *torig, Scope *sc);
-Type *getTypeInfoType(const Loc &loc, Type *t, Scope *sc, bool genObjCode = true);
+Type *getTypeInfoType(const Loc &loc, Type *t, Scope *sc);
 bool isSpeculativeType(Type *t);
 bool builtinTypeInfo(Type *t);
