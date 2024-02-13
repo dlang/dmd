@@ -47,6 +47,7 @@ import dmd.toctype;
 import dmd.tocsym;
 import dmd.toir;
 import dmd.tokens;
+import dmd.typesem : pointerTo;
 import dmd.visitor;
 
 import dmd.backend.barray;

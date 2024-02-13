@@ -1839,8 +1839,6 @@ public:
     bool isNaked() const;
     Type* nullAttributes() const;
     virtual Type* addStorageClass(StorageClass stc);
-    Type* pointerTo();
-    Type* referenceTo();
     Type* arrayOf();
     Type* sarrayOf(dinteger_t dim);
     bool hasDeprecatedAliasThis();
@@ -5447,6 +5445,10 @@ extern Type* merge(Type* type);
 extern Type* merge2(Type* type);
 
 extern Type* mutableOf(Type* type);
+
+extern Type* pointerTo(Type* type);
+
+extern Type* referenceTo(Type* type);
 
 extern Type* sharedConstOf(Type* type);
 
