@@ -126,7 +126,6 @@ subPackage {
     e2ir,\
     eh,\
     glue,\
-    iasm,\
     iasmdmd,\
     iasmgcc,\
     irstate,\
