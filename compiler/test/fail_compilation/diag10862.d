@@ -13,6 +13,7 @@ fail_compilation/diag10862.d(49): Error: assignment cannot be used as a conditio
 fail_compilation/diag10862.d(51): Error: assignment cannot be used as a condition, perhaps `==` was meant?
 fail_compilation/diag10862.d(52): Error: assignment cannot be used as a condition, perhaps `==` was meant?
 fail_compilation/diag10862.d(53): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+fail_compilation/diag10862.d(54): Error: using the result of a comma expression is not allowed
 fail_compilation/diag10862.d(54): Error: assignment cannot be used as a condition, perhaps `==` was meant?
 fail_compilation/diag10862.d(56): Error: assignment cannot be used as a condition, perhaps `==` was meant?
 fail_compilation/diag10862.d(57): Error: assignment cannot be used as a condition, perhaps `==` was meant?
@@ -33,6 +34,7 @@ fail_compilation/diag10862.d(93): Error: cannot modify lazy variable `bar`
 fail_compilation/diag10862.d(95): Error: template instance `diag10862.test3.foo!int` error instantiating
 ---
 */
+#line 36
 void test1()
 {
     int a, b;
