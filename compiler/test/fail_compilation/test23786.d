@@ -1,18 +1,20 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/test23786.d(20): Error: function `foo` is not callable using argument types `(double)`
-fail_compilation/test23786.d(20):        cannot pass argument `1.0` of type `double` to parameter `int i`
-fail_compilation/test23786.d(17):        `test23786.foo(int i)` declared here
-fail_compilation/test23786.d(27): Error: function `bar` is not callable using argument types `(int*)`
-fail_compilation/test23786.d(27):        cannot pass argument `& i` of type `int*` to parameter `int i`
-fail_compilation/test23786.d(24):        `test23786.bar(int i)` declared here
-fail_compilation/test23786.d(35): Error: function `baz` is not callable using argument types `(int*)`
-fail_compilation/test23786.d(35):        cannot pass argument `& i` of type `int*` to parameter `int i`
-fail_compilation/test23786.d(32):        `test23786.baz(int i)` declared here
+fail_compilation/test23786.d(22): Error: function `foo` is not callable using argument types `(double)`
+fail_compilation/test23786.d(22):        cannot pass argument `1.0` of type `double` to parameter `int i`
+fail_compilation/test23786.d(19):        `test23786.foo(int i)` declared here
+fail_compilation/test23786.d(29): Error: function `bar` is not callable using argument types `(int*)`
+fail_compilation/test23786.d(29):        cannot pass argument `& i` of type `int*` to parameter `int i`
+fail_compilation/test23786.d(26):        `test23786.bar(int i)` declared here
+fail_compilation/test23786.d(37): Error: function `baz` is not callable using argument types `(int*)`
+fail_compilation/test23786.d(37):        cannot pass argument `& i` of type `int*` to parameter `int i`
+fail_compilation/test23786.d(34):        `test23786.baz(int i)` declared here
 ---
 */
 
 // https://issues.dlang.org/show_bug.cgi?id=23786
+
+module test23786;
 
 void foo(int i)
 {
