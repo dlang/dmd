@@ -638,8 +638,8 @@ private elem* initializeParamsWithArgs(elem* eargs, SYMIDX sistart, SYMIDX siend
             ty = TYshort;
             if (szs == 1)
             {
-                ex = el_una(OP16_8, TYchar, ex);
-                ty = TYchar;
+                ex = el_una(OP16_8, TYschar, ex);
+                ty = TYschar;
             }
         }
         evar.Ety = ty;
