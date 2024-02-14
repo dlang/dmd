@@ -73,6 +73,7 @@ class AliasAssign;
 class OverloadSet;
 class StaticAssert;
 class StaticIfDeclaration;
+class CAsmDeclaration;
 struct AA;
 #ifdef IN_GCC
 typedef union tree_node Symbol;
@@ -100,6 +101,10 @@ namespace dmd
     void dsymbolSemantic(Dsymbol *dsym, Scope *sc);
     void semantic2(Dsymbol *dsym, Scope *sc);
     void semantic3(Dsymbol *dsym, Scope* sc);
+    // in iasm.d
+    void asmSemantic(CAsmDeclaration *ad, Scope *sc);
+    // in iasmgcc.d
+    void gccAsmSemantic(CAsmDeclaration *ad, Scope *sc);
 }
 
 struct Visibility
@@ -318,6 +323,7 @@ public:
     virtual MixinDeclaration *isMixinDeclaration() { return NULL; }
     virtual StaticAssert *isStaticAssert() { return NULL; }
     virtual StaticIfDeclaration *isStaticIfDeclaration() { return NULL; }
+    virtual CAsmDeclaration *isCAsmDeclaration() { return NULL; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -405,6 +411,15 @@ public:
     Expression *exp;
 
     ExpressionDsymbol *isExpressionDsymbol() override { return this; }
+};
+
+class CAsmDeclaration final : public Dsymbol
+{
+public:
+    Expression *code;   // string expression
+
+    CAsmDeclaration *isCAsmDeclaration() override { return this; }
+    void accept(Visitor *v) override { v->visit(this); }
 };
 
 // Table of Dsymbol's
