@@ -254,7 +254,6 @@ public:
     bool isSharedWild() const  { return (mod & (MODshared | MODwild)) == (MODshared | MODwild); }
     bool isNaked() const       { return mod == 0; }
     Type *nullAttributes() const;
-    virtual Type *addStorageClass(StorageClass stc);
     Type *arrayOf();
     Type *sarrayOf(dinteger_t dim);
     bool hasDeprecatedAliasThis();
@@ -580,7 +579,6 @@ public:
     TypeFunction *syntaxCopy() override;
     bool hasLazyParameters();
     bool isDstyleVariadic() const;
-    Type *addStorageClass(StorageClass stc) override;
 
     Type *substWildTo(unsigned mod) override;
     MATCH constConv(Type *to) override;
@@ -624,7 +622,6 @@ public:
     static TypeDelegate *create(TypeFunction *t);
     const char *kind() override;
     TypeDelegate *syntaxCopy() override;
-    Type *addStorageClass(StorageClass stc) override;
     uinteger_t size(const Loc &loc) override;
     unsigned alignsize() override;
     MATCH implicitConvTo(Type *to) override;
@@ -907,4 +904,5 @@ namespace dmd
     Type *sharedWildConstOf(Type *type);
     Type *castMod(Type *type, MOD mod);
     Type *addMod(Type *type, MOD mod);
+    Type *addStorageClass(Type *type, StorageClass stc);
 }

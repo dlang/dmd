@@ -547,6 +547,12 @@ Type addMod(Type type, MOD mod)
     return dmd.typesem.addMod(type, mod);
 }
 
+Type addStorageClass(Type type, StorageClass stc)
+{
+    import dmd.typesem;
+    return dmd.typesem.addStorageClass(type, stc);
+}
+
 Type pointerTo(Type type)
 {
     import dmd.typesem;

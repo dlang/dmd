@@ -1841,7 +1841,6 @@ public:
     bool isSharedWild() const;
     bool isNaked() const;
     Type* nullAttributes() const;
-    virtual Type* addStorageClass(StorageClass stc);
     Type* arrayOf();
     Type* sarrayOf(dinteger_t dim);
     bool hasDeprecatedAliasThis();
@@ -4364,7 +4363,6 @@ public:
     static TypeDelegate* create(TypeFunction* t);
     const char* kind() const override;
     TypeDelegate* syntaxCopy() override;
-    Type* addStorageClass(StorageClass stc) override;
     uinteger_t size(const Loc& loc) override;
     uint32_t alignsize() override;
     MATCH implicitConvTo(Type* to) override;
@@ -4521,7 +4519,6 @@ public:
     TypeFunction* syntaxCopy() override;
     bool hasLazyParameters();
     bool isDstyleVariadic() const;
-    Type* addStorageClass(StorageClass stc) override;
     Type* substWildTo(uint32_t __param_0_) override;
     MATCH constConv(Type* to) override;
     bool iswild() const;
