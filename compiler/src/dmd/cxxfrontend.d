@@ -17,7 +17,7 @@ import dmd.common.outbuffer : OutBuffer;
 import dmd.dmodule /*: Module*/;
 import dmd.dscope : Scope;
 import dmd.dstruct /*: StructDeclaration*/;
-import dmd.dsymbol : Dsymbol, ScopeDsymbol, SearchOpt, SearchOptFlags;
+import dmd.dsymbol : Dsymbol, ScopeDsymbol, CAsmDeclaration, SearchOpt, SearchOptFlags;
 import dmd.dtemplate /*: TemplateInstance, TemplateParameter, Tuple*/;
 import dmd.errorsink : ErrorSink;
 import dmd.expression /*: Expression*/;
@@ -299,6 +299,12 @@ Statement asmSemantic(AsmStatement s, Scope *sc)
     return dmd.iasm.asmSemantic(s, sc);
 }
 
+void asmSemantic(CAsmDeclaration d, Scope *sc)
+{
+    import dmd.iasm;
+    return dmd.iasm.asmSemantic(d, sc);
+}
+
 /***********************************************************
  * iasmgcc.d
  */
@@ -306,6 +312,12 @@ Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
 {
     import dmd.iasmgcc;
     return dmd.iasmgcc.gccAsmSemantic(s, sc);
+}
+
+void gccAsmSemantic(CAsmDeclaration d, Scope *sc)
+{
+    import dmd.iasmgcc;
+    return dmd.iasmgcc.gccAsmSemantic(d, sc);
 }
 
 /***********************************************************

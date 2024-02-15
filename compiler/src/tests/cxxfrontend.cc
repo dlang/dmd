@@ -1826,11 +1826,14 @@ void mtype_h(Type *t1, Type *t2, const Loc &loc, Scope *sc, int *p)
     dmd::referenceTo(t1);
 }
 
-void statement_h(Statement *s, AsmStatement *as, GccAsmStatement *gas, Scope *sc)
+void statement_h(Statement *s, AsmStatement *as, GccAsmStatement *gas,
+                 CAsmDeclaration *ad, Scope *sc)
 {
     dmd::statementSemantic(s, sc);
     dmd::asmSemantic(as, sc);
+    dmd::asmSemantic(ad, sc);
     dmd::gccAsmSemantic(gas, sc);
+    dmd::gccAsmSemantic(ad, sc);
 }
 
 void template_h(TemplateParameter *tp, Scope *sc, TemplateParameters *tps,

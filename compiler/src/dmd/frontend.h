@@ -102,6 +102,7 @@ class OverloadSet;
 class MixinDeclaration;
 class StaticAssert;
 class StaticIfDeclaration;
+class CAsmDeclaration;
 class DsymbolTable;
 struct MangleOverride;
 class AliasThis;
@@ -582,6 +583,7 @@ public:
     virtual MixinDeclaration* isMixinDeclaration();
     virtual StaticAssert* isStaticAssert();
     virtual StaticIfDeclaration* isStaticIfDeclaration();
+    virtual CAsmDeclaration* isCAsmDeclaration();
 };
 
 struct BitArray final
@@ -969,6 +971,7 @@ public:
     virtual void visit(typename AST::DebugSymbol s);
     virtual void visit(typename AST::VersionSymbol s);
     virtual void visit(typename AST::AliasAssign s);
+    virtual void visit(typename AST::CAsmDeclaration s);
     virtual void visit(typename AST::Package s);
     virtual void visit(typename AST::EnumDeclaration s);
     virtual void visit(typename AST::AggregateDeclaration s);
@@ -5601,6 +5604,7 @@ struct ASTCodegen final
     using UnionDeclaration = ::UnionDeclaration;
     using AliasAssign = ::AliasAssign;
     using ArrayScopeSymbol = ::ArrayScopeSymbol;
+    using CAsmDeclaration = ::CAsmDeclaration;
     using Dsymbol = ::Dsymbol;
     using DsymbolTable = ::DsymbolTable;
     using ExpressionDsymbol = ::ExpressionDsymbol;
@@ -7422,6 +7426,14 @@ public:
     Dsymbol* insert(const Identifier* const ident, Dsymbol* s);
     size_t length() const;
     DsymbolTable();
+};
+
+class CAsmDeclaration final : public Dsymbol
+{
+public:
+    Expression* code;
+    CAsmDeclaration* isCAsmDeclaration() override;
+    void accept(Visitor* v) override;
 };
 
 class ImportAllVisitor : public Visitor

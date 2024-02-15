@@ -16,6 +16,7 @@ module dmd.iasm;
 import core.stdc.stdio;
 
 import dmd.dscope;
+import dmd.dsymbol;
 import dmd.expression;
 import dmd.func;
 import dmd.mtype;
@@ -83,5 +84,23 @@ Statement asmSemantic(AsmStatement s, Scope *sc)
     {
         s.error("D inline assembler statements are not supported");
         return new ErrorStatement();
+    }
+}
+
+/************************ CAsmDeclaration ************************************/
+
+void asmSemantic(CAsmDeclaration ad, Scope *sc)
+{
+    version (NoBackend)
+    {
+    }
+    else version (IN_GCC)
+    {
+        return gccAsmSemantic(ad, sc);
+    }
+    else
+    {
+        import dmd.errors : error;
+        error(ad.code.loc, "Gnu Asm not supported - compile this file with gcc or clang");
     }
 }

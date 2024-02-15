@@ -501,6 +501,22 @@ struct ASTBase
         }
     }
 
+    extern (C++) final class CAsmDeclaration : Dsymbol
+    {
+        Expression code;
+
+        extern (D) this(Expression e)
+        {
+            super();
+            this.code = e;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
     extern (C++) class VarDeclaration : Declaration
     {
         Type type;

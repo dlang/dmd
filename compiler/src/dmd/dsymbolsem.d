@@ -1440,6 +1440,15 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         assert(dsym._linkage == LINK.c);
     }
 
+    override void visit(CAsmDeclaration dsym)
+    {
+        if (dsym.semanticRun >= PASS.semanticdone)
+            return;
+        import dmd.iasm : asmSemantic;
+        asmSemantic(dsym, sc);
+        dsym.semanticRun = PASS.semanticdone;
+    }
+
     override void visit(BitFieldDeclaration dsym)
     {
         //printf("BitField::semantic('%s')\n", dsym.toChars());

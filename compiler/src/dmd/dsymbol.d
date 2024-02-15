@@ -1105,6 +1105,7 @@ extern (C++) class Dsymbol : ASTNode
     inout(MixinDeclaration)            isMixinDeclaration()            inout { return null; }
     inout(StaticAssert)                isStaticAssert()                inout { return null; }
     inout(StaticIfDeclaration)         isStaticIfDeclaration()         inout { return null; }
+    inout(CAsmDeclaration)             isCAsmDeclaration()             inout { return null; }
 }
 
 /***********************************************************
@@ -1697,5 +1698,28 @@ extern (C++) final class DsymbolTable : RootObject
     size_t length() const pure
     {
         return tab.length;
+    }
+}
+
+/**
+ * ImportC global `asm` definition.
+ */
+extern (C++) final class CAsmDeclaration : Dsymbol
+{
+    Expression code;
+    extern (D) this(Expression e) nothrow @safe
+    {
+        super();
+        this.code = e;
+    }
+
+    override inout(CAsmDeclaration) isCAsmDeclaration() inout nothrow
+    {
+        return this;
+    }
+
+    override void accept(Visitor v)
+    {
+        v.visit(this);
     }
 }
