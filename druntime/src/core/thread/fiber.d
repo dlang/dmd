@@ -11,7 +11,7 @@
 
 module core.thread.fiber;
 
-import core.thread.osthread;
+import core.thread.threadbase;
 import core.thread.threadgroup;
 import core.thread.types;
 import core.thread.context;
@@ -170,8 +170,8 @@ private
         Fiber   obj = Fiber.getThis();
         assert( obj );
 
-        assert( Thread.getThis().m_curr is obj.m_ctxt );
-        atomicStore!(MemoryOrder.raw)(*cast(shared)&Thread.getThis().m_lock, false);
+        assert( ThreadBase.getThis().m_curr is obj.m_ctxt );
+        atomicStore!(MemoryOrder.raw)(*cast(shared)&ThreadBase.getThis().m_lock, false);
         obj.m_ctxt.tstack = obj.m_ctxt.bstack;
         obj.m_state = Fiber.State.EXEC;
 
@@ -1055,7 +1055,7 @@ private:
             }
         }
 
-        Thread.add( m_ctxt );
+        ThreadBase.add( m_ctxt );
     }
 
 
@@ -1068,9 +1068,9 @@ private:
     {
         // NOTE: m_ctxt is guaranteed to be alive because it is held in the
         //       global context list.
-        Thread.slock.lock_nothrow();
-        scope(exit) Thread.slock.unlock_nothrow();
-        Thread.remove( m_ctxt );
+        ThreadBase.slock.lock_nothrow();
+        scope(exit) ThreadBase.slock.unlock_nothrow();
+        ThreadBase.remove( m_ctxt );
 
         version (Windows)
         {
@@ -1523,7 +1523,7 @@ private:
     //
     final void switchIn() nothrow @nogc
     {
-        Thread  tobj = Thread.getThis();
+        ThreadBase  tobj = ThreadBase.getThis();
         void**  oldp = &tobj.m_curr.tstack;
         void*   newp = m_ctxt.tstack;
 
@@ -1557,7 +1557,7 @@ private:
     //
     final void switchOut() nothrow @nogc
     {
-        Thread  tobj = Thread.getThis();
+        ThreadBase  tobj = ThreadBase.getThis();
         void**  oldp = &m_ctxt.tstack;
         void*   newp = tobj.m_curr.within.tstack;
 
@@ -1582,7 +1582,7 @@ private:
         // NOTE: If use of this fiber is multiplexed across threads, the thread
         //       executing here may be different from the one above, so get the
         //       current thread handle before unlocking, etc.
-        tobj = Thread.getThis();
+        tobj = ThreadBase.getThis();
         atomicStore!(MemoryOrder.raw)(*cast(shared)&tobj.m_lock, false);
         tobj.m_curr.tstack = tobj.m_curr.bstack;
     }
@@ -1904,6 +1904,7 @@ unittest
 unittest
 {
     import core.memory;
+    import core.thread.osthread : Thread;
     import core.time : dur;
 
     static void unreferencedThreadObject()
