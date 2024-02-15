@@ -1,6 +1,6 @@
 
 /**
- * Entry point for DMD console version.
+* * Entry point for DMD console version.
  *
  * This modules defines the entry point (main) for DMD, as well as related
  * utilities needed for arguments parsing, path manipulation, etc...
