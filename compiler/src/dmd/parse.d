@@ -306,7 +306,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         //printf("Parser::parseDeclDefs()\n");
         auto decldefs = new AST.Dsymbols();
-        do
+        while (1)
         {
             // parse result
             AST.Dsymbol s = null;
@@ -1060,8 +1060,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             {
                 decldefs.append(a);
             }
+            if (once)
+                break;
         }
-        while (!once);
 
         linkage = linksave;
 
@@ -2221,7 +2222,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     {
         Identifier[] qualified;
 
-        do
+        while (1)
         {
             nextToken();
             if (token.value != TOK.identifier)
@@ -2234,8 +2235,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             qualified ~= id;
 
             nextToken();
+            if (token.value != TOK.dot)
+                break;
         }
-        while (token.value == TOK.dot);
 
         return qualified;
     }
@@ -3408,7 +3410,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             nextToken();
 
         //printf("Parser::parseImport()\n");
-        do
+        while (1)
         {
         L1:
             nextToken();
@@ -3482,8 +3484,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 break; // no comma-separated imports of this form
             }
             aliasid = null;
+            if (token.value != TOK.comma)
+                break;
         }
-        while (token.value == TOK.comma);
 
         if (token.value == TOK.semicolon)
             nextToken();
@@ -6359,15 +6362,16 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 AST.Expression last = null;
 
                 nextToken();
-                do
+                while (1)
                 {
                     exp = parseAssignExp();
                     cases.push(exp);
                     if (token.value != TOK.comma)
                         break;
                     nextToken(); //comma
+                    if (token.value == TOK.colon || token.value == TOK.endOfFile)
+                        break;
                 }
-                while (token.value != TOK.colon && token.value != TOK.endOfFile);
                 check(TOK.colon);
 
                 /* case exp: .. case last:

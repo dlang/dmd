@@ -414,7 +414,7 @@ private Buffer readFromStdin() nothrow
         buffer = cast(ubyte*)mem.xrealloc(buffer, sz + 4); // +2 for sentinel and +2 for lexer
 
         // Fill up buffer
-        do
+        while (1)
         {
             assert(sz > pos);
             size_t rlen = fread(buffer + pos, 1, sz - pos, stdin);
@@ -432,7 +432,9 @@ private Buffer readFromStdin() nothrow
                 buffer[pos .. pos + 4] = '\0';
                 return Buffer(buffer[0 .. pos]);
             }
-        } while (pos < sz);
+            if (pos >= sz)
+                break;
+        }
 
         // Buffer full, expand
         sz += bufIncrement;

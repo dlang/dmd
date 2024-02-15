@@ -111,7 +111,7 @@ void flowrd()
 
     bool anychng;
     vec_t tmp = vec_calloc(go.defnod.length);
-    do
+    while (1)
     {
         anychng = false;
         foreach (b; dfo[])    // for each block
@@ -134,7 +134,9 @@ void flowrd()
                 anychng = !vec_equal(tmp,b.Boutrd);
             vec_copy(b.Boutrd,tmp);
         }
-    } while (anychng);              /* while any changes to Boutrd  */
+        if (!anychng)              /* while any changes to Boutrd  */
+            break;
+    }
     vec_free(tmp);
 
     static if (0)
@@ -577,7 +579,7 @@ private void flowaecp(int flowxx)
 
     vec_t tmp = vec_calloc(go.exptop);
     bool anychng;
-    do
+    while (1)
     {
         anychng = false;
 
@@ -664,7 +666,9 @@ private void flowaecp(int flowxx)
                 }
             }
         }
-    } while (anychng);
+        if (!anychng)
+            break;
+    }
     vec_free(tmp);
 }
 
@@ -1365,7 +1369,7 @@ void flowlv()
     vec_t tmp = vec_calloc(globsym.length);
     uint cnt = 0;
     bool anychng;
-    do
+    while (1)
     {
         anychng = false;
 
@@ -1398,7 +1402,9 @@ void flowlv()
         }
         cnt++;
         assert(cnt < 50);
-    } while (anychng);
+        if (!anychng)
+            break;
+    }
 
     vec_free(tmp);
     vec_free(livexit);
@@ -1712,7 +1718,7 @@ void flowvbe()
 
     vec_t tmp = vec_calloc(go.exptop);
     bool anychng;
-    do
+    while (1)
     {
         anychng = false;
 
@@ -1744,7 +1750,9 @@ void flowvbe()
                 anychng = !vec_equal(tmp,b.Bin);
             vec_copy(b.Bin,tmp);
         }
-    } while (anychng);      /* while any changes occurred to any Bin */
+        if (!anychng)  /* while any changes occurred to any Bin */
+            break;
+    }
     vec_free(tmp);
 }
 

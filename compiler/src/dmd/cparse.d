@@ -2118,10 +2118,12 @@ final class CParser(AST) : Parser!AST
         if (token.value != TOK.leftCurly)       // if not start of a compound-statement
         {
             // Do declaration-list
-            do
+            while (1)
             {
                 cparseDeclaration(LVL.parameter);
-            } while (token.value != TOK.leftCurly);
+                if (token.value == TOK.leftCurly)
+                    break;
+            }
 
             /* Since there were declarations, the parameter-list must have been
              * an identifier-list.

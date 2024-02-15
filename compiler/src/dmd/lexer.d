@@ -1337,7 +1337,7 @@ class Lexer
                 {
                     /* C11 6.4.4.4-7 one to infinity hex digits
                      */
-                    do
+                    while (1)
                     {
                         if (isdigit(cast(char)c))
                             c -= '0';
@@ -1347,7 +1347,9 @@ class Lexer
                             c -= 'A' - 10;
                         v = v * 16 + c;
                         c = *++p;
-                    } while (ishex(cast(char)c));
+                        if (!ishex(cast(char)c))
+                            break;
+                    }
                 }
                 else
                 {
@@ -1425,12 +1427,13 @@ class Lexer
             {
                 uint v = 0;
                 int n = 0;
-                do
+                while (1)
                 {
                     v = v * 8 + (c - '0');
                     c = *++p;
+                    if (!(++n < 3 && isoctal(cast(char)c)))
+                        break;
                 }
-                while (++n < 3 && isoctal(cast(char)c));
                 c = v;
                 if (c > 0xFF)
                     error(loc, "escape octal sequence \\%03o is larger than \\377", c);

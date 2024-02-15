@@ -10,10 +10,10 @@
         |void test1()
         |{
        1|    int counter = 20;
-      21|    do {
+        |    do {
       20|        --counter;
         |    }
-        |    while(counter > 0);
+      20|    while(counter > 0);
         |}
         |
         |/***************************************************/

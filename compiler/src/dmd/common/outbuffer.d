@@ -744,7 +744,7 @@ struct OutBuffer
 
     void writeuLEB128(uint value) pure nothrow @safe
     {
-        do
+        while (1)
         {
             ubyte b = value & 0x7F;
 
@@ -752,7 +752,9 @@ struct OutBuffer
             if (value)
                 b |= 0x80;
             writeByte(b);
-        } while (value);
+            if (!value)
+                break;
+        }
     }
 
     /**
@@ -830,7 +832,7 @@ alias UnsignedStringBuf = char[20];
 char[] unsignedToTempString(ulong value, return scope char[] buf, uint radix = 10) @safe pure nothrow @nogc
 {
     size_t i = buf.length;
-    do
+    while (1)
     {
         if (value < radix)
         {
@@ -844,7 +846,9 @@ char[] unsignedToTempString(ulong value, return scope char[] buf, uint radix = 1
             value /= radix;
             buf[--i] = cast(char)((x < 10) ? x + '0' : x - 10 + 'a');
         }
-    } while (value);
+        if (!value)
+            break;
+    }
     return buf[i .. $];
 }
 

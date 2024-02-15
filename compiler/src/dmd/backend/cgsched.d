@@ -2324,11 +2324,13 @@ code **assemble(code **pc)  // reassemble scheduled instructions
         }
 
         *pc = c;
-        do
+        while (1)
         {
             assert(*pc != code_next(*pc));
             pc = &(*pc).next;
-        } while (*pc);
+            if (!*pc)
+                break;
+        }
 
         // Put in any FXCH postfix
         if (ci.fxch_post)
@@ -2362,11 +2364,12 @@ code **assemble(code **pc)  // reassemble scheduled instructions
         if (debugs) { printf("appending: "); ci.c.print(); }
 
         *pc = ci.c;
-        do
+        while (1)
         {
             pc = &(*pc).next;
-
-        } while (*pc);
+            if (!*pc)
+                break;
+        }
         fpustackused += ci.fpuadjust;
         //printf("stage()2: fpustackused = %d\n", fpustackused);
     }

@@ -221,7 +221,7 @@ else
     for (uint i = 0; i < deh.dim; ++i)
     {
         uint j = i;
-        do
+        while (1)
         {
             DwEhTableEntry *d = deh.index(j);
             //printf(" [%d] start=%x end=%x lpad=%x action=%x bcatch=%p prev=%d\n",
@@ -261,7 +261,9 @@ else
 
                 end = dend;
             }
-        } while (j--);
+            if (!j--)
+                break;
+        }
     }
 }
 
@@ -289,7 +291,7 @@ else
     uint TTbase = 1;
     uint CallSiteTableSize = cast(uint)cstbuf.length();
     uint oldTTbase;
-    do
+    while (1)
     {
         oldTTbase = TTbase;
         uint start = cast(uint)((et.length() - startsize) + uLEB128size(TTbase));
@@ -301,7 +303,9 @@ else
         uint sz = start + TTbase;
         TTbase += -sz & 3;      // align to 4
         TTbase += sfunc.Sfunc.typesTable.length * 4;
-    } while (TTbase != oldTTbase);
+        if (TTbase == oldTTbase)
+            break;
+    }
 
     if (TType != DW_EH_PE_omit)
         et.writeuLEB128(TTbase);

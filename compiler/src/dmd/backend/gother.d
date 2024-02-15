@@ -2036,7 +2036,7 @@ public void verybusyexp()
             /* will substitute for the fact that the        */
             /* el_copytree() expression does not appear in go.expnod[]. */
             l = k;
-            do
+            while (1)
             {
                 if (k == l || (vec_testbit(k,b.Bout) &&
                     el_match(go.expnod[j],go.expnod[k])))
@@ -2046,7 +2046,9 @@ public void verybusyexp()
                     go.expnod[k] = null;
                     vec_clearbit(k,b.Bout);
                 }
-            } while (++k < go.exptop);
+                if (++k >= go.exptop)
+                    break;
+            }
             go.changes++;
         } /* foreach */
     } /* for */

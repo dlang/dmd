@@ -70,7 +70,7 @@ void u128Div(ullong xh, ullong xl, ullong yh, ullong yl, ullong *pqh, ullong *pq
 
     ullong qh = 0;
     ullong ql = 0;
-    do
+    while (1)
     {
         SHL128(qh,ql, qh,ql);
         if (XltY128(yh,yl,xh,xl))
@@ -88,7 +88,9 @@ void u128Div(ullong xh, ullong xl, ullong yh, ullong yl, ullong *pqh, ullong *pq
             ql |= 1;
         }
         SHR128(yh,yl, yh,yl);
-    } while (--shiftcount);
+        if (!--shiftcount)
+            break;
+    }
 
     *pqh = qh;
     *pql = ql;

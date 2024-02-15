@@ -991,10 +991,12 @@ private struct Filter(alias predicate, Range)
         assert(!range.empty);
         prime();
 
-        do
+        while (1)
         {
             range.popFront();
-        } while (!range.empty && !predicate(range.front));
+            if (range.empty || predicate(range.front))
+                break;
+        }
     }
 
     auto opSlice()

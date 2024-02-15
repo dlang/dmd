@@ -5868,7 +5868,7 @@ public:
             auto cd = cre.originalClass();
 
             // Find dtor(s) in inheritance chain
-            do
+            while (1)
             {
                 if (cd.dtor)
                 {
@@ -5884,8 +5884,9 @@ public:
 
                 // Emulate manual chaining as done in rt_finalize2
                 cd = cd.baseClass;
-
-            } while (cd); // Stop after Object
+                if (!cd) // Stop after Object
+                    break;
+            }
 
             break;
 

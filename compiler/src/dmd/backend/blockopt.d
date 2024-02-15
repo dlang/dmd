@@ -551,7 +551,7 @@ void blockopt(int iter)
         if (iterationLimit < dfo.length)
             iterationLimit = cast(int)dfo.length;
         int count = 0;
-        do
+        while (1)
         {
             //printf("changes = %d, count = %d, dfo.length = %d\n",go.changes,count,dfo.length);
             go.changes = 0;
@@ -576,7 +576,9 @@ void blockopt(int iter)
                 assert(count < iterationLimit);
                 count++;
             } while (merge && mergeblks());      // merge together blocks
-        } while (go.changes);
+            if (!go.changes)
+                break;
+        }
 
         debug if (debugw)
         {
@@ -649,7 +651,7 @@ void brcombine()
         return;
     }
 
-    do
+    while (1)
     {
         int anychanges = 0;
         for (block *b = startblock; b; b = b.Bnext)   // for each block
@@ -835,7 +837,8 @@ void brcombine()
         {   go.changes++;
             continue;
         }
-    } while (0);
+        break;
+    }
 }
 
 /***********************
@@ -1636,7 +1639,7 @@ private void bltailmerge()
                     go.changes++;
 
                     /* Find all the expressions we can merge    */
-                    do
+                    while (1)
                     {
                         list_append(&bnew.Blist,e);
                         el_free(en);
@@ -1648,7 +1651,9 @@ private void bltailmerge()
                         if (!bn.Blist)
                             break;
                         en = list_elem(bn.Blist);
-                    } while (el_match(e,en));
+                        if (!el_match(e,en))
+                            break;
+                    }
                 }
             }
     nextb:

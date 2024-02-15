@@ -1864,7 +1864,7 @@ void doDataFlowAnalysis(ref ObState obstate)
     pvs.deps.length = vlen;
     int counter = 0;
     bool changes;
-    do
+    while (1)
     {
         changes = false;
         assert(++counter <= 1000);      // should converge, but don't hang if it doesn't
@@ -1916,7 +1916,9 @@ void doDataFlowAnalysis(ref ObState obstate)
                 }
             }
         }
-    } while (changes);
+        if (!changes)
+            break;
+    }
 
     static if (log)
     {

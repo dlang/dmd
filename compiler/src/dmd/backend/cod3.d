@@ -3314,9 +3314,12 @@ void prolog_ifunc(ref CodeBuilder cdb, tym_t* tyf)
                                     0x1E,0x06,0 ];
 
     immutable(ubyte)* p = (config.target_cpu >= TARGET_80286) ? ops2.ptr : ops0.ptr;
-    do
+    while (1)
+    {
         cdb.gen1(*p);
-    while (*++p);
+        if (!*++p)
+            break;
+    }
 
     genregs(cdb,0x8B,BP,SP);     // MOV BP,SP
     if (localsize)
@@ -4376,9 +4379,12 @@ void epilog(block *b)
 
         genregs(cdbx,0x8B,SP,BP);              // MOV SP,BP
         auto p = (config.target_cpu >= TARGET_80286) ? ops2.ptr : ops0.ptr;
-        do
+        while (1)
+        {
             cdbx.gen1(*p);
-        while (*++p);
+            if (!*++p)
+                break;
+        }
         goto Lopt;
     }
 

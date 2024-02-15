@@ -1325,7 +1325,7 @@ void symboltable_hydrate(Symbol *s,Symbol **parent)
                         {   Symbol **ps;
                             Symbol *sn;
 
-                            do
+                            while (1)
                             {
                                 // Tack onto end of overloaded function list
                                 for (ps = &rover; *ps; ps = &(*ps).Sfunc.Foversym)
@@ -1338,7 +1338,9 @@ void symboltable_hydrate(Symbol *s,Symbol **parent)
                                 sn = s.Sfunc.Foversym;
                                 s.Sfunc.Foversym = null;
                                 s = sn;
-                            } while (s);
+                                if (!s)
+                                    break;
+                            }
                         }
                         else
                         {

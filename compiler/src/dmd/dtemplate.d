@@ -5275,12 +5275,14 @@ extern (C++) class TemplateInstance : ScopeDsymbol
              */
             static Dsymbol getStrictEnclosing(TemplateInstance ti)
             {
-                do
+                while (1)
                 {
                     if (ti.enclosing)
                         return ti.enclosing;
                     ti = ti.tempdecl.isInstantiated();
-                } while (ti);
+                    if (!ti)
+                        break;
+                }
                 return null;
             }
 

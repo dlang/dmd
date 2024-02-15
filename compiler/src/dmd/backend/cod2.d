@@ -3352,15 +3352,16 @@ void cdind(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             cs.IEV1.Voffset += 8 - REGSIZE;
             stackchanged = 1;
             i = 8 - REGSIZE;
-            do
+            while (1)
             {
                 cdb.gen(&cs);                         // PUSH EA+i
                 cdb.genadjesp(REGSIZE);
                 cs.IEV1.Voffset -= REGSIZE;
                 stackpush += REGSIZE;
                 i -= REGSIZE;
+                if (i < 0)
+                    break;
             }
-            while (i >= 0);
             goto L3;
         }
         if (I16 && sz == 8)

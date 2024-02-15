@@ -617,7 +617,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             if (vd.storage_class & STC.static_ && vd.isCsymbol())
                 s.Sclass = SC.static_;
 
-            do
+            while (1)
             {
                 /* Global template data members need to be in comdat's
                  * in case multiple .obj files instantiate the same
@@ -629,7 +629,9 @@ void toObjFile(Dsymbol ds, bool multiobj)
                     break;
                 }
                 parent = parent.parent;
-            } while (parent);
+                if (!parent)
+                    break;
+            }
             s.Sfl = FLdata;
 
             // Size 0 should only be possible for T[0] and noreturn

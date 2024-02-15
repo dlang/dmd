@@ -271,7 +271,7 @@ private extern (D) void compdom(block*[] dfo)
     vec_t t1 = vec_calloc(vec_numbits(sb.Bdom));       // allocate a temporary
     uint counter = 0;                    // # of times thru loop
     bool changes;
-    do
+    while (1)
     {
         changes = false;
         foreach (i, b; dfo)              // for each block in dfo[]
@@ -299,7 +299,9 @@ private extern (D) void compdom(block*[] dfo)
         }
         counter++;
         assert(counter < 50);              // should have converged by now
-    } while (changes);
+        if (!changes)
+            break;
+    }
     vec_free(t1);
 
     debug if (debugc)

@@ -403,7 +403,7 @@ tryagain:
 
     // Do jump optimization
     bool flag;
-    do
+    while (1)
     {
         flag = false;
         for (block* b = startblock; b; b = b.Bnext)
@@ -431,7 +431,9 @@ tryagain:
         }
         if (!I16 && !(config.flags4 & CFG4optimized))
             break;                      // use the long conditional jmps
-    } while (flag);                     // loop till no more bytes saved
+        if (!flag)                      // loop till no more bytes saved
+            break;
+    }
 
     debug
     debugw && printf("code jump optimization complete\n");

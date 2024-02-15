@@ -559,21 +559,22 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         /* https://dlang.org/spec/statement.html#do-statement
          */
 
-        /* Rewrite: do { body } while (cond);
-         * To:      for (; true; } { body; if (!cond) break; }
+static if (1)
+{
+        /* Rewrite: do { body } while (condition);
+         * To:      for (;;} { body; if (!condition) break; }
          */
         Expression notCond = new NotExp(ds.condition.loc, ds.condition);
-        Statement ifNotCond = new IfStatement(ds.loc, null, notCond, new BreakStatement(ds.loc, null), null, ds.endloc);
+        Statement ifNotCond = new IfStatement(ds.condition.loc, null, notCond, new BreakStatement(Loc.initial, null), null, ds.endloc);
 
-        Statement pair = new CompoundStatement(ds._body.loc, ds._body, ifNotCond);
-        Statement scopePair = new ScopeStatement(pair.loc, pair, pair.loc);
+        Statement pair = new CompoundStatement(Loc.initial, ds._body, ifNotCond);
+        Statement scopePair = new ScopeStatement(Loc.initial, pair, pair.loc);
 
-        Expression _true = IntegerExp.literal!1;
-
-        Statement s = new ForStatement(ds.loc, null, _true , null, scopePair, ds.endloc);
+        Statement s = new ForStatement(ds.loc, null, null, null, scopePair, ds.endloc);
         s = s.statementSemantic(sc);
+//printf("do\n %s\n", toChars(s));
         result = s;
-
+}
 static if (0)
 {
         const inLoopSave = sc.inLoop;

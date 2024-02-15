@@ -231,12 +231,14 @@ addr calccodsize(addr c, out addr pc)
     uint prefixsize = 0;
     {
         uint sz;
-        do
+        while (1)
         {
             sz = prefixbyte(c);
             c += sz;
             prefixsize += sz;
-        } while (sz);
+            if (!sz)
+                break;
+        }
     }
     pc = c;            // to skip over prefix
 
@@ -1812,12 +1814,14 @@ void disassemble(uint c)
     puts("   ");
     uint prefixsize = 0;
     uint sz;
-    do
+    while (1)
     {
         sz = prefixbyte(c);
         c += sz;
         prefixsize += sz;
-    } while (sz);
+        if (!sz)
+            break;
+    }
     assert(siz > prefixsize);
     siz -= prefixsize;
 

@@ -3818,7 +3818,7 @@ struct MarkdownLinkReferences
         const(char)[] path;
         if (symbol && symbol.ident && symbol.isModule() != _scope._module)
         {
-            do
+            while (1)
             {
                 root = symbol;
 
@@ -3834,7 +3834,9 @@ struct MarkdownLinkReferences
                     path = '_' ~ path;
                 path = symbol.ident.toString() ~ path;
                 symbol = symbol.parent;
-            } while (symbol && symbol.ident);
+                if (!symbol || !symbol.ident)
+                    break;
+            }
 
             if (!symbol && path.length)
                 path ~= "$(DOC_EXTENSION)";

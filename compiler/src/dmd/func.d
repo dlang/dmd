@@ -767,13 +767,14 @@ extern (C++) class FuncDeclaration : Declaration
     final bool inUnittest()
     {
         Dsymbol f = this;
-        do
+        while (1)
         {
             if (f.isUnitTestDeclaration())
                 return true;
             f = f.toParent();
+            if (!f)
+                break;
         }
-        while (f);
         return false;
     }
 

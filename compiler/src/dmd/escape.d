@@ -2411,7 +2411,7 @@ private void eliminateMaybeScopes(VarDeclaration[] array)
     enum log = false;
     if (log) printf("eliminateMaybeScopes()\n");
     bool changes;
-    do
+    while (1)
     {
         changes = false;
         foreach (va; array)
@@ -2436,7 +2436,9 @@ private void eliminateMaybeScopes(VarDeclaration[] array)
                 }
             }
         }
-    } while (changes);
+        if (!changes)
+            break;
+    }
 }
 
 /************************************************

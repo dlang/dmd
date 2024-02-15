@@ -587,7 +587,7 @@ extern(D):
         const dBaseDir = baseDir.toDString;
 
         char* res;
-        do
+        while (1)
         {
             if (fileinfo.cFileName[0] >= '1' && fileinfo.cFileName[0] <= '9')
             {
@@ -603,8 +603,9 @@ extern(D):
                 else
                     mem.xfree(name.ptr);
             }
+            if (!FindNextFileW(h, &fileinfo))
+                break;
         }
-        while(FindNextFileW(h, &fileinfo));
 
         if (!FindClose(h))
             res = null;

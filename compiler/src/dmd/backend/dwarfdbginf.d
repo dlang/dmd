@@ -3096,15 +3096,22 @@ static if (1)
             {
                 size_t len;
                 foreach(uint e; arr)
-                    do ++len;
-                    while (e >>= 7);
+                {
+                    while (1)
+                    {
+                        ++len;
+                        if (!(e >>= 7))
+                            break;
+                    }
+                }
                 return len;
             }
             ubyte[getLEB128Length(abbrev)] ret;
             size_t offset;
 
             foreach(uint e; abbrev)
-                do
+            {
+                while (1)
                 {
                     ubyte b = e & 0x7F;
 
@@ -3113,7 +3120,10 @@ static if (1)
                         b |= 0x80;
                     ret[offset] = b;
                     ++offset;
-                } while (e);
+                    if (!e)
+                        break;
+                }
+            }
 
             return ret;
         }

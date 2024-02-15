@@ -481,7 +481,7 @@ nothrow:
         auto p = path;
         OutBuffer buf;
         char c;
-        do
+        while (1)
         {
             const(char)* home;
             bool instring = false;
@@ -550,7 +550,9 @@ nothrow:
                 if (sink(buf.extractChars()))
                     break;
             }
-        } while (c);
+            if (!c)
+                break;
+        }
     }
 
     /**

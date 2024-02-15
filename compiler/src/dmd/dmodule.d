@@ -1019,7 +1019,7 @@ extern (C++) final class Module : Package
         nested++;
 
         size_t len;
-        do
+        while (1)
         {
             len = deferred.length;
             if (!len)
@@ -1049,8 +1049,9 @@ extern (C++) final class Module : Package
             //printf("\tdeferred.length = %ld, len = %ld\n", deferred.length, len);
             if (todoalloc)
                 free(todoalloc);
+            if (deferred.length == len) // while making progress
+                break;
         }
-        while (deferred.length != len); // while making progress
         nested--;
         //printf("-Module::runDeferredSemantic(), len = %ld\n", deferred.length);
     }

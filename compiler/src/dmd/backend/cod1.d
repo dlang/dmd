@@ -4266,7 +4266,7 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
                 if (I64 && sz >= 8)
                 {
                     int i = cast(int)sz;
-                    do
+                    while (1)
                     {
                         if (*p >= 0x80000000)
                         {   // Use 64 bit register MOV, as the 32 bit one gets sign extended
@@ -4276,12 +4276,14 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
                         }
                         p = cast(targ_size_t *)(cast(char *) p + REGSIZE);
                         i -= REGSIZE;
-                    } while (i > 0);
+                        if (i <= 0)
+                            break;
+                    }
                     p = cast(targ_size_t *) &(e.EV);
                 }
 
                 int i = cast(int)sz;
-                do
+                while (1)
                 {   int regsize = REGSIZE;
                     regm_t retregs = (sz == 1) ? BYTEREGS : allregs;
                     reg_t reg;
@@ -4305,7 +4307,9 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
                     cs.IEV1.Voffset += regsize;
                     cs.IEV2.Vint = cast(targ_int)*p;
                     i -= regsize;
-                } while (i > 0);
+                    if (i <= 0)
+                        break;
+                }
                 return;
             }
 
@@ -4871,7 +4875,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
             targ_ushort* ps = cast(targ_ushort *) pi;
             targ_ullong* pl = cast(targ_ullong *)pi;
             i /= regsize;
-            do
+            while (1)
             {
                 if (i)                      /* be careful not to go negative */
                     i--;
@@ -4922,7 +4926,9 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                     genpush(cdb,reg);         // PUSH reg
                 }
                 code_orflag(cdb.last(), flag);              // operand size
-            } while (i);
+                if (!i)
+                    break;
+            }
             freenode(e);
             return;
         }
@@ -5557,14 +5563,15 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
                 // Note that we allocreg(DOUBLEREGS) needlessly
                 stackchanged = 1;
                 int i = sz - REGSIZE;
-                do
+                while (1)
                 {
                     loadea(cdb,e,&cs,0xFF,6,i,0,0); // PUSH EA+i
                     cdb.genadjesp(REGSIZE);
                     stackpush += REGSIZE;
                     i -= REGSIZE;
+                    if (i < 0)
+                        break;
                 }
-                while (i >= 0);
                 return;
             }
             else

@@ -587,7 +587,7 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 else
                 {
                     int off = sz;
-                    do
+                    while (1)
                     {   int regsize = REGSIZE;
                         if (off >= 4 && I16 && config.target_cpu >= TARGET_80386)
                         {
@@ -631,7 +631,9 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                         cs.IEV1.Voffset += regsize;
                         cs.IEV2.Vint = cast(int)*p;
                         off -= regsize;
-                    } while (off > 0);
+                        if (off <= 0)
+                            break;
+                    }
                 }
             }
             freenode(e2);

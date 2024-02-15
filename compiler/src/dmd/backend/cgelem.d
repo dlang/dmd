@@ -6179,11 +6179,13 @@ elem *doptelem(elem *e, goal_t goal)
 {
     //printf("doptelem(e = %p, goal = x%x)\n", e, goal);
     assert(!PARSER);
-    do
+    while (1)
     {   again = false;
         topair = false;
         e = optelem(e,goal & (GOALflags | GOALvalue | GOALnone));
-    } while (again && goal & GOALagain && e);
+        if (!(again && goal & GOALagain && e))
+            break;
+    }
 
     /* If entire expression is a struct, and we can replace it with     */
     /* something simpler, do so.                                        */
