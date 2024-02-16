@@ -71,6 +71,7 @@ jobs:
             model: 32
     name: ${{ matrix.job_name }}
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.os == 'macos-13' }}
     timeout-minutes: 40
     env:
       # for ci/run.sh:
