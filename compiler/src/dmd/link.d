@@ -22,6 +22,7 @@ import core.sys.windows.windef;
 import dmd.astenums;
 import dmd.dmdparams;
 import dmd.errors;
+import dmd.errorsink;
 import dmd.globals;
 import dmd.location;
 import dmd.root.array;
@@ -958,50 +959,59 @@ version (Windows)
 
 /***************************************
  * Run the compiled program.
- * Return exit status.
+ * Params:
+ *      exefile = program name
+ *      runargs = arguments to exefile
+ *      verbose = print command to be executed
+ *      eSink = message sink
+ * Returns: exit status
  */
-public int runProgram()
+public int runProgram(const char[] exefile, const char*[] runargs, bool verbose, ErrorSink eSink)
 {
     //printf("runProgram()\n");
-    if (global.params.v.verbose)
+
+    // print command line to user
+    if (verbose)
     {
         OutBuffer buf;
-        buf.writestring(global.params.exefile);
-        for (size_t i = 0; i < global.params.runargs.length; ++i)
+        buf.writestring(exefile);
+        foreach (arg; runargs)
         {
             buf.writeByte(' ');
-            buf.writestring(global.params.runargs[i]);
+            buf.writestring(arg);
         }
-        message(buf.peekChars());
+        eSink.message(Loc.initial, buf.peekChars());
     }
+
     // Build argv[]
     Strings argv;
-    argv.push(global.params.exefile.xarraydup.ptr);
-    for (size_t i = 0; i < global.params.runargs.length; ++i)
+    argv.push(exefile.xarraydup.ptr);
+    foreach (arg; runargs)
     {
-        const(char)* a = global.params.runargs[i];
         version (Windows)
         {
             // BUG: what about " appearing in the string?
-            if (strchr(a, ' '))
+            if (strchr(arg, ' '))
             {
-                const blen = 3 + strlen(a);
+                const blen = 3 + strlen(arg);
                 char* b = cast(char*)mem.xmalloc(blen);
-                snprintf(b, blen, "\"%s\"", a);
-                a = b;
+                snprintf(b, blen, "\"%s\"", arg);
+                argv.push(b);
+                continue;
             }
         }
-        argv.push(a);
+        argv.push(arg);
     }
     argv.push(null);
-    restoreEnvVars();
+
+    // Execute program
     version (Windows)
     {
-        const(char)[] ex = FileName.name(global.params.exefile);
-        if (ex == global.params.exefile)
+        const(char)[] ex = FileName.name(exefile);
+        if (ex == exefile)
             ex = FileName.combine(".", ex);
         else
-            ex = global.params.exefile;
+            ex = exefile;
         // spawnlp returns intptr_t in some systems, not int
         return spawnv(0, ex.xarraydup.ptr, argv.tdata());
     }
@@ -1031,7 +1041,7 @@ public int runProgram()
         }
         else if (WIFSIGNALED(status))
         {
-            error(Loc.initial, "program killed by signal %d", WTERMSIG(status));
+            eSink.error(Loc.initial, "program killed by signal %d", WTERMSIG(status));
             status = 1;
         }
         return status;
