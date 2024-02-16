@@ -12196,25 +12196,30 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return result;
         }
 
-        void handleCatArgument(Expressions *arguments, Expression e)
+        void handleCatArgument(Expressions *arguments, Expression e, Type catType)
         {
-            if (auto ce = e.isCatExp())
-            {
-                Expression lowering = ce.lowering;
+            auto tb = e.type.toBasetype();
 
-                /* Skip `file`, `line`, and `funcname` if the hook of the parent
-                 * `CatExp` is `_d_arraycatnTXTrace`.
-                 */
-                if (auto callExp = isRuntimeHook(lowering, hook))
+            if (!e.parens || (catType.equals(tb) && (tb.ty == Tarray || tb.ty == Tsarray)))
+                if (auto ce = e.isCatExp())
                 {
-                    if (hook == Id._d_arraycatnTX)
-                        arguments.pushSlice((*callExp.arguments)[]);
-                    else
-                        arguments.pushSlice((*callExp.arguments)[3 .. $]);
+                    Expression lowering = ce.lowering;
+
+                    /* Skip `file`, `line`, and `funcname` if the hook of the parent
+                    * `CatExp` is `_d_arraycatnTXTrace`.
+                    */
+                    if (auto callExp = isRuntimeHook(lowering, hook))
+                    {
+                        if (hook == Id._d_arraycatnTX)
+                            arguments.pushSlice((*callExp.arguments)[]);
+                        else
+                            arguments.pushSlice((*callExp.arguments)[3 .. $]);
+                    }
+
+                    return;
                 }
-            }
-            else
-                arguments.push(e);
+
+            arguments.push(e);
         }
 
         auto arguments = new Expressions();
@@ -12227,8 +12232,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             arguments.push(new StringExp(exp.loc, funcname.toDString()));
         }
 
-        handleCatArgument(arguments, exp.e1);
-        handleCatArgument(arguments, exp.e2);
+        handleCatArgument(arguments, exp.e1, exp.type.toBasetype());
+        handleCatArgument(arguments, exp.e2, exp.type.toBasetype());
 
         Expression id = new IdentifierExp(exp.loc, Id.empty);
         id = new DotIdExp(exp.loc, id, Id.object);

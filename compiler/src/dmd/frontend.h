@@ -2127,6 +2127,7 @@ public:
     Type* type;
     Loc loc;
     const EXP op;
+    bool parens;
     size_t size() const;
     static void _init();
     static void deinitialize();
@@ -2615,7 +2616,6 @@ class IdentifierExp : public Expression
 {
 public:
     Identifier* ident;
-    bool parens;
     static IdentifierExp* create(const Loc& loc, Identifier* ident);
     bool isLvalue() final override;
     void accept(Visitor* v) override;
@@ -3472,7 +3472,6 @@ public:
 class TypeExp final : public Expression
 {
 public:
-    bool parens;
     TypeExp* syntaxCopy() override;
     bool checkType() override;
     bool checkValue() override;
@@ -5451,9 +5450,9 @@ struct UnionExp final
 private:
     union _AnonStruct_u
     {
-        char exp[29LLU];
+        char exp[30LLU];
         char integerexp[40LLU];
-        char errorexp[29LLU];
+        char errorexp[30LLU];
         char realexp[48LLU];
         char complexexp[64LLU];
         char symoffexp[64LLU];
@@ -5462,7 +5461,7 @@ private:
         char assocarrayliteralexp[56LLU];
         char structliteralexp[76LLU];
         char compoundliteralexp[40LLU];
-        char nullexp[29LLU];
+        char nullexp[30LLU];
         char dotvarexp[49LLU];
         char addrexp[40LLU];
         char indexexp[74LLU];
