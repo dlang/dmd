@@ -55,6 +55,7 @@ import dmd.location;
 import dmd.mars;
 import dmd.mtype;
 import dmd.objc;
+import dmd.root.env;
 import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.man;
@@ -633,7 +634,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         {
             if (!status)
             {
-                status = runProgram();
+                restoreEnvVars();
+                status = runProgram(global.params.exefile, global.params.runargs[], global.params.v.verbose, global.errorSink);
                 /* Delete .obj files and .exe file
                  */
                 foreach (m; modules)
