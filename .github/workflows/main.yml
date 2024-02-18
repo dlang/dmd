@@ -171,18 +171,18 @@ jobs:
             freebsd_version: '13.2'
             host_dmd: dmd-2.095.0
     name: ${{ matrix.job_name }}
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 50
       - name: Run in VM
-        uses: cross-platform-actions/action@v0.22.0
+        uses: cross-platform-actions/action@v0.23.0
         with:
           operating_system: freebsd
           hypervisor: qemu
-          memory: 8G
+          memory: 12G
           sync_files: runner-to-vm
           version: ${{ matrix.freebsd_version }}
           shell: bash
