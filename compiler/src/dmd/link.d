@@ -1265,9 +1265,16 @@ public DArray!ubyte runPreprocessor(ref const Loc loc, const(char)[] cpp, const(
                                 break;
 
                             case S.hash:
-                                defines.writeByte(c);
-                                if (c == '\n')
+                                if (c == '\r')
+                                {
+                                }
+                                else if (c == '\n')
+                                {
+                                    defines.writeByte(0); // 0-terminate lines in defines[]
                                     state = S.start;
+                                }
+                                else
+                                    defines.writeByte(c);
                                 break;
 
                             case S.other:
@@ -1277,7 +1284,6 @@ public DArray!ubyte runPreprocessor(ref const Loc loc, const(char)[] cpp, const(
                                 break;
                         }
                     }
-                    //printf("%.*s", cast(int)data.length, data.ptr);
                 }
 
                 // Convert command to wchar
