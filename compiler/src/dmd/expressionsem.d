@@ -12196,30 +12196,33 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return result;
         }
 
-        void handleCatArgument(Expressions *arguments, Expression e, Type catType)
+        void handleCatArgument(Expressions *arguments, Expression e, Type catType, bool isRightArg)
         {
             auto tb = e.type.toBasetype();
 
-            if (!e.parens || (catType.equals(tb) && (tb.ty == Tarray || tb.ty == Tsarray)))
-                if (auto ce = e.isCatExp())
+            if ((isRightArg && e.parens) || (!isRightArg && !tb.equals(catType)))
+            {
+                arguments.push(e);
+                return;
+            }
+
+            if (auto ce = e.isCatExp())
+            {
+                Expression lowering = ce.lowering;
+
+                /* Skip `file`, `line`, and `funcname` if the hook of the parent
+                 * `CatExp` is `_d_arraycatnTXTrace`.
+                 */
+                if (auto callExp = isRuntimeHook(lowering, hook))
                 {
-                    Expression lowering = ce.lowering;
-
-                    /* Skip `file`, `line`, and `funcname` if the hook of the parent
-                    * `CatExp` is `_d_arraycatnTXTrace`.
-                    */
-                    if (auto callExp = isRuntimeHook(lowering, hook))
-                    {
-                        if (hook == Id._d_arraycatnTX)
-                            arguments.pushSlice((*callExp.arguments)[]);
-                        else
-                            arguments.pushSlice((*callExp.arguments)[3 .. $]);
-                    }
-
-                    return;
+                    if (hook == Id._d_arraycatnTX)
+                        arguments.pushSlice((*callExp.arguments)[]);
+                    else
+                        arguments.pushSlice((*callExp.arguments)[3 .. $]);
                 }
-
-            arguments.push(e);
+            }
+            else
+                arguments.push(e);
         }
 
         auto arguments = new Expressions();
@@ -12232,8 +12235,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             arguments.push(new StringExp(exp.loc, funcname.toDString()));
         }
 
-        handleCatArgument(arguments, exp.e1, exp.type.toBasetype());
-        handleCatArgument(arguments, exp.e2, exp.type.toBasetype());
+        handleCatArgument(arguments, exp.e1, exp.type.toBasetype(), false);
+        handleCatArgument(arguments, exp.e2, exp.type.toBasetype(), true);
 
         Expression id = new IdentifierExp(exp.loc, Id.empty);
         id = new DotIdExp(exp.loc, id, Id.object);
