@@ -2348,31 +2348,5 @@ void copyAndTouch(const string from, const string to)
     to.setTimes(now, now);
 }
 
-version (OSX)
-{
-    // FIXME: Parallel executions hangs reliably on Mac  (esp. the 'macair'
-    // host used by the autotester) for unknown reasons outside of this script.
-    pragma(msg, "Warning: Syncing file access because of OSX!");
-
-    // Wrap standard library functions to ensure mutually exclusive file access
-    alias readText = fileAccess!(std.file.readText, string);
-    alias writeText = fileAccess!(std.file.write, string, string);
-    alias timeLastModified = fileAccess!(std.file.timeLastModified, string);
-
-    import core.sync.mutex;
-    __gshared Mutex fileAccessMutex;
-    shared static this() {
-        fileAccessMutex = new Mutex();
-    }
-
-    auto fileAccess(alias dg, T...)(T args)
-    {
-        fileAccessMutex.lock_nothrow();
-        scope (exit) fileAccessMutex.unlock_nothrow();
-        return dg(args);
-    }
-}
-else
-{
-    alias writeText = std.file.write;
-}
+// Wrap standard library functions
+alias writeText = std.file.write;
