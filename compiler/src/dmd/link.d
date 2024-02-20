@@ -13,12 +13,9 @@ module dmd.link;
 
 import core.stdc.ctype;
 import core.stdc.stdio;
+import core.stdc.stdlib;
 import core.stdc.string;
-import core.sys.posix.stdio;
-import core.sys.posix.stdlib;
-import core.sys.posix.unistd;
-import core.sys.windows.winbase;
-import core.sys.windows.windef;
+
 import dmd.astenums;
 import dmd.dmdparams;
 import dmd.errors;
@@ -35,12 +32,28 @@ import dmd.root.rmem;
 import dmd.root.string;
 import dmd.utils;
 import dmd.target;
-import dmd.vsoptions;
 
-version (Posix) extern (C) int pipe(int*);
-
-version (Windows)
+version (Posix)
 {
+    import core.sys.posix.stdio;
+    import core.sys.posix.stdlib;
+    import core.sys.posix.unistd;
+
+    extern (C)
+    {
+        int pipe(int*);
+        pid_t vfork(); // work around lack of 'vfork' in older druntime binding for non-Glibc
+    }
+}
+else version (Windows)
+{
+    import core.sys.windows.windows;
+    import core.sys.windows.wtypes;
+    import core.sys.windows.psapi;
+    import core.sys.windows.winbase;
+    import core.sys.windows.windef;
+    import dmd.vsoptions;
+
     /* https://www.digitalmars.com/rtl/process.html#_spawn
      * https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/spawnvp-wspawnvp?view=msvc-170
      */
@@ -52,73 +65,42 @@ version (Windows)
         int spawnvp(int, const char*, const char**);
         enum _P_WAIT = 0;
     }
-}
 
-// Workaround lack of 'vfork' in older druntime binding for non-Glibc
-version (Posix) extern(C) pid_t vfork();
-version (CRuntime_Microsoft)
-{
-  // until the new windows bindings are available when building dmd.
-  static if(!is(STARTUPINFOA))
-  {
-    alias STARTUPINFOA = STARTUPINFO;
-
-    // dwCreationFlags for CreateProcess() and CreateProcessAsUser()
-    enum : DWORD {
-      DEBUG_PROCESS               = 0x00000001,
-      DEBUG_ONLY_THIS_PROCESS     = 0x00000002,
-      CREATE_SUSPENDED            = 0x00000004,
-      DETACHED_PROCESS            = 0x00000008,
-      CREATE_NEW_CONSOLE          = 0x00000010,
-      NORMAL_PRIORITY_CLASS       = 0x00000020,
-      IDLE_PRIORITY_CLASS         = 0x00000040,
-      HIGH_PRIORITY_CLASS         = 0x00000080,
-      REALTIME_PRIORITY_CLASS     = 0x00000100,
-      CREATE_NEW_PROCESS_GROUP    = 0x00000200,
-      CREATE_UNICODE_ENVIRONMENT  = 0x00000400,
-      CREATE_SEPARATE_WOW_VDM     = 0x00000800,
-      CREATE_SHARED_WOW_VDM       = 0x00001000,
-      CREATE_FORCEDOS             = 0x00002000,
-      BELOW_NORMAL_PRIORITY_CLASS = 0x00004000,
-      ABOVE_NORMAL_PRIORITY_CLASS = 0x00008000,
-      CREATE_BREAKAWAY_FROM_JOB   = 0x01000000,
-      CREATE_WITH_USERPROFILE     = 0x02000000,
-      CREATE_DEFAULT_ERROR_MODE   = 0x04000000,
-      CREATE_NO_WINDOW            = 0x08000000,
-      PROFILE_USER                = 0x10000000,
-      PROFILE_KERNEL              = 0x20000000,
-      PROFILE_SERVER              = 0x40000000
-    }
-  }
-}
-
-/****************************************
- * Write filename to cmdbuf, quoting if necessary.
- */
-private void writeFilename(OutBuffer* buf, const(char)[] filename) @safe
-{
-    /* Loop and see if we need to quote
-     */
-    foreach (const char c; filename)
+    // until the new windows bindings are available when building dmd.
+    static if(!is(STARTUPINFOA))
     {
-        if (isalnum(c) || c == '_')
-            continue;
-        /* Need to quote
-         */
-        buf.writeByte('"');
-        buf.writestring(filename);
-        buf.writeByte('"');
-        return;
-    }
-    /* No quoting necessary
-     */
-    buf.writestring(filename);
-}
+        alias STARTUPINFOA = STARTUPINFO;
 
-private void writeFilename(OutBuffer* buf, const(char)* filename)
-{
-    writeFilename(buf, filename.toDString());
+        // dwCreationFlags for CreateProcess() and CreateProcessAsUser()
+        enum : DWORD {
+            DEBUG_PROCESS               = 0x00000001,
+            DEBUG_ONLY_THIS_PROCESS     = 0x00000002,
+            CREATE_SUSPENDED            = 0x00000004,
+            DETACHED_PROCESS            = 0x00000008,
+            CREATE_NEW_CONSOLE          = 0x00000010,
+            NORMAL_PRIORITY_CLASS       = 0x00000020,
+            IDLE_PRIORITY_CLASS         = 0x00000040,
+            HIGH_PRIORITY_CLASS         = 0x00000080,
+            REALTIME_PRIORITY_CLASS     = 0x00000100,
+            CREATE_NEW_PROCESS_GROUP    = 0x00000200,
+            CREATE_UNICODE_ENVIRONMENT  = 0x00000400,
+            CREATE_SEPARATE_WOW_VDM     = 0x00000800,
+            CREATE_SHARED_WOW_VDM       = 0x00001000,
+            CREATE_FORCEDOS             = 0x00002000,
+            BELOW_NORMAL_PRIORITY_CLASS = 0x00004000,
+            ABOVE_NORMAL_PRIORITY_CLASS = 0x00008000,
+            CREATE_BREAKAWAY_FROM_JOB   = 0x01000000,
+            CREATE_WITH_USERPROFILE     = 0x02000000,
+            CREATE_DEFAULT_ERROR_MODE   = 0x04000000,
+            CREATE_NO_WINDOW            = 0x08000000,
+            PROFILE_USER                = 0x10000000,
+            PROFILE_KERNEL              = 0x20000000,
+            PROFILE_SERVER              = 0x40000000
+        }
+     }
 }
+else
+    static assert(0, "unsupported operating system");
 
 version (Posix)
 {
@@ -1467,10 +1449,6 @@ public DArray!ubyte runPreprocessor(ref const Loc loc, const(char)[] cpp, const(
 version (Windows)
 int runProcessCollectStdout(const(wchar)* szCommand, ubyte[] buffer, void delegate(ubyte[]) sink)
 {
-    import core.sys.windows.windows;
-    import core.sys.windows.wtypes;
-    import core.sys.windows.psapi;
-
     //printf("runProcess() command: %ls\n", szCommand);
     // Set the bInheritHandle flag so pipe handles are inherited.
     SECURITY_ATTRIBUTES saAttr;
@@ -1563,4 +1541,32 @@ int runProcessCollectStdout(const(wchar)* szCommand, ubyte[] buffer, void delega
     CloseHandle(piProcInfo.hThread);
 
     return exitCode;
+}
+
+/****************************************
+ * Write filename to cmdbuf, quoting if necessary.
+ */
+private void writeFilename(OutBuffer* buf, const(char)[] filename) @safe
+{
+    /* Loop and see if we need to quote
+     */
+    foreach (const char c; filename)
+    {
+        if (isalnum(c) || c == '_')
+            continue;
+        /* Need to quote
+         */
+        buf.writeByte('"');
+        buf.writestring(filename);
+        buf.writeByte('"');
+        return;
+    }
+    /* No quoting necessary
+     */
+    buf.writestring(filename);
+}
+
+private void writeFilename(OutBuffer* buf, const(char)* filename)
+{
+    writeFilename(buf, filename.toDString());
 }
