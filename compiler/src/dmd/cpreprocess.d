@@ -68,7 +68,7 @@ DArray!ubyte preprocess(FileName csrcfile, ref const Loc loc, ref OutBuffer defi
     version (runPreprocessor)
     {
         const command = global.params.cpp ? toDString(global.params.cpp) : cppCommand();
-        return runPreprocessor(loc, command, csrcfile.toString(), importc_h, global.params.cppswitches, defines);
+        return runPreprocessor(loc, command, csrcfile.toString(), importc_h, global.params.cppswitches, global.params.v.verbose, global.errorSink, defines);
     }
     else
     {
