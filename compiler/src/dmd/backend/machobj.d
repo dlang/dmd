@@ -67,21 +67,6 @@ void mach_relsort(OutBuffer *buf)
     qsort(buf.buf, buf.length() / Relocation.sizeof, Relocation.sizeof, &mach_rel_fp);
 }
 
-// for x86_64
-enum
-{
-    X86_64_RELOC_UNSIGNED         = 0,
-    X86_64_RELOC_SIGNED           = 1,
-    X86_64_RELOC_BRANCH           = 2,
-    X86_64_RELOC_GOT_LOAD         = 3,
-    X86_64_RELOC_GOT              = 4,
-    X86_64_RELOC_SUBTRACTOR       = 5,
-    X86_64_RELOC_SIGNED_1         = 6,
-    X86_64_RELOC_SIGNED_2         = 7,
-    X86_64_RELOC_SIGNED_4         = 8,
-    X86_64_RELOC_TLV              = 9, // for thread local variables
-}
-
 private extern (D) __gshared OutBuffer *fobjbuf;
 
 enum DEST_LEN = (IDMAX + IDOHD + 1);
