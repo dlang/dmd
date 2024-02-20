@@ -2209,7 +2209,7 @@ size_t OmfObj_mangle(Symbol *s,char *dest)
             /* Form blake3 hash of the name and store it in the
              * last 32 bytes of the name.
              */
-            const hash = blake3((cast(ubyte*)name)[0 .. len]);
+            const hash = blake3((cast(ubyte*) name)[0 .. len]);
 
             memcpy(name2, name, LIBIDMAX - 32);
             for (int i = 0; i < 16; i++)

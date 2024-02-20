@@ -1,6 +1,7 @@
 module dmd.common.blake3;
 // based on https://github.com/oconnor663/blake3_reference_impl_c/blob/main/reference_impl.c
 
+@safe:
 nothrow:
 
 /**
@@ -161,7 +162,8 @@ void roundFunction(ref uint[16]  state, const ref uint[16] message)
     g(state[3], state[4], state[9], state[14], message[14], message[15]);
 }
 
-void permute(ref uint[16] block){
+void permute(ref uint[16] block)
+{
     uint[16] permuted;
     foreach (i; 0 .. 16)
     {
@@ -206,7 +208,8 @@ uint[16] compress(const ref uint[8] chainingValue, const ref uint[16] blockWords
 
 //if block isn't full, only the first blockLength/4 words
 //will be filled in
-uint[16] bytesToWords(const ubyte[] block){
+uint[16] bytesToWords(const ubyte[] block)
+{
     uint[16] ret = 0;
     foreach(i; 0 .. (block.length/4))
     {
@@ -254,6 +257,7 @@ struct CVStack
     uint size = 0;
 
     nothrow:
+    @safe:
 
     bool empty() const { return size == 0; }
 
@@ -271,7 +275,8 @@ struct CVStack
 
 
 
-void addChunkToTree(ref CVStack cvStack, uint[8] cv, ulong totalChunks){
+void addChunkToTree(ref CVStack cvStack, uint[8] cv, ulong totalChunks)
+{
     //if the total number of chunks ends in 0 bits, then this completed
     //a subtree, so we'll add as many parent nodes as we can up the tree
 
