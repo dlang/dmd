@@ -300,8 +300,8 @@ final class LibElf : Library
                 om.user_id = 0;  // meaningless on Windows
                 om.group_id = 0; // meaningless on Windows
             }
-	    else
-		static assert(0, "unsupported operating system");
+            else
+                static assert(0, "unsupported operating system");
 
             time_t file_time = 0;
             time(&file_time);

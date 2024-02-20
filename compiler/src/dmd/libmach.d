@@ -255,8 +255,8 @@ final class LibMach : Library
                 om.user_id = 0;  // meaningless on Windows
                 om.group_id = 0; // meaningless on Windows
             }
-	    else
-		static assert(0, "unsupported operating system");
+            else
+                static assert(0, "unsupported operating system");
 
             time(&om.file_time);
             om.file_mode = (1 << 15) | (6 << 6) | (4 << 3) | (4 << 0); // 0100644
@@ -407,7 +407,7 @@ private:
             om.group_id = 0;
         }
         else
-	    static assert(0, "unsupported operating system");
+            static assert(0, "unsupported operating system");
 
         om.file_mode = (1 << 15) | (6 << 6) | (4 << 3) | (4 << 0); // 0100644
         MachLibHeader h;
