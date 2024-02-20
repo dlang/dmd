@@ -21,11 +21,15 @@ version (Posix)
 {
     import core.sys.posix.sys.stat;
     import core.sys.posix.unistd;
+    alias Statbuf = stat_t;
 }
-version (Windows)
+else version (Windows)
 {
     import core.sys.windows.stat;
+    alias Statbuf = struct_stat;
 }
+else
+    static assert(0, "unsupported operating system");
 
 import dmd.lib;
 import dmd.location;
@@ -218,10 +222,7 @@ final class LibMach : Library
         om.scan = 1;
         if (fromfile)
         {
-            version (Posix)
-                stat_t statbuf;
-            version (Windows)
-                struct_stat statbuf;
+            Statbuf statbuf;
             int i = module_name.toCStringThen!(slice => stat(slice.ptr, &statbuf));
             if (i == -1) // error, errno is set
                 return corrupt(__LINE__);
@@ -249,11 +250,14 @@ final class LibMach : Library
                 om.user_id = uid;
                 om.group_id = gid;
             }
-            version (Windows)
+            else version (Windows)
             {
-                om.user_id = 0; // meaningless on Windows
-                om.group_id = 0;        // meaningless on Windows
+                om.user_id = 0;  // meaningless on Windows
+                om.group_id = 0; // meaningless on Windows
             }
+            else
+                static assert(0, "unsupported operating system");
+
             time(&om.file_time);
             om.file_mode = (1 << 15) | (6 << 6) | (4 << 3) | (4 << 0); // 0100644
         }
@@ -391,16 +395,20 @@ private:
         om.offset = 8;
         om.name = "";
         .time(&om.file_time);
+
         version (Posix)
         {
             om.user_id = getuid();
             om.group_id = getgid();
         }
-        version (Windows)
+        else version (Windows)
         {
             om.user_id = 0;
             om.group_id = 0;
         }
+        else
+            static assert(0, "unsupported operating system");
+
         om.file_mode = (1 << 15) | (6 << 6) | (4 << 3) | (4 << 0); // 0100644
         MachLibHeader h;
         MachOmToHeader(&h, &om);
