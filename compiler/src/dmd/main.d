@@ -629,7 +629,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     else
     {
         if (driverParams.link)
-            status = runLINK();
+            status = runLINK(global.params.v.verbose, global.errorSink);
         if (params.run)
         {
             if (!status)

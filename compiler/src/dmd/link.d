@@ -217,9 +217,13 @@ version (Windows)
 }
 
 /*****************************
- * Run the linker.  Return status of execution.
+ * Run the linker.
+ * Params:
+ *      verbose = print command to be executed
+ *      eSink = message sink
+ *  Returns: status of execution.
  */
-public int runLINK()
+public int runLINK(bool verbose, ErrorSink eSink)
 {
     const phobosLibname = finalDefaultlibname();
 
@@ -357,7 +361,7 @@ public int runLINK()
                 }
             }
 
-            const int status = executecmd(linkcmd, p.ptr);
+            const int status = executecmd(linkcmd, p.ptr, verbose, eSink);
             if (lnkfilename)
             {
                 lnkfilename.toCStringThen!(lf => remove(lf.ptr));
@@ -472,7 +476,7 @@ public int runLINK()
             const(char)* linkcmd = getenv("LINKCMD");
             if (!linkcmd)
                 linkcmd = "optlink";
-            const int status = executecmd(linkcmd, p.ptr);
+            const int status = executecmd(linkcmd, p.ptr, verbose, eSink);
             if (lnkfilename)
             {
                 lnkfilename.toCStringThen!(lf => remove(lf.ptr));
@@ -538,7 +542,7 @@ public int runLINK()
                 int fd = mkstemp(name.ptr);
                 if (fd == -1)
                 {
-                    error(Loc.initial, "error creating temporary file");
+                    eSink.error(Loc.initial, "error creating temporary file");
                     return 1;
                 }
                 else
@@ -788,8 +792,8 @@ public int runLINK()
         }
         const(char)* linkerCommand = buf.peekChars();
 
-        if (global.params.v.verbose)
-            message("%s", linkerCommand);
+        if (verbose)
+            eSink.message(Loc.initial, "%s", linkerCommand);
 
         argv.push(null);
         // set up pipes
@@ -830,41 +834,46 @@ public int runLINK()
                 }
                 else
                 {
-                    error(Loc.initial, "linker exited with status %d", status);
-                    errorSupplemental(Loc.initial, "%s", linkerCommand);
+                    eSink.error(Loc.initial, "linker exited with status %d", status);
+                    eSink.errorSupplemental(Loc.initial, "%s", linkerCommand);
                     if (nme == 1)
-                        error(Loc.initial, "no main function specified");
+                        eSink.error(Loc.initial, "no main function specified");
                 }
             }
         }
         else if (WIFSIGNALED(status))
         {
-            error(Loc.initial, "linker killed by signal %d", WTERMSIG(status));
+            eSink.error(Loc.initial, "linker killed by signal %d", WTERMSIG(status));
             status = 1;
         }
         return status;
     }
     else
     {
-        error(Loc.initial, "linking is not yet supported for this version of DMD.");
+        eSink.error(Loc.initial, "linking is not yet supported for this version of DMD.");
         return -1;
     }
 }
 
 
 /******************************
- * Execute a rule.  Return the status.
- *      cmd     program to run
- *      args    arguments to cmd, as a string
+ * Execute a rule.
+ * Params:
+ *      cmd =   program to run
+ *      args =  arguments to cmd, as a string
+ *      verbose = print command to be executed
+ *      eSink = message sink
+ * Returns:
+ *      the status
  */
 version (Windows)
 {
-    private int executecmd(const(char)* cmd, const(char)* args)
+    private int executecmd(const(char)* cmd, const(char)* args, bool verbose, ErrorSink eSink)
     {
         int status;
         size_t len;
-        if (global.params.v.verbose)
-            message("%s %s", cmd, args);
+        if (verbose)
+            eSink.message(Loc.initial, "%s %s", cmd, args);
         if (target.objectFormat() == Target.ObjectFormat.omf)
         {
             if ((len = strlen(args)) > 255)
@@ -923,10 +932,10 @@ version (Windows)
         if (status)
         {
             if (status == -1)
-                error(Loc.initial, "can't run '%s', check PATH", cmd);
+                eSink.error(Loc.initial, "can't run '%s', check PATH", cmd);
             else
             {
-                error(Loc.initial, "linker exited with status %d", status);
+                eSink.error(Loc.initial, "linker exited with status %d", status);
                 errorSupplemental(Loc.initial, "%s %s", cmd, args);
             }
         }
@@ -1060,12 +1069,14 @@ public int runProgram(const char[] exefile, const char*[] runargs, bool verbose,
  *    filename = C source file name
  *    importc_h = filename of importc.h
  *    cppswitches = array of switches to pass to C preprocessor
+ *    verbose = print progress to eSink
+ *    eSink = for verbose messages and error messages
  *    defines = buffer to append any `#define` and `#undef` lines encountered to
  * Returns:
  *    the text of the preprocessed file
  */
 public DArray!ubyte runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] filename, const(char)* importc_h, ref Array!(const(char)*) cppswitches,
-    ref OutBuffer defines)
+    bool verbose, ErrorSink eSink, ref OutBuffer defines)
 {
     //printf("runPreprocessor() cpp: %.*s filename: %.*s\n", cast(int)cpp.length, cpp.ptr, cast(int)filename.length, filename.ptr);
 
@@ -1088,7 +1099,7 @@ public DArray!ubyte runPreprocessor(ref const Loc loc, const(char)[] cpp, const(
         {
             if (status)
             {
-                error(loc, "C preprocess command %.*s failed for file %s, exit status %d\n",
+                eSink.error(loc, "C preprocess command %.*s failed for file %s, exit status %d\n",
                     cast(int)cpp.length, cpp.ptr, filename.ptr, status);
                 fatal();
             }
@@ -1125,8 +1136,8 @@ public DArray!ubyte runPreprocessor(ref const Loc loc, const(char)[] cpp, const(
                     }
                 }
 
-                if (global.params.v.verbose)
-                    message(buf.peekChars());
+                if (verbose)
+                    eSink.message(Loc.initial, buf.peekChars());
 
                 ubyte[2048] buffer = void;
 
@@ -1229,8 +1240,8 @@ public DArray!ubyte runPreprocessor(ref const Loc loc, const(char)[] cpp, const(
                     }
                 }
 
-                if (global.params.v.verbose)
-                    message(buf.peekChars());
+                if (verbose)
+                    eSink.message(Loc.initial, buf.peekChars());
 
                 ubyte[2048] buffer = void;
 
@@ -1355,7 +1366,7 @@ public DArray!ubyte runPreprocessor(ref const Loc loc, const(char)[] cpp, const(
         }
         argv.push(null);                    // argv[] always ends with a null
 
-        if (global.params.v.verbose)
+        if (verbose)
         {
             OutBuffer buf;
 
@@ -1368,7 +1379,7 @@ public DArray!ubyte runPreprocessor(ref const Loc loc, const(char)[] cpp, const(
                     buf.writestring(a);
                 }
             }
-            message(buf.peekChars());
+            eSink.message(Loc.initial, buf.peekChars());
         }
 
         // pipe so we can read the output of the preprocssor
@@ -1421,13 +1432,13 @@ public DArray!ubyte runPreprocessor(ref const Loc loc, const(char)[] cpp, const(
         }
         else if (WIFSIGNALED(status))
         {
-            error(Loc.initial, "program killed by signal %d", WTERMSIG(status));
+            eSink.error(Loc.initial, "program killed by signal %d", WTERMSIG(status));
             status = 1;
         }
 
         if (status)
         {
-            error(loc, "C preprocess command %.*s failed for file %s, exit status %d\n",
+            eSink.error(loc, "C preprocess command %.*s failed for file %s, exit status %d\n",
                 cast(int)cpp.length, cpp.ptr, filename.ptr, status);
             fatal();
         }
