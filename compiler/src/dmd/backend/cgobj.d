@@ -21,9 +21,12 @@ import dmd.backend.cdef;
 import dmd.backend.cgcv;
 import dmd.backend.code;
 import dmd.backend.code_x86;
+import dmd.backend.dcgcv : TOOFFSET;
 import dmd.backend.dlist;
+import dmd.backend.dvarstats;
 import dmd.backend.dvec;
 import dmd.backend.el;
+import dmd.backend.filespec : filespecdotext, filespecgetroot, filespecname;
 import dmd.backend.mem;
 import dmd.backend.global;
 import dmd.backend.obj;
@@ -35,23 +38,21 @@ import dmd.backend.type;
 import dmd.common.md5;
 import dmd.common.outbuffer;
 
-nothrow:
-@safe:
-
-import dmd.backend.dvarstats;
-
-import dmd.backend.filespec : filespecdotext, filespecgetroot, filespecname;
-
 version (Windows)
 {
+    nothrow:
     extern (C) int memicmp(const(void)*, const(void)*, size_t) pure nothrow @nogc;
-    extern (C) int stricmp(const(char)*, const(char)*) pure nothrow @nogc;
-    alias filespeccmp = stricmp;
+    extern(C) char* getcwd(char*,size_t);
+}
+else version (Posix)
+{
+    import core.sys.posix.unistd : getcwd;
 }
 else
-    alias filespeccmp = strcmp;
+    static assert(0);
 
-extern(C) char* getcwd(char*,size_t);
+nothrow:
+@safe:
 
 struct Loc
 {
@@ -67,32 +68,12 @@ struct Loc
     }
 }
 
-version (Windows)
-{
-    extern(C) char* strupr(char*);
-}
-version (Posix)
-{
-    @trusted
-    extern(C) char* strupr(char* s)
-    {
-        for (char* p = s; *p; ++p)
-        {
-            char c = *p;
-            if ('a' <= c && c <= 'z')
-                *p = cast(char)(c - 'a' + 'A');
-        }
-        return s;
-    }
-}
-
 enum MULTISCOPE = 1;            /* account for bug in MultiScope debugger
                                    where it cannot handle a line number
                                    with multiple offsets. We use a bit vector
                                    to filter out the extra offsets.
                                  */
 
-import dmd.backend.dcgcv : TOOFFSET;
 
 @trusted
 void TOWORD(void* a, uint b)
@@ -1140,11 +1121,13 @@ bool OmfObj_includelib(scope const char[] name)
             if (memicmp(name[$ - 4 .. $].ptr, ".lib".ptr, 4) == 0)
                 n = name[0 .. $ - 4];
         }
-        else
+        else version (Posix)
         {
             if (memcmp(name[$ - 4 .. $].ptr, ".lib".ptr, 4) == 0)
                 n = name[0 .. $ - 4];
         }
+        else
+            static assert(0);
     }
 
     obj_comment(0x9F, n.ptr, n.length);
@@ -3781,4 +3764,23 @@ private void objflush_pointerRefs()
     foreach (ref pr; obj.ptrrefs)
         objflush_pointerRef(pr.sym, pr.offset);
     obj.ptrrefs.reset();
+}
+
+/***********************************
+ * Upper case a string in place.
+ * Params:
+ *      s = string to uppercase
+ * Returns:
+ *      uppercased string
+ */
+@trusted
+extern (C) char* strupr(char* s)
+{
+    for (char* p = s; *p; ++p)
+    {
+        char c = *p;
+        if ('a' <= c && c <= 'z')
+            *p = cast(char)(c - 'a' + 'A');
+    }
+    return s;
 }
