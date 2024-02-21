@@ -135,9 +135,11 @@ jobs:
     # Using a specific version for reproductibility.
     # Feel free to update when a new release has matured.
     runs-on: ${{ matrix.os }}
-    env:
-      N: ${{ startsWith(matrix.os, 'macos') && '3' || '4' }}
     steps:
+
+    - name: Set environment variable N (parallelism)
+      shell: bash
+      run: echo "N=$(${{ runner.os == 'macOS' && 'sysctl -n hw.logicalcpu' || 'nproc' }})" >> $GITHUB_ENV
 
     ########################################
     #    Setting up the host D compiler    #
