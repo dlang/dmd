@@ -1346,6 +1346,8 @@ struct MatchAccumulator final
         {}
 };
 
+enum : char { PathSeparator = '/' };
+
 enum class StructFlags
 {
     none = 0,
