@@ -16,12 +16,12 @@
 #include "root/dsystem.h"
 #include "root/filename.h"
 #include "root/longdouble.h"
-#include "root/object.h"
 #include "root/optional.h"
 #include "common/outbuffer.h"
 #include "root/port.h"
 #include "root/rmem.h"
 
+#include "rootobject.h"
 #include "aggregate.h"
 #include "aliasthis.h"
 #include "argtypes.h"
@@ -307,6 +307,7 @@ void test_skip_importall()
     /* Similar to test_semantic(), but importAll step is skipped.  */
     const char *buf =
         "module rootobject;\n"
+	"import object;\n"
         "class RootObject : Object { }";
 
     DArray<unsigned char> src = DArray<unsigned char>(strlen(buf), (unsigned char *)mem.xstrdup(buf));
@@ -455,6 +456,15 @@ void test_array()
     arrayA.zero();
     for (size_t i = 0; i < arrayA.length; i++)
         assert(arrayA[i] == 0);
+
+    Array<IntegerExp *> arrayInts;
+    arrayInts.push(IntegerExp::create(Loc(), 10, Type::tint32));
+    arrayInts.shift(IntegerExp::create(Loc(), 200, Type::tint32));
+    arrayInts.push(IntegerExp::create(Loc(), 15, Type::tint32));
+    arrayInts.shift(IntegerExp::create(Loc(), 100, Type::tint32));
+    arrayInts.push(IntegerExp::create(Loc(), 20, Type::tint32));
+
+    assert(strcmp(arrayInts.toChars(), "[100,200,10,15,20]") == 0);
 }
 
 void test_outbuffer()

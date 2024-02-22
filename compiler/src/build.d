@@ -1566,8 +1566,8 @@ auto sourceFiles()
         frontendHeaders: fileArray(env["D"], "
             aggregate.h aliasthis.h arraytypes.h attrib.h compiler.h cond.h
             ctfe.h declaration.h dsymbol.h doc.h enum.h errors.h expression.h globals.h hdrgen.h
-            identifier.h id.h import.h init.h json.h mangle.h module.h mtype.h nspace.h objc.h scope.h
-            statement.h staticassert.h target.h template.h tokens.h version.h visitor.h
+            identifier.h id.h import.h init.h json.h mangle.h module.h mtype.h nspace.h objc.h rootobject.h
+            scope.h statement.h staticassert.h target.h template.h tokens.h version.h visitor.h
         "),
         lexer: fileArray(env["D"], "
             console.d entity.d errors.d errorsink.d file_manager.d globals.d id.d identifier.d lexer.d location.d tokens.d
@@ -1586,7 +1586,7 @@ auto sourceFiles()
         "),
         rootHeaders: fileArray(env["ROOT"], "
             array.h bitarray.h complex_t.h ctfloat.h dcompat.h dsystem.h filename.h longdouble.h
-            object.h optional.h port.h rmem.h root.h
+            optional.h port.h rmem.h root.h
         "),
         backend: fileArray(env["C"], "
             backend.d bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d
