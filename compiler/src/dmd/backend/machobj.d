@@ -699,6 +699,7 @@ void MachObj_term(const(char)* objfilename)
      *                  { sections }
      *          symtab_command
      *          dysymtab_command
+     *          build_version_command/version_min_command
      *  { segment contents }
      *  { relocations }
      *  symbol table
@@ -706,6 +707,7 @@ void MachObj_term(const(char)* objfilename)
      *  indirect symbol table
      */
 
+    auto version_command = VersionCommand(operatingSystemVersion);
     uint foffset;
     uint headersize;
     uint sizeofcmds;
@@ -719,9 +721,10 @@ void MachObj_term(const(char)* objfilename)
         header.cputype = CPU_TYPE_X86_64;
         header.cpusubtype = CPU_SUBTYPE_I386_ALL;
         header.filetype = MH_OBJECT;
-        header.ncmds = 3;
+        header.ncmds = 4;
         header.sizeofcmds = cast(uint)(segment_command_64.sizeof +
                                 (section_cnt - 1) * section_64.sizeof +
+                            version_command.size +
                             symtab_command.sizeof +
                             dysymtab_command.sizeof);
         header.flags = MH_SUBSECTIONS_VIA_SYMBOLS;
@@ -743,9 +746,10 @@ void MachObj_term(const(char)* objfilename)
         header.cputype = CPU_TYPE_I386;
         header.cpusubtype = CPU_SUBTYPE_I386_ALL;
         header.filetype = MH_OBJECT;
-        header.ncmds = 3;
+        header.ncmds = 4;
         header.sizeofcmds = cast(uint)(segment_command.sizeof +
                                 (section_cnt - 1) * section.sizeof +
+                            version_command.size +
                             symtab_command.sizeof +
                             dysymtab_command.sizeof);
         header.flags = MH_SUBSECTIONS_VIA_SYMBOLS;
@@ -1474,6 +1478,7 @@ void MachObj_term(const(char)* objfilename)
         fobjbuf.write(&segment_cmd, segment_cmd.sizeof);
         fobjbuf.write(SECbuf.buf + section.sizeof, cast(uint)((section_cnt - 1) * section.sizeof));
     }
+    fobjbuf.write(version_command.data, version_command.size);
     fobjbuf.write(&symtab_cmd, symtab_cmd.sizeof);
     fobjbuf.write(&dysymtab_cmd, dysymtab_cmd.sizeof);
     fobjbuf.position(foffset, 0);
@@ -2956,4 +2961,171 @@ int dwarf_eh_frame_fixup(int dfseg, targ_size_t offset, Symbol *s, targ_size_t v
     pseg.SDrel.write(&rel, rel.sizeof);
 
     return I64 ? 8 : 4;
+}
+
+
+private:
+
+/**
+ * Encapsulates the build_version_command/version_min_command load commands.
+ *
+ * For the 10.14 and later SDK, the `build_version_command` load command is used.
+ * For earlier versions, the `version_min_command` load command is used.
+ */
+const struct VersionCommand
+{
+    pure:
+    nothrow:
+    @nogc:
+    @safe:
+
+    private
+    {
+        /**
+         * This is the absolute minimum supported version of macOS (64 bit) for DMD,
+         * as documented at: https://dlang.org/dmd-osx.html#requirements
+         * NOTE: Versions earlier than 10.7 do not support thread local storage.
+         */
+        enum fallbackOSVersion = Version(10, 9).encode;
+
+        /// The first minor version that uses the `build_version_command`.
+        enum firstMinorUsingBuildVersionCommand = 14;
+
+        /// `true` if the `build_version_command` load command should be used.
+        bool useBuild;
+
+        /// The `build_version_command` load command.
+        build_version_command buildVersionCommand;
+
+        /// The `version_min_command` load command.
+        version_min_command versionMinCommand;
+    }
+
+    /**
+     * Initializes the VersionCommand.
+     *
+     * Params:
+     *  os = the version of the operating system
+     */
+    this(Version os)
+    {
+        useBuild = os.minor >= firstMinorUsingBuildVersionCommand;
+
+        const encodedOs = os.isValid ? os.encode : fallbackOSVersion;
+
+        const build_version_command buildVersionCommand = { minos: encodedOs };
+        const version_min_command versionMinCommand = { version_: encodedOs };
+
+        this.buildVersionCommand = buildVersionCommand;
+        this.versionMinCommand = versionMinCommand;
+    }
+
+    /// Returns: the size of the load command.
+    size_t size()
+    {
+        return useBuild ? build_version_command.sizeof : version_min_command.sizeof;
+    }
+
+    /// Returns: the data for the load command.
+    const(void)* data() return
+    {
+        return useBuild ? cast(const(void)*) &buildVersionCommand : cast(const(void)*) &versionMinCommand;
+    }
+}
+
+/// Holds an operating system version or a SDK version.
+immutable struct Version
+{
+    ///
+    int major;
+
+    ///
+    int minor;
+
+    ///
+    int build;
+
+    /// Returns: `true` if the version is valid
+    bool isValid() pure nothrow @nogc @safe
+    {
+        return major >= 10 && major < 100 &&
+            minor >= 0 && minor < 100 &&
+            build >= 0 && build < 100;
+    }
+}
+
+/**
+ * Returns the given version encoded as a single integer.
+ *
+ * Params:
+ *  version_ = the version to encode. Needs to be a valid version
+ *      (`version_.isValid`)
+ *
+ * Returns: the encoded version
+ */
+int encode(Version version_) pure @nogc @safe
+in
+{
+    assert(version_.isValid);
+}
+do
+{
+    with (version_)
+        return major * 2^^16 + minor * 2^^8 + build * 2^^0;
+}
+
+unittest
+{
+    assert(Version(10, 14, 0).encode == 0x0a0e00);
+    assert(Version(10, 14, 1).encode == 0x0a0e01);
+    assert(Version(10, 14, 6).encode == 0x0a0e06);
+    assert(Version(10, 14, 99).encode == 0x0a0e63);
+
+    assert(Version(10, 15, 6).encode == 0x0a0f06);
+
+    assert(Version(10, 16, 0).encode == 0x0a1000);
+    assert(Version(10, 16, 6).encode == 0x0a1006);
+
+    assert(Version(10, 17, 0).encode == 0x0a1100);
+}
+
+/// Returns: the version of the currently running operating system.
+@trusted
+Version operatingSystemVersion()
+{
+    if (const deploymentTarget = getenv("MACOSX_DEPLOYMENT_TARGET"))
+    {
+        const version_ = toVersion(deploymentTarget);
+
+        if (version_.isValid)
+            return version_;
+
+        error(null, 0, 0, "invalid version number in 'MACOSX_DEPLOYMENT_TARGET=%s'", deploymentTarget);
+    }
+    return Version();
+}
+
+/**
+ * Converts the given string to a `Version`.
+ *
+ * Params:
+ *  str = the string to convert. Should have the format `XX.YY(.ZZ)`. Needs to
+ *      be `\0` terminated.
+ *
+ * Returns: the converted `Version`.
+ */
+@trusted
+Version toVersion(const char* str) @nogc
+{
+    import core.stdc.stdio : sscanf;
+
+    if (!str)
+        return Version();
+
+    Version version_;
+
+    with (version_)
+        str.sscanf("%d.%d.%d", &major, &minor, &build);
+
+    return version_;
 }
