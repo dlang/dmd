@@ -16,15 +16,19 @@
 Some generic information for debug info on macOS:
 
 The linker on macOS will remove any debug info, i.e. every section with the
-`S_ATTR_DEBUG` flag, this includes everything in the `__DWARF` section. By using
-the `S_REGULAR` flag the linker will not remove this section. This allows to get
-the filenames and line numbers for backtraces from the executable.
+`S_ATTR_DEBUG` flag, this includes everything in the `__DWARF` section.
+Because of this, it is not possible to get filenames and line numbers for
+backtraces from the executable alone.
 
 Normally the linker removes all the debug info but adds a reference to the
 object files. The debugger can then read the object files to get filename and
 line number information. It's also possible to use an additional tool that
 generates a separate `.dSYM` file. This file can then later be deployed with the
 application if debug info is needed when the application is deployed.
+
+Support in core.runtime for getting filename and line number for backtraces
+from these `.dSYM` files will need to be investigated.
+See: https://issues.dlang.org/show_bug.cgi?id=20510
 */
 
 module dmd.backend.dwarfdbginf;
@@ -476,7 +480,7 @@ static if (1)
         {
             name = n;
             if (config.objfmt == OBJ_MACH)
-                flags = S_ATTR_DEBUG;
+                flags = S_REGULAR | S_ATTR_DEBUG;
             else
                 flags = SHT_PROGBITS;
         }
@@ -550,10 +554,7 @@ static if (1)
         debug_abbrev   = Section("__debug_abbrev");
         debug_info     = Section("__debug_info");
         debug_str      = Section("__debug_str");
-        // We use S_REGULAR to make sure the linker doesn't remove this section. Needed
-        // for filenames and line numbers in backtraces.
         debug_line     = Section("__debug_line");
-        debug_line.flags = S_REGULAR;
     }
     void elfDebugSectionsInit()
     {
