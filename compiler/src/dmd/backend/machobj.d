@@ -942,6 +942,8 @@ void MachObj_term(const(char)* objfilename)
     }
 
     // Put out relocation data
+    // See mach-o/reloc.h for some examples of what should be generated and when:
+    // https://github.com/apple-oss-distributions/xnu/blob/rel/xnu-10002/EXTERNAL_HEADERS/mach-o/x86_64/reloc.h
     mach_numbersyms();
     for (int seg = 1; seg < SegData.length; seg++)
     {
@@ -1053,12 +1055,8 @@ void MachObj_term(const(char)* objfilename)
                                     rel.r_type = X86_64_RELOC_SIGNED;
                                 else if ((s.Sfl == FLfunc || s.Sfl == FLextern || s.Sclass == SC.global ||
                                           s.Sclass == SC.comdat || s.Sclass == SC.comdef) && r.rtype == RELaddr)
-                                {
-                                    rel.r_type = X86_64_RELOC_GOT_LOAD;
-                                    if (seg == eh_frame_seg ||
-                                        seg == except_table_seg)
-                                        rel.r_type = X86_64_RELOC_GOT;
-                                }
+                                    rel.r_type = X86_64_RELOC_GOT;
+
                                 rel.r_address = cast(int)r.offset;
                                 rel.r_symbolnum = s.Sxtrnnum;
                                 rel.r_pcrel = 1;
