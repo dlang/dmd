@@ -5035,14 +5035,9 @@ private elem * el64_32(elem *e, goal_t goal)
         }
         break;
 
-    case OPmul:
-        if (config.exe & (EX_OSX | EX_OSX64)) // https://issues.dlang.org/show_bug.cgi?id=21047
-            break;
-        else
-            goto case;
-
     case OPadd:
     case OPmin:
+    case OPmul:
     case OPor:
     case OPand:
     case OPxor:
