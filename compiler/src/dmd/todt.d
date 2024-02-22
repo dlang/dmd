@@ -92,6 +92,11 @@ extern (C++) void Initializer_toDt(Initializer init, ref DtBuilder dtb, bool isC
         if (tb.ty == Tvector)
             tb = (cast(TypeVector)tb).basetype;
 
+        if (ai.dim == 0 && tb.isZeroInit(ai.loc))
+        {
+            dtb.nzeros(cast(uint)ai.type.size());
+            return;
+        }
         Type tn = tb.nextOf().toBasetype();
 
         //printf("\tdim = %d\n", ai.dim);
