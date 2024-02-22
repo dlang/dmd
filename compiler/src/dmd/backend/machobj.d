@@ -1426,6 +1426,7 @@ void MachObj_term(const(char)* objfilename)
             sym32.n_sect = sym.n_sect;
             fobjbuf.write(&sym32, sym32.sizeof);
         }
+        dysymtab_cmd.nundefsym++;
         symtab_cmd.nsyms++;
     }
     foffset += symtab_cmd.nsyms * (I64 ? nlist_64.sizeof : nlist.sizeof);
