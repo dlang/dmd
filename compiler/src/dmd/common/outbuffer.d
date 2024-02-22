@@ -17,6 +17,7 @@ import core.stdc.string;
 import core.stdc.stdlib;
 
 nothrow:
+@safe:
 
 // In theory these functions should also restore errno, but we don't care because
 // we abort application on error anyway.
@@ -259,7 +260,7 @@ struct OutBuffer
     /**
      * Writes a 16 bit value.
      */
-    void write16(int v) nothrow
+    void write16(int v) nothrow @trusted
     {
         auto u = cast(ushort) v;
         write(&u, u.sizeof);
@@ -683,7 +684,7 @@ struct OutBuffer
      *                   This is useful to call C functions or store
      *                   the result in `Strings`. Defaults to `false`.
      */
-    extern (D) char[] extractSlice(bool nullTerminate = false) pure nothrow
+    extern (D) char[] extractSlice(bool nullTerminate = false) pure nothrow @trusted
     {
         const length = offset;
         if (!nullTerminate)
@@ -701,7 +702,7 @@ struct OutBuffer
     }
 
     // Append terminating null if necessary and get view of internal buffer
-    extern (C++) char* peekChars() pure nothrow
+    extern (C++) char* peekChars() pure nothrow @trusted
     {
         if (!offset || data[offset - 1] != '\0')
         {
@@ -849,6 +850,8 @@ char[] unsignedToTempString(ulong value, return scope char[] buf, uint radix = 1
 }
 
 /************* unit tests **************************************************/
+
+@system:
 
 unittest
 {

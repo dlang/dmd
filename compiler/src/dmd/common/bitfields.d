@@ -10,6 +10,10 @@
  */
 module dmd.common.bitfields;
 
+nothrow:
+@safe:
+pure:
+
 /**
  * Generate code for bit fields inside a struct/class body
  * Params:
