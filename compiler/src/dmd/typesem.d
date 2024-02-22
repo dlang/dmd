@@ -6240,6 +6240,18 @@ Type sarrayOf(Type type, dinteger_t dim)
     return t;
 }
 
+Type arrayOf(Type type)
+{
+    if (type.ty == Terror)
+        return type;
+    if (!type.arrayof)
+    {
+        Type t = new TypeDArray(type);
+        type.arrayof = t.merge();
+    }
+    return type.arrayof;
+}
+
 /********************************
  * Convert to 'const'.
  */

@@ -1185,18 +1185,6 @@ extern (C++) abstract class Type : ASTNode
         return t;
     }
 
-    final Type arrayOf()
-    {
-        if (ty == Terror)
-            return this;
-        if (!arrayof)
-        {
-            Type t = new TypeDArray(this);
-            arrayof = t.merge();
-        }
-        return arrayof;
-    }
-
     final bool hasDeprecatedAliasThis()
     {
         auto ad = isAggregate(this);

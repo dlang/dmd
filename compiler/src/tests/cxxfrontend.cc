@@ -1821,6 +1821,7 @@ void mtype_h(Type *t1, Type *t2, const Loc &loc, Scope *sc, int *p)
     dmd::trySemantic(t1, loc, sc);
     dmd::merge2(t1);
     dmd::sarrayOf(t1, 0);
+    dmd::arrayOf(t1);
     dmd::constOf(t1);
     dmd::immutableOf(t1);
     dmd::mutableOf(t1);

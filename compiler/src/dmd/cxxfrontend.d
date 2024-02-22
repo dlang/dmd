@@ -481,6 +481,12 @@ Type sarrayOf(Type type, dinteger_t dim)
     return dmd.typesem.sarrayOf(type, dim);
 }
 
+Type arrayOf(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.arrayOf(type);
+}
+
 Type constOf(Type type)
 {
     import dmd.typesem;
