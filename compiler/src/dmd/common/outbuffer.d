@@ -11,10 +11,10 @@
 
 module dmd.common.outbuffer;
 
-import core.stdc.stdarg;
-import core.stdc.stdio;
-import core.stdc.string;
-import core.stdc.stdlib;
+import core.stdc.stdarg : va_list, va_start, va_end, va_copy;
+import core.stdc.stdio : vsnprintf;
+import core.stdc.string : memcpy, memset, memmove, strcmp, strlen;
+import core.stdc.stdlib : malloc;
 
 nothrow:
 
@@ -286,7 +286,6 @@ struct OutBuffer
     {
         if (!s)
             return;
-        import core.stdc.string : strlen;
         write(s[0 .. strlen(s)]);
     }
 
