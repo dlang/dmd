@@ -1200,7 +1200,15 @@ void parseEnvironment()
 
     // detect Model
     auto model = env.setDefault("MODEL", detectModel);
-    env["MODEL_FLAG"] = "-m" ~ env["MODEL"];
+    if (env.getDefault("DFLAGS", "").canFind("-mtriple", "-march"))
+    {
+        // Don't pass `-m32|64` flag when explicitly passing triple or arch.
+        env["MODEL_FLAG"] = "";
+    }
+    else
+    {
+        env["MODEL_FLAG"] = "-m" ~ env["MODEL"];
+    }
 
     // detect PIC
     version(Posix)
@@ -1690,7 +1698,7 @@ string detectModel()
     else
         uname = ["uname", "-m"].execute.output;
 
-    if (uname.canFind("x86_64", "amd64", "64-bit", "64-Bit", "64 bit"))
+    if (uname.canFind("x86_64", "amd64", "arm64", "64-bit", "64-Bit", "64 bit"))
         return "64";
     if (uname.canFind("i386", "i586", "i686", "32-bit", "32-Bit", "32 bit"))
         return "32";
