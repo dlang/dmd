@@ -66,7 +66,7 @@ bool canInlineFunction(Symbol *sfunc)
     bool no(int line)
     {
         f.Fflags &= ~Finline;   // don't check it again
-        if (log) debug printf("returns: %d\n", line);
+        if (log) debug printf("returns: no %d\n", line);
         return false;
     }
 
@@ -74,7 +74,10 @@ bool canInlineFunction(Symbol *sfunc)
 
     if (config.flags & CFGnoinlines ||
         !(f.Fflags & Finline))
+    {
+        if (log) debug printf("returns: no %d\n", __LINE__);
         return false;
+    }
 
     auto t = sfunc.Stype;
     assert(f && tyfunc(t.Tty));
@@ -137,7 +140,7 @@ bool canInlineFunction(Symbol *sfunc)
             return no(__LINE__);
     }
 
-    if (log) debug printf("returns: %d\n", true);
+    if (log) debug printf("returns: yes %d\n", __LINE__);
     return true;
 }
 
@@ -247,77 +250,15 @@ elem* scanExpressionForInlines(elem *e)
     }
     else if (OTunary(op))
     {
-        if (op == OPstrctor) // never happens in MARS
+        assert(op != OPstrctor);  // never happens in MARS
+        e.EV.E1 = scanExpressionForInlines(e.EV.E1);
+        if (op == OPucall)
         {
-            elem* e1 = e.EV.E1;
-            while (e1.Eoper == OPcomma)
-            {
-                e1.EV.E1 = scanExpressionForInlines(e1.EV.E1);
-                e1 = e1.EV.E2;
-            }
-            if (e1.Eoper == OPcall && e1.EV.E1.Eoper == OPvar)
-            {   // Never inline expand this function
-
-                // But do expand templates
-                Symbol* s = e1.EV.E1.EV.Vsym;
-                if (tyfunc(s.ty()))
-                {
-                    // This function might be an inline template function that was
-                    // never parsed. If so, parse it now.
-                    if (s.Sfunc.Fbody)
-                    {
-                        //n2_instantiate_memfunc(s);
-                    }
-                }
-            }
-            else
-                e1.EV.E1 = scanExpressionForInlines(e1.EV.E1);
-            e1.EV.E2 = scanExpressionForInlines(e1.EV.E2);
-        }
-        else
-        {
-            e.EV.E1 = scanExpressionForInlines(e.EV.E1);
-            if (op == OPucall)
-            {
-                e = tryInliningCall(e);
-            }
+            e = tryInliningCall(e);
         }
     }
     else /* leaf */
     {
-        // If deferred allocation of variable, allocate it now.
-        // The deferred allocations are done by cpp_initctor().
-        if (0 && CPP &&
-            (op == OPvar || op == OPrelconst))
-        {
-            Symbol* s = e.EV.Vsym;
-            if (s.Sclass == SC.auto_ &&
-                s.Ssymnum == SYMIDX.max)
-            {   //dbg_printf("Deferred allocation of %p\n",s);
-                symbol_add(s);
-
-                if (tybasic(s.Stype.Tty) == TYstruct &&
-                    s.Stype.Ttag.Sstruct.Sdtor &&
-                    !(s.Sflags & SFLnodtor))
-                {
-                    //enum DTORmostderived = 4;
-                    //elem* eptr = el_ptr(s);
-                    //elem* edtor = cpp_destructor(s.Stype,eptr,null,DTORmostderived);
-                    //assert(edtor);
-                    //edtor = scanExpressionForInlines(edtor);
-                    //cpp_stidtors.push(edtor);
-                }
-            }
-            if (tyfunc(s.ty()))
-            {
-                // This function might be an inline template function that was
-                // never parsed. If so, parse it now.
-                if (s.Sfunc.Fbody)
-                {
-                    //n2_instantiate_memfunc(s);
-                }
-            }
-        }
     }
     return e;
 }
