@@ -1464,6 +1464,6 @@ $(SPEC_SUBNAV_PREV_NEXT struct, Structs and Unions, interface, Interfaces)
 )
 
 Macros:
-        CHAPTER=15
+        CHAPTER=16
         TITLE=Classes
         _=

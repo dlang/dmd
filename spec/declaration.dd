@@ -889,5 +889,5 @@ $(SPEC_SUBNAV_PREV_NEXT module, Modules, type, Types)
 
 
 Macros:
-        CHAPTER=5
+        CHAPTER=6
         TITLE=Declarations

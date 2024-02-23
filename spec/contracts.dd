@@ -51,5 +51,5 @@ $(SPEC_SUBNAV_PREV_NEXT template-mixin, Template Mixins, version, Conditional Co
 )
 
 Macros:
-        CHAPTER=23
+        CHAPTER=24
         TITLE=Contract Programming

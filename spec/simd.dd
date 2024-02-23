@@ -275,7 +275,7 @@ $(SPEC_SUBNAV_PREV_NEXT abi, Application Binary Interface, betterc, Better C)
 )
 
 Macros:
-        CHAPTER=39
+        CHAPTER=40
         TITLE=Vector Extensions
         Y=$(TIMES)
         N=$(NDASH)

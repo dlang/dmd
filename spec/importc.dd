@@ -1064,5 +1064,5 @@ $(SPEC_SUBNAV_PREV_NEXT betterc, Better C, ob, Live Functions)
 )
 
 Macros:
-    CHAPTER=41
+    CHAPTER=42
     TITLE=ImportC

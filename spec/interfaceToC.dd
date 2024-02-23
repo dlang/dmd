@@ -411,7 +411,7 @@ $(SPEC_SUBNAV_PREV_NEXT ddoc, Embedded Documentation, cpp_interface, Interfacing
 )
 
 Macros:
-        CHAPTER=32
+        CHAPTER=33
     TROW2=$(TR2 $(TD $(D $1)), $(TD2 $(D $2) $(TAIL $+)))
     TROW3=$(TR3 $(TD $(D $1)), $(TD $(D $2)), $(TD $(D $3)))
     TROW3PLUS=$(TR3 $(TD $(D $1)), $(TD $(D $2)), $(TD $(D $3) $4))

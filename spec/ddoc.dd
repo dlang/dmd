@@ -1345,5 +1345,5 @@ $(SPEC_SUBNAV_PREV_NEXT iasm, D x86 Inline Assembler, interfaceToC, Interfacing 
 )
 
 Macros:
-    CHAPTER=31
+    CHAPTER=32
     TITLE=Documentation Generator

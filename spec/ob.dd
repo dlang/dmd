@@ -378,5 +378,5 @@ $(SPEC_SUBNAV_PREV_NEXT importc, ImportC, windows, Windows Programming)
 )
 
 Macros:
-        CHAPTER=42
+        CHAPTER=43
         TITLE=Live Functions

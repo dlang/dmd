@@ -775,5 +775,5 @@ $(SPEC_SUBNAV_PREV_NEXT contracts, Contract Programming, traits, Traits)
 )
 
 Macros:
-        CHAPTER=24
+        CHAPTER=25
         TITLE=Conditional Compilation

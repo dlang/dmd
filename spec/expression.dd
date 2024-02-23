@@ -3399,7 +3399,7 @@ $(SPEC_SUBNAV_PREV_NEXT pragma, Pragmas, statement, Statements)
 )
 
 Macros:
-        CHAPTER=10
+        CHAPTER=11
         TITLE=Expressions
         IDENTIFIER=$(GLINK_LEX Identifier)
         USUAL_ARITHMETIC_CONVERSIONS=$(DDSUBLINK spec/type, usual-arithmetic-conversions, Usual Arithmetic Conversions)

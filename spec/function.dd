@@ -4309,7 +4309,7 @@ $(SPEC_SUBNAV_PREV_NEXT const3, Type Qualifiers, operatoroverloading, Operator O
 )
 
 Macros:
-        CHAPTER=19
+        CHAPTER=20
         TITLE=Functions
         ASSIGNEXPRESSION=$(GLINK2 expression, AssignExpression)
         CHECK=&#10004;

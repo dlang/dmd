@@ -143,5 +143,5 @@ $(SPEC_SUBNAV_PREV_NEXT simd, Vector Extensions, importc, ImportC)
 )
 
 Macros:
-    CHAPTER=40
+    CHAPTER=41
     TITLE=Better C

@@ -1898,5 +1898,5 @@ static assert(!__traits(compiles, &foo + 1));
 $(SPEC_SUBNAV_PREV_NEXT version, Conditional Compilation, errors, Error Handling)
 
 Macros:
-        CHAPTER=25
+        CHAPTER=26
         TITLE=Traits

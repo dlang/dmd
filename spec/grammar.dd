@@ -10,11 +10,11 @@ $(H2 Lexical Syntax)
 
 $(GRAMMAR_SUMMARY)
 
-$(SPEC_SUBNAV_PREV_NEXT lex, Lexical, module, Modules)
+$(SPEC_SUBNAV_PREV_NEXT istring, Interpolation Expression Sequence, module, Modules)
 )
 
 Macros:
-        CHAPTER=3
+        CHAPTER=4
         TITLE=D Grammar
         IDENTIFIER=$(GLINK Identifier)
         EXPRESSION=$(GLINK Expression)

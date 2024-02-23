@@ -2327,7 +2327,7 @@ $(SPEC_SUBNAV_PREV_NEXT expression, Expressions, arrays, Arrays)
 )
 
 Macros:
-        CHAPTER=11
+        CHAPTER=12
         TITLE=Statements
         EXPRESSION=$(GLINK2 expression, Expression)
         PSSEMI_PSCURLYSCOPE=$(GLINK Statement)

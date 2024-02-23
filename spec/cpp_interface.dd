@@ -1117,5 +1117,5 @@ $(SPEC_SUBNAV_PREV_NEXT interfaceToC, Interfacing to C, objc_interface, Interfac
 )
 
 Macros:
-    CHAPTER=33
+    CHAPTER=34
     TITLE=Interfacing to C++
