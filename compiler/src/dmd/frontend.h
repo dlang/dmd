@@ -741,6 +741,7 @@ enum class BUILTIN : uint8_t
     toPrecFloat = 33u,
     toPrecDouble = 34u,
     toPrecReal = 35u,
+    ctfeWrite = 36u,
 };
 
 enum class Include : uint8_t
@@ -8628,6 +8629,8 @@ struct Id final
     static Identifier* outp;
     static Identifier* outpl;
     static Identifier* outpw;
+    static Identifier* builtinsModuleName;
+    static Identifier* ctfeWrite;
     static Identifier* isAbstractClass;
     static Identifier* isArithmetic;
     static Identifier* isAssociativeArray;

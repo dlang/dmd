@@ -448,6 +448,8 @@ immutable Msgtable[] msgtable =
     { "outp"},
     { "outpl"},
     { "outpw"},
+    { "builtinsModuleName", "builtins" },
+    { "ctfeWrite", "__ctfeWrite" },
 
     // Traits
     { "isAbstractClass" },
