@@ -13,20 +13,15 @@ module dmd.dimport;
 
 import dmd.arraytypes;
 import dmd.astenums;
-import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem;
 import dmd.errors;
-import dmd.expression;
 import dmd.globals;
 import dmd.identifier;
 import dmd.location;
-import dmd.mtype;
 import dmd.visitor;
 
-import core.stdc.stdio;
 /***********************************************************
  */
 extern (C++) final class Import : Dsymbol
@@ -76,6 +71,8 @@ extern (C++) final class Import : Dsymbol
         assert(id);
         version (none)
         {
+            import core.stdc.stdio;
+
             printf("Import::Import(");
             foreach (id; packages)
             {
