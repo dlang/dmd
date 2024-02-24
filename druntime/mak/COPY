@@ -179,6 +179,7 @@ COPY=\
 	$(IMPDIR)\core\sys\freebsd\time.d \
 	$(IMPDIR)\core\sys\freebsd\unistd.d \
 	\
+	$(IMPDIR)\core\sys\freebsd\net\if_.d \
 	$(IMPDIR)\core\sys\freebsd\net\if_dl.d \
 	\
 	$(IMPDIR)\core\sys\freebsd\netinet\in_.d \
