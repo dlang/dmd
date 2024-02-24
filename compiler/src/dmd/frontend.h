@@ -3878,14 +3878,6 @@ public:
     void accept(Visitor* v) override;
 };
 
-enum class FuncResolveFlag : uint8_t
-{
-    standard = 0u,
-    quiet = 1u,
-    overloadOnly = 2u,
-    ufcs = 4u,
-};
-
 class InvariantDeclaration final : public FuncDeclaration
 {
 public:
@@ -5765,7 +5757,6 @@ struct ASTCodegen final
     using FuncAliasDeclaration = ::FuncAliasDeclaration;
     using FuncDeclaration = ::FuncDeclaration;
     using FuncLiteralDeclaration = ::FuncLiteralDeclaration;
-    using FuncResolveFlag = ::FuncResolveFlag;
     using ILS = ::ILS;
     using InvariantDeclaration = ::InvariantDeclaration;
     using NewDeclaration = ::NewDeclaration;
