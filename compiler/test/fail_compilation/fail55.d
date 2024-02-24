@@ -1,8 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail55.d(23): Error: function `object.Object.opCmp(Object o)` is not callable using argument types `(int)`
-fail_compilation/fail55.d(23):        cannot pass argument `0` of type `int` to parameter `Object o`
+fail_compilation/fail55.d(24): Error: function `opCmp` is not callable using argument types `(int)`
+fail_compilation/fail55.d(24):        cannot pass argument `0` of type `int` to parameter `Object o`
+/home/ryuukk/dev/dmd/compiler/test/../../druntime/import/object.d(160):        `object.Object.opCmp(Object o)` declared here
 ---
 */
 
