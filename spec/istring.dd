@@ -85,7 +85,7 @@ $(GNAME InterpolatedTokenLiteral):
     $(D iq{) $(GLINK InterpolatedTokenStringTokens)$(OPT) $(D })
 
 $(GNAME InterpolatedTokenStringTokens):
-    $(GLINK InterpolatedTokenStringTokenNoBraces)
+    $(GLINK InterpolatedTokenStringToken)
     $(GLINK InterpolatedTokenStringToken) $(GSELF InterpolatedTokenStringTokens)
 
 $(GNAME InterpolatedTokenStringToken):
