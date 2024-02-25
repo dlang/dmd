@@ -1,4 +1,4 @@
-# Add `__ctfeWrite` to write messages from CTFE
+Added `__ctfeWrite` to write messages from CTFE
 
 The special function `__ctfeWrite` can now be used to write custom messages to
 `stderr` during CTFE. The function is available in `object.d` and accepts any
