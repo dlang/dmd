@@ -1850,6 +1850,7 @@ $(GNAME PrimaryExpression):
     $(GLINK_LEX FloatLiteral)
     $(LEGACY_LNAME2 CharacterLiteral)$(LEGACY_LNAME2 character-literal)$(GLINK_LEX CharacterLiteral)
     $(RELATIVE_LINK2 string_literals, *StringLiteral*)
+    $(GLINK2 istring, InterpolationExpressionSequence)
     $(GLINK ArrayLiteral)
     $(GLINK AssocArrayLiteral)
     $(GLINK FunctionLiteral)
