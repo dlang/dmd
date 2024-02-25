@@ -1733,7 +1733,6 @@ int MachObj_comdat(Symbol *s)
     const(char)* sectname;
     const(char)* segname;
     int align_;
-    int flags;
 
     //printf("MachObj_comdat(Symbol* %s)\n",s.Sident.ptr);
     //symbol_print(s);
@@ -1741,11 +1740,14 @@ int MachObj_comdat(Symbol *s)
 
     if (tyfunc(s.ty()))
     {
-        sectname = "__textcoal_nt";
-        segname = "__TEXT";
         align_ = 2;              // 4 byte alignment
-        flags = S_COALESCED | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS;
-        s.Sseg = getsegment2(seg_textcoal_nt, sectname, segname, align_, flags);
+        if (I64)
+            s.Sseg = CODE;       // ("__text", "__TEXT", align_, S_REGULAR | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS)
+        else
+        {
+            int flags = S_COALESCED | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS;
+            s.Sseg = getsegment2(seg_textcoal_nt, "__textcoal_nt", "__TEXT", align_, flags);
+        }
     }
     else if ((s.ty() & mTYLINK) == mTYweakLinkage)
     {
@@ -1766,10 +1768,11 @@ int MachObj_comdat(Symbol *s)
     else
     {
         s.Sfl = FLdata;
-        sectname = "__datacoal_nt";
-        segname = "__DATA";
         align_ = 4;              // 16 byte alignment
-        s.Sseg = getsegment2(seg_datacoal_nt, sectname, segname, align_, S_COALESCED);
+        if (I64)
+            s.Sseg = DATA;       // ("__data", "__DATA", align_, S_REGULAR)
+        else
+            s.Sseg = getsegment2(seg_datacoal_nt, "__datacoal_nt", "__DATA", align_, S_COALESCED);
         MachObj_data_start(s, 1 << align_, s.Sseg);
     }
                                 // find or create new segment
@@ -2294,8 +2297,11 @@ int MachObj_external_def(const(char)* name)
 {
     //printf("MachObj_external_def('%s')\n",name);
     assert(name);
-    assert(extdef == 0);
-    extdef = MachObj_addstr(symtab_strings, name);
+    if (I32)
+    {
+        assert(extdef == 0);
+        extdef = MachObj_addstr(symtab_strings, name);
+    }
     return 0;
 }
 

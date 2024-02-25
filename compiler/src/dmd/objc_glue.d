@@ -358,7 +358,7 @@ struct Segments
                 Id.methname: Segments("__objc_methname", "__TEXT", S_CSTRING_LITERALS, 0),
                 Id.methtype: Segments("__objc_methtype", "__TEXT", S_CSTRING_LITERALS, 0),
                 Id.selrefs: Segments("__objc_selrefs", "__DATA", S_LITERAL_POINTERS | S_ATTR_NO_DEAD_STRIP, 3),
-                Id.protolist: Segments("__objc_protolist", "__DATA", S_COALESCED | S_ATTR_NO_DEAD_STRIP, 3),
+                Id.protolist: Segments("__objc_protolist", "__DATA", S_REGULAR | S_ATTR_NO_DEAD_STRIP, 3),
                 Id.data: Segments("__data", "__DATA", S_REGULAR, 3),
             ];
         }
