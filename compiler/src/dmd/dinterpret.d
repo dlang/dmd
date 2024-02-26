@@ -50,7 +50,7 @@ import dmd.rootobject;
 import dmd.root.utf;
 import dmd.statement;
 import dmd.tokens;
-import dmd.typesem : mutableOf, equivalent, pointerTo;
+import dmd.typesem : mutableOf, equivalent, pointerTo, sarrayOf;
 import dmd.utils : arrayCastBigEndian;
 import dmd.visitor;
 
