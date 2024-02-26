@@ -475,6 +475,12 @@ bool equivalent(Type src, Type t)
     return dmd.typesem.equivalent(src, t);
 }
 
+Type sarrayOf(Type type, dinteger_t dim)
+{
+    import dmd.typesem;
+    return dmd.typesem.sarrayOf(type, dim);
+}
+
 Type constOf(Type type)
 {
     import dmd.typesem;

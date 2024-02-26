@@ -1197,17 +1197,6 @@ extern (C++) abstract class Type : ASTNode
         return arrayof;
     }
 
-    // Make corresponding static array type without semantic
-    final Type sarrayOf(dinteger_t dim)
-    {
-        assert(deco);
-        Type t = new TypeSArray(this, new IntegerExp(Loc.initial, dim, Type.tsize_t));
-        // according to TypeSArray::semantic()
-        t = t.addMod(mod);
-        t = t.merge();
-        return t;
-    }
-
     final bool hasDeprecatedAliasThis()
     {
         auto ad = isAggregate(this);

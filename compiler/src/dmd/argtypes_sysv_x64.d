@@ -65,6 +65,7 @@ TypeTuple toArgTypes_sysv_x64(Type t)
             assert(c == Class.sseUp);
 
         assert(size % 8 == 0);
+        import dmd.typesem : sarrayOf;
         return new TypeTuple(new TypeVector(Type.tfloat64.sarrayOf(N)));
     }
 

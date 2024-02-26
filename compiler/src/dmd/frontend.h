@@ -1706,8 +1706,6 @@ enum class TY : uint8_t
     Ttag = 47u,
 };
 
-typedef uint64_t dinteger_t;
-
 class Type : public ASTNode
 {
 public:
@@ -1844,7 +1842,6 @@ public:
     bool isNaked() const;
     Type* nullAttributes() const;
     Type* arrayOf();
-    Type* sarrayOf(dinteger_t dim);
     bool hasDeprecatedAliasThis();
     virtual Type* makeConst();
     virtual Type* makeImmutable();
@@ -2070,6 +2067,8 @@ enum class EXP : uint8_t
     interval = 126u,
     loweredAssignExp = 127u,
 };
+
+typedef uint64_t dinteger_t;
 
 struct complex_t final
 {

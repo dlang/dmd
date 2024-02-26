@@ -64,7 +64,9 @@ TypeTuple toArgTypes_aarch64(Type t)
         case 2:  return Type.tint16;
         case 4:  return Type.tint32;
         case 8:  return Type.tint64;
-        default: return Type.tint64.sarrayOf((size + 7) / 8);
+        default:
+            import dmd.typesem : sarrayOf;
+            return Type.tint64.sarrayOf((size + 7) / 8);
         }
     }
     return new TypeTuple(getGPType(size));
@@ -93,6 +95,7 @@ bool isHFVA(Type t, int maxNumElements = 4, Type* rewriteType = null)
     if (N < 1 || N > maxNumElements)
         return false;
 
+    import dmd.typesem : sarrayOf;
     if (rewriteType)
         *rewriteType = fundamentalType.sarrayOf(N);
 

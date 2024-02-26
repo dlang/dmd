@@ -255,7 +255,6 @@ public:
     bool isNaked() const       { return mod == 0; }
     Type *nullAttributes() const;
     Type *arrayOf();
-    Type *sarrayOf(dinteger_t dim);
     bool hasDeprecatedAliasThis();
     virtual Type *makeConst();
     virtual Type *makeImmutable();
@@ -891,6 +890,7 @@ namespace dmd
     Type *pointerTo(Type *type);
     Type *referenceTo(Type *type);
     Type *merge2(Type *type);
+    Type *sarrayOf(Type *type, dinteger_t dim);
     Type *constOf(Type *type);
     Type *immutableOf(Type *type);
     Type *mutableOf(Type *type);

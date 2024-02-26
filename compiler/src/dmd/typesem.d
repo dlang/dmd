@@ -6229,6 +6229,17 @@ Type referenceTo(Type type)
     return type.rto;
 }
 
+// Make corresponding static array type without semantic
+Type sarrayOf(Type type, dinteger_t dim)
+{
+    assert(type.deco);
+    Type t = new TypeSArray(type, new IntegerExp(Loc.initial, dim, Type.tsize_t));
+    // according to TypeSArray.semantic()
+    t = t.addMod(type.mod);
+    t = t.merge();
+    return t;
+}
+
 /********************************
  * Convert to 'const'.
  */
