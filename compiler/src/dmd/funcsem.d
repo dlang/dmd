@@ -65,6 +65,90 @@ import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
 
+/* Tweak all return statements and dtor call for nrvo_var, for correct NRVO.
+ */
+extern (C++) final class NrvoWalker : StatementRewriteWalker
+{
+    alias visit = typeof(super).visit;
+public:
+    FuncDeclaration fd;
+    Scope* sc;
+
+    override void visit(ReturnStatement s)
+    {
+        // See if all returns are instead to be replaced with a goto returnLabel;
+        if (fd.returnLabel)
+        {
+            /* Rewrite:
+             *  return exp;
+             * as:
+             *  vresult = exp; goto Lresult;
+             */
+            auto gs = new GotoStatement(s.loc, Id.returnLabel);
+            gs.label = fd.returnLabel;
+
+            Statement s1 = gs;
+            if (s.exp)
+                s1 = new CompoundStatement(s.loc, new ExpStatement(s.loc, s.exp), gs);
+
+            replaceCurrent(s1);
+        }
+    }
+
+    override void visit(TryFinallyStatement s)
+    {
+        DtorExpStatement des;
+        if (fd.isNRVO() && s.finalbody && (des = s.finalbody.isDtorExpStatement()) !is null &&
+            fd.nrvo_var == des.var)
+        {
+            if (!(global.params.useExceptions && ClassDeclaration.throwable))
+            {
+                /* Don't need to call destructor at all, since it is nrvo
+                 */
+                replaceCurrent(s._body);
+                s._body.accept(this);
+                return;
+            }
+
+            /* Normally local variable dtors are called regardless exceptions.
+             * But for nrvo_var, its dtor should be called only when exception is thrown.
+             *
+             * Rewrite:
+             *      try { s.body; } finally { nrvo_var.edtor; }
+             *      // equivalent with:
+             *      //    s.body; scope(exit) nrvo_var.edtor;
+             * as:
+             *      try { s.body; } catch(Throwable __o) { nrvo_var.edtor; throw __o; }
+             *      // equivalent with:
+             *      //    s.body; scope(failure) nrvo_var.edtor;
+             */
+            Statement sexception = new DtorExpStatement(Loc.initial, fd.nrvo_var.edtor, fd.nrvo_var);
+            Identifier id = Identifier.generateId("__o");
+
+            Statement handler = new PeelStatement(sexception);
+            if (sexception.blockExit(fd, null) & BE.fallthru)
+            {
+                auto ts = new ThrowStatement(Loc.initial, new IdentifierExp(Loc.initial, id));
+                ts.internalThrow = true;
+                handler = new CompoundStatement(Loc.initial, handler, ts);
+            }
+
+            auto catches = new Catches();
+            auto ctch = new Catch(Loc.initial, getThrowable(), id, handler);
+            ctch.internalCatch = true;
+            ctch.catchSemantic(sc); // Run semantic to resolve identifier '__o'
+            catches.push(ctch);
+
+            Statement s2 = new TryCatchStatement(Loc.initial, s._body, catches);
+            fd.hasNoEH = false;
+            replaceCurrent(s2);
+            s2.accept(this);
+        }
+        else
+            StatementRewriteWalker.visit(s);
+    }
+}
+
 /**********************************
  * Main semantic routine for functions.
  */
