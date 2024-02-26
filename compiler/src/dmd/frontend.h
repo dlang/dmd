@@ -290,19 +290,6 @@ class BinAssignExp;
 struct InterpolatedSet;
 struct ContractInfo;
 struct ObjcSelector;
-class PeelStatement;
-class CompoundStatement;
-class CompoundDeclarationStatement;
-class UnrolledLoopStatement;
-class WhileStatement;
-class DoStatement;
-class ForStatement;
-class IfStatement;
-class CaseRangeStatement;
-class DefaultStatement;
-class SynchronizedStatement;
-class TryCatchStatement;
-class DebugStatement;
 class ErrorInitializer;
 class VoidInitializer;
 class DefaultInitializer;
@@ -311,20 +298,33 @@ class ArrayInitializer;
 class ExpInitializer;
 class CInitializer;
 class ErrorStatement;
+class PeelStatement;
 class ExpStatement;
+class CompoundStatement;
+class IfStatement;
 class ConditionalStatement;
 class StaticForeachStatement;
+class DefaultStatement;
 class GotoDefaultStatement;
 class BreakStatement;
 class DtorExpStatement;
 class MixinStatement;
 class ForwardingStatement;
+class DoStatement;
+class WhileStatement;
+class ForStatement;
 class ContinueStatement;
+class TryCatchStatement;
 class ThrowStatement;
+class DebugStatement;
 class SwitchErrorStatement;
+class UnrolledLoopStatement;
+class CompoundDeclarationStatement;
 class CompoundAsmStatement;
 class PragmaStatement;
 class StaticAssertStatement;
+class CaseRangeStatement;
+class SynchronizedStatement;
 class AsmStatement;
 class InlineAsmStatement;
 class GccAsmStatement;
@@ -3901,60 +3901,6 @@ public:
     void accept(Visitor* v) override;
 };
 
-class SemanticTimePermissiveVisitor : public Visitor
-{
-public:
-    using Visitor::visit;
-    void visit(Dsymbol* __param_0_) override;
-    void visit(Parameter* __param_0_) override;
-    void visit(Statement* __param_0_) override;
-    void visit(Type* __param_0_) override;
-    void visit(Expression* __param_0_) override;
-    void visit(TemplateParameter* __param_0_) override;
-    void visit(Condition* __param_0_) override;
-    void visit(Initializer* __param_0_) override;
-};
-
-class StatementRewriteWalker : public SemanticTimePermissiveVisitor
-{
-public:
-    using SemanticTimePermissiveVisitor::visit;
-    Statement** ps;
-    void visitStmt(Statement*& s);
-    void replaceCurrent(Statement* s);
-    void visit(PeelStatement* s) override;
-    void visit(CompoundStatement* s) override;
-    void visit(CompoundDeclarationStatement* s) override;
-    void visit(UnrolledLoopStatement* s) override;
-    void visit(ScopeStatement* s) override;
-    void visit(WhileStatement* s) override;
-    void visit(DoStatement* s) override;
-    void visit(ForStatement* s) override;
-    void visit(ForeachStatement* s) override;
-    void visit(ForeachRangeStatement* s) override;
-    void visit(IfStatement* s) override;
-    void visit(SwitchStatement* s) override;
-    void visit(CaseStatement* s) override;
-    void visit(CaseRangeStatement* s) override;
-    void visit(DefaultStatement* s) override;
-    void visit(SynchronizedStatement* s) override;
-    void visit(WithStatement* s) override;
-    void visit(TryCatchStatement* s) override;
-    void visit(TryFinallyStatement* s) override;
-    void visit(DebugStatement* s) override;
-    void visit(LabelStatement* s) override;
-};
-
-class NrvoWalker final : public StatementRewriteWalker
-{
-public:
-    using StatementRewriteWalker::visit;
-    FuncDeclaration* fd;
-    Scope* sc;
-    void visit(ReturnStatement* s) override;
-    void visit(TryFinallyStatement* s) override;
-};
-
 class PostBlitDeclaration final : public FuncDeclaration
 {
 public:
@@ -5760,7 +5706,6 @@ struct ASTCodegen final
     using ILS = ::ILS;
     using InvariantDeclaration = ::InvariantDeclaration;
     using NewDeclaration = ::NewDeclaration;
-    using NrvoWalker = ::NrvoWalker;
     using PostBlitDeclaration = ::PostBlitDeclaration;
     using SharedStaticCtorDeclaration = ::SharedStaticCtorDeclaration;
     using SharedStaticDtorDeclaration = ::SharedStaticDtorDeclaration;
@@ -5952,6 +5897,50 @@ public:
     virtual void visit(VoidInitExp* e);
     virtual void visit(ThrownExceptionExp* e);
     virtual void visit(LoweredAssignExp* e);
+};
+
+class SemanticTimePermissiveVisitor : public Visitor
+{
+public:
+    using Visitor::visit;
+    void visit(Dsymbol* __param_0_) override;
+    void visit(Parameter* __param_0_) override;
+    void visit(Statement* __param_0_) override;
+    void visit(Type* __param_0_) override;
+    void visit(Expression* __param_0_) override;
+    void visit(TemplateParameter* __param_0_) override;
+    void visit(Condition* __param_0_) override;
+    void visit(Initializer* __param_0_) override;
+};
+
+class StatementRewriteWalker : public SemanticTimePermissiveVisitor
+{
+public:
+    using SemanticTimePermissiveVisitor::visit;
+    Statement** ps;
+    void visitStmt(Statement*& s);
+    void replaceCurrent(Statement* s);
+    void visit(PeelStatement* s) override;
+    void visit(CompoundStatement* s) override;
+    void visit(CompoundDeclarationStatement* s) override;
+    void visit(UnrolledLoopStatement* s) override;
+    void visit(ScopeStatement* s) override;
+    void visit(WhileStatement* s) override;
+    void visit(DoStatement* s) override;
+    void visit(ForStatement* s) override;
+    void visit(ForeachStatement* s) override;
+    void visit(ForeachRangeStatement* s) override;
+    void visit(IfStatement* s) override;
+    void visit(SwitchStatement* s) override;
+    void visit(CaseStatement* s) override;
+    void visit(CaseRangeStatement* s) override;
+    void visit(DefaultStatement* s) override;
+    void visit(SynchronizedStatement* s) override;
+    void visit(WithStatement* s) override;
+    void visit(TryCatchStatement* s) override;
+    void visit(TryFinallyStatement* s) override;
+    void visit(DebugStatement* s) override;
+    void visit(LabelStatement* s) override;
 };
 
 class StoppableVisitor : public Visitor
@@ -7437,6 +7426,16 @@ public:
     void visit(AttribDeclaration* atb) override;
     void visit(StaticIfDeclaration* _) override;
     void visit(StaticForeachDeclaration* _) override;
+};
+
+class NrvoWalker final : public StatementRewriteWalker
+{
+public:
+    using StatementRewriteWalker::visit;
+    FuncDeclaration* fd;
+    Scope* sc;
+    void visit(ReturnStatement* s) override;
+    void visit(TryFinallyStatement* s) override;
 };
 
 class NOGCVisitor final : public StoppableVisitor
