@@ -873,6 +873,7 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
 
 extern (C++) final class StaticForeachDeclaration : AttribDeclaration
 {
+    import dmd.statementsem : prepare;
     StaticForeach sfe; /// contains `static foreach` expansion logic
 
     ScopeDsymbol scopesym; /// cached enclosing scope (mimics `static if` declaration)
@@ -930,7 +931,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
 
         if (_scope)
         {
-            sfe.prepare(_scope); // lower static foreach aggregate
+            prepare(_scope); // lower static foreach aggregate
         }
         if (!sfe.ready())
         {

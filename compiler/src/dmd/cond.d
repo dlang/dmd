@@ -30,7 +30,6 @@ import dmd.identifier;
 import dmd.location;
 import dmd.mtype;
 import dmd.optimize;
-import dmd.typesem;
 import dmd.common.outbuffer;
 import dmd.rootobject;
 import dmd.root.string;
@@ -151,7 +150,7 @@ extern (C++) final class StaticForeach : RootObject
      * to
      *     static foreach (x; AliasSeq!(1, 2, 3, 4)) { ... }
      */
-    private extern(D) void lowerArrayAggregate(Scope* sc)
+    extern(D) void lowerArrayAggregate(Scope* sc)
     {
         auto aggr = aggrfe.aggr;
         Expression el = new ArrayLengthExp(aggr.loc, aggr);
@@ -199,7 +198,7 @@ extern (C++) final class StaticForeach : RootObject
      * Returns:
      *     AST of the expression `(){ s; }()` with location loc.
      */
-    private extern(D) Expression wrapAndCall(const ref Loc loc, Statement s)
+    extern(D) Expression wrapAndCall(const ref Loc loc, Statement s)
     {
         auto tf = new TypeFunction(ParameterList(), null, LINK.default_, 0);
         auto fd = new FuncLiteralDeclaration(loc, loc, tf, TOK.reserved, null);
@@ -222,7 +221,7 @@ extern (C++) final class StaticForeach : RootObject
      *     `foreach (parameters; lower .. upper) s;`
      *     Where aggregate/lower, upper are as for the current StaticForeach.
      */
-    private extern(D) Statement createForeach(const ref Loc loc, Parameters* parameters, Statement s)
+    extern(D) Statement createForeach(const ref Loc loc, Parameters* parameters, Statement s)
     {
         if (aggrfe)
         {
@@ -255,7 +254,7 @@ extern (C++) final class StaticForeach : RootObject
      *         }
      */
 
-    private extern(D) TypeStruct createTupleType(const ref Loc loc, Expressions* e, Scope* sc)
+    extern(D) TypeStruct createTupleType(const ref Loc loc, Expressions* e, Scope* sc)
     {   // TODO: move to druntime?
         auto sid = Identifier.generateId("Tuple");
         auto sdecl = new StructDeclaration(loc, sid, false);
@@ -281,203 +280,9 @@ extern (C++) final class StaticForeach : RootObject
      *     An AST for the expression `Tuple(e)`.
      */
 
-    private extern(D) Expression createTuple(const ref Loc loc, TypeStruct type, Expressions* e) @safe
+    extern(D) Expression createTuple(const ref Loc loc, TypeStruct type, Expressions* e) @safe
     {   // TODO: move to druntime?
         return new CallExp(loc, new TypeExp(loc, type), e);
-    }
-
-
-    /*****************************************
-     * Lower any aggregate that is not an array to an array using a
-     * regular foreach loop within CTFE.  If there are multiple
-     * `static foreach` loop variables, an array of tuples is
-     * generated. In thise case, the field `needExpansion` is set to
-     * true to indicate that the static foreach loop expansion will
-     * need to expand the tuples into multiple variables.
-     *
-     * For example, `static foreach (x; range) { ... }` is lowered to:
-     *
-     *     static foreach (x; {
-     *         typeof({
-     *             foreach (x; range) return x;
-     *         }())[] __res;
-     *         foreach (x; range) __res ~= x;
-     *         return __res;
-     *     }()) { ... }
-     *
-     * Finally, call `lowerArrayAggregate` to turn the produced
-     * array into an expression tuple.
-     *
-     * Params:
-     *     sc = The current scope.
-     */
-
-    private void lowerNonArrayAggregate(Scope* sc)
-    {
-        auto nvars = aggrfe ? aggrfe.parameters.length : 1;
-        auto aloc = aggrfe ? aggrfe.aggr.loc : rangefe.lwr.loc;
-        // We need three sets of foreach loop variables because the
-        // lowering contains three foreach loops.
-        Parameters*[3] pparams = [new Parameters(), new Parameters(), new Parameters()];
-        foreach (i; 0 .. nvars)
-        {
-            foreach (params; pparams)
-            {
-                auto p = aggrfe ? (*aggrfe.parameters)[i] : rangefe.prm;
-                params.push(new Parameter(aloc, p.storageClass, p.type, p.ident, null, null));
-            }
-        }
-        Expression[2] res;
-        TypeStruct tplty = null;
-        if (nvars == 1) // only one `static foreach` variable, generate identifiers.
-        {
-            foreach (i; 0 .. 2)
-            {
-                res[i] = new IdentifierExp(aloc, (*pparams[i])[0].ident);
-            }
-        }
-        else // multiple `static foreach` variables, generate tuples.
-        {
-            foreach (i; 0 .. 2)
-            {
-                auto e = new Expressions(pparams[0].length);
-                foreach (j, ref elem; *e)
-                {
-                    auto p = (*pparams[i])[j];
-                    elem = new IdentifierExp(aloc, p.ident);
-                }
-                if (!tplty)
-                {
-                    tplty = createTupleType(aloc, e, sc);
-                }
-                res[i] = createTuple(aloc, tplty, e);
-            }
-            needExpansion = true; // need to expand the tuples later
-        }
-        // generate remaining code for the new aggregate which is an
-        // array (see documentation comment).
-        if (rangefe)
-        {
-            sc = sc.startCTFE();
-            rangefe.lwr = rangefe.lwr.expressionSemantic(sc);
-            rangefe.lwr = resolveProperties(sc, rangefe.lwr);
-            rangefe.upr = rangefe.upr.expressionSemantic(sc);
-            rangefe.upr = resolveProperties(sc, rangefe.upr);
-            sc = sc.endCTFE();
-            rangefe.lwr = rangefe.lwr.optimize(WANTvalue);
-            rangefe.lwr = rangefe.lwr.ctfeInterpret();
-            rangefe.upr = rangefe.upr.optimize(WANTvalue);
-            rangefe.upr = rangefe.upr.ctfeInterpret();
-        }
-        auto s1 = new Statements();
-        auto sfe = new Statements();
-        if (tplty) sfe.push(new ExpStatement(loc, tplty.sym));
-        sfe.push(new ReturnStatement(aloc, res[0]));
-        s1.push(createForeach(aloc, pparams[0], new CompoundStatement(aloc, sfe)));
-        s1.push(new ExpStatement(aloc, new AssertExp(aloc, IntegerExp.literal!0)));
-        Type ety = new TypeTypeof(aloc, wrapAndCall(aloc, new CompoundStatement(aloc, s1)));
-        auto aty = ety.arrayOf();
-        auto idres = Identifier.generateId("__res");
-        auto vard = new VarDeclaration(aloc, aty, idres, null, STC.temp);
-        auto s2 = new Statements();
-
-        // Run 'typeof' gagged to avoid duplicate errors and if it fails just create
-        // an empty foreach to expose them.
-        uint olderrors = global.startGagging();
-        ety = ety.typeSemantic(aloc, sc);
-        if (global.endGagging(olderrors))
-            s2.push(createForeach(aloc, pparams[1], null));
-        else
-        {
-            s2.push(new ExpStatement(aloc, vard));
-            auto catass = new CatAssignExp(aloc, new IdentifierExp(aloc, idres), res[1]);
-            s2.push(createForeach(aloc, pparams[1], new ExpStatement(aloc, catass)));
-            s2.push(new ReturnStatement(aloc, new IdentifierExp(aloc, idres)));
-        }
-
-        Expression aggr = void;
-        Type indexty = void;
-
-        if (rangefe && (indexty = ety).isintegral())
-        {
-            rangefe.lwr.type = indexty;
-            rangefe.upr.type = indexty;
-            auto lwrRange = getIntRange(rangefe.lwr);
-            auto uprRange = getIntRange(rangefe.upr);
-
-            const lwr = rangefe.lwr.toInteger();
-            auto  upr = rangefe.upr.toInteger();
-            size_t length = 0;
-
-            if (lwrRange.imin <= uprRange.imax)
-                    length = cast(size_t) (upr - lwr);
-
-            auto exps = new Expressions(length);
-
-            if (rangefe.op == TOK.foreach_)
-            {
-                foreach (i; 0 .. length)
-                    (*exps)[i] = new IntegerExp(aloc, lwr + i, indexty);
-            }
-            else
-            {
-                --upr;
-                foreach (i; 0 .. length)
-                    (*exps)[i] = new IntegerExp(aloc, upr - i, indexty);
-            }
-            aggr = new ArrayLiteralExp(aloc, indexty.arrayOf(), exps);
-        }
-        else
-        {
-            aggr = wrapAndCall(aloc, new CompoundStatement(aloc, s2));
-            sc = sc.startCTFE();
-            aggr = aggr.expressionSemantic(sc);
-            aggr = resolveProperties(sc, aggr);
-            sc = sc.endCTFE();
-            aggr = aggr.optimize(WANTvalue);
-            aggr = aggr.ctfeInterpret();
-        }
-
-        assert(!!aggrfe ^ !!rangefe);
-        aggrfe = new ForeachStatement(loc, TOK.foreach_, pparams[2], aggr,
-                                      aggrfe ? aggrfe._body : rangefe._body,
-                                      aggrfe ? aggrfe.endloc : rangefe.endloc);
-        rangefe = null;
-        lowerArrayAggregate(sc); // finally, turn generated array into expression tuple
-    }
-
-    /*****************************************
-     * Perform `static foreach` lowerings that are necessary in order
-     * to finally expand the `static foreach` using
-     * `dmd.statementsem.makeTupleForeach`.
-     */
-    extern(D) void prepare(Scope* sc)
-    {
-        assert(sc);
-
-        if (aggrfe)
-        {
-            sc = sc.startCTFE();
-            aggrfe.aggr = aggrfe.aggr.expressionSemantic(sc);
-            sc = sc.endCTFE();
-        }
-
-        if (aggrfe && aggrfe.aggr.type.toBasetype().ty == Terror)
-        {
-            return;
-        }
-
-        if (!ready())
-        {
-            if (aggrfe && aggrfe.aggr.type.toBasetype().ty == Tarray)
-            {
-                lowerArrayAggregate(sc);
-            }
-            else
-            {
-                lowerNonArrayAggregate(sc);
-            }
-        }
     }
 
     /*****************************************

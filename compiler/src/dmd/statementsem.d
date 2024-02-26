@@ -4734,7 +4734,7 @@ private Statements* flatten(Statement statement, Scope* sc)
 
         case STMT.StaticForeach:
             auto sfs = statement.isStaticForeachStatement();
-            sfs.sfe.prepare(sc);
+            prepare(sc);
             if (sfs.sfe.ready())
             {
                 Statement s = makeTupleForeach(sc, true, false, sfs.sfe.aggrfe, null, sfs.sfe.needExpansion).statement;
@@ -5038,4 +5038,199 @@ bool checkLabel(GotoStatement gs)
         return true;
     }
     return false;
+}
+
+/*****************************************
+ * Perform `static foreach` lowerings that are necessary in order
+ * to finally expand the `static foreach` using
+ * `dmd.statementsem.makeTupleForeach`.
+ */
+extern(D) void prepare(Scope* sc)
+{
+    auto sfeInstance = new StaticForeach();
+    assert(sc);
+
+    if (sfeInstance.aggrfe)
+    {
+        sc = sc.startCTFE();
+        sfeInstance.aggrfe.aggr = sfeInstance.aggrfe.aggr.expressionSemantic(sc);
+        sc = sc.endCTFE();
+    }
+
+    if (sfeInstance.aggrfe && sfeInstance.aggrfe.aggr.type.toBasetype().ty == Terror)
+    {
+        return;
+    }
+
+    if (!(sfeInstance.ready()))
+    {
+        if (sfeInstance.aggrfe && sfeInstance.aggrfe.aggr.type.toBasetype().ty == Tarray)
+        {
+            sfeInstance.lowerArrayAggregate(sc);
+        }
+        else
+        {
+            lowerNonArrayAggregate(sc);
+        }
+    }
+}
+
+/*****************************************
+ * Lower any aggregate that is not an array to an array using a
+ * regular foreach loop within CTFE.  If there are multiple
+ * `static foreach` loop variables, an array of tuples is
+ * generated. In thise case, the field `needExpansion` is set to
+ * true to indicate that the static foreach loop expansion will
+ * need to expand the tuples into multiple variables.
+ *
+ * For example, `static foreach (x; range) { ... }` is lowered to:
+ *
+ *     static foreach (x; {
+ *         typeof({
+ *             foreach (x; range) return x;
+ *         }())[] __res;
+ *         foreach (x; range) __res ~= x;
+ *         return __res;
+ *     }()) { ... }
+ *
+ * Finally, call `lowerArrayAggregate` to turn the produced
+ * array into an expression tuple.
+ *
+ * Params:
+ *     sc = The current scope.
+ */
+
+private void lowerNonArrayAggregate(Scope* sc)
+{
+    auto sfeInstance = new StaticForeach();
+    auto nvars = sfeInstance.aggrfe ? sfeInstance.aggrfe.parameters.length : 1;
+    auto aloc = sfeInstance.aggrfe ? sfeInstance.aggrfe.aggr.loc : sfeInstance.rangefe.lwr.loc;
+    // We need three sets of foreach loop variables because the
+    // lowering contains three foreach loops.
+    Parameters*[3] pparams = [new Parameters(), new Parameters(), new Parameters()];
+    foreach (i; 0 .. nvars)
+    {
+        foreach (params; pparams)
+        {
+            auto p = sfeInstance.aggrfe ? (*sfeInstance.aggrfe.parameters)[i] : sfeInstance.rangefe.prm;
+            params.push(new Parameter(aloc, p.storageClass, p.type, p.ident, null, null));
+        }
+    }
+    Expression[2] res;
+    TypeStruct tplty = null;
+    if (nvars == 1) // only one `static foreach` variable, generate identifiers.
+    {
+        foreach (i; 0 .. 2)
+        {
+            res[i] = new IdentifierExp(aloc, (*pparams[i])[0].ident);
+        }
+    }
+    else // multiple `static foreach` variables, generate tuples.
+    {
+        foreach (i; 0 .. 2)
+        {
+            auto e = new Expressions(pparams[0].length);
+            foreach (j, ref elem; *e)
+            {
+                auto p = (*pparams[i])[j];
+                elem = new IdentifierExp(aloc, p.ident);
+            }
+            if (!tplty)
+            {
+                tplty = sfeInstance.createTupleType(aloc, e, sc);
+            }
+            res[i] = sfeInstance.createTuple(aloc, tplty, e);
+        }
+        sfeInstance.needExpansion = true; // need to expand the tuples later
+    }
+    // generate remaining code for the new aggregate which is an
+    // array (see documentation comment).
+    if (sfeInstance.rangefe)
+    {
+        sc = sc.startCTFE();
+        sfeInstance.rangefe.lwr = sfeInstance.rangefe.lwr.expressionSemantic(sc);
+        sfeInstance.rangefe.lwr = resolveProperties(sc, sfeInstance.rangefe.lwr);
+        sfeInstance.rangefe.upr = sfeInstance.rangefe.upr.expressionSemantic(sc);
+        sfeInstance.rangefe.upr = resolveProperties(sc, sfeInstance.rangefe.upr);
+        sc = sc.endCTFE();
+        sfeInstance.rangefe.lwr = sfeInstance.rangefe.lwr.optimize(WANTvalue);
+        sfeInstance.rangefe.lwr = sfeInstance.rangefe.lwr.ctfeInterpret();
+        sfeInstance.rangefe.upr = sfeInstance.rangefe.upr.optimize(WANTvalue);
+        sfeInstance.rangefe.upr = sfeInstance.rangefe.upr.ctfeInterpret();
+    }
+    auto s1 = new Statements();
+    auto sfe = new Statements();
+    if (tplty) sfe.push(new ExpStatement(sfeInstance.loc, tplty.sym));
+    sfe.push(new ReturnStatement(aloc, res[0]));
+    s1.push(sfeInstance.createForeach(aloc, pparams[0], new CompoundStatement(aloc, sfe)));
+    s1.push(new ExpStatement(aloc, new AssertExp(aloc, IntegerExp.literal!0)));
+    Type ety = new TypeTypeof(aloc, sfeInstance.wrapAndCall(aloc, new CompoundStatement(aloc, s1)));
+    auto aty = ety.arrayOf();
+    auto idres = Identifier.generateId("__res");
+    auto vard = new VarDeclaration(aloc, aty, idres, null, STC.temp);
+    auto s2 = new Statements();
+
+    // Run 'typeof' gagged to avoid duplicate errors and if it fails just create
+    // an empty foreach to expose them.
+    uint olderrors = global.startGagging();
+    ety = ety.typeSemantic(aloc, sc);
+    if (global.endGagging(olderrors))
+        s2.push(sfeInstance.createForeach(aloc, pparams[1], null));
+    else
+    {
+        s2.push(new ExpStatement(aloc, vard));
+        auto catass = new CatAssignExp(aloc, new IdentifierExp(aloc, idres), res[1]);
+        s2.push(sfeInstance.createForeach(aloc, pparams[1], new ExpStatement(aloc, catass)));
+        s2.push(new ReturnStatement(aloc, new IdentifierExp(aloc, idres)));
+    }
+
+    Expression aggr = void;
+    Type indexty = void;
+
+    if (sfeInstance.rangefe && (indexty = ety).isintegral())
+    {
+        sfeInstance.rangefe.lwr.type = indexty;
+        sfeInstance.rangefe.upr.type = indexty;
+        auto lwrRange = getIntRange(sfeInstance.rangefe.lwr);
+        auto uprRange = getIntRange(sfeInstance.rangefe.upr);
+
+        const lwr = sfeInstance.rangefe.lwr.toInteger();
+        auto  upr = sfeInstance.rangefe.upr.toInteger();
+        size_t length = 0;
+
+        if (lwrRange.imin <= uprRange.imax)
+            length = cast(size_t) (upr - lwr);
+
+        auto exps = new Expressions(length);
+
+        if (sfeInstance.rangefe.op == TOK.foreach_)
+        {
+            foreach (i; 0 .. length)
+                (*exps)[i] = new IntegerExp(aloc, lwr + i, indexty);
+        }
+        else
+        {
+            --upr;
+            foreach (i; 0 .. length)
+                (*exps)[i] = new IntegerExp(aloc, upr - i, indexty);
+        }
+        aggr = new ArrayLiteralExp(aloc, indexty.arrayOf(), exps);
+    }
+    else
+    {
+        aggr = sfeInstance.wrapAndCall(aloc, new CompoundStatement(aloc, s2));
+        sc = sc.startCTFE();
+        aggr = aggr.expressionSemantic(sc);
+        aggr = resolveProperties(sc, aggr);
+        sc = sc.endCTFE();
+        aggr = aggr.optimize(WANTvalue);
+        aggr = aggr.ctfeInterpret();
+    }
+
+    assert(!!sfeInstance.aggrfe ^ !!sfeInstance.rangefe);
+    sfeInstance.aggrfe = new ForeachStatement(sfeInstance.loc, TOK.foreach_, pparams[2], aggr,
+                                  sfeInstance.aggrfe ? sfeInstance.aggrfe._body : sfeInstance.rangefe._body,
+                                  sfeInstance.aggrfe ? sfeInstance.aggrfe.endloc : sfeInstance.rangefe.endloc);
+    sfeInstance.rangefe = null;
+    sfeInstance.lowerArrayAggregate(sc); // finally, turn generated array into expression tuple
 }
