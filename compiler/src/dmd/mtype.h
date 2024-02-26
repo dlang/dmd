@@ -257,7 +257,6 @@ public:
     Type *arrayOf();
     Type *sarrayOf(dinteger_t dim);
     bool hasDeprecatedAliasThis();
-    Type *aliasthisOf();
     virtual Type *makeConst();
     virtual Type *makeImmutable();
     virtual Type *makeShared();
@@ -902,6 +901,7 @@ namespace dmd
     Type *wildConstOf(Type *type);
     Type *sharedWildOf(Type *type);
     Type *sharedWildConstOf(Type *type);
+    Type *aliasthisOf(Type *type);
     Type *castMod(Type *type, MOD mod);
     Type *addMod(Type *type, MOD mod);
     Type *addStorageClass(Type *type, StorageClass stc);

@@ -1214,54 +1214,6 @@ extern (C++) abstract class Type : ASTNode
         return ad && ad.aliasthis && (ad.aliasthis.isDeprecated || ad.aliasthis.sym.isDeprecated);
     }
 
-    final Type aliasthisOf()
-    {
-        auto ad = isAggregate(this);
-        if (!ad || !ad.aliasthis)
-            return null;
-
-        auto s = ad.aliasthis.sym;
-        if (s.isAliasDeclaration())
-            s = s.toAlias();
-
-        if (s.isTupleDeclaration())
-            return null;
-
-        if (auto vd = s.isVarDeclaration())
-        {
-            auto t = vd.type;
-            if (vd.needThis())
-                t = t.addMod(this.mod);
-            return t;
-        }
-        Dsymbol callable = s.isFuncDeclaration();
-        callable = callable ? callable : s.isTemplateDeclaration();
-        if (callable)
-        {
-            auto fd = resolveFuncCall(Loc.initial, null, callable, null, this, ArgumentList(), FuncResolveFlag.quiet);
-            if (!fd || fd.errors || !functionSemantic(fd))
-                return Type.terror;
-
-            auto t = fd.type.nextOf();
-            if (!t) // https://issues.dlang.org/show_bug.cgi?id=14185
-                return Type.terror;
-            t = t.substWildTo(mod == 0 ? MODFlags.mutable : mod);
-            return t;
-        }
-        if (auto d = s.isDeclaration())
-        {
-            assert(d.type);
-            return d.type;
-        }
-        if (auto ed = s.isEnumDeclaration())
-        {
-            return ed.type;
-        }
-
-        //printf("%s\n", s.kind());
-        return null;
-    }
-
     /**
      * Check whether this type has endless `alias this` recursion.
      * Returns:
@@ -1282,7 +1234,7 @@ extern (C++) abstract class Type : ASTNode
         AliasThisRec flag = cast(AliasThisRec)(*pflag & AliasThisRec.typeMask);
         if (flag == AliasThisRec.fwdref)
         {
-            Type att = aliasthisOf();
+            Type att = aliasthisOf(this);
             flag = att && att.implicitConvTo(this) ? AliasThisRec.yes : AliasThisRec.no;
         }
         *pflag = cast(AliasThisRec)(flag | (*pflag & ~AliasThisRec.typeMask));
@@ -4316,7 +4268,7 @@ extern (C++) final class TypeStruct : Type
         MATCH m;
         if (!(ty == to.ty && sym == (cast(TypeStruct)to).sym) && sym.aliasthis && !(att & AliasThisRec.tracing))
         {
-            if (auto ato = aliasthisOf())
+            if (auto ato = aliasthisOf(this))
             {
                 att = cast(AliasThisRec)(att | AliasThisRec.tracing);
                 m = ato.implicitConvTo(to);
@@ -4353,7 +4305,7 @@ extern (C++) final class TypeStruct : Type
 
         if (t.hasWild() && sym.aliasthis && !(att & AliasThisRec.tracing))
         {
-            if (auto ato = aliasthisOf())
+            if (auto ato = aliasthisOf(this))
             {
                 att = cast(AliasThisRec)(att | AliasThisRec.tracing);
                 wm = ato.deduceWild(t, isRef);
@@ -4595,7 +4547,7 @@ extern (C++) final class TypeClass : Type
         MATCH m;
         if (sym.aliasthis && !(att & AliasThisRec.tracing))
         {
-            if (auto ato = aliasthisOf())
+            if (auto ato = aliasthisOf(this))
             {
                 att = cast(AliasThisRec)(att | AliasThisRec.tracing);
                 m = ato.implicitConvTo(to);
@@ -4644,7 +4596,7 @@ extern (C++) final class TypeClass : Type
 
         if (t.hasWild() && sym.aliasthis && !(att & AliasThisRec.tracing))
         {
-            if (auto ato = aliasthisOf())
+            if (auto ato = aliasthisOf(this))
             {
                 att = cast(AliasThisRec)(att | AliasThisRec.tracing);
                 wm = ato.deduceWild(t, isRef);

@@ -6478,6 +6478,54 @@ Type sharedWildConstOf(Type type)
     return t;
 }
 
+Type aliasthisOf(Type type)
+{
+    auto ad = isAggregate(type);
+    if (!ad || !ad.aliasthis)
+        return null;
+
+    auto s = ad.aliasthis.sym;
+    if (s.isAliasDeclaration())
+        s = s.toAlias();
+
+    if (s.isTupleDeclaration())
+        return null;
+
+    if (auto vd = s.isVarDeclaration())
+    {
+        auto t = vd.type;
+        if (vd.needThis())
+            t = t.addMod(type.mod);
+        return t;
+    }
+    Dsymbol callable = s.isFuncDeclaration();
+    callable = callable ? callable : s.isTemplateDeclaration();
+    if (callable)
+    {
+        auto fd = resolveFuncCall(Loc.initial, null, callable, null, type, ArgumentList(), FuncResolveFlag.quiet);
+        if (!fd || fd.errors || !functionSemantic(fd))
+            return Type.terror;
+
+        auto t = fd.type.nextOf();
+        if (!t) // https://issues.dlang.org/show_bug.cgi?id=14185
+            return Type.terror;
+        t = t.substWildTo(type.mod == 0 ? MODFlags.mutable : type.mod);
+        return t;
+    }
+    if (auto d = s.isDeclaration())
+    {
+        assert(d.type);
+        return d.type;
+    }
+    if (auto ed = s.isEnumDeclaration())
+    {
+        return ed.type;
+    }
+
+    //printf("%s\n", s.kind());
+    return null;
+}
+
 /************************************
  * Apply MODxxxx bits to existing type.
  */

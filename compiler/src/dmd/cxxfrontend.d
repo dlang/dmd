@@ -535,6 +535,12 @@ Type sharedWildConstOf(Type type)
     return dmd.typesem.sharedWildConstOf(type);
 }
 
+Type aliasthisOf(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.aliasthisOf(type);
+}
+
 Type castMod(Type type, MOD mod)
 {
     import dmd.typesem;
