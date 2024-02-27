@@ -1855,7 +1855,6 @@ public:
     virtual MATCH implicitConvTo(Type* to);
     virtual MATCH constConv(Type* to);
     virtual uint8_t deduceWild(Type* t, bool isRef);
-    virtual Type* substWildTo(uint32_t mod);
     Type* unqualify(uint32_t m);
     virtual Type* toHeadMutable();
     virtual ClassDeclaration* isClassHandle();
@@ -4455,7 +4454,6 @@ public:
     TypeFunction* syntaxCopy() override;
     bool hasLazyParameters();
     bool isDstyleVariadic() const;
-    Type* substWildTo(uint32_t __param_0_) override;
     MATCH constConv(Type* to) override;
     bool iswild() const;
     void accept(Visitor* v) override;

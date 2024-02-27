@@ -270,7 +270,6 @@ public:
     virtual MATCH implicitConvTo(Type *to);
     virtual MATCH constConv(Type *to);
     virtual unsigned char deduceWild(Type *t, bool isRef);
-    virtual Type *substWildTo(unsigned mod);
 
     Type *unqualify(unsigned m);
 
@@ -579,7 +578,6 @@ public:
     bool hasLazyParameters();
     bool isDstyleVariadic() const;
 
-    Type *substWildTo(unsigned mod) override;
     MATCH constConv(Type *to) override;
 
     bool isnothrow() const;
@@ -907,4 +905,5 @@ namespace dmd
     Type *castMod(Type *type, MOD mod);
     Type *addMod(Type *type, MOD mod);
     Type *addStorageClass(Type *type, StorageClass stc);
+    Type *substWildTo(Type *type, unsigned mod);
 }
