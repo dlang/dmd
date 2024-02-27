@@ -39,7 +39,6 @@ import dmd.dtemplate;
 import dmd.errors;
 import dmd.escape;
 import dmd.expression;
-import dmd.funcsem;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
@@ -2593,57 +2592,6 @@ extern (C++) class FuncDeclaration : Declaration
     {
         v.visit(this);
     }
-}
-
-/********************************************************
- * Generate Expression to call the invariant.
- * Input:
- *      ad      aggregate with the invariant
- *      vthis   variable with 'this'
- * Returns:
- *      void expression that calls the invariant
- */
-Expression addInvariant(AggregateDeclaration ad, VarDeclaration vthis)
-{
-    Expression e = null;
-    // Call invariant directly only if it exists
-    FuncDeclaration inv = ad.inv;
-    ClassDeclaration cd = ad.isClassDeclaration();
-
-    while (!inv && cd)
-    {
-        cd = cd.baseClass;
-        if (!cd)
-            break;
-        inv = cd.inv;
-    }
-    if (inv)
-    {
-        version (all)
-        {
-            // Workaround for https://issues.dlang.org/show_bug.cgi?id=13394
-            // For the correct mangling,
-            // run attribute inference on inv if needed.
-            functionSemantic(inv);
-        }
-
-        //e = new DsymbolExp(Loc.initial, inv);
-        //e = new CallExp(Loc.initial, e);
-        //e = e.semantic(sc2);
-
-        /* https://issues.dlang.org/show_bug.cgi?id=13113
-         * Currently virtual invariant calls completely
-         * bypass attribute enforcement.
-         * Change the behavior of pre-invariant call by following it.
-         */
-        e = new ThisExp(Loc.initial);
-        e.type = ad.type.addMod(vthis.type.mod);
-        e = new DotVarExp(Loc.initial, e, inv, false);
-        e.type = inv.type;
-        e = new CallExp(Loc.initial, e);
-        e.type = Type.tvoid;
-    }
-    return e;
 }
 
 /***************************************************
