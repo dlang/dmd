@@ -34,7 +34,6 @@ import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.escape;
@@ -1933,44 +1932,6 @@ extern (C++) class FuncDeclaration : Declaration
     {
         auto f = cast(TypeFunction)type;
         return f && f.nextOf() && f.nextOf().toBasetype().ty != Tvoid;
-    }
-
-    /****************************************************
-     * Declare result variable lazily.
-     */
-    extern (D) final void buildResultVar(Scope* sc, Type tret)
-    {
-        if (!vresult)
-        {
-            Loc loc = fensure ? fensure.loc : this.loc;
-
-            /* If inferRetType is true, tret may not be a correct return type yet.
-             * So, in here it may be a temporary type for vresult, and after
-             * fbody.dsymbolSemantic() running, vresult.type might be modified.
-             */
-            vresult = new VarDeclaration(loc, tret, Id.result, null);
-            vresult.storage_class |= STC.nodtor | STC.temp;
-            if (!isVirtual())
-                vresult.storage_class |= STC.const_;
-            vresult.storage_class |= STC.result;
-
-            // set before the semantic() for checkNestedReference()
-            vresult.parent = this;
-        }
-
-        if (sc && vresult.semanticRun == PASS.initial)
-        {
-            TypeFunction tf = type.toTypeFunction();
-            if (tf.isref)
-                vresult.storage_class |= STC.ref_;
-            vresult.type = tret;
-
-            vresult.dsymbolSemantic(sc);
-
-            if (!sc.insert(vresult))
-                .error(loc, "%s `%s` out result %s is already defined", kind, toPrettyChars, vresult.toChars());
-            assert(vresult.parent == this);
-        }
     }
 
     /****************************************************

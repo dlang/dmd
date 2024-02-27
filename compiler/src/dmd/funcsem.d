@@ -1890,3 +1890,36 @@ Expression addInvariant(AggregateDeclaration ad, VarDeclaration vthis)
     }
     return e;
 }
+
+/****************************************************
+ * Declare result variable lazily.
+ */
+void buildResultVar(FuncDeclaration fd, Scope* sc, Type tret)
+{
+    if (!fd.vresult)
+    {
+        Loc loc = fd.fensure ? fd.fensure.loc : fd.loc;
+        /* If inferRetType is true, tret may not be a correct return type yet.
+         * So, in here it may be a temporary type for vresult, and after
+         * fbody.dsymbolSemantic() running, vresult.type might be modified.
+         */
+        fd.vresult = new VarDeclaration(loc, tret, Id.result, null);
+        fd.vresult.storage_class |= STC.nodtor | STC.temp;
+        if (!fd.isVirtual())
+            fd.vresult.storage_class |= STC.const_;
+        fd.vresult.storage_class |= STC.result;
+        // set before the semantic() for checkNestedReference()
+        fd.vresult.parent = fd;
+    }
+    if (sc && fd.vresult.semanticRun == PASS.initial)
+    {
+        TypeFunction tf = fd.type.toTypeFunction();
+        if (tf.isref)
+            fd.vresult.storage_class |= STC.ref_;
+        fd.vresult.type = tret;
+        fd.vresult.dsymbolSemantic(sc);
+        if (!sc.insert(fd.vresult))
+            .error(fd.loc, "%s `%s` out result %s is already defined", fd.kind, fd.toPrettyChars, fd.vresult.toChars());
+        assert(fd.vresult.parent == fd);
+    }
+}
