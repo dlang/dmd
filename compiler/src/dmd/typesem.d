@@ -6501,6 +6501,56 @@ Type sharedWildConstOf(Type type)
     return t;
 }
 
+Type unqualify(Type type, uint m)
+{
+    Type t = type.mutableOf().unSharedOf();
+
+    Type tn = type.ty == Tenum ? null : type.nextOf();
+    if (tn && tn.ty != Tfunction)
+    {
+        Type utn = tn.unqualify(m);
+        if (utn != tn)
+        {
+            if (type.ty == Tpointer)
+                t = utn.pointerTo();
+            else if (type.ty == Tarray)
+                t = utn.arrayOf();
+            else if (type.ty == Tsarray)
+                t = new TypeSArray(utn, (cast(TypeSArray)type).dim);
+            else if (type.ty == Taarray)
+            {
+                t = new TypeAArray(utn, (cast(TypeAArray)type).index);
+            }
+            else
+                assert(0);
+
+            t = t.merge();
+        }
+    }
+    t = t.addMod(type.mod & ~m);
+    return t;
+}
+
+/**************************
+ * Return type with the top level of it being mutable.
+ *
+ * Params:
+ *  t = type for which the top level mutable version is being returned
+ *
+ * Returns:
+ *  type version with mutable top level
+ */
+Type toHeadMutable(const Type t)
+{
+    Type unqualType = cast(Type) t;
+    if (t.isTypeStruct() || t.isTypeClass())
+        return unqualType;
+
+    if (!t.mod)
+        return unqualType;
+    return unqualType.mutableOf();
+}
+
 Type aliasthisOf(Type type)
 {
     auto ad = isAggregate(type);
