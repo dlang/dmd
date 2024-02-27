@@ -3783,7 +3783,7 @@ public:
             if (v is v2 || !v.isOverlappedWith(v2))
                 continue;
             auto e = (*sle.elements)[i];
-            if (e.op != EXP.void_)
+            if (e !is null && e.op != EXP.void_)
                 (*sle.elements)[i] = voidInitLiteral(e.type, v).copy();
         }
     }
