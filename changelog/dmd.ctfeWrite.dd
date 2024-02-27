@@ -1,8 +1,11 @@
 Added `__ctfeWrite` to write messages from CTFE
 
-The special function `__ctfeWrite` can now be used to write custom messages to
-`stderr` during CTFE. The function is available in `object.d` and accepts any
-value implicitly convertible to `const char[]`.
+The special function `__ctfeWrite` can now be used to write messages
+during CTFE, similar to `pragma(msg, ...)`. It is Implementation Defined
+how the message is presented to the user; the recommended way is by
+printing the message to `stderr`, standard error stream.
+The function is available in `object.d` and accepts any value implicitly
+convertible to `const(char)[]`.
 
 For example:
 
@@ -11,6 +14,7 @@ int greeting()
 {
     __ctfeWrite("Hello from CTFE. Today is ");
     __ctfeWrite(__DATE__);
+    __ctfeWrite("\n");
     return 0;
 }
 
