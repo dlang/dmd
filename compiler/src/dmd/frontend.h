@@ -1841,7 +1841,6 @@ public:
     bool isSharedWild() const;
     bool isNaked() const;
     Type* nullAttributes() const;
-    Type* arrayOf();
     bool hasDeprecatedAliasThis();
     virtual Type* makeConst();
     virtual Type* makeImmutable();
