@@ -6599,6 +6599,137 @@ Type castMod(Type type, MOD mod)
     return t;
 }
 
+Type substWildTo(Type type, uint mod)
+{
+    auto tf = type.isTypeFunction();
+    if (!tf)
+    {
+        //printf("+Type.substWildTo this = %s, mod = x%x\n", toChars(), mod);
+        Type t;
+
+        if (Type tn = type.nextOf())
+        {
+            // substitution has no effect on function pointer type.
+            if (type.ty == Tpointer && tn.ty == Tfunction)
+            {
+                t = type;
+                goto L1;
+            }
+
+            t = tn.substWildTo(mod);
+            if (t == tn)
+                t = type;
+            else
+            {
+                if (type.ty == Tpointer)
+                    t = t.pointerTo();
+                else if (type.ty == Tarray)
+                    t = t.arrayOf();
+                else if (type.ty == Tsarray)
+                    t = new TypeSArray(t, (cast(TypeSArray)type).dim.syntaxCopy());
+                else if (type.ty == Taarray)
+                {
+                    t = new TypeAArray(t, (cast(TypeAArray)type).index.syntaxCopy());
+                }
+                else if (type.ty == Tdelegate)
+                {
+                    t = new TypeDelegate(t.isTypeFunction());
+                }
+                else
+                    assert(0);
+
+                t = t.merge();
+            }
+        }
+        else
+            t = type;
+
+    L1:
+        if (type.isWild())
+        {
+            if (mod == MODFlags.immutable_)
+            {
+                t = t.immutableOf();
+            }
+            else if (mod == MODFlags.wildconst)
+            {
+                t = t.wildConstOf();
+            }
+            else if (mod == MODFlags.wild)
+            {
+                if (type.isWildConst())
+                    t = t.wildConstOf();
+                else
+                    t = t.wildOf();
+            }
+            else if (mod == MODFlags.const_)
+            {
+                t = t.constOf();
+            }
+            else
+            {
+                if (type.isWildConst())
+                    t = t.constOf();
+                else
+                    t = t.mutableOf();
+            }
+        }
+        if (type.isConst())
+            t = t.addMod(MODFlags.const_);
+        if (type.isShared())
+            t = t.addMod(MODFlags.shared_);
+
+        //printf("-Type.substWildTo t = %s\n", t.toChars());
+        return t;
+    }
+
+    if (!tf.iswild && !(tf.mod & MODFlags.wild))
+        return tf;
+
+    // Substitude inout qualifier of function type to mutable or immutable
+    // would break type system. Instead substitude inout to the most weak
+    // qualifer - const.
+    uint m = MODFlags.const_;
+
+    assert(tf.next);
+    Type tret = tf.next.substWildTo(m);
+    Parameters* params = tf.parameterList.parameters;
+    if (tf.mod & MODFlags.wild)
+        params = tf.parameterList.parameters.copy();
+    for (size_t i = 0; i < params.length; i++)
+    {
+        Parameter p = (*params)[i];
+        Type t = p.type.substWildTo(m);
+        if (t == p.type)
+            continue;
+        if (params == tf.parameterList.parameters)
+            params = tf.parameterList.parameters.copy();
+        (*params)[i] = new Parameter(p.loc, p.storageClass, t, null, null, null);
+    }
+    if (tf.next == tret && params == tf.parameterList.parameters)
+        return tf;
+
+    // Similar to TypeFunction.syntaxCopy;
+    auto t = new TypeFunction(ParameterList(params, tf.parameterList.varargs), tret, tf.linkage);
+    t.mod = ((tf.mod & MODFlags.wild) ? (tf.mod & ~MODFlags.wild) | MODFlags.const_ : tf.mod);
+    t.isnothrow = tf.isnothrow;
+    t.isnogc = tf.isnogc;
+    t.purity = tf.purity;
+    t.isproperty = tf.isproperty;
+    t.isref = tf.isref;
+    t.isreturn = tf.isreturn;
+    t.isreturnscope = tf.isreturnscope;
+    t.isScopeQual = tf.isScopeQual;
+    t.isreturninferred = tf.isreturninferred;
+    t.isscopeinferred = tf.isscopeinferred;
+    t.isInOutParam = false;
+    t.isInOutQual = false;
+    t.trust = tf.trust;
+    t.fargs = tf.fargs;
+    t.isctor = tf.isctor;
+    return t.merge();
+}
+
 /************************************
  * Add MODxxxx bits to existing type.
  * We're adding, not replacing, so adding const to
