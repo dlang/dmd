@@ -5039,3 +5039,38 @@ bool checkLabel(GotoStatement gs)
     }
     return false;
 }
+
+/*****************************************
+* Perform `static foreach` lowerings that are necessary in order
+* to finally expand the `static foreach` using
+* `dmd.statementsem.makeTupleForeach`.
+*/
+void prepare(StaticForeach fs, Scope* sc)
+{
+    auto aggrfe = fs.aggrfe;
+    assert(sc);
+
+    if (aggrfe)
+    {
+        sc = sc.startCTFE();
+        aggrfe.aggr = aggrfe.aggr.expressionSemantic(sc);
+        sc = sc.endCTFE();
+    }
+
+    if (aggrfe && aggrfe.aggr.type.toBasetype().ty == Terror)
+    {
+        return;
+    }
+
+    if (!fs.ready())
+    {
+        if (aggrfe && aggrfe.aggr.type.toBasetype().ty == Tarray)
+        {
+            fs.lowerArrayAggregate(sc);
+        }
+        else
+        {
+            fs.lowerNonArrayAggregate(sc);
+        }
+    }
+}

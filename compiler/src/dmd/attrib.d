@@ -918,6 +918,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
 
     override Dsymbols* include(Scope* sc)
     {
+        import dmd.statementsem : prepare;
         if (errors || onStack)
             return null;
         if (cached)
