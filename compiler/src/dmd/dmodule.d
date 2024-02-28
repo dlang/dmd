@@ -1598,3 +1598,49 @@ FuncDeclaration findGetMembers(ScopeDsymbol dsym)
         fdx = null;
     return fdx;
 }
+
+/***************************************
+ * Compute an import depth first ordering of all the root modules.
+ * Params:
+ *      allModules = all modules
+ *      dfo = all the root modules, reordered in in DFO order
+ */
+void rootModuleDFO(Module[] allModules, Module[] dfo)
+{
+    if (!dfo.length)
+        return;
+
+    foreach (m; allModules)
+        m.insearch = false;
+
+    Module* p = cast(Module*)mem.xmalloc(dfo.length * Module.sizeof);
+    Module[] tmp = p[0 .. dfo.length];
+    size_t idx = 0;
+
+    void walkDFO(Module m)
+    {
+        m.insearch = true;
+
+        foreach (mi; m.aimports)
+        {
+            if (!mi.insearch)
+                walkDFO(mi);
+        }
+
+        if (m.isRoot())
+            tmp[idx++] = m;
+    }
+
+    foreach (m; dfo)
+    {
+        if (!m.insearch)
+            walkDFO(m);
+    }
+    assert(idx == dfo.length);
+
+    // reverse tmp[] into dfo[]
+    foreach (i, m; tmp[])
+        dfo[$ - 1 - i] = m;
+
+    mem.xfree(tmp.ptr);
+}
