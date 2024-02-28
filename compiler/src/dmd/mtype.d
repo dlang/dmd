@@ -1353,48 +1353,6 @@ extern (C++) abstract class Type : ASTNode
         return 0;
     }
 
-    final Type unqualify(uint m)
-    {
-        Type t = this.mutableOf().unSharedOf();
-
-        Type tn = ty == Tenum ? null : nextOf();
-        if (tn && tn.ty != Tfunction)
-        {
-            Type utn = tn.unqualify(m);
-            if (utn != tn)
-            {
-                if (ty == Tpointer)
-                    t = utn.pointerTo();
-                else if (ty == Tarray)
-                    t = utn.arrayOf();
-                else if (ty == Tsarray)
-                    t = new TypeSArray(utn, (cast(TypeSArray)this).dim);
-                else if (ty == Taarray)
-                {
-                    t = new TypeAArray(utn, (cast(TypeAArray)this).index);
-                }
-                else
-                    assert(0);
-
-                t = t.merge();
-            }
-        }
-        t = t.addMod(mod & ~m);
-        return t;
-    }
-
-    /**************************
-     * Return type with the top level of it being mutable.
-     */
-    inout(Type) toHeadMutable() inout
-    {
-        if (!mod)
-            return this;
-        Type unqualThis = cast(Type) this;
-        // `mutableOf` needs a mutable `this` only for caching
-        return cast(inout(Type)) unqualThis.mutableOf();
-    }
-
     inout(ClassDeclaration) isClassHandle() inout
     {
         return null;
@@ -4136,11 +4094,6 @@ extern (C++) final class TypeStruct : Type
         return wm;
     }
 
-    override inout(Type) toHeadMutable() inout
-    {
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -4425,11 +4378,6 @@ extern (C++) final class TypeClass : Type
         }
 
         return wm;
-    }
-
-    override inout(Type) toHeadMutable() inout
-    {
-        return this;
     }
 
     override bool isZeroInit(const ref Loc loc)

@@ -271,9 +271,6 @@ public:
     virtual MATCH constConv(Type *to);
     virtual unsigned char deduceWild(Type *t, bool isRef);
 
-    Type *unqualify(unsigned m);
-
-    virtual Type *toHeadMutable();
     virtual ClassDeclaration *isClassHandle();
     virtual structalign_t alignment();
     virtual Expression *defaultInitLiteral(const Loc &loc);
@@ -748,7 +745,6 @@ public:
     MATCH implicitConvTo(Type *to) override;
     MATCH constConv(Type *to) override;
     unsigned char deduceWild(Type *t, bool isRef) override;
-    Type *toHeadMutable() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -801,7 +797,6 @@ public:
     MATCH implicitConvTo(Type *to) override;
     MATCH constConv(Type *to) override;
     unsigned char deduceWild(Type *t, bool isRef) override;
-    Type *toHeadMutable() override;
     bool isZeroInit(const Loc &loc) override;
     bool isscope() override;
     bool isBoolean() override;
@@ -901,6 +896,8 @@ namespace dmd
     Type *wildConstOf(Type *type);
     Type *sharedWildOf(Type *type);
     Type *sharedWildConstOf(Type *type);
+    Type *unqualify(Type *type, unsigned m);
+    Type *toHeadMutable(Type *type);
     Type *aliasthisOf(Type *type);
     Type *castMod(Type *type, MOD mod);
     Type *addMod(Type *type, MOD mod);

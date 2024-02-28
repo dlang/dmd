@@ -1855,8 +1855,6 @@ public:
     virtual MATCH implicitConvTo(Type* to);
     virtual MATCH constConv(Type* to);
     virtual uint8_t deduceWild(Type* t, bool isRef);
-    Type* unqualify(uint32_t m);
-    virtual Type* toHeadMutable();
     virtual ClassDeclaration* isClassHandle();
     virtual structalign_t alignment();
     virtual Expression* defaultInitLiteral(const Loc& loc);
@@ -4271,7 +4269,6 @@ public:
     MATCH implicitConvTo(Type* to) override;
     MATCH constConv(Type* to) override;
     uint8_t deduceWild(Type* t, bool isRef) override;
-    Type* toHeadMutable() override;
     bool isZeroInit(const Loc& loc) override;
     bool isscope() override;
     bool isBoolean() override;
@@ -4615,7 +4612,6 @@ public:
     MATCH implicitConvTo(Type* to) override;
     MATCH constConv(Type* to) override;
     uint8_t deduceWild(Type* t, bool isRef) override;
-    Type* toHeadMutable() override;
     void accept(Visitor* v) override;
 };
 

@@ -553,6 +553,18 @@ Type substWildTo(Type type, uint mod)
     return dmd.typesem.substWildTo(type, mod);
 }
 
+Type unqualify(Type type, uint m)
+{
+    import dmd.typesem;
+    return dmd.typesem.unqualify(type, m);
+}
+
+Type toHeadMutable(const(Type) type)
+{
+    import dmd.typesem;
+    return dmd.typesem.toHeadMutable(type);
+}
+
 Type aliasthisOf(Type type)
 {
     import dmd.typesem;
