@@ -1,27 +1,23 @@
-Hex strings can now be cast to integer arrays
+Hex strings now convert to integer arrays
 
 Hex strings are the most efficient way to embed binary data into source files.
 However, they couldn't easily be used to initialize a `short[]`, `int[]` or `long[]` because re-interpret casting arrays is not allowed during CTFE.
-Now, hex strings can be cast to integer arrays with element types larger than `byte`.
+Now, hex strings implicitly convert to all integer arrays.
 A big endian byte order is assumed, consistent with how integer literals are written.
 
 ---
-immutable uint[] data = cast(immutable uint[]) x"AABBCCDD";
+immutable uint[] data = x"AABBCCDD";
 
 static assert(data[0] == 0xAABBCCDD);
 ---
 
-Character postfixes can now also be used for integers of size 2 or 4, while an `L` postfix can be used for size 8:
+Character postfixes can now also be used to explicitly set an element size of 2 or 4.
+
 ---
 immutable ushort[] f = x"80 3F"w;
 static assert(f[0] == 0x803F);
 
-immutable int[] g = x"80 35 FF FD"d;
-static assert(g[0] == 0x803FFFFD);
-
-auto h = x"0011 2233 4455 6677"L;
-static assert(h[0] == 0x0011_2233_4455_6677);
-static assert(is(typeof(h) == immutable ulong[]));
+immutable ubyte[] g = x"80 35"w; // error: size mismatch
 ---
 
 Formerly, they would pad each byte with 1 or 3 zeros, which did not serve a purpose (See [Issue 24363](https://issues.dlang.org/show_bug.cgi?id=24363)).

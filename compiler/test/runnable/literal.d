@@ -247,14 +247,13 @@ void testHexstring()
     static assert(x[0] == 0xFFAADDEE);
     assert(x[0] == 0xFFAADDEE);
 
-    static assert(is(typeof(x""L) == immutable(ulong)[]));
-    static immutable ulong[] y = x"1122334455667788AABBCCDDEEFF0099"L;
+    static immutable ulong[] y = x"1122334455667788AABBCCDDEEFF0099";
     static assert(y[0] == 0x1122334455667788);
     static assert(y[1] == 0xAABBCCDDEEFF0099);
     assert(y[0] == 0x1122334455667788);
     assert(y[1] == 0xAABBCCDDEEFF0099);
 
-    immutable long[] c = x"1122334455667788AABBCCDDEEFF0099"L;
+    immutable long[] c = x"1122334455667788AABBCCDDEEFF0099";
     assert(c[0] == 0x1122334455667788);
     assert(c[1] == 0xAABBCCDDEEFF0099);
 
@@ -264,7 +263,7 @@ void testHexstring()
 
     // Test printing StringExp with size 8
     enum toStr(immutable ulong[] v) = v.stringof;
-    static assert(toStr!y == `x"88776655443322119900FFEEDDCCBBAA"L`);
+    static assert(toStr!y == `x"88776655443322119900FFEEDDCCBBAA"`);
 
     // Hex string postfixes
     // https://issues.dlang.org/show_bug.cgi?id=24363
