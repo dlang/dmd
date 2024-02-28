@@ -4245,22 +4245,22 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (e.hexString)
         {
-            const data = cast(const ubyte[]) e.peekString();
+            const data = cast(const ubyte[]) e.peekString(); // peek before size is set to something larger than 1
             switch (e.postfix)
             {
-                case 'L':
-                    e.sz = 8;
-                    e.type = Type.tuns64.immutableOf().arrayOf();
-                    break;
                 case 'd':
+                    e.committed = true;
                     e.sz = 4;
                     e.type = Type.tdstring;
                     break;
                 case 'w':
+                    e.committed = true;
                     e.sz = 2;
                     e.type = Type.twstring;
                     break;
                 case 'c':
+                    e.committed = true;
+                    goto default;
                 default:
                     e.type = Type.tstring;
                     e.sz = 1;
@@ -4271,7 +4271,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     e.type.toChars(), e.sz, cast(int) e.len);
 
             e.setData(arrayCastBigEndian(data, e.sz).ptr, e.len / e.sz, e.sz);
-            e.committed = true;
         }
         else switch (e.postfix)
         {
