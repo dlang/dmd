@@ -34,7 +34,6 @@ import dmd.dtemplate;
 import dmd.e2ir;
 import dmd.expression;
 import dmd.func;
-import dmd.globals;
 import dmd.glue;
 import dmd.id;
 import dmd.init;

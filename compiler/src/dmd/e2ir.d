@@ -39,7 +39,7 @@ import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.expression;
 import dmd.func;
-import dmd.globals;
+import dmd.globals : CHECKENABLE, CHECKACTION;
 import dmd.glue;
 import dmd.hdrgen;
 import dmd.id;
@@ -1148,7 +1148,7 @@ elem* toElem(Expression e, ref IRState irs)
             }
             else
             {
-                assert(!(global.params.ehnogc && ne.thrownew),
+                assert(!(irs.params.ehnogc && ne.thrownew),
                     "This should have been rewritten to `_d_newThrowable` in the semantic phase.");
 
                 ex = toElem(ne.lowering, irs);
@@ -1493,8 +1493,8 @@ elem* toElem(Expression e, ref IRState irs)
 
             // If e1 is a class object, call the class invariant on it
             if (irs.params.useInvariants == CHECKENABLE.on && t1.ty == Tclass &&
-                !(cast(TypeClass)t1).sym.isInterfaceDeclaration() &&
-                !(cast(TypeClass)t1).sym.isCPPclass())
+                !t1.isTypeClass().sym.isInterfaceDeclaration() &&
+                !t1.isTypeClass().sym.isCPPclass())
             {
                 ts = symbol_genauto(Type_toCtype(t1));
                 einv = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.DINVARIANT)), el_var(ts));
@@ -1502,7 +1502,7 @@ elem* toElem(Expression e, ref IRState irs)
             else if (irs.params.useInvariants == CHECKENABLE.on &&
                 t1.ty == Tpointer &&
                 t1.nextOf().ty == Tstruct &&
-                (inv = (cast(TypeStruct)t1.nextOf()).sym.inv) !is null)
+                (inv = t1.nextOf().isTypeStruct().sym.inv) !is null)
             {
                 // If e1 is a struct object, call the struct invariant on it
                 ts = symbol_genauto(Type_toCtype(t1));
@@ -3400,7 +3400,7 @@ elem* toElem(Expression e, ref IRState irs)
                 {   Expression arg = (*arguments)[0];
                     arg = arg.optimize(WANTvalue);
                     if (arg.isConst() && arg.type.isintegral())
-                    {   dinteger_t sz = arg.toInteger();
+                    {   const sz = arg.toInteger();
                         if (sz > 0 && sz < 0x40000)
                         {
                             // It's an alloca(sz) of a fixed amount.
@@ -6144,7 +6144,7 @@ elem *sarray_toDarray(const ref Loc loc, Type tfrom, Type tto, elem *e)
     //printf("sarray_toDarray()\n");
     //elem_print(e);
 
-    dinteger_t dim = (cast(TypeSArray)tfrom).dim.toInteger();
+    auto dim = tfrom.isTypeSArray().dim.toInteger();
 
     if (tto)
     {
