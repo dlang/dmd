@@ -39,7 +39,6 @@ import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.expression;
 import dmd.func;
-import dmd.globals : CHECKENABLE, CHECKACTION;
 import dmd.glue;
 import dmd.hdrgen;
 import dmd.id;

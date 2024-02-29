@@ -47,7 +47,7 @@ import dmd.toctype;
 import dmd.e2ir;
 import dmd.errorsink;
 import dmd.func;
-import dmd.globals : Param, CHECKENABLE;
+import dmd.globals : Param;
 import dmd.glue;
 import dmd.identifier;
 import dmd.id;
