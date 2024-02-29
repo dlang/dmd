@@ -441,6 +441,24 @@ enum FileType : ubyte
     c,    /// C source file
 }
 
+/// In which context checks for assertions, contracts, bounds checks etc. are enabled
+enum CHECKENABLE : ubyte
+{
+    _default,     /// initial value
+    off,          /// never do checking
+    on,           /// always do checking
+    safeonly,     /// do checking only in @safe functions
+}
+
+/// What should happend when an assertion fails
+enum CHECKACTION : ubyte
+{
+    D,            /// call D assert on failure
+    C,            /// call C assert on failure
+    halt,         /// cause program halt on failure
+    context,      /// call D assert with the error context on failure
+}
+
 extern (C++) struct structalign_t
 {
   private:

@@ -11,8 +11,9 @@
 module dmd.frontend;
 
 import dmd.astcodegen : ASTCodegen;
+import dmd.astenums : CHECKENABLE;
 import dmd.dmodule : Module;
-import dmd.globals : CHECKENABLE, DiagnosticReporting;
+import dmd.globals : DiagnosticReporting;
 import dmd.errors;
 import dmd.location;
 
@@ -113,11 +114,12 @@ void initDMD(
     version (CRuntime_Microsoft)
         import dmd.root.longdouble : initFPU;
 
+    import dmd.astenums : CHECKENABLE;
     import dmd.cond : VersionCondition;
     import dmd.dmodule : Module;
     import dmd.escape : EscapeState;
     import dmd.expression : Expression;
-    import dmd.globals : CHECKENABLE, global;
+    import dmd.globals : global;
     import dmd.id : Id;
     import dmd.identifier : Identifier;
     import dmd.mtype : Type;
