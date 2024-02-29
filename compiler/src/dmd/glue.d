@@ -143,7 +143,7 @@ public void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
                 obj_start(objbuf, m.srcfile.toChars());
             }
             if (verbose)
-                message("code      %s", m.toChars());
+                eSink.message(Loc.initial, "code      %s", m.toChars());
             genObjFile(m, false);
         }
         if (!global.errors && firstm)
@@ -159,7 +159,7 @@ public void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
             if (m.filetype == FileType.dhdr)
                 continue;
             if (verbose)
-                message("code      %s", m.toChars());
+                eSink.message(Loc.initial, "code      %s", m.toChars());
             obj_start(objbuf, m.srcfile.toChars());
             genObjFile(m, multiobj);
             obj_end(objbuf, library, m.objfile.toChars());
@@ -170,7 +170,7 @@ public void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
     }
     if (writeLibrary && !global.errors)
     {
-        if (global.params.v.verbose)
+        if (verbose)
             eSink.message(Loc.initial, "library   %s", library.loc.filename);
 
         auto filenameString = library.loc.filename.toDString;

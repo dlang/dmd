@@ -47,7 +47,7 @@ import dmd.toctype;
 import dmd.e2ir;
 import dmd.errorsink;
 import dmd.func;
-import dmd.globals;
+import dmd.globals : Param, CHECKENABLE;
 import dmd.glue;
 import dmd.identifier;
 import dmd.id;
@@ -99,7 +99,7 @@ struct IRState
         this.params = params;
         this.target = target;
         this.eSink = eSink;
-        mayThrow = global.params.useExceptions
+        mayThrow = params.useExceptions
             && ClassDeclaration.throwable
             && !(fd && fd.hasNoEH);
         this.Cfile = m.filetype == FileType.c;
@@ -119,7 +119,7 @@ struct IRState
         if (m.filetype == FileType.c)
             return false;
         bool result;
-        final switch (global.params.useArrayBounds)
+        final switch (params.useArrayBounds)
         {
         case CHECKENABLE.off:
             result = false;
@@ -642,7 +642,7 @@ elem *resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
         if (t1.ty == Tsarray)
         {
             TypeSArray tsa = cast(TypeSArray)t1;
-            dinteger_t length = tsa.dim.toInteger();
+            const length = tsa.dim.toInteger();
 
             elength = el_long(TYsize_t, length);
             goto L3;
