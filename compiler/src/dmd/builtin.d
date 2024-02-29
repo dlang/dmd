@@ -180,14 +180,10 @@ Expression eval_ctfeWrite(Loc loc, FuncDeclaration fd, Expressions* arguments)
     import dmd.ctfeexpr: resolveSlice;
 
     Expression e = (*arguments)[0];
-    if (auto se = resolveSlice(e).toStringExp())
-    {
-        const slice = se.peekString();
-        fprintf(stderr, "%.*s", cast(int)slice.length, slice.ptr);
-    }
-    else
-        fprintf(stderr, "%s", e.toChars());
-
+    const se = resolveSlice(e).toStringExp();
+    assert(se);
+    const slice = se.peekString();
+    fprintf(stderr, "%.*s", cast(int)slice.length, slice.ptr);
     return CTFEExp.voidexp;
 }
 

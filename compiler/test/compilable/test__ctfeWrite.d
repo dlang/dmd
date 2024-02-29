@@ -6,9 +6,16 @@ World
 from
 CTFE
 Hello[1 .. 3] = el
+S.str
 abcdefghij[2 .. 6] = cdef
 ---
 */
+
+struct S
+{
+    string str = "S.str";
+    alias str this;
+}
 
 int greeting(scope const char[][] values) pure nothrow @safe @nogc
 {
@@ -23,8 +30,12 @@ int greeting(scope const char[][] values) pure nothrow @safe @nogc
     // Test slices
     const val = values[0];
     __ctfeWrite(val[]);
-    __ctfeWrite("[1 .. 3] = ");
+    __ctfeWrite(['[','1',' ','.','.',' ','3',']',' ','=',' ']);
     __ctfeWrite(val[1 .. 3]);
+    __ctfeWrite(newline);
+
+    S s;
+    __ctfeWrite(s);
     __ctfeWrite(newline);
 
     // Test mutable slices
