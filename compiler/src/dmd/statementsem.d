@@ -5189,7 +5189,7 @@ private extern(C++) void lowerNonArrayAggregate(StaticForeach fs, Scope* sc)
             {
                 tplty = fs.createTupleType(aloc, e, sc);
             }
-            res[i] = fs.createTuple(aloc, tplty, e);
+            res[i] = createTuple(aloc, tplty, e);
         }
         fs.needExpansion = true; // need to expand the tuples later
     }
@@ -5214,7 +5214,7 @@ private extern(C++) void lowerNonArrayAggregate(StaticForeach fs, Scope* sc)
     sfe.push(new ReturnStatement(aloc, res[0]));
     s1.push(fs.createForeach(aloc, pparams[0], new CompoundStatement(aloc, sfe)));
     s1.push(new ExpStatement(aloc, new AssertExp(aloc, IntegerExp.literal!0)));
-    Type ety = new TypeTypeof(aloc, fs.wrapAndCall(aloc, new CompoundStatement(aloc, s1)));
+    Type ety = new TypeTypeof(aloc, wrapAndCall(aloc, new CompoundStatement(aloc, s1)));
     auto aty = ety.arrayOf();
     auto idres = Identifier.generateId("__res");
     auto vard = new VarDeclaration(aloc, aty, idres, null, STC.temp);
@@ -5268,7 +5268,7 @@ private extern(C++) void lowerNonArrayAggregate(StaticForeach fs, Scope* sc)
     }
     else
     {
-        aggr = fs.wrapAndCall(aloc, new CompoundStatement(aloc, s2));
+        aggr = wrapAndCall(aloc, new CompoundStatement(aloc, s2));
         sc = sc.startCTFE();
         aggr = aggr.expressionSemantic(sc);
         aggr = resolveProperties(sc, aggr);
@@ -5283,4 +5283,103 @@ private extern(C++) void lowerNonArrayAggregate(StaticForeach fs, Scope* sc)
                                     aggrfe ? aggrfe.endloc : rangefe.endloc);
     rangefe = null;
     fs.lowerArrayAggregate(sc); // finally, turn generated array into expression tuple
+}
+
+/*****************************************
+* Wrap a statement into a function literal and call it.
+*
+* Params:
+*     loc = The source location.
+*     s  = The statement.
+* Returns:
+*     AST of the expression `(){ s; }()` with location loc.
+*/
+private Expression wrapAndCall(const ref Loc loc, Statement s)
+{
+    auto tf = new TypeFunction(ParameterList(), null, LINK.default_, 0);
+    auto fd = new FuncLiteralDeclaration(loc, loc, tf, TOK.reserved, null);
+    fd.fbody = s;
+    auto fe = new FuncExp(loc, fd);
+    auto ce = new CallExp(loc, fe, new Expressions());
+    return ce;
+}
+
+/*****************************************
+* Create a `foreach` statement from `aggrefe/rangefe` with given
+* `foreach` variables and body `s`.
+*
+* Params:
+*     loc = The source location.
+*     parameters = The foreach variables.
+*     s = The `foreach` body.
+* Returns:
+*     `foreach (parameters; aggregate) s;` or
+*     `foreach (parameters; lower .. upper) s;`
+*     Where aggregate/lower, upper are as for the current StaticForeach.
+*/
+private Statement createForeach(StaticForeach fs, const ref Loc loc, Parameters* parameters, Statement s)
+{
+    auto aggrfe = fs.aggrfe;
+    auto rangefe = fs.rangefe;
+    if (aggrfe)
+    {
+        return new ForeachStatement(loc, aggrfe.op, parameters, aggrfe.aggr, s, loc);
+    }
+    else
+    {
+        assert(rangefe && parameters.length == 1);
+        return new ForeachRangeStatement(loc, rangefe.op, (*parameters)[0], rangefe.lwr, rangefe.upr, s, loc);
+    }
+}
+
+/*****************************************
+* For a `static foreach` with multiple loop variables, the
+* aggregate is lowered to an array of tuples. As D does not have
+* built-in tuples, we need a suitable tuple type. This generates
+* a `struct` that serves as the tuple type. This type is only
+* used during CTFE and hence its typeinfo will not go to the
+* object file.
+*
+* Params:
+*     loc = The source location.
+*     e = The expressions we wish to store in the tuple.
+*     sc  = The current scope.
+* Returns:
+*     A struct type of the form
+*         struct Tuple
+*         {
+*             typeof(AliasSeq!(e)) tuple;
+*         }
+*/
+
+private TypeStruct createTupleType(StaticForeach fs, const ref Loc loc, Expressions* e, Scope* sc)
+{   // TODO: move to druntime?
+    import dmd.dstruct : StructDeclaration;
+    auto sid = Identifier.generateId("Tuple");
+    auto sdecl = new StructDeclaration(loc, sid, false);
+    sdecl.storage_class |= STC.static_;
+    sdecl.members = new Dsymbols();
+    auto fid = Identifier.idPool(fs.tupleFieldName);
+    auto ty = new TypeTypeof(loc, new TupleExp(loc, e));
+    sdecl.members.push(new VarDeclaration(loc, ty, fid, null, 0));
+    auto r = cast(TypeStruct)sdecl.type;
+    if (global.params.useTypeInfo && Type.dtypeinfo)
+        r.vtinfo = TypeInfoStructDeclaration.create(r); // prevent typeinfo from going to object file
+    return r;
+}
+
+/*****************************************
+* Create the AST for an instantiation of a suitable tuple type.
+*
+* Params:
+*     loc = The source location.
+*     type = A Tuple type, created with createTupleType.
+*     e = The expressions we wish to store in the tuple.
+* Returns:
+*     An AST for the expression `Tuple(e)`.
+*/
+
+private Expression createTuple(const ref Loc loc, TypeStruct type, Expressions* e) @safe
+{   // TODO: move to druntime?
+    return new CallExp(loc, new TypeExp(loc, type), e);
 }
