@@ -1687,7 +1687,7 @@ Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             if (!ClassDeclaration.object)
             {
                 .error(Loc.initial, "missing or corrupt object.d");
-                fatal();
+                return error();
             }
 
             __gshared FuncDeclaration feq = null;
