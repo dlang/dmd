@@ -561,13 +561,13 @@ private Symbol *createImport(Symbol *sym, Loc loc)
     int idlen;
     if (target.os & Target.OS.Posix)
     {
-        error(loc, "could not generate import symbol `%s` for this platform", n);
-        fatal();
+        error(loc, "cannot generate import symbol `%s` for Posix platform", n);
+        assert(0);
     }
     else if (target.os & Target.OS.Windows && sym.Stype.Tty & mTYthread)
     {
         error(loc, "cannot generate import symbol for thread local symbol `%s`", n);
-        fatal();
+        assert(0);
     }
     else if (sym.Stype.Tmangle == mTYman_std && tyfunc(sym.Stype.Tty))
     {
