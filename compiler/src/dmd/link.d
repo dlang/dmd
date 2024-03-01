@@ -198,12 +198,14 @@ version (Windows)
     }
 }
 
+enum STATUS_FAILED = -1;
+
 /*****************************
  * Run the linker.
  * Params:
  *      verbose = print command to be executed
  *      eSink = message sink
- *  Returns: status of execution.
+ *  Returns: status of execution. STATUS_FAILED if failed for other reasons
  */
 public int runLINK(bool verbose, ErrorSink eSink)
 {
@@ -257,7 +259,7 @@ public int runLINK(bool verbose, ErrorSink eSink)
             }
             // Make sure path to exe file exists
             if (!ensurePathToNameExists(Loc.initial, global.params.exefile))
-                fatal();
+                return STATUS_FAILED;
             cmdbuf.writeByte(' ');
             if (global.params.mapfile)
             {
@@ -334,7 +336,7 @@ public int runLINK(bool verbose, ErrorSink eSink)
             {
                 lnkfilename = FileName.forceExt(global.params.exefile, "lnk");
                 if (!writeFile(Loc.initial, lnkfilename, p))
-                    fatal();
+                    return STATUS_FAILED;
                 if (lnkfilename.length < p.length)
                 {
                     p[0] = '@';
@@ -381,7 +383,7 @@ public int runLINK(bool verbose, ErrorSink eSink)
             }
             // Make sure path to exe file exists
             if (!ensurePathToNameExists(Loc.initial, global.params.exefile))
-                fatal();
+                return STATUS_FAILED;
             cmdbuf.writeByte(',');
             if (global.params.mapfile)
                 writeFilename(&cmdbuf, global.params.mapfile);
@@ -447,7 +449,7 @@ public int runLINK(bool verbose, ErrorSink eSink)
             {
                 lnkfilename = FileName.forceExt(global.params.exefile, "lnk");
                 if (!writeFile(Loc.initial, lnkfilename, p))
-                    fatal();
+                    return STATUS_FAILED;
                 if (lnkfilename.length < p.length)
                 {
                     p[0] = '@';
@@ -568,7 +570,7 @@ public int runLINK(bool verbose, ErrorSink eSink)
         }
         // Make sure path to exe file exists
         if (!ensurePathToNameExists(Loc.initial, global.params.exefile))
-            fatal();
+            return STATUS_FAILED;
         if (driverParams.symdebug)
             argv.push("-g");
         if (target.isX86_64)
@@ -799,7 +801,7 @@ public int runLINK(bool verbose, ErrorSink eSink)
         else if (childpid == -1)
         {
             perror("unable to fork");
-            return -1;
+            return STATUS_FAILED;
         }
         close(fds[1]);
         const(int) nme = findNoMainError(fds[0]);
@@ -1022,7 +1024,7 @@ public int runProgram(const char[] exefile, const char*[] runargs, bool verbose,
                     // If execv returns, it failed to execute
                     perror(fnp.ptr);
                 });
-            return -1;
+            _exit(-1);
         }
         waitpid(childpid, &status, 0);
         if (WIFEXITED(status))
@@ -1054,11 +1056,12 @@ public int runProgram(const char[] exefile, const char*[] runargs, bool verbose,
  *    verbose = print progress to eSink
  *    eSink = for verbose messages and error messages
  *    defines = buffer to append any `#define` and `#undef` lines encountered to
+ *    text = set to preprocessed text
  * Returns:
- *    the text of the preprocessed file
+ *    error status, 0 for success
  */
-public DArray!ubyte runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] filename, const(char)* importc_h, ref Array!(const(char)*) cppswitches,
-    bool verbose, ErrorSink eSink, ref OutBuffer defines)
+public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] filename, const(char)* importc_h, ref Array!(const(char)*) cppswitches,
+    bool verbose, ErrorSink eSink, ref OutBuffer defines, out DArray!ubyte text)
 {
     //printf("runPreprocessor() cpp: %.*s filename: %.*s\n", cast(int)cpp.length, cpp.ptr, cast(int)filename.length, filename.ptr);
 
@@ -1077,21 +1080,22 @@ public DArray!ubyte runPreprocessor(ref const Loc loc, const(char)[] cpp, const(
         ifilename = xarraydup(ifilename);
         const(char)[] output = ifilename;
 
-        DArray!ubyte returnResult(int status)
+        int returnResult(int status)
         {
             if (status)
             {
                 eSink.error(loc, "C preprocess command %.*s failed for file %s, exit status %d\n",
                     cast(int)cpp.length, cpp.ptr, filename.ptr, status);
-                fatal();
+                return STATUS_FAILED;
             }
             //printf("C preprocess succeeded %s\n", ifilename.ptr);
             auto readResult = File.read(ifilename);
             File.remove(ifilename.ptr);
             Mem.xfree(cast(void*)ifilename.ptr);
             if (!readResult.success)
-                return DArray!ubyte();
-            return DArray!ubyte(readResult.extractSlice());
+                return STATUS_FAILED;
+            text = DArray!ubyte(readResult.extractSlice());
+            return 0;
         }
 
         // Build argv[]
@@ -1368,13 +1372,13 @@ public DArray!ubyte runPreprocessor(ref const Loc loc, const(char)[] cpp, const(
         int[2] pipefd;      // [0] is read, [1] is write
         if (pipe(&pipefd[0]) == -1) {
             perror("pipe");     // failed to create pipe
-            fatal();
+            return STATUS_FAILED;
         }
 
         pid_t childpid = fork();
         if (childpid == -1) {
-            perror("fork");     // fork failed
-            fatal();
+            perror("fork failed");     // fork failed
+            return STATUS_FAILED;
         }
 
         if (childpid == 0)
@@ -1386,9 +1390,9 @@ public DArray!ubyte runPreprocessor(ref const Loc loc, const(char)[] cpp, const(
             fn.toCStringThen!((fnp) {
                     execvp(fnp.ptr, argv.tdata());
                     perror(fnp.ptr);   // execv returned, so it must have failed
-                    fatal();
+                    _exit(-1);
                 });
-            assert(0);
+            _exit(-1);
         }
 
         // Read the stdout from the preprocessor and append it to buffer
@@ -1402,7 +1406,7 @@ public DArray!ubyte runPreprocessor(ref const Loc loc, const(char)[] cpp, const(
 
         if (nread == -1) {
             perror("read");
-            fatal();
+            return STATUS_FAILED;
         }
 
         int status;
@@ -1422,10 +1426,11 @@ public DArray!ubyte runPreprocessor(ref const Loc loc, const(char)[] cpp, const(
         {
             eSink.error(loc, "C preprocess command %.*s failed for file %s, exit status %d\n",
                 cast(int)cpp.length, cpp.ptr, filename.ptr, status);
-            fatal();
+            return STATUS_FAILED;
         }
 
-        return DArray!ubyte(cast(ubyte[])buffer.extractSlice(true));
+        text = DArray!ubyte(cast(ubyte[])buffer.extractSlice(true));
+        return 0;
     }
     else
     {
