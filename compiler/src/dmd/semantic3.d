@@ -424,9 +424,12 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             .error(funcdecl.loc, "%s `%s` `object.TypeInfo_Tuple` could not be found, but is implicitly used in D-style variadic functions", funcdecl.kind, funcdecl.toPrettyChars);
                         else
                             .error(funcdecl.loc, "%s `%s` `object.TypeInfo` could not be found, but is implicitly used in D-style variadic functions", funcdecl.kind, funcdecl.toPrettyChars);
-                        fatal();
+                        funcdecl.errors = true;
                     }
+                }
 
+                if (!funcdecl.errors && f.linkage == LINK.d)
+                {
                     // Declare _arguments[]
                     funcdecl.v_arguments = new VarDeclaration(funcdecl.loc, Type.typeinfotypelist.type, Id._arguments_typeinfo, null);
                     funcdecl.v_arguments.storage_class |= STC.temp | STC.parameter;
@@ -442,7 +445,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     sc2.insert(_arguments);
                     _arguments.parent = funcdecl;
                 }
-                if (f.linkage == LINK.d || f.parameterList.length)
+                if (!funcdecl.errors && (f.linkage == LINK.d || f.parameterList.length))
                 {
                     // Declare _argptr
                     Type t = target.va_listType(funcdecl.loc, sc);
