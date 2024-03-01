@@ -607,7 +607,7 @@ Type referenceTo(Type type)
 bool genTypeInfo(Expression e, const ref Loc loc, Type torig, Scope* sc)
 {
     import dmd.typinf;
-    return dmd.typinf.genTypeInfo(e, loc, torig, sc);
+    return dmd.typinf.canGenTypeInfo(e, loc, sc) && dmd.typinf.genTypeInfo(e, loc, torig, sc);
 }
 
 bool isSpeculativeType(Type t)

@@ -282,7 +282,8 @@ void write_instance_pointers(Type type, Symbol *s, uint offset)
 void TypeInfo_toObjFile(Expression e, const ref Loc loc, Type t)
 {
     // printf("TypeInfo_toObjFIle() %s\n", torig.toChars());
-    if (genTypeInfo(e, loc, t, null))
+    if (canGenTypeInfo(e, loc, sc) &&
+        genTypeInfo(e, loc, t, null))
     {
         // generate a COMDAT for other TypeInfos not available as builtins in druntime
         toObjFile(t.vtinfo, global.params.multiobj);

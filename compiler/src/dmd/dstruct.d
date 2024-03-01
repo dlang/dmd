@@ -107,7 +107,7 @@ extern (D) void semanticTypeInfo(Scope* sc, Type t)
             Scope scx;
             scx.eSink = global.errorSink;
             scx._module = sd.getModule();
-            getTypeInfoType(sd.loc, t, &scx);
+            getTypeInfoType(sd.loc, t, &scx, true);
             sd.requestTypeInfo = true;
         }
         else if (!sc.minst)
@@ -117,7 +117,7 @@ extern (D) void semanticTypeInfo(Scope* sc, Type t)
         }
         else
         {
-            getTypeInfoType(sd.loc, t, sc);
+            getTypeInfoType(sd.loc, t, sc, true);
             sd.requestTypeInfo = true;
 
             // https://issues.dlang.org/show_bug.cgi?id=15149

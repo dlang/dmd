@@ -25,6 +25,48 @@ import dmd.mtype;
 import core.stdc.stdio;
 
 /****************************************************
+ * Determine if it would be an error to generate TypeInfo.
+ * Params:
+ *      e     = if not null, then expression for pretty-printing errors
+ *      loc   = the location for reporting line numbers in errors
+ *      sc    = the scope
+ * Returns:
+ *      true if we can without error
+ */
+bool canGenTypeInfo(Expression e, const ref Loc loc, Scope* sc)
+{
+    // Even when compiling without `useTypeInfo` (e.g. -betterC) we should
+    // still be able to evaluate `TypeInfo` at compile-time, just not at runtime.
+    // https://issues.dlang.org/show_bug.cgi?id=18472
+    if (!sc || !(sc.flags & SCOPE.ctfe))
+    {
+        if (!global.params.useTypeInfo)
+        {
+            const save = global.gag;
+            global.gag = 0;
+            if (e)
+                .error(loc, "expression `%s` uses the GC and cannot be used with switch `-betterC`", e.toChars());
+            else
+                .error(loc, "`TypeInfo` cannot be used with -betterC");
+            global.gag = save;
+
+            if (sc && sc.tinst)
+                sc.tinst.printInstantiationTrace(Classification.error, uint.max);
+
+            return false;
+        }
+    }
+
+    if (!Type.dtypeinfo)
+    {
+        .error(loc, "`object.TypeInfo` could not be found, but is implicitly used");
+        return false;
+    }
+
+    return true;
+}
+
+/****************************************************
  * Generates the `TypeInfo` object associated with `torig` if it
  * hasn't already been generated
  * Params:
@@ -38,32 +80,6 @@ import core.stdc.stdio;
 bool genTypeInfo(Expression e, const ref Loc loc, Type torig, Scope* sc)
 {
     // printf("genTypeInfo() %s\n", torig.toChars());
-
-    // Even when compiling without `useTypeInfo` (e.g. -betterC) we should
-    // still be able to evaluate `TypeInfo` at compile-time, just not at runtime.
-    // https://issues.dlang.org/show_bug.cgi?id=18472
-    if (!sc || !(sc.flags & SCOPE.ctfe))
-    {
-        if (!global.params.useTypeInfo)
-        {
-            global.gag = 0;
-            if (e)
-                .error(loc, "expression `%s` uses the GC and cannot be used with switch `-betterC`", e.toChars());
-            else
-                .error(loc, "`TypeInfo` cannot be used with -betterC");
-
-            if (sc && sc.tinst)
-                sc.tinst.printInstantiationTrace(Classification.error, uint.max);
-
-            fatal();
-        }
-    }
-
-    if (!Type.dtypeinfo)
-    {
-        .error(loc, "`object.TypeInfo` could not be found, but is implicitly used");
-        fatal();
-    }
 
     import dmd.typesem : merge2;
     Type t = torig.merge2(); // do this since not all Type's are merge'd
@@ -104,10 +120,10 @@ bool genTypeInfo(Expression e, const ref Loc loc, Type torig, Scope* sc)
  * Returns:
  *      The type of the `TypeInfo` object associated with `t`
  */
-extern (C++) Type getTypeInfoType(const ref Loc loc, Type t, Scope* sc, bool genObjCode = true)
+extern (C++) Type getTypeInfoType(const ref Loc loc, Type t, Scope* sc, bool genObjCode)
 {
     assert(t.ty != Terror);
-    if (genTypeInfo(null, loc, t, sc) && genObjCode)
+    if (canGenTypeInfo(null, loc, sc) && genTypeInfo(null, loc, t, sc) && genObjCode)
     {
         // Find module that will go all the way to an object file
         Module m = sc._module.importedFrom;

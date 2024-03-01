@@ -7084,26 +7084,26 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else
         {
-            // Handle this in the glue layer
-            e = new TypeidExp(exp.loc, ta);
-
-            bool genObjCode = true;
-
             // https://issues.dlang.org/show_bug.cgi?id=23650
             // We generate object code for typeinfo, required
             // by typeid, only if in non-speculative context
-            if (sc.flags & SCOPE.compile)
-            {
-                genObjCode = false;
-            }
+            bool genObjCode = sc.flags & SCOPE.compile ? false : true;
 
-            e.type = getTypeInfoType(exp.loc, ta, sc, genObjCode);
-            semanticTypeInfo(sc, ta);
-
-            if (ea)
+            if (!canGenTypeInfo(exp.loc, sc, genObjCode))
+                e = ErrorExp.get();
+            else
             {
-                e = new CommaExp(exp.loc, ea, e); // execute ea
-                e = e.expressionSemantic(sc);
+                // Handle this in the glue layer
+                e = new TypeidExp(exp.loc, ta);
+
+                e.type = getTypeInfoType(exp.loc, ta, sc, genObjCode);
+                semanticTypeInfo(sc, ta);
+
+                if (ea)
+                {
+                    e = new CommaExp(exp.loc, ea, e); // execute ea
+                    e = e.expressionSemantic(sc);
+                }
             }
         }
         result = e;
