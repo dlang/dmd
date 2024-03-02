@@ -51,12 +51,10 @@ jobs:
           # macOS
           - job_name: macOS 13 x64, DMD (latest)
             os: macos-13
-            # FIXME: Revert this back to "dmd" after 2.107.1 is released.
-            host_dmd: ldc
+            host_dmd: dmd
           - job_name: macOS 13 x64, DMD (coverage)
             os: macos-13
-            # FIXME: Revert this back to "dmd" after 2.107.1 is released.
-            host_dmd: ldc
+            host_dmd: dmd
             coverage: true
           - job_name: macOS 12 x64, DMD (bootstrap)
             os: macos-12
@@ -73,7 +71,6 @@ jobs:
             model: 32
     name: ${{ matrix.job_name }}
     runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.os == 'macos-13' }}
     timeout-minutes: 40
     env:
       # for ci/run.sh:
@@ -195,6 +192,7 @@ jobs:
           operating_system: freebsd
           hypervisor: qemu
           memory: 12G
+          cpu_count: 4
           sync_files: runner-to-vm
           version: ${{ matrix.freebsd_version }}
           shell: bash
