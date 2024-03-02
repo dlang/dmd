@@ -71,6 +71,8 @@ const(char)* toCppMangleItanium(Dsymbol s)
     OutBuffer buf;
     scope CppMangleVisitor v = new CppMangleVisitor(&buf, s.loc);
     v.mangleOf(s);
+    if (v.errors)
+        fatal();
     return buf.extractChars();
 }
 
@@ -82,6 +84,8 @@ const(char)* cppTypeInfoMangleItanium(Dsymbol s)
     buf.writestring("_ZTI");    // "TI" means typeinfo structure
     scope CppMangleVisitor v = new CppMangleVisitor(&buf, s.loc);
     v.cpp_mangle_name(s, false);
+    if (v.errors)
+        fatal();
     return buf.extractChars();
 }
 
@@ -93,6 +97,8 @@ const(char)* cppThunkMangleItanium(FuncDeclaration fd, int offset)
     buf.printf("_ZThn%u_", offset);  // "Th" means thunk, "n%u" is the call offset
     scope CppMangleVisitor v = new CppMangleVisitor(&buf, fd.loc);
     v.mangle_function_encoding(fd);
+    if (v.errors)
+        fatal();
     return buf.extractChars();
 }
 
@@ -163,6 +169,7 @@ private final class CppMangleVisitor : Visitor
     Objects components;         /// array of components available for substitution
     OutBuffer* buf;             /// append the mangling to buf[]
     Loc loc;                    /// location for use in error messages
+    bool errors;                /// failed to mangle properly
 
     /**
      * Constructor
@@ -484,7 +491,8 @@ private final class CppMangleVisitor : Visitor
             else
             {
                 .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template value parameter is not supported", ti.kind, ti.toPrettyChars, tv.valType.toChars());
-                fatal();
+                errors = true;
+                return;
             }
         }
         else if (tp.isTemplateAliasParameter())
@@ -519,13 +527,13 @@ private final class CppMangleVisitor : Visitor
             else
             {
                 .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template alias parameter is not supported", ti.kind, ti.toPrettyChars, o.toChars());
-                fatal();
+                errors = true;
             }
         }
         else if (tp.isTemplateThisParameter())
         {
             .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template this parameter is not supported", ti.kind, ti.toPrettyChars, o.toChars());
-            fatal();
+            errors = true;
         }
         else
         {
@@ -574,7 +582,8 @@ private final class CppMangleVisitor : Visitor
                     if (t is null)
                     {
                         .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template value parameter is not supported", ti.kind, ti.toPrettyChars, (*ti.tiargs)[j].toChars());
-                        fatal();
+                        errors = true;
+                        return false;
                     }
                     t.accept(this);
                 }
@@ -1012,7 +1021,8 @@ private final class CppMangleVisitor : Visitor
         if (!(d.storage_class & (STC.extern_ | STC.field | STC.gshared)))
         {
             .error(d.loc, "%s `%s` internal compiler error: C++ static non-`__gshared` non-`extern` variables not supported", d.kind, d.toPrettyChars);
-            fatal();
+            errors = true;
+            return;
         }
         Dsymbol p = d.toParent();
         if (p && !p.isModule()) //for example: char Namespace1::beta[6] should be mangled as "_ZN10Namespace14betaE"
@@ -1348,7 +1358,8 @@ private final class CppMangleVisitor : Visitor
                 // Static arrays in D are passed by value; no counterpart in C++
                 .error(loc, "internal compiler error: unable to pass static array `%s` to extern(C++) function, use pointer instead",
                     t.toChars());
-                fatal();
+                errors = true;
+                return;
             }
             auto prev = this.context.push({
                     TypeFunction tf;
@@ -1386,7 +1397,7 @@ private final class CppMangleVisitor : Visitor
         else
             p = "";
         .error(loc, "internal compiler error: %stype `%s` cannot be mapped to C++\n", p, t.toChars());
-        fatal(); //Fatal, because this error should be handled in frontend
+        errors = true; //Fatal, because this error should be handled in frontend
     }
 
     /****************************
