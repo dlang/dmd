@@ -2,14 +2,15 @@ import core.runtime;
 import core.stdc.stdio;
 import core.stdc.string;
 import core.thread;
-import core.sys.posix.dlfcn;
 
 void runTest()
 {
     Object obj;
     obj = Object.factory("lib.MyFinalizer");
+    assert(obj);
     assert(obj.toString() == "lib.MyFinalizer");
     obj = Object.factory("lib.MyFinalizerBig");
+    assert(obj);
     assert(obj.toString() == "lib.MyFinalizerBig");
 }
 
@@ -32,9 +33,11 @@ extern (C) alias SetFinalizeCounter = void function(shared(size_t*));
 
 void main(string[] args)
 {
+    import utils : dllExt, loadSym;
+
     auto name = args[0] ~ '\0';
     const pathlen = strrchr(name.ptr, '/') - name.ptr + 1;
-    name = name[0 .. pathlen] ~ "lib.so";
+    name = name[0 .. pathlen] ~ "lib." ~ dllExt;
 
     auto h = Runtime.loadLibrary(name);
     assert(h !is null);
@@ -43,7 +46,8 @@ void main(string[] args)
     auto nf2 = new NoFinalizeBig;
 
     shared size_t finalizeCounter;
-    auto setFinalizeCounter = cast(SetFinalizeCounter)dlsym(h, "setFinalizeCounter");
+    SetFinalizeCounter setFinalizeCounter;
+    loadSym(h, setFinalizeCounter, "setFinalizeCounter");
     setFinalizeCounter(&finalizeCounter);
 
     runTest();

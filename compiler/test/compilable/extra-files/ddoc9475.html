@@ -417,6 +417,10 @@
         white-space: pre-wrap;
       }
 
+      .ddoc .code_lines pre {
+        display: contents;
+      }
+
       .ddoc .code_lines li:only-of-type::before {
         color: rgba(255, 255, 255, 1);
         content: " ";
@@ -548,13 +552,13 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="comment">// comment 1
+        <li><pre><code class="code"><span class="comment">// comment 1
 </span><span class="keyword">foreach</span> (i; 0 .. 10)
 {
     <span class="comment">// comment 2
 </span>    documentedFunction();
 }
-</code></li>
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -601,8 +605,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="comment">// bar comment
-</span></code></li>
+        <li><pre><code class="code"><span class="comment">// bar comment
+</span></code></pre></li>
       </ol>
     </div>
   </div>

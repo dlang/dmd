@@ -756,7 +756,7 @@ alias runCxxUnittest = makeRule!((runCxxBuilder, runCxxRule) {
         .description("Build the C++ unittests")
         .msg("(DC) CXX-UNITTEST")
         .deps([lexer(null, null), cxxFrontend])
-        .sources(sources.dmd.driver ~ sources.dmd.frontend ~ sources.root ~ sources.common)
+        .sources(sources.dmd.driver ~ sources.dmd.frontend ~ sources.root ~ sources.common ~ env["D"].buildPath("cxxfrontend.d"))
         .target(env["G"].buildPath("cxx-unittest").exeName)
         .command([ env["HOST_DMD_RUN"], "-of=" ~ exeRule.target, "-vtls", "-J" ~ env["RES"],
                     "-L-lstdc++", "-version=NoMain", "-version=NoBackend"
@@ -1200,7 +1200,15 @@ void parseEnvironment()
 
     // detect Model
     auto model = env.setDefault("MODEL", detectModel);
-    env["MODEL_FLAG"] = "-m" ~ env["MODEL"];
+    if (env.getDefault("DFLAGS", "").canFind("-mtriple", "-march"))
+    {
+        // Don't pass `-m32|64` flag when explicitly passing triple or arch.
+        env["MODEL_FLAG"] = "";
+    }
+    else
+    {
+        env["MODEL_FLAG"] = "-m" ~ env["MODEL"];
+    }
 
     // detect PIC
     version(Posix)
@@ -1529,7 +1537,7 @@ auto sourceFiles()
     }
     DmdSources dmd = {
         glue: fileArray(env["D"], "
-            dmsc.d e2ir.d iasm.d iasmdmd.d iasmgcc.d glue.d objc_glue.d
+            dmsc.d e2ir.d iasmdmd.d glue.d objc_glue.d
             s2ir.d tocsym.d toctype.d tocvdebug.d todt.d toir.d toobj.d
         "),
         driver: fileArray(env["D"], "dinifile.d dmdparams.d gluelayer.d lib.d libelf.d libmach.d libmscoff.d libomf.d
@@ -1537,16 +1545,16 @@ auto sourceFiles()
         "),
         frontend: fileArray(env["D"], "
             access.d aggregate.d aliasthis.d argtypes_x86.d argtypes_sysv_x64.d argtypes_aarch64.d arrayop.d
-            arraytypes.d astenums.d ast_node.d astcodegen.d asttypename.d attrib.d blockexit.d builtin.d canthrow.d chkformat.d
+            arraytypes.d astenums.d ast_node.d astcodegen.d asttypename.d attrib.d basicmangle.d blockexit.d builtin.d canthrow.d chkformat.d
             cli.d clone.d compiler.d cond.d constfold.d cppmangle.d cppmanglewin.d cpreprocess.d ctfeexpr.d
             ctorflow.d dcast.d dclass.d declaration.d delegatize.d denum.d dimport.d
             dinterpret.d dmacro.d dmangle.d dmodule.d doc.d dscope.d dstruct.d dsymbol.d dsymbolsem.d
-            dtemplate.d dtoh.d dversion.d escape.d expression.d expressionsem.d func.d hdrgen.d impcnvtab.d
-            imphint.d importc.d init.d initsem.d inline.d inlinecost.d intrange.d json.d lambdacomp.d
+            dtemplate.d dtoh.d dversion.d enumsem.d escape.d expression.d expressionsem.d func.d funcsem.d hdrgen.d iasm.d iasmgcc.d
+            impcnvtab.d imphint.d importc.d init.d initsem.d inline.d inlinecost.d intrange.d json.d lambdacomp.d
             mtype.d mustuse.d nogc.d nspace.d ob.d objc.d opover.d optimize.d
-            parse.d parsetimevisitor.d permissivevisitor.d postordervisitor.d printast.d rootobject.d safe.d sapply.d
+            parse.d parsetimevisitor.d permissivevisitor.d postordervisitor.d pragmasem.d printast.d rootobject.d safe.d sapply.d
             semantic2.d semantic3.d sideeffect.d statement.d statement_rewrite_walker.d
-            statementsem.d staticassert.d staticcond.d stmtstate.d target.d templateparamsem.d traits.d
+            statementsem.d staticassert.d staticcond.d stmtstate.d target.d templatesem.d templateparamsem.d traits.d
             transitivevisitor.d typesem.d typinf.d utils.d visitor.d foreachvar.d
             cparse.d
         "),
@@ -1566,8 +1574,8 @@ auto sourceFiles()
         frontendHeaders: fileArray(env["D"], "
             aggregate.h aliasthis.h arraytypes.h attrib.h compiler.h cond.h
             ctfe.h declaration.h dsymbol.h doc.h enum.h errors.h expression.h globals.h hdrgen.h
-            identifier.h id.h import.h init.h json.h mangle.h module.h mtype.h nspace.h objc.h scope.h
-            statement.h staticassert.h target.h template.h tokens.h version.h visitor.h
+            identifier.h id.h import.h init.h json.h mangle.h module.h mtype.h nspace.h objc.h rootobject.h
+            scope.h statement.h staticassert.h target.h template.h tokens.h version.h visitor.h
         "),
         lexer: fileArray(env["D"], "
             console.d entity.d errors.d errorsink.d file_manager.d globals.d id.d identifier.d lexer.d location.d tokens.d
@@ -1576,7 +1584,7 @@ auto sourceFiles()
             stringtable.d utf.d
         "),
         common: fileArray(env["COMMON"], "
-            bitfields.d file.d int128.d outbuffer.d smallbuffer.d
+            bitfields.d file.d int128.d md5.d outbuffer.d smallbuffer.d
         "),
         commonHeaders: fileArray(env["COMMON"], "
             outbuffer.h
@@ -1586,14 +1594,14 @@ auto sourceFiles()
         "),
         rootHeaders: fileArray(env["ROOT"], "
             array.h bitarray.h complex_t.h ctfloat.h dcompat.h dsystem.h filename.h longdouble.h
-            object.h optional.h port.h rmem.h root.h
+            optional.h port.h rmem.h root.h
         "),
         backend: fileArray(env["C"], "
             backend.d bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d
             dout.d inliner.d
             gloop.d compress.d cgelem.d cgcs.d ee.d cod4.d cod5.d eh.d nteh.d blockopt.d mem.d cg.d cgreg.d
             dtype.d debugprint.d fp.d symbol.d symtab.d elem.d dcode.d cgsched.d cg87.d cgxmm.d cgcod.d cod1.d cod2.d
-            cod3.d cv8.d dcgcv.d pdata.d util2.d var.d md5.d backconfig.d drtlsym.d dwarfeh.d ptrntab.d
+            cod3.d cv8.d dcgcv.d pdata.d util2.d var.d backconfig.d drtlsym.d dwarfeh.d ptrntab.d
             dvarstats.d dwarfdbginf.d cgen.d goh.d barray.d cgcse.d elpicpie.d
             machobj.d elfobj.d mscoffobj.d filespec.d cgobj.d aarray.d disasm86.d
             "
@@ -1690,7 +1698,7 @@ string detectModel()
     else
         uname = ["uname", "-m"].execute.output;
 
-    if (uname.canFind("x86_64", "amd64", "64-bit", "64-Bit", "64 bit"))
+    if (uname.canFind("x86_64", "amd64", "arm64", "64-bit", "64-Bit", "64 bit"))
         return "64";
     if (uname.canFind("i386", "i586", "i686", "32-bit", "32-Bit", "32 bit"))
         return "32";
@@ -2348,31 +2356,5 @@ void copyAndTouch(const string from, const string to)
     to.setTimes(now, now);
 }
 
-version (OSX)
-{
-    // FIXME: Parallel executions hangs reliably on Mac  (esp. the 'macair'
-    // host used by the autotester) for unknown reasons outside of this script.
-    pragma(msg, "Warning: Syncing file access because of OSX!");
-
-    // Wrap standard library functions to ensure mutually exclusive file access
-    alias readText = fileAccess!(std.file.readText, string);
-    alias writeText = fileAccess!(std.file.write, string, string);
-    alias timeLastModified = fileAccess!(std.file.timeLastModified, string);
-
-    import core.sync.mutex;
-    __gshared Mutex fileAccessMutex;
-    shared static this() {
-        fileAccessMutex = new Mutex();
-    }
-
-    auto fileAccess(alias dg, T...)(T args)
-    {
-        fileAccessMutex.lock_nothrow();
-        scope (exit) fileAccessMutex.unlock_nothrow();
-        return dg(args);
-    }
-}
-else
-{
-    alias writeText = std.file.write;
-}
+// Wrap standard library functions
+alias writeText = std.file.write;

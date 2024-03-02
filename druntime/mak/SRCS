@@ -11,6 +11,7 @@ SRCS=\
 	src\core\exception.d \
 	src\core\factory.d \
 	src\core\int128.d \
+	src\core\interpolation.d \
 	src\core\lifetime.d \
 	src\core\math.d \
 	src\core\memory.d \
@@ -175,6 +176,7 @@ SRCS=\
 	src\core\sys\freebsd\time.d \
 	src\core\sys\freebsd\unistd.d \
 	\
+	src\core\sys\freebsd\net\if_.d \
 	src\core\sys\freebsd\net\if_dl.d \
 	\
 	src\core\sys\freebsd\netinet\in_.d \

@@ -21,11 +21,15 @@ version (Posix)
 {
     import core.sys.posix.sys.stat;
     import core.sys.posix.unistd;
+    alias Statbuf = stat_t;
 }
-version (Windows)
+else version (Windows)
 {
     import core.sys.windows.stat;
+    alias Statbuf = struct_stat;
 }
+else
+    static assert(0, "unsupported operating system");
 
 import dmd.globals;
 import dmd.lib;
@@ -319,10 +323,7 @@ final class LibMSCoff : Library
         om.scan = 1;
         if (fromfile)
         {
-            version (Posix)
-                stat_t statbuf;
-            version (Windows)
-                struct_stat statbuf;
+            Statbuf statbuf;
             int i = module_name.toCStringThen!(name => stat(name.ptr, &statbuf));
             if (i == -1) // error, errno is set
                 return corrupt(__LINE__);
@@ -350,11 +351,14 @@ final class LibMSCoff : Library
                 om.user_id = uid;
                 om.group_id = gid;
             }
-            version (Windows)
+            else version (Windows)
             {
-                om.user_id = 0; // meaningless on Windows
-                om.group_id = 0;        // meaningless on Windows
+                om.user_id = 0;  // meaningless on Windows
+                om.group_id = 0; // meaningless on Windows
             }
+            else
+                static assert(0, "unsupported operating system");
+
             time_t file_time = 0;
             time(&file_time);
             om.file_time = cast(long)file_time;
@@ -645,7 +649,7 @@ struct MSCoffLibHeader
     char[MSCOFF_TRAILER_SIZE] trailer;
 }
 
-extern (C++) void MSCoffOmToHeader(MSCoffLibHeader* h, MSCoffObjModule* om)
+void MSCoffOmToHeader(MSCoffLibHeader* h, MSCoffObjModule* om)
 {
     size_t len;
     if (om.name_offset == -1)

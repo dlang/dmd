@@ -48,10 +48,12 @@ version(Windows)
     nothrow
     private extern (C) int* _errno();   // not the multi-threaded version
 }
-else
+else version (Posix)
 {
     import core.sys.posix.unistd : getcwd;
 }
+else
+    static assert(0);
 
 static if (1)
 {

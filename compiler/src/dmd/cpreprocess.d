@@ -15,7 +15,9 @@ module dmd.cpreprocess;
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
+import core.stdc.string;
 
+import dmd.astenums;
 import dmd.errors;
 import dmd.globals;
 import dmd.link;
@@ -26,42 +28,30 @@ import dmd.vsoptions;
 import dmd.common.outbuffer;
 
 import dmd.root.array;
+import dmd.root.file;
 import dmd.root.filename;
+import dmd.root.rmem;
 import dmd.root.string;
 
 // Use default for other versions
 version (Posix)   version = runPreprocessor;
 version (Windows) version = runPreprocessor;
 
-
 /***************************************
  * Preprocess C file.
  * Params:
  *      csrcfile = C file to be preprocessed, with .c or .h extension
  *      loc = The source location where preprocess is requested from
- *      ifile = set to true if an output file was written
  *      defines = buffer to append any `#define` and `#undef` lines encountered to
  * Result:
- *      filename of output
+ *      the text of the preprocessed file
  */
 extern (C++)
-FileName preprocess(FileName csrcfile, ref const Loc loc, out bool ifile, OutBuffer* defines)
+DArray!ubyte preprocess(FileName csrcfile, ref const Loc loc, ref OutBuffer defines)
 {
     /* Look for "importc.h" by searching along import path.
-     * It should be in the same place as "object.d"
      */
-    const(char)* importc_h;
-
-    foreach (entry; (global.path ? (*global.path)[] : null))
-    {
-        auto f = FileName.combine(entry, "importc.h");
-        if (FileName.exists(f) == 1)
-        {
-            importc_h = FileName.toAbsolute(f);
-            break;
-        }
-        FileName.free(f);
-    }
+    const(char)* importc_h = findImportcH(global.path[]);
 
     if (importc_h)
     {
@@ -77,31 +67,47 @@ FileName preprocess(FileName csrcfile, ref const Loc loc, out bool ifile, OutBuf
     //printf("preprocess %s\n", csrcfile.toChars());
     version (runPreprocessor)
     {
-        /*
-           To get sppn.exe: http://ftp.digitalmars.com/sppn.zip
-           To get the dmc C headers, dmc will need to be installed:
-           http://ftp.digitalmars.com/Digital_Mars_C++/Patch/dm857c.zip
-         */
-        const name = FileName.name(csrcfile.toString());
-        const ext = FileName.ext(name);
-        assert(ext);
-        const ifilename = FileName.addExt(name[0 .. name.length - (ext.length + 1)], i_ext);
         const command = global.params.cpp ? toDString(global.params.cpp) : cppCommand();
-        auto status = runPreprocessor(command, csrcfile.toString(), importc_h, global.params.cppswitches, ifilename, defines);
+        DArray!ubyte text;
+        int status = runPreprocessor(loc, command, csrcfile.toString(), importc_h, global.params.cppswitches, global.params.v.verbose, global.errorSink, defines, text);
         if (status)
-        {
-            error(loc, "C preprocess command %.*s failed for file %s, exit status %d\n",
-                cast(int)command.length, command.ptr, csrcfile.toChars(), status);
             fatal();
-        }
-        //printf("C preprocess succeeded %s\n", ifilename.ptr);
-        ifile = true;
-        return FileName(ifilename);
+        return text;
     }
     else
-        return csrcfile;        // no-op
+    {
+        return DArray!ubyte(global.fileManager.getFileContents(csrcfile));
+    }
 }
 
+
+/***************************************
+ * Find importc.h by looking along the path
+ * Params:
+ *      path = import path
+ * Returns:
+ *      importc.h file name, null if not found
+ */
+const(char)* findImportcH(const(char)*[] path)
+{
+    /* Look for "importc.h" by searching along import path.
+     * It should be in the same place as "object.d"
+     */
+    foreach (entry; path)
+    {
+        auto f = FileName.combine(entry, "importc.h");
+        if (FileName.exists(f) == 1)
+        {
+            return FileName.toAbsolute(f);
+        }
+        FileName.free(f);
+    }
+    return null;
+}
+
+/******************************************
+ * Pick the C preprocessor program to run.
+ */
 private const(char)[] cppCommand()
 {
     if (auto p = getenv("CPPCMD"))

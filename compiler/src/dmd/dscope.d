@@ -34,6 +34,7 @@ import dmd.func;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
+import dmd.importc;
 import dmd.location;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
@@ -97,6 +98,7 @@ extern (C++) struct Scope
     Dsymbol inunion;                /// != null if processing members of a union
     bool nofree;                    /// true if shouldn't free it
     bool inLoop;                    /// true if inside a loop (where constructor calls aren't allowed)
+    bool inDefaultArg;              /// true if inside a default argument (where __FILE__, etc are evaluated at the call site)
     int intypeof;                   /// in typeof(exp)
     VarDeclaration lastVar;         /// Previous symbol used to prevent goto-skips-init
     ErrorSink eSink;                /// sink for error messages

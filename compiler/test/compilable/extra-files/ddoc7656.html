@@ -417,6 +417,10 @@
         white-space: pre-wrap;
       }
 
+      .ddoc .code_lines pre {
+        display: contents;
+      }
+
       .ddoc .code_lines li:only-of-type::before {
         color: rgba(255, 255, 255, 1);
         content: " ";
@@ -542,9 +546,9 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="keyword">int</span> x; <span class="comment">// This is a $ comment (and here is some
+        <li><pre><code class="code"><span class="keyword">int</span> x; <span class="comment">// This is a $ comment (and here is some
 </span><span class="keyword">int</span> y; <span class="comment">// more information about that comment)
-</span></code></li>
+</span></code></pre></li>
       </ol>
     </div>
   </div>
@@ -593,8 +597,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="keyword">assert</span>(<span class="psymbol">add</span>(1, 1) == 2);
-</code></li>
+        <li><pre><code class="code"><span class="keyword">assert</span>(<span class="psymbol">add</span>(1, 1) == 2);
+</code></pre></li>
       </ol>
     </div>
   </div>

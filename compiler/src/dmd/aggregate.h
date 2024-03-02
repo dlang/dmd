@@ -41,7 +41,11 @@ enum class Baseok : uint8_t
     semanticdone  // all base classes semantic done
 };
 
-FuncDeclaration *search_toString(StructDeclaration *sd);
+namespace dmd
+{
+    FuncDeclaration *search_toString(StructDeclaration *sd);
+    void semanticTypeInfoMembers(StructDeclaration *sd);
+}
 
 enum class ClassKind : uint8_t
 {
@@ -234,7 +238,8 @@ struct ClassFlags
         hasTypeInfo = 0x20,
         isAbstract = 0x40,
         isCPPclass = 0x80,
-        hasDtor = 0x100
+        hasDtor = 0x100,
+        hasNameSig = 0x200,
     };
 };
 

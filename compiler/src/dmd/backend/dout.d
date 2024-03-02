@@ -16,6 +16,7 @@ module dmd.backend.dout;
 import core.stdc.stdio;
 import core.stdc.string;
 
+import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
@@ -35,18 +36,6 @@ import dmd.backend.rtlsym;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
-
-import dmd.backend.barray;
-
-version (Windows)
-{
-    extern (C)
-    {
-        int stricmp(const(char)*, const(char)*) pure nothrow @nogc;
-        int memicmp(const(void)*, const(void)*, size_t) pure nothrow @nogc;
-    }
-}
-
 
 nothrow:
 @safe:
@@ -126,7 +115,7 @@ void outdata(Symbol *s)
                 }
                 else
                 {
-                    alignOffset(CDATA, 2 << dt.DTalign);
+                    alignOffset(CDATA, 1 << dt.DTalign);
                     dt.DTabytes += objmod.data_readonly(cast(char*)dt.DTpbytes,dt.DTnbytes,&dt.DTseg);
                 }
                 break;

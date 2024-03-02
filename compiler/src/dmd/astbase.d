@@ -95,6 +95,8 @@ struct ASTBase
                 this.comment = Lexer.combineComments(this.comment.toDString(), comment.toDString(), true);
         }
 
+        alias toPrettyChars = toChars;
+
         override const(char)* toChars() const
         {
             return ident ? ident.toChars() : "__anonymous";
@@ -491,6 +493,22 @@ struct ASTBase
         {
             this.level = level;
             this.loc = loc;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class CAsmDeclaration : Dsymbol
+    {
+        Expression code;
+
+        extern (D) this(Expression e)
+        {
+            super();
+            this.code = e;
         }
 
         override void accept(Visitor v)
@@ -1694,6 +1712,7 @@ struct ASTBase
 
     extern (C++) final class Parameter : ASTNode
     {
+        Loc loc;
         StorageClass storageClass;
         Type type;
         Identifier ident;
@@ -1702,7 +1721,7 @@ struct ASTBase
 
         extern (D) alias ForeachDg = int delegate(size_t idx, Parameter param);
 
-        final extern (D) this(StorageClass storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl)
+        final extern (D) this(const ref Loc loc, StorageClass storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl)
         {
             this.storageClass = storageClass;
             this.type = type;
@@ -1775,7 +1794,7 @@ struct ASTBase
 
         Parameter syntaxCopy()
         {
-            return new Parameter(storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null, userAttribDecl ? userAttribDecl.syntaxCopy(null) : null);
+            return new Parameter(loc, storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null, userAttribDecl ? userAttribDecl.syntaxCopy(null) : null);
         }
 
         override void accept(Visitor v)
@@ -2389,6 +2408,7 @@ struct ASTBase
     extern (C++) class AsmStatement : Statement
     {
         Token* tokens;
+        bool caseSensitive;
 
         extern (D) this(const ref Loc loc, Token* tokens)
         {
@@ -2543,6 +2563,23 @@ struct ASTBase
             this.ident = id;
             this.handler = handler;
         }
+    }
+
+    /************************************
+     * Convert MODxxxx to STCxxx
+     */
+    static StorageClass ModToStc(uint mod) pure nothrow @nogc @safe
+    {
+        StorageClass stc = 0;
+        if (mod & MODFlags.immutable_)
+            stc |= STC.immutable_;
+        if (mod & MODFlags.const_)
+            stc |= STC.const_;
+        if (mod & MODFlags.wild)
+            stc |= STC.wild;
+        if (mod & MODFlags.shared_)
+            stc |= STC.shared_;
+        return stc;
     }
 
     extern (C++) abstract class Type : ASTNode
@@ -3681,7 +3718,7 @@ struct ASTBase
                     Expression e = (*exps)[i];
                     if (e.type.ty == Ttuple)
                         e.error("cannot form sequence of sequences");
-                    auto arg = new Parameter(STC.undefined_, e.type, null, null, null);
+                    auto arg = new Parameter(e.loc, STC.undefined_, e.type, null, null, null);
                     (*arguments)[i] = arg;
                 }
             }
@@ -4576,6 +4613,7 @@ struct ASTBase
             inout(SuperExp)     isSuperExp() { return op == EXP.super_ ? cast(typeof(return))this : null; }
             inout(NullExp)      isNullExp() { return op == EXP.null_ ? cast(typeof(return))this : null; }
             inout(StringExp)    isStringExp() { return op == EXP.string_ ? cast(typeof(return))this : null; }
+            inout(InterpExp)    isInterpExp() { return op == EXP.interpolated ? cast(typeof(return))this : null; }
             inout(TupleExp)     isTupleExp() { return op == EXP.tuple ? cast(typeof(return))this : null; }
             inout(ArrayLiteralExp) isArrayLiteralExp() { return op == EXP.arrayLiteral ? cast(typeof(return))this : null; }
             inout(AssocArrayLiteralExp) isAssocArrayLiteralExp() { return op == EXP.assocArrayLiteral ? cast(typeof(return))this : null; }
@@ -4908,6 +4946,25 @@ struct ASTBase
         }
     }
 
+    extern (C++) final class InterpExp : Expression
+    {
+        InterpolatedSet* interpolatedSet;
+        char postfix = 0;   // 'c', 'w', 'd'
+
+        extern (D) this(const ref Loc loc, InterpolatedSet* interpolatedSet, char postfix = 0)
+        {
+            super(loc, EXP.interpolated, __traits(classInstanceSize, InterpExp));
+            this.interpolatedSet = interpolatedSet;
+            this.postfix = postfix;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+
     extern (C++) final class StringExp : Expression
     {
         union
@@ -4919,6 +4976,9 @@ struct ASTBase
         size_t len;         // number of code units
         ubyte sz = 1;       // 1: char, 2: wchar, 4: dchar
         char postfix = 0;   // 'c', 'w', 'd'
+
+        /// If the string is parsed from a hex string literal
+        bool hexString = false;
 
         extern (D) this(const ref Loc loc, const(void)[] string)
         {
@@ -6819,7 +6879,7 @@ struct ASTBase
         }
     }
 
-    static bool stcToBuffer(OutBuffer* buf, StorageClass stc)
+    static bool stcToBuffer(ref OutBuffer buf, StorageClass stc)
     {
         bool result = false;
         if ((stc & (STC.return_ | STC.scope_)) == (STC.return_ | STC.scope_))

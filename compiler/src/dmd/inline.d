@@ -30,6 +30,7 @@ import dmd.dtemplate;
 import dmd.expression;
 import dmd.errors;
 import dmd.func;
+import dmd.funcsem;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
@@ -42,6 +43,7 @@ import dmd.printast;
 import dmd.postordervisitor;
 import dmd.statement;
 import dmd.tokens;
+import dmd.typesem : pointerTo, sarrayOf;
 import dmd.visitor;
 import dmd.inlinecost;
 
@@ -1734,7 +1736,7 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
     {
         if (!fd.fbody)
             return false;
-        if (!fd.functionSemantic3())
+        if (!functionSemantic3(fd))
             return false;
         Module.runDeferredSemantic3();
         if (global.errors)

@@ -27,7 +27,7 @@ import dmd.mtype;
  *      A tuple of zero length means the type cannot be passed/returned in registers.
  *      null indicates a `void`.
  */
-extern (C++) TypeTuple toArgTypes_aarch64(Type t)
+TypeTuple toArgTypes_aarch64(Type t)
 {
     if (t == Type.terror)
         return new TypeTuple(t);
@@ -64,7 +64,9 @@ extern (C++) TypeTuple toArgTypes_aarch64(Type t)
         case 2:  return Type.tint16;
         case 4:  return Type.tint32;
         case 8:  return Type.tint64;
-        default: return Type.tint64.sarrayOf((size + 7) / 8);
+        default:
+            import dmd.typesem : sarrayOf;
+            return Type.tint64.sarrayOf((size + 7) / 8);
         }
     }
     return new TypeTuple(getGPType(size));
@@ -82,7 +84,7 @@ extern (C++) TypeTuple toArgTypes_aarch64(Type t)
  * If the type is an HFVA and `rewriteType` is specified, it is set to a
  * corresponding static array type.
  */
-extern (C++) bool isHFVA(Type t, int maxNumElements = 4, Type* rewriteType = null)
+bool isHFVA(Type t, int maxNumElements = 4, Type* rewriteType = null)
 {
     t = t.toBasetype();
     if ((t.ty != Tstruct && t.ty != Tsarray && !t.iscomplex()) || !isPOD(t))
@@ -93,6 +95,7 @@ extern (C++) bool isHFVA(Type t, int maxNumElements = 4, Type* rewriteType = nul
     if (N < 1 || N > maxNumElements)
         return false;
 
+    import dmd.typesem : sarrayOf;
     if (rewriteType)
         *rewriteType = fundamentalType.sarrayOf(N);
 

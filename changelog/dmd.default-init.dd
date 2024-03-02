@@ -1,0 +1,44 @@
+Keywords like `__FILE__` are always evaluated at the call site
+
+Default arguments for functions can contain the keywords `__FILE__`,
+`__FILE_FULL_PATH__`, `__MODULE__`, `__LINE__`, `__FUNCTION__`
+and `__PRETTY_FUNCTION__`. They are now evaluated at the source location
+of the calling function in more complex expressions as long as used in
+an initializer, directly or not. Previously they had to be used directly
+in the initializer to be evaluated at the call site. Here are some
+examples, where more complex initializers are now evaluated at the
+call site:
+
+---
+void func1(const(char)* file = __FILE__.ptr, size_t line = __LINE__)
+{
+    // This now prints the filename of the calling function.
+    // Previously it was the filename of func1 itself.
+    printf("%s:%zd\n", file, line);
+}
+
+struct Loc
+{
+   string file;
+   size_t line;
+}
+
+void func2(Loc loc = Loc(__FILE__, __LINE__))
+{
+    // Variable loc now contains file and line of the calling function.
+    // Previously it was the location of func2.
+    writeln(loc.file, ":", loc.line);
+}
+
+Loc defaultLoc(string file = __FILE__, size_t line = __LINE__)
+{
+    return Loc(file, line);
+}
+
+void func3(Loc loc = defaultLoc)
+{
+    // Variable loc contains file and line of the calling function of
+    // func3 and not the location of func3 or defaultLoc.
+    writeln(loc.file, ":", loc.line);
+}
+---

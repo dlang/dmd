@@ -418,6 +418,10 @@ compilable/ddoc_markdown_quote_verbose.d(11): Ddoc: starting quote block with '>
         white-space: pre-wrap;
       }
 
+      .ddoc .code_lines pre {
+        display: contents;
+      }
+
       .ddoc .code_lines li:only-of-type::before {
         color: rgba(255, 255, 255, 1);
         content: " ";

@@ -661,7 +661,7 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
     {
         import dmd.root.filename : FileName;
         const fileName = FileName(loc.filename.toDString);
-        if (auto text = global.fileManager.lookup(fileName))
+        if (auto text = global.fileManager.getFileContents(fileName))
         {
             auto range = global.fileManager.splitLines(cast(const(char[])) text);
             size_t linnum;

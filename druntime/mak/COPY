@@ -17,6 +17,7 @@ COPY=\
 	$(IMPDIR)\core\exception.d \
 	$(IMPDIR)\core\factory.d \
 	$(IMPDIR)\core\int128.d \
+	$(IMPDIR)\core\interpolation.d \
 	$(IMPDIR)\core\lifetime.d \
 	$(IMPDIR)\core\math.d \
 	$(IMPDIR)\core\memory.d \
@@ -178,6 +179,7 @@ COPY=\
 	$(IMPDIR)\core\sys\freebsd\time.d \
 	$(IMPDIR)\core\sys\freebsd\unistd.d \
 	\
+	$(IMPDIR)\core\sys\freebsd\net\if_.d \
 	$(IMPDIR)\core\sys\freebsd\net\if_dl.d \
 	\
 	$(IMPDIR)\core\sys\freebsd\netinet\in_.d \

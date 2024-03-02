@@ -138,6 +138,7 @@ extern(C++) class StrictVisitor(AST) : ParseTimeVisitor!AST
     override void visit(AST.TypeidExp) { assert(0); }
     override void visit(AST.TraitsExp) { assert(0); }
     override void visit(AST.StringExp) { assert(0); }
+    override void visit(AST.InterpExp) { assert(0); }
     override void visit(AST.NewExp) { assert(0); }
     override void visit(AST.AssocArrayLiteralExp) { assert(0); }
     override void visit(AST.ArrayLiteralExp) { assert(0); }

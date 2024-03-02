@@ -6,7 +6,7 @@ expect_file=${EXTRA_FILES}/${TEST_NAME}.out
 obj_file=${OUTPUT_BASE}_0.o
 
 echo Creating objdump
-objdump --disassemble --disassembler-options=intel-mnemonic "${obj_file}" > "${obj_file}.dump"
+objdump --disassemble --disassembler-options=intel "${obj_file}" > "${obj_file}.dump"
 
 echo SANITIZING Objdump...
 < "${obj_file}.dump" \

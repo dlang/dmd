@@ -33,7 +33,7 @@ import dmd.visitor;
  *      A tuple of zero length means the type cannot be passed/returned in registers.
  *      null indicates a `void`.
  */
-extern (C++) TypeTuple toArgTypes_x86(Type t)
+TypeTuple toArgTypes_x86(Type t)
 {
     extern (C++) final class ToArgTypes : Visitor
     {

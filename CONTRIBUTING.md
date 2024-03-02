@@ -90,6 +90,35 @@ program, add enhancements, or fix bugs.
 - Pull requests that do non-trivial refactorings should not include other changes, such as new feature or bug fix.
    While submitting multiple dependent pull requests can be done to help the reviewers judge of the need for a refactoring, any refactoring will be assessed on its own merit.
 
+## Refactoring the DMD AST
+
+This guide is tailored for contributors who are interested in assisting with a task crucial to the evolution of the D programming language compiler (DMD): the refactoring of AST (Abstract Syntax Tree) node definitions. This initiative aims to reduce the complex dependencies of AST nodes on semantic analysis functions, a vital step towards making DMD more modular and library-friendly.
+
+### The Task at Hand
+
+In the DMD compiler codebase, AST nodes are defined as classes within various files. The ideal structure for these nodes is to have minimal fields and methods focused solely on field queries. However, the current state of the DMD frontend deviates from this ideal. AST nodes are laden with numerous methods that either perform or are dependent on semantic analysis. Furthermore, many AST node files contain free functions related to semantic analysis. Our objective is to decouple AST nodes from these functions, both directly and indirectly.
+
+### How You Can Help
+
+1. **Choose an AST Node File**: Start by selecting a file from [this list of AST node definition files](https://github.com/orgs/dlang/projects/41).
+2. **Examine Imports**: Open your chosen file and scrutinize the top-level imports.
+3. **Isolate Semantic Imports**: Temporarily comment out one of the imports that includes semantic routines, particularly those ending in `sem` (e.g., `dsymbolsem`, `expressionsem`, etc.).
+4. **Build and Identify Dependencies**: Compile DMD and observe any unresolved symbols that emerge.
+5. **Relocate Functions**: Shift the functions reliant on the unresolved symbols to the semantic file where the import was commented out.
+6. **Move and Test a Function**: Select a function for relocation and ensure it functions correctly in its new location.
+7. **Submit a Pull Request**: Once you're satisfied with the changes, create a PR.
+8. **Celebrate Your Contribution**: Take pride in being a part of this significant compiler development effort!
+
+An illustrative example of these steps is shown in [this pull request](https://github.com/dlang/dmd/pull/15755).
+
+Please note that additional steps such as updating C++ headers may be required in certain cases. Be prepared for further requests during the PR review process.
+
+### Addressing More Complex Scenarios
+
+Sometimes, more intricate solutions are required. For instance, if an overridden method in an AST node calls a semantic function, it can't be simply relocated. In these cases, using a visitor to collate all overrides, along with the original method, into the appropriate semantic file is the way forward. A notable instance of this approach is detailed in [this pull request](https://github.com/dlang/dmd/pull/15782).
+
+Other complex scenarios may arise, especially when dealing with AST nodes that interact with the backend. This guide is intended to jumpstart your contributions. As you delve deeper, you'll encounter and learn to navigate these complexities. Remember, Razvan Nitu (@RazvanN7) is available to assist at every stage, so don't hesitate to reach out for guidance.
+
 
 ## DMD Best Practices
 

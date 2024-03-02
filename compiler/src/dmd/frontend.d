@@ -142,6 +142,7 @@ void initDMD(
     versionIdentifiers.each!(VersionCondition.addGlobalIdent);
 
     target.os = defaultTargetOS();
+    target.isX86_64 = (size_t.sizeof == 8);
     target._init(global.params);
     Type._init();
     Id.initialize();
@@ -203,9 +204,6 @@ void addImport(const(char)[] path)
     import dmd.arraytypes : Strings;
     import std.string : toStringz;
 
-    if (global.path is null)
-        global.path = new Strings();
-
     global.path.push(path.toStringz);
 }
 
@@ -220,9 +218,6 @@ void addStringImport(const(char)[] path)
 
     import dmd.globals : global;
     import dmd.arraytypes : Strings;
-
-    if (global.filePath is null)
-        global.filePath = new Strings();
 
     global.filePath.push(path.toStringz);
 }

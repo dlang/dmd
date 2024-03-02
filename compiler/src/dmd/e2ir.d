@@ -39,7 +39,7 @@ import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.expression;
 import dmd.func;
-import dmd.globals;
+import dmd.globals : CHECKENABLE, CHECKACTION;
 import dmd.glue;
 import dmd.hdrgen;
 import dmd.id;
@@ -58,6 +58,7 @@ import dmd.toir;
 import dmd.tokens;
 import dmd.toobj;
 import dmd.typinf;
+import dmd.typesem;
 import dmd.visitor;
 
 import dmd.backend.cc;
@@ -83,25 +84,18 @@ import dmd.backend.util2 : mem_malloc2;
 
 private int registerSize() { return _tysize[TYnptr]; }
 
-/* If variable var is a reference
- */
-bool ISREF(Declaration var)
-{
-    if (var.isReference())
-    {
-        return true;
-    }
-
-    return ISX64REF(var);
-}
-
-/* If variable var of type typ is a reference due to x64 calling conventions
+/*****
+ * If variable var is a value that will actually be passed as a reference
+ * Params:
+ *      var = parameter variable
+ * Returns:
+ *      true if actually implicitly passed by reference
  */
 bool ISX64REF(Declaration var)
 {
     if (var.isReference())
     {
-        return false;
+        return false; // it's not a value
     }
 
     if (var.isParameter())
@@ -235,7 +229,7 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
             void printHash()
             {
                 // Replace long string with hash of that string
-                import dmd.backend.md5;
+                import dmd.common.md5;
                 MD5_CTX mdContext = void;
                 MD5Init(&mdContext);
                 MD5Update(&mdContext, cast(ubyte*)str, cast(uint)(len * sz));
@@ -705,7 +699,7 @@ elem* toElem(Expression e, ref IRState irs)
                 e = el_bin(OPadd, TYnptr, ethis, el_long(TYnptr, soffset));
                 if (se.op == EXP.variable)
                     e = el_una(OPind, TYnptr, e);
-                if (ISREF(se.var) && !(ISX64REF(se.var) && v && v.offset && !forceStackAccess))
+                if ((se.var.isReference() || ISX64REF(se.var)) && !(ISX64REF(se.var) && v && v.offset && !forceStackAccess))
                     e = el_una(OPind, s.Stype.Tty, e);
                 else if (se.op == EXP.symbolOffset && nrvo)
                 {
@@ -730,7 +724,7 @@ elem* toElem(Expression e, ref IRState irs)
                     e.ET = Type_toCtype(se.type);
                 elem_setLoc(e, se.loc);
             }
-            if (ISREF(se.var) && !ISX64REF(se.var))
+            if (se.var.isReference())
             {
                 e.Ety = TYnptr;
                 e = el_una(OPind, s.Stype.Tty, e);
@@ -766,7 +760,7 @@ elem* toElem(Expression e, ref IRState irs)
                 e = el_una(OPind,s.Stype.Tty,e);
             }
         }
-        else if (ISREF(se.var))
+        else if (se.var.isReference() || ISX64REF(se.var))
         {
             // Out parameters are really references
             e = el_var(s);
@@ -1154,7 +1148,7 @@ elem* toElem(Expression e, ref IRState irs)
             }
             else
             {
-                assert(!(global.params.ehnogc && ne.thrownew),
+                assert(!(irs.params.ehnogc && ne.thrownew),
                     "This should have been rewritten to `_d_newThrowable` in the semantic phase.");
 
                 ex = toElem(ne.lowering, irs);
@@ -1499,8 +1493,8 @@ elem* toElem(Expression e, ref IRState irs)
 
             // If e1 is a class object, call the class invariant on it
             if (irs.params.useInvariants == CHECKENABLE.on && t1.ty == Tclass &&
-                !(cast(TypeClass)t1).sym.isInterfaceDeclaration() &&
-                !(cast(TypeClass)t1).sym.isCPPclass())
+                !t1.isTypeClass().sym.isInterfaceDeclaration() &&
+                !t1.isTypeClass().sym.isCPPclass())
             {
                 ts = symbol_genauto(Type_toCtype(t1));
                 einv = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.DINVARIANT)), el_var(ts));
@@ -1508,7 +1502,7 @@ elem* toElem(Expression e, ref IRState irs)
             else if (irs.params.useInvariants == CHECKENABLE.on &&
                 t1.ty == Tpointer &&
                 t1.nextOf().ty == Tstruct &&
-                (inv = (cast(TypeStruct)t1.nextOf()).sym.inv) !is null)
+                (inv = t1.nextOf().isTypeStruct().sym.inv) !is null)
             {
                 // If e1 is a struct object, call the struct invariant on it
                 ts = symbol_genauto(Type_toCtype(t1));
@@ -3406,7 +3400,7 @@ elem* toElem(Expression e, ref IRState irs)
                 {   Expression arg = (*arguments)[0];
                     arg = arg.optimize(WANTvalue);
                     if (arg.isConst() && arg.type.isintegral())
-                    {   dinteger_t sz = arg.toInteger();
+                    {   const sz = arg.toInteger();
                         if (sz > 0 && sz < 0x40000)
                         {
                             // It's an alloca(sz) of a fixed amount.
@@ -3881,6 +3875,7 @@ elem* toElem(Expression e, ref IRState irs)
             // If se is in left side operand of element-wise
             // assignment, the element type can be painted to the base class.
             int offset;
+            import dmd.typesem : isBaseOf;
             assert(t1.nextOf().equivalent(tb.nextOf()) ||
                    tb.nextOf().isBaseOf(t1.nextOf(), &offset) && offset == 0);
         }
@@ -4654,9 +4649,52 @@ elem *toElemCast(CastExp ce, elem *e, bool isLvalue, ref IRState irs)
              *  - class     => foreign interface (cross cast)
              *  - interface => base or foreign interface (cross cast)
              */
-            const rtl = cdfrom.isInterfaceDeclaration()
+            auto rtl = cdfrom.isInterfaceDeclaration()
                         ? RTLSYM.INTERFACE_CAST
                         : RTLSYM.DYNAMIC_CAST;
+
+            /* Check for:
+             *  class A { }
+             *  final class B : A { }
+             *  ... cast(B) A ...
+             */
+            if (rtl == RTLSYM.DYNAMIC_CAST &&
+                cdto.storage_class & STC.final_ &&
+                cdto.baseClass == cdfrom &&
+                (!cdto.interfaces || cdto.interfaces.length == 0) &&
+                (!cdfrom.interfaces || cdfrom.interfaces.length == 0))
+            {
+                /* do shortcut cast: if e is an instance of B, then it's just a type paint
+                 */
+                //printf("cdfrom: %s cdto: %s\n", cdfrom.toChars(), cdto.toChars());
+                rtl = RTLSYM.PAINT_CAST;
+            }
+            else if (rtl == RTLSYM.DYNAMIC_CAST &&
+                     !cdto.isInterfaceDeclaration())
+            {
+                //printf("cdfrom: %s cdto: %s\n", cdfrom.toChars(), cdto.toChars());
+                int level = 0;
+                auto b = cdto;
+                while (1)
+                {
+                    if (b == cdfrom)
+                        break;
+                    b = b.baseClass;
+                    if (!b)
+                    {
+                        // did not find cdfrom, so cast fails, return null
+                        e = el_long(TYnptr, 0);
+                        return Lret(ce, e);
+                    }
+                    ++level;
+                }
+                if (level == 0)
+                {
+                    return Lret(ce, e); // cast to self
+                }
+                // _d_class_cast(e, cdto);
+                rtl = RTLSYM.CLASS_CAST;
+            }
             elem *ep = el_param(el_ptr(toExtSymbol(cdto)), e);
             e = el_bin(OPcall, TYnptr, el_var(getRtlsym(rtl)), ep);
         }
@@ -6106,7 +6144,7 @@ elem *sarray_toDarray(const ref Loc loc, Type tfrom, Type tto, elem *e)
     //printf("sarray_toDarray()\n");
     //elem_print(e);
 
-    dinteger_t dim = (cast(TypeSArray)tfrom).dim.toInteger();
+    auto dim = tfrom.isTypeSArray().dim.toInteger();
 
     if (tto)
     {
@@ -6712,7 +6750,7 @@ elem *toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol *sym
 
 elem *appendDtors(ref IRState irs, elem *er, size_t starti, size_t endi)
 {
-    //printf("appendDtors(%d .. %d)\n", starti, endi);
+    //printf("appendDtors(%d .. %d)\n", cast(int)starti, cast(int)endi);
 
     /* Code gen can be improved by determining if no exceptions can be thrown
      * between the OPdctor and OPddtor, and eliminating the OPdctor and OPddtor.

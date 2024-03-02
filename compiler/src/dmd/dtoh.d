@@ -30,6 +30,7 @@ import dmd.location;
 import dmd.root.filename;
 import dmd.visitor;
 import dmd.tokens;
+import dmd.typesem;
 
 import dmd.common.outbuffer;
 import dmd.utils;
@@ -53,7 +54,7 @@ import dmd.utils;
  *  - ignored declarations are mentioned in a comment if `global.params.doCxxHdrGeneration`
  *    is set to `CxxHeaderMode.verbose`
  */
-extern(C++) void genCppHdrFiles(ref Modules ms)
+void genCppHdrFiles(ref Modules ms)
 {
     initialize();
 
@@ -777,6 +778,17 @@ public:
                         fd.toPrettyChars(), fparam.type.toChars());
                 return checkFunctionNeedsPlaceholder(fd);
             }
+        }
+
+        if (tf && tf.next)
+        {
+            // Ensure return type is declared before a function that returns that is declared.
+            if (auto sty = tf.next.isTypeStruct())
+                ensureDeclared(sty.sym);
+            //else if (auto cty = tf.next.isTypeClass())
+            //    includeSymbol(cty.sym); // classes are returned by pointer only need to forward declare
+            //else if (auto ety = tf.next.isTypeEnum())
+            //    ensureDeclared(ety.sym);
         }
 
         writeProtection(fd.visibility.kind);

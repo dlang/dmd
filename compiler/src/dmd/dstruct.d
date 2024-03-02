@@ -48,7 +48,7 @@ import dmd.visitor;
  * Returns:
  *   FuncDeclaration of `toString()` if found, `null` if not
  */
-extern (C++) FuncDeclaration search_toString(StructDeclaration sd)
+FuncDeclaration search_toString(StructDeclaration sd)
 {
     Dsymbol s = search_function(sd, Id.tostring);
     FuncDeclaration fd = s ? s.isFuncDeclaration() : null;
@@ -616,7 +616,7 @@ bool _isZeroInit(Expression exp)
 
             foreach (i; 0 .. se.len)
             {
-                if (se.getCodeUnit(i))
+                if (se.getIndex(i) != 0)
                     return false;
             }
             return true;

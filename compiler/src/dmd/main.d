@@ -55,6 +55,7 @@ import dmd.location;
 import dmd.mars;
 import dmd.mtype;
 import dmd.objc;
+import dmd.root.env;
 import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.man;
@@ -155,6 +156,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     Strings files;
     Strings libmodules;
     global._init();
+    target.setTargetBuildDefaults();
 
     if (parseCommandlineAndConfig(argc, argv, params, files))
         return EXIT_FAILURE;
@@ -310,23 +312,16 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     // Build import search path
 
-    static Strings* buildPath(Strings* imppath)
+    static void buildPath(ref Strings imppath, ref Strings result)
     {
-        Strings* result = null;
-        if (imppath)
+        foreach (const path; imppath)
         {
-            foreach (const path; *imppath)
+            Strings* a = FileName.splitPath(path);
+            if (a)
             {
-                Strings* a = FileName.splitPath(path);
-                if (a)
-                {
-                    if (!result)
-                        result = new Strings();
-                    result.append(a);
-                }
+                result.append(a);
             }
         }
-        return result;
     }
 
     if (params.mixinOut.doOutput)
@@ -335,8 +330,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         atexit(&flushMixins); // see comment for flushMixins
     }
     scope(exit) flushMixins();
-    global.path = buildPath(params.imppath);
-    global.filePath = buildPath(params.fileImppath);
+    buildPath(params.imppath, global.path);
+    buildPath(params.fileImppath, global.filePath);
 
     // Create Modules
     Modules modules = createModules(files, libmodules, target);
@@ -561,7 +556,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
 
     printCtfePerformanceStats();
-    printTemplateStats();
+    printTemplateStats(global.params.v.templatesListInstances, global.errorSink);
 
     // Generate output files
     if (params.json.doOutput)
@@ -634,12 +629,13 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     else
     {
         if (driverParams.link)
-            status = runLINK();
+            status = runLINK(global.params.v.verbose, global.errorSink);
         if (params.run)
         {
             if (!status)
             {
-                status = runProgram();
+                restoreEnvVars();
+                status = runProgram(global.params.exefile, global.params.runargs[], global.params.v.verbose, global.errorSink);
                 /* Delete .obj files and .exe file
                  */
                 foreach (m; modules)

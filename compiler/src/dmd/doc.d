@@ -382,7 +382,7 @@ immutable ddoc_decl_dd_e = ")\n";
  *      outbuf = append the Ddoc text to this
  */
 public
-extern(C++) void gendocfile(Module m, const char* ddoctext_ptr, size_t ddoctext_length, const char* datetime, ErrorSink eSink, ref OutBuffer outbuf)
+void gendocfile(Module m, const char* ddoctext_ptr, size_t ddoctext_length, const char* datetime, ErrorSink eSink, ref OutBuffer outbuf)
 {
     gendocfile(m, ddoctext_ptr[0 .. ddoctext_length], datetime, eSink, outbuf);
 }
@@ -1355,6 +1355,7 @@ void toDocBuffer(Dsymbol s, ref OutBuffer buf, Scope* sc)
             {
                 if (type.ty == Tclass || type.ty == Tstruct || type.ty == Tenum)
                 {
+                    import dmd.typesem : toDsymbol;
                     if (Dsymbol s = type.toDsymbol(null)) // elaborate type
                         prettyPrintDsymbol(s, ad.parent);
                     else
@@ -5203,6 +5204,7 @@ void highlightCode2(Scope* sc, Dsymbols* a, ref OutBuffer buf, size_t offset)
             highlight = "$(D_COMMENT ";
             break;
         case TOK.string_:
+        case TOK.interpolated:
             highlight = "$(D_STRING ";
             break;
         default:
@@ -5215,7 +5217,7 @@ void highlightCode2(Scope* sc, Dsymbols* a, ref OutBuffer buf, size_t offset)
             res.writestring(highlight);
             size_t o = res.length;
             highlightCode3(sc, res, tok.ptr, lex.p);
-            if (tok.value == TOK.comment || tok.value == TOK.string_)
+            if (tok.value == TOK.comment || tok.value == TOK.string_ || tok.value == TOK.interpolated)
                 /* https://issues.dlang.org/show_bug.cgi?id=7656
                  * https://issues.dlang.org/show_bug.cgi?id=7715
                  * https://issues.dlang.org/show_bug.cgi?id=10519

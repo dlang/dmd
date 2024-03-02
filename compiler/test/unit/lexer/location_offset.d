@@ -515,6 +515,7 @@ enum ignoreTokens
     showCtfeContext,
     objcClassReference,
     vectorArray,
+    interpolated,
 
     wchar_tLiteral,
     endOfLine,

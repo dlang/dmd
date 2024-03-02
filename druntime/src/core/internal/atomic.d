@@ -609,7 +609,7 @@ else version (GNU)
     import gcc.builtins;
     import gcc.config;
 
-    enum IsAtomicLockFree(T) = __atomic_is_lock_free(T.sizeof, null);
+    enum IsAtomicLockFree(T) = __traits(compiles, { enum E = __atomic_is_lock_free(T.sizeof, null); });
 
     inout(T) atomicLoad(MemoryOrder order = MemoryOrder.seq, T)(inout(T)* src) pure nothrow @nogc @trusted
         if (CanCAS!T)
@@ -742,7 +742,7 @@ else version (GNU)
     }
 
     T atomicExchange(MemoryOrder order = MemoryOrder.seq, bool result = true, T)(T* dest, T value) pure nothrow @nogc @trusted
-        if (is(T : ulong) || is(T == class) || is(T == interface) || is(T U : U*))
+        if (CanCAS!T)
     {
         static assert(order != MemoryOrder.acq, "Invalid MemoryOrder for atomicExchange()");
 
