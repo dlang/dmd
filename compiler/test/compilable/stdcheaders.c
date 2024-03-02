@@ -66,8 +66,10 @@ float x = NAN;
 #ifndef __DMC__ // no tgmath.h
 #ifndef _MSC_VER // C:\Program Files (x86)\Windows Kits\10\include\10.0.22621.0\ucrt\tgmath.h(33): Error: no type for declarator before `)`
 #ifndef __APPLE__ // /Applications/Xcode-14.2.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/tgmath.h(39): Error: named parameter required before `...`
+#ifndef __OpenBSD__ // /usr/lib/clang/13.0.0/include/tgmath.h(34): Error: named parameter required before `...`
 #if !(defined(__linux__) && defined(__aarch64__)) // /tmp/clang/lib/clang/15.0.3/include/tgmath.h(34): Error: named parameter required before `...`
 #include <tgmath.h>
+#endif
 #endif
 #endif
 #endif
@@ -76,8 +78,10 @@ float x = NAN;
 #ifndef __DMC__
 #ifndef __linux__
 #ifndef __APPLE__
+#ifndef __OpenBSD__
 #ifndef _MSC_VER
 #include <threads.h>
+#endif
 #endif
 #endif
 #endif
