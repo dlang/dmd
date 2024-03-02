@@ -15,6 +15,7 @@ $(TOC Table of Contents,
         $(TOC_LISTING $(ITEMIZE
                 $(A intro.html, Introduction),
                 $(A lex.html, Lexical),
+                $(A istring.html, Interpolation Expression Sequence),
                 $(A grammar.html, Grammar),
                 $(A module.html, Modules),
                 $(A declaration.html, Declarations),

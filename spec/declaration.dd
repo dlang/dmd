@@ -411,23 +411,49 @@ void main()
 
 $(H3 $(LNAME2 alias-variable, Aliasing Variables))
 
-        $(P Aliases cannot be used for expressions:)
+        $(P Variables can be aliased, expressions cannot:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+-----------
+int i = 0;
+alias a = i; // OK
+alias b = a; // alias a variable alias
+a++;
+b++;
+assert(i == 2);
+
+//alias c = i * 2; // error
+//alias d = i + i; // error
+-----------
+)
+
+        $(P Members of an aggregate can be aliased, however non-static
+        field aliases cannot be accessed outside their parent type.)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 -----------
 struct S
 {
-    static int i;
-    static int j;
+    static int i = 0;
+    int j;
+    alias a = j; // OK
+
+    void inc() { a++; }
 }
 
-alias a = S.i; // OK, `S.i` is a symbol
-alias b = S.j; // OK. `S.j` is also a symbol
-//alias c = a + b; // illegal, `a + b` is an expression
-a = 2;         // sets `S.i` to `2`
-b = 4;         // sets `S.j` to `4`
-assert(S.i == 2);
-assert(S.j == 4);
+alias a = S.i; // OK
+a++;
+assert(S.i == 1);
+
+alias b = S.j; // allowed
+static assert(b.offsetof == 0);
+//b++;   // error, no instance of S
+//S.a++; // error, no instance of S
+
+S s = S(5);
+s.inc();
+assert(s.j == 6);
+//alias c = s.j; // scheduled for deprecation
 -----------
 )
 
@@ -863,5 +889,5 @@ $(SPEC_SUBNAV_PREV_NEXT module, Modules, type, Types)
 
 
 Macros:
-        CHAPTER=5
+        CHAPTER=6
         TITLE=Declarations

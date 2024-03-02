@@ -276,6 +276,6 @@ $(SPEC_SUBNAV_PREV_NEXT windows, Windows Programming, legacy, Legacy Code)
 )
 
 Macros:
-        CHAPTER=44
+        CHAPTER=45
         TITLE=Glossary
     D=<span class="d_inlinecode">$0</span>

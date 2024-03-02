@@ -87,5 +87,5 @@ $(SPEC_SUBNAV_PREV_NEXT entity, Named Character Entities, abi, Application Binar
 )
 
 Macros:
-    CHAPTER=37
+    CHAPTER=38
         TITLE=Memory-Safe-D-Spec

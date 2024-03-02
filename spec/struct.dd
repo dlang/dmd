@@ -2353,7 +2353,7 @@ $(SPEC_SUBNAV_PREV_NEXT hash-map, Associative Arrays, class, Classes)
 )
 
 Macros:
-        CHAPTER=14
+        CHAPTER=15
         TITLE=Structs, Unions
         UNCHECK=
         CHECK=$(CHECKMARK)

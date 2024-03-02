@@ -731,6 +731,6 @@ $(SPEC_SUBNAV_PREV_NEXT grammar, Grammar, declaration, Declarations)
 )
 
 Macros:
-    CHAPTER=4
+    CHAPTER=5
         TITLE=Modules
         _=

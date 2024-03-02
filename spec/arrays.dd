@@ -985,7 +985,7 @@ $(H3 $(LNAME2 default-initialization, Default Initialization))
         )
 
 $(H3 $(LNAME2 length-initialization, Length Initialization))
-        $(P The $(D new) expression can be used to start a dynamic array
+        $(P The $(D new) expression can be used to allocate a dynamic array
         with a specified length by specifying its type and then using the
         `(size)` syntax:
         )
@@ -1062,97 +1062,71 @@ $(H2 $(LNAME2 special-array, Special Array Types))
 
 $(H3 $(LNAME2 strings, Strings))
 
-        $(P A string is
-        an array of characters. String literals are just
-        an easy way to write character arrays.
-        String literals are immutable (read only).
+        $(P A string is an array of $(DDSUBLINK spec/const3, immutable_type, immutable)
+        (read-only) characters. String literals essentially are
+        an easy way to write character array literals.
         )
 
-$(SPEC_RUNNABLE_EXAMPLE_FAIL
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
-char[] str1 = "abc";                // error, cannot implicitly convert expression `"abc"` of type `string` to `char[]`
-char[] str2 = "abc".dup;            // ok, makes mutable copy
-immutable(char)[] str3 = "abc";     // ok
-immutable(char)[] str4 = str2;      // error, cannot implicitly convert expression `str2` of type `char[]` to `string`
-immutable(char)[] str5 = str3;      // ok, makes a mutable str5 with immutable aray contents
-immutable(char)[] str6 = str2.idup; // ok, makes immutable copy
+char[] arr;
+//arr = "abc";          // error, cannot implicitly convert expression `"abc"` of type `string` to `char[]`
+arr = "abc".dup;        // ok, allocates mutable copy
+
+string str1 = "abc";    // ok, same types
+//str1 = arr;           // error, cannot implicitly convert expression `arr` of type `char[]` to `string`
+str1 = arr.idup;        // ok, allocates an immutable copy of elements
+assert(str1 == "abc");
+
+string str2 = str1;     // ok, mutable slice of same immutable array contents
 ---------
 )
 
-        $(P The name $(CODE string) is aliased to $(CODE immutable(char)[]),
-        so the above declarations could be equivalently written as:
-        )
-
-$(SPEC_RUNNABLE_EXAMPLE_FAIL
----------
-char[] str1 = "abc";     // error, cannot implicitly convert expression `"abc"` of type `string` to `char[]`
-char[] str2 = "abc".dup; // ok, makes mutable copy
-string str3 = "abc";     // ok
-string str4 = str2;      // error, cannot implicitly convert expression `str2` of type `char[]` to `string`
-string str5 = str3;      // ok, makes a mutable str5 with immutable aray contents
-string str6 = str2.idup; // ok, makes immutable copy
----------
-)
-
-        $(P
+        $(P The name $(CODE string) is aliased to $(CODE immutable(char)[]).
         The type $(D immutable(char)[]) represents an array of $(D immutable char)s. However, the reference to the string is
-        mutable. If the the reference to the string needs to be immutable as well it can be declared $(D immutable char[])
+        mutable.
+        )
+---
+immutable(char)[] s = "foo";
+s[0] = 'a';  // error, s[0] is immutable
+s = "bar";   // ok, s itself is not immutable
+---
+
+        $(P If the reference to the string needs to be immutable as well, it can be declared $(D immutable char[])
         or $(D immutable string):
         )
-
 ---
 immutable char[] s = "foo";
 s[0] = 'a';  // error, s refers to immutable data
 s = "bar";   // error, s is immutable
-
-immutable(char)[] s = "hello";
-s[0] = 'b';  // error, s[] is immutable
-s = null;    // ok, s itself is not immutable
 ---
-
-        $(P $(CODE char[]) strings are in UTF-8 format.
-        $(CODE wchar[]) strings are in UTF-16 format.
-        $(CODE dchar[]) strings are in UTF-32 format.
-        )
 
         $(P Strings can be copied, compared, concatenated, and appended:)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
-str1 = str2;
-if (str1 < str3) { ... }
-func(str3 ~ str4);
-str4 ~= str1;
----------
+string s1;
+immutable s2 = "ello";
+s1 = s2;
+s1 = "h" ~ s1;
+if (s1 > "farro")
+    s1 ~= " there";
 
-        $(P with the obvious semantics. Any generated temporaries get cleaned up
+assert(s1 == "hello there");
+---------
+)
+
+        $(P with array semantics. Any generated temporaries get cleaned up
         by the garbage collector (or by using $(CODE alloca())).
         Not only that, this works with any
         array not just a special String array.
         )
 
-        $(P A pointer to a char can be generated:
-        )
+$(H4 $(LNAME2 string-literal-types, String Literal Types))
 
----------
-char* p = &str[3]; // pointer to 4th element
-char* p = str;     // pointer to 1st element
----------
-
-        $(P Since strings, however, are not 0 terminated in D,
-        when transferring a pointer
-        to a string to C, add a terminating 0:
-        )
-
----------
-str ~= "\0";
----------
-
-        or use the function $(D std.string.toStringz).
-
-        $(P The type of a string is determined by the semantic phase of
-        compilation. The type is
-        one of: char[], wchar[], dchar[], and is determined by
-        implicit conversion rules.
+        $(P The type of a $(DDSUBLINK spec/expression, string_literals, string literal)
+        is determined by the semantic phase of compilation. The type is
+        determined by implicit conversion rules.
         If there are two equally applicable implicit conversions,
         the result is an error. To
         disambiguate these cases, a cast or a postfix of $(D c),
@@ -1160,13 +1134,13 @@ str ~= "\0";
         )
 
 ---------
-cast(immutable(wchar) [])"abc" // this is an array of wchar characters
+cast(immutable(wchar)[]) "abc" // this is an array of wchar characters
 "abc"w                         // so is this
 ---------
 
         $(P String literals that do not have a postfix character and that
         have not been cast can be implicitly converted between
-        string, wstring, and dstring as necessary.
+        `string`, `wstring`, and `dstring` (see below) as necessary.
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -1188,6 +1162,16 @@ void fun()
 )
 
 $(H4 $(LEGACY_LNAME2 strings_unicode, strings-unicode, Strings and Unicode))
+
+        $(P String data is encoded as follows:)
+
+        $(TABLE2,
+        $(THEAD Alias, Type, Encoding)
+        $(TROW `string`, $(CODE  immutable(char)[]), UTF-8)
+        $(TROW `wstring`, $(CODE immutable(wchar)[]), UTF-16)
+        $(TROW `dstring`, $(CODE immutable(dchar)[]), UTF-32)
+        )
+
         $(P Note that built-in comparison operators operate on a
         $(LINK2 http://www.unicode.org/glossary/#code_unit, code unit) basis.
         The end result for valid strings is the same as that of
@@ -1209,12 +1193,48 @@ $(H4 $(LEGACY_LNAME2 strings_unicode, strings-unicode, Strings and Unicode))
         that should be implemented in the standard library.
         )
 
-$(H4 $(LNAME2 printf, C's printf() and Strings))
+$(H4 $(LNAME2 char-pointers, Character Pointers and C strings))
 
-        $(P $(D printf()) is a C function and is not part of D. $(D printf())
+        $(P A pointer to a character can be generated:
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---------
+string str = "abcd";
+immutable(char)* p = &str[3]; // pointer to 4th element
+assert(*p == 'd');
+p = str.ptr; // pointer to 1st element
+assert(*p == 'a');
+---------
+)
+
+        $(P Only string *literals* are zero-terminated in D.
+        In general, when transferring a pointer
+        to string data to C, append a terminating `'\0'`:
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---------
+string str = "ab";
+assert(str.ptr[2] == '\0'); // OK
+str ~= "cd";
+// str is no longer zero-terminated
+str ~= "\0";
+assert(str[4] == '\0'); // OK
+str.length = 2;
+// str is no longer correctly zero-terminated
+assert(str.ptr[2] != '\0');
+---------
+)
+
+        The function $(REF toStringz, std,string) can also be used.
+
+$(H4 $(LNAME2 printf, Example: `printf`))
+
+        $(P $(REF printf, core,stdc,stdio) is a C function and is not part of D. $(D printf())
         will print C strings, which are 0 terminated. There are two ways
         to use $(D printf()) with D strings. The first is to add a
-        terminating 0, and cast the result to a char*:
+        terminating 0:
         )
 
 ---------
@@ -1236,12 +1256,12 @@ printf("the string is '%s'\n", std.string.toStringz(str));
 printf("the string is '%s'\n", "string literal".ptr);
 -----------
 
-        $(P So, why does the first string literal to printf not need
+        $(P So, why does the first string literal to `printf` not need
         the `.ptr`? The first parameter is prototyped as a `const(char)*`, and
-        a string literal can be implicitly `cast` to a `const(char)*`.
-        The rest of the arguments to printf, however, are variadic
-        (specified by ...),
-        and a string literal typed `immutable(char)[]` cannot pass
+        a string literal can be implicitly converted to a `const(char)*`.
+        The rest of the arguments to `printf`, however, are variadic
+        (specified by `...`),
+        and a string literal typed `immutable(char)[]` cannot be passed
         to variadic parameters.)
 
         $(P The second way is to use the precision specifier.
@@ -1251,7 +1271,7 @@ printf("the string is '%s'\n", "string literal".ptr);
 printf("the string is '%.*s'\n", cast(int)str.length, str.ptr);
 ---------
 
-        $(P The best way is to use std.stdio.writefln, which can handle
+        $(P The best way is to use $(REF writefln, std,stdio), which can handle
         D strings:)
 
 ---------
@@ -1366,6 +1386,6 @@ $(SPEC_SUBNAV_PREV_NEXT statement, Statements, hash-map, Associative Arrays)
 )
 
 Macros:
-        CHAPTER=12
+        CHAPTER=13
         TITLE=Arrays
         _=

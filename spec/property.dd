@@ -260,5 +260,5 @@ $(SPEC_SUBNAV_PREV_NEXT type, Types, attribute, Attributes)
 )
 
 Macros:
-        CHAPTER=7
+        CHAPTER=8
         TITLE=Properties

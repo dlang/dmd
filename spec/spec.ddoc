@@ -66,6 +66,7 @@ $(SUBNAV_TEMPLATE
         $(SUBMENU2
             $(ROOT_DIR)spec/intro.html, Introduction,
             $(ROOT_DIR)spec/lex.html, Lexical,
+            $(ROOT_DIR)spec/istring.html, Interpolation Expression Sequence,
             $(ROOT_DIR)spec/grammar.html, Grammar,
             $(ROOT_DIR)spec/module.html, Modules,
             $(ROOT_DIR)spec/declaration.html, Declarations,

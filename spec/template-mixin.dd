@@ -410,6 +410,6 @@ $(SPEC_SUBNAV_PREV_NEXT template, Templates, contracts, Contract Programming)
 )
 
 Macros:
-        CHAPTER=22
+        CHAPTER=23
         TITLE=Template Mixins
         _=

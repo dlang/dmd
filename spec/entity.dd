@@ -291,5 +291,5 @@ $(SPEC_SUBNAV_PREV_NEXT portability, Portability Guide, memory-safe-d, Memory Sa
 )
 
 Macros:
-    CHAPTER=36
+    CHAPTER=37
         TITLE=Named Character Entities

@@ -1259,7 +1259,7 @@ $(SPEC_SUBNAV_PREV_NEXT function, Functions, template, Templates)
 )
 
 Macros:
-        CHAPTER=20
+        CHAPTER=21
         TITLE=Operator Overloading
         ARGUMENTS=$(I b)$(SUBSCRIPT 1), $(I b)$(SUBSCRIPT 2), ... $(I b)$(SUBSCRIPT n)
         ARGUMENTS2=$(I c)$(SUBSCRIPT 1), $(I c)$(SUBSCRIPT 2), ... $(I c)$(SUBSCRIPT n)

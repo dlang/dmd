@@ -1378,5 +1378,5 @@ $(SPEC_SUBNAV_PREV_NEXT float, Floating Point, ddoc, Embedded Documentation)
 )
 
 Macros:
-        CHAPTER=30
+        CHAPTER=31
         TITLE=Inline Assembler

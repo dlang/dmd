@@ -26,16 +26,14 @@ $(H2 $(LNAME2 examples, Quick Examples))
     {
         printf("hello world\n");
         return 0;
-    }
-    )
+    })
 
     $(P Compile and run:)
 
     $(CONSOLE
     dmd hello.c
     ./hello
-    hello world
-    )
+    hello world)
 
     $(P C function in file $(TT functions.c):)
 
@@ -229,22 +227,76 @@ $(H2 $(LNAME2 preprocessor, Preprocessor))
     $(H3 $(LNAME2 defines, Preprocessor Macros))
 
     $(P ImportC collects all the $(TT #define) macros from the preprocessor run when it is run automatically.
-    The macros that look like manifest constants, such as:)
-
-    $(CCODE
-    #define COLOR 0x123456
+    Some can be made available to D code by interpreting them as declarations.
+    The variety of macros that can be interpreted as D declarations may be expanded,
+    but will never encompass all the metaprogramming uses of C macros.
     )
+
+    $(H4 Manifest Constants)
+
+    $(P Macros that look like manifest constants, such as:)
+
+$(CCODE
+#define COLOR 0x123456
+#define HELLO "hello")
 
     $(P are interpreted as D manifest constant declarations of the form:)
 
     ---
     enum COLOR = 0x123456;
+    enum HELLO = "hello";
     ---
 
-    $(P The variety of macros that can be interpreted as D declarations may be expanded,
-    but will never encompass all the metaprogramming uses of C macros.
-    )
+    $(H4 Function-Like Macros)
 
+    $(P Many macros look like functions, and can be treated as template functions:)
+
+$(CCODE
+#define ABC a + b
+#define DEF(a) (a + x))
+
+    ---
+    auto ABC() { return a + b; }
+    auto DEF(T)(T a) { return a + x; }
+    ---
+
+    $(P Some macro formulations, however, will not produce the same result:)
+
+$(CCODE
+#define ADD(a, b) a + b
+int x = ADD(1, 2) * 4; // sets x to 9)
+
+---
+auto ADD(U, V)(U a, V b) { return a + b; }
+int x = ADD(1, 2) * 4; // sets x to 12
+---
+
+    $(BEST_PRACTICE Always use parentheses around arguments and entire expressions:)
+
+$(CCODE
+#define ADD(a, b) ((a) + (b)))
+
+    $(P Another area of trouble is side effects in the arguments:)
+
+$(CCODE
+#define DOUBLE(x) ((x) + (x)))
+
+---
+int i = 0;
+DOUBLE(i++);
+assert(i == 2);  // D result will be 1, C result will be 2
+---
+
+    $(P and treating arguments as references:)
+
+$(CCODE
+#define INC(x) (++x))
+
+---
+int i = 0;
+INC(i);
+assert(i == 1); // D result will be 0, C result will be 1
+---
 
 $(H2 $(LNAME2 predefined-macros, Predefined Macros))
 
@@ -390,6 +442,41 @@ $(H2 $(LNAME2 limitations, Limitations))
     $(H3 $(LNAME2 compatible_types, Compatible Types))
 
     $(P $(I Compatible Types) (C11 6.7.2) are identical types in ImportC.)
+
+
+$(H2 $(LNAME2 impedance-mismatch, Impedance Mismatch))
+
+    $(P While every effort is made to match up C and D so it "just works", the languages have some
+    fundamental differences that appear now and then.
+    )
+
+    $(H3 $(LNAME2 keyword-mismatch, Keyword Mismatch))
+
+    $(P D and C use mostly the same keywords, C has keywords that D doesn't have, and vice versa. This
+    does not affect compilation of C code, but it can cause difficulty when accessing C variables and types
+    from D. For example, the D `version` keyword is not uncommonly used as a struct member in C:)
+
+    $(P C code in file $(TT defs.c):)
+$(CCODE
+struct S { int version; };)
+
+    $(P Accessing it from D:)
+    ---
+    import defs;
+    int tech(S* s) {
+        return s.version; // fails because version is a D keyword
+    }
+    ---
+
+    $(P A workaround is available:)
+    ---
+    import defs;
+    int tech(S* s) {
+        return __traits(getMember, *s, "version");
+    }
+    ---
+
+
 
     $(H3 $(LNAME2 same_only_different, Same only Different Types))
 
@@ -977,5 +1064,5 @@ $(SPEC_SUBNAV_PREV_NEXT betterc, Better C, ob, Live Functions)
 )
 
 Macros:
-    CHAPTER=41
+    CHAPTER=42
     TITLE=ImportC

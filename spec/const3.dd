@@ -784,7 +784,7 @@ $(SPEC_SUBNAV_PREV_NEXT enum, Enums, function, Functions)
 )
 
 Macros:
-        CHAPTER=18
+        CHAPTER=19
         TH1=<th class="nobr">$(CODE $0)</th>
         TD1=<td class="nobr">$(CODE $0)</td>
         TDE=<td class="nobr">$(GREEN $(CODE $0))</td>

@@ -40,7 +40,7 @@ $(SPEC_SUBNAV_PREV_NEXT ob, Live Functions, glossary, Glossary)
 )
 
 Macros:
-    CHAPTER=43
+    CHAPTER=44
         TITLE=Windows Programming
         CATEGORY_SPEC=$0
 
