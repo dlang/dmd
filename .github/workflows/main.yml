@@ -221,8 +221,8 @@ jobs:
               export N="$(nproc)"
               export CI_DFLAGS="-version=TARGET_FREEBSD${freebsd_major}"
             elif [[ "$OS_NAME" == "openbsd" ]]; then
-              # cannot install host compiler via install.sh; the dmd package is installed as prerequisite
-              export DMD=dmd
+              # cannot install host compiler via install.sh; the ldc package is installed as prerequisite
+              export DMD=ldmd2
               export N="$(sysctl -n hw.ncpu)"
             fi
 
