@@ -24,6 +24,7 @@ import dmd.astenums;
 import dmd.common.outbuffer;
 import dmd.compiler;
 import dmd.cparse;
+import dmd.declaration;
 import dmd.dimport;
 import dmd.dmacro;
 import dmd.doc;
@@ -611,19 +612,7 @@ extern (C++) final class Module : Package
     {
         if (FileName.equals(srcfile.toString(), "object.d"))
         {
-            .error(loc, "cannot find source code for runtime library file 'object.d'");
-            version (IN_LLVM)
-            {
-                errorSupplemental(loc, "ldc2 might not be correctly installed.");
-                errorSupplemental(loc, "Please check your ldc2.conf configuration file.");
-                errorSupplemental(loc, "Installation instructions can be found at http://wiki.dlang.org/LDC.");
-            }
-            version (MARS)
-            {
-                errorSupplemental(loc, "dmd might not be correctly installed. Run 'dmd -man' for installation instructions.");
-                const dmdConfFile = global.inifilename.length ? FileName.canonicalName(global.inifilename) : "not found";
-                errorSupplemental(loc, "config file: %.*s", cast(int)dmdConfFile.length, dmdConfFile.ptr);
-            }
+            ObjectNotFound(loc, ident);
         }
         else if (FileName.ext(this.arg) || !loc.isValid())
         {

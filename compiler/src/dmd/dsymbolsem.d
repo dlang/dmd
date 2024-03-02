@@ -3379,8 +3379,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 void badObjectDotD()
                 {
-                    .error(cldec.loc, "%s `%s` missing or corrupt object.d", cldec.kind, cldec.toPrettyChars);
-                    fatal();
+                    ObjectNotFound(cldec.loc, cldec.ident);
                 }
 
                 if (!cldec.object || cldec.object.errors)

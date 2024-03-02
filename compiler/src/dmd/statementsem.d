@@ -3018,8 +3018,8 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                  */
                 if (!ClassDeclaration.object)
                 {
-                    error(ss.loc, "missing or corrupt object.d");
-                    fatal();
+                    ObjectNotFound(ss.loc, Id.Object);
+                    return setError();
                 }
 
                 Type t = ClassDeclaration.object.type;

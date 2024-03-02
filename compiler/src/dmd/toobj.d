@@ -86,7 +86,7 @@ void genModuleInfo(Module m)
 
     if (!Module.moduleinfo)
     {
-        ObjectNotFound(Id.ModuleInfo);
+        ObjectNotFound(m.loc, Id.ModuleInfo);
     }
 
     Symbol *msym = toSymbol(m);
