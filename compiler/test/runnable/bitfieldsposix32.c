@@ -1,5 +1,5 @@
 /* test bitfields
- * DISABLED: win32 win64 linux64 freebsd64 osx64
+ * DISABLED: win32 win64 linux64 freebsd64 openbsd64 osx64
  * RUN_OUTPUT:
 ---
 T0 = 1 1 | 1 1

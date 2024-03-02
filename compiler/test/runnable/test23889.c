@@ -1,4 +1,4 @@
-// DISABLED: win32mscoff win64 freebsd
+// DISABLED: win32mscoff win64 freebsd openbsd
 
 // https://issues.dlang.org/show_bug.cgi?id=23886
 
