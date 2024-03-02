@@ -38,14 +38,15 @@ elif [ "$OS_NAME" == "freebsd" ]; then
   ln -s /usr/local/bin/gmake /usr/bin/make
   ln -s /usr/local/bin/llvm-dwarfdump12 /usr/bin/llvm-dwarfdump
 elif [ "$OS_NAME" == "openbsd" ]; then
-  packages="ldc git gdiff gmake llvm%16"
+  packages="gdc git gdiff gmake llvm%16"
   pkg_add $packages
   # replace default diff & make by GNU versions
   rm /usr/bin/{diff,make}
   ln -s /usr/local/bin/gdiff /usr/bin/diff
   ln -s /usr/local/bin/gmake /usr/bin/make
   ln -s /usr/local/bin/llvm-dwarfdump-16 /usr/bin/llvm-dwarfdump
-  ldmd2 --version
+  ln -s /usr/local/bin/egdc /usr/local/bin/gdc
+  gdc --version
   diff --version
   make --version
   llvm-dwarfdump --version
