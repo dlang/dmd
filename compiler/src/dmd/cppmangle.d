@@ -49,19 +49,30 @@ import dmd.typesem;
 import dmd.visitor;
 
 
-// helper to check if an identifier is a C++ operator
-enum CppOperator { Cast, Assign, Eq, Index, Call, Unary, Binary, OpAssign, Unknown }
-package CppOperator isCppOperator(Identifier id)
+// C++ operators
+enum CppOperator { Unknown, Cast, Assign, Eq, Index, Call, Unary, Binary, OpAssign }
+
+/**************
+ * Check if id is a C++ operator
+ * Params:
+ *      id = identifier to be checked
+ * Returns:
+ *      CppOperator, or Unknown if not a C++ operator
+ */
+package CppOperator isCppOperator(const scope Identifier id)
 {
-    __gshared const(Identifier)[] operators = null;
-    if (!operators)
-        operators = [Id._cast, Id.assign, Id.eq, Id.index, Id.call, Id.opUnary, Id.opBinary, Id.opOpAssign];
-    foreach (i, op; operators)
+    with (Id) with (CppOperator)
     {
-        if (op == id)
-            return cast(CppOperator)i;
+        return (id == _cast)      ? Cast     :
+               (id == assign)     ? Assign   :
+               (id == eq)         ? Eq       :
+               (id == index)      ? Index    :
+               (id == call)       ? Call     :
+               (id == opUnary)    ? Unary    :
+               (id == opBinary)   ? Binary   :
+               (id == opOpAssign) ? OpAssign :
+                                    Unknown  ;
     }
-    return CppOperator.Unknown;
 }
 
 ///
