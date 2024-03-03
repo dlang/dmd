@@ -22,7 +22,7 @@ public:
     static FileName create(const char *name);
     static bool equals(const char *name1, const char *name2);
     static bool absolute(const char *name);
-    static const char *toAbsolute(const char *name, const char *base = NULL);
+    static const char *toAbsolute(const char *name, const char *base = nullptr);
     static const char *ext(const char *);
     const char *ext();
     static const char *removeExt(const char *str);

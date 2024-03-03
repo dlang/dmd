@@ -21,5 +21,5 @@ namespace dmd
     TypeTuple *toArgTypes_sysv_x64(Type *t);
     // in argtypes_aarch64.d
     TypeTuple *toArgTypes_aarch64(Type *t);
-    bool isHFVA(Type *t, int maxNumElements = 4, Type **rewriteType = NULL);
+    bool isHFVA(Type *t, int maxNumElements = 4, Type **rewriteType = nullptr);
 }
