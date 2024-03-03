@@ -1184,7 +1184,7 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
                     if (auto vcincludedir = vsopt.getVCIncludeDir()) {
                         includePaths.push(vcincludedir);
                     } else {
-                        return DArray!ubyte();
+                        return STATUS_FAILED;
                     }
                     if (auto sdkincludedir = vsopt.getSDKIncludePath()) {
                         includePaths.push(FileName.combine(sdkincludedir, "ucrt"));
@@ -1194,7 +1194,7 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
                         includePaths.push(FileName.combine(sdkincludedir, "cppwinrt"));
                     } else {
                         includePaths = Strings.init;
-                        return DArray!ubyte();
+                        return STATUS_FAILED;
                     }
                 }
 

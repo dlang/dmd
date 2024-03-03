@@ -84,7 +84,7 @@ final class LibMach : Library
      * If the buffer is NULL, use module_name as the file name
      * and load the file.
      */
-    override void addObject(const(char)[] module_name, const ubyte[] buffer)
+    override void addObject(const(char)[] module_name, const(ubyte)[] buffer)
     {
         static if (LOG)
         {
@@ -99,29 +99,25 @@ final class LibMach : Library
         }
 
         int fromfile = 0;
-        auto buf = buffer.ptr;
-        auto buflen = buffer.length;
-        if (!buf)
+        if (!buffer.length)
         {
             assert(module_name[0]);
             // read file and take buffer ownership
             Buffer b;
             if (readFile(Loc.initial, module_name, b))
                 fatal();
-            auto data = b.extractSlice();
-            buf = data.ptr;
-            buflen = data.length;
+            buffer = b.extractSlice();
             fromfile = 1;
         }
-        if (buflen < 16)
+        if (buffer.length < 16)
         {
             static if (LOG)
             {
-                printf("buf = %p, buflen = %d\n", buf, buflen);
+                printf("buf = %p, buffer.length = %d\n", buffer.ptr, buffer.length);
             }
             return corrupt(__LINE__);
         }
-        if (memcmp(buf, "!<arch>\n".ptr, 8) == 0)
+        if (memcmp(buffer.ptr, "!<arch>\n".ptr, 8) == 0)
         {
             /* Library file.
              * Pull each object module out of the library and add it
@@ -129,23 +125,23 @@ final class LibMach : Library
              */
             static if (LOG)
             {
-                printf("archive, buf = %p, buflen = %d\n", buf, buflen);
+                printf("archive, buf = %p, buffer.length = %d\n", buffer.ptr, buffer.length);
             }
             uint offset = 8;
             char* symtab = null;
             uint symtab_size = 0;
             uint mstart = cast(uint)objmodules.length;
-            while (offset < buflen)
+            while (offset < buffer.length)
             {
-                if (offset + MachLibHeader.sizeof >= buflen)
+                if (offset + MachLibHeader.sizeof >= buffer.length)
                     return corrupt(__LINE__);
-                MachLibHeader* header = cast(MachLibHeader*)(cast(ubyte*)buf + offset);
+                MachLibHeader* header = cast(MachLibHeader*)(cast(ubyte*)buffer.ptr + offset);
                 offset += MachLibHeader.sizeof;
                 char* endptr = null;
                 uint size = cast(uint)strtoul(header.file_size.ptr, &endptr, 10);
                 if (endptr >= header.file_size.ptr + 10 || *endptr != ' ')
                     return corrupt(__LINE__);
-                if (offset + size > buflen)
+                if (offset + size > buffer.length)
                     return corrupt(__LINE__);
                 if (memcmp(header.object_name.ptr, "__.SYMDEF       ".ptr, 16) == 0 ||
                     memcmp(header.object_name.ptr, "__.SYMDEF SORTED".ptr, 16) == 0)
@@ -155,7 +151,7 @@ final class LibMach : Library
                      */
                     if (symtab)
                         return corrupt(__LINE__);
-                    symtab = cast(char*)buf + offset;
+                    symtab = cast(char*)buffer.ptr + offset;
                     symtab_size = size;
                     if (size < 4)
                         return corrupt(__LINE__);
@@ -163,7 +159,7 @@ final class LibMach : Library
                 else
                 {
                     auto om = new MachObjModule();
-                    om.base = cast(ubyte*)buf + offset - MachLibHeader.sizeof;
+                    om.base = cast(ubyte*)buffer.ptr + offset - MachLibHeader.sizeof;
                     om.length = cast(uint)(size + MachLibHeader.sizeof);
                     om.offset = 0;
                     const n = cast(const(char)*)(om.base + MachLibHeader.sizeof);
@@ -177,7 +173,7 @@ final class LibMach : Library
                 }
                 offset += (size + 1) & ~1;
             }
-            if (offset != buflen)
+            if (offset != buffer.length)
                 return corrupt(__LINE__);
             /* Scan the library's symbol table, and insert it into our own.
              * We use this instead of rescanning the object module, because
@@ -204,8 +200,8 @@ final class LibMach : Library
                     if (m == objmodules.length)
                         return corrupt(__LINE__);       // didn't find it
                     MachObjModule* om = objmodules[m];
-                    //printf("\tom offset = x%x\n", cast(char *)om.base - cast(char *)buf);
-                    if (moff == cast(char*)om.base - cast(char*)buf)
+                    //printf("\tom offset = x%x\n", cast(char *)om.base - cast(char *)buffer.ptr);
+                    if (moff == cast(char*)om.base - cast(char*)buffer.ptr)
                     {
                         addSymbol(om, name[0 .. namelen], 1);
                         //if (mstart == m)
@@ -219,8 +215,8 @@ final class LibMach : Library
         /* It's an object module
          */
         auto om = new MachObjModule();
-        om.base = cast(ubyte*)buf;
-        om.length = cast(uint)buflen;
+        om.base = cast(ubyte*)buffer.ptr;
+        om.length = cast(uint)buffer.length;
         om.offset = 0;
         const n = FileName.name(module_name); // remove path, but not extension
         om.name = n;

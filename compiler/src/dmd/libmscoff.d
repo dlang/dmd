@@ -91,7 +91,7 @@ final class LibMSCoff : Library
      * If the buffer is NULL, use module_name as the file name
      * and load the file.
      */
-    override void addObject(const(char)[] module_name, const ubyte[] buffer)
+    override void addObject(const(char)[] module_name, const(ubyte)[] buffer)
     {
         static if (LOG)
         {
@@ -106,29 +106,25 @@ final class LibMSCoff : Library
         }
 
         int fromfile = 0;
-        auto buf = buffer.ptr;
-        auto buflen = buffer.length;
-        if (!buf)
+        if (!buffer.length)
         {
             assert(module_name.length, "No module nor buffer provided to `addObject`");
             // read file and take buffer ownership
             Buffer b;
             if (readFile(Loc.initial, module_name, b))
                 fatal();
-            auto data = b.extractSlice();
-            buf = data.ptr;
-            buflen = data.length;
+            buffer = b.extractSlice();
             fromfile = 1;
         }
-        if (buflen < 16)
+        if (buffer.length < 16)
         {
             static if (LOG)
             {
-                printf("buf = %p, buflen = %d\n", buf, buflen);
+                printf("buf = %p, buffer.length = %d\n", buffer.ptr, buffer.length);
             }
             return corrupt(__LINE__);
         }
-        if (memcmp(buf, "!<arch>\n".ptr, 8) == 0)
+        if (memcmp(buffer.ptr, "!<arch>\n".ptr, 8) == 0)
         {
             /* It's a library file.
              * Pull each object module out of the library and add it
@@ -136,7 +132,7 @@ final class LibMSCoff : Library
              */
             static if (LOG)
             {
-                printf("archive, buf = %p, buflen = %d\n", buf, buflen);
+                printf("archive, buf = %p, buffer.length = %d\n", buffer.ptr, buffer.length);
             }
             MSCoffLibHeader* flm = null; // first linker member
             MSCoffLibHeader* slm = null; // second linker member
@@ -154,17 +150,17 @@ final class LibMSCoff : Library
             while (1)
             {
                 offset = (offset + 1) & ~1; // round to even boundary
-                if (offset >= buflen)
+                if (offset >= buffer.length)
                     break;
-                if (offset + MSCoffLibHeader.sizeof >= buflen)
+                if (offset + MSCoffLibHeader.sizeof >= buffer.length)
                     return corrupt(__LINE__);
-                MSCoffLibHeader* header = cast(MSCoffLibHeader*)(cast(ubyte*)buf + offset);
+                MSCoffLibHeader* header = cast(MSCoffLibHeader*)(cast(ubyte*)buffer.ptr + offset);
                 offset += MSCoffLibHeader.sizeof;
                 char* endptr = null;
                 uint size = cast(uint)strtoul(cast(char*)header.file_size, &endptr, 10);
                 if (endptr >= header.file_size.ptr + 10 || *endptr != ' ')
                     return corrupt(__LINE__);
-                if (offset + size > buflen)
+                if (offset + size > buffer.length)
                     return corrupt(__LINE__);
                 //printf("header.object_name = '%.*s'\n", cast(int)MSCOFF_OBJECT_NAME_SIZE, header.object_name.ptr);
                 if (memcmp(cast(char*)header.object_name, cast(char*)"/               ", MSCOFF_OBJECT_NAME_SIZE) == 0)
@@ -180,13 +176,13 @@ final class LibMSCoff : Library
                         slm = header;
                         if (size < 4 + 4)
                             return corrupt(__LINE__);
-                        number_of_members = Port.readlongLE(cast(char*)buf + offset);
-                        member_file_offsets = cast(uint*)(cast(char*)buf + offset + 4);
+                        number_of_members = Port.readlongLE(cast(char*)buffer.ptr + offset);
+                        member_file_offsets = cast(uint*)(cast(char*)buffer.ptr + offset + 4);
                         if (size < 4 + number_of_members * 4 + 4)
                             return corrupt(__LINE__);
-                        number_of_symbols = Port.readlongLE(cast(char*)buf + offset + 4 + number_of_members * 4);
-                        indices = cast(ushort*)(cast(char*)buf + offset + 4 + number_of_members * 4 + 4);
-                        string_table = cast(char*)(cast(char*)buf + offset + 4 + number_of_members * 4 + 4 + number_of_symbols * 2);
+                        number_of_symbols = Port.readlongLE(cast(char*)buffer.ptr + offset + 4 + number_of_members * 4);
+                        indices = cast(ushort*)(cast(char*)buffer.ptr + offset + 4 + number_of_members * 4 + 4);
+                        string_table = cast(char*)(cast(char*)buffer.ptr + offset + 4 + number_of_members * 4 + 4 + number_of_symbols * 2);
                         if (size <= (4 + number_of_members * 4 + 4 + number_of_symbols * 2))
                             return corrupt(__LINE__);
                         string_table_length = size - (4 + number_of_members * 4 + 4 + number_of_symbols * 2);
@@ -213,7 +209,7 @@ final class LibMSCoff : Library
                     if (!lnm)
                     {
                         lnm = header;
-                        longnames = cast(char*)buf + offset;
+                        longnames = cast(char*)buffer.ptr + offset;
                         longnames_length = size;
                     }
                 }
@@ -229,7 +225,7 @@ final class LibMSCoff : Library
                     }
                     auto om = new MSCoffObjModule();
                     // Include MSCoffLibHeader in base[0..length], so we don't have to repro it
-                    om.base = cast(ubyte*)buf + offset - MSCoffLibHeader.sizeof;
+                    om.base = cast(ubyte*)buffer.ptr + offset - MSCoffLibHeader.sizeof;
                     om.length = cast(uint)(size + MSCoffLibHeader.sizeof);
                     om.offset = 0;
                     if (header.object_name[0] == '/')
@@ -281,7 +277,7 @@ final class LibMSCoff : Library
                 }
                 offset += size;
             }
-            if (offset != buflen)
+            if (offset != buffer.length)
                 return corrupt(__LINE__);
             /* Scan the library's symbol table, and insert it into our own.
              * We use this instead of rescanning the object module, because
@@ -305,8 +301,8 @@ final class LibMSCoff : Library
                     if (m == objmodules.length)
                         return corrupt(__LINE__);       // didn't find it
                     MSCoffObjModule* om = objmodules[m];
-                    //printf("\tom offset = x%x\n", cast(char *)om.base - cast(char *)buf);
-                    if (moff == cast(char*)om.base - cast(char*)buf)
+                    //printf("\tom offset = x%x\n", cast(char *)om.base - cast(char *)buffer.ptr);
+                    if (moff == cast(char*)om.base - cast(char*)buffer.ptr)
                     {
                         addSymbol(om, name, 1);
                         //if (mstart == m)
@@ -320,8 +316,8 @@ final class LibMSCoff : Library
         /* It's an object module
          */
         auto om = new MSCoffObjModule();
-        om.base = cast(ubyte*)buf;
-        om.length = cast(uint)buflen;
+        om.base = cast(ubyte*)buffer.ptr;
+        om.length = cast(uint)buffer.length;
         om.offset = 0;
         // remove path, but not extension
         om.name = global.params.preservePaths ? module_name : FileName.name(module_name);
