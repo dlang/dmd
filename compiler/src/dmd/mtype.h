@@ -878,7 +878,7 @@ namespace dmd
     // return the symbol to which type t resolves
     Dsymbol *toDsymbol(Type *t, Scope *sc);
     bool equivalent(Type *src, Type *t);
-    Covariant covariant(Type *, Type *, StorageClass * = NULL, bool = false);
+    Covariant covariant(Type *, Type *, StorageClass * = nullptr, bool = false);
     bool isBaseOf(Type *tthis, Type *t, int *poffset);
     Type *trySemantic(Type *type, const Loc &loc, Scope *sc);
     Type *pointerTo(Type *type);
