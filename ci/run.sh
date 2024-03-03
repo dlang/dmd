@@ -216,12 +216,7 @@ download_install_sh() {
 
 # install D host compiler
 install_host_compiler() {
-  if [ "$OS_NAME" == "openbsd" ] ; then
-    # fetch the gdmd wrapper for CLI compatibility with dmd
-    sudo curl -fsSL -A "$CURL_USER_AGENT" --connect-timeout 5 --speed-time 30 --speed-limit 1024 --retry 5 --retry-delay 5 https://raw.githubusercontent.com/D-Programming-GDC/GDMD/master/dmd-script -o /usr/local/bin/gdmd
-    sudo chmod +x /usr/local/bin/gdmd
-    gdmd --version
-  elif [ "${HOST_DMD:0:5}" == "gdmd-" ] ; then
+  if [ "${HOST_DMD:0:5}" == "gdmd-" ] ; then
     local gdc_version="${HOST_DMD:5}"
     if [ ! -e ~/dlang/gdc-$gdc_version/activate ] ; then
         sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
@@ -235,7 +230,7 @@ install_host_compiler() {
         echo "export DMD=gdmd-$gdc_version" > ~/dlang/gdc-$gdc_version/activate
         echo "deactivate(){ echo;}" >> ~/dlang/gdc-$gdc_version/activate
     fi
-  elif [ "$OS_NAME" != "windows" ] ; then
+  elif [[ "$OS_NAME" != "windows" && "$OS_NAME" != "openbsd" ]]; then
     local install_sh="install.sh"
     download_install_sh "$install_sh"
     CURL_USER_AGENT="$CURL_USER_AGENT" bash "$install_sh" "$HOST_DMD"
