@@ -351,11 +351,12 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     {
         foreach (file; ddocfiles)
         {
-            auto buffer = readFile(loc, file.toDString());
+            Buffer buffer;
+            if (readFile(loc, file.toDString(), buffer))
+                fatal();
             // BUG: convert file contents to UTF-8 before use
-            const data = buffer.data;
-            //printf("file: '%.*s'\n", cast(int)data.length, data.ptr);
-            ddocbuf.write(data);
+            //printf("file: '%.*s'\n", cast(int)buffer.data.length, buffer.data.ptr);
+            ddocbuf.write(buffer.data);
         }
         ddocbufIsRead = true;
     }

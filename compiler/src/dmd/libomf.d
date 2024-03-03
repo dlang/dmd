@@ -16,11 +16,13 @@ import core.stdc.string;
 import core.stdc.stdlib;
 import core.bitop;
 
+import dmd.errors : fatal;
 import dmd.utils;
 import dmd.lib;
 import dmd.location;
 
 import dmd.root.array;
+import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.rmem;
 import dmd.common.outbuffer;
@@ -92,7 +94,10 @@ final class LibOMF : Library
         {
             assert(module_name.length, "No module nor buffer provided to `addObject`");
             // read file and take buffer ownership
-            auto data = readFile(Loc.initial, module_name).extractSlice();
+            Buffer b;
+            if (readFile(Loc.initial, module_name, b))
+                fatal();
+            auto data = b.extractSlice();
             buf = data.ptr;
             buflen = data.length;
         }

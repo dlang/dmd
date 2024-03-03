@@ -30,11 +30,13 @@ else version (Windows)
 else
     static assert(0, "unsupported operating system");
 
+import dmd.errors : fatal;
 import dmd.lib;
 import dmd.location;
 import dmd.utils;
 
 import dmd.root.array;
+import dmd.root.file;
 import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.root.port;
@@ -102,7 +104,10 @@ final class LibElf : Library
         {
             assert(module_name.length);
             // read file and take buffer ownership
-            auto data = readFile(Loc.initial, module_name).extractSlice();
+            Buffer b;
+            if (readFile(Loc.initial, module_name, b))
+                fatal();
+            auto data = b.extractSlice();
             buf = data.ptr;
             buflen = data.length;
             fromfile = 1;
