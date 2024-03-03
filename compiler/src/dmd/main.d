@@ -78,7 +78,9 @@ import dmd.vsoptions;
  *
  * Returns:
  * Return code of the application
- */ extern (C) int main(int argc, char** argv) {
+ */
+extern (C) int main(int argc, char** argv)
+{
     bool lowmem = false;
     foreach (i; 1 .. argc)
     {
@@ -102,7 +104,9 @@ import dmd.vsoptions;
  *
  * Returns:
  * Return code of the application
- */ extern (C) int _Dmain(char[][]) {
+ */
+extern (C) int _Dmain(char[][])
+{
     // possibly install memory error handler
     version (DigitalMars)
     {
@@ -670,7 +674,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
  *   argv = Array of string arguments passed via command line
  *   params = parameters from argv
  *   files = files from argv
- * Returns: true on faiure
+ * Returns: true on failure
  */
 bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params, ref Strings files)
 {
@@ -729,7 +733,8 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
      * pick up any DFLAGS settings.
      */
     sections.push("Environment");
-    parseConfFile(environment, global.inifilename, inifilepath, inifileBuffer, &sections);
+    if (parseConfFile(environment, global.inifilename, inifilepath, inifileBuffer, &sections))
+        return true;
 
     const(char)[] arch = target.isX86_64 ? "64" : "32"; // use default
     arch = parse_arch_arg(&arguments, arch);
@@ -752,7 +757,8 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     char[80] envsection = void;
     snprintf(envsection.ptr, envsection.length, "Environment%.*s", cast(int) arch.length, arch.ptr);
     sections.push(envsection.ptr);
-    parseConfFile(environment, global.inifilename, inifilepath, inifileBuffer, &sections);
+    if (parseConfFile(environment, global.inifilename, inifilepath, inifileBuffer, &sections))
+        return true;
     getenv_setargv(readFromEnv(environment, "DFLAGS"), &arguments);
     updateRealEnvironment(environment);
     environment.reset(1); // don't need environment cache any more
