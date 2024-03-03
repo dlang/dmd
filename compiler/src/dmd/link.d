@@ -1172,6 +1172,57 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
                 // Convert command to wchar
                 wchar[1024] scratch = void;
                 auto smbuf = SmallBuffer!wchar(scratch.length, scratch[]);
+
+                // INCLUDE
+                static VSOptions vsopt; // cache, as this can be expensive
+                static Strings includePaths;
+                if (includePaths.length == 0)
+                {
+                    if (!vsopt.VSInstallDir)
+                        vsopt.initialize();
+
+                    if (auto vcincludedir = vsopt.getVCIncludeDir()) {
+                        includePaths.push(vcincludedir);
+                    } else {
+                        return DArray!ubyte();
+                    }
+                    if (auto sdkincludedir = vsopt.getSDKIncludePath()) {
+                        includePaths.push(FileName.combine(sdkincludedir, "ucrt"));
+                        includePaths.push(FileName.combine(sdkincludedir, "shared"));
+                        includePaths.push(FileName.combine(sdkincludedir, "um"));
+                        includePaths.push(FileName.combine(sdkincludedir, "winrt"));
+                        includePaths.push(FileName.combine(sdkincludedir, "cppwinrt"));
+                    } else {
+                        includePaths = Strings.init;
+                        return DArray!ubyte();
+                    }
+                }
+
+                // Get current environment variable and rollback
+                auto oldIncludePathLen = GetEnvironmentVariableW("INCLUDE"w.ptr, null, 0);
+                wchar* oldIncludePaths = cast(wchar*)mem.xmalloc(oldIncludePathLen * wchar.sizeof);
+                oldIncludePathLen = GetEnvironmentVariableW("INCLUDE"w.ptr, oldIncludePaths, oldIncludePathLen);
+                scope (exit)
+                {
+                    SetEnvironmentVariableW("INCLUDE"w.ptr, oldIncludePaths);
+                    mem.xfree(oldIncludePaths);
+                }
+
+                // Make new environment variable
+                OutBuffer envbuf;
+                foreach (inc; includePaths[])
+                {
+                    if (FileName.exists(inc) == 2)
+                    {
+                        envbuf.write(cast(const ubyte[])toWStringz(inc[0..strlen(inc)], smbuf));
+                        envbuf.writewchar(';');
+                    }
+                }
+                envbuf.write(cast(const ubyte[])oldIncludePaths[0..oldIncludePathLen]);
+                envbuf.writewchar('\0');
+                // Temporarily set INCLUDE environment variable
+                SetEnvironmentVariableW("INCLUDE"w.ptr, cast(LPCWSTR)envbuf.buf);
+
                 auto szCommand = toWStringz(buf.peekChars()[0 .. buf.length], smbuf);
 
                 int exitCode = runProcessCollectStdout(szCommand.ptr, buffer[], &sink);
