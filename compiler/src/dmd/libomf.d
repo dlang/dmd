@@ -74,7 +74,7 @@ final class LibOMF : Library
      * If the buffer is NULL, use module_name as the file name
      * and load the file.
      */
-    override void addObject(const(char)[] module_name, const ubyte[] buffer)
+    override void addObject(const(char)[] module_name, const(ubyte)[] buffer)
     {
         static if (LOG)
         {
@@ -88,21 +88,17 @@ final class LibOMF : Library
                   cast(int)module_name.length, module_name.ptr, reason);
         }
 
-        auto buf = buffer.ptr;
-        auto buflen = buffer.length;
-        if (!buf)
+        if (!buffer.length)
         {
             assert(module_name.length, "No module nor buffer provided to `addObject`");
             // read file and take buffer ownership
             Buffer b;
             if (readFile(Loc.initial, module_name, b))
                 fatal();
-            auto data = b.extractSlice();
-            buf = data.ptr;
-            buflen = data.length;
+            buffer = b.extractSlice();
         }
         uint g_page_size;
-        ubyte* pstart = cast(ubyte*)buf;
+        ubyte* pstart = cast(ubyte*)buffer.ptr;
         bool islibrary = false;
         /* See if it's an OMF library.
          * Don't go by file extension.
@@ -119,20 +115,19 @@ final class LibOMF : Library
         /* Determine if it is an OMF library, an OMF object module,
          * or something else.
          */
-        if (buflen < (LibHeader).sizeof)
+        if (buffer.length < (LibHeader).sizeof)
             return corrupt(__LINE__);
-        const lh = cast(const(LibHeader)*)buf;
+        const lh = cast(const(LibHeader)*)buffer.ptr;
         if (lh.recTyp == 0xF0)
         {
             /* OMF library
-             * The modules are all at buf[g_page_size .. lh.lSymSeek]
+             * The modules are all at buffer.ptr[g_page_size .. lh.lSymSeek]
              */
             islibrary = 1;
             g_page_size = lh.pagesize + 3;
-            buf = cast(ubyte*)(pstart + g_page_size);
-            if (lh.lSymSeek > buflen || g_page_size > buflen)
+            if (lh.lSymSeek > buffer.length || g_page_size > buffer.length)
                 return corrupt(__LINE__);
-            buflen = lh.lSymSeek - g_page_size;
+            buffer = (cast(ubyte*)pstart)[g_page_size .. lh.lSymSeek];
         }
         else if (lh.recTyp == '!' && memcmp(lh, "!<arch>\n".ptr, 8) == 0)
         {
@@ -170,7 +165,7 @@ final class LibOMF : Library
             this.objmodules.push(om);
         }
 
-        if (scanOmfLib(&addOmfObjModule, cast(void*)buf, buflen, g_page_size))
+        if (scanOmfLib(&addOmfObjModule, cast(void*)buffer.ptr, buffer.length, g_page_size))
             return corrupt(__LINE__);
     }
 
