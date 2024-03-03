@@ -25,6 +25,7 @@ import dmd.dsymbol;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
+import dmd.funcsem;
 import dmd.globals : FeatureState;
 import dmd.id;
 import dmd.identifier;
