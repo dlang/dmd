@@ -27,7 +27,7 @@ import dmd.mtype;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem : hasPointers, arrayOf;
-import dmd.func : setUnsafe, setUnsafePreview;
+import dmd.funcsem : setUnsafe, setUnsafePreview;
 
 /*************************************************************
  * Check for unsafe access in @safe code:

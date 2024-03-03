@@ -3786,7 +3786,6 @@ public:
     bool isCodeseg() const final override;
     bool isOverloadable() const final override;
     bool isAbstract() final override;
-    bool canInferAttributes(Scope* sc);
     void initInferAttributes();
     PURE isPure();
     bool isSafe();
@@ -3806,7 +3805,6 @@ public:
     bool checkClosure();
     bool hasNestedFrameRefs();
     static bool needsFensure(FuncDeclaration* fd);
-    void buildEnsureRequire();
     ParameterList getParameterList();
     static FuncDeclaration* genCfunc(Array<Parameter* >* fparams, Type* treturn, const char* name, StorageClass stc = 0);
     static FuncDeclaration* genCfunc(Array<Parameter* >* fparams, Type* treturn, Identifier* id, StorageClass stc = 0);
