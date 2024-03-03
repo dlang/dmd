@@ -1028,6 +1028,9 @@ extern (C++) class FuncDeclaration : Declaration
                 return true;
         }
 
+        if (isCtorDeclaration())
+            return true;
+
         return false;
     }
 
