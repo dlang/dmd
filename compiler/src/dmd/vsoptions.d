@@ -343,21 +343,21 @@ private:
             if (FileName.exists(defverFile))
             {
                 // VS 2017
-                auto readResult = File.read(defverFile.toDString); // adds sentinel 0 at end of file
-                if (readResult.success)
-                {
-                    auto ver = cast(char*)readResult.buffer.data.ptr;
-                    // trim version number
-                    while (*ver && isspace(*ver))
-                        ver++;
-                    auto p = ver;
-                    while (*p == '.' || (*p >= '0' && *p <= '9'))
-                        p++;
-                    *p = 0;
+                OutBuffer buf;
+                if (File.read(defverFile.toDString, buf)) // read file into buf
+                    return; // failed to read the file
 
-                    if (ver && *ver)
-                        VCToolsInstallDir = FileName.buildPath(VCInstallDir.toDString, r"Tools\MSVC", ver.toDString).ptr;
-                }
+                auto ver = cast(char*)buf.extractSlice(true).ptr;
+                // trim version number
+                while (*ver && isspace(*ver))
+                    ver++;
+                auto p = ver;
+                while (*p == '.' || (*p >= '0' && *p <= '9'))
+                    p++;
+                *p = 0;
+
+                if (ver && *ver)
+                    VCToolsInstallDir = FileName.buildPath(VCInstallDir.toDString, r"Tools\MSVC", ver.toDString).ptr;
             }
         }
     }

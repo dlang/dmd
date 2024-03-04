@@ -52,23 +52,18 @@ const(char)* toWinPath(const(char)* src)
  * Params:
  *   loc = The line number information from where the call originates
  *   filename = Path to file
- *   buf = set to contents of file
+ *   buf = append contents of file to
  * Returns:
  *   true on failure
  */
-bool readFile(Loc loc, const(char)[] filename, out Buffer buf)
+bool readFile(Loc loc, const(char)[] filename, ref OutBuffer buf)
 {
-    auto result = File.read(filename);
-    if (result.success)
-    {
-        buf.data = result.extractSlice();
-        return false;
-    }
-    else
+    if (File.read(filename, buf))
     {
         error(loc, "error reading file `%.*s`", cast(int)filename.length, filename.ptr);
         return true;
     }
+    return false;
 }
 
 

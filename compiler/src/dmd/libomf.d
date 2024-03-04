@@ -92,10 +92,10 @@ final class LibOMF : Library
         {
             assert(module_name.length, "No module nor buffer provided to `addObject`");
             // read file and take buffer ownership
-            Buffer b;
+            OutBuffer b;
             if (readFile(Loc.initial, module_name, b))
                 fatal();
-            buffer = b.extractSlice();
+            buffer = cast(ubyte[])b.extractSlice();
         }
         uint g_page_size;
         ubyte* pstart = cast(ubyte*)buffer.ptr;

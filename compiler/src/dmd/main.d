@@ -355,12 +355,10 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     {
         foreach (file; ddocfiles)
         {
-            Buffer buffer;
-            if (readFile(loc, file.toDString(), buffer))
+            if (readFile(loc, file.toDString(), ddocbuf))
                 fatal();
             // BUG: convert file contents to UTF-8 before use
             //printf("file: '%.*s'\n", cast(int)buffer.data.length, buffer.data.ptr);
-            ddocbuf.write(buffer.data);
         }
         ddocbufIsRead = true;
     }
@@ -722,8 +720,10 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
         global.inifilename = findConfFile(params.argv0, iniName);
     }
     // Read the configuration file
-    const iniReadResult = File.read(global.inifilename);
-    const inifileBuffer = iniReadResult.buffer.data;
+    OutBuffer inifileBuffer;
+    File.read(global.inifilename, inifileBuffer);
+    inifileBuffer.writeByte(0);         // ensure sentinel
+
     /* Need path of configuration file, for use in expanding @P macro
      */
     const(char)[] inifilepath = FileName.path(global.inifilename);
@@ -734,7 +734,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
      * pick up any DFLAGS settings.
      */
     sections.push("Environment");
-    if (parseConfFile(environment, global.inifilename, inifilepath, inifileBuffer, &sections))
+    if (parseConfFile(environment, global.inifilename, inifilepath, cast(ubyte[])inifileBuffer[], &sections))
         return true;
 
     const(char)[] arch = target.isX86_64 ? "64" : "32"; // use default
@@ -758,7 +758,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     char[80] envsection = void;
     snprintf(envsection.ptr, envsection.length, "Environment%.*s", cast(int) arch.length, arch.ptr);
     sections.push(envsection.ptr);
-    if (parseConfFile(environment, global.inifilename, inifilepath, inifileBuffer, &sections))
+    if (parseConfFile(environment, global.inifilename, inifilepath, cast(ubyte[])inifileBuffer[], &sections))
         return true;
     getenv_setargv(readFromEnv(environment, "DFLAGS"), &arguments);
     updateRealEnvironment(environment);

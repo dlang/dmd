@@ -16,6 +16,7 @@ module dmd.root.response;
 
 import dmd.root.file;
 import dmd.root.filename;
+import dmd.common.outbuffer;
 
 ///
 alias responseExpand = responseExpandFrom!lookupInEnvironment;
@@ -207,7 +208,7 @@ bool insertArgumentsFromResponse(char[] buffer, ref Strings args, ref size_t arg
                 lastc = c;
                 if (p >= buffer.length)
                 {
-                    buffer[d] = '\0';
+                    buffer[d] = '\0';  // this looks suspicious
                     return recurse;
                 }
                 c = buffer[p];
@@ -354,10 +355,11 @@ private char[] lookupInEnvironment(scope const(char)* cp) nothrow {
     else
     {
         import dmd.root.string : toDString;
-        auto readResult = File.read(cp.toDString());
-        if (!readResult.success)
+        OutBuffer buf;
+        if (File.read(cp.toDString(), buf))
             return null;
+        buf.writeByte(0);
         // take ownership of buffer (leaking)
-        return cast(char[]) readResult.extractDataZ();
+        return cast(char[]) buf.extractSlice();
     }
 }

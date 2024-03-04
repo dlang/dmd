@@ -1089,12 +1089,13 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
                 return STATUS_FAILED;
             }
             //printf("C preprocess succeeded %s\n", ifilename.ptr);
-            auto readResult = File.read(ifilename);
+            OutBuffer buf;
+            auto readResult = File.read(ifilename, buf);
             File.remove(ifilename.ptr);
             Mem.xfree(cast(void*)ifilename.ptr);
-            if (!readResult.success)
+            if (readResult)
                 return STATUS_FAILED;
-            text = DArray!ubyte(readResult.extractSlice());
+            text = DArray!ubyte(cast(ubyte[])buf.extractSlice(true));
             return 0;
         }
 
