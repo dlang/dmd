@@ -254,8 +254,6 @@ public:
     bool isSharedWild() const  { return (mod & (MODshared | MODwild)) == (MODshared | MODwild); }
     bool isNaked() const       { return mod == 0; }
     Type *nullAttributes() const;
-    Type *arrayOf();
-    Type *sarrayOf(dinteger_t dim);
     bool hasDeprecatedAliasThis();
     virtual Type *makeConst();
     virtual Type *makeImmutable();
