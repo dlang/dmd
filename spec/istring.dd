@@ -19,7 +19,7 @@ $(GNAME InterpolationExpressionSequence):
     $(GLINK InterpolatedTokenLiteral)
 )
 
-$(P An Interpolation Expression sequence can either wysiwyg quoted, double
+$(P An Interpolation Expression sequence can be either wysiwyg quoted, double
 quoted, or a token literal. Only double quoted literals can have escapes in
 them.)
 
