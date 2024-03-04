@@ -11,6 +11,7 @@
 module dmd.file_manager;
 
 import core.stdc.stdio;
+import dmd.common.outbuffer;
 import dmd.root.stringtable : StringTable;
 import dmd.root.file : File, Buffer;
 import dmd.root.filename : FileName, isDirSeparator;
@@ -273,11 +274,13 @@ nothrow:
         if (FileName.exists(name) != 1) // if not an ordinary file
             return null;
 
-        auto readResult = File.read(name);
-        if (!readResult.success)
-            return null;
+        OutBuffer buf;
+        if (File.read(name, buf))
+            return null;        // failed
+        buf.write32(0);         // terminating dchar 0
 
-        const ubyte[] fb = readResult.extractSlice();
+        const length = buf.length;
+        const ubyte[] fb = cast(ubyte[])(buf.extractSlice()[0 .. length - 4]);
         if (files.insert(name, fb) is null)
             assert(0, "Insert after lookup failure should never return `null`");
 

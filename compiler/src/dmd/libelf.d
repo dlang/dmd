@@ -102,10 +102,10 @@ final class LibElf : Library
         {
             assert(module_name.length);
             // read file and take buffer ownership
-            Buffer b;
+            OutBuffer b;
             if (readFile(Loc.initial, module_name, b))
                 fatal();
-            buffer = b.extractSlice();
+            buffer = cast(ubyte[])b.extractSlice();
             fromfile = 1;
         }
         if (buffer.length < 16)

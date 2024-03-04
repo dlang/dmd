@@ -13,6 +13,7 @@
 module dmd.dinifile;
 
 import core.stdc.ctype;
+import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.stdlib;
 
@@ -193,6 +194,7 @@ void updateRealEnvironment(ref StringTable!(char*) environment)
  */
 bool parseConfFile(ref StringTable!(char*) environment, const(char)[] filename, const(char)[] path, const(ubyte)[] buffer, const(Strings)* sections)
 {
+    //printf("buffer: '%.*s'\n", cast(int)buffer.length, buffer.ptr);
     /********************
      * Skip spaces.
      */
