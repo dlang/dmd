@@ -857,23 +857,6 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         }
     }
 
-    if (fd.inlinedNestedCallees)
-    {
-        /* https://issues.dlang.org/show_bug.cgi?id=15333
-         * If fd contains inlined expressions that come from
-         * nested function bodies, the enclosing of the functions must be
-         * generated first, in order to calculate correct frame pointer offset.
-         */
-        foreach (fdc; *fd.inlinedNestedCallees)
-        {
-            FuncDeclaration fp = fdc.toParent2().isFuncDeclaration();
-            if (fp && fp.semanticRun < PASS.obj)
-            {
-                toObjFile(fp, multiobj);
-            }
-        }
-    }
-
     if (fd.isNested())
     {
         //if (!(config.flags3 & CFG3pic))

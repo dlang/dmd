@@ -412,9 +412,7 @@ enum class PASS : uint8_t
     semantic2done = 4u,
     semantic3 = 5u,
     semantic3done = 6u,
-    inline_ = 7u,
-    inlinedone = 8u,
-    obj = 9u,
+    obj = 7u,
 };
 
 struct Ungag final
@@ -3686,7 +3684,6 @@ public:
     Array<VarDeclaration* > closureVars;
     Array<VarDeclaration* > outerVars;
     Array<FuncDeclaration* > siblingCallers;
-    Array<FuncDeclaration* >* inlinedNestedCallees;
     AttributeViolation* safetyViolation;
     AttributeViolation* nogcViolation;
     AttributeViolation* pureViolation;
@@ -3731,8 +3728,6 @@ public:
     bool inferRetType(bool v);
     bool hasDualContext() const;
     bool hasDualContext(bool v);
-    bool hasAlwaysInlines() const;
-    bool hasAlwaysInlines(bool v);
     bool isCrtCtor() const;
     bool isCrtCtor(bool v);
     bool isCrtDtor() const;
@@ -7054,7 +7049,6 @@ public:
     uint32_t errors;
     uint32_t numlines;
     FileType filetype;
-    bool hasAlwaysInlines;
     bool isPackageFile;
     Package* pkg;
     Array<const char* > contentImportedFiles;

@@ -136,7 +136,6 @@ private struct FUNCFLAG
     bool inferRetType;       /// Return type is to be inferred
     bool hasDualContext;     /// has a dual-context 'this' parameter
 
-    bool hasAlwaysInlines;   /// Contains references to functions that must be inlined
     bool isCrtCtor;          /// Has attribute pragma(crt_constructor)
     bool isCrtDtor;          /// Has attribute pragma(crt_destructor)
     bool hasEscapingSiblings;/// Has sibling functions that escape
@@ -283,8 +282,6 @@ extern (C++) class FuncDeclaration : Declaration
 
     /// Sibling nested functions which called this one
     FuncDeclarations siblingCallers;
-
-    FuncDeclarations *inlinedNestedCallees;
 
     /// In case of failed `@safe` inference, store the error that made the function `@system` for
     /// better diagnostics

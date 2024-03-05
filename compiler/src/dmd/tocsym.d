@@ -397,7 +397,14 @@ Symbol *toSymbol(Dsymbol s)
             if (fd.inlining == PINLINE.default_ && global.params.useInline ||
                 fd.inlining == PINLINE.always)
             {
-                // this is copied from inline.d
+                // cannot inline constructor calls because we need to convert:
+                //      return;
+                // to:
+                //      return this;
+                // ensure() has magic properties the inliner loses
+                // require() has magic properties too
+                // see bug 7699
+                // no nested references to this frame
                 if (!fd.fbody ||
                     fd.ident == Id.ensure ||
                     fd.skipCodegen ||

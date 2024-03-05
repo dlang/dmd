@@ -49,7 +49,6 @@ import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
 import dmd.identifier;
-import dmd.inline;
 import dmd.link;
 import dmd.location;
 import dmd.mars;
@@ -521,17 +520,6 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     Module.runDeferredSemantic3();
     if (global.errors)
         removeHdrFilesAndFail(params, modules);
-
-    // Scan for functions to inline
-    foreach (m; modules)
-    {
-        if (params.useInline || m.hasAlwaysInlines)
-        {
-            if (params.v.verbose)
-                message("inline scan %s", m.toChars());
-            inlineScanModule(m);
-        }
-    }
 
     if (global.warnings)
         errorOnWarning();

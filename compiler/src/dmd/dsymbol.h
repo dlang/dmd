@@ -134,8 +134,6 @@ enum class PASS : uint8_t
     semantic2done,  // semantic2() done
     semantic3,      // semantic3() started
     semantic3done,  // semantic3() done
-    inline_,         // inline started
-    inlinedone,     // inline done
     obj             // toObjFile() run
 };
 
