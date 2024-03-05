@@ -62,11 +62,11 @@ private struct CallbackHelper {
 int main()
 {
     auto dmdParentDir = dirName(dirName(dirName(dirName(__FILE_FULL_PATH__))));
-    global.path = new Strings();
-    global.path.push((dmdParentDir ~ "/phobos").ptr);
-    global.path.push((dmdParentDir ~ "/dmd/druntime/import").ptr);
+    global.path = Strings();
+    global.path.push((dirName(dmdParentDir) ~ "/phobos" ~ '\0').ptr);
+    global.path.push((dmdParentDir ~ "/druntime/import" ~ '\0').ptr);
 
-    /* comment for error output in parsing & semantic */
+    // comment for error output in parsing & semantic
     diagnosticHandler = (const ref Loc location,
                             Color headerColor,
                             const(char)* header,
@@ -77,7 +77,7 @@ int main()
     global.gag = 1;
     initDMD(diagnosticHandler);
 
-    Module m = parseModule(__FILE_FULL_PATH__ ~ "/testfiles/correct.d").module_;
+    Module m = parseModule("testfiles/correct.d").module_;
     m.importedFrom = m; // m.isRoot() == true
 
     CallbackHelper.cursorLoc = Loc(to!string(m.srcfile).ptr, 22, 10);
