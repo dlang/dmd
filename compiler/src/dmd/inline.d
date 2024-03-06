@@ -1814,16 +1814,21 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
          * 2. don't inline when the return value has a destructor, as it doesn't
          *    get handled properly
          */
-        if (tf.next && tf.next.ty != Tvoid &&
-            (!(fd.hasReturnExp & 1) ||
-             statementsToo && hasDtor(tf.next)) &&
-            !hdrscan)
+        if (auto tfnext = tf.next)
         {
-            static if (CANINLINE_LOG)
+            /* for the isTypeSArray() case see https://github.com/dlang/dmd/pull/16145#issuecomment-1932776873
+             */
+            if (tfnext.ty != Tvoid &&
+                (!(fd.hasReturnExp & 1) ||
+                 hasDtor(tfnext) && (statementsToo || tfnext.isTypeSArray())) &&
+                !hdrscan)
             {
-                printf("\t3: no %s\n", fd.toChars());
+                static if (CANINLINE_LOG)
+                {
+                    printf("\t3: no %s\n", fd.toChars());
+                }
+                goto Lno;
             }
-            goto Lno;
         }
 
         /* https://issues.dlang.org/show_bug.cgi?id=14560
