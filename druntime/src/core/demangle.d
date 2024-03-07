@@ -3281,5 +3281,5 @@ extern(C) export int __d_demangle(const(char*) mangled, char* buffer, size_t buf
 
     auto ret = demangle( cast(char[]) mangled[0 .. strlen(mangled)], buffer[0 .. bufferLength] );
     buffer[ret.length] = 0;
-    return 1;
+    return ret.ptr != mangled;
 }
