@@ -16,6 +16,7 @@ import dmd.root.stringtable : StringTable;
 import dmd.root.file : File, Buffer;
 import dmd.root.filename : FileName, isDirSeparator;
 import dmd.root.string : toDString;
+import dmd.errors;
 import dmd.globals;
 import dmd.identifier;
 import dmd.location;
@@ -262,21 +263,21 @@ nothrow:
         if (auto val = files.lookup(name))      // if `name` is cached
             return val.value;                   // return its contents
 
+        OutBuffer buf;
         if (name == "__stdin.d")                // special name for reading from stdin
         {
-            const ubyte[] buffer = readFromStdin().extractSlice();
-            if (this.files.insert(name, buffer) is null)
-                // this.files already contains the name
-                assert(0, "stdin: Insert after lookup failure should never return `null`");
-            return buffer;
+            if (readFromStdin(buf))
+                fatal();
+        }
+        else
+        {
+            if (FileName.exists(name) != 1) // if not an ordinary file
+                return null;
+
+            if (File.read(name, buf))
+                return null;        // failed
         }
 
-        if (FileName.exists(name) != 1) // if not an ordinary file
-            return null;
-
-        OutBuffer buf;
-        if (File.read(name, buf))
-            return null;        // failed
         buf.write32(0);         // terminating dchar 0
 
         const length = buf.length;
@@ -401,44 +402,34 @@ nothrow:
     }
 }
 
-private Buffer readFromStdin() nothrow
+private bool readFromStdin(ref OutBuffer sink) nothrow
 {
     import core.stdc.stdio;
     import dmd.errors;
-    import dmd.root.rmem;
 
-    enum bufIncrement = 128 * 1024;
-    size_t pos = 0;
-    size_t sz = bufIncrement;
+    enum BufIncrement = 128 * 1024;
 
-    ubyte* buffer = null;
-    for (;;)
+    for (size_t j; 1; ++j)
     {
-        buffer = cast(ubyte*)mem.xrealloc(buffer, sz + 4); // +2 for sentinel and +2 for lexer
+        char[] buffer = sink.allocate(BufIncrement);
 
         // Fill up buffer
+        size_t filled = 0;
         do
         {
-            assert(sz > pos);
-            size_t rlen = fread(buffer + pos, 1, sz - pos, stdin);
-            pos += rlen;
+            filled += fread(buffer.ptr + filled, 1, buffer.length - filled, stdin);
             if (ferror(stdin))
             {
                 import core.stdc.errno;
                 error(Loc.initial, "cannot read from stdin, errno = %d", errno);
-                fatal();
+                return true;
             }
-            if (feof(stdin))
+            if (feof(stdin)) // successful completion
             {
-                // We're done
-                assert(pos < sz + 2);
-                buffer[pos .. pos + 4] = '\0';
-                return Buffer(buffer[0 .. pos]);
+                sink.setsize(j * BufIncrement + filled);
+                return false;
             }
-        } while (pos < sz);
-
-        // Buffer full, expand
-        sz += bufIncrement;
+        } while (filled < BufIncrement);
     }
 
     assert(0);
