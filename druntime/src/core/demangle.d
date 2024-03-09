@@ -3277,7 +3277,7 @@ private struct BufSlice
 
 
 /**
- * Demangles D mangled names.
+ * C API to demangle D mangled names.
  *
  * Params:
  *  mangled = The string to demangle.
