@@ -3312,29 +3312,29 @@ extern(C) int d_demangle(const(char*) mangled, char* buffer, size_t bufferLength
 unittest {
     import core.stdc.string: strncmp;
     {
-    	char[512] buffer;
+        char[512] buffer;
 
-    	int ok = d_demangle("_D6mangle2CC6memberMFNlZPi", buffer.ptr, buffer.length);
+        int ok = d_demangle("_D6mangle2CC6memberMFNlZPi", buffer.ptr, buffer.length);
 
-    	assert(ok == 1);
-    	assert(strncmp(buffer.ptr, "scope int* mangle.CC.member()", buffer.length) == 0);
+        assert(ok == 1);
+        assert(strncmp(buffer.ptr, "scope int* mangle.CC.member()", buffer.length) == 0);
     }
-    
+
     {
         // test invalid mangled name
-    	char[512] buffer;
+        char[512] buffer;
 
-    	int ok = d_demangle("", buffer.ptr, buffer.length);
+        int ok = d_demangle("", buffer.ptr, buffer.length);
 
-    	assert(ok == 0);
+        assert(ok == 0);
     }
 
     {
         // test failure for buffer too small
-    	char[8] buffer;
+        char[8] buffer;
 
-    	int ok = d_demangle("_D6mangle2CC6memberMFNlZPi", buffer.ptr, buffer.length);
+        int ok = d_demangle("_D6mangle2CC6memberMFNlZPi", buffer.ptr, buffer.length);
 
-    	assert(ok == 0);
+        assert(ok == 0);
     }
 }
