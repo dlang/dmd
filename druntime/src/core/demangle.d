@@ -3287,7 +3287,7 @@ private struct BufSlice
  * Returns:
  *  1 for success 0 for failure
  */
-extern(C) export int d_demangle(const(char*) mangled, char* buffer, size_t bufferLength)
+extern(C) int d_demangle(const(char*) mangled, char* buffer, size_t bufferLength)
 {
     import core.stdc.string: strlen, memcpy;
     if (mangled == null)
