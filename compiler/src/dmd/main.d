@@ -318,14 +318,12 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     static void buildPath(ref Strings imppath, ref Strings result)
     {
+        Strings array;
         foreach (const path; imppath)
         {
-            Strings* a = FileName.splitPath(path);
-            if (a)
-            {
-                result.append(a);
-            }
+            FileName.appendSplitPath(path, array);
         }
+        result.append(&array);
     }
 
     if (params.mixinOut.doOutput)
