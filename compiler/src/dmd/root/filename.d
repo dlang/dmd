@@ -452,17 +452,15 @@ nothrow:
             assert(buildPath("a/", "bb", "ccc") == "a/bb/ccc");
     }
 
-    // Split a path into an Array of paths
-    extern (C++) static Strings* splitPath(const(char)* path)
+    // Split a path and append the results to `array`
+    extern (C++) static void appendSplitPath(const(char)* path, ref Strings array)
     {
-        auto array = new Strings();
         int sink(const(char)* p) nothrow
         {
             array.push(p);
             return 0;
         }
         splitPath(&sink, path);
-        return array;
     }
 
     /****
