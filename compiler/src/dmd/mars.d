@@ -1711,13 +1711,11 @@ Returns:
 private
 Module createModule(const(char)* file, ref Strings libmodules, const ref Target target)
 {
-    const(char)[] name;
     version (Windows)
     {
         file = toWinPath(file);
     }
-    const(char)[] p = file.toDString();
-    p = FileName.name(p); // strip path
+    const(char)[] p = FileName.name(file.toDString()); // strip path
     const(char)[] ext = FileName.ext(p);
     if (!ext)
     {
@@ -1795,25 +1793,23 @@ Module createModule(const(char)* file, ref Strings libmodules, const ref Target 
         FileName.equals(ext, c_ext   ) ||
         FileName.equals(ext, i_ext   ))
     {
-        name = FileName.removeExt(p);
+        // strip off .ext
+        const(char)[] name = p[0 .. p.length - ext.length - 1]; // -1 for the .
         if (!name.length || name == ".." || name == ".")
         {
             error(Loc.initial, "invalid file name '%s'", file);
             fatal();
         }
-    }
-    else
-    {
-        error(Loc.initial, "unrecognized file extension %.*s", cast(int)ext.length, ext.ptr);
-        fatal();
-    }
+        /* name is the D source file name stripped of
+         * its path and extension.
+         */
+        auto id = Identifier.idPool(name);
 
-    /* At this point, name is the D source file name stripped of
-     * its path and extension.
-     */
-    auto id = Identifier.idPool(name);
-
-    return new Module(file.toDString, id, global.params.ddoc.doOutput, global.params.dihdr.doOutput);
+        return new Module(file.toDString, id, global.params.ddoc.doOutput, global.params.dihdr.doOutput);
+    }
+    error(Loc.initial, "unrecognized file extension %.*s", cast(int)ext.length, ext.ptr);
+    fatal();
+    assert(0);
 }
 
 /**

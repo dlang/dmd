@@ -269,12 +269,12 @@ nothrow:
     /********************************************
      * Create an identifier in the string table.
      */
-    static Identifier idPool(const(char)* s, uint len)
+    static Identifier idPool(scope const(char)* s, uint len)
     {
         return idPool(s[0 .. len]);
     }
 
-    extern (D) static Identifier idPool(const(char)[] s, bool isAnonymous = false)
+    extern (D) static Identifier idPool(scope const(char)[] s, bool isAnonymous = false)
     {
         auto sv = stringtable.update(s);
         auto id = sv.value;
@@ -292,7 +292,7 @@ nothrow:
      *  s = string for keyword
      *  value = TOK.xxxx for the keyword
      */
-    extern (D) static void idPool(const(char)[] s, TOK value)
+    extern (D) static void idPool(scope const(char)[] s, TOK value)
     {
         auto sv = stringtable.insert(s, null);
         assert(sv);
