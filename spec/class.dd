@@ -808,12 +808,12 @@ $(GNAME StaticConstructor):
         $(P Static constructors are used to initialize static class members with
         values that cannot be computed at compile time.)
 
-        $(P Static constructors in other languages are built implicitly by using
+    $(PANEL
+        Static constructors in other languages are built implicitly by using
         member
         initializers that can't be computed at compile time. The trouble with
         this stems from not
         having good control over exactly when the code is executed, for example:
-        )
 
 ------
 class Foo
@@ -823,9 +823,9 @@ class Foo
 }
 ------
 
-        What values do a and b end up with, what order are the initializations
+        What values do `a` and `b` end up with, what order are the initializations
         executed in, what
-        are the values of a and b before the initializations are run, is this a
+        are the values of `a` and `b` before the initializations are run, is this a
         compile error, or is this
         a runtime error? Additional confusion comes from it not being obvious if
         an initializer is
@@ -854,6 +854,7 @@ class Foo
     }
 }
 ------
+    )
 
 $(P If $(D main()) or the thread returns normally, (does not throw an
 exception), the static destructor is added to the list of functions to be called
@@ -878,7 +879,7 @@ $(P Static constructors have empty parameter lists.)
 class Foo
 {
     static this() { ... } // a static constructor
-    static private this() { ... } // not a static constructor
+    static private this() { ... } // Error: not a static constructor
     static
     {
         this() { ... }      // not a static constructor
