@@ -926,7 +926,7 @@ class Foo
 class Foo
 {
     static ~this() { ... }  // a static destructor
-    static private ~this() { ... } // not a static destructor
+    static private ~this() { ... } // Error: not a static destructor
     static
     {
         ~this() { ... }  // not a static destructor
