@@ -6,21 +6,6 @@ $(HEADERNAV_TOC)
 
         $(P Every symbol, type, and expression has properties that can be queried:)
 
-$(TABLE2 Property Examples,
-$(THEAD Expression,     Value)
-$(TROW $(D int.sizeof), yields 4)
-$(TROW $(D float.nan),  yields the floating point nan (Not A Number) value)
-$(TROW $(D (float).nan),        yields the floating point nan value)
-$(TROW $(D (3).sizeof), yields 4 (because 3 is an int))
-
-$(TROW $(D int.init),   default initializer for ints)
-$(TROW $(D int.mangleof),       yields the string "i")
-$(TROW $(D int.stringof),       yields the string "int")
-$(TROW $(D (1+2).stringof),     yields the string "1 + 2")
-)
-
-$(BR)
-
 $(TABLE2 Properties for All Types,
 $(THEAD  Property, Description)
 $(TROW $(RELATIVE_LINK2 init, $(D .init)),      initializer)
@@ -30,11 +15,21 @@ $(TROW $(RELATIVE_LINK2 mangleof, $(D .mangleof)), string representing the $(SIN
 $(TROW $(RELATIVE_LINK2 stringof, $(D .stringof)), string representing the source representation of the type)
 )
 
+$(TABLE2 Examples,
+$(THEAD Expression,     Value)
+$(TROW $(D int.sizeof), yields 4)
+$(TROW $(D (3).sizeof), yields 4 (because 3 is an int))
+
+$(TROW $(D int.init),   yields 0)
+$(TROW $(D int.mangleof),       yields the string "i")
+$(TROW $(D int.stringof),       yields the string "int")
+$(TROW $(D (1+2).stringof),     yields the string "1 + 2")
+)
+
 $(BR)
 
 $(TABLE2 Properties for Integral Types,
 $(THEAD Property, Description)
-$(TROW $(D .init),      initializer)
 $(TROW $(D .max), maximum value)
 $(TROW $(D .min), minimum value)
 )
@@ -43,9 +38,9 @@ $(BR)
 
 $(TABLE_2COLS Properties for Floating Point Types,
 $(THEAD Property, Description)
-$(TROW $(D .init), initializer (NaN))
 $(TROW $(D .infinity), infinity value)
-$(TROW $(D .nan), NaN value)
+$(TROW $(D .nan), NaN - $(HTTPS en.wikipedia.org/wiki/NaN, Not a Number) value
+    (other NaN values can be produced))
 $(TROW $(D .dig), number of decimal digits of precision)
 $(TROW $(D .epsilon), smallest increment to the value 1)
 $(TROW $(D .mant_dig), number of bits in mantissa)
@@ -60,6 +55,12 @@ $(TROW $(D .re), real part)
 $(TROW $(D .im), imaginary part)
 )
 
+$(TABLE2 Floating Point Examples,
+$(THEAD Expression,     Value)
+$(TROW $(D float.nan),  yields the floating point NaN value)
+$(TROW $(D (2.5F).nan),        yields the floating point NaN value)
+)
+
 $(BR)
 
 $(TABLE2 Properties for Class Types,
@@ -67,21 +68,41 @@ $(THEAD Property, Description)
 $(TROW $(RELATIVE_LINK2 classinfo, $(D .classinfo)), Information about the dynamic type of the class)
 )
 
+        $(P See also: $(DDSUBLINK spec/enum, enum_properties, Enum Properties).)
+
+
 $(H2 $(LNAME2 init, .init Property))
 
         $(P $(D .init) produces a constant expression that is the default
         initializer. If applied to a type, it is the default initializer
         for that type. If applied to a variable or field, it is the
         default initializer for that variable or field's type.
+        The default values for different kinds of types are described below:
         )
 
+$(TABLE
+$(THEAD Type, `.init` Value)
+$(TROW `char`, `'\xff'`)
+$(TROW `dchar`, `'\xffff'`)
+$(TROW `wchar`, `'\xffff'`)
+$(TROW Enum, first member value)
+$(TROW Integers, `0`)
+$(TROW Floating Point, NaN)
+$(TROW Reference Types, `null`)
+$(TROW Structs, each $(DDSUBLINK spec/struct, static_struct_init, field's default value))
+$(TROW Unions, first member value)
+)
+
+    $(RATIONALE Where possible, the default value for a type is an invalid value.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ----------------
 int a;
 int b = 1;
 
-int.init // is 0
-a.init   // is 0
-b.init   // is 0
+static assert(int.init == 0);
+static assert(a.init == 0);
+static assert(b.init == 0);
 
 struct Foo
 {
@@ -89,18 +110,19 @@ struct Foo
     int b = 7;
 }
 
-Foo.init.a  // is 0
-Foo.init.b  // is 7
+static assert(Foo.init.a == 0);
+static assert(Foo.init.b == 7);
 ----------------
-
-    $(P $(B Note:) $(D .init) produces a default initialized object, not
-    default constructed. If there is a default constructor for an object,
+)
+    $(P Note that $(D .init) produces a default initialized object, not a
+    default constructed one. If there is a default constructor for an object,
     it may produce a different value.)
 
     $(OL
         $(LI If $(D T) is a nested struct, the context pointer in $(D T.init)
         is $(D null).)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ----------------
 void main()
 {
@@ -115,10 +137,11 @@ void main()
     s3.foo();       // Access violation
 }
 ----------------
-
+)
         $(LI If $(D T) is a struct which has $(CODE @disable this();), $(D T.init)
         might return a logically incorrect object.)
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ----------------
 struct S
 {
@@ -138,7 +161,9 @@ void main()
     s3.check();     // Assertion failure
 }
 ----------------
+)
     )
+
 
 $(H2 $(LNAME2 stringof, .stringof Property))
 
