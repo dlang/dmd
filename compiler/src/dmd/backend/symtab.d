@@ -18,95 +18,11 @@ import core.stdc.stdlib;
 import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.mem;
-
+import dmd.backend.barray;
 
 nothrow:
 @safe:
 
 alias SYMIDX = size_t;    // symbol table index
 
-import dmd.backend.global : err_nomem;
-
-struct symtab_t
-{
-  nothrow:
-    alias T = Symbol*;
-    alias capacity = symmax;
-
-    /**********************
-     * Set useable length of array.
-     * Params:
-     *  length = minimum number of elements in array
-     */
-    void setLength(size_t length)
-    {
-        @trusted
-        static void enlarge(ref symtab_t barray, size_t length)
-        {
-            pragma(inline, false);
-            const newcap = (barray.capacity == 0)
-                ? length
-                : (length + (length >> 1) + 15) & ~15;
-
-            T* p;
-            if (config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy))
-                p = cast(T*) mem_realloc(barray.tab, newcap * T.sizeof);
-            else
-                p = cast(T*) realloc(barray.tab, newcap * T.sizeof);
-
-            if (length && !p)
-            {
-                version (unittest)
-                    assert(0);
-                else
-                    err_nomem();
-            }
-            barray.tab = p;
-            barray.length = length;
-            barray.capacity = newcap;
-            //barray.array = p[0 .. length];
-        }
-
-        if (length <= capacity)
-            this.length = length;               // the fast path
-            //array = array.ptr[0 .. length];   // the fast path
-        else
-            enlarge(this, length);              // the slow path
-    }
-
-    @trusted
-    ref inout(T) opIndex(size_t i) inout nothrow pure @nogc
-    {
-        assert(i < length);
-        return tab[i];
-    }
-
-    @trusted
-    extern (D) inout(T)[] opSlice() inout nothrow pure @nogc
-    {
-        return tab[0 .. length];
-    }
-
-    @trusted
-    extern (D) inout(T)[] opSlice(size_t a, size_t b) inout nothrow pure @nogc
-    {
-        assert(a <= b && b <= length);
-        return tab[a .. b];
-    }
-
-    @trusted
-    void dtor()
-    {
-        if (config.flags2 & (CFG2phgen | CFG2phuse | CFG2phauto | CFG2phautoy))
-            mem_free(tab);
-        else
-            free(tab);
-        length = 0;
-        tab = null;
-        symmax = 0;
-    }
-
-    SYMIDX length;              // 1 past end
-    SYMIDX symmax;              // max # of entries in tab[] possible
-    T* tab;                     // local Symbol table
-}
+alias symtab_t = Barray!(Symbol*);
