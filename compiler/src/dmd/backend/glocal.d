@@ -81,7 +81,7 @@ void localize()
     __gshared Barray!(loc_t) loctab;       // cache the array so it usually won't need reallocating
 
     // Table should not get any larger than the symbol table
-    loctab.setLength(globsym.symmax);
+    loctab.setLength(globsym.length);
 
     foreach (b; BlockRange(startblock))       // for each block
     {
