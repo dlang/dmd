@@ -5490,10 +5490,8 @@ private elem * elvalist(elem *e, goal_t goal)
         // Find last named parameter
         Symbol *lastNamed = null;
         Symbol *arguments_typeinfo = null;
-        for (SYMIDX si = 0; si < globsym.length; si++)
+        foreach (s; globsym[])
         {
-            Symbol *s = globsym[si];
-
             if (s.Sclass == SC.parameter || s.Sclass == SC.regpar)
                 lastNamed = s;
             if (s.Sident[0] == '_' && strcmp(s.Sident.ptr, "_arguments_typeinfo") == 0)
@@ -5527,10 +5525,8 @@ if (config.exe & EX_windos)
 
     // Find last named parameter
     Symbol *lastNamed = null;
-    for (SYMIDX si = 0; si < globsym.length; si++)
+    foreach (s; globsym[])
     {
-        Symbol *s = globsym[si];
-
         if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg || s.Sclass == SC.parameter)
             lastNamed = s;
     }
@@ -5557,9 +5553,8 @@ if (config.exe & EX_posix)
 
     // Find __va_argsave
     Symbol *va_argsave = null;
-    for (SYMIDX si = 0; si < globsym.length; si++)
+    foreach (s; globsym[])
     {
-        Symbol *s = globsym[si];
         if (s.Sident[0] == '_' && strcmp(s.Sident.ptr, "__va_argsave") == 0)
         {
             va_argsave = s;

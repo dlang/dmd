@@ -1780,10 +1780,8 @@ static if (1)
 
         DWARFAbbrev dwarfabbrev;
 
-        for (SYMIDX si = 0; si < globsym.length; si++)
+        foreach (sa; globsym[])
         {
-            Symbol *sa = globsym[si];
-
             if (sa.Sflags & SFLnodebug) continue;
 
             static immutable uint[14] formal_var_abbrev_suffix =
@@ -1926,10 +1924,8 @@ static if (1)
 
         if (haveparameters)
         {
-            for (SYMIDX si = 0; si < globsym.length; si++)
+            foreach (sa; globsym[])
             {
-                Symbol *sa = globsym[si];
-
                 if (sa.Sflags & SFLnodebug)
                     continue;
 

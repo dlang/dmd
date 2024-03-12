@@ -2090,9 +2090,9 @@ private void findbasivs(ref Loop l)
 
             if (!ambdone)           /* avoid redundant loops        */
             {
-                foreach (j; 0 .. globsym.length)
+                foreach (j, s; globsym[])
                 {
-                    if (!(globsym[j].Sflags & SFLunambig))
+                    if (!(s.Sflags & SFLunambig))
                         vec_setbit(j,notposs);
                 }
                 ambdone = true;
@@ -2224,9 +2224,9 @@ private void findopeqs(ref Loop l)
 
             if (!ambdone)           // avoid redundant loops
             {
-                foreach (j; 0 .. globsym.length)
+                foreach (j, s; globsym[])
                 {
-                    if (!(globsym[j].Sflags & SFLunambig))
+                    if (!(s.Sflags & SFLunambig))
                         vec_setbit(j,notposs);
                 }
                 ambdone = true;
