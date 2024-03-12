@@ -192,10 +192,7 @@ nothrow:
             }
             FileName.free(n.ptr);
 
-            const b = FileName.removeExt(filename);
-            n = FileName.combine(p, b);
-            FileName.free(b.ptr);
-
+            n = FileName.combine(p, FileName.sansExt(filename));
             scope(exit) FileName.free(n.ptr);
 
             // also cache this if we are looking for package.d[i]

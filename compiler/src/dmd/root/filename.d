@@ -270,6 +270,20 @@ nothrow:
     }
 
     /********************************
+     * Slice of file name without extension.
+     * Params:
+     *  filename = file name
+     * Returns:
+     *  the slice
+     */
+    extern (D) static const(char)[] sansExt(const char[] filename)
+    {
+        auto e = ext(filename);
+        size_t length = e.length;
+        return filename[0 .. filename.length - (length ? length + 1 : 0)]; // +1 for .
+    }
+
+    /********************************
      * Return filename name excluding path (read-only).
      */
     extern (C++) static const(char)* name(const(char)* str) pure @nogc
