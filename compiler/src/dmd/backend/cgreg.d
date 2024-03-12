@@ -158,11 +158,12 @@ void cgreg_term()
             s.Slvreg = null;
         }
 
-        for (size_t i = 0; i < regrange.length; i++)
+        foreach (ref r; regrange[])
         {
-            if (regrange[i])
-            {   vec_free(regrange[i]);
-                regrange[i] = null;
+            if (r)
+            {
+                vec_free(r);
+                r = null;
             }
         }
 
@@ -176,11 +177,11 @@ void cgreg_term()
 @trusted
 void cgreg_reset()
 {
-    for (size_t j = 0; j < regrange.length; j++)
-        if (!regrange[j])
-            regrange[j] = vec_calloc(dfo.length);
+    foreach (ref r; regrange[])
+        if (!r)
+            r = vec_calloc(dfo.length);
         else
-            vec_clear(regrange[j]);
+            vec_clear(r);
 }
 
 /*******************************
