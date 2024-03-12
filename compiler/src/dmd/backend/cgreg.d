@@ -77,16 +77,15 @@ void cgreg_init()
     memset(regrange.ptr, 0, regrange.sizeof);
 
     // Make adjustments to symbols we might stick in registers
-    for (size_t i = 0; i < globsym.length; i++)
-    {   uint sz;
-        Symbol *s = globsym[i];
-
+    foreach (s; globsym[])
+    {
         //printf("considering candidate '%s' for register\n", s.Sident.ptr);
 
         if (s.Srange)
             s.Srange = vec_realloc(s.Srange,dfo.length);
 
         // Determine symbols that are not candidates
+        uint sz;
         if (!(s.Sflags & GTregcand) ||
             !s.Srange ||
             (sz = cast(uint)type_size(s.Stype)) == 0 ||
@@ -149,9 +148,8 @@ void cgreg_term()
 {
     if (config.flags4 & CFG4optimized)
     {
-        for (size_t i = 0; i < globsym.length; i++)
+        foreach (s; globsym[])
         {
-            Symbol *s = globsym[i];
             vec_free(s.Srange);
             vec_free(s.Slvreg);
             s.Srange = null;
@@ -749,8 +747,8 @@ void cgreg_unregister(regm_t conflict)
 {
     if (pass == BackendPass.final_)
         pass = BackendPass.reg;                         // have to codegen at least one more time
-    for (int i = 0; i < globsym.length; i++)
-    {   Symbol *s = globsym[i];
+    foreach (s; globsym[])
+    {
         if (s.Sfl == FLreg && s.Sregm & conflict)
         {
             s.Sflags |= GTunregister;
@@ -781,9 +779,8 @@ int cgreg_assign(Symbol *retsym)
     /* First do any 'unregistering' which might have happened in the last
      * code gen pass.
      */
-    for (size_t si = 0; si < globsym.length; si++)
-    {   Symbol *s = globsym[si];
-
+    foreach (s; globsym[])
+    {
         if (s.Sflags & GTunregister)
         {
             debug if (debugr)
@@ -840,8 +837,8 @@ int cgreg_assign(Symbol *retsym)
     /* Find all the parameters passed as named registers
      */
     regm_t regparams = 0;
-    for (size_t si = 0; si < globsym.length; si++)
-    {   Symbol *s = globsym[si];
+    foreach (s; globsym[])
+    {
         if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
             regparams |= s.Spregm();
     }
@@ -859,9 +856,8 @@ int cgreg_assign(Symbol *retsym)
     Reg t;
     t.sym = null;
     t.benefit = 0;
-    for (size_t si = 0; si < globsym.length; si++)
-    {   Symbol *s = globsym[si];
-
+    foreach (s; globsym[])
+    {
         Reg u;
         u.sym = s;
         if (!(s.Sflags & GTregcand) ||
@@ -1014,9 +1010,8 @@ Ltried:
         (mfuncreg & ~fregsaved) & ALLREGS &&  // if unused non-floating scratch registers
         !(funcsym_p.Sflags & SFLexit))       // don't need save/restore if function never returns
     {
-        for (size_t si = 0; si < globsym.length; si++)
-        {   Symbol *s = globsym[si];
-
+        foreach (s; globsym[])
+        {
             if (s.Sfl == FLreg &&                // if assigned to register
                 (1 << s.Sreglsw) & fregsaved &&   // and that register is not scratch
                 type_size(s.Stype) <= REGSIZE && // don't bother with register pairs
