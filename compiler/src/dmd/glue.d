@@ -306,8 +306,7 @@ private void obj_write_deferred(ref OutBuffer objbuf, Library library, ref Dsymb
                        cast(int)target.obj_ext.length, target.obj_ext.ptr);
 
         //printf("writing '%s'\n", fname);
-        // terminating 0 still needed for library.addObject()
-        obj_end(objbuf, library, namebuf.extractSlice(true));
+        obj_end(objbuf, library, namebuf.extractSlice());
     }
     glue.obj_symbols_towrite.length = 0;
 }

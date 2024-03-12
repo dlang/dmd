@@ -10,6 +10,9 @@
  */
 module dmd.root.string;
 
+import core.stdc.string;
+import dmd.root.rmem;
+
 /// Slices a `\0`-terminated C-string, excluding the terminator
 inout(char)[] toDString (inout(char)* s) pure nothrow @nogc
 {
@@ -85,6 +88,23 @@ unittest
     assert("Hello world".toCStringThen!((v) => v == "Hello world\0"));
     assert("Hello world\0".toCStringThen!((v) => v == "Hello world\0\0"));
     assert(null.toCStringThen!((v) => v == "\0"));
+}
+
+/*********************************************
+ * Convert a D string to a C string by allocating memory,
+ * copying it, and adding a terminating 0.
+ * Params:
+ *      s = string to copy
+ * Result:
+ *      0-terminated copy of s
+ */
+char[] toCString(scope const(char)[] s) nothrow
+{
+    const length = s.length;
+    char* p = cast(char*)mem.xmalloc_noscan(length + 1);
+    memcpy(p, s.ptr, length);
+    p[length] = 0;
+    return p[0 .. length];
 }
 
 /**
