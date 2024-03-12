@@ -1019,7 +1019,7 @@ void ElfObj_termfile()
  *    objfilename = file name for object module (not used)
  */
 
-void ElfObj_term(const(char)* objfilename)
+void ElfObj_term(const(char)[] objfilename)
 {
     //printf("ElfObj_term()\n");
     outfixlist();           // backpatches

@@ -691,7 +691,7 @@ void OmfObj_termfile()
  */
 
 @trusted
-void OmfObj_term(const(char)* objfilename)
+void OmfObj_term(const(char)[] objfilename)
 {
         //printf("OmfObj_term()\n");
         list_t dl;

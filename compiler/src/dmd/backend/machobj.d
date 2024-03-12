@@ -607,7 +607,7 @@ void MachObj_termfile()
  * Terminate package.
  */
 @trusted
-void MachObj_term(const(char)* objfilename)
+void MachObj_term(const(char)[] objfilename)
 {
     //printf("MachObj_term()\n");
     outfixlist();           // backpatches

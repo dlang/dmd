@@ -212,7 +212,7 @@ void cv8_initfile(const(char)* filename)
 }
 
 @trusted
-void cv8_termfile(const(char)* objfilename)
+void cv8_termfile(const(char)[] objfilename)
 {
     //printf("cv8_termfile()\n");
 
@@ -227,11 +227,11 @@ void cv8_termfile(const(char)* objfilename)
     /* Start with starting symbol in separate "F1" section
      */
     auto buf = OutBuffer(1024);
-    size_t len = strlen(objfilename);
+    size_t len = objfilename.length;
     buf.write16(cast(int)(2 + 4 + len + 1));
     buf.write16(S_COMPILAND_V3);
     buf.write32(0);
-    buf.write(objfilename, cast(uint)(len + 1));
+    buf.write(objfilename.ptr, cast(uint)(len + 1));
 
     // write S_COMPILE record
     buf.write16(2 + 1 + 1 + 2 + 1 + VERSION.length + 1);

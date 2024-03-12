@@ -596,7 +596,7 @@ void MsCoffObj_termfile()
  */
 
 @trusted
-void MsCoffObj_term(const(char)* objfilename)
+void MsCoffObj_term(const(char)[] objfilename)
 {
     //printf("MsCoffObj_term()\n");
     assert(fobjbuf.length() == 0);
