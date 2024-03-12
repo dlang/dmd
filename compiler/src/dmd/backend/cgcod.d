@@ -673,9 +673,8 @@ void prolog(ref CodeBuilder cdb)
          */
         /* Look for __va_argsave
          */
-        for (SYMIDX si = 0; si < globsym.length; si++)
+        foreach (s; globsym[])
         {
-            Symbol *s = globsym[si];
             if (s.Sident[0] == '_' && strcmp(s.Sident.ptr, "__va_argsave") == 0)
             {
                 if (!(s.Sflags & SFLdead))
@@ -1372,10 +1371,8 @@ private void blcodgen(block *bl)
         CodeBuilder cdbstore; cdbstore.ctor();
 
         sflsave = cast(char *) alloca(globsym.length * char.sizeof);
-        for (SYMIDX i = 0; i < globsym.length; i++)
+        foreach (i, s; globsym[])
         {
-            Symbol *s = globsym[i];
-
             sflsave[i] = s.Sfl;
             if (regParamInPreg(s) &&
                 regcon.params & s.Spregm() &&

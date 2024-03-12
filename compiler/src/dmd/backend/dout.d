@@ -895,9 +895,8 @@ private void writefunc2(Symbol *sfunc)
     // TX86 computes parameter offsets in stackoffsets()
     //printf("globsym.length = %d\n", globsym.length);
 
-    for (SYMIDX si = 0; si < globsym.length; si++)
-    {   Symbol *s = globsym[si];
-
+    foreach (si, s; globsym[])
+    {
         symbol_debug(s);
         //printf("symbol %d '%s'\n",si,s.Sident.ptr);
 
@@ -985,9 +984,9 @@ private void writefunc2(Symbol *sfunc)
     // address of all non-register parameters.
     if (addressOfParam | anyasm)        // if took address of a parameter
     {
-        for (SYMIDX si = 0; si < globsym.length; si++)
-            if (anyasm || globsym[si].Sclass == SC.parameter)
-                globsym[si].Sflags &= ~(SFLunambig | GTregcand);
+        foreach (s; globsym[])
+            if (anyasm || s.Sclass == SC.parameter)
+                s.Sflags &= ~(SFLunambig | GTregcand);
     }
 
     block_pred();                       // compute predecessors to blocks
@@ -1077,10 +1076,8 @@ private void writefunc2(Symbol *sfunc)
     /* This is to make uplevel references to SCfastpar variables
      * from nested functions work.
      */
-    for (SYMIDX si = 0; si < globsym.length; si++)
+    foreach (s; globsym[])
     {
-        Symbol *s = globsym[si];
-
         switch (s.Sclass)
         {   case SC.fastpar:
                 s.Sclass = SC.auto_;
@@ -1129,8 +1126,8 @@ Ldone:
     if (saveForInlining)
     {
         f.Flocsym.setLength(globsym.length);
-        foreach (si; 0 .. globsym.length)
-            f.Flocsym[si] = globsym[si];
+        foreach (si, s; globsym[])
+            f.Flocsym[si] = s;
     }
     else
     {

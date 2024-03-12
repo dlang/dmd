@@ -3991,10 +3991,8 @@ static if (0)
         { }
         else
         {
-            for (SYMIDX si = 0; si < globsym.length; si++)
+            foreach (s; globsym[])
             {
-                Symbol* s = globsym[si];
-
                 if (s.Sflags & GTregcand && type_size(s.Stype) != 0)
                 {
                     if (config.flags4 & CFG4optimized)

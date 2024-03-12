@@ -4044,9 +4044,8 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
 {
     //printf("prolog_loadparams() %s\n", funcsym_p.Sident.ptr);
     debug
-    for (SYMIDX si = 0; si < globsym.length; si++)
+    foreach (s; globsym[])
     {
-        Symbol *s = globsym[si];
         if (debugr && (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg))
         {
             printf("symbol '%s' is fastpar in register [l %s, m %s]\n", s.Sident.ptr,
@@ -4063,9 +4062,8 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
      * registers into their stack locations.
      */
     regm_t shadowregm = 0;
-    for (SYMIDX si = 0; si < globsym.length; si++)
+    foreach (s; globsym[])
     {
-        Symbol *s = globsym[si];
         uint sz = cast(uint)type_size(s.Stype);
 
         if (!((s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg) && s.Sfl != FLreg))
@@ -4216,9 +4214,8 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
      * and Pb is passed in R2 but assigned to R1. Detect it and assert.
      */
     regm_t assignregs = 0;
-    for (SYMIDX si = 0; si < globsym.length; si++)
+    foreach (s; globsym[])
     {
-        Symbol *s = globsym[si];
         uint sz = cast(uint)type_size(s.Stype);
 
         if (!((s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg) && s.Sfl == FLreg))
@@ -4274,9 +4271,8 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
      * Do not use assignaddr(), as it will replace the stack reference with
      * the register.
      */
-    for (SYMIDX si = 0; si < globsym.length; si++)
+    foreach (s; globsym[])
     {
-        Symbol *s = globsym[si];
         uint sz = cast(uint)type_size(s.Stype);
 
         if (!((s.Sclass == SC.regpar || s.Sclass == SC.parameter) &&
@@ -5107,10 +5103,9 @@ void cod3_adjSymOffsets()
     SYMIDX si;
 
     //printf("cod3_adjSymOffsets()\n");
-    for (si = 0; si < globsym.length; si++)
+    foreach (s; globsym[])
     {
         //printf("\tglobsym[%d] = %p\n",si,globsym[si]);
-        Symbol *s = globsym[si];
 
         switch (s.Sclass)
         {

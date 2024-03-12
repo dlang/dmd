@@ -1787,10 +1787,8 @@ public void deadvar()
 
         /* First, mark each candidate as dead.  */
         /* Initialize vectors for live ranges.  */
-        for (SYMIDX i = 0; i < globsym.length; i++)
+        foreach (s; globsym[])
         {
-            Symbol *s = globsym[i];
-
             if (s.Sflags & SFLunambig)
             {
                 s.Sflags |= SFLdead;
@@ -1810,25 +1808,22 @@ public void deadvar()
         /* Compute live variables. Set bit for block in live range      */
         /* if variable is in the IN set for that block.                 */
         flowlv();                       /* compute live variables       */
-        for (SYMIDX i = 0; i < globsym.length; i++)
+        foreach (i, s; globsym[])
         {
-            if (globsym[i].Srange /*&& globsym[i].Sclass != CLMOS*/)
+            if (s.Srange /*&& s.Sclass != CLMOS*/)
                 foreach (j, b; dfo[])
                     if (vec_testbit(i,b.Binlv))
                         vec_setbit(cast(uint)j,globsym[i].Srange);
         }
 
         /* Print results        */
-        for (SYMIDX i = 0; i < globsym.length; i++)
+        foreach (i, s; globsym[])
         {
-            char *p;
-            Symbol *s = globsym[i];
-
             if (s.Sflags & SFLdead && s.Sclass != SC.parameter && s.Sclass != SC.regpar)
                 s.Sflags &= ~GTregcand;    // do not put dead variables in registers
             debug
             {
-                p = cast(char *) s.Sident.ptr ;
+                auto p = cast(char *) s.Sident.ptr ;
                 if (s.Sflags & SFLdead)
                     if (debugc) printf("Symbol %d '%s' is dead\n",cast(int) i,p);
                 if (debugc && s.Srange /*&& s.Sclass != CLMOS*/)
