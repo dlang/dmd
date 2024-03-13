@@ -17,7 +17,6 @@ nothrow:
  *     data = byte array to hash
  * Returns: Blake 3 hash of data
  **/
-@trusted
 public ubyte[32] blake3(scope const ubyte[] data)
 {
     ChunkState state;
@@ -210,7 +209,7 @@ uint[16] compress(const ref uint[8] chainingValue, const ref uint[16] blockWords
 
 //if block isn't full, only the first blockLength/4 words
 //will be filled in
-uint[16] bytesToWords(const ubyte[] block)
+uint[16] bytesToWords(scope const ubyte[] block)
 {
     uint[16] ret = 0;
     foreach(i; 0 .. (block.length/4))
@@ -225,7 +224,7 @@ uint[16] bytesToWords(const ubyte[] block)
 
 
 //full sized chunks, so no need to check for partial blocks, etc
-void updateChunkStateFull(ref ChunkState chunkState, const ubyte[] chunk)
+void updateChunkStateFull(ref ChunkState chunkState, scope const ubyte[] chunk)
 {
     for (size_t cursor = 0; cursor < ChunkLength; cursor += BlockLength)
     {
