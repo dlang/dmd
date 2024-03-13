@@ -135,7 +135,7 @@ private regm_t lastretregs,last2retregs,last3retregs,last4retregs,last5retregs;
 }
 
 /*********************************
- * Generate code for a function.
+ * Main entry point for generating code for a function.
  * Note at the end of this routine mfuncreg will contain the mask
  * of registers not affected by the function. Some minor optimization
  * possibilities are here.
@@ -153,7 +153,6 @@ void codgen(Symbol *sfunc)
     CSE.initialize();
     cod3_initregs();
     allregs = ALLREGS;
-    pass = BackendPass.initial;
     Alloca.initialize();
     anyiasm = 0;
 
@@ -168,124 +167,133 @@ void codgen(Symbol *sfunc)
         }
     }
 
-tryagain:
-    debug
-    if (debugr)
-        printf("------------------ PASS%s -----------------\n",
-            (pass == BackendPass.initial) ? "init".ptr : ((pass == BackendPass.reg) ? "reg".ptr : "final".ptr));
-
-    lastretregs = last2retregs = last3retregs = last4retregs = last5retregs = 0;
-
-    // if no parameters, assume we don't need a stack frame
-    needframe = 0;
-    enforcealign = false;
-    gotref = 0;
-    stackchanged = 0;
-    stackpush = 0;
-    refparam = 0;
-    calledafunc = 0;
-    retsym = null;
-
-    cgstate.stackclean = 1;
-    cgstate.funcarg.initialize();
-    cgstate.funcargtos = ~0;
-    cgstate.accessedTLS = false;
-    STACKALIGN = TARGET_STACKALIGN;
-
-    regsave.reset();
-    memset(global87.stack.ptr,0,global87.stack.sizeof);
-
-    calledFinally = false;
-    usednteh = 0;
-
-    if (sfunc.Sfunc.Fflags3 & Fjmonitor &&
-        config.exe & EX_windos)
-        usednteh |= NTEHjmonitor;
-
-    // Set on a trial basis, turning it off if anything might throw
-    sfunc.Sfunc.Fflags3 |= Fnothrow;
-
-    floatreg = false;
-    assert(global87.stackused == 0);             /* nobody in 8087 stack         */
-
-    CSE.start();
-    memset(&regcon,0,regcon.sizeof);
-    regcon.cse.mval = regcon.cse.mops = 0;      // no common subs yet
-    msavereg = 0;
-    uint nretblocks = 0;
-    mfuncreg = fregsaved;               // so we can see which are used
-                                        // (bit is cleared each time
-                                        //  we use one)
-    assert(!(needframe && mfuncreg & mBP)); // needframe needs mBP
-
-    for (block* b = startblock; b; b = b.Bnext)
+    /* Generate code repeatedly until we cannot do any better. Each
+     * pass can generate opportunities for enregistering more variables,
+     * loop until no more registers are free'd up.
+     */
+    pass = BackendPass.initial;
+    while (1)
     {
-        memset(&b.Bregcon,0,b.Bregcon.sizeof);       // Clear out values in registers
-        if (b.Belem)
-            resetEcomsub(b.Belem);     // reset all the Ecomsubs
-        if (b.BC == BCasm)
-            anyiasm = 1;                // we have inline assembler
-        if (b.BC == BCret || b.BC == BCretexp)
-            nretblocks++;
-    }
+        debug
+        if (debugr)
+            printf("------------------ PASS%s -----------------\n",
+                (pass == BackendPass.initial) ? "init".ptr : ((pass == BackendPass.reg) ? "reg".ptr : "final".ptr));
 
-    if (!config.fulltypes || (config.flags4 & CFG4optimized))
-    {
-        regm_t noparams = 0;
-        foreach (s; globsym[])
+        lastretregs = last2retregs = last3retregs = last4retregs = last5retregs = 0;
+
+        // if no parameters, assume we don't need a stack frame
+        needframe = 0;
+        enforcealign = false;
+        gotref = 0;
+        stackchanged = 0;
+        stackpush = 0;
+        refparam = 0;
+        calledafunc = 0;
+        retsym = null;
+
+        cgstate.stackclean = 1;
+        cgstate.funcarg.initialize();
+        cgstate.funcargtos = ~0;
+        cgstate.accessedTLS = false;
+        STACKALIGN = TARGET_STACKALIGN;
+
+        regsave.reset();
+        memset(global87.stack.ptr,0,global87.stack.sizeof);
+
+        calledFinally = false;
+        usednteh = 0;
+
+        if (sfunc.Sfunc.Fflags3 & Fjmonitor &&
+            config.exe & EX_windos)
+            usednteh |= NTEHjmonitor;
+
+        // Set on a trial basis, turning it off if anything might throw
+        sfunc.Sfunc.Fflags3 |= Fnothrow;
+
+        floatreg = false;
+        assert(global87.stackused == 0);             /* nobody in 8087 stack         */
+
+        CSE.start();
+        memset(&regcon,0,regcon.sizeof);
+        regcon.cse.mval = regcon.cse.mops = 0;      // no common subs yet
+        msavereg = 0;
+        uint nretblocks = 0;
+        mfuncreg = fregsaved;               // so we can see which are used
+                                            // (bit is cleared each time
+                                            //  we use one)
+        assert(!(needframe && mfuncreg & mBP)); // needframe needs mBP
+
+        for (block* b = startblock; b; b = b.Bnext)
         {
-            s.Sflags &= ~SFLread;
-            switch (s.Sclass)
+            memset(&b.Bregcon,0,b.Bregcon.sizeof);       // Clear out values in registers
+            if (b.Belem)
+                resetEcomsub(b.Belem);     // reset all the Ecomsubs
+            if (b.BC == BCasm)
+                anyiasm = 1;                // we have inline assembler
+            if (b.BC == BCret || b.BC == BCretexp)
+                nretblocks++;
+        }
+
+        if (!config.fulltypes || (config.flags4 & CFG4optimized))
+        {
+            regm_t noparams = 0;
+            foreach (s; globsym[])
             {
-                case SC.fastpar:
-                case SC.shadowreg:
-                    regcon.params |= s.Spregm();
-                    goto case SC.parameter;
+                s.Sflags &= ~SFLread;
+                switch (s.Sclass)
+                {
+                    case SC.fastpar:
+                    case SC.shadowreg:
+                        regcon.params |= s.Spregm();
+                        goto case SC.parameter;
 
-                case SC.parameter:
-                    if (s.Sfl == FLreg)
-                        noparams |= s.Sregm;
-                    break;
+                    case SC.parameter:
+                        if (s.Sfl == FLreg)
+                            noparams |= s.Sregm;
+                        break;
 
-                default:
-                    break;
+                    default:
+                        break;
+                }
+            }
+            regcon.params &= ~noparams;
+        }
+
+        if (config.flags4 & CFG4optimized)
+        {
+            if (nretblocks == 0 &&                  // if no return blocks in function
+                !(sfunc.ty() & mTYnaked))      // naked functions may have hidden veys of returning
+                sfunc.Sflags |= SFLexit;       // mark function as never returning
+
+            assert(dfo);
+
+            cgreg_reset();
+            foreach (i, b; dfo[])
+            {
+                dfoidx = cast(int)i;
+                regcon.used = msavereg | regcon.cse.mval;   // registers already in use
+                blcodgen(b);                        // gen code in depth-first order
+                //printf("b.Bregcon.used = %s\n", regm_str(b.Bregcon.used));
+                cgreg_used(dfoidx, b.Bregcon.used); // gather register used information
             }
         }
-        regcon.params &= ~noparams;
-    }
-
-    if (config.flags4 & CFG4optimized)
-    {
-        if (nretblocks == 0 &&                  // if no return blocks in function
-            !(sfunc.ty() & mTYnaked))      // naked functions may have hidden veys of returning
-            sfunc.Sflags |= SFLexit;       // mark function as never returning
-
-        assert(dfo);
-
-        cgreg_reset();
-        foreach (i, b; dfo[])
+        else
         {
-            dfoidx = cast(int)i;
-            regcon.used = msavereg | regcon.cse.mval;   // registers already in use
-            blcodgen(b);                        // gen code in depth-first order
-            //printf("b.Bregcon.used = %s\n", regm_str(b.Bregcon.used));
-            cgreg_used(dfoidx, b.Bregcon.used); // gather register used information
+            pass = BackendPass.final_;
+            for (block* b = startblock; b; b = b.Bnext)
+                blcodgen(b);                // generate the code for each block
         }
-    }
-    else
-    {
-        pass = BackendPass.final_;
-        for (block* b = startblock; b; b = b.Bnext)
-            blcodgen(b);                // generate the code for each block
-    }
-    regcon.immed.mval = 0;
-    assert(!regcon.cse.mops);           // should have all been used
+        regcon.immed.mval = 0;
+        assert(!regcon.cse.mops);           // should have all been used
 
-    // See which variables we can put into registers
-    if (pass != BackendPass.final_ &&
-        !anyiasm)                               // possible LEA or LES opcodes
-    {
-        allregs |= cod3_useBP();                // see if we can use EBP
+        if (pass == BackendPass.final_ ||       // the final pass, so exit
+            anyiasm)                            // possible LEA or LES opcodes
+        {
+            break;
+        }
+
+        // See which variables we can put into registers
+        allregs |= cod3_useBP();                // use EBP as general purpose register
 
         // If pic code, but EBX was never needed
         if (!(allregs & mask(PICREG)) && !gotref)
@@ -298,12 +306,14 @@ tryagain:
             pass = BackendPass.reg;
         else
             pass = BackendPass.final_;
+
+        /* free up generated code for next pass
+         */
         for (block* b = startblock; b; b = b.Bnext)
         {
             code_free(b.Bcode);
             b.Bcode = null;
         }
-        goto tryagain;
     }
     cgreg_term();
 

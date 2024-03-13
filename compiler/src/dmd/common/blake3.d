@@ -17,7 +17,7 @@ nothrow:
  *     data = byte array to hash
  * Returns: Blake 3 hash of data
  **/
-
+@trusted
 public ubyte[32] blake3(scope const ubyte[] data)
 {
     ChunkState state;
