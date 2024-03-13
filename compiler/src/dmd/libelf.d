@@ -263,7 +263,7 @@ final class LibElf : Library
         om.length = cast(uint)buffer.length;
         om.offset = 0;
         // remove path, but not extension
-        om.name = FileName.name(module_name);
+        om.name = toCString(FileName.name(module_name));
         om.name_offset = -1;
         om.scan = 1;
         if (fromfile)

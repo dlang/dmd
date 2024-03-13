@@ -149,18 +149,20 @@ final class LibOMF : Library
             om.length = cast(uint)length;
             /* Determine the name of the module
              */
+            const(char)[] n;
             if (firstmodule && module_name && !islibrary)
             {
                 // Remove path and extension
-                om.name = FileName.removeExt(FileName.name(module_name));
+                n = FileName.sansExt(FileName.name(module_name));
             }
             else
             {
                 /* Use THEADR name as module name,
                  * removing path and extension.
                  */
-                om.name = FileName.removeExt(FileName.name(name.toDString()));
+                n = FileName.sansExt(FileName.name(name.toDString()));
             }
+            om.name = toCString(n)[0 .. n.length];
             firstmodule = false;
             this.objmodules.push(om);
         }

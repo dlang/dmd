@@ -219,7 +219,7 @@ final class LibMach : Library
         om.length = cast(uint)buffer.length;
         om.offset = 0;
         const n = FileName.name(module_name); // remove path, but not extension
-        om.name = n;
+        om.name = n.toCString()[0 .. n.length];
         om.scan = 1;
         if (fromfile)
         {
