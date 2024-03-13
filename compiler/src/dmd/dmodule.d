@@ -455,7 +455,7 @@ extern (C++) final class Module : Package
             FileName.exists(filename) == 1)
         {
             FileName.free(srcfilename.ptr);
-            srcfilename = FileName.removeExt(filename); // just does a mem.strdup(filename)
+            srcfilename = FileName.sansExt(filename);
         }
         else if (!FileName.equalsExt(srcfilename, mars_ext) &&
                  !FileName.equalsExt(srcfilename, hdr_ext) &&
@@ -610,7 +610,8 @@ extern (C++) final class Module : Package
      */
     private void onFileReadError(const ref Loc loc)
     {
-        if (FileName.equals(srcfile.toString(), "object.d"))
+        const name = srcfile.toString();
+        if (FileName.equals(name, "object.d"))
         {
             ObjectNotFound(loc, ident);
         }
@@ -619,20 +620,20 @@ extern (C++) final class Module : Package
             // Modules whose original argument name has an extension, or do not
             // have a valid location come from the command-line.
             // Error that their file cannot be found and return early.
-            .error(loc, "cannot find input file `%s`", srcfile.toChars());
+            .error(loc, "cannot find input file `%.*s`", cast(int)name.length, name.ptr);
         }
         else
         {
             // if module is not named 'package' but we're trying to read 'package.d', we're looking for a package module
             bool isPackageMod = (strcmp(toChars(), "package") != 0) && isPackageFileName(srcfile);
             if (isPackageMod)
-                .error(loc, "importing package '%s' requires a 'package.d' file which cannot be found in '%s'", toChars(), srcfile.toChars());
+                .error(loc, "importing package '%s' requires a 'package.d' file which cannot be found in '%.*s'", toChars(), cast(int)name.length, name.ptr);
             else
             {
                 .error(loc, "unable to read module `%s`", toChars());
-                const pkgfile = FileName.combine(FileName.removeExt(srcfile.toString()), package_d);
-                .errorSupplemental(loc, "Expected '%s' or '%s' in one of the following import paths:",
-                    srcfile.toChars(), pkgfile.ptr);
+                const pkgfile = FileName.combine(FileName.sansExt(name), package_d);
+                .errorSupplemental(loc, "Expected '%.*s' or '%.*s' in one of the following import paths:",
+                    cast(int)name.length, name.ptr, cast(int)pkgfile.length, pkgfile.ptr);
             }
         }
         if (!global.gag)
@@ -646,7 +647,7 @@ extern (C++) final class Module : Package
             }
             else
             {
-                fprintf(stderr, "Specify path to file '%s' with -I switch\n", srcfile.toChars());
+                fprintf(stderr, "Specify path to file '%.*s' with -I switch\n", cast(int)name.length, name.ptr);
             }
 
             removeHdrFilesAndFail(global.params, Module.amodules);
