@@ -3985,84 +3985,71 @@ extern (C++) final class TypeStruct : Type
 
     extern (D) MATCH implicitConvToWithoutAliasThis(Type to)
     {
-        MATCH m;
+        //printf("TypeStruct::implicitConvToWithoutAliasThis(%s => %s)\n", toChars(), to.toChars());
 
-        if (ty == to.ty && sym == (cast(TypeStruct)to).sym)
+        auto tos = to.isTypeStruct();
+        if (!(tos && sym == tos.sym))
+            return MATCH.nomatch;
+
+        if (mod == to.mod)
+            return MATCH.exact;
+
+        if (MODimplicitConv(mod, to.mod))
+            return MATCH.constant;
+
+        /* Check all the fields. If they can all be converted,
+         * allow the conversion.
+         */
+        MATCH m = MATCH.constant;
+        uint offset = ~0; // must never match a field offset
+        foreach (v; sym.fields[])
         {
-            m = MATCH.exact; // exact match
-            if (mod != to.mod)
-            {
-                m = MATCH.constant;
-                if (MODimplicitConv(mod, to.mod))
-                {
-                }
-                else
-                {
-                    /* Check all the fields. If they can all be converted,
-                     * allow the conversion.
-                     */
-                    uint offset = ~0; // dead-store to prevent spurious warning
-                    for (size_t i = 0; i < sym.fields.length; i++)
-                    {
-                        VarDeclaration v = sym.fields[i];
-                        if (i == 0)
-                        {
-                        }
-                        else if (v.offset == offset)
-                        {
-                            if (m > MATCH.nomatch)
-                                continue;
-                        }
-                        else
-                        {
-                            if (m == MATCH.nomatch)
-                                return m;
-                        }
+            /* Why are we only looking at the first member of a union?
+             * The check should check for overlap of v with the previous field,
+             * not just starting at the same point
+             */
+            if (v.offset == offset) // v is at same offset as previous field
+                continue;       // ignore
 
-                        // 'from' type
-                        Type tvf = v.type.addMod(mod);
+            Type tvf = v.type.addMod(mod);    // from type
+            Type tvt  = v.type.addMod(to.mod); // to type
 
-                        // 'to' type
-                        Type tv = v.type.addMod(to.mod);
+            // field match
+            MATCH mf = tvf.implicitConvTo(tvt);
+            //printf("\t%s => %s, match = %d\n", v.type.toChars(), tvt.toChars(), mf);
 
-                        // field match
-                        MATCH mf = tvf.implicitConvTo(tv);
-                        //printf("\t%s => %s, match = %d\n", v.type.toChars(), tv.toChars(), mf);
-
-                        if (mf == MATCH.nomatch)
-                            return mf;
-                        if (mf < m) // if field match is worse
-                            m = mf;
-                        offset = v.offset;
-                    }
-                }
-            }
+            if (mf == MATCH.nomatch)
+                return MATCH.nomatch;
+            if (mf < m) // if field match is worse
+                m = mf;
+            offset = v.offset;
         }
         return m;
     }
 
     extern (D) MATCH implicitConvToThroughAliasThis(Type to)
     {
-        MATCH m;
-        if (!(ty == to.ty && sym == (cast(TypeStruct)to).sym) && sym.aliasthis && !(att & AliasThisRec.tracing))
+        auto tos = to.isTypeStruct();
+        if (!(tos && sym == tos.sym) &&
+            sym.aliasthis &&
+            !(att & AliasThisRec.tracing))
         {
             if (auto ato = aliasthisOf(this))
             {
                 att = cast(AliasThisRec)(att | AliasThisRec.tracing);
-                m = ato.implicitConvTo(to);
+                MATCH m = ato.implicitConvTo(to);
                 att = cast(AliasThisRec)(att & ~AliasThisRec.tracing);
+                return m;
             }
-            else
-                m = MATCH.nomatch; // no match
         }
-        return m;
+        return MATCH.nomatch;
     }
 
     override MATCH implicitConvTo(Type to)
     {
         //printf("TypeStruct::implicitConvTo(%s => %s)\n", toChars(), to.toChars());
         MATCH m = implicitConvToWithoutAliasThis(to);
-        return m ? m : implicitConvToThroughAliasThis(to);
+        return m == MATCH.nomatch ? implicitConvToThroughAliasThis(to) : m;
     }
 
     override MATCH constConv(Type to)
