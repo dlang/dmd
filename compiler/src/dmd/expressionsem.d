@@ -4246,7 +4246,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (e.hexString)
         {
-            const data = cast(const ubyte[]) e.peekString(); // peek before size is set to something larger than 1
             switch (e.postfix)
             {
                 case 'd':
@@ -4271,7 +4270,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 error(e.loc, "hex string with `%s` type needs to be multiple of %d bytes, not %d",
                     e.type.toChars(), e.sz, cast(int) e.len);
 
-            e.setData(arrayCastBigEndian(data, e.sz).ptr, e.len / e.sz, e.sz);
+            e.setData(arrayCastBigEndian(e.peekData(), e.sz).ptr, e.len / e.sz, e.sz);
         }
         else switch (e.postfix)
         {
