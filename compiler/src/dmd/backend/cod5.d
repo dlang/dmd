@@ -38,11 +38,11 @@ nothrow:
  */
 
 @trusted
-void cod5_prol_epi()
+void cod5_prol_epi(block* startblock)
 {
 static if(1)
 {
-    cod5_noprol();
+    cod5_noprol(startblock);
 }
 else
 {
@@ -153,7 +153,7 @@ else
  */
 
 @trusted
-void cod5_noprol()
+void cod5_noprol(block* startblock)
 {
     block *b;
 

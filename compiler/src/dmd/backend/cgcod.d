@@ -344,9 +344,9 @@ void codgen(Symbol *sfunc)
         }
     }
 
-    stackoffsets(globsym, false);  // compute final offsets of stack variables
-    cod5_prol_epi();            // see where to place prolog/epilog
-    CSE.finish();               // compute addresses and sizes of CSE saves
+    stackoffsets(globsym, false); // compute final offsets of stack variables
+    cod5_prol_epi(startblock);    // see where to place prolog/epilog
+    CSE.finish();                 // compute addresses and sizes of CSE saves
 
     if (configv.addlinenumbers)
         objmod.linnum(sfunc.Sfunc.Fstartline,sfunc.Sseg,Offset(sfunc.Sseg));
