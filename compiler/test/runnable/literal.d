@@ -243,15 +243,19 @@ void test12950()
 
 void testHexstring()
 {
-    static immutable uint[] x = cast(immutable uint[]) x"FFAADDEE";
+    static immutable uint[] x = cast(immutable uint[]) x"FFAADDEE"d;
     static assert(x[0] == 0xFFAADDEE);
     assert(x[0] == 0xFFAADDEE);
 
-    static immutable ulong[] y = cast(immutable ulong[]) x"1122334455667788AABBCCDDEEFF0099";
+    static immutable ulong[] y = x"1122334455667788AABBCCDDEEFF0099";
     static assert(y[0] == 0x1122334455667788);
     static assert(y[1] == 0xAABBCCDDEEFF0099);
     assert(y[0] == 0x1122334455667788);
     assert(y[1] == 0xAABBCCDDEEFF0099);
+
+    immutable long[] c = x"1122334455667788AABBCCDDEEFF0099";
+    assert(c[0] == 0x1122334455667788);
+    assert(c[1] == 0xAABBCCDDEEFF0099);
 
     // Test that mangling of StringExp with size 8 is the same as array literal mangling:
     void f(immutable ulong[] a)() {}
