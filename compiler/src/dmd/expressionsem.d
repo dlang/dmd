@@ -15733,8 +15733,8 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
         }
         if (_this.isLvalue())
         {
-            with (_this) // FIXME: avoid new
-            if (mod && !new TypePointer(e1.type).implicitConvTo(new TypePointer(to)))
+            with (_this)
+            if (mod && !e1.type.pointerTo().implicitConvTo(to.pointerTo()))
                 sc.setUnsafe(false, loc,
                     "cast from `%s` to `%s` cannot be used as an lvalue in @safe code",
                     e1.type, to);
