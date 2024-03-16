@@ -35,7 +35,7 @@ U[] _dupCtfe(T, U)(scope T[] a)
     {
         U[] res;
         foreach (ref e; a)
-            res ~= e;
+            res ~= cast(U) e;
         return res;
     }
 }
