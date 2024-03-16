@@ -1884,7 +1884,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             if (szx != se.sz && (e.len % szx) == 0)
             {
                 import dmd.utils: arrayCastBigEndian;
-                const data = cast(const ubyte[]) e.peekString();
+                const data = e.peekData();
                 se.setData(arrayCastBigEndian(data, szx).ptr, data.length / szx, szx);
                 se.type = t;
                 return se;

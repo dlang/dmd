@@ -263,7 +263,7 @@ void testHexstring()
 
     // Test printing StringExp with size 8
     enum toStr(immutable ulong[] v) = v.stringof;
-    static assert(toStr!y == `x"88776655443322119900FFEEDDCCBBAA"`);
+    static assert(toStr!y == `x"1122334455667788AABBCCDDEEFF0099"`);
 
     // Hex string postfixes
     // https://issues.dlang.org/show_bug.cgi?id=24363

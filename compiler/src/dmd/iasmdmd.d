@@ -3670,7 +3670,7 @@ code *asm_db_parse(OP *pop)
                 else if (auto se = e.isStringExp())
                 {
                     const len = se.numberOfCodeUnits();
-                    auto q = cast(char *)se.peekString().ptr;
+                    auto q = se.peekString().ptr;
                     if (q)
                     {
                         writeBytes(q[0 .. len]);
