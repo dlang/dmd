@@ -1584,7 +1584,7 @@ auto sourceFiles()
             stringtable.d utf.d
         "),
         common: fileArray(env["COMMON"], "
-            bitfields.d file.d int128.d blake3.d outbuffer.d smallbuffer.d
+            bitfields.d file.d int128.d blake3.d outbuffer.d smallbuffer.d charactertables.d identifiertables.d
         "),
         commonHeaders: fileArray(env["COMMON"], "
             outbuffer.h

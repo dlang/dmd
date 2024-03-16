@@ -6118,6 +6118,15 @@ enum class CHECKACTION : uint8_t
     context = 3u,
 };
 
+enum class CLIIdentifierTable : uint8_t
+{
+    default_ = 0u,
+    C99 = 1u,
+    C11 = 2u,
+    UAX31 = 3u,
+    All = 4u,
+};
+
 enum class JsonFieldFlags : uint32_t
 {
     none = 0u,
@@ -6137,6 +6146,8 @@ struct CompileEnv final
     bool previewIn;
     bool ddocOutput;
     bool masm;
+    IdentifierCharLookup cCharLookupTable;
+    IdentifierCharLookup dCharLookupTable;
     CompileEnv() :
         versionNumber(),
         date(),
@@ -6145,10 +6156,12 @@ struct CompileEnv final
         timestamp(),
         previewIn(),
         ddocOutput(),
-        masm()
+        masm(),
+        cCharLookupTable(),
+        dCharLookupTable()
     {
     }
-    CompileEnv(uint32_t versionNumber, _d_dynamicArray< const char > date = {}, _d_dynamicArray< const char > time = {}, _d_dynamicArray< const char > vendor = {}, _d_dynamicArray< const char > timestamp = {}, bool previewIn = false, bool ddocOutput = false, bool masm = false) :
+    CompileEnv(uint32_t versionNumber, _d_dynamicArray< const char > date = {}, _d_dynamicArray< const char > time = {}, _d_dynamicArray< const char > vendor = {}, _d_dynamicArray< const char > timestamp = {}, bool previewIn = false, bool ddocOutput = false, bool masm = false, IdentifierCharLookup cCharLookupTable = IdentifierCharLookup(), IdentifierCharLookup dCharLookupTable = IdentifierCharLookup()) :
         versionNumber(versionNumber),
         date(date),
         time(time),
@@ -6156,7 +6169,9 @@ struct CompileEnv final
         timestamp(timestamp),
         previewIn(previewIn),
         ddocOutput(ddocOutput),
-        masm(masm)
+        masm(masm),
+        cCharLookupTable(cCharLookupTable),
+        dCharLookupTable(dCharLookupTable)
         {}
 };
 
@@ -7804,6 +7819,56 @@ extern _d_real cimagl(complex_t x);
 
 extern void browse(const char* url);
 
+enum class IdentifierTable
+{
+    UAX31 = 0,
+    C99 = 1,
+    C11 = 2,
+    LR = 3,
+};
+
+struct IdentifierCharLookup final
+{
+    bool(*isStart)(char32_t );
+    bool(*isContinue)(char32_t );
+    static IdentifierCharLookup forTable(IdentifierTable table);
+    IdentifierCharLookup() :
+        isStart(),
+        isContinue()
+    {
+    }
+    IdentifierCharLookup(bool(*isStart)(char32_t ), bool(*isContinue)(char32_t ) = nullptr) :
+        isStart(isStart),
+        isContinue(isContinue)
+        {}
+};
+
+extern bool isAnyIdentifierCharacter(char32_t c);
+
+extern bool isAnyStart(char32_t c);
+
+extern bool isAnyContinue(char32_t c);
+
+enum : int32_t { LS = 8232 };
+
+enum : int32_t { PS = 8233 };
+
+extern bool isoctal(const char c);
+
+extern bool ishex(const char c);
+
+extern bool isidchar(const char c);
+
+extern bool isZeroSecond(const char c);
+
+extern bool isDigitSecond(const char c);
+
+extern bool issinglechar(const char c);
+
+extern bool c_isxdigit(const int32_t c);
+
+extern bool c_isalnum(const int32_t c);
+
 extern void error(const Loc& loc, const char* format, ...);
 
 extern void error(const char* filename, uint32_t linnum, uint32_t charnum, const char* format, ...);
@@ -8013,6 +8078,8 @@ struct Param final
     CHECKENABLE useSwitchError;
     CHECKENABLE boundscheck;
     CHECKACTION checkAction;
+    CLIIdentifierTable dIdentifierTable;
+    CLIIdentifierTable cIdentifierTable;
     _d_dynamicArray< const char > argv0;
     Array<const char* > modFileAliasStrings;
     Array<const char* > imppath;
@@ -8088,6 +8155,8 @@ struct Param final
         useSwitchError((CHECKENABLE)0u),
         boundscheck((CHECKENABLE)0u),
         checkAction((CHECKACTION)0u),
+        dIdentifierTable((CLIIdentifierTable)0u),
+        cIdentifierTable((CLIIdentifierTable)0u),
         argv0(),
         modFileAliasStrings(),
         imppath(),
@@ -8119,7 +8188,7 @@ struct Param final
         mapfile()
     {
     }
-    Param(bool obj, bool multiobj = false, bool trace = false, bool tracegc = false, bool vcg_ast = false, DiagnosticReporting useDeprecated = (DiagnosticReporting)1u, bool useUnitTests = false, bool useInline = false, bool release = false, bool preservePaths = false, DiagnosticReporting warnings = (DiagnosticReporting)2u, bool cov = false, uint8_t covPercent = 0u, bool ctfe_cov = false, bool ignoreUnsupportedPragmas = true, bool useModuleInfo = true, bool useTypeInfo = true, bool useExceptions = true, bool useGC = true, bool betterC = false, bool addMain = false, bool allInst = false, bool bitfields = false, CppStdRevision cplusplus = (CppStdRevision)201103u, Help help = Help(), Verbose v = Verbose(), FeatureState useDIP25 = (FeatureState)2u, FeatureState useDIP1000 = (FeatureState)0u, bool ehnogc = false, bool useDIP1021 = false, FeatureState fieldwise = (FeatureState)0u, bool fixAliasThis = false, FeatureState rvalueRefParam = (FeatureState)0u, FeatureState noSharedAccess = (FeatureState)0u, bool previewIn = false, bool inclusiveInContracts = false, bool shortenedMethods = true, bool fixImmutableConv = false, bool fix16997 = true, FeatureState dtorFields = (FeatureState)0u, FeatureState systemVariables = (FeatureState)0u, CHECKENABLE useInvariants = (CHECKENABLE)0u, CHECKENABLE useIn = (CHECKENABLE)0u, CHECKENABLE useOut = (CHECKENABLE)0u, CHECKENABLE useArrayBounds = (CHECKENABLE)0u, CHECKENABLE useAssert = (CHECKENABLE)0u, CHECKENABLE useSwitchError = (CHECKENABLE)0u, CHECKENABLE boundscheck = (CHECKENABLE)0u, CHECKACTION checkAction = (CHECKACTION)0u, _d_dynamicArray< const char > argv0 = {}, Array<const char* > modFileAliasStrings = Array<const char* >(), Array<const char* > imppath = Array<const char* >(), Array<const char* > fileImppath = Array<const char* >(), _d_dynamicArray< const char > objdir = {}, _d_dynamicArray< const char > objname = {}, _d_dynamicArray< const char > libname = {}, Output ddoc = Output(), Output dihdr = Output(), Output cxxhdr = Output(), Output json = Output(), JsonFieldFlags jsonFieldFlags = (JsonFieldFlags)0u, Output makeDeps = Output(), Output mixinOut = Output(), Output moduleDeps = Output(), uint32_t debuglevel = 0u, uint32_t versionlevel = 0u, bool run = false, Array<const char* > runargs = Array<const char* >(), Array<const char* > cppswitches = Array<const char* >(), const char* cpp = nullptr, Array<const char* > objfiles = Array<const char* >(), Array<const char* > linkswitches = Array<const char* >(), Array<bool > linkswitchIsForCC = Array<bool >(), Array<const char* > libfiles = Array<const char* >(), Array<const char* > dllfiles = Array<const char* >(), _d_dynamicArray< const char > deffile = {}, _d_dynamicArray< const char > resfile = {}, _d_dynamicArray< const char > exefile = {}, _d_dynamicArray< const char > mapfile = {}) :
+    Param(bool obj, bool multiobj = false, bool trace = false, bool tracegc = false, bool vcg_ast = false, DiagnosticReporting useDeprecated = (DiagnosticReporting)1u, bool useUnitTests = false, bool useInline = false, bool release = false, bool preservePaths = false, DiagnosticReporting warnings = (DiagnosticReporting)2u, bool cov = false, uint8_t covPercent = 0u, bool ctfe_cov = false, bool ignoreUnsupportedPragmas = true, bool useModuleInfo = true, bool useTypeInfo = true, bool useExceptions = true, bool useGC = true, bool betterC = false, bool addMain = false, bool allInst = false, bool bitfields = false, CppStdRevision cplusplus = (CppStdRevision)201103u, Help help = Help(), Verbose v = Verbose(), FeatureState useDIP25 = (FeatureState)2u, FeatureState useDIP1000 = (FeatureState)0u, bool ehnogc = false, bool useDIP1021 = false, FeatureState fieldwise = (FeatureState)0u, bool fixAliasThis = false, FeatureState rvalueRefParam = (FeatureState)0u, FeatureState noSharedAccess = (FeatureState)0u, bool previewIn = false, bool inclusiveInContracts = false, bool shortenedMethods = true, bool fixImmutableConv = false, bool fix16997 = true, FeatureState dtorFields = (FeatureState)0u, FeatureState systemVariables = (FeatureState)0u, CHECKENABLE useInvariants = (CHECKENABLE)0u, CHECKENABLE useIn = (CHECKENABLE)0u, CHECKENABLE useOut = (CHECKENABLE)0u, CHECKENABLE useArrayBounds = (CHECKENABLE)0u, CHECKENABLE useAssert = (CHECKENABLE)0u, CHECKENABLE useSwitchError = (CHECKENABLE)0u, CHECKENABLE boundscheck = (CHECKENABLE)0u, CHECKACTION checkAction = (CHECKACTION)0u, CLIIdentifierTable dIdentifierTable = (CLIIdentifierTable)0u, CLIIdentifierTable cIdentifierTable = (CLIIdentifierTable)0u, _d_dynamicArray< const char > argv0 = {}, Array<const char* > modFileAliasStrings = Array<const char* >(), Array<const char* > imppath = Array<const char* >(), Array<const char* > fileImppath = Array<const char* >(), _d_dynamicArray< const char > objdir = {}, _d_dynamicArray< const char > objname = {}, _d_dynamicArray< const char > libname = {}, Output ddoc = Output(), Output dihdr = Output(), Output cxxhdr = Output(), Output json = Output(), JsonFieldFlags jsonFieldFlags = (JsonFieldFlags)0u, Output makeDeps = Output(), Output mixinOut = Output(), Output moduleDeps = Output(), uint32_t debuglevel = 0u, uint32_t versionlevel = 0u, bool run = false, Array<const char* > runargs = Array<const char* >(), Array<const char* > cppswitches = Array<const char* >(), const char* cpp = nullptr, Array<const char* > objfiles = Array<const char* >(), Array<const char* > linkswitches = Array<const char* >(), Array<bool > linkswitchIsForCC = Array<bool >(), Array<const char* > libfiles = Array<const char* >(), Array<const char* > dllfiles = Array<const char* >(), _d_dynamicArray< const char > deffile = {}, _d_dynamicArray< const char > resfile = {}, _d_dynamicArray< const char > exefile = {}, _d_dynamicArray< const char > mapfile = {}) :
         obj(obj),
         multiobj(multiobj),
         trace(trace),
@@ -8169,6 +8238,8 @@ struct Param final
         useSwitchError(useSwitchError),
         boundscheck(boundscheck),
         checkAction(checkAction),
+        dIdentifierTable(dIdentifierTable),
+        cIdentifierTable(cIdentifierTable),
         argv0(argv0),
         modFileAliasStrings(modFileAliasStrings),
         imppath(imppath),

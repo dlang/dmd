@@ -466,6 +466,26 @@ dmd -cov -unittest myprog.d
 
              $(P Note that multiple `-i=...` options are allowed, each one adds a pattern.)}"
         ),
+        Option("identifiers=<table>",
+            "Specify the non-ASCII tables for D identifiers",
+            `Set the identifier table to use for the non-ASCII values.
+                $(UL
+                    $(LI $(I UAX31): UAX31)
+                    $(LI $(I c99): C99)
+                    $(LI $(I c11): C11)
+                    $(LI $(I all): All, the least restrictive set, which comes all others (default))
+                )`
+        ),
+        Option("identifiers-importc=<table>",
+            "Specify the non-ASCII tables for ImportC identifiers",
+            `Set the identifier table to use for the non-ASCII values.
+                $(UL
+                    $(LI $(I UAX31): UAX31)
+                    $(LI $(I c99): C99)
+                    $(LI $(I c11): C11 (default))
+                    $(LI $(I all): All, the least restrictive set, which comes all others)
+                )`
+        ),
         Option("ignore",
             "deprecated flag, unsupported pragmas are always ignored now"
         ),
