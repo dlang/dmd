@@ -3995,22 +3995,95 @@ extern (C++) final class TypeStruct : Type
         //printf("TypeStruct::implicitConvToWithoutAliasThis(%s => %s)\n", toChars(), to.toChars());
 
         auto tos = to.isTypeStruct();
-        if (!(tos && sym == tos.sym))
+        if (!tos)
             return MATCH.nomatch;
 
-        if (mod == to.mod)
-            return MATCH.exact;
+        if (sym == tos.sym)
+        {
+            /* They are the same struct
+             */
+            if (mod == to.mod)
+                return MATCH.exact;
 
-        if (MODimplicitConv(mod, to.mod))
-            return MATCH.constant;
+            if (MODimplicitConv(mod, to.mod))
+                return MATCH.constant;
+
+            /* Check all the fields. If they can all be converted,
+             * allow the conversion.
+             */
+            MATCH m = MATCH.constant;
+            uint offset = ~0; // must never match a field offset
+            foreach (v; sym.fields[])
+            {
+                /* Why are we only looking at the first member of a union?
+                 * The check should check for overlap of v with the previous field,
+                 * not just starting at the same point
+                 */
+                if (v.offset == offset) // v is at same offset as previous field
+                    continue;       // ignore
+
+                Type tvf = v.type.addMod(mod);    // from type
+                Type tvt  = v.type.addMod(to.mod); // to type
+
+                // field match
+                MATCH mf = tvf.implicitConvTo(tvt);
+                //printf("\t%s => %s, match = %d\n", v.type.toChars(), tvt.toChars(), mf);
+
+                if (mf == MATCH.nomatch)
+                    return MATCH.nomatch;
+                if (mf < m) // if field match is worse
+                    m = mf;
+                offset = v.offset;
+            }
+            return m;
+        }
+
+        /* If `this` and `to` are different instances of the same template,
+         * we can check for structural conformance. Otherwise, nomatch.
+         * This implements Implicit Conversion of Template Instantiations.
+         */
+        enum log = false;
+        if (log) printf("TypeStruct::implicitConvToWithoutAliasThis(%s => %s)\n", toChars(), to.toChars());
+        auto parent = sym.toParent();
+        auto parentto = tos.sym.toParent();
+        if (!parent || !parentto)
+            return MATCH.nomatch;
+        auto inst = parent.isTemplateInstance();
+        auto instto = parentto.isTemplateInstance();
+        if (!inst || !instto)
+            return MATCH.nomatch;
+        if (inst.tempdecl != instto.tempdecl)
+            return MATCH.nomatch;
+
+        if (sym.alignment != tos.sym.alignment ||
+            sym.alignsize != tos.sym.alignsize ||
+            sym.structsize != tos.sym.structsize ||
+            sym.ispod != tos.sym.ispod)
+            return MATCH.nomatch;
+
+        if (log) printf("from kind: %s sym: %s\n", sym.toParent().kind(), sym.toParent().toChars());
+        if (log) printf("to   kind: %s sym: %s\n", tos.sym.toParent().kind(), tos.sym.toParent().toChars());
+
+        MATCH m = mod == to.mod ? MATCH.exact : MATCH.constant;
 
         /* Check all the fields. If they can all be converted,
          * allow the conversion.
          */
-        MATCH m = MATCH.constant;
         uint offset = ~0; // must never match a field offset
-        foreach (v; sym.fields[])
+        if (sym.fields.length != tos.sym.fields.length)
+            return MATCH.nomatch;
+
+        foreach (i, v; sym.fields[])
         {
+            auto tov = tos.sym.fields[i];
+            if (tov.offset != v.offset)
+                return MATCH.nomatch;
+
+            auto tfr = v.type;
+            auto tto = tov.type;
+            if (tfr.size() != tto.size())
+                return MATCH.nomatch;
+
             /* Why are we only looking at the first member of a union?
              * The check should check for overlap of v with the previous field,
              * not just starting at the same point
@@ -4018,19 +4091,29 @@ extern (C++) final class TypeStruct : Type
             if (v.offset == offset) // v is at same offset as previous field
                 continue;       // ignore
 
-            Type tvf = v.type.addMod(mod);    // from type
-            Type tvt  = v.type.addMod(to.mod); // to type
+            MATCH mf = tfr.implicitConvTo(tto); // try implicitly converting field
+            if (mf < MATCH.constant)
+                return MATCH.nomatch;
+            if (mf < m)
+                m = mf;         // remember worst match
+
+            Type tvf = tfr.addMod(mod);    // from type
+            Type tvt = tfr.addMod(to.mod); // to type
 
             // field match
-            MATCH mf = tvf.implicitConvTo(tvt);
+            mf = tvf.implicitConvTo(tvt);
             //printf("\t%s => %s, match = %d\n", v.type.toChars(), tvt.toChars(), mf);
+            if (mf < MATCH.constant)
+                return MATCH.nomatch;
 
             if (mf == MATCH.nomatch)
                 return MATCH.nomatch;
             if (mf < m) // if field match is worse
                 m = mf;
+
             offset = v.offset;
         }
+        if (log) printf("MATCH: %d\n", m);
         return m;
     }
 
