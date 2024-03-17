@@ -52,11 +52,11 @@ import dmd.backend.divcoeff : choose_multiplier, udiv_coefficients;
  * Swap two registers.
  */
 
-private void swap(reg_t *a,reg_t *b)
+private void swap(ref reg_t a, ref reg_t b)
 {
-    const tmp = *a;
-    *a = *b;
-    *b = tmp;
+    const tmp = a;
+    a = b;
+    b = tmp;
 }
 
 
@@ -2932,7 +2932,7 @@ void cdshift(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                     else if (shiftcnt == REGSIZE * 8)   // it's an lword
                     {
                         if (oper == OPshl)
-                            swap(&resreg, &sreg);
+                            swap(resreg, sreg);
                         genmovreg(cdb,sreg,resreg);  // MOV sreg,resreg
                         if (oper == OPashr)
                             cdb.gen1(0x99);                       // CWD
@@ -2947,7 +2947,7 @@ void cdshift(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                     else
                     {
                         if (oper == OPshl && sz == 2 * REGSIZE)
-                            swap(&resreg, &sreg);
+                            swap(resreg, sreg);
                         while (shiftcnt--)
                         {
                             cdb.gen2(0xD1 ^ isbyte,modregrm(3,s1,resreg));
@@ -3187,7 +3187,7 @@ void cdshift(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 scodelem(cdb,e2,&rretregs,retregs,false);
                 getregs(cdb,retregs | mCX);
                 if (oper == OPshl)
-                    swap(&resreg, &sreg);
+                    swap(resreg, sreg);
                 if (!e2isconst)                   // if not sure shift count != 0
                     cdb.genc2(0xE3,0,6);          // JCXZ .+6
                 cdb.gen2(0xD1,modregrm(3,s1,resreg));
