@@ -1,8 +1,8 @@
 /*
-REQUIRED_ARGS: -preview=dip1000
+REQUIRED_ARGS: -preview=dip1000 -de
 TEST_OUTPUT:
 ---
-fail_compilation/cast_qual.d(14): Error: cast from `const(int)` to `int` cannot be used as an lvalue in @safe code
+fail_compilation/cast_qual.d(14): Deprecation: cast from `const(int)` to `int` cannot be used as an lvalue in @safe code
 ---
 */
 
