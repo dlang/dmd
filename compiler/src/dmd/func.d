@@ -109,7 +109,8 @@ enum BUILTIN : ubyte
     yl2xp1,
     toPrecFloat,
     toPrecDouble,
-    toPrecReal
+    toPrecReal,
+    ctfeWrite,
 }
 
 private struct FUNCFLAG
