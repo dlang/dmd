@@ -72,6 +72,16 @@ enum FeatureState : ubyte
     enabled  = 2,  /// Specified as `-preview=`
 }
 
+/// Different identifier tables specifiable by CLI
+enum CLIIdentifierTable : ubyte
+{
+    default_ = 0, /// Not specified by user
+    C99      = 1, /// Tables from C99 standard
+    C11      = 2, /// Tables from C11 standard
+    UAX31    = 3, /// Tables from the Unicode Standard Annex 31: UNICODE IDENTIFIERS AND SYNTAX
+    All      = 4, /// The least restrictive set of all other tables
+}
+
 extern(C++) struct Output
 {
     bool doOutput;      // Output is enabled
@@ -198,6 +208,9 @@ extern (C++) struct Param
     CHECKENABLE boundscheck    = CHECKENABLE._default;  // state of -boundscheck switch
 
     CHECKACTION checkAction = CHECKACTION.D; // action to take when bounds, asserts or switch defaults are violated
+
+    CLIIdentifierTable dIdentifierTable = CLIIdentifierTable.default_;
+    CLIIdentifierTable cIdentifierTable = CLIIdentifierTable.default_;
 
     const(char)[] argv0;                // program name
     Array!(const(char)*) modFileAliasStrings; // array of char*'s of -I module filename alias strings

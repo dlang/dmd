@@ -72,12 +72,14 @@ void mangleToBuffer(TemplateInstance ti, ref OutBuffer buf)
 /// Returns: `true` if the given character is a valid mangled character
 package bool isValidMangling(dchar c) nothrow
 {
+    import dmd.common.charactertables;
+
     return
         c >= 'A' && c <= 'Z' ||
         c >= 'a' && c <= 'z' ||
         c >= '0' && c <= '9' ||
         c != 0 && strchr("$%().:?@[]_", c) ||
-        isUniAlpha(c);
+        isAnyIdentifierCharacter(c);
 }
 
 // valid mangled characters

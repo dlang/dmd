@@ -1383,6 +1383,58 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.useInline = true;
             params.dihdr.fullOutput = true;
         }
+        else if (startsWith(p + 1, "identifiers-importc"))
+        {
+            enum len = "-identifiers-importc=".length;
+            // Parse:
+            //      -identifiers=table
+            immutable string msg = "Only `UAX31`, `c99`, `c11`, `all`, allowed for `-identifiers-importc`";
+            if (Identifier.isValidIdentifier(p + len))
+            {
+                const ident = p + len;
+                switch (ident.toDString())
+                {
+                    case "c99":     params.cIdentifierTable = CLIIdentifierTable.C99;   break;
+                    case "c11":     params.cIdentifierTable = CLIIdentifierTable.C11;   break;
+                    case "UAX31":   params.cIdentifierTable = CLIIdentifierTable.UAX31; break;
+                    case "all":     params.cIdentifierTable = CLIIdentifierTable.All;   break;
+                    default:
+                        errorInvalidSwitch(p, msg);
+                        return false;
+                }
+            }
+            else
+            {
+                errorInvalidSwitch(p, msg);
+                return false;
+            }
+        }
+        else if (startsWith(p + 1, "identifiers"))
+        {
+            enum len = "-identifiers=".length;
+            // Parse:
+            //      -identifiers=table
+            immutable string msg = "Only `UAX31`, `c99`, `c11`, `all`, allowed for `-identifiers`";
+            if (Identifier.isValidIdentifier(p + len))
+            {
+                const ident = p + len;
+                switch (ident.toDString())
+                {
+                    case "c99":     params.dIdentifierTable = CLIIdentifierTable.C99;   break;
+                    case "c11":     params.dIdentifierTable = CLIIdentifierTable.C11;   break;
+                    case "UAX31":   params.dIdentifierTable = CLIIdentifierTable.UAX31; break;
+                    case "all":     params.dIdentifierTable = CLIIdentifierTable.All;   break;
+                    default:
+                        errorInvalidSwitch(p, msg);
+                        return false;
+                }
+            }
+            else
+            {
+                errorInvalidSwitch(p, msg);
+                return false;
+            }
+        }
         else if (arg == "-i")
             includeImports = true;
         else if (startsWith(p + 1, "i="))
