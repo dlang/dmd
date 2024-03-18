@@ -3,10 +3,10 @@
  * The purpose is to make it unnecessary to hardwire them into the compiler.
  * As the leading double underscore suggests, this is for internal use only.
  *
- * Copyright: Copyright Digital Mars 2022
+ * Copyright: Copyright D Language Foundation 2022-2024
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Walter Bright
- * Source: $(DRUNTIMESRC __builtins.d)
+ * Source: $(DRUNTIMESRC __importc_builtins.d)
  */
 
 

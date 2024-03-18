@@ -35,7 +35,7 @@ final class CParser(AST) : Parser!AST
     AST.Dsymbols* symbols;      // symbols declared in current scope
 
     bool addFuncName;           /// add declaration of __func__ to function symbol table
-    bool importBuiltins;        /// seen use of C compiler builtins, so import __builtins;
+    bool importBuiltins;        /// seen use of C compiler builtins, so import __importc_builtins;
 
     private
     {
@@ -125,7 +125,7 @@ final class CParser(AST) : Parser!AST
                     /* Seen references to C builtin functions.
                      * Import their definitions
                      */
-                    auto s = new AST.Import(Loc.initial, null, Id.builtins, null, false);
+                    auto s = new AST.Import(Loc.initial, null, Id.importc_builtins, null, false);
                     wrap.push(s);
                 }
 
