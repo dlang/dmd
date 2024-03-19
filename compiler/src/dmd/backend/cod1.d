@@ -1922,7 +1922,7 @@ void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, regm_t *pretregs)
             fixresult87(cdb, e, retregs, pretregs);
             return;
         }
-        uint opsflag = false;
+        bool opsflag = false;
         if (I16 && sz == 8)
         {
             if (forregs & mSTACK)
