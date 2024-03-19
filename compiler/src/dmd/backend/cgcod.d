@@ -2431,20 +2431,6 @@ private void loadcse(ref CodeBuilder cdb,elem *e,reg_t reg,regm_t regm)
     assert(0);
 }
 
-/***************************
- * Generate code sequence for an elem.
- * Input:
- *      pretregs =      mask of possible registers to return result in
- *                      Note:   longs are in AX,BX or CX,DX or SI,DI
- *                              doubles are AX,BX,CX,DX only
- *      constflag =     1 for user of result will not modify the
- *                      registers returned in *pretregs.
- *                      2 for freenode() not called.
- * Output:
- *      *pretregs       mask of registers result is returned in
- * Returns:
- *      pointer to code sequence generated
- */
 
 @trusted
 void callcdxxx(ref CodeBuilder cdb, elem *e, regm_t *pretregs, OPER op)
@@ -2647,6 +2633,19 @@ private __gshared nothrow void function (ref CodeBuilder,elem *,regm_t *)[OPMAX]
 ];
 
 
+/***************************
+ * Generate code sequence for an elem.
+ * Params:
+ *      cdb =           Code builder to write generated code to
+ *      e =             Element to generate code for
+ *      pretregs =      mask of possible registers to return result in
+ *                      will be updated with mask of registers result is returned in
+ *                      Note:   longs are in AX,BX or CX,DX or SI,DI
+ *                              doubles are AX,BX,CX,DX only
+ *      constflag =     1 for user of result will not modify the
+ *                      registers returned in *pretregs.
+ *                      2 for freenode() not called.
+ */
 @trusted
 void codelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint constflag)
 {
