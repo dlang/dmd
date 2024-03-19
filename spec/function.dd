@@ -3797,7 +3797,8 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
             * immutable objects to mutable
             * thread local objects to shared
             * shared objects to thread local
-        $(LI Cannot access `@system` or $(D __gshared) variables.)
+        $(LI Cannot access $(DDSUBLINK spec/attribute, system-variables, `@system`)
+            or $(D __gshared) variables.)
         $(LI Cannot use $(D void) initializers for:)
             * Pointers/reference types or any type containing them
             * Types that have invariants

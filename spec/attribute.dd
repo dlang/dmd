@@ -622,6 +622,29 @@ $(H2 $(LNAME2 safe, $(D @safe), $(D @trusted), and $(D @system) Attribute))
 
     $(P See $(DDSUBLINK spec/function, function-safety, Function Safety).)
 
+$(H3 $(LNAME2 system-variables, System Variables))
+
+    $(P Variables marked `@system` cannot be accessed from `@safe` code.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+@system int* p;
+
+struct S
+{
+    @system int i;
+}
+
+void main() @safe
+{
+    int x = *p; // error with `-preview=systemVariables`, deprecation otherwise
+
+    S s;
+    s.i = 0; // ditto
+}
+---
+)
+
 
 $(H2 $(LNAME2 function-attributes, Function Attributes))
 
