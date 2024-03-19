@@ -1997,14 +1997,14 @@ void cse_flush(ref CodeBuilder cdb, int do87)
  * Input:
  *      e       the subexpression
  *      regm    mask of registers holding it
- *      opsflag if != 0 then regcon.cse.mops gets set too
+ *      opsflag if true, then regcon.cse.mops gets set too
  * Returns:
  *      false   not saved as a CSE
  *      true    saved as a CSE
  */
 
 @trusted
-bool cssave(elem *e,regm_t regm,uint opsflag)
+bool cssave(elem *e, regm_t regm, bool opsflag)
 {
     bool result = false;
 
