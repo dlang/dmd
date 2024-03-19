@@ -944,7 +944,7 @@ private void writefunc2(Symbol *sfunc)
                 break;
 
             default:
-                symbol_print(s);
+                symbol_print(*s);
                 assert(0);
         }
     }

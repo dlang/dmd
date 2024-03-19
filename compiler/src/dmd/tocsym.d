@@ -384,7 +384,7 @@ Symbol *toSymbol(Dsymbol s)
                 ? SC.static_
                 : SC.global;
 
-            symbol_func(s);
+            symbol_func(*s);
             func_t *f = s.Sfunc;
             if (fd.isVirtual() && fd.vtblIndex != -1)
                 f.Fflags |= Fvirtual;

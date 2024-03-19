@@ -576,7 +576,7 @@ Obj OmfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
         obj.ledatas.reset();    // recycle the memory used by ledatas
 
         foreach (s; obj.resetSymbols)
-            symbol_reset(s);
+            symbol_reset(*s);
         obj.resetSymbols.reset();
 
         obj.buf = objbuf;
@@ -2262,7 +2262,7 @@ size_t OmfObj_mangle(Symbol *s,char *dest)
             dest[1 + len] = 0;
             break;
         default:
-            symbol_print(s);
+            symbol_print(*s);
             assert(0);
     }
     if (ilen > (255-2-int.sizeof*3))
@@ -3388,7 +3388,7 @@ static if (0)
                 if (external > obj.extidx)
                 {
                     printf("obj.extidx = %d\n", obj.extidx);
-                    symbol_print(s);
+                    symbol_print(*s);
                 }
 
                 assert(external <= obj.extidx);
@@ -3423,7 +3423,7 @@ static if (0)
                 val += s.Soffset;
             break;
         default:
-            symbol_print(s);
+            symbol_print(*s);
             assert(0);
     }
 

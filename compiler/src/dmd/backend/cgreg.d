@@ -693,7 +693,7 @@ private void cgreg_map(Symbol *s, reg_t regmsw, reg_t reglsw)
                     s.Sfl = FLstack;
                     break;
                 default:
-                    symbol_print(s);
+                    symbol_print(*s);
                     assert(0);
             }
         }
@@ -820,7 +820,7 @@ int cgreg_assign(Symbol *retsym)
                         s.Sfl = FLstack;
                         break;
                     default:
-                        debug symbol_print(s);
+                        debug symbol_print(*s);
                         assert(0);
                 }
             }

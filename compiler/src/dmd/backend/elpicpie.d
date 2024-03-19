@@ -230,7 +230,7 @@ elem * el_ptr(Symbol *s)
     symbol_debug(s);
     type_debug(s.Stype);
 
-    const typtr = s.symbol_pointerType();
+    const typtr = symbol_pointerType(*s);
 
     if (config.exe & (EX_OSX | EX_OSX64))
     {

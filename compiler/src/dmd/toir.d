@@ -827,7 +827,7 @@ void buildClosure(FuncDeclaration fd, ref IRState irs)
         type *Closstru = type_struct_class(closname, target.ptrsize, 0, null, null, false, false, true, false);
         free(closname);
         auto chaintype = getParentClosureType(irs.sthis, fd);
-        symbol_struct_addField(Closstru.Ttag, "__chain", chaintype, 0);
+        symbol_struct_addField(*Closstru.Ttag, "__chain", chaintype, 0);
 
         Symbol *sclosure;
         sclosure = symbol_name("__closptr", SC.auto_, type_pointer(Closstru));
@@ -866,7 +866,7 @@ void buildClosure(FuncDeclaration fd, ref IRState irs)
             vsym.Sscope = sclosure;
 
             /* Add variable as closure type member */
-            symbol_struct_addField(Closstru.Ttag, &vsym.Sident[0], vsym.Stype, v.offset);
+            symbol_struct_addField(*Closstru.Ttag, &vsym.Sident[0], vsym.Stype, v.offset);
             //printf("closure field %s: memalignsize: %i, offset: %i\n", &vsym.Sident[0], memalignsize, v.offset);
         }
 
@@ -1098,7 +1098,7 @@ void buildAlignSection(FuncDeclaration fd, ref IRState irs)
         vsym.Sscope = sclosure;
 
         /* Add variable as align section type member */
-        symbol_struct_addField(Closstru.Ttag, &vsym.Sident[0], vsym.Stype, v.offset);
+        symbol_struct_addField(*Closstru.Ttag, &vsym.Sident[0], vsym.Stype, v.offset);
         if (log) printf("align section field %s: offset: %i\n", &vsym.Sident[0], v.offset);
     }
 
@@ -1177,7 +1177,7 @@ void buildCapture(FuncDeclaration fd)
             auto soffset = vsym.Soffset;
             if (fd.vthis)
                 soffset -= toSymbol(fd.vthis).Soffset; // see toElem.ToElemVisitor.visit(SymbolExp)
-            symbol_struct_addField(capturestru.Ttag, &vsym.Sident[0], vsym.Stype, cast(uint)soffset);
+            symbol_struct_addField(*capturestru.Ttag, &vsym.Sident[0], vsym.Stype, cast(uint)soffset);
             //printf("capture field %s: offset: %i\n", &vsym.Sident[0], v.offset);
         }
 

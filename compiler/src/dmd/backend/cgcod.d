@@ -1259,7 +1259,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
             case SC.bprel:
                 break;
             default:
-                symbol_print(s);
+                symbol_print(*s);
                 assert(0);
         }
     }

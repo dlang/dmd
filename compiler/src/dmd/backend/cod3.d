@@ -5592,7 +5592,7 @@ targ_size_t cod3_bpoffset(Symbol *s)
 
         default:
             WRFL(s.Sfl);
-            symbol_print(s);
+            symbol_print(*s);
             assert(0);
     }
     assert(hasframe);
