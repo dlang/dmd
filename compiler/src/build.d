@@ -675,7 +675,10 @@ alias buildFrontendHeaders = makeRule!((builder, rule) {
             ["-J" ~ env["RES"], "-c", "-o-", "-HCf="~rule.target,
             // Enforce the expected target architecture
             "-m64", "-os=linux",
-            ] ~ dmdSources);
+            ] ~ dmdSources ~
+            // Set druntime up to be imported explicitly,
+            //  so that druntime doesn't have to be built to run the updating of c++ headers.
+            ["-I../druntime/src"]);
 });
 
 alias runCxxHeadersTest = makeRule!((builder, rule) {
