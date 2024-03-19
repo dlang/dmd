@@ -358,9 +358,9 @@ $(GNAME Constructor):
 )
 
         $(P Fields are by default initialized to the
-        $(LNAME2 class-default-initializer, default initializer)
+        $(DDSUBLINK spec/property, init, default initializer)
         for their type (usually 0 for integer types and
-        NAN for floating point types).
+        NaN for floating point types).
         If the field declaration has an optional $(GLINK2 declaration, Initializer)
         that will be used instead of the default.
         )

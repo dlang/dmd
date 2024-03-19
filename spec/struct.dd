@@ -253,7 +253,7 @@ $(H3 $(LNAME2 default_struct_init, Default Initialization of Structs))
 
         $(P Struct fields are by default initialized to whatever the
         $(GLINK2 declaration, Initializer) for the field is, and if none is supplied, to
-        the default initializer for the field's type.
+        the $(DDSUBLINK spec/property, init, default initializer) for the field's type.
         )
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -281,19 +281,22 @@ $(GNAME StructMemberInitializer):
     $(GLINK_LEX Identifier) $(D :) $(GLINK2 declaration, NonVoidInitializer)
 )
 
-        $(P If a $(I StructInitializer) is supplied, the
-        fields are initialized by the $(I StructMemberInitializer) syntax.
-        $(I StructMemberInitializers) with the $(I Identifier : NonVoidInitializer) syntax
-        may be appear in any order, where $(I Identifier) is the field identifier.
-        $(I StructMemberInitializer)s with the $(GLINK2 declaration, NonVoidInitializer) syntax
-        appear in the lexical order of the fields in the $(GLINK StructDeclaration).
-        )
+        $(P If a $(I StructInitializer) is supplied,
+        each $(I StructMemberInitializer) initializes a matching field:)
 
-        $(P Fields not specified in the $(I StructInitializer) are default initialized.)
+        * A $(I StructMemberInitializer) using the $(I Identifier : NonVoidInitializer) syntax
+          may appear in any order. The identifier must match a field name.
+        * If the first $(I StructMemberInitializer) does not specify an *Identifier*,
+          it refers to the first field in the $(GLINK StructDeclaration).
+        * A subsequent *NonVoidInitializer* without an *Identifier* refers to the next field
+          (in lexical order) after the one referred to in the previous *StructMemberInitializer*.
+
+        $(P Any field not covered by a $(I StructMemberInitializer) is default initialized.)
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
         struct S { int a, b, c, d = 7; }
+
         S r;                          // r.a = 0, r.b = 0, r.c = 0, r.d = 7
         S s = { a:1, b:2 };           // s.a = 1, s.b = 2, s.c = 0, s.d = 7
         S t = { c:4, b:5, a:2, d:5 }; // t.a = 2, t.b = 5, t.c = 4, t.d = 5
@@ -342,8 +345,10 @@ $(H3 $(LNAME2 default_union_init, Default Initialization of Unions))
 
 $(H3 $(LNAME2 static_union_init, Static Initialization of Unions))
 
-        $(P Unions are initialized similarly to structs, except that only
-        one member initializer is allowed.)
+        $(P Unions are initialized
+        $(RELATIVE_LINK2 static_struct_init, similarly to structs), except that only
+        one member initializer is allowed. If the member initializer does not specify
+        an identifier, it will initialize the first member of the union.)
 
         $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---

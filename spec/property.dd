@@ -89,7 +89,7 @@ $(TROW Enum, first member value)
 $(TROW Integers, `0`)
 $(TROW Floating Point, NaN)
 $(TROW Reference Types, `null`)
-$(TROW Structs, each $(DDSUBLINK spec/struct, static_struct_init, field's default value))
+$(TROW Structs, each $(DDSUBLINK spec/struct, default_struct_init, field's default value))
 $(TROW Unions, first member value)
 )
 
