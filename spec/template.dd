@@ -919,7 +919,7 @@ $(H4 $(LNAME2 homogeneous_sequences, Homogeneous Sequences))
         ---
         )
 
-        $(P A *TypeSeq* can be used to declare parameters for a function:)
+        $(P A *TypeSeq* can be used to declare a parameter sequence for a function:)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
@@ -940,22 +940,24 @@ $(H4 $(LNAME2 homogeneous_sequences, Homogeneous Sequences))
         ---
         )
 
-    $(NOTE A value sequence cannot be returned from a function - instead, return a
-        $(REF Tuple, std,typecons).)
+    $(P A value sequence:)
+    * Can be copied
+    * Cannot have its address taken
+    * Cannot be returned from a function - instead, return a
+        $(REF Tuple, std,typecons)
 
 $(H4 $(LNAME2 lvalue-sequences, Lvalue Sequences))
 
     $(P A *TypeSeq* can similarly be used to
         $(DDSUBLINK articles/ctarguments, type-seq-instantiation, declare variables).
-        Parameters or variables whose type is a *TypeSeq* are called an
+        A variable whose type is a *TypeSeq* is called an
         *lvalue sequence*.)
+    $(P An lvalue sequence can be initialized from, assigned to, and compared with
+        a value sequence of a compatible type.)
 
-        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
-        ---
-        void main()
-        {
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+            ---
             import std.meta: AliasSeq;
-
             // use a type alias just for convenience
             alias TS = AliasSeq!(string, int);
             TS tup; // lvalue sequence
@@ -972,8 +974,7 @@ $(H4 $(LNAME2 lvalue-sequences, Lvalue Sequences))
             // lvalue sequence elements can be modified
             tup = tup2;
             assert(tup == hi5);
-        }
-        ---
+            ---
         )
 
     $(UL
@@ -981,6 +982,21 @@ $(H4 $(LNAME2 lvalue-sequences, Lvalue Sequences))
             or struct instance to obtain an lvalue sequence of its fields.)
         $(LI `.tupleof` can be $(DDSUBLINK spec/arrays, array-properties, used on a static array)
             instance to obtain an lvalue sequence of its elements.)
+    )
+
+    $(P An lvalue sequence can be initialized from a single expression.
+        Each element is initialized from the given expression.)
+
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
+    ---
+    import std.meta: AliasSeq;
+    AliasSeq!(int, int, int) vs = 4;
+    assert(vs == AliasSeq!(4, 4, 4));
+
+    int[3] sa = [1, 2, 3];
+    vs = sa.tupleof;
+    assert(vs == AliasSeq!(1, 2, 3));
+    ---
     )
 
 $(H4 $(LNAME2 seq-ops, Sequence Operations))
