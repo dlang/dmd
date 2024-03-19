@@ -402,7 +402,7 @@ $(GNAME DeprecatedAttribute):
         )
 
 
-$(H2 $(LNAME2 visibility_attributes, Visibility Attribute))
+$(H2 $(LNAME2 visibility_attributes, Visibility Attributes))
 
 $(GRAMMAR
 $(GNAME VisibilityAttribute):
@@ -618,7 +618,7 @@ void main() { foo(); /* error, foo is disabled */ }
         )
 
 
-$(H2 $(LNAME2 safe, $(D @safe), $(D @trusted), and $(D @system) Attribute))
+$(H2 $(LNAME2 safe, $(D @safe), $(D @trusted), and $(D @system) Attributes))
 
     $(P See $(DDSUBLINK spec/function, function-safety, Function Safety).)
 
