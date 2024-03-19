@@ -78,7 +78,7 @@ bool isAnyIdentifierCharacter(dchar c)
 ///
 unittest
 {
-    assert(isAnyContinue('ğ'));
+    assert(isAnyIdentifierCharacter('ğ'));
 }
 
 /**
