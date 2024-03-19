@@ -409,7 +409,7 @@ if (enable) // disable while we test the inliner
                 break;
 
             default:
-                symbol_print(s);
+                symbol_print(*s);
                 assert(0);
         }
     }

@@ -1496,7 +1496,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                 //printf("test: FLreg, %s %d regcon.mvar = %s\n",
                 // s.Sident.ptr, cast(int)e.EV.Voffset, regm_str(regcon.mvar));
                 if (!(s.Sregm & regcon.mvar))
-                    symbol_print(s);
+                    symbol_print(*s);
                 assert(s.Sregm & regcon.mvar);
 
                 /* Attempting to paint a float as an integer or an integer as a float
@@ -1657,7 +1657,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
 
         default:
             WRFL(fl);
-            symbol_print(s);
+            symbol_print(*s);
             assert(0);
     }
 }

@@ -633,7 +633,7 @@ void touchlvalue(ref CGCS cgcs, const elem* e)
 
         default:
             elem_print(e);
-            symbol_print(e.EV.Vsym);
+            symbol_print(*e.EV.Vsym);
             assert(0);
     }
 }

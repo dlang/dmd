@@ -354,7 +354,7 @@ private elem* inlineCall(elem *e,Symbol *sfunc)
             L1:
             {
                 //printf("  new symbol %s\n", s.Sident.ptr);
-                Symbol* snew = symbol_copy(s);
+                Symbol* snew = symbol_copy(*s);
                 snew.Sclass = sc;
                 snew.Sfl = FLauto;
                 snew.Sflags |= SFLfree;
@@ -373,7 +373,7 @@ private elem* inlineCall(elem *e,Symbol *sfunc)
                 break;
             default:
                 //fprintf(stderr, "Sclass = %d\n", sc);
-                symbol_print(s);
+                symbol_print(*s);
                 assert(0);
         }
     }
@@ -516,7 +516,7 @@ private elem* initializeParamsWithArgs(elem* eargs, SYMIDX sistart, SYMIDX siend
         {
             if (log) printf("detected slice with %s\n", s.Sident.ptr);
             auto s2 = nextSymbol(si);
-            if (!s2) { symbol_print(s); elem_print(e); assert(0); }
+            if (!s2) { symbol_print(*s); elem_print(e); assert(0); }
             assert(szs == type_size(s2.Stype));
             const ty = s.Stype.Tty;
 

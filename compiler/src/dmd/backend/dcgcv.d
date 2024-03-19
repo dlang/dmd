@@ -384,7 +384,7 @@ void cv_init()
         Symbol **p = cast(Symbol **)reset_symbuf.buf;
         const size_t n = reset_symbuf.length() / (Symbol *).sizeof;
         for (size_t i = 0; i < n; ++i)
-            symbol_reset(p[i]);
+            symbol_reset(*p[i]);
         reset_symbuf.reset();
     }
     else
@@ -817,7 +817,7 @@ idx_t cv4_struct(Classsym *s,int flags)
             break;
 
         default:
-            symbol_print(s);
+            symbol_print(*s);
             assert(0);
     }
     TOWORD(d.data.ptr,leaf);
