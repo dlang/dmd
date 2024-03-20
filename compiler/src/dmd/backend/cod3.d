@@ -1176,7 +1176,7 @@ static if (NTEXCEPTIONS)
                 {
                     assert(reg1 == AX && reg2 == DX);
                     regm_t pretregs = mask(reg1) | mask(reg2);
-                    fixresult_complex87(cdb, e, retregs, &pretregs, true);
+                    fixresult_complex87(cdb, e, retregs, pretregs, true);
                 }
             }
             else if (reg2 == NOREG)

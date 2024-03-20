@@ -2183,7 +2183,7 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
     }
     else if (tyfloating(e.Ety) && config.inline8087)
     {
-        comsub87(cdb,e,&pretregs);
+        comsub87(cdb,e,pretregs);
         return;
     }
 
