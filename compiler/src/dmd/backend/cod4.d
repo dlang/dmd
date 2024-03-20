@@ -3401,7 +3401,7 @@ void cdcnvt(ref CodeBuilder cdb,elem *e, regm_t *pretregs)
             Lcomplex:
                     regm_t retregsx = mST01 | (*pretregs & mPSW);
                     codelem(cdb,e.EV.E1, &retregsx, false);
-                    fixresult_complex87(cdb, e, retregsx, pretregs);
+                    fixresult_complex87(cdb, e, retregsx, *pretregs);
                     return;
                 }
                 regm_t retregsx = mST0 | (*pretregs & mPSW);
@@ -4588,7 +4588,7 @@ void cdpair(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 
     if (retregs & mST01)
     {
-        loadPair87(cdb, e, pretregs);
+        loadPair87(cdb, e, *pretregs);
         return;
     }
 
