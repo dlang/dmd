@@ -3406,7 +3406,7 @@ void cdcnvt(ref CodeBuilder cdb,elem *e, regm_t *pretregs)
                 }
                 regm_t retregsx = mST0 | (*pretregs & mPSW);
                 codelem(cdb,e.EV.E1, &retregsx, false);
-                fixresult87(cdb, e, retregsx, pretregs);
+                fixresult87(cdb, e, retregsx, *pretregs);
                 return;
             }
 
@@ -3475,7 +3475,7 @@ void cdcnvt(ref CodeBuilder cdb,elem *e, regm_t *pretregs)
                     cdb.genfltreg(0xDF,5,0);     // FILD m64int
 
                     regm_t retregsy = mST0 /*| (*pretregs & mPSW)*/;
-                    fixresult87(cdb, e, retregsy, pretregs);
+                    fixresult87(cdb, e, retregsy, *pretregs);
                     return;
                 }
                 break;

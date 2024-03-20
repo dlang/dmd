@@ -1143,7 +1143,7 @@ static if (NTEXCEPTIONS)
             {
                 assert(reg1 == lreg && reg2 == NOREG);
                 regm_t pretregs = mask(reg1) | mask(reg2);
-                fixresult87(cdb, e, retregs, &pretregs, true);
+                fixresult87(cdb, e, retregs, pretregs, true);
             }
             // fix return registers
             else if (tybasic(e.Ety) == TYcfloat)
