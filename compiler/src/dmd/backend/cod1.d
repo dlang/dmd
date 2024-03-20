@@ -1919,7 +1919,7 @@ void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, regm_t *pretregs)
     {
         if ((forregs | retregs) & (mST01 | mST0))
         {
-            fixresult87(cdb, e, retregs, pretregs);
+            fixresult87(cdb, e, retregs, *pretregs);
             return;
         }
         bool opsflag = false;
@@ -2042,7 +2042,7 @@ void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, regm_t *pretregs)
         if (retregs & (mST01 | mST0))
         {
             *pretregs |= forccs;
-            fixresult87(cdb, e, retregs, pretregs);
+            fixresult87(cdb, e, retregs, *pretregs);
         }
         else
             tstresult(cdb, retregs, tym, forregs);
@@ -4074,7 +4074,7 @@ static if (0)
         {
             //assert(global87.stackused == 0);
             push87(cdb);                // one item on 8087 stack
-            fixresult87(cdb,e,retregs,pretregs);
+            fixresult87(cdb,e,retregs,*pretregs);
             return;
         }
         else
