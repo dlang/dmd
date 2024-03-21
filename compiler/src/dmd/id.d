@@ -555,7 +555,7 @@ immutable Msgtable[] msgtable =
     { "_align", "align" },
     { "aligned" },
     { "__pragma", "pragma" },
-    { "builtins", "__builtins" },
+    { "importc_builtins", "__importc_builtins" },
     { "builtin_va_list", "__builtin_va_list" },
     { "builtin_va_arg", "__builtin_va_arg" },
     { "va_list_tag", "__va_list_tag" },

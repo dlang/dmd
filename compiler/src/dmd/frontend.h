@@ -8771,7 +8771,7 @@ struct Id final
     static Identifier* _deprecated;
     static Identifier* _align;
     static Identifier* aligned;
-    static Identifier* builtins;
+    static Identifier* importc_builtins;
     static Identifier* builtin_va_list;
     static Identifier* builtin_va_arg;
     static Identifier* va_list_tag;
