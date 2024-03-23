@@ -214,7 +214,7 @@ nothrow:
 
             const(char)[] n = FileName.combine(p, sdi);
 
-            if (!pathCache.isExistingPath(n)) {
+            if (!pathCache.pathExists(n)) {
                 FileName.free(n.ptr);
                 continue; // no need to check for anything else.
             }
