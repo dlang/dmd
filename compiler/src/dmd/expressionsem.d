@@ -15734,7 +15734,7 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
         if (_this.isLvalue())
         {
             with (_this)
-            if (mod && !e1.type.pointerTo().implicitConvTo(to.pointerTo()))
+            if (mod != ubyte.max && !e1.type.pointerTo().implicitConvTo(to.pointerTo()))
                 sc.setUnsafePreview(FeatureState.default_, false, loc,
                     "cast from `%s` to `%s` cannot be used as an lvalue in @safe code",
                     e1.type, to);
