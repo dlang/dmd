@@ -5129,7 +5129,7 @@ L3:
 
 
 @trusted
-void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
+void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
 {
     reg_t reg;
     reg_t nreg;
@@ -5142,18 +5142,18 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
     debug
     {
     //  if (debugw)
-    //        printf("loaddata(e = %p,*pretregs = %s)\n",e,regm_str(*pretregs));
+    //        printf("loaddata(e = %p,outretregs = %s)\n",e,regm_str(outretregs));
     //  elem_print(e);
     }
 
     assert(e);
     elem_debug(e);
-    if (*pretregs == 0)
+    if (outretregs == 0)
         return;
     tym = tybasic(e.Ety);
     if (tym == TYstruct)
     {
-        cdrelconst(cdb,e,pretregs);
+        cdrelconst(cdb,e,&outretregs);
         return;
     }
     if (tyfloating(tym))
@@ -5161,22 +5161,22 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         objmod.fltused();
         if (config.fpxmmregs &&
             (tym == TYcfloat || tym == TYcdouble) &&
-            (*pretregs & (XMMREGS | mPSW))
+            (outretregs & (XMMREGS | mPSW))
            )
         {
-            cloadxmm(cdb, e, pretregs);
+            cloadxmm(cdb, e, &outretregs);
             return;
         }
         else if (config.inline8087)
         {
-            if (*pretregs & mST0)
+            if (outretregs & mST0)
             {
-                load87(cdb, e, 0, pretregs, null, -1);
+                load87(cdb, e, 0, &outretregs, null, -1);
                 return;
             }
             else if (tycomplex(tym))
             {
-                cload87(cdb, e, pretregs);
+                cload87(cdb, e, &outretregs);
                 return;
             }
         }
@@ -5184,7 +5184,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
     int sz = _tysize[tym];
     cs.Iflags = 0;
     cs.Irex = 0;
-    if (*pretregs == mPSW)
+    if (outretregs == mPSW)
     {
         Symbol *s;
         regm = allregs;
@@ -5227,7 +5227,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             {
                 allocreg(cdb, &regm, &reg, TYoffset);   // get a register
                 loadea(cdb, e, &cs, 0x8B, reg, 0, 0, 0);    // MOV reg,data
-                fixresult(cdb, e, regm, pretregs);
+                fixresult(cdb, e, regm, &outretregs);
             }
             else
             {   cs.IFL2 = FLconst;
@@ -5280,7 +5280,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             }
         }
         else if (sz == tysize(TYldouble))               // TYldouble
-            load87(cdb, e, 0, pretregs, null, -1);
+            load87(cdb, e, 0, &outretregs, null, -1);
         else
         {
             elem_print(e);
@@ -5289,9 +5289,9 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         return;
     }
     /* not for flags only */
-    flags = *pretregs & mPSW;             /* save original                */
-    forregs = *pretregs & (mBP | ALLREGS | mES | XMMREGS);
-    if (*pretregs & mSTACK)
+    flags = outretregs & mPSW;             /* save original                */
+    forregs = outretregs & (mBP | ALLREGS | mES | XMMREGS);
+    if (outretregs & mSTACK)
         forregs |= DOUBLEREGS;
     if (e.Eoper == OPconst)
     {
@@ -5301,7 +5301,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             reg_t xreg;
             allocreg(cdb, &forregs, &xreg, tym);     // allocate registers
             movxmmconst(cdb, xreg, tym, &e.EV, flags);
-            fixresult(cdb, e, forregs, pretregs);
+            fixresult(cdb, e, forregs, &outretregs);
             return;
         }
 
@@ -5407,8 +5407,8 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         else
             assert(0);
         // Flags may already be set
-        *pretregs &= flags | ~mPSW;
-        fixresult(cdb, e, forregs, pretregs);
+        outretregs &= flags | ~mPSW;
+        fixresult(cdb, e, forregs, &outretregs);
         return;
     }
     else
@@ -5434,7 +5434,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 
                 mfuncreg &= ~pregm;
                 regcon.used |= pregm;
-                fixresult(cdb,e,pregm,pretregs);
+                fixresult(cdb,e,pregm,&outretregs);
                 return;
             }
         }
@@ -5472,7 +5472,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             else
             {
                 nregm = tyuns(tym) ? BYTEREGS : cast(regm_t) mAX;
-                if (*pretregs & nregm)
+                if (outretregs & nregm)
                     nreg = reg;                             // already allocated
                 else
                     allocreg(cdb, &nregm, &nreg, tym);
@@ -5521,7 +5521,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         else if (sz <= 2 * REGSIZE)
         {
             if (I32 && sz == 8 &&
-                (*pretregs & (mSTACK | mPSW)) == mSTACK)
+                (outretregs & (mSTACK | mPSW)) == mSTACK)
             {
                 assert(0);
     /+
@@ -5550,7 +5550,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         else if (sz >= 8)
         {
             assert(!I32);
-            if ((*pretregs & (mSTACK | mPSW)) == mSTACK)
+            if ((outretregs & (mSTACK | mPSW)) == mSTACK)
             {
                 // Note that we allocreg(DOUBLEREGS) needlessly
                 stackchanged = 1;
@@ -5577,8 +5577,8 @@ void loaddata(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         else
             assert(0);
         // Flags may already be set
-        *pretregs &= flags | ~mPSW;
-        fixresult(cdb, e, forregs, pretregs);
+        outretregs &= flags | ~mPSW;
+        fixresult(cdb, e, forregs, &outretregs);
         return;
     }
 }
