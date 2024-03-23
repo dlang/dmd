@@ -3804,9 +3804,9 @@ void cdconvt87(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
  */
 
 @trusted
-void cload87(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
+void cload87(ref CodeBuilder cdb, elem *e, ref regm_t outretregs)
 {
-    //printf("e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
+    //printf("e = %p, outretregs = %s)\n", e, regm_str(outretregs));
     //elem_print(e);
     assert(!I16);
     debug
@@ -3814,8 +3814,8 @@ void cload87(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     {
         assert(config.inline8087);
         elem_debug(e);
-        assert(*pretregs & (mST01 | mPSW));
-        assert(!(*pretregs & ~(mST01 | mPSW)));
+        assert(outretregs & (mST01 | mPSW));
+        assert(!(outretregs & ~(mST01 | mPSW)));
     }
 
     tym_t ty = tybasic(e.Ety);
@@ -3826,7 +3826,7 @@ void cload87(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     regm_t retregs;
     int i;
 
-    //printf("cload87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
+    //printf("cload87(e = %p, outretregs = %s)\n", e, regm_str(outretregs));
     sz = _tysize[ty] / 2;
     memset(&cs, 0, cs.sizeof);
     if (ADDFWAIT())
@@ -3872,7 +3872,7 @@ void cload87(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         case OPld_d:
         case OPf_d:
         case OPd_f:
-            cload87(cdb,e.EV.E1, pretregs);
+            cload87(cdb,e.EV.E1, outretregs);
             freenode(e.EV.E1);
             return;
 
@@ -3898,7 +3898,7 @@ void cload87(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
             debug elem_print(e);
             assert(0);
     }
-    fixresult_complex87(cdb, e, retregs, *pretregs);
+    fixresult_complex87(cdb, e, retregs, outretregs);
 }
 
 /**********************************************

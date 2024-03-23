@@ -5176,7 +5176,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
             }
             else if (tycomplex(tym))
             {
-                cload87(cdb, e, &outretregs);
+                cload87(cdb, e, outretregs);
                 return;
             }
         }

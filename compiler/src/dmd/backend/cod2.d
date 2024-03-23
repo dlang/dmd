@@ -3230,7 +3230,7 @@ void cdind(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             { }
             else if (tycomplex(tym))
             {
-                cload87(cdb, e, pretregs);
+                cload87(cdb, e, *pretregs);
                 return;
             }
 
