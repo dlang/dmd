@@ -472,7 +472,7 @@ private int cse_get(elem *e, uint offset)
 /*************************************
  * Reload common subexpression.
  */
-@trusted //TODO: can be safe again once loaddata takes outretregs by ref
+@trusted //TODO: can be safe again once fixresult takes outretregs by ref
 void comsub87(ref CodeBuilder cdb,elem *e, ref regm_t outretregs)
 {
     //printf("comsub87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
@@ -493,7 +493,7 @@ void comsub87(ref CodeBuilder cdb,elem *e, ref regm_t outretregs)
         }
         else
             // Reload
-            loaddata(cdb,e,&outretregs);
+            loaddata(cdb,e,outretregs);
     }
     else
     {
@@ -508,7 +508,7 @@ void comsub87(ref CodeBuilder cdb,elem *e, ref regm_t outretregs)
         }
         else
             // Reload
-            loaddata(cdb,e,&outretregs);
+            loaddata(cdb,e,outretregs);
     }
 }
 
