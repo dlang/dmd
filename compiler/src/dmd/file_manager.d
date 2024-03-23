@@ -72,44 +72,84 @@ private struct PathStack
     }
 }
 
-final class FileManager
+/***************************
+ * Cache path lookups so the operating system
+ * is only consulted once for each path.
+ */
+private struct PathCache
 {
-    private StringTable!(const(ubyte)[]) files;  // contents of files indexed by file name
-    private StringTable!(bool) packageStatus;
+    /* for filespec "a/b/c/d.ext"
+     * a b and c are directories, a, a/b, a/b/c are paths.
+     */
 
-    // check if the package path of the given path exists. The input path is
-    // expected to contain the full path to the module, so the parent
-    // directories of that path are checked.
-    private bool packageExists(const(char)[] p) nothrow
+    StringTable!(bool) pathStatus;      // cached value of does a path exist or not
+
+  nothrow:
+
+    /**
+     * Determine if the path part of path/filename exists.
+     * Cache the results for the path and each left-justified subpath of the path.
+     * Params:
+     *  filespec = path/filename
+     * Returns:
+     *  true if path exists, false if it does not
+     */
+    bool pathExists(const(char)[] filespec) nothrow
     {
-        // step 1, look for the closest parent path that is cached
+        /* look for the longest leftmost parent path that is cached
+         * by starting at the right and working to the left
+         */
         bool exists = true;
-        auto st = PathStack(p);
+        auto st = PathStack(filespec);
         while (st.up) {
-            if (auto cached = packageStatus.lookup(st.cur)) {
+            if (auto cached = pathStatus.lookup(st.cur)) {
                 exists = cached.value;
                 break;
             }
         }
-        // found a parent that is cached (or reached the end of the stack).
-        // step 2, traverse back up the stack storing either false if the
-        // parent doesn't exist, or the result of the `exists` call if it does.
+        /* found a parent path that is cached (or reached the left end of the path).
+         * Now move right caching the results of those directories.
+         * Once a directory is found to not exist, all the directories
+         * to the right of it do not exist
+         */
         while (st.down) {
             if (!exists)
-                packageStatus.insert(st.cur, false);
+                pathStatus.insert(st.cur, false);
             else
-                exists = packageStatus.insert(st.cur, FileName.exists(st.cur) == 2).value;
+                exists = pathStatus.insert(st.cur, FileName.exists(st.cur) == 2).value;
         }
 
-        // at this point, exists should be the answer.
         return exists;
     }
+
+    /**
+     * Ask if path ends in a directory.
+     * Cache result for speed.
+     * Params:
+     *  path = a path
+     * Returns:
+     *  true if it's a path, false if not
+     */
+    bool isExistingPath(const char[] path)
+    {
+        auto cached = pathStatus.lookup(path);
+        if (!cached)
+            cached = pathStatus.insert(path, FileName.exists(path) == 2);
+        return cached.value;
+    }
+}
+
+final class FileManager
+{
+    private StringTable!(const(ubyte)[]) files;  // contents of files indexed by file name
+
+    private PathCache pathCache;
 
     ///
     public this () nothrow
     {
         this.files._init();
-        this.packageStatus._init();
+        this.pathCache.pathStatus._init();
     }
 
 nothrow:
@@ -119,18 +159,18 @@ nothrow:
     * Does not open the file.
     * Params:
     *      filename = as supplied by the user
-    *      path = path to look for filename
+    *      paths = paths to look for filename
     * Returns:
     *      the found file name or
     *      `null` if it is not different from filename.
     */
-    const(char)[] lookForSourceFile(const char[] filename, const char*[] path)
+    const(char)[] lookForSourceFile(const char[] filename, const char*[] paths)
     {
         //printf("lookForSourceFile(`%.*s`)\n", cast(int)filename.length, filename.ptr);
-        /* Search along path[] for .di file, then .d file.
+        /* Search along paths[] for .di file, then .d file.
         */
         // see if we should check for the module locally.
-        bool checkLocal = packageExists(filename);
+        bool checkLocal = pathCache.pathExists(filename);
         const sdi = FileName.forceExt(filename, hdr_ext);
         if (checkLocal && FileName.exists(sdi) == 1)
             return sdi;
@@ -146,12 +186,9 @@ nothrow:
 
         if (checkLocal)
         {
-            auto cached = packageStatus.lookup(filename);
-            if (!cached)
-                cached = packageStatus.insert(filename, FileName.exists(filename) == 2);
-            if (cached.value)
+            if (pathCache.isExistingPath(filename))
             {
-                /* The filename exists and it's a directory.
+                /* The filename exists but it's a directory.
                  * Therefore, the result should be: filename/package.d
                  * iff filename/package.d is a file
                  */
@@ -169,15 +206,15 @@ nothrow:
 
         if (FileName.absolute(filename))
             return null;
-        if (!path.length)
+        if (!paths.length)
             return null;
-        foreach (entry; path)
+        foreach (entry; paths)
         {
             const p = entry.toDString();
 
             const(char)[] n = FileName.combine(p, sdi);
 
-            if (!packageExists(n)) {
+            if (!pathCache.isExistingPath(n)) {
                 FileName.free(n.ptr);
                 continue; // no need to check for anything else.
             }
@@ -196,12 +233,7 @@ nothrow:
             scope(exit) FileName.free(n.ptr);
 
             // also cache this if we are looking for package.d[i]
-            auto cached = packageStatus.lookup(n);
-            if (!cached) {
-                cached = packageStatus.insert(n, FileName.exists(n) == 2);
-            }
-
-            if (cached.value)
+            if (pathCache.isExistingPath(n))
             {
                 const n2i = FileName.combine(n, package_di);
                 if (FileName.exists(n2i) == 1)
@@ -215,7 +247,7 @@ nothrow:
             }
         }
 
-        /* ImportC: No D modules found, now search along path[] for .i file, then .c file.
+        /* ImportC: No D modules found, now search along paths[] for .i file, then .c file.
          */
         const si = FileName.forceExt(filename, i_ext);
         if (FileName.exists(si) == 1)
@@ -226,7 +258,7 @@ nothrow:
         if (FileName.exists(sc) == 1)
             return sc;
         scope(exit) FileName.free(sc.ptr);
-        foreach (entry; path)
+        foreach (entry; paths)
         {
             const p = entry.toDString();
 
