@@ -1081,7 +1081,7 @@ void orth87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 else if (NOSAHF)
                 {
                     note87(e1,0,0);
-                    load87(cdb,e2,0,&retregs,e1,-1);
+                    load87(cdb,e2,0,retregs,e1,-1);
                     makesure87(cdb,e1,0,1,0);
                     resregm = 0;
                     //cdb.genf2(0xD9,0xC8 + 1);          // FXCH ST1
@@ -1092,7 +1092,7 @@ void orth87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 }
                 else
                 {
-                    load87(cdb,e2, 0, pretregs, e1, 3);  // FCOMPP
+                    load87(cdb,e2, 0, *pretregs, e1, 3);  // FCOMPP
                 }
             }
             else
@@ -1108,7 +1108,7 @@ void orth87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 else
                 {
                     note87(e1,0,0);
-                    load87(cdb,e2,0,&retregs,e1,-1);
+                    load87(cdb,e2,0,retregs,e1,-1);
                     makesure87(cdb,e1,0,1,0);
                     resregm = 0;
                     if (NOSAHF)
@@ -1320,7 +1320,7 @@ void orth87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         {
             loadComplex(cdb,e1);
             regm_t retregs = mST0;
-            load87(cdb,e2,sz2,&retregs,e1,op);
+            load87(cdb,e2,sz2,retregs,e1,op);
             freenode(e2);
             retregs = mST01;
             makesure87(cdb, e1,0,1,0);
@@ -1518,7 +1518,7 @@ void orth87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     if (config.flags4 & CFG4fdivcall && e.Eoper == OPdiv)
     {
         regm_t retregs = mST0;
-        load87(cdb,e2,0,&retregs,e1,-1);
+        load87(cdb,e2,0,retregs,e1,-1);
         makesure87(cdb, e1,0,1,0);
         if (op == 7)                    // if reverse divide
             cdb.genf2(0xD9,0xC8 + 1);       // FXCH ST(1)
@@ -1544,7 +1544,7 @@ void orth87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
          *              fstp    ST(1)                   // leave remainder on stack
          */
         regm_t retregs = mST0;
-        load87(cdb,e2,0,&retregs,e1,-1);
+        load87(cdb,e2,0,retregs,e1,-1);
         makesure87(cdb,e1,0,1,0);       // now have x,y on stack; need y,x
         if (!reverse)                           // if not reverse modulo
             cdb.genf2(0xD9,0xC8 + 1);           // FXCH ST(1)
@@ -1560,7 +1560,7 @@ void orth87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     }
     else
     {
-        load87(cdb,e2,0,pretregs,e1,op);
+        load87(cdb,e2,0,*pretregs,e1,op);
         freenode(e2);
     }
     if (*pretregs & mST0)
@@ -1622,7 +1622,7 @@ private void loadComplex(ref CodeBuilder cdb,elem *e)
  */
 
 @trusted
-void load87(ref CodeBuilder cdb,elem *e,uint eoffset,regm_t *pretregs,elem *eleft,OPER op)
+void load87(ref CodeBuilder cdb,elem *e,uint eoffset,ref regm_t outretregs,elem *eleft,OPER op)
 {
     code cs;
     regm_t retregs;
@@ -1632,7 +1632,7 @@ void load87(ref CodeBuilder cdb,elem *e,uint eoffset,regm_t *pretregs,elem *elef
     int i;
 
     if (NDPP)
-        printf("+load87(e=%p, eoffset=%d, *pretregs=%s, eleft=%p, op=%d, stackused = %d)\n",e,eoffset,regm_str(*pretregs),eleft,op,global87.stackused);
+        printf("+load87(e=%p, eoffset=%d, outretregs=%s, eleft=%p, op=%d, stackused = %d)\n",e,eoffset,regm_str(outretregs),eleft,op,global87.stackused);
 
     assert(!(NOSAHF && op == 3));
     elem_debug(e);
@@ -1901,9 +1901,9 @@ L5:
     {   pop87();                    // extra pop was done
         cg87_87topsw(cdb);
     }
-    fixresult87(cdb,e,((op == 3) ? mPSW : mST0),*pretregs);
+    fixresult87(cdb,e,((op == 3) ? mPSW : mST0),outretregs);
     if (NDPP)
-        printf("-load87(e=%p, eoffset=%d, *pretregs=%s, eleft=%p, op=%d, stackused = %d)\n",e,eoffset,regm_str(*pretregs),eleft,op,global87.stackused);
+        printf("-load87(e=%p, eoffset=%d, outretregs=%s, eleft=%p, op=%d, stackused = %d)\n",e,eoffset,regm_str(outretregs),eleft,op,global87.stackused);
 }
 
 /********************************
