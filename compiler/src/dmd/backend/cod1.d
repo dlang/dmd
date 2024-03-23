@@ -5171,12 +5171,12 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
         {
             if (outretregs & mST0)
             {
-                load87(cdb, e, 0, &outretregs, null, -1);
+                load87(cdb, e, 0, outretregs, null, -1);
                 return;
             }
             else if (tycomplex(tym))
             {
-                cload87(cdb, e, &outretregs);
+                cload87(cdb, e, outretregs);
                 return;
             }
         }
@@ -5280,7 +5280,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
             }
         }
         else if (sz == tysize(TYldouble))               // TYldouble
-            load87(cdb, e, 0, &outretregs, null, -1);
+            load87(cdb, e, 0, outretregs, null, -1);
         else
         {
             elem_print(e);

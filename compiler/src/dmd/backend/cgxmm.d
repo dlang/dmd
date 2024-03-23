@@ -1960,7 +1960,7 @@ void cloadxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     }
 
     // See test/complex.d for cases winding up here
-    cload87(cdb, e, pretregs);
+    cload87(cdb, e, *pretregs);
 }
 
 /***********************************

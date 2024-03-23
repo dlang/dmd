@@ -3453,7 +3453,7 @@ void cdcnvt(ref CodeBuilder cdb,elem *e, regm_t *pretregs)
             case OPs16_d:
             case OPu16_d:
             Lload87:
-                load87(cdb,e,0,pretregs,null,-1);
+                load87(cdb,e,0,*pretregs,null,-1);
                 return;
 
             case OPu32_d:
