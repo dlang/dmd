@@ -1869,17 +1869,17 @@ void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, uint saveflag)
 
 /******************************
  * Given the result of an expression is in retregs,
- * generate necessary code to return result in *pretregs.
+ * generate necessary code to return result in outretregs.
  */
 
 @trusted
-void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, regm_t *pretregs)
+void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, ref regm_t outretregs)
 {
-    //printf("fixresult(e = %p, retregs = %s, *pretregs = %s)\n",e,regm_str(retregs),regm_str(*pretregs));
-    if (*pretregs == 0) return;           // if don't want result
+    //printf("fixresult(e = %p, retregs = %s, outretregs = %s)\n",e,regm_str(retregs),regm_str(outretregs));
+    if (outretregs == 0) return;           // if don't want result
     assert(e && retregs);                 // need something to work with
-    regm_t forccs = *pretregs & mPSW;
-    regm_t forregs = *pretregs & (mST01 | mST0 | mBP | ALLREGS | mES | mSTACK | XMMREGS);
+    regm_t forccs = outretregs & mPSW;
+    regm_t forregs = outretregs & (mST01 | mST0 | mBP | ALLREGS | mES | mSTACK | XMMREGS);
     tym_t tym = tybasic(e.Ety);
 
     if (tym == TYstruct)
@@ -1914,12 +1914,12 @@ void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, regm_t *pretregs)
 
     reg_t reg,rreg;
     if ((retregs & forregs) == retregs)   // if already in right registers
-        *pretregs = retregs;
+        outretregs = retregs;
     else if (forregs)             // if return the result in registers
     {
         if ((forregs | retregs) & (mST01 | mST0))
         {
-            fixresult87(cdb, e, retregs, *pretregs);
+            fixresult87(cdb, e, retregs, outretregs);
             return;
         }
         bool opsflag = false;
@@ -1958,7 +1958,7 @@ void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, regm_t *pretregs)
         }
         else
         {
-            allocreg(cdb, pretregs, &rreg, tym);  // allocate return regs
+            allocreg(cdb, &outretregs, &rreg, tym);  // allocate return regs
             if (retregs & XMMREGS)
             {
                 reg = findreg(retregs & XMMREGS);
@@ -1974,7 +1974,7 @@ void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, regm_t *pretregs)
                     {
                         if (I32)
                         {
-                            rreg = findregmsw(*pretregs);
+                            rreg = findregmsw(outretregs);
                             cdb.genfltreg(0x8B, rreg,4);
                         }
                         else
@@ -2015,8 +2015,8 @@ void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, regm_t *pretregs)
             {
                 uint msreg = findregmsw(retregs);
                 uint lsreg = findreglsw(retregs);
-                uint msrreg = findregmsw(*pretregs);
-                uint lsrreg = findreglsw(*pretregs);
+                uint msrreg = findregmsw(outretregs);
+                uint lsrreg = findreglsw(outretregs);
 
                 genmovreg(cdb, msrreg, msreg); // MOV msrreg,msreg
                 genmovreg(cdb, lsrreg, lsreg); // MOV lsrreg,lsreg
@@ -2032,17 +2032,17 @@ void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, regm_t *pretregs)
                     genmovreg(cdb, rreg, reg);    // MOV rreg,reg
             }
         }
-        cssave(e,retregs | *pretregs,opsflag);
+        cssave(e,retregs | outretregs,opsflag);
         // Commented out due to Bugzilla 8840
         //forregs = 0;    // don't care about result in reg cuz real result is in rreg
-        retregs = *pretregs & ~mPSW;
+        retregs = outretregs & ~mPSW;
     }
     if (forccs)                           // if return result in flags
     {
         if (retregs & (mST01 | mST0))
         {
-            *pretregs |= forccs;
-            fixresult87(cdb, e, retregs, *pretregs);
+            outretregs |= forccs;
+            fixresult87(cdb, e, retregs, outretregs);
         }
         else
             tstresult(cdb, retregs, tym, forregs);
@@ -2888,7 +2888,7 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, regm_t* pretregs, regm_t 
         stackpush -= cinfo.pop;
     regm_t retregs = I16 ? cinfo.retregs16 : cinfo.retregs32;
     cdb.append(cdbpop);
-    fixresult(cdb, e, retregs, pretregs);
+    fixresult(cdb, e, retregs, *pretregs);
 }
 
 
@@ -3762,7 +3762,7 @@ void cdstrthis(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
     cdb.genc1(LEA,(modregrm(0,4,SP) << 8) | modregxrm(2,reg,4),FLconst,np);
     if (I64)
         code_orrex(cdb.last(), REX_W);
-    fixresult(cdb, e, mask(reg), pretregs);
+    fixresult(cdb, e, mask(reg), *pretregs);
 }
 
 /******************************
@@ -4162,7 +4162,7 @@ static if (0)
         retregs = mST01;
     }
 
-    fixresult(cdb, e, retregs, pretregs);
+    fixresult(cdb, e, retregs, *pretregs);
 }
 
 /***************************
@@ -5227,7 +5227,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
             {
                 allocreg(cdb, &regm, &reg, TYoffset);   // get a register
                 loadea(cdb, e, &cs, 0x8B, reg, 0, 0, 0);    // MOV reg,data
-                fixresult(cdb, e, regm, &outretregs);
+                fixresult(cdb, e, regm, outretregs);
             }
             else
             {   cs.IFL2 = FLconst;
@@ -5301,7 +5301,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
             reg_t xreg;
             allocreg(cdb, &forregs, &xreg, tym);     // allocate registers
             movxmmconst(cdb, xreg, tym, &e.EV, flags);
-            fixresult(cdb, e, forregs, &outretregs);
+            fixresult(cdb, e, forregs, outretregs);
             return;
         }
 
@@ -5408,7 +5408,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
             assert(0);
         // Flags may already be set
         outretregs &= flags | ~mPSW;
-        fixresult(cdb, e, forregs, &outretregs);
+        fixresult(cdb, e, forregs, outretregs);
         return;
     }
     else
@@ -5434,7 +5434,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
 
                 mfuncreg &= ~pregm;
                 regcon.used |= pregm;
-                fixresult(cdb,e,pregm,&outretregs);
+                fixresult(cdb,e,pregm,outretregs);
                 return;
             }
         }
@@ -5578,7 +5578,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
             assert(0);
         // Flags may already be set
         outretregs &= flags | ~mPSW;
-        fixresult(cdb, e, forregs, &outretregs);
+        fixresult(cdb, e, forregs, outretregs);
         return;
     }
 }

@@ -2177,7 +2177,7 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
         {
             regm_t retregs = pretregs & mST0 ? XMMREGS : mXMM0 | mXMM1;
             comsub(cdb, e, retregs);
-            fixresult(cdb,e,retregs,&pretregs);
+            fixresult(cdb,e,retregs,pretregs);
             return;
         }
     }
@@ -2217,7 +2217,7 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
             if (!OTleaf(e.Eoper) || !(regm & regcon.mvar) || (pretregs & regcon.mvar) == pretregs)
             {
                 regm = mask(findreg(regm));
-                fixresult(cdb,e,regm,&pretregs);
+                fixresult(cdb,e,regm,pretregs);
                 return;
             }
         }
@@ -2257,7 +2257,7 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
                         gen_loadcse(cdb, cse.e.Ety, reg, cse.slot);
                         regcon.cse.mval |= mask(reg); // cs is in a reg
                         regcon.cse.value[reg] = e;
-                        fixresult(cdb,e,retregs,&pretregs);
+                        fixresult(cdb,e,retregs,pretregs);
                     }
                     else
                     {
@@ -2275,7 +2275,7 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
                 L10:
                     regcon.cse.mval |= mask(reg); // cs is in a reg
                     regcon.cse.value[reg] = e;
-                    fixresult(cdb,e,retregs,&pretregs);
+                    fixresult(cdb,e,retregs,pretregs);
                 }
             }
             return;
@@ -2336,7 +2336,7 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
         }
 
         regm = mask(msreg) | mask(lsreg);       /* mask of result       */
-        fixresult(cdb,e,regm,&pretregs);
+        fixresult(cdb,e,regm,pretregs);
         return;
     }
     else if (tym == TYdouble || tym == TYdouble_alias)    // double
@@ -2352,7 +2352,7 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
                     loadcse(cdb,e,reg,mask(reg));
             }
             regm = DOUBLEREGS_16;
-            fixresult(cdb,e,regm,&pretregs);
+            fixresult(cdb,e,regm,pretregs);
             return;
         }
         if (OTleaf(e.Eoper)) goto reload;
@@ -2703,7 +2703,7 @@ void codelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint constflag)
                         regm_t retregs = *pretregs & mST0 ? mXMM0 : mXMM0|mXMM1;
                         (*cdxxx[op])(cdb,e,&retregs);
                         cssave(e,retregs,!OTleaf(op));
-                        fixresult(cdb, e, retregs, pretregs);
+                        fixresult(cdb, e, retregs, *pretregs);
                         goto L1;
                     }
                     if (tysize(e.Ety) == 1)
@@ -2829,7 +2829,7 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
             uint sz2 = tysize(e.EV.Vsym.Stype.Tty);
             if (sz1 <= REGSIZE && sz2 > REGSIZE)
                 regm &= mLSW | XMMREGS;
-            fixresult(cdb,e,regm,pretregs);
+            fixresult(cdb,e,regm,*pretregs);
             cssave(e,regm,0);
             freenode(e);
 
