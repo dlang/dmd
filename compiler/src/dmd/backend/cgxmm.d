@@ -200,7 +200,7 @@ void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
             cdb.gen2(xop,modregxrmx(3,rreg-XMM0,sreg-XMM0));
         }
         if (retregs != *pretregs)
-            fixresult(cdb,e,retregs,pretregs);
+            fixresult(cdb,e,retregs,*pretregs);
         return;
     }
 
@@ -248,7 +248,7 @@ void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     }
     checkSetVex(cdb.last(), e1.Ety);
     if (retregs != *pretregs)
-        fixresult(cdb,e,retregs,pretregs);
+        fixresult(cdb,e,retregs,*pretregs);
 }
 
 
@@ -342,7 +342,7 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,regm_t 
         cssave(e1,retregs,!OTleaf(e1.Eoper));     // if lvalue is a CSE
     }
 
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cdb,e,retregs,*pretregs);
     if (postinc)
     {
         const increg = findreg(idxregm(&cs));  // the register to increment
@@ -521,7 +521,7 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         code_orrex(cdb.last(), rex);
 
     if (*pretregs != retregs)
-        fixresult(cdb,e,retregs,pretregs);
+        fixresult(cdb,e,retregs,*pretregs);
 }
 
 /********************************
@@ -594,7 +594,7 @@ void xmmopass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         cssave(e1,retregs,!OTleaf(e1.Eoper));     // if lvalue is a CSE
     }
 
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cdb,e,retregs,*pretregs);
     freenode(e1);
 }
 
@@ -679,7 +679,7 @@ void xmmpost(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         cssave(e1,retregs,!OTleaf(e1.Eoper));     // if lvalue is a CSE
     }
 
-    fixresult(cdb,e,resultregs,pretregs);
+    fixresult(cdb,e,resultregs,*pretregs);
     freenode(e1);
 }
 
@@ -722,7 +722,7 @@ void xmmneg(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     getregs(cdb,retregs);
     const op = (sz == 8) ? XORPD : XORPS;       // XORPD/S reg,rreg
     cdb.gen2(op,modregxrmx(3,reg-XMM0,rreg-XMM0));
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cdb,e,retregs,*pretregs);
 }
 
 /******************
@@ -763,7 +763,7 @@ void xmmabs(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     getregs(cdb,retregs);
     const op = (sz == 8) ? ANDPD : ANDPS;       // ANDPD/S reg,rreg
     cdb.gen2(op,modregxrmx(3,reg-XMM0,rreg-XMM0));
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cdb,e,retregs,*pretregs);
 }
 
 /*****************************
@@ -1384,7 +1384,7 @@ static if (0)
     }
     else
         assert(0);
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cdb,e,retregs,*pretregs);
     free(params);
     freenode(e);
 }
@@ -1773,7 +1773,7 @@ static if (0)
             assert(0);
     }
 
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cdb,e,retregs,*pretregs);
 }
 
 /*******************************************
