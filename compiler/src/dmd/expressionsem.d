@@ -11864,7 +11864,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (checkNewEscape(sc, exp.e2, false))
                 return setError();
 
-            exp = new CatElemAssignExp(exp.loc, exp.type, exp.e1, exp.e2.castTo(sc, tb1next));
+            auto ecast = exp.e2.castTo(sc, tb1next);
+            if (auto ce = ecast.isCastExp())
+                ce.trusted = true;
+
+            exp = new CatElemAssignExp(exp.loc, exp.type, exp.e1, ecast);
             exp.e2 = doCopyOrMove(sc, exp.e2);
         }
         else if (tb1.ty == Tarray &&
@@ -15734,7 +15738,7 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
         if (_this.isLvalue())
         {
             with (_this)
-            if (mod != ubyte.max && !e1.type.pointerTo().implicitConvTo(to.pointerTo()))
+            if (!trusted && !e1.type.pointerTo().implicitConvTo(to.pointerTo()))
                 sc.setUnsafePreview(FeatureState.default_, false, loc,
                     "cast from `%s` to `%s` cannot be used as an lvalue in @safe code",
                     e1.type, to);
