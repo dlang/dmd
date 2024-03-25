@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -de
+REQUIRED_ARGS: -de -m64
 TEST_OUTPUT:
 ---
 fail_compilation/foreach_index_overflow.d(19): Deprecation: foreach: loop index implicitly converted from `size_t` to `int`
