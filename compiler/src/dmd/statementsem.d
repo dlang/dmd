@@ -989,7 +989,17 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                          (tn.ty != tv.ty && tn.ty.isSomeChar && tv.ty.isSomeChar)) &&
                         !Type.tsize_t.implicitConvTo(tindex))
                     {
-                        deprecation(fs.loc, "foreach: loop index implicitly converted from `size_t` to `%s`",
+                        bool over = true; // overflow possible
+                        if (tab.isTypeDArray())
+                        {
+                            const maxLen = IntRange.fromType(tindex).imax.value + 1;
+                            if (auto ale = fs.aggr.isArrayLiteralExp())
+                                over = ale.elements.length > maxLen;
+                            else if (auto se = fs.aggr.isSliceExp())
+                                over = !(se.upr && se.upr.isConst() && se.upr.toInteger() <= maxLen);
+                        }
+                        if (over)
+                            deprecation(fs.loc, "foreach: loop index implicitly converted from `size_t` to `%s`",
                                        tindex.toChars());
                     }
                 }
