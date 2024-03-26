@@ -320,6 +320,39 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     {
         fatal();
     }
+    if (params.pathPackage.length)
+    {
+        if (writeSourceArchive(params.pathPackage))
+            fatal();
+        return EXIT_SUCCESS;
+    }
+
+    /* Look for file(s) with the extension .sar, and
+       expand them in-place in files[]
+     */
+    for (size_t i = 0; i < files.length; ++i) // don't use foreach()!
+    {
+        auto file = files[i];
+        if (FileName.equalsExt(file, sar_ext))
+        {
+//fprintf(stderr, "found .sar file\n");
+            void fnSink(const(char)[] name) nothrow
+            {
+//fprintf(stderr, "fnSink %s\n", name.ptr);
+                assert(*(name.ptr + name.length) == 0);
+                files.insert(i, name.ptr);
+            }
+
+            const(char)[] filename = file[0 .. strlen(file)];
+            const(char)[] name = FileName.sansExt(FileName.name(filename));
+            const(char)[] path = filename.length == name.length + 4 ? null : filename[0 .. $ - (name.length + 1 + 4)];
+            files.remove(i);
+            readSourceArchive(global.fileManager, path, name, &fnSink, global.errorSink, global.params.v.verbose);
+        }
+    }
+    if (0 && global.params.v.verbose)
+        foreach (file; files[]) fprintf(stderr, "file: %s\n", file);
+
     if (files.length == 0)
     {
         if (params.jsonFieldFlags)
@@ -382,6 +415,10 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     scope(exit) flushMixins();
     buildPath(params.imppath, global.path);
     buildPath(params.fileImppath, global.filePath);
+
+    /* Look along the path for any archive files, and load them
+     */
+    findAllArchives(global.fileManager, global.path[]);
 
     // Create Modules
     Modules modules = createModules(files, libmodules, target);
@@ -827,6 +864,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
               envsection.ptr, cast(int)global.inifilename.length, global.inifilename.ptr);
 
     global.preprocess = &preprocess;
+    global.fileManager.setUseSourceArchive(global.params.useSourceArchive);
     return false;
 }
 

@@ -1,0 +1,79 @@
+# Support Source Archive Files
+
+This is a compiler feature, not a D language feature.
+
+Similar to how libraries of object files are made available to the linker,
+this adds source archive file support to the compiler. Any package (and all its
+sub-files) can become a source archive file. The source archive file is then
+supplied to the compiler rather than a directory with lots of files in it.
+
+This means, for example, that all of Phobos can be distributed as a single
+file, std.sar. (The .sar extension stands for "source archive".) If std.sar
+is in a path along the import path list supplied to the compiler, the
+compiler will prefer std.sar to looking through the std directory tree for the
+sub-modules. The std directory wouldn't even need to exist.
+
+All the source files in a project or library can be represented as a single
+file, making it easy to deal with.
+
+The file format of the .sar file is very similar to that of object file libraries
+and various other schemes. It does not adhere to those other schemes due to their
+variances from platform to platform, all the code needed to support things that
+are unneeded for .sar files, and special consideration for D's needs. The format
+is meant to be friendly for memory-mapped file access, and does not have alignment
+issues.
+
+A .sar file consists of the following sections:
+
+1. a header, to identify it as a .sar file with a magic number and a version
+
+2. a table of contents, one entry per source file. The entries consist of
+an offset/length to the filename string, and an offset/length to the file
+contents
+
+3. the filename strings, each string has a terminating 0
+
+4. the file contents, each file has four 0 bytes appended, as the lexer wants
+that as a sentinel
+
+5. the integers in the format are native-endian (which is little-endian for x86)
+
+To create a .sar file, such as one for Phobos' std:
+
+dmd -sar=/home/duser/dmd/src/phobos/std
+
+and the file:
+
+/home/duser/dmd/src/phobos/std.sar
+
+will be created and filled with all sub-files with one of the extensions ".di", ".d",
+".c", or ".i".
+
+For Phobos, std.sar is approximately 11 megabytes in size.
+
+To use the std.sar file, nothing needs to be changed in the user's build system.
+dmd will automatically prefer using any .sar file it finds. To disable using
+.sar files, which would be necessary when doing development of the source files,
+select one of the following:
+
+1. delete the .sar file
+
+2. use the -sar=off compiler switch. -sar=on turns it on, and is the default
+setting
+
+Trying out .sar with simple programs like hello world yield a negligible difference
+in compile speed. It's unlikely a larger program would show any particular trend
+in performance.
+
+A standalone archiver program can be easily created from the implementation in DMD.
+
+Another way to use a .sar file is to simply add it to the command line:
+
+dmd foo.sar
+
+If foo.sar contains the files a.d, b.d and c.d, the command is equivalent to:
+
+dmd a.d b.d c.d
+
+I.e .sar files are simply a way to "bundle" a bunch of source files into a single
+file.

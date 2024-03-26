@@ -588,7 +588,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
     {
         foreach (i, arg; arguments[])
         {
-            printf("arguments[%d] = '%s'\n", cast(int)i, arguments[i]);
+            printf("arguments[%d] = '%s'\n", cast(int)i, arg);
         }
     }
 
@@ -1204,6 +1204,28 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 error("revert `%s` is invalid", p);
                 params.help.revert = true;
                 return false;
+            }
+        }
+        else if (startsWith(p + 1, "sar")) // https://dlang.org/dmd.html#switch-sar
+        {
+            /* Parse:
+             *    -sar=on|off|path/package.sar
+             */
+            enum len = "-sar=".length;
+            mixin(checkOptionsMixin("sar",
+                "`-sar=<behavior>` requires a behavior"));
+            switch (arg[len .. $])
+            {
+            case "on":
+                params.useSourceArchive = true;
+                break;
+            case "off":
+                params.useSourceArchive = false;
+                break;
+            default:
+                params.useSourceArchive = false;
+                params.pathPackage = arg[len .. $];
+                break;
             }
         }
         else if (arg == "-w")   // https://dlang.org/dmd.html#switch-w

@@ -108,6 +108,7 @@ extern(C++) struct Help
     bool checkAction;  // -checkaction
     bool revert;       // -revert
     bool preview;      // -preview
+    bool sar;          // -sar
     bool externStd;    // -extern-std
     bool hc;           // -HC
 }
@@ -170,6 +171,7 @@ extern (C++) struct Param
     bool addMain;           // add a default main() function
     bool allInst;           // generate code for all template instantiations
     bool bitfields;         // support C style bit fields
+    bool useSourceArchive = true; // read source files from source archive library (.sar file)
 
     CppStdRevision cplusplus = CppStdRevision.cpp11;    // version of C++ standard to support
 
@@ -219,6 +221,7 @@ extern (C++) struct Param
     const(char)[] objdir;                // .obj/.lib file output directory
     const(char)[] objname;               // .obj file output name
     const(char)[] libname;               // .lib file output name
+    const(char)[] pathPackage;           // path/package for path/package.sar file
 
     Output ddoc;                        // Generate embedded documentation comments
     Output dihdr;                       // Generate `.di` 'header' files
@@ -264,6 +267,7 @@ enum json_ext = "json";     // for JSON files
 enum map_ext  = "map";      // for .map files
 enum c_ext    = "c";        // for C source files
 enum i_ext    = "i";        // for preprocessed C source file
+enum sar_ext  = "sar";      // file extension for source archive
 
 /**
  * Collection of global compiler settings and global state used by the frontend
