@@ -1598,10 +1598,22 @@ int tryMain(string[] args)
     const input_dir      = input_file.dirName();
     const test_base_name = input_file.baseName();
     const test_name      = test_base_name.stripExtension();
+    const test_ext       = test_base_name.extension();
 
-    const result_path    = envData.results_dir ~ envData.sep;
-    const output_dir     = result_path ~ input_dir;
-    const output_file    = result_path ~ input_file ~ ".out";
+    // Previously we did not take into account the test file extension,
+    //  because of ImportC we now have the ability to have conflicting source file basenames (when ignoring extension).
+    // This can cause a race condition with the concurrent test runner,
+    //  in which whilst one test is running another will try to clobber it and fail.
+    // Unfortunately dshell does not take into account our output directory,
+    //  at least not in a way that'll allow us to take advantage of the test extension.
+    // However since its not really an issue for clobbering, we'll ignore it.
+    const result_path     = envData.results_dir ~ envData.sep;
+    const output_dir_base = result_path ~ input_dir;
+    const output_dir      = (input_dir == "dshell" ? output_dir_base : (output_dir_base ~ envData.sep ~ test_ext[1 .. $]));
+    const output_file     = result_path ~ input_file ~ ".out";
+
+    // We are potentially creating a test extension specific directory
+    mkdirRecurse(output_dir);
 
     TestArgs testArgs;
     switch (input_dir)
@@ -1622,7 +1634,7 @@ int tryMain(string[] args)
             return 1;
     }
 
-    if (test_base_name.extension() == ".sh")
+    if (test_ext == ".sh")
     {
         string file = cast(string) std.file.read(input_file);
         string disabledPlatforms;
