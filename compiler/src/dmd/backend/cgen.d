@@ -242,7 +242,7 @@ void regwithvalue(ref CodeBuilder cdb,regm_t regm,targ_size_t value, out reg_t p
         return; // already have a register with the right value in it
 
     regm_t save = regcon.immed.mval;
-    allocreg(cdb,&regm,&preg,TYint);  // allocate register
+    allocreg(cdb,regm,preg,TYint);  // allocate register
     regcon.immed.mval = save;
     movregconst(cdb,preg,value,flags);   // store value into reg
 }

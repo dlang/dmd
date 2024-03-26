@@ -1629,11 +1629,11 @@ static if (0)
 /*********************************
  * Allocate some registers.
  * Input:
- *      pretregs        Pointer to mask of registers to make selection from.
+ *      outretregs         Mask of registers to make selection from.
  *      tym             Mask of type we will store in registers.
  * Output:
- *      *pretregs       Mask of allocated registers.
- *      *preg           Register number of first allocated register.
+ *      outretregs       Mask of allocated registers.
+ *      outreg           Register number of first allocated register.
  *      msavereg,mfuncreg       retregs bits are cleared.
  *      regcon.cse.mval,regcon.cse.mops updated
  * Returns:
@@ -1641,13 +1641,13 @@ static if (0)
  *      stack.
  */
 
-void allocreg(ref CodeBuilder cdb,regm_t *pretregs,reg_t *preg,tym_t tym)
+void allocreg(ref CodeBuilder cdb,ref regm_t outretregs,out reg_t outreg,tym_t tym)
 {
-    allocreg(cdb, pretregs, preg, tym, __LINE__, __FILE__);
+    allocreg(cdb, outretregs, outreg, tym, __LINE__, __FILE__);
 }
 
 @trusted
-void allocreg(ref CodeBuilder cdb,regm_t *pretregs,reg_t *preg,tym_t tym
+void allocreg(ref CodeBuilder cdb,ref regm_t outretregs,out reg_t outreg,tym_t tym
         ,int line,const(char)* file)
 {
         reg_t reg;
@@ -1656,15 +1656,15 @@ static if (0)
 {
         if (pass == BackendPass.final_)
         {
-            printf("allocreg %s,%d: regcon.mvar %s regcon.cse.mval %s msavereg %s *pretregs %s tym %s\n",
+            printf("allocreg %s,%d: regcon.mvar %s regcon.cse.mval %s msavereg %s outretregs %s tym %s\n",
                 file,line,regm_str(regcon.mvar),regm_str(regcon.cse.mval),
-                regm_str(msavereg),regm_str(*pretregs),tym_str(tym));
+                regm_str(msavereg),regm_str(outretregs),tym_str(tym));
         }
 }
         tym = tybasic(tym);
         uint size = _tysize[tym];
-        *pretregs &= mES | allregs | XMMREGS;
-        regm_t retregs = *pretregs;
+        outretregs &= mES | allregs | XMMREGS;
+        regm_t retregs = outretregs;
 
         debug if (retregs == 0)
             printf("allocreg: file %s(%d)\n", file, line);
@@ -1673,12 +1673,12 @@ static if (0)
         {
             if (size <= REGSIZE || (retregs & XMMREGS))
             {
-                *preg = findreg(retregs);
-                assert(retregs == mask(*preg)); /* no more bits are set */
+                outreg = findreg(retregs);
+                assert(retregs == mask(outreg)); /* no more bits are set */
             }
             else if (size <= 2 * REGSIZE)
             {
-                *preg = findregmsw(retregs);
+                outreg = findregmsw(retregs);
                 assert(retregs & mLSW);
             }
             else
@@ -1688,12 +1688,12 @@ static if (0)
         }
         int count = 0;
 L1:
-        //printf("L1: allregs = %s, *pretregs = %s\n", regm_str(allregs), regm_str(*pretregs));
+        //printf("L1: allregs = %s, outretregs = %s\n", regm_str(allregs), regm_str(outretregs));
         assert(++count < 20);           /* fail instead of hanging if blocked */
         assert(retregs);
         reg_t msreg = NOREG, lsreg = NOREG;  /* no value assigned yet        */
 L3:
-        //printf("L2: allregs = %s, *pretregs = %s\n", regm_str(allregs), regm_str(*pretregs));
+        //printf("L2: allregs = %s, outretregs = %s\n", regm_str(allregs), regm_str(outretregs));
         regm_t r = retregs & ~(msavereg | regcon.cse.mval | regcon.params);
         if (!r)
         {
@@ -1773,7 +1773,7 @@ L3:
             {
                 if (I64 && !(r & mLSW))
                 {
-                    retregs = *pretregs & (mMSW | mLSW);
+                    retregs = outretregs & (mMSW | mLSW);
                     assert(retregs);
                     goto L1;
                 }
@@ -1792,7 +1792,7 @@ L3:
         {
             debug
             if (retregs != DOUBLEREGS)
-                printf("retregs = %s, *pretregs = %s\n", regm_str(retregs), regm_str(*pretregs));
+                printf("retregs = %s, outretregs = %s\n", regm_str(retregs), regm_str(outretregs));
 
             assert(retregs == DOUBLEREGS);
             reg = AX;
@@ -1801,21 +1801,21 @@ L3:
         {
             debug
             {
-                printf("%s\nallocreg: fil %s lin %d, regcon.mvar %s msavereg %s *pretregs %s, reg %d, tym x%x\n",
-                    tym_str(tym),file,line,regm_str(regcon.mvar),regm_str(msavereg),regm_str(*pretregs),*preg,tym);
+                printf("%s\nallocreg: fil %s lin %d, regcon.mvar %s msavereg %s outretregs %s, reg %d, tym x%x\n",
+                    tym_str(tym),file,line,regm_str(regcon.mvar),regm_str(msavereg),regm_str(outretregs),outreg,tym);
             }
             assert(0);
         }
         if (retregs & regcon.mvar)              // if conflict with reg vars
         {
-            if (!(size > REGSIZE && *pretregs == (mAX | mDX)))
+            if (!(size > REGSIZE && outretregs == (mAX | mDX)))
             {
-                retregs = (*pretregs &= ~(retregs & regcon.mvar));
+                retregs = (outretregs &= ~(retregs & regcon.mvar));
                 goto L1;                // try other registers
             }
         }
-        *preg = reg;
-        *pretregs = retregs;
+        outreg = reg;
+        outretregs = retregs;
 
         //printf("Allocating %s\n",regm_str(retregs));
         last5retregs = last4retregs;
@@ -1839,7 +1839,7 @@ L3:
 reg_t allocScratchReg(ref CodeBuilder cdb, regm_t regm)
 {
     reg_t r;
-    allocreg(cdb, &regm, &r, TYoffset);
+    allocreg(cdb, regm, r, TYoffset);
     return r;
 }
 
@@ -2236,7 +2236,7 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
                     retregs = BYTEREGS;
                 else if (!(retregs & allregs))
                     retregs = allregs;
-                allocreg(cdb,&retregs,&reg,tym);
+                allocreg(cdb,retregs,reg,tym);
                 code *cr = &cse.csimple;
                 cr.setReg(reg);
                 if (I64 && reg >= 4 && tysize(cse.e.Ety) == 1)
@@ -2253,7 +2253,7 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
                     if (config.fpxmmregs && (tyxmmreg(cse.e.Ety) || tyvector(cse.e.Ety)))
                     {
                         retregs = XMMREGS;
-                        allocreg(cdb,&retregs,&reg,tym);
+                        allocreg(cdb,retregs,reg,tym);
                         gen_loadcse(cdb, cse.e.Ety, reg, cse.slot);
                         regcon.cse.mval |= mask(reg); // cs is in a reg
                         regcon.cse.value[reg] = e;
@@ -2270,7 +2270,7 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
                     retregs = pretregs;
                     if (byte_ && !(retregs & BYTEREGS))
                         retregs = BYTEREGS;
-                    allocreg(cdb,&retregs,&reg,tym);
+                    allocreg(cdb,retregs,reg,tym);
                     gen_loadcse(cdb, cse.e.Ety, reg, cse.slot);
                 L10:
                     regcon.cse.mval |= mask(reg); // cs is in a reg
@@ -2318,7 +2318,7 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
         {
             if (!regm)
                 regm = mMSW & ALLREGS;
-            allocreg(cdb,&regm,&msreg,TYint);
+            allocreg(cdb,regm,msreg,TYint);
             loadcse(cdb,e,msreg,mMSW);
         }
 
@@ -2331,7 +2331,7 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
         {
             if (!regm)
                 regm = mLSW;
-            allocreg(cdb,&regm,&lsreg,TYint);
+            allocreg(cdb,regm,lsreg,TYint);
             loadcse(cdb,e,lsreg,mLSW | mBP);
         }
 
