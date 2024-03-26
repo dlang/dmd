@@ -1633,22 +1633,23 @@ static if (0)
  *      tym             Mask of type we will store in registers.
  * Output:
  *      outretregs       Mask of allocated registers.
- *      outreg           Register number of first allocated register.
  *      msavereg,mfuncreg       retregs bits are cleared.
  *      regcon.cse.mval,regcon.cse.mops updated
  * Returns:
- *      pointer to code generated if necessary to save any regcon.cse.mops on the
- *      stack.
+ *      Register number of first allocated register
  */
 
 void allocreg(ref CodeBuilder cdb,ref regm_t outretregs,out reg_t outreg,tym_t tym)
 {
-    allocreg(cdb, outretregs, outreg, tym, __LINE__, __FILE__);
+    outreg = allocreg(cdb, outretregs, tym, __LINE__, __FILE__);
+}
+
+reg_t allocreg(ref CodeBuilder cdb,ref regm_t outretregs,tym_t tym){
+    return allocreg(cdb, outretregs, tym, __LINE__, __FILE__);
 }
 
 @trusted
-void allocreg(ref CodeBuilder cdb,ref regm_t outretregs,out reg_t outreg,tym_t tym
-        ,int line,const(char)* file)
+reg_t allocreg(ref CodeBuilder cdb,ref regm_t outretregs,tym_t tym ,int line,const(char)* file)
 {
         reg_t reg;
 
@@ -1671,6 +1672,7 @@ static if (0)
 
         if ((retregs & regcon.mvar) == retregs) // if exactly in reg vars
         {
+            reg_t outreg;
             if (size <= REGSIZE || (retregs & XMMREGS))
             {
                 outreg = findreg(retregs);
@@ -1684,7 +1686,7 @@ static if (0)
             else
                 assert(0);
             getregs(cdb,retregs);
-            return;
+            return outreg;
         }
         int count = 0;
 L1:
@@ -1802,7 +1804,7 @@ L3:
             debug
             {
                 printf("%s\nallocreg: fil %s lin %d, regcon.mvar %s msavereg %s outretregs %s, reg %d, tym x%x\n",
-                    tym_str(tym),file,line,regm_str(regcon.mvar),regm_str(msavereg),regm_str(outretregs),outreg,tym);
+                    tym_str(tym),file,line,regm_str(regcon.mvar),regm_str(msavereg),regm_str(outretregs),reg,tym);
             }
             assert(0);
         }
@@ -1814,7 +1816,6 @@ L3:
                 goto L1;                // try other registers
             }
         }
-        outreg = reg;
         outretregs = retregs;
 
         //printf("Allocating %s\n",regm_str(retregs));
@@ -1824,6 +1825,7 @@ L3:
         last2retregs = lastretregs;
         lastretregs = retregs;
         getregs(cdb, retregs);
+        return reg;
 }
 
 
