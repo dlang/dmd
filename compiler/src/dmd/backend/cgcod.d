@@ -1638,12 +1638,6 @@ static if (0)
  * Returns:
  *      Register number of first allocated register
  */
-
-void allocreg(ref CodeBuilder cdb,ref regm_t outretregs,out reg_t outreg,tym_t tym)
-{
-    outreg = allocreg(cdb, outretregs, tym, __LINE__, __FILE__);
-}
-
 reg_t allocreg(ref CodeBuilder cdb,ref regm_t outretregs,tym_t tym){
     return allocreg(cdb, outretregs, tym, __LINE__, __FILE__);
 }
@@ -1840,9 +1834,7 @@ L3:
 @trusted
 reg_t allocScratchReg(ref CodeBuilder cdb, regm_t regm)
 {
-    reg_t r;
-    allocreg(cdb, regm, r, TYoffset);
-    return r;
+    return allocreg(cdb, regm, TYoffset);
 }
 
 
@@ -2238,7 +2230,7 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
                     retregs = BYTEREGS;
                 else if (!(retregs & allregs))
                     retregs = allregs;
-                allocreg(cdb,retregs,reg,tym);
+                reg = allocreg(cdb,retregs,tym);
                 code *cr = &cse.csimple;
                 cr.setReg(reg);
                 if (I64 && reg >= 4 && tysize(cse.e.Ety) == 1)
@@ -2255,7 +2247,7 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
                     if (config.fpxmmregs && (tyxmmreg(cse.e.Ety) || tyvector(cse.e.Ety)))
                     {
                         retregs = XMMREGS;
-                        allocreg(cdb,retregs,reg,tym);
+                        reg = allocreg(cdb,retregs,tym);
                         gen_loadcse(cdb, cse.e.Ety, reg, cse.slot);
                         regcon.cse.mval |= mask(reg); // cs is in a reg
                         regcon.cse.value[reg] = e;
@@ -2272,7 +2264,7 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
                     retregs = pretregs;
                     if (byte_ && !(retregs & BYTEREGS))
                         retregs = BYTEREGS;
-                    allocreg(cdb,retregs,reg,tym);
+                    reg = allocreg(cdb,retregs,tym);
                     gen_loadcse(cdb, cse.e.Ety, reg, cse.slot);
                 L10:
                     regcon.cse.mval |= mask(reg); // cs is in a reg
@@ -2320,7 +2312,7 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
         {
             if (!regm)
                 regm = mMSW & ALLREGS;
-            allocreg(cdb,regm,msreg,TYint);
+            msreg = allocreg(cdb,regm,TYint);
             loadcse(cdb,e,msreg,mMSW);
         }
 
@@ -2333,7 +2325,7 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
         {
             if (!regm)
                 regm = mLSW;
-            allocreg(cdb,regm,lsreg,TYint);
+            lsreg = allocreg(cdb,regm,TYint);
             loadcse(cdb,e,lsreg,mLSW | mBP);
         }
 
