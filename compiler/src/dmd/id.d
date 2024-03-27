@@ -531,6 +531,9 @@ immutable Msgtable[] msgtable =
     { "udaMustUse", "mustuse" },
     { "udaStandalone", "standalone" },
 
+    // Editions
+    { "__experimental_edition_latest", },
+
     // C names, for undefined identifier error messages
     { "NULL" },
     { "TRUE" },

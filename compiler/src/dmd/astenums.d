@@ -18,6 +18,15 @@ enum Sizeok : ubyte
     done,               /// size of aggregate is set correctly
 }
 
+/// D Language version
+enum Edition : ubyte
+{
+    none,
+    legacy,          /// Before the introduction of editions
+    v2024,           /// Experimental first new edition
+    latest = v2024   /// Newest edition that this compiler knows of
+}
+
 enum Baseok : ubyte
 {
     none,               /// base classes not computed yet

@@ -834,6 +834,14 @@ enum class FileType : uint8_t
     c = 3u,
 };
 
+enum class Edition : uint8_t
+{
+    none = 0u,
+    legacy = 1u,
+    v2024 = 2u,
+    latest = 2u,
+};
+
 struct OutBuffer final
 {
 private:
@@ -7073,6 +7081,7 @@ public:
     FileType filetype;
     bool hasAlwaysInlines;
     bool isPackageFile;
+    Edition edition;
     Package* pkg;
     Array<const char* > contentImportedFiles;
     int32_t needmoduleinfo;
