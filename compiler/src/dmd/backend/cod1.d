@@ -438,7 +438,7 @@ void genstackclean(ref CodeBuilder cdb,uint numpara,regm_t keepmsk)
 
             if (scratchm)
             {
-                reg_t r = allocreg(cdb, scratchm, TYint);
+                const r = allocreg(cdb, scratchm, TYint);
                 cdb.gen1(0x58 + r);           // POP r
             }
             else
@@ -1033,7 +1033,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                             int rbase;
 
                             scratchm = ALLREGS & ~keepmsk;
-                            reg_t r = allocreg(cdb, scratchm, TYint);
+                            const r = allocreg(cdb, scratchm, TYint);
 
                             if (ssflags & SSFLnobase1)
                             {
@@ -1147,8 +1147,8 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                     if (e1ty == TYfptr)
                     {
                         idxregs |= mMSW & ALLREGS & ~keepmsk;
-                        reg_t msreg = allocreg(cdb, idxregs, TYfptr);
-                        msreg = findregmsw(idxregs);
+                        allocreg(cdb, idxregs, TYfptr);
+                        const msreg = findregmsw(idxregs);
                                                     /* MOV msreg,segreg     */
                         genregs(cdb, 0x8C, segfl[f], msreg);
                     }
@@ -1743,7 +1743,7 @@ void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, uint saveflag)
     if (regm & XMMREGS)
     {
         regm_t xregs = XMMREGS & ~regm;
-        reg_t xreg = allocreg(cdb,xregs, TYdouble);
+        const xreg = allocreg(cdb,xregs, TYdouble);
         opcode_t op = 0;
         if (tym == TYdouble || tym == TYidouble || tym == TYcdouble)
             op = 0x660000;
@@ -5052,7 +5052,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
             else
             {
                 retregs = IDXREGS;                             // get an index reg
-                reg_t reg = allocreg(cdb, retregs, TYoffset);
+                const reg = allocreg(cdb, retregs, TYoffset);
                 genregs(cdb, 0x89, SP, reg);         // MOV reg,SP
                 pop87();
                 cdb.gen2(op, modregrm(0, r, regtorm[reg]));       // FSTP [reg]
@@ -5292,7 +5292,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
         if (tyvector(tym) && forregs & XMMREGS)
         {
             assert(!flags);
-            reg_t xreg = allocreg(cdb, forregs, tym);     // allocate registers
+            const xreg = allocreg(cdb, forregs, tym);     // allocate registers
             movxmmconst(cdb, xreg, tym, &e.EV, flags);
             fixresult(cdb, e, forregs, outretregs);
             return;
@@ -5366,7 +5366,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
                      * Not so efficient. We should at least do a PXOR for 0.
                      */
                     regm_t rm = ALLREGS;
-                    reg_t r = allocreg(cdb, rm, TYint);    // allocate scratch register
+                    const r = allocreg(cdb, rm, TYint);    // allocate scratch register
                     movregconst(cdb, r, p[0], 0);
                     cdb.genfltreg(0x89, r, 0);               // MOV floatreg,r
                     movregconst(cdb, r, p[1], 0);
