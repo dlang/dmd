@@ -1792,9 +1792,9 @@ void doswitch(ref CodeBuilder cdb, block *b)
                  * JMP    R1                    FF E0
                  */
                 regm_t scratchm = ALLREGS & ~mask(reg);
-                reg_t r1 = allocreg(cdb,scratchm,TYint);
+                const r1 = allocreg(cdb,scratchm,TYint);
                 scratchm = ALLREGS & ~(mask(reg) | mask(r1));
-                reg_t r2 = allocreg(cdb,scratchm,TYint);
+                const r2 = allocreg(cdb,scratchm,TYint);
 
                 CodeBuilder cdbe; cdbe.ctor();
                 cdbe.genc1(LEA,(REX_W << 16) | modregxrm(0,r1,5),FLswitch,0);        // LEA R1,disp[RIP]
@@ -1849,7 +1849,7 @@ static if (JMPJMPTABLE)
 
             // Allocate scratch register jreg
             regm_t scratchm = ALLREGS & ~mask(reg);
-            reg_t jreg = allocreg(cdb,scratchm,TYint);
+            const jreg = allocreg(cdb,scratchm,TYint);
 
             // LEA jreg, offset ctable[reg][reg*4]
             cdb.genc1(LEA,modregrm(2,jreg,4),FLcode,6);
@@ -1871,7 +1871,7 @@ else
              */
             // Allocate scratch register r1
             regm_t scratchm = ALLREGS & ~mask(reg);
-            reg_t r1 = allocreg(cdb,scratchm,TYint);
+            const r1 = allocreg(cdb,scratchm,TYint);
 
             cdb.genc2(CALL,0,0);                           //     CALL L1
             cdb.gen1(0x58 + r1);                           // L1: POP R1
@@ -1894,7 +1894,7 @@ else
 
                 // Allocate scratch register r1
                 regm_t scratchm = ALLREGS & ~(mask(reg) | mBX);
-                reg_t r1 = allocreg(cdb,scratchm,TYint);
+                const r1 = allocreg(cdb,scratchm,TYint);
 
                 genmovreg(cdb,r1,BX);              // MOV R1,EBX
                 cdb.genc1(0x2B,modregxrm(2,r1,4),FLswitch,0);   // SUB R1,disp[reg*4][EBX]
@@ -2676,7 +2676,7 @@ void cdframeptr(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     regm_t retregs = *pretregs & allregs;
     if  (!retregs)
         retregs = allregs;
-    reg_t reg = allocreg(cdb,retregs, TYint);
+    const reg = allocreg(cdb,retregs, TYint);
 
     code cs;
     cs.Iop = ESCAPE | ESCframeptr;
@@ -2700,7 +2700,7 @@ void cdgot(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         regm_t retregs = *pretregs & allregs;
         if  (!retregs)
             retregs = allregs;
-        reg_t reg = allocreg(cdb,retregs, TYnptr);
+        const reg = allocreg(cdb,retregs, TYnptr);
 
         cdb.genc(CALL,0,0,0,FLgot,0);     //     CALL L1
         cdb.gen1(0x58 + reg);             // L1: POP reg
@@ -2712,7 +2712,7 @@ void cdgot(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         regm_t retregs = *pretregs & allregs;
         if  (!retregs)
             retregs = allregs;
-        reg_t reg = allocreg(cdb,retregs, TYnptr);
+        const reg = allocreg(cdb,retregs, TYnptr);
 
         cdb.genc2(CALL,0,0);        //     CALL L1
         cdb.gen1(0x58 + reg);       // L1: POP reg
