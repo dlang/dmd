@@ -1768,8 +1768,7 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             freenode(e2);
 
             getlvalue(cdb,&cs,e1,mAX | mDX);
-            reg_t reg;
-            opAssLoadReg(cdb, cs, e, reg, allregs & ~( mAX | mDX | idxregm(&cs)));    // MOV reg,EA
+            const reg = opAssLoadReg(cdb, cs, e, allregs & ~( mAX | mDX | idxregm(&cs)));    // MOV reg,EA
             getregs(cdb, mAX|mDX);
 
             /* Algorithm 5.2
@@ -1863,7 +1862,7 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 freenode(e2);
                 getlvalue(cdb,&cs,e1,mAX | mDX);
                 regm_t idxregs = idxregm(&cs);
-                opAssLoadReg(cdb, cs, e, reg, allregs & ~(mAX|mDX | idxregs)); // MOV reg,EA
+                reg = opAssLoadReg(cdb, cs, e, allregs & ~(mAX|mDX | idxregs)); // MOV reg,EA
                 getregs(cdb, mAX|mDX);
 
                 genmovreg(cdb,AX,reg);                                // MOV EAX,reg
@@ -1897,7 +1896,7 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 freenode(e2);
                 getlvalue(cdb,&cs,e1,mAX | mDX);
                 regm_t idxregs = idxregm(&cs);
-                opAssLoadReg(cdb, cs, e, reg, allregs & ~(mAX|mDX | idxregs)); // MOV reg,EA
+                reg = opAssLoadReg(cdb, cs, e, allregs & ~(mAX|mDX | idxregs)); // MOV reg,EA
                 getregs(cdb, mAX|mDX);
 
                 if (reg != AX)
@@ -1982,10 +1981,8 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                  */
                 getlvalue(cdb,&cs,e1,0);
                 regm_t idxregs = idxregm(&cs);
-                reg_t reg;
-                opAssLoadReg(cdb,cs,e,reg,allregs & ~idxregs); // MOV reg,EA
-
-                reg_t r = allocScratchReg(cdb, allregs & ~(idxregs | mask(reg)));
+                const reg = opAssLoadReg(cdb,cs,e,allregs & ~idxregs); // MOV reg,EA
+                const r = allocScratchReg(cdb, allregs & ~(idxregs | mask(reg)));
                 genmovreg(cdb,r,reg);                        // MOV r,reg
                 cdb.genc2(0xC1,grex | modregxrmx(3,5,r),(sz * 8 - 1)); // SHR r,31
                 cdb.gen2(0x03,grex | modregxrmx(3,reg,r));   // ADD reg,r
@@ -1997,8 +1994,7 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
             // Signed divide or modulo by power of 2
             getlvalue(cdb,&cs,e1,mAX | mDX);
-            reg_t reg;
-            opAssLoadReg(cdb,cs,e,reg,mAX);
+            opAssLoadReg(cdb,cs,e,mAX);
 
             getregs(cdb,mDX);                   // DX is scratch register
             cdb.gen1(0x99);                     // CWD
@@ -4754,19 +4750,21 @@ void cdprefetch(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
  *      cdb = store generated code here
  *      cs = instruction with EA already set in it
  *      e = assignment expression that will be evaluated
- *      reg = set to register loaded from EA
  *      retregs = register candidates for reg
+ * Returns:
+ *      register loaded from EA
  */
 @trusted
 private
-void opAssLoadReg(ref CodeBuilder cdb, ref code cs, elem* e, out reg_t reg, regm_t retregs)
+reg_t opAssLoadReg(ref CodeBuilder cdb, ref code cs, elem* e, regm_t retregs)
 {
     modEA(cdb, &cs);
-    reg = allocreg(cdb,retregs,TYoffset);
+    const reg = allocreg(cdb,retregs,TYoffset);
 
     cs.Iop = LOD;
     code_newreg(&cs,reg);
     cdb.gen(&cs);                   // MOV reg,EA
+    return reg;
 }
 
 /*********************
