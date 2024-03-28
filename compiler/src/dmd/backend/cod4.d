@@ -469,8 +469,7 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                         // MOV reg,imm64
                         // MOV EA,reg
                         regm_t rregm = allregs & ~idxregm(&cs);
-                        reg_t regx;
-                        regwithvalue(cdb,rregm,e2.EV.Vpointer,regx,64);
+                        const regx = regwithvalue(cdb,rregm,e2.EV.Vpointer,64);
                         cs.Iop = STO;
                         cs.Irm |= modregrm(0,regx & 7,0);
                         if (regx & 8)
@@ -484,8 +483,7 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                         // MOV reg,imm
                         // MOV EA,reg
                         regm_t rregm = allregs & ~idxregm(&cs);
-                        reg_t regx;
-                        regwithvalue(cdb,rregm,e2.EV.Vint,regx,0);
+                        const regx = regwithvalue(cdb,rregm,e2.EV.Vint,0);
                         cs.Iop = STO;
                         cs.Irm |= modregrm(0,regx & 7,0);
                         if (regx & 8)
@@ -502,8 +500,7 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                         regm_t rregm = getscratch() & ~idxregm(&cs);
                         if (rregm)
                         {
-                            reg_t regx;
-                            regwithvalue(cdb,rregm,e2.EV.Vint,regx,0);
+                            const regx = regwithvalue(cdb,rregm,e2.EV.Vint,0);
                             cs.Iop = STO;
                             cs.Irm |= modregrm(0,regx,0);
                             cdb.gen(&cs);
@@ -576,8 +573,7 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                     // MOV reg,imm64
                     // MOV EA,reg
                     regm_t rregm = allregs & ~idxregm(&cs);
-                    reg_t regx;
-                    regwithvalue(cdb,rregm,*p,regx,64);
+                    const regx = regwithvalue(cdb,rregm,*p,64);
                     cs.Iop = STO;
                     cs.Irm |= modregrm(0,regx & 7,0);
                     if (regx & 8)
@@ -597,8 +593,7 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                         else if (I64 && sz == 16 && *p >= 0x80000000)
                         {
                             regm_t rregm = allregs & ~idxregm(&cs);
-                            reg_t regx;
-                            regwithvalue(cdb,rregm,*p,regx,64);
+                            const regx = regwithvalue(cdb,rregm,*p,64);
                             cs.Iop = STO;
                             cs.Irm |= modregrm(0,regx & 7,0);
                             if (regx & 8)
@@ -3462,7 +3457,7 @@ void cdcnvt(ref CodeBuilder cdb,elem *e, regm_t *pretregs)
                     codelem(cdb,e.EV.E1, &retregsx, false);
                     reg_t reg = findreg(retregsx);
                     cdb.genfltreg(STO, reg, 0);
-                    regwithvalue(cdb,ALLREGS,0,reg,0);
+                    reg = regwithvalue(cdb,ALLREGS,0,0);
                     cdb.genfltreg(STO, reg, 4);
 
                     push87(cdb);

@@ -4901,7 +4901,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                 {
                     if (I64 && regsize == 8 && value != cast(int)value)
                     {
-                        regwithvalue(cdb,allregs,value,reg,64);
+                        reg = regwithvalue(cdb,allregs,value,64);
                         goto Preg;          // cannot push imm64 unless it is sign extended 32 bit value
                     }
                     if (regsize == REGSIZE && reghasvalue(allregs,value,reg))
@@ -4910,7 +4910,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                 }
                 else
                 {
-                    regwithvalue(cdb, allregs, value, reg, 0);
+                    reg = regwithvalue(cdb, allregs, value, 0);
                 Preg:
                     genpush(cdb,reg);         // PUSH reg
                 }

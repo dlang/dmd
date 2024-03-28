@@ -2438,8 +2438,8 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         if (retregs & ~regcon.mvar)
             retregs &= ~regcon.mvar;    // don't disturb register variables
         // NOTE: see my email (sign extension bug? possible fix, some questions
-        reg_t reg;
-        regwithvalue(cdb,retregs,cast(targ_size_t)e21.EV.Vllong,reg,tysize(e21.Ety) == 8 ? 64|8 : 8);
+        const reg = regwithvalue(cdb,retregs,cast(targ_size_t)e21.EV.Vllong,
+                                 tysize(e21.Ety) == 8 ? 64|8 : 8);
         retregs = mask(reg);
 
         cse_flush(cdb,1);                // flush CSE's to memory
@@ -2808,7 +2808,7 @@ void cdshift(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 {   // Handle (shtlng)s << 16
                     regm_t r = retregs & mMSW;
                     codelem(cdb,e1.EV.E1,&r,false);      // eval left leaf
-                    regwithvalue(cdb,retregs & mLSW,0,resreg,0);
+                    resreg = regwithvalue(cdb,retregs & mLSW,0,0);
                     getregs(cdb,r);
                     retregs = r | mask(resreg);
                     if (forccs)
@@ -3788,8 +3788,7 @@ void cdmemcmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     {
         if (*pretregs != mPSW)                      // if not flags only
         {
-            reg_t r;
-            regwithvalue(cdb,mAX,0,r,0);         // put 0 in AX
+            regwithvalue(cdb,mAX,0,0);         // put 0 in AX
         }
     }
 
@@ -4156,8 +4155,7 @@ void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     retregs3 = mAX;
     if (valueIsConst)
     {
-        reg_t r;
-        regwithvalue(cdb, mAX, value, r, I64?64:0);
+        regwithvalue(cdb, mAX, value, I64?64:0);
         freenode(evalue);
     }
     else
@@ -4178,8 +4176,7 @@ void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         {
             genregs(cdb,MOVZXb,AX,AX);                    // MOVZX EAX,AL
             regm_t regm = allregs & ~(mAX | retregs2);
-            reg_t r;
-            regwithvalue(cdb,regm,cast(targ_size_t)0x01010101_01010101,r,64); // MOV reg,0x01010101_01010101
+            const r = regwithvalue(cdb,regm,cast(targ_size_t)0x01010101_01010101,64); // MOV reg,0x01010101_01010101
             cdb.gen2(0x0FAF,grex | modregrmx(3,AX,r));        // IMUL RAX,reg
         }
     }
@@ -4207,8 +4204,7 @@ void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         getregs(cdb,mDI);
         if (const numwords = numbytes / REGSIZE)
         {
-            reg_t r;
-            regwithvalue(cdb,mCX,numwords,r, I64 ? 64 : 0);
+            regwithvalue(cdb,mCX,numwords, I64 ? 64 : 0);
             getregs(cdb,mCX);
             cdb.gen1(0xF3);                     // REP
             cdb.gen1(STOS);                     // STOSW/D/Q
