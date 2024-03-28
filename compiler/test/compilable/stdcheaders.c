@@ -4,10 +4,7 @@
 
 #include <assert.h>
 
-#ifndef __DMC__ // D:\a\1\s\tools\dm\include\complex.h(105): Deprecation: use of complex type `cdouble` is deprecated, use `std.complex.Complex!(double)` instead
 #include <complex.h>
-#endif
-
 #include <ctype.h>
 #include <errno.h>
 
