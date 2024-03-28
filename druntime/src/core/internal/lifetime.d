@@ -54,7 +54,7 @@ void emplaceRef(T, UT, Args...)(ref UT chunk, auto ref Args args)
             S* p = () @trusted { return cast(S*) &chunk; }();
             static if (UT.sizeof > 0)
                 emplaceInitializer(*p);
-            p.__ctor(forward!args);
+            () @trusted { p.__ctor(forward!args); }();
         }
     }
     else static if (is(typeof(chunk.__ctor(forward!args))))
