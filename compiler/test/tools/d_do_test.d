@@ -61,7 +61,7 @@ void usage()
           ~ "      REQUIRED_ARGS: arguments always passed to the compiler\n"
           ~ "      DMD:           compiler to use, ex: ../src/dmd (required)\n"
           ~ "      CC:            C++ compiler to use, ex: dmc, g++\n"
-          ~ "      OS:            windows, linux, freebsd, osx, netbsd, dragonflybsd\n"
+          ~ "      OS:            windows, linux, freebsd, osx, openbsd, netbsd, dragonflybsd\n"
           ~ "      RESULTS_DIR:   base directory for test results\n"
           ~ "      MODEL:         32 or 64 (required)\n"
           ~ "      AUTO_UPDATE:   set to 1 to auto-update mismatching test output\n"

@@ -1,7 +1,7 @@
 // REQUIRED_ARGS: -O -fPIC
 // PERMUTE_ARGS:
 // only testing on SYSV-ABI, but backend code is identical across platforms
-// DISABLED: win32 win64 osx linux32 freebsd32
+// DISABLED: win32 win64 osx linux32 freebsd32 openbsd32
 debug = PRINTF;
 debug (PRINTF) import core.stdc.stdio;
 

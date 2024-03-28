@@ -1,7 +1,7 @@
 /*
 REQUIRED_ARGS: -o-
 TEST_OUTPUT:
-DISABLED: freebsd32 linux32 osx32 win32
+DISABLED: freebsd32 openbsd32 linux32 osx32 win32
 ---
 fail_compilation/vector_types.d(15): Error: 32 byte vector type `__vector(double[4])` is not supported on this platform
 fail_compilation/vector_types.d(16): Error: 32 byte vector type `__vector(float[8])` is not supported on this platform
