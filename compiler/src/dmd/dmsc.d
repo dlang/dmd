@@ -81,7 +81,7 @@ void backend_init()
         driverParams.pic,
         params.useModuleInfo && Module.moduleinfo,
         params.useTypeInfo && Type.dtypeinfo,
-        params.useExceptions && ClassDeclaration.throwable,
+        params.useExceptions,
         driverParams.dwarf,
         global.versionString(),
         exfmt,
