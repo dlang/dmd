@@ -9,7 +9,7 @@ jobs:
       vmImage: 'windows-2019'
     variables:
       D_COMPILER: dmd
-      HOST_DMD_VERSION: 2.079.0
+      HOST_DMD_VERSION: 2.083.1
     strategy:
       matrix:
         x64:

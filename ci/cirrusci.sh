@@ -29,7 +29,7 @@ if [ "$OS_NAME" == "linux" ]; then
   apt-get install -yq $packages
 elif [ "$OS_NAME" == "freebsd" ]; then
   packages="git gmake devel/llvm12"
-  if [ "$HOST_DMD" == "dmd-2.079.0" ] ; then
+  if [ "$HOST_DMD" == "dmd-2.083.1" ] ; then
     packages="$packages lang/gcc9"
   fi
   pkg install -y $packages
