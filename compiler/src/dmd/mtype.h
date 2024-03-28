@@ -572,6 +572,7 @@ public:
     const char *kind() override;
     TypeFunction *syntaxCopy() override;
     bool hasLazyParameters();
+    bool hasReturnParameters();
     bool isDstyleVariadic() const;
 
     MATCH constConv(Type *to) override;
