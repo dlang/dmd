@@ -62,6 +62,7 @@ enum SCOPE
     compile       = 0x0100,   /// inside __traits(compile)
     ignoresymbolvisibility    = 0x0200,   /// ignore symbol visibility
                                           /// https://issues.dlang.org/show_bug.cgi?id=15907
+    shortcut      = 0x0400,   /// in compile-time expression but not `condition`
     Cfile         = 0x0800,   /// C semantics apply
     free          = 0x8000,   /// is on free list
 

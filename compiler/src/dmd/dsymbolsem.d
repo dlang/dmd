@@ -613,7 +613,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             bool needctfe = (dsym.storage_class & (STC.manifest | STC.static_)) != 0 || !sc.func;
             if (needctfe)
             {
-                sc.flags |= SCOPE.condition;
+                sc.flags |= SCOPE.shortcut;
                 sc = sc.startCTFE();
             }
             //printf("inferring type for %s with init %s\n", dsym.toChars(), dsym._init.toChars());

@@ -13248,7 +13248,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         e1x = resolveProperties(sc, e1x);
         e1x = e1x.toBoolean(sc);
 
-        if (sc.flags & SCOPE.condition)
+        if (sc.flags & (SCOPE.condition | SCOPE.shortcut))
         {
             /* If in static if, don't evaluate e2 if we don't have to.
              */
