@@ -422,6 +422,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             case TOK.class_:
             case TOK.interface_:
             case TOK.traits:
+            case TOK.leftParenthesis:
             Ldeclaration:
                 a = parseDeclarations(false, pAttrs, pAttrs.comment);
                 if (a && a.length)
@@ -3504,6 +3505,24 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      */
     AST.Type parseType(Identifier* pident = null, AST.TemplateParameters** ptpl = null, Loc* pdeclLoc = null)
     {
+        // Handle linkage for function pointer and delegate types
+        const bool hasLinkage = token.value == TOK.extern_;
+        LINK link = LINK.default_;
+        if (hasLinkage)
+        {
+            auto l = parseLinkage();
+            // Reject C++-class-specific stuff
+            if (l.cppmangle != CPPMANGLE.def)
+                error("C++ mangle declaration not allowed here");
+            if (l.idents != null || l.identExps != null)
+                error("C++ namespaces not allowed here");
+            link = l.link;
+            printf("Linkage seen: %d\n", link);
+        }
+        // Handle `ref` TypeCtors(opt) BasicType CallableSuffix TypeSuffixes(opt)
+        const bool isRef = token.value == TOK.ref_;
+        if (isRef) nextToken();
+
         /* Take care of the storage class prefixes that
          * serve as type attributes:
          *               const type
@@ -3558,11 +3577,22 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         AST.Type t;
         t = parseBasicType();
+        if (hasLinkage || isRef)
+        {
+            t = t.addSTC(stc);
+            stc = STC.undefined_;
+        }
 
         if (pdeclLoc)
             *pdeclLoc = token.loc;
         int alt = 0;
-        t = parseDeclarator(t, alt, pident, ptpl);
+        t = parseDeclarator(t, alt, pident, ptpl, 0, null, null, isRef, link);
+        if (t.ty == Tdelegate || t.ty == Tpointer && (cast(AST.TypeNext)t).nextOf.ty == Tfunction)
+        {
+            auto ll = (cast(AST.TypeFunction)(cast(AST.TypeNext)t).nextOf).linkage;
+            if (ll != LINK.d)
+                printf("Linkage applied: %d\n", ll);
+        }
         checkCstyleTypeSyntax(typeLoc, t, alt, pident ? *pident : null);
 
         t = t.addSTC(stc);
@@ -3772,6 +3802,13 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             check(TOK.rightParenthesis);
             break;
 
+        case TOK.leftParenthesis:
+            // (type)
+            nextToken();
+            t = parseType();
+            check(TOK.rightParenthesis);
+            break;
+
         default:
             error("basic type expected, not `%s`", token.toChars());
             if (token.value == TOK.else_)
@@ -3932,9 +3969,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      * See_Also:
      *      https://dlang.org/spec/declaration.html#TypeSuffixes
      */
-    private AST.Type parseTypeSuffixes(AST.Type t)
+    private AST.Type parseTypeSuffixes(AST.Type t, bool isRef = false, LINK link = LINK.default_)
     {
         //printf("parseTypeSuffixes()\n");
+        const requireCallable = isRef || link != LINK.default_;
+        bool lastSuffixWasCallable = false;
         while (1)
         {
             switch (token.value)
@@ -3942,6 +3981,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             case TOK.mul:
                 t = new AST.TypePointer(t);
                 nextToken();
+                lastSuffixWasCallable = false;
                 continue;
 
             case TOK.leftBracket:
@@ -3986,20 +4026,30 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     inBrackets--;
                     check(TOK.rightBracket);
                 }
+                lastSuffixWasCallable = false;
                 continue;
 
             case TOK.delegate_:
             case TOK.function_:
                 {
-                    // Handle delegate declaration:
-                    //      t delegate(parameter list) nothrow pure
-                    //      t function(parameter list) nothrow pure
+                    // Handle latter part of delegate declaration:
+                    //      Linkage(opt) ref(opt) type delegate(parameter list) nothrow pure
+                    //      Linkage(opt) ref(opt) type function(parameter list) nothrow pure
                     const save = token.value;
                     nextToken();
 
                     auto parameterList = parseParameterList(null);
 
                     StorageClass stc = parsePostfix(STC.undefined_, null);
+                    // if (isRefCallable)
+                    // {
+                    //     stc = parsePostfix(STC.ref_, null);
+                    //     isRefCallable = false;
+                    // }
+                    // else
+                    // {
+                    //     stc = parsePostfix(STC.undefined_, null);
+                    // }
                     auto tf = new AST.TypeFunction(parameterList, t, linkage, stc);
                     if (stc & (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild | STC.return_))
                     {
@@ -4009,10 +4059,23 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                             tf = cast(AST.TypeFunction)tf.addSTC(stc);
                     }
                     t = save == TOK.delegate_ ? new AST.TypeDelegate(tf) : new AST.TypePointer(tf); // pointer to function
+                    lastSuffixWasCallable = true;
                     continue;
                 }
             default:
-                return t;
+                {
+                    if (requireCallable && !lastSuffixWasCallable)
+                    {
+                        error("linkage and `ref` are only valid for `function` and `delegate` types");
+                    }
+                    if (requireCallable)
+                    {
+                        auto fp = cast(AST.TypeFunction) (cast(AST.TypeNext)t).nextOf;
+                        if (isRef) fp.isref = true;
+                        if (link != LINK.default_) fp.linkage = link;
+                    }
+                    return t;
+                }
             }
             assert(0);
         }
@@ -4036,10 +4099,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      */
     private AST.Type parseDeclarator(AST.Type t, ref int palt, Identifier* pident,
         AST.TemplateParameters** tpl = null, StorageClass storageClass = 0,
-        bool* pdisable = null, AST.Expressions** pudas = null)
+        bool* pdisable = null, AST.Expressions** pudas = null, bool isRefCallable = false, LINK link = LINK.default_)
     {
         //printf("parseDeclarator(tpl = %p)\n", tpl);
-        t = parseTypeSuffixes(t);
+        t = parseTypeSuffixes(t, isRefCallable, link);
         AST.Type ts;
         switch (token.value)
         {
@@ -4331,7 +4394,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     link = res.link;
                     if (res.idents || res.identExps)
                     {
-                        error("C++ name spaces not allowed here");
+                        error("C++ namespaces not allowed here");
                     }
                     if (res.cppmangle != CPPMANGLE.def)
                     {
@@ -5009,6 +5072,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     auto a2 = new AST.Dsymbols();
                     a2.push(s);
                     s = new AST.LinkDeclaration(linkloc, link, a2);
+                    printf("Uses LinkDeclaration: linkage = %d\n", link);
                 }
                 a.push(s);
 
@@ -5823,7 +5887,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         case TOK.string_:
         case TOK.interpolated:
         case TOK.hexadecimalString:
-        case TOK.leftParenthesis:
         case TOK.cast_:
         case TOK.mul:
         case TOK.min:
@@ -6028,6 +6091,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 if (flags & ParseStatementFlags.scope_)
                     s = new AST.ScopeStatement(loc, s, token.loc);
                 break;
+            }
+        case TOK.leftParenthesis:
+            {
+                if (isDeclaration(&token, NeedDeclaratorId.mustIfDstyle, TOK.reserved, null))
+                    goto Ldeclaration;
+                goto Lexp;
             }
         case TOK.mixin_:
             {
@@ -7376,12 +7445,31 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             t = peek(t);
             if (t.value != TOK.leftParenthesis)
                 goto Lfalse;
+            goto case;
+
+        case TOK.leftParenthesis:
+            // (type)
             t = peek(t);
-            if (!isDeclaration(t, NeedDeclaratorId.no, TOK.rightParenthesis, &t))
-            {
+            const bool isRef = t.value == TOK.ref_;
+            if (isRef) t = peek(t);
+            while (t.value == TOK.const_ || t.value == TOK.immutable_ || t.value == TOK.inout_ || t.value == TOK.shared_)
+                t = peek(t);
+            if (!isBasicType(&t))
                 goto Lfalse;
-            }
+            if (isRef && t.value != TOK.function_ && t.value != TOK.delegate_)
+                goto Lfalse;
+            int haveId = 1;
+            int haveTpl = 0;
+            if (!isDeclarator(&t, &haveId, &haveTpl, TOK.rightParenthesis))
+                goto Lfalse;
+            if (t.value != TOK.rightParenthesis)
+                goto Lfalse;
             t = peek(t);
+
+            // `(x) { }` in a template argument list is a problem; `(x)` is not a type, but read as if.
+            if (t.value == TOK.leftCurly)
+                goto Lfalse;
+
             break;
 
         default:
@@ -8533,9 +8621,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         goto case_delegate;
                     }
                 }
-                nextToken();
-                error("found `%s` when expecting function literal following `ref`", token.toChars());
-                goto Lerr;
+                t = parseType();
+                e = new AST.TypeExp(loc, t);
+                break;
             }
         case TOK.leftParenthesis:
             {
