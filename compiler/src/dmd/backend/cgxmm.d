@@ -131,8 +131,7 @@ void movxmmconst(ref CodeBuilder cdb, reg_t xreg, tym_t ty, eve* pev, regm_t fla
     }
     else
     {
-        reg_t reg;
-        regwithvalue(cdb,ALLREGS,value,reg,(sz == 8) ? 64 : 0);
+        const reg = regwithvalue(cdb,ALLREGS,value,(sz == 8) ? 64 : 0);
         cdb.gen2(LODD,modregxrmx(3,xreg-XMM0,reg));     // MOVD xreg,reg
         if (sz == 8)
             code_orrex(cdb.last(), REX_W);

@@ -230,21 +230,22 @@ bool reghasvalue(regm_t regm,targ_size_t value, out reg_t preg)
 
 /**************************************
  * Load a register from the mask regm with value.
- * Output:
- *      preg = the register selected
+ * Returns:
+ *      the register selected
  */
 @trusted
-void regwithvalue(ref CodeBuilder cdb,regm_t regm,targ_size_t value, out reg_t preg,regm_t flags)
+reg_t regwithvalue(ref CodeBuilder cdb,regm_t regm,targ_size_t value, regm_t flags)
 {
     //printf("regwithvalue(value = %lld)\n", cast(long)value);
-
-    if (reghasvalue(regm,value,preg))
-        return; // already have a register with the right value in it
+    reg_t found;
+    if (reghasvalue(regm,value,found))
+        return found; // already have a register with the right value in it
 
     regm_t save = regcon.immed.mval;
-    preg = allocreg(cdb,regm,TYint);  // allocate register
+    const reg = allocreg(cdb,regm,TYint);  // allocate register
     regcon.immed.mval = save;
-    movregconst(cdb,preg,value,flags);   // store value into reg
+    movregconst(cdb,reg,value,flags);   // store value into reg
+    return reg;
 }
 
 /************************
