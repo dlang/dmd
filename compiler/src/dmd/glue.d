@@ -126,6 +126,14 @@ public void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
             library.addObject(p.toDString(), null);
     }
 
+    /* Rearrange modules[] into depth first order. This is so that functions to be
+     * inlined are compiled first.
+     */
+    if (driverParams.optimize)
+    {
+        rootModuleDFO(Module.amodules[], modules);
+    }
+
     if (!obj)
     {
     }
