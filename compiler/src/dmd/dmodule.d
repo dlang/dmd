@@ -358,6 +358,7 @@ extern (C++) final class Module : Package
     FileType filetype;          // source file type
     bool hasAlwaysInlines;      // contains references to functions that must be inlined
     bool isPackageFile;         // if it is a package.d
+    Edition edition;            // language edition that this module is compiled with
     Package pkg;                // if isPackageFile is true, the Package that contains this package.d
     Strings contentImportedFiles; // array of files whose content was imported
     int needmoduleinfo;
@@ -477,6 +478,8 @@ extern (C++) final class Module : Package
             setDocfile();
         if (doHdrGen)
             hdrfile = setOutfilename(global.params.dihdr.name, global.params.dihdr.dir, arg, hdr_ext);
+
+        this.edition = Edition.legacy;
     }
 
     extern (D) this(const(char)[] filename, Identifier ident, int doDocComment, int doHdrGen)

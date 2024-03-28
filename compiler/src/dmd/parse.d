@@ -233,6 +233,14 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     }
                     else
                     {
+                        if (exps && exps.length > 0)
+                            if (auto id = (*exps)[0].isIdentifierExp())
+                                if (id.ident == Id.__experimental_edition_latest)
+                                {
+                                    mod.edition = Edition.latest;
+                                    continue;
+                                }
+
                         udas = AST.UserAttributeDeclaration.concat(udas, exps);
                     }
                     if (stc)
