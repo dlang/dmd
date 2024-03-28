@@ -9190,6 +9190,18 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (exp.to == Type.terror)
                 return setError();
         }
+        if (global.compileEnv.obsolete)
+        if (auto toc = exp.to.isClassHandle())
+        {
+            auto e1c = exp.e1.type.isClassHandle();
+            if (e1c && toc.classKind == ClassKind.cpp &&
+                e1c.isBaseOf(toc, null))
+            {
+                // obsolete from 2.105
+                exp.warning("dynamic cast is not implemented for `extern(C++)` classes");
+                warningSupplemental(exp.loc, "use `*cast(Derived*) &base` instead");
+            }
+        }
 
         if (exp.to.ty == Ttuple)
         {
