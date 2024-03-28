@@ -82,6 +82,7 @@ void backend_init()
         params.useModuleInfo && Module.moduleinfo,
         params.useTypeInfo && Type.dtypeinfo,
         params.useExceptions && ClassDeclaration.throwable,
+        params.enableUnwinding,
         driverParams.dwarf,
         global.versionString(),
         exfmt,

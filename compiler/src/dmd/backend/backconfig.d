@@ -50,6 +50,7 @@ nothrow:
     useModuleInfo = implement ModuleInfo
     useTypeInfo   = implement TypeInfo
     useExceptions = implement exception handling
+    enableUnwinding = enable unwinding
     dwarf         = DWARF version used
     _version      = Compiler version
     exefmt        = Executable file format
@@ -76,6 +77,7 @@ extern (C) void out_config_init(
         bool useModuleInfo,
         bool useTypeInfo,
         bool useExceptions,
+        bool enableUnwinding,
         ubyte dwarf,
         string _version,
         exefmt_t exefmt,
@@ -126,7 +128,7 @@ extern (C) void out_config_init(
         {
             cfg.fpxmmregs = true;
             cfg.avx = avx;
-            cfg.ehmethod = useExceptions ? EHmethod.EH_DM : EHmethod.EH_NONE;
+            cfg.ehmethod = enableUnwinding ? EHmethod.EH_DM : EHmethod.EH_NONE;
 
             cfg.flags |= CFGnoebp;       // test suite fails without this
             //cfg.flags |= CFGalwaysframe;
@@ -135,7 +137,7 @@ extern (C) void out_config_init(
         }
         else
         {
-            cfg.ehmethod = useExceptions ? EHmethod.EH_WIN32 : EHmethod.EH_NONE;
+            cfg.ehmethod = enableUnwinding ? EHmethod.EH_WIN32 : EHmethod.EH_NONE;
             if (mscoff)
                 cfg.flags |= CFGnoebp;       // test suite fails without this
             cfg.objfmt = mscoff ? OBJ_MSCOFF : OBJ_OMF;
@@ -155,11 +157,11 @@ extern (C) void out_config_init(
         cfg.avx = avx;
         if (model == 64)
         {
-            cfg.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+            cfg.ehmethod = enableUnwinding ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
         }
         else
         {
-            cfg.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+            cfg.ehmethod = enableUnwinding ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
             if (!exe)
                 cfg.flags |= CFGromable; // put switch tables in code segment
         }
@@ -189,7 +191,7 @@ extern (C) void out_config_init(
     {
         cfg.fpxmmregs = true;
         cfg.avx = avx;
-        cfg.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+        cfg.ehmethod = enableUnwinding ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
         cfg.flags |= CFGnoebp;
         if (!exe)
         {
@@ -207,13 +209,13 @@ extern (C) void out_config_init(
     {
         if (model == 64)
         {
-            cfg.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+            cfg.ehmethod = enableUnwinding ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
             cfg.fpxmmregs = true;
             cfg.avx = avx;
         }
         else
         {
-            cfg.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+            cfg.ehmethod = enableUnwinding ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
             if (!exe)
                 cfg.flags |= CFGromable; // put switch tables in code segment
         }
@@ -243,13 +245,13 @@ extern (C) void out_config_init(
         if (!exe)
             cfg.flags3 |= CFG3pic;
         cfg.objfmt = OBJ_ELF;
-        cfg.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+        cfg.ehmethod = enableUnwinding ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
     }
     if (cfg.exe == EX_DRAGONFLYBSD64)
     {
         if (model == 64)
         {
-            cfg.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+            cfg.ehmethod = enableUnwinding ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
             cfg.fpxmmregs = true;
             cfg.avx = avx;
         }
@@ -282,7 +284,7 @@ extern (C) void out_config_init(
         if (!exe)
             cfg.flags3 |= CFG3pic;
         cfg.objfmt = OBJ_ELF;
-        cfg.ehmethod = useExceptions ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
+        cfg.ehmethod = enableUnwinding ? EHmethod.EH_DWARF : EHmethod.EH_NONE;
     }
 
     cfg.flags2 |= CFG2nodeflib;      // no default library
@@ -353,6 +355,7 @@ static if (0)
     cfg.useModuleInfo = useModuleInfo;
     cfg.useTypeInfo = useTypeInfo;
     cfg.useExceptions = useExceptions;
+    cfg.enableUnwinding = enableUnwinding;
 
     block_init();
 
