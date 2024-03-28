@@ -2427,6 +2427,7 @@ class CastExp final : public UnaExp
 public:
     Type* to;
     uint8_t mod;
+    bool trusted;
     CastExp* syntaxCopy() override;
     bool isLvalue() override;
     void accept(Visitor* v) override;
