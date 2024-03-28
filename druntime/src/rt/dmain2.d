@@ -453,6 +453,13 @@ private extern (C) int _d_run_main2(char[][] args, size_t totalArgsLength, MainF
             useExceptionTrap = false;
     }
 
+    version (none)
+    {
+        // Causes test failures related to Fibers, not enabled by default yet
+        import etc.linux.memoryerror;
+        cast(void) registerMemoryAssertHandler();
+    }
+
     void tryExec(scope void delegate() dg)
     {
         if (useExceptionTrap)
