@@ -3482,7 +3482,7 @@ inout(int)* function(inout(int)*) fptr10761(inout(int)*)
 {
     static inout(int)* screwUp(inout(int)* x) { return x; }
     auto fp = &screwUp;
-    static assert(is(typeof(fp) == inout(int)* function(inout(int)*) pure nothrow @nogc @safe));
+    static assert(is(typeof(fp) == inout(int)* function(return scope inout(int)*) pure nothrow @nogc @safe));
     return fp;
 }
 
@@ -3490,7 +3490,7 @@ inout(int)* delegate(inout(int)*) nest10761(inout(int)* x)
 {
     inout(int)* screwUp(inout(int)* _) { return x; }
     auto dg = &screwUp;
-    static assert(is(typeof(dg) == inout(int)* delegate(inout(int)*) pure nothrow @nogc @safe));
+    static assert(is(typeof(dg) == inout(int)* delegate(scope inout(int)*) pure nothrow @nogc @safe));
     return dg;
 }
 
