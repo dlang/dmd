@@ -63,12 +63,13 @@ $(TROW $(D (2.5F).nan),        yields the floating point NaN value)
 
 $(BR)
 
-$(TABLE2 Properties for Class Types,
-$(THEAD Property, Description)
-$(TROW $(RELATIVE_LINK2 classinfo, $(D .classinfo)), Information about the dynamic type of the class)
-)
-
-        $(P See also: $(DDSUBLINK spec/enum, enum_properties, Enum Properties).)
+        $(P See also:)
+        * $(DDSUBLINK spec/arrays, array-properties, Array Properties)
+        * $(DDSUBLINK spec/class, class_properties, Class Properties)
+        * $(DDSUBLINK spec/hash-map, properties, Associative Array Properties)
+        * $(DDSUBLINK spec/enum, enum_properties, Enum Properties)
+        * $(DDSUBLINK spec/struct, struct_properties, Struct Properties)
+        * $(DDSUBLINK spec/simd, properties, Vector Properties)
 
 
 $(H2 $(LNAME2 init, .init Property))

@@ -601,9 +601,8 @@ assert(u.c == false); // no overlap
 
 $(H2 $(LNAME2 struct_properties, Struct Properties))
 
-$(TABLE2 Struct Properties,
+$(TABLE2 Struct Type Properties,
 $(THEAD Name, Description)
-$(TROW $(D .sizeof), Size in bytes of struct)
 $(TROW $(D .alignof), Size boundary struct needs to be aligned on)
 )
 
@@ -613,7 +612,7 @@ $(TABLE2 Struct Instance Properties,
 $(THEAD Name, Description)
 $(TROW $(D .tupleof), An $(DDSUBLINK spec/template, homogeneous_sequences, lvalue sequence)
     of all struct fields - see
-    $(DDSUBLINK spec/class, class_properties, Class Properties) for a class-based example.)
+    $(DDSUBLINK spec/class, tupleof, here) for a class-based example.)
 )
 
 $(H3 $(LNAME2 struct_field_properties, Struct Field Properties))
