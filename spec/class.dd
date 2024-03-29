@@ -161,13 +161,6 @@ void foo(B b)
         without the subclasses needing to recompile or relink.
         )
 
-$(H3 $(LNAME2 field_properties, Field Properties))
-
-        $(P The $(D .offsetof) property gives the offset in bytes of the field
-        from the beginning of the class instantiation.
-        `.offsetof` is not available for fields of `extern(Objective-C)` classes
-        due to their fields having a dynamic offset.
-        )
 
 $(H2 $(LNAME2 class_properties, Class Properties))
 
@@ -225,6 +218,16 @@ $(H3 $(LNAME2 hidden-fields, Accessing Hidden Fields))
         to the class object's vtbl[] and monitor, respectively, but
         should not be used in user code.
         )
+
+$(H3 $(LNAME2 field_properties, Field Properties))
+
+        $(P The $(D .offsetof) property gives the offset in bytes of the field
+        from the beginning of the class instantiation.
+        )
+        $(NOTE `.offsetof` is not available for fields of `extern(Objective-C)` classes
+        due to their fields having a dynamic offset.
+        )
+
 
 $(H2 $(LNAME2 member-functions, Member Functions (a.k.a. Methods)))
 
