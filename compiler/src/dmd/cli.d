@@ -1046,7 +1046,7 @@ struct CLIUsage
             buf ~= t.helpText;
             if (t.deprecated_)
                 buf ~= " [DEPRECATED]";
-            if (t.link)
+            if (t.link.length)
                 buf ~= " (" ~ t.link ~ ")";
             buf ~= "\n";
         }
