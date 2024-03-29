@@ -161,15 +161,21 @@ void foo(B b)
         without the subclasses needing to recompile or relink.
         )
 
-$(H3 $(LNAME2 field_properties, Field Properties))
-
-        $(P The $(D .offsetof) property gives the offset in bytes of the field
-        from the beginning of the class instantiation.
-        `.offsetof` is not available for fields of `extern(Objective-C)` classes
-        due to their fields having a dynamic offset.
-        )
 
 $(H2 $(LNAME2 class_properties, Class Properties))
+
+$(TABLE2 Class Instance Properties,
+$(THEAD Property, Description)
+$(TROW $(DDSUBLINK spec/property, classinfo, $(D .classinfo)),
+    Information about the dynamic type of the class.)
+$(TROW $(RELATIVE_LINK2 outer-property, `.outer`), $(ARGS For
+        a nested class instance, provides either the parent class instance,
+        or the parent function's context pointer when there is no parent
+        class.))
+$(TROW $(D .tupleof), See below.)
+)
+
+$(H3 $(LNAME2 tupleof, `.tupleof`))
 
         $(P The $(D .tupleof) property is an
         $(DDSUBLINK spec/template, homogeneous_sequences, lvalue sequence)
@@ -208,15 +214,20 @@ void main()
 
 $(H3 $(LNAME2 hidden-fields, Accessing Hidden Fields))
 
-        $(P The $(RELATIVE_LINK2 outer-property, `.outer` property) for
-        a nested class instance provides either the parent class instance,
-        or the parent function's context pointer when there is no parent
-        class.)
-
         $(P The properties $(D .__vptr) and $(D .__monitor) give access
         to the class object's vtbl[] and monitor, respectively, but
         should not be used in user code.
         )
+
+$(H3 $(LNAME2 field_properties, Field Properties))
+
+        $(P The $(D .offsetof) property gives the offset in bytes of the field
+        from the beginning of the class instantiation.
+        )
+        $(NOTE `.offsetof` is not available for fields of `extern(Objective-C)` classes
+        due to their fields having a dynamic offset.
+        )
+
 
 $(H2 $(LNAME2 member-functions, Member Functions (a.k.a. Methods)))
 
