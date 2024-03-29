@@ -892,6 +892,7 @@ dmd -cov -unittest myprog.d
         string name; /// name of the feature
         string paramName; // internal transition parameter name
         string helpText; // detailed description of the feature
+        string link; // link for more info
         bool documented = true; // whether this option should be shown in the documentation
         bool deprecated_; /// whether the feature is still in use
     }
@@ -901,7 +902,7 @@ dmd -cov -unittest myprog.d
         Feature("field", "v.field",
             "list all non-mutable fields which occupy an object instance"),
         Feature("complex", "v.complex",
-            "give deprecation messages about all usages of complex or imaginary types", true, true),
+            "give deprecation messages about all usages of complex or imaginary types", "", true, true),
         Feature("tls", "v.tls",
             "list all variables going into thread local storage"),
         Feature("in", "v.vin",
@@ -910,45 +911,64 @@ dmd -cov -unittest myprog.d
 
     /// Returns all available reverts
     static immutable reverts = [
-        Feature("dip25", "useDIP25", "revert DIP25 changes https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md", true, true),
+        Feature("dip25", "useDIP25", "revert DIP25 changes",
+        "https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md", true, true),
         Feature("dip1000", "useDIP1000",
-                "revert DIP1000 changes https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1000.md (Scoped Pointers)"),
+                "revert DIP1000 changes (Scoped Pointers)",
+                "https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1000.md"),
         Feature("intpromote", "fix16997", "revert integral promotions for unary + - ~ operators"),
         Feature("dtorfields", "dtorFields", "don't destruct fields of partially constructed objects"),
     ];
 
     /// Returns all available previews
     static immutable previews = [
+        // Note: generally changelog entries should be added to the spec
         Feature("dip25", "useDIP25",
-            "implement https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md (Sealed references)", true, true),
+            "implement Sealed References DIP",
+            "https://github.com/dlang/DIPs/blob/master/DIPs/archive/DIP25.md", true, true),
         Feature("dip1000", "useDIP1000",
-            "implement https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1000.md (Scoped Pointers)"),
+            "implement Scoped Pointers DIP",
+            "https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1000.md"),
         Feature("dip1008", "ehnogc",
-            "implement https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1008.md (@nogc Throwable)"),
+            "implement @nogc Throwable DIP",
+            "https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1008.md"),
         Feature("dip1021", "useDIP1021",
-            "implement https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1021.md (Mutable function arguments)"),
-        Feature("bitfields", "bitfields", "add bitfields https://github.com/dlang/dlang.org/pull/3190"),
-        Feature("fieldwise", "fieldwise", "use fieldwise comparisons for struct equality"),
+            "implement Mutable Function Arguments DIP",
+            "https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1021.md"),
+        Feature("bitfields", "bitfields", "add C-like bitfields",
+            "https://github.com/dlang/dlang.org/pull/3190"),
+        Feature("fieldwise", "fieldwise", "use fieldwise comparisons for struct equality",
+            "https://dlang.org/changelog/2.085.0.html#no-cmpsb"),
         Feature("fixAliasThis", "fixAliasThis",
-            "when a symbol is resolved, check alias this scope before going to upper scopes"),
+            "when a symbol is resolved, check alias this scope before going to upper scopes",
+            "https://github.com/dlang/dmd/pull/8885"),
         Feature("intpromote", "fix16997",
-            "fix integral promotions for unary + - ~ operators", false, true),
+            "fix integral promotions for unary + - ~ operators",
+            "https://dlang.org/changelog/2.078.0.html#fix16997", false, true),
         Feature("dtorfields", "dtorFields",
-            "destruct fields of partially constructed objects", false, false),
+            "destruct fields of partially constructed objects",
+            "https://dlang.org/changelog/2.098.0.html#dtorfileds", false, false),
         Feature("rvaluerefparam", "rvalueRefParam",
-            "enable rvalue arguments to ref parameters"),
+            "enable rvalue arguments to ref parameters",
+            "https://github.com/dlang/DIPs/blob/master/DIPs/rejected/DIP1016.md"),
         Feature("nosharedaccess", "noSharedAccess",
-            "disable access to shared memory objects"),
+            "disable access to shared memory objects",
+            "https://dlang.org/spec/const3.html#shared"),
         Feature("in", "previewIn",
-            "`in` on parameters means `scope const [ref]` and accepts rvalues"),
+            "`in` on parameters means `scope const [ref]` and accepts rvalues",
+            "https://dlang.org/spec/function.html#in-params"),
         Feature("inclusiveincontracts", "inclusiveInContracts",
-            "'in' contracts of overridden methods must be a superset of parent contract"),
+            "'in' contracts of overridden methods must be a superset of parent contract",
+            "https://dlang.org/changelog/2.095.0.html#inclusive-incontracts"),
         Feature("shortenedMethods", "shortenedMethods",
-            "allow use of => for methods and top-level functions in addition to lambdas", false, true),
+            "allow use of => for methods and top-level functions in addition to lambdas",
+            "https://dlang.org/spec/function.html#ShortenedFunctionBody", false, true),
         Feature("fixImmutableConv", "fixImmutableConv",
-            "disallow unsound immutable conversions that were formerly incorrectly permitted"),
+            "disallow functions with a mutable `void[]` parameter to be strongly pure",
+            "https://dlang.org/changelog/2.101.0.html#dmd.fix-immutable-conv"),
         Feature("systemVariables", "systemVariables",
-            "disable access to variables marked '@system' from @safe code"),
+            "disable access to variables marked '@system' from @safe code",
+            "https://dlang.org/spec/attribute.html#system-variables"),
     ];
 }
 
@@ -1026,6 +1046,8 @@ struct CLIUsage
             buf ~= t.helpText;
             if (t.deprecated_)
                 buf ~= " [DEPRECATED]";
+            if (t.link)
+                buf ~= " (" ~ t.link ~ ")";
             buf ~= "\n";
         }
         return buf;
