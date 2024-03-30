@@ -950,7 +950,7 @@ dmd -cov -unittest myprog.d
             "https://dlang.org/changelog/2.098.0.html#dtorfileds", false, false),
         Feature("rvaluerefparam", "rvalueRefParam",
             "enable rvalue arguments to ref parameters",
-            "https://github.com/dlang/DIPs/blob/master/DIPs/rejected/DIP1016.md"),
+            "https://gist.github.com/andralex/e5405a5d773f07f73196c05f8339435a"),
         Feature("nosharedaccess", "noSharedAccess",
             "disable access to shared memory objects",
             "https://dlang.org/spec/const3.html#shared"),
