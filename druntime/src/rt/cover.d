@@ -69,6 +69,7 @@ private
     {
         string  srcpath;
         string  dstpath;
+        bool    disable;
         bool    merge;
 
     @nogc nothrow:
@@ -83,6 +84,7 @@ private
         {
             string s = "Code coverage options are specified as whitespace separated assignments:
     merge:0|1      - 0 overwrites existing reports, 1 merges current run with existing coverage reports (default: %d)
+    disable:0|1    - 1 disables writing coverage report even if binary is compiled with coverage
     dstpath:<PATH> - writes code coverage reports to <PATH> (default: current
             working directory)
     srcpath:<PATH> - sets the path where the source files are located to <PATH>
@@ -222,7 +224,7 @@ shared static this()
 
 shared static ~this()
 {
-    if (!gdata.length) return;
+    if (!gdata.length || config.disable) return;
 
     const NUMLINES = 16384 - 1;
     const NUMCHARS = 16384 * 16 - 1;
