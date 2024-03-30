@@ -663,7 +663,7 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
         const fileName = FileName(loc.filename.toDString);
         if (auto text = global.fileManager.getFileContents(fileName))
         {
-            auto range = global.fileManager.splitLines(cast(const(char[])) text);
+            auto range = dmd.root.string.splitLines(cast(const(char[])) text);
             size_t linnum;
             foreach (line; range)
             {
