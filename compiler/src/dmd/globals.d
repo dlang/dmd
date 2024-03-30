@@ -193,6 +193,7 @@ extern (C++) struct Param
     bool inclusiveInContracts;   // 'in' contracts of overridden methods must be a superset of parent contract
     bool shortenedMethods = true;       // allow => in normal function declarations
     bool fixImmutableConv;       // error on unsound immutable conversion - https://github.com/dlang/dmd/pull/14070
+    bool unsafeFieldInit;        // require @system for field initializers with mutable reference types
     bool fix16997 = true;        // fix integral promotions for unary + - ~ operators
                                  // https://issues.dlang.org/show_bug.cgi?id=16997
     FeatureState dtorFields;     // destruct fields of partially constructed objects

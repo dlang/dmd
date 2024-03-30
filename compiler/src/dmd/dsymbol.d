@@ -469,7 +469,7 @@ extern (C++) class Dsymbol : ASTNode
      * `toParent()` returns a logically enclosing scope symbol this is a member of.
      * It skips over TemplateMixin's.
      *
-     * `toParent2()` returns an enclosing scope symbol this is living at runtime.
+     * `toParent2()` returns an enclosing scope symbol this is living in at runtime.
      * It skips over both TemplateInstance's and TemplateMixin's.
      * It's used when looking for the 'this' pointer of the enclosing function/class.
      *

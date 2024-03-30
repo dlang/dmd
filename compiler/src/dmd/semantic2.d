@@ -343,6 +343,33 @@ private extern(C++) final class Semantic2Visitor : Visitor
                     .error(vd.loc, "%s `%s` is a thread-local pointer to struct and cannot have a static initializer. Use `static this()` to initialize instead.", vd.kind, vd.toPrettyChars);
             }
         }
+        else if (vd._init && global.params.unsafeFieldInit &&
+            !(vd.storage_class & STC.gshared) && !(sc.flags & SCOPE.Cfile) &&
+            !vd.isSystem() && vd.toParent().isAggregateDeclaration())
+        {
+            string msg;
+
+            if ((vd.type.ty == Tclass || vd.type.ty == Taarray) &&
+                vd.type.isMutable() && !vd.type.isShared())
+            {
+                msg = "field `%s` of %s type cannot be mutable and have an initializer";
+            }
+            else if ((vd.type.ty == Tpointer || vd.type.ty == Tarray) &&
+                vd.type.nextOf().isMutable() && !vd.type.nextOf().isShared())
+            {
+                msg = "field `%s` of %s type cannot be (tail) mutable and have an initializer";
+            }
+            // TODO disallow struct/static array field init with mutable reference members
+
+            // @@@DEPRECATED_2.109@@@
+            // change to (edition) error
+            if (msg)
+            {
+                .deprecation(vd.loc, msg.ptr, vd.toPrettyChars, vd.type.kind);
+                .deprecationSupplemental(vd.loc,
+                    "Either use constructors to initialize the field, or mark it as `@system`");
+            }
+        }
         vd.semanticRun = PASS.semantic2done;
     }
 

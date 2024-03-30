@@ -18,5 +18,6 @@ Upcoming language changes listed by -preview=name:
   =inclusiveincontracts 'in' contracts of overridden methods must be a superset of parent contract (https://dlang.org/changelog/2.095.0.html#inclusive-incontracts)
   =fixImmutableConv disallow functions with a mutable `void[]` parameter to be strongly pure (https://dlang.org/changelog/2.101.0.html#dmd.fix-immutable-conv)
   =systemVariables  disable access to variables marked '@system' from @safe code (https://dlang.org/spec/attribute.html#system-variables)
+  =unsafeFieldInit  require @system for field initializers with mutable reference types
 ----
 */

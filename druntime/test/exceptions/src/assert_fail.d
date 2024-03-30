@@ -229,7 +229,7 @@ void testEnum()
     static struct UUID {
         union
         {
-            ubyte[] data = [1];
+            @system ubyte[] data = [1];
         }
     }
 

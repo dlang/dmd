@@ -969,6 +969,8 @@ dmd -cov -unittest myprog.d
         Feature("systemVariables", "systemVariables",
             "disable access to variables marked '@system' from @safe code",
             "https://dlang.org/spec/attribute.html#system-variables"),
+        Feature("unsafeFieldInit", "unsafeFieldInit",
+            "require @system for field initializers with mutable reference types"),
     ];
 }
 
