@@ -3906,18 +3906,19 @@ $(H3 $(LNAME2 system-functions, System Functions))
 
 $(H3 $(LNAME2 safe-interfaces, Safe Interfaces))
 
-        $(P When it is only called with $(RELATIVE_LINK2 safe-values, safe
-        values) and $(RELATIVE_LINK2 safe-aliasing, safe aliasing), a
+        $(P When a function call's arguments, $(RELATIVE_LINK2 closures, any context)
+        and accessible globals each have $(RELATIVE_LINK2 safe-values, safe
+        values) with $(RELATIVE_LINK2 safe-aliasing, safe aliasing), that
         function has a safe interface when:)
         $(OL
             $(LI it cannot exhibit
                 $(DDSUBLINK spec/glossary, undefined_behavior, undefined behavior),
                 and)
-            $(LI it cannot create unsafe values that are accessible from other
-                parts of the program (e.g., via return values, global variables,
+            $(LI it cannot create unsafe values that are accessible from
+                `@safe` code (e.g., via return values, global variables,
                 or `ref` parameters), and)
             $(LI it cannot introduce unsafe aliasing that is accessible from
-                other parts of the program.)
+                `@safe` code.)
         )
 
         $(P Functions that meet these requirements may be
