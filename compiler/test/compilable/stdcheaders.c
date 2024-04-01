@@ -30,7 +30,9 @@ float x = NAN;
 #include <setjmp.h>
 #endif
 
+#if !(defined(__linux__) && defined(__aarch64__)) // /usr/include/linux/types.h(12): Error: __int128 not supported
 #include <signal.h>
+#endif
 
 #ifndef __DMC__ // no stdalign.h
 #include <stdalign.h>
