@@ -12,6 +12,7 @@
 
 module core.stdcpp.string;
 
+import core.memory : pageSize;
 import core.stdcpp.allocator;
 import core.stdcpp.xutility : StdNamespace;
 import core.stdc.stddef : wchar_t;
@@ -1224,7 +1225,6 @@ extern(D):
 //                    if (__capacity > _S_max_size)
 //                        __throw_length_error(__N("basic_string::_S_create"));
 
-                    enum __pagesize = 4096;
                     enum __malloc_header_size = 4 * pointer.sizeof;
 
                     if (__capacity > __old_capacity && __capacity < 2 * __old_capacity)
@@ -1233,9 +1233,9 @@ extern(D):
                     size_type __size = (__capacity + 1) * T.sizeof + _Rep.sizeof;
 
                     const size_type __adj_size = __size + __malloc_header_size;
-                    if (__adj_size > __pagesize && __capacity > __old_capacity)
+                    if (__adj_size > pageSize && __capacity > __old_capacity)
                     {
-                        const size_type __extra = __pagesize - __adj_size % __pagesize;
+                        const size_type __extra = pageSize - __adj_size % pageSize;
                         __capacity += __extra / T.sizeof;
                         if (__capacity > _S_max_size)
                             __capacity = _S_max_size;
