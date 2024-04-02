@@ -1076,12 +1076,26 @@ static assert(__traits(getParameterStorageClasses, foo(p, a, b, c), 3)[0] == "la
 $(H3 $(GNAME parameters))
 
         $(P May only be used inside a function. Takes no arguments, and returns
-        a sequence of the enclosing function's parameters.)
+        an $(DDSUBLINK spec/template, lvalue-sequences, lvalue sequence) of the
+        enclosing function's parameters.)
 
-        $(P If the function is nested, the parameters returned are those of the
-        inner function, not the outer one.)
-
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
         ---
+        alias AliasSeq(A...) = A;
+
+        void f(int n, char c)
+        {
+            alias PS = __traits(parameters);
+            PS[0]++; // increment n
+            static assert(is(typeof(PS) == AliasSeq!(int, char)));
+
+            // output parameter names
+            static foreach (i, p; PS)
+            {
+                pragma(msg, __traits(identifier, p));
+            }
+        }
+
         int add(int x, int y)
         {
             return x + y;
@@ -1093,7 +1107,13 @@ $(H3 $(GNAME parameters))
             // equivalent to;
             //return add(x, y);
         }
+        ---
+        )
 
+        $(P If the function is nested, the parameters returned are those of the
+        inner function, not the outer one.)
+
+        ---
         int nestedExample(int x)
         {
             // outer function's parameters
@@ -1108,7 +1128,8 @@ $(H3 $(GNAME parameters))
 
             return add(x, x);
         }
-
+        ---
+        ---
         class C
         {
             int opApply(int delegate(size_t, C) dg)
