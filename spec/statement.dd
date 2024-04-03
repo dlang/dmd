@@ -1111,7 +1111,7 @@ $(H3 $(LNAME2 foreach_ref_parameters, Foreach Ref Parameters))
 
         $(P $(D ref) can be used to modify the elements of the *ForeachAggregate*.
         This works for containers that expose lvalue elements, and
-        $(DDSUBLINK spec/template, homogeneous_sequences, lvalue sequences).
+        $(DDSUBLINK spec/template, lvalue-sequences, lvalue sequences).
         )
 
     $(SPEC_RUNNABLE_EXAMPLE_RUN

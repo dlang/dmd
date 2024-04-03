@@ -620,7 +620,7 @@ Returns an array literal with each element of the literal being the $(D .init) p
         $(TROW $(D .ptr), Returns a pointer to the first element of the array.)
         $(TROW $(D .dup), Create a dynamic array of the same size and copy the contents of the array into it. The copy will have any immutability or const stripped. If this conversion is invalid the call will not compile.)
         $(TROW $(D .idup), Create a dynamic array of the same size and copy the contents of the array into it. The copy is typed as being immutable. If this conversion is invalid the call will not compile.)
-        $(TROW $(D .tupleof), $(ARGS Returns an $(DDSUBLINK spec/template, homogeneous_sequences, lvalue sequence) of each element in the array:
+        $(TROW $(D .tupleof), $(ARGS Returns an $(DDSUBLINK spec/template, lvalue-sequences, lvalue sequence) of each element in the array:
             $(SPEC_RUNNABLE_EXAMPLE_RUN
             ---
             void foo(int, int, int) { /* ... */ }

@@ -178,7 +178,7 @@ $(TROW $(D .tupleof), See below.)
 $(H3 $(LNAME2 tupleof, `.tupleof`))
 
         $(P The $(D .tupleof) property is an
-        $(DDSUBLINK spec/template, homogeneous_sequences, lvalue sequence)
+        $(DDSUBLINK spec/template, lvalue-sequences, lvalue sequence)
         of all the non-static fields in the class, excluding the hidden fields and
         the fields in the base class.)
         $(P The order of the fields in the tuple matches the order in which the fields are declared.)

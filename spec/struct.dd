@@ -610,7 +610,7 @@ $(H3 $(LNAME2 struct_instance_properties, Struct Instance Properties))
 
 $(TABLE2 Struct Instance Properties,
 $(THEAD Name, Description)
-$(TROW $(D .tupleof), An $(DDSUBLINK spec/template, homogeneous_sequences, lvalue sequence)
+$(TROW $(D .tupleof), An $(DDSUBLINK spec/template, lvalue-sequences, lvalue sequence)
     of all struct fields - see
     $(DDSUBLINK spec/class, tupleof, here) for a class-based example.)
 )
