@@ -42,6 +42,12 @@ $(H2 $(LNAME2 general_idea, The General Idea))
     $(LI matching C++ virtual function table layout for single inheritance)
     )
 
+$(H2 $(LNAME2 platform-compiler-support, Platform-Compiler Support))
+
+    $(P When building on windows, you should preferrably link your D code to MSVC compiled binaries.
+    You can link to both gcc and clang compiled binaries on linux.
+    On macOS, you should preferrably link to clang compiled binaries.)
+
 $(H2 $(LNAME2 global-functions, Global Functions))
 
     $(P C++ global functions, including those in namespaces, can be declared
