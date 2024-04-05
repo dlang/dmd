@@ -566,7 +566,7 @@ else version (Windows)
     private ulong fileSize(HANDLE fd)
     {
         ulong result;
-        if (GetFileSizeEx(fd, cast(LARGE_INTEGER*) &result) == 0)
+        if (GetFileSizeEx(fd, cast(LARGE_INTEGER*) &result))
             return result;
         return ulong.max;
     }
