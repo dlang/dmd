@@ -44,9 +44,9 @@ $(H2 $(LNAME2 general_idea, The General Idea))
 
 $(H2 $(LNAME2 platform-compiler-support, Platform-Compiler Support))
 
-    $(P When building on windows, you should preferrably link your D code to MSVC compiled binaries.
-    You can link to both gcc and clang compiled binaries on linux.
-    On macOS, you should preferrably link to clang compiled binaries.)
+    * On Windows, prefer linking D code to MSVC compiled binaries.
+    * On Linux, linking to both GCC and Clang compiled binaries is supported.
+    * On MacOS, prefer linking to Clang compiled binaries.
 
 $(H2 $(LNAME2 global-functions, Global Functions))
 

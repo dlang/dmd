@@ -13,7 +13,8 @@ $(HEADERNAV_TOC)
         and function call/return sequences.
         )
 
-        $(P The $(DDLINK spec/importc, ImportC, ImportC) compiler extention lets you import or compile `.c` files directly. )
+        $(P The $(DDLINK spec/importc, ImportC, ImportC) compiler extension allows
+        importing or compiling `.c` files directly. )
 
         $(P Bindings for popular C libraries can be found in the
             $(LINK2 https://dlang.org/phobos/index.html, standard library) and
