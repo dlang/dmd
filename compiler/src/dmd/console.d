@@ -191,7 +191,7 @@ private final class ANSIConsole : Console
 
     void setColorBright(bool bright)
     {
-        fprintf(_fp, "\033[%dm", bright);
+        fprintf(_fp, "\033[%d;37m", bright);
     }
 
     void setColor(Color color)
@@ -201,7 +201,7 @@ private final class ANSIConsole : Console
 
     void resetColor()
     {
-        fputs("\033[m", _fp);
+        fputs("\033[0m", _fp);
     }
 }
 
