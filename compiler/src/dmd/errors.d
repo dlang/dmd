@@ -615,7 +615,10 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
     Console con = cast(Console) global.console;
     const p = info.loc.toChars();
     if (con)
+    {
+        con.setColor(Color.white);
         con.setColorBright(true);
+    }
     if (*p)
     {
         fprintf(stderr, "%s: ", p);
@@ -878,7 +881,6 @@ private void writeHighlights(Console con, ref const OutBuffer buf)
         if (colors)
             con.resetColor();
     }
-
     for (size_t i = 0; i < buf.length; ++i)
     {
         const c = buf[i];
@@ -894,6 +896,7 @@ private void writeHighlights(Console con, ref const OutBuffer buf)
             if (color == Color.white)
             {
                 con.resetColor();
+                con.setColor(cast(Color)color);
                 con.setColorBright(true);
                 colors = true;
             }
