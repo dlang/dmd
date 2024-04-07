@@ -20,6 +20,7 @@ import dmd.arraytypes;
 import dmd.astcodegen;
 import dmd.astenums;
 import dmd.attrib;
+import dmd.attribsem;
 import dmd.canthrow;
 import dmd.dclass;
 import dmd.declaration;
