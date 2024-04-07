@@ -6470,7 +6470,6 @@ public:
     Array<Expression* >* atts;
     UserAttributeDeclaration* syntaxCopy(Dsymbol* s) override;
     Scope* newScope(Scope* sc) override;
-    Array<Expression* >* getAttributes();
     const char* kind() const override;
     void accept(Visitor* v) override;
     static bool isGNUABITag(Expression* e);

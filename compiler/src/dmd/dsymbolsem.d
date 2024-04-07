@@ -21,6 +21,7 @@ import dmd.arraytypes;
 import dmd.astcodegen;
 import dmd.astenums;
 import dmd.attrib;
+import dmd.attribsem;
 import dmd.clone;
 import dmd.cond;
 import dmd.dcast;
