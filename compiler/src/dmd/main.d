@@ -397,6 +397,12 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     buildPath(params.imppath, global.path);
     buildPath(params.fileImppath, global.filePath);
 
+    if (params.timeTrace)
+    {
+        import dmd.timetrace;
+        initializeTimeTrace(params.timeTraceGranularityUs, 0, argv[0]);
+    }
+
     // Create Modules
     Modules modules;
     modules.reserve(files.length);
@@ -683,9 +689,13 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             params.objfiles.push(mainModule.objfile.toChars());
     }
 
-    generateCodeAndWrite(modules[], libmodules[], params.libname, params.objdir,
-                         driverParams.lib, params.obj, driverParams.oneobj, params.multiobj,
-                         params.v.verbose);
+    {
+        import dmd.timetrace;
+        auto timeScope = TimeTraceScope("Code generation", "", Loc.initial);
+        generateCodeAndWrite(modules[], libmodules[], params.libname, params.objdir,
+                            driverParams.lib, params.obj, driverParams.oneobj, params.multiobj,
+                            params.v.verbose);
+    }
 
     backend_term();
 
@@ -718,6 +728,14 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
                 params.exefile.toCStringThen!(ef => File.remove(ef.ptr));
             }
         }
+    }
+
+    if (params.timeTrace)
+    {
+        import dmd.timetrace;
+        const s = params.timeTraceFile;
+        writeTimeTraceProfile(s ? s : "");
+        deinitializeTimeTrace();
     }
 
     // Output the makefile dependencies

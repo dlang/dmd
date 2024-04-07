@@ -849,6 +849,25 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         {
             driverParams.pic = PIC.pie;
         }
+        else if (arg == "-ftime-trace")
+            params.timeTrace = true;
+        else if (startsWith(p + 1, "-ftime-trace-granularity="))
+        {
+            enum len = "-ftime-trace-granularity=".length;
+            if (arg.length < len || !params.timeTraceGranularityUs.parseDigits(arg[len .. $]))
+            {
+                error("`-ftime-trace-granularity` requires a positive number of microseconds", p);
+                return false;
+            }
+        }
+        else if (startsWith(p + 1, "-ftime-trace-file="))
+        {
+            enum l = "-ftime-trace-file=".length;
+            auto tmp = p + l;
+            if (!tmp[0])
+                goto Lnoarg;
+            params.timeTraceFile = mem.xstrdup(tmp);
+        }
         else if (arg == "-map") // https://dlang.org/dmd.html#switch-map
             driverParams.map = true;
         else if (arg == "-multiobj")

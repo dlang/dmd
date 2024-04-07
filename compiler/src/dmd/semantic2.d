@@ -21,6 +21,7 @@ import dmd.astcodegen;
 import dmd.astenums;
 import dmd.attrib;
 import dmd.blockexit;
+import dmd.timetrace;
 import dmd.clone;
 import dmd.dcast;
 import dmd.dclass;
@@ -56,6 +57,7 @@ import dmd.parse;
 import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
+import dmd.root.string : toDString;
 import dmd.rootobject;
 import dmd.root.utf;
 import dmd.sideeffect;
@@ -356,6 +358,8 @@ private extern(C++) final class Semantic2Visitor : Visitor
         }
         assert(fd.semanticRun <= PASS.semantic2);
         fd.semanticRun = PASS.semantic2;
+
+        auto timeScope = TimeTraceScope("Sema2: Func " ~ fd.toChars().toDString(), fd.toPrettyChars().toDString(), fd.loc);
 
         //printf("FuncDeclaration::semantic2 [%s] fd: %s type: %s\n", fd.loc.toChars(), fd.toChars(), fd.type ? fd.type.toChars() : "".ptr);
 

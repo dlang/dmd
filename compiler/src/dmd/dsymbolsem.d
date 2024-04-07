@@ -24,6 +24,7 @@ import dmd.attrib;
 import dmd.attribsem;
 import dmd.clone;
 import dmd.cond;
+import dmd.timetrace;
 import dmd.dcast;
 import dmd.dclass;
 import dmd.declaration;
@@ -64,6 +65,7 @@ import dmd.root.array;
 import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
+import dmd.root.string : toDString;
 import dmd.rootobject;
 import dmd.semantic2;
 import dmd.semantic3;
@@ -1515,6 +1517,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(Import imp)
     {
+        auto timeScope = TimeTraceScope("Sema1: Import " ~ imp.id.toString(), imp.toPrettyChars().toDString(), imp.loc);
         static if (LOG)
         {
             printf("Import::semantic('%s') %s\n", imp.toPrettyChars(), imp.id.toChars());
@@ -1886,6 +1889,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(Module m)
     {
+        auto timeScope = TimeTraceScope("Sema 1: Module " ~ m.toPrettyChars().toDString(), m.loc);
         if (m.semanticRun != PASS.initial)
             return;
         //printf("+Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);

@@ -100,6 +100,10 @@ public Expression ctfeInterpret(Expression e)
 
     auto rgnpos = ctfeGlobals.region.savePos();
 
+    import dmd.timetrace;
+    import dmd.root.string : toDString;
+    auto timeScope = TimeTraceScope("CTFE start: " ~ e.toChars().toDString(), e.toChars().toDString, e.loc);
+
     Expression result = interpret(e, null);
 
     // Report an error if the expression contained a `ThrowException` and
@@ -431,6 +435,27 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
     {
         printf("\n********\n%s FuncDeclaration::interpret(istate = %p) %s\n", fd.loc.toChars(), istate, fd.toChars());
     }
+
+    import dmd.timetrace;
+    import dmd.root.string : toDString;
+    scope dlg = () {
+                        import dmd.common.outbuffer;
+                        auto strbuf = OutBuffer(20);
+                        strbuf.writestring(fd.toPrettyChars());
+                        strbuf.write("(");
+                        if (arguments)
+                        {
+                            foreach (i, arg; *arguments)
+                            {
+                                if (i > 0)
+                                    strbuf.write(", ");
+                                strbuf.writestring(arg.toChars());
+                            }
+                        }
+                        strbuf.write(")");
+                        return strbuf.extractSlice();
+                    };
+    auto timeScope = TimeTraceScopeDelayedDetail("CTFE func: " ~ fd.toChars().toDString(), dlg, fd.loc);
 
     void fdError(const(char)* msg)
     {
