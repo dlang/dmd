@@ -7,6 +7,8 @@
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/ob.d, _ob.d)
  * Documentation:  https://dlang.org/phobos/dmd_escape.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/ob.d
+ * Bug reports: use 'live' keyword:
+ *              https://issues.dlang.org/buglist.cgi?bug_status=NEW&bug_status=REOPENED&keywords=live
  */
 
 module dmd.ob;
@@ -32,6 +34,7 @@ import dmd.expression;
 import dmd.foreachvar;
 import dmd.func;
 import dmd.globals;
+import dmd.hdrgen;
 import dmd.identifier;
 import dmd.init;
 import dmd.location;
@@ -40,6 +43,7 @@ import dmd.printast;
 import dmd.statement;
 import dmd.stmtstate;
 import dmd.tokens;
+import dmd.typesem;
 import dmd.visitor;
 
 import dmd.root.bitarray;
@@ -846,7 +850,7 @@ void toObNodes(ref ObNodes obnodes, Statement s)
             case STMT.Mixin:
             case STMT.Peel:
             case STMT.Synchronized:
-                debug printf("s: %s\n", s.toChars());
+                debug printf("s: %s\n", toChars(s));
                 assert(0);              // should have been rewritten
         }
     }
@@ -1251,7 +1255,7 @@ void genKill(ref ObState obstate, ObNode* ob)
 {
     enum log = false;
     if (log)
-        printf("-----------computeGenKill()-----------\n");
+        printf("-----------computeGenKill() %d -----------\n", ob.index);
 
     /***************
      * Assigning result of expression `e` to variable `v`.
@@ -1721,6 +1725,15 @@ void genKill(ref ObState obstate, ObNode* ob)
     }
 
     foreachExp(ob, ob.exp);
+
+    if (log)
+    {
+        printf("  gen:\n");
+        foreach (i, ref pvs2; ob.gen[])
+        {
+            printf("    %s: ", obstate.vars[i].toChars()); pvs2.print(obstate.vars[]);
+        }
+    }
 }
 
 /***************************************
@@ -2460,7 +2473,7 @@ void checkObErrors(ref ObState obstate)
     {
         static if (log)
         {
-            printf("%d: %s\n", obi, ob.exp ? ob.exp.toChars() : "".ptr);
+            printf("%d: %s\n", cast(int) obi, ob.exp ? ob.exp.toChars() : "".ptr);
             printf("  input:\n");
             foreach (i, ref pvs; ob.input[])
             {
@@ -2490,7 +2503,9 @@ void checkObErrors(ref ObState obstate)
                     if (s1 != s2 && (s1 == PtrState.Owner || s2 == PtrState.Owner))
                     {
                         auto v = obstate.vars[i];
-                        .error(ob.exp ? ob.exp.loc : v.loc, "%s `%s` is both %s and %s", v.kind, v.toPrettyChars, PtrStateToChars(s1), PtrStateToChars(s2));
+                        // Don't worry about non-pointers
+                        if (hasPointers(v.type))
+                            .error(ob.exp ? ob.exp.loc : v.loc, "%s `%s` is both %s and %s", v.kind, v.toPrettyChars, PtrStateToChars(s1), PtrStateToChars(s2));
                     }
                     pvs1.combine(*pvs2, i, ob.gen);
                 }
