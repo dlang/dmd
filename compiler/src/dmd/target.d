@@ -79,6 +79,8 @@ ubyte defaultTargetOSMajor() @safe
             return 12;
         else version (TARGET_FREEBSD13)
             return 13;
+        else version (TARGET_FREEBSD14)
+            return 14;
         else
             return 0;
     }
@@ -200,13 +202,14 @@ void addPredefinedGlobalIdentifiers(const ref Target tgt)
             case OS.FreeBSD:
             {
                 predef("FreeBSD");
-                switch (tgt.osMajor)
+
+                if(tgt.osMajor != 0)
                 {
-                    case 10: predef("FreeBSD_10");  break;
-                    case 11: predef("FreeBSD_11"); break;
-                    case 12: predef("FreeBSD_12"); break;
-                    case 13: predef("FreeBSD_13"); break;
-                    default: predef("FreeBSD_11"); break;
+                    import core.stdc.stdio : snprintf;
+
+                    char["FreeBSD_100".length + 1] buffer;
+                    immutable len = snprintf(buffer.ptr, buffer.length, "FreeBSD_%u", uint(tgt.osMajor));
+                    predef(buffer[0 .. len]);
                 }
                 break;
             }
