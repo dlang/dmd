@@ -82,6 +82,7 @@ $(GNAME TraitsKeyword):
     $(RELATIVE_LINK2 toType, $(D toType))
     $(RELATIVE_LINK2 initSymbol, $(D initSymbol))
     $(RELATIVE_LINK2 parameters, $(D parameters))
+    $(RELATIVE_LINK2 fullyQualifiedName, $(D fullyQualifiedName))
 
 $(GNAME TraitsArguments):
     $(GLINK TraitsArgument)
@@ -1155,6 +1156,22 @@ $(H3 $(GNAME parameters))
 
 
 $(H2 $(LNAME2 symbols, Symbol Traits))
+
+$(H3 $(GNAME fullyQualifiedName))
+
+    $(P Gets the fully qualified name of a type or symbol.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+-----------------
+module myModule;
+
+int i;
+static assert(__traits(fullyQualifiedName, i) == "myModule.i");
+
+struct MyStruct {}
+static assert(__traits(fullyQualifiedName, const MyStruct[]) == "const(myModule.MyStruct[])");
+-----------------
+)
 
 $(H3 $(GNAME isNested))
 
