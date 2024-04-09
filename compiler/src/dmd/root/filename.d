@@ -13,6 +13,7 @@ module dmd.root.filename;
 
 import core.stdc.ctype;
 import core.stdc.errno;
+import core.stdc.stdio;
 import core.stdc.string;
 
 import dmd.common.file;
@@ -858,6 +859,7 @@ nothrow:
     {
         if (!name.length)
             return 0;
+        //static int count; printf("count: %d %.*s\n", ++count, cast(int)name.length, name.ptr);
         version (Posix)
         {
             stat_t st;

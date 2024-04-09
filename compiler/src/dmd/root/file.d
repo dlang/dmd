@@ -92,7 +92,7 @@ nothrow:
 
         version (Posix)
         {
-            //printf("File::read('%s')\n",name);
+            //printf("File::read('%.*s')\n", cast(int)name.length, name.ptr);
             int fd = name.toCStringThen!(slice => open(slice.ptr, O_RDONLY));
             if (fd == -1)
             {

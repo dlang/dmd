@@ -586,9 +586,9 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
 
     version (none)
     {
-        for (size_t i = 0; i < arguments.length; i++)
+        foreach (i, arg; arguments[])
         {
-            printf("arguments[%d] = '%s'\n", i, arguments[i]);
+            printf("arguments[%d] = '%s'\n", cast(int)i, arguments[i]);
         }
     }
 
@@ -614,6 +614,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     return false;
                 }
             }
+            //printf("push %s\n", p);
             files.push(p);
             continue;
         }
