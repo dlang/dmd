@@ -125,6 +125,83 @@ void test6()
 }
 
 /**************************************/
+// https://issues.dlang.org/show_bug.cgi?id=24495
+struct Subitem {
+    int x;
+    int y;
+};
+
+struct Item {
+
+    int a;
+
+    struct {
+        int b1;
+        struct Subitem b2;
+        int b3;
+    };
+
+};
+
+void test7() {
+
+    struct Item first = {
+        .a = 1,
+        .b1 = 2,
+        .b3 = 3,
+    };
+    struct Item second = {
+        .a = 1,
+        {
+            .b1 = 2,
+            .b2 = { 1, 2 },
+            .b3 = 3
+        }
+    };
+
+    assert(second.a == 1);
+    assert(second.b1 == 2);
+    assert(second.b2.x == 1);
+    assert(second.b2.y == 2);
+    assert(second.b3 == 3);
+}
+
+
+/**************************************/
+// https://issues.dlang.org/show_bug.cgi?id=24277
+struct S8
+{
+    int s;
+    struct
+    {
+        int vis;
+        int count;
+        int id;
+        struct
+        {
+            int symbol;
+            int state;
+        } leaf;
+    };
+};
+
+struct S8 s8 = (struct S8) {
+    .s = 10,
+    {
+        .count = 20,
+        .id = 30,
+        .leaf = {.symbol = 40, .state = 50},
+    }
+};
+
+void test8()
+{
+    assert(s8.id == 30);
+    assert(s8.leaf.symbol == 40);
+    assert(s8.leaf.state == 50);
+}
+
+/**************************************/
 
 int main()
 {
@@ -134,5 +211,7 @@ int main()
     test4();
     test5();
     test6();
+    test7();
+    test8();
     return 0;
 }
