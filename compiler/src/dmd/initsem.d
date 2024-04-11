@@ -872,7 +872,8 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                         foreach (dix; cix.initializerList)
                         {
                             Designators* dlistx = dix.designatorList;
-                            if (!dlistx) continue;
+                            if (!dlistx)
+                                continue;
                             if ((*dlistx).length == 1 && (*dlistx)[0].ident)
                             {
                                 auto id = (*dlistx)[0].ident;
