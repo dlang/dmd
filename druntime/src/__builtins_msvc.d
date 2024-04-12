@@ -9026,4 +9026,194 @@ version (MSVCIntrinsics)
             static assert(test());
         }
     }
+
+    version (X86_64_Or_X86)
+    {
+        extern(C)
+        pragma(inline, true)
+        ushort __lzcnt16(ushort value) @safe pure nothrow @nogc
+        {
+            return leadingZeroCount(value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        uint __lzcnt(uint value) @safe pure nothrow @nogc
+        {
+            return leadingZeroCount(value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        uint _lzcnt_u32(uint value) @safe pure nothrow @nogc
+        {
+            return leadingZeroCount(value);
+        }
+    }
+
+    version (X86_64)
+    {
+        extern(C)
+        pragma(inline, true)
+        ulong __lzcnt64(ulong value) @safe pure nothrow @nogc
+        {
+            return leadingZeroCount(value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ulong _lzcnt_u64(ulong value) @safe pure nothrow @nogc
+        {
+            return leadingZeroCount(value);
+        }
+    }
+
+    version (X86_64_Or_X86)
+    {
+        @safe pure nothrow @nogc unittest
+        {
+            import core.bitop : bsr;
+            import core.cpuid : hasLzcnt;
+
+            static bool testLzcnt()
+            {
+                version (X86_64_Or_X86)
+                {
+                    assert(__lzcnt16(0) == 16);
+                    assert(__lzcnt16(1) == 15);
+                    assert(__lzcnt16(ushort.max) == 0);
+
+                    assert(__lzcnt(0) == 32);
+                    assert(_lzcnt_u32(0) == 32);
+                    assert(__lzcnt(1) == 31);
+                    assert(_lzcnt_u32(1) == 31);
+                    assert(__lzcnt(uint.max) == 0);
+                    assert(_lzcnt_u32(uint.max) == 0);
+                }
+
+                version (X86_64)
+                {
+                    assert(__lzcnt64(0) == 64);
+                    assert(_lzcnt_u64(0) == 64);
+                    assert(__lzcnt64(1) == 63);
+                    assert(_lzcnt_u64(1) == 63);
+                    assert(__lzcnt64(ulong.max) == 0);
+                    assert(_lzcnt_u64(ulong.max) == 0);
+                }
+
+                return true;
+            }
+
+            static bool testBsr()
+            {
+                version (X86_64_Or_X86)
+                {
+                    assert(__lzcnt16(1) == 0);
+                    assert(__lzcnt16(ushort.max) == 15);
+
+                    assert(__lzcnt(1) == 0);
+                    assert(_lzcnt_u32(1) == 0);
+                    assert(__lzcnt(uint.max) == 31);
+                    assert(_lzcnt_u32(uint.max) == 31);
+                }
+
+                version (X86_64)
+                {
+                    assert(__lzcnt64(1) == 0);
+                    assert(_lzcnt_u64(1) == 0);
+                    assert(__lzcnt64(ulong.max) == 63);
+                    assert(_lzcnt_u64(ulong.max) == 63);
+                }
+
+                return true;
+            }
+
+            if (hasLzcnt)
+            {
+                assert(testLzcnt());
+            }
+            else
+            {
+                assert(testBsr());
+            }
+
+            static assert(testLzcnt());
+        }
+
+        extern(C)
+        pragma(inline, true)
+        private T leadingZeroCount(T)(T value) @safe pure nothrow @nogc
+        {
+            /* We use inline assembly for this, instead of intrinsics or relying on the optimiser,
+               so that lzcnt is emitted even for targets that don't support it, just like MSVC does. */
+
+            import core.bitop : bsr;
+
+            if (__ctfe)
+            {
+                enum T operandSize = cast(T) (T.sizeof << 3);
+                enum uint operandSizeLessOne = operandSize - 1;
+
+                return value == 0 ? operandSize : cast(T) (operandSizeLessOne ^ bsr(value));
+            }
+            else
+            {
+                version (LDC)
+                {
+                    import ldc.llvmasm : __ir_pure;
+
+                    enum size = T.sizeof.bsr;
+                    enum type = ["i8", "i16", "i32", "i64"][size];
+
+                    return __ir_pure!(
+                        `%c = call ` ~ type ~ ` asm inteldialect "lzcnt $0, $1", "=r,r,~{flags}"(` ~ type ~ ` %0)
+                         ret ` ~ type ~ ` %c`,
+                        T
+                    )(value);
+                }
+                else version (GNU)
+                {
+                    T result;
+
+                    asm @trusted pure nothrow @nogc
+                    {
+                        "lzcnt %1, %0" : "=r" (result) : "rm" (value) : "cc";
+                    }
+
+                    return result;
+                }
+                else version (InlineAsm_X86_64_Or_X86)
+                {
+                    enum size = T.sizeof.bsr;
+                    enum a = ["AL", "AX", "EAX", "RAX"][size];
+
+                    version (D_InlineAsm_X86_64)
+                    {
+                        enum c = ["CL", "CX", "ECX", "RCX"][size];
+
+                        mixin(
+                            "asm @trusted pure nothrow @nogc
+                             {
+                                 /* C is value. */
+                                 naked;
+                                 lzcnt " ~ a ~ ", " ~ c ~ ";
+                                 ret;
+                             }"
+                        );
+                    }
+                    else version (D_InlineAsm_X86)
+                    {
+                        mixin(
+                            "asm @trusted pure nothrow @nogc
+                             {
+                                 naked;
+                                 lzcnt " ~ a ~ ", [ESP + 4]; /* [ESP + 4] is value. */
+                                 ret;
+                             }"
+                        );
+                    }
+                }
+            }
+        }
+    }
 }
