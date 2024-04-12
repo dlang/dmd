@@ -11146,5 +11146,64 @@ version (MSVCIntrinsics)
                 }
             }
         }
+
+        extern(C)
+        pragma(inline, true)
+        long __readmsr(int register) @safe nothrow @nogc
+        {
+            version (LDC)
+            {
+                import ldc.llvmasm : __ir;
+
+                return __ir!(
+                    `%halves = call {i32, i32} asm sideeffect inteldialect "rdmsr", "={eax},={edx},{ecx}"(i32 %0)
+
+                     %lo32 = extractvalue {i32, i32} %halves, 0
+                     %hi32 = extractvalue {i32, i32} %halves, 1
+
+                     %lo = zext i32 %lo32 to i64
+                     %hi = zext i32 %hi32 to i64
+                     %hi64 = shl i64 %hi, 32
+                     %result = or i64 %hi64, %lo
+
+                     ret i64 %result`,
+                    long
+                )(register);
+            }
+            else version (GNU)
+            {
+                uint lo;
+                uint hi;
+
+                asm @trusted nothrow @nogc
+                {
+                    "rdmsr" : "=a" (lo), "=d" (hi) : "c" (register);
+                }
+
+                return (ulong(hi) << 32) | lo;
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    /* ECX is register. */
+                    naked;
+                    rdmsr;
+                    shl RDX, 32;
+                    or RAX, RDX;
+                    ret;
+                }
+            }
+            else version (D_InlineAsm_X86)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    naked;
+                    mov ECX, [ESP + 4]; /* register. */
+                    rdmsr;
+                    ret;
+                }
+            }
+        }
     }
 }
