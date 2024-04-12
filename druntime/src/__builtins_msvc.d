@@ -4931,6 +4931,249 @@ version (MSVCIntrinsics)
 
     extern(C)
     pragma(inline, true)
+    int _InterlockedAnd(scope shared(int)* value, int mask) @safe pure nothrow @nogc
+    {
+        return interlockedOp!("rmw_and", "and_4", "&")(value, mask);
+    }
+
+    extern(C)
+    pragma(inline, true)
+    byte _InterlockedAnd8(scope shared(byte)* value, byte mask) @safe pure nothrow @nogc
+    {
+        return interlockedOp!("rmw_and", "and_1", "&")(value, mask);
+    }
+
+    extern(C)
+    pragma(inline, true)
+    short _InterlockedAnd16(scope shared(short)* value, short mask) @safe pure nothrow @nogc
+    {
+        return interlockedOp!("rmw_and", "and_2", "&")(value, mask);
+    }
+
+    extern(C)
+    pragma(inline, true)
+    long _interlockedand64(scope shared(long)* value, long mask) @safe pure nothrow @nogc
+    {
+        return interlockedOp!("rmw_and", "and_8", "&")(value, mask);
+    }
+
+    version (AArch64_Or_ARM)
+    {
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedAnd_acq(scope shared(int)* value, int mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_and", "and_4", "&", MemoryOrder.acq)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedAnd_rel(scope shared(int)* value, int mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_and", "and_4", "&", MemoryOrder.acq_rel)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedAnd_nf(scope shared(int)* value, int mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_and", "and_4", "&", MemoryOrder.raw)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        byte _InterlockedAnd8_acq(scope shared(byte)* value, byte mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_and", "and_1", "&", MemoryOrder.acq)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        byte _InterlockedAnd8_rel(scope shared(byte)* value, byte mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_and", "and_1", "&", MemoryOrder.acq_rel)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        byte _InterlockedAnd8_nf(scope shared(byte)* value, byte mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_and", "and_1", "&", MemoryOrder.raw)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        short _InterlockedAnd16_acq(scope shared(short)* value, short mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_and", "and_2", "&", MemoryOrder.acq)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        short _InterlockedAnd16_rel(scope shared(short)* value, short mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_and", "and_2", "&", MemoryOrder.acq_rel)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        short _InterlockedAnd16_nf(scope shared(short)* value, short mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_and", "and_2", "&", MemoryOrder.raw)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedAnd64_acq(scope shared(long)* value, long mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_and", "and_8", "&", MemoryOrder.acq)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedAnd64_rel(scope shared(long)* value, long mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_and", "and_8", "&", MemoryOrder.acq_rel)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedAnd64_nf(scope shared(long)* value, long mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_and", "and_8", "&", MemoryOrder.raw)(value, mask);
+        }
+    }
+
+    version (X86_64_Or_AArch64_Or_ARM)
+    {
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedAnd64(scope shared(long)* value, long mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_and", "and_8", "&")(value, mask);
+        }
+    }
+
+    version (X86_64)
+    {
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedAnd_np(scope shared(int)* value, int mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_and", "and_4", "&", MemoryOrder.seq, true)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        byte _InterlockedAnd8_np(scope shared(byte)* value, byte mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_and", "and_1", "&", MemoryOrder.seq, true)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        short _InterlockedAnd16_np(scope shared(short)* value, short mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_and", "and_2", "&", MemoryOrder.seq, true)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedAnd64_np(scope shared(long)* value, long mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_and", "and_8", "&", MemoryOrder.seq, true)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedAnd64_HLEAcquire(scope shared(long)* value, long mask) @safe pure nothrow @nogc
+        {
+            return interlockedOpHLE!(true, "&", "and")(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedAnd64_HLERelease(scope shared(long)* value, long mask) @safe pure nothrow @nogc
+        {
+            return interlockedOpHLE!(false, "&", "and")(value, mask);
+        }
+    }
+
+    version (X86_64_Or_X86)
+    {
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedAnd_HLEAcquire(scope shared(int)* value, int mask) @safe pure nothrow @nogc
+        {
+            return interlockedOpHLE!(true, "&", "and")(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedAnd_HLERelease(scope shared(int)* value, int mask) @safe pure nothrow @nogc
+        {
+            return interlockedOpHLE!(false, "&", "and")(value, mask);
+        }
+    }
+
+    /* This is trusted so that it's @safe without DIP1000 enabled. */
+    @trusted pure nothrow @nogc unittest
+    {
+        static bool test()
+        {
+            alias t(alias symbol, T) = interlockedOpTest!("&", symbol, T);
+
+            t!(_InterlockedAnd, int)();
+            t!(_InterlockedAnd8, byte)();
+            t!(_InterlockedAnd16, short)();
+            t!(_interlockedand64, long)();
+
+            version (AArch64_Or_ARM)
+            {
+                t!(_InterlockedAnd_acq, int)();
+                t!(_InterlockedAnd_rel, int)();
+                t!(_InterlockedAnd_nf, int)();
+                t!(_InterlockedAnd8_acq, byte)();
+                t!(_InterlockedAnd8_rel, byte)();
+                t!(_InterlockedAnd8_nf, byte)();
+                t!(_InterlockedAnd16_acq, short)();
+                t!(_InterlockedAnd16_rel, short)();
+                t!(_InterlockedAnd16_nf, short)();
+                t!(_InterlockedAnd64_acq, long)();
+                t!(_InterlockedAnd64_rel, long)();
+                t!(_InterlockedAnd64_nf, long)();
+            }
+
+            version (X86_64_Or_AArch64_Or_ARM)
+            {
+                t!(_InterlockedAnd64, long)();
+            }
+
+            version (X86_64)
+            {
+                t!(_InterlockedAnd_np, int)();
+                t!(_InterlockedAnd8_np, byte)();
+                t!(_InterlockedAnd16_np, short)();
+                t!(_InterlockedAnd64_np, long)();
+                t!(_InterlockedAnd64_HLEAcquire, long)();
+                t!(_InterlockedAnd64_HLERelease, long)();
+            }
+
+            version (X86_64_Or_X86)
+            {
+                t!(_InterlockedAnd_HLEAcquire, int)();
+                t!(_InterlockedAnd_HLERelease, int)();
+            }
+
+            return true;
+        }
+
+        assert(test());
+        static assert(test());
+    }
+
+    extern(C)
+    pragma(inline, true)
     private T interlockedAdd(MemoryOrder order = MemoryOrder.seq, T)(scope shared(T)* address, T value)
     @safe pure nothrow @nogc
     {
@@ -4955,6 +5198,199 @@ version (MSVCIntrinsics)
             }
 
             return result;
+        }
+    }
+
+
+    version (X86_64_Or_X86)
+    {
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        extern(C)
+        pragma(inline, true)
+        private T interlockedOpHLE(bool acquire, string op, string x86OpCode, T)(scope shared(T)* address, T operand)
+        @trusted
+        {
+            if (__ctfe)
+            {
+                scope a = ((a) @trusted => cast(T*) a)(address);
+                T oldValue = *a;
+                mixin(q{*a }, op, q{= operand;});
+                return oldValue;
+            }
+            else
+            {
+                version (X86_64)
+                {
+                    version (LDC)
+                    {
+                        import core.simd : prefetch;
+                        prefetch!(true, 3)(((a) @trusted => cast(const(void)*) a)(address));
+                    }
+                    else version (GNU)
+                    {
+                        import gcc.builtins : __builtin_prefetch;
+                        __builtin_prefetch(((a) @trusted => cast(const(void)*) a)(address), 1, 3);
+                    }
+                }
+
+                version (LDC)
+                {
+                    import core.bitop : bsr;
+                    import core.internal.atomic : atomicLoad;
+                    import ldc.llvmasm : __ir_pure;
+
+                    enum size = T.sizeof.bsr;
+                    enum type = ["i8", "i16", "i32", "i64"][size];
+                    enum a = ["al", "ax", "eax", "rax"][size];
+
+                    enum ptr = llvmIRPtr!type;
+                    T value = atomicLoad!(MemoryOrder.raw)(address);
+
+                    while (
+                        !__ir_pure!(
+                            `%value = load ` ~ type ~ `, ` ~ ptr ~ ` %1
+
+                             %cas = call {` ~ type ~ `, i8} asm sideeffect inteldialect
+                                 "` ~ (acquire ? "xacquire" : "xrelease") ~ ` lock cmpxchg $1, $4",
+                                 "={` ~ a ~ `},=*m,={@ccz},0,r,~{memory},~{flags}"
+                                 (` ~ ptr ~ ` elementtype(` ~ type ~ `)` ~ ` %0, ` ~ type ~ ` %value, ` ~ type ~ ` %2)
+
+                             %oldValue = extractvalue {` ~ type ~ `, i8} %cas, 0
+                             %stored = extractvalue {` ~ type ~ `, i8} %cas, 1
+
+                             store ` ~ type ~ ` %oldValue, ` ~ ptr ~ ` %1
+                             ret i8 %stored`,
+                            ubyte
+                        )(address, &value, cast(T) (mixin(q{value }, op, q{ operand})))
+                    )
+                    {
+                        static if (acquire)
+                        {
+                            __builtin_ia32_pause();
+                        }
+                    }
+
+                    return value;
+                }
+                else version (GNU)
+                {
+                    static if (acquire)
+                    {
+                        /* This is equivalent to GCC's __ATOMIC_HLE_ACQUIRE. */
+                        enum int hleModifier = 1 << 16;
+                    }
+                    else
+                    {
+                        /* This is equivalent to GCC's __ATOMIC_HLE_RELEASE. */
+                        enum int hleModifier = 1 << 17;
+                    }
+
+                    enum int hleOrder = MemoryOrder.seq | hleModifier;
+                    enum cas = "__atomic_compare_exchange_" ~ ('0' + T.sizeof);
+                    enum load = "__atomic_load_" ~ ('0' + T.sizeof);
+
+                    mixin(q{import gcc.builtins : }, cas, q{, }, load, q{, __builtin_ia32_pause;});
+
+                    T value = mixin(load)(address, MemoryOrder.raw);
+
+                    while (
+                        !mixin(cas)(
+                            address,
+                            &value,
+                            cast(T) (mixin(q{value }, op, q{ operand})),
+                            true,
+                            hleOrder,
+                            hleOrder
+                        )
+                    )
+                    {
+                        static if (acquire)
+                        {
+                            __builtin_ia32_pause();
+                        }
+                    }
+
+                    return value;
+                }
+                else version (D_InlineAsm_X86_64)
+                {
+                    import core.bitop : bsr;
+
+                    enum size = T.sizeof.bsr;
+                    enum fullA = ["EAX", "EAX", "EAX", "RAX"][size];
+                    enum fullR8 = ["R8D", "R8D", "R8D", "R8"][size];
+                    enum fullMOV = ["movzx", "movzx", "mov", "mov"][size];
+                    enum fastD = ["DL", "EDX", "EDX", "RDX"][size];
+                    enum fastR8 = ["R8B", "R8D", "R8D", "R8"][size];
+                    enum r8 = ["R8B", "R8W", "R8D", "R8"][size];
+                    enum ptr = ["byte", "word", "dword", "qword"][size];
+                    enum xacquire = "repne";
+                    enum xrelease = "rep";
+
+                    mixin(
+                        "asm @trusted pure nothrow @nogc
+                         {
+                             /* RCX is address; RDX is operand. */
+                             naked;
+                             prefetchw byte ptr [RCX];
+                             " ~ fullMOV ~ " " ~ fullA ~ ", " ~ ptr ~ " ptr [RCX];
+                         cas:
+                             mov " ~ fullR8 ~ ", " ~ fullA ~ ";
+                             " ~ x86OpCode ~ " " ~ fastR8 ~ ", " ~ fastD ~ ";
+                             " ~ (acquire ? xacquire : xrelease) ~ "; lock; cmpxchg [RCX], " ~ r8 ~ ";
+                             " ~ (
+                                   acquire
+                                 ? "je swapped;
+                                    rep; nop; /* pause */
+                                    jmp cas;"
+                                 : "jne cas;"
+                             ) ~ "
+                         swapped:
+                             ret;
+                         }"
+                    );
+                }
+                else version (D_InlineAsm_X86)
+                {
+                    import core.bitop : bsr;
+
+                    enum size = T.sizeof.bsr;
+                    enum fullA = ["EAX", "EAX", "EAX"][size];
+                    enum fullB = ["EBX", "EBX", "EBX"][size];
+                    enum fullMOV = ["movzx", "movzx", "mov"][size];
+                    enum fastB = ["BL", "EBX", "EBX"][size];
+                    enum fastD = ["DL", "EDX", "EDX"][size];
+                    enum b = ["BL", "BX", "EBX"][size];
+                    enum ptr = ["byte", "word", "dword"][size];
+                    enum xacquire = "repne";
+                    enum xrelease = "rep";
+
+                    mixin(
+                        "asm @trusted pure nothrow @nogc
+                         {
+                             naked;
+                             push EBX;
+                             mov ECX, [ESP + 8]; /* address. */
+                             " ~ fullMOV ~ " " ~ fullA ~ ", " ~ ptr ~ " ptr [ECX];
+                             mov EDX, [ESP + 12]; /* operand. */
+                         cas:
+                             mov " ~ fullB ~ ", " ~ fullA ~ ";
+                             " ~ x86OpCode ~ " " ~ fastB ~ ", " ~ fastD ~ ";
+                             " ~ (acquire ? xacquire : xrelease) ~ "; lock; cmpxchg [ECX], " ~ b ~ ";
+                             " ~ (
+                                   acquire
+                                 ? "je swapped;
+                                    rep; nop; /* pause */
+                                    jmp cas;"
+                                 : "jne cas;"
+                             ) ~ "
+                         swapped:
+                             pop EBX;
+                             ret;
+                         }"
+                    );
+                }
+            }
         }
     }
 
@@ -5043,5 +5479,24 @@ version (MSVCIntrinsics)
 
             return value;
         }
+    }
+
+    private void interlockedOpTest(string op, alias symbol, T)()
+    {
+        enum ulong fullValue = 0x32515ED8453C5664;
+        enum ulong fullOperandA = 0x4B71C0BCC5836855;
+        enum ulong fullOperandB = 0x2E934F81075982C8;
+
+        shared T value = cast(T) fullValue;
+        shared T oldValue = value;
+        T operandA = cast(T) fullOperandA;
+        T operandB = cast(T) fullOperandB;
+
+        assert(symbol(&value, operandA) == oldValue);
+        assert(value == cast(T) (mixin(q{oldValue }, op, q{ operandA})));
+        oldValue = value;
+
+        assert(symbol(&value, operandB) == oldValue);
+        assert(value == cast(T) (mixin(q{oldValue }, op, q{ operandB})));
     }
 }
