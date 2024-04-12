@@ -5899,6 +5899,150 @@ version (MSVCIntrinsics)
 
     extern(C)
     pragma(inline, true)
+    void* _InterlockedCompareExchangePointer(
+        scope shared(void*)* Destination,
+        scope void* Exchange,
+        return scope void* Comparand
+    )
+    @safe pure nothrow @nogc
+    {
+        return interlockedCAS!(MemoryOrder.seq, MemoryOrder.seq, void*)(Destination, Exchange, Comparand);
+    }
+
+    version (X86_64_Or_X86)
+    {
+        extern(C)
+        pragma(inline, true)
+        void* _InterlockedCompareExchangePointer_HLEAcquire(
+            scope shared(void*)* Destination,
+            scope void* Exchange,
+            return scope void* Comparand
+        )
+        @safe pure nothrow @nogc
+        {
+            return interlockedCASHLE!(true, void*)(Destination, Exchange, Comparand);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void* _InterlockedCompareExchangePointer_HLERelease(
+            scope shared(void*)* Destination,
+            scope void* Exchange,
+            return scope void* Comparand
+        )
+        @safe pure nothrow @nogc
+        {
+            return interlockedCASHLE!(false, void*)(Destination, Exchange, Comparand);
+        }
+    }
+
+    version (X86_64)
+    {
+        extern(C)
+        pragma(inline, true)
+        void* _InterlockedCompareExchangePointer_np(
+            scope shared(void*)* Destination,
+            scope void* Exchange,
+            return scope void* Comparand
+        )
+        @safe pure nothrow @nogc
+        {
+            return interlockedCAS!(MemoryOrder.seq, MemoryOrder.seq, void*)(Destination, Exchange, Comparand);
+        }
+    }
+
+    version (AArch64_Or_ARM)
+    {
+        extern(C)
+        pragma(inline, true)
+        void* _InterlockedCompareExchangePointer_acq(
+            scope shared(void*)* Destination,
+            scope void* Exchange,
+            return scope void* Comparand
+        )
+        @safe pure nothrow @nogc
+        {
+            return interlockedCAS!(MemoryOrder.acq, MemoryOrder.acq, void*)(Destination, Exchange, Comparand);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void* _InterlockedCompareExchangePointer_rel(
+            scope shared(void*)* Destination,
+            scope void* Exchange,
+            return scope void* Comparand
+        )
+        @safe pure nothrow @nogc
+        {
+            return interlockedCAS!(MemoryOrder.acq_rel, MemoryOrder.raw, void*)(Destination, Exchange, Comparand);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void* _InterlockedCompareExchangePointer_nf(
+            scope shared(void*)* Destination,
+            scope void* Exchange,
+            return scope void* Comparand
+        )
+        @safe pure nothrow @nogc
+        {
+            return interlockedCAS!(MemoryOrder.raw, MemoryOrder.raw, void*)(Destination, Exchange, Comparand);
+        }
+    }
+
+    @safe pure nothrow @nogc unittest
+    {
+        static void* p(ulong value) @trusted
+        {
+            return cast(void*) cast(size_t) value;
+        }
+
+        static void compareExchangeTest(alias symbol)()
+        {
+            scope void* value = p(0x6B2E38BF9FAF53EC);
+            scope shared(void*)* valueAddress = ((return scope ref v) @trusted => cast(shared(void*)*) &v)(value);
+
+            assert(symbol(valueAddress, value, value) == p(0x6B2E38BF9FAF53EC));
+            assert(value == p(0x6B2E38BF9FAF53EC));
+
+            assert(symbol(valueAddress, p(0x24AC9053985CF040), value) == p(0x6B2E38BF9FAF53EC));
+            assert(value == p(0x24AC9053985CF040));
+
+            assert(symbol(valueAddress, p(0x426A6F348BBD3430), p(123)) == p(0x24AC9053985CF040));
+            assert(value == p(0x24AC9053985CF040));
+        }
+
+        static bool test()
+        {
+            compareExchangeTest!_InterlockedCompareExchangePointer();
+
+            version (X86_64_Or_X86)
+            {
+                compareExchangeTest!_InterlockedCompareExchangePointer_HLEAcquire();
+                compareExchangeTest!_InterlockedCompareExchangePointer_HLERelease();
+            }
+
+            version (X86_64)
+            {
+                compareExchangeTest!_InterlockedCompareExchangePointer_np();
+            }
+
+            version (AArch64_Or_ARM)
+            {
+                compareExchangeTest!_InterlockedCompareExchangePointer_acq();
+                compareExchangeTest!_InterlockedCompareExchangePointer_rel();
+                compareExchangeTest!_InterlockedCompareExchangePointer_nf();
+            }
+
+            return true;
+        }
+
+        assert(test());
+        static assert(test());
+    }
+
+    extern(C)
+    pragma(inline, true)
     private T interlockedAdd(MemoryOrder order = MemoryOrder.seq, T)(scope shared(T)* address, T value)
     @safe pure nothrow @nogc
     {
