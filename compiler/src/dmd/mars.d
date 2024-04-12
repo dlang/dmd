@@ -851,7 +851,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-ftime-trace")
             params.timeTrace = true;
-        else if (startsWith(p + 1, "-ftime-trace-granularity="))
+        else if (startsWith(p + 1, "ftime-trace-granularity="))
         {
             enum len = "-ftime-trace-granularity=".length;
             if (arg.length < len || !params.timeTraceGranularityUs.parseDigits(arg[len .. $]))
@@ -860,7 +860,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 return false;
             }
         }
-        else if (startsWith(p + 1, "-ftime-trace-file="))
+        else if (startsWith(p + 1, "ftime-trace-file="))
         {
             enum l = "-ftime-trace-file=".length;
             auto tmp = p + l;

@@ -223,7 +223,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
         //printf("FuncDeclaration::semantic3(%s '%s', sc = %p)\n", funcdecl.kind(), funcdecl.toChars(), sc);
         import dmd.timetrace;
         import dmd.root.string : toDString;
-        auto timeScope = TimeTraceScope("Sema2: Func " ~ funcdecl.toChars().toDString(), funcdecl.toPrettyChars().toDString(), funcdecl.loc);
+        timeTraceBeginEvent(TimeTraceEventType.sema3);
+        scope (exit) timeTraceEndEvent(TimeTraceEventType.sema3, funcdecl);
 
         /* Determine if function should add `return 0;`
          */

@@ -359,7 +359,8 @@ private extern(C++) final class Semantic2Visitor : Visitor
         assert(fd.semanticRun <= PASS.semantic2);
         fd.semanticRun = PASS.semantic2;
 
-        auto timeScope = TimeTraceScope("Sema2: Func " ~ fd.toChars().toDString(), fd.toPrettyChars().toDString(), fd.loc);
+        timeTraceBeginEvent(TimeTraceEventType.sema2);
+        scope(exit) timeTraceEndEvent(TimeTraceEventType.sema2, fd);
 
         //printf("FuncDeclaration::semantic2 [%s] fd: %s type: %s\n", fd.loc.toChars(), fd.toChars(), fd.type ? fd.type.toChars() : "".ptr);
 
