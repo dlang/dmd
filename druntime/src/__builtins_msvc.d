@@ -13029,4 +13029,106 @@ version (MSVCIntrinsics)
         assert(test());
         static assert(test());
     }
+
+    extern(C)
+    pragma(inline, true)
+    ubyte _BitScanForward(scope uint* Index, uint Mask) @safe pure nothrow @nogc
+    {
+        import core.bitop : bsf;
+        return bitScan!bsf(Index, Mask);
+    }
+
+    extern(C)
+    pragma(inline, true)
+    ubyte _BitScanReverse(scope uint* Index, uint Mask) @safe pure nothrow @nogc
+    {
+        import core.bitop : bsr;
+        return bitScan!bsr(Index, Mask);
+    }
+
+    version (X86_64_Or_AArch64)
+    {
+        extern(C)
+        pragma(inline, true)
+        ubyte _BitScanForward64(scope uint* Index, ulong Mask) @safe pure nothrow @nogc
+        {
+            import core.bitop : bsf;
+            return bitScan!bsf(Index, Mask);
+        }
+        extern(C)
+        pragma(inline, true)
+        ubyte _BitScanReverse64(scope uint* Index, ulong Mask) @safe pure nothrow @nogc
+        {
+            import core.bitop : bsr;
+            return bitScan!bsr(Index, Mask);
+        }
+    }
+
+    /* This is trusted so that it's @safe without DIP1000 enabled. */
+    @trusted pure nothrow @nogc unittest
+    {
+        static bool test()
+        {
+            uint index;
+
+            assert(_BitScanReverse(&index, 0) == 0);
+            assert(_BitScanReverse(&index, 0b101) == 1);
+            assert(index == 2);
+            assert(_BitScanReverse(&index, uint.max) == 1);
+            assert(index == 31);
+
+            assert(_BitScanForward(&index, 0) == 0);
+            assert(_BitScanForward(&index, 0b101) == 1);
+            assert(index == 0);
+            assert(_BitScanForward(&index, 0b100) == 1);
+            assert(index == 2);
+            assert(_BitScanForward(&index, uint.max) == 1);
+            assert(index == 0);
+
+            version (X86_64_Or_AArch64)
+            {
+                assert(_BitScanReverse64(&index, 0) == 0);
+                assert(_BitScanReverse64(&index, 0b101) == 1);
+                assert(index == 2);
+                assert(_BitScanReverse64(&index, ulong.max) == 1);
+                assert(index == 63);
+
+                assert(_BitScanForward64(&index, 0) == 0);
+                assert(_BitScanForward64(&index, 0b101) == 1);
+                assert(index == 0);
+                assert(_BitScanForward64(&index, 0b100) == 1);
+                assert(index == 2);
+                assert(_BitScanForward64(&index, ulong.max) == 1);
+                assert(index == 0);
+            }
+
+            return true;
+        }
+
+        assert(test());
+        static assert(test());
+    }
+
+    extern(C)
+    pragma(inline, true)
+    private ubyte bitScan(alias scan, I)(scope uint* index, I mask) @safe pure nothrow @nogc
+    {
+        if (__ctfe)
+        {
+            if (mask == 0)
+            {
+                return 0;
+            }
+            else
+            {
+                *index = scan(mask);
+                return 1;
+            }
+        }
+        else
+        {
+            *index = scan(mask);
+            return mask != 0;
+        }
+    }
 }
