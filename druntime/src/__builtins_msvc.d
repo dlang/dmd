@@ -3299,5 +3299,332 @@ version (MSVCIntrinsics)
             assert(test());
             static assert(test());
         }
+
+        extern(C)
+        pragma(inline, true)
+        int _cvt_dtoi_sent(double value) @safe pure nothrow @nogc
+        {
+            return _cvt_dtoi_fast(value);
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                assert(_cvt_dtoi_sent(0.0) == 0);
+                assert(_cvt_dtoi_sent(-0.0) == 0);
+                assert(_cvt_dtoi_sent(float.nan) == -2147483648);
+                assert(_cvt_dtoi_sent(-float.nan) == -2147483648);
+                assert(_cvt_dtoi_sent(float.infinity) == -2147483648);
+                assert(_cvt_dtoi_sent(-float.infinity) == -2147483648);
+                assert(_cvt_dtoi_sent(1.0) == 1);
+                assert(_cvt_dtoi_sent(-1.0) == -1);
+                assert(_cvt_dtoi_sent(2.5) == 2);
+                assert(_cvt_dtoi_sent(-2.5) == -2);
+                assert(_cvt_dtoi_sent(3.5) == 3);
+                assert(_cvt_dtoi_sent(-3.5) == -3);
+                assert(_cvt_dtoi_sent(3.49) == 3);
+                assert(_cvt_dtoi_sent(-3.49) == -3);
+                assert(_cvt_dtoi_sent(twoExp31Float) == -2147483648);
+                assert(_cvt_dtoi_sent(-twoExp31Float) == -2147483648);
+                assert(_cvt_dtoi_sent(twoExp63Float) == -2147483648);
+                assert(_cvt_dtoi_sent(-twoExp63Float) == -2147483648);
+                assert(_cvt_dtoi_sent(justUnderTwoExp63Float) == -2147483648);
+                assert(_cvt_dtoi_sent(33554432.0) == 33554432);
+                assert(_cvt_dtoi_sent(-33554432.0) == -33554432);
+                assert(_cvt_dtoi_sent(33554436.0) == 33554436);
+                assert(_cvt_dtoi_sent(-33554436.0) == -33554436);
+                assert(_cvt_dtoi_sent(70369281048576.0) == -2147483648);
+                assert(_cvt_dtoi_sent(-70369281048576.0) == -2147483648);
+
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
+
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        extern(C)
+        pragma(inline, true)
+        uint _cvt_dtoui_sent(double value) @trusted pure nothrow @nogc
+        {
+            version (X86_64)
+            {
+                const integer = cast(ulong) _cvt_dtoll_fast(value);
+
+                return integer > uint.max ? uint.max : cast(uint) integer;
+            }
+            else version (X86)
+            {
+                if (
+                       *(cast(const(ulong)*) &value)
+                    <= 0b1_01111111111_0000000000000000000000000000000000000000000000000000
+                )
+                {
+                    /* If the hardware can handle it, let it handle it. */
+                    if (value < twoExp31Double)
+                    {
+                        return cast(uint) _cvt_dtoi_fast(value);
+                    }
+                    else if (value < twoExp32Double)
+                    {
+                        /* At this point, the exponent is 31. */
+
+                        /* We have 52-bits stored for the significand, and we know that the exponent is 31,
+                           which means that we can just shift left unconditionally by 21 (52 - 31), which leaves
+                           the implicit bit of the full 53-bit significand to be set at the most-significant bit. */
+                        return cast(uint) (*(cast(const(ulong)*) &value) >>> 21) | (1 << 31);
+                    }
+                }
+
+                return uint.max;
+            }
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                assert(_cvt_dtoui_sent(0.0) == 0);
+                assert(_cvt_dtoui_sent(-0.0) == 0);
+                assert(_cvt_dtoui_sent(float.nan) == 4294967295);
+                assert(_cvt_dtoui_sent(-float.nan) == 4294967295);
+                assert(_cvt_dtoui_sent(float.infinity) == 4294967295);
+                assert(_cvt_dtoui_sent(-float.infinity) == 4294967295);
+                assert(_cvt_dtoui_sent(1.0) == 1);
+                assert(_cvt_dtoui_sent(-1.0) == 4294967295);
+                assert(_cvt_dtoui_sent(2.5) == 2);
+                assert(_cvt_dtoui_sent(-2.5) == 4294967295);
+                assert(_cvt_dtoui_sent(3.5) == 3);
+                assert(_cvt_dtoui_sent(-3.5) == 4294967295);
+                assert(_cvt_dtoui_sent(3.49) == 3);
+                assert(_cvt_dtoui_sent(-3.49) == 4294967295);
+                assert(_cvt_dtoui_sent(twoExp31Float) == 2147483648);
+                assert(_cvt_dtoui_sent(-twoExp31Float) == 4294967295);
+                assert(_cvt_dtoui_sent(twoExp63Float) == 4294967295);
+                assert(_cvt_dtoui_sent(-twoExp63Float) == 4294967295);
+                assert(_cvt_dtoui_sent(justUnderTwoExp63Float) == 4294967295);
+                assert(_cvt_dtoui_sent(33554432.0) == 33554432);
+                assert(_cvt_dtoui_sent(-33554432.0) == 4294967295);
+                assert(_cvt_dtoui_sent(33554436.0) == 33554436);
+                assert(_cvt_dtoui_sent(-33554436.0) == 4294967295);
+                assert(_cvt_dtoui_sent(70369281048576.0) == 4294967295);
+                assert(_cvt_dtoui_sent(-70369281048576.0) == 4294967295);
+
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
+
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        extern(C)
+        pragma(inline, true)
+        long _cvt_dtoll_sent(double value) @trusted pure nothrow @nogc
+        {
+            version (X86_64)
+            {
+                return _cvt_dtoll_fast(value);
+            }
+            else version (X86)
+            {
+                /* If the hardware can handle it, let it handle it. */
+                if (value < twoExp31Double && value >= -twoExp31Double)
+                {
+                    return _cvt_dtoi_fast(value);
+                }
+
+                if (!(value < twoExp63Double && value > -twoExp63Double))
+                {
+                    return 0x80000000_00000000;
+                }
+
+                /* At this point, the exponent is at-least 31 and less-than 63. */
+
+                long asInt = *(cast(const(long)*) &value);
+
+                uint high = cast(uint) (asInt >>> 32);
+                uint low = cast(uint) asInt;
+
+                long sign = (cast(int) high) >> 31;
+                assert(sign == 0 || sign == -1);
+
+                int exponent = ((high >>> 20) & 2047) - 1023;
+                assert(exponent >= 31);
+                assert(exponent <= 62);
+
+                ulong significand = (ulong((high & 0b00000000_00001111_11111111_11111111) | (1 << 20)) << 32) | low;
+                uint shiftCount = (exponent < 52 ? 52 : exponent) - (exponent < 52 ? exponent : 52);
+
+                if (exponent < 52)
+                {
+                    significand >>>= (shiftCount & 63);
+                }
+                else
+                {
+                    significand <<= (shiftCount & 63);
+                }
+
+                /* If the sign bit is set, we need to negate the significand; we can do that branchlessly
+                   by taking advantage of the fact that `sign` is either 0 or -1.
+                   As `(s ^ 0) - 0 == s`, whereas `(s ^ -1) - -1 == -s`. */
+                ulong adjustedSignificand = (significand ^ sign) - sign;
+                assert(sign == 0 ? adjustedSignificand == significand : adjustedSignificand == -significand);
+
+                return adjustedSignificand;
+            }
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                assert(_cvt_dtoll_sent(0.0) == 0);
+                assert(_cvt_dtoll_sent(-0.0) == 0);
+                assert(_cvt_dtoll_sent(float.nan) == -9223372036854775808);
+                assert(_cvt_dtoll_sent(-float.nan) == -9223372036854775808);
+                assert(_cvt_dtoll_sent(float.infinity) == -9223372036854775808);
+                assert(_cvt_dtoll_sent(-float.infinity) == -9223372036854775808);
+                assert(_cvt_dtoll_sent(1.0) == 1);
+                assert(_cvt_dtoll_sent(-1.0) == -1);
+                assert(_cvt_dtoll_sent(2.5) == 2);
+                assert(_cvt_dtoll_sent(-2.5) == -2);
+                assert(_cvt_dtoll_sent(3.5) == 3);
+                assert(_cvt_dtoll_sent(-3.5) == -3);
+                assert(_cvt_dtoll_sent(3.49) == 3);
+                assert(_cvt_dtoll_sent(-3.49) == -3);
+                assert(_cvt_dtoll_sent(twoExp31Float) == 2147483648);
+                assert(_cvt_dtoll_sent(-twoExp31Float) == -2147483648);
+                assert(_cvt_dtoll_sent(twoExp63Float) == -9223372036854775808);
+                assert(_cvt_dtoll_sent(-twoExp63Float) == -9223372036854775808);
+                assert(_cvt_dtoll_sent(justUnderTwoExp63Float) == 9223371487098961920);
+                assert(_cvt_dtoll_sent(33554432.0) == 33554432);
+                assert(_cvt_dtoll_sent(-33554432.0) == -33554432);
+                assert(_cvt_dtoll_sent(33554436.0) == 33554436);
+                assert(_cvt_dtoll_sent(-33554436.0) == -33554436);
+                assert(_cvt_dtoll_sent(70369281048576.0) == 70369281048576);
+                assert(_cvt_dtoll_sent(-70369281048576.0) == -70369281048576);
+
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
+
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        extern(C)
+        pragma(inline, true)
+        ulong _cvt_dtoull_sent(double value) @trusted pure nothrow @nogc
+        {
+            version (X86_64)
+            {
+                if (value < -1.0 || value != value)
+                {
+                    return ulong.max;
+                }
+
+                /* If the hardware can handle it, let it handle it. */
+                if (value < twoExp63Double)
+                {
+                    return cast(ulong) _cvt_dtoll_fast(value);
+                }
+
+                if (value >= twoExp64Double)
+                {
+                    return ulong.max;
+                }
+
+                /* At this point, the exponent is 63. */
+
+                /* We have 52-bits stored for the significand, and we know that the exponent is 63,
+                   which means that we can just shift left unconditionally by 11 (63 - 52), which leaves
+                   the implicit bit of the full 53-bit significand to be set at the most-significant bit. */
+                return (*(cast(const(ulong)*) &value) << 11) | (ulong(1) << 63);
+            }
+            else version (X86)
+            {
+                if (value < -1.0 || value != value)
+                {
+                    return ulong.max;
+                }
+
+                /* If the hardware can handle it, let it handle it. */
+                if (value < twoExp31Double)
+                {
+                    return cast(ulong) _cvt_dtoi_fast(value);
+                }
+
+                if (value >= twoExp64Double)
+                {
+                    return ulong.max;
+                }
+
+                /* At this point, the exponent is at-least 31 and less-than 64. */
+
+                long asInt = *(cast(const(long)*) &value);
+
+                uint high = cast(uint) (asInt >>> 32);
+                uint low = cast(uint) asInt;
+
+                int exponent = ((high >>> 20) & 2047) - 1023;
+                assert(exponent >= 31);
+                assert(exponent <= 63);
+
+                ulong significand = (ulong((high & 0b00000000_00001111_11111111_11111111) | (1 << 20)) << 32) | low;
+                uint shiftCount = (exponent < 52 ? 52 : exponent) - (exponent < 52 ? exponent : 52);
+
+                if (exponent < 52)
+                {
+                    significand >>>= (shiftCount & 63);
+                }
+                else
+                {
+                    significand <<= (shiftCount & 63);
+                }
+
+                return significand;
+            }
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                assert(_cvt_dtoull_sent(0.0) == 0);
+                assert(_cvt_dtoull_sent(-0.0) == 0);
+                assert(_cvt_dtoull_sent(float.nan) == 18446744073709551615);
+                assert(_cvt_dtoull_sent(-float.nan) == 18446744073709551615);
+                assert(_cvt_dtoull_sent(float.infinity) == 18446744073709551615);
+                assert(_cvt_dtoull_sent(-float.infinity) == 18446744073709551615);
+                assert(_cvt_dtoull_sent(1.0) == 1);
+                assert(_cvt_dtoull_sent(-1.0) == 18446744073709551615);
+                assert(_cvt_dtoull_sent(2.5) == 2);
+                assert(_cvt_dtoull_sent(-2.5) == 18446744073709551615);
+                assert(_cvt_dtoull_sent(3.5) == 3);
+                assert(_cvt_dtoull_sent(-3.5) == 18446744073709551615);
+                assert(_cvt_dtoull_sent(3.49) == 3);
+                assert(_cvt_dtoull_sent(-3.49) == 18446744073709551615);
+                assert(_cvt_dtoull_sent(twoExp31Float) == 2147483648);
+                assert(_cvt_dtoull_sent(-twoExp31Float) == 18446744073709551615);
+                assert(_cvt_dtoull_sent(twoExp63Float) == 9223372036854775808);
+                assert(_cvt_dtoull_sent(-twoExp63Float) == 18446744073709551615);
+                assert(_cvt_dtoull_sent(justUnderTwoExp63Float) == 9223371487098961920);
+                assert(_cvt_dtoull_sent(33554432.0) == 33554432);
+                assert(_cvt_dtoull_sent(-33554432.0) == 18446744073709551615);
+                assert(_cvt_dtoull_sent(33554436.0) == 33554436);
+                assert(_cvt_dtoull_sent(-33554436.0) == 18446744073709551615);
+                assert(_cvt_dtoull_sent(70369281048576.0) == 70369281048576);
+                assert(_cvt_dtoull_sent(-70369281048576.0) == 18446744073709551615);
+
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
+    }
     }
 }
