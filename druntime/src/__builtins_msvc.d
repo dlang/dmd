@@ -5757,6 +5757,146 @@ version (MSVCIntrinsics)
         static assert(test());
     }
 
+    version (X86_64_Or_AArch64)
+    {
+        extern(C)
+        pragma(inline, true)
+        ubyte _InterlockedCompareExchange128(
+            scope shared(long)* Destination,
+            long ExchangeHigh,
+            long ExchangeLow,
+            scope long* ComparandResult
+        ) @system pure nothrow @nogc
+        {
+            return interlockedCAS128(Destination, ExchangeHigh, ExchangeLow, ComparandResult);
+        }
+    }
+
+    version (X86_64)
+    {
+        extern(C)
+        pragma(inline, true)
+        ubyte _InterlockedCompareExchange128_np(
+            scope shared(long)* Destination,
+            long ExchangeHigh,
+            long ExchangeLow,
+            scope long* ComparandResult
+        ) @system pure nothrow @nogc
+        {
+            return interlockedCAS128(Destination, ExchangeHigh, ExchangeLow, ComparandResult);
+        }
+    }
+
+    version (AArch64)
+    {
+        extern(C)
+        pragma(inline, true)
+        ubyte _InterlockedCompareExchange128_acq(
+            scope shared(long)* Destination,
+            long ExchangeHigh,
+            long ExchangeLow,
+            scope long* ComparandResult
+        ) @system pure nothrow @nogc
+        {
+            return interlockedCAS128!(MemoryOrder.acq)(Destination, ExchangeHigh, ExchangeLow, ComparandResult);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ubyte _InterlockedCompareExchange128_rel(
+            scope shared(long)* Destination,
+            long ExchangeHigh,
+            long ExchangeLow,
+            scope long* ComparandResult
+        ) @system pure nothrow @nogc
+        {
+            return interlockedCAS128!(MemoryOrder.acq_rel, MemoryOrder.raw)(
+                Destination,
+                ExchangeHigh,
+                ExchangeLow,
+                ComparandResult
+            );
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ubyte _InterlockedCompareExchange128_nf(
+            scope shared(long)* Destination,
+            long ExchangeHigh,
+            long ExchangeLow,
+            scope long* ComparandResult
+        ) @system pure nothrow @nogc
+        {
+            return interlockedCAS128!(MemoryOrder.raw)(Destination, ExchangeHigh, ExchangeLow, ComparandResult);
+        }
+    }
+
+    @system pure nothrow @nogc unittest
+    {
+        version (LittleEndian)
+        {
+            enum size_t lo = 0;
+            enum size_t hi = 1;
+        }
+        else version (BigEndian)
+        {
+            enum size_t lo = 1;
+            enum size_t hi = 0;
+        }
+
+        static void compareExchangeTest(alias symbol)()
+        {
+            shared scope long[2] value;
+            value[lo] = 0x6B2E38BF9FAF53EC;
+            value[hi] = 0x5E81D5FBA4340FD3;
+
+            scope long[2] expected = value;
+
+            assert(symbol(&value[0], value[hi], value[lo], &expected[0]) == 1);
+            assert(value[lo] == 0x6B2E38BF9FAF53EC);
+            assert(value[hi] == 0x5E81D5FBA4340FD3);
+            assert(expected[lo] == 0x6B2E38BF9FAF53EC);
+            assert(expected[hi] == 0x5E81D5FBA4340FD3);
+
+            assert(symbol(&value[0], 0x24AC9053985CF040, 0x936644BBF7E7DD76, &expected[0]) == 1);
+            assert(value[lo] == 0x936644BBF7E7DD76);
+            assert(value[hi] == 0x24AC9053985CF040);
+            assert(expected[lo] == 0x6B2E38BF9FAF53EC);
+            assert(expected[hi] == 0x5E81D5FBA4340FD3);
+
+            assert(symbol(&value[0], 0x6EEFACD4571F6679, 0xB2281F742F268665, &expected[0]) == 0);
+            assert(value[lo] == 0x936644BBF7E7DD76);
+            assert(value[hi] == 0x24AC9053985CF040);
+            assert(expected[lo] == 0x936644BBF7E7DD76);
+            assert(expected[hi] == 0x24AC9053985CF040);
+        }
+
+        static bool test()
+        {
+            version (X86_64_Or_AArch64)
+            {
+                compareExchangeTest!_InterlockedCompareExchange128();
+            }
+
+            version (X86_64)
+            {
+                compareExchangeTest!_InterlockedCompareExchange128_np();
+            }
+
+            version (AArch64)
+            {
+                compareExchangeTest!_InterlockedCompareExchange128_acq();
+                compareExchangeTest!_InterlockedCompareExchange128_rel();
+                compareExchangeTest!_InterlockedCompareExchange128_nf();
+            }
+
+            return true;
+        }
+
+        assert(test());
+        static assert(test());
+    }
+
     extern(C)
     pragma(inline, true)
     private T interlockedAdd(MemoryOrder order = MemoryOrder.seq, T)(scope shared(T)* address, T value)
@@ -6330,6 +6470,69 @@ version (MSVCIntrinsics)
         }
     }
 
+    extern(C)
+    pragma(inline, true)
+    private ubyte interlockedCAS128(MemoryOrder success = MemoryOrder.seq, MemoryOrder failure = success)(
+        scope shared(long)* address,
+        long valueToSetHigh,
+        long valueToSetLow,
+        scope long* expectedValue
+    ) @system pure nothrow @nogc
+    {
+        import core.internal.atomic : atomicCompareExchangeStrong;
+
+        version (LittleEndian)
+        {
+            enum size_t lo = 0;
+            enum size_t hi = 1;
+        }
+        else version (BigEndian)
+        {
+            enum size_t lo = 1;
+            enum size_t hi = 0;
+        }
+
+        if (__ctfe)
+        {
+            scope a = ((a) @trusted => cast(long*) a)(address);
+
+            if (a[0] == expectedValue[0] && a[1] == expectedValue[1])
+            {
+                a[lo] = valueToSetLow;
+                a[hi] = valueToSetHigh;
+
+                return 1;
+            }
+
+            expectedValue[0] = a[0];
+            expectedValue[1] = a[1];
+
+            return 0;
+        }
+        else
+        {
+            ulong[2] valueToSet = void;
+            valueToSet[lo] = valueToSetLow;
+            valueToSet[hi] = valueToSetHigh;
+
+            bool result = atomicCompareExchangeStrong!(success, failure)(
+                cast(ulong[2]*) address,
+                cast(ulong[2]*) expectedValue,
+                valueToSet
+            );
+
+            version (AArch64_Or_ARM)
+            {
+                /* This is what the Interlocked MSVC intrinsics do. */
+                static if (success == MemoryOrder.acq)
+                {
+                    /* dmb ish */
+                    __builtin_arm_dmb(11);
+                }
+            }
+
+            return result;
+        }
     }
 
     extern(C)
