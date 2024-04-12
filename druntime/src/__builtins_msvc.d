@@ -11292,4 +11292,205 @@ version (MSVCIntrinsics)
             cast(void) __segmentlimit(0);
         }
     }
+
+    version (X86_64)
+    {
+        extern(C)
+        pragma(inline, true)
+        ulong __shiftleft128(ulong LowPart, ulong HighPart, ubyte Shift) @safe pure nothrow @nogc
+        {
+            return funnelShiftLeft(LowPart, HighPart, Shift);
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                assert(__shiftleft128(0x00FEED00DA00CA70, 0xCAFE00BEEF001230, 24) == 0xBEEF00123000FEED);
+                assert(__shiftleft128(0x00FEED00DA00CA70, 0xCAFE00BEEF001230, 24 + 64) == 0xBEEF00123000FEED);
+
+                return true;
+            }
+
+            assert(test);
+            static assert(test);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ulong __shiftright128(ulong LowPart, ulong HighPart, ubyte Shift) @safe pure nothrow @nogc
+        {
+            return funnelShiftRight(LowPart, HighPart, Shift);
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                assert(__shiftright128(0x00FEED00DA00CA70, 0xCAFE00BEEF001230, 24) == 0x00123000FEED00DA);
+                assert(__shiftright128(0x00FEED00DA00CA70, 0xCAFE00BEEF001230, 24 + 64) == 0x00123000FEED00DA);
+
+                return true;
+            }
+
+            assert(test);
+            static assert(test);
+        }
+    }
+
+    version (X86_64_Or_X86)
+    {
+        extern(C)
+        pragma(inline, true)
+        private I funnelShiftLeft(I)(I low, I high, ubyte shiftCount) @safe pure nothrow @nogc
+        if (__traits(isIntegral, I) && (I.sizeof == 8 || I.sizeof == 4))
+        {
+            enum uint operandBitWidth = I.sizeof << 3;
+            enum uint shiftMask = operandBitWidth - 1;
+
+            static I shiftViaSoftware(I low, I high, ubyte bitsToShift)
+            {
+                alias shift = bitsToShift;
+                return (high << (shift & shiftMask)) | ((low >> 1) >>> (~shift & shiftMask));
+            }
+
+            if (__ctfe)
+            {
+                return shiftViaSoftware(low, high, shiftCount);
+            }
+            else
+            {
+                version (LDC)
+                {
+                    import ldc.intrinsics : llvm_fshl;
+
+                    /* The fshl intrinsic will truncate the shift amount for us,
+                       as per https://llvm.org/docs/LangRef.html#llvm-fshl-intrinsic. */
+                    return llvm_fshl(high, low, I(shiftCount));
+                }
+                else version (GNU)
+                {
+                    return shiftViaSoftware(low, high, shiftCount);
+                }
+                else
+                {
+                    static if (I.sizeof == 8)
+                    {
+                        version (D_InlineAsm_X86_64)
+                        {
+                            asm @trusted pure nothrow @nogc
+                            {
+                                /* RCX is low; RDX is high; R8B is shiftCount. */
+                                naked;
+                                mov RAX, RDX;
+                                mov R9, RCX;
+                                mov RCX, R8;
+                                shld RAX, R9, CL;
+                                ret;
+                            }
+                        }
+                        else
+                        {
+                            return shiftViaSoftware(low, high, shiftCount);
+                        }
+                    }
+                    else static if (I.sizeof == 4)
+                    {
+                        version (D_InlineAsm_X86)
+                        {
+                            asm @trusted pure nothrow @nogc
+                            {
+                                naked;
+                                mov EDX, [ESP +  4]; /* low. */
+                                mov EAX, [ESP +  8]; /* high. */
+                                mov ECX, [ESP + 12]; /* shiftCount. */
+                                shld EAX, EDX, CL;
+                                ret;
+                            }
+                        }
+                        else
+                        {
+                            return shiftViaSoftware(low, high, shiftCount);
+                        }
+                    }
+                }
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        private I funnelShiftRight(I)(I low, I high, ubyte shiftCount) @safe pure nothrow @nogc
+        if (__traits(isIntegral, I) && (I.sizeof == 8 || I.sizeof == 4))
+        {
+            enum uint operandBitWidth = I.sizeof << 3;
+            enum uint shiftMask = operandBitWidth - 1;
+
+            static I shiftViaSoftware(I low, I high, ubyte shift)
+            {
+                return (low >>> (shift & shiftMask)) | ((high << 1) << (~shift & shiftMask));
+            }
+
+            if (__ctfe)
+            {
+                return shiftViaSoftware(low, high, shiftCount);
+            }
+            else
+            {
+                version (LDC)
+                {
+                    import ldc.intrinsics : llvm_fshr;
+
+                    /* The fshr intrinsic will truncate the shift amount for us,
+                       as per https://llvm.org/docs/LangRef.html#llvm-fshr-intrinsic. */
+                    return llvm_fshr(high, low, I(shiftCount));
+                }
+                else version (GNU)
+                {
+                    return shiftViaSoftware(low, high, shiftCount);
+                }
+                else
+                {
+                    static if (I.sizeof == 8)
+                    {
+                        version (D_InlineAsm_X86_64)
+                        {
+                            asm @trusted pure nothrow @nogc
+                            {
+                                /* RCX is low; RDX is high; R8B is shiftCount. */
+                                naked;
+                                mov R9, RDX;
+                                mov RAX, RCX;
+                                mov RCX, R8;
+                                shrd RAX, R9, CL;
+                                ret;
+                            }
+                        }
+                        else
+                        {
+                            return shiftViaSoftware(low, high, shiftCount);
+                        }
+                    }
+                    else static if (I.sizeof == 4)
+                    {
+                        version (D_InlineAsm_X86)
+                        {
+                            asm @trusted pure nothrow @nogc
+                            {
+                                naked;
+                                mov EDX, [ESP +  4]; /* low. */
+                                mov EAX, [ESP +  8]; /* high. */
+                                mov ECX, [ESP + 12]; /* shiftCount. */
+                                shrd EAX, EDX, CL;
+                                ret;
+                            }
+                        }
+                        else
+                        {
+                            return shiftViaSoftware(low, high, shiftCount);
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
