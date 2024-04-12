@@ -11586,5 +11586,170 @@ version (MSVCIntrinsics)
 
             assert(false);
         }
+
+        extern(C)
+        pragma(inline, true)
+        void __stosb(scope ubyte* Destination, ubyte Data, size_t Count) @system pure nothrow @nogc
+        {
+            repStos(Destination, Data, Count);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __stosw(scope ushort* Destination, ushort Data, size_t Count) @system pure nothrow @nogc
+        {
+            repStos(Destination, Data, Count);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __stosd(scope uint* Destination, uint Data, size_t Count) @system pure nothrow @nogc
+        {
+            repStos(Destination, Data, Count);
+        }
+    }
+
+    version (X86_64)
+    {
+        extern(C)
+        pragma(inline, true)
+        void __stosq(scope ulong* Destination, ulong Data, size_t Count) @system pure nothrow @nogc
+        {
+            repStos(Destination, Data, Count);
+        }
+    }
+
+    version (X86_64_Or_X86)
+    {
+        extern(C)
+        pragma(inline, true)
+        private void repStos(I)(scope I* destination, I data, size_t length) @system pure nothrow @nogc
+        if (__traits(isIntegral, I))
+        {
+            if (__ctfe)
+            {
+                foreach (index; 0 .. length)
+                {
+                    destination[index] = data;
+                }
+            }
+            else
+            {
+                import core.bitop : bsr;
+
+                enum size = I.sizeof.bsr;
+
+                version (LDC)
+                {
+                    import ldc.llvmasm : __ir_pure;
+
+                    enum char suffix = "bwlq"[size];
+                    enum type = ["i8", "i16", "i32", "i64"][size];
+
+                    version (X86)
+                    {
+                        enum string lengthType = "i32";
+                        enum a = "eax";
+                        enum c = "ecx";
+                        enum di = "edi";
+                    }
+                    else version (X86_64)
+                    {
+                        enum string lengthType = "i64";
+                        enum a = "rax";
+                        enum c = "rcx";
+                        enum di = "rdi";
+                    }
+
+                    __ir_pure!(
+                        `call {` ~ llvmIRPtr!type ~ `, ` ~ lengthType ~ `} asm
+                         "rep stos` ~ suffix ~ `",
+                         "=&{` ~ di ~ `},=&{` ~ c ~ `},0,{` ~ a ~ `},1,~{memory}"
+                         (` ~ llvmIRPtr!type ~ ` %0, ` ~ type ~ ` %1, ` ~ lengthType ~ ` %2)`,
+                        void
+                    )(
+                        destination,
+                        data,
+                        length
+                    );
+                }
+                else version (GNU)
+                {
+                    enum char suffix = "bwlq"[size];
+
+                    asm pure nothrow @nogc
+                    {
+                          "rep stos" ~ suffix
+                        : "=D" (destination), "=c" (length)
+                        : "0" (destination), "1" (length), "a" (data)
+                        : "memory";
+                    }
+                }
+                else version (InlineAsm_X86_64_Or_X86)
+                {
+                    enum char suffix = "bwdq"[size];
+
+                    version (D_InlineAsm_X86_64)
+                    {
+                        mixin(
+                            "asm pure nothrow @nogc
+                             {
+                                 /* RCX is destination; *D* is data; R8 is length. */
+                                 naked;
+                                 mov R9, RDI; /* RDI is non-volatile, so we save it in R9. */
+                                 mov RDI, RCX;
+                                 mov RAX, RDX;
+                                 mov RCX, R8;
+                                 rep; stos" ~ suffix ~ ";
+                                 mov RDI, R9;
+                                 ret;
+                             }"
+                        );
+                    }
+                    else version (D_InlineAsm_X86)
+                    {
+                        mixin(
+                            "asm pure nothrow @nogc
+                             {
+                                 naked;
+                                 mov EDX, EDI; /* EDI is non-volatile, so we save it in EDX. */
+                                 mov EDI, [ESP +  4]; /* destination. */
+                                 mov EAX, [ESP +  8]; /* data. */
+                                 mov ECX, [ESP + 12]; /* length. */
+                                 rep; stos" ~ suffix ~ ";
+                                 mov EDI, EDX;
+                                 ret;
+                             }"
+                        );
+                    }
+                }
+            }
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test(alias I, alias stos)()
+            {
+                I[8] memory = [I.max, I.max - 1, 2, 3, 4, 5, 6, 7];
+                ((m) @trusted => stos(m, 8, 4))(&memory[1]);
+
+                assert(memory == [I.max, 8, 8, 8, 8, 5, 6, 7]);
+
+                return true;
+            }
+
+            assert(test!(ubyte, __stosb));
+            static assert(test!(ubyte, __stosb));
+            assert(test!(ushort, __stosw));
+            static assert(test!(ushort, __stosw));
+            assert(test!(uint, __stosd));
+            static assert(test!(uint, __stosd));
+
+            version (X86_64)
+            {
+                assert(test!(ulong, __stosq));
+                static assert(test!(ulong, __stosq));
+            }
+        }
     }
 }
