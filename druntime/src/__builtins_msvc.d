@@ -87,6 +87,9 @@ version (MSVCIntrinsics)
             pragma(LDC_intrinsic, "llvm.x86.sse2.pause")
             private void __builtin_ia32_pause() @safe pure nothrow @nogc;
 
+            pragma(LDC_intrinsic, "llvm.x86.rdpmc")
+            private long __builtin_ia32_rdpmc(int) @safe nothrow @nogc;
+
             pragma(LDC_intrinsic, "llvm.x86.rdtsc")
             private long __builtin_ia32_rdtsc() @safe nothrow @nogc;
         }
@@ -105,7 +108,7 @@ version (MSVCIntrinsics)
     {
         version (X86_64_Or_X86)
         {
-            import gcc.builtins : __builtin_ia32_pause, __builtin_ia32_rdtsc;
+            import gcc.builtins : __builtin_ia32_pause, __builtin_ia32_rdpmc, __builtin_ia32_rdtsc;
         }
     }
 
@@ -11201,6 +11204,38 @@ version (MSVCIntrinsics)
                     naked;
                     mov ECX, [ESP + 4]; /* register. */
                     rdmsr;
+                    ret;
+                }
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ulong __readpmc(uint counter) @safe nothrow @nogc
+        {
+            version (LDC_Or_GNU)
+            {
+                return __builtin_ia32_rdpmc(counter);
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    /* ECX is counter. */
+                    naked;
+                    rdpmc;
+                    shl RDX, 32;
+                    or RAX, RDX;
+                    ret;
+                }
+            }
+            else version (D_InlineAsm_X86)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    naked;
+                    mov ECX, [ESP + 8]; /* counter. */
+                    rdpmc;
                     ret;
                 }
             }
