@@ -11751,5 +11751,350 @@ version (MSVCIntrinsics)
                 static assert(test!(ulong, __stosq));
             }
         }
+
+        extern(C)
+        pragma(inline, true)
+        void __svm_clgi() @safe nothrow @nogc
+        {
+            version (LDC)
+            {
+                import ldc.llvmasm : __ir;
+
+                __ir!(
+                    `call void asm sideeffect inteldialect "clgi", ""()`,
+                    void
+                )();
+            }
+            else version (GNU)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    "clgi";
+                }
+            }
+            else version (InlineAsm_X86_64_Or_X86)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    naked;
+                    /* DMD doesn't know the clgi instruction, so we encode it by hand. */
+                    db 0x0F, 0x01, 0xDD; /* clgi */
+                    ret;
+                }
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __svm_invlpga(scope void* Vaddr, int as_id) @system nothrow @nogc
+        {
+            version (LDC)
+            {
+                import ldc.llvmasm : __ir;
+
+                version (X86_64)
+                {
+                    enum a = "rax";
+                }
+                else version (X86)
+                {
+                    enum a = "eax";
+                }
+
+                enum ptr = llvmIRPtr!"i8";
+
+                __ir!(
+                    `call void asm sideeffect inteldialect
+                         "invlpga $0, $1",
+                         "{` ~ a ~ `},{ecx},~{memory}"
+                         (` ~ ptr ~ ` %0, i32 %1)`,
+                    void
+                )(Vaddr, as_id);
+            }
+            else version (GNU)
+            {
+                asm @system nothrow @nogc
+                {
+                    "invlpga %1, %0" : : "a" (Vaddr), "c" (as_id) : "memory";
+                }
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @system nothrow @nogc
+                {
+                    /* RCX is Vaddr; EDX is as_id. */
+                    naked;
+                    mov RAX, RCX;
+                    mov ECX, EDX;
+                    /* DMD doesn't know the invlpga instruction, so we encode it by hand. */
+                    db 0x0F, 0x01, 0xDF; /* invlpga */
+                    ret;
+                }
+            }
+            else version (D_InlineAsm_X86)
+            {
+                asm @system nothrow @nogc
+                {
+                    naked;
+                    mov EAX, [ESP + 4]; /* Vaddr. */
+                    mov ECX, [ESP + 8]; /* as_id. */
+                    /* DMD doesn't know the invlpga instruction, so we encode it by hand. */
+                    db 0x0F, 0x01, 0xDF; /* invlpga */
+                    ret;
+                }
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __svm_skinit(int block_address) @system nothrow @nogc
+        {
+            /* According to AMD's manual, the skinit instruction clobbers every general-purpose register,
+               but the MSVC intrinsics treats it as though it clobbers nothing--the instruction also acts
+               as a jump, so we'll just go with it and pretend it clobbers nothing. */
+
+            version (LDC)
+            {
+                import ldc.llvmasm : __ir;
+
+                __ir!(
+                    `call void asm sideeffect inteldialect "skinit $0", "{eax},~{flags},~{memory}" (i32 %0)`,
+                    void
+                )(block_address);
+            }
+            else version (GNU)
+            {
+                asm @system nothrow @nogc
+                {
+                    "skinit %0" : : "a" (block_address) : "cc", "memory";
+                }
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @system nothrow @nogc
+                {
+                    /* ECX is block_address. */
+                    naked;
+                    mov EAX, ECX;
+                    /* DMD doesn't know the skinit instruction, so we encode it by hand. */
+                    db 0x0F, 0x01, 0xDE; /* skinit */
+                    ret;
+                }
+            }
+            else version (D_InlineAsm_X86)
+            {
+                asm @system nothrow @nogc
+                {
+                    naked;
+                    mov EAX, [ESP + 4]; /* block_address. */
+                    /* DMD doesn't know the skinit instruction, so we encode it by hand. */
+                    db 0x0F, 0x01, 0xDE; /* skinit */
+                    ret;
+                }
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __svm_stgi() @safe nothrow @nogc
+        {
+            version (LDC)
+            {
+                import ldc.llvmasm : __ir;
+
+                __ir!(
+                    `call void asm sideeffect inteldialect "stgi", ""()`,
+                    void
+                )();
+            }
+            else version (GNU)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    "stgi";
+                }
+            }
+            else version (InlineAsm_X86_64_Or_X86)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    naked;
+                    /* DMD doesn't know the stgi instruction, so we encode it by hand. */
+                    db 0x0F, 0x01, 0xDC; /* stgi */
+                    ret;
+                }
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __svm_vmload(size_t VmcbPhysicalAddress) @system nothrow @nogc
+        {
+            version (LDC)
+            {
+                import core.bitop : bsr;
+                import ldc.llvmasm : __ir;
+
+                version (X86_64)
+                {
+                    enum a = "rax";
+                }
+                else version (X86)
+                {
+                    enum a = "eax";
+                }
+
+                enum type = ["i8", "i16", "i32", "i64"][size_t.sizeof.bsr];
+
+                __ir!(
+                    `call void asm sideeffect inteldialect "vmsave $0", "{` ~ a ~ `},~{memory}"(` ~ type ~ `%0)`,
+                    void
+                )(VmcbPhysicalAddress);
+            }
+            else version (GNU)
+            {
+                asm @system nothrow @nogc
+                {
+                    "vmsave %0" : : "a" (VmcbPhysicalAddress) : "memory";
+                }
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @system nothrow @nogc
+                {
+                    /* RCX is VmcbPhysicalAddress. */
+                    naked;
+                    mov RAX, RCX;
+                    /* DMD doesn't know the vmsave instruction, so we encode it by hand. */
+                    db 0x0F, 0x01, 0xDA; /* vmsave */
+                    ret;
+                }
+            }
+            else version (D_InlineAsm_X86)
+            {
+                asm @system nothrow @nogc
+                {
+                    naked;
+                    mov EAX, [ESP + 4]; /* VmcbPhysicalAddress. */
+                    /* DMD doesn't know the vmsave instruction, so we encode it by hand. */
+                    db 0x0F, 0x01, 0xDA; /* vmsave */
+                    ret;
+                }
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __svm_vmrun(size_t VmcbPhysicalAddress) @system nothrow @nogc
+        {
+            version (LDC)
+            {
+                import core.bitop : bsr;
+                import ldc.llvmasm : __ir;
+
+                version (X86_64)
+                {
+                    enum a = "rax";
+                }
+                else version (X86)
+                {
+                    enum a = "eax";
+                }
+
+                enum type = ["i8", "i16", "i32", "i64"][size_t.sizeof.bsr];
+
+                __ir!(
+                    `call void asm sideeffect inteldialect "vmrun $0", "{` ~ a ~ `},~{memory}"(` ~ type ~ `%0)`,
+                    void
+                )(VmcbPhysicalAddress);
+            }
+            else version (GNU)
+            {
+                asm @system nothrow @nogc
+                {
+                    "vmrun %0" : : "a" (VmcbPhysicalAddress) : "memory";
+                }
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @system nothrow @nogc
+                {
+                    /* RCX is VmcbPhysicalAddress. */
+                    naked;
+                    mov RAX, RCX;
+                    /* DMD doesn't know the vmrun instruction, so we encode it by hand. */
+                    db 0x0F, 0x01, 0xD8; /* vmrun */
+                    ret;
+                }
+            }
+            else version (D_InlineAsm_X86)
+            {
+                asm @system nothrow @nogc
+                {
+                    naked;
+                    mov EAX, [ESP + 4]; /* VmcbPhysicalAddress. */
+                    /* DMD doesn't know the vmrun instruction, so we encode it by hand. */
+                    db 0x0F, 0x01, 0xD8; /* vmrun */
+                    ret;
+                }
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __svm_vmsave(size_t VmcbPhysicalAddress) @system nothrow @nogc
+        {
+            version (LDC)
+            {
+                import core.bitop : bsr;
+                import ldc.llvmasm : __ir;
+
+                version (X86_64)
+                {
+                    enum a = "rax";
+                }
+                else version (X86)
+                {
+                    enum a = "eax";
+                }
+
+                enum type = ["i8", "i16", "i32", "i64"][size_t.sizeof.bsr];
+
+                __ir!(
+                    `call void asm sideeffect inteldialect "vmsave $0", "{` ~ a ~ `},~{memory}"(` ~ type ~ `%0)`,
+                    void
+                )(VmcbPhysicalAddress);
+            }
+            else version (GNU)
+            {
+                asm @system nothrow @nogc
+                {
+                    "vmsave %0" : : "a" (VmcbPhysicalAddress) : "memory";
+                }
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @system nothrow @nogc
+                {
+                    /* RCX is VmcbPhysicalAddress. */
+                    naked;
+                    mov RAX, RCX;
+                    /* DMD doesn't know the vmsave instruction, so we encode it by hand. */
+                    db 0x0F, 0x01, 0xDB; /* vmsave */
+                    ret;
+                }
+            }
+            else version (D_InlineAsm_X86)
+            {
+                asm @system nothrow @nogc
+                {
+                    naked;
+                    mov EAX, [ESP + 4]; /* VmcbPhysicalAddress. */
+                    /* DMD doesn't know the vmsave instruction, so we encode it by hand. */
+                    db 0x0F, 0x01, 0xDB; /* vmsave */
+                    ret;
+                }
+            }
+        }
     }
 }
