@@ -66,6 +66,13 @@ version (MSVCIntrinsics)
 
     static if (__traits(compiles, () {import core.simd : float4;}))
     {
+        import core.simd : byte16, float4, long2, int4, ubyte16;
+
+        version (X86_64_Or_X86)
+        {
+            import core.simd : double2;
+        }
+
         private enum canPassVectors = true;
     }
     else
@@ -9214,6 +9221,390 @@ version (MSVCIntrinsics)
                     }
                 }
             }
+        }
+    }
+
+    version (X86_64)
+    {
+        extern(C)
+        pragma(inline, true)
+        float4 _mm_cvtsi64x_ss(float4 a, long b) @safe pure nothrow @nogc
+        {
+            if (__ctfe)
+            {
+                a.array[0] = ctfeX86RoundLongToFloat(b);
+                return a;
+            }
+            else
+            {
+                version (LDC)
+                {
+                    /* LLVM lacks an intrinsic for the 64-bit version of cvtsi2ss, but this
+                       emits said instruction even when optimisations aren't enabled. */
+                    a.array[0] = cast(float) b;
+                    return a;
+                }
+                else version (GNU)
+                {
+                    import gcc.builtins : __builtin_ia32_cvtsi642ss;
+                    return __builtin_ia32_cvtsi642ss(a, b);
+                }
+                else version (D_InlineAsm_X86_64)
+                {
+                    /* We could use core.simd.__simd_sto for this, but we don't, because doing so causes
+                       DMD to miscompile calls to this function when optimisations are enabled. */
+
+                    enum ubyte REX_W = 0b0100_1000;
+
+                    asm @trusted pure nothrow @nogc
+                    {
+                        /* RCX is a; RDX is b. */
+                        naked;
+                        movdqa XMM0, [RCX];
+                        /* DMD refuses to encode `cvtsi2ss XMM0, RDX`, so we'll encode it by hand. */
+                        db 0xF3, REX_W, 0x0F, 0x2A, 0b11_000_010; /* cvtsi2ss XMM0, RDX */
+                        ret;
+                    }
+                }
+            }
+        }
+
+        @trusted pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                alias convert = _mm_cvtsi64x_ss;
+                float4 floats = 2.0f;
+
+                void check(long value, float result)
+                {
+                    float4 actual = convert(floats, value);
+                    assert(actual.ptr[0] == result);
+                    assert(actual.ptr[1] == 2.0f);
+                    assert(actual.ptr[2] == 2.0f);
+                    assert(actual.ptr[3] == 2.0f);
+                }
+
+                check(6, 6.0f);
+                check(long.min, -twoExp63Float);
+                check(long.max, twoExp63Float);
+                check(9223371761976868864, twoExp63Float);
+                check(9223371761976868863, justUnderTwoExp63Float);
+                check(9223371487098961920, justUnderTwoExp63Float);
+                check(-9223371761976868864, -twoExp63Float);
+                check(-9223371761976868863, -justUnderTwoExp63Float);
+                check(-9223371487098961920, -justUnderTwoExp63Float);
+                check(33554434, 33554432.0f);
+                check(-33554434, -33554432.0f);
+                check(33554438, 33554440.0f);
+                check(-33554438, -33554440.0f);
+
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _mm_cvtss_si64x(float4 value) @safe pure nothrow @nogc
+        {
+            if (__ctfe)
+            {
+                return ctfeX86RoundFloatToLong(value.array[0]);
+            }
+            else
+            {
+                version (LDC_Or_GNU)
+                {
+                    mixin(q{import }, gccBuiltins, q{ : __builtin_ia32_cvtss2si64;});
+
+                    return __builtin_ia32_cvtss2si64(value);
+                }
+                else version (D_InlineAsm_X86_64)
+                {
+                    enum ubyte REX_W = 0b0100_1000;
+
+                    asm @trusted pure nothrow @nogc
+                    {
+                        /* RCX is value. */
+                        naked;
+                        /* DMD refuses to encode `cvtss2si RAX, [RCX]`, so we'll encode it by hand. */
+                        db 0xF3, REX_W, 0x0F, 0x2D, 0b00_000_001; /* cvtss2si RAX, [RCX] */
+                        ret;
+                    }
+                }
+            }
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                assert(_mm_cvtss_si64x([0.0f, 0.0f, 1.0f, 2.0f]) == 0);
+                assert(_mm_cvtss_si64x([1.0f, 0.0f, 1.0f, 2.0f]) == 1);
+                assert(_mm_cvtss_si64x([1.5f, 0.0f, 1.0f, 2.0f]) == 2);
+                assert(_mm_cvtss_si64x([2.5f, 0.0f, 1.0f, 2.0f]) == 2);
+                assert(_mm_cvtss_si64x([3.5f, 0.0f, 1.0f, 2.0f]) == 4);
+                assert(_mm_cvtss_si64x([4.5f, 0.0f, 1.0f, 2.0f]) == 4);
+                assert(_mm_cvtss_si64x([4.51f, 0.0f, 1.0f, 2.0f]) == 5);
+                assert(_mm_cvtss_si64x([4.51f, 0.0f, 1.0f, 2.0f]) == 5);
+                assert(_mm_cvtss_si64x([5.49f, 0.0f, 1.0f, 2.0f]) == 5);
+                assert(_mm_cvtss_si64x([33554432.0f, 0.0f, 1.0f, 2.0f]) == 33554432);
+                assert(_mm_cvtss_si64x([-33554432.0f, 0.0f, 1.0f, 2.0f]) == -33554432);
+                assert(_mm_cvtss_si64x([justUnderTwoExp63Float, 0.0f, 1.0f, 2.0f]) == 9223371487098961920);
+                assert(_mm_cvtss_si64x([-twoExp63Float, 0.0f, 1.0f, 2.0f]) == long.min);
+                assert(_mm_cvtss_si64x([twoExp63Float, 0.0f, 1.0f, 2.0f]) == 0x80000000_00000000);
+                assert(_mm_cvtss_si64x([float.nan, 0.0f, 1.0f, 2.0f]) == 0x80000000_00000000);
+                assert(_mm_cvtss_si64x([-float.nan, 0.0f, 1.0f, 2.0f]) == 0x80000000_00000000);
+                assert(_mm_cvtss_si64x([float.infinity, 0.0f, 1.0f, 2.0f]) == 0x80000000_00000000);
+                assert(_mm_cvtss_si64x([-float.infinity, 0.0f, 1.0f, 2.0f]) == 0x80000000_00000000);
+
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _mm_cvttss_si64x(float4 value) @safe pure nothrow @nogc
+        {
+            if (__ctfe)
+            {
+                float v = value.array[0];
+
+                if (v < twoExp63Float && v >= -twoExp63Float)
+                {
+                    return cast(long) v;
+                }
+
+                return 0x80000000_00000000;
+            }
+            else
+            {
+                version (LDC_Or_GNU)
+                {
+                    mixin(q{import }, gccBuiltins, q{ : __builtin_ia32_cvttss2si64;});
+
+                    return __builtin_ia32_cvttss2si64(value);
+                }
+                else version (D_InlineAsm_X86_64)
+                {
+                    enum ubyte REX_W = 0b0100_1000;
+
+                    asm @trusted pure nothrow @nogc
+                    {
+                        /* RCX is value. */
+                        naked;
+                        /* DMD refuses to encode `cvttss2si RAX, [RCX]`, so we'll encode it by hand. */
+                        db 0xF3, REX_W, 0x0F, 0x2C, 0b00_000_001; /* cvttss2si RAX, [RCX] */
+                        ret;
+                    }
+                }
+            }
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                assert(_mm_cvttss_si64x([0.0f, 0.0f, 1.0f, 2.0f]) == 0);
+                assert(_mm_cvttss_si64x([1.0f, 0.0f, 1.0f, 2.0f]) == 1);
+                assert(_mm_cvttss_si64x([1.5f, 0.0f, 1.0f, 2.0f]) == 1);
+                assert(_mm_cvttss_si64x([2.5f, 0.0f, 1.0f, 2.0f]) == 2);
+                assert(_mm_cvttss_si64x([3.5f, 0.0f, 1.0f, 2.0f]) == 3);
+                assert(_mm_cvttss_si64x([4.5f, 0.0f, 1.0f, 2.0f]) == 4);
+                assert(_mm_cvttss_si64x([4.51f, 0.0f, 1.0f, 2.0f]) == 4);
+                assert(_mm_cvttss_si64x([4.51f, 0.0f, 1.0f, 2.0f]) == 4);
+                assert(_mm_cvttss_si64x([5.49f, 0.0f, 1.0f, 2.0f]) == 5);
+                assert(_mm_cvttss_si64x([33554432.0f, 0.0f, 1.0f, 2.0f]) == 33554432);
+                assert(_mm_cvttss_si64x([-33554432.0f, 0.0f, 1.0f, 2.0f]) == -33554432);
+                assert(_mm_cvttss_si64x([justUnderTwoExp63Float, 0.0f, 1.0f, 2.0f]) == 9223371487098961920);
+                assert(_mm_cvttss_si64x([-twoExp63Float, 0.0f, 1.0f, 2.0f]) == long.min);
+                assert(_mm_cvttss_si64x([twoExp63Float, 0.0f, 1.0f, 2.0f]) == 0x80000000_00000000);
+                assert(_mm_cvttss_si64x([float.nan, 0.0f, 1.0f, 2.0f]) == 0x80000000_00000000);
+                assert(_mm_cvttss_si64x([-float.nan, 0.0f, 1.0f, 2.0f]) == 0x80000000_00000000);
+                assert(_mm_cvttss_si64x([float.infinity, 0.0f, 1.0f, 2.0f]) == 0x80000000_00000000);
+                assert(_mm_cvttss_si64x([-float.infinity, 0.0f, 1.0f, 2.0f]) == 0x80000000_00000000);
+
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
+    }
+
+
+    version (X86_64)
+    {
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        private float ctfeX86RoundLongToFloat()(long value) @trusted pure nothrow @nogc
+        {
+            import core.bitop : bsr;
+
+            if (value == 0)
+            {
+                return 0.0f;
+            }
+            else
+            {
+                long sign = value >> 63;
+                /* If the value is negative, we negate it. */
+                ulong unsignedValue = (value ^ sign) - sign;
+                uint exponent = bsr(unsignedValue);
+
+                if (exponent < 24)
+                {
+                    /* A float can represent this integer exactly, so we just cast the thing. */
+                    return cast(float) value;
+                }
+                else
+                {
+                    /* Beyond exponents of 24-and-more, power-of-two-sized gaps begin to form between the integers
+                       that a float can represent, and we want to round any integers that fall within those gaps.
+
+                       We'll call `exponent - 23` the excess.
+                       The gap between each integer is `1 << excess`, which means that we round the integers
+                       based on the value of their least-significant n-bits, where n is excess.
+                       When those bits are less-than half of the gap-size, we'll round down to the previous
+                       multiple of the gap-size; when those bits are greater-than half of the gap-size, we'll
+                       round up to the next multiple of the gap-size; otherwise, if those bits are exactly
+                       half of the gap-size, the direction we round in depends on the value of the nth-bit of the
+                       integer, where again n is excess: if that bit is 1, we round up, otherwise we round down. */
+
+                    uint excess = exponent - 23;
+                    ulong gapBetweenIntegers = ulong(1) << excess;
+                    ulong halfwayBetweenGap = ulong(1) << (excess - 1);
+                    ulong excessMask = gapBetweenIntegers - 1;
+                    ulong excessBits = unsignedValue & excessMask;
+                    ulong base = ulong(1) << exponent;
+
+                    bool roundUp = excessBits > (halfwayBetweenGap - ((unsignedValue & gapBetweenIntegers) != 0));
+
+                    ulong rounded = ((unsignedValue - base) + (ulong(1) << (excess * roundUp)) - 1) & ~excessMask;
+                    bool shouldGoUpAnExponent = rounded == base;
+
+                    uint asInt = cast(uint) sign << 31;
+                    asInt |= (exponent + shouldGoUpAnExponent + 127) << 23;
+                    asInt |= (cast(uint) (rounded >>> excess)) * !shouldGoUpAnExponent;
+
+                    return *(cast(const(float)*) &asInt);
+                }
+            }
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                assert(ctfeX86RoundLongToFloat(0) is 0.0f);
+                assert(ctfeX86RoundLongToFloat(1) is 1.0f);
+                assert(ctfeX86RoundLongToFloat(2) is 2.0f);
+                assert(ctfeX86RoundLongToFloat(-1) is -1.0f);
+                assert(ctfeX86RoundLongToFloat(-2) is -2.0f);
+                assert(ctfeX86RoundLongToFloat(9223371761976868864) is twoExp63Float);
+                assert(ctfeX86RoundLongToFloat(9223371761976868863) is justUnderTwoExp63Float);
+                assert(ctfeX86RoundLongToFloat(9223371487098961920) is justUnderTwoExp63Float);
+                assert(ctfeX86RoundLongToFloat(-9223371761976868864) is -twoExp63Float);
+                assert(ctfeX86RoundLongToFloat(-9223371761976868863) is -justUnderTwoExp63Float);
+                assert(ctfeX86RoundLongToFloat(-9223371487098961920) is -justUnderTwoExp63Float);
+                assert(ctfeX86RoundLongToFloat(33554434) is 33554432.0f);
+                assert(ctfeX86RoundLongToFloat(-33554434) is -33554432.0f);
+                assert(ctfeX86RoundLongToFloat(33554438) is 33554440.0f);
+                assert(ctfeX86RoundLongToFloat(-33554438) is -33554440.0f);
+
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
+
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        private long ctfeX86RoundFloatToLong()(float value) @trusted pure nothrow @nogc
+        {
+            /* For CTFE, we'll assume that the rounding-mode is the default for x86,
+               which is to round half to the nearest even value. */
+
+            if (value < twoExp63Float && value >= -twoExp63Float)
+            {
+                enum uint implicitBit = 0b0_00000001_00000000000000000000000;
+                enum uint significandMask = 0b0_00000001_11111111111111111111111;
+                enum uint fractionalHalf = 0b0_00000001_00000000000000000000000;
+                enum uint justUnderFractionalHalf = fractionalHalf - 1;
+
+                int asInt = *(cast(const(int)*) &value);
+
+                byte exponent = cast(byte) ((cast(ubyte) (asInt >>> 23)) - 126);
+
+                if (exponent <= -1)
+                {
+                    return 0;
+                }
+
+                uint significand = (asInt & significandMask) | implicitBit;
+                ulong unsignedResult;
+
+                if (exponent >= 24)
+                {
+                    /* The value has no fractional-part, so there's no need to round it. */
+                    unsignedResult = ulong(significand) << (exponent - 24);
+                }
+                else
+                {
+                    /* The value has a fractional-part, so we need to round it. */
+                    uint fraction = (significand << exponent) & significandMask;
+                    uint whole = significand >>> (24 - exponent);
+                    bool adjustment = fraction > ((whole & 1) ? justUnderFractionalHalf : fractionalHalf);
+                    unsignedResult = whole + adjustment;
+                }
+
+                long sign = long(asInt >> 31);
+
+                /* If the sign bit is set, we need to negate the result; we can do that branchlessly
+                   by taking advantage of the fact that `sign` is either 0 or -1.
+                   As `(s ^ 0) - 0 == s`, whereas `(s ^ -1) - -1 == -s`. */
+                return (unsignedResult ^ sign) - sign;
+            }
+
+            return long.min;
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                assert(ctfeX86RoundFloatToLong(0.0f) == 0);
+                assert(ctfeX86RoundFloatToLong(-0.0f) == 0);
+                assert(ctfeX86RoundFloatToLong(float.nan) == 0x80000000_00000000);
+                assert(ctfeX86RoundFloatToLong(-float.nan) == 0x80000000_00000000);
+                assert(ctfeX86RoundFloatToLong(float.infinity) == 0x80000000_00000000);
+                assert(ctfeX86RoundFloatToLong(-float.infinity) == 0x80000000_00000000);
+                assert(ctfeX86RoundFloatToLong(1.0f) == 1);
+                assert(ctfeX86RoundFloatToLong(-1.0f) == -1);
+                assert(ctfeX86RoundFloatToLong(2.5f) == 2);
+                assert(ctfeX86RoundFloatToLong(-2.5f) == -2);
+                assert(ctfeX86RoundFloatToLong(3.5f) == 4);
+                assert(ctfeX86RoundFloatToLong(-3.5f) == -4);
+                assert(ctfeX86RoundFloatToLong(3.49f) == 3);
+                assert(ctfeX86RoundFloatToLong(-3.49f) == -3);
+                assert(ctfeX86RoundFloatToLong(twoExp63Float) == 0x80000000_00000000);
+                assert(ctfeX86RoundFloatToLong(-twoExp63Float) == long.min);
+                assert(ctfeX86RoundFloatToLong(justUnderTwoExp63Float) == 9223371487098961920);
+                assert(ctfeX86RoundFloatToLong(33554432.0f) == 33554432);
+                assert(ctfeX86RoundFloatToLong(-33554432.0f) == -33554432);
+                assert(ctfeX86RoundFloatToLong(33554436.0f) == 33554436);
+                assert(ctfeX86RoundFloatToLong(-33554436.0f) == -33554436);
+
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
         }
     }
 }
