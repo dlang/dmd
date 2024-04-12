@@ -3626,5 +3626,30 @@ version (MSVCIntrinsics)
             static assert(test());
         }
     }
+
+    version (X86_64_Or_X86)
+    {
+        void __halt() @safe nothrow @nogc
+        {
+            version (LDC_Or_GNU)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    "hlt";
+                }
+            }
+            else version (InlineAsm_X86_64_Or_X86)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    hlt;
+                }
+            }
+            else
+            {
+                static assert(false);
+            }
+        }
+    }
     }
 }
