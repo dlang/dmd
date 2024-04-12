@@ -10416,4 +10416,171 @@ version (MSVCIntrinsics)
             static assert(test());
         }
     }
+
+    version (X86_64_Or_X86)
+    {
+        extern(C)
+        pragma(inline, true)
+        void __movsb(scope ubyte* Destination, const(ubyte)* Source, size_t Count) @system pure nothrow @nogc
+        {
+            return repMovs(Destination, Source, Count);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __movsw(scope ushort* Destination, const(ushort)* Source, size_t Count) @system pure nothrow @nogc
+        {
+            return repMovs(Destination, Source, Count);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __movsd(scope uint* Destination, const(uint)* Source, size_t Count) @system pure nothrow @nogc
+        {
+            return repMovs(Destination, Source, Count);
+        }
+    }
+
+    version (X86_64)
+    {
+        extern(C)
+        pragma(inline, true)
+        void __movsq(scope ulong* Destination, const(ulong)* Source, size_t Count) @system pure nothrow @nogc
+        {
+            return repMovs(Destination, Source, Count);
+        }
+    }
+
+    version (X86_64_Or_X86)
+    {
+        extern(C)
+        pragma(inline, true)
+        private void repMovs(T)(scope T* destination, scope const(T)* source, size_t length) @system pure nothrow @nogc
+        {
+            import core.bitop : bsr;
+
+            if (__ctfe)
+            {
+                foreach (index; 0 .. length)
+                {
+                    destination[index] = source[index];
+                }
+            }
+            else
+            {
+                enum size = T.sizeof.bsr;
+
+                version (LDC)
+                {
+                    import core.bitop : bsr;
+                    import ldc.llvmasm : __ir_pure;
+
+                    enum char suffix = "bwlq"[size];
+                    enum dataType = ["i8", "i16", "i32", "i64"][size];
+                    enum ptr = llvmIRPtr!dataType;
+                    enum lengthType = ["i8", "i16", "i32", "i64"][size_t.sizeof.bsr];
+
+                    version (X86)
+                    {
+                        enum indexPrefix = 'e';
+                    }
+                    else version (X86_64)
+                    {
+                        enum indexPrefix = 'r';
+                    }
+
+                    __ir_pure!(
+                        `call {` ~ ptr ~ `, ` ~ ptr ~ `, ` ~ lengthType ~ `} asm
+                         "rep movs` ~ suffix ~ `",
+                         "=&{` ~ indexPrefix ~ `di},=&{` ~ indexPrefix ~ `si},=&{ecx},0,1,2,~{memory}"
+                         (` ~ ptr ~ ` %0, ` ~ ptr ~ ` %1, ` ~ lengthType ~ ` %2)`,
+                        void
+                    )(destination, source, length);
+                }
+                else version (GNU)
+                {
+                    enum char suffix = "bwlq"[size];
+
+                    asm @system pure nothrow @nogc
+                     {
+                           "rep movs" ~ suffix
+                         : "=D" (destination), "=S" (source), "=c" (length)
+                         : "0" (destination), "1" (source), "2" (length)
+                         : "memory";
+                     }
+                }
+                else version (InlineAsm_X86_64_Or_X86)
+                {
+                    enum char suffix = "bwdq"[size];
+
+                    version (D_InlineAsm_X86_64)
+                    {
+                        mixin(
+                            "asm @system pure nothrow @nogc
+                             {
+                                 /* RCX is destination; RDX is source; R8 is length. */
+                                 naked;
+                                 mov R9, RDI; /* RDI is non-volatile, so we save it in R9. */
+                                 mov RAX, RSI; /* RSI is non-volatile, so we save it in RAX. */
+                                 mov RDI, RCX;
+                                 mov RCX, R8;
+                                 mov RSI, RDX;
+                                 rep; movs" ~ suffix ~ ";
+                                 mov RSI, RAX;
+                                 mov RDI, R9;
+                                 ret;
+                             }"
+                        );
+                    }
+                    else version (D_InlineAsm_X86)
+                    {
+                        mixin(
+                            "asm @system pure nothrow @nogc
+                             {
+                                 naked;
+                                 mov EAX, EDI; /* EDI is non-volatile, so we save it in EAX. */
+                                 mov EDX, ESI; /* ESI is non-volatile, so we save it in EDX. */
+                                 mov EDI, [ESP +  4]; /* destination. */
+                                 mov ESI, [ESP +  8]; /* source. */
+                                 mov ECX, [ESP + 12]; /* length. */
+                                 rep; movs" ~ suffix ~ ";
+                                 mov ESI, EDX;
+                                 mov EDI, EAX;
+                                 ret;
+                             }"
+                        );
+                    }
+                }
+            }
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test(alias I, alias movs)()
+            {
+                I[8] memory = [I.max, I.max - 1, 2, 3, 4, 5, 6, 7];
+
+                ((d, s) @trusted => movs(d, s, 4))(&memory[3], &memory[2]);
+                assert(memory == [I.max, I.max - 1, 2, 2, 2, 2, 2, 7]);
+
+                ((d, s) @trusted => movs(d, s, 2))(&memory[0], &memory[6]);
+                assert(memory == [2, 7, 2, 2, 2, 2, 2, 7]);
+
+                return true;
+            }
+
+            assert(test!(ubyte, __movsb));
+            static assert(test!(ubyte, __movsb));
+            assert(test!(ushort, __movsw));
+            static assert(test!(ushort, __movsw));
+            assert(test!(uint, __movsd));
+            static assert(test!(uint, __movsd));
+
+            version (X86_64)
+            {
+                assert(test!(ulong, __movsq));
+                static assert(test!(ulong, __movsq));
+            }
+        }
+    }
 }
