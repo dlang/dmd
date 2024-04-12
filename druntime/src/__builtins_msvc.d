@@ -11493,4 +11493,98 @@ version (MSVCIntrinsics)
             }
         }
     }
+
+    version (X86_64_Or_X86)
+    {
+        extern(C)
+        pragma(inline, true)
+        void __sidt(scope void* Destination) @system nothrow @nogc
+        {
+            version (LDC_Or_GNU)
+            {
+                version (X86_64)
+                {
+                    alias Pointee = ubyte[10];
+                }
+                else version (X86)
+                {
+                    alias Pointee = ubyte[6];
+                }
+            }
+
+            version (LDC)
+            {
+                import ldc.llvmasm : __ir;
+
+                version (X86_64)
+                {
+                    enum type = "[10 x i8]";
+                }
+                else version (X86)
+                {
+                    enum type = "[6 x i8]";
+                }
+
+                enum ptr = llvmIRPtr!type ~ " elementtype(" ~ type ~ ")";
+
+                __ir!(
+                    `call void asm sideeffect inteldialect "sidt $0", "=*m"(` ~ ptr ~ ` %0)`,
+                    void
+                )(cast(Pointee*) Destination);
+            }
+            else version (GNU)
+            {
+                asm @system nothrow @nogc
+                {
+                    "sidt %0" : "=m" (*cast(Pointee*) Destination);
+                }
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @system nothrow @nogc
+                {
+                    /* RCX is Destination. */
+                    naked;
+                    sidt [RCX];
+                    ret;
+                }
+            }
+            else version (D_InlineAsm_X86)
+            {
+                asm @system nothrow @nogc
+                {
+                    naked;
+                    mov EAX, [ESP + 4]; /* [ESP + 4] is Destination. */
+                    sidt [EAX];
+                    ret;
+                }
+            }
+        }
+
+        @safe nothrow @nogc unittest
+        {
+            version (X86_64)
+            {
+                alias Storage = ubyte[10];
+            }
+            else version (X86)
+            {
+                alias Storage = ubyte[6];
+            }
+
+            scope Storage destination = 0;
+
+            ((scope ref d) @trusted => __sidt(&d[0]))(destination);
+
+            foreach (value; destination)
+            {
+                if (value != 0)
+                {
+                    return;
+                }
+            }
+
+            assert(false);
+        }
+    }
 }
