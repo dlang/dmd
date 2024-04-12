@@ -10658,4 +10658,149 @@ version (MSVCIntrinsics)
         assert(test());
         static assert(test());
     }
+
+    version (X86_64_Or_X86)
+    {
+        extern(C)
+        pragma(inline, true)
+        ushort __popcnt16(ushort value) @safe pure nothrow @nogc
+        {
+            return populationCount(value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        uint __popcnt(uint value) @safe pure nothrow @nogc
+        {
+            return populationCount(value);
+        }
+    }
+
+    version (X86_64)
+    {
+        extern(C)
+        pragma(inline, true)
+        ulong __popcnt64(ulong value) @safe pure nothrow @nogc
+        {
+            return populationCount(value);
+        }
+    }
+
+    version (X86_64_Or_X86)
+    {
+        extern(C)
+        pragma(inline, true)
+        private T populationCount(T)(T value) @safe pure nothrow @nogc
+        {
+            /* The MSVC intrinsics for popcnt always emit the actual popcnt instruction,
+               whereas the LLVM and GCC instrinsics emit the actual instruction only when the target supports it.
+               So, for LDC and GDC, to benefit from constant-folding where possible we check to see
+               if the target supports popcnt before falling back to inline assembly. */
+
+            import core.bitop : popcnt;
+
+            if (__ctfe)
+            {
+                return cast(T) popcnt(value);
+            }
+            else
+            {
+                version (LDC)
+                {
+                    static if (__traits(targetHasFeature, "popcnt"))
+                    {
+                        import ldc.intrinsics : llvm_ctpop;
+                        return llvm_ctpop(value);
+                    }
+                    else
+                    {
+                        import core.bitop : bsr;
+                        import ldc.llvmasm : __ir_pure;
+
+                        enum size = T.sizeof.bsr;
+                        enum type = ["i8", "i16", "i32", "i64"][size];
+
+                        return __ir_pure!(
+                            `%count = call ` ~ type ~ ` asm inteldialect
+                                 "popcnt $0, $1",
+                                 "=r,r,~{flags}"
+                                 (` ~ type ~ ` %0)
+                             ret ` ~ type ~ ` %count`,
+                            T
+                        )(value);
+                    }
+                }
+                else version (GNU)
+                {
+                    /* If we have __builtin_ia32_crc32si, the target has SSE4.2 and thus, almost certainly, popcnt. */
+                    static if (__traits(compiles, () {import gcc.builtins : __builtin_ia32_crc32si;}))
+                    {
+                        static if (T.sizeof <= 4)
+                        {
+                            import gcc.builtins : __builtin_popcount;
+                            return cast(T) __builtin_popcount(value);
+                        }
+                        else
+                        {
+                            import gcc.builtins : __builtin_popcountll;
+                            return __builtin_popcountll(value);
+                        }
+                    }
+                    else
+                    {
+                        T result;
+
+                        asm @trusted pure nothrow @nogc
+                        {
+                            "popcnt %1, %0" : "=r" (result) : "rm" (value) : "cc";
+                        }
+
+                        return result;
+                    }
+                }
+                else
+                {
+                    import core.bitop : _popcnt;
+                    return _popcnt(value);
+                }
+            }
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            import core.cpuid : hasPopcnt;
+
+            if (!hasPopcnt)
+            {
+                return;
+            }
+
+            static bool test()
+            {
+                assert(__popcnt16(0b00000000_00000000) == 0);
+                assert(__popcnt16(0b10000000_00000000) == 1);
+                assert(__popcnt16(0b10000000_00000010) == 2);
+                assert(__popcnt16(0b11111111_11111111) == 16);
+
+                assert(__popcnt(0b00000000_00000000_00000000_00000000) == 0);
+                assert(__popcnt(0b10000000_00000000_00000000_00000000) == 1);
+                assert(__popcnt(0b10000000_00000000_00000000_00000010) == 2);
+                assert(__popcnt(0b11111111_11111111_11111111_11111111) == 32);
+
+                version (X86_64)
+                {
+                    alias popcnt = __popcnt64;
+                    assert(popcnt(0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000) == 0);
+                    assert(popcnt(0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000000) == 1);
+                    assert(popcnt(0b10000000_00000000_00000000_00000000_00000000_00000000_00000000_00000010) == 2);
+                    assert(popcnt(0b11111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111) == 64);
+                }
+
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
+    }
 }
