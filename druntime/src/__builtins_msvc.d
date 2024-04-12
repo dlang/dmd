@@ -5339,6 +5339,171 @@ version (MSVCIntrinsics)
 
     extern(C)
     pragma(inline, true)
+    ubyte _interlockedbittestandset(scope shared(int)* a, int b) @system pure nothrow @nogc
+    {
+        return interlockedBitTestOp!("bts", "rmw_or", "or_4", "|", "")(a, b);
+    }
+
+    version (X86_64_Or_AArch64)
+    {
+        extern(C)
+        pragma(inline, true)
+        ubyte _interlockedbittestandset64(scope shared(long)* a, long b) @system pure nothrow @nogc
+        {
+            return interlockedBitTestOp!("bts", "rmw_or", "or_8", "|", "")(a, b);
+        }
+    }
+
+    version (X86_64_Or_X86)
+    {
+        extern(C)
+        pragma(inline, true)
+        ubyte _interlockedbittestandset_HLEAcquire(scope shared(int)* a, int b) @system pure nothrow @nogc
+        {
+            return interlockedBitTestOp!("bts", "rmw_or", "or_4", "|", "", MemoryOrder.seq, 1)(a, b);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ubyte _interlockedbittestandset_HLERelease(scope shared(int)* a, int b) @system pure nothrow @nogc
+        {
+            return interlockedBitTestOp!("bts", "rmw_or", "or_4", "|", "", MemoryOrder.seq, 2)(a, b);
+        }
+    }
+
+    version (X86_64)
+    {
+        extern(C)
+        pragma(inline, true)
+        ubyte _interlockedbittestandset64_HLEAcquire(scope shared(long)* a, long b) @system pure nothrow @nogc
+        {
+            return interlockedBitTestOp!("bts", "rmw_or", "or_8", "|", "", MemoryOrder.seq, 1)(a, b);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ubyte _interlockedbittestandset64_HLERelease(scope shared(long)* a, long b) @system pure nothrow @nogc
+        {
+            return interlockedBitTestOp!("bts", "rmw_or", "or_8", "|", "", MemoryOrder.seq, 2)(a, b);
+        }
+    }
+
+    version (AArch64_Or_ARM)
+    {
+        extern(C)
+        pragma(inline, true)
+        ubyte _interlockedbittestandset_acq(scope shared(int)* a, int b) @system pure nothrow @nogc
+        {
+            return interlockedBitTestOp!("bts", "rmw_or", "or_4", "|", "", MemoryOrder.acq)(a, b);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ubyte _interlockedbittestandset_rel(scope shared(int)* a, int b) @system pure nothrow @nogc
+        {
+            return interlockedBitTestOp!("bts", "rmw_or", "or_4", "|", "", MemoryOrder.acq_rel)(a, b);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ubyte _interlockedbittestandset_nf(scope shared(int)* a, int b) @system pure nothrow @nogc
+        {
+            return interlockedBitTestOp!("bts", "rmw_or", "or_4", "|", "", MemoryOrder.raw)(a, b);
+        }
+    }
+
+    version (AArch64)
+    {
+        extern(C)
+        pragma(inline, true)
+        ubyte _interlockedbittestandset64_acq(scope shared(long)* a, long b) @system pure nothrow @nogc
+        {
+            return interlockedBitTestOp!("bts", "rmw_or", "or_8", "|", "", MemoryOrder.acq)(a, b);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ubyte _interlockedbittestandset64_rel(scope shared(long)* a, long b) @system pure nothrow @nogc
+        {
+            return interlockedBitTestOp!("bts", "rmw_or", "or_8", "|", "", MemoryOrder.acq_rel)(a, b);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ubyte _interlockedbittestandset64_nf(scope shared(long)* a, long b) @system pure nothrow @nogc
+        {
+            return interlockedBitTestOp!("bts", "rmw_or", "or_8", "|", "", MemoryOrder.raw)(a, b);
+        }
+    }
+
+    @system pure nothrow @nogc unittest
+    {
+        enum ulong datumA = 0b0111111110100010110111000101011101001111001100111111101100010100;
+        enum ulong datumB = 0b0001001000011101110011000010011010101000101000111001000001101110;
+        enum ulong datumC = 0b1010010101000100010111111111000100001000010010111000100111100110;
+        enum ulong datumD = 0b1011110000010110101001111110000110000011001100101010111100011101;
+
+        static void bitSetTest(alias bts, T)()
+        {
+            scope shared(T)[4] data = [cast(T) datumA, cast(T) datumB, cast(T) datumC, cast(T) datumD];
+
+            assert(bts(&data[0], T(0)) == 0);
+            assert(data[0] == cast(T) 0b0111111110100010110111000101011101001111001100111111101100010101);
+
+            assert(bts(&data[0], T(2)) == 1);
+            assert(data[0] == cast(T) 0b0111111110100010110111000101011101001111001100111111101100010101);
+
+            assert(bts(&data[0], cast(T) ((T.sizeof << 3) * 3)) == 1);
+            assert(data[3] == cast(T) 0b1011110000010110101001111110000110000011001100101010111100011101);
+
+            assert(bts(&data[0], cast(T) ((T.sizeof << 3) * 3 + 1)) == 0);
+            assert(data[3] == cast(T) 0b1011110000010110101001111110000110000011001100101010111100011111);
+        }
+
+        static bool test()
+        {
+            bitSetTest!(_interlockedbittestandset, int)();
+
+            version (X86_64_Or_AArch64)
+            {
+                bitSetTest!(_interlockedbittestandset64, long)();
+            }
+
+            version (X86_64_Or_X86)
+            {
+                bitSetTest!(_interlockedbittestandset_HLEAcquire, int)();
+                bitSetTest!(_interlockedbittestandset_HLERelease, int)();
+            }
+
+            version (X86_64)
+            {
+                bitSetTest!(_interlockedbittestandset64_HLEAcquire, long)();
+                bitSetTest!(_interlockedbittestandset64_HLERelease, long)();
+            }
+
+            version (AArch64_Or_ARM)
+            {
+                bitSetTest!(_interlockedbittestandset_acq, int)();
+                bitSetTest!(_interlockedbittestandset_rel, int)();
+                bitSetTest!(_interlockedbittestandset_nf, int)();
+            }
+
+            version (AArch64)
+            {
+                bitSetTest!(_interlockedbittestandset64_acq, long)();
+                bitSetTest!(_interlockedbittestandset64_rel, long)();
+                bitSetTest!(_interlockedbittestandset64_nf, long)();
+            }
+
+            return true;
+        }
+
+        assert(test());
+        static assert(test());
+    }
+
+    extern(C)
+    pragma(inline, true)
     private T interlockedAdd(MemoryOrder order = MemoryOrder.seq, T)(scope shared(T)* address, T value)
     @safe pure nothrow @nogc
     {
