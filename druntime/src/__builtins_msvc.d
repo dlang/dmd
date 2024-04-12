@@ -6201,6 +6201,249 @@ version (MSVCIntrinsics)
 
     extern(C)
     pragma(inline, true)
+    int _InterlockedExchange(scope shared(int)* Target, int Value) @safe pure nothrow @nogc
+    {
+        return interlockedExchange(Target, Value);
+    }
+
+    extern(C)
+    pragma(inline, true)
+    byte _InterlockedExchange8(scope shared(byte)* Target, byte Value) @safe pure nothrow @nogc
+    {
+        return interlockedExchange(Target, Value);
+    }
+
+    extern(C)
+    pragma(inline, true)
+    short _InterlockedExchange16(scope shared(short)* Target, short Value) @safe pure nothrow @nogc
+    {
+        return interlockedExchange(Target, Value);
+    }
+
+    extern(C)
+    pragma(inline, true)
+    long _interlockedexchange64(scope shared(long)* Target, long Value) @trusted pure nothrow @nogc
+    {
+        static if (__traits(compiles, interlockedExchange(Target, Value)))
+        {
+            return interlockedExchange(Target, Value);
+        }
+        else
+        {
+            if (__ctfe)
+            {
+                long oldValue = *cast(long*) Target;
+                *cast(long*) Target = Value;
+                return oldValue;
+            }
+            else
+            {
+                import core.internal.atomic : atomicCompareExchangeWeak, atomicLoad;
+
+                long data = atomicLoad!(MemoryOrder.raw)(Target);
+
+                while (!atomicCompareExchangeWeak(cast(long*) Target, &data, Value))
+                {}
+
+                return data;
+            }
+        }
+    }
+
+    version (X86_64_Or_AArch64_Or_ARM)
+    {
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedExchange64(scope shared(long)* Target, long Value) @safe pure nothrow @nogc
+        {
+            return interlockedExchange(Target, Value);
+        }
+    }
+
+    version (X86_64_Or_X86)
+    {
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedExchange_HLEAcquire(scope shared(int)* Target, int Value) @safe pure nothrow @nogc
+        {
+            return interlockedExchangeHLE!true(Target, Value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedExchange_HLERelease(scope shared(int)* Target, int Value) @safe pure nothrow @nogc
+        {
+            return interlockedExchangeHLE!false(Target, Value);
+        }
+    }
+
+    version (X86_64)
+    {
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedExchange64_HLEAcquire(scope shared(long)* Target, long Value) @safe pure nothrow @nogc
+        {
+            return interlockedExchangeHLE!true(Target, Value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedExchange64_HLERelease(scope shared(long)* Target, long Value) @safe pure nothrow @nogc
+        {
+            return interlockedExchangeHLE!false(Target, Value);
+        }
+    }
+
+    version (AArch64_Or_ARM)
+    {
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedExchange_acq(scope shared(int)* Target, int Value) @safe pure nothrow @nogc
+        {
+            return interlockedExchange!(MemoryOrder.acq)(Target, Value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedExchange_rel(scope shared(int)* Target, int Value) @safe pure nothrow @nogc
+        {
+            return interlockedExchange!(MemoryOrder.acq_rel)(Target, Value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedExchange_nf(scope shared(int)* Target, int Value) @safe pure nothrow @nogc
+        {
+            return interlockedExchange!(MemoryOrder.raw)(Target, Value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        byte _InterlockedExchange8_acq(scope shared(byte)* Target, byte Value) @safe pure nothrow @nogc
+        {
+            return interlockedExchange!(MemoryOrder.acq)(Target, Value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        byte _InterlockedExchange8_rel(scope shared(byte)* Target, byte Value) @safe pure nothrow @nogc
+        {
+            return interlockedExchange!(MemoryOrder.acq_rel)(Target, Value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        byte _InterlockedExchange8_nf(scope shared(byte)* Target, byte Value) @safe pure nothrow @nogc
+        {
+            return interlockedExchange!(MemoryOrder.raw)(Target, Value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        short _InterlockedExchange16_acq(scope shared(short)* Target, short Value) @safe pure nothrow @nogc
+        {
+            return interlockedExchange!(MemoryOrder.acq)(Target, Value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        short _InterlockedExchange16_rel(scope shared(short)* Target, short Value) @safe pure nothrow @nogc
+        {
+            return interlockedExchange!(MemoryOrder.acq_rel)(Target, Value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        short _InterlockedExchange16_nf(scope shared(short)* Target, short Value) @safe pure nothrow @nogc
+        {
+            return interlockedExchange!(MemoryOrder.raw)(Target, Value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedExchange64_acq(scope shared(long)* Target, long Value) @safe pure nothrow @nogc
+        {
+            return interlockedExchange!(MemoryOrder.acq)(Target, Value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedExchange64_rel(scope shared(long)* Target, long Value) @safe pure nothrow @nogc
+        {
+            return interlockedExchange!(MemoryOrder.acq_rel)(Target, Value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedExchange64_nf(scope shared(long)* Target, long Value) @safe pure nothrow @nogc
+        {
+            return interlockedExchange!(MemoryOrder.raw)(Target, Value);
+        }
+    }
+
+    /* This is trusted so that it's @safe without DIP1000 enabled. */
+    @trusted pure nothrow @nogc unittest
+    {
+        static void exchangeTest(alias symbol, T)()
+        {
+            shared T value = cast(T) 0x0790C852D0938C7B;
+
+            assert(symbol(&value, cast(T) 0x612396D4FDC2C66A) == cast(T) 0x0790C852D0938C7B);
+            assert(value == cast(T) 0x612396D4FDC2C66A);
+
+            assert(symbol(&value, cast(T) 0xAA6C3899EABBE818) == cast(T) 0x612396D4FDC2C66A);
+            assert(value == cast(T) 0xAA6C3899EABBE818);
+        }
+
+        static bool test()
+        {
+            exchangeTest!(_InterlockedExchange, int)();
+            exchangeTest!(_InterlockedExchange8, byte)();
+            exchangeTest!(_InterlockedExchange16, short)();
+            exchangeTest!(_interlockedexchange64, long)();
+
+            version (X86_64_Or_AArch64_Or_ARM)
+            {
+                exchangeTest!(_InterlockedExchange64, long)();
+            }
+
+            version (X86_64_Or_X86)
+            {
+                exchangeTest!(_InterlockedExchange_HLEAcquire, int)();
+                exchangeTest!(_InterlockedExchange_HLERelease, int)();
+            }
+
+            version (X86_64)
+            {
+                exchangeTest!(_InterlockedExchange64_HLEAcquire, long)();
+                exchangeTest!(_InterlockedExchange64_HLERelease, long)();
+            }
+
+            version (AArch64_Or_ARM)
+            {
+                exchangeTest!(_InterlockedExchange_acq, int)();
+                exchangeTest!(_InterlockedExchange_rel, int)();
+                exchangeTest!(_InterlockedExchange_nf, int)();
+                exchangeTest!(_InterlockedExchange8_acq, byte)();
+                exchangeTest!(_InterlockedExchange8_rel, byte)();
+                exchangeTest!(_InterlockedExchange8_nf, byte)();
+                exchangeTest!(_InterlockedExchange16_acq, short)();
+                exchangeTest!(_InterlockedExchange16_rel, short)();
+                exchangeTest!(_InterlockedExchange16_nf, short)();
+                exchangeTest!(_InterlockedExchange64_acq, long)();
+                exchangeTest!(_InterlockedExchange64_rel, long)();
+                exchangeTest!(_InterlockedExchange64_nf, long)();
+            }
+
+            return true;
+        }
+
+        assert(test());
+        static assert(test());
+    }
+
+    extern(C)
+    pragma(inline, true)
     private T interlockedAdd(MemoryOrder order = MemoryOrder.seq, T)(scope shared(T)* address, T value)
     @safe pure nothrow @nogc
     {
@@ -6730,6 +6973,175 @@ version (MSVCIntrinsics)
             }
         }
 
+        extern(C)
+        pragma(inline, true)
+        private T interlockedExchangeHLE(bool acquire, T)(scope shared(T)* address, scope T value)
+        @trusted
+        {
+            if (__ctfe)
+            {
+                T oldValue = *cast(T*) address;
+                *cast(T*) address = value;
+                return oldValue;
+            }
+            else
+            {
+                version (LDC)
+                {
+                    import core.bitop : bsr;
+                    import ldc.llvmasm : __ir_pure;
+
+                    enum size = T.sizeof.bsr;
+
+                    static if (is(T == P*, P))
+                    {
+                        enum type = llvmIRPtr!"i8";
+                    }
+                    else
+                    {
+                        enum type = ["i8", "i16", "i32", "i64"][size];
+                    }
+
+                    enum ptr = llvmIRPtr!type;
+
+                    return __ir_pure!(
+                        `%oldValue = call ` ~ type ~ ` asm sideeffect inteldialect
+                             "` ~ (acquire ? "xacquire" : "xrelease") ~ ` xchg $1, $0",
+                             "=r,=*m,0,~{memory}"
+                             ( ` ~ ptr ~ ` elementtype(` ~ type ~ `)` ~ ` %0, ` ~ type ~ ` %1)
+
+                         ret ` ~ type ~ ` %oldValue`,
+                        T
+                    )(address, value);
+                }
+                else version (GNU)
+                {
+                    static if (acquire)
+                    {
+                        /* This is equivalent to GCC's __ATOMIC_HLE_ACQUIRE. */
+                        enum int hleModifier = 1 << 16;
+                    }
+                    else
+                    {
+                        /* This is equivalent to GCC's __ATOMIC_HLE_RELEASE. */
+                        enum int hleModifier = 1 << 17;
+                    }
+
+                    enum int hleOrder = MemoryOrder.seq | hleModifier;
+                    enum exchange = "__atomic_exchange_" ~ ('0' + T.sizeof);
+
+                    import core.internal.traits : AliasSeq;
+                    import core.bitop : bsr;
+                    mixin(q{import gcc.builtins : }, exchange, q{;});
+
+                    alias Int = AliasSeq!(ubyte, ushort, uint, ulong)[T.sizeof.bsr];
+
+                    return cast(T) mixin(exchange)(address, cast(Int) value, hleOrder);
+                }
+                else version (InlineAsm_X86_64_Or_X86)
+                {
+                    import core.bitop : bsr;
+
+                    enum size = T.sizeof.bsr;
+                    enum xacquire = "repne";
+                    enum xrelease = "rep";
+
+                    version (D_InlineAsm_X86_64)
+                    {
+                        enum fullA = ["EAX", "EAX", "EAX", "RAX"][size];
+                        enum fullD = ["EDX", "EDX", "EDX", "RDX"][size];
+                        enum a = ["AL", "AX", "EAX", "RAX"][size];
+
+                        mixin(
+                            "asm @trusted pure nothrow @nogc
+                             {
+                                 /* RCX is address; RDX is value. */
+                                 naked;
+                                  mov " ~ fullA ~ ", " ~ fullD ~ ";
+                                 " ~ (acquire ? xacquire : xrelease) ~ "; xchg [RCX], " ~ a ~ ";
+                                 ret;
+                             }"
+                        );
+                    }
+                    else version (D_InlineAsm_X86)
+                    {
+                        enum a = ["AL", "AX", "EAX"][size];
+
+                        mixin(
+                            "asm @trusted pure nothrow @nogc
+                             {
+                                 naked;
+                                 mov ECX, [ESP + 4]; /* address. */
+                                 mov EAX, [ESP + 8]; /* value. */
+                                 " ~ (acquire ? xacquire : xrelease) ~ "; xchg [ECX], " ~ a ~ ";
+                                 ret;
+                             }"
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    extern(C)
+    pragma(inline, true)
+    private T interlockedExchange(MemoryOrder order = MemoryOrder.seq, T)(scope shared(T)* address, scope T value)
+    @trusted
+    {
+        if (__ctfe)
+        {
+            T oldValue = *cast(T*) address;
+            *cast(T*) address = value;
+            return oldValue;
+        }
+        else
+        {
+            static if (order == MemoryOrder.acq)
+            {
+                /* atomicExchange rejects acq memory-ordering as invalid, but this is what MSVC does, so: ¯\_(ツ)_/¯ */
+
+                version (LDC)
+                {
+                    import core.internal.atomic : _ordering;
+                    import ldc.intrinsics : llvm_atomic_rmw_xchg;
+
+                    T result = llvm_atomic_rmw_xchg!(T)(address, value, _ordering!order);
+                }
+                else version (GNU)
+                {
+                    import core.internal.traits : AliasSeq;
+                    import core.bitop : bsr;
+                    enum exchange = "__atomic_exchange_" ~ ('0' + T.sizeof);
+                    mixin(q{import gcc.builtins : }, exchange, q{;});
+
+                    alias Int = AliasSeq!(ubyte, ushort, uint, ulong)[T.sizeof.bsr];
+
+                    T result = cast(T) mixin(exchange)(address, cast(Int) value, order);
+                }
+                else
+                {
+                    static assert(false, "This is instantiated only for ARM/AArch64 targets.");
+                }
+            }
+            else
+            {
+                import core.internal.atomic : atomicExchange;
+
+                T result = atomicExchange!(order, true, T)(cast(T*) address, value);
+            }
+
+            version (AArch64_Or_ARM)
+            {
+                /* This is what the Interlocked MSVC intrinsics do. */
+                static if (order == MemoryOrder.acq)
+                {
+                    /* dmb ish */
+                    __builtin_arm_dmb(11);
+                }
+            }
+
+            return result;
+        }
     }
 
     extern(C)
