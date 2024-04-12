@@ -12096,5 +12096,57 @@ version (MSVCIntrinsics)
                 }
             }
         }
+
+        extern(C)
+        pragma(inline, true)
+        void __ud2() @safe pure nothrow @nogc
+        {
+            if (__ctfe)
+            {
+                assert(false, "__ud2");
+            }
+            else
+            {
+                version (LDC)
+                {
+                    import ldc.llvmasm : __ir_pure;
+
+                    __ir_pure!(`call void asm sideeffect "ud2", ""()`, void)();
+                }
+                else version (GNU)
+                {
+                    asm @trusted pure nothrow @nogc
+                    {
+                        "ud2";
+                    }
+                }
+                else version (InlineAsm_X86_64_Or_X86)
+                {
+                    asm @trusted pure nothrow @nogc
+                    {
+                        ud2;
+                    }
+                }
+            }
+        }
+
+        @safe pure nothrow @nogc
+        {
+            static assert(__traits(compiles, __ud2()));
+
+            static assert(
+                !__traits(
+                    compiles,
+                    ()
+                    {
+                        enum value = ()
+                        {
+                            __ud2();
+                            return 6;
+                        }();
+                    }()
+                )
+            );
+        }
     }
 }
