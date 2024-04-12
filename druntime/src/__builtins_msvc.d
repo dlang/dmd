@@ -50,10 +50,16 @@ version (MSVCIntrinsics)
     version (LDC)
     {
         version = LDC_Or_GNU;
+
+             version (X86_64_Or_X86) private enum gccBuiltins = "ldc.gccbuiltins_x86";
+        else version (ARM) private enum gccBuiltins = "ldc.gccbuiltins_arm";
+        else version (AArch64) private enum gccBuiltins = "ldc.gccbuiltins_aarch64";
     }
     else version (GNU)
     {
         version = LDC_Or_GNU;
+
+        private enum gccBuiltins = "gcc.builtins";
     }
 
     static if (__traits(compiles, () {import core.simd : float4;}))
