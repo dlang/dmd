@@ -4477,5 +4477,29 @@ version (MSVCIntrinsics)
             }
         }
     }
+
+    extern(C)
+    pragma(inline, true)
+    void _enable() @safe nothrow @nogc
+    {
+        version (LDC_Or_GNU)
+        {
+            version (X86_64_Or_X86) enum code = "sti";
+            else version (ARM) enum code = "cpsie i";
+            else version (AArch64) enum code = "msr daifclr, #2";
+
+            asm @trusted pure nothrow @nogc
+            {
+                "" ~ code : : : "cc";
+            }
+        }
+        else version (InlineAsm_X86_64_Or_X86)
+        {
+            asm @trusted pure nothrow @nogc
+            {
+                sti;
+            }
+        }
+    }
     }
 }
