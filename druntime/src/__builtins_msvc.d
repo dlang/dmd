@@ -2495,5 +2495,484 @@ version (MSVCIntrinsics)
             assert(test());
             static assert(test());
         }
+
+        extern(C)
+        pragma(inline, true)
+        int _cvt_dtoi_sat(double value) @safe pure nothrow @nogc
+        {
+            if (__ctfe)
+            {
+                if (value >= twoExp31Double)
+                {
+                    return int.max;
+                }
+
+                if (value < -twoExp31Double)
+                {
+                    return int.min;
+                }
+
+                if (value != value)
+                {
+                    return 0;
+                }
+
+                return cast(int) value;
+            }
+            else
+            {
+                version (LDC_Or_GNU)
+                {
+                    mixin(q{import }, gccBuiltins, q{ : __builtin_ia32_cvttsd2si;});
+
+                    if (value >= twoExp31Double)
+                    {
+                        return int.max;
+                    }
+
+                    if (value != value)
+                    {
+                        return 0;
+                    }
+
+                    /* If value is less-than -twoExp31Double cvttsd2si will evaluate to int.min. */
+                    return __builtin_ia32_cvttsd2si(value);
+                }
+                else version (D_InlineAsm_X86_64)
+                {
+                    asm @trusted pure nothrow @nogc
+                    {
+                        naked;
+                        ucomisd XMM0, twoExp31DoubleInstance;
+                        mov EAX, int.max;
+                        jae tooBig; /* Jump if value is greater-or-equal to twoExp31DoubleInstance. */
+                        jp isNaN; /* Jump if value is NaN. */
+                        /* If value is less-than -twoExp31DoubleInstance cvttsd2si will evaluate to int.min. */
+                        cvttsd2si EAX, XMM0;
+                        ret;
+                    isNaN:
+                        xor EAX, EAX;
+                    tooBig:
+                        ret;
+                    }
+                }
+                else version (D_InlineAsm_X86)
+                {
+                    asm @trusted pure nothrow @nogc
+                    {
+                        naked;
+                        movsd XMM0, [ESP + 4];
+                        ucomisd XMM0, twoExp31DoubleInstance;
+                        mov EAX, int.max;
+                        jae tooBig; /* Jump if value is greater-or-equal to twoExp31DoubleInstance. */
+                        jp isNaN; /* Jump if value is NaN. */
+                        /* If value is less-than -twoExp31DoubleInstance cvttsd2si will evaluate to int.min. */
+                        cvttsd2si EAX, XMM0;
+                        ret;
+                    isNaN:
+                        xor EAX, EAX;
+                    tooBig:
+                        ret;
+                    }
+                }
+            }
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                assert(_cvt_dtoi_sat(0.0) == 0);
+                assert(_cvt_dtoi_sat(-0.0) == 0);
+                assert(_cvt_dtoi_sat(float.nan) == 0);
+                assert(_cvt_dtoi_sat(-float.nan) == 0);
+                assert(_cvt_dtoi_sat(float.infinity) == 2147483647);
+                assert(_cvt_dtoi_sat(-float.infinity) == -2147483648);
+                assert(_cvt_dtoi_sat(1.0) == 1);
+                assert(_cvt_dtoi_sat(-1.0) == -1);
+                assert(_cvt_dtoi_sat(2.5) == 2);
+                assert(_cvt_dtoi_sat(-2.5) == -2);
+                assert(_cvt_dtoi_sat(3.5) == 3);
+                assert(_cvt_dtoi_sat(-3.5) == -3);
+                assert(_cvt_dtoi_sat(3.49) == 3);
+                assert(_cvt_dtoi_sat(-3.49) == -3);
+                assert(_cvt_dtoi_sat(twoExp31Float) == 2147483647);
+                assert(_cvt_dtoi_sat(-twoExp31Float) == -2147483648);
+                assert(_cvt_dtoi_sat(twoExp63Float) == 2147483647);
+                assert(_cvt_dtoi_sat(-twoExp63Float) == -2147483648);
+                assert(_cvt_dtoi_sat(justUnderTwoExp63Float) == 2147483647);
+                assert(_cvt_dtoi_sat(33554432.0) == 33554432);
+                assert(_cvt_dtoi_sat(-33554432.0) == -33554432);
+                assert(_cvt_dtoi_sat(33554436.0) == 33554436);
+                assert(_cvt_dtoi_sat(-33554436.0) == -33554436);
+                assert(_cvt_dtoi_sat(70369281048576.0) == 2147483647);
+                assert(_cvt_dtoi_sat(-70369281048576.0) == -2147483648);
+
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
+
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        extern(C)
+        pragma(inline, true)
+        long _cvt_dtoll_sat(double value) @trusted pure nothrow @nogc
+        {
+            version (X86_64)
+            {
+                if (__ctfe)
+                {
+                    if (value >= twoExp63Double)
+                    {
+                        return long.max;
+                    }
+
+                    if (value < -twoExp63Double)
+                    {
+                        return long.min;
+                    }
+
+                    if (value != value)
+                    {
+                        return 0;
+                    }
+
+                    return cast(long) value;
+                }
+                else
+                {
+                    version (LDC_Or_GNU)
+                    {
+                        mixin(q{import }, gccBuiltins, q{ : __builtin_ia32_cvttsd2si64;});
+
+                        if (value >= twoExp63Double)
+                        {
+                            return long.max;
+                        }
+
+                        if (value != value)
+                        {
+                            return 0;
+                        }
+
+                        /* If value is less-than -twoExp63Double cvttsd2si will evaluate to long.min. */
+                        return __builtin_ia32_cvttsd2si64(value);
+                    }
+                    else version (D_InlineAsm_X86_64)
+                    {
+                        enum ubyte REX_W = 0b0100_1000;
+                        enum ubyte RAX_XMM0 = 0b11_000_000;
+
+                        asm @trusted pure nothrow @nogc
+                        {
+                            naked;
+                            ucomisd XMM0, twoExp63DoubleInstance;
+                            mov RAX, long.max;
+                            jae tooBig; /* Jump if value is greater-or-equal to twoExp63DoubleInstance. */
+                            jp isNaN; /* Jump if value is NaN. */
+                            /* If value is less-than -twoExp63DoubleInstance cvttsd2si will evaluate to long.min. */
+                            /* DMD refuses to encode `cvttsd2si RAX, XMM0`, so we'll encode it by hand. */
+                            db 0xF2, REX_W, 0x0F, 0x2C, RAX_XMM0; /* cvttsd2si RAX, XMM0 */
+                            ret;
+                        isNaN:
+                            xor EAX, EAX;
+                        tooBig:
+                            ret;
+                        }
+                    }
+                }
+            }
+            else version (X86)
+            {
+                /* If the hardware can handle it, let it handle it. */
+                if (value < twoExp31Double && value >= -twoExp31Double)
+                {
+                    return _cvt_dtoi_fast(value);
+                }
+
+                if (value >= twoExp63Double)
+                {
+                    return long.max;
+                }
+
+                if (value < -twoExp63Double)
+                {
+                    return long.min;
+                }
+
+                if (value != value)
+                {
+                    return 0;
+                }
+
+                /* At this point, the exponent is at-least 31 and less-than 64. */
+
+                long asInt = *(cast(const(long)*) &value);
+
+                uint high = cast(uint) (asInt >>> 32);
+                uint low = cast(uint) asInt;
+
+                long sign = (cast(int) high) >> 31;
+                assert(sign == 0 || sign == -1);
+
+                int exponent = ((high >>> 20) & 2047) - 1023;
+                assert(exponent >= 31);
+                assert(exponent <= 63);
+
+                ulong significand = (ulong((high & 0b00000000_00001111_11111111_11111111) | (1 << 20)) << 32) | low;
+                uint shiftCount = (exponent < 52 ? 52 : exponent) - (exponent < 52 ? exponent : 52);
+
+                if (exponent < 52)
+                {
+                    significand >>>= (shiftCount & 63);
+                }
+                else
+                {
+                    significand <<= (shiftCount & 63);
+                }
+
+                /* If the sign bit is set, we need to negate the significand; we can do that branchlessly
+                   by taking advantage of the fact that `sign` is either 0 or -1.
+                   As `(s ^ 0) - 0 == s`, whereas `(s ^ -1) - -1 == -s`. */
+                ulong adjustedSignificand = (significand ^ sign) - sign;
+                assert(sign == 0 ? adjustedSignificand == significand : adjustedSignificand == -significand);
+
+                return adjustedSignificand;
+            }
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                assert(_cvt_dtoll_sat(0.0) == 0);
+                assert(_cvt_dtoll_sat(-0.0) == 0);
+                assert(_cvt_dtoll_sat(double.nan) == 0);
+                assert(_cvt_dtoll_sat(-double.nan) == 0);
+                assert(_cvt_dtoll_sat(double.infinity) == 9223372036854775807);
+                assert(_cvt_dtoll_sat(-double.infinity) == -9223372036854775808);
+                assert(_cvt_dtoll_sat(1.0) == 1);
+                assert(_cvt_dtoll_sat(-1.0) == -1);
+                assert(_cvt_dtoll_sat(2.5) == 2);
+                assert(_cvt_dtoll_sat(-2.5) == -2);
+                assert(_cvt_dtoll_sat(3.5) == 3);
+                assert(_cvt_dtoll_sat(-3.5) == -3);
+                assert(_cvt_dtoll_sat(3.49) == 3);
+                assert(_cvt_dtoll_sat(-3.49) == -3);
+                assert(_cvt_dtoll_sat(twoExp31Double) == 2147483648);
+                assert(_cvt_dtoll_sat(-twoExp31Double) == -2147483648);
+                assert(_cvt_dtoll_sat(twoExp63Double) == 9223372036854775807);
+                assert(_cvt_dtoll_sat(-twoExp63Double) == -9223372036854775808);
+                assert(_cvt_dtoll_sat(justUnderTwoExp63Double) == 9223371487098961920);
+                assert(_cvt_dtoll_sat(33554432.0) == 33554432);
+                assert(_cvt_dtoll_sat(-33554432.0) == -33554432);
+                assert(_cvt_dtoll_sat(33554436.0) == 33554436);
+                assert(_cvt_dtoll_sat(-33554436.0) == -33554436);
+                assert(_cvt_dtoll_sat(70369281048576.0) == 70369281048576);
+                assert(_cvt_dtoll_sat(-70369281048576.0) == -70369281048576);
+
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
+
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        extern(C)
+        pragma(inline, true)
+        uint _cvt_dtoui_sat(double value) @trusted pure nothrow @nogc
+        {
+            version (X86_64)
+            {
+                if (value >= twoExp32Double)
+                {
+                    return uint.max;
+                }
+
+                if (value < 0.0 || value != value)
+                {
+                    return 0;
+                }
+
+                return cast(uint) _cvt_dtoll_fast(value);
+            }
+            else version (X86)
+            {
+                if (value < 0.0 || value != value)
+                {
+                    return 0;
+                }
+
+                /* If the hardware can handle it, let it handle it. */
+                if (value < twoExp31Double)
+                {
+                    return cast(uint) _cvt_dtoi_fast(value);
+                }
+
+                if (value >= twoExp32Double)
+                {
+                    return uint.max;
+                }
+
+                /* At this point, the exponent is 31. */
+
+                /* We have 52-bits stored for the significand, and we know that the exponent is 31,
+                   which means that we can just shift left unconditionally by 21 (52 - 31), which leaves
+                   the implicit bit of the full 53-bit significand to be set at the most-significant bit. */
+                return cast(uint) (*(cast(const(ulong)*) &value) >>> 21) | (1 << 31);
+            }
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                assert(_cvt_dtoui_sat(0.0) == 0);
+                assert(_cvt_dtoui_sat(-0.0) == 0);
+                assert(_cvt_dtoui_sat(float.nan) == 0);
+                assert(_cvt_dtoui_sat(-float.nan) == 0);
+                assert(_cvt_dtoui_sat(float.infinity) == 4294967295);
+                assert(_cvt_dtoui_sat(-float.infinity) == 0);
+                assert(_cvt_dtoui_sat(1.0) == 1);
+                assert(_cvt_dtoui_sat(-1.0) == 0);
+                assert(_cvt_dtoui_sat(2.5) == 2);
+                assert(_cvt_dtoui_sat(-2.5) == 0);
+                assert(_cvt_dtoui_sat(3.5) == 3);
+                assert(_cvt_dtoui_sat(-3.5) == 0);
+                assert(_cvt_dtoui_sat(3.49) == 3);
+                assert(_cvt_dtoui_sat(-3.49) == 0);
+                assert(_cvt_dtoui_sat(twoExp31Float) == 2147483648);
+                assert(_cvt_dtoui_sat(-twoExp31Float) == 0);
+                assert(_cvt_dtoui_sat(twoExp63Float) == 4294967295);
+                assert(_cvt_dtoui_sat(-twoExp63Float) == 0);
+                assert(_cvt_dtoui_sat(justUnderTwoExp63Float) == 4294967295);
+                assert(_cvt_dtoui_sat(33554432.0) == 33554432);
+                assert(_cvt_dtoui_sat(-33554432.0) == 0);
+                assert(_cvt_dtoui_sat(33554436.0) == 33554436);
+                assert(_cvt_dtoui_sat(-33554436.0) == 0);
+                assert(_cvt_dtoui_sat(70369281048576.0) == 4294967295);
+                assert(_cvt_dtoui_sat(-70369281048576.0) == 0);
+
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
+
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        extern(C)
+        pragma(inline, true)
+        ulong _cvt_dtoull_sat(double value) @trusted pure nothrow @nogc
+        {
+            version (X86_64)
+            {
+                if (value < 0.0 || value != value)
+                {
+                    return 0;
+                }
+
+                /* If the hardware can handle it, let it handle it. */
+                if (value < twoExp63Double)
+                {
+                    return cast(ulong) _cvt_dtoll_fast(value);
+                }
+
+                if (value >= twoExp64Double)
+                {
+                    return ulong.max;
+                }
+
+                /* At this point, the exponent is 63. */
+
+                /* We have 52-bits stored for the significand, and we know that the exponent is 63,
+                   which means that we can just shift left unconditionally by 11 (63 - 52), which leaves
+                   the implicit bit of the full 53-bit significand to be set at the most-significant bit. */
+                return (*(cast(const(ulong)*) &value) << 11) | (ulong(1) << 63);
+            }
+            else version (X86)
+            {
+                if (value < 0.0 || value != value)
+                {
+                    return 0;
+                }
+
+                /* If the hardware can handle it, let it handle it. */
+                if (value < twoExp31Double)
+                {
+                    return cast(ulong) _cvt_dtoi_fast(value);
+                }
+
+                if (value >= twoExp64Double)
+                {
+                    return ulong.max;
+                }
+
+                /* At this point, the exponent is at-least 31 and less-than 64. */
+
+                long asInt = *(cast(const(long)*) &value);
+
+                uint high = cast(uint) (asInt >>> 32);
+                uint low = cast(uint) asInt;
+
+                int exponent = ((high >>> 20) & 2047) - 1023;
+                assert(exponent >= 31);
+                assert(exponent <= 63);
+
+                ulong significand = (ulong((high & 0b00000000_00001111_11111111_11111111) | (1 << 20)) << 32) | low;
+                uint shiftCount = (exponent < 52 ? 52 : exponent) - (exponent < 52 ? exponent : 52);
+
+                if (exponent < 52)
+                {
+                    significand >>>= (shiftCount & 63);
+                }
+                else
+                {
+                    significand <<= (shiftCount & 63);
+                }
+
+                return significand;
+            }
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                assert(_cvt_dtoull_sat(0.0) == 0);
+                assert(_cvt_dtoull_sat(-0.0) == 0);
+                assert(_cvt_dtoull_sat(float.nan) == 0);
+                assert(_cvt_dtoull_sat(-float.nan) == 0);
+                assert(_cvt_dtoull_sat(float.infinity) == 18446744073709551615);
+                assert(_cvt_dtoull_sat(-float.infinity) == 0);
+                assert(_cvt_dtoull_sat(1.0) == 1);
+                assert(_cvt_dtoull_sat(-1.0) == 0);
+                assert(_cvt_dtoull_sat(2.5) == 2);
+                assert(_cvt_dtoull_sat(-2.5) == 0);
+                assert(_cvt_dtoull_sat(3.5) == 3);
+                assert(_cvt_dtoull_sat(-3.5) == 0);
+                assert(_cvt_dtoull_sat(3.49) == 3);
+                assert(_cvt_dtoull_sat(-3.49) == 0);
+                assert(_cvt_dtoull_sat(twoExp31Float) == 2147483648);
+                assert(_cvt_dtoull_sat(-twoExp31Float) == 0);
+                assert(_cvt_dtoull_sat(twoExp63Float) == 9223372036854775808);
+                assert(_cvt_dtoull_sat(-twoExp63Float) == 0);
+                assert(_cvt_dtoull_sat(justUnderTwoExp63Float) == 9223371487098961920);
+                assert(_cvt_dtoull_sat(33554432.0) == 33554432);
+                assert(_cvt_dtoull_sat(-33554432.0) == 0);
+                assert(_cvt_dtoull_sat(33554436.0) == 33554436);
+                assert(_cvt_dtoull_sat(-33554436.0) == 0);
+                assert(_cvt_dtoull_sat(70369281048576.0) == 70369281048576);
+                assert(_cvt_dtoull_sat(-70369281048576.0) == 0);
+
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
     }
 }
