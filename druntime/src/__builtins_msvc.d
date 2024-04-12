@@ -10937,5 +10937,121 @@ version (MSVCIntrinsics)
 
             assert(false);
         }
+
+        extern(C)
+        pragma(inline, true)
+        auto __readcr0() @safe nothrow @nogc
+        {
+            return readNumberedRegister!('R', "CR", 0)();
+        }
+
+        extern(C)
+        pragma(inline, true)
+        auto __readcr2() @safe nothrow @nogc
+        {
+            return readNumberedRegister!('R', "CR", 2)();
+        }
+
+        extern(C)
+        pragma(inline, true)
+        auto __readcr3() @safe nothrow @nogc
+        {
+            return readNumberedRegister!('R', "CR", 3)();
+        }
+
+        extern(C)
+        pragma(inline, true)
+        auto __readcr4() @safe nothrow @nogc
+        {
+            return readNumberedRegister!('R', "CR", 4)();
+        }
+
+        extern(C)
+        pragma(inline, true)
+        auto __readcr8() @safe nothrow @nogc
+        {
+            version (X86_64)
+            {
+                return readNumberedRegister!('R', "CR", 8)();
+            }
+            else version (X86)
+            {
+                /* __readcr8 is available on x86, for some reason, and this is what it does. */
+                return readNumberedRegister!('R', "CR", 0, true)();
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        private auto readNumberedRegister(char x64Size, string prefix, uint number, bool lock = false)()
+        @safe nothrow @nogc
+        {
+            enum char digit = '0' + number;
+
+            version (LDC)
+            {
+                import ldc.llvmasm : __ir;
+
+                version (X86_64)
+                {
+                    alias T = ulong;
+                    enum type = "i64";
+                }
+                else version (X86)
+                {
+                    alias T = uint;
+                    enum type = "i32";
+                }
+
+                return __ir!(
+                    `%result = call ` ~ type ~ ` asm sideeffect inteldialect
+                         "` ~ (lock ? "lock " : "") ~ `mov $0, ` ~ prefix ~ digit ~ `",
+                         "=r"
+                         ()
+                     ret ` ~ type ~ ` %result`,
+                    T
+                )();
+            }
+            else version (GNU)
+            {
+                version (X86_64)
+                {
+                    ulong result;
+                }
+                else version (X86)
+                {
+                    uint result;
+                }
+
+                asm @trusted nothrow @nogc
+                {
+                    "" ~ (lock ? "lock " : "") ~ "mov %%" ~ prefix ~ digit ~ ", %0" : "=r" (result);
+                }
+
+                return result;
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                mixin(
+                    "asm @trusted nothrow @nogc
+                     {
+                         naked;
+                         " ~ (lock ? "lock; " : "") ~ "mov " ~ x64Size ~ "AX, " ~ prefix ~ digit ~ ";
+                         ret;
+                     }"
+                );
+            }
+            else version (D_InlineAsm_X86)
+            {
+                mixin(
+                    "asm @trusted nothrow @nogc
+                     {
+                         naked;
+                         " ~ (lock ? "lock; " : "") ~ "mov EAX, " ~ prefix ~ digit ~ ";
+                         ret;
+                     }"
+                );
+            }
+        }
     }
 }
