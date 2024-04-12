@@ -10583,4 +10583,33 @@ version (MSVCIntrinsics)
             }
         }
     }
+
+    pragma(inline, true)
+    byte __noop(Args...)(lazy scope Args args) @safe pure nothrow @nogc
+    {
+        return 0;
+    }
+
+    @safe pure nothrow @nogc unittest
+    {
+        static bool test()
+        {
+            uint counter = 0;
+
+            uint evaluatesWithSideEffect()
+            {
+                ++counter;
+
+                return 7;
+            }
+
+            assert(__noop(evaluatesWithSideEffect()) == 0);
+            assert(counter == 0);
+
+            return true;
+        }
+
+        assert(test());
+        static assert(test());
+    }
 }
