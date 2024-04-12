@@ -12942,4 +12942,91 @@ version (MSVCIntrinsics)
             }
         }
     }
+
+    extern(C)
+    pragma(inline, true)
+    void _ReadBarrier() @safe pure nothrow @nogc
+    {
+        readWriteBarrier();
+    }
+
+    extern(C)
+    pragma(inline, true)
+    void _WriteBarrier() @safe pure nothrow @nogc
+    {
+        readWriteBarrier();
+    }
+
+    extern(C)
+    pragma(inline, true)
+    void _ReadWriteBarrier() @safe pure nothrow @nogc
+    {
+        readWriteBarrier();
+    }
+
+    extern(C)
+    pragma(inline, true)
+    private void readWriteBarrier() @safe pure nothrow @nogc
+    {
+        if (__ctfe)
+        {}
+        else
+        {
+            version (LDC)
+            {
+                import ldc.llvmasm : __ir_pure;
+
+                __ir_pure!(`fence syncscope("singlethread") seq_cst`, void)();
+            }
+            else version (GNU)
+            {
+                asm @trusted pure nothrow @nogc
+                {
+                    "" : : : "memory";
+                }
+            }
+            else version (InlineAsm_X86_64_Or_X86)
+            {
+                asm @trusted pure nothrow @nogc
+                {}
+            }
+            else
+            {
+                static assert(false);
+            }
+        }
+    }
+
+    @safe pure nothrow unittest
+    {
+        static bool test()
+        {
+            version (D_BetterC)
+            {
+                _ReadBarrier();
+                _WriteBarrier();
+                _ReadWriteBarrier();
+            }
+            else
+            {
+                uint[] data = new uint[32];
+
+                data[16] = 1;
+                _ReadBarrier();
+                data[16] = 2;
+                _WriteBarrier();
+                data[16] = 3;
+                _ReadWriteBarrier();
+                data[16] = 4;
+                /* In the resulting binary, all these writes should actually occur. */
+
+                assert(data[16] == 4);
+            }
+
+            return true;
+        }
+
+        assert(test());
+        static assert(test());
+    }
 }
