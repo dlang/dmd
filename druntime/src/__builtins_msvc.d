@@ -10612,4 +10612,50 @@ version (MSVCIntrinsics)
         assert(test());
         static assert(test());
     }
+
+    extern(C)
+    pragma(inline, true)
+    void __nop() @safe pure nothrow @nogc
+    {
+        /* Why does this exist? */
+
+        if (__ctfe)
+        {}
+        else
+        {
+            version (LDC)
+            {
+                import ldc.llvmasm : __ir_pure;
+
+                __ir_pure!(`call void asm "nop", ""()`, void)();
+            }
+            else version (GNU)
+            {
+                asm @trusted pure nothrow @nogc
+                {
+                    "nop";
+                }
+            }
+            else version (InlineAsm_X86_64_Or_X86)
+            {
+                asm @trusted pure nothrow @nogc
+                {
+                    nop;
+                }
+            }
+        }
+    }
+
+    @safe pure nothrow @nogc unittest
+    {
+        static bool test()
+        {
+            __nop();
+
+            return true;
+        }
+
+        assert(test());
+        static assert(test());
+    }
 }
