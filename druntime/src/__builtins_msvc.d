@@ -12705,5 +12705,102 @@ version (MSVCIntrinsics)
                 }
             }
         }
+
+        extern(C)
+        pragma(inline, true)
+        auto __writecr0(RegisterSized Data) @safe nothrow @nogc
+        {
+            return writeNumberedRegister!('R', "CR", 0)(Data);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        auto __writecr2(RegisterSized Data) @safe nothrow @nogc
+        {
+            return writeNumberedRegister!('R', "CR", 2)(Data);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        auto __writecr3(RegisterSized Data) @safe nothrow @nogc
+        {
+            return writeNumberedRegister!('R', "CR", 3)(Data);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        auto __writecr4(RegisterSized Data) @safe nothrow @nogc
+        {
+            return writeNumberedRegister!('R', "CR", 4)(Data);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        auto __writecr8(RegisterSized Data) @safe nothrow @nogc
+        {
+            version (X86_64)
+            {
+                return writeNumberedRegister!('R', "CR", 8)(Data);
+            }
+            else version (X86)
+            {
+                /* __writecr8 is available on x86, for some reason, and this is what it does. */
+                return writeNumberedRegister!('R', "CR", 0, true)(Data);
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        private void writeNumberedRegister(char x64Size, string prefix, uint number, bool lock = false, T)(T Data)
+        @safe nothrow @nogc
+        {
+            enum char digit = '0' + number;
+
+            version (LDC)
+            {
+                import core.bitop : bsr;
+                import ldc.llvmasm : __ir;
+
+                enum size = T.sizeof.bsr;
+                enum type = ["i8", "i16", "i32", "i64"][size];
+
+                return __ir!(
+                    `call void asm sideeffect inteldialect
+                         "` ~ (lock ? "lock " : "") ~ `mov ` ~ prefix ~ digit ~ `, $0",
+                         "r"
+                         (` ~ type ~ ` %0)`,
+                    void
+                )(Data);
+            }
+            else version (GNU)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    "" ~ (lock ? "lock " : "") ~ "mov %0, %%" ~ prefix ~ digit : : "r" (Data);
+                }
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                mixin(
+                    "asm @trusted nothrow @nogc
+                     {
+                         naked;
+                         " ~ (lock ? "lock; " : "") ~ "mov " ~ prefix ~ digit ~ ", " ~ x64Size ~ "AX;
+                         ret;
+                     }"
+                );
+            }
+            else version (D_InlineAsm_X86)
+            {
+                mixin(
+                    "asm @trusted nothrow @nogc
+                     {
+                         naked;
+                         " ~ (lock ? "lock; " : "") ~ "mov " ~ prefix ~ digit ~ ", EAX;
+                         ret;
+                     }"
+                );
+            }
+        }
     }
 }
