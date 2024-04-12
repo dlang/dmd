@@ -10186,6 +10186,70 @@ version (MSVCIntrinsics)
 
     version (X86_64)
     {
+        extern(C)
+        pragma(inline, true)
+        void _mm_stream_si64x(scope long* Destination, long Source) @safe pure nothrow @nogc
+        {
+            if (__ctfe)
+            {
+                *Destination = Source;
+            }
+            else
+            {
+                version (LDC)
+                {
+                    import ldc.llvmasm : __irEx_pure;
+
+                    __irEx_pure!(
+                        "",
+                        `store i64 %1, ` ~ llvmIRPtr!"i64" ~ ` %0, !nontemporal !0`,
+                         "!0 = !{i32 1}",
+                        void
+                    )(Destination, Source);
+                }
+                else version (GNU)
+                {
+                    import gcc.builtins : __builtin_ia32_movnti64;
+                    __builtin_ia32_movnti64(Destination, Source);
+                }
+                else version (D_InlineAsm_X86_64)
+                {
+                    enum ubyte REX_W = 0b0100_1000;
+
+                    asm @trusted pure nothrow @nogc
+                    {
+                        /* RCX is Destination; RDX is Source. */
+                        naked;
+                        /* DMD refuses to encode `movnti [RCX], RDX`, so we'll encode it by hand. */
+                        db REX_W, 0x0F, 0xC3, 0b00_010_001; /* movnti [RCX], RDX */
+                        ret;
+                    }
+                }
+            }
+        }
+
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        @trusted pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                long value = long.max;
+
+                _mm_stream_si64x(&value, 0);
+                assert(value == 0);
+                _mm_stream_si64x(&value, 23);
+                assert(value == 23);
+
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
+    }
+
+    version (X86_64)
+    {
         /* This is trusted so that it's @safe without DIP1000 enabled. */
         private float ctfeX86RoundLongToFloat()(long value) @trusted pure nothrow @nogc
         {
