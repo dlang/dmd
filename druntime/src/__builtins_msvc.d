@@ -5174,6 +5174,171 @@ version (MSVCIntrinsics)
 
     extern(C)
     pragma(inline, true)
+    ubyte _interlockedbittestandreset(scope shared(int)* a, int b) @system pure nothrow @nogc
+    {
+        return interlockedBitTestOp!("btr", "rmw_and", "and_4", "&", "~")(a, b);
+    }
+
+    version (X86_64_Or_AArch64)
+    {
+        extern(C)
+        pragma(inline, true)
+        ubyte _interlockedbittestandreset64(scope shared(long)* a, long b) @system pure nothrow @nogc
+        {
+            return interlockedBitTestOp!("btr", "rmw_and", "and_8", "&", "~")(a, b);
+        }
+    }
+
+    version (X86_64_Or_X86)
+    {
+        extern(C)
+        pragma(inline, true)
+        ubyte _interlockedbittestandreset_HLEAcquire(scope shared(int)* a, int b) @system pure nothrow @nogc
+        {
+            return interlockedBitTestOp!("btr", "rmw_and", "and_4", "&", "~", MemoryOrder.seq, 1)(a, b);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ubyte _interlockedbittestandreset_HLERelease(scope shared(int)* a, int b) @system pure nothrow @nogc
+        {
+            return interlockedBitTestOp!("btr", "rmw_and", "and_4", "&", "~", MemoryOrder.seq, 2)(a, b);
+        }
+    }
+
+    version (X86_64)
+    {
+        extern(C)
+        pragma(inline, true)
+        ubyte _interlockedbittestandreset64_HLEAcquire(scope shared(long)* a, long b) @system pure nothrow @nogc
+        {
+            return interlockedBitTestOp!("btr", "rmw_and", "and_8", "&", "~", MemoryOrder.seq, 1)(a, b);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ubyte _interlockedbittestandreset64_HLERelease(scope shared(long)* a, long b) @system pure nothrow @nogc
+        {
+            return interlockedBitTestOp!("btr", "rmw_and", "and_8", "&", "~", MemoryOrder.seq, 2)(a, b);
+        }
+    }
+
+    version (AArch64_Or_ARM)
+    {
+        extern(C)
+        pragma(inline, true)
+        ubyte _interlockedbittestandreset_acq(scope shared(int)* a, int b) @system pure nothrow @nogc
+        {
+            return interlockedBitTestOp!("btr", "rmw_and", "and_4", "&", "~", MemoryOrder.acq)(a, b);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ubyte _interlockedbittestandreset_rel(scope shared(int)* a, int b) @system pure nothrow @nogc
+        {
+            return interlockedBitTestOp!("btr", "rmw_and", "and_4", "&", "~", MemoryOrder.acq_rel)(a, b);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ubyte _interlockedbittestandreset_nf(scope shared(int)* a, int b) @system pure nothrow @nogc
+        {
+            return interlockedBitTestOp!("btr", "rmw_and", "and_4", "&", "~", MemoryOrder.raw)(a, b);
+        }
+    }
+
+    version (AArch64)
+    {
+        extern(C)
+        pragma(inline, true)
+        ubyte _interlockedbittestandreset64_acq(scope shared(long)* a, long b) @system pure nothrow @nogc
+        {
+            return interlockedBitTestOp!("btr", "rmw_and", "and_8", "&", "~", MemoryOrder.acq)(a, b);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ubyte _interlockedbittestandreset64_rel(scope shared(long)* a, long b) @system pure nothrow @nogc
+        {
+            return interlockedBitTestOp!("btr", "rmw_and", "and_8", "&", "~", MemoryOrder.acq_rel)(a, b);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ubyte _interlockedbittestandreset64_nf(scope shared(long)* a, long b) @system pure nothrow @nogc
+        {
+            return interlockedBitTestOp!("btr", "rmw_and", "and_8", "&", "~", MemoryOrder.raw)(a, b);
+        }
+    }
+
+    @system pure nothrow @nogc unittest
+    {
+        enum ulong datumA = 0b0111111110100010110111000101011101001111001100111111101100010100;
+        enum ulong datumB = 0b0001001000011101110011000010011010101000101000111001000001101110;
+        enum ulong datumC = 0b1010010101000100010111111111000100001000010010111000100111100110;
+        enum ulong datumD = 0b1011110000010110101001111110000110000011001100101010111100011101;
+
+        static void bitResetTest(alias btr, T)()
+        {
+            scope shared(T)[4] data = [cast(T) datumA, cast(T) datumB, cast(T) datumC, cast(T) datumD];
+
+            assert(btr(&data[0], T(0)) == 0);
+            assert(data[0] == cast(T) 0b0111111110100010110111000101011101001111001100111111101100010100);
+
+            assert(btr(&data[0], T(2)) == 1);
+            assert(data[0] == cast(T) 0b0111111110100010110111000101011101001111001100111111101100010000);
+
+            assert(btr(&data[0], cast(T) ((T.sizeof << 3) * 3)) == 1);
+            assert(data[3] == cast(T) 0b1011110000010110101001111110000110000011001100101010111100011100);
+
+            assert(btr(&data[0], cast(T) ((T.sizeof << 3) * 3 + 1)) == 0);
+            assert(data[3] == cast(T) 0b1011110000010110101001111110000110000011001100101010111100011100);
+        }
+
+        static bool test()
+        {
+            bitResetTest!(_interlockedbittestandreset, int)();
+
+            version (X86_64_Or_AArch64)
+            {
+                bitResetTest!(_interlockedbittestandreset64, long)();
+            }
+
+            version (X86_64_Or_X86)
+            {
+                bitResetTest!(_interlockedbittestandreset_HLEAcquire, int)();
+                bitResetTest!(_interlockedbittestandreset_HLERelease, int)();
+            }
+
+            version (X86_64)
+            {
+                bitResetTest!(_interlockedbittestandreset64_HLEAcquire, long)();
+                bitResetTest!(_interlockedbittestandreset64_HLERelease, long)();
+            }
+
+            version (AArch64_Or_ARM)
+            {
+                bitResetTest!(_interlockedbittestandreset_acq, int)();
+                bitResetTest!(_interlockedbittestandreset_rel, int)();
+                bitResetTest!(_interlockedbittestandreset_nf, int)();
+            }
+
+            version (AArch64)
+            {
+                bitResetTest!(_interlockedbittestandreset64_acq, long)();
+                bitResetTest!(_interlockedbittestandreset64_rel, long)();
+                bitResetTest!(_interlockedbittestandreset64_nf, long)();
+            }
+
+            return true;
+        }
+
+        assert(test());
+        static assert(test());
+    }
+
+    extern(C)
+    pragma(inline, true)
     private T interlockedAdd(MemoryOrder order = MemoryOrder.seq, T)(scope shared(T)* address, T value)
     @safe pure nothrow @nogc
     {
@@ -5201,6 +5366,128 @@ version (MSVCIntrinsics)
         }
     }
 
+
+    extern(C)
+    pragma(inline, true)
+    private ubyte interlockedBitTestOp(
+        string x86OpCode,
+        string ldcName,
+        string gdcName,
+        string op,
+        string unaryOp = "",
+        MemoryOrder order = MemoryOrder.seq,
+        uint x86HLE = 0,
+        T
+    )(scope shared(T)* address, T bitIndex) @system pure nothrow @nogc
+    {
+        static ubyte bitTestOpViaSoftware(scope shared(T)* address, T bitIndex)
+        {
+            import core.bitop : bsr, popcnt;
+
+            enum uint bitCount = T.sizeof << 3;
+            enum uint bitShift = bitCount.bsr;
+            enum T bitMask = bitCount - 1;
+
+            scope shared(T)* integer = address + (bitIndex >> bitShift);
+            const T mask = T(1) << (bitIndex & bitMask);
+
+            return (interlockedOp!(ldcName, gdcName, op, order)(integer, mixin(unaryOp, q{mask})) & mask) != 0;
+        }
+
+        if (__ctfe)
+        {
+            return bitTestOpViaSoftware(address, bitIndex);
+        }
+        else
+        {
+            version (X86_64_Or_X86)
+            {
+                import core.bitop : bsr;
+
+                enum size = T.sizeof.bsr;
+
+                version (LDC)
+                {
+                    import ldc.llvmasm : __ir_pure;
+
+                    enum type = ["i8", "i16", "i32", "i64"][size];
+                    enum x86Ptr = ["byte", "word", "dword", "qword"][size];
+                    enum imm = ["", "", "I", "J"][size];
+                    enum ptr = llvmIRPtr!type ~ " elementtype(" ~ type ~ ")";
+                    enum hlePrefix = x86HLE == 0 ? "" : (x86HLE == 1 ? "xacquire " : "xrelease ");
+
+                    return __ir_pure!(
+                        `%bitIsSet = call i8 asm sideeffect inteldialect
+                             "` ~ hlePrefix ~ `lock ` ~ x86OpCode ~ ` ` ~ x86Ptr ~ ` ptr $1, $2",
+                             "={@ccc},=*m,` ~ imm ~ `r,~{memory},~{flags}"
+                             (` ~ ptr ~ ` %0, ` ~ type ~ ` %1)
+                         ret i8 %bitIsSet;`,
+                        ubyte
+                    )(address, bitIndex);
+                }
+                else version (GNU)
+                {
+                    enum char suffix = "bwlq"[size];
+                    enum imm = ["Wb", "Ww", "I", "J"][size];
+                    enum hlePrefix = x86HLE == 0 ? "" : (x86HLE == 1 ? "xacquire " : "xrelease ");
+
+                    ubyte bitIsSet;
+
+                    mixin(
+                        `asm @system pure nothrow @nogc
+                         {
+                             "" ~ hlePrefix ~ "lock " ~ x86OpCode ~ suffix ~ " %2, %0"
+                             : "+m" (*address), "=@ccc" (bitIsSet)
+                             : "` ~ imm ~ `r" (bitIndex)
+                             : "memory", "cc";
+                         }`
+                    );
+
+                    return bitIsSet;
+                }
+                else version (InlineAsm_X86_64_Or_X86)
+                {
+                    enum d = ["DL", "DX", "EDX", "RDX"][size];
+                    enum ptr = ["byte", "word", "dword", "qword"][size];
+                    enum xacquire = "repne; ";
+                    enum xrelease = "rep; ";
+                    enum hlePrefix = x86HLE == 0 ? "" : (x86HLE == 1 ? xacquire : xrelease);
+
+                    version (D_InlineAsm_X86_64)
+                    {
+                        mixin(
+                            "asm pure nothrow @nogc
+                             {
+                                 /* RCX is address; RDX is bitIndex. */
+                                 naked;
+                                 " ~ hlePrefix ~ "lock; " ~ x86OpCode ~ " " ~ ptr ~ " ptr [RCX], " ~ d ~ ";
+                                 setc AL;
+                                 ret;
+                             }"
+                        );
+                    }
+                    else version (D_InlineAsm_X86)
+                    {
+                        mixin(
+                            "asm pure nothrow @nogc
+                             {
+                                 naked;
+                                 mov ECX, [ESP + 4]; /* address. */
+                                 mov EDX, [ESP + 8]; /* bitIndex. */
+                                 " ~ hlePrefix ~ "lock; " ~ x86OpCode ~ " " ~ ptr ~ " ptr [ECX], " ~ d ~ ";
+                                 setc AL;
+                                 ret;
+                             }"
+                        );
+                    }
+                }
+            }
+            else
+            {
+                return bitTestOpViaSoftware(address, bitIndex);
+            }
+        }
+    }
 
     version (X86_64_Or_X86)
     {
