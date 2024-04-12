@@ -10981,6 +10981,25 @@ version (MSVCIntrinsics)
             }
         }
 
+        /* Ideally, we'd define __readdr as a macro that instantiated a template with the register number,
+           but ImportC can't explicitly instantiate templates, so this'll have to do. :\ */
+        extern(C)
+        pragma(inline, true)
+        auto __readdr(uint DebugRegister) @safe nothrow @nogc
+        {
+            /* Dear optimiser, please optimise this. */
+            switch (DebugRegister)
+            {
+                static foreach (number; 0 .. 8)
+                {
+                case number:
+                    return readNumberedRegister!('E', "DR", number);
+                }
+            default:
+                assert(false, "Invalid DebugRegister supplied to __readdr.");
+            }
+        }
+
         extern(C)
         pragma(inline, true)
         private auto readNumberedRegister(char x64Size, string prefix, uint number, bool lock = false)()
