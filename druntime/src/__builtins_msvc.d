@@ -7159,6 +7159,249 @@ version (MSVCIntrinsics)
 
     extern(C)
     pragma(inline, true)
+    int _InterlockedXor(scope shared(int)* value, int mask) @safe pure nothrow @nogc
+    {
+        return interlockedOp!("rmw_xor", "xor_4", "^")(value, mask);
+    }
+
+    extern(C)
+    pragma(inline, true)
+    byte _InterlockedXor8(scope shared(byte)* value, byte mask) @safe pure nothrow @nogc
+    {
+        return interlockedOp!("rmw_xor", "xor_1", "^")(value, mask);
+    }
+
+    extern(C)
+    pragma(inline, true)
+    short _InterlockedXor16(scope shared(short)* value, short mask) @safe pure nothrow @nogc
+    {
+        return interlockedOp!("rmw_xor", "xor_2", "^")(value, mask);
+    }
+
+    extern(C)
+    pragma(inline, true)
+    long _interlockedxor64(scope shared(long)* value, long mask) @safe pure nothrow @nogc
+    {
+        return interlockedOp!("rmw_xor", "xor_8", "^")(value, mask);
+    }
+
+    version (AArch64_Or_ARM)
+    {
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedXor_acq(scope shared(int)* value, int mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_xor", "xor_4", "^", MemoryOrder.acq)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedXor_rel(scope shared(int)* value, int mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_xor", "xor_4", "^", MemoryOrder.acq_rel)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedXor_nf(scope shared(int)* value, int mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_xor", "xor_4", "^", MemoryOrder.raw)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        byte _InterlockedXor8_acq(scope shared(byte)* value, byte mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_xor", "xor_1", "^", MemoryOrder.acq)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        byte _InterlockedXor8_rel(scope shared(byte)* value, byte mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_xor", "xor_1", "^", MemoryOrder.acq_rel)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        byte _InterlockedXor8_nf(scope shared(byte)* value, byte mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_xor", "xor_1", "^", MemoryOrder.raw)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        short _InterlockedXor16_acq(scope shared(short)* value, short mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_xor", "xor_2", "^", MemoryOrder.acq)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        short _InterlockedXor16_rel(scope shared(short)* value, short mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_xor", "xor_2", "^", MemoryOrder.acq_rel)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        short _InterlockedXor16_nf(scope shared(short)* value, short mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_xor", "xor_2", "^", MemoryOrder.raw)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedXor64_acq(scope shared(long)* value, long mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_xor", "xor_8", "^", MemoryOrder.acq)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedXor64_rel(scope shared(long)* value, long mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_xor", "xor_8", "^", MemoryOrder.acq_rel)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedXor64_nf(scope shared(long)* value, long mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_xor", "xor_8", "^", MemoryOrder.raw)(value, mask);
+        }
+    }
+
+    version (X86_64_Or_AArch64_Or_ARM)
+    {
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedXor64(scope shared(long)* value, long mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_xor", "xor_8", "^")(value, mask);
+        }
+    }
+
+    version (X86_64)
+    {
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedXor_np(scope shared(int)* value, int mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_xor", "xor_4", "^", MemoryOrder.seq, true)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        byte _InterlockedXor8_np(scope shared(byte)* value, byte mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_xor", "xor_1", "^", MemoryOrder.seq, true)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        short _InterlockedXor16_np(scope shared(short)* value, short mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_xor", "xor_2", "^", MemoryOrder.seq, true)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedXor64_np(scope shared(long)* value, long mask) @safe pure nothrow @nogc
+        {
+            return interlockedOp!("rmw_xor", "xor_8", "^", MemoryOrder.seq, true)(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedXor64_HLEAcquire(scope shared(long)* value, long mask) @safe pure nothrow @nogc
+        {
+            return interlockedOpHLE!(true, "^", "xor")(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedXor64_HLERelease(scope shared(long)* value, long mask) @safe pure nothrow @nogc
+        {
+            return interlockedOpHLE!(false, "^", "xor")(value, mask);
+        }
+    }
+
+    version (X86_64_Or_X86)
+    {
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedXor_HLEAcquire(scope shared(int)* value, int mask) @safe pure nothrow @nogc
+        {
+            return interlockedOpHLE!(true, "^", "xor")(value, mask);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedXor_HLERelease(scope shared(int)* value, int mask) @safe pure nothrow @nogc
+        {
+            return interlockedOpHLE!(false, "^", "xor")(value, mask);
+        }
+    }
+
+    /* This is trusted so that it's @safe without DIP1000 enabled. */
+    @trusted pure nothrow @nogc unittest
+    {
+        static bool test()
+        {
+            alias t(alias symbol, T) = interlockedOpTest!("^", symbol, T);
+
+            t!(_InterlockedXor, int)();
+            t!(_InterlockedXor8, byte)();
+            t!(_InterlockedXor16, short)();
+            t!(_interlockedxor64, long)();
+
+            version (AArch64_Or_ARM)
+            {
+                t!(_InterlockedXor_acq, int)();
+                t!(_InterlockedXor_rel, int)();
+                t!(_InterlockedXor_nf, int)();
+                t!(_InterlockedXor8_acq, byte)();
+                t!(_InterlockedXor8_rel, byte)();
+                t!(_InterlockedXor8_nf, byte)();
+                t!(_InterlockedXor16_acq, short)();
+                t!(_InterlockedXor16_rel, short)();
+                t!(_InterlockedXor16_nf, short)();
+                t!(_InterlockedXor64_acq, long)();
+                t!(_InterlockedXor64_rel, long)();
+                t!(_InterlockedXor64_nf, long)();
+            }
+
+            version (X86_64_Or_AArch64_Or_ARM)
+            {
+                t!(_InterlockedXor64, long)();
+            }
+
+            version (X86_64)
+            {
+                t!(_InterlockedXor_np, int)();
+                t!(_InterlockedXor8_np, byte)();
+                t!(_InterlockedXor16_np, short)();
+                t!(_InterlockedXor64_np, long)();
+                t!(_InterlockedXor64_HLEAcquire, long)();
+                t!(_InterlockedXor64_HLERelease, long)();
+            }
+
+            version (X86_64_Or_X86)
+            {
+                t!(_InterlockedXor_HLEAcquire, int)();
+                t!(_InterlockedXor_HLERelease, int)();
+            }
+
+            return true;
+        }
+
+        assert(test());
+        static assert(test());
+    }
+
+    extern(C)
+    pragma(inline, true)
     private T interlockedAdd(MemoryOrder order = MemoryOrder.seq, T)(scope shared(T)* address, T value)
     @safe pure nothrow @nogc
     {
