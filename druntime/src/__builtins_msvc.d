@@ -8738,5 +8738,34 @@ version (MSVCIntrinsics)
                 }
             }
         }
+
+        extern(C)
+        pragma(inline, true)
+        void __int2c() @safe pure nothrow @nogc
+        {
+            /+ Theoretically, this could clobber memory and registers, but in practice, on Windows, this just
+               causes an assertion failure for debuggers. So, only the flags are clobbered. +/
+
+            version (LDC)
+            {
+                import ldc.llvmasm : __ir_pure;
+
+                __ir_pure!(`call void asm sideeffect inteldialect "int 0x2c", "~{flags}"()`, void)();
+            }
+            else version (GNU)
+            {
+                asm @trusted pure nothrow @nogc
+                {
+                    "int $0x2c" : : : "cc";
+                }
+            }
+            else version (InlineAsm_X86_64_Or_X86)
+            {
+                asm @trusted pure nothrow @nogc
+                {
+                    int 0x2c;
+                }
+            }
+        }
     }
 }
