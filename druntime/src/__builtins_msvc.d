@@ -13273,4 +13273,38 @@ version (MSVCIntrinsics)
 
         return bitTest != 0;
     }
+
+    extern(C)
+    pragma(inline, true)
+    ulong _byteswap_uint64(ulong val) @safe pure nothrow @nogc
+    {
+        import core.bitop : bswap;
+        return bswap(val);
+    }
+
+    extern(C)
+    pragma(inline, true)
+    uint _byteswap_ulong(uint val) @safe pure nothrow @nogc
+    {
+        import core.bitop : bswap;
+        return bswap(val);
+    }
+
+    extern(C)
+    pragma(inline, true)
+    ushort _byteswap_ushort(ushort val) @safe pure nothrow @nogc
+    {
+        /* core.bitop.byteswap doesn't work for BetterC. */
+        return cast(ushort) (((val >> 8) & 0xFF) | ((val << 8) & 0xFF00u));
+    }
+
+    @safe pure nothrow @nogc unittest
+    {
+        assert(_byteswap_uint64(0x01234567_89ABCDEF) == 0xEFCDAB89_67452301);
+        static assert(_byteswap_uint64(0x01234567_89ABCDEF) == 0xEFCDAB89_67452301);
+        assert(_byteswap_ulong(0x01234567) == 0x67452301);
+        static assert(_byteswap_ulong(0x01234567) == 0x67452301);
+        assert(_byteswap_ushort(0x0123) == 0x2301);
+        static assert(_byteswap_ushort(0x0123) == 0x2301);
+    }
 }
