@@ -5504,6 +5504,261 @@ version (MSVCIntrinsics)
 
     extern(C)
     pragma(inline, true)
+    int _InterlockedCompareExchange(scope shared(int)* Destination, int Exchange, int Comparand)
+    @safe pure nothrow @nogc
+    {
+        return interlockedCAS(Destination, Exchange, Comparand);
+    }
+
+    extern(C)
+    pragma(inline, true)
+    byte _InterlockedCompareExchange8(scope shared(byte)* Destination, byte Exchange, byte Comparand)
+    @safe pure nothrow @nogc
+    {
+        return interlockedCAS(Destination, Exchange, Comparand);
+    }
+
+    extern(C)
+    pragma(inline, true)
+    short _InterlockedCompareExchange16(scope shared(short)* Destination, short Exchange, short Comparand)
+    @safe pure nothrow @nogc
+    {
+        return interlockedCAS(Destination, Exchange, Comparand);
+    }
+
+    extern(C)
+    pragma(inline, true)
+    long _InterlockedCompareExchange64(scope shared(long)* Destination, long Exchange, long Comparand)
+    @safe pure nothrow @nogc
+    {
+        return interlockedCAS(Destination, Exchange, Comparand);
+    }
+
+    version (X86_64_Or_X86)
+    {
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedCompareExchange_HLEAcquire(scope shared(int)* Destination, int Exchange, int Comparand)
+        @safe pure nothrow @nogc
+        {
+            return interlockedCASHLE!true(Destination, Exchange, Comparand);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedCompareExchange_HLERelease(scope shared(int)* Destination, int Exchange, int Comparand)
+        @safe pure nothrow @nogc
+        {
+            return interlockedCASHLE!false(Destination, Exchange, Comparand);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedCompareExchange64_HLEAcquire(scope shared(long)* Destination, long Exchange, long Comparand)
+        @safe pure nothrow @nogc
+        {
+            return interlockedCASHLE!true(Destination, Exchange, Comparand);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedCompareExchange64_HLERelease(scope shared(long)* Destination, long Exchange, long Comparand)
+        @safe pure nothrow @nogc
+        {
+            return interlockedCASHLE!false(Destination, Exchange, Comparand);
+        }
+    }
+
+    version (X86_64)
+    {
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedCompareExchange_np(scope shared(int)* Destination, int Exchange, int Comparand)
+        @safe pure nothrow @nogc
+        {
+            return interlockedCAS(Destination, Exchange, Comparand);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        short _InterlockedCompareExchange16_np(scope shared(short)* Destination, short Exchange, short Comparand)
+        @safe pure nothrow @nogc
+        {
+            return interlockedCAS(Destination, Exchange, Comparand);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedCompareExchange64_np(scope shared(long)* Destination, long Exchange, long Comparand)
+        @safe pure nothrow @nogc
+        {
+            return interlockedCAS(Destination, Exchange, Comparand);
+        }
+    }
+
+    version (AArch64_Or_ARM)
+    {
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedCompareExchange_acq(scope shared(int)* Destination, int Exchange, int Comparand)
+        @safe pure nothrow @nogc
+        {
+            return interlockedCAS!(MemoryOrder.acq)(Destination, Exchange, Comparand);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedCompareExchange_rel(scope shared(int)* Destination, int Exchange, int Comparand)
+        @safe pure nothrow @nogc
+        {
+            return interlockedCAS!(MemoryOrder.acq_rel, MemoryOrder.raw)(Destination, Exchange, Comparand);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedCompareExchange_nf(scope shared(int)* Destination, int Exchange, int Comparand)
+        @safe pure nothrow @nogc
+        {
+            return interlockedCAS!(MemoryOrder.raw)(Destination, Exchange, Comparand);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        byte _InterlockedCompareExchange8_acq(scope shared(byte)* Destination, byte Exchange, byte Comparand)
+        @safe pure nothrow @nogc
+        {
+            return interlockedCAS!(MemoryOrder.acq)(Destination, Exchange, Comparand);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        byte _InterlockedCompareExchange8_rel(scope shared(byte)* Destination, byte Exchange, byte Comparand)
+        @safe pure nothrow @nogc
+        {
+            return interlockedCAS!(MemoryOrder.acq_rel, MemoryOrder.raw)(Destination, Exchange, Comparand);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        byte _InterlockedCompareExchange8_nf(scope shared(byte)* Destination, byte Exchange, byte Comparand)
+        @safe pure nothrow @nogc
+        {
+            return interlockedCAS!(MemoryOrder.raw)(Destination, Exchange, Comparand);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        short _InterlockedCompareExchange16_acq(scope shared(short)* Destination, short Exchange, short Comparand)
+        @safe pure nothrow @nogc
+        {
+            return interlockedCAS!(MemoryOrder.acq)(Destination, Exchange, Comparand);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        short _InterlockedCompareExchange16_rel(scope shared(short)* Destination, short Exchange, short Comparand)
+        @safe pure nothrow @nogc
+        {
+            return interlockedCAS!(MemoryOrder.acq_rel, MemoryOrder.raw)(Destination, Exchange, Comparand);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        short _InterlockedCompareExchange16_nf(scope shared(short)* Destination, short Exchange, short Comparand)
+        @safe pure nothrow @nogc
+        {
+            return interlockedCAS!(MemoryOrder.raw)(Destination, Exchange, Comparand);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedCompareExchange64_acq(scope shared(long)* Destination, long Exchange, long Comparand)
+        @safe pure nothrow @nogc
+        {
+            return interlockedCAS!(MemoryOrder.acq)(Destination, Exchange, Comparand);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedCompareExchange64_rel(scope shared(long)* Destination, long Exchange, long Comparand)
+        @safe pure nothrow @nogc
+        {
+            return interlockedCAS!(MemoryOrder.acq_rel, MemoryOrder.raw)(Destination, Exchange, Comparand);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedCompareExchange64_nf(scope shared(long)* Destination, long Exchange, long Comparand)
+        @safe pure nothrow @nogc
+        {
+            return interlockedCAS!(MemoryOrder.raw)(Destination, Exchange, Comparand);
+        }
+    }
+
+    /* This is trusted so that it's @safe without DIP1000 enabled. */
+    @trusted pure nothrow @nogc unittest
+    {
+        static void compareExchangeTest(alias symbol, T)()
+        {
+            shared T value = cast(T) 0x6B2E38BF9FAF53EC;
+
+            assert(symbol(&value, value, value) == cast(T) 0x6B2E38BF9FAF53EC);
+            assert(value == cast(T) 0x6B2E38BF9FAF53EC);
+
+            assert(symbol(&value, cast(T) 0x24AC9053985CF040, value) == cast(T) 0x6B2E38BF9FAF53EC);
+            assert(value == cast(T) 0x24AC9053985CF040);
+
+            assert(symbol(&value, cast(T) 0x426A6F348BBD3430, 123) == cast(T) 0x24AC9053985CF040);
+            assert(value == cast(T) 0x24AC9053985CF040);
+        }
+
+        static bool test()
+        {
+            compareExchangeTest!(_InterlockedCompareExchange, int)();
+            compareExchangeTest!(_InterlockedCompareExchange8, byte)();
+            compareExchangeTest!(_InterlockedCompareExchange16, short)();
+            compareExchangeTest!(_InterlockedCompareExchange64, long)();
+
+            version (X86_64_Or_X86)
+            {
+                compareExchangeTest!(_InterlockedCompareExchange_HLEAcquire, int)();
+                compareExchangeTest!(_InterlockedCompareExchange_HLERelease, int)();
+                compareExchangeTest!(_InterlockedCompareExchange64_HLEAcquire, long)();
+                compareExchangeTest!(_InterlockedCompareExchange64_HLERelease, long)();
+            }
+
+            version (X86_64)
+            {
+                compareExchangeTest!(_InterlockedCompareExchange_np, int)();
+                compareExchangeTest!(_InterlockedCompareExchange16_np, short)();
+                compareExchangeTest!(_InterlockedCompareExchange64_np, long)();
+            }
+
+            version (AArch64_Or_ARM)
+            {
+                compareExchangeTest!(_InterlockedCompareExchange_acq, int)();
+                compareExchangeTest!(_InterlockedCompareExchange_rel, int)();
+                compareExchangeTest!(_InterlockedCompareExchange_nf, int)();
+                compareExchangeTest!(_InterlockedCompareExchange8_acq, byte)();
+                compareExchangeTest!(_InterlockedCompareExchange8_rel, byte)();
+                compareExchangeTest!(_InterlockedCompareExchange8_nf, byte)();
+                compareExchangeTest!(_InterlockedCompareExchange16_acq, short)();
+                compareExchangeTest!(_InterlockedCompareExchange16_rel, short)();
+                compareExchangeTest!(_InterlockedCompareExchange16_nf, short)();
+                compareExchangeTest!(_InterlockedCompareExchange64_acq, long)();
+                compareExchangeTest!(_InterlockedCompareExchange64_rel, long)();
+                compareExchangeTest!(_InterlockedCompareExchange64_nf, long)();
+            }
+
+            return true;
+        }
+
+        assert(test());
+        static assert(test());
+    }
+
+    extern(C)
+    pragma(inline, true)
     private T interlockedAdd(MemoryOrder order = MemoryOrder.seq, T)(scope shared(T)* address, T value)
     @safe pure nothrow @nogc
     {
@@ -5844,6 +6099,237 @@ version (MSVCIntrinsics)
                 }
             }
         }
+
+        extern(C)
+        pragma(inline, true)
+        private T interlockedCASHLE(bool acquire, T)(
+            scope shared(T)* address,
+            scope T valueToSet,
+            return scope T expectedValue
+        ) @trusted
+        {
+            if (__ctfe)
+            {
+                return interlockedCAS!(MemoryOrder.seq, MemoryOrder.seq, T)(address, valueToSet, expectedValue);
+            }
+            else
+            {
+                version (LDC)
+                {
+                    import core.bitop : bsr;
+                    import ldc.llvmasm : __ir_pure;
+
+                    enum size = T.sizeof.bsr;
+
+                    static if (is(T == P*, P))
+                    {
+                        enum type = llvmIRPtr!"i8";
+                    }
+                    else
+                    {
+                        enum type = ["i8", "i16", "i32", "i64"][size];
+                    }
+
+                    version (X86)
+                    {
+                        enum bool canUseCMPXCHG = T.sizeof <= 4;
+                    }
+                    else version (X86_64)
+                    {
+                        enum bool canUseCMPXCHG = true;
+                    }
+
+                    enum ptr = llvmIRPtr!type;
+
+                    static if (canUseCMPXCHG)
+                    {
+                        enum a = ["al", "ax", "eax", "rax"][size];
+
+                        return __ir_pure!(
+                            `%oldValue = call ` ~ type ~ ` asm sideeffect inteldialect
+                                 "` ~ (acquire ? "xacquire" : "xrelease") ~ ` lock cmpxchg $1, $3",
+                                 "={` ~ a ~ `},=*m,0,r,~{memory},~{flags}"
+                                 (` ~ ptr ~ ` elementtype(` ~ type ~ `)` ~ ` %0, ` ~ type ~ ` %2, ` ~ type ~ ` %1)
+
+                             ret ` ~ type ~ ` %oldValue`,
+                            T
+                        )(address, valueToSet, expectedValue);
+                    }
+                    else
+                    {
+                        uint lo;
+                        uint hi;
+
+                        return __ir_pure!(
+                            `%oldValue = call {i32, i32} asm sideeffect inteldialect
+                                 "` ~ (acquire ? "xacquire" : "xrelease") ~ ` lock cmpxchg8b $2",
+                                 "={eax},={edx},=*m,0,1,{ebx},{ecx},~{memory},~{flags}"
+                                 (` ~ ptr ~ ` elementtype(i64)` ~ ` %0, i32 %3, i32 %4, i32 %1, i32 %2)
+
+                             %lo32 = extractvalue {i32, i32} %oldValue, 0
+                             %hi32 = extractvalue {i32, i32} %oldValue, 1
+
+                             %lo = zext i32 %lo32 to i64
+                             %hi = zext i32 %hi32 to i64
+                             %hi64 = shl i64 %hi, 32
+                             %result = or i64 %hi64, %lo
+
+                             ret i64 %result`,
+                            T
+                        )(
+                            address,
+                            cast(uint) valueToSet,
+                            cast(uint) (valueToSet >>> 32),
+                            cast(uint) expectedValue,
+                            cast(uint) (expectedValue >>> 32)
+                        );
+                    }
+                }
+                else version (GNU)
+                {
+                    static if (acquire)
+                    {
+                        /* This is equivalent to GCC's __ATOMIC_HLE_ACQUIRE. */
+                        enum int hleModifier = 1 << 16;
+                    }
+                    else
+                    {
+                        /* This is equivalent to GCC's __ATOMIC_HLE_RELEASE. */
+                        enum int hleModifier = 1 << 17;
+                    }
+
+                    enum int hleOrder = MemoryOrder.seq | hleModifier;
+                    enum cas = "__atomic_compare_exchange_" ~ ('0' + T.sizeof);
+
+                    import core.internal.traits : AliasSeq;
+                    import core.bitop : bsr;
+                    mixin(q{import gcc.builtins : }, cas, q{;});
+
+                    alias Int = AliasSeq!(ubyte, ushort, uint, ulong)[T.sizeof.bsr];
+
+                    cast(void) mixin(cas)(
+                        address,
+                        cast(Int*) &expectedValue,
+                        cast(Int) valueToSet,
+                        false,
+                        hleOrder,
+                        hleOrder
+                    );
+
+                    return expectedValue;
+                }
+                else version (D_InlineAsm_X86_64)
+                {
+                    import core.bitop : bsr;
+
+                    enum size = T.sizeof.bsr;
+                    enum fullA = ["EAX", "EAX", "EAX", "RAX"][size];
+                    enum fullR8 = ["R8D", "R8D", "R8D", "R8"][size];
+                    enum d = ["DL", "DX", "EDX", "RDX"][size];
+                    enum xacquire = "repne";
+                    enum xrelease = "rep";
+
+                    mixin(
+                        "asm @trusted pure nothrow @nogc
+                         {
+                             /* RCX is address; RDX is valueToSet; R8 is expectedValue. */
+                             naked;
+                              mov " ~ fullA ~ ", " ~ fullR8 ~ ";
+                             " ~ (acquire ? xacquire : xrelease) ~ "; lock; cmpxchg [RCX], " ~ d ~ ";
+                             ret;
+                         }"
+                    );
+                }
+                else version (D_InlineAsm_X86)
+                {
+                    enum xacquire = "repne";
+                    enum xrelease = "rep";
+
+                    static if (T.sizeof <= 4)
+                    {
+                        import core.bitop : bsr;
+
+                        enum size = T.sizeof.bsr;
+                        enum d = ["DL", "DX", "EDX"][size];
+
+                        mixin(
+                            "asm @trusted pure nothrow @nogc
+                             {
+                                 naked;
+                                 mov ECX, [ESP +  4]; /* address. */
+                                 mov EDX, [ESP +  8]; /* valueToSet. */
+                                 mov EAX, [ESP + 12]; /* expectedValue. */
+                                 " ~ (acquire ? xacquire : xrelease) ~ "; lock; cmpxchg [ECX], " ~ d ~ ";
+                                 ret;
+                             }"
+                        );
+                    }
+                    else static if (T.sizeof <= 8)
+                    {
+                        mixin(
+                            "asm @trusted pure nothrow @nogc
+                             {
+                                 naked;
+                                 push ESI;
+                                 push EBX;
+                                 mov ESI, [ESP + 12]; /* address. */
+                                 mov ECX, [ESP + 20]; /* High half of valueToSet. */
+                                 mov EBX, [ESP + 16]; /* Low half of valueToSet. */
+                                 mov EDX, [ESP + 28]; /* High half of expectedValue. */
+                                 mov EAX, [ESP + 24]; /* Low half of expectedValue. */
+                                 " ~ (acquire ? xacquire : xrelease) ~ "; lock; cmpxchg8b [ESI];
+                                 pop EBX;
+                                 pop ESI;
+                                 ret;
+                             }"
+                        );
+                    }
+                }
+            }
+        }
+
+    }
+
+    extern(C)
+    pragma(inline, true)
+    private T interlockedCAS(MemoryOrder success = MemoryOrder.seq, MemoryOrder failure = success, T)(
+        scope shared(T)* address,
+        scope T valueToSet,
+        return scope T expectedValue
+    ) @trusted pure nothrow @nogc
+    {
+        if (__ctfe)
+        {
+            scope a = ((a) @trusted => cast(T*) a)(address);
+            T oldValue = *a;
+
+            if (oldValue == expectedValue)
+            {
+                *a = valueToSet;
+            }
+
+            return oldValue;
+        }
+        else
+        {
+            import core.internal.atomic : atomicCompareExchangeStrong;
+
+            cast(void) atomicCompareExchangeStrong!(success, failure)(cast(T*) address, &expectedValue, valueToSet);
+
+            version (AArch64_Or_ARM)
+            {
+                /* This is what the Interlocked MSVC intrinsics do. */
+                static if (success == MemoryOrder.acq)
+                {
+                    /* dmb ish */
+                    __builtin_arm_dmb(11);
+                }
+            }
+
+            return expectedValue;
+        }
+    }
+
     }
 
     extern(C)
