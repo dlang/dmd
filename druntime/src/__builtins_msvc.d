@@ -2974,5 +2974,330 @@ version (MSVCIntrinsics)
             assert(test());
             static assert(test());
         }
+
+        extern(C)
+        pragma(inline, true)
+        int _cvt_ftoi_sent(float value) @safe pure nothrow @nogc
+        {
+            return _cvt_ftoi_fast(value);
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                assert(_cvt_ftoi_sent(0.0f) == 0);
+                assert(_cvt_ftoi_sent(-0.0f) == 0);
+                assert(_cvt_ftoi_sent(float.nan) == -2147483648);
+                assert(_cvt_ftoi_sent(-float.nan) == -2147483648);
+                assert(_cvt_ftoi_sent(float.infinity) == -2147483648);
+                assert(_cvt_ftoi_sent(-float.infinity) == -2147483648);
+                assert(_cvt_ftoi_sent(1.0f) == 1);
+                assert(_cvt_ftoi_sent(-1.0f) == -1);
+                assert(_cvt_ftoi_sent(2.5f) == 2);
+                assert(_cvt_ftoi_sent(-2.5f) == -2);
+                assert(_cvt_ftoi_sent(3.5f) == 3);
+                assert(_cvt_ftoi_sent(-3.5f) == -3);
+                assert(_cvt_ftoi_sent(3.49f) == 3);
+                assert(_cvt_ftoi_sent(-3.49f) == -3);
+                assert(_cvt_ftoi_sent(twoExp31Float) == -2147483648);
+                assert(_cvt_ftoi_sent(-twoExp31Float) == -2147483648);
+                assert(_cvt_ftoi_sent(twoExp63Float) == -2147483648);
+                assert(_cvt_ftoi_sent(-twoExp63Float) == -2147483648);
+                assert(_cvt_ftoi_sent(justUnderTwoExp63Float) == -2147483648);
+                assert(_cvt_ftoi_sent(33554432.0f) == 33554432);
+                assert(_cvt_ftoi_sent(-33554432.0f) == -33554432);
+                assert(_cvt_ftoi_sent(33554436.0f) == 33554436);
+                assert(_cvt_ftoi_sent(-33554436.0f) == -33554436);
+                assert(_cvt_ftoi_sent(70369281048576.0f) == -2147483648);
+                assert(_cvt_ftoi_sent(-70369281048576.0f) == -2147483648);
+
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
+
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        extern(C)
+        pragma(inline, true)
+        long _cvt_ftoll_sent(float value) @trusted pure nothrow @nogc
+        {
+            version (X86_64)
+            {
+                return _cvt_ftoll_fast(value);
+            }
+            else version (X86)
+            {
+                /* If the hardware can handle it, let it handle it. */
+                if (value < twoExp31Float && value >= -twoExp31Float)
+                {
+                    return _cvt_ftoi_fast(value);
+                }
+
+                if (!(value < twoExp63Float && value > -twoExp63Float))
+                {
+                    return 0x80000000_00000000;
+                }
+
+                /* At this point, the exponent is at-least 31 and less-than 64.
+                   Because the exponent is at-least 23, the value will never actually contain any
+                   fractional digits, so we can just shift the significand left to get an integer. */
+
+                int asInt = *(cast(const(int)*) &value);
+
+                uint sign = asInt >> 31;
+                assert(sign == 0 || sign == -1);
+
+                /* The exponent is biased by +127, but we subtract only 126 as we want the exponent
+                   to be one-higher than it actually is, so that we shift the correct number of bits
+                   after we mask the exponent by 31.
+                   E.g. with an exponent of 31 we should shift 0 bits, 32 should shift 1 bit, etc.. */
+                byte exponent = cast(byte) ((cast(ubyte) (asInt >>> 23)) - 126);
+                assert(exponent >= 32);
+                assert(exponent <= 63);
+
+                /* We have 23-bits stored for the significand, and we know that the exponent is
+                   at-least 31, which means that we can shift left unconditionally by 8, which leaves
+                   the implicit bit of the full 24-bit significand to be set at the most-significant bit.
+                   Conveniently, this means that the variable shifting for the exponent concerns only
+                   the high half (remember that this is for 32-bit mode). */
+                uint unadjustedSignificand = (asInt << 8) | (1 << 31);
+
+                /* If the sign bit is set, we need to negate the significand; we can do that branchlessly
+                   by taking advantage of the fact that `sign` is either 0 or -1.
+                   As `(s ^ 0) - 0 == s`, whereas `(s ^ -1) - -1 == -s`. */
+                uint significand = (unadjustedSignificand ^ sign) - sign;
+                assert(sign == 0 ? significand == unadjustedSignificand : significand == -unadjustedSignificand);
+
+                uint highHalf = funnelShiftLeft(significand, sign, exponent & 31);
+
+                return (ulong(highHalf) << 32) | ulong(significand << (exponent & 31));
+            }
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                assert(_cvt_ftoll_sent(0.0f) == 0);
+                assert(_cvt_ftoll_sent(-0.0f) == 0);
+                assert(_cvt_ftoll_sent(float.nan) == -9223372036854775808);
+                assert(_cvt_ftoll_sent(-float.nan) == -9223372036854775808);
+                assert(_cvt_ftoll_sent(float.infinity) == -9223372036854775808);
+                assert(_cvt_ftoll_sent(-float.infinity) == -9223372036854775808);
+                assert(_cvt_ftoll_sent(1.0f) == 1);
+                assert(_cvt_ftoll_sent(-1.0f) == -1);
+                assert(_cvt_ftoll_sent(2.5f) == 2);
+                assert(_cvt_ftoll_sent(-2.5f) == -2);
+                assert(_cvt_ftoll_sent(3.5f) == 3);
+                assert(_cvt_ftoll_sent(-3.5f) == -3);
+                assert(_cvt_ftoll_sent(3.49f) == 3);
+                assert(_cvt_ftoll_sent(-3.49f) == -3);
+                assert(_cvt_ftoll_sent(twoExp31Float) == 2147483648);
+                assert(_cvt_ftoll_sent(-twoExp31Float) == -2147483648);
+                assert(_cvt_ftoll_sent(twoExp63Float) == -9223372036854775808);
+                assert(_cvt_ftoll_sent(-twoExp63Float) == -9223372036854775808);
+                assert(_cvt_ftoll_sent(justUnderTwoExp63Float) == 9223371487098961920);
+                assert(_cvt_ftoll_sent(33554432.0f) == 33554432);
+                assert(_cvt_ftoll_sent(-33554432.0f) == -33554432);
+                assert(_cvt_ftoll_sent(33554436.0f) == 33554436);
+                assert(_cvt_ftoll_sent(-33554436.0f) == -33554436);
+                assert(_cvt_ftoll_sent(70369281048576.0f) == 70369281048576);
+                assert(_cvt_ftoll_sent(-70369281048576.0f) == -70369281048576);
+
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
+
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        extern(C)
+        pragma(inline, true)
+        uint _cvt_ftoui_sent(float value) @trusted pure nothrow @nogc
+        {
+            version (X86_64)
+            {
+                const integer = cast(ulong) _cvt_ftoll_fast(value);
+
+                return integer > uint.max ? uint.max : cast(uint) integer;
+            }
+            else version (X86)
+            {
+                if (*(cast(const(uint)*) &value) <= 0b1_01111111_00000000000000000000000)
+                {
+                    /* If the hardware can handle it, let it handle it. */
+                    if (value < twoExp31Float)
+                    {
+                        return cast(uint) _cvt_ftoi_fast(value);
+                    }
+                    else if (value < twoExp32Float)
+                    {
+                        /* At this point, the exponent is 31,
+                           Because the exponent is at-least 23, the value will never actually contain any
+                           fractional digits, so we can just shift the significand left to get an integer. */
+
+                        /* We have 23-bits stored for the significand, and we know that the exponent is 31,
+                           which means that we can just shift left unconditionally by 8, which leaves
+                           the implicit bit of the full 24-bit significand to be set at the most-significant bit. */
+                        return (*(cast(const(uint)*) &value) << 8) | (1 << 31);
+                    }
+                }
+
+                return uint.max;
+            }
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                assert(_cvt_ftoui_sent(0.0f) == 0);
+                assert(_cvt_ftoui_sent(-0.0f) == 0);
+                assert(_cvt_ftoui_sent(float.nan) == 4294967295);
+                assert(_cvt_ftoui_sent(-float.nan) == 4294967295);
+                assert(_cvt_ftoui_sent(float.infinity) == 4294967295);
+                assert(_cvt_ftoui_sent(-float.infinity) == 4294967295);
+                assert(_cvt_ftoui_sent(1.0f) == 1);
+                assert(_cvt_ftoui_sent(-1.0f) == 4294967295);
+                assert(_cvt_ftoui_sent(2.5f) == 2);
+                assert(_cvt_ftoui_sent(-2.5f) == 4294967295);
+                assert(_cvt_ftoui_sent(3.5f) == 3);
+                assert(_cvt_ftoui_sent(-3.5f) == 4294967295);
+                assert(_cvt_ftoui_sent(3.49f) == 3);
+                assert(_cvt_ftoui_sent(-3.49f) == 4294967295);
+                assert(_cvt_ftoui_sent(twoExp31Float) == 2147483648);
+                assert(_cvt_ftoui_sent(-twoExp31Float) == 4294967295);
+                assert(_cvt_ftoui_sent(twoExp63Float) == 4294967295);
+                assert(_cvt_ftoui_sent(-twoExp63Float) == 4294967295);
+                assert(_cvt_ftoui_sent(justUnderTwoExp63Float) == 4294967295);
+                assert(_cvt_ftoui_sent(33554432.0f) == 33554432);
+                assert(_cvt_ftoui_sent(-33554432.0f) == 4294967295);
+                assert(_cvt_ftoui_sent(33554436.0f) == 33554436);
+                assert(_cvt_ftoui_sent(-33554436.0f) == 4294967295);
+                assert(_cvt_ftoui_sent(70369281048576.0f) == 4294967295);
+                assert(_cvt_ftoui_sent(-70369281048576.0f) == 4294967295);
+
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
+
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        extern(C)
+        pragma(inline, true)
+        ulong _cvt_ftoull_sent(float value) @trusted pure nothrow @nogc
+        {
+            version (X86_64)
+            {
+                if (value < -1.0f || value != value)
+                {
+                    return ulong.max;
+                }
+
+                /* If the hardware can handle it, let it handle it. */
+                if (value < twoExp63Float)
+                {
+                    return cast(ulong) _cvt_ftoll_fast(value);
+                }
+
+                if (value >= twoExp64Float)
+                {
+                    return ulong.max;
+                }
+
+                /* At this point, the exponent is 63.
+                   Because the exponent is at-least 23, the value will never actually contain any
+                   fractional digits, so we can just shift the significand left to get an integer. */
+
+                /* We have 23-bits stored for the significand, and we know that the exponent is 63,
+                   which means that we can just shift left unconditionally by 40, which leaves
+                   the implicit bit of the full 24-bit significand to be set at the most-significant bit. */
+                return (ulong(*(cast(const(uint)*) &value)) << 40) | (ulong(1) << 63);
+            }
+            else version (X86)
+            {
+                if (value < -1.0f || value != value)
+                {
+                    return ulong.max;
+                }
+
+                /* If the hardware can handle it, let it handle it. */
+                if (value < twoExp31Float)
+                {
+                    return cast(ulong) _cvt_ftoi_fast(value);
+                }
+
+                if (value >= twoExp64Float)
+                {
+                    return ulong.max;
+                }
+
+                /* At this point, the exponent is at-least 31 and less-than 64.
+                   Because the exponent is at-least 23, the value will never actually contain any
+                   fractional digits, so we can just shift the significand left to get an integer. */
+
+                int asInt = *(cast(const(int)*) &value);
+
+                /* The exponent is biased by +127, but we subtract only 126 as we want the exponent
+                   to be one-higher than it actually is, so that we shift the correct number of bits
+                   after we mask the exponent by 31.
+                   E.g. with an exponent of 31 we should shift 0 bits, 32 should shift 1 bit, etc.. */
+                byte exponent = cast(byte) ((cast(ubyte) (asInt >>> 23)) - 126);
+                assert(exponent >= 32);
+                assert(exponent <= 64);
+
+                /* We have 23-bits stored for the significand, and we know that the exponent is
+                   at-least 31, which means that we can shift left unconditionally by 8, which leaves
+                   the implicit bit of the full 24-bit significand to be set at the most-significant bit.
+                   Conveniently, this means that the variable shifting for the exponent concerns only
+                   the high half (remember that this is for 32-bit mode). */
+                uint significand = (asInt << 8) | (1 << 31);
+
+                return ulong(significand) << (exponent == 64 ? 32 : (exponent & 31));
+            }
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                assert(_cvt_ftoull_sent(0.0f) == 0);
+                assert(_cvt_ftoull_sent(-0.0f) == 0);
+                assert(_cvt_ftoull_sent(float.nan) == 18446744073709551615);
+                assert(_cvt_ftoull_sent(-float.nan) == 18446744073709551615);
+                assert(_cvt_ftoull_sent(float.infinity) == 18446744073709551615);
+                assert(_cvt_ftoull_sent(-float.infinity) == 18446744073709551615);
+                assert(_cvt_ftoull_sent(1.0f) == 1);
+                assert(_cvt_ftoull_sent(-1.0f) == 18446744073709551615);
+                assert(_cvt_ftoull_sent(2.5f) == 2);
+                assert(_cvt_ftoull_sent(-2.5f) == 18446744073709551615);
+                assert(_cvt_ftoull_sent(3.5f) == 3);
+                assert(_cvt_ftoull_sent(-3.5f) == 18446744073709551615);
+                assert(_cvt_ftoull_sent(3.49f) == 3);
+                assert(_cvt_ftoull_sent(-3.49f) == 18446744073709551615);
+                assert(_cvt_ftoull_sent(twoExp31Float) == 2147483648);
+                assert(_cvt_ftoull_sent(-twoExp31Float) == 18446744073709551615);
+                assert(_cvt_ftoull_sent(twoExp63Float) == 9223372036854775808);
+                assert(_cvt_ftoull_sent(-twoExp63Float) == 18446744073709551615);
+                assert(_cvt_ftoull_sent(justUnderTwoExp63Float) == 9223371487098961920);
+                assert(_cvt_ftoull_sent(33554432.0f) == 33554432);
+                assert(_cvt_ftoull_sent(-33554432.0f) == 18446744073709551615);
+                assert(_cvt_ftoull_sent(33554436.0f) == 33554436);
+                assert(_cvt_ftoull_sent(-33554436.0f) == 18446744073709551615);
+                assert(_cvt_ftoull_sent(70369281048576.0f) == 70369281048576);
+                assert(_cvt_ftoull_sent(-70369281048576.0f) == 18446744073709551615);
+
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
     }
 }
