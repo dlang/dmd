@@ -6755,6 +6755,167 @@ version (MSVCIntrinsics)
 
     extern(C)
     pragma(inline, true)
+    int _InterlockedIncrement(scope shared(int)* lpAddend) @safe pure nothrow @nogc
+    {
+        return interlockedAdd(lpAddend, 1);
+    }
+
+    extern(C)
+    pragma(inline, true)
+    short _InterlockedIncrement16(scope shared(short)* lpAddend) @safe pure nothrow @nogc
+    {
+        return interlockedAdd(lpAddend, 1);
+    }
+
+    extern(C)
+    pragma(inline, true)
+    long _interlockedincrement64(scope shared(long)* lpAddend) @safe pure nothrow @nogc
+    {
+        import core.internal.atomic : atomicFetchAdd;
+
+        static if (__traits(compiles, atomicFetchAdd(lpAddend, 1)))
+        {
+            if (__ctfe)
+            {
+                return *((a) @trusted => cast(long*) a)(lpAddend) += 1;
+            }
+            else
+            {
+                return atomicFetchAdd(lpAddend, 1) + 1;
+            }
+        }
+        else
+        {
+            return interlockedOp!("rmw_add", "add_8", "+", MemoryOrder.seq, true)(lpAddend, 1) + 1;
+        }
+    }
+
+    version (X86_64_Or_AArch64_Or_ARM)
+    {
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedIncrement64(scope shared(long)* lpAddend) @safe pure nothrow @nogc
+        {
+            return interlockedAdd(lpAddend, 1);
+        }
+    }
+
+    version (AArch64_Or_ARM)
+    {
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedIncrement_acq(scope shared(int)* lpAddend) @safe pure nothrow @nogc
+        {
+            return interlockedAdd!(MemoryOrder.acq)(lpAddend, 1);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedIncrement_rel(scope shared(int)* lpAddend) @safe pure nothrow @nogc
+        {
+            return interlockedAdd!(MemoryOrder.acq_rel)(lpAddend, 1);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedIncrement_nf(scope shared(int)* lpAddend) @safe pure nothrow @nogc
+        {
+            return interlockedAdd!(MemoryOrder.raw)(lpAddend, 1);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        short _InterlockedIncrement16_acq(scope shared(short)* lpAddend) @safe pure nothrow @nogc
+        {
+            return interlockedAdd!(MemoryOrder.acq)(lpAddend, 1);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        short _InterlockedIncrement16_rel(scope shared(short)* lpAddend) @safe pure nothrow @nogc
+        {
+            return interlockedAdd!(MemoryOrder.acq_rel)(lpAddend, 1);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        short _InterlockedIncrement16_nf(scope shared(short)* lpAddend) @safe pure nothrow @nogc
+        {
+            return interlockedAdd!(MemoryOrder.raw)(lpAddend, 1);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedIncrement64_acq(scope shared(long)* lpAddend) @safe pure nothrow @nogc
+        {
+            return interlockedAdd!(MemoryOrder.acq)(lpAddend, 1);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedIncrement64_rel(scope shared(long)* lpAddend) @safe pure nothrow @nogc
+        {
+            return interlockedAdd!(MemoryOrder.acq_rel)(lpAddend, 1);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedIncrement64_nf(scope shared(long)* lpAddend) @safe pure nothrow @nogc
+        {
+            return interlockedAdd!(MemoryOrder.raw)(lpAddend, 1);
+        }
+    }
+
+    /* This is trusted so that it's @safe without DIP1000 enabled. */
+    @trusted pure nothrow @nogc unittest
+    {
+        static void incrementTest(alias symbol, T)()
+        {
+            shared T value = -2;
+
+            assert(symbol(&value) == -1);
+            assert(value == -1);
+
+            assert(symbol(&value) == 0);
+            assert(value == 0);
+
+            assert(symbol(&value) == 1);
+            assert(value == 1);
+        }
+
+        static bool test()
+        {
+            incrementTest!(_InterlockedIncrement, int)();
+            incrementTest!(_InterlockedIncrement16, short)();
+            incrementTest!(_interlockedincrement64, long)();
+
+            version (X86_64_Or_AArch64_Or_ARM)
+            {
+                incrementTest!(_InterlockedIncrement64, long)();
+            }
+
+            version (AArch64_Or_ARM)
+            {
+                incrementTest!(_InterlockedIncrement_acq, int)();
+                incrementTest!(_InterlockedIncrement_rel, int)();
+                incrementTest!(_InterlockedIncrement_nf, int)();
+                incrementTest!(_InterlockedIncrement16_acq, short)();
+                incrementTest!(_InterlockedIncrement16_rel, short)();
+                incrementTest!(_InterlockedIncrement16_nf, short)();
+                incrementTest!(_InterlockedIncrement64_acq, long)();
+                incrementTest!(_InterlockedIncrement64_rel, long)();
+                incrementTest!(_InterlockedIncrement64_nf, long)();
+            }
+
+            return true;
+        }
+
+        assert(test());
+        static assert(test());
+    }
+
+    extern(C)
+    pragma(inline, true)
     private T interlockedAdd(MemoryOrder order = MemoryOrder.seq, T)(scope shared(T)* address, T value)
     @safe pure nothrow @nogc
     {
