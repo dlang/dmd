@@ -8811,5 +8811,51 @@ version (MSVCIntrinsics)
                 }
             }
         }
+
+        extern(C)
+        pragma(inline, true)
+        void __lidt(scope void* Source) @system nothrow @nogc
+        {
+            version (LDC)
+            {
+                import core.bitop : bsr;
+                import ldc.llvmasm : __ir;
+
+                enum type = ["i8", "i16", "i32", "i64"][size_t.sizeof.bsr];
+                enum ptr = llvmIRPtr!type ~ " elementtype(" ~ type ~ ")";
+
+                __ir!(
+                    `call void asm sideeffect inteldialect "lidt $0", "*m,~{memory}"(` ~ ptr ~ ` %0)`,
+                    void
+                )(Source);
+            }
+            else version (GNU)
+            {
+                asm @system nothrow @nogc
+                {
+                    "lidt %0" : : "m" (*cast(const(size_t)*) Source) : "memory";
+                }
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @system pure nothrow @nogc
+                {
+                    /* RCX is Source. */
+                    naked;
+                    lidt [RCX];
+                    ret;
+                }
+            }
+            else version (D_InlineAsm_X86)
+            {
+                asm @system pure nothrow @nogc
+                {
+                    naked;
+                    mov ECX, [ESP + 4]; /* Source. */
+                    lidt [ECX];
+                    ret;
+                }
+            }
+        }
     }
 }
