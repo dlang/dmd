@@ -8436,4 +8436,307 @@ version (MSVCIntrinsics)
         assert(symbol(&value, operandB) == oldValue);
         assert(value == cast(T) (mixin(q{oldValue }, op, q{ operandB})));
     }
+
+    version (X86_64_Or_X86)
+    {
+        extern(C)
+        pragma(inline, true)
+        ubyte __inbyte(ushort Port) @system nothrow @nogc
+        {
+            version (LDC_Or_GNU)
+            {
+                return x86In!ubyte(Port);
+            }
+            else
+            {
+                import core.bitop : inp;
+                return inp(Port);
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ushort __inword(ushort Port) @system nothrow @nogc
+        {
+            version (LDC_Or_GNU)
+            {
+                return x86In!ushort(Port);
+            }
+            else
+            {
+                import core.bitop : inpw;
+                return inpw(Port);
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        uint __indword(ushort Port) @system nothrow @nogc
+        {
+            version (LDC_Or_GNU)
+            {
+                return x86In!uint(Port);
+            }
+            else
+            {
+                import core.bitop : inpl;
+                return inpl(Port);
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __outbyte(ushort Port, ubyte Data) @system nothrow @nogc
+        {
+            version (LDC_Or_GNU)
+            {
+                x86Out(Port, Data);
+            }
+            else
+            {
+                import core.bitop : outp;
+                outp(Port, Data);
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __outword(ushort Port, ushort Data) @system nothrow @nogc
+        {
+            version (LDC_Or_GNU)
+            {
+                x86Out(Port, Data);
+            }
+            else
+            {
+                import core.bitop : outpw;
+                outpw(Port, Data);
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __outdword(ushort Port, uint Data) @system nothrow @nogc
+        {
+            version (LDC_Or_GNU)
+            {
+                x86Out(Port, Data);
+            }
+            else
+            {
+                import core.bitop : outpl;
+                outpl(Port, Data);
+            }
+        }
+
+        version (LDC_Or_GNU)
+        {
+            extern(C)
+            pragma(inline, true)
+            private T x86In(T)(ushort port) @system nothrow @nogc
+            {
+                version (LDC)
+                {
+                    import core.bitop : bsr;
+                    import ldc.llvmasm : __ir;
+
+                    enum size = T.sizeof.bsr;
+                    enum type = ["i8", "i16", "i32"][size];
+                    enum a = ["al", "ax", "eax"][size];
+
+                    return __ir!(
+                        `%value = call ` ~ type ~ ` asm sideeffect inteldialect
+                             "in $0, $1",
+                             "={` ~ a ~ `},N{dx},~{memory}"
+                             (i16 %0)
+
+                         ret ` ~ type ~ ` %value`,
+                        T
+                    )(port);
+                }
+                else version (GNU)
+                {
+                    T result;
+
+                    asm @system nothrow @nogc
+                    {
+                        "in %w1, %0" : "=a" (result) : "Nd" (port) : "memory";
+                    }
+
+                    return result;
+                }
+            }
+
+            extern(C)
+            pragma(inline, true)
+            private void x86Out(T)(ushort port, T data) @system nothrow @nogc
+            {
+                version (LDC)
+                {
+                    import core.bitop : bsr;
+                    import ldc.llvmasm : __ir;
+
+                    enum size = T.sizeof.bsr;
+                    enum type = ["i8", "i16", "i32"][size];
+                    enum a = ["al", "ax", "eax"][size];
+
+                    __ir!(
+                        `call void asm sideeffect inteldialect
+                             "out $0, $1",
+                             "N{dx},{` ~ a ~ `},~{memory}"
+                             (i16 %0, ` ~ type ~ ` %1)`,
+                        void
+                    )(port, data);
+                }
+                else version (GNU)
+                {
+                    asm @system nothrow @nogc
+                    {
+                        "out %1, %w0" : : "Nd" (port), "a" (data) : "memory";
+                    }
+                }
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __inbytestring(ushort Port, scope ubyte* Buffer, uint Count) @system nothrow @nogc
+        {
+            x86InOutString!'I'(Port, Buffer, Count);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __inwordstring(ushort Port, scope ushort* Buffer, uint Count) @system nothrow @nogc
+        {
+            x86InOutString!'I'(Port, Buffer, Count);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __indwordstring(ushort Port, scope uint* Buffer, uint Count) @system nothrow @nogc
+        {
+            x86InOutString!'I'(Port, Buffer, Count);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __outbytestring(ushort Port, scope ubyte* Buffer, uint Count) @system nothrow @nogc
+        {
+            x86InOutString!'O'(Port, Buffer, Count);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __outwordstring(ushort Port, scope ushort* Buffer, uint Count) @system nothrow @nogc
+        {
+            x86InOutString!'O'(Port, Buffer, Count);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __outdwordstring(ushort Port, scope uint* Buffer, uint Count) @system nothrow @nogc
+        {
+            x86InOutString!'O'(Port, Buffer, Count);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        private void x86InOutString(char io, T)(ushort port, scope T* buffer, uint bufferLength) @system nothrow @nogc
+        {
+            import core.bitop : bsr;
+
+            enum size = T.sizeof.bsr;
+
+            version (X86)
+            {
+                enum indexPrefix = 'E';
+            }
+            else version (X86_64)
+            {
+                enum indexPrefix = 'R';
+            }
+
+            static if (io == 'I')
+            {
+                enum opCode = "ins";
+                enum index = indexPrefix ~ "DI";
+            }
+            else static if (io == 'O')
+            {
+                enum opCode = "outs";
+                enum index = indexPrefix ~ "SI";
+            }
+
+            version (LDC)
+            {
+                import core.bitop : bsr;
+                import ldc.llvmasm : __ir;
+
+                enum char suffix = "bwl"[size];
+                enum type = ["i8", "i16", "i32"][size];
+                enum ptr = llvmIRPtr!type;
+
+                __ir!(
+                    `call {` ~ ptr ~ `, i32} asm
+                     "rep ` ~ opCode ~ suffix ~ `",
+                     "=&{` ~ index ~ `},=&{ecx},{dx},0,1,~{memory}"
+                     (i16 %0, ` ~ ptr ~ ` %1, i32 %2)`,
+                    void
+                )(port, buffer, bufferLength);
+            }
+            else version (GNU)
+            {
+                enum char suffix = "bwl"[size];
+
+                mixin(
+                    `asm @system nothrow @nogc
+                     {
+                           "rep " ~ opCode ~ suffix
+                         : "=` ~ index[1] ~ `" (buffer), "=c" (bufferLength)
+                         : "0" (buffer), "1" (bufferLength), "d" (port)
+                         : "memory";
+                     }`
+                );
+            }
+            else version (InlineAsm_X86_64_Or_X86)
+            {
+                enum char suffix = "bwd"[size];
+
+                version (D_InlineAsm_X86_64)
+                {
+                    mixin(
+                        "asm @trusted pure nothrow @nogc
+                         {
+                             /* CX is port; RDX is buffer; R8D is bufferLength. */
+                             naked;
+                             mov R9, " ~ index ~ "; /* R[DS]I is non-volatile, so we save it in R9. */
+                             mov " ~ index ~ ", RDX;
+                             mov EDX, ECX;
+                             mov ECX, R8D;
+                             rep; " ~ opCode ~ suffix ~ ";
+                             mov " ~ index ~ ", R9;
+                             ret;
+                         }"
+                    );
+                }
+                else version (D_InlineAsm_X86)
+                {
+                    mixin(
+                        "asm @trusted pure nothrow @nogc
+                         {
+                             naked;
+                             mov EAX, " ~ index ~ "; /* E[DS]I is non-volatile, so we save it in EAX. */
+                             mov ECX, [ESP + 12]; /* bufferLength. */
+                             mov " ~ index ~ ", [ESP +  8]; /* buffer. */
+                             mov EDX, [ESP +  4]; /* port. */
+                             rep; " ~ opCode ~ suffix ~ ";
+                             mov " ~ index ~ ", EAX;
+                             ret;
+                         }"
+                    );
+                }
+            }
+        }
+    }
 }
