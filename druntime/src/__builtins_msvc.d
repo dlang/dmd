@@ -12821,5 +12821,79 @@ version (MSVCIntrinsics)
                 );
             }
         }
+
+        extern(C)
+        pragma(inline, true)
+        void __writeeflags(RegisterSized Value) @system nothrow @nogc
+        {
+            version (LDC_Or_GNU)
+            {
+                version (X86_64)
+                {
+                    mixin(q{import }, gccBuiltins, q{ : __builtin_ia32_writeeflags_u64;});
+                    __builtin_ia32_writeeflags_u64(Value);
+                }
+                else version (X86)
+                {
+                    mixin(q{import }, gccBuiltins, q{ : __builtin_ia32_writeeflags_u32;});
+                    __builtin_ia32_writeeflags_u32(Value);
+                }
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    /* RCX is Value. */
+                    naked;
+                    push RCX;
+                    popfq;
+                    ret;
+                }
+            }
+            else version (D_InlineAsm_X86)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    naked;
+                    mov EAX, [ESP + 4]; /* Value. */
+                    push EAX;
+                    popfd;
+                    ret;
+                }
+            }
+        }
+
+        /* This test relies on the compiler inlining the calls to __readeflags/__writeeflags,
+           which we can't rely on always, hence the `version (none)`. */
+        version (none)
+        {
+            @safe nothrow @nogc unittest
+            {
+                enum RegisterSized mask = 0b110111010101;
+
+                const originalFlags = __readeflags();
+
+                (() @trusted => __writeeflags(originalFlags | 0b101))();
+                assert((__readeflags() & mask) == ((originalFlags | 0b101) & mask));
+
+                version (GNU)
+                {
+                    asm @trusted nothrow @nogc
+                    {
+                        "cmp %%eax, %%eax" : : : "cc";
+                    }
+                }
+                else version (InlineAsm_X86_64_Or_X86)
+                {
+                    asm @trusted nothrow @nogc
+                    {
+                        cmp EAX, EAX;
+                    }
+                }
+
+                enum zeroFlag = 0b1000000;
+                assert(__readeflags() & zeroFlag);
+            }
+        }
     }
 }
