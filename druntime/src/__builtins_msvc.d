@@ -8767,5 +8767,49 @@ version (MSVCIntrinsics)
                 }
             }
         }
+
+        extern(C)
+        pragma(inline, true)
+        void __invlpg(scope void* Address) @system nothrow @nogc
+        {
+            version (LDC)
+            {
+                import ldc.llvmasm : __ir;
+
+                enum ptr = llvmIRPtr!"i8" ~ " elementtype(i8)";
+
+                __ir!(
+                    `call void asm sideeffect inteldialect "invlpg $0", "*m,~{memory}"(` ~ ptr ~ ` %0)`,
+                    void
+                )(Address);
+            }
+            else version (GNU)
+            {
+                asm @system nothrow @nogc
+                {
+                    "invlpg %0" : : "m" (*cast(const(ubyte)*) Address) : "memory";
+                }
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @system pure nothrow @nogc
+                {
+                    /* RCX is Address. */
+                    naked;
+                    invlpg [RCX];
+                    ret;
+                }
+            }
+            else version (D_InlineAsm_X86)
+            {
+                asm @system pure nothrow @nogc
+                {
+                    naked;
+                    mov ECX, [ESP + 4]; /* Address. */
+                    invlpg [ECX];
+                    ret;
+                }
+            }
+        }
     }
 }
