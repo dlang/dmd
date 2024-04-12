@@ -1,0 +1,4 @@
+ImportC implements all but three of the MSVC intrinsics [listed here](https://web.archive.org/web/20240412171516/https://learn.microsoft.com/en-ie/cpp/intrinsics/alphabetical-listing-of-intrinsic-functions?view=msvc-170), and a handful of undocumented intrinsics.
+
+ImportC now implements all but three of the MSVC intrinsics [listed here](https://web.archive.org/web/20240412171516/https://learn.microsoft.com/en-ie/cpp/intrinsics/alphabetical-listing-of-intrinsic-functions?view=msvc-170), and a handful of undocumented intrinsics.
+The MSVC intrinsics are available when targeting the Microsoft C runtime (that is, when the `CRuntime_Microsoft` version identifier is defined).
