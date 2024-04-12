@@ -86,6 +86,9 @@ version (MSVCIntrinsics)
         {
             pragma(LDC_intrinsic, "llvm.x86.sse2.pause")
             private void __builtin_ia32_pause() @safe pure nothrow @nogc;
+
+            pragma(LDC_intrinsic, "llvm.x86.rdtsc")
+            private long __builtin_ia32_rdtsc() @safe nothrow @nogc;
         }
         else version (AArch64)
         {
@@ -102,7 +105,7 @@ version (MSVCIntrinsics)
     {
         version (X86_64_Or_X86)
         {
-            import gcc.builtins : __builtin_ia32_pause;
+            import gcc.builtins : __builtin_ia32_pause, __builtin_ia32_rdtsc;
         }
     }
 
@@ -10801,6 +10804,138 @@ version (MSVCIntrinsics)
 
             assert(test());
             static assert(test());
+        }
+    }
+
+    version (X86_64_Or_X86)
+    {
+        extern(C)
+        pragma(inline, true)
+        ulong __rdtsc() @safe nothrow @nogc
+        {
+            version (LDC_Or_GNU)
+            {
+                return __builtin_ia32_rdtsc();
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    naked;
+                    rdtsc;
+                    shl RDX, 32;
+                    or RAX, RDX;
+                    ret;
+                }
+            }
+            else version (D_InlineAsm_X86)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    naked;
+                    rdtsc;
+                    ret;
+                }
+            }
+        }
+
+        @safe nothrow @nogc unittest
+        {
+            foreach (iteration; 0 .. 10_000)
+            {
+                ulong before = __rdtsc();
+                ulong after = __rdtsc();
+
+                if (after != before)
+                {
+                    return;
+                }
+            }
+
+            assert(false);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ulong __rdtscp(scope uint* AUX) @trusted nothrow @nogc
+        {
+            version (LDC)
+            {
+                import ldc.llvmasm : __irEx;
+
+                return __irEx!(
+                    "declare {i64, i32} @llvm.x86.rdtscp()",
+                    `%result = call {i64, i32} @llvm.x86.rdtscp()
+
+                     %time = extractvalue {i64, i32} %result, 0
+                     %aux = extractvalue {i64, i32} %result, 1
+
+                     store i32 %aux, ` ~ llvmIRPtr!"i32" ~ ` %0
+
+                     ret i64 %time`,
+                     "",
+                    ulong
+                )(AUX);
+            }
+            else version (GNU)
+            {
+                import gcc.builtins : __builtin_ia32_rdtsc, __builtin_ia32_rdtscp;
+                return __builtin_ia32_rdtscp(AUX);
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    /* RCX is AUX. */
+                    naked;
+                    mov R8, RCX; /* We save RCX in R8 before rdtscp clobbers ECX. */
+                    rdtscp;
+                    mov [R8], ECX;
+                    shl RDX, 32;
+                    or RAX, RDX;
+                    ret;
+                }
+            }
+            else version (D_InlineAsm_X86)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    naked;
+                    push EBX;
+                    mov EBX, [ESP + 8]; /* AUX. */
+                    rdtscp;
+                    mov [EBX], ECX;
+                    pop EBX;
+                    ret;
+                }
+            }
+        }
+
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        @trusted nothrow @nogc unittest
+        {
+            uint aux = 0;
+
+            foreach (iteration; 0 .. 10_000)
+            {
+                ulong before = __rdtscp(&aux);
+                ulong after = __rdtscp(&aux);
+
+                if (after != before)
+                {
+                    if (aux == 0)
+                    {
+                        /* Is aux not being written to? Or, is it just zero by happenstance? */
+                        aux = 0xFFFFFFFF;
+                        cast(void) __rdtscp(&aux);
+                        assert(aux != 0xFFFFFFFF);
+                    }
+
+                    return;
+                }
+            }
+
+            assert(false);
         }
     }
 }
