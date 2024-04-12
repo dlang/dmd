@@ -11240,5 +11240,56 @@ version (MSVCIntrinsics)
                 }
             }
         }
+
+        extern(C)
+        pragma(inline, true)
+        uint __segmentlimit(uint a) @safe nothrow @nogc
+        {
+            version (LDC)
+            {
+                import ldc.llvmasm : __ir;
+
+                return __ir!(
+                    `%result = call i32 asm sideeffect inteldialect "lsl $0, $1", "=r,r,~{flags}"(i32 %0)
+                     ret i32 %result`,
+                    uint
+                )(a);
+            }
+            else version (GNU)
+            {
+                uint result;
+
+                asm @trusted nothrow @nogc
+                {
+                    "lsl %1, %0" : "=r" (result) : "rm" (a) : "cc";
+                }
+
+                return result;
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    /* ECX is a. */
+                    naked;
+                    lsl EAX, ECX;
+                    ret;
+                }
+            }
+            else version (D_InlineAsm_X86)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    naked;
+                    lsl EAX, [ESP + 4]; /* [ESP + 4] is a. */
+                    ret;
+                }
+            }
+        }
+
+        @safe nothrow @nogc unittest
+        {
+            cast(void) __segmentlimit(0);
+        }
     }
 }
