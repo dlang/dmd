@@ -4453,5 +4453,29 @@ version (MSVCIntrinsics)
             static assert(test());
         }
     }
+
+    extern(C)
+    pragma(inline, true)
+    void _disable() @safe nothrow @nogc
+    {
+        version (LDC_Or_GNU)
+        {
+            version (X86_64_Or_X86) enum code = "cli";
+            else version (ARM) enum code = "cpsid i";
+            else version (AArch64) enum code = "msr daifset, #2";
+
+            asm @trusted pure nothrow @nogc
+            {
+                "" ~ code : : : "cc";
+            }
+        }
+        else version (InlineAsm_X86_64_Or_X86)
+        {
+            asm @trusted pure nothrow @nogc
+            {
+                cli;
+            }
+        }
+    }
     }
 }
