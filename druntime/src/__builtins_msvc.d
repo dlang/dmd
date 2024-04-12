@@ -3651,5 +3651,597 @@ version (MSVCIntrinsics)
             }
         }
     }
+
+    version (X86_64)
+    {
+        extern(C)
+        pragma(inline, true)
+        ubyte __readgsbyte(uint Offset) nothrow @nogc
+        {
+            return manipulateMemoryThroughTIBSegmentRegister!(ubyte)(Offset);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ushort __readgsword(uint Offset) nothrow @nogc
+        {
+            return manipulateMemoryThroughTIBSegmentRegister!(ushort)(Offset);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        uint __readgsdword(uint Offset) nothrow @nogc
+        {
+            return manipulateMemoryThroughTIBSegmentRegister!(uint)(Offset);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ulong __readgsqword(uint Offset) nothrow @nogc
+        {
+            return manipulateMemoryThroughTIBSegmentRegister!(ulong)(Offset);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __writegsbyte(uint Offset, ubyte Data) nothrow @nogc
+        {
+            manipulateMemoryThroughTIBSegmentRegister!(void, null, ubyte)(Offset, Data);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __writegsword(uint Offset, ushort Data) nothrow @nogc
+        {
+            manipulateMemoryThroughTIBSegmentRegister!(void, null, ushort)(Offset, Data);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __writegsdword(uint Offset, uint Data) nothrow @nogc
+        {
+            manipulateMemoryThroughTIBSegmentRegister!(void, null, uint)(Offset, Data);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __writegsqword(uint Offset, ulong Data) nothrow @nogc
+        {
+            manipulateMemoryThroughTIBSegmentRegister!(void, null, ulong)(Offset, Data);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __addgsbyte(uint Offset, ubyte Data) nothrow @nogc
+        {
+            manipulateMemoryThroughTIBSegmentRegister!(void, "+", ubyte)(Offset, Data);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __addgsword(uint Offset, ushort Data) nothrow @nogc
+        {
+            manipulateMemoryThroughTIBSegmentRegister!(void, "+", ushort)(Offset, Data);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __addgsdword(uint Offset, uint Data) nothrow @nogc
+        {
+            manipulateMemoryThroughTIBSegmentRegister!(void, "+", uint)(Offset, Data);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __addgsqword(uint Offset, ulong Data) nothrow @nogc
+        {
+            manipulateMemoryThroughTIBSegmentRegister!(void, "+", ulong)(Offset, Data);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __incgsbyte(uint Offset) nothrow @nogc
+        {
+            manipulateMemoryThroughTIBSegmentRegister!(ubyte, "++")(Offset);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __incgsword(uint Offset) nothrow @nogc
+        {
+            manipulateMemoryThroughTIBSegmentRegister!(ushort, "++")(Offset);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __incgsdword(uint Offset) nothrow @nogc
+        {
+            manipulateMemoryThroughTIBSegmentRegister!(uint, "++")(Offset);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __incgsqword(uint Offset) nothrow @nogc
+        {
+            manipulateMemoryThroughTIBSegmentRegister!(ulong, "++")(Offset);
+        }
+    }
+
+    version (X86)
+    {
+        extern(C)
+        pragma(inline, true)
+        ubyte __readfsbyte(uint Offset) nothrow @nogc
+        {
+            return manipulateMemoryThroughTIBSegmentRegister!(ubyte)(Offset);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ushort __readfsword(uint Offset) nothrow @nogc
+        {
+            return manipulateMemoryThroughTIBSegmentRegister!(ushort)(Offset);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        uint __readfsdword(uint Offset) nothrow @nogc
+        {
+            return manipulateMemoryThroughTIBSegmentRegister!(uint)(Offset);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ulong __readfsqword(uint Offset) nothrow @nogc
+        {
+            return manipulateMemoryThroughTIBSegmentRegister!(ulong)(Offset);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __writefsbyte(uint Offset, ubyte Data) nothrow @nogc
+        {
+            manipulateMemoryThroughTIBSegmentRegister!(void, null, ubyte)(Offset, Data);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __writefsword(uint Offset, ushort Data) nothrow @nogc
+        {
+            manipulateMemoryThroughTIBSegmentRegister!(void, null, ushort)(Offset, Data);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __writefsdword(uint Offset, uint Data) nothrow @nogc
+        {
+            manipulateMemoryThroughTIBSegmentRegister!(void, null, uint)(Offset, Data);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __writefsqword(uint Offset, ulong Data) nothrow @nogc
+        {
+            manipulateMemoryThroughTIBSegmentRegister!(void, null, ulong)(Offset, Data);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __addfsbyte(uint Offset, ubyte Data) nothrow @nogc
+        {
+            manipulateMemoryThroughTIBSegmentRegister!(void, "+", ubyte)(Offset, Data);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __addfsword(uint Offset, ushort Data) nothrow @nogc
+        {
+            manipulateMemoryThroughTIBSegmentRegister!(void, "+", ushort)(Offset, Data);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __addfsdword(uint Offset, uint Data) nothrow @nogc
+        {
+            manipulateMemoryThroughTIBSegmentRegister!(void, "+", uint)(Offset, Data);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __incfsbyte(uint Offset) nothrow @nogc
+        {
+            manipulateMemoryThroughTIBSegmentRegister!(ubyte, "++")(Offset);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __incfsword(uint Offset) nothrow @nogc
+        {
+            manipulateMemoryThroughTIBSegmentRegister!(ushort, "++")(Offset);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __incfsdword(uint Offset) nothrow @nogc
+        {
+            manipulateMemoryThroughTIBSegmentRegister!(uint, "++")(Offset);
+        }
+    }
+
+    version (X86_64_Or_X86)
+    {
+        extern(C)
+        pragma(inline, true)
+        private
+        mixin(Args.length == 0 && operator == null ? "Integer" : "void")
+        manipulateMemoryThroughTIBSegmentRegister(
+            Integer = void,
+            string operator = null,
+            Args...
+        )(
+            uint offset,
+            Args args
+        ) nothrow @nogc
+        if (
+              Args.length == 1
+            ? (is(Integer == void) && __traits(isIntegral, Args[0]) && (operator == null || operator == "+"))
+            : (Args.length == 0 && __traits(isIntegral, Integer) && (operator == null || operator == "++"))
+        )
+        {
+            enum bool reading = Args.length == 0 && operator == null;
+            static if (Args.length == 0) alias Int = Integer; else alias Int = Args[0];
+
+            version (LDC)
+            {
+                import core.bitop : bsr;
+                import ldc.llvmasm : __ir;
+
+                     version (X86) enum addressSpace = "addrspace(257)";
+                else version (X86_64) enum addressSpace = "addrspace(256)";
+
+                enum size = Int.sizeof.bsr;
+                enum type = ["i8", "i16", "i32", "i64"][size];
+                enum ptr = llvmIRPtr!(type, addressSpace);
+
+                enum loadValue = "%address = inttoptr i32 %0 to " ~ ptr ~ ";
+                                  %data = load " ~ type ~ ", " ~ ptr ~ " %address;\n";
+
+                static if (reading)
+                {
+                    return __ir!(
+                        loadValue ~ "ret " ~ type ~ " %data;",
+                        Int
+                    )(offset);
+                }
+                else
+                {
+                    static if (operator == null)
+                    {
+                        enum code = "%address = inttoptr i32 %0 to " ~ ptr ~ ";
+                                     store " ~ type ~ " %1, " ~ ptr ~ " %address;";
+                    }
+                    else static if (operator == "++")
+                    {
+                        enum code = loadValue
+                                    ~ "%changed = add " ~ type ~ " %data, 1;
+                                    store " ~ type ~ " %changed, " ~ ptr ~ " %address;";
+                    }
+                    else static if (operator == "+")
+                    {
+                        enum code = loadValue
+                                    ~ "%changed = add " ~ type ~ " %data, %1;
+                                    store " ~ type ~ " %changed, " ~ ptr ~ " %address;";
+                    }
+
+                    __ir!(code, void)(offset, args);
+                }
+            }
+            else version (GNU)
+            {
+                version (X86)
+                {
+                    enum segment = "fs";
+                    enum canMoveEightBytes = false;
+                }
+                else version (X86_64)
+                {
+                    enum segment = "gs";
+                    enum canMoveEightBytes = true;
+                }
+
+                static if (reading)
+                {
+                    static if (Int.sizeof <= 4 || canMoveEightBytes)
+                    {
+                        Int result;
+
+                        asm nothrow @nogc
+                        {
+                            "mov " ~ segment ~ ":(%1), %0 " : "=r" (result) : "ri" (offset) : "memory";
+                        }
+
+                        return result;
+                    }
+                    else
+                    {
+                        uint lo;
+                        uint hi;
+
+                        asm nothrow @nogc
+                        {
+                              "mov " ~ segment ~ ":(%2), %0
+                               mov " ~ segment ~ ":4(%2), %1"
+                            : "=&r" (lo), "=r" (hi)
+                            : "ri" (offset)
+                            : "memory";
+                        }
+
+                        return lo | (Int(hi) << 32);
+                    }
+                }
+                else
+                {
+                    static if (operator == null)
+                    {
+                        static if (Int.sizeof <= 4 || canMoveEightBytes)
+                        {
+                            asm nothrow @nogc
+                            {
+                                "mov %1, " ~ segment ~ ":(%0)" : : "ri" (offset), "r" (args[0]) : "memory";
+                            }
+                        }
+                        else
+                        {
+                            asm nothrow @nogc
+                            {
+                                  "mov %1, " ~ segment ~ ":(%0)
+                                   mov %2, " ~ segment ~ ":4(%0)"
+                                :
+                                : "ri" (offset), "r" (cast(uint) args[0]), "r" (cast(uint) (args[0] >>> 32))
+                                : "memory";
+                            }
+                        }
+                    }
+                    else static if (operator == "++")
+                    {
+                        import core.bitop : bsr;
+
+                        enum char suffix = "bwlq"[Int.sizeof.bsr];
+
+                        asm nothrow @nogc
+                        {
+                            "inc" ~ suffix ~ " " ~ segment ~ ":(%0)" : : "ri" (offset) : "memory", "cc";
+                        }
+                    }
+                    else static if (operator == "+")
+                    {
+                        asm nothrow @nogc
+                        {
+                            "add %1, " ~ segment ~ ":(%0)" : : "ri" (offset), "r" (args[0]) : "memory", "cc";
+                        }
+                    }
+                }
+            }
+            else version (InlineAsm_X86_64_Or_X86)
+            {
+                import core.bitop : bsr;
+
+                enum size = Int.sizeof.bsr;
+
+                version (D_InlineAsm_X86_64)
+                {
+                    static if (reading)
+                    {
+                        mixin(
+                            /* ECX is offset. */
+                            "asm nothrow @nogc
+                             {
+                                 naked;
+                                 mov " ~ ["AL", "AX", "EAX", "RAX"][size] ~ ", GS:[ECX];
+                                 ret;
+                             }"
+                        );
+                    }
+                    else
+                    {
+                        static if (operator == "++")
+                        {
+                            mixin(
+                                /* ECX is offset. */
+                                "asm nothrow @nogc
+                                 {
+                                     naked;
+                                     inc " ~ ["ubyte", "word", "dword", "qword"][size] ~ " ptr GS:[ECX];
+                                     ret;
+                                 }"
+                            );
+                        }
+                        else static if (operator == "+" || operator == null)
+                        {
+                            enum op = operator == "+" ? "add" : "mov";
+
+                            mixin(
+                                /* ECX is offset; EDX is args[0]. */
+                                "asm nothrow @nogc
+                                 {
+                                     naked;
+                                     " ~ op ~ " GS:[ECX], " ~ ["DL", "DX", "EDX", "RDX"][size] ~ ";
+                                     ret;
+                                 }"
+                            );
+                        }
+                    }
+                }
+                else version (D_InlineAsm_X86)
+                {
+                    static if (reading)
+                    {
+                        static if (size == 3)
+                        {
+                            asm nothrow @nogc
+                            {
+                                naked;
+                                mov ECX, [ESP + 4]; /* offset. */
+                                mov EAX, FS:[ECX];
+                                mov EDX, FS:[ECX + 4];
+                                ret;
+                            }
+                        }
+                        else static if (size <= 2)
+                        {
+                            mixin(
+                                "asm nothrow @nogc
+                                 {
+                                     naked;
+                                     mov ECX, [ESP + 4]; /* offset. */
+                                     mov " ~ ["AL", "AX", "EAX"][size] ~ ", FS:[ECX];
+                                     ret;
+                                 }"
+                            );
+                        }
+                    }
+                    else
+                    {
+                        static if (size == 3)
+                        {
+                            asm nothrow @nogc
+                            {
+                                naked;
+                                mov ECX, [ESP +  4]; /* offset. */
+                                mov EAX, [ESP +  8]; /* Low half of args[0]. */
+                                mov EDX, [ESP + 12]; /* High half of args[0]. */
+                                mov FS:[ECX], EAX;
+                                mov FS:[ECX + 4], EDX;
+                                ret;
+                            }
+                        }
+                        else static if (size <= 2)
+                        {
+                            static if (operator == "++")
+                            {
+                                mixin(
+                                    "asm nothrow @nogc
+                                     {
+                                         naked;
+                                         mov ECX, [ESP + 4]; /* offset. */
+                                         inc " ~ ["ubyte", "word", "dword"][size] ~ " ptr FS:[ECX];
+                                         ret;
+                                     }"
+                                );
+                            }
+                            else static if (operator == "+" || operator == null)
+                            {
+                                enum op = operator == "+" ? "add" : "mov";
+                                enum source = ["DL", "DX", "EDX"][size];
+
+                                mixin(
+                                    "asm nothrow @nogc
+                                     {
+                                         naked;
+                                         mov ECX, [ESP + 4]; /* offset. */
+                                         mov " ~ source ~ ", [ESP + 8]; /* args[0] */
+                                         " ~ op ~ " FS:[ECX], " ~ source ~ ";
+                                         ret;
+                                     }"
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                static assert(false);
+            }
+        }
+
+        version (Windows)
+        {
+            @trusted nothrow @nogc unittest
+            {
+                import core.sys.windows.winbase : GetLastError, SetLastError;
+
+                /* The Win32 last-error is stored in the TIB, at an offset of 13-pointers.
+                   Immediately after it is is the number of critical-sections.
+                   We can use GetLastError and SetLastError as a known good implementation of
+                   reading and writing to FS/GS-segmented memory, and so long as we restore
+                   the critical-section count to its original value afterwards, we can use it
+                   to test the reading and writing of 8-byte values. */
+
+                enum lastErrorOffset = size_t.sizeof * 13;
+                enum criticalSectionCountOffset = lastErrorOffset + 4;
+
+                version (X86_64) enum prefix = 'g'; else version (X86) enum prefix = 'f';
+
+                alias addByte = mixin("__add", prefix, "sbyte");
+                alias addDword = mixin("__add", prefix, "sdword");
+                alias addWord = mixin("__add", prefix, "sword");
+                alias incByte = mixin("__inc", prefix, "sbyte");
+                alias incDword = mixin("__inc", prefix, "sdword");
+                alias incWord = mixin("__inc", prefix, "sword");
+                alias readByte = mixin("__read", prefix, "sbyte");
+                alias readDword = mixin("__read", prefix, "sdword");
+                alias readWord = mixin("__read", prefix, "sword");
+                alias readQword = mixin("__read", prefix, "sqword");
+                alias writeByte = mixin("__write", prefix, "sbyte");
+                alias writeDword = mixin("__write", prefix, "sdword");
+                alias writeWord = mixin("__write", prefix, "sword");
+                alias writeQword = mixin("__write", prefix, "sqword");
+
+                SetLastError(0x01234567);
+                assert(GetLastError()             == 0x01234567);
+                assert(readDword(lastErrorOffset) == 0x01234567);
+                assert(readWord(lastErrorOffset)  ==     0x4567);
+                assert(readByte(lastErrorOffset)  ==       0x67);
+
+                writeDword(lastErrorOffset, 0x89ABCDEF);
+                assert(GetLastError() == 0x89ABCDEF);
+                writeWord(lastErrorOffset, 0x0123);
+                assert(GetLastError() == 0x89AB0123);
+                writeByte(lastErrorOffset, 0x45);
+                assert(GetLastError() == 0x89AB0145);
+
+                auto originalCriticalSectionCount = readDword(criticalSectionCountOffset);
+
+                writeDword(criticalSectionCountOffset, 0xCAFEBEEF);
+                assert(readQword(lastErrorOffset) == 0xCAFEBEEF_89AB0145);
+
+                writeQword(lastErrorOffset, 0x01234567_89ABCDEF);
+                assert(readDword(lastErrorOffset)            == 0x89ABCDEF);
+                assert(readDword(criticalSectionCountOffset) == 0x01234567);
+
+                incDword(lastErrorOffset);
+                assert(readDword(lastErrorOffset) == 0x89ABCDF0);
+
+                incWord(lastErrorOffset + 2);
+                assert(readDword(lastErrorOffset) == 0x89ACCDF0);
+
+                incByte(lastErrorOffset + 3);
+                assert(readDword(lastErrorOffset) == 0x8AACCDF0);
+
+                addDword(lastErrorOffset, uint(12));
+                assert(readDword(lastErrorOffset) == 0x8AACCDFC);
+
+                addWord(lastErrorOffset + 2, ushort(3));
+                assert(readDword(lastErrorOffset) == 0x8AAFCDFC);
+
+                addByte(lastErrorOffset + 3, 4);
+                assert(readDword(lastErrorOffset) == 0x8EAFCDFC);
+
+                version (X86_64)
+                {
+                    assert(__readgsqword(lastErrorOffset) == 0x01234567_8EAFCDFC);
+
+                    __incgsqword(lastErrorOffset);
+                    assert(__readgsqword(lastErrorOffset) == 0x01234567_8EAFCDFD);
+
+                    __addgsqword(lastErrorOffset, ulong(2));
+                    assert(__readgsqword(lastErrorOffset) == 0x01234567_8EAFCDFF);
+                }
+
+                writeDword(criticalSectionCountOffset, originalCriticalSectionCount);
+            }
+        }
+    }
     }
 }
