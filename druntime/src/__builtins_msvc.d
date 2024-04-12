@@ -12895,5 +12895,51 @@ version (MSVCIntrinsics)
                 assert(__readeflags() & zeroFlag);
             }
         }
+
+        extern(C)
+        pragma(inline, true)
+        void __writemsr(uint Register, ulong Value) @safe nothrow @nogc
+        {
+            version (LDC)
+            {
+                import ldc.llvmasm : __ir;
+
+                return __ir!(
+                    `call void asm sideeffect inteldialect "wrmsr", "{eax},{edx},{ecx}"(i32 %0, i32 %1, i32 %2)`,
+                    void
+                )(cast(uint) Value, cast(uint) (Value >>> 32), Register);
+            }
+            else version (GNU)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    "wrmsr" : : "a" (cast(uint) Value), "d" (cast(uint) (Value >>> 32)), "c" (Register);
+                }
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    /* ECX is Register; RDX is Value. */
+                    naked;
+                    mov RAX, RDX;
+                    shr RDX, 32;
+                    wrmsr;
+                    ret;
+                }
+            }
+            else version (D_InlineAsm_X86)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    naked;
+                    mov ECX, [ESP +  4]; /* Register. */
+                    mov EAX, [ESP +  8]; /* Low half of Value. */
+                    mov EDX, [ESP + 12]; /* High half of Value. */
+                    wrmsr;
+                    ret;
+                }
+            }
+        }
     }
 }
