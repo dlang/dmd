@@ -12749,6 +12749,25 @@ version (MSVCIntrinsics)
             }
         }
 
+        /* Ideally, we'd define __writedr as a macro that instantiated a template with the register number,
+           but ImportC can't explicitly instantiate templates, so this'll have to do. :\ */
+        extern(C)
+        pragma(inline, true)
+        auto __writedr(uint DebugRegister, RegisterSized DebugValue) @safe nothrow @nogc
+        {
+            /* Dear optimiser, please optimise this. */
+            switch (DebugRegister)
+            {
+                static foreach (number; 0 .. 8)
+                {
+                case number:
+                    return writeNumberedRegister!('E', "DR", number)(DebugValue);
+                }
+            default:
+                assert(false, "Invalid DebugRegister supplied to __writedr.");
+            }
+        }
+
         extern(C)
         pragma(inline, true)
         private void writeNumberedRegister(char x64Size, string prefix, uint number, bool lock = false, T)(T Data)
