@@ -4287,5 +4287,127 @@ version (MSVCIntrinsics)
             __debugbreak();
         }
     }
+
+    extern(C)
+    pragma(inline, true)
+    noreturn __fastfail(uint code) @safe pure nothrow @nogc
+    {
+        if (__ctfe)
+        {
+            version (D_BetterC)
+            {
+                assert(false, "__fastfail(code)");
+            }
+            else
+            {
+                import core.internal.string : unsignedToTempString;
+                assert(false, "__fastfail(" ~ unsignedToTempString(code) ~ ")");
+            }
+        }
+        else
+        {
+            version (LDC_Or_GNU)
+            {
+                version (X86_64_Or_X86)
+                {
+                    asm @trusted pure nothrow @nogc
+                    {
+                        "int $41" : : "c" (code);
+                    }
+                }
+                else version (ARM)
+                {
+                    asm @trusted pure nothrow @nogc
+                    {
+                        "mov r0, %0
+                         udf #0xFB"
+                        :
+                        : "ir" (code);
+                    }
+                }
+                else version (AArch64)
+                {
+                    asm @trusted pure nothrow @nogc
+                    {
+                        "mov x0, %0
+                         brk #0xF003"
+                        :
+                        : "ir" (code);
+                    }
+                }
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @trusted pure nothrow @nogc
+                {
+                    /* ECX is code. */
+                    naked;
+                    int 41;
+                    ret;
+                }
+            }
+            else version (D_InlineAsm_X86)
+            {
+                asm @trusted pure nothrow @nogc
+                {
+                    naked;
+                    mov ECX, [ESP + 4]; /* code. */
+                    int 41;
+                    ret;
+                }
+            }
+            else
+            {
+                static assert(false);
+            }
+
+            version (LDC)
+            {
+                import ldc.llvmasm : __ir_pure;
+                __ir_pure!("unreachable", noreturn)();
+            }
+            else version (GNU)
+            {
+                import gcc.builtins : __builtin_unreachable;
+                __builtin_unreachable();
+                assert(false);
+            }
+            else
+            {
+                assert(false);
+            }
+        }
+    }
+
+    version (none)
+    {
+        @safe pure nothrow @nogc unittest
+        {
+            /* Run the program and it should crash here. Afterwards, in Windows PowerShell,
+               run `Get-EventLog -LogName Application -EntryType Error -Newest 1 | Format-List`,
+               and assuming no others errors have happened since, this program's crash should be returned
+               and the "Exception code" in the `Message` field should be 0xc0000409. */
+            __fastfail(7);
+        }
+    }
+
+    @safe pure nothrow @nogc
+    {
+        static assert(__traits(compiles, __fastfail(7)));
+
+        static assert(
+            !__traits(
+                compiles,
+                ()
+                {
+                    enum bool fastFailDuringCTFE = ()
+                    {
+                        __fastfail(7);
+                        return true;
+                    }();
+                }
+            )
+        );
+    }
     }
 }
