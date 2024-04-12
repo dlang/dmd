@@ -12148,5 +12148,536 @@ version (MSVCIntrinsics)
                 )
             );
         }
+
+        extern(C)
+        pragma(inline, true)
+        void __vmx_off() @safe nothrow @nogc
+        {
+            version (LDC)
+            {
+                import ldc.llvmasm : __ir;
+
+                __ir!(
+                    `call void asm sideeffect inteldialect "vmxoff", "~{flags}" ()`,
+                    void
+                )();
+            }
+            else version (GNU)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    "vmxoff" : : : "cc";
+                }
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    naked;
+                    /* DMD doesn't know the vmxoff instruction, so we encode it by hand. */
+                    db 0x0F, 0x01, 0xC4; /* vmxoff */
+                    ret;
+                }
+            }
+            else version (D_InlineAsm_X86)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    naked;
+                    /* DMD doesn't know the vmxoff instruction, so we encode it by hand. */
+                    db 0x0F, 0x01, 0xC4; /* vmxoff */
+                    ret;
+                }
+            }
+        }
+    }
+
+    version (X86_64)
+    {
+        extern(C)
+        pragma(inline, true)
+        ubyte __vmx_on(scope ulong* VmxonRegionPhysicalAddress) @system nothrow @nogc
+        {
+            version (LDC)
+            {
+                import ldc.llvmasm : __ir;
+
+                enum ptr = llvmIRPtr!"i64" ~ " elementtype(i64)";
+                enum bytePtr = llvmIRPtr!"i8";
+
+                ubyte carryFlag;
+                ubyte zeroFlag;
+
+                __ir!(
+                    `%flags = call {i8, i8} asm sideeffect inteldialect
+                         "vmxon $2",
+                         "={@ccc},={@ccz},=*m,~{memory},~{flags}"
+                         (` ~ ptr ~ ` %0)
+
+                     %carryFlag = extractvalue {i8, i8} %flags, 0
+                     %zeroFlag = extractvalue {i8, i8} %flags, 1
+
+                     store i8 %carryFlag, ` ~ bytePtr ~ ` %1
+                     store i8 %zeroFlag, ` ~ bytePtr ~ ` %2`,
+                    void
+                )(VmxonRegionPhysicalAddress, &carryFlag, &zeroFlag);
+
+                return carryFlag ? 2 : zeroFlag;
+            }
+            else version (GNU)
+            {
+                ubyte carryFlag;
+                ubyte zeroFlag;
+
+                asm @system nothrow @nogc
+                {
+                      "vmxon %2"
+                    : "=@ccc" (carryFlag), "=@ccz" (zeroFlag)
+                    : "m" (*VmxonRegionPhysicalAddress)
+                    : "memory", "cc";
+                }
+
+                return carryFlag ? 2 : zeroFlag;
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @system nothrow @nogc
+                {
+                    /* RCX is VmxonRegionPhysicalAddress. */
+                    naked;
+                    /* DMD doesn't know the vmxon instruction, so we encode it by hand. */
+                    db 0xF3, 0x0F, 0xC7, 0b00_110_001; /* vmxon [RCX] */
+                    /* If the carry-flag is set, we return 2, otherwise we return the zero-flag. */
+                    setz AL;
+                    mov EDX, 2;
+                    cmovc EAX, EDX;
+                    ret;
+                }
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ubyte __vmx_vmclear(scope ulong* VmcsPhysicalAddress) @system nothrow @nogc
+        {
+            version (LDC)
+            {
+                import ldc.llvmasm : __ir;
+
+                enum ptr = llvmIRPtr!"i64" ~ " elementtype(i64)";
+                enum bytePtr = llvmIRPtr!"i8";
+
+                ubyte carryFlag;
+                ubyte zeroFlag;
+
+                __ir!(
+                    `%flags = call {i8, i8} asm sideeffect inteldialect
+                         "vmclear $2",
+                         "={@ccc},={@ccz},=*m,~{memory},~{flags}"
+                         (` ~ ptr ~ ` %0)
+
+                     %carryFlag = extractvalue {i8, i8} %flags, 0
+                     %zeroFlag = extractvalue {i8, i8} %flags, 1
+
+                     store i8 %carryFlag, ` ~ bytePtr ~ ` %1
+                     store i8 %zeroFlag, ` ~ bytePtr ~ ` %2`,
+                    void
+                )(VmcsPhysicalAddress, &carryFlag, &zeroFlag);
+
+                return carryFlag ? 2 : zeroFlag;
+            }
+            else version (GNU)
+            {
+                ubyte carryFlag;
+                ubyte zeroFlag;
+
+                asm @system nothrow @nogc
+                {
+                      "vmclear %2"
+                    : "=@ccc" (carryFlag), "=@ccz" (zeroFlag)
+                    : "m" (*VmcsPhysicalAddress)
+                    : "memory", "cc";
+                }
+
+                return carryFlag ? 2 : zeroFlag;
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @system nothrow @nogc
+                {
+                    /* RCX is VmcsPhysicalAddress. */
+                    naked;
+                    /* DMD doesn't know the vmclear instruction, so we encode it by hand. */
+                    db 0x66, 0x0F, 0xC7, 0b00_110_001; /* vmclear [RCX] */
+                    /* If the carry-flag is set, we return 2, otherwise we return the zero-flag. */
+                    setz AL;
+                    mov EDX, 2;
+                    cmovc EAX, EDX;
+                    ret;
+                }
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ubyte __vmx_vmlaunch() @trusted nothrow @nogc
+        {
+            version (LDC)
+            {
+                import ldc.llvmasm : __ir;
+
+                enum bytePtr = llvmIRPtr!"i8";
+
+                ubyte carryFlag;
+                ubyte zeroFlag;
+
+                __ir!(
+                    `%flags = call {i8, i8} asm sideeffect inteldialect
+                         "vmlaunch",
+                         "={@ccc},={@ccz},~{memory},~{flags}"
+                         ()
+
+                     %carryFlag = extractvalue {i8, i8} %flags, 0
+                     %zeroFlag = extractvalue {i8, i8} %flags, 1
+
+                     store i8 %carryFlag, ` ~ bytePtr ~ ` %0
+                     store i8 %zeroFlag, ` ~ bytePtr ~ ` %1`,
+                    void
+                )(&carryFlag, &zeroFlag);
+
+                return carryFlag ? 2 : zeroFlag;
+            }
+            else version (GNU)
+            {
+                ubyte carryFlag;
+                ubyte zeroFlag;
+
+                asm @trusted nothrow @nogc
+                {
+                      "vmlaunch"
+                    : "=@ccc" (carryFlag), "=@ccz" (zeroFlag)
+                    :
+                    : "memory", "cc";
+                }
+
+                return carryFlag ? 2 : zeroFlag;
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    naked;
+                    /* DMD doesn't know the vmlaunch instruction, so we encode it by hand. */
+                    db 0x0F, 0x01, 0xC2; /* vmlaunch */
+                    /* If the carry-flag is set, we return 2, otherwise we return the zero-flag. */
+                    setz AL;
+                    mov EDX, 2;
+                    cmovc EAX, EDX;
+                    ret;
+                }
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ubyte __vmx_vmptrld(scope ulong* VmcsPhysicalAddress) @system nothrow @nogc
+        {
+            version (LDC)
+            {
+                import ldc.llvmasm : __ir;
+
+                enum ptr = llvmIRPtr!"i64" ~ " elementtype(i64)";
+                enum bytePtr = llvmIRPtr!"i8";
+
+                ubyte carryFlag;
+                ubyte zeroFlag;
+
+                __ir!(
+                    `%flags = call {i8, i8} asm sideeffect inteldialect
+                         "vmptrld $2",
+                         "={@ccc},={@ccz},=*m,~{memory},~{flags}"
+                         (` ~ ptr ~ ` %0)
+
+                     %carryFlag = extractvalue {i8, i8} %flags, 0
+                     %zeroFlag = extractvalue {i8, i8} %flags, 1
+
+                     store i8 %carryFlag, ` ~ bytePtr ~ ` %1
+                     store i8 %zeroFlag, ` ~ bytePtr ~ ` %2`,
+                    void
+                )(VmcsPhysicalAddress, &carryFlag, &zeroFlag);
+
+                return carryFlag ? 2 : zeroFlag;
+            }
+            else version (GNU)
+            {
+                ubyte carryFlag;
+                ubyte zeroFlag;
+
+                asm @system nothrow @nogc
+                {
+                      "vmptrld %2"
+                    : "=@ccc" (carryFlag), "=@ccz" (zeroFlag)
+                    : "m" (*VmcsPhysicalAddress)
+                    : "memory", "cc";
+                }
+
+                return carryFlag ? 2 : zeroFlag;
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @system nothrow @nogc
+                {
+                    /* RCX is VmcsPhysicalAddress. */
+                    naked;
+                    /* DMD doesn't know the vmptrld instruction, so we encode it by hand. */
+                    db 0x0F, 0xC7, 0b00_110_001; /* vmptrld [RCX] */
+                    /* If the carry-flag is set, we return 2, otherwise we return the zero-flag. */
+                    setz AL;
+                    mov EDX, 2;
+                    cmovc EAX, EDX;
+                    ret;
+                }
+            }
+        }
+    }
+
+    version (X86_64_Or_X86)
+    {
+        extern(C)
+        pragma(inline, true)
+        void __vmx_vmptrst(scope ulong* VmcsPhysicalAddress) @system nothrow @nogc
+        {
+            version (LDC)
+            {
+                import ldc.llvmasm : __ir;
+
+                enum ptr = llvmIRPtr!"i64" ~ " elementtype(i64)";
+
+                __ir!(
+                    `call void asm sideeffect inteldialect "vmptrst $0", "=*m,~{memory},~{flags}"(` ~ ptr ~ ` %0)`,
+                    void
+                )(VmcsPhysicalAddress);
+            }
+            else version (GNU)
+            {
+                asm @system nothrow @nogc
+                {
+                    "vmptrst %0" : "=m" (*VmcsPhysicalAddress) : : "memory", "cc";
+                }
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @system nothrow @nogc
+                {
+                    /* RCX is VmcsPhysicalAddress. */
+                    naked;
+                    /* DMD doesn't know the vmptrst instruction, so we encode it by hand. */
+                    db 0x0F, 0xC7, 0b00_111_001; /* vmptrst [RCX] */
+                    ret;
+                }
+            }
+            else version (D_InlineAsm_X86)
+            {
+                asm @system nothrow @nogc
+                {
+                    naked;
+                    mov ECX, [ESP + 4];
+                    /* DMD doesn't know the vmptrst instruction, so we encode it by hand. */
+                    db 0x0F, 0xC7, 0b00_111_001; /* vmptrst [ECX] */
+                    ret;
+                }
+            }
+        }
+    }
+
+    version (X86_64)
+    {
+        extern(C)
+        pragma(inline, true)
+        ubyte __vmx_vmread(size_t Field, scope size_t* FieldValue) @trusted nothrow @nogc
+        {
+            version (LDC)
+            {
+                import ldc.llvmasm : __ir;
+
+                enum ptr = llvmIRPtr!"i64";
+                enum bytePtr = llvmIRPtr!"i8";
+
+                ubyte carryFlag;
+                ubyte zeroFlag;
+                ulong readField;
+
+                __ir!(
+                    `%flags = call {i8, i8, i64} asm sideeffect inteldialect
+                         "vmread $2, $3",
+                         "={@ccc},={@ccz},=r,r,~{flags}"
+                         (i64 %0)
+
+                     %carryFlag = extractvalue {i8, i8, i64} %flags, 0
+                     %zeroFlag = extractvalue {i8, i8, i64} %flags, 1
+                     %field = extractvalue {i8, i8, i64} %flags, 2
+
+                     store i64 %field, ` ~ ptr ~ ` %1
+                     store i8 %carryFlag, ` ~ bytePtr ~ ` %2
+                     store i8 %zeroFlag, ` ~ bytePtr ~ ` %3`,
+                    void
+                )(Field, &readField, &carryFlag, &zeroFlag);
+
+                *FieldValue = readField;
+
+                return carryFlag ? 2 : zeroFlag;
+            }
+            else version (GNU)
+            {
+                ubyte carryFlag;
+                ubyte zeroFlag;
+
+                asm @trusted nothrow @nogc
+                {
+                      "vmread %3, %2"
+                    : "=@ccc" (carryFlag), "=@ccz" (zeroFlag), "=rm" (*FieldValue)
+                    : "r" (Field)
+                    : "cc";
+                }
+
+                return carryFlag ? 2 : zeroFlag;
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    /* RCX is Field; RDX is FieldValue. */
+                    naked;
+                    /* DMD doesn't know the vmread instruction, so we encode it by hand. */
+                    db 0x0F, 0x78, 0b00_001_010; /* vmread [RDX], RCX */
+                    /* If the carry-flag is set, we return 2, otherwise we return the zero-flag. */
+                    setz AL;
+                    mov EDX, 2;
+                    cmovc EAX, EDX;
+                    ret;
+                }
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ubyte __vmx_vmresume() @trusted nothrow @nogc
+        {
+            version (LDC)
+            {
+                import ldc.llvmasm : __ir;
+
+                enum bytePtr = llvmIRPtr!"i8";
+
+                ubyte carryFlag;
+                ubyte zeroFlag;
+
+                __ir!(
+                    `%flags = call {i8, i8} asm sideeffect inteldialect
+                         "vmresume",
+                         "={@ccc},={@ccz},~{memory},~{flags}"
+                         ()
+
+                     %carryFlag = extractvalue {i8, i8} %flags, 0
+                     %zeroFlag = extractvalue {i8, i8} %flags, 1
+
+                     store i8 %carryFlag, ` ~ bytePtr ~ ` %0
+                     store i8 %zeroFlag, ` ~ bytePtr ~ ` %1`,
+                    void
+                )(&carryFlag, &zeroFlag);
+
+                return carryFlag ? 2 : zeroFlag;
+            }
+            else version (GNU)
+            {
+                ubyte carryFlag;
+                ubyte zeroFlag;
+
+                asm @trusted nothrow @nogc
+                {
+                      "vmresume"
+                    : "=@ccc" (carryFlag), "=@ccz" (zeroFlag)
+                    :
+                    : "memory", "cc";
+                }
+
+                return carryFlag ? 2 : zeroFlag;
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    naked;
+                    /* DMD doesn't know the vmresume instruction, so we encode it by hand. */
+                    db 0x0F, 0x01, 0xC3; /* vmresume */
+                    /* If the carry-flag is set, we return 2, otherwise we return the zero-flag. */
+                    setz AL;
+                    mov EDX, 2;
+                    cmovc EAX, EDX;
+                    ret;
+                }
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ubyte __vmx_vmwrite(size_t Field, size_t FieldValue) @trusted nothrow @nogc
+        {
+            version (LDC)
+            {
+                import ldc.llvmasm : __ir;
+
+                enum bytePtr = llvmIRPtr!"i8";
+
+                ubyte carryFlag;
+                ubyte zeroFlag;
+
+                __ir!(
+                    `%flags = call {i8, i8} asm sideeffect inteldialect
+                         "vmwrite $2, $3",
+                         "={@ccc},={@ccz},r,r,~{memory},~{flags}"
+                         (i64 %0, i64 %1)
+
+                     %carryFlag = extractvalue {i8, i8} %flags, 0
+                     %zeroFlag = extractvalue {i8, i8} %flags, 1
+
+                     store i8 %carryFlag, ` ~ bytePtr ~ ` %2
+                     store i8 %zeroFlag, ` ~ bytePtr ~ ` %3`,
+                    void
+                )(Field, FieldValue, &carryFlag, &zeroFlag);
+
+                return carryFlag ? 2 : zeroFlag;
+            }
+            else version (GNU)
+            {
+                ubyte carryFlag;
+                ubyte zeroFlag;
+
+                asm @trusted nothrow @nogc
+                {
+                      "vmwrite %3, %2"
+                    : "=@ccc" (carryFlag), "=@ccz" (zeroFlag)
+                    : "r" (Field), "rm" (FieldValue)
+                    : "memory", "cc";
+                }
+
+                return carryFlag ? 2 : zeroFlag;
+            }
+            else version (D_InlineAsm_X86_64)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    /* RCX is Field; RDX is FieldValue. */
+                    naked;
+                    /* DMD doesn't know the vmwrite instruction, so we encode it by hand. */
+                    db 0x0F, 0x79, 0b11_001_010; /* vmwrite RCX, RDX */
+                    /* If the carry-flag is set, we return 2, otherwise we return the zero-flag. */
+                    setz AL;
+                    mov EDX, 2;
+                    cmovc EAX, EDX;
+                    ret;
+                }
+            }
+        }
     }
 }
