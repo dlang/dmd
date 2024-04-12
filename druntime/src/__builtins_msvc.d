@@ -9609,6 +9609,580 @@ version (MSVCIntrinsics)
         }
     }
 
+    static if (canPassVectors)
+    {
+        version (X86_64_Or_X86)
+        {
+            extern(C)
+            pragma(inline, true)
+            int4 _mm_extract_si64(int4 Source, int4 Descriptor) @safe pure nothrow @nogc
+            {
+                if (__ctfe)
+                {
+                    return ctfeExtrq(Source, Descriptor);
+                }
+                else
+                {
+                    version (LDC)
+                    {
+                        static if (__traits(targetHasFeature, "sse4a"))
+                        {
+                            import ldc.gccbuiltins_x86 : __builtin_ia32_extrq;
+                            return cast(int4) __builtin_ia32_extrq(cast(long2) Source, cast(byte16) Descriptor);
+                        }
+                        else
+                        {
+                            int4 result;
+
+                            asm @trusted pure nothrow @nogc
+                            {
+                                "extrq %2, %1" : "=x" (result) : "0" (Source), "x" (Descriptor);
+                            }
+
+                            return result;
+                        }
+                    }
+                    else version (GNU)
+                    {
+                        static if (__traits(compiles, () {import gcc.builtins : __builtin_ia32_extrq;}))
+                        {
+                            import gcc.builtins : __builtin_ia32_extrq;
+                            return cast(int4) __builtin_ia32_extrq(cast(long2) Source, cast(ubyte16) Descriptor);
+                        }
+                        else
+                        {
+                            int4 result;
+
+                            asm @trusted pure nothrow @nogc
+                            {
+                                "extrq %2, %1" : "=x" (result) : "0" (Source), "x" (Descriptor);
+                            }
+
+                            return result;
+                        }
+                    }
+                    else version (D_InlineAsm_X86_64)
+                    {
+                        /* __simd can't encode extrq properly. :( */
+                        asm @trusted pure nothrow @nogc
+                        {
+                            /* RCX is Source; RDX is Descriptor. */
+                            naked;
+                            movdqa XMM0, [RCX];
+                            movdqa XMM1, [RDX];
+                            /* DMD doesn't know the extrq instruction, so we encode it by hand. */
+                            db 0x66, 0x0F, 0x79, 0b11_000_001; /* extrq XMM0, XMM1 */
+                            ret;
+                        }
+                    }
+                }
+            }
+
+            @safe pure nothrow @nogc unittest
+            {
+                import core.cpuid : sse4a;
+
+                if (!sse4a)
+                {
+                    return;
+                }
+
+                static bool t(int source, int layout, int4 expected)
+                {
+                    int4 s;
+                    s.array[0] = source;
+                    int4 l;
+                    l.array[0] = layout;
+
+                    return _mm_extract_si64(s, l).array == expected.array;
+                }
+
+                static bool test()
+                {
+                    assert(t(0b00001011_11100101, 4 | (12 << 8), [0, 0, 0, 0]));
+                    assert(t(0b00001011_11100101, 0 | (12 << 8), [0, 0, 0, 0]));
+                    assert(t(0b00001011_11100101, 8 | (0 << 8), [0b11100101, 0, 0, 0]));
+                    assert(t(0b00001011_11100101, 0 | (0 << 8), [0b00001011_11100101, 0, 0, 0]));
+                    assert(t(0b00001011_11100101, 0 | (4 << 8), [0b0000_10111110, 0, 0, 0]));
+
+                    return true;
+                }
+
+                assert(test());
+                static assert(test());
+            }
+
+            extern(C)
+            pragma(inline, true)
+            int4 _mm_extracti_si64(int4 Source, int Length, int Index) @safe pure nothrow @nogc
+            {
+                int4 layout;
+                layout.array[0] = (Length & 0xFF) | ((Index << 8) & 0xFF00);
+
+                return _mm_extract_si64(Source, layout);
+            }
+
+            @safe pure nothrow @nogc unittest
+            {
+                import core.cpuid : sse4a;
+
+                if (!sse4a)
+                {
+                    return;
+                }
+
+                static bool test()
+                {
+                    alias extrq = _mm_extracti_si64;
+
+                    assert(extrq([0b00001011_11100101, 0, 0, 0], 4, 12).array == [0, 0, 0, 0]);
+                    assert(extrq([0b00001011_11100101, 0, 0, 0], 0, 12).array == [0, 0, 0, 0]);
+                    assert(extrq([0b00001011_11100101, 0, 0, 0], 8, 0).array == [0b11100101, 0, 0, 0]);
+                    assert(extrq([0b00001011_11100101, 0, 0, 0], 0, 0).array == [0b00001011_11100101, 0, 0, 0]);
+                    assert(extrq([0b00001011_11100101, 0, 0, 0], 0, 4).array == [0b0000_10111110, 0, 0, 0]);
+
+                    return true;
+                }
+
+                assert(test());
+                static assert(test());
+            }
+
+            pragma(inline, true)
+            private int4 ctfeExtrq()(int4 source, int4 bitLayout) @safe pure nothrow @nogc
+            {
+                ulong lowQuad = ulong(cast(uint) source.array[0]) | (ulong(cast(uint) source.array[1]) << 32);
+
+                uint layout = bitLayout.array[0];
+                ubyte bitCount = layout & 63;
+                ubyte bitIndex = (layout >>> 8) & 63;
+                ulong mask = bitCount == 0 ? ulong.max : (ulong(1) << bitCount) - 1;
+
+                ulong extracted = (lowQuad >>> bitIndex) & (mask);
+                int4 result;
+                result.array[0] = cast(uint) extracted;
+                result.array[1] = cast(uint) (extracted >>> 32);
+
+                return result;
+            }
+
+            @safe pure nothrow @nogc unittest
+            {
+                import core.cpuid : sse4a;
+
+                if (!sse4a)
+                {
+                    return;
+                }
+
+                long2 longParts;
+                longParts.array[0] = 0x9ABAFFF1B15C4933;
+                longParts.array[1] = 0x2488781C67F75A1C;
+                int4 intParts = cast(int4) longParts;
+
+                static int4 layout(ubyte bitCount, ubyte bitIndex)
+                {
+                    return (uint(bitIndex) << 8) | bitCount;
+                }
+
+                foreach (ubyte index; 0 .. (1 << 6))
+                {
+                    foreach (ubyte count; 0 .. (1 << 6))
+                    {
+                        int4 bitLayout = layout(count, index);
+                        int4 result = _mm_extract_si64(intParts, bitLayout);
+
+                        assert(result.array == _mm_extracti_si64(intParts, count, index).array);
+                        assert(result.array == ctfeExtrq(intParts, bitLayout).array);
+                    }
+                }
+
+                assert(_mm_extract_si64(intParts, layout(64, 64)).array == ctfeExtrq(intParts, layout(64, 64)).array);
+                assert(_mm_extract_si64(intParts, layout(65, 65)).array == ctfeExtrq(intParts, layout(65, 65)).array);
+            }
+
+            extern(C)
+            pragma(inline, true)
+            int4 _mm_insert_si64(int4 Source1, int4 Source2) @safe pure nothrow @nogc
+            {
+                if (__ctfe)
+                {
+                    return ctfeInsertq(Source1, Source2);
+                }
+                else
+                {
+                    version (LDC)
+                    {
+                        static if (__traits(targetHasFeature, "sse4a"))
+                        {
+                            import ldc.gccbuiltins_x86 : __builtin_ia32_insertq;
+                            return cast(int4) __builtin_ia32_insertq(cast(long2) Source1, cast(long2) Source2);
+                        }
+                        else
+                        {
+                            int4 result;
+
+                            asm @trusted pure nothrow @nogc
+                            {
+                                "insertq %2, %1" : "=x" (result) : "0" (Source1), "x" (Source2);
+                            }
+
+                            return result;
+                        }
+                    }
+                    else version (GNU)
+                    {
+                        static if (__traits(compiles, () {import gcc.builtins : __builtin_ia32_insertq;}))
+                        {
+                            import gcc.builtins : __builtin_ia32_insertq;
+                            return cast(int4) __builtin_ia32_insertq(cast(long2) Source1, cast(long2) Source2);
+                        }
+                        else
+                        {
+                            int4 result;
+
+                            asm @trusted pure nothrow @nogc
+                            {
+                                "insertq %2, %1" : "=x" (result) : "0" (Source1), "x" (Source2);
+                            }
+
+                            return result;
+                        }
+                    }
+                    else version (D_InlineAsm_X86_64)
+                    {
+                        /* __simd can't encode insertq properly. :( */
+                        asm @trusted pure nothrow @nogc
+                        {
+                            /* RCX is Source1; RDX is Source2. */
+                            naked;
+                            movdqa XMM0, [RCX];
+                            movdqa XMM1, [RDX];
+                            /* DMD doesn't know the insertq instruction, so we encode it by hand. */
+                            db 0xF2, 0x0F, 0x79, 0b11_000_001; /* insertq XMM0, XMM1 */
+                            ret;
+                        }
+                    }
+                }
+            }
+
+            @safe pure nothrow @nogc unittest
+            {
+                import core.cpuid : sse4a;
+
+                if (!sse4a)
+                {
+                    return;
+                }
+
+                static bool t(int destination, int source, int layout, int4 expected)
+                {
+                    int4 d;
+                    d.array[0] = destination;
+                    int4 s;
+                    s.array[0] = source;
+                    s.array[2] = layout;
+
+                    return _mm_insert_si64(d, s).array == expected.array;
+                }
+
+                static bool test()
+                {
+                    assert(t(0b0101, 0b11010, 4 | (12 << 8), [0b10100000_00000101, 0, 0, 0]));
+                    assert(t(0b0101, 0b11010, 0 | (12 << 8), [0b1_10100000_00000101, 0, 0, 0]));
+                    assert(t(0b0101, 0b11010, 2 | (0 << 8), [0b0110, 0, 0, 0]));
+                    assert(t(0b0101, 0b11010, 0 | (0 << 8), [0b11010, 0, 0, 0]));
+                    assert(t(0b0101, 0b11010, 3 | (2 << 8), [0b01001, 0, 0, 0]));
+
+                    return true;
+                }
+
+                assert(test());
+                static assert(test());
+            }
+
+            extern(C)
+            pragma(inline, true)
+            int4 _mm_inserti_si64(int4 Source1, int4 Source2, int Length, int Index) @safe pure nothrow @nogc
+            {
+                int4 layout = Source2;
+                layout.array[2] = (Length & 0xFF) | ((Index << 8) & 0xFF00);
+
+                return _mm_insert_si64(Source1, layout);
+            }
+
+            @safe pure nothrow @nogc unittest
+            {
+                import core.cpuid : sse4a;
+
+                if (!sse4a)
+                {
+                    return;
+                }
+
+                static bool test()
+                {
+                    alias insertq = _mm_inserti_si64;
+
+                    assert(insertq([0b0101, 0, 0, 0], [0b11010], 4, 12).array == [0b10100000_00000101, 0, 0, 0]);
+                    assert(insertq([0b0101, 0, 0, 0], [0b11010], 0, 12).array == [0b1_10100000_00000101, 0, 0, 0]);
+                    assert(insertq([0b0101, 0, 0, 0], [0b11010], 2, 0).array == [0b0110, 0, 0, 0]);
+                    assert(insertq([0b0101, 0, 0, 0], [0b11010], 0, 0).array == [0b11010, 0, 0, 0]);
+                    assert(insertq([0b0101, 0, 0, 0], [0b11010], 3, 2).array == [0b01001, 0, 0, 0]);
+
+                    return true;
+                }
+
+                assert(test());
+                static assert(test());
+            }
+
+            pragma(inline, true)
+            private int4 ctfeInsertq()(int4 destination, int4 source) @safe pure nothrow @nogc
+            {
+                uint layout = source.array[2];
+                ubyte bitCount = layout & 63;
+                ubyte bitIndex = (layout >>> 8) & 63;
+                ulong mask = bitCount == 0 ? ulong.max : (ulong(1) << bitCount) - 1;
+
+                ulong destinationLo = cast(uint) destination.array[0] | (ulong(cast(uint) destination.array[1]) << 32);
+                ulong sourceLo = cast(uint) source.array[0] | (ulong(cast(uint) source.array[1]) << 32);
+
+                ulong inserted = (destinationLo & ~(mask << bitIndex)) | ((sourceLo & mask) << bitIndex);
+                int4 result;
+                result.array[0] = cast(uint) inserted;
+                result.array[1] = cast(uint) (inserted >>> 32);
+
+                return result;
+            }
+
+            @safe pure nothrow @nogc unittest
+            {
+                import core.cpuid : sse4a;
+
+                if (!sse4a)
+                {
+                    return;
+                }
+
+                long2 longDestination;
+                longDestination.array[0] = 0x9ABAFFF1B15C4933;
+                longDestination.array[1] = 0x2488781C67F75A1C;
+                int4 intDestination = cast(int4) longDestination;
+
+                long2 longSource;
+                longSource.array[0] = 0x76D41814E48AE48A;
+                longSource.array[1] = 0xC221DB7BB89ACBC2;
+                int4 intSource = cast(int4) longSource;
+
+                static uint layout(ubyte bitCount, ubyte bitIndex)
+                {
+                    return (uint(bitIndex) << 8) | bitCount;
+                }
+
+                foreach (ubyte index; 0 .. (1 << 6))
+                {
+                    foreach (ubyte count; 0 .. (1 << 6))
+                    {
+                        int4 source = intSource;
+                        source.array[2] = layout(count, index);
+
+                        int4 result = _mm_insert_si64(intDestination, source);
+
+                        assert(result.array == _mm_inserti_si64(intDestination, intSource, count, index).array);
+                        assert(result.array == ctfeInsertq(intDestination, source).array);
+                    }
+                }
+
+                int4 source = intSource;
+
+                source.array[2] = layout(64, 64);
+                assert(_mm_insert_si64(intDestination, source).array == ctfeInsertq(intDestination, source).array);
+                source.array[2] = layout(65, 65);
+                assert(_mm_insert_si64(intDestination, source).array == ctfeInsertq(intDestination, source).array);
+            }
+
+            extern(C)
+            pragma(inline, true)
+            void _mm_stream_sd(scope double* Dest, double2 Source) @safe pure nothrow @nogc
+            {
+                if (__ctfe)
+                {
+                    *Dest = Source.array[0];
+                }
+                else
+                {
+                    version (LDC)
+                    {
+                        static if (__traits(targetHasFeature, "sse4a"))
+                        {
+                            import ldc.llvmasm : __irEx_pure;
+
+                            __irEx_pure!(
+                                "",
+                                `%lowDouble = extractelement <2 x double> %1, i32 0
+                                 store double %lowDouble, ` ~ llvmIRPtr!"double" ~ ` %0, !nontemporal !0`,
+                                 "!0 = !{i32 1}",
+                                void
+                            )(Dest, Source);
+                        }
+                        else
+                        {
+                            asm @trusted pure nothrow @nogc
+                            {
+                                "movntsd %1, %0" : "=m" (*Dest) : "x" (Source);
+                            }
+                        }
+                    }
+                    else version (GNU)
+                    {
+                        static if (__traits(compiles, () {import gcc.builtins : __builtin_ia32_movntsd;}))
+                        {
+                            import gcc.builtins : __builtin_ia32_movntsd;
+                            __builtin_ia32_movntsd(Dest, Source);
+                        }
+                        else
+                        {
+                            asm @trusted pure nothrow @nogc
+                            {
+                                "movntsd %1, %0" : "=m" (*Dest) : "x" (Source);
+                            }
+                        }
+                    }
+                    else version (D_InlineAsm_X86_64)
+                    {
+                        asm @trusted pure nothrow @nogc
+                        {
+                            /* RCX is Dest; RDX is Source. */
+                            naked;
+                            movaps XMM0, [RDX];
+                            /* DMD doesn't know the movntsd instruction, so we encode it by hand. */
+                            db 0xF2, 0x0F, 0x2B, 0b00_000_001; /* movntsd [RCX], XMM0 */
+                            ret;
+                        }
+                    }
+                }
+            }
+
+            /* This is trusted so that it's @safe without DIP1000 enabled. */
+            @trusted pure nothrow @nogc unittest
+            {
+                import core.cpuid : sse4a;
+
+                if (!sse4a)
+                {
+                    return;
+                }
+
+                static bool test()
+                {
+                    double value = double.nan;
+
+                    _mm_stream_sd(&value, [22.0, 31.0]);
+                    assert(value == 22.0);
+                    _mm_stream_sd(&value, [0.0, 31.0]);
+                    assert(value == 0.0);
+                    _mm_stream_sd(&value, [double.nan, 0.0]);
+                    assert(value != value);
+
+                    return true;
+                }
+
+                assert(test());
+                static assert(test());
+            }
+
+            extern(C)
+            pragma(inline, true)
+            void _mm_stream_ss(scope float* Destination, float4 Source) @safe pure nothrow @nogc
+            {
+                if (__ctfe)
+                {
+                    *Destination = Source.array[0];
+                }
+                else
+                {
+                    version (LDC)
+                    {
+                        static if (__traits(targetHasFeature, "sse4a"))
+                        {
+                            import ldc.llvmasm : __irEx_pure;
+
+                            __irEx_pure!(
+                                "",
+                                `%lowFloat = extractelement <4 x float> %1, i32 0
+                                 store float %lowFloat, ` ~ llvmIRPtr!"float" ~ ` %0, !nontemporal !0`,
+                                 "!0 = !{i32 1}",
+                                void
+                            )(Destination, Source);
+                        }
+                        else
+                        {
+                            asm @trusted pure nothrow @nogc
+                            {
+                                "movntss %1, %0" : "=m" (*Destination) : "x" (Source);
+                            }
+                        }
+                    }
+                    else version (GNU)
+                    {
+                        static if (__traits(compiles, () {import gcc.builtins : __builtin_ia32_movntss;}))
+                        {
+                            import gcc.builtins : __builtin_ia32_movntss;
+                            __builtin_ia32_movntss(Destination, Source);
+                        }
+                        else
+                        {
+                            asm @trusted pure nothrow @nogc
+                            {
+                                "movntss %1, %0" : "=m" (*Destination) : "x" (Source);
+                            }
+                        }
+                    }
+                    else version (D_InlineAsm_X86_64)
+                    {
+                        asm @trusted pure nothrow @nogc
+                        {
+                            /* RCX is Destination; RDX is Source. */
+                            naked;
+                            movaps XMM0, [RDX];
+                            /* DMD doesn't know the movntss instruction, so we encode it by hand. */
+                            db 0xF3, 0x0F, 0x2B, 0b00_000_001; /* movntss [RCX], XMM0 */
+                            ret;
+                        }
+                    }
+                }
+            }
+
+            /* This is trusted so that it's @safe without DIP1000 enabled. */
+            @trusted pure nothrow @nogc unittest
+            {
+                import core.cpuid : sse4a;
+
+                if (!sse4a)
+                {
+                    return;
+                }
+
+                static bool test()
+                {
+                    float value = float.nan;
+
+                    _mm_stream_ss(&value, [22.0f, 31.0f, 4.0f, 5.0f]);
+                    assert(value == 22.0f);
+                    _mm_stream_ss(&value, [0.0f, 31.0f, 4.0f, 5.0f]);
+                    assert(value == 0.0f);
+                    _mm_stream_ss(&value, [float.nan, 0.0f, 4.0f, 5.0f]);
+                    assert(value != value);
+
+                    return true;
+                }
+
+                assert(test());
+                static assert(test());
+            }
+        }
+    }
 
     version (X86_64)
     {
