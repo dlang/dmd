@@ -13131,4 +13131,146 @@ version (MSVCIntrinsics)
             return mask != 0;
         }
     }
+
+    extern(C)
+    pragma(inline, true)
+    ubyte _bittest(scope const(int)* a, int b) pure nothrow @nogc
+    {
+        return bitTestOperation(a, b);
+    }
+
+    extern(C)
+    pragma(inline, true)
+    ubyte _bittestandcomplement(scope int* a, int b) pure nothrow @nogc
+    {
+        return bitTestOperation!"^="(a, b);
+    }
+
+    extern(C)
+    pragma(inline, true)
+    ubyte _bittestandreset(scope int* a, int b) pure nothrow @nogc
+    {
+        return bitTestOperation!"&= ~"(a, b);
+    }
+
+    extern(C)
+    pragma(inline, true)
+    ubyte _bittestandset(scope int* a, int b) pure nothrow @nogc
+    {
+        return bitTestOperation!"|="(a, b);
+    }
+
+    version (X86_64_Or_AArch64)
+    {
+        extern(C)
+        pragma(inline, true)
+        ubyte _bittest64(scope const(long)* a, long b) pure nothrow @nogc
+        {
+            return bitTestOperation(a, b);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ubyte _bittestandcomplement64(scope long* a, long b) pure nothrow @nogc
+        {
+            return bitTestOperation!"^="(a, b);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ubyte _bittestandreset64(scope long* a, long b) pure nothrow @nogc
+        {
+            return bitTestOperation!"&= ~"(a, b);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ubyte _bittestandset64(scope long* a, long b) pure nothrow @nogc
+        {
+            return bitTestOperation!"|="(a, b);
+        }
+    }
+
+    @system pure nothrow @nogc unittest
+    {
+        enum ulong datumA = 0b0111111110100010110111000101011101001111001100111111101100010100;
+        enum ulong datumB = 0b0001001000011101110011000010011010101000101000111001000001101110;
+        enum ulong datumC = 0b1010010101000100010111111111000100001000010010111000100111100110;
+        enum ulong datumD = 0b1011110000010110101001111110000110000011001100101010111100011101;
+
+        static bool test(alias bt, alias btc, alias btr, alias bts, T)()
+        {
+            scope T[4] data = [cast(T) datumA, cast(T) datumB, cast(T) datumC, cast(T) datumD];
+
+            assert(btr(&data[0], T(0)) == 0);
+            assert(data[0] == cast(T) 0b0111111110100010110111000101011101001111001100111111101100010100);
+            assert(bts(&data[0], T(0)) == 0);
+            assert(data[0] == cast(T) 0b0111111110100010110111000101011101001111001100111111101100010101);
+            assert(btc(&data[0], T(0)) == 1);
+            assert(data[0] == cast(T) 0b0111111110100010110111000101011101001111001100111111101100010100);
+            assert(bt(cast(const(T)*) &data[0], T(0)) == 0);
+            assert(data[0] == cast(T) 0b0111111110100010110111000101011101001111001100111111101100010100);
+
+            assert(btr(&data[0], T(2)) == 1);
+            assert(data[0] == cast(T) 0b0111111110100010110111000101011101001111001100111111101100010000);
+            assert(btc(&data[0], T(2)) == 0);
+            assert(data[0] == cast(T) 0b0111111110100010110111000101011101001111001100111111101100010100);
+            assert(bts(&data[0], T(2)) == 1);
+            assert(data[0] == cast(T) 0b0111111110100010110111000101011101001111001100111111101100010100);
+            assert(bt(cast(const(T)*) &data[0], T(2)) == 1);
+            assert(data[0] == cast(T) 0b0111111110100010110111000101011101001111001100111111101100010100);
+
+            assert(btr(&data[0], cast(T) ((T.sizeof << 3) * 3)) == 1);
+            assert(data[3] == cast(T) 0b1011110000010110101001111110000110000011001100101010111100011100);
+            assert(bts(&data[0], cast(T) ((T.sizeof << 3) * 3)) == 0);
+            assert(data[3] == cast(T) 0b1011110000010110101001111110000110000011001100101010111100011101);
+            assert(btc(&data[0], cast(T) ((T.sizeof << 3) * 3)) == 1);
+            assert(data[3] == cast(T) 0b1011110000010110101001111110000110000011001100101010111100011100);
+            assert(bt(cast(const(T)*) &data[0], cast(T) ((T.sizeof << 3) * 3)) == 0);
+            assert(data[3] == cast(T) 0b1011110000010110101001111110000110000011001100101010111100011100);
+
+            assert(btr(&data[0], cast(T) ((T.sizeof << 3) * 3 + 1)) == 0);
+            assert(data[3] == cast(T) 0b1011110000010110101001111110000110000011001100101010111100011100);
+            assert(btc(&data[0], cast(T) ((T.sizeof << 3) * 3 + 1)) == 0);
+            assert(data[3] == cast(T) 0b1011110000010110101001111110000110000011001100101010111100011110);
+            assert(bts(&data[0], cast(T) ((T.sizeof << 3) * 3 + 1)) == 1);
+            assert(data[3] == cast(T) 0b1011110000010110101001111110000110000011001100101010111100011110);
+            assert(bt(cast(const(T)*) &data[0], cast(T) ((T.sizeof << 3) * 3 + 1)) == 1);
+            assert(data[3] == cast(T) 0b1011110000010110101001111110000110000011001100101010111100011110);
+
+            return true;
+        }
+
+        assert(test!(_bittest, _bittestandcomplement, _bittestandreset, _bittestandset, int)());
+        static assert(test!(_bittest, _bittestandcomplement, _bittestandreset, _bittestandset, int)());
+
+        version (X86_64_Or_AArch64)
+        {
+            assert(test!(_bittest64, _bittestandcomplement64, _bittestandreset64, _bittestandset64, long)());
+            static assert(test!(_bittest64, _bittestandcomplement64, _bittestandreset64, _bittestandset64, long)());
+        }
+    }
+
+    extern(C)
+    pragma(inline, true)
+    private ubyte bitTestOperation(string binaryOp = null, I)(scope I* integers, I bitIndex)
+    if (__traits(isIntegral, I))
+    {
+        import core.bitop : bsr, popcnt;
+
+        enum uint bitCount = I.sizeof << 3;
+        enum uint bitShift = bitCount.bsr;
+        enum I bitMask = bitCount - 1;
+
+        scope I* integer = integers + (bitIndex >> bitShift);
+        const I mask = I(1) << (bitIndex & bitMask);
+        const I bitTest = *integer & mask;
+
+        static if (binaryOp !is null)
+        {
+            mixin(q{*integer }, binaryOp, q{mask;});
+        }
+
+        return bitTest != 0;
+    }
 }
