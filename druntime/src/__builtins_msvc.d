@@ -4409,5 +4409,49 @@ version (MSVCIntrinsics)
             )
         );
     }
+
+    version (X86_64)
+    {
+        extern(C)
+        pragma(inline, true)
+        void __faststorefence() @safe pure nothrow @nogc
+        {
+            if (__ctfe)
+            {
+                /* Just do nothing. */
+            }
+            else
+            {
+                version (LDC_Or_GNU)
+                {
+                    asm @trusted pure nothrow @nogc
+                    {
+                        "lock orl $0, (%%rsp)" : : : "cc";
+                    }
+                }
+                else version (D_InlineAsm_X86_64)
+                {
+                    asm @trusted pure nothrow @nogc
+                    {
+                        naked;
+                        lock; or dword ptr [RSP], 0;
+                        ret;
+                    }
+                }
+            }
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                __faststorefence();
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
+    }
     }
 }
