@@ -1021,4 +1021,129 @@ version (MSVCIntrinsics)
             static assert(errorOccursDuringCTFE!(_div64, int, 2));
         }
     }
+
+    version (X86_64_Or_X86)
+    {
+        extern(C)
+        pragma(inline, true)
+        void __cpuid(scope int[4]* cpuInfo, int function_id) @safe pure nothrow @nogc
+        {
+            cpuID(cpuInfo, function_id);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void __cpuidex(scope int[4]* cpuInfo, int function_id, int subfunction_id) @safe pure nothrow @nogc
+        {
+            cpuID(cpuInfo, function_id, subfunction_id);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        private void cpuID(Args...)(scope int[4]* cpuInfo, int function_id, Args args) @safe pure nothrow @nogc
+        if (Args.length == 0 || (Args.length == 1 && is(Args[0] == int)))
+        {
+            version (LDC_Or_GNU)
+            {
+                asm @trusted pure nothrow @nogc
+                {
+                      "cpuid"
+                    : "=a" ((*cpuInfo)[0]), "=b" ((*cpuInfo)[1]), "=c" ((*cpuInfo)[2]), "=d" ((*cpuInfo)[3])
+                    : "0" (function_id), "2" (mixin(Args.length == 0 ? q{0} : q{args[0]}));
+                }
+            }
+            else version (InlineAsm_X86_64_Or_X86)
+            {
+                version (D_InlineAsm_X86_64)
+                {
+                    mixin(
+                        "asm @trusted pure nothrow @nogc
+                         {
+                             /* RCX is cpuInfo; EDX is function_id;
+                                R8D is subfunction_id (args[0]), if it's present. */
+                             naked;
+                             mov R9, RCX; /* Save the cpuInfo pointer before cpuid clobbers RCX. */
+                             mov EAX, EDX;
+                             " ~ (Args.length == 0 ? "xor ECX, ECX" : "mov ECX, R8D") ~ ";
+                             mov R10, RBX; /* RBX is non-volatile so we save it before cpuid clobbers it. */
+                             cpuid;
+                             mov [R9], EAX;
+                             mov [R9 +  4], EBX;
+                             mov [R9 +  8], ECX;
+                             mov [R9 + 12], EDX;
+                             mov RBX, R10;
+                             ret;
+                         }"
+                    );
+                }
+                else version (D_InlineAsm_X86)
+                {
+                    mixin(
+                        "asm @trusted pure nothrow @nogc
+                         {
+                             naked;
+                             push EBX; /* EBX is non-volatile so we save it before cpuid clobbers it. */
+                             push ESI; /* ESI is non-volatile so we save it before we clobber it. */
+                             mov EAX, [ESP + 16]; /* function_id. */
+                             mov ESI, [ESP + 12]; /* cpuInfo. */
+                            " ~ (Args.length == 0 ? "xor ECX, ECX" : "mov ECX, [ESP + 20] /* subfunction_id */") ~ ";
+                             cpuid;
+                             mov [ESI], EAX;
+                             mov [ESI +  4], EBX;
+                             mov [ESI +  8], ECX;
+                             mov [ESI + 12], EDX;
+                             pop ESI;
+                             pop EBX;
+                             ret;
+                         }"
+                    );
+                }
+            }
+            else
+            {
+                static assert(false);
+            }
+        }
+
+        /* This is trusted so that it's @safe without DIP1000 enabled. */
+        @trusted pure nothrow @nogc unittest
+        {
+            import core.cpuid : vendor;
+
+            scope int[4] values = 0x18181818;
+
+            char[12] manufacturer()
+            {
+                typeof(return) characters;
+                characters[0 ..  4] = *cast(const(char)[4]*) &values[1];
+                characters[4 ..  8] = *cast(const(char)[4]*) &values[3];
+                characters[8 .. 12] = *cast(const(char)[4]*) &values[2];
+                return characters;
+            }
+
+            __cpuid(&values, 0);
+            assert(manufacturer == vendor);
+
+            values = 0x18181818;
+            __cpuidex(&values, 0, 0);
+            assert(manufacturer == vendor);
+
+            if (values[0] < 7)
+            {
+                return;
+            }
+
+            __cpuidex(&values, 7, 0);
+
+            if (values[0] < 1)
+            {
+                return;
+            }
+
+            /* Is the subfunction_id being used? Or, is __cpuidex mistakenly ignoring it? Let's test. */
+            scope oldValues = values;
+            __cpuidex(&values, 7, 1);
+            assert(values != oldValues);
+        }
+    }
 }
