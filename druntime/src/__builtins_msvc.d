@@ -8,3 +8,60 @@
    Source: $(DRUNTIMESRC __builtins_msvc.d) */
 
 module __builtins_msvc;
+
+version (CRuntime_Microsoft)
+{
+    version = MSVCIntrinsics;
+}
+
+version (MSVCIntrinsics)
+{
+    version (X86)
+    {
+        version = X86_64_Or_X86;
+    }
+    else version (X86_64)
+    {
+        version = X86_64_Or_X86;
+        version = X86_64_Or_AArch64;
+        version = X86_64_Or_AArch64_Or_ARM;
+    }
+    else version (AArch64)
+    {
+        version = X86_64_Or_AArch64;
+        version = X86_64_Or_AArch64_Or_ARM;
+        version = AArch64_Or_ARM;
+    }
+    else version (ARM)
+    {
+        version = X86_64_Or_AArch64_Or_ARM;
+        version = AArch64_Or_ARM;
+    }
+
+    version (D_InlineAsm_X86)
+    {
+        version = InlineAsm_X86_64_Or_X86;
+    }
+    else version (D_InlineAsm_X86_64)
+    {
+        version = InlineAsm_X86_64_Or_X86;
+    }
+
+    version (LDC)
+    {
+        version = LDC_Or_GNU;
+    }
+    else version (GNU)
+    {
+        version = LDC_Or_GNU;
+    }
+
+    static if (__traits(compiles, () {import core.simd : float4;}))
+    {
+        private enum canPassVectors = true;
+    }
+    else
+    {
+        private enum canPassVectors = false;
+    }
+}
