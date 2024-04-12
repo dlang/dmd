@@ -92,6 +92,9 @@ version (MSVCIntrinsics)
 
             pragma(LDC_intrinsic, "llvm.x86.rdtsc")
             private long __builtin_ia32_rdtsc() @safe nothrow @nogc;
+
+            pragma(LDC_intrinsic, "llvm.x86.wbinvd")
+            private void __builtin_ia32_wbinvd() @safe nothrow @nogc;
         }
         else version (AArch64)
         {
@@ -108,7 +111,8 @@ version (MSVCIntrinsics)
     {
         version (X86_64_Or_X86)
         {
-            import gcc.builtins : __builtin_ia32_pause, __builtin_ia32_rdpmc, __builtin_ia32_rdtsc;
+            import gcc.builtins :
+                __builtin_ia32_pause, __builtin_ia32_rdpmc, __builtin_ia32_rdtsc, __builtin_ia32_wbinvd;
         }
     }
 
@@ -12675,6 +12679,28 @@ version (MSVCIntrinsics)
                     setz AL;
                     mov EDX, 2;
                     cmovc EAX, EDX;
+                    ret;
+                }
+            }
+        }
+    }
+
+    version (X86_64_Or_X86)
+    {
+        extern(C)
+        pragma(inline, true)
+        void __wbinvd() @safe nothrow @nogc
+        {
+            version (LDC_Or_GNU)
+            {
+                __builtin_ia32_wbinvd();
+            }
+            else version (InlineAsm_X86_64_Or_X86)
+            {
+                asm @trusted nothrow @nogc
+                {
+                    naked;
+                    wbinvd;
                     ret;
                 }
             }
