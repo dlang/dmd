@@ -13307,4 +13307,135 @@ version (MSVCIntrinsics)
         assert(_byteswap_ushort(0x0123) == 0x2301);
         static assert(_byteswap_ushort(0x0123) == 0x2301);
     }
+
+    extern(C)
+    pragma(inline, true)
+    uint _lrotr(uint value, int shift) @safe pure nothrow @nogc
+    {
+        shift &= 31;
+        return cast(uint) ((value >> shift) | (value << (32 - shift)));
+    }
+
+    extern(C)
+    pragma(inline, true)
+    uint _lrotl(uint value, int shift) @safe pure nothrow @nogc
+    {
+        shift &= 31;
+        return cast(uint) ((value << shift) | (value >> (32 - shift)));
+    }
+
+    extern(C)
+    pragma(inline, true)
+    uint _rotr(uint value, int shift) @safe pure nothrow @nogc
+    {
+        shift &= 31;
+        return cast(uint) ((value >> shift) | (value << (32 - shift)));
+    }
+
+    extern(C)
+    pragma(inline, true)
+    uint _rotl(uint value, int shift) @safe pure nothrow @nogc
+    {
+        shift &= 31;
+        return cast(uint) ((value << shift) | (value >> (32 - shift)));
+    }
+
+    extern(C)
+    pragma(inline, true)
+    ulong _rotr64(ulong value, int shift) @safe pure nothrow @nogc
+    {
+        shift &= 63;
+        return cast(ulong) ((value >> shift) | (value << (64 - shift)));
+    }
+
+    extern(C)
+    pragma(inline, true)
+    ulong _rotl64(ulong value, int shift) @safe pure nothrow @nogc
+    {
+        shift &= 63;
+        return cast(ulong) ((value << shift) | (value >> (64 - shift)));
+    }
+
+    extern(C)
+    pragma(inline, true)
+    ushort _rotr16(ushort value, ubyte shift) @safe pure nothrow @nogc
+    {
+        shift &= 15;
+        return cast(ushort) ((value >> shift) | (value << (16 - shift)));
+    }
+
+    extern(C)
+    pragma(inline, true)
+    ushort _rotl16(ushort value, ubyte shift) @safe pure nothrow @nogc
+    {
+        shift &= 15;
+        return cast(ushort) ((value << shift) | (value >> (16 - shift)));
+    }
+
+    extern(C)
+    pragma(inline, true)
+    ubyte _rotr8(ubyte value, ubyte shift) @safe pure nothrow @nogc
+    {
+        shift &= 7;
+        return cast(ubyte) ((value >> shift) | (value << (8 - shift)));
+    }
+
+    extern(C)
+    pragma(inline, true)
+    ubyte _rotl8(ubyte value, ubyte shift) @safe pure nothrow @nogc
+    {
+        shift &= 7;
+        return cast(ubyte) ((value << shift) | (value >> (8 - shift)));
+    }
+
+    @safe pure nothrow @nogc unittest
+    {
+        static bool test()
+        {
+            assert(_lrotr(0x12345678, 8) == 0x78123456);
+            assert(_lrotr(0x12345678, 8 + 32) == 0x78123456);
+            assert(_lrotr(0x12345678, 16) == 0x56781234);
+
+            assert(_lrotl(0x12345678, 8) == 0x34567812);
+            assert(_lrotl(0x12345678, 8 + 32) == 0x34567812);
+            assert(_lrotl(0x12345678, 16) == 0x56781234);
+
+            assert(_rotr(0x12345678, 8) == 0x78123456);
+            assert(_rotr(0x12345678, 8 + 32) == 0x78123456);
+            assert(_rotr(0x12345678, 16) == 0x56781234);
+
+            assert(_rotl(0x12345678, 8) == 0x34567812);
+            assert(_rotl(0x12345678, 8 + 32) == 0x34567812);
+            assert(_rotl(0x12345678, 16) == 0x56781234);
+
+            assert(_rotr64(0x12345678_9ABCDEF0, 8) == 0xF012345678_9ABCDE);
+            assert(_rotr64(0x12345678_9ABCDEF0, 8 + 64) == 0xF0123456_789ABCDE);
+            assert(_rotr64(0x12345678_9ABCDEF0, 16) == 0xDEF01234_56789ABC);
+
+            assert(_rotl64(0x12345678_9ABCDEF0, 8) == 0x345678_9ABCDEF012);
+            assert(_rotl64(0x12345678_9ABCDEF0, 8 + 64) == 0x345678_9ABCDEF012);
+            assert(_rotl64(0x12345678_9ABCDEF0, 16) == 0x56789ABC_DEF01234);
+
+            assert(_rotr16(0x1234, 4) == 0x4123);
+            assert(_rotr16(0x1234, 4 + 16) == 0x4123);
+            assert(_rotr16(0x1234, 8) == 0x3412);
+
+            assert(_rotl16(0x1234, 4) == 0x2341);
+            assert(_rotl16(0x1234, 4 + 16) == 0x2341);
+            assert(_rotl16(0x1234, 8) == 0x3412);
+
+            assert(_rotr8(0b10010110, 2) == 0b10100101);
+            assert(_rotr8(0b10010110, 2 + 8) == 0b10100101);
+            assert(_rotr8(0b10010110, 4) == 0b01101001);
+
+            assert(_rotl8(0b10010110, 2) == 0b01011010);
+            assert(_rotl8(0b10010110, 2 + 8) == 0b01011010);
+            assert(_rotl8(0b10010110, 4) == 0b01101001);
+
+            return true;
+        }
+
+        assert(test());
+        static assert(test());
+    }
 }
