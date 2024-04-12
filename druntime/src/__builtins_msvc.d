@@ -62,6 +62,8 @@ version (MSVCIntrinsics)
         private enum gccBuiltins = "gcc.builtins";
     }
 
+    import core.atomic : MemoryOrder;
+
     static if (__traits(compiles, () {import core.simd : float4;}))
     {
         private enum canPassVectors = true;
@@ -4929,5 +4931,341 @@ version (MSVCIntrinsics)
             }
         }
     }
+
+    extern(C)
+    pragma(inline, true)
+    int _interlockedadd()(scope int* Addend, int Value) @safe pure nothrow @nogc
+    {
+        return interlockedAdd(Addend, Value);
+    }
+
+    extern(C)
+    pragma(inline, true)
+    long _interlockedadd64()(scope long* Addend, long Value) @safe pure nothrow @nogc
+    {
+        import core.internal.atomic : atomicFetchAdd;
+
+        static if (__traits(compiles, atomicFetchAdd(Addend, Value)))
+        {
+            if (__ctfe)
+            {
+                return *Addend += Value;
+            }
+            else
+            {
+                return atomicFetchAdd(Addend, Value) + Value;
+            }
+        }
+        else
+        {
+            return interlockedOp!("rmw_add", "add_8", "+", MemoryOrder.seq, true)(Addend, Value) + Value;
+        }
+    }
+
+    version (AArch64_Or_ARM)
+    {
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedAdd()(scope int* Addend, int Value) @safe pure nothrow @nogc
+        {
+            return interlockedAdd(Addend, Value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedAdd_acq()(scope int* Addend, int Value) @safe pure nothrow @nogc
+        {
+            return interlockedAdd!(MemoryOrder.acq)(Addend, Value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedAdd_rel()(scope int* Addend, int Value) @safe pure nothrow @nogc
+        {
+            return interlockedAdd!(MemoryOrder.acq_rel)(Addend, Value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedAdd_nf()(scope int* Addend, int Value) @safe pure nothrow @nogc
+        {
+            return interlockedAdd!(MemoryOrder.raw)(Addend, Value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedAdd64()(scope long* Addend, long Value) @safe pure nothrow @nogc
+        {
+            return interlockedAdd(Addend, Value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedAdd64_acq()(scope long* Addend, long Value) @safe pure nothrow @nogc
+        {
+            return interlockedAdd!(MemoryOrder.acq)(Addend, Value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedAdd64_rel()(scope long* Addend, long Value) @safe pure nothrow @nogc
+        {
+            return interlockedAdd!(MemoryOrder.acq_rel)(Addend, Value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        long _InterlockedAdd64_nf()(scope long* Addend, long Value) @safe pure nothrow @nogc
+        {
+            return interlockedAdd!(MemoryOrder.raw)(Addend, Value);
+        }
+    }
+
+    /* This is trusted so that it's @safe without DIP1000 enabled. */
+    @trusted pure nothrow @nogc unittest
+    {
+        static bool test()
+        {
+            int intValue = 0x2ACD0123;
+            long longValue = 0x12345678_2ACD0123;
+
+            assert(_interlockedadd(&intValue, 0x10000000) == 0x3ACD0123);
+            assert(intValue == 0x3ACD0123);
+
+            assert(_interlockedadd64(&longValue, 0x10000000_00000001) == 0x22345678_2ACD0124);
+            assert(longValue == 0x22345678_2ACD0124);
+
+            version (AArch64_Or_ARM)
+            {
+                assert(_InterlockedAdd(&intValue, 0x10000000) == 0x4ACD0123);
+                assert(intValue == 0x4ACD0123);
+                assert(_InterlockedAdd_acq(&intValue, 0x10000000) == 0x5ACD0123);
+                assert(intValue == 0x5ACD0123);
+                assert(_InterlockedAdd_rel(&intValue, 0x10000000) == 0x6ACD0123);
+                assert(intValue == 0x6ACD0123);
+                assert(_InterlockedAdd_nf(&intValue, 0x10000000) == 0x7ACD0123);
+                assert(intValue == 0x7ACD0123);
+
+                assert(_InterlockedAdd64(&longValue, 0x10000000_00000001) == 0x32345678_2ACD0125);
+                assert(longValue == 0x32345678_2ACD0125);
+                assert(_InterlockedAdd64_acq(&longValue, 0x10000000_00000001) == 0x42345678_2ACD0126);
+                assert(longValue == 0x42345678_2ACD0126);
+                assert(_InterlockedAdd64_rel(&longValue, 0x10000000_00000001) == 0x52345678_2ACD0127);
+                assert(longValue == 0x52345678_2ACD0127);
+                assert(_InterlockedAdd64_nf(&longValue, 0x10000000_00000001) == 0x62345678_2ACD0128);
+                assert(longValue == 0x62345678_2ACD0128);
+            }
+
+            return true;
+        }
+
+        assert(test());
+        static assert(test());
+    }
+
+    version (X86)
+    {
+        extern(C)
+        pragma(inline, true)
+        int _InterlockedAddLargeStatistic()(scope long* Addend, int Value) @safe pure nothrow @nogc
+        {
+            if (__ctfe)
+            {
+                *Addend += Value;
+                return Value;
+            }
+            else
+            {
+                version (LDC)
+                {
+                    import ldc.llvmasm : __ir_pure;
+
+                    scope highHalf = ((a) @trusted => &(cast(uint*) Addend)[1])(Addend);
+
+                    enum ptr = llvmIRPtr!"i32" ~ " elementtype(i32)";
+
+                    __ir_pure!(
+                        `call void asm sideeffect inteldialect
+                             "lock add dword ptr $0, $2
+                              jnc pastAddingOfCarry_${:uid}
+                              lock adc dword ptr $1, 0
+                         pastAddingOfCarry_${:uid}:",
+                             "=*m,=*m,ir,~{memory},~{flags}"
+                             (` ~ ptr ~ ` %0, ` ~ ptr ~ ` %1, i32 %2)`,
+                        void
+                    )(Addend, highHalf, Value);
+
+                    return Value;
+                }
+                else version (GNU)
+                {
+                    scope highHalf = ((a) @trusted => &(cast(uint*) Addend)[1])(Addend);
+
+                    asm @trusted pure nothrow @nogc
+                    {
+                        "lock addl %2, %0
+                         jnc pastAddingOfCarry_%=
+                         lock adcl $0, %1
+                    pastAddingOfCarry_%=:"
+                        : "+m" (*cast(uint*) Addend), "+m" (*highHalf)
+                        : "ir" (Value)
+                        : "memory", "cc";
+                    }
+
+                    return Value;
+                }
+                else version (D_InlineAsm_X86)
+                {
+                    asm @trusted pure nothrow @nogc
+                    {
+                        naked;
+                        mov EDX, [ESP + 4]; /* Addend. */
+                        mov EAX, [ESP + 8]; /* Value. */
+                        lock; add [EDX], EAX;
+                        jnc pastAddingOfCarry; /* If there's no carry we needn't add it. */
+                        lock; adc [EDX + 4], 0;
+                    pastAddingOfCarry:
+                        ret;
+                    }
+                }
+            }
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                long value = 0x12345678_2ACD0123;
+
+                assert(_InterlockedAddLargeStatistic(&value, 0x10000001) == 0x10000001);
+                assert(value == 0x12345678_3ACD0124);
+
+                assert(_InterlockedAddLargeStatistic(&value, 0x62997F6F) == 0x62997F6F);
+                assert(value == 0x12345678_9D668093);
+
+                assert(_InterlockedAddLargeStatistic(&value, 0x62997F6F) == 0x62997F6F);
+                assert(value == 0x12345679_00000002);
+
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
+    }
+
+    extern(C)
+    pragma(inline, true)
+    private T interlockedAdd(MemoryOrder order = MemoryOrder.seq, T)(scope shared(T)* address, T value)
+    @safe pure nothrow @nogc
+    {
+        if (__ctfe)
+        {
+            return *address += value;
+        }
+        else
+        {
+            import core.internal.atomic : atomicFetchAdd;
+
+            T result = cast(T) (atomicFetchAdd!order(address, value) + value);
+
+            version (AArch64_Or_ARM)
+            {
+                /* This is what the Interlocked MSVC intrinsics do. */
+                static if (order == MemoryOrder.acq)
+                {
+                    /* dmb ish */
+                    __builtin_arm_dmb(11);
+                }
+            }
+
+            return result;
+        }
+    }
+
+    extern(C)
+    pragma(inline, true)
+    private T interlockedOp(
+        string ldcName,
+        string gdcName,
+        string op,
+        MemoryOrder order = MemoryOrder.seq,
+        bool noPrefetch = false,
+        T
+    )(
+        scope T* address,
+        T operand
+    ) @trusted pure nothrow @nogc
+    {
+        if (__ctfe)
+        {
+            T oldValue = *address;
+            mixin(q{*address }, op, q{= operand;});
+            return oldValue;
+        }
+        else
+        {
+            version (X86_64)
+            {
+                static if (!noPrefetch)
+                {
+                    version (GNU)
+                    {
+                        import gcc.builtins : __builtin_prefetch;
+                        __builtin_prefetch(((a) @trusted => cast(const(void)*) a)(address), 1, 3);
+                    }
+                    else
+                    {
+                        import core.simd : prefetch;
+                        prefetch!(true, 3)(((a) @trusted => cast(const(void)*) a)(address));
+                    }
+                }
+            }
+
+            version (LDC)
+            {
+                enum string name = "llvm_atomic_" ~ ldcName;
+
+                import core.internal.atomic : _ordering;
+                mixin(q{import ldc.intrinsics : }, name, q{;});
+
+                T value = mixin(name)(cast(shared) address, operand, _ordering!order);
+            }
+            else version (GNU)
+            {
+                enum string name = "__atomic_fetch_" ~ gdcName;
+
+                mixin(q{import gcc.builtins : }, name, q{;});
+
+                T value = mixin(name)(cast(shared) address, operand, order);
+            }
+            else
+            {
+                import core.internal.atomic : atomicCompareExchangeWeak, atomicLoad;
+
+                T value = atomicLoad!(MemoryOrder.raw)(address);
+
+                while (
+                    !atomicCompareExchangeWeak!(order, order)(
+                        cast(T*) address,
+                        &value,
+                        mixin(q{value }, op, q{ operand})
+                    )
+                )
+                {}
+            }
+
+            version (AArch64_Or_ARM)
+            {
+                /* This is what the Interlocked MSVC intrinsics do. */
+                static if (order == MemoryOrder.acq)
+                {
+                    /* dmb ish */
+                    __builtin_arm_dmb(11);
+                }
+            }
+
+            return value;
+        }
     }
 }
