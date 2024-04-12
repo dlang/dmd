@@ -4243,5 +4243,49 @@ version (MSVCIntrinsics)
             }
         }
     }
+
+    extern(C)
+    pragma(inline, true)
+    void __debugbreak() @safe pure nothrow @nogc
+    {
+        version (LDC)
+        {
+            import ldc.intrinsics : llvm_debugtrap;
+            llvm_debugtrap();
+        }
+        else version (GNU)
+        {
+                 version (X86_64_Or_X86) enum code = "int $3";
+            else version (ARM) enum code = "udf #0xFE";
+            else version (AArch64) enum code = "brk #0xF000";
+
+            asm @trusted pure nothrow @nogc
+            {
+                "" ~ code : : : "cc";
+            }
+        }
+        else version (InlineAsm_X86_64_Or_X86)
+        {
+            asm @trusted pure nothrow @nogc
+            {
+                naked;
+                int 3;
+                ret;
+            }
+        }
+        else
+        {
+            static assert(false);
+        }
+    }
+
+    version (none)
+    {
+        @safe pure nothrow @nogc unittest
+        {
+            /* Run the program in a debugger and it should break here. */
+            __debugbreak();
+        }
+    }
     }
 }
