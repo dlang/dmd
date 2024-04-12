@@ -11,6 +11,6 @@ This will output `app.o.time-trace`.
 
 A different output file can be selected with `-ftime-trace-file=trace.json`.
 
-The output is in Google Chrome's profiler format, which can be converted to readable text with the included `timetrace2txt` tool, or be viewed in an interactive viewer like [ui.perfetto.dev](https://ui.perfetto.dev).
+The output is in Google Chrome's profiler format, which can be viewed in an interactive viewer like [ui.perfetto.dev](https://ui.perfetto.dev).
 
 See also this YouTube tutorial: [Easily Reduce Build Times by Profiling the D Compiler](https://www.youtube.com/watch?v=b8wZqU5t9vs)

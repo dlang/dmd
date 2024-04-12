@@ -8198,7 +8198,7 @@ struct Param final
         resfile(),
         exefile(),
         mapfile(),
-        timeTrace(),
+        timeTrace(false),
         timeTraceGranularityUs(500u),
         timeTraceFile()
     {

@@ -249,7 +249,7 @@ extern (C++) struct Param
     const(char)[] mapfile;
 
     // Time tracing
-    bool timeTrace; /// Whether profiling of compile time is enabled
+    bool timeTrace = false; /// Whether profiling of compile time is enabled
     uint timeTraceGranularityUs = 500; /// In microseconds, minimum event size to report
     const(char)* timeTraceFile; /// File path of output file
 

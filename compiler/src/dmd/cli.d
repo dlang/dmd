@@ -375,7 +375,7 @@ dmd -cov -unittest myprog.d
             "generate position independent executables",
             cast(TargetOS) (TargetOS.all & ~(TargetOS.Windows | TargetOS.OSX))
         ),
-        Option("-ftime-trace",
+        Option("ftime-trace",
             "turn on compile time profiler, generate JSON file with results",
             "Per function, the time to analyze it, call it from CTFE, generate code for it etc. will be measured,
             and events with a time longer than 500 microseconds (adjustable with `-ftime-trace-granularity`)
@@ -385,13 +385,13 @@ dmd -cov -unittest myprog.d
             This can be turned into a more readable text file with the included tool `timetrace2txt`, or inspected
             with an interactive viewer such as $(LINK2 https://ui.perfetto.dev/, Perfetto)."
         ),
-        Option("-ftime-trace-granularity=",
+        Option("ftime-trace-granularity=",
             "Minimum time granularity (in microseconds) traced by time profiler (default: 500)",
             "Measured events shorter than the specified time will be discarded from the output.
             Set it too high, and interesting events may not show up in the output.
             Set too low, and the profiler overhead will be larger, and the output will be cluttered with tiny events."
         ),
-        Option("-ftime-trace-file=<filename>",
+        Option("ftime-trace-file=<filename>",
             "specify output file for -ftime-trace",
             "By default, the output name is the same as the first object file name, but with the `.time-trace` extension appended.
             A different filename can be chosen with this option, including a path relative to the current directory or an absolute path."

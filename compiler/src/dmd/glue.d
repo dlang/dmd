@@ -467,8 +467,8 @@ private void genObjFile(Module m, bool multiobj)
     //printf("Module.genobjfile(multiobj = %d) %s\n", multiobj, m.toChars());
 
     import dmd.timetrace;
-    import dmd.root.string : toDString;
-    auto timeScope = TimeTraceScope("Codegen: Module " ~ m.toChars().toDString(), m.toPrettyChars().toDString(), m.loc);
+    timeTraceBeginEvent(TimeTraceEventType.codegenModule);
+    scope(exit) timeTraceEndEvent(TimeTraceEventType.codegenModule, m);
 
     glue.lastmname = m.srcfile.toChars();
 
@@ -752,7 +752,8 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         return;
 
     import dmd.timetrace;
-    auto timeScope = TimeTraceScope("Codegen: Function " ~ fd.toChars().toDString(), fd.toPrettyChars().toDString(), fd.loc);
+    timeTraceBeginEvent(TimeTraceEventType.codegenFunction);
+    scope (exit) timeTraceEndEvent(TimeTraceEventType.codegenFunction, fd);
 
     if (multiobj && !fd.isStaticDtorDeclaration() && !fd.isStaticCtorDeclaration()
         && !(fd.isCrtCtor || fd.isCrtDtor))
