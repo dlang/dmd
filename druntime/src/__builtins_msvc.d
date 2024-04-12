@@ -109,6 +109,18 @@ version (MSVCIntrinsics)
         }
     }
 
+    version (X86_64_Or_X86)
+    {
+        version (X86_64)
+        {
+            private alias RegisterSized = ulong;
+        }
+        else version (X86)
+        {
+            private alias RegisterSized = uint;
+        }
+    }
+
     version (X86_64_Or_AArch64)
     {
         import core.internal.traits : AliasSeq;
@@ -11070,6 +11082,68 @@ version (MSVCIntrinsics)
                          ret;
                      }"
                 );
+            }
+        }
+
+        version (LDC)
+        {
+            version (X86_64)
+            {
+                pragma(LDC_intrinsic, "llvm.x86.flags.read.u64")
+                private ulong readEFLAGS() @safe nothrow @nogc;
+            }
+            else version (X86)
+            {
+                pragma(LDC_intrinsic, "llvm.x86.flags.read.u32")
+                private uint readEFLAGS() @safe nothrow @nogc;
+            }
+
+            extern(C)
+            pragma(inline, true)
+            auto __readeflags() @safe nothrow @nogc
+            {
+                return readEFLAGS();
+            }
+        }
+        else
+        {
+            extern(C)
+            pragma(inline, true)
+            RegisterSized __readeflags() @safe nothrow @nogc
+            {
+                version (GNU)
+                {
+                    version (X86_64)
+                    {
+                        import gcc.builtins : __builtin_ia32_readeflags_u64;
+                        return __builtin_ia32_readeflags_u64();
+                    }
+                    else version (X86)
+                    {
+                        import gcc.builtins : __builtin_ia32_readeflags_u32;
+                        return __builtin_ia32_readeflags_u32();
+                    }
+                }
+                else version (D_InlineAsm_X86_64)
+                {
+                    asm @trusted nothrow @nogc
+                    {
+                        naked;
+                        pushfq;
+                        pop RAX;
+                        ret;
+                    }
+                }
+                else version (D_InlineAsm_X86)
+                {
+                    asm @trusted nothrow @nogc
+                    {
+                        naked;
+                        pushfd;
+                        pop EAX;
+                        ret;
+                    }
+                }
             }
         }
     }
