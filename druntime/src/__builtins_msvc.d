@@ -482,4 +482,543 @@ version (MSVCIntrinsics)
             while (left != byte.min);
         }
     }
+
+    version (X86_64)
+    {
+        extern(C)
+        pragma(inline, true)
+        long _div128(long highDividend, long lowDividend, long divisor, scope long* remainder) @safe pure nothrow @nogc
+        {
+            if (__ctfe)
+            {
+                /* This is an amalgamation of core.int128.divmod and core.int128.neg.  */
+
+                if (highDividend < 0)
+                {
+                    if (lowDividend == 0)
+                    {
+                        highDividend = -highDividend;
+                    }
+                    else
+                    {
+                        lowDividend = -lowDividend;
+                        highDividend = ~highDividend;
+                    }
+
+                    ulong quotient;
+
+                    if (divisor < 0)
+                    {
+                        quotient =  _udiv128(
+                            cast(ulong) highDividend,
+                            cast(ulong) lowDividend,
+                            cast(ulong) -divisor,
+                            cast(ulong*) remainder
+                        );
+                    }
+                    else
+                    {
+                        quotient =  -_udiv128(
+                            cast(ulong) highDividend,
+                            cast(ulong) lowDividend,
+                            cast(ulong) divisor,
+                            cast(ulong*) remainder
+                        );
+                    }
+
+                    *remainder = -*remainder;
+                    return quotient;
+                }
+                else if (divisor < 0)
+                {
+                    return -_udiv128(
+                        cast(ulong) highDividend,
+                        cast(ulong) lowDividend,
+                        cast(ulong) -divisor,
+                        cast(ulong*) remainder
+                    );
+                }
+                else
+                {
+                    return _udiv128(
+                        cast(ulong) highDividend,
+                        cast(ulong) lowDividend,
+                        cast(ulong) divisor,
+                        cast(ulong*) remainder
+                    );
+                }
+            }
+            else
+            {
+                version (LDC)
+                {
+                    import ldc.llvmasm : __ir_pure;
+
+                    return __ir_pure!(
+                        `%result = call {i64, i64} asm
+                             "idiv $4",
+                             "={rax},={rdx},0,1,r,~{flags}"
+                             (i64 %1, i64 %0, i64 %2)
+
+                         %quotient = extractvalue {i64, i64} %result, 0
+                         %remainder = extractvalue {i64, i64} %result, 1
+
+                         store i64 %remainder, ` ~ llvmIRPtr!"i64" ~ ` %3
+                         ret i64 %quotient`,
+                        long
+                    )(highDividend, lowDividend, divisor, remainder);
+                }
+                else version (GNU)
+                {
+                    long quotient;
+                    long remainer;
+
+                    asm @trusted pure nothrow @nogc
+                    {
+                          "idiv %4"
+                        : "=a" (quotient), "=d" (remainer)
+                        : "0" (lowDividend), "1" (highDividend), "rm" (divisor)
+                        : "cc";
+                    }
+
+                    *remainder = remainer;
+                    return quotient;
+                }
+                else version (D_InlineAsm_X86_64)
+                {
+                    asm @trusted pure nothrow @nogc
+                    {
+                        /* RCX is highDividend; RDX is lowDividend; R8 is divisor. R9 is remainder. */
+                        naked;
+                        mov RAX, RDX;
+                        mov RDX, RCX;
+                        idiv R8;
+                        mov [R9], RDX;
+                        ret;
+                    }
+                }
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        ulong _udiv128(ulong highDividend, ulong lowDividend, ulong divisor, scope ulong* remainder)
+        @safe pure nothrow @nogc
+        {
+            if (__ctfe)
+            {
+                // This code was copied and adapted from core.int128.udivmod.udivmod128_64.
+
+                import core.bitop : bsr;
+
+                alias U = ulong;
+                alias I = long;
+                enum uint Ubits = 64;
+                // We work in base 2^^32
+                enum base = 1UL << 32;
+                enum divmask = (1UL << (Ubits / 2)) - 1;
+                enum divshift = Ubits / 2;
+
+                // Check for overflow and divide by 0
+                if (highDividend >= divisor)
+                {
+                    // The div instruction will raise a #DE exception on overflow or division-by-zero,
+                    // so during CTFE we'll just assert false.
+                    version (D_BetterC)
+                    {
+                        assert(false, "Division by zero, or an overflow of the 64-bit quotient occurred in _udiv128.");
+                    }
+                    else
+                    {
+                        import core.internal.string : unsignedToTempString;
+                        assert(
+                            false,
+                              "Division by zero, or an overflow of the 64-bit quotient occurred in _udiv128."
+                            ~ " highDividend: 0x" ~ unsignedToTempString!16(highDividend)
+                            ~ "; lowDividend: 0x" ~ unsignedToTempString!16(lowDividend)
+                            ~ "; divisor: 0x" ~ unsignedToTempString!16(divisor)
+                        );
+                    }
+                }
+
+                // Computes [num1 num0] / den
+                static uint udiv96_64(U num1, uint num0, U den)
+                {
+                    // Extract both digits of the denominator
+                    const den1 = cast(uint)(den >> divshift);
+                    const den0 = cast(uint)(den & divmask);
+                    // Estimate ret as num1 / den1, and then correct it
+                    U ret = num1 / den1;
+                    const t2 = (num1 % den1) * base + num0;
+                    const t1 = ret * den0;
+                    if (t1 > t2)
+                        ret -= (t1 - t2 > den) ? 2 : 1;
+                    return cast(uint)ret;
+                }
+
+                // Determine the normalization factor. We multiply divisor by this, so that its leading
+                // digit is at least half base. In binary this means just shifting left by the number
+                // of leading zeros, so that there's a 1 in the MSB.
+                // We also shift number by the same amount. This cannot overflow because highDividend < divisor.
+                const shift = (Ubits - 1) - bsr(divisor);
+                divisor <<= shift;
+                U num2 = highDividend;
+                num2 <<= shift;
+                num2 |= (lowDividend >> (-shift & 63)) & (-cast(I)shift >> 63);
+                lowDividend <<= shift;
+
+                // Extract the low digits of the numerator (after normalizing)
+                const num1 = cast(uint)(lowDividend >> divshift);
+                const num0 = cast(uint)(lowDividend & divmask);
+
+                // Compute q1 = [num2 num1] / divisor
+                const q1 = udiv96_64(num2, num1, divisor);
+                // Compute the true (partial) remainder
+                const rem = num2 * base + num1 - q1 * divisor;
+                // Compute q0 = [rem num0] / divisor
+                const q0 = udiv96_64(rem, num0, divisor);
+
+                *remainder = (rem * base + num0 - q0 * divisor) >> shift;
+                return (cast(U)q1 << divshift) | q0;
+            }
+            else
+            {
+                version (LDC)
+                {
+                    import ldc.llvmasm : __ir_pure;
+
+                    return __ir_pure!(
+                        `%result = call {i64, i64} asm
+                             "div $4",
+                             "={rax},={rdx},0,1,r,~{flags}"
+                             (i64 %1, i64 %0, i64 %2)
+
+                         %quotient = extractvalue {i64, i64} %result, 0
+                         %remainder = extractvalue {i64, i64} %result, 1
+
+                         store i64 %remainder, ` ~ llvmIRPtr!"i64" ~ ` %3
+                         ret i64 %quotient`,
+                        ulong
+                    )(highDividend, lowDividend, divisor, remainder);
+                }
+                else version (GNU)
+                {
+                    ulong quotient;
+                    ulong remainer;
+
+                    asm @trusted pure nothrow @nogc
+                    {
+                          "div %4"
+                        : "=a" (quotient), "=d" (remainer)
+                        : "0" (lowDividend), "1" (highDividend), "rm" (divisor)
+                        : "cc";
+                    }
+
+                    *remainder = remainer;
+                    return quotient;
+                }
+                else version (D_InlineAsm_X86_64)
+                {
+                    asm @trusted pure nothrow @nogc
+                    {
+                        /* RCX is highDividend; RDX is lowDividend; R8 is divisor. R9 is remainder. */
+                        naked;
+                        mov RAX, RDX;
+                        mov RDX, RCX;
+                        div R8;
+                        mov [R9], RDX;
+                        ret;
+                    }
+                }
+            }
+        }
+    }
+
+    version (X86_64_Or_X86)
+    {
+        extern(C)
+        pragma(inline, true)
+        int _div64(long dividend, int divisor, scope int* remainder) @safe pure nothrow @nogc
+        {
+            if (__ctfe)
+            {
+                if (((dividend < 0 ? -dividend : dividend) >>> 32) >= (divisor < 0 ? -divisor : divisor))
+                {
+                    /* The div instruction will raise a #DE exception on overflow or division-by-zero,
+                       so during CTFE we'll just assert false. */
+                    version (D_BetterC)
+                    {
+                        assert(false, "Division by zero, or an overflow of the 32-bit quotient occurred in _div64.");
+                    }
+                    else
+                    {
+                        import core.internal.string : signedToTempString;
+                        assert(
+                            false,
+                              "Division by zero, or an overflow of the 32-bit quotient occurred in _div64."
+                            ~ " dividend: " ~ signedToTempString(dividend)
+                            ~ "; divisor: " ~ signedToTempString(divisor)
+                        );
+                    }
+                }
+
+                *remainder = cast(int) (dividend % divisor);
+                return cast(int) (dividend / divisor);
+            }
+            else
+            {
+                version (LDC)
+                {
+                    import ldc.llvmasm : __ir_pure;
+
+                    return __ir_pure!(
+                        `%result = call {i32, i32} asm
+                             "idiv $4",
+                             "={eax},={edx},0,1,r,~{flags}"
+                             (i32 %1, i32 %0, i32 %2)
+
+                         %quotient = extractvalue {i32, i32} %result, 0
+                         %remainder = extractvalue {i32, i32} %result, 1
+
+                         store i32 %remainder, ` ~ llvmIRPtr!"i32" ~ ` %3
+                         ret i32
+                          %quotient`,
+                        int
+                    )(cast(int) (dividend >>> 32), cast(int) (dividend & 0xFFFFFFFF), divisor, remainder);
+                }
+                else version (GNU)
+                {
+                    int quotient;
+                    int remainer;
+
+                    asm @trusted pure nothrow @nogc
+                    {
+                          "idiv %4"
+                        : "=a" (quotient), "=d" (remainer)
+                        : "0" (cast(int) (dividend & 0xFFFFFFFF)), "1" (cast(int) (dividend >>> 32)), "rm" (divisor)
+                        : "cc";
+                    }
+
+                    *remainder = remainer;
+                    return quotient;
+                }
+                else version (D_InlineAsm_X86_64)
+                {
+                    asm @trusted pure nothrow @nogc
+                    {
+                        /* RCX is dividend; EDX is divisor; R8 is remainder. */
+                        naked;
+                        mov R9D, EDX;
+                        mov RDX, RCX;
+                        shr RDX, 32;
+                        mov EAX, ECX;
+                        idiv R9D;
+                        mov [R8], EDX;
+                        ret;
+                    }
+                }
+                else version (D_InlineAsm_X86)
+                {
+                    asm @trusted pure nothrow @nogc
+                    {
+                        naked;
+                        mov EAX, [ESP + 4]; /* Low half of dividend. */
+                        mov EDX, [ESP + 8]; /* High half of dividend. */
+                        idiv dword ptr [ESP + 12]; /* [ESP + 12] is divisor. */
+                        mov ECX, [ESP + 16]; /* remainder. */
+                        mov [ECX], EDX;
+                        ret;
+                    }
+                }
+            }
+        }
+
+        extern(C)
+        pragma(inline, true)
+        uint _udiv64(ulong dividend, uint divisor, scope uint* remainder) @safe pure nothrow @nogc
+        {
+            if (__ctfe)
+            {
+                if ((dividend >>> 32) >= divisor)
+                {
+                    /* The div instruction will raise a #DE exception on overflow or division-by-zero,
+                       so during CTFE we'll just assert false. */
+                    version (D_BetterC)
+                    {
+                        assert(false, "Division by zero, or an overflow of the 32-bit quotient occurred in _udiv64.");
+                    }
+                    else
+                    {
+                        import core.internal.string : unsignedToTempString;
+                        assert(
+                            false,
+                              "Division by zero, or an overflow of the 32-bit quotient occurred in _udiv64."
+                            ~ " dividend: " ~ unsignedToTempString(dividend)
+                            ~ "; divisor: " ~ unsignedToTempString(divisor)
+                        );
+                    }
+                }
+
+                *remainder = cast(uint) (dividend % divisor);
+                return cast(uint) (dividend / divisor);
+            }
+            else
+            {
+                version (LDC)
+                {
+                    import ldc.llvmasm : __ir_pure;
+
+                    return __ir_pure!(
+                        `%result = call {i32, i32} asm
+                             "div $4",
+                             "={eax},={edx},0,1,r,~{flags}"
+                             (i32 %1, i32 %0, i32 %2)
+
+                         %quotient = extractvalue {i32, i32} %result, 0
+                         %remainder = extractvalue {i32, i32} %result, 1
+
+                         store i32 %remainder, ` ~ llvmIRPtr!"i32" ~ ` %3
+                         ret i32
+                          %quotient`,
+                        uint
+                    )(uint(dividend >>> 32), uint(dividend & 0xFFFFFFFF), divisor, remainder);
+                }
+                else version (GNU)
+                {
+                    uint quotient;
+                    uint remainer;
+
+                    asm @trusted pure nothrow @nogc
+                    {
+                          "div %4"
+                        : "=a" (quotient), "=d" (remainer)
+                        : "0" (uint(dividend & 0xFFFFFFFF)), "1" (uint(dividend >>> 32)), "rm" (divisor)
+                        : "cc";
+                    }
+
+                    *remainder = remainer;
+                    return quotient;
+                }
+                else version (D_InlineAsm_X86_64)
+                {
+                    asm @trusted pure nothrow @nogc
+                    {
+                        /* RCX is dividend; EDX is divisor; R8 is remainder. */
+                        naked;
+                        mov R9D, EDX;
+                        mov RDX, RCX;
+                        shr RDX, 32;
+                        mov EAX, ECX;
+                        div R9D;
+                        mov [R8], EDX;
+                        ret;
+                    }
+                }
+                else version (D_InlineAsm_X86)
+                {
+                    asm @trusted pure nothrow @nogc
+                    {
+                        naked;
+                        mov EAX, [ESP + 4]; /* Low half of dividend. */
+                        mov EDX, [ESP + 8]; /* High half of dividend. */
+                        div dword ptr [ESP + 12]; /* [ESP + 12] is divisor. */
+                        mov ECX, [ESP + 16]; /* remainder. */
+                        mov [ECX], EDX;
+                        ret;
+                    }
+                }
+            }
+        }
+    }
+
+    /* This is trusted so that it's @safe without DIP1000 enabled. */
+    @trusted pure nothrow @nogc unittest
+    {
+        static bool test()
+        {
+            version (X86_64)
+            {
+                {
+                    ulong remainder;
+                    assert(_udiv128(0x0000CAFE, 0x00F00D00, 1 << 16, &remainder) == 0xCAFE0000_000000F0);
+                    assert(remainder == (0x00F00D00 & ((1 << 16) - 1)));
+                    assert(_udiv128(0x0000CAFE, 0x00F00D00 + (1 << 16), 1 << 16, &remainder) == 0xCAFE0000_000000F1);
+                    assert(remainder == (0x00F00D00 & ((1 << 16) - 1)));
+                }
+
+                {
+                    long remainder;
+                    assert(_div128(0, 9, 4, &remainder) == 2);
+                    assert(remainder == 1);
+                    assert(_div128(0, 9, -4, &remainder) == -2);
+                    assert(remainder == 1);
+                    assert(_div128(-1, -9, 4, &remainder) == -2);
+                    assert(remainder == -1);
+                    assert(_div128(-1, -9, -4, &remainder) == 2);
+                    assert(remainder == -1);
+                    assert(_div128(0x00004AFE, 0x00F10D00, 1 << 16, &remainder) == 0x4AFE0000_000000F1);
+                    assert(remainder == (0x00F10D00 & ((1 << 16) - 1)));
+                }
+            }
+
+            version (X86_64_Or_X86)
+            {
+                {
+                    uint remainder;
+                    assert(_udiv64(9, 4, &remainder) == 2);
+                    assert(remainder == 1);
+                    assert(_udiv64(0x0000CAFE_00001234, 1 << 16, &remainder) == 0x00000000_CAFE0000);
+                    assert(remainder == (0x0000CAFE_00001234 & ((1 << 16) - 1)));
+                }
+
+                {
+                    int remainder;
+                    assert(_div64(9, 4, &remainder) == 2);
+                    assert(remainder == 1);
+                    assert(_div64(9, -4, &remainder) == -2);
+                    assert(remainder == 1);
+                    assert(_div64(-9, 4, &remainder) == -2);
+                    assert(remainder == -1);
+                    assert(_div64(-9, -4, &remainder) == 2);
+                    assert(remainder == -1);
+                    assert(_div64(0x00004AFE_00011234, 1 << 16, &remainder) == 0x00000000_4AFE0001);
+                    assert(remainder == (0x00004AFE_00011234 & ((1 << 16) - 1)));
+                }
+            }
+
+            return true;
+        }
+
+        assert(test());
+        static assert(test());
+
+        enum bool errorOccursDuringCTFE(alias symbol, T, T divisor) = !__traits(
+            compiles,
+            ()
+            {
+                T remainder;
+                enum result = symbol(0x0000CAFE, 0x00F00D00, divisor, &remainder);
+            }
+        );
+
+        version (X86_64)
+        {
+            /* An error should occur when attempting to divide by zero. */
+            static assert(errorOccursDuringCTFE!(_udiv128, ulong, 0));
+            static assert(errorOccursDuringCTFE!(_div128, long, 0));
+            /* And, when when the quotient overflows 64-bits. */
+            static assert(errorOccursDuringCTFE!(_udiv128, ulong, 2));
+            static assert(errorOccursDuringCTFE!(_div128, long, 2));
+        }
+
+        version (X86_64_Or_X86)
+        {
+            /* An error should occur when attempting to divide by zero. */
+            static assert(errorOccursDuringCTFE!(_udiv64, uint, 0));
+            static assert(errorOccursDuringCTFE!(_div64, int, 0));
+            /* And, when when the quotient overflows 64-bits. */
+            static assert(errorOccursDuringCTFE!(_udiv64, uint, 2));
+            static assert(errorOccursDuringCTFE!(_div64, int, 2));
+        }
+    }
 }
