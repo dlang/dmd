@@ -6662,6 +6662,99 @@ version (MSVCIntrinsics)
 
     extern(C)
     pragma(inline, true)
+    void* _InterlockedExchangePointer(scope shared(void*)* Target, scope void* Value) @safe pure nothrow @nogc
+    {
+        return interlockedExchange!(MemoryOrder.seq, void*)(Target, Value);
+    }
+
+    version (X86_64_Or_X86)
+    {
+        extern(C)
+        pragma(inline, true)
+        void* _InterlockedExchangePointer_HLEAcquire(scope shared(void*)* Target, scope void* Value)
+        @safe pure nothrow @nogc
+        {
+            return interlockedExchangeHLE!(true, void*)(Target, Value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void* _InterlockedExchangePointer_HLERelease(scope shared(void*)* Target, scope void* Value)
+        @safe pure nothrow @nogc
+        {
+            return interlockedExchangeHLE!(false, void*)(Target, Value);
+        }
+    }
+
+    version (AArch64_Or_ARM)
+    {
+        extern(C)
+        pragma(inline, true)
+        void* _InterlockedExchangePointer_acq(scope shared(void*)* Target, scope void* Value) @safe pure nothrow @nogc
+        {
+            return interlockedExchange!(MemoryOrder.acq, void*)(Target, Value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void* _InterlockedExchangePointer_rel(scope shared(void*)* Target, scope void* Value) @safe pure nothrow @nogc
+        {
+            return interlockedExchange!(MemoryOrder.acq_rel, void*)(Target, Value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        void* _InterlockedExchangePointer_nf(scope shared(void*)* Target, scope void* Value) @safe pure nothrow @nogc
+        {
+            return interlockedExchange!(MemoryOrder.raw, void*)(Target, Value);
+        }
+    }
+
+    @safe pure nothrow @nogc unittest
+    {
+        static void* p(ulong value) @trusted
+        {
+            return cast(void*) cast(size_t) value;
+        }
+
+        static void exchangeTest(alias symbol)()
+        {
+            scope void* value = p(0x0790C852D0938C7B);
+            scope shared(void*)* valueAddress = ((return scope ref v) @trusted => cast(shared(void*)*) &v)(value);
+
+            assert(symbol(valueAddress, p(0x612396D4FDC2C66A)) == p(0x0790C852D0938C7B));
+            assert(value == p(0x612396D4FDC2C66A));
+
+            assert(symbol(valueAddress, p(0xAA6C3899EABBE818)) == p(0x612396D4FDC2C66A));
+            assert(value == p(0xAA6C3899EABBE818));
+        }
+
+        static bool test()
+        {
+            exchangeTest!_InterlockedExchangePointer();
+
+            version (X86_64_Or_X86)
+            {
+                exchangeTest!_InterlockedExchangePointer_HLEAcquire();
+                exchangeTest!_InterlockedExchangePointer_HLERelease();
+            }
+
+            version (AArch64_Or_ARM)
+            {
+                exchangeTest!_InterlockedExchangePointer_acq();
+                exchangeTest!_InterlockedExchangePointer_rel();
+                exchangeTest!_InterlockedExchangePointer_nf();
+            }
+
+            return true;
+        }
+
+        assert(test());
+        static assert(test());
+    }
+
+    extern(C)
+    pragma(inline, true)
     private T interlockedAdd(MemoryOrder order = MemoryOrder.seq, T)(scope shared(T)* address, T value)
     @safe pure nothrow @nogc
     {
