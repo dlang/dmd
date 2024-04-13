@@ -650,7 +650,7 @@ elem *resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
         else if (t1.ty == Tarray)
         {
             elength = *pe;
-            *pe = el_same(&elength);
+            *pe = el_same(elength);
             elength = el_una(target.isX86_64 ? OP128_64 : OP64_32, TYsize_t, elength);
 
         L3:

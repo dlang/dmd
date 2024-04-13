@@ -1130,13 +1130,13 @@ elem* toElem(Expression e, ref IRState irs)
 
                 if (cd.isNested())
                 {
-                    ey = el_same(&ex);
+                    ey = el_same(ex);
                     ez = el_copytree(ey);
                     if (cd.vthis2)
                         ew = el_copytree(ey);
                 }
                 else if (ne.member)
-                    ez = el_same(&ex);
+                    ez = el_same(ex);
 
                 ex = el_una(OPind, TYstruct, ex);
                 ex = elAssign(ex, ei, null, Type_toCtype(tclass).Tnext);
@@ -1153,13 +1153,13 @@ elem* toElem(Expression e, ref IRState irs)
 
                 if (cd.isNested())
                 {
-                    ey = el_same(&ex);
+                    ey = el_same(ex);
                     ez = el_copytree(ey);
                     if (cd.vthis2)
                         ew = el_copytree(ey);
                 }
                 else if (ne.member)
-                    ez = el_same(&ex);
+                    ez = el_same(ex);
                 //elem_print(ex);
                 //elem_print(ey);
                 //elem_print(ez);
@@ -1258,7 +1258,7 @@ elem* toElem(Expression e, ref IRState irs)
 
             ectype = null;
 
-            elem *ev = el_same(&ex);
+            elem *ev = el_same(ex);
 
             if (ne.argprefix)
                     ezprefix = toElem(ne.argprefix, irs);
@@ -1655,7 +1655,7 @@ elem* toElem(Expression e, ref IRState irs)
 
             el = toElem(e1, irs);
             el = addressElem(el, e1.type.pointerTo());
-            ev = el_same(&el);
+            ev = el_same(el);
 
             el = el_una(OPind, totym(e1.type), el);
 
@@ -1683,7 +1683,7 @@ elem* toElem(Expression e, ref IRState irs)
             }
 
             el = addressElem(el, be.e1.type.pointerTo());
-            ev = el_same(&el);
+            ev = el_same(el);
 
             el = el_una(OPind, tym, el);
             ev = el_una(OPind, tym, ev);
@@ -1830,7 +1830,7 @@ elem* toElem(Expression e, ref IRState irs)
                 if (el_sideeffect(e1) && e2.Eoper != OPconst)
                 {
                     ex = e1;
-                    e1 = el_same(&ex);
+                    e1 = el_same(ex);
                 }
 
                 // swap
@@ -1984,30 +1984,30 @@ elem* toElem(Expression e, ref IRState irs)
 
                 if (t1.ty == Tarray)
                 {
-                    elen1 = el_una(target.isX86_64 ? OP128_64 : OP64_32, TYsize_t, el_same(&earr1));
-                    esiz1 = el_bin(OPmul, TYsize_t, el_same(&elen1), el_long(TYsize_t, sz));
-                    eptr1 = array_toPtr(t1, el_same(&earr1));
+                    elen1 = el_una(target.isX86_64 ? OP128_64 : OP64_32, TYsize_t, el_same(earr1));
+                    esiz1 = el_bin(OPmul, TYsize_t, el_same(elen1), el_long(TYsize_t, sz));
+                    eptr1 = array_toPtr(t1, el_same(earr1));
                 }
                 else
                 {
                     elen1 = el_long(TYsize_t, (cast(TypeSArray)t1).dim.toInteger());
                     esiz1 = el_long(TYsize_t, t1.size());
                     earr1 = addressElem(earr1, t1);
-                    eptr1 = el_same(&earr1);
+                    eptr1 = el_same(earr1);
                 }
 
                 if (t2.ty == Tarray)
                 {
-                    elen2 = el_una(target.isX86_64 ? OP128_64 : OP64_32, TYsize_t, el_same(&earr2));
-                    esiz2 = el_bin(OPmul, TYsize_t, el_same(&elen2), el_long(TYsize_t, sz));
-                    eptr2 = array_toPtr(t2, el_same(&earr2));
+                    elen2 = el_una(target.isX86_64 ? OP128_64 : OP64_32, TYsize_t, el_same(earr2));
+                    esiz2 = el_bin(OPmul, TYsize_t, el_same(elen2), el_long(TYsize_t, sz));
+                    eptr2 = array_toPtr(t2, el_same(earr2));
                 }
                 else
                 {
                     elen2 = el_long(TYsize_t, (cast(TypeSArray)t2).dim.toInteger());
                     esiz2 = el_long(TYsize_t, t2.size());
                     earr2 = addressElem(earr2, t2);
-                    eptr2 = el_same(&earr2);
+                    eptr2 = el_same(earr2);
                 }
 
                 elem *esize = t2.ty == Tsarray ? esiz2 : esiz1;
@@ -2017,7 +2017,7 @@ elem* toElem(Expression e, ref IRState irs)
                 e = el_bin(eop, TYint, e, el_long(TYint, 0));
 
                 elem *elen = t2.ty == Tsarray ? elen2 : elen1;
-                elem *esizecheck = el_bin(eop, TYint, el_same(&elen), el_long(TYsize_t, 0));
+                elem *esizecheck = el_bin(eop, TYint, el_same(elen), el_long(TYsize_t, 0));
                 e = el_bin(ee.op == EXP.equal ? OPoror : OPandand, TYint, esizecheck, e);
 
                 if (t1.ty == Tsarray && t2.ty == Tsarray)
@@ -2248,12 +2248,12 @@ elem* toElem(Expression e, ref IRState irs)
                     n1 = array_toPtr(ta, n1);
                     enbytes = toElem(ts.dim, irs);
                     n1x = n1;
-                    n1 = el_same(&n1x);
+                    n1 = el_same(n1x);
                     einit = resolveLengthVar(are.lengthVar, &n1, ta);
                 }
                 else if (ta.ty == Tarray)
                 {
-                    n1 = el_same(&n1x);
+                    n1 = el_same(n1x);
                     einit = resolveLengthVar(are.lengthVar, &n1, ta);
                     enbytes = el_copytree(n1);
                     n1 = array_toPtr(ta, n1);
@@ -2261,16 +2261,16 @@ elem* toElem(Expression e, ref IRState irs)
                 }
                 else if (ta.ty == Tpointer)
                 {
-                    n1 = el_same(&n1x);
+                    n1 = el_same(n1x);
                     enbytes = el_long(TYsize_t, -1);   // largest possible index
                     einit = null;
                 }
 
                 // Enforce order of evaluation of n1[elwr..eupr] as n1,elwr,eupr
                 elem *elwrx = elwr;
-                if (elwr) elwr = el_same(&elwrx);
+                if (elwr) elwr = el_same(elwrx);
                 elem *euprx = eupr;
-                if (eupr) eupr = el_same(&euprx);
+                if (eupr) eupr = el_same(euprx);
 
                 version (none)
                 {
@@ -2300,7 +2300,7 @@ elem* toElem(Expression e, ref IRState irs)
                 {
                     assert(elwr);
                     elem *enbytesx = enbytes;
-                    enbytes = el_same(&enbytesx);
+                    enbytes = el_same(enbytesx);
                     elem *c1 = el_bin(OPle, TYint, el_copytree(eupr), enbytesx);
                     elem *c2 = el_bin(OPle, TYint, el_copytree(elwr), el_copytree(eupr));
                     c1 = el_bin(OPandand, TYint, c1, c2);
@@ -2356,7 +2356,7 @@ elem* toElem(Expression e, ref IRState irs)
 
                 if (!postblit && !destructor)
                 {
-                    elem *ex = el_same(&eto);
+                    elem *ex = el_same(eto);
 
                     /* Returns: length of array ex
                      */
@@ -2383,7 +2383,7 @@ elem* toElem(Expression e, ref IRState irs)
                     elem *echeck;
                     if (irs.arrayBoundsCheck()) // check array lengths match and do not overlap
                     {
-                        auto ey = el_same(&efrom);
+                        auto ey = el_same(efrom);
                         auto eleny = getDotLength(irs, efrom, ey);
                         epfr = array_toPtr(ae.e2.type, ey);
 
@@ -2491,7 +2491,7 @@ elem* toElem(Expression e, ref IRState irs)
              *  e1x = *tmp
              */
             e1 = addressElem(e1, null);
-            e1x = el_same(&e1);
+            e1x = el_same(e1);
             e1 = el_una(OPind, tym, e1);
             if (tybasic(tym) == TYstruct)
                 e1.ET = Type_toCtype(ae.e1.type);
@@ -2798,7 +2798,7 @@ elem* toElem(Expression e, ref IRState irs)
                 * of ev. Put any side effects into re1
                 */
                 elem* re1 = addressElem(e1, ce.e1.type.pointerTo(), false);
-                elem* ev = el_same(&re1);
+                elem* ev = el_same(re1);
 
                 // Append dchar to char[] or wchar[]
                 assert(tb2.ty == Tdchar &&
@@ -3240,7 +3240,7 @@ elem* toElem(Expression e, ref IRState irs)
                 // Get pointer to function out of virtual table
 
                 assert(ethis);
-                ep = el_same(&ethis);
+                ep = el_same(ethis);
                 ep = el_una(OPind, TYnptr, ep);
                 uint vindex = de.func.vtblIndex;
 
@@ -3762,7 +3762,7 @@ elem* toElem(Expression e, ref IRState irs)
             if (!einit)
             {
                 einit = e;
-                e = el_same(&einit);
+                e = el_same(einit);
             }
             // e is a temporary, typed:
             //  TYdarray if t.ty == Tarray
@@ -3770,7 +3770,7 @@ elem* toElem(Expression e, ref IRState irs)
 
             elem *elwr = toElem(se.lwr, irs);
             elem *eupr = toElem(se.upr, irs);
-            elem *elwr2 = el_sideeffect(eupr) ? el_copytotmp(&elwr) : el_same(&elwr);
+            elem *elwr2 = el_sideeffect(eupr) ? el_copytotmp(&elwr) : el_same(elwr);
             elem *eupr2 = eupr;
 
             //printf("upperIsInBounds = %d lowerIsLessThanUpper = %d\n", se.upperIsInBounds, se.lowerIsLessThanUpper);
@@ -3784,7 +3784,7 @@ elem* toElem(Expression e, ref IRState irs)
                 elem *elen;
                 if (!se.upperIsInBounds)
                 {
-                    eupr2 = el_same(&eupr);
+                    eupr2 = el_same(eupr);
                     eupr2.Ety = TYsize_t;  // make sure unsigned comparison
 
                     if (auto tsa = t1.isTypeSArray())
@@ -3798,7 +3798,7 @@ elem* toElem(Expression e, ref IRState irs)
                         else
                         {
                             elen = e;
-                            e = el_same(&elen);
+                            e = el_same(elen);
                             elen = el_una(target.isX86_64 ? OP128_64 : OP64_32, TYsize_t, elen);
                         }
                     }
@@ -3815,7 +3815,7 @@ elem* toElem(Expression e, ref IRState irs)
                 }
                 else if (!se.lowerIsLessThanUpper)
                 {
-                    eupr2 = el_same(&eupr);
+                    eupr2 = el_same(eupr);
                     eupr2.Ety = TYsize_t;  // make sure unsigned comparison
 
                     c1 = el_bin(OPle, TYint, elwr2, eupr);
@@ -3927,7 +3927,7 @@ elem* toElem(Expression e, ref IRState irs)
             e = el_bin(OPcall, TYnptr, el_var(s), ep);
             if (irs.arrayBoundsCheck())
             {
-                elem *n = el_same(&e);
+                elem *n = el_same(e);
 
                 // Construct: ((e || arrayBoundsError), n)
                 auto ea = buildRangeError(irs, ie.loc);
@@ -3957,11 +3957,11 @@ elem* toElem(Expression e, ref IRState irs)
                 else if (t1.ty == Tarray)
                 {
                     elength = n1;
-                    n1 = el_same(&elength);
+                    n1 = el_same(elength);
                     elength = el_una(target.isX86_64 ? OP128_64 : OP64_32, TYsize_t, elength);
                 L1:
                     elem *n2x = n2;
-                    n2 = el_same(&n2x);
+                    n2 = el_same(n2x);
                     n2x = el_bin(OPlt, TYint, n2x, elength);
 
                     // Construct: (n2x || arrayBoundsError)
@@ -4559,7 +4559,7 @@ elem *toElemCast(CastExp ce, elem *e, bool isLvalue, ref IRState irs)
                 // Set array dimension to (length * (fsize / tsize))
                 // Generate pair(e.length * (fsize/tsize), es.ptr)
 
-                elem *es = el_same(&e);
+                elem *es = el_same(e);
 
                 elem *eptr = el_una(OPmsw, TYnptr, es);
                 elem *elen = el_una(target.isX86_64 ? OP128_64 : OP64_32, TYsize_t, e);
@@ -4605,7 +4605,7 @@ elem *toElemCast(CastExp ce, elem *e, bool isLvalue, ref IRState irs)
                 }
                 else
                 {
-                    elem *etmp = el_same(&e);
+                    elem *etmp = el_same(e);
                     elem *ex = el_bin(OPadd, TYnptr, etmp, el_long(TYsize_t, offset));
                     ex = el_bin(OPcolon, TYnptr, ex, el_long(TYnptr, 0));
                     e = el_bin(OPcond, TYnptr, e, ex);
@@ -5426,7 +5426,7 @@ elem *callfunc(const ref Loc loc,
         tf = t.nextOf().isTypeFunction();
         assert(tf);
         ethis = ec;
-        ec = el_same(&ethis);
+        ec = el_same(ethis);
         ethis = el_una(target.isX86_64 ? OP128_64 : OP64_32, TYnptr, ethis); // get this
         ec = array_toPtr(t, ec);                // get funcptr
         tym_t tym;
@@ -5684,7 +5684,7 @@ elem *callfunc(const ref Loc loc,
         {
             // make virtual call
             assert(ethis);
-            elem *ev = el_same(&ethis);
+            elem *ev = el_same(ethis);
             ev = el_una(OPind, TYnptr, ev);
             uint vindex = fd.vtblIndex;
             assert(cast(int)vindex >= 0);
@@ -5832,7 +5832,7 @@ elem *callfunc(const ref Loc loc,
         // CPP constructor returns void on Posix
         // https://itanium-cxx-abi.github.io/cxx-abi/abi.html#return-value-ctor
         e.Ety = TYvoid;
-        e = el_combine(e, el_same(&ethis));
+        e = el_combine(e, el_same(ethis));
     }
     else if (retmethod == RET.stack)
     {
@@ -6801,7 +6801,7 @@ elem *appendDtors(ref IRState irs, elem *er, size_t starti, size_t endi)
                 /* Lvalue, take a pointer to it
                  */
                 elem *ep = el_una(OPaddr, TYnptr, erx);
-                elem *e = el_same(&ep);
+                elem *e = el_same(ep);
                 ep = el_combine(ep, edtors);
                 ep = el_combine(ep, e);
                 e = el_una(OPind, erx.Ety, ep);
