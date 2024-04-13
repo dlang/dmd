@@ -1633,7 +1633,7 @@ elem *el_ddtor(elem *e,void *decl)
  */
 
 @trusted
-elem *el_ctor_dtor(elem *ec, elem *ed, elem **pedtor)
+elem *el_ctor_dtor(elem *ec, elem *ed, out elem* pedtor)
 {
     elem *er;
     if (config.ehmethod == EHmethod.EH_DWARF)
@@ -1684,7 +1684,7 @@ elem *el_ctor_dtor(elem *ec, elem *ed, elem **pedtor)
 
         edtor.EV.E1 = el_combine(el_combine(e_eax, ed), eu);
 
-        *pedtor = el_combine(e_flag_1, edtor);
+        pedtor = el_combine(e_flag_1, edtor);
     }
     else
     {
@@ -1713,7 +1713,7 @@ elem *el_ctor_dtor(elem *ec, elem *ed, elem **pedtor)
         edtor.Ety = TYvoid;
 //      edtor.EV.Edecl = decl;
         edtor.EV.E1 = ed;
-        *pedtor = edtor;
+        pedtor = edtor;
     }
 
     return er;

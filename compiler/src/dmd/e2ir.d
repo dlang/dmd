@@ -4297,7 +4297,7 @@ elem *Dsymbol_toElem(Dsymbol s, ref IRState irs)
                 else
                 {
                     // Construct special elems to deal with exceptions
-                    e = el_ctor_dtor(e, edtor, &ed);
+                    e = el_ctor_dtor(e, edtor, ed);
                 }
 
                 // ed needs to be inserted into the code later
