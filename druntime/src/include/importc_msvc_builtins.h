@@ -15,6 +15,14 @@
 
 __import __builtins_msvc;
 
+#if defined(__clang__)
+#define __assume(expression) __builtin_assume(expression)
+#elif defined(__GNUC__)
+#define __assume(expression) do {if (!(expression)) {__builtin_unreachable();}} while (0)
+#else
+#define __assume(expression) __check(expression)
+#endif
+
 #if defined(_M_ARM64) || defined(_M_ARM)
 #define __dmb __builtin_arm_dmb
 #define __dsb __builtin_arm_dsb
