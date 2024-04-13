@@ -792,7 +792,7 @@ private elem * elmemset(elem *e, goal_t goal)
     if (e1.Eoper != OPrelconst)
     {
         ey = e1;
-        e1 = el_same(&ey);
+        e1 = el_same(ey);
     }
     e.EV.E1 = null;             // so we can free e later
 

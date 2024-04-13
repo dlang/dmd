@@ -647,13 +647,13 @@ elem *exp2_copytotemp(elem *e)
  */
 
 @trusted
-elem * el_same(elem **pe)
+elem * el_same(ref elem* pe)
 {
-    elem *e = *pe;
+    elem *e = pe;
     if (e && el_sideeffect(e))
     {
-        *pe = exp2_copytotemp(e);       /* convert to ((tmp=e),tmp)     */
-        e = (*pe).EV.E2;                  /* point at tmp                 */
+        pe = exp2_copytotemp(e);       /* convert to ((tmp=e),tmp)     */
+        e = pe.EV.E2;                  /* point at tmp                 */
     }
     return el_copytree(e);
 }
