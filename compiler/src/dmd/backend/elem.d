@@ -1557,15 +1557,13 @@ elem *el_convert(elem *e)
  *      *pconst = union of constant data
  */
 
-@trusted
-elem * el_const(tym_t ty, eve *pconst)
+@safe
+elem * el_const(tym_t ty, ref eve pconst)
 {
-    elem *e;
-
-    e = el_calloc();
+    elem* e = el_calloc();
     e.Eoper = OPconst;
     e.Ety = ty;
-    memcpy(&e.EV,pconst,(e.EV).sizeof);
+    e.EV = pconst;
     return e;
 }
 
@@ -1663,7 +1661,7 @@ elem *el_ctor_dtor(elem *ec, elem *ed, elem **pedtor)
 
         eve c = void;
         memset(&c, 0, c.sizeof);
-        elem *e_flag_0 = el_bin(OPeq, TYvoid, el_var(sflag), el_const(TYbool, &c));  // __flag = 0
+        elem *e_flag_0 = el_bin(OPeq, TYvoid, el_var(sflag), el_const(TYbool, c));  // __flag = 0
         er = el_bin(OPinfo, ec ? ec.Ety : TYvoid, ector, el_combine(e_flag_0, ec));
 
         /* A destructor always executes code, or we wouldn't need
@@ -1677,7 +1675,7 @@ elem *el_ctor_dtor(elem *ec, elem *ed, elem **pedtor)
 //      edtor.EV.E1 = e;
 
         c.Vint = 1;
-        elem *e_flag_1 = el_bin(OPeq, TYvoid, el_var(sflag), el_const(TYbool, &c)); // __flag = 1
+        elem *e_flag_1 = el_bin(OPeq, TYvoid, el_var(sflag), el_const(TYbool, c));  // __flag = 1
         elem *e_eax = el_bin(OPeq, TYvoid, el_var(seo), el_var(sreg));              // __exception_object = __EAX
         elem *eu = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.UNWIND_RESUME)), el_var(seo));
         eu = el_bin(OPandand, TYvoid, el_una(OPnot, TYbool, el_var(sflag)), eu);
