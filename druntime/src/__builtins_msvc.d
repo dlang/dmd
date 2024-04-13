@@ -82,6 +82,17 @@ version (MSVCIntrinsics)
 
     version (LDC)
     {
+        /* For `__assume` in `importc_msvc_builtins.h`. */
+        public import ldc.intrinsics : llvm_assume;
+    }
+    else version (GNU)
+    {
+        /* For `__assume` in `importc_msvc_builtins.h`. */
+        public import gcc.builtins : __builtin_unreachable;
+    }
+
+    version (LDC)
+    {
         version (X86_64_Or_X86)
         {
             pragma(LDC_intrinsic, "llvm.x86.sse2.pause")

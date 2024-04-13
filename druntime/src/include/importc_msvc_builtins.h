@@ -15,6 +15,19 @@
 
 __import __builtins_msvc;
 
+/* Refer to https://learn.microsoft.com/cpp/intrinsics/assume.
+   MSVC's `__assume` plays double duty as an optimisation-hint
+   and a way to denote unreachable code.
+   Denoting unreachable code is the more important duty,
+   hence these definitions of `__assume`. */
+#if defined(__IMPORTC_DMD__)
+#define __assume(expression) __check(!!(expression))
+#elif defined(__IMPORTC_LDC__)
+#define __assume(expression) llvm_assume(!!(expression))
+#else
+#define __assume(expression) do {if (!(expression)) {__builtin_unreachable();}} while (0)
+#endif
+
 #if defined(_M_ARM64) || defined(_M_ARM)
 #define __dmb __builtin_arm_dmb
 #define __dsb __builtin_arm_dsb
