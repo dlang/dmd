@@ -588,15 +588,14 @@ private elem * elstring(elem *e, goal_t goal)
 /************************
  * Convert far pointer to pointer.
  */
-
 @trusted
-private void eltonear(elem **pe)
+private void eltonear(ref elem* pe)
 {
-    elem *e = *pe;
+    elem *e = pe;
     const tym_t ty = e.EV.E1.Ety;
     e = el_selecte1(e);
     e.Ety = ty;
-    *pe = optelem(e,GOALvalue);
+    pe = optelem(e,GOALvalue);
 }
 
 /************************
@@ -611,7 +610,7 @@ private elem * elstrcpy(elem *e, goal_t goal)
         case OPnp_fp:
             if (OPTIMIZER)
             {
-                eltonear(&e.EV.E2);
+                eltonear(e.EV.E2);
                 e = optelem(e,GOALvalue);
             }
             break;
@@ -649,11 +648,11 @@ private elem * elstrcmp(elem *e, goal_t goal)
     if (OPTIMIZER)
     {
         if (e.EV.E1.Eoper == OPnp_fp)
-            eltonear(&e.EV.E1);
+            eltonear(e.EV.E1);
         switch (e.EV.E2.Eoper)
         {
             case OPnp_fp:
-                eltonear(&e.EV.E2);
+                eltonear(e.EV.E2);
                 break;
 
             case OPstring:
@@ -727,9 +726,9 @@ private elem * elmemcmp(elem *e, goal_t goal)
 
     elem *ex = e.EV.E1;
     if (ex.EV.E1.Eoper == OPnp_fp)
-        eltonear(&ex.EV.E1);
+        eltonear(ex.EV.E1);
     if (ex.EV.E2.Eoper == OPnp_fp)
-        eltonear(&ex.EV.E2);
+        eltonear(ex.EV.E2);
 
     return e;
 }
@@ -747,7 +746,7 @@ private elem * elmemset(elem *e, goal_t goal)
     elem *ex = e.EV.E1;
     if (ex.Eoper == OPnp_fp)
     {
-        eltonear(&ex);
+        eltonear(ex);
         return e;
     }
 
@@ -849,10 +848,10 @@ private elem * elmemcpy(elem *e, goal_t goal)
     {
         elem *ex = e.EV.E1;
         if (ex.Eoper == OPnp_fp)
-            eltonear(&e.EV.E1);
+            eltonear(e.EV.E1);
         ex = e.EV.E2;
         if (ex.EV.E1.Eoper == OPnp_fp)
-            eltonear(&ex.EV.E1);
+            eltonear(ex.EV.E1);
         if (ex.EV.E2.Eoper == OPconst)
         {
             if (!boolres(ex.EV.E2))
