@@ -1972,7 +1972,8 @@ private void newfamlist(famlist* fl, tym_t ty)
             c.Vlong = 1;
             break;
     }
-    fl.c1 = el_const(ty,&c);               /* c1 = 1               */
+    fl.c1 = el_const(ty, c);               /* c1 = 1               */
+
     c.Vldouble = 0;
     if (typtr(ty))
     {
@@ -1982,7 +1983,7 @@ private void newfamlist(famlist* fl, tym_t ty)
         if (I64)
             ty = TYllong;
     }
-    fl.c2 = el_const(ty,&c);               /* c2 = 0               */
+    fl.c2 = el_const(ty, c);               /* c2 = 0               */
 }
 
 /***************************
