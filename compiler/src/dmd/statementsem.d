@@ -998,7 +998,9 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
                 if (dim == 2 && (*fs.parameters)[0].storageClass & STC.ref_)
                 {
-                    deprecation(fs.loc, "`%s` cannot be `ref`", (*fs.parameters)[0].toChars());
+                    deprecation(fs.loc, "`foreach` array index variable `%s` cannot be `ref`",
+                        (*fs.parameters)[0].toChars());
+                    deprecationSupplemental(fs.loc, "use a `for` loop instead");
                     return retError();
                 }
 
@@ -1465,7 +1467,9 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
         if (fs.prm.storageClass & STC.ref_)
         {
-            deprecation(fs.loc, "`%s` cannot be `ref`", fs.prm.toChars());
+            deprecation(fs.loc, "`foreach` range variable `%s` cannot be `ref`",
+                fs.prm.toChars());
+            deprecationSupplemental(fs.loc, "use a `for` loop instead");
             return setError();
         }
 
