@@ -1542,6 +1542,19 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             return setError();
         }
 
+        // a struct is allowed to be `ref` to prevent destructor calls or
+        // non-copyable structs.
+        // See test/runnable/foreach5.d: test6659, test6652.
+        if (fs.param.storageClass & STC.ref_ && !fs.param.type.isTypeStruct())
+        {
+            // @@@DEPRECATED_2.121@@@
+            // turn deprecation into an error & uncomment return
+            deprecation(fs.loc, "`foreach` range variable `%s` cannot be `ref`",
+                fs.param.toChars());
+            deprecationSupplemental(fs.loc, "use a `for` loop instead");
+            //return setError();
+        }
+
         /* Convert to a for loop:
          *  foreach (key; lwr .. upr) =>
          *  for (auto key = lwr, auto tmp = upr; key < tmp; ++key)
