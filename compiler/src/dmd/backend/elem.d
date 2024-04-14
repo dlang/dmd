@@ -663,14 +663,14 @@ elem * el_same(ref elem* pe)
  * always makes a temporary.
  */
 @trusted
-elem *el_copytotmp(elem **pe)
+elem *el_copytotmp(ref elem* pe)
 {
     //printf("copytotemp()\n");
-    elem *e = *pe;
+    elem *e = pe;
     if (e)
     {
-        *pe = exp2_copytotemp(e);
-        e = (*pe).EV.E2;
+        pe = exp2_copytotemp(e);
+        e = pe.EV.E2;
     }
     return el_copytree(e);
 }

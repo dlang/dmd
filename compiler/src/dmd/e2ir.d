@@ -3770,7 +3770,7 @@ elem* toElem(Expression e, ref IRState irs)
 
             elem *elwr = toElem(se.lwr, irs);
             elem *eupr = toElem(se.upr, irs);
-            elem *elwr2 = el_sideeffect(eupr) ? el_copytotmp(&elwr) : el_same(elwr);
+            elem *elwr2 = el_sideeffect(eupr) ? el_copytotmp(elwr) : el_same(elwr);
             elem *eupr2 = eupr;
 
             //printf("upperIsInBounds = %d lowerIsLessThanUpper = %d\n", se.upperIsInBounds, se.lowerIsLessThanUpper);
@@ -5653,7 +5653,7 @@ elem *callfunc(const ref Loc loc,
             if (el_sideeffect(ethis))
             {
                 elem *ex = ethis;
-                ethis = el_copytotmp(&ex);
+                ethis = el_copytotmp(ex);
                 eside = el_combine(ex, eside);
             }
         }
@@ -5941,7 +5941,7 @@ extern (D) elem *fixArgumentEvaluationOrder(elem*[] elems)
         }
 
         elem *es = e;
-        elems[i] = el_copytotmp(&es);
+        elems[i] = el_copytotmp(es);
         eside = el_combine(eside, es);
     }
 
@@ -6810,7 +6810,7 @@ elem *appendDtors(ref IRState irs, elem *er, size_t starti, size_t endi)
             }
             else
             {
-                elem *e = el_copytotmp(&erx);
+                elem *e = el_copytotmp(erx);
                 erx = el_combine(erx, edtors);
                 *pe = el_combine(erx, e);
             }
