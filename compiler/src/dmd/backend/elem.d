@@ -1757,26 +1757,26 @@ elem *el_zero(type *t)
 }
 
 /*******************
- * Find and return pointer to parent of e starting at *pe.
+ * Find and return pointer to parent of e starting at pe.
  * Return null if can't find it.
  */
 
 @trusted
-elem ** el_parent(elem *e,elem **pe)
+elem ** el_parent(elem *e, return ref elem* pe)
 {
-    assert(e && pe && *pe);
+    assert(e && pe);
     elem_debug(e);
-    elem_debug(*pe);
-    if (e == *pe)
-        return pe;
-    else if (OTunary((*pe).Eoper))
-        return el_parent(e,&((*pe).EV.E1));
-    else if (OTbinary((*pe).Eoper))
+    elem_debug(pe);
+    if (e == pe)
+        return &pe; // not @safe
+    else if (OTunary(pe.Eoper))
+        return el_parent(e, pe.EV.E1);
+    else if (OTbinary(pe.Eoper))
     {
-        elem **pe2;
-        return ((pe2 = el_parent(e,&((*pe).EV.E1))) != null)
-                ? pe2
-                : el_parent(e,&((*pe).EV.E2));
+        elem** pe2 = el_parent(e, pe.EV.E1);
+        if (pe2)
+            return pe2;
+        return el_parent(e, pe.EV.E2);
     }
     else
         return null;

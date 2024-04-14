@@ -2147,7 +2147,7 @@ private void findbasivs(ref Loop l)
                 go.defnod[j].DNelem.EV.E1.EV.Vsym == s &&
                 vec_testbit(go.defnod[j].DNblock.Bdfoidx,l.Lloop))
             {
-                biv.IVincr = el_parent(go.defnod[j].DNelem,&(go.defnod[j].DNblock.Belem));
+                biv.IVincr = el_parent(go.defnod[j].DNelem, go.defnod[j].DNblock.Belem);
                 assert(s == (*biv.IVincr).EV.E1.EV.Vsym);
 
                 debug if (debugc)
@@ -2283,7 +2283,7 @@ private void findopeqs(ref Loop l)
                 go.defnod[j].DNelem.EV.E1.EV.Vsym == s &&
                 vec_testbit(go.defnod[j].DNblock.Bdfoidx,l.Lloop))
             {
-                biv.IVincr = el_parent(go.defnod[j].DNelem,&(go.defnod[j].DNblock.Belem));
+                biv.IVincr = el_parent(go.defnod[j].DNelem, go.defnod[j].DNblock.Belem);
                 assert(s == (*biv.IVincr).EV.E1.EV.Vsym);
 
                 debug if (debugc)
