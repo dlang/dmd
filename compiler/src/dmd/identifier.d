@@ -300,6 +300,50 @@ nothrow:
         sv.value = id;
     }
 
+    /******************************************
+    * Used for inserting keywords into the string table with respect to normalization.
+    *
+    * If the input string hasn't been normalized, it will be normalized and inserted into the table
+    *  both as the unnormalized as the key, and the normalized version as the key.
+    *
+    * The normalization form this normalizes into is form C.
+    *
+    * Note: Normalization is not currently implemented so it calls into ``idPool`` only.
+    *
+    * Params:
+    *        s            = The string slice containing the identifier
+    *        isNormalized = Is the input string currently normalized?
+    *
+    * See_Also: idPool
+    * Returns: An identifier that has been normalized if it needs to be.
+    */
+    extern (D) static Identifier idPoolNormalize(scope const(char)[] s, bool isNormalized)
+    {
+        // Normalization itself is not implemented here currently.
+
+        return idPool(s, false);
+
+        /*
+        Pseudo code for how this function needs to work:
+
+        if (s in stringtable)
+            return stringtable[s];
+        else if (isNormalized)
+            return idPool(s, false);
+
+        auto sNormalized = toNFC(s);
+        if (sNormalized in stringtable)
+        {
+            free(sNormalized);
+            return stringtable[sNormalized];
+        }
+
+        stringtable[sNoramlized] = sNormalized;
+        stringTable[s] = sNormalized;
+        return sNormalized;
+        */
+    }
+
     /**********************************
      * Determine if string is a valid Identifier.
      * Params:

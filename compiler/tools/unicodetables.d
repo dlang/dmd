@@ -22,13 +22,15 @@ License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
 module unicodetables;
 import unicode_tables.util;
 import unicode_tables.fixedtables;
-import std.stdio : File, writeln;
+import std.stdio : File, writeln, writefln;
 
-enum {
+enum
+{
     // don't forget to update me when you commit new tables!
     UCDDirectory = "UCD-15.1.0/",
     UnicodeDataFile = UCDDirectory ~ "UnicodeData.txt",
     DerivedCorePropertiesFile = UCDDirectory ~ "DerivedCoreProperties.txt",
+    DerivedNormalizationPropsFile = UCDDirectory ~ "DerivedNormalizationProps.txt",
 
     UnicodeTableFile = "../src/dmd/common/identifiertables.d",
 }
@@ -43,12 +45,20 @@ int main(string[] args)
 {
     import std.file : exists;
 
-    if (!exists(UnicodeDataFile)) {
+    if (!exists(UnicodeDataFile))
+    {
         writeln("Missing UCD table UnicodeData.txt");
         return 1;
-    } else if (!exists(DerivedCorePropertiesFile)) {
+    }
+    else if (!exists(DerivedCorePropertiesFile))
+    {
         writeln("Missing UCD table DerivedCoreProperties.txt");
         return 2;
+    }
+    else if (!exists(DerivedNormalizationPropsFile))
+    {
+        writeln("Missing UCD table DerivedNormalizationProps.txt");
+        return 3;
     }
 
     {
@@ -61,9 +71,11 @@ int main(string[] args)
     {
         import unicode_tables.unicodeData;
         import unicode_tables.derivedCoreProperties;
+        import unicode_tables.derivedNormalizationProps;
 
         parseUnicodeData(UnicodeDataFile);
         parseProperties(DerivedCorePropertiesFile);
+        parseDerivedNormalizationProps(DerivedNormalizationPropsFile);
     }
 
     write_XID_Start;
@@ -76,17 +88,158 @@ int main(string[] args)
     tableFile.writeln;
 
     write_least_restrictive_table;
+    tableFile.writeln;
+
+    writeIsNotNormalizedTable;
+    tableFile.writeln;
+
+    writeCCC;
+
+    printSomeCharacters;
 
     return 0;
 }
 
-void writeTable(string name, const ValueRanges vr)
+void writeIdentifierTable(string name, const ValueRanges vr)
 {
     tableFile.writeln("static immutable dchar[2][] ", name, " = [");
 
-    foreach (entry; vr.ranges)
+    const(ValueRange)[] values = vr.ranges;
+
+    // sanity check to guarantee we don't span multiple planes
+    foreach (v; values)
     {
-        tableFile.writefln!"    [0x%X, 0x%X],"(entry.start, entry.end);
+        const startPlane = v.start >> 16;
+        const endPlane = v.end >> 16;
+        assert(startPlane == endPlane, name ~ " spans multiple planes");
+    }
+
+    while (values.length >= 4)
+    {
+        tableFile.write("    ");
+        tableFile.writefln!"[0x%X, 0x%X], [0x%X, 0x%X], [0x%X, 0x%X], [0x%X, 0x%X],"(
+                values[0].start, values[0].end, values[1].start, values[1].end,
+                values[2].start, values[2].end, values[3].start, values[3].end);
+        values = values[4 .. $];
+    }
+
+    if (values.length > 0)
+    {
+        tableFile.write("    ");
+
+        foreach (i, entry; values)
+        {
+            if (i > 0)
+                tableFile.write(", ");
+            tableFile.writef!"[0x%X, 0x%X]"(entry.start, entry.end);
+        }
+
+        tableFile.writeln();
+    }
+
+    tableFile.writeln("];");
+}
+
+void writeValueTable(string name, const(ubyte)[] values)
+{
+    tableFile.writeln("static immutable ubyte[] ", name, " = [");
+
+    while (values.length >= 8)
+    {
+        tableFile.write("    ");
+        tableFile.writefln!"%s, %s, %s, %s, %s, %s, %s, %s,"(values[0],
+                values[1], values[2], values[3], values[4], values[5], values[6], values[7]);
+        values = values[8 .. $];
+    }
+
+    if (values.length > 0)
+    {
+        tableFile.write("    ");
+
+        foreach (i, entry; values)
+        {
+            if (i > 0)
+                tableFile.write(", ");
+            tableFile.writef!"%s"(entry);
+        }
+
+        tableFile.writeln();
+    }
+
+    tableFile.writeln("];");
+}
+
+void writeTestCases(string name, const ValueRanges vr)
+{
+    ValueRanges[17] planes;
+    dchar[3][17] charsToTestFor;
+    uint[3][17] indexToTestFor;
+    bool[17] isEnabled;
+
+    foreach (planeNumber, ref plane; planes)
+    {
+        foreach (range; vr.ranges)
+        {
+            const mid = cast(dchar)((cast(ulong) range.start + cast(ulong) range.end) / 2);
+            const midPlane = mid >> 16;
+
+            if (midPlane != planeNumber)
+                continue;
+
+            // do not change offsets (.add would have)
+            plane.ranges ~= ValueRange(mid);
+        }
+
+        if (plane.ranges.length == 0)
+            continue;
+
+        isEnabled[planeNumber] = true;
+
+        uint offsetToPlane;
+
+        foreach (ref plane2; planes[0 .. planeNumber])
+        {
+            offsetToPlane += cast(uint) plane2.ranges.length;
+        }
+
+        charsToTestFor[planeNumber][0] = plane.ranges[0].start;
+        charsToTestFor[planeNumber][1] = plane.ranges[0].start;
+        charsToTestFor[planeNumber][2] = plane.ranges[0].start;
+        indexToTestFor[planeNumber][0] = offsetToPlane + 0;
+        indexToTestFor[planeNumber][1] = offsetToPlane + 0;
+        indexToTestFor[planeNumber][2] = offsetToPlane + 0;
+
+        if (plane.ranges.length > 1)
+        {
+            charsToTestFor[planeNumber][1] = plane.ranges[$ - 1].start;
+            indexToTestFor[planeNumber][1] = offsetToPlane + cast(uint) plane.ranges.length - 1;
+        }
+
+        if (plane.ranges.length > 2)
+        {
+            const offset = cast(uint) plane.ranges.length / 2;
+
+            charsToTestFor[planeNumber][2] = plane.ranges[offset].start;
+            indexToTestFor[planeNumber][2] = offsetToPlane + offset;
+        }
+    }
+
+    // Use enum here because we will only access it once in a unittest
+    tableFile.writeln("/**");
+    tableFile.writeln("Tests [[dchar, index] ... planes * 3] for ", name);
+    tableFile.writeln("*/");
+    tableFile.writeln("enum uint[2][] ", name, "_Test", " = [");
+    foreach (i; 0 .. 17)
+    {
+        if (isEnabled[i])
+        {
+            tableFile.writefln!"    [0x%06X, %d],"(charsToTestFor[i][0], indexToTestFor[i][0]);
+            // 2 is middle, must go before 1 which is end
+            if (charsToTestFor[i][0] != charsToTestFor[i][2])
+                tableFile.writefln!"    [0x%06X, %d],"(charsToTestFor[i][2], indexToTestFor[i][2]);
+            if (charsToTestFor[i][0] != charsToTestFor[i][1])
+                tableFile.writefln!"    [0x%06X, %d],"(charsToTestFor[i][1], indexToTestFor[i][1]);
+        }
     }
 
     tableFile.writeln("];");
@@ -99,7 +252,7 @@ void write_XID_Start()
 
     ValueRanges start = ValueRanges(propertyXID_StartRanges.ranges.dup);
 
-    version(IgnoreASCIIRanges)
+    version (IgnoreASCIIRanges)
     {
         // Remove ASCII ranges as its always a waste of time, since its handles elsewhere.
         start = start.not(ASCII_Table);
@@ -116,7 +269,11 @@ void write_XID_Start()
     tableFile.writeln("UAX31 profile Start");
     tableFile.writeln("Entries: ", start.count);
     tableFile.writeln("*/");
-    writeTable("UAX31_Start", start);
+
+    writeIdentifierTable("UAX31_Start", start);
+    tableFile.writeln;
+
+    writeTestCases("UAX31_Start", start);
 }
 
 void write_XID_Continue()
@@ -125,7 +282,7 @@ void write_XID_Continue()
 
     ValueRanges cont = ValueRanges(propertyXID_ContinueRanges.ranges.dup);
 
-    version(IgnoreASCIIRanges)
+    version (IgnoreASCIIRanges)
     {
         // Remove ASCII ranges as its always a waste of time, since its handles elsewhere.
         cont = cont.not(ASCII_Table);
@@ -135,7 +292,11 @@ void write_XID_Continue()
     tableFile.writeln("UAX31 profile Continue");
     tableFile.writeln("Entries: ", cont.count);
     tableFile.writeln("*/");
-    writeTable("UAX31_Continue", cont);
+
+    writeIdentifierTable("UAX31_Continue", cont);
+    tableFile.writeln;
+
+    writeTestCases("UAX31_Continue", cont);
 }
 
 void write_other_tables()
@@ -151,7 +312,11 @@ void write_other_tables()
     tableFile.writeln("C99 Continue");
     tableFile.writeln("Entries: ", c99_Table.count);
     tableFile.writeln("*/");
-    writeTable("FixedTable_C99_Continue", c99_Table);
+
+    writeIdentifierTable("FixedTable_C99_Continue", c99_Table);
+    tableFile.writeln;
+
+    writeTestCases("FixedTable_C99_Continue", c99_Table);
     tableFile.writeln;
 
     tableFile.writeln("/**");
@@ -165,10 +330,15 @@ void write_other_tables()
     tableFile.writeln("C11 Continue");
     tableFile.writeln("Entries: ", c11_Table.count);
     tableFile.writeln("*/");
-    writeTable("FixedTable_C11_Continue", c11_Table);
+
+    writeIdentifierTable("FixedTable_C11_Continue", c11_Table);
+    tableFile.writeln;
+
+    writeTestCases("FixedTable_C11_Continue", c11_Table);
 }
 
-void write_least_restrictive_table() {
+void write_least_restrictive_table()
+{
     import unicode_tables.derivedCoreProperties;
 
     ValueRanges toMerge = c99_Table.merge(c11_Table);
@@ -176,7 +346,7 @@ void write_least_restrictive_table() {
     ValueRanges lrc = propertyXID_ContinueRanges.merge(toMerge);
     ValueRanges lr = lrs.merge(lrc);
 
-    version(IgnoreASCIIRanges)
+    version (IgnoreASCIIRanges)
     {
         // Remove ASCII ranges as its always a waste of time, since its handles elsewhere.
         lrs = lrs.not(ASCII_Table);
@@ -188,19 +358,94 @@ void write_least_restrictive_table() {
     tableFile.writeln("Least restrictive with both Start and Continue");
     tableFile.writeln("Entries: ", lr.count);
     tableFile.writeln("*/");
-    writeTable("LeastRestrictive_OfAll", lr);
+
+    writeIdentifierTable("LeastRestrictive_OfAll", lr);
+    tableFile.writeln;
+
+    writeTestCases("LeastRestrictive_OfAll", lr);
     tableFile.writeln;
 
     tableFile.writeln("/**");
     tableFile.writeln("Least restrictive Start");
     tableFile.writeln("Entries: ", lrs.count);
     tableFile.writeln("*/");
-    writeTable("LeastRestrictive_Start", lrs);
+
+    writeIdentifierTable("LeastRestrictive_Start", lrs);
+    tableFile.writeln;
+
+    writeTestCases("LeastRestrictive_Start", lrs);
     tableFile.writeln;
 
     tableFile.writeln("/**");
     tableFile.writeln("Least restrictive Continue");
     tableFile.writeln("Entries: ", lrc.count);
     tableFile.writeln("*/");
-    writeTable("LeastRestrictive_Continue", lrc);
+
+    writeIdentifierTable("LeastRestrictive_Continue", lrc);
+    tableFile.writeln;
+
+    writeTestCases("LeastRestrictive_Continue", lrc);
+}
+
+void writeIsNotNormalizedTable()
+{
+    import unicode_tables.derivedNormalizationProps;
+
+    tableFile.writeln("/**");
+    tableFile.writeln("Is not normalized table, used for quick check algorithm.");
+    tableFile.writeln("Has Maybe entries merged into No.");
+    tableFile.writeln("Entries: ", isCharacterNotNormalized.count);
+    tableFile.writeln("*/");
+
+    writeIdentifierTable("IsCharacterNotNormalized", isCharacterNotNormalized);
+    tableFile.writeln;
+
+    writeTestCases("IsCharacterNotNormalized", isCharacterNotNormalized);
+}
+
+void writeCCC()
+{
+    import unicode_tables.unicodeData;
+
+    tableFile.writeln("/**");
+    tableFile.writeln("The index table of CCC value for a character.");
+    tableFile.writeln("Entries: ", cccIndexTable.count);
+    tableFile.writeln("*/");
+
+    writeIdentifierTable("IndexTableForCCC", cccIndexTable);
+    tableFile.writeln;
+
+    writeTestCases("IndexTableForCCC", cccIndexTable);
+    tableFile.writeln;
+
+    tableFile.writeln("/// CCC Value table");
+    writeValueTable("ValueTableForCCC", cccValueTable);
+}
+
+void printSomeCharacters()
+{
+    import unicode_tables.unicodeData;
+    import unicode_tables.derivedNormalizationProps;
+
+    writeln("Some UAX31 non-starters");
+    writefln!"%-10s %-8s %-3s %-13s"("char (hex)", "char (dec)", "ccc", "is normalized");
+
+    ubyte done;
+    ubyte lastCCC;
+
+    foreach (index, ccc; cccValueTable)
+    {
+        if (ccc > lastCCC)
+            lastCCC = ccc;
+        else
+            continue;
+
+        dchar startCharacter = cccIndexTable.ranges[index].start;
+        bool isNormalized = !isCharacterNotNormalized.within(startCharacter);
+
+        writefln!"0x%08X %08d %3d %13s"(startCharacter, startCharacter, ccc, isNormalized);
+
+        if (done++ == 4)
+            break;
+    }
 }

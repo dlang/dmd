@@ -57,8 +57,11 @@ struct CompileEnv
     bool masm;               /// use MASM inline asm syntax
 
     // these need a default otherwise tests won't work.
-    IdentifierCharLookup cCharLookupTable;
-    IdentifierCharLookup dCharLookupTable;
+    IdentifierCharLookup cCharLookupTable; /// C identifier table (set to the lexer by the C parser)
+    IdentifierCharLookup dCharLookupTable; /// D identifier table
+
+    NormalizationStrategy cNormalization;  /// C normalization strategy (set to the lexer by the C parser)
+    NormalizationStrategy dNormalization;  /// D normalization strategy
 }
 
 /***********************************************************
@@ -74,7 +77,8 @@ class Lexer
 
     Token token;
 
-    IdentifierCharLookup charLookup;
+    IdentifierCharLookup charLookup;             /// Character table for identifiers
+    NormalizationStrategy normalizationStrategy; /// What to do when an identifier is not normalized
 
     // For ImportC
     bool Ccompile;              /// true if compiling ImportC
@@ -188,15 +192,11 @@ class Lexer
             endOfLine();
         }
 
-        // setup the identifier table lookup functions
-        if (this.Ccompile)
-        {
-            charLookup = this.compileEnv.cCharLookupTable;
-        }
-        else
-        {
-            charLookup = this.compileEnv.dCharLookupTable;
-        }
+        // setup the identifier table lookup functions and normalization
+        // C tables are setup in its parser constructor
+        // Due to us not knowing if we're in C at this point in time.
+        charLookup = this.compileEnv.dCharLookupTable;
+        normalizationStrategy = this.compileEnv.dNormalization;
     }
 
     /***********************
@@ -328,6 +328,7 @@ class Lexer
         t.blockComment = null;
         t.lineComment = null;
 
+        UnicodeQuickCheckState unicodeQuickCheckState;
         size_t universalCharacterName4, universalCharacterName8;
 
         while (1)
@@ -648,7 +649,11 @@ class Lexer
                         const isStartCharacter = t.ptr is p;
 
                         if (isidchar(c))
+                        {
+                            // ASCII ranges are all starters and hence CCC = 0
+                            unicodeQuickCheckState.lastCCC = 0;
                             continue;
+                        }
                         else if (c & 0x80)
                         {
                             const s = p;
@@ -656,13 +661,15 @@ class Lexer
 
                             if (isStartCharacter)
                             {
+                                // Start character always has ccc=0,
+                                //  therefore quick check state is already setup for this iteration.
                                 if (charLookup.isStart(u))
                                     continue;
                                 error(t.loc, "character 0x%04x is not allowed as a start character in an identifier", u);
                             }
                             else
                             {
-                                if (charLookup.isContinue(u))
+                                if (charLookup.isContinue(u, unicodeQuickCheckState))
                                     continue;
                                 error(t.loc, "character 0x%04x is not allowed as a continue character in an identifier", u);
                             }
@@ -718,6 +725,9 @@ class Lexer
 
                     if (universalCharacterName4 > 0 || universalCharacterName8 > 0)
                     {
+                        // unfortunately we need to rerun the quick check algorithm over the entire input, so we'll reset it.
+                        unicodeQuickCheckState = UnicodeQuickCheckState.init;
+
                         auto priorValidation = t.ptr[0 .. p - t.ptr];
                         const(char)* priorVPtr = priorValidation.ptr;
                         const possibleLength = (
@@ -772,23 +782,58 @@ class Lexer
                                 //  but hey it was written specifically so why worry?
                                 if (priorVPtr is priorValidation.ptr)
                                 {
+                                    // Start characters are ccc=0 so the quick check state is already setup.
                                     if (!charLookup.isStart(tempDchar))
                                         warning(t.loc, "char 0x%x is not allowed start character for an identifier", tempDchar);
                                 }
                                 else
                                 {
-                                    if (!charLookup.isContinue(tempDchar))
+                                    if (!charLookup.isContinue(tempDchar, unicodeQuickCheckState))
                                         warning(t.loc, "char 0x%x is not allowed continue character for an identifier", tempDchar);
                                 }
                             }
                             else
-                                storage[offset++] = *++priorVPtr;
+                            {
+                                if (isidchar(*priorVPtr))
+                                {
+                                    // ASCII ranges are all starters and hence CCC = 0
+                                    unicodeQuickCheckState.lastCCC = 0;
+                                    // copy as is
+                                    storage[offset++] = *++priorVPtr;
+                                }
+                                else
+                                {
+                                    const isStartCharacter = t.ptr is priorVPtr;
+
+                                    const inputOffset = priorVPtr - priorValidation.ptr;
+                                    size_t toDecodeOffset = inputOffset;
+                                    dchar tempDChar;
+
+                                    string msg = utf_decodeChar(priorValidation, toDecodeOffset, tempDChar);
+                                    if (msg)
+                                        error(t.loc, "%.*s".ptr, cast(int)msg.length, msg.ptr);
+
+                                    // We are a whole lot less concerned about validation here
+                                    //  however we'll still call into isStart/isContinue as if we're doing it
+                                    //  for simplicity sake.
+                                    // Note: the start character always has a ccc=0,
+                                    //  therefore the quick check state is setup correctly for that iteration.
+                                    if (isStartCharacter)
+                                        unicodeQuickCheckState.lastCCC = 0;
+                                    else
+                                        charLookup.isContinue(tempDChar, unicodeQuickCheckState);
+
+                                    // copy the decode length accross
+                                    foreach(_; 0 .. toDecodeOffset - inputOffset)
+                                        storage[offset++] = *++priorVPtr;
+                                }
+                            }
                         }
 
-                        id = Identifier.idPool(storage[0 .. offset], false);
+                        id = acquireIdentifierFromString(storage[0 .. offset], unicodeQuickCheckState.isNormalized);
                     }
                     else
-                        id = Identifier.idPool((cast(char*)t.ptr)[0 .. p - t.ptr], false);
+                        id = acquireIdentifierFromString((cast(char*)t.ptr)[0 .. p - t.ptr], unicodeQuickCheckState.isNormalized);
 
                     t.ident = id;
                     t.value = cast(TOK)id.getValue();
@@ -1363,6 +1408,7 @@ class Lexer
                         c = decodeUTF();
 
                         // Check for start of an identifier
+                        // Quick check state is already setup as its ccc=0
                         if (charLookup.isStart(c))
                             goto case_ident;
 
@@ -1877,7 +1923,7 @@ class Lexer
                     delimright = ']';
                 else if (c == '<')
                     delimright = '>';
-                else if (isalpha(c) || c == '_' || (c >= 0x80 && charLookup.isStart(c)))
+                else if (isalpha(c) || c == '_' || (c >= 0x80 && isAnyStart(c)))
                 {
                     // Start of identifier; must be a heredoc
                     Token tok;
@@ -1927,7 +1973,7 @@ class Lexer
                     goto Ldone;
 
                 // we're looking for a new identifier token
-                if (startline && (isalpha(c) || c == '_' || (c >= 0x80 && charLookup.isStart(c))) && hereid)
+                if (startline && (isalpha(c) || c == '_' || (c >= 0x80 && isAnyStart(c))) && hereid)
                 {
                     Token tok;
                     auto psave = p;
@@ -2391,6 +2437,55 @@ class Lexer
             t.postfix = 0;
             break;
         }
+    }
+
+    /**************************************
+    * Given an identifier string slice and if that slice is currently normalized,
+    *  return an identifier with respect to the normalization strategy (logging, is normalized).
+    *
+    * This function will only take action when the input string is not normalized.
+    * What it does when it takes action depends upon the normalization strategy that is provided by CLI switch for the language.
+    * When normalization, it does nothing here. But will inform identifier interning to normalize.
+    * Otherwise it will do some variation of logging (including no logging aka silently accept), which may result in compilation failing.
+    *
+    * Params:
+    *        s            = The string slice that contains the identifier from the source code
+    *        isNormalized = Is the string in normal form C. As per quick check algorithm.
+    *
+    * Returns: An identifier, that may or may not be normalized (as requested by the user).
+    */
+    private Identifier acquireIdentifierFromString(scope const(char)[] s, bool isNormalized)
+    {
+        // Boot strap compiler cannot inline this function.
+        // As of 2024Q1
+
+        // When a strategy accepts even if not normalized, we set as normalized.
+
+        if (!isNormalized)
+        {
+            final switch (this.normalizationStrategy)
+            {
+                case NormalizationStrategy.Normalize:
+                    // Do nothing, everything is correct
+                    break;
+
+                case NormalizationStrategy.SilentlyAccept:
+                    isNormalized = true;
+                    break;
+
+                case NormalizationStrategy.Deprecate:
+                    isNormalized = true;
+                    deprecation("Unnormalized identifier `%.*s`", cast(int)s.length, s.ptr);
+                    break;
+
+                case NormalizationStrategy.Warning:
+                    isNormalized = true;
+                    warning("Unnormalized identifier `%.*s`", cast(int)s.length, s.ptr);
+                    break;
+            }
+        }
+
+        return Identifier.idPoolNormalize(s, isNormalized);
     }
 
     /**************************************
@@ -3177,6 +3272,11 @@ class Lexer
     void deprecation(T...)(const ref Loc loc, const(char)* format, T args)
     {
         eSink.deprecation(loc, format, args);
+    }
+
+    void warning(T...)(const(char)* format, T args)
+    {
+        eSink.warning(token.loc, format, args);
     }
 
     void warning(T...)(const ref Loc loc, const(char)* format, T args)

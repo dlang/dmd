@@ -639,6 +639,24 @@ dmd -cov -unittest myprog.d
             `Turns off all array bounds checking, even for safe functions. $(RED Deprecated
             (use $(TT $(SWLINK -boundscheck)=off) instead).)`,
         ),
+        Option("normalization=<strategy>",
+            "Specify what to do when an identifier is not normalized",
+            `The strategy that will be used when an identifier may not be normalized (quick check algorithm).
+            The quick check algorithm will give off false positives as it does not handle the maybe case.
+                $(UL
+                    $(LI $(I ignore): Silently accept any failing identifiers (default))
+                    $(LI $(I warn): Emit a warning but accept)
+                )`
+        ),
+        Option("normalization-importc=<strategy>",
+            "Specify what to do when an identifier is not normalized",
+            `The strategy that will be used with ImportC when an identifier may not be normalized (quick check algorithm).
+            The quick check algorithm will give off false positives as it does not handle the maybe case.
+                $(UL
+                    $(LI $(I ignore): Silently accept any failing identifiers (default))
+                    $(LI $(I warn): Emit a warning but accept)
+                )`
+        ),
         Option("nothrow",
             "assume no Exceptions will be thrown",
             `Turns off generation of exception stack unwinding code, enables

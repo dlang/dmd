@@ -82,6 +82,14 @@ enum CLIIdentifierTable : ubyte
     All      = 4, /// The least restrictive set of all other tables
 }
 
+/// When a non-normalized identifier is found, what should happen?
+enum CLIIdentifierNormalization : ubyte
+{
+    default_       = 0, /// The default normalization strategy
+    SilentlyAccept = 1, /// Silently accept the bad string
+    Warning        = 2, /// Emit a warning but allow
+}
+
 extern(C++) struct Output
 {
     bool doOutput;      // Output is enabled
@@ -209,8 +217,10 @@ extern (C++) struct Param
 
     CHECKACTION checkAction = CHECKACTION.D; // action to take when bounds, asserts or switch defaults are violated
 
-    CLIIdentifierTable dIdentifierTable = CLIIdentifierTable.default_;
-    CLIIdentifierTable cIdentifierTable = CLIIdentifierTable.default_;
+    CLIIdentifierTable dIdentifierTable = CLIIdentifierTable.default_; // the D identifier table to use
+    CLIIdentifierTable cIdentifierTable = CLIIdentifierTable.default_; // the C identifier table to use (ImportC)
+    CLIIdentifierNormalization dNormalization = CLIIdentifierNormalization.default_; // The D identifier normalization strategy to use
+    CLIIdentifierNormalization cNormalization = CLIIdentifierNormalization.default_; // The C identifier normalization strategy to use (ImportC)
 
     const(char)[] argv0;                // program name
     Array!(const(char)*) modFileAliasStrings; // array of char*'s of -I module filename alias strings

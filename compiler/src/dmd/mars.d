@@ -1512,6 +1512,52 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             else
                 goto Lerror;
         }
+        else if (startsWith(p + 1, "normalization-importc"))
+        {
+            // Parse:
+            //      -normalization-importc=[ignore|deprecate|warn|error]
+            if (p[22] == '=')
+            {
+                const(char)[] normalize = arg[23 .. $];
+
+                switch(normalize)
+                {
+                    case "ignore":
+                        params.cNormalization = CLIIdentifierNormalization.SilentlyAccept;
+                        break;
+                    case "warn":
+                        params.cNormalization = CLIIdentifierNormalization.Warning;
+                        break;
+                    default:
+                        goto Lerror;
+                }
+            }
+            else
+                goto Lerror;
+        }
+        else if (startsWith(p + 1, "normalization"))
+        {
+            // Parse:
+            //      -normalization=[ignore|deprecate|warn|error]
+            if (p[14] == '=')
+            {
+                const(char)[] normalize = arg[15 .. $];
+
+                switch(normalize)
+                {
+                    case "ignore":
+                        params.dNormalization = CLIIdentifierNormalization.SilentlyAccept;
+                        break;
+                    case "warn":
+                        params.dNormalization = CLIIdentifierNormalization.Warning;
+                        break;
+                    default:
+                        goto Lerror;
+                }
+            }
+            else
+                goto Lerror;
+        }
         else if (arg == "-nothrow") // https://dlang.org/dmd.html#switch-nothrow
         {
             params.useExceptions = false;

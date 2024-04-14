@@ -1,0 +1,14 @@
+Identifiers are verifiable against normalization form C
+
+It is now possible to verify identifiers against normalization form C, as per UAX31 and C23.
+
+The quick check algorithm that is in use is an incomplete form that does not handle maybes and can result in false positives in errors.
+The purpose of this algorithm in its incomplete state is to minimize normalization in a future update.
+
+It is configurable for both D and ImportC using ``-normalization=<strategy>`` and ``-normalization-importc=<strategy>``.
+Using the options ``ignore``, ``deprecate``, ``warn``, and ``error``.
+
+Unless you use non-ASCII characters, this change will not affect you.
+
+Due to bug [24507](https://issues.dlang.org/show_bug.cgi?id=24507) if you use GCC as your preprocessor with any identifier that is not normalized to form C, by default it will produce a warning.
+Use the GCC option ``-Wnormalized=none`` to disable this [warning](https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html#index-Wnormalized_003d), and the D compiler will take over.

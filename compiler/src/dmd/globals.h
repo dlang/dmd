@@ -93,6 +93,16 @@ enum class CLIIdentifierTable : unsigned char
     All      = 4, /// The least restrictive set of all other tables
 };
 
+/// When a non-normalized identifier is found, what should happen?
+enum class CLIIdentifierNormalization : unsigned char
+{
+    default_       = 0, /// The default normalization strategy
+    SilentlyAccept = 1, /// Silently accept the bad string
+    Deprecate      = 2, /// Emit a deprecation but allow
+    Warning        = 3, /// Emit a warning but allow
+    Error          = 4  /// Emit an error and fail
+};
+
 struct Output
 {
     /// Configuration for the compiler generator
@@ -211,8 +221,10 @@ struct Param
 
     CHECKACTION checkAction;       // action to take when bounds, asserts or switch defaults are violated
 
-    CLIIdentifierTable dIdentifierTable;
-    CLIIdentifierTable cIdentifierTable;
+    CLIIdentifierTable dIdentifierTable; // the D identifier table to use
+    CLIIdentifierTable cIdentifierTable; // the C identifier table to use (ImportC)
+    CLIIdentifierNormalization dNormalization; // The D identifier normalization strategy to use
+    CLIIdentifierNormalization cNormalization; // The C identifier normalization strategy to use (ImportC)
 
     DString  argv0;    // program name
     Array<const char *> modFileAliasStrings; // array of char*'s of -I module filename alias strings

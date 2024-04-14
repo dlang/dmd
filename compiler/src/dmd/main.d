@@ -216,6 +216,39 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             break;
     }
 
+    final switch(global.params.cNormalization)
+    {
+        case CLIIdentifierNormalization.default_:
+            // C11 silently accepts, if this is upgraded to C23 change this to normalization/deprecate/warning/error.
+            global.compileEnv.cNormalization = NormalizationStrategy.SilentlyAccept;
+            break;
+
+        case CLIIdentifierNormalization.SilentlyAccept:
+            global.compileEnv.cNormalization = NormalizationStrategy.SilentlyAccept;
+            break;
+
+        case CLIIdentifierNormalization.Warning:
+            global.compileEnv.cNormalization = NormalizationStrategy.Warning;
+            break;
+    }
+
+    final switch(global.params.dNormalization)
+    {
+        case CLIIdentifierNormalization.default_:
+            // @@@DEPRECATED_2.119@@@
+            // Change the default behavior to deprecate, if normalization hasn't been implemented by then.
+            global.compileEnv.dNormalization = NormalizationStrategy.SilentlyAccept;
+            break;
+
+        case CLIIdentifierNormalization.SilentlyAccept:
+            global.compileEnv.dNormalization = NormalizationStrategy.SilentlyAccept;
+            break;
+
+        case CLIIdentifierNormalization.Warning:
+            global.compileEnv.dNormalization = NormalizationStrategy.Warning;
+            break;
+    }
+
     if (params.help.usage)
     {
         usage();

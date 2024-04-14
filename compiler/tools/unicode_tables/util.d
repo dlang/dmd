@@ -41,7 +41,8 @@ struct ValueRange
         return end + 1 - start;
     }
 
-    int opCmp(const ValueRange other) const {
+    int opCmp(const ValueRange other) const
+    {
         return this.start < other.start ? -1 : (this.start > other.start ? 1 : 0);
     }
 
@@ -68,7 +69,8 @@ struct ValueRanges
 
     void add(ValueRange toAdd)
     {
-        if (ranges.length > 0 && (ranges[$ - 1].end >= toAdd.start || ranges[$ - 1].end + 1 == toAdd.start))
+        if (ranges.length > 0 && (ranges[$ - 1].end >= toAdd.start
+                || ranges[$ - 1].end + 1 == toAdd.start))
         {
             ranges[$ - 1].end = toAdd.end;
         }
@@ -94,16 +96,22 @@ struct ValueRanges
 
     ValueRanges merge(const ref ValueRanges andThis) const
     {
-        import std.algorithm : sort;
         ValueRanges ret;
+        ret.ranges = (this.ranges ~ andThis.ranges).dup;
 
-        auto sorted = sort((this.ranges ~ andThis.ranges).dup);
-
-        foreach(range; sorted) {
-            ret.add(range);
-        }
-
+        ret.sortMerge;
         return ret;
+    }
+
+    void sortMerge()
+    {
+        import std.algorithm : sort;
+
+        auto sorted = sort(this.ranges);
+        this.ranges = null;
+
+        foreach (range; sorted)
+            this.add(range);
     }
 
     bool within(dchar index) const
