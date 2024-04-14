@@ -617,7 +617,6 @@ noprop:
 @trusted
 void listrds(vec_t IN,elem *e,vec_t f, Barray!(elem*)* rdlist)
 {
-    uint i;
     uint unambig;
     Symbol *s;
     uint nsize;
@@ -635,7 +634,7 @@ void listrds(vec_t IN,elem *e,vec_t f, Barray!(elem*)* rdlist)
     unambig = s.Sflags & SFLunambig;
     if (f)
         vec_clear(f);
-    for (i = 0; (i = cast(uint) vec_index(i, IN)) < go.defnod.length; ++i)
+    for (size_t i = 0; (i = vec_index(i, IN)) < go.defnod.length; ++i)
     {
         elem *d = go.defnod[i].DNelem;
         //printf("\tlooking at "); WReqn(d); printf("\n");
@@ -1229,8 +1228,7 @@ private bool copyPropWalk(elem *n,vec_t IN)
             int ambig;              /* true if ambiguous def        */
 
             ambig = !OTassign(op) || t.Eoper == OPind;
-            uint i;
-            for (i = 0; (i = cast(uint) vec_index(i, IN)) < go.exptop; ++i) // for each active copy elem
+            for (size_t i = 0; (i = vec_index(i, IN)) < go.exptop; ++i) // for each active copy elem
             {
                 Symbol *v;
 
@@ -1287,7 +1285,7 @@ private bool copyPropWalk(elem *n,vec_t IN)
 
             elem *foundelem = null;
             Symbol *f;
-            for (uint i = 0; (i = cast(uint) vec_index(i, IN)) < go.exptop; ++i) // for all active copy elems
+            for (size_t i = 0; (i = vec_index(i, IN)) < go.exptop; ++i) // for all active copy elems
             {
                 elem* c = go.expnod[i];
                 assert(c);
@@ -1576,8 +1574,8 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
             /* D |= P & (Dl & Dr) | ~P & (Dl | Dr)  */
             /* P = P & (Pl & Pr) | ~P & (Pl | Pr)   */
             /*   = Pl & Pr | ~P & (Pl | Pr)         */
-            const vecdim = cast(uint)vec_dim(DEAD);
-            for (uint i = 0; i < vecdim; i++)
+            const vecdim = vec_dim(DEAD);
+            foreach (i; 0 .. vecdim)
             {
                 DEAD[i] |= (POSS[i] & Dl[i] & Dr[i]) |
                            (~POSS[i] & (Dl[i] | Dr[i]));
@@ -1613,7 +1611,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
             // We have a reference. Clear all bits in POSS that
             // could be referenced.
 
-            foreach (const i; 0 .. cast(uint)assnod.length)
+            foreach (const i; 0 .. assnod.length)
             {
                 elem *ti = assnod[i].EV.E1;
                 if (v == ti.EV.Vsym &&
@@ -1631,7 +1629,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
         }
 
         case OPasm:         // reference everything
-            foreach (const i; 0 .. cast(uint)assnod.length)
+            foreach (const i; 0 .. assnod.length)
                 vec_clearbit(i,POSS);
             break;
 
@@ -1707,7 +1705,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
                     uint tsz = tysize(t.Ety);
                     if (n.Eoper == OPstreq)
                         tsz = cast(uint)type_size(n.ET);
-                    foreach (const i; 0 .. cast(uint)assnod.length)
+                    foreach (const i; 0 .. assnod.length)
                     {
                         elem *ti = assnod[i].EV.E1;
 
@@ -1732,7 +1730,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
                 // if assignment operator, post this def to POSS
                 if (n.Nflags & NFLassign)
                 {
-                    const i = cast(uint)assnod.length;
+                    const i = assnod.length;
                     vec_setbit(i,POSS);
 
                     // if variable could be referenced by a pointer
@@ -1813,7 +1811,7 @@ public void deadvar()
             if (s.Srange /*&& s.Sclass != CLMOS*/)
                 foreach (j, b; dfo[])
                     if (vec_testbit(i,b.Binlv))
-                        vec_setbit(cast(uint)j,globsym[i].Srange);
+                        vec_setbit(j, globsym[i].Srange);
         }
 
         /* Print results        */
@@ -1876,7 +1874,6 @@ private __gshared vec_t blockseen; /* which blocks we have visited         */
 public void verybusyexp()
 {
     elem **pn;
-    uint j,l;
 
     if (debugc) printf("verybusyexp()\n");
     flowvbe();                      /* compute VBEs                 */
@@ -1940,7 +1937,7 @@ public void verybusyexp()
             vec_println(b.Bout);
         }
         done = true;
-        for (j = 0; (j = cast(uint) vec_index(j, b.Bout)) < go.exptop; ++j)
+        for (size_t j = 0; (j = vec_index(j, b.Bout)) < go.exptop; ++j)
         {
             if (go.expnod[j] == null ||
                 !!OTleaf(go.expnod[j].Eoper) ||
@@ -1958,12 +1955,12 @@ public void verybusyexp()
             printf("block %d Bout = ",i);
             vec_println(b.Bout);
         }
-        for (j = 0; (j = cast(uint) vec_index(j, b.Bout)) < go.exptop; ++j)
+        for (size_t j = 0; (j = vec_index(j, b.Bout)) < go.exptop; ++j)
         {
             vec_clear(blockseen);
             foreach (bl; ListRange(go.expblk[j].Bpred))
             {
-                if (killed(j,list_block(bl),b))
+                if (killed(cast(uint)j,list_block(bl),b))
                 {
                     vec_clearbit(j,b.Bout);
                     break;
@@ -1981,12 +1978,12 @@ public void verybusyexp()
             vec_println(b.Bout);
         }
 
-        for (j = 0; (j = cast(uint) vec_index(j, b.Bout)) < go.exptop; ++j)
+        for (size_t j = 0; (j = vec_index(j, b.Bout)) < go.exptop; ++j)
         {
             vec_clear(blockseen);
             foreach (bl; ListRange(go.expblk[j].Bpred))
             {
-                if (ispath(j,list_block(bl),b))
+                if (ispath(cast(uint)j,list_block(bl),b))
                     goto L2;
             }
             vec_clearbit(j,b.Bout);        /* thar ain't no path   */
@@ -2002,9 +1999,9 @@ public void verybusyexp()
             vec_println(b.Bout);
         }
 
-        for (j = 0; (j = cast(uint) vec_index(j, b.Bout)) < go.exptop; ++j)
+        for (size_t j = 0; (j = vec_index(j, b.Bout)) < go.exptop; ++j)
         {
-            uint k;
+            size_t k;
             for (k = j + 1; k < go.exptop; k++)
             {   if (vec_testbit(k,b.Bout) &&
                         el_match(go.expnod[j],go.expnod[k]))
@@ -2016,7 +2013,7 @@ public void verybusyexp()
             debug
             {
                 if (debugc)
-                {   printf("VBE %d,%d, block %d (",j,k, cast(int) i);
+                {   printf("VBE %d,%d, block %d (", cast(int)j, cast(int)k, cast(int) i);
                     WReqn(go.expnod[j]);
                     printf(");\n");
                 }
@@ -2030,7 +2027,7 @@ public void verybusyexp()
             /* of the expression are found later. This      */
             /* will substitute for the fact that the        */
             /* el_copytree() expression does not appear in go.expnod[]. */
-            l = k;
+            const l = k;
             do
             {
                 if (k == l || (vec_testbit(k,b.Bout) &&
@@ -2087,8 +2084,7 @@ private int ispath(uint j,block *bp,block *b)
 
     /* false if elem j is used in block bp (and reaches the end     */
     /* of bp, indicated by it being an AE in Bgen)                  */
-    uint i;
-    for (i = 0; (i = cast(uint) vec_index(i, bp.Bgen)) < go.exptop; ++i) // look thru used expressions
+    for (size_t i = 0; (i = vec_index(i, bp.Bgen)) < go.exptop; ++i) // look thru used expressions
     {
         if (i != j && go.expnod[i] && el_match(go.expnod[i],go.expnod[j]))
             return false;

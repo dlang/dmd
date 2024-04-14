@@ -916,14 +916,14 @@ static if (MULTISCOPE)
         if (offset >= vec_numbits(obj.offvec))
         {
             if (offset < 0xFF00)        // otherwise we overflow ph_malloc()
-                obj.offvec = vec_realloc(obj.offvec,cast(uint)offset * 2);
+                obj.offvec = vec_realloc(obj.offvec, cast(size_t)offset * 2);
         }
         bool cond3 =
             // disallow multiple offsets per line
             !vec_testbit(linnum,obj.linvec) &&  // if linnum not already used
 
             // disallow multiple lines per offset
-            (offset >= 0xFF00 || !vec_testbit(cast(uint)offset,obj.offvec));      // and offset not already used
+            (offset >= 0xFF00 || !vec_testbit(cast(size_t)offset,obj.offvec));      // and offset not already used
 }
 else
         enum cond3 = true;
@@ -934,7 +934,7 @@ static if (MULTISCOPE)
 {
             vec_setbit(linnum,obj.linvec);              // mark linnum as used
             if (offset < 0xFF00)
-                vec_setbit(cast(uint)offset,obj.offvec);  // mark offset as used
+                vec_setbit(cast(size_t)offset, obj.offvec); // mark offset as used
 }
             TOWORD(obj.linrec + obj.linreci,linnum);
             if (linos2)
