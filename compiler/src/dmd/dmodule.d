@@ -681,10 +681,11 @@ extern (C++) final class Module : Package
 
         const(ubyte)[] srctext;
         if (global.preprocess &&
-            FileName.equalsExt(srcfile.toString(), c_ext) &&
+            (FileName.equalsExt(srcfile.toString(), i_ext) ||
+            FileName.equalsExt(srcfile.toString(), c_ext)) &&
             FileName.exists(srcfile.toString()))
         {
-            /* Apply C preprocessor to the .c file, returning the contents
+            /* Apply C preprocessor to the file, returning the contents
              * after preprocessing
              */
             srctext = global.preprocess(srcfile, loc, defines).data;
