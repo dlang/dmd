@@ -605,8 +605,8 @@ void boolopt()
         return;
     static if (0)
     {
-        for (uint i = 0; i < go.exptop; i++)
-                printf("go.expnod[%d] = 0x%x\n",i,go.expnod[i]);
+        foreach (i; 0 .. go.exptop)
+                printf("go.expnod[%d] = 0x%x\n",cast(int)i,go.expnod[i]);
         printf("defkill  "); vec_println(go.defkill,go.exptop);
         printf("starkill "); vec_println(go.starkill,go.exptop);
         printf("vptrkill "); vec_println(go.vptrkill,go.exptop);
@@ -619,7 +619,7 @@ void boolopt()
     aevecval = vec_calloc(go.exptop);
 
     // Mark each expression that we know starts off with a non-zero value
-    for (uint i = 0; i < go.exptop; i++)
+    foreach (const i; 0 .. go.exptop)
     {
         elem *e = go.expnod[i];
         if (e)

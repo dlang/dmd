@@ -208,7 +208,7 @@ Loop:
                 else if (lt.length && (op == OPaddass || op == OPxorass))
                 {
                     const s = e1.EV.Vsym;
-                    for (uint u = 0; u < lt.length; u++)
+                    foreach (u; 0 .. lt.length)
                     {
                         auto em = lt[u].e;
                         if (em.Eoper == op &&
