@@ -1,11 +1,13 @@
 /*
-REQUIRED_ARGS: -de
 TEST_OUTPUT:
 ---
-fail_compilation/alias_instance_member2.d(18): Deprecation: cannot alias member of variable `f`
-fail_compilation/alias_instance_member2.d(18):        Use `typeof(f)` instead to preserve behaviour
+fail_compilation/alias_instance_member2.d(20): Error: cannot alias member of variable `f`
+fail_compilation/alias_instance_member2.d(20):        Use `typeof(f)` instead to preserve behaviour
 ---
 */
+
+@__edition_latest_do_not_use
+module aim;
 
 struct Foo
 {

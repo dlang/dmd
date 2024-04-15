@@ -1,11 +1,13 @@
 /*
-REQUIRED_ARGS: -de
 TEST_OUTPUT:
 ---
-fail_compilation/alias_instance_member.d(16): Deprecation: cannot alias member of variable `that`
-fail_compilation/alias_instance_member.d(16):        Use `typeof(that)` instead to preserve behaviour
+fail_compilation/alias_instance_member.d(18): Error: cannot alias member of variable `that`
+fail_compilation/alias_instance_member.d(18):        Use `typeof(that)` instead to preserve behaviour
 ---
 */
+
+@__edition_latest_do_not_use
+module aim;
 
 struct Foo
 {

@@ -5301,7 +5301,7 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
     // Detect `alias sym = sym;` to prevent creating loops in overload overnext lists.
     if (auto tident = ds.type.isTypeIdentifier())
     {
-        if (tident.idents.length)
+        if (sc.hasEdition(Edition.v2024) && tident.idents.length)
         {
             alias mt = tident;
             Dsymbol pscopesym;
@@ -5313,11 +5313,8 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
             {
                 s = tident.toDsymbol(sc);
                 if (s && s.isVarDeclaration()) {
-                    // @@@DEPRECATED_2.118@@@
-                    // Deprecated in 2.108
-                    // Make an error in 2.118
-                    deprecation(mt.loc, "cannot alias member of variable `%s`", mt.ident.toChars());
-                    deprecationSupplemental(mt.loc, "Use `typeof(%s)` instead to preserve behaviour",
+                    error(mt.loc, "cannot alias member of variable `%s`", mt.ident.toChars());
+                    errorSupplemental(mt.loc, "Use `typeof(%s)` instead to preserve behaviour",
                         mt.ident.toChars());
                 }
             }
