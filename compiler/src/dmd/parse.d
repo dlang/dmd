@@ -1705,18 +1705,27 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      *      mixin Foo;
      *      mixin Foo!(args);
      *      mixin a.b.c!(args).Foo!(args);
-     *      mixin Foo!(args) identifier;
      *      mixin typeof(expr).identifier!(args);
+     *      mixin Foo!(args) identifier;
+     *      mixin identifier = Foo!(args);
      */
     private AST.Dsymbol parseMixin()
     {
         AST.TemplateMixin tm;
-        Identifier id;
+        Identifier id, name;
         AST.Objects* tiargs;
 
         //printf("parseMixin()\n");
         const locMixin = token.loc;
         nextToken(); // skip 'mixin'
+
+        // mixin Identifier = MixinTemplateName TemplateArguments;
+        if (token.value == TOK.identifier && peekNext() == TOK.assign)
+        {
+            name = token.ident;
+            nextToken();
+            nextToken();
+        }
 
         auto loc = token.loc;
         AST.TypeQualified tqual = null;
@@ -1780,14 +1789,14 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             nextToken();
         }
 
-        id = null;
-        if (token.value == TOK.identifier)
+        // mixin MixinTemplateName TemplateArguments Identifier;
+        if (!name && token.value == TOK.identifier)
         {
-            id = token.ident;
+            name = token.ident;
             nextToken();
         }
 
-        tm = new AST.TemplateMixin(locMixin, id, tqual, tiargs);
+        tm = new AST.TemplateMixin(locMixin, name, tqual, tiargs);
         if (token.value != TOK.semicolon)
             error("`;` expected after `mixin`");
         nextToken();
