@@ -1338,7 +1338,7 @@ private bool copyPropWalk(elem *n,vec_t IN)
                  *  d = g   => d = f !!error
                  * Therefore, if n appears as an rvalue in go.expnod[], then recalc
                  */
-                for (size_t j = 1; j < go.exptop; ++j)
+                foreach (j; 1 .. go.exptop)
                 {
                     //printf("go.expnod[%d]: ", j); elem_print(go.expnod[j]);
                     if (go.expnod[j].EV.E2 == n)

@@ -201,14 +201,12 @@ void pop87() { pop87(__LINE__, __FILE__); }
 @trusted
 void pop87(int line, const(char)* file)
 {
-    int i;
-
     if (NDPP)
         printf("pop87(%s(%d): stackused=%d)\n", file, line, global87.stackused);
 
     --global87.stackused;
     assert(global87.stackused >= 0);
-    for (i = 0; i < global87.stack.length - 1; i++)
+    foreach (i; 0 .. global87.stack.length - 1)
         global87.stack[i] = global87.stack[i + 1];
     // end of stack is nothing
     global87.stack[$ - 1] = NDP();
@@ -3816,7 +3814,6 @@ void cload87(ref CodeBuilder cdb, elem *e, ref regm_t outretregs)
     uint sz;
     ubyte ldop;
     regm_t retregs;
-    int i;
 
     //printf("cload87(e = %p, outretregs = %s)\n", e, regm_str(outretregs));
     sz = _tysize[ty] / 2;
@@ -3871,7 +3868,7 @@ void cload87(ref CodeBuilder cdb, elem *e, ref regm_t outretregs)
         case OPconst:
             push87(cdb);
             push87(cdb);
-            for (i = 0; i < 2; i++)
+            foreach (i;  0 .. 2)
             {
                 ldop = loadconst(e, i);
                 if (ldop)
