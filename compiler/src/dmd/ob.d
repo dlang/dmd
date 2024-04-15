@@ -230,6 +230,8 @@ struct PtrVarState
      * are being merged
      * Params:
      *  pvs = path to be merged with `this`
+     *  vi = variable's index into gen[]
+     *  gen = array of variable states
      */
     void combine(ref PtrVarState pvs, size_t vi, PtrVarState[] gen)
     {
@@ -284,6 +286,9 @@ struct PtrVarState
     }
 
     /***********************
+     * Print a bracketed list of all the variables that depend on 'this'
+     * Params:
+     *  vars = variables that depend on 'this'
      */
     void print(VarDeclaration[] vars)
     {
@@ -1117,8 +1122,8 @@ bool isTrackableVar(VarDeclaration v)
     /* Assume types with a destructor are doing their own tracking,
      * such as being a ref counted type
      */
-    if (v.needsScopeDtor())
-        return false;
+//    if (v.needsScopeDtor())
+//        return false;
 
     /* Not tracking function parameters that are not mutable
      */
@@ -1235,7 +1240,9 @@ void allocStates(ref ObState obstate)
  */
 bool isBorrowedPtr(VarDeclaration v)
 {
-    return v.isScope() && !v.isowner && v.type.nextOf().isMutable();
+    return v.isScope() && !v.isowner &&
+           (!v.type.nextOf() || // could be a struct type with a pointer field
+             v.type.nextOf().isMutable());
 }
 
 /******************************
@@ -1439,6 +1446,46 @@ void genKill(ref ObState obstate, ObNode* ob)
                     assert(t.ty == Tdelegate);
                     tf = t.nextOf().isTypeFunction();
                     assert(tf);
+
+                }
+
+                if (auto dve = ce.e1.isDotVarExp())
+                {
+                    if (!t.isTypeDelegate() && dve.e1.isVarExp())
+                    {
+                        //printf("dve: %s\n", dve.toChars());
+                        EscapeByResults er;
+                        escapeByValue(dve.e1, &er, true);
+
+                        void byf(VarDeclaration v)
+                        {
+                            //printf("byf v: %s\n", v.ident.toChars());
+                            if (!isTrackableVar(v))
+                                return;
+
+                            const vi = obstate.vars.find(v);
+                            if (vi == size_t.max)
+                                return;
+
+                            auto fd = dve.var.isFuncDeclaration();
+                            if (fd && fd.storage_class & STC.scope_)
+                            {
+                                // borrow
+                                obstate.varStack.push(vi);
+                                obstate.mutableStack.push(isMutableRef(dve.e1.type.toBasetype()));
+                            }
+                            else
+                            {
+                                // move (i.e. consume arg)
+                                makeUndefined(vi, ob.gen);
+                            }
+                        }
+
+                        foreach (VarDeclaration v2; er.byvalue)
+                            byf(v2);
+                        foreach (VarDeclaration v2; er.byref)
+                            byf(v2);
+                    }
                 }
 
                 // j=1 if _arguments[] is first argument
@@ -1462,6 +1509,7 @@ void genKill(ref ObState obstate, ObNode* ob)
 
                         void by(VarDeclaration v)
                         {
+                            //printf("by v: %s\n", v.ident.toChars());
                             if (!isTrackableVar(v))
                                 return;
 
@@ -2664,6 +2712,9 @@ void makeChildrenUndefined(size_t vi, PtrVarState[] gen)
 
 /********************
  * Recursively make Undefined vi undefined and all who list vi as a dependency
+ * Params:
+ *    vi = variable's index
+ *    gen = array of the states of variables
  */
 void makeUndefined(size_t vi, PtrVarState[] gen)
 {
