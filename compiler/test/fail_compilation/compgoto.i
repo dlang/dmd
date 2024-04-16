@@ -1,7 +1,7 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/compgoto.i$?:windows=.tmp$(105): Error: unary `&&` computed goto extension is not supported
-fail_compilation/compgoto.i$?:windows=.tmp$(106): Error: `goto *` computed goto extension is not supported
+fail_compilation/compgoto.i(105): Error: unary `&&` computed goto extension is not supported
+fail_compilation/compgoto.i(106): Error: `goto *` computed goto extension is not supported
 ---
  */
 
