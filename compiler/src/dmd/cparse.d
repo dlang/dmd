@@ -339,6 +339,7 @@ final class CParser(AST) : Parser!AST
         case TOK.volatile:
         case TOK.restrict:
         case TOK.__stdcall:
+        case TOK._stdcall:
 
         // alignment-specifier
         case TOK._Alignas:
@@ -2401,7 +2402,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.const_:     modx = MOD.xconst;     break;
                 case TOK.volatile:   modx = MOD.xvolatile;  break;
                 case TOK.restrict:   modx = MOD.xrestrict;  break;
-                case TOK.__stdcall:  modx = MOD.x__stdcall; break;
+                case TOK.__stdcall: case TOK._stdcall: modx = MOD.x__stdcall; break;
 
                 // Type specifiers
                 case TOK.char_:      tkwx = TKW.xchar;      break;
@@ -2859,7 +2860,7 @@ final class CParser(AST) : Parser!AST
                     }
                     nextToken();
 
-                    if (token.value == TOK.__stdcall) // T (__stdcall*fp)();
+                    if (token.value == TOK.__stdcall || token.value == TOK._stdcall) // T (__stdcall*fp)();
                     {
                         specifier.mod |= MOD.x__stdcall;
                         nextToken();
@@ -3092,7 +3093,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.volatile:   mod |= MOD.xvolatile;  break;
                 case TOK.restrict:   mod |= MOD.xrestrict;  break;
                 case TOK._Atomic:    mod |= MOD.x_Atomic;   break;
-                case TOK.__stdcall:  mod |= MOD.x__stdcall; break;
+                case TOK.__stdcall: case TOK._stdcall: mod |= MOD.x__stdcall; break;
 
                 default:
                     return mod;
@@ -4476,6 +4477,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.volatile:
                 case TOK.restrict:
                 case TOK.__stdcall:
+                case TOK._stdcall:
                     t = peek(t);
                     any = true;
                     continue;
@@ -4668,7 +4670,7 @@ final class CParser(AST) : Parser!AST
         else if (t.value == TOK.leftParenthesis)
         {
             t = peek(t);
-            if (t.value == TOK.__stdcall)
+            if (t.value == TOK.__stdcall || t.value == TOK._stdcall)
                 t = peek(t);
             if (!isCDeclarator(t, declarator))
                 return false;
@@ -4720,6 +4722,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.volatile:
                 case TOK._Atomic:
                 case TOK.__stdcall:
+                case TOK._stdcall:
                     t = peek(t);
                     continue;
 
@@ -4773,6 +4776,7 @@ final class CParser(AST) : Parser!AST
                 case TOK.restrict:
                 case TOK.volatile:
                 case TOK.__stdcall:
+                case TOK._stdcall:
 
                 // Type Specifiers
                 case TOK.char_:

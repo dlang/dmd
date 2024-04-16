@@ -275,6 +275,7 @@ enum TOK : ubyte
     _import,
     __cdecl,
     __declspec,
+    _stdcall,
     __stdcall,
     __thread,
     __pragma,
@@ -582,6 +583,7 @@ private immutable TOK[] keywords =
     TOK._import,
     TOK.__cdecl,
     TOK.__declspec,
+    TOK._stdcall,
     TOK.__stdcall,
     TOK.__thread,
     TOK.__pragma,
@@ -615,7 +617,7 @@ static immutable TOK[TOK.max + 1] Ckeywords =
                        union_, unsigned, void_, volatile, while_, asm_, typeof_,
                        _Alignas, _Alignof, _Atomic, _Bool, _Complex, _Generic, _Imaginary, _Noreturn,
                        _Static_assert, _Thread_local,
-                       _import, __cdecl, __declspec, __stdcall, __thread, __pragma, __int128, __attribute__,
+                       _import, __cdecl, __declspec, _stdcall, __stdcall, __thread, __pragma, __int128, __attribute__,
                        _assert ];
 
         foreach (kw; Ckwds)
@@ -896,6 +898,7 @@ extern (C++) struct Token
         TOK._import       : "__import",
         TOK.__cdecl        : "__cdecl",
         TOK.__declspec     : "__declspec",
+        TOK._stdcall      : "_stdcall",
         TOK.__stdcall      : "__stdcall",
         TOK.__thread       : "__thread",
         TOK.__pragma       : "__pragma",

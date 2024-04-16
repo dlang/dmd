@@ -543,6 +543,7 @@ enum ignoreTokens
     _import,
     __cdecl,
     __declspec,
+    _stdcall,
     __stdcall,
     __thread,
     __pragma,
