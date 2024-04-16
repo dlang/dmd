@@ -675,7 +675,7 @@ extern (C++) final class Module : Package
 
         //printf("Module::read('%s') file '%s'\n", toChars(), srcfile.toChars());
 
-        /* Preprocess the file if it's a .c file
+        /* Preprocess the file if it's a .c or .i file
          */
         FileName filename = srcfile;
 
