@@ -80,16 +80,14 @@ DArray!(const ubyte) preprocess(FileName csrcfile, ref const Loc loc, bool wasPr
             // preprocessed file wasn't preprocessed
             if (wasPreprocessed)
             {
-                import dmd.utils : readFile, writeFile;
+                import dmd.utils : writeFile;
 
-                OutBuffer src;
-                if (readFile(loc, csrcfile.toString, src))
-                    fatal();
+                auto src = global.fileManager.getFileContents(csrcfile);
 
                 tmp_filename = FileName(csrcfile.toString ~ ".tmp");
 
                 string dst;
-                foreach (line; (cast(char[]) src.extractSlice).splitLines)
+                foreach (line; (cast(char[]) src).splitLines)
                     dst ~= line.ptr.startsWith("# ") ? "\n" : (line~'\n');
 
                 if (!writeFile(loc, tmp_filename.toString, dst))
