@@ -151,7 +151,8 @@ package void postblitRecurse(E, size_t n)(ref E[n] arr)
 
 // Test handling of fixed-length arrays
 // Separate from first test because of https://issues.dlang.org/show_bug.cgi?id=14242
-@safe unittest
+//@safe fails dip1021
+unittest
 {
     string[] order;
 

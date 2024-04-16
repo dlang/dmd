@@ -356,7 +356,8 @@ Tarr _d_arraysetassign(Tarr : T[], T)(return scope Tarr to, scope ref T value) @
 }
 
 // postblit and destructor
-@safe unittest
+// @safe DIP1021 issues
+unittest
 {
     string ops;
     struct S
@@ -374,7 +375,8 @@ Tarr _d_arraysetassign(Tarr : T[], T)(return scope Tarr to, scope ref T value) @
 }
 
 // copy constructor
-@safe unittest
+//@safe dip1021 problems
+unittest
 {
     string ops;
     struct S

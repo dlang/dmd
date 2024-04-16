@@ -5,10 +5,10 @@
 
 /* TEST_OUTPUT:
 ---
-fail_compilation/test1021.d(1009): Error: more than one mutable reference of `p` in arguments to `test1021.fooa()`
-fail_compilation/test1021.d(1010): Error: mutable and const references of `p` in arguments to `test1021.foob()`
-fail_compilation/test1021.d(1011): Error: mutable and const references of `p` in arguments to `test1021.fooc()`
-fail_compilation/test1021.d(1013): Error: more than one mutable reference of `p` in arguments to `test1021.fooe()`
+fail_compilation/test1021.d(1009): Error: more than one mutable reference of `p` in arguments `p` and `p` to `test1021.fooa()`
+fail_compilation/test1021.d(1010): Error: mutable and const references of `p` in arguments `cast(const(int)*)p` and `p` to `test1021.foob()`
+fail_compilation/test1021.d(1011): Error: mutable and const references of `p` in arguments `p` and `cast(const(int)*)p` to `test1021.fooc()`
+fail_compilation/test1021.d(1013): Error: more than one mutable reference of `p` in arguments `p` and `p` to `test1021.fooe()`
 ---
 */
 
@@ -33,10 +33,10 @@ void test1(int* p)
 
 /* TEST_OUTPUT:
 ---
-fail_compilation/test1021.d(2010): Error: more than one mutable reference to `i` in arguments to `test1021.fopa()`
-fail_compilation/test1021.d(2011): Error: mutable and const references to `i` in arguments to `test1021.fopb()`
-fail_compilation/test1021.d(2012): Error: mutable and const references to `i` in arguments to `test1021.fopc()`
-fail_compilation/test1021.d(2014): Error: more than one mutable reference to `i` in arguments to `test1021.fope()`
+fail_compilation/test1021.d(2010): Error: more than one mutable reference to `i` in arguments `i` and `toPtr(i)` to `test1021.fopa()`
+fail_compilation/test1021.d(2011): Error: mutable and const references to `i` in arguments `i` and `toPtr(i)` to `test1021.fopb()`
+fail_compilation/test1021.d(2012): Error: mutable and const references to `i` in arguments `i` and `toPtr(i)` to `test1021.fopc()`
+fail_compilation/test1021.d(2014): Error: more than one mutable reference to `i` in arguments `i` and `toPtr(i)` to `test1021.fope()`
 ---
 */
 
@@ -62,8 +62,8 @@ void test2()
 
 /* TEST_OUTPUT:
 ---
-fail_compilation/test1021.d(3015): Error: more than one mutable reference to `s` in arguments to `test1021.S.method()`
-fail_compilation/test1021.d(3019): Error: more than one mutable reference of `c` in arguments to `test1021.C.method()`
+fail_compilation/test1021.d(3015): Error: more than one mutable reference to `s` in arguments `s` and `s` to `test1021.S.method()`
+fail_compilation/test1021.d(3019): Error: more than one mutable reference of `c` in arguments `c` and `c` to `test1021.C.method()`
 ---
 */
 
@@ -94,7 +94,7 @@ void test3()
 
 /* TEST_OUTPUT:
 ---
-fail_compilation/test1021.d(4008): Error: more than one mutable reference to `i` in arguments to `test1021.test4.nested()`
+fail_compilation/test1021.d(4008): Error: more than one mutable reference to `i` in arguments `i` and `i` to `test1021.test4.nested()`
 ---
 */
 
@@ -115,7 +115,7 @@ void test4()
 
 /* TEST_OUTPUT:
 ---
-fail_compilation/test1021.d(5012): Error: more than one mutable reference of `s` in arguments to `test1021.foo5()`
+fail_compilation/test1021.d(5012): Error: more than one mutable reference of `s` in arguments `s` and `s` to `test1021.foo5()`
 ---
 */
 
@@ -166,4 +166,27 @@ void test5c()
 {
     S5c s;
     foo5(s, s);
+}
+
+/*********************************************/
+
+/* TEST_OUTPUT:
+---
+fail_compilation/test1021.d(6011): Error: more than one mutable reference to `s` in arguments `s.a.g` and `s.a.g` to `test1021.blender()`
+---
+*/
+
+#line 6000
+
+struct D { int f, g; }
+struct S6 { D a, b; }
+
+void blender(out int x, ref int y);
+
+void mixer()
+{
+    S6 s;
+    blender(s.a.f, s.b.f);
+    blender(s.a.f, s.b.g);
+    blender(s.a.g, s.a.g);
 }

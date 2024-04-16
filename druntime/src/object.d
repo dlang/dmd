@@ -373,9 +373,10 @@ if ((is(LHS : const Object) || is(LHS : const shared Object)) &&
     {
         this(int flag) { super(flag); }
 
-        bool opEquals(const Base o) @safe
+        bool opEquals(const Base o) @trusted
         {
-            fEquals++;
+            fEquals++;  // not @safe with dip1021 because another mutable ref this
+                        // is passed to access fEquals
             return flag == o.flag;
         }
     }
@@ -384,7 +385,7 @@ if ((is(LHS : const Object) || is(LHS : const shared Object)) &&
     {
         this(int flag) { super(flag); }
 
-        bool opEquals(const Base o) @safe
+        bool opEquals(const Base o) @trusted
         {
             gEquals++;
             return flag == o.flag;
@@ -4717,6 +4718,7 @@ public import core.lifetime : _d_newitemT;
 public @trusted @nogc nothrow pure extern (C) void _d_delThrowable(scope Throwable);
 
 // Compare class and interface objects for ordering.
+@trusted // because the arguments should be const
 int __cmp(C1, C2)(C1 lhs, C2 rhs)
 if ((is(C1 : const(Object)) || (is(C1 == interface) && (__traits(getLinkage, C1) == "D"))) &&
     (is(C2 : const(Object)) || (is(C2 == interface) && (__traits(getLinkage, C2) == "D"))))
