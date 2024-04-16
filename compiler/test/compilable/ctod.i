@@ -1,6 +1,6 @@
 /*
 PERMUTE_ARGS:
-REQUIRED_ARGS: -strictC11 -Hf=${RESULTS_DIR}/compilable/ctod.di
+REQUIRED_ARGS: -strictC -Hf=${RESULTS_DIR}/compilable/ctod.di
 OUTPUT_FILES: ${RESULTS_DIR}/compilable/ctod.di
 
 TEST_OUTPUT:

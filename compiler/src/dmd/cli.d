@@ -766,7 +766,7 @@ dmd -cov -unittest myprog.d
             `$(UNIX Generate shared library)
              $(WINDOWS Generate DLL library)`,
         ),
-        Option("strictC11",
+        Option("strictC",
             "disable preprocessor for importC",
             `Disable preprocessor for importC. C sources strictly follow
             the C11 standard`,

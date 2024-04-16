@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -strictC11 -vcg-ast -o-
+// REQUIRED_ARGS: -strictC -vcg-ast -o-
 // OUTPUT_FILES: compilable/testcdefines.i.cg
 // TEST_OUTPUT_FILE: extra-files/testcdefines.i.cg
 #undef _ATFILE_SOURCE

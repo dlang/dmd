@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -strictC11
+// REQUIRED_ARGS: -strictC
 /* cpp doesn't like this, so don't run preprocessor on this file
  */
 

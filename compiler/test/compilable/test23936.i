@@ -1,5 +1,5 @@
 // https://issues.dlang.org/show_bug.cgi?ide=23936
-// REQUIRED_ARGS: -strictC11
+// REQUIRED_ARGS: -strictC
 
 #pragma pack(push,16)
 typedef struct AAATAG {
