@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -strictC
+// REQUIRED_ARGS: -no-cprepr
 /*********************************************************/
 
 // https://issues.dlang.org/show_bug.cgi?id=22294

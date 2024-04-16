@@ -1,5 +1,5 @@
 /* cpp doesn't like this, so don't run preprocessor on this file
-REQUIRED_ARGS: -strictC
+REQUIRED_ARGS: -no-cprepr
  */
 
 /********************************/

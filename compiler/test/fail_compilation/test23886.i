@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -strictC
+REQUIRED_ARGS: -no-cprepr
 TEST_OUTPUT:
 ---
 fail_compilation/test23886.i(103): Error: "string" expected after `#ident`

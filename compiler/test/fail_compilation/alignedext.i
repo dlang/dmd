@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -strictC
+REQUIRED_ARGS: -no-cprepr
 TEST_OUTPUT:
 
 ---

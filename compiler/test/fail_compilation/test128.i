@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -strictC
+REQUIRED_ARGS: -no-cprepr
 TEST_OUTPUT:
 ---
 fail_compilation/test128.i(14): Error: unsigned __int128 not supported

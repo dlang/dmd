@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -strictC
+REQUIRED_ARGS: -no-cprepr
 TEST_OUTPUT:
 ---
 fail_compilation/failcstuff4b.i(605): Error: invalid flag for line marker directive
