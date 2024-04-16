@@ -77,7 +77,7 @@ bool readFile(Loc loc, const(char)[] filename, ref OutBuffer buf)
  * Returns:
  *   false on error
  */
-extern (D) bool writeFile(Loc loc, const(char)[] filename, const void[] data)
+extern (D) bool writeFile(const Loc loc, const(char)[] filename, const void[] data)
 {
     if (!ensurePathToNameExists(Loc.initial, filename))
         return false;

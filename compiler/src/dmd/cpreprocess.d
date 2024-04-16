@@ -43,12 +43,13 @@ else enum preprocessorAvailable = false;
  * Params:
  *      csrcfile = C file to be preprocessed, with .c or .h extension
  *      loc = The source location where preprocess is requested from
+ *      wasPreprocessed = True if file have .i extension
  *      defines = buffer to append any `#define` and `#undef` lines encountered to
  * Result:
  *      the text of the preprocessed file
  */
 extern (C++)
-DArray!(const ubyte) preprocess(FileName csrcfile, ref const Loc loc, ref OutBuffer defines)
+DArray!(const ubyte) preprocess(FileName csrcfile, ref const Loc loc, bool wasPreprocessed, ref OutBuffer defines)
 {
     /* Look for "importc.h" by searching along import path.
      */
@@ -69,6 +70,39 @@ DArray!(const ubyte) preprocess(FileName csrcfile, ref const Loc loc, ref OutBuf
     if (preprocessorAvailable && !global.params.strictC)
     {
         const command = global.params.cpp ? toDString(global.params.cpp) : cppCommand();
+
+        version (Windows)
+        {
+            FileName tmp_filename;
+
+            // Windows preprocessor can't parse already parsed files
+            // We should remove lines starting with "# " to pretend what
+            // preprocessed file wasn't preprocessed
+            if (wasPreprocessed)
+            {
+                import dmd.utils : readFile, writeFile;
+
+                OutBuffer src;
+                if (readFile(loc, csrcfile.toString, src))
+                    fatal();
+
+                tmp_filename = FileName(csrcfile.toString ~ ".yyy"); //FIXME: temporary file
+
+                string dst;
+                foreach (line; (cast(char[]) src.extractSlice).splitLines)
+                    dst ~= line.ptr.startsWith("# ") ? "\n" : (line~'\n'); //TODO: write file line by line
+
+                if (!writeFile(loc, tmp_filename.toString, dst))
+                    fatal();
+
+                csrcfile = tmp_filename;
+            }
+
+            scope (exit)
+                if(tmp_filename.name !is null)
+                    File.remove(tmp_filename.name);
+        }
+
         DArray!(const ubyte) text;
         int status = runPreprocessor(loc, command, csrcfile.toString(), importc_h, global.params.cppswitches, global.params.v.verbose, global.errorSink, defines, text);
         if (status)

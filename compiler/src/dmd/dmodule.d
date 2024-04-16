@@ -680,15 +680,16 @@ extern (C++) final class Module : Package
         FileName filename = srcfile;
 
         const(ubyte)[] srctext;
+        bool wasPreprocessed;
         if (global.preprocess &&
-            (FileName.equalsExt(srcfile.toString(), i_ext) ||
+            ((wasPreprocessed = FileName.equalsExt(srcfile.toString(), i_ext)) == true ||
             FileName.equalsExt(srcfile.toString(), c_ext)) &&
             FileName.exists(srcfile.toString()))
         {
             /* Apply C preprocessor to the file, returning the contents
              * after preprocessing
              */
-            srctext = global.preprocess(srcfile, loc, defines).data;
+            srctext = global.preprocess(srcfile, loc, wasPreprocessed, defines).data;
         }
         else
             srctext = global.fileManager.getFileContents(filename);
