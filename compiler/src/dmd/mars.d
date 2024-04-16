@@ -787,6 +787,8 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-shared")
             driverParams.dll = true;
+        else if (arg == "-strictC11")
+            params.strictC11 = true;
         else if (startsWith(p + 1, "visibility="))
         {
             const(char)[] vis = arg["-visibility=".length .. $];
