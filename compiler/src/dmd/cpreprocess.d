@@ -86,11 +86,11 @@ DArray!(const ubyte) preprocess(FileName csrcfile, ref const Loc loc, bool wasPr
                 if (readFile(loc, csrcfile.toString, src))
                     fatal();
 
-                tmp_filename = FileName(csrcfile.toString ~ ".yyy"); //FIXME: temporary file
+                tmp_filename = FileName(csrcfile.toString ~ ".tmp");
 
                 string dst;
                 foreach (line; (cast(char[]) src.extractSlice).splitLines)
-                    dst ~= line.ptr.startsWith("# ") ? "\n" : (line~'\n'); //TODO: write file line by line
+                    dst ~= line.ptr.startsWith("# ") ? "\n" : (line~'\n');
 
                 if (!writeFile(loc, tmp_filename.toString, dst))
                     fatal();
