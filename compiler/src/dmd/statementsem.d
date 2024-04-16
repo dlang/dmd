@@ -998,10 +998,12 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
                 if (dim == 2 && (*fs.parameters)[0].storageClass & STC.ref_)
                 {
+                    // @@@DEPRECATED_2.119@@@
+                    // turn deprecation into an error & uncomment return
                     deprecation(fs.loc, "`foreach` array index variable `%s` cannot be `ref`",
                         (*fs.parameters)[0].toChars());
                     deprecationSupplemental(fs.loc, "use a `for` loop instead");
-                    return retError();
+                    //return retError();
                 }
 
                 // Finish semantic on all foreach parameter types.
@@ -1467,10 +1469,12 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
         if (fs.prm.storageClass & STC.ref_)
         {
+            // @@@DEPRECATED_2.119@@@
+            // turn deprecation into an error & uncomment return
             deprecation(fs.loc, "`foreach` range variable `%s` cannot be `ref`",
                 fs.prm.toChars());
             deprecationSupplemental(fs.loc, "use a `for` loop instead");
-            return setError();
+            //return setError();
         }
 
         //printf("ForeachRangeStatement::semantic() %p\n", fs);
