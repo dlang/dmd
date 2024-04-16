@@ -1060,7 +1060,7 @@ public int runProgram(const char[] exefile, const char*[] runargs, bool verbose,
  *    error status, 0 for success
  */
 public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] filename, const(char)* importc_h, ref Array!(const(char)*) cppswitches,
-    bool verbose, ErrorSink eSink, ref OutBuffer defines, out DArray!ubyte text)
+    bool verbose, ErrorSink eSink, ref OutBuffer defines, out DArray!(const ubyte) text)
 {
     //printf("runPreprocessor() cpp: %.*s filename: %.*s\n", cast(int)cpp.length, cpp.ptr, cast(int)filename.length, filename.ptr);
 
@@ -1480,7 +1480,7 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
             return STATUS_FAILED;
         }
 
-        text = DArray!ubyte(cast(ubyte[])buffer.extractSlice(true));
+        text = DArray!(const ubyte)(cast(ubyte[])buffer.extractSlice(true));
         return 0;
     }
     else

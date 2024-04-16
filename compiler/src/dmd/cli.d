@@ -766,6 +766,11 @@ dmd -cov -unittest myprog.d
             `$(UNIX Generate shared library)
              $(WINDOWS Generate DLL library)`,
         ),
+        Option("strictC11",
+            "disable preprocessor for importC",
+            `Disable preprocessor for importC. C sources strictly follow
+            the C11 standard`,
+        ),
         Option("target=<triple>",
                "use <triple> as <arch>-[<vendor>-]<os>[-<cenv>[-<cppenv]]",
                "$(I arch) is the architecture: either `x86`, `x64`, `x86_64` or `x32`,

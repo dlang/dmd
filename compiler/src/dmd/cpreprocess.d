@@ -34,8 +34,9 @@ import dmd.root.rmem;
 import dmd.root.string;
 
 // Use default for other versions
-version (Posix)   version = runPreprocessor;
-version (Windows) version = runPreprocessor;
+version (Posix)         enum preprocessorAvailable = true;
+else version (Windows)  enum preprocessorAvailable = true;
+else enum preprocessorAvailable = false;
 
 /***************************************
  * Preprocess C file.
@@ -47,7 +48,7 @@ version (Windows) version = runPreprocessor;
  *      the text of the preprocessed file
  */
 extern (C++)
-DArray!ubyte preprocess(FileName csrcfile, ref const Loc loc, ref OutBuffer defines)
+DArray!(const ubyte) preprocess(FileName csrcfile, ref const Loc loc, ref OutBuffer defines)
 {
     /* Look for "importc.h" by searching along import path.
      */
@@ -65,10 +66,10 @@ DArray!ubyte preprocess(FileName csrcfile, ref const Loc loc, ref OutBuffer defi
     }
 
     //printf("preprocess %s\n", csrcfile.toChars());
-    version (runPreprocessor)
+    if(preprocessorAvailable && !global.params.strictC11)
     {
         const command = global.params.cpp ? toDString(global.params.cpp) : cppCommand();
-        DArray!ubyte text;
+        DArray!(const ubyte) text;
         int status = runPreprocessor(loc, command, csrcfile.toString(), importc_h, global.params.cppswitches, global.params.v.verbose, global.errorSink, defines, text);
         if (status)
             fatal();
@@ -76,7 +77,7 @@ DArray!ubyte preprocess(FileName csrcfile, ref const Loc loc, ref OutBuffer defi
     }
     else
     {
-        return DArray!ubyte(global.fileManager.getFileContents(csrcfile));
+        return DArray!(const ubyte)(global.fileManager.getFileContents(csrcfile));
     }
 }
 
