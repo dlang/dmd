@@ -14,6 +14,7 @@ $(GNAME TemplateMixinDeclaration):
 
 $(GNAME TemplateMixin):
     $(D mixin) $(GLINK MixinTemplateName) $(GLINK2 template, TemplateArguments)$(OPT) $(GLINK_LEX Identifier)$(OPT) $(D ;)
+    $(D mixin) $(GLINK_LEX Identifier) `=` $(GLINK MixinTemplateName) $(GLINK2 template, TemplateArguments)$(OPT) $(D ;)
 
 $(GNAME MixinTemplateName):
     $(D .) $(GLINK MixinQualifiedIdentifier)
