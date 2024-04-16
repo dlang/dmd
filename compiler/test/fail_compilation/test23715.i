@@ -2,7 +2,7 @@
 REQUIRED_ARGS: -strictC
 TEST_OUTPUT:
 ---
-fail_compilation/test23715.i(11): Error: `_Thread_local` in block scope must be accompanied with `static` or `extern`
+fail_compilation/test23715.i(13): Error: `_Thread_local` in block scope must be accompanied with `static` or `extern`
 ---
 */
 

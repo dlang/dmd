@@ -2,8 +2,8 @@
 REQUIRED_ARGS: -strictC
 TEST_OUTPUT:
 ---
-fail_compilation/test128.i(12): Error: unsigned __int128 not supported
-fail_compilation/test128.i(12): Error: __int128 not supported
+fail_compilation/test128.i(14): Error: unsigned __int128 not supported
+fail_compilation/test128.i(14): Error: __int128 not supported
 ---
  */
 
