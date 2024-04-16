@@ -1,10 +1,10 @@
 /* REQUIRED_ARGS: -de
 TEST_OUTPUT:
 ---
-fail_compilation/cdeprecated.i(18): Deprecation: function `cdeprecated.mars` is deprecated
-fail_compilation/cdeprecated.i(19): Deprecation: function `cdeprecated.jupiter` is deprecated - jumping jupiter
-fail_compilation/cdeprecated.i(20): Deprecation: function `cdeprecated.saturn` is deprecated
-fail_compilation/cdeprecated.i(21): Deprecation: function `cdeprecated.neptune` is deprecated - spinning neptune
+fail_compilation/cdeprecated.i$?:windows=.tmp$(18): Deprecation: function `cdeprecated.mars` is deprecated
+fail_compilation/cdeprecated.i$?:windows=.tmp$(19): Deprecation: function `cdeprecated.jupiter` is deprecated - jumping jupiter
+fail_compilation/cdeprecated.i$?:windows=.tmp$(20): Deprecation: function `cdeprecated.saturn` is deprecated
+fail_compilation/cdeprecated.i$?:windows=.tmp$(21): Deprecation: function `cdeprecated.neptune` is deprecated - spinning neptune
 ---
 */
 __declspec(deprecated) int mars();
