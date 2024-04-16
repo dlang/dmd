@@ -1094,7 +1094,7 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
             Mem.xfree(cast(void*)ifilename.ptr);
             if (readResult)
                 return STATUS_FAILED;
-            text = DArray!ubyte(cast(ubyte[])buf.extractSlice(true));
+            text = DArray!(const ubyte)(cast(ubyte[])buf.extractSlice(true));
             return 0;
         }
 
