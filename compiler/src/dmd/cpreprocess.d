@@ -71,11 +71,15 @@ DArray!(const ubyte) preprocess(FileName csrcfile, ref const Loc loc, bool wasPr
     {
         const command = global.params.cpp ? toDString(global.params.cpp) : cppCommand();
 
-        version (Windows)
+        version (Windows)   enum cantPreprocessTwice = true;
+        else version (OSX)  enum cantPreprocessTwice = true;
+        else enum cantPreprocessTwice = false;
+
+        static if(cantPreprocessTwice)
         {
             FileName tmp_filename;
 
-            // Windows preprocessor can't parse already parsed files
+            // Some preprocessors can't parse already parsed files
             // We should remove lines starting with "# " to pretend what
             // preprocessed file wasn't preprocessed
             if (wasPreprocessed)
