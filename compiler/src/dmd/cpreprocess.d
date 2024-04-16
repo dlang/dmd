@@ -99,8 +99,10 @@ DArray!(const ubyte) preprocess(FileName csrcfile, ref const Loc loc, bool wasPr
             }
 
             scope (exit)
-                if(tmp_filename.name !is null)
-                    File.remove(tmp_filename.name);
+            {
+                if(tmp_filename.toChars !is null)
+                    File.remove(tmp_filename.toChars);
+            }
         }
 
         DArray!(const ubyte) text;
