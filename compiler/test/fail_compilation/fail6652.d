@@ -6,12 +6,10 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail6652.d(22): Error: cannot modify `const` expression `i`
-fail_compilation/fail6652.d(25): Deprecation: `foreach` range variable `i` cannot be `ref`
-fail_compilation/fail6652.d(25):        use a `for` loop instead
-fail_compilation/fail6652.d(32): Error: cannot modify `const` expression `i`
-fail_compilation/fail6652.d(35): Deprecation: `foreach` array index variable `i` cannot be `ref`
-fail_compilation/fail6652.d(35):        use a `for` loop instead
+fail_compilation/fail6652.d(20): Error: cannot modify `const` expression `i`
+fail_compilation/fail6652.d(25): Error: cannot modify `const` expression `i`
+fail_compilation/fail6652.d(30): Error: cannot modify `const` expression `i`
+fail_compilation/fail6652.d(35): Error: cannot modify `const` expression `i`
 ---
 */
 
