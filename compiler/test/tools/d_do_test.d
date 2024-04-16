@@ -167,7 +167,7 @@ immutable(EnvData) processEnvironment()
     envData.dsep           = environment.get("DSEP");
     envData.obj            = envGetRequired ("OBJ");
     envData.exe            = envGetRequired ("EXE");
-    envData.os             = environment.get("OS");
+    envData.os             = envGetRequired ("OS");
     envData.dmd            = replace(envGetRequired("DMD"), "/", envData.sep);
     envData.compiler       = "dmd"; //should be replaced for other compilers
     envData.ccompiler      = environment.get("CC");
