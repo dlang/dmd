@@ -766,10 +766,9 @@ dmd -cov -unittest myprog.d
             `$(UNIX Generate shared library)
              $(WINDOWS Generate DLL library)`,
         ),
-        Option("strictC",
+        Option("no-cprepr",
             "disable preprocessor for importC",
-            `Disable preprocessor for importC. C sources strictly follow
-            the C11 standard`,
+            `Disable preprocessor for importC.`,
         ),
         Option("target=<triple>",
                "use <triple> as <arch>-[<vendor>-]<os>[-<cenv>[-<cppenv]]",
