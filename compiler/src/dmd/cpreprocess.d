@@ -66,7 +66,7 @@ DArray!(const ubyte) preprocess(FileName csrcfile, ref const Loc loc, ref OutBuf
     }
 
     //printf("preprocess %s\n", csrcfile.toChars());
-    if(preprocessorAvailable && !global.params.strictC11)
+    if (preprocessorAvailable && !global.params.strictC11)
     {
         const command = global.params.cpp ? toDString(global.params.cpp) : cppCommand();
         DArray!(const ubyte) text;
