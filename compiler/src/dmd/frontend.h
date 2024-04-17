@@ -2913,7 +2913,7 @@ enum class TOK : uint8_t
     _import_ = 218u,
     __cdecl_ = 219u,
     __declspec_ = 220u,
-    _stdcall_ = 221u,
+    _stdcall = 221u,
     __stdcall_ = 222u,
     __thread_ = 223u,
     __pragma_ = 224u,
