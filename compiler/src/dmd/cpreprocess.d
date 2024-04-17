@@ -72,7 +72,6 @@ DArray!(const ubyte) preprocess(FileName csrcfile, ref const Loc loc, bool alrea
         const command = global.params.cpp ? toDString(global.params.cpp) : cppCommand();
 
         version (Windows)   enum canPreprocessTwice = false;
-        else version (OSX)  enum canPreprocessTwice = false; // https://github.com/llvm/llvm-project/issues/63941
         else enum canPreprocessTwice = true;
 
         static if(!canPreprocessTwice)
