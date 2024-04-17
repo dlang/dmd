@@ -1,0 +1,33 @@
+dtoh generates signatures for `extern(Windows)` and `extern(System)` functions.
+
+When using the -HC switch, in addition to `extern(C)` and `extern(C++)` functions, `extern(Windows)` and `extern(System)` functions are output in the .h file as well.
+
+Example D module:
+---
+extern(Windows) int hello()
+{
+    return 0;
+}
+
+extern(System) int myFriend()
+{
+    return 0;
+}
+---
+
+Output with `-HC` switch:
+---
+// (full header omitted)
+
+#ifndef _WIN32
+#define EXTERN_SYSTEM_AFTER __stdcall
+#define EXTERN_SYSTEM_BEFORE
+#else
+#define EXTERN_SYSTEM_AFTER
+#define EXTERN_SYSTEM_BEFORE extern "C"
+#endif
+
+int32_t __stdcall hello();
+
+EXTERN_SYSTEM_BEFORE int32_t EXTERN_SYSTEM_AFTER myFriend(x);
+---
