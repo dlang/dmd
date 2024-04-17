@@ -43,13 +43,13 @@ else enum preprocessorAvailable = false;
  * Params:
  *      csrcfile = C file to be preprocessed, with .c or .h extension
  *      loc = The source location where preprocess is requested from
- *      wasPreprocessed = True if file have .i extension
+ *      alreadyPreprocessed = True if file have .i extension
  *      defines = buffer to append any `#define` and `#undef` lines encountered to
  * Result:
  *      the text of the preprocessed file
  */
 extern (C++)
-DArray!(const ubyte) preprocess(FileName csrcfile, ref const Loc loc, bool wasPreprocessed, ref OutBuffer defines)
+DArray!(const ubyte) preprocess(FileName csrcfile, ref const Loc loc, bool alreadyPreprocessed, ref OutBuffer defines)
 {
     /* Look for "importc.h" by searching along import path.
      */
@@ -83,7 +83,7 @@ DArray!(const ubyte) preprocess(FileName csrcfile, ref const Loc loc, bool wasPr
 
             FileName tmp_filename;
 
-            if (wasPreprocessed)
+            if (alreadyPreprocessed)
             {
                 import dmd.utils : writeFile;
 
