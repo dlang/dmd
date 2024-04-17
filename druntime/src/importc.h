@@ -50,7 +50,7 @@
 
 #define __forceinline
 #undef _Check_return_
-//#define _Check_return_
+// #define _Check_return_
 #define __pragma(x)
 
 #undef _GLIBCXX_USE_FLOAT128
@@ -81,7 +81,7 @@ typedef unsigned long long __uint64_t;
  * __extension__ is a GNU C extension. It suppresses warnings
  * when placed before an expression.
  */
-#define __extension__  /* ignore it, as ImportC doesn't do warnings */
+#define __extension__ /* ignore it, as ImportC doesn't do warnings */
 
 #define __builtin_isnan(x) isnan(x)
 #define __builtin_isfinite(x) finite(x)
@@ -102,20 +102,20 @@ typedef unsigned long long __uint64_t;
  * OS-specific macros
  */
 #if __APPLE__
-#define __builtin___memmove_chk(dest, src, len, x) memmove(dest,src,len)  // put it back to memmove()
-#define __builtin___memcpy_chk(dest, src, len, x) memcpy(dest,src,len)
-#define __builtin___memset_chk(dest, val, len, x) memset(dest,val,len)
-#define __builtin___stpcpy_chk(dest, src, x) stpcpy(dest,src)
-#define __builtin___stpncpy_chk(dest, src, len, x) stpncpy(dest,src,len)
-#define __builtin___strcat_chk(dest, src, x) strcat(dest,src)
-#define __builtin___strcpy_chk(dest, src, x) strcpy(dest,src)
-#define __builtin___strncat_chk(dest, src, len, x) strncat(dest,src,len)
-#define __builtin___strncpy_chk(dest, src, len, x) strncpy(dest,src,len)
+#define __builtin___memmove_chk(dest, src, len, x) memmove(dest, src, len) // put it back to memmove()
+#define __builtin___memcpy_chk(dest, src, len, x) memcpy(dest, src, len)
+#define __builtin___memset_chk(dest, val, len, x) memset(dest, val, len)
+#define __builtin___stpcpy_chk(dest, src, x) stpcpy(dest, src)
+#define __builtin___stpncpy_chk(dest, src, len, x) stpncpy(dest, src, len)
+#define __builtin___strcat_chk(dest, src, x) strcat(dest, src)
+#define __builtin___strcpy_chk(dest, src, x) strcpy(dest, src)
+#define __builtin___strncat_chk(dest, src, len, x) strncat(dest, src, len)
+#define __builtin___strncpy_chk(dest, src, len, x) strncpy(dest, src, len)
 #define __builtin___sprintf_chk(s, flag, os, fmt, ...) sprintf(s, fmt, __VA_ARGS__)
 #define __builtin___snprintf_chk(s, c, flag, os, fmt, ...) snprintf(s, c, fmt, __VA_ARGS__)
 #define __builtin___vsnprintf_chk(s, c, flag, os, fmt, ...) vsnprintf(s, c, fmt, __VA_ARGS__)
-#define __builtin___strlcat_chk(dest, src, x, n) strlcat(dest,src,x)
-#define __builtin___strlcpy_chk(dest, src, x, n) strlcpy(dest,src,x)
+#define __builtin___strlcat_chk(dest, src, x, n) strlcat(dest, src, x)
+#define __builtin___strlcpy_chk(dest, src, x, n) strlcpy(dest, src, x)
 #define __builtin_object_size
 #define __signed signed
 #endif
@@ -134,6 +134,7 @@ typedef unsigned long long __uint64_t;
 #define __ptr64
 #define __unaligned
 #define _NO_CRT_STDIO_INLINE 1
+#define _stdcall __stdcall
 
 // This header disables the Windows API Annotations macros
 // Need to include sal.h to get the pragma once to prevent macro redefinition.
@@ -144,16 +145,16 @@ typedef unsigned long long __uint64_t;
 /****************************
  * Define it to do what other C compilers do.
  */
-#define __builtin_offsetof(t,i) ((typeof(sizeof(0)))((char *)&((t *)0)->i - (char *)0))
+#define __builtin_offsetof(t, i) ((typeof(sizeof(0)))((char *)&((t *)0)->i - (char *)0))
 
-#define __builtin_bit_cast(t,e) (*(t*)(void*)&(e))
+#define __builtin_bit_cast(t, e) (*(t *)(void *)&(e))
 
 /***************************
  * C11 6.10.8.3 Conditional feature macros
  */
 #define __STDC_NO_VLA__ 1
 
-#if linux  // Microsoft won't allow the following macro
+#if linux // Microsoft won't allow the following macro
 // Ubuntu's assert.h uses this
 #define __PRETTY_FUNCTION__ __func__
 
