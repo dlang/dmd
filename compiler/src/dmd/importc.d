@@ -538,6 +538,13 @@ Dsymbol handleSymbolRedeclarations(ref Scope sc, Dsymbol s, Dsymbol s2, ScopeDsy
     if (vd && vd.isCmacro())
         return vd2;
 
+    // function-like C macro? see https://issues.dlang.org/show_bug.cgi?id=24505
+    if (s.isCsymbol() && s.isTemplateDeclaration())
+    {
+        message(s.loc, "function-like macro `%s` conflicts with %s `%s` at %s, not translating to a D template", s.toPrettyChars(), s2.kind(), s2.toPrettyChars(), s2.locToChars());
+        return s2;
+    }
+
     assert(!(vd2 && vd2.isCmacro()));
 
     if (vd && vd2)
