@@ -9,6 +9,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/ob.d
  * Bug reports: use 'live' keyword:
  *              https://issues.dlang.org/buglist.cgi?bug_status=NEW&bug_status=REOPENED&keywords=live
+ * References:  https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1021.md Argument Ownership and Function Calls
  */
 
 module dmd.ob;
