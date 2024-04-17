@@ -71,17 +71,18 @@ DArray!(const ubyte) preprocess(FileName csrcfile, ref const Loc loc, bool wasPr
     {
         const command = global.params.cpp ? toDString(global.params.cpp) : cppCommand();
 
-        version (Windows)   enum cantPreprocessTwice = true;
-        else version (OSX)  enum cantPreprocessTwice = true;
-        else enum cantPreprocessTwice = false;
+        version (Windows)   enum canPreprocessTwice = false;
+        else version (OSX)  enum canPreprocessTwice = false; // https://github.com/llvm/llvm-project/issues/63941
+        else enum canPreprocessTwice = true;
 
-        static if(cantPreprocessTwice)
+        static if(!canPreprocessTwice)
         {
-            FileName tmp_filename;
-
             // Some preprocessors can't parse already parsed files
             // We should remove lines starting with "# " to pretend what
             // preprocessed file wasn't preprocessed
+
+            FileName tmp_filename;
+
             if (wasPreprocessed)
             {
                 import dmd.utils : writeFile;

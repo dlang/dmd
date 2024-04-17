@@ -1386,6 +1386,7 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
 
         // need to redefine some macros in importc.h
         argv.push("-Wno-builtin-macro-redefined");
+        argv.push("-x"); argv.push("c");
 
         if (target.os == Target.OS.OSX)
         {
@@ -1397,9 +1398,9 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
         }
         else
         {
-            argv.push(filename.xarraydup.ptr);  // and the input
             argv.push("-include");
             argv.push(importc_h);
+            argv.push(filename.xarraydup.ptr);  // and the input
         }
         argv.push(null);                    // argv[] always ends with a null
 
