@@ -89,7 +89,7 @@ DArray!(const ubyte) preprocess(FileName csrcfile, ref const Loc loc, bool alrea
 
                 auto src = global.fileManager.getFileContents(csrcfile);
 
-                tmp_filename = FileName(csrcfile.toString ~ ".tmp");
+                tmp_filename = FileName(csrcfile.toString ~ ".tmp.i");
 
                 string dst;
                 foreach (line; (cast(char[]) src).splitLines)
