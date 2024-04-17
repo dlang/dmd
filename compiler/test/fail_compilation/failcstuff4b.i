@@ -1,4 +1,6 @@
-/* TEST_OUTPUT:
+/*
+REQUIRED_ARGS: -cpp=
+TEST_OUTPUT:
 ---
 fail_compilation/failcstuff4b.i(605): Error: invalid flag for line marker directive
 ---

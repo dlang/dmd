@@ -34,20 +34,22 @@ import dmd.root.rmem;
 import dmd.root.string;
 
 // Use default for other versions
-version (Posix)   version = runPreprocessor;
-version (Windows) version = runPreprocessor;
+version (Posix)         enum preprocessorAvailable = true;
+else version (Windows)  enum preprocessorAvailable = true;
+else enum preprocessorAvailable = false;
 
 /***************************************
  * Preprocess C file.
  * Params:
  *      csrcfile = C file to be preprocessed, with .c or .h extension
  *      loc = The source location where preprocess is requested from
+ *      wasPreprocessed = True if file have .i extension
  *      defines = buffer to append any `#define` and `#undef` lines encountered to
  * Result:
  *      the text of the preprocessed file
  */
 extern (C++)
-DArray!ubyte preprocess(FileName csrcfile, ref const Loc loc, ref OutBuffer defines)
+DArray!(const ubyte) preprocess(FileName csrcfile, ref const Loc loc, bool wasPreprocessed, ref OutBuffer defines)
 {
     /* Look for "importc.h" by searching along import path.
      */
@@ -65,10 +67,48 @@ DArray!ubyte preprocess(FileName csrcfile, ref const Loc loc, ref OutBuffer defi
     }
 
     //printf("preprocess %s\n", csrcfile.toChars());
-    version (runPreprocessor)
+    if (preprocessorAvailable && global.params.usePreprocessor)
     {
         const command = global.params.cpp ? toDString(global.params.cpp) : cppCommand();
-        DArray!ubyte text;
+
+        version (Windows)   enum canPreprocessTwice = false;
+        else version (OSX)  enum canPreprocessTwice = false; // https://github.com/llvm/llvm-project/issues/63941
+        else enum canPreprocessTwice = true;
+
+        static if(!canPreprocessTwice)
+        {
+            // Some preprocessors can't parse already parsed files
+            // We should remove lines starting with "# " to pretend what
+            // preprocessed file wasn't preprocessed
+
+            FileName tmp_filename;
+
+            if (wasPreprocessed)
+            {
+                import dmd.utils : writeFile;
+
+                auto src = global.fileManager.getFileContents(csrcfile);
+
+                tmp_filename = FileName(csrcfile.toString ~ ".tmp");
+
+                string dst;
+                foreach (line; (cast(char[]) src).splitLines)
+                    dst ~= line.ptr.startsWith("# ") ? "\n" : (line~'\n');
+
+                if (!writeFile(loc, tmp_filename.toString, dst))
+                    fatal();
+
+                csrcfile = tmp_filename;
+            }
+
+            scope (exit)
+            {
+                if(tmp_filename.toChars !is null)
+                    File.remove(tmp_filename.toChars);
+            }
+        }
+
+        DArray!(const ubyte) text;
         int status = runPreprocessor(loc, command, csrcfile.toString(), importc_h, global.params.cppswitches, global.params.v.verbose, global.errorSink, defines, text);
         if (status)
             fatal();
@@ -76,7 +116,7 @@ DArray!ubyte preprocess(FileName csrcfile, ref const Loc loc, ref OutBuffer defi
     }
     else
     {
-        return DArray!ubyte(global.fileManager.getFileContents(csrcfile));
+        return DArray!(const ubyte)(global.fileManager.getFileContents(csrcfile));
     }
 }
 

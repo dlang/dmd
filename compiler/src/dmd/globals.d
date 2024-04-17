@@ -170,6 +170,7 @@ extern (C++) struct Param
     bool addMain;           // add a default main() function
     bool allInst;           // generate code for all template instantiations
     bool bitfields;         // support C style bit fields
+    bool usePreprocessor = true; // enable preprocessor for importC
 
     CppStdRevision cplusplus = CppStdRevision.cpp11;    // version of C++ standard to support
 
@@ -305,7 +306,7 @@ extern (C++) struct Global
     ErrorSink errorSink;       /// where the error messages go
     ErrorSink errorSinkNull;   /// where the error messages are ignored
 
-    extern (C++) DArray!ubyte function(FileName, ref const Loc, ref OutBuffer) preprocess;
+    extern (C++) DArray!(const ubyte) function(FileName, ref const Loc, bool wasPreprocessed, ref OutBuffer) preprocess;
 
   nothrow:
 

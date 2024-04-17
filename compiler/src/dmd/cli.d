@@ -273,8 +273,8 @@ dmd -cov -unittest myprog.d
         Option("cpp=<filename>",
             "use filename as the name of the C preprocessor to use for ImportC files",
             `Normally the C preprocessor used by the associated C compiler is used to
-            preprocess ImportC files,
-            this is overridden by the $(TT -cpp) switch.`
+            preprocess ImportC files, this is overridden by the $(TT -cpp) switch.
+            Preprocessing disabled if <filename> is empty.`
         ),
         Option("D",
             "generate documentation",

@@ -1,4 +1,6 @@
-/* TEST_OUTPUT:
+/*
+REQUIRED_ARGS: -cpp=
+TEST_OUTPUT:
 ---
 fail_compilation/test23886.i(103): Error: "string" expected after `#ident`
 fail_compilation/test23886.i(103): Error: no type for declarator before `#`
