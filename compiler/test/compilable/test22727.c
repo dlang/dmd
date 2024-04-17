@@ -3,6 +3,7 @@
 int fooc(int a) { return a; }
 
 __stdcall int foostdcall(int a) { return a; }
+_stdcall int _foostdcall(int a) { return a; } // test issue 24509
 
 int __stdcall foostdcall2(int a) { return a; }
 
