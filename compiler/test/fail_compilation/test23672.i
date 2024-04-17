@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -no-cprepr
+REQUIRED_ARGS: -cpp=
 TEST_OUTPUT:
 ---
 fail_compilation/test23672.i(10): Error: found `End of File` when expecting `)`

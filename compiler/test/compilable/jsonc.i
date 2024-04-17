@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -no-cprepr -o- -X -Xf-
+REQUIRED_ARGS: -cpp= -o- -X -Xf-
 TRANSFORM_OUTPUT: sanitize_json
 TEST_OUTPUT:
 ---

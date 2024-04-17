@@ -1,4 +1,4 @@
-/* REQUIRED_ARGS: -no-cprepr -de
+/* REQUIRED_ARGS: -cpp= -de
 TEST_OUTPUT:
 ---
 fail_compilation/cdeprecated.i(18): Deprecation: function `cdeprecated.mars` is deprecated

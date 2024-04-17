@@ -273,8 +273,8 @@ dmd -cov -unittest myprog.d
         Option("cpp=<filename>",
             "use filename as the name of the C preprocessor to use for ImportC files",
             `Normally the C preprocessor used by the associated C compiler is used to
-            preprocess ImportC files,
-            this is overridden by the $(TT -cpp) switch.`
+            preprocess ImportC files, this is overridden by the $(TT -cpp) switch.
+            Preprocessing disabled if <filename> is empty.`
         ),
         Option("D",
             "generate documentation",
@@ -765,10 +765,6 @@ dmd -cov -unittest myprog.d
             "generate shared library (DLL)",
             `$(UNIX Generate shared library)
              $(WINDOWS Generate DLL library)`,
-        ),
-        Option("no-cprepr",
-            "disable preprocessor for importC",
-            `Disable preprocessor for importC.`,
         ),
         Option("target=<triple>",
                "use <triple> as <arch>-[<vendor>-]<os>[-<cenv>[-<cppenv]]",

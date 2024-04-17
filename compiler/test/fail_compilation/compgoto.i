@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -no-cprepr
+REQUIRED_ARGS: -cpp=
 TEST_OUTPUT:
 ---
 fail_compilation/compgoto.i(105): Error: unary `&&` computed goto extension is not supported

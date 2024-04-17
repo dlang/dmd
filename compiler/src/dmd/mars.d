@@ -629,8 +629,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
             else
             {
-                errorInvalidSwitch(p, "it must be followed by the filename of the desired C preprocessor");
-                return false;
+                params.usePreprocessor = false;
             }
         }
         else if (arg == "-de")               // https://dlang.org/dmd.html#switch-de
@@ -787,8 +786,6 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-shared")
             driverParams.dll = true;
-        else if (arg == "-no-cprepr")
-            params.usePreprocessor = false;
         else if (startsWith(p + 1, "visibility="))
         {
             const(char)[] vis = arg["-visibility=".length .. $];

@@ -1,5 +1,5 @@
 /*
-REQUIRED_ARGS: -no-cprepr
+REQUIRED_ARGS: -cpp=
 TEST_OUTPUT:
 
 ---

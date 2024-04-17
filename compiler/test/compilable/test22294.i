@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -no-cprepr
+// REQUIRED_ARGS: -cpp=
 /*********************************************************/
 
 // https://issues.dlang.org/show_bug.cgi?id=22294
