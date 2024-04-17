@@ -1059,7 +1059,8 @@ public int runProgram(const char[] exefile, const char*[] runargs, bool verbose,
  * Returns:
  *    error status, 0 for success
  */
-public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] filename, const(char)* importc_h, ref Array!(const(char)*) cppswitches,
+public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] filename,
+    const bool alreadyPreprocessed, const(char)* importc_h, ref Array!(const(char)*) cppswitches,
     bool verbose, ErrorSink eSink, ref OutBuffer defines, out DArray!(const ubyte) text)
 {
     //printf("runPreprocessor() cpp: %.*s filename: %.*s\n", cast(int)cpp.length, cpp.ptr, cast(int)filename.length, filename.ptr);
@@ -1386,7 +1387,12 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
 
         // need to redefine some macros in importc.h
         argv.push("-Wno-builtin-macro-redefined");
-        argv.push("-x"); argv.push("c");
+
+        // Supported only C preprocessed files
+        if (alreadyPreprocessed)
+        {
+            argv.push("-x"); argv.push("c");
+        }
 
         if (target.os == Target.OS.OSX)
         {

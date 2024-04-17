@@ -109,7 +109,11 @@ DArray!(const ubyte) preprocess(FileName csrcfile, ref const Loc loc, bool alrea
         }
 
         DArray!(const ubyte) text;
-        int status = runPreprocessor(loc, command, csrcfile.toString(), importc_h, global.params.cppswitches, global.params.v.verbose, global.errorSink, defines, text);
+        int status = runPreprocessor(loc, command, csrcfile.toString(), alreadyPreprocessed,
+            importc_h, global.params.cppswitches, global.params.v.verbose, global.errorSink,
+            defines, text
+        );
+
         if (status)
             fatal();
         return text;
