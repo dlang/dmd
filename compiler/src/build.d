@@ -1439,6 +1439,23 @@ void processEnvironment()
         dflags ~= ["-fsanitize="~sanitizers];
     }
 
+    // Determine the version of FreeBSD that we're building on if the target OS
+    // version has not already been set.
+    version (FreeBSD)
+    {
+        import std.ascii : isDigit;
+
+        if (flags.get("DFLAGS", []).find!(a => a.startsWith("-version=TARGET_FREEBSD"))().empty)
+        {
+            // uname -K gives the kernel version, e.g. 1400097. The first two
+            // digits correspond to the major version of the OS.
+            immutable result = executeShell("uname -K");
+            if (result.status != 0 || !result.output.take(2).all!isDigit())
+                throw abortBuild("Failed to get the kernel version");
+            dflags ~= ["-version=TARGET_FREEBSD" ~ result.output[0 .. 2]];
+        }
+    }
+
     // Retain user-defined flags
     flags["DFLAGS"] = dflags ~= flags.get("DFLAGS", []);
 }
