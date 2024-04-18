@@ -8,9 +8,7 @@
 /*
 TEST_OUTPUT:
 ----
-$r:.+_D7imports9pkgmod3133mod3barFZv.*$
-Error: $r:.+$ exited with status $n$
-$r:.+$
+$r:.+_D7imports9pkgmod3133mod3barFZv.*Error: linker exited with status.+$
 ----
 */
 import imports.pkgmod313.mod;
