@@ -104,7 +104,8 @@ void genCppHdrFiles(ref Modules ms)
 
     // Emit array compatibility because extern(C++) types may have slices
     // as members (as opposed to function parameters)
-    buf.writestring(`
+    if (v.hasDArray)
+        buf.writestring(`
 #ifdef CUSTOM_D_ARRAY_TYPE
 #define _d_dynamicArray CUSTOM_D_ARRAY_TYPE
 #else
@@ -259,11 +260,14 @@ public:
     OutBuffer* buf;
 
     /// The generated header uses `real` emitted as `_d_real`?
-    bool hasReal;
+    bool hasReal = false;
 
     /// The generated header has extern(System) functions,
     /// which needs support macros in the header
-    bool hasExternSystem;
+    bool hasExternSystem = false;
+
+    /// There are functions taking slices, which need a compatibility struct for C++
+    bool hasDArray = false;
 
     /// The generated header should contain comments for skipped declarations?
     const bool printIgnored;
@@ -2081,6 +2085,8 @@ public:
     override void visit(AST.TypeDArray t)
     {
         debug (Debug_DtoH) mixin(traceVisit!t);
+
+        hasDArray = true;
 
         if (t.isConst() || t.isImmutable())
             buf.writestring("const ");
