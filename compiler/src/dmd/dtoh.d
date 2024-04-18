@@ -133,6 +133,17 @@ struct _d_dynamicArray final
 #endif
 `);
 
+    if (v.hasExternSystem)
+        buf.writestring(`
+#ifndef _WIN32
+#define EXTERN_SYSTEM_AFTER __stdcall
+#define EXTERN_SYSTEM_BEFORE
+#else
+#define EXTERN_SYSTEM_AFTER
+#define EXTERN_SYSTEM_BEFORE extern "C"
+#endif
+`);
+
     if (v.hasReal)
     {
         hashIf(buf, "!defined(_d_real)");
@@ -249,6 +260,10 @@ public:
 
     /// The generated header uses `real` emitted as `_d_real`?
     bool hasReal;
+
+    /// The generated header has extern(System) functions,
+    /// which needs support macros in the header
+    bool hasExternSystem;
 
     /// The generated header should contain comments for skipped declarations?
     const bool printIgnored;
@@ -745,7 +760,7 @@ public:
 
         // Note that tf might be null for templated (member) functions
         auto tf = cast(AST.TypeFunction)fd.type;
-        if ((tf && (tf.linkage != LINK.c || adparent) && tf.linkage != LINK.cpp) || (!tf && fd.isPostBlitDeclaration()))
+        if ((tf && (tf.linkage != LINK.c || adparent) && tf.linkage != LINK.cpp && tf.linkage != LINK.windows) || (!tf && fd.isPostBlitDeclaration()))
         {
             ignored("function %s because of linkage", fd.toPrettyChars());
             return checkFunctionNeedsPlaceholder(fd);
@@ -793,8 +808,17 @@ public:
 
         writeProtection(fd.visibility.kind);
 
-        if (tf && tf.linkage == LINK.c)
+        if (fd._linkage == LINK.system)
+        {
+            hasExternSystem = true;
+            buf.writestring("EXTERN_SYSTEM_BEFORE ");
+        }
+        else if (tf && tf.linkage == LINK.c)
             buf.writestring("extern \"C\" ");
+        else if (tf && tf.linkage == LINK.windows)
+        {
+            // __stdcall is printed after return type
+        }
         else if (!adparent)
             buf.writestring("extern ");
         if (adparent && fd.isStatic())
@@ -2261,8 +2285,8 @@ public:
      * Writes the function signature to `buf`.
      *
      * Params:
-     *   fd     = the function to print
      *   tf     = fd's type
+     *   fd     = the function to print
      */
     private void funcToBuffer(AST.TypeFunction tf, AST.FuncDeclaration fd)
     {
@@ -2297,6 +2321,15 @@ public:
             if (tf.isref)
                 buf.writeByte('&');
             buf.writeByte(' ');
+
+            if (fd._linkage == LINK.system)
+            {
+                buf.writestring("EXTERN_SYSTEM_AFTER ");
+            }
+            else if (tf.linkage == LINK.windows)
+            {
+                buf.writestring("__stdcall ");
+            }
             writeIdentifier(fd);
         }
 
