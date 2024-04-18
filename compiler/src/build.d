@@ -5,6 +5,8 @@ DMD builder
 Usage:
   ./build.d dmd
 
+See `--help` for targets.
+
 detab, tolf, install targets - require the D Language Tools (detab.exe, tolf.exe)
   https://github.com/dlang/tools.
 
