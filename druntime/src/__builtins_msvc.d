@@ -100,11 +100,17 @@ version (MSVCIntrinsics)
         {
             pragma(LDC_intrinsic, "llvm.aarch64.dmb")
             private void __builtin_arm_dmb(int) @safe pure nothrow @nogc;
+
+            pragma(LDC_intrinsic, "llvm.aarch64.hint")
+            private void llvm_arm_hint(int) @safe pure nothrow @nogc;
         }
         else version (ARM)
         {
             pragma(LDC_intrinsic, "llvm.arm.dmb")
             private void __builtin_arm_dmb(int) @safe pure nothrow @nogc;
+
+            pragma(LDC_intrinsic, "llvm.arm.hint")
+            private void llvm_arm_hint(int) @safe pure nothrow @nogc;
         }
     }
     else version (GNU)
@@ -13437,5 +13443,46 @@ version (MSVCIntrinsics)
 
         assert(test());
         static assert(test());
+    }
+
+    version (AArch64_Or_ARM)
+    {
+        extern(C)
+        pragma(inline, true)
+        void __yield() @safe pure nothrow @nogc
+        {
+            if (__ctfe)
+            {}
+            else
+            {
+                version (LDC)
+                {
+                    llvm_arm_hint(1);
+                }
+                else version (GNU)
+                {
+                    asm @trusted pure nothrow @nogc
+                    {
+                        "yield" : : : "memory";
+                    }
+                }
+                else
+                {
+                    static assert(false);
+                }
+            }
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                __yield();
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
+        }
     }
 }
