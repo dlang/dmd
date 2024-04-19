@@ -1,0 +1,25 @@
+[next edition] Aliasing a member of a type *instance* is now an error
+
+Such an alias actually aliases a member of the instance's *type*, not
+the instance member itself. That could be confusing, and is now an error.
+Instead, alias a member of the type:
+
+---
+struct Foo
+{
+    int v;
+    void test(Foo that) const
+    {
+        alias a = this.v; // OK
+        alias b = that.v; // Error, use `typeof(that).v` instead
+        assert(&a is &b); // passes
+        assert(&b !is &that.v);
+    }
+}
+
+struct Bar
+{
+    Foo f;
+    alias v = f.v; // Error, use `typeof(f).v`
+}
+---
