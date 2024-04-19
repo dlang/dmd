@@ -71,6 +71,22 @@ version (MSVCIntrinsics)
         private enum canPassVectors = false;
     }
 
+    version (LDC)
+    {
+        version (X86_64_Or_X86)
+        {
+            pragma(LDC_intrinsic, "llvm.x86.sse2.pause")
+            private void __builtin_ia32_pause() @safe pure nothrow @nogc;
+        }
+    }
+    else version (GNU)
+    {
+        version (X86_64_Or_X86)
+        {
+            import gcc.builtins : __builtin_ia32_pause;
+        }
+    }
+
     version (X86_64_Or_AArch64)
     {
         import core.internal.traits : AliasSeq;
@@ -1025,6 +1041,46 @@ version (MSVCIntrinsics)
             /* And, when when the quotient overflows 64-bits. */
             static assert(errorOccursDuringCTFE!(_udiv64, uint, 2));
             static assert(errorOccursDuringCTFE!(_div64, int, 2));
+        }
+    }
+
+    version (X86_64_Or_X86)
+    {
+        extern(C)
+        pragma(inline, true)
+        void _mm_pause() @safe pure nothrow @nogc
+        {
+            if (__ctfe)
+            {}
+            else
+            {
+                /* core.atomic.pause won't work for BetterC. */
+                version (LDC_Or_GNU)
+                {
+                    __builtin_ia32_pause();
+                }
+                else version (InlineAsm_X86_64_Or_X86)
+                {
+                    asm @trusted pure nothrow @nogc
+                    {
+                        naked;
+                        pause;
+                        ret;
+                    }
+                }
+            }
+        }
+
+        @safe pure nothrow @nogc unittest
+        {
+            static bool test()
+            {
+                _mm_pause();
+                return true;
+            }
+
+            assert(test());
+            static assert(test());
         }
     }
 
