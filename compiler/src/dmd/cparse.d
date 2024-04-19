@@ -1919,6 +1919,14 @@ final class CParser(AST) : Parser!AST
                 auto s = cparseFunctionDefinition(id, dt.isTypeFunction(), specifier);
                 typedefTab.setDim(typedefTabLengthSave);
                 symbols = symbolsSave;
+                if (specifier.mod & MOD.x__stdcall)
+                {
+                    // If this function is __stdcall, wrap it in a LinkDeclaration so that
+                    // it's extern(Windows) when imported in D.
+                    auto decls = new AST.Dsymbols(1);
+                    (*decls)[0] = s;
+                    s = new AST.LinkDeclaration(s.loc, LINK.windows, decls);
+                }
                 symbols.push(s);
                 return;
             }
@@ -2071,13 +2079,14 @@ final class CParser(AST) : Parser!AST
                     }
                 }
                 s = applySpecifier(s, specifier);
-                if (level == LVL.local)
+                if (level == LVL.local || (specifier.mod & MOD.x__stdcall))
                 {
-                    // Wrap the declaration in `extern (C) { declaration }`
+                    // Wrap the declaration in `extern (C/Windows) { declaration }`
                     // Necessary for function pointers, but harmless to apply to all.
                     auto decls = new AST.Dsymbols(1);
                     (*decls)[0] = s;
-                    s = new AST.LinkDeclaration(s.loc, linkage, decls);
+                    const lkg = specifier.mod & MOD.x__stdcall ? LINK.windows : linkage;
+                    s = new AST.LinkDeclaration(s.loc, lkg, decls);
                 }
                 symbols.push(s);
             }
