@@ -12,4 +12,4 @@ int _stdcall foostdcall3(int a) { return a; } // test issue 24509
 
 int __stdcall (*fp1)(int a) = &foostdcall;
 
-int(__stdcall *fp2)(int a) = &foostdcall2;
+int (__stdcall *fp2)(int a) = &foostdcall2;
