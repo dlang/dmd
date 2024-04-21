@@ -14,4 +14,10 @@
 #define __IMPORTC_MSVC_BUILTINS__ 1
 
 __import __builtins_msvc;
+
+#if defined(_M_ARM64) || defined(_M_ARM)
+#define __dmb __builtin_arm_dmb
+#define __dsb __builtin_arm_dsb
+#define __isb __builtin_arm_isb
+#endif
 #endif
