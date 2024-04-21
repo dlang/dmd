@@ -1242,8 +1242,7 @@ void allocStates(ref ObState obstate)
 bool isBorrowedPtr(VarDeclaration v)
 {
     return v.isScope() && !v.isowner &&
-           (!v.type.nextOf() || // could be a struct type with a pointer field
-             v.type.nextOf().isMutable());
+        v.type.hasPointersToMutableFields();
 }
 
 /******************************
@@ -1253,7 +1252,7 @@ bool isBorrowedPtr(VarDeclaration v)
  */
 bool isReadonlyPtr(VarDeclaration v)
 {
-    return v.isScope() && !v.type.nextOf().isMutable();
+    return v.isScope() && !v.type.hasPointersToMutableFields();
 }
 
 /***************************************
