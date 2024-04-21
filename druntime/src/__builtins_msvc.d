@@ -1084,6 +1084,143 @@ version (MSVCIntrinsics)
         }
     }
 
+    version (AArch64_Or_ARM)
+    {
+        version (GNU)
+        {
+            extern(C)
+            pragma(inline, true)
+            void __builtin_arm_dmb(uint Type) @safe pure nothrow @nogc
+            {
+                armBarrier!"dmb"(Type);
+            }
+
+            extern(C)
+            pragma(inline, true)
+            void __builtin_arm_dsb(uint Type) @safe pure nothrow @nogc
+            {
+                armBarrier!"dsb"(Type);
+            }
+
+            extern(C)
+            pragma(inline, true)
+            void __builtin_arm_isb(uint Type) @safe pure nothrow @nogc
+            {
+                armBarrier!"isb"(Type);
+            }
+
+            @safe pure nothrow @nogc unittest
+            {
+                static bool test(alias barrier)()
+                {
+                    barrier(0xF);
+                    barrier(0xE);
+                    barrier(0xB);
+                    barrier(0xA);
+                    barrier(0x7);
+                    barrier(0x6);
+                    barrier(0x3);
+                    barrier(0x2);
+
+                    try
+                    {
+                        barrier(0);
+                    }
+                    catch (AssertError)
+                    {
+                        return true;
+                    }
+
+                    assert(false);
+                }
+
+                assert(test!__builtin_arm_dmb());
+                static assert(test!__builtin_arm_dmb());
+                assert(test!__builtin_arm_dsb());
+                static assert(test!__builtin_arm_dsb());
+                assert(test!__builtin_arm_isb());
+                static assert(test!__builtin_arm_isb());
+            }
+
+            extern(C)
+            pragma(inline, true)
+            private void armBarrier(string barrier)(uint type) @safe pure nothrow @nogc
+            {
+                enum assertMessage = "Invalid Type supplied to __" ~ barrier ~ ".";
+
+                switch (type)
+                {
+                case 0xF:
+                    if (__ctfe)
+                    {}
+                    else
+                    {
+                        asm @trusted pure nothrow @nogc {"" ~ barrier ~ " sy" : : : "memory";} break;
+                    }
+                    break;
+                case 0xE:
+                    if (__ctfe)
+                    {}
+                    else
+                    {
+                        asm @trusted pure nothrow @nogc {"" ~ barrier ~ " st" : : : "memory";} break;
+                    }
+                    break;
+                case 0xB:
+                    if (__ctfe)
+                    {}
+                    else
+                    {
+                        asm @trusted pure nothrow @nogc {"" ~ barrier ~ " ish" : : : "memory";} break;
+                    }
+                    break;
+                case 0xA:
+                    if (__ctfe)
+                    {}
+                    else
+                    {
+                        asm @trusted pure nothrow @nogc {"" ~ barrier ~ " ishst" : : : "memory";} break;
+                    }
+                    break;
+                case 0x7:
+                    if (__ctfe)
+                    {}
+                    else
+                    {
+                        asm @trusted pure nothrow @nogc {"" ~ barrier ~ " nsh" : : : "memory";} break;
+                    }
+                    break;
+                case 0x6:
+                    if (__ctfe)
+                    {}
+                    else
+                    {
+                        asm @trusted pure nothrow @nogc {"" ~ barrier ~ " nshst" : : : "memory";} break;
+                    }
+                    break;
+                case 0x3:
+                    if (__ctfe)
+                    {}
+                    else
+                    {
+                        asm @trusted pure nothrow @nogc {"" ~ barrier ~ " osh" : : : "memory";} break;
+                    }
+                    break;
+                case 0x2:
+                    if (__ctfe)
+                    {}
+                    else
+                    {
+                        asm @trusted pure nothrow @nogc {"" ~ barrier ~ " oshst" : : : "memory";} break;
+                    }
+                    break;
+                default:
+                    assert(false, assertMessage);
+                }
+            }
+        }
+    }
+
     version (X86_64_Or_X86)
     {
         extern(C)
