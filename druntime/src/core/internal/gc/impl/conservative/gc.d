@@ -1252,12 +1252,6 @@ class ConservativeGC : GC
     }
 
 
-    void collectNoStack() nothrow
-    {
-        fullCollectNoStack();
-    }
-
-
     /**
      * Begins a full collection, scanning all stack segments for roots.
      *
@@ -1287,21 +1281,6 @@ class ConservativeGC : GC
 
         gcx.leakDetector.log_collect();
         return result;
-    }
-
-
-    /**
-     * Begins a full collection while ignoring all stack segments for roots.
-     */
-    void fullCollectNoStack() nothrow
-    {
-        // Since a finalizer could launch a new thread, we always need to lock
-        // when collecting.
-        static size_t go(Gcx* gcx) nothrow
-        {
-            return gcx.fullcollect(true, true, true); // standard stop the world
-        }
-        runLocked!go(gcx);
     }
 
 
