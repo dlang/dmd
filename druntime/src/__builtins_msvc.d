@@ -9224,6 +9224,177 @@ version (MSVCIntrinsics)
         }
     }
 
+    version (X86_64_Or_X86)
+    {
+        extern(C)
+        pragma(inline, true)
+        ushort _tzcnt_u16(ushort value) @safe pure nothrow @nogc
+        {
+            return trailingZeroCount(value);
+        }
+
+        extern(C)
+        pragma(inline, true)
+        uint _tzcnt_u32(uint value) @safe pure nothrow @nogc
+        {
+            return trailingZeroCount(value);
+        }
+    }
+
+    version (X86_64)
+    {
+        extern(C)
+        pragma(inline, true)
+        ulong _tzcnt_u64(ulong value) @safe pure nothrow @nogc
+        {
+            return trailingZeroCount(value);
+        }
+    }
+
+    version (X86_64_Or_X86)
+    {
+        @safe pure nothrow @nogc unittest
+        {
+            import core.bitop : bsr;
+            import core.cpuid : hasLzcnt;
+
+            static bool testTzcnt()
+            {
+                version (X86_64_Or_X86)
+                {
+                    assert(_tzcnt_u16(0) == 16);
+                    assert(_tzcnt_u16(1) == 0);
+                    assert(_tzcnt_u16(1 << 15) == 15);
+                    assert(_tzcnt_u16(ushort.max) == 0);
+
+                    assert(_tzcnt_u32(0) == 32);
+                    assert(_tzcnt_u32(1) == 0);
+                    assert(_tzcnt_u32(1 << 31) == 31);
+                    assert(_tzcnt_u32(uint.max) == 0);
+                }
+
+                version (X86_64)
+                {
+                    assert(_tzcnt_u64(0) == 64);
+                    assert(_tzcnt_u64(1) == 0);
+                    assert(_tzcnt_u64(ulong(1) << 63) == 63);
+                    assert(_tzcnt_u64(ulong.max) == 0);
+                }
+
+                return true;
+            }
+
+            static bool testBsf()
+            {
+                version (X86_64_Or_X86)
+                {
+                    assert(_tzcnt_u16(1) == 0);
+                    assert(_tzcnt_u16(1 << 15) == 15);
+                    assert(_tzcnt_u16(ushort.max) == 0);
+
+                    assert(_tzcnt_u32(1) == 0);
+                    assert(_tzcnt_u32(1 << 31) == 31);
+                    assert(_tzcnt_u32(uint.max) == 0);
+                }
+
+                version (X86_64)
+                {
+                    assert(_tzcnt_u64(1) == 0);
+                    assert(_tzcnt_u64(ulong(1) << 63) == 63);
+                    assert(_tzcnt_u64(ulong.max) == 0);
+                }
+
+                return true;
+            }
+
+            if (hasLzcnt)
+            {
+                assert(testTzcnt());
+            }
+            else
+            {
+                assert(testBsf());
+            }
+
+            static assert(testTzcnt());
+        }
+
+        extern(C)
+        pragma(inline, true)
+        private T trailingZeroCount(T)(T value) @safe pure nothrow @nogc
+        {
+            /* We use inline assembly for this, instead of intrinsics or relying on the optimiser,
+               so that tzcnt is emitted even for targets that don't support it, just like MSVC does. */
+
+            import core.bitop : bsf, bsr;
+
+            if (__ctfe)
+            {
+                enum T operandSize = cast(T) (T.sizeof << 3);
+
+                return value == 0 ? operandSize : cast(T) bsf(value);
+            }
+            else
+            {
+                version (LDC)
+                {
+                    import ldc.llvmasm : __ir_pure;
+
+                    enum size = T.sizeof.bsr;
+                    enum type = ["i8", "i16", "i32", "i64"][size];
+
+                    return __ir_pure!(
+                        `%c = call ` ~ type ~ ` asm inteldialect "tzcnt $0, $1", "=r,r,~{flags}"(` ~ type ~ ` %0)
+                         ret ` ~ type ~ ` %c`,
+                        T
+                    )(value);
+                }
+                else version (GNU)
+                {
+                    T result;
+
+                    asm @trusted pure nothrow @nogc
+                    {
+                        "tzcnt %1, %0" : "=r" (result) : "rm" (value) : "cc";
+                    }
+
+                    return result;
+                }
+                else version (InlineAsm_X86_64_Or_X86)
+                {
+                    enum size = T.sizeof.bsr;
+                    enum a = ["AL", "AX", "EAX", "RAX"][size];
+
+                    version (D_InlineAsm_X86_64)
+                    {
+                        enum c = ["CL", "CX", "ECX", "RCX"][size];
+
+                        mixin(
+                            "asm @trusted pure nothrow @nogc
+                             {
+                                 /* C is value. */
+                                 naked;
+                                 tzcnt " ~ a ~ ", " ~ c ~ ";
+                                 ret;
+                             }"
+                        );
+                    }
+                    else version (D_InlineAsm_X86)
+                    {
+                        mixin(
+                            "asm @trusted pure nothrow @nogc
+                             {
+                                 naked;
+                                 tzcnt " ~ a ~ ", [ESP + 4]; /* [ESP + 4] is value. */
+                                 ret;
+                             }"
+                        );
+                    }
+                }
+            }
+        }
+    }
+
     version (X86_64)
     {
         extern(C)
