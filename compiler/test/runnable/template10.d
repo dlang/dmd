@@ -1,4 +1,5 @@
 // PERMUTE_ARGS: -inline
+// REQUIRED_ARGS: -verrors=0
 /* TEST_OUTPUT:
 ---
 runnable/template10.d(89): Deprecation: function `template10.test1b.f0.f!(a).f` function requires a dual-context, which is deprecated
@@ -58,7 +59,6 @@ runnable/template10.d(741):        instantiated from here: `fun!(n)`
 */
 
 /********************************************/
-
 void test1a()
 {
     int a = 1;

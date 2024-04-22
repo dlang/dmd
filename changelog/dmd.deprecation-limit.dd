@@ -1,0 +1,26 @@
+Deprecation warnings are now also limited by `-verrors`
+
+By default, the compiler stops after 20 error messages, unless a different amount is specified by passing e.g. `-verrors=50` or `-verrors=0` for no limit.
+This error limit now also applies to deprecation messages, so the command line isn't flooded with hundreds of them when compiling a big project that hasn't fixed all deprecations yet.
+
+---
+deprecated void f()
+{
+}
+
+void main()
+{
+    f();
+    f();
+    f();
+    f();
+}
+---
+
+$(CONSOLE
+&gt; dmd -verrors=3 app.d
+app.d(7): Deprecation: function `deprecationlimit.x` is deprecated
+app.d(8): Deprecation: function `deprecationlimit.x` is deprecated
+app.d(9): Deprecation: function `deprecationlimit.x` is deprecated
+1 deprecation warning omitted, use `-verrors=0` to show all
+)

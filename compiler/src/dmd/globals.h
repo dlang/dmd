@@ -307,6 +307,7 @@ struct Global
 
     Param params;
     unsigned errors;         // number of errors reported so far
+    unsigned deprecations;   // number of deprecations reported so far
     unsigned warnings;       // number of warnings reported so far
     unsigned gag;            // !=0 means gag reporting of errors & warnings
     unsigned gaggedErrors;   // number of errors reported while gagged

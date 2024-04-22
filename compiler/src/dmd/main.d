@@ -250,6 +250,18 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         errorSupplemental(Loc.initial, "Use -wi if you wish to treat warnings only as informational.");
     }
 
+    // In case deprecation messages were omitted, inform the user about it
+    static void mentionOmittedDeprecations()
+    {
+        if (global.params.v.errorLimit != 0 &&
+            global.deprecations > global.params.v.errorLimit)
+        {
+            const omitted = global.deprecations - global.params.v.errorLimit;
+            message(Loc.initial, "%d deprecation warning%s omitted, use `-verrors=0` to show all",
+                omitted, omitted == 1 ? "".ptr : "s".ptr);
+        }
+    }
+
     /*
     Generates code to check for all `params` whether any usage page
     has been requested.
@@ -581,6 +593,9 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     if (global.warnings)
         errorOnWarning();
+
+    if (global.params.useDeprecated == DiagnosticReporting.inform)
+        mentionOmittedDeprecations();
 
     // Do not attempt to generate output files if errors or warnings occurred
     if (global.errors || global.warnings)
