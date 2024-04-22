@@ -478,8 +478,12 @@ extern (C++) void verrorReport(const ref Loc loc, const(char)* format, va_list a
         {
             if (!global.gag)
             {
-                info.headerColor = Classification.deprecation;
-                verrorPrint(format, ap, info);
+                global.deprecations++;
+                if (global.params.v.errorLimit == 0 || global.deprecations <= global.params.v.errorLimit)
+                {
+                    info.headerColor = Classification.deprecation;
+                    verrorPrint(format, ap, info);
+                }
             }
             else
             {

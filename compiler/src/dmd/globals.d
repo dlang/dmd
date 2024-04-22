@@ -284,6 +284,7 @@ extern (C++) struct Global
 
     Param params;           /// command line parameters
     uint errors;            /// number of errors reported so far
+    uint deprecations;      /// number of deprecations reported so far
     uint warnings;          /// number of warnings reported so far
     uint gag;               /// !=0 means gag reporting of errors & warnings
     uint gaggedErrors;      /// number of errors reported while gagged

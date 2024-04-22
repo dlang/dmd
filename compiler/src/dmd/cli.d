@@ -818,7 +818,7 @@ dmd -cov -unittest myprog.d
             "limit the number of supplemental messages for each error (0 means unlimited)"
         ),
         Option("verrors=<num>",
-            "limit the number of error messages (0 means unlimited)"
+            "limit the number of error/deprecation messages (0 means unlimited)"
         ),
         Option("verrors=context",
             "show error messages with the context of the erroring source line"
