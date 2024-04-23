@@ -6,6 +6,10 @@ __stdcall int foostdcall(int a) { return a; }
 
 int __stdcall foostdcall2(int a) { return a; }
 
+#if _MSC_VER
+int _stdcall foostdcall3(int a) { return a; } // test issue 24509
+#endif
+
 int __stdcall (*fp1)(int a) = &foostdcall;
 
 int (__stdcall *fp2)(int a) = &foostdcall2;
