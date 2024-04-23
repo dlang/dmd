@@ -34,20 +34,22 @@ import dmd.root.rmem;
 import dmd.root.string;
 
 // Use default for other versions
-version (Posix)   version = runPreprocessor;
-version (Windows) version = runPreprocessor;
+version (Posix)         enum preprocessorAvailable = true;
+else version (Windows)  enum preprocessorAvailable = true;
+else enum preprocessorAvailable = false;
 
 /***************************************
  * Preprocess C file.
  * Params:
  *      csrcfile = C file to be preprocessed, with .c or .h extension
  *      loc = The source location where preprocess is requested from
+ *      alreadyPreprocessed = True if file have .i extension
  *      defines = buffer to append any `#define` and `#undef` lines encountered to
  * Result:
  *      the text of the preprocessed file
  */
 extern (C++)
-DArray!ubyte preprocess(FileName csrcfile, ref const Loc loc, ref OutBuffer defines)
+DArray!(const ubyte) preprocess(FileName csrcfile, ref const Loc loc, bool alreadyPreprocessed, ref OutBuffer defines)
 {
     /* Look for "importc.h" by searching along import path.
      */
@@ -65,18 +67,64 @@ DArray!ubyte preprocess(FileName csrcfile, ref const Loc loc, ref OutBuffer defi
     }
 
     //printf("preprocess %s\n", csrcfile.toChars());
-    version (runPreprocessor)
+    if (preprocessorAvailable && global.params.usePreprocessor)
     {
         const command = global.params.cpp ? toDString(global.params.cpp) : cppCommand();
-        DArray!ubyte text;
-        int status = runPreprocessor(loc, command, csrcfile.toString(), importc_h, global.params.cppswitches, global.params.v.verbose, global.errorSink, defines, text);
+
+        version (Windows)   enum canPreprocessTwice = false;
+        else enum canPreprocessTwice = true;
+
+        static if(!canPreprocessTwice)
+        {
+            // Some preprocessors can't parse already parsed files
+            // We should remove lines starting with "# " to pretend what
+            // preprocessed file wasn't preprocessed
+
+            FileName tmp_filename;
+
+            if (alreadyPreprocessed)
+            {
+                import dmd.utils : writeFile;
+
+                auto src = global.fileManager.getFileContents(csrcfile);
+
+                // sppn.exe don't accepts files with .i extension or with two dots
+                // MS VS compiler accepts .tmp files as .i files
+                version (Windows)
+                    tmp_filename = FileName(FileName.removeExt(csrcfile.toString) ~ ".tmp");
+                else
+                    tmp_filename = FileName(csrcfile.toString ~ ".tmp.i");
+
+                string dst;
+                foreach (line; (cast(char[]) src).splitLines)
+                    dst ~= line.ptr.startsWith("# ") ? "\n" : (line~'\n');
+
+                if (!writeFile(loc, tmp_filename.toString, dst))
+                    fatal();
+
+                csrcfile = tmp_filename;
+            }
+
+            scope (exit)
+            {
+                if(tmp_filename.toChars !is null)
+                    File.remove(tmp_filename.toChars);
+            }
+        }
+
+        DArray!(const ubyte) text;
+        int status = runPreprocessor(loc, command, csrcfile.toString(), alreadyPreprocessed,
+            importc_h, global.params.cppswitches, global.params.v.verbose, global.errorSink,
+            defines, text
+        );
+
         if (status)
             fatal();
         return text;
     }
     else
     {
-        return DArray!ubyte(global.fileManager.getFileContents(csrcfile));
+        return DArray!(const ubyte)(global.fileManager.getFileContents(csrcfile));
     }
 }
 

@@ -1,4 +1,6 @@
-/* TEST_OUTPUT:
+/*
+REQUIRED_ARGS: -cpp=
+TEST_OUTPUT:
 ---
 fail_compilation/compgoto.i(105): Error: unary `&&` computed goto extension is not supported
 fail_compilation/compgoto.i(106): Error: `goto *` computed goto extension is not supported

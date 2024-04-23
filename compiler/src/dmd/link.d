@@ -1050,6 +1050,7 @@ public int runProgram(const char[] exefile, const char*[] runargs, bool verbose,
  *    loc = source location where preprocess is requested from
  *    cpp = name of C preprocessor program
  *    filename = C source file name
+ *    alreadyPreprocessed = source file is already preprocessed
  *    importc_h = filename of importc.h
  *    cppswitches = array of switches to pass to C preprocessor
  *    verbose = print progress to eSink
@@ -1059,8 +1060,9 @@ public int runProgram(const char[] exefile, const char*[] runargs, bool verbose,
  * Returns:
  *    error status, 0 for success
  */
-public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] filename, const(char)* importc_h, ref Array!(const(char)*) cppswitches,
-    bool verbose, ErrorSink eSink, ref OutBuffer defines, out DArray!ubyte text)
+public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] filename,
+    const bool alreadyPreprocessed, const(char)* importc_h, ref Array!(const(char)*) cppswitches,
+    bool verbose, ErrorSink eSink, ref OutBuffer defines, out DArray!(const ubyte) text)
 {
     //printf("runPreprocessor() cpp: %.*s filename: %.*s\n", cast(int)cpp.length, cpp.ptr, cast(int)filename.length, filename.ptr);
 
@@ -1094,7 +1096,7 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
             Mem.xfree(cast(void*)ifilename.ptr);
             if (readResult)
                 return STATUS_FAILED;
-            text = DArray!ubyte(cast(ubyte[])buf.extractSlice(true));
+            text = DArray!(const ubyte)(cast(ubyte[])buf.extractSlice(true));
             return 0;
         }
 
@@ -1387,6 +1389,12 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
         // need to redefine some macros in importc.h
         argv.push("-Wno-builtin-macro-redefined");
 
+        if (alreadyPreprocessed)
+        {
+            // Supported only C preprocessed files
+            argv.push("-x"); argv.push("c");
+        }
+
         if (target.os == Target.OS.OSX)
         {
             argv.push("-fno-blocks");       // disable clang blocks extension
@@ -1397,9 +1405,9 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
         }
         else
         {
-            argv.push(filename.xarraydup.ptr);  // and the input
             argv.push("-include");
             argv.push(importc_h);
+            argv.push(filename.xarraydup.ptr);  // and the input
         }
         argv.push(null);                    // argv[] always ends with a null
 
@@ -1480,7 +1488,7 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
             return STATUS_FAILED;
         }
 
-        text = DArray!ubyte(cast(ubyte[])buffer.extractSlice(true));
+        text = DArray!(const ubyte)(cast(ubyte[])buffer.extractSlice(true));
         return 0;
     }
     else

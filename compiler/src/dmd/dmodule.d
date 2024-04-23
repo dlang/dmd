@@ -675,19 +675,21 @@ extern (C++) final class Module : Package
 
         //printf("Module::read('%s') file '%s'\n", toChars(), srcfile.toChars());
 
-        /* Preprocess the file if it's a .c file
+        /* Preprocess the file if it's a .c or .i file
          */
         FileName filename = srcfile;
 
         const(ubyte)[] srctext;
+        bool alreadyPreprocessed;
         if (global.preprocess &&
-            FileName.equalsExt(srcfile.toString(), c_ext) &&
+            ((alreadyPreprocessed = FileName.equalsExt(srcfile.toString(), i_ext)) == true ||
+            FileName.equalsExt(srcfile.toString(), c_ext)) &&
             FileName.exists(srcfile.toString()))
         {
-            /* Apply C preprocessor to the .c file, returning the contents
+            /* Apply C preprocessor to the file, returning the contents
              * after preprocessing
              */
-            srctext = global.preprocess(srcfile, loc, defines).data;
+            srctext = global.preprocess(srcfile, loc, alreadyPreprocessed, defines).data;
         }
         else
             srctext = global.fileManager.getFileContents(filename);
