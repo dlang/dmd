@@ -32,11 +32,12 @@ jobs:
             os: ubuntu-22.04
             model: 32
             host_dmd: dmd
-          - job_name: Ubuntu 22.04 x86, DMD (coverage)
-            os: ubuntu-22.04
-            model: 32
-            host_dmd: dmd
-            coverage: true
+          # Disabled because of failure https://issues.dlang.org/show_bug.cgi?id=24518
+          # - job_name: Ubuntu 22.04 x86, DMD (coverage)
+          #   os: ubuntu-22.04
+          #   model: 32
+          #   host_dmd: dmd
+          #   coverage: true
           - job_name: Ubuntu 22.04 x86, DMD (bootstrap)
             os: ubuntu-22.04
             model: 32
@@ -51,13 +52,12 @@ jobs:
           # macOS
           - job_name: macOS 13 x64, DMD (latest)
             os: macos-13
-            # FIXME: Revert this back to "dmd" after 2.107.1 is released.
-            host_dmd: ldc
-          - job_name: macOS 13 x64, DMD (coverage)
-            os: macos-13
-            # FIXME: Revert this back to "dmd" after 2.107.1 is released.
-            host_dmd: ldc
-            coverage: true
+            host_dmd: dmd
+          # Disabled because of failure https://issues.dlang.org/show_bug.cgi?id=24518
+          # - job_name: macOS 13 x64, DMD (coverage)
+          #   os: macos-13
+          #   host_dmd: dmd
+          #   coverage: true
           - job_name: macOS 12 x64, DMD (bootstrap)
             os: macos-12
             # de-facto bootstrap version on OSX
