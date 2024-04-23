@@ -67,9 +67,11 @@ DArray!ubyte preprocess(FileName csrcfile, ref const Loc loc, ref OutBuffer defi
     //printf("preprocess %s\n", csrcfile.toChars());
     version (runPreprocessor)
     {
+        const includePath = FileName.replaceName(toDString(importc_h), "include");
         const command = global.params.cpp ? toDString(global.params.cpp) : cppCommand();
         DArray!ubyte text;
-        int status = runPreprocessor(loc, command, csrcfile.toString(), importc_h, global.params.cppswitches, global.params.v.verbose, global.errorSink, defines, text);
+        int status = runPreprocessor(loc, command, csrcfile.toString(), importc_h, includePath, global.params.cppswitches, global.params.v.verbose, global.errorSink, defines, text);
+        FileName.free(includePath.ptr);
         if (status)
             fatal();
         return text;
