@@ -3695,6 +3695,7 @@ public:
     bool requiresClosure;
     Array<VarDeclaration* > closureVars;
     Array<VarDeclaration* > outerVars;
+    Array<VarDeclaration* > outerVarsReturnedByValue;
     Array<FuncDeclaration* > siblingCallers;
     Array<FuncDeclaration* >* inlinedNestedCallees;
     AttributeViolation* safetyViolation;
@@ -4459,6 +4460,7 @@ public:
     const char* kind() const override;
     TypeFunction* syntaxCopy() override;
     bool hasLazyParameters();
+    bool hasReturnParameters();
     bool isDstyleVariadic() const;
     MATCH constConv(Type* to) override;
     bool iswild() const;

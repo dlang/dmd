@@ -5671,6 +5671,20 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.type = exp.type.typeSemantic(exp.loc, sc);
 
             exp.fd.tok = TOK.delegate_;
+
+            /* Cannot take the address of a nested function that returns scope variables from
+             * outer scopes
+             */
+            foreach (vo; exp.fd.outerVarsReturnedByValue[])
+            {
+                if (vo.isScope && exp.fd.type.isTypeFunction().hasReturnParameters())
+                {
+//xyzzy
+                    if (setUnsafePreview(sc, global.params.useDIP1000, false, exp.loc,
+                        "cannot make delegate from `%s` because it returns `%s` from outer `%s`", exp.fd, vo, vo.toParent()))
+                        return setError();
+                }
+            }
         }
         else
         {
@@ -8690,9 +8704,24 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                 v.checkPurity(ve.loc, sc);
             }
-            FuncDeclaration f = ve.var.isFuncDeclaration();
-            if (f)
+            if (FuncDeclaration f = ve.var.isFuncDeclaration())
             {
+                /* Cannot take the address of a nested function that returns scope variables from
+                 * outer scopes
+                 */
+                foreach (vo; f.outerVarsReturnedByValue[])
+                {
+                    if (vo.isScope && f.type.isTypeFunction().hasReturnParameters())
+                    {
+//xyzzy
+                        if (setUnsafePreview(sc, global.params.useDIP1000, false, exp.loc,
+                            "cannot make delegate from `%s` because it returns `%s` from outer `%s`", f, vo, vo.toParent()))
+                            return setError();
+                    }
+                }
+
+                if (f.isNested())
+
                 /* Because nested functions cannot be overloaded,
                  * mark here that we took its address because castTo()
                  * may not be called with an exact match.
