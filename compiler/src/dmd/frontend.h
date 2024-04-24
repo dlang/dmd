@@ -3695,6 +3695,7 @@ public:
     bool requiresClosure;
     Array<VarDeclaration* > closureVars;
     Array<VarDeclaration* > outerVars;
+    Array<VarDeclaration* > outerVarsReturnedByValue;
     Array<FuncDeclaration* > siblingCallers;
     Array<FuncDeclaration* >* inlinedNestedCallees;
     AttributeViolation* safetyViolation;
