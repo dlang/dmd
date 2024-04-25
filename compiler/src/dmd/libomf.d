@@ -1,7 +1,7 @@
 /**
  * A library in the OMF format, a legacy format for 32-bit Windows.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/libomf.d, _libomf.d)
@@ -16,11 +16,13 @@ import core.stdc.string;
 import core.stdc.stdlib;
 import core.bitop;
 
+import dmd.errors : fatal;
 import dmd.utils;
 import dmd.lib;
 import dmd.location;
 
 import dmd.root.array;
+import dmd.root.file;
 import dmd.root.filename;
 import dmd.root.rmem;
 import dmd.common.outbuffer;
@@ -30,7 +32,7 @@ import dmd.root.stringtable;
 import dmd.scanomf;
 
 // Entry point (only public symbol in this module).
-extern (C++) Library LibOMF_factory()
+Library LibOMF_factory()
 {
     return new LibOMF();
 }
@@ -72,7 +74,7 @@ final class LibOMF : Library
      * If the buffer is NULL, use module_name as the file name
      * and load the file.
      */
-    override void addObject(const(char)[] module_name, const ubyte[] buffer)
+    override void addObject(const(char)[] module_name, const(ubyte)[] buffer)
     {
         static if (LOG)
         {
@@ -86,18 +88,17 @@ final class LibOMF : Library
                   cast(int)module_name.length, module_name.ptr, reason);
         }
 
-        auto buf = buffer.ptr;
-        auto buflen = buffer.length;
-        if (!buf)
+        if (!buffer.length)
         {
             assert(module_name.length, "No module nor buffer provided to `addObject`");
             // read file and take buffer ownership
-            auto data = readFile(Loc.initial, module_name).extractSlice();
-            buf = data.ptr;
-            buflen = data.length;
+            OutBuffer b;
+            if (readFile(Loc.initial, module_name, b))
+                fatal();
+            buffer = cast(ubyte[])b.extractSlice();
         }
         uint g_page_size;
-        ubyte* pstart = cast(ubyte*)buf;
+        ubyte* pstart = cast(ubyte*)buffer.ptr;
         bool islibrary = false;
         /* See if it's an OMF library.
          * Don't go by file extension.
@@ -114,20 +115,19 @@ final class LibOMF : Library
         /* Determine if it is an OMF library, an OMF object module,
          * or something else.
          */
-        if (buflen < (LibHeader).sizeof)
+        if (buffer.length < (LibHeader).sizeof)
             return corrupt(__LINE__);
-        const lh = cast(const(LibHeader)*)buf;
+        const lh = cast(const(LibHeader)*)buffer.ptr;
         if (lh.recTyp == 0xF0)
         {
             /* OMF library
-             * The modules are all at buf[g_page_size .. lh.lSymSeek]
+             * The modules are all at buffer.ptr[g_page_size .. lh.lSymSeek]
              */
             islibrary = 1;
             g_page_size = lh.pagesize + 3;
-            buf = cast(ubyte*)(pstart + g_page_size);
-            if (lh.lSymSeek > buflen || g_page_size > buflen)
+            if (lh.lSymSeek > buffer.length || g_page_size > buffer.length)
                 return corrupt(__LINE__);
-            buflen = lh.lSymSeek - g_page_size;
+            buffer = (cast(ubyte*)pstart)[g_page_size .. lh.lSymSeek];
         }
         else if (lh.recTyp == '!' && memcmp(lh, "!<arch>\n".ptr, 8) == 0)
         {
@@ -149,23 +149,25 @@ final class LibOMF : Library
             om.length = cast(uint)length;
             /* Determine the name of the module
              */
+            const(char)[] n;
             if (firstmodule && module_name && !islibrary)
             {
                 // Remove path and extension
-                om.name = FileName.removeExt(FileName.name(module_name));
+                n = FileName.sansExt(FileName.name(module_name));
             }
             else
             {
                 /* Use THEADR name as module name,
                  * removing path and extension.
                  */
-                om.name = FileName.removeExt(FileName.name(name.toDString()));
+                n = FileName.sansExt(FileName.name(name.toDString()));
             }
+            om.name = toCString(n)[0 .. n.length];
             firstmodule = false;
             this.objmodules.push(om);
         }
 
-        if (scanOmfLib(&addOmfObjModule, cast(void*)buf, buflen, g_page_size))
+        if (scanOmfLib(&addOmfObjModule, cast(void*)buffer.ptr, buffer.length, g_page_size))
             return corrupt(__LINE__);
     }
 

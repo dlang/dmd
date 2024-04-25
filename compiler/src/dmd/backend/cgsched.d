@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1995-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgsched.c, backend/cgsched.d)
@@ -864,8 +864,9 @@ extern (D) private immutable ubyte[8] uopsx = [ 1,1,2,5,1,1,1,5 ];
  *      prefix bytes
  */
 
-private int uops(code *c)
-{   int n;
+private ubyte uops(code *c)
+{
+    ubyte n;
     int op;
     int op2;
 
@@ -1269,18 +1270,23 @@ private int pair_class(code *c)
  * For an instruction, determine what is read
  * and what is written, and what is used for addressing.
  * Determine operand size if EA (larger is ok).
+ * Params:
+ *     c: the instruction to examine
+ * Returns:
+ *     CInfo struct containing info about c
  */
 
 @trusted
-private void getinfo(out Cinfo ci,code *c)
+private Cinfo getinfo(code *c)
 {
     if (!c)
-        return;
+        return Cinfo.init;
+    Cinfo ci;
     ci.c = c;
 
     if (PRO)
     {
-        ci.uops = cast(ubyte)uops(c);
+        ci.uops = uops(c);
         ci.isz = cast(ubyte)calccodsize(c);
     }
     else
@@ -1786,7 +1792,7 @@ Lret:
     if (op == LEA)                     // if LEA
         ci.r &= ~mMEM;                 // memory is not actually read
     ci.sz = cast(ubyte)sz;
-
+    return ci;
     //printf("\t\t"); ci.print();
 }
 
@@ -1798,49 +1804,39 @@ Lret:
  *      cu      instruction for U pipe
  *      cv      instruction for V pipe
  * Returns:
- *      !=0 if they can pair
+ *      true if they can pair
  */
 
-private int pair_test(const ref Cinfo cu, const ref Cinfo cv)
+private bool pair_test(const ref Cinfo cu, const ref Cinfo cv)
 {
-    uint pcu;
-    uint pcv;
-    uint r1,w1;
-    uint r2,w2;
-    uint x;
-
-    pcu = cu.pair;
+    const pcu = cu.pair;
     if (!(pcu & PU))
     {
         // See if pairs with FXCH and cv is FXCH
         if (pcu & FX && cv.c.Iop == 0xD9 && (cv.c.Irm & ~7) == 0xC8)
-            goto Lpair;
-        goto Lnopair;
+            return true;
+        return false;
     }
-    pcv = cv.pair;
+    const pcv = cv.pair;
     if (!(pcv & PV))
-        goto Lnopair;
+        return false;
 
-    r1 = cu.r;
-    w1 = cu.w;
-    r2 = cv.r;
-    w2 = cv.w;
+    const r1 = cu.r;
+    const w1 = cu.w;
+    const r2 = cv.r;
+    const w2 = cv.w;
 
-    x = w1 & (r2 | w2) & ~(F|mMEM);     // register contention
+    const x = w1 & (r2 | w2) & ~(F|mMEM);     // register contention
     if (x &&                            // if register contention
         !(x == mSP && pcu & pcv & PE)   // and not exception
        )
-        goto Lnopair;
+        return false;
 
     // Look for flags contention
     if (w1 & r2 & F && !(pcv & PF))
-        goto Lnopair;
+        return false;
 
-Lpair:
-    return 1;
-
-Lnopair:
-    return 0;
+    return true;
 }
 
 /******************************************
@@ -1851,7 +1847,7 @@ Lnopair:
 
 private int pair_agi(const ref Cinfo c1, const ref Cinfo c2) pure
 {
-    uint x = c1.w & c2.a;
+    const x = c1.w & c2.a;
     return x && !(x == mSP && c1.pair & c2.pair & PE);
 }
 
@@ -1862,25 +1858,22 @@ private int pair_agi(const ref Cinfo c1, const ref Cinfo c2) pure
  *      c0,c1,c2        candidates for decoders 0,1,2
  *                      c2 can be null
  * Returns:
- *      !=0 if they can decode simultaneously
+ *      true if they can decode simultaneously
  */
 
-private int triple_test(Cinfo *c0, Cinfo *c1, Cinfo *c2)
+private bool triple_test(const ref Cinfo c0, const ref Cinfo c1, Cinfo *c2)
 {
-    assert(c0);
-    if (!c1)
-        return 0;
-    int c2isz = c2 ? c2.isz : 0;
+    const c2isz = c2 ? c2.isz : 0;
     if (c0.isz > 7 || c1.isz > 7 || c2isz > 7 ||
         c0.isz + c1.isz + c2isz > 16)
-        return 0;
+        return false;
 
     // 4-1-1 decode
     if (c1.uops > 1 ||
         (c2 && c2.uops > 1))
-        return 0;
+        return false;
 
-    return 1;
+    return true;
 }
 
 /********************************************
@@ -2529,7 +2522,7 @@ int insert(Cinfo *ci)
                             i++;
                             break;
                         }
-                        if (triple_test(ci0,ci,tbl[i0 + 2]))
+                        if (triple_test(*ci0,*ci,tbl[i0 + 2]))
                             goto Linsert;
                         break;
                     case 2:
@@ -2550,7 +2543,7 @@ int insert(Cinfo *ci)
                             }
                             break;
                         }
-                        if (triple_test(ci0,tbl[i0 + 1],ci))
+                        if (tbl[i0 + 1] && triple_test(*ci0,*tbl[i0 + 1],ci))
                             goto Linsert;
                         break;
                     default:
@@ -2692,7 +2685,7 @@ bool stage(code *c)
     if (cinfomax == TBLMAX)             // if out of space
         return false;
     auto ci = &cinfo[cinfomax++];
-    getinfo(*ci,c);
+    *ci = getinfo(c);
 
     if (c.Iflags & (CFtarg | CFtarg2 | CFvolatile | CFvex))
     {

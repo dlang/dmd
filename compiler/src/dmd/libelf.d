@@ -1,7 +1,7 @@
 /**
  * A library in the ELF format, used on Unix.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/libelf.d, _libelf.d)
@@ -15,21 +15,28 @@ import core.stdc.time;
 import core.stdc.string;
 import core.stdc.stdlib;
 import core.stdc.stdio;
+
 version (Posix)
 {
     import core.sys.posix.sys.stat;
     import core.sys.posix.unistd;
+    alias Statbuf = stat_t;
 }
-version (Windows)
+else version (Windows)
 {
     import core.sys.windows.stat;
+    alias Statbuf = struct_stat;
 }
+else
+    static assert(0, "unsupported operating system");
 
+import dmd.errors : fatal;
 import dmd.lib;
 import dmd.location;
 import dmd.utils;
 
 import dmd.root.array;
+import dmd.root.file;
 import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.root.port;
@@ -76,7 +83,7 @@ final class LibElf : Library
      * If the buffer is NULL, use module_name as the file name
      * and load the file.
      */
-    override void addObject(const(char)[] module_name, const ubyte[] buffer)
+    override void addObject(const(char)[] module_name, const(ubyte)[] buffer)
     {
         static if (LOG)
         {
@@ -91,26 +98,25 @@ final class LibElf : Library
         }
 
         int fromfile = 0;
-        auto buf = buffer.ptr;
-        auto buflen = buffer.length;
-        if (!buf)
+        if (!buffer.length)
         {
             assert(module_name.length);
             // read file and take buffer ownership
-            auto data = readFile(Loc.initial, module_name).extractSlice();
-            buf = data.ptr;
-            buflen = data.length;
+            OutBuffer b;
+            if (readFile(Loc.initial, module_name, b))
+                fatal();
+            buffer = cast(ubyte[])b.extractSlice();
             fromfile = 1;
         }
-        if (buflen < 16)
+        if (buffer.length < 16)
         {
             static if (LOG)
             {
-                printf("buf = %p, buflen = %d\n", buf, buflen);
+                printf("buf = %p, buffer.length = %d\n", buffer.ptr, buffer.length);
             }
             return corrupt(__LINE__);
         }
-        if (memcmp(buf, "!<arch>\n".ptr, 8) == 0)
+        if (memcmp(buffer.ptr, "!<arch>\n".ptr, 8) == 0)
         {
             /* Library file.
              * Pull each object module out of the library and add it
@@ -118,7 +124,7 @@ final class LibElf : Library
              */
             static if (LOG)
             {
-                printf("archive, buf = %p, buflen = %d\n", buf, buflen);
+                printf("archive, buf = %p, buffer.length = %d\n", buffer.ptr, buffer.length);
             }
             uint offset = 8;
             char* symtab = null;
@@ -126,17 +132,17 @@ final class LibElf : Library
             char* filenametab = null;
             uint filenametab_size = 0;
             uint mstart = cast(uint)objmodules.length;
-            while (offset < buflen)
+            while (offset < buffer.length)
             {
-                if (offset + ElfLibHeader.sizeof >= buflen)
+                if (offset + ElfLibHeader.sizeof >= buffer.length)
                     return corrupt(__LINE__);
-                ElfLibHeader* header = cast(ElfLibHeader*)(cast(ubyte*)buf + offset);
+                ElfLibHeader* header = cast(ElfLibHeader*)(cast(ubyte*)buffer.ptr + offset);
                 offset += ElfLibHeader.sizeof;
                 char* endptr = null;
                 uint size = cast(uint)strtoul(header.file_size.ptr, &endptr, 10);
                 if (endptr >= header.file_size.ptr + 10 || *endptr != ' ')
                     return corrupt(__LINE__);
-                if (offset + size > buflen)
+                if (offset + size > buffer.length)
                     return corrupt(__LINE__);
                 if (header.object_name[0] == '/' && header.object_name[1] == ' ')
                 {
@@ -145,7 +151,7 @@ final class LibElf : Library
                      */
                     if (symtab)
                         return corrupt(__LINE__);
-                    symtab = cast(char*)buf + offset;
+                    symtab = cast(char*)buffer.ptr + offset;
                     symtab_size = size;
                     if (size < 4)
                         return corrupt(__LINE__);
@@ -156,13 +162,13 @@ final class LibElf : Library
                      */
                     if (filenametab)
                         return corrupt(__LINE__);
-                    filenametab = cast(char*)buf + offset;
+                    filenametab = cast(char*)buffer.ptr + offset;
                     filenametab_size = size;
                 }
                 else
                 {
                     auto om = new ElfObjModule();
-                    om.base = cast(ubyte*)buf + offset; /*- sizeof(ElfLibHeader)*/
+                    om.base = cast(ubyte*)buffer.ptr + offset; /*- sizeof(ElfLibHeader)*/
                     om.length = size;
                     om.offset = 0;
                     if (header.object_name[0] == '/')
@@ -213,7 +219,7 @@ final class LibElf : Library
                 }
                 offset += (size + 1) & ~1;
             }
-            if (offset != buflen)
+            if (offset != buffer.length)
                 return corrupt(__LINE__);
             /* Scan the library's symbol table, and insert it into our own.
              * We use this instead of rescanning the object module, because
@@ -238,8 +244,8 @@ final class LibElf : Library
                     if (m == objmodules.length)
                         return corrupt(__LINE__);  // didn't find it
                     ElfObjModule* om = objmodules[m];
-                    //printf("\t%x\n", cast(char *)om.base - cast(char *)buf);
-                    if (moff + ElfLibHeader.sizeof == cast(char*)om.base - cast(char*)buf)
+                    //printf("\t%x\n", cast(char *)om.base - cast(char *)buffer.ptr);
+                    if (moff + ElfLibHeader.sizeof == cast(char*)om.base - cast(char*)buffer.ptr)
                     {
                         addSymbol(om, name, 1);
                         //if (mstart == m)
@@ -253,19 +259,16 @@ final class LibElf : Library
         /* It's an object module
          */
         auto om = new ElfObjModule();
-        om.base = cast(ubyte*)buf;
-        om.length = cast(uint)buflen;
+        om.base = cast(ubyte*)buffer.ptr;
+        om.length = cast(uint)buffer.length;
         om.offset = 0;
         // remove path, but not extension
-        om.name = FileName.name(module_name);
+        om.name = toCString(FileName.name(module_name));
         om.name_offset = -1;
         om.scan = 1;
         if (fromfile)
         {
-            version (Posix)
-                stat_t statbuf;
-            version (Windows)
-                struct_stat statbuf;
+            Statbuf statbuf;
             int i = module_name.toCStringThen!(name => stat(name.ptr, &statbuf));
             if (i == -1) // error, errno is set
                 return corrupt(__LINE__);
@@ -293,11 +296,14 @@ final class LibElf : Library
                 om.user_id = uid;
                 om.group_id = gid;
             }
-            version (Windows)
+            else version (Windows)
             {
                 om.user_id = 0;  // meaningless on Windows
                 om.group_id = 0; // meaningless on Windows
             }
+            else
+                static assert(0, "unsupported operating system");
+
             time_t file_time = 0;
             time(&file_time);
             om.file_time = cast(long)file_time;
@@ -532,7 +538,7 @@ struct ElfLibHeader
     char[ELF_TRAILER_SIZE] trailer;
 }
 
-extern (C++) void ElfOmToHeader(ElfLibHeader* h, ElfObjModule* om)
+void ElfOmToHeader(ElfLibHeader* h, ElfObjModule* om)
 {
     char* buffer = cast(char*)h;
     // user_id and group_id are padded on 6 characters in Header struct.

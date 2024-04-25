@@ -2,7 +2,7 @@
  * Parses compiler settings from a .ini file.
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dinifile.d, _dinifile.d)
@@ -13,10 +13,9 @@
 module dmd.dinifile;
 
 import core.stdc.ctype;
+import core.stdc.stdio;
 import core.stdc.string;
-import core.sys.posix.stdlib;
-import core.sys.windows.winbase;
-import core.sys.windows.windef;
+import core.stdc.stdlib;
 
 import dmd.errors;
 import dmd.location;
@@ -27,6 +26,12 @@ import dmd.common.outbuffer;
 import dmd.root.port;
 import dmd.root.string;
 import dmd.root.stringtable;
+
+version (Windows)
+{
+    import core.sys.windows.winbase;
+    import core.sys.windows.windef;
+}
 
 private enum LOG = false;
 
@@ -46,17 +51,25 @@ const(char)[] findConfFile(const(char)[] argv0, const(char)[] inifile)
         printf("findinifile(argv0 = '%.*s', inifile = '%.*s')\n",
                cast(int)argv0.length, argv0.ptr, cast(int)inifile.length, inifile.ptr);
     }
-    if (FileName.absolute(inifile))
-        return inifile;
-    if (FileName.exists(inifile))
-        return inifile;
+
     /* Look for inifile in the following sequence of places:
+     *      o fully qualified name
      *      o current directory
      *      o home directory
      *      o exe directory (windows)
      *      o directory off of argv0
      *      o SYSCONFDIR=/etc (non-windows)
      */
+
+    // fully qualified name
+    if (FileName.absolute(inifile))
+        return inifile;
+
+    // in current directory
+    if (FileName.exists(inifile))
+        return inifile;
+
+    // in home directory
     auto filename = FileName.combine(getenv("HOME").toDString, inifile);
     if (FileName.exists(filename))
         return filename;
@@ -67,25 +80,11 @@ const(char)[] findConfFile(const(char)[] argv0, const(char)[] inifile)
         filename = FileName.combine(getenv("HOME").toDString, '.' ~ inifile);
         if (FileName.exists(filename))
             return filename;
-    }
 
-    version (Windows)
-    {
-        // This fix by Tim Matthews
-        char[MAX_PATH + 1] resolved_name;
-        const len = GetModuleFileNameA(null, resolved_name.ptr, MAX_PATH + 1);
-        if (len && FileName.exists(resolved_name[0 .. len]))
-        {
-            filename = FileName.replaceName(resolved_name[0 .. len], inifile);
-            if (FileName.exists(filename))
-                return filename;
-        }
-    }
-    filename = FileName.replaceName(argv0, inifile);
-    if (FileName.exists(filename))
-        return filename;
-    version (Posix)
-    {
+        // directory off of argv0
+        filename = FileName.replaceName(argv0, inifile);
+        if (FileName.exists(filename))
+            return filename;
         // Search PATH for argv0
         const p = getenv("PATH");
         static if (LOG)
@@ -110,6 +109,24 @@ const(char)[] findConfFile(const(char)[] argv0, const(char)[] inifile)
         // Search SYSCONFDIR=/etc for inifile
         filename = FileName.combine(import("SYSCONFDIR.imp"), inifile);
     }
+    else version (Windows)
+    {
+        // This fix by Tim Matthews
+        char[MAX_PATH + 1] resolved_name = void;
+        const len = GetModuleFileNameA(null, resolved_name.ptr, MAX_PATH + 1);
+        if (len && FileName.exists(resolved_name[0 .. len]))
+        {
+            filename = FileName.replaceName(resolved_name[0 .. len], inifile);
+            if (FileName.exists(filename))
+                return filename;
+        }
+        filename = FileName.replaceName(argv0, inifile);
+        if (FileName.exists(filename))
+            return filename;
+    }
+    else
+        static assert(0);
+
     return filename;
 }
 
@@ -172,9 +189,12 @@ void updateRealEnvironment(ref StringTable!(char*) environment)
  *      path = what @P will expand to
  *      buffer = contents of configuration file
  *      sections = section names
+ * Returns:
+ *      true on failure
  */
-void parseConfFile(ref StringTable!(char*) environment, const(char)[] filename, const(char)[] path, const(ubyte)[] buffer, const(Strings)* sections)
+bool parseConfFile(ref StringTable!(char*) environment, const(char)[] filename, const(char)[] path, const(ubyte)[] buffer, const(Strings)* sections)
 {
+    //printf("buffer: '%.*s'\n", cast(int)buffer.length, buffer.ptr);
     /********************
      * Skip spaces.
      */
@@ -354,7 +374,7 @@ void parseConfFile(ref StringTable!(char*) environment, const(char)[] filename, 
                     {
                         const loc = Loc(filename.xarraydup.ptr, lineNum, 0); // TODO: use r-value when `error` supports it
                         error(loc, "use `NAME=value` syntax, not `%s`", pn);
-                        fatal();
+                        return true;
                     }
                     static if (LOG)
                     {
@@ -366,4 +386,5 @@ void parseConfFile(ref StringTable!(char*) environment, const(char)[] filename, 
             break;
         }
     }
+    return false; // success
 }

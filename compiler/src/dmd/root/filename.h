@@ -1,5 +1,5 @@
 
-/* Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+/* Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -22,7 +22,7 @@ public:
     static FileName create(const char *name);
     static bool equals(const char *name1, const char *name2);
     static bool absolute(const char *name);
-    static const char *toAbsolute(const char *name, const char *base = NULL);
+    static const char *toAbsolute(const char *name, const char *base = nullptr);
     static const char *ext(const char *);
     const char *ext();
     static const char *removeExt(const char *str);
@@ -31,14 +31,14 @@ public:
     static const char *path(const char *);
 
     static const char *combine(const char *path, const char *name);
-    static Strings *splitPath(const char *path);
+    static void appendSplitPath(const char *path, Strings& array);
     static const char *defaultExt(const char *name, const char *ext);
     static const char *forceExt(const char *name, const char *ext);
     static bool equalsExt(const char *name, const char *ext);
 
     bool equalsExt(const char *ext);
 
-    static const char *searchPath(Strings *path, const char *name, bool cwd);
+    static const char *searchPath(const Strings &path, const char *name, bool cwd);
     static int exists(const char *name);
     static bool ensurePathExists(const char *path);
     static const char *canonicalName(const char *name);

@@ -40,19 +40,6 @@ visuald() {
     fi
 }
 
-################################################################################
-# Download DigitalMars Make
-################################################################################
-
-dm_make() {
-    download "https://downloads.dlang.org/other/dm857c.zip" dmc.zip
-    unzip dmc.zip > /dev/null
-    export DMC="$PWD/dm/bin/dmc.exe"
-    export DM_MAKE="$PWD/dm/bin/make.exe"
-    mkdir -p dm/path
-    cp "$DMC" "$DM_MAKE" "dm/path"
-}
-
 if [ "$D_COMPILER" == "ldc" ]; then
     echo "[STEP]: Downloading LDC"
     ldc
@@ -63,9 +50,6 @@ fi
 
 echo "[STEP]: Downloading VisualD"
 visuald
-
-echo "[STEP]: Downloading DigitalMars make"
-dm_make
 
 echo "[STEP]: Downloading grep"
 install_grep

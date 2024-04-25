@@ -1,7 +1,7 @@
 /**
  * Convert statements to Intermediate Representation (IR) for the back-end.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _s2ir.d)
@@ -34,7 +34,6 @@ import dmd.dtemplate;
 import dmd.e2ir;
 import dmd.expression;
 import dmd.func;
-import dmd.globals;
 import dmd.glue;
 import dmd.id;
 import dmd.init;
@@ -47,6 +46,7 @@ import dmd.toctype;
 import dmd.tocsym;
 import dmd.toir;
 import dmd.tokens;
+import dmd.typesem : pointerTo;
 import dmd.visitor;
 
 import dmd.backend.barray;

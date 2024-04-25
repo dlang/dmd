@@ -1,7 +1,7 @@
 /**
  * When compiling on Windows with the Microsoft toolchain, try to detect the Visual Studio setup.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/link.d, _vsoptions.d)
@@ -343,21 +343,21 @@ private:
             if (FileName.exists(defverFile))
             {
                 // VS 2017
-                auto readResult = File.read(defverFile.toDString); // adds sentinel 0 at end of file
-                if (readResult.success)
-                {
-                    auto ver = cast(char*)readResult.buffer.data.ptr;
-                    // trim version number
-                    while (*ver && isspace(*ver))
-                        ver++;
-                    auto p = ver;
-                    while (*p == '.' || (*p >= '0' && *p <= '9'))
-                        p++;
-                    *p = 0;
+                OutBuffer buf;
+                if (File.read(defverFile.toDString, buf)) // read file into buf
+                    return; // failed to read the file
 
-                    if (ver && *ver)
-                        VCToolsInstallDir = FileName.buildPath(VCInstallDir.toDString, r"Tools\MSVC", ver.toDString).ptr;
-                }
+                auto ver = cast(char*)buf.extractSlice(true).ptr;
+                // trim version number
+                while (*ver && isspace(*ver))
+                    ver++;
+                auto p = ver;
+                while (*p == '.' || (*p >= '0' && *p <= '9'))
+                    p++;
+                *p = 0;
+
+                if (ver && *ver)
+                    VCToolsInstallDir = FileName.buildPath(VCInstallDir.toDString, r"Tools\MSVC", ver.toDString).ptr;
             }
         }
     }

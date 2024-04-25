@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1996-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/drtlsym.d, backend/drtlsym.d)
@@ -117,6 +117,8 @@ Symbol *getRtlsym(RTLSYM i) @trusted
         case RTLSYM.CALLINTERFACEFINALIZER: symbolz(ps,FLfunc,FREGSAVED,"_d_callinterfacefinalizer", 0, t); break;
         case RTLSYM.ALLOCMEMORY:            symbolz(ps,FLfunc,FREGSAVED,"_d_allocmemory", 0, t); break;
         case RTLSYM.DYNAMIC_CAST:           symbolz(ps,FLfunc,FREGSAVED,"_d_dynamic_cast", 0, t); break;
+        case RTLSYM.PAINT_CAST:             symbolz(ps,FLfunc,FREGSAVED,"_d_paint_cast", 0, t); break;
+        case RTLSYM.CLASS_CAST:             symbolz(ps,FLfunc,FREGSAVED,"_d_class_cast", 0, t); break;
         case RTLSYM.INTERFACE_CAST:         symbolz(ps,FLfunc,FREGSAVED,"_d_interface_cast", 0, t); break;
         case RTLSYM.ARRAYCATT:              symbolz(ps,FLfunc,FREGSAVED,"_d_arraycatT", 0, t); break;
         case RTLSYM.ARRAYCATNTX:            symbolz(ps,FLfunc,FREGSAVED,"_d_arraycatnTX", 0, t); break;

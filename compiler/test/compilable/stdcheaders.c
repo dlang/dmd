@@ -23,13 +23,16 @@
 
 #ifndef __APPLE__ // /Applications/Xcode-14.2.0.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/tgmath.h(39): Error: named parameter required before `...`
 #include <math.h>
+float x = NAN;
 #endif
 
 #ifndef _MSC_VER // setjmp.h(51): Error: missing tag `identifier` after `struct
 #include <setjmp.h>
 #endif
 
+#if !(defined(__linux__) && defined(__aarch64__)) // /usr/include/linux/types.h(12): Error: __int128 not supported
 #include <signal.h>
+#endif
 
 #ifndef __DMC__ // no stdalign.h
 #include <stdalign.h>

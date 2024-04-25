@@ -1,7 +1,7 @@
 /**
  * Defines AST nodes for the parsing stage.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/astbase.d, _astbase.d)
  * Documentation:  https://dlang.org/phobos/dmd_astbase.html
@@ -95,18 +95,20 @@ struct ASTBase
                 this.comment = Lexer.combineComments(this.comment.toDString(), comment.toDString(), true);
         }
 
+        alias toPrettyChars = toChars;
+
         override const(char)* toChars() const
         {
             return ident ? ident.toChars() : "__anonymous";
         }
 
-        bool oneMember(Dsymbol *ps, Identifier ident)
+        bool oneMember(out Dsymbol ps, Identifier ident)
         {
-            *ps = this;
+            ps = this;
             return true;
         }
 
-        extern (D) static bool oneMembers(ref Dsymbols members, Dsymbol* ps, Identifier ident)
+        extern (D) static bool oneMembers(ref Dsymbols members, out Dsymbol ps, Identifier ident)
         {
             Dsymbol s = null;
             for (size_t i = 0; i < members.length; i++)
@@ -115,21 +117,21 @@ struct ASTBase
                 bool x = sx.oneMember(ps, ident);
                 if (!x)
                 {
-                    assert(*ps is null);
+                    assert(ps is null);
                     return false;
                 }
-                if (*ps)
+                if (ps)
                 {
                     assert(ident);
-                    if (!(*ps).ident || !(*ps).ident.equals(ident))
+                    if (!ps.ident || !ps.ident.equals(ident))
                         continue;
                     if (!s)
-                        s = *ps;
-                    else if (s.isOverloadable() && (*ps).isOverloadable())
+                        s = ps;
+                    else if (s.isOverloadable() && ps.isOverloadable())
                     {
                         // keep head of overload set
                         FuncDeclaration f1 = s.isFuncDeclaration();
-                        FuncDeclaration f2 = (*ps).isFuncDeclaration();
+                        FuncDeclaration f2 = ps.isFuncDeclaration();
                         if (f1 && f2)
                         {
                             for (; f1 != f2; f1 = f1.overnext0)
@@ -144,13 +146,13 @@ struct ASTBase
                     }
                     else // more than one symbol
                     {
-                        *ps = null;
+                        ps = null;
                         //printf("\tfalse 2\n");
                         return false;
                     }
                 }
             }
-            *ps = s;
+            ps = s;
             return true;
         }
 
@@ -491,6 +493,22 @@ struct ASTBase
         {
             this.level = level;
             this.loc = loc;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+    extern (C++) final class CAsmDeclaration : Dsymbol
+    {
+        Expression code;
+
+        extern (D) this(Expression e)
+        {
+            super();
+            this.code = e;
         }
 
         override void accept(Visitor v)
@@ -928,7 +946,7 @@ struct ASTBase
             if (members && ident)
             {
                 Dsymbol s;
-                if (Dsymbol.oneMembers(*members, &s, ident) && s)
+                if (Dsymbol.oneMembers(*members, s, ident) && s)
                 {
                     onemember = s;
                     s.parent = this;
@@ -1379,6 +1397,7 @@ struct ASTBase
 
         const FileName srcfile;
         const(char)[] arg;
+        Edition edition = Edition.legacy;
 
         extern (D) this(const ref Loc loc, const(char)[] filename, Identifier ident, int doDocComment, int doHdrGen)
         {
@@ -1694,6 +1713,7 @@ struct ASTBase
 
     extern (C++) final class Parameter : ASTNode
     {
+        Loc loc;
         StorageClass storageClass;
         Type type;
         Identifier ident;
@@ -1702,7 +1722,7 @@ struct ASTBase
 
         extern (D) alias ForeachDg = int delegate(size_t idx, Parameter param);
 
-        final extern (D) this(StorageClass storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl)
+        final extern (D) this(const ref Loc loc, StorageClass storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl)
         {
             this.storageClass = storageClass;
             this.type = type;
@@ -1775,7 +1795,7 @@ struct ASTBase
 
         Parameter syntaxCopy()
         {
-            return new Parameter(storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null, userAttribDecl ? userAttribDecl.syntaxCopy(null) : null);
+            return new Parameter(loc, storageClass, type ? type.syntaxCopy() : null, ident, defaultArg ? defaultArg.syntaxCopy() : null, userAttribDecl ? userAttribDecl.syntaxCopy(null) : null);
         }
 
         override void accept(Visitor v)
@@ -2389,6 +2409,7 @@ struct ASTBase
     extern (C++) class AsmStatement : Statement
     {
         Token* tokens;
+        bool caseSensitive;
 
         extern (D) this(const ref Loc loc, Token* tokens)
         {
@@ -2543,6 +2564,23 @@ struct ASTBase
             this.ident = id;
             this.handler = handler;
         }
+    }
+
+    /************************************
+     * Convert MODxxxx to STCxxx
+     */
+    static StorageClass ModToStc(uint mod) pure nothrow @nogc @safe
+    {
+        StorageClass stc = 0;
+        if (mod & MODFlags.immutable_)
+            stc |= STC.immutable_;
+        if (mod & MODFlags.const_)
+            stc |= STC.const_;
+        if (mod & MODFlags.wild)
+            stc |= STC.wild;
+        if (mod & MODFlags.shared_)
+            stc |= STC.shared_;
+        return stc;
     }
 
     extern (C++) abstract class Type : ASTNode
@@ -3681,7 +3719,7 @@ struct ASTBase
                     Expression e = (*exps)[i];
                     if (e.type.ty == Ttuple)
                         e.error("cannot form sequence of sequences");
-                    auto arg = new Parameter(STC.undefined_, e.type, null, null, null);
+                    auto arg = new Parameter(e.loc, STC.undefined_, e.type, null, null, null);
                     (*arguments)[i] = arg;
                 }
             }
@@ -4521,6 +4559,7 @@ struct ASTBase
     {
         EXP op;
         ubyte size;
+        ubyte parens;
         Type type;
         Loc loc;
 
@@ -4575,6 +4614,7 @@ struct ASTBase
             inout(SuperExp)     isSuperExp() { return op == EXP.super_ ? cast(typeof(return))this : null; }
             inout(NullExp)      isNullExp() { return op == EXP.null_ ? cast(typeof(return))this : null; }
             inout(StringExp)    isStringExp() { return op == EXP.string_ ? cast(typeof(return))this : null; }
+            inout(InterpExp)    isInterpExp() { return op == EXP.interpolated ? cast(typeof(return))this : null; }
             inout(TupleExp)     isTupleExp() { return op == EXP.tuple ? cast(typeof(return))this : null; }
             inout(ArrayLiteralExp) isArrayLiteralExp() { return op == EXP.arrayLiteral ? cast(typeof(return))this : null; }
             inout(AssocArrayLiteralExp) isAssocArrayLiteralExp() { return op == EXP.assocArrayLiteral ? cast(typeof(return))this : null; }
@@ -4907,6 +4947,25 @@ struct ASTBase
         }
     }
 
+    extern (C++) final class InterpExp : Expression
+    {
+        InterpolatedSet* interpolatedSet;
+        char postfix = 0;   // 'c', 'w', 'd'
+
+        extern (D) this(const ref Loc loc, InterpolatedSet* interpolatedSet, char postfix = 0)
+        {
+            super(loc, EXP.interpolated, __traits(classInstanceSize, InterpExp));
+            this.interpolatedSet = interpolatedSet;
+            this.postfix = postfix;
+        }
+
+        override void accept(Visitor v)
+        {
+            v.visit(this);
+        }
+    }
+
+
     extern (C++) final class StringExp : Expression
     {
         union
@@ -4918,6 +4977,9 @@ struct ASTBase
         size_t len;         // number of code units
         ubyte sz = 1;       // 1: char, 2: wchar, 4: dchar
         char postfix = 0;   // 'c', 'w', 'd'
+
+        /// If the string is parsed from a hex string literal
+        bool hexString = false;
 
         extern (D) this(const ref Loc loc, const(void)[] string)
         {
@@ -5099,8 +5161,6 @@ struct ASTBase
 
     extern (C++) final class TypeExp : Expression
     {
-        bool parens;
-
         extern (D) this(const ref Loc loc, Type type)
         {
             super(loc, EXP.type, __traits(classInstanceSize, TypeExp));
@@ -5133,7 +5193,6 @@ struct ASTBase
     extern (C++) class IdentifierExp : Expression
     {
         Identifier ident;
-        bool parens;
 
         final extern (D) this(const ref Loc loc, Identifier ident)
         {
@@ -6821,7 +6880,7 @@ struct ASTBase
         }
     }
 
-    static bool stcToBuffer(OutBuffer* buf, StorageClass stc)
+    static bool stcToBuffer(ref OutBuffer buf, StorageClass stc)
     {
         bool result = false;
         if ((stc & (STC.return_ | STC.scope_)) == (STC.return_ | STC.scope_))

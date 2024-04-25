@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1993-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/glocal.d, backend/glocal.d)
@@ -81,7 +81,7 @@ void localize()
     __gshared Barray!(loc_t) loctab;       // cache the array so it usually won't need reallocating
 
     // Table should not get any larger than the symbol table
-    loctab.setLength(globsym.symmax);
+    loctab.setLength(globsym.length);
 
     foreach (b; BlockRange(startblock))       // for each block
     {
@@ -208,7 +208,7 @@ Loop:
                 else if (lt.length && (op == OPaddass || op == OPxorass))
                 {
                     const s = e1.EV.Vsym;
-                    for (uint u = 0; u < lt.length; u++)
+                    foreach (u; 0 .. lt.length)
                     {
                         auto em = lt[u].e;
                         if (em.Eoper == op &&

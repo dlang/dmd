@@ -1,0 +1,38 @@
+Remove all `collectNoStack` functions and API from druntime.
+
+The function `collectNoStack` in the D garbage collector performed a
+collection, without using any roots from thread stacks or thread-local-storage.
+The danger of running this mechanism is that any blocks of memory which only
+have a reference from a thread might be collected, while the thread is still
+running and possibly using the memory.
+
+The only time this function was called was at GC termination. At GC
+termination, the GC is about to be destroyed, and so we want to run as many
+destructors as possible. However, if some thread is using GC-allocated memory,
+cleaning up that memory isn't going to help matters. Either it will crash after
+the GC cleans the memory, or it will crash after the GC is destroyed.
+
+The original purpose of this function (from D1) was to ensure simple uses of
+the GC were cleaned up in small test programs, as this mechanism was only used
+on single-threaded programs (and of course, at program exit). Also note at the
+time, D1 was 32-bit, and false pointers where much more common. Avoiding
+scanning stacks would aid in avoiding seemingly random behavior in cleanup.
+However, as shown below, there are more deterministic ways to ensure data is
+always cleaned up.
+
+Today, the dangers are much greater that such a function is even callable --
+any call to such a function would immediately start use-after-free memory
+corruption in any thread that is still running. Therefore, we are removing the
+functionality entirely, and simply doing a standard GC cleanup (scanning stacks
+and all). One less footgun is the benefit for having less guaranteed GC clean
+up at program exit.
+
+In addition, the GC today is a bit smarter about where the valid stack is, so
+there is even less of a chance of leaving blocks unfinalized.
+
+As always, the GC is *not* guaranteed to clean up any block at the end of
+runtime. Any change in behavior with code that had blocks clean up before, but
+no longer are cleaned up is still within specification. And if you want the
+behavior that absolutely cleans all blocks, you can use the
+`--DRT-gcopt=cleanup:finalize` druntime configuration option, which will clean
+up all blocks without even scanning.

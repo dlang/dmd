@@ -4,7 +4,7 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dwarfdbginf.d, backend/dwarfdbginf.d)
@@ -16,15 +16,19 @@
 Some generic information for debug info on macOS:
 
 The linker on macOS will remove any debug info, i.e. every section with the
-`S_ATTR_DEBUG` flag, this includes everything in the `__DWARF` section. By using
-the `S_REGULAR` flag the linker will not remove this section. This allows to get
-the filenames and line numbers for backtraces from the executable.
+`S_ATTR_DEBUG` flag, this includes everything in the `__DWARF` section.
+Because of this, it is not possible to get filenames and line numbers for
+backtraces from the executable alone.
 
 Normally the linker removes all the debug info but adds a reference to the
 object files. The debugger can then read the object files to get filename and
 line number information. It's also possible to use an additional tool that
 generates a separate `.dSYM` file. This file can then later be deployed with the
 application if debug info is needed when the application is deployed.
+
+Support in core.runtime for getting filename and line number for backtraces
+from these `.dSYM` files will need to be investigated.
+See: https://issues.dlang.org/show_bug.cgi?id=20510
 */
 
 module dmd.backend.dwarfdbginf;
@@ -44,10 +48,12 @@ version(Windows)
     nothrow
     private extern (C) int* _errno();   // not the multi-threaded version
 }
-else
+else version (Posix)
 {
     import core.sys.posix.unistd : getcwd;
 }
+else
+    static assert(0);
 
 static if (1)
 {
@@ -476,7 +482,7 @@ static if (1)
         {
             name = n;
             if (config.objfmt == OBJ_MACH)
-                flags = S_ATTR_DEBUG;
+                flags = S_REGULAR | S_ATTR_DEBUG;
             else
                 flags = SHT_PROGBITS;
         }
@@ -550,10 +556,7 @@ static if (1)
         debug_abbrev   = Section("__debug_abbrev");
         debug_info     = Section("__debug_info");
         debug_str      = Section("__debug_str");
-        // We use S_REGULAR to make sure the linker doesn't remove this section. Needed
-        // for filenames and line numbers in backtraces.
         debug_line     = Section("__debug_line");
-        debug_line.flags = S_REGULAR;
     }
     void elfDebugSectionsInit()
     {
@@ -1025,7 +1028,7 @@ static if (1)
         /* ======================================== */
 
         foreach (s; resetSyms)
-            symbol_reset(s);
+            symbol_reset(*s);
         resetSyms.reset();
 
         /* *********************************************************************
@@ -1777,10 +1780,8 @@ static if (1)
 
         DWARFAbbrev dwarfabbrev;
 
-        for (SYMIDX si = 0; si < globsym.length; si++)
+        foreach (sa; globsym[])
         {
-            Symbol *sa = globsym[si];
-
             if (sa.Sflags & SFLnodebug) continue;
 
             static immutable uint[14] formal_var_abbrev_suffix =
@@ -1923,10 +1924,8 @@ static if (1)
 
         if (haveparameters)
         {
-            for (SYMIDX si = 0; si < globsym.length; si++)
+            foreach (sa; globsym[])
             {
-                Symbol *sa = globsym[si];
-
                 if (sa.Sflags & SFLnodebug)
                     continue;
 

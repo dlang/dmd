@@ -10,7 +10,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod3.d, backend/cod3.d)
@@ -1143,7 +1143,7 @@ static if (NTEXCEPTIONS)
             {
                 assert(reg1 == lreg && reg2 == NOREG);
                 regm_t pretregs = mask(reg1) | mask(reg2);
-                fixresult87(cdb, e, retregs, &pretregs, true);
+                fixresult87(cdb, e, retregs, pretregs, true);
             }
             // fix return registers
             else if (tybasic(e.Ety) == TYcfloat)
@@ -1176,7 +1176,7 @@ static if (NTEXCEPTIONS)
                 {
                     assert(reg1 == AX && reg2 == DX);
                     regm_t pretregs = mask(reg1) | mask(reg2);
-                    fixresult_complex87(cdb, e, retregs, &pretregs, true);
+                    fixresult_complex87(cdb, e, retregs, pretregs, true);
                 }
             }
             else if (reg2 == NOREG)
@@ -1708,7 +1708,7 @@ void doswitch(ref CodeBuilder cdb, block *b)
             // See if we need a scratch register
             if (sreg == NOREG && I64 && sz == 8 && val != cast(int)val)
             {   regm_t regm = ALLREGS & ~mask(reg);
-                allocreg(cdb,&regm, &sreg, TYint);
+                sreg = allocreg(cdb,regm, TYint);
             }
         }
 
@@ -1791,12 +1791,10 @@ void doswitch(ref CodeBuilder cdb, block *b)
                  * LEA    R1,[R1][R2]           48 8D 04 02
                  * JMP    R1                    FF E0
                  */
-                reg_t r1;
                 regm_t scratchm = ALLREGS & ~mask(reg);
-                allocreg(cdb,&scratchm,&r1,TYint);
-                reg_t r2;
+                const r1 = allocreg(cdb,scratchm,TYint);
                 scratchm = ALLREGS & ~(mask(reg) | mask(r1));
-                allocreg(cdb,&scratchm,&r2,TYint);
+                const r2 = allocreg(cdb,scratchm,TYint);
 
                 CodeBuilder cdbe; cdbe.ctor();
                 cdbe.genc1(LEA,(REX_W << 16) | modregxrm(0,r1,5),FLswitch,0);        // LEA R1,disp[RIP]
@@ -1851,8 +1849,7 @@ static if (JMPJMPTABLE)
 
             // Allocate scratch register jreg
             regm_t scratchm = ALLREGS & ~mask(reg);
-            uint jreg = AX;
-            allocreg(cdb,&scratchm,&jreg,TYint);
+            const jreg = allocreg(cdb,scratchm,TYint);
 
             // LEA jreg, offset ctable[reg][reg*4]
             cdb.genc1(LEA,modregrm(2,jreg,4),FLcode,6);
@@ -1874,8 +1871,7 @@ else
              */
             // Allocate scratch register r1
             regm_t scratchm = ALLREGS & ~mask(reg);
-            reg_t r1;
-            allocreg(cdb,&scratchm,&r1,TYint);
+            const r1 = allocreg(cdb,scratchm,TYint);
 
             cdb.genc2(CALL,0,0);                           //     CALL L1
             cdb.gen1(0x58 + r1);                           // L1: POP R1
@@ -1898,8 +1894,7 @@ else
 
                 // Allocate scratch register r1
                 regm_t scratchm = ALLREGS & ~(mask(reg) | mBX);
-                reg_t r1;
-                allocreg(cdb,&scratchm,&r1,TYint);
+                const r1 = allocreg(cdb,scratchm,TYint);
 
                 genmovreg(cdb,r1,BX);              // MOV R1,EBX
                 cdb.genc1(0x2B,modregxrm(2,r1,4),FLswitch,0);   // SUB R1,disp[reg*4][EBX]
@@ -2405,7 +2400,7 @@ void cod3_ptrchk(ref CodeBuilder cdb,code *pcs,regm_t keepmsk)
         // Load the offset into a register, so we can push the address
         regm_t idxregs2 = (I16 ? IDXREGS : ALLREGS) & ~keepmsk; // only these can be index regs
         assert(idxregs2);
-        allocreg(cdb,&idxregs2,&reg,TYoffset);
+        reg = allocreg(cdb,idxregs2,TYoffset);
 
         const opsave = pcs.Iop;
         flagsave = pcs.Iflags;
@@ -2681,8 +2676,7 @@ void cdframeptr(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     regm_t retregs = *pretregs & allregs;
     if  (!retregs)
         retregs = allregs;
-    reg_t reg;
-    allocreg(cdb,&retregs, &reg, TYint);
+    const reg = allocreg(cdb,retregs, TYint);
 
     code cs;
     cs.Iop = ESCAPE | ESCframeptr;
@@ -2690,7 +2684,7 @@ void cdframeptr(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     cs.Irex = 0;
     cs.Irm = cast(ubyte)reg;
     cdb.gen(&cs);
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cdb,e,retregs,*pretregs);
 }
 
 /***************************************
@@ -2706,21 +2700,19 @@ void cdgot(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         regm_t retregs = *pretregs & allregs;
         if  (!retregs)
             retregs = allregs;
-        reg_t reg;
-        allocreg(cdb,&retregs, &reg, TYnptr);
+        const reg = allocreg(cdb,retregs, TYnptr);
 
         cdb.genc(CALL,0,0,0,FLgot,0);     //     CALL L1
         cdb.gen1(0x58 + reg);             // L1: POP reg
 
-        fixresult(cdb,e,retregs,pretregs);
+        fixresult(cdb,e,retregs,*pretregs);
     }
     else if (config.exe & EX_posix)
     {
         regm_t retregs = *pretregs & allregs;
         if  (!retregs)
             retregs = allregs;
-        reg_t reg;
-        allocreg(cdb,&retregs, &reg, TYnptr);
+        const reg = allocreg(cdb,retregs, TYnptr);
 
         cdb.genc2(CALL,0,0);        //     CALL L1
         cdb.gen1(0x58 + reg);       // L1: POP reg
@@ -2738,7 +2730,7 @@ void cdgot(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         cgot.IEV2.Voffset = (reg == AX) ? 2 : 3;
 
         makeitextern(gotsym);
-        fixresult(cdb,e,retregs,pretregs);
+        fixresult(cdb,e,retregs,*pretregs);
     }
     else
         assert(0);
@@ -4044,9 +4036,8 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
 {
     //printf("prolog_loadparams() %s\n", funcsym_p.Sident.ptr);
     debug
-    for (SYMIDX si = 0; si < globsym.length; si++)
+    foreach (s; globsym[])
     {
-        Symbol *s = globsym[si];
         if (debugr && (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg))
         {
             printf("symbol '%s' is fastpar in register [l %s, m %s]\n", s.Sident.ptr,
@@ -4063,9 +4054,8 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
      * registers into their stack locations.
      */
     regm_t shadowregm = 0;
-    for (SYMIDX si = 0; si < globsym.length; si++)
+    foreach (s; globsym[])
     {
-        Symbol *s = globsym[si];
         uint sz = cast(uint)type_size(s.Stype);
 
         if (!((s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg) && s.Sfl != FLreg))
@@ -4216,9 +4206,8 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
      * and Pb is passed in R2 but assigned to R1. Detect it and assert.
      */
     regm_t assignregs = 0;
-    for (SYMIDX si = 0; si < globsym.length; si++)
+    foreach (s; globsym[])
     {
-        Symbol *s = globsym[si];
         uint sz = cast(uint)type_size(s.Stype);
 
         if (!((s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg) && s.Sfl == FLreg))
@@ -4274,9 +4263,8 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
      * Do not use assignaddr(), as it will replace the stack reference with
      * the register.
      */
-    for (SYMIDX si = 0; si < globsym.length; si++)
+    foreach (s; globsym[])
     {
-        Symbol *s = globsym[si];
         uint sz = cast(uint)type_size(s.Stype);
 
         if (!((s.Sclass == SC.regpar || s.Sclass == SC.parameter) &&
@@ -5107,10 +5095,9 @@ void cod3_adjSymOffsets()
     SYMIDX si;
 
     //printf("cod3_adjSymOffsets()\n");
-    for (si = 0; si < globsym.length; si++)
+    foreach (s; globsym[])
     {
         //printf("\tglobsym[%d] = %p\n",si,globsym[si]);
-        Symbol *s = globsym[si];
 
         switch (s.Sclass)
         {
@@ -5597,7 +5584,7 @@ targ_size_t cod3_bpoffset(Symbol *s)
 
         default:
             WRFL(s.Sfl);
-            symbol_print(s);
+            symbol_print(*s);
             assert(0);
     }
     assert(hasframe);

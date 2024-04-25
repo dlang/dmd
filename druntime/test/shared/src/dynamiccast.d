@@ -40,17 +40,18 @@ else
     T getFunc(T)(const(char)* sym)
     {
         import core.runtime : Runtime;
+        import utils : dllExt;
 
         version (Windows)
         {
             import core.sys.windows.winbase : GetProcAddress;
-            return cast(T) Runtime.loadLibrary("dynamiccast.dll")
+            return cast(T) Runtime.loadLibrary("dynamiccast." ~ dllExt)
                 .GetProcAddress(sym);
         }
         else version (Posix)
         {
             import core.sys.posix.dlfcn : dlsym;
-            return cast(T) Runtime.loadLibrary("./dynamiccast.so")
+            return cast(T) Runtime.loadLibrary("./dynamiccast." ~ dllExt)
                 .dlsym(sym);
         }
         else static assert(0);
@@ -72,7 +73,8 @@ else
         return null;
     }
 
-    version (DigitalMars) version (Win64) version = DMD_Win64;
+    version (DigitalMars) version (Win64) version = NoExceptions;
+    version (SharedRuntime) version (DigitalMars) version (Win32) version = NoExceptions;
 
     void main(string[] args)
     {
@@ -101,7 +103,7 @@ else
         auto o = getFunc!(Object function(Object))("foo")(c);
         assert(cast(C) o);
 
-        version (DMD_Win64)
+        version (NoExceptions)
         {
             // FIXME: apparent crash & needs more work, see https://github.com/dlang/druntime/pull/2874
             fclose(fopen("dynamiccast_endbar", "w"));

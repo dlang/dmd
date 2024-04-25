@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/function.html#function-safety, Function Safety)
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/safe.d, _safe.d)
@@ -26,7 +26,8 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.target;
 import dmd.tokens;
-import dmd.func : setUnsafe, setUnsafePreview;
+import dmd.typesem : hasPointers, arrayOf;
+import dmd.funcsem : setUnsafe, setUnsafePreview;
 
 /*************************************************************
  * Check for unsafe access in @safe code:
@@ -74,6 +75,7 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
         if (ad.sizeok != Sizeok.done)
             ad.determineSize(ad.loc);
 
+        import dmd.globals : FeatureState;
         const hasPointers = v.type.hasPointers();
         if (hasPointers)
         {
@@ -86,7 +88,6 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
                 }
                 else
                 {
-                    import dmd.globals : FeatureState;
                     // @@@DEPRECATED_2.116@@@
                     // https://issues.dlang.org/show_bug.cgi?id=20655
                     // Inferring `@system` because of union access breaks code,
@@ -108,6 +109,17 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
                     ad, v))
                     return true;
             }
+        }
+
+        // @@@DEPRECATED_2.119@@@
+        // https://issues.dlang.org/show_bug.cgi?id=24477
+        // Should probably be turned into an error in a new edition
+        if (v.type.hasUnsafeBitpatterns() && v.overlapped && sc.setUnsafePreview(
+            FeatureState.default_, !printmsg, e.loc,
+            "cannot access overlapped field `%s.%s` with unsafe bit patterns in `@safe` code", ad, v)
+        )
+        {
+            return true;
         }
 
         if (readonly || !e.type.isMutable())

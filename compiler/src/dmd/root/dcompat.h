@@ -1,5 +1,5 @@
 
-/* Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+/* Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -18,7 +18,7 @@ struct DArray
     size_t length;
     T *ptr;
 
-    DArray() : length(0), ptr(NULL) { }
+    DArray() : length(0), ptr(nullptr) { }
 
     DArray(size_t length_in, T *ptr_in)
         : length(length_in), ptr(ptr_in) { }

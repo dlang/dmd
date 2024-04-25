@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gloop.d, backend/gloop.d)
@@ -1972,7 +1972,8 @@ private void newfamlist(famlist* fl, tym_t ty)
             c.Vlong = 1;
             break;
     }
-    fl.c1 = el_const(ty,&c);               /* c1 = 1               */
+    fl.c1 = el_const(ty, c);               /* c1 = 1               */
+
     c.Vldouble = 0;
     if (typtr(ty))
     {
@@ -1982,7 +1983,7 @@ private void newfamlist(famlist* fl, tym_t ty)
         if (I64)
             ty = TYllong;
     }
-    fl.c2 = el_const(ty,&c);               /* c2 = 0               */
+    fl.c2 = el_const(ty, c);               /* c2 = 0               */
 }
 
 /***************************
@@ -2090,9 +2091,9 @@ private void findbasivs(ref Loop l)
 
             if (!ambdone)           /* avoid redundant loops        */
             {
-                foreach (j; 0 .. globsym.length)
+                foreach (j, s; globsym[])
                 {
-                    if (!(globsym[j].Sflags & SFLunambig))
+                    if (!(s.Sflags & SFLunambig))
                         vec_setbit(j,notposs);
                 }
                 ambdone = true;
@@ -2146,7 +2147,7 @@ private void findbasivs(ref Loop l)
                 go.defnod[j].DNelem.EV.E1.EV.Vsym == s &&
                 vec_testbit(go.defnod[j].DNblock.Bdfoidx,l.Lloop))
             {
-                biv.IVincr = el_parent(go.defnod[j].DNelem,&(go.defnod[j].DNblock.Belem));
+                biv.IVincr = el_parent(go.defnod[j].DNelem, go.defnod[j].DNblock.Belem);
                 assert(s == (*biv.IVincr).EV.E1.EV.Vsym);
 
                 debug if (debugc)
@@ -2224,9 +2225,9 @@ private void findopeqs(ref Loop l)
 
             if (!ambdone)           // avoid redundant loops
             {
-                foreach (j; 0 .. globsym.length)
+                foreach (j, s; globsym[])
                 {
-                    if (!(globsym[j].Sflags & SFLunambig))
+                    if (!(s.Sflags & SFLunambig))
                         vec_setbit(j,notposs);
                 }
                 ambdone = true;
@@ -2282,7 +2283,7 @@ private void findopeqs(ref Loop l)
                 go.defnod[j].DNelem.EV.E1.EV.Vsym == s &&
                 vec_testbit(go.defnod[j].DNblock.Bdfoidx,l.Lloop))
             {
-                biv.IVincr = el_parent(go.defnod[j].DNelem,&(go.defnod[j].DNblock.Belem));
+                biv.IVincr = el_parent(go.defnod[j].DNelem, go.defnod[j].DNblock.Belem);
                 assert(s == (*biv.IVincr).EV.E1.EV.Vsym);
 
                 debug if (debugc)

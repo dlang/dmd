@@ -15,7 +15,7 @@
  * - $(LINK2 https://github.com/ldc-developers/ldc, LDC repository)
  * - $(LINK2 https://github.com/D-Programming-GDC/gcc, GDC repository)
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/target.d, _target.d)
@@ -25,7 +25,8 @@
 
 module dmd.target;
 
-import dmd.globals : Param, CHECKENABLE;
+import dmd.astenums : CHECKENABLE;
+import dmd.globals : Param;
 
 enum CPU : ubyte
 {
@@ -78,6 +79,8 @@ ubyte defaultTargetOSMajor() @safe
             return 12;
         else version (TARGET_FREEBSD13)
             return 13;
+        else version (TARGET_FREEBSD14)
+            return 14;
         else
             return 0;
     }
@@ -199,13 +202,14 @@ void addPredefinedGlobalIdentifiers(const ref Target tgt)
             case OS.FreeBSD:
             {
                 predef("FreeBSD");
-                switch (tgt.osMajor)
+
+                if(tgt.osMajor != 0)
                 {
-                    case 10: predef("FreeBSD_10");  break;
-                    case 11: predef("FreeBSD_11"); break;
-                    case 12: predef("FreeBSD_12"); break;
-                    case 13: predef("FreeBSD_13"); break;
-                    default: predef("FreeBSD_11"); break;
+                    import core.stdc.stdio : snprintf;
+
+                    char["FreeBSD_100".length + 1] buffer;
+                    immutable len = snprintf(buffer.ptr, buffer.length, "FreeBSD_%u", uint(tgt.osMajor));
+                    predef(buffer[0 .. len]);
                 }
                 break;
             }
@@ -290,6 +294,7 @@ extern (C++) struct Target
     import dmd.location;
     import dmd.astenums : LINK, TY;
     import dmd.mtype : Type, TypeFunction, TypeTuple;
+    import dmd.typesem : pointerTo;
     import dmd.root.ctfloat : real_t;
     import dmd.statement : Statement;
     import dmd.tokens : EXP;
@@ -322,8 +327,8 @@ extern (C++) struct Target
         omf
     }
 
-    OS os = defaultTargetOS();
-    ubyte osMajor = defaultTargetOSMajor();
+    OS os;
+    ubyte osMajor;
 
     // D ABI
     ubyte ptrsize;            /// size of a pointer in bytes
@@ -344,8 +349,8 @@ extern (C++) struct Target
 
     /// Architecture name
     const(char)[] architectureName;
-    CPU cpu = CPU.baseline; // CPU instruction set to target
-    bool isX86_64 = (size_t.sizeof == 8);  // generate 64 bit code for x86_64; true by default for 64 bit dmd
+    CPU cpu;                // CPU instruction set to target
+    bool isX86_64;          // generate 64 bit code for x86_64; true by default for 64 bit dmd
     bool isLP64;            // pointers are 64 bits
 
     // Environmental
@@ -353,7 +358,7 @@ extern (C++) struct Target
     const(char)[] lib_ext;    /// extension for static library files
     const(char)[] dll_ext;    /// extension for dynamic library files
     bool run_noext;           /// allow -run sources without extensions
-    bool omfobj = false;      // for Win32: write OMF object files instead of MsCoff
+    bool omfobj;              // for Win32: write OMF object files instead of MsCoff
     /**
      * Values representing all properties for floating point types
      */
@@ -414,7 +419,7 @@ extern (C++) struct Target
         // These have default values for 32 bit code, they get
         // adjusted for 64 bit code.
         ptrsize = 4;
-        classinfosize = 0x4C; // 76
+        classinfosize = 0x4C+16; // 92
 
         /* gcc uses int.max for 32 bit compilations, and long.max for 64 bit ones.
          * Set to int.max for both, because the rest of the compiler cannot handle
@@ -427,7 +432,7 @@ extern (C++) struct Target
         if (isLP64)
         {
             ptrsize = 8;
-            classinfosize = 0x98; // 152
+            classinfosize = 0x98+16; // 168
         }
         if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris))
         {
@@ -446,7 +451,7 @@ extern (C++) struct Target
             realsize = 10;
             realpad = 0;
             realalignsize = 2;
-            if (ptrsize == 4)
+            if (omfobj)
             {
                 /* Optlink cannot deal with individual data chunks
                  * larger than 16Mb
@@ -970,6 +975,7 @@ extern (C++) struct Target
     {
         import dmd.id : Id;
         import dmd.argtypes_sysv_x64 : toArgTypes_sysv_x64;
+        import dmd.typesem : castMod;
 
         if (tf.isref)
         {
@@ -1264,6 +1270,11 @@ extern (C++) struct Target
      */
     extern (C++) bool isCalleeDestroyingArgs(TypeFunction tf) @safe
     {
+        /* BUG preventing this from working: https://github.com/dlang/dmd/pull/16145
+        if (tf.linkage == LINK.d)
+            return false;
+        */
+
         // On windows, the callee destroys arguments always regardless of function linkage,
         // and regardless of whether the caller or callee cleans the stack.
         return os == Target.OS.Windows ||

@@ -1,4 +1,4 @@
-/* DISABLED: win32 win32mscoff win64 osx32 osx64
+/* DISABLED: win osx
  */
 
 /* https://issues.dlang.org/show_bug.cgi?id=23011

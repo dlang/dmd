@@ -1,7 +1,7 @@
 /**
  * Convert to Intermediate Representation (IR) for the back-end.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/_tocsym.d, _toir.d)
@@ -47,7 +47,7 @@ import dmd.toctype;
 import dmd.e2ir;
 import dmd.errorsink;
 import dmd.func;
-import dmd.globals;
+import dmd.globals : Param;
 import dmd.glue;
 import dmd.identifier;
 import dmd.id;
@@ -99,7 +99,7 @@ struct IRState
         this.params = params;
         this.target = target;
         this.eSink = eSink;
-        mayThrow = global.params.useExceptions
+        mayThrow = params.useExceptions
             && ClassDeclaration.throwable
             && !(fd && fd.hasNoEH);
         this.Cfile = m.filetype == FileType.c;
@@ -119,7 +119,7 @@ struct IRState
         if (m.filetype == FileType.c)
             return false;
         bool result;
-        final switch (global.params.useArrayBounds)
+        final switch (params.useArrayBounds)
         {
         case CHECKENABLE.off:
             result = false;
@@ -172,8 +172,9 @@ extern (D) elem *incUsageElem(ref IRState irs, const ref Loc loc)
     uint linnum = loc.linnum;
 
     Module m = cast(Module)irs.blx._module;
+    //printf("m.cov %p linnum %d filename %s srcfile %s numlines %d\n", m.cov, linnum, loc.filename, m.srcfile.toChars(), m.numlines);
     if (!m.cov || !linnum ||
-        loc.filename != m.srcfile.toChars())
+        strcmp(loc.filename, m.srcfile.toChars()))
         return null;
 
     //printf("cov = %p, covb = %p, linnum = %u\n", m.cov, m.covb.ptr, p, linnum);
@@ -641,7 +642,7 @@ elem *resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
         if (t1.ty == Tsarray)
         {
             TypeSArray tsa = cast(TypeSArray)t1;
-            dinteger_t length = tsa.dim.toInteger();
+            const length = tsa.dim.toInteger();
 
             elength = el_long(TYsize_t, length);
             goto L3;
@@ -649,7 +650,7 @@ elem *resolveLengthVar(VarDeclaration lengthVar, elem **pe, Type t1)
         else if (t1.ty == Tarray)
         {
             elength = *pe;
-            *pe = el_same(&elength);
+            *pe = el_same(elength);
             elength = el_una(target.isX86_64 ? OP128_64 : OP64_32, TYsize_t, elength);
 
         L3:
@@ -826,7 +827,7 @@ void buildClosure(FuncDeclaration fd, ref IRState irs)
         type *Closstru = type_struct_class(closname, target.ptrsize, 0, null, null, false, false, true, false);
         free(closname);
         auto chaintype = getParentClosureType(irs.sthis, fd);
-        symbol_struct_addField(Closstru.Ttag, "__chain", chaintype, 0);
+        symbol_struct_addField(*Closstru.Ttag, "__chain", chaintype, 0);
 
         Symbol *sclosure;
         sclosure = symbol_name("__closptr", SC.auto_, type_pointer(Closstru));
@@ -865,7 +866,7 @@ void buildClosure(FuncDeclaration fd, ref IRState irs)
             vsym.Sscope = sclosure;
 
             /* Add variable as closure type member */
-            symbol_struct_addField(Closstru.Ttag, &vsym.Sident[0], vsym.Stype, v.offset);
+            symbol_struct_addField(*Closstru.Ttag, &vsym.Sident[0], vsym.Stype, v.offset);
             //printf("closure field %s: memalignsize: %i, offset: %i\n", &vsym.Sident[0], memalignsize, v.offset);
         }
 
@@ -934,7 +935,7 @@ void buildClosure(FuncDeclaration fd, ref IRState irs)
                 if (v.storage_class & STC.lazy_)
                     tym = TYdelegate;
             }
-            else if (ISREF(v) && !x64ref)
+            else if (v.isReference())
                 tym = TYnptr;   // reference parameters are just pointers
             else if (v.storage_class & STC.lazy_)
                 tym = TYdelegate;
@@ -1097,7 +1098,7 @@ void buildAlignSection(FuncDeclaration fd, ref IRState irs)
         vsym.Sscope = sclosure;
 
         /* Add variable as align section type member */
-        symbol_struct_addField(Closstru.Ttag, &vsym.Sident[0], vsym.Stype, v.offset);
+        symbol_struct_addField(*Closstru.Ttag, &vsym.Sident[0], vsym.Stype, v.offset);
         if (log) printf("align section field %s: offset: %i\n", &vsym.Sident[0], v.offset);
     }
 
@@ -1176,7 +1177,7 @@ void buildCapture(FuncDeclaration fd)
             auto soffset = vsym.Soffset;
             if (fd.vthis)
                 soffset -= toSymbol(fd.vthis).Soffset; // see toElem.ToElemVisitor.visit(SymbolExp)
-            symbol_struct_addField(capturestru.Ttag, &vsym.Sident[0], vsym.Stype, cast(uint)soffset);
+            symbol_struct_addField(*capturestru.Ttag, &vsym.Sident[0], vsym.Stype, cast(uint)soffset);
             //printf("capture field %s: offset: %i\n", &vsym.Sident[0], v.offset);
         }
 

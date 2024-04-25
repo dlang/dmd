@@ -7,7 +7,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) ?-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/elfobj.d, backend/elfobj.d)
@@ -607,10 +607,12 @@ int ElfObj_string_literal_segment(uint sz)
      * .rodata.cstN   - N fixed size readonly constants N bytes in size,
      *              aligned to the same size
      */
-    static immutable char[4][3] name = [ "1.1", "2.2", "4.4" ];
-    const int i = (sz == 4) ? 2 : sz - 1;
-    const IDXSEC seg =
-        ElfObj_getsegment(".rodata.str".ptr, name[i].ptr, SHT_PROGBITS, SHF_ALLOC | SHF_MERGE | SHF_STRINGS, sz);
+    import core.bitop : bsr, bsf;
+    assert(sz != 0 && bsr(sz) == bsf(sz)); // sz must be power of 2
+    static immutable char[4][4] name = [ "1.1", "2.2", "4.4", "8.8" ];
+    const int i = bsr(sz);
+    // FIXME: can't use SHF_MERGE | SHF_STRINGS because of https://issues.dlang.org/show_bug.cgi?id=22483
+    const IDXSEC seg = ElfObj_getsegment(".rodata.str".ptr, name[i].ptr, SHT_PROGBITS, SHF_ALLOC, sz);
     return seg;
 }
 
@@ -706,7 +708,7 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
         elf_newsection2(NAMIDX.STRTAB,SHT_STRTAB, 0,                    0,0,0,0,0, 1,0);
         elf_newsection2(NAMIDX.SYMTAB,SHT_SYMTAB, 0,                    0,0,0,0,0, 8,0);
         elf_newsection2(NAMIDX.SHSTRTAB,SHT_STRTAB, 0,                  0,0,0,0,0, 1,0);
-        elf_newsection2(NAMIDX.COMMENT, SHT_PROGBITS,0,                 0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.COMMENT, SHT_PROGBITS,SHF_STRINGS|SHF_MERGE,0,0,0,0,0, 1,1);
         elf_newsection2(NAMIDX.NOTE,SHT_NOTE,   0,                      0,0,0,0,0, 1,0);
         elf_newsection2(NAMIDX.GNUSTACK,SHT_PROGBITS,0,                 0,0,0,0,0, 1,0);
         elf_newsection2(NAMIDX.CDATAREL,SHT_PROGBITS,SHF_ALLOC|SHF_WRITE,0,0,0,0,0, 16,0);
@@ -741,15 +743,15 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
         // name,type,flags,addr,offset,size,link,info,addralign,entsize
         elf_newsection2(0,               SHT_NULL,   0,                 0,0,0,0,0, 0,0);
         elf_newsection2(NAMIDX.TEXT,SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,0,0,0,0,0, 16,0);
-        elf_newsection2(NAMIDX.RELTEXT,SHT_REL, 0,0,0,0,SHN_SYMTAB,      SHN_TEXT, 4,8);
+        elf_newsection2(NAMIDX.RELTEXT,SHT_REL,SHF_INFO_LINK, 0,0,0,SHN_SYMTAB,      SHN_TEXT, 4,8);
         elf_newsection2(NAMIDX.DATA,SHT_PROGBITS,SHF_ALLOC|SHF_WRITE,   0,0,0,0,0, 4,0);
-        elf_newsection2(NAMIDX.RELDATA,SHT_REL, 0,0,0,0,SHN_SYMTAB,      SHN_DATA, 4,8);
+        elf_newsection2(NAMIDX.RELDATA,SHT_REL,SHF_INFO_LINK ,0,0,0,SHN_SYMTAB,      SHN_DATA, 4,8);
         elf_newsection2(NAMIDX.BSS, SHT_NOBITS,SHF_ALLOC|SHF_WRITE,     0,0,0,0,0, 32,0);
         elf_newsection2(NAMIDX.RODATA,SHT_PROGBITS,SHF_ALLOC,           0,0,0,0,0, 4,0);
         elf_newsection2(NAMIDX.STRTAB,SHT_STRTAB, 0,                    0,0,0,0,0, 1,0);
         elf_newsection2(NAMIDX.SYMTAB,SHT_SYMTAB, 0,                    0,0,0,0,0, 4,0);
         elf_newsection2(NAMIDX.SHSTRTAB,SHT_STRTAB, 0,                  0,0,0,0,0, 1,0);
-        elf_newsection2(NAMIDX.COMMENT, SHT_PROGBITS,0,                 0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.COMMENT, SHT_PROGBITS,SHF_STRINGS|SHF_MERGE,0,0,0,0,0, 1,1);
         elf_newsection2(NAMIDX.NOTE,SHT_NOTE,   0,                      0,0,0,0,0, 1,0);
         elf_newsection2(NAMIDX.GNUSTACK,SHT_PROGBITS,0,                 0,0,0,0,0, 1,0);
         elf_newsection2(NAMIDX.CDATAREL,SHT_PROGBITS,SHF_ALLOC|SHF_WRITE,0,0,0,0,0, 1,0);
@@ -765,7 +767,7 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
     elfobj.SymbolTable64.reset();
 
     foreach (s; elfobj.resetSyms)
-        symbol_reset(s);
+        symbol_reset(*s);
     elfobj.resetSyms.reset();
 
     if (shndx_data)
@@ -1017,7 +1019,7 @@ void ElfObj_termfile()
  *    objfilename = file name for object module (not used)
  */
 
-void ElfObj_term(const(char)* objfilename)
+void ElfObj_term(const(char)[] objfilename)
 {
     //printf("ElfObj_term()\n");
     outfixlist();           // backpatches
@@ -2168,7 +2170,7 @@ char *obj_mangle2(Symbol *s,char *dest, size_t *destlen)
 debug
 {
             printf("mangling %x\n",type_mangle(s.Stype));
-            symbol_print(s);
+            symbol_print(*s);
 }
             printf("%d\n", type_mangle(s.Stype));
             assert(0);

@@ -8,6 +8,18 @@ targetType "none"
 dependency ":frontend" version="*"
 
 subPackage {
+  name "compiler"
+  targetType "executable"
+  targetName "dmd"
+  sourcePaths "compiler/src/dmd"
+  importPaths "compiler/src"
+  stringImportPaths "compiler/src/dmd/res" "."
+  dflags "-L/STACK:16777216" platform="windows"
+  dflags "-preview=dip1000"
+  preGenerateCommands "echo -n /etc > SYSCONFDIR.imp" platform="posix"
+}
+
+subPackage {
   name "root"
   targetType "library"
   importPaths "compiler/src"
@@ -115,7 +127,6 @@ subPackage {
     e2ir,\
     eh,\
     glue,\
-    iasm,\
     iasmdmd,\
     iasmgcc,\
     irstate,\

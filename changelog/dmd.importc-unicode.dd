@@ -1,0 +1,6 @@
+ImportC has improved Unicode support
+
+Universal Character Names are now supported, allowing you to use the ``\uXXXX`` and ``\UXXXXXXXX`` syntax where ``X`` is a hex digit as part of an identifier.
+
+DigitalMars sppn does not support anything newer than C99.
+It is known to be limited and using any Unicode character not in those ranges will result in an error.

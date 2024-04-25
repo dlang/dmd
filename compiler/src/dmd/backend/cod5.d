@@ -7,7 +7,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1995-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cod5.d, backend/cod5.d)
@@ -38,11 +38,11 @@ nothrow:
  */
 
 @trusted
-void cod5_prol_epi()
+void cod5_prol_epi(block* startblock)
 {
 static if(1)
 {
-    cod5_noprol();
+    cod5_noprol(startblock);
 }
 else
 {
@@ -153,7 +153,7 @@ else
  */
 
 @trusted
-void cod5_noprol()
+void cod5_noprol(block* startblock)
 {
     block *b;
 

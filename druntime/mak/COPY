@@ -1,6 +1,6 @@
 COPY=\
 	$(IMPDIR)\object.d \
-	$(IMPDIR)\__builtins.di \
+	$(IMPDIR)\__importc_builtins.di \
 	$(IMPDIR)\importc.h \
 	\
 	$(IMPDIR)\core\gc\config.d \
@@ -17,6 +17,7 @@ COPY=\
 	$(IMPDIR)\core\exception.d \
 	$(IMPDIR)\core\factory.d \
 	$(IMPDIR)\core\int128.d \
+	$(IMPDIR)\core\interpolation.d \
 	$(IMPDIR)\core\lifetime.d \
 	$(IMPDIR)\core\math.d \
 	$(IMPDIR)\core\memory.d \
@@ -172,12 +173,14 @@ COPY=\
 	$(IMPDIR)\core\sys\freebsd\err.d \
 	$(IMPDIR)\core\sys\freebsd\execinfo.d \
 	$(IMPDIR)\core\sys\freebsd\ifaddrs.d \
+	$(IMPDIR)\core\sys\freebsd\mqueue.d \
 	$(IMPDIR)\core\sys\freebsd\pthread_np.d \
 	$(IMPDIR)\core\sys\freebsd\stdlib.d \
 	$(IMPDIR)\core\sys\freebsd\string.d \
 	$(IMPDIR)\core\sys\freebsd\time.d \
 	$(IMPDIR)\core\sys\freebsd\unistd.d \
 	\
+	$(IMPDIR)\core\sys\freebsd\net\if_.d \
 	$(IMPDIR)\core\sys\freebsd\net\if_dl.d \
 	\
 	$(IMPDIR)\core\sys\freebsd\netinet\in_.d \

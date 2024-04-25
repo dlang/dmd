@@ -3,7 +3,7 @@
  *
  * Not to be confused with the `scope` storage class.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dscope.d, _dscope.d)
@@ -34,6 +34,7 @@ import dmd.func;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
+import dmd.importc;
 import dmd.location;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
@@ -97,6 +98,7 @@ extern (C++) struct Scope
     Dsymbol inunion;                /// != null if processing members of a union
     bool nofree;                    /// true if shouldn't free it
     bool inLoop;                    /// true if inside a loop (where constructor calls aren't allowed)
+    bool inDefaultArg;              /// true if inside a default argument (where __FILE__, etc are evaluated at the call site)
     int intypeof;                   /// in typeof(exp)
     VarDeclaration lastVar;         /// Previous symbol used to prevent goto-skips-init
     ErrorSink eSink;                /// sink for error messages
@@ -828,12 +830,18 @@ extern (C++) struct Scope
     /// Returns: whether to raise DIP1000 warnings (FeatureStabe.default) or errors (FeatureState.enabled)
     extern (D) FeatureState useDIP1000()
     {
-        return (flags & SCOPE.dip1000) ? FeatureState.enabled : FeatureState.disabled;
+        return (flags & SCOPE.dip1000 || hasEdition(Edition.v2024)) ? FeatureState.enabled : FeatureState.disabled;
     }
 
     /// Returns: whether to raise DIP25 warnings (FeatureStabe.default) or errors (FeatureState.enabled)
     extern (D) FeatureState useDIP25()
     {
-        return (flags & SCOPE.dip25) ? FeatureState.enabled : FeatureState.disabled;
+        return (flags & SCOPE.dip25 || hasEdition(Edition.v2024)) ? FeatureState.enabled : FeatureState.disabled;
+    }
+
+    /// Returns: whether this scope compiles with `edition` or later
+    extern (D) bool hasEdition(Edition edition)
+    {
+        return _module && _module.edition >= edition;
     }
 }

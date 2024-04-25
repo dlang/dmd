@@ -8,5 +8,6 @@ struct S
 
 void main()
 {
-    new S;
+    foreach(i; 0 .. 100)
+        new S;
 }

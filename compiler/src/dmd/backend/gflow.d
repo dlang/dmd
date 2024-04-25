@@ -2,7 +2,7 @@
  * Code to do the Data Flow Analysis (doesn't act on the data).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gflow.d, backend/gflow.d)
@@ -327,7 +327,7 @@ private void initDNunambigVectors(DefNode[] defnod)
         if (vec_t v = defnod[i].DNunambig)
         {
             elem *e = defnod[i].DNelem;
-            vec_setbit(cast(uint) i, v);        // of course it modifies itself
+            vec_setbit(i, v);        // of course it modifies itself
             fillInDNunambig(v, e, i, defnod[]);
         }
     }
@@ -380,12 +380,12 @@ private void fillInDNunambig(vec_t v, elem *e, size_t start, DefNode[] defnod)
         // If t completely overlaps tn1
         if (toff <= tn1.EV.Voffset && tn1.EV.Voffset + tn1size <= ttop)
         {
-            vec_setbit(cast(uint)i, v);
+            vec_setbit(i, v);
         }
         // if tn1 completely overlaps t
         if (tn1.EV.Voffset <= toff && ttop <= tn1.EV.Voffset + tn1size)
         {
-            vec_setbit(cast(uint)start, v2);
+            vec_setbit(start, v2);
         }
     }
 }

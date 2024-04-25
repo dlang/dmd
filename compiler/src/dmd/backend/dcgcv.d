@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1995 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dcgcv.d, backend/dcgcv.d)
@@ -384,7 +384,7 @@ void cv_init()
         Symbol **p = cast(Symbol **)reset_symbuf.buf;
         const size_t n = reset_symbuf.length() / (Symbol *).sizeof;
         for (size_t i = 0; i < n; ++i)
-            symbol_reset(p[i]);
+            symbol_reset(*p[i]);
         reset_symbuf.reset();
     }
     else
@@ -817,7 +817,7 @@ idx_t cv4_struct(Classsym *s,int flags)
             break;
 
         default:
-            symbol_print(s);
+            symbol_print(*s);
             assert(0);
     }
     TOWORD(d.data.ptr,leaf);

@@ -5,6 +5,7 @@ version (D_SIMD)
 {
 
 import core.simd;
+import core.stdc.stdio;
 import core.stdc.string;
 
 alias TypeTuple(T...) = T;
@@ -283,6 +284,31 @@ void testdbl()
 
 /*****************************************/
 
+version (none)//(D_AVX2)
+{
+// https://issues.dlang.org/show_bug.cgi?id=24283
+
+import core.simd;
+import core.stdc.stdio;
+
+void test24283()
+{
+    int8 A = [7,  -2,   9, 54654,  7, -2,   9, 54654];
+    int8 B = [14, 78, 111,  -256, 14, 78, 111,  -256];
+    int8 R = (~A) & B;
+    int[8] correct = [8, 0, 102, -54784, 8, 0, 102, -54784];
+    //printf("%d %d %d %d %d %d %d %d\n", R[0], R[1], R[2], R[3], R[4], R[5], R[6], R[7]);
+    assert(R.array == correct);
+}
+
+}
+else
+{
+void test24283() { }
+}
+
+/*****************************************/
+
 int main()
 {
     test21474();
@@ -300,6 +326,7 @@ int main()
     testunscmp();
     testflt();
     testdbl();
+    test24283();
 
     return 0;
 }

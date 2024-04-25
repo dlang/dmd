@@ -1,12 +1,15 @@
 /**
  * Flow analysis for Ownership/Borrowing
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/ob.d, _ob.d)
  * Documentation:  https://dlang.org/phobos/dmd_escape.html
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/ob.d
+ * Bug reports: use 'live' keyword:
+ *              https://issues.dlang.org/buglist.cgi?bug_status=NEW&bug_status=REOPENED&keywords=live
+ * References:  https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1021.md Argument Ownership and Function Calls
  */
 
 module dmd.ob;
@@ -32,6 +35,7 @@ import dmd.expression;
 import dmd.foreachvar;
 import dmd.func;
 import dmd.globals;
+import dmd.hdrgen;
 import dmd.identifier;
 import dmd.init;
 import dmd.location;
@@ -40,6 +44,7 @@ import dmd.printast;
 import dmd.statement;
 import dmd.stmtstate;
 import dmd.tokens;
+import dmd.typesem;
 import dmd.visitor;
 
 import dmd.root.bitarray;
@@ -197,7 +202,7 @@ enum PtrState : ubyte
 
 /************
  */
-const(char)* toChars(PtrState state)
+const(char)* PtrStateToChars(PtrState state)
 {
     return toString(state).ptr;
 }
@@ -226,6 +231,8 @@ struct PtrVarState
      * are being merged
      * Params:
      *  pvs = path to be merged with `this`
+     *  vi = variable's index into gen[]
+     *  gen = array of variable states
      */
     void combine(ref PtrVarState pvs, size_t vi, PtrVarState[] gen)
     {
@@ -280,6 +287,9 @@ struct PtrVarState
     }
 
     /***********************
+     * Print a bracketed list of all the variables that depend on 'this'
+     * Params:
+     *  vars = variables that depend on 'this'
      */
     void print(VarDeclaration[] vars)
     {
@@ -846,7 +856,7 @@ void toObNodes(ref ObNodes obnodes, Statement s)
             case STMT.Mixin:
             case STMT.Peel:
             case STMT.Synchronized:
-                debug printf("s: %s\n", s.toChars());
+                debug printf("s: %s\n", toChars(s));
                 assert(0);              // should have been rewritten
         }
     }
@@ -1113,8 +1123,8 @@ bool isTrackableVar(VarDeclaration v)
     /* Assume types with a destructor are doing their own tracking,
      * such as being a ref counted type
      */
-    if (v.needsScopeDtor())
-        return false;
+//    if (v.needsScopeDtor())
+//        return false;
 
     /* Not tracking function parameters that are not mutable
      */
@@ -1231,7 +1241,8 @@ void allocStates(ref ObState obstate)
  */
 bool isBorrowedPtr(VarDeclaration v)
 {
-    return v.isScope() && !v.isowner && v.type.nextOf().isMutable();
+    return v.isScope() && !v.isowner &&
+        v.type.hasPointersToMutableFields();
 }
 
 /******************************
@@ -1241,7 +1252,7 @@ bool isBorrowedPtr(VarDeclaration v)
  */
 bool isReadonlyPtr(VarDeclaration v)
 {
-    return v.isScope() && !v.type.nextOf().isMutable();
+    return v.isScope() && !v.type.hasPointersToMutableFields();
 }
 
 /***************************************
@@ -1251,7 +1262,7 @@ void genKill(ref ObState obstate, ObNode* ob)
 {
     enum log = false;
     if (log)
-        printf("-----------computeGenKill()-----------\n");
+        printf("-----------computeGenKill() %d -----------\n", ob.index);
 
     /***************
      * Assigning result of expression `e` to variable `v`.
@@ -1435,6 +1446,46 @@ void genKill(ref ObState obstate, ObNode* ob)
                     assert(t.ty == Tdelegate);
                     tf = t.nextOf().isTypeFunction();
                     assert(tf);
+
+                }
+
+                if (auto dve = ce.e1.isDotVarExp())
+                {
+                    if (!t.isTypeDelegate() && dve.e1.isVarExp())
+                    {
+                        //printf("dve: %s\n", dve.toChars());
+                        EscapeByResults er;
+                        escapeByValue(dve.e1, &er, true);
+
+                        void byf(VarDeclaration v)
+                        {
+                            //printf("byf v: %s\n", v.ident.toChars());
+                            if (!isTrackableVar(v))
+                                return;
+
+                            const vi = obstate.vars.find(v);
+                            if (vi == size_t.max)
+                                return;
+
+                            auto fd = dve.var.isFuncDeclaration();
+                            if (fd && fd.storage_class & STC.scope_)
+                            {
+                                // borrow
+                                obstate.varStack.push(vi);
+                                obstate.mutableStack.push(isMutableRef(dve.e1.type.toBasetype()));
+                            }
+                            else
+                            {
+                                // move (i.e. consume arg)
+                                makeUndefined(vi, ob.gen);
+                            }
+                        }
+
+                        foreach (VarDeclaration v2; er.byvalue)
+                            byf(v2);
+                        foreach (VarDeclaration v2; er.byref)
+                            byf(v2);
+                    }
                 }
 
                 // j=1 if _arguments[] is first argument
@@ -1458,6 +1509,7 @@ void genKill(ref ObState obstate, ObNode* ob)
 
                         void by(VarDeclaration v)
                         {
+                            //printf("by v: %s\n", v.ident.toChars());
                             if (!isTrackableVar(v))
                                 return;
 
@@ -1721,6 +1773,15 @@ void genKill(ref ObState obstate, ObNode* ob)
     }
 
     foreachExp(ob, ob.exp);
+
+    if (log)
+    {
+        printf("  gen:\n");
+        foreach (i, ref pvs2; ob.gen[])
+        {
+            printf("    %s: ", obstate.vars[i].toChars()); pvs2.print(obstate.vars[]);
+        }
+    }
 }
 
 /***************************************
@@ -2460,7 +2521,7 @@ void checkObErrors(ref ObState obstate)
     {
         static if (log)
         {
-            printf("%d: %s\n", obi, ob.exp ? ob.exp.toChars() : "".ptr);
+            printf("%d: %s\n", cast(int) obi, ob.exp ? ob.exp.toChars() : "".ptr);
             printf("  input:\n");
             foreach (i, ref pvs; ob.input[])
             {
@@ -2490,7 +2551,9 @@ void checkObErrors(ref ObState obstate)
                     if (s1 != s2 && (s1 == PtrState.Owner || s2 == PtrState.Owner))
                     {
                         auto v = obstate.vars[i];
-                        .error(ob.exp ? ob.exp.loc : v.loc, "%s `%s` is both %s and %s", v.kind, v.toPrettyChars, s1.toChars(), s2.toChars());
+                        // Don't worry about non-pointers
+                        if (hasPointers(v.type))
+                            .error(ob.exp ? ob.exp.loc : v.loc, "%s `%s` is both %s and %s", v.kind, v.toPrettyChars, PtrStateToChars(s1), PtrStateToChars(s2));
                     }
                     pvs1.combine(*pvs2, i, ob.gen);
                 }
@@ -2566,6 +2629,7 @@ void checkObErrors(ref ObState obstate)
                 //printf("%s: ", obstate.vars[i].toChars()); pvs.print(obstate.vars[]);
                 if (pvs.state == PtrState.Owner)
                 {
+                    import dmd.typesem : hasPointers;
                     auto v = obstate.vars[i];
                     if (v.type.hasPointers())
                         .error(v.loc, "%s `%s` is not disposed of before return", v.kind, v.toPrettyChars);
@@ -2648,6 +2712,9 @@ void makeChildrenUndefined(size_t vi, PtrVarState[] gen)
 
 /********************
  * Recursively make Undefined vi undefined and all who list vi as a dependency
+ * Params:
+ *    vi = variable's index
+ *    gen = array of the states of variables
  */
 void makeUndefined(size_t vi, PtrVarState[] gen)
 {

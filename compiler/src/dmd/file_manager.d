@@ -1,7 +1,7 @@
 /**
  * Read a file from disk and store it in memory.
  *
- * Copyright: Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/file_manager.d, _file_manager.d)
  * Documentation:  https://dlang.org/phobos/dmd_file_manager.html
@@ -10,10 +10,13 @@
 
 module dmd.file_manager;
 
+import core.stdc.stdio;
+import dmd.common.outbuffer;
 import dmd.root.stringtable : StringTable;
 import dmd.root.file : File, Buffer;
 import dmd.root.filename : FileName, isDirSeparator;
 import dmd.root.string : toDString;
+import dmd.errors;
 import dmd.globals;
 import dmd.identifier;
 import dmd.location;
@@ -69,44 +72,84 @@ private struct PathStack
     }
 }
 
-final class FileManager
+/***************************
+ * Cache path lookups so the operating system
+ * is only consulted once for each path.
+ */
+private struct PathCache
 {
-    private StringTable!(const(ubyte)[]) files;
-    private StringTable!(bool) packageStatus;
+    /* for filespec "a/b/c/d.ext"
+     * a b and c are directories, a, a/b, a/b/c are paths.
+     */
 
-    // check if the package path of the given path exists. The input path is
-    // expected to contain the full path to the module, so the parent
-    // directories of that path are checked.
-    private bool packageExists(const(char)[] p) nothrow
+    StringTable!(bool) pathStatus;      // cached value of does a path exist or not
+
+  nothrow:
+
+    /**
+     * Determine if the path part of path/filename exists.
+     * Cache the results for the path and each left-justified subpath of the path.
+     * Params:
+     *  filespec = path/filename
+     * Returns:
+     *  true if path exists, false if it does not
+     */
+    bool pathExists(const(char)[] filespec) nothrow
     {
-        // step 1, look for the closest parent path that is cached
+        /* look for the longest leftmost parent path that is cached
+         * by starting at the right and working to the left
+         */
         bool exists = true;
-        auto st = PathStack(p);
+        auto st = PathStack(filespec);
         while (st.up) {
-            if (auto cached = packageStatus.lookup(st.cur)) {
+            if (auto cached = pathStatus.lookup(st.cur)) {
                 exists = cached.value;
                 break;
             }
         }
-        // found a parent that is cached (or reached the end of the stack).
-        // step 2, traverse back up the stack storing either false if the
-        // parent doesn't exist, or the result of the `exists` call if it does.
+        /* found a parent path that is cached (or reached the left end of the path).
+         * Now move right caching the results of those directories.
+         * Once a directory is found to not exist, all the directories
+         * to the right of it do not exist
+         */
         while (st.down) {
             if (!exists)
-                packageStatus.insert(st.cur, false);
+                pathStatus.insert(st.cur, false);
             else
-                exists = packageStatus.insert(st.cur, FileName.exists(st.cur) == 2).value;
+                exists = pathStatus.insert(st.cur, FileName.exists(st.cur) == 2).value;
         }
 
-        // at this point, exists should be the answer.
         return exists;
     }
+
+    /**
+     * Ask if path ends in a directory.
+     * Cache result for speed.
+     * Params:
+     *  path = a path
+     * Returns:
+     *  true if it's a path, false if not
+     */
+    bool isExistingPath(const char[] path)
+    {
+        auto cached = pathStatus.lookup(path);
+        if (!cached)
+            cached = pathStatus.insert(path, FileName.exists(path) == 2);
+        return cached.value;
+    }
+}
+
+final class FileManager
+{
+    private StringTable!(const(ubyte)[]) files;  // contents of files indexed by file name
+
+    private PathCache pathCache;
 
     ///
     public this () nothrow
     {
         this.files._init();
-        this.packageStatus._init();
+        this.pathCache.pathStatus._init();
     }
 
 nothrow:
@@ -116,18 +159,18 @@ nothrow:
     * Does not open the file.
     * Params:
     *      filename = as supplied by the user
-    *      path = path to look for filename
+    *      paths = paths to look for filename
     * Returns:
     *      the found file name or
     *      `null` if it is not different from filename.
     */
-    const(char)[] lookForSourceFile(const char[] filename, const char*[] path)
+    const(char)[] lookForSourceFile(const char[] filename, const char*[] paths)
     {
         //printf("lookForSourceFile(`%.*s`)\n", cast(int)filename.length, filename.ptr);
-        /* Search along path[] for .di file, then .d file.
+        /* Search along paths[] for .di file, then .d file.
         */
         // see if we should check for the module locally.
-        bool checkLocal = packageExists(filename);
+        bool checkLocal = pathCache.pathExists(filename);
         const sdi = FileName.forceExt(filename, hdr_ext);
         if (checkLocal && FileName.exists(sdi) == 1)
             return sdi;
@@ -143,12 +186,9 @@ nothrow:
 
         if (checkLocal)
         {
-            auto cached = packageStatus.lookup(filename);
-            if (!cached)
-                cached = packageStatus.insert(filename, FileName.exists(filename) == 2);
-            if (cached.value)
+            if (pathCache.isExistingPath(filename))
             {
-                /* The filename exists and it's a directory.
+                /* The filename exists but it's a directory.
                  * Therefore, the result should be: filename/package.d
                  * iff filename/package.d is a file
                  */
@@ -166,15 +206,15 @@ nothrow:
 
         if (FileName.absolute(filename))
             return null;
-        if (!path.length)
+        if (!paths.length)
             return null;
-        foreach (entry; path)
+        foreach (entry; paths)
         {
             const p = entry.toDString();
 
             const(char)[] n = FileName.combine(p, sdi);
 
-            if (!packageExists(n)) {
+            if (!pathCache.pathExists(n)) {
                 FileName.free(n.ptr);
                 continue; // no need to check for anything else.
             }
@@ -189,19 +229,11 @@ nothrow:
             }
             FileName.free(n.ptr);
 
-            const b = FileName.removeExt(filename);
-            n = FileName.combine(p, b);
-            FileName.free(b.ptr);
-
+            n = FileName.combine(p, FileName.sansExt(filename));
             scope(exit) FileName.free(n.ptr);
 
             // also cache this if we are looking for package.d[i]
-            auto cached = packageStatus.lookup(n);
-            if (!cached) {
-                cached = packageStatus.insert(n, FileName.exists(n) == 2);
-            }
-
-            if (cached.value)
+            if (pathCache.isExistingPath(n))
             {
                 const n2i = FileName.combine(n, package_di);
                 if (FileName.exists(n2i) == 1)
@@ -215,7 +247,7 @@ nothrow:
             }
         }
 
-        /* ImportC: No D modules found, now search along path[] for .i file, then .c file.
+        /* ImportC: No D modules found, now search along paths[] for .i file, then .c file.
          */
         const si = FileName.forceExt(filename, i_ext);
         if (FileName.exists(si) == 1)
@@ -226,7 +258,7 @@ nothrow:
         if (FileName.exists(sc) == 1)
             return sc;
         scope(exit) FileName.free(sc.ptr);
-        foreach (entry; path)
+        foreach (entry; paths)
         {
             const p = entry.toDString();
 
@@ -246,98 +278,43 @@ nothrow:
     }
 
     /**
-     * Looks up the given filename from the internal file buffer table.
-     * If the file does not already exist within the table, it will be read from the filesystem.
-     * If it has been read before,
-     *
-     * Returns: the loaded source file if it was found in memory,
-     *      otherwise `null`
+     * Retrieve the cached contents of the file given by `filename`.
+     * If the file has not been read before, read it and add the contents
+     * to the file cache.
+     * Params:
+     *  filename = the name of the file
+     * Returns:
+     *  the contents of the file, or `null` if it could not be read or was empty
      */
-    const(ubyte)[] lookup(FileName filename)
+    const(ubyte)[] getFileContents(FileName filename)
     {
         const name = filename.toString;
-        if (auto val = files.lookup(name))
-            return val.value;
+        if (auto val = files.lookup(name))      // if `name` is cached
+            return val.value;                   // return its contents
 
-        if (name == "__stdin.d")
+        OutBuffer buf;
+        if (name == "__stdin.d")                // special name for reading from stdin
         {
-            auto buffer = readFromStdin().extractSlice();
-            if (this.files.insert(name, buffer) is null)
-                assert(0, "stdin: Insert after lookup failure should never return `null`");
-            return buffer;
+            if (readFromStdin(buf))
+                fatal();
+        }
+        else
+        {
+            if (FileName.exists(name) != 1) // if not an ordinary file
+                return null;
+
+            if (File.read(name, buf))
+                return null;        // failed
         }
 
-        if (FileName.exists(name) != 1)
-            return null;
+        buf.write32(0);         // terminating dchar 0
 
-        auto readResult = File.read(name);
-        if (!readResult.success)
-            return null;
-
-        auto fb = readResult.extractSlice();
+        const length = buf.length;
+        const ubyte[] fb = cast(ubyte[])(buf.extractSlice()[0 .. length - 4]);
         if (files.insert(name, fb) is null)
             assert(0, "Insert after lookup failure should never return `null`");
 
         return fb;
-    }
-
-    /**
-     * Looks up the given filename from the internal file buffer table, and returns the lines within the file.
-     * If the file does not already exist within the table, it will be read from the filesystem.
-     * If it has been read before,
-     *
-     * Returns: the loaded source file if it was found in memory,
-     *      otherwise `null`
-     */
-    const(char)[][] getLines(FileName file)
-    {
-        const(char)[][] lines;
-        if (const buffer = lookup(file))
-        {
-            const slice = buffer;
-            size_t start, end;
-            for (auto i = 0; i < slice.length; i++)
-            {
-                const c = slice[i];
-                if (c == '\n' || c == '\r')
-                {
-                    if (i != 0)
-                    {
-                        end = i;
-                        // Appending lines one at a time will certainly be slow
-                        lines ~= cast(const(char)[])slice[start .. end];
-                    }
-                    // Check for Windows-style CRLF newlines
-                    if (c == '\r')
-                    {
-                        if (slice.length > i + 1 && slice[i + 1] == '\n')
-                        {
-                            // This is a CRLF sequence, skip over two characters
-                            start = i + 2;
-                            i++;
-                        }
-                        else
-                        {
-                            // Just a CR sequence
-                            start = i + 1;
-                        }
-                    }
-                    else
-                    {
-                        // The next line should start after the LF sequence
-                        start = i + 1;
-                    }
-                }
-            }
-
-            if (slice[$ - 1] != '\r' && slice[$ - 1] != '\n')
-            {
-                end = slice.length;
-                lines ~= cast(const(char)[])slice[start .. end];
-            }
-        }
-
-        return lines;
     }
 
     /**
@@ -355,44 +332,34 @@ nothrow:
     }
 }
 
-private Buffer readFromStdin() nothrow
+private bool readFromStdin(ref OutBuffer sink) nothrow
 {
     import core.stdc.stdio;
     import dmd.errors;
-    import dmd.root.rmem;
 
-    enum bufIncrement = 128 * 1024;
-    size_t pos = 0;
-    size_t sz = bufIncrement;
+    enum BufIncrement = 128 * 1024;
 
-    ubyte* buffer = null;
-    for (;;)
+    for (size_t j; 1; ++j)
     {
-        buffer = cast(ubyte*)mem.xrealloc(buffer, sz + 4); // +2 for sentinel and +2 for lexer
+        char[] buffer = sink.allocate(BufIncrement);
 
         // Fill up buffer
+        size_t filled = 0;
         do
         {
-            assert(sz > pos);
-            size_t rlen = fread(buffer + pos, 1, sz - pos, stdin);
-            pos += rlen;
+            filled += fread(buffer.ptr + filled, 1, buffer.length - filled, stdin);
             if (ferror(stdin))
             {
                 import core.stdc.errno;
                 error(Loc.initial, "cannot read from stdin, errno = %d", errno);
-                fatal();
+                return true;
             }
-            if (feof(stdin))
+            if (feof(stdin)) // successful completion
             {
-                // We're done
-                assert(pos < sz + 2);
-                buffer[pos .. pos + 4] = '\0';
-                return Buffer(buffer[0 .. pos]);
+                sink.setsize(j * BufIncrement + filled);
+                return false;
             }
-        } while (pos < sz);
-
-        // Buffer full, expand
-        sz += bufIncrement;
+        } while (filled < BufIncrement);
     }
 
     assert(0);

@@ -1,7 +1,7 @@
 /**
  * Contains high-level interfaces for interacting with DMD as a library.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/id.d, _id.d)
@@ -11,8 +11,9 @@
 module dmd.frontend;
 
 import dmd.astcodegen : ASTCodegen;
+import dmd.astenums : CHECKENABLE;
 import dmd.dmodule : Module;
-import dmd.globals : CHECKENABLE, DiagnosticReporting;
+import dmd.globals : DiagnosticReporting;
 import dmd.errors;
 import dmd.location;
 
@@ -113,11 +114,12 @@ void initDMD(
     version (CRuntime_Microsoft)
         import dmd.root.longdouble : initFPU;
 
+    import dmd.astenums : CHECKENABLE;
     import dmd.cond : VersionCondition;
     import dmd.dmodule : Module;
     import dmd.escape : EscapeState;
     import dmd.expression : Expression;
-    import dmd.globals : CHECKENABLE, global;
+    import dmd.globals : global;
     import dmd.id : Id;
     import dmd.identifier : Identifier;
     import dmd.mtype : Type;
@@ -142,6 +144,7 @@ void initDMD(
     versionIdentifiers.each!(VersionCondition.addGlobalIdent);
 
     target.os = defaultTargetOS();
+    target.isX86_64 = (size_t.sizeof == 8);
     target._init(global.params);
     Type._init();
     Id.initialize();
@@ -203,9 +206,6 @@ void addImport(const(char)[] path)
     import dmd.arraytypes : Strings;
     import std.string : toStringz;
 
-    if (global.path is null)
-        global.path = new Strings();
-
     global.path.push(path.toStringz);
 }
 
@@ -220,9 +220,6 @@ void addStringImport(const(char)[] path)
 
     import dmd.globals : global;
     import dmd.arraytypes : Strings;
-
-    if (global.filePath is null)
-        global.filePath = new Strings();
 
     global.filePath.push(path.toStringz);
 }
@@ -456,7 +453,7 @@ string prettyPrint(Module m)
     auto buf = OutBuffer();
     buf.doindent = 1;
     HdrGenState hgs = { fullDump: 1 };
-    moduleToBuffer2(m, buf, &hgs);
+    moduleToBuffer2(m, buf, hgs);
 
     import std.string : replace, fromStringz;
     import std.exception : assumeUnique;

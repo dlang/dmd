@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -26,6 +26,14 @@ enum PKG
     PKGunknown, // not yet determined whether it's a package.d or not
     PKGmodule,  // already determined that's an actual package.d
     PKGpackage  // already determined that's an actual package
+};
+
+enum class Edition : unsigned char
+{
+    none = 0u,
+    legacy = 1u,
+    v2024 = 2u,
+    latest = 2u,
 };
 
 class Package : public ScopeDsymbol
@@ -75,6 +83,7 @@ public:
     FileType filetype;  // source file type
     d_bool hasAlwaysInlines; // contains references to functions that must be inlined
     d_bool isPackageFile; // if it is a package.d
+    Edition edition;    // language edition that this module is compiled with
     Package *pkg;       // if isPackageFile is true, the Package that contains this package.d
     Strings contentImportedFiles;  // array of files whose content was imported
     int needmoduleinfo;
@@ -167,5 +176,8 @@ struct ModuleDeclaration
     const char *toChars() const;
 };
 
-extern void getLocalClasses(Module* mod, Array<ClassDeclaration* >& aclasses);
-FuncDeclaration *findGetMembers(ScopeDsymbol *dsym);
+namespace dmd
+{
+    void getLocalClasses(Module* mod, Array<ClassDeclaration* >& aclasses);
+    FuncDeclaration *findGetMembers(ScopeDsymbol *dsym);
+}

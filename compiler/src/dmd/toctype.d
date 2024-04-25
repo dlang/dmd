@@ -1,7 +1,7 @@
 /**
  * Convert a D type to a type the backend understands.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/toctype.d, _toctype.d)
@@ -29,6 +29,7 @@ import dmd.globals;
 import dmd.glue;
 import dmd.id;
 import dmd.mtype;
+import dmd.typesem;
 import dmd.tocvdebug;
 
 
@@ -76,10 +77,10 @@ tym_t modToTym(MOD mod) pure @safe
  * Returns:
  *      back end equivalent `type`
  */
-extern (C++) type* Type_toCtype(Type t)
+type* Type_toCtype(Type t)
 {
     if (t.ctype)
-        return t.ctype;
+        return cast(type*)t.ctype;
 
     static type* visit(Type t)
     {
@@ -166,9 +167,9 @@ extern (C++) type* Type_toCtype(Type t)
                 foreach (v; sym.fields)
                 {
                     if (auto bf = v.isBitFieldDeclaration())
-                        symbol_struct_addBitField(cast(Symbol*)t.ctype.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset, bf.fieldWidth, bf.bitOffset);
+                        symbol_struct_addBitField(*cast(Symbol*)(cast(type*)t.ctype).Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset, bf.fieldWidth, bf.bitOffset);
                     else
-                        symbol_struct_addField(cast(Symbol*)t.ctype.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
+                        symbol_struct_addField(*cast(Symbol*)(cast(type*)t.ctype).Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
                 }
             }
             else
@@ -177,7 +178,7 @@ extern (C++) type* Type_toCtype(Type t)
                 {
                     if (auto bf = v.isBitFieldDeclaration())
                     {
-                        symbol_struct_hasBitFields(cast(Symbol*)t.ctype.Ttag);
+                        symbol_struct_hasBitFields(*cast(Symbol*)(cast(type*)t.ctype).Ttag);
                         break;
                     }
                 }
@@ -186,7 +187,7 @@ extern (C++) type* Type_toCtype(Type t)
             if (driverParams.symdebugref)
                 toDebug(sym);
 
-            return t.ctype;
+            return cast(type*)t.ctype;
         }
 
         // Copy mutable version of backend type and add modifiers
@@ -220,8 +221,8 @@ extern (C++) type* Type_toCtype(Type t)
                      sym.ident == Id.__c_complex_real)
             {
                 t.ctype = type_fake(totym(t));
-                t.ctype.Tcount++;
-                return t.ctype;
+                (cast(type*)t.ctype).Tcount++;
+                return cast(type*)t.ctype;
             }
             else if (symMemtype.toBasetype().ty == Tint32)
             {
@@ -235,7 +236,7 @@ extern (C++) type* Type_toCtype(Type t)
             if (driverParams.symdebugref)
                 toDebug(t.sym);
 
-            return t.ctype;
+            return cast(type*)t.ctype;
         }
 
         // Copy mutable version of backend type and add modifiers
@@ -268,19 +269,19 @@ extern (C++) type* Type_toCtype(Type t)
             {
                 foreach (v; t.sym.fields)
                 {
-                    symbol_struct_addField(cast(Symbol*)tc.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
+                    symbol_struct_addField(*cast(Symbol*)tc.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
                 }
                 if (auto bc = t.sym.baseClass)
                 {
                     auto ptr_to_basetype = Type_toCtype(bc.type);
                     assert(ptr_to_basetype .Tty == TYnptr);
-                    symbol_struct_addBaseClass(cast(Symbol*)tc.Ttag, ptr_to_basetype.Tnext, 0);
+                    symbol_struct_addBaseClass(*cast(Symbol*)tc.Ttag, ptr_to_basetype.Tnext, 0);
                 }
             }
 
             if (driverParams.symdebugref)
                 toDebug(t.sym);
-            return t.ctype;
+            return cast(type*)t.ctype;
         }
 
         // Copy mutable version of backend type and add modifiers

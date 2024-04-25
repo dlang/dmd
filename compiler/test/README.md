@@ -204,6 +204,7 @@ Valid platforms:
 Valid models:
 - 32
 - 32mscoff  (windows only)
+- 32omf  (windows only)
 - 64
 
 Note that test parameters *MUST* be followed by a colon (intermediate whitespace is allowed).
@@ -342,6 +343,12 @@ The following is a list of all available settings:
                                             arguments: the regex
                                             note: patterns containing ')' must be quoted
 
+    UNICODE_NAMES:      file containing symbols with unicode characters in their name, which might
+                        not be supported on some specific platforms. It is currently ignored by the
+                        test runner, but serves as documentation of the test itself.
+                        default: (none)
+
+
 Environment variables
 ------------------------------
 
@@ -423,7 +430,7 @@ depend on the current platform and target:
 
                     Supported conditions:
                     - OS: posix, windows, ...
-                    - Model: 64, 32mscoff and 32 (also matches 32mscoff)
+                    - Model: 64, 32mscoff, 32omf and 32 (also matches 32mscoff + 32omf)
 
     $r:<regex>$     any text matching <regex> (using $ inside of <regex> is not
                     supported, use multiple regexes instead)

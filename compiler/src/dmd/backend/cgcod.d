@@ -2,7 +2,7 @@
  * Top level code for the code generator.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcod.d, backend/cgcod.d)
@@ -135,7 +135,7 @@ private regm_t lastretregs,last2retregs,last3retregs,last4retregs,last5retregs;
 }
 
 /*********************************
- * Generate code for a function.
+ * Main entry point for generating code for a function.
  * Note at the end of this routine mfuncreg will contain the mask
  * of registers not affected by the function. Some minor optimization
  * possibilities are here.
@@ -153,7 +153,6 @@ void codgen(Symbol *sfunc)
     CSE.initialize();
     cod3_initregs();
     allregs = ALLREGS;
-    pass = BackendPass.initial;
     Alloca.initialize();
     anyiasm = 0;
 
@@ -168,124 +167,133 @@ void codgen(Symbol *sfunc)
         }
     }
 
-tryagain:
-    debug
-    if (debugr)
-        printf("------------------ PASS%s -----------------\n",
-            (pass == BackendPass.initial) ? "init".ptr : ((pass == BackendPass.reg) ? "reg".ptr : "final".ptr));
-
-    lastretregs = last2retregs = last3retregs = last4retregs = last5retregs = 0;
-
-    // if no parameters, assume we don't need a stack frame
-    needframe = 0;
-    enforcealign = false;
-    gotref = 0;
-    stackchanged = 0;
-    stackpush = 0;
-    refparam = 0;
-    calledafunc = 0;
-    retsym = null;
-
-    cgstate.stackclean = 1;
-    cgstate.funcarg.initialize();
-    cgstate.funcargtos = ~0;
-    cgstate.accessedTLS = false;
-    STACKALIGN = TARGET_STACKALIGN;
-
-    regsave.reset();
-    memset(global87.stack.ptr,0,global87.stack.sizeof);
-
-    calledFinally = false;
-    usednteh = 0;
-
-    if (sfunc.Sfunc.Fflags3 & Fjmonitor &&
-        config.exe & EX_windos)
-        usednteh |= NTEHjmonitor;
-
-    // Set on a trial basis, turning it off if anything might throw
-    sfunc.Sfunc.Fflags3 |= Fnothrow;
-
-    floatreg = false;
-    assert(global87.stackused == 0);             /* nobody in 8087 stack         */
-
-    CSE.start();
-    memset(&regcon,0,regcon.sizeof);
-    regcon.cse.mval = regcon.cse.mops = 0;      // no common subs yet
-    msavereg = 0;
-    uint nretblocks = 0;
-    mfuncreg = fregsaved;               // so we can see which are used
-                                        // (bit is cleared each time
-                                        //  we use one)
-    assert(!(needframe && mfuncreg & mBP)); // needframe needs mBP
-
-    for (block* b = startblock; b; b = b.Bnext)
+    /* Generate code repeatedly until we cannot do any better. Each
+     * pass can generate opportunities for enregistering more variables,
+     * loop until no more registers are free'd up.
+     */
+    pass = BackendPass.initial;
+    while (1)
     {
-        memset(&b.Bregcon,0,b.Bregcon.sizeof);       // Clear out values in registers
-        if (b.Belem)
-            resetEcomsub(b.Belem);     // reset all the Ecomsubs
-        if (b.BC == BCasm)
-            anyiasm = 1;                // we have inline assembler
-        if (b.BC == BCret || b.BC == BCretexp)
-            nretblocks++;
-    }
+        debug
+        if (debugr)
+            printf("------------------ PASS%s -----------------\n",
+                (pass == BackendPass.initial) ? "init".ptr : ((pass == BackendPass.reg) ? "reg".ptr : "final".ptr));
 
-    if (!config.fulltypes || (config.flags4 & CFG4optimized))
-    {
-        regm_t noparams = 0;
-        foreach (s; globsym[])
+        lastretregs = last2retregs = last3retregs = last4retregs = last5retregs = 0;
+
+        // if no parameters, assume we don't need a stack frame
+        needframe = 0;
+        enforcealign = false;
+        gotref = 0;
+        stackchanged = 0;
+        stackpush = 0;
+        refparam = 0;
+        calledafunc = 0;
+        retsym = null;
+
+        cgstate.stackclean = 1;
+        cgstate.funcarg.initialize();
+        cgstate.funcargtos = ~0;
+        cgstate.accessedTLS = false;
+        STACKALIGN = TARGET_STACKALIGN;
+
+        regsave.reset();
+        memset(global87.stack.ptr,0,global87.stack.sizeof);
+
+        calledFinally = false;
+        usednteh = 0;
+
+        if (sfunc.Sfunc.Fflags3 & Fjmonitor &&
+            config.exe & EX_windos)
+            usednteh |= NTEHjmonitor;
+
+        // Set on a trial basis, turning it off if anything might throw
+        sfunc.Sfunc.Fflags3 |= Fnothrow;
+
+        floatreg = false;
+        assert(global87.stackused == 0);             /* nobody in 8087 stack         */
+
+        CSE.start();
+        memset(&regcon,0,regcon.sizeof);
+        regcon.cse.mval = regcon.cse.mops = 0;      // no common subs yet
+        msavereg = 0;
+        uint nretblocks = 0;
+        mfuncreg = fregsaved;               // so we can see which are used
+                                            // (bit is cleared each time
+                                            //  we use one)
+        assert(!(needframe && mfuncreg & mBP)); // needframe needs mBP
+
+        for (block* b = startblock; b; b = b.Bnext)
         {
-            s.Sflags &= ~SFLread;
-            switch (s.Sclass)
+            memset(&b.Bregcon,0,b.Bregcon.sizeof);       // Clear out values in registers
+            if (b.Belem)
+                resetEcomsub(b.Belem);     // reset all the Ecomsubs
+            if (b.BC == BCasm)
+                anyiasm = 1;                // we have inline assembler
+            if (b.BC == BCret || b.BC == BCretexp)
+                nretblocks++;
+        }
+
+        if (!config.fulltypes || (config.flags4 & CFG4optimized))
+        {
+            regm_t noparams = 0;
+            foreach (s; globsym[])
             {
-                case SC.fastpar:
-                case SC.shadowreg:
-                    regcon.params |= s.Spregm();
-                    goto case SC.parameter;
+                s.Sflags &= ~SFLread;
+                switch (s.Sclass)
+                {
+                    case SC.fastpar:
+                    case SC.shadowreg:
+                        regcon.params |= s.Spregm();
+                        goto case SC.parameter;
 
-                case SC.parameter:
-                    if (s.Sfl == FLreg)
-                        noparams |= s.Sregm;
-                    break;
+                    case SC.parameter:
+                        if (s.Sfl == FLreg)
+                            noparams |= s.Sregm;
+                        break;
 
-                default:
-                    break;
+                    default:
+                        break;
+                }
+            }
+            regcon.params &= ~noparams;
+        }
+
+        if (config.flags4 & CFG4optimized)
+        {
+            if (nretblocks == 0 &&                  // if no return blocks in function
+                !(sfunc.ty() & mTYnaked))      // naked functions may have hidden veys of returning
+                sfunc.Sflags |= SFLexit;       // mark function as never returning
+
+            assert(dfo);
+
+            cgreg_reset();
+            foreach (i, b; dfo[])
+            {
+                dfoidx = cast(int)i;
+                regcon.used = msavereg | regcon.cse.mval;   // registers already in use
+                blcodgen(b);                        // gen code in depth-first order
+                //printf("b.Bregcon.used = %s\n", regm_str(b.Bregcon.used));
+                cgreg_used(dfoidx, b.Bregcon.used); // gather register used information
             }
         }
-        regcon.params &= ~noparams;
-    }
-
-    if (config.flags4 & CFG4optimized)
-    {
-        if (nretblocks == 0 &&                  // if no return blocks in function
-            !(sfunc.ty() & mTYnaked))      // naked functions may have hidden veys of returning
-            sfunc.Sflags |= SFLexit;       // mark function as never returning
-
-        assert(dfo);
-
-        cgreg_reset();
-        foreach (i, b; dfo[])
+        else
         {
-            dfoidx = cast(int)i;
-            regcon.used = msavereg | regcon.cse.mval;   // registers already in use
-            blcodgen(b);                        // gen code in depth-first order
-            //printf("b.Bregcon.used = %s\n", regm_str(b.Bregcon.used));
-            cgreg_used(dfoidx, b.Bregcon.used); // gather register used information
+            pass = BackendPass.final_;
+            for (block* b = startblock; b; b = b.Bnext)
+                blcodgen(b);                // generate the code for each block
         }
-    }
-    else
-    {
-        pass = BackendPass.final_;
-        for (block* b = startblock; b; b = b.Bnext)
-            blcodgen(b);                // generate the code for each block
-    }
-    regcon.immed.mval = 0;
-    assert(!regcon.cse.mops);           // should have all been used
+        regcon.immed.mval = 0;
+        assert(!regcon.cse.mops);           // should have all been used
 
-    // See which variables we can put into registers
-    if (pass != BackendPass.final_ &&
-        !anyiasm)                               // possible LEA or LES opcodes
-    {
-        allregs |= cod3_useBP();                // see if we can use EBP
+        if (pass == BackendPass.final_ ||       // the final pass, so exit
+            anyiasm)                            // possible LEA or LES opcodes
+        {
+            break;
+        }
+
+        // See which variables we can put into registers
+        allregs |= cod3_useBP();                // use EBP as general purpose register
 
         // If pic code, but EBX was never needed
         if (!(allregs & mask(PICREG)) && !gotref)
@@ -298,12 +306,14 @@ tryagain:
             pass = BackendPass.reg;
         else
             pass = BackendPass.final_;
+
+        /* free up generated code for next pass
+         */
         for (block* b = startblock; b; b = b.Bnext)
         {
             code_free(b.Bcode);
             b.Bcode = null;
         }
-        goto tryagain;
     }
     cgreg_term();
 
@@ -334,9 +344,9 @@ tryagain:
         }
     }
 
-    stackoffsets(globsym, false);  // compute final offsets of stack variables
-    cod5_prol_epi();            // see where to place prolog/epilog
-    CSE.finish();               // compute addresses and sizes of CSE saves
+    stackoffsets(globsym, false); // compute final offsets of stack variables
+    cod5_prol_epi(startblock);    // see where to place prolog/epilog
+    CSE.finish();                 // compute addresses and sizes of CSE saves
 
     if (configv.addlinenumbers)
         objmod.linnum(sfunc.Sfunc.Fstartline,sfunc.Sseg,Offset(sfunc.Sseg));
@@ -673,9 +683,8 @@ void prolog(ref CodeBuilder cdb)
          */
         /* Look for __va_argsave
          */
-        for (SYMIDX si = 0; si < globsym.length; si++)
+        foreach (s; globsym[])
         {
-            Symbol *s = globsym[si];
             if (s.Sident[0] == '_' && strcmp(s.Sident.ptr, "__va_argsave") == 0)
             {
                 if (!(s.Sflags & SFLdead))
@@ -1250,7 +1259,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
             case SC.bprel:
                 break;
             default:
-                symbol_print(s);
+                symbol_print(*s);
                 assert(0);
         }
     }
@@ -1372,10 +1381,8 @@ private void blcodgen(block *bl)
         CodeBuilder cdbstore; cdbstore.ctor();
 
         sflsave = cast(char *) alloca(globsym.length * char.sizeof);
-        for (SYMIDX i = 0; i < globsym.length; i++)
+        foreach (i, s; globsym[])
         {
-            Symbol *s = globsym[i];
-
             sflsave[i] = s.Sfl;
             if (regParamInPreg(s) &&
                 regcon.params & s.Spregm() &&
@@ -1622,26 +1629,21 @@ static if (0)
 /*********************************
  * Allocate some registers.
  * Input:
- *      pretregs        Pointer to mask of registers to make selection from.
+ *      outretregs         Mask of registers to make selection from.
  *      tym             Mask of type we will store in registers.
  * Output:
- *      *pretregs       Mask of allocated registers.
- *      *preg           Register number of first allocated register.
+ *      outretregs       Mask of allocated registers.
  *      msavereg,mfuncreg       retregs bits are cleared.
  *      regcon.cse.mval,regcon.cse.mops updated
  * Returns:
- *      pointer to code generated if necessary to save any regcon.cse.mops on the
- *      stack.
+ *      Register number of first allocated register
  */
-
-void allocreg(ref CodeBuilder cdb,regm_t *pretregs,reg_t *preg,tym_t tym)
-{
-    allocreg(cdb, pretregs, preg, tym, __LINE__, __FILE__);
+reg_t allocreg(ref CodeBuilder cdb,ref regm_t outretregs,tym_t tym){
+    return allocreg(cdb, outretregs, tym, __LINE__, __FILE__);
 }
 
 @trusted
-void allocreg(ref CodeBuilder cdb,regm_t *pretregs,reg_t *preg,tym_t tym
-        ,int line,const(char)* file)
+reg_t allocreg(ref CodeBuilder cdb,ref regm_t outretregs,tym_t tym ,int line,const(char)* file)
 {
         reg_t reg;
 
@@ -1649,44 +1651,45 @@ static if (0)
 {
         if (pass == BackendPass.final_)
         {
-            printf("allocreg %s,%d: regcon.mvar %s regcon.cse.mval %s msavereg %s *pretregs %s tym %s\n",
+            printf("allocreg %s,%d: regcon.mvar %s regcon.cse.mval %s msavereg %s outretregs %s tym %s\n",
                 file,line,regm_str(regcon.mvar),regm_str(regcon.cse.mval),
-                regm_str(msavereg),regm_str(*pretregs),tym_str(tym));
+                regm_str(msavereg),regm_str(outretregs),tym_str(tym));
         }
 }
         tym = tybasic(tym);
         uint size = _tysize[tym];
-        *pretregs &= mES | allregs | XMMREGS;
-        regm_t retregs = *pretregs;
+        outretregs &= mES | allregs | XMMREGS;
+        regm_t retregs = outretregs;
 
         debug if (retregs == 0)
             printf("allocreg: file %s(%d)\n", file, line);
 
         if ((retregs & regcon.mvar) == retregs) // if exactly in reg vars
         {
+            reg_t outreg;
             if (size <= REGSIZE || (retregs & XMMREGS))
             {
-                *preg = findreg(retregs);
-                assert(retregs == mask(*preg)); /* no more bits are set */
+                outreg = findreg(retregs);
+                assert(retregs == mask(outreg)); /* no more bits are set */
             }
             else if (size <= 2 * REGSIZE)
             {
-                *preg = findregmsw(retregs);
+                outreg = findregmsw(retregs);
                 assert(retregs & mLSW);
             }
             else
                 assert(0);
             getregs(cdb,retregs);
-            return;
+            return outreg;
         }
         int count = 0;
 L1:
-        //printf("L1: allregs = %s, *pretregs = %s\n", regm_str(allregs), regm_str(*pretregs));
+        //printf("L1: allregs = %s, outretregs = %s\n", regm_str(allregs), regm_str(outretregs));
         assert(++count < 20);           /* fail instead of hanging if blocked */
         assert(retregs);
         reg_t msreg = NOREG, lsreg = NOREG;  /* no value assigned yet        */
 L3:
-        //printf("L2: allregs = %s, *pretregs = %s\n", regm_str(allregs), regm_str(*pretregs));
+        //printf("L2: allregs = %s, outretregs = %s\n", regm_str(allregs), regm_str(outretregs));
         regm_t r = retregs & ~(msavereg | regcon.cse.mval | regcon.params);
         if (!r)
         {
@@ -1766,7 +1769,7 @@ L3:
             {
                 if (I64 && !(r & mLSW))
                 {
-                    retregs = *pretregs & (mMSW | mLSW);
+                    retregs = outretregs & (mMSW | mLSW);
                     assert(retregs);
                     goto L1;
                 }
@@ -1785,7 +1788,7 @@ L3:
         {
             debug
             if (retregs != DOUBLEREGS)
-                printf("retregs = %s, *pretregs = %s\n", regm_str(retregs), regm_str(*pretregs));
+                printf("retregs = %s, outretregs = %s\n", regm_str(retregs), regm_str(outretregs));
 
             assert(retregs == DOUBLEREGS);
             reg = AX;
@@ -1794,21 +1797,20 @@ L3:
         {
             debug
             {
-                printf("%s\nallocreg: fil %s lin %d, regcon.mvar %s msavereg %s *pretregs %s, reg %d, tym x%x\n",
-                    tym_str(tym),file,line,regm_str(regcon.mvar),regm_str(msavereg),regm_str(*pretregs),*preg,tym);
+                printf("%s\nallocreg: fil %s lin %d, regcon.mvar %s msavereg %s outretregs %s, reg %d, tym x%x\n",
+                    tym_str(tym),file,line,regm_str(regcon.mvar),regm_str(msavereg),regm_str(outretregs),reg,tym);
             }
             assert(0);
         }
         if (retregs & regcon.mvar)              // if conflict with reg vars
         {
-            if (!(size > REGSIZE && *pretregs == (mAX | mDX)))
+            if (!(size > REGSIZE && outretregs == (mAX | mDX)))
             {
-                retregs = (*pretregs &= ~(retregs & regcon.mvar));
+                retregs = (outretregs &= ~(retregs & regcon.mvar));
                 goto L1;                // try other registers
             }
         }
-        *preg = reg;
-        *pretregs = retregs;
+        outretregs = retregs;
 
         //printf("Allocating %s\n",regm_str(retregs));
         last5retregs = last4retregs;
@@ -1817,6 +1819,7 @@ L3:
         last2retregs = lastretregs;
         lastretregs = retregs;
         getregs(cdb, retregs);
+        return reg;
 }
 
 
@@ -1831,9 +1834,7 @@ L3:
 @trusted
 reg_t allocScratchReg(ref CodeBuilder cdb, regm_t regm)
 {
-    reg_t r;
-    allocreg(cdb, &regm, &r, TYoffset);
-    return r;
+    return allocreg(cdb, regm, TYoffset);
 }
 
 
@@ -1990,14 +1991,14 @@ void cse_flush(ref CodeBuilder cdb, int do87)
  * Input:
  *      e       the subexpression
  *      regm    mask of registers holding it
- *      opsflag if != 0 then regcon.cse.mops gets set too
+ *      opsflag if true, then regcon.cse.mops gets set too
  * Returns:
  *      false   not saved as a CSE
  *      true    saved as a CSE
  */
 
 @trusted
-bool cssave(elem *e,regm_t regm,uint opsflag)
+bool cssave(elem *e, regm_t regm, bool opsflag)
 {
     bool result = false;
 
@@ -2170,13 +2171,13 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
         {
             regm_t retregs = pretregs & mST0 ? XMMREGS : mXMM0 | mXMM1;
             comsub(cdb, e, retregs);
-            fixresult(cdb,e,retregs,&pretregs);
+            fixresult(cdb,e,retregs,pretregs);
             return;
         }
     }
     else if (tyfloating(e.Ety) && config.inline8087)
     {
-        comsub87(cdb,e,&pretregs);
+        comsub87(cdb,e,pretregs);
         return;
     }
 
@@ -2210,7 +2211,7 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
             if (!OTleaf(e.Eoper) || !(regm & regcon.mvar) || (pretregs & regcon.mvar) == pretregs)
             {
                 regm = mask(findreg(regm));
-                fixresult(cdb,e,regm,&pretregs);
+                fixresult(cdb,e,regm,pretregs);
                 return;
             }
         }
@@ -2229,7 +2230,7 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
                     retregs = BYTEREGS;
                 else if (!(retregs & allregs))
                     retregs = allregs;
-                allocreg(cdb,&retregs,&reg,tym);
+                reg = allocreg(cdb,retregs,tym);
                 code *cr = &cse.csimple;
                 cr.setReg(reg);
                 if (I64 && reg >= 4 && tysize(cse.e.Ety) == 1)
@@ -2246,11 +2247,11 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
                     if (config.fpxmmregs && (tyxmmreg(cse.e.Ety) || tyvector(cse.e.Ety)))
                     {
                         retregs = XMMREGS;
-                        allocreg(cdb,&retregs,&reg,tym);
+                        reg = allocreg(cdb,retregs,tym);
                         gen_loadcse(cdb, cse.e.Ety, reg, cse.slot);
                         regcon.cse.mval |= mask(reg); // cs is in a reg
                         regcon.cse.value[reg] = e;
-                        fixresult(cdb,e,retregs,&pretregs);
+                        fixresult(cdb,e,retregs,pretregs);
                     }
                     else
                     {
@@ -2263,12 +2264,12 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
                     retregs = pretregs;
                     if (byte_ && !(retregs & BYTEREGS))
                         retregs = BYTEREGS;
-                    allocreg(cdb,&retregs,&reg,tym);
+                    reg = allocreg(cdb,retregs,tym);
                     gen_loadcse(cdb, cse.e.Ety, reg, cse.slot);
                 L10:
                     regcon.cse.mval |= mask(reg); // cs is in a reg
                     regcon.cse.value[reg] = e;
-                    fixresult(cdb,e,retregs,&pretregs);
+                    fixresult(cdb,e,retregs,pretregs);
                 }
             }
             return;
@@ -2311,7 +2312,7 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
         {
             if (!regm)
                 regm = mMSW & ALLREGS;
-            allocreg(cdb,&regm,&msreg,TYint);
+            msreg = allocreg(cdb,regm,TYint);
             loadcse(cdb,e,msreg,mMSW);
         }
 
@@ -2324,12 +2325,12 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
         {
             if (!regm)
                 regm = mLSW;
-            allocreg(cdb,&regm,&lsreg,TYint);
+            lsreg = allocreg(cdb,regm,TYint);
             loadcse(cdb,e,lsreg,mLSW | mBP);
         }
 
         regm = mask(msreg) | mask(lsreg);       /* mask of result       */
-        fixresult(cdb,e,regm,&pretregs);
+        fixresult(cdb,e,regm,pretregs);
         return;
     }
     else if (tym == TYdouble || tym == TYdouble_alias)    // double
@@ -2345,7 +2346,7 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
                     loadcse(cdb,e,reg,mask(reg));
             }
             regm = DOUBLEREGS_16;
-            fixresult(cdb,e,regm,&pretregs);
+            fixresult(cdb,e,regm,pretregs);
             return;
         }
         if (OTleaf(e.Eoper)) goto reload;
@@ -2384,11 +2385,11 @@ reload:                                 /* reload result from memory    */
                 (tyxmmreg(tym) || tysimd(tym)))
             {
                 regm_t retregs = XMMREGS | mPSW;
-                loaddata(cdb,e,&retregs);
+                loaddata(cdb,e,retregs);
                 cssave(e,retregs,false);
                 return;
             }
-            loaddata(cdb,e,&pretregs);
+            loaddata(cdb,e,pretregs);
             break;
     }
     cssave(e,pretregs,false);
@@ -2424,20 +2425,6 @@ private void loadcse(ref CodeBuilder cdb,elem *e,reg_t reg,regm_t regm)
     assert(0);
 }
 
-/***************************
- * Generate code sequence for an elem.
- * Input:
- *      pretregs =      mask of possible registers to return result in
- *                      Note:   longs are in AX,BX or CX,DX or SI,DI
- *                              doubles are AX,BX,CX,DX only
- *      constflag =     1 for user of result will not modify the
- *                      registers returned in *pretregs.
- *                      2 for freenode() not called.
- * Output:
- *      *pretregs       mask of registers result is returned in
- * Returns:
- *      pointer to code sequence generated
- */
 
 @trusted
 void callcdxxx(ref CodeBuilder cdb, elem *e, regm_t *pretregs, OPER op)
@@ -2640,6 +2627,19 @@ private __gshared nothrow void function (ref CodeBuilder,elem *,regm_t *)[OPMAX]
 ];
 
 
+/***************************
+ * Generate code sequence for an elem.
+ * Params:
+ *      cdb =           Code builder to write generated code to
+ *      e =             Element to generate code for
+ *      pretregs =      mask of possible registers to return result in
+ *                      will be updated with mask of registers result is returned in
+ *                      Note:   longs are in AX,BX or CX,DX or SI,DI
+ *                              doubles are AX,BX,CX,DX only
+ *      constflag =     1 for user of result will not modify the
+ *                      registers returned in *pretregs.
+ *                      2 for freenode() not called.
+ */
 @trusted
 void codelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint constflag)
 {
@@ -2697,7 +2697,7 @@ void codelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint constflag)
                         regm_t retregs = *pretregs & mST0 ? mXMM0 : mXMM0|mXMM1;
                         (*cdxxx[op])(cdb,e,&retregs);
                         cssave(e,retregs,!OTleaf(op));
-                        fixresult(cdb, e, retregs, pretregs);
+                        fixresult(cdb, e, retregs, *pretregs);
                         goto L1;
                     }
                     if (tysize(e.Ety) == 1)
@@ -2775,7 +2775,7 @@ void codelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint constflag)
                         break;
                 }
             }
-            loaddata(cdb,e,pretregs);
+            loaddata(cdb,e,*pretregs);
             break;
     }
     cssave(e,*pretregs,!OTleaf(op));
@@ -2823,7 +2823,7 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
             uint sz2 = tysize(e.EV.Vsym.Stype.Tty);
             if (sz1 <= REGSIZE && sz2 > REGSIZE)
                 regm &= mLSW | XMMREGS;
-            fixresult(cdb,e,regm,pretregs);
+            fixresult(cdb,e,regm,*pretregs);
             cssave(e,regm,0);
             freenode(e);
 

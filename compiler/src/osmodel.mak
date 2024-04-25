@@ -61,7 +61,10 @@ endif
 ifeq (windows,$(OS))
   # Note: setting SHELL to an absolute path to bash.exe does NOT suffice.
   # The GNU tools like {rm,cp,mkdir}.exe need to be in PATH.
-  export PATH:=C:\Program Files\Git\usr\bin;$(PATH)
+  ifeq (,$(findstring C:\Program Files\Git\usr\bin,$(PATH)))
+    export PATH:=C:\Program Files\Git\usr\bin;$(PATH)
+  endif
+  # setting SHELL is very special on Windows: https://www.gnu.org/software/make/manual/html_node/Choosing-the-Shell.html#Choosing-a-Shell-in-DOS-and-Windows
   SHELL=bash.exe
   $(info Using make SHELL "$(SHELL)", should be bash.)
 endif

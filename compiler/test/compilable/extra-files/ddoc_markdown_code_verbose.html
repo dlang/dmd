@@ -418,6 +418,11 @@ compilable/ddoc_markdown_code_verbose.d(13): Ddoc: adding code block for languag
         white-space: pre-wrap;
       }
 
+      .ddoc .code_lines pre {
+        display: contents;
+      }
+
+
       .ddoc .code_lines li:only-of-type::before {
         color: rgba(255, 255, 255, 1);
         content: " ";

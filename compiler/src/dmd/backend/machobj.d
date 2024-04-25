@@ -4,7 +4,7 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2009-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2009-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/machobj.d, backend/machobj.d)
@@ -38,6 +38,8 @@ import dmd.common.outbuffer;
 nothrow:
 @safe:
 
+private enum log = false;
+
 alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
 extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
 
@@ -65,21 +67,6 @@ private int mach_rel_fp(scope const(void*) e1, scope const(void*) e2)
 void mach_relsort(OutBuffer *buf)
 {
     qsort(buf.buf, buf.length() / Relocation.sizeof, Relocation.sizeof, &mach_rel_fp);
-}
-
-// for x86_64
-enum
-{
-    X86_64_RELOC_UNSIGNED         = 0,
-    X86_64_RELOC_SIGNED           = 1,
-    X86_64_RELOC_BRANCH           = 2,
-    X86_64_RELOC_GOT_LOAD         = 3,
-    X86_64_RELOC_GOT              = 4,
-    X86_64_RELOC_SUBTRACTOR       = 5,
-    X86_64_RELOC_SIGNED_1         = 6,
-    X86_64_RELOC_SIGNED_2         = 7,
-    X86_64_RELOC_SIGNED_4         = 8,
-    X86_64_RELOC_TLV              = 9, // for thread local variables
 }
 
 private extern (D) __gshared OutBuffer *fobjbuf;
@@ -150,7 +137,7 @@ private void reset_symbols(OutBuffer *buf)
     Symbol **p = cast(Symbol **)buf.buf;
     const size_t n = buf.length() / (Symbol *).sizeof;
     for (size_t i = 0; i < n; ++i)
-        symbol_reset(p[i]);
+        symbol_reset(*p[i]);
 }
 
 __gshared
@@ -170,20 +157,6 @@ private int pointersSeg;                 // segment index for __pointers
  * Obviously, there can be only one.
  */
 private IDXSTR extdef;
-}
-
-static if (0)
-{
-enum
-{
-    STI_FILE  = 1,            // Where file symbol table entry is
-    STI_TEXT  = 2,
-    STI_DATA  = 3,
-    STI_BSS   = 4,
-    STI_GCC   = 5,            // Where "gcc2_compiled" symbol is */
-    STI_RODAT = 6,            // Symbol for readonly data
-    STI_COM   = 8,
-}
 }
 
 // Each compiler segment is a section
@@ -320,34 +293,6 @@ private IDXSTR mach_addmangled(Symbol *s)
     {
         if (strncmp(name,"__ct__",6) == 0)
             name += 4;
-static if (0)
-{
-        switch(name[2])
-        {
-            case 'c':
-                if (strncmp(name,"__ct__",6) == 0)
-                    name += 4;
-                break;
-            case 'd':
-                if (strcmp(name,"__dl__FvP") == 0)
-                    name = "__builtin_delete";
-                break;
-            case 'v':
-                //if (strcmp(name,"__vec_delete__FvPiUIPi") == 0)
-                    //name = "__builtin_vec_del";
-                //else
-                //if (strcmp(name,"__vn__FPUI") == 0)
-                    //name = "__builtin_vec_new";
-                break;
-            case 'n':
-                if (strcmp(name,"__nw__FPUI") == 0)
-                    name = "__builtin_new";
-                break;
-
-            default:
-                break;
-        }
-}
     }
     else if (tyfunc(s.ty()) && s.Sfunc && s.Sfunc.Fredirect)
         name = s.Sfunc.Fredirect;
@@ -367,21 +312,6 @@ Symbol * MachObj_sym_cdata(tym_t ty,char *p,int len)
 {
     Symbol *s;
 
-static if (0)
-{
-    if (I64)
-    {
-        alignOffset(DATA, tysize(ty));
-        s = symboldata(Offset(DATA), ty);
-        SegData[DATA].SDbuf.write(p,len);
-        s.Sseg = DATA;
-        s.Soffset = Offset(DATA);   // Remember its offset into DATA section
-        Offset(DATA) += len;
-
-        s.Sfl = /*(config.flags3 & CFG3pic) ? FLgotoff :*/ FLextern;
-        return s;
-    }
-}
     //printf("MachObj_sym_cdata(ty = %x, p = %x, len = %d, Offset(CDATA) = %x)\n", ty, p, len, Offset(CDATA));
     alignOffset(CDATA, tysize(ty));
     s = symboldata(Offset(CDATA), ty);
@@ -594,30 +524,26 @@ void patch(seg_data *pseg, targ_size_t offset, int seg, targ_size_t value)
     if (I64)
     {
         int32_t *p = cast(int32_t *)(fobjbuf.buf + SecHdrTab64[pseg.SDshtidx].offset + offset);
-static if (0)
-{
-        printf("\taddr1 = x%llx\n\taddr2 = x%llx\n\t*p = x%llx\n\tdelta = x%llx\n",
-            SecHdrTab64[pseg.SDshtidx].addr,
-            SecHdrTab64[SegData[seg].SDshtidx].addr,
-            *p,
-            SecHdrTab64[SegData[seg].SDshtidx].addr -
-            (SecHdrTab64[pseg.SDshtidx].addr + offset));
-}
+        if (log)
+            debug printf("\taddr1 = x%llx\n\taddr2 = x%llx\n\t*p = x%x\n\tdelta = x%llx\n",
+                         SecHdrTab64[pseg.SDshtidx].addr,
+                         SecHdrTab64[SegData[seg].SDshtidx].addr,
+                         *p,
+                         SecHdrTab64[SegData[seg].SDshtidx].addr -
+                         (SecHdrTab64[pseg.SDshtidx].addr + offset));
         *p += SecHdrTab64[SegData[seg].SDshtidx].addr -
               (SecHdrTab64[pseg.SDshtidx].addr - value);
     }
     else
     {
         int32_t *p = cast(int32_t *)(fobjbuf.buf + SecHdrTab[pseg.SDshtidx].offset + offset);
-static if (0)
-{
-        printf("\taddr1 = x%x\n\taddr2 = x%x\n\t*p = x%x\n\tdelta = x%x\n",
-            SecHdrTab[pseg.SDshtidx].addr,
-            SecHdrTab[SegData[seg].SDshtidx].addr,
-            *p,
-            SecHdrTab[SegData[seg].SDshtidx].addr -
-            (SecHdrTab[pseg.SDshtidx].addr + offset));
-}
+        if (log)
+            debug printf("\taddr1 = x%x\n\taddr2 = x%x\n\t*p = x%x\n\tdelta = x%llx\n",
+                         SecHdrTab[pseg.SDshtidx].addr,
+                         SecHdrTab[SegData[seg].SDshtidx].addr,
+                         *p,
+                         SecHdrTab[SegData[seg].SDshtidx].addr -
+                         (SecHdrTab[pseg.SDshtidx].addr + offset));
         *p += SecHdrTab[SegData[seg].SDshtidx].addr -
               (SecHdrTab[pseg.SDshtidx].addr - value);
     }
@@ -681,7 +607,7 @@ void MachObj_termfile()
  * Terminate package.
  */
 @trusted
-void MachObj_term(const(char)* objfilename)
+void MachObj_term(const(char)[] objfilename)
 {
     //printf("MachObj_term()\n");
     outfixlist();           // backpatches
@@ -699,6 +625,7 @@ void MachObj_term(const(char)* objfilename)
      *                  { sections }
      *          symtab_command
      *          dysymtab_command
+     *          build_version_command/version_min_command
      *  { segment contents }
      *  { relocations }
      *  symbol table
@@ -706,6 +633,7 @@ void MachObj_term(const(char)* objfilename)
      *  indirect symbol table
      */
 
+    auto version_command = VersionCommand(operatingSystemVersion);
     uint foffset;
     uint headersize;
     uint sizeofcmds;
@@ -719,9 +647,10 @@ void MachObj_term(const(char)* objfilename)
         header.cputype = CPU_TYPE_X86_64;
         header.cpusubtype = CPU_SUBTYPE_I386_ALL;
         header.filetype = MH_OBJECT;
-        header.ncmds = 3;
+        header.ncmds = 4;
         header.sizeofcmds = cast(uint)(segment_command_64.sizeof +
                                 (section_cnt - 1) * section_64.sizeof +
+                            version_command.size +
                             symtab_command.sizeof +
                             dysymtab_command.sizeof);
         header.flags = MH_SUBSECTIONS_VIA_SYMBOLS;
@@ -743,9 +672,10 @@ void MachObj_term(const(char)* objfilename)
         header.cputype = CPU_TYPE_I386;
         header.cpusubtype = CPU_SUBTYPE_I386_ALL;
         header.filetype = MH_OBJECT;
-        header.ncmds = 3;
+        header.ncmds = 4;
         header.sizeofcmds = cast(uint)(segment_command.sizeof +
                                 (section_cnt - 1) * section.sizeof +
+                            version_command.size +
                             symtab_command.sizeof +
                             dysymtab_command.sizeof);
         header.flags = MH_SUBSECTIONS_VIA_SYMBOLS;
@@ -938,6 +868,8 @@ void MachObj_term(const(char)* objfilename)
     }
 
     // Put out relocation data
+    // See mach-o/reloc.h for some examples of what should be generated and when:
+    // https://github.com/apple-oss-distributions/xnu/blob/rel/xnu-10002/EXTERNAL_HEADERS/mach-o/x86_64/reloc.h
     mach_numbersyms();
     for (int seg = 1; seg < SegData.length; seg++)
     {
@@ -1049,12 +981,8 @@ void MachObj_term(const(char)* objfilename)
                                     rel.r_type = X86_64_RELOC_SIGNED;
                                 else if ((s.Sfl == FLfunc || s.Sfl == FLextern || s.Sclass == SC.global ||
                                           s.Sclass == SC.comdat || s.Sclass == SC.comdef) && r.rtype == RELaddr)
-                                {
-                                    rel.r_type = X86_64_RELOC_GOT_LOAD;
-                                    if (seg == eh_frame_seg ||
-                                        seg == except_table_seg)
-                                        rel.r_type = X86_64_RELOC_GOT;
-                                }
+                                    rel.r_type = X86_64_RELOC_GOT;
+
                                 rel.r_address = cast(int)r.offset;
                                 rel.r_symbolnum = s.Sxtrnnum;
                                 rel.r_pcrel = 1;
@@ -1426,6 +1354,7 @@ void MachObj_term(const(char)* objfilename)
             sym32.n_sect = sym.n_sect;
             fobjbuf.write(&sym32, sym32.sizeof);
         }
+        dysymtab_cmd.nundefsym++;
         symtab_cmd.nsyms++;
     }
     foffset += symtab_cmd.nsyms * (I64 ? nlist_64.sizeof : nlist.sizeof);
@@ -1473,6 +1402,7 @@ void MachObj_term(const(char)* objfilename)
         fobjbuf.write(&segment_cmd, segment_cmd.sizeof);
         fobjbuf.write(SECbuf.buf + section.sizeof, cast(uint)((section_cnt - 1) * section.sizeof));
     }
+    fobjbuf.write(version_command.data, version_command.size);
     fobjbuf.write(&symtab_cmd, symtab_cmd.sizeof);
     fobjbuf.write(&dysymtab_cmd, dysymtab_cmd.sizeof);
     fobjbuf.position(foffset, 0);
@@ -1496,11 +1426,11 @@ void MachObj_linnum(Srcpos srcpos, int seg, targ_size_t offset)
     if (srcpos.Slinnum == 0)
         return;
 
-static if (0)
-{
-    printf("MachObj_linnum(seg=%d, offset=x%lx) ", seg, offset);
-    srcpos.print("");
-}
+    if (log)
+    {
+        debug printf("MachObj_linnum(seg=%d, offset=x%llx) ", seg, cast(ulong)offset);
+        srcpos.print("");
+    }
 
     if (!srcpos.Sfilename)
         return;
@@ -1935,32 +1865,7 @@ void MachObj_setcodeseg(int seg)
 int MachObj_codeseg(const char *name,int suffix)
 {
     //dbg_printf("MachObj_codeseg(%s,%x)\n",name,suffix);
-static if (0)
-{
-    const(char)* sfx = (suffix) ? "_TEXT" : null;
-
-    if (!name)                          // returning to default code segment
-    {
-        if (cseg != CODE)               // not the current default
-        {
-            SegData[cseg].SDoffset = Offset(cseg);
-            Offset(cseg) = SegData[CODE].SDoffset;
-            cseg = CODE;
-        }
-        return cseg;
-    }
-
-    int seg = ElfObj_getsegment(name, sfx, SHT_PROGDEF, SHF_ALLOC|SHF_EXECINSTR, 4);
-                                    // find or create code segment
-
-    cseg = seg;                         // new code segment index
-    Offset(cseg) = 0;
-    return seg;
-}
-else
-{
     return 0;
-}
 }
 
 /*********************************
@@ -2034,16 +1939,6 @@ void MachObj_alias(const(char)* n1,const(char)* n2)
 {
     //printf("MachObj_alias(%s,%s)\n",n1,n2);
     assert(0);
-static if (0)
-{
-    uint len;
-    char *buffer;
-
-    buffer = cast(char *) alloca(strlen(n1) + strlen(n2) + 2 * ONS_OHD);
-    len = obj_namestring(buffer,n1);
-    len += obj_namestring(buffer + len,n2);
-    objrecord(ALIAS,buffer,len);
-}
 }
 
 @trusted
@@ -2127,7 +2022,7 @@ char *obj_mangle2(Symbol *s,char *dest)
 debug
 {
             printf("mangling %x\n",type_mangle(s.Stype));
-            symbol_print(s);
+            symbol_print(*s);
 }
             printf("%d\n", type_mangle(s.Stype));
             assert(0);
@@ -2215,16 +2110,7 @@ void MachObj_func_start(Symbol *sfunc)
 void MachObj_func_term(Symbol *sfunc)
 {
     //dbg_printf("MachObj_func_term(%s) offset %x, Coffset %x symidx %d\n",
-//          sfunc.Sident.ptr, sfunc.Soffset,Offset(cseg),sfunc.Sxtrnnum);
-
-static if (0)
-{
-    // fill in the function size
-    if (I64)
-        SymbolTable64[sfunc.Sxtrnnum].st_size = Offset(cseg) - sfunc.Soffset;
-    else
-        SymbolTable[sfunc.Sxtrnnum].st_size = Offset(cseg) - sfunc.Soffset;
-}
+    //           sfunc.Sident.ptr, sfunc.Soffset,Offset(cseg),sfunc.Sxtrnnum);
     dwarf_func_term(sfunc);
 }
 
@@ -2428,13 +2314,14 @@ void MachObj_write_bytes(seg_data *pseg, const(void[]) a)
 @trusted
 size_t MachObj_bytes(int seg, targ_size_t offset, size_t nbytes, const(void)* p)
 {
-static if (0)
-{
-    if (!(seg >= 0 && seg < SegData.length))
-    {   printf("MachObj_bytes: seg = %d, SegData.length = %d\n", seg, SegData.length);
-        *cast(char*)0=0;
+    if (log)
+    {
+        if (!(seg >= 0 && seg < SegData.length))
+        {
+            debug printf("MachObj_bytes: seg = %d, SegData.length = %llu\n", seg, cast(ulong)SegData.length);
+            *cast(char*)0=0;
+        }
     }
-}
     assert(seg >= 0 && seg < SegData.length);
     OutBuffer *buf = SegData[seg].SDbuf;
     if (buf == null)
@@ -2503,11 +2390,9 @@ void MachObj_reftodatseg(int seg,targ_size_t offset,targ_size_t val,
     OutBuffer *buf = SegData[seg].SDbuf;
     int save = cast(int)buf.length();
     buf.setsize(cast(uint)offset);
-static if (0)
-{
-    printf("MachObj_reftodatseg(seg:offset=%d:x%llx, val=x%llx, targetdatum %x, flags %x )\n",
-        seg,offset,val,targetdatum,flags);
-}
+    if (log)
+        debug printf("MachObj_reftodatseg(seg:offset=%d:x%llx, val=x%llx, targetdatum %x, flags %x )\n",
+                     seg,offset,val,targetdatum,flags);
     assert(seg != 0);
     if (SegData[seg].isCode() && SegData[targetdatum].isCode())
     {
@@ -2576,15 +2461,15 @@ int MachObj_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
         int flags)
 {
     int retsize = (flags & CFoffset64) ? 8 : 4;
-static if (0)
-{
-    printf("\nMachObj_reftoident('%s' seg %d, offset x%llx, val x%llx, flags x%x) ",
-        s.Sident.ptr,seg,cast(ulong)offset,cast(ulong)val,flags);
-    CF_print(flags);
-    printf("retsize = %d\n", retsize);
-    //dbg_printf("Sseg = %d, Sxtrnnum = %d\n",s.Sseg,s.Sxtrnnum);
-    symbol_print(s);
-}
+    if (log)
+    {
+        debug printf("\nMachObj_reftoident('%s' seg %d, offset x%llx, val x%llx, flags x%x) ",
+                     s.Sident.ptr,seg,cast(ulong)offset,cast(ulong)val,flags);
+        CF_print(flags);
+        debug printf("retsize = %d\n", retsize);
+        //dbg_printf("Sseg = %d, Sxtrnnum = %d\n",s.Sseg,s.Sxtrnnum);
+        symbol_print(*s);
+    }
     assert(seg > 0);
     if (s.Sclass != SC.locstat && !s.Sxtrnnum)
     {   // It may get defined later as public or local, so defer
@@ -2814,20 +2699,6 @@ void MachObj_moduleinfo(Symbol *scc)
     int seg = MachObj_getsegment("__minfodata", "__DATA", align_, S_REGULAR);
     //printf("MachObj_moduleinfo(%s) seg = %d:x%x\n", scc.Sident.ptr, seg, Offset(seg));
 
-static if (0)
-{
-    type *t = type_fake(TYint);
-    t.Tmangle = mTYman_c;
-    const len = strlen(scc.Sident.ptr);
-    char *p = cast(char *)malloc(5 + len + 1);
-    if (!p)
-        err_nomem();
-    strcpy(p, "SUPER");
-    memcpy(p + 5, scc.Sident.ptr, len);
-    Symbol *s_minfo_beg = symbol_name(p[0 .. len], SC.global, t);
-    MachObj_pubdef(seg, s_minfo_beg, 0);
-}
-
     int flags = CFoff;
     if (I64)
         flags |= CFoffset64;
@@ -2955,4 +2826,171 @@ int dwarf_eh_frame_fixup(int dfseg, targ_size_t offset, Symbol *s, targ_size_t v
     pseg.SDrel.write(&rel, rel.sizeof);
 
     return I64 ? 8 : 4;
+}
+
+
+private:
+
+/**
+ * Encapsulates the build_version_command/version_min_command load commands.
+ *
+ * For the 10.14 and later SDK, the `build_version_command` load command is used.
+ * For earlier versions, the `version_min_command` load command is used.
+ */
+const struct VersionCommand
+{
+    pure:
+    nothrow:
+    @nogc:
+    @safe:
+
+    private
+    {
+        /**
+         * This is the absolute minimum supported version of macOS (64 bit) for DMD,
+         * as documented at: https://dlang.org/dmd-osx.html#requirements
+         * NOTE: Versions earlier than 10.7 do not support thread local storage.
+         */
+        enum fallbackOSVersion = Version(10, 9).encode;
+
+        /// The first minor version that uses the `build_version_command`.
+        enum firstMinorUsingBuildVersionCommand = 14;
+
+        /// `true` if the `build_version_command` load command should be used.
+        bool useBuild;
+
+        /// The `build_version_command` load command.
+        build_version_command buildVersionCommand;
+
+        /// The `version_min_command` load command.
+        version_min_command versionMinCommand;
+    }
+
+    /**
+     * Initializes the VersionCommand.
+     *
+     * Params:
+     *  os = the version of the operating system
+     */
+    this(Version os)
+    {
+        useBuild = os.minor >= firstMinorUsingBuildVersionCommand;
+
+        const encodedOs = os.isValid ? os.encode : fallbackOSVersion;
+
+        const build_version_command buildVersionCommand = { minos: encodedOs };
+        const version_min_command versionMinCommand = { version_: encodedOs };
+
+        this.buildVersionCommand = buildVersionCommand;
+        this.versionMinCommand = versionMinCommand;
+    }
+
+    /// Returns: the size of the load command.
+    size_t size()
+    {
+        return useBuild ? build_version_command.sizeof : version_min_command.sizeof;
+    }
+
+    /// Returns: the data for the load command.
+    const(void)* data() return
+    {
+        return useBuild ? cast(const(void)*) &buildVersionCommand : cast(const(void)*) &versionMinCommand;
+    }
+}
+
+/// Holds an operating system version or a SDK version.
+immutable struct Version
+{
+    ///
+    int major;
+
+    ///
+    int minor;
+
+    ///
+    int build;
+
+    /// Returns: `true` if the version is valid
+    bool isValid() pure nothrow @nogc @safe
+    {
+        return major >= 10 && major < 100 &&
+            minor >= 0 && minor < 100 &&
+            build >= 0 && build < 100;
+    }
+}
+
+/**
+ * Returns the given version encoded as a single integer.
+ *
+ * Params:
+ *  version_ = the version to encode. Needs to be a valid version
+ *      (`version_.isValid`)
+ *
+ * Returns: the encoded version
+ */
+int encode(Version version_) pure @nogc @safe
+in
+{
+    assert(version_.isValid);
+}
+do
+{
+    with (version_)
+        return major * 2^^16 + minor * 2^^8 + build * 2^^0;
+}
+
+unittest
+{
+    assert(Version(10, 14, 0).encode == 0x0a0e00);
+    assert(Version(10, 14, 1).encode == 0x0a0e01);
+    assert(Version(10, 14, 6).encode == 0x0a0e06);
+    assert(Version(10, 14, 99).encode == 0x0a0e63);
+
+    assert(Version(10, 15, 6).encode == 0x0a0f06);
+
+    assert(Version(10, 16, 0).encode == 0x0a1000);
+    assert(Version(10, 16, 6).encode == 0x0a1006);
+
+    assert(Version(10, 17, 0).encode == 0x0a1100);
+}
+
+/// Returns: the version of the currently running operating system.
+@trusted
+Version operatingSystemVersion()
+{
+    if (const deploymentTarget = getenv("MACOSX_DEPLOYMENT_TARGET"))
+    {
+        const version_ = toVersion(deploymentTarget);
+
+        if (version_.isValid)
+            return version_;
+
+        error(null, 0, 0, "invalid version number in 'MACOSX_DEPLOYMENT_TARGET=%s'", deploymentTarget);
+    }
+    return Version();
+}
+
+/**
+ * Converts the given string to a `Version`.
+ *
+ * Params:
+ *  str = the string to convert. Should have the format `XX.YY(.ZZ)`. Needs to
+ *      be `\0` terminated.
+ *
+ * Returns: the converted `Version`.
+ */
+@trusted
+Version toVersion(const char* str) @nogc
+{
+    import core.stdc.stdio : sscanf;
+
+    if (!str)
+        return Version();
+
+    Version version_;
+
+    with (version_)
+        str.sscanf("%d.%d.%d", &major, &minor, &build);
+
+    return version_;
 }

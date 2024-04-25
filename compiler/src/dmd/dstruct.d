@@ -3,7 +3,7 @@
  *
  * Specification: $(LINK2 https://dlang.org/spec/struct.html, Structs, Unions)
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dstruct.d, _dstruct.d)
@@ -28,6 +28,7 @@ import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
+import dmd.funcsem;
 import dmd.globals;
 import dmd.id;
 import dmd.identifier;
@@ -48,7 +49,7 @@ import dmd.visitor;
  * Returns:
  *   FuncDeclaration of `toString()` if found, `null` if not
  */
-extern (C++) FuncDeclaration search_toString(StructDeclaration sd)
+FuncDeclaration search_toString(StructDeclaration sd)
 {
     Dsymbol s = search_function(sd, Id.tostring);
     FuncDeclaration fd = s ? s.isFuncDeclaration() : null;
@@ -222,7 +223,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         bool hasCopyCtor;           // copy constructor
         bool hasPointerField;       // members with indirections
         bool hasVoidInitPointers;   // void-initialized unsafe fields
-        bool hasSystemFields;      // @system members
+        bool hasUnsafeBitpatterns;  // @system members, pointers, bool
         bool hasFieldWithInvariant; // invariants
         bool computedTypeProperties;// the above 3 fields are computed
         // Even if struct is defined as non-root symbol, some built-in operations
@@ -395,13 +396,16 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         foreach (vd; fields)
         {
             if (vd.storage_class & STC.ref_ || vd.hasPointers())
+            {
                 hasPointerField = true;
+                hasUnsafeBitpatterns = true;
+            }
 
             if (vd._init && vd._init.isVoidInitializer() && vd.type.hasPointers())
                 hasVoidInitPointers = true;
 
-            if (vd.storage_class & STC.system || vd.type.hasSystemFields())
-                hasSystemFields = true;
+            if (vd.storage_class & STC.system || vd.type.hasUnsafeBitpatterns())
+                hasUnsafeBitpatterns = true;
 
             if (!vd._init && vd.type.hasVoidInitPointers())
                 hasVoidInitPointers = true;
@@ -434,7 +438,11 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
         ispod = ThreeState.yes;
 
-        if (enclosing || postblit || dtor || hasCopyCtor)
+        import dmd.clone;
+        bool hasCpCtorLocal;
+        needCopyCtor(this, hasCpCtorLocal);
+
+        if (enclosing || search(this, loc, Id.postblit) || search(this, loc, Id.dtor) || hasCpCtorLocal)
         {
             ispod = ThreeState.no;
             return false;
@@ -612,7 +620,7 @@ bool _isZeroInit(Expression exp)
 
             foreach (i; 0 .. se.len)
             {
-                if (se.getCodeUnit(i))
+                if (se.getIndex(i) != 0)
                     return false;
             }
             return true;

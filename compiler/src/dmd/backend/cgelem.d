@@ -8,7 +8,7 @@
  * i.e. rewriting trees to less expensive trees.
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgelem.d, backend/cgelem.d)
@@ -588,15 +588,14 @@ private elem * elstring(elem *e, goal_t goal)
 /************************
  * Convert far pointer to pointer.
  */
-
 @trusted
-private void eltonear(elem **pe)
+private void eltonear(ref elem* pe)
 {
-    elem *e = *pe;
+    elem *e = pe;
     const tym_t ty = e.EV.E1.Ety;
     e = el_selecte1(e);
     e.Ety = ty;
-    *pe = optelem(e,GOALvalue);
+    pe = optelem(e,GOALvalue);
 }
 
 /************************
@@ -611,7 +610,7 @@ private elem * elstrcpy(elem *e, goal_t goal)
         case OPnp_fp:
             if (OPTIMIZER)
             {
-                eltonear(&e.EV.E2);
+                eltonear(e.EV.E2);
                 e = optelem(e,GOALvalue);
             }
             break;
@@ -649,11 +648,11 @@ private elem * elstrcmp(elem *e, goal_t goal)
     if (OPTIMIZER)
     {
         if (e.EV.E1.Eoper == OPnp_fp)
-            eltonear(&e.EV.E1);
+            eltonear(e.EV.E1);
         switch (e.EV.E2.Eoper)
         {
             case OPnp_fp:
-                eltonear(&e.EV.E2);
+                eltonear(e.EV.E2);
                 break;
 
             case OPstring:
@@ -727,9 +726,9 @@ private elem * elmemcmp(elem *e, goal_t goal)
 
     elem *ex = e.EV.E1;
     if (ex.EV.E1.Eoper == OPnp_fp)
-        eltonear(&ex.EV.E1);
+        eltonear(ex.EV.E1);
     if (ex.EV.E2.Eoper == OPnp_fp)
-        eltonear(&ex.EV.E2);
+        eltonear(ex.EV.E2);
 
     return e;
 }
@@ -747,7 +746,7 @@ private elem * elmemset(elem *e, goal_t goal)
     elem *ex = e.EV.E1;
     if (ex.Eoper == OPnp_fp)
     {
-        eltonear(&ex);
+        eltonear(ex);
         return e;
     }
 
@@ -792,7 +791,7 @@ private elem * elmemset(elem *e, goal_t goal)
     if (e1.Eoper != OPrelconst)
     {
         ey = e1;
-        e1 = el_same(&ey);
+        e1 = el_same(ey);
     }
     e.EV.E1 = null;             // so we can free e later
 
@@ -849,10 +848,10 @@ private elem * elmemcpy(elem *e, goal_t goal)
     {
         elem *ex = e.EV.E1;
         if (ex.Eoper == OPnp_fp)
-            eltonear(&e.EV.E1);
+            eltonear(e.EV.E1);
         ex = e.EV.E2;
         if (ex.EV.E1.Eoper == OPnp_fp)
-            eltonear(&ex.EV.E1);
+            eltonear(ex.EV.E1);
         if (ex.EV.E2.Eoper == OPconst)
         {
             if (!boolres(ex.EV.E2))
@@ -5035,14 +5034,9 @@ private elem * el64_32(elem *e, goal_t goal)
         }
         break;
 
-    case OPmul:
-        if (config.exe & (EX_OSX | EX_OSX64)) // https://issues.dlang.org/show_bug.cgi?id=21047
-            break;
-        else
-            goto case;
-
     case OPadd:
     case OPmin:
+    case OPmul:
     case OPor:
     case OPand:
     case OPxor:
@@ -5495,10 +5489,8 @@ private elem * elvalist(elem *e, goal_t goal)
         // Find last named parameter
         Symbol *lastNamed = null;
         Symbol *arguments_typeinfo = null;
-        for (SYMIDX si = 0; si < globsym.length; si++)
+        foreach (s; globsym[])
         {
-            Symbol *s = globsym[si];
-
             if (s.Sclass == SC.parameter || s.Sclass == SC.regpar)
                 lastNamed = s;
             if (s.Sident[0] == '_' && strcmp(s.Sident.ptr, "_arguments_typeinfo") == 0)
@@ -5532,10 +5524,8 @@ if (config.exe & EX_windos)
 
     // Find last named parameter
     Symbol *lastNamed = null;
-    for (SYMIDX si = 0; si < globsym.length; si++)
+    foreach (s; globsym[])
     {
-        Symbol *s = globsym[si];
-
         if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg || s.Sclass == SC.parameter)
             lastNamed = s;
     }
@@ -5562,9 +5552,8 @@ if (config.exe & EX_posix)
 
     // Find __va_argsave
     Symbol *va_argsave = null;
-    for (SYMIDX si = 0; si < globsym.length; si++)
+    foreach (s; globsym[])
     {
-        Symbol *s = globsym[si];
         if (s.Sident[0] == '_' && strcmp(s.Sident.ptr, "__va_argsave") == 0)
         {
             va_argsave = s;

@@ -7,7 +7,7 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:    Copyright (C) 2012-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:    Copyright (C) 2012-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cv8.d, backend/cv8.d)
@@ -212,7 +212,7 @@ void cv8_initfile(const(char)* filename)
 }
 
 @trusted
-void cv8_termfile(const(char)* objfilename)
+void cv8_termfile(const(char)[] objfilename)
 {
     //printf("cv8_termfile()\n");
 
@@ -227,11 +227,11 @@ void cv8_termfile(const(char)* objfilename)
     /* Start with starting symbol in separate "F1" section
      */
     auto buf = OutBuffer(1024);
-    size_t len = strlen(objfilename);
+    size_t len = objfilename.length;
     buf.write16(cast(int)(2 + 4 + len + 1));
     buf.write16(S_COMPILAND_V3);
     buf.write32(0);
-    buf.write(objfilename, cast(uint)(len + 1));
+    buf.write(objfilename.ptr, cast(uint)(len + 1));
 
     // write S_COMPILE record
     buf.write16(2 + 1 + 1 + 2 + 1 + VERSION.length + 1);
@@ -626,14 +626,14 @@ L1:
         ushort type = *cast(ushort *)(p + u);
         u += 2;
         if (type == 0x0110)
-            u += 16;            // MD5 checksum
+            u += 16;            // truncated blake3 hash
         u += 2;
     }
 
     // Not there. Add it.
     F4_buf.write32(off);
 
-    /* Write 10 01 [MD5 checksum]
+    /* Write 10 01 [blake3 hash]
      *   or
      * 00 00
      */

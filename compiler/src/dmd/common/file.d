@@ -4,7 +4,7 @@
  * Functions and objects dedicated to file I/O and management. TODO: Move here artifacts
  * from places such as root/ so both the frontend and the backend have access to them.
  *
- * Copyright: Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:   Walter Bright, https://www.digitalmars.com
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/common/file.d, common/_file.d)
@@ -14,26 +14,48 @@
 
 module dmd.common.file;
 
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
+import core.stdc.limits;
+
 import core.stdc.errno : errno;
 import core.stdc.stdio : fprintf, remove, rename, stderr;
-import core.stdc.stdlib : exit;
-import core.stdc.string : strerror, strlen;
-import core.sys.windows.winbase;
-import core.sys.windows.winnt;
-import core.sys.posix.fcntl;
-import core.sys.posix.unistd;
+import core.stdc.stdlib;
+import core.stdc.string : strerror, strlen, memcpy;
 
 import dmd.common.smallbuffer;
-
-nothrow:
+import dmd.root.filename;
+import dmd.root.rmem;
 
 version (Windows)
 {
+    import core.stdc.wchar_;
+    import core.sys.windows.winbase;
     import core.sys.windows.winnls : CP_ACP;
+    import core.sys.windows.winnt;
 
-    // assume filenames encoded in system default Windows ANSI code page
-    enum CodePage = CP_ACP;
+    enum CodePage = CP_ACP; // assume filenames encoded in system default Windows ANSI code page
+    enum invalidHandle = INVALID_HANDLE_VALUE;
 }
+else version (Posix)
+{
+    import core.sys.posix.dirent;
+    import core.sys.posix.fcntl;
+    import core.sys.posix.sys.mman;
+    import core.sys.posix.sys.stat;
+    import core.sys.posix.unistd;
+    import core.sys.posix.utime;
+
+    enum invalidHandle = -1;
+}
+else
+    static assert(0);
+
+
+
+
+nothrow:
 
 /**
 Encapsulated management of a memory-mapped file.
@@ -47,9 +69,6 @@ struct FileMapping(Datum)
 {
     static assert(__traits(isPOD, Datum) && Datum.sizeof == 1,
         "Not tested with other data types yet. Add new types with care.");
-
-    version(Posix) enum invalidHandle = -1;
-    else version(Windows) enum invalidHandle = INVALID_HANDLE_VALUE;
 
     // state {
     /// Handle of underlying file
@@ -82,9 +101,6 @@ struct FileMapping(Datum)
     {
         version (Posix)
         {
-            import core.sys.posix.sys.mman;
-            import core.sys.posix.fcntl : open, O_CREAT, O_RDONLY, O_RDWR, S_IRGRP, S_IROTH, S_IRUSR, S_IWUSR;
-
             handle = open(filename, is(Datum == const) ? O_RDONLY : (O_CREAT | O_RDWR),
                 S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
@@ -150,9 +166,6 @@ struct FileMapping(Datum)
         // Save the name for later. Technically there's no need: on Linux one can use readlink on /proc/self/fd/NNN.
         // On BSD and OSX one can use fcntl with F_GETPATH. On Windows one can use GetFileInformationByHandleEx.
         // But just saving the name is simplest, fastest, and most portable...
-        import core.stdc.string : strlen;
-        import core.stdc.stdlib : malloc;
-        import core.stdc.string : memcpy;
         const totalNameLength = filename.strlen() + 1;
         auto namex = cast(char*) malloc(totalNameLength);
         if (!namex)
@@ -224,9 +237,6 @@ struct FileMapping(Datum)
         fakePure({
             version (Posix)
             {
-                import core.sys.posix.sys.mman : munmap;
-                import core.sys.posix.unistd : close;
-
                 // Cannot call fprintf from inside a destructor, so exiting silently.
 
                 if (data.ptr && munmap(cast(void*) data.ptr, data.length) != 0)
@@ -234,7 +244,7 @@ struct FileMapping(Datum)
                     exit(1);
                 }
                 data = null;
-                if (handle != invalidHandle && close(handle) != 0)
+                if (handle != invalidHandle && .close(handle) != 0)
                 {
                     exit(1);
                 }
@@ -303,7 +313,6 @@ struct FileMapping(Datum)
         // In-memory resource freed, now get rid of the underlying temp file.
         version(Posix)
         {
-            import core.sys.posix.unistd : unlink;
             if (unlink(deleteme) != 0)
             {
                 fprintf(stderr, "unlink(\"%s\") failed: %s\n", filename, strerror(errno));
@@ -312,7 +321,6 @@ struct FileMapping(Datum)
         }
         else version(Windows)
         {
-            import core.sys.windows.winbase;
             if (deleteme[0 .. strlen(deleteme)].extendedPathThen!(p => DeleteFileW(p.ptr)) == 0)
             {
                 fprintf(stderr, "DeleteFileW error %d\n", GetLastError());
@@ -361,9 +369,6 @@ struct FileMapping(Datum)
         fakePure({
             version(Posix)
             {
-                import core.sys.posix.unistd : ftruncate;
-                import core.sys.posix.sys.mman;
-
                 if (data.length)
                 {
                     assert(data.ptr, "Corrupt memory mapping");
@@ -431,7 +436,6 @@ struct FileMapping(Datum)
 
         // Fetch the name and then set it to `null` so it doesn't get deallocated
         auto oldname = name;
-        import core.stdc.stdlib;
         scope(exit) free(cast(void*) oldname);
         name = null;
         close();
@@ -447,7 +451,6 @@ struct FileMapping(Datum)
         }
         else version(Windows)
         {
-            import core.sys.windows.winbase;
             auto r = oldname[0 .. strlen(oldname)].extendedPathThen!(
                 p1 => filename[0 .. strlen(filename)].extendedPathThen!(p2 => MoveFileExW(p1.ptr, p2.ptr, MOVEFILE_REPLACE_EXISTING))
             );
@@ -527,8 +530,6 @@ bool touchFile(const char* namez)
         GetSystemTime(&st);
         SystemTimeToFileTime(&st, &ft);
 
-        import core.stdc.string : strlen;
-
         // get handle to file
         HANDLE h = namez[0 .. namez.strlen()].extendedPathThen!(p => CreateFile(p.ptr,
             FILE_WRITE_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -546,7 +547,6 @@ bool touchFile(const char* namez)
     }
     else version (Posix)
     {
-        import core.sys.posix.utime;
         return utime(namez, null) == 0;
     }
     else
@@ -560,24 +560,28 @@ Params: fd = file handle
 Returns: file size in bytes, or `ulong.max` on any error.
 */
 version (Posix)
-private ulong fileSize(int fd)
 {
-    import core.sys.posix.sys.stat;
-    stat_t buf;
-    if (fstat(fd, &buf) == 0)
-        return buf.st_size;
-    return ulong.max;
+    private ulong fileSize(int fd)
+    {
+        stat_t buf;
+        if (fstat(fd, &buf) == 0)
+            return buf.st_size;
+        return ulong.max;
+    }
 }
-
-/// Ditto
-version (Windows)
-private ulong fileSize(HANDLE fd)
+else version (Windows)
 {
-    ulong result;
-    if (GetFileSizeEx(fd, cast(LARGE_INTEGER*) &result) == 0)
-        return result;
-    return ulong.max;
+    /// Ditto
+    private ulong fileSize(HANDLE fd)
+    {
+        ulong result;
+        if (GetFileSizeEx(fd, cast(LARGE_INTEGER*) &result))
+            return result;
+        return ulong.max;
+    }
 }
+else
+    static assert(0);
 
 /**
 Runs a non-pure function or delegate as pure code. Use with caution.
@@ -591,4 +595,164 @@ private auto ref fakePure(F)(scope F fun) pure
 {
     mixin("alias PureFun = " ~ F.stringof ~ " pure;");
     return (cast(PureFun) fun)();
+}
+
+/***********************************
+ * Recursively search all the directories and files under dir_path
+ * for files that match one of the extensions in exts[].
+ * Pass the matches to sink.
+ * Params:
+ *      dir_path = root of directories to search
+ *      exts = array of filename extensions to match
+ *      recurse = go into subdirectories
+ *      filenameSink = accepts the resulting matches
+ * Returns:
+ *      true for failed to open the directory
+ */
+bool findFiles(const char* dir_path, const char[][] exts, bool recurse, void delegate(const(char)[]) nothrow filenameSink)
+{
+    enum log = false;
+    if (log) printf("findFiles() dir_path: %s\n", dir_path);
+    version (Windows)
+    {
+        debug
+            enum BufLength = 10;        // trigger any reallocation bugs
+        else
+            enum BufLength = 100;
+        char[BufLength + 1] buf = void;
+        char* fullPath = buf.ptr;
+        size_t fullPathLength = BufLength;
+
+        // fullPath = dir_path \ *.*
+        const dir_pathLength = strlen(dir_path);
+        auto count = dir_pathLength + 1 + 3;
+        if (count > fullPathLength)
+        {
+            fullPathLength = count;
+            fullPath = cast(char*)Mem.xrealloc_noscan(fullPath == buf.ptr ? null : fullPath, fullPathLength + 1);
+        }
+        memcpy(fullPath, dir_path, dir_pathLength);
+        strcpy(fullPath + dir_pathLength, "\\*.*".ptr);
+
+        if (log) printf("fullPath: %s\n", fullPath);
+
+        WIN32_FIND_DATAW ffd = void;
+        HANDLE hFind = fullPath[0 .. strlen(fullPath)].extendedPathThen!(p => FindFirstFileW(p.ptr, &ffd));
+        if (hFind == INVALID_HANDLE_VALUE)
+            return true;
+
+        do
+        {
+            if (log) wprintf("ffd.cFileName: %s\n", ffd.cFileName.ptr);
+            if (ffd.cFileName[0] == 0)
+                continue; // ignore
+
+            if (ffd.cFileName[0] == '.')
+                continue;           // ignore files that start with a ., also ignore . and .. directories
+
+            const(char)[] name = toNarrowStringz(ffd.cFileName[0 .. wcslen(ffd.cFileName.ptr)], null);
+            if (log) printf("name: %s\n", name.ptr);
+
+            // fullPath = dir_path \ name.ptr
+            count = dir_pathLength + 1 + name.length;
+            if (count > fullPathLength)
+            {
+                fullPathLength = count;
+                fullPath = cast(char*)Mem.xrealloc_noscan(fullPath == buf.ptr ? null : fullPath, fullPathLength + 1);
+            }
+            strcpy(fullPath + dir_pathLength + 1, name.ptr);
+
+            if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+            {
+                if (recurse)
+                    findFiles(fullPath, exts, recurse, filenameSink);
+            }
+            else
+            {
+                const(char)[] nameExt = FileName.ext(name);
+                foreach (ext; exts[])
+                {
+                    if (nameExt == ext)
+                    {
+                        if (log) printf("adding %s\n", fullPath);
+                        filenameSink(fullPath[0 .. count]);
+                    }
+                }
+            }
+            mem.xfree(cast(void*)name.ptr);
+
+        } while (FindNextFileW(hFind, &ffd) != 0);
+
+        if (fullPath != buf.ptr)
+            mem.xfree(fullPath);
+        FindClose(hFind);
+        if (log) printf("findFiles() exit\n");
+        return false;
+    }
+    else version (Posix)
+    {
+        DIR* dir = opendir(dir_path);
+        if (!dir)
+            return true;
+
+        debug
+            enum BufLength = 10;        // trigger any reallocation bugs
+        else
+            enum BufLength = 100;
+        char[BufLength + 1] buf = void;
+        char* fullPath = buf.ptr;
+        size_t fullPathLength = BufLength;
+
+        dirent* entry;
+        while ((entry = readdir(dir)) != null)
+        {
+            //printf("entry: %s\n", entry.d_name.ptr);
+            if (entry.d_name[0] == '.')
+                continue;           // ignore files that start with a .
+
+            // fullPath = dir_path / entry.d_name.ptr
+            const dir_pathLength = strlen(dir_path);
+            const count = dir_pathLength + 1 + strlen(entry.d_name.ptr);
+            if (count > fullPathLength)
+            {
+                fullPathLength = count;
+                fullPath = cast(char*)Mem.xrealloc_noscan(fullPath == buf.ptr ? null : fullPath, fullPathLength + 1);
+            }
+            memcpy(fullPath, dir_path, dir_pathLength);
+            fullPath[dir_pathLength] = '/';
+            strcpy(fullPath + dir_pathLength + 1, entry.d_name.ptr);
+
+            stat_t statbuf;
+            if (lstat(fullPath, &statbuf) == -1)
+                continue;
+
+            const(char)[] name = entry.d_name.ptr[0 .. strlen(entry.d_name.ptr)]; // convert to D string
+            if (!name.length)
+                continue; // ignore
+
+            if (S_ISDIR(statbuf.st_mode))
+            {
+                if (recurse && !(name == "." || name == ".."))
+                    findFiles(fullPath, exts, recurse, filenameSink);
+            }
+            else if (S_ISREG(statbuf.st_mode))
+            {
+                foreach (ext; exts)
+                {
+                    if (FileName.ext(name) == ext)
+                    {
+                        //printf("%s\n", fullPath);
+                        filenameSink(fullPath[0 .. count]);
+                    }
+                }
+            }
+        }
+
+        if (fullPath != buf.ptr)
+            mem.xfree(fullPath);
+        closedir(dir);
+        return false;
+    }
+    else
+        static assert(0);
 }

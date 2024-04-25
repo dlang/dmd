@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/elem.d, backend/elem.d)
@@ -647,13 +647,13 @@ elem *exp2_copytotemp(elem *e)
  */
 
 @trusted
-elem * el_same(elem **pe)
+elem * el_same(ref elem* pe)
 {
-    elem *e = *pe;
+    elem *e = pe;
     if (e && el_sideeffect(e))
     {
-        *pe = exp2_copytotemp(e);       /* convert to ((tmp=e),tmp)     */
-        e = (*pe).EV.E2;                  /* point at tmp                 */
+        pe = exp2_copytotemp(e);       /* convert to ((tmp=e),tmp)     */
+        e = pe.EV.E2;                  /* point at tmp                 */
     }
     return el_copytree(e);
 }
@@ -663,14 +663,14 @@ elem * el_same(elem **pe)
  * always makes a temporary.
  */
 @trusted
-elem *el_copytotmp(elem **pe)
+elem *el_copytotmp(ref elem* pe)
 {
     //printf("copytotemp()\n");
-    elem *e = *pe;
+    elem *e = pe;
     if (e)
     {
-        *pe = exp2_copytotemp(e);
-        e = (*pe).EV.E2;
+        pe = exp2_copytotemp(e);
+        e = pe.EV.E2;
     }
     return el_copytree(e);
 }
@@ -1557,15 +1557,13 @@ elem *el_convert(elem *e)
  *      *pconst = union of constant data
  */
 
-@trusted
-elem * el_const(tym_t ty, eve *pconst)
+@safe
+elem * el_const(tym_t ty, ref eve pconst)
 {
-    elem *e;
-
-    e = el_calloc();
+    elem* e = el_calloc();
     e.Eoper = OPconst;
     e.Ety = ty;
-    memcpy(&e.EV,pconst,(e.EV).sizeof);
+    e.EV = pconst;
     return e;
 }
 
@@ -1633,7 +1631,7 @@ elem *el_ddtor(elem *e,void *decl)
  */
 
 @trusted
-elem *el_ctor_dtor(elem *ec, elem *ed, elem **pedtor)
+elem *el_ctor_dtor(elem *ec, elem *ed, out elem* pedtor)
 {
     elem *er;
     if (config.ehmethod == EHmethod.EH_DWARF)
@@ -1663,7 +1661,7 @@ elem *el_ctor_dtor(elem *ec, elem *ed, elem **pedtor)
 
         eve c = void;
         memset(&c, 0, c.sizeof);
-        elem *e_flag_0 = el_bin(OPeq, TYvoid, el_var(sflag), el_const(TYbool, &c));  // __flag = 0
+        elem *e_flag_0 = el_bin(OPeq, TYvoid, el_var(sflag), el_const(TYbool, c));  // __flag = 0
         er = el_bin(OPinfo, ec ? ec.Ety : TYvoid, ector, el_combine(e_flag_0, ec));
 
         /* A destructor always executes code, or we wouldn't need
@@ -1677,14 +1675,14 @@ elem *el_ctor_dtor(elem *ec, elem *ed, elem **pedtor)
 //      edtor.EV.E1 = e;
 
         c.Vint = 1;
-        elem *e_flag_1 = el_bin(OPeq, TYvoid, el_var(sflag), el_const(TYbool, &c)); // __flag = 1
+        elem *e_flag_1 = el_bin(OPeq, TYvoid, el_var(sflag), el_const(TYbool, c));  // __flag = 1
         elem *e_eax = el_bin(OPeq, TYvoid, el_var(seo), el_var(sreg));              // __exception_object = __EAX
         elem *eu = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.UNWIND_RESUME)), el_var(seo));
         eu = el_bin(OPandand, TYvoid, el_una(OPnot, TYbool, el_var(sflag)), eu);
 
         edtor.EV.E1 = el_combine(el_combine(e_eax, ed), eu);
 
-        *pedtor = el_combine(e_flag_1, edtor);
+        pedtor = el_combine(e_flag_1, edtor);
     }
     else
     {
@@ -1713,7 +1711,7 @@ elem *el_ctor_dtor(elem *ec, elem *ed, elem **pedtor)
         edtor.Ety = TYvoid;
 //      edtor.EV.Edecl = decl;
         edtor.EV.E1 = ed;
-        *pedtor = edtor;
+        pedtor = edtor;
     }
 
     return er;
@@ -1759,26 +1757,26 @@ elem *el_zero(type *t)
 }
 
 /*******************
- * Find and return pointer to parent of e starting at *pe.
+ * Find and return pointer to parent of e starting at pe.
  * Return null if can't find it.
  */
 
 @trusted
-elem ** el_parent(elem *e,elem **pe)
+elem ** el_parent(elem *e, return ref elem* pe)
 {
-    assert(e && pe && *pe);
+    assert(e && pe);
     elem_debug(e);
-    elem_debug(*pe);
-    if (e == *pe)
-        return pe;
-    else if (OTunary((*pe).Eoper))
-        return el_parent(e,&((*pe).EV.E1));
-    else if (OTbinary((*pe).Eoper))
+    elem_debug(pe);
+    if (e == pe)
+        return &pe; // not @safe
+    else if (OTunary(pe.Eoper))
+        return el_parent(e, pe.EV.E1);
+    else if (OTbinary(pe.Eoper))
     {
-        elem **pe2;
-        return ((pe2 = el_parent(e,&((*pe).EV.E1))) != null)
-                ? pe2
-                : el_parent(e,&((*pe).EV.E2));
+        elem** pe2 = el_parent(e, pe.EV.E1);
+        if (pe2)
+            return pe2;
+        return el_parent(e, pe.EV.E2);
     }
     else
         return null;

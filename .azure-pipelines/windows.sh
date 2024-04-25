@@ -26,16 +26,14 @@ echo "GREP_VERSION: $(grep --version)"
 # Prepare DigitalMars make and C compiler
 ################################################################################
 
-install_host_dmc
-DM_MAKE="$PWD/dm/bin/make.exe"
+GNU_MAKE="$(which make)" # must be done before installing dmc (tampers with PATH)
 
 if [ "$MODEL" == "32omf" ] ; then
+    install_host_dmc
     CC="$PWD/dm/bin/dmc.exe"
-    AR="$PWD/dm/bin/lib.exe"
     export CPPCMD="$PWD/dm/bin/sppn.exe"
 else
-    CC="$(where cl.exe)"
-    AR="$(where lib.exe)" # must be done before installing dmd
+    CC="cl.exe"
 fi
 
 ################################################################################
@@ -60,13 +58,10 @@ clone_repos
 ################################################################################
 
 if [ "$MODEL" == "64" ] ; then
-    MAKE_FILE="win64.mak"
     LIBNAME=phobos64.lib
 elif [ "$MODEL" == "32" ] ; then
-    MAKE_FILE="win64.mak"
     LIBNAME=phobos32mscoff.lib
 else # 32omf
-    MAKE_FILE="win32.mak"
     LIBNAME=phobos.lib
 fi
 
@@ -91,19 +86,15 @@ cd "$DMD_DIR"
 generated/build.exe -j$N MODEL=$TOOL_MODEL HOST_DMD=$HOST_DC BUILD=debug "${disable_debug_for_unittests[@]}" unittest
 generated/build.exe -j$N MODEL=$TOOL_MODEL HOST_DMD=$HOST_DC DFLAGS="-L-LARGEADDRESSAWARE" ENABLE_RELEASE=1 ENABLE_ASSERTS=1 dmd
 
-DMD_BIN_PATH="$DMD_DIR/generated/windows/release/$TOOL_MODEL/dmd"
+DMD_BIN_PATH="$DMD_DIR/generated/windows/release/$TOOL_MODEL/dmd.exe"
 
 ################################################################################
 # Build Druntime and Phobos
 ################################################################################
 
-LIBS_MAKE_ARGS=(-f "$MAKE_FILE" MODEL=$MODEL DMD="$DMD_BIN_PATH" VCDIR=. CC="$CC" AR="$AR" MAKE="$DM_MAKE")
+"$GNU_MAKE" -j$N -C "$DMD_DIR/druntime" MODEL=$MODEL DMD="$DMD_BIN_PATH"
 
-cd "$DMD_DIR/druntime"
-"$DM_MAKE" "${LIBS_MAKE_ARGS[@]}"
-
-cd "$DMD_DIR/../phobos"
-"$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" DRUNTIME="$DMD_DIR\druntime"
+"$GNU_MAKE" -j$N -C "$DMD_DIR/../phobos" MODEL=$MODEL DMD="$DMD_BIN_PATH" CC="$CC" DMD_DIR="$DMD_DIR"
 
 ################################################################################
 # Run DMD testsuite
@@ -148,7 +139,7 @@ if [ "$HOST_DMD_VERSION" = "2.079.0" ] ; then
     targets=("runnable" "compilable" "fail_compilation" "dshell")
     args=() # use default set of args
 fi
-CC="$CC" ./run --environment --jobs=$N "${targets[@]}" "${args[@]}"
+./run --environment --jobs=$N "${targets[@]}" "${args[@]}" CC="$CC"
 
 ###############################################################################
 # Upload coverage reports and exit if ENABLE_COVERAGE is specified
@@ -164,7 +155,17 @@ fi
 ################################################################################
 
 cd "$DMD_DIR/druntime"
-"$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" unittest test_all
+"$GNU_MAKE" -j$N MODEL=$MODEL DMD="$DMD_BIN_PATH" CC="$CC" unittest
+
+if [ "$MODEL" != "32omf" ] ; then
+    # run some tests for shared druntime
+
+    # no separate output for static or shared builds, so clean directories to force rebuild
+    rm -rf test/shared/generated
+    # the test_runner links against libdruntime-ut.dll and runs all unittests
+    #  no matter what module name is passed in, so restrict to src/object.d
+    "$GNU_MAKE" -j$N unittest MODEL=$MODEL SHARED=1 DMD="$DMD_BIN_PATH" CC="$CC" UT_SRCS=src/object.d ADDITIONAL_TESTS=test/shared
+fi
 
 ################################################################################
 # Build and run Phobos unittests
@@ -179,7 +180,7 @@ else
     else
         cp "$DMD_DIR/tools/dmd2/windows/bin/libcurl.dll" .
     fi
-    "$DM_MAKE" "${LIBS_MAKE_ARGS[@]}" DRUNTIME="$DMD_DIR\druntime" unittest
+    "$GNU_MAKE" -j$N MODEL=$MODEL DMD="$DMD_BIN_PATH" CC="$CC" DMD_DIR="$DMD_DIR" unittest
 fi
 
 ################################################################################
