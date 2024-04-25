@@ -2649,7 +2649,7 @@ class Throwable : Object
      * Internally this forwards to the $(D toString) overload that
      * takes a $(D_PARAM sink) delegate.
      */
-    override string toString()
+    override string toString() const
     {
         string s;
         toString((in buf) { s ~= buf; });

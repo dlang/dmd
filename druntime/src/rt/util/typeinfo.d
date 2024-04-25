@@ -630,7 +630,7 @@ class TypeInfo_n : TypeInfo
 {
     const: pure: @nogc: nothrow: @safe:
 
-    override string toString() { return "typeof(null)"; }
+    override string toString() const { return "typeof(null)"; }
 
     override size_t getHash(scope const void*) { return 0; }
 
