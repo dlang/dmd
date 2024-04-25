@@ -686,7 +686,10 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
                 vaIsFirstRef = va == fd.vthis;
                 break;
             case ReturnParamDest.firstArg:
-                vaIsFirstRef = (*fd.parameters)[0] == va;
+                // While you'd expect fd.parameters[0] to exist in this case, the compiler-generated
+                // expression that initializes an `out int* p = null` is analyzed before fd.parameters
+                // is created, so we still do a null and length check
+                vaIsFirstRef = fd.parameters && 0 < fd.parameters.length && (*fd.parameters)[0] == va;
                 break;
             case ReturnParamDest.returnVal:
                 break;
