@@ -89,6 +89,9 @@ final class CParser(AST) : Parser!AST
         this.wchar_tsize = target.wchar_tsize;
 
         // C `char` is always unsigned in ImportC
+
+        // We know that we are parsing out C, due the parent not knowing this, we have to setup tables here.
+        charLookup = compileEnv.cCharLookupTable;
     }
 
     /********************************************
