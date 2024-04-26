@@ -1998,9 +1998,10 @@ void escapeLive(Expression e, scope void delegate(VarDeclaration) onVar)
         onVar,
         (FuncDeclaration f) {},
         (Expression e, bool) {},
+        true,
     );
 
-    escapeByValue(e, &er, true);
+    escapeByValue(e, er, true);
 }
 
 /***************************************

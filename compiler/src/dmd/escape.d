@@ -164,9 +164,9 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
         scope EscapeByResults er = EscapeByResults(&onRef, &onValue, &onFunc, &onExp);
 
         if (refs)
-            escapeByRef(arg, &er);
+            escapeByRef(arg, er);
         else
-            escapeByValue(arg, &er);
+            escapeByValue(arg, er);
     }
 
     void checkOnePair(size_t i, ref EscapeBy eb, ref EscapeBy eb2,
@@ -454,7 +454,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier parId, 
     }
 
     scope EscapeByResults er = EscapeByResults(&onRef, &onValue, &onFunc, &onExp);
-    escapeByValue(arg, &er);
+    escapeByValue(arg, er);
     return result;
 }
 
@@ -949,9 +949,9 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
     scope EscapeByResults er = EscapeByResults(&onRef, &onValue, &onFunc, &onExp);
 
     if (byRef)
-        escapeByRef(e2, &er);
+        escapeByRef(e2, er);
     else
-        escapeByValue(e2, &er);
+        escapeByValue(e2, er);
 
     return result;
 }
@@ -996,7 +996,7 @@ bool checkThrowEscape(Scope* sc, Expression e, bool gag)
     void onExp(Expression exp, bool retRefTransition) {}
 
     scope EscapeByResults er = EscapeByResults(&onRef, &onValue, &onFunc, &onExp);
-    escapeByValue(e, &er);
+    escapeByValue(e, er);
     return result;
 }
 
@@ -1136,7 +1136,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
     }
 
     scope EscapeByResults er = EscapeByResults(&onRef, &onValue, &onFunc, &onExp);
-    escapeByValue(e, &er);
+    escapeByValue(e, er);
 
     return result;
 }
@@ -1433,9 +1433,9 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
     scope EscapeByResults er = EscapeByResults(&onRef, &onValue, &onFunc, &onExp);
 
     if (refs)
-        escapeByRef(e, &er);
+        escapeByRef(e, er);
     else
-        escapeByValue(e, &er);
+        escapeByValue(e, er);
 
     return result;
 }
@@ -1541,7 +1541,7 @@ private bool inferReturn(FuncDeclaration fd, VarDeclaration v, bool returnScope)
   *     retRefTransition = if `e` is returned through a `return (ref) scope` function call
  */
 public
-void escapeByValue(Expression e, EscapeByResults* er, bool live = false, bool retRefTransition = false)
+void escapeByValue(Expression e, ref scope EscapeByResults er, bool live = false, bool retRefTransition = false)
 {
     //printf("[%s] escapeByValue, e: %s\n", e.loc.toChars(), e.toChars());
 
@@ -1940,7 +1940,7 @@ void escapeByValue(Expression e, EscapeByResults* er, bool live = false, bool re
  *      retRefTransition = if `e` is returned through a `return (ref) scope` function call
  */
 private
-void escapeByRef(Expression e, EscapeByResults* er, bool live = false, bool retRefTransition = false)
+void escapeByRef(Expression e, ref scope EscapeByResults er, bool live = false, bool retRefTransition = false)
 {
     //printf("[%s] escapeByRef, e: %s, retRefTransition: %d\n", e.loc.toChars(), e.toChars(), retRefTransition);
     void visit(Expression e)
@@ -2200,6 +2200,9 @@ struct EscapeByResults
     void delegate(FuncDeclaration) byFunc;
     /// called when expression temporaries are being returned by ref / address
     void delegate(Expression, bool retRefTransition) byExp;
+
+    /// Escape checking is done for @live
+    bool live = false;
 }
 
 /*************************
