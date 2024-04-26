@@ -1935,7 +1935,6 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool retRefTransi
  * Params:
  *      e = expression to be returned by 'ref'
  *      er = where to place collected data
- *      live = if @live semantics apply, i.e. expressions `p`, `*p`, `**p`, etc., all return `p`.
  *      retRefTransition = if `e` is returned through a `return (ref) scope` function call
  */
 private
