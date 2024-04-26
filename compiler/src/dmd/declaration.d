@@ -1384,7 +1384,7 @@ extern (C++) class VarDeclaration : Declaration
     /*************************************
      * Return true if we can take the address of this variable.
      */
-    final bool canTakeAddressOf()
+    final bool canTakeAddressOf() @safe
     {
         return !(storage_class & STC.manifest);
     }
@@ -1392,7 +1392,7 @@ extern (C++) class VarDeclaration : Declaration
     /******************************************
      * Return true if variable needs to call the destructor.
      */
-    final bool needsScopeDtor()
+    final bool needsScopeDtor() @safe
     {
         //printf("VarDeclaration::needsScopeDtor() %s %d\n", toChars(), edtor && !(storage_class & STC.nodtor));
         return edtor && !(storage_class & STC.nodtor);
