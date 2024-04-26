@@ -65,7 +65,7 @@ fail_compilation/fob1.d(405): Error: variable `fob1.foo4.bq` has undefined state
 
 /* TEST_OUTPUT:
 ---
-fail_compilation/fob1.d(503): Error: more than one mutable reference to `a` in arguments to `fob1.foo5()`
+fail_compilation/fob1.d(503): Error: more than one mutable reference to `a` in arguments `a` and `a` to `fob1.foo5()`
 ---
 */
 

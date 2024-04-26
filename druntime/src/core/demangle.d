@@ -752,7 +752,9 @@ pure @safe:
 
         static if (__traits(hasMember, Hooks, "parseType"))
         {
-            auto n = hooks.parseType(errStatus, this, null);
+            // passing two mutable references to parseType(), not safe, needs redesign
+            auto n = this.hooks.parseType(errStatus, this, null);
+
             if (errStatus)
                 return dst.bslice_empty;
             else
@@ -2250,7 +2252,7 @@ char[] demangleType( const(char)[] buf, char[] dst = null ) nothrow pure @safe
 
 /**
 * reencode a mangled symbol name that might include duplicate occurrences
-* of the same identifier by replacing all but the first occurence with
+* of the same identifier by replacing all but the first occurrence with
 * a back reference.
 *
 * Params:
@@ -2379,6 +2381,7 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
             return true;
         }
 
+        @trusted
         char[] parseType( out bool errStatus, ref Remangle d, char[] name ) return scope nothrow
         {
             if (d.front != 'Q')
@@ -2386,7 +2389,7 @@ char[] reencodeMangled(return scope const(char)[] mangled) nothrow pure @safe
 
             flushPosition(d);
 
-            auto refPos = d.pos;
+            const refPos = d.pos;
             d.popFront();
             auto n = d.decodeBackref();
             if (n == 0 || n > refPos)

@@ -87,12 +87,15 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
      */
     VarDeclaration[] outerVars = fd ? fd.outerVars[] : null;
 
-    const len = arguments.length + (ethis !is null) + outerVars.length;
+    //printf("len = %d outerVars.length = %d\n", cast(int)(*arguments).length, cast(int)outerVars.length);
+    const len = (*arguments).length + (ethis !is null) + outerVars.length;
     if (len <= 1)
         return errors;
 
     struct EscapeBy
     {
+        Loc loc;
+        Expression exp;
         EscapeByResults er;
         Parameter param;        // null if no Parameter for this argument
         bool isMutable;         // true if reference to mutable
@@ -109,6 +112,8 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
         if (i < arguments.length)
         {
             arg = (*arguments)[i];
+            eb.exp = arg;
+            eb.loc = arg.loc;
             if (i < paramLength)
             {
                 eb.param = tf.parameterList[i];
@@ -129,6 +134,8 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
              */
             eb.param = null;
             arg = ethis;
+            eb.exp = arg;
+            eb.loc = arg.loc;
             auto ad = fd.isThis();
             assert(ad);
             assert(ethis);
@@ -150,6 +157,7 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
             eb.param = null;
             refs = true;
             auto var = outerVars[i - (len - outerVars.length)];
+            eb.loc = var.loc;
             eb.isMutable = var.type.isMutable();
             eb.er.pushRef(var, false);
             continue;
@@ -161,10 +169,14 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
             escapeByValue(arg, &eb.er);
     }
 
-    void checkOnePair(size_t i, ref EscapeBy eb, ref EscapeBy eb2,
+    //printf("escapeBy()\n");
+    //foreach (const i, ref eb; escapeBy[0 .. $]) printf("i: %d eb: %s\n", cast(int)i, eb.exp.toChars());
+
+    void checkOnePair(size_t i, size_t j, ref EscapeBy eb, ref EscapeBy eb2,
                       VarDeclaration v, VarDeclaration v2, bool of)
     {
-        if (log) printf("v2: `%s`\n", v2.toChars());
+        //printf("i: %d j: %d\n", cast(int)i, cast(int)j);
+        if (log) printf("v: `%s` v2: `%s`\n", v.toChars(), v2.toChars());
         if (v2 != v)
             return;
         //printf("v %d v2 %d\n", eb.isMutable, eb2.isMutable);
@@ -174,19 +186,33 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
         if (!tf.islive && !(sc.useDIP1000 == FeatureState.enabled && sc.func && sc.func.setUnsafe()))
             return;
 
+        auto arg1 = escapeBy[i].exp;
+        auto arg2 = escapeBy[j].exp;
+
+        if (log)
+        {
+            printf("arg1: %s arg2: %s\n", arg1.toChars(), arg2.toChars());
+            printAST(arg1);
+            printAST(arg2);
+        }
+        if (arg1 && arg2 && !expOverlap(arg1, arg2))   // sure they don't overlap
+            return;
+
         if (!gag)
         {
+            const s2 = arg2 ? arg2.toChars() : v2.toChars();
             // int i; funcThatEscapes(ref int i);
             // funcThatEscapes(i); // error escaping reference _to_ `i`
             // int* j; funcThatEscapes2(int* j);
             // funcThatEscapes2(j); // error escaping reference _of_ `i`
             const(char)* referenceVerb = of ? "of" : "to";
             const(char)* msg = eb.isMutable && eb2.isMutable
-                                ? "more than one mutable reference %s `%s` in arguments to `%s()`"
-                                : "mutable and const references %s `%s` in arguments to `%s()`";
-            sc.eSink.error((*arguments)[i].loc, msg,
+                                ? "more than one mutable reference %s `%s` in arguments `%s` and `%s` to `%s()`"
+                                : "mutable and const references %s `%s` in arguments `%s` and `%s` to `%s()`";
+            sc.eSink.error(escapeBy[i].loc, msg,
                   referenceVerb,
                   v.toChars(),
+                  arg1.toChars(), s2,
                   fd ? fd.toPrettyChars() : "indirectly");
         }
         errors = true;
@@ -203,11 +229,11 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
             }
             if (byval && !v.type.hasPointers())
                 continue;
-            foreach (ref eb2; escapeBy[i + 1 .. $])
+            foreach (j, ref eb2; escapeBy[i + 1 .. $])
             {
                 foreach (VarDeclaration v2; byval ? eb2.er.byvalue : eb2.er.byref)
                 {
-                    checkOnePair(i, eb, eb2, v, v2, byval);
+                    checkOnePair(i, i + 1 + j, eb, eb2, v, v2, byval);
                 }
             }
         }
@@ -2653,4 +2679,51 @@ private bool isTypesafeVariadicArray(VarDeclaration v)
             return true;
     }
     return false;
+}
+
+/*********************************
+ * See if we can prove that e1 and e2 do not overlap.
+ * Params:
+ *      e1 = first expression
+ *      e2 = second expression
+ * Returns:
+ *      false if they definitely do not overlap
+ */
+private bool expOverlap(Expression e1, Expression e2)
+{
+    //printf("expOverlap() %s %s\n", e1.toChars(), e2.toChars());
+
+    const sz1 = e1.type.size();
+    const sz2 = e2.type.size();
+    assert(sz1 != SIZE_INVALID && sz2 != SIZE_INVALID);
+    uint offset1 = 0;
+    uint offset2 = 0;
+    while (1)
+    {
+        auto dve1 = e1.isDotVarExp();
+        auto dve2 = e2.isDotVarExp();
+        if (dve1 && dve2)
+        {
+            auto field1 = dve1.var.isVarDeclaration();
+            auto field2 = dve2.var.isVarDeclaration();
+            if (field1 && field2)
+            {
+                offset1 += field1.offset;
+                offset2 += field2.offset;
+                e1 = dve1.e1;
+                e2 = dve2.e1;
+            }
+            else
+                break;
+        }
+        else
+            break;
+    }
+    //printf("%d.%d %d.%d\n", cast(int)offset1, cast(int)sz1, cast(int)offset2, cast(int)sz2);
+    if (offset1 + sz1 <= offset2 ||
+        offset2 + sz2 <= offset1)
+    {
+        return false;
+    }
+    return true;
 }

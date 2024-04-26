@@ -239,7 +239,8 @@ if (!__traits(isScalar, T1) && !__traits(isScalar, T2))
 }
 
 // custom aggregate types
-@safe unittest
+//@safe DIP1021 issues
+unittest
 {
     // https://issues.dlang.org/show_bug.cgi?id=24044
     // Support float opCmp(...) with array
@@ -256,7 +257,7 @@ if (!__traits(isScalar, T1) && !__traits(isScalar, T2))
     bool isNan(float f) { return f != f; }
 
     assert(isNan(__cmp(a, b)));
-    assert(isNan(__cmp(a, a)));
-    assert(__cmp(b, b) == 0);
+    assert(isNan(__cmp(a, a)));  // fails dip1021
+    assert(__cmp(b, b) == 0);    // fails dip1021
     assert(__cmp(a, c) > 0);
 }

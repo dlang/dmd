@@ -27,7 +27,7 @@ CFLAGS_BASE:=$(if $(findstring $(OS),windows),/Wall,$(MODEL_FLAG) $(PIC) -Wall)
 ifeq (osx64,$(OS)$(MODEL))
     CFLAGS_BASE+=--target=x86_64-darwin-apple  # ARM cpu is not supported by dmd
 endif
-DFLAGS:=$(MODEL_FLAG) $(PIC) -w -I../../src -I../../import -I$(SRC) -defaultlib= -preview=dip1000 $(if $(findstring $(OS),windows),,-L-lpthread -L-lm $(LINKDL))
+DFLAGS:=$(MODEL_FLAG) $(PIC) -w -I../../src -I../../import -I$(SRC) -defaultlib= -preview=dip1000 -preview=dip1021 $(if $(findstring $(OS),windows),,-L-lpthread -L-lm $(LINKDL))
 # LINK_SHARED may be set by importing makefile
 DFLAGS+=$(if $(LINK_SHARED),-L$(DRUNTIME_IMPLIB) $(if $(findstring $(OS),windows),-dllimport=all),-L$(DRUNTIME))
 ifeq ($(BUILD),debug)
