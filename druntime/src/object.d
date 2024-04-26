@@ -373,7 +373,7 @@ if ((is(LHS : const Object) || is(LHS : const shared Object)) &&
     {
         this(int flag) { super(flag); }
 
-        bool opEquals(const Base o) @safe
+        bool opEquals(const Base o) const @safe
         {
             fEquals++;
             return flag == o.flag;
@@ -384,7 +384,7 @@ if ((is(LHS : const Object) || is(LHS : const shared Object)) &&
     {
         this(int flag) { super(flag); }
 
-        bool opEquals(const Base o) @safe
+        bool opEquals(const Base o) const @safe
         {
             gEquals++;
             return flag == o.flag;
@@ -613,7 +613,7 @@ class TypeInfo
         assert(!typeid(void).opCmp(typeid(void)));
     }
 
-    override bool opEquals(Object o)
+    override bool opEquals(const Object o) const
     {
         return opEquals(cast(TypeInfo) o);
     }
@@ -840,7 +840,7 @@ class TypeInfo_Enum : TypeInfo
 {
     override string toString() const pure { return name; }
 
-    override bool opEquals(Object o)
+    override bool opEquals(const Object o) const
     {
         if (this is o)
             return true;
@@ -1003,7 +1003,7 @@ class TypeInfo_Pointer : TypeInfo
 {
     override string toString() const { return m_next.toString() ~ "*"; }
 
-    override bool opEquals(Object o)
+    override bool opEquals(const Object o) const
     {
         if (this is o)
             return true;
@@ -1055,7 +1055,7 @@ class TypeInfo_Array : TypeInfo
 {
     override string toString() const { return value.toString() ~ "[]"; }
 
-    override bool opEquals(Object o)
+    override bool opEquals(const Object o) const
     {
         if (this is o)
             return true;
@@ -1155,7 +1155,7 @@ class TypeInfo_StaticArray : TypeInfo
         return (() @trusted => cast(string) (value.toString() ~ "[" ~ lenString ~ "]"))();
     }
 
-    override bool opEquals(Object o)
+    override bool opEquals(const Object o) const
     {
         if (this is o)
             return true;
@@ -1290,7 +1290,7 @@ class TypeInfo_AssociativeArray : TypeInfo
         return value.toString() ~ "[" ~ key.toString() ~ "]";
     }
 
-    override bool opEquals(Object o)
+    override bool opEquals(const Object o) const
     {
         if (this is o)
             return true;
@@ -1343,7 +1343,7 @@ class TypeInfo_Vector : TypeInfo
 {
     override string toString() const { return "__vector(" ~ base.toString() ~ ")"; }
 
-    override bool opEquals(Object o)
+    override bool opEquals(const Object o) const
     {
         if (this is o)
             return true;
@@ -1387,7 +1387,7 @@ class TypeInfo_Function : TypeInfo
         return cast(string) demangle(deco);
     }
 
-    override bool opEquals(Object o)
+    override bool opEquals(const Object o) const
     {
         if (this is o)
             return true;
@@ -1485,7 +1485,7 @@ class TypeInfo_Delegate : TypeInfo
         assert(typeid(delegate_type).toHash() == typeid(delegate_type).hashOf());
     }
 
-    override bool opEquals(Object o)
+    override bool opEquals(const Object o) const
     {
         if (this is o)
             return true;
@@ -1765,7 +1765,7 @@ class TypeInfo_Interface : TypeInfo
 {
     override string toString() const pure { return info.name; }
 
-    override bool opEquals(Object o)
+    override bool opEquals(const Object o) const
     {
         if (this is o)
             return true;
@@ -1887,7 +1887,7 @@ class TypeInfo_Struct : TypeInfo
         return hashOf(this.mangledName);
     }
 
-    override bool opEquals(Object o)
+    override bool opEquals(const Object o) const
     {
         if (this is o)
             return true;
@@ -2099,7 +2099,7 @@ class TypeInfo_Tuple : TypeInfo
         return s;
     }
 
-    override bool opEquals(Object o)
+    override bool opEquals(const Object o) const
     {
         if (this is o)
             return true;
@@ -2176,7 +2176,7 @@ class TypeInfo_Const : TypeInfo
     }
 
     //override bool opEquals(Object o) { return base.opEquals(o); }
-    override bool opEquals(Object o)
+    override bool opEquals(const Object o) const
     {
         if (this is o)
             return true;
@@ -3613,7 +3613,7 @@ if (is(typeof(create()) : V) && (is(typeof(update(aa[K.init])) : V) || is(typeof
 
     @safe const:
         // stubs
-        bool opEquals(S rhs) { assert(0); }
+        bool opEquals(const S rhs) const { assert(0); }
         size_t toHash() { assert(0); }
     }
 

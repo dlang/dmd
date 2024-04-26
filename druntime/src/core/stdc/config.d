@@ -294,11 +294,11 @@ struct _Complex(T)
 
     // Equals
 
-    bool opEquals(_Complex!float  c) { return re == c.re && im == c.im; }
-    bool opEquals(_Complex!double c) { return re == c.re && im == c.im; }
-    bool opEquals(_Complex!c_long_double   c) { return re == c.re && im == c.im; }
+    bool opEquals(_Complex!float  c) const { return re == c.re && im == c.im; }
+    bool opEquals(_Complex!double c) const { return re == c.re && im == c.im; }
+    bool opEquals(_Complex!c_long_double   c) const { return re == c.re && im == c.im; }
 
-    bool opEquals(T t) { return re == t && im == 0; }
+    bool opEquals(T t) const { return re == t && im == 0; }
 
     // Unary operators
 
