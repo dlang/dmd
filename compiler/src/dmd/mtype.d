@@ -1690,7 +1690,7 @@ extern (C++) abstract class TypeNext : Type
      * type is meant to be inferred, and semantic() hasn't yet ben run
      * on the function. After semantic(), it must no longer be NULL.
      */
-    override final Type nextOf()
+    override final Type nextOf() @safe
     {
         return next;
     }
@@ -3175,7 +3175,7 @@ extern (C++) final class TypeFunction : TypeNext
      * Returns:
      *  true if D-style variadic
      */
-    bool isDstyleVariadic() const pure nothrow
+    bool isDstyleVariadic() const pure nothrow @safe
     {
         return linkage == LINK.d && parameterList.varargs == VarArg.variadic;
     }

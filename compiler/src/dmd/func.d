@@ -1862,7 +1862,7 @@ extern (C++) class FuncDeclaration : Declaration
         return this;
     }
 
-    inout(FuncDeclaration) toAliasFunc() inout
+    inout(FuncDeclaration) toAliasFunc() inout @safe
     {
         return this;
     }
