@@ -1537,11 +1537,10 @@ private bool inferReturn(FuncDeclaration fd, VarDeclaration v, bool returnScope)
  * Params:
  *      e = expression to be returned by value
  *      er = where to place collected data
- *      live = if @live semantics apply, i.e. expressions `p`, `*p`, `**p`, etc., all return `p`.
   *     retRefTransition = if `e` is returned through a `return (ref) scope` function call
  */
 public
-void escapeByValue(Expression e, ref scope EscapeByResults er, bool live = false, bool retRefTransition = false)
+void escapeByValue(Expression e, ref scope EscapeByResults er, bool retRefTransition = false)
 {
     //printf("[%s] escapeByValue, e: %s\n", e.loc.toChars(), e.toChars());
 
@@ -1556,7 +1555,7 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool live = false
          * but it'll be placed in static data so no need to check it.
          */
         if (e.e1.op != EXP.structLiteral)
-            escapeByRef(e.e1, er, live, retRefTransition);
+            escapeByRef(e.e1, er, retRefTransition);
     }
 
     void visitSymOff(SymOffExp e)
@@ -1584,16 +1583,16 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool live = false
 
     void visitPtr(PtrExp e)
     {
-        if (live && e.type.hasPointers())
-            escapeByValue(e.e1, er, live, retRefTransition);
+        if (er.live && e.type.hasPointers())
+            escapeByValue(e.e1, er, retRefTransition);
     }
 
     void visitDotVar(DotVarExp e)
     {
         auto t = e.e1.type.toBasetype();
-        if (e.type.hasPointers() && (live || t.ty == Tstruct))
+        if (e.type.hasPointers() && (er.live || t.ty == Tstruct))
         {
-            escapeByValue(e.e1, er, live, retRefTransition);
+            escapeByValue(e.e1, er, retRefTransition);
         }
     }
 
@@ -1601,9 +1600,9 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool live = false
     {
         Type t = e.e1.type.toBasetype();
         if (t.ty == Tclass || t.ty == Tpointer)
-            escapeByValue(e.e1, er, live, retRefTransition);
+            escapeByValue(e.e1, er, retRefTransition);
         else
-            escapeByRef(e.e1, er, live, retRefTransition);
+            escapeByRef(e.e1, er, retRefTransition);
         er.byFunc(e.func);
     }
 
@@ -1624,11 +1623,11 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool live = false
         if (tb.ty == Tsarray || tb.ty == Tarray)
         {
             if (e.basis)
-                escapeByValue(e.basis, er, live, retRefTransition);
+                escapeByValue(e.basis, er, retRefTransition);
             foreach (el; *e.elements)
             {
                 if (el)
-                    escapeByValue(el, er, live, retRefTransition);
+                    escapeByValue(el, er, retRefTransition);
             }
         }
     }
@@ -1640,7 +1639,7 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool live = false
             foreach (ex; *e.elements)
             {
                 if (ex)
-                    escapeByValue(ex, er, live, retRefTransition);
+                    escapeByValue(ex, er, retRefTransition);
             }
         }
     }
@@ -1653,7 +1652,7 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool live = false
             foreach (ex; *e.arguments)
             {
                 if (ex)
-                    escapeByValue(ex, er, live, retRefTransition);
+                    escapeByValue(ex, er, retRefTransition);
             }
         }
     }
@@ -1665,10 +1664,10 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool live = false
         Type tb = e.type.toBasetype();
         if (tb.ty == Tarray && e.e1.type.toBasetype().ty == Tsarray)
         {
-            escapeByRef(e.e1, er, live, retRefTransition);
+            escapeByRef(e.e1, er, retRefTransition);
         }
         else
-            escapeByValue(e.e1, er, live, retRefTransition);
+            escapeByValue(e.e1, er, retRefTransition);
     }
 
     void visitSlice(SliceExp e)
@@ -1693,18 +1692,18 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool live = false
         {
             Type tb = e.type.toBasetype();
             if (tb.ty != Tsarray)
-                escapeByRef(e.e1, er, live, retRefTransition);
+                escapeByRef(e.e1, er, retRefTransition);
         }
         else
-            escapeByValue(e.e1, er, live, retRefTransition);
+            escapeByValue(e.e1, er, retRefTransition);
     }
 
     void visitIndex(IndexExp e)
     {
         if (e.e1.type.toBasetype().ty == Tsarray ||
-            live && e.type.hasPointers())
+            er.live && e.type.hasPointers())
         {
-            escapeByValue(e.e1, er, live, retRefTransition);
+            escapeByValue(e.e1, er, retRefTransition);
         }
     }
 
@@ -1713,30 +1712,30 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool live = false
         Type tb = e.type.toBasetype();
         if (tb.ty == Tpointer)
         {
-            escapeByValue(e.e1, er, live, retRefTransition);
-            escapeByValue(e.e2, er, live, retRefTransition);
+            escapeByValue(e.e1, er, retRefTransition);
+            escapeByValue(e.e2, er, retRefTransition);
         }
     }
 
     void visitBinAssign(BinAssignExp e)
     {
-        escapeByValue(e.e1, er, live, retRefTransition);
+        escapeByValue(e.e1, er, retRefTransition);
     }
 
     void visitAssign(AssignExp e)
     {
-        escapeByValue(e.e1, er, live, retRefTransition);
+        escapeByValue(e.e1, er, retRefTransition);
     }
 
     void visitComma(CommaExp e)
     {
-        escapeByValue(e.e2, er, live, retRefTransition);
+        escapeByValue(e.e2, er, retRefTransition);
     }
 
     void visitCond(CondExp e)
     {
-        escapeByValue(e.e1, er, live, retRefTransition);
-        escapeByValue(e.e2, er, live, retRefTransition);
+        escapeByValue(e.e1, er, retRefTransition);
+        escapeByValue(e.e2, er, retRefTransition);
     }
 
     void visitCall(CallExp e)
@@ -1778,11 +1777,11 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool live = false
                                 if (auto fd = dve.var.isFuncDeclaration())
                                     if (fd.isCtorDeclaration() && tf.next.toBasetype().isTypeStruct())
                                     {
-                                        escapeByValue(arg, er, live, retRefTransition);
+                                        escapeByValue(arg, er, retRefTransition);
                                     }
                         }
                         else
-                            escapeByValue(arg, er, live, true);
+                            escapeByValue(arg, er, true);
                     }
                     else if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
                     {
@@ -1793,10 +1792,10 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool live = false
                              * as:
                              *   p;
                              */
-                            escapeByValue(arg, er, live, retRefTransition);
+                            escapeByValue(arg, er, retRefTransition);
                         }
                         else
-                            escapeByRef(arg, er, live, retRefTransition);
+                            escapeByRef(arg, er, retRefTransition);
                     }
                 }
             }
@@ -1839,7 +1838,7 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool live = false
                 if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
                 {
                     if (!tf.isref || tf.isctor)
-                        escapeByValue(dve.e1, er, live, retRefTransition);
+                        escapeByValue(dve.e1, er, retRefTransition);
                 }
                 else if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
                 {
@@ -1850,10 +1849,10 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool live = false
                          * as:
                          *   this;
                          */
-                        escapeByValue(dve.e1, er, live, retRefTransition);
+                        escapeByValue(dve.e1, er, retRefTransition);
                     }
                     else
-                        escapeByRef(dve.e1, er, live, psr == ScopeRef.ReturnRef_Scope);
+                        escapeByRef(dve.e1, er, psr == ScopeRef.ReturnRef_Scope);
                 }
             }
 
@@ -1871,7 +1870,7 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool live = false
         if (t1.isTypeDelegate())
         {
             if (tf.isreturn)
-                escapeByValue(e.e1, er, live, retRefTransition);
+                escapeByValue(e.e1, er, retRefTransition);
         }
 
         /* If it's a nested function that is 'return scope'
@@ -1940,7 +1939,7 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool live = false
  *      retRefTransition = if `e` is returned through a `return (ref) scope` function call
  */
 private
-void escapeByRef(Expression e, ref scope EscapeByResults er, bool live = false, bool retRefTransition = false)
+void escapeByRef(Expression e, ref scope EscapeByResults er, bool retRefTransition = false)
 {
     //printf("[%s] escapeByRef, e: %s, retRefTransition: %d\n", e.loc.toChars(), e.toChars(), retRefTransition);
     void visit(Expression e)
@@ -1961,9 +1960,9 @@ void escapeByRef(Expression e, ref scope EscapeByResults er, bool live = false, 
                 if (ExpInitializer ez = v._init.isExpInitializer())
                 {
                     if (auto ce = ez.exp.isConstructExp())
-                        escapeByRef(ce.e2, er, live, retRefTransition);
+                        escapeByRef(ce.e2, er, retRefTransition);
                     else
-                        escapeByRef(ez.exp, er, live, retRefTransition);
+                        escapeByRef(ez.exp, er, retRefTransition);
                 }
             }
             else
@@ -1974,14 +1973,14 @@ void escapeByRef(Expression e, ref scope EscapeByResults er, bool live = false, 
     void visitThis(ThisExp e)
     {
         if (e.var && e.var.toParent2().isFuncDeclaration().hasDualContext())
-            escapeByValue(e, er, live, retRefTransition);
+            escapeByValue(e, er, retRefTransition);
         else if (e.var)
             er.byRef(e.var, retRefTransition);
     }
 
     void visitPtr(PtrExp e)
     {
-        escapeByValue(e.e1, er, live, retRefTransition);
+        escapeByValue(e.e1, er, retRefTransition);
     }
 
     void visitIndex(IndexExp e)
@@ -1998,11 +1997,11 @@ void escapeByRef(Expression e, ref scope EscapeByResults er, bool live = false, 
         }
         if (tb.ty == Tsarray)
         {
-            escapeByRef(e.e1, er, live, retRefTransition);
+            escapeByRef(e.e1, er, retRefTransition);
         }
         else if (tb.ty == Tarray)
         {
-            escapeByValue(e.e1, er, live, retRefTransition);
+            escapeByValue(e.e1, er, retRefTransition);
         }
     }
 
@@ -2013,7 +2012,7 @@ void escapeByRef(Expression e, ref scope EscapeByResults er, bool live = false, 
             foreach (ex; *e.elements)
             {
                 if (ex)
-                    escapeByRef(ex, er, live, retRefTransition);
+                    escapeByRef(ex, er, retRefTransition);
             }
         }
         er.byExp(e, retRefTransition);
@@ -2023,30 +2022,30 @@ void escapeByRef(Expression e, ref scope EscapeByResults er, bool live = false, 
     {
         Type t1b = e.e1.type.toBasetype();
         if (t1b.ty == Tclass)
-            escapeByValue(e.e1, er, live, retRefTransition);
+            escapeByValue(e.e1, er, retRefTransition);
         else
-            escapeByRef(e.e1, er, live, retRefTransition);
+            escapeByRef(e.e1, er, retRefTransition);
     }
 
     void visitBinAssign(BinAssignExp e)
     {
-        escapeByRef(e.e1, er, live, retRefTransition);
+        escapeByRef(e.e1, er, retRefTransition);
     }
 
     void visitAssign(AssignExp e)
     {
-        escapeByRef(e.e1, er, live, retRefTransition);
+        escapeByRef(e.e1, er, retRefTransition);
     }
 
     void visitComma(CommaExp e)
     {
-        escapeByRef(e.e2, er, live, retRefTransition);
+        escapeByRef(e.e2, er, retRefTransition);
     }
 
     void visitCond(CondExp e)
     {
-        escapeByRef(e.e1, er, live, retRefTransition);
-        escapeByRef(e.e2, er, live, retRefTransition);
+        escapeByRef(e.e1, er, retRefTransition);
+        escapeByRef(e.e2, er, retRefTransition);
     }
 
     void visitCall(CallExp e)
@@ -2076,7 +2075,7 @@ void escapeByRef(Expression e, ref scope EscapeByResults er, bool live = false, 
                         const stc = tf.parameterStorageClass(null, p);
                         ScopeRef psr = buildScopeRef(stc);
                         if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
-                            escapeByRef(arg, er, live, retRefTransition);
+                            escapeByRef(arg, er, retRefTransition);
                         else if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
                         {
                             if (auto de = arg.isDelegateExp())
@@ -2085,7 +2084,7 @@ void escapeByRef(Expression e, ref scope EscapeByResults er, bool live = false, 
                                     er.byExp(de, false);
                             }
                             else
-                                escapeByValue(arg, er, live, retRefTransition);
+                                escapeByValue(arg, er, retRefTransition);
                         }
                     }
                 }
@@ -2115,9 +2114,9 @@ void escapeByRef(Expression e, ref scope EscapeByResults er, bool live = false, 
 
                 const psr = buildScopeRef(stc);
                 if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
-                    escapeByRef(dve.e1, er, live, psr == ScopeRef.ReturnRef_Scope);
+                    escapeByRef(dve.e1, er, psr == ScopeRef.ReturnRef_Scope);
                 else if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
-                    escapeByValue(dve.e1, er, live, retRefTransition);
+                    escapeByValue(dve.e1, er, retRefTransition);
 
                 // If it's also a nested function that is 'return ref'
                 if (FuncDeclaration fd = dve.var.isFuncDeclaration())
@@ -2131,7 +2130,7 @@ void escapeByRef(Expression e, ref scope EscapeByResults er, bool live = false, 
             // If it's a delegate, check it too
             if (e.e1.op == EXP.variable && t1.ty == Tdelegate)
             {
-                escapeByValue(e.e1, er, live, retRefTransition);
+                escapeByValue(e.e1, er, retRefTransition);
             }
 
             /* If it's a nested function that is 'return ref'
@@ -2201,7 +2200,7 @@ struct EscapeByResults
     /// called when expression temporaries are being returned by ref / address
     void delegate(Expression, bool retRefTransition) byExp;
 
-    /// Escape checking is done for @live
+    /// if @live semantics apply, i.e. expressions `p`, `*p`, `**p`, etc., all return `p`.
     bool live = false;
 }
 
