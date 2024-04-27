@@ -1,0 +1,6 @@
+`foreach_reverse` on a delegate is now an error
+
+The compiler did not try to implement reverse traversal of the results returned by
+the delegate when $(D foreach_reverse) was used. That could result in code
+that was confusing to read, so it was deprecated (for many years). Using
+$(D foreach_reverse) with a delegate is now an error.
