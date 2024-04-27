@@ -528,8 +528,6 @@ Lcant:
  *      cdbstore = append store code to this
  *      cdbload = append load code to this
  */
-
-@trusted
 void cgreg_spillreg_prolog(block *b,Symbol *s,ref CodeBuilder cdbstore,ref CodeBuilder cdbload)
 {
     const int bi = b.Bdfoidx;
@@ -604,8 +602,6 @@ void cgreg_spillreg_prolog(block *b,Symbol *s,ref CodeBuilder cdbstore,ref CodeB
  *      cdbstore = append store code to this
  *      cdbload = append load code to this
  */
-
-@trusted
 void cgreg_spillreg_epilog(block *b,Symbol *s,ref CodeBuilder cdbstore, ref CodeBuilder cdbload)
 {
     const bi = b.Bdfoidx;

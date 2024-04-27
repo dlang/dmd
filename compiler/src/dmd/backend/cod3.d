@@ -6722,7 +6722,6 @@ nothrow:
     Barray!ubyte* disasmBuf;
     ubyte[256] bytes; // = void;
 
-    @trusted
     this(int seg)
     {
         index = 0;
@@ -6746,25 +6745,20 @@ nothrow:
         index = 0;
     }
 
-    @trusted
     void gen(ubyte c) { bytes[index++] = c; }
 
     @trusted
     void genp(uint n, void *p) { memcpy(&bytes[index], p, n); index += n; }
 
-    @trusted
     void flush() { if (index) flushx(); }
 
-    @trusted
     uint getOffset() { return offset + index; }
 
-    @trusted
     uint available() { return cast(uint)bytes.length - index; }
 
     /******************************
      * write64/write32/write16 write `value` to `disasmBuf`
      */
-    @trusted
     void write64(ulong value)
     {
         if (disasmBuf)
@@ -6781,7 +6775,6 @@ nothrow:
     }
 
     pragma(inline, true)
-    @trusted
     void write32(uint value)
     {
         if (disasmBuf)
@@ -6794,7 +6787,6 @@ nothrow:
     }
 
     pragma(inline, true)
-    @trusted
     void write16(uint value)
     {
         if (disasmBuf)

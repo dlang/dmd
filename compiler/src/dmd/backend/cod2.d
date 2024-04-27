@@ -5714,8 +5714,6 @@ void cdddtor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 /*******************************************
  * C++ constructor.
  */
-
-@trusted
 void cdctor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
 }

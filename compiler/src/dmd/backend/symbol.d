@@ -57,7 +57,6 @@ void func_free(func_t* f) { free(f); }
 /*******************************
  * Type out symbol information.
  */
-@trusted
 void symbol_print(const ref Symbol s)
 {
 debug
@@ -234,11 +233,9 @@ bool Symbol_isAffected(const ref Symbol s)
 /***********************************
  * Get user name of symbol.
  */
-
-@trusted
 const(char)* symbol_ident(return ref const Symbol s)
 {
-    return s.Sident.ptr;
+    return &s.Sident[0];
 }
 
 /****************************************
@@ -270,7 +267,7 @@ Symbol * symbol_calloc(const(char)[] id)
  *      created Symbol
  */
 
-@trusted @nogc
+@nogc
 extern (C)
 Symbol * symbol_name(const(char)[] name, SC sclass, type *t)
 {

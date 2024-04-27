@@ -1470,14 +1470,11 @@ private void blcodgen(block *bl)
  * Given a register mask, find and return the number
  * of the first register that fits.
  */
-
-@trusted
 reg_t findreg(regm_t regm)
 {
     return findreg(regm, __LINE__, __FILE__);
 }
 
-@trusted
 reg_t findreg(regm_t regm, int line, const(char)* file)
 {
     debug
@@ -1501,7 +1498,7 @@ reg_t findreg(regm_t regm, int line, const(char)* file)
 
     debug
     printf("findreg(%s, line=%d, file='%s', function = '%s')\n",regm_str(regmsave),line,file,funcsym_p.Sident.ptr);
-    fflush(stdout);
+    debug fflush(stdout);
 
 //    *(char*)0=0;
     assert(0);
@@ -1831,7 +1828,6 @@ L3:
  * Returns:
  *      selected register
  */
-@trusted
 reg_t allocScratchReg(ref CodeBuilder cdb, regm_t regm)
 {
     return allocreg(cdb, regm, TYoffset);

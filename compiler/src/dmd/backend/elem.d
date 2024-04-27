@@ -479,8 +479,6 @@ void el_copy(elem *to, const elem *from)
 /***********************************
  * Allocate a temporary, and return temporary elem.
  */
-
-@trusted
 elem * el_alloctmp(tym_t ty)
 {
     Symbol *s;
@@ -2419,8 +2417,6 @@ bool el_isdependent(elem* e)
 /****************************************
  * Returns: alignment size of elem e
  */
-
-@trusted
 uint el_alignsize(elem *e)
 {
     const tym = tybasic(e.Ety);

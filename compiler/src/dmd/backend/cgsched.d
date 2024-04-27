@@ -1275,8 +1275,6 @@ private int pair_class(code *c)
  * Returns:
  *     CInfo struct containing info about c
  */
-
-@trusted
 private Cinfo getinfo(code *c)
 {
     if (!c)
@@ -2243,13 +2241,11 @@ nothrow:
         fpustackused = fpustackinit;
     }
 
-    @trusted
     void dtor()
     {
         stagelist.dtor();
     }
 
-@trusted
 code **assemble(code **pc)  // reassemble scheduled instructions
 {
     code *c;

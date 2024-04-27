@@ -67,7 +67,6 @@ nothrow:
     /*************************
      * Reset memory so this allocation can be re-used.
      */
-    @trusted
     void reset()
     {
         vec_free(Lloop);
@@ -86,8 +85,6 @@ nothrow:
     /***********************
      * Write loop.
      */
-
-    @trusted
     void print()
     {
         debug
@@ -122,7 +119,6 @@ nothrow:
         el_free(c2);
     }
 
-    @trusted
     void print() const
     {
         debug
@@ -150,7 +146,6 @@ nothrow:
     elem **IVincr;          // pointer to parent of IV increment elem
     Barray!famlist IVfamily;      // variables in this family
 
-    @trusted
     void reset()
     {
         foreach (ref fl; IVfamily)
@@ -160,7 +155,6 @@ nothrow:
         IVfamily.reset();
     }
 
-    @trusted
     void print() const
     {
         debug

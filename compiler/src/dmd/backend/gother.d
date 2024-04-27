@@ -54,7 +54,6 @@ nothrow:
     /***************************
      * Reset memory so this allocation can be re-used.
      */
-    @trusted
     void reset()
     {
         rdlist.reset();

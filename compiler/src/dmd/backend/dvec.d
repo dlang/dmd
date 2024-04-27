@@ -684,7 +684,6 @@ void vec_println(const vec_t v)
     }
 }
 
-@trusted
 pure
 void vec_print(const vec_t v)
 {
