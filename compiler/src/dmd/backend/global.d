@@ -76,7 +76,7 @@ targ_size_t _align(targ_size_t size, targ_size_t offset) @trusted
 /*******************************
  * Get size of ty
  */
-targ_size_t size(tym_t ty) @trusted
+targ_size_t size(tym_t ty)
 {
     int sz = (tybasic(ty) == TYvoid) ? 1 : tysize(ty);
     debug

@@ -112,7 +112,6 @@ struct CodeBuilder
         }
     }
 
-    @trusted
     void gen(code *cs)
     {
         /* this is a high usage routine */
@@ -130,7 +129,6 @@ struct CodeBuilder
         pTail = &ce.next;
     }
 
-    @trusted
     void gen1(opcode_t op)
     {
         code *ce = code_calloc();
@@ -142,7 +140,6 @@ struct CodeBuilder
         pTail = &ce.next;
     }
 
-    @trusted
     void gen2(opcode_t op, uint rm)
     {
         code *ce = code_calloc();
@@ -157,14 +154,12 @@ struct CodeBuilder
     /***************************************
      * Generate floating point instruction.
      */
-    @trusted
     void genf2(opcode_t op, uint rm)
     {
         genfwait(this);
         gen2(op, rm);
     }
 
-    @trusted
     void gen2sib(opcode_t op, uint rm, uint sib)
     {
         code *ce = code_calloc();

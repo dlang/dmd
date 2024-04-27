@@ -398,8 +398,6 @@ private void fillInDNunambig(vec_t v, elem *e, size_t start, DefNode[] defnod)
  *      n = elem tree to evaluate for GEN and KILL
  *      deftop = number of bits in vectors
  */
-
-@trusted
 private void rdelem(out vec_t GEN, out vec_t KILL, elem *n, uint deftop)
 {
     GEN  = vec_calloc(deftop);
@@ -1477,7 +1475,6 @@ private void lvgenkill()
  *      length = number of global symbols
  */
 
-@trusted
 private void lvelem(out vec_t gen, out vec_t kill, const elem* n, const vec_t ambigsym, size_t length)
 {
     gen = vec_calloc(length);

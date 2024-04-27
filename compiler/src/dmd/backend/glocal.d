@@ -502,7 +502,6 @@ private void local_ins(ref Barray!loc_t lt, elem *e)
 //////////////////////////////////////
 // Remove entry i from lt[], and then compress the table.
 //
-@trusted
 private void local_rem(ref Barray!loc_t lt, size_t u)
 {
     //printf("local_rem(%u)\n",u);

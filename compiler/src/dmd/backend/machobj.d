@@ -2707,7 +2707,6 @@ void MachObj_moduleinfo(Symbol *scc)
 
 /*************************************
  */
-@trusted
 void MachObj_gotref(Symbol *s)
 {
     //printf("MachObj_gotref(%x '%s', %d)\n",s,s.Sident.ptr, s.Sclass);

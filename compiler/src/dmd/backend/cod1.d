@@ -1664,8 +1664,6 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
  * Input:
  *      tym     either TYdouble or TYfloat
  */
-
-@trusted
 void fltregs(ref CodeBuilder cdb, code* pcs, tym_t tym)
 {
     assert(!I64);

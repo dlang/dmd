@@ -125,7 +125,7 @@ void elem_debug(const elem* e)
     debug assert(e.id == e.IDelem);
 }
 
-@trusted tym_t typemask(const elem* e)
+tym_t typemask(const elem* e)
 {
     return e.Ety;
 }

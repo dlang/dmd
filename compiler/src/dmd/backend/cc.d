@@ -469,7 +469,6 @@ nothrow:
     @trusted
     void prependSucc(block* b)       { list_prepend(&this.Bsucc, b); }
 
-    @trusted
     int numSucc()                    { return list_nitems(this.Bsucc); }
 
     @trusted
