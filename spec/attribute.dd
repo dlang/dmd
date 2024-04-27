@@ -590,7 +590,7 @@ $(H3 $(LNAME2 gshared, $(D __gshared) Attribute))
 
         $(P $(D __gshared) is disallowed in `@safe` code.)
 
-$(H3 $(LNAME2 synchronized, $(D @synchronized) Attribute))
+$(H3 $(LNAME2 synchronized, $(D synchronized) Attribute))
 
         $(P See $(DDSUBLINK spec/class, synchronized-classes, Synchronized Classes).)
 
