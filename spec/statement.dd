@@ -984,8 +984,8 @@ $(H4 $(LNAME2 front-seq, Multiple Element Values))
 
 $(H3 $(LNAME2 foreach_over_delegates, Foreach over Delegates))
 
-        $(P If $(I ForeachAggregate) is a delegate, the type signature of
-        the delegate is of the same as for
+        $(P If $(I ForeachAggregate) is a delegate, the type signature and
+        behavior of the delegate is the same as for
         $(RELATIVE_LINK2 foreach_over_struct_and_classes, opApply). This enables
         many different named looping strategies to coexist in the same
         class or struct.)
@@ -996,7 +996,7 @@ $(SPEC_RUNNABLE_EXAMPLE_RUN
     --------------
     // Custom loop implementation, that iterates over powers of 2 with
     // alternating sign. The foreach loop body is passed in dg.
-    int myLoop(int delegate(int) dg)
+    int myLoop(scope int delegate(int) dg)
     {
         for (int z = 1; z < 128; z *= -2)
         {
@@ -1019,11 +1019,8 @@ $(SPEC_RUNNABLE_EXAMPLE_RUN
     --------------
 )
 
-        $(P $(B Note:) When $(I ForeachAggregate) is a delegate, the compiler
-        does not try to implement reverse traversal of the results returned by
-        the delegate when $(D foreach_reverse) is used. This may result in code
-        that is confusing to read. Therefore, using $(D foreach_reverse) with a
-        delegate is now deprecated, and will be rejected in the future.)
+        $(P $(D foreach_reverse) with a delegate is an error.)
+
 
 $(H3 $(LNAME2 foreach_over_tuples, Foreach over Sequences))
 
