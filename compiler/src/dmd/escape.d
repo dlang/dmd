@@ -74,7 +74,7 @@ package(dmd) struct EscapeState
  *      `true` if error
  */
 public
-bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
+bool checkMutableArguments(ref Scope sc, FuncDeclaration fd, TypeFunction tf,
     Expression ethis, Expressions* arguments, bool gag)
 {
     enum log = false;
@@ -232,7 +232,7 @@ bool checkMutableArguments(Scope* sc, FuncDeclaration fd, TypeFunction tf,
  *      `true` if any elements escaped
  */
 public
-bool checkArrayLiteralEscape(Scope *sc, ArrayLiteralExp ae, bool gag)
+bool checkArrayLiteralEscape(ref Scope sc, ArrayLiteralExp ae, bool gag)
 {
     bool errors;
     if (ae.basis)
@@ -256,7 +256,7 @@ bool checkArrayLiteralEscape(Scope *sc, ArrayLiteralExp ae, bool gag)
  *      `true` if any elements escaped
  */
 public
-bool checkAssocArrayLiteralEscape(Scope *sc, AssocArrayLiteralExp ae, bool gag)
+bool checkAssocArrayLiteralEscape(ref Scope sc, AssocArrayLiteralExp ae, bool gag)
 {
     bool errors;
     foreach (ex; *ae.keys)
@@ -325,7 +325,7 @@ void printScopeFailure(E)(E printFunc, VarDeclaration v, int recursionLimit)
  *      `true` if pointers to the stack can escape via assignment
  */
 public
-bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier parId, VarDeclaration vPar, STC parStc, Expression arg, bool assertmsg, bool gag)
+bool checkParamArgumentEscape(ref Scope sc, FuncDeclaration fdc, Identifier parId, VarDeclaration vPar, STC parStc, Expression arg, bool assertmsg, bool gag)
 {
     enum log = false;
     if (log) printf("checkParamArgumentEscape(arg: %s par: %s parSTC: %llx)\n",
@@ -477,7 +477,7 @@ bool checkParamArgumentEscape(Scope* sc, FuncDeclaration fdc, Identifier parId, 
  *      `true` if assignment to `firstArg` would cause an error
  */
 public
-bool checkParamArgumentReturn(Scope* sc, Expression firstArg, Expression arg, Parameter param, bool gag)
+bool checkParamArgumentReturn(ref Scope sc, Expression firstArg, Expression arg, Parameter param, bool gag)
 {
     enum log = false;
     if (log) printf("checkParamArgumentReturn(firstArg: %s arg: %s)\n",
@@ -513,7 +513,7 @@ bool checkParamArgumentReturn(Scope* sc, Expression firstArg, Expression arg, Pa
  *      `true` if construction would cause an escaping reference error
  */
 public
-bool checkConstructorEscape(Scope* sc, CallExp ce, bool gag)
+bool checkConstructorEscape(ref Scope sc, CallExp ce, bool gag)
 {
     enum log = false;
     if (log) printf("checkConstructorEscape(%s, %s)\n", ce.toChars(), ce.type.toChars());
@@ -610,7 +610,7 @@ ReturnParamDest returnParamDest(TypeFunction tf, Type tthis)
  *      `true` if pointers to the stack can escape via assignment
  */
 public
-bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
+bool checkAssignEscape(ref Scope sc, Expression e, bool gag, bool byRef)
 {
     enum log = false;
     if (log) printf("checkAssignEscape(e: %s, byRef: %d)\n", e.toChars(), byRef);
@@ -974,7 +974,7 @@ bool checkAssignEscape(Scope* sc, Expression e, bool gag, bool byRef)
  *      `true` if pointers to the stack can escape
  */
 public
-bool checkThrowEscape(Scope* sc, Expression e, bool gag)
+bool checkThrowEscape(ref Scope sc, Expression e, bool gag)
 {
     //printf("[%s] checkThrowEscape, e = %s\n", e.loc.toChars(), e.toChars());
     EscapeByResults er;
@@ -1018,7 +1018,7 @@ bool checkThrowEscape(Scope* sc, Expression e, bool gag)
  *      `true` if pointers to the stack can escape
  */
 public
-bool checkNewEscape(Scope* sc, Expression e, bool gag)
+bool checkNewEscape(ref Scope sc, Expression e, bool gag)
 {
     import dmd.globals: FeatureState;
     import dmd.errors: previewErrorFunc;
@@ -1084,7 +1084,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
             const(char)* msg = v.isParameter() ?
                 "copying `%s` into allocated memory escapes a reference to parameter `%s`" :
                 "copying `%s` into allocated memory escapes a reference to local variable `%s`";
-            return sc.setUnsafePreview(fs, gag, e.loc, msg, e, v);
+            return setUnsafePreview(&sc, fs, gag, e.loc, msg, e, v);
         }
 
         if (v.isDataseg())
@@ -1161,7 +1161,7 @@ bool checkNewEscape(Scope* sc, Expression e, bool gag)
  *      `true` if pointers to the stack can escape
  */
 public
-bool checkReturnEscape(Scope* sc, Expression e, bool gag)
+bool checkReturnEscape(ref Scope sc, Expression e, bool gag)
 {
     //printf("[%s] checkReturnEscape, e: %s\n", e.loc.toChars(), e.toChars());
     return checkReturnEscapeImpl(sc, e, false, gag);
@@ -1179,7 +1179,7 @@ bool checkReturnEscape(Scope* sc, Expression e, bool gag)
  *      `true` if references to the stack can escape
  */
 public
-bool checkReturnEscapeRef(Scope* sc, Expression e, bool gag)
+bool checkReturnEscapeRef(ref Scope sc, Expression e, bool gag)
 {
     version (none)
     {
@@ -1201,7 +1201,7 @@ bool checkReturnEscapeRef(Scope* sc, Expression e, bool gag)
  * Returns:
  *      `true` if references to the stack can escape
  */
-private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
+private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool gag)
 {
     enum log = false;
     if (log) printf("[%s] checkReturnEscapeImpl, refs: %d e: `%s`\n", e.loc.toChars(), refs, e.toChars());
@@ -1311,7 +1311,7 @@ private bool checkReturnEscapeImpl(Scope* sc, Expression e, bool refs, bool gag)
 
             if (v.isParameter() && v.isReference())
             {
-                if (sc.setUnsafePreview(featureState, gag, e.loc, msg, e, v) ||
+                if (setUnsafePreview(&sc, featureState, gag, e.loc, msg, e, v) ||
                     sc.func.isSafeBypassingInference())
                 {
                     result = true;
@@ -2587,10 +2587,10 @@ private void addMaybe(VarDeclaration va, VarDeclaration v)
 
 // `setUnsafePreview` partially evaluated for dip1000
 public
-bool setUnsafeDIP1000(Scope* sc, bool gag, Loc loc, const(char)* msg,
+bool setUnsafeDIP1000(ref Scope sc, bool gag, Loc loc, const(char)* msg,
     RootObject arg0 = null, RootObject arg1 = null, RootObject arg2 = null)
 {
-    return setUnsafePreview(sc, sc.useDIP1000, gag, loc, msg, arg0, arg1, arg2);
+    return setUnsafePreview(&sc, sc.useDIP1000, gag, loc, msg, arg0, arg1, arg2);
 }
 
 /***************************************
@@ -2607,7 +2607,7 @@ bool setUnsafeDIP1000(Scope* sc, bool gag, Loc loc, const(char)* msg,
  * Returns:
  *     true if taking the address of `v` is problematic because of the lack of transitive `scope`
  */
-private bool checkScopeVarAddr(VarDeclaration v, Expression e, Scope* sc, bool gag)
+private bool checkScopeVarAddr(VarDeclaration v, Expression e, ref Scope sc, bool gag)
 {
     if (v.storage_class & STC.temp)
         return false;
