@@ -2663,11 +2663,11 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                      */
                     Scope* sc2 = sc.push();
                     sc2.eSink = global.errorSinkNull;
-                    bool err = checkReturnEscapeRef(sc2, rs.exp, true);
+                    bool err = checkReturnEscapeRef(*sc2, rs.exp, true);
                     sc2.pop();
 
                     if (err)
-                        turnOffRef(() { checkReturnEscapeRef(sc, rs.exp, false); });
+                        turnOffRef(() { checkReturnEscapeRef(*sc, rs.exp, false); });
                     else if (!rs.exp.type.constConv(tf.next))
                         turnOffRef(
                             () => rs.loc.errorSupplemental("cannot implicitly convert `%s` of type `%s` to `%s`",
@@ -3701,7 +3701,7 @@ public bool throwSemantic(const ref Loc loc, ref Expression exp, Scope* sc)
         exp.loc.deprecation("cannot throw object of qualified type `%s`", exp.type.toChars());
         //return false;
     }
-    checkThrowEscape(sc, exp, false);
+    checkThrowEscape(*sc, exp, false);
 
     ClassDeclaration cd = exp.type.toBasetype().isClassHandle();
     if (!cd || ((cd != ClassDeclaration.throwable) && !ClassDeclaration.throwable.isBaseOf(cd, null)))

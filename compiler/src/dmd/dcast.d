@@ -2257,7 +2257,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         Type tb = t.toBasetype();
         if (tb.ty == Tarray)
         {
-            if (checkArrayLiteralEscape(sc, ae, false))
+            if (checkArrayLiteralEscape(*sc, ae, false))
             {
                 return ErrorExp.get();
             }

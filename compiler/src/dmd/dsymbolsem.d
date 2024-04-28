@@ -1258,7 +1258,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                                 {
                                     import dmd.escape : setUnsafeDIP1000;
                                     const inSafeFunc = sc.func && sc.func.isSafeBypassingInference();   // isSafeBypassingInference may call setUnsafe().
-                                    if (sc.setUnsafeDIP1000(false, dsym.loc, "`scope` allocation of `%s` requires that constructor be annotated with `scope`", dsym))
+                                    if (setUnsafeDIP1000(*sc, false, dsym.loc, "`scope` allocation of `%s` requires that constructor be annotated with `scope`", dsym))
                                         errorSupplemental(ne.member.loc, "is the location of the constructor");
                                 }
                                 ne.onstack = 1;
