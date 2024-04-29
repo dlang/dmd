@@ -6171,6 +6171,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else if (t1.ty == Tclass)
             {
+                // upcast `Base(child)`
+                if (exp.e1.op == EXP.type && exp.arguments.length == 1 &&
+                    (*exp.arguments)[0].type.implicitConvTo(t1))
+                {
+                    Expression e = new CastExp(exp.loc, (*exp.arguments)[0], t1);
+                    e = e.expressionSemantic(sc);
+                    result = e;
+                    return;
+                }
             L1:
                 // Rewrite as e1.call(arguments)
                 Expression e = new DotIdExp(exp.loc, exp.e1, Id.call);
