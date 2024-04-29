@@ -158,7 +158,7 @@ bool checkMutableArguments(ref Scope sc, FuncDeclaration fd, TypeFunction tf,
 
         void onRef(VarDeclaration v, bool transition) { eb.byref.push(v); }
         void onValue(VarDeclaration v) { eb.byvalue.push(v); }
-        void onFunc(FuncDeclaration fd) {}
+        void onFunc(FuncDeclaration fd, bool called) {}
         void onExp(Expression e, bool transition) {}
 
         scope EscapeByResults er = EscapeByResults(&onRef, &onValue, &onFunc, &onExp);
@@ -417,7 +417,7 @@ bool checkParamArgumentEscape(ref Scope sc, FuncDeclaration fdc, Identifier parI
         }
     }
 
-    void onFunc(FuncDeclaration fd)
+    void onFunc(FuncDeclaration fd, bool called)
     {
         //printf("fd = %s, %d\n", fd.toChars(), fd.tookAddressOf);
         if (parStc & STC.scope_)
@@ -862,7 +862,7 @@ bool checkAssignEscape(ref Scope sc, Expression e, bool gag, bool byRef)
         result |= sc.setUnsafeDIP1000(gag, ae.loc, "reference to local variable `%s` assigned to non-scope `%s`", v, e1);
     }
 
-    void onFunc(FuncDeclaration func)
+    void onFunc(FuncDeclaration func, bool called)
     {
         if (log) printf("byfunc: %s, %d\n", func.toChars(), func.tookAddressOf);
         VarDeclarations vars;
@@ -992,7 +992,7 @@ bool checkThrowEscape(ref Scope sc, Expression e, bool gag)
             notMaybeScope(v, new ThrowExp(e.loc, e));
         }
     }
-    void onFunc(FuncDeclaration fd) {}
+    void onFunc(FuncDeclaration fd, bool called) {}
     void onExp(Expression exp, bool retRefTransition) {}
 
     scope EscapeByResults er = EscapeByResults(&onRef, &onValue, &onFunc, &onExp);
@@ -1124,7 +1124,7 @@ bool checkNewEscape(ref Scope sc, Expression e, bool gag)
         }
     }
 
-    void onFunc(FuncDeclaration fd) {}
+    void onFunc(FuncDeclaration fd, bool called) {}
 
     void onExp(Expression ee, bool retRefTransition)
     {
@@ -1236,15 +1236,20 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
                  *        return s;     // s is inferred as 'scope' but incorrectly tested in foo()
                  *    return null; }
                  */
-                !(!refs && p.parent == sc.func && pfunc.fes) &&
+                !(!refs && p.parent == sc.func && pfunc.fes)
+               )
+            {
                 /*
                  *  auto p(scope string s) {
                  *      string scfunc() { return s; }
                  *  }
                  */
-                !(!refs && sc.func.isFuncDeclaration().getLevel(pfunc, sc.intypeof) > 0)
-               )
-            {
+                if (sc.func.isFuncDeclaration().getLevel(pfunc, sc.intypeof) > 0 &&
+                    inferReturn(sc.func, sc.func.vthis, /*returnScope*/ !refs))
+                {
+                    return;
+                }
+
                 if (v.isParameter() && !v.isReturn())
                 {
                     // https://issues.dlang.org/show_bug.cgi?id=23191
@@ -1411,7 +1416,11 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
         }
     }
 
-    void onFunc(FuncDeclaration fd) {}
+    void onFunc(FuncDeclaration fd, bool called)
+    {
+        if (called && fd.isNested())
+            result |= sc.setUnsafeDIP1000(gag, e.loc, "escaping local variable through nested function `%s`", fd);
+    }
 
     void onExp(Expression ee, bool retRefTransition)
     {
@@ -1603,13 +1612,13 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool retRefTransi
             escapeByValue(e.e1, er, retRefTransition);
         else
             escapeByRef(e.e1, er, retRefTransition);
-        er.byFunc(e.func);
+        er.byFunc(e.func, false);
     }
 
     void visitFunc(FuncExp e)
     {
         if (e.fd.tok == TOK.delegate_)
-            er.byFunc(e.fd);
+            er.byFunc(e.fd, false);
     }
 
     void visitTuple(TupleExp e)
@@ -1860,7 +1869,12 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool retRefTransi
             if (fd && fd.isNested())
             {
                 if (tf.isreturn && tf.isScopeQual)
-                    er.byExp(e, false);
+                {
+                    if (tf.isreturnscope)
+                        er.byFunc(fd, true);
+                    else
+                        er.byExp(e, false);
+                }
             }
         }
 
@@ -1881,7 +1895,12 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool retRefTransi
             if (fd && fd.isNested())
             {
                 if (tf.isreturn && tf.isScopeQual)
-                    er.byExp(e, false);
+                {
+                    if (tf.isreturnscope)
+                        er.byFunc(fd, true);
+                    else
+                        er.byExp(e, false);
+                }
             }
         }
     }
@@ -2195,7 +2214,10 @@ struct EscapeByResults
     /// called on variables with values containing pointers
     void delegate(VarDeclaration) byValue;
     /// called on nested functions that are turned into delegates
-    void delegate(FuncDeclaration) byFunc;
+    /// When `called` is true, it means the delegate escapes variables
+    /// from the closure through a call to it, while `false` means the
+    /// delegate itself escapes.
+    void delegate(FuncDeclaration, bool called) byFunc;
     /// called when expression temporaries are being returned by ref / address
     void delegate(Expression, bool retRefTransition) byExp;
 

@@ -1996,7 +1996,7 @@ void escapeLive(Expression e, scope void delegate(VarDeclaration) onVar)
     scope EscapeByResults er = EscapeByResults(
         (VarDeclaration v, bool) => onVar(v),
         onVar,
-        (FuncDeclaration f) {},
+        (FuncDeclaration f, bool) {},
         (Expression e, bool) {},
         true,
     );
