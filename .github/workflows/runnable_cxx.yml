@@ -76,6 +76,10 @@ jobs:
           - { os: ubuntu-20.04, target: clang-10.0.0 }
           - { os: ubuntu-20.04, target: clang-9.0.0 }
           - { os: ubuntu-20.04, target: clang-8.0.0 }
+          - { os: ubuntu-20.04, target: msvc-2019 }
+          - { os: ubuntu-20.04, target: msvc-2017 }
+          - { os: ubuntu-20.04, target: msvc-2015 }
+          - { os: ubuntu-20.04, target: msvc-2013 }
           # OSX only supports clang
           - { os: macOS-11, target: g++-11 }
           - { os: macOS-11, target: g++-10 }
