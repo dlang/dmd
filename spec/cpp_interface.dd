@@ -235,7 +235,7 @@ static assert(foo() == 1 && bar() == 2);
 
 $(P Note that the `extern (C++, `ns`)` linkage attribute affects only the ABI (name mangling and calling convention) of
   these declarations. Importing them follows the usual
-  $(LINK2 spec/module, D module import semantics).)
+  $(LINK2 spec/module.html, D module import semantics).)
 
 $(P Alternatively, the non-string form can be used to introduce a scope. Note that the
     enclosing module already provides a scope for the symbols declared in the namespace.
