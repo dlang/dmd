@@ -153,6 +153,7 @@ class StructDeclaration : public AggregateDeclaration
 public:
     FuncDeclarations postblits; // Array of postblit functions
     FuncDeclaration *postblit;  // aggregate postblit
+    void* copyCtorQualifiers;   // source-destination qualifiers for the struct cpctors
 
     FuncDeclaration *xeq;       // TypeInfo_Struct.xopEquals
     FuncDeclaration *xcmp;      // TypeInfo_Struct.xopCmp

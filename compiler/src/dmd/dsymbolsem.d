@@ -206,6 +206,24 @@ bool checkDeprecated(Dsymbol d, const ref Loc loc, Scope* sc)
     return true;
 }
 
+/**
+   Fit two mods in a ushort. This is used to create a
+   mod key that represents the source and destination
+   qualifiers for a copy constructor. The result of this
+   function is used as a key in a hashtable.
+
+Params:
+    mod1 = qualifier for source
+    mod2 = qualifier for destination
+
+Returns:
+    The qualifiers key
+*/
+ModBits createModKey(MOD mod1, MOD mod2)
+{
+    return ((mod1 << 8) | mod2);
+}
+
 /*********************************
  * Check type to see if it is based on a deprecated symbol.
  */
@@ -2489,6 +2507,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 {
                     //printf("copy constructor\n");
                     ctd.isCpCtor = true;
+                    ModBits key = createModKey(param.type.mod, tf.mod);
+                    sd.copyCtorsQualifiers[key] = true;
                 }
             }
         }

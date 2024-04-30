@@ -687,7 +687,7 @@ T* emplace(T, Args...)(void[] chunk, auto ref Args args)
     }
     SS2 ss2 = void;
     emplace(&ss2);
-    static assert(!__traits(compiles, emplace(&ss2, ss2))); // copying disabled
+    static assert(__traits(compiles, emplace(&ss2, ss2))); // copying works because the copy constructor has priority over postblit
     static assert(__traits(compiles, emplace(&ss2, SS2.init))); // move is OK
 
 
