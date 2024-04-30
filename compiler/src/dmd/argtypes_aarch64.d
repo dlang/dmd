@@ -18,7 +18,7 @@ import dmd.mtype;
  * This breaks a type down into 'simpler' types that can be passed to a function
  * in registers, and returned in registers.
  * This is the implementation for the AAPCS64 ABI, based on
- * https://github.com/ARM-software/abi-aa/blob/master/aapcs64/aapcs64.rst.
+ * $(LINK https://github.com/ARM-software/abi-aa/blob/master/aapcs64/aapcs64.rst).
  * Params:
  *      t = type to break down
  * Returns:
