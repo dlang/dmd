@@ -1,0 +1,12 @@
+`ref` can now be applied to local, static, extern, and global variables
+
+For example, one can now write:
+```
+void main()
+{
+    int i;
+    ref int r = i;
+    r = 3;
+    assert(i == 3);
+}
+```
