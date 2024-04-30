@@ -2809,7 +2809,7 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, regm_t* pretregs, regm_t 
     for (int i = 0; i < cinfo.pop87; i++)
         pop87();
 
-    if (config.target_cpu >= TARGET_80386 && clib == CLIB.lmul && !I32)
+    if (clib == CLIB.lmul && !I32)
     {
         static immutable ubyte[23] lmul =
         [
@@ -4025,7 +4025,7 @@ static if (0)
                 // the stack walker evaluates the return address, not a byte of the
                 // call instruction, so ensure there is an instruction byte after
                 // the call that still has the same line number information
-                cdb.gen1(config.target_cpu >= TARGET_80286 ? UD2 : INT3);
+                cdb.gen1(UD2);
             }
             /* Function never returns, so don't need to generate stack
              * cleanup code. But still need to log the stack cleanup
@@ -4453,7 +4453,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                 pushsize = 2;
                 op16 = 1;
             }
-            else if (I16 && config.target_cpu >= TARGET_80386 && (sz & 3) == 0)
+            else if (I16 && (sz & 3) == 0)
             {
                 pushsize = 4;       // push DWORDs at a time
                 op16 = 1;
@@ -4624,14 +4624,6 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                 if (sz == REGSIZE)
                     goto case OPvar;    // handle it with loadea()
 
-                // Avoid PUSH MEM on the Pentium when optimizing for speed
-                if (config.flags4 & CFG4speed &&
-                    (config.target_cpu >= TARGET_80486 &&
-                     config.target_cpu <= TARGET_PentiumMMX) &&
-                    sz <= 2 * REGSIZE &&
-                    !tyfloating(tym))
-                    break;
-
                 if (tym == TYldouble || tym == TYildouble || tycomplex(tym))
                     break;
 
@@ -4734,7 +4726,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                             (((fl == FLfunc || s.ty() & mTYcs) ? 1 : segfl[fl]) << 3));
                     cdb.genadjesp(REGSIZE);
 
-                    if (config.target_cpu >= TARGET_80286 && !e.Ecount)
+                    if (!e.Ecount)
                     {
                         getoffset(cdb, e, STACK);
                         freenode(e);
@@ -4750,7 +4742,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                     }
                     return;
                 }
-                if (config.target_cpu >= TARGET_80286 && !e.Ecount)
+                if (!e.Ecount)
                 {
                     stackpush += sz;
                     if (_tysize[tym] == tysize(TYfptr))
@@ -4769,21 +4761,13 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
 
         case OPvar:
         L1:
-            if (config.flags4 & CFG4speed &&
-                     (config.target_cpu >= TARGET_80486 &&
-                      config.target_cpu <= TARGET_PentiumMMX) &&
-                     sz <= 2 * REGSIZE &&
-                     !tyfloating(tym))
-            {   // Avoid PUSH MEM on the Pentium when optimizing for speed
-                break;
-            }
-            else if (movOnly(e) || (tyxmmreg(tym) && config.fpxmmregs) || tyvector(tym))
+            if (movOnly(e) || (tyxmmreg(tym) && config.fpxmmregs) || tyvector(tym))
                 break;                      // no PUSH MEM
             else
             {
                 int regsize = REGSIZE;
                 uint flag = 0;
-                if (I16 && config.target_cpu >= TARGET_80386 && sz > 2 &&
+                if (I16 && sz > 2 &&
                     !e.Ecount)
                 {
                     regsize = 4;
@@ -4843,18 +4827,13 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
             if (!I16 && i == 2)
                 flag = CFopsize;
 
-            if (config.target_cpu >= TARGET_80286)
-    //       && (e.Ecount == 0 || e.Ecount != e.Ecomsub))
+
+            pushi = 1;
+            if (I16 && i >= 4)
             {
-                pushi = 1;
-                if (I16 && config.target_cpu >= TARGET_80386 && i >= 4)
-                {
-                    regsize = 4;
-                    flag = CFopsize;
-                }
+                regsize = 4;
+                flag = CFopsize;
             }
-            else if (i == REGSIZE)
-                break;
 
             stackpush += sz;
             cdb.genadjesp(cast(int)sz);
@@ -5449,7 +5428,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
             assert(forregs & BYTEREGS);
             if (!I16)
             {
-                if (config.target_cpu >= TARGET_PentiumPro && config.flags4 & CFG4speed &&
+                if (config.flags4 & CFG4speed &&
                     // Workaround for OSX linker bug:
                     //   ld: GOT load reloc does not point to a movq instruction in test42 for x86_64
                     !(config.exe & EX_OSX64 && !(sytab[e.EV.Vsym.Sclass] & SCSS))
@@ -5494,7 +5473,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
         else if (sz <= REGSIZE)
         {
             opcode_t opmv = 0x8B;                     // MOV reg,data
-            if (sz == 2 && !I16 && config.target_cpu >= TARGET_PentiumPro &&
+            if (sz == 2 && !I16 &&
                 // Workaround for OSX linker bug:
                 //   ld: GOT load reloc does not point to a movq instruction in test42 for x86_64
                 !(config.exe & EX_OSX64 && !(sytab[e.EV.Vsym.Sclass] & SCSS))
