@@ -366,7 +366,8 @@ extern (C++) abstract class Declaration : Dsymbol
         {
             if (ctor.isCpCtor && ctor.isGenerated())
             {
-                .error(loc, "generating an `inout` copy constructor for `struct %s` failed, therefore instances of it are uncopyable", parent.toPrettyChars());
+                .error(loc, "generated copy constructor of type `%s` is disabled", ctor.type.toChars());
+                .errorSupplemental(loc, "some of the field types of struct `%s` do not define a copy constructor that can handle such copies", toParent().toChars());
                 return true;
             }
         }

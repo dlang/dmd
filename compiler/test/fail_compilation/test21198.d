@@ -3,7 +3,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test21198.d(23): Error: generating an `inout` copy constructor for `struct test21198.U` failed, therefore instances of it are uncopyable
+fail_compilation/test21198.d(24): Error: generated copy constructor of type `inout ref @system inout(U)(return ref scope inout(U) p)` is disabled
+fail_compilation/test21198.d(24):        some of the field types of struct `U` do not define a copy constructor that can handle such copies
 ---
 */
 
