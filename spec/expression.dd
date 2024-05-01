@@ -1861,20 +1861,8 @@ $(GNAME PrimaryExpression):
     $(D .) $(IDENTIFIER)
     $(GLINK2 template, TemplateInstance)
     $(D .) $(GLINK2 template, TemplateInstance)
-    $(RELATIVE_LINK2 this, $(D this))
-    $(RELATIVE_LINK2 super, $(D super))
-    $(RELATIVE_LINK2 null, $(D null))
-    $(LEGACY_LNAME2 true_false)$(DDSUBLINK spec/type, bool, `true`)
-    $(DDSUBLINK spec/type, bool, `false`)
     $(RELATIVE_LINK2 IndexOperation, `$`)
-    $(GLINK_LEX IntegerLiteral)
-    $(GLINK_LEX FloatLiteral)
-    $(LEGACY_LNAME2 CharacterLiteral)$(LEGACY_LNAME2 character-literal)$(GLINK_LEX CharacterLiteral)
-    $(RELATIVE_LINK2 string_literals, *StringLiteral*)
-    $(GLINK2 istring, InterpolationExpressionSequence)
-    $(GLINK ArrayLiteral)
-    $(GLINK AssocArrayLiteral)
-    $(GLINK FunctionLiteral)
+    $(GLINK LiteralExpression)
     $(GLINK AssertExpression)
     $(GLINK MixinExpression)
     $(GLINK ImportExpression)
@@ -1890,12 +1878,40 @@ $(GNAME PrimaryExpression):
     $(D $(LPAREN)) $(GLINK Expression) $(D $(RPAREN))
     $(GLINK SpecialKeyword)
     $(GLINK2 traits, TraitsExpression)
+
+$(GNAME LiteralExpression):
+    $(RELATIVE_LINK2 this, $(D this))
+    $(RELATIVE_LINK2 super, $(D super))
+    $(RELATIVE_LINK2 null, $(D null))
+    $(LEGACY_LNAME2 true_false)$(DDSUBLINK spec/type, bool, `true`)
+    $(DDSUBLINK spec/type, bool, `false`)
+    $(GLINK_LEX IntegerLiteral)
+    $(GLINK_LEX FloatLiteral)
+    $(LEGACY_LNAME2 CharacterLiteral)$(LEGACY_LNAME2 character-literal)$(GLINK_LEX CharacterLiteral)
+    $(RELATIVE_LINK2 string_literals, *StringLiteral*)
+    $(GLINK2 istring, InterpolationExpressionSequence)
+    $(GLINK ArrayLiteral)
+    $(GLINK AssocArrayLiteral)
+    $(GLINK FunctionLiteral)
 )
 
-$(H3 $(LNAME2 identifier, .Identifier))
-
-    $(P See $(DDSUBLINK spec/module, module_scope_operators, Module Scope
-        Operator).)
+$(TABLE
+$(THEAD Expression, Description)
+$(TROW $(LNAME2 identifier, `.` *Identifier*),
+    $(DDSUBLINK spec/module, module_scope_operators, Module Scope Operator))
+$(TROW `$`, Number of elements in an object $(RELATIVE_LINK2 IndexOperation,
+    being indexed/sliced).)
+$(TROW `(` *Type* `).` *Identifier*,
+    Access a $(DDLINK spec/property, Properties, type property) or a
+    $(DDSUBLINK spec/attribute, static, static member) of a type.)
+$(TROW *FundamentalType* `(arg)`,
+    $(RELATIVE_LINK2 uniform_construction_syntax, Uniform construction) of scalar
+    type with optional argument.)
+$(TROW `(` *Type* `)(args)`,
+    Construct a type with optional arguments.)
+$(TROW `(` *Expression* `)`, Evaluate an expression - useful as a
+    $(RELATIVE_LINK2 .define-full-expression, subexpression).)
+)
 
 $(H3 $(LNAME2 this, this))
 
