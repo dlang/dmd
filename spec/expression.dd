@@ -1591,16 +1591,23 @@ $(GNAME PostfixExpression):
 )
 
 $(TABLE
-    $(THEAD Operator, Description)
-    $(TROW `.`,
+    $(THEAD Operation, Description)
+    $(TROW `.` *Identifier*,
         Either:
         * Access a $(DDLINK spec/property, Properties, property) of a type or expression.
         * Access a member of a module, package, aggregate type or instance, enum
           or template instance.
         * Call a free function using $(DDSUBLINK spec/function, pseudo-member, UFCS).
     )
+    $(TROW `.` *NewExpression*, Instantiate a $(DDSUBLINK spec/class, nested-explicit,
+        nested class))
     $(TROW `++`, Increment after use - see $(RELATIVE_LINK2 order-of-evaluation, order of evaluation))
     $(TROW `--`, Decrement after use)
+    $(TROW `(args)`,
+        Either:
+        * Call an expression with optional arguments
+        * Construct a type with optional arguments
+    )
     $(TROW *IndexOperation*, Select a single element)
     $(TROW *SliceOperation*, Select a series of elements)
 )
@@ -1623,14 +1630,26 @@ $(GNAME NamedArgument):
     $(GLINK AssignExpression)
 )
 
-    $(P A callable expression can precede a list of named arguments in parentheses.)
+    $(P A callable expression can precede a list of named arguments in parentheses.
+        The following expressions can be called:)
 
+        * A function
+        * A function pointer
+        * A delegate
+        * An aggregate type instance which defines
+          $(DDSUBLINK spec/operatoroverloading, function-call, `opCall`)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 void f(int, int);
 
-f(5, 6);
-(&f)(5, 6);
+void g()
+{
+    f(5, 6);
+    (&f)(5, 6);
+}
 ---
+)
 
 $(H4 $(LNAME2 argument-parameter-matching, Matching Arguments to Parameters))
 
