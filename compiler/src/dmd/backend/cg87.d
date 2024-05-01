@@ -273,8 +273,7 @@ void note87(elem *e, uint offset, int i, int linnum)
     }
     assert(i < global87.stackused);
 
-    while (e.Eoper == OPcomma)
-        e = e.EV.E2;
+    e = *el_scancommas(&e);
     global87.stack[i].e = e;
     global87.stack[i].offset = offset;
 }
@@ -310,8 +309,7 @@ private void makesure87(ref CodeBuilder cdb,elem *e,uint offset,int i,uint flag,
 {
     debug if (NDPP) printf("makesure87(e=%p, offset=%d, i=%d, flag=%d, line=%d)\n",e,offset,i,flag,linnum);
 
-    while (e.Eoper == OPcomma)
-        e = e.EV.E2;
+    e = *el_scancommas(&e);
     assert(e && i < 4);
 L1:
     if (global87.stack[i].e != e || global87.stack[i].offset != offset)
@@ -2021,8 +2019,7 @@ void eq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         if (*pretregs & (mST0 | ALLREGS | mBP | XMMREGS)) // if want result on stack too
         {   // Make sure it's still there
             elem *e2 = e.EV.E2;
-            while (e2.Eoper == OPcomma)
-                e2 = e2.EV.E2;
+            e2 = *el_scancommas(&e2);
             note87(e2,0,0);
             getlvalue87(cdb, cs, e.EV.E1, 0);
             makesure87(cdb,e2,0,0,1);

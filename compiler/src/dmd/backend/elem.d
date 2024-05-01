@@ -1180,14 +1180,16 @@ bool el_returns(const(elem)* e)
 
 /********************************
  * Scan down commas and return the controlling elem.
+ * Extra layer of indirection so we can update
+ * (*ret)
  */
 
 @trusted
-elem *el_scancommas(elem *e)
+elem **el_scancommas(elem **pe)
 {
-    while (e.Eoper == OPcomma)
-        e = e.EV.E2;
-    return e;
+    while ((*pe).Eoper == OPcomma)
+        pe = &(*pe).EV.E2;
+    return pe;
 }
 
 /***************************

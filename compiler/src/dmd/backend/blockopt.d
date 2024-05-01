@@ -851,8 +851,7 @@ private void bropt()
     {
         elem **pn = &(b.Belem);
         if (OPTIMIZER && *pn)
-            while ((*pn).Eoper == OPcomma)
-                pn = &((*pn).EV.E2);
+            pn = el_scancommas(pn);
 
         elem *n = *pn;
 
@@ -927,8 +926,7 @@ private void bropt()
         }
         else if (b.BC == BCswitch)
         {   /* see we can evaluate this switch now  */
-            while (n.Eoper == OPcomma)
-                n = n.EV.E2;
+            n = *el_scancommas(&n);
             if (n.Eoper != OPconst)
                 continue;
             assert(tyintegral(n.Ety));
@@ -1803,20 +1801,13 @@ private void brtailrecursion()
             if (el_anyframeptr(*pe))    // if any OPframeptr's
                 return;
 
-            static elem** skipCommas(elem** pe)
-            {
-                while ((*pe).Eoper == OPcomma)
-                    pe = &(*pe).EV.E2;
-                return pe;
-            }
-
-            pe = skipCommas(pe);
+            pe = el_scancommas(pe);
 
             elem *e = *pe;
 
             static bool isCandidate(elem* e)
             {
-                e = *skipCommas(&e);
+                e = *el_scancommas(&e);
                 if (e.Eoper == OPcond)
                     return isCandidate(e.EV.E2.EV.E1) || isCandidate(e.EV.E2.EV.E2);
 
@@ -1990,9 +1981,7 @@ private void emptyloops()
                 continue;
 
             // Find einit
-            elem *einit;
-            for (einit = bpred.Belem; einit.Eoper == OPcomma; einit = einit.EV.E2)
-            { }
+            elem *einit = *el_scancommas(&(bpred.Belem));
             if (einit.Eoper != OPeq ||
                 einit.EV.E2.Eoper != OPconst ||
                 einit.EV.E1.Eoper != OPvar)
