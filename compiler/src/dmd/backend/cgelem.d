@@ -3677,8 +3677,7 @@ elem * elstruct(elem *e, goal_t goal)
                 pe2 = &e.EV.E1;
             else
                 break;
-            while ((*pe2).Eoper == OPcomma)
-                pe2 = &(*pe2).EV.E2;
+            pe2 = el_scancommas(pe2);
             elem *e2 = *pe2;
 
             if (e2.Eoper == OPvar)

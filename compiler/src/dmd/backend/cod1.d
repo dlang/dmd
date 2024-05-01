@@ -84,8 +84,7 @@ int isscaledindex(elem *e)
     targ_uns ss;
 
     assert(!I16);
-    while (e.Eoper == OPcomma)
-        e = e.EV.E2;
+    e = *el_scancommas(&e);
     if (!(e.Eoper == OPshl && !e.Ecount &&
           e.EV.E2.Eoper == OPconst &&
           (ss = e.EV.E2.EV.Vuns) <= 3

@@ -1910,8 +1910,7 @@ public void verybusyexp()
         pn = &(b.Belem);
         if (*pn)
         {
-            while ((*pn).Eoper == OPcomma)
-                pn = &((*pn).EV.E2);
+            pn = el_scancommas(pn);
             /* If last statement has side effects,  */
             /* don't do these VBEs. Potentially we  */
             /* could by assigning the result to     */

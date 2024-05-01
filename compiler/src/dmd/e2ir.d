@@ -420,10 +420,7 @@ elem *addressElem(elem *e, Type t, bool alwaysCopy = false)
 {
     //printf("addressElem()\n");
 
-    elem **pe;
-    for (pe = &e; (*pe).Eoper == OPcomma; pe = &(*pe).EV.E2)
-    {
-    }
+    elem **pe  = el_scancommas(&e);
 
     // For conditional operator, both branches need conversion.
     if ((*pe).Eoper == OPcond)
