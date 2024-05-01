@@ -5969,9 +5969,18 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 goto Lexp;
             goto case;
 
+        // FunctionLiteral `auto ref (`
+        case TOK.auto_:
+            if (peekNext() == TOK.ref_ && peekNext2() == TOK.leftParenthesis)
+                goto Lexp;
+            goto Ldeclaration;
+        case TOK.ref_:
+            if (peekNext() == TOK.leftParenthesis)
+                goto Lexp;
+            goto Ldeclaration;
+
         case TOK.alias_:
         case TOK.const_:
-        case TOK.auto_:
         case TOK.abstract_:
         case TOK.extern_:
         case TOK.align_:
@@ -5981,7 +5990,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         case TOK.deprecated_:
         case TOK.nothrow_:
         case TOK.pure_:
-        case TOK.ref_:
         case TOK.gshared:
         case TOK.at:
         case TOK.struct_:
