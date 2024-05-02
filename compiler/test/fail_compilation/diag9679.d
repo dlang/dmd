@@ -3,10 +3,10 @@ TEST_OUTPUT:
 ---
 fail_compilation/diag9679.d(15): Error: variable `diag9679.main.n` - storage class `auto` has no effect if type is not inferred, did you mean `scope`?
 fail_compilation/diag9679.d(16): Error: variable `diag9679.main.S.a` - field declarations cannot be `ref`
-fail_compilation/diag9679.d(23): Error: returning `r` escapes a reference to local variable `r`
-fail_compilation/diag9679.d(30): Error: returning `r` escapes a reference to local variable `r`
+fail_compilation/diag9679.d(23): Error: returning `r` escapes a reference to local variable `i`
 ---
 */
+
 
 
 void main()
@@ -54,4 +54,3 @@ void test5()
 {
     ref int r5;
 }
-

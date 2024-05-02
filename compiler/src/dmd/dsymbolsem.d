@@ -1052,8 +1052,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
-        if ((dsym.storage_class & (STC.ref_ | STC.field)) == STC.ref_ && !dsym._init)
-            .error(dsym.loc, "%s `%s` - initializer is required for `ref` variable", dsym.kind, dsym.toPrettyChars, dsym.type.toChars());
+        if ((dsym.storage_class & (STC.ref_ | STC.field | STC.parameter | STC.temp | STC.foreach_)) == STC.ref_ && !dsym._init && dsym.ident != Id.This)
+            .error(dsym.loc, "%s `%s` - initializer is required for `ref` variable", dsym.kind, dsym.toPrettyChars);
 
         FuncDeclaration fd = parent.isFuncDeclaration();
         if (dsym.type.isscope() && !(dsym.storage_class & STC.nodtor))
