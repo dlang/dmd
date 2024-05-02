@@ -7,7 +7,7 @@ set -uexo pipefail
 
 # N: number of parallel build jobs
 if [ -z ${N+x} ] ; then echo "Variable 'N' needs to be set."; exit 1; fi
-# OS_NAME: linux|osx|freebsd|windows
+# OS_NAME: linux|osx|freebsd|openbsd|windows
 if [ -z ${OS_NAME+x} ] ; then echo "Variable 'OS_NAME' needs to be set."; exit 1; fi
 # FULL_BUILD: true|false (true on Linux: use full permutations for DMD tests)
 if [ -z ${FULL_BUILD+x} ] ; then echo "Variable 'FULL_BUILD' needs to be set."; exit 1; fi
@@ -58,7 +58,7 @@ clone() {
 
 # build dmd (incl. building and running the unittests), druntime, phobos
 build() {
-    if [ "$OS_NAME" != "windows" ]; then
+    if [[ "$OS_NAME" != "windows" && "$OS_NAME" != "openbsd" ]]; then
         source ~/dlang/*/activate # activate host compiler, incl. setting `DMD`
     fi
     $DMD compiler/src/build.d -ofgenerated/build
@@ -66,7 +66,7 @@ build() {
     generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=1 dmd
     make -j$N -C druntime MODEL=$MODEL
     make -j$N -C ../phobos MODEL=$MODEL
-    if [ "$OS_NAME" != "windows" ]; then
+    if [[ "$OS_NAME" != "windows" && "$OS_NAME" != "openbsd" ]]; then
         deactivate # deactivate host compiler
     fi
 }
@@ -128,7 +128,7 @@ test_phobos() {
 
 # test dub package
 test_dub_package() {
-    if [ "$OS_NAME" != "windows" ]; then
+    if [[ "$OS_NAME" != "windows" && "$OS_NAME" != "openbsd" ]]; then
         source ~/dlang/*/activate # activate host compiler
     fi
     # GDC's standard library is too old for some example scripts
@@ -152,7 +152,7 @@ test_dub_package() {
         # Test rdmd build
         "${build_path}/dmd" -version=NoBackend -version=GC -version=NoMain -Jgenerated/dub -Jsrc/dmd/res -Isrc -i -run test/dub_package/frontend.d
     fi
-    if [ "$OS_NAME" != "windows" ]; then
+    if [[ "$OS_NAME" != "windows" && "$OS_NAME" != "openbsd" ]]; then
         deactivate
     fi
 }
@@ -230,7 +230,7 @@ install_host_compiler() {
         echo "export DMD=gdmd-$gdc_version" > ~/dlang/gdc-$gdc_version/activate
         echo "deactivate(){ echo;}" >> ~/dlang/gdc-$gdc_version/activate
     fi
-  else
+  elif [[ "$OS_NAME" != "windows" && "$OS_NAME" != "openbsd" ]]; then
     local install_sh="install.sh"
     download_install_sh "$install_sh"
     CURL_USER_AGENT="$CURL_USER_AGENT" bash "$install_sh" "$HOST_DMD"

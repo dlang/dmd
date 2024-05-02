@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  main:
+  native:
     strategy:
       fail-fast: false
       matrix:
@@ -167,17 +167,23 @@ jobs:
         if: matrix.coverage
         run: ci/run.sh codecov
 
-  freebsd-vm:
+  vm:
     strategy:
       fail-fast: false
       matrix:
         include:
           - job_name: FreeBSD 13.2 x64, DMD (latest)
-            freebsd_version: '13.2'
+            guest: freebsd
+            guest_version: '13.2'
             host_dmd: dmd
           - job_name: FreeBSD 13.2 x64, DMD (bootstrap)
-            freebsd_version: '13.2'
+            guest: freebsd
+            guest_version: '13.2'
             host_dmd: dmd-2.095.0
+          - job_name: OpenBSD 7.4 x64, DMD (latest)
+            guest: openbsd
+            guest_version: '7.4'
+            host_dmd: dmd
     name: ${{ matrix.job_name }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -188,29 +194,36 @@ jobs:
       - name: Run in VM
         uses: cross-platform-actions/action@v0.23.0
         with:
-          operating_system: freebsd
+          operating_system: ${{ matrix.guest }}
+          version: ${{ matrix.guest_version }}
           hypervisor: qemu
           memory: 12G
           cpu_count: 4
           sync_files: runner-to-vm
-          version: ${{ matrix.freebsd_version }}
           shell: bash
           run: |
             set -uexo pipefail
 
-            freebsd_version='${{ matrix.freebsd_version }}'
-            freebsd_major="${freebsd_version:0:2}"
-
-            export OS_NAME=freebsd
+            export OS_NAME='${{ matrix.guest }}'
             export MODEL=64
             export HOST_DMD='${{ matrix.host_dmd }}'
-            export N="$(nproc)"
             export FULL_BUILD=true
-            export CI_DFLAGS="-version=TARGET_FREEBSD${freebsd_major}"
 
-            #if [[ "$freebsd_major" == 12 ]]; then
-            #  sudo sed -i '' -e 's|pkg.FreeBSD.org|mirrors.xtom.com/freebsd-pkg|' /etc/pkg/FreeBSD.conf
-            #fi
+            if [[ "$OS_NAME" == "freebsd" ]]; then
+              freebsd_version='${{ matrix.guest_version }}'
+              freebsd_major="${freebsd_version:0:2}"
+
+              #if [[ "$freebsd_major" == 12 ]]; then
+              #  sudo sed -i '' -e 's|pkg.FreeBSD.org|mirrors.xtom.com/freebsd-pkg|' /etc/pkg/FreeBSD.conf
+              #fi
+
+              export N="$(nproc)"
+              export CI_DFLAGS="-version=TARGET_FREEBSD${freebsd_major}"
+            elif [[ "$OS_NAME" == "openbsd" ]]; then
+              # cannot install host compiler via install.sh; the dmd package is installed as prerequisite
+              export DMD=dmd
+              export N="$(sysctl -n hw.ncpu)"
+            fi
 
             bash --version
 

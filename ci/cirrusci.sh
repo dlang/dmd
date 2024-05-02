@@ -6,7 +6,7 @@
 
 set -uexo pipefail
 
-# OS_NAME: linux|osx|freebsd
+# OS_NAME: linux|osx|freebsd|openbsd
 if [ -z ${OS_NAME+x} ] ; then echo "Variable 'OS_NAME' needs to be set."; exit 1; fi
 # MODEL: 32|64
 if [ -z ${MODEL+x} ] ; then echo "Variable 'MODEL' needs to be set."; exit 1; fi
@@ -37,4 +37,16 @@ elif [ "$OS_NAME" == "freebsd" ]; then
   rm /usr/bin/make
   ln -s /usr/local/bin/gmake /usr/bin/make
   ln -s /usr/local/bin/llvm-dwarfdump12 /usr/bin/llvm-dwarfdump
+elif [ "$OS_NAME" == "openbsd" ]; then
+  packages="dmd git gdiff gmake llvm%16"
+  pkg_add $packages
+  # replace default diff & make by GNU versions
+  rm /usr/bin/{diff,make}
+  ln -s /usr/local/bin/gdiff /usr/bin/diff
+  ln -s /usr/local/bin/gmake /usr/bin/make
+  ln -s /usr/local/bin/llvm-dwarfdump-16 /usr/bin/llvm-dwarfdump
+  dmd --version
+  diff --version
+  make --version
+  llvm-dwarfdump --version
 fi
