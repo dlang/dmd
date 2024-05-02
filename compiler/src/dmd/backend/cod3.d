@@ -469,16 +469,10 @@ void cod3_align(int seg)
     {
         if (config.flags4 & CFG4speed)      // if optimized for speed
         {
-            // Pick alignment based on CPU target
-            if (config.target_cpu == TARGET_80486 ||
-                config.target_cpu >= TARGET_PentiumPro)
-            {   // 486 does reads on 16 byte boundaries, so if we are near
-                // such a boundary, align us to it
-
-                const nbytes = -Offset(seg) & 15;
-                if (nbytes < 8)
-                    cod3_align_bytes(seg, nbytes);
-            }
+            //align to a 16 byte boundary if we're near one
+            const nbytes = -Offset(seg) & 15;
+            if (nbytes < 8)
+                cod3_align_bytes(seg, nbytes);
         }
     }
     else
@@ -2303,15 +2297,12 @@ static if (1)
             }
             else
             {
-                if (zero && config.target_cpu < TARGET_80386)
-                { }
-                else
-                    op = swaprel(op);
+                op = swaprel(op);
             }
 }
 else
 {
-            if (zero && !rel_exception(op) && config.target_cpu >= TARGET_80386)
+            if (zero && !rel_exception(op))
                 op = swaprel(op);
             else if (!zero &&
                 (cmporder87(e.EV.E2) || !(rel_exception(op) || config.flags4 & CFG4fastfloat)))
@@ -2529,7 +2520,6 @@ regm_t cod3_useBP()
 //    if (localsize)
     {
         if (!(config.flags4 & CFG4speed) ||
-            config.target_cpu < TARGET_Pentium ||
             tyfarfunc(tym) ||
             config.flags & CFGstack ||
             localsize >= 0x100 ||       // arbitrary value < 0x1000
@@ -2993,8 +2983,7 @@ void movregconst(ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags)
 
         /* Avoid byte register loads to avoid dependency stalls.
          */
-        if ((I32 || I64) &&
-            config.target_cpu >= TARGET_PentiumPro && !(flags & 4))
+        if ((I32 || I64) && !(flags & 4))
             goto L3;
 
         // See if another register has the right value
@@ -3137,7 +3126,7 @@ L3:
                     }
                     if (reg == DX &&
                         value == (regcon.immed.value[AX] & 0x80000000 ? 0xFFFFFFFF : 0) &&
-                        !(config.flags4 & CFG4speed && config.target_cpu >= TARGET_Pentium)
+                        !(config.flags4 & CFG4speed)
                        )
                     {
                         cdb.gen1(0x99);               // CDQ
@@ -3155,7 +3144,7 @@ L3:
 
                     if (reg == DX &&
                         cast(targ_short) value == (regcon.immed.value[AX] & 0x8000 ? cast(targ_short) 0xFFFF : cast(targ_short) 0) &&
-                        !(config.flags4 & CFG4speed && config.target_cpu >= TARGET_Pentium)
+                        !(config.flags4 & CFG4speed)
                        )
                     {
                         cdb.gen1(0x99);               // CWD
@@ -3163,7 +3152,7 @@ L3:
                     }
                 }
             }
-            if (value == 0 && !(flags & 8) && config.target_cpu >= TARGET_80486)
+            if (value == 0 && !(flags & 8))
             {
                 genregs(cdb,0x31,reg,reg);              // XOR reg,reg
                 goto done;
@@ -3209,7 +3198,7 @@ L3:
             else
             {   // See if we can just load a byte
                 if (regm & BYTEREGS &&
-                    !(config.flags4 & CFG4speed && config.target_cpu >= TARGET_PentiumPro)
+                    !(config.flags4 & CFG4speed)
                    )
                 {
                     if ((regv & ~cast(targ_size_t)0xFF) == (value & ~cast(targ_size_t)0xFF))
@@ -3305,7 +3294,7 @@ void prolog_ifunc(ref CodeBuilder cdb, tym_t* tyf)
                                     0x54,0x55,0x56,0x57,
                                     0x1E,0x06,0 ];
 
-    immutable(ubyte)* p = (config.target_cpu >= TARGET_80286) ? ops2.ptr : ops0.ptr;
+    immutable(ubyte)* p = ops2.ptr;
     do
         cdb.gen1(*p);
     while (*++p);
@@ -3426,16 +3415,14 @@ void prolog_frame(ref CodeBuilder cdb, bool farfunc, ref uint xlocalsize, out bo
 
     if (config.wflags & WFincbp && farfunc)
         cdb.gen1(0x40 + BP);      // INC  BP
-    if (config.target_cpu < TARGET_80286 ||
-        config.exe & (EX_posix | EX_WIN64) ||
+    if (config.exe & (EX_posix | EX_WIN64) ||
         !localsize ||
         config.flags & CFGstack ||
         (xlocalsize >= 0x1000 && config.exe & EX_flat) ||
         localsize >= 0x10000 ||
         (NTEXCEPTIONS == 2 &&
          (usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags3 & Feh_none) || config.ehmethod == EHmethod.EH_SEH))) ||
-        (config.target_cpu >= TARGET_80386 &&
-         config.flags4 & CFG4speed)
+        (config.flags4 & CFG4speed)
        )
     {
         cdb.gen1(0x50 + BP);      // PUSH BP
@@ -4363,7 +4350,7 @@ void epilog(block *b)
                                         0x59,0x58,0xCF,0 ];
 
         genregs(cdbx,0x8B,SP,BP);              // MOV SP,BP
-        auto p = (config.target_cpu >= TARGET_80286) ? ops2.ptr : ops0.ptr;
+        auto p = ops2.ptr;
         do
             cdbx.gen1(*p);
         while (*++p);
@@ -4485,9 +4472,7 @@ void epilog(block *b)
                     cdbx.genc1(LEA,(REX_W<<16)|modregrm(2,SP,BPRM),FLconst,0);
                     cdbx.gen1(0x58 + BP);      // POP RBP
                 }
-                else if (config.target_cpu >= TARGET_80286 &&
-                    !(config.target_cpu >= TARGET_80386 && config.flags4 & CFG4speed)
-                   )
+                else if (!(config.flags4 & CFG4speed))
                     cdbx.gen1(LEAVE);          // LEAVE
                 else if (0 && xlocalsize == REGSIZE && Alloca.size == 0 && I32)
                 {   // This doesn't work - I should figure out why
@@ -5034,7 +5019,6 @@ int branch(block *bl,int flag)
                     // Replace a cond jump around a call to a function that
                     // never returns with a cond jump to that function.
                     if (config.flags4 & CFG4optimized &&
-                        config.target_cpu >= TARGET_80386 &&
                         disp == (I16 ? 3 : 5) &&
                         cn &&
                         cn.Iop == CALL &&
@@ -5719,8 +5703,7 @@ void pinholeopt(code *c,block *b)
 
                         // If EA is not SI or DI
                         if ((rm < modregrm(3,4,SP) || I64) &&
-                            (config.flags4 & CFG4space ||
-                             config.target_cpu < TARGET_PentiumPro)
+                            (config.flags4 & CFG4space)
                            )
                         {
                             if ((u & 0xFFFFFF00) == 0xFFFFFF00)
@@ -5832,10 +5815,7 @@ void pinholeopt(code *c,block *b)
                     }
 
                     // If EA is not SI or DI
-                    if (rm < (modregrm(3,0,SP) | reg) &&
-                        (usespace ||
-                         config.target_cpu < TARGET_PentiumPro)
-                       )
+                    if (rm < (modregrm(3,0,SP) | reg) && usespace)
                     {
                         if ((u & 0xFFFFFF00) == 0)
                         {
@@ -6013,8 +5993,7 @@ void pinholeopt(code *c,block *b)
 
             // Look to replace SHL reg,1 with ADD reg,reg
             if ((op & ~1) == 0xD0 &&
-                     (rm & modregrm(3,7,0)) == modregrm(3,4,0) &&
-                     config.target_cpu >= TARGET_80486)
+                     (rm & modregrm(3,7,0)) == modregrm(3,4,0))
             {
                 c.Iop &= 1;
                 c.Irm = cast(ubyte)((rm & modregrm(3,0,7)) | (ereg << 3));
