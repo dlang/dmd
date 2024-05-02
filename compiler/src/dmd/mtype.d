@@ -4558,6 +4558,24 @@ extern (C++) final class TypeTuple : Type
     {
         v.visit(this);
     }
+
+    override final Type makeImmutable()
+    {
+        if (mcache && mcache.ito)
+        {
+            assert(mcache.ito.isImmutable());
+            return mcache.ito;
+        }
+        TypeTuple t = cast(TypeTuple) Type.makeImmutable();
+        if (arguments)
+        {
+            foreach (ref arg; *t.arguments)
+            {
+                arg.type = arg.type.immutableOf();
+            }
+        }
+        return t;
+    }
 }
 
 /***********************************************************
