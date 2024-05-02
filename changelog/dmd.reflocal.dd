@@ -2,11 +2,13 @@
 
 For example, one can now write:
 ```
+struct S { int a; }
+
 void main()
 {
-    int i;
-    ref int r = i;
+    S s;
+    ref int r = s.a;
     r = 3;
-    assert(i == 3);
+    assert(s.a == 3);
 }
 ```

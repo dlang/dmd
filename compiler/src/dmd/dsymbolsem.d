@@ -60,6 +60,7 @@ import dmd.objc;
 import dmd.opover;
 import dmd.optimize;
 import dmd.parse;
+debug import dmd.printast;
 import dmd.root.array;
 import dmd.root.filename;
 import dmd.common.outbuffer;
@@ -1063,8 +1064,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
-        if ((dsym.storage_class & (STC.ref_ | STC.field)) == STC.ref_ && !dsym._init)
-            .error(dsym.loc, "%s `%s` - initializer is required for `ref` variable", dsym.kind, dsym.toPrettyChars, dsym.type.toChars());
+        bool dsymIsRef = (dsym.storage_class & (STC.ref_ | STC.field | STC.parameter | STC.temp | STC.foreach_)) == STC.ref_;
+        if (dsymIsRef)
+        {
+            if (!dsym._init && dsym.ident != Id.This)
+                .error(dsym.loc, "%s `%s` - initializer is required for `ref` variable", dsym.kind, dsym.toPrettyChars);
+        }
 
         FuncDeclaration fd = parent.isFuncDeclaration();
         if (dsym.type.isScopeClass() && !(dsym.storage_class & STC.nodtor))
@@ -1297,21 +1302,48 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                     Expression exp = ei.exp;
                     Expression e1 = new VarExp(dsym.loc, dsym);
-                    if (isBlit)
-                        exp = new BlitExp(dsym.loc, e1, exp);
+                    if (dsymIsRef) // follow logic similar to typesem.argumentMatchParameter() and statementsem.visitForeach()
+                    {
+                        dsym.storage_class |= STC.nodtor;
+                        exp = exp.expressionSemantic(sc);
+                        Type tp = dsym.type;
+                        Type ta = exp.type;
+                        if (!exp.isLvalue())
+                        {
+                            .error(dsym.loc, "rvalue `%s` cannot be assigned to `ref %s`", exp.toChars(), dsym.toChars());
+                            exp = ErrorExp.get();
+                        }
+                        else if (!ta.constConv(tp))
+                        {
+                            .error(dsym.loc, "type `%s` cannot be assigned to `ref %s %s`", ta.toChars(), tp.toChars(), dsym.toChars());
+                            exp = ErrorExp.get();
+                        }
+                        else
+                        {
+                            exp = new ConstructExp(dsym.loc, e1, exp);
+                            dsym.canassign++;
+                            exp = exp.expressionSemantic(sc);
+                            dsym.canassign--;
+                        }
+                    }
                     else
-                        exp = new ConstructExp(dsym.loc, e1, exp);
-                    dsym.canassign++;
-                    exp = exp.expressionSemantic(sc);
-                    dsym.canassign--;
-                    exp = exp.optimize(WANTvalue);
+                    {
+                        if (isBlit)
+                            exp = new BlitExp(dsym.loc, e1, exp);
+                        else
+                            exp = new ConstructExp(dsym.loc, e1, exp);
+                        dsym.canassign++;
+                        exp = exp.expressionSemantic(sc);
+                        dsym.canassign--;
+                    }
+
                     if (exp.op == EXP.error)
                     {
                         dsym._init = new ErrorInitializer();
                         ei = null;
                     }
                     else
-                        ei.exp = exp;
+                        ei.exp = exp.optimize(WANTvalue);
                 }
                 else
                 {
