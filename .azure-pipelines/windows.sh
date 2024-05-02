@@ -31,9 +31,11 @@ GNU_MAKE="$(which make)" # must be done before installing dmc (tampers with PATH
 if [ "$MODEL" == "32omf" ] ; then
     install_host_dmc
     CC="$PWD/dm/bin/dmc.exe"
+    CXX="$PWD/dm/bin/dmc.exe"
     export CPPCMD="$PWD/dm/bin/sppn.exe"
 else
     CC="cl.exe"
+    CXX="cl.exe"
 fi
 
 ################################################################################
@@ -139,7 +141,7 @@ if [ "$HOST_DMD_VERSION" = "2.079.0" ] ; then
     targets=("runnable" "compilable" "fail_compilation" "dshell")
     args=() # use default set of args
 fi
-./run --environment --jobs=$N "${targets[@]}" "${args[@]}" CC="$CC"
+./run --environment --jobs=$N "${targets[@]}" "${args[@]}" CC="$CC" CXX="$CXX"
 
 ###############################################################################
 # Upload coverage reports and exit if ENABLE_COVERAGE is specified
