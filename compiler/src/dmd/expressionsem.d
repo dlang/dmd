@@ -10089,7 +10089,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                 if (length <= index)
                 {
-                    error(exp.loc, "array index `[%llu]` is outside array bounds `[0 .. %llu]`", index, cast(ulong)length);
+                    error(exp.loc, "sequence index `[%llu]` is outside bounds `[0 .. %llu]`", index, cast(ulong)length);
                     return setError();
                 }
                 Expression e;
