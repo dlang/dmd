@@ -40,10 +40,6 @@ nothrow:
 // assembler.
 private bool is32bitaddr(bool x, uint Iflags) { return I64 || (x ^ ((Iflags & CFaddrsize) != 0)); }
 
-// If we use Pentium Pro scheduler
-@trusted
-private bool PRO() { return config.target_cpu >= TARGET_PentiumPro; }
-
 private enum FP : ubyte
 {
     none = 0,
@@ -133,18 +129,11 @@ struct Cinfo
 @trusted
 private void cgsched_pentium(code **pc,regm_t scratch)
 {
-    //printf("scratch = x%02x\n",scratch);
-    if (config.target_scheduler >= TARGET_80486)
+    if (!I64)
+        *pc = peephole(*pc,0);
+    if (I32)                        // forget about 16 bit code
     {
-        if (!I64)
-            *pc = peephole(*pc,0);
-        if (I32)                        // forget about 16 bit code
-        {
-            if (config.target_cpu == TARGET_Pentium ||
-                config.target_cpu == TARGET_PentiumMMX)
-                *pc = simpleops(*pc,scratch);
-            *pc = schedule(*pc,0);
-        }
+        *pc = schedule(*pc,0);
     }
 }
 
@@ -155,7 +144,6 @@ private void cgsched_pentium(code **pc,regm_t scratch)
 public void cgsched_block(block* b)
 {
     if (config.flags4 & CFG4speed &&
-        config.target_cpu >= TARGET_Pentium &&
         b.BC != BCasm)
     {
         regm_t scratch = allregs;
@@ -1282,13 +1270,8 @@ private Cinfo getinfo(code *c)
     Cinfo ci;
     ci.c = c;
 
-    if (PRO)
-    {
-        ci.uops = uops(c);
-        ci.isz = cast(ubyte)calccodsize(c);
-    }
-    else
-        ci.pair = cast(ubyte)pair_class(c);
+    ci.uops = uops(c);
+    ci.isz = cast(ubyte)calccodsize(c);
 
     ubyte op;
     ubyte op2;
@@ -2177,10 +2160,6 @@ Lconflict:
     //printf("r1=%x, w1=%x, r2=%x, w2=%x\n",r1,w1,r2,w2);
     delay_clocks = 0;
 
-    // Determine if AGI
-    if (!PRO && pair_agi(*ci1, *ci2))
-        delay_clocks = 1;
-
     // Special delays for floating point
     if (fpsched)
     {   if (ci1.fp_op == FP.fld && ci2.fp_op == FP.fstp)
@@ -2190,26 +2169,11 @@ Lconflict:
         else if (ci1.fp_op == FP.fop && ci2.fp_op == FP.fop)
             delay_clocks = 2;
     }
-    else if (PRO)
+    else
     {
         // Look for partial register write stalls
         if (w1 & r2 & ALLREGS && sz1 < sz2)
             delay_clocks = 7;
-    }
-    else if ((w1 | r1) & (w2 | r2) & (C | S))
-    {
-        int op = c1.Iop;
-        int reg = c1.Irm & modregrm(0,7,0);
-        if (ci1.fp_op == FP.fld ||
-            (op == 0xD9 && (c1.Irm & 0xF8) == 0xC0)
-           )
-        { }                             // FLD
-        else if (op == 0xD9 && (c1.Irm & 0xF8) == 0xC8)
-        { }                             // FXCH
-        else if (c2.Iop == 0xD9 && (c2.Irm & 0xF8) == 0xC8)
-        { }                             // FXCH
-        else
-            delay_clocks = 3;
     }
 
     if (i) printf("conflict %d\n\n",delay_clocks);
@@ -2275,18 +2239,12 @@ code **assemble(code **pc)  // reassemble scheduled instructions
         debug
         if (debugs)
         {
-            if (PRO)
-            {   immutable char[4][3] tbl = [ "0  "," 1 ","  2" ];
+            immutable char[4][3] tbl = [ "0  "," 1 ","  2" ];
 
-                if (ci)
-                    printf("%s %d ",tbl[i - ((i / 3) * 3)].ptr,ci.uops);
-                else
-                    printf("%s   ",tbl[i - ((i / 3) * 3)].ptr);
-            }
+            if (ci)
+                printf("%s %d ",tbl[i - ((i / 3) * 3)].ptr,ci.uops);
             else
-            {
-                printf((i & 1) ? " V " : "U  ");
-            }
+                printf("%s   ",tbl[i - ((i / 3) * 3)].ptr);
             if (ci)
                 ci.c.print();
             else
@@ -2457,25 +2415,8 @@ int insert(Cinfo *ci)
             // Move forward the delay clocks
             if (clocks == 0)
                 j = i + 1;
-            else if (PRO)
-                j = (((i + 3) / 3) * 3) + clocks * 3;
             else
-            {   j = ((i + 2) & ~1) + clocks * 2;
-
-                // It's possible we skipped over some AGI generating
-                // instructions due to movesp.
-                int k;
-                for (k = i + 1; k < j; k++)
-                {
-                    if (k >= TBLMAX)
-                        goto Lnoinsert;
-                    if (tbl[k] && pair_agi(*tbl[k], *ci))
-                    {
-                        k = ((k + 2) & ~1) + 1;
-                    }
-                }
-                j = k;
-            }
+                j = (((i + 3) / 3) * 3) + clocks * 3;
 
             if (j >= TBLMAX)                    // exceed table size?
                 goto Lnoinsert;
@@ -2488,90 +2429,61 @@ int insert(Cinfo *ci)
     // Scan forward looking for a hole to put it in
     for (i = imin; i < TBLMAX; i++)
     {
-        if (tbl[i])
+        if (!tbl[i])
         {
-            // In case, due to movesp, we skipped over some AGI instructions
-            if (!PRO && pair_agi(*tbl[i], *ci))
-            {
-                i = ((i + 2) & ~1) + 1;
-                if (i >= TBLMAX)
-                    goto Lnoinsert;
-            }
-        }
-        else
-        {
-            if (PRO)
-            {   int i0 = (i / 3) * 3;           // index of decode unit 0
-                Cinfo *ci0;
 
-                assert(((TBLMAX / 3) * 3) == TBLMAX);
-                switch (i - i0)
-                {
-                    case 0:                     // i0 can handle any instruction
-                        goto Linsert;
-                    case 1:
-                        ci0 = tbl[i0];
-                        if (ci.uops > 1)
-                        {
-                            if (i0 >= imin && ci0.uops == 1)
-                                goto L1;
-                            i++;
-                            break;
-                        }
-                        if (triple_test(*ci0,*ci,tbl[i0 + 2]))
-                            goto Linsert;
-                        break;
-                    case 2:
-                        ci0 = tbl[i0];
-                        if (ci.uops > 1)
-                        {
-                            if (i0 >= imin && ci0.uops == 1)
-                            {
-                                if (i >= tblmax)
-                                {   if (i + 1 >= TBLMAX)
-                                        goto Lnoinsert;
-                                    tblmax = i + 1;
-                                }
-                                tbl[i0 + 2] = tbl[i0 + 1];
-                                tbl[i0 + 1] = ci0;
-                                i = i0;
-                                goto Linsert;
-                            }
-                            break;
-                        }
-                        if (tbl[i0 + 1] && triple_test(*ci0,*tbl[i0 + 1],ci))
-                            goto Linsert;
-                        break;
-                    default:
-                        assert(0);
-                }
-            }
-            else
+            int i0 = (i / 3) * 3;           // index of decode unit 0
+            Cinfo *ci0;
+
+            assert(((TBLMAX / 3) * 3) == TBLMAX);
+            switch (i - i0)
             {
-                assert((TBLMAX & 1) == 0);
-                if (i & 1)                      // if V pipe
-                {
-                    if (pair_test(*tbl[i - 1], *ci))
-                    {
-                        goto Linsert;
-                    }
-                    else if (i > imin && pair_test(*ci, *tbl[i - 1]))
-                    {
-                L1:
-                        tbl[i] = tbl[i - 1];
-                        if (i >= tblmax)
-                            tblmax = i + 1;
-                        i--;
-                        //printf("\tswapping with x%02x\n",tbl[i + 1].c.Iop);
-                        goto Linsert;
-                    }
-                }
-                else                    // will always fit in U pipe
-                {
-                    assert(!tbl[i + 1]);        // because V pipe should be empty
+                case 0:                     // i0 can handle any instruction
                     goto Linsert;
-                }
+                case 1:
+                    ci0 = tbl[i0];
+                    if (ci.uops > 1)
+                    {
+                        if (i0 >= imin && ci0.uops == 1)
+                        {
+                            tbl[i] = tbl[i - 1];
+                            if (i >= tblmax)
+                                tblmax = i + 1;
+                            i--;
+                            //printf("\tswapping with x%02x\n",tbl[i + 1].c.Iop);
+                            goto Linsert;
+                        }
+                        i++;
+                        break;
+                    }
+                    if (triple_test(*ci0,*ci,tbl[i0 + 2]))
+                        goto Linsert;
+                    break;
+                case 2:
+                    ci0 = tbl[i0];
+                    if (ci.uops > 1)
+                    {
+                        if (i0 >= imin && ci0.uops == 1)
+                        {
+                            if (i >= tblmax)
+                            {   if (i + 1 >= TBLMAX)
+                                    goto Lnoinsert;
+                                tblmax = i + 1;
+                            }
+                            tbl[i0 + 2] = tbl[i0 + 1];
+                            tbl[i0 + 1] = ci0;
+                            i = i0;
+                            goto Linsert;
+                        }
+                        break;
+                    }
+                    if (tbl[i0 + 1] && triple_test(*ci0,*tbl[i0 + 1],ci))
+                        goto Linsert;
+                    break;
+                default:
+                    assert(0);
             }
+
         }
     }
 

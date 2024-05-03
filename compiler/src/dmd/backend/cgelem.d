@@ -2694,8 +2694,7 @@ private elem * eldiv(elem *e, goal_t goal)
                 int pow2;
                 if (e2.Eoper == OPconst &&
                     !uns &&
-                    (pow2 = ispow2(el_tolong(e2))) != -1 &&
-                    !(config.target_cpu < TARGET_80286 && pow2 != 1 && e.Eoper == OPdiv)
+                    (pow2 = ispow2(el_tolong(e2))) != -1
                    )
                 { }
                 else

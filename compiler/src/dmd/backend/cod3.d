@@ -1150,9 +1150,7 @@ static if (NTEXCEPTIONS)
                     pop87();
                     pop87();
                     cdb.genfltreg(0xD9, 3, tysize(TYfloat));
-                    genfwait(cdb);
                     cdb.genfltreg(0xD9, 3, 0);
-                    genfwait(cdb);
                     // reload
                     if (config.exe == EX_WIN64)
                     {

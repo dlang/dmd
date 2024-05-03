@@ -495,22 +495,7 @@ void cv_init()
 
         // Put out S_COMPILE record
         TOWORD(debsym.ptr + 2,S_COMPILE);
-        switch (config.target_cpu)
-        {
-            case TARGET_8086:   debsym[4] = 0;  break;
-            case TARGET_80286:  debsym[4] = 2;  break;
-            case TARGET_80386:  debsym[4] = 3;  break;
-            case TARGET_80486:  debsym[4] = 4;  break;
-
-            case TARGET_Pentium:
-            case TARGET_PentiumMMX:
-                                debsym[4] = 5;  break;
-
-            case TARGET_PentiumPro:
-            case TARGET_PentiumII:
-                                debsym[4] = 6;  break;
-            default:    assert(0);
-        }
+        debsym[4] = 6;
         debsym[5] = (CPP != 0);         // 0==C, 1==C++
         flags = (config.inline8087) ? (0<<3) : (1<<3);
         if (I32)
