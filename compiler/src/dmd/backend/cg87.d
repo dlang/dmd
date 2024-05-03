@@ -99,8 +99,6 @@ private void getlvalue87(ref CodeBuilder cdb, ref code pcs,elem *e,regm_t keepms
         e.EV.Vsym.Sflags &= ~GTregcand;
 
     getlvalue(cdb, &pcs, e, keepmsk);
-    if (ADDFWAIT())
-        pcs.Iflags |= CFwait;
     if (I32)
         pcs.Iflags &= ~CFopsize;
     else if (I64)
@@ -228,7 +226,6 @@ void push87(ref CodeBuilder cdb, int line, const(char)* file)
     {
         const i = getemptyslot(global87.save, global87.stack[7]);
         cdb.genf2(0xD9,0xF6);                         // FDECSTP
-        genfwait(cdb);
         ndp_fstp(cdb, i, global87.stack[7].e.Ety);       // FSTP i[BP]
         assert(global87.stackused == 8);
         if (NDPP) printf("push87() : overflow\n");
@@ -336,7 +333,6 @@ L1:
                 break;
         }
         push87(cdb);
-        genfwait(cdb);
         ndp_fld(cdb, j, e.Ety);         // FLD j[BP]
         if (!(flag & 1))
         {
@@ -358,20 +354,15 @@ L1:
 @trusted
 void save87(ref CodeBuilder cdb)
 {
-    bool any = false;
     while (global87.stack[0].e && global87.stackused)
     {
         // Save it
         const i = getemptyslot(global87.save, global87.stack[0]);
         if (NDPP) printf("saving %p in temporary global87.save[%d]\n",global87.stack[0].e, cast(int)i);
 
-        genfwait(cdb);
         ndp_fstp(cdb,i,global87.stack[0].e.Ety); // FSTP i[BP]
         pop87();
-        any = true;
     }
-    if (any)                          // if any stores
-        genfwait(cdb);   // wait for last one to finish
 }
 
 /******************************************
@@ -388,7 +379,6 @@ void save87regs(ref CodeBuilder cdb, uint n)
         for (uint k = 8; k > j; k--)
         {
             cdb.genf2(0xD9,0xF6);     // FDECSTP
-            genfwait(cdb);
             if (k <= global87.stackused)
             {
                 const i = getemptyslot(global87.save, global87.stack[k - 1]);
@@ -400,8 +390,8 @@ void save87regs(ref CodeBuilder cdb, uint n)
         for (uint k = 8; k > j; k--)
         {
             if (k > global87.stackused)
-            {   cdb.genf2(0xD9,0xF7); // FINCSTP
-                genfwait(cdb);
+            {
+                cdb.genf2(0xD9,0xF7); // FINCSTP
             }
         }
         global87.stackused = j;
@@ -507,18 +497,6 @@ void comsub87(ref CodeBuilder cdb,elem *e, ref regm_t outretregs)
     }
 }
 
-
-/*******************************
- * Decide if we need to gen an FWAIT.
- */
-
-public void genfwait(ref CodeBuilder cdb)
-{
-    if (ADDFWAIT())
-        cdb.gen1(FWAIT);
-}
-
-
 /***************************
  * Put the 8087 flags into the CPU flags.
  */
@@ -531,14 +509,7 @@ private void cg87_87topsw(ref CodeBuilder cdb)
      */
     assert(!NOSAHF);
     getregs(cdb,mAX);
-    if (config.target_cpu >= TARGET_80286)
-        cdb.genf2(0xDF,0xE0);             // FSTSW AX
-    else
-    {
-        cdb.genfltreg(0xD8+5,7,0);        // FSTSW floatreg[BP]
-        genfwait(cdb);          // FWAIT
-        cdb.genfltreg(0x8A,4,1);          // MOV AH,floatreg+1[BP]
-    }
+    cdb.genf2(0xDF,0xE0);             // FSTSW AX
     cdb.gen1(0x9E);                       // SAHF
     code_orflag(cdb.last(),CFpsw);
 }
@@ -597,7 +568,7 @@ private void genftst(ref CodeBuilder cdb,elem *e,int pop)
             pop87();
         }
     }
-    else if (config.target_cpu >= TARGET_80386)
+    else
     {
         // FUCOMP doesn't raise exceptions on QNANs, unlike FTST
         push87(cdb);
@@ -607,18 +578,6 @@ private void genftst(ref CodeBuilder cdb,elem *e,int pop)
         if (pop)
             pop87();
         cg87_87topsw(cdb);                   // put 8087 flags in CPU flags
-    }
-    else
-    {
-        // Call library function which does not raise exceptions
-        regm_t regm = 0;
-
-        callclib(cdb,e,CLIB.ftest,&regm,0);
-        if (pop)
-        {
-            cdb.genf2(0xDD,modregrm(3,3,0)); // FPOP
-            pop87();
-        }
     }
 }
 
@@ -738,11 +697,11 @@ ubyte loadconst(elem *e, int im)
     // since FLDZ loads a +0
     assert(sz <= zeros.length);
     zero = (memcmp(p, zeros.ptr, sz) == 0);
-    if (zero && config.target_cpu >= TARGET_PentiumPro)
+    if (zero)
         return 0xEE;            // FLDZ is the only one with 1 micro-op
 
     // For some reason, these instructions take more clocks
-    if (config.flags4 & CFG4speed && config.target_cpu >= TARGET_Pentium)
+    if (config.flags4 & CFG4speed)
         return 0;
 
     if (zero)
@@ -847,7 +806,6 @@ void fixresult87(ref CodeBuilder cdb,elem *e,regm_t retregs, ref regm_t outretre
         // FSTP floatreg
         pop87();
         cdb.genfltreg(ESC(mf,1),3,0);
-        genfwait(cdb);
         const reg = allocreg(cdb,outretregs,(sz == FLOATSIZE) ? TYfloat : TYdouble);
         if (sz == FLOATSIZE)
         {
@@ -911,7 +869,6 @@ void fixresult87(ref CodeBuilder cdb,elem *e,regm_t retregs, ref regm_t outretre
             // FSTP floatreg
             pop87();
             cdb.genfltreg(ESC(mf,1),3,0);
-            genfwait(cdb);
             // MOVD XMM?,floatreg
             const reg = allocreg(cdb,outretregs,(sz == FLOATSIZE) ? TYfloat : TYdouble);
             cdb.genxmmreg(xmmload(tym),reg,0,tym);
@@ -1090,38 +1047,23 @@ void orth87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             }
             else
             {
-                if (e2.Eoper == OPconst && !boolres(e2) &&
-                    config.target_cpu < TARGET_80386)
+                note87(e1,0,0);
+                load87(cdb,e2,0,retregs,e1,-1);
+                makesure87(cdb,e1,0,1,0);
+                resregm = 0;
+                if (NOSAHF)
                 {
-                    regm_t regm = 0;
-
-                    callclib(cdb,e,CLIB.ftest0,&regm,0);
+                    cdb.gen2(0xDF,0xE9);              // FUCOMIP ST1
+                    pop87();
+                    cdb.genf2(0xDD,modregrm(3,3,0));  // FPOP
                     pop87();
                 }
                 else
                 {
-                    note87(e1,0,0);
-                    load87(cdb,e2,0,retregs,e1,-1);
-                    makesure87(cdb,e1,0,1,0);
-                    resregm = 0;
-                    if (NOSAHF)
-                    {
-                        cdb.gen2(0xDF,0xE9);              // FUCOMIP ST1
-                        pop87();
-                        cdb.genf2(0xDD,modregrm(3,3,0));  // FPOP
-                        pop87();
-                    }
-                    else if (config.target_cpu >= TARGET_80386)
-                    {
-                        cdb.gen2(0xDA,0xE9);      // FUCOMPP
-                        cg87_87topsw(cdb);
-                        pop87();
-                        pop87();
-                    }
-                    else
-                        // Call a function instead so that exceptions
-                        // are not generated.
-                        callclib(cdb,e,CLIB.fcompp,&resregm,0);
+                    cdb.gen2(0xDA,0xE9);      // FUCOMPP
+                    cg87_87topsw(cdb);
+                    pop87();
+                    pop87();
                 }
             }
 
@@ -1629,10 +1571,7 @@ void load87(ref CodeBuilder cdb,elem *e,uint eoffset,ref regm_t outretregs,elem 
 
     assert(!(NOSAHF && op == 3));
     elem_debug(e);
-    if (ADDFWAIT())
-        cs.Iflags = CFwait;
-    else
-        cs.Iflags = 0;
+    cs.Iflags = 0;
     cs.Irex = 0;
     OPER opr = oprev[op + 1];
     tym_t ty = tybasic(e.Ety);
@@ -2068,7 +2007,6 @@ void eq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             }
         }
     }
-    genfwait(cdb);
     freenode(e.EV.E1);
     fixresult87(cdb,e,mST0 | mPSW,*pretregs);
 }
@@ -2088,7 +2026,7 @@ void complex_eq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     //printf("complex_eq87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
     assert(e.Eoper == OPeq);
-    cs.Iflags = ADDFWAIT() ? CFwait : 0;
+    cs.Iflags = 0;
     cs.Irex = 0;
     regm_t retregs = mST01 | (*pretregs & mPSW);
     codelem(cdb,e.EV.E2,&retregs,false);
@@ -2133,13 +2071,11 @@ void complex_eq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         cs.Irm |= modregrm(0, op2, 0);
         makesure87(cdb,e.EV.E2, sz, 0, 0);
         cdb.gen(&cs);
-        genfwait(cdb);
         makesure87(cdb,e.EV.E2,  0, 1, 0);
     }
     else
     {
         loadea(cdb,e.EV.E1,&cs,op1,op2,sz,0,0);
-        genfwait(cdb);
     }
     if (fxch)
         cdb.genf2(0xD9,0xC8 + 1);       // FXCH ST(1)
@@ -2187,7 +2123,6 @@ void complex_eq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             cdb.gen(&cs);
         }
     }
-    genfwait(cdb);
     freenode(e.EV.E1);
     fixresult_complex87(cdb, e,mST01 | mPSW,*pretregs);
 }
@@ -2229,16 +2164,14 @@ private void cnvteq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     }
     freenode(e.EV.E2);
 
-    genfwait(cdb);
     genSetRoundingMode(cdb, CW.roundto0);   // FLDCW roundto0
 
     pop87();
-    cs.Iflags = ADDFWAIT() ? CFwait : 0;
+    cs.Iflags = 0;
     if (e.EV.E1.Eoper == OPvar)
         notreg(e.EV.E1);                    // cannot be put in register anymore
     loadea(cdb,e.EV.E1,&cs,op1,op2,0,0,0);
 
-    genfwait(cdb);
     genSetRoundingMode(cdb, CW.roundtonearest);   // FLDCW roundtonearest
 
     freenode(e.EV.E1);
@@ -2374,7 +2307,6 @@ public void opass87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     NEWREG(cs.Irm,op2);                     // FSTx e.EV.E1
     freenode(e.EV.E1);
     cdb.gen(&cs);
-    genfwait(cdb);
     fixresult87(cdb,e,mST0 | mPSW,*pretregs);
 }
 
@@ -2460,7 +2392,6 @@ private void opmod_complex87(ref CodeBuilder cdb, elem *e,regm_t *pretregs)
         retregs = 0;
     }
     freenode(e.EV.E1);
-    genfwait(cdb);
     fixresult_complex87(cdb,e,retregs,*pretregs);
 }
 
@@ -2658,7 +2589,6 @@ private void opass_complex87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             }
         L3:
             freenode(e.EV.E1);
-            genfwait(cdb);
             fixresult_complex87(cdb,e,retregs,*pretregs);
             return;
 
@@ -2889,7 +2819,6 @@ void post87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         pop87();
         cs.IEV1.Voffset -= sz;
         cdb.gen(&cs);               // FSTP e.EV.E1
-        genfwait(cdb);
         freenode(e.EV.E1);
         fixresult_complex87(cdb, e, mST01, *pretregs);
         return;
@@ -2910,7 +2839,6 @@ void post87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     NEWREG(cs.Irm,reg);
     pop87();
     cdb.gen(&cs);                   // FSTP e.EV.E1
-    genfwait(cdb);
     freenode(e.EV.E1);
     fixresult87(cdb,e,mPSW | mST0,*pretregs);
 }
@@ -3228,10 +3156,7 @@ void cnvt87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             cdb.gen1(0x50 + AX);                // PUSH EAX
         else
             cod3_stackadj(cdb, szpush);
-        genfwait(cdb);
         cdb.genc1(0xD9,modregrm(2,7,4) + 256*modregrm(0,4,SP),FLconst,szoff); // FSTCW szoff[ESP]
-
-        genfwait(cdb);
 
         if (config.flags3 & CFG3pic)
         {
@@ -3244,7 +3169,6 @@ void cnvt87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
         pop87();
 
-        genfwait(cdb);
         cdb.gen2sib(mf,modregrm(0,rf,4),modregrm(0,4,SP));                   // FISTP [ESP]
 
         retregs = *pretregs & (ALLREGS | mBP);
@@ -3252,7 +3176,6 @@ void cnvt87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 retregs = ALLREGS;
         reg = allocreg(cdb,retregs,tym);
 
-        genfwait(cdb);                                           // FWAIT
         cdb.genc1(0xD9,modregrm(2,5,4) + 256*modregrm(0,4,SP),FLconst,szoff); // FLDCW szoff[ESP]
 
         if (szoff > REGSIZE)
@@ -3274,7 +3197,6 @@ void cnvt87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         retregs = mST0;
         codelem(cdb,e.EV.E1,&retregs,false);
 
-        genfwait(cdb);
         genSetRoundingMode(cdb, CW.roundto0);      // FLDCW roundto0
 
         pop87();
@@ -3283,8 +3205,6 @@ void cnvt87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         if (!retregs)
                 retregs = ALLREGS;
         reg = allocreg(cdb,retregs,tym);
-
-        genfwait(cdb);
 
         if (sz > REGSIZE)
         {
@@ -3340,7 +3260,6 @@ void cdrndtol(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     if (!retregs)
         retregs = ALLREGS;
     const reg = allocreg(cdb,retregs,tym);
-    genfwait(cdb);                      // FWAIT
     if (tysize(tym) > REGSIZE)
     {
         cdb.genfltreg(LOD,reg,REGSIZE);             // MOV reg,floatreg + REGSIZE
@@ -3672,7 +3591,6 @@ void fixresult_complex87(ref CodeBuilder cdb,elem *e,regm_t retregs, ref regm_t 
         cdb.genfltreg(ESC(MFfloat,1),BX,4);     // FSTP floatreg
         pop87();
         cdb.genfltreg(ESC(MFfloat,1),BX,0);     // FSTP floatreg+4
-        genfwait(cdb);
         const reg = findreg(outretregs);
         getregs(cdb,reg);
         cdb.genfltreg(LOD, reg, 0);             // MOV ECX,floatreg
@@ -3684,13 +3602,11 @@ void fixresult_complex87(ref CodeBuilder cdb,elem *e,regm_t retregs, ref regm_t 
             genctst(cdb,e,0);                   // FTST
         pop87();
         cdb.genfltreg(ESC(MFfloat,1),3,0);      // FSTP floatreg
-        genfwait(cdb);
         getregs(cdb,mDX|mAX);
         cdb.genfltreg(LOD, DX, 0);              // MOV EDX,floatreg
 
         pop87();
         cdb.genfltreg(ESC(MFfloat,1),3,0);      // FSTP floatreg
-        genfwait(cdb);
         cdb.genfltreg(LOD, AX, 0);              // MOV EAX,floatreg
     }
     else if (tym == TYcfloat && retregs & (mAX|mDX) && outretregs & mST01)
@@ -3716,13 +3632,11 @@ void fixresult_complex87(ref CodeBuilder cdb,elem *e,regm_t retregs, ref regm_t 
             genctst(cdb,e,0);                   // FTST
         pop87();
         cdb.genfltreg(ESC(mf,1),3,0);           // FSTP floatreg
-        genfwait(cdb);
         getregs(cdb,mXMM0|mXMM1);
         cdb.genxmmreg(xop,XMM1,0,tyf);
 
         pop87();
         cdb.genfltreg(ESC(mf,1),3,0);           // FSTP floatreg
-        genfwait(cdb);
         cdb.genxmmreg(xop, XMM0, 0, tyf);       // MOVD XMM0,floatreg
     }
     else if ((tym == TYcfloat || tym == TYcdouble) &&
@@ -3815,8 +3729,6 @@ void cload87(ref CodeBuilder cdb, elem *e, ref regm_t outretregs)
     //printf("cload87(e = %p, outretregs = %s)\n", e, regm_str(outretregs));
     sz = _tysize[ty] / 2;
     memset(&cs, 0, cs.sizeof);
-    if (ADDFWAIT())
-        cs.Iflags = CFwait;
     switch (ty)
     {
         case TYcfloat:      mf = MFfloat;           break;
@@ -3928,7 +3840,6 @@ void cdtoprec(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         const sz = _tysize[tym];
         uint mf = (sz == FLOATSIZE) ? MFfloat : MFdouble;
         cdb.genfltreg(ESC(mf,1),3,0);   // FSTP float/double ptr fltreg
-        genfwait(cdb);
         cdb.genfltreg(ESC(mf,1),0,0);   // FLD float/double ptr fltreg
     }
     fixresult87(cdb, e, retregs, *pretregs);

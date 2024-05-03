@@ -546,9 +546,6 @@ uint VEX3_B2(code.Svex ivex)
         ivex.pp;
 }
 
-@trusted
-bool ADDFWAIT() { return config.target_cpu <= TARGET_80286; }
-
 /************************************
  */
 

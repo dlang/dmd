@@ -156,7 +156,6 @@ struct CodeBuilder
      */
     void genf2(opcode_t op, uint rm)
     {
-        genfwait(this);
         gen2(op, rm);
     }
 
@@ -346,8 +345,6 @@ struct CodeBuilder
     {
         floatreg = true;
         reflocal = true;
-        if ((opcode & ~7) == 0xD8)
-            genfwait(this);
         genc1(opcode,modregxrm(2,reg,BPRM),FLfltreg,offset);
     }
 

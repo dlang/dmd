@@ -617,12 +617,6 @@ Obj OmfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
             obj.csegattr  = SEG_ATTR(SEG_ALIGN2, SEG_C_PUBLIC,0,USE16);
         }
 
-        if (config.flags4 & CFG4speed && // if optimized for speed
-            config.target_cpu == TARGET_80486)
-            // 486 is only CPU that really benefits from alignment
-            obj.csegattr  = I32 ? SEG_ATTR(SEG_ALIGN16, SEG_C_PUBLIC,0,USE32)
-                                : SEG_ATTR(SEG_ALIGN16, SEG_C_PUBLIC,0,USE16);
-
         SegData.reset();       // recycle memory
         getsegment();           // element 0 is reserved
 

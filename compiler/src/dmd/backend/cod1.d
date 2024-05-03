@@ -725,8 +725,6 @@ void loadea(ref CodeBuilder cdb,elem *e,code *cs,uint op,uint reg,targ_size_t of
                 cs.Irex &= ~REX_W;             // REX is ignored for PUSH anyway
         }
     }
-    else if ((op & 0xFFF8) == 0xD8 && ADDFWAIT())
-        cs.Iflags |= CFwait;
 L2:
     getregs(cdb, desmsk);                  // save any regs we destroy
 
@@ -3619,9 +3617,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
                     pop87();
                     pop87();
                     cdb.genfltreg(0xD9, 3, tysize(TYfloat));
-                    genfwait(cdb);
                     cdb.genfltreg(0xD9, 3, 0);
-                    genfwait(cdb);
                     // reload
                     if (config.exe == EX_WIN64)
                     {
@@ -4145,11 +4141,9 @@ static if (0)
         // reload real
         push87(cdb);
         cdb.genfltreg(0xD9, 0, 0);
-        genfwait(cdb);
         // reload imaginary
         push87(cdb);
         cdb.genfltreg(0xD9, 0, tysize(TYfloat));
-        genfwait(cdb);
 
         retregs = mST01;
     }
@@ -5035,7 +5029,6 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
             }
             if (LARGEDATA)
                 cdb.last().Iflags |= CFss;     // want to store into stack
-            genfwait(cdb);         // FWAIT
             return;
         }
         else if (I16 && (tym == TYdouble || tym == TYdouble_alias))
