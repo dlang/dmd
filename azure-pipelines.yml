@@ -30,9 +30,6 @@ jobs:
         x64:
           MODEL: 64
           ARCH: x64
-        x86-OMF:
-          MODEL: 32omf
-          ARCH: x86
         x86:
           MODEL: 32
           ARCH: x86
@@ -54,11 +51,6 @@ jobs:
         x64:
           MODEL: 64
           ARCH: x64
-
-        # x64 only because 32bit causes weird linker errors for several tests???
-        # x86-OMF:
-        #   MODEL: 32omf
-        #   ARCH: x86
     steps:
       - template: .azure-pipelines/windows.yml
 

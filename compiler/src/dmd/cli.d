@@ -536,12 +536,6 @@ dmd -cov -unittest myprog.d
             "generate 32 bit code and write MS-COFF object files (deprecated use -m32)",
             TargetOS.Windows
         ),
-        Option("m32omf",
-            "(deprecated) generate 32 bit code and write OMF object files",
-            `$(WINDOWS Compile a 32 bit executable. The generated object code is in OMF and is meant to be used with the
-               $(LINK2 http://www.digitalmars.com/download/freecompiler.html, Digital Mars C/C++ compiler)).`,
-            TargetOS.Windows
-        ),
         Option("m64",
             "generate 64 bit code",
             `$(UNIX Compile a 64 bit executable. This is the default for the 64 bit dmd.)
