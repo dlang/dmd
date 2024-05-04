@@ -4569,9 +4569,11 @@ extern (C++) final class TypeTuple : Type
         TypeTuple t = cast(TypeTuple) Type.makeConst();
         if (arguments)
         {
-            foreach (ref arg; *t.arguments)
+            t.arguments = new Parameters(arguments.length);
+            foreach (i, ref arg; *t.arguments)
             {
-                arg.type = arg.type.addSTC(STC.const_);
+                auto tsrc = (*arguments)[i].type;
+                arg = new Parameter(Loc.initial, 0, tsrc.addSTC(STC.const_), null, null, null);
             }
         }
         return t;
@@ -4587,9 +4589,11 @@ extern (C++) final class TypeTuple : Type
         TypeTuple t = cast(TypeTuple) Type.makeImmutable();
         if (arguments)
         {
-            foreach (ref arg; *t.arguments)
+            t.arguments = new Parameters(arguments.length);
+            foreach (i, ref arg; *t.arguments)
             {
-                arg.type = arg.type.immutableOf();
+                auto tsrc = (*arguments)[i].type;
+                arg = new Parameter(Loc.initial, 0, tsrc.immutableOf(), null, null, null);
             }
         }
         return t;
