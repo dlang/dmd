@@ -387,7 +387,9 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             eq87(cdb,e,pretregs);
             return;
         }
-        if (e2oper == OPvar || e2oper == OPind)
+        if (config.target_cpu >= TARGET_PentiumPro &&
+            (e2oper == OPvar || e2oper == OPind)
+           )
         {
             eq87(cdb,e,pretregs);
             return;
@@ -455,6 +457,60 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 postinc = 0;
                 getlvalue(cdb,&cs,e1,RMstore);
 
+                if (e2oper == OPconst &&
+                    config.flags4 & CFG4speed &&
+                    (config.target_cpu == TARGET_Pentium ||
+                     config.target_cpu == TARGET_PentiumMMX) &&
+                    (cs.Irm & 0xC0) == 0x80
+                   )
+                {
+                    if (I64 && sz == 8 && e2.EV.Vpointer)
+                    {
+                        // MOV reg,imm64
+                        // MOV EA,reg
+                        regm_t rregm = allregs & ~idxregm(&cs);
+                        const regx = regwithvalue(cdb,rregm,e2.EV.Vpointer,64);
+                        cs.Iop = STO;
+                        cs.Irm |= modregrm(0,regx & 7,0);
+                        if (regx & 8)
+                            cs.Irex |= REX_R;
+                        cdb.gen(&cs);
+                        freenode(e2);
+                        goto Lp;
+                    }
+                    if ((sz == REGSIZE || (I64 && sz == 4)) && e2.EV.Vint)
+                    {
+                        // MOV reg,imm
+                        // MOV EA,reg
+                        regm_t rregm = allregs & ~idxregm(&cs);
+                        const regx = regwithvalue(cdb,rregm,e2.EV.Vint,0);
+                        cs.Iop = STO;
+                        cs.Irm |= modregrm(0,regx & 7,0);
+                        if (regx & 8)
+                            cs.Irex |= REX_R;
+                        cdb.gen(&cs);
+                        freenode(e2);
+                        goto Lp;
+                    }
+                    if (sz == 2 * REGSIZE && e2.EV.Vllong == 0)
+                    {
+                        // MOV reg,imm
+                        // MOV EA,reg
+                        // MOV EA+2,reg
+                        regm_t rregm = getscratch() & ~idxregm(&cs);
+                        if (rregm)
+                        {
+                            const regx = regwithvalue(cdb,rregm,e2.EV.Vint,0);
+                            cs.Iop = STO;
+                            cs.Irm |= modregrm(0,regx,0);
+                            cdb.gen(&cs);
+                            getlvalue_msw(&cs);
+                            cdb.gen(&cs);
+                            freenode(e2);
+                            goto Lp;
+                        }
+                    }
+                }
             }
 
             // If loading result into a register
@@ -529,7 +585,7 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                     int off = sz;
                     do
                     {   int regsize = REGSIZE;
-                        if (off >= 4 && I16)
+                        if (off >= 4 && I16 && config.target_cpu >= TARGET_80386)
                         {
                             regsize = 4;
                             cs.Iflags |= CFopsize;      // use opsize to do 32 bit operation
@@ -820,7 +876,7 @@ void cdaddass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         }
         return;
     }
-    uint opsize = (I16 && tylong(tyml))
+    uint opsize = (I16 && tylong(tyml) && config.target_cpu >= TARGET_80386)
         ? CFopsize : 0;
     uint cflags = 0;
     regm_t forccs = *pretregs & mPSW;            // return result in flags
@@ -1020,12 +1076,56 @@ void cdaddass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 }
             }
 
-            cdb.gen(&cs);
-            cs.Iflags &= ~opsize;
-            cs.Iflags &= ~CFpsw;
-            if (I16 && opsize)                     // if DWORD operand
-                cs.IEV1.Voffset += 2; // compensate for wantres code
+            // For scheduling purposes, we wish to replace:
+            //    OP    EA
+            // with:
+            //    MOV   reg,EA
+            //    OP    reg
+            //    MOV   EA,reg
+            if (forregs && sz <= REGSIZE && (cs.Irm & 0xC0) != 0xC0 &&
+                (config.target_cpu == TARGET_Pentium ||
+                 config.target_cpu == TARGET_PentiumMMX) &&
+                config.flags4 & CFG4speed)
+            {
+                regm_t sregm;
+                code cs2;
 
+                // Determine which registers to use
+                sregm = allregs & ~idxregm(&cs);
+                if (isbyte)
+                    sregm &= BYTEREGS;
+                if (sregm & forregs)
+                    sregm &= forregs;
+
+                reg = allocreg(cdb,sregm,tyml);      // allocate register
+
+                cs2 = cs;
+                cs2.Iflags &= ~CFpsw;
+                cs2.Iop = LOD ^ isbyte;
+                code_newreg(&cs2, reg);
+                cdb.gen(&cs2);                      // MOV reg,EA
+
+                cs.Irm = (cs.Irm & modregrm(0,7,0)) | modregrm(3,0,reg & 7);
+                if (reg & 8)
+                    cs.Irex |= REX_B;
+                cdb.gen(&cs);                       // OP reg
+
+                cs2.Iop ^= 2;
+                cdb.gen(&cs2);                      // MOV EA,reg
+
+                retregs = sregm;
+                wantres = 0;
+                if (e1.Ecount)
+                    cssave(e1,retregs,!OTleaf(e1.Eoper));
+            }
+            else
+            {
+                cdb.gen(&cs);
+                cs.Iflags &= ~opsize;
+                cs.Iflags &= ~CFpsw;
+                if (I16 && opsize)                     // if DWORD operand
+                    cs.IEV1.Voffset += 2; // compensate for wantres code
+            }
         }
         else if (sz == 2 * REGSIZE)
         {
@@ -1438,7 +1538,8 @@ void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
         isbyte = (sz == 1);             // 1 for byte operation
 
-        if (e2.Eoper == OPconst && !isbyte)
+        if (config.target_cpu >= TARGET_80286 &&
+            e2.Eoper == OPconst && !isbyte)
         {
             targ_size_t e2factor = cast(targ_size_t)el_tolong(e2);
             if (I64 && sz == 8 && e2factor != cast(int)e2factor)
@@ -1527,7 +1628,7 @@ void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         else
         {
             retregs = mDX | mAX;
-            regm_t rretregs =  allregs & ~retregs;
+            regm_t rretregs = (config.target_cpu >= TARGET_PentiumPro) ? allregs & ~retregs : mCX | mBX;
             codelem(cdb,e2,&rretregs,false);
             getlvalue(cdb,&cs,e1,retregs | rretregs);
             getregs(cdb,retregs);
@@ -1537,20 +1638,27 @@ void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             cs.Irm |= modregrm(0,DX,0);
             cdb.gen(&cs);                   // MOV DX,EA+2
             getlvalue_lsw(&cs);
-            regm_t rlo = findreglsw(rretregs);
-            regm_t rhi = findregmsw(rretregs);
-            /*  IMUL    rhi,EAX
-                IMUL    EDX,rlo
-                ADD     rhi,EDX
-                MUL     rlo
-                ADD     EDX,Erhi
-            */
-            getregs(cdb,mAX|mDX|mask(rhi));
-            cdb.gen2(0x0FAF,modregrm(3,rhi,AX));
-            cdb.gen2(0x0FAF,modregrm(3,DX,rlo));
-            cdb.gen2(0x03,modregrm(3,rhi,DX));
-            cdb.gen2(0xF7,modregrm(3,4,rlo));
-            cdb.gen2(0x03,modregrm(3,DX,rhi));
+            if (config.target_cpu >= TARGET_PentiumPro)
+            {
+                regm_t rlo = findreglsw(rretregs);
+                regm_t rhi = findregmsw(rretregs);
+                /*  IMUL    rhi,EAX
+                    IMUL    EDX,rlo
+                    ADD     rhi,EDX
+                    MUL     rlo
+                    ADD     EDX,Erhi
+                 */
+                 getregs(cdb,mAX|mDX|mask(rhi));
+                 cdb.gen2(0x0FAF,modregrm(3,rhi,AX));
+                 cdb.gen2(0x0FAF,modregrm(3,DX,rlo));
+                 cdb.gen2(0x03,modregrm(3,rhi,DX));
+                 cdb.gen2(0xF7,modregrm(3,4,rlo));
+                 cdb.gen2(0x03,modregrm(3,DX,rhi));
+            }
+            else
+            {
+                callclib(cdb,e,CLIB.lmul,&retregs,idxregm(&cs));
+            }
         }
 
         opAssStorePair(cdb, cs, e, findregmsw(retregs), findreglsw(retregs), pretregs);
@@ -1861,11 +1969,12 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             e2.Eoper == OPconst && !uns &&
             (sz == REGSIZE || (I64 && sz == 4)) &&
             pow2 != -1 &&
-            e2factor == cast(int)e2factor
+            e2factor == cast(int)e2factor &&
+            !(config.target_cpu < TARGET_80286 && pow2 != 1 && op == OPdivass)
            )
         {
             freenode(e2);
-            if (pow2 == 1 && op == OPdivass)
+            if (pow2 == 1 && op == OPdivass && config.target_cpu > TARGET_80386)
             {
                 /* This is better than the code further down because it is
                  * not constrained to using AX and DX.
@@ -2199,7 +2308,8 @@ void cdshass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     {
         conste2 = true;                 // e2 is a constant
         shiftcnt = e2.EV.Vint;         // byte ordering of host
-        if (sz <= REGSIZE &&
+        if (config.target_cpu >= TARGET_80286 &&
+            sz <= REGSIZE &&
             shiftcnt != 1)
             v = 0xC1;                   // SHIFT xx,shiftcnt
         else if (shiftcnt <= 3)
@@ -2979,7 +3089,7 @@ void cdcmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 L3:
     if ((retregs = (*pretregs & (ALLREGS | mBP))) != 0) // if return result in register
     {
-        if (!flag && !(jop & 0xFF00))
+        if (config.target_cpu >= TARGET_80386 && !flag && !(jop & 0xFF00))
         {
             regm_t resregs = retregs;
             if (!I64)
@@ -3648,7 +3758,7 @@ void cdshtlng(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         fixresult(cdb,e,retregs,*pretregs);
         return;
     }
-    else if (*pretregs & mPSW)
+    else if (*pretregs & mPSW || config.target_cpu < TARGET_80286)
     {
         // OPs16_32, OPs32_64
         // CWD doesn't affect flags, so we can depend on the integer
@@ -3714,8 +3824,18 @@ void cdbyteint(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
             regm_t retregsx = *pretregs;
             const reg = allocreg(cdb,retregsx,TYint);
-            const opcode = (op == OPu8_16) ? MOVZXb : MOVSXb; // MOVZX/MOVSX reg,EA
-            loadea(cdb,e1,&cs,opcode,reg,0,0,retregsx);
+            if (config.flags4 & CFG4speed &&
+                op == OPu8_16 && mask(reg) & BYTEREGS &&
+                config.target_cpu < TARGET_PentiumPro)
+            {
+                movregconst(cdb,reg,0,0);                 //  XOR reg,reg
+                loadea(cdb,e1,&cs,0x8A,reg,0,retregsx,retregsx); //  MOV regL,EA
+            }
+            else
+            {
+                const opcode = (op == OPu8_16) ? MOVZXb : MOVSXb; // MOVZX/MOVSX reg,EA
+                loadea(cdb,e1,&cs,opcode,reg,0,0,retregsx);
+            }
             freenode(e1);
             fixresult(cdb,e,retregsx,*pretregs);
             return;
