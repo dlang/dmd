@@ -577,6 +577,22 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         }
     }
     Module.runDeferredSemantic3();
+
+    // Ensure codegen is performed for modules where codegen is forced
+    for (size_t i = 0; i < Module.amodules.length; ++i)
+    {
+        auto m = Module.amodules[i];
+        if (m.forceCodegen && m.semanticRun != PASS.semantic3done)
+        {
+            assert(m.isRoot());
+            if (params.v.verbose)
+                message("semantic3 %s", m.toChars());
+            m.semantic3(null);
+            modules.push(m);
+        }
+    }
+    Module.runDeferredSemantic3();
+
     if (global.errors)
         removeHdrFilesAndFail(params, modules);
 
