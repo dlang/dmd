@@ -41,6 +41,8 @@ extern (C++) final class Import : Dsymbol
     // corresponding AliasDeclarations for alias=name pairs
     AliasDeclarations aliasdecls;
 
+    bool forceCodegen;      // whether codegen should be forced for the imported module
+
     extern (D) this(const ref Loc loc, Identifier[] packages, Identifier id, Identifier aliasId, int isstatic)
     {
         Identifier selectIdent()

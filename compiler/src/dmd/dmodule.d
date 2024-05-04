@@ -362,6 +362,7 @@ extern (C++) final class Module : Package
     Package pkg;                // if isPackageFile is true, the Package that contains this package.d
     Strings contentImportedFiles; // array of files whose content was imported
     int needmoduleinfo;
+    bool forceCodegen;          // if codegen should take place for this module, even if it normally wouldn't
     private ThreeState selfimports;
     private ThreeState rootimports;
     Dsymbol[void*] tagSymTab;   /// ImportC: tag symbols that conflict with other symbols used as the index

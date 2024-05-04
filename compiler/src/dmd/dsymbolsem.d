@@ -7020,8 +7020,16 @@ extern (D) bool load(Import imp, Scope* sc)
             dst.insert(imp.id, imp.mod);
         }
     }
-    if (imp.mod && !imp.mod.importedFrom)
-        imp.mod.importedFrom = sc ? sc._module.importedFrom : Module.rootModule;
+    if (imp.mod)
+    {
+        if (imp.forceCodegen)
+            imp.mod.forceCodegen = true;
+        // if codegen is forced, promote imp.mod to a root module, so that codegen takes place
+        if (imp.mod.forceCodegen)
+            imp.mod.importedFrom = imp.mod;
+        else if (!imp.mod.importedFrom)
+            imp.mod.importedFrom = sc ? sc._module.importedFrom : Module.rootModule;
+    }
     if (!imp.pkg)
     {
         if (imp.mod && imp.mod.isPackageFile)

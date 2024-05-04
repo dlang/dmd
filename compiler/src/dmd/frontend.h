@@ -7032,6 +7032,7 @@ public:
     Module* mod;
     Package* pkg;
     Array<AliasDeclaration* > aliasdecls;
+    bool forceCodegen;
     const char* kind() const override;
     Visibility visible() override;
     Import* syntaxCopy(Dsymbol* s) override;
@@ -7086,6 +7087,7 @@ public:
     Package* pkg;
     Array<const char* > contentImportedFiles;
     int32_t needmoduleinfo;
+    bool forceCodegen;
 private:
     ThreeState selfimports;
     ThreeState rootimports;
