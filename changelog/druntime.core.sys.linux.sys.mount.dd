@@ -1,0 +1,4 @@
+Add module `core.sys.linux.sys.mount`.
+
+The new module `core.sys.linux.sys.mount` provides definitions corresponding to
+those in the header `<sys/mount.h>` on Linux.
