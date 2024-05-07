@@ -276,7 +276,7 @@ void getenv_setargv(const(char)* envvalue, Strings* args)
 }
 
 /**
- * Parse command line arguments for the last instance of -m32, -m64, -m32mscoff or -m32omfobj
+ * Parse command line arguments for the last instance of -m32, -m64, -m32mscoff
  * to detect the desired architecture.
  *
  * Params:
@@ -285,7 +285,7 @@ void getenv_setargv(const(char)* envvalue, Strings* args)
  *          Should be "32" or "64"
  *
  * Returns:
- *   "32", "64" or "32omf" if the "-m32", "-m64", "-m32omf" flags were passed,
+ *   "32", or "64" if the "-m32", "-m64" flags were passed,
  *   respectively. If they weren't, return `arch`.
  */
 const(char)[] parse_arch_arg(Strings* args, const(char)[] arch)
@@ -296,7 +296,7 @@ const(char)[] parse_arch_arg(Strings* args, const(char)[] arch)
 
         if (arg.length && arg[0] == '-')
         {
-            if (arg[1 .. $] == "m32" || arg[1 .. $] == "m32omf" || arg[1 .. $] == "m64")
+            if (arg[1 .. $] == "m32" || arg[1 .. $] == "m64")
                 arch = arg[2 .. $];
             else if (arg[1 .. $] == "m32mscoff")
                 arch = "32";
@@ -900,11 +900,6 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         {
             target.isX86_64 = false;
             target.omfobj = false;
-        }
-        else if (arg == "-m32omf") // https://dlang.org/dmd.html#switch-m32omfobj
-        {
-            target.isX86_64 = false;
-            target.omfobj = true;
         }
         else if (startsWith(p + 1, "mscrtlib="))
         {
