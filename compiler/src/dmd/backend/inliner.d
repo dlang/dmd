@@ -192,10 +192,18 @@ private:
 @trusted
 bool canInlineExpression(elem* e)
 {
+    int cost;
+    return canInlineExpressionWalker(e, cost);
+}
+
+@trusted bool canInlineExpressionWalker(elem* e, ref int cost)
+{
     if (!e)
         return true;
     while (1)
     {
+        if (++cost >= 250)
+            return false;
         if (OTleaf(e.Eoper))
         {
             if (e.Eoper == OPvar || e.Eoper == OPrelconst)
@@ -207,6 +215,21 @@ bool canInlineExpression(elem* e)
                 {
                     if (log) printf("not inlining due to %s\n", e.EV.Vsym.Sident.ptr);
                     return false;
+                }
+                else if (e.EV.Vsym.Sclass == SC.global || e.EV.Vsym.Sclass == SC.comdat)
+                {
+                    static if (1)
+                        return false;
+                    else
+                    {
+                        const p = &e.EV.Vsym.Sident[0];
+                        if (p[0] == '_' && p[1] == '_' &&
+                            memcmp(p + 2, "bzeroBytes".ptr, 10) == 0)
+                        {
+                            if (log) printf("not inlining due to %s\n", p);
+                            return false;
+                        }
+                    }
                 }
             }
             else if (e.Eoper == OPasm)
@@ -220,7 +243,7 @@ bool canInlineExpression(elem* e)
         }
         else
         {
-            if (!canInlineExpression(e.EV.E1))
+            if (!canInlineExpressionWalker(e.EV.E1, cost))
                 return false;
             e = e.EV.E2;
             continue;
