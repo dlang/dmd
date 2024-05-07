@@ -71,17 +71,13 @@ struct elem
     debug ushort      id;
     enum IDelem = 0x4C45;   // 'EL'
 
-    version (OSX) // workaround https://issues.dlang.org/show_bug.cgi?id=16466
-        align(16) eve EV; // variants for each type of elem
-    else
-        eve EV;           // variants for each type of elem
-
     ubyte Eoper;        // operator (OPxxxx)
     ubyte Ecount;       // # of parents of this elem - 1,
                         // always 0 until CSE elimination is done
     eflags_t Eflags;
 
-    alias EV this;
+    eve EV;             // variants for each type of elem
+    alias EV this;      // convenience so .EV. is not necessary
 
     union
     {
