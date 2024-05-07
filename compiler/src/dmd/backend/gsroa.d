@@ -68,7 +68,7 @@ extern (D) private void sliceStructs_Gather(ref const symtab_t symtab, SymInfo[]
         {
             case OPvar:
             {
-                const si = e.EV.Vsym.Ssymnum;
+                const si = e.Vsym.Ssymnum;
                 if (si != SYMIDX.max && sia[si].canSlice)
                 {
                     assert(si < symtab.length);
@@ -88,7 +88,7 @@ extern (D) private void sliceStructs_Gather(ref const symtab_t symtab, SymInfo[]
                             foreach (ref ty; sia[si].ty)
                                 ty = TYnptr;
 
-                            const s = e.EV.Vsym;
+                            const s = e.Vsym;
                             const t = s.Stype;
                             if (tybasic(t.Tty) == TYstruct)
                             {
@@ -169,13 +169,13 @@ extern (D) private void sliceStructs_Gather(ref const symtab_t symtab, SymInfo[]
                 if (OTassign(e.Eoper))
                 {
                     if (OTbinary(e.Eoper))
-                        sliceStructs_Gather(symtab, sia, e.EV.E2);
+                        sliceStructs_Gather(symtab, sia, e.E2);
 
                     // Assignment to a whole var will disallow SROA
-                    if (e.EV.E1.Eoper == OPvar)
+                    if (e.E1.Eoper == OPvar)
                     {
-                        const e1 = e.EV.E1;
-                        const si = e1.EV.Vsym.Ssymnum;
+                        const e1 = e.E1;
+                        const si = e1.Vsym.Ssymnum;
                         if (si != SYMIDX.max && sia[si].canSlice)
                         {
                             assert(si < symtab.length);
@@ -193,23 +193,23 @@ extern (D) private void sliceStructs_Gather(ref const symtab_t symtab, SymInfo[]
                             // https://github.com/dlang/dmd/pull/8034
                             else if (!(config.exe & EX_OSX))
                             {
-                                sliceStructs_Gather(symtab, sia, e.EV.E1);
+                                sliceStructs_Gather(symtab, sia, e.E1);
                             }
                         }
                         return;
                     }
-                    e = e.EV.E1;
+                    e = e.E1;
                     break;
                 }
                 if (OTunary(e.Eoper))
                 {
-                    e = e.EV.E1;
+                    e = e.E1;
                     break;
                 }
                 if (OTbinary(e.Eoper))
                 {
-                    sliceStructs_Gather(symtab, sia, e.EV.E2);
-                    e = e.EV.E1;
+                    sliceStructs_Gather(symtab, sia, e.E2);
+                    e = e.E1;
                     break;
                 }
                 return;
@@ -233,7 +233,7 @@ extern (D) private void sliceStructs_Replace(ref symtab_t symtab, const SymInfo[
         {
             case OPvar:
             {
-                Symbol *s = e.EV.Vsym;
+                Symbol *s = e.Vsym;
                 const si = s.Ssymnum;
                 //printf("e: %d %d\n", si, sia[si].canSlice);
                 //elem_print(e);
@@ -252,12 +252,12 @@ extern (D) private void sliceStructs_Replace(ref symtab_t symtab, const SymInfo[
                         el_copy(e2, e);
                         Symbol *s1 = symtab[sia[si].si0 + 1]; // +1 for second slice
                         e2.Ety = sia[si].ty[1];
-                        e2.EV.Vsym = s1;
-                        e2.EV.Voffset = 0;
+                        e2.Vsym = s1;
+                        e2.Voffset = 0;
 
                         e.Eoper = OPpair;
-                        e.EV.E1 = e1;
-                        e.EV.E2 = e2;
+                        e.E1 = e1;
+                        e.E2 = e2;
 
                         if (tycomplex(e.Ety))
                         {
@@ -288,8 +288,8 @@ extern (D) private void sliceStructs_Replace(ref symtab_t symtab, const SymInfo[
                     else // the nth slice
                     {
                         if (log) { printf("slicing slice %d ", n); elem_print(e); }
-                        e.EV.Vsym = symtab[sia[si].si0 + n];
-                        e.EV.Voffset -= n * SLICESIZE;
+                        e.Vsym = symtab[sia[si].si0 + n];
+                        e.Voffset -= n * SLICESIZE;
                         //printf("replaced with:\n");
                         //elem_print(e);
                     }
@@ -299,7 +299,7 @@ extern (D) private void sliceStructs_Replace(ref symtab_t symtab, const SymInfo[
 
             case OPrelconst:
             {
-                Symbol *s = e.EV.Vsym;
+                Symbol *s = e.Vsym;
                 const si = s.Ssymnum;
                 //printf("e: %d %d\n", si, sia[si].canSlice);
                 //elem_print(e);
@@ -314,13 +314,13 @@ extern (D) private void sliceStructs_Replace(ref symtab_t symtab, const SymInfo[
             default:
                 if (OTunary(e.Eoper))
                 {
-                    e = e.EV.E1;
+                    e = e.E1;
                     break;
                 }
                 if (OTbinary(e.Eoper))
                 {
-                    sliceStructs_Replace(symtab, sia, e.EV.E2);
-                    e = e.EV.E1;
+                    sliceStructs_Replace(symtab, sia, e.E2);
+                    e = e.E1;
                     break;
                 }
                 return;
@@ -537,7 +537,7 @@ int nthSlice(const(elem)* e)
 
     /* See if e fits in a slice
      */
-    const lwr = e.EV.Voffset;
+    const lwr = e.Voffset;
     const upr = lwr + sz;
     if (0 <= lwr && upr <= sliceSize)
         return 0;
