@@ -232,28 +232,28 @@ private void constantPropagation(block* thisblock, ref EqRelInc eqrelinc)
         if (op == OPcolon || op == OPcolon2)
         {
             L = vec_clone(IN);
-            switch (el_returns(n.EV.E1) * 2 | el_returns(n.EV.E2))
+            switch (el_returns(n.E1) * 2 | el_returns(n.E2))
             {
                 case 3: // E1 and E2 return
-                    conpropwalk(n.EV.E1,L);
-                    conpropwalk(n.EV.E2,IN);
+                    conpropwalk(n.E1,L);
+                    conpropwalk(n.E2,IN);
                     vec_orass(IN,L);                // IN = L | R
                     break;
 
                 case 2: // E1 returns
-                    conpropwalk(n.EV.E1,IN);
-                    conpropwalk(n.EV.E2,L);
+                    conpropwalk(n.E1,IN);
+                    conpropwalk(n.E2,L);
                     break;
 
                 case 1: // E2 returns
-                    conpropwalk(n.EV.E1,L);
-                    conpropwalk(n.EV.E2,IN);
+                    conpropwalk(n.E1,L);
+                    conpropwalk(n.E2,IN);
                     break;
 
                 case 0: // neither returns
-                    conpropwalk(n.EV.E1,L);
+                    conpropwalk(n.E1,L);
                     vec_copy(L,IN);
-                    conpropwalk(n.EV.E2,L);
+                    conpropwalk(n.E2,L);
                     break;
 
                 default:
@@ -263,10 +263,10 @@ private void constantPropagation(block* thisblock, ref EqRelInc eqrelinc)
         }
         else if (op == OPandand || op == OPoror)
         {
-            conpropwalk(n.EV.E1,IN);
+            conpropwalk(n.E1,IN);
             R = vec_clone(IN);
-            conpropwalk(n.EV.E2,R);
-            if (el_returns(n.EV.E2))
+            conpropwalk(n.E2,R);
+            if (el_returns(n.E2))
                 vec_orass(IN,R);                // IN |= R
             vec_free(R);
         }
@@ -274,15 +274,15 @@ private void constantPropagation(block* thisblock, ref EqRelInc eqrelinc)
             goto L3;
         else if (ERTOL(n))
         {
-            conpropwalk(n.EV.E2,IN);
+            conpropwalk(n.E2,IN);
           L3:
-            t = n.EV.E1;
+            t = n.E1;
             if (OTassign(op))
             {
                 if (t.Eoper == OPvar)
                 {
                     // Note that the following ignores OPnegass
-                    if (OTopeq(op) && sytab[t.EV.Vsym.Sclass] & SCRD)
+                    if (OTopeq(op) && sytab[t.Vsym.Sclass] & SCRD)
                     {
                         Barray!(elem*) rdl;
                         listrds(IN,t,null,&rdl);
@@ -293,7 +293,7 @@ private void constantPropagation(block* thisblock, ref EqRelInc eqrelinc)
 
                             e = el_copytree(e);
                             e.Ety = t.Ety;
-                            n.EV.E2 = el_bin(opeqtoop(op),n.Ety,e,n.EV.E2);
+                            n.E2 = el_bin(opeqtoop(op),n.Ety,e,n.E2);
                             n.Eoper = OPeq;
                         }
                         rdl.dtor();
@@ -308,17 +308,17 @@ private void constantPropagation(block* thisblock, ref EqRelInc eqrelinc)
         else if (OTbinary(op))
         {
             if (OTassign(op))
-            {   t = n.EV.E1;
+            {   t = n.E1;
                 if (t.Eoper != OPvar)
                     conpropwalk(t,IN);
             }
             else
-                conpropwalk(n.EV.E1,IN);
-            conpropwalk(n.EV.E2,IN);
+                conpropwalk(n.E1,IN);
+            conpropwalk(n.E2,IN);
         }
 
         // Collect data for subsequent optimizations
-        if (OTbinary(op) && n.EV.E1.Eoper == OPvar && n.EV.E2.Eoper == OPconst)
+        if (OTbinary(op) && n.E1.Eoper == OPvar && n.E2.Eoper == OPconst)
         {
             switch (op)
             {
@@ -327,15 +327,15 @@ private void constantPropagation(block* thisblock, ref EqRelInc eqrelinc)
                 case OPle:
                 case OPge:
                     // Collect compare elems and their rd's in the rellist list
-                    if (tyintegral(n.EV.E1.Ety) &&
-                        tyintegral(n.EV.E2.Ety)
+                    if (tyintegral(n.E1.Ety) &&
+                        tyintegral(n.E2.Ety)
                        )
                     {
                         //printf("appending to rellist\n"); elem_print(n);
                         //printf("\trellist IN: "); vec_print(IN); printf("\n");
                         auto pdata = eqrelinc.rellist.push();
                         pdata.emplace(n, thisblock);
-                        listrds(IN, n.EV.E1, null, &pdata.rdlist);
+                        listrds(IN, n.E1, null, &pdata.rdlist);
                     }
                     break;
 
@@ -344,24 +344,24 @@ private void constantPropagation(block* thisblock, ref EqRelInc eqrelinc)
                 case OPpostinc:
                 case OPpostdec:
                     // Collect increment elems and their rd's in the inclist list
-                    if (tyintegral(n.EV.E1.Ety))
+                    if (tyintegral(n.E1.Ety))
                     {
                         //printf("appending to inclist\n"); elem_print(n);
                         //printf("\tinclist IN: "); vec_print(IN); printf("\n");
                         auto pdata = eqrelinc.inclist.push();
                         pdata.emplace(n, thisblock);
-                        listrds(IN, n.EV.E1, null, &pdata.rdlist);
+                        listrds(IN, n.E1, null, &pdata.rdlist);
                     }
                     break;
 
                 case OPne:
                 case OPeqeq:
                     // Collect compare elems and their rd's in the rellist list
-                    if (tyintegral(n.EV.E1.Ety) && !tyvector(n.Ety))
+                    if (tyintegral(n.E1.Ety) && !tyvector(n.Ety))
                     {   //printf("appending to eqeqlist\n"); elem_print(n);
                         auto pdata = eqrelinc.eqeqlist.push();
                         pdata.emplace(n, thisblock);
-                        listrds(IN, n.EV.E1, null, &pdata.rdlist);
+                        listrds(IN, n.E1, null, &pdata.rdlist);
                     }
                     break;
 
@@ -376,9 +376,9 @@ private void constantPropagation(block* thisblock, ref EqRelInc eqrelinc)
 
         /* now we get to the part that checks to see if we can  */
         /* propagate a constant.                                */
-        if (op == OPvar && sytab[n.EV.Vsym.Sclass] & SCRD)
+        if (op == OPvar && sytab[n.Vsym.Sclass] & SCRD)
         {
-            //printf("const prop: %s\n", n.EV.Vsym.Sident.ptr);
+            //printf("const prop: %s\n", n.Vsym.Sident.ptr);
             Barray!(elem*) rdl;
             listrds(IN,n,null,&rdl);
 
@@ -409,7 +409,7 @@ private void chkrd(elem *n, Barray!(elem*) rdlist)
     Symbol *sv;
     int unambig;
 
-    sv = n.EV.Vsym;
+    sv = n.Vsym;
     assert(sytab[sv.Sclass] & SCRD);
     if (sv.Sflags & SFLnord)           // if already printed a warning
         return;
@@ -423,9 +423,9 @@ private void chkrd(elem *n, Barray!(elem*) rdlist)
             return;
         if (OTassign(d.Eoper))
         {
-            if (d.EV.E1.Eoper == OPvar)
+            if (d.E1.Eoper == OPvar)
             {
-                if (d.EV.E1.EV.Vsym == sv)
+                if (d.E1.Vsym == sv)
                     return;
             }
             else if (!unambig)
@@ -514,13 +514,13 @@ private elem * chkprop(elem *n, Barray!(elem*) rdlist)
     //printf("checkprop: "); WReqn(n); printf("\n");
     assert(n && n.Eoper == OPvar);
     elem_debug(n);
-    sv = n.EV.Vsym;
+    sv = n.Vsym;
     assert(sytab[sv.Sclass] & SCRD);
     nty = n.Ety;
     if (!tyscalar(nty))
         goto noprop;
     nsize = cast(uint)size(nty);
-    noff = n.EV.Voffset;
+    noff = n.Voffset;
     unambig = sv.Sflags & SFLunambig;
     foreach (d; rdlist)
     {
@@ -535,11 +535,11 @@ private elem * chkprop(elem *n, Barray!(elem*) rdlist)
 
         if (OTassign(d.Eoper))      // if assignment elem
         {
-            elem *t = d.EV.E1;
+            elem *t = d.E1;
 
             if (t.Eoper == OPvar)
             {
-                assert(t.EV.Vsym == sv);
+                assert(t.Vsym == sv);
 
                 if (d.Eoper == OPstreq ||
                     !tyscalar(t.Ety))
@@ -550,10 +550,10 @@ private elem * chkprop(elem *n, Barray!(elem*) rdlist)
 
                 /* Everything must match or we must skip this variable  */
                 /* (in case of assigning to overlapping unions, etc.)   */
-                if (t.EV.Voffset != noff ||
+                if (t.Voffset != noff ||
                     /* If sizes match, we are ok        */
                     size(t.Ety) != nsize &&
-                        !(d.EV.E2.Eoper == OPconst && size(t.Ety) > nsize && !tyfloating(d.EV.E2.Ety)))
+                        !(d.E2.Eoper == OPconst && size(t.Ety) > nsize && !tyfloating(d.E2.Ety)))
                     goto noprop;
             }
             else
@@ -573,15 +573,15 @@ private elem * chkprop(elem *n, Barray!(elem*) rdlist)
                 goto noprop;            /* could be affected            */
         }
 
-        if (d.EV.E2.Eoper == OPconst || d.EV.E2.Eoper == OPrelconst)
+        if (d.E2.Eoper == OPconst || d.E2.Eoper == OPrelconst)
         {
             if (foundelem)              /* already found one            */
             {                           /* then they must be the same   */
-                if (!el_match(foundelem,d.EV.E2))
+                if (!el_match(foundelem,d.E2))
                     goto noprop;
             }
             else                        /* else this is it              */
-                foundelem = d.EV.E2;
+                foundelem = d.E2;
         }
         else
             goto noprop;
@@ -625,11 +625,11 @@ void listrds(vec_t IN,elem *e,vec_t f, Barray!(elem*)* rdlist)
     //printf("listrds: "); WReqn(e); printf("\n");
     assert(IN);
     assert(e.Eoper == OPvar);
-    s = e.EV.Vsym;
+    s = e.Vsym;
     ty = e.Ety;
     if (tyscalar(ty))
         nsize = cast(uint)size(ty);
-    noff = e.EV.Voffset;
+    noff = e.Voffset;
     unambig = s.Sflags & SFLunambig;
     if (f)
         vec_clear(f);
@@ -641,16 +641,16 @@ void listrds(vec_t IN,elem *e,vec_t f, Barray!(elem*)* rdlist)
         if (op == OPasm)                // assume ASM elems define everything
             goto listit;
         if (OTassign(op))
-        {   elem *t = d.EV.E1;
+        {   elem *t = d.E1;
 
-            if (t.Eoper == OPvar && t.EV.Vsym == s)
+            if (t.Eoper == OPvar && t.Vsym == s)
             {   if (op == OPstreq)
                     goto listit;
                 if (!tyscalar(ty) || !tyscalar(t.Ety))
                     goto listit;
                 // If t does not overlap e, then it doesn't affect things
-                if (noff + nsize > t.EV.Voffset &&
-                    t.EV.Voffset + size(t.Ety) > noff)
+                if (noff + nsize > t.Voffset &&
+                    t.Voffset + size(t.Ety) > noff)
                     goto listit;                // it's an assignment to s
             }
             else if (t.Eoper != OPvar && !unambig)
@@ -689,11 +689,11 @@ private void eqeqranges(ref Elemdatas eqeqlist)
     foreach (ref rel; eqeqlist)
     {
         e = rel.pelem;
-        v = e.EV.E1.EV.Vsym;
+        v = e.E1.Vsym;
         if (!(sytab[v.Sclass] & SCRD))
             continue;
-        sz = tysize(e.EV.E1.Ety);
-        c = el_tolong(e.EV.E2);
+        sz = tysize(e.E1.Ety);
+        c = el_tolong(e.E2);
 
         result = -1;                    // result not known yet
         foreach (erd; rel.rdlist)
@@ -704,18 +704,18 @@ private void eqeqranges(ref Elemdatas eqeqlist)
 
             elem_debug(erd);
             if (erd.Eoper != OPeq ||
-                (erd1 = erd.EV.E1).Eoper != OPvar ||
-                erd.EV.E2.Eoper != OPconst
+                (erd1 = erd.E1).Eoper != OPvar ||
+                erd.E2.Eoper != OPconst
                )
                 goto L1;
             szrd = tysize(erd1.Ety);
-            if (erd1.EV.Voffset + szrd <= e.EV.E1.EV.Voffset ||
-                e.EV.E1.EV.Voffset + sz <= erd1.EV.Voffset)
+            if (erd1.Voffset + szrd <= e.E1.Voffset ||
+                e.E1.Voffset + sz <= erd1.Voffset)
                 continue;               // doesn't affect us, skip it
-            if (szrd != sz || e.EV.E1.EV.Voffset != erd1.EV.Voffset)
+            if (szrd != sz || e.E1.Voffset != erd1.Voffset)
                 goto L1;                // overlapping - forget it
 
-            tmp = (c == el_tolong(erd.EV.E2));
+            tmp = (c == el_tolong(erd.E2));
             if (result == -1)
                 result = tmp;
             else if (result != tmp)
@@ -724,9 +724,9 @@ private void eqeqranges(ref Elemdatas eqeqlist)
         if (result >= 0)
         {
             //printf("replacing with %d\n",result);
-            el_free(e.EV.E1);
-            el_free(e.EV.E2);
-            e.EV.Vint = (e.Eoper == OPeqeq) ? result : result ^ 1;
+            el_free(e.E1);
+            el_free(e.E2);
+            e.Vint = (e.Eoper == OPeqeq) ? result : result ^ 1;
             e.Eoper = OPconst;
         }
     L1:
@@ -765,8 +765,8 @@ private void intranges(ref Elemdatas rellist, ref Elemdatas inclist)
     {
         rb = rel.pblock;
         //printf("rel.pelem: "); WReqn(rel.pelem); printf("\n");
-        assert(rel.pelem.EV.E1.Eoper == OPvar);
-        v = rel.pelem.EV.E1.EV.Vsym;
+        assert(rel.pelem.E1.Eoper == OPvar);
+        v = rel.pelem.E1.Vsym;
 
         // RD info is only reliable for registers and autos
         if (!(sytab[v.Sclass] & SCRD))
@@ -797,10 +797,10 @@ private void intranges(ref Elemdatas rellist, ref Elemdatas inclist)
             continue;
 
         /* lvalues should be unambiguous defs   */
-        if (rdeq.EV.E1.Eoper != OPvar || rdinc.EV.E1.Eoper != OPvar)
+        if (rdeq.E1.Eoper != OPvar || rdinc.E1.Eoper != OPvar)
             continue;
         /* rvalues should be constants          */
-        if (rdeq.EV.E2.Eoper != OPconst || rdinc.EV.E2.Eoper != OPconst)
+        if (rdeq.E2.Eoper != OPconst || rdinc.E2.Eoper != OPconst)
             continue;
 
         /* Ensure that the only defs reaching the increment elem (rdinc) */
@@ -841,12 +841,12 @@ private void intranges(ref Elemdatas rellist, ref Elemdatas inclist)
         }
 
         /* Gather initial, increment, and final values for loop */
-        initial = el_tolong(rdeq.EV.E2);
-        increment = el_tolong(rdinc.EV.E2);
+        initial = el_tolong(rdeq.E2);
+        increment = el_tolong(rdinc.E2);
         if (incop == OPpostdec || incop == OPminass)
             increment = -increment;
         relatop = rel.pelem.Eoper;
-        final_ = el_tolong(rel.pelem.EV.E2);
+        final_ = el_tolong(rel.pelem.E2);
         //printf("initial = %d, increment = %d, final_ = %d\n",initial,increment,final_);
 
         /* Determine if we can make the relational an unsigned  */
@@ -872,9 +872,9 @@ private void intranges(ref Elemdatas rellist, ref Elemdatas inclist)
                    )
                 {
                 makeuns:
-                    if (!tyuns(rel.pelem.EV.E2.Ety))
+                    if (!tyuns(rel.pelem.E2.Ety))
                     {
-                        rel.pelem.EV.E2.Ety = touns(rel.pelem.EV.E2.Ety);
+                        rel.pelem.E2.Ety = touns(rel.pelem.E2.Ety);
                         rel.pelem.Nflags |= NFLtouns;
 
                         debug
@@ -893,12 +893,12 @@ private void intranges(ref Elemdatas rellist, ref Elemdatas inclist)
                             rb.BC == BCiftrue &&
                             list_block(rb.Bsucc) == rb &&
                             rb.Belem.Eoper == OPcomma &&
-                            rb.Belem.EV.E1 == rdinc &&
-                            rb.Belem.EV.E2 == rel.pelem
+                            rb.Belem.E1 == rdinc &&
+                            rb.Belem.E2 == rel.pelem
                            )
                         {
                             rel.pelem.Eoper = OPeq;
-                            rel.pelem.Ety = rel.pelem.EV.E1.Ety;
+                            rel.pelem.Ety = rel.pelem.E1.Ety;
                             rb.BC = BCgoto;
                             list_subtract(&rb.Bsucc,rb);
                             list_subtract(&rb.Bpred,rb);
@@ -946,8 +946,8 @@ public bool findloopparameters(elem* erel, ref elem* rdeq, ref elem* rdinc)
         return result;
     }
 
-    assert(erel.EV.E1.Eoper == OPvar);
-    Symbol* v = erel.EV.E1.EV.Vsym;
+    assert(erel.E1.Eoper == OPvar);
+    Symbol* v = erel.E1.Vsym;
 
     // RD info is only reliable for registers and autos
     if (!(sytab[v.Sclass] & SCRD))
@@ -1021,14 +1021,14 @@ public bool findloopparameters(elem* erel, ref elem* rdeq, ref elem* rdinc)
     }
 
     // lvalues should be unambiguous defs
-    if (rdeq.Eoper != OPeq || rdeq.EV.E1.Eoper != OPvar || rdinc.EV.E1.Eoper != OPvar)
+    if (rdeq.Eoper != OPeq || rdeq.E1.Eoper != OPvar || rdinc.E1.Eoper != OPvar)
     {
         if (log) printf("\tnot OPvar\n");
         return returnResult(false);
     }
 
     // rvalues should be constants
-    if (rdeq.EV.E2.Eoper != OPconst || rdinc.EV.E2.Eoper != OPconst)
+    if (rdeq.E2.Eoper != OPconst || rdinc.E2.Eoper != OPconst)
     {
         if (log) printf("\tnot OPconst\n");
         return returnResult(false);
@@ -1163,26 +1163,26 @@ private bool copyPropWalk(elem *n,vec_t IN)
         if (op == OPcolon || op == OPcolon2)
         {
             vec_t L = vec_clone(IN);
-            cpwalk(n.EV.E1,L);
-            cpwalk(n.EV.E2,IN);
+            cpwalk(n.E1,L);
+            cpwalk(n.E2,IN);
             vec_andass(IN,L);               // IN = L & R
             vec_free(L);
         }
         else if (op == OPandand || op == OPoror)
         {
-            cpwalk(n.EV.E1,IN);
+            cpwalk(n.E1,IN);
             vec_t L = vec_clone(IN);
-            cpwalk(n.EV.E2,L);
+            cpwalk(n.E2,L);
             vec_andass(IN,L);               // IN = L & R
             vec_free(L);
         }
         else if (OTunary(op))
         {
-            t = n.EV.E1;
+            t = n.E1;
             if (OTassign(op))
             {
                 if (t.Eoper == OPind)
-                    cpwalk(t.EV.E1,IN);
+                    cpwalk(t.E1,IN);
             }
             else if (op == OPctor || op == OPdtor)
             {
@@ -1201,8 +1201,8 @@ private bool copyPropWalk(elem *n,vec_t IN)
         }
         else if (OTassign(op))
         {
-            cpwalk(n.EV.E2,IN);
-            t = n.EV.E1;
+            cpwalk(n.E2,IN);
+            t = n.E1;
             if (t.Eoper == OPind)
                 cpwalk(t,IN);
             else
@@ -1213,13 +1213,13 @@ private bool copyPropWalk(elem *n,vec_t IN)
         }
         else if (ERTOL(n))
         {
-            cpwalk(n.EV.E2,IN);
-            cpwalk(n.EV.E1,IN);
+            cpwalk(n.E2,IN);
+            cpwalk(n.E1,IN);
         }
         else if (OTbinary(op))
         {
-            cpwalk(n.EV.E1,IN);
-            cpwalk(n.EV.E2,IN);
+            cpwalk(n.E1,IN);
+            cpwalk(n.E2,IN);
         }
 
         if (OTdef(op))                  // if definition elem
@@ -1236,7 +1236,7 @@ private bool copyPropWalk(elem *n,vec_t IN)
 
                 /* If this elem could kill the lvalue or the rvalue, */
                 /*      Clear bit in IN.                        */
-                v = go.expnod[i].EV.E1.EV.Vsym;
+                v = go.expnod[i].E1.Vsym;
                 if (ambig)
                 {
                     if (Symbol_isAffected(*v))
@@ -1244,11 +1244,11 @@ private bool copyPropWalk(elem *n,vec_t IN)
                 }
                 else
                 {
-                    if (v == t.EV.Vsym)
+                    if (v == t.Vsym)
                         goto clr;
                 }
 
-                v = go.expnod[i].EV.E2.EV.Vsym;
+                v = go.expnod[i].E2.Vsym;
                 if (ambig)
                 {
                     if (Symbol_isAffected(*v))
@@ -1256,7 +1256,7 @@ private bool copyPropWalk(elem *n,vec_t IN)
                 }
                 else
                 {
-                    if (v == t.EV.Vsym)
+                    if (v == t.Vsym)
                         goto clr;
                 }
                 continue;
@@ -1267,13 +1267,13 @@ private bool copyPropWalk(elem *n,vec_t IN)
 
             /* If this is a copy elem in go.expnod[]   */
             /*      Set bit in IN.                     */
-            if ((op == OPeq || op == OPstreq) && n.EV.E1.Eoper == OPvar &&
-                n.EV.E2.Eoper == OPvar && n.Eexp)
+            if ((op == OPeq || op == OPstreq) && n.E1.Eoper == OPvar &&
+                n.E2.Eoper == OPvar && n.Eexp)
                 vec_setbit(n.Eexp,IN);
         }
         else if (op == OPvar && !nocp)  // if reference to variable v
         {
-            Symbol *v = n.EV.Vsym;
+            Symbol *v = n.Vsym;
 
             //printf("Checking copyprop for '%s', ty=x%x\n", v.Sident.ptr,n.Ety);
             symbol_debug(v);
@@ -1289,28 +1289,28 @@ private bool copyPropWalk(elem *n,vec_t IN)
                 elem* c = go.expnod[i];
                 assert(c);
 
-                uint csz = tysize(c.EV.E1.Ety);
+                uint csz = tysize(c.E1.Ety);
                 if (c.Eoper == OPstreq)
                     csz = cast(uint)type_size(c.ET);
                 assert(cast(int)csz >= 0);
 
-                //printf("  looking at: ("); WReqn(c); printf("), ty=x%x\n",c.EV.E1.Ety);
+                //printf("  looking at: ("); WReqn(c); printf("), ty=x%x\n",c.E1.Ety);
                 /* Not only must symbol numbers match, but      */
                 /* offsets too (in case of arrays) and sizes    */
                 /* (in case of unions).                         */
-                if (v == c.EV.E1.EV.Vsym &&
-                    n.EV.Voffset >= c.EV.E1.EV.Voffset &&
-                    n.EV.Voffset + sz <= c.EV.E1.EV.Voffset + csz)
+                if (v == c.E1.Vsym &&
+                    n.Voffset >= c.E1.Voffset &&
+                    n.Voffset + sz <= c.E1.Voffset + csz)
                 {
                     if (foundelem)
                     {
-                        if (c.EV.E2.EV.Vsym != f)
+                        if (c.E2.Vsym != f)
                             goto noprop;
                     }
                     else
                     {
                         foundelem = c;
-                        f = foundelem.EV.E2.EV.Vsym;
+                        f = foundelem.E2.Vsym;
                     }
                 }
             }
@@ -1324,11 +1324,11 @@ private bool copyPropWalk(elem *n,vec_t IN)
                 }
 
                 type *nt = n.ET;
-                targ_size_t noffset = n.EV.Voffset;
-                el_copy(n,foundelem.EV.E2);
+                targ_size_t noffset = n.Voffset;
+                el_copy(n,foundelem.E2);
                 n.Ety = ty;    // retain original type
                 n.ET = nt;
-                n.EV.Voffset += noffset - foundelem.EV.E1.EV.Voffset;
+                n.Voffset += noffset - foundelem.E1.Voffset;
 
                 /* original => rewrite
                  *  v = f
@@ -1340,7 +1340,7 @@ private bool copyPropWalk(elem *n,vec_t IN)
                 foreach (j; 1 .. go.exptop)
                 {
                     //printf("go.expnod[%d]: ", j); elem_print(go.expnod[j]);
-                    if (go.expnod[j].EV.E2 == n)
+                    if (go.expnod[j].E2 == n)
                     {
                         recalc = true;
                         break;
@@ -1405,8 +1405,8 @@ public void rmdeadass()
             elem *nv;
 
             n = assnod[j];
-            nv = n.EV.E1;
-            v = nv.EV.Vsym;
+            nv = n.E1;
+            v = nv.Vsym;
             if (!symbol_isintab(v)) // not considered
                 continue;
             //printf("assnod[%d]: ",j); WReqn(n); printf("\n");
@@ -1425,10 +1425,10 @@ public void rmdeadass()
              */
             if (OTbinary(n.Eoper))
             {
-                elem* e2 = n.EV.E2;
+                elem* e2 = n.E2;
                 if (e2.Eoper == OPvar &&
                     config.fpxmmregs &&
-                    !tyfloating(v.Stype.Tty) != !tyfloating(e2.EV.Vsym.Stype.Tty)
+                    !tyfloating(v.Stype.Tty) != !tyfloating(e2.Vsym.Stype.Tty)
                    )
                     continue;
             }
@@ -1461,7 +1461,7 @@ public void elimass(elem *n)
     switch (n.Eoper)
     {
         case OPvecsto:
-            n.EV.E2.Eoper = OPcomma;
+            n.E2.Eoper = OPcomma;
             goto case OPeq;
 
         case OPeq:
@@ -1470,10 +1470,10 @@ public void elimass(elem *n)
             /* Watch out for (a=b=c) stuff!     */
             /* Don't screw up assnod[]. */
             n.Eoper = OPcomma;
-            n.Ety |= n.EV.E2.Ety & (mTYconst | mTYvolatile | mTYimmutable | mTYshared
+            n.Ety |= n.E2.Ety & (mTYconst | mTYvolatile | mTYimmutable | mTYshared
                  | mTYfar
                 );
-            n.EV.E1.Eoper = OPconst;
+            n.E1.Eoper = OPconst;
             break;
 
         /* Convert (V op= e) to (V op e)        */
@@ -1493,8 +1493,8 @@ public void elimass(elem *n)
 
         case OPpostinc: /* (V i++ c) => V       */
         case OPpostdec: /* (V i-- c) => V       */
-            e1 = n.EV.E1;
-            el_free(n.EV.E2);
+            e1 = n.E1;
+            el_free(n.E2);
             el_copy(n,e1);
             el_free(e1);
             break;
@@ -1511,7 +1511,7 @@ public void elimass(elem *n)
 
         case OPcmpxchg:
             n.Eoper = OPcomma;
-            n.EV.E2.Eoper = OPcomma;
+            n.E2.Eoper = OPcomma;
             break;
 
         default:
@@ -1529,14 +1529,14 @@ public void elimass(elem *n)
 private uint numasg(elem *e)
 {
     assert(e);
-    if (OTassign(e.Eoper) && e.EV.E1.Eoper == OPvar)
+    if (OTassign(e.Eoper) && e.E1.Eoper == OPvar)
     {
         e.Nflags |= NFLassign;
-        return 1 + numasg(e.EV.E1) + (OTbinary(e.Eoper) ? numasg(e.EV.E2) : 0);
+        return 1 + numasg(e.E1) + (OTbinary(e.Eoper) ? numasg(e.E2) : 0);
     }
     e.Nflags &= ~NFLassign;
-    return OTunary(e.Eoper) ? numasg(e.EV.E1) :
-           OTbinary(e.Eoper) ? numasg(e.EV.E1) + numasg(e.EV.E2) : 0;
+    return OTunary(e.Eoper) ? numasg(e.E1) :
+           OTbinary(e.Eoper) ? numasg(e.E1) + numasg(e.E2) : 0;
 }
 
 /******************************
@@ -1567,8 +1567,8 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
             vec_t Pr = vec_clone(POSS);
             vec_t Dl = vec_calloc(vec_numbits(POSS));
             vec_t Dr = vec_calloc(vec_numbits(POSS));
-            accumda(n.EV.E1,Dl,Pl);
-            accumda(n.EV.E2,Dr,Pr);
+            accumda(n.E1,Dl,Pl);
+            accumda(n.E2,Dr,Pr);
 
             /* D |= P & (Dl & Dr) | ~P & (Dl | Dr)  */
             /* P = P & (Pl & Pr) | ~P & (Pl | Pr)   */
@@ -1587,13 +1587,13 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
         case OPandand:
         case OPoror:
         {
-            accumda(n.EV.E1,DEAD,POSS);
+            accumda(n.E1,DEAD,POSS);
             // Substituting into the above equations Pl=P and Dl=0:
             // D |= Dr - P
             // P = Pr
             vec_t Pr = vec_clone(POSS);
             vec_t Dr = vec_calloc(vec_numbits(POSS));
-            accumda(n.EV.E2,Dr,Pr);
+            accumda(n.E2,Dr,Pr);
             vec_subass(Dr,POSS);
             vec_orass(DEAD,Dr);
             vec_copy(POSS,Pr);
@@ -1603,8 +1603,8 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
 
         case OPvar:
         {
-            Symbol *v = n.EV.Vsym;
-            targ_size_t voff = n.EV.Voffset;
+            Symbol *v = n.Vsym;
+            targ_size_t voff = n.Voffset;
             uint vsize = tysize(n.Ety);
 
             // We have a reference. Clear all bits in POSS that
@@ -1612,12 +1612,12 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
 
             foreach (const i; 0 .. assnod.length)
             {
-                elem *ti = assnod[i].EV.E1;
-                if (v == ti.EV.Vsym &&
+                elem *ti = assnod[i].E1;
+                if (v == ti.Vsym &&
                     ((vsize == -1 || tysize(ti.Ety) == -1) ||
                      // If symbol references overlap
-                     (voff + vsize > ti.EV.Voffset &&
-                      ti.EV.Voffset + tysize(ti.Ety) > voff)
+                     (voff + vsize > ti.Voffset &&
+                      ti.Voffset + tysize(ti.Ety) > voff)
                     )
                    )
                 {
@@ -1633,8 +1633,8 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
             break;
 
         case OPbt:
-            accumda(n.EV.E1,DEAD,POSS);
-            accumda(n.EV.E2,DEAD,POSS);
+            accumda(n.E1,DEAD,POSS);
+            accumda(n.E2,DEAD,POSS);
             vec_subass(POSS,ambigref);      // remove possibly refed
             break;
 
@@ -1642,7 +1642,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
         case OPucall:
         case OPucallns:
         case OPvp_fp:
-            accumda(n.EV.E1,DEAD,POSS);
+            accumda(n.E1,DEAD,POSS);
             vec_subass(POSS,ambigref);      // remove possibly refed
                                             // assignments from list
                                             // of possibly dead ones
@@ -1656,11 +1656,11 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
         case OPmemcpy:
         case OPstrcpy:
         case OPmemset:
-            accumda(n.EV.E2,DEAD,POSS);
+            accumda(n.E2,DEAD,POSS);
             goto case OPstrlen;
 
         case OPstrlen:
-            accumda(n.EV.E1,DEAD,POSS);
+            accumda(n.E1,DEAD,POSS);
             vec_subass(POSS,ambigref);      // remove possibly refed
                                             // assignments from list
                                             // of possibly dead ones
@@ -1669,8 +1669,8 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
         case OPstrcat:
         case OPstrcmp:
         case OPmemcmp:
-            accumda(n.EV.E1,DEAD,POSS);
-            accumda(n.EV.E2,DEAD,POSS);
+            accumda(n.E1,DEAD,POSS);
+            accumda(n.E2,DEAD,POSS);
             vec_subass(POSS,ambigref);      // remove possibly refed
                                             // assignments from list
                                             // of possibly dead ones
@@ -1682,20 +1682,20 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
                 elem *t;
 
                 if (ERTOL(n))
-                    accumda(n.EV.E2,DEAD,POSS);
-                t = n.EV.E1;
+                    accumda(n.E2,DEAD,POSS);
+                t = n.E1;
                 // if not (v = expression) then gen refs of left tree
                 if (op != OPeq && op != OPstreq)
-                    accumda(n.EV.E1,DEAD,POSS);
+                    accumda(n.E1,DEAD,POSS);
                 else if (OTunary(t.Eoper))         // if (*e = expression)
-                    accumda(t.EV.E1,DEAD,POSS);
+                    accumda(t.E1,DEAD,POSS);
                 else if (OTbinary(t.Eoper))
                 {
-                    accumda(t.EV.E1,DEAD,POSS);
-                    accumda(t.EV.E2,DEAD,POSS);
+                    accumda(t.E1,DEAD,POSS);
+                    accumda(t.E2,DEAD,POSS);
                 }
                 if (!ERTOL(n) && op != OPnegass)
-                    accumda(n.EV.E2,DEAD,POSS);
+                    accumda(n.E2,DEAD,POSS);
 
                 // if unambiguous assignment, post all possibilities
                 // to DEAD
@@ -1706,7 +1706,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
                         tsz = cast(uint)type_size(n.ET);
                     foreach (const i; 0 .. assnod.length)
                     {
-                        elem *ti = assnod[i].EV.E1;
+                        elem *ti = assnod[i].E1;
 
                         uint tisz = tysize(ti.Ety);
                         if (assnod[i].Eoper == OPstreq)
@@ -1714,11 +1714,11 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
 
                         // There may be some problem with this next
                         // statement with unions.
-                        if (ti.EV.Vsym == t.EV.Vsym &&
-                            ti.EV.Voffset == t.EV.Voffset &&
+                        if (ti.Vsym == t.Vsym &&
+                            ti.Voffset == t.Voffset &&
                             tisz == tsz &&
                             !(t.Ety & (mTYvolatile | mTYshared)) &&
-                            //t.EV.Vsym.Sflags & SFLunambig &&
+                            //t.Vsym.Sflags & SFLunambig &&
                             vec_testbit(i,POSS))
                         {
                             vec_setbit(i,DEAD);
@@ -1735,7 +1735,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
                     // if variable could be referenced by a pointer
                     // or a function call, mark the assignment in
                     // ambigref
-                    if (!(t.EV.Vsym.Sflags & SFLunambig))
+                    if (!(t.Vsym.Sflags & SFLunambig))
                     {
                         vec_setbit(i,ambigref);
 
@@ -1752,20 +1752,20 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
             }
             else if (OTrtol(op))
             {
-                accumda(n.EV.E2,DEAD,POSS);
-                n = n.EV.E1;
-                goto LtailRecurse;              //  accumda(n.EV.E1,DEAD,POSS);
+                accumda(n.E2,DEAD,POSS);
+                n = n.E1;
+                goto LtailRecurse;              //  accumda(n.E1,DEAD,POSS);
             }
             else if (OTbinary(op))
             {
-                accumda(n.EV.E1,DEAD,POSS);
-                n = n.EV.E2;
-                goto LtailRecurse;              //  accumda(n.EV.E2,DEAD,POSS);
+                accumda(n.E1,DEAD,POSS);
+                n = n.E2;
+                goto LtailRecurse;              //  accumda(n.E2,DEAD,POSS);
             }
             else if (OTunary(op))
             {
-                n = n.EV.E1;
-                goto LtailRecurse;              //  accumda(n.EV.E1,DEAD,POSS);
+                n = n.E1;
+                goto LtailRecurse;              //  accumda(n.E1,DEAD,POSS);
             }
             break;
     }
@@ -1842,12 +1842,12 @@ public void deadvar()
 @trusted
 private void dvwalk(elem *n,uint i)
 {
-    for (; true; n = n.EV.E1)
+    for (; true; n = n.E1)
     {
         assert(n);
         if (n.Eoper == OPvar || n.Eoper == OPrelconst)
         {
-            Symbol *s = n.EV.Vsym;
+            Symbol *s = n.Vsym;
 
             s.Sflags &= ~SFLdead;
             if (s.Srange)
@@ -1856,7 +1856,7 @@ private void dvwalk(elem *n,uint i)
         else if (!OTleaf(n.Eoper))
         {
             if (OTbinary(n.Eoper))
-                dvwalk(n.EV.E2,i);
+                dvwalk(n.E2,i);
             continue;
         }
         break;
