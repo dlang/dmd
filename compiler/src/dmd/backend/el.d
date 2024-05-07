@@ -81,6 +81,8 @@ struct elem
                         // always 0 until CSE elimination is done
     eflags_t Eflags;
 
+    alias EV this;
+
     union
     {
         // PARSER
@@ -131,7 +133,7 @@ tym_t typemask(const elem* e)
 }
 
 @trusted
-FL el_fl(const elem* e) { return e.EV.Vsym.Sfl; }
+FL el_fl(const elem* e) { return e.Vsym.Sfl; }
 
 //#define Eoffset         EV.sp.Voffset
 //#define Esymnum         EV.sp.Vsymnum
