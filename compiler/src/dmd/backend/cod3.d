@@ -2525,7 +2525,7 @@ regm_t cod3_useBP()
         goto Lcant;
 
     stackoffsets(globsym, true);                // estimate stack offsets
-    localsize = Auto.offset + Fast.offset;                // an estimate only
+    localsize = cgstate.Auto.offset + Fast.offset;                // an estimate only
 //    if (localsize)
     {
         if (!(config.flags4 & CFG4speed) ||
@@ -3842,7 +3842,7 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv)
 
     /* Save registers into the voff area on the stack
      */
-    targ_size_t voff = Auto.size + BPoff + sv.Soffset;  // EBP offset of start of sv
+    targ_size_t voff = cgstate.Auto.size + BPoff + sv.Soffset;  // EBP offset of start of sv
     const int vregnum = 6;
     const uint vsize = vregnum * 8 + 8 * 16;
 
@@ -5125,9 +5125,9 @@ void cod3_adjSymOffsets()
                 if (s.Sfl == FLfast)
                     s.Soffset += Fast.size + BPoff;
                 else
-//printf("s = '%s', Soffset = x%x, Auto.size = x%x, BPoff = x%x EBPtoESP = x%x\n", s.Sident, cast(int)s.Soffset, cast(int)Auto.size, cast(int)BPoff, cast(int)EBPtoESP);
+//printf("s = '%s', Soffset = x%x, Auto.size = x%x, BPoff = x%x EBPtoESP = x%x\n", s.Sident, cast(int)s.Soffset, cast(int)cgstate.Auto.size, cast(int)BPoff, cast(int)EBPtoESP);
 //              if (!(funcsym_p.Sfunc.Fflags3 & Fnested))
-                    s.Soffset += Auto.size + BPoff;
+                    s.Soffset += cgstate.Auto.size + BPoff;
                 break;
 
             case SC.bprel:
@@ -5327,7 +5327,7 @@ void assignaddrc(code *c)
 
             case FLreg:
             case FLauto:
-                soff = Auto.size;
+                soff = cgstate.Auto.size;
             L1:
                 if (Symbol_Sisdead(*s, anyiasm))
                 {
@@ -5505,7 +5505,7 @@ void assignaddrc(code *c)
                 break;
 
             case FLauto:
-                c.IEV2.Vpointer += s.Soffset + Auto.size + BPoff;
+                c.IEV2.Vpointer += s.Soffset + cgstate.Auto.size + BPoff;
             L3:
                 if (!hasframe || (enforcealign && c.IFL2 != FLpara))
                     /* Convert to ESP relative address instead of EBP */
@@ -5579,7 +5579,7 @@ targ_size_t cod3_bpoffset(Symbol *s)
             break;
 
         case FLauto:
-            offset += Auto.size + BPoff;
+            offset += cgstate.Auto.size + BPoff;
             break;
 
         default:

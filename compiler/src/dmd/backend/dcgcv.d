@@ -1644,7 +1644,7 @@ private void cv4_outsym(Symbol *s)
                 if (s.Sfl == FLreg)
                     goto case_register;
             case_auto:
-                base = Auto.size;
+                base = cgstate.Auto.size;
             L1:
                 if (s.Sscope) // local variables moved into the closure cannot be emitted directly
                     goto Lret;
