@@ -2228,7 +2228,7 @@ int jmpopcode(elem *e)
         /* we decide if mPSW is passed on when evaluating E2 or not.    */
          (e.Eoper == OPeq && OTleaf(e.E1.Eoper)))
     {
-        e = e.EV.E2;                      /* right operand determines it  */
+        e = e.E2;                      /* right operand determines it  */
     }
 
     op = e.Eoper;
@@ -2238,7 +2238,7 @@ int jmpopcode(elem *e)
          tymx == TYcdouble || tymx == TYcfloat ||
          (tyxmmreg(tymx) && config.fpxmmregs && e.Ecount != e.Ecomsub) ||
          op == OPind ||
-         (OTcall(op) && (regmask(tymx, tybasic(e.EV.E1.Eoper)) & (mST0 | XMMREGS))));
+         (OTcall(op) && (regmask(tymx, tybasic(e.E1.Eoper)) & (mST0 | XMMREGS))));
 
     if (!needsNanCheck)
     {
@@ -2247,7 +2247,7 @@ int jmpopcode(elem *e)
          */
         Symbol* s;
         needsNanCheck = e.Eoper == OPvar &&
-            (s = e.EV.Vsym).Sfl == FLreg &&
+            (s = e.Vsym).Sfl == FLreg &&
              s.Sregm & XMMREGS &&
              (tymx == TYfloat || tymx == TYifloat || tymx == TYdouble || tymx ==TYidouble);
     }
@@ -2264,18 +2264,18 @@ int jmpopcode(elem *e)
         if (needsNanCheck)
             return XP|JNE;
 
-        if (op == OPu32_64) { e = e.EV.E1; op = e.Eoper; }
-        if (op == OPu16_32) { e = e.EV.E1; op = e.Eoper; }
-        if (op == OPu8_16) op = e.EV.E1.Eoper;
+        if (op == OPu32_64) { e = e.E1; op = e.Eoper; }
+        if (op == OPu16_32) { e = e.E1; op = e.Eoper; }
+        if (op == OPu8_16) op = e.E1.Eoper;
         return ((op >= OPbt && op <= OPbts) || op == OPbtst) ? JC : JNE;
     }
 
-    if (e.EV.E2.Eoper == OPconst)
-        zero = !boolres(e.EV.E2);
+    if (e.E2.Eoper == OPconst)
+        zero = !boolres(e.E2);
     else
         zero = 0;
 
-    tym = e.EV.E1.Ety;
+    tym = e.E1.Ety;
     if (tyfloating(tym))
     {
 static if (1)
@@ -2296,7 +2296,7 @@ static if (1)
                 }
                 else if (NOSAHF)
                     op = swaprel(op);
-                else if (cmporder87(e.EV.E2))
+                else if (cmporder87(e.E2))
                     op = swaprel(op);
                 else
                 { }
@@ -2314,7 +2314,7 @@ else
             if (zero && !rel_exception(op) && config.target_cpu >= TARGET_80386)
                 op = swaprel(op);
             else if (!zero &&
-                (cmporder87(e.EV.E2) || !(rel_exception(op) || config.flags4 & CFG4fastfloat)))
+                (cmporder87(e.E2) || !(rel_exception(op) || config.flags4 & CFG4fastfloat)))
                 /* compare is reversed */
                 op = swaprel(op);
 }
@@ -2324,10 +2324,10 @@ else
 }
 else
 {
-        i = (config.inline8087) ? (3 + cmporder87(e.EV.E2)) : 2;
+        i = (config.inline8087) ? (3 + cmporder87(e.E2)) : 2;
 }
     }
-    else if (tyuns(tym) || tyuns(e.EV.E2.Ety))
+    else if (tyuns(tym) || tyuns(e.E2.Ety))
         i = 1;
     else if (tyintegral(tym) || typtr(tym))
         i = 0;
@@ -2344,7 +2344,7 @@ else
     /* Try to rewrite uint comparisons so they rely on just the Carry flag
      */
     if (i == 1 && (jp == JA || jp == JBE) &&
-        (e.EV.E2.Eoper != OPconst && e.EV.E2.Eoper != OPrelconst))
+        (e.E2.Eoper != OPconst && e.E2.Eoper != OPrelconst))
     {
         jp = (jp == JA) ? JC : JNC;
     }
@@ -2559,17 +2559,17 @@ bool cse_simple(code *c, elem *e)
     if (!I16 &&                                  // don't bother with 16 bit code
         e.Eoper == OPadd &&
         sz == REGSIZE &&
-        e.EV.E2.Eoper == OPconst &&
-        e.EV.E1.Eoper == OPvar &&
-        isregvar(e.EV.E1,regm,reg) &&
-        !(e.EV.E1.EV.Vsym.Sflags & SFLspill)
+        e.E2.Eoper == OPconst &&
+        e.E1.Eoper == OPvar &&
+        isregvar(e.E1,regm,reg) &&
+        !(e.E1.Vsym.Sflags & SFLspill)
        )
     {
         memset(c,0,(*c).sizeof);
 
         // Make this an LEA instruction
         c.Iop = LEA;
-        buildEA(c,reg,-1,1,e.EV.E2.EV.Vuns);
+        buildEA(c,reg,-1,1,e.E2.Vuns);
         if (I64)
         {   if (sz == 8)
                 c.Irex |= REX_W;
@@ -2579,10 +2579,10 @@ bool cse_simple(code *c, elem *e)
     }
     else if (e.Eoper == OPind &&
         sz <= REGSIZE &&
-        e.EV.E1.Eoper == OPvar &&
-        isregvar(e.EV.E1,regm,reg) &&
+        e.E1.Eoper == OPvar &&
+        isregvar(e.E1,regm,reg) &&
         (I32 || I64 || regm & IDXREGS) &&
-        !(e.EV.E1.EV.Vsym.Sflags & SFLspill)
+        !(e.E1.Vsym.Sflags & SFLspill)
        )
     {
         memset(c,0,(*c).sizeof);
@@ -3952,18 +3952,18 @@ elem* prolog_genva_start(Symbol* sv, Symbol* parmn)
 
     // set offset_regs
     elem* e1 = el_bin(OPeq, TYint, el_var(sv), el_long(TYint, offset_regs));
-    e1.EV.E1.Ety = TYint;
-    e1.EV.E1.EV.Voffset = OFF.Offset_regs;
+    e1.E1.Ety = TYint;
+    e1.E1.Voffset = OFF.Offset_regs;
 
     // set offset_fpregs
     elem* e2 = el_bin(OPeq, TYint, el_var(sv), el_long(TYint, offset_fpregs));
-    e2.EV.E1.Ety = TYint;
-    e2.EV.E1.EV.Voffset = OFF.Offset_fpregs;
+    e2.E1.Ety = TYint;
+    e2.E1.Voffset = OFF.Offset_fpregs;
 
     // set reg_args
     elem* e4 = el_bin(OPeq, TYnptr, el_var(sv), el_ptr(sv));
-    e4.EV.E1.Ety = TYnptr;
-    e4.EV.E1.EV.Voffset = OFF.Reg_args;
+    e4.E1.Ety = TYnptr;
+    e4.E1.Voffset = OFF.Reg_args;
 
     // set stack_args
     /* which is a pointer to the first variadic argument on the stack.
@@ -3971,11 +3971,11 @@ elem* prolog_genva_start(Symbol* sv, Symbol* parmn)
      * (parmn) and then skipping past it. The trouble, though, is it fails
      * when all the named parameters get passed in a register.
      *    elem* e3 = el_bin(OPeq, TYnptr, el_var(sv), el_ptr(parmn));
-     *    e3.EV.E1.Ety = TYnptr;
-     *    e3.EV.E1.EV.Voffset = OFF.Stack_args;
+     *    e3.E1.Ety = TYnptr;
+     *    e3.E1.Voffset = OFF.Stack_args;
      *    auto sz = type_size(parmn.Stype);
      *    sz = (sz + (REGSIZE - 1)) & ~(REGSIZE - 1);
-     *    e3.EV.E2.EV.Voffset += sz;
+     *    e3.E2.Voffset += sz;
      * The next possibility is to do it the way prolog_genvarargs() does:
      *    LEA R11, Para.size+Para.offset[RBP]
      * The trouble there is Para.size and Para.offset is not available when
@@ -3988,10 +3988,10 @@ elem* prolog_genva_start(Symbol* sv, Symbol* parmn)
      * Although, doing (1) might be optimal.
      */
     elem* e3 = el_bin(OPeq, TYnptr, el_var(sv), el_var(sv));
-    e3.EV.E1.Ety = TYnptr;
-    e3.EV.E1.EV.Voffset = OFF.Stack_args;
-    e3.EV.E2.Ety = TYnptr;
-    e3.EV.E2.EV.Voffset = OFF.Stack_args_save;
+    e3.E1.Ety = TYnptr;
+    e3.E1.Voffset = OFF.Stack_args;
+    e3.E2.Ety = TYnptr;
+    e3.E2.Voffset = OFF.Stack_args_save;
 
     elem* e = el_combine(e1, el_combine(e2, el_combine(e3, e4)));
     return e;
