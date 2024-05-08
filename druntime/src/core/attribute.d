@@ -4,7 +4,7 @@
  *
  * $(SCRIPT inhibitQuickIndex = 1;)
  * $(BOOKTABLE Cheat Sheet,
- * $(THEAD Attribute Name, Linkage, Description))
+ * $(THEAD Attribute Name, Linkage, Description)
  * $(T2 gnuAbiTag, C++,
  *         Declares an ABI tag on a C++ symbol.)
  * $(T2 mustuse,,
