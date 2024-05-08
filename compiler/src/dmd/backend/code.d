@@ -160,6 +160,7 @@ struct CGstate
 
     LocalSection funcarg;       // where function arguments are placed
     LocalSection Para;          // section of function parameters
+    LocalSection Auto;          // section of automatics and registers
 
     targ_size_t funcargtos;     // current high water level of arguments being moved onto
                                 // the funcarg section. It is filled from top to bottom,

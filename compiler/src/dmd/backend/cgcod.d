@@ -69,7 +69,6 @@ targ_size_t pushoff;            // offset of saved registers
 bool pushoffuse;                // using pushoff
 int BPoff;                      // offset from BP
 int EBPtoESP;                   // add to EBP offset to get ESP offset
-LocalSection Auto;              // section of automatics and registers
 LocalSection Fast;              // section of fastpar
 LocalSection EEStack;           // offset of SCstack variables from ESP
 LocalSection Alloca;            // data for alloca() temporary
@@ -653,7 +652,7 @@ void prolog(ref CodeBuilder cdb)
 {
     bool enter;
 
-    //printf("cod3.prolog() %s, needframe = %d, Auto.alignment = %d\n", funcsym_p.Sident.ptr, needframe, Auto.alignment);
+    //printf("cod3.prolog() %s, needframe = %d, Auto.alignment = %d\n", funcsym_p.Sident.ptr, needframe, cgstate.Auto.alignment);
     debug debugw && printf("funcstart()\n");
     regcon.immed.mval = 0;                      /* no values in registers yet   */
     version (FRAMEPTR)
@@ -803,11 +802,11 @@ else
 
     Fast.size = alignsection(Fast.size - Fast.offset, Fast.alignment, bias);
 
-    if (Auto.alignment < REGSIZE)
-        Auto.alignment = REGSIZE;       // necessary because localsize must be REGSIZE aligned
-    Auto.size = alignsection(Fast.size - Auto.offset, Auto.alignment, bias);
+    if (cgstate.Auto.alignment < REGSIZE)
+        cgstate.Auto.alignment = REGSIZE;       // necessary because localsize must be REGSIZE aligned
+    cgstate.Auto.size = alignsection(Fast.size - cgstate.Auto.offset, cgstate.Auto.alignment, bias);
 
-    regsave.off = alignsection(Auto.size - regsave.top, regsave.alignment, bias);
+    regsave.off = alignsection(cgstate.Auto.size - regsave.top, regsave.alignment, bias);
     //printf("regsave.off = x%x, size = x%x, alignment = %x\n",
         //cast(int)regsave.off, cast(int)(regsave.top), cast(int)regsave.alignment);
 
@@ -852,7 +851,7 @@ else
         }
     }
 
-    //printf("Fast.size = x%x, Auto.size = x%x\n", cast(int)Fast.size, cast(int)Auto.size);
+    //printf("Fast.size = x%x, Auto.size = x%x\n", cast(int)Fast.size, cast(int)cgstate.Auto.size);
 
     cgstate.funcarg.alignment = STACKALIGN;
     /* If the function doesn't need the extra alignment, don't do it.
@@ -899,7 +898,7 @@ else
     cgstate.funcarg.offset = -localsize;
 
     //printf("Foff x%02x Auto.size x%02x NDPoff x%02x CSoff x%02x Para.size x%02x localsize x%02x\n",
-        //(int)Foff,(int)Auto.size,(int)NDPoff,(int)CSoff,(int)cgstate.Para.size,(int)localsize);
+        //(int)Foff,(int)cgstate.Auto.size,(int)NDPoff,(int)CSoff,(int)cgstate.Para.size,(int)localsize);
 
     uint xlocalsize = cast(uint)localsize;    // amount to subtract from ESP to make room for locals
 
@@ -1056,8 +1055,8 @@ Lcont:
 
     /* Alignment checks
      */
-    //assert(Auto.alignment <= STACKALIGN);
-    //assert(((Auto.size + cgstate.Para.size + BPoff) & (Auto.alignment - 1)) == 0);
+    //assert(cgstate.Auto.alignment <= STACKALIGN);
+    //assert(((cgstate.Auto.size + cgstate.Para.size + BPoff) & (cgstate.Auto.alignment - 1)) == 0);
 }
 
 /************************************
@@ -1116,7 +1115,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
 
     cgstate.Para.initialize();        // parameter offset
     Fast.initialize();        // SCfastpar offset
-    Auto.initialize();        // automatic & register offset
+    cgstate.Auto.initialize();        // automatic & register offset
     EEStack.initialize();     // for SCstack's
 
     // Set if doing optimization of auto layout
@@ -1213,13 +1212,13 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
                     break;
                 }
 
-                Auto.offset = _align(sz,Auto.offset);
-                s.Soffset = Auto.offset;
-                Auto.offset += sz;
+                cgstate.Auto.offset = _align(sz,cgstate.Auto.offset);
+                s.Soffset = cgstate.Auto.offset;
+                cgstate.Auto.offset += sz;
                 //printf("auto    '%s' sz = %d, auto offset =  x%lx\n", s.Sident,sz, cast(long) s.Soffset);
 
-                if (alignsize > Auto.alignment)
-                    Auto.alignment = alignsize;
+                if (alignsize > cgstate.Auto.alignment)
+                    cgstate.Auto.alignment = alignsize;
                 break;
 
             case SC.stack:
@@ -1306,15 +1305,15 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
                     }
                 }
             }
-            Auto.offset = _align(sz,Auto.offset);
-            s.Soffset = Auto.offset;
+            cgstate.Auto.offset = _align(sz,cgstate.Auto.offset);
+            s.Soffset = cgstate.Auto.offset;
             //printf("auto    '%s' sz = %d, auto offset =  x%lx\n", s.Sident, sz, cast(long) s.Soffset);
-            Auto.offset += sz;
+            cgstate.Auto.offset += sz;
             if (s.Srange && !(s.Sflags & SFLspill))
                 vec_setbit(si,tbl);
 
-            if (alignsize > Auto.alignment)
-                Auto.alignment = alignsize;
+            if (alignsize > cgstate.Auto.alignment)
+                cgstate.Auto.alignment = alignsize;
         L2: { }
         }
 

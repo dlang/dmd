@@ -709,7 +709,7 @@ void cv8_outsym(Symbol *s)
             if (s.Sfl == FLreg)
                 goto case_register;
         case_auto:
-            base = cast(uint)Auto.size;
+            base = cast(uint)cgstate.Auto.size;
         L1:
             if (s.Sscope) // local variables moved into the closure cannot be emitted directly
                 break;
