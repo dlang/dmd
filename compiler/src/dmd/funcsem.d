@@ -742,7 +742,10 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
                 {
                     if (fdv.isFuture())
                     {
-                        deprecation(funcdecl.loc, "`@__future` base class method `%s` is being overridden by `%s`; rename the latter", fdv.toPrettyChars(), funcdecl.toPrettyChars());
+                        deprecation(funcdecl.loc, "method `%s` implicitly overrides `@__future` base class method; rename the former",
+                            funcdecl.toPrettyChars());
+                        deprecationSupplemental(fdv.loc, "base method `%s` defined here",
+                            fdv.toPrettyChars());
                         // Treat 'this' as an introducing function, giving it a separate hierarchy in the vtbl[]
                         goto Lintro;
                     }
