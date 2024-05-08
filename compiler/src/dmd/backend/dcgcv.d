@@ -1637,7 +1637,7 @@ private void cv4_outsym(Symbol *s)
                     s.Sfl = FLreg;
                     goto case_register;
                 }
-                base = Para.size - BPoff;    // cancel out add of BPoff
+                base = cgstate.Para.size - BPoff;    // cancel out add of BPoff
                 goto L1;
 
             case SC.auto_:

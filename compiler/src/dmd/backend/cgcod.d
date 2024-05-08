@@ -69,7 +69,6 @@ targ_size_t pushoff;            // offset of saved registers
 bool pushoffuse;                // using pushoff
 int BPoff;                      // offset from BP
 int EBPtoESP;                   // add to EBP offset to get ESP offset
-LocalSection Para;              // section of function parameters
 LocalSection Auto;              // section of automatics and registers
 LocalSection Fast;              // section of fastpar
 LocalSection EEStack;           // offset of SCstack variables from ESP
@@ -735,18 +734,18 @@ Lagain:
      */
 
     if (tym == TYifunc)
-        Para.size = 26; // how is this number derived?
+        cgstate.Para.size = 26; // how is this number derived?
     else
     {
         version (FRAMEPTR)
         {
             bool frame = needframe || tyf & mTYnaked;
-            Para.size = ((farfunc ? 2 : 1) + frame) * REGSIZE;
+            cgstate.Para.size = ((farfunc ? 2 : 1) + frame) * REGSIZE;
             if (frame)
                 EBPtoESP = -REGSIZE;
         }
         else
-            Para.size = ((farfunc ? 2 : 1) + 1) * REGSIZE;
+            cgstate.Para.size = ((farfunc ? 2 : 1) + 1) * REGSIZE;
     }
 
     /* The real reason for the FAST section is because the implementation of contracts
@@ -795,9 +794,9 @@ Lagain:
      */
 
 version (FRAMEPTR)
-    int bias = enforcealign ? 0 : cast(int)(Para.size);
+    int bias = enforcealign ? 0 : cast(int)(cgstate.Para.size);
 else
-    int bias = enforcealign ? 0 : cast(int)(Para.size + (needframe ? 0 : REGSIZE));
+    int bias = enforcealign ? 0 : cast(int)(cgstate.Para.size + (needframe ? 0 : REGSIZE));
 
     if (Fast.alignment < REGSIZE)
         Fast.alignment = REGSIZE;
@@ -884,15 +883,15 @@ else
             npush = 0;
 
         //printf("npush = %d Para.size = x%x needframe = %d localsize = x%x\n",
-               //npush, Para.size, needframe, localsize);
+               //npush, cgstate.Para.size, needframe, localsize);
 
         int sz = cast(int)(localsize + npush * REGSIZE);
         if (!enforcealign)
         {
             version (FRAMEPTR)
-                sz += Para.size;
+                sz += cgstate.Para.size;
             else
-                sz += Para.size + (needframe ? 0 : -REGSIZE);
+                sz += cgstate.Para.size + (needframe ? 0 : -REGSIZE);
         }
         if (sz & (STACKALIGN - 1))
             localsize += STACKALIGN - (sz & (STACKALIGN - 1));
@@ -900,7 +899,7 @@ else
     cgstate.funcarg.offset = -localsize;
 
     //printf("Foff x%02x Auto.size x%02x NDPoff x%02x CSoff x%02x Para.size x%02x localsize x%02x\n",
-        //(int)Foff,(int)Auto.size,(int)NDPoff,(int)CSoff,(int)Para.size,(int)localsize);
+        //(int)Foff,(int)Auto.size,(int)NDPoff,(int)CSoff,(int)cgstate.Para.size,(int)localsize);
 
     uint xlocalsize = cast(uint)localsize;    // amount to subtract from ESP to make room for locals
 
@@ -1058,7 +1057,7 @@ Lcont:
     /* Alignment checks
      */
     //assert(Auto.alignment <= STACKALIGN);
-    //assert(((Auto.size + Para.size + BPoff) & (Auto.alignment - 1)) == 0);
+    //assert(((Auto.size + cgstate.Para.size + BPoff) & (Auto.alignment - 1)) == 0);
 }
 
 /************************************
@@ -1115,7 +1114,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
 {
     //printf("stackoffsets() %s\n", funcsym_p.Sident.ptr);
 
-    Para.initialize();        // parameter offset
+    cgstate.Para.initialize();        // parameter offset
     Fast.initialize();        // SCfastpar offset
     Auto.initialize();        // automatic & register offset
     EEStack.initialize();     // for SCstack's
@@ -1152,8 +1151,8 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
             case SC.parameter:
                 if (type_zeroSize(s.Stype, tybasic(funcsym_p.Stype.Tty)))
                 {
-                    Para.offset = _align(REGSIZE,Para.offset); // align on word stack boundary
-                    s.Soffset = Para.offset;
+                    cgstate.Para.offset = _align(REGSIZE,cgstate.Para.offset); // align on word stack boundary
+                    s.Soffset = cgstate.Para.offset;
                     continue;
                 }
                 break;          // allocate even if it's dead
@@ -1234,22 +1233,22 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
             case SC.parameter:
                 if (config.exe == EX_WIN64)
                 {
-                    assert((Para.offset & 7) == 0);
-                    s.Soffset = Para.offset;
-                    Para.offset += 8;
+                    assert((cgstate.Para.offset & 7) == 0);
+                    s.Soffset = cgstate.Para.offset;
+                    cgstate.Para.offset += 8;
                     break;
                 }
                 /* Alignment on OSX 32 is odd. reals are 16 byte aligned in general,
                  * but are 4 byte aligned on the OSX 32 stack.
                  */
-                Para.offset = _align(REGSIZE,Para.offset); /* align on word stack boundary */
+                cgstate.Para.offset = _align(REGSIZE,cgstate.Para.offset); /* align on word stack boundary */
                 if (alignsize >= 16 &&
                     (I64 || (config.exe == EX_OSX &&
                          (tyaggregate(s.ty()) || tyvector(s.ty())))))
-                    Para.offset = (Para.offset + (alignsize - 1)) & ~(alignsize - 1);
-                s.Soffset = Para.offset;
+                    cgstate.Para.offset = (cgstate.Para.offset + (alignsize - 1)) & ~(alignsize - 1);
+                s.Soffset = cgstate.Para.offset;
                 //printf("%s param offset =  x%lx, alignsize = %d\n", s.Sident, cast(long) s.Soffset, cast(int) alignsize);
-                Para.offset += (s.Sflags & SFLdouble)
+                cgstate.Para.offset += (s.Sflags & SFLdouble)
                             ? type_size(tstypes[TYdouble])   // float passed as double
                             : type_size(s.Stype);
                 break;

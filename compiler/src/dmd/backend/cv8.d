@@ -702,7 +702,7 @@ void cv8_outsym(Symbol *s)
                 s.Sfl = FLreg;
                 goto case_register;
             }
-            base = cast(uint)(Para.size - BPoff);    // cancel out add of BPoff
+            base = cast(uint)(cgstate.Para.size - BPoff);    // cancel out add of BPoff
             goto L1;
 
         case SC.auto_:

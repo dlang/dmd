@@ -1065,7 +1065,7 @@ private void writefunc2(Symbol *sfunc)
         sfunc.Sclass != SC.sinline &&
         !(sfunc.Sclass == SC.inline && !(config.flags2 & CFG2comdat)) &&
         sfunc.ty() & mTYexport)
-        objmod.export_symbol(sfunc,cast(uint)Para.offset);      // export function definition
+        objmod.export_symbol(sfunc,cast(uint)cgstate.Para.offset);      // export function definition
 
     if (config.fulltypes && config.fulltypes != CV8)
     {
