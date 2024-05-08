@@ -5,15 +5,15 @@
  * $(SCRIPT inhibitQuickIndex = 1;)
  * $(BOOKTABLE Cheat Sheet,
  * $(THEAD Attribute Name, Linkage, Description)
- * $(TROW gnuAbiTag, C++,
+ * $(TROW $(LREF gnuAbiTag), C++,
  *         Declares an ABI tag on a C++ symbol.)
- * $(TROW mustuse,,
+ * $(TROW $(LREF mustuse),,
  *          Ensures that values of a struct or union type are not discarded.)
- * $(TROW optional, Objective-C,
+ * $(TROW $(LREF optional), Objective-C,
  *         Makes an Objective-C interface method optional.)
- * $(TROW selector, Objective-C,
+ * $(TROW $(LREF selector), Objective-C,
  *          Attaches an Objective-C selector to a method.)
- * $(TROW weak,,
+ * $(TROW $(LREF weak),,
  *         Specifies that a global symbol should be emitted with weak linkage.)
  * )
  *
