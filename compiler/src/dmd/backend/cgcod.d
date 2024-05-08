@@ -933,6 +933,7 @@ else
         {
             if (I16 ||
                 !(config.flags4 & CFG4speed) ||
+                config.target_cpu < TARGET_Pentium ||
                 farfunc ||
                 config.flags & CFGstack ||
                 xlocalsize >= 0x1000 ||
@@ -2872,7 +2873,19 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
     }
 
     /* which registers can we use to save other registers in? */
-    touse = 0;                              // PUSH/POP pairs are always shorter
+    if (config.flags4 & CFG4space ||              // if optimize for space
+        config.target_cpu >= TARGET_80486)        // PUSH/POP ops are 1 cycle
+        touse = 0;                              // PUSH/POP pairs are always shorter
+    else
+    {
+        touse = mfuncreg & allregs & ~(msavereg | oldregcon | regcon.cse.mval);
+        /* Don't use registers we'll have to save/restore               */
+        touse &= ~(fregsaved & oldmfuncreg);
+        /* Don't use registers that have constant values in them, since
+           the code generated might have used the value.
+         */
+        touse &= ~oldregimmed;
+    }
 
     CodeBuilder cdbs1; cdbs1.ctor();
     code *cs2 = null;
