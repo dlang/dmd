@@ -391,7 +391,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
             {
                 elem *e = exp2_copytotemp(econd);
                 block_appendexp(mystate.switchBlock, e);
-                econd = e.EV.E2;
+                econd = e.E2;
             }
 
             if (numcases)
@@ -975,7 +975,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                     {
                         // rewrite ebegin to use __cxa_begin_catch
                         Symbol *s2 = getRtlsym(RTLSYM.CXA_BEGIN_CATCH);
-                        ebegin.EV.Vsym = s2;
+                        ebegin.Vsym = s2;
                     }
                 }
                 else
