@@ -2,6 +2,21 @@
  * This module contains UDA's (User Defined Attributes) either used in
  * the runtime or special UDA's recognized by compiler.
  *
+ * $(SCRIPT inhibitQuickIndex = 1;)
+ * $(BOOKTABLE Cheat Sheet,
+ * $(THEAD Attribute Name, Linkage, Description))
+ * $(T2 gnuAbiTag, C++,
+ *         Declares an ABI tag on a C++ symbol.)
+ * $(T2 mustuse,,
+ *          Ensures that values of a struct or union type are not discarded.)
+ * $(T2 optional, Objective-C,
+ *         Makes an Objective-C interface method optional.)
+ * $(T2 selector, Objective-C,
+ *          Attaches an Objective-C selector to a method.)
+ * $(T2 weak,,
+ *         Specifies that a global symbol should be emitted with weak linkage.)
+ * )
+ *
  * Copyright: Copyright Jacob Carlborg 2015.
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Authors:   Jacob Carlborg
