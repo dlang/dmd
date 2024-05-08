@@ -76,7 +76,50 @@ struct elem
                         // always 0 until CSE elimination is done
     eflags_t Eflags;
 
-    eve EV;             // variants for each type of elem
+    union
+    {
+        eve EV;                 // arithmetic constants
+
+        struct
+        {
+            elem* E1;           // left child for unary & binary nodes
+            elem* E2;           // right child for binary nodes
+            Symbol* Edtor;      // OPctor: destructor
+        }
+        struct
+        {
+            elem* Eleft2;       // left child for OPddtor
+            void* Edecl;        // VarDeclaration being constructed
+        }                       // OPdctor,OPddtor
+        struct                  // 48 bit 386 far pointer
+        {   targ_long   Voff;
+            targ_ushort Vseg;
+        }
+        struct
+        {
+            targ_size_t Voffset;// offset from symbol
+            Symbol *Vsym;       // pointer to symbol table
+            union
+            {
+                param_t* Vtal;  // template-argument-list for SCfunctempl,
+                                // used only to transmit it to cpp_overload()
+                LIST* Erd;      // OPvar: reaching definitions
+            }
+        }
+        struct
+        {
+            targ_size_t Voffset2;// member pointer offset
+            Classsym* Vsym2;    // struct tag
+            elem* ethis;        // OPrelconst: 'this' for member pointer
+        }
+        struct
+        {
+            targ_size_t Voffset3;// offset from string
+            char* Vstring;      // pointer to string (OPstring or OPasm)
+            size_t Vstrlen;     // length of string
+        }
+    }
+
     alias EV this;      // convenience so .EV. is not necessary
 
     union
