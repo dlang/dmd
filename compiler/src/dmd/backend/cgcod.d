@@ -69,7 +69,6 @@ targ_size_t pushoff;            // offset of saved registers
 bool pushoffuse;                // using pushoff
 int BPoff;                      // offset from BP
 int EBPtoESP;                   // add to EBP offset to get ESP offset
-LocalSection Fast;              // section of fastpar
 LocalSection EEStack;           // offset of SCstack variables from ESP
 LocalSection Alloca;            // data for alloca() temporary
 
@@ -757,14 +756,14 @@ Lagain:
      * But more work needs to be done, see Bugzilla 9200. Really, each section should be aligned
      * individually rather than as a group.
      */
-    Fast.size = 0;
+    cgstate.Fast.size = 0;
     static if (NTEXCEPTIONS == 2)
     {
-        Fast.size -= nteh_contextsym_size();
+        cgstate.Fast.size -= nteh_contextsym_size();
         if (config.exe & EX_windos)
         {
             if (funcsym_p.Sfunc.Fflags3 & Ffakeeh && nteh_contextsym_size() == 0)
-                Fast.size -= 5 * 4;
+                cgstate.Fast.size -= 5 * 4;
         }
     }
 
@@ -797,14 +796,14 @@ version (FRAMEPTR)
 else
     int bias = enforcealign ? 0 : cast(int)(cgstate.Para.size + (needframe ? 0 : REGSIZE));
 
-    if (Fast.alignment < REGSIZE)
-        Fast.alignment = REGSIZE;
+    if (cgstate.Fast.alignment < REGSIZE)
+        cgstate.Fast.alignment = REGSIZE;
 
-    Fast.size = alignsection(Fast.size - Fast.offset, Fast.alignment, bias);
+    cgstate.Fast.size = alignsection(cgstate.Fast.size - cgstate.Fast.offset, cgstate.Fast.alignment, bias);
 
     if (cgstate.Auto.alignment < REGSIZE)
         cgstate.Auto.alignment = REGSIZE;       // necessary because localsize must be REGSIZE aligned
-    cgstate.Auto.size = alignsection(Fast.size - cgstate.Auto.offset, cgstate.Auto.alignment, bias);
+    cgstate.Auto.size = alignsection(cgstate.Fast.size - cgstate.Auto.offset, cgstate.Auto.alignment, bias);
 
     regsave.off = alignsection(cgstate.Auto.size - regsave.top, regsave.alignment, bias);
     //printf("regsave.off = x%x, size = x%x, alignment = %x\n",
@@ -851,7 +850,7 @@ else
         }
     }
 
-    //printf("Fast.size = x%x, Auto.size = x%x\n", cast(int)Fast.size, cast(int)cgstate.Auto.size);
+    //printf("Fast.size = x%x, Auto.size = x%x\n", cast(int)cgstate.Fast.size, cast(int)cgstate.Auto.size);
 
     cgstate.funcarg.alignment = STACKALIGN;
     /* If the function doesn't need the extra alignment, don't do it.
@@ -1114,7 +1113,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
     //printf("stackoffsets() %s\n", funcsym_p.Sident.ptr);
 
     cgstate.Para.initialize();        // parameter offset
-    Fast.initialize();        // SCfastpar offset
+    cgstate.Fast.initialize();        // SCfastpar offset
     cgstate.Auto.initialize();        // automatic & register offset
     EEStack.initialize();     // for SCstack's
 
@@ -1193,13 +1192,13 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
                 if (sz < REGSIZE)
                     sz = REGSIZE;
 
-                Fast.offset = _align(sz,Fast.offset);
-                s.Soffset = Fast.offset;
-                Fast.offset += sz;
+                cgstate.Fast.offset = _align(sz,cgstate.Fast.offset);
+                s.Soffset = cgstate.Fast.offset;
+                cgstate.Fast.offset += sz;
                 //printf("fastpar '%s' sz = %d, fast offset =  x%x, %p\n", s.Sident, cast(int) sz, cast(int) s.Soffset, s);
 
-                if (alignsize > Fast.alignment)
-                    Fast.alignment = alignsize;
+                if (alignsize > cgstate.Fast.alignment)
+                    cgstate.Fast.alignment = alignsize;
                 break;
 
             case SC.register:

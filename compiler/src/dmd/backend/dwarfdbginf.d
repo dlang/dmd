@@ -1999,7 +1999,7 @@ static if (1)
                                 sa.Sclass == SC.parameter)
                                 debug_info.buf.writesLEB128(cast(int)sa.Soffset);
                             else if (sa.Sclass == SC.fastpar)
-                                debug_info.buf.writesLEB128(cast(int)(Fast.size + BPoff - cgstate.Para.size + sa.Soffset));
+                                debug_info.buf.writesLEB128(cast(int)(cgstate.Fast.size + BPoff - cgstate.Para.size + sa.Soffset));
                             else if (sa.Sclass == SC.bprel)
                                 debug_info.buf.writesLEB128(cast(int)(-cgstate.Para.size + sa.Soffset));
                             else
