@@ -1267,7 +1267,7 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     cstate.CSpsymtab = symtabsave;
 
     if (fd.isExport() || driverParams.exportVisibility == ExpVis.public_)
-        objmod.export_symbol(s, cast(uint)Para.offset);
+        objmod.export_symbol(s, cast(uint)cgstate.Para.offset);
 
     if (fd.isCrtCtor)
         objmod.setModuleCtorDtor(s, true);

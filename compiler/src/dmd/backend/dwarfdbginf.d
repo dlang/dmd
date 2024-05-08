@@ -1987,7 +1987,7 @@ static if (1)
                             //    sa.Sident.ptr, sa.Sscope.Sident.ptr, closptr_off, memb_off);
 
                             debug_info.buf.writeByte(DW_OP_fbreg);
-                            debug_info.buf.writesLEB128(cast(uint)(Auto.size + BPoff - Para.size + closptr_off)); // closure pointer offset from frame base
+                            debug_info.buf.writesLEB128(cast(uint)(Auto.size + BPoff - cgstate.Para.size + closptr_off)); // closure pointer offset from frame base
                             debug_info.buf.writeByte(DW_OP_deref);
                             debug_info.buf.writeByte(DW_OP_plus_uconst);
                             debug_info.buf.writeuLEB128(cast(uint)memb_off); // closure variable offset
@@ -1999,11 +1999,11 @@ static if (1)
                                 sa.Sclass == SC.parameter)
                                 debug_info.buf.writesLEB128(cast(int)sa.Soffset);
                             else if (sa.Sclass == SC.fastpar)
-                                debug_info.buf.writesLEB128(cast(int)(Fast.size + BPoff - Para.size + sa.Soffset));
+                                debug_info.buf.writesLEB128(cast(int)(Fast.size + BPoff - cgstate.Para.size + sa.Soffset));
                             else if (sa.Sclass == SC.bprel)
-                                debug_info.buf.writesLEB128(cast(int)(-Para.size + sa.Soffset));
+                                debug_info.buf.writesLEB128(cast(int)(-cgstate.Para.size + sa.Soffset));
                             else
-                                debug_info.buf.writesLEB128(cast(int)(Auto.size + BPoff - Para.size + sa.Soffset));
+                                debug_info.buf.writesLEB128(cast(int)(Auto.size + BPoff - cgstate.Para.size + sa.Soffset));
                         }
                         debug_info.buf.buf[soffset] = cast(ubyte)(debug_info.buf.length() - soffset - 1);
                         break;
@@ -2048,8 +2048,8 @@ static if (1)
 
         /* ============= debug_loc =========================== */
 
-        assert(Para.size >= 2 * REGSIZE);
-        assert(Para.size < 63); // avoid sLEB128 encoding
+        assert(cgstate.Para.size >= 2 * REGSIZE);
+        assert(cgstate.Para.size < 63); // avoid sLEB128 encoding
         ushort op_size = 0x0002;
         ushort loc_op;
 
@@ -2058,21 +2058,21 @@ static if (1)
         dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, funcoffset + 0);
         dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, funcoffset + 1);
 
-        loc_op = cast(ushort)(((Para.size - REGSIZE) << 8) | (DW_OP_breg0 + dwarf_regno(SP)));
+        loc_op = cast(ushort)(((cgstate.Para.size - REGSIZE) << 8) | (DW_OP_breg0 + dwarf_regno(SP)));
         debug_loc.buf.write32(loc_op << 16 | op_size);
 
         // after push EBP
         dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, funcoffset + 1);
         dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, funcoffset + 3);
 
-        loc_op = cast(ushort)(((Para.size) << 8) | (DW_OP_breg0 + dwarf_regno(SP)));
+        loc_op = cast(ushort)(((cgstate.Para.size) << 8) | (DW_OP_breg0 + dwarf_regno(SP)));
         debug_loc.buf.write32(loc_op << 16 | op_size);
 
         // after mov EBP, ESP
         dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, funcoffset + 3);
         dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, funcoffset + sfunc.Ssize);
 
-        loc_op = cast(ushort)(((Para.size) << 8) | (DW_OP_breg0 + dwarf_regno(BP)));
+        loc_op = cast(ushort)(((cgstate.Para.size) << 8) | (DW_OP_breg0 + dwarf_regno(BP)));
         debug_loc.buf.write32(loc_op << 16 | op_size);
 
         // 2 zero addresses to end loc_list

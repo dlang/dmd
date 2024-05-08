@@ -3886,8 +3886,8 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv)
     uint ea2 = modregxrm(2,R11,BPRM);
     if (!hasframe)
         ea2 = (modregrm(0,4,SP) << 8) | modregrm(2,DX,4);
-    Para.offset = (Para.offset + (REGSIZE - 1)) & ~(REGSIZE - 1);
-    cdb.genc1(LEA,(REX_W << 16) | ea2,FLconst,Para.size + Para.offset);
+    cgstate.Para.offset = (cgstate.Para.offset + (REGSIZE - 1)) & ~(REGSIZE - 1);
+    cdb.genc1(LEA,(REX_W << 16) | ea2,FLconst,cgstate.Para.size + cgstate.Para.offset);
 
     // MOV 9+16[RAX],R11
     cdb.genc1(0x89,(REX_W << 16) | modregxrm(2,R11,AX),FLconst,9 + 16);   // into stack_args_save
@@ -4101,7 +4101,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
 
         targ_size_t offset = Fast.size + BPoff;
         if (s.Sclass == SC.shadowreg)
-            offset = Para.size;
+            offset = cgstate.Para.size;
         offset += s.Soffset;
         if (!hasframe || (enforcealign && s.Sclass != SC.shadowreg))
             offset += EBPtoESP;
@@ -4178,7 +4178,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
         for (int i = 0; i < vregs.length; ++i)
         {
             uint preg = vregs[i];
-            uint offset = cast(uint)(Para.size + i * REGSIZE);
+            uint offset = cast(uint)(cgstate.Para.size + i * REGSIZE);
             if (!(shadowregm & (mask(preg) | mask(XMM0 + i))))
             {
                 if (hasframe)
@@ -4282,7 +4282,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
         {
             const op = xmmload(s.Stype.Tty);  // MOVSS/D xreg,mem
             uint xreg = s.Sreglsw - XMM0;
-            cdb.genc1(op,modregxrm(2,xreg,BPRM),FLconst,Para.size + s.Soffset);
+            cdb.genc1(op,modregxrm(2,xreg,BPRM),FLconst,cgstate.Para.size + s.Soffset);
             if (!hasframe)
             {   // Convert to ESP relative address rather than EBP
                 code *c = cdb.last();
@@ -4294,7 +4294,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
         }
 
         cdb.genc1(sz == 1 ? 0x8A : 0x8B,
-            modregxrm(2,s.Sreglsw,BPRM),FLconst,Para.size + s.Soffset);
+            modregxrm(2,s.Sreglsw,BPRM),FLconst,cgstate.Para.size + s.Soffset);
         code *c = cdb.last();
         if (!I16 && sz == SHORTSIZE)
             c.Iflags |= CFopsize; // operand size
@@ -4312,7 +4312,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
         if (sz > REGSIZE)
         {
             cdb.genc1(0x8B,
-                modregxrm(2,s.Sregmsw,BPRM),FLconst,Para.size + s.Soffset + REGSIZE);
+                modregxrm(2,s.Sregmsw,BPRM),FLconst,cgstate.Para.size + s.Soffset + REGSIZE);
             code *cx = cdb.last();
             if (I64)
                 cx.Irex |= REX_W;
@@ -4526,15 +4526,15 @@ Lret:
         }
         else if (!typfunc(tym) ||                       // if caller cleans the stack
                  config.exe == EX_WIN64 ||
-                 Para.offset == 0)                      // or nothing pushed on the stack anyway
+                 cgstate.Para.offset == 0)                      // or nothing pushed on the stack anyway
         {
             op++;                                       // to a regular RET
             cdbx.gen1(op);
         }
         else
         {   // Stack is always aligned on register size boundary
-            Para.offset = (Para.offset + (REGSIZE - 1)) & ~(REGSIZE - 1);
-            if (Para.offset >= 0x10000)
+            cgstate.Para.offset = (cgstate.Para.offset + (REGSIZE - 1)) & ~(REGSIZE - 1);
+            if (cgstate.Para.offset >= 0x10000)
             {
                 /*
                     POP REG
@@ -4542,7 +4542,7 @@ Lret:
                     JMP REG
                 */
                 cdbx.gen1(0x58+regx);
-                cdbx.genc2(0x81, modregrm(3,0,SP), Para.offset);
+                cdbx.genc2(0x81, modregrm(3,0,SP), cgstate.Para.offset);
                 if (I64)
                     code_orrex(cdbx.last(), REX_W);
                 cdbx.genc2(0xFF, modregrm(3,4,regx), 0);
@@ -4550,7 +4550,7 @@ Lret:
                     code_orrex(cdbx.last(), REX_W);
             }
             else
-                cdbx.genc2(op,0,Para.offset);          // RET Para.offset
+                cdbx.genc2(op,0,cgstate.Para.offset);          // RET Para.offset
         }
     }
 
@@ -5104,8 +5104,8 @@ void cod3_adjSymOffsets()
             case SC.parameter:
             case SC.regpar:
             case SC.shadowreg:
-//printf("s = '%s', Soffset = x%x, Para.size = x%x, EBPtoESP = x%x\n", s.Sident, s.Soffset, Para.size, EBPtoESP);
-                s.Soffset += Para.size;
+//printf("s = '%s', Soffset = x%x, Para.size = x%x, EBPtoESP = x%x\n", s.Sident, s.Soffset, cgstate.Para.size, EBPtoESP);
+                s.Soffset += cgstate.Para.size;
                 if (0 && !(funcsym_p.Sfunc.Fflags3 & Fmember))
                 {
                     if (!hasframe)
@@ -5386,7 +5386,7 @@ void assignaddrc(code *c)
                 //printf("s = %s, Soffset = %d, Para.size = %d, BPoff = %d, EBPtoESP = %d, Vpointer = %d\n",
                 //s.Sident.ptr, cast(int)s.Soffset, cast(int)Para.size, cast(int)BPoff,
                 //cast(int)EBPtoESP, cast(int)c.IEV1.Vpointer);
-                soff = Para.size - BPoff;    // cancel out add of BPoff
+                soff = cgstate.Para.size - BPoff;    // cancel out add of BPoff
                 goto L1;
 
             case FLfltreg:
@@ -5513,7 +5513,7 @@ void assignaddrc(code *c)
                 break;
 
             case FLpara:
-                c.IEV2.Vpointer += s.Soffset + Para.size;
+                c.IEV2.Vpointer += s.Soffset + cgstate.Para.size;
                 goto L3;
 
             case FLfltreg:
@@ -5571,7 +5571,7 @@ targ_size_t cod3_bpoffset(Symbol *s)
     switch (s.Sfl)
     {
         case FLpara:
-            offset += Para.size;
+            offset += cgstate.Para.size;
             break;
 
         case FLfast:
