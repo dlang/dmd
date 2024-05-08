@@ -1668,7 +1668,7 @@ private void cv4_outsym(Symbol *s)
 
             case SC.fastpar:
                 if (s.Sfl != FLreg)
-                {   base = Fast.size;
+                {   base = cgstate.Fast.size;
                     goto L1;
                 }
                 goto case_register;

@@ -744,7 +744,7 @@ else
 
         case SC.fastpar:
             if (s.Sfl != FLreg)
-            {   base = cast(uint)Fast.size;
+            {   base = cast(uint)cgstate.Fast.size;
                 goto L1;
             }
             goto L2;

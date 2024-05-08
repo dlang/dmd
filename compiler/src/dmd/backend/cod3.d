@@ -2525,7 +2525,7 @@ regm_t cod3_useBP()
         goto Lcant;
 
     stackoffsets(globsym, true);                // estimate stack offsets
-    localsize = cgstate.Auto.offset + Fast.offset;                // an estimate only
+    localsize = cgstate.Auto.offset + cgstate.Fast.offset;                // an estimate only
 //    if (localsize)
     {
         if (!(config.flags4 & CFG4speed) ||
@@ -4099,7 +4099,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
             continue;
         }
 
-        targ_size_t offset = Fast.size + BPoff;
+        targ_size_t offset = cgstate.Fast.size + BPoff;
         if (s.Sclass == SC.shadowreg)
             offset = cgstate.Para.size;
         offset += s.Soffset;
@@ -4132,7 +4132,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
                     else
                     {
                         //printf("%s Fast.size = %d, BPoff = %d, Soffset = %d, sz = %d\n",
-                        //         s.Sident, (int)Fast.size, (int)BPoff, (int)s.Soffset, (int)sz);
+                        //         s.Sident, (int)cgstate.Fast.size, (int)BPoff, (int)s.Soffset, (int)sz);
                         if (I64 && sz > 4)
                             code_orrex(cdb.last(), REX_W);
                     }
@@ -5116,14 +5116,14 @@ void cod3_adjSymOffsets()
                 break;
 
             case SC.fastpar:
-//printf("\tfastpar %s %p Soffset %x Fast.size %x BPoff %x\n", s.Sident, s, cast(int)s.Soffset, cast(int)Fast.size, cast(int)BPoff);
-                s.Soffset += Fast.size + BPoff;
+//printf("\tfastpar %s %p Soffset %x Fast.size %x BPoff %x\n", s.Sident, s, cast(int)s.Soffset, cast(int)cgstate.Fast.size, cast(int)BPoff);
+                s.Soffset += cgstate.Fast.size + BPoff;
                 break;
 
             case SC.auto_:
             case SC.register:
                 if (s.Sfl == FLfast)
-                    s.Soffset += Fast.size + BPoff;
+                    s.Soffset += cgstate.Fast.size + BPoff;
                 else
 //printf("s = '%s', Soffset = x%x, Auto.size = x%x, BPoff = x%x EBPtoESP = x%x\n", s.Sident, cast(int)s.Soffset, cast(int)cgstate.Auto.size, cast(int)BPoff, cast(int)EBPtoESP);
 //              if (!(funcsym_p.Sfunc.Fflags3 & Fnested))
@@ -5322,7 +5322,7 @@ void assignaddrc(code *c)
                 break;
 
             case FLfast:
-                soff = Fast.size;
+                soff = cgstate.Fast.size;
                 goto L1;
 
             case FLreg:
@@ -5501,7 +5501,7 @@ void assignaddrc(code *c)
                 /* NOTREACHED */
 
             case FLfast:
-                c.IEV2.Vpointer += s.Soffset + Fast.size + BPoff;
+                c.IEV2.Vpointer += s.Soffset + cgstate.Fast.size + BPoff;
                 break;
 
             case FLauto:
@@ -5575,7 +5575,7 @@ targ_size_t cod3_bpoffset(Symbol *s)
             break;
 
         case FLfast:
-            offset += Fast.size + BPoff;
+            offset += cgstate.Fast.size + BPoff;
             break;
 
         case FLauto:
