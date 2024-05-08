@@ -700,11 +700,11 @@ struct con_t
 import dmd.backend.bcomplex;
 
 /*********************************
- * Union of all data types. Storage allocated must be the right
+ * Union of all arithmetic data types. Storage allocated must be the right
  * size of the data on the TARGET, not the host.
  */
 
-union eve
+union Vconst
 {
         targ_char       Vchar;
         targ_schar      Vschar;
