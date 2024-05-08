@@ -78,7 +78,7 @@ struct elem
 
     union
     {
-        eve EV;                 // arithmetic constants
+        Vconst EV;                 // arithmetic constants
 
         struct
         {

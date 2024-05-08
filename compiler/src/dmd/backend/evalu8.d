@@ -345,7 +345,7 @@ static if (0)
       debug printf("d1 = %Lg, d2 = %Lg, op = %d, OPne = %d, tym = x%lx\n",d1,d2,op,OPne,tym);
       debug printf("tym1 = x%lx, tym2 = x%lx, e2 = %g\n",tym,tym2,e2.Vdouble);
 
-      eve u;
+      Vconst u = void;
       debug printf("d1 = x%16llx\n", (u.Vldouble = d1, u.Vullong));
       debug printf("d2 = x%16llx\n", (u.Vldouble = d2, u.Vullong));
   }

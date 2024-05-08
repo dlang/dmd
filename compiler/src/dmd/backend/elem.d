@@ -1315,7 +1315,7 @@ elem *el_convfloat(elem *e)
 @trusted
 elem *el_convxmm(elem *e)
 {
-    ubyte[eve.sizeof] buffer = void;
+    ubyte[Vconst.sizeof] buffer = void;
 
     // Do not convert if the constants can be loaded with the special XMM instructions
     if (loadxmmconst(e))
@@ -1558,7 +1558,7 @@ elem *el_convert(elem *e)
  */
 
 @safe
-elem * el_const(tym_t ty, ref eve pconst)
+elem * el_const(tym_t ty, ref Vconst pconst)
 {
     elem* e = el_calloc();
     e.Eoper = OPconst;
@@ -1659,7 +1659,7 @@ elem *el_ctor_dtor(elem *ec, elem *ed, out elem* pedtor)
         ector.Ety = TYvoid;
 //      ector.ed.Edecl = decl;
 
-        eve c = void;
+        Vconst c = void;
         memset(&c, 0, c.sizeof);
         elem *e_flag_0 = el_bin(OPeq, TYvoid, el_var(sflag), el_const(TYbool, c));  // __flag = 0
         er = el_bin(OPinfo, ec ? ec.Ety : TYvoid, ector, el_combine(e_flag_0, ec));
@@ -2720,7 +2720,7 @@ case_tym:
         case TYulong16:           // uint[16]
         case TYllong8:            // long[8]
         case TYullong8:           // ulong[8]
-            printf("512 bit vector ");  // not supported yet with union eve
+            printf("512 bit vector ");  // not supported yet with union Vconst
             break;
 
         default:

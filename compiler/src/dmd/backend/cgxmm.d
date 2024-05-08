@@ -59,7 +59,7 @@ bool isXMMstore(opcode_t op)
  */
 
 @trusted
-void movxmmconst(ref CodeBuilder cdb, reg_t xreg, tym_t ty, eve* pev, regm_t flags)
+void movxmmconst(ref CodeBuilder cdb, reg_t xreg, tym_t ty, Vconst* pev, regm_t flags)
 {
     //printf("movxmmconst() %s ty: %s value: %lld\n", regm_str(mask(xreg)), tym_str(ty), pev.Vllong);
 
@@ -187,7 +187,7 @@ void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
             regm_t nretregs = XMMREGS & ~retregs;
             const sreg = allocreg(cdb,nretregs,e2.Ety); // hold sign bit
             const uint sz = tysize(e1.Ety);
-            eve signbit;
+            Vconst signbit;
             signbit.Vint = 0x80000000;
             if (sz == 8)
                 signbit.Vllong = 0x8000_0000_0000_0000;
@@ -706,7 +706,7 @@ void xmmneg(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     regm_t rretregs = XMMREGS & ~retregs;
     const rreg = allocreg(cdb,rretregs,tyml);
 
-    eve signbit;
+    Vconst signbit;
     signbit.Vint = 0x80000000;
     if (sz == 8)
         signbit.Vllong = 0x8000_0000_0000_0000;
@@ -747,7 +747,7 @@ void xmmabs(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     regm_t rretregs = XMMREGS & ~retregs;
     const rreg = allocreg(cdb,rretregs,tyml);
 
-    eve mask;
+    Vconst mask;
     mask.Vint = 0x7FFF_FFFF;
     if (sz == 8)
         mask.Vllong = 0x7FFF_FFFF_FFFF_FFFFL;

@@ -1903,7 +1903,7 @@ private void appendelem(elem *n,elem **pn)
 @trusted
 private void newfamlist(famlist* fl, tym_t ty)
 {
-    eve c = void;
+    Vconst c = void;
     memset(&c,0,c.sizeof);
 
     fl.FLty = ty;
