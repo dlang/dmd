@@ -14306,14 +14306,16 @@ private Expression dotIdSemanticPropX(DotIdExp exp, Scope* sc)
 
     if (auto te = exp.e1.isTupleExp())
     {
-        if (exp.ident == Id.offsetof)
+        if (exp.ident == Id.offsetof    ||
+            exp.ident == Id.bitoffsetof ||
+            exp.ident == Id.bitwidth)
         {
             /* 'distribute' the .offsetof to each of the tuple elements.
              */
             auto exps = new Expressions(te.exps.length);
             foreach (i, e; (*te.exps)[])
             {
-                (*exps)[i] = new DotIdExp(e.loc, e, Id.offsetof);
+                (*exps)[i] = new DotIdExp(e.loc, e, exp.ident);
             }
             // Don't evaluate te.e0 in runtime
             Expression e = new TupleExp(exp.loc, null, exps);
@@ -14636,6 +14638,8 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
                !cfile &&
                 (exp.ident == Id._mangleof ||
                  exp.ident == Id.offsetof ||
+                 exp.ident == Id.bitoffsetof ||
+                 exp.ident == Id.bitwidth ||
                  exp.ident == Id._init ||
                  exp.ident == Id.stringof)
               ))

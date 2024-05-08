@@ -8407,6 +8407,8 @@ struct Id final
     static Identifier* dollar;
     static Identifier* ctfe;
     static Identifier* offset;
+    static Identifier* bitoffsetof;
+    static Identifier* bitwidth;
     static Identifier* ModuleInfo;
     static Identifier* ClassInfo;
     static Identifier* classinfo;
@@ -8698,6 +8700,7 @@ struct Id final
     static Identifier* isAbstractClass;
     static Identifier* isArithmetic;
     static Identifier* isAssociativeArray;
+    static Identifier* isBitfield;
     static Identifier* isFinalClass;
     static Identifier* isTemplate;
     static Identifier* isPOD;
