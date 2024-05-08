@@ -1124,7 +1124,7 @@ static if (NTEXCEPTIONS)
                     gencodelem(cdb,e,&retregs,true);
                     regcon.used = usedsave;
                     if (e.Eoper == OPvar)
-                    {   Symbol *s = e.EV.Vsym;
+                    {   Symbol *s = e.Vsym;
 
                         if (s.Sfl == FLreg && s.Sregm != mAX)
                             *retsym = s;
@@ -2224,9 +2224,9 @@ int jmpopcode(elem *e)
 
     assert(e);
     while (e.Eoper == OPcomma ||
-        /* The OTleaf(e.EV.E1.Eoper) is to line up with the case in cdeq() where  */
+        /* The OTleaf(e.E1.Eoper) is to line up with the case in cdeq() where  */
         /* we decide if mPSW is passed on when evaluating E2 or not.    */
-         (e.Eoper == OPeq && OTleaf(e.EV.E1.Eoper)))
+         (e.Eoper == OPeq && OTleaf(e.E1.Eoper)))
     {
         e = e.EV.E2;                      /* right operand determines it  */
     }

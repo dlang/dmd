@@ -220,8 +220,8 @@ private void el_weights(int bi,elem *e,uint weight)
             }
 
             if (OTbinary(op))
-            {   el_weights(bi,e.EV.E2,weight);
-                if ((OTopeq(op) || OTpost(op)) && e.EV.E1.Eoper == OPvar)
+            {   el_weights(bi,e.E2,weight);
+                if ((OTopeq(op) || OTpost(op)) && e.E1.Eoper == OPvar)
                 {
                     if (weight >= 10)
                         weight += 10;
@@ -229,14 +229,14 @@ private void el_weights(int bi,elem *e,uint weight)
                         weight++;
                 }
             }
-            e = e.EV.E1;
+            e = e.E1;
         }
         else
         {
             switch (op)
             {
                 case OPvar:
-                    Symbol *s = e.EV.Vsym;
+                    Symbol *s = e.Vsym;
                     if (s.Ssymnum != SYMIDX.max && s.Sflags & GTregcand)
                     {
                         s.Sweight += weight;
