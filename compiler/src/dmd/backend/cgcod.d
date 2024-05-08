@@ -1547,8 +1547,8 @@ private void resetEcomsub(elem *e)
         if (!OTleaf(op))
         {
             if (OTbinary(op))
-                resetEcomsub(e.EV.E2);
-            e = e.EV.E1;
+                resetEcomsub(e.E2);
+            e = e.E1;
         }
         else
             break;
@@ -1574,7 +1574,7 @@ bool isregvar(elem *e, ref regm_t pregm, ref reg_t preg)
     elem_debug(e);
     if (e.Eoper == OPvar || e.Eoper == OPrelconst)
     {
-        Symbol* s = e.EV.Vsym;
+        Symbol* s = e.Vsym;
         switch (s.Sfl)
         {
             case FLreg:
@@ -1582,7 +1582,7 @@ bool isregvar(elem *e, ref regm_t pregm, ref reg_t preg)
                 {   refparam = true;
                     reflocal = true;
                 }
-                reg = e.EV.Voffset == REGSIZE ? s.Sregmsw : s.Sreglsw;
+                reg = e.Voffset == REGSIZE ? s.Sregmsw : s.Sreglsw;
                 regm = s.Sregm;
                 //assert(tyreg(s.ty()));
 static if (0)
@@ -2718,7 +2718,7 @@ void codelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint constflag)
             break;
 
         case OPvar:
-            if (constflag & 1 && (s = e.EV.Vsym).Sfl == FLreg &&
+            if (constflag & 1 && (s = e.Vsym).Sfl == FLreg &&
                 (s.Sregm & *pretregs) == s.Sregm)
             {
                 if (tysize(e.Ety) <= REGSIZE && tysize(s.Stype.Tty) == 2 * REGSIZE)
@@ -2812,11 +2812,11 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
 
         if (isregvar(e, regm, reg) &&           // if e is a register variable
             (regm & *pretregs) == regm &&       // in one of the right regs
-            e.EV.Voffset == 0
+            e.Voffset == 0
            )
         {
             uint sz1 = tysize(e.Ety);
-            uint sz2 = tysize(e.EV.Vsym.Stype.Tty);
+            uint sz2 = tysize(e.Vsym.Stype.Tty);
             if (sz1 <= REGSIZE && sz2 > REGSIZE)
                 regm &= mLSW | XMMREGS;
             fixresult(cdb,e,regm,*pretregs);
@@ -3046,9 +3046,9 @@ void docommas(ref CodeBuilder cdb, ref elem *pe)
         if (e.Eoper != OPcomma)
             break;
         regm_t retregs = 0;
-        codelem(cdb,e.EV.E1,&retregs,true);
+        codelem(cdb,e.E1,&retregs,true);
         elem* eold = e;
-        e = e.EV.E2;
+        e = e.E2;
         freenode(eold);
     }
     pe = e;
