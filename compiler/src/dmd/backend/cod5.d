@@ -74,10 +74,10 @@ else
         return;
     }
 
-    // Turn on BFLoutsideprolog for all blocks outside the ones needing the prolog.
+    // Turn on BFL.outsideprolog for all blocks outside the ones needing the prolog.
 
     for (b = startblock; b; b = b.Bnext)
-        b.Bflags &= ~BFLoutsideprolog;                 // start with them all off
+        b.Bflags &= ~BFL.outsideprolog;                 // start with them all off
 
     pe_add(startblock);
 
@@ -87,7 +87,7 @@ else
     for (b = startblock; b; b = b.Bnext)
     {   int mark;
 
-        if (b.Bflags & BFLoutsideprolog)
+        if (b.Bflags & BFL.outsideprolog)
             continue;
 
         // If all predecessors are marked
@@ -95,7 +95,7 @@ else
         assert(b.Bpred);
         foreach (bl; ListRange(b.Bpred))
         {
-            if (list_block(bl).Bflags & BFLoutsideprolog)
+            if (list_block(bl).Bflags & BFL.outsideprolog)
             {
                 if (mark == 2)
                     goto L1;
@@ -119,7 +119,7 @@ else
         mark = 0;
         foreach (bl; ListRange(b.Bsucc))
         {
-            if (list_block(bl).Bflags & BFLoutsideprolog)
+            if (list_block(bl).Bflags & BFL.outsideprolog)
             {
                 if (mark == 2)
                     goto L1;
@@ -133,14 +133,14 @@ else
             }
         }
         if (mark == 1 || b.BC == BCret || b.BC == BCretexp)
-        {   b.Bflags |= BFLepilog;
+        {   b.Bflags |= BFL.epilog;
             nepis++;
             if (nepis > 1 && config.flags4 & CFG4space)
                 goto L1;
         }
     }
     if (bp)
-    {   bp.Bflags |= BFLprolog;
+    {   bp.Bflags |= BFL.prolog;
         //printf("=============== prolog opt\n");
     }
 }
@@ -154,17 +154,17 @@ void cod5_noprol(block* startblock)
     block *b;
 
     //printf("no prolog optimization\n");
-    startblock.Bflags |= BFLprolog;
+    startblock.Bflags |= BFL.prolog;
     for (b = startblock; b; b = b.Bnext)
     {
-        b.Bflags &= ~BFLoutsideprolog;
+        b.Bflags = cast(BFL)(b.Bflags & ~cast(uint)BFL.outsideprolog);
         switch (b.BC)
         {   case BCret:
             case BCretexp:
-                b.Bflags |= BFLepilog;
+                b.Bflags |= BFL.epilog;
                 break;
             default:
-                b.Bflags &= ~BFLepilog;
+                b.Bflags = cast(BFL)(b.Bflags & ~cast(uint)BFL.epilog);
         }
     }
 }
@@ -176,11 +176,11 @@ void cod5_noprol(block* startblock)
 
 private void pe_add(block *b)
 {
-    if (b.Bflags & BFLoutsideprolog ||
+    if (b.Bflags & BFL.outsideprolog ||
         need_prolog(b))
         return;
 
-    b.Bflags |= BFLoutsideprolog;
+    b.Bflags |= BFL.outsideprolog;
     foreach (bl; ListRange(b.Bsucc))
         pe_add(list_block(bl));
 }
@@ -196,11 +196,11 @@ private int need_prolog(block *b)
         goto Lneed;
 
     // If block referenced a param in 16 bit code
-    if (!I32 && b.Bflags & BFLrefparam)
+    if (!I32 && b.Bflags & BFL.refparam)
         goto Lneed;
 
     // If block referenced a stack local
-    if (b.Bflags & BFLreflocal)
+    if (b.Bflags & BFL.reflocal)
         goto Lneed;
 
     return 0;

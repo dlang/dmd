@@ -381,13 +381,13 @@ void codgen(Symbol *sfunc)
                 break;
 
             default:
-                if (b.Bflags & BFLepilog)
+                if (b.Bflags & BFL.epilog)
                     epilog(b);
                 break;
         }
         assignaddr(b);                  // assign addresses
         pinholeopt(b.Bcode,b);         // do pinhole optimization
-        if (b.Bflags & BFLprolog)      // do function prolog
+        if (b.Bflags & BFL.prolog)      // do function prolog
         {
             startoffset = coffset + calcblksize(cprolog) - funcoffset;
             b.Bcode = cat(cprolog,b.Bcode);
@@ -413,7 +413,7 @@ void codgen(Symbol *sfunc)
         flag = false;
         for (block* b = startblock; b; b = b.Bnext)
         {
-            if (b.Bflags & BFLjmpoptdone)      /* if no more jmp opts for this blk */
+            if (b.Bflags & BFL.jmpoptdone)      /* if no more jmp opts for this blk */
                 continue;
             int i = branch(b,0);            // see if jmp => jmp short
             if (i)                          // if any bytes saved
@@ -1448,9 +1448,9 @@ private void blcodgen(block *bl)
     }
 
     if (reflocal)
-        bl.Bflags |= BFLreflocal;
+        bl.Bflags |= BFL.reflocal;
     if (refparam)
-        bl.Bflags |= BFLrefparam;
+        bl.Bflags |= BFL.refparam;
     refparam |= refparamsave;
     bl.Bregcon.immed = regcon.immed;
     bl.Bregcon.cse = regcon.cse;

@@ -213,7 +213,7 @@ struct CodeBuilder
         ce.Iflags = CFaddrsize;
         ce.IFL1 = FLblockoff;
         ce.IEV1.Vblock = label;
-        label.Bflags |= BFLlabel;
+        label.Bflags |= BFL.label;
 
         *pTail = ce;
         pTail = &ce.next;

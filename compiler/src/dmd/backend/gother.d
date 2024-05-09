@@ -176,7 +176,7 @@ private void rd_compute(ref EqRelInc eqrelinc)
         //printf("block %d Bin ",i); vec_println(b.Binrd);
         //printf("       Bout "); vec_println(b.Boutrd);
 
-        if (b.Bflags & BFLvisited)
+        if (b.Bflags & BFL.visited)
             continue;                   // not reliable for this block
         if (b.Belem)
         {
@@ -1057,8 +1057,8 @@ public bool findloopparameters(elem* erel, ref elem* rdeq, ref elem* rdinc)
 @trusted
 private int loopcheck(block *start,block *inc,block *rel)
 {
-    if (!(start.Bflags & BFLvisited))
-    {   start.Bflags |= BFLvisited;    /* guarantee eventual termination */
+    if (!(start.Bflags & BFL.visited))
+    {   start.Bflags |= BFL.visited;    /* guarantee eventual termination */
         foreach (list; ListRange(start.Bsucc))
         {
             block *b = cast(block *) list_ptr(list);

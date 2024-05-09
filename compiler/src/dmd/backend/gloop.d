@@ -580,8 +580,8 @@ private bool looprotate(ref Loop l)
         auto head2 = block_calloc(); // create new head block
         head2.Btry = head.Btry;
         head2.Bflags = head.Bflags;
-        head.Bflags = BFLnomerg;       // move flags over to head2
-        head2.Bflags |= BFLnomerg;
+        head.Bflags = BFL.nomerg;       // move flags over to head2
+        head2.Bflags |= BFL.nomerg;
         head2.BC = head.BC;
         assert(head2.BC != BCswitch);
         if (head.Belem)                // copy expression tree
@@ -3701,9 +3701,9 @@ bool loopunroll(ref Loop l)
     /* Do not repeatedly unroll the same loop,
      * or waste time attempting to
      */
-    if (l.Lhead.Bflags & BFLnounroll)
+    if (l.Lhead.Bflags & BFL.nounroll)
         return false;
-    l.Lhead.Bflags |= BFLnounroll;
+    l.Lhead.Bflags |= BFL.nounroll;
     if (log)
         WRfunc("loop", funcsym_p, startblock);
 
