@@ -42,6 +42,12 @@ $(H2 $(LNAME2 general_idea, The General Idea))
     $(LI matching C++ virtual function table layout for single inheritance)
     )
 
+$(H2 $(LNAME2 platform-compiler-support, Platform-Compiler Support))
+
+    * On Windows, prefer linking D code to MSVC compiled binaries.
+    * On Linux, linking to both GCC and Clang compiled binaries is supported.
+    * On MacOS, prefer linking to Clang compiled binaries.
+
 $(H2 $(LNAME2 global-functions, Global Functions))
 
     $(P C++ global functions, including those in namespaces, can be declared
@@ -229,7 +235,7 @@ static assert(foo() == 1 && bar() == 2);
 
 $(P Note that the `extern (C++, `ns`)` linkage attribute affects only the ABI (name mangling and calling convention) of
   these declarations. Importing them follows the usual
-  $(LINK2 spec/module, D module import semantics).)
+  $(LINK2 spec/module.html, D module import semantics).)
 
 $(P Alternatively, the non-string form can be used to introduce a scope. Note that the
     enclosing module already provides a scope for the symbols declared in the namespace.

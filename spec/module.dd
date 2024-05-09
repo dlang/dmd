@@ -489,17 +489,18 @@ $(H2 $(LNAME2 module_scope_operators, Module Scope Operator))
     $(P A leading dot (`.`) causes the
     identifier to be looked up in the module scope.)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
-int x;
+const int x = 1;
 
-int foo(int x)
+void main()
 {
-    if (y)
-        return x;  // returns foo.x, not global x
-    else
-        return .x; // returns global x
+    int x = 5;
+    assert(x == 5); // main.x, not global x
+    assert(.x == 1); // global x
 }
 ---------
+)
 
 
 $(H2 $(LNAME2 staticorder, Static Construction and Destruction))

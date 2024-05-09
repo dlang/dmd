@@ -561,7 +561,8 @@ foreach (i, char c; a)
 --------------
 )
         $(P For a dynamic array, the $(I index) type must be compatible
-        with `size_t`.
+        with `size_t`, unless the array length is statically known to fit
+        in a smaller integer type.
         Static arrays may use any integral type that spans the length
         of the array.)
 
@@ -694,7 +695,7 @@ $(GNAME OpApplyParameter):
 )
 
     $(P where each $(I OpApplyParameter) of `dg` must match a $(GLINK ForeachType)
-        in a *ForeachStatement*,
+        in a $(GLINK ForeachStatement),
         otherwise the *ForeachStatement* will cause an error.)
 
     $(P Any *ForeachTypeAttribute* cannot be `enum`.)
@@ -737,13 +738,18 @@ $(GNAME OpApplyParameter):
         apply must return 0.)
     )
 
+    $(P The result of calling the delegate will be nonzero if the *ForeachStatement*
+        body executes a matching $(GLINK BreakStatement), $(GLINK ReturnStatement), or
+        $(GLINK GotoStatement) whose matching label is outside the *ForeachStatement*.
+    )
+
     $(P For example, consider a class that is a container for two elements:)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
         --------------
         class Foo
         {
-            uint[2] array;
+            uint[] array;
 
             int opApply(scope int delegate(ref uint) dg)
             {
@@ -762,10 +768,13 @@ $(GNAME OpApplyParameter):
             import std.stdio;
 
             Foo a = new Foo();
-            a.array = [73, 82];
+            a.array = [73, 82, 2, 9];
 
             foreach (uint u; a)
             {
+                if (u < 5)
+                    break;
+
                 writeln(u);
             }
         }
@@ -983,8 +992,8 @@ $(H4 $(LNAME2 front-seq, Multiple Element Values))
 
 $(H3 $(LNAME2 foreach_over_delegates, Foreach over Delegates))
 
-        $(P If $(I ForeachAggregate) is a delegate, the type signature of
-        the delegate is of the same as for
+        $(P If $(I ForeachAggregate) is a delegate, the type signature and
+        behavior of the delegate is the same as for
         $(RELATIVE_LINK2 foreach_over_struct_and_classes, opApply). This enables
         many different named looping strategies to coexist in the same
         class or struct.)
@@ -995,7 +1004,7 @@ $(SPEC_RUNNABLE_EXAMPLE_RUN
     --------------
     // Custom loop implementation, that iterates over powers of 2 with
     // alternating sign. The foreach loop body is passed in dg.
-    int myLoop(int delegate(int) dg)
+    int myLoop(scope int delegate(int) dg)
     {
         for (int z = 1; z < 128; z *= -2)
         {
@@ -1018,11 +1027,8 @@ $(SPEC_RUNNABLE_EXAMPLE_RUN
     --------------
 )
 
-        $(P $(B Note:) When $(I ForeachAggregate) is a delegate, the compiler
-        does not try to implement reverse traversal of the results returned by
-        the delegate when $(D foreach_reverse) is used. This may result in code
-        that is confusing to read. Therefore, using $(D foreach_reverse) with a
-        delegate is now deprecated, and will be rejected in the future.)
+        $(P $(D foreach_reverse) with a delegate is an error.)
+
 
 $(H3 $(LNAME2 foreach_over_tuples, Foreach over Sequences))
 
@@ -1111,7 +1117,7 @@ $(H3 $(LNAME2 foreach_ref_parameters, Foreach Ref Parameters))
 
         $(P $(D ref) can be used to modify the elements of the *ForeachAggregate*.
         This works for containers that expose lvalue elements, and
-        $(DDSUBLINK spec/template, homogeneous_sequences, lvalue sequences).
+        $(DDSUBLINK spec/template, lvalue-sequences, lvalue sequences).
         )
 
     $(SPEC_RUNNABLE_EXAMPLE_RUN

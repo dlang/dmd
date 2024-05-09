@@ -51,31 +51,33 @@ $(H3 $(LNAME2 .define-lvalue, Lvalue))
 $(P The following expressions, and no others, are called *lvalue expressions* or *lvalues*:)
 $(OL
 $(LI $(RELATIVE_LINK2 this, `this`) inside `struct` and `union` member functions;)
-$(LI a variable, function name, or invocation of a function that returns by reference;)
-$(LI the result of the `.` $(GLINK PostfixExpression) or
+$(LI a variable, function name, or invocation of a function that
+$(DDSUBLINK spec/function, ref-functions, returns by reference);)
+$(LI the result of the `.` $(GLINK PostfixExpression) and
 $(DDSUBLINK spec/module, module_scope_operators, Module Scope Operator)
 when the rightmost side of the dot is a variable,
 field (direct or `static`), function name, or invocation of a function that returns by reference;)
 $(LI the result of the following expressions:
 $(UL
-$(LI built-in unary operators `+` (when applied to an lvalue), `*`, `++` (prefix only), `--` (prefix only);)
-$(LI built-in indexing operator `[]` (but not the slicing operator);)
-$(LI built-in assignment binary operators, i.e. `=`, `+=`, `*=`, `/=`, `%=`, `&=`, `|=`, `^=`, `~=`,
+$(LI built-in $(RELATIVE_LINK2 unary-expression, unary operators) `+` (when applied to an lvalue), `*`, `++` (prefix only), `--` (prefix only);)
+$(LI built-in $(RELATIVE_LINK2 index_expressions, indexing operator) `[]` (but not the slicing operator);)
+$(LI built-in $(RELATIVE_LINK2 assign_expressions, assignment operators), i.e. `=`, `+=`, `*=`, `/=`, `%=`, `&=`, `|=`, `^=`, `~=`,
 `<<=`, `>>=`, `>>>=`, and `^^=`;)
+$(LI $(DDLINK spec/operatoroverloading, Operator Overloading, user-defined operators)
+if and only if the function called as a result of lowering returns
+by reference;)
 $(LI the $(GLINK ConditionalExpression) operator $(I e) `?` $(I e$(SUBSCRIPT 1)) `:` $(I e$(SUBSCRIPT 2)) under the following
 circumstances:)
 $(OL
     $(LI $(I e$(SUBSCRIPT 1)) and $(I e$(SUBSCRIPT 2)) are lvalues of the same type; OR)
     $(LI One of $(I e$(SUBSCRIPT 1)) and $(I e$(SUBSCRIPT 2)) is an lvalue of type `T` and the other has
-    and `alias this` converting it to `ref T`;))
-$(LI $(DDLINK spec/operatoroverloading, Operator Overloading, user-defined operators)
-if and only if the function called as a result of lowering returns
-by reference;)
+    an `alias this` which converts it to an lvalue of `T`;))
 $(LI $(RELATIVE_LINK2 mixin_expressions, `mixin` expressions) if and only if the
 compilation of the expression resulting from compiling
 the argument(s) to `mixin` is an lvalue;)
-$(LI `cast(U)` expressions applied to lvalues of type `T` when `T*` is implicitly convertible to `U*`;)
-$(LI `cast()` and `cast(`$(I qualifier list)`)` when applied to an lvalue.)
+$(LI $(RELATIVE_LINK2 cast_expressions, `cast(U)` expressions) applied to lvalues
+of type `T` when `T*` is implicitly convertible to `U*`;)
+$(LI $(RELATIVE_LINK2 cast_qualifier, `cast(`$(I TypeCtors)$(OPT)`)`) when applied to an lvalue.)
 )))
 
 $(H3 $(LNAME2 .define-rvalue, Rvalue))
@@ -1589,16 +1591,23 @@ $(GNAME PostfixExpression):
 )
 
 $(TABLE
-    $(THEAD Operator, Description)
-    $(TROW `.`,
+    $(THEAD Operation, Description)
+    $(TROW `.` *Identifier*,
         Either:
         * Access a $(DDLINK spec/property, Properties, property) of a type or expression.
         * Access a member of a module, package, aggregate type or instance, enum
           or template instance.
         * Call a free function using $(DDSUBLINK spec/function, pseudo-member, UFCS).
     )
+    $(TROW `.` *NewExpression*, Instantiate a $(DDSUBLINK spec/class, nested-explicit,
+        nested class))
     $(TROW `++`, Increment after use - see $(RELATIVE_LINK2 order-of-evaluation, order of evaluation))
     $(TROW `--`, Decrement after use)
+    $(TROW `(args)`,
+        Either:
+        * Call an expression with optional arguments
+        * Construct a type with optional arguments
+    )
     $(TROW *IndexOperation*, Select a single element)
     $(TROW *SliceOperation*, Select a series of elements)
 )
@@ -1621,14 +1630,26 @@ $(GNAME NamedArgument):
     $(GLINK AssignExpression)
 )
 
-    $(P A callable expression can precede a list of named arguments in parentheses.)
+    $(P A callable expression can precede a list of named arguments in parentheses.
+        The following expressions can be called:)
 
+        * A function
+        * A function pointer
+        * A delegate
+        * An aggregate type instance which defines
+          $(DDSUBLINK spec/operatoroverloading, function-call, `opCall`)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 void f(int, int);
 
-f(5, 6);
-(&f)(5, 6);
+void g()
+{
+    f(5, 6);
+    (&f)(5, 6);
+}
 ---
+)
 
 $(H4 $(LNAME2 argument-parameter-matching, Matching Arguments to Parameters))
 
@@ -1840,12 +1861,30 @@ $(GNAME PrimaryExpression):
     $(D .) $(IDENTIFIER)
     $(GLINK2 template, TemplateInstance)
     $(D .) $(GLINK2 template, TemplateInstance)
+    $(RELATIVE_LINK2 IndexOperation, `$`)
+    $(GLINK LiteralExpression)
+    $(GLINK AssertExpression)
+    $(GLINK MixinExpression)
+    $(GLINK ImportExpression)
+    $(GLINK NewExpression)
+    $(GLINK2 type, FundamentalType) $(D .) $(IDENTIFIER)
+    $(GLINK2 type, TypeCtor)$(OPT) $(D $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN) .) $(IDENTIFIER)
+    $(D $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN) .) $(GLINK2 template, TemplateInstance)
+    $(GLINK2 type, FundamentalType) $(D $(LPAREN)) $(GLINK NamedArgumentList)$(OPT) $(D $(RPAREN))
+    $(GLINK2 type, TypeCtor)$(OPT) $(D $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN)) $(D $(LPAREN)) $(GLINK NamedArgumentList)$(OPT) $(D $(RPAREN))
+    $(GLINK2 type, Typeof)
+    $(GLINK TypeidExpression)
+    $(GLINK IsExpression)
+    $(D $(LPAREN)) $(GLINK Expression) $(D $(RPAREN))
+    $(GLINK SpecialKeyword)
+    $(GLINK2 traits, TraitsExpression)
+
+$(GNAME LiteralExpression):
     $(RELATIVE_LINK2 this, $(D this))
     $(RELATIVE_LINK2 super, $(D super))
     $(RELATIVE_LINK2 null, $(D null))
     $(LEGACY_LNAME2 true_false)$(DDSUBLINK spec/type, bool, `true`)
     $(DDSUBLINK spec/type, bool, `false`)
-    $(RELATIVE_LINK2 IndexOperation, `$`)
     $(GLINK_LEX IntegerLiteral)
     $(GLINK_LEX FloatLiteral)
     $(LEGACY_LNAME2 CharacterLiteral)$(LEGACY_LNAME2 character-literal)$(GLINK_LEX CharacterLiteral)
@@ -1854,28 +1893,25 @@ $(GNAME PrimaryExpression):
     $(GLINK ArrayLiteral)
     $(GLINK AssocArrayLiteral)
     $(GLINK FunctionLiteral)
-    $(GLINK AssertExpression)
-    $(GLINK MixinExpression)
-    $(GLINK ImportExpression)
-    $(GLINK NewExpression)
-    $(GLINK2 type, FundamentalType) $(D .) $(IDENTIFIER)
-    $(D $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN) .) $(IDENTIFIER)
-    $(D $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN) .) $(GLINK2 template, TemplateInstance)
-    $(GLINK2 type, FundamentalType) $(D $(LPAREN)) $(GLINK NamedArgumentList)$(OPT) $(D $(RPAREN))
-    $(GLINK2 type, TypeCtor) $(D $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN)) $(D .) $(IDENTIFIER)
-    $(GLINK2 type, TypeCtor) $(D $(LPAREN)) $(GLINK2 type, Type) $(D $(RPAREN)) $(D $(LPAREN)) $(GLINK NamedArgumentList)$(OPT) $(D $(RPAREN))
-    $(GLINK2 type, Typeof)
-    $(GLINK TypeidExpression)
-    $(GLINK IsExpression)
-    $(D $(LPAREN)) $(GLINK Expression) $(D $(RPAREN))
-    $(GLINK SpecialKeyword)
-    $(GLINK2 traits, TraitsExpression)
 )
 
-$(H3 $(LNAME2 identifier, .Identifier))
-
-    $(P See $(DDSUBLINK spec/module, module_scope_operators, Module Scope
-        Operator).)
+$(TABLE
+$(THEAD Expression, Description)
+$(TROW $(LNAME2 identifier, `.` *Identifier*),
+    $(DDSUBLINK spec/module, module_scope_operators, Module Scope Operator))
+$(TROW `$`, Number of elements in an object $(RELATIVE_LINK2 IndexOperation,
+    being indexed/sliced).)
+$(TROW `(` *Type* `).` *Identifier*,
+    Access a $(DDLINK spec/property, Properties, type property) or a
+    $(DDSUBLINK spec/attribute, static, static member) of a type.)
+$(TROW *FundamentalType* `(arg)`,
+    $(RELATIVE_LINK2 uniform_construction_syntax, Uniform construction) of scalar
+    type with optional argument.)
+$(TROW `(` *Type* `)(args)`,
+    Construct a type with optional arguments.)
+$(TROW `(` *Expression* `)`, Evaluate an expression - useful as a
+    $(RELATIVE_LINK2 .define-full-expression, subexpression).)
+)
 
 $(H3 $(LNAME2 this, this))
 

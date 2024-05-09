@@ -3771,34 +3771,40 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
 
         $(P Safe functions have $(RELATIVE_LINK2 safe-interfaces, safe
         interfaces). An implementation must enforce this by restricting the
-        function's body to operations that are known safe.)
+        function's body to operations that are known to be safe,
+        except for calls to $(RELATIVE_LINK2 trusted-functions, `@trusted` functions).)
 
-        $(P The following operations are not allowed in safe
+        $(P The following restrictions are enforced by the compiler in safe
         functions:)
 
         $(UL
-        $(LI No casting from a pointer type to any type with pointers other than $(CODE void*).)
+        $(LI No casting from a pointer type `T` to any type `U` with pointers, except when:)
+            * `T` implicitly converts to `U`
+            * `U` implements class or interface `T`
+            * Both types are dynamic arrays
+            * `T.opCast!U` is `@safe`
         $(LI No casting from any non-pointer type to a pointer type.)
         $(LI No pointer arithmetic (including pointer indexing).)
-        $(LI Cannot access unions that have pointers or references overlapping
-        with other types.)
-        $(LI Cannot access unions that have fields with invariants overlapping
-        with other types.)
+        $(LI Cannot access unions that:)
+            * Have pointers or references overlapping with other types
+            * Have fields with invariants overlapping with other types
         $(LI Calling any $(RELATIVE_LINK2 system-functions, System Functions).)
         $(LI No catching of exceptions that are not derived from
         $(LINK2 https://dlang.org/phobos/object.html#.Exception, $(D class Exception)).)
         $(LI No inline assembler.)
-        $(LI No explicit casting of mutable objects to immutable.)
-        $(LI No explicit casting of immutable objects to mutable.)
-        $(LI No explicit casting of thread local objects to shared.)
-        $(LI No explicit casting of shared objects to thread local.)
-        $(LI Cannot access $(D __gshared) variables.)
-        $(LI Cannot use $(D void) initializers for pointers.)
-        $(LI Cannot use $(D void) initializers for class or interface references.)
-        $(LI Cannot use $(D void) initializers for types that have invariants.)
+        $(LI No explicit casting of:)
+            * mutable objects to immutable
+            * immutable objects to mutable
+            * thread local objects to shared
+            * shared objects to thread local
+        $(LI Cannot access $(DDSUBLINK spec/attribute, system-variables, `@system`)
+            or $(D __gshared) variables.)
+        $(LI Cannot use $(D void) initializers for:)
+            * Pointers/reference types or any type containing them
+            * Types that have invariants
         )
 
-        $(P When indexing or slicing an array, an out of bounds access
+        $(NOTE When indexing or slicing an array, an out of bounds access
             will cause a runtime error.
         )
 
@@ -3900,18 +3906,19 @@ $(H3 $(LNAME2 system-functions, System Functions))
 
 $(H3 $(LNAME2 safe-interfaces, Safe Interfaces))
 
-        $(P When it is only called with $(RELATIVE_LINK2 safe-values, safe
-        values) and $(RELATIVE_LINK2 safe-aliasing, safe aliasing), a
+        $(P When a function call's arguments, $(RELATIVE_LINK2 closures, any context)
+        and accessible globals each have $(RELATIVE_LINK2 safe-values, safe
+        values) with $(RELATIVE_LINK2 safe-aliasing, safe aliasing), that
         function has a safe interface when:)
         $(OL
             $(LI it cannot exhibit
                 $(DDSUBLINK spec/glossary, undefined_behavior, undefined behavior),
                 and)
-            $(LI it cannot create unsafe values that are accessible from other
-                parts of the program (e.g., via return values, global variables,
+            $(LI it cannot create unsafe values that are accessible from
+                `@safe` code (e.g., via return values, global variables,
                 or `ref` parameters), and)
             $(LI it cannot introduce unsafe aliasing that is accessible from
-                other parts of the program.)
+                `@safe` code.)
         )
 
         $(P Functions that meet these requirements may be

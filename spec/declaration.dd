@@ -95,20 +95,6 @@ $(GNAME StorageClass):
     $(RELATIVE_LINK2 ref-storage, `ref`)
 )
 
-$(H3 $(LNAME2 initializers, Initializers))
-
-$(GRAMMAR
-$(GNAME Initializer):
-    $(GLINK VoidInitializer)
-    $(GLINK NonVoidInitializer)
-
-$(GNAME NonVoidInitializer):
-    $(GLINK2 expression, AssignExpression)$(LEGACY_LNAME2 ExpInitializer)
-    $(GLINK2 expression, ArrayLiteral)$(LEGACY_LNAME2 ArrayInitializer)
-    $(GLINK2 struct, StructInitializer)$(LEGACY_LNAME2 StructInitializer)
-)
-
-$(P See also $(GLINK VoidInitializer).)
 
 $(H2 $(LNAME2 declaration_syntax, Declaration Syntax))
 
@@ -197,7 +183,82 @@ int x, *y;  // x is an int, y is a pointer to int
 int x[], y; // x is an array/pointer, y is an int
 )
 
-$(H2 $(LEGACY_LNAME2 AutoDeclaration, auto-declaration, Implicit Type Inference))
+$(H2 $(LEGACY_LNAME2 initializers, initialization, Initialization))
+
+$(GRAMMAR
+$(GNAME Initializer):
+    $(GLINK VoidInitializer)
+    $(GLINK NonVoidInitializer)
+
+$(GNAME NonVoidInitializer):
+    $(GLINK2 expression, AssignExpression)$(LEGACY_LNAME2 ExpInitializer)
+    $(GLINK2 expression, ArrayLiteral)$(LEGACY_LNAME2 ArrayInitializer)
+    $(GLINK2 struct, StructInitializer)$(LEGACY_LNAME2 StructInitializer)
+)
+
+        $(P When no *Initializer* is given, a variable is set to the
+        $(DDSUBLINK spec/property, init, default `.init` value) for
+        its type.)
+
+        $(P A variable can be initialized with a $(I NonVoidInitializer).)
+
+        $(P See also: $(DDSUBLINK spec/arrays, array-initialization, Array Initialization).)
+
+$(H3 $(LNAME2 void_init, Void Initialization))
+
+$(GRAMMAR
+$(GNAME VoidInitializer):
+    $(D void)
+)
+
+        $(P Normally a variable will be initialized.
+        However, if a variable initializer is $(D void), the variable is *not* initialized.
+        Void initializers for variables with a type that may contain
+        $(DDSUBLINK spec/function, safe-values, unsafe values) (such as types with pointers)
+        are not allowed in `@safe` code.
+        )
+
+        $(IMPLEMENTATION_DEFINED If a void initialized variable's value is
+        used before it is set, its value is implementation defined.
+
+        ---
+        void bad()
+        {
+            int x = void;
+            writeln(x);  // print implementation defined value
+        }
+        ---
+        )
+
+        $(UNDEFINED_BEHAVIOR If a void initialized variable's value is
+        used before it is set, and the value is a reference, pointer or an instance
+        of a struct with an invariant, the behavior is undefined.
+
+        ---
+        void muchWorse()
+        {
+            char[] p = void;
+            writeln(p);  // may result in apocalypse
+        }
+        ---
+        )
+
+        $(BEST_PRACTICE
+        $(OL
+        $(LI Void initializers are useful when a static array is on the stack,
+        but may only be partially used, such as a temporary buffer.
+        Void initializers will potentially speed up the code, but they introduce risk, since one must ensure
+        that array elements are always set before read.)
+        $(LI The same is true for structs.)
+        $(LI Use of void initializers is rarely useful for individual local variables,
+        as a modern optimizer will remove the dead store of its initialization if it is
+        initialized later.)
+        $(LI For hot code paths, it is worth profiling to see if the void initializer
+        actually improves results.)
+        )
+        )
+
+$(H3 $(LEGACY_LNAME2 AutoDeclaration, auto-declaration, Implicit Type Inference))
 
 $(GRAMMAR
 $(GNAME AutoDeclaration):
@@ -240,6 +301,19 @@ auto c = new C();  // c is a handle to an instance of class C
         ---
         auto v = ["resistance", "is", "useless"]; // type is string[], not string[3]
         ---
+
+$(H3 $(LNAME2 global_static_init, Global and Static Initializers))
+
+        $(P The $(GLINK Initializer) for a global or static variable must be
+        evaluatable at compile time.
+        Runtime initialization is done with $(DDSUBLINK spec/module, staticorder, static constructors).
+        )
+
+        $(IMPLEMENTATION_DEFINED
+        $(OL
+        $(LI Whether some pointers can be initialized with the addresses of other
+        functions or data.)
+        ))
 
 
 $(H2 $(LNAME2 alias, Alias Declarations))
@@ -667,74 +741,6 @@ extern extern(C) int bar;
         connect with global variables declarations and functions in C or C++ files.)
         ))
 
-$(H2 $(LNAME2 void_init, Void Initializations))
-
-$(GRAMMAR
-$(GNAME VoidInitializer):
-    $(D void)
-)
-
-        $(P Normally, variables are initialized either with an explicit
-        $(GLINK Initializer) or are set to the default value for the
-        type of the variable. If the $(I Initializer) is $(D void),
-        however, the variable is not initialized.
-        Void initializers for variables with a type that may contain
-        $(DDSUBLINK spec/function, safe-values, unsafe values) (such as types with pointers)
-        are not allowed in `@safe` code.
-        )
-
-        $(IMPLEMENTATION_DEFINED If a void initialized variable's value is
-        used before it is set, its value is implementation defined.
-
-        ---
-        void bad()
-        {
-            int x = void;
-            writeln(x);  // print implementation defined value
-        }
-        ---
-        )
-
-        $(UNDEFINED_BEHAVIOR If a void initialized variable's value is
-        used before it is set, and the value is a reference, pointer or an instance
-        of a struct with an invariant, the behavior is undefined.
-
-        ---
-        void muchWorse()
-        {
-            char[] p = void;
-            writeln(p);  // may result in apocalypse
-        }
-        ---
-        )
-
-        $(BEST_PRACTICE
-        $(OL
-        $(LI Void initializers are useful when a static array is on the stack,
-        but may only be partially used, such as a temporary buffer.
-        Void initializers will potentially speed up the code, but they introduce risk, since one must ensure
-        that array elements are always set before read.)
-        $(LI The same is true for structs.)
-        $(LI Use of void initializers is rarely useful for individual local variables,
-        as a modern optimizer will remove the dead store of its initialization if it is
-        initialized later.)
-        $(LI For hot code paths, it is worth profiling to see if the void initializer
-        actually improves results.)
-        )
-        )
-
-$(H2 $(LNAME2 global_static_init, Global and Static Initializers))
-
-        $(P The $(GLINK Initializer) for a global or static variable must be
-        evaluatable at compile time.
-        Runtime initialization is done with static constructors.
-        )
-
-        $(IMPLEMENTATION_DEFINED
-        $(OL
-        $(LI Whether some pointers can be initialized with the addresses of other
-        functions or data.)
-        ))
 
 $(H2 $(LNAME2 typequal_vs_storageclass, Type Qualifiers vs. Storage Classes))
 

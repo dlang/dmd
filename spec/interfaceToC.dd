@@ -5,15 +5,22 @@ $(SPEC_S Interfacing to C,
 $(HEADERNAV_TOC)
 
         $(P D is designed to fit comfortably with a C compiler for the target
-        system. D makes up for not having its own VM by relying on the
-        target environment's C runtime library. It would be senseless to
-        attempt to port to D or write D wrappers for the vast array of C APIs
-        available. How much easier it is to just call them directly.
+        system. It is able to call C functions directly without requiring
+        wrapper functions.
         )
 
         $(P This is done by matching the C compiler's data types, layouts,
         and function call/return sequences.
         )
+
+        $(P The $(DDLINK spec/importc, ImportC, ImportC) compiler extension allows
+        importing or compiling `.c` files directly. )
+
+        $(P Bindings for popular C libraries can be found in the
+            $(LINK2 https://dlang.org/phobos/index.html, standard library) and
+            $(LINK2 https://code.dlang.org/?sort=updated&limit=20&category=library.binding, package repository).)
+
+        $(P The rest of this page describes the manual, low-level side of interfacing with C.)
 
 $(H2 $(LNAME2 calling_c_functions, Calling C Functions))
 

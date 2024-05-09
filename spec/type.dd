@@ -726,7 +726,7 @@ $(GNAME Typeof):
         typeof(S.foo) n;  // n is declared to be an int
         --------------------
 
-        $(P If the expression is a $(DDLINK, spec/template, Template, Template),
+        $(P If the expression is a $(DDLINK spec/template, Template, Template),
         $(D typeof) gives the type $(D void).
         )
 

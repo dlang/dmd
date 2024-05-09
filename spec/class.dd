@@ -161,18 +161,24 @@ void foo(B b)
         without the subclasses needing to recompile or relink.
         )
 
-$(H3 $(LNAME2 field_properties, Field Properties))
-
-        $(P The $(D .offsetof) property gives the offset in bytes of the field
-        from the beginning of the class instantiation.
-        `.offsetof` is not available for fields of `extern(Objective-C)` classes
-        due to their fields having a dynamic offset.
-        )
 
 $(H2 $(LNAME2 class_properties, Class Properties))
 
+$(TABLE2 Class Instance Properties,
+$(THEAD Property, Description)
+$(TROW $(DDSUBLINK spec/property, classinfo, $(D .classinfo)),
+    Information about the dynamic type of the class.)
+$(TROW $(RELATIVE_LINK2 outer-property, `.outer`), $(ARGS For
+        a nested class instance, provides either the parent class instance,
+        or the parent function's context pointer when there is no parent
+        class.))
+$(TROW $(D .tupleof), See below.)
+)
+
+$(H3 $(LNAME2 tupleof, `.tupleof`))
+
         $(P The $(D .tupleof) property is an
-        $(DDSUBLINK spec/template, homogeneous_sequences, lvalue sequence)
+        $(DDSUBLINK spec/template, lvalue-sequences, lvalue sequence)
         of all the non-static fields in the class, excluding the hidden fields and
         the fields in the base class.)
         $(P The order of the fields in the tuple matches the order in which the fields are declared.)
@@ -208,15 +214,20 @@ void main()
 
 $(H3 $(LNAME2 hidden-fields, Accessing Hidden Fields))
 
-        $(P The $(RELATIVE_LINK2 outer-property, `.outer` property) for
-        a nested class instance provides either the parent class instance,
-        or the parent function's context pointer when there is no parent
-        class.)
-
         $(P The properties $(D .__vptr) and $(D .__monitor) give access
         to the class object's vtbl[] and monitor, respectively, but
         should not be used in user code.
         )
+
+$(H3 $(LNAME2 field_properties, Field Properties))
+
+        $(P The $(D .offsetof) property gives the offset in bytes of the field
+        from the beginning of the class instantiation.
+        )
+        $(NOTE `.offsetof` is not available for fields of `extern(Objective-C)` classes
+        due to their fields having a dynamic offset.
+        )
+
 
 $(H2 $(LNAME2 member-functions, Member Functions (a.k.a. Methods)))
 
@@ -358,9 +369,9 @@ $(GNAME Constructor):
 )
 
         $(P Fields are by default initialized to the
-        $(LNAME2 class-default-initializer, default initializer)
+        $(DDSUBLINK spec/property, init, default initializer)
         for their type (usually 0 for integer types and
-        NAN for floating point types).
+        NaN for floating point types).
         If the field declaration has an optional $(GLINK2 declaration, Initializer)
         that will be used instead of the default.
         )
@@ -808,12 +819,12 @@ $(GNAME StaticConstructor):
         $(P Static constructors are used to initialize static class members with
         values that cannot be computed at compile time.)
 
-        $(P Static constructors in other languages are built implicitly by using
+    $(PANEL
+        Static constructors in other languages are built implicitly by using
         member
         initializers that can't be computed at compile time. The trouble with
         this stems from not
         having good control over exactly when the code is executed, for example:
-        )
 
 ------
 class Foo
@@ -823,9 +834,9 @@ class Foo
 }
 ------
 
-        What values do a and b end up with, what order are the initializations
+        What values do `a` and `b` end up with, what order are the initializations
         executed in, what
-        are the values of a and b before the initializations are run, is this a
+        are the values of `a` and `b` before the initializations are run, is this a
         compile error, or is this
         a runtime error? Additional confusion comes from it not being obvious if
         an initializer is
@@ -854,6 +865,7 @@ class Foo
     }
 }
 ------
+    )
 
 $(P If $(D main()) or the thread returns normally, (does not throw an
 exception), the static destructor is added to the list of functions to be called
@@ -878,7 +890,7 @@ $(P Static constructors have empty parameter lists.)
 class Foo
 {
     static this() { ... } // a static constructor
-    static private this() { ... } // not a static constructor
+    static private this() { ... } // Error: not a static constructor
     static
     {
         this() { ... }      // not a static constructor
@@ -925,7 +937,7 @@ class Foo
 class Foo
 {
     static ~this() { ... }  // a static destructor
-    static private ~this() { ... } // not a static destructor
+    static private ~this() { ... } // Error: not a static destructor
     static
     {
         ~this() { ... }  // not a static destructor
