@@ -599,20 +599,14 @@ assert(u.c == false); // no overlap
 ---
 )
 
-$(H2 $(LNAME2 struct_properties, Struct Properties))
+$(H2 $(LEGACY_LNAME2 struct_instance_properties, struct_properties, Struct Properties))
 
-$(TABLE2 Struct Type Properties,
+$(TABLE
 $(THEAD Name, Description)
 $(TROW $(D .alignof), Size boundary struct needs to be aligned on)
-)
-
-$(H3 $(LNAME2 struct_instance_properties, Struct Instance Properties))
-
-$(TABLE2 Struct Instance Properties,
-$(THEAD Name, Description)
-$(TROW $(D .tupleof), An $(DDSUBLINK spec/template, lvalue-sequences, lvalue sequence)
+$(TROW $(D .tupleof), A $(DDSUBLINK spec/template, variadic-templates, symbol sequence)
     of all struct fields - see
-    $(DDSUBLINK spec/class, tupleof, here) for a class-based example.)
+    $(DDSUBLINK spec/class, tupleof, class `.tupleof`) for more details.)
 )
 
 $(H3 $(LNAME2 struct_field_properties, Struct Field Properties))
