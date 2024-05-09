@@ -384,7 +384,7 @@ void nteh_setsp(ref CodeBuilder cdb, opcode_t op)
 void nteh_filter(ref CodeBuilder cdb, block *b)
 {
     assert(b.BC == BC_filter);
-    if (b.Bflags & BFLehcode)          // if referenced __ecode
+    if (b.Bflags & BFL.ehcode)          // if referenced __ecode
     {
         /* Generate:
                 mov     EAX,__context[EBP].info

@@ -312,35 +312,33 @@ struct BlockState
     Symbol* context;            // eh (exception handling) frame context variable
     int scope_index;            // current scope index
     int next_index;             // value for next scope index
-    uint flags;                 // value to OR into Bflags
+    BFL flags;                  // value to OR into Bflags
     block* tryblock;            // current enclosing try block
     ClassDeclaration_ classdec;
     Declaration_ member;        // member we're compiling for
     Module_ _module;            // module we're in
 }
 
-alias bflags_t = ushort;
-enum
+enum BFL : ushort
 {
-    BFLvisited       = 1,       // set if block is visited
-    BFLmark          = 2,       // set if block is visited
-    BFLjmpoptdone    = 4,       // set when no more jump optimizations
-                                //  are possible for this block
-    BFLnostackopt    = 8,       // set when stack elimination should not
-                                // be done
-    // NTEXCEPTIONS
-    BFLehcode        = 0x10,    // BC_filter: need to load exception code
-    BFLunwind        = 0x1000,  // do local_unwind following block (unused)
+    visited       = 1,      // set if block is visited
+    mark          = 2,      // set if block is visited
+    jmpoptdone    = 4,      // set when no more jump optimizations
+                            //  are possible for this block
+    nostackopt    = 8,      // set when stack elimination should not be done
+    nomerg        = 0x10,   // do not merge with other blocks
+    prolog        = 0x20,   // generate function prolog
+    epilog        = 0x40,   // generate function epilog
+    refparam      = 0x80,   // referenced parameter
+    reflocal      = 0x100,  // referenced local
+    outsideprolog = 0x200,  // outside function prolog/epilog
+    label         = 0x400,  // block preceded by label
+    volatile      = 0x800,  // block is volatile
+    nounroll      = 0x1000, // do not unroll loop
 
-    BFLnomerg        = 0x20,    // do not merge with other blocks
-    BFLprolog        = 0x80,    // generate function prolog
-    BFLepilog        = 0x100,   // generate function epilog
-    BFLrefparam      = 0x200,   // referenced parameter
-    BFLreflocal      = 0x400,   // referenced local
-    BFLoutsideprolog = 0x800,   // outside function prolog/epilog
-    BFLlabel         = 0x2000,  // block preceded by label
-    BFLvolatile      = 0x4000,  // block is volatile
-    BFLnounroll      = 0x8000,  // do not unroll loop
+    // for Windows NTEXCEPTIONS
+    ehcode        = 0x2000, // BC_filter: need to load exception code
+    unwind        = 0x4000, // do local_unwind following block (unused)
 }
 
 struct block
@@ -405,7 +403,7 @@ nothrow:
 
     ubyte       Balign;         // alignment
 
-    bflags_t    Bflags;         // flags (BFLxxxx)
+    BFL         Bflags;         // flags (BFLxxxx)
     code*       Bcode;          // code generated for this block
 
     uint        Bweight;        // relative number of times this block

@@ -862,7 +862,7 @@ void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const(char
             }
             if (nextb != bl.Bnext)
             {
-                assert(!(bl.Bflags & BFLepilog));
+                assert(!(bl.Bflags & BFL.epilog));
                 genjmp(cdb,JMP,FLblock,nextb);
             }
             break;
@@ -871,7 +871,7 @@ void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const(char
         case BCifthen:
         case BCswitch:
         {
-            assert(!(bl.Bflags & BFLepilog));
+            assert(!(bl.Bflags & BFL.epilog));
             doswitch(cdb,bl);               // hide messy details
             break;
         }
@@ -4346,7 +4346,7 @@ void epilog(block *b)
     tym_t tyf = funcsym_p.ty();
     tym_t tym = tybasic(tyf);
     bool farfunc = tyfarfunc(tym) != 0;
-    if (!(b.Bflags & BFLepilog))       // if no epilog code
+    if (!(b.Bflags & BFL.epilog))       // if no epilog code
         goto Lret;                      // just generate RET
     regx = (b.BC == BCret) ? AX : CX;
 
@@ -4875,7 +4875,7 @@ void makeitextern(Symbol *s)
  * Replace JMPs in Bgotocode with JMP SHORTs whereever possible.
  * This routine depends on FLcode jumps to only be forward
  * referenced.
- * BFLjmpoptdone is set to true if nothing more can be done
+ * BFL.jmpoptdone is set to true if nothing more can be done
  * with this block.
  * Input:
  *      flag    !=0 means don't have correct Boffsets yet
@@ -4892,7 +4892,7 @@ int branch(block *bl,int flag)
     targ_size_t csize;
 
     if (!flag)
-        bl.Bflags |= BFLjmpoptdone;      // assume this will be all
+        bl.Bflags |= BFL.jmpoptdone;      // assume this will be all
     c = bl.Bcode;
     if (!c)
         return 0;
@@ -4930,7 +4930,7 @@ int branch(block *bl,int flag)
                         {
                             if (b.Balign)
                             {
-                                bl.Bflags &= ~BFLjmpoptdone;   // some JMPs left
+                                bl.Bflags = cast(BFL)(bl.Bflags & ~cast(uint)BFL.jmpoptdone); // some JMPs left
                                 goto L3;
                             }
                             if (b == c.IEV2.Vblock)
@@ -5068,7 +5068,7 @@ int branch(block *bl,int flag)
                 csize = calccodsize(c);
             }
             else
-                bl.Bflags &= ~BFLjmpoptdone;   // some JMPs left
+                bl.Bflags = cast(BFL)(bl.Bflags & ~cast(uint)BFL.jmpoptdone); // some JMPs left
         }
 L3:
         if (cn)
@@ -5155,7 +5155,7 @@ void assignaddr(block *bl)
     int EBPtoESPsave = EBPtoESP;
     int hasframesave = hasframe;
 
-    if (bl.Bflags & BFLoutsideprolog)
+    if (bl.Bflags & BFL.outsideprolog)
     {
         EBPtoESP = -REGSIZE;
         hasframe = 0;
