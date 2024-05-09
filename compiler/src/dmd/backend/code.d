@@ -162,6 +162,8 @@ struct CGstate
     LocalSection Para;          // section of function parameters
     LocalSection Auto;          // section of automatics and registers
     LocalSection Fast;          // section of fastpar
+    LocalSection EEStack;       // offset of SCstack variables from ESP
+    LocalSection Alloca;        // data for alloca() temporary
 
     targ_size_t funcargtos;     // current high water level of arguments being moved onto
                                 // the funcarg section. It is filled from top to bottom,

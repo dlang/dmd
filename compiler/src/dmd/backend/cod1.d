@@ -312,10 +312,10 @@ void genEEcode()
     eecontext.EEin++;
     regcon.immed.mval = 0;
     regm_t retregs = 0;    //regmask(eecontext.EEelem.Ety);
-    assert(EEStack.offset >= REGSIZE);
-    cod3_stackadj(cdb, cast(int)(EEStack.offset - REGSIZE));
+    assert(cgstate.EEStack.offset >= REGSIZE);
+    cod3_stackadj(cdb, cast(int)(cgstate.EEStack.offset - REGSIZE));
     cdb.gen1(0x50 + SI);                      // PUSH ESI
-    cdb.genadjesp(cast(int)EEStack.offset);
+    cdb.genadjesp(cast(int)cgstate.EEStack.offset);
     gencodelem(cdb, eecontext.EEelem, &retregs, false);
     code *c = cdb.finish();
     assignaddrc(c);
@@ -3378,14 +3378,14 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
     bool usefuncarg = false;
     static if (0)
     {
-        printf("test1 %d %d %d %d %d %d %d %d\n", (config.flags4 & CFG4speed)!=0, !Alloca.size,
+        printf("test1 %d %d %d %d %d %d %d %d\n", (config.flags4 & CFG4speed)!=0, !cgstate.Alloca.size,
             !(usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)),
             cast(int)numpara, !stackpush,
             (cgstate.funcargtos == ~0 || numpara < cgstate.funcargtos),
             (!typfunc(tyf) || sf && sf.Sflags & SFLexit), !I16);
     }
     if (config.flags4 & CFG4speed &&
-        !Alloca.size &&
+        !cgstate.Alloca.size &&
         /* The cleanup code calls a local function, leaving the return address on
          * the top of the stack. If parameters are placed there, the return address
          * is stepped on.
@@ -3832,7 +3832,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
             cdbe.genc(LEA, modregrm(2, areg, BPRM), FLallocatmp, 0, 0, 0);  // LEA areg,&localsize[BP]
             if (I64)
                 code_orrex(cdbe.last(), REX_W);
-            Alloca.size = REGSIZE;
+            cgstate.Alloca.size = REGSIZE;
         }
         if (sytab[s.Sclass] & SCSS)    // if function is on stack (!)
         {
