@@ -25,7 +25,7 @@ version (NoBackend)
     struct Symbol;
     struct code;
     struct block;
-    struct Blockx;
+    struct BlockState;
     struct elem;
     struct TYPE;
     alias type = TYPE;
@@ -51,7 +51,7 @@ else version (IN_GCC)
 }
 else
 {
-    public import dmd.backend.cc : block, Blockx, Symbol;
+    public import dmd.backend.cc : block, BlockState, Symbol;
     public import dmd.backend.type : type;
     public import dmd.backend.el : elem;
     public import dmd.backend.code_x86 : code;

@@ -138,7 +138,7 @@ void nteh_gentables(Symbol *sfunc)
  */
 
 @trusted
-void nteh_declarvars(Blockx *bx)
+void nteh_declarvars(BlockState *bx)
 {
     //printf("nteh_declarvars()\n");
     if (!(bx.funcsym.Sfunc.Fflags3 & Fnteh)) // if haven't already done it
@@ -155,7 +155,7 @@ void nteh_declarvars(Blockx *bx)
 /**************************************
  * Generate elem that sets the context index into the scope table.
  */
-elem *nteh_setScopeTableIndex(Blockx *blx, int scope_index)
+elem *nteh_setScopeTableIndex(BlockState *blx, int scope_index)
 {
     Symbol* s = blx.context;
     symbol_debug(s);

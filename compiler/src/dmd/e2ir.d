@@ -6769,7 +6769,7 @@ elem *appendDtors(ref IRState irs, elem *er, size_t starti, size_t endi)
     {
         if (irs.target.os == Target.OS.Windows && !irs.target.isX86_64) // Win32
         {
-            Blockx *blx = irs.blx;
+            BlockState *blx = irs.blx;
             nteh_declarvars(blx);
         }
 

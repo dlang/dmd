@@ -300,12 +300,16 @@ alias ClassDeclaration_ = void*;
 alias Declaration_ = void*;
 alias Module_ = void*;
 
-struct Blockx
+/*************************************
+ * While constructing a block list, BlockState maintains
+ * the global state needed to construct that list.
+ */
+struct BlockState
 {
-    block* startblock;
-    block* curblock;
-    Funcsym* funcsym;
-    Symbol* context;            // eh frame context variable
+    block* startblock;          // first block in the block list
+    block* curblock;            // the current (i.e. last) block in the list
+    Funcsym* funcsym;           // the function the blocks form the function body of
+    Symbol* context;            // eh (exception handling) frame context variable
     int scope_index;            // current scope index
     int next_index;             // value for next scope index
     uint flags;                 // value to OR into Bflags
