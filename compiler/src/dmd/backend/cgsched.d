@@ -1466,8 +1466,8 @@ else
             c.Iflags |= CFpsw;
             break;
 
-        case ESCAPE:
-            if (c.Iop == (ESCAPE | ESCadjfpu))
+        case PSOP.root:
+            if (c.Iop == PSOP.adjfpu)
                 ci.fpuadjust = c.IEV1.Vint;
             break;
 
@@ -1890,7 +1890,7 @@ private code * cnext(code *c)
         if (c.Iflags & (CFtarg | CFtarg2))
             break;
         if (!(c.Iop == NOP ||
-              c.Iop == (ESCAPE | ESClinnum)))
+              c.Iop == PSOP.linnum))
             break;
     }
     return c;
@@ -2783,7 +2783,7 @@ private code * csnip(code *c)
             if (c.Iflags & (CFtarg | CFtarg2))
                 break;
             if (!(c.Iop == NOP ||
-                  c.Iop == (ESCAPE | ESClinnum) ||
+                  c.Iop == PSOP.linnum ||
                   c.Iflags & iflags))
                 break;
         }
@@ -2809,7 +2809,7 @@ private code *schedule(code *c,regm_t scratch)
     while (c)
     {
         if ((c.Iop == NOP ||
-             ((c.Iop & ESCAPEmask) == ESCAPE && c.Iop != (ESCAPE | ESCadjfpu)) ||
+             ((c.Iop & PSOP.mask) == PSOP.root && c.Iop != PSOP.adjfpu) ||
              c.Iflags & CFclassinit) &&
             !(c.Iflags & (CFtarg | CFtarg2)))
         {   code *cn;

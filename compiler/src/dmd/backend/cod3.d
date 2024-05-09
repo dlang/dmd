@@ -306,7 +306,7 @@ bool hasModregrm(scope const code* c)
 {
     uint ins;
     opcode_t op1 = c.Iop & 0xFF;
-    if (op1 == ESCAPE)
+    if (op1 == PSOP.root)
         ins = 0;
     else if ((c.Iop & 0xFFFD00) == 0x0F3800)
         ins = inssize2[(c.Iop >> 8) & 0xFF];
@@ -889,7 +889,7 @@ void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const(char
                  * may have arguments pushed on the stack.
                  * This instruction will reset ESP to the correct offset from EBP.
                  */
-                cdb.gen1(ESCAPE | ESCfixesp);
+                cdb.gen1(PSOP.fixesp);
             }
             goto case_goto;
         case BCgoto:
@@ -2679,7 +2679,7 @@ void cdframeptr(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     const reg = allocreg(cdb,retregs, TYint);
 
     code cs;
-    cs.Iop = ESCAPE | ESCframeptr;
+    cs.Iop = PSOP.frameptr;
     cs.Iflags = 0;
     cs.Irex = 0;
     cs.Irm = cast(ubyte)reg;
@@ -4975,7 +4975,7 @@ int branch(block *bl,int flag)
                         while (1)
                         {
                             if (ct.Iop == NOP ||
-                                ct.Iop == (ESCAPE | ESClinnum))
+                                ct.Iop == PSOP.linnum)
                             {
                                 ct = code_next(ct);
                                 if (!ct)
@@ -5193,15 +5193,15 @@ void assignaddrc(code *c)
             ins = inssize2[(c.Iop >> 8) & 0xFF];
         else if ((c.Iop & 0xFF00) == 0x0F00)
             ins = inssize2[c.Iop & 0xFF];
-        else if ((c.Iop & 0xFF) == ESCAPE)
+        else if ((c.Iop & PSOP.mask) == PSOP.root)
         {
-            if (c.Iop == (ESCAPE | ESCadjesp))
+            if (c.Iop == PSOP.adjesp)
             {
                 //printf("adjusting EBPtoESP (%d) by %ld\n",EBPtoESP,cast(long)c.IEV1.Vint);
                 EBPtoESP += c.IEV1.Vint;
                 c.Iop = NOP;
             }
-            else if (c.Iop == (ESCAPE | ESCfixesp))
+            else if (c.Iop == PSOP.fixesp)
             {
                 //printf("fix ESP\n");
                 if (hasframe)
@@ -5230,7 +5230,7 @@ void assignaddrc(code *c)
                     }
                 }
             }
-            else if (c.Iop == (ESCAPE | ESCframeptr))
+            else if (c.Iop == PSOP.frameptr)
             {   // Convert to load of frame pointer
                 // c.Irm is the register to use
                 if (hasframe && !enforcealign)
@@ -6451,7 +6451,7 @@ uint calccodsize(code *c)
             goto Lret2;
 
         case NOP:
-        case ESCAPE:
+        case PSOP.root:
             size = 0;                   // since these won't be output
             goto Lret2;
 
@@ -6628,8 +6628,8 @@ int code_match(code *c1,code *c2)
         goto nomatch;
     switch (cs1.Iop)
     {
-        case ESCAPE | ESCctor:
-        case ESCAPE | ESCdtor:
+        case PSOP.ctor:
+        case PSOP.dtor:
             goto nomatch;
 
         case NOP:
@@ -6643,7 +6643,7 @@ int code_match(code *c1,code *c2)
                 goto nomatch;
 
         default:
-            if ((cs1.Iop & 0xFF) == ESCAPE)
+            if ((cs1.Iop & PSOP.mask) == PSOP.root)
                 goto match;
             break;
     }
@@ -6837,16 +6837,16 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
         ins = inssize[op & 0xFF];
         switch (op & 0xFF)
         {
-            case ESCAPE:
+            case PSOP.root:
                 /* Check for SSE4 opcode v/pmaxuw xmm1,xmm2/m128 */
                 if(op == 0x660F383E || c.Iflags & CFvex) break;
 
-                switch (op & 0xFFFF00)
-                {   case ESClinnum:
+                switch (op)
+                {   case PSOP.linnum:
                         /* put out line number stuff    */
                         objmod.linnum(c.IEV1.Vsrcpos,seg,ggen.getOffset());
                         break;
-                    case ESCadjesp:
+                    case PSOP.adjesp:
                         //printf("adjust ESP %ld\n", cast(long)c.IEV1.Vint);
                         break;
 
@@ -7756,15 +7756,16 @@ extern (C) void code_print(scope code* c)
     }
     printf("op=0x%02X",op);
 
-    if ((op & 0xFF) == ESCAPE)
+    if ((op & PSOP.mask) == PSOP.root)
     {
-        if ((op & 0xFF00) == ESClinnum)
+        if (op == PSOP.linnum)
         {
             printf(" linnum = %d\n",c.IEV1.Vsrcpos.Slinnum);
             return;
         }
-        printf(" ESCAPE %d",c.Iop >> 8);
+        printf(" PSOP %x", c.Iop);
     }
+
     if (c.Iflags)
         printf(" flg=%x",c.Iflags);
     if (ins & M)

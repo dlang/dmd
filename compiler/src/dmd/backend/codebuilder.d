@@ -290,7 +290,7 @@ struct CodeBuilder
     {
         code cs;
         //srcpos.print("genlinnum");
-        cs.Iop = ESCAPE | ESClinnum;
+        cs.Iop = PSOP.linnum;
         cs.Iflags = 0;
         cs.Iea = 0;
         cs.IEV1.Vsrcpos = srcpos;
@@ -307,7 +307,7 @@ struct CodeBuilder
         if (!I16 && offset)
         {
             code cs;
-            cs.Iop = ESCAPE | ESCadjesp;
+            cs.Iop = PSOP.adjesp;
             cs.Iflags = 0;
             cs.Iea = 0;
             cs.IEV1.Vint = offset;
@@ -325,7 +325,7 @@ struct CodeBuilder
         if (!I16 && offset)
         {
             code cs;
-            cs.Iop = ESCAPE | ESCadjfpu;
+            cs.Iop = PSOP.adjfpu;
             cs.Iflags = 0;
             cs.Iea = 0;
             cs.IEV1.Vint = offset;

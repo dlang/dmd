@@ -462,31 +462,34 @@ enum
 
     ASM     = SEGSS,   // string of asm bytes
 
-    ESCAPE  = SEGDS,   // marker that special information is here
+    //PSOP.root  = SEGDS,  // marker that special information is here
                        // (Iop2 is the type of special information)
     ENDBR32 = 0xF30F1EFB,
     ENDBR64 = 0xF30F1EFA,
 }
 
 
-enum ESCAPEmask = 0xFF; // code.Iop & ESCAPEmask ==> actual Iop
-
-enum
+/* Pseudo instructions inserted into the code stream to trigger special
+ * behaviors in the code generator
+ */
+enum PSOP : ushort
 {
-    ESClinnum   = (1 << 8),      // line number information
-    ESCctor     = (2 << 8),      // object is constructed
-    ESCdtor     = (3 << 8),      // object is destructed
-    ESCmark     = (4 << 8),      // mark eh stack
-    ESCrelease  = (5 << 8),      // release eh stack
-    ESCoffset   = (6 << 8),      // set code offset for eh
-    ESCadjesp   = (7 << 8),      // adjust ESP by IEV2.Vint
-    ESCmark2    = (8 << 8),      // mark eh stack
-    ESCrelease2 = (9 << 8),      // release eh stack
-    ESCframeptr = (10 << 8),     // replace with load of frame pointer
-    ESCdctor    = (11 << 8),     // D object is constructed
-    ESCddtor    = (12 << 8),     // D object is destructed
-    ESCadjfpu   = (13 << 8),     // adjust fpustackused by IEV2.Vint
-    ESCfixesp   = (14 << 8),     // reset ESP to end of local frame
+    root     = SEGDS,            // unused instruction used to identify a PSOP
+    mask     = 0xFF,             // used to determine if this is an actual PSOP
+    linnum   = (1 << 8)  | root, // line number information
+    ctor     = (2 << 8)  | root, // object is constructed
+    dtor     = (3 << 8)  | root, // object is destructed
+    mark     = (4 << 8)  | root, // mark eh stack
+    release  = (5 << 8)  | root, // release eh stack
+    offset   = (6 << 8)  | root, // set code offset for eh
+    adjesp   = (7 << 8)  | root, // adjust ESP by IEV2.Vint
+    mark2    = (8 << 8)  | root, // mark eh stack
+    release2 = (9 << 8)  | root, // release eh stack
+    frameptr = (10 << 8) | root, // replace with load of frame pointer
+    dctor    = (11 << 8) | root, // D object is constructed
+    ddtor    = (12 << 8) | root, // D object is destructed
+    adjfpu   = (13 << 8) | root, // adjust fpustackused by IEV2.Vint
+    fixesp   = (14 << 8) | root, // reset ESP to end of local frame
 }
 
 /*********************************
