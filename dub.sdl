@@ -15,6 +15,7 @@ subPackage {
   importPaths "compiler/src"
   stringImportPaths "compiler/src/dmd/res" "."
   dflags "-L/STACK:16777216" platform="windows"
+  dflags "-preview=dip1000"
   preGenerateCommands "echo -n /etc > SYSCONFDIR.imp" platform="posix"
 }
 

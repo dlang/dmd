@@ -485,7 +485,7 @@ void block_appendexp(block *b,elem *e)
             {
                 ec.Ety = ty;
                 ec.ET = t;
-                pe = &(ec.EV.E2);
+                pe = &(ec.E2);
                 ec = *pe;
             }
             e = el_bin(OPcomma,ty,ec,e);
@@ -851,8 +851,7 @@ private void bropt()
     {
         elem **pn = &(b.Belem);
         if (OPTIMIZER && *pn)
-            while ((*pn).Eoper == OPcomma)
-                pn = &((*pn).EV.E2);
+            pn = el_scancommas(pn);
 
         elem *n = *pn;
 
@@ -880,10 +879,10 @@ private void bropt()
             {
                 tym_t tym;
 
-                tym = n.EV.E1.Ety;
+                tym = n.E1.Ety;
                 *pn = el_selecte1(n);
                 (*pn).Ety = tym;
-                for (n = b.Belem; n.Eoper == OPcomma; n = n.EV.E2)
+                for (n = b.Belem; n.Eoper == OPcomma; n = n.E2)
                     n.Ety = tym;
                 b.Bsucc = list_reverse(b.Bsucc);
                 debug if (debugc) printf("CHANGE: if (!e)\n");
@@ -927,8 +926,7 @@ private void bropt()
         }
         else if (b.BC == BCswitch)
         {   /* see we can evaluate this switch now  */
-            while (n.Eoper == OPcomma)
-                n = n.EV.E2;
+            n = *el_scancommas(&n);
             if (n.Eoper != OPconst)
                 continue;
             assert(tyintegral(n.Ety));
@@ -1463,9 +1461,9 @@ private void bl_enlist2(ref Barray!(elem*) elems, elem* e)
         elem_debug(e);
         if (e.Eoper == OPcomma)
         {
-            bl_enlist2(elems, e.EV.E1);
-            bl_enlist2(elems, e.EV.E2);
-            e.EV.E1 = e.EV.E2 = null;
+            bl_enlist2(elems, e.E1);
+            bl_enlist2(elems, e.E2);
+            e.E1 = e.E2 = null;
             el_free(e);
         }
         else
@@ -1483,9 +1481,9 @@ private list_t bl_enlist(elem *e)
         elem_debug(e);
         if (e.Eoper == OPcomma)
         {
-            list_t el2 = bl_enlist(e.EV.E1);
-            el = bl_enlist(e.EV.E2);
-            e.EV.E1 = e.EV.E2 = null;
+            list_t el2 = bl_enlist(e.E1);
+            el = bl_enlist(e.E2);
+            e.E1 = e.E2 = null;
             el_free(e);
 
             /* Append el2 list to el    */
@@ -1803,44 +1801,37 @@ private void brtailrecursion()
             if (el_anyframeptr(*pe))    // if any OPframeptr's
                 return;
 
-            static elem** skipCommas(elem** pe)
-            {
-                while ((*pe).Eoper == OPcomma)
-                    pe = &(*pe).EV.E2;
-                return pe;
-            }
-
-            pe = skipCommas(pe);
+            pe = el_scancommas(pe);
 
             elem *e = *pe;
 
             static bool isCandidate(elem* e)
             {
-                e = *skipCommas(&e);
+                e = *el_scancommas(&e);
                 if (e.Eoper == OPcond)
-                    return isCandidate(e.EV.E2.EV.E1) || isCandidate(e.EV.E2.EV.E2);
+                    return isCandidate(e.E2.E1) || isCandidate(e.E2.E2);
 
                 return OTcall(e.Eoper) &&
-                       e.EV.E1.Eoper == OPvar &&
-                       e.EV.E1.EV.Vsym == funcsym_p;
+                       e.E1.Eoper == OPvar &&
+                       e.E1.Vsym == funcsym_p;
             }
 
             if (e.Eoper == OPcond &&
-                (isCandidate(e.EV.E2.EV.E1) || isCandidate(e.EV.E2.EV.E2)))
+                (isCandidate(e.E2.E1) || isCandidate(e.E2.E2)))
             {
                 /* Split OPcond into a BCiftrue block and two return blocks
                  */
                 block* b1 = block_calloc();
                 block* b2 = block_calloc();
 
-                b1.Belem = e.EV.E2.EV.E1;
-                e.EV.E2.EV.E1 = null;
+                b1.Belem = e.E2.E1;
+                e.E2.E1 = null;
 
-                b2.Belem = e.EV.E2.EV.E2;
-                e.EV.E2.EV.E2 = null;
+                b2.Belem = e.E2.E2;
+                e.E2.E2 = null;
 
-                *pe = e.EV.E1;
-                e.EV.E1 = null;
+                *pe = e.E1;
+                e.E1 = null;
                 el_free(e);
 
                 if (b.BC == BCgoto)
@@ -1869,8 +1860,8 @@ private void brtailrecursion()
             }
 
             if (OTcall(e.Eoper) &&
-                e.EV.E1.Eoper == OPvar &&
-                e.EV.E1.EV.Vsym == funcsym_p)
+                e.E1.Eoper == OPvar &&
+                e.E1.Vsym == funcsym_p)
             {
                 //printf("before:\n");
                 //elem_print(*pe);
@@ -1882,7 +1873,7 @@ private void brtailrecursion()
                 {
                     int si = 0;
                     elem *e2 = null;
-                    *pe = assignparams(&e.EV.E2,&si,&e2);
+                    *pe = assignparams(&e.E2,&si,&e2);
                     *pe = el_combine(*pe,e2);
                 }
                 el_free(e);
@@ -1927,10 +1918,10 @@ private elem * assignparams(elem **pe,int *psi,elem **pe2)
     {
         elem *ea = null;
         elem *eb = null;
-        elem *e2 = assignparams(&e.EV.E2,psi,&eb);
-        elem *e1 = assignparams(&e.EV.E1,psi,&ea);
-        e.EV.E1 = null;
-        e.EV.E2 = null;
+        elem *e2 = assignparams(&e.E2,psi,&eb);
+        elem *e1 = assignparams(&e.E1,psi,&ea);
+        e.E1 = null;
+        e.E2 = null;
         e = el_combine(e1,e2);
         *pe2 = el_combine(eb,ea);
     }
@@ -1949,8 +1940,8 @@ private elem * assignparams(elem **pe,int *psi,elem **pe2)
             op = OPstreq;
             t = e.ET;
             elem *ex = e;
-            e = e.EV.E1;
-            ex.EV.E1 = null;
+            e = e.E1;
+            ex.E1 = null;
             el_free(ex);
         }
         elem *es = el_var(s);
@@ -1959,7 +1950,7 @@ private elem * assignparams(elem **pe,int *psi,elem **pe2)
         if (op == OPstreq)
             e.ET = t;
         *pe2 = el_bin(op,TYvoid,el_var(sp),el_copytree(es));
-        (*pe2).EV.E1.Ety = es.Ety;
+        (*pe2).E1.Ety = es.Ety;
         if (op == OPstreq)
             (*pe2).ET = t;
         *psi = ++si;
@@ -1990,37 +1981,35 @@ private void emptyloops()
                 continue;
 
             // Find einit
-            elem *einit;
-            for (einit = bpred.Belem; einit.Eoper == OPcomma; einit = einit.EV.E2)
-            { }
+            elem *einit = *el_scancommas(&(bpred.Belem));
             if (einit.Eoper != OPeq ||
-                einit.EV.E2.Eoper != OPconst ||
-                einit.EV.E1.Eoper != OPvar)
+                einit.E2.Eoper != OPconst ||
+                einit.E1.Eoper != OPvar)
                 continue;
 
             // Look for ((i += 1) < limit)
             elem *erel = b.Belem;
             if (erel.Eoper != OPlt ||
-                erel.EV.E2.Eoper != OPconst ||
-                erel.EV.E1.Eoper != OPaddass)
+                erel.E2.Eoper != OPconst ||
+                erel.E1.Eoper != OPaddass)
                 continue;
 
-            elem *einc = erel.EV.E1;
-            if (einc.EV.E2.Eoper != OPconst ||
-                einc.EV.E1.Eoper != OPvar ||
-                !el_match(einc.EV.E1,einit.EV.E1))
+            elem *einc = erel.E1;
+            if (einc.E2.Eoper != OPconst ||
+                einc.E1.Eoper != OPvar ||
+                !el_match(einc.E1,einit.E1))
                 continue;
 
-            if (!tyintegral(einit.EV.E1.Ety) ||
-                el_tolong(einc.EV.E2) != 1 ||
-                el_tolong(einit.EV.E2) >= el_tolong(erel.EV.E2)
+            if (!tyintegral(einit.E1.Ety) ||
+                el_tolong(einc.E2) != 1 ||
+                el_tolong(einit.E2) >= el_tolong(erel.E2)
                )
                 continue;
 
              {
                 erel.Eoper = OPeq;
-                erel.Ety = erel.EV.E1.Ety;
-                erel.EV.E1 = el_selecte1(erel.EV.E1);
+                erel.Ety = erel.E1.Ety;
+                erel.E1 = el_selecte1(erel.E1);
                 b.BC = BCgoto;
                 list_subtract(&b.Bsucc,b);
                 list_subtract(&b.Bpred,b);
@@ -2074,8 +2063,8 @@ private int funcsideeffect_walk(elem *e)
         case OPcall:
         case OPucall:
             Symbol *s;
-            if (e.EV.E1.Eoper == OPvar &&
-                tyfunc((s = e.EV.E1.EV.Vsym).Stype.Tty) &&
+            if (e.E1.Eoper == OPvar &&
+                tyfunc((s = e.E1.Vsym).Stype.Tty) &&
                 ((s.Sfunc && s.Sfunc.Fflags3 & Fnosideeff) || s == funcsym_p)
                )
                 break;
@@ -2087,9 +2076,9 @@ private int funcsideeffect_walk(elem *e)
         default:
             assert(op < OPMAX);
             return OTsideff(op) ||
-                (OTunary(op) && funcsideeffect_walk(e.EV.E1)) ||
-                (OTbinary(op) && (funcsideeffect_walk(e.EV.E1) ||
-                                  funcsideeffect_walk(e.EV.E2)));
+                (OTunary(op) && funcsideeffect_walk(e.E1)) ||
+                (OTbinary(op) && (funcsideeffect_walk(e.E1) ||
+                                  funcsideeffect_walk(e.E2)));
     }
     return 0;
 
@@ -2107,12 +2096,12 @@ private int el_anyframeptr(elem *e)
     while (1)
     {
         if (OTunary(e.Eoper))
-            e = e.EV.E1;
+            e = e.E1;
         else if (OTbinary(e.Eoper))
         {
-            if (el_anyframeptr(e.EV.E2))
+            if (el_anyframeptr(e.E2))
                 return 1;
-            e = e.EV.E1;
+            e = e.E1;
         }
         else if (e.Eoper == OPframeptr)
             return 1;
@@ -2156,13 +2145,13 @@ private void blassertsplit()
             {
                 if (OTunary(e.Eoper))
                 {
-                    e = e.EV.E1;
+                    e = e.E1;
                     continue;
                 }
                 else if (OTbinary(e.Eoper))
                 {
-                    accumDctor(e.EV.E1);
-                    e = e.EV.E2;
+                    accumDctor(e.E1);
+                    e = e.E2;
                     continue;
                 }
                 else if (e.Eoper == OPdctor)
@@ -2177,28 +2166,28 @@ private void blassertsplit()
         foreach (i, e; earray)
         {
             if (!(dctor == 0 &&   // don't split block between a dctor..ddtor pair
-                e.Eoper == OPoror && e.EV.E2.Eoper == OPcall && e.EV.E2.EV.E1.Eoper == OPvar))
+                e.Eoper == OPoror && e.E2.Eoper == OPcall && e.E2.E1.Eoper == OPvar))
             {
                 accumDctor(e);
                 continue;
             }
-            Symbol *f = e.EV.E2.EV.E1.EV.Vsym;
+            Symbol *f = e.E2.E1.Vsym;
             if (!(f.Sflags & SFLexit))
             {
                 accumDctor(e);
                 continue;
             }
 
-            if (accumDctor(e.EV.E1))
+            if (accumDctor(e.E1))
             {
-                accumDctor(e.EV.E2);
+                accumDctor(e.E2);
                 continue;
             }
 
             // Create exit block
             block *bexit = block_calloc();
             bexit.BC = BCexit;
-            bexit.Belem = e.EV.E2;
+            bexit.Belem = e.E2;
 
             /* Append bexit to block list
              */
@@ -2213,9 +2202,9 @@ private void blassertsplit()
                 bx = bxn;
             }
 
-            earray[i] = e.EV.E1;
-            e.EV.E1 = null;
-            e.EV.E2 = null;
+            earray[i] = e.E1;
+            e.E1 = null;
+            e.E2 = null;
             el_free(e);
 
             /* Split b into two blocks, [b,b2]

@@ -1,0 +1,66 @@
+Missing symbol errors are made less cryptic
+
+It is not uncommon to forget to link a library, list a .d file on the command line, or include a `main` function.
+Example:
+---
+module app;
+
+unittest
+{
+    import assertions;
+    assertEquals('D', 'D');
+}
+---
+
+---
+module assertions;
+
+void assertEquals(char a, char b)
+{
+    assert(a == b);
+}
+---
+
+When compiling this as follows:
+
+$(CONSOLE
+\> dmd -unittest app.d
+)
+
+The compiler would not see any error, but at link time there are missing symbols.
+Formerly, this would result in a cryptic linker error with mangled symbol names:
+
+$(CONSOLE
+/usr/bin/ld: /usr/lib/gcc/x86_64-pc-linux-gnu/13.2.1/../../../../lib/Scrt1.o: in function `_start':
+(.text+0x1b): undefined reference to `main'
+/usr/bin/ld: app.o: in function `_D3app16__unittest_L5_C1FZv':
+app.d:(.text._D3app16__unittest_L5_C1FZv[_D3app16__unittest_L5_C1FZv]+0xc): undefined reference to `_D10assertions12assertEqualsFaaZv'
+collect2: error: ld returned 1 exit status
+)
+
+Experienced users might know how to demangle the symbol to make it more readable:
+
+$(CONSOLE
+\> echo _D10assertions12assertEqualsFaaZv | ddemangle
+void assertions.assertEquals(char, char)
+)
+
+But this is inconvenient to do manually every time.
+Now, when the compiler invokes the linker program, it will read its output, scan for undefined symbol errors, and demangle the names:
+
+$(CONSOLE
+Error: undefined reference to `main`
+Error: undefined reference to `void assertions.assertEquals(char, char)`
+       referenced from `void app.__unittest_L5_C1()`
+       perhaps define a `void main() {}` function or use the `-main` switch
+       perhaps `.d` files need to be added on the command line, or use `-i` to compile imports
+Error: linker exited with status 1
+)
+
+Which makes it easier to fix the command:
+$(CONSOLE
+\> dmd -unittest -main -i app.d
+)
+
+Currently supported linkers are ld, bfd, gold, mold, and Microsoft LINK.
+Please file an issue if your linker's errors aren't detected.

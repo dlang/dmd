@@ -59,7 +59,7 @@ bool isXMMstore(opcode_t op)
  */
 
 @trusted
-void movxmmconst(ref CodeBuilder cdb, reg_t xreg, tym_t ty, eve* pev, regm_t flags)
+void movxmmconst(ref CodeBuilder cdb, reg_t xreg, tym_t ty, Vconst* pev, regm_t flags)
 {
     //printf("movxmmconst() %s ty: %s value: %lld\n", regm_str(mask(xreg)), tym_str(ty), pev.Vllong);
 
@@ -114,9 +114,8 @@ void movxmmconst(ref CodeBuilder cdb, reg_t xreg, tym_t ty, eve* pev, regm_t fla
 
     if (I32 && sz == 8)
     {
-        reg_t r;
         regm_t rm = ALLREGS;
-        allocreg(cdb,&rm,&r,TYint);         // allocate scratch register
+        const r = allocreg(cdb,rm,TYint);         // allocate scratch register
         static union U { targ_size_t s; targ_long[2] l; }
         U u = void;
         u.l[1] = 0;
@@ -132,8 +131,7 @@ void movxmmconst(ref CodeBuilder cdb, reg_t xreg, tym_t ty, eve* pev, regm_t fla
     }
     else
     {
-        reg_t reg;
-        regwithvalue(cdb,ALLREGS,value,reg,(sz == 8) ? 64 : 0);
+        const reg = regwithvalue(cdb,ALLREGS,value,(sz == 8) ? 64 : 0);
         cdb.gen2(LODD,modregxrmx(3,xreg-XMM0,reg));     // MOVD xreg,reg
         if (sz == 8)
             code_orrex(cdb.last(), REX_W);
@@ -149,8 +147,8 @@ void movxmmconst(ref CodeBuilder cdb, reg_t xreg, tym_t ty, eve* pev, regm_t fla
 void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     //printf("orthxmm(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
-    elem *e1 = e.EV.E1;
-    elem *e2 = e.EV.E2;
+    elem *e1 = e.E1;
+    elem *e2 = e.E2;
 
     // float + ifloat is not actually addition
     if ((e.Eoper == OPadd || e.Eoper == OPmin) &&
@@ -187,10 +185,9 @@ void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         if (e.Eoper == OPmin)
         {
             regm_t nretregs = XMMREGS & ~retregs;
-            reg_t sreg; // hold sign bit
+            const sreg = allocreg(cdb,nretregs,e2.Ety); // hold sign bit
             const uint sz = tysize(e1.Ety);
-            allocreg(cdb,&nretregs,&sreg,e2.Ety);
-            eve signbit;
+            Vconst signbit;
             signbit.Vint = 0x80000000;
             if (sz == 8)
                 signbit.Vllong = 0x8000_0000_0000_0000;
@@ -200,7 +197,7 @@ void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
             cdb.gen2(xop,modregxrmx(3,rreg-XMM0,sreg-XMM0));
         }
         if (retregs != *pretregs)
-            fixresult(cdb,e,retregs,pretregs);
+            fixresult(cdb,e,retregs,*pretregs);
         return;
     }
 
@@ -248,7 +245,7 @@ void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     }
     checkSetVex(cdb.last(), e1.Ety);
     if (retregs != *pretregs)
-        fixresult(cdb,e,retregs,pretregs);
+        fixresult(cdb,e,retregs,*pretregs);
 }
 
 
@@ -285,7 +282,7 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,regm_t 
         // x if x is in a register.
         reg_t varreg;
         if (isregvar(e1, varregm, varreg) &&    // if lvalue is register variable
-            doinreg(e1.EV.Vsym,e2) &&           // and we can compute directly into it
+            doinreg(e1.Vsym,e2) &&           // and we can compute directly into it
             varregm & XMMREGS
            )
         {   regvar = true;
@@ -303,16 +300,16 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,regm_t 
 
     // Look for special case of (*p++ = ...), where p is a register variable
     if (e1.Eoper == OPind &&
-        ((e11 = e1.EV.E1).Eoper == OPpostinc || e11.Eoper == OPpostdec) &&
-        e11.EV.E1.Eoper == OPvar &&
-        e11.EV.E1.EV.Vsym.Sfl == FLreg
+        ((e11 = e1.E1).Eoper == OPpostinc || e11.Eoper == OPpostdec) &&
+        e11.E1.Eoper == OPvar &&
+        e11.E1.Vsym.Sfl == FLreg
        )
     {
-        postinc = e11.EV.E2.EV.Vint;
+        postinc = e11.E2.Vint;
         if (e11.Eoper == OPpostdec)
             postinc = -postinc;
         getlvalue(cdb,&cs,e11,RMstore | retregs);
-        freenode(e11.EV.E2);
+        freenode(e11.E2);
     }
     else
     {   postinc = 0;
@@ -342,7 +339,7 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,regm_t 
         cssave(e1,retregs,!OTleaf(e1.Eoper));     // if lvalue is a CSE
     }
 
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cdb,e,retregs,*pretregs);
     if (postinc)
     {
         const increg = findreg(idxregm(&cs));  // the register to increment
@@ -352,13 +349,13 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,regm_t 
             if (cs.Irex & REX_B)
                 rm |= 8;
             cdb.genc1(LEA,buildModregrm(2,increg,rm),FLconst,postinc);
-            if (tysize(e11.EV.E1.Ety) == 8)
+            if (tysize(e11.E1.Ety) == 8)
                 code_orrex(cdb.last(), REX_W);
         }
         else if (I64)
         {
             cdb.genc2(0x81,modregrmx(3,0,increg),postinc);
-            if (tysize(e11.EV.E1.Ety) == 8)
+            if (tysize(e11.E1.Ety) == 8)
                 code_orrex(cdb.last(), REX_W);
         }
         else
@@ -404,7 +401,7 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
      * try to fuse chained conversions. Be careful not to loose
      * precision for real to long.
      */
-    elem *e1 = e.EV.E1;
+    elem *e1 = e.E1;
     switch (e.Eoper)
     {
     case OPd_f:
@@ -431,7 +428,7 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         }
         // directly use si2ss
         regs = ALLREGS;
-        e1 = e1.EV.E1;  // fused operation
+        e1 = e1.E1;  // fused operation
         op = CVTSI2SS;
         ty = TYfloat;
         break;
@@ -459,7 +456,7 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 op = CVTTSD2SI;
                 break;
             }
-            e1 = e1.EV.E1;      // fused operation
+            e1 = e1.E1;      // fused operation
             op = CVTTSS2SI;
             break;
         case OPld_d:
@@ -510,8 +507,7 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             retregs = ALLREGS;
     }
 
-    reg_t rreg;
-    allocreg(cdb,&retregs,&rreg,ty);
+    reg_t rreg = allocreg(cdb,retregs,ty);
     if (isXMMreg(rreg))
         rreg -= XMM0;
 
@@ -521,7 +517,7 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         code_orrex(cdb.last(), rex);
 
     if (*pretregs != retregs)
-        fixresult(cdb,e,retregs,pretregs);
+        fixresult(cdb,e,retregs,*pretregs);
 }
 
 /********************************
@@ -530,8 +526,8 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
 @trusted
 void xmmopass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
-{   elem *e1 = e.EV.E1;
-    elem *e2 = e.EV.E2;
+{   elem *e1 = e.E1;
+    elem *e2 = e.E2;
     tym_t ty1 = tybasic(e1.Ety);
     const sz1 = _tysize[ty1];
     regm_t rretregs = XMMREGS & ~*pretregs;
@@ -552,7 +548,7 @@ void xmmopass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         reg_t varreg;
         regm_t varregm;
         if (isregvar(e1,varregm,varreg) &&    // if lvalue is register variable
-            doinreg(e1.EV.Vsym,e2)          // and we can compute directly into it
+            doinreg(e1.Vsym,e2)          // and we can compute directly into it
            )
         {   regvar = true;
             retregs = varregm;
@@ -567,7 +563,7 @@ void xmmopass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         retregs = *pretregs & XMMREGS & ~rretregs;
         if (!retregs)
             retregs = XMMREGS & ~rretregs;
-        allocreg(cdb,&retregs,&reg,ty1);
+        reg = allocreg(cdb,retregs,ty1);
         cs.Iop = xmmload(ty1, true);            // MOVSD xmm,xmm_m64
         code_newreg(&cs,reg - XMM0);
         cdb.gen(&cs);
@@ -594,7 +590,7 @@ void xmmopass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         cssave(e1,retregs,!OTleaf(e1.Eoper));     // if lvalue is a CSE
     }
 
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cdb,e,retregs,*pretregs);
     freenode(e1);
 }
 
@@ -605,8 +601,8 @@ void xmmopass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 @trusted
 void xmmpost(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
-    elem *e1 = e.EV.E1;
-    elem *e2 = e.EV.E2;
+    elem *e1 = e.E1;
+    elem *e2 = e.E2;
     tym_t ty1 = tybasic(e1.Ety);
 
     regm_t retregs;
@@ -619,7 +615,7 @@ void xmmpost(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         reg_t varreg;
         regm_t varregm;
         if (isregvar(e1,varregm,varreg) &&    // if lvalue is register variable
-            doinreg(e1.EV.Vsym,e2)          // and we can compute directly into it
+            doinreg(e1.Vsym,e2)          // and we can compute directly into it
            )
         {
             regvar = true;
@@ -636,7 +632,7 @@ void xmmpost(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         retregs = XMMREGS & ~*pretregs;
         if (!retregs)
             retregs = XMMREGS;
-        allocreg(cdb,&retregs,&reg,ty1);
+        reg = allocreg(cdb,retregs,ty1);
         cs.Iop = xmmload(ty1, true);            // MOVSD xmm,xmm_m64
         code_newreg(&cs,reg - XMM0);
         cdb.gen(&cs);
@@ -647,8 +643,7 @@ void xmmpost(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     regm_t resultregs = XMMREGS & *pretregs & ~retregs;
     if (!resultregs)
         resultregs = XMMREGS & ~retregs;
-    reg_t resultreg;
-    allocreg(cdb,&resultregs, &resultreg, ty1);
+    const resultreg = allocreg(cdb,resultregs, ty1);
 
     cdb.gen2(xmmload(ty1,true),modregxrmx(3,resultreg-XMM0,reg-XMM0));   // MOVSS/D resultreg,reg
     checkSetVex(cdb.last(), ty1);
@@ -679,7 +674,7 @@ void xmmpost(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         cssave(e1,retregs,!OTleaf(e1.Eoper));     // if lvalue is a CSE
     }
 
-    fixresult(cdb,e,resultregs,pretregs);
+    fixresult(cdb,e,resultregs,*pretregs);
     freenode(e1);
 }
 
@@ -693,7 +688,7 @@ void xmmneg(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     //printf("xmmneg()\n");
     //elem_print(e);
     assert(*pretregs);
-    tym_t tyml = tybasic(e.EV.E1.Ety);
+    tym_t tyml = tybasic(e.E1.Ety);
     int sz = _tysize[tyml];
 
     regm_t retregs = *pretregs & XMMREGS;
@@ -705,14 +700,13 @@ void xmmneg(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
      *    MOV rreg,signbit
      *    XOR reg,rreg
      */
-    codelem(cdb,e.EV.E1,&retregs,false);
+    codelem(cdb,e.E1,&retregs,false);
     getregs(cdb,retregs);
     const reg = findreg(retregs);
     regm_t rretregs = XMMREGS & ~retregs;
-    reg_t rreg;
-    allocreg(cdb,&rretregs,&rreg,tyml);
+    const rreg = allocreg(cdb,rretregs,tyml);
 
-    eve signbit;
+    Vconst signbit;
     signbit.Vint = 0x80000000;
     if (sz == 8)
         signbit.Vllong = 0x8000_0000_0000_0000;
@@ -722,7 +716,7 @@ void xmmneg(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     getregs(cdb,retregs);
     const op = (sz == 8) ? XORPD : XORPS;       // XORPD/S reg,rreg
     cdb.gen2(op,modregxrmx(3,reg-XMM0,rreg-XMM0));
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cdb,e,retregs,*pretregs);
 }
 
 /******************
@@ -735,7 +729,7 @@ void xmmabs(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     //printf("xmmabs()\n");
     //elem_print(e);
     assert(*pretregs);
-    tym_t tyml = tybasic(e.EV.E1.Ety);
+    tym_t tyml = tybasic(e.E1.Ety);
     int sz = _tysize[tyml];
 
     regm_t retregs = *pretregs & XMMREGS;
@@ -747,14 +741,13 @@ void xmmabs(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
      *    MOV rreg,mask
      *    AND reg,rreg
      */
-    codelem(cdb,e.EV.E1,&retregs,false);
+    codelem(cdb,e.E1,&retregs,false);
     getregs(cdb,retregs);
     const reg = findreg(retregs);
     regm_t rretregs = XMMREGS & ~retregs;
-    reg_t rreg;
-    allocreg(cdb,&rretregs,&rreg,tyml);
+    const rreg = allocreg(cdb,rretregs,tyml);
 
-    eve mask;
+    Vconst mask;
     mask.Vint = 0x7FFF_FFFF;
     if (sz == 8)
         mask.Vllong = 0x7FFF_FFFF_FFFF_FFFFL;
@@ -763,7 +756,7 @@ void xmmabs(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     getregs(cdb,retregs);
     const op = (sz == 8) ? ANDPD : ANDPS;       // ANDPD/S reg,rreg
     cdb.gen2(op,modregxrmx(3,reg-XMM0,rreg-XMM0));
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cdb,e,retregs,*pretregs);
 }
 
 /*****************************
@@ -1200,12 +1193,12 @@ void cdvector(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         exit(1);
     }
 
-    const n = el_nparams(e.EV.E1);
+    const n = el_nparams(e.E1);
     assert(n < size_t.max / (2 * (elem *).sizeof));   // conservative overflow check
     elem **params = cast(elem **)malloc(n * (elem *).sizeof);
     assert(params);
     elem **tmp = params;
-    el_paramArray(&tmp, e.EV.E1);
+    el_paramArray(&tmp, e.E1);
 
 static if (0)
 {
@@ -1298,8 +1291,7 @@ static if (0)
         retregs = *pretregs & XMMREGS;
         if (!retregs)
             retregs = XMMREGS;
-        reg_t reg;
-        allocreg(cdb,&retregs, &reg, e.Ety);
+        const reg = allocreg(cdb,retregs, e.Ety);
         code_newreg(&cs, reg - XMM0);
         cs.Iop = op;
         cdb.gen(&cs);
@@ -1384,7 +1376,7 @@ static if (0)
     }
     else
         assert(0);
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cdb,e,retregs,*pretregs);
     free(params);
     freenode(e);
 }
@@ -1400,9 +1392,9 @@ void cdvecsto(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     //printf("cdvecsto()\n");
     //elem_print(e);
-    elem *op1 = e.EV.E1;
-    elem *op2 = e.EV.E2.EV.E2;
-    elem *eop = e.EV.E2.EV.E1;
+    elem *op1 = e.E1;
+    elem *op2 = e.E2.E2;
+    elem *eop = e.E2.E1;
     const op = cast(opcode_t)el_tolong(eop);
     debug assert(isXMMstore(op));
     xmmeq(cdb, e, op, op1, op2, pretregs);
@@ -1425,7 +1417,7 @@ void cdvecfill(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     code *c;
     code cs;
 
-    elem *e1 = e.EV.E1;
+    elem *e1 = e.E1;
 static if (0)
 {
     if ((e1.Eoper == OPind && !e1.Ecount) || e1.Eoper == OPvar)
@@ -1485,8 +1477,7 @@ static if (0)
                 // VBROADCASTSS X/YMM,MEM
                 getlvalue(cdb,&cs, e1, 0);         // get addressing mode
                 assert((cs.Irm & 0xC0) != 0xC0);   // AVX1 doesn't have register source operands
-                reg_t reg;
-                allocreg(cdb,&retregs,&reg,ty);
+                const reg = allocreg(cdb,retregs,ty);
                 cs.Iop = VBROADCASTSS;
                 cs.Irex &= ~REX_W;
                 code_newreg(&cs,reg - XMM0);
@@ -1526,8 +1517,7 @@ static if (0)
                 // VBROADCASTSD YMM,MEM
                 getlvalue(cdb,&cs, e1, 0);         // get addressing mode
                 assert((cs.Irm & 0xC0) != 0xC0);   // AVX1 doesn't have register source operands
-                reg_t reg;
-                allocreg(cdb,&retregs,&reg,ty);
+                const reg = allocreg(cdb,retregs,ty);
                 cs.Iop = VBROADCASTSD;
                 cs.Irex &= ~REX_W;
                 code_newreg(&cs,reg - XMM0);
@@ -1569,8 +1559,7 @@ static if (0)
                 // VPBROADCASTB X/YMM,MEM
                 getlvalue(cdb,&cs, e1, 0);         // get addressing mode
                 assert((cs.Irm & 0xC0) != 0xC0);   // AVX1 doesn't have register source operands
-                reg_t reg;
-                allocreg(cdb,&retregs,&reg,ty);
+                reg_t reg = allocreg(cdb,retregs,ty);
                 cs.Iop = VPBROADCASTB;
                 cs.Irex &= ~REX_W;
                 code_newreg(&cs,reg - XMM0);
@@ -1583,8 +1572,7 @@ static if (0)
                 codelem(cdb,e1,&regm,true); // eval left leaf
                 const r = findreg(regm);
 
-                reg_t reg;
-                allocreg(cdb,&retregs,&reg, e.Ety);
+                reg_t reg = allocreg(cdb,retregs, e.Ety);
                 reg -= XMM0;
                 // (V)MOVD reg,r
                 cdb.gen2(LODD,modregxrmx(3,reg,r));
@@ -1599,10 +1587,9 @@ static if (0)
                 {
                     if (config.avx)
                     {
-                        reg_t zeroreg;
                         regm = XMMREGS & ~retregs;
                         // VPXOR XMM1,XMM1,XMM1
-                        allocreg(cdb,&regm,&zeroreg, ty);
+                        reg_t zeroreg = allocreg(cdb,regm, ty);
                         zeroreg -= XMM0;
                         cdb.gen2(PXOR, modregxrmx(3,zeroreg,zeroreg));
                         checkSetVex(cdb.last(), TYuchar16); // AVX-128
@@ -1638,8 +1625,7 @@ static if (0)
                 // VPBROADCASTW X/YMM,MEM
                 getlvalue(cdb,&cs, e1, 0);         // get addressing mode
                 assert((cs.Irm & 0xC0) != 0xC0);   // AVX1 doesn't have register source operands
-                reg_t reg;
-                allocreg(cdb,&retregs,&reg,ty);
+                reg_t reg = allocreg(cdb,retregs,ty);
                 cs.Iop = VPBROADCASTW;
                 cs.Irex &= ~REX_W;
                 cs.Iflags &= ~CFopsize;
@@ -1653,8 +1639,7 @@ static if (0)
                 codelem(cdb,e1,&regm,true); // eval left leaf
                 reg_t r = findreg(regm);
 
-                reg_t reg;
-                allocreg(cdb,&retregs,&reg, e.Ety);
+                reg_t reg = allocreg(cdb,retregs, e.Ety);
                 reg -= XMM0;
                 // (V)MOVD reg,r
                 cdb.gen2(LODD,modregxrmx(3,reg,r));
@@ -1692,8 +1677,7 @@ static if (0)
                 // VPBROADCASTD/VBROADCASTSS X/YMM,MEM
                 getlvalue(cdb,&cs, e1, 0);         // get addressing mode
                 assert((cs.Irm & 0xC0) != 0xC0);   // AVX1 doesn't have register source operands
-                reg_t reg;
-                allocreg(cdb,&retregs,&reg,ty);
+                reg_t reg = allocreg(cdb,retregs,ty);
                 cs.Iop = config.avx >= 2 ? VPBROADCASTD : VBROADCASTSS;
                 cs.Irex &= ~REX_W;
                 code_newreg(&cs,reg - XMM0);
@@ -1735,8 +1719,7 @@ static if (0)
                 // VPBROADCASTQ/VBROADCASTSD/(V)PUNPCKLQDQ X/YMM,MEM
                 getlvalue(cdb,&cs, e1, 0);         // get addressing mode
                 assert((cs.Irm & 0xC0) != 0xC0);   // AVX1 doesn't have register source operands
-                reg_t reg;
-                allocreg(cdb,&retregs,&reg,ty);
+                reg_t reg = allocreg(cdb,retregs,ty);
                 cs.Iop = config.avx >= 2 ? VPBROADCASTQ : tysize(ty) == 32 ? VBROADCASTSD : PUNPCKLQDQ;
                 cs.Irex &= ~REX_W;
                 code_newreg(&cs,reg - XMM0);
@@ -1773,7 +1756,7 @@ static if (0)
             assert(0);
     }
 
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cdb,e,retregs,*pretregs);
 }
 
 /*******************************************
@@ -1790,10 +1773,10 @@ bool xmmIsAligned(elem *e)
 {
     if (tyvector(e.Ety) && e.Eoper == OPvar)
     {
-        Symbol *s = e.EV.Vsym;
+        Symbol *s = e.Vsym;
         const alignsz = tyalignsize(e.Ety);
         if (Symbol_Salignsize(*s) < alignsz ||
-            e.EV.Voffset & (alignsz - 1) ||
+            e.Voffset & (alignsz - 1) ||
             alignsz > STACKALIGN
            )
             return false;       // definitely not aligned
@@ -1945,14 +1928,12 @@ void cloadxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         opcode_t opmv = xmmload(tym, xmmIsAligned(e));
 
         regm_t retregs0 = mXMM0;
-        reg_t reg0;
-        allocreg(cdb, &retregs0, &reg0, ty);
+        reg_t reg0 = allocreg(cdb, retregs0, ty);
         loadea(cdb, e, &cs, opmv, reg0, 0, RMload, 0);  // MOVSS/MOVSD XMM0,data
         checkSetVex(cdb.last(), ty);
 
         regm_t retregs1 = mXMM1;
-        reg_t reg1;
-        allocreg(cdb, &retregs1, &reg1, ty);
+        reg_t reg1 = allocreg(cdb, retregs1, ty);
         loadea(cdb, e, &cs, opmv, reg1, tysize(ty), RMload, mXMM0); // MOVSS/MOVSD XMM1,data+offset
         checkSetVex(cdb.last(), ty);
 
@@ -1960,7 +1941,7 @@ void cloadxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     }
 
     // See test/complex.d for cases winding up here
-    cload87(cdb, e, pretregs);
+    cload87(cdb, e, *pretregs);
 }
 
 /***********************************

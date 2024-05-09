@@ -46,7 +46,7 @@ Symbol *except_gentables()
     {
         // BUG: alloca() changes the stack size, which is not reflected
         // in the fixed eh tables.
-        if (Alloca.size)
+        if (cgstate.Alloca.size)
             error(null, 0, 0, "cannot mix `core.std.stdlib.alloca()` and exception handling in `%s()`", &funcsym_p.Sident[0]);
 
         char[13+5+1] name = void;
@@ -138,7 +138,7 @@ void except_fillInEHTable(Symbol *s)
 
     // First, calculate starting catch offset
     int guarddim = 0;                               // max dimension of guard[]
-    int ndctors = 0;                                // number of ESCdctor's
+    int ndctors = 0;                                // number of PSOP.dctor's
     foreach (b; BlockRange(startblock))
     {
         if (b.BC == BC_try && b.Bscope_index >= guarddim)
@@ -148,7 +148,7 @@ void except_fillInEHTable(Symbol *s)
         if (usednteh & EHcleanup)
             for (code *c = b.Bcode; c; c = code_next(c))
             {
-                if (c.Iop == (ESCAPE | ESCddtor))
+                if (c.Iop == PSOP.ddtor)
                     ndctors++;
             }
     }
@@ -232,7 +232,7 @@ void except_fillInEHTable(Symbol *s)
 
     /* Append to guard[] the guard blocks for temporaries that are created and destroyed
      * within a single expression. These are marked by the special instruction pairs
-     * (ESCAPE | ESCdctor) and (ESCAPE | ESCddtor).
+     * PSOP.dctor and PSOP.ddtor.
      */
     if (usednteh & EHcleanup)
     {
@@ -248,7 +248,7 @@ void except_fillInEHTable(Symbol *s)
         uint boffset = cast(uint)b.Boffset;
         for (code *c = b.Bcode; c; c = code_next(c))
         {
-            if (c.Iop == (ESCAPE | ESCdctor))
+            if (c.Iop == PSOP.dctor)
             {
                 code *c2 = code_next(c);
                 if (config.ehmethod == EHmethod.EH_WIN32)
@@ -266,7 +266,7 @@ void except_fillInEHTable(Symbol *s)
                     if (!c2)
                         goto Lnodtor;
 
-                    if (c2.Iop == (ESCAPE | ESCddtor))
+                    if (c2.Iop == PSOP.ddtor)
                     {
                         if (n)
                             n--;
@@ -294,7 +294,7 @@ void except_fillInEHTable(Symbol *s)
                             break;
                         }
                     }
-                    else if (c2.Iop == (ESCAPE | ESCdctor))
+                    else if (c2.Iop == PSOP.dctor)
                     {
                         n++;
                     }
@@ -315,7 +315,7 @@ void except_fillInEHTable(Symbol *s)
                 ++scopeindex;
                 sz += GUARD_SIZE;
             }
-            else if (c.Iop == (ESCAPE | ESCddtor))
+            else if (c.Iop == PSOP.ddtor)
             {
                 stack.setLength(stack.length - 1);
                 assert(stack.length != 0);

@@ -86,7 +86,7 @@ void genModuleInfo(Module m)
 
     if (!Module.moduleinfo)
     {
-        ObjectNotFound(Id.ModuleInfo);
+        ObjectNotFound(m.loc, Id.ModuleInfo);
     }
 
     Symbol *msym = toSymbol(m);
@@ -1406,13 +1406,10 @@ Louter:
 
     // uint[4] nameSig
     {
-        import dmd.common.md5;
-        MD5_CTX mdContext = void;
-        MD5Init(&mdContext);
-        MD5Update(&mdContext, cast(ubyte*)name, cast(uint)namelen);
-        MD5Final(&mdContext);
-        assert(mdContext.digest.length == 16);
-        dtb.nbytes(16, cast(char*)mdContext.digest.ptr);
+        import dmd.common.blake3;
+        const hash = blake3((cast(ubyte*)name)[0 .. namelen]);
+        //truncate and use the first 16 bytes only
+        dtb.nbytes(16, cast(char*)hash.ptr);
     }
 
     //////////////////////////////////////////////
@@ -1618,13 +1615,10 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
 
     // uint[4] nameSig
     {
-        import dmd.common.md5;
-        MD5_CTX mdContext = void;
-        MD5Init(&mdContext);
-        MD5Update(&mdContext, cast(ubyte*)name, cast(uint)namelen);
-        MD5Final(&mdContext);
-        assert(mdContext.digest.length == 16);
-        dtb.nbytes(16, cast(char*)mdContext.digest.ptr);
+        import dmd.common.blake3;
+        const hash = blake3((cast(ubyte*)name)[0 .. namelen]);
+        //only use the first 16 bytes
+        dtb.nbytes(16, cast(char*)hash.ptr);
     }
 
     //////////////////////////////////////////////

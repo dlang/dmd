@@ -159,6 +159,12 @@ struct CGstate
     int stackclean;     // if != 0, then clean the stack after function call
 
     LocalSection funcarg;       // where function arguments are placed
+    LocalSection Para;          // section of function parameters
+    LocalSection Auto;          // section of automatics and registers
+    LocalSection Fast;          // section of fastpar
+    LocalSection EEStack;       // offset of SCstack variables from ESP
+    LocalSection Alloca;        // data for alloca() temporary
+
     targ_size_t funcargtos;     // current high water level of arguments being moved onto
                                 // the funcarg section. It is filled from top to bottom,
                                 // as if they were 'pushed' on the stack.
@@ -240,10 +246,8 @@ public import dmd.backend.cgobj : SegData;
 @trusted
 ref targ_size_t Offset(int seg) { return SegData[seg].SDoffset; }
 
-@trusted
 ref targ_size_t Doffset() { return Offset(DATA); }
 
-@trusted
 ref targ_size_t CDoffset() { return Offset(CDATA); }
 
 /**************************************************/
@@ -254,10 +258,8 @@ ref targ_size_t CDoffset() { return Offset(CDATA); }
 struct FuncParamRegs
 {
     //this(tym_t tyf);
-    @trusted
     static FuncParamRegs create(tym_t tyf) { return FuncParamRegs_create(tyf); }
 
-    @trusted
     int alloc(type *t, tym_t ty, ubyte *reg1, ubyte *reg2)
     { return FuncParamRegs_alloc(this, t, ty, reg1, reg2); }
 

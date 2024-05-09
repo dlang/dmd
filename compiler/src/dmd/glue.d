@@ -148,7 +148,7 @@ public void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
         }
         if (!global.errors && firstm)
         {
-            obj_end(objbuf, library, firstm.objfile.toChars());
+            obj_end(objbuf, library, firstm.objfile.toString());
         }
     }
     else
@@ -162,7 +162,7 @@ public void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
                 eSink.message(Loc.initial, "code      %s", m.toChars());
             obj_start(objbuf, m.srcfile.toChars());
             genObjFile(m, multiobj);
-            obj_end(objbuf, library, m.objfile.toChars());
+            obj_end(objbuf, library, m.objfile.toString());
             obj_write_deferred(objbuf, library, glue.obj_symbols_towrite);
             if (global.errors && !writeLibrary)
                 m.deleteObjFile();
@@ -258,6 +258,7 @@ private void obj_write_deferred(ref OutBuffer objbuf, Library library, ref Dsymb
             mname = glue.lastmname;
             assert(mname);
         }
+        auto mnames = mname.toDString();
 
         obj_start(objbuf, mname);
 
@@ -282,7 +283,7 @@ private void obj_write_deferred(ref OutBuffer objbuf, Library library, ref Dsymb
         {
             Identifier id = Identifier.create(idbuf.extractChars());
 
-            Module md = new Module(mname.toDString, id, 0, 0);
+            Module md = new Module(mnames, id, 0, 0);
             md.members = new Dsymbols();
             md.members.push(s);   // its only 'member' is s
             md.doppelganger = 1;       // identify this module as doppelganger
@@ -295,18 +296,17 @@ private void obj_write_deferred(ref OutBuffer objbuf, Library library, ref Dsymb
         /* Set object file name to be source name with sequence number,
          * as mangled symbol names get way too long.
          */
-        const(char)* fname = FileName.removeExt(mname);
+        const length = FileName.ext(mnames).length;
+        const fname = mnames[0 .. mnames.length - (length ? length + 1 : 0)];  // +1 to remove .
         OutBuffer namebuf;
         uint hash = 0;
         for (const(char)* p = s.toChars(); *p; p++)
             hash += *p;
-        namebuf.printf("%s_%x_%x.%.*s", fname, count, hash,
+        namebuf.printf("%.*s_%x_%x.%.*s", cast(int)fname.length, fname.ptr, count, hash,
                        cast(int)target.obj_ext.length, target.obj_ext.ptr);
-        FileName.free(cast(char *)fname);
-        fname = namebuf.extractChars();
 
         //printf("writing '%s'\n", fname);
-        obj_end(objbuf, library, fname);
+        obj_end(objbuf, library, namebuf.extractSlice());
     }
     glue.obj_symbols_towrite.length = 0;
 }
@@ -426,7 +426,7 @@ private void obj_start(ref OutBuffer objbuf, const(char)* srcfile)
  *      objfilename = what to call the object module
  *      library = if non-null, add object module to this library
  */
-private void obj_end(ref OutBuffer objbuf, Library library, const(char)* objfilename)
+private void obj_end(ref OutBuffer objbuf, Library library, const(char)[] objfilename)
 {
     objmod.term(objfilename);
     //delete objmod;
@@ -435,12 +435,12 @@ private void obj_end(ref OutBuffer objbuf, Library library, const(char)* objfile
     if (library)
     {
         // Transfer ownership of image buffer to library
-        library.addObject(objfilename.toDString(), cast(ubyte[]) objbuf.extractSlice[]);
+        library.addObject(objfilename, cast(ubyte[]) objbuf.extractSlice[]);
     }
     else
     {
         //printf("write obj %s\n", objfilename);
-        if (!writeFile(Loc.initial, objfilename.toDString, objbuf[]))
+        if (!writeFile(Loc.initial, objfilename, objbuf[]))
             return fatal();
 
         // For non-libraries, the object buffer should be cleared to
@@ -1267,7 +1267,7 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     cstate.CSpsymtab = symtabsave;
 
     if (fd.isExport() || driverParams.exportVisibility == ExpVis.public_)
-        objmod.export_symbol(s, cast(uint)Para.offset);
+        objmod.export_symbol(s, cast(uint)cgstate.Para.offset);
 
     if (fd.isCrtCtor)
         objmod.setModuleCtorDtor(s, true);
@@ -1307,7 +1307,7 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             newConstructor.Stype = type_function(TYnfunc, [], false, type_alloc(TYvoid));
             //Tell it it's supposed to be a C function. Does it do anything? Not sure.
             type_setmangle(&newConstructor.Stype, mTYman_c);
-            symbol_func(newConstructor);
+            symbol_func(*newConstructor);
             //Global SC for now.
             newConstructor.Sclass = SC.static_;
             func_t* funcState = newConstructor.Sfunc;

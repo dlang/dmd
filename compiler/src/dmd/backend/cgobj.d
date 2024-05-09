@@ -35,7 +35,7 @@ import dmd.backend.rtlsym;
 import dmd.backend.ty;
 import dmd.backend.type;
 
-import dmd.common.md5;
+import dmd.common.blake3;
 import dmd.common.outbuffer;
 
 version (Windows)
@@ -576,7 +576,7 @@ Obj OmfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
         obj.ledatas.reset();    // recycle the memory used by ledatas
 
         foreach (s; obj.resetSymbols)
-            symbol_reset(s);
+            symbol_reset(*s);
         obj.resetSymbols.reset();
 
         obj.buf = objbuf;
@@ -691,7 +691,7 @@ void OmfObj_termfile()
  */
 
 @trusted
-void OmfObj_term(const(char)* objfilename)
+void OmfObj_term(const(char)[] objfilename)
 {
         //printf("OmfObj_term()\n");
         list_t dl;
@@ -916,14 +916,14 @@ static if (MULTISCOPE)
         if (offset >= vec_numbits(obj.offvec))
         {
             if (offset < 0xFF00)        // otherwise we overflow ph_malloc()
-                obj.offvec = vec_realloc(obj.offvec,cast(uint)offset * 2);
+                obj.offvec = vec_realloc(obj.offvec, cast(size_t)offset * 2);
         }
         bool cond3 =
             // disallow multiple offsets per line
             !vec_testbit(linnum,obj.linvec) &&  // if linnum not already used
 
             // disallow multiple lines per offset
-            (offset >= 0xFF00 || !vec_testbit(cast(uint)offset,obj.offvec));      // and offset not already used
+            (offset >= 0xFF00 || !vec_testbit(cast(size_t)offset,obj.offvec));      // and offset not already used
 }
 else
         enum cond3 = true;
@@ -934,7 +934,7 @@ static if (MULTISCOPE)
 {
             vec_setbit(linnum,obj.linvec);              // mark linnum as used
             if (offset < 0xFF00)
-                vec_setbit(cast(uint)offset,obj.offvec);  // mark offset as used
+                vec_setbit(cast(size_t)offset, obj.offvec); // mark offset as used
 }
             TOWORD(obj.linrec + obj.linreci,linnum);
             if (linos2)
@@ -2189,16 +2189,14 @@ size_t OmfObj_mangle(Symbol *s,char *dest)
         name2 = id_compress(name, cast(int)len, &len2);
         if (len2 > LIBIDMAX)            // still too long
         {
-            /* Form md5 digest of the name and store it in the
+            /* Form blake3 hash of the name and store it in the
              * last 32 bytes of the name.
              */
-            MD5_CTX mdContext;
-            MD5Init(&mdContext);
-            MD5Update(&mdContext, cast(ubyte *)name, cast(uint)len);
-            MD5Final(&mdContext);
+            const hash = blake3((cast(ubyte*) name)[0 .. len]);
+
             memcpy(name2, name, LIBIDMAX - 32);
             for (int i = 0; i < 16; i++)
-            {   ubyte c = mdContext.digest[i];
+            {   ubyte c = hash[i];
                 ubyte c1 = (c >> 4) & 0x0F;
                 ubyte c2 = c & 0x0F;
                 c1 += (c1 < 10) ? '0' : 'A' - 10;
@@ -2264,7 +2262,7 @@ size_t OmfObj_mangle(Symbol *s,char *dest)
             dest[1 + len] = 0;
             break;
         default:
-            symbol_print(s);
+            symbol_print(*s);
             assert(0);
     }
     if (ilen > (255-2-int.sizeof*3))
@@ -3390,7 +3388,7 @@ static if (0)
                 if (external > obj.extidx)
                 {
                     printf("obj.extidx = %d\n", obj.extidx);
-                    symbol_print(s);
+                    symbol_print(*s);
                 }
 
                 assert(external <= obj.extidx);
@@ -3425,7 +3423,7 @@ static if (0)
                 val += s.Soffset;
             break;
         default:
-            symbol_print(s);
+            symbol_print(*s);
             assert(0);
     }
 

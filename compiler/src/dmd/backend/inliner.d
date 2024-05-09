@@ -203,9 +203,9 @@ bool canInlineExpression(elem* e)
                 /* Statics cannot be accessed from a different object file,
                  * so the reference will fail.
                  */
-                if (e.EV.Vsym.Sclass == SC.locstat || e.EV.Vsym.Sclass == SC.static_)
+                if (e.Vsym.Sclass == SC.locstat || e.Vsym.Sclass == SC.static_)
                 {
-                    if (log) printf("not inlining due to %s\n", e.EV.Vsym.Sident.ptr);
+                    if (log) printf("not inlining due to %s\n", e.Vsym.Sident.ptr);
                     return false;
                 }
             }
@@ -215,14 +215,14 @@ bool canInlineExpression(elem* e)
         }
         else if (OTunary(e.Eoper))
         {
-            e = e.EV.E1;
+            e = e.E1;
             continue;
         }
         else
         {
-            if (!canInlineExpression(e.EV.E1))
+            if (!canInlineExpression(e.E1))
                 return false;
-            e = e.EV.E2;
+            e = e.E2;
             continue;
         }
     }
@@ -243,15 +243,15 @@ elem* scanExpressionForInlines(elem *e)
     const op = e.Eoper;
     if (OTbinary(op))
     {
-        e.EV.E1 = scanExpressionForInlines(e.EV.E1);
-        e.EV.E2 = scanExpressionForInlines(e.EV.E2);
+        e.E1 = scanExpressionForInlines(e.E1);
+        e.E2 = scanExpressionForInlines(e.E2);
         if (op == OPcall)
             e = tryInliningCall(e);
     }
     else if (OTunary(op))
     {
         assert(op != OPstrctor);  // never happens in MARS
-        e.EV.E1 = scanExpressionForInlines(e.EV.E1);
+        e.E1 = scanExpressionForInlines(e.E1);
         if (op == OPucall)
         {
             e = tryInliningCall(e);
@@ -277,11 +277,11 @@ private elem* tryInliningCall(elem *e)
     //elem_debug(e);
     assert(e && (e.Eoper == OPcall || e.Eoper == OPucall));
 
-    if (e.EV.E1.Eoper != OPvar)
+    if (e.E1.Eoper != OPvar)
         return e;
 
     // This is an explicit function call (not through a pointer)
-    Symbol* sfunc = e.EV.E1.EV.Vsym;
+    Symbol* sfunc = e.E1.Vsym;
     if (log) printf("tryInliningCall: %s, class = %d\n", prettyident(sfunc),sfunc.Sclass);
 
     // sfunc may not be a function due to user's clever casting
@@ -354,7 +354,7 @@ private elem* inlineCall(elem *e,Symbol *sfunc)
             L1:
             {
                 //printf("  new symbol %s\n", s.Sident.ptr);
-                Symbol* snew = symbol_copy(s);
+                Symbol* snew = symbol_copy(*s);
                 snew.Sclass = sc;
                 snew.Sfl = FLauto;
                 snew.Sflags |= SFLfree;
@@ -373,7 +373,7 @@ private elem* inlineCall(elem *e,Symbol *sfunc)
                 break;
             default:
                 //fprintf(stderr, "Sclass = %d\n", sc);
-                symbol_print(s);
+                symbol_print(*s);
                 assert(0);
         }
     }
@@ -416,7 +416,7 @@ private elem* inlineCall(elem *e,Symbol *sfunc)
      */
     if (e.Eoper == OPcall)
     {
-        elem* eargs = initializeParamsWithArgs(e.EV.E2, sistart, globsym.length);
+        elem* eargs = initializeParamsWithArgs(e.E2, sistart, globsym.length);
         ec = el_combine(eargs,ec);
     }
 
@@ -463,7 +463,7 @@ private elem* initializeParamsWithArgs(elem* eargs, SYMIDX sistart, SYMIDX siend
         elem* e = args[n - 1];
 
         if (e.Eoper == OPstrpar)
-            e = e.EV.E1;
+            e = e.E1;
 
         /* Look for and return next parameter Symbol
          */
@@ -493,10 +493,10 @@ private elem* initializeParamsWithArgs(elem* eargs, SYMIDX sistart, SYMIDX siend
         //elem_print(e);
         if (e.Eoper == OPstrctor)
         {
-            ecopy = el_combine(el_copytree(e.EV.E1), ecopy);     // skip the OPstrctor
+            ecopy = el_combine(el_copytree(e.E1), ecopy);     // skip the OPstrctor
             e = ecopy;
             //while (e.Eoper == OPcomma)
-            //    e = e.EV.E2;
+            //    e = e.E2;
             debug
             {
                 if (e.Eoper != OPcall && e.Eoper != OPcond)
@@ -516,7 +516,7 @@ private elem* initializeParamsWithArgs(elem* eargs, SYMIDX sistart, SYMIDX siend
         {
             if (log) printf("detected slice with %s\n", s.Sident.ptr);
             auto s2 = nextSymbol(si);
-            if (!s2) { symbol_print(s); elem_print(e); assert(0); }
+            if (!s2) { symbol_print(*s); elem_print(e); assert(0); }
             assert(szs == type_size(s2.Stype));
             const ty = s.Stype.Tty;
 
@@ -525,17 +525,17 @@ private elem* initializeParamsWithArgs(elem* eargs, SYMIDX sistart, SYMIDX siend
             if (e.Eoper != OPvar)
             {
                 elem* ec = exp2_copytotemp(e);
-                e = ec.EV.E2;
-                ex = ec.EV.E1;
-                ec.EV.E1 = null;
-                ec.EV.E2 = null;
+                e = ec.E2;
+                ex = ec.E1;
+                ec.E1 = null;
+                ec.E2 = null;
                 el_free(ec);
-                e.EV.Vsym.Sfl = FLauto;
+                e.Vsym.Sfl = FLauto;
             }
             assert(e.Eoper == OPvar);
             elem* e2 = el_copytree(e);
-            e.EV.Voffset += 0;
-            e2.EV.Voffset += szs;
+            e.Voffset += 0;
+            e2.Voffset += szs;
             e.Ety = ty;
             e2.Ety = ty;
             elem* elo = el_bin(OPeq, ty, el_var(s), e);
@@ -617,20 +617,20 @@ private void adjustExpression(elem *e)
         if (!OTleaf(e.Eoper))
         {
             if (OTbinary(e.Eoper))
-                adjustExpression(e.EV.E2);
+                adjustExpression(e.E2);
             else
-                assert(!e.EV.E2);
-            e = e.EV.E1;
+                assert(!e.E2);
+            e = e.E1;
         }
         else
         {
             if (e.Eoper == OPvar || e.Eoper == OPrelconst)
             {
-                Symbol *s = e.EV.Vsym;
+                Symbol *s = e.Vsym;
 
                 if (s.Sflags & SFLreplace)
                 {
-                    e.EV.Vsym = globsym[s.Ssymnum];
+                    e.Vsym = globsym[s.Ssymnum];
                     //printf("  replacing %p %s\n", e, s.Sident.ptr);
                 }
             }

@@ -189,12 +189,7 @@ private symtab_t* calcLexicalScope(return ref symtab_t symtab) return
     // - variables with unique name come first (will be emitted with full function scope)
     // - variables with duplicate names are added with ascending code offset
     nextSym.setLength(symtab.length);
-    if (sortedSymtab.symmax < symtab.length)
-    {
-        sortedSymtab.tab = cast(Symbol**) util_realloc(sortedSymtab.tab, symtab.length, (Symbol*).sizeof);
-        sortedSymtab.symmax = symtab.length;
-    }
-    sortedSymtab.length = symtab.length;
+    sortedSymtab.setLength(symtab.length);
 
     if (!hashSymbolIdentifiers(symtab))
     {

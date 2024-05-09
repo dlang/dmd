@@ -28,13 +28,8 @@ echo "GREP_VERSION: $(grep --version)"
 
 GNU_MAKE="$(which make)" # must be done before installing dmc (tampers with PATH)
 
-if [ "$MODEL" == "32omf" ] ; then
-    install_host_dmc
-    CC="$PWD/dm/bin/dmc.exe"
-    export CPPCMD="$PWD/dm/bin/sppn.exe"
-else
-    CC="cl.exe"
-fi
+CC="cl.exe"
+CXX="cl.exe"
 
 ################################################################################
 # Install the host compiler
@@ -58,14 +53,12 @@ clone_repos
 ################################################################################
 
 if [ "$MODEL" == "64" ] ; then
-    MAKE_FILE="win64.mak"
     LIBNAME=phobos64.lib
 elif [ "$MODEL" == "32" ] ; then
-    MAKE_FILE="win64.mak"
     LIBNAME=phobos32mscoff.lib
-else # 32omf
-    MAKE_FILE="win32.mak"
-    LIBNAME=phobos.lib
+else
+    echo 'Invalid $MODEL provided'.
+    exit 1
 fi
 
 ################################################################################
@@ -80,9 +73,6 @@ fi
 
 # avoid the DMC runtime and its limitations for the compiler and {build,run}.d tools themselves
 TOOL_MODEL="$MODEL"
-if [[ "$MODEL" == "32omf" ]]; then
-    TOOL_MODEL=32
-fi
 
 cd "$DMD_DIR"
 "$HOST_DC" -m$TOOL_MODEL compiler/src/build.d -ofgenerated/build.exe
@@ -116,25 +106,6 @@ fi
 
 "$HOST_DC" -m$TOOL_MODEL -g -i run.d
 
-if [ "$MODEL" == "32omf" ] ; then
-    # Pre-build the tools while the host compiler's sc.ini is untampered (see below).
-    ./run tools
-
-    # WORKAROUND: Make Optlink use freshly built Phobos, not the host compiler's.
-    # Optlink apparently prefers LIB in sc.ini (in the same dir as optlink.exe)
-    # over the LIB env variable (and `-conf=` for DMD apparently doesn't prevent
-    # that, and there's apparently no sane way to specify a libdir for Optlink
-    # in the DMD cmdline either).
-    rm "$DMD_DIR/tools/dmd2/windows/bin/sc.ini"
-    # We also need to remove LIB from the freshly built compiler's sc.ini -
-    # not all test invocations use `-conf=`.
-    sed -i 's|^LIB=.*$||g' "$DMD_DIR/generated/windows/release/$TOOL_MODEL/sc.ini"
-    # Okay, now the lib directories are controlled by the LIB env variable.
-    # run.d prepends the dir containing freshly built phobos.lib; we still need
-    # the DMC and Windows libs from the host compiler.
-    export LIB="$DMD_DIR/tools/dmd2/windows/lib"
-fi
-
 targets=("all")
 args=('ARGS=-O -inline -g') # no -release for faster builds
 if [ "$HOST_DMD_VERSION" = "2.079.0" ] ; then
@@ -142,7 +113,7 @@ if [ "$HOST_DMD_VERSION" = "2.079.0" ] ; then
     targets=("runnable" "compilable" "fail_compilation" "dshell")
     args=() # use default set of args
 fi
-./run --environment --jobs=$N "${targets[@]}" "${args[@]}" CC="$CC"
+./run --environment --jobs=$N "${targets[@]}" "${args[@]}" CC="$CC" CXX="$CXX"
 
 ###############################################################################
 # Upload coverage reports and exit if ENABLE_COVERAGE is specified
@@ -160,31 +131,25 @@ fi
 cd "$DMD_DIR/druntime"
 "$GNU_MAKE" -j$N MODEL=$MODEL DMD="$DMD_BIN_PATH" CC="$CC" unittest
 
-if [ "$MODEL" != "32omf" ] ; then
-    # run some tests for shared druntime
+# run some tests for shared druntime
 
-    # no separate output for static or shared builds, so clean directories to force rebuild
-    rm -rf test/shared/generated
-    # the test_runner links against libdruntime-ut.dll and runs all unittests
-    #  no matter what module name is passed in, so restrict to src/object.d
-    "$GNU_MAKE" -j$N unittest MODEL=$MODEL SHARED=1 DMD="$DMD_BIN_PATH" CC="$CC" UT_SRCS=src/object.d ADDITIONAL_TESTS=test/shared
-fi
+# no separate output for static or shared builds, so clean directories to force rebuild
+rm -rf test/shared/generated
+# the test_runner links against libdruntime-ut.dll and runs all unittests
+#  no matter what module name is passed in, so restrict to src/object.d
+"$GNU_MAKE" -j$N unittest MODEL=$MODEL SHARED=1 DMD="$DMD_BIN_PATH" CC="$CC" UT_SRCS=src/object.d ADDITIONAL_TESTS=test/shared
 
 ################################################################################
 # Build and run Phobos unittests
 ################################################################################
 
-if [ "$MODEL" = "32omf" ] ; then
-    echo "FIXME: cannot compile 32-bit OMF Phobos unittests ('more than 32767 symbols in object file')"
+cd "$DMD_DIR/../phobos"
+if [ "$MODEL" = "64" ] ; then
+    cp "$DMD_DIR/tools/dmd2/windows/bin64/libcurl.dll" .
 else
-    cd "$DMD_DIR/../phobos"
-    if [ "$MODEL" = "64" ] ; then
-        cp "$DMD_DIR/tools/dmd2/windows/bin64/libcurl.dll" .
-    else
-        cp "$DMD_DIR/tools/dmd2/windows/bin/libcurl.dll" .
-    fi
-    "$GNU_MAKE" -j$N MODEL=$MODEL DMD="$DMD_BIN_PATH" CC="$CC" DMD_DIR="$DMD_DIR" unittest
+    cp "$DMD_DIR/tools/dmd2/windows/bin/libcurl.dll" .
 fi
+"$GNU_MAKE" -j$N MODEL=$MODEL DMD="$DMD_BIN_PATH" CC="$CC" DMD_DIR="$DMD_DIR" unittest
 
 ################################################################################
 # Prepare artifacts

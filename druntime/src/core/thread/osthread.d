@@ -911,7 +911,7 @@ class Thread : ThreadBase
      *
      * ------------------------------------------------------------------------
      */
-    static void sleep( Duration val ) @nogc nothrow
+    static void sleep( Duration val ) @nogc nothrow @trusted
     in
     {
         assert( !val.isNegative );
@@ -1174,6 +1174,12 @@ unittest
     thread_suspendAll();
     assert(!inCriticalRegion);
     thread_resumeAll();
+}
+
+@nogc @safe nothrow
+unittest
+{
+    Thread.sleep(1.msecs);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

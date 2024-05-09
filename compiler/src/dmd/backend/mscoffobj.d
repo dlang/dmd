@@ -34,7 +34,6 @@ import dmd.backend.type;
 
 import dmd.backend.mscoff;
 
-import dmd.common.md5;
 import dmd.common.outbuffer;
 
 nothrow:
@@ -270,7 +269,7 @@ Obj MsCoffObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegna
         Symbol **p = cast(Symbol **)symbuf.buf;
         const size_t n = symbuf.length() / (Symbol *).sizeof;
         for (size_t i = 0; i < n; ++i)
-            symbol_reset(p[i]);
+            symbol_reset(*p[i]);
         symbuf.reset();
     }
     else
@@ -597,7 +596,7 @@ void MsCoffObj_termfile()
  */
 
 @trusted
-void MsCoffObj_term(const(char)* objfilename)
+void MsCoffObj_term(const(char)[] objfilename)
 {
     //printf("MsCoffObj_term()\n");
     assert(fobjbuf.length() == 0);
@@ -1729,7 +1728,7 @@ char *obj_mangle2(Symbol *s,char *dest)
 debug
 {
             printf("mangling %x\n",type_mangle(s.Stype));
-            symbol_print(s);
+            symbol_print(*s);
 }
             printf("%d\n", type_mangle(s.Stype));
             assert(0);

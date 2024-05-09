@@ -160,7 +160,7 @@ elem *nteh_setScopeTableIndex(Blockx *blx, int scope_index)
     Symbol* s = blx.context;
     symbol_debug(s);
     elem* e = el_var(s);
-    e.EV.Voffset = nteh_offset_sindex();
+    e.Voffset = nteh_offset_sindex();
     return el_bin(OPeq, TYint, e, el_long(TYint, scope_index));
 }
 
@@ -535,7 +535,7 @@ void cdsetjmp(ref CodeBuilder cdb, elem *e,regm_t *pretregs)
     stackpush += 4;
     cdb.genadjesp(4);
 
-    pushParams(cdb,e.EV.E1,REGSIZE, TYnfunc);
+    pushParams(cdb,e.E1,REGSIZE, TYnfunc);
 
     getregs(cdb,~getRtlsym(RTLSYM.SETJMP3).Sregsaved & (ALLREGS | mES));
     cdb.gencs(0xE8,0,FLfunc,getRtlsym(RTLSYM.SETJMP3));      // CALL __setjmp3
@@ -545,7 +545,7 @@ void cdsetjmp(ref CodeBuilder cdb, elem *e,regm_t *pretregs)
 
     stackpush = stackpushsave;
     retregs = regmask(e.Ety, TYnfunc);
-    fixresult(cdb,e,retregs,pretregs);
+    fixresult(cdb,e,retregs,*pretregs);
 }
 
 /****************************************

@@ -276,7 +276,7 @@ void getenv_setargv(const(char)* envvalue, Strings* args)
 }
 
 /**
- * Parse command line arguments for the last instance of -m32, -m64, -m32mscoff or -m32omfobj
+ * Parse command line arguments for the last instance of -m32, -m64, -m32mscoff
  * to detect the desired architecture.
  *
  * Params:
@@ -285,7 +285,7 @@ void getenv_setargv(const(char)* envvalue, Strings* args)
  *          Should be "32" or "64"
  *
  * Returns:
- *   "32", "64" or "32omf" if the "-m32", "-m64", "-m32omf" flags were passed,
+ *   "32", or "64" if the "-m32", "-m64" flags were passed,
  *   respectively. If they weren't, return `arch`.
  */
 const(char)[] parse_arch_arg(Strings* args, const(char)[] arch)
@@ -296,7 +296,7 @@ const(char)[] parse_arch_arg(Strings* args, const(char)[] arch)
 
         if (arg.length && arg[0] == '-')
         {
-            if (arg[1 .. $] == "m32" || arg[1 .. $] == "m32omf" || arg[1 .. $] == "m64")
+            if (arg[1 .. $] == "m32" || arg[1 .. $] == "m64")
                 arch = arg[2 .. $];
             else if (arg[1 .. $] == "m32mscoff")
                 arch = "32";
@@ -586,9 +586,9 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
 
     version (none)
     {
-        for (size_t i = 0; i < arguments.length; i++)
+        foreach (i, arg; arguments[])
         {
-            printf("arguments[%d] = '%s'\n", i, arguments[i]);
+            printf("arguments[%d] = '%s'\n", cast(int)i, arguments[i]);
         }
     }
 
@@ -614,6 +614,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     return false;
                 }
             }
+            //printf("push %s\n", p);
             files.push(p);
             continue;
         }
@@ -899,11 +900,6 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         {
             target.isX86_64 = false;
             target.omfobj = false;
-        }
-        else if (arg == "-m32omf") // https://dlang.org/dmd.html#switch-m32omfobj
-        {
-            target.isX86_64 = false;
-            target.omfobj = true;
         }
         else if (startsWith(p + 1, "mscrtlib="))
         {
@@ -1211,9 +1207,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.warnings = DiagnosticReporting.inform;
         else if (arg == "-wo")  // https://dlang.org/dmd.html#switch-wo
         {
-            // Obsolete features has been obsoleted until a DIP for "additions"
+            // Obsolete features has been obsoleted until a DIP for "editions"
             // has been drafted and ratified in the language spec.
             // Rather, these old features will just be accepted without warning.
+            // See also: @__edition_latest_do_not_use
         }
         else if (arg == "-O")   // https://dlang.org/dmd.html#switch-O
             driverParams.optimize = true;
@@ -1382,6 +1379,58 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         {
             params.useInline = true;
             params.dihdr.fullOutput = true;
+        }
+        else if (startsWith(p + 1, "identifiers-importc"))
+        {
+            enum len = "-identifiers-importc=".length;
+            // Parse:
+            //      -identifiers=table
+            immutable string msg = "Only `UAX31`, `c99`, `c11`, `all`, allowed for `-identifiers-importc`";
+            if (Identifier.isValidIdentifier(p + len))
+            {
+                const ident = p + len;
+                switch (ident.toDString())
+                {
+                    case "c99":     params.cIdentifierTable = CLIIdentifierTable.C99;   break;
+                    case "c11":     params.cIdentifierTable = CLIIdentifierTable.C11;   break;
+                    case "UAX31":   params.cIdentifierTable = CLIIdentifierTable.UAX31; break;
+                    case "all":     params.cIdentifierTable = CLIIdentifierTable.All;   break;
+                    default:
+                        errorInvalidSwitch(p, msg);
+                        return false;
+                }
+            }
+            else
+            {
+                errorInvalidSwitch(p, msg);
+                return false;
+            }
+        }
+        else if (startsWith(p + 1, "identifiers"))
+        {
+            enum len = "-identifiers=".length;
+            // Parse:
+            //      -identifiers=table
+            immutable string msg = "Only `UAX31`, `c99`, `c11`, `all`, allowed for `-identifiers`";
+            if (Identifier.isValidIdentifier(p + len))
+            {
+                const ident = p + len;
+                switch (ident.toDString())
+                {
+                    case "c99":     params.dIdentifierTable = CLIIdentifierTable.C99;   break;
+                    case "c11":     params.dIdentifierTable = CLIIdentifierTable.C11;   break;
+                    case "UAX31":   params.dIdentifierTable = CLIIdentifierTable.UAX31; break;
+                    case "all":     params.dIdentifierTable = CLIIdentifierTable.All;   break;
+                    default:
+                        errorInvalidSwitch(p, msg);
+                        return false;
+                }
+            }
+            else
+            {
+                errorInvalidSwitch(p, msg);
+                return false;
+            }
         }
         else if (arg == "-i")
             includeImports = true;
@@ -1711,13 +1760,11 @@ Returns:
 private
 Module createModule(const(char)* file, ref Strings libmodules, const ref Target target)
 {
-    const(char)[] name;
     version (Windows)
     {
         file = toWinPath(file);
     }
-    const(char)[] p = file.toDString();
-    p = FileName.name(p); // strip path
+    const(char)[] p = FileName.name(file.toDString()); // strip path
     const(char)[] ext = FileName.ext(p);
     if (!ext)
     {
@@ -1795,25 +1842,23 @@ Module createModule(const(char)* file, ref Strings libmodules, const ref Target 
         FileName.equals(ext, c_ext   ) ||
         FileName.equals(ext, i_ext   ))
     {
-        name = FileName.removeExt(p);
+        // strip off .ext
+        const(char)[] name = p[0 .. p.length - ext.length - 1]; // -1 for the .
         if (!name.length || name == ".." || name == ".")
         {
             error(Loc.initial, "invalid file name '%s'", file);
             fatal();
         }
-    }
-    else
-    {
-        error(Loc.initial, "unrecognized file extension %.*s", cast(int)ext.length, ext.ptr);
-        fatal();
-    }
+        /* name is the D source file name stripped of
+         * its path and extension.
+         */
+        auto id = Identifier.idPool(name);
 
-    /* At this point, name is the D source file name stripped of
-     * its path and extension.
-     */
-    auto id = Identifier.idPool(name);
-
-    return new Module(file.toDString, id, global.params.ddoc.doOutput, global.params.dihdr.doOutput);
+        return new Module(file.toDString, id, global.params.ddoc.doOutput, global.params.dihdr.doOutput);
+    }
+    error(Loc.initial, "unrecognized file extension %.*s", cast(int)ext.length, ext.ptr);
+    fatal();
+    assert(0);
 }
 
 /**

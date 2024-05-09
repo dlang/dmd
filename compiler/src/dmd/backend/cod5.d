@@ -36,13 +36,11 @@ nothrow:
  * Determine which blocks get the function prolog and epilog
  * attached to them.
  */
-
-@trusted
-void cod5_prol_epi()
+void cod5_prol_epi(block* startblock)
 {
 static if(1)
 {
-    cod5_noprol();
+    cod5_noprol(startblock);
 }
 else
 {
@@ -57,7 +55,7 @@ else
 
     if (!(config.flags4 & CFG4optimized) ||
         anyiasm ||
-        Alloca.size ||
+        cgstate.Alloca.size ||
         usednteh ||
         calledFinally ||
         tyf & (mTYnaked | mTYloadds) ||
@@ -151,9 +149,7 @@ else
 /**********************************************
  * No prolog/epilog optimization.
  */
-
-@trusted
-void cod5_noprol()
+void cod5_noprol(block* startblock)
 {
     block *b;
 

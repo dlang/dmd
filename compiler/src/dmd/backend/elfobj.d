@@ -767,7 +767,7 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
     elfobj.SymbolTable64.reset();
 
     foreach (s; elfobj.resetSyms)
-        symbol_reset(s);
+        symbol_reset(*s);
     elfobj.resetSyms.reset();
 
     if (shndx_data)
@@ -1019,7 +1019,7 @@ void ElfObj_termfile()
  *    objfilename = file name for object module (not used)
  */
 
-void ElfObj_term(const(char)* objfilename)
+void ElfObj_term(const(char)[] objfilename)
 {
     //printf("ElfObj_term()\n");
     outfixlist();           // backpatches
@@ -2170,7 +2170,7 @@ char *obj_mangle2(Symbol *s,char *dest, size_t *destlen)
 debug
 {
             printf("mangling %x\n",type_mangle(s.Stype));
-            symbol_print(s);
+            symbol_print(*s);
 }
             printf("%d\n", type_mangle(s.Stype));
             assert(0);

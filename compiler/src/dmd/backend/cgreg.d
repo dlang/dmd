@@ -77,16 +77,15 @@ void cgreg_init()
     memset(regrange.ptr, 0, regrange.sizeof);
 
     // Make adjustments to symbols we might stick in registers
-    for (size_t i = 0; i < globsym.length; i++)
-    {   uint sz;
-        Symbol *s = globsym[i];
-
+    foreach (s; globsym[])
+    {
         //printf("considering candidate '%s' for register\n", s.Sident.ptr);
 
         if (s.Srange)
             s.Srange = vec_realloc(s.Srange,dfo.length);
 
         // Determine symbols that are not candidates
+        uint sz;
         if (!(s.Sflags & GTregcand) ||
             !s.Srange ||
             (sz = cast(uint)type_size(s.Stype)) == 0 ||
@@ -149,20 +148,20 @@ void cgreg_term()
 {
     if (config.flags4 & CFG4optimized)
     {
-        for (size_t i = 0; i < globsym.length; i++)
+        foreach (s; globsym[])
         {
-            Symbol *s = globsym[i];
             vec_free(s.Srange);
             vec_free(s.Slvreg);
             s.Srange = null;
             s.Slvreg = null;
         }
 
-        for (size_t i = 0; i < regrange.length; i++)
+        foreach (ref r; regrange[])
         {
-            if (regrange[i])
-            {   vec_free(regrange[i]);
-                regrange[i] = null;
+            if (r)
+            {
+                vec_free(r);
+                r = null;
             }
         }
 
@@ -176,11 +175,11 @@ void cgreg_term()
 @trusted
 void cgreg_reset()
 {
-    for (size_t j = 0; j < regrange.length; j++)
-        if (!regrange[j])
-            regrange[j] = vec_calloc(dfo.length);
+    foreach (ref r; regrange[])
+        if (!r)
+            r = vec_calloc(dfo.length);
         else
-            vec_clear(regrange[j]);
+            vec_clear(r);
 }
 
 /*******************************
@@ -221,8 +220,8 @@ private void el_weights(int bi,elem *e,uint weight)
             }
 
             if (OTbinary(op))
-            {   el_weights(bi,e.EV.E2,weight);
-                if ((OTopeq(op) || OTpost(op)) && e.EV.E1.Eoper == OPvar)
+            {   el_weights(bi,e.E2,weight);
+                if ((OTopeq(op) || OTpost(op)) && e.E1.Eoper == OPvar)
                 {
                     if (weight >= 10)
                         weight += 10;
@@ -230,14 +229,14 @@ private void el_weights(int bi,elem *e,uint weight)
                         weight++;
                 }
             }
-            e = e.EV.E1;
+            e = e.E1;
         }
         else
         {
             switch (op)
             {
                 case OPvar:
-                    Symbol *s = e.EV.Vsym;
+                    Symbol *s = e.Vsym;
                     if (s.Ssymnum != SYMIDX.max && s.Sflags & GTregcand)
                     {
                         s.Sweight += weight;
@@ -529,8 +528,6 @@ Lcant:
  *      cdbstore = append store code to this
  *      cdbload = append load code to this
  */
-
-@trusted
 void cgreg_spillreg_prolog(block *b,Symbol *s,ref CodeBuilder cdbstore,ref CodeBuilder cdbload)
 {
     const int bi = b.Bdfoidx;
@@ -605,8 +602,6 @@ void cgreg_spillreg_prolog(block *b,Symbol *s,ref CodeBuilder cdbstore,ref CodeB
  *      cdbstore = append store code to this
  *      cdbload = append load code to this
  */
-
-@trusted
 void cgreg_spillreg_epilog(block *b,Symbol *s,ref CodeBuilder cdbstore, ref CodeBuilder cdbload)
 {
     const bi = b.Bdfoidx;
@@ -694,7 +689,7 @@ private void cgreg_map(Symbol *s, reg_t regmsw, reg_t reglsw)
                     s.Sfl = FLstack;
                     break;
                 default:
-                    symbol_print(s);
+                    symbol_print(*s);
                     assert(0);
             }
         }
@@ -749,8 +744,8 @@ void cgreg_unregister(regm_t conflict)
 {
     if (pass == BackendPass.final_)
         pass = BackendPass.reg;                         // have to codegen at least one more time
-    for (int i = 0; i < globsym.length; i++)
-    {   Symbol *s = globsym[i];
+    foreach (s; globsym[])
+    {
         if (s.Sfl == FLreg && s.Sregm & conflict)
         {
             s.Sflags |= GTunregister;
@@ -781,9 +776,8 @@ int cgreg_assign(Symbol *retsym)
     /* First do any 'unregistering' which might have happened in the last
      * code gen pass.
      */
-    for (size_t si = 0; si < globsym.length; si++)
-    {   Symbol *s = globsym[si];
-
+    foreach (s; globsym[])
+    {
         if (s.Sflags & GTunregister)
         {
             debug if (debugr)
@@ -822,7 +816,7 @@ int cgreg_assign(Symbol *retsym)
                         s.Sfl = FLstack;
                         break;
                     default:
-                        debug symbol_print(s);
+                        debug symbol_print(*s);
                         assert(0);
                 }
             }
@@ -840,8 +834,8 @@ int cgreg_assign(Symbol *retsym)
     /* Find all the parameters passed as named registers
      */
     regm_t regparams = 0;
-    for (size_t si = 0; si < globsym.length; si++)
-    {   Symbol *s = globsym[si];
+    foreach (s; globsym[])
+    {
         if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
             regparams |= s.Spregm();
     }
@@ -859,9 +853,8 @@ int cgreg_assign(Symbol *retsym)
     Reg t;
     t.sym = null;
     t.benefit = 0;
-    for (size_t si = 0; si < globsym.length; si++)
-    {   Symbol *s = globsym[si];
-
+    foreach (s; globsym[])
+    {
         Reg u;
         u.sym = s;
         if (!(s.Sflags & GTregcand) ||
@@ -1014,9 +1007,8 @@ Ltried:
         (mfuncreg & ~fregsaved) & ALLREGS &&  // if unused non-floating scratch registers
         !(funcsym_p.Sflags & SFLexit))       // don't need save/restore if function never returns
     {
-        for (size_t si = 0; si < globsym.length; si++)
-        {   Symbol *s = globsym[si];
-
+        foreach (s; globsym[])
+        {
             if (s.Sfl == FLreg &&                // if assigned to register
                 (1 << s.Sreglsw) & fregsaved &&   // and that register is not scratch
                 type_size(s.Stype) <= REGSIZE && // don't bother with register pairs

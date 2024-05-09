@@ -105,54 +105,35 @@ else
 version (Posix)
 {
     /*****************************
-     * As it forwards the linker error message to stderr, checks for the presence
-     * of an error indicating lack of a main function (NME_ERR_MSG).
+     * Extract stderr piped through `fd` into OutBuffer `o` so it can be parsed for better error messages.
      *
-     * Returns:
-     *      1 if there is a no main error
-     *     -1 if there is an IO error
-     *      0 otherwise
+     * Returns: `true` on success, `false` on IO error
      */
-    private int findNoMainError(int fd)
+    private bool pipeProcessOutput(int fd, ref OutBuffer o)
     {
-        version (OSX)
-        {
-            static immutable(char*) nmeErrorMessage = "`__Dmain`, referenced from:";
-        }
-        else
-        {
-            static immutable(char*) nmeErrorMessage = "undefined reference to `_Dmain`";
-        }
         FILE* stream = fdopen(fd, "r");
         if (stream is null)
-            return -1;
+            return false;
         const(size_t) len = 64 * 1024 - 1;
-        char[len + 1] buffer; // + '\0'
+        char[len + 1] buffer = '\0'; // + '\0'
         size_t beg = 0, end = len;
-        bool nmeFound = false;
         for (;;)
         {
             // read linker output
             const(size_t) n = fread(&buffer[beg], 1, len - beg, stream);
             if (beg + n < len && ferror(stream))
-                return -1;
-            buffer[(end = beg + n)] = '\0';
-            // search error message, stop at last complete line
-            const(char)* lastSep = strrchr(buffer.ptr, '\n');
-            if (lastSep)
-                buffer[(end = lastSep - &buffer[0])] = '\0';
-            if (strstr(&buffer[0], nmeErrorMessage))
-                nmeFound = true;
-            if (lastSep)
-                buffer[end++] = '\n';
-            if (fwrite(&buffer[0], 1, end, stderr) < end)
-                return -1;
+                return false;
+            end = beg + n;
+
+            o.writestring(buffer[0 .. end]);
+            if (fwrite(&buffer[0], char.sizeof, end, stderr) < end)
+                return false;
             if (beg + n < len && feof(stream))
                 break;
             // copy over truncated last line
             memcpy(&buffer[0], &buffer[end], (beg = len - end));
         }
-        return nmeFound ? 1 : 0;
+        return true;
     }
 }
 
@@ -345,12 +326,14 @@ public int runLINK(bool verbose, ErrorSink eSink)
                 }
             }
 
-            const int status = executecmd(linkcmd, p.ptr, verbose, eSink);
+            OutBuffer buf;
+            const int status = executecmd(linkcmd, p.ptr, verbose, eSink, buf);
             if (lnkfilename)
             {
                 lnkfilename.toCStringThen!(lf => remove(lf.ptr));
                 FileName.free(lnkfilename.ptr);
             }
+            parseLinkerOutput(cast(const(char)[]) buf.peekSlice(), new ErrorSinkCompiler());
             return status;
         }
         else if (target.objectFormat() == Target.ObjectFormat.omf)
@@ -363,16 +346,15 @@ public int runLINK(bool verbose, ErrorSink eSink)
                 if (i)
                     cmdbuf.writeByte('+');
                 const(char)[] p = global.params.objfiles[i].toDString();
-                const(char)[] basename = FileName.removeExt(FileName.name(p));
+                const(char)[] basename = FileName.sansExt(FileName.name(p));
                 const(char)[] ext = FileName.ext(p);
-                if (ext.length && !strchr(basename.ptr, '.'))
+                if (ext.length && !memchr(basename.ptr, '.', basename.length))
                 {
                     // Write name sans extension (but not if a double extension)
-                    writeFilename(&cmdbuf, p[0 .. $ - ext.length - 1]);
+                    writeFilename(&cmdbuf, FileName.sansExt(p));
                 }
                 else
                     writeFilename(&cmdbuf, p);
-                FileName.free(basename.ptr);
             }
             cmdbuf.writeByte(',');
             if (global.params.exefile)
@@ -460,12 +442,15 @@ public int runLINK(bool verbose, ErrorSink eSink)
             const(char)* linkcmd = getenv("LINKCMD");
             if (!linkcmd)
                 linkcmd = "optlink";
-            const int status = executecmd(linkcmd, p.ptr, verbose, eSink);
+            OutBuffer buf;
+            const int status = executecmd(linkcmd, p.ptr, verbose, eSink, buf);
             if (lnkfilename)
             {
                 lnkfilename.toCStringThen!(lf => remove(lf.ptr));
                 FileName.free(lnkfilename.ptr);
             }
+            parseLinkerOutput(cast(const(char)[]) buf.peekSlice(), new ErrorSinkCompiler());
+
             return status;
         }
         else
@@ -804,24 +789,26 @@ public int runLINK(bool verbose, ErrorSink eSink)
             return STATUS_FAILED;
         }
         close(fds[1]);
-        const(int) nme = findNoMainError(fds[0]);
+        OutBuffer outputBuf;
+        const pipeSuccess = pipeProcessOutput(fds[0], outputBuf);
+
+        ///
         waitpid(childpid, &status, 0);
         if (WIFEXITED(status))
         {
             status = WEXITSTATUS(status);
             if (status)
             {
-                if (nme == -1)
+                if (!pipeSuccess)
                 {
                     perror("error with the linker pipe");
                     return -1;
                 }
                 else
                 {
+                    parseLinkerOutput(cast(const(char)[]) outputBuf.peekSlice(), new ErrorSinkCompiler());
                     eSink.error(Loc.initial, "linker exited with status %d", status);
                     eSink.errorSupplemental(Loc.initial, "%s", linkerCommand);
-                    if (nme == 1)
-                        eSink.error(Loc.initial, "no main function specified");
                 }
             }
         }
@@ -852,7 +839,7 @@ public int runLINK(bool verbose, ErrorSink eSink)
  */
 version (Windows)
 {
-    private int executecmd(const(char)* cmd, const(char)* args, bool verbose, ErrorSink eSink)
+    private int executecmd(const(char)* cmd, const(char)* args, bool verbose, ErrorSink eSink, ref OutBuffer buf)
     {
         int status;
         size_t len;
@@ -883,14 +870,44 @@ version (Windows)
                 cmdbuf.writestring("\" ");
                 cmdbuf.writestring(args);
 
+                HANDLE[2] pipe;
+                SECURITY_ATTRIBUTES saAttr;
+                saAttr.nLength = SECURITY_ATTRIBUTES.sizeof;
+                saAttr.bInheritHandle = true;
+                saAttr.lpSecurityDescriptor = null;
+                if (!CreatePipe(&pipe[0], &pipe[1], &saAttr, /*buffer size suggestion*/ 0))
+                {
+                    GetLastError();
+                }
+                if (!SetHandleInformation(pipe[0], /*mask*/ HANDLE_FLAG_INHERIT, /*flags*/ 0))
+                {
+                    GetLastError();
+                }
+
                 STARTUPINFOA startInf;
+                startInf.cb = startInf.sizeof;
                 startInf.dwFlags = STARTF_USESTDHANDLES;
                 startInf.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
-                startInf.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+                startInf.hStdOutput = pipe[1];
                 startInf.hStdError = GetStdHandle(STD_ERROR_HANDLE);
                 PROCESS_INFORMATION procInf;
 
                 BOOL b = CreateProcessA(null, cmdbuf.peekChars(), null, null, 1, NORMAL_PRIORITY_CLASS, null, null, &startInf, &procInf);
+                CloseHandle(pipe[1]); // child does not need this end
+
+                ubyte[1024] buffer;
+                DWORD bytesRead;
+                for (;;)
+                {
+                    if (ReadFile(pipe[0], buffer.ptr, buffer.length, &bytesRead, /*lpOverlapped*/ null))
+                    {
+                        fwrite(buffer.ptr, bytesRead, ubyte.sizeof, stderr);
+                        buf.write(buffer[0 .. bytesRead]);
+                    }
+                    else
+                        break;
+                }
+
                 if (b)
                 {
                     WaitForSingleObject(procInf.hProcess, INFINITE);
@@ -1089,12 +1106,13 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
                 return STATUS_FAILED;
             }
             //printf("C preprocess succeeded %s\n", ifilename.ptr);
-            auto readResult = File.read(ifilename);
+            OutBuffer buf;
+            auto readResult = File.read(ifilename, buf);
             File.remove(ifilename.ptr);
             Mem.xfree(cast(void*)ifilename.ptr);
-            if (!readResult.success)
+            if (readResult)
                 return STATUS_FAILED;
-            text = DArray!ubyte(readResult.extractSlice());
+            text = DArray!ubyte(cast(ubyte[])buf.extractSlice(true));
             return 0;
         }
 
@@ -1172,6 +1190,57 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
                 // Convert command to wchar
                 wchar[1024] scratch = void;
                 auto smbuf = SmallBuffer!wchar(scratch.length, scratch[]);
+
+                // INCLUDE
+                static VSOptions vsopt; // cache, as this can be expensive
+                static Strings includePaths;
+                if (includePaths.length == 0)
+                {
+                    if (!vsopt.VSInstallDir)
+                        vsopt.initialize();
+
+                    if (auto vcincludedir = vsopt.getVCIncludeDir()) {
+                        includePaths.push(vcincludedir);
+                    } else {
+                        return STATUS_FAILED;
+                    }
+                    if (auto sdkincludedir = vsopt.getSDKIncludePath()) {
+                        includePaths.push(FileName.combine(sdkincludedir, "ucrt"));
+                        includePaths.push(FileName.combine(sdkincludedir, "shared"));
+                        includePaths.push(FileName.combine(sdkincludedir, "um"));
+                        includePaths.push(FileName.combine(sdkincludedir, "winrt"));
+                        includePaths.push(FileName.combine(sdkincludedir, "cppwinrt"));
+                    } else {
+                        includePaths = Strings.init;
+                        return STATUS_FAILED;
+                    }
+                }
+
+                // Get current environment variable and rollback
+                auto oldIncludePathLen = GetEnvironmentVariableW("INCLUDE"w.ptr, null, 0);
+                wchar* oldIncludePaths = cast(wchar*)mem.xmalloc(oldIncludePathLen * wchar.sizeof);
+                oldIncludePathLen = GetEnvironmentVariableW("INCLUDE"w.ptr, oldIncludePaths, oldIncludePathLen);
+                scope (exit)
+                {
+                    SetEnvironmentVariableW("INCLUDE"w.ptr, oldIncludePaths);
+                    mem.xfree(oldIncludePaths);
+                }
+
+                // Make new environment variable
+                OutBuffer envbuf;
+                foreach (inc; includePaths[])
+                {
+                    if (FileName.exists(inc) == 2)
+                    {
+                        envbuf.write(cast(const ubyte[])toWStringz(inc[0..strlen(inc)], smbuf));
+                        envbuf.writewchar(';');
+                    }
+                }
+                envbuf.write(cast(const ubyte[])oldIncludePaths[0..oldIncludePathLen]);
+                envbuf.writewchar('\0');
+                // Temporarily set INCLUDE environment variable
+                SetEnvironmentVariableW("INCLUDE"w.ptr, cast(LPCWSTR)envbuf.buf);
+
                 auto szCommand = toWStringz(buf.peekChars()[0 .. buf.length], smbuf);
 
                 int exitCode = runProcessCollectStdout(szCommand.ptr, buffer[], &sink);
@@ -1551,6 +1620,11 @@ int runProcessCollectStdout(const(wchar)* szCommand, ubyte[] buffer, void delega
 /****************************************
  * Write filename to cmdbuf, quoting if necessary.
  */
+private void writeFilename(OutBuffer* buf, const(char)* filename)
+{
+    writeFilename(buf, filename.toDString());
+}
+
 private void writeFilename(OutBuffer* buf, const(char)[] filename) @safe
 {
     /* Loop and see if we need to quote
@@ -1571,7 +1645,235 @@ private void writeFilename(OutBuffer* buf, const(char)[] filename) @safe
     buf.writestring(filename);
 }
 
-private void writeFilename(OutBuffer* buf, const(char)* filename)
+/**
+Translate linker output to more user-friendly error messages, by extracting mangled symbols and demangling them
+Params:
+    linkerOutput = text that the linker printed
+    eSink = sink for translated errors
+*/
+void parseLinkerOutput(const(char)[] linkerOutput, ErrorSink eSink)
 {
-    writeFilename(buf, filename.toDString());
+    // Some linkers quote symbols like `so' or 'so', strip the quotes
+    static string unquote(string s)
+    {
+        if (s.length < 2)
+            return s;
+        if (s[0] == '\'' || s[0] == '`' || s[0] == '"')
+            s = s[1 .. $];
+        if (s[$ - 1] == '\'' || s[$ - 1] == '"')
+            s = s[0 .. $ - 1];
+        return s;
+    }
+
+    static string stripLeft(string s)
+    {
+        while (s.length > 0 && s[0] == ' ')
+            s = s[1 .. $];
+        return s;
+    }
+
+    bool missingSymbols = false;
+    bool missingDfunction = false;
+    bool missingMain = false;
+
+    void missingSymbol(const(char)[] name, const(char)[] referencedFrom)
+    {
+        import core.demangle: demangle;
+        if (name.startsWith("__D"))
+            name = name[1 .. $]; // MS LINK prepends underscore to the existing one
+        auto sym = demangle(name);
+
+        missingSymbols = true;
+        if (sym == "main")
+            missingMain = true;
+        if (sym != name)
+            missingDfunction = true;
+
+        eSink.error(Loc.initial, "undefined reference to `%.*s`", cast(int) sym.length, sym.ptr);
+        if (referencedFrom.length > 0)
+        {
+            if (referencedFrom.startsWith("__D"))
+                referencedFrom = referencedFrom[1 .. $];
+
+            const(char)[] refFunc = demangle(referencedFrom);
+            eSink.errorSupplemental(Loc.initial, "referenced from `%.*s`", cast(int) refFunc.length, refFunc.ptr);
+        }
+    }
+
+    string lastSymbol;
+    void parseLine(const char[] line)
+    {
+        if (auto s0 = line.findSplit(" undefined reference to "))
+        {
+            if (string sym = unquote(s0[2]))
+            {
+                if (auto r = s0[0].findBetween("(.text.", "["))
+                    missingSymbol(sym, r);
+                else if (auto r = s0[0].findBetween(":function ", ":(.text"))
+                    missingSymbol(sym, r);
+                else
+                    missingSymbol(sym, null);
+            }
+        }
+        if (auto s0 = line.findSplit("LNK2019: unresolved external symbol "))
+        {
+            if (auto s1 = s0[2].findSplit(" referenced in function "))
+                missingSymbol(s1[0], s1[2]);
+            else
+                missingSymbol(s0[2], null);
+        }
+        if (auto s0 = line.findSplit("undefined symbol: "))
+        {
+            missingSymbol(s0[2], null);
+        }
+        if (auto s0 = line.findSplit(", referenced from:"))
+        {
+            if (string sym = unquote(stripLeft(s0[0])))
+            {
+                lastSymbol = sym; // ;missingSymbol(sym, null);
+            }
+        }
+        if (lastSymbol.length > 0)
+        {
+            if (auto s0 = line.findSplit(" in "))
+                missingSymbol(lastSymbol, stripLeft(s0[0]));
+            else
+                missingSymbol(lastSymbol,null);
+
+            lastSymbol = null;
+        }
+
+    }
+
+    size_t s = 0;
+    foreach (i; 0 .. linkerOutput.length)
+    {
+        if (linkerOutput[i] == '\n')
+        {
+            const cr = i > 0 && linkerOutput[i - 1] == '\r';
+            parseLine(linkerOutput[s .. i - cr]);
+            s = i + 1;
+        }
+    }
+    parseLine(linkerOutput[s .. $]);
+
+    if (missingMain)
+        eSink.errorSupplemental(Loc.initial, "perhaps define a `void main() {}` function or use the `-main` switch");
+
+    if (missingDfunction)
+        eSink.errorSupplemental(Loc.initial, "perhaps `.d` files need to be added on the command line, or use `-i` to compile imports");
+    else if (missingSymbols)
+        eSink.errorSupplemental(Loc.initial, "perhaps a library needs to be added with the `-L` flag or `pragma(lib, ...)`");
+}
+
+unittest
+{
+    // The following strings are the output of various linkers for this code:
+    // module app; void f(); void g() { f(); }
+
+    // ld (bfd is very similar)
+    string ldOutput = "
+/usr/bin/ld: app.o: in function `_D3app1gFZv':
+app.d:(.text._D3app1gFZv[_D3app1gFZv]+0x5): undefined reference to `_D3app1fFZv'
+";
+
+    // lld (mold is very similar)
+    string lldOutput = "
+ld.lld: error: undefined symbol: _D3app1fFZv
+>>> referenced by app.d
+>>>               app.o:(_D3app1gFZv)
+>>> did you mean: _D3app1gFZv
+>>> defined in: app.o
+";
+
+    // gold linker
+    string goldOutput = "
+app.o:app.d:function _D3app1gFZv:(.text._D3app1gFZv+0x5): error: undefined reference to '_D3app1fFZv'
+";
+
+    // Microsoft LINK
+    string linkOutput = "
+app.obj : error LNK2019: unresolved external symbol __D3app1fFZv referenced in function __D3app1gFZv
+app.exe : fatal error LNK1120: 1 unresolved externals
+";
+
+    // ld on MacOS
+    string macLd0 = `
+Undefined symbols for architecture arm64:
+  "__D3app1fFZv", referenced from:
+      __D3app1gFZv in app.o
+  "__D3app1hFZv", referenced from:
+      __D3app1fFZv in app.o
+ld: symbol(s) not found for architecture arm64
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+`;
+
+    string macLd1 = `
+ld: Undefined symbols:
+  __D3app1fFZv, referenced from:
+  __D3app1gFZv in test6.o
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+`;
+
+    class ErrorSinkTest : ErrorSink
+    {
+        public int errorCount = 0;
+        string expectedFormat = "undefined reference to `%.*s`";
+        string[] expectedSymbols;
+
+        extern(C++): override:
+
+        void error(const ref Loc loc, const(char)* format, ...)
+        {
+            assert(format[0 .. strlen(format)] == expectedFormat);
+            va_list ap;
+            va_start(ap, format);
+            const expectedSymbol = expectedSymbols[errorCount++];
+            assert(va_arg!int(ap) == expectedSymbol.length);
+            const actualSymbol = va_arg!(char*)(ap)[0 .. expectedSymbol.length];
+            assert(actualSymbol == expectedSymbol, "expected " ~ expectedSymbol ~ ", not " ~ actualSymbol);
+        }
+
+        void errorSupplemental(const ref Loc loc, const(char)* format, ...)
+        {
+            assert(format.startsWith("perhaps") || format.startsWith("referenced from "));
+        }
+
+        void warning(const ref Loc loc, const(char)* format, ...) {}
+        void warningSupplemental(const ref Loc loc, const(char)* format, ...) {}
+        void message(const ref Loc loc, const(char)* format, ...) {}
+        void deprecation(const ref Loc loc, const(char)* format, ...) {}
+        void deprecationSupplemental(const ref Loc loc, const(char)* format, ...) {}
+    }
+
+    void test(T...)(string linkerName, string output, T expectedSymbols)
+    {
+        auto testSink = new ErrorSinkTest();
+        testSink.expectedSymbols = [expectedSymbols];
+        parseLinkerOutput(output, testSink);
+        assert(testSink.errorCount > 0, "failed to demangle output of " ~ linkerName);
+    }
+
+    test("ld", ldOutput, "void app.f()");
+    test("lld", lldOutput, "void app.f()");
+    test("gold", goldOutput, "void app.f()");
+    test("link", linkOutput, "void app.f()");
+    test("ld", macLd0, "void app.f()", "void app.h()");
+    test("ld", macLd1, "void app.f()");
+
+    string missingMainOutput = "
+/usr/bin/ld: /usr/lib/gcc/x86_64-pc-linux-gnu/13.2.1/../../../../lib/Scrt1.o: in function `_start':
+(.text+0x1b): undefined reference to `main'
+";
+
+    test("ld", missingMainOutput, "main");
+
+    string missingExternCOutput = "
+/usr/bin/ld: app.o: in function `_D3app__T2αVAyaa3_616263ZQrFZv':
+../test/app.d:(.text._D3app__T2αVAyaa3_616263ZQrFZv[_D3app__T2αVAyaa3_616263ZQrFZv]+0x5): undefined reference to `my_A'
+/usr/bin/ld: ../test/app.d:(.text._D3app__T2αVAyaa3_616263ZQrFZv[_D3app__T2αVAyaa3_616263ZQrFZv]+0xa): undefined reference to `my_B'
+";
+
+    test("ld", missingExternCOutput, "my_A", "my_B");
+
 }

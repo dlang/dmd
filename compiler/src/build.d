@@ -5,6 +5,8 @@ DMD builder
 Usage:
   ./build.d dmd
 
+See `--help` for targets.
+
 detab, tolf, install targets - require the D Language Tools (detab.exe, tolf.exe)
   https://github.com/dlang/tools.
 
@@ -675,7 +677,10 @@ alias buildFrontendHeaders = makeRule!((builder, rule) {
             ["-J" ~ env["RES"], "-c", "-o-", "-HCf="~rule.target,
             // Enforce the expected target architecture
             "-m64", "-os=linux",
-            ] ~ dmdSources);
+            ] ~ dmdSources ~
+            // Set druntime up to be imported explicitly,
+            //  so that druntime doesn't have to be built to run the updating of c++ headers.
+            ["-I../druntime/src"]);
 });
 
 alias runCxxHeadersTest = makeRule!((builder, rule) {
@@ -1434,6 +1439,23 @@ void processEnvironment()
         dflags ~= ["-fsanitize="~sanitizers];
     }
 
+    // Determine the version of FreeBSD that we're building on if the target OS
+    // version has not already been set.
+    version (FreeBSD)
+    {
+        import std.ascii : isDigit;
+
+        if (flags.get("DFLAGS", []).find!(a => a.startsWith("-version=TARGET_FREEBSD"))().empty)
+        {
+            // uname -K gives the kernel version, e.g. 1400097. The first two
+            // digits correspond to the major version of the OS.
+            immutable result = executeShell("uname -K");
+            if (result.status != 0 || !result.output.take(2).all!isDigit())
+                throw abortBuild("Failed to get the kernel version");
+            dflags ~= ["-version=TARGET_FREEBSD" ~ result.output[0 .. 2]];
+        }
+    }
+
     // Retain user-defined flags
     flags["DFLAGS"] = dflags ~= flags.get("DFLAGS", []);
 }
@@ -1545,7 +1567,7 @@ auto sourceFiles()
         "),
         frontend: fileArray(env["D"], "
             access.d aggregate.d aliasthis.d argtypes_x86.d argtypes_sysv_x64.d argtypes_aarch64.d arrayop.d
-            arraytypes.d astenums.d ast_node.d astcodegen.d asttypename.d attrib.d basicmangle.d blockexit.d builtin.d canthrow.d chkformat.d
+            arraytypes.d astenums.d ast_node.d astcodegen.d asttypename.d attrib.d attribsem.d basicmangle.d blockexit.d builtin.d canthrow.d chkformat.d
             cli.d clone.d compiler.d cond.d constfold.d cppmangle.d cppmanglewin.d cpreprocess.d ctfeexpr.d
             ctorflow.d dcast.d dclass.d declaration.d delegatize.d denum.d dimport.d
             dinterpret.d dmacro.d dmangle.d dmodule.d doc.d dscope.d dstruct.d dsymbol.d dsymbolsem.d
@@ -1584,7 +1606,7 @@ auto sourceFiles()
             stringtable.d utf.d
         "),
         common: fileArray(env["COMMON"], "
-            bitfields.d file.d int128.d md5.d outbuffer.d smallbuffer.d
+            bitfields.d file.d int128.d blake3.d outbuffer.d smallbuffer.d charactertables.d identifiertables.d
         "),
         commonHeaders: fileArray(env["COMMON"], "
             outbuffer.h

@@ -96,8 +96,6 @@ void code_free(code *cstart)
 /*****************
  * Terminate code
  */
-
-@trusted
 void code_term()
 {
 static if (TERMCODE)

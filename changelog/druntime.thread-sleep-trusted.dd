@@ -1,0 +1,4 @@
+Mark `Thread.sleep` as `@trusted`
+
+The static method `core.thread.Thread.sleep` is now marked as `@trusted` and
+can be called directly from `@safe` code.

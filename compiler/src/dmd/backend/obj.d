@@ -80,7 +80,7 @@ else
             mixin(genRetVal("termfile()"));
         }
 
-        void term(const(char)* objfilename)
+        void term(const(char)[] objfilename)
         {
             mixin(genRetVal("term(objfilename)"));
         }

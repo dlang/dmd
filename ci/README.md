@@ -71,13 +71,12 @@ There are currently 49 checks.
 - Azure pipelines (Windows_Coverage x64)
 - Azure pipelines (Windows_DMD_bootstrap x64)
 - Azure pipelines (Windows_DMD_latest x64)
-- Azure pipelines (Windows_DMD_latest x86-OMF)
 - Azure pipelines (Windows_VisualD_LDC x64_Debug)
 - Azure pipelines (Windows_VisualD_LDC x86-mscoff)
 - Azure pipelines (Windows_VisualD_LDC x86-mscoff_MinGW)
 
 Azure pipelines run on Windows platforms, and build DMD, Phobos and Druntime, and run their unittests.
-Windows has three binary formats: 32-bit OMF (deprecated), 32-bit COFF, and 64-bit COFF.
+Windows has two binary formats: 32-bit COFF, and 64-bit COFF.
 
 ### DAutoTest
 

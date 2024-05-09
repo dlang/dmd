@@ -229,6 +229,78 @@ fiber_switchContext:
 
     jr $ra // return
 
+#elif defined(__mips64) && _MIPS_SIM == _ABI64
+/************************************************************************************
+ * MIPS 64 ASM BITS
+ * $a0 - void** - ptr to old stack pointer
+ * $a1 - void*  - new stack pointer
+ *
+ */
+.text
+.globl fiber_switchContext
+fiber_switchContext:
+    .cfi_startproc
+    daddiu $sp, $sp, -(10 * 8)
+
+    // fp regs and return address are stored below the stack
+    // because we don't want the GC to scan them.
+
+#ifdef __mips_hard_float
+#define BELOW (8 * 8 + 8)
+    s.d  $f24, (0 * 8 - BELOW)($sp)   # save F24
+    s.d  $f25, (1 * 8 - BELOW)($sp)   # save F25
+    s.d  $f26, (2 * 8 - BELOW)($sp)  # save F26
+    s.d  $f27, (3 * 8 - BELOW)($sp)  # save F27
+    s.d  $f28, (4 * 8 - BELOW)($sp)  # save F28
+    s.d  $f29, (5 * 8 - BELOW)($sp)  # save F29
+    s.d  $f30, (6 * 8 - BELOW)($sp)  # save F30
+    s.d  $f31, (7 * 8 - BELOW)($sp)  # save F31
+#endif
+    sd $ra, -8($sp)
+
+    sd  $s0, (0 * 8)($sp)  # save S0
+    sd  $s1, (1 * 8)($sp)  # save S1
+    sd  $s2, (2 * 8)($sp)  # save S2
+    sd  $s3, (3 * 8)($sp)  # save S3
+    sd  $s4, (4 * 8)($sp)  # save S4
+    sd  $s5, (5 * 8)($sp) # save S5
+    sd  $s6, (6 * 8)($sp) # save S6
+    sd  $s7, (7 * 8)($sp) # save S7
+    sd  $gp, (8 * 8)($sp) # save GP
+    sd  $fp, (9 * 8)($sp) # save FP
+
+    // swap stack pointer
+    sd   $sp, 0($a0)
+    move $sp, $a1
+
+#ifdef __mips_hard_float
+    l.d  $f24, (0 * 8 - BELOW)($sp)   # restore F24
+    l.d  $f25, (1 * 8 - BELOW)($sp)   # restore F25
+    l.d  $f26, (2 * 8 - BELOW)($sp)  # restore F26
+    l.d  $f27, (3 * 8 - BELOW)($sp)  # restore F27
+    l.d  $f28, (4 * 8 - BELOW)($sp)  # restore F28
+    l.d  $f29, (5 * 8 - BELOW)($sp)  # restore F29
+    l.d  $f30, (6 * 8 - BELOW)($sp)  # restore F30
+    l.d  $f31, (7 * 8 - BELOW)($sp)  # restore F31
+#endif
+    ld $ra, -8($sp)
+
+    ld $s0, (0 * 8)($sp)
+    ld $s1, (1 * 8)($sp)
+    ld $s2, (2 * 8)($sp)
+    ld $s3, (3 * 8)($sp)
+    ld $s4, (4 * 8)($sp)
+    ld $s5, (5 * 8)($sp)
+    ld $s6, (6 * 8)($sp)
+    ld $s7, (7 * 8)($sp)
+    ld $gp, (8 * 8)($sp)
+    ld $fp, (9 * 8)($sp)
+
+    daddiu $sp, $sp, (10 * 8)
+
+    jr $ra // return
+    .cfi_endproc
+
 #elif defined(__loongarch64)
 /************************************************************************************
  * LoongArch64 ASM BITS

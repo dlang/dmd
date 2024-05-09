@@ -1,6 +1,6 @@
 COPY=\
 	$(IMPDIR)\object.d \
-	$(IMPDIR)\__builtins.di \
+	$(IMPDIR)\__importc_builtins.di \
 	$(IMPDIR)\importc.h \
 	\
 	$(IMPDIR)\core\gc\config.d \
@@ -173,6 +173,7 @@ COPY=\
 	$(IMPDIR)\core\sys\freebsd\err.d \
 	$(IMPDIR)\core\sys\freebsd\execinfo.d \
 	$(IMPDIR)\core\sys\freebsd\ifaddrs.d \
+	$(IMPDIR)\core\sys\freebsd\mqueue.d \
 	$(IMPDIR)\core\sys\freebsd\pthread_np.d \
 	$(IMPDIR)\core\sys\freebsd\stdlib.d \
 	$(IMPDIR)\core\sys\freebsd\string.d \
@@ -258,6 +259,7 @@ COPY=\
 	$(IMPDIR)\core\sys\linux\sys\file.d \
 	$(IMPDIR)\core\sys\linux\sys\inotify.d \
 	$(IMPDIR)\core\sys\linux\sys\mman.d \
+	$(IMPDIR)\core\sys\linux\sys\mount.d \
 	$(IMPDIR)\core\sys\linux\sys\signalfd.d \
 	$(IMPDIR)\core\sys\linux\sys\socket.d \
 	$(IMPDIR)\core\sys\linux\sys\sysinfo.d \

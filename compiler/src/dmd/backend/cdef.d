@@ -700,11 +700,11 @@ struct con_t
 import dmd.backend.bcomplex;
 
 /*********************************
- * Union of all data types. Storage allocated must be the right
+ * Union of all arithmetic data types. Storage allocated must be the right
  * size of the data on the TARGET, not the host.
  */
 
-union eve
+union Vconst
 {
         targ_char       Vchar;
         targ_schar      Vschar;
@@ -751,45 +751,6 @@ union eve
         targ_ulong[8]   Vulong8;   // uint[8]
         targ_llong[4]   Vllong4;   // long[4]
         targ_ullong[4]  Vullong4;  // ulong[4]
-
-        struct                  // 48 bit 386 far pointer
-        {   targ_long   Voff;
-            targ_ushort Vseg;
-        }
-        struct
-        {
-            targ_size_t Voffset;// offset from symbol
-            Symbol *Vsym;       // pointer to symbol table
-            union
-            {
-                param_t* Vtal;  // template-argument-list for SCfunctempl,
-                                // used only to transmit it to cpp_overload()
-                LIST* Erd;      // OPvar: reaching definitions
-            }
-        }
-        struct
-        {
-            targ_size_t Voffset2;// member pointer offset
-            Classsym* Vsym2;    // struct tag
-            elem* ethis;        // OPrelconst: 'this' for member pointer
-        }
-        struct
-        {
-            targ_size_t Voffset3;// offset from string
-            char* Vstring;      // pointer to string (OPstring or OPasm)
-            size_t Vstrlen;     // length of string
-        }
-        struct
-        {
-            elem* E1;           // left child for unary & binary nodes
-            elem* E2;           // right child for binary nodes
-            Symbol* Edtor;      // OPctor: destructor
-        }
-        struct
-        {
-            elem* Eleft2;       // left child for OPddtor
-            void* Edecl;        // VarDeclaration being constructed
-        }                       // OPdctor,OPddtor
 }                               // variants for each type of elem
 
 // Symbols

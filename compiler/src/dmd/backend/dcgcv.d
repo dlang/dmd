@@ -384,7 +384,7 @@ void cv_init()
         Symbol **p = cast(Symbol **)reset_symbuf.buf;
         const size_t n = reset_symbuf.length() / (Symbol *).sizeof;
         for (size_t i = 0; i < n; ++i)
-            symbol_reset(p[i]);
+            symbol_reset(*p[i]);
         reset_symbuf.reset();
     }
     else
@@ -817,7 +817,7 @@ idx_t cv4_struct(Classsym *s,int flags)
             break;
 
         default:
-            symbol_print(s);
+            symbol_print(*s);
             assert(0);
     }
     TOWORD(d.data.ptr,leaf);
@@ -1637,14 +1637,14 @@ private void cv4_outsym(Symbol *s)
                     s.Sfl = FLreg;
                     goto case_register;
                 }
-                base = Para.size - BPoff;    // cancel out add of BPoff
+                base = cgstate.Para.size - BPoff;    // cancel out add of BPoff
                 goto L1;
 
             case SC.auto_:
                 if (s.Sfl == FLreg)
                     goto case_register;
             case_auto:
-                base = Auto.size;
+                base = cgstate.Auto.size;
             L1:
                 if (s.Sscope) // local variables moved into the closure cannot be emitted directly
                     goto Lret;
@@ -1668,7 +1668,7 @@ private void cv4_outsym(Symbol *s)
 
             case SC.fastpar:
                 if (s.Sfl != FLreg)
-                {   base = Fast.size;
+                {   base = cgstate.Fast.size;
                     goto L1;
                 }
                 goto case_register;

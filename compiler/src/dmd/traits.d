@@ -20,6 +20,7 @@ import dmd.arraytypes;
 import dmd.astcodegen;
 import dmd.astenums;
 import dmd.attrib;
+import dmd.attribsem;
 import dmd.canthrow;
 import dmd.dclass;
 import dmd.declaration;
@@ -500,6 +501,17 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 return false;
             return overloadApply(s,
                 sm => sm.isTemplateDeclaration() !is null) != 0;
+        });
+    }
+    if (e.ident == Id.isBitfield)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        return isDsymX((s)
+        {
+            s = s.toAlias();
+            return s.isBitFieldDeclaration() !is null;
         });
     }
     if (e.ident == Id.isPOD)

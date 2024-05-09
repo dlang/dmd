@@ -149,7 +149,7 @@ static if (0)
             int n = 0;
             for (code *c = b.Bcode; c; c = code_next(c))
             {
-                if (c.Iop == (ESCAPE | ESCdctor))
+                if (c.Iop == PSOP.dctor)
                 {
                     uint i = cast(uint) deh.length;
                     DwEhTableEntry *d = deh.push();
@@ -159,7 +159,7 @@ static if (0)
                     ++n;
                 }
 
-                if (c.Iop == (ESCAPE | ESCddtor))
+                if (c.Iop == PSOP.ddtor)
                 {
                     assert(n > 0);
                     --n;

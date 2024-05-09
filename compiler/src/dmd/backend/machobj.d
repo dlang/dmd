@@ -137,7 +137,7 @@ private void reset_symbols(OutBuffer *buf)
     Symbol **p = cast(Symbol **)buf.buf;
     const size_t n = buf.length() / (Symbol *).sizeof;
     for (size_t i = 0; i < n; ++i)
-        symbol_reset(p[i]);
+        symbol_reset(*p[i]);
 }
 
 __gshared
@@ -607,7 +607,7 @@ void MachObj_termfile()
  * Terminate package.
  */
 @trusted
-void MachObj_term(const(char)* objfilename)
+void MachObj_term(const(char)[] objfilename)
 {
     //printf("MachObj_term()\n");
     outfixlist();           // backpatches
@@ -2022,7 +2022,7 @@ char *obj_mangle2(Symbol *s,char *dest)
 debug
 {
             printf("mangling %x\n",type_mangle(s.Stype));
-            symbol_print(s);
+            symbol_print(*s);
 }
             printf("%d\n", type_mangle(s.Stype));
             assert(0);
@@ -2468,7 +2468,7 @@ int MachObj_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
         CF_print(flags);
         debug printf("retsize = %d\n", retsize);
         //dbg_printf("Sseg = %d, Sxtrnnum = %d\n",s.Sseg,s.Sxtrnnum);
-        symbol_print(s);
+        symbol_print(*s);
     }
     assert(seg > 0);
     if (s.Sclass != SC.locstat && !s.Sxtrnnum)
@@ -2707,7 +2707,6 @@ void MachObj_moduleinfo(Symbol *scc)
 
 /*************************************
  */
-@trusted
 void MachObj_gotref(Symbol *s)
 {
     //printf("MachObj_gotref(%x '%s', %d)\n",s,s.Sident.ptr, s.Sclass);

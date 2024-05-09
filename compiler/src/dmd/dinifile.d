@@ -13,6 +13,7 @@
 module dmd.dinifile;
 
 import core.stdc.ctype;
+import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.stdlib;
 
@@ -188,9 +189,12 @@ void updateRealEnvironment(ref StringTable!(char*) environment)
  *      path = what @P will expand to
  *      buffer = contents of configuration file
  *      sections = section names
+ * Returns:
+ *      true on failure
  */
-void parseConfFile(ref StringTable!(char*) environment, const(char)[] filename, const(char)[] path, const(ubyte)[] buffer, const(Strings)* sections)
+bool parseConfFile(ref StringTable!(char*) environment, const(char)[] filename, const(char)[] path, const(ubyte)[] buffer, const(Strings)* sections)
 {
+    //printf("buffer: '%.*s'\n", cast(int)buffer.length, buffer.ptr);
     /********************
      * Skip spaces.
      */
@@ -370,7 +374,7 @@ void parseConfFile(ref StringTable!(char*) environment, const(char)[] filename, 
                     {
                         const loc = Loc(filename.xarraydup.ptr, lineNum, 0); // TODO: use r-value when `error` supports it
                         error(loc, "use `NAME=value` syntax, not `%s`", pn);
-                        fatal();
+                        return true;
                     }
                     static if (LOG)
                     {
@@ -382,4 +386,5 @@ void parseConfFile(ref StringTable!(char*) environment, const(char)[] filename, 
             break;
         }
     }
+    return false; // success
 }

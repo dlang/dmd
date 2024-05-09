@@ -212,7 +212,7 @@ void cv8_initfile(const(char)* filename)
 }
 
 @trusted
-void cv8_termfile(const(char)* objfilename)
+void cv8_termfile(const(char)[] objfilename)
 {
     //printf("cv8_termfile()\n");
 
@@ -227,11 +227,11 @@ void cv8_termfile(const(char)* objfilename)
     /* Start with starting symbol in separate "F1" section
      */
     auto buf = OutBuffer(1024);
-    size_t len = strlen(objfilename);
+    size_t len = objfilename.length;
     buf.write16(cast(int)(2 + 4 + len + 1));
     buf.write16(S_COMPILAND_V3);
     buf.write32(0);
-    buf.write(objfilename, cast(uint)(len + 1));
+    buf.write(objfilename.ptr, cast(uint)(len + 1));
 
     // write S_COMPILE record
     buf.write16(2 + 1 + 1 + 2 + 1 + VERSION.length + 1);
@@ -626,14 +626,14 @@ L1:
         ushort type = *cast(ushort *)(p + u);
         u += 2;
         if (type == 0x0110)
-            u += 16;            // MD5 checksum
+            u += 16;            // truncated blake3 hash
         u += 2;
     }
 
     // Not there. Add it.
     F4_buf.write32(off);
 
-    /* Write 10 01 [MD5 checksum]
+    /* Write 10 01 [blake3 hash]
      *   or
      * 00 00
      */
@@ -702,14 +702,14 @@ void cv8_outsym(Symbol *s)
                 s.Sfl = FLreg;
                 goto case_register;
             }
-            base = cast(uint)(Para.size - BPoff);    // cancel out add of BPoff
+            base = cast(uint)(cgstate.Para.size - BPoff);    // cancel out add of BPoff
             goto L1;
 
         case SC.auto_:
             if (s.Sfl == FLreg)
                 goto case_register;
         case_auto:
-            base = cast(uint)Auto.size;
+            base = cast(uint)cgstate.Auto.size;
         L1:
             if (s.Sscope) // local variables moved into the closure cannot be emitted directly
                 break;
@@ -744,7 +744,7 @@ else
 
         case SC.fastpar:
             if (s.Sfl != FLreg)
-            {   base = cast(uint)Fast.size;
+            {   base = cast(uint)cgstate.Fast.size;
                 goto L1;
             }
             goto L2;

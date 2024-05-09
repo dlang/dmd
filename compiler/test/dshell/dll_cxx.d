@@ -4,8 +4,8 @@ import std.stdio;
 
 int main()
 {
-    // Only run this test, if CC has been set.
-    if (Vars.CC.empty)
+    // Only run this test, if CXX has been set.
+    if (Vars.CXX.empty)
         return DISABLED;
 
     version (Windows)
@@ -20,20 +20,20 @@ int main()
     Vars.set(`EXE_NAME`, `$OUTPUT_BASE${SEP}testdll$EXE`);
     Vars.set(`DLL`, `$OUTPUT_BASE${SEP}mydll$SOEXT`);
 
-    string[] dllCmd = [Vars.CC];
+    string[] dllCmd = [Vars.CXX];
     string mainExtra;
     version (Windows)
     {
         Vars.set(`DLL_LIB`, `$OUTPUT_BASE${SEP}mydll.lib`);
         if (Vars.MODEL == "32omf")
         {
-            // CC should be dmc for win32omf.
+            // CXX should be dmc for win32omf.
             dllCmd ~= [`-mn`, `-L/implib:` ~ Vars.DLL_LIB, `-WD`, `-o` ~ Vars.DLL, `kernel32.lib`, `user32.lib`];
             mainExtra = `$DLL_LIB`;
         }
         else
         {
-            // CC should be cl for win32mscoff.
+            // CXX should be cl for win32mscoff.
             dllCmd ~= [`/LD`, `/nologo`, `/Fe` ~ Vars.DLL];
             mainExtra = `$DLL_LIB`;
         }

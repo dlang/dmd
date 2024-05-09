@@ -93,7 +93,7 @@ elem * el_var(Symbol *s)
     type_debug(s.Stype);
     e = el_calloc();
     e.Eoper = OPvar;
-    e.EV.Vsym = s;
+    e.Vsym = s;
     type_debug(s.Stype);
     e.Ety = s.ty();
     if (s.Stype.Tty & mTYthread)
@@ -141,7 +141,7 @@ else if (config.exe & EX_posix)
         if (I64)
             Obj.refGOTsym();
         elem *e1 = el_calloc();
-        e1.EV.Vsym = s;
+        e1.Vsym = s;
         if (s.Sclass == SC.global ||
             s.Sclass == SC.static_ ||
             s.Sclass == SC.locstat)
@@ -158,8 +158,8 @@ else if (config.exe & EX_posix)
         elem* e2 = el_una(OPind, TYsize, el_long(TYfgPtr, 0)); // I64: FS:[0000], I32: GS:[0000]
 
         e.Eoper = OPind;
-        e.EV.E1 = el_bin(OPadd,e1.Ety,e2,e1);
-        e.EV.E2 = null;
+        e.E1 = el_bin(OPadd,e1.Ety,e2,e1);
+        e.E2 = null;
 }
 else if (config.exe & EX_windos)
 {
@@ -192,7 +192,7 @@ else if (config.exe & EX_windos)
 
         e1 = el_calloc();
         e1.Eoper = OPrelconst;
-        e1.EV.Vsym = s;
+        e1.Vsym = s;
         e1.Ety = TYnptr;
 
         if (false && config.wflags & WFexe) // disabled to work with betterC/importC
@@ -209,8 +209,8 @@ else if (config.exe & EX_windos)
         e2 = el_una(OPind,TYsize_t,e2);
 
         e.Eoper = OPind;
-        e.EV.E1 = el_bin(OPadd,e1.Ety,e1,e2);
-        e.EV.E2 = null;
+        e.E1 = el_bin(OPadd,e1.Ety,e1,e2);
+        e.E2 = null;
 }
     }
     return e;
@@ -230,7 +230,7 @@ elem * el_ptr(Symbol *s)
     symbol_debug(s);
     type_debug(s.Stype);
 
-    const typtr = s.symbol_pointerType();
+    const typtr = symbol_pointerType(*s);
 
     if (config.exe & (EX_OSX | EX_OSX64))
     {
@@ -268,7 +268,7 @@ elem * el_ptr(Symbol *s)
         {
             elem* e = el_calloc();
             e.Eoper = OPvar;
-            e.EV.Vsym = s;
+            e.Vsym = s;
             if (I64)
                 e.Ety = typtr;
             else if (I32)
@@ -386,7 +386,7 @@ private elem *el_picvar_OSX(Symbol *s)
     type_debug(s.Stype);
     e = el_calloc();
     e.Eoper = OPvar;
-    e.EV.Vsym = s;
+    e.Vsym = s;
     e.Ety = s.ty();
 
     switch (s.Sclass)
@@ -502,7 +502,7 @@ static if (1)
 
                 elem *e2 = el_calloc();
                 e2.Eoper = OPvar;
-                e2.EV.Vsym = s;
+                e2.Vsym = s;
                 e2.Ety = s.ty();
                 e2.Eoper = OPrelconst;
                 e2.Ety = TYnptr;
@@ -537,7 +537,7 @@ private elem *el_picvar_posix(Symbol *s)
     type_debug(s.Stype);
     e = el_calloc();
     e.Eoper = OPvar;
-    e.EV.Vsym = s;
+    e.Vsym = s;
     e.Ety = s.ty();
 
     /* For 32 bit PIC:
@@ -757,7 +757,7 @@ private elem *el_pievar(Symbol *s)
     type_debug(s.Stype);
     auto e = el_calloc();
     e.Eoper = OPvar;
-    e.EV.Vsym = s;
+    e.Vsym = s;
     e.Ety = s.ty();
 
     if (I64)
@@ -840,7 +840,7 @@ private elem *el_pieptr(Symbol *s)
     type_debug(s.Stype);
     auto e = el_calloc();
     e.Eoper = OPrelconst;
-    e.EV.Vsym = s;
+    e.Vsym = s;
     e.Ety = TYnptr;
 
     elem* e0 = el_una(OPind, TYsize, el_long(TYfgPtr, 0)); // I64: FS:[0000], I32: GS:[0000]

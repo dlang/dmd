@@ -112,7 +112,6 @@ struct CodeBuilder
         }
     }
 
-    @trusted
     void gen(code *cs)
     {
         /* this is a high usage routine */
@@ -130,7 +129,6 @@ struct CodeBuilder
         pTail = &ce.next;
     }
 
-    @trusted
     void gen1(opcode_t op)
     {
         code *ce = code_calloc();
@@ -142,7 +140,6 @@ struct CodeBuilder
         pTail = &ce.next;
     }
 
-    @trusted
     void gen2(opcode_t op, uint rm)
     {
         code *ce = code_calloc();
@@ -157,14 +154,12 @@ struct CodeBuilder
     /***************************************
      * Generate floating point instruction.
      */
-    @trusted
     void genf2(opcode_t op, uint rm)
     {
         genfwait(this);
         gen2(op, rm);
     }
 
-    @trusted
     void gen2sib(opcode_t op, uint rm, uint sib)
     {
         code *ce = code_calloc();
@@ -295,7 +290,7 @@ struct CodeBuilder
     {
         code cs;
         //srcpos.print("genlinnum");
-        cs.Iop = ESCAPE | ESClinnum;
+        cs.Iop = PSOP.linnum;
         cs.Iflags = 0;
         cs.Iea = 0;
         cs.IEV1.Vsrcpos = srcpos;
@@ -312,7 +307,7 @@ struct CodeBuilder
         if (!I16 && offset)
         {
             code cs;
-            cs.Iop = ESCAPE | ESCadjesp;
+            cs.Iop = PSOP.adjesp;
             cs.Iflags = 0;
             cs.Iea = 0;
             cs.IEV1.Vint = offset;
@@ -330,7 +325,7 @@ struct CodeBuilder
         if (!I16 && offset)
         {
             code cs;
-            cs.Iop = ESCAPE | ESCadjfpu;
+            cs.Iop = PSOP.adjfpu;
             cs.Iflags = 0;
             cs.Iea = 0;
             cs.IEV1.Vint = offset;

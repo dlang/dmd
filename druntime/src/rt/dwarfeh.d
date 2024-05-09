@@ -181,7 +181,7 @@ struct ExceptionHeader
         auto eh = &ehstorage;
         if (eh.object)                  // if in use
         {
-            eh = cast(ExceptionHeader*)core.stdc.stdlib.calloc(ExceptionHeader.sizeof, 1);
+            eh = cast(ExceptionHeader*)core.stdc.stdlib.calloc(1, ExceptionHeader.sizeof);
             if (!eh)
                 terminate(__LINE__);              // out of memory while throwing - not much else can be done
         }

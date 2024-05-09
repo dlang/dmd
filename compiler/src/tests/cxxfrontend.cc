@@ -698,7 +698,7 @@ public:
     {
         if (!sym->userAttribDecl())
             return;
-        Expressions *attrs = sym->userAttribDecl()->getAttributes();
+        Expressions *attrs = dmd::getAttributes(sym->userAttribDecl());
         if (attrs)
         {
             dmd::expandTuples(attrs);

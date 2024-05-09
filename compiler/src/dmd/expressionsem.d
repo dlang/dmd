@@ -3222,7 +3222,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                 /* Argument value can be assigned to firstArg.
                  * Check arg to see if it matters.
                  */
-                err |= checkParamArgumentReturn(sc, firstArg, arg, p, false);
+                err |= checkParamArgumentReturn(*sc, firstArg, arg, p, false);
             }
             // Allow 'lazy' to imply 'scope' - lazy parameters can be passed along
             // as lazy parameters to the next function, but that isn't escaping.
@@ -3236,7 +3236,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                  * Check arg to see if it matters.
                  */
                 VarDeclaration vPar = fd ? (fd.parameters ? (*fd.parameters)[i] : null) : null;
-                err |= checkParamArgumentEscape(sc, fd, p.ident, vPar, cast(STC) pStc, arg, false, false);
+                err |= checkParamArgumentEscape(*sc, fd, p.ident, vPar, cast(STC) pStc, arg, false, false);
             }
 
             // Turning heap allocations into stack allocations is dangerous without dip1000, since `scope` inference
@@ -3375,7 +3375,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             }
             err |= arg.checkValue();
             err |= arg.checkSharedAccess(sc);
-            err |= checkParamArgumentEscape(sc, fd, Id.dotdotdot, null, cast(STC) tf.parameterList.stc, arg, false, false);
+            err |= checkParamArgumentEscape(*sc, fd, Id.dotdotdot, null, cast(STC) tf.parameterList.stc, arg, false, false);
             arg = arg.optimize(WANTvalue);
         }
         (*arguments)[i] = arg;
@@ -3575,7 +3575,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
      */
     if (global.params.useDIP1021 && (tf.trust == TRUST.safe || tf.trust == TRUST.default_) ||
         tf.islive)
-        err |= checkMutableArguments(sc, fd, tf, ethis, arguments, false);
+        err |= checkMutableArguments(*sc, fd, tf, ethis, arguments, false);
 
     // If D linkage and variadic, add _arguments[] as first argument
     if (tf.isDstyleVariadic())
@@ -4466,7 +4466,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         semanticTypeInfo(sc, e.type);
 
-        if (checkAssocArrayLiteralEscape(sc, e, false))
+        if (checkAssocArrayLiteralEscape(*sc, e, false))
             return setError();
 
         result = e;
@@ -5206,7 +5206,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                  */
                 foreach (arg; *exp.arguments)
                 {
-                    if (arg && checkNewEscape(sc, arg, false))
+                    if (arg && checkNewEscape(*sc, arg, false))
                         return setError();
                 }
             }
@@ -6317,7 +6317,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tthis = ue.e1.type;
                 if (!(exp.f.type.ty == Tfunction && (cast(TypeFunction)exp.f.type).isScopeQual))
                 {
-                    if (checkParamArgumentEscape(sc, exp.f, Id.This, exp.f.vthis, STC.undefined_, ethis, false, false))
+                    if (checkParamArgumentEscape(*sc, exp.f, Id.This, exp.f.vthis, STC.undefined_, ethis, false, false))
                         return setError();
                 }
             }
@@ -8047,7 +8047,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.msg = resolveProperties(sc, exp.msg);
             exp.msg = exp.msg.implicitCastTo(sc, Type.tchar.constOf().arrayOf());
             exp.msg = exp.msg.optimize(WANTvalue);
-            checkParamArgumentEscape(sc, null, null, null, STC.undefined_, exp.msg, true, false);
+            checkParamArgumentEscape(*sc, null, null, null, STC.undefined_, exp.msg, true, false);
         }
 
         if (exp.msg && exp.msg.op == EXP.error)
@@ -10055,7 +10055,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
 
                 semanticTypeInfo(sc, taa);
-                checkNewEscape(sc, exp.e2, false);
+                checkNewEscape(*sc, exp.e2, false);
 
                 exp.type = taa.next;
                 break;
@@ -10089,7 +10089,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                 if (length <= index)
                 {
-                    error(exp.loc, "array index `[%llu]` is outside array bounds `[0 .. %llu]`", index, cast(ulong)length);
+                    error(exp.loc, "sequence index `[%llu]` is outside bounds `[0 .. %llu]`", index, cast(ulong)length);
                     return setError();
                 }
                 Expression e;
@@ -10751,7 +10751,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         dvx.e1 = e1x;
                         auto cx = cast(CallExp)ce.copy();
                         cx.e1 = dvx;
-                        if (checkConstructorEscape(sc, cx, false))
+                        if (checkConstructorEscape(*sc, cx, false))
                             return setError();
 
                         Expression e0;
@@ -11512,9 +11512,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
          * `checkAssignExp` expects only AssignExps.
          */
         if (res == exp) // no `AA[k] = v` rewrite was performed
-            checkAssignEscape(sc, res, false, false);
+            checkAssignEscape(*sc, res, false, false);
         else
-            checkNewEscape(sc, assignElem, false); // assigning to AA puts it on heap
+            checkNewEscape(*sc, assignElem, false); // assigning to AA puts it on heap
 
         if (auto ae = res.isConstructExp())
         {
@@ -11862,10 +11862,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (tb2.checkPostblit(exp.e2.loc, sc))
                 return setError();
 
-            if (checkNewEscape(sc, exp.e2, false))
+            if (checkNewEscape(*sc, exp.e2, false))
                 return setError();
 
-            exp = new CatElemAssignExp(exp.loc, exp.type, exp.e1, exp.e2.castTo(sc, tb1next));
+            auto ecast = exp.e2.castTo(sc, tb1next);
+            if (auto ce = ecast.isCastExp())
+                ce.trusted = true;
+
+            exp = new CatElemAssignExp(exp.loc, exp.type, exp.e1, ecast);
             exp.e2 = doCopyOrMove(sc, exp.e2);
         }
         else if (tb1.ty == Tarray &&
@@ -11939,9 +11943,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         auto assignElem = exp.e2;
         auto res = exp.reorderSettingAAElem(sc);
         if (res != exp) // `AA[k] = v` rewrite was performed
-            checkNewEscape(sc, assignElem, false);
+            checkNewEscape(*sc, assignElem, false);
         else if (exp.op == EXP.concatenateElemAssign || exp.op == EXP.concatenateDcharAssign)
-            checkAssignEscape(sc, res, false, false);
+            checkAssignEscape(*sc, res, false, false);
 
         result = res;
 
@@ -12512,7 +12516,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.e2 = exp.e2.implicitCastTo(sc, tb1next);
                 exp.type = tb1next.arrayOf();
             L2elem:
-                if (checkNewEscape(sc, exp.e2, false))
+                if (checkNewEscape(*sc, exp.e2, false))
                     return setError();
                 result = exp.optimize(WANTvalue);
                 trySetCatExpLowering(result);
@@ -12546,7 +12550,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.e1 = exp.e1.implicitCastTo(sc, tb2next);
                 exp.type = tb2next.arrayOf();
             L1elem:
-                if (checkNewEscape(sc, exp.e1, false))
+                if (checkNewEscape(*sc, exp.e1, false))
                     return setError();
                 result = exp.optimize(WANTvalue);
                 trySetCatExpLowering(result);
@@ -14302,14 +14306,16 @@ private Expression dotIdSemanticPropX(DotIdExp exp, Scope* sc)
 
     if (auto te = exp.e1.isTupleExp())
     {
-        if (exp.ident == Id.offsetof)
+        if (exp.ident == Id.offsetof    ||
+            exp.ident == Id.bitoffsetof ||
+            exp.ident == Id.bitwidth)
         {
             /* 'distribute' the .offsetof to each of the tuple elements.
              */
             auto exps = new Expressions(te.exps.length);
             foreach (i, e; (*te.exps)[])
             {
-                (*exps)[i] = new DotIdExp(e.loc, e, Id.offsetof);
+                (*exps)[i] = new DotIdExp(e.loc, e, exp.ident);
             }
             // Don't evaluate te.e0 in runtime
             Expression e = new TupleExp(exp.loc, null, exps);
@@ -14632,6 +14638,8 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
                !cfile &&
                 (exp.ident == Id._mangleof ||
                  exp.ident == Id.offsetof ||
+                 exp.ident == Id.bitoffsetof ||
+                 exp.ident == Id.bitwidth ||
                  exp.ident == Id._init ||
                  exp.ident == Id.stringof)
               ))
@@ -15735,7 +15743,15 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
             return visit(_this);
         }
         if (_this.isLvalue())
+        {
+            with (_this)
+            if (!trusted && !e1.type.pointerTo().implicitConvTo(to.pointerTo()))
+                sc.setUnsafePreview(FeatureState.default_, false, loc,
+                    "cast from `%s` to `%s` cannot be used as an lvalue in @safe code",
+                    e1.type, to);
+
             return _this;
+        }
         return visit(_this);
     }
 

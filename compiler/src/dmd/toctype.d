@@ -167,9 +167,9 @@ type* Type_toCtype(Type t)
                 foreach (v; sym.fields)
                 {
                     if (auto bf = v.isBitFieldDeclaration())
-                        symbol_struct_addBitField(cast(Symbol*)(cast(type*)t.ctype).Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset, bf.fieldWidth, bf.bitOffset);
+                        symbol_struct_addBitField(*cast(Symbol*)(cast(type*)t.ctype).Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset, bf.fieldWidth, bf.bitOffset);
                     else
-                        symbol_struct_addField(cast(Symbol*)(cast(type*)t.ctype).Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
+                        symbol_struct_addField(*cast(Symbol*)(cast(type*)t.ctype).Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
                 }
             }
             else
@@ -178,7 +178,7 @@ type* Type_toCtype(Type t)
                 {
                     if (auto bf = v.isBitFieldDeclaration())
                     {
-                        symbol_struct_hasBitFields(cast(Symbol*)(cast(type*)t.ctype).Ttag);
+                        symbol_struct_hasBitFields(*cast(Symbol*)(cast(type*)t.ctype).Ttag);
                         break;
                     }
                 }
@@ -269,13 +269,13 @@ type* Type_toCtype(Type t)
             {
                 foreach (v; t.sym.fields)
                 {
-                    symbol_struct_addField(cast(Symbol*)tc.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
+                    symbol_struct_addField(*cast(Symbol*)tc.Ttag, v.ident.toChars(), Type_toCtype(v.type), v.offset);
                 }
                 if (auto bc = t.sym.baseClass)
                 {
                     auto ptr_to_basetype = Type_toCtype(bc.type);
                     assert(ptr_to_basetype .Tty == TYnptr);
-                    symbol_struct_addBaseClass(cast(Symbol*)tc.Ttag, ptr_to_basetype.Tnext, 0);
+                    symbol_struct_addBaseClass(*cast(Symbol*)tc.Ttag, ptr_to_basetype.Tnext, 0);
                 }
             }
 

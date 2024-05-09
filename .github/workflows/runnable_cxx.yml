@@ -76,6 +76,10 @@ jobs:
           - { os: ubuntu-20.04, target: clang-10.0.0 }
           - { os: ubuntu-20.04, target: clang-9.0.0 }
           - { os: ubuntu-20.04, target: clang-8.0.0 }
+          - { os: ubuntu-20.04, target: msvc-2019 }
+          - { os: ubuntu-20.04, target: msvc-2017 }
+          - { os: ubuntu-20.04, target: msvc-2015 }
+          - { os: ubuntu-20.04, target: msvc-2013 }
           # OSX only supports clang
           - { os: macOS-11, target: g++-11 }
           - { os: macOS-11, target: g++-10 }
@@ -203,7 +207,7 @@ jobs:
         tar -x -C ${{ github.workspace }} -f ${{ github.workspace }}/clang+llvm-${{ matrix.cxx-version }}-${{ matrix.arch }}.tar.xz
         TMP_CC='${{ github.workspace }}/clang+llvm-${{ matrix.cxx-version }}-${{ matrix.arch }}/bin/clang'
         # On OSX, the system header are installed via `xcode-select` and not distributed with clang
-        # Since some part of the testsuite rely on CC being only a binary (not a command),
+        # Since some part of the testsuite rely on CC and CXX being only a binary (not a command),
         # and config files where only introduced from 6.0.0, use a wrapper script.
         if [ "${{ matrix.os }}" == "macOS-11" ]; then
           # Note: heredoc shouldn't be indented

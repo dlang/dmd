@@ -374,10 +374,6 @@ $(abspath ../generated/$(OS)/$(BUILD)/$(MODEL)/dmd$(DOTEXE)): ../generated/$(OS)
 
 ################### C/ASM Targets ############################
 
-# Although dmd is compiling the .c files, the preprocessor used on Windows is cl.exe.
-# Until https://issues.dlang.org/show_bug.cgi?id=24111 is fixed, the INCLUDE
-# enviroment variable needs to be set with the path to the VC system include files.
-
 OBJS:=$(ROOT)/errno_c$(DOTOBJ)
 ifeq (32omf,$(MODEL))
     # minit.asm is only used for -m32omf on Windows; there's a pre-built minit.obj
