@@ -44,6 +44,9 @@ final class CParser(AST) : Parser!AST
         // #pragma pack stack
         Array!Identifier* records;      // identifers (or null)
         Array!structalign_t* packs;     // parallel alignment values
+
+        // state for #pragma importc_ignore
+        Ignored ignored;
     }
 
     /* C cannot be parsed without determining if an identifier is a type or a variable.
@@ -5599,6 +5602,8 @@ final class CParser(AST) : Parser!AST
         {
             if (token.ident == Id.pack)
                 pragmaPack(startloc, false);
+            else if (token.ident == Id.importc_ignore)
+                pragmaImportCIgnore(startloc, false);
             else
             {
                 nextToken();
@@ -5635,8 +5640,13 @@ final class CParser(AST) : Parser!AST
     {
         Token n;
         scan(&n);
-        if (n.value == TOK.identifier && n.ident == Id.pack)
-            return pragmaPack(loc, true);
+        if (n.value == TOK.identifier)
+        {
+            if (n.ident == Id.pack)
+                return pragmaPack(loc, true);
+            else if (n.ident == Id.importc_ignore)
+                return pragmaImportCIgnore(loc, true);
+        }
         if (n.value != TOK.endOfLine)
             skipToNextLine();
     }
@@ -5842,6 +5852,199 @@ final class CParser(AST) : Parser!AST
         error(loc, "unrecognized `#pragma pack(%s)`", n.toChars());
         if (n.value != TOK.endOfLine)
             skipToNextLine();
+    }
+
+    private struct Ignored
+    {
+        // A hash-table with zero-sized values, and `Identifier`s casted to `const(void)*` for keys.
+        // We need only to test for the presence of an identifier, hence the zero-sized values.
+        // `Identifier` is an `extern(C++)` class, which an associative-array
+        // can't handle as keys, hence the cast to a pointer.
+        alias IdentifierSet = ubyte[0][const(void)*];
+
+        // A bitwise combination of categories of C constructs to ignore.
+        enum Category : uint
+        {
+            none = 0,
+            // These must be in the same order as the members of the anonymous struct below.
+            functionDeclarations = 1 << 0,
+            functionDefinitions = 1 << 1
+        }
+
+        union
+        {
+            IdentifierSet[2] byCategory;
+            struct
+            {
+                // These must be in the same order as the `Category` enum's members.
+                IdentifierSet functionDeclarations;
+                IdentifierSet functionDefinitions;
+            }
+        }
+
+        // Calls `action` for each category set in `categories`, supplying
+        // the corresponding `IdentifierSet` for that category.
+        void eachCategory(Action)(Category categories, scope Action action)
+        {
+            import core.bitop : bsr;
+
+            while (categories != 0)
+            {
+                const index = bsr(categories);
+                categories &= ~(1 << index);
+
+                action(byCategory[index]);
+            }
+        }
+
+        static bool categoryFromIdentifier(const Identifier id, out Category category)
+        {
+            if (id == Id.function_decl)
+            {
+                category = Ignored.Category.functionDeclarations;
+                return true;
+            }
+            if (id == Id.function_def)
+            {
+                category = Ignored.Category.functionDefinitions;
+                return true;
+            }
+
+            return false;
+        }
+    }
+
+    /*********
+     * `# pragma importc_ignore`
+     * An ImportC-specific pragma for specifying declarations and definitions that are to be ignored
+     * Scanner is on the `importc_ignore`
+     * Params:
+     *  startloc = location to use for error messages
+     *  useScan = use scan() to retrieve next token, instead of nextToken()
+     */
+    private void pragmaImportCIgnore(const ref Loc startloc, bool useScan)
+    {
+        const loc = startloc;
+        Token n;
+
+        /* Pull tokens from scan() or nextToken()
+         */
+        void scan(Token* t)
+        {
+            if (useScan)
+            {
+                Lexer.scan(t);
+            }
+            else
+            {
+                nextToken();
+                *t = token;
+            }
+        }
+
+        void unknownTokenFailure()
+        {
+            if (n.value != TOK.endOfLine)
+                skipToNextLine();
+        }
+
+        /* # pragma importc_ignore ( ...
+         */
+        scan(&n);
+        if (n.value != TOK.leftParenthesis)
+        {
+            error(loc, "left parenthesis expected to follow `#pragma importc_ignore` not `%s`", n.toChars());
+            return unknownTokenFailure();
+        }
+
+        Ignored.Category add;
+        Ignored.Category remove;
+
+        /* # pragma importc_ignore ( +/-<ignore-category>... :
+         */
+        for (;;)
+        {
+            scan(&n);
+            if (n.value == TOK.colon)
+                break;
+
+            if (n.value != TOK.add && n.value != TOK.min)
+            {
+                error(loc, "`+`, `-`, or a colon is expected to follow `#pragma importc_ignore(` not `%s`", n.toChars());
+                return unknownTokenFailure();
+            }
+
+            const prefix = n.value == TOK.add ? '+' : '-';
+
+            scan(&n);
+            if (n.value != TOK.identifier)
+            {
+                error(loc, "identifier expected to follow `#pragma importc_ignore(%c` not `%s`", prefix, n.toChars());
+                return unknownTokenFailure();
+            }
+
+            const id = n.ident;
+            Ignored.Category category;
+
+            if (!Ignored.categoryFromIdentifier(id, category))
+            {
+                error(loc, "`function_decl` or `function_def` expected to follow `#pragma importc_ignore(%c` not `%s`",
+                      prefix, id.toChars());
+                skipToNextLine();
+                return;
+            }
+
+            (prefix == '+' ? add : remove) |= category;
+            (prefix == '+' ? remove : add) &= ~category;
+        }
+
+        /* # pragma importc_ignore ( +/-<ignore-category>... : <identifier>... )
+         */
+        Array!Identifier identifiers;
+        for (;;)
+        {
+            scan(&n);
+
+            if (n.value == TOK.identifier)
+            {
+                auto id = n.ident;
+                identifiers.push(id);
+
+                scan(&n);
+                if (n.value == TOK.rightParenthesis)
+                    break;
+                else if (n.value != TOK.comma)
+                {
+                    error(loc, "comma or right parenthesis expected following `#pragma importc_ignore(... : %s` not `%s`",
+                          id.toChars(), n.toChars());
+                    return unknownTokenFailure();
+                }
+            }
+            else if (n.value == TOK.rightParenthesis)
+                break;
+            else
+            {
+                error(loc, "identifier or right parenthesis expected following `#pragma importc_ignore(... :` not `%s`",
+                      n.toChars());
+                return unknownTokenFailure();
+            }
+        }
+
+        skipToNextLine();
+
+        assert((add & remove) == 0, "There should be no overlap between add and remove.");
+
+        ignored.eachCategory(remove, (ref Ignored.IdentifierSet set)
+        {
+            foreach (id; identifiers)
+                set.remove(cast(const(void)*) id);
+        });
+
+        ignored.eachCategory(add, (ref Ignored.IdentifierSet set)
+        {
+            foreach (id; identifiers)
+                set[cast(const(void)*) id] = [];
+        });
     }
 
     //}
