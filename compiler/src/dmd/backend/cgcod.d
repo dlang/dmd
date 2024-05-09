@@ -69,8 +69,6 @@ targ_size_t pushoff;            // offset of saved registers
 bool pushoffuse;                // using pushoff
 int BPoff;                      // offset from BP
 int EBPtoESP;                   // add to EBP offset to get ESP offset
-LocalSection EEStack;           // offset of SCstack variables from ESP
-LocalSection Alloca;            // data for alloca() temporary
 
 REGSAVE regsave;
 
@@ -150,7 +148,7 @@ void codgen(Symbol *sfunc)
     CSE.initialize();
     cod3_initregs();
     allregs = ALLREGS;
-    Alloca.initialize();
+    cgstate.Alloca.initialize();
     anyiasm = 0;
 
     if (config.ehmethod == EHmethod.EH_DWARF)
@@ -818,10 +816,10 @@ else
     else
         Foff = regsave.off;
 
-    Alloca.alignment = REGSIZE;
-    Alloca.offset = alignsection(Foff - Alloca.size, Alloca.alignment, bias);
+    cgstate.Alloca.alignment = REGSIZE;
+    cgstate.Alloca.offset = alignsection(Foff - cgstate.Alloca.size, cgstate.Alloca.alignment, bias);
 
-    CSoff = alignsection(Alloca.offset - CSE.size(), CSE.alignment(), bias);
+    CSoff = alignsection(cgstate.Alloca.offset - CSE.size(), CSE.alignment(), bias);
     //printf("CSoff = x%x, size = x%x, alignment = %x\n",
         //cast(int)CSoff, CSE.size(), cast(int)CSE.alignment);
 
@@ -868,7 +866,7 @@ else
     localsize = -cgstate.funcarg.offset;
 
     //printf("Alloca.offset = x%llx, cstop = x%llx, CSoff = x%llx, NDPoff = x%llx, localsize = x%llx\n",
-        //(long long)Alloca.offset, (long long)CSE.size(), (long long)CSoff, (long long)NDPoff, (long long)localsize);
+        //(long long)cgstate.Alloca.offset, (long long)CSE.size(), (long long)CSoff, (long long)NDPoff, (long long)localsize);
     assert(cast(targ_ptrdiff_t)localsize >= 0);
 
     // Keep the stack aligned by 8 for any subsequent function calls
@@ -936,7 +934,7 @@ else
                 xlocalsize >= 0x1000 ||
                 (usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)) ||
                 anyiasm ||
-                Alloca.size
+                cgstate.Alloca.size
                )
             {
                 needframe = 1;
@@ -974,7 +972,7 @@ else
     if (config.flags & CFGstack)        // if stack overflow check
     {
         prolog_frameadj(cdbx, tyf, xlocalsize, enter, &pushalloc);
-        if (Alloca.size)
+        if (cgstate.Alloca.size)
             prolog_setupalloca(cdbx);
     }
     else if (needframe)                      /* if variables or parameters   */
@@ -982,11 +980,11 @@ else
         if (xlocalsize)                 /* if any stack offset          */
         {
             prolog_frameadj(cdbx, tyf, xlocalsize, enter, &pushalloc);
-            if (Alloca.size)
+            if (cgstate.Alloca.size)
                 prolog_setupalloca(cdbx);
         }
         else
-            assert(Alloca.size == 0);
+            assert(cgstate.Alloca.size == 0);
     }
     else if (xlocalsize)
     {
@@ -996,7 +994,7 @@ else
             BPoff += REGSIZE;
     }
     else
-        assert((localsize | Alloca.size) == 0 || (usednteh & NTEHjmonitor));
+        assert((localsize | cgstate.Alloca.size) == 0 || (usednteh & NTEHjmonitor));
     EBPtoESP += xlocalsize;
     if (hasframe)
         EBPtoESP += REGSIZE;
@@ -1115,7 +1113,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
     cgstate.Para.initialize();        // parameter offset
     cgstate.Fast.initialize();        // SCfastpar offset
     cgstate.Auto.initialize();        // automatic & register offset
-    EEStack.initialize();     // for SCstack's
+    cgstate.EEStack.initialize();     // for SCstack's
 
     // Set if doing optimization of auto layout
     bool doAutoOpt = estimate && config.flags4 & CFG4optimized;
@@ -1221,10 +1219,10 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
                 break;
 
             case SC.stack:
-                EEStack.offset = _align(sz,EEStack.offset);
-                s.Soffset = EEStack.offset;
+                cgstate.EEStack.offset = _align(sz,cgstate.EEStack.offset);
+                s.Soffset = cgstate.EEStack.offset;
                 //printf("EEStack.offset =  x%lx\n",cast(long)s.Soffset);
-                EEStack.offset += sz;
+                cgstate.EEStack.offset += sz;
                 break;
 
             case SC.shadowreg:

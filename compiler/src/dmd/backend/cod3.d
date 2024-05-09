@@ -2535,7 +2535,7 @@ regm_t cod3_useBP()
             localsize >= 0x100 ||       // arbitrary value < 0x1000
             (usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)) ||
             calledFinally ||
-            Alloca.size
+            cgstate.Alloca.size
            )
             goto Lcant;
     }
@@ -3589,11 +3589,11 @@ void prolog_frameadj2(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool* pus
 void prolog_setupalloca(ref CodeBuilder cdb)
 {
     //printf("prolog_setupalloca() offset x%x size x%x alignment x%x\n",
-        //cast(int)Alloca.offset, cast(int)Alloca.size, cast(int)Alloca.alignment);
+        //cast(int)cgstate.Alloca.offset, cast(int)cgstate.Alloca.size, cast(int)cgstate.Alloca.alignment);
     // Set up magic parameter for alloca()
     // MOV -REGSIZE[BP],localsize - BPoff
     cdb.genc(0xC7,modregrm(2,0,BPRM),
-            FLconst,Alloca.offset + BPoff,
+            FLconst,cgstate.Alloca.offset + BPoff,
             FLconst,localsize - BPoff);
     if (I64)
         code_orrex(cdb.last(), REX_W);
@@ -4489,7 +4489,7 @@ void epilog(block *b)
                     !(config.target_cpu >= TARGET_80386 && config.flags4 & CFG4speed)
                    )
                     cdbx.gen1(LEAVE);          // LEAVE
-                else if (0 && xlocalsize == REGSIZE && Alloca.size == 0 && I32)
+                else if (0 && xlocalsize == REGSIZE && cgstate.Alloca.size == 0 && I32)
                 {   // This doesn't work - I should figure out why
                     mfuncreg &= ~mask(regx);
                     cdbx.gen1(0x58 + regx);    // POP regx
@@ -5318,7 +5318,7 @@ void assignaddrc(code *c)
             case FLstack:
                 //printf("Soffset = %d, EBPtoESP = %d, base = %d, pointer = %d\n",
                 //s.Soffset,EBPtoESP,base,c.IEV1.Vpointer);
-                c.IEV1.Vpointer += s.Soffset + EBPtoESP - base - EEStack.offset;
+                c.IEV1.Vpointer += s.Soffset + EBPtoESP - base - cgstate.EEStack.offset;
                 break;
 
             case FLfast:
@@ -5395,7 +5395,7 @@ void assignaddrc(code *c)
                 goto L2;
 
             case FLallocatmp:
-                c.IEV1.Vpointer += Alloca.offset + BPoff;
+                c.IEV1.Vpointer += cgstate.Alloca.offset + BPoff;
                 goto L2;
 
             case FLfuncarg:
@@ -5521,7 +5521,7 @@ void assignaddrc(code *c)
                 goto L3;
 
             case FLallocatmp:
-                c.IEV2.Vpointer += Alloca.offset + BPoff;
+                c.IEV2.Vpointer += cgstate.Alloca.offset + BPoff;
                 goto L3;
 
             case FLfuncarg:
