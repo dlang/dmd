@@ -1925,15 +1925,18 @@ final class CParser(AST) : Parser!AST
                 auto s = cparseFunctionDefinition(id, dt.isTypeFunction(), specifier);
                 typedefTab.setDim(typedefTabLengthSave);
                 symbols = symbolsSave;
-                if (specifier.mod & MOD.x__stdcall)
+                if (!(cast(const(void)*) id in ignored.functionDefinitions))
                 {
-                    // If this function is __stdcall, wrap it in a LinkDeclaration so that
-                    // it's extern(Windows) when imported in D.
-                    auto decls = new AST.Dsymbols(1);
-                    (*decls)[0] = s;
-                    s = new AST.LinkDeclaration(s.loc, LINK.windows, decls);
+                    if (specifier.mod & MOD.x__stdcall)
+                    {
+                        // If this function is __stdcall, wrap it in a LinkDeclaration so that
+                        // it's extern(Windows) when imported in D.
+                        auto decls = new AST.Dsymbols(1);
+                        (*decls)[0] = s;
+                        s = new AST.LinkDeclaration(s.loc, LINK.windows, decls);
+                    }
+                    symbols.push(s);
                 }
-                symbols.push(s);
                 return;
             }
             AST.Dsymbol s = null;
