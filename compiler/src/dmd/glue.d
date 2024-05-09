@@ -1074,7 +1074,7 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 
     Statement sbody = fd.fbody;
 
-    Blockx bx;
+    BlockState bx;
     bx.startblock = block_calloc();
     bx.curblock = bx.startblock;
     bx.funcsym = s;

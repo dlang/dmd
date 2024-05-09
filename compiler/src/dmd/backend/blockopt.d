@@ -115,7 +115,7 @@ void block_term()
  */
 
 @trusted
-void block_next(Blockx *bctx,int bc,block *bn)
+void block_next(BlockState *bctx,int bc,block *bn)
 {
     bctx.curblock.BC = cast(ubyte) bc;
     block_last = bctx.curblock;
@@ -131,7 +131,7 @@ void block_next(Blockx *bctx,int bc,block *bn)
  * Finish up this block and start the next one.
  */
 
-block *block_goto(Blockx *bx,int bc,block *bn)
+block *block_goto(BlockState *bx,int bc,block *bn)
 {
     block *b;
 
