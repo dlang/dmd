@@ -2488,12 +2488,12 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
         // This is necessary so that any cleanup code on one branch
         // is redone on the other branch.
-        cs.Iop = ESCAPE | ESCmark2;
+        cs.Iop = PSOP.mark2;
         cs.Iflags = 0;
         cs.Irex = 0;
         cdb.gen(&cs);
         cdb.append(cdb1);
-        cs.Iop = ESCAPE | ESCrelease2;
+        cs.Iop = PSOP.release2;
         cdb.gen(&cs);
     }
     else
@@ -5604,7 +5604,7 @@ void cdinfo(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 void cddctor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     /* Generate:
-        ESCAPE | ESCdctor
+        PSOP.dctor
         MOV     sindex[BP],index
      */
     usednteh |= EHcleanup;
@@ -5614,7 +5614,7 @@ void cddctor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     }
     assert(*pretregs == 0);
     code cs;
-    cs.Iop = ESCAPE | ESCdctor;         // mark start of EH range
+    cs.Iop = PSOP.dctor;         // mark start of EH range
     cs.Iflags = 0;
     cs.Irex = 0;
     cs.IFL1 = FLctor;
@@ -5637,7 +5637,7 @@ void cdddtor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         usednteh |= EHcleanup;
 
         code cs;
-        cs.Iop = ESCAPE | ESCddtor;     // mark end of EH range and where landing pad is
+        cs.Iop = PSOP.ddtor;     // mark end of EH range and where landing pad is
         cs.Iflags = 0;
         cs.Irex = 0;
         cs.IFL1 = FLdtor;
@@ -5654,7 +5654,7 @@ void cdddtor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     else
     {
         /* Generate:
-            ESCAPE | ESCddtor
+            PSOP.ddtor
             MOV     sindex[BP],index
             CALL    dtor
             JMP     L1
@@ -5670,7 +5670,7 @@ void cdddtor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         }
 
         code cs;
-        cs.Iop = ESCAPE | ESCddtor;
+        cs.Iop = PSOP.ddtor;
         cs.Iflags = 0;
         cs.Irex = 0;
         cs.IFL1 = FLdtor;
