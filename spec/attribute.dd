@@ -39,6 +39,7 @@ $(GNAME FunctionAttributeKwd):
 
 $(GNAME AtAttribute):
     $(D @) $(RELATIVE_LINK2 disable, $(D disable))
+    $(D @) $(RELATIVE_LINK2 future, $(D __future))
     $(D @) $(RELATIVE_LINK2 nogc, $(D nogc))
     $(D @) $(DDLINK spec/ob, Live Functions, `live`)
     $(GLINK Property)
@@ -399,6 +400,34 @@ $(GNAME DeprecatedAttribute):
 
         $(P $(B Implementation Note:) The compiler should have a switch
         specifying if $(D deprecated) should be ignored, cause a warning, or cause an error during compilation.
+        )
+
+
+$(H2 $(LNAME2 future, `@__future` attribute))
+
+        $(P The `@__future` attribute is used to mark a new symbol which could
+        cause a name clash in another module. The other module using a symbol with the
+        same name will continue to compile as before but will show a deprecation message.
+        The message indicates that the new symbol will break the existing code in future,
+        and the other module should be updated.
+        )
+
+        $(NOTE Currently only methods that implicitly override a `@__future` base class
+        method show a deprecation message.)
+
+        $(P See $(LINK2 https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1007.md,
+        DIP1007) for details.)
+
+        $(COMMENT
+        ---
+        module a;
+        @__future int i;
+
+        module b;
+        import a;
+        import c : i;
+        enum e = i; // Deprecation: `c.i` will conflict with `@__future` symbol `a.i`
+        ---
         )
 
 

@@ -1185,8 +1185,9 @@ $(H3 $(GNAME isNested))
 $(H3 $(GNAME isFuture))
 
     $(P Takes one argument. It returns `true` if the argument is a symbol
-    marked with the `@future` keyword, otherwise `false`. Currently, only
-    functions and variable declarations have support for the `@future` keyword.)
+    marked with the $(DDSUBLINK spec/attribute, future, `@__future` attribute),
+    otherwise `false`. Currently, only
+    functions and variable declarations have support for the `@__future` keyword.)
 
 $(H3 $(GNAME isDeprecated))
 
