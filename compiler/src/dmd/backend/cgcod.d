@@ -124,9 +124,6 @@ targ_size_t     prolog_allocoffset;     // offset past adj of stack allocation
 targ_size_t     startoffset;    // size of function entry code
 targ_size_t     retoffset;      /* offset from start of func to ret code */
 targ_size_t     retsize;        /* size of function return              */
-
-private regm_t lastretregs,last2retregs,last3retregs,last4retregs,last5retregs;
-
 }
 
 /*********************************
@@ -174,7 +171,7 @@ void codgen(Symbol *sfunc)
             printf("------------------ PASS%s -----------------\n",
                 (pass == BackendPass.initial) ? "init".ptr : ((pass == BackendPass.reg) ? "reg".ptr : "final".ptr));
 
-        lastretregs = last2retregs = last3retregs = last4retregs = last5retregs = 0;
+        cgstate.lastRetregs[] = 0;
 
         // if no parameters, assume we don't need a stack frame
         needframe = 0;
@@ -1652,6 +1649,7 @@ static if (0)
         uint size = _tysize[tym];
         outretregs &= mES | allregs | XMMREGS;
         regm_t retregs = outretregs;
+        regm_t[] lastRetregs = cgstate.lastRetregs[];
 
         debug if (retregs == 0)
             printf("allocreg: file %s(%d)\n", file, line);
@@ -1706,24 +1704,16 @@ L3:
             if (!regcon.indexregs && r & ~mLSW)
                 r &= ~mLSW;
 
-            if (pass == BackendPass.final_ && r & ~lastretregs && !I16)
+            if (pass == BackendPass.final_ && r & ~lastRetregs[0] && !I16)
             {   // Try not to always allocate the same register,
                 // to schedule better
 
-                r &= ~lastretregs;
-                if (r & ~last2retregs)
+                foreach (lastr; lastRetregs)
                 {
-                    r &= ~last2retregs;
-                    if (r & ~last3retregs)
-                    {
-                        r &= ~last3retregs;
-                        if (r & ~last4retregs)
-                        {
-                            r &= ~last4retregs;
-//                          if (r & ~last5retregs)
-//                              r &= ~last5retregs;
-                        }
-                    }
+                    if (regm_t rx = r & ~lastr)
+                        r = rx;
+                    else
+                        break;
                 }
                 if (r & ~mfuncreg)
                     r &= ~mfuncreg;
@@ -1805,11 +1795,12 @@ L3:
         outretregs = retregs;
 
         //printf("Allocating %s\n",regm_str(retregs));
-        last5retregs = last4retregs;
-        last4retregs = last3retregs;
-        last3retregs = last2retregs;
-        last2retregs = lastretregs;
-        lastretregs = retregs;
+        // Ripple to end of array
+        for (size_t i = lastRetregs.length; i > 1; --i)
+        {
+            lastRetregs[i - 1] = lastRetregs[i - 2];
+        }
+        lastRetregs[0] = retregs; // and set new beginning of array
         getregs(cdb, retregs);
         return reg;
 }
