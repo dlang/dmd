@@ -19,8 +19,8 @@ void main()
 
 $(CONSOLE
 &gt; dmd -verrors=3 app.d
-app.d(7): Deprecation: function `deprecationlimit.x` is deprecated
-app.d(8): Deprecation: function `deprecationlimit.x` is deprecated
-app.d(9): Deprecation: function `deprecationlimit.x` is deprecated
+app.d(7): Deprecation: function `app.f` is deprecated
+app.d(8): Deprecation: function `app.f` is deprecated
+app.d(9): Deprecation: function `app.f` is deprecated
 1 deprecation warning omitted, use `-verrors=0` to show all
 )
