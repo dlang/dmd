@@ -138,6 +138,7 @@ typedef unsigned long long __uint64_t;
 
 // This header disables the Windows API Annotations macros
 // Need to include sal.h to get the pragma once to prevent macro redefinition.
+// Note: these includes cause the compilation to fail if the environment has not been configured using vcvars.
 #include "sal.h"
 #include "no_sal2.h"
 #endif
