@@ -344,7 +344,7 @@ struct CodeBuilder
     @trusted
     void genfltreg(opcode_t opcode,int reg,targ_size_t offset)
     {
-        floatreg = true;
+        cgstate.floatreg = true;
         reflocal = true;
         if ((opcode & ~7) == 0xD8)
             genfwait(this);
@@ -355,7 +355,7 @@ struct CodeBuilder
     void genxmmreg(opcode_t opcode,reg_t xreg,targ_size_t offset, tym_t tym)
     {
         assert(isXMMreg(xreg));
-        floatreg = true;
+        cgstate.floatreg = true;
         reflocal = true;
         genc1(opcode,modregxrm(2,xreg - XMM0,BPRM),FLfltreg,offset);
         checkSetVex(last(), tym);
