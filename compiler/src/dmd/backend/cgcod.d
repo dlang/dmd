@@ -121,7 +121,6 @@ targ_size_t     funcoffset;     // offset of start of function
 targ_size_t     prolog_allocoffset;     // offset past adj of stack allocation
 targ_size_t     startoffset;    // size of function entry code
 targ_size_t     retoffset;      /* offset from start of func to ret code */
-targ_size_t     retsize;        /* size of function return              */
 }
 
 /*********************************
@@ -532,7 +531,7 @@ void codgen(Symbol *sfunc)
                 case BCret:
                 case BCretexp:
                     /* Compute offset to return code from start of function */
-                    retoffset = b.Boffset + b.Bsize - retsize - funcoffset;
+                    retoffset = b.Boffset + b.Bsize - cgstate.retsize - funcoffset;
 
                     /* Add 3 bytes to retoffset in case we have an exception
                      * handler. THIS PROBABLY NEEDS TO BE IN ANOTHER SPOT BUT

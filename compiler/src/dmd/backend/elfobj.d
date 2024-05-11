@@ -2946,13 +2946,13 @@ int ElfObj_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
     int refseg;
     const segtyp = MAP_SEG2TYP(seg);
     //assert(val == 0);
-    int retsize = (flags & CFoffset64) ? 8 : 4;
+    int refSize = (flags & CFoffset64) ? 8 : 4;
 
 static if (0)
 {
     printf("\nElfObj_reftoident('%s' seg %d, offset x%llx, val x%llx, flags x%x)\n",
         s.Sident.ptr,seg,offset,val,flags);
-    printf("Sseg = %d, Sxtrnnum = %d, retsize = %d\n",s.Sseg,s.Sxtrnnum,retsize);
+    printf("Sseg = %d, Sxtrnnum = %d, refSize = %d\n",s.Sseg,s.Sxtrnnum,refSize);
     symbol_print(s);
 }
 
@@ -3004,7 +3004,7 @@ static if (0)
             if (flags & CFoffset64 && relinfo == R_X86_64_32)
             {
                 relinfo = R_X86_64_64;
-                retsize = 8;
+                refSize = 8;
             }
             refseg = STI_RODAT;
             val += s.Soffset;
@@ -3032,8 +3032,8 @@ static if (0)
             {   // not in symbol table yet - class might change
                 //printf("\tadding %s to fixlist\n",s.Sident.ptr);
                 size_t numbyteswritten = addtofixlist(s,offset,seg,val,flags);
-                assert(numbyteswritten == retsize);
-                return retsize;
+                assert(numbyteswritten == refSize);
+                return refSize;
             }
             else
             {
@@ -3173,14 +3173,14 @@ static if (0)
                 if (relinfo == R_X86_64_NONE)
                 {
                 outaddrval:
-                    writeaddrval(seg, cast(uint)offset, val, retsize);
+                    writeaddrval(seg, cast(uint)offset, val, refSize);
                 }
                 else
                 {
                 outrel:
                     //printf("\t\t************* adding relocation\n");
                     const size_t nbytes = ElfObj_writerel(seg, cast(uint)offset, relinfo, refseg, val);
-                    assert(nbytes == retsize);
+                    assert(nbytes == refSize);
                 }
             }
             break;
@@ -3205,7 +3205,7 @@ static if (0)
             //symbol_print(s);
             assert(0);
     }
-    return retsize;
+    return refSize;
 }
 
 /*****************************************
