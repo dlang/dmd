@@ -255,7 +255,7 @@ private symtab_t* calcLexicalScope(return ref symtab_t symtab) return
             else if (strcmp(lifeTimes[si].sym.Sident.ptr, lifeTimes[sj].sym.Sident.ptr) == 0)
                 break;
 
-        lifeTimes[si].offDestroy = cast(int)(sj < dupcnt ? lifeTimes[sj].offCreate : retoffset + retsize); // function length
+        lifeTimes[si].offDestroy = cast(int)(sj < dupcnt ? lifeTimes[sj].offCreate : retoffset + cgstate.retsize); // function length
     }
 
     // store duplicate symbols back with new ordering
@@ -343,7 +343,7 @@ private void sortLineOffsets()
     // remember the offset to the next recorded offset on another line
     for (int i = 1; i < lineOffsets.length; i++)
         lineOffsets[i-1].diffNextOffset = cast(uint)(lineOffsets[i].offset - lineOffsets[i-1].offset);
-    lineOffsets[lineOffsets.length - 1].diffNextOffset = cast(uint)(retoffset + retsize - lineOffsets[lineOffsets.length - 1].offset);
+    lineOffsets[lineOffsets.length - 1].diffNextOffset = cast(uint)(retoffset + cgstate.retsize - lineOffsets[lineOffsets.length - 1].offset);
 
     // sort line records and remove duplicate lines preferring smaller offsets
     qsort(lineOffsets[].ptr, lineOffsets.length, (lineOffsets[0]).sizeof, &cmpLineOffsets);
@@ -358,7 +358,7 @@ private targ_size_t getLineOffset(int linnum)
 {
     int idx = findLineIndex(linnum);
     if (idx >= lineOffsets.length || lineOffsets[idx].linnum < linnum)
-        return retoffset + retsize; // function length
+        return retoffset + cgstate.retsize; // function length
     if (idx > 0 && lineOffsets[idx].linnum != linnum)
         // for inexact line numbers, use the offset following the previous line
         return lineOffsets[idx-1].offset + lineOffsets[idx-1].diffNextOffset;

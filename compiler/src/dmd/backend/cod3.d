@@ -4350,7 +4350,7 @@ void epilog(block *b)
         goto Lret;                      // just generate RET
     regx = (b.BC == BCret) ? AX : CX;
 
-    retsize = 0;
+    cgstate.retsize = 0;
 
     if (tyf & mTYnaked)                 // if no prolog/epilog
         return;
@@ -4598,7 +4598,7 @@ static if (0)
     }
 
     pinholeopt(c, null);
-    retsize += calcblksize(c);          // compute size of function epilog
+    cgstate.retsize += calcblksize(c);          // compute size of function epilog
     cdb.append(cdbx);
     b.Bcode = cdb.finish();
 }

@@ -174,6 +174,7 @@ struct CGstate
 
     regm_t[4] lastRetregs;      // used to not allocate the same register over and over again,
                                 // to improve instruction scheduling
+    targ_size_t     retsize;    // size of function return code
 }
 
 public import dmd.backend.nteh;
@@ -289,7 +290,7 @@ enum BackendPass
     final_,     /// final pass
 }
 
-public import dmd.backend.cgcod : retsize, findreg;
+public import dmd.backend.cgcod : findreg;
 
 reg_t findregmsw(uint regm) { return findreg(regm & mMSW); }
 reg_t findreglsw(uint regm) { return findreg(regm & (mLSW | mBP)); }
