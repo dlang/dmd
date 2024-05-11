@@ -156,6 +156,8 @@ enum
 
 struct CGstate
 {
+    bool floatreg;              // !=0 if floating register is required
+
     int stackclean;     // if != 0, then clean the stack after function call
 
     LocalSection funcarg;       // where function arguments are placed

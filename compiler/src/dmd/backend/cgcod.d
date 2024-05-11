@@ -57,8 +57,6 @@ import dmd.backend.dwarfdbginf : dwarf_except_gentables;
 
 __gshared
 {
-bool floatreg;                  // !=0 if floating register is required
-
 int hasframe;                   // !=0 if this function has a stack frame
 bool enforcealign;              // enforced stack alignment
 targ_size_t spoff;
@@ -202,7 +200,7 @@ void codgen(Symbol *sfunc)
         // Set on a trial basis, turning it off if anything might throw
         sfunc.Sfunc.Fflags3 |= Fnothrow;
 
-        floatreg = false;
+        cgstate.floatreg = false;
         assert(global87.stackused == 0);             /* nobody in 8087 stack         */
 
         CSE.start();
@@ -804,7 +802,7 @@ else
     //printf("regsave.off = x%x, size = x%x, alignment = %x\n",
         //cast(int)regsave.off, cast(int)(regsave.top), cast(int)regsave.alignment);
 
-    if (floatreg)
+    if (cgstate.floatreg)
     {
         uint floatregsize = config.fpxmmregs || I32 ? 16 : DOUBLESIZE;
         Foff = alignsection(regsave.off - floatregsize, STACKALIGN, bias);

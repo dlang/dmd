@@ -3844,7 +3844,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
             {
                 const reg = findregmsw(retregs);
                 const lsreg = findreglsw(retregs);
-                floatreg = true;                // use float register
+                cgstate.floatreg = true;         // use float register
                 reflocal = true;
                 cdbe.genc1(0x89,                 // MOV floatreg+2,reg
                         modregrm(2, reg, BPRM), FLfltreg, REGSIZE);
@@ -3936,7 +3936,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
             {
                 const reg = findregmsw(retregs);
                 const lsreg = findreglsw(retregs);
-                floatreg = true;                // use float register
+                cgstate.floatreg = true;         // use float register
                 reflocal = true;
                 cdbe.genc1(0x89,                 // MOV floatreg+2,reg
                         modregrm(2, reg, BPRM), FLfltreg, REGSIZE);
