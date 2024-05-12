@@ -70,8 +70,11 @@ REGSAVE regsave;
 
 CGstate cgstate;                // state of code generator
 
-regm_t BYTEREGS = BYTEREGS_INIT;
-regm_t ALLREGS = ALLREGS_INIT;
+regm_t ALLREGS()  { return I64 ? mAX|mBX|mCX|mDX|mSI|mDI| mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15
+                               : ALLREGS_INIT; }
+
+regm_t BYTEREGS() { return I64 ? ALLREGS
+                               : BYTEREGS_INIT; }
 
 
 /************************************
@@ -135,7 +138,6 @@ void codgen(Symbol *sfunc)
 
     cgreg_init();
     CSE.initialize();
-    cod3_initregs();
     allregs = ALLREGS;
     cgstate.Alloca.initialize();
     anyiasm = 0;
