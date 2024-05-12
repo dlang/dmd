@@ -157,6 +157,7 @@ enum
 struct CGstate
 {
     bool floatreg;              // !=0 if floating register is required
+    bool hasframe;              // true if this function has a stack frame
 
     int stackclean;     // if != 0, then clean the stack after function call
 
