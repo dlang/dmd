@@ -7364,13 +7364,13 @@ private void do64bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev,int flags)
 
         case FLblock:                       /* displacement to another block */
             ad = uev.Vblock.Boffset - pbuf.getOffset() - 4;
-            //printf("FLblock: funcoffset = %x, pbuf.getOffset = %x, Boffset = %x, ad = %x\n", funcoffset, pbuf.getOffset(), uev.Vblock.Boffset, ad);
+            //printf("FLblock: funcoffset = %x, pbuf.getOffset = %x, Boffset = %x, ad = %x\n", cgstate.funcoffset, pbuf.getOffset(), uev.Vblock.Boffset, ad);
             goto L1;
 
         case FLblockoff:
             pbuf.flush();
             assert(uev.Vblock);
-            //printf("FLblockoff: offset = %x, Boffset = %x, funcoffset = %x\n", pbuf.offset, uev.Vblock.Boffset, funcoffset);
+            //printf("FLblockoff: offset = %x, Boffset = %x, funcoffset = %x\n", pbuf.offset, uev.Vblock.Boffset, cgstate.funcoffset);
             pbuf.write64(uev.Vblock.Boffset);
             objmod.reftocodeseg(pbuf.seg,pbuf.offset,uev.Vblock.Boffset);
             break;
@@ -7544,13 +7544,13 @@ private void do32bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev,int flags, int val
 
         case FLblock:                       /* displacement to another block */
             ad = uev.Vblock.Boffset - pbuf.getOffset() - 4;
-            //printf("FLblock: funcoffset = %x, pbuf.getOffset = %x, Boffset = %x, ad = %x\n", funcoffset, pbuf.getOffset(), uev.Vblock.Boffset, ad);
+            //printf("FLblock: funcoffset = %x, pbuf.getOffset = %x, Boffset = %x, ad = %x\n", cgstate.funcoffset, pbuf.getOffset(), uev.Vblock.Boffset, ad);
             goto L1;
 
         case FLblockoff:
             pbuf.flush();
             assert(uev.Vblock);
-            //printf("FLblockoff: offset = %x, Boffset = %x, funcoffset = %x\n", pbuf.offset, uev.Vblock.Boffset, funcoffset);
+            //printf("FLblockoff: offset = %x, Boffset = %x, funcoffset = %x\n", pbuf.offset, uev.Vblock.Boffset, cgstate.funcoffset);
             objmod.reftocodeseg(pbuf.seg,pbuf.offset,uev.Vblock.Boffset);
             pbuf.write32(cast(uint)(uev.Vblock.Boffset));
             break;

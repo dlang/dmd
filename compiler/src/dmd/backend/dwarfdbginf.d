@@ -1912,8 +1912,8 @@ static if (1)
         debug_info.buf.writeuLEB128(sfunc.Sfunc.Fstartline.Scharnum); // DW_AT_decl_column
 
         // DW_AT_low_pc and DW_AT_high_pc
-        dwarf_appreladdr(debug_info.seg, debug_info.buf, seg, funcoffset);
-        dwarf_appreladdr(debug_info.seg, debug_info.buf, seg, funcoffset + sfunc.Ssize);
+        dwarf_appreladdr(debug_info.seg, debug_info.buf, seg, cgstate.funcoffset);
+        dwarf_appreladdr(debug_info.seg, debug_info.buf, seg, cgstate.funcoffset + sfunc.Ssize);
 
         // DW_AT_frame_base
         if (config.objfmt == OBJ_ELF)
@@ -2027,14 +2027,14 @@ static if (1)
 
         if (sd.SDaranges_offset)
             // Extend existing entry size
-            *cast(ulong *)(debug_aranges.buf.buf + sd.SDaranges_offset + _tysize[TYnptr]) = funcoffset + sfunc.Ssize;
+            *cast(ulong *)(debug_aranges.buf.buf + sd.SDaranges_offset + _tysize[TYnptr]) = cgstate.funcoffset + sfunc.Ssize;
         else
         {   // Add entry
             sd.SDaranges_offset = cast(uint)debug_aranges.buf.length();
             // address of start of .text segment
             dwarf_appreladdr(debug_aranges.seg, debug_aranges.buf, seg, 0);
             // size of .text segment
-            append_addr(debug_aranges.buf, funcoffset + sfunc.Ssize);
+            append_addr(debug_aranges.buf, cgstate.funcoffset + sfunc.Ssize);
         }
 
         /* ============= debug_ranges =========================== */
@@ -2043,8 +2043,8 @@ static if (1)
          * indicate this by adding to the debug_ranges
          */
         // start of function and end of function
-        dwarf_appreladdr(debug_ranges.seg, debug_ranges.buf, seg, funcoffset);
-        dwarf_appreladdr(debug_ranges.seg, debug_ranges.buf, seg, funcoffset + sfunc.Ssize);
+        dwarf_appreladdr(debug_ranges.seg, debug_ranges.buf, seg, cgstate.funcoffset);
+        dwarf_appreladdr(debug_ranges.seg, debug_ranges.buf, seg, cgstate.funcoffset + sfunc.Ssize);
 
         /* ============= debug_loc =========================== */
 
@@ -2055,22 +2055,22 @@ static if (1)
 
         // set the entry for this function in .debug_loc segment
         // after call
-        dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, funcoffset + 0);
-        dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, funcoffset + 1);
+        dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, cgstate.funcoffset + 0);
+        dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, cgstate.funcoffset + 1);
 
         loc_op = cast(ushort)(((cgstate.Para.size - REGSIZE) << 8) | (DW_OP_breg0 + dwarf_regno(SP)));
         debug_loc.buf.write32(loc_op << 16 | op_size);
 
         // after push EBP
-        dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, funcoffset + 1);
-        dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, funcoffset + 3);
+        dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, cgstate.funcoffset + 1);
+        dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, cgstate.funcoffset + 3);
 
         loc_op = cast(ushort)(((cgstate.Para.size) << 8) | (DW_OP_breg0 + dwarf_regno(SP)));
         debug_loc.buf.write32(loc_op << 16 | op_size);
 
         // after mov EBP, ESP
-        dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, funcoffset + 3);
-        dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, funcoffset + sfunc.Ssize);
+        dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, cgstate.funcoffset + 3);
+        dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, cgstate.funcoffset + sfunc.Ssize);
 
         loc_op = cast(ushort)(((cgstate.Para.size) << 8) | (DW_OP_breg0 + dwarf_regno(BP)));
         debug_loc.buf.write32(loc_op << 16 | op_size);

@@ -117,7 +117,6 @@ regm_t allregs;                // ALLREGS optionally including mBP
 
 int dfoidx;                     /* which block we are in                */
 
-targ_size_t     funcoffset;     // offset of start of function
 targ_size_t     prolog_allocoffset;     // offset past adj of stack allocation
 targ_size_t     startoffset;    // size of function entry code
 targ_size_t     retoffset;      /* offset from start of func to ret code */
@@ -349,7 +348,7 @@ void codgen(Symbol *sfunc)
     if (cprolog)
         pinholeopt(cprolog,null);       // optimize
 
-    funcoffset = Offset(sfunc.Sseg);
+    cgstate.funcoffset = Offset(sfunc.Sseg);
     targ_size_t coffset = Offset(sfunc.Sseg);
 
     if (eecontext.EEelem)
@@ -383,7 +382,7 @@ void codgen(Symbol *sfunc)
         pinholeopt(b.Bcode,b);         // do pinhole optimization
         if (b.Bflags & BFL.prolog)      // do function prolog
         {
-            startoffset = coffset + calcblksize(cprolog) - funcoffset;
+            startoffset = coffset + calcblksize(cprolog) - cgstate.funcoffset;
             b.Bcode = cat(cprolog,b.Bcode);
         }
         cgsched_block(b);
@@ -502,7 +501,7 @@ void codgen(Symbol *sfunc)
 
             assert(0);
         }
-        sfunc.Ssize = Offset(sfunc.Sseg) - funcoffset;    // size of function
+        sfunc.Ssize = Offset(sfunc.Sseg) - cgstate.funcoffset;    // size of function
 
         if (configv.vasm)
             disassemble(disasmBuf[]);                   // disassemble the code
@@ -531,7 +530,7 @@ void codgen(Symbol *sfunc)
                 case BCret:
                 case BCretexp:
                     /* Compute offset to return code from start of function */
-                    retoffset = b.Boffset + b.Bsize - cgstate.retsize - funcoffset;
+                    retoffset = b.Boffset + b.Bsize - cgstate.retsize - cgstate.funcoffset;
 
                     /* Add 3 bytes to retoffset in case we have an exception
                      * handler. THIS PROBABLY NEEDS TO BE IN ANOTHER SPOT BUT
@@ -542,7 +541,7 @@ void codgen(Symbol *sfunc)
                     break;
 
                 default:
-                    retoffset = b.Boffset + b.Bsize - funcoffset;
+                    retoffset = b.Boffset + b.Bsize - cgstate.funcoffset;
                     break;
             }
         }
@@ -552,7 +551,7 @@ void codgen(Symbol *sfunc)
              */
             /* Instead, try offset to cleanup code  */
             if (retoffset < sfunc.Ssize)
-                objmod.linnum(sfunc.Sfunc.Fendline,sfunc.Sseg,funcoffset + retoffset);
+                objmod.linnum(sfunc.Sfunc.Fendline,sfunc.Sseg,cgstate.funcoffset + retoffset);
 
         static if (MARS)
         {
