@@ -81,7 +81,7 @@ public void win64_pdata(Symbol *sf)
 
     auto dtb = DtBuilder(0);
     dtb.xoff(sf,0,TYint);       // Note the TYint, these are 32 bit fixups
-    dtb.xoff(sf,cast(uint)(retoffset + cgstate.retsize),TYint);
+    dtb.xoff(sf,cast(uint)(cgstate.retoffset + cgstate.retsize),TYint);
     dtb.xoff(sunwind,0,TYint);
     spdata.Sdt = dtb.finish();
 

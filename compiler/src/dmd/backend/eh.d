@@ -133,7 +133,7 @@ void except_fillInEHTable(Symbol *s)
     sz += 4;
 
     // Offset from start of function to return code
-    dtb.dword(cast(int)retoffset);
+    dtb.dword(cast(int)cgstate.retoffset);
     sz += 4;
 
     // First, calculate starting catch offset
