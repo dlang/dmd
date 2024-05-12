@@ -6830,7 +6830,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
         debug
         {
         if (debugc) { printf("off=%02x, sz=%d, ",cast(int)ggen.getOffset(),cast(int)calccodsize(c)); code_print(c); }
-        uint startoffset = ggen.getOffset();
+        uint startOffset = ggen.getOffset();
         }
 
         opcode_t op = c.Iop;
@@ -7255,9 +7255,9 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
         }
 
         debug
-        if (ggen.getOffset() - startoffset != calccodsize(c))
+        if (ggen.getOffset() - startOffset != calccodsize(c))
         {
-            printf("actual: %d, calc: %d\n", cast(int)(ggen.getOffset() - startoffset), cast(int)calccodsize(c));
+            printf("actual: %d, calc: %d\n", cast(int)(ggen.getOffset() - startOffset), cast(int)calccodsize(c));
             code_print(c);
             assert(0);
         }

@@ -426,7 +426,7 @@ void cv8_func_term(Symbol *sfunc)
     buf.write32(0);            // pend
     buf.write32(0);            // pnext
     buf.write32(cast(uint)currentfuncdata.section_length); // size of function
-    buf.write32(cast(uint)startoffset);                    // size of prolog
+    buf.write32(cast(uint)cgstate.startoffset);                    // size of prolog
     buf.write32(cast(uint)cgstate.retoffset);                      // offset to epilog
     buf.write32(typidx);
 
