@@ -117,8 +117,6 @@ regm_t mfuncreg;        // Mask of registers preserved by a function
 regm_t allregs;                // ALLREGS optionally including mBP
 
 int dfoidx;                     /* which block we are in                */
-
-targ_size_t     prolog_allocoffset;     // offset past adj of stack allocation
 }
 
 /*********************************
@@ -996,7 +994,7 @@ else
     {
         code *c = cdbx.peek();
         pinholeopt(c, null);
-        prolog_allocoffset = calcblksize(c);
+        cgstate.prolog_allocoffset = calcblksize(c);
     }
 
     if (usednteh & NTEHjmonitor)

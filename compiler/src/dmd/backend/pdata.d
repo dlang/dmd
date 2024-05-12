@@ -247,16 +247,16 @@ static if (0)
             break;
 
         case 1:
-            ui.UnwindCode[0].FrameOffset = setUnwindCode(prolog_allocoffset, UWOP.ALLOC_SMALL, (sz - 8) / 8);
+            ui.UnwindCode[0].FrameOffset = setUnwindCode(cgstate.prolog_allocoffset, UWOP.ALLOC_SMALL, (sz - 8) / 8);
             break;
 
         case 2:
-            ui.UnwindCode[0].FrameOffset = setUnwindCode(prolog_allocoffset, UWOP.ALLOC_LARGE, 0);
+            ui.UnwindCode[0].FrameOffset = setUnwindCode(cgstate.prolog_allocoffset, UWOP.ALLOC_LARGE, 0);
             ui.UnwindCode[1].FrameOffset = (sz - 8) / 8;
             break;
 
         case 3:
-            ui.UnwindCode[0].FrameOffset = setUnwindCode(prolog_allocoffset, UWOP.ALLOC_LARGE, 1);
+            ui.UnwindCode[0].FrameOffset = setUnwindCode(cgstate.prolog_allocoffset, UWOP.ALLOC_LARGE, 1);
             ui.UnwindCode[1].FrameOffset = sz & 0x0FFFF;
             ui.UnwindCode[2].FrameOffset = sz / 0x10000;
             break;
