@@ -1567,13 +1567,13 @@ private void cv4_outsym(Symbol *s)
             if (I32)
             {   TOLONG(debsym + 16,cast(uint)s.Ssize);           // proc length
                 TOLONG(debsym + 20,cast(uint)startoffset);        // debug start
-                TOLONG(debsym + 24,cast(uint)retoffset);          // debug end
+                TOLONG(debsym + 24,cast(uint)cgstate.retoffset);          // debug end
                 u = 28;                                 // offset to fixup
             }
             else
             {   TOWORD(debsym + 16,cast(uint)s.Ssize);           // proc length
                 TOWORD(debsym + 18,cast(uint)startoffset);        // debug start
-                TOWORD(debsym + 20,cast(uint)retoffset);          // debug end
+                TOWORD(debsym + 20,cast(uint)cgstate.retoffset);          // debug end
                 u = 22;                                 // offset to fixup
             }
             length += cv_namestring(debsym + u + _tysize[TYint] + 2 + cgcv.sz_idx + 1,id);
@@ -1588,13 +1588,13 @@ private void cv4_outsym(Symbol *s)
             if (I32)
             {   TOLONG(debsym + 16 + cgcv.sz_idx,cast(uint)s.Ssize);             // proc length
                 TOLONG(debsym + 20 + cgcv.sz_idx,cast(uint)startoffset);  // debug start
-                TOLONG(debsym + 24 + cgcv.sz_idx,cast(uint)retoffset);            // debug end
+                TOLONG(debsym + 24 + cgcv.sz_idx,cast(uint)cgstate.retoffset);            // debug end
                 u = 28;                                         // offset to fixup
             }
             else
             {   TOWORD(debsym + 16 + cgcv.sz_idx,cast(uint)s.Ssize);             // proc length
                 TOWORD(debsym + 18 + cgcv.sz_idx,cast(uint)startoffset);  // debug start
-                TOWORD(debsym + 20 + cgcv.sz_idx,cast(uint)retoffset);            // debug end
+                TOWORD(debsym + 20 + cgcv.sz_idx,cast(uint)cgstate.retoffset);            // debug end
                 u = 22;                                         // offset to fixup
             }
             u += cgcv.sz_idx;

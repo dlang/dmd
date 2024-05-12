@@ -119,7 +119,6 @@ int dfoidx;                     /* which block we are in                */
 
 targ_size_t     prolog_allocoffset;     // offset past adj of stack allocation
 targ_size_t     startoffset;    // size of function entry code
-targ_size_t     retoffset;      /* offset from start of func to ret code */
 }
 
 /*********************************
@@ -530,18 +529,18 @@ void codgen(Symbol *sfunc)
                 case BCret:
                 case BCretexp:
                     /* Compute offset to return code from start of function */
-                    retoffset = b.Boffset + b.Bsize - cgstate.retsize - cgstate.funcoffset;
+                    cgstate.retoffset = b.Boffset + b.Bsize - cgstate.retsize - cgstate.funcoffset;
 
-                    /* Add 3 bytes to retoffset in case we have an exception
+                    /* Add 3 bytes to cgstate.retoffset in case we have an exception
                      * handler. THIS PROBABLY NEEDS TO BE IN ANOTHER SPOT BUT
                      * IT FIXES THE PROBLEM HERE AS WELL.
                      */
                     if (usednteh & NTEH_try)
-                        retoffset += 3;
+                        cgstate.retoffset += 3;
                     break;
 
                 default:
-                    retoffset = b.Boffset + b.Bsize - cgstate.funcoffset;
+                    cgstate.retoffset = b.Boffset + b.Bsize - cgstate.funcoffset;
                     break;
             }
         }
@@ -550,8 +549,8 @@ void codgen(Symbol *sfunc)
                start of the last instruction
              */
             /* Instead, try offset to cleanup code  */
-            if (retoffset < sfunc.Ssize)
-                objmod.linnum(sfunc.Sfunc.Fendline,sfunc.Sseg,cgstate.funcoffset + retoffset);
+            if (cgstate.retoffset < sfunc.Ssize)
+                objmod.linnum(sfunc.Sfunc.Fendline,sfunc.Sseg,cgstate.funcoffset + cgstate.retoffset);
 
         static if (MARS)
         {
@@ -574,7 +573,7 @@ void codgen(Symbol *sfunc)
             if (config.ehmethod == EHmethod.EH_DWARF)
             {
                 sfunc.Sfunc.Fstartblock = startblock;
-                dwarf_except_gentables(sfunc, cast(uint)startoffset, cast(uint)retoffset);
+                dwarf_except_gentables(sfunc, cast(uint)startoffset, cast(uint)cgstate.retoffset);
                 sfunc.Sfunc.Fstartblock = null;
             }
         }
