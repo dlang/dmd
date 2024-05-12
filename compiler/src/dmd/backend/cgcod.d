@@ -116,7 +116,6 @@ regm_t allregs;                // ALLREGS optionally including mBP
 int dfoidx;                     /* which block we are in                */
 
 targ_size_t     prolog_allocoffset;     // offset past adj of stack allocation
-targ_size_t     startoffset;    // size of function entry code
 }
 
 /*********************************
@@ -379,7 +378,7 @@ void codgen(Symbol *sfunc)
         pinholeopt(b.Bcode,b);         // do pinhole optimization
         if (b.Bflags & BFL.prolog)      // do function prolog
         {
-            startoffset = coffset + calcblksize(cprolog) - cgstate.funcoffset;
+            cgstate.startoffset = coffset + calcblksize(cprolog) - cgstate.funcoffset;
             b.Bcode = cat(cprolog,b.Bcode);
         }
         cgsched_block(b);
@@ -571,7 +570,7 @@ void codgen(Symbol *sfunc)
             if (config.ehmethod == EHmethod.EH_DWARF)
             {
                 sfunc.Sfunc.Fstartblock = startblock;
-                dwarf_except_gentables(sfunc, cast(uint)startoffset, cast(uint)cgstate.retoffset);
+                dwarf_except_gentables(sfunc, cast(uint)cgstate.startoffset, cast(uint)cgstate.retoffset);
                 sfunc.Sfunc.Fstartblock = null;
             }
         }

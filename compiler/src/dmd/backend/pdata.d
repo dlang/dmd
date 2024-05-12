@@ -224,7 +224,7 @@ private dt_t *unwind_data()
 
     ui.Version = 1;
     //ui.Flags = 0;
-    ui.SizeOfProlog = cast(ubyte)startoffset;
+    ui.SizeOfProlog = cast(ubyte)cgstate.startoffset;
 static if (0)
 {
     ui.CountOfCodes = strategy + 1;
