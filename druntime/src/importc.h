@@ -138,7 +138,9 @@ typedef unsigned long long __uint64_t;
 
 // This header disables the Windows API Annotations macros
 // Need to include sal.h to get the pragma once to prevent macro redefinition.
-// Note: these includes cause the compilation to fail if the environment has not been configured using vcvars.
+// Note: these includes require include paths to `cl.exe` as envoronment variables that are set by 
+// executing `vcvarsall.bat` (this is automatically done when using a VS command propmt).  -- TODO Gitbub actions
+// This will cause the compilation to fail (error C1083) if the environment has not been properly configured prior.
 #include "sal.h"
 #include "no_sal2.h"
 #endif
