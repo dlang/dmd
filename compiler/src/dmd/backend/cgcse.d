@@ -123,7 +123,7 @@ struct CSE
         {
             alignment_ = alignsize;
             STACKALIGN = alignsize;
-            enforcealign = true;
+            cgstate.enforcealign = true;
         }
     }
 

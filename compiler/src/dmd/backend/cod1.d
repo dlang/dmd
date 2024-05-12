@@ -3348,7 +3348,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             if (alignsize > STACKALIGN)
             {
                 STACKALIGN = alignsize;
-                enforcealign = true;
+                cgstate.enforcealign = true;
             }
             uint newnumpara = (numpara + (alignsize - 1)) & ~(alignsize - 1);
             parameters[i].numalign = newnumpara - numpara;

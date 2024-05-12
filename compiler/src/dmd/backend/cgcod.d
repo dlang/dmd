@@ -57,7 +57,6 @@ import dmd.backend.dwarfdbginf : dwarf_except_gentables;
 
 __gshared
 {
-bool enforcealign;              // enforced stack alignment
 targ_size_t spoff;
 targ_size_t Foff;               // BP offset of floating register
 targ_size_t CSoff;              // offset of common sub expressions
@@ -169,7 +168,7 @@ void codgen(Symbol *sfunc)
 
         // if no parameters, assume we don't need a stack frame
         needframe = 0;
-        enforcealign = false;
+        cgstate.enforcealign = false;
         gotref = 0;
         stackchanged = 0;
         stackpush = 0;
@@ -321,7 +320,7 @@ void codgen(Symbol *sfunc)
                 if (sz > STACKALIGN && (I64 || config.exe == EX_OSX))
                 {
                     STACKALIGN = sz;
-                    enforcealign = true;
+                    cgstate.enforcealign = true;
                 }
                 break;
 
@@ -781,9 +780,9 @@ Lagain:
      */
 
 version (FRAMEPTR)
-    int bias = enforcealign ? 0 : cast(int)(cgstate.Para.size);
+    int bias = cgstate.enforcealign ? 0 : cast(int)(cgstate.Para.size);
 else
-    int bias = enforcealign ? 0 : cast(int)(cgstate.Para.size + (needframe ? 0 : REGSIZE));
+    int bias = cgstate.enforcealign ? 0 : cast(int)(cgstate.Para.size + (needframe ? 0 : REGSIZE));
 
     if (cgstate.Fast.alignment < REGSIZE)
         cgstate.Fast.alignment = REGSIZE;
@@ -873,7 +872,7 @@ else
                //npush, cgstate.Para.size, needframe, localsize);
 
         int sz = cast(int)(localsize + npush * REGSIZE);
-        if (!enforcealign)
+        if (!cgstate.enforcealign)
         {
             version (FRAMEPTR)
                 sz += cgstate.Para.size;
@@ -905,7 +904,7 @@ else
     }
 
     /* Determine if we need BP set up   */
-    if (enforcealign)
+    if (cgstate.enforcealign)
     {
         // we need BP to reset the stack before return
         // otherwise the return address is lost
