@@ -57,7 +57,6 @@ import dmd.backend.dwarfdbginf : dwarf_except_gentables;
 
 __gshared
 {
-int hasframe;                   // !=0 if this function has a stack frame
 bool enforcealign;              // enforced stack alignment
 targ_size_t spoff;
 targ_size_t Foff;               // BP offset of floating register
@@ -648,7 +647,7 @@ void prolog(ref CodeBuilder cdb)
         EBPtoESP = 0;
     else
         EBPtoESP = -REGSIZE;
-    hasframe = 0;
+    cgstate.hasframe = false;
     bool pushds = false;
     BPoff = 0;
     bool pushalloc = false;
@@ -893,14 +892,14 @@ else
 
     if (tyf & mTYnaked)                 // if no prolog/epilog for function
     {
-        hasframe = 1;
+        cgstate.hasframe = true;
         return;
     }
 
     if (tym == TYifunc)
     {
         prolog_ifunc(cdbx,&tyf);
-        hasframe = 1;
+        cgstate.hasframe = true;
         cdb.append(cdbx);
         goto Lcont;
     }
@@ -948,12 +947,12 @@ else
     {
         prolog_16bit_windows_farfunc(cdbx, &tyf, &pushds);
         enter = false;                  // don't use ENTER instruction
-        hasframe = 1;                   // we have a stack frame
+        cgstate.hasframe = true;        // we have a stack frame
     }
     else if (needframe)                 // if variables or parameters
     {
         prolog_frame(cdbx, farfunc, xlocalsize, enter, cfa_offset);
-        hasframe = 1;
+        cgstate.hasframe = true;
     }
 
     /* Align the stack if necessary */
@@ -988,7 +987,7 @@ else
     else
         assert((localsize | cgstate.Alloca.size) == 0 || (usednteh & NTEHjmonitor));
     EBPtoESP += xlocalsize;
-    if (hasframe)
+    if (cgstate.hasframe)
         EBPtoESP += REGSIZE;
 
     /* Win64 unwind needs the amount of code generated so far
