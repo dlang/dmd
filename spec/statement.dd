@@ -251,20 +251,42 @@ $(GNAME ElseStatement):
     $(PSSCOPE)
 )
 
-        $(P If there is a declared *Identifier* variable, it is evaluated.
+        $(P If there is a declared *Identifier* variable,
+        $(RELATIVE_LINK2 condition-variables, it is evaluated).
         Otherwise, *Expression* is evaluated. The result is converted to a
-        boolean, using $(DDSUBLINK spec/operatoroverloading, cast, `opCast!bool()`)
-        if the method is defined.
+        boolean.
         If the boolean is `true`, the $(I ThenStatement) is transferred
         to, otherwise the $(I ElseStatement) is transferred to.)
 
         $(P The $(I ElseStatement) is associated with the innermost `if`
         statement which does not already have an associated $(I ElseStatement).)
 
-    $(PANEL
+$(H3 $(LNAME2 boolean-conditions, Boolean Conversion))
+
+        $(P The following type instances are supported in a condition:)
+
+        $(UL
+        $(LI $(DDSUBLINK spec/type, FundamentalType, Fundamental types) are `true` when non-zero)
+        $(LI Pointers are `true` when non-null)
+        $(LI Reference types are `true` when non-null)
+        $(LI A user-defined type with a valid $(DDSUBLINK spec/operatoroverloading, cast, `opCast!bool()`) method will be called for the result. Otherwise, any
+        $(DDSUBLINK spec/struct, alias-this, `alias this`) member declaration
+        will be used if its target type itself matches one of these rules.)
+        $(LI An enum type is `true` if its base type matches one of these rules.)
+        )
+        $(P If none of these are valid, it is an error to use the value in a condition.)
+
+        $(NOTE A dynamic array can be used in a condition, which is `true` when non-null.
+        However, using this should be avoided as it can be bug-prone.
+        This may be disallowed in a future edition.)
+
+$(H3 $(LNAME2 condition-variables, Condition Variables))
+
+        $(P
         When an $(I Identifier) form of *IfCondition* is used, a
         variable is declared with that name and initialized to the
         value of the *Expression*.
+        )
 
         * If $(D auto) $(I Identifier) is provided, the type of the variable
           is the same as *Expression*.
@@ -309,7 +331,8 @@ $(GNAME WhileStatement):
 $(P A $(I While Statement) implements a simple loop.)
 
 $(P If the $(I IfCondition) is an *Expression*, it is evaluated and must have a type
-that can be converted to a boolean. If it's `true` the *ScopeStatement* is executed.
+that can be $(DDSUBLINK spec/statement, boolean-conditions, converted to a boolean).
+If it's `true` the *ScopeStatement* is executed.
 After the *ScopeStatement* is executed, the *Expression* is evaluated again, and
 if `true` the *ScopeStatement* is executed again. This continues until the *Expression*
 evaluates to `false`.)
@@ -351,7 +374,8 @@ $(GNAME DoStatement):
 $(P Do while statements implement simple loops.)
 
 $(P *ScopeStatement* is executed. Then *Expression* is evaluated and must have a
-type that can be converted to a boolean. If it's `true` the loop is iterated
+type that can be $(DDSUBLINK spec/statement, boolean-conditions, converted to a boolean).
+If it's `true` the loop is iterated
 again. This continues until the *Expression* evaluates to `false`.)
 
 ---
@@ -387,8 +411,8 @@ $(GNAME Increment):
 
         $(P $(I Initialize) is executed.
         $(I Test) is evaluated and must have a type that
-        can be converted to a boolean. If *Test* is `true` the
-        *ScopeStatement* is executed. After execution,
+        can be $(DDSUBLINK spec/statement, boolean-conditions, converted to a boolean).
+        If *Test* is `true` the *ScopeStatement* is executed. After execution,
         $(I Increment) is executed.
         Then $(I Test) is evaluated again, and if `true` the
         *ScopeStatement* is executed again. This continues until the
