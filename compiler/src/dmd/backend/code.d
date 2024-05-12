@@ -176,6 +176,7 @@ struct CGstate
 
     regm_t[4] lastRetregs;      // used to not allocate the same register over and over again,
                                 // to improve instruction scheduling
+    targ_size_t     funcoffset; // offset of start of function
     targ_size_t     retsize;    // size of function return code
 }
 
