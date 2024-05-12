@@ -57,7 +57,6 @@ import dmd.backend.dwarfdbginf : dwarf_except_gentables;
 
 __gshared
 {
-targ_size_t spoff;
 targ_size_t Foff;               // BP offset of floating register
 targ_size_t CSoff;              // offset of common sub expressions
 targ_size_t NDPoff;             // offset of saved 8087 registers
@@ -694,7 +693,7 @@ void prolog(ref CodeBuilder cdb)
     CodeBuilder cdbx; cdbx.ctor();
 
 Lagain:
-    spoff = 0;
+    cgstate.spoff = 0;
     char guessneedframe = needframe;
     int cfa_offset = 0;
 //    if (needframe && config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS) && !(usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)))

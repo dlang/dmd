@@ -162,6 +162,8 @@ struct CGstate
 
     int stackclean;     // if != 0, then clean the stack after function call
 
+    targ_size_t spoff;
+
     LocalSection funcarg;       // where function arguments are placed
     LocalSection Para;          // section of function parameters
     LocalSection Auto;          // section of automatics and registers

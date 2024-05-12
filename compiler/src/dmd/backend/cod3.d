@@ -3302,7 +3302,7 @@ void prolog_ifunc2(ref CodeBuilder cdb, tym_t tyf, tym_t tym, bool pushds)
     {
         if (!pushds)                           // if not already pushed
             cdb.gen1(0x1E);                    // PUSH DS
-        spoff += _tysize[TYint];
+        cgstate.spoff += _tysize[TYint];
         cdb.genc(0xC7,modregrm(3,0,AX),0,0,FLdatseg,cast(targ_uns) 0); // MOV  AX,DGROUP
         code *c = cdb.last();
         c.IEV2.Vseg = DATA;
@@ -3659,13 +3659,13 @@ void prolog_saveregs(ref CodeBuilder cdb, regm_t topush, int cfa_offset)
                 // MOVUPD 0[RSP],xmm
                 cdb.genc1(STOUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FLconst,0);
                 EBPtoESP += 16;
-                spoff += 16;
+                cgstate.spoff += 16;
             }
             else
             {
                 genpush(cdb, reg);
                 EBPtoESP += REGSIZE;
-                spoff += REGSIZE;
+                cgstate.spoff += REGSIZE;
                 if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D ||
                     config.ehmethod == EHmethod.EH_DWARF)
                 {   // Emit debug_frame data giving location of saved register
@@ -4587,8 +4587,8 @@ static if (0)
 @trusted
 targ_size_t cod3_spoff()
 {
-    //printf("spoff = x%x, localsize = x%x\n", cast(int)spoff, cast(int)localsize);
-    return spoff + localsize;
+    //printf("spoff = x%x, localsize = x%x\n", cast(int)cgstate.spoff, cast(int)localsize);
+    return cgstate.spoff + localsize;
 }
 
 @trusted
