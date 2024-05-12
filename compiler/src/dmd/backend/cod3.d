@@ -318,26 +318,6 @@ bool hasModregrm(scope const code* c)
 }
 
 /********************************
- * setup ALLREGS and BYTEREGS
- * called by: codgen
- */
-
-@trusted
-void cod3_initregs()
-{
-    if (I64)
-    {
-        ALLREGS = mAX|mBX|mCX|mDX|mSI|mDI| mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15;
-        BYTEREGS = ALLREGS;
-    }
-    else
-    {
-        ALLREGS = ALLREGS_INIT;
-        BYTEREGS = BYTEREGS_INIT;
-    }
-}
-
-/********************************
  * set initial global variable values
  */
 
@@ -391,9 +371,6 @@ void cod3_set64()
     FLOATREGS = FLOATREGS_64;
     FLOATREGS2 = FLOATREGS2_64;
     DOUBLEREGS = DOUBLEREGS_64;
-
-    ALLREGS = mAX|mBX|mCX|mDX|mSI|mDI|  mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15;
-    BYTEREGS = ALLREGS;
 
     foreach (ref v; inssize2[0x80 .. 0x90])
         v = W|T|6;
