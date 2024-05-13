@@ -164,6 +164,7 @@ struct CGstate
 
     targ_size_t spoff;
     targ_size_t Foff;           // BP offset of floating register
+    targ_size_t CSoff;          // offset of common sub expressions
 
     LocalSection funcarg;       // where function arguments are placed
     LocalSection Para;          // section of function parameters

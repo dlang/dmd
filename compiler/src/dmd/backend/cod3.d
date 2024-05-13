@@ -5390,7 +5390,7 @@ void assignaddrc(code *c)
                     c.Iop = NOP;
                     continue;
                 }
-                c.IEV1.Vpointer = CSE.offset(sn) + CSoff + BPoff;
+                c.IEV1.Vpointer = CSE.offset(sn) + cgstate.CSoff + BPoff;
                 c.Iflags |= CFunambig;
                 goto L2;
 
