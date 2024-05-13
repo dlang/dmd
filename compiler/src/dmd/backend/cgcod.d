@@ -57,7 +57,6 @@ import dmd.backend.dwarfdbginf : dwarf_except_gentables;
 
 __gshared
 {
-targ_size_t CSoff;              // offset of common sub expressions
 targ_size_t NDPoff;             // offset of saved 8087 registers
 targ_size_t pushoff;            // offset of saved registers
 bool pushoffuse;                // using pushoff
@@ -804,11 +803,11 @@ else
     cgstate.Alloca.alignment = REGSIZE;
     cgstate.Alloca.offset = alignsection(cgstate.Foff - cgstate.Alloca.size, cgstate.Alloca.alignment, bias);
 
-    CSoff = alignsection(cgstate.Alloca.offset - CSE.size(), CSE.alignment(), bias);
+    cgstate.CSoff = alignsection(cgstate.Alloca.offset - CSE.size(), CSE.alignment(), bias);
     //printf("CSoff = x%x, size = x%x, alignment = %x\n",
-        //cast(int)CSoff, CSE.size(), cast(int)CSE.alignment);
+        //cast(int)cgstate.CSoff, CSE.size(), cast(int)CSE.alignment);
 
-    NDPoff = alignsection(CSoff - global87.save.length * tysize(TYldouble), REGSIZE, bias);
+    NDPoff = alignsection(cgstate.CSoff - global87.save.length * tysize(TYldouble), REGSIZE, bias);
 
     regm_t topush = fregsaved & ~mfuncreg;          // mask of registers that need saving
     pushoffuse = false;
@@ -851,7 +850,7 @@ else
     localsize = -cgstate.funcarg.offset;
 
     //printf("Alloca.offset = x%llx, cstop = x%llx, CSoff = x%llx, NDPoff = x%llx, localsize = x%llx\n",
-        //(long long)cgstate.Alloca.offset, (long long)CSE.size(), (long long)CSoff, (long long)NDPoff, (long long)localsize);
+        //(long long)cgstate.Alloca.offset, (long long)CSE.size(), (long long)cgstate.CSoff, (long long)NDPoff, (long long)localsize);
     assert(cast(targ_ptrdiff_t)localsize >= 0);
 
     // Keep the stack aligned by 8 for any subsequent function calls
@@ -880,7 +879,7 @@ else
     cgstate.funcarg.offset = -localsize;
 
     //printf("Foff x%02x Auto.size x%02x NDPoff x%02x CSoff x%02x Para.size x%02x localsize x%02x\n",
-        //(int)cgstate.Foff,(int)cgstate.Auto.size,(int)NDPoff,(int)CSoff,(int)cgstate.Para.size,(int)localsize);
+        //(int)cgstate.Foff,(int)cgstate.Auto.size,(int)NDPoff,(int)cgstate.CSoff,(int)cgstate.Para.size,(int)localsize);
 
     uint xlocalsize = cast(uint)localsize;    // amount to subtract from ESP to make room for locals
 
