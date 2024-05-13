@@ -113,8 +113,6 @@ regm_t msavereg;        // Mask of registers that we would like to save.
 regm_t mfuncreg;        // Mask of registers preserved by a function
 
 regm_t allregs;                // ALLREGS optionally including mBP
-
-int dfoidx;                     /* which block we are in                */
 }
 
 /*********************************
@@ -252,11 +250,11 @@ void codgen(Symbol *sfunc)
             cgreg_reset();
             foreach (i, b; dfo[])
             {
-                dfoidx = cast(int)i;
+                cgstate.dfoidx = cast(int)i;
                 regcon.used = msavereg | regcon.cse.mval;   // registers already in use
                 blcodgen(b);                        // gen code in depth-first order
                 //printf("b.Bregcon.used = %s\n", regm_str(b.Bregcon.used));
-                cgreg_used(dfoidx, b.Bregcon.used); // gather register used information
+                cgreg_used(cgstate.dfoidx, b.Bregcon.used); // gather register used information
             }
         }
         else
@@ -1368,14 +1366,14 @@ private void blcodgen(block *bl)
             sflsave[i] = s.Sfl;
             if (regParamInPreg(s) &&
                 regcon.params & s.Spregm() &&
-                vec_testbit(dfoidx,s.Srange))
+                vec_testbit(cgstate.dfoidx,s.Srange))
             {
 //                regcon.used |= s.Spregm();
             }
 
             if (s.Sfl == FLreg)
             {
-                if (vec_testbit(dfoidx,s.Srange))
+                if (vec_testbit(cgstate.dfoidx,s.Srange))
                 {
                     regcon.mvar |= s.Sregm;
                     if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
@@ -1384,11 +1382,11 @@ private void blcodgen(block *bl)
             }
             else if (s.Sflags & SFLspill)
             {
-                if (vec_testbit(dfoidx,s.Srange))
+                if (vec_testbit(cgstate.dfoidx,s.Srange))
                 {
                     anyspill = cast(int)(i + 1);
                     cgreg_spillreg_prolog(bl,s,cdbstore,cdbload);
-                    if (vec_testbit(dfoidx,s.Slvreg))
+                    if (vec_testbit(cgstate.dfoidx,s.Slvreg))
                     {
                         s.Sfl = FLreg;
                         regcon.mvar |= s.Sregm;
