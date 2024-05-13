@@ -191,6 +191,7 @@ struct CGstate
     targ_size_t     retsize;    // size of function return code
 
     int dfoidx;                 // which block we are in
+    regm_t allregs;             // ALLREGS optionally including mBP
 }
 
 public import dmd.backend.nteh;

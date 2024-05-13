@@ -110,8 +110,6 @@ private Symbol *retsym;          // set to symbol that should be placed in
 regm_t msavereg;        // Mask of registers that we would like to save.
                         // they are temporaries (set by scodelem())
 regm_t mfuncreg;        // Mask of registers preserved by a function
-
-regm_t allregs;                // ALLREGS optionally including mBP
 }
 
 /*********************************
@@ -131,7 +129,7 @@ void codgen(Symbol *sfunc)
 
     cgreg_init();
     CSE.initialize();
-    allregs = ALLREGS;
+    cgstate.allregs = ALLREGS;
     cgstate.Alloca.initialize();
     anyiasm = 0;
 
@@ -272,12 +270,12 @@ void codgen(Symbol *sfunc)
         }
 
         // See which variables we can put into registers
-        allregs |= cod3_useBP();                // use EBP as general purpose register
+        cgstate.allregs |= cod3_useBP();                // use EBP as general purpose register
 
         // If pic code, but EBX was never needed
-        if (!(allregs & mask(PICREG)) && !gotref)
+        if (!(cgstate.allregs & mask(PICREG)) && !gotref)
         {
-            allregs |= mask(PICREG);            // EBX can now be used
+            cgstate.allregs |= mask(PICREG);            // EBX can now be used
             cgreg_assign(retsym);
             pass = BackendPass.reg;
         }
@@ -1634,7 +1632,7 @@ static if (0)
 }
         tym = tybasic(tym);
         uint size = _tysize[tym];
-        outretregs &= mES | allregs | XMMREGS;
+        outretregs &= mES | cgstate.allregs | XMMREGS;
         regm_t retregs = outretregs;
         regm_t[] lastRetregs = cgstate.lastRetregs[];
 
@@ -1661,12 +1659,12 @@ static if (0)
         }
         int count = 0;
 L1:
-        //printf("L1: allregs = %s, outretregs = %s\n", regm_str(allregs), regm_str(outretregs));
+        //printf("L1: allregs = %s, outretregs = %s\n", regm_str(cgstate.allregs), regm_str(outretregs));
         assert(++count < 20);           /* fail instead of hanging if blocked */
         assert(retregs);
         reg_t msreg = NOREG, lsreg = NOREG;  /* no value assigned yet        */
 L3:
-        //printf("L2: allregs = %s, outretregs = %s\n", regm_str(allregs), regm_str(outretregs));
+        //printf("L2: allregs = %s, outretregs = %s\n", regm_str(cgstate.allregs), regm_str(outretregs));
         regm_t r = retregs & ~(msavereg | regcon.cse.mval | regcon.params);
         if (!r)
         {
@@ -1816,10 +1814,10 @@ regm_t lpadregs()
 {
     regm_t used;
     if (config.ehmethod == EHmethod.EH_DWARF)
-        used = allregs & ~mfuncreg;
+        used = cgstate.allregs & ~mfuncreg;
     else
-        used = (I32 | I64) ? allregs : (ALLREGS | mES);
-    //printf("lpadregs(): used=%s, allregs=%s, mfuncreg=%s\n", regm_str(used), regm_str(allregs), regm_str(mfuncreg));
+        used = (I32 | I64) ? cgstate.allregs : (ALLREGS | mES);
+    //printf("lpadregs(): used=%s, allregs=%s, mfuncreg=%s\n", regm_str(used), regm_str(cgstate.llregs), regm_str(mfuncreg));
     return used;
 }
 
@@ -2039,7 +2037,7 @@ bool evalinregister(elem *e)
             sz <= REGSIZE)
         {
             // Do it only if at least 2 registers are available
-            regm_t m = allregs & ~regcon.mvar;
+            regm_t m = cgstate.allregs & ~regcon.mvar;
             if (sz == 1)
                 m &= BYTEREGS;
             if (m & (m - 1))        // if more than one register
@@ -2080,7 +2078,7 @@ regm_t getscratch()
     regm_t scratch = 0;
     if (pass == BackendPass.final_)
     {
-        scratch = allregs & ~(regcon.mvar | regcon.mpvar | regcon.cse.mval |
+        scratch = cgstate.allregs & ~(regcon.mvar | regcon.mpvar | regcon.cse.mval |
                   regcon.immed.mval | regcon.params | mfuncreg);
     }
     return scratch;
@@ -2197,8 +2195,8 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
                 retregs = pretregs;
                 if (byte_ && !(retregs & BYTEREGS))
                     retregs = BYTEREGS;
-                else if (!(retregs & allregs))
-                    retregs = allregs;
+                else if (!(retregs & cgstate.allregs))
+                    retregs = cgstate.allregs;
                 reg = allocreg(cdb,retregs,tym);
                 code *cr = &cse.csimple;
                 cr.setReg(reg);
@@ -2851,7 +2849,7 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
         touse = 0;                              // PUSH/POP pairs are always shorter
     else
     {
-        touse = mfuncreg & allregs & ~(msavereg | oldregcon | regcon.cse.mval);
+        touse = mfuncreg & cgstate.allregs & ~(msavereg | oldregcon | regcon.cse.mval);
         /* Don't use registers we'll have to save/restore               */
         touse &= ~(fregsaved & oldmfuncreg);
         /* Don't use registers that have constant values in them, since
@@ -2966,8 +2964,8 @@ const(char)* regm_str(regm_t rm)
         return "ALLREGS";
     if (rm == BYTEREGS)
         return "BYTEREGS";
-    if (rm == allregs)
-        return "allregs";
+    if (rm == cgstate.allregs)
+        return "cgstate.allregs";
     if (rm == XMMREGS)
         return "XMMREGS";
     char *p = str[i].ptr;

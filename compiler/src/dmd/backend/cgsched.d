@@ -158,7 +158,7 @@ public void cgsched_block(block* b)
         config.target_cpu >= TARGET_Pentium &&
         b.BC != BCasm)
     {
-        regm_t scratch = allregs;
+        regm_t scratch = cgstate.allregs;
 
         scratch &= ~(b.Bregcon.used | b.Bregcon.params | mfuncreg);
         scratch &= ~(b.Bregcon.immed.mval | b.Bregcon.cse.mval);

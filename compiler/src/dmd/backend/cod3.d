@@ -1039,7 +1039,7 @@ static if (NTEXCEPTIONS)
             assert(!e);
             usednteh |= NTEH_except;
             nteh_setsp(cdb,0x8B);
-            getregsNoSave(allregs);
+            getregsNoSave(cgstate.allregs);
             nextb = bl.nthSucc(0);
             goto L5;
         }
@@ -1048,7 +1048,7 @@ static if (NTEXCEPTIONS)
             nteh_filter(cdb, bl);
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in filter blocks.
-            getregsNoSave(allregs);
+            getregsNoSave(cgstate.allregs);
             regm_t retregsx = regmask(e.Ety, TYnfunc);
             gencodelem(cdb,e,&retregsx,true);
             cdb.gen1(0xC3);   // RET
@@ -2650,9 +2650,9 @@ void gen_loadcse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
 @trusted
 void cdframeptr(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
-    regm_t retregs = *pretregs & allregs;
+    regm_t retregs = *pretregs & cgstate.allregs;
     if  (!retregs)
-        retregs = allregs;
+        retregs = cgstate.allregs;
     const reg = allocreg(cdb,retregs, TYint);
 
     code cs;
@@ -2674,9 +2674,9 @@ void cdgot(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     if (config.exe & (EX_OSX | EX_OSX64))
     {
-        regm_t retregs = *pretregs & allregs;
+        regm_t retregs = *pretregs & cgstate.allregs;
         if  (!retregs)
-            retregs = allregs;
+            retregs = cgstate.allregs;
         const reg = allocreg(cdb,retregs, TYnptr);
 
         cdb.genc(CALL,0,0,0,FLgot,0);     //     CALL L1
@@ -2686,9 +2686,9 @@ void cdgot(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     }
     else if (config.exe & EX_posix)
     {
-        regm_t retregs = *pretregs & allregs;
+        regm_t retregs = *pretregs & cgstate.allregs;
         if  (!retregs)
-            retregs = allregs;
+            retregs = cgstate.allregs;
         const reg = allocreg(cdb,retregs, TYnptr);
 
         cdb.genc2(CALL,0,0);        //     CALL L1

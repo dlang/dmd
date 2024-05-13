@@ -911,13 +911,13 @@ int cgreg_assign(Symbol *retsym)
                 continue;
 
             // If BP isn't available, can't assign to it
-            if (reg == BP && !(allregs & mBP))
+            if (reg == BP && !(cgstate.allregs & mBP))
                 continue;
 
 static if (0 && TARGET_LINUX)
 {
             // Need EBX for static pointer
-            if (reg == BX && !(allregs & mBX))
+            if (reg == BX && !(cgstate.allregs & mBX))
                 continue;
 }
             /* Don't enregister any parameters to variadicPrologRegs
