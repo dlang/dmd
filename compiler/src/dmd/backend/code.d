@@ -187,6 +187,8 @@ struct CGstate
     targ_size_t     funcoffset; // offset of start of function
     targ_size_t     retoffset;  // offset from start of func to ret code
     targ_size_t     retsize;    // size of function return code
+
+    int dfoidx;                 // which block we are in
 }
 
 public import dmd.backend.nteh;

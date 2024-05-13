@@ -3990,7 +3990,7 @@ static if (0)
                     if (config.flags4 & CFG4optimized)
                     {   // If symbol is live in this basic block and
                         // isn't already in a register
-                        if (s.Srange && vec_testbit(dfoidx, s.Srange) &&
+                        if (s.Srange && vec_testbit(cgstate.dfoidx, s.Srange) &&
                             s.Sfl != FLreg)
                         {   // Then symbol must be allocated on stack
                             needframe = true;

@@ -941,7 +941,7 @@ void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const(char
                 {   Symbol *s = globsym[i];
 
                     if (s.Sflags & SFLspill &&
-                        vec_testbit(dfoidx,s.Srange))
+                        vec_testbit(cgstate.dfoidx,s.Srange))
                     {
                         s.Sfl = sflsave[i];    // undo block register assignments
                         cgreg_spillreg_epilog(bl,s,cdbstore,cdbload);
