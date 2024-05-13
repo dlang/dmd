@@ -5367,7 +5367,7 @@ void assignaddrc(code *c)
                 goto L1;
 
             case FLfltreg:
-                c.IEV1.Vpointer += Foff + BPoff;
+                c.IEV1.Vpointer += cgstate.Foff + BPoff;
                 c.Iflags |= CFunambig;
                 goto L2;
 
@@ -5494,7 +5494,7 @@ void assignaddrc(code *c)
                 goto L3;
 
             case FLfltreg:
-                c.IEV2.Vpointer += Foff + BPoff;
+                c.IEV2.Vpointer += cgstate.Foff + BPoff;
                 goto L3;
 
             case FLallocatmp:
