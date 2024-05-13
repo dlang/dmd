@@ -57,7 +57,6 @@ import dmd.backend.dwarfdbginf : dwarf_except_gentables;
 
 __gshared
 {
-targ_size_t Foff;               // BP offset of floating register
 targ_size_t CSoff;              // offset of common sub expressions
 targ_size_t NDPoff;             // offset of saved 8087 registers
 targ_size_t pushoff;            // offset of saved registers
@@ -798,14 +797,14 @@ else
     if (cgstate.floatreg)
     {
         uint floatregsize = config.fpxmmregs || I32 ? 16 : DOUBLESIZE;
-        Foff = alignsection(regsave.off - floatregsize, STACKALIGN, bias);
-        //printf("Foff = x%x, size = x%x\n", cast(int)Foff, cast(int)floatregsize);
+        cgstate.Foff = alignsection(regsave.off - floatregsize, STACKALIGN, bias);
+        //printf("Foff = x%x, size = x%x\n", cast(int)cgstate.Foff, cast(int)floatregsize);
     }
     else
-        Foff = regsave.off;
+        cgstate.Foff = regsave.off;
 
     cgstate.Alloca.alignment = REGSIZE;
-    cgstate.Alloca.offset = alignsection(Foff - cgstate.Alloca.size, cgstate.Alloca.alignment, bias);
+    cgstate.Alloca.offset = alignsection(cgstate.Foff - cgstate.Alloca.size, cgstate.Alloca.alignment, bias);
 
     CSoff = alignsection(cgstate.Alloca.offset - CSE.size(), CSE.alignment(), bias);
     //printf("CSoff = x%x, size = x%x, alignment = %x\n",
@@ -883,7 +882,7 @@ else
     cgstate.funcarg.offset = -localsize;
 
     //printf("Foff x%02x Auto.size x%02x NDPoff x%02x CSoff x%02x Para.size x%02x localsize x%02x\n",
-        //(int)Foff,(int)cgstate.Auto.size,(int)NDPoff,(int)CSoff,(int)cgstate.Para.size,(int)localsize);
+        //(int)cgstate.Foff,(int)cgstate.Auto.size,(int)NDPoff,(int)CSoff,(int)cgstate.Para.size,(int)localsize);
 
     uint xlocalsize = cast(uint)localsize;    // amount to subtract from ESP to make room for locals
 

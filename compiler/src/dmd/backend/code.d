@@ -163,6 +163,7 @@ struct CGstate
     int stackclean;     // if != 0, then clean the stack after function call
 
     targ_size_t spoff;
+    targ_size_t Foff;           // BP offset of floating register
 
     LocalSection funcarg;       // where function arguments are placed
     LocalSection Para;          // section of function parameters
