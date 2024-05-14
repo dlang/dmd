@@ -96,13 +96,6 @@ bool calledFinally;     // true if called a BC_finally block
 con_t regcon;
 
 BackendPass pass;
-
-/****************************
- * Register masks.
- */
-
-regm_t msavereg;        // Mask of registers that we would like to save.
-                        // they are temporaries (set by scodelem())
 }
 
 /*********************************
@@ -186,7 +179,7 @@ void codgen(Symbol *sfunc)
         CSE.start();
         memset(&regcon,0,regcon.sizeof);
         regcon.cse.mval = regcon.cse.mops = 0;      // no common subs yet
-        msavereg = 0;
+        cgstate.msavereg = 0;
         uint nretblocks = 0;
         cgstate.mfuncreg = fregsaved;               // so we can see which are used
                                             // (bit is cleared each time
@@ -241,7 +234,7 @@ void codgen(Symbol *sfunc)
             foreach (i, b; dfo[])
             {
                 cgstate.dfoidx = cast(int)i;
-                regcon.used = msavereg | regcon.cse.mval;   // registers already in use
+                regcon.used = cgstate.msavereg | regcon.cse.mval;   // registers already in use
                 blcodgen(b);                        // gen code in depth-first order
                 //printf("b.Bregcon.used = %s\n", regm_str(b.Bregcon.used));
                 cgreg_used(cgstate.dfoidx, b.Bregcon.used); // gather register used information
@@ -1620,7 +1613,7 @@ static if (0)
         {
             printf("allocreg %s,%d: regcon.mvar %s regcon.cse.mval %s msavereg %s outretregs %s tym %s\n",
                 file,line,regm_str(regcon.mvar),regm_str(regcon.cse.mval),
-                regm_str(msavereg),regm_str(outretregs),tym_str(tym));
+                regm_str(cgstate.msavereg),regm_str(outretregs),tym_str(tym));
         }
 }
         tym = tybasic(tym);
@@ -1658,15 +1651,15 @@ L1:
         reg_t msreg = NOREG, lsreg = NOREG;  /* no value assigned yet        */
 L3:
         //printf("L2: allregs = %s, outretregs = %s\n", regm_str(cgstate.allregs), regm_str(outretregs));
-        regm_t r = retregs & ~(msavereg | regcon.cse.mval | regcon.params);
+        regm_t r = retregs & ~(cgstate.msavereg | regcon.cse.mval | regcon.params);
         if (!r)
         {
-            r = retregs & ~(msavereg | regcon.cse.mval);
+            r = retregs & ~(cgstate.msavereg | regcon.cse.mval);
             if (!r)
             {
-                r = retregs & ~(msavereg | regcon.cse.mops);
+                r = retregs & ~(cgstate.msavereg | regcon.cse.mops);
                 if (!r)
-                {   r = retregs & ~msavereg;
+                {   r = retregs & ~cgstate.msavereg;
                     if (!r)
                         r = retregs;
                 }
@@ -1758,7 +1751,7 @@ L3:
             debug
             {
                 printf("%s\nallocreg: fil %s lin %d, regcon.mvar %s msavereg %s outretregs %s, reg %d, tym x%x\n",
-                    tym_str(tym),file,line,regm_str(regcon.mvar),regm_str(msavereg),regm_str(outretregs),reg,tym);
+                    tym_str(tym),file,line,regm_str(regcon.mvar),regm_str(cgstate.msavereg),regm_str(outretregs),reg,tym);
             }
             assert(0);
         }
@@ -1842,7 +1835,7 @@ void getregs(ref CodeBuilder cdb, regm_t r)
     regm_t ms = r & regcon.cse.mops;           // mask of common subs we must save
     useregs(r);
     regcon.cse.mval &= ~r;
-    msavereg &= ~r;                     // regs that are destroyed
+    cgstate.msavereg &= ~r;                     // regs that are destroyed
     regcon.immed.mval &= ~r;
     if (ms)
         cse_save(cdb, ms);
@@ -1859,7 +1852,7 @@ void getregsNoSave(regm_t r)
     assert(!(r & regcon.cse.mops));            // mask of common subs we must save
     useregs(r);
     regcon.cse.mval &= ~r;
-    msavereg &= ~r;                     // regs that are destroyed
+    cgstate.msavereg &= ~r;                     // regs that are destroyed
     regcon.immed.mval &= ~r;
 }
 
@@ -2609,7 +2602,7 @@ void codelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint constflag)
     {
         printf("+codelem(e=%p,*pretregs=%s) %s ",e,regm_str(*pretregs),oper_str(e.Eoper));
         printf("msavereg=%s regcon.cse.mval=%s regcon.cse.mops=%s\n",
-                regm_str(msavereg),regm_str(regcon.cse.mval),regm_str(regcon.cse.mops));
+                regm_str(cgstate.msavereg),regm_str(regcon.cse.mval),regm_str(regcon.cse.mops));
         printf("Ecount = %d, Ecomsub = %d\n", e.Ecount, e.Ecomsub);
     }
 
@@ -2622,7 +2615,7 @@ void codelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint constflag)
             printf("+codelem(e=%p,*pretregs=%s) ", e, regm_str(*pretregs));
             elem_print(e);
             printf("msavereg=%s regcon.cse.mval=%s regcon.cse.mops=%s\n",
-                    regm_str(msavereg),regm_str(regcon.cse.mval),regm_str(regcon.cse.mops));
+                    regm_str(cgstate.msavereg),regm_str(regcon.cse.mval),regm_str(regcon.cse.mops));
             printf("Ecount = %d, Ecomsub = %d\n", e.Ecount, e.Ecomsub);
         }
         assert(0);
@@ -2747,7 +2740,7 @@ L1:
     {
         printf("-codelem(e=%p,*pretregs=%s) %s ",e,regm_str(*pretregs), oper_str(op));
         printf("msavereg=%s regcon.cse.mval=%s regcon.cse.mops=%s\n",
-                regm_str(msavereg),regm_str(regcon.cse.mval),regm_str(regcon.cse.mops));
+                regm_str(cgstate.msavereg),regm_str(regcon.cse.mval),regm_str(regcon.cse.mops));
     }
 }
 
@@ -2794,8 +2787,8 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
             return;
         }
     }
-    regm_t overlap = msavereg & keepmsk;
-    msavereg |= keepmsk;          /* add to mask of regs to save          */
+    regm_t overlap = cgstate.msavereg & keepmsk;
+    cgstate.msavereg |= keepmsk;          /* add to mask of regs to save          */
     regm_t oldregcon = regcon.cse.mval;
     regm_t oldregimmed = regcon.immed.mval;
     regm_t oldmfuncreg = cgstate.mfuncreg;       // remember old one
@@ -2806,11 +2799,11 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
     CodeBuilder cdbx; cdbx.ctor();
     codelem(cdbx,e,pretregs,constflag);    // generate code for the elem
 
-    regm_t tosave = keepmsk & ~msavereg; /* registers to save                    */
+    regm_t tosave = keepmsk & ~cgstate.msavereg; /* registers to save                    */
     if (tosave)
     {
         cgstate.stackclean++;
-        genstackclean(cdbx,stackpush - stackpushsave,*pretregs | msavereg);
+        genstackclean(cdbx,stackpush - stackpushsave,*pretregs | cgstate.msavereg);
         cgstate.stackclean--;
     }
 
@@ -2842,7 +2835,7 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
         touse = 0;                              // PUSH/POP pairs are always shorter
     else
     {
-        touse = cgstate.mfuncreg & cgstate.allregs & ~(msavereg | oldregcon | regcon.cse.mval);
+        touse = cgstate.mfuncreg & cgstate.allregs & ~(cgstate.msavereg | oldregcon | regcon.cse.mval);
         /* Don't use registers we'll have to save/restore               */
         touse &= ~(fregsaved & oldmfuncreg);
         /* Don't use registers that have constant values in them, since
@@ -2926,7 +2919,7 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
         cdbs2.append(cs2);
 
     calledafunc |= calledafuncsave;
-    msavereg &= ~keepmsk | overlap; /* remove from mask of regs to save   */
+    cgstate.msavereg &= ~keepmsk | overlap; /* remove from mask of regs to save   */
     cgstate.mfuncreg &= oldmfuncreg;        /* update original                    */
 
     debug if (debugw)

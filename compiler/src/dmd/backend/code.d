@@ -199,6 +199,8 @@ struct CGstate
     int dfoidx;                 // which block we are in
     regm_t allregs;             // ALLREGS optionally including mBP
     regm_t mfuncreg;            // mask of registers preserved by function
+    regm_t msavereg;            // Mask of registers that we would like to save.
+                                // they are temporaries (set by scodelem())
 }
 
 public import dmd.backend.nteh;
