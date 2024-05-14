@@ -100,9 +100,6 @@ con_t regcon;
 
 BackendPass pass;
 
-private Symbol *retsym;          // set to symbol that should be placed in
-                                // register AX
-
 /****************************
  * Register masks.
  */
@@ -166,7 +163,7 @@ void codgen(Symbol *sfunc)
         stackpush = 0;
         refparam = 0;
         calledafunc = 0;
-        retsym = null;
+        cgstate.retsym = null;
 
         cgstate.stackclean = 1;
         cgstate.funcarg.initialize();
@@ -276,10 +273,10 @@ void codgen(Symbol *sfunc)
         if (!(cgstate.allregs & mask(PICREG)) && !gotref)
         {
             cgstate.allregs |= mask(PICREG);            // EBX can now be used
-            cgreg_assign(retsym);
+            cgreg_assign(cgstate.retsym);
             pass = BackendPass.reg;
         }
-        else if (cgreg_assign(retsym))          // if we found some registers
+        else if (cgreg_assign(cgstate.retsym))          // if we found some registers
             pass = BackendPass.reg;
         else
             pass = BackendPass.final_;
@@ -1420,7 +1417,7 @@ private void blcodgen(block *bl)
     refparam = 0;
     assert((regcon.cse.mops & regcon.cse.mval) == regcon.cse.mops);
 
-    outblkexitcode(cdb, bl, anyspill, sflsave, &retsym, mfuncregsave);
+    outblkexitcode(cdb, bl, anyspill, sflsave, &cgstate.retsym, mfuncregsave);
     bl.Bcode = cdb.finish();
 
     for (int i = 0; i < anyspill; i++)
