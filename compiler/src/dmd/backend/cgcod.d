@@ -57,7 +57,6 @@ import dmd.backend.dwarfdbginf : dwarf_except_gentables;
 
 __gshared
 {
-targ_size_t NDPoff;             // offset of saved 8087 registers
 targ_size_t pushoff;            // offset of saved registers
 bool pushoffuse;                // using pushoff
 int BPoff;                      // offset from BP
@@ -805,11 +804,11 @@ else
     //printf("CSoff = x%x, size = x%x, alignment = %x\n",
         //cast(int)cgstate.CSoff, CSE.size(), cast(int)CSE.alignment);
 
-    NDPoff = alignsection(cgstate.CSoff - global87.save.length * tysize(TYldouble), REGSIZE, bias);
+    cgstate.NDPoff = alignsection(cgstate.CSoff - global87.save.length * tysize(TYldouble), REGSIZE, bias);
 
     regm_t topush = fregsaved & ~mfuncreg;          // mask of registers that need saving
     pushoffuse = false;
-    pushoff = NDPoff;
+    pushoff = cgstate.NDPoff;
     /* We don't keep track of all the pushes and pops in a function. Hence,
      * using POP REG to restore registers in the epilog doesn't work, because the Dwarf unwinder
      * won't be setting ESP correctly. With pushoffuse, the registers are restored
@@ -822,7 +821,7 @@ else
          */
         int xmmtopush = popcnt(topush & XMMREGS);   // XMM regs take 16 bytes
         int gptopush = popcnt(topush) - xmmtopush;  // general purpose registers to save
-        if (NDPoff || xmmtopush || cgstate.funcarg.size)
+        if (cgstate.NDPoff || xmmtopush || cgstate.funcarg.size)
         {
             pushoff = alignsection(pushoff - (gptopush * REGSIZE + xmmtopush * 16),
                     xmmtopush ? STACKALIGN : REGSIZE, bias);
@@ -848,7 +847,7 @@ else
     localsize = -cgstate.funcarg.offset;
 
     //printf("Alloca.offset = x%llx, cstop = x%llx, CSoff = x%llx, NDPoff = x%llx, localsize = x%llx\n",
-        //(long long)cgstate.Alloca.offset, (long long)CSE.size(), (long long)cgstate.CSoff, (long long)NDPoff, (long long)localsize);
+        //(long long)cgstate.Alloca.offset, (long long)CSE.size(), (long long)cgstate.CSoff, (long long)cgstate.NDPoff, (long long)localsize);
     assert(cast(targ_ptrdiff_t)localsize >= 0);
 
     // Keep the stack aligned by 8 for any subsequent function calls
@@ -877,7 +876,7 @@ else
     cgstate.funcarg.offset = -localsize;
 
     //printf("Foff x%02x Auto.size x%02x NDPoff x%02x CSoff x%02x Para.size x%02x localsize x%02x\n",
-        //(int)cgstate.Foff,(int)cgstate.Auto.size,(int)NDPoff,(int)cgstate.CSoff,(int)cgstate.Para.size,(int)localsize);
+        //(int)cgstate.Foff,(int)cgstate.Auto.size,(int)cgstate.NDPoff,(int)cgstate.CSoff,(int)cgstate.Para.size,(int)localsize);
 
     uint xlocalsize = cast(uint)localsize;    // amount to subtract from ESP to make room for locals
 
