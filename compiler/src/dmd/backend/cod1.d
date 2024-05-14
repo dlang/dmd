@@ -419,7 +419,7 @@ void genstackclean(ref CodeBuilder cdb,uint numpara,regm_t keepmsk)
     {
 /+
         if (0 &&                                // won't work if operand of scodelem
-            numpara == stackpush &&             // if this is all those pushed
+            numpara == cgstate.stackpush &&             // if this is all those pushed
             needframe &&                        // and there will be a BP
             !config.windows &&
             !(regcon.mvar & fregsaved)          // and no registers will be pushed
@@ -443,7 +443,7 @@ void genstackclean(ref CodeBuilder cdb,uint numpara,regm_t keepmsk)
             else
                 cod3_stackadj(cdb, -numpara);
         }
-        stackpush -= numpara;
+        cgstate.stackpush -= numpara;
         cdb.genadjesp(-numpara);
     }
 }
@@ -1925,7 +1925,7 @@ void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, ref regm_t outretre
                 cdb.gen1(0x50 + BX);
                 cdb.gen1(0x50 + CX);
                 cdb.gen1(0x50 + DX);
-                stackpush += DOUBLESIZE;
+                cgstate.stackpush += DOUBLESIZE;
             }
             else if (retregs & mSTACK)
             {
@@ -1936,7 +1936,7 @@ void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, ref regm_t outretre
                 cdb.gen1(0x58 + CX);
                 cdb.gen1(0x58 + BX);
                 cdb.gen1(0x58 + AX);
-                stackpush -= DOUBLESIZE;
+                cgstate.stackpush -= DOUBLESIZE;
                 retregs = DOUBLEREGS_16; // for tstresult() below
             }
             else
@@ -2830,7 +2830,7 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, regm_t* pretregs, regm_t 
         int pushall = (cinfo.flags & INFpusheabcdx) != 0;
         if (STACKALIGN >= 16)
         {   // Align the stack (assume no args on stack)
-            int npush = (npushed + pushebx + 4 * pushall) * REGSIZE + stackpush;
+            int npush = (npushed + pushebx + 4 * pushall) * REGSIZE + cgstate.stackpush;
             if (npush & (STACKALIGN - 1))
             {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
                 cod3_stackadj(cdb, nalign);
@@ -2877,7 +2877,7 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, regm_t* pretregs, regm_t 
         calledafunc = 1;
     }
     if (I16)
-        stackpush -= cinfo.pop;
+        cgstate.stackpush -= cinfo.pop;
     regm_t retregs = I16 ? cinfo.retregs16 : cinfo.retregs32;
     cdb.append(cdbpop);
     fixresult(cdb, e, retregs, *pretregs);
@@ -3273,7 +3273,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
     assert(e);
     uint numpara = 0;               // bytes of parameters
     uint numalign = 0;              // bytes to align stack before pushing parameters
-    uint stackpushsave = stackpush;            // so we can compute # of parameters
+    uint stackpushsave = cgstate.stackpush;   // so we can compute # of parameters
     cgstate.stackclean++;
     regm_t keepmsk = 0;
     int xmmcnt = 0;
@@ -3364,9 +3364,9 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             numpara = 4 * REGSIZE;
     }
 
-    //printf("numpara = %d, stackpush = %d\n", numpara, stackpush);
+    //printf("numpara = %d, cgstate.stackpush = %d\n", numpara, stackpush);
     assert((numpara & (REGSIZE - 1)) == 0);
-    assert((stackpush & (REGSIZE - 1)) == 0);
+    assert((cgstate.stackpush & (REGSIZE - 1)) == 0);
 
     /* Should consider reordering the order of evaluation of the parameters
      * so that args that go into registers are evaluated after args that get
@@ -3380,7 +3380,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
     {
         printf("test1 %d %d %d %d %d %d %d %d\n", (config.flags4 & CFG4speed)!=0, !cgstate.Alloca.size,
             !(usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)),
-            cast(int)numpara, !stackpush,
+            cast(int)numpara, !cgstate.stackpush,
             (cgstate.funcargtos == ~0 || numpara < cgstate.funcargtos),
             (!typfunc(tyf) || sf && sf.Sflags & SFLexit), !I16);
     }
@@ -3394,7 +3394,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         !usednteh &&
         !calledFinally &&
         (numpara || config.exe == EX_WIN64) &&
-        stackpush == 0 &&               // cgstate.funcarg needs to be at top of stack
+        cgstate.stackpush == 0 &&               // cgstate.funcarg needs to be at top of stack
         (cgstate.funcargtos == ~0 || numpara < cgstate.funcargtos) &&
         (!(typfunc(tyf) || tyf == TYhfunc) || sf && sf.Sflags & SFLexit) &&
         !anyiasm && !I16
@@ -3433,18 +3433,18 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
     /* Adjust start of the stack so after all args are pushed,
      * the stack will be aligned.
      */
-    if (!usefuncarg && STACKALIGN >= 16 && (numpara + stackpush) & (STACKALIGN - 1))
+    if (!usefuncarg && STACKALIGN >= 16 && (numpara + cgstate.stackpush) & (STACKALIGN - 1))
     {
-        numalign = STACKALIGN - ((numpara + stackpush) & (STACKALIGN - 1));
+        numalign = STACKALIGN - ((numpara + cgstate.stackpush) & (STACKALIGN - 1));
         cod3_stackadj(cdb, numalign);
         cdb.genadjesp(numalign);
-        stackpush += numalign;
+        cgstate.stackpush += numalign;
         stackpushsave += numalign;
     }
-    assert(stackpush == stackpushsave);
+    assert(cgstate.stackpush == stackpushsave);
     if (config.exe == EX_WIN64)
     {
-        //printf("np = %d, numpara = %d, stackpush = %d\n", np, numpara, stackpush);
+        //printf("np = %d, numpara = %d, cgstate.stackpush = %d\n", np, numpara, stackpush);
         assert(numpara == ((np < 4) ? 4 * REGSIZE : np * REGSIZE));
 
         // Allocate stack space for four entries anyway
@@ -3518,7 +3518,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             {
                 cod3_stackadj(cdb, numalignx);
                 cdb.genadjesp(numalignx);
-                stackpush += numalignx;
+                cgstate.stackpush += numalignx;
             }
         }
         else
@@ -3648,7 +3648,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             {
                 getregs(cdb,retregs);
                 // LEA preg,np[RSP]
-                uint delta = stackpush - ep.Vuns;   // stack delta to parameter
+                uint delta = cgstate.stackpush - ep.Vuns;   // stack delta to parameter
                 cdb.genc1(LEA,
                         (modregrm(0,4,SP) << 8) | modregxrm(2,preg,4), FLconst,delta);
                 if (I64)
@@ -3681,7 +3681,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             {
                 cod3_stackadj(cdb, sz);
                 cdb.genadjesp(sz);
-                stackpush += sz;
+                cgstate.stackpush += sz;
             }
         }
 
@@ -3727,14 +3727,14 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
     cgstate.stackclean--;
 
     debug
-    if (!usefuncarg && numpara != stackpush - stackpushsave)
+    if (!usefuncarg && numpara != cgstate.stackpush - stackpushsave)
     {
         printf("function %s\n", funcsym_p.Sident.ptr);
-        printf("numpara = %d, stackpush = %d, stackpushsave = %d\n", numpara, stackpush, stackpushsave);
+        printf("numpara = %d, stackpush = %d, stackpushsave = %d\n", numpara, cgstate.stackpush, stackpushsave);
         elem_print(e);
     }
 
-    assert(usefuncarg || numpara == stackpush - stackpushsave);
+    assert(usefuncarg || numpara == cgstate.stackpush - stackpushsave);
 
     funccall(cdb,e,numpara,numalign,pretregs,keepmsk,usefuncarg);
     cgstate.funcargtos = funcargtossave;
@@ -3750,7 +3750,7 @@ void cdstrthis(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
     const reg = findreg(*pretregs & cgstate.allregs);
     getregs(cdb,mask(reg));
     // LEA reg,np[ESP]
-    uint np = stackpush - e.Vuns;        // stack delta to parameter
+    uint np = cgstate.stackpush - e.Vuns;        // stack delta to parameter
     cdb.genc1(LEA,(modregrm(0,4,SP) << 8) | modregxrm(2,reg,4),FLconst,np);
     if (I64)
         code_orrex(cdb.last(), REX_W);
@@ -4031,7 +4031,7 @@ static if (0)
              * as if it did return.
              */
             cdb.genadjesp(-(numpara + numalign));
-            stackpush -= numpara + numalign;
+            cgstate.stackpush -= numpara + numalign;
         }
         else if ((OTbinary(e.Eoper) || config.exe == EX_WIN64) &&
             (!typfunc(tym1) || config.exe == EX_WIN64))
@@ -4039,7 +4039,7 @@ static if (0)
             if (tym1 == TYhfunc)
             {   // Hidden parameter is popped off by the callee
                 cdb.genadjesp(-REGSIZE);
-                stackpush -= REGSIZE;
+                cgstate.stackpush -= REGSIZE;
                 if (numpara + numalign > REGSIZE)
                     genstackclean(cdb, numpara + numalign - REGSIZE, retregs);
             }
@@ -4049,7 +4049,7 @@ static if (0)
         else
         {
             cdb.genadjesp(-numpara);  // popped off by the callee's 'RET numpara'
-            stackpush -= numpara;
+            cgstate.stackpush -= numpara;
             if (numalign)               // callee doesn't know about alignment adjustment
                 genstackclean(cdb,numalign,retregs);
         }
@@ -4388,7 +4388,7 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
 
 /***************************
  * Generate code to push argument e on the stack.
- * stackpush is incremented by stackalign for each PUSH.
+ * cgstate.stackpush is incremented by stackalign for each PUSH.
  */
 
 @trusted
@@ -4421,7 +4421,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
             {
                 docommas(cdb, e1); // skip over any commas
 
-                const stackpushsave = stackpush;
+                const stackpushsave = cgstate.stackpush;
                 const stackcleansave = cgstate.stackclean;
                 cgstate.stackclean = 0;
 
@@ -4430,7 +4430,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
 
                 assert(cgstate.stackclean == 0);
                 cgstate.stackclean = stackcleansave;
-                genstackclean(cdb,stackpush - stackpushsave,0);
+                genstackclean(cdb,cgstate.stackpush - stackpushsave,0);
 
                 freenode(e);
                 return;
@@ -4605,7 +4605,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                 regimmed_set(CX,0);
                 cdb.genadjesp(cast(int)sz);
             }
-            stackpush += sz;
+            cgstate.stackpush += sz;
             freenode(e);
             return;
         }
@@ -4642,7 +4642,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                     assert(sz >= REGSIZE * 2);
                     loadea(cdb, e, &cs, 0xFF, 6, sz - REGSIZE, 0, 0); // PUSH EA+4
                     cdb.genadjesp(REGSIZE);
-                    stackpush += REGSIZE;
+                    cgstate.stackpush += REGSIZE;
                     sz -= REGSIZE;
 
                     if (sz > REGSIZE)
@@ -4652,7 +4652,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                             cs.IEV1.Voffset -= REGSIZE;
                             cdb.gen(&cs);                    // PUSH EA+...
                             cdb.genadjesp(REGSIZE);
-                            stackpush += REGSIZE;
+                            cgstate.stackpush += REGSIZE;
                             sz -= REGSIZE;
                         }
                         freenode(e);
@@ -4674,7 +4674,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                         loadea(cdb, e, &cs, 0xFF, 6, REGSIZE, 0, 0); // PUSH EA+2
                     cdb.genadjesp(REGSIZE);
                 }
-                stackpush += sz;
+                cgstate.stackpush += sz;
                 getlvalue_lsw(&cs);
                 cdb.gen(&cs);                            // PUSH EA
                 cdb.genadjesp(REGSIZE);
@@ -4702,7 +4702,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                 if (I32 && stackalign == 2)
                     code_orflag(cdb.last(), CFopsize);        // push a word
                 cdb.genadjesp(stackalign);
-                stackpush += stackalign;
+                cgstate.stackpush += stackalign;
                 pushParams(cdb, e1, stackalign, tyf);
                 freenode(e);
                 return;
@@ -4728,7 +4728,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                     )
                    )
                 {
-                    stackpush += sz;
+                    cgstate.stackpush += sz;
                     cdb.gen1(0x06 +           // PUSH SEGREG
                             (((fl == FLfunc || s.ty() & mTYcs) ? 1 : segfl[fl]) << 3));
                     cdb.genadjesp(REGSIZE);
@@ -4751,7 +4751,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                 }
                 if (config.target_cpu >= TARGET_80286 && !e.Ecount)
                 {
-                    stackpush += sz;
+                    cgstate.stackpush += sz;
                     if (_tysize[tym] == tysize(TYfptr))
                     {
                         // PUSH SEG e
@@ -4794,7 +4794,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                 loadea(cdb, e, &cs, 0xFF, 6, sz - regsize, RMload, 0);    // PUSH EA+sz-2
                 code_orflag(cdb.last(), flag);
                 cdb.genadjesp(REGSIZE);
-                stackpush += sz;
+                cgstate.stackpush += sz;
                 while (cast(targ_int)(sz -= regsize) > 0)
                 {
                     loadea(cdb, e, &cs, 0xFF, 6, sz - regsize, RMload, 0);
@@ -4822,7 +4822,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
             {
                 assert(sz == 12);
                 targ_int value = e.Vushort8[4]; // pick upper 2 bytes of Vldouble
-                stackpush += sz;
+                cgstate.stackpush += sz;
                 cdb.genadjesp(cast(int)sz);
                 for (int i = 0; i < 3; ++i)
                 {
@@ -4855,7 +4855,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
             else if (i == REGSIZE)
                 break;
 
-            stackpush += sz;
+            cgstate.stackpush += sz;
             cdb.genadjesp(cast(int)sz);
             targ_uns* pi = &e.Vuns;     // point to start of Vdouble
             targ_ushort* ps = cast(targ_ushort *) pi;
@@ -4943,7 +4943,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                 genpush(cdb, findregmsw(regs)); // PUSH msreg
                 genpush(cdb, findreglsw(regs)); // PUSH lsreg
                 cdb.genadjesp(cast(int)sz);
-                stackpush += sz;
+                cgstate.stackpush += sz;
             }
             return;
         }
@@ -4974,7 +4974,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                 genpush(cdb, findregmsw(regs)); // PUSH msreg
                 genpush(cdb, findreglsw(regs)); // PUSH lsreg
                 cdb.genadjesp(cast(int)sz);
-                stackpush += sz;
+                cgstate.stackpush += sz;
             }
             return;
         }
@@ -4988,7 +4988,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
     {
         regm_t retxmm = XMMREGS;
         codelem(cdb, e, &retxmm, false);
-        stackpush += sz;
+        cgstate.stackpush += sz;
         cdb.genadjesp(cast(int)sz);
         cod3_stackadj(cdb, cast(int)sz);
         const op = xmmstore(tym);
@@ -5003,7 +5003,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
         {
             retregs = tycomplex(tym) ? mST01 : mST0;
             codelem(cdb, e, &retregs, false);
-            stackpush += sz;
+            cgstate.stackpush += sz;
             cdb.genadjesp(cast(int)sz);
             cod3_stackadj(cdb, cast(int)sz);
             opcode_t op;
@@ -5066,8 +5066,8 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
         retregs = mSTACK;
 
     scodelem(cdb,e,&retregs,0,true);
-    if (retregs != mSTACK)                // if stackpush not already inc'd
-        stackpush += sz;
+    if (retregs != mSTACK)                // if cgstate.stackpush not already inc'd
+        cgstate.stackpush += sz;
     if (sz <= REGSIZE)
     {
         genpush(cdb,findreg(retregs));        // PUSH reg
@@ -5521,7 +5521,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
                 {
                     loadea(cdb,e,&cs,0xFF,6,i,0,0); // PUSH EA+i
                     cdb.genadjesp(REGSIZE);
-                    stackpush += REGSIZE;
+                    cgstate.stackpush += REGSIZE;
                     i -= REGSIZE;
                 }
                 while (i >= 0);
@@ -5548,7 +5548,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
                 {
                     loadea(cdb,e,&cs,0xFF,6,i,0,0); // PUSH EA+i
                     cdb.genadjesp(REGSIZE);
-                    stackpush += REGSIZE;
+                    cgstate.stackpush += REGSIZE;
                     i -= REGSIZE;
                 }
                 while (i >= 0);

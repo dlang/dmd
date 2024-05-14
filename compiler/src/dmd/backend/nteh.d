@@ -479,7 +479,7 @@ void cdsetjmp(ref CodeBuilder cdb, elem *e,regm_t *pretregs)
     regm_t retregs;
     uint flag;
 
-    const stackpushsave = stackpush;
+    const stackpushsave = cgstate.stackpush;
     if (funcsym_p.Sfunc.Fflags3 & Fnteh)
     {
         /*  If in NT SEH try block
@@ -503,7 +503,7 @@ void cdsetjmp(ref CodeBuilder cdb, elem *e,regm_t *pretregs)
         cs.IEV1.Vsym = nteh_contextsym();
         cs.IEV1.Voffset = sindex_off;
         cdb.gen(&cs);                 // PUSH scope_index
-        stackpush += 4;
+        cgstate.stackpush += 4;
         cdb.genadjesp(4);
 
         cs.Iop = 0x68;
@@ -513,7 +513,7 @@ void cdsetjmp(ref CodeBuilder cdb, elem *e,regm_t *pretregs)
         cs.IEV2.Vsym = getRtlsym(RTLSYM.LONGJMP);
         cs.IEV2.Voffset = 0;
         cdb.gen(&cs);                 // PUSH &_seh_longjmp_unwind
-        stackpush += 4;
+        cgstate.stackpush += 4;
         cdb.genadjesp(4);
 
         flag = 2;
@@ -532,7 +532,7 @@ void cdsetjmp(ref CodeBuilder cdb, elem *e,regm_t *pretregs)
     cs.IFL2 = FLconst;
     cs.IEV2.Vint = flag;
     cdb.gen(&cs);                     // PUSH flag
-    stackpush += 4;
+    cgstate.stackpush += 4;
     cdb.genadjesp(4);
 
     pushParams(cdb,e.E1,REGSIZE, TYnfunc);
@@ -540,10 +540,10 @@ void cdsetjmp(ref CodeBuilder cdb, elem *e,regm_t *pretregs)
     getregs(cdb,~getRtlsym(RTLSYM.SETJMP3).Sregsaved & (ALLREGS | mES));
     cdb.gencs(0xE8,0,FLfunc,getRtlsym(RTLSYM.SETJMP3));      // CALL __setjmp3
 
-    cod3_stackadj(cdb, -(stackpush - stackpushsave));
-    cdb.genadjesp(-(stackpush - stackpushsave));
+    cod3_stackadj(cdb, -(cgstate.stackpush - stackpushsave));
+    cdb.genadjesp(-(cgstate.stackpush - stackpushsave));
 
-    stackpush = stackpushsave;
+    cgstate.stackpush = stackpushsave;
     retregs = regmask(e.Ety, TYnfunc);
     fixresult(cdb,e,retregs,*pretregs);
 }
