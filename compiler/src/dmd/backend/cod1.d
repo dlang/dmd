@@ -3477,16 +3477,16 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
              */
             CodeBuilder cdbsave;
             cdbsave.ctor();
-            regm_t overlap = msavereg & keepmsk;
-            msavereg |= keepmsk;
+            regm_t overlap = cgstate.msavereg & keepmsk;
+            cgstate.msavereg |= keepmsk;
             CodeBuilder cdbparams;
             cdbparams.ctor();
             if (usefuncarg)
                 movParams(cdbparams, ep, stackalign, cast(uint)funcargtos, tyf);
             else
                 pushParams(cdbparams,ep,stackalign, tyf);
-            regm_t tosave = keepmsk & ~msavereg;
-            msavereg &= ~keepmsk | overlap;
+            regm_t tosave = keepmsk & ~cgstate.msavereg;
+            cgstate.msavereg &= ~keepmsk | overlap;
 
             // tosave is the mask to save and restore
             for (reg_t j = 0; tosave; j++)
