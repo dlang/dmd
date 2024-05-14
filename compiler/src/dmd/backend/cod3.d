@@ -5402,7 +5402,7 @@ void assignaddrc(code *c)
 
             case FLndp:
                 assert(c.IEV1.Vuns < global87.save.length);
-                c.IEV1.Vpointer = c.IEV1.Vuns * tysize(TYldouble) + NDPoff + BPoff;
+                c.IEV1.Vpointer = c.IEV1.Vuns * tysize(TYldouble) + cgstate.NDPoff + BPoff;
                 c.Iflags |= CFunambig;
                 goto L2;
 
