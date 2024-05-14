@@ -3998,7 +3998,7 @@ static if (0)
                         }
                     }
                     else
-                    {   if (mfuncreg == 0)      // if no registers left
+                    {   if (cgstate.mfuncreg == 0)      // if no registers left
                         {   needframe = true;
                             break;
                         }
@@ -5421,7 +5421,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
                            cast(int)e.Voffset,
                            regm_str(pregm));
 
-                mfuncreg &= ~pregm;
+                cgstate.mfuncreg &= ~pregm;
                 regcon.used |= pregm;
                 fixresult(cdb,e,pregm,outretregs);
                 return;

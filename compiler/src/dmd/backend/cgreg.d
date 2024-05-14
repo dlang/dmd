@@ -294,7 +294,7 @@ static if (1) // causes assert failure in std.range(4488) from std.parallelism's
 
     // Make sure we have enough uses to justify
     // using a register we must save
-    if (fregsaved & (1 << reg) & mfuncreg)
+    if (fregsaved & (1 << reg) & cgstate.mfuncreg)
         benefit -= 1 + nretblocks;
 
     for (bi = 0; (bi = cast(uint) vec_index(bi, s.Srange)) < dfo.length; ++bi)
@@ -696,7 +696,7 @@ private void cgreg_map(Symbol *s, reg_t regmsw, reg_t reglsw)
     }
     s.Sreglsw = cast(ubyte)reglsw;
     s.Sregm = (1 << reglsw);
-    mfuncreg &= ~(1 << reglsw);
+    cgstate.mfuncreg &= ~(1 << reglsw);
     if (regmsw != NOREG)
         vec_subass(s.Slvreg,regrange[regmsw]);
     vec_orass(regrange[reglsw],s.Slvreg);
@@ -720,7 +720,7 @@ private void cgreg_map(Symbol *s, reg_t regmsw, reg_t reglsw)
         assert(regmsw < 8);
         s.Sregmsw = cast(ubyte)regmsw;
         s.Sregm |= 1 << regmsw;
-        mfuncreg &= ~(1 << regmsw);
+        cgstate.mfuncreg &= ~(1 << regmsw);
         vec_orass(regrange[regmsw],s.Slvreg);
 
         debug
@@ -1004,7 +1004,7 @@ Ltried:
      */
     if ((I32 || I64) &&                       // not worth the bother for 16 bit code
         !flag &&                              // if haven't already assigned registers in this pass
-        (mfuncreg & ~fregsaved) & ALLREGS &&  // if unused non-floating scratch registers
+        (cgstate.mfuncreg & ~fregsaved) & ALLREGS &&  // if unused non-floating scratch registers
         !(funcsym_p.Sflags & SFLexit))       // don't need save/restore if function never returns
     {
         foreach (s; globsym[])
@@ -1014,7 +1014,7 @@ Ltried:
                 type_size(s.Stype) <= REGSIZE && // don't bother with register pairs
                 !tyfloating(s.ty()))             // don't assign floating regs to non-floating regs
             {
-                s.Sreglsw = findreg((mfuncreg & ~fregsaved) & ALLREGS);
+                s.Sreglsw = findreg((cgstate.mfuncreg & ~fregsaved) & ALLREGS);
                 s.Sregm = 1 << s.Sreglsw;
                 flag = true;
 

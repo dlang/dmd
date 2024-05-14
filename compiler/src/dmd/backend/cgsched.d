@@ -160,7 +160,7 @@ public void cgsched_block(block* b)
     {
         regm_t scratch = cgstate.allregs;
 
-        scratch &= ~(b.Bregcon.used | b.Bregcon.params | mfuncreg);
+        scratch &= ~(b.Bregcon.used | b.Bregcon.params | cgstate.mfuncreg);
         scratch &= ~(b.Bregcon.immed.mval | b.Bregcon.cse.mval);
         cgsched_pentium(&b.Bcode,scratch);
         //printf("after schedule:\n"); WRcodlst(b.Bcode);
