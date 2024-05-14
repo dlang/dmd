@@ -167,6 +167,9 @@ struct CGstate
     targ_size_t CSoff;          // offset of common sub expressions
     targ_size_t NDPoff;         // offset of saved 8087 registers
 
+    targ_size_t pushoff;        // offset of saved registers
+    bool pushoffuse;            // using pushoff
+
     LocalSection funcarg;       // where function arguments are placed
     LocalSection Para;          // section of function parameters
     LocalSection Auto;          // section of automatics and registers
