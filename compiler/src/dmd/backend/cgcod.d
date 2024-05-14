@@ -57,8 +57,6 @@ import dmd.backend.dwarfdbginf : dwarf_except_gentables;
 
 __gshared
 {
-targ_size_t pushoff;            // offset of saved registers
-bool pushoffuse;                // using pushoff
 int BPoff;                      // offset from BP
 int EBPtoESP;                   // add to EBP offset to get ESP offset
 
@@ -803,8 +801,8 @@ else
     cgstate.NDPoff = alignsection(cgstate.CSoff - global87.save.length * tysize(TYldouble), REGSIZE, bias);
 
     regm_t topush = fregsaved & ~cgstate.mfuncreg;          // mask of registers that need saving
-    pushoffuse = false;
-    pushoff = cgstate.NDPoff;
+    cgstate.pushoffuse = false;
+    cgstate.pushoff = cgstate.NDPoff;
     /* We don't keep track of all the pushes and pops in a function. Hence,
      * using POP REG to restore registers in the epilog doesn't work, because the Dwarf unwinder
      * won't be setting ESP correctly. With pushoffuse, the registers are restored
@@ -819,9 +817,9 @@ else
         int gptopush = popcnt(topush) - xmmtopush;  // general purpose registers to save
         if (cgstate.NDPoff || xmmtopush || cgstate.funcarg.size)
         {
-            pushoff = alignsection(pushoff - (gptopush * REGSIZE + xmmtopush * 16),
+            cgstate.pushoff = alignsection(cgstate.pushoff - (gptopush * REGSIZE + xmmtopush * 16),
                     xmmtopush ? STACKALIGN : REGSIZE, bias);
-            pushoffuse = true;          // tell others we're using this strategy
+            cgstate.pushoffuse = true;          // tell others we're using this strategy
         }
     }
 
@@ -832,13 +830,13 @@ else
      * Can expand on this by allowing for locals that don't need extra alignment
      * and calling functions that don't need it.
      */
-    if (pushoff == 0 && !calledafunc && config.fpxmmregs && (I32 || I64))
+    if (cgstate.pushoff == 0 && !calledafunc && config.fpxmmregs && (I32 || I64))
     {
         cgstate.funcarg.alignment = I64 ? 8 : 4;
     }
 
-    //printf("pushoff = %d, size = %d, alignment = %d, bias = %d\n", cast(int)pushoff, cast(int)cgstate.funcarg.size, cast(int)cgstate.funcarg.alignment, cast(int)bias);
-    cgstate.funcarg.offset = alignsection(pushoff - cgstate.funcarg.size, cgstate.funcarg.alignment, bias);
+    //printf("pushoff = %d, size = %d, alignment = %d, bias = %d\n", cast(int)cgstate.pushoff, cast(int)cgstate.funcarg.size, cast(int)cgstate.funcarg.alignment, cast(int)bias);
+    cgstate.funcarg.offset = alignsection(cgstate.pushoff - cgstate.funcarg.size, cgstate.funcarg.alignment, bias);
 
     localsize = -cgstate.funcarg.offset;
 
@@ -852,7 +850,7 @@ else
     {
         int npush = popcnt(topush);            // number of registers that need saving
         npush += popcnt(topush & XMMREGS);     // XMM regs take 16 bytes, so count them twice
-        if (pushoffuse)
+        if (cgstate.pushoffuse)
             npush = 0;
 
         //printf("npush = %d Para.size = x%x needframe = %d localsize = x%x\n",

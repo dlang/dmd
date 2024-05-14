@@ -3591,12 +3591,12 @@ void prolog_setupalloca(ref CodeBuilder cdb)
 @trusted
 void prolog_saveregs(ref CodeBuilder cdb, regm_t topush, int cfa_offset)
 {
-    if (pushoffuse)
+    if (cgstate.pushoffuse)
     {
         // Save to preallocated section in the stack frame
         int xmmtopush = popcnt(topush & XMMREGS);   // XMM regs take 16 bytes
         int gptopush = popcnt(topush) - xmmtopush;  // general purpose registers to save
-        targ_size_t xmmoffset = pushoff + BPoff;
+        targ_size_t xmmoffset = cgstate.pushoff + BPoff;
         if (!cgstate.hasframe || cgstate.enforcealign)
             xmmoffset += EBPtoESP;
         targ_size_t gpoffset = xmmoffset + xmmtopush * 16;
@@ -3694,12 +3694,12 @@ private void epilog_restoreregs(ref CodeBuilder cdb, regm_t topop)
         printf("fregsaved = %s, mfuncreg = %s\n",regm_str(fregsaved),regm_str(cgstate.mfuncreg));
 
     assert(!(topop & ~(XMMREGS | 0xFFFF)));
-    if (pushoffuse)
+    if (cgstate.pushoffuse)
     {
         // Save to preallocated section in the stack frame
         int xmmtopop = popcnt(topop & XMMREGS);   // XMM regs take 16 bytes
         int gptopop = popcnt(topop) - xmmtopop;   // general purpose registers to save
-        targ_size_t xmmoffset = pushoff + BPoff;
+        targ_size_t xmmoffset = cgstate.pushoff + BPoff;
         if (!cgstate.hasframe || cgstate.enforcealign)
             xmmoffset += EBPtoESP;
         targ_size_t gpoffset = xmmoffset + xmmtopop * 16;
