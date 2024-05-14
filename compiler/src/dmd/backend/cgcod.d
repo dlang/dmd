@@ -108,7 +108,6 @@ private Symbol *retsym;          // set to symbol that should be placed in
 
 regm_t msavereg;        // Mask of registers that we would like to save.
                         // they are temporaries (set by scodelem())
-regm_t mfuncreg;        // Mask of registers preserved by a function
 }
 
 /*********************************
@@ -194,10 +193,10 @@ void codgen(Symbol *sfunc)
         regcon.cse.mval = regcon.cse.mops = 0;      // no common subs yet
         msavereg = 0;
         uint nretblocks = 0;
-        mfuncreg = fregsaved;               // so we can see which are used
+        cgstate.mfuncreg = fregsaved;               // so we can see which are used
                                             // (bit is cleared each time
                                             //  we use one)
-        assert(!(needframe && mfuncreg & mBP)); // needframe needs mBP
+        assert(!(needframe && cgstate.mfuncreg & mBP)); // needframe needs mBP
 
         for (block* b = startblock; b; b = b.Bnext)
         {
@@ -577,7 +576,7 @@ void codgen(Symbol *sfunc)
     // Mask of regs saved
     // BUG: do interrupt functions save BP?
     tym_t functy = tybasic(sfunc.ty());
-    sfunc.Sregsaved = (functy == TYifunc) ? cast(regm_t) mBP : (mfuncreg | fregsaved);
+    sfunc.Sregsaved = (functy == TYifunc) ? cast(regm_t) mBP : (cgstate.mfuncreg | fregsaved);
 
     debug
     if (global87.stackused != 0)
@@ -806,7 +805,7 @@ else
 
     cgstate.NDPoff = alignsection(cgstate.CSoff - global87.save.length * tysize(TYldouble), REGSIZE, bias);
 
-    regm_t topush = fregsaved & ~mfuncreg;          // mask of registers that need saving
+    regm_t topush = fregsaved & ~cgstate.mfuncreg;          // mask of registers that need saving
     pushoffuse = false;
     pushoff = cgstate.NDPoff;
     /* We don't keep track of all the pushes and pops in a function. Hence,
@@ -927,7 +926,7 @@ else
 
     if (needframe)
     {
-        assert(mfuncreg & mBP);         // shouldn't have used mBP
+        assert(cgstate.mfuncreg & mBP);         // shouldn't have used mBP
 
         if (!guessneedframe)            // if guessed wrong
             goto Lagain;
@@ -1309,7 +1308,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
 @trusted
 private void blcodgen(block *bl)
 {
-    regm_t mfuncregsave = mfuncreg;
+    regm_t mfuncregsave = cgstate.mfuncreg;
 
     //dbg_printf("blcodgen(%p)\n",bl);
 
@@ -1401,7 +1400,7 @@ private void blcodgen(block *bl)
         }
         cdb.append(cdbstore);
         cdb.append(cdbload);
-        mfuncreg &= ~regcon.mvar;               // use these registers
+        cgstate.mfuncreg &= ~regcon.mvar;               // use these registers
         regcon.used |= regcon.mvar;
 
         // Determine if we have more than 1 uncommitted index register
@@ -1606,7 +1605,7 @@ static if (0)
  *      tym             Mask of type we will store in registers.
  * Output:
  *      outretregs       Mask of allocated registers.
- *      msavereg,mfuncreg       retregs bits are cleared.
+ *      msavereg, mfuncreg       retregs bits are cleared.
  *      regcon.cse.mval,regcon.cse.mops updated
  * Returns:
  *      Register number of first allocated register
@@ -1699,8 +1698,8 @@ L3:
                     else
                         break;
                 }
-                if (r & ~mfuncreg)
-                    r &= ~mfuncreg;
+                if (r & ~cgstate.mfuncreg)
+                    r &= ~cgstate.mfuncreg;
             }
             reg = findreg(r);
             retregs = mask(reg);
@@ -1813,7 +1812,7 @@ regm_t lpadregs()
 {
     regm_t used;
     if (config.ehmethod == EHmethod.EH_DWARF)
-        used = cgstate.allregs & ~mfuncreg;
+        used = cgstate.allregs & ~cgstate.mfuncreg;
     else
         used = (I32 | I64) ? cgstate.allregs : (ALLREGS | mES);
     //printf("lpadregs(): used=%s, allregs=%s, mfuncreg=%s\n", regm_str(used), regm_str(cgstate.llregs), regm_str(mfuncreg));
@@ -1829,7 +1828,7 @@ regm_t lpadregs()
 void useregs(regm_t regm)
 {
     //printf("useregs(x%x) %s\n", regm, regm_str(regm));
-    mfuncreg &= ~regm;
+    cgstate.mfuncreg &= ~regm;
     regcon.used |= regm;                // registers used in this block
     regcon.params &= ~regm;
     if (regm & regcon.mpvar)            // if modified a fastpar register variable
@@ -2078,7 +2077,7 @@ regm_t getscratch()
     if (pass == BackendPass.final_)
     {
         scratch = cgstate.allregs & ~(regcon.mvar | regcon.mpvar | regcon.cse.mval |
-                  regcon.immed.mval | regcon.params | mfuncreg);
+                  regcon.immed.mval | regcon.params | cgstate.mfuncreg);
     }
     return scratch;
 }
@@ -2804,8 +2803,8 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
     msavereg |= keepmsk;          /* add to mask of regs to save          */
     regm_t oldregcon = regcon.cse.mval;
     regm_t oldregimmed = regcon.immed.mval;
-    regm_t oldmfuncreg = mfuncreg;       /* remember old one                     */
-    mfuncreg = (XMMREGS | mBP | mES | ALLREGS) & ~regcon.mvar;
+    regm_t oldmfuncreg = cgstate.mfuncreg;       // remember old one
+    cgstate.mfuncreg = (XMMREGS | mBP | mES | ALLREGS) & ~regcon.mvar;
     uint stackpushsave = stackpush;
     char calledafuncsave = calledafunc;
     calledafunc = 0;
@@ -2822,11 +2821,11 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
 
     /* Assert that no new CSEs are generated that are not reflected       */
     /* in mfuncreg.                                                       */
-    debug if ((mfuncreg & (regcon.cse.mval & ~oldregcon)) != 0)
+    debug if ((cgstate.mfuncreg & (regcon.cse.mval & ~oldregcon)) != 0)
         printf("mfuncreg %s, regcon.cse.mval %s, oldregcon %s, regcon.mvar %s\n",
-                regm_str(mfuncreg),regm_str(regcon.cse.mval),regm_str(oldregcon),regm_str(regcon.mvar));
+                regm_str(cgstate.mfuncreg),regm_str(regcon.cse.mval),regm_str(oldregcon),regm_str(regcon.mvar));
 
-    assert((mfuncreg & (regcon.cse.mval & ~oldregcon)) == 0);
+    assert((cgstate.mfuncreg & (regcon.cse.mval & ~oldregcon)) == 0);
 
     /* https://issues.dlang.org/show_bug.cgi?id=3521
      * The problem is:
@@ -2848,7 +2847,7 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
         touse = 0;                              // PUSH/POP pairs are always shorter
     else
     {
-        touse = mfuncreg & cgstate.allregs & ~(msavereg | oldregcon | regcon.cse.mval);
+        touse = cgstate.mfuncreg & cgstate.allregs & ~(msavereg | oldregcon | regcon.cse.mval);
         /* Don't use registers we'll have to save/restore               */
         touse &= ~(fregsaved & oldmfuncreg);
         /* Don't use registers that have constant values in them, since
@@ -2880,7 +2879,7 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
                         genmovreg(cdbs1,j,i);
                         cs2 = cat(genmovreg(i,j),cs2);
                         touse &= ~mj;
-                        mfuncreg &= ~mj;
+                        cgstate.mfuncreg &= ~mj;
                         regcon.used |= mj;
                         break;
                     }
@@ -2933,7 +2932,7 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
 
     calledafunc |= calledafuncsave;
     msavereg &= ~keepmsk | overlap; /* remove from mask of regs to save   */
-    mfuncreg &= oldmfuncreg;        /* update original                    */
+    cgstate.mfuncreg &= oldmfuncreg;        /* update original                    */
 
     debug if (debugw)
         printf("-scodelem(e=%p *pretregs=%s keepmsk=%s constflag=%d\n",

@@ -193,6 +193,7 @@ struct CGstate
 
     int dfoidx;                 // which block we are in
     regm_t allregs;             // ALLREGS optionally including mBP
+    regm_t mfuncreg;            // mask of registers preserved by function
 }
 
 public import dmd.backend.nteh;

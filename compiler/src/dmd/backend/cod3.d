@@ -1229,7 +1229,7 @@ static if (NTEXCEPTIONS)
             retregs = 0;
             gencodelem(cdb,e,&retregs,true);
             if (config.flags4 & CFG4optimized)
-                mfuncreg = mfuncregsave;
+                cgstate.mfuncreg = mfuncregsave;
             break;
 
         case BCasm:
@@ -3691,7 +3691,7 @@ private void epilog_restoreregs(ref CodeBuilder cdb, regm_t topop)
 {
     debug
     if (topop & ~(XMMREGS | 0xFFFF))
-        printf("fregsaved = %s, mfuncreg = %s\n",regm_str(fregsaved),regm_str(mfuncreg));
+        printf("fregsaved = %s, mfuncreg = %s\n",regm_str(fregsaved),regm_str(cgstate.mfuncreg));
 
     assert(!(topop & ~(XMMREGS | 0xFFFF)));
     if (pushoffuse)
@@ -4379,7 +4379,7 @@ void epilog(block *b)
      * by the prolog code. Remember to do them in the reverse
      * order they were pushed.
      */
-    topop = fregsaved & ~mfuncreg;
+    topop = fregsaved & ~cgstate.mfuncreg;
     epilog_restoreregs(cdbx, topop);
 
     if (usednteh & NTEHjmonitor)
@@ -4442,7 +4442,7 @@ void epilog(block *b)
                     assert(I32 || I64);
                     targ_size_t value = 0x0000BEAF;
                     reg_t regcx = CX;
-                    mfuncreg &= ~mask(regcx);
+                    cgstate.mfuncreg &= ~mask(regcx);
                     uint grex = I64 ? REX_W << 16 : 0;
                     cdbx.genc2(0xC7,grex | modregrmx(3,0,regcx),value);   // MOV regcx,value
                     cdbx.gen2sib(0x89,grex | modregrm(0,regcx,4),modregrm(0,4,SP)); // MOV [ESP],regcx
@@ -4468,7 +4468,7 @@ void epilog(block *b)
                     cdbx.gen1(LEAVE);          // LEAVE
                 else if (0 && xlocalsize == REGSIZE && cgstate.Alloca.size == 0 && I32)
                 {   // This doesn't work - I should figure out why
-                    mfuncreg &= ~mask(regx);
+                    cgstate.mfuncreg &= ~mask(regx);
                     cdbx.gen1(0x58 + regx);    // POP regx
                     cdbx.gen1(0x58 + BP);      // POP BP
                 }
@@ -4487,7 +4487,7 @@ void epilog(block *b)
         }
         else if (xlocalsize == REGSIZE && (!I16 || b.BC == BCret))
         {
-            mfuncreg &= ~mask(regx);
+            cgstate.mfuncreg &= ~mask(regx);
             cdbx.gen1(0x58 + regx);                    // POP regx
         }
         else if (xlocalsize)
