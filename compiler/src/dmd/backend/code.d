@@ -210,6 +210,7 @@ struct CGstate
     regm_t mfuncreg;            // mask of registers preserved by function
     regm_t msavereg;            // Mask of registers that we would like to save.
                                 // they are temporaries (set by scodelem())
+    BackendPass pass;
 }
 
 public import dmd.backend.nteh;
