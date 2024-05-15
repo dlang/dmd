@@ -6173,7 +6173,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 // upcast `Base(child)`
                 if (exp.e1.op == EXP.type && exp.arguments.length == 1 &&
-                    (*exp.arguments)[0].type.implicitConvTo(t1))
+                    (*exp.arguments)[0].type.implicitConvTo(t1) &&
+                    !t1.isTypeClass().sym.symtab.lookup(Id.call))
                 {
                     Expression e = new CastExp(exp.loc, (*exp.arguments)[0], t1);
                     e = e.expressionSemantic(sc);
