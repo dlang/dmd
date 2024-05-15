@@ -1987,7 +1987,7 @@ static if (1)
                             //    sa.Sident.ptr, sa.Sscope.Sident.ptr, closptr_off, memb_off);
 
                             debug_info.buf.writeByte(DW_OP_fbreg);
-                            debug_info.buf.writesLEB128(cast(uint)(cgstate.Auto.size + BPoff - cgstate.Para.size + closptr_off)); // closure pointer offset from frame base
+                            debug_info.buf.writesLEB128(cast(uint)(cgstate.Auto.size + cgstate.BPoff - cgstate.Para.size + closptr_off)); // closure pointer offset from frame base
                             debug_info.buf.writeByte(DW_OP_deref);
                             debug_info.buf.writeByte(DW_OP_plus_uconst);
                             debug_info.buf.writeuLEB128(cast(uint)memb_off); // closure variable offset
@@ -1999,11 +1999,11 @@ static if (1)
                                 sa.Sclass == SC.parameter)
                                 debug_info.buf.writesLEB128(cast(int)sa.Soffset);
                             else if (sa.Sclass == SC.fastpar)
-                                debug_info.buf.writesLEB128(cast(int)(cgstate.Fast.size + BPoff - cgstate.Para.size + sa.Soffset));
+                                debug_info.buf.writesLEB128(cast(int)(cgstate.Fast.size + cgstate.BPoff - cgstate.Para.size + sa.Soffset));
                             else if (sa.Sclass == SC.bprel)
                                 debug_info.buf.writesLEB128(cast(int)(-cgstate.Para.size + sa.Soffset));
                             else
-                                debug_info.buf.writesLEB128(cast(int)(cgstate.Auto.size + BPoff - cgstate.Para.size + sa.Soffset));
+                                debug_info.buf.writesLEB128(cast(int)(cgstate.Auto.size + cgstate.BPoff - cgstate.Para.size + sa.Soffset));
                         }
                         debug_info.buf.buf[soffset] = cast(ubyte)(debug_info.buf.length() - soffset - 1);
                         break;

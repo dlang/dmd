@@ -702,7 +702,7 @@ void cv8_outsym(Symbol *s)
                 s.Sfl = FLreg;
                 goto case_register;
             }
-            base = cast(uint)(cgstate.Para.size - BPoff);    // cancel out add of BPoff
+            base = cast(uint)(cgstate.Para.size - cgstate.BPoff);    // cancel out add of BPoff
             goto L1;
 
         case SC.auto_:
@@ -719,7 +719,7 @@ static if (1)
             buf.reserve(cast(uint)(2 + 2 + 4 + 4 + 2 + len + 1));
             buf.write16n(cast(uint)(2 + 4 + 4 + 2 + len + 1));
             buf.write16n(0x1111);
-            buf.write32(cast(uint)(s.Soffset + base + BPoff));
+            buf.write32(cast(uint)(s.Soffset + base + cgstate.BPoff));
             buf.write32(typidx);
             buf.write16n(I64 ? 334 : 22);       // relative to RBP/EBP
             cv8_writename(buf, id, len);
@@ -731,7 +731,7 @@ else
             buf.reserve(2 + 2 + 4 + 4 + len + 1);
             buf.write16n( 2 + 4 + 4 + len + 1);
             buf.write16n(S_BPREL_V3);
-            buf.write32(s.Soffset + base + BPoff);
+            buf.write32(s.Soffset + base + cgstate.BPoff);
             buf.write32(typidx);
             cv8_writename(buf, id, len);
             buf.writeByte(0);
@@ -739,7 +739,7 @@ else
             break;
 
         case SC.bprel:
-            base = -BPoff;
+            base = -cgstate.BPoff;
             goto L1;
 
         case SC.fastpar:
