@@ -70,11 +70,6 @@ regm_t ALLREGS()  { return I64 ? mAX|mBX|mCX|mDX|mSI|mDI| mR8|mR9|mR10|mR11|mR12
 regm_t BYTEREGS() { return I64 ? ALLREGS
                                : BYTEREGS_INIT; }
 
-int stackchanged;               /* set to !=0 if any use of the stack
-                                   other than accessing parameters. Used
-                                   to see if we can address parameters
-                                   with ESP rather than EBP.
-                                 */
 int refparam;           // !=0 if we referenced any parameters
 int reflocal;           // !=0 if we referenced any locals
 bool anyiasm;           // !=0 if any inline assembler
@@ -140,7 +135,7 @@ void codgen(Symbol *sfunc)
         needframe = 0;
         cgstate.enforcealign = false;
         gotref = 0;
-        stackchanged = 0;
+        cgstate.stackchanged = 0;
         cgstate.stackpush = 0;
         refparam = 0;
         calledafunc = 0;
@@ -2873,7 +2868,7 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
                 cs2 = cat(cdby.finish(),cs2);
                 if (size)
                 {
-                    stackchanged = 1;
+                    cgstate.stackchanged = 1;
                     adjesp += size;
                 }
             }
