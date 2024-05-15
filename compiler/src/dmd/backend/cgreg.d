@@ -742,8 +742,8 @@ private void cgreg_map(Symbol *s, reg_t regmsw, reg_t reglsw)
 @trusted
 void cgreg_unregister(regm_t conflict)
 {
-    if (pass == BackendPass.final_)
-        pass = BackendPass.reg;                         // have to codegen at least one more time
+    if (cgstate.pass == BackendPass.final_)
+        cgstate.pass = BackendPass.reg;                         // have to codegen at least one more time
     foreach (s; globsym[])
     {
         if (s.Sfl == FLreg && s.Sregm & conflict)

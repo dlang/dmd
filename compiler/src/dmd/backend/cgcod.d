@@ -87,8 +87,6 @@ bool calledFinally;     // true if called a BC_finally block
 
 /* Register contents    */
 con_t regcon;
-
-BackendPass pass;
 }
 
 /*********************************
@@ -127,13 +125,13 @@ void codgen(Symbol *sfunc)
      * pass can generate opportunities for enregistering more variables,
      * loop until no more registers are free'd up.
      */
-    pass = BackendPass.initial;
+    cgstate.pass = BackendPass.initial;
     while (1)
     {
         debug
         if (debugr)
             printf("------------------ PASS%s -----------------\n",
-                (pass == BackendPass.initial) ? "init".ptr : ((pass == BackendPass.reg) ? "reg".ptr : "final".ptr));
+                (cgstate.pass == BackendPass.initial) ? "init".ptr : ((cgstate.pass == BackendPass.reg) ? "reg".ptr : "final".ptr));
 
         cgstate.lastRetregs[] = 0;
 
@@ -235,14 +233,14 @@ void codgen(Symbol *sfunc)
         }
         else
         {
-            pass = BackendPass.final_;
+            cgstate.pass = BackendPass.final_;
             for (block* b = startblock; b; b = b.Bnext)
                 blcodgen(b);                // generate the code for each block
         }
         regcon.immed.mval = 0;
         assert(!regcon.cse.mops);           // should have all been used
 
-        if (pass == BackendPass.final_ ||       // the final pass, so exit
+        if (cgstate.pass == BackendPass.final_ ||       // the final pass, so exit
             anyiasm)                            // possible LEA or LES opcodes
         {
             break;
@@ -256,12 +254,12 @@ void codgen(Symbol *sfunc)
         {
             cgstate.allregs |= mask(PICREG);            // EBX can now be used
             cgreg_assign(cgstate.retsym);
-            pass = BackendPass.reg;
+            cgstate.pass = BackendPass.reg;
         }
         else if (cgreg_assign(cgstate.retsym))          // if we found some registers
-            pass = BackendPass.reg;
+            cgstate.pass = BackendPass.reg;
         else
-            pass = BackendPass.final_;
+            cgstate.pass = BackendPass.final_;
 
         /* free up generated code for next pass
          */
@@ -1602,7 +1600,7 @@ reg_t allocreg(ref CodeBuilder cdb,ref regm_t outretregs,tym_t tym ,int line,con
 
 static if (0)
 {
-        if (pass == BackendPass.final_)
+        if (cgstate.pass == BackendPass.final_)
         {
             printf("allocreg %s,%d: regcon.mvar %s regcon.cse.mval %s msavereg %s outretregs %s tym %s\n",
                 file,line,regm_str(regcon.mvar),regm_str(regcon.cse.mval),
@@ -1668,7 +1666,7 @@ L3:
             if (!regcon.indexregs && r & ~mLSW)
                 r &= ~mLSW;
 
-            if (pass == BackendPass.final_ && r & ~lastRetregs[0] && !I16)
+            if (cgstate.pass == BackendPass.final_ && r & ~lastRetregs[0] && !I16)
             {   // Try not to always allocate the same register,
                 // to schedule better
 
@@ -1951,7 +1949,7 @@ bool cssave(elem *e, regm_t regm, bool opsflag)
     /*if (e.Ecount && e.Ecount == e.Ecomsub)*/
     if (e.Ecount && e.Ecomsub)
     {
-        if (!opsflag && pass != BackendPass.final_ && (I32 || I64))
+        if (!opsflag && cgstate.pass != BackendPass.final_ && (I32 || I64))
             return false;
 
         //printf("cssave(e = %p, regm = %s, opsflag = x%x)\n", e, regm_str(regm), opsflag);
@@ -2012,7 +2010,7 @@ bool evalinregister(elem *e)
                                     /* to be generated              */
     {
         if ((I32 || I64) &&
-            //pass == BackendPass.final_ && // bug 8987
+            //cgstate.pass == BackendPass.final_ && // bug 8987
             sz <= REGSIZE)
         {
             // Do it only if at least 2 registers are available
@@ -2055,7 +2053,7 @@ bool evalinregister(elem *e)
 regm_t getscratch()
 {
     regm_t scratch = 0;
-    if (pass == BackendPass.final_)
+    if (cgstate.pass == BackendPass.final_)
     {
         scratch = cgstate.allregs & ~(regcon.mvar | regcon.mpvar | regcon.cse.mval |
                   regcon.immed.mval | regcon.params | cgstate.mfuncreg);
@@ -2223,7 +2221,7 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
 
         debug
         {
-            printf("couldn't find cse e = %p, pass = %d\n",e,pass);
+            printf("couldn't find cse e = %p, pass = %d\n",e,cgstate.pass);
             elem_print(e);
         }
         assert(0);                      /* should have found it         */
