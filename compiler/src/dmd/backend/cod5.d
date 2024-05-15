@@ -57,7 +57,7 @@ else
         anyiasm ||
         cgstate.Alloca.size ||
         usednteh ||
-        calledFinally ||
+        cgstate.calledFinally ||
         tyf & (mTYnaked | mTYloadds) ||
         tym == TYifunc ||
         tym == TYmfunc ||       // can't yet handle ECX passed as parameter

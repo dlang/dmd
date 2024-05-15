@@ -3392,7 +3392,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
          * A better solution is turn this off only inside the cleanup code.
          */
         !usednteh &&
-        !calledFinally &&
+        !cgstate.calledFinally &&
         (numpara || config.exe == EX_WIN64) &&
         cgstate.stackpush == 0 &&               // cgstate.funcarg needs to be at top of stack
         (cgstate.funcargtos == ~0 || numpara < cgstate.funcargtos) &&
