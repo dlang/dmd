@@ -210,7 +210,7 @@ private void opassdbl(ref CodeBuilder cdb,elem *e,regm_t *pretregs,OPER op)
             cdb.gen(&cs);
             getlvalue_lsw(&cs);
             cdb.gen(&cs);
-            stackpush += DOUBLESIZE;
+            cgstate.stackpush += DOUBLESIZE;
 
             retregs2 = DOUBLEREGS_16;
             idxregs = idxregm(&cs);
@@ -323,7 +323,7 @@ private void opnegassdbl(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                     cdb.gen(&cs);
                     cs.IEV1.Voffset -= REGSIZE;
                     cdb.gen(&cs);
-                    stackpush += DOUBLESIZE;
+                    cgstate.stackpush += DOUBLESIZE;
                 }
             }
             retregs = DOUBLEREGS;

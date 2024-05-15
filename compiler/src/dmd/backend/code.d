@@ -179,6 +179,8 @@ struct CGstate
 
     Symbol *retsym;             // symbol that should be placed in AX
 
+    uint stackpush;             // # of bytes that SP is beyond BP.
+
     targ_size_t funcargtos;     // current high water level of arguments being moved onto
                                 // the funcarg section. It is filled from top to bottom,
                                 // as if they were 'pushed' on the stack.

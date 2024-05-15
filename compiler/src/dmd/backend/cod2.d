@@ -2301,7 +2301,7 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         freenode(e21);
 
         regconsave = regcon;
-        stackpushsave = stackpush;
+        stackpushsave = cgstate.stackpush;
 
         retregs |= psw;
         if (retregs & (mBP | ALLREGS))
@@ -2309,7 +2309,7 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         codelem(cdb,e22,&retregs,false);
 
         andregcon(regconsave);
-        assert(stackpushsave == stackpush);
+        assert(stackpushsave == cgstate.stackpush);
 
         *pretregs = retregs;
         freenode(e2);
@@ -2447,12 +2447,12 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         freenode(e21);
 
         regconsave = regcon;
-        stackpushsave = stackpush;
+        stackpushsave = cgstate.stackpush;
 
         codelem(cdb,e22,&retregs,false);
 
         andregcon(regconsave);
-        assert(stackpushsave == stackpush);
+        assert(stackpushsave == cgstate.stackpush);
 
         freenode(e2);
         cdb.append(cnop1);
@@ -2466,7 +2466,7 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     logexp(cdb,e1,false,FLcode,cnop1);  // evaluate condition
     regconold = regcon;
     stackusedold = global87.stackused;
-    stackpushold = stackpush;
+    stackpushold = cgstate.stackpush;
     memcpy(_8087old.ptr,global87.stack.ptr,global87.stack.sizeof);
     regm_t retregs = *pretregs;
     CodeBuilder cdb1;
@@ -2502,8 +2502,8 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     regconsave = regcon;
     regcon = regconold;
 
-    stackpushsave = stackpush;
-    stackpush = stackpushold;
+    stackpushsave = cgstate.stackpush;
+    cgstate.stackpush = stackpushold;
 
     stackusedsave = global87.stackused;
     global87.stackused = stackusedold;
@@ -2529,7 +2529,7 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     andregcon(regconold);
     andregcon(regconsave);
     assert(global87.stackused == stackusedsave);
-    assert(stackpush == stackpushsave);
+    assert(cgstate.stackpush == stackpushsave);
     memcpy(global87.stack.ptr,_8087save.ptr,global87.stack.sizeof);
     freenode(e2);
     genjmp(cdb,JMP,FLcode,cast(block *) cnop2);
@@ -2597,7 +2597,7 @@ void cdloglog(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         ? logexp(cdb,e.E1,1,FLcode,cnop1)
         : logexp(cdb,e.E1,0,FLcode,cnop3);
     con_t regconsave = regcon;
-    uint stackpushsave = stackpush;
+    uint stackpushsave = cgstate.stackpush;
     if (*pretregs == 0)                 // if don't want result
     {
         int noreturn = !el_returns(e2);
@@ -2609,7 +2609,7 @@ void cdloglog(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         }
         else
             andregcon(regconsave);
-        assert(stackpush == stackpushsave);
+        assert(cgstate.stackpush == stackpushsave);
         cdb.append(cnop3);
         cdb.append(cdb1);        // eval code, throw away result
         cgstate.stackclean--;
@@ -2622,7 +2622,7 @@ void cdloglog(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         codelem(cdb, e2, &retregs2, false);
         regconsave.used |= regcon.used;
         regcon = regconsave;
-        assert(stackpush == stackpushsave);
+        assert(cgstate.stackpush == stackpushsave);
 
         regm_t retregs = *pretregs & (ALLREGS | mBP);
         if (!retregs)
@@ -2651,7 +2651,7 @@ void cdloglog(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         andregcon(regconsave);
 
         // stack depth should not change when evaluating E2
-        assert(stackpush == stackpushsave);
+        assert(cgstate.stackpush == stackpushsave);
 
         assert(sz <= 4);                                        // result better be int
         regm_t retregs = *pretregs & cgstate.allregs;
@@ -2681,7 +2681,7 @@ void cdloglog(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     andregcon(regconsave);
 
     // stack depth should not change when evaluating E2
-    assert(stackpush == stackpushsave);
+    assert(cgstate.stackpush == stackpushsave);
 
     assert(sz <= 4);                                         // result better be int
     regm_t retregs = *pretregs & (ALLREGS | mBP);
@@ -3351,7 +3351,7 @@ void cdind(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 cdb.gen(&cs);                         // PUSH EA+i
                 cdb.genadjesp(REGSIZE);
                 cs.IEV1.Voffset -= REGSIZE;
-                stackpush += REGSIZE;
+                cgstate.stackpush += REGSIZE;
                 i -= REGSIZE;
             }
             while (i >= 0);
@@ -5209,7 +5209,7 @@ if (config.exe & EX_windos)
         cs.Iop = 0x8B;                  /* MOV DOUBLEREGS,EA            */
         fltregs(cdb,&cs,tyml);
         stackchanged = 1;
-        int stackpushsave = stackpush;
+        int stackpushsave = cgstate.stackpush;
         regm_t retregs;
         if (sz == 8)
         {
@@ -5217,7 +5217,7 @@ if (config.exe & EX_windos)
             {
                 cdb.gen1(0x50 + DX);             // PUSH DOUBLEREGS
                 cdb.gen1(0x50 + AX);
-                stackpush += DOUBLESIZE;
+                cgstate.stackpush += DOUBLESIZE;
                 retregs = DOUBLEREGS2_32;
             }
             else
@@ -5226,7 +5226,7 @@ if (config.exe & EX_windos)
                 cdb.gen1(0x50 + BX);
                 cdb.gen1(0x50 + CX);
                 cdb.gen1(0x50 + DX);             /* PUSH DOUBLEREGS      */
-                stackpush += DOUBLESIZE + DOUBLESIZE;
+                cgstate.stackpush += DOUBLESIZE + DOUBLESIZE;
 
                 cdb.gen1(0x50 + AX);
                 cdb.gen1(0x50 + BX);
@@ -5237,13 +5237,13 @@ if (config.exe & EX_windos)
         }
         else
         {
-            stackpush += FLOATSIZE;     /* so we know something is on   */
+            cgstate.stackpush += FLOATSIZE;     /* so we know something is on   */
             if (!I32)
                 cdb.gen1(0x50 + DX);
             cdb.gen1(0x50 + AX);
             retregs = FLOATREGS2;
         }
-        cdb.genadjesp(stackpush - stackpushsave);
+        cdb.genadjesp(cgstate.stackpush - stackpushsave);
 
         cgstate.stackclean++;
         scodelem(cdb,e2,&retregs,idxregs,false);
@@ -5263,7 +5263,7 @@ if (config.exe & EX_windos)
         }
         cs.Iop = 0x89;                  /* MOV EA,DOUBLEREGS            */
         fltregs(cdb,&cs,tyml);
-        stackpushsave = stackpush;
+        stackpushsave = cgstate.stackpush;
         if (tyml == TYdouble || tyml == TYdouble_alias)
         {   if (*pretregs == mSTACK)
                 retregs = mSTACK;       /* leave result on stack        */
@@ -5281,7 +5281,7 @@ if (config.exe & EX_windos)
                     cdb.gen1(0x58 + BX);
                     cdb.gen1(0x58 + AX);
                 }
-                stackpush -= DOUBLESIZE;
+                cgstate.stackpush -= DOUBLESIZE;
                 retregs = DOUBLEREGS;
             }
         }
@@ -5290,10 +5290,10 @@ if (config.exe & EX_windos)
             cdb.gen1(0x58 + AX);
             if (!I32)
                 cdb.gen1(0x58 + DX);
-            stackpush -= FLOATSIZE;
+            cgstate.stackpush -= FLOATSIZE;
             retregs = FLOATREGS;
         }
-        cdb.genadjesp(stackpush - stackpushsave);
+        cdb.genadjesp(cgstate.stackpush - stackpushsave);
         fixresult(cdb,e,retregs,*pretregs);
         return;
 }

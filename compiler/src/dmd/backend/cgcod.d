@@ -70,13 +70,6 @@ regm_t ALLREGS()  { return I64 ? mAX|mBX|mCX|mDX|mSI|mDI| mR8|mR9|mR10|mR11|mR12
 regm_t BYTEREGS() { return I64 ? ALLREGS
                                : BYTEREGS_INIT; }
 
-
-/************************************
- * # of bytes that SP is beyond BP.
- */
-
-uint stackpush;
-
 int stackchanged;               /* set to !=0 if any use of the stack
                                    other than accessing parameters. Used
                                    to see if we can address parameters
@@ -149,7 +142,7 @@ void codgen(Symbol *sfunc)
         cgstate.enforcealign = false;
         gotref = 0;
         stackchanged = 0;
-        stackpush = 0;
+        cgstate.stackpush = 0;
         refparam = 0;
         calledafunc = 0;
         cgstate.retsym = null;
@@ -2793,7 +2786,7 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
     regm_t oldregimmed = regcon.immed.mval;
     regm_t oldmfuncreg = cgstate.mfuncreg;       // remember old one
     cgstate.mfuncreg = (XMMREGS | mBP | mES | ALLREGS) & ~regcon.mvar;
-    uint stackpushsave = stackpush;
+    uint stackpushsave = cgstate.stackpush;
     char calledafuncsave = calledafunc;
     calledafunc = 0;
     CodeBuilder cdbx; cdbx.ctor();
@@ -2803,7 +2796,7 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
     if (tosave)
     {
         cgstate.stackclean++;
-        genstackclean(cdbx,stackpush - stackpushsave,*pretregs | cgstate.msavereg);
+        genstackclean(cdbx,cgstate.stackpush - stackpushsave,*pretregs | cgstate.msavereg);
         cgstate.stackclean--;
     }
 
@@ -2989,7 +2982,7 @@ const(char)* regm_str(regm_t rm)
 @trusted
 void docommas(ref CodeBuilder cdb, ref elem *pe)
 {
-    uint stackpushsave = stackpush;
+    uint stackpushsave = cgstate.stackpush;
     int stackcleansave = cgstate.stackclean;
     cgstate.stackclean = 0;
     elem* e = pe;
@@ -3011,7 +3004,7 @@ void docommas(ref CodeBuilder cdb, ref elem *pe)
     pe = e;
     assert(cgstate.stackclean == 0);
     cgstate.stackclean = stackcleansave;
-    genstackclean(cdb,stackpush - stackpushsave,0);
+    genstackclean(cdb,cgstate.stackpush - stackpushsave,0);
 }
 
 /**************************
