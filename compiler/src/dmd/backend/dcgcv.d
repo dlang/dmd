@@ -1637,7 +1637,7 @@ private void cv4_outsym(Symbol *s)
                     s.Sfl = FLreg;
                     goto case_register;
                 }
-                base = cgstate.Para.size - BPoff;    // cancel out add of BPoff
+                base = cgstate.Para.size - cgstate.BPoff;    // cancel out add of BPoff
                 goto L1;
 
             case SC.auto_:
@@ -1650,11 +1650,11 @@ private void cv4_outsym(Symbol *s)
                     goto Lret;
                 TOWORD(debsym + 2,I32 ? S_BPREL32 : S_BPREL16);
                 if (config.fulltypes == CV4)
-                {   TOOFFSET(debsym + 4,s.Soffset + base + BPoff);
+                {   TOOFFSET(debsym + 4,s.Soffset + base + cgstate.BPoff);
                     TOIDX(debsym + 4 + _tysize[TYint],typidx);
                 }
                 else
-                {   TOOFFSET(debsym + 4 + cgcv.sz_idx,s.Soffset + base + BPoff);
+                {   TOOFFSET(debsym + 4 + cgcv.sz_idx,s.Soffset + base + cgstate.BPoff);
                     TOIDX(debsym + 4,typidx);
                 }
                 length = 2 + 2 + _tysize[TYint] + cgcv.sz_idx;
@@ -1663,7 +1663,7 @@ private void cv4_outsym(Symbol *s)
                 break;
 
             case SC.bprel:
-                base = -BPoff;
+                base = -cgstate.BPoff;
                 goto L1;
 
             case SC.fastpar:

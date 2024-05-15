@@ -3368,7 +3368,7 @@ void prolog_16bit_windows_farfunc(ref CodeBuilder cdb, tym_t* tyf, bool* pushds)
     {
         cdb.gen1(0x1E);                       // PUSH DS
         *pushds = true;
-        BPoff = -REGSIZE;
+        cgstate.BPoff = -REGSIZE;
     }
     if (wflags & (WFds | WFss | WFdgroup))
         cdb.gen2(0x8E,modregrm(3,3,AX));      // MOV  DS,AX
@@ -3570,8 +3570,8 @@ void prolog_setupalloca(ref CodeBuilder cdb)
     // Set up magic parameter for alloca()
     // MOV -REGSIZE[BP],localsize - BPoff
     cdb.genc(0xC7,modregrm(2,0,BPRM),
-            FLconst,cgstate.Alloca.offset + BPoff,
-            FLconst,localsize - BPoff);
+            FLconst,cgstate.Alloca.offset + cgstate.BPoff,
+            FLconst,localsize - cgstate.BPoff);
     if (I64)
         code_orrex(cdb.last(), REX_W);
 }
@@ -3596,7 +3596,7 @@ void prolog_saveregs(ref CodeBuilder cdb, regm_t topush, int cfa_offset)
         // Save to preallocated section in the stack frame
         int xmmtopush = popcnt(topush & XMMREGS);   // XMM regs take 16 bytes
         int gptopush = popcnt(topush) - xmmtopush;  // general purpose registers to save
-        targ_size_t xmmoffset = cgstate.pushoff + BPoff;
+        targ_size_t xmmoffset = cgstate.pushoff + cgstate.BPoff;
         if (!cgstate.hasframe || cgstate.enforcealign)
             xmmoffset += EBPtoESP;
         targ_size_t gpoffset = xmmoffset + xmmtopush * 16;
@@ -3699,7 +3699,7 @@ private void epilog_restoreregs(ref CodeBuilder cdb, regm_t topop)
         // Save to preallocated section in the stack frame
         int xmmtopop = popcnt(topop & XMMREGS);   // XMM regs take 16 bytes
         int gptopop = popcnt(topop) - xmmtopop;   // general purpose registers to save
-        targ_size_t xmmoffset = cgstate.pushoff + BPoff;
+        targ_size_t xmmoffset = cgstate.pushoff + cgstate.BPoff;
         if (!cgstate.hasframe || cgstate.enforcealign)
             xmmoffset += EBPtoESP;
         targ_size_t gpoffset = xmmoffset + xmmtopop * 16;
@@ -3819,7 +3819,7 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv)
 
     /* Save registers into the voff area on the stack
      */
-    targ_size_t voff = cgstate.Auto.size + BPoff + sv.Soffset;  // EBP offset of start of sv
+    targ_size_t voff = cgstate.Auto.size + cgstate.BPoff + sv.Soffset;  // EBP offset of start of sv
     const int vregnum = 6;
     const uint vsize = vregnum * 8 + 8 * 16;
 
@@ -4076,7 +4076,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
             continue;
         }
 
-        targ_size_t offset = cgstate.Fast.size + BPoff;
+        targ_size_t offset = cgstate.Fast.size + cgstate.BPoff;
         if (s.Sclass == SC.shadowreg)
             offset = cgstate.Para.size;
         offset += s.Soffset;
@@ -4109,7 +4109,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
                     else
                     {
                         //printf("%s Fast.size = %d, BPoff = %d, Soffset = %d, sz = %d\n",
-                        //         s.Sident, (int)cgstate.Fast.size, (int)BPoff, (int)s.Soffset, (int)sz);
+                        //         s.Sident, (int)cgstate.Fast.size, (int)cgstate.BPoff, (int)s.Soffset, (int)sz);
                         if (I64 && sz > 4)
                             code_orrex(cdb.last(), REX_W);
                     }
@@ -5093,18 +5093,18 @@ void cod3_adjSymOffsets()
                 break;
 
             case SC.fastpar:
-//printf("\tfastpar %s %p Soffset %x Fast.size %x BPoff %x\n", s.Sident, s, cast(int)s.Soffset, cast(int)cgstate.Fast.size, cast(int)BPoff);
-                s.Soffset += cgstate.Fast.size + BPoff;
+//printf("\tfastpar %s %p Soffset %x Fast.size %x BPoff %x\n", s.Sident, s, cast(int)s.Soffset, cast(int)cgstate.Fast.size, cast(int)cgstate.BPoff);
+                s.Soffset += cgstate.Fast.size + cgstate.BPoff;
                 break;
 
             case SC.auto_:
             case SC.register:
                 if (s.Sfl == FLfast)
-                    s.Soffset += cgstate.Fast.size + BPoff;
+                    s.Soffset += cgstate.Fast.size + cgstate.BPoff;
                 else
-//printf("s = '%s', Soffset = x%x, Auto.size = x%x, BPoff = x%x EBPtoESP = x%x\n", s.Sident, cast(int)s.Soffset, cast(int)cgstate.Auto.size, cast(int)BPoff, cast(int)EBPtoESP);
+//printf("s = '%s', Soffset = x%x, Auto.size = x%x, BPoff = x%x EBPtoESP = x%x\n", s.Sident, cast(int)s.Soffset, cast(int)cgstate.Auto.size, cast(int)cgstate.BPoff, cast(int)EBPtoESP);
 //              if (!(funcsym_p.Sfunc.Fflags3 & Fnested))
-                    s.Soffset += cgstate.Auto.size + BPoff;
+                    s.Soffset += cgstate.Auto.size + cgstate.BPoff;
                 break;
 
             case SC.bprel:
@@ -5333,7 +5333,7 @@ void assignaddrc(code *c)
                     goto do2;
                 }
                 else
-                {   c.IEV1.Vpointer += s.Soffset + soff + BPoff;
+                {   c.IEV1.Vpointer += s.Soffset + soff + cgstate.BPoff;
                     if (s.Sflags & SFLunambig)
                         c.Iflags |= CFunambig;
             L2:
@@ -5361,22 +5361,22 @@ void assignaddrc(code *c)
 
             case FLpara:
                 //printf("s = %s, Soffset = %d, Para.size = %d, BPoff = %d, EBPtoESP = %d, Vpointer = %d\n",
-                //s.Sident.ptr, cast(int)s.Soffset, cast(int)Para.size, cast(int)BPoff,
+                //s.Sident.ptr, cast(int)s.Soffset, cast(int)Para.size, cast(int)cgstate.BPoff,
                 //cast(int)EBPtoESP, cast(int)c.IEV1.Vpointer);
-                soff = cgstate.Para.size - BPoff;    // cancel out add of BPoff
+                soff = cgstate.Para.size - cgstate.BPoff;    // cancel out add of BPoff
                 goto L1;
 
             case FLfltreg:
-                c.IEV1.Vpointer += cgstate.Foff + BPoff;
+                c.IEV1.Vpointer += cgstate.Foff + cgstate.BPoff;
                 c.Iflags |= CFunambig;
                 goto L2;
 
             case FLallocatmp:
-                c.IEV1.Vpointer += cgstate.Alloca.offset + BPoff;
+                c.IEV1.Vpointer += cgstate.Alloca.offset + cgstate.BPoff;
                 goto L2;
 
             case FLfuncarg:
-                c.IEV1.Vpointer += cgstate.funcarg.offset + BPoff;
+                c.IEV1.Vpointer += cgstate.funcarg.offset + cgstate.BPoff;
                 goto L2;
 
             case FLbprel:
@@ -5390,19 +5390,19 @@ void assignaddrc(code *c)
                     c.Iop = NOP;
                     continue;
                 }
-                c.IEV1.Vpointer = CSE.offset(sn) + cgstate.CSoff + BPoff;
+                c.IEV1.Vpointer = CSE.offset(sn) + cgstate.CSoff + cgstate.BPoff;
                 c.Iflags |= CFunambig;
                 goto L2;
 
             case FLregsave:
                 sn = c.IEV1.Vuns;
-                c.IEV1.Vpointer = sn + regsave.off + BPoff;
+                c.IEV1.Vpointer = sn + regsave.off + cgstate.BPoff;
                 c.Iflags |= CFunambig;
                 goto L2;
 
             case FLndp:
                 assert(c.IEV1.Vuns < global87.save.length);
-                c.IEV1.Vpointer = c.IEV1.Vuns * tysize(TYldouble) + cgstate.NDPoff + BPoff;
+                c.IEV1.Vpointer = c.IEV1.Vuns * tysize(TYldouble) + cgstate.NDPoff + cgstate.BPoff;
                 c.Iflags |= CFunambig;
                 goto L2;
 
@@ -5478,11 +5478,11 @@ void assignaddrc(code *c)
                 /* NOTREACHED */
 
             case FLfast:
-                c.IEV2.Vpointer += s.Soffset + cgstate.Fast.size + BPoff;
+                c.IEV2.Vpointer += s.Soffset + cgstate.Fast.size + cgstate.BPoff;
                 break;
 
             case FLauto:
-                c.IEV2.Vpointer += s.Soffset + cgstate.Auto.size + BPoff;
+                c.IEV2.Vpointer += s.Soffset + cgstate.Auto.size + cgstate.BPoff;
             L3:
                 if (!cgstate.hasframe || (cgstate.enforcealign && c.IFL2 != FLpara))
                     /* Convert to ESP relative address instead of EBP */
@@ -5494,15 +5494,15 @@ void assignaddrc(code *c)
                 goto L3;
 
             case FLfltreg:
-                c.IEV2.Vpointer += cgstate.Foff + BPoff;
+                c.IEV2.Vpointer += cgstate.Foff + cgstate.BPoff;
                 goto L3;
 
             case FLallocatmp:
-                c.IEV2.Vpointer += cgstate.Alloca.offset + BPoff;
+                c.IEV2.Vpointer += cgstate.Alloca.offset + cgstate.BPoff;
                 goto L3;
 
             case FLfuncarg:
-                c.IEV2.Vpointer += cgstate.funcarg.offset + BPoff;
+                c.IEV2.Vpointer += cgstate.funcarg.offset + cgstate.BPoff;
                 goto L3;
 
             case FLbprel:
@@ -5552,11 +5552,11 @@ targ_size_t cod3_bpoffset(Symbol *s)
             break;
 
         case FLfast:
-            offset += cgstate.Fast.size + BPoff;
+            offset += cgstate.Fast.size + cgstate.BPoff;
             break;
 
         case FLauto:
-            offset += cgstate.Auto.size + BPoff;
+            offset += cgstate.Auto.size + cgstate.BPoff;
             break;
 
         default:

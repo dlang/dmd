@@ -57,7 +57,6 @@ import dmd.backend.dwarfdbginf : dwarf_except_gentables;
 
 __gshared
 {
-int BPoff;                      // offset from BP
 int EBPtoESP;                   // add to EBP offset to get ESP offset
 
 REGSAVE regsave;
@@ -611,7 +610,7 @@ void prolog(ref CodeBuilder cdb)
         EBPtoESP = -REGSIZE;
     cgstate.hasframe = false;
     bool pushds = false;
-    BPoff = 0;
+    cgstate.BPoff = 0;
     bool pushalloc = false;
     tym_t tyf = funcsym_p.ty();
     tym_t tym = tybasic(tyf);
@@ -944,7 +943,7 @@ else
         assert(I32 || I64);
         prolog_frameadj2(cdbx, tyf, xlocalsize, &pushalloc);
         version (FRAMEPTR) { } else
-            BPoff += REGSIZE;
+            cgstate.BPoff += REGSIZE;
     }
     else
         assert((localsize | cgstate.Alloca.size) == 0 || (usednteh & NTEHjmonitor));
@@ -1006,7 +1005,7 @@ Lcont:
     /* Alignment checks
      */
     //assert(cgstate.Auto.alignment <= STACKALIGN);
-    //assert(((cgstate.Auto.size + cgstate.Para.size + BPoff) & (cgstate.Auto.alignment - 1)) == 0);
+    //assert(((cgstate.Auto.size + cgstate.Para.size + cgstate.BPoff) & (cgstate.Auto.alignment - 1)) == 0);
 }
 
 /************************************

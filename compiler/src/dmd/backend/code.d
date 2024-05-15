@@ -160,7 +160,9 @@ struct CGstate
     bool hasframe;              // true if this function has a stack frame
     bool enforcealign;          // enforced stack alignment
 
-    int stackclean;     // if != 0, then clean the stack after function call
+    int stackclean;             // if != 0, then clean the stack after function call
+
+    int BPoff;                  // offset from BP
 
     targ_size_t spoff;
     targ_size_t Foff;           // BP offset of floating register
