@@ -4396,7 +4396,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
 {
     //printf("params(e = %p, stackalign = %d)\n", e, stackalign);
     //printf("params()\n"); elem_print(e);
-    stackchanged = 1;
+    cgstate.stackchanged = 1;
     assert(e && e.Eoper != OPparam);
 
     tym_t tym = tybasic(e.Ety);
@@ -5515,7 +5515,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
                 assert(0);
     /+
                 /* Note that we allocreg(DOUBLEREGS) needlessly     */
-                stackchanged = 1;
+                cgstate.stackchanged = 1;
                 int i = DOUBLESIZE - REGSIZE;
                 do
                 {
@@ -5542,7 +5542,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
             if ((outretregs & (mSTACK | mPSW)) == mSTACK)
             {
                 // Note that we allocreg(DOUBLEREGS) needlessly
-                stackchanged = 1;
+                cgstate.stackchanged = 1;
                 int i = sz - REGSIZE;
                 do
                 {

@@ -3344,7 +3344,7 @@ void cdind(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             cs.Iop = 0xFF;
             cs.Irm |= modregrm(0,6,0);
             cs.IEV1.Voffset += 8 - REGSIZE;
-            stackchanged = 1;
+            cgstate.stackchanged = 1;
             i = 8 - REGSIZE;
             do
             {
@@ -3838,7 +3838,7 @@ void cdstrcpy(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         POP     DS
     */
 
-    stackchanged = 1;
+    cgstate.stackchanged = 1;
     regm_t retregs = mDI;
     tym_t ty2 = tybasic(e.E2.Ety);
     if (!tyreg(ty2))
@@ -4838,7 +4838,7 @@ void getoffset(ref CodeBuilder cdb,elem *e,reg_t reg)
                 if (reg & 8)
                     code_orrex(cdb.last(), REX_B);
                 cdb.genadjesp(REGSIZE);
-                stackchanged = 1;
+                cgstate.stackchanged = 1;
             }
             break;
         }
@@ -4886,7 +4886,7 @@ void getoffset(ref CodeBuilder cdb,elem *e,reg_t reg)
             cs.IEV2.Voffset = e.Voffset;
         L3:
             if (reg == STACK)
-            {   stackchanged = 1;
+            {   cgstate.stackchanged = 1;
                 cs.Iop = 0x68;              /* PUSH immed16                 */
                 cdb.genadjesp(REGSIZE);
             }
@@ -4938,7 +4938,7 @@ void getoffset(ref CodeBuilder cdb,elem *e,reg_t reg)
                 if (reg & 8)
                     code_orrex(cdb.last(), REX_B);
                 cdb.genadjesp(REGSIZE);
-                stackchanged = 1;
+                cgstate.stackchanged = 1;
             }
             else
             {
@@ -5208,7 +5208,7 @@ if (config.exe & EX_windos)
         regm_t idxregs = idxregm(&cs);  // mask of index regs used
         cs.Iop = 0x8B;                  /* MOV DOUBLEREGS,EA            */
         fltregs(cdb,&cs,tyml);
-        stackchanged = 1;
+        cgstate.stackchanged = 1;
         int stackpushsave = cgstate.stackpush;
         regm_t retregs;
         if (sz == 8)

@@ -170,6 +170,12 @@ struct CGstate
     targ_size_t pushoff;        // offset of saved registers
     bool pushoffuse;            // using pushoff
 
+    int stackchanged;           /* set to !=0 if any use of the stack
+                                   other than accessing parameters. Used
+                                   to see if we can address parameters
+                                   with ESP rather than EBP.
+                                 */
+
     LocalSection funcarg;       // where function arguments are placed
     LocalSection Para;          // section of function parameters
     LocalSection Auto;          // section of automatics and registers
