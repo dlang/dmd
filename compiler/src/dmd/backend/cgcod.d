@@ -83,7 +83,6 @@ char needframe;         // if true, then we will need the frame
                         // pointer (BP for the 8088)
 char gotref;            // !=0 if the GOTsym was referenced
 uint usednteh;              // if !=0, then used NT exception handling
-bool calledFinally;     // true if called a BC_finally block
 
 /* Register contents    */
 con_t regcon;
@@ -156,7 +155,7 @@ void codgen(Symbol *sfunc)
         regsave.reset();
         memset(global87.stack.ptr,0,global87.stack.sizeof);
 
-        calledFinally = false;
+        cgstate.calledFinally = false;
         usednteh = 0;
 
         if (sfunc.Sfunc.Fflags3 & Fjmonitor &&

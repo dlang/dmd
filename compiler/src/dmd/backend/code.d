@@ -187,6 +187,7 @@ struct CGstate
                                 // Special case: if funcargtos==~0, then no
                                 // arguments are there.
     bool accessedTLS;           // set if accessed Thread Local Storage (TLS)
+    bool calledFinally;         // true if called a BC_finally block
 
     regm_t[4] lastRetregs;      // used to not allocate the same register over and over again,
                                 // to improve instruction scheduling

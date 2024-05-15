@@ -779,7 +779,7 @@ private code *callFinallyBlock(block *bf, regm_t retregs)
     CodeBuilder cdbr; cdbr.ctor();
     int nalign = 0;
 
-    calledFinally = true;
+    cgstate.calledFinally = true;
     uint npush = gensaverestore(retregs,cdbs,cdbr);
 
     if (STACKALIGN >= 16)
@@ -2511,7 +2511,7 @@ regm_t cod3_useBP()
             config.flags & CFGstack ||
             localsize >= 0x100 ||       // arbitrary value < 0x1000
             (usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)) ||
-            calledFinally ||
+            cgstate.calledFinally ||
             cgstate.Alloca.size
            )
             goto Lcant;
