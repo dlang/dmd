@@ -3379,7 +3379,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
     static if (0)
     {
         printf("test1 %d %d %d %d %d %d %d %d\n", (config.flags4 & CFG4speed)!=0, !cgstate.Alloca.size,
-            !(usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)),
+            !(cgstate.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)),
             cast(int)numpara, !cgstate.stackpush,
             (cgstate.funcargtos == ~0 || numpara < cgstate.funcargtos),
             (!typfunc(tyf) || sf && sf.Sflags & SFLexit), !I16);
@@ -3391,7 +3391,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
          * is stepped on.
          * A better solution is turn this off only inside the cleanup code.
          */
-        !usednteh &&
+        !cgstate.usednteh &&
         !cgstate.calledFinally &&
         (numpara || config.exe == EX_WIN64) &&
         cgstate.stackpush == 0 &&               // cgstate.funcarg needs to be at top of stack

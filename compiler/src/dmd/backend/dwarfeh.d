@@ -48,7 +48,7 @@ package __gshared DwEhTable dwehtable;
  *      sfunc = function to generate table for
  *      seg = .gcc_except_table segment
  *      et = buffer to insert table into
- *      scancode = true if there are destructors in the code (i.e. usednteh & EHcleanup)
+ *      scancode = true if there are destructors in the code (i.e. cgstate.usednteh & EHcleanup)
  *      startoffset = size of function prolog
  *      retoffset = offset from start of function to epilog
  */

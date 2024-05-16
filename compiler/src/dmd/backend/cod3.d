@@ -964,11 +964,11 @@ void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const(char
             }
             else if (config.ehmethod == EHmethod.EH_SEH || config.ehmethod == EHmethod.EH_WIN32)
             {
-                usednteh |= NTEH_try;
+                cgstate.usednteh |= NTEH_try;
                 nteh_usevars();
             }
             else
-                usednteh |= EHtry;
+                cgstate.usednteh |= EHtry;
             goto case_goto;
 
         case BC_finally:
@@ -1037,7 +1037,7 @@ static if (NTEXCEPTIONS)
         case BC_except:
         {
             assert(!e);
-            usednteh |= NTEH_except;
+            cgstate.usednteh |= NTEH_except;
             nteh_setsp(cdb,0x8B);
             getregsNoSave(cgstate.allregs);
             nextb = bl.nthSucc(0);
@@ -1183,7 +1183,7 @@ static if (NTEXCEPTIONS)
                 pop87();                // account for return value
             }
 
-            if (MARS || usednteh & NTEH_try)
+            if (MARS || cgstate.usednteh & NTEH_try)
             {
                 block *bt = bl;
                 while ((bt = bt.Btry) != null)
@@ -2511,7 +2511,7 @@ regm_t cod3_useBP()
             tyfarfunc(tym) ||
             config.flags & CFGstack ||
             localsize >= 0x100 ||       // arbitrary value < 0x1000
-            (usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)) ||
+            (cgstate.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)) ||
             cgstate.calledFinally ||
             cgstate.Alloca.size
            )
@@ -3411,7 +3411,7 @@ void prolog_frame(ref CodeBuilder cdb, bool farfunc, ref uint xlocalsize, out bo
         (xlocalsize >= 0x1000 && config.exe & EX_flat) ||
         localsize >= 0x10000 ||
         (NTEXCEPTIONS == 2 &&
-         (usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags3 & Feh_none) || config.ehmethod == EHmethod.EH_SEH))) ||
+         (cgstate.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags3 & Feh_none) || config.ehmethod == EHmethod.EH_SEH))) ||
         (config.target_cpu >= TARGET_80386 &&
          config.flags4 & CFG4speed)
        )
@@ -3425,7 +3425,7 @@ void prolog_frame(ref CodeBuilder cdb, bool farfunc, ref uint xlocalsize, out bo
             code_orflag(cdb.last(), CFvolatile);
 static if (NTEXCEPTIONS == 2)
 {
-        if (usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags3 & Feh_none) || config.ehmethod == EHmethod.EH_SEH))
+        if (cgstate.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags3 & Feh_none) || config.ehmethod == EHmethod.EH_SEH))
         {
             nteh_prolog(cdb);
             int sz = nteh_contextsym_size();
@@ -4364,7 +4364,7 @@ void epilog(block *b)
         useregs((ALLREGS | mBP | mES) & ~s.Sregsaved);
     }
 
-    if (usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.exe == EX_WIN32 || MARS))
+    if (cgstate.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.exe == EX_WIN32 || MARS))
     {
         nteh_epilog(cdbx);
     }
@@ -4383,7 +4383,7 @@ void epilog(block *b)
     topop = fregsaved & ~cgstate.mfuncreg;
     epilog_restoreregs(cdbx, topop);
 
-    if (usednteh & NTEHjmonitor)
+    if (cgstate.usednteh & NTEHjmonitor)
     {
         regm_t retregs = 0;
         if (b.BC == BCretexp)

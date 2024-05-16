@@ -216,6 +216,7 @@ struct CGstate
     regm_t msavereg;            // Mask of registers that we would like to save.
                                 // they are temporaries (set by scodelem())
 
+    uint usednteh;              // if !=0, then used NT exception handling
     con_t regcon;               // register contents
     BackendPass pass;
 
