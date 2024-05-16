@@ -3714,12 +3714,11 @@ void cdshtlng(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             CodeBuilder cdbx;
             cdbx.ctor();
             codelem(cdbx,e1,&retregs,false);
-            code *cx = cdbx.finish();
+            code *cx = cdbx.finish() ? cdbx.last() : null;
             cdb.append(cdbx);
             getregs(cdb,retregs);
             if (op == OPu16_32 && cx)
             {
-                cx = code_last(cx);
                 if (cx.Iop == 0x81 && (cx.Irm & modregrm(3,7,0)) == modregrm(3,4,0) &&
                     mask(cx.Irm & 7) == retregs)
                 {
