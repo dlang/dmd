@@ -1120,7 +1120,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                     pcs.Irm = cast(ubyte)(getaddrmode(idxregs) ^ t);
                 }
                 if (f == FLpara)
-                    refparam = true;
+                    cgstate.refparam = true;
                 else if (f == FLauto || f == FLbprel || f == FLfltreg || f == FLfast)
                     reflocal = true;
                 else if (f == FLcsdata || tybasic(e12.Ety) == TYcptr)
@@ -1367,7 +1367,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
             if (s.Sclass == SC.shadowreg)
                 goto case FLfast;
         Lpara:
-            refparam = true;
+            cgstate.refparam = true;
             pcs.Irm = modregrm(2, 0, BPRM);
             goto L2;
 
@@ -1506,7 +1506,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                 if (
                     s.Sclass == SC.regpar ||
                     s.Sclass == SC.parameter)
-                {   refparam = true;
+                {   cgstate.refparam = true;
                     reflocal = true;        // kludge to set up prolog
                 }
                 pcs.Irm = modregrm(3, 0, s.Sreglsw & 7);
@@ -5195,7 +5195,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
              * This affects jmpopcode()
              */
             if (s.Sclass == SC.parameter)
-                refparam = true;
+                cgstate.refparam = true;
             tstresult(cdb,s.Sregm,e.Ety,true);
         }
         else if (sz <= REGSIZE)

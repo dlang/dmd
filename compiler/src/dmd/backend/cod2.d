@@ -4924,7 +4924,7 @@ void getoffset(ref CodeBuilder cdb,elem *e,reg_t reg)
             reflocal = true;
             goto L2;
         case FLpara:
-            refparam = true;
+            cgstate.refparam = true;
         L2:
             if (reg == STACK)
             {   regm_t retregs = ALLREGS;

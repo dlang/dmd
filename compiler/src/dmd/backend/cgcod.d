@@ -67,7 +67,6 @@ regm_t ALLREGS()  { return I64 ? mAX|mBX|mCX|mDX|mSI|mDI| mR8|mR9|mR10|mR11|mR12
 regm_t BYTEREGS() { return I64 ? ALLREGS
                                : BYTEREGS_INIT; }
 
-int refparam;           // !=0 if we referenced any parameters
 int reflocal;           // !=0 if we referenced any locals
 bool anyiasm;           // !=0 if any inline assembler
 char calledafunc;       // !=0 if we called a function
@@ -129,7 +128,7 @@ void codgen(Symbol *sfunc)
         gotref = 0;
         cgstate.stackchanged = 0;
         cgstate.stackpush = 0;
-        refparam = 0;
+        cgstate.refparam = 0;
         calledafunc = 0;
         cgstate.retsym = null;
 
@@ -887,7 +886,7 @@ else
                 needframe = 1;
             }
         }
-        if (refparam && (anyiasm || I16))
+        if (cgstate.refparam && (anyiasm || I16))
             needframe = 1;
     }
 
@@ -1381,8 +1380,8 @@ private void blcodgen(block *bl)
     //regsave.idx = 0;
 
     reflocal = 0;
-    int refparamsave = refparam;
-    refparam = 0;
+    int refparamsave = cgstate.refparam;
+    cgstate.refparam = 0;
     assert((cgstate.regcon.cse.mops & cgstate.regcon.cse.mval) == cgstate.regcon.cse.mops);
 
     outblkexitcode(cdb, bl, anyspill, sflsave, &cgstate.retsym, mfuncregsave);
@@ -1396,9 +1395,9 @@ private void blcodgen(block *bl)
 
     if (reflocal)
         bl.Bflags |= BFL.reflocal;
-    if (refparam)
+    if (cgstate.refparam)
         bl.Bflags |= BFL.refparam;
-    refparam |= refparamsave;
+    cgstate.refparam |= refparamsave;
     bl.Bregcon.immed = cgstate.regcon.immed;
     bl.Bregcon.cse = cgstate.regcon.cse;
     bl.Bregcon.used = cgstate.regcon.used;
@@ -1521,7 +1520,7 @@ bool isregvar(elem *e, ref regm_t pregm, ref reg_t preg)
         {
             case FLreg:
                 if (s.Sclass == SC.parameter)
-                {   refparam = true;
+                {   cgstate.refparam = true;
                     reflocal = true;
                 }
                 reg = e.Voffset == REGSIZE ? s.Sregmsw : s.Sreglsw;
