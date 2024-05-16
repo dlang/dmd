@@ -212,7 +212,22 @@ struct CGstate
     regm_t mfuncreg;            // mask of registers preserved by function
     regm_t msavereg;            // Mask of registers that we would like to save.
                                 // they are temporaries (set by scodelem())
+
+    con_t regcon;               // register contents
     BackendPass pass;
+
+    /**********************************
+     * Set value in regimmed for reg.
+     * NOTE: For 16 bit generator, this is always a (targ_short) sign-extended
+     *      value.
+     */
+    @trusted nothrow
+    void regimmed_set(int reg, targ_size_t e)
+    {
+        regcon.immed.value[reg] = e;
+        regcon.immed.mval |= 1 << (reg);
+        //printf("regimmed_set %s %d\n", regm_str(1 << reg), cast(int)e);
+    }
 }
 
 public import dmd.backend.nteh;
@@ -356,17 +371,4 @@ regm_t iasm_regs(block *bp)
 
     refparam |= bp.bIasmrefparam;
     return bp.usIasmregs;
-}
-
-/**********************************
- * Set value in regimmed for reg.
- * NOTE: For 16 bit generator, this is always a (targ_short) sign-extended
- *      value.
- */
-@trusted
-void regimmed_set(int reg, targ_size_t e)
-{
-    regcon.immed.value[reg] = e;
-    regcon.immed.mval |= 1 << (reg);
-    //printf("regimmed_set %s %d\n", regm_str(1 << reg), cast(int)e);
 }

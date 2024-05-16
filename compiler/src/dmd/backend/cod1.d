@@ -310,7 +310,7 @@ void genEEcode()
     cdb.ctor();
 
     eecontext.EEin++;
-    regcon.immed.mval = 0;
+    cgstate.regcon.immed.mval = 0;
     regm_t retregs = 0;    //regmask(eecontext.EEelem.Ety);
     assert(cgstate.EEStack.offset >= REGSIZE);
     cod3_stackadj(cdb, cast(int)(cgstate.EEStack.offset - REGSIZE));
@@ -422,7 +422,7 @@ void genstackclean(ref CodeBuilder cdb,uint numpara,regm_t keepmsk)
             numpara == cgstate.stackpush &&             // if this is all those pushed
             needframe &&                        // and there will be a BP
             !config.windows &&
-            !(regcon.mvar & fregsaved)          // and no registers will be pushed
+            !(cgstate.regcon.mvar & fregsaved)          // and no registers will be pushed
         )
             genregs(cdb,0x89,BP,SP);  // MOV SP,BP
         else
@@ -432,7 +432,7 @@ void genstackclean(ref CodeBuilder cdb,uint numpara,regm_t keepmsk)
 
             if (numpara == REGSIZE && config.flags4 & CFG4space)
             {
-                scratchm = ALLREGS & ~keepmsk & regcon.used & ~regcon.mvar;
+                scratchm = ALLREGS & ~keepmsk & cgstate.regcon.used & ~cgstate.regcon.mvar;
             }
 
             if (scratchm)
@@ -466,11 +466,11 @@ void logexp(ref CodeBuilder cdb, elem *e, int jcond, uint fltarg, code *targ)
     //printf("logexp(e = %p, jcond = %d)\n", e, jcond); elem_print(e);
     if (tybasic(e.Ety) == TYnoreturn)
     {
-        con_t regconsave = regcon;
+        con_t regconsave = cgstate.regcon;
         regm_t retregs = 0;
         codelem(cdb,e,&retregs,0);
-        regconsave.used |= regcon.used;
-        regcon = regconsave;
+        regconsave.used |= cgstate.regcon.used;
+        cgstate.regcon = regconsave;
         return;
     }
 
@@ -489,14 +489,14 @@ void logexp(ref CodeBuilder cdb, elem *e, int jcond, uint fltarg, code *targ)
                 if (jcond & 1)
                 {
                     logexp(cdb, e.E1, jcond, fltarg, targ);
-                    regconsave = regcon;
+                    regconsave = cgstate.regcon;
                     logexp(cdb, e.E2, jcond, fltarg, targ);
                 }
                 else
                 {
                     code *cnop = gennop(null);
                     logexp(cdb, e.E1, jcond | 1, FLcode, cnop);
-                    regconsave = regcon;
+                    regconsave = cgstate.regcon;
                     logexp(cdb, e.E2, jcond, fltarg, targ);
                     cdb.append(cnop);
                 }
@@ -513,14 +513,14 @@ void logexp(ref CodeBuilder cdb, elem *e, int jcond, uint fltarg, code *targ)
                 {
                     code *cnop = gennop(null);    // a dummy target address
                     logexp(cdb, e.E1, jcond & ~1, FLcode, cnop);
-                    regconsave = regcon;
+                    regconsave = cgstate.regcon;
                     logexp(cdb, e.E2, jcond, fltarg, targ);
                     cdb.append(cnop);
                 }
                 else
                 {
                     logexp(cdb, e.E1, jcond, fltarg, targ);
-                    regconsave = regcon;
+                    regconsave = cgstate.regcon;
                     logexp(cdb, e.E2, jcond, fltarg, targ);
                 }
                 andregcon(regconsave);
@@ -552,12 +552,12 @@ void logexp(ref CodeBuilder cdb, elem *e, int jcond, uint fltarg, code *targ)
                 code *cnop2 = gennop(null);   // addresses of start of leaves
                 code *cnop = gennop(null);
                 logexp(cdb, e.E1, false, FLcode, cnop2);   // eval condition
-                con_t regconold = regcon;
+                con_t regconold = cgstate.regcon;
                 logexp(cdb, e.E2.E1, jcond, fltarg, targ);
                 genjmp(cdb, JMP, FLcode, cast(block *) cnop); // skip second leaf
 
-                con_t regconsave = regcon;
-                regcon = regconold;
+                con_t regconsave = cgstate.regcon;
+                cgstate.regcon = regconold;
 
                 cdb.append(cnop2);
                 logexp(cdb, e.E2.E2, jcond, fltarg, targ);
@@ -644,7 +644,7 @@ void loadea(ref CodeBuilder cdb,elem *e,code *cs,uint op,uint reg,targ_size_t of
         (op & 0xFFF8) != 0xD8)            // and not 8087 opcode
     {
         assert(OTleaf(e.Eoper));                /* can't handle this            */
-        regm_t rm = regcon.cse.mval & ~regcon.cse.mops & ~regcon.mvar; // possible regs
+        regm_t rm = cgstate.regcon.cse.mval & ~cgstate.regcon.cse.mops & ~cgstate.regcon.mvar; // possible regs
         if (op == 0xFF && reg == 6)
             rm &= ~XMMREGS;             // can't PUSH an XMM register
         if (sz > REGSIZE)               // value is in 2 or 4 registers
@@ -663,7 +663,7 @@ void loadea(ref CodeBuilder cdb,elem *e,code *cs,uint op,uint reg,targ_size_t of
         {
             if (mask(i) & rm)
             {
-                if (regcon.cse.value[i] == e && // if register has elem
+                if (cgstate.regcon.cse.value[i] == e && // if register has elem
                     /* watch out for a CWD destroying DX        */
                    !(i == DX && op == 0xF7 && desmsk & mDX))
                 {
@@ -1190,7 +1190,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
             if (!I16 &&
                 (sz == REGSIZE || (I64 && sz == 4)) &&
                 keepmsk & RMstore)
-                idxregs |= regcon.mvar;
+                idxregs |= cgstate.regcon.mvar;
 
             switch (e1ty)
             {
@@ -1379,7 +1379,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                 /* See if the parameter is still hanging about in a register,
                  * and so can we load from that register instead.
                  */
-                if (regcon.params & pregm /*&& s.Spreg2 == NOREG && !(pregm & XMMREGS)*/)
+                if (cgstate.regcon.params & pregm /*&& s.Spreg2 == NOREG && !(pregm & XMMREGS)*/)
                 {
                     if (keepmsk & RMload && !anyiasm)
                     {
@@ -1394,7 +1394,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                              * in Win64 shadow regs and we're offsetting to get to the start
                              * of the variadic args.
                              */
-                            if (preg != NOREG && regcon.params & mask(preg))
+                            if (preg != NOREG && cgstate.regcon.params & mask(preg))
                             {
                                 //printf("sz %d, preg %s, Voffset %d\n", cast(int)sz, regm_str(mask(preg)), cast(int)voffset);
                                 if (mask(preg) & XMMREGS)
@@ -1418,20 +1418,20 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                                         pcs.Irex |= REX_B;
                                     if (I64 && sz == 1 && preg >= 4)
                                         pcs.Irex |= REX;
-                                    regcon.used |= mask(preg);
+                                    cgstate.regcon.used |= mask(preg);
                                     break;
                                 }
                                 else if (voffset == 1 && sz == 1 && preg < 4)
                                 {
                                     pcs.Irm = modregrm(3, 0, 4 | preg); // use H register
-                                    regcon.used |= mask(preg);
+                                    cgstate.regcon.used |= mask(preg);
                                     break;
                                 }
                             }
                         }
                     }
                     else
-                        regcon.params &= ~pregm;
+                        cgstate.regcon.params &= ~pregm;
                 }
             }
             if (s.Sclass == SC.shadowreg)
@@ -1488,11 +1488,11 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
         L2:
             if (fl == FLreg)
             {
-                //printf("test: FLreg, %s %d regcon.mvar = %s\n",
-                // s.Sident.ptr, cast(int)e.Voffset, regm_str(regcon.mvar));
-                if (!(s.Sregm & regcon.mvar))
+                //printf("test: FLreg, %s %d cgstate.regcon.mvar = %s\n",
+                // s.Sident.ptr, cast(int)e.Voffset, regm_str(cgstate.regcon.mvar));
+                if (!(s.Sregm & cgstate.regcon.mvar))
                     symbol_print(*s);
-                assert(s.Sregm & regcon.mvar);
+                assert(s.Sregm & cgstate.regcon.mvar);
 
                 /* Attempting to paint a float as an integer or an integer as a float
                  * will cause serious problems since the EA is loaded separatedly from
@@ -1835,7 +1835,7 @@ void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, uint saveflag)
             assert(regm & mMSW & ALLREGS && regm & (mLSW | mBP));
 
             reg = findregmsw(regm);
-            if (regcon.mvar & mask(reg))        // if register variable
+            if (cgstate.regcon.mvar & mask(reg))        // if register variable
                 goto L1;                        // don't trash it
             getregs(cdb, mask(reg));            // we're going to trash reg
             if (tyfloating(tym) && sz == 2 * _tysize[TYint])
@@ -3979,7 +3979,7 @@ static if (0)
     if (!needframe)
     {
         // If there is a register available for this basic block
-        if (config.flags4 & CFG4optimized && (ALLREGS & ~regcon.used))
+        if (config.flags4 & CFG4optimized && (ALLREGS & ~cgstate.regcon.used))
         { }
         else
         {
@@ -4602,7 +4602,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                         cdb.gen1(0x48 + CX);            // DEC CX
                     genjmp(cdb, JNE, FLcode, cast(block *)c3); // JNE c3
                 }
-                regimmed_set(CX,0);
+                cgstate.regimmed_set(CX,0);
                 cdb.genadjesp(cast(int)sz);
             }
             cgstate.stackpush += sz;
@@ -5093,10 +5093,10 @@ void offsetinreg(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
     regm_t retregs = mLSW;                     // want only offset
     if (e.Ecount && e.Ecount != e.Ecomsub)
     {
-        regm_t rm = retregs & regcon.cse.mval & ~regcon.cse.mops & ~regcon.mvar; /* possible regs */
+        regm_t rm = retregs & cgstate.regcon.cse.mval & ~cgstate.regcon.cse.mops & ~cgstate.regcon.mvar; /* possible regs */
         for (uint i = 0; rm; i++)
         {
-            if (mask(i) & rm && regcon.cse.value[i] == e)
+            if (mask(i) & rm && cgstate.regcon.cse.value[i] == e)
             {
                 *pretregs = mask(i);
                 getregs(cdb, *pretregs);
@@ -5302,15 +5302,15 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
         if (sz == REGSIZE && reghasvalue(forregs, value, reg))
             forregs = mask(reg);
 
-        regm_t save = regcon.immed.mval;
+        regm_t save = cgstate.regcon.immed.mval;
         reg = allocreg(cdb, forregs, tym);        // allocate registers
-        regcon.immed.mval = save;               // allocreg could unnecessarily clear .mval
+        cgstate.regcon.immed.mval = save;               // allocreg could unnecessarily clear .mval
         if (sz <= REGSIZE)
         {
             if (sz == 1)
                 flags |= 1;
             else if (!I16 && sz == SHORTSIZE &&
-                     !(mask(reg) & regcon.mvar) &&
+                     !(mask(reg) & cgstate.regcon.mvar) &&
                      !(config.flags4 & CFG4speed)
                     )
                 flags |= 2;
@@ -5403,11 +5403,11 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
     else
     {
         // See if we can use register that parameter was passed in
-        if (regcon.params &&
+        if (cgstate.regcon.params &&
             regParamInPreg(e.Vsym) &&
             !anyiasm &&   // may have written to the memory for the parameter
-            (regcon.params & mask(e.Vsym.Spreg) && e.Voffset == 0 ||
-             regcon.params & mask(e.Vsym.Spreg2) && e.Voffset == REGSIZE) &&
+            (cgstate.regcon.params & mask(e.Vsym.Spreg) && e.Voffset == 0 ||
+             cgstate.regcon.params & mask(e.Vsym.Spreg2) && e.Voffset == REGSIZE) &&
             sz <= REGSIZE)                  // make sure no 'paint' to a larger size happened
         {
             const reg_t preg = e.Voffset ? e.Vsym.Spreg2 : e.Vsym.Spreg;
@@ -5422,7 +5422,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
                            regm_str(pregm));
 
                 cgstate.mfuncreg &= ~pregm;
-                regcon.used |= pregm;
+                cgstate.regcon.used |= pregm;
                 fixresult(cdb,e,pregm,outretregs);
                 return;
             }

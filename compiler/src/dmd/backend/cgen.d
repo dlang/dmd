@@ -213,9 +213,9 @@ bool reghasvalue(regm_t regm,targ_size_t value, out reg_t preg)
     //printf("reghasvalue(%s, %llx)\n", regm_str(regm), cast(ulong)value);
     /* See if another register has the right value      */
     reg_t r = 0;
-    for (regm_t mreg = regcon.immed.mval; mreg; mreg >>= 1)
+    for (regm_t mreg = cgstate.regcon.immed.mval; mreg; mreg >>= 1)
     {
-        if (mreg & regm & 1 && regcon.immed.value[r] == value)
+        if (mreg & regm & 1 && cgstate.regcon.immed.value[r] == value)
         {   preg = r;
             return true;
         }
@@ -238,9 +238,9 @@ reg_t regwithvalue(ref CodeBuilder cdb,regm_t regm,targ_size_t value, regm_t fla
     if (reghasvalue(regm,value,found))
         return found; // already have a register with the right value in it
 
-    regm_t save = regcon.immed.mval;
+    regm_t save = cgstate.regcon.immed.mval;
     const reg = allocreg(cdb,regm,TYint);  // allocate register
-    regcon.immed.mval = save;
+    cgstate.regcon.immed.mval = save;
     movregconst(cdb,reg,value,flags);   // store value into reg
     return reg;
 }

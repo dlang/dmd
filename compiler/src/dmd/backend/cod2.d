@@ -533,7 +533,7 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         regm_t rretregs;
         if (ty1 == TYhptr)
         {   // hptr +- long
-            rretregs = mLSW & ~(retregs | regcon.mvar);
+            rretregs = mLSW & ~(retregs | cgstate.regcon.mvar);
             if (!rretregs)
                 rretregs = mLSW;
             rretregs |= mCX;
@@ -611,7 +611,7 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         {   retregs = ~*pretregs & ALLREGS;
 
             /* if retregs doesn't have any regs in it that aren't reg vars */
-            if ((retregs & ~regcon.mvar) == 0)
+            if ((retregs & ~cgstate.regcon.mvar) == 0)
                 retregs |= mAX;
         }
         else if (numwords == 2 && retregs & mES)
@@ -2145,9 +2145,9 @@ void cdnot(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     CodeBuilder cdbfalse2;
     cdbfalse2.ctor();
     movregconst(cdbfalse2,reg,0,forflags);                    // mov 0 into reg
-    regcon.immed.mval &= ~mask(reg);                          // mark reg as unavail
+    cgstate.regcon.immed.mval &= ~mask(reg);                          // mark reg as unavail
     movregconst(cdbtrue,reg,1,forflags);                      // mov 1 into reg
-    regcon.immed.mval &= ~mask(reg);                          // mark reg as unavail
+    cgstate.regcon.immed.mval &= ~mask(reg);                          // mark reg as unavail
     genjmp(cdbfalse2,JMP,FLcode,cast(block *) cnop);          // skip over ctrue
     cdb.append(cfalse);
     cdb.append(cdbfalse2);
@@ -2300,12 +2300,12 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         genjmp(cdb,jop,FLcode,cast(block *)cnop1);
         freenode(e21);
 
-        regconsave = regcon;
+        regconsave = cgstate.regcon;
         stackpushsave = cgstate.stackpush;
 
         retregs |= psw;
         if (retregs & (mBP | ALLREGS))
-            regimmed_set(findreg(retregs),0);
+            cgstate.regimmed_set(findreg(retregs),0);
         codelem(cdb,e22,&retregs,false);
 
         andregcon(regconsave);
@@ -2435,8 +2435,8 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
         // Set the register with e21 without affecting the flags
         retregs = *pretregs & (ALLREGS | mBP);
-        if (retregs & ~regcon.mvar)
-            retregs &= ~regcon.mvar;    // don't disturb register variables
+        if (retregs & ~cgstate.regcon.mvar)
+            retregs &= ~cgstate.regcon.mvar;    // don't disturb register variables
         // NOTE: see my email (sign extension bug? possible fix, some questions
         const reg = regwithvalue(cdb,retregs,cast(targ_size_t)e21.Vllong,
                                  tysize(e21.Ety) == 8 ? 64|8 : 8);
@@ -2446,7 +2446,7 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         genjmp(cdb,jop,FLcode,cast(block *)cnop1);
         freenode(e21);
 
-        regconsave = regcon;
+        regconsave = cgstate.regcon;
         stackpushsave = cgstate.stackpush;
 
         codelem(cdb,e22,&retregs,false);
@@ -2464,7 +2464,7 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     code *cnop1 = gennop(null);
     code *cnop2 = gennop(null);         // dummy target addresses
     logexp(cdb,e1,false,FLcode,cnop1);  // evaluate condition
-    regconold = regcon;
+    regconold = cgstate.regcon;
     stackusedold = global87.stackused;
     stackpushold = cgstate.stackpush;
     memcpy(_8087old.ptr,global87.stack.ptr,global87.stack.sizeof);
@@ -2499,8 +2499,8 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     else
         cdb.append(cdb1);
 
-    regconsave = regcon;
-    regcon = regconold;
+    regconsave = cgstate.regcon;
+    cgstate.regcon = regconold;
 
     stackpushsave = cgstate.stackpush;
     cgstate.stackpush = stackpushold;
@@ -2596,7 +2596,7 @@ void cdloglog(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     (e.Eoper == OPoror)
         ? logexp(cdb,e.E1,1,FLcode,cnop1)
         : logexp(cdb,e.E1,0,FLcode,cnop3);
-    con_t regconsave = regcon;
+    con_t regconsave = cgstate.regcon;
     uint stackpushsave = cgstate.stackpush;
     if (*pretregs == 0)                 // if don't want result
     {
@@ -2604,8 +2604,8 @@ void cdloglog(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         codelem(cdb,e2,pretregs,false);
         if (noreturn)
         {
-            regconsave.used |= regcon.used;
-            regcon = regconsave;
+            regconsave.used |= cgstate.regcon.used;
+            cgstate.regcon = regconsave;
         }
         else
             andregcon(regconsave);
@@ -2620,8 +2620,8 @@ void cdloglog(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     {
         regm_t retregs2 = 0;
         codelem(cdb, e2, &retregs2, false);
-        regconsave.used |= regcon.used;
-        regcon = regconsave;
+        regconsave.used |= cgstate.regcon.used;
+        cgstate.regcon = regconsave;
         assert(cgstate.stackpush == stackpushsave);
 
         regm_t retregs = *pretregs & (ALLREGS | mBP);
@@ -2630,7 +2630,7 @@ void cdloglog(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
         const reg = allocreg(cdb1,retregs,TYint);                     // allocate reg for result
         movregconst(cdb1,reg,e.Eoper == OPoror,*pretregs & mPSW);
-        regcon.immed.mval &= ~mask(reg);                        // mark reg as unavail
+        cgstate.regcon.immed.mval &= ~mask(reg);                        // mark reg as unavail
         *pretregs = retregs;
 
         cdb.append(cnop3);
@@ -2657,7 +2657,7 @@ void cdloglog(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         regm_t retregs = *pretregs & cgstate.allregs;
         const reg = allocreg(cdb1,retregs,TYint);                     // allocate reg for result
         movregconst(cdb1,reg,e.Eoper == OPoror,0);             // reg = 1
-        regcon.immed.mval &= ~mask(reg);                        // mark reg as unavail
+        cgstate.regcon.immed.mval &= ~mask(reg);                        // mark reg as unavail
         *pretregs = retregs;
         if (e.Eoper == OPoror)
         {
@@ -2689,17 +2689,17 @@ void cdloglog(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         retregs = ALLREGS;                                   // if mPSW only
     CodeBuilder cdbcg;
     cdbcg.ctor();
-    const reg = allocreg(cdbcg,retregs,TYint);                     // allocate reg for result
+    const reg = allocreg(cdbcg,retregs,TYint);               // allocate reg for result
     code *cg = cdbcg.finish();
     for (code *c1 = cg; c1; c1 = code_next(c1))              // for each instruction
         cdb1.gen(c1);                                        // duplicate it
     CodeBuilder cdbcg2;
     cdbcg2.ctor();
     movregconst(cdbcg2,reg,0,*pretregs & mPSW);              // MOV reg,0
-    regcon.immed.mval &= ~mask(reg);                         // mark reg as unavail
-    genjmp(cdbcg2, JMP,FLcode,cast(block *) cnop2);              // JMP cnop2
+    cgstate.regcon.immed.mval &= ~mask(reg);                 // mark reg as unavail
+    genjmp(cdbcg2, JMP,FLcode,cast(block *) cnop2);          // JMP cnop2
     movregconst(cdb1,reg,1,*pretregs & mPSW);                // reg = 1
-    regcon.immed.mval &= ~mask(reg);                         // mark reg as unavail
+    cgstate.regcon.immed.mval &= ~mask(reg);                 // mark reg as unavail
     *pretregs = retregs;
     cdb.append(cnop3);
     cdb.append(cg);
@@ -2850,7 +2850,7 @@ void cdshift(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 }
 
                 codelem(cdb,e1,&retregs,false); // eval left leaf
-                //assert((retregs & regcon.mvar) == 0);
+                //assert((retregs & cgstate.regcon.mvar) == 0);
                 getregs(cdb,retregs);          // modify these regs
 
                 {
@@ -2966,7 +2966,7 @@ void cdshift(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             retregs = forregs & ~mCX;               // CX will be shift count
             if (sz <= REGSIZE)
             {
-                if (forregs & ~regcon.mvar && !(retregs & ~regcon.mvar))
+                if (forregs & ~cgstate.regcon.mvar && !(retregs & ~cgstate.regcon.mvar))
                     retregs = ALLREGS & ~mCX;       // need something
                 else if (!retregs)
                     retregs = ALLREGS & ~mCX;       // need something
@@ -3188,7 +3188,7 @@ void cdshift(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 code_orflag(cdb.last(),CFtarg2);
                 cdb.gen2(0xD1,modregrm(3,s2,sreg));
                 cdb.genc2(0xE2,0,cast(targ_uns)-6);          // LOOP .-6
-                regimmed_set(CX,0);         // note that now CX == 0
+                cgstate.regimmed_set(CX,0);         // note that now CX == 0
             }
             else
                 assert(0);
@@ -3417,13 +3417,13 @@ void cdind(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
                     // We can run out of registers, so if that's possible,
                     // give us *one* of the idxregs
-                    if ((retregs & ~regcon.mvar & mLSW) == 0)
+                    if ((retregs & ~cgstate.regcon.mvar & mLSW) == 0)
                     {
                         regm_t x = idxregs & mLSW;
                         if (x)
                             retregs |= mask(findreg(x));        // give us one idxreg
                     }
-                    else if ((retregs & ~regcon.mvar & mMSW) == 0)
+                    else if ((retregs & ~cgstate.regcon.mvar & mMSW) == 0)
                     {
                         regm_t x = idxregs & mMSW;
                         if (x)
@@ -4210,7 +4210,7 @@ void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             cdb.gen1(STOS);                     // STOSW/D/Q
             if (I64)
                 code_orrex(cdb.last(), REX_W);
-            regimmed_set(CX, 0);                // CX is now 0
+            cgstate.regimmed_set(CX, 0);                // CX is now 0
         }
 
         auto remainder = numbytes & (REGSIZE - 1);
@@ -4237,7 +4237,7 @@ void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         }
         cdb.gen1(0xF3);                       // REP
         cdb.gen1(STOSB);                      // STOSB
-        regimmed_set(CX, 0);                  // CX is now 0
+        cgstate.regimmed_set(CX, 0);                  // CX is now 0
         fixresult(cdb,e,mES|mBX,*pretregs);
         return;
     }
@@ -4280,7 +4280,7 @@ void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     cdb.gen1(0xF3);                                   // REP
     cdb.gen1(STOSB);                                  // STOSB
 
-    regimmed_set(CX, 0);                    // CX is now 0
+    cgstate.regimmed_set(CX, 0);                    // CX is now 0
     fixresult(cdb,e,mES|mBX,*pretregs);
 }
 
@@ -4394,7 +4394,7 @@ private void cdmemsetn(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     genjmp(cdb, LOOP, FLcode, cast(block *)c2);         // LOOP L2
     cdb.append(c1);
 
-    regimmed_set(CX, 0);                  // CX is now 0
+    cgstate.regimmed_set(CX, 0);                  // CX is now 0
 
     fixresult(cdb,e,mregbx,*pretregs);
 }
@@ -4535,7 +4535,7 @@ static if (1)
         if (REGSIZE == 8)
             cdb.gen1(REX | REX_W);
         cdb.gen1(0xA5);                 // REP MOVSD
-        regimmed_set(CX,0);             // note that CX == 0
+        cgstate.regimmed_set(CX,0);             // note that CX == 0
         if (I64 && remainder >= 4)
         {
             cdb.gen1(0xA5);         // MOVSD
@@ -4560,7 +4560,7 @@ else
         movregconst(cdb,CX,numbytes,0);   // # of bytes/words
         cdb.gen1(0xF3);                 // REP
         cdb.gen1(movs);
-        regimmed_set(CX,0);             // note that CX == 0
+        cgstate.regimmed_set(CX,0);             // note that CX == 0
 }
     }
     if (need_DS)
