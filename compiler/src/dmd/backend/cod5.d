@@ -56,7 +56,7 @@ else
     if (!(config.flags4 & CFG4optimized) ||
         anyiasm ||
         cgstate.Alloca.size ||
-        usednteh ||
+        cgstate.usednteh ||
         cgstate.calledFinally ||
         tyf & (mTYnaked | mTYloadds) ||
         tym == TYifunc ||

@@ -118,8 +118,8 @@ static if (1)
          * (It hangs in unittests for std.datetime.)
          * g++ on FreeBSD does not generate mixed frames, while g++ on OSX and Linux does.
          */
-        assert(!(usednteh & ~(EHtry | EHcleanup)));
-        return (usednteh & (EHtry | EHcleanup)) ||
+        assert(!(cgstate.usednteh & ~(EHtry | EHcleanup)));
+        return (cgstate.usednteh & (EHtry | EHcleanup)) ||
                (config.exe & (EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64)) && config.useExceptions;
     }
 
@@ -3196,7 +3196,7 @@ static if (1)
             sfunc.Sfunc.LSDAsym = s;
         }
         import dmd.backend.dwarfeh : dwehtable;
-        genDwarfEh(sfunc, seg, buf, (usednteh & EHcleanup) != 0, startoffset, retoffset, dwehtable);
+        genDwarfEh(sfunc, seg, buf, (cgstate.usednteh & EHcleanup) != 0, startoffset, retoffset, dwehtable);
     }
 
 }

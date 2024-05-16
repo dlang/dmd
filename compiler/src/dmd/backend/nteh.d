@@ -189,15 +189,15 @@ uint nteh_contextsym_size()
 {
     int sz;
 
-    if (usednteh & NTEH_try)
+    if (cgstate.usednteh & NTEH_try)
     {
         sz = 5 * 4;
     }
-    else if (usednteh & NTEHcpp)
+    else if (cgstate.usednteh & NTEHcpp)
     {
         sz = 5 * 4;                     // C++ context record
     }
-    else if (usednteh & NTEHpassthru)
+    else if (cgstate.usednteh & NTEHpassthru)
     {
         sz = 1 * 4;
     }
@@ -241,7 +241,7 @@ void nteh_prolog(ref CodeBuilder cdb)
 {
     code cs;
 
-    if (usednteh & NTEHpassthru)
+    if (cgstate.usednteh & NTEHpassthru)
     {
         /* An sindex value of -2 is a magic value that tells the
          * stack unwinder to skip this frame.

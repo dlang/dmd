@@ -5607,9 +5607,9 @@ void cddctor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         PSOP.dctor
         MOV     sindex[BP],index
      */
-    usednteh |= EHcleanup;
+    cgstate.usednteh |= EHcleanup;
     if (config.ehmethod == EHmethod.EH_WIN32)
-    {   usednteh |= NTEHcleanup | NTEH_try;
+    {   cgstate.usednteh |= NTEHcleanup | NTEH_try;
         nteh_usevars();
     }
     assert(*pretregs == 0);
@@ -5634,7 +5634,7 @@ void cdddtor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     if (config.ehmethod == EHmethod.EH_DWARF)
     {
-        usednteh |= EHcleanup;
+        cgstate.usednteh |= EHcleanup;
 
         code cs;
         cs.Iop = PSOP.ddtor;     // mark end of EH range and where landing pad is
@@ -5663,9 +5663,9 @@ void cdddtor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             RET
         L1: NOP
         */
-        usednteh |= EHcleanup;
+        cgstate.usednteh |= EHcleanup;
         if (config.ehmethod == EHmethod.EH_WIN32)
-        {   usednteh |= NTEHcleanup | NTEH_try;
+        {   cgstate.usednteh |= NTEHcleanup | NTEH_try;
             nteh_usevars();
         }
 

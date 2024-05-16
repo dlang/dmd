@@ -74,7 +74,6 @@ char calledafunc;       // !=0 if we called a function
 char needframe;         // if true, then we will need the frame
                         // pointer (BP for the 8088)
 char gotref;            // !=0 if the GOTsym was referenced
-uint usednteh;              // if !=0, then used NT exception handling
 }
 
 /*********************************
@@ -143,11 +142,11 @@ void codgen(Symbol *sfunc)
         memset(global87.stack.ptr,0,global87.stack.sizeof);
 
         cgstate.calledFinally = false;
-        usednteh = 0;
+        cgstate.usednteh = 0;
 
         if (sfunc.Sfunc.Fflags3 & Fjmonitor &&
             config.exe & EX_windos)
-            usednteh |= NTEHjmonitor;
+            cgstate.usednteh |= NTEHjmonitor;
 
         // Set on a trial basis, turning it off if anything might throw
         sfunc.Sfunc.Fflags3 |= Fnothrow;
@@ -388,7 +387,7 @@ void codgen(Symbol *sfunc)
     debug
     debugw && printf("code jump optimization complete\n");
 
-    if (usednteh & NTEH_try)
+    if (cgstate.usednteh & NTEH_try)
     {
         // Do this before code is emitted because we patch some instructions
         nteh_filltables();
@@ -460,7 +459,7 @@ void codgen(Symbol *sfunc)
         if (configv.vasm)
             disassemble(disasmBuf[]);                   // disassemble the code
 
-        const nteh = usednteh & NTEH_try;
+        const nteh = cgstate.usednteh & NTEH_try;
         if (nteh)
         {
             assert(!(config.flags & CFGromable));
@@ -490,7 +489,7 @@ void codgen(Symbol *sfunc)
                      * handler. THIS PROBABLY NEEDS TO BE IN ANOTHER SPOT BUT
                      * IT FIXES THE PROBLEM HERE AS WELL.
                      */
-                    if (usednteh & NTEH_try)
+                    if (cgstate.usednteh & NTEH_try)
                         cgstate.retoffset += 3;
                     break;
 
@@ -515,12 +514,12 @@ void codgen(Symbol *sfunc)
 
         static if (MARS)
         {
-            if (usednteh & NTEH_try)
+            if (cgstate.usednteh & NTEH_try)
             {
                 // Do this before code is emitted because we patch some instructions
                 nteh_gentables(sfunc);
             }
-            if (usednteh & (EHtry | EHcleanup) &&   // saw BCtry or BC_try or OPddtor
+            if (cgstate.usednteh & (EHtry | EHcleanup) &&   // saw BCtry or BC_try or OPddtor
                 config.ehmethod == EHmethod.EH_DM)
             {
                 except_gentables();
@@ -653,8 +652,8 @@ Lagain:
     cgstate.spoff = 0;
     char guessneedframe = needframe;
     int cfa_offset = 0;
-//    if (needframe && config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS) && !(usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)))
-//      usednteh |= NTEHpassthru;
+//    if (needframe && config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS) && !(cgstate.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)))
+//      cgstate.usednteh |= NTEHpassthru;
 
     /* Compute BP offsets for variables on stack.
      * The organization is:
@@ -879,7 +878,7 @@ else
                 farfunc ||
                 config.flags & CFGstack ||
                 xlocalsize >= 0x1000 ||
-                (usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)) ||
+                (cgstate.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)) ||
                 anyiasm ||
                 cgstate.Alloca.size
                )
@@ -941,7 +940,7 @@ else
             cgstate.BPoff += REGSIZE;
     }
     else
-        assert((localsize | cgstate.Alloca.size) == 0 || (usednteh & NTEHjmonitor));
+        assert((localsize | cgstate.Alloca.size) == 0 || (cgstate.usednteh & NTEHjmonitor));
     cgstate.EBPtoESP += xlocalsize;
     if (cgstate.hasframe)
         cgstate.EBPtoESP += REGSIZE;
@@ -955,7 +954,7 @@ else
         cgstate.prolog_allocoffset = calcblksize(c);
     }
 
-    if (usednteh & NTEHjmonitor)
+    if (cgstate.usednteh & NTEHjmonitor)
     {   Symbol *sthis;
 
         for (SYMIDX si = 0; 1; si++)
@@ -985,7 +984,7 @@ Lcont:
 
     static if (NTEXCEPTIONS == 2)
     {
-        if (usednteh & NTEH_except)
+        if (cgstate.usednteh & NTEH_except)
             nteh_setsp(cdb, 0x89);            // MOV __context[EBP].esp,ESP
     }
 
@@ -1229,7 +1228,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
              */
             if (// Don't share because could stomp on variables
                 // used in finally blocks
-                !(usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)) &&
+                !(cgstate.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)) &&
                 s.Srange && !(s.Sflags & SFLspill))
             {
                 for (size_t i = 0; i < si; i++)
