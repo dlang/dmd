@@ -20,7 +20,6 @@ import core.stdc.string;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
-import dmd.backend.code_x86;
 import dmd.backend.evalu8 : el_toldoubled;
 import dmd.backend.oper;
 import dmd.backend.global;

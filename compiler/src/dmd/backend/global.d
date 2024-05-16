@@ -14,37 +14,28 @@ module dmd.backend.global;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_global.html
 
-@nogc:
-nothrow:
-
 import core.stdc.stdio;
 import core.stdc.stdint;
 
+import dmd.backend.barray;
 import dmd.backend.cdef;
-import dmd.backend.cc;
-import dmd.backend.cc : Symbol, block, Classsym, BlockState;
-import dmd.backend.code_x86 : code;
+import dmd.backend.cc : Symbol, block, Classsym, BlockState, FLdata;
 import dmd.backend.code;
 import dmd.backend.dlist;
-import dmd.backend.el;
 import dmd.backend.el : elem;
 import dmd.backend.mem;
 import dmd.backend.symtab;
+import dmd.backend.ty : TYnptr, TYvoid, tybasic, tysize;
 import dmd.backend.type;
-//import dmd.backend.obj;
-
-import dmd.backend.barray;
+import dmd.backend.var : _tysize;
 
 nothrow:
 @safe:
+@nogc:
 
 // FIXME: backend can't import front end modules because missing -J flag
 extern (C++) void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
 package extern (C++) void fatal();
-
-public import dmd.backend.eh : except_gentables;
-import dmd.backend.var : _tysize;
-import dmd.backend.ty : TYnptr, TYvoid, tybasic, tysize;
 
 /***********************************
  * Returns: aligned `offset` if it is of size `size`.
