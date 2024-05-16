@@ -417,7 +417,7 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             /* Will need 1 register for evaluation, +2 registers for
              * e1's addressing mode
              */
-            regm_t m = cgstate.allregs & ~regcon.mvar;  // mask of non-register variables
+            regm_t m = cgstate.allregs & ~cgstate.regcon.mvar;  // mask of non-register variables
             m &= m - 1;         // clear least significant bit
             m &= m - 1;         // clear least significant bit
             plenty = m != 0;    // at least 3 registers
@@ -444,7 +444,7 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 Symbol *s = e11.E1.Vsym;
                 if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
                 {
-                    regcon.params &= ~s.Spregm();
+                    cgstate.regcon.params &= ~s.Spregm();
                 }
                 postinc = e11.E2.Vint;
                 if (e11.Eoper == OPpostdec)
@@ -711,7 +711,7 @@ void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         Symbol *s = e11.E1.Vsym;
         if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
         {
-            regcon.params &= ~s.Spregm();
+            cgstate.regcon.params &= ~s.Spregm();
         }
 
         postinc = e11.E2.Vint;
@@ -2387,7 +2387,7 @@ void cdshass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 if (v == 0xD3)                    // if building a loop
                 {
                     genjmp(cdb,LOOP,FLcode,cast(block *) cg); // LOOP cg
-                    regimmed_set(CX,0);           // note that now CX == 0
+                    cgstate.regimmed_set(CX,0);           // note that now CX == 0
                 }
                 cdb.append(ce);
             }
@@ -2430,7 +2430,7 @@ void cdshass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 cdb.gen(&cs);
             }
         }
-        if (e1.Ecount && !(retregs & regcon.mvar))   // if lvalue is a CSE
+        if (e1.Ecount && !(retregs & cgstate.regcon.mvar))   // if lvalue is a CSE
             cssave(e1,retregs,!OTleaf(e1.Eoper));
         freenode(e1);
         *pretregs = retregs;
@@ -2940,7 +2940,7 @@ void cdcmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             {
                 regm_t m;
 
-                m = cgstate.allregs & ~regcon.mvar;
+                m = cgstate.allregs & ~cgstate.regcon.mvar;
                 if (isbyte)
                     m &= BYTEREGS;
                 if (m & (m - 1))    // if more than one free register
@@ -3116,9 +3116,9 @@ L3:
         else
         {
             code *nop = null;
-            regm_t save = regcon.immed.mval;
+            regm_t save = cgstate.regcon.immed.mval;
             reg = allocreg(cdb,retregs,TYint);
-            regcon.immed.mval = save;
+            cgstate.regcon.immed.mval = save;
             if ((*pretregs & mPSW) == 0 &&
                 (jop == JC || jop == JNC))
             {
@@ -3152,7 +3152,7 @@ L3:
                 genjmp(cdb,jop,FLcode,cast(block *) nop);  // Jtrue nop
                                                             // MOV reg,0
                 movregconst(cdb,reg,0,(*pretregs & mPSW) ? 64|8 : 64);
-                regcon.immed.mval &= ~mask(reg);
+                cgstate.regcon.immed.mval &= ~mask(reg);
             }
             else
             {
@@ -3162,7 +3162,7 @@ L3:
                 genjmp(cdb,jop,FLcode,cast(block *) nop);  // Jtrue nop
                                                             // MOV reg,0
                 movregconst(cdb,reg,0,(*pretregs & mPSW) ? 8 : 0);
-                regcon.immed.mval &= ~mask(reg);
+                cgstate.regcon.immed.mval &= ~mask(reg);
             }
             *pretregs = retregs;
             cdb.append(nop);
@@ -4048,7 +4048,7 @@ void cdport(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     // See if we can use immediate mode of IN/OUT opcodes
     ubyte port;
     if (e1.Eoper == OPconst && e1.Vuns <= 255 &&
-        (!evalinregister(e1) || regcon.mvar & mDX))
+        (!evalinregister(e1) || cgstate.regcon.mvar & mDX))
     {
         port = cast(ubyte)e1.Vuns;
         freenode(e1);
@@ -4286,9 +4286,9 @@ void cdbtst(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         else
         {
             code *cnop = null;
-            regm_t save = regcon.immed.mval;
+            regm_t save = cgstate.regcon.immed.mval;
             reg = allocreg(cdb,retregs,TYint);
-            regcon.immed.mval = save;
+            cgstate.regcon.immed.mval = save;
             if ((*pretregs & mPSW) == 0)
             {
                 getregs(cdb,retregs);
@@ -4302,7 +4302,7 @@ void cdbtst(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
                 genjmp(cdb,JC,FLcode, cast(block *) cnop);  // Jtrue nop
                                                             // MOV reg,0
                 movregconst(cdb,reg,0,8);
-                regcon.immed.mval &= ~mask(reg);
+                cgstate.regcon.immed.mval &= ~mask(reg);
             }
             *pretregs = retregs;
             cdb.append(cnop);
@@ -4405,9 +4405,9 @@ void cdbt(ref CodeBuilder cdb,elem *e, regm_t *pretregs)
         else
         {
             code *cnop = null;
-            const save = regcon.immed.mval;
+            const save = cgstate.regcon.immed.mval;
             reg = allocreg(cdb,retregs,TYint);
-            regcon.immed.mval = save;
+            cgstate.regcon.immed.mval = save;
             if ((*pretregs & mPSW) == 0)
             {
                 getregs(cdb,retregs);
@@ -4421,7 +4421,7 @@ void cdbt(ref CodeBuilder cdb,elem *e, regm_t *pretregs)
                 genjmp(cdb,JC,FLcode, cast(block *) cnop);    // Jtrue nop
                                                             // MOV reg,0
                 movregconst(cdb,reg,0,8);
-                regcon.immed.mval &= ~mask(reg);
+                cgstate.regcon.immed.mval &= ~mask(reg);
             }
             *pretregs = retregs;
             cdb.append(cnop);

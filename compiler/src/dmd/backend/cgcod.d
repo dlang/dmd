@@ -77,9 +77,6 @@ char needframe;         // if true, then we will need the frame
                         // pointer (BP for the 8088)
 char gotref;            // !=0 if the GOTsym was referenced
 uint usednteh;              // if !=0, then used NT exception handling
-
-/* Register contents    */
-con_t regcon;
 }
 
 /*********************************
@@ -161,8 +158,8 @@ void codgen(Symbol *sfunc)
         assert(global87.stackused == 0);             /* nobody in 8087 stack         */
 
         CSE.start();
-        memset(&regcon,0,regcon.sizeof);
-        regcon.cse.mval = regcon.cse.mops = 0;      // no common subs yet
+        memset(&cgstate.regcon,0,cgstate.regcon.sizeof);
+        cgstate.regcon.cse.mval = cgstate.regcon.cse.mops = 0;      // no common subs yet
         cgstate.msavereg = 0;
         uint nretblocks = 0;
         cgstate.mfuncreg = fregsaved;               // so we can see which are used
@@ -191,7 +188,7 @@ void codgen(Symbol *sfunc)
                 {
                     case SC.fastpar:
                     case SC.shadowreg:
-                        regcon.params |= s.Spregm();
+                        cgstate.regcon.params |= s.Spregm();
                         goto case SC.parameter;
 
                     case SC.parameter:
@@ -203,7 +200,7 @@ void codgen(Symbol *sfunc)
                         break;
                 }
             }
-            regcon.params &= ~noparams;
+            cgstate.regcon.params &= ~noparams;
         }
 
         if (config.flags4 & CFG4optimized)
@@ -218,7 +215,7 @@ void codgen(Symbol *sfunc)
             foreach (i, b; dfo[])
             {
                 cgstate.dfoidx = cast(int)i;
-                regcon.used = cgstate.msavereg | regcon.cse.mval;   // registers already in use
+                cgstate.regcon.used = cgstate.msavereg | cgstate.regcon.cse.mval;   // registers already in use
                 blcodgen(b);                        // gen code in depth-first order
                 //printf("b.Bregcon.used = %s\n", regm_str(b.Bregcon.used));
                 cgreg_used(cgstate.dfoidx, b.Bregcon.used); // gather register used information
@@ -230,8 +227,8 @@ void codgen(Symbol *sfunc)
             for (block* b = startblock; b; b = b.Bnext)
                 blcodgen(b);                // generate the code for each block
         }
-        regcon.immed.mval = 0;
-        assert(!regcon.cse.mops);           // should have all been used
+        cgstate.regcon.immed.mval = 0;
+        assert(!cgstate.regcon.cse.mops);           // should have all been used
 
         if (cgstate.pass == BackendPass.final_ ||       // the final pass, so exit
             anyiasm)                            // possible LEA or LES opcodes
@@ -603,7 +600,7 @@ void prolog(ref CodeBuilder cdb)
 
     //printf("cod3.prolog() %s, needframe = %d, Auto.alignment = %d\n", funcsym_p.Sident.ptr, needframe, cgstate.Auto.alignment);
     debug debugw && printf("funcstart()\n");
-    regcon.immed.mval = 0;                      /* no values in registers yet   */
+    cgstate.regcon.immed.mval = 0;                      /* no values in registers yet   */
     version (FRAMEPTR)
         EBPtoESP = 0;
     else
@@ -1288,38 +1285,38 @@ private void blcodgen(block *bl)
         together the values from all the predecessors of b.
      */
     assert(bl.Bregcon.immed.mval == 0);
-    regcon.immed.mval = 0;      // assume no previous contents in registers
-//    regcon.cse.mval = 0;
+    cgstate.regcon.immed.mval = 0;      // assume no previous contents in registers
+//    cgstate.regcon.cse.mval = 0;
     foreach (bpl; ListRange(bl.Bpred))
     {
         block *bp = list_block(bpl);
 
         if (bpl == bl.Bpred)
-        {   regcon.immed = bp.Bregcon.immed;
-            regcon.params = bp.Bregcon.params;
-//          regcon.cse = bp.Bregcon.cse;
+        {   cgstate.regcon.immed = bp.Bregcon.immed;
+            cgstate.regcon.params = bp.Bregcon.params;
+//          cgstate.regcon.cse = bp.Bregcon.cse;
         }
         else
         {
             int i;
 
-            regcon.params &= bp.Bregcon.params;
-            if ((regcon.immed.mval &= bp.Bregcon.immed.mval) != 0)
+            cgstate.regcon.params &= bp.Bregcon.params;
+            if ((cgstate.regcon.immed.mval &= bp.Bregcon.immed.mval) != 0)
                 // Actual values must match, too
                 for (i = 0; i < REGMAX; i++)
                 {
-                    if (regcon.immed.value[i] != bp.Bregcon.immed.value[i])
-                        regcon.immed.mval &= ~mask(i);
+                    if (cgstate.regcon.immed.value[i] != bp.Bregcon.immed.value[i])
+                        cgstate.regcon.immed.mval &= ~mask(i);
                 }
         }
     }
-    regcon.cse.mops &= regcon.cse.mval;
+    cgstate.regcon.cse.mops &= cgstate.regcon.cse.mval;
 
-    // Set regcon.mvar according to what variables are in registers for this block
+    // Set cgstate.regcon.mvar according to what variables are in registers for this block
     CodeBuilder cdb; cdb.ctor();
-    regcon.mvar = 0;
-    regcon.mpvar = 0;
-    regcon.indexregs = 1;
+    cgstate.regcon.mvar = 0;
+    cgstate.regcon.mpvar = 0;
+    cgstate.regcon.indexregs = 1;
     int anyspill = 0;
     char *sflsave = null;
     if (config.flags4 & CFG4optimized)
@@ -1332,19 +1329,19 @@ private void blcodgen(block *bl)
         {
             sflsave[i] = s.Sfl;
             if (regParamInPreg(s) &&
-                regcon.params & s.Spregm() &&
+                cgstate.regcon.params & s.Spregm() &&
                 vec_testbit(cgstate.dfoidx,s.Srange))
             {
-//                regcon.used |= s.Spregm();
+//                cgstate.regcon.used |= s.Spregm();
             }
 
             if (s.Sfl == FLreg)
             {
                 if (vec_testbit(cgstate.dfoidx,s.Srange))
                 {
-                    regcon.mvar |= s.Sregm;
+                    cgstate.regcon.mvar |= s.Sregm;
                     if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
-                        regcon.mpvar |= s.Sregm;
+                        cgstate.regcon.mpvar |= s.Sregm;
                 }
             }
             else if (s.Sflags & SFLspill)
@@ -1356,28 +1353,28 @@ private void blcodgen(block *bl)
                     if (vec_testbit(cgstate.dfoidx,s.Slvreg))
                     {
                         s.Sfl = FLreg;
-                        regcon.mvar |= s.Sregm;
-                        regcon.cse.mval &= ~s.Sregm;
-                        regcon.immed.mval &= ~s.Sregm;
-                        regcon.params &= ~s.Sregm;
+                        cgstate.regcon.mvar |= s.Sregm;
+                        cgstate.regcon.cse.mval &= ~s.Sregm;
+                        cgstate.regcon.immed.mval &= ~s.Sregm;
+                        cgstate.regcon.params &= ~s.Sregm;
                         if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
-                            regcon.mpvar |= s.Sregm;
+                            cgstate.regcon.mpvar |= s.Sregm;
                     }
                 }
             }
         }
-        if ((regcon.cse.mops & regcon.cse.mval) != regcon.cse.mops)
+        if ((cgstate.regcon.cse.mops & cgstate.regcon.cse.mval) != cgstate.regcon.cse.mops)
         {
-            cse_save(cdb,regcon.cse.mops & ~regcon.cse.mval);
+            cse_save(cdb,cgstate.regcon.cse.mops & ~cgstate.regcon.cse.mval);
         }
         cdb.append(cdbstore);
         cdb.append(cdbload);
-        cgstate.mfuncreg &= ~regcon.mvar;               // use these registers
-        regcon.used |= regcon.mvar;
+        cgstate.mfuncreg &= ~cgstate.regcon.mvar;               // use these registers
+        cgstate.regcon.used |= cgstate.regcon.mvar;
 
         // Determine if we have more than 1 uncommitted index register
-        regcon.indexregs = IDXREGS & ~regcon.mvar;
-        regcon.indexregs &= regcon.indexregs - 1;
+        cgstate.regcon.indexregs = IDXREGS & ~cgstate.regcon.mvar;
+        cgstate.regcon.indexregs &= cgstate.regcon.indexregs - 1;
     }
 
     /* This doesn't work when calling the BC_finally function,
@@ -1388,7 +1385,7 @@ private void blcodgen(block *bl)
     reflocal = 0;
     int refparamsave = refparam;
     refparam = 0;
-    assert((regcon.cse.mops & regcon.cse.mval) == regcon.cse.mops);
+    assert((cgstate.regcon.cse.mops & cgstate.regcon.cse.mval) == cgstate.regcon.cse.mops);
 
     outblkexitcode(cdb, bl, anyspill, sflsave, &cgstate.retsym, mfuncregsave);
     bl.Bcode = cdb.finish();
@@ -1404,10 +1401,10 @@ private void blcodgen(block *bl)
     if (refparam)
         bl.Bflags |= BFL.refparam;
     refparam |= refparamsave;
-    bl.Bregcon.immed = regcon.immed;
-    bl.Bregcon.cse = regcon.cse;
-    bl.Bregcon.used = regcon.used;
-    bl.Bregcon.params = regcon.params;
+    bl.Bregcon.immed = cgstate.regcon.immed;
+    bl.Bregcon.cse = cgstate.regcon.cse;
+    bl.Bregcon.used = cgstate.regcon.used;
+    bl.Bregcon.params = cgstate.regcon.params;
 
     debug
     debugw && printf("code gen complete\n");
@@ -1467,12 +1464,12 @@ void freenode(elem *e)
     if (e.Ecomsub--) return;             /* usage count                  */
     if (e.Ecount)                        /* if it was a CSE              */
     {
-        for (size_t i = 0; i < regcon.cse.value.length; i++)
+        for (size_t i = 0; i < cgstate.regcon.cse.value.length; i++)
         {
-            if (regcon.cse.value[i] == e)       /* if a register is holding it  */
+            if (cgstate.regcon.cse.value[i] == e)       /* if a register is holding it  */
             {
-                regcon.cse.mval &= ~mask(cast(uint)i);
-                regcon.cse.mops &= ~mask(cast(uint)i);    /* free masks                   */
+                cgstate.regcon.cse.mval &= ~mask(cast(uint)i);
+                cgstate.regcon.cse.mops &= ~mask(cast(uint)i);    /* free masks                   */
             }
         }
         CSE.remove(e);
@@ -1547,7 +1544,7 @@ static if (0)
                     }
                 }
 }
-                assert(regm & regcon.mvar && !(regm & ~regcon.mvar));
+                assert(regm & cgstate.regcon.mvar && !(regm & ~cgstate.regcon.mvar));
                 preg = reg;
                 pregm = regm;
                 return true;
@@ -1595,8 +1592,8 @@ static if (0)
 {
         if (cgstate.pass == BackendPass.final_)
         {
-            printf("allocreg %s,%d: regcon.mvar %s regcon.cse.mval %s msavereg %s outretregs %s tym %s\n",
-                file,line,regm_str(regcon.mvar),regm_str(regcon.cse.mval),
+            printf("allocreg %s,%d: cgstate.regcon.mvar %s regcon.cse.mval %s msavereg %s outretregs %s tym %s\n",
+                file,line,regm_str(cgstate.regcon.mvar),regm_str(cgstate.regcon.cse.mval),
                 regm_str(cgstate.msavereg),regm_str(outretregs),tym_str(tym));
         }
 }
@@ -1609,7 +1606,7 @@ static if (0)
         debug if (retregs == 0)
             printf("allocreg: file %s(%d)\n", file, line);
 
-        if ((retregs & regcon.mvar) == retregs) // if exactly in reg vars
+        if ((retregs & cgstate.regcon.mvar) == retregs) // if exactly in reg vars
         {
             reg_t outreg;
             if (size <= REGSIZE || (retregs & XMMREGS))
@@ -1635,13 +1632,13 @@ L1:
         reg_t msreg = NOREG, lsreg = NOREG;  /* no value assigned yet        */
 L3:
         //printf("L2: allregs = %s, outretregs = %s\n", regm_str(cgstate.allregs), regm_str(outretregs));
-        regm_t r = retregs & ~(cgstate.msavereg | regcon.cse.mval | regcon.params);
+        regm_t r = retregs & ~(cgstate.msavereg | cgstate.regcon.cse.mval | cgstate.regcon.params);
         if (!r)
         {
-            r = retregs & ~(cgstate.msavereg | regcon.cse.mval);
+            r = retregs & ~(cgstate.msavereg | cgstate.regcon.cse.mval);
             if (!r)
             {
-                r = retregs & ~(cgstate.msavereg | regcon.cse.mops);
+                r = retregs & ~(cgstate.msavereg | cgstate.regcon.cse.mops);
                 if (!r)
                 {   r = retregs & ~cgstate.msavereg;
                     if (!r)
@@ -1656,7 +1653,7 @@ L3:
                 r &= ~mBP;
 
             // If only one index register, prefer to not use LSW registers
-            if (!regcon.indexregs && r & ~mLSW)
+            if (!cgstate.regcon.indexregs && r & ~mLSW)
                 r &= ~mLSW;
 
             if (cgstate.pass == BackendPass.final_ && r & ~lastRetregs[0] && !I16)
@@ -1735,15 +1732,15 @@ L3:
             debug
             {
                 printf("%s\nallocreg: fil %s lin %d, regcon.mvar %s msavereg %s outretregs %s, reg %d, tym x%x\n",
-                    tym_str(tym),file,line,regm_str(regcon.mvar),regm_str(cgstate.msavereg),regm_str(outretregs),reg,tym);
+                    tym_str(tym),file,line,regm_str(cgstate.regcon.mvar),regm_str(cgstate.msavereg),regm_str(outretregs),reg,tym);
             }
             assert(0);
         }
-        if (retregs & regcon.mvar)              // if conflict with reg vars
+        if (retregs & cgstate.regcon.mvar)              // if conflict with reg vars
         {
             if (!(size > REGSIZE && outretregs == (mAX | mDX)))
             {
-                retregs = (outretregs &= ~(retregs & regcon.mvar));
+                retregs = (outretregs &= ~(retregs & cgstate.regcon.mvar));
                 goto L1;                // try other registers
             }
         }
@@ -1801,10 +1798,10 @@ void useregs(regm_t regm)
 {
     //printf("useregs(x%x) %s\n", regm, regm_str(regm));
     cgstate.mfuncreg &= ~regm;
-    regcon.used |= regm;                // registers used in this block
-    regcon.params &= ~regm;
-    if (regm & regcon.mpvar)            // if modified a fastpar register variable
-        regcon.params = 0;              // toss them all out
+    cgstate.regcon.used |= regm;                // registers used in this block
+    cgstate.regcon.params &= ~regm;
+    if (regm & cgstate.regcon.mpvar)            // if modified a fastpar register variable
+        cgstate.regcon.params = 0;              // toss them all out
 }
 
 /*************************
@@ -1816,11 +1813,11 @@ void useregs(regm_t regm)
 void getregs(ref CodeBuilder cdb, regm_t r)
 {
     //printf("getregs(x%x) %s\n", r, regm_str(r));
-    regm_t ms = r & regcon.cse.mops;           // mask of common subs we must save
+    regm_t ms = r & cgstate.regcon.cse.mops;           // mask of common subs we must save
     useregs(r);
-    regcon.cse.mval &= ~r;
+    cgstate.regcon.cse.mval &= ~r;
     cgstate.msavereg &= ~r;                     // regs that are destroyed
-    regcon.immed.mval &= ~r;
+    cgstate.regcon.immed.mval &= ~r;
     if (ms)
         cse_save(cdb, ms);
 }
@@ -1833,11 +1830,11 @@ void getregs(ref CodeBuilder cdb, regm_t r)
 void getregsNoSave(regm_t r)
 {
     //printf("getregsNoSave(x%x) %s\n", r, regm_str(r));
-    assert(!(r & regcon.cse.mops));            // mask of common subs we must save
+    assert(!(r & cgstate.regcon.cse.mops));            // mask of common subs we must save
     useregs(r);
-    regcon.cse.mval &= ~r;
+    cgstate.regcon.cse.mval &= ~r;
     cgstate.msavereg &= ~r;                     // regs that are destroyed
-    regcon.immed.mval &= ~r;
+    cgstate.regcon.immed.mval &= ~r;
 }
 
 /*****************************************
@@ -1847,15 +1844,15 @@ void getregsNoSave(regm_t r)
 @trusted
 private void cse_save(ref CodeBuilder cdb, regm_t ms)
 {
-    assert((ms & regcon.cse.mops) == ms);
-    regcon.cse.mops &= ~ms;
+    assert((ms & cgstate.regcon.cse.mops) == ms);
+    cgstate.regcon.cse.mops &= ~ms;
 
     /* Skip CSEs that are already saved */
     for (regm_t regm = 1; regm < mask(NUMREGS); regm <<= 1)
     {
         if (regm & ms)
         {
-            const e = regcon.cse.value[findreg(regm)];
+            const e = cgstate.regcon.cse.value[findreg(regm)];
             const sz = tysize(e.Ety);
             foreach (const ref cse; CSE.filter(e))
             {
@@ -1879,7 +1876,7 @@ private void cse_save(ref CodeBuilder cdb, regm_t ms)
     {
         auto cse = CSE.add();
         reg_t reg = findreg(ms);          /* the register to save         */
-        cse.e = regcon.cse.value[reg];
+        cse.e = cgstate.regcon.cse.value[reg];
         cse.regm = mask(reg);
 
         ms &= ~mask(reg);           /* turn off reg bit in ms       */
@@ -1903,9 +1900,9 @@ private void cse_save(ref CodeBuilder cdb, regm_t ms)
 @trusted
 void getregs_imm(ref CodeBuilder cdb, regm_t r)
 {
-    regm_t save = regcon.immed.mval;
+    regm_t save = cgstate.regcon.immed.mval;
     getregs(cdb,r);
-    regcon.immed.mval = save;
+    cgstate.regcon.immed.mval = save;
 }
 
 /******************************************
@@ -1918,7 +1915,7 @@ void getregs_imm(ref CodeBuilder cdb, regm_t r)
 void cse_flush(ref CodeBuilder cdb, int do87)
 {
     //dbg_printf("cse_flush()\n");
-    cse_save(cdb,regcon.cse.mops);      // save any CSEs to memory
+    cse_save(cdb,cgstate.regcon.cse.mops);      // save any CSEs to memory
     if (do87)
         save87(cdb);    // save any 8087 temporaries
 }
@@ -1964,15 +1961,15 @@ bool cssave(elem *e, regm_t regm, bool opsflag)
 
                     // If we don't need this CSE, and the register already
                     // holds a CSE that we do need, don't mark the new one
-                    if (regcon.cse.mval & mi && regcon.cse.value[i] != e &&
-                        !opsflag && regcon.cse.mops & mi)
+                    if (cgstate.regcon.cse.mval & mi && cgstate.regcon.cse.value[i] != e &&
+                        !opsflag && cgstate.regcon.cse.mops & mi)
                         continue;
 
-                    regcon.cse.mval |= mi;
+                    cgstate.regcon.cse.mval |= mi;
                     if (opsflag)
-                        regcon.cse.mops |= mi;
+                        cgstate.regcon.cse.mops |= mi;
                     //printf("cssave set: regcon.cse.value[%s] = %p\n",regstring[i],e);
-                    regcon.cse.value[i] = e;
+                    cgstate.regcon.cse.value[i] = e;
                     result = true;
                 }
             }
@@ -2007,7 +2004,7 @@ bool evalinregister(elem *e)
             sz <= REGSIZE)
         {
             // Do it only if at least 2 registers are available
-            regm_t m = cgstate.allregs & ~regcon.mvar;
+            regm_t m = cgstate.allregs & ~cgstate.regcon.mvar;
             if (sz == 1)
                 m &= BYTEREGS;
             if (m & (m - 1))        // if more than one register
@@ -2027,10 +2024,10 @@ bool evalinregister(elem *e)
     /* it's in a register already, the computation should be done   */
     /* using that register.                                         */
     regm_t emask = 0;
-    for (uint i = 0; i < regcon.cse.value.length; i++)
-        if (regcon.cse.value[i] == e)
+    for (uint i = 0; i < cgstate.regcon.cse.value.length; i++)
+        if (cgstate.regcon.cse.value[i] == e)
             emask |= mask(i);
-    emask &= regcon.cse.mval;       // mask of available CSEs
+    emask &= cgstate.regcon.cse.mval;       // mask of available CSEs
     if (sz <= REGSIZE)
         return emask != 0;      /* the CSE is in a register     */
     else if (sz <= 2 * REGSIZE)
@@ -2048,8 +2045,8 @@ regm_t getscratch()
     regm_t scratch = 0;
     if (cgstate.pass == BackendPass.final_)
     {
-        scratch = cgstate.allregs & ~(regcon.mvar | regcon.mpvar | regcon.cse.mval |
-                  regcon.immed.mval | regcon.params | cgstate.mfuncreg);
+        scratch = cgstate.allregs & ~(cgstate.regcon.mvar | cgstate.regcon.mpvar | cgstate.regcon.cse.mval |
+                  cgstate.regcon.immed.mval | cgstate.regcon.params | cgstate.mfuncreg);
     }
     return scratch;
 }
@@ -2092,13 +2089,13 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
      * have the right contents.
      */
     emask = 0;
-    for (uint i = 0; i < regcon.cse.value.length; i++)
+    for (uint i = 0; i < cgstate.regcon.cse.value.length; i++)
     {
-        //dbg_printf("regcon.cse.value[%d] = %p\n",i,regcon.cse.value[i]);
-        if (regcon.cse.value[i] == e)   // if contents are right
+        //dbg_printf("regcon.cse.value[%d] = %p\n",i,cgstate.regcon.cse.value[i]);
+        if (cgstate.regcon.cse.value[i] == e)   // if contents are right
                 emask |= mask(i);       // turn on bit for reg
     }
-    emask &= regcon.cse.mval;                     // make sure all bits are valid
+    emask &= cgstate.regcon.cse.mval;                     // make sure all bits are valid
 
     if (emask & XMMREGS && pretregs == mPSW)
         { }
@@ -2125,11 +2122,11 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
 
     debug if (debugw)
     {
-        printf("comsub(e=%p): pretregs=%s, emask=%s, csemask=%s, regcon.cse.mval=%s, regcon.mvar=%s\n",
+        printf("comsub(e=%p): pretregs=%s, emask=%s, csemask=%s, cgstate.regcon.cse.mval=%s, cgstate.regcon.mvar=%s\n",
                 e,regm_str(pretregs),regm_str(emask),regm_str(csemask),
-                regm_str(regcon.cse.mval),regm_str(regcon.mvar));
-        if (regcon.cse.mval & 1)
-            elem_print(regcon.cse.value[0]);
+                regm_str(cgstate.regcon.cse.mval),regm_str(cgstate.regcon.mvar));
+        if (cgstate.regcon.cse.mval & 1)
+            elem_print(cgstate.regcon.cse.value[0]);
     }
 
     tym = tybasic(e.Ety);
@@ -2145,7 +2142,7 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
             regm = emask;               /* try any other register       */
         if (regm)                       /* if it's in a register        */
         {
-            if (!OTleaf(e.Eoper) || !(regm & regcon.mvar) || (pretregs & regcon.mvar) == pretregs)
+            if (!OTleaf(e.Eoper) || !(regm & cgstate.regcon.mvar) || (pretregs & cgstate.regcon.mvar) == pretregs)
             {
                 regm = mask(findreg(regm));
                 fixresult(cdb,e,regm,pretregs);
@@ -2186,8 +2183,8 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
                         retregs = XMMREGS;
                         reg = allocreg(cdb,retregs,tym);
                         gen_loadcse(cdb, cse.e.Ety, reg, cse.slot);
-                        regcon.cse.mval |= mask(reg); // cs is in a reg
-                        regcon.cse.value[reg] = e;
+                        cgstate.regcon.cse.mval |= mask(reg); // cs is in a reg
+                        cgstate.regcon.cse.value[reg] = e;
                         fixresult(cdb,e,retregs,pretregs);
                     }
                     else
@@ -2204,8 +2201,8 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
                     reg = allocreg(cdb,retregs,tym);
                     gen_loadcse(cdb, cse.e.Ety, reg, cse.slot);
                 L10:
-                    regcon.cse.mval |= mask(reg); // cs is in a reg
-                    regcon.cse.value[reg] = e;
+                    cgstate.regcon.cse.mval |= mask(reg); // cs is in a reg
+                    cgstate.regcon.cse.value[reg] = e;
                     fixresult(cdb,e,retregs,pretregs);
                 }
             }
@@ -2347,8 +2344,8 @@ private void loadcse(ref CodeBuilder cdb,elem *e,reg_t reg,regm_t regm)
         {
             reflocal = true;
             cse.flags |= CSEload;    /* it was loaded        */
-            regcon.cse.value[reg] = e;
-            regcon.cse.mval |= mask(reg);
+            cgstate.regcon.cse.value[reg] = e;
+            cgstate.regcon.cse.mval |= mask(reg);
             getregs(cdb,mask(reg));
             gen_loadcse(cdb, cse.e.Ety, reg, cse.slot);
             return;
@@ -2585,28 +2582,28 @@ void codelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint constflag)
     debug if (debugw)
     {
         printf("+codelem(e=%p,*pretregs=%s) %s ",e,regm_str(*pretregs),oper_str(e.Eoper));
-        printf("msavereg=%s regcon.cse.mval=%s regcon.cse.mops=%s\n",
-                regm_str(cgstate.msavereg),regm_str(regcon.cse.mval),regm_str(regcon.cse.mops));
+        printf("msavereg=%s cgstate.regcon.cse.mval=%s regcon.cse.mops=%s\n",
+                regm_str(cgstate.msavereg),regm_str(cgstate.regcon.cse.mval),regm_str(cgstate.regcon.cse.mops));
         printf("Ecount = %d, Ecomsub = %d\n", e.Ecount, e.Ecomsub);
     }
 
     assert(e);
     elem_debug(e);
-    if ((regcon.cse.mops & regcon.cse.mval) != regcon.cse.mops)
+    if ((cgstate.regcon.cse.mops & cgstate.regcon.cse.mval) != cgstate.regcon.cse.mops)
     {
         debug
         {
             printf("+codelem(e=%p,*pretregs=%s) ", e, regm_str(*pretregs));
             elem_print(e);
-            printf("msavereg=%s regcon.cse.mval=%s regcon.cse.mops=%s\n",
-                    regm_str(cgstate.msavereg),regm_str(regcon.cse.mval),regm_str(regcon.cse.mops));
+            printf("msavereg=%s cgstate.regcon.cse.mval=%s regcon.cse.mops=%s\n",
+                    regm_str(cgstate.msavereg),regm_str(cgstate.regcon.cse.mval),regm_str(cgstate.regcon.cse.mops));
             printf("Ecount = %d, Ecomsub = %d\n", e.Ecount, e.Ecomsub);
         }
         assert(0);
     }
 
-    if (!(constflag & 1) && *pretregs & (mES | ALLREGS | mBP | XMMREGS) & ~regcon.mvar)
-        *pretregs &= ~regcon.mvar;                      /* can't use register vars */
+    if (!(constflag & 1) && *pretregs & (mES | ALLREGS | mBP | XMMREGS) & ~cgstate.regcon.mvar)
+        *pretregs &= ~cgstate.regcon.mvar;                      /* can't use register vars */
 
     uint op = e.Eoper;
     if (e.Ecount && e.Ecount != e.Ecomsub)     // if common subexp
@@ -2723,8 +2720,8 @@ L1:
     debug if (debugw)
     {
         printf("-codelem(e=%p,*pretregs=%s) %s ",e,regm_str(*pretregs), oper_str(op));
-        printf("msavereg=%s regcon.cse.mval=%s regcon.cse.mops=%s\n",
-                regm_str(cgstate.msavereg),regm_str(regcon.cse.mval),regm_str(regcon.cse.mops));
+        printf("msavereg=%s cgstate.regcon.cse.mval=%s regcon.cse.mops=%s\n",
+                regm_str(cgstate.msavereg),regm_str(cgstate.regcon.cse.mval),regm_str(cgstate.regcon.cse.mops));
     }
 }
 
@@ -2773,10 +2770,10 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
     }
     regm_t overlap = cgstate.msavereg & keepmsk;
     cgstate.msavereg |= keepmsk;          /* add to mask of regs to save          */
-    regm_t oldregcon = regcon.cse.mval;
-    regm_t oldregimmed = regcon.immed.mval;
+    regm_t oldregcon = cgstate.regcon.cse.mval;
+    regm_t oldregimmed = cgstate.regcon.immed.mval;
     regm_t oldmfuncreg = cgstate.mfuncreg;       // remember old one
-    cgstate.mfuncreg = (XMMREGS | mBP | mES | ALLREGS) & ~regcon.mvar;
+    cgstate.mfuncreg = (XMMREGS | mBP | mES | ALLREGS) & ~cgstate.regcon.mvar;
     uint stackpushsave = cgstate.stackpush;
     char calledafuncsave = calledafunc;
     calledafunc = 0;
@@ -2793,11 +2790,11 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
 
     /* Assert that no new CSEs are generated that are not reflected       */
     /* in mfuncreg.                                                       */
-    debug if ((cgstate.mfuncreg & (regcon.cse.mval & ~oldregcon)) != 0)
-        printf("mfuncreg %s, regcon.cse.mval %s, oldregcon %s, regcon.mvar %s\n",
-                regm_str(cgstate.mfuncreg),regm_str(regcon.cse.mval),regm_str(oldregcon),regm_str(regcon.mvar));
+    debug if ((cgstate.mfuncreg & (cgstate.regcon.cse.mval & ~oldregcon)) != 0)
+        printf("mfuncreg %s, cgstate.regcon.cse.mval %s, oldregcon %s, regcon.mvar %s\n",
+                regm_str(cgstate.mfuncreg),regm_str(cgstate.regcon.cse.mval),regm_str(oldregcon),regm_str(cgstate.regcon.mvar));
 
-    assert((cgstate.mfuncreg & (regcon.cse.mval & ~oldregcon)) == 0);
+    assert((cgstate.mfuncreg & (cgstate.regcon.cse.mval & ~oldregcon)) == 0);
 
     /* https://issues.dlang.org/show_bug.cgi?id=3521
      * The problem is:
@@ -2806,11 +2803,11 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
      * must change it.
      * The only solution is to make this variable not a register.
      */
-    if (regcon.mvar & tosave)
+    if (cgstate.regcon.mvar & tosave)
     {
         //elem_print(e);
-        //printf("test1: regcon.mvar %s tosave %s\n", regm_str(regcon.mvar), regm_str(tosave));
-        cgreg_unregister(regcon.mvar & tosave);
+        //printf("test1: cgstate.regcon.mvar %s tosave %s\n", regm_str(cgstate.regcon.mvar), regm_str(tosave));
+        cgreg_unregister(cgstate.regcon.mvar & tosave);
     }
 
     /* which registers can we use to save other registers in? */
@@ -2819,7 +2816,7 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
         touse = 0;                              // PUSH/POP pairs are always shorter
     else
     {
-        touse = cgstate.mfuncreg & cgstate.allregs & ~(cgstate.msavereg | oldregcon | regcon.cse.mval);
+        touse = cgstate.mfuncreg & cgstate.allregs & ~(cgstate.msavereg | oldregcon | cgstate.regcon.cse.mval);
         /* Don't use registers we'll have to save/restore               */
         touse &= ~(fregsaved & oldmfuncreg);
         /* Don't use registers that have constant values in them, since
@@ -2852,7 +2849,7 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
                         cs2 = cat(genmovreg(i,j),cs2);
                         touse &= ~mj;
                         cgstate.mfuncreg &= ~mj;
-                        regcon.used |= mj;
+                        cgstate.regcon.used |= mj;
                         break;
                     }
                 }
@@ -2883,11 +2880,11 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
         int sz = -(adjesp & (STACKALIGN - 1)) & (STACKALIGN - 1);
         if (calledafunc && !I16 && sz && (STACKALIGN >= 16 || config.flags4 & CFG4stackalign))
         {
-            regm_t mval_save = regcon.immed.mval;
-            regcon.immed.mval = 0;      // prevent reghasvalue() optimizations
+            regm_t mval_save = cgstate.regcon.immed.mval;
+            cgstate.regcon.immed.mval = 0;      // prevent reghasvalue() optimizations
                                         // because c hasn't been executed yet
             cod3_stackadj(cdbs1, sz);
-            regcon.immed.mval = mval_save;
+            cgstate.regcon.immed.mval = mval_save;
             cdbs1.genadjesp(sz);
 
             cod3_stackadj(cdbs2, -sz);
@@ -2999,9 +2996,9 @@ void docommas(ref CodeBuilder cdb, ref elem *pe)
 }
 
 /**************************
- * For elems in regcon that don't match regconsave,
- * clear the corresponding bit in regcon.cse.mval.
- * Do same for regcon.immed.
+ * For elems in cgstate.regcon that don't match regconsave,
+ * clear the corresponding bit in cgstate.regcon.cse.mval.
+ * Do same for cgstate.regcon.immed.
  */
 
 @trusted
@@ -3010,20 +3007,20 @@ void andregcon(ref con_t pregconsave)
     regm_t m = ~1;
     foreach (i; 0 ..REGMAX)
     {
-        if (pregconsave.cse.value[i] != regcon.cse.value[i])
-            regcon.cse.mval &= m;
-        if (pregconsave.immed.value[i] != regcon.immed.value[i])
-            regcon.immed.mval &= m;
+        if (pregconsave.cse.value[i] != cgstate.regcon.cse.value[i])
+            cgstate.regcon.cse.mval &= m;
+        if (pregconsave.immed.value[i] != cgstate.regcon.immed.value[i])
+            cgstate.regcon.immed.mval &= m;
         m <<= 1;
         m |= 1;
     }
-    //printf("regcon.cse.mval = %s, regconsave.mval = %s ",regm_str(regcon.cse.mval),regm_str(pregconsave.cse.mval));
-    regcon.used |= pregconsave.used;
-    regcon.cse.mval &= pregconsave.cse.mval;
-    regcon.immed.mval &= pregconsave.immed.mval;
-    regcon.params &= pregconsave.params;
-    //printf("regcon.cse.mval&regcon.cse.mops = %s, regcon.cse.mops = %s\n",regm_str(regcon.cse.mval & regcon.cse.mops), regm_str(regcon.cse.mops));
-    regcon.cse.mops &= regcon.cse.mval;
+    //printf("regcon.cse.mval = %s, cgstate.regconsave.mval = %s ",regm_str(regcon.cse.mval),regm_str(pregconsave.cse.mval));
+    cgstate.regcon.used |= pregconsave.used;
+    cgstate.regcon.cse.mval &= pregconsave.cse.mval;
+    cgstate.regcon.immed.mval &= pregconsave.immed.mval;
+    cgstate.regcon.params &= pregconsave.params;
+    //printf("regcon.cse.mval&regcon.cse.mops = %s, cgstate.regcon.cse.mops = %s\n",regm_str(cgstate.regcon.cse.mval & cgstate.regcon.cse.mops), regm_str(cgstate.regcon.cse.mops));
+    cgstate.regcon.cse.mops &= cgstate.regcon.cse.mval;
 }
 
 

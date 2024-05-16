@@ -790,7 +790,7 @@ private code *callFinallyBlock(block *bf, regm_t retregs)
         }
     }
     cdbs.genc(0xE8,0,0,0,FLblock,cast(targ_size_t)bf);
-    regcon.immed.mval = 0;
+    cgstate.regcon.immed.mval = 0;
     if (nalign)
         cod3_stackadj(cdbs, -nalign);
     cdbs.append(cdbr);
@@ -1083,7 +1083,7 @@ static if (NTEXCEPTIONS)
             if (reg1 != NOREG)
                 retregs = (mask(lreg) | mask(mreg)) & ~mask(NOREG);
 
-            // For the final load into the return regs, don't set regcon.used,
+            // For the final load into the return regs, don't set cgstate.regcon.used,
             // so that the optimizer can potentially use retregs for register
             // variable assignments.
 
@@ -1091,15 +1091,15 @@ static if (NTEXCEPTIONS)
             {   regm_t usedsave;
 
                 docommas(cdb,e);
-                usedsave = regcon.used;
+                usedsave = cgstate.regcon.used;
                 if (!OTleaf(e.Eoper))
                     gencodelem(cdb,e,&retregs,true);
                 else
                 {
                     if (e.Eoper == OPconst)
-                        regcon.mvar = 0;
+                        cgstate.regcon.mvar = 0;
                     gencodelem(cdb,e,&retregs,true);
-                    regcon.used = usedsave;
+                    cgstate.regcon.used = usedsave;
                     if (e.Eoper == OPvar)
                     {   Symbol *s = e.Vsym;
 
@@ -1207,7 +1207,7 @@ static if (NTEXCEPTIONS)
                             gensaverestore(retregs,cdbs,cdbr);
                             cdb.append(cdbs);
                             cdb.genc(0xE8,0,0,0,FLblock,cast(targ_size_t)bf.nthSucc(0));
-                            regcon.immed.mval = 0;
+                            cgstate.regcon.immed.mval = 0;
                             cdb.append(cdbr);
                         }
                         else
@@ -1732,7 +1732,7 @@ void doswitch(ref CodeBuilder cdb, block *b)
             reg2 = findregmsw(retregs);
         if (modify)
         {
-            assert(!(retregs & regcon.mvar));
+            assert(!(retregs & cgstate.regcon.mvar));
             getregs(cdb,retregs);
         }
         if (vmin)                       // if there is a minimum
@@ -2951,8 +2951,8 @@ void movregconst(ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags)
 
     //printf("movregconst(reg=%s, value= %lld (%llx), flags=%x)\n", regm_str(mask(reg)), value, value, flags);
 
-    regm_t regm = regcon.immed.mval & mask(reg);
-    targ_size_t regv = regcon.immed.value[reg];
+    regm_t regm = cgstate.regcon.immed.mval & mask(reg);
+    targ_size_t regv = cgstate.regcon.immed.value[reg];
 
     if (flags & 1)      // 8 bits
     {
@@ -2964,8 +2964,8 @@ void movregconst(ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags)
             goto L2;
 
         if (flags & 16 && reg & 4 &&    // if an H byte register
-            regcon.immed.mval & mask(reg & 3) &&
-            (((regv = regcon.immed.value[reg & 3]) >> 8) & 0xFF) == value)
+            cgstate.regcon.immed.mval & mask(reg & 3) &&
+            (((regv = cgstate.regcon.immed.value[reg & 3]) >> 8) & 0xFF) == value)
             goto L2;
 
         /* Avoid byte register loads to avoid dependency stalls.
@@ -2976,11 +2976,11 @@ void movregconst(ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags)
 
         // See if another register has the right value
         r = 0;
-        for (mreg = (regcon.immed.mval & BYTEREGS); mreg; mreg >>= 1)
+        for (mreg = (cgstate.regcon.immed.mval & BYTEREGS); mreg; mreg >>= 1)
         {
             if (mreg & 1)
             {
-                if ((regcon.immed.value[r] & 0xFF) == value)
+                if ((cgstate.regcon.immed.value[r] & 0xFF) == value)
                 {
                     genregs(cdb,0x8A,reg,r);          // MOV regL,rL
                     if (I64 && reg >= 4 || r >= 4)
@@ -2988,7 +2988,7 @@ void movregconst(ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags)
                     goto L2;
                 }
                 if (!(I64 && reg >= 4) &&
-                    r < 4 && ((regcon.immed.value[r] >> 8) & 0xFF) == value)
+                    r < 4 && ((cgstate.regcon.immed.value[r] >> 8) & 0xFF) == value)
                 {
                     genregs(cdb,0x8A,reg,r | 4);      // MOV regL,rH
                     goto L2;
@@ -3003,7 +3003,7 @@ void movregconst(ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags)
                 !(flags & 16 && reg & 4))       // and reg is not an H register
             {
                 genregs(cdb,0x31,reg,reg);      // XOR reg,reg
-                regimmed_set(reg,value);
+                cgstate.regimmed_set(reg,value);
                 regv = 0;
             }
             else
@@ -3024,10 +3024,10 @@ void movregconst(ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags)
 
         if (regm)
             // Set just the 'L' part of the register value
-            regimmed_set(reg,(regv & ~cast(targ_size_t)0xFF) | value);
-        else if (flags & 16 && reg & 4 && regcon.immed.mval & mask(reg & 3))
+            cgstate.regimmed_set(reg,(regv & ~cast(targ_size_t)0xFF) | value);
+        else if (flags & 16 && reg & 4 && cgstate.regcon.immed.mval & mask(reg & 3))
             // Set just the 'H' part of the register value
-            regimmed_set((reg & 3),(regv & ~cast(targ_size_t)0xFF00) | (value << 8));
+            cgstate.regimmed_set((reg & 3),(regv & ~cast(targ_size_t)0xFF00) | (value << 8));
         return;
     }
 L3:
@@ -3042,7 +3042,7 @@ L3:
         if (value && !(flags & mPSW))
         {
             cdb.genc2(0xC7,modregrmx(3,0,reg),value); // MOV reg,value
-            regimmed_set(reg, value);
+            cgstate.regimmed_set(reg, value);
             return;
         }
     }
@@ -3103,7 +3103,7 @@ L3:
         else
         {
             // Look for single byte conversion
-            if (regcon.immed.mval & mAX)
+            if (cgstate.regcon.immed.mval & mAX)
             {
                 if (I32)
                 {
@@ -3113,7 +3113,7 @@ L3:
                         goto done;
                     }
                     if (reg == DX &&
-                        value == (regcon.immed.value[AX] & 0x80000000 ? 0xFFFFFFFF : 0) &&
+                        value == (cgstate.regcon.immed.value[AX] & 0x80000000 ? 0xFFFFFFFF : 0) &&
                         !(config.flags4 & CFG4speed && config.target_cpu >= TARGET_Pentium)
                        )
                     {
@@ -3131,7 +3131,7 @@ L3:
                     }
 
                     if (reg == DX &&
-                        cast(targ_short) value == (regcon.immed.value[AX] & 0x8000 ? cast(targ_short) 0xFFFF : cast(targ_short) 0) &&
+                        cast(targ_short) value == (cgstate.regcon.immed.value[AX] & 0x8000 ? cast(targ_short) 0xFFFF : cast(targ_short) 0) &&
                         !(config.flags4 & CFG4speed && config.target_cpu >= TARGET_Pentium)
                        )
                     {
@@ -3166,12 +3166,12 @@ L3:
 
             // See if another register has the right value
             r = 0;
-            for (mreg = regcon.immed.mval; mreg; mreg >>= 1)
+            for (mreg = cgstate.regcon.immed.mval; mreg; mreg >>= 1)
             {
                 debug
-                assert(!I16 || regcon.immed.value[r] == cast(targ_short)regcon.immed.value[r]);
+                assert(!I16 || cgstate.regcon.immed.value[r] == cast(targ_short)cgstate.regcon.immed.value[r]);
 
-                if (mreg & 1 && regcon.immed.value[r] == value)
+                if (mreg & 1 && cgstate.regcon.immed.value[r] == value)
                 {
                     genmovreg(cdb,reg,r);
                     goto done;
@@ -3212,7 +3212,7 @@ L3:
             }
         }
     done:
-        regimmed_set(reg,value);
+        cgstate.regimmed_set(reg,value);
     }
 }
 
@@ -3519,7 +3519,7 @@ void prolog_frameadj(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool enter
             {   cdb.gen1(0x48 + DX);                  // DEC EDX
                 cdb.genc2(JNE,0,cast(targ_uns)-12);
             }
-            regimmed_set(reg,0);             // reg is now 0
+            cgstate.regimmed_set(reg,0);             // reg is now 0
             cod3_stackadj(cdb, xlocalsize & 0xFFF);
             useregs(mask(reg));
         }
