@@ -57,8 +57,6 @@ import dmd.backend.dwarfdbginf : dwarf_except_gentables;
 
 __gshared
 {
-int EBPtoESP;                   // add to EBP offset to get ESP offset
-
 REGSAVE regsave;
 
 CGstate cgstate;                // state of code generator
@@ -602,9 +600,9 @@ void prolog(ref CodeBuilder cdb)
     debug debugw && printf("funcstart()\n");
     cgstate.regcon.immed.mval = 0;                      /* no values in registers yet   */
     version (FRAMEPTR)
-        EBPtoESP = 0;
+        cgstate.EBPtoESP = 0;
     else
-        EBPtoESP = -REGSIZE;
+        cgstate.EBPtoESP = -REGSIZE;
     cgstate.hasframe = false;
     bool pushds = false;
     cgstate.BPoff = 0;
@@ -687,7 +685,7 @@ Lagain:
             bool frame = needframe || tyf & mTYnaked;
             cgstate.Para.size = ((farfunc ? 2 : 1) + frame) * REGSIZE;
             if (frame)
-                EBPtoESP = -REGSIZE;
+                cgstate.EBPtoESP = -REGSIZE;
         }
         else
             cgstate.Para.size = ((farfunc ? 2 : 1) + 1) * REGSIZE;
@@ -944,9 +942,9 @@ else
     }
     else
         assert((localsize | cgstate.Alloca.size) == 0 || (usednteh & NTEHjmonitor));
-    EBPtoESP += xlocalsize;
+    cgstate.EBPtoESP += xlocalsize;
     if (cgstate.hasframe)
-        EBPtoESP += REGSIZE;
+        cgstate.EBPtoESP += REGSIZE;
 
     /* Win64 unwind needs the amount of code generated so far
      */
@@ -967,7 +965,7 @@ else
                 break;
         }
         nteh_monitor_prolog(cdbx,sthis);
-        EBPtoESP += 3 * 4;
+        cgstate.EBPtoESP += 3 * 4;
     }
 
     cdb.append(cdbx);

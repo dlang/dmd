@@ -163,6 +163,8 @@ struct CGstate
     int stackclean;             // if != 0, then clean the stack after function call
 
     int BPoff;                  // offset from BP
+    int EBPtoESP;               // add to EBP offset to get ESP offset
+
 
     targ_size_t spoff;
     targ_size_t Foff;           // BP offset of floating register
