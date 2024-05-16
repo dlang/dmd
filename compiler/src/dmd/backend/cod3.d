@@ -1237,7 +1237,8 @@ static if (NTEXCEPTIONS)
             assert(!e);
             // Mark destroyed registers
             CodeBuilder cdbx; cdbx.ctor();
-            getregs(cdbx,iasm_regs(bl));         // mark destroyed registers
+            cgstate.refparam |= bl.bIasmrefparam;
+            getregs(cdbx, iasm_regs(bl));         // mark destroyed registers
             code *c = cdbx.finish();
             if (bl.Bsucc)
             {   nextb = bl.nthSucc(0);
@@ -4246,7 +4247,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
 
         if (!((s.Sclass == SC.regpar || s.Sclass == SC.parameter) &&
             s.Sfl == FLreg &&
-            (refparam
+            (cgstate.refparam
                 // This variable has been reference by a nested function
                 || MARS && s.Stype.Tty & mTYvolatile
                 )))

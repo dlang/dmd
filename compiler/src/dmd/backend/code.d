@@ -194,6 +194,7 @@ struct CGstate
                                 // as if they were 'pushed' on the stack.
                                 // Special case: if funcargtos==~0, then no
                                 // arguments are there.
+    int refparam;               // !=0 if we referenced any parameters
     bool accessedTLS;           // set if accessed Thread Local Storage (TLS)
     bool calledFinally;         // true if called a BC_finally block
 
@@ -369,6 +370,5 @@ regm_t iasm_regs(block *bp)
     debug (debuga)
         printf("Block iasm regs = 0x%X\n", bp.usIasmregs);
 
-    refparam |= bp.bIasmrefparam;
     return bp.usIasmregs;
 }
