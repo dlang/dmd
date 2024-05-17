@@ -54,7 +54,7 @@ else
     tym = tybasic(tyf);
 
     if (!(config.flags4 & CFG4optimized) ||
-        anyiasm ||
+        cgstate.anyiasm ||
         cgstate.Alloca.size ||
         cgstate.usednteh ||
         cgstate.calledFinally ||

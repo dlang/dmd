@@ -1381,7 +1381,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                  */
                 if (cgstate.regcon.params & pregm /*&& s.Spreg2 == NOREG && !(pregm & XMMREGS)*/)
                 {
-                    if (keepmsk & RMload && !anyiasm)
+                    if (keepmsk & RMload && !cgstate.anyiasm)
                     {
                         auto voffset = e.Voffset;
                         if (sz <= REGSIZE)
@@ -3397,7 +3397,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         cgstate.stackpush == 0 &&               // cgstate.funcarg needs to be at top of stack
         (cgstate.funcargtos == ~0 || numpara < cgstate.funcargtos) &&
         (!(typfunc(tyf) || tyf == TYhfunc) || sf && sf.Sflags & SFLexit) &&
-        !anyiasm && !I16
+        !cgstate.anyiasm && !I16
        )
     {
         for (int i = 0; i < np; i++)
@@ -5405,7 +5405,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
         // See if we can use register that parameter was passed in
         if (cgstate.regcon.params &&
             regParamInPreg(e.Vsym) &&
-            !anyiasm &&   // may have written to the memory for the parameter
+            !cgstate.anyiasm &&   // may have written to the memory for the parameter
             (cgstate.regcon.params & mask(e.Vsym.Spreg) && e.Voffset == 0 ||
              cgstate.regcon.params & mask(e.Vsym.Spreg2) && e.Voffset == REGSIZE) &&
             sz <= REGSIZE)                  // make sure no 'paint' to a larger size happened
