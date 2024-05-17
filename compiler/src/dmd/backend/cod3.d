@@ -227,7 +227,7 @@ void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, out uint 
         if (I64)
             code_orrex(cdb.last(), REX_W);
     }
-    reflocal = true;
+    cgstate.reflocal = true;
     if (regsave.idx > regsave.top)
         regsave.top = regsave.idx;              // keep high water mark
 }
