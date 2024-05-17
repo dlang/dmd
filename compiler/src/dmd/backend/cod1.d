@@ -368,10 +368,10 @@ uint gensaverestore(regm_t regm,ref CodeBuilder cdbsave,ref CodeBuilder cdbresto
             }
             else if (i >= XMM0 || I64 || cgstate.funcarg.size)
             {   uint idx;
-                regsave.save(cdbsave, i, &idx);
+                cgstate.regsave.save(cdbsave, i, &idx);
                 CodeBuilder cdb;
                 cdb.ctor();
-                regsave.restore(cdb, i, idx);
+                cgstate.regsave.restore(cdb, i, idx);
                 cs2 = cdb.finish();
             }
             else
@@ -3496,8 +3496,8 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
                 if (mi & tosave)
                 {
                     uint idx;
-                    regsave.save(cdbsave, j, &idx);
-                    regsave.restore(cdbrestore, j, idx);
+                    cgstate.regsave.save(cdbsave, j, &idx);
+                    cgstate.regsave.restore(cdbrestore, j, idx);
                     saved |= mi;
                     keepmsk &= ~mi;             // don't need to keep these for rest of params
                     tosave &= ~mi;
@@ -3564,8 +3564,8 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
                         if (mi & tosave)
                         {
                             uint idx;
-                            regsave.save(cdbsave, j, &idx);
-                            regsave.restore(cdbrestore, j, idx);
+                            cgstate.regsave.save(cdbsave, j, &idx);
+                            cgstate.regsave.restore(cdbrestore, j, idx);
                             saved |= mi;
                             keepmsk &= ~mi;             // don't need to keep these for rest of params
                             tosave &= ~mi;

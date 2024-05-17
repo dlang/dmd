@@ -164,7 +164,7 @@ struct CGstate
 
     int BPoff;                  // offset from BP
     int EBPtoESP;               // add to EBP offset to get ESP offset
-
+    REGSAVE regsave;
 
     targ_size_t spoff;
     targ_size_t Foff;           // BP offset of floating register
