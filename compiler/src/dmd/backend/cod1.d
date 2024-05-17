@@ -2874,7 +2874,7 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, regm_t* pretregs, regm_t 
         cdb.gencs(LARGECODE ? 0x9A : 0xE8,0,FLfunc,s);  // CALL s
         if (nalign)
             cod3_stackadj(cdb, -nalign);
-        calledafunc = 1;
+        cgstate.calledafunc = 1;
     }
     if (I16)
         cgstate.stackpush -= cinfo.pop;
@@ -3775,7 +3775,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
     //printf("funccall(e = %p, *pretregs = %s, numpara = %d, numalign = %d, usefuncarg=%d)\n",e,regm_str(*pretregs),numpara,numalign,usefuncarg);
     //printf("  from %s\n", funcsym_p.Sident.ptr);
     //elem_print(e);
-    calledafunc = 1;
+    cgstate.calledafunc = 1;
     // Determine if we need frame for function prolog/epilog
 
     if (config.memmodel == Vmodel)

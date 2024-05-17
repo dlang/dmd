@@ -56,18 +56,13 @@ enum MARS = true;
 
 import dmd.backend.dwarfdbginf : dwarf_except_gentables;
 
-__gshared
-{
-CGstate cgstate;                // state of code generator
+__gshared CGstate cgstate;     // state of code generator
 
 regm_t ALLREGS()  { return I64 ? mAX|mBX|mCX|mDX|mSI|mDI| mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15
                                : ALLREGS_INIT; }
 
 regm_t BYTEREGS() { return I64 ? ALLREGS
                                : BYTEREGS_INIT; }
-
-char calledafunc;       // !=0 if we called a function
-}
 
 /*********************************
  * Main entry point for generating code for a function.
@@ -122,7 +117,7 @@ void codgen(Symbol *sfunc)
         cgstate.stackchanged = 0;
         cgstate.stackpush = 0;
         cgstate.refparam = 0;
-        calledafunc = 0;
+        cgstate.calledafunc = 0;
         cgstate.retsym = null;
 
         cgstate.stackclean = 1;
@@ -794,7 +789,7 @@ else
      * Can expand on this by allowing for locals that don't need extra alignment
      * and calling functions that don't need it.
      */
-    if (cgstate.pushoff == 0 && !calledafunc && config.fpxmmregs && (I32 || I64))
+    if (cgstate.pushoff == 0 && !cgstate.calledafunc && config.fpxmmregs && (I32 || I64))
     {
         cgstate.funcarg.alignment = I64 ? 8 : 4;
     }
@@ -809,7 +804,7 @@ else
     assert(cast(targ_ptrdiff_t)localsize >= 0);
 
     // Keep the stack aligned by 8 for any subsequent function calls
-    if (!I16 && calledafunc &&
+    if (!I16 && cgstate.calledafunc &&
         (STACKALIGN >= 16 || config.flags4 & CFG4stackalign))
     {
         int npush = popcnt(topush);            // number of registers that need saving
@@ -2765,8 +2760,8 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
     regm_t oldmfuncreg = cgstate.mfuncreg;       // remember old one
     cgstate.mfuncreg = (XMMREGS | mBP | mES | ALLREGS) & ~cgstate.regcon.mvar;
     uint stackpushsave = cgstate.stackpush;
-    char calledafuncsave = calledafunc;
-    calledafunc = 0;
+    char calledafuncsave = cgstate.calledafunc;
+    cgstate.calledafunc = 0;
     CodeBuilder cdbx; cdbx.ctor();
     codelem(cdbx,e,pretregs,constflag);    // generate code for the elem
 
@@ -2868,7 +2863,7 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
         // We should *only* worry about this if a function
         // was called in the code generation by codelem().
         int sz = -(adjesp & (STACKALIGN - 1)) & (STACKALIGN - 1);
-        if (calledafunc && !I16 && sz && (STACKALIGN >= 16 || config.flags4 & CFG4stackalign))
+        if (cgstate.calledafunc && !I16 && sz && (STACKALIGN >= 16 || config.flags4 & CFG4stackalign))
         {
             regm_t mval_save = cgstate.regcon.immed.mval;
             cgstate.regcon.immed.mval = 0;      // prevent reghasvalue() optimizations
@@ -2889,7 +2884,7 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
     else
         cdbs2.append(cs2);
 
-    calledafunc |= calledafuncsave;
+    cgstate.calledafunc |= calledafuncsave;
     cgstate.msavereg &= ~keepmsk | overlap; /* remove from mask of regs to save   */
     cgstate.mfuncreg &= oldmfuncreg;        /* update original                    */
 
