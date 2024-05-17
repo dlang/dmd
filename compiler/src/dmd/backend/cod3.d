@@ -5397,7 +5397,7 @@ void assignaddrc(code *c)
 
             case FLregsave:
                 sn = c.IEV1.Vuns;
-                c.IEV1.Vpointer = sn + regsave.off + cgstate.BPoff;
+                c.IEV1.Vpointer = sn + cgstate.regsave.off + cgstate.BPoff;
                 c.Iflags |= CFunambig;
                 goto L2;
 

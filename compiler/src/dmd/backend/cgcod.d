@@ -58,8 +58,6 @@ import dmd.backend.dwarfdbginf : dwarf_except_gentables;
 
 __gshared
 {
-REGSAVE regsave;
-
 CGstate cgstate;                // state of code generator
 
 regm_t ALLREGS()  { return I64 ? mAX|mBX|mCX|mDX|mSI|mDI| mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15
@@ -138,7 +136,7 @@ void codgen(Symbol *sfunc)
         cgstate.accessedTLS = false;
         STACKALIGN = TARGET_STACKALIGN;
 
-        regsave.reset();
+        cgstate.regsave.reset();
         memset(global87.stack.ptr,0,global87.stack.sizeof);
 
         cgstate.calledFinally = false;
@@ -749,18 +747,18 @@ else
         cgstate.Auto.alignment = REGSIZE;       // necessary because localsize must be REGSIZE aligned
     cgstate.Auto.size = alignsection(cgstate.Fast.size - cgstate.Auto.offset, cgstate.Auto.alignment, bias);
 
-    regsave.off = alignsection(cgstate.Auto.size - regsave.top, regsave.alignment, bias);
+    cgstate.regsave.off = alignsection(cgstate.Auto.size - cgstate.regsave.top, cgstate.regsave.alignment, bias);
     //printf("regsave.off = x%x, size = x%x, alignment = %x\n",
-        //cast(int)regsave.off, cast(int)(regsave.top), cast(int)regsave.alignment);
+        //cast(int)cgstate.regsave.off, cast(int)(cgstate.regsave.top), cast(int)cgstate.regsave.alignment);
 
     if (cgstate.floatreg)
     {
         uint floatregsize = config.fpxmmregs || I32 ? 16 : DOUBLESIZE;
-        cgstate.Foff = alignsection(regsave.off - floatregsize, STACKALIGN, bias);
+        cgstate.Foff = alignsection(cgstate.regsave.off - floatregsize, STACKALIGN, bias);
         //printf("Foff = x%x, size = x%x\n", cast(int)cgstate.Foff, cast(int)floatregsize);
     }
     else
-        cgstate.Foff = regsave.off;
+        cgstate.Foff = cgstate.regsave.off;
 
     cgstate.Alloca.alignment = REGSIZE;
     cgstate.Alloca.offset = alignsection(cgstate.Foff - cgstate.Alloca.size, cgstate.Alloca.alignment, bias);
@@ -1377,7 +1375,7 @@ private void blcodgen(block *bl)
     /* This doesn't work when calling the BC_finally function,
      * as it is one block calling another.
      */
-    //regsave.idx = 0;
+    //cgstate.regsave.idx = 0;
 
     reflocal = 0;
     int refparamsave = cgstate.refparam;
