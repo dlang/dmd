@@ -1122,7 +1122,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                 if (f == FLpara)
                     cgstate.refparam = true;
                 else if (f == FLauto || f == FLbprel || f == FLfltreg || f == FLfast)
-                    reflocal = true;
+                    cgstate.reflocal = true;
                 else if (f == FLcsdata || tybasic(e12.Ety) == TYcptr)
                     pcs.Iflags |= CFcs;
                 else
@@ -1355,7 +1355,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
         }
 
         case FLfltreg:
-            reflocal = true;
+            cgstate.reflocal = true;
             pcs.Irm = modregrm(2, 0, BPRM);
             pcs.IEV1.Vint = 0;
             break;
@@ -1439,7 +1439,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
             goto case FLbprel;
 
         case FLbprel:
-            reflocal = true;
+            cgstate.reflocal = true;
             pcs.Irm = modregrm(2, 0, BPRM);
             goto L2;
 
@@ -1507,7 +1507,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                     s.Sclass == SC.regpar ||
                     s.Sclass == SC.parameter)
                 {   cgstate.refparam = true;
-                    reflocal = true;        // kludge to set up prolog
+                    cgstate.reflocal = true;        // kludge to set up prolog
                 }
                 pcs.Irm = modregrm(3, 0, s.Sreglsw & 7);
                 if (s.Sreglsw & 8)
@@ -3845,7 +3845,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
                 const reg = findregmsw(retregs);
                 const lsreg = findreglsw(retregs);
                 cgstate.floatreg = true;         // use float register
-                reflocal = true;
+                cgstate.reflocal = true;
                 cdbe.genc1(0x89,                 // MOV floatreg+2,reg
                         modregrm(2, reg, BPRM), FLfltreg, REGSIZE);
                 cdbe.genc1(0x89,                 // MOV floatreg,lsreg
@@ -3937,7 +3937,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
                 const reg = findregmsw(retregs);
                 const lsreg = findreglsw(retregs);
                 cgstate.floatreg = true;         // use float register
-                reflocal = true;
+                cgstate.reflocal = true;
                 cdbe.genc1(0x89,                 // MOV floatreg+2,reg
                         modregrm(2, reg, BPRM), FLfltreg, REGSIZE);
                 cdbe.genc1(0x89,                 // MOV floatreg,lsreg

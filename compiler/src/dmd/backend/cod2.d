@@ -4921,7 +4921,7 @@ void getoffset(ref CodeBuilder cdb,elem *e,reg_t reg)
         case FLfast:
         case FLbprel:
         case FLfltreg:
-            reflocal = true;
+            cgstate.reflocal = true;
             goto L2;
         case FLpara:
             cgstate.refparam = true;

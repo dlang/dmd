@@ -68,7 +68,6 @@ regm_t ALLREGS()  { return I64 ? mAX|mBX|mCX|mDX|mSI|mDI| mR8|mR9|mR10|mR11|mR12
 regm_t BYTEREGS() { return I64 ? ALLREGS
                                : BYTEREGS_INIT; }
 
-int reflocal;           // !=0 if we referenced any locals
 bool anyiasm;           // !=0 if any inline assembler
 char calledafunc;       // !=0 if we called a function
 char needframe;         // if true, then we will need the frame
@@ -1379,7 +1378,7 @@ private void blcodgen(block *bl)
      */
     //regsave.idx = 0;
 
-    reflocal = 0;
+    cgstate.reflocal = 0;
     int refparamsave = cgstate.refparam;
     cgstate.refparam = 0;
     assert((cgstate.regcon.cse.mops & cgstate.regcon.cse.mval) == cgstate.regcon.cse.mops);
@@ -1393,7 +1392,7 @@ private void blcodgen(block *bl)
         s.Sfl = sflsave[i];    // undo block register assignments
     }
 
-    if (reflocal)
+    if (cgstate.reflocal)
         bl.Bflags |= BFL.reflocal;
     if (cgstate.refparam)
         bl.Bflags |= BFL.refparam;
@@ -1521,7 +1520,7 @@ bool isregvar(elem *e, ref regm_t pregm, ref reg_t preg)
             case FLreg:
                 if (s.Sclass == SC.parameter)
                 {   cgstate.refparam = true;
-                    reflocal = true;
+                    cgstate.reflocal = true;
                 }
                 reg = e.Voffset == REGSIZE ? s.Sregmsw : s.Sreglsw;
                 regm = s.Sregm;
@@ -1885,7 +1884,7 @@ private void cse_save(ref CodeBuilder cdb, regm_t ms)
         {
             CSE.updateSizeAndAlign(cse.e);
             gen_storecse(cdb, cse.e.Ety, reg, cse.slot);
-            reflocal = true;
+            cgstate.reflocal = true;
         }
     }
 }
@@ -2171,7 +2170,7 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
             }
             else
             {
-                reflocal = true;
+                cgstate.reflocal = true;
                 cse.flags |= CSEload;
                 if (pretregs == mPSW)  // if result in CCs only
                 {
@@ -2339,7 +2338,7 @@ private void loadcse(ref CodeBuilder cdb,elem *e,reg_t reg,regm_t regm)
         //printf("CSE[%d] = %p, regm = %s\n", i, cse.e, regm_str(cse.regm));
         if (cse.regm & regm)
         {
-            reflocal = true;
+            cgstate.reflocal = true;
             cse.flags |= CSEload;    /* it was loaded        */
             cgstate.regcon.cse.value[reg] = e;
             cgstate.regcon.cse.mval |= mask(reg);
