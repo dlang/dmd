@@ -73,7 +73,6 @@ bool anyiasm;           // !=0 if any inline assembler
 char calledafunc;       // !=0 if we called a function
 char needframe;         // if true, then we will need the frame
                         // pointer (BP for the 8088)
-char gotref;            // !=0 if the GOTsym was referenced
 }
 
 /*********************************
@@ -125,7 +124,7 @@ void codgen(Symbol *sfunc)
         // if no parameters, assume we don't need a stack frame
         needframe = 0;
         cgstate.enforcealign = false;
-        gotref = 0;
+        cgstate.gotref = 0;
         cgstate.stackchanged = 0;
         cgstate.stackpush = 0;
         cgstate.refparam = 0;
@@ -237,7 +236,7 @@ void codgen(Symbol *sfunc)
         cgstate.allregs |= cod3_useBP();                // use EBP as general purpose register
 
         // If pic code, but EBX was never needed
-        if (!(cgstate.allregs & mask(PICREG)) && !gotref)
+        if (!(cgstate.allregs & mask(PICREG)) && !cgstate.gotref)
         {
             cgstate.allregs |= mask(PICREG);            // EBX can now be used
             cgreg_assign(cgstate.retsym);
