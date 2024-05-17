@@ -70,12 +70,18 @@ typedef unsigned long long __uint64_t;
  * Obsolete detritus
  */
 #define __cdecl
+#define __pascal
+
+/*********************
+ * DMC-specific extensions, https://digitalmars.com/ctg/pointers16.html
+ */
+#ifdef __DMC__
 #define __ss
 #define __cs
 #define __far
 #define __near
 #define __handle
-#define __pascal
+#endif
 
 /****************************
  * __extension__ is a GNU C extension. It suppresses warnings
