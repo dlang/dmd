@@ -960,7 +960,7 @@ void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const(char
                 /* Need to use frame pointer to access locals, not the stack pointer,
                  * because we'll be calling the BC_finally blocks and the stack will be off.
                  */
-                needframe = 1;
+                cgstate.needframe = 1;
             }
             else if (config.ehmethod == EHmethod.EH_SEH || config.ehmethod == EHmethod.EH_WIN32)
             {
@@ -4419,7 +4419,7 @@ void epilog(block *b)
     }
     else
     {
-        if (needframe || (xlocalsize && cgstate.hasframe))
+        if (cgstate.needframe || (xlocalsize && cgstate.hasframe))
         {
         L4:
             assert(cgstate.hasframe);

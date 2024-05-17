@@ -173,6 +173,8 @@ struct CGstate
 
     targ_size_t pushoff;        // offset of saved registers
     bool pushoffuse;            // using pushoff
+    char needframe;             // if true, then we will need the frame
+                                // pointer (BP for the 8088)
 
     int stackchanged;           /* set to !=0 if any use of the stack
                                    other than accessing parameters. Used

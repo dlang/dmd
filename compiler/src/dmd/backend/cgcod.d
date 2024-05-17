@@ -68,8 +68,6 @@ regm_t BYTEREGS() { return I64 ? ALLREGS
 
 bool anyiasm;           // !=0 if any inline assembler
 char calledafunc;       // !=0 if we called a function
-char needframe;         // if true, then we will need the frame
-                        // pointer (BP for the 8088)
 }
 
 /*********************************
@@ -119,7 +117,7 @@ void codgen(Symbol *sfunc)
         cgstate.lastRetregs[] = 0;
 
         // if no parameters, assume we don't need a stack frame
-        needframe = 0;
+        cgstate.needframe = 0;
         cgstate.enforcealign = false;
         cgstate.gotref = 0;
         cgstate.stackchanged = 0;
@@ -158,7 +156,7 @@ void codgen(Symbol *sfunc)
         cgstate.mfuncreg = fregsaved;               // so we can see which are used
                                             // (bit is cleared each time
                                             //  we use one)
-        assert(!(needframe && cgstate.mfuncreg & mBP)); // needframe needs mBP
+        assert(!(cgstate.needframe && cgstate.mfuncreg & mBP)); // needframe needs mBP
 
         for (block* b = startblock; b; b = b.Bnext)
         {
@@ -591,7 +589,7 @@ void prolog(ref CodeBuilder cdb)
 {
     bool enter;
 
-    //printf("cod3.prolog() %s, needframe = %d, Auto.alignment = %d\n", funcsym_p.Sident.ptr, needframe, cgstate.Auto.alignment);
+    //printf("cod3.prolog() %s, needframe = %d, Auto.alignment = %d\n", funcsym_p.Sident.ptr, cgstate.needframe, cgstate.Auto.alignment);
     debug debugw && printf("funcstart()\n");
     cgstate.regcon.immed.mval = 0;                      /* no values in registers yet   */
     version (FRAMEPTR)
@@ -640,15 +638,15 @@ void prolog(ref CodeBuilder cdb)
         cgstate.accessedTLS ||
         sv64
        )
-        needframe = 1;
+        cgstate.needframe = 1;
 
     CodeBuilder cdbx; cdbx.ctor();
 
 Lagain:
     cgstate.spoff = 0;
-    char guessneedframe = needframe;
+    char guessneedframe = cgstate.needframe;
     int cfa_offset = 0;
-//    if (needframe && config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS) && !(cgstate.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)))
+//    if (cgstate.needframe && config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS) && !(cgstate.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)))
 //      cgstate.usednteh |= NTEHpassthru;
 
     /* Compute BP offsets for variables on stack.
@@ -677,7 +675,7 @@ Lagain:
     {
         version (FRAMEPTR)
         {
-            bool frame = needframe || tyf & mTYnaked;
+            bool frame = cgstate.needframe || tyf & mTYnaked;
             cgstate.Para.size = ((farfunc ? 2 : 1) + frame) * REGSIZE;
             if (frame)
                 cgstate.EBPtoESP = -REGSIZE;
@@ -734,7 +732,7 @@ Lagain:
 version (FRAMEPTR)
     int bias = cgstate.enforcealign ? 0 : cast(int)(cgstate.Para.size);
 else
-    int bias = cgstate.enforcealign ? 0 : cast(int)(cgstate.Para.size + (needframe ? 0 : REGSIZE));
+    int bias = cgstate.enforcealign ? 0 : cast(int)(cgstate.Para.size + (cgstate.needframe ? 0 : REGSIZE));
 
     if (cgstate.Fast.alignment < REGSIZE)
         cgstate.Fast.alignment = REGSIZE;
@@ -821,7 +819,7 @@ else
             npush = 0;
 
         //printf("npush = %d Para.size = x%x needframe = %d localsize = x%x\n",
-               //npush, cgstate.Para.size, needframe, localsize);
+               //npush, cgstate.Para.size, cgstate.needframe, localsize);
 
         int sz = cast(int)(localsize + npush * REGSIZE);
         if (!cgstate.enforcealign)
@@ -829,7 +827,7 @@ else
             version (FRAMEPTR)
                 sz += cgstate.Para.size;
             else
-                sz += cgstate.Para.size + (needframe ? 0 : -REGSIZE);
+                sz += cgstate.Para.size + (cgstate.needframe ? 0 : -REGSIZE);
         }
         if (sz & (STACKALIGN - 1))
             localsize += STACKALIGN - (sz & (STACKALIGN - 1));
@@ -860,10 +858,10 @@ else
     {
         // we need BP to reset the stack before return
         // otherwise the return address is lost
-        needframe = 1;
+        cgstate.needframe = 1;
     }
     else if (config.flags & CFGalwaysframe)
-        needframe = 1;
+        cgstate.needframe = 1;
     else
     {
         if (localsize)
@@ -879,14 +877,14 @@ else
                 cgstate.Alloca.size
                )
             {
-                needframe = 1;
+                cgstate.needframe = 1;
             }
         }
         if (cgstate.refparam && (anyiasm || I16))
-            needframe = 1;
+            cgstate.needframe = 1;
     }
 
-    if (needframe)
+    if (cgstate.needframe)
     {
         assert(cgstate.mfuncreg & mBP);         // shouldn't have used mBP
 
@@ -900,7 +898,7 @@ else
         enter = false;                  // don't use ENTER instruction
         cgstate.hasframe = true;        // we have a stack frame
     }
-    else if (needframe)                 // if variables or parameters
+    else if (cgstate.needframe)                 // if variables or parameters
     {
         prolog_frame(cdbx, farfunc, xlocalsize, enter, cfa_offset);
         cgstate.hasframe = true;
@@ -917,7 +915,7 @@ else
         if (cgstate.Alloca.size)
             prolog_setupalloca(cdbx);
     }
-    else if (needframe)                      /* if variables or parameters   */
+    else if (cgstate.needframe)                      /* if variables or parameters   */
     {
         if (xlocalsize)                 /* if any stack offset          */
         {

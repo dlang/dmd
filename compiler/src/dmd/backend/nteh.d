@@ -631,7 +631,7 @@ void nteh_monitor_prolog(ref CodeBuilder cdb, Symbol *shandle)
     {
         // PUSH shandle
         useregs(mCX);
-        cdbx.genc1(0x8B,modregrm(2,CX,4),FLconst,4 * (1 + needframe) + shandle.Soffset + localsize);
+        cdbx.genc1(0x8B,modregrm(2,CX,4),FLconst,4 * (1 + cgstate.needframe) + shandle.Soffset + localsize);
         cdbx.last().Isib = modregrm(0,4,SP);
         cdbx.gen1(0x50 + CX);                      // PUSH ECX
     }
