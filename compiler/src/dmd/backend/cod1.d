@@ -420,7 +420,7 @@ void genstackclean(ref CodeBuilder cdb,uint numpara,regm_t keepmsk)
 /+
         if (0 &&                                // won't work if operand of scodelem
             numpara == cgstate.stackpush &&             // if this is all those pushed
-            needframe &&                        // and there will be a BP
+            cgstate.needframe &&                        // and there will be a BP
             !config.windows &&
             !(cgstate.regcon.mvar & fregsaved)          // and no registers will be pushed
         )
@@ -3781,7 +3781,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
     if (config.memmodel == Vmodel)
     {
         if (tyfarfunc(funcsym_p.ty()))
-            needframe = true;
+            cgstate.needframe = true;
     }
 
     code cs;
@@ -3976,7 +3976,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
      */
 static if (0)
 {
-    if (!needframe)
+    if (!cgstate.needframe)
     {
         // If there is a register available for this basic block
         if (config.flags4 & CFG4optimized && (ALLREGS & ~cgstate.regcon.used))
@@ -3993,13 +3993,13 @@ static if (0)
                         if (s.Srange && vec_testbit(cgstate.dfoidx, s.Srange) &&
                             s.Sfl != FLreg)
                         {   // Then symbol must be allocated on stack
-                            needframe = true;
+                            cgstate.needframe = true;
                             break;
                         }
                     }
                     else
                     {   if (cgstate.mfuncreg == 0)      // if no registers left
-                        {   needframe = true;
+                        {   cgstate.needframe = true;
                             break;
                         }
                     }
@@ -4716,7 +4716,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                 /* Test size of type rather than TYfptr because of (long)(&v)   */
                 Symbol* s = e.Vsym;
                 //if (sytab[s.Sclass] & SCSS && !I32)  // if variable is on stack
-                //    needframe = true;                 // then we need stack frame
+                //    cgstate.needframe = true;                 // then we need stack frame
                 int fl;
                 if (_tysize[tym] == tysize(TYfptr) &&
                     (fl = s.Sfl) != FLfardata &&
