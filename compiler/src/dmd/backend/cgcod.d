@@ -66,7 +66,6 @@ regm_t ALLREGS()  { return I64 ? mAX|mBX|mCX|mDX|mSI|mDI| mR8|mR9|mR10|mR11|mR12
 regm_t BYTEREGS() { return I64 ? ALLREGS
                                : BYTEREGS_INIT; }
 
-bool anyiasm;           // !=0 if any inline assembler
 char calledafunc;       // !=0 if we called a function
 }
 
@@ -89,7 +88,7 @@ void codgen(Symbol *sfunc)
     CSE.initialize();
     cgstate.allregs = ALLREGS;
     cgstate.Alloca.initialize();
-    anyiasm = 0;
+    cgstate.anyiasm = 0;
 
     if (config.ehmethod == EHmethod.EH_DWARF)
     {
@@ -164,7 +163,7 @@ void codgen(Symbol *sfunc)
             if (b.Belem)
                 resetEcomsub(b.Belem);     // reset all the Ecomsubs
             if (b.BC == BCasm)
-                anyiasm = 1;                // we have inline assembler
+                cgstate.anyiasm = 1;                // we have inline assembler
             if (b.BC == BCret || b.BC == BCretexp)
                 nretblocks++;
         }
@@ -222,7 +221,7 @@ void codgen(Symbol *sfunc)
         assert(!cgstate.regcon.cse.mops);           // should have all been used
 
         if (cgstate.pass == BackendPass.final_ ||       // the final pass, so exit
-            anyiasm)                            // possible LEA or LES opcodes
+            cgstate.anyiasm)                            // possible LEA or LES opcodes
         {
             break;
         }
@@ -255,7 +254,7 @@ void codgen(Symbol *sfunc)
     // See if we need to enforce a particular stack alignment
     foreach (s; globsym[])
     {
-        if (Symbol_Sisdead(*s, anyiasm))
+        if (Symbol_Sisdead(*s, cgstate.anyiasm))
             continue;
 
         switch (s.Sclass)
@@ -873,14 +872,14 @@ else
                 config.flags & CFGstack ||
                 xlocalsize >= 0x1000 ||
                 (cgstate.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru)) ||
-                anyiasm ||
+                cgstate.anyiasm ||
                 cgstate.Alloca.size
                )
             {
                 cgstate.needframe = 1;
             }
         }
-        if (cgstate.refparam && (anyiasm || I16))
+        if (cgstate.refparam && (cgstate.anyiasm || I16))
             cgstate.needframe = 1;
     }
 
@@ -1098,7 +1097,7 @@ void stackoffsets(ref symtab_t symtab, bool estimate)
 
             default:
             Ldefault:
-                if (Symbol_Sisdead(*s, anyiasm))
+                if (Symbol_Sisdead(*s, cgstate.anyiasm))
                     continue;       // don't allocate space
                 break;
         }
