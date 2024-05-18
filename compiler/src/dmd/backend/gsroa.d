@@ -23,7 +23,7 @@ import core.stdc.time;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
-import dmd.backend.code_x86 : isXMMreg, NOREG;
+import dmd.backend.code_x86 : isXMMreg;
 import dmd.backend.oper;
 import dmd.backend.global;
 import dmd.backend.el;
@@ -388,15 +388,18 @@ if (enable) // disable while we test the inliner
             case SC.auto_:
             case SC.shadowreg:
             case SC.parameter:
-                anySlice = true;
-                sia[si].canSlice = true;
-                sia[si].accessSlice = false;
                 // We can't slice whole XMM registers
                 if (tyxmmreg(s.Stype.Tty) &&
                     isXMMreg(s.Spreg) && s.Spreg2 == NOREG)
                 {
                     if (log) printf(" can't because XMM reg\n");
                     sia[si].canSlice = false;
+                }
+                else
+                {
+                    anySlice = true;
+                    sia[si].canSlice = true;
+                    sia[si].accessSlice = false;
                 }
                 break;
 
