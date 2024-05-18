@@ -160,6 +160,7 @@ struct CGstate
     bool hasframe;              // true if this function has a stack frame
     bool enforcealign;          // enforced stack alignment
     bool anyiasm;               // !=0 if any inline assembler
+    char calledafunc;           // !=0 if we called a function
 
     int stackclean;             // if != 0, then clean the stack after function call
 

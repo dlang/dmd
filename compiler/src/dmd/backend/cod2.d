@@ -5696,7 +5696,7 @@ void cdddtor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             nalign = STACKALIGN - REGSIZE;
             cod3_stackadj(cdb, nalign);
         }
-        calledafunc = 1;
+        cgstate.calledafunc = 1;
         genjmp(cdb,0xE8,FLcode,cast(block *)c);   // CALL Ldtor
         if (nalign)
             cod3_stackadj(cdb, -nalign);
