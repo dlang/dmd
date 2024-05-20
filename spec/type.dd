@@ -458,7 +458,7 @@ void test()
     $(DDSUBLINK spec/expression, assignment_operator_expressions, operator assignment)
     is equivalent to `e = cast(E)(e + 4)`.)
 
-$(H3 $(LNAME2 disallowed-conversions, Preserving Bit Patterns))
+$(H3 $(LEGACY_LNAME2 disallowed-conversions, integer-conversions, Integer Type Conversions))
 
     $(P An integer of type `I` implicitly converts to another integer type `J` when
     `J.sizeof >= I.sizeof`.)
@@ -487,6 +487,8 @@ uint   u3 = -1; // ok, -1 can be represented in an int, which can be converted t
 ulong  u4 = -1; // ok, -1 can be represented in a long, which can be converted to a ulong
 ---
 )
+
+$(H3 $(LNAME2 floating-point-conversions, Floating Point Type Conversions))
 
     * Integral types implicitly convert to floating point types.
     * Floating point types cannot be implicitly converted to integral types.
