@@ -898,6 +898,12 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
     if (ty & mTYvolatile)
         pcs.Iflags |= CFvolatile;
 
+    void Lptr(){
+        if (config.flags3 & CFG3ptrchk)
+            cod3_ptrchk(cdb, pcs, keepmsk);        // validate pointer code
+    }
+
+
     switch (fl)
     {
         case FLoper:
@@ -1177,7 +1183,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                 freenode(e12);
                 if (e1free)
                     freenode(e1);
-                goto Lptr;
+                return Lptr();
             }
 
             L1:
@@ -1264,7 +1270,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                     scodelem(cdb, e11, &idxregs, keepmsk, true); // load index reg
                     setaddrmode(pcs, idxregs);
                 }
-                goto Lptr;
+                return Lptr();
             }
 
             /* Look for *(v1 + v2)
@@ -1326,7 +1332,7 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                 if (e1free)
                     freenode(e1);
 
-                goto Lptr;
+                return Lptr();
             }
 
             /* give up and replace *e1 with
@@ -1340,10 +1346,8 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
             assert(e1free);
             scodelem(cdb, e1, &idxregs, keepmsk, true);  // load index register
             setaddrmode(pcs, idxregs);
-        Lptr:
-            if (config.flags3 & CFG3ptrchk)
-                cod3_ptrchk(cdb, pcs, keepmsk);        // validate pointer code
-            break;
+
+            return Lptr();
 
         case FLdatseg:
             assert(0);
