@@ -7021,20 +7021,26 @@ elem *callCAssert(ref IRState irs, const ref Loc loc, Expression exp, Expression
     }
     else
     {
-        version (CRuntime_Musl)
+        Symbol *assertSym;
+        elem* params;
+        with (TargetC.Runtime) switch (irs.target.c.runtime)
         {
-            // __assert_fail(exp, file, line, func);
-            elem* efunc = getFuncName();
-            auto eassert = el_var(getRtlsym(RTLSYM.C__ASSERT_FAIL));
-            ea = el_bin(OPcall, TYvoid, eassert, el_params(elmsg, efilename, eline, efunc, null));
+            case Musl:
+            case Glibc:
+                // __assert_fail(exp, file, line, func);
+                assertSym = getRtlsym(RTLSYM.C__ASSERT_FAIL);
+                elem* efunc = getFuncName();
+                params = el_params(efunc, eline, efilename, elmsg, null);
+                break;
+            default:
+                // [_]_assert(msg, file, line);
+                const rtlsym = (irs.target.os == Target.OS.Windows) ? RTLSYM.C_ASSERT : RTLSYM.C__ASSERT;
+                assertSym = getRtlsym(rtlsym);
+                params = el_params(eline, efilename, elmsg, null);
+                break;
         }
-        else
-        {
-            // [_]_assert(msg, file, line);
-            const rtlsym = (irs.target.os == Target.OS.Windows) ? RTLSYM.C_ASSERT : RTLSYM.C__ASSERT;
-            auto eassert = el_var(getRtlsym(rtlsym));
-            ea = el_bin(OPcall, TYvoid, eassert, el_params(eline, efilename, elmsg, null));
-        }
+        auto eassert = el_var(assertSym);
+        ea = el_bin(OPcall, TYvoid, eassert, params);
     }
     return ea;
 }
