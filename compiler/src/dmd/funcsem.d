@@ -1935,7 +1935,7 @@ FuncDeclaration overloadExactMatch(FuncDeclaration thisfd, Type t)
  * Determine if fd1 overrides fd2.
  * Return !=0 if it does.
  */
-extern (D) int overrides(FuncDeclaration fd1, FuncDeclaration fd2)
+int overrides(FuncDeclaration fd1, FuncDeclaration fd2)
 {
     int result = 0;
     if (fd1.ident == fd2.ident)
