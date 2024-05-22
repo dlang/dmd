@@ -34,7 +34,7 @@ namespace dmd
 {
     bool functionSemantic(FuncDeclaration* fd);
     bool functionSemantic3(FuncDeclaration* fd);
-    static MATCH leastAsSpecialized(FuncDeclaration *f, FuncDeclaration *g, Identifiers *names);
+    MATCH leastAsSpecialized(FuncDeclaration *f, FuncDeclaration *g, Identifiers *names);
 }
 
 //enum STC : ulong from astenums.d:
