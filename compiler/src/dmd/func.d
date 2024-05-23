@@ -424,27 +424,6 @@ extern (C++) class FuncDeclaration : Declaration
     }
 
     /****************************************************
-     * Determine if 'this' overrides fd.
-     * Return !=0 if it does.
-     */
-    extern (D) final int overrides(FuncDeclaration fd)
-    {
-        int result = 0;
-        if (fd.ident == ident)
-        {
-            const cov = type.covariant(fd.type);
-            if (cov != Covariant.distinct)
-            {
-                ClassDeclaration cd1 = toParent().isClassDeclaration();
-                ClassDeclaration cd2 = fd.toParent().isClassDeclaration();
-                if (cd1 && cd2 && cd2.isBaseOf(cd1, null))
-                    result = 1;
-            }
-        }
-        return result;
-    }
-
-    /****************************************************
      * Overload this FuncDeclaration with the new one f.
      * Return true if successful; i.e. no conflict.
      */
@@ -545,91 +524,6 @@ extern (C++) class FuncDeclaration : Declaration
         }
         while (f);
         return false;
-    }
-
-    /*************************************
-     * Determine partial specialization order of functions `f` vs `g`.
-     * This is very similar to TemplateDeclaration::leastAsSpecialized().
-     * Params:
-     *  f = first function
-     *  g = second function
-     *  names = names of parameters
-     * Returns:
-     *      match   'this' is at least as specialized as g
-     *      0       g is more specialized than 'this'
-     */
-    static MATCH leastAsSpecialized(FuncDeclaration f, FuncDeclaration g, Identifiers* names)
-    {
-        enum LOG_LEASTAS = 0;
-        static if (LOG_LEASTAS)
-        {
-            import core.stdc.stdio : printf;
-            printf("leastAsSpecialized(%s, %s, %s)\n", f.toChars(), g.toChars(), names ? names.toChars() : "null");
-            printf("%s, %s\n", f.type.toChars(), g.type.toChars());
-        }
-
-        /* This works by calling g() with f()'s parameters, and
-         * if that is possible, then f() is at least as specialized
-         * as g() is.
-         */
-
-        TypeFunction tf = f.type.toTypeFunction();
-        TypeFunction tg = g.type.toTypeFunction();
-
-        /* If both functions have a 'this' pointer, and the mods are not
-         * the same and g's is not const, then this is less specialized.
-         */
-        if (f.needThis() && g.needThis() && tf.mod != tg.mod)
-        {
-            if (f.isCtorDeclaration())
-            {
-                if (!MODimplicitConv(tg.mod, tf.mod))
-                    return MATCH.nomatch;
-            }
-            else
-            {
-                if (!MODimplicitConv(tf.mod, tg.mod))
-                    return MATCH.nomatch;
-            }
-        }
-
-        /* Create a dummy array of arguments out of the parameters to f()
-         */
-        Expressions args;
-        foreach (u, p; tf.parameterList)
-        {
-            Expression e;
-            if (p.isReference())
-            {
-                e = new IdentifierExp(Loc.initial, p.ident);
-                e.type = p.type;
-            }
-            else
-                e = p.type.defaultInitLiteral(Loc.initial);
-            args.push(e);
-        }
-
-        MATCH m = tg.callMatch(null, ArgumentList(&args, names), 1);
-        if (m > MATCH.nomatch)
-        {
-            /* A variadic parameter list is less specialized than a
-             * non-variadic one.
-             */
-            if (tf.parameterList.varargs && !tg.parameterList.varargs)
-                goto L1; // less specialized
-
-            static if (LOG_LEASTAS)
-            {
-                printf("  matches %d, so is least as specialized\n", m);
-            }
-            return m;
-        }
-    L1:
-        static if (LOG_LEASTAS)
-        {
-            printf("  doesn't match, so is not as specialized\n");
-        }
-        return MATCH.nomatch;
     }
 
     /********************************

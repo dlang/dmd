@@ -3781,7 +3781,6 @@ public:
     bool equals(const RootObject* const o) const final override;
     bool overloadInsert(Dsymbol* s) override;
     bool inUnittest();
-    static MATCH leastAsSpecialized(FuncDeclaration* f, FuncDeclaration* g, Array<Identifier* >* names);
     LabelDsymbol* searchLabel(Identifier* ident, const Loc& loc);
     enum : int32_t { LevelError = -2 };
 
