@@ -1340,8 +1340,8 @@ public:
                     continue;
                 if (fd2->isFuture())
                     continue;
-                if (FuncDeclaration::leastAsSpecialized(fd, fd2, NULL) != MATCH::nomatch ||
-                    FuncDeclaration::leastAsSpecialized(fd2, fd, NULL) != MATCH::nomatch)
+                if (dmd::leastAsSpecialized(fd, fd2, NULL) != MATCH::nomatch ||
+                    dmd::leastAsSpecialized(fd2, fd, NULL) != MATCH::nomatch)
                 {
                     return;
                 }
