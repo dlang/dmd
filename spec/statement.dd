@@ -973,41 +973,42 @@ $(H4 $(LNAME2 front-seq, Multiple Element Values))
         expands to a $(DDSUBLINK spec/template, homogeneous_sequences, value sequence)
         whose length matches the number of variables. Each variable is assigned
         to the corresponding value in the sequence.
+        If there is only one variable, it will be a value sequence.
     )
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
+        import std.stdio;
+
+        // simple version of std.typecons.Tuple
         struct Tuple(Types...) // takes a TypeSeq
         {
             Types items; // ValueSeq
             alias items this; // decay to a value sequence
         }
 
-        // Infinite range with a repeating element, which is a tuple
+        string s = "hello";
+
         struct TupleRange
         {
-            enum front = Tuple!(char, bool, int)('a', true, 2);
-            enum bool empty = false;
-
-            void popFront() {}
+            size_t i;
+            auto front() => Tuple!(size_t, char)(i, s[i]);
+            bool empty() => i >= s.length;
+            void popFront() { i++; }
         }
 
         void main()
         {
             // Tuple destructuring
-            foreach (a, b, c; TupleRange())
+            foreach (i, c; TupleRange())
             {
-                assert(a == 'a');
-                assert(b == true);
-                assert(c == 2);
-                break;
+                writeln(i, ": ", c);
             }
+            writeln();
             // Tuple variable
             foreach (tup; TupleRange())
             {
-                assert(tup[0] == 'a');
-                assert(tup == TupleRange.front);
-                break;
+                writefln("(%s, %s)", tup[0], tup[1]);
             }
         }
         ---
