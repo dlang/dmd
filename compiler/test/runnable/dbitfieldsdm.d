@@ -1,7 +1,7 @@
 /* test bitfields for Digital Mars
  * Note that this test is for win32 only
  *
- * REQUIRED_ARGS: -preview=bitfields
+ *
  * DISABLED: win32mscoff win64 linux freebsd osx
  * RUN_OUTPUT:
 ---
