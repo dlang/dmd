@@ -525,23 +525,26 @@ $(GNAME TemplateValueParameterDefault):
 )
 
     $(P A template value parameter can take an argument of any expression which can
-        be statically evaluated at compile time.
-        Template value arguments can be integer values, floating point values,
-        nulls, string values, array literals of template value arguments,
-        associative array literals of template value arguments,
-        or struct literals of template value arguments.)
+        be statically evaluated at compile time as one of the following:)
+
+        * A `bool`, character, integer, floating point or string value
+        * `null`
+        * An array literal whose elements could be valid template value arguments
+        * An associative array literal whose keys and values could each be valid
+          template value arguments
+        * A struct literal whose arguments could be valid template value arguments
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
         -----
         template foo(string s)
         {
-            string bar() { return s ~ " betty"; }
+            enum string bar = s ~ " betty";
         }
 
         void main()
         {
             import std.stdio;
-            writeln(foo!("hello").bar()); // prints: hello betty
+            writeln(foo!("hello").bar); // prints: hello betty
         }
         -----
         )
