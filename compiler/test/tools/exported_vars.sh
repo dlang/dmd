@@ -36,8 +36,8 @@ else
     export SOEXT=.so
 fi
 
-# Default to DigitalMars C++ on Win32
-if [ "$OS" == "win32" ] && [ -z "${CC+set}" ] ; then
-    CC="dmc"
+# Default to Microsoft cl on Windows
+if [[ "$OS" == "win"* && -z "${CC+set}" ]] ; then
+    CC="cl"
 fi
 export CC="${CC:-c++}" # C++ compiler to use

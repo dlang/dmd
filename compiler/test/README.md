@@ -356,7 +356,7 @@ Environment variables
 
     ARGS:          set to execute all combinations of
     AUTO_UPDATE:   set to 1 to auto-update mismatching test output
-    CC:            C++ compiler to use, ex: dmc, g++
+    CC:            C++ compiler to use, ex: cl, g++
     DMD:           compiler to use, ex: ../src/dmd (required)
     MODEL:         32 or 64 (required)
     OS:            windows, linux, freebsd, osx, netbsd, dragonflybsd

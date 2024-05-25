@@ -953,12 +953,6 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
 {
     //printf("runPreprocessor() cpp: %.*s filename: %.*s\n", cast(int)cpp.length, cpp.ptr, cast(int)filename.length, filename.ptr);
 
-    /*
-       To get sppn.exe: http://ftp.digitalmars.com/sppn.zip
-       To get the dmc C headers, dmc will need to be installed:
-       http://ftp.digitalmars.com/Digital_Mars_C++/Patch/dm857c.zip
-     */
-
     version (Windows)
     {
         // generate unique temporary file name for preprocessed output
