@@ -25,18 +25,9 @@ int main()
     version (Windows)
     {
         Vars.set(`DLL_LIB`, `$OUTPUT_BASE${SEP}mydll.lib`);
-        if (Vars.MODEL == "32omf")
-        {
-            // CXX should be dmc for win32omf.
-            dllCmd ~= [`-mn`, `-L/implib:` ~ Vars.DLL_LIB, `-WD`, `-o` ~ Vars.DLL, `kernel32.lib`, `user32.lib`];
-            mainExtra = `$DLL_LIB`;
-        }
-        else
-        {
-            // CXX should be cl for win32mscoff.
-            dllCmd ~= [`/LD`, `/nologo`, `/Fe` ~ Vars.DLL];
-            mainExtra = `$DLL_LIB`;
-        }
+        // CXX should be cl
+        dllCmd ~= [`/LD`, `/nologo`, `/Fe` ~ Vars.DLL];
+        mainExtra = `$DLL_LIB`;
     }
     else version(OSX)
     {

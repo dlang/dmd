@@ -812,7 +812,6 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     bool isX86_64 = arch[0] == '6';
 
     version(Windows) // delete LIB entry in [Environment] (necessary for optlink) to allow inheriting environment for MS-COFF
-    if (arch != "32omf")
         environment.update("LIB", 3).value = null;
 
     // read from DFLAGS in [Environment{arch}] section

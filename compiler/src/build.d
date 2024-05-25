@@ -299,9 +299,6 @@ DFLAGS=%DFLAGS% -L/OPT:NOICF
 
 [Environment64]
 DFLAGS=%DFLAGS% -L/OPT:NOICF
-
-[Environment32mscoff]
-DFLAGS=%DFLAGS% -L/OPT:NOICF
 `;
     }
     else
