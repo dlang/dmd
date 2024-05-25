@@ -283,7 +283,6 @@ struct Triple
             case "musl":         return Musl;
             case "msvc":         return Microsoft;
             case "bionic":       return Bionic;
-            case "digital_mars": return DigitalMars;
             case "newlib":       return Newlib;
             case "uclibc":       return UClibc;
             case "glibc":        return Glibc;
@@ -303,7 +302,6 @@ struct Triple
             case "gcc":          return Gcc;
             case "msvc":         return Microsoft;
             case "sun":          return Sun;
-            case "digital_mars": return DigitalMars;
             default:
             {
                 unknown(cppenv, "C++ runtime environment");

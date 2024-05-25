@@ -587,7 +587,6 @@ SRCS=\
 	src\rt\sections_osx_x86.d \
 	src\rt\sections_osx_x86_64.d \
 	src\rt\sections_solaris.d \
-	src\rt\sections_win32.d \
 	src\rt\sections_win64.d \
 	src\rt\tlsgc.d \
 	src\rt\trace.d \

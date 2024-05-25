@@ -131,7 +131,6 @@ BOOL DllMain(HINSTANCE hInstance, ULONG ulReason, LPVOID pvReserved)
             g_hInst = hInstance;
             dll_process_attach( hInstance, true );
             printf("ATTACH\n");
-            version(CRuntime_DigitalMars) _fcloseallp = null; // https://issues.dlang.org/show_bug.cgi?id=1550
             break;
 
         case DLL_PROCESS_DETACH:

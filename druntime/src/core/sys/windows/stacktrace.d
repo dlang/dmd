@@ -309,13 +309,6 @@ private:
         auto res = formatStackFrame(pc);
         res ~= " in ";
         const(char)[] tempSymName = symName[0 .. strlen(symName)];
-        // Deal with dmd mangling of long names for OMF 32 bits builds
-        // Note that `target.d` only defines `CRuntime_DigitalMars` for OMF builds
-        version (CRuntime_DigitalMars)
-        {
-            size_t decodeIndex = 0;
-            tempSymName = decodeDmdString(tempSymName, decodeIndex);
-        }
         res ~= demangle(tempSymName, demangleBuf);
         return res;
     }

@@ -50,7 +50,6 @@ struct TargetC
     {
         Unspecified,
         Bionic,
-        DigitalMars,
         Glibc,
         Microsoft,
         Musl,
@@ -87,7 +86,6 @@ struct TargetCPP
     {
         Unspecified,
         Clang,
-        DigitalMars,
         Gcc,
         Microsoft,
         Sun

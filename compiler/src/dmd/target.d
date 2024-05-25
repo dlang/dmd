@@ -248,7 +248,6 @@ void addCRuntimePredefinedGlobalIdent(const ref TargetC c)
     default:
     case Unspecified: return;
     case Bionic:      return predef("CRuntime_Bionic");
-    case DigitalMars: return predef("CRuntime_DigitalMars");
     case Glibc:       return predef("CRuntime_Glibc");
     case Microsoft:   return predef("CRuntime_Microsoft");
     case Musl:        return predef("CRuntime_Musl");
@@ -269,7 +268,6 @@ void addCppRuntimePredefinedGlobalIdent(const ref TargetCPP cpp)
     default:
     case Unspecified: return;
     case Clang:       return predef("CppRuntime_Clang");
-    case DigitalMars: return predef("CppRuntime_DigitalMars");
     case Gcc:         return predef("CppRuntime_Gcc");
     case Microsoft:   return predef("CppRuntime_Microsoft");
     case Sun:         return predef("CppRuntime_Sun");
@@ -1358,7 +1356,6 @@ struct TargetC
     {
         Unspecified,
         Bionic,
-        DigitalMars,
         Glibc,
         Microsoft,
         Musl,
@@ -1419,7 +1416,7 @@ struct TargetC
             wchar_tsize = 4;
 
         if (os == Target.OS.Windows)
-            runtime = target.omfobj ? Runtime.DigitalMars : Runtime.Microsoft;
+            runtime = Runtime.Microsoft;
         else if (os == Target.OS.linux)
         {
             // Note: This is overridden later by `-target=<triple>` if supplied.
@@ -1462,7 +1459,6 @@ struct TargetCPP
     {
         Unspecified,
         Clang,
-        DigitalMars,
         Gcc,
         Microsoft,
         Sun
@@ -1490,7 +1486,7 @@ struct TargetCPP
             assert(0);
         exceptions = (os & Target.OS.Posix) != 0;
         if (os == Target.OS.Windows)
-            runtime = target.omfobj ? Runtime.DigitalMars : Runtime.Microsoft;
+            runtime = Runtime.Microsoft;
         else if (os & (Target.OS.linux | Target.OS.DragonFlyBSD))
             runtime = Runtime.Gcc;
         else if (os & (Target.OS.OSX | Target.OS.FreeBSD | Target.OS.OpenBSD))
