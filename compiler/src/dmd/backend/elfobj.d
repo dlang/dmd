@@ -27,7 +27,7 @@ import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.dout : symbol_iscomdat2;
 import dmd.backend.mem;
 import dmd.backend.aarray;

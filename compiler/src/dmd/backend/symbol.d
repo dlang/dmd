@@ -38,7 +38,7 @@ import dmd.backend.type;
 nothrow:
 @safe:
 
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 
 void struct_free(struct_t *st) { }
 

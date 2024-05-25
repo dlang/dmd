@@ -23,7 +23,7 @@ import dmd.backend.cc;
 import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.goh;
 import dmd.backend.oper;
 import dmd.backend.symtab;

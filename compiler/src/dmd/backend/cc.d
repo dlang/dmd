@@ -17,7 +17,7 @@ module dmd.backend.cc;
 
 import dmd.backend.barray;
 import dmd.backend.cdef;        // host and target compiler definition
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.dlist;
 import dmd.backend.dt;
 import dmd.backend.el;

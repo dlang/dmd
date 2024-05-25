@@ -64,7 +64,6 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
 import dmd.backend.code;
-import dmd.backend.code_x86;
 import dmd.backend.cv4;
 import dmd.backend.dt;
 import dmd.backend.el;
@@ -75,6 +74,8 @@ import dmd.backend.rtlsym;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
+
+import dmd.backend.x86.code_x86;
 
 alias Elems = Array!(elem *);
 
