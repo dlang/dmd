@@ -11,7 +11,7 @@
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgreg.c, backend/cgreg.d)
  */
 
-module dmd.backend.cgreg;
+module dmd.backend.x86.cgreg;
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
