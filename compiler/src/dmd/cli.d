@@ -686,7 +686,7 @@ dmd -cov -unittest myprog.d
         Option("P=<preprocessorflag>",
             "pass preprocessorflag to C preprocessor",
             `Pass $(I preprocessorflag) to
-            $(WINDOWS sppn.exe or cl.exe)
+            $(WINDOWS cl.exe)
             $(UNIX cpp)`,
         ),
         Option("preview=<name>",

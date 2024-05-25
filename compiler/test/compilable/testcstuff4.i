@@ -18,4 +18,4 @@ struct S21944
 #1040 "cstuff3.c" 3 4
 };
 
-_Static_assert(U'\U00011234' == 0x11234, "ok"); // sppn.exe doesn't support U character literals
+_Static_assert(U'\U00011234' == 0x11234, "ok");
