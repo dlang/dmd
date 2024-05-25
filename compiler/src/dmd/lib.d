@@ -22,7 +22,6 @@ import dmd.target : Target;
 import dmd.libelf;
 import dmd.libmach;
 import dmd.libmscoff;
-import dmd.libomf;
 
 private enum LOG = false;
 
