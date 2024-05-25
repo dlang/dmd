@@ -122,10 +122,6 @@ private const(char)[] cppCommand()
             auto path = vsopt.compilerPath(target.isX86_64);
             return toDString(path);
         }
-        if (target.objectFormat() == Target.ObjectFormat.omf)
-        {
-            return "sppn.exe";
-        }
         // Perhaps we are cross-compiling.
         return "cpp";
     }

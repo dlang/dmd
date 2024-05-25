@@ -971,8 +971,6 @@ void reconcileCommands(ref Param params, ref Target target)
     }
     else
     {
-        if (target.omfobj)
-            error(Loc.initial, "`-m32omf` can only be used when targetting windows");
         if (driverParams.mscrtlib)
             error(Loc.initial, "`-mscrtlib` can only be used when targetting windows");
     }

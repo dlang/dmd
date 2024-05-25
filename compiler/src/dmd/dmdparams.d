@@ -323,7 +323,6 @@ void setTargetBuildDefaults(ref Target target)
     target.os = defaultTargetOS();
     target.osMajor = defaultTargetOSMajor();
     target.cpu = CPU.baseline;
-    target.omfobj = false;
     target.isX86_64 = (size_t.sizeof == 8);
 }
 

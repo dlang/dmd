@@ -350,12 +350,7 @@ void setDefaultLibrary(ref Param params, const ref Target target)
     {
         if (target.os == Target.OS.Windows)
         {
-            if (target.isX86_64)
-                driverParams.defaultlibname = "phobos64";
-            else if (!target.omfobj)
-                driverParams.defaultlibname = "phobos32mscoff";
-            else
-                driverParams.defaultlibname = "phobos";
+            driverParams.defaultlibname = target.isX86_64 ? "phobos64" : "phobos32mscoff";
         }
         else if (target.os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
         {
@@ -889,17 +884,14 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
         {
             target.isX86_64 = false;
-            target.omfobj = false;
         }
         else if (arg == "-m64") // https://dlang.org/dmd.html#switch-m64
         {
             target.isX86_64 = true;
-            target.omfobj = false;
         }
         else if (arg == "-m32mscoff") // https://dlang.org/dmd.html#switch-m32mscoff
         {
             target.isX86_64 = false;
-            target.omfobj = false;
         }
         else if (startsWith(p + 1, "mscrtlib="))
         {

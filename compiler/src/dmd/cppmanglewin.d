@@ -41,6 +41,7 @@ import dmd.visitor;
 
 const(char)* toCppMangleMSVC(Dsymbol s)
 {
+    // TODO: get rid of isDmc flag
     scope VisualCPPMangler v = new VisualCPPMangler(false, s.loc, global.errorSink);
     auto p = v.mangleOf(s);
     if (v.errors)
@@ -49,21 +50,6 @@ const(char)* toCppMangleMSVC(Dsymbol s)
 }
 
 const(char)* cppTypeInfoMangleMSVC(Dsymbol s) @safe
-{
-    //printf("cppTypeInfoMangle(%s)\n", s.toChars());
-    assert(0);
-}
-
-const(char)* toCppMangleDMC(Dsymbol s)
-{
-    scope VisualCPPMangler v = new VisualCPPMangler(true, s.loc, global.errorSink);
-    auto p = v.mangleOf(s);
-    if (v.errors)
-        fatal();  // because this error should be handled in frontend
-    return p;
-}
-
-const(char)* cppTypeInfoMangleDMC(Dsymbol s) @safe
 {
     //printf("cppTypeInfoMangle(%s)\n", s.toChars());
     assert(0);
