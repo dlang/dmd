@@ -389,16 +389,7 @@ private void obj_start(ref OutBuffer objbuf, const(char)* srcfile)
     version (Windows)
     {
         import dmd.backend.mscoffobj;
-        import dmd.backend.cgobj;
-
-        // Produce Ms COFF files by default, OMF for -m32omf
-        assert(objbuf.length() == 0);
-        switch (target.objectFormat())
-        {
-            case Target.ObjectFormat.coff: objmod = MsCoffObj_init(&objbuf, srcfile, null); break;
-            case Target.ObjectFormat.omf:  objmod = OmfObj_init(&objbuf, srcfile, null); break;
-            default: assert(0);
-        }
+        objmod = MsCoffObj_init(&objbuf, srcfile, null);
     }
     else
     {
@@ -1388,9 +1379,6 @@ private bool entryPointFunctions(Obj objmod, FuncDeclaration fd)
             case Target.ObjectFormat.coff:
                 objmod.external_def("main");
                 break;
-            case Target.ObjectFormat.omf:
-                objmod.external_def("_main");
-                break;
         }
         if (const libname = finalDefaultlibname())
             obj_includelib(libname);
@@ -1400,16 +1388,7 @@ private bool entryPointFunctions(Obj objmod, FuncDeclaration fd)
     // D runtime library
     if (fd.isRtInit())
     {
-        final switch (target.objectFormat())
-        {
-            case Target.ObjectFormat.elf:
-            case Target.ObjectFormat.macho:
-            case Target.ObjectFormat.coff:
-                objmod.ehsections();   // initialize exception handling sections
-                break;
-            case Target.ObjectFormat.omf:
-                break;
-        }
+        objmod.ehsections();   // initialize exception handling sections
         return true;
     }
 
@@ -1424,11 +1403,6 @@ private bool entryPointFunctions(Obj objmod, FuncDeclaration fd)
                 objmod.includelib("OLDNAMES");
                 break;
 
-            case Target.ObjectFormat.omf:
-                objmod.external_def("__acrtused_con"); // bring in C console startup code
-                objmod.includelib("snn.lib");          // bring in C runtime library
-                break;
-
             default:
                 break;
         }
@@ -1440,23 +1414,10 @@ private bool entryPointFunctions(Obj objmod, FuncDeclaration fd)
         (fd.isWinMain() || fd.isDllMain()) &&
         onlyOneMain(fd))
     {
-        switch (target.objectFormat())
-        {
-            case Target.ObjectFormat.coff:
-                objmod.includelib("uuid");
-                if (driverParams.mscrtlib.length && driverParams.mscrtlib[0])
-                    obj_includelib(driverParams.mscrtlib);
-                objmod.includelib("OLDNAMES");
-                break;
-
-            case Target.ObjectFormat.omf:
-                objmod.external_def(fd.isWinMain() ? "__acrtused" : "__acrtused_dll");
-                break;
-
-            default:
-                assert(0);
-        }
-
+        objmod.includelib("uuid");
+        if (driverParams.mscrtlib.length && driverParams.mscrtlib[0])
+            obj_includelib(driverParams.mscrtlib);
+        objmod.includelib("OLDNAMES");
         if (const libname = finalDefaultlibname())
             obj_includelib(libname);
         return true;

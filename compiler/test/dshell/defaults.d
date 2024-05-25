@@ -49,13 +49,6 @@ void testConfigurations()
 		"-conf=" ~ configPath
 	];
 
-	version (Windows) if (MODEL == "32omf")
-	{
-		// 32-OMF tries to use `optlink.exe` located next to `sc.ini`
-		// and also doesn't like the LIB setup, so skip it for now
-		extraFlags = [""];
-	}
-
 	foreach (const target; targets)
 	{
 		foreach (const flags; extraFlags)

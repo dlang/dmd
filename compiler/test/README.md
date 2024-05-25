@@ -191,7 +191,7 @@ void main(string[] args)
 Test parameters can be restricted to certain targets by adding a brace-enclosed
 condition after the name, i.e. `REQUIRED_ARGS(<condition>): ...`. The `<condition>`
 consists of the target operating system followed by an optional model suffix,
-e.g. `linux`, `win32mscoff`, `freebsd64`.
+e.g. `linux`, `win32`, `freebsd64`.
 
 Valid platforms:
 - win
@@ -203,8 +203,6 @@ Valid platforms:
 
 Valid models:
 - 32
-- 32mscoff  (windows only)
-- 32omf  (windows only)
 - 64
 
 Note that test parameters *MUST* be followed by a colon (intermediate whitespace is allowed).
@@ -358,7 +356,7 @@ Environment variables
 
     ARGS:          set to execute all combinations of
     AUTO_UPDATE:   set to 1 to auto-update mismatching test output
-    CC:            C++ compiler to use, ex: dmc, g++
+    CC:            C++ compiler to use, ex: cl, g++
     DMD:           compiler to use, ex: ../src/dmd (required)
     MODEL:         32 or 64 (required)
     OS:            windows, linux, freebsd, osx, netbsd, dragonflybsd
@@ -430,7 +428,7 @@ depend on the current platform and target:
 
                     Supported conditions:
                     - OS: posix, windows, ...
-                    - Model: 64, 32mscoff, 32omf and 32 (also matches 32mscoff + 32omf)
+                    - Model: 64, 32
 
     $r:<regex>$     any text matching <regex> (using $ inside of <regex> is not
                     supported, use multiple regexes instead)

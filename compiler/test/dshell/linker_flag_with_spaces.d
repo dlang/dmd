@@ -2,15 +2,6 @@ import dshell;
 
 int main()
 {
-    version (DigitalMars)
-    {
-        if (OS == "windows" && MODEL == "32omf")
-        {
-            writeln("Skipping test when using Optlink.");
-            return DISABLED;
-        }
-    }
-
     Vars.set("lib", "$OUTPUT_BASE/dir with spaces/b$LIBEXT");
 
     run("$DMD -m$MODEL -of$lib -lib $EXTRA_FILES/linker_flag_with_spaces_b.d");

@@ -812,7 +812,6 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     bool isX86_64 = arch[0] == '6';
 
     version(Windows) // delete LIB entry in [Environment] (necessary for optlink) to allow inheriting environment for MS-COFF
-    if (arch != "32omf")
         environment.update("LIB", 3).value = null;
 
     // read from DFLAGS in [Environment{arch}] section
@@ -971,8 +970,6 @@ void reconcileCommands(ref Param params, ref Target target)
     }
     else
     {
-        if (target.omfobj)
-            error(Loc.initial, "`-m32omf` can only be used when targetting windows");
         if (driverParams.mscrtlib)
             error(Loc.initial, "`-mscrtlib` can only be used when targetting windows");
     }

@@ -299,9 +299,6 @@ DFLAGS=%DFLAGS% -L/OPT:NOICF
 
 [Environment64]
 DFLAGS=%DFLAGS% -L/OPT:NOICF
-
-[Environment32mscoff]
-DFLAGS=%DFLAGS% -L/OPT:NOICF
 `;
     }
     else
@@ -1562,8 +1559,8 @@ auto sourceFiles()
             dmsc.d e2ir.d iasmdmd.d glue.d objc_glue.d
             s2ir.d tocsym.d toctype.d tocvdebug.d todt.d toir.d toobj.d
         "),
-        driver: fileArray(env["D"], "dinifile.d dmdparams.d gluelayer.d lib.d libelf.d libmach.d libmscoff.d libomf.d
-            link.d mars.d main.d scanelf.d scanmach.d scanmscoff.d scanomf.d vsoptions.d
+        driver: fileArray(env["D"], "dinifile.d dmdparams.d gluelayer.d lib.d libelf.d libmach.d libmscoff.d
+            link.d mars.d main.d scanelf.d scanmach.d scanmscoff.d vsoptions.d
         "),
         frontend: fileArray(env["D"], "
             access.d aggregate.d aliasthis.d argtypes_x86.d argtypes_sysv_x64.d argtypes_aarch64.d arrayop.d

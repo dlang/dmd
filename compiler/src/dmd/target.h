@@ -62,7 +62,6 @@ struct TargetC
     enum class BitFieldStyle : unsigned char
     {
         Unspecified,
-        DM,                   // Digital Mars 32 bit C compiler
         MS,                   // Microsoft 32 and 64 bit C compilers
                               // https://docs.microsoft.com/en-us/cpp/c-language/c-bit-fields?view=msvc-160
                               // https://docs.microsoft.com/en-us/cpp/cpp/cpp-bit-fields?view=msvc-160
@@ -164,7 +163,6 @@ struct Target
     DString lib_ext;    /// extension for static library files
     DString dll_ext;    /// extension for dynamic library files
     d_bool run_noext;     /// allow -run sources without extensions
-    d_bool omfobj;        /// for Win32: write OMF object files instead of COFF
 
     template <typename T>
     struct FPTypeProperties

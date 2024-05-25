@@ -9,16 +9,6 @@ int main()
         writeln("CPP header generation test was skipped because $CXX is empty!");
         return DISABLED;
     }
-    // DMC cannot compile the generated headers ...
-    version (Windows)
-    {
-        import std.algorithm : canFind;
-        if (CXX.canFind("dmc"))
-        {
-            writeln("CPP header generation test was skipped because DMC is not supported!");
-            return DISABLED;
-        }
-    }
 
     Vars.set("SOURCE_DIR",  "$EXTRA_FILES/cpp_header_gen");
     Vars.set("LIB",         "$OUTPUT_BASE/library$LIBEXT");

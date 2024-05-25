@@ -960,7 +960,6 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
                     bitFieldSize = (bf.bitOffset + bf.fieldWidth + 7) / 8;
                     break;
 
-                case TargetC.BitFieldStyle.DM:
                 case TargetC.BitFieldStyle.MS:
                     // This relies on all bit fields in the same storage location have the same type
                     bitFieldSize = cast(uint)vd.type.size();

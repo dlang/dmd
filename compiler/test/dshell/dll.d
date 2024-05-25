@@ -2,9 +2,6 @@ import dshell;
 
 int main()
 {
-    version (Windows) if (Vars.MODEL == "32omf") // Avoid optlink
-        return DISABLED;
-
     version (DigitalMars)
     {
 // Disable DM Dlls for now, need to redesign it
