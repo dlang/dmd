@@ -53,19 +53,6 @@ version (CppRuntime_Microsoft)
         enum __delete_mangle                = "??3@YAXPAX@Z";
     }
 }
-else version (CppRuntime_DigitalMars)
-{
-    version (D_LP64)
-    {
-        enum __new_mangle                   = "??2@YAPEAX_K@Z";
-        enum __delete_mangle                = "??3@YAXPEAX@Z";
-    }
-    else
-    {
-        enum __new_mangle                   = "??2@YAPAXI@Z";
-        enum __delete_mangle                = "??3@YAXPAX@Z";
-    }
-}
 else
 {
     version (D_LP64)
