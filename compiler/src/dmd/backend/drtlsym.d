@@ -62,12 +62,12 @@ Symbol *getRtlsym(RTLSYM i) @trusted
     if (!t)
     {
         t = type_fake(TYnfunc);
-        t.Tmangle = mTYman_c;
+        t.Tmangle = Mangle.c;
         t.Tcount++;
 
         // Variadic function
         tv = type_fake(TYnfunc);
-        tv.Tmangle = mTYman_c;
+        tv.Tmangle = Mangle.c;
         tv.Tcount++;
     }
 

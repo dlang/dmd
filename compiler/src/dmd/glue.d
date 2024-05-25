@@ -339,7 +339,7 @@ private Symbol *callFuncsAndGates(Module m, Symbol*[] sctors, StaticDtorDeclarat
          *      extern (C) void func();
          */
         t = type_function(TYnfunc, null, false, tstypes[TYvoid]);
-        t.Tmangle = mTYman_c;
+        t.Tmangle = Mangle.c;
     }
 
     localgot = null;
@@ -516,7 +516,7 @@ private void genObjFile(Module m, bool multiobj)
          */
         m.cov = toSymbolX(m, "__coverage", SC.static_, type_fake(TYint), "Z");
         m.cov.Sflags |= SFLhidden;
-        m.cov.Stype.Tmangle = mTYman_d;
+        m.cov.Stype.Tmangle = Mangle.d;
         m.cov.Sfl = FLdata;
 
         auto dtb = DtBuilder(0);
@@ -597,7 +597,7 @@ private void genObjFile(Module m, bool multiobj)
          *      extern (C) void func();
          */
         type *t = type_function(TYnfunc, null, false, tstypes[TYvoid]);
-        t.Tmangle = mTYman_c;
+        t.Tmangle = Mangle.c;
 
         m.sictor = toSymbolX(m, "__modictor", SC.global, t, "FZv");
         cstate.CSpsymtab = &m.sictor.Sfunc.Flocsym;
@@ -1297,7 +1297,7 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             //Build type
             newConstructor.Stype = type_function(TYnfunc, [], false, type_alloc(TYvoid));
             //Tell it it's supposed to be a C function. Does it do anything? Not sure.
-            type_setmangle(&newConstructor.Stype, mTYman_c);
+            type_setmangle(&newConstructor.Stype, Mangle.c);
             symbol_func(*newConstructor);
             //Global SC for now.
             newConstructor.Sclass = SC.static_;
@@ -1310,7 +1310,7 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             Symbol* dso_handle = symbol_calloc("__dso_handle");
             dso_handle.Stype = type_fake(TYint);
             //Try to get MacOS _ prefix-ism right.
-            type_setmangle(&dso_handle.Stype, mTYman_c);
+            type_setmangle(&dso_handle.Stype, Mangle.c);
             dso_handle.Sfl = FLextern;
             dso_handle.Sclass = SC.extern_;
             dso_handle.Stype.Tcount++;
@@ -1615,7 +1615,7 @@ public Symbol* getBzeroSymbol()
 
     s = symbol_calloc("__bzeroBytes");
     s.Stype = type_static_array(128, type_fake(TYuchar));
-    s.Stype.Tmangle = mTYman_c;
+    s.Stype.Tmangle = Mangle.c;
     s.Stype.Tcount++;
     s.Sclass = SC.global;
     s.Sfl = FLdata;

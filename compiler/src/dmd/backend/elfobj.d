@@ -2123,8 +2123,8 @@ char *obj_mangle2(Symbol *s,char *dest, size_t *destlen)
     //dbg_printf("len %d\n",len);
     switch (type_mangle(s.Stype))
     {
-        case mTYman_pas:                // if upper case
-        case mTYman_for:
+        case Mangle.pascal:                // if upper case
+        case Mangle.fortran:
             if (len >= DEST_LEN)
                 dest = cast(char *)mem_malloc(len + 1);
             memcpy(dest,name,len + 1);  // copy in name and ending 0
@@ -2136,7 +2136,7 @@ char *obj_mangle2(Symbol *s,char *dest, size_t *destlen)
                     dest[i] = cast(char)(c + 'A' - 'a');
             }
             break;
-        case mTYman_std:
+        case Mangle.stdcall:
         {
             bool cond = (tyfunc(s.ty()) && !variadic(s.Stype));
             if (cond)
@@ -2156,10 +2156,10 @@ char *obj_mangle2(Symbol *s,char *dest, size_t *destlen)
         }
             goto case;
 
-        case mTYman_cpp:
-        case mTYman_c:
-        case mTYman_d:
-        case mTYman_sys:
+        case Mangle.cpp:
+        case Mangle.c:
+        case Mangle.d:
+        case Mangle.syscall:
         case 0:
             if (len >= DEST_LEN)
                 dest = cast(char *)mem_malloc(len + 1);

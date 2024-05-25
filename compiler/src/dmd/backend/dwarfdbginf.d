@@ -185,7 +185,7 @@ static if (1)
             {
                 type *t = tspvoid;
                 t.Tcount++;
-                type_setmangle(&t, mTYman_sys);         // no leading '_' for mangled name
+                type_setmangle(&t, Mangle.syscall);         // no leading '_' for mangled name
                 eh_frame_sym = symbol_name("EH_frame0", SC.static_, t);
                 Obj.pubdef(seg, eh_frame_sym, 0);
                 symbol_keep(eh_frame_sym);
@@ -3188,7 +3188,7 @@ static if (1)
             const length = snprintf(name.ptr, name.length, "GCC_except_table%d", ++except_table_num);
             type *t = tspvoid;
             t.Tcount++;
-            type_setmangle(&t, mTYman_sys);         // no leading '_' for mangled name
+            type_setmangle(&t, Mangle.syscall);         // no leading '_' for mangled name
             Symbol *s = symbol_name(name[0 .. length], SC.static_, t);
             Obj.pubdef(seg, s, cast(uint)buf.length());
             symbol_keep(s);

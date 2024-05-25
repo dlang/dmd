@@ -1677,14 +1677,14 @@ char *obj_mangle2(Symbol *s,char *dest)
     //dbg_printf("len %d\n",len);
     switch (type_mangle(s.Stype))
     {
-        case mTYman_pas:                // if upper case
-        case mTYman_for:
+        case Mangle.pascal:             // if upper case
+        case Mangle.fortran:
             if (len >= DEST_LEN)
                 dest = cast(char *)mem_malloc(len + 1);
             memcpy(dest,name,len + 1);  // copy in name and ending 0
             strupr(dest);               // to upper case
             break;
-        case mTYman_std:
+        case Mangle.stdcall:
             if (!(config.flags4 & CFG4oldstdmangle) &&
                 config.exe == EX_WIN32 && tyfunc(s.ty()) &&
                 !variadic(s.Stype))
@@ -1704,8 +1704,8 @@ char *obj_mangle2(Symbol *s,char *dest)
             }
             goto case;
 
-        case mTYman_cpp:
-        case mTYman_sys:
+        case Mangle.cpp:
+        case Mangle.syscall:
         case_mTYman_c64:
         case 0:
             if (len >= DEST_LEN)
@@ -1713,8 +1713,8 @@ char *obj_mangle2(Symbol *s,char *dest)
             memcpy(dest,name,len+1);// copy in name and trailing 0
             break;
 
-        case mTYman_c:
-        case mTYman_d:
+        case Mangle.c:
+        case Mangle.d:
             if(I64)
                 goto case_mTYman_c64;
             // Prepend _ to identifier
