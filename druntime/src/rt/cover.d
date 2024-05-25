@@ -473,10 +473,7 @@ FILE* openOrCreateFile(string name)
 
 version (Windows) HANDLE handle(int fd)
 {
-    version (CRuntime_DigitalMars)
-        return _fdToHandle(fd);
-    else
-        return cast(HANDLE)_get_osfhandle(fd);
+    return cast(HANDLE)_get_osfhandle(fd);
 }
 
 void lockFile(int fd)

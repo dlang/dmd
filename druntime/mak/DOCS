@@ -553,7 +553,6 @@ DOCS=\
 	$(DOCDIR)\rt_sections.html \
 	$(DOCDIR)\rt_sections_darwin_64.html \
 	$(DOCDIR)\rt_sections_solaris.html \
-	$(DOCDIR)\rt_sections_win32.html \
 	$(DOCDIR)\rt_sections_win64.html \
 	$(DOCDIR)\rt_tlsgc.html \
 	$(DOCDIR)\rt_trace.html \

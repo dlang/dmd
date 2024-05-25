@@ -248,7 +248,6 @@ void addCRuntimePredefinedGlobalIdent(const ref TargetC c)
     default:
     case Unspecified: return;
     case Bionic:      return predef("CRuntime_Bionic");
-    case DigitalMars: return predef("CRuntime_DigitalMars");
     case Glibc:       return predef("CRuntime_Glibc");
     case Microsoft:   return predef("CRuntime_Microsoft");
     case Musl:        return predef("CRuntime_Musl");
@@ -269,7 +268,6 @@ void addCppRuntimePredefinedGlobalIdent(const ref TargetCPP cpp)
     default:
     case Unspecified: return;
     case Clang:       return predef("CppRuntime_Clang");
-    case DigitalMars: return predef("CppRuntime_DigitalMars");
     case Gcc:         return predef("CppRuntime_Gcc");
     case Microsoft:   return predef("CppRuntime_Microsoft");
     case Sun:         return predef("CppRuntime_Sun");
@@ -1345,7 +1343,6 @@ struct TargetC
     {
         Unspecified,
         Bionic,
-        DigitalMars,
         Glibc,
         Microsoft,
         Musl,
@@ -1448,7 +1445,6 @@ struct TargetCPP
     {
         Unspecified,
         Clang,
-        DigitalMars,
         Gcc,
         Microsoft,
         Sun

@@ -2453,11 +2453,7 @@ private
 
     bool ll_dllHasExternalReferences() nothrow
     {
-        version (CRuntime_DigitalMars)
-            enum internalReferences = 1; // only the watchdog thread
-        else
-            int internalReferences =  msvcUsesUCRT ? 1 + ll_countLowLevelThreadsWithDLLUnloadCallback() : 1;
-
+        int internalReferences =  msvcUsesUCRT ? 1 + ll_countLowLevelThreadsWithDLLUnloadCallback() : 1;
         int refcnt = dll_getRefCount(ll_dllModule);
         return refcnt > internalReferences;
     }
@@ -2518,10 +2514,7 @@ private
         // if a thread is created from a DLL, the MS runtime (starting with VC2015) increments the DLL reference count
         // to avoid the DLL being unloaded while the thread is still running. Mimick this behavior here for all
         // runtimes not doing this
-        version (CRuntime_DigitalMars)
-            enum needRef = true;
-        else
-            bool needRef = !msvcUsesUCRT;
+        bool needRef = !msvcUsesUCRT;
 
         if (needRef)
         {

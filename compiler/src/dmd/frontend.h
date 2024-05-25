@@ -5956,13 +5956,12 @@ struct TargetC final
     {
         Unspecified = 0u,
         Bionic = 1u,
-        DigitalMars = 2u,
-        Glibc = 3u,
-        Microsoft = 4u,
-        Musl = 5u,
-        Newlib = 6u,
-        UClibc = 7u,
-        WASI = 8u,
+        Glibc = 2u,
+        Microsoft = 3u,
+        Musl = 4u,
+        Newlib = 5u,
+        UClibc = 6u,
+        WASI = 7u,
     };
 
     enum class BitFieldStyle : uint8_t
@@ -6013,10 +6012,9 @@ struct TargetCPP final
     {
         Unspecified = 0u,
         Clang = 1u,
-        DigitalMars = 2u,
-        Gcc = 3u,
-        Microsoft = 4u,
-        Sun = 5u,
+        Gcc = 2u,
+        Microsoft = 3u,
+        Sun = 4u,
     };
 
     bool reverseOverloads;

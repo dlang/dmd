@@ -769,12 +769,11 @@ dmd -cov -unittest myprog.d
                `darwin` or `osx` for MacOS, `dragonfly` or `dragonflybsd` for DragonflyBSD,
                `freebsd`, `openbsd`, `linux`, `solaris` or `windows` for their respective operating systems.
                $(I cenv) is the C runtime environment and is optional: `musl` for musl-libc,
-               `msvc` for the MSVC runtime (the default for windows with this option),
-               `bionic` for the Andriod libc, `digital_mars` for the Digital Mars runtime for Windows
-               `gnu` or `glibc` for the GCC C runtime, `newlib` or `uclibc` for their respective C runtimes.
-               ($ I cppenv) is the C++ runtime environment: `clang` for the LLVM C++ runtime
-               `gcc` for GCC's C++ runtime, `msvc` for microsoft's MSVC C++ runtime (the default for windows with this switch),
-               `sun` for Sun's C++ runtime and `digital_mars` for the Digital Mars C++ runtime for windows.
+               `msvc` for the MSVC runtime, `bionic` for the Andriod libc, `gnu` or `glibc`
+               for the GCC C runtime, `newlib` or `uclibc` for their respective C runtimes.
+               ($ I cppenv) is the C++ runtime environment: `clang` for the LLVM C++ runtime,
+               `gcc` for GCC's C++ runtime, `msvc` for microsoft's MSVC C++ runtime,
+               `sun` for Sun's C++ runtime.
                "
         ),
         Option("transition=<name>",
