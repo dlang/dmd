@@ -261,7 +261,7 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
             si.Sclass = SC.comdat;
             si.Stype = type_static_array(cast(uint)(len * sz), tstypes[TYchar]);
             si.Stype.Tcount++;
-            type_setmangle(&si.Stype, mTYman_c);
+            type_setmangle(&si.Stype, Mangle.c);
             si.Sflags |= SFLnodebug | SFLartifical;
             si.Sfl = FLdata;
             si.Salignment = cast(ubyte)sz;
@@ -5619,7 +5619,7 @@ elem *callfunc(const ref Loc loc,
             if (ep)
             {
                 /* // BUG: implement
-                if (left_to_right && type_mangle(tfunc) == mTYman_cpp)
+                if (left_to_right && type_mangle(tfunc) == Mangle.cpp)
                     ep = el_param(ehidden,ep);
                 else
                 */

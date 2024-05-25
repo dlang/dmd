@@ -570,7 +570,7 @@ private type * type_allocbasic(tym_t ty)
 {   type *t;
 
     t = type_alloc(ty);
-    t.Tmangle = mTYman_c;
+    t.Tmangle = Mangle.c;
     t.Tcount = 1;              /* so it is not inadvertently free'd    */
     return t;
 }
@@ -623,23 +623,23 @@ void type_init()
 
     // Type of trace function
     tstrace = type_fake(I16 ? TYffunc : TYnfunc);
-    tstrace.Tmangle = mTYman_c;
+    tstrace.Tmangle = Mangle.c;
     tstrace.Tcount++;
 
     chartype = (config.flags3 & CFG3ju) ? tstypes[TYuchar] : tstypes[TYchar];
 
     // Type of far library function
     tsclib = type_fake(LARGECODE ? TYfpfunc : TYnpfunc);
-    tsclib.Tmangle = mTYman_c;
+    tsclib.Tmangle = Mangle.c;
     tsclib.Tcount++;
 
     tspvoid = type_allocn(pointertype,tstypes[TYvoid]);
-    tspvoid.Tmangle = mTYman_c;
+    tspvoid.Tmangle = Mangle.c;
     tspvoid.Tcount++;
 
     // Type of far library function
     tsjlib =    type_fake(TYjfunc);
-    tsjlib.Tmangle = mTYman_c;
+    tsjlib.Tmangle = Mangle.c;
     tsjlib.Tcount++;
 
     tsdlib = tsjlib;
@@ -805,7 +805,7 @@ type *type_settype(type **pt, type *t)
  * Modify the Tmangle field of a type.
  */
 
-type *type_setmangle(type **pt,mangle_t mangle)
+type *type_setmangle(type **pt, Mangle mangle)
 {   type *t;
 
     t = *pt;

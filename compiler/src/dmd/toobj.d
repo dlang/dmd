@@ -1015,7 +1015,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
         }
 
         /**
-         * Returns the target mangling mangle_t for the given variable.
+         * Returns the target mangling Mangle for the given variable.
          *
          * Params:
          *      vd = the variable declaration
@@ -1023,22 +1023,22 @@ void toObjFile(Dsymbol ds, bool multiobj)
          * Returns:
          *      the mangling that should be used for variable
          */
-        static mangle_t mangle(const VarDeclaration vd)
+        static Mangle mangle(const VarDeclaration vd)
         {
             final switch (vd.resolvedLinkage())
             {
                 case LINK.windows:
-                    return target.isX86_64 ? mTYman_c : mTYman_std;
+                    return target.isX86_64 ? Mangle.c : Mangle.stdcall;
 
                 case LINK.objc:
                 case LINK.c:
-                    return mTYman_c;
+                    return Mangle.c;
 
                 case LINK.d:
-                    return mTYman_d;
+                    return Mangle.d;
 
                 case LINK.cpp:
-                    return mTYman_cpp;
+                    return Mangle.cpp;
 
                 case LINK.default_:
                 case LINK.system:

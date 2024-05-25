@@ -87,8 +87,8 @@ Symbol *symboldata(targ_size_t offset, tym_t ty)
     Symbol *s = symbol_generate(SC.locstat, type_fake(ty));
     s.Sfl = FLdata;
     s.Soffset = offset;
-    s.Stype.Tmangle = mTYman_sys; // writes symbol unmodified in Obj::mangle
-    symbol_keep(s);               // keep around
+    s.Stype.Tmangle = Mangle.syscall; // writes symbol unmodified in Obj::mangle
+    symbol_keep(s);                   // keep around
     return s;
 }
 
