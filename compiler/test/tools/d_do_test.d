@@ -1656,18 +1656,7 @@ int tryMain(string[] args)
 
     // Clear the DFLAGS environment variable if it was specified in the test file
     if (testArgs.clearDflags)
-    {
-        // `environment["DFLAGS"] = "";` doesn't seem to work on Win32 (might be a bug
-        // in std.process). So, resorting to `putenv` in snn.lib
-        version(Win32)
-        {
-            putenv("DFLAGS=");
-        }
-        else
-        {
-            environment["DFLAGS"] = "";
-        }
-    }
+        environment["DFLAGS"] = "";
 
     writef(" ... %-30s %s%s(%s)",
             input_file,
