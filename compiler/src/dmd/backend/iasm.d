@@ -15,7 +15,7 @@ module dmd.backend.iasm;
 // Online documentation: https://dlang.org/phobos/dmd_backend_iasm.html
 
 import dmd.backend.cc : block;
-import dmd.backend.code_x86 : opcode_t;
+import dmd.backend.x86.code_x86 : opcode_t;
 
 @nogc:
 nothrow:

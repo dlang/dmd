@@ -24,7 +24,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.cgcse;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder;
 import dmd.backend.disasm86;
 import dmd.backend.dlist;

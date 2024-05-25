@@ -12,5 +12,5 @@
  */
 module dmd.backend.backend;
 
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.el;
