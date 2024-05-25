@@ -358,11 +358,11 @@ public import dmd.backend.cgcod : findreg;
 reg_t findregmsw(uint regm) { return findreg(regm & mMSW); }
 reg_t findreglsw(uint regm) { return findreg(regm & (mLSW | mBP)); }
 
-public import dmd.backend.cod1;
-public import dmd.backend.cod2;
-public import dmd.backend.cod3;
-public import dmd.backend.cod4;
-public import dmd.backend.cod5;
+public import dmd.backend.x86.cod1;
+public import dmd.backend.x86.cod2;
+public import dmd.backend.x86.cod3;
+public import dmd.backend.x86.cod4;
+public import dmd.backend.x86.cod5;
 public import dmd.backend.cgen : outfixlist, addtofixlist;
 
 public import dmd.backend.cgxmm;

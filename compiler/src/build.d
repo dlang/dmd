@@ -1618,9 +1618,9 @@ auto sourceFiles()
         backend: fileArray(env["C"], "
             backend.d bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d
             dout.d inliner.d
-            gloop.d compress.d cgelem.d cgcs.d ee.d cod4.d cod5.d eh.d nteh.d blockopt.d mem.d cg.d x86/cgreg.d
-            dtype.d debugprint.d fp.d symbol.d symtab.d elem.d dcode.d cgsched.d cg87.d cgxmm.d cgcod.d cod1.d cod2.d
-            cod3.d cv8.d dcgcv.d pdata.d util2.d var.d backconfig.d drtlsym.d dwarfeh.d ptrntab.d
+            gloop.d compress.d cgelem.d cgcs.d ee.d x86/cod4.d x86/cod5.d eh.d nteh.d blockopt.d mem.d cg.d x86/cgreg.d
+            dtype.d debugprint.d fp.d symbol.d symtab.d elem.d dcode.d cgsched.d cg87.d cgxmm.d cgcod.d x86/cod1.d x86/cod2.d
+            x86/cod3.d cv8.d dcgcv.d pdata.d util2.d var.d backconfig.d drtlsym.d dwarfeh.d ptrntab.d
             dvarstats.d dwarfdbginf.d cgen.d goh.d barray.d cgcse.d elpicpie.d
             machobj.d elfobj.d mscoffobj.d filespec.d cgobj.d aarray.d disasm86.d
             "

@@ -133,7 +133,7 @@ public import dmd.backend.symbol : symbol_print, symbol_term, symbol_ident, symb
 
 public import dmd.backend.cg87 : loadconst, cg87_reset;
 
-public import dmd.backend.cod3 : cod3_thunk;
+public import dmd.backend.x86.cod3 : cod3_thunk;
 
 public import dmd.backend.dout : outthunk, out_readonly, out_readonly_comdat,
     out_regcand, writefunc, alignOffset, out_reset, out_readonly_sym, out_string_literal, outdata;
