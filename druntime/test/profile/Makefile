@@ -68,4 +68,4 @@ $(ROOT)/%$(DOTEXE): $(SRC)/%.d
 	$(QUIET)$(DMD) $(DFLAGS) -of$(ROOT)/$* $<
 
 clean:
-	rm -rf $(GENERATED) *.log *.def
+	rm -rf $(ROOT) *.log *.def

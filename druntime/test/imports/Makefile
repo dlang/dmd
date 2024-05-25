@@ -11,4 +11,4 @@ $(ROOT)/%.done:
 	$(QUIET)$(DMD) -version=Shared -o- -deps=$@ -Isrc -I../../import src/$*.d
 
 clean:
-	rm -rf $(GENERATED)
+	rm -rf $(ROOT)
