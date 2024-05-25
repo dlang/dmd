@@ -118,4 +118,4 @@ $(ROOT)/%_old$(DOTEXE): $(SRC)/%.cpp $(SRC)/%_test.d
 endif # end Posix
 
 clean:
-	rm -rf $(GENERATED)
+	rm -rf $(ROOT)
