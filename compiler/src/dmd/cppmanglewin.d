@@ -41,8 +41,7 @@ import dmd.visitor;
 
 const(char)* toCppMangleMSVC(Dsymbol s)
 {
-    // TODO: get rid of isDmc flag
-    scope VisualCPPMangler v = new VisualCPPMangler(false, s.loc, global.errorSink);
+    scope VisualCPPMangler v = new VisualCPPMangler(s.loc, global.errorSink);
     auto p = v.mangleOf(s);
     if (v.errors)
         fatal();  // because this error should be handled in frontend
@@ -71,7 +70,6 @@ private extern (C++) final class VisualCPPMangler : Visitor
     bool ignoreConst;      /// in some cases we should ignore CV-modifiers.
     bool escape;           /// toplevel const non-pointer types need a '$$C' escape in addition to a cv qualifier.
     bool mangleReturnType; /// return type shouldn't be saved and substituted in arguments
-    bool isDmc;            /// Digital Mars C++ name mangling
     bool errors;           /// errors occurred
 
     OutBuffer buf;
@@ -80,16 +78,14 @@ private extern (C++) final class VisualCPPMangler : Visitor
     {
         saved_idents[] = rvl.saved_idents[];
         saved_types[]  = rvl.saved_types[];
-        isDmc          = rvl.isDmc;
         loc            = rvl.loc;
     }
 
 public:
-    extern (D) this(bool isDmc, Loc loc, ErrorSink eSink) scope @safe
+    extern (D) this(Loc loc, ErrorSink eSink) scope @safe
     {
         saved_idents[] = null;
         saved_types[] = null;
-        this.isDmc = isDmc;
         this.loc = loc;
         this.eSink = eSink;
     }
@@ -133,7 +129,7 @@ public:
         if (checkImmutableShared(type, loc))
             return;
 
-        if (type.isConst() && (isNotTopType || isDmc))
+        if (type.isConst() && isNotTopType)
         {
             if (checkTypeSaved(type))
                 return;
@@ -142,23 +138,20 @@ public:
         {
             return;
         }
-        if (!isDmc)
+        switch (type.ty)
         {
-            switch (type.ty)
-            {
-            case Tint64:
-            case Tuns64:
-            case Tint128:
-            case Tuns128:
-            case Tfloat80:
-            case Twchar:
-                if (checkTypeSaved(type))
-                    return;
-                break;
+        case Tint64:
+        case Tuns64:
+        case Tint128:
+        case Tuns128:
+        case Tfloat80:
+        case Twchar:
+            if (checkTypeSaved(type))
+                return;
+            break;
 
-            default:
-                break;
-            }
+        default:
+            break;
         }
         mangleModifier(type);
         switch (type.ty)
@@ -203,10 +196,7 @@ public:
             buf.writeByte('N');
             break;
         case Tfloat80:
-            if (isDmc)
-                buf.writestring("_Z"); // DigitalMars long double
-            else
-                buf.writestring("_T"); // Intel long double
+            buf.writestring("_T"); // Intel long double
             break;
         case Tbool:
             buf.writestring("_N");
@@ -246,10 +236,7 @@ public:
         if (checkTypeSaved(type))
             return;
         // first dimension always mangled as const pointer
-        if (isDmc)
-            buf.writeByte('Q');
-        else
-            buf.writeByte('P');
+        buf.writeByte('P');
         isNotTopType = true;
         assert(type.next);
         if (type.next.ty == Tsarray)
@@ -295,10 +282,7 @@ public:
             if (checkTypeSaved(type))
                 return;
             mangleModifier(type);
-            if (type.isConst() || !isDmc)
-                buf.writeByte('Q'); // const
-            else
-                buf.writeByte('P'); // mutable
+            buf.writeByte('Q'); // const
             if (target.isLP64)
                 buf.writeByte('E');
             isNotTopType = true;
@@ -352,15 +336,7 @@ public:
     override void visit(TypeFunction type)
     {
         const(char)* arg = mangleFunctionType(type);
-        if (isDmc)
-        {
-            if (checkTypeSaved(type))
-                return;
-        }
-        else
-        {
-            buf.writestring("$$A6");
-        }
+        buf.writestring("$$A6");
         buf.writestring(arg);
         isNotTopType = false;
         ignoreConst = false;
@@ -400,16 +376,14 @@ public:
         else if (id == Id.__c_char)
             c = "D";  // VC++ char
         else if (id == Id.__c_wchar_t)
-        {
-            c = isDmc ? "_Y" : "_W";
-        }
+            c = "_W";
 
         if (c.length)
         {
             if (checkImmutableShared(type, loc))
                 return;
 
-            if (type.isConst() && (isNotTopType || isDmc))
+            if (type.isConst() && isNotTopType)
             {
                 if (checkTypeSaved(type))
                     return;
@@ -568,9 +542,8 @@ extern(D):
      * Params:
      *      o               = expression that represents the value
      *      tv              = template value
-     *      is_dmc_template = use DMC mangling
      */
-    void mangleTemplateValue(RootObject o, TemplateValueParameter tv, Dsymbol sym, bool is_dmc_template)
+    void mangleTemplateValue(RootObject o, TemplateValueParameter tv, Dsymbol sym)
     {
         if (!tv.valType.isintegral())
         {
@@ -585,12 +558,6 @@ extern(D):
         if (tv.valType.isunsigned())
         {
             mangleNumber(buf, e.toUInteger());
-        }
-        else if (is_dmc_template)
-        {
-            // NOTE: DMC mangles everything based on
-            // unsigned int
-            mangleNumber(buf, e.toInteger());
         }
         else
         {
@@ -624,40 +591,30 @@ extern(D):
         else if (e && e.op == EXP.variable && (cast(VarExp)e).var.isVarDeclaration())
         {
             buf.writeByte('$');
-            if (isDmc)
-                buf.writeByte('1');
-            else
-                buf.writeByte('E');
+            buf.writeByte('E');
             mangleVariable((cast(VarExp)e).var.isVarDeclaration());
         }
         else if (d && d.isTemplateDeclaration() && d.isTemplateDeclaration().onemember)
         {
             Dsymbol ds = d.isTemplateDeclaration().onemember;
-            if (isDmc)
+            if (ds.isUnionDeclaration())
+            {
+                buf.writeByte('T');
+            }
+            else if (ds.isStructDeclaration())
+            {
+                buf.writeByte('U');
+            }
+            else if (ds.isClassDeclaration())
             {
                 buf.writeByte('V');
             }
             else
             {
-                if (ds.isUnionDeclaration())
-                {
-                    buf.writeByte('T');
-                }
-                else if (ds.isStructDeclaration())
-                {
-                    buf.writeByte('U');
-                }
-                else if (ds.isClassDeclaration())
-                {
-                    buf.writeByte('V');
-                }
-                else
-                {
-                    eSink.error(sym.loc, "%s `%s` internal compiler error: C++ templates support only integral value, type parameters, alias templates and alias function parameters",
-                        sym.kind, sym.toPrettyChars);
-                    errors = true;
-                    return;
-                }
+                eSink.error(sym.loc, "%s `%s` internal compiler error: C++ templates support only integral value, type parameters, alias templates and alias function parameters",
+                    sym.kind, sym.toPrettyChars);
+                errors = true;
+                return;
             }
             mangleIdent(d);
         }
@@ -693,7 +650,6 @@ extern(D):
     void mangleName(Dsymbol sym, bool dont_use_back_reference)
     {
         //printf("mangleName('%s')\n", sym.toChars());
-        bool is_dmc_template = false;
 
         if (string s = mangleSpecialName(sym))
         {
@@ -704,7 +660,7 @@ extern(D):
         void writeName(Identifier name)
         {
             assert(name);
-            if (!is_dmc_template && dont_use_back_reference)
+            if (dont_use_back_reference)
                 saveIdent(name);
             else if (checkAndSaveIdent(name))
                 return;
@@ -766,18 +722,13 @@ extern(D):
             }
         }
 
-        scope VisualCPPMangler tmp = new VisualCPPMangler(isDmc ? true : false, loc, eSink);
+        scope VisualCPPMangler tmp = new VisualCPPMangler(loc, eSink);
         tmp.buf.writeByte('?');
         tmp.buf.writeByte('$');
         tmp.buf.writestring(symName);
         tmp.saved_idents[0] = id;
         if (symName == id.toString())
             tmp.buf.writeByte('@');
-        if (isDmc)
-        {
-            tmp.mangleIdent(sym.parent, true);
-            is_dmc_template = true;
-        }
         bool is_var_arg = false;
         for (size_t i = firstTemplateArg; i < actualti.tiargs.length; i++)
         {
@@ -800,7 +751,7 @@ extern(D):
             }
             if (tv)
             {
-                tmp.mangleTemplateValue(o, tv, actualti, is_dmc_template);
+                tmp.mangleTemplateValue(o, tv, actualti);
             }
             else if (!tp || tp.isTemplateTypeParameter())
             {
@@ -965,8 +916,6 @@ extern(D):
                 buf.writestring("$$CB");
             else if (isNotTopType)
                 buf.writeByte('B'); // const
-            else if (isDmc && type.ty != Tpointer)
-                buf.writestring("_O");
         }
         else if (isNotTopType)
             buf.writeByte('A'); // mutable
