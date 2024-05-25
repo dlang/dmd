@@ -242,7 +242,7 @@ struct CGstate
 
 public import dmd.backend.nteh;
 public import dmd.backend.cgen;
-public import dmd.backend.cgreg : cgreg_init, cgreg_term, cgreg_reset, cgreg_used,
+public import dmd.backend.x86.cgreg : cgreg_init, cgreg_term, cgreg_reset, cgreg_used,
     cgreg_spillreg_prolog, cgreg_spillreg_epilog, cgreg_assign, cgreg_unregister;
 
 public import dmd.backend.cgsched : cgsched_block;
