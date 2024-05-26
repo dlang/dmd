@@ -975,7 +975,7 @@ private void writefunc2(Symbol *sfunc)
         const marksi = globsym.length;
         eecontext.EEin++;
         outelem(eecontext.EEelem, addressOfParam);
-        eecontext.EEelem = doptelem(eecontext.EEelem,true);
+        eecontext.EEelem = doptelem(eecontext.EEelem, Goal.value);
         eecontext.EEin--;
         eecontext_convs(marksi);
     }

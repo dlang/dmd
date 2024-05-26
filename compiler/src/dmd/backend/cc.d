@@ -1423,16 +1423,15 @@ struct EEcontext
 public import dmd.backend.ee : eecontext;
 
 // Different goals for el_optimize()
-alias goal_t = uint;
-enum
+enum Goal : uint
 {
-    GOALnone        = 0,       // evaluate for side effects only
-    GOALvalue       = 1,       // evaluate for value
-    GOALflags       = 2,       // evaluate for flags
-    GOALagain       = 4,
-    GOALstruct      = 8,
-    GOALhandle      = 0x10,    // don't replace handle'd objects
-    GOALignore_exceptions = 0x20, // ignore floating point exceptions
+    none        = 0,       // evaluate for side effects only
+    value       = 1,       // evaluate for value
+    flags       = 2,       // evaluate for flags
+    again       = 4,
+    struct_     = 8,
+    handle      = 0x10,    // don't replace handle'd objects
+    ignoreExceptions = 0x20, // ignore floating point exceptions
 }
 
 /* Globals returned by declar() */

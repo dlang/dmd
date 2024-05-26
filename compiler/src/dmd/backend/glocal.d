@@ -229,7 +229,7 @@ Loop:
                             {   printf("Combined equation ");
                                 WReqn(e);
                                 printf(";\n");
-                                e = doptelem(e,GOALvalue);
+                                e = doptelem(e, Goal.value);
                             }
 
                             break;
