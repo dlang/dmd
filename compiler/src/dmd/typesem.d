@@ -6704,7 +6704,7 @@ Type substWildTo(Type type, uint mod)
                     t = new TypeSArray(t, (cast(TypeSArray)type).dim.syntaxCopy());
                 else if (type.ty == Taarray)
                 {
-                    t = new TypeAArray(t, (cast(TypeAArray)type).index.syntaxCopy());
+                    t = new TypeAArray(t, (cast(TypeAArray)type).index.substWildTo(mod));
                 }
                 else if (type.ty == Tdelegate)
                 {
