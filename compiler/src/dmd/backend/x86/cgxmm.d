@@ -7,10 +7,12 @@
  * Copyright:   Copyright (C) 2011-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgxmm.d, backend/cgxmm.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/x86/cgxmm.d, backend/cgxmm.d)
+ * Documentation:  https://dlang.org/phobos/dmd_backend_x86_cgxmm.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/x86/cgxmm.d
  */
 
-module dmd.backend.cgxmm;
+module dmd.backend.x86.cgxmm;
 
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -26,7 +28,7 @@ import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.oper;
 import dmd.backend.ty;
-import dmd.backend.xmm;
+import dmd.backend.x86.xmm;
 
 
 nothrow:

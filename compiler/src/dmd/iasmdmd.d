@@ -53,7 +53,7 @@ import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.global;
 import dmd.backend.iasm;
 import dmd.backend.ptrntab : asm_opstr, asm_op_lookup;
-import dmd.backend.xmm;
+import dmd.backend.x86.xmm;
 
 //debug = EXTRA_DEBUG;
 //debug = debuga;

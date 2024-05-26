@@ -240,7 +240,7 @@ struct CGstate
     }
 }
 
-public import dmd.backend.nteh;
+public import dmd.backend.x86.nteh;
 public import dmd.backend.cgen;
 public import dmd.backend.x86.cgreg : cgreg_init, cgreg_term, cgreg_reset, cgreg_used,
     cgreg_spillreg_prolog, cgreg_spillreg_epilog, cgreg_assign, cgreg_unregister;
@@ -345,7 +345,7 @@ struct FuncParamRegs
 public import dmd.backend.cg : BPRM, FLOATREGS, FLOATREGS2, DOUBLEREGS,
     localsize, framehandleroffset, cseg, STACKALIGN, TARGET_STACKALIGN;
 
-public import dmd.backend.cgcod;
+public import dmd.backend.x86.cgcod;
 enum BackendPass
 {
     initial,    /// initial pass through code generator
@@ -353,7 +353,7 @@ enum BackendPass
     final_,     /// final pass
 }
 
-public import dmd.backend.cgcod : findreg;
+public import dmd.backend.x86.cgcod : findreg;
 
 reg_t findregmsw(uint regm) { return findreg(regm & mMSW); }
 reg_t findreglsw(uint regm) { return findreg(regm & (mLSW | mBP)); }
@@ -365,8 +365,8 @@ public import dmd.backend.x86.cod4;
 public import dmd.backend.x86.cod5;
 public import dmd.backend.cgen : outfixlist, addtofixlist;
 
-public import dmd.backend.cgxmm;
-public import dmd.backend.cg87;
+public import dmd.backend.x86.cgxmm;
+public import dmd.backend.x86.cg87;
 
 /**********************************
  * Get registers used by a given block

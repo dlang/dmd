@@ -38,7 +38,7 @@ import dmd.backend.global;
 import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.evalu8 : el_toldoubled;
-import dmd.backend.xmm;
+import dmd.backend.x86.xmm;
 
 
 nothrow:
