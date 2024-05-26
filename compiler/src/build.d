@@ -1616,7 +1616,7 @@ auto sourceFiles()
             optional.h port.h rmem.h root.h
         "),
         backend: fileArray(env["C"], "
-            backend.d bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d
+            bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d
             dout.d inliner.d
             gloop.d compress.d cgelem.d cgcs.d ee.d x86/cod4.d x86/cod5.d eh.d x86/nteh.d blockopt.d mem.d cg.d x86/cgreg.d
             dtype.d debugprint.d fp.d symbol.d symtab.d elem.d dcode.d cgsched.d x86/cg87.d x86/cgxmm.d x86/cgcod.d x86/cod1.d x86/cod2.d

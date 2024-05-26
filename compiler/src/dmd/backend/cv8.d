@@ -39,7 +39,6 @@ import dmd.backend.rtlsym;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.dvarstats;
-import dmd.backend.x86.xmm;
 
 
 nothrow:

@@ -25,7 +25,6 @@ import core.stdc.stdio;
 import core.stdc.stdlib;
 import core.stdc.string;
 
-import dmd.backend.backend;
 import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
