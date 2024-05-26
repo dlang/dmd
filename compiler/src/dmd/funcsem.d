@@ -2603,6 +2603,27 @@ void buildEnsureRequire(FuncDeclaration thisfd)
 }
 
 /****************************************************
+ * Determine whether an 'out' contract is declared inside
+ * the given function or any of its overrides.
+ * Params:
+ *      fd = the function to search
+ * Returns:
+ *      true    found an 'out' contract
+ */
+bool needsFensure(FuncDeclaration fd) @safe
+{
+    if (fd.fensures)
+        return true;
+
+    foreach (fdv; fd.foverrides)
+    {
+        if (needsFensure(fdv))
+            return true;
+    }
+    return false;
+}
+
+/****************************************************
  * Merge into this function the 'out' contracts of all it overrides.
  * 'out's are AND'd together, i.e. all of them need to pass.
  */
@@ -2624,7 +2645,7 @@ Statement mergeFensure(FuncDeclaration fd, Statement sf, Identifier oid, Express
          * https://issues.dlang.org/show_bug.cgi?id=3602 and
          * https://issues.dlang.org/show_bug.cgi?id=5230
          */
-        if (fd.needsFensure(fdv) && fdv.semanticRun != PASS.semantic3done)
+        if (needsFensure(fdv) && fdv.semanticRun != PASS.semantic3done)
         {
             assert(fdv._scope);
             Scope* sc = fdv._scope.push();
@@ -2843,4 +2864,177 @@ bool setUnsafePreview(Scope* sc, FeatureState fs, bool gag, Loc loc, const(char)
         }
         return false;
     }
+}
+
+/+
+ + Checks the parameter and return types iff this is a `main` function.
+ +
+ + The following signatures are allowed for a `D main`:
+ + - Either no or a single parameter of type `string[]`
+ + - Return type is either `void`, `int` or `noreturn`
+ +
+ + The following signatures are standard C:
+ + - `int main()`
+ + - `int main(int, char**)`
+ +
+ + This function accepts the following non-standard extensions:
+ + - `char** envp` as a third parameter
+ + - `void` / `noreturn` as return type
+ +
+ + This function will issue errors for unexpected arguments / return types.
+ +/
+extern (D) final void checkMain(FuncDeclaration fd)
+{
+    if (fd.ident != Id.main || fd.isMember() || fd.isNested())
+        return; // Not a main function
+
+    TypeFunction tf = fd.type.toTypeFunction();
+
+    Type retType = tf.nextOf();
+    if (!retType)
+    {
+        // auto main(), check after semantic
+        assert(fd.inferRetType);
+        return;
+    }
+
+    /// Checks whether `t` is equivalent to `char**`
+    /// Ignores qualifiers and treats enums according to their base type
+    static bool isCharPtrPtr(Type t)
+    {
+        auto tp = t.toBasetype().isTypePointer();
+        if (!tp)
+            return false;
+
+        tp = tp.next.toBasetype().isTypePointer();
+        if (!tp)
+            return false;
+
+        return tp.next.toBasetype().ty == Tchar;
+    }
+
+    // Neither of these qualifiers is allowed because they affect the ABI
+    enum invalidSTC = STC.out_ | STC.ref_ | STC.lazy_;
+
+    const nparams = tf.parameterList.length;
+    bool argerr;
+
+    const linkage = fd.resolvedLinkage();
+    if (linkage == LINK.d)
+    {
+        if (nparams == 1)
+        {
+            auto fparam0 = tf.parameterList[0];
+            auto t = fparam0.type.toBasetype();
+            if (t.ty != Tarray ||
+                t.nextOf().ty != Tarray ||
+                t.nextOf().nextOf().ty != Tchar ||
+                fparam0.storageClass & invalidSTC)
+            {
+                argerr = true;
+            }
+        }
+
+        if (tf.parameterList.varargs || nparams >= 2 || argerr)
+            .error(fd.loc, "%s `%s` parameter list must be empty or accept one parameter of type `string[]`", fd.kind, fd.toPrettyChars);
+    }
+
+    else if (linkage == LINK.c)
+    {
+        if (nparams == 2 || nparams == 3)
+        {
+            // Argument count must be int
+            auto argCount = tf.parameterList[0];
+            argerr |= !!(argCount.storageClass & invalidSTC);
+            argerr |= argCount.type.toBasetype().ty != Tint32;
+
+            // Argument pointer must be char**
+            auto argPtr = tf.parameterList[1];
+            argerr |= !!(argPtr.storageClass & invalidSTC);
+            argerr |= !isCharPtrPtr(argPtr.type);
+
+            // `char** environ` is a common extension, see J.5.1 of the C standard
+            if (nparams == 3)
+            {
+                auto envPtr = tf.parameterList[2];
+                argerr |= !!(envPtr.storageClass & invalidSTC);
+                argerr |= !isCharPtrPtr(envPtr.type);
+            }
+        }
+        else
+            argerr = nparams != 0;
+
+        // Disallow variadic main() - except for K&R declarations in C files.
+        // E.g. int main(), int main(argc, argv) int argc, char** argc { ... }
+        if (tf.parameterList.varargs && (!fd.isCsymbol() || (!tf.parameterList.hasIdentifierList && nparams)))
+            argerr |= true;
+
+        if (argerr)
+        {
+            .error(fd.loc, "%s `%s` parameters must match one of the following signatures", fd.kind, fd.toPrettyChars);
+            fd.loc.errorSupplemental("`main()`");
+            fd.loc.errorSupplemental("`main(int argc, char** argv)`");
+            fd.loc.errorSupplemental("`main(int argc, char** argv, char** environ)` [POSIX extension]");
+        }
+    }
+    else
+        return; // Neither C nor D main, ignore (should probably be an error)
+
+    // Allow enums with appropriate base types (same ABI)
+    retType = retType.toBasetype();
+
+    if (retType.ty != Tint32 && retType.ty != Tvoid && retType.ty != Tnoreturn)
+        .error(fd.loc, "%s `%s` must return `int`, `void` or `noreturn`, not `%s`", fd.kind, fd.toPrettyChars, tf.nextOf().toChars());
+}
+
+/***********************************************
+ * Check all return statements for a function to verify that returning
+ * using NRVO is possible.
+ *
+ * Returns:
+ *      `false` if the result cannot be returned by hidden reference.
+ */
+extern (D) bool checkNRVO(FuncDeclaration fd)
+{
+    if (!fd.isNRVO() || fd.returns is null)
+        return false;
+
+    auto tf = fd.type.toTypeFunction();
+    if (tf.isref)
+        return false;
+
+    foreach (rs; *fd.returns)
+    {
+        if (auto ve = rs.exp.isVarExp())
+        {
+            auto v = ve.var.isVarDeclaration();
+            if (!v || v.isReference())
+                return false;
+            else if (fd.nrvo_var is null)
+            {
+                // Variables in the data segment (e.g. globals, TLS or not),
+                // parameters and closure variables cannot be NRVOed.
+                if (v.isDataseg() || v.isParameter() || v.toParent2() != fd)
+                    return false;
+                if (v.nestedrefs.length && fd.needsClosure())
+                    return false;
+                // don't know if the return storage is aligned
+                version (MARS)
+                {
+                    if (alignSectionVars && (*alignSectionVars).contains(v))
+                        return false;
+                }
+                // The variable type needs to be equivalent to the return type.
+                if (!v.type.equivalent(tf.next))
+                    return false;
+                //printf("Setting nrvo to %s\n", v.toChars());
+                fd.nrvo_var = v;
+            }
+            else if (fd.nrvo_var != v)
+                return false;
+        }
+        else //if (!exp.isLvalue())    // keep NRVO-ability
+            return false;
+    }
+    return true;
 }
