@@ -446,6 +446,12 @@ bool hasPointers(Type t)
     return dmd.typesem.hasPointers(t);
 }
 
+Type getIndirection(Type t)
+{
+    import dmd.typesem;
+    return dmd.typesem.getIndirection(t);
+}
+
 Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 {
     import dmd.typesem;

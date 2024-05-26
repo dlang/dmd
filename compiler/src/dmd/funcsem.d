@@ -2617,7 +2617,7 @@ bool needsFensure(FuncDeclaration fd) @safe
 
     foreach (fdv; fd.foverrides)
     {
-        if (needsFensure(fdv))
+        if (fdv.needsFensure())
             return true;
     }
     return false;
@@ -2645,7 +2645,7 @@ Statement mergeFensure(FuncDeclaration fd, Statement sf, Identifier oid, Express
          * https://issues.dlang.org/show_bug.cgi?id=3602 and
          * https://issues.dlang.org/show_bug.cgi?id=5230
          */
-        if (needsFensure(fdv) && fdv.semanticRun != PASS.semantic3done)
+        if (fdv.needsFensure() && fdv.semanticRun != PASS.semantic3done)
         {
             assert(fdv._scope);
             Scope* sc = fdv._scope.push();
