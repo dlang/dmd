@@ -312,7 +312,7 @@ elem * el_ptr(Symbol *s)
     else
     {
         e = el_una(OPaddr, typtr, e);
-        e = doptelem(e, GOALvalue | GOALflags);
+        e = doptelem(e, Goal.value | Goal.flags);
     }
     if (config.exe & EX_windos)
     {
@@ -510,7 +510,7 @@ static if (1)
                 e2 = el_una(OPind, TYnptr, e2);
                 e2 = el_una(OPind, TYnptr, e2);
                 e2 = el_una(OPaddr, TYnptr, e2);
-                e2 = doptelem(e2, GOALvalue | GOALflags);
+                e2 = doptelem(e2, Goal.value | Goal.flags);
                 e2 = el_bin(OPadd, TYnptr, e2, el_long(TYullong, 0));
                 e2 = el_bin(OPcall, TYnptr, e, e2);
                 e2 = el_una(OPind, TYint, e2);

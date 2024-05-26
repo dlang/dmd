@@ -274,7 +274,7 @@ int iffalse(elem *e)
  */
 
 @trusted
-elem * evalu8(elem *e, goal_t goal)
+elem * evalu8(elem *e, Goal goal)
 {
     elem* e1;
     elem* e2;
@@ -1913,7 +1913,7 @@ static if (0) // && MARS
         return e;
   }
 
-    if (!(goal & GOALignore_exceptions) &&
+    if (!(goal & Goal.ignoreExceptions) &&
         (config.flags4 & CFG4fastfloat) == 0 && testFE() &&
         (have_float_except() || tyfloating(tym) || tyfloating(tybasic(typemask(e))))
        )

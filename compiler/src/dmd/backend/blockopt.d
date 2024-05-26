@@ -81,19 +81,19 @@ block *block_calloc()
 /*********************************
  */
 
-__gshared goal_t[BCMAX] bc_goal;
+__gshared Goal[BCMAX] bc_goal;
 
 @trusted
 void block_init()
 {
     for (size_t i = 0; i < BCMAX; i++)
-        bc_goal[i] = GOALvalue;
+        bc_goal[i] = Goal.value;
 
-    bc_goal[BCgoto] = GOALnone;
-    bc_goal[BCret ] = GOALnone;
-    bc_goal[BCexit] = GOALnone;
+    bc_goal[BCgoto] = Goal.none;
+    bc_goal[BCret ] = Goal.none;
+    bc_goal[BCexit] = Goal.none;
 
-    bc_goal[BCiftrue] = GOALflags;
+    bc_goal[BCiftrue] = Goal.flags;
 }
 
 /*********************************
@@ -601,7 +601,7 @@ void blockopt(int iter)
 
             if (b.Belem)
             {
-                b.Belem = doptelem(b.Belem,bc_goal[b.BC] | GOALstruct);
+                b.Belem = doptelem(b.Belem,bc_goal[b.BC] | Goal.struct_);
                 if (b.Belem)
                     b.Belem = el_convert(b.Belem);
             }
@@ -907,7 +907,7 @@ private void bropt()
                 list_subtract(&(db.Bpred),b);
                 b.BC = BCgoto;
                 /* delete elem if it has no side effects */
-                b.Belem = doptelem(b.Belem,GOALnone | GOALagain);
+                b.Belem = doptelem(b.Belem, Goal.none | Goal.again);
                 debug if (debugc) printf("CHANGE: if (const)\n");
                 go.changes++;
             }
@@ -957,7 +957,7 @@ private void bropt()
             list_free(&b.Bsucc,FPNULL);
             b.appendSucc(db);
             b.BC = BCgoto;
-            b.Belem = doptelem(b.Belem,GOALnone | GOALagain);
+            b.Belem = doptelem(b.Belem, Goal.none | Goal.again);
             debug if (debugc) printf("CHANGE: switch (const)\n");
             go.changes++;
         }
@@ -1200,7 +1200,7 @@ private int mergeblks()
                 /* JOIN the elems               */
                 elem *e = el_combine(b.Belem,bL2.Belem);
                 if (b.Belem && bL2.Belem)
-                    e = doptelem(e,bc_goal[bL2.BC] | GOALagain);
+                    e = doptelem(e,bc_goal[bL2.BC] | Goal.again);
                 bL2.Belem = e;
                 b.Belem = null;
 
