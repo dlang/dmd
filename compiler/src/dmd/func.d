@@ -1961,23 +1961,6 @@ unittest
 }
 
 /**************************************
- * Returns an indirect type one step from t.
- */
-Type getIndirection(Type t)
-{
-    t = t.baseElemOf();
-    if (t.ty == Tarray || t.ty == Tpointer)
-        return t.nextOf().toBasetype();
-    if (t.ty == Taarray || t.ty == Tclass)
-        return t;
-    if (t.ty == Tstruct)
-        return t.hasPointers() ? t : null; // TODO
-
-    // should consider TypeDelegate?
-    return null;
-}
-
-/**************************************
  * Performs type-based alias analysis between a newly created value and a pre-
  * existing memory reference:
  *
