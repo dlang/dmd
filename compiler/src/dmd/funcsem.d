@@ -2883,7 +2883,7 @@ bool setUnsafePreview(Scope* sc, FeatureState fs, bool gag, Loc loc, const(char)
  +
  + This function will issue errors for unexpected arguments / return types.
  +/
-extern (D) final void checkMain(FuncDeclaration fd)
+extern (D) void checkMain(FuncDeclaration fd)
 {
     if (fd.ident != Id.main || fd.isMember() || fd.isNested())
         return; // Not a main function
@@ -3021,7 +3021,7 @@ extern (D) bool checkNRVO(FuncDeclaration fd)
                 // don't know if the return storage is aligned
                 version (MARS)
                 {
-                    if (alignSectionVars && (*alignSectionVars).contains(v))
+                    if (fd.alignSectionVars && (*fd.alignSectionVars).contains(v))
                         return false;
                 }
                 // The variable type needs to be equivalent to the return type.
