@@ -34,7 +34,7 @@ nothrow:
 @safe:
 
 public import dmd.backend.dt : dt_get_nzeros;
-public import dmd.backend.cgcod : cgstate;
+public import dmd.backend.x86.cgcod : cgstate;
 
 /*****************************
  * Find last code in list.

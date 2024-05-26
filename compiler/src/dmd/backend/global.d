@@ -131,7 +131,7 @@ public import dmd.backend.symbol : symbol_print, symbol_term, symbol_ident, symb
     baseclass_nitems, symbol_free, symbol_add, symbol_add, symbol_insert, freesymtab,
     symbol_copy, symbol_reset, symbol_pointerType;
 
-public import dmd.backend.cg87 : loadconst, cg87_reset;
+public import dmd.backend.x86.cg87 : loadconst, cg87_reset;
 
 public import dmd.backend.x86.cod3 : cod3_thunk;
 

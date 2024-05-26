@@ -37,7 +37,7 @@ import dmd.backend.global;
 import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
-import dmd.backend.xmm;
+import dmd.backend.x86.xmm;
 
 
 nothrow:

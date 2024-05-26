@@ -5,12 +5,12 @@
  *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgcod.d, backend/cgcod.d)
- * Documentation:  https://dlang.org/phobos/dmd_backend_cgcod.html
- * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cgcod.d
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/x86/cgcod.d, backend/cgcod.d)
+ * Documentation:  https://dlang.org/phobos/dmd_backend_x86_cgcod.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/x86/cgcod.d
  */
 
-module dmd.backend.cgcod;
+module dmd.backend.x86.cgcod;
 
 version = FRAMEPTR;
 
@@ -24,7 +24,6 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.cgcse;
-import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder;
 import dmd.backend.disasm86;
 import dmd.backend.dlist;
@@ -41,7 +40,9 @@ import dmd.backend.rtlsym;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
-import dmd.backend.xmm;
+
+import dmd.backend.x86.code_x86;
+import dmd.backend.x86.xmm;
 
 import dmd.backend.barray;
 

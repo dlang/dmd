@@ -7,10 +7,12 @@
  * Copyright:   Copyright (C) ?-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/xmm.d, backend/_xmm.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/x86/xmm.d, backend/_xmm.d)
+ * Documentation:  https://dlang.org/phobos/dmd_backend_x86_xmm.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/x86/xmm.d
  */
 
-module dmd.backend.xmm;
+module dmd.backend.x86.xmm;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_xmm.html
 

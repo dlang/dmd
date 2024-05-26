@@ -8,10 +8,12 @@
  *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cg87.d, backend/cg87.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/x86/cg87.d, backend/cg87.d)
+ * Documentation:  https://dlang.org/phobos/dmd_backend_x86_cg87.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/x86/cg87.d
  */
 
-module dmd.backend.cg87;
+module dmd.backend.x86.cg87;
 
 import core.stdc.stdio;
 import core.stdc.stdlib;

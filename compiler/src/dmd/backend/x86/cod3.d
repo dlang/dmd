@@ -45,7 +45,7 @@ import dmd.backend.rtlsym;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
-import dmd.backend.xmm;
+import dmd.backend.x86.xmm;
 
 
 nothrow:
