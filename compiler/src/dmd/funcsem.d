@@ -2996,10 +2996,10 @@ extern (D) void checkMain(FuncDeclaration fd)
  */
 extern (D) bool checkNRVO(FuncDeclaration fd)
 {
-    if (!fd.isNRVO() || returns is null)
+    if (!fd.isNRVO() || fd.returns is null)
         return false;
 
-    auto tf = type.toTypeFunction();
+    auto tf = fd.type.toTypeFunction();
     if (tf.isref)
         return false;
 
