@@ -2612,7 +2612,7 @@ void buildEnsureRequire(FuncDeclaration thisfd)
  */
 bool needsFensure(FuncDeclaration fd) @safe
 {
-    assert(fd != null);
+    assert(fd !is null);
     if (fd.fensures)
         return true;
 
