@@ -1,0 +1,12 @@
+`foreach` on a dynamic array can have an index type smaller than `size_t`
+
+The array length is known at compile-time for the following cases:
+
+* The array is a literal
+* The array is a slice expression whose upper bound is known at
+  compile-time
+
+For an array `a`, the index type can be any integer type `I` where
+`a.length <= I.max`.
+
+Other cases [are not implemented](https://issues.dlang.org/show_bug.cgi?id=24542) yet.
