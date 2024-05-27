@@ -3814,7 +3814,6 @@ public:
     bool needsClosure();
     bool checkClosure();
     bool hasNestedFrameRefs();
-    static bool needsFensure(FuncDeclaration* fd);
     ParameterList getParameterList();
     static FuncDeclaration* genCfunc(Array<Parameter* >* fparams, Type* treturn, const char* name, StorageClass stc = 0);
     static FuncDeclaration* genCfunc(Array<Parameter* >* fparams, Type* treturn, Identifier* id, StorageClass stc = 0);
