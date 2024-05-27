@@ -3014,7 +3014,7 @@ extern (D) bool checkNRVO(FuncDeclaration fd)
             {
                 // Variables in the data segment (e.g. globals, TLS or not),
                 // parameters and closure variables cannot be NRVOed.
-                if (v.isDataseg() || v.isParameter() || v.toParent2() != this)
+                if (v.isDataseg() || v.isParameter() || v.toParent2() != fd)
                     return false;
                 if (v.nestedrefs.length && fd.needsClosure())
                     return false;
