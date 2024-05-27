@@ -2889,6 +2889,7 @@ extern (D) void checkMain(FuncDeclaration fd)
     assert(fd !is null);
     if (fd.ident != Id.main || fd.isMember() || fd.isNested())
     {
+        printf("%s is not a main function", fd.ident.toChars());
         return; // Not a main function
     }
 
@@ -2898,7 +2899,7 @@ extern (D) void checkMain(FuncDeclaration fd)
     Type retType = tf.nextOf();
     if (!retType)
     {
-        printf("%s has auto return type; check after semantic\n", fd.ident.toChars());
+        printf("%s has auto return type; check after semantic", fd.ident.toChars());
         // auto main(), check after semantic
         assert(fd.inferRetType);
         return;
