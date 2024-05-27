@@ -2612,7 +2612,6 @@ void buildEnsureRequire(FuncDeclaration thisfd)
  */
 bool needsFensure(FuncDeclaration fd) @safe
 {
-    assert(fd != null);
     if (fd.fensures)
         return true;
 
@@ -2886,20 +2885,14 @@ bool setUnsafePreview(Scope* sc, FeatureState fs, bool gag, Loc loc, const(char)
  +/
 extern (D) void checkMain(FuncDeclaration fd)
 {
-    assert(fd !is null);
     if (fd.ident != Id.main || fd.isMember() || fd.isNested())
-    {
-        printf("%s is not a main function", fd.ident.toChars());
         return; // Not a main function
-    }
 
     TypeFunction tf = fd.type.toTypeFunction();
-    assert(tf !is null);
 
     Type retType = tf.nextOf();
     if (!retType)
     {
-        printf("%s has auto return type; check after semantic", fd.ident.toChars());
         // auto main(), check after semantic
         assert(fd.inferRetType);
         return;
@@ -2985,14 +2978,10 @@ extern (D) void checkMain(FuncDeclaration fd)
         }
     }
     else
-    {
-        printf("%s is neither C nor D main\n", fd.ident.toChars());
         return; // Neither C nor D main, ignore (should probably be an error)
-    }
 
     // Allow enums with appropriate base types (same ABI)
     retType = retType.toBasetype();
-    assert(retType !is null);
 
     if (retType.ty != Tint32 && retType.ty != Tvoid && retType.ty != Tnoreturn)
         .error(fd.loc, "%s `%s` must return `int`, `void` or `noreturn`, not `%s`", fd.kind, fd.toPrettyChars, tf.nextOf().toChars());
@@ -3007,12 +2996,10 @@ extern (D) void checkMain(FuncDeclaration fd)
  */
 extern (D) bool checkNRVO(FuncDeclaration fd)
 {
-    assert(fd !is null);
     if (!fd.isNRVO() || fd.returns is null)
         return false;
 
     auto tf = fd.type.toTypeFunction();
-    assert(tf !is null);
     if (tf.isref)
         return false;
 
