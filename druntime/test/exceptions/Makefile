@@ -1,5 +1,9 @@
 include ../common.mak
 
+DIFF:=diff
+SED:=sed
+GDB:=gdb
+
 TESTS=stderr_msg unittest_assert invalid_memory_operation unknown_gc static_dtor \
       future_message refcounted rt_trap_exceptions_drt catch_in_finally \
       message_with_null
@@ -9,7 +13,10 @@ ifeq ($(OS)-$(BUILD),linux-debug)
     LINE_TRACE_DFLAGS:=-L--export-dynamic
 endif
 ifeq ($(OS),linux)
-    TESTS+=rt_trap_exceptions_drt_gdb
+	# Only add this test if gdb is available.
+	ifneq (, $(shell which $(GDB)))
+		TESTS+=rt_trap_exceptions_drt_gdb
+	endif
 endif
 ifeq ($(OS)-$(BUILD),freebsd-debug)
     TESTS+=line_trace line_trace_21656 long_backtrace_trunc cpp_demangle
@@ -30,10 +37,6 @@ endif
 ifeq ($(BUILD),debug)
     TESTS+=assert_fail
 endif
-
-DIFF:=diff
-SED:=sed
-GDB:=gdb
 
 .PHONY: all clean
 all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
