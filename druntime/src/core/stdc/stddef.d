@@ -29,6 +29,11 @@ version (Windows)
     ///
     alias wchar wchar_t;
 }
+else version (WebAssembly)
+{
+    ///
+    alias dchar wchar_t;
+}
 else version (Posix)
 {
     ///
