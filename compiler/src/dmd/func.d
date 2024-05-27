@@ -1557,58 +1557,6 @@ extern (C++) class FuncDeclaration : Declaration
         return fd;
     }
 
-    /***********************************************
-     * Check all return statements for a function to verify that returning
-     * using NRVO is possible.
-     *
-     * Returns:
-     *      `false` if the result cannot be returned by hidden reference.
-     */
-    extern (D) final bool checkNRVO()
-    {
-        if (!isNRVO() || returns is null)
-            return false;
-
-        auto tf = type.toTypeFunction();
-        if (tf.isref)
-            return false;
-
-        foreach (rs; *returns)
-        {
-            if (auto ve = rs.exp.isVarExp())
-            {
-                auto v = ve.var.isVarDeclaration();
-                if (!v || v.isReference())
-                    return false;
-                else if (nrvo_var is null)
-                {
-                    // Variables in the data segment (e.g. globals, TLS or not),
-                    // parameters and closure variables cannot be NRVOed.
-                    if (v.isDataseg() || v.isParameter() || v.toParent2() != this)
-                        return false;
-                    if (v.nestedrefs.length && needsClosure())
-                        return false;
-                    // don't know if the return storage is aligned
-                    version (MARS)
-                    {
-                        if (alignSectionVars && (*alignSectionVars).contains(v))
-                            return false;
-                    }
-                    // The variable type needs to be equivalent to the return type.
-                    if (!v.type.equivalent(tf.next))
-                        return false;
-                    //printf("Setting nrvo to %s\n", v.toChars());
-                    nrvo_var = v;
-                }
-                else if (nrvo_var != v)
-                    return false;
-            }
-            else //if (!exp.isLvalue())    // keep NRVO-ability
-                return false;
-        }
-        return true;
-    }
-
     override final inout(FuncDeclaration) isFuncDeclaration() inout
     {
         return this;
