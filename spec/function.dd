@@ -179,20 +179,6 @@ $(GNAME InOutContractExpression):
 $(GNAME InOutStatement):
     $(GLINK InStatement)
     $(GLINK OutStatement)
-
-$(GNAME InContractExpression):
-    $(D in $(LPAREN)) $(GLINK2 expression, AssertArguments) $(D $(RPAREN))
-
-$(GNAME OutContractExpression):
-    $(D out $(LPAREN) ;) $(GLINK2 expression, AssertArguments) $(D $(RPAREN))
-    $(D out $(LPAREN)) $(GLINK_LEX Identifier) $(D ;) $(GLINK2 expression, AssertArguments) $(D $(RPAREN))
-
-$(GNAME InStatement):
-    $(D in) $(GLINK2 statement, BlockStatement)
-
-$(GNAME OutStatement):
-    $(D out) $(GLINK2 statement, BlockStatement)
-    $(D out) $(D $(LPAREN)) $(GLINK_LEX Identifier) $(D $(RPAREN)) $(GLINK2 statement, BlockStatement)
 )
 
         $(P Function Contracts specify the preconditions and postconditions of a function.
@@ -203,20 +189,27 @@ $(GNAME OutStatement):
 
     $(H3 $(LNAME2 preconditions, Preconditions))
 
-        $(P An $(GLINK InContractExpression) is a precondition.)
+$(GRAMMAR
+$(GNAME InContractExpression):
+    $(D in $(LPAREN)) $(GLINK2 expression, AssertArguments) $(D $(RPAREN))
 
-        $(P The first $(GLINK2 expression, AssignExpression) of the $(GLINK2 expression, AssertArguments)
-        must evaluate to true. If it does not, the precondition has failed.)
+$(GNAME InStatement):
+    $(D in) $(GLINK2 statement, BlockStatement)
+)
 
-        $(P The second $(I AssignExpression), if present, must be implicitly convertible to type `const(char)[]`.
-        )
+        $(P An $(I InContractExpression) is a precondition.)
+
+        * The first $(GLINK2 expression, AssignExpression) of the $(I AssertArguments)
+          must evaluate to true. If it does not, the precondition has failed.)
+
+        * The second $(I AssignExpression), if present, must be implicitly convertible to type `const(char)[]`.
 
         $(P An $(GLINK InStatement) is also a precondition. Any $(GLINK2 expression, AssertExpression) appearing
         in an $(I InStatement) will be an $(I InContractExpression).
         )
 
         $(P Preconditions must semantically be satisfied before the function starts executing.
-        If it is not, the program enters an $(I Invalid State).
+        If a precondition fails, the program enters an $(I Invalid State).
         )
 
         $(IMPLEMENTATION_DEFINED Whether the preconditions are actually run or not is implementation defined.
@@ -258,20 +251,29 @@ $(GNAME OutStatement):
 
     $(H3 $(LNAME2 postconditions, Postconditions))
 
-        $(P An $(GLINK OutContractExpression) is a postcondition.)
+$(GRAMMAR
+$(GNAME OutContractExpression):
+    $(D out $(LPAREN) ;) $(GLINK2 expression, AssertArguments) $(D $(RPAREN))
+    $(D out $(LPAREN)) $(GLINK_LEX Identifier) $(D ;) $(GLINK2 expression, AssertArguments) $(D $(RPAREN))
 
-        $(P The first $(GLINK2 expression, AssignExpression) of the $(GLINK2 expression, AssertArguments)
-        must evaluate to true. If it does not, the postcondition has failed.)
+$(GNAME OutStatement):
+    $(D out) $(GLINK2 statement, BlockStatement)
+    $(D out) $(D $(LPAREN)) $(GLINK_LEX Identifier) $(D $(RPAREN)) $(GLINK2 statement, BlockStatement)
+)
 
-        $(P The second $(I AssignExpression), if present, must be implicitly convertible to type `const(char)[]`.
-        )
+        $(P An $(I OutContractExpression) is a postcondition.)
 
-        $(P An $(GLINK OutStatement) is also a postcondition. Any $(GLINK2 expression, AssertExpression) appearing
+        * The first $(GLINK2 expression, AssignExpression) of the $(I AssertArguments)
+          must evaluate to true. If it does not, the postcondition has failed.
+
+        * The second $(I AssignExpression), if present, must be implicitly convertible to type `const(char)[]`.
+
+        $(P An $(I OutStatement) is also a postcondition. Any $(GLINK2 expression, AssertExpression) appearing
         in an $(I OutStatement) will be an $(I OutContractExpression).
         )
 
         $(P Postconditions must semantically be satisfied after the function finishes executing.
-        If it is not, the program enters an $(I Invalid State).
+        If a postcondition fails, the program enters an $(I Invalid State).
         )
 
         $(IMPLEMENTATION_DEFINED Whether the postconditions are actually run or not is implementation defined.
@@ -281,8 +283,9 @@ $(GNAME OutStatement):
         $(I AssignExpression).
         )
 
-        $(BEST_PRACTICE Use postconditions to validate that the input arguments and return value have values that are
-        expected by the function.)
+        $(BEST_PRACTICE Use postconditions to validate that on leaving the function:)
+        * Any mutable input arguments each have the expected value/range of values.
+        * Any return value has a correct value/range of values.
 
         $(BEST_PRACTICE Since postconditions may or may not be actually checked at runtime, avoid
         using postconditions that have side effects.)
@@ -317,9 +320,10 @@ $(GNAME OutStatement):
         ---
 
         $(P The optional identifier in either type of postcondition is set to the return value
-        of the function, and can be accessed from within the postcondition.)
+        of the function, and can be accessed from within the postcondition.
+        It is implicitly `const`.)
 
-    $(H3 Example)
+    $(H3 $(LNAME2 example-contracts, Example))
 
         ---
         int fun(ref int a, int b)
