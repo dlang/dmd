@@ -3271,7 +3271,7 @@ void argtypes(type* t, ref type* arg1type, ref type* arg2type)
  */
 
 @trusted
-void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
+void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 {
     //printf("cdfunc()\n"); elem_print(e);
     assert(e);
@@ -3748,7 +3748,7 @@ void cdfunc(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
  */
 
 @trusted
-void cdstrthis(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
+void cdstrthis(ref CGstate cg, ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 {
     assert(tysize(e.Ety) == REGSIZE);
     const reg = findreg(*pretregs & cgstate.allregs);
@@ -3843,7 +3843,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
             retregs = cgstate.allregs & ~keepmsk;
             s.Sflags &= ~GTregcand;
             s.Sflags |= SFLread;
-            cdrelconst(cdbe,e1,&retregs);
+            cdrelconst(cgstate,cdbe,e1,&retregs);
             if (farfunc)
             {
                 const reg = findregmsw(retregs);
@@ -4536,7 +4536,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                         seg = CFes;
                         retregs |= mES;
                     }
-                    cdrelconst(cdb, e1, &retregs);
+                    cdrelconst(cgstate, cdb, e1, &retregs);
                     // Reverse the effect of the previous add
                     if (doneoff)
                         e1.Voffset -= sz - pushsize;
@@ -4739,7 +4739,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
 
                     if (config.target_cpu >= TARGET_80286 && !e.Ecount)
                     {
-                        getoffset(cdb, e, STACK);
+                        getoffset(cgstate, cdb, e, STACK);
                         freenode(e);
                         return;
                     }
@@ -4763,7 +4763,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                         cdb.last().Iflags = CFseg;
                         cdb.genadjesp(REGSIZE);
                     }
-                    getoffset(cdb, e, STACK);
+                    getoffset(cgstate, cdb, e, STACK);
                     freenode(e);
                     return;
                 }
@@ -5112,7 +5112,7 @@ void offsetinreg(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 
     *pretregs = retregs;
     reg = allocreg(cdb, *pretregs, TYoffset);
-    getoffset(cdb,e,reg);
+    getoffset(cgstate, cdb,e,reg);
 L3:
     cssave(e, *pretregs,false);
     freenode(e);
@@ -5148,7 +5148,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
     tym = tybasic(e.Ety);
     if (tym == TYstruct)
     {
-        cdrelconst(cdb,e,&outretregs);
+        cdrelconst(cgstate,cdb,e,&outretregs);
         return;
     }
     if (tyfloating(tym))

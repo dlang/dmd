@@ -2287,13 +2287,13 @@ reload:                                 /* reload result from memory    */
     switch (e.Eoper)
     {
         case OPrelconst:
-            cdrelconst(cdb,e,&pretregs);
+            cdrelconst(cgstate, cdb,e,&pretregs);
             break;
 
         case OPgot:
             if (config.exe & EX_posix)
             {
-                cdgot(cdb,e,&pretregs);
+                cdgot(cgstate, cdb,e,&pretregs);
                 break;
             }
             goto default;
@@ -2346,13 +2346,13 @@ private void loadcse(ref CodeBuilder cdb,elem *e,reg_t reg,regm_t regm)
 
 
 @trusted
-void callcdxxx(ref CodeBuilder cdb, elem *e, regm_t *pretregs, OPER op)
+void callcdxxx(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs, OPER op)
 {
-    (*cdxxx[op])(cdb,e,pretregs);
+    (*cdxxx[op])(cg, cdb, e, pretregs);
 }
 
 // jump table
-private __gshared nothrow void function (ref CodeBuilder,elem *,regm_t *)[OPMAX] cdxxx =
+private immutable nothrow void function (ref CGstate, ref CodeBuilder,elem *,regm_t *)[OPMAX] cdxxx =
 [
     OPunde:    &cderr,
     OPadd:     &cdorth,
@@ -2614,7 +2614,7 @@ void codelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint constflag)
                         //elem_print(e);
 
                         regm_t retregs = *pretregs & mST0 ? mXMM0 : mXMM0|mXMM1;
-                        (*cdxxx[op])(cdb,e,&retregs);
+                        (*cdxxx[op])(cgstate,cdb,e,&retregs);
                         cssave(e,retregs,!OTleaf(op));
                         fixresult(cdb, e, retregs, *pretregs);
                         goto L1;
@@ -2633,11 +2633,11 @@ void codelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint constflag)
                 /* and an LSW specified in *pretregs                        */
             }
             assert(op <= OPMAX);
-            (*cdxxx[op])(cdb,e,pretregs);
+            (*cdxxx[op])(cgstate,cdb,e,pretregs);
             break;
 
         case OPrelconst:
-            cdrelconst(cdb,e,pretregs);
+            cdrelconst(cgstate, cdb,e,pretregs);
             break;
 
         case OPvar:

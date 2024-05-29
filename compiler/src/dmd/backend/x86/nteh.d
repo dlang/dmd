@@ -474,7 +474,7 @@ void nteh_gensindex(ref CodeBuilder cdb, int sindex)
  */
 
 @trusted
-void cdsetjmp(ref CodeBuilder cdb, elem *e,regm_t *pretregs)
+void cdsetjmp(ref CGstate cg, ref CodeBuilder cdb, elem *e,regm_t *pretregs)
 {
     code cs;
     regm_t retregs;

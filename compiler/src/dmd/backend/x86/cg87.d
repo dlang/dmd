@@ -3306,7 +3306,7 @@ void cnvt87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdrndtol(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdrndtol(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     if (*pretregs == 0)
     {
@@ -3363,7 +3363,7 @@ void cdrndtol(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdscale(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdscale(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     assert(*pretregs != 0);
 
@@ -3765,7 +3765,7 @@ void fixresult_complex87(ref CodeBuilder cdb,elem *e,regm_t retregs, ref regm_t 
  */
 
 @trusted
-void cdconvt87(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
+void cdconvt87(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     regm_t retregs = mST01;
     codelem(cdb,e.E1, &retregs, false);
@@ -3912,7 +3912,7 @@ void loadPair87(ref CodeBuilder cdb, elem *e, ref regm_t outretregs)
  * OPtoprec
  */
 @trusted
-void cdtoprec(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
+void cdtoprec(ref CGstate cg, ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 {
     //printf("cdtoprec: *pretregs = %s\n", regm_str(*pretregs));
     if (!*pretregs)

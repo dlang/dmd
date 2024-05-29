@@ -165,7 +165,7 @@ void opdouble(ref CodeBuilder cdb, elem *e,regm_t *pretregs,uint clib)
  */
 
 @trusted
-void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     //printf("cdorth(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
     elem *e1 = e.E1;
@@ -886,7 +886,7 @@ void cdorth(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdmul(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     //printf("cdmul()\n");
     elem *e1 = e.E1;
@@ -1272,7 +1272,7 @@ void cdmul(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cddiv(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     //printf("cddiv()\n");
     elem *e1 = e.E1;
@@ -1983,7 +1983,7 @@ void cddiv(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdnot(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdnot(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     //printf("cdnot()\n");
     reg_t reg;
@@ -2161,7 +2161,7 @@ void cdnot(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdcom(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdcom(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     if (*pretregs == 0)
     {
@@ -2207,7 +2207,7 @@ void cdcom(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdbswap(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdbswap(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     if (*pretregs == 0)
     {
@@ -2260,7 +2260,7 @@ void cdbswap(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     con_t regconold,regconsave;
     uint stackpushold,stackpushsave;
@@ -2547,7 +2547,7 @@ void cdcond(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdcomma(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdcomma(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     regm_t retregs = 0;
     codelem(cdb,e.E1,&retregs,false);   // ignore value from left leaf
@@ -2576,7 +2576,7 @@ void cdcomma(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdloglog(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdloglog(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     /* We can trip the assert with the following:
      *    if ( (b<=a) ? (c<b || a<=c) : c>=a )
@@ -2690,8 +2690,8 @@ void cdloglog(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     CodeBuilder cdbcg;
     cdbcg.ctor();
     const reg = allocreg(cdbcg,retregs,TYint);               // allocate reg for result
-    code *cg = cdbcg.finish();
-    for (code *c1 = cg; c1; c1 = code_next(c1))              // for each instruction
+    code *cd = cdbcg.finish();
+    for (code *c1 = cd; c1; c1 = code_next(c1))              // for each instruction
         cdb1.gen(c1);                                        // duplicate it
     CodeBuilder cdbcg2;
     cdbcg2.ctor();
@@ -2702,7 +2702,7 @@ void cdloglog(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     cgstate.regcon.immed.mval &= ~mask(reg);                 // mark reg as unavail
     *pretregs = retregs;
     cdb.append(cnop3);
-    cdb.append(cg);
+    cdb.append(cd);
     cdb.append(cdbcg2);
     cdb.append(cdb1);
     cdb.append(cnop2);
@@ -2716,7 +2716,7 @@ void cdloglog(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdshift(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdshift(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     reg_t resreg;
     uint shiftcnt;
@@ -3203,7 +3203,7 @@ void cdshift(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdind(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdind(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     regm_t retregs;
     reg_t reg;
@@ -3542,7 +3542,7 @@ private code *cod2_setES(tym_t ty)
  */
 
 @trusted
-void cdstrlen(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
+void cdstrlen(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     /* Generate strlen in CX:
         LES     DI,e1
@@ -3591,7 +3591,7 @@ void cdstrlen(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
  */
 
 @trusted
-void cdstrcmp(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
+void cdstrcmp(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     char need_DS;
     int segreg;
@@ -3699,7 +3699,7 @@ void cdstrcmp(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
  */
 
 @trusted
-void cdmemcmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdmemcmp(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     char need_DS;
     int segreg;
@@ -3816,7 +3816,7 @@ void cdmemcmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdstrcpy(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdstrcpy(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     char need_DS;
     int segreg;
@@ -3929,7 +3929,7 @@ void cdstrcpy(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdmemcpy(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdmemcpy(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     char need_DS;
     int segreg;
@@ -4088,7 +4088,7 @@ void cdmemcpy(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdmemset(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     regm_t retregs1;
     regm_t retregs3;
@@ -4109,7 +4109,7 @@ void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     const sz = tysize(evalue.Ety);
     if (sz > 1)
     {
-        cdmemsetn(cdb, e, pretregs);
+        cdmemsetn(cg, cdb, e, pretregs);
         return;
     }
 
@@ -4290,7 +4290,7 @@ void cdmemset(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  * Doesn't work for 16 bit code.
  */
 @trusted
-private void cdmemsetn(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+private void cdmemsetn(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     //printf("cdmemsetn(*pretregs = %s)\n", regm_str(*pretregs));
     elem *e2 = e.E2;
@@ -4406,7 +4406,7 @@ private void cdmemsetn(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdstreq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdstreq(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     char need_DS = false;
     elem *e1 = e.E1;
@@ -4458,7 +4458,7 @@ void cdstreq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         if (e2.Vsym.ty() & mTYfar) // if e2 is in a far segment
         {   srcregs |= mCX;             // get segment also
             need_DS = true;
-            cdrelconst(cdb,e2,&srcregs);
+            cdrelconst(cgstate,cdb,e2,&srcregs);
         }
         else
         {
@@ -4473,7 +4473,7 @@ void cdstreq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 cdb.gen2(0x8C,                // MOV CX,[SS|CS]
                     modregrm(3,segreg,CX));
             }
-            cdrelconst(cdb,e2,&srcregs);
+            cdrelconst(cgstate,cdb,e2,&srcregs);
         }
         freenode(e2);
     }
@@ -4496,7 +4496,7 @@ void cdstreq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         scodelem(cdb,e1.E1,&dstregs,srcregs,false);
     }
     else
-        cdrelconst(cdb,e1,&dstregs);
+        cdrelconst(cgstate,cdb,e1,&dstregs);
     freenode(e1);
 
     getregs(cdb,(srcregs | dstregs) & (mLSW | mDI));
@@ -4615,7 +4615,7 @@ else
  */
 
 @trusted
-void cdrelconst(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdrelconst(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     //printf("cdrelconst(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
 
@@ -4709,7 +4709,7 @@ void cdrelconst(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         if (*pretregs & mES)
             cdb.gen2(0x8E,modregrm(3,0,mreg));        // MOV ES,mreg
     }
-    getoffset(cdb,e,lreg);
+    getoffset(cg,cdb,e,lreg);
 }
 
 /*********************************
@@ -4718,7 +4718,7 @@ void cdrelconst(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void getoffset(ref CodeBuilder cdb,elem *e,reg_t reg)
+void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem *e,reg_t reg)
 {
     //printf("getoffset(e = %p, reg = %d)\n", e, reg);
     code cs = void;
@@ -4964,7 +4964,7 @@ void getoffset(ref CodeBuilder cdb,elem *e,reg_t reg)
  */
 
 @trusted
-void cdneg(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdneg(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     //printf("cdneg()\n");
     //elem_print(e);
@@ -5049,7 +5049,7 @@ void cdneg(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
 
 @trusted
-void cdabs(ref CodeBuilder cdb,elem *e, regm_t *pretregs)
+void cdabs(ref CGstate cg, ref CodeBuilder cdb,elem *e, regm_t *pretregs)
 {
     //printf("cdabs(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
     if (*pretregs == 0)
@@ -5170,14 +5170,14 @@ void cdabs(ref CodeBuilder cdb,elem *e, regm_t *pretregs)
  */
 
 @trusted
-void cdpost(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     //printf("cdpost(pretregs = %s)\n", regm_str(*pretregs));
     code cs = void;
     const op = e.Eoper;                      // OPxxxx
     if (*pretregs == 0)                        // if nothing to return
     {
-        cdaddass(cdb,e,pretregs);
+        cdaddass(cgstate,cdb,e,pretregs);
         return;
     }
     const tym_t tyml = tybasic(e.E1.Ety);
@@ -5569,7 +5569,7 @@ if (config.exe & EX_windos)
 }
 
 
-void cderr(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cderr(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     debug
         elem_print(e);
@@ -5581,7 +5581,7 @@ void cderr(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 }
 
 @trusted
-void cdinfo(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdinfo(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     switch (e.E1.Eoper)
     {
@@ -5601,7 +5601,7 @@ void cdinfo(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cddctor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cddctor(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     /* Generate:
         PSOP.dctor
@@ -5630,7 +5630,7 @@ void cddctor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdddtor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdddtor(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     if (config.ehmethod == EHmethod.EH_DWARF)
     {
@@ -5714,24 +5714,24 @@ void cdddtor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 /*******************************************
  * C++ constructor.
  */
-void cdctor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdctor(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
 }
 
 /******
  * OPdtor
  */
-void cddtor(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cddtor(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
 }
 
-void cdmark(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdmark(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
 }
 
 static if (!NTEXCEPTIONS)
 {
-void cdsetjmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdsetjmp(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     assert(0);
 }
@@ -5741,7 +5741,7 @@ void cdsetjmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdvoid(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdvoid(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     assert(*pretregs == 0);
     codelem(cdb,e.E1,pretregs,false);
@@ -5751,7 +5751,7 @@ void cdvoid(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdhalt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdhalt(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     assert(*pretregs == 0);
     cdb.gen1(config.target_cpu >= TARGET_80286 ? UD2 : INT3);
