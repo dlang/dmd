@@ -65,6 +65,10 @@ import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
 
+version (IN_GCC) {}
+else version (IN_LLVM) {}
+else version = MARS;
+
 /* Tweak all return statements and dtor call for nrvo_var, for correct NRVO.
  */
 extern (C++) final class NrvoWalker : StatementRewriteWalker
