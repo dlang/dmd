@@ -348,7 +348,7 @@ private void opnegassdbl(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdeq(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     tym_t tymll;
     reg_t reg;
@@ -840,7 +840,7 @@ Lp:
  */
 
 @trusted
-void cdaddass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     //printf("cdaddass(e=%p, *pretregs = %s)\n",e,regm_str(*pretregs));
     OPER op = e.Eoper;
@@ -1385,7 +1385,7 @@ void cdaddass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdmulass(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     code cs;
     regm_t retregs;
@@ -1676,7 +1676,7 @@ void cdmulass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     elem *e1 = e.E1;
     elem *e2 = e.E2;
@@ -2253,7 +2253,7 @@ void cddivass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdshass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdshass(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     code cs;
     uint op1,op2;
@@ -2363,12 +2363,12 @@ void cdshass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                         genjmp(cdb,JCXZ,FLcode,cast(block *) ce);   // JCXZ ce
                     }
                 }
-                code *cg;
+                code *cd;
                 if (oper == OPshlass)
                 {
-                    cdb.gen(&cs);               // cg: SHIFT EA
-                    cg = cdb.last();
-                    code_orflag(cg,CFpsw);
+                    cdb.gen(&cs);               // cd: SHIFT EA
+                    cd = cdb.last();
+                    code_orflag(cd,CFpsw);
                     getlvalue_msw(&cs);
                     NEWREG(cs.Irm,op2);
                     cdb.gen(&cs);               // SHIFT EA
@@ -2378,15 +2378,15 @@ void cdshass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 {
                     getlvalue_msw(&cs);
                     cdb.gen(&cs);
-                    cg = cdb.last();
-                    code_orflag(cg,CFpsw);
+                    cd = cdb.last();
+                    code_orflag(cd,CFpsw);
                     NEWREG(cs.Irm,op2);
                     getlvalue_lsw(&cs);
                     cdb.gen(&cs);
                 }
                 if (v == 0xD3)                    // if building a loop
                 {
-                    genjmp(cdb,LOOP,FLcode,cast(block *) cg); // LOOP cg
+                    genjmp(cdb,LOOP,FLcode,cast(block *) cd); // LOOP cd
                     cgstate.regimmed_set(CX,0);           // note that now CX == 0
                 }
                 cdb.append(ce);
@@ -2496,7 +2496,7 @@ void cdshass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdcmp(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     regm_t retregs,rretregs;
     reg_t reg,rreg;
@@ -3342,7 +3342,7 @@ void longcmp(ref CodeBuilder cdb,elem *e,bool jcond,uint fltarg,code *targ)
  */
 
 @trusted
-void cdcnvt(ref CodeBuilder cdb,elem *e, regm_t *pretregs)
+void cdcnvt(ref CGstate cg, ref CodeBuilder cdb,elem *e, regm_t *pretregs)
 {
     //printf("cdcnvt: %p *pretregs = %s\n", e, regm_str(*pretregs));
     //elem_print(e);
@@ -3563,7 +3563,7 @@ L1:
  */
 
 @trusted
-void cdshtlng(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     reg_t reg;
     regm_t retregs;
@@ -3799,7 +3799,7 @@ void cdshtlng(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdbyteint(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdbyteint(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     regm_t retregs;
     char size;
@@ -3936,7 +3936,7 @@ void cdbyteint(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdlngsht(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdlngsht(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     debug
     {
@@ -4003,7 +4003,7 @@ void cdlngsht(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdmsw(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdmsw(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     assert(e.Eoper == OPmsw);
 
@@ -4038,7 +4038,7 @@ void cdmsw(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdport(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdport(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     //printf("cdport\n");
     ubyte op = 0xE4;            // root of all IN/OUT opcodes
@@ -4089,7 +4089,7 @@ void cdport(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdasm(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdasm(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     // Assume only regs normally destroyed by a function are destroyed
     getregs(cdb,(ALLREGS | mES) & ~fregsaved);
@@ -4102,7 +4102,7 @@ void cdasm(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdfar16(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
+void cdfar16(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     code *cnop;
     code cs;
@@ -4175,7 +4175,7 @@ void cdfar16(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
  */
 
 @trusted
-void cdbtst(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
+void cdbtst(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     regm_t retregs;
     reg_t reg;
@@ -4314,7 +4314,7 @@ void cdbtst(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
  */
 
 @trusted
-void cdbt(ref CodeBuilder cdb,elem *e, regm_t *pretregs)
+void cdbt(ref CGstate cg, ref CodeBuilder cdb,elem *e, regm_t *pretregs)
 {
     //printf("cdbt(%p, %s)\n", e, regm_str(*pretregs));
     regm_t retregs;
@@ -4433,7 +4433,7 @@ void cdbt(ref CodeBuilder cdb,elem *e, regm_t *pretregs)
  */
 
 @trusted
-void cdbscan(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
+void cdbscan(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     //printf("cdbscan()\n");
     //elem_print(e);
@@ -4485,7 +4485,7 @@ void cdbscan(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
  */
 
 @trusted
-void cdpopcnt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void cdpopcnt(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     //printf("cdpopcnt()\n");
     //elem_print(e);
@@ -4543,7 +4543,7 @@ void cdpopcnt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void cdpair(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
+void cdpair(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     if (*pretregs == 0)                         // if don't want result
     {
@@ -4614,7 +4614,7 @@ void cdpair(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
  */
 
 @trusted
-void cdcmpxchg(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
+void cdcmpxchg(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     /* The form is:
      *     OPcmpxchg
@@ -4704,7 +4704,7 @@ void cdcmpxchg(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
  */
 
 @trusted
-void cdprefetch(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
+void cdprefetch(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     /* Generate the following based on e2:
      *    0: prefetch0

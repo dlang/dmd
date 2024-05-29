@@ -1178,7 +1178,7 @@ private opcode_t xmmoperator(tym_t tym, OPER oper)
 }
 
 @trusted
-void cdvector(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
+void cdvector(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     /* e should look like one of:
      *    vector
@@ -1390,7 +1390,7 @@ static if (0)
  * where op is the store instruction STOxxxx.
  */
 @trusted
-void cdvecsto(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
+void cdvecsto(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     //printf("cdvecsto()\n");
     //elem_print(e);
@@ -1408,7 +1408,7 @@ void cdvecsto(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
  * fills the vector type with it.
  */
 @trusted
-void cdvecfill(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
+void cdvecfill(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     //printf("cdvecfill(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
 

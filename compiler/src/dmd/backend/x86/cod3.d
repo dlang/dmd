@@ -2648,7 +2648,7 @@ void gen_loadcse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
  */
 
 @trusted
-void cdframeptr(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
+void cdframeptr(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     regm_t retregs = *pretregs & cgstate.allregs;
     if  (!retregs)
@@ -2670,7 +2670,7 @@ void cdframeptr(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
  */
 
 @trusted
-void cdgot(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
+void cdgot(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     if (config.exe & (EX_OSX | EX_OSX64))
     {
