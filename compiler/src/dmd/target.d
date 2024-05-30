@@ -348,6 +348,7 @@ extern (C++) struct Target
     const(char)[] architectureName;
     CPU cpu;                // CPU instruction set to target
     bool isX86_64;          // generate 64 bit code for x86_64; true by default for 64 bit dmd
+    bool isX86;             // generate Intel 32 bit code
     bool isLP64;            // pointers are 64 bits
 
     // Environmental
@@ -410,6 +411,7 @@ extern (C++) struct Target
         DoubleProperties.initialize();
         RealProperties.initialize();
 
+        isX86  = !isX86_64;
         isLP64 = isX86_64;
 
         // These have default values for 32 bit code, they get
@@ -466,8 +468,10 @@ extern (C++) struct Target
 
         if (isX86_64)
             architectureName = "X86_64";
-        else
+        else if (isX86)
             architectureName = "X86";
+        else
+            assert(0);
 
         if (os == Target.OS.Windows)
         {
@@ -623,10 +627,12 @@ extern (C++) struct Target
                 tvalist = new TypeIdentifier(Loc.initial, Identifier.idPool("__va_list_tag")).pointerTo();
                 tvalist = typeSemantic(tvalist, loc, sc);
             }
-            else
+            else if (isX86)
             {
                 tvalist = Type.tchar.pointerTo();
             }
+            else
+                assert(0);
         }
         else
         {
