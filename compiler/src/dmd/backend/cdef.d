@@ -71,10 +71,6 @@ enum
     ALOC_FUNC       = 8,   // follows function declaration
 }
 
-//#define ATTR_LINK_MODIFIERS (mTYconst|mTYvolatile|mTYcdecl|mTYstdcall)
-//#define ATTR_CAN_IGNORE(a) (((a) & (ATTR_LINKMOD|ATTR_TYPEMOD|ATTR_FUNCINFO|ATTR_DATAINFO|ATTR_TRANSU)) == 0)
-//#define LNX_CHECK_ATTRIBUTES(a,x) assert(((a) & ~(x|ATTR_IGNORED|ATTR_WARNING)) == 0)
-
 version (_WINDLL)
     enum SUFFIX = "nd";
 else version (_WIN64)
@@ -109,77 +105,11 @@ enum TARGET_SEGMENTED = false;
 //      2: new style
 enum NTEXCEPTIONS = 2;
 
-// For Shared Code Base
-//#if _WINDLL
-//#define dbg_printf dll_printf
-//#else
-//#define dbg_printf printf
-//#endif
-
-//#ifndef ERRSTREAM
-//#define ERRSTREAM stdout
-//#endif
-//#define err_printf printf
-//#define err_vprintf vfprintf
-//#define err_fputc fputc
-//#define dbg_fputc fputc
-//#define LF '\n'
-//#define LF_STR "\n"
-//#define CR '\r'
-//#define ANSI        config.ansi_c
-//#define ANSI_STRICT config.ansi_c
-//#define ANSI_RELAX  config.ansi_c
-//#define TRIGRAPHS   ANSI
-//#define T80x86(x)       x
-
-// For Share MEM_ macros - default to mem_xxx package
-// PH           precompiled header
-// PARF         parser, life of function
-// PARC         parser, life of compilation
-// BEF          back end, function
-// BEC          back end, compilation
-
-// If we can use 386 instruction set (possible in 16 bit code)
-//#define I386 (config.target_cpu >= TARGET_80386)
-
-// If we are generating 32 bit code
-//#if MARS
-//#define I16     0               // no 16 bit code for D
-//#define I32     (NPTRSIZE == 4)
-//#define I64     (NPTRSIZE == 8) // 1 if generating 64 bit code
-//#else
-//#define I16     (NPTRSIZE == 2)
-//#define I32     (NPTRSIZE == 4)
-//#define I64     (NPTRSIZE == 8) // 1 if generating 64 bit code
-//#endif
-
 /**********************************
  * Limits & machine dependent stuff.
  */
 
-/* Define stuff that's different between VAX and IBMPC.
- * HOSTBYTESWAPPED      TRUE if on the host machine the bytes are
- *                      swapped (TRUE for 6809, 68000, FALSE for 8088
- *                      and VAX).
- */
-
-
 enum EXIT_BREAK = 255;     // aborted compile with ^C
-
-/* Take advantage of machines that can store a word, lsb first  */
-//#if _M_I86              // if Intel processor
-//#define TOWORD(ptr,val) (*(unsigned short *)(ptr) = (unsigned short)(val))
-//#define TOLONG(ptr,val) (*(unsigned *)(ptr) = (unsigned)(val))
-//#else
-//#define TOWORD(ptr,val) (((ptr)[0] = (unsigned char)(val)),\
-//                         ((ptr)[1] = (unsigned char)((val) >> 8)))
-//#define TOLONG(ptr,val) (((ptr)[0] = (unsigned char)(val)),\
-//                         ((ptr)[1] = (unsigned char)((val) >> 8)),\
-//                         ((ptr)[2] = (unsigned char)((val) >> 16)),\
-//                         ((ptr)[3] = (unsigned char)((val) >> 24)))
-//#endif
-//
-//#define TOOFFSET(a,b)   (I32 ? TOLONG(a,b) : TOWORD(a,b))
 
 /***************************
  * Target machine data types as they appear on the host.
