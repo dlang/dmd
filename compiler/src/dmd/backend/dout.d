@@ -8,7 +8,9 @@
  *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/out.d, backend/out.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dout.d, backend/dout.d)
+ * Documentation:  https://dlang.org/phobos/dmd_backend_dout.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/dout.d
  */
 
 module dmd.backend.dout;
@@ -22,17 +24,14 @@ import dmd.backend.cdef;
 import dmd.backend.cgcv;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
-import dmd.backend.cv4;
 import dmd.backend.dt;
 import dmd.backend.dlist;
-import dmd.backend.mem;
 import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.goh;
 import dmd.backend.inliner;
 import dmd.backend.obj;
 import dmd.backend.oper;
-import dmd.backend.rtlsym;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
