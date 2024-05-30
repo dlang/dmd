@@ -2071,10 +2071,9 @@ struct ClibInfo
 
 int clib_inited = false;          // true if initialized
 
-@trusted
-Symbol* symboly(const(char)* name, regm_t desregs)
+Symbol* symboly(string name, regm_t desregs)
 {
-    Symbol *s = symbol_calloc(name[0 .. strlen(name)]);
+    Symbol *s = symbol_calloc(name);
     s.Stype = tsclib;
     s.Sclass = SC.extern_;
     s.Sfl = FLfunc;
@@ -2124,14 +2123,14 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
         {
             case CLIB.lcmp:
                 {
-                    const(char)* name = (exe & ex_unix) ? "__LCMP__" : "_LCMP@";
+                    string name = (exe & ex_unix) ? "__LCMP__" : "_LCMP@";
                     s = symboly(name, 0);
                 }
                 break;
 
             case CLIB.lmul:
                 {
-                    const(char)* name = (exe & ex_unix) ? "__LMUL__" : "_LMUL@";
+                    string name = (exe & ex_unix) ? "__LMUL__" : "_LMUL@";
                     s = symboly(name, mAX|mCX|mDX);
                     cinfo.retregs16 = mDX|mAX;
                     cinfo.retregs32 = mDX|mAX;
@@ -2160,7 +2159,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
                 }
                 else
                 {
-                    const(char)* name = (exe & ex_unix) ? "__LDIV__" : "_LDIV@";
+                    string name = (exe & ex_unix) ? "__LDIV__" : "_LDIV@";
                     s = symboly(name, (exe & ex_unix) ? mAX|mBX|mCX|mDX : ALLREGS);
                     cinfo.retregs32 = mDX|mAX;
                 }
@@ -2188,7 +2187,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
                 }
                 else
                 {
-                    const(char)* name = (exe & ex_unix) ? "__LDIV__" : "_LDIV@";
+                    string name = (exe & ex_unix) ? "__LDIV__" : "_LDIV@";
                     s = symboly(name, (exe & ex_unix) ? mAX|mBX|mCX|mDX : ALLREGS);
                     cinfo.retregs32 = mCX|mBX;
                 }
@@ -2216,7 +2215,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
                 }
                 else
                 {
-                    const(char)* name = (exe & ex_unix) ? "__ULDIV__" : "_ULDIV@";
+                    string name = (exe & ex_unix) ? "__ULDIV__" : "_ULDIV@";
                     s = symboly(name, (exe & ex_unix) ? mAX|mBX|mCX|mDX : ALLREGS);
                     cinfo.retregs32 = mDX|mAX;
                 }
@@ -2244,7 +2243,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
                 }
                 else
                 {
-                    const(char)* name = (exe & ex_unix) ? "__ULDIV__" : "_ULDIV@";
+                    string name = (exe & ex_unix) ? "__ULDIV__" : "_ULDIV@";
                     s = symboly(name, (exe & ex_unix) ? mAX|mBX|mCX|mDX : ALLREGS);
                     cinfo.retregs32 = mCX|mBX;
                 }
@@ -2393,7 +2392,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
 
             case CLIB.dbllng:
             {
-                const(char)* name = (exe & ex_unix) ? "__DBLLNG" : "_DBLLNG@";
+                string name = (exe & ex_unix) ? "__DBLLNG" : "_DBLLNG@";
                 s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
                 cinfo.retregs16 = mDX | mAX;
                 cinfo.retregs32 = mAX;
@@ -2405,7 +2404,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
 
             case CLIB.lngdbl:
             {
-                const(char)* name = (exe & ex_unix) ? "__LNGDBL" : "_LNGDBL@";
+                string name = (exe & ex_unix) ? "__LNGDBL" : "_LNGDBL@";
                 s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
                 cinfo.retregs16 = DOUBLEREGS_16;
                 cinfo.retregs32 = DOUBLEREGS_32;
@@ -2417,7 +2416,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
 
             case CLIB.dblint:
             {
-                const(char)* name = (exe & ex_unix) ? "__DBLINT" : "_DBLINT@";
+                string name = (exe & ex_unix) ? "__DBLINT" : "_DBLINT@";
                 s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
                 cinfo.retregs16 = mAX;
                 cinfo.retregs32 = mAX;
@@ -2429,7 +2428,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
 
             case CLIB.intdbl:
             {
-                const(char)* name = (exe & ex_unix) ? "__INTDBL" : "_INTDBL@";
+                string name = (exe & ex_unix) ? "__INTDBL" : "_INTDBL@";
                 s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
                 cinfo.retregs16 = DOUBLEREGS_16;
                 cinfo.retregs32 = DOUBLEREGS_32;
@@ -2441,7 +2440,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
 
             case CLIB.dbluns:
             {
-                const(char)* name = (exe & ex_unix) ? "__DBLUNS" : "_DBLUNS@";
+                string name = (exe & ex_unix) ? "__DBLUNS" : "_DBLUNS@";
                 s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
                 cinfo.retregs16 = mAX;
                 cinfo.retregs32 = mAX;
@@ -2456,7 +2455,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
                 // Y(DOUBLEREGS_16,"_UNSDBL@"),
                 // {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _UNSDBL@     unsdbl
             {
-                const(char)* name = (exe & ex_unix) ? "__UNSDBL" : "_UNSDBL@";
+                string name = (exe & ex_unix) ? "__UNSDBL" : "_UNSDBL@";
                 s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
                 cinfo.retregs16 = DOUBLEREGS_16;
                 cinfo.retregs32 = DOUBLEREGS_32;
@@ -2468,7 +2467,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
 
             case CLIB.dblulng:
             {
-                const(char)* name = (exe & ex_unix) ? "__DBLULNG" : "_DBLULNG@";
+                string name = (exe & ex_unix) ? "__DBLULNG" : "_DBLULNG@";
                 s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
                 cinfo.retregs16 = mDX|mAX;
                 cinfo.retregs32 = mAX;
@@ -2480,7 +2479,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
 
             case CLIB.ulngdbl:
             {
-                const(char)* name = (exe & ex_unix) ? "__ULNGDBL@" : "_ULNGDBL@";
+                string name = (exe & ex_unix) ? "__ULNGDBL@" : "_ULNGDBL@";
                 s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
                 cinfo.retregs16 = DOUBLEREGS_16;
                 cinfo.retregs32 = DOUBLEREGS_32;
@@ -2492,7 +2491,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
 
             case CLIB.dblflt:
             {
-                const(char)* name = (exe & ex_unix) ? "__DBLFLT" : "_DBLFLT@";
+                string name = (exe & ex_unix) ? "__DBLFLT" : "_DBLFLT@";
                 s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
                 cinfo.retregs16 = FLOATREGS_16;
                 cinfo.retregs32 = FLOATREGS_32;
@@ -2504,7 +2503,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
 
             case CLIB.fltdbl:
             {
-                const(char)* name = (exe & ex_unix) ? "__FLTDBL" : "_FLTDBL@";
+                string name = (exe & ex_unix) ? "__FLTDBL" : "_FLTDBL@";
                 s = symboly(name, I16 ? ALLREGS : DOUBLEREGS_32);
                 cinfo.retregs16 = DOUBLEREGS_16;
                 cinfo.retregs32 = DOUBLEREGS_32;
@@ -2516,7 +2515,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
 
             case CLIB.dblllng:
             {
-                const(char)* name = (exe & ex_unix) ? "__DBLLLNG" : "_DBLLLNG@";
+                string name = (exe & ex_unix) ? "__DBLLLNG" : "_DBLLLNG@";
                 s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
                 cinfo.retregs16 = DOUBLEREGS_16;
                 cinfo.retregs32 = mDX|mAX;
@@ -2528,7 +2527,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
 
             case CLIB.llngdbl:
             {
-                const(char)* name = (exe & ex_unix) ? "__LLNGDBL" : "_LLNGDBL@";
+                string name = (exe & ex_unix) ? "__LLNGDBL" : "_LLNGDBL@";
                 s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
                 cinfo.retregs16 = DOUBLEREGS_16;
                 cinfo.retregs32 = DOUBLEREGS_32;
@@ -2550,7 +2549,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
                 }
                 else
                 {
-                    const(char)* name = (exe & ex_unix) ? "__DBLULLNG" : "_DBLULLNG@";
+                    string name = (exe & ex_unix) ? "__DBLULLNG" : "_DBLULLNG@";
                     s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
                     cinfo.retregs16 = DOUBLEREGS_16;
                     cinfo.retregs32 = I64 ? mAX : mDX|mAX;
@@ -2573,7 +2572,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
                 }
                 else
                 {
-                    const(char)* name = (exe & ex_unix) ? "__ULLNGDBL" : "_ULLNGDBL@";
+                    string name = (exe & ex_unix) ? "__ULLNGDBL" : "_ULLNGDBL@";
                     s = symboly(name, I16 ? DOUBLEREGS_16 : DOUBLEREGS_32);
                     cinfo.retregs16 = DOUBLEREGS_16;
                     cinfo.retregs32 = I64 ? mAX : DOUBLEREGS_32;
@@ -2586,7 +2585,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
 
             case CLIB.dtst:
             {
-                const(char)* name = (exe & ex_unix) ? "__DTST" : "_DTST@";
+                string name = (exe & ex_unix) ? "__DTST" : "_DTST@";
                 s = symboly(name, 0);
                 cinfo.flags = INFfloat;
                 break;
@@ -2594,7 +2593,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
 
             case CLIB.vptrfptr:
             {
-                const(char)* name = (exe & ex_unix) ? "__HTOFPTR" : "_HTOFPTR@";
+                string name = (exe & ex_unix) ? "__HTOFPTR" : "_HTOFPTR@";
                 s = symboly(name, mES|mBX);
                 cinfo.retregs16 = mES|mBX;
                 cinfo.retregs32 = mES|mBX;
@@ -2603,7 +2602,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
 
             case CLIB.cvptrfptr:
             {
-                const(char)* name = (exe & ex_unix) ? "__HCTOFPTR" : "_HCTOFPTR@";
+                string name = (exe & ex_unix) ? "__HCTOFPTR" : "_HCTOFPTR@";
                 s = symboly(name, mES|mBX);
                 cinfo.retregs16 = mES|mBX;
                 cinfo.retregs32 = mES|mBX;
@@ -2612,7 +2611,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
 
             case CLIB._87topsw:
             {
-                const(char)* name = (exe & ex_unix) ? "__87TOPSW" : "_87TOPSW@";
+                string name = (exe & ex_unix) ? "__87TOPSW" : "_87TOPSW@";
                 s = symboly(name, 0);
                 cinfo.flags = INFfloat;
                 break;
@@ -2620,7 +2619,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
 
             case CLIB.fltto87:
             {
-                const(char)* name = (exe & ex_unix) ? "__FLTTO87" : "_FLTTO87@";
+                string name = (exe & ex_unix) ? "__FLTTO87" : "_FLTTO87@";
                 s = symboly(name, mST0);
                 cinfo.retregs16 = mST0;
                 cinfo.retregs32 = mST0;
@@ -2631,7 +2630,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
 
             case CLIB.dblto87:
             {
-                const(char)* name = (exe & ex_unix) ? "__DBLTO87" : "_DBLTO87@";
+                string name = (exe & ex_unix) ? "__DBLTO87" : "_DBLTO87@";
                 s = symboly(name, mST0);
                 cinfo.retregs16 = mST0;
                 cinfo.retregs32 = mST0;
@@ -2642,7 +2641,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
 
             case CLIB.dblint87:
             {
-                const(char)* name = (exe & ex_unix) ? "__DBLINT87" : "_DBLINT87@";
+                string name = (exe & ex_unix) ? "__DBLINT87" : "_DBLINT87@";
                 s = symboly(name, mST0|mAX);
                 cinfo.retregs16 = mAX;
                 cinfo.retregs32 = mAX;
@@ -2652,7 +2651,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
 
             case CLIB.dbllng87:
             {
-                const(char)* name = (exe & ex_unix) ? "__DBLLNG87" : "_DBLLNG87@";
+                string name = (exe & ex_unix) ? "__DBLLNG87" : "_DBLLNG87@";
                 s = symboly(name, mST0|mAX|mDX);
                 cinfo.retregs16 = mDX|mAX;
                 cinfo.retregs32 = mAX;
@@ -2662,7 +2661,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
 
             case CLIB.ftst:
             {
-                const(char)* name = (exe & ex_unix) ? "__FTST" : "_FTST@";
+                string name = (exe & ex_unix) ? "__FTST" : "_FTST@";
                 s = symboly(name, 0);
                 cinfo.flags = INFfloat;
                 break;
@@ -2670,7 +2669,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
 
             case CLIB.fcompp:
             {
-                const(char)* name = (exe & ex_unix) ? "__FCOMPP" : "_FCOMPP@";
+                string name = (exe & ex_unix) ? "__FCOMPP" : "_FCOMPP@";
                 s = symboly(name, 0);
                 cinfo.retregs16 = mPSW;
                 cinfo.retregs32 = mPSW;
@@ -2681,7 +2680,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
 
             case CLIB.ftest:
             {
-                const(char)* name = (exe & ex_unix) ? "__FTEST" : "_FTEST@";
+                string name = (exe & ex_unix) ? "__FTEST" : "_FTEST@";
                 s = symboly(name, 0);
                 cinfo.retregs16 = mPSW;
                 cinfo.retregs32 = mPSW;
@@ -2691,7 +2690,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
 
             case CLIB.ftest0:
             {
-                const(char)* name = (exe & ex_unix) ? "__FTEST0" : "_FTEST0@";
+                string name = (exe & ex_unix) ? "__FTEST0" : "_FTEST0@";
                 s = symboly(name, 0);
                 cinfo.retregs16 = mPSW;
                 cinfo.retregs32 = mPSW;
@@ -2701,7 +2700,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
 
             case CLIB.fdiv87:
             {
-                const(char)* name = (exe & ex_unix) ? "__FDIVP" : "_FDIVP";
+                string name = (exe & ex_unix) ? "__FDIVP" : "_FDIVP";
                 s = symboly(name, mST0|mAX|mBX|mCX|mDX);
                 cinfo.retregs16 = mST0;
                 cinfo.retregs32 = mST0;
@@ -2747,7 +2746,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
 
             case CLIB.u64_ldbl:
             {
-                const(char)* name = (exe & ex_unix) ? "__U64_LDBL" : "_U64_LDBL";
+                string name = (exe & ex_unix) ? "__U64_LDBL" : "_U64_LDBL";
                 s = symboly(name, mST0);
                 cinfo.retregs16 = mST0;
                 cinfo.retregs32 = mST0;
@@ -2759,7 +2758,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
 
             case CLIB.ld_u64:
             {
-                const(char)* name =
+                string name =
                     (exe & ex_unix)
                         ? (objfmt == OBJ_ELF || objfmt == OBJ_MACH ?  "__LDBLULLNG" : "___LDBLULLNG")
                         : "__LDBLULLNG";
