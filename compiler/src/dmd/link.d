@@ -295,7 +295,7 @@ public int runLINK(bool verbose, ErrorSink eSink)
             if (!linkcmd)
                 linkcmd = vsopt.linkerPath(target.isX86_64);
 
-            if (!target.isX86_64 && FileName.equals(FileName.name(linkcmd), "lld-link.exe"))
+            if (target.isX86 && FileName.equals(FileName.name(linkcmd), "lld-link.exe"))
             {
                 // object files not SAFESEH compliant, but LLD is more picky than MS link
                 cmdbuf.writestring(" /SAFESEH:NO");

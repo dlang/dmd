@@ -596,7 +596,7 @@ int intrinsic_op(FuncDeclaration fd)
         }
     }
 
-    if (!target.isX86_64)
+    if (target.isX86)
     // No 64-bit bsf bsr in 32bit mode
     {
         if ((op == OPbsf || op == OPbsr) && argtype1 is Type.tuns64)

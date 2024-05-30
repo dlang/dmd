@@ -5431,7 +5431,7 @@ elem *callfunc(const ref Loc loc,
         /* Delegates use the same calling convention as member functions.
          * For extern(C++) on Win32 this differs from other functions.
          */
-        if (tf.linkage == LINK.cpp && !target.isX86_64 && target.os == Target.OS.Windows)
+        if (tf.linkage == LINK.cpp && target.isX86 && target.os == Target.OS.Windows)
             tym = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYmfunc;
         else
             tym = totym(tf);
@@ -5688,7 +5688,7 @@ elem *callfunc(const ref Loc loc,
             assert(cast(int)vindex >= 0);
 
             // Build *(ev + vindex * 4)
-            if (!target.isX86_64)
+            if (target.isX86)
                 assert(tysize(TYnptr) == 4);
             ec = el_bin(OPadd,TYnptr,ev,el_long(TYsize_t, vindex * tysize(TYnptr)));
             ec = el_una(OPind,TYnptr,ec);
@@ -6239,20 +6239,20 @@ Lagain:
             break;
         case Tfloat32:
         case Timaginary32:
-            if (!target.isX86_64)
+            if (target.isX86)
                 goto default;          // legacy binary compatibility
             r = RTLSYM.MEMSETFLOAT;
             break;
         case Tfloat64:
         case Timaginary64:
-            if (!target.isX86_64)
+            if (target.isX86)
                 goto default;          // legacy binary compatibility
             r = RTLSYM.MEMSETDOUBLE;
             break;
 
         case Tstruct:
         {
-            if (!target.isX86_64)
+            if (target.isX86)
                 goto default;
 
             TypeStruct tc = cast(TypeStruct)tb2;

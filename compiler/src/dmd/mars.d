@@ -883,14 +883,17 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
         {
+            target.isX86    = true;
             target.isX86_64 = false;
         }
         else if (arg == "-m64") // https://dlang.org/dmd.html#switch-m64
         {
+            target.isX86    = false;
             target.isX86_64 = true;
         }
         else if (arg == "-m32mscoff") // https://dlang.org/dmd.html#switch-m32mscoff
         {
+            target.isX86    = true;
             target.isX86_64 = false;
         }
         else if (startsWith(p + 1, "mscrtlib="))
