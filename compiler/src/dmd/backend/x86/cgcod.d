@@ -2549,6 +2549,7 @@ private immutable nothrow void function (ref CGstate, ref CodeBuilder,elem *,reg
 /***************************
  * Generate code sequence for an elem.
  * Params:
+ *	cg =            code generator global state
  *      cdb =           Code builder to write generated code to
  *      e =             Element to generate code for
  *      pretregs =      mask of possible registers to return result in
@@ -2560,7 +2561,7 @@ private immutable nothrow void function (ref CGstate, ref CodeBuilder,elem *,reg
  *                      2 for freenode() not called.
  */
 @trusted
-void codelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint constflag)
+void codelem(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint constflag)
 {
     Symbol *s;
 
@@ -2719,7 +2720,7 @@ L1:
  */
 
 @trusted
-void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
+void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
 {
     regm_t touse;
 
@@ -2763,7 +2764,7 @@ void scodelem(ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool 
     char calledafuncsave = cgstate.calledafunc;
     cgstate.calledafunc = 0;
     CodeBuilder cdbx; cdbx.ctor();
-    codelem(cdbx,e,pretregs,constflag);    // generate code for the elem
+    codelem(cg,cdbx,e,pretregs,constflag);    // generate code for the elem
 
     regm_t tosave = keepmsk & ~cgstate.msavereg; /* registers to save                    */
     if (tosave)
@@ -2969,7 +2970,7 @@ void docommas(ref CodeBuilder cdb, ref elem *pe)
         if (e.Eoper != OPcomma)
             break;
         regm_t retregs = 0;
-        codelem(cdb,e.E1,&retregs,true);
+        codelem(cgstate,cdb,e.E1,&retregs,true);
         elem* eold = e;
         e = e.E2;
         freenode(eold);
