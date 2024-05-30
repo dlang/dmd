@@ -955,7 +955,7 @@ void orth87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     {
         // Perform "mul 2.0" as fadd ST(0), ST
         regm_t retregs = mST0;
-        codelem(cdb,e1,&retregs,false);
+        codelem(cgstate,cdb,e1,&retregs,false);
         cdb.genf2(0xDC, 0xC0);                    // fadd ST(0), ST;
         fixresult87(cdb,e,mST0,*pretregs);         // result is in ST(0).
         freenode(e2);
@@ -1050,7 +1050,7 @@ void orth87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             assert(OTrel(e.Eoper));
             assert((*pretregs & mST0) == 0);
             regm_t retregs = mST0;
-            codelem(cdb,e1,&retregs,false);
+            codelem(cgstate,cdb,e1,&retregs,false);
             note87(e1,0,0);
             regm_t resregm = mPSW;
 
@@ -1218,7 +1218,7 @@ void orth87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         Lcomplex2:
         {
             regm_t retregs = mST0;
-            codelem(cdb,e1, &retregs, false);
+            codelem(cgstate,cdb,e1, &retregs, false);
             note87(e1, 0, 0);
             loadComplex(cdb,e2);
             makesure87(cdb, e1, 0, 2, 0);
@@ -1286,9 +1286,9 @@ void orth87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         case X(OPmin, TYildouble, TYldouble):
         {
             regm_t retregs = mST0;
-            codelem(cdb,e1, &retregs, false);
+            codelem(cgstate,cdb,e1, &retregs, false);
             note87(e1, 0, 0);
-            codelem(cdb,e2, &retregs, false);
+            codelem(cgstate,cdb,e2, &retregs, false);
             makesure87(cdb, e1, 0, 1, 0);
             if (eoper == OPmin)
                 cdb.genf2(0xD9, 0xE0);     // FCHS
@@ -1348,7 +1348,7 @@ void orth87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 }
             }
             regm_t retregs = mST0;
-            codelem(cdb,e2, &retregs, false);
+            codelem(cgstate,cdb,e2, &retregs, false);
             makesure87(cdb, e1, sz2, 1, 0);
             makesure87(cdb, e1, 0, 2, 0);
             cdb.genf2(0xDC,0xC8 + 2);           // FMUL ST(2), ST
@@ -1371,7 +1371,7 @@ void orth87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         Lcmul2:
         {
             regm_t retregs = mST0;
-            codelem(cdb,e1, &retregs, false);
+            codelem(cgstate,cdb,e1, &retregs, false);
             note87(e1, 0, 0);
             loadComplex(cdb,e2);
             makesure87(cdb, e1, 0, 2, 0);
@@ -1390,7 +1390,7 @@ void orth87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         {
             loadComplex(cdb,e1);
             regm_t retregs = mST0;
-            codelem(cdb,e2, &retregs, false);
+            codelem(cgstate,cdb,e2, &retregs, false);
             makesure87(cdb, e1, sz2, 1, 0);
             makesure87(cdb, e1, 0, 2, 0);
             cdb.genf2(0xDC,0xF8 + 2);            // FDIV ST(2), ST
@@ -1409,7 +1409,7 @@ void orth87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             xchg87(0, 1);
             cdb.genf2(0xD9, 0xE0);               // FCHS
             regm_t retregs = mST0;
-            codelem(cdb,e2, &retregs, false);
+            codelem(cgstate,cdb,e2, &retregs, false);
             makesure87(cdb, e1, 0, 1, 0);
             makesure87(cdb, e1, sz2, 2, 0);
             cdb.genf2(0xDC,0xF8 + 2);        // FDIV ST(2), ST
@@ -1447,7 +1447,7 @@ void orth87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
              */
             loadComplex(cdb,e1);
             regm_t retregs = mST0;
-            codelem(cdb,e2, &retregs, false);
+            codelem(cgstate,cdb,e2, &retregs, false);
             makesure87(cdb, e1, sz2, 1, 0);
             makesure87(cdb, e1, 0, 2, 0);
             cdb.genf2(0xD9, 0xC8 + 1);             // FXCH ST(1)
@@ -1507,7 +1507,7 @@ void orth87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     }
 
     regm_t retregs1 = mST0;
-    codelem(cdb,e1,&retregs1,false);
+    codelem(cgstate,cdb,e1,&retregs1,false);
     note87(e1,0,0);
 
     if (config.flags4 & CFG4fdivcall && e.Eoper == OPdiv)
@@ -1579,7 +1579,7 @@ private void loadComplex(ref CodeBuilder cdb,elem *e)
         case TYdouble:
         case TYldouble:
             retregs = mST0;
-            codelem(cdb,e,&retregs,false);
+            codelem(cgstate,cdb,e,&retregs,false);
             // Convert to complex with a 0 for the imaginary part
             push87(cdb);
             cdb.gen2(0xD9,0xEE);              // FLDZ
@@ -1592,7 +1592,7 @@ private void loadComplex(ref CodeBuilder cdb,elem *e)
             push87(cdb);
             cdb.gen2(0xD9,0xEE);              // FLDZ
             retregs = mST0;
-            codelem(cdb,e,&retregs,false);
+            codelem(cgstate,cdb,e,&retregs,false);
             break;
 
         case TYcfloat:
@@ -1600,7 +1600,7 @@ private void loadComplex(ref CodeBuilder cdb,elem *e)
         case TYcldouble:
             sz /= 2;
             retregs = mST01;
-            codelem(cdb,e,&retregs,false);
+            codelem(cgstate,cdb,e,&retregs,false);
             break;
 
         default:
@@ -1745,7 +1745,7 @@ L5:
             else
             {
                 retregs = mST0;
-                codelem(cdb,e.E1,&retregs,false);
+                codelem(cgstate,cdb,e.E1,&retregs,false);
                 if (op != -1)
                 {
                     makesure87(cdb,eleft,eoffset,1,0);
@@ -1772,7 +1772,7 @@ L5:
             else if (I64)
             {
                 retregs = ALLREGS;
-                codelem(cdb,e.E1,&retregs,false);
+                codelem(cgstate,cdb,e.E1,&retregs,false);
                 reg = findreg(retregs);
                 cdb.genfltreg(STO,reg,0);         // MOV floatreg,reg
                 code_orrex(cdb.last(), REX_W);
@@ -1782,7 +1782,7 @@ L5:
             else
             {
                 retregs = ALLREGS;
-                codelem(cdb,e.E1,&retregs,false);
+                codelem(cgstate,cdb,e.E1,&retregs,false);
                 reg = findreglsw(retregs);
                 cdb.genfltreg(STO,reg,0);         // MOV floatreg,reglsw
                 reg = findregmsw(retregs);
@@ -1825,7 +1825,7 @@ L5:
             if (op != -1 && !noted)
                 note87(eleft,eoffset,0);    // don't trash this value
             retregs = ALLREGS & mLSW;
-            codelem(cdb,e.E1,&retregs,false);
+            codelem(cgstate,cdb,e.E1,&retregs,false);
             reg = regwithvalue(cdb,ALLREGS & mMSW,0,0);  // 0-extend
             retregs |= mask(reg);
             mf1 = MFlong;
@@ -1847,7 +1847,7 @@ L5:
             else
             {
                 retregs = ALLREGS;
-                codelem(cdb,e.E1,&retregs,false);
+                codelem(cgstate,cdb,e.E1,&retregs,false);
             L3:
                 if (I16 && e.Eoper != OPs16_d)
                 {
@@ -1874,7 +1874,7 @@ L5:
         default:
         Ldefault:
             retregs = mST0;
-            codelem(cdb,e,&retregs,2);
+            codelem(cgstate,cdb,e,&retregs,2);
 
             if (op != -1)
             {
@@ -1975,7 +1975,7 @@ void eq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     //printf("+eq87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
     assert(e.Eoper == OPeq);
     regm_t retregs = mST0 | (*pretregs & mPSW);
-    codelem(cdb,e.E2,&retregs,false);
+    codelem(cgstate,cdb,e.E2,&retregs,false);
     tym_t ty1 = tybasic(e.E1.Ety);
     switch (ty1)
     {
@@ -2093,7 +2093,7 @@ void complex_eq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     cs.Iflags = ADDFWAIT() ? CFwait : 0;
     cs.Irex = 0;
     regm_t retregs = mST01 | (*pretregs & mPSW);
-    codelem(cdb,e.E2,&retregs,false);
+    codelem(cgstate,cdb,e.E2,&retregs,false);
     tym_t ty1 = tybasic(e.E1.Ety);
     switch (ty1)
     {
@@ -2210,7 +2210,7 @@ private void cnvteq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     assert(!*pretregs);
     regm_t retregs = mST0;
     elem_debug(e.E2);
-    codelem(cdb,e.E2.E1,&retregs,false);
+    codelem(cgstate,cdb,e.E2.E1,&retregs,false);
 
     switch (e.E2.Eoper)
     {   case OPd_s16:
@@ -2294,7 +2294,7 @@ public void opass87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         default:            assert(0);
     }
     regm_t retregs = mST0;
-    codelem(cdb,e.E2,&retregs,false);     // evaluate rvalue
+    codelem(cgstate,cdb,e.E2,&retregs,false);     // evaluate rvalue
     note87(e.E2,0,0);
     getlvalue87(cdb,cs,e.E1,e.Eoper==OPmodass?mAX:0);
     makesure87(cdb,e.E2,0,0,0);
@@ -2411,7 +2411,7 @@ private void opmod_complex87(ref CodeBuilder cdb, elem *e,regm_t *pretregs)
     uint sz2 = _tysize[ty1] / 2;
 
     regm_t retregs = mST0;
-    codelem(cdb,e.E2,&retregs,false);         // FLD E2
+    codelem(cgstate,cdb,e.E2,&retregs,false);         // FLD E2
     note87(e.E2,0,0);
     getlvalue87(cdb,cs,e.E1,0);
     makesure87(cdb,e.E2,0,0,0);
@@ -2508,7 +2508,7 @@ private void opass_complex87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         (e.Eoper == OPmulass || e.Eoper == OPdivass))
     {
         retregs = mST0;
-        codelem(cdb,e.E2, &retregs, false);
+        codelem(cgstate,cdb,e.E2, &retregs, false);
         note87(e.E2, 0, 0);
         getlvalue87(cdb,cs, e.E1, 0);
         makesure87(cdb,e.E2,0,0,0);
@@ -2884,7 +2884,7 @@ void post87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         cs.IEV1.Voffset += sz;
         cdb.gen(&cs);               // FLD e.E1
         regm_t retregs = mST0;      // note kludge to only load real part
-        codelem(cdb,e.E2,&retregs,false); // load rvalue
+        codelem(cgstate,cdb,e.E2,&retregs,false); // load rvalue
         cdb.genf2(0xD8,             // FADD/FSUBR ST,ST2
             (e.Eoper == OPpostinc) ? 0xC0 + 2 : 0xE8 + 2);
         NEWREG(cs.Irm,reg);
@@ -2905,7 +2905,7 @@ void post87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     if (*pretregs & mPSW)           // if result in flags
         genftst(cdb,e,0);           // FTST ST0
     regm_t retregs = mST0;
-    codelem(cdb,e.E2,&retregs,false);    // load rvalue
+    codelem(cgstate,cdb,e.E2,&retregs,false);    // load rvalue
     pop87();
     op = (e.Eoper == OPpostinc) ? modregrm(3,0,1) : modregrm(3,5,1);
     cdb.genf2(0xDE,op);             // FADDP/FSUBRP ST1
@@ -2964,7 +2964,7 @@ private void cdd_u64_I32(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     L2:
      */
     regm_t retregs = mST0;
-    codelem(cdb,e.E1, &retregs, false);
+    codelem(cgstate,cdb,e.E1, &retregs, false);
     tym_t tym = e.Ety;
     retregs = *pretregs;
     if (!retregs)
@@ -3048,7 +3048,7 @@ private void cdd_u64_I64(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     L2:
      */
     regm_t retregs = mST0;
-    codelem(cdb,e.E1, &retregs, false);
+    codelem(cgstate,cdb,e.E1, &retregs, false);
     tym_t tym = e.Ety;
     retregs = *pretregs;
     if (!retregs)
@@ -3120,7 +3120,7 @@ void cdd_u32(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
             mov         EAX,floatreg
      */
     regm_t retregs = mST0;
-    codelem(cdb,e.E1, &retregs, false);
+    codelem(cgstate,cdb,e.E1, &retregs, false);
     tym_t tym = e.Ety;
     retregs = *pretregs & ALLREGS;
     if (!retregs)
@@ -3197,12 +3197,12 @@ void cnvt87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     {
         if (clib == CLIB.dblllng)
         {   retregs = I32 ? DOUBLEREGS_32 : DOUBLEREGS_16;
-            codelem(cdb,e.E1,&retregs,false);
+            codelem(cgstate,cdb,e.E1,&retregs,false);
             callclib(cdb,e,clib,pretregs,0);
         }
         else
         {   retregs = mST0; //I32 ? DOUBLEREGS_32 : DOUBLEREGS_16;
-            codelem(cdb,e.E1,&retregs,false);
+            codelem(cgstate,cdb,e.E1,&retregs,false);
             callclib(cdb,e,clib,pretregs,0);
             pop87();
         }
@@ -3224,7 +3224,7 @@ void cnvt87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         szpush = (szpush + REGSIZE - 1) & ~(REGSIZE - 1);
 
         retregs = mST0;
-        codelem(cdb,e.E1,&retregs,false);
+        codelem(cgstate,cdb,e.E1,&retregs,false);
 
         if (szpush == REGSIZE)
             cdb.gen1(0x50 + AX);                // PUSH EAX
@@ -3274,7 +3274,7 @@ void cnvt87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         // negative int (0x80000....). For -inf, 0x7FFFF... should be returned,
         // and for nan, 0 should be returned.
         retregs = mST0;
-        codelem(cdb,e.E1,&retregs,false);
+        codelem(cgstate,cdb,e.E1,&retregs,false);
 
         genfwait(cdb);
         genSetRoundingMode(cdb, CW.roundto0);      // FLDCW roundto0
@@ -3310,11 +3310,11 @@ void cdrndtol(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     if (*pretregs == 0)
     {
-        codelem(cdb,e.E1,pretregs,false);
+        codelem(cgstate,cdb,e.E1,pretregs,false);
         return;
     }
     regm_t retregs = mST0;
-    codelem(cdb,e.E1,&retregs,false);
+    codelem(cgstate,cdb,e.E1,&retregs,false);
 
     ubyte op1,op2;
     tym_t tym = e.Ety;
@@ -3368,9 +3368,9 @@ void cdscale(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     assert(*pretregs != 0);
 
     regm_t retregs = mST0;
-    codelem(cdb,e.E1,&retregs,false);
+    codelem(cgstate,cdb,e.E1,&retregs,false);
     note87(e.E1,0,0);
-    codelem(cdb,e.E2,&retregs,false);
+    codelem(cgstate,cdb,e.E2,&retregs,false);
     makesure87(cdb,e.E1,0,1,0);       // now have x,y on stack; need y,x
     switch (e.Eoper)
     {
@@ -3417,7 +3417,7 @@ void neg87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             assert(0);
     }
     regm_t retregs = mST0;
-    codelem(cdb,e.E1,&retregs,false);
+    codelem(cgstate,cdb,e.E1,&retregs,false);
     cdb.genf2(0xD9,op);                 // FCHS/FABS/FSQRT/FSIN/FCOS/FRNDINT
     fixresult87(cdb,e,mST0,*pretregs);
 }
@@ -3431,7 +3431,7 @@ void neg_complex87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     assert(e.Eoper == OPneg);
     regm_t retregs = mST01;
-    codelem(cdb,e.E1,&retregs,false);
+    codelem(cgstate,cdb,e.E1,&retregs,false);
     cdb.genf2(0xD9,0xE0);           // FCHS
     cdb.genf2(0xD9,0xC8 + 1);            // FXCH ST(1)
     cdb.genf2(0xD9,0xE0);                // FCHS
@@ -3768,7 +3768,7 @@ void fixresult_complex87(ref CodeBuilder cdb,elem *e,regm_t retregs, ref regm_t 
 void cdconvt87(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
     regm_t retregs = mST01;
-    codelem(cdb,e.E1, &retregs, false);
+    codelem(cgstate,cdb,e.E1, &retregs, false);
     switch (e.Eoper)
     {
         case OPc_r:
@@ -3897,9 +3897,9 @@ void loadPair87(ref CodeBuilder cdb, elem *e, ref regm_t outretregs)
 {
     assert(e.Eoper == OPpair || e.Eoper == OPrpair);
     regm_t retregs = mST0;
-    codelem(cdb,e.E1, &retregs, false);
+    codelem(cgstate,cdb,e.E1, &retregs, false);
     note87(e.E1, 0, 0);
-    codelem(cdb,e.E2, &retregs, false);
+    codelem(cgstate,cdb,e.E2, &retregs, false);
     makesure87(cdb,e.E1, 0, 1, 0);
     if (e.Eoper == OPrpair)
         cdb.genf2(0xD9, 0xC8 + 1);   // FXCH ST(1)
@@ -3917,13 +3917,13 @@ void cdtoprec(ref CGstate cg, ref CodeBuilder cdb, elem* e, regm_t* pretregs)
     //printf("cdtoprec: *pretregs = %s\n", regm_str(*pretregs));
     if (!*pretregs)
     {
-        codelem(cdb,e.E1,pretregs,false);
+        codelem(cgstate,cdb,e.E1,pretregs,false);
         return;
     }
 
     assert(config.inline8087);
     regm_t retregs = mST0;
-    codelem(cdb,e.E1, &retregs, false);
+    codelem(cgstate,cdb,e.E1, &retregs, false);
     if (*pretregs & mST0)
     {
         const tym = tybasic(e.Ety);

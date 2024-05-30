@@ -193,7 +193,7 @@ void gencodelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,bool constflag)
         const stackpushsave = cgstate.stackpush;
         const stackcleansave = cgstate.stackclean;
         cgstate.stackclean = 0;                         // defer cleaning of stack
-        codelem(cdb,e,pretregs,constflag);
+        codelem(cgstate,cdb,e,pretregs,constflag);
         assert(cgstate.stackclean == 0);
         cgstate.stackclean = stackcleansave;
         genstackclean(cdb,cgstate.stackpush - stackpushsave,*pretregs);       // do defered cleaning

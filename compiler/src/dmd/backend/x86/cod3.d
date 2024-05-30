@@ -1647,7 +1647,7 @@ void doswitch(ref CodeBuilder cdb, block *b)
     Lifthen:
         regm_t retregs = ALLREGS;
         b.BC = BCifthen;
-        scodelem(cdb,e,&retregs,0,true);
+        scodelem(cgstate,cdb,e,&retregs,0,true);
         reg_t reg, reg2;
         if (dword)
         {   reg = findreglsw(retregs);
@@ -1725,7 +1725,7 @@ void doswitch(ref CodeBuilder cdb, block *b)
         if (config.exe & EX_posix && I32 && config.flags3 & CFG3pic)
             retregs &= ~mBX;                            // need EBX for GOT
         bool modify = (I16 || I64 || vmin);
-        scodelem(cdb,e,&retregs,0,!modify);
+        scodelem(cgstate,cdb,e,&retregs,0,!modify);
         reg_t reg = findreg(retregs & IDXREGS); // reg that result is in
         reg_t reg2;
         if (dword)
@@ -1915,7 +1915,7 @@ else
             retregs |= mDX;
         else if (ncases <= 6 || config.flags4 & CFG4speed)
             goto Lifthen;
-        scodelem(cdb,e,&retregs,0,true);
+        scodelem(cgstate,cdb,e,&retregs,0,true);
         if (dword && mswsame)
         {   /* CMP DX,MSW       */
             cdb.genc2(0x81,modregrm(3,7,DX),msw);
@@ -2729,7 +2729,7 @@ void load_localgot(ref CodeBuilder cdb)
                 localgot.Sflags &= ~GTregcand;     // because this hack doesn't work with reg allocator
                 elem *e = el_var(localgot);
                 regm_t retregs = mBX;
-                codelem(cdb,e,&retregs,false);
+                codelem(cgstate,cdb,e,&retregs,false);
                 el_free(e);
             }
             else
@@ -2737,7 +2737,7 @@ void load_localgot(ref CodeBuilder cdb)
                 elem *e = el_long(TYnptr, 0);
                 e.Eoper = OPgot;
                 regm_t retregs = mBX;
-                codelem(cdb,e,&retregs,false);
+                codelem(cgstate,cdb,e,&retregs,false);
                 el_free(e);
             }
         }
