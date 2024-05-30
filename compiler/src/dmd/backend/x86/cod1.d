@@ -2083,6 +2083,20 @@ Symbol* symboly(const(char)* name, regm_t desregs)
     return s;
 }
 
+void initClibInfo(ref Symbol*[CLIB.MAX] clibsyms, ref ClibInfo[CLIB.MAX] clibinfo)
+{
+    for (size_t i = 0; i < CLIB.MAX; ++i)
+    {
+        Symbol* s = clibsyms[i];
+        if (s)
+        {
+            s.Sxtrnnum = 0;
+            s.Stypidx = 0;
+            clibinfo[i].flags &= ~INFwkdone;
+        }
+    }
+}
+
 @trusted
 void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo)
 {
@@ -2091,16 +2105,7 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo)
 
     if (!clib_inited)
     {
-        for (size_t i = 0; i < CLIB.MAX; ++i)
-        {
-            Symbol* s = clibsyms[i];
-            if (s)
-            {
-                s.Sxtrnnum = 0;
-                s.Stypidx = 0;
-                clibinfo[i].flags &= ~INFwkdone;
-            }
-        }
+        initClibInfo(clibsyms, clibinfo);
         clib_inited = true;
     }
 
