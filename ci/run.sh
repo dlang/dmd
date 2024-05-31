@@ -58,12 +58,15 @@ clone() {
 
 # build dmd (incl. building and running the unittests), druntime, phobos
 build() {
+    local unittest=${1:-1}
     if [ "$OS_NAME" != "windows" ]; then
         source ~/dlang/*/activate # activate host compiler, incl. setting `DMD`
     fi
     $DMD compiler/src/build.d -ofgenerated/build
-    generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" BUILD=debug unittest
-    generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=1 dmd
+    if [ $unittest -eq 1 ]; then
+        generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" BUILD=debug unittest
+    fi
+    generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=${ENABLE_RELEASE:-1} dmd
     make -j$N -C druntime MODEL=$MODEL
     make -j$N -C ../phobos MODEL=$MODEL
     if [ "$OS_NAME" != "windows" ]; then
@@ -249,7 +252,7 @@ if [ "$#" -gt 0 ]; then
   case $1 in
     install_host_compiler) install_host_compiler ;;
     setup_repos) setup_repos "$2" ;; # ci/run.sh setup_repos <git branch>
-    build) build ;;
+    build) build "${2:-}" ;; # ci/run.sh build [0]  (use `0` to skip running compiler unittests)
     rebuild) rebuild "${2:-}" ;; # ci/run.sh rebuild [1] (use `1` to compare binaries to test reproducible build)
     test) test ;;
     test_dmd) test_dmd ;;
