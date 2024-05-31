@@ -411,6 +411,17 @@ struct INSTR
     /****************************** Data Processing -- Scalar Floating-Point and Advanced SIMD **/
     /* https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#simd_dp                  */
 
+    /* Floating-point data-processing (1 source)
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatdp1
+     */
+    static uint floatdp1(uint M, uint S, uint ftype, uint opcode, uint Rn, uint Rd)
+    {
+        assert(Rn < 32 && Rd < 32); // remember to convert R32-63 to 0-31
+        return (M << 31) | (S << 29) | (0x1E << 24) | (ftype << 22) | (1 << 21) | (0x10 << 10) | (Rn << 5) | Rd;
+    }
+
+    // FMOV Rd, Rn  https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float.html
+    static uint fmov(uint ftype, uint Rn, uint Rd) { return floatdp1(0,0,ftype,0,Rn,Rd); }
 
 
     /****************************** Loads and Stores ********************************************/

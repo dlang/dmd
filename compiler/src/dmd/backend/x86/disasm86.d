@@ -82,6 +82,7 @@ bool jmpTarget(ubyte[] code, ref addr c, out addr offset)
  *      model = memory model, 16/32/64
  *      nearptr = use 'near ptr' when writing memory references
  *      bObjectcode = also prepend hex characters of object code
+ *      bURL = append URL (if any) to output
  *      mem = if not null, then function that returns a string
  *          representing the label for the memory address. Parameters are `c`
  *          for the address of the memory reference in `code[]`, `sz` for the
@@ -107,7 +108,7 @@ bool jmpTarget(ubyte[] code, ref addr c, out addr offset)
 @trusted
 public
 void getopstring(void delegate(char) nothrow @nogc put, ubyte[] code, uint c, addr siz,
-        uint model, int nearptr, ubyte bObjectcode,
+        uint model, int nearptr, ubyte bObjectcode, ubyte bURL,
         const(char)*function(uint c, uint sz, uint offset) nothrow @nogc mem,
         const(char)*function(ubyte[] code, uint c, int sz) nothrow @nogc immed16,
         const(char)*function(uint c, uint offset, bool farflag, bool is16bit) nothrow @nogc labelcode,
@@ -116,7 +117,7 @@ void getopstring(void delegate(char) nothrow @nogc put, ubyte[] code, uint c, ad
 {
     assert(model == 16 || model == 32 || model == 64);
     auto disasm = Disasm(put, code, siz,
-                model, nearptr, bObjectcode,
+                model, nearptr, bObjectcode, bURL,
                 mem, immed16, labelcode, shortlabel);
     disasm.disassemble(c);
 }
@@ -143,7 +144,7 @@ struct Disasm
 
     @trusted
     this(void delegate(char) nothrow @nogc put, ubyte[] code, addr siz,
-        uint model, int nearptr, ubyte bObjectcode,
+        uint model, int nearptr, ubyte bObjectcode, ubyte bURL,
         const(char)*function(uint c, uint sz, uint offset) nothrow @nogc mem,
         const(char)*function(ubyte[] code, uint c, int sz) nothrow @nogc immed16,
         const(char)*function(uint c, uint offset, bool farflag, bool is16bit) nothrow @nogc labelcode,
@@ -156,6 +157,7 @@ struct Disasm
         this.model = model;
         this.nearptr = nearptr;
         this.bObjectcode = bObjectcode;
+        this.bURL = bURL;
 
         /* Set null function pointers to default functions
          */
@@ -193,6 +195,7 @@ struct Disasm
     addr siz;
     int nearptr;
     ubyte bObjectcode;
+    ubyte bURL;
     bool defopsize;             // default value for opsize
     char defadsize;             // default value for adsize
     bool opsize;                // if 0, then 32 bit operand
@@ -540,7 +543,7 @@ char *getEAimpl(ubyte rex, uint c, int do_xmm, uint vlen)
             s = "-".ptr;
         }
         w &= 0xFFFF;
-        snprintf(EAb.ptr, EAb.length, ((w < 10) ? "%s%s%s%ld%s" : "%s%s%s0%lXh%s"),
+        snprintf(EAb.ptr, EAb.length, ((w < 10) ? "%s%s%s%d%s" : "%s%s%s0%Xh%s"),
                 segover,ptr[ptri],s,w,postfix);
 
         segover = "".ptr;
@@ -3712,7 +3715,7 @@ unittest
 
         auto output = Output!char(buf[]);
         getopstring(&output.put, code, 0, length,
-                size, 0, 0, null, null, null, null);
+                size, 0, 0, 0, null, null, null, null);
         auto result = output.peek();
 
         static bool compareEqual(const(char)[] result, const(char)[] expected)

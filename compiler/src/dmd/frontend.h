@@ -7533,6 +7533,7 @@ struct Target final
     TargetObjC objc;
     _d_dynamicArray< const char > architectureName;
     CPU cpu;
+    bool isAArch64;
     bool isX86_64;
     bool isX86;
     bool isLP64;
@@ -7605,6 +7606,7 @@ public:
         cpp(),
         objc(),
         architectureName(),
+        isAArch64(),
         isX86_64(),
         isX86(),
         isLP64(),
@@ -7619,7 +7621,7 @@ public:
         params()
     {
     }
-    Target(OS os, uint8_t osMajor = 0u, uint8_t ptrsize = 0u, uint8_t realsize = 0u, uint8_t realpad = 0u, uint8_t realalignsize = 0u, uint8_t classinfosize = 0u, uint64_t maxStaticDataSize = 0LLU, TargetC c = TargetC(), TargetCPP cpp = TargetCPP(), TargetObjC objc = TargetObjC(), _d_dynamicArray< const char > architectureName = {}, CPU cpu = (CPU)0u, bool isX86_64 = false, bool isX86 = false, bool isLP64 = false, _d_dynamicArray< const char > obj_ext = {}, _d_dynamicArray< const char > lib_ext = {}, _d_dynamicArray< const char > dll_ext = {}, bool run_noext = false, FPTypeProperties<float > FloatProperties = FPTypeProperties<float >(), FPTypeProperties<double > DoubleProperties = FPTypeProperties<double >(), FPTypeProperties<_d_real > RealProperties = FPTypeProperties<_d_real >(), Type* tvalist = nullptr, const Param* params = nullptr) :
+    Target(OS os, uint8_t osMajor = 0u, uint8_t ptrsize = 0u, uint8_t realsize = 0u, uint8_t realpad = 0u, uint8_t realalignsize = 0u, uint8_t classinfosize = 0u, uint64_t maxStaticDataSize = 0LLU, TargetC c = TargetC(), TargetCPP cpp = TargetCPP(), TargetObjC objc = TargetObjC(), _d_dynamicArray< const char > architectureName = {}, CPU cpu = (CPU)0u, bool isAArch64 = false, bool isX86_64 = false, bool isX86 = false, bool isLP64 = false, _d_dynamicArray< const char > obj_ext = {}, _d_dynamicArray< const char > lib_ext = {}, _d_dynamicArray< const char > dll_ext = {}, bool run_noext = false, FPTypeProperties<float > FloatProperties = FPTypeProperties<float >(), FPTypeProperties<double > DoubleProperties = FPTypeProperties<double >(), FPTypeProperties<_d_real > RealProperties = FPTypeProperties<_d_real >(), Type* tvalist = nullptr, const Param* params = nullptr) :
         os(os),
         osMajor(osMajor),
         ptrsize(ptrsize),
@@ -7633,6 +7635,7 @@ public:
         objc(objc),
         architectureName(architectureName),
         cpu(cpu),
+        isAArch64(isAArch64),
         isX86_64(isX86_64),
         isX86(isX86),
         isLP64(isLP64),

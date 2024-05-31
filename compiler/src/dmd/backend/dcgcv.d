@@ -509,6 +509,8 @@ void cv_init()
             case TARGET_PentiumPro:
             case TARGET_PentiumII:
                                 debsym[4] = 6;  break;
+            case TARGET_AArch64:
+                                debsym[4] = 7;  break; // made that up
             default:    assert(0);
         }
         debsym[5] = (CPP != 0);         // 0==C, 1==C++
