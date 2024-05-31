@@ -46,9 +46,6 @@ nothrow:
 
 import dmd.backend.cg : datafl;
 
-                        /*   AX,CX,DX,BX                */
-__gshared const reg_t[4] dblreg = [ BX,DX,NOREG,CX ];
-
 import dmd.backend.divcoeff : choose_multiplier, udiv_coefficients;
 
 /*******************************
@@ -783,7 +780,11 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                         break;
                     cs.IEV1.Voffset -= REGSIZE;
                     if (tyml == TYdouble || tyml == TYdouble_alias)
+                    {
+                                                       // AX,CX,   DX,BX
+                            immutable reg_t[4] dblreg = [ BX,DX,NOREG,CX ];
                             reg = dblreg[reg];
+                    }
                     else
                             reg = findreglsw(retregs);
                     NEWREG(cs.Irm,reg);
