@@ -1037,7 +1037,7 @@ extern (C) int
  * Compute stack frame offsets for local variables.
  * that did not make it into registers.
  * Params:
- *	cg = global code gen state
+ *      cg = global code gen state
  *      symtab = function's symbol table
  *      estimate = true for do estimate only, false for final
  */
@@ -1260,8 +1260,8 @@ void stackoffsets(ref CGstate cg, ref symtab_t symtab, bool estimate)
 /****************************
  * Generate code for a block.
  * Params:
- *	cg = code generator state
- *	bl = block to generate code for
+ *      cg = code generator state
+ *      bl = block to generate code for
  */
 
 @trusted
@@ -2262,7 +2262,7 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
         assert(I16);
         if (((csemask | emask) & DOUBLEREGS_16) == DOUBLEREGS_16)
         {
-            static const reg_t[4] dblreg = [ BX,DX,NOREG,CX ]; // duplicate of one in cod4.d
+            immutable reg_t[4] dblreg = [ BX,DX,NOREG,CX ];
             for (reg = 0; reg != NOREG; reg = dblreg[reg])
             {
                 assert(cast(int) reg >= 0 && reg <= 7);
@@ -2554,7 +2554,7 @@ private immutable nothrow void function (ref CGstate, ref CodeBuilder,elem *,reg
 /***************************
  * Generate code sequence for an elem.
  * Params:
- *	cg =            code generator global state
+ *      cg =            code generator global state
  *      cdb =           Code builder to write generated code to
  *      e =             Element to generate code for
  *      pretregs =      mask of possible registers to return result in
@@ -2720,7 +2720,7 @@ L1:
  * Same as codelem(), but do not destroy the registers in keepmsk.
  * Use scratch registers as much as possible, then use stack.
  * Params:
- *	cg =            code generator global state
+ *      cg =            code generator global state
  *      cdb =           Code builder to write generated code to
  *      e =             Element to generate code for
  *      pretregs =      mask of possible registers to return result in
