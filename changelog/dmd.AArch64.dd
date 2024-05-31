@@ -1,0 +1,28 @@
+# Add code generation for AArch64 CPU
+
+Adds the switch `-arm` which causes dmd to emit AArch64 code.
+
+This is a work in progress. It is not a functioning compiler.
+
+Things not implemented:
+
+* inline assembler
+* object file generation for mscoff and mach formats
+* Elf object file generation does not use AArch64 fixups
+* floating point
+* vector operations
+* op= operators
+* block initialization of structs
+* pic/pie
+* non-trivial lvalues
+* stack arguments
+* alloca()
+* exception handling
+* correct DWARF symbolic debug info
+* testing on an actual AArch64 computer
+* line coverage reports
+* stack stomping code
+* local stack frames larger than 64Kb
+* variadic arguments
+* disassembler is incomplete
+* ENDBR64

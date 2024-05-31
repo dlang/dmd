@@ -1623,6 +1623,7 @@ auto sourceFiles()
             x86/cod3.d cv8.d dcgcv.d pdata.d util2.d var.d backconfig.d drtlsym.d dwarfeh.d ptrntab.d
             dvarstats.d dwarfdbginf.d cgen.d goh.d barray.d cgcse.d elpicpie.d
             machobj.d elfobj.d mscoffobj.d filespec.d cgobj.d aarray.d x86/disasm86.d arm/disasmarm.d arm/instr.d
+            arm/cod1.d arm/cod2.d arm/cod3.d arm/cod4.d
             "
         ),
     };

@@ -341,10 +341,15 @@ private void opnegassdbl(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 /************************
  * Generate code for an assignment.
  */
-
 @trusted
 void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+    {
+        import dmd.backend.arm.cod4 : cdeq;
+        return cdeq(cg, cdb, e, pretregs);
+    }
+
     tym_t tymll;
     reg_t reg;
     code cs;
@@ -841,6 +846,12 @@ Lp:
 @trusted
 void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+    {
+        import dmd.backend.arm.cod4 : cdaddass;
+        return cdaddass(cg, cdb, e, pretregs);
+    }
+
     //printf("cdaddass(e=%p, pretregs = %s)\n",e,regm_str(pretregs));
     OPER op = e.Eoper;
     regm_t retregs = 0;
@@ -1386,6 +1397,12 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 @trusted
 void cdmulass(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+    {
+        import dmd.backend.arm.cod4 : cdmulass;
+        return cdmulass(cg, cdb, e, pretregs);
+    }
+
     code cs;
     regm_t retregs;
     reg_t resreg;
@@ -1677,6 +1694,12 @@ void cdmulass(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 @trusted
 void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+    {
+        import dmd.backend.arm.cod4 : cddivass;
+        return cddivass(cg, cdb, e, pretregs);
+    }
+
     elem *e1 = e.E1;
     elem *e2 = e.E2;
 
@@ -2254,6 +2277,12 @@ void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 @trusted
 void cdshass(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+    {
+        import dmd.backend.arm.cod4 : cdshass;
+        return cdshass(cg, cdb, e, pretregs);
+    }
+
     code cs;
     uint op1,op2;
 
@@ -2497,6 +2526,12 @@ void cdshass(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 @trusted
 void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+    {
+        import dmd.backend.arm.cod4 : cdcmp;
+        return cdcmp(cg, cdb, e, pretregs);
+    }
+
     regm_t retregs,rretregs;
     reg_t reg,rreg;
     int fl;

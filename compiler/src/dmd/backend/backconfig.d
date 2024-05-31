@@ -29,6 +29,7 @@ nothrow:
 /**************************************
  * Initialize configuration for backend.
  * Params:
+    arm           = true for generating AArch64 code
     model         = 32 for 32 bit code,
                     64 for 64 bit code,
                     set bit 0 to generate MS-COFF instead of OMF on Windows
@@ -60,6 +61,7 @@ nothrow:
 public
 @trusted
 extern (C) void out_config_init(
+        bool arm,       // true for generating AArch64 code
         int model,
         bool exe,
         bool trace,
@@ -87,6 +89,8 @@ extern (C) void out_config_init(
     auto cfg = &config;
 
     cfg._version = _version;
+    if (arm)
+        cfg.target_cpu = TARGET_AArch64;
     if (!cfg.target_cpu)
     {   cfg.target_cpu = TARGET_PentiumPro;
         cfg.target_scheduler = cfg.target_cpu;
@@ -357,7 +361,13 @@ static if (0)
     block_init();
 
     cod3_setdefault();
-    if (model == 64)
+    if (arm)
+    {
+        util_set64(cfg.exe);
+        type_init();
+        cod3_setAArch64();
+    }
+    else if (model == 64)
     {
         util_set64(cfg.exe);
         type_init();

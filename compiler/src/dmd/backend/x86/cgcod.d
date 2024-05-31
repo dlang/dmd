@@ -39,6 +39,8 @@ import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.backend.arm.disasmarm;
+
 import dmd.backend.x86.code_x86;
 import dmd.backend.x86.disasm86;
 import dmd.backend.x86.xmm;
@@ -84,6 +86,8 @@ void codgen(Symbol *sfunc)
     cgstate.allregs = ALLREGS;
     cgstate.Alloca.initialize();
     cgstate.anyiasm = 0;
+    cgstate.AArch64 = config.target_cpu == TARGET_AArch64;
+    cgstate.BP = cgstate.AArch64 ? 29 : BP;
 
     if (config.ehmethod == EHmethod.EH_DWARF)
     {
@@ -150,7 +154,7 @@ void codgen(Symbol *sfunc)
         cgstate.mfuncreg = fregsaved;               // so we can see which are used
                                             // (bit is cleared each time
                                             //  we use one)
-        assert(!(cgstate.needframe && cgstate.mfuncreg & mBP)); // needframe needs mBP
+        assert(!(cgstate.needframe && cgstate.mfuncreg & mask(cgstate.BP))); // needframe needs mBP
 
         for (block* b = startblock; b; b = b.Bnext)
         {
@@ -211,7 +215,10 @@ void codgen(Symbol *sfunc)
         {
             cgstate.pass = BackendPass.final_;
             for (block* b = startblock; b; b = b.Bnext)
+            {
                 blcodgen(cgstate, b);        // generate the code for each block
+                //for (code* cx = b.Bcode; cx; cx = code_next(cx)) printf("Bcode x%08x\n", cx.Iop);
+            }
         }
         cgstate.regcon.immed.mval = 0;
         assert(!cgstate.regcon.cse.mops);           // should have all been used
@@ -438,6 +445,7 @@ void codgen(Symbol *sfunc)
 
             codout(sfunc.Sseg,b.Bcode,(configv.vasm ? &disasmBuf : null), framehandleroffset);   // output code
         }
+static if (0)
         if (coffset != Offset(sfunc.Sseg))
         {
             debug
@@ -556,6 +564,7 @@ void codgen(Symbol *sfunc)
 @trusted
 targ_size_t alignsection(targ_size_t base, uint alignment, int bias)
 {
+    //printf("alignsection(base: x%x, alignment: x%x, bias: x%x)\n", cast(uint)base, alignment, bias);
     assert(cast(long)base <= 0);
     if (alignment > STACKALIGN)
         alignment = STACKALIGN;
@@ -567,6 +576,7 @@ targ_size_t alignsection(targ_size_t base, uint alignment, int bias)
         if (sz)
             base -= alignment - sz;
     }
+    //printf("returns: x%x\n", cast(uint)base);
     return base;
 }
 
@@ -586,6 +596,8 @@ private
 void prolog(ref CGstate cg, ref CodeBuilder cdb)
 {
     bool enter;
+
+    const XMMREGS = cg.AArch64 ? 0 : XMMREGS;
 
     //printf("cgcod.prolog() %s, needframe = %d, Auto.alignment = %d\n", funcsym_p.Sident.ptr, cg.needframe, cg.Auto.alignment);
     debug debugw && printf("prolog()\n");
@@ -634,9 +646,13 @@ void prolog(ref CGstate cg, ref CodeBuilder cdb)
          */
         !(config.exe == EX_WIN32) && !(funcsym_p.Sfunc.Fflags3 & Fnothrow) ||
         cg.accessedTLS ||
-        sv64
+        sv64 ||
+        (0 && cg.calledafunc && cg.AArch64)
        )
+    {
+        //printf("0 prolog() needframe %d alwaysframe %d\n", cg.needframe, config.flags & CFGalwaysframe);
         cg.needframe = 1;
+    }
 
     CodeBuilder cdbx; cdbx.ctor();
 
@@ -681,6 +697,7 @@ Lagain:
         else
             cg.Para.size = ((farfunc ? 2 : 1) + 1) * REGSIZE;
     }
+    //printf("enforcealign: %d\n", cg.enforcealign);
 
     /* The real reason for the FAST section is because the implementation of contracts
      * requires a consistent stack frame location for the 'this' pointer. But if varying
@@ -731,6 +748,8 @@ version (FRAMEPTR)
     int bias = cg.enforcealign ? 0 : cast(int)(cg.Para.size);
 else
     int bias = cg.enforcealign ? 0 : cast(int)(cg.Para.size + (cg.needframe ? 0 : REGSIZE));
+    if (cg.AArch64)
+        bias = 0;
 
     if (cg.Fast.alignment < REGSIZE)
         cg.Fast.alignment = REGSIZE;
@@ -771,7 +790,7 @@ else
      * won't be setting ESP correctly. With pushoffuse, the registers are restored
      * from EBP, which is kept track of properly.
      */
-    if ((config.flags4 & CFG4speed || config.ehmethod == EHmethod.EH_DWARF) && (I32 || I64))
+    if ((config.flags4 & CFG4speed || config.ehmethod == EHmethod.EH_DWARF) && (I32 || I64) || cg.AArch64)
     {
         /* Instead of pushing the registers onto the stack one by one,
          * allocate space in the stack frame and copy/restore them there.
@@ -793,7 +812,7 @@ else
      * Can expand on this by allowing for locals that don't need extra alignment
      * and calling functions that don't need it.
      */
-    if (cg.pushoff == 0 && !cg.calledafunc && config.fpxmmregs && (I32 || I64))
+    if (cg.pushoff == 0 && !cg.calledafunc && config.fpxmmregs && (I32 || I64) && !cg.AArch64)
     {
         cg.funcarg.alignment = I64 ? 8 : 4;
     }
@@ -803,21 +822,24 @@ else
 
     localsize = -cg.funcarg.offset;
 
-    //printf("Alloca.offset = x%llx, cstop = x%llx, CSoff = x%llx, NDPoff = x%llx, localsize = x%llx\n",
-        //(long long)cg.Alloca.offset, (long long)CSE.size(), (long long)cg.CSoff, (long long)cg.NDPoff, (long long)localsize);
+    static if (0)
+    printf("Alloca.offset = x%llx, cstop = x%llx, CSoff = x%llx, NDPoff = x%llx, localsize = x%llx\n",
+        cast(long)cg.Alloca.offset, cast(long)CSE.size(), cast(long)cg.CSoff, cast(long)cg.NDPoff, cast(long)localsize);
     assert(cast(targ_ptrdiff_t)localsize >= 0);
 
     // Keep the stack aligned by 8 for any subsequent function calls
     if (!I16 && cg.calledafunc &&
-        (STACKALIGN >= 16 || config.flags4 & CFG4stackalign))
+        (STACKALIGN >= 16 || config.flags4 & CFG4stackalign)&&
+        !cg.AArch64)
     {
         int npush = popcnt(topush);            // number of registers that need saving
         npush += popcnt(topush & XMMREGS);     // XMM regs take 16 bytes, so count them twice
         if (cg.pushoffuse)
             npush = 0;
 
-        //printf("npush = %d Para.size = x%x needframe = %d localsize = x%x\n",
-               //npush, cg.Para.size, cg.needframe, localsize);
+        static if (0)
+        printf("npush = %d Para.size = x%x needframe = %d localsize = x%x\n",
+               npush, cast(int)cg.Para.size, cg.needframe, cast(int)localsize);
 
         int sz = cast(int)(localsize + npush * REGSIZE);
         if (!cg.enforcealign)
@@ -832,8 +854,9 @@ else
     }
     cg.funcarg.offset = -localsize;
 
-    //printf("Foff x%02x Auto.size x%02x NDPoff x%02x CSoff x%02x Para.size x%02x localsize x%02x\n",
-        //(int)cg.Foff,(int)cg.Auto.size,(int)cg.NDPoff,(int)cg.CSoff,(int)cg.Para.size,(int)localsize);
+    static if (0)
+    printf("Foff x%02x Auto.size x%02x NDPoff x%02x CSoff x%02x Para.size x%02x localsize x%02x\n",
+        cast(int)cg.Foff,cast(int)cg.Auto.size,cast(int)cg.NDPoff,cast(int)cg.CSoff,cast(int)cg.Para.size,cast(int)localsize);
 
     uint xlocalsize = cast(uint)localsize;    // amount to subtract from ESP to make room for locals
 
@@ -852,6 +875,7 @@ else
     }
 
     /* Determine if we need BP set up   */
+//printf("1 prolog() needframe %d\n", cg.needframe);
     if (cg.enforcealign)
     {
         // we need BP to reset the stack before return
@@ -884,7 +908,9 @@ else
 
     if (cg.needframe)
     {
-        assert(cg.mfuncreg & mBP);         // shouldn't have used mBP
+        //printf("cg.BP = %d\n", cg.BP);
+        //printf("cg.mfuncreg = %s\n", regm_str(cg.mfuncreg));
+        assert(cg.mfuncreg & mask(cg.BP)); // shouldn't have used mBP
 
         if (!guessneedframe)            // if guessed wrong
             goto Lagain;
@@ -963,6 +989,7 @@ else
     prolog_saveregs(cg, cdb, topush, cfa_offset);
 
 Lcont:
+    //printf("2 prolog() needframe %d\n", cg.needframe);
 
     if (config.exe == EX_WIN64)
     {
@@ -992,6 +1019,7 @@ Lcont:
      */
     //assert(cg.Auto.alignment <= STACKALIGN);
     //assert(((cg.Auto.size + cg.Para.size + cg.BPoff) & (cg.Auto.alignment - 1)) == 0);
+    //printf("-prolog() needframe %d\n", cg.needframe);
 }
 
 /************************************
@@ -1791,7 +1819,7 @@ regm_t lpadregs()
 @trusted
 void useregs(regm_t regm)
 {
-    //printf("useregs(x%x) %s\n", regm, regm_str(regm));
+    //printf("useregs(x%llx) %s\n", regm, regm_str(regm));
     assert(REGMAX <= 32);
     regm &= (1UL << REGMAX) - 1;
     assert(!(regm & mPSW));
@@ -2779,7 +2807,11 @@ void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem *e,ref regm_t pretregs,r
     regm_t oldregcon = cg.regcon.cse.mval;
     regm_t oldregimmed = cg.regcon.immed.mval;
     regm_t oldmfuncreg = cg.mfuncreg;       // remember old one
-    cg.mfuncreg = (XMMREGS | mBP | mES | ALLREGS) & ~cg.regcon.mvar;
+    if (cg.AArch64)
+//        cg.mfuncreg = (XMMREGS | mask(cg.BP) | cg.allregs) & ~cg.regcon.mvar;
+        cg.mfuncreg = (0x7FFF_FFFF) & ~cg.regcon.mvar;
+    else
+        cg.mfuncreg = (XMMREGS | mBP | mES | ALLREGS) & ~cg.regcon.mvar;
     uint stackpushsave = cg.stackpush;
     char calledafuncsave = cg.calledafunc;
     cg.calledafunc = 0;
@@ -2935,6 +2967,7 @@ const(char)* regm_str(regm_t rm)
     enum SMAX = 128;
     __gshared char[SMAX + 1][NUM] str;
     __gshared int i;
+    bool AArch64 = cgstate.AArch64;
 
     if (rm == 0)
         return "0";
@@ -2954,7 +2987,21 @@ const(char)* regm_str(regm_t rm)
     {
         if (mask(cast(uint)j) & rm)
         {
-            strcat(p,regstring[j]);
+            if (AArch64)
+            {
+                if (j == 31)
+                    strcat(p, "sp");
+                else if (j == 29)
+                    strcat(p, "fp");
+                else
+                {
+                    char[4] buf = void;
+                    sprintf(buf.ptr, "r%u", cast(uint)j);
+                    strcat(p, buf.ptr);
+                }
+            }
+            else
+                strcat(p,regstring[j]);
             rm &= ~mask(cast(uint)j);
             if (rm)
                 strcat(p,"|");
@@ -3046,19 +3093,34 @@ private extern (D)
 void disassemble(ubyte[] code)
 {
     printf("%s:\n", funcsym_p.Sident.ptr);
-    const model = I16 ? 16 : I32 ? 32 : 64;     // 16/32/64
-    size_t i = 0;
-    while (i < code.length)
+
+    @trusted
+    void put(char c) { printf("%c", c); }
+
+    if (cgstate.AArch64)
     {
-        printf("%04x:", cast(int)i);
-        uint pc;
-        const sz = dmd.backend.x86.disasm86.calccodsize(code, cast(uint)i, pc, model);
+        for (size_t i = 0; i < code.length; i += 4)
+        {
+            printf("%04x:", cast(int)i);
+            dmd.backend.arm.disasmarm.getopstring(&put, code, cast(uint)i, 4, 64, false, true,
+                    null, null, null, null);
+            printf("\n");
+        }
+    }
+    else
+    {
+        const model = I16 ? 16 : I32 ? 32 : 64;     // 16/32/64
+        size_t i = 0;
+        while (i < code.length)
+        {
+            printf("%04x:", cast(int)i);
+            uint pc;
+            const sz = dmd.backend.x86.disasm86.calccodsize(code, cast(uint)i, pc, model);
 
-        void put(char c) { printf("%c", c); }
-
-        dmd.backend.x86.disasm86.getopstring(&put, code, cast(uint)i, sz, model, model == 16, true,
-                null, null, null, null);
-        printf("\n");
-        i += sz;
+            dmd.backend.x86.disasm86.getopstring(&put, code, cast(uint)i, sz, model, model == 16, true,
+                    null, null, null, null);
+            printf("\n");
+            i += sz;
+        }
     }
 }

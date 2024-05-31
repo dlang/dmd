@@ -271,7 +271,7 @@ size_t addtofixlist(Symbol *s,targ_size_t offset,int seg,targ_size_t val,int fla
         static immutable ubyte[8] zeros = 0;
 
         //printf("addtofixlist(%p '%s')\n",s,s.Sident.ptr);
-        assert(I32 || flags);
+        //assert(I32 || flags); // add AArch64
         Fixup* f = fixups.push();
         f.sym = s;
         f.offset = offset;
