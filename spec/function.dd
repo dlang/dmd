@@ -22,7 +22,10 @@ $(GNAME FuncDeclaratorSuffix):
     $(GLINK2 template, TemplateParameters) $(GLINK Parameters) $(GLINK MemberFunctionAttributes)$(OPT) $(GLINK2 template, Constraint)$(OPT)
 )
 
-        * A *FuncDeclaration* with a $(GLINK FunctionBody) is called a *function definition*.
+        * A *FuncDeclaration* with a function body is called a
+          $(RELATIVE_LINK2 function-bodies, function definition).
+        * A *FuncDeclaration* without a function body is called a
+          $(RELATIVE_LINK2 function-declarations, function prototype).
         * A *FuncDeclaration* with *TemplateParameters* defines a
           $(DDSUBLINK spec/template, function-templates, function template).
 
@@ -135,7 +138,7 @@ $(LEGACY_LNAME2 FunctionLiteralBody)
         This syntax also applies for $(DDSUBLINK spec/expression, function_literals, function literals).)
 
 
-$(H3 $(LNAME2 function-declarations, Functions without Bodies))
+$(H3 $(LNAME2 function-declarations, Function Prototypes))
 
 $(GRAMMAR
 $(GNAME MissingFunctionBody):
@@ -144,16 +147,23 @@ $(GNAME MissingFunctionBody):
     $(GLINK FunctionContracts)$(OPT) $(GLINK InOutStatement)
 )
 
-    $(P Functions without bodies:)
+    $(P Function declarations with a *MissingFunctionBody*, e.g.:)
 
 ---
 int foo();
 ---
 
-    $(P that are not declared as $(D abstract) are expected to have their implementations
+    $(P that are not declared as $(DDSUBLINK spec/class, abstract, `abstract`)
+    are expected to have their implementations
     elsewhere, and that implementation will be provided at the link step.
     This enables an implementation of a function to be completely hidden from the user
     of it, and the implementation may be in another language such as C, assembler, etc.
+    Typically a function prototype would have non-`extern(D)`
+    $(DDSUBLINK spec/attribute, linkage, linkage).
+    )
+
+    $(P A function prototype can have `extern(D)` linkage.
+    This is useful for $(DDSUBLINK dmd, interface-files, D interface files).
     )
 
 
