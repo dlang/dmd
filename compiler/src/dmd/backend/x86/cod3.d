@@ -2501,7 +2501,7 @@ regm_t cod3_useBP()
     if (tym == TYifunc)
         goto Lcant;
 
-    stackoffsets(globsym, true);                // estimate stack offsets
+    stackoffsets(cgstate, globsym, true);  // estimate stack offsets
     localsize = cgstate.Auto.offset + cgstate.Fast.offset;                // an estimate only
 //    if (localsize)
     {
