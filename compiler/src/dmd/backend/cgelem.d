@@ -1711,6 +1711,21 @@ private elem *elor(elem *e, Goal goal)
     uint sz = tysize(e.Ety);
     if (sz <= REGSIZE)
     {
+        elem* rol()
+        {
+            if (config.target_cpu == TARGET_AArch64)
+            {
+                // AArch64 does not have ROL instruction, convert (a rol b) to (a ror -b)
+                e1.Eoper = OPror;
+                e = el_selecte1(e);
+                e.E2 = el_una(OPneg, e.E2.Ety, e.E2);
+                e.Eoper = OPror;
+                return e;
+            }
+            e1.Eoper = OProl;
+            return el_selecte1(e);
+        }
+
         if (e1.Eoper == OPshl && e2.Eoper == OPshr &&
             tyuns(e2.E1.Ety) && e2.E2.Eoper == OPmin &&
             e2.E2.E1.Eoper == OPconst &&
@@ -1720,8 +1735,7 @@ private elem *elor(elem *e, Goal goal)
             !el_sideeffect(e)
            )
         {
-            e1.Eoper = OProl;
-            return el_selecte1(e);
+            return rol();
         }
         if (e1.Eoper == OPshr && e2.Eoper == OPshl &&
             tyuns(e1.E1.Ety) && e2.E2.Eoper == OPmin &&
@@ -1745,8 +1759,7 @@ private elem *elor(elem *e, Goal goal)
             !el_sideeffect(e)
            )
         {
-            e1.Eoper = OProl;
-            return el_selecte1(e);
+            return rol();
         }
         // rotate right by a constant
         if (e1.Eoper == OPshr && e2.Eoper == OPshl &&

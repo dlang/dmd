@@ -131,6 +131,7 @@ struct CodeBuilder
 
     void gen1(opcode_t op)
     {
+        //debug printf("gen1(%08x)\n", op);
         code *ce = code_calloc();
         ce.Iop = op;
         ccheck(ce);

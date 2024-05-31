@@ -1443,7 +1443,7 @@ void disassemble(uint c) @trusted
         uint Rd     = field(ins,  4,  0);
         //printf("Rd: x%x\n", Rd);
 
-        string[8] tab = [ "uxtb", "uxth", "ustw", "uxtx", "sxtb","sxth", "sxtw", "sxtx" ];
+        string[8] tab = [ "uxtb", "uxth", "uxtw", "uxtx", "sxtb","sxth", "sxtw", "sxtx" ];
         const(char)[] extend;
         if (sf && Rn == 0x1F && option == 3 ||
            !sf && Rn == 0x1F && option == 2)
@@ -1816,7 +1816,7 @@ void disassemble(uint c) @trusted
                     p2 = regString(is64, Rt);
                     p3 = indexString(Rn);
                     if (imm12)
-                        p4 = wordtostring(imm12);
+                        p4 = wordtostring(imm12 << (is64 ? 3 : 2));
                     break;
 
                 static if (0) // fix later

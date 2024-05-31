@@ -37,7 +37,6 @@ import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.x86.xmm;
 
-
 import dmd.backend.cg : segfl, stackfl;
 
 nothrow:
@@ -455,6 +454,12 @@ void genstackclean(ref CodeBuilder cdb,uint numpara,regm_t keepmsk)
 @trusted
 void logexp(ref CodeBuilder cdb, elem *e, int jcond, uint fltarg, code *targ)
 {
+    if (cgstate.AArch64)
+    {
+        import dmd.backend.arm.cod1 : logexp;
+        return logexp(cdb, e, jcond, fltarg, targ);
+    }
+
     //printf("logexp(e = %p, jcond = %d)\n", e, jcond); elem_print(e);
     if (tybasic(e.Ety) == TYnoreturn)
     {
@@ -1862,6 +1867,12 @@ void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, bool saveflag)
 @trusted
 void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, ref regm_t outretregs)
 {
+    if (cgstate.AArch64)
+    {
+        import dmd.backend.arm.cod1 : fixresult;
+        return fixresult(cdb, e, retregs, outretregs);
+    }
+
     //printf("fixresult(e = %p, retregs = %s, outretregs = %s)\n",e,regm_str(retregs),regm_str(outretregs));
     if (outretregs == 0) return;           // if don't want result
     assert(e && retregs);                 // need something to work with
@@ -2939,6 +2950,17 @@ FuncParamRegs FuncParamRegs_create(tym_t tyf)
         else
             result.numintegerregs = 0;
         result.numfloatregs = 0;
+    }
+    else if (config.target_cpu == TARGET_AArch64)
+    {
+        // https://en.wikipedia.org/wiki/Calling_convention#ARM_(A64)
+        static immutable reg_t[8] reglist7 = [ 0,1,2,3, 4,5,6,7 ];
+        result.argregs = &reglist7[0];
+        result.numintegerregs = reglist7.length;
+
+        static immutable reg_t[8] freglist7 = [ 32,33,34,35, 36,37,38,39 ];
+        result.floatregs = &freglist7[0];
+        result.numfloatregs = freglist7.length;
     }
     else if (I64 && config.exe == EX_WIN64)
     {
@@ -5122,12 +5144,17 @@ L3:
 
 /******************************
  * Generate code to load data into registers.
+ * Called for OPconst and OPvar.
  */
-
-
 @trusted
 void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
 {
+    if (cgstate.AArch64)
+    {
+        import dmd.backend.arm.cod1 : loaddata;
+        return loaddata(cdb, e, outretregs);
+    }
+
     reg_t reg;
     reg_t nreg;
     reg_t sreg;

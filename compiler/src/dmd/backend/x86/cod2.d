@@ -36,6 +36,7 @@ import dmd.backend.global;
 import dmd.backend.oper;
 import dmd.backend.ty;
 import dmd.backend.type;
+import dmd.backend.arm.cod2;
 import dmd.backend.x86.xmm;
 
 
@@ -165,6 +166,9 @@ void opdouble(ref CodeBuilder cdb, elem *e,regm_t *pretregs,uint clib)
 @trusted
 void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
+    if (cg.AArch64)
+        return dmd.backend.arm.cod2.cdorth(cg, cdb, e, pretregs);
+
     //printf("cdorth(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
     elem *e1 = e.E1;
     elem *e2 = e.E2;
@@ -886,6 +890,9 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 @trusted
 void cdmul(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
+    if (cg.AArch64)
+        return dmd.backend.arm.cod2.cdmul(cg, cdb, e, pretregs);
+
     //printf("cdmul()\n");
     elem *e1 = e.E1;
     elem *e2 = e.E2;
@@ -1272,6 +1279,9 @@ void cdmul(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 @trusted
 void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
+    if (cg.AArch64)
+        return dmd.backend.arm.cod2.cddiv(cg, cdb, e, pretregs);
+
     //printf("cddiv()\n");
     elem *e1 = e.E1;
     elem *e2 = e.E2;
@@ -2161,6 +2171,9 @@ void cdnot(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 @trusted
 void cdcom(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
+    if (cg.AArch64)
+        return dmd.backend.arm.cod2.cdcom(cg, cdb, e, pretregs);
+
     if (*pretregs == 0)
     {
         codelem(cgstate,cdb,e.E1,pretregs,false);
@@ -2207,6 +2220,9 @@ void cdcom(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 @trusted
 void cdbswap(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
+    if (cg.AArch64)
+        return dmd.backend.arm.cod2.cdbswap(cg, cdb, e, pretregs);
+
     if (*pretregs == 0)
     {
         codelem(cgstate,cdb,e.E1,pretregs,false);
@@ -2260,6 +2276,9 @@ void cdbswap(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 @trusted
 void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
+    if (cg.AArch64)
+        return dmd.backend.arm.cod2.cdcond(cg, cdb, e, pretregs);
+
     /* vars to save state of 8087 */
     NDP[global87.stack.length] _8087old;
     NDP[global87.stack.length] _8087save;
@@ -2571,6 +2590,9 @@ void cdcomma(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 @trusted
 void cdloglog(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
+    if (cg.AArch64)
+        return dmd.backend.arm.cod2.cdloglog(cg, cdb, e, pretregs);
+
     /* We can trip the assert with the following:
      *    if ( (b<=a) ? (c<b || a<=c) : c>=a )
      * We'll generate ugly code for it, but it's too obscure a case
@@ -2700,7 +2722,6 @@ void cdloglog(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     cdb.append(cdb1);
     cdb.append(cnop2);
     cgstate.stackclean--;
-    return;
 }
 
 
@@ -2711,11 +2732,14 @@ void cdloglog(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 @trusted
 void cdshift(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
+    if (cg.AArch64)
+        return dmd.backend.arm.cod2.cdshift(cg, cdb, e, pretregs);
+
+    //printf("cdshift()\n");
     reg_t resreg;
     uint shiftcnt;
     regm_t retregs,rretregs;
 
-    //printf("cdshift()\n");
     elem *e1 = e.E1;
     if (*pretregs == 0)                   // if don't want result
     {
@@ -3198,6 +3222,9 @@ void cdshift(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 @trusted
 void cdind(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
+    if (cg.AArch64)
+        return dmd.backend.arm.cod2.cdind(cg, cdb, e, pretregs);
+
     regm_t retregs;
     reg_t reg;
     uint nreg;
@@ -4955,6 +4982,9 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem *e,reg_t reg)
 @trusted
 void cdneg(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
+    if (cg.AArch64)
+        return dmd.backend.arm.cod2.cdneg(cg, cdb, e, pretregs);
+
     //printf("cdneg()\n");
     //elem_print(e);
     if (*pretregs == 0)
@@ -5033,13 +5063,16 @@ void cdneg(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
 
 /******************
- * Absolute value operator
+ * Absolute value operator, OPabs
  */
 
 
 @trusted
 void cdabs(ref CGstate cg, ref CodeBuilder cdb,elem *e, regm_t *pretregs)
 {
+    if (cg.AArch64)
+        return dmd.backend.arm.cod2.cdabs(cg, cdb, e, pretregs);
+
     //printf("cdabs(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
     if (*pretregs == 0)
     {
@@ -5742,6 +5775,9 @@ void cdvoid(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 @trusted
 void cdhalt(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
+    if (cg.AArch64)
+        return dmd.backend.arm.cod2.cdhalt(cg, cdb, e, pretregs);
+
     assert(*pretregs == 0);
     cdb.gen1(config.target_cpu >= TARGET_80286 ? UD2 : INT3);
 }
