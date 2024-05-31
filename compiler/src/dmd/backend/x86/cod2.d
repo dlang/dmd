@@ -44,8 +44,6 @@ nothrow:
 
 import dmd.backend.cg : segfl, stackfl;
 
-__gshared int cdcmp_flag;
-
 import dmd.backend.divcoeff : choose_multiplier, udiv_coefficients;
 
 /*******************************
@@ -2346,7 +2344,7 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 retregs = BYTEREGS;
         }
 
-        cdcmp_flag = 1 | rex;
+        cg.cmp_flag = 1 | rex;
         v1 = cast(targ_size_t)e21.Vllong;
         v2 = cast(targ_size_t)e22.Vllong;
         if (jop == JNC)

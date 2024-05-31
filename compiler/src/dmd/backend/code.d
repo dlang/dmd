@@ -226,6 +226,7 @@ struct CGstate
     con_t regcon;               // register contents
     BackendPass pass;
 
+    int cmp_flag;		// pass extra flag from cdcod() to cdcmp()
     /**********************************
      * Set value in regimmed for reg.
      * NOTE: For 16 bit generator, this is always a (targ_short) sign-extended
