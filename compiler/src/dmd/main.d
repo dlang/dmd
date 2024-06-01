@@ -824,7 +824,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     updateRealEnvironment(environment);
     environment.reset(1); // don't need environment cache any more
 
-    if (parseCommandLine(arguments, argc, params, files, target))
+    if (parseCommandLine(arguments, argc, params, files, target, driverParams))
     {
         Loc loc;
         errorSupplemental(loc, "run `dmd` to print the compiler manual");

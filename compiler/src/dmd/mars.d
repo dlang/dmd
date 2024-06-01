@@ -456,11 +456,12 @@ extern(C) void flushMixins()
  *      params = set to result of parsing `arguments`
  *      files = set to files pulled from `arguments`
  *      target = more things set to result of parsing `arguments`
+ *	driverParams = even more things to set
  * Returns:
  *      true if errors in command line
  */
 
-bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param params, ref Strings files, ref Target target)
+bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param params, ref Strings files, ref Target target, ref DMDparams driverParams)
 {
     bool errors;
 
