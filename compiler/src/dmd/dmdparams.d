@@ -322,12 +322,14 @@ void setTargetBuildDefaults(ref Target target)
     target.osMajor = defaultTargetOSMajor();
     target.cpu = CPU.baseline;
     target.isX86_64 = (size_t.sizeof == 8);
+    target.isX86 = !target.isX86_64;
 }
 
 void setTriple(ref Target target, const ref Triple triple) @safe
 {
     target.cpu     = triple.cpu;
     target.isX86_64 = triple.isX86_64;
+    target.isX86    = !target.isX86_64;
     target.isLP64  = triple.isLP64;
     target.os      = triple.os;
     target.osMajor = triple.osMajor;

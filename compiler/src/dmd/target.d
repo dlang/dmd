@@ -25,6 +25,8 @@
 
 module dmd.target;
 
+import core.stdc.stdio;
+
 import dmd.astenums : CHECKENABLE;
 import dmd.globals : Param;
 
@@ -348,6 +350,7 @@ extern (C++) struct Target
     const(char)[] architectureName;
     CPU cpu;                // CPU instruction set to target
     bool isX86_64;          // generate 64 bit code for x86_64; true by default for 64 bit dmd
+    bool isX86;             // generate 32 bit Intel x86 code
     bool isLP64;            // pointers are 64 bits
 
     // Environmental
@@ -403,6 +406,7 @@ extern (C++) struct Target
     extern (C++) void _init(ref const Param params)
     {
         // isX86_64 and cpu are initialized in parseCommandLine
+	isX86 = !isX86_64;
 
         this.params = &params;
 
@@ -460,10 +464,12 @@ extern (C++) struct Target
             }
         }
 
+        assert(isX86 != isX86_64);
         c.initialize(params, this);
         cpp.initialize(params, this);
         objc.initialize(params, this);
 
+        assert(isX86 != isX86_64);
         if (isX86_64)
             architectureName = "X86_64";
         else
@@ -1039,7 +1045,7 @@ extern (C++) struct Target
             if (tns.ty != TY.Tstruct)
             {
     L2:
-                if (os == Target.OS.linux && tf.linkage != LINK.d && !isX86_64)
+                if (os == Target.OS.linux && tf.linkage != LINK.d && isX86)
                 {
                                                     // 32 bit C/C++ structs always on stack
                 }
@@ -1066,12 +1072,12 @@ extern (C++) struct Target
         if (auto ts = tns.isTypeStruct())
         {
             auto sd = ts.sym;
-            if (os == Target.OS.linux && tf.linkage != LINK.d && !isX86_64)
+            if (os == Target.OS.linux && tf.linkage != LINK.d && isX86)
             {
                 //printf("  2 true\n");
                 return true;            // 32 bit C/C++ structs always on stack
             }
-            if (os == Target.OS.Windows && tf.linkage == LINK.cpp && !isX86_64 &&
+            if (os == Target.OS.Windows && tf.linkage == LINK.cpp && isX86 &&
                      sd.isPOD() && sd.ctor)
             {
                 // win32 returns otherwise POD structs with ctors via memory
@@ -1119,7 +1125,7 @@ extern (C++) struct Target
                 return true;
         }
         else if (os == Target.OS.Windows &&
-                 !isX86_64 &&
+                 isX86 &&
                  tf.linkage == LINK.cpp &&
                  tf.isfloating())
         {
@@ -1278,7 +1284,7 @@ extern (C++) struct Target
      */
     extern (C++) bool libraryObjectMonitors(FuncDeclaration fd, Statement fbody)
     {
-        if (!isX86_64 && os == Target.OS.Windows && !fd.isStatic() && !fbody.usesEH() && !params.trace)
+        if (isX86 && os == Target.OS.Windows && !fd.isStatic() && !fbody.usesEH() && !params.trace)
         {
             /* The back end uses the "jmonitor" hack for syncing;
              * no need to do the sync in the library.
@@ -1309,7 +1315,7 @@ extern (C++) struct Target
      */
     extern (D) bool isXmmSupported() @safe
     {
-        return isX86_64 || os == Target.OS.OSX;
+        return isX86_64 || (isX86 && os == Target.OS.OSX);
     }
 
     /**
@@ -1329,7 +1335,13 @@ extern (C++) struct Target
      */
     extern (D) uint stackAlign() @safe
     {
-        return isXmmSupported() ? 16 : (isX86_64 ? 8 : 4);
+        assert(isX86_64 != isX86);
+        uint sz = isXmmSupported() ? 16 :
+                  isX86_64         ?  8 :
+                  isX86            ?  4 : 0;
+        assert(sz);
+        assert(sz == (isXmmSupported() ? 16 : (isX86_64 ? 8 : 4)));
+        return sz;
     }
 }
 
@@ -1482,6 +1494,7 @@ struct TargetCPP
         else
             assert(0);
         // C++ and D ABI incompatible on all (?) x86 32-bit platforms
+        assert(target.isX86 == !target.isX86_64);
         wrapDtorInExternD = !target.isX86_64;
     }
 
