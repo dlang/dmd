@@ -29,9 +29,11 @@ import core.stdc.string;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
+import dmd.backend.cg : datafl;
 import dmd.backend.code;
 import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder;
+import dmd.backend.divcoeff : choose_multiplier, udiv_coefficients;
 import dmd.backend.mem;
 import dmd.backend.el;
 import dmd.backend.global;
@@ -43,10 +45,6 @@ import dmd.backend.x86.xmm;
 
 nothrow:
 @safe:
-
-import dmd.backend.cg : datafl;
-
-import dmd.backend.divcoeff : choose_multiplier, udiv_coefficients;
 
 /*******************************
  * Return number of times symbol s appears in tree e.
@@ -2505,8 +2503,8 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     //printf("cdcmp(e = %p, pretregs = %s)\n",e,regm_str(*pretregs));
     // Collect extra parameter. This is pretty ugly...
-    int flag = cdcmp_flag;
-    cdcmp_flag = 0;
+    int flag = cg.cmp_flag;
+    cg.cmp_flag = 0;
 
     elem *e1 = e.E1;
     elem *e2 = e.E2;
