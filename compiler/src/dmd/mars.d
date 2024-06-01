@@ -343,35 +343,40 @@ const(char)[] parse_conf_arg(Strings* args)
  * override any value.
  * Note that if `-defaultlib=` or `-debuglib=` was used,
  * we don't override that either.
+ * Params:
+ *	target = parameters set by user
+ *	defaultlibname = set based on `target`
+ *	debuglibname = set based on `target`
  */
-void setDefaultLibrary(ref Param params, const ref Target target)
+pure @safe
+void setDefaultLibraries(const ref Target target, ref const(char)[] defaultlibname, ref const(char)[] debuglibname)
 {
-    if (driverParams.defaultlibname is null)
+    if (defaultlibname is null)
     {
         if (target.os == Target.OS.Windows)
         {
-            driverParams.defaultlibname = target.isX86_64 ? "phobos64" : "phobos32mscoff";
+            defaultlibname = target.isX86_64 ? "phobos64" : "phobos32mscoff";
         }
         else if (target.os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
         {
-            driverParams.defaultlibname = "libphobos2.a";
+            defaultlibname = "libphobos2.a";
         }
         else if (target.os == Target.OS.OSX)
         {
-            driverParams.defaultlibname = "phobos2";
+            defaultlibname = "phobos2";
         }
         else
         {
             assert(0, "fix this");
         }
     }
-    else if (!driverParams.defaultlibname.length)  // if `-defaultlib=` (i.e. an empty defaultlib)
-        driverParams.defaultlibname = null;
+    else if (!defaultlibname.length)  // if `-defaultlib=` (i.e. an empty defaultlib)
+        defaultlibname = null;
 
-    if (driverParams.debuglibname is null)
-        driverParams.debuglibname = driverParams.defaultlibname;
-    else if (!driverParams.debuglibname.length)  // if `-debuglib=` (i.e. an empty debuglib)
-        driverParams.debuglibname = null;
+    if (debuglibname is null)
+        debuglibname = defaultlibname;
+    else if (!debuglibname.length)  // if `-debuglib=` (i.e. an empty debuglib)
+        debuglibname = null;
 }
 
 void printPredefinedVersions(FILE* stream)

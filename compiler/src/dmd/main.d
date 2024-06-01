@@ -345,7 +345,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
 
     reconcileCommands(params, target);
-    setDefaultLibrary(params, target);
+    setDefaultLibraries(target, driverParams.defaultlibname, driverParams.debuglibname);
 
     // Initialization
     target._init(params);
