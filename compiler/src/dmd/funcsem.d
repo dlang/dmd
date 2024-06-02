@@ -3067,6 +3067,7 @@ extern (D) bool checkNRVO(FuncDeclaration fd)
  * The function is doing something impure, so mark it as impure.
  *
  * Params:
+ *     fd = function declaration to mark
  *     loc = location of impure action
  *     fmt = format string for error message. Must include "%s `%s`" for the function kind and name.
  *     arg0 = (optional) argument to format string
@@ -3241,6 +3242,7 @@ bool traverseIndirections(Type ta, Type tb)
 
 /********************************************
  * Params:
+ *     fd = function declaration to check
  *    t = type of object to test one level of indirection down
  * Returns:
  *    true if an object typed `t` has no indirections
