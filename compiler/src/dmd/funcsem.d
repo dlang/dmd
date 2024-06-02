@@ -3379,7 +3379,7 @@ extern (D) bool isTypeIsolated(FuncDeclaration fd, Type t)
 }
 
 ///ditto
-extern (D) final bool isTypeIsolated(FuncDeclaration fd, Type t, ref StringTable!Type parentTypes)
+extern (D) bool isTypeIsolated(FuncDeclaration fd, Type t, ref StringTable!Type parentTypes)
 {
     //printf("this: %s, isTypeIsolated(t: %s)\n", this.toChars(), t.toChars());
 
@@ -3419,4 +3419,3 @@ extern (D) final bool isTypeIsolated(FuncDeclaration fd, Type t, ref StringTable
             return true;
     }
 }
-
