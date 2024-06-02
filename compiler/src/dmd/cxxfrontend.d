@@ -271,12 +271,6 @@ MATCH leastAsSpecialized(FuncDeclaration fd, FuncDeclaration g, Identifiers* nam
     return dmd.funcsem.leastAsSpecialized(fd, g, names);
 }
 
-PURE isPure(FuncDeclaration fd)
-{
-    import dmd.funcsem;
-    return dmd.funcsem.isPure(fd);
-}
-
 /***********************************************************
  * hdrgen.d
  */
