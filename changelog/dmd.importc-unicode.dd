@@ -1,3 +1,0 @@
-ImportC has improved Unicode support
-
-Universal Character Names are now supported, allowing you to use the ``\uXXXX`` and ``\UXXXXXXXX`` syntax where ``X`` is a hex digit as part of an identifier.

@@ -1,5 +1,0 @@
-Windows OMF support has been removed
-
-After two years of making PE-COFF support the default on Windows, OMF support has now been removed.
-
-This includes the switch (``-m32omf``).

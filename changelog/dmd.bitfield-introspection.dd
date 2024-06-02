@@ -1,9 +1,0 @@
-Add Bitfield Introspection Capability
-
-Adds:
-
-* property `.bitoffsetof` to get the starting bit number of a bitfield
-
-* property `.bitwidth` to get the number of bits in a bitfield
-
-* `__traits(isBitfield, symbol)` returns true if a field symbol is a bitfield
