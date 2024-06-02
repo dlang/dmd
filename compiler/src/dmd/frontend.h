@@ -3621,14 +3621,6 @@ struct ObjcFuncDeclaration final
         {}
 };
 
-enum class PURE : uint8_t
-{
-    impure = 0u,
-    fwdref = 1u,
-    weak = 2u,
-    const_ = 3u,
-};
-
 enum class VarArg : uint8_t
 {
     none = 0u,
@@ -3798,7 +3790,6 @@ public:
     bool isOverloadable() const final override;
     bool isAbstract() final override;
     void initInferAttributes();
-    PURE isPure();
     bool isSafe();
     bool isTrusted();
     bool isNogc();
@@ -4363,6 +4354,14 @@ enum class TRUST : uint8_t
     system = 1u,
     trusted = 2u,
     safe = 3u,
+};
+
+enum class PURE : uint8_t
+{
+    impure = 0u,
+    fwdref = 1u,
+    weak = 2u,
+    const_ = 3u,
 };
 
 class TypeFunction final : public TypeNext
