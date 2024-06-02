@@ -3798,7 +3798,6 @@ public:
     bool isOverloadable() const final override;
     bool isAbstract() final override;
     void initInferAttributes();
-    PURE isPure();
     bool isSafe();
     bool isTrusted();
     bool isNogc();
