@@ -344,9 +344,9 @@ const(char)[] parse_conf_arg(Strings* args)
  * Note that if `-defaultlib=` or `-debuglib=` was used,
  * we don't override that either.
  * Params:
- *	target = parameters set by user
- *	defaultlibname = set based on `target`
- *	debuglibname = set based on `target`
+ *      target = parameters set by user
+ *      defaultlibname = set based on `target`
+ *      debuglibname = set based on `target`
  */
 pure @safe
 void setDefaultLibraries(const ref Target target, ref const(char)[] defaultlibname, ref const(char)[] debuglibname)
@@ -456,7 +456,7 @@ extern(C) void flushMixins()
  *      params = set to result of parsing `arguments`
  *      files = set to files pulled from `arguments`
  *      target = more things set to result of parsing `arguments`
- *	driverParams = even more things to set
+ *      driverParams = even more things to set
  * Returns:
  *      true if errors in command line
  */

@@ -522,7 +522,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (global.errors)
         removeHdrFilesAndFail(params, modules);
 
-    backend_init();
+    backend_init(params, driverParams, target);
 
     // Do semantic analysis
     foreach (m; modules)
