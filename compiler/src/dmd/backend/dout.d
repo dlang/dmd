@@ -670,10 +670,7 @@ debug
             case SC.shadowreg:
                 if (e.Eoper == OPrelconst)
                 {
-                    if (I16)
-                        addressOfParam = true;   // taking addr of param list
-                    else
-                        s.Sflags &= ~(SFLunambig | GTregcand);
+                    s.Sflags &= ~(SFLunambig | GTregcand);
                 }
                 break;
 
@@ -809,12 +806,6 @@ private void out_regcand_walk(elem *e, ref bool addressOfParam)
                     case SC.regpar:
                     case SC.parameter:
                     case SC.shadowreg:
-                        if (I16)
-                            addressOfParam = true;       // taking addr of param list
-                        else
-                            s.Sflags &= ~(SFLunambig | GTregcand);
-                        break;
-
                     case SC.auto_:
                     case SC.register:
                     case SC.fastpar:
