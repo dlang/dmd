@@ -1301,25 +1301,6 @@ private elem * elmin(elem *e, Goal goal)
         }
     }
 
-    if (I16 && tybasic(e2.Ety) == TYhptr && tybasic(e.E1.Ety) == TYhptr)
-    {   // Convert to _aNahdiff(e1,e2)
-        __gshared Symbol *hdiff;
-        if (!hdiff)
-        {
-            Symbol *s = symbol_calloc(LARGECODE ? "_aFahdiff" : "_aNahdiff");
-            s.Stype = tsclib;
-            s.Sclass = SC.extern_;
-            s.Sfl = FLfunc;
-            s.Ssymnum = 0;
-            s.Sregsaved = mBX|mCX|mSI|mDI|mBP|mES;
-            hdiff = s;
-        }
-        e.Eoper = OPcall;
-        e.E2 = el_bin(OPparam,TYint,e2,e.E1);
-        e.E1 = el_var(hdiff);
-        return e;
-    }
-
     /* Disallow the optimization on doubles. The - operator is not
      * rearrangable by K+R, and can cause floating point problems if
      * converted to an add ((a + 1.0) - 1.0 shouldn't be folded).
@@ -2859,8 +2840,6 @@ L1:
 @trusted
 private bool optim_loglog(ref elem* pe)
 {
-    if (I16)
-        return false;
     elem *e = pe;
     const op = e.Eoper;
     assert(op == OPandand || op == OPoror);
