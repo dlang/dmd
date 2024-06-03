@@ -867,7 +867,7 @@ void MsCoffObj_term(const(char)[] objfilename)
                             }
                         }
                         else
-                            assert(false); // not implemented for I16
+                            assert(false); // not implemented
                     }
                     else
                     {
@@ -896,7 +896,7 @@ void MsCoffObj_term(const(char)[] objfilename)
                                 rel.r_type = IMAGE_REL_I386_SECREL;
                         }
                         else
-                            assert(false); // not implemented for I16
+                            assert(false); // not implemented
 
                         rel.r_vaddr = cast(uint)r.offset;
                         rel.r_symndx = s.Sxtrnnum;
