@@ -1,0 +1,11 @@
+`bool` values other than 0 or 1 are not `@safe`
+
+The spec has been updated so that only 0 and 1 are
+[safe values](https://dlang.org/spec/function.html#safe-values)
+for `bool`. This means that reading a `bool` value whose byte representation
+has other bits set is implementation-defined and should be avoided. Consequently:
+
+* `void` initialization of booleans is now deprecated in `@safe` code.
+* Reading a `bool` field from a union is now deprecated in `@safe` code.
+
+Casting to `bool` is [yet to be deprecated](https://issues.dlang.org/show_bug.cgi?id=24582).
