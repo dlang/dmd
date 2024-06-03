@@ -368,7 +368,7 @@ void codgen(Symbol *sfunc)
                 flag = true;
             }
         }
-        if (!I16 && !(config.flags4 & CFG4optimized))
+        if (!(config.flags4 & CFG4optimized))
             break;                      // use the long conditional jmps
     } while (flag);                     // loop till no more bytes saved
 
@@ -599,7 +599,7 @@ void prolog(ref CGstate cg, ref CodeBuilder cdb)
     tym_t tym = tybasic(tyf);
     const farfunc = tyfarfunc(tym) != 0;
 
-    if (config.flags3 & CFG3ibt && !I16)
+    if (config.flags3 & CFG3ibt)
         cdb.gen1(I32 ? ENDBR32 : ENDBR64);
 
     // Special Intel 64 bit ABI prolog setup for variadic functions
@@ -805,7 +805,7 @@ else
     assert(cast(targ_ptrdiff_t)localsize >= 0);
 
     // Keep the stack aligned by 8 for any subsequent function calls
-    if (!I16 && cg.calledafunc &&
+    if (cg.calledafunc &&
         (STACKALIGN >= 16 || config.flags4 & CFG4stackalign))
     {
         int npush = popcnt(topush);            // number of registers that need saving
@@ -861,8 +861,7 @@ else
     {
         if (localsize)
         {
-            if (I16 ||
-                !(config.flags4 & CFG4speed) ||
+            if (!(config.flags4 & CFG4speed) ||
                 config.target_cpu < TARGET_Pentium ||
                 farfunc ||
                 config.flags & CFGstack ||
@@ -875,7 +874,7 @@ else
                 cg.needframe = 1;
             }
         }
-        if (cg.refparam && (cg.anyiasm || I16))
+        if (cg.refparam && cg.anyiasm)
             cg.needframe = 1;
     }
 
@@ -887,13 +886,7 @@ else
             goto Lagain;
     }
 
-    if (I16 && config.wflags & WFwindows && farfunc)
-    {
-        prolog_16bit_windows_farfunc(cdbx, &tyf, &pushds);
-        enter = false;                  // don't use ENTER instruction
-        cg.hasframe = true;        // we have a stack frame
-    }
-    else if (cg.needframe)                 // if variables or parameters
+    if (cg.needframe)                 // if variables or parameters
     {
         prolog_frame(cdbx, farfunc, xlocalsize, enter, cfa_offset);
         cg.hasframe = true;
@@ -1646,7 +1639,7 @@ L3:
             if (!cgstate.regcon.indexregs && r & ~mLSW)
                 r &= ~mLSW;
 
-            if (cgstate.pass == BackendPass.final_ && r & ~lastRetregs[0] && !I16)
+            if (cgstate.pass == BackendPass.final_ && r & ~lastRetregs[0])
             {   // Try not to always allocate the same register,
                 // to schedule better
 
@@ -1707,15 +1700,6 @@ L3:
             }
             reg = (msreg == ES) ? lsreg : msreg;
             retregs = mask(msreg) | mask(lsreg);
-        }
-        else if (I16 && (tym == TYdouble || tym == TYdouble_alias))
-        {
-            debug
-            if (retregs != DOUBLEREGS)
-                printf("retregs = %s, outretregs = %s\n", regm_str(retregs), regm_str(outretregs));
-
-            assert(retregs == DOUBLEREGS);
-            reg = AX;
         }
         else
         {
@@ -2259,25 +2243,6 @@ private void comsub(ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
     }
     else if (tym == TYdouble || tym == TYdouble_alias)    // double
     {
-        assert(I16);
-        if (((csemask | emask) & DOUBLEREGS_16) == DOUBLEREGS_16)
-        {
-            immutable reg_t[4] dblreg = [ BX,DX,NOREG,CX ];
-            for (reg = 0; reg != NOREG; reg = dblreg[reg])
-            {
-                assert(cast(int) reg >= 0 && reg <= 7);
-                if (mask(reg) & csemask)
-                    loadcse(cdb,e,reg,mask(reg));
-            }
-            regm = DOUBLEREGS_16;
-            fixresult(cdb,e,regm,pretregs);
-            return;
-        }
-        if (OTleaf(e.Eoper)) goto reload;
-
-        debug
-        printf("e = %p, csemask = %s, emask = %s\n",e,regm_str(csemask),regm_str(emask));
-
         assert(0);
     }
     else
@@ -2677,7 +2642,7 @@ void codelem(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint c
                     case TYimmutPtr:
                     case TYsharePtr:
                     case TYrestrictPtr:
-                        *pretregs |= I16 ? IDXREGS : ALLREGS;
+                        *pretregs |= ALLREGS;
                         break;
 
                     case TYshort:
@@ -2877,7 +2842,7 @@ void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm
         // We should *only* worry about this if a function
         // was called in the code generation by codelem().
         int sz = -(adjesp & (STACKALIGN - 1)) & (STACKALIGN - 1);
-        if (cg.calledafunc && !I16 && sz && (STACKALIGN >= 16 || config.flags4 & CFG4stackalign))
+        if (cg.calledafunc && sz && (STACKALIGN >= 16 || config.flags4 & CFG4stackalign))
         {
             regm_t mval_save = cg.regcon.immed.mval;
             cg.regcon.immed.mval = 0;      // prevent reghasvalue() optimizations
@@ -3033,7 +2998,7 @@ private extern (D)
 void disassemble(ubyte[] code)
 {
     printf("%s:\n", funcsym_p.Sident.ptr);
-    const model = I16 ? 16 : I32 ? 32 : 64;     // 16/32/64
+    const model = I32 ? 32 : 64;     // 32/64
     size_t i = 0;
     while (i < code.length)
     {
