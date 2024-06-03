@@ -40,12 +40,14 @@ private __gshared
     int type_num,type_max;   /* gather statistics on # of types      */
 }
 
+type* tsclib;
+
 __gshared
 {
     type*[TYMAX] tstypes;
     type*[TYMAX] tsptr2types;
 
-    type* tstrace,tsclib,tsjlib,tsdlib,
+    type* tstrace,tsjlib,tsdlib,
             tslogical;
     type* tspvoid,tspcvoid;
     type* tsptrdiff, tssize;
