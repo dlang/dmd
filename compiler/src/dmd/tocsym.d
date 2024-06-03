@@ -284,7 +284,7 @@ Symbol *toSymbol(Dsymbol s)
             final switch (vd.resolvedLinkage())
             {
                 case LINK.windows:
-                    m = target.isX86_64 ? Mangle.c : Mangle.stdcall;
+                    m = target.isX86 ? Mangle.stdcall : Mangle.c;
                     break;
 
                 case LINK.objc:
@@ -435,7 +435,7 @@ Symbol *toSymbol(Dsymbol s)
                 final switch (fd.resolvedLinkage())
                 {
                     case LINK.windows:
-                        t.Tmangle = target.isX86_64 ? Mangle.c : Mangle.stdcall;
+                        t.Tmangle = target.isX86 ? Mangle.stdcall : Mangle.c;
                         break;
 
                     case LINK.c:
@@ -453,7 +453,7 @@ Symbol *toSymbol(Dsymbol s)
                         s.Sflags |= SFLpublic;
                         /* Nested functions use the same calling convention as
                          * member functions, because both can be used as delegates. */
-                        if ((fd.isThis() || fd.isNested()) && !target.isX86_64 && target.os == Target.OS.Windows)
+                        if ((fd.isThis() || fd.isNested()) && target.isX86 && target.os == Target.OS.Windows)
                         {
                             if ((cast(TypeFunction)fd.type).parameterList.varargs == VarArg.variadic)
                             {
@@ -701,7 +701,7 @@ Symbol *toInitializer(AggregateDeclaration ad)
             sd.type.size() <= 128 &&
             sd.zeroInit &&
             config.objfmt != OBJ_MACH && // same reason as in toobj.d toObjFile()
-            !(config.objfmt == OBJ_MSCOFF && !target.isX86_64)) // -m32mscoff relocations are wrong
+            !(config.objfmt == OBJ_MSCOFF && target.isX86)) // -m32mscoff relocations are wrong
         {
             auto bzsave = bzeroSymbol;
             ad.sinit = getBzeroSymbol();

@@ -1028,7 +1028,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             final switch (vd.resolvedLinkage())
             {
                 case LINK.windows:
-                    return target.isX86_64 ? Mangle.c : Mangle.stdcall;
+                    return target.isX86 ? Mangle.stdcall : Mangle.c;
 
                 case LINK.objc:
                 case LINK.c:

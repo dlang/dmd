@@ -464,12 +464,10 @@ extern (C++) struct Target
             }
         }
 
-        assert(isX86 != isX86_64);
         c.initialize(params, this);
         cpp.initialize(params, this);
         objc.initialize(params, this);
 
-        assert(isX86 != isX86_64);
         if (isX86_64)
             architectureName = "X86_64";
         else
@@ -577,7 +575,7 @@ extern (C++) struct Target
         case TY.Timaginary64:
         case TY.Tcomplex64:
             if (os & Target.OS.Posix)
-                return isX86_64 ? 8 : 4;
+                return isX86 ? 4 : 8;
             break;
         default:
             break;
@@ -1335,12 +1333,10 @@ extern (C++) struct Target
      */
     extern (D) uint stackAlign() @safe
     {
-        assert(isX86_64 != isX86);
         uint sz = isXmmSupported() ? 16 :
                   isX86_64         ?  8 :
                   isX86            ?  4 : 0;
         assert(sz);
-        assert(sz == (isXmmSupported() ? 16 : (isX86_64 ? 8 : 4)));
         return sz;
     }
 }
@@ -1494,8 +1490,7 @@ struct TargetCPP
         else
             assert(0);
         // C++ and D ABI incompatible on all (?) x86 32-bit platforms
-        assert(target.isX86 == !target.isX86_64);
-        wrapDtorInExternD = !target.isX86_64;
+        wrapDtorInExternD = target.isX86;
     }
 
     /**
