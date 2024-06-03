@@ -1708,7 +1708,7 @@ static if (1)
     void dwarf_func_start(Symbol *sfunc)
     {
         //printf("dwarf_func_start(%s)\n", sfunc.Sident.ptr);
-        if (I16 || I32)
+        if (I32)
             CFA_state_current = CFA_state_init_32;
         else if (I64)
             CFA_state_current = CFA_state_init_64;
