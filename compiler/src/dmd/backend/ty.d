@@ -352,7 +352,7 @@ uint tysimd(tym_t ty) { return tytab[ty & 0xFF] & TYFLsimd; }
 uint tyrelax(tym_t ty) { return _tyrelax[tybasic(ty)]; }
 
 @trusted
-bool I16() { return _tysize[TYnptr] == 2; }
+bool I16() { return false; }
 @trusted
 bool I32() { return _tysize[TYnptr] == 4; }
 @trusted
