@@ -406,7 +406,7 @@ extern (C++) struct Target
     extern (C++) void _init(ref const Param params)
     {
         // isX86_64 and cpu are initialized in parseCommandLine
-	isX86 = !isX86_64;
+        isX86 = !isX86_64;
 
         this.params = &params;
 
@@ -499,7 +499,7 @@ extern (C++) struct Target
     /**
      Determine the object format to be used
      */
-    extern(D) Target.ObjectFormat objectFormat() @safe
+    extern(D) Target.ObjectFormat objectFormat() const @safe
     {
         if (os == Target.OS.OSX)
             return Target.ObjectFormat.macho;
