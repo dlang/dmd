@@ -531,9 +531,6 @@ L1:
             if (e.Ecount && tyfloating(e.Ety))
                 e = delcse(pe);
         }
-        // This CSE is too easy to regenerate
-        else if (op == OPu16_32 && I16 && e.Ecount)
-            e = delcse(pe);
 
         else if (op == OPd_ld && e.E1.Ecount > 0)
             delcse(&e.E1);
