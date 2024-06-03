@@ -90,7 +90,6 @@ void cgreg_init()
             !s.Srange ||
             (sz = cast(uint)type_size(s.Stype)) == 0 ||
             (tysize(s.ty()) == -1) ||
-            (I16 && sz > REGSIZE) ||
             (tyfloating(s.ty()) && !(config.fpxmmregs && tyxmmreg(s.ty())))
            )
         {
