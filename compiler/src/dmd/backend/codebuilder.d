@@ -304,7 +304,7 @@ struct CodeBuilder
     @trusted
     void genadjesp(int offset)
     {
-        if (!I16 && offset)
+        if (offset)
         {
             code cs;
             cs.Iop = PSOP.adjesp;
@@ -322,7 +322,7 @@ struct CodeBuilder
     @trusted
     void genadjfpu(int offset)
     {
-        if (!I16 && offset)
+        if (offset)
         {
             code cs;
             cs.Iop = PSOP.adjfpu;
