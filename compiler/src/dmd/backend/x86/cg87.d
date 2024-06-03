@@ -805,39 +805,25 @@ void fixresult87(ref CodeBuilder cdb,elem *e,regm_t retregs, ref regm_t outretre
             printf("retregs = %s\n", regm_str(retregs));
         }
         assert(sz <= DOUBLESIZE);
-        if (!I16)
+        if (outretregs & mPSW)
+        {   // Set flags
+            regm_t r = retregs | mPSW;
+            fixresult(cdb,e,retregs,r);
+        }
+        push87(cdb);
+        if (sz == REGSIZE || (I64 && sz == 4))
         {
-
-            if (outretregs & mPSW)
-            {   // Set flags
-                regm_t r = retregs | mPSW;
-                fixresult(cdb,e,retregs,r);
-            }
-            push87(cdb);
-            if (sz == REGSIZE || (I64 && sz == 4))
-            {
-                const reg = findreg(retregs);
-                cdb.genfltreg(STO,reg,0);           // MOV fltreg,reg
-                cdb.genfltreg(0xD9,0,0);            // FLD float ptr fltreg
-            }
-            else
-            {
-                const msreg = findregmsw(retregs);
-                const lsreg = findreglsw(retregs);
-                cdb.genfltreg(STO,lsreg,0);         // MOV fltreg,lsreg
-                cdb.genfltreg(STO,msreg,4);         // MOV fltreg+4,msreg
-                cdb.genfltreg(0xDD,0,0);            // FLD double ptr fltreg
-            }
+            const reg = findreg(retregs);
+            cdb.genfltreg(STO,reg,0);           // MOV fltreg,reg
+            cdb.genfltreg(0xD9,0,0);            // FLD float ptr fltreg
         }
         else
         {
-            regm_t regm = (sz == FLOATSIZE) ? FLOATREGS : DOUBLEREGS;
-            regm |= outretregs & mPSW;
-            fixresult(cdb,e,retregs,regm);
-            regm = 0;           // don't worry about result from CLIB.xxx
-            callclib(cdb,e,
-                    ((sz == FLOATSIZE) ? CLIB.fltto87 : CLIB.dblto87),
-                    &regm,0);
+            const msreg = findregmsw(retregs);
+            const lsreg = findreglsw(retregs);
+            cdb.genfltreg(STO,lsreg,0);         // MOV fltreg,lsreg
+            cdb.genfltreg(STO,msreg,4);         // MOV fltreg+4,msreg
+            cdb.genfltreg(0xDD,0,0);            // FLD double ptr fltreg
         }
     }
     else if (outretregs & (mBP | ALLREGS) && retregs & mST0)
@@ -853,24 +839,11 @@ void fixresult87(ref CodeBuilder cdb,elem *e,regm_t retregs, ref regm_t outretre
         const reg = allocreg(cdb,outretregs,(sz == FLOATSIZE) ? TYfloat : TYdouble);
         if (sz == FLOATSIZE)
         {
-            if (!I16)
-                cdb.genfltreg(LOD,reg,0);
-            else
-            {
-                cdb.genfltreg(LOD,reg,REGSIZE);
-                cdb.genfltreg(LOD,findreglsw(outretregs),0);
-            }
+            cdb.genfltreg(LOD,reg,0);
         }
         else
         {   assert(sz == DOUBLESIZE);
-            if (I16)
-            {
-                cdb.genfltreg(LOD,AX,6);
-                cdb.genfltreg(LOD,BX,4);
-                cdb.genfltreg(LOD,CX,2);
-                cdb.genfltreg(LOD,DX,0);
-            }
-            else if (I32)
+            if (I32)
             {
                 cdb.genfltreg(LOD,reg,REGSIZE);
                 cdb.genfltreg(LOD,findreglsw(outretregs),0);
@@ -1849,13 +1822,6 @@ L5:
                 retregs = ALLREGS;
                 codelem(cgstate,cdb,e.E1,&retregs,false);
             L3:
-                if (I16 && e.Eoper != OPs16_d)
-                {
-                    /* MOV floatreg+2,reg   */
-                    reg = findregmsw(retregs);
-                    cdb.genfltreg(STO,reg,REGSIZE);
-                    retregs &= mLSW;
-                }
                 reg = findreg(retregs);
                 cdb.genfltreg(STO,reg,0);         // MOV floatreg,reg
                 if (op != -1)
@@ -3193,21 +3159,7 @@ void cnvt87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             assert(0);
     }
 
-    if (I16)                       // C may change the default control word
-    {
-        if (clib == CLIB.dblllng)
-        {   retregs = I32 ? DOUBLEREGS_32 : DOUBLEREGS_16;
-            codelem(cgstate,cdb,e.E1,&retregs,false);
-            callclib(cdb,e,clib,pretregs,0);
-        }
-        else
-        {   retregs = mST0; //I32 ? DOUBLEREGS_32 : DOUBLEREGS_16;
-            codelem(cgstate,cdb,e.E1,&retregs,false);
-            callclib(cdb,e,clib,pretregs,0);
-            pop87();
-        }
-    }
-    else if (1)
+    if (1)
     {   //  Generate:
         //  sub     ESP,12
         //  fstcw   8[ESP]
@@ -3797,7 +3749,6 @@ void cload87(ref CodeBuilder cdb, elem *e, ref regm_t outretregs)
 {
     //printf("e = %p, outretregs = %s)\n", e, regm_str(outretregs));
     //elem_print(e);
-    assert(!I16);
     debug
     if (I32)
     {
