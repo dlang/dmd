@@ -3590,13 +3590,13 @@ LmodCompare:
                 return null;
         }
 
-        //printf("test %s\n", EXPtoString(op).ptr);
+        //printf("test %s\n", expressionTypeToString(op).ptr);
         e1 = e1.optimize(WANTvalue);
         if (isCommutative(op) && e1.isConst())
         {
             /* Swap operands to minimize number of functions generated
              */
-            //printf("swap %s\n", EXPtoString(op).ptr);
+            //printf("swap %s\n", expressionTypeToString(op).ptr);
             Expression tmp = e1;
             e1 = e2;
             e2 = tmp;
@@ -3777,7 +3777,7 @@ void fix16997(Scope* sc, UnaExp ue)
             case Twchar:
             case Tdchar:
                 deprecation(ue.loc, "integral promotion not done for `%s`, remove '-revert=intpromote' switch or `%scast(int)(%s)`",
-                    ue.toChars(), EXPtoString(ue.op).ptr, ue.e1.toChars());
+                    ue.toChars(), expressionTypeToString(ue.op).ptr, ue.e1.toChars());
                 break;
 
             default:

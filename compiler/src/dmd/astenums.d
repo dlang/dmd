@@ -141,6 +141,15 @@ enum STC : ulong  // transfer changes to declaration.h
                          STC.TYPECTOR | STC.final_ | STC.tls | STC.gshared | STC.ref_ | STC.return_ | STC.property |
                          STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.system), /// for a FuncDeclaration
 
+    // These storage classes when used as attributes should emitted differently as part of .di header generator
+    lhsHeaderAttributes = STC.static_ | STC.extern_ | STC.final_ | STC.abstract_ | STC.override_ |
+        STC.synchronized_ | STC.deprecated_ | STC.disable,
+    // For module (de)constructors limit lhs
+    lhsHeaderMCtorAttributes = STC.extern_ | STC.final_ | STC.abstract_ | STC.override_ |
+        STC.synchronized_ | STC.deprecated_ | STC.disable,
+    // For module (de)constructors limit rhs
+    rhsHeaderMCtorAttributes = STC.visibleStorageClasses & ~(STC.lhsHeaderMCtorAttributes | STC.shared_ | STC.static_),
+
 }
 
 alias StorageClass = ulong;

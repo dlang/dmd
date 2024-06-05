@@ -2,7 +2,7 @@
 TEST_OUTPUT:
 ---
 fail_compilation/test17284.d(17): Error: field `U.c` cannot access pointers in `@safe` code that overlap other fields
-pure nothrow @safe void(U t)
+void(U t) pure nothrow @safe
 ---
 REQUIRED_ARGS: -preview=bitfields
 */

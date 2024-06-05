@@ -8,9 +8,11 @@ TEST_OUTPUT:
 ---
 === ${RESULTS_DIR}/compilable/testheader3.di
 // D import file generated from 'compilable/extra-files/header3.d'
-auto elseifchain()
+void elseifchain() pure nothrow @nogc @safe
 {
-	bool a, b, c;
+	bool a = false;
+	bool b = false;
+	bool c = false;
 	if (a)
 	{
 	}

@@ -408,7 +408,7 @@ private Expression checkOpAssignTypes(BinExp binExp, Scope* sc)
     {
         if ((type.isintegral() && t2.isfloating()))
         {
-            warning(loc, "`%s %s %s` is performing truncating conversion", type.toChars(), EXPtoString(op).ptr, t2.toChars());
+            warning(loc, "`%s %s %s` is performing truncating conversion", type.toChars(), expressionTypeToString(op).ptr, t2.toChars());
         }
     }
 
@@ -417,7 +417,7 @@ private Expression checkOpAssignTypes(BinExp binExp, Scope* sc)
     {
         // Any multiplication by an imaginary or complex number yields a complex result.
         // r *= c, i*=c, r*=i, i*=i are all forbidden operations.
-        const(char)* opstr = EXPtoString(op).ptr;
+        const(char)* opstr = expressionTypeToString(op).ptr;
         if (t1.isreal() && t2.iscomplex())
         {
             error(loc, "`%s %s %s` is undefined. Did you mean `%s %s %s.re`?", t1.toChars(), opstr, t2.toChars(), t1.toChars(), opstr, t2.toChars());
@@ -442,7 +442,7 @@ private Expression checkOpAssignTypes(BinExp binExp, Scope* sc)
         // Thus, r+=i, r+=c, i+=r, i+=c are all forbidden operations.
         if ((t1.isreal() && (t2.isimaginary() || t2.iscomplex())) || (t1.isimaginary() && (t2.isreal() || t2.iscomplex())))
         {
-            error(loc, "`%s %s %s` is undefined (result is complex)", t1.toChars(), EXPtoString(op).ptr, t2.toChars());
+            error(loc, "`%s %s %s` is undefined (result is complex)", t1.toChars(), expressionTypeToString(op).ptr, t2.toChars());
             return ErrorExp.get();
         }
         if (type.isreal() || type.isimaginary())
@@ -1263,7 +1263,7 @@ int expandAliasThisTuples(Expressions* exps, size_t starti = 0)
                 printf("expansion ->\n");
                 foreach (e; exps)
                 {
-                    printf("\texps[%d] e = %s %s\n", i, EXPtoString(e.op), e.toChars());
+                    printf("\texps[%d] e = %s %s\n", i, expressionTypeToString(e.op), e.toChars());
                 }
             }
             return cast(int)u;
@@ -2253,7 +2253,7 @@ private bool checkPostblit(Type t, ref Loc loc, Scope* sc)
  */
 private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = null, BinExp saveAtts = null)
 {
-    //printf("resolvePropertiesX, e1 = %s %s, e2 = %s\n", EXPtoString(e1.op).ptr, e1.toChars(), e2 ? e2.toChars() : null);
+    //printf("resolvePropertiesX, e1 = %s %s, e2 = %s\n", expressionTypeToString(e1.op).ptr, e1.toChars(), e2 ? e2.toChars() : null);
     Loc loc = e1.loc;
 
     OverloadSet os;
@@ -7628,7 +7628,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (p.token.value != TOK.endOfFile)
         {
             error(e.loc, "unexpected token `%s` after %s expression",
-                p.token.toChars(), EXPtoString(e.op).ptr);
+                p.token.toChars(), expressionTypeToString(e.op).ptr);
             errorSupplemental(e.loc, "while parsing string mixin expression `%s`",
                 str.ptr);
             return null;
@@ -7961,7 +7961,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
 
                 // template args
-                Expression comp = new StringExp(loc, isEqualsCallExpression ? "==" : EXPtoString(exp.e1.op));
+                Expression comp = new StringExp(loc, isEqualsCallExpression ? "==" : expressionTypeToString(exp.e1.op));
                 comp = comp.expressionSemantic(sc);
                 (*es)[0] = comp;
                 (*tiargs)[0] = (*es)[1].type;
@@ -13458,7 +13458,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else if (t1.ty == Taarray || t2.ty == Taarray)
         {
-            error(exp.loc, "`%s` is not defined for associative arrays", EXPtoString(exp.op).ptr);
+            error(exp.loc, "`%s` is not defined for associative arrays", expressionTypeToString(exp.op).ptr);
             return setError();
         }
         else if (!target.isVectorOpSupported(t1, exp.op, t2))
@@ -15451,8 +15451,9 @@ Expression resolveLoc(Expression exp, const ref Loc loc, Scope* sc)
         if (fd)
         {
             const funcStr = fd.Dsymbol.toPrettyChars();
+            HdrGenState hds;
             OutBuffer buf;
-            functionToBufferWithIdent(fd.type.isTypeFunction(), buf, funcStr, fd.isStatic);
+            hds.functionSignatureToBufferAsPostfix(fd.type.isTypeFunction(), buf, funcStr.toDString(), fd.isStatic);
             s = buf.extractChars();
         }
         else

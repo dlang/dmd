@@ -12,13 +12,14 @@ TEST_OUTPUT:
                 "baseDeco": "i",
                 "char": 9,
                 "kind": "enum",
-                "line": 43,
+                "line": 44,
                 "members": [
                     {
                         "char": 17,
                         "kind": "enum member",
-                        "line": 43,
-                        "name": "a"
+                        "line": 44,
+                        "name": "a",
+                        "protection": ""
                     }
                 ],
                 "name": "E",
@@ -28,7 +29,7 @@ TEST_OUTPUT:
                 "char": 22,
                 "deco": "VALUE_REMOVED_FOR_TEST",
                 "kind": "alias",
-                "line": 43,
+                "line": 44,
                 "name": "E",
                 "originalType": "enum E",
                 "protection": "public"

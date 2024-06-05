@@ -480,7 +480,7 @@ extern (C++) abstract class Type : ASTNode
         HdrGenState hgs;
         hgs.fullQual = QualifyTypes;
 
-        toCBuffer(this, buf, null, hgs);
+        hgs.toCBuffer(this, buf, null);
         return buf.extractChars();
     }
 

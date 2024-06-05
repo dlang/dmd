@@ -472,7 +472,7 @@ extern (C++) abstract class Expression : ASTNode
 
     dinteger_t toInteger()
     {
-        //printf("Expression %s\n", EXPtoString(op).ptr);
+        //printf("Expression %s\n", expressionTypeToString(op).ptr);
         if (!type.isTypeError())
             error(loc, "integer constant expression expected instead of `%s`", toChars());
         return 0;
@@ -480,7 +480,7 @@ extern (C++) abstract class Expression : ASTNode
 
     uinteger_t toUInteger()
     {
-        //printf("Expression %s\n", EXPtoString(op).ptr);
+        //printf("Expression %s\n", expressionTypeToString(op).ptr);
         return cast(uinteger_t)toInteger();
     }
 
@@ -601,7 +601,7 @@ extern (C++) abstract class Expression : ASTNode
             const char* msg = type.isAggregate() ?
                 "operator `%s` is not defined for `%s` of type `%s`" :
                 "illegal operator `%s` for `%s` of type `%s`";
-            error(loc, msg, EXPtoString(op).ptr, toChars(), type.toChars());
+            error(loc, msg, expressionTypeToString(op).ptr, toChars(), type.toChars());
             return true;
         }
         return checkValue();
@@ -635,7 +635,7 @@ extern (C++) abstract class Expression : ASTNode
 
         error(loc, "read-modify-write operations are not allowed for `shared` variables");
         errorSupplemental(loc, "Use `core.atomic.atomicOp!\"%s\"(%s, %s)` instead",
-                          EXPtoString(rmwOp).ptr, toChars(), ex ? ex.toChars() : "1");
+                          expressionTypeToString(rmwOp).ptr, toChars(), ex ? ex.toChars() : "1");
         return true;
     }
 
@@ -3036,11 +3036,11 @@ extern (C++) abstract class UnaExp : Expression
 
         if (e1.op == EXP.type)
         {
-            error(loc, "incompatible type for `%s(%s)`: cannot use `%s` with types", EXPtoString(op).ptr, e1.toChars(), EXPtoString(op).ptr);
+            error(loc, "incompatible type for `%s(%s)`: cannot use `%s` with types", expressionTypeToString(op).ptr, e1.toChars(), expressionTypeToString(op).ptr);
         }
         else
         {
-            error(loc, "incompatible type for `%s(%s)`: `%s`", EXPtoString(op).ptr, e1.toChars(), e1.type.toChars());
+            error(loc, "incompatible type for `%s(%s)`: `%s`", expressionTypeToString(op).ptr, e1.toChars(), e1.type.toChars());
         }
         return ErrorExp.get();
     }
@@ -3103,11 +3103,11 @@ extern (C++) abstract class BinExp : Expression
             return e2;
 
         // CondExp uses 'a ? b : c' but we're comparing 'b : c'
-        const(char)* thisOp = (op == EXP.question) ? ":" : EXPtoString(op).ptr;
+        const(char)* thisOp = (op == EXP.question) ? ":" : expressionTypeToString(op).ptr;
         if (e1.op == EXP.type || e2.op == EXP.type)
         {
             error(loc, "incompatible types for `(%s) %s (%s)`: cannot use `%s` with types",
-                e1.toChars(), thisOp, e2.toChars(), EXPtoString(op).ptr);
+                e1.toChars(), thisOp, e2.toChars(), expressionTypeToString(op).ptr);
         }
         else if (e1.type.equals(e2.type))
         {

@@ -47,7 +47,7 @@ extern (C++) final class PrintASTVisitor : Visitor
     override void visit(Expression e)
     {
         printIndent(indent);
-        auto s = EXPtoString(e.op);
+        auto s = expressionTypeToString(e.op);
         printf("%.*s %s\n", cast(int)s.length, s.ptr, e.type ? e.type.toChars() : "");
     }
 
@@ -71,7 +71,7 @@ extern (C++) final class PrintASTVisitor : Visitor
     override void visit(StructLiteralExp e)
     {
         printIndent(indent);
-        auto s = EXPtoString(e.op);
+        auto s = expressionTypeToString(e.op);
         printf("%.*s %s, %s\n", cast(int)s.length, s.ptr, e.type ? e.type.toChars() : "", e.toChars());
     }
 
@@ -126,7 +126,7 @@ extern (C++) final class PrintASTVisitor : Visitor
     override void visit(CastExp e)
     {
         printIndent(indent);
-        auto s = EXPtoString(e.op);
+        auto s = expressionTypeToString(e.op);
         printf("%.*s %s\n", cast(int)s.length, s.ptr, e.type ? e.type.toChars() : "");
         printIndent(indent + 2);
         printf(".to: %s\n", e.to.toChars());

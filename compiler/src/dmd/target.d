@@ -724,7 +724,7 @@ extern (C++) struct Target
      */
     extern (C++) bool isVectorOpSupported(Type type, EXP op, Type t2 = null)
     {
-        import dmd.hdrgen : EXPtoString;
+        import dmd.hdrgen : expressionTypeToString;
 
         auto tvec = type.isTypeVector();
         if (tvec is null)
@@ -919,7 +919,7 @@ extern (C++) struct Target
         default:
             // import std.stdio : stderr, writeln;
             // stderr.writeln(op);
-            assert(0, "unhandled op " ~ EXPtoString(cast(EXP)op));
+            assert(0, "unhandled op " ~ expressionTypeToString(cast(EXP)op));
         }
         return supported;
     }

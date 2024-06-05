@@ -29,14 +29,14 @@ immutable(K5886)
 8 ; K5886
 9 ; const(K5886)
 10 ; immutable(K5886)
-> U = int, N:$?:64=ulong = 3LU|32=uint = 3u$
+> U = int, N:ulong = 3LU
 K=string, V=int
 K=char, V=string
-T = SA, E = int, dim = $?:64=5LU|32=5u$
+T = SA, E = int, dim = 5LU
 T = DA, E = int
 T = AA, K = string, V = int
-pure nothrow @nogc @safe void(int t)
-pure nothrow @nogc @safe void(int t)
+void(int t) pure nothrow @nogc @safe
+void(int t) pure nothrow @nogc @safe
 T = byte
 T = char
 ---

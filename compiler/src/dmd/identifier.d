@@ -110,6 +110,8 @@ nothrow:
             p = "this";
         else if (this == Id.dtor)
             p = "~this";
+        else if (this == Id.postblit)
+            p = "this(this)";
         else if (this == Id.unitTest)
             p = "unittest";
         else if (this == Id.dollar)

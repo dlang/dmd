@@ -6,16 +6,16 @@ void testfp()
 {
     static int func1(int n = 1) { return n; }
     static int func2(int n    ) { return n; }
-    static assert(typeof(func1).stringof == "pure nothrow @nogc @safe int(int n = 1)");
-    static assert(typeof(func2).stringof == "pure nothrow @nogc @safe int(int n)");
+    static assert(typeof(func1).stringof == "int(int n = 1) pure nothrow @nogc @safe");
+    static assert(typeof(func2).stringof == "int(int n) pure nothrow @nogc @safe");
     static assert( is(typeof(func1())));     // OK
     static assert(!is(typeof(func2())));     // NG
 
     alias typeof(func1) Func1;
     alias typeof(func2) Func2;
     static assert(is(Func1 == Func2));
-    static assert(Func1.stringof == "pure nothrow @nogc @safe int(int n = 1)");
-    static assert(Func2.stringof == "pure nothrow @nogc @safe int(int n)");
+    static assert(Func1.stringof == "int(int n = 1) pure nothrow @nogc @safe");
+    static assert(Func2.stringof == "int(int n) pure nothrow @nogc @safe");
 
     auto fp1 = &func1;
     auto fp2 = &func2;
@@ -54,16 +54,16 @@ void testdg()
 {
     int nest1(int n = 1) { return n; }
     int nest2(int n    ) { return n; }
-    static assert(typeof(nest1).stringof == "pure nothrow @nogc @safe int(int n = 1)");
-    static assert(typeof(nest2).stringof == "pure nothrow @nogc @safe int(int n)");
+    static assert(typeof(nest1).stringof == "int(int n = 1) pure nothrow @nogc @safe");
+    static assert(typeof(nest2).stringof == "int(int n) pure nothrow @nogc @safe");
     static assert( is(typeof(nest1())));     // OK
     static assert(!is(typeof(nest2())));     // NG
 
     alias typeof(nest1) Nest1;
     alias typeof(nest2) Nest2;
     static assert(is(Nest1 == Nest2));
-    static assert(Nest1.stringof == "pure nothrow @nogc @safe int(int n = 1)");
-    static assert(Nest2.stringof == "pure nothrow @nogc @safe int(int n)");
+    static assert(Nest1.stringof == "int(int n = 1) pure nothrow @nogc @safe");
+    static assert(Nest2.stringof == "int(int n) pure nothrow @nogc @safe");
 
     auto dg1 = &nest1;
     auto dg2 = &nest2;
@@ -127,8 +127,8 @@ template StringOf(T)
 void testti()
 {
     int[] test(int[] a = []) { return a; }
-    static assert(typeof(test).stringof == "pure nothrow @nogc @safe int[](int[] a = [])");
-    static assert(StringOf!(typeof(test)) == "pure nothrow @nogc @safe int[](int[])");
+    static assert(typeof(test).stringof == "int[](int[] a = []) pure nothrow @nogc @safe");
+    static assert(StringOf!(typeof(test)) == "int[](int[]) pure nothrow @nogc @safe");
 
     float function(float x = 0F) fp = x => x;
     static assert(typeof(fp).stringof == "float function(float x = " ~ (0F).stringof ~ ")");
@@ -306,7 +306,7 @@ void test14656()
     //unaryFun!()(41);
     static void fun(int n) pure nothrow @safe @nogc {}
     alias F = typeof(fun);
-    assert(Identity!F.stringof == "pure nothrow @nogc @safe void(int)");
+    assert(Identity!F.stringof == "void(int) pure nothrow @nogc @safe");
 }
 
 void test14656_ref()
@@ -316,7 +316,7 @@ void test14656_ref()
     unaryFun!()(41);
     static void fun(int n) pure nothrow @safe @nogc {}
     alias F = typeof(fun);
-    assert(Identity!F.stringof == "pure nothrow @nogc @safe void(int)");
+    assert(Identity!F.stringof == "void(int) pure nothrow @nogc @safe");
 }
 
 /***************************************************/

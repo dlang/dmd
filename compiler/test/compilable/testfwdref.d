@@ -362,8 +362,8 @@ class E14390b(T) : D14390b!int { void m() { auto c = new C14390b(); } }
 /*
 TEST_OUTPUT:
 ---
-pure nothrow @nogc @safe void()
-pure nothrow @nogc @safe void()
+void() pure nothrow @nogc @safe
+void() pure nothrow @nogc @safe
 ---
 */
 

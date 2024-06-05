@@ -932,8 +932,8 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
                 OutBuffer buf;
 
                 auto fd = s.isFuncDeclaration();
-                functionToBufferFull(cast(TypeFunction)(funcdecl.type), buf,
-                    new Identifier(funcdecl.toPrettyChars()), hgs, null);
+                hgs.functionSignatureToBuffer(cast(TypeFunction)(funcdecl.type), buf,
+                    new Identifier(funcdecl.toPrettyChars()), null);
                 const(char)* funcdeclToChars = buf.peekChars();
 
                 if (fd)
@@ -955,8 +955,8 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
                     }
                     else
                     {
-                        functionToBufferFull(cast(TypeFunction)(fd.type), buf1,
-                            new Identifier(fd.toPrettyChars()), hgs, null);
+                        hgs.functionSignatureToBuffer(cast(TypeFunction)(fd.type), buf1,
+                            new Identifier(fd.toPrettyChars()), null);
 
                         error(funcdecl.loc, "function `%s` does not override any function, did you mean to override `%s`?",
                             funcdeclToChars, buf1.peekChars());
@@ -1807,7 +1807,7 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
             HdrGenState hgs;
             hgs.skipConstraints = true;
             hgs.showOneMember = !recurse;
-            toCharsMaybeConstraints(td, buf, hgs);
+            hgs.toCharsMaybeConstraints(td, buf);
             const tmsg = buf.peekChars();
             const cmsg = child ? null : td.getConstraintEvalError(constraintsTip);
 

@@ -10,7 +10,7 @@ TEST_OUTPUT:
 extern (C)
 {
 	uint equ(double x, double y);
-	enum SQLINTERVAL
+	enum SQLINTERVAL : int
 	{
 		SQL_IS_YEAR = 1,
 		SQL_IS_MONTH = 2,
@@ -27,9 +27,9 @@ extern (C)
 		int x = void;
 	}
 	alias T = S;
-	enum
+	enum : int
 	{
-		A,
+		A = 0,
 	}
 	/+enum int __DATE__ = 1+/;
 	/+enum int __TIME__ = 1+/;

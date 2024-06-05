@@ -92,7 +92,7 @@ void names()
         // Function types + function attributes
         static assert(__traits(fullyQualifiedName, typeof(func)) == "ref const(" ~ xx ~ "[string])(ref " ~ xx ~ ", lazy scope string)");
         static assert(__traits(fullyQualifiedName, typeof(retfunc)) == "ref const(" ~ xx ~ "[string])(return ref " ~ xx ~ ")");
-        static assert(__traits(fullyQualifiedName, typeof(inoutFunc)) == "inout "~xx~"(inout("~xx~"))");
+        static assert(__traits(fullyQualifiedName, typeof(inoutFunc)) == ""~xx~"(inout("~xx~")) inout");
         static assert(__traits(fullyQualifiedName, typeof(deleg)) == "const(" ~ xx ~ " delegate(double, string) nothrow @safe)");
         static assert(__traits(fullyQualifiedName, typeof(inoutDeleg)) == "inout(int) delegate(inout(int)) inout");
         static assert(__traits(fullyQualifiedName, typeof(funcPtr)) == "" ~ xx ~ " function(out double, string)");

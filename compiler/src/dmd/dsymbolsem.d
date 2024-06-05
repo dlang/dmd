@@ -896,7 +896,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             else
             {
                 OutBuffer buf;
-                stcToBuffer(buf, stc);
+                storageClassToBuffer(buf, stc);
                 .error(dsym.loc, "%s `%s` cannot be `%s`", dsym.kind, dsym.toPrettyChars, buf.peekChars());
             }
             dsym.storage_class &= ~stc; // strip off
@@ -913,7 +913,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (stc)
             {
                 OutBuffer buf;
-                stcToBuffer(buf, stc);
+                storageClassToBuffer(buf, stc);
                 .error(dsym.loc, "%s `%s` cannot be `scope` and `%s`", dsym.kind, dsym.toPrettyChars, buf.peekChars());
             }
             else if (dsym.isMember())
@@ -1671,7 +1671,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         ob.writeByte(' ');
         if (imp.isstatic)
         {
-            stcToBuffer(*ob, STC.static_);
+            storageClassToBuffer(*ob, STC.static_);
             ob.writeByte(' ');
         }
         ob.writestring(": ");
