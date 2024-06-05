@@ -3795,27 +3795,33 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
         $(LI No casting from a pointer type `T` to any type `U` with pointers, except when:)
             * `T` implicitly converts to `U`
             * `U` implements class or interface `T`
-            * Both types are dynamic arrays
             * `T.opCast!U` is `@safe`
+            * Both types $(DDSUBLINK spec/expression, cast_array, are dynamic arrays) and:
+                * Casting a source element to a target element type is `@safe`
+                * The target element type is not mutable when the source type is `void[]`
+                * The target type is not `bool[]` unless the operand is a literal
         $(LI No casting from any non-pointer type to a pointer type.)
-        $(LI No pointer arithmetic (including pointer indexing).)
-        $(LI Cannot access unions that:)
+        $(LI No pointer arithmetic (including pointer indexing & slicing).)
+        $(LI Cannot access union fields that:)
             * Have pointers or references overlapping with other types
-            * Have fields with invariants overlapping with other types
+            * Have invariants overlapping with other types
+            * Contain a $(DDSUBLINK spec/type, bool, `bool`)
         $(LI Calling any $(RELATIVE_LINK2 system-functions, System Functions).)
         $(LI No catching of exceptions that are not derived from
         $(LINK2 https://dlang.org/phobos/object.html#.Exception, $(D class Exception)).)
-        $(LI No inline assembler.)
-        $(LI No explicit casting of:)
-            * mutable objects to immutable
-            * immutable objects to mutable
+        $(LI $(DDSUBLINK spec/iasm, asmstatements, Inline assembler) must be marked as
+            `@trusted`.)
+        $(LI No explicit casting (except with a matching `@safe` `opCast`) of:)
+            * mutable objects to immutable (except basic data types)
+            * immutable objects to mutable (except basic data types)
             * thread local objects to shared
             * shared objects to thread local
         $(LI Cannot access $(DDSUBLINK spec/attribute, system-variables, `@system`)
             or $(D __gshared) variables.)
-        $(LI Cannot use $(D void) initializers for:)
-            * Pointers/reference types or any type containing them
-            * Types that have invariants
+        $(LI Cannot use $(D void) initializers for types containing:)
+            * Pointers/reference types
+            * Types with invariants
+            * `bool`
         )
 
         $(NOTE When indexing or slicing an array, an out of bounds access
