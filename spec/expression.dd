@@ -1332,10 +1332,18 @@ $(H4 $(LNAME2 cast_pointers, Pointers))
 
 $(H4 $(LNAME2 cast_array, Arrays))
 
-    $(P Casting a dynamic array to another dynamic array is done only if the
-        array lengths multiplied by the element sizes match. The cast is done
-        as a type paint, with the array length adjusted to match any change in
-        element size. If there's not a match, a runtime error is generated.)
+    ---
+    T[] a;
+    ...
+    cast(U[]) a
+    ---
+    $(P Casting a non-literal dynamic array `a` to another dynamic array type `U[]`
+        is allowed only when the result will contain every byte of data that was
+        referenced by `a`.
+        This is enforced with a runtime check that the byte length of `a`'s elements
+        is divisible by `U.sizeof`. If there is a remainder, a runtime error is generated.
+        The cast is done as a type paint, and the resulting array's length is set to
+        `(a.length * T.sizeof) / U.sizeof`.)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
             ---
