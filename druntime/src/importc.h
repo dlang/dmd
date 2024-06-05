@@ -97,12 +97,17 @@ typedef unsigned long long __uint64_t;
  * __has_extension is a clang thing:
  *    https://clang.llvm.org/docs/LanguageExtensions.html
  * ImportC no has extensions.
+ *
+ * >=gcc-14 prints a warning for each #undef. This breaks a lot of
+ * things like the testsuite which expects clean output.
  */
+#ifdef __clang__
 #undef __has_feature
 #define __has_feature(x) 0
 
 #undef __has_extension
 #define __has_extension(x) 0
+#endif
 
 /*************************************
  * OS-specific macros
