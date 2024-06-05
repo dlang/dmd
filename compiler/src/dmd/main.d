@@ -488,29 +488,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (global.errors)
         fatal();
 
-    if (params.dihdr.doOutput)
-    {
-        /* Generate 'header' import files.
-         * Since 'header' import files must be independent of command
-         * line switches and what else is imported, they are generated
-         * before any semantic analysis.
-         */
-        OutBuffer buf;
-        foreach (m; modules)
-        {
-            if (m.filetype == FileType.dhdr)
-                continue;
-            if (params.v.verbose)
-                message("import    %s", m.toChars());
-
-            buf.reset();         // reuse the buffer
-            genhdrfile(m, params.dihdr.fullOutput, buf);
-            if (!writeFile(m.loc, m.hdrfile.toString(), buf[]))
-                fatal();
-        }
-    }
     if (global.errors)
-        removeHdrFilesAndFail(params, modules);
+        fatal();
 
     // load all unconditional imports for better symbol resolving
     foreach (m; modules)
@@ -520,7 +499,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         m.importAll(null);
     }
     if (global.errors)
-        removeHdrFilesAndFail(params, modules);
+        fatal();
 
     backend_init(params, driverParams, target);
 
@@ -553,7 +532,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
     Module.runDeferredSemantic2();
     if (global.errors)
-        removeHdrFilesAndFail(params, modules);
+        fatal();
 
     // Do pass 3 semantic analysis
     foreach (m; modules)
@@ -578,7 +557,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
     Module.runDeferredSemantic3();
     if (global.errors)
-        removeHdrFilesAndFail(params, modules);
+        fatal();
 
     // Scan for functions to inline
     foreach (m; modules)
@@ -599,7 +578,31 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     // Do not attempt to generate output files if errors or warnings occurred
     if (global.errors || global.warnings)
-        removeHdrFilesAndFail(params, modules);
+    {
+        fatal();
+    }
+    else if (params.dihdr.doOutput)
+    {
+        // Generate 'header' files.
+        // This was previously done prior to semantic analysis.
+        // Thanks to inferring of attributes (even on non-templated symbols),
+        //  the emitted files were not actually representative of the symbols compiled.
+        // It would therefore have failed to link as of 2024.
+
+        OutBuffer buf;
+        foreach (m; modules)
+        {
+            if (m.filetype == FileType.dhdr)
+                continue;
+            if (params.v.verbose)
+                message("import    %s", m.toChars());
+
+            buf.reset();         // reuse the buffer
+            genhdrfile(m, params.dihdr.fullOutput, buf);
+            if (!writeFile(m.loc, m.hdrfile.toString(), buf[]))
+                fatal();
+        }
+    }
 
     // inlineScan incrementally run semantic3 of each expanded functions.
     // So deps file generation should be moved after the inlining stage.

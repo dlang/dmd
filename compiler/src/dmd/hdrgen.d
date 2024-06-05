@@ -70,6 +70,7 @@ struct HdrGenState
     int forStmtInit;
     int insideFuncBody;
     int insideAggregate;
+    int* seeParentCounter;
 
     bool declstring; // set while declaring alias for string,wstring or dstring
     EnumDeclaration inEnumDecl;
@@ -93,6 +94,7 @@ void genhdrfile(Module m, bool doFuncBodies, ref OutBuffer buf)
     hgs.hdrgen = true;
     hgs.importcHdr = (m.filetype == FileType.c);
     hgs.doFuncBodies = doFuncBodies;
+    hgs.seeParentCounter = new int;
     toCBuffer(m, buf, hgs);
 }
 
@@ -108,6 +110,7 @@ public const(char)* toChars(const Statement s)
 {
     HdrGenState hgs;
     OutBuffer buf;
+    hgs.seeParentCounter = new int;
     toCBuffer(s, buf, hgs);
     buf.writeByte(0);
     return buf.extractSlice().ptr;
@@ -117,6 +120,7 @@ public const(char)* toChars(const Expression e)
 {
     HdrGenState hgs;
     OutBuffer buf;
+    hgs.seeParentCounter = new int;
     toCBuffer(e, buf, hgs);
     return buf.extractChars();
 }
@@ -125,6 +129,7 @@ public const(char)* toChars(const Initializer i)
 {
     OutBuffer buf;
     HdrGenState hgs;
+    hgs.seeParentCounter = new int;
     toCBuffer(i, buf, hgs);
     return buf.extractChars();
 }
@@ -134,6 +139,7 @@ public const(char)* toChars(const Type t)
     OutBuffer buf;
     buf.reserve(16);
     HdrGenState hgs;
+    hgs.seeParentCounter = new int;
     hgs.fullQual = (t.ty == Tclass && !t.mod);
 
     toCBuffer(t, buf, null, hgs);
@@ -144,6 +150,7 @@ public const(char)[] toString(const Initializer i)
 {
     OutBuffer buf;
     HdrGenState hgs;
+    hgs.seeParentCounter = new int;
     toCBuffer(i, buf, hgs);
     return buf.extractSlice();
 }
@@ -160,6 +167,7 @@ void moduleToBuffer(ref OutBuffer buf, bool vcg_ast, Module m)
     HdrGenState hgs;
     hgs.fullDump = true;
     hgs.vcg_ast = vcg_ast;
+    hgs.seeParentCounter = new int;
     toCBuffer(m, buf, hgs);
 }
 
@@ -923,10 +931,9 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
 
     void visitEnumMember(EnumMember em)
     {
-        if (em.type)
-            typeToBuffer(em.type, em.ident, buf, hgs);
-        else
-            buf.writestring(em.ident.toString());
+        assert(em.ident !is null, "Enum member identifier is null");
+        buf.writestring(em.ident.toString());
+
         if (em.value)
         {
             buf.writestring(" = ");
@@ -1780,7 +1787,6 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         }
         tf.attributesApply(&printAttribute);
 
-
         CompoundStatement cs = f.fbody.isCompoundStatement();
         Statement s1;
         if (f.semanticRun >= PASS.semantic3done && cs)
@@ -1911,8 +1917,345 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
     {
         alias visit = Visitor.visit;
 
+        int* seeParentCounter;
+
+        bool doTrace;
+
+        extern(D)void trace(string func = __PRETTY_FUNCTION__) {
+            if (!doTrace)
+                return;
+
+            printf("%*s %s\n", (*seeParentCounter) * 2, "".ptr,
+                (func["extern (C++) void dmd.hdrgen.toCBuffer.DsymbolPrettyPrintVisitor.visit".length .. $]).ptr);
+        }
+
       public:
       override:
+        /+void visit(Dsymbol s)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitDsymbol(s);
+        }
+        void visit(StaticAssert s)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitStaticAssert(s);
+        }
+        void visit(DebugSymbol s)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitDebugSymbol(s);
+        }
+        void visit(VersionSymbol s)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            visitVersionSymbol(s);
+        }
+        void visit(EnumMember em)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitEnumMember(em);
+        }
+        void visit(Import imp)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitImport(imp);
+        }
+        void visit(AliasThis d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitAliasThis(d);
+        }
+        void visit(AttribDeclaration d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitAttribDeclaration(d);
+        }
+        void visit(StorageClassDeclaration d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitStorageClassDeclaration(d);
+        }
+        void visit(DeprecatedDeclaration d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitDeprecatedDeclaration(d);
+        }
+        void visit(LinkDeclaration d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitLinkDeclaration(d);
+        }
+        void visit(CPPMangleDeclaration d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitCPPMangleDeclaration(d);
+        }
+        void visit(VisibilityDeclaration d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitVisibilityDeclaration(d);
+        }
+        void visit(AlignDeclaration d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitAlignDeclaration(d);
+        }
+        void visit(AnonDeclaration d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitAnonDeclaration(d);
+        }
+        void visit(PragmaDeclaration d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitPragmaDeclaration(d);
+        }
+        void visit(ConditionalDeclaration d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitConditionalDeclaration(d);
+        }
+        void visit(StaticForeachDeclaration s)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitStaticForeachDeclaration(s);
+        }
+        void visit(MixinDeclaration d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitMixinDeclaration(d);
+        }
+        void visit(UserAttributeDeclaration d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitUserAttributeDeclaration(d);
+        }
+        void visit(TemplateDeclaration d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitTemplateDeclaration(d);
+        }
+        void visit(TemplateInstance ti)
+        {
+            trace;
+            if ((*seeParentCounter) > 1)
+                visitTemplateInstance(ti);
+        }
+        void visit(TemplateMixin tm)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitTemplateMixin(tm);
+        }
+        void visit(EnumDeclaration d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitEnumDeclaration(d);
+        }
+        void visit(Nspace d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitNspace(d);
+        }
+        void visit(StructDeclaration d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitStructDeclaration(d);
+        }
+        void visit(ClassDeclaration d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitClassDeclaration(d);
+        }
+        void visit(AliasDeclaration d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitAliasDeclaration(d);
+        }
+        void visit(AliasAssign d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitAliasAssign(d);
+        }
+        void visit(VarDeclaration d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitVarDeclaration(d);
+        }
+        void visit(FuncDeclaration f)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitFuncDeclaration(f);
+        }
+        void visit(FuncLiteralDeclaration f)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitFuncLiteralDeclaration(f);
+        }
+        void visit(PostBlitDeclaration d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitPostBlitDeclaration(d);
+        }
+        void visit(DtorDeclaration d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitDtorDeclaration(d);
+        }
+        void visit(StaticCtorDeclaration d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitStaticCtorDeclaration(d);
+        }
+        void visit(StaticDtorDeclaration d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitStaticDtorDeclaration(d);
+        }
+        void visit(InvariantDeclaration d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitInvariantDeclaration(d);
+        }
+        void visit(UnitTestDeclaration d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitUnitTestDeclaration(d);
+        }
+        void visit(BitFieldDeclaration d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitBitFieldDeclaration(d);
+        }
+        void visit(NewDeclaration d)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitNewDeclaration(d);
+        }
+        void visit(Module m)
+        {
+            (*seeParentCounter)++;
+            scope(exit)
+                (*seeParentCounter)--;
+            trace;
+            visitModule(m);
+        }+/
         void visit(Dsymbol s)                  { visitDsymbol(s); }
         void visit(StaticAssert s)             { visitStaticAssert(s); }
         void visit(DebugSymbol s)              { visitDebugSymbol(s); }
@@ -1957,6 +2300,9 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
     }
 
     scope v = new DsymbolPrettyPrintVisitor();
+    /+if (s.getModule !is null)
+        v.doTrace = s.getModule.ident.toString == "builder_utf8";+/
+    v.seeParentCounter = hgs.seeParentCounter;
     s.accept(v);
 }
 
@@ -2193,6 +2539,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
                 HdrGenState hgs2;               // should re-examine need for new hgs
                 hgs2.fullQual = (t.ty == Tclass && !t.mod);
+                hgs2.seeParentCounter = new int;
                 toCBuffer(t, buf, null, hgs2);
 
                 buf.writestring(")cast(size_t)");
@@ -3167,6 +3514,7 @@ void toCBufferInstance(const TemplateInstance ti, ref OutBuffer buf, bool qualif
 {
     HdrGenState hgs;
     hgs.fullQual = qualifyTypes;
+    hgs.seeParentCounter = new int;
 
     buf.writestring(ti.name.toChars());
     tiargsToBuffer(cast() ti, buf, hgs);
@@ -3377,6 +3725,7 @@ void functionToBufferFull(TypeFunction tf, ref OutBuffer buf, const Identifier i
 void functionToBufferWithIdent(TypeFunction tf, ref OutBuffer buf, const(char)* ident, bool isStatic)
 {
     HdrGenState hgs;
+    hgs.seeParentCounter = new int;
     visitFuncIdentWithPostfix(tf, ident.toDString(), buf, hgs, isStatic);
 }
 
@@ -3393,6 +3742,7 @@ void argExpTypesToCBuffer(ref OutBuffer buf, Expressions* arguments)
     if (!arguments || !arguments.length)
         return;
     HdrGenState hgs;
+    hgs.seeParentCounter = new int;
     foreach (i, arg; *arguments)
     {
         if (i)
@@ -3406,6 +3756,7 @@ void arrayObjectsToBuffer(ref OutBuffer buf, Objects* objects)
     if (!objects || !objects.length)
         return;
     HdrGenState hgs;
+    hgs.seeParentCounter = new int;
     foreach (i, o; *objects)
     {
         if (i)
@@ -3424,6 +3775,7 @@ const(char)* parametersTypeToChars(ParameterList pl)
 {
     OutBuffer buf;
     HdrGenState hgs;
+    hgs.seeParentCounter = new int;
     parametersToBuffer(pl, buf, hgs);
     return buf.extractChars();
 }
@@ -3441,6 +3793,7 @@ const(char)* parameterToChars(Parameter parameter, TypeFunction tf, bool fullQua
     OutBuffer buf;
     HdrGenState hgs;
     hgs.fullQual = fullQual;
+    hgs.seeParentCounter = new int;
 
     parameterToBuffer(parameter, buf, hgs);
 
@@ -3786,6 +4139,7 @@ private void tiargsToBuffer(TemplateInstance ti, ref OutBuffer buf, ref HdrGenSt
             if (t.equals(Type.tstring) || t.equals(Type.twstring) || t.equals(Type.tdstring) || t.mod == 0 && (t.isTypeBasic() || t.ty == Tident && (cast(TypeIdentifier)t).idents.length == 0))
             {
                 HdrGenState hgs2;       // re-examine need for new hgs
+                hgs2.seeParentCounter = new int;
                 hgs2.fullQual = (t.ty == Tclass && !t.mod);
                 toCBuffer(t, buf, null, hgs2);
                 return;
