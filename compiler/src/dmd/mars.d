@@ -118,7 +118,15 @@ Where:
 %.*s", cast(int)inifileCanon.length, inifileCanon.ptr, cast(int)help.length, &help[0]);
 }
 
-extern (C++) void generateJson(ref Modules modules)
+/*******************************************
+ * Generate JSON file.
+ * Params:
+ *      modules = Modules
+ *      eSink = error message sink
+ * Returns:
+ *      true on error
+ */
+extern (C++) bool generateJson(ref Modules modules, ErrorSink eSink)
 {
     OutBuffer buf;
     json_generate(modules, buf);
@@ -144,8 +152,8 @@ extern (C++) void generateJson(ref Modules modules)
         {
             if (global.params.objfiles.length == 0)
             {
-                error(Loc.initial, "cannot determine JSON filename, use `-Xf=<file>` or provide a source file");
-                fatal();
+                eSink.error(Loc.initial, "cannot determine JSON filename, use `-Xf=<file>` or provide a source file");
+                return true;
             }
             // Generate json file name from first obj name
             const(char)[] n = global.params.objfiles[0].toDString;
@@ -155,8 +163,9 @@ extern (C++) void generateJson(ref Modules modules)
             jsonfilename = FileName.forceExt(n, json_ext);
         }
         if (!writeFile(Loc.initial, jsonfilename, buf[]))
-            fatal();
+            return true;
     }
+    return false;
 }
 
 version (DigitalMars)
@@ -1579,7 +1588,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
 
                     // @@@DEPRECATED_2.111@@@
                     // Deprecated in 2.101, remove in 2.111
-                    deprecation(Loc.initial, "`-version=number` is deprecated, use version identifiers instead");
+                    eSink.deprecation(Loc.initial, "`-version=number` is deprecated, use version identifiers instead");
                 }
                 else if (Identifier.isValidIdentifier(p + 9))
                 {
