@@ -35,6 +35,7 @@ import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.dtoh;
 import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.globals;
 import dmd.hdrgen;
@@ -457,17 +458,19 @@ extern(C) void flushMixins()
  *      files = set to files pulled from `arguments`
  *      target = more things set to result of parsing `arguments`
  *      driverParams = even more things to set
+ *      eSink = error sink
  * Returns:
  *      true if errors in command line
  */
 
-bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param params, ref Strings files, ref Target target, ref DMDparams driverParams)
+bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param params, ref Strings files,
+                      ref Target target, ref DMDparams driverParams, ErrorSink eSink)
 {
     bool errors;
 
     void error(Args ...)(const(char)* format, Args args)
     {
-        dmd.errors.error(Loc.initial, format, args);
+        eSink.error(Loc.initial, format, args);
         errors = true;
     }
 
@@ -484,7 +487,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
     {
         error("switch `%s` is invalid", p);
         if (availableOptions !is null)
-            errorSupplemental(Loc.initial, "%.*s", cast(int)availableOptions.length, availableOptions.ptr);
+            eSink.errorSupplemental(Loc.initial, "%.*s", cast(int)availableOptions.length, availableOptions.ptr);
     }
 
     enum CheckOptions { success, error, help }
@@ -508,7 +511,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         // Checks whether a flag has no options (e.g. -foo or -foo=)
         if (p.length == 0 || p == "=")
         {
-            .error(Loc.initial, "%.*s", cast(int)missingMsg.length, missingMsg.ptr);
+            eSink.error(Loc.initial, "%.*s", cast(int)missingMsg.length, missingMsg.ptr);
             errors = true;
             usageFlag = true;
             return CheckOptions.help;
@@ -569,7 +572,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 {
                     buf ~= `case "`~t.name~`":`;
                     if (t.deprecated_)
-                        buf ~= "deprecation(Loc.initial, \"`-"~name~"="~t.name~"` no longer has any effect.\"); ";
+                        buf ~= "eSink.deprecation(Loc.initial, \"`-"~name~"="~t.name~"` no longer has any effect.\"); ";
                     buf ~= `setFlagFor(name, params.`~t.paramName~`); return true;`;
                 }
                 return buf;
@@ -1134,7 +1137,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                         case 14_488:
                             break;
                         case 16_997:
-                            deprecation(Loc.initial, "`-transition=16997` is now the default behavior");
+                            eSink.deprecation(Loc.initial, "`-transition=16997` is now the default behavior");
                             break;
                         default:
                             error("transition `%s` is invalid", p);
@@ -1151,7 +1154,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                             params.dtorFields = FeatureState.enabled;
                             break;
                         case "intpromote":
-                            deprecation(Loc.initial, "`-transition=intpromote` is now the default behavior");
+                            eSink.deprecation(Loc.initial, "`-transition=intpromote` is now the default behavior");
                             break;
                         default:
                             error("transition `%s` is invalid", p);
@@ -1453,7 +1456,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (arg == "-dip25")       // https://dlang.org/dmd.html#switch-dip25
         {
             // @@@ DEPRECATION 2.112 @@@
-            deprecation(Loc.initial, "`-dip25` no longer has any effect");
+            eSink.deprecation(Loc.initial, "`-dip25` no longer has any effect");
             params.useDIP25 =  FeatureState.enabled;
         }
         else if (arg == "-dip1000")
@@ -1548,7 +1551,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
 
                     // @@@DEPRECATED_2.111@@@
                     // Deprecated in 2.101, remove in 2.111
-                    deprecation(Loc.initial, "`-debug=number` is deprecated, use debug identifiers instead");
+                    eSink.deprecation(Loc.initial, "`-debug=number` is deprecated, use debug identifiers instead");
                 }
                 else if (Identifier.isValidIdentifier(p + 7))
                 {
