@@ -337,7 +337,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         if (params.jsonFieldFlags)
         {
             Modules modules;            // empty
-            generateJson(modules);
+            if (generateJson(modules, global.errorSink))
+                fatal();
             return EXIT_SUCCESS;
         }
         usage();
@@ -625,7 +626,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // Generate output files
     if (params.json.doOutput)
     {
-        generateJson(modules);
+        if (generateJson(modules, global.errorSink))
+            fatal();
     }
     if (!global.errors && params.ddoc.doOutput)
     {
