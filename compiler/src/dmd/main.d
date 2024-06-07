@@ -397,7 +397,11 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     buildPath(params.fileImppath, global.filePath);
 
     // Create Modules
-    Modules modules = createModules(files, libmodules, target);
+    Modules modules;
+    modules.reserve(files.length);
+    if (createModules(files, libmodules, target, global.errorSink, modules))
+        fatal();
+
     // Read files
     foreach (m; modules)
     {

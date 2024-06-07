@@ -34,7 +34,6 @@ import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.dtoh;
-import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.globals;
@@ -1766,12 +1765,12 @@ Params:
   libmodules = Array to which binaries (shared/static libs and object files)
                will be appended
   target = target system
-
+  m = created Module
 Returns:
-  A D module
+  true on error
 */
 private
-Module createModule(const(char)* file, ref Strings libmodules, const ref Target target)
+bool createModule(const(char)* file, ref Strings libmodules, const ref Target target, ErrorSink eSink, out Module m)
 {
     version (Windows)
     {
@@ -1783,11 +1782,12 @@ Module createModule(const(char)* file, ref Strings libmodules, const ref Target 
     {
         if (!p.length)
         {
-            error(Loc.initial, "invalid file name '%s'", file);
-            fatal();
+            eSink.error(Loc.initial, "invalid file name '%s'", file);
+            return true;
         }
         auto id = Identifier.idPool(p);
-        return new Module(file.toDString, id, global.params.ddoc.doOutput, global.params.dihdr.doOutput);
+        m = new Module(file.toDString, id, global.params.ddoc.doOutput, global.params.dihdr.doOutput);
+        return false;
     }
 
     /* Deduce what to do with a file based on its extension
@@ -1796,13 +1796,13 @@ Module createModule(const(char)* file, ref Strings libmodules, const ref Target 
     {
         global.params.objfiles.push(file);
         libmodules.push(file);
-        return null;
+        return false;
     }
     if (FileName.equals(ext, target.lib_ext))
     {
         global.params.libfiles.push(file);
         libmodules.push(file);
-        return null;
+        return false;
     }
     if (target.os & (Target.OS.linux | Target.OS.OSX| Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
     {
@@ -1810,36 +1810,36 @@ Module createModule(const(char)* file, ref Strings libmodules, const ref Target 
         {
             global.params.dllfiles.push(file);
             libmodules.push(file);
-            return null;
+            return false;
         }
     }
     if (FileName.equals(ext, ddoc_ext))
     {
         global.params.ddoc.files.push(file);
-        return null;
+        return false;
     }
     if (FileName.equals(ext, json_ext))
     {
         global.params.json.doOutput = true;
         global.params.json.name = file.toDString;
-        return null;
+        return false;
     }
     if (FileName.equals(ext, map_ext))
     {
         global.params.mapfile = file.toDString;
-        return null;
+        return false;
     }
     if (target.os == Target.OS.Windows)
     {
         if (FileName.equals(ext, "res"))
         {
             global.params.resfile = file.toDString;
-            return null;
+            return false;
         }
         if (FileName.equals(ext, "def"))
         {
             global.params.deffile = file.toDString;
-            return null;
+            return false;
         }
         if (FileName.equals(ext, "exe"))
         {
@@ -1859,19 +1859,19 @@ Module createModule(const(char)* file, ref Strings libmodules, const ref Target 
         const(char)[] name = p[0 .. p.length - ext.length - 1]; // -1 for the .
         if (!name.length || name == ".." || name == ".")
         {
-            error(Loc.initial, "invalid file name '%s'", file);
-            fatal();
+            eSink.error(Loc.initial, "invalid file name '%s'", file);
+            return true;
         }
         /* name is the D source file name stripped of
          * its path and extension.
          */
         auto id = Identifier.idPool(name);
 
-        return new Module(file.toDString, id, global.params.ddoc.doOutput, global.params.dihdr.doOutput);
+        m = new Module(file.toDString, id, global.params.ddoc.doOutput, global.params.dihdr.doOutput);
+        return false;
     }
-    error(Loc.initial, "unrecognized file extension %.*s", cast(int)ext.length, ext.ptr);
-    fatal();
-    assert(0);
+    eSink.error(Loc.initial, "unrecognized file extension %.*s", cast(int)ext.length, ext.ptr);
+    return true;
 }
 
 /**
@@ -1887,18 +1887,20 @@ Params:
   libmodules = Array to which binaries (shared/static libs and object files)
                will be appended
   target = target system
+  eSink = error message sink
+  modules = empty array of modules to be filled in
 
 Returns:
-  An array of path to D modules
+  true on error
 */
-Modules createModules(ref Strings files, ref Strings libmodules, const ref Target target)
+bool createModules(ref Strings files, ref Strings libmodules, const ref Target target, ErrorSink eSink, ref Modules modules)
 {
-    Modules modules;
-    modules.reserve(files.length);
     bool firstmodule = true;
     foreach(file; files)
     {
-        auto m = createModule(file, libmodules, target);
+        Module m;
+        if (createModule(file, libmodules, target, eSink, m))
+            return true;
 
         if (m is null)
             continue;
@@ -1910,7 +1912,7 @@ Modules createModules(ref Strings files, ref Strings libmodules, const ref Targe
             firstmodule = false;
         }
     }
-    return modules;
+    return false;
 }
 
 /// Returns: a compiled module (semantic3) containing an empty main() function, for the -main flag
