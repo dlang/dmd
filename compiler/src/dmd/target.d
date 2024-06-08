@@ -1009,6 +1009,8 @@ extern (C++) struct Target
                 auto sd = ts.sym;
                 if (tf.linkage == LINK.cpp && needsThis)
                     return true;
+                if (tf.linkage == LINK.cpp && sd.ctor)
+                    return true;
                 if (!sd.isPOD() || sz > 8)
                     return true;
                 if (sd.fields.length == 0)
