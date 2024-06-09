@@ -2804,20 +2804,8 @@ void genpop(ref CodeBuilder cdb, reg_t reg)
  * register moves.
  */
 
-code *genmovreg(uint to,uint from)
-{
-    CodeBuilder cdb; cdb.ctor();
-    genmovreg(cdb, to, from);
-    return cdb.finish();
-}
-
-void genmovreg(ref CodeBuilder cdb,uint to,uint from)
-{
-    genmovreg(cdb, to, from, TYMAX);
-}
-
 @trusted
-void genmovreg(ref CodeBuilder cdb, uint to, uint from, tym_t tym)
+void genmovreg(ref CodeBuilder cdb, uint to, uint from, tym_t tym = TYMAX)
 {
     // register kind. ex: GPR,XMM,SEG
     static uint _K(uint reg)
