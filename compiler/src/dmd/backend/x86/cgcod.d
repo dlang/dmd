@@ -2845,7 +2845,12 @@ void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm
                     if (touse & mj)
                     {
                         genmovreg(cdbs1,j,i);
-                        cs2 = cat(genmovreg(i,j),cs2);
+
+                        CodeBuilder cdbs2; cdbs2.ctor();
+                        genmovreg(cdbs2, i, j);
+
+                        cs2 = cat(cdbs2.finish(),cs2);
+
                         touse &= ~mj;
                         cg.mfuncreg &= ~mj;
                         cg.regcon.used |= mj;
