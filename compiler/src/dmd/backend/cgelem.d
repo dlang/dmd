@@ -2271,8 +2271,8 @@ private elem * elcond(elem *e, Goal goal)
                 !tyuns(e1.E2.Ety) &&
                 ec1.Eoper == OPneg &&
                 !el_sideeffect(ec2) &&
-                el_match(e.E1.E1,ec2) &&
-                el_match(ec1.E1,ec2) &&
+                el_match5(e.E1.E1,ec2) &&
+                el_match5(ec1.E1,ec2) &&      // ignore unsigned/signed difference
                 tysize(ty) >= _tysize[TYint]
                )
             {   e.E2.E2 = null;
@@ -2287,8 +2287,8 @@ private elem * elcond(elem *e, Goal goal)
                 !tyuns(e1.E2.Ety) &&
                 ec2.Eoper == OPneg &&
                 !el_sideeffect(ec1) &&
-                el_match(e.E1.E1,ec1) &&
-                el_match(ec2.E1,ec1) &&
+                el_match5(e.E1.E1,ec1) &&
+                el_match5(ec2.E1,ec1) &&
                 tysize(ty) >= _tysize[TYint]
                )
             {   e.E2.E1 = null;
