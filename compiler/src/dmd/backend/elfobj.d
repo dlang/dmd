@@ -78,14 +78,11 @@ bool REQUIRE_DSO_REGISTRY()
 bool USE_INIT_ARRAY() { return true; }
 
 /******
- * FreeBSD uses ELF, but the linker crashes with Elf comdats with the following message:
- *  /usr/bin/ld: BFD 2.15 [FreeBSD] 2004-05-23 internal error, aborting at
- *  /usr/src/gnu/usr.bin/binutils/libbfd/../../../../contrib/binutils/bfd/elfcode.h
- *  line 213 in bfd_elf32_swap_symbol_out
- * For the time being, just stick with Linux.
+ * This should work on modern versions of GNU ld and all versions of LLVM lld.
+ * FreeBSD defaults to lld as of FreeBSD 13 (2021); OpenBSD as of 6.5 (2019).
  */
 
-bool ELF_COMDAT() { return (config.exe & (EX_LINUX | EX_LINUX64)) != 0; }
+bool ELF_COMDAT() { return (config.exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64)) != 0; }
 
 /***************************************************
  * Correspondence of relocation types
