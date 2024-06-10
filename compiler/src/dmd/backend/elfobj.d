@@ -73,11 +73,9 @@ bool REQUIRE_DSO_REGISTRY()
 }
 
 /**
- * If set, produce .init_array/.fini_array instead of legacy .ctors/.dtors .
- * OpenBSD added the support in Aug 2016. Other supported platforms has
- * supported .init_array for years.
+ * All supported platforms have supported .init_array for years.
  */
-bool USE_INIT_ARRAY() { return !(config.exe & (EX_OPENBSD | EX_OPENBSD64)); }
+bool USE_INIT_ARRAY() { return true; }
 
 /******
  * FreeBSD uses ELF, but the linker crashes with Elf comdats with the following message:
