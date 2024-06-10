@@ -426,7 +426,7 @@ extern (C++) abstract class Expression : ASTNode
      * is returned via e0.
      * Otherwise 'e' is directly returned and e0 is set to NULL.
      */
-    extern (D) static Expression extractLast(Expression e, out Expression e0) @safe
+    extern (D) static Expression extractLast(Expression e, out Expression e0) @trusted
     {
         if (e.op != EXP.comma)
         {
@@ -3868,7 +3868,7 @@ extern (C++) final class VectorExp : UnaExp
     uint dim = ~0;      // number of elements in the vector
     OwnedBy ownedByCtfe = OwnedBy.code;
 
-    extern (D) this(const ref Loc loc, Expression e, Type t) @safe
+    extern (D) this(const ref Loc loc, Expression e, Type t) @trusted
     {
         super(loc, EXP.vector, e);
         assert(t.ty == Tvector);
