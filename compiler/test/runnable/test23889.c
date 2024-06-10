@@ -1,4 +1,4 @@
-// DISABLED: win freebsd
+// DISABLED: win freebsd openbsd
 
 // https://issues.dlang.org/show_bug.cgi?id=23886
 
