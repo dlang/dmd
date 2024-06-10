@@ -1,5 +1,5 @@
 // REQUIRED_ARGS: -m64 -O -inline
-// DISABLED: win32 linux32 freebsd32 osx32 netbsd32 dragonflybsd32
+// DISABLED: win32 linux32 freebsd32 osx32 openbsd32 netbsd32 dragonflybsd32
 // https://issues.dlang.org/show_bug.cgi?id=21727
 
 import core.simd;

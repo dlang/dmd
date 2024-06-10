@@ -1,7 +1,7 @@
 /*
 PERMUTE_ARGS:
 REQUIRED_ARGS: -release -O -g -inline
-DISABLED: freebsd dragonflybsd
+DISABLED: freebsd openbsd dragonflybsd
 
 Deprecation caused by https://issues.dlang.org/show_bug.cgi?id=20645
 */
