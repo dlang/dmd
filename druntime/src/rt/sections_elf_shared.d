@@ -15,6 +15,7 @@ else version (CRuntime_Musl) enum SharedELF = true;
 else version (FreeBSD) enum SharedELF = true;
 else version (NetBSD) enum SharedELF = true;
 else version (DragonFlyBSD) enum SharedELF = true;
+else version (CRuntime_Bionic) enum SharedELF = true;
 else version (CRuntime_UClibc) enum SharedELF = true;
 else enum SharedELF = false;
 static if (SharedELF):
