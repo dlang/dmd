@@ -9252,13 +9252,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         // Check for unsafe casts
         string msg;
-        if (!isSafeCast(ex, t1b, tob, &msg))
+        if (!isSafeCast(ex, t1b, tob, msg))
         {
             if (sc.setUnsafe(false, exp.loc,
                 "cast from `%s` to `%s` not allowed in safe code", exp.e1.type, exp.to))
+            {
+                if (msg.length)
+                    errorSupplemental(exp.loc, "%s", (msg ~ '\0').ptr);
                 return setError();
+            }
         }
-        else if (msg) // deprecated unsafe
+        else if (msg.length) // deprecated unsafe
         {
             const err = sc.setUnsafePreview(FeatureState.default_, false, exp.loc,
                 "cast from `%s` to `%s` not allowed in safe code", exp.e1.type, exp.to);
