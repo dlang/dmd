@@ -139,11 +139,6 @@ private:
     }
 }
 
-/****
- * Boolean flag set to true while the runtime is initialized.
- */
-__gshared bool _isRuntimeInitialized;
-
 
 version (FreeBSD) private __gshared void* dummy_ref;
 version (DragonFlyBSD) private __gshared void* dummy_ref;
@@ -154,7 +149,6 @@ version (NetBSD) private __gshared void* dummy_ref;
  */
 void initSections() nothrow @nogc
 {
-    _isRuntimeInitialized = true;
     // reference symbol to support weak linkage
     version (FreeBSD) dummy_ref = &_d_dso_registry;
     version (DragonFlyBSD) dummy_ref = &_d_dso_registry;
@@ -167,7 +161,6 @@ void initSections() nothrow @nogc
  */
 void finiSections() nothrow @nogc
 {
-    _isRuntimeInitialized = false;
 }
 
 alias ScanDG = void delegate(void* pbeg, void* pend) nothrow;
@@ -462,7 +455,7 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
         }
 
         // don't initialize modules before rt_init was called (see Bugzilla 11378)
-        if (_isRuntimeInitialized)
+        if (isRuntimeInitialized())
         {
             registerGCRanges(pdso);
             // rt_loadLibrary will run tls ctors, so do this only for dlopen
@@ -477,7 +470,7 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
         *data._slot = null;
 
         // don't finalizes modules after rt_term was called (see Bugzilla 11378)
-        if (_isRuntimeInitialized)
+        if (isRuntimeInitialized())
         {
             // rt_unloadLibrary already ran tls dtors, so do this only for dlclose
             immutable runTlsDtors = !_rtLoading;
