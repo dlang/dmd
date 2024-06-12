@@ -9251,12 +9251,22 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         // Check for unsafe casts
-        if (!isSafeCast(ex, t1b, tob))
+        string msg;
+        if (!isSafeCast(ex, t1b, tob, &msg))
         {
-            if (sc.setUnsafe(false, exp.loc, "cast from `%s` to `%s` not allowed in safe code", exp.e1.type, exp.to))
-            {
+            if (sc.setUnsafe(false, exp.loc,
+                "cast from `%s` to `%s` not allowed in safe code", exp.e1.type, exp.to))
                 return setError();
-            }
+        }
+        else if (msg) // deprecated unsafe
+        {
+            const err = sc.setUnsafePreview(FeatureState.default_, false, exp.loc,
+                "cast from `%s` to `%s` not allowed in safe code", exp.e1.type, exp.to);
+            // if message was printed
+            if (sc.func && sc.func.isSafeBypassingInference() && !sc.isDeprecated())
+                deprecationSupplemental(exp.loc, "%s", (msg ~ '\0').ptr);
+            if (err)
+                return setError();
         }
 
         // `object.__ArrayCast` is a rewrite of an old runtime hook `_d_arraycast`. `_d_arraycast` was not built

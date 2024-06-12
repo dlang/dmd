@@ -89,7 +89,7 @@ private enum LOG = false;
 
 enum IDX_NOTFOUND = 0x12345678;
 
-pure nothrow @nogc @safe
+pure nothrow @nogc @trusted
 {
 
 /********************************************
@@ -142,6 +142,11 @@ inout(TemplateParameter) isTemplateParameter(inout RootObject o)
         return null;
     return cast(inout(TemplateParameter))o;
 }
+
+} // end @trusted casts
+
+pure nothrow @nogc @safe
+{
 
 /**************************************
  * Is this Object an error?
