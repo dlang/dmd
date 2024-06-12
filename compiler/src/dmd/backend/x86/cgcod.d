@@ -3006,7 +3006,7 @@ void docommas(ref CodeBuilder cdb, ref elem *pe)
  */
 
 @trusted
-void andregcon(ref con_t pregconsave)
+void andregcon(const ref con_t pregconsave)
 {
     regm_t m = ~1;
     foreach (i; 0 ..REGMAX)
