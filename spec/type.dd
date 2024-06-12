@@ -573,9 +573,25 @@ $(P A `bool` value can be implicitly converted to any integral type, with
 
 $(P The numeric literals `0` and `1` can be implicitly converted to the `bool`
 values `false` and `true`, respectively. Casting an expression to `bool` means
-testing for `0` or `!=0` for arithmetic types, and `null` or `!=null` for
+testing `!=0` for arithmetic types, and `!=null` for
 pointers or references.)
 
+$(UNDEFINED_BEHAVIOR)
+* Interpreting a value with a byte representation
+  other than 0 or 1 as `bool` (e.g. an overlapped union field).
+* Reading a `void`-initialized `bool`.
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+byte i = 2;
+bool b = cast(bool) i; // OK, same as `i != 0`
+assert(b);
+
+bool* p = cast(bool*) &i; // unsafe cast
+// `*p` holds 0x2, an invalid bool value
+// reading `*p` is undefined behavior
+---
+)
 
 $(H2 $(LNAME2 functions, Function Types))
 

@@ -1358,6 +1358,9 @@ $(H4 $(LNAME2 cast_array, Arrays))
             ---
         )
 
+    $(UNDEFINED_BEHAVIOR Casting a non-literal array to `bool[]` when any
+        element has a byte representation $(DDSUBLINK spec/type, bool, other than 0 or 1).)
+
     $(DDOC_SEE_ALSO $(RELATIVE_LINK2 cast_array_literal, Casting array literals).)
 
 $(H4 $(LNAME2 cast_static_array, Static Arrays))
