@@ -156,12 +156,11 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
  *      e = expression to be cast
  *      tfrom = type of e
  *      tto = type to cast e to
+ *      msg = reason why cast is unsafe or deprecated
  * Returns:
- *      1 if @safe
- *      0 if unsafe
- *      -1 if using in @safe is deprecated
+ *      true if @safe or deprecated
  */
-int isSafeCast(Expression e, Type tfrom, Type tto)
+bool isSafeCast(Expression e, Type tfrom, Type tto, string* msg = null)
 {
     // Implicit conversions are always safe
     if (tfrom.implicitConvTo(tto))
@@ -188,8 +187,10 @@ int isSafeCast(Expression e, Type tfrom, Type tto)
         if (cdfrom.isCPPinterface() || cdto.isCPPinterface())
             return false;
         if (cdfrom.classKind == ClassKind.cpp || cdto.classKind == ClassKind.cpp)
-            return -1;
-
+        {
+            if (msg)
+                *msg = "No dynamic type information for extern(C++) classes";
+        }
         if (!MODimplicitConv(tfromb.mod, ttob.mod))
             return false;
         return true;
