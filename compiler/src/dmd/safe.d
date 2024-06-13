@@ -219,6 +219,14 @@ bool isSafeCast(Expression e, Type tfrom, Type tto, string* msg = null)
             return false;
         }
 
+        // For bool, only 0 and 1 are safe values
+        // Runtime array cast reinterprets data
+        if (ttobn.ty == Tbool && tfromn.ty != Tbool && e.op != EXP.arrayLiteral)
+        {
+            if (msg)
+                *msg = "Array data may have bytes which are not 0 or 1";
+        }
+
         // If the struct is opaque we don't know about the struct members then the cast becomes unsafe
         if (ttobn.ty == Tstruct && !(cast(TypeStruct)ttobn).sym.members ||
             tfromn.ty == Tstruct && !(cast(TypeStruct)tfromn).sym.members)
