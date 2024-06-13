@@ -2260,13 +2260,7 @@ void cdbswap(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 @trusted
 void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
-    con_t regconold,regconsave;
-    uint stackpushold,stackpushsave;
-    int ehindexold,ehindexsave;
-    uint sz2;
-
     /* vars to save state of 8087 */
-    int stackusedold,stackusedsave;
     NDP[global87.stack.length] _8087old;
     NDP[global87.stack.length] _8087save;
 
@@ -2298,8 +2292,8 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         genjmp(cdb,jop,FLcode,cast(block *)cnop1);
         freenode(e21);
 
-        regconsave = cgstate.regcon;
-        stackpushsave = cgstate.stackpush;
+        const regconsave = cgstate.regcon;
+        const stackpushsave = cgstate.stackpush;
 
         retregs |= psw;
         if (retregs & (mBP | ALLREGS))
@@ -2316,6 +2310,7 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         return;
     }
 
+    uint sz2;
     if (OTrel(op1) && sz1 <= REGSIZE && tysize(e2.Ety) <= REGSIZE &&
         !e1.Ecount &&
         (jop == JC || jop == JNC) &&
@@ -2444,8 +2439,8 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         genjmp(cdb,jop,FLcode,cast(block *)cnop1);
         freenode(e21);
 
-        regconsave = cgstate.regcon;
-        stackpushsave = cgstate.stackpush;
+        const regconsave = cgstate.regcon;
+        const stackpushsave = cgstate.stackpush;
 
         codelem(cgstate,cdb,e22,&retregs,false);
 
@@ -2462,9 +2457,9 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     code *cnop1 = gennop(null);
     code *cnop2 = gennop(null);         // dummy target addresses
     logexp(cdb,e1,false,FLcode,cnop1);  // evaluate condition
-    regconold = cgstate.regcon;
-    stackusedold = global87.stackused;
-    stackpushold = cgstate.stackpush;
+    const regconold = cgstate.regcon;
+    const stackusedold = global87.stackused;
+    const stackpushold = cgstate.stackpush;
     memcpy(_8087old.ptr,global87.stack.ptr,global87.stack.sizeof);
     regm_t retregs = *pretregs;
     CodeBuilder cdb1;
@@ -2497,13 +2492,13 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     else
         cdb.append(cdb1);
 
-    regconsave = cgstate.regcon;
-    cgstate.regcon = regconold;
+    const regconsave = cgstate.regcon;
+    cgstate.regcon = cast()regconold;
 
-    stackpushsave = cgstate.stackpush;
+    const stackpushsave = cgstate.stackpush;
     cgstate.stackpush = stackpushold;
 
-    stackusedsave = global87.stackused;
+    const stackusedsave = global87.stackused;
     global87.stackused = stackusedold;
 
     memcpy(_8087save.ptr,global87.stack.ptr,global87.stack.sizeof);
