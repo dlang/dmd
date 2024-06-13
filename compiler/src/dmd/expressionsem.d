@@ -11431,16 +11431,37 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 if (sc.setUnsafe(false, exp.loc, "cannot copy `%s` to `%s` in `@safe` code", t2, t1))
                     return setError();
+
+                if (sc.hasEdition(Edition.v2024) && !t2.implicitConvTo(t1))
+                {
+                    error(exp.loc, "cannot copy `%s` to `%s`", t2.toChars(), t1.toChars());
+                    errorSupplemental(exp.loc,
+                        "Source data may contain pointers to incompatibly qualified data");
+                    errorSupplemental(exp.loc, "Use `cast(%s)` to ignore", t1.toChars());
+                    return setError();
+                }
             }
         }
         else
         {
             if (exp.e1.op == EXP.slice &&
                 (t1.ty == Tarray || t1.ty == Tsarray) &&
-                t1.nextOf().toBasetype().ty == Tvoid &&
-                sc.setUnsafePreview(FeatureState.default_, false, exp.loc,
+                t1.nextOf().toBasetype().ty == Tvoid)
+            {
+                if (sc.setUnsafePreview(FeatureState.default_, false, exp.loc,
                     "cannot copy `%s` to `%s` in `@safe` code", t2, t1))
-                return setError();
+                    return setError();
+
+                if (sc.hasEdition(Edition.v2024) && !t2.implicitConvTo(t1))
+                {
+                    error(exp.loc, "cannot copy `%s` to `%s` in `@safe` code",
+                        t2.toChars(), t1.toChars());
+                    errorSupplemental(exp.loc,
+                        "Source data may contain pointers to incompatibly qualified data");
+                    errorSupplemental(exp.loc, "Use `cast(%s)` to ignore", t1.toChars());
+                    return setError();
+                }
+            }
 
             if (exp.op == EXP.blit)
                 e2x = e2x.castTo(sc, exp.e1.type);
