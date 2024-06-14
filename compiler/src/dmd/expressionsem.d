@@ -11425,12 +11425,19 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             if (t1n.toBasetype.ty == Tvoid && t2n.toBasetype.ty == Tvoid)
             {
-                if (sc.setUnsafe(false, exp.loc, "cannot copy `void[]` to `void[]` in `@safe` code"))
+                if (sc.setUnsafe(false, exp.loc, "cannot copy `%s` to `%s` in `@safe` code", t2, t1))
                     return setError();
             }
         }
         else
         {
+            if (exp.e1.op == EXP.slice &&
+                (t1.ty == Tarray || t1.ty == Tsarray) &&
+                t1.nextOf().toBasetype().ty == Tvoid &&
+                sc.setUnsafePreview(FeatureState.default_, false, exp.loc,
+                    "cannot copy `%s` to `%s` in `@safe` code", t2, t1))
+                return setError();
+
             if (exp.op == EXP.blit)
                 e2x = e2x.castTo(sc, exp.e1.type);
             else
