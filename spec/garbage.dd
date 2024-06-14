@@ -520,6 +520,8 @@ $(H2 $(LNAME2 precise_dataseg, Precise Scanning of the DATA and TLS segment))
         ---------
         This doesn't work for TLS memory, though.
 
+        See also: $(DDSUBLINK spec/arrays, void_arrays, void arrays).
+
 $(H2 $(LNAME2 gc_parallel, Parallel marking))
 
     $(P By default the garbage collector uses all available CPU cores to mark the heap.)

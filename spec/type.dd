@@ -232,7 +232,7 @@ $(H3 $(LEGACY_LNAME2 Implicit Conversions, implicit-conversions, Implicit Conver
 
     $(UL
     $(LI All types implicitly convert to $(RELATIVE_LINK2 noreturn, `noreturn`).)
-    $(LI Static and dynamic arrays implicitly convert to $(DDSUBLINK spec/arrays, void_arrays, `void[]`).)
+    $(LI Static and dynamic arrays implicitly convert to $(DDSUBLINK spec/arrays, void_arrays, `void` arrays).)
     $(LI $(DDSUBLINK spec/function, function-pointers-delegates, Function pointers and delegates)
         can convert to covariant types.)
     )

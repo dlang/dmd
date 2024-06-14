@@ -1281,43 +1281,55 @@ writefln("the string is '%s'", str);
 
 $(H3 $(LNAME2 void_arrays, Void Arrays))
 
-    $(P There is a special type of array which acts as a wildcard that can hold
-    arrays of any kind, declared as $(D void[]). Void arrays are used for
+    $(P There are special types of array with `void` element type which can hold
+    arrays of any kind. Void arrays are used for
     low-level operations where some kind of array data is being handled, but
     the exact type of the array elements are unimportant. The $(D .length) of a
     void array is the length of the data in bytes, rather than the number of
-    elements in its original type. Array indices in indexing and slicing
+    elements in its original type. Array indices in slicing
     operations are interpreted as byte indices.)
 
-    $(P Arrays of any type can be implicitly converted to a void array; the
+    $(P Arrays of any type can be implicitly converted to a (tail qualified) void array - the
     compiler inserts the appropriate calculations so that the $(D .length) of
     the resulting array's size is in bytes rather than number of elements. Void
-    arrays cannot be converted back to the original type without using a cast,
+    arrays cannot be converted back to the original type without using an
+    $(DDSUBLINK spec/expression, cast_array, array cast),
     and it is an error to convert to an array type whose element size does not
     evenly divide the length of the void array.)
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
 void main()
 {
     int[] data1 = [1,2,3];
-    long[] data2;
 
     void[] arr = data1;            // OK, int[] implicit converts to void[].
     assert(data1.length == 3);
     assert(arr.length == 12);      // length is implicitly converted to bytes.
 
-    //data1 = arr;                 // Illegal: void[] does not implicitly
+    arr[0..4] = [5];               // Assign first 4 bytes to 1 int element
+    assert(data1 == [5,2,3]);
+
+    //data1 = arr;                 // Error: void[] does not implicitly
                                    // convert to int[].
-    int[] data3 = cast(int[]) arr; // OK, can convert with explicit cast.
-    data2 = cast(long[]) arr;      // Runtime error: long.sizeof == 8, which
+    int[] data2 = cast(int[]) arr; // OK, can convert with explicit cast.
+    assert(data2 is data1);
+}
+---------
+)
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---------
+void main()
+{
+    void[] arr = new void[12];
+    long[] bad = cast(long[]) arr; // Runtime error: long.sizeof == 8, which
                                    // does not divide arr.length, which is 12
                                    // bytes.
 }
 ---------
 )
 
-    $(P Void arrays can also be static if their length is known at
+    $(P Void arrays can be static arrays if their length is known at
     compile-time. The length is specified in bytes:)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
