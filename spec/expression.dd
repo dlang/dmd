@@ -389,7 +389,8 @@ $(GNAME ConditionalExpression):
     $(GLINK OrOrExpression) $(D ?) $(GLINK Expression) $(D :) $(GSELF ConditionalExpression)
 )
 
-    $(P The first expression is converted to $(D bool), and is evaluated.
+    $(P The first expression is $(DDSUBLINK spec/statement, boolean-conditions,
+        converted to $(D bool)), and is evaluated.
     )
 
     $(P If it is $(D true), then the second expression is evaluated, and
@@ -447,7 +448,8 @@ $(GNAME OrOrExpression):
     $(P The $(I OrOrExpression) evaluates its left operand.
     )
 
-    $(P If the left operand, converted to type $(D bool), evaluates to
+    $(P If the left operand, $(DDSUBLINK spec/statement, boolean-conditions,
+        converted to type $(D bool)), evaluates to
         $(D true), then the right operand is not evaluated. If the result type of
         the $(I OrOrExpression) is $(D bool) then the result of the
         expression is $(D true).
@@ -475,7 +477,8 @@ $(GNAME AndAndExpression):
     $(P The $(I AndAndExpression) evaluates its left operand.
     )
 
-    $(P If the left operand, converted to type $(D bool), evaluates to
+    $(P If the left operand, $(DDSUBLINK spec/statement, boolean-conditions,
+        converted to type $(D bool)), evaluates to
         $(D false), then the right operand is not evaluated. If the result type of
         the $(I AndAndExpression) is $(D bool) then the result of the
         expression is $(D false).
@@ -1217,6 +1220,8 @@ $(H4 $(LNAME2 cast_basic_data_types, Basic Data Types))
             writeln(d);
             -------------
         )
+
+    $(P See also: $(RELATIVE_LINK2 cast_integers, Casting Integers).)
 
 $(H4 $(LNAME2 cast_class, Class References))
 
