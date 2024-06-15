@@ -11436,8 +11436,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     error(exp.loc, "cannot copy `%s` to `%s`", t2.toChars(), t1.toChars());
                     errorSupplemental(exp.loc,
-                        "Source data may contain pointers to incompatibly qualified data");
-                    errorSupplemental(exp.loc, "Use `cast(%s)` if immutable data is not written to", t1.toChars());
+                        "Source data has incompatible type qualifier(s)");
+                    errorSupplemental(exp.loc, "Use `cast(%s)` to force copy", t1.toChars());
                     return setError();
                 }
             }
@@ -11454,11 +11454,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                 if (global.params.fixImmutableConv && !t2.implicitConvTo(t1))
                 {
-                    error(exp.loc, "cannot copy `%s` to `%s` in `@safe` code",
+                    error(exp.loc, "cannot copy `%s` to `%s`",
                         t2.toChars(), t1.toChars());
                     errorSupplemental(exp.loc,
-                        "Source data may contain pointers to incompatibly qualified data");
-                    errorSupplemental(exp.loc, "Use `cast(%s)` to ignore", t1.toChars());
+                        "Source data has incompatible type qualifier(s)");
+                    errorSupplemental(exp.loc, "Use `cast(%s)` to force copy", t1.toChars());
                     return setError();
                 }
             }

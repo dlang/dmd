@@ -3,11 +3,11 @@ TEST_OUTPUT:
 ---
 fail_compilation/test15660.d(26): Error: cannot implicitly convert expression `f(v)` of type `int[]` to `immutable(int[])`
 fail_compilation/test15660.d(34): Error: cannot copy `const(void)[]` to `void[]`
-fail_compilation/test15660.d(34):        Source data may contain pointers to incompatibly qualified data
-fail_compilation/test15660.d(34):        Use `cast(void[])` if immutable data is not written to
-fail_compilation/test15660.d(36): Error: cannot copy `const(int*)[]` to `void[]` in `@safe` code
-fail_compilation/test15660.d(36):        Source data may contain pointers to incompatibly qualified data
-fail_compilation/test15660.d(36):        Use `cast(void[])` if immutable data is not written to
+fail_compilation/test15660.d(34):        Source data has incompatible type qualifier(s)
+fail_compilation/test15660.d(34):        Use `cast(void[])` to force copy
+fail_compilation/test15660.d(36): Error: cannot copy `const(int*)[]` to `void[]`
+fail_compilation/test15660.d(36):        Source data has incompatible type qualifier(s)
+fail_compilation/test15660.d(36):        Use `cast(void[])` to force copy
 ---
 */
 
