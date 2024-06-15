@@ -16,7 +16,7 @@ Upcoming language changes listed by -preview=name:
   =nosharedaccess   disable access to shared memory objects (https://dlang.org/spec/const3.html#shared)
   =in               `in` on parameters means `scope const [ref]` and accepts rvalues (https://dlang.org/spec/function.html#in-params)
   =inclusiveincontracts 'in' contracts of overridden methods must be a superset of parent contract (https://dlang.org/changelog/2.095.0.html#inclusive-incontracts)
-  =fixImmutableConv disallow functions with a mutable `void[]` parameter to be strongly pure (https://dlang.org/changelog/2.101.0.html#dmd.fix-immutable-conv)
+  =fixImmutableConv disallow `void[]` data from holding immutable data (https://dlang.org/changelog/2.101.0.html#dmd.fix-immutable-conv, https://issues.dlang.org/show_bug.cgi?id=17148)
   =systemVariables  disable access to variables marked '@system' from @safe code (https://dlang.org/spec/attribute.html#system-variables)
 ----
 */
