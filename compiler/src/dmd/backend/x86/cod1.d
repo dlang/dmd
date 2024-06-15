@@ -2935,13 +2935,13 @@ FuncParamRegs FuncParamRegs_create(tym_t tyf)
     {
         if (tyf == TYjfunc)
         {
-            static immutable ubyte[1] reglist1 = [ AX ];
+            static immutable reg_t[1] reglist1 = [ AX ];
             result.argregs = &reglist1[0];
             result.numintegerregs = reglist1.length;
         }
         else if (tyf == TYmfunc)
         {
-            static immutable ubyte[1] reglist2 = [ CX ];
+            static immutable reg_t[1] reglist2 = [ CX ];
             result.argregs = &reglist2[0];
             result.numintegerregs = reglist2.length;
         }
@@ -2951,21 +2951,21 @@ FuncParamRegs FuncParamRegs_create(tym_t tyf)
     }
     else if (I64 && config.exe == EX_WIN64)
     {
-        static immutable ubyte[4] reglist3 = [ CX,DX,R8,R9 ];
+        static immutable reg_t[4] reglist3 = [ CX,DX,R8,R9 ];
         result.argregs = &reglist3[0];
         result.numintegerregs = reglist3.length;
 
-        static immutable ubyte[4] freglist3 = [ XMM0, XMM1, XMM2, XMM3 ];
+        static immutable reg_t[4] freglist3 = [ XMM0, XMM1, XMM2, XMM3 ];
         result.floatregs = &freglist3[0];
         result.numfloatregs = freglist3.length;
     }
     else if (I64)
     {
-        static immutable ubyte[6] reglist4 = [ DI,SI,DX,CX,R8,R9 ];
+        static immutable reg_t[6] reglist4 = [ DI,SI,DX,CX,R8,R9 ];
         result.argregs = &reglist4[0];
         result.numintegerregs = reglist4.length;
 
-        static immutable ubyte[8] freglist4 = [ XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7 ];
+        static immutable reg_t[8] freglist4 = [ XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7 ];
         result.floatregs = &freglist4[0];
         result.numfloatregs = freglist4.length;
     }
@@ -2977,39 +2977,23 @@ FuncParamRegs FuncParamRegs_create(tym_t tyf)
 /*****************************************
  * Allocate parameter of type t and ty to registers *preg1 and *preg2.
  * Params:
+ *      fpr = context
  *      t = type, valid only if ty is TYstruct or TYarray
+ *      ty = type
+ *      preg1 = set to register or first of register pair
+ *      preg2 = set to second of register pair, if any
  * Returns:
- *      false       not allocated to any register
- *      true        *preg1, *preg2 set to allocated register pair
+ *      false = for not allocated to any register
+ *      true  = for preg1, preg2 set to allocated register pair
  */
-
 @trusted
-private bool type_jparam2(type* t, tym_t ty)
-{
-    ty = tybasic(ty);
-
-    if (tyfloating(ty))
-        return false;
-    else if (ty == TYstruct || ty == TYarray)
-    {
-        type_debug(t);
-        targ_size_t sz = type_size(t);
-        return (sz <= _tysize[TYnptr]) &&
-               (config.exe == EX_WIN64 || sz == 1 || sz == 2 || sz == 4 || sz == 8);
-    }
-    else if (tysize(ty) <= _tysize[TYnptr])
-        return true;
-    return false;
-}
-
-@trusted
-int FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, reg_t* preg1, reg_t* preg2)
+bool FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, out reg_t preg1, out reg_t preg2)
 {
     //printf("FuncParamRegs::alloc(ty: TY%sm t: %p)\n", tystring[tybasic(ty)], t);
     //if (t) type_print(t);
 
-    *preg1 = NOREG;
-    *preg2 = NOREG;
+    preg1 = NOREG;
+    preg2 = NOREG;
 
     type* t2 = null;
     tym_t ty2 = TYMAX;
@@ -3083,7 +3067,7 @@ int FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, reg_t* preg1, 
         }
     }
 
-    reg_t* preg = preg1;
+    reg_t* preg = &preg1;
     int regcntsave = fpr.regcnt;
     int xmmcntsave = fpr.xmmcnt;
 
@@ -3100,29 +3084,47 @@ int FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, reg_t* preg1, 
             fpr.numintegerregs - fpr.regcnt >= 2)
         {
             // Allocate to register pair
-            *preg1 = fpr.argregs[fpr.regcnt];
-            *preg2 = fpr.argregs[fpr.regcnt + 1];
+            preg1 = fpr.argregs[fpr.regcnt];
+            preg2 = fpr.argregs[fpr.regcnt + 1];
             fpr.regcnt += 2;
-            return 1;
+            return true;
         }
 
         if (tybasic(ty) == TYcdouble &&
             fpr.numfloatregs - fpr.xmmcnt >= 2)
         {
             // Allocate to register pair
-            *preg1 = fpr.floatregs[fpr.xmmcnt];
-            *preg2 = fpr.floatregs[fpr.xmmcnt + 1];
+            preg1 = fpr.floatregs[fpr.xmmcnt];
+            preg2 = fpr.floatregs[fpr.xmmcnt + 1];
             fpr.xmmcnt += 2;
-            return 1;
+            return true;
         }
 
         if (tybasic(ty) == TYcfloat
             && fpr.numfloatregs - fpr.xmmcnt >= 1)
         {
             // Allocate XMM register
-            *preg1 = fpr.floatregs[fpr.xmmcnt++];
-            return 1;
+            preg1 = fpr.floatregs[fpr.xmmcnt++];
+            return true;
         }
+    }
+
+    static bool type_jparam2(type* t, tym_t ty)
+    {
+        ty = tybasic(ty);
+
+        if (tyfloating(ty))
+            return false;
+        else if (ty == TYstruct || ty == TYarray)
+        {
+            type_debug(t);
+            targ_size_t sz = type_size(t);
+            return (sz <= _tysize[TYnptr]) &&
+                   (config.exe == EX_WIN64 || sz == 1 || sz == 2 || sz == 4 || sz == 8);
+        }
+        else if (tysize(ty) <= _tysize[TYnptr])
+            return true;
+        return false;
     }
 
     foreach (j; 0 .. 2)
@@ -3154,27 +3156,31 @@ int FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, reg_t* preg1, 
         if (j == 1)
         {   /* Unwind first preg1 assignment, because it's both or nothing
              */
-            *preg1 = NOREG;
+            preg1 = NOREG;
             fpr.regcnt = regcntsave;
             fpr.xmmcnt = xmmcntsave;
         }
-        return 0;
+        return false;
 
      Lnext:
         if (tybasic(ty2) == TYMAX)
             break;
-        preg = preg2;
+        preg = &preg2;
         t = t2;
         ty = ty2;
     }
-    return 1;
+    return true;
 }
 
 /***************************************
  * Finds replacement types for register passing of aggregates.
+ * Params:
+ *      t = aggregate type
+ *      arg1type = set to first replacement type
+ *      arg2type = set second replacement type
  */
 @trusted
-void argtypes(type* t, ref type* arg1type, ref type* arg2type)
+void argtypes(type* t, out type* arg1type, out type* arg2type)
 {
     if (!t) return;
 
@@ -3182,8 +3188,6 @@ void argtypes(type* t, ref type* arg1type, ref type* arg2type)
 
     if (!tyaggregate(ty))
         return;
-
-    arg1type = arg2type = null;
 
     if (tybasic(ty) == TYarray)
     {
@@ -3341,7 +3345,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             psize = REGSIZE;
         }
         //printf("[%d] size = %u, numpara = %d %s\n", i, psize, numpara, tym_str(ep.Ety));
-        if (FuncParamRegs_alloc(fpr, ep.ET, ep.Ety, &parameters[i].reg, &parameters[i].reg2))
+        if (FuncParamRegs_alloc(fpr, ep.ET, ep.Ety, parameters[i].reg, parameters[i].reg2))
         {
             if (config.exe == EX_WIN64)
                 numpara += REGSIZE;             // allocate stack space for it anyway

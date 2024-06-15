@@ -226,7 +226,7 @@ struct CGstate
     con_t regcon;               // register contents
     BackendPass pass;
 
-    int cmp_flag;		// pass extra flag from cdcod() to cdcmp()
+    int cmp_flag;               // pass extra flag from cdcod() to cdcmp()
     /**********************************
      * Set value in regimmed for reg.
      * NOTE: For 16 bit generator, this is always a (targ_short) sign-extended
@@ -328,7 +328,7 @@ struct FuncParamRegs
     //this(tym_t tyf);
     static FuncParamRegs create(tym_t tyf) { return FuncParamRegs_create(tyf); }
 
-    int alloc(type *t, tym_t ty, ubyte *reg1, ubyte *reg2)
+    bool alloc(type *t, tym_t ty, out reg_t reg1, out reg_t reg2)
     { return FuncParamRegs_alloc(this, t, ty, reg1, reg2); }
 
   private:
@@ -339,8 +339,8 @@ struct FuncParamRegs
     int xmmcnt;                 // how many fp registers are allocated
     uint numintegerregs;        // number of gp registers that can be allocated
     uint numfloatregs;          // number of fp registers that can be allocated
-    const(ubyte)* argregs;      // map to gp register
-    const(ubyte)* floatregs;    // map to fp register
+    const(reg_t)* argregs;      // map to gp register
+    const(reg_t)* floatregs;    // map to fp register
 }
 
 public import dmd.backend.cg : BPRM, FLOATREGS, FLOATREGS2, DOUBLEREGS,
