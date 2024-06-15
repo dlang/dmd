@@ -163,6 +163,9 @@ jobs:
       - name: Test phobos
         if: '!matrix.coverage'
         run: ci/run.sh test_phobos
+      - name: Test self-compile
+        if: '!matrix.coverage' # already re-built with enabled coverage
+        run: ENABLE_RELEASE=0 ci/run.sh rebuild
       - name: Upload coverage report
         if: matrix.coverage
         run: ci/run.sh codecov
@@ -251,4 +254,8 @@ jobs:
 
             echo '::group::Test phobos'
             ci/run.sh test_phobos
+            echo '::endgroup::'
+
+            echo '::group::Test self-compile'
+            ENABLE_RELEASE=0 ci/run.sh rebuild
             echo '::endgroup::'

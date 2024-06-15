@@ -77,14 +77,22 @@ build() {
 # self-compile dmd
 rebuild() {
     local compare=${1:-0}
+
+    local dotexe=""
+    local conf="dmd.conf"
+    if [ "$OS_NAME" == "windows" ]; then
+        dotexe=".exe"
+        conf="sc.ini"
+    fi
+
     # `generated` gets cleaned in the next step, so we create another _generated
     # The nested folder hierarchy is needed to conform to those specified in
     # the generated dmd.conf
     mkdir -p _${build_path}
-    cp $build_path/dmd _${build_path}/host_dmd
-    cp $build_path/dmd.conf _${build_path}
+    cp $build_path/dmd$dotexe _${build_path}/host_dmd$dotexe
+    cp $build_path/$conf _${build_path}/
     rm -rf $build_path
-    generated/build -j$N MODEL=$MODEL HOST_DMD=_${build_path}/host_dmd DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=${ENABLE_RELEASE:-1} dmd
+    generated/build -j$N MODEL=$MODEL HOST_DMD=_${build_path}/host_dmd$dotexe DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=${ENABLE_RELEASE:-1} dmd
 
     # compare binaries to test reproducible build
     if [ $compare -eq 1 ]; then
