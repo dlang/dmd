@@ -3135,12 +3135,13 @@ elem* toElem(Expression e, ref IRState irs)
         {
             // adjust bit offset for bitfield so the type tym encloses the bitfield
             const szbits = tysize(tym) * 8;
+            uint memalignsize = target.fieldalign(dve.type);
             auto bitOffset = bf.bitOffset;
             if (bitOffset + bf.fieldWidth > szbits)
             {
-                const advance = bf.bitOffset / szbits;
-                voffset += advance;
-                bitOffset -= advance * 8;
+                const advance = bf.bitOffset / (memalignsize * 8);
+                voffset += advance * memalignsize;
+                bitOffset -= advance * memalignsize * 8;
                 assert(bitOffset + bf.fieldWidth <= szbits);
             }
             //printf("voffset %u bitOffset %u fieldWidth %u bits %u\n", cast(uint)voffset, bitOffset, bf.fieldWidth, szbits);
