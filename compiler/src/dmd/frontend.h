@@ -7805,6 +7805,7 @@ public:
     void visit(DebugStatement* s) override;
     void visit(ForwardingStatement* s) override;
     void visit(StructLiteralExp* e) override;
+    void visit(ClassReferenceExp* e) override;
     void visit(CompoundLiteralExp* e) override;
     void visit(DotTemplateExp* e) override;
     void visit(DotVarExp* e) override;
