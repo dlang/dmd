@@ -3514,94 +3514,40 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      */
     AST.Type parseType(Identifier* pident = null, AST.TemplateParameters** ptpl = null, Loc* pdeclLoc = null)
     {
+        immutable stc = parseTypeCtor();
         // Handle linkage for function pointer and delegate types
-        const bool hasLinkage = token.value == TOK.extern_;
-        LINK link = LINK.default_;
-        if (hasLinkage)
-        {
+        immutable LINK link = () {
+            if (token.value != TOK.extern_) return LINK.default_;
+
             auto l = parseLinkage();
             // Reject C++-class-specific stuff
             if (l.cppmangle != CPPMANGLE.def)
                 error("C++ mangle declaration not allowed here");
             if (l.idents != null || l.identExps != null)
                 error("C++ namespaces not allowed here");
-            link = l.link;
-            printf("Linkage seen: %d\n", link);
-        }
-        // Handle `ref` TypeCtors(opt) BasicType CallableSuffix TypeSuffixes(opt)
-        const bool isRef = token.value == TOK.ref_;
+            return l.link;
+            // printf("Linkage seen: %d\n", link);
+        }();
+        // Handle `ref` TypeCtors(opt) BasicType TypeSuffixes(opt) CallableSuffix NonCallableSuffixes(opt)
+        immutable bool isRef = token.value == TOK.ref_;
         if (isRef) nextToken();
-
-        /* Take care of the storage class prefixes that
-         * serve as type attributes:
-         *               const type
-         *           immutable type
-         *              shared type
-         *               inout type
-         *         inout const type
-         *        shared const type
-         *        shared inout type
-         *  shared inout const type
-         */
-        StorageClass stc = 0;
-        while (1)
-        {
-            switch (token.value)
-            {
-            case TOK.const_:
-                if (peekNext() == TOK.leftParenthesis)
-                    break; // const as type constructor
-                stc |= STC.const_; // const as storage class
-                nextToken();
-                continue;
-
-            case TOK.immutable_:
-                if (peekNext() == TOK.leftParenthesis)
-                    break;
-                stc |= STC.immutable_;
-                nextToken();
-                continue;
-
-            case TOK.shared_:
-                if (peekNext() == TOK.leftParenthesis)
-                    break;
-                stc |= STC.shared_;
-                nextToken();
-                continue;
-
-            case TOK.inout_:
-                if (peekNext() == TOK.leftParenthesis)
-                    break;
-                stc |= STC.wild;
-                nextToken();
-                continue;
-
-            default:
-                break;
-            }
-            break;
-        }
+        immutable stc2 = parseTypeCtor();
 
         const typeLoc = token.loc;
 
         AST.Type t;
         t = parseBasicType();
-        if (hasLinkage || isRef)
-        {
-            t = t.addSTC(stc);
-            stc = STC.undefined_;
-        }
 
         if (pdeclLoc)
             *pdeclLoc = token.loc;
         int alt = 0;
-        t = parseDeclarator(t, alt, pident, ptpl, 0, null, null, isRef, link);
-        if (t.ty == Tdelegate || t.ty == Tpointer && (cast(AST.TypeNext)t).nextOf.ty == Tfunction)
-        {
-            auto ll = (cast(AST.TypeFunction)(cast(AST.TypeNext)t).nextOf).linkage;
-            if (ll != LINK.d)
-                printf("Linkage applied: %d\n", ll);
-        }
+        t = parseDeclarator(t, alt, pident, ptpl, stc2, null, null, isRef, link);
+        // if (t.ty == Tdelegate || t.ty == Tpointer && (cast(AST.TypeNext)t).nextOf.ty == Tfunction)
+        // {
+        //     auto ll = (cast(AST.TypeFunction)(cast(AST.TypeNext)t).nextOf).linkage;
+        //     if (ll != LINK.d)
+        //         printf("Linkage applied: %d\n", ll);
+        // }
         checkCstyleTypeSyntax(typeLoc, t, alt, pident ? *pident : null);
 
         t = t.addSTC(stc);
@@ -3978,11 +3924,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      * See_Also:
      *      https://dlang.org/spec/declaration.html#TypeSuffixes
      */
-    private AST.Type parseTypeSuffixes(AST.Type t, bool isRef = false, LINK link = LINK.default_)
+    private AST.Type parseTypeSuffixes(AST.Type t, StorageClass stc2 = 0, bool isRef = false, LINK link = LINK.default_)
     {
         //printf("parseTypeSuffixes()\n");
         const requireCallable = isRef || link != LINK.default_;
-        bool lastSuffixWasCallable = false;
+        AST.TypeFunction tf = null;
         while (1)
         {
             switch (token.value)
@@ -3990,7 +3936,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             case TOK.mul:
                 t = new AST.TypePointer(t);
                 nextToken();
-                lastSuffixWasCallable = false;
                 continue;
 
             case TOK.leftBracket:
@@ -4035,7 +3980,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     inBrackets--;
                     check(TOK.rightBracket);
                 }
-                lastSuffixWasCallable = false;
                 continue;
 
             case TOK.delegate_:
@@ -4044,7 +3988,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     // Handle latter part of delegate declaration:
                     //      Linkage(opt) ref(opt) type delegate(parameter list) nothrow pure
                     //      Linkage(opt) ref(opt) type function(parameter list) nothrow pure
-                    const save = token.value;
+                    immutable callableKeyword = token.value;
                     nextToken();
 
                     auto parameterList = parseParameterList(null);
@@ -4059,29 +4003,38 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     // {
                     //     stc = parsePostfix(STC.undefined_, null);
                     // }
-                    auto tf = new AST.TypeFunction(parameterList, t, linkage, stc);
+                    if (tf !is null)
+                    {
+                        if (link != LINK.default_ && isRef) error("Linkage and `ref` are ambiguous. Use clarifying parentheses.");
+                        else if (isRef) error("`ref` is ambiguous. Use clarifying parentheses.");
+                        else if (link != LINK.default_) error("Linkage is ambiguous. Use clarifying parentheses.");
+                    }
+                    tf = new AST.TypeFunction(parameterList, t, linkage, stc);
                     if (stc & (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild | STC.return_))
                     {
-                        if (save == TOK.function_)
+                        if (callableKeyword == TOK.function_)
                             error("`const`/`immutable`/`shared`/`inout`/`return` attributes are only valid for non-static member functions");
                         else
                             tf = cast(AST.TypeFunction)tf.addSTC(stc);
                     }
-                    t = save == TOK.delegate_ ? new AST.TypeDelegate(tf) : new AST.TypePointer(tf); // pointer to function
-                    lastSuffixWasCallable = true;
+                    t = callableKeyword == TOK.delegate_
+                        ? new AST.TypeDelegate(tf)
+                        : new AST.TypePointer(tf); // pointer to function
                     continue;
                 }
             default:
                 {
-                    if (requireCallable && !lastSuffixWasCallable)
-                    {
-                        error("linkage and `ref` are only valid for `function` and `delegate` types");
-                    }
                     if (requireCallable)
                     {
-                        auto fp = cast(AST.TypeFunction) (cast(AST.TypeNext)t).nextOf;
-                        if (isRef) fp.isref = true;
-                        if (link != LINK.default_) fp.linkage = link;
+                        if (tf is null)
+                        {
+                            if (link != LINK.default_ && isRef) error("linkage and `ref` are only valid for `function` and `delegate` types");
+                            else if (isRef) error("`ref` is only valid for `function` and `delegate` types");
+                            else error("linkage is only valid for `function` and `delegate` types");
+                        }
+                        tf.next = tf.next.addSTC(stc2);
+                        if (isRef) tf.isref = true;
+                        if (link != LINK.default_) tf.linkage = link;
                     }
                     return t;
                 }
@@ -4111,7 +4064,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         bool* pdisable = null, AST.Expressions** pudas = null, bool isRefCallable = false, LINK link = LINK.default_)
     {
         //printf("parseDeclarator(tpl = %p)\n", tpl);
-        t = parseTypeSuffixes(t, isRefCallable, link);
+        t = parseTypeSuffixes(t, storageClass, isRefCallable, link);
         AST.Type ts;
         switch (token.value)
         {
@@ -5081,7 +5034,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     auto a2 = new AST.Dsymbols();
                     a2.push(s);
                     s = new AST.LinkDeclaration(linkloc, link, a2);
-                    printf("Uses LinkDeclaration: linkage = %d\n", link);
+                    // printf("Uses LinkDeclaration: linkage = %d\n", link);
                 }
                 a.push(s);
 
@@ -9605,8 +9558,23 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         }
 
         const stc = parseTypeCtor();
+        const LINK link = () {
+            if (token.value != TOK.extern_) return LINK.default_;
+
+            auto l = parseLinkage();
+            // Reject C++-class-specific stuff
+            if (l.cppmangle != CPPMANGLE.def)
+                error("C++ mangle declaration not allowed here");
+            if (l.idents != null || l.identExps != null)
+                error("C++ namespaces not allowed here");
+            return l.link;
+        }();
+        // Handle `ref` TypeCtors(opt) BasicType TypeSuffixes(opt) CallableSuffix NonCallableSuffixes(opt)
+        const bool isRef = token.value == TOK.ref_;
+        if (isRef) nextToken();
+        const stc2 = parseTypeCtor();
         auto t = parseBasicType(true);
-        t = parseTypeSuffixes(t);
+        t = parseTypeSuffixes(t, stc2, isRef, link);
         t = t.addSTC(stc);
         if (t.ty == Taarray)
         {
