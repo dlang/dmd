@@ -145,6 +145,7 @@ void initDMD(
 
     target.os = defaultTargetOS();
     target.isX86_64 = (size_t.sizeof == 8);
+    target.isX86 = !target.isX86_64;
     target._init(global.params);
     Type._init();
     Id.initialize();

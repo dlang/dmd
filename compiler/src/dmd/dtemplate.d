@@ -89,7 +89,7 @@ private enum LOG = false;
 
 enum IDX_NOTFOUND = 0x12345678;
 
-pure nothrow @nogc @safe
+pure nothrow @nogc @trusted
 {
 
 /********************************************
@@ -142,6 +142,11 @@ inout(TemplateParameter) isTemplateParameter(inout RootObject o)
         return null;
     return cast(inout(TemplateParameter))o;
 }
+
+} // end @trusted casts
+
+pure nothrow @nogc @safe
+{
 
 /**************************************
  * Is this Object an error?
@@ -746,6 +751,17 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     override const(char)* toChars() const
     {
         HdrGenState hgs;
+        OutBuffer buf;
+        toCharsMaybeConstraints(this, buf, hgs);
+        return buf.extractChars();
+    }
+
+    /****************************
+     * Similar to `toChars`, but does not print the template constraints
+     */
+    const(char)* toCharsNoConstraints() const
+    {
+        HdrGenState hgs = { skipConstraints: true };
         OutBuffer buf;
         toCharsMaybeConstraints(this, buf, hgs);
         return buf.extractChars();
@@ -5767,7 +5783,7 @@ struct TemplateInstanceBox
         assert(this.ti.hash);
     }
 
-    size_t toHash() const @trusted pure nothrow
+    size_t toHash() const @safe pure nothrow
     {
         assert(ti.hash);
         return ti.hash;

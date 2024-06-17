@@ -20,7 +20,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
 import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.dcgcv : TOOFFSET;
 import dmd.backend.dlist;
 import dmd.backend.dvarstats;
@@ -2220,18 +2220,18 @@ size_t OmfObj_mangle(Symbol *s,char *dest)
         dest += 3;
     switch (type_mangle(s.Stype))
     {
-        case mTYman_pas:                // if upper case
-        case mTYman_for:
+        case Mangle.pascal:             // if upper case
+        case Mangle.fortran:
             memcpy(dest + 1,name,len);  // copy in name
             dest[1 + len] = 0;
             strupr(dest + 1);           // to upper case
             break;
 
-        case mTYman_cpp:
+        case Mangle.cpp:
             memcpy(dest + 1,name,len);
             break;
 
-        case mTYman_std:
+        case Mangle.stdcall:
             if (!(config.flags4 & CFG4oldstdmangle) &&
                 config.exe == EX_WIN32 && tyfunc(s.ty()) &&
                 !variadic(s.Stype))
@@ -2246,8 +2246,8 @@ size_t OmfObj_mangle(Symbol *s,char *dest)
             }
             goto case;
 
-        case mTYman_c:
-        case mTYman_d:
+        case Mangle.c:
+        case Mangle.d:
             if (config.flags4 & CFG4underscore)
             {
                 dest[1] = '_';          // leading _ in name
@@ -2257,7 +2257,7 @@ size_t OmfObj_mangle(Symbol *s,char *dest)
             }
             goto case;
 
-        case mTYman_sys:
+        case Mangle.syscall:
             memcpy(dest + 1, name, len);        // no mangling
             dest[1 + len] = 0;
             break;

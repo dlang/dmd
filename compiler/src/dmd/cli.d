@@ -473,7 +473,7 @@ dmd -cov -unittest myprog.d
                     $(LI $(I UAX31): UAX31)
                     $(LI $(I c99): C99)
                     $(LI $(I c11): C11)
-                    $(LI $(I all): All, the least restrictive set, which comes all others (default))
+                    $(LI $(I all): All, the least restrictive set, which comes with all others (default))
                 )`
         ),
         Option("identifiers-importc=<table>",
@@ -483,7 +483,7 @@ dmd -cov -unittest myprog.d
                     $(LI $(I UAX31): UAX31)
                     $(LI $(I c99): C99)
                     $(LI $(I c11): C11 (default))
-                    $(LI $(I all): All, the least restrictive set, which comes all others)
+                    $(LI $(I all): All, the least restrictive set, which comes with all others)
                 )`
         ),
         Option("ignore",
@@ -534,12 +534,6 @@ dmd -cov -unittest myprog.d
         ),
         Option("m32mscoff",
             "generate 32 bit code and write MS-COFF object files (deprecated use -m32)",
-            TargetOS.Windows
-        ),
-        Option("m32omf",
-            "(deprecated) generate 32 bit code and write OMF object files",
-            `$(WINDOWS Compile a 32 bit executable. The generated object code is in OMF and is meant to be used with the
-               $(LINK2 http://www.digitalmars.com/download/freecompiler.html, Digital Mars C/C++ compiler)).`,
             TargetOS.Windows
         ),
         Option("m64",
@@ -692,7 +686,7 @@ dmd -cov -unittest myprog.d
         Option("P=<preprocessorflag>",
             "pass preprocessorflag to C preprocessor",
             `Pass $(I preprocessorflag) to
-            $(WINDOWS sppn.exe or cl.exe)
+            $(WINDOWS cl.exe)
             $(UNIX cpp)`,
         ),
         Option("preview=<name>",
@@ -775,12 +769,11 @@ dmd -cov -unittest myprog.d
                `darwin` or `osx` for MacOS, `dragonfly` or `dragonflybsd` for DragonflyBSD,
                `freebsd`, `openbsd`, `linux`, `solaris` or `windows` for their respective operating systems.
                $(I cenv) is the C runtime environment and is optional: `musl` for musl-libc,
-               `msvc` for the MSVC runtime (the default for windows with this option),
-               `bionic` for the Andriod libc, `digital_mars` for the Digital Mars runtime for Windows
-               `gnu` or `glibc` for the GCC C runtime, `newlib` or `uclibc` for their respective C runtimes.
-               ($ I cppenv) is the C++ runtime environment: `clang` for the LLVM C++ runtime
-               `gcc` for GCC's C++ runtime, `msvc` for microsoft's MSVC C++ runtime (the default for windows with this switch),
-               `sun` for Sun's C++ runtime and `digital_mars` for the Digital Mars C++ runtime for windows.
+               `msvc` for the MSVC runtime, `bionic` for the Andriod libc, `gnu` or `glibc`
+               for the GCC C runtime, `newlib` or `uclibc` for their respective C runtimes.
+               ($ I cppenv) is the C++ runtime environment: `clang` for the LLVM C++ runtime,
+               `gcc` for GCC's C++ runtime, `msvc` for microsoft's MSVC C++ runtime,
+               `sun` for Sun's C++ runtime.
                "
         ),
         Option("transition=<name>",
@@ -964,8 +957,8 @@ dmd -cov -unittest myprog.d
             "allow use of => for methods and top-level functions in addition to lambdas",
             "https://dlang.org/spec/function.html#ShortenedFunctionBody", false, true),
         Feature("fixImmutableConv", "fixImmutableConv",
-            "disallow functions with a mutable `void[]` parameter to be strongly pure",
-            "https://dlang.org/changelog/2.101.0.html#dmd.fix-immutable-conv"),
+            "disallow `void[]` data from holding immutable data",
+            "https://dlang.org/changelog/2.101.0.html#dmd.fix-immutable-conv, https://issues.dlang.org/show_bug.cgi?id=17148"),
         Feature("systemVariables", "systemVariables",
             "disable access to variables marked '@system' from @safe code",
             "https://dlang.org/spec/attribute.html#system-variables"),

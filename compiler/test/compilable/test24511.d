@@ -1,8 +1,4 @@
-// REQUIRED_ARGS: -os=windows
 // EXTRA_SOURCES: imports/test24511_c.c
-// DISABLED: osx
-// This is disabled on macOS because ld complains about _main being undefined
-// when clang attempts to preprocess the C file.
 
 import test24511_c;
 

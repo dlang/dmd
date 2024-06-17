@@ -32,19 +32,22 @@ import dmd.backend.type;
 import dmd.backend.backconfig;
 
 /**************************************
- * Initialize config variables.
+ * Initialize backend config variables.
+ * Params:
+ *      params = command line parameters
+ *      driverParams = more command line parameters
+ *      target = target machine info
  */
 
-void backend_init()
+void backend_init(const ref Param params, const ref DMDparams driverParams, const ref Target target)
 {
-    //printf("out_config_init()\n");
-    Param *params = &global.params;
+    //printf("backend_init()\n");
     exefmt_t exfmt;
     switch (target.os)
     {
-        case Target.OS.Windows: exfmt = target.isX86_64 ? EX_WIN64 : EX_WIN32;       break;
-        case Target.OS.linux:   exfmt = target.isX86_64 ? EX_LINUX64 : EX_LINUX;     break;
-        case Target.OS.OSX:     exfmt = target.isX86_64 ? EX_OSX64 : EX_OSX;         break;
+        case Target.OS.Windows: exfmt = target.isX86_64 ? EX_WIN64     : EX_WIN32;   break;
+        case Target.OS.linux:   exfmt = target.isX86_64 ? EX_LINUX64   : EX_LINUX;   break;
+        case Target.OS.OSX:     exfmt = target.isX86_64 ? EX_OSX64     : EX_OSX;     break;
         case Target.OS.FreeBSD: exfmt = target.isX86_64 ? EX_FREEBSD64 : EX_FREEBSD; break;
         case Target.OS.OpenBSD: exfmt = target.isX86_64 ? EX_OPENBSD64 : EX_OPENBSD; break;
         case Target.OS.Solaris: exfmt = target.isX86_64 ? EX_SOLARIS64 : EX_SOLARIS; break;

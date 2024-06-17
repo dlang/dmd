@@ -65,5 +65,4 @@ void* mem_realloc(void* p, size_t u)
 @trusted
 void mem_free(void* p) { free(p); }
 
-@trusted
 void mem_ffree(void *) { }

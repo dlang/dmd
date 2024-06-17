@@ -299,9 +299,6 @@ DFLAGS=%DFLAGS% -L/OPT:NOICF
 
 [Environment64]
 DFLAGS=%DFLAGS% -L/OPT:NOICF
-
-[Environment32mscoff]
-DFLAGS=%DFLAGS% -L/OPT:NOICF
 `;
     }
     else
@@ -1562,8 +1559,8 @@ auto sourceFiles()
             dmsc.d e2ir.d iasmdmd.d glue.d objc_glue.d
             s2ir.d tocsym.d toctype.d tocvdebug.d todt.d toir.d toobj.d
         "),
-        driver: fileArray(env["D"], "dinifile.d dmdparams.d gluelayer.d lib.d libelf.d libmach.d libmscoff.d libomf.d
-            link.d mars.d main.d scanelf.d scanmach.d scanmscoff.d scanomf.d vsoptions.d
+        driver: fileArray(env["D"], "dinifile.d dmdparams.d gluelayer.d lib.d libelf.d libmach.d libmscoff.d
+            link.d mars.d main.d scanelf.d scanmach.d scanmscoff.d vsoptions.d
         "),
         frontend: fileArray(env["D"], "
             access.d aggregate.d aliasthis.d argtypes_x86.d argtypes_sysv_x64.d argtypes_aarch64.d arrayop.d
@@ -1582,8 +1579,8 @@ auto sourceFiles()
         "),
         backendHeaders: fileArray(env["C"], "
             cc.d cdef.d cgcv.d code.d cv4.d dt.d el.d global.d
-            obj.d oper.d rtlsym.d code_x86.d iasm.d codebuilder.d
-            ty.d type.d mach.d mscoff.d dwarf.d dwarf2.d xmm.d
+            obj.d oper.d rtlsym.d x86/code_x86.d iasm.d codebuilder.d
+            ty.d type.d mach.d mscoff.d dwarf.d dwarf2.d x86/xmm.d
             dlist.d melf.d
         "),
     };
@@ -1619,11 +1616,11 @@ auto sourceFiles()
             optional.h port.h rmem.h root.h
         "),
         backend: fileArray(env["C"], "
-            backend.d bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d
+            bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d
             dout.d inliner.d
-            gloop.d compress.d cgelem.d cgcs.d ee.d cod4.d cod5.d eh.d nteh.d blockopt.d mem.d cg.d cgreg.d
-            dtype.d debugprint.d fp.d symbol.d symtab.d elem.d dcode.d cgsched.d cg87.d cgxmm.d cgcod.d cod1.d cod2.d
-            cod3.d cv8.d dcgcv.d pdata.d util2.d var.d backconfig.d drtlsym.d dwarfeh.d ptrntab.d
+            gloop.d compress.d cgelem.d cgcs.d ee.d x86/cod4.d x86/cod5.d eh.d x86/nteh.d blockopt.d mem.d cg.d x86/cgreg.d
+            dtype.d debugprint.d fp.d symbol.d symtab.d elem.d dcode.d cgsched.d x86/cg87.d x86/cgxmm.d x86/cgcod.d x86/cod1.d x86/cod2.d
+            x86/cod3.d cv8.d dcgcv.d pdata.d util2.d var.d backconfig.d drtlsym.d dwarfeh.d ptrntab.d
             dvarstats.d dwarfdbginf.d cgen.d goh.d barray.d cgcse.d elpicpie.d
             machobj.d elfobj.d mscoffobj.d filespec.d cgobj.d aarray.d disasm86.d
             "

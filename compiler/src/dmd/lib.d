@@ -22,7 +22,6 @@ import dmd.target : Target;
 import dmd.libelf;
 import dmd.libmach;
 import dmd.libmscoff;
-import dmd.libomf;
 
 private enum LOG = false;
 
@@ -39,7 +38,6 @@ class Library
             case Target.ObjectFormat.elf:   lib = LibElf_factory();     break;
             case Target.ObjectFormat.macho: lib = LibMach_factory();    break;
             case Target.ObjectFormat.coff:  lib = LibMSCoff_factory();  break;
-            case Target.ObjectFormat.omf:   lib = LibOMF_factory();     break;
         }
         lib.lib_ext = lib_ext;
         lib.eSink = eSink;

@@ -375,10 +375,7 @@ $(abspath ../generated/$(OS)/$(BUILD)/$(MODEL)/dmd$(DOTEXE)): ../generated/$(OS)
 ################### C/ASM Targets ############################
 
 OBJS:=$(ROOT)/errno_c$(DOTOBJ)
-ifeq (32omf,$(MODEL))
-    # minit.asm is only used for -m32omf on Windows; there's a pre-built minit.obj
-    OBJS+=src/rt/minit$(DOTOBJ)
-else ifneq (windows,$(OS))
+ifneq (windows,$(OS))
     OBJS+=$(ROOT)/threadasm$(DOTOBJ) $(ROOT)/valgrind$(DOTOBJ)
 endif
 
@@ -434,12 +431,7 @@ endif
 
 .PHONY : unittest
 ifeq (1,$(BUILD_WAS_SPECIFIED))
-ifeq (32omf,$(MODEL))
-unittest :
-	@echo "Skipping druntime unittests because they cannot be linked on Win32 + OMF due to OPTLINK issues."
-else
 unittest : $(UT_MODULES) $(addsuffix /.run,$(ADDITIONAL_TESTS))
-endif
 else
 unittest : unittest-debug unittest-release
 unittest-%: target
@@ -504,6 +496,12 @@ test/%/.run: test/%/Makefile $(DMD)
 		DRUNTIME=$(abspath $(DRUNTIME)) DRUNTIMESO=$(abspath $(DRUNTIMESO)) LINKDL=$(LINKDL) \
 		QUIET=$(QUIET) TIMELIMIT='$(TIMELIMIT)' PIC=$(PIC) SHARED=$(SHARED)
 
+test/%/.clean: test/%/Makefile
+	$(QUIET)$(MAKE) -C test/$* MODEL=$(MODEL) OS=$(OS) BUILD=$(BUILD) clean
+ifeq (0,$(BUILD_WAS_SPECIFIED))
+	$(QUIET)$(MAKE) -C test/$* MODEL=$(MODEL) OS=$(OS) BUILD=debug clean
+endif
+
 #################### benchmark suite ##########################
 
 $(ROOT)/benchmark$(DOTEXE): benchmark/runbench.d target $(DMD)
@@ -519,7 +517,7 @@ benchmark-compile-only: $(ROOT)/benchmark$(DOTEXE) $(DMD)
 MANIFEST = $(shell git ls-tree --name-only -r HEAD)
 
 CWS_MAKEFILES = $(filter mak/% %.mak %/Makefile,$(MANIFEST))
-NOT_MAKEFILES = $(filter-out $(CWS_MAKEFILES) src/rt/minit.obj test/%.exp,$(MANIFEST))
+NOT_MAKEFILES = $(filter-out $(CWS_MAKEFILES) test/%.exp,$(MANIFEST))
 GREP = grep
 
 checkwhitespace:
@@ -554,9 +552,6 @@ endif
 
 clean: $(addsuffix /.clean,$(ADDITIONAL_TESTS))
 	rm -rf $(ROOT_OF_THEM_ALL) $(IMPDIR) $(DOC_OUTPUT_DIR) druntime.zip
-
-test/%/.clean: test/%/Makefile
-	$(MAKE) -C test/$* clean
 
 %/.directory :
 	mkdir -p $* || exists $*

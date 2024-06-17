@@ -20,7 +20,7 @@ import core.stdc.string;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.mem;
 import dmd.backend.ty;
 import dmd.backend.type;
@@ -112,7 +112,6 @@ struct CodeBuilder
         }
     }
 
-    @trusted
     void gen(code *cs)
     {
         /* this is a high usage routine */
@@ -130,7 +129,6 @@ struct CodeBuilder
         pTail = &ce.next;
     }
 
-    @trusted
     void gen1(opcode_t op)
     {
         code *ce = code_calloc();
@@ -142,7 +140,6 @@ struct CodeBuilder
         pTail = &ce.next;
     }
 
-    @trusted
     void gen2(opcode_t op, uint rm)
     {
         code *ce = code_calloc();
@@ -157,14 +154,12 @@ struct CodeBuilder
     /***************************************
      * Generate floating point instruction.
      */
-    @trusted
     void genf2(opcode_t op, uint rm)
     {
         genfwait(this);
         gen2(op, rm);
     }
 
-    @trusted
     void gen2sib(opcode_t op, uint rm, uint sib)
     {
         code *ce = code_calloc();
@@ -218,7 +213,7 @@ struct CodeBuilder
         ce.Iflags = CFaddrsize;
         ce.IFL1 = FLblockoff;
         ce.IEV1.Vblock = label;
-        label.Bflags |= BFLlabel;
+        label.Bflags |= BFL.label;
 
         *pTail = ce;
         pTail = &ce.next;
@@ -295,7 +290,7 @@ struct CodeBuilder
     {
         code cs;
         //srcpos.print("genlinnum");
-        cs.Iop = ESCAPE | ESClinnum;
+        cs.Iop = PSOP.linnum;
         cs.Iflags = 0;
         cs.Iea = 0;
         cs.IEV1.Vsrcpos = srcpos;
@@ -312,7 +307,7 @@ struct CodeBuilder
         if (!I16 && offset)
         {
             code cs;
-            cs.Iop = ESCAPE | ESCadjesp;
+            cs.Iop = PSOP.adjesp;
             cs.Iflags = 0;
             cs.Iea = 0;
             cs.IEV1.Vint = offset;
@@ -330,7 +325,7 @@ struct CodeBuilder
         if (!I16 && offset)
         {
             code cs;
-            cs.Iop = ESCAPE | ESCadjfpu;
+            cs.Iop = PSOP.adjfpu;
             cs.Iflags = 0;
             cs.Iea = 0;
             cs.IEV1.Vint = offset;
@@ -349,8 +344,8 @@ struct CodeBuilder
     @trusted
     void genfltreg(opcode_t opcode,int reg,targ_size_t offset)
     {
-        floatreg = true;
-        reflocal = true;
+        cgstate.floatreg = true;
+        cgstate.reflocal = true;
         if ((opcode & ~7) == 0xD8)
             genfwait(this);
         genc1(opcode,modregxrm(2,reg,BPRM),FLfltreg,offset);
@@ -360,8 +355,8 @@ struct CodeBuilder
     void genxmmreg(opcode_t opcode,reg_t xreg,targ_size_t offset, tym_t tym)
     {
         assert(isXMMreg(xreg));
-        floatreg = true;
-        reflocal = true;
+        cgstate.floatreg = true;
+        cgstate.reflocal = true;
         genc1(opcode,modregxrm(2,xreg - XMM0,BPRM),FLfltreg,offset);
         checkSetVex(last(), tym);
     }

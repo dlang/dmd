@@ -16,7 +16,7 @@ module dmd.backend.type;
 // Online documentation: https://dlang.org/phobos/dmd_backend_type.html
 
 import dmd.backend.cdef;
-import dmd.backend.cc : block, Blockx, Classsym, Symbol, param_t;
+import dmd.backend.cc : block, BlockState, Classsym, Symbol, param_t;
 import dmd.backend.code;
 import dmd.backend.dlist;
 import dmd.backend.el : elem;
@@ -28,16 +28,16 @@ nothrow:
 
 // type.h
 
-alias mangle_t = ubyte;
-enum
+enum Mangle : ubyte
 {
-    mTYman_c      = 1,      // C mangling
-    mTYman_cpp    = 2,      // C++ mangling
-    mTYman_pas    = 3,      // Pascal mangling
-    mTYman_for    = 4,      // FORTRAN mangling
-    mTYman_sys    = 5,      // _syscall mangling
-    mTYman_std    = 6,      // _stdcall mangling
-    mTYman_d      = 7,      // D mangling
+    none    = 0,
+    c       = 1, // C mangling
+    cpp     = 2, // C++ mangling
+    pascal  = 3, // Pascal mangling
+    fortran = 4, // FORTRAN mangling
+    syscall = 5, // _syscall mangling
+    stdcall = 6, // _stdcall mangling
+    d       = 7, // D mangling
 }
 
 /// Values for Tflags:
@@ -74,7 +74,7 @@ struct TYPE
     tym_t Tty;     /* mask (TYxxx)                         */
     type_flags_t Tflags; // TFxxxxx
 
-    mangle_t Tmangle; // name mangling
+    Mangle Tmangle; // name mangling
 
     uint Tcount; // # pointing to this type
     char* Tident; // TYident: identifier; TYdarray, TYaarray: pretty name for debug info
@@ -112,7 +112,7 @@ void type_debug(const type* t)
 }
 
 // Return name mangling of type
-mangle_t type_mangle(const type *t) { return t.Tmangle; }
+Mangle type_mangle(const type *t) { return t.Tmangle; }
 
 // Return true if function type has a variable number of arguments
 bool variadic(const type *t) { return (t.Tflags & (TFprototype | TFfixed)) == TFprototype; }

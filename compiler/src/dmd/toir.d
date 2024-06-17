@@ -76,7 +76,7 @@ struct IRState
     Symbol* shidden;                // hidden parameter to function
     Symbol* sthis;                  // 'this' parameter to function (member and nested)
     Symbol* sclosure;               // pointer to closure instance
-    Blockx* blx;
+    BlockState* blx;
     Dsymbols* deferToObj;           // array of Dsymbol's to run toObjFile(bool multiobj) on later
     elem* ehidden;                  // transmit hidden pointer to CallExp::toElem()
     Symbol* startaddress;
@@ -596,7 +596,7 @@ int intrinsic_op(FuncDeclaration fd)
         }
     }
 
-    if (!target.isX86_64)
+    if (target.isX86)
     // No 64-bit bsf bsr in 32bit mode
     {
         if ((op == OPbsf || op == OPbsr) && argtype1 is Type.tuns64)

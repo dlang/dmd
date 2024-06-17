@@ -758,3 +758,8 @@ typedef enum
     DISPLAYCONFIG_OUTPUT_TECHNOLOGY_SVIDEO                  = 1,
     DISPLAYCONFIG_OUTPUT_TECHNOLOGY_INTERNAL                = 0x80000000,
 } DISPLAYCONFIG_VIDEO_OUTPUT_TECHNOLOGY;
+
+/************************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=24580
+
+int ioctl(int __fd, unsigned __request, ...) __attribute__((overloadable)) __attribute__((enable_if(1, ""))) asm("ioctl");

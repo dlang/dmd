@@ -20,7 +20,7 @@ import core.stdc.string;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.global;
 import dmd.backend.mem;
 
@@ -96,8 +96,6 @@ void code_free(code *cstart)
 /*****************
  * Terminate code
  */
-
-@trusted
 void code_term()
 {
 static if (TERMCODE)

@@ -307,12 +307,9 @@ void ensureToolsExists(const string[string] env, const TestTool[] tools ...)
         }
         else
         {
-            string model = env["MODEL"];
-            if (model == "32omf") model = "32";
-
             buildCommand = [
                 hostDMD,
-                "-m"~model,
+                "-m"~env["MODEL"],
                 "-of"~targetBin,
                 sourceFile
             ] ~ getPicFlags(env) ~ tool.extraArgs;

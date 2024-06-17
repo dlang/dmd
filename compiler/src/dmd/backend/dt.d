@@ -98,8 +98,6 @@ void dtpatchoffset(dt_t *dt, uint offset)
 /**************************
  * Make a common block for s.
  */
-
-@trusted
 void init_common(Symbol *s)
 {
     //printf("init_common('%s')\n", s.Sident);
@@ -116,8 +114,6 @@ void init_common(Symbol *s)
 /**********************************
  * Compute size of a dt
  */
-
-@trusted
 uint dt_size(const(dt_t)* dtstart)
 {
     uint datasize = 0;
@@ -221,7 +217,7 @@ nothrow:
     /************************************
      * Print state of DtBuilder for debugging.
      */
-    void print() @trusted
+    void print()
     {
         debug printf("DtBuilder: %p head: %p, pTail: %p\n", &head, head, pTail);
     }
@@ -440,7 +436,6 @@ nothrow:
      * Create a reference to another dt.
      * Returns: the internal symbol used for the other dt
      */
-    @trusted
     Symbol *dtoff(dt_t *dt, uint offset)
     {
         type *t = type_alloc(TYint);

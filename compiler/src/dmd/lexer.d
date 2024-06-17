@@ -57,8 +57,8 @@ struct CompileEnv
     bool masm;               /// use MASM inline asm syntax
 
     // these need a default otherwise tests won't work.
-    IdentifierCharLookup cCharLookupTable;
-    IdentifierCharLookup dCharLookupTable;
+    IdentifierCharLookup cCharLookupTable; /// C identifier table (set to the lexer by the C parser)
+    IdentifierCharLookup dCharLookupTable; /// D identifier table
 }
 
 /***********************************************************
@@ -74,7 +74,7 @@ class Lexer
 
     Token token;
 
-    IdentifierCharLookup charLookup;
+    IdentifierCharLookup charLookup; /// Character table for identifiers
 
     // For ImportC
     bool Ccompile;              /// true if compiling ImportC
@@ -189,14 +189,9 @@ class Lexer
         }
 
         // setup the identifier table lookup functions
-        if (this.Ccompile)
-        {
-            charLookup = this.compileEnv.cCharLookupTable;
-        }
-        else
-        {
-            charLookup = this.compileEnv.dCharLookupTable;
-        }
+        // C tables are setup in its parser constructor
+        // Due to us not knowing if we're in C at this point in time.
+        charLookup = this.compileEnv.dCharLookupTable;
     }
 
     /***********************

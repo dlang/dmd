@@ -1409,7 +1409,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             }
         case Tdelegate:
             if (fs.op == TOK.foreach_reverse_)
-                deprecation(fs.loc, "cannot use `foreach_reverse` with a delegate");
+                error(fs.loc, "cannot use `foreach_reverse` with a delegate");
             return retStmt(apply());
         case Terror:
             return retError();
@@ -2663,11 +2663,11 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                      */
                     Scope* sc2 = sc.push();
                     sc2.eSink = global.errorSinkNull;
-                    bool err = checkReturnEscapeRef(sc2, rs.exp, true);
+                    bool err = checkReturnEscapeRef(*sc2, rs.exp, true);
                     sc2.pop();
 
                     if (err)
-                        turnOffRef(() { checkReturnEscapeRef(sc, rs.exp, false); });
+                        turnOffRef(() { checkReturnEscapeRef(*sc, rs.exp, false); });
                     else if (!rs.exp.type.constConv(tf.next))
                         turnOffRef(
                             () => rs.loc.errorSupplemental("cannot implicitly convert `%s` of type `%s` to `%s`",
@@ -3542,6 +3542,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             ls2.statement = ls;
 
         sc = sc.push();
+        sc.lastVar = sc.enclosing.lastVar;
         sc.scopesym = sc.enclosing.scopesym;
 
         sc.ctorflow.orCSX(CSX.label);
@@ -3549,6 +3550,10 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         sc.slabel = ls;
         if (ls.statement)
             ls.statement = ls.statement.statementSemantic(sc);
+
+        //issue 24534: lastVar may have been updated in the nested scope
+        sc.enclosing.lastVar = sc.lastVar;
+
         sc.pop();
 
         result = ls;
@@ -3701,7 +3706,7 @@ public bool throwSemantic(const ref Loc loc, ref Expression exp, Scope* sc)
         exp.loc.deprecation("cannot throw object of qualified type `%s`", exp.type.toChars());
         //return false;
     }
-    checkThrowEscape(sc, exp, false);
+    checkThrowEscape(*sc, exp, false);
 
     ClassDeclaration cd = exp.type.toBasetype().isClassHandle();
     if (!cd || ((cd != ClassDeclaration.throwable) && !ClassDeclaration.throwable.isBaseOf(cd, null)))

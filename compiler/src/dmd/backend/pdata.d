@@ -19,7 +19,7 @@ import core.stdc.string;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.dt;
 import dmd.backend.el;
 import dmd.backend.global;
@@ -81,7 +81,7 @@ public void win64_pdata(Symbol *sf)
 
     auto dtb = DtBuilder(0);
     dtb.xoff(sf,0,TYint);       // Note the TYint, these are 32 bit fixups
-    dtb.xoff(sf,cast(uint)(retoffset + retsize),TYint);
+    dtb.xoff(sf,cast(uint)(cgstate.retoffset + cgstate.retsize),TYint);
     dtb.xoff(sunwind,0,TYint);
     spdata.Sdt = dtb.finish();
 
@@ -224,7 +224,7 @@ private dt_t *unwind_data()
 
     ui.Version = 1;
     //ui.Flags = 0;
-    ui.SizeOfProlog = cast(ubyte)startoffset;
+    ui.SizeOfProlog = cast(ubyte)cgstate.startoffset;
 static if (0)
 {
     ui.CountOfCodes = strategy + 1;
@@ -247,16 +247,16 @@ static if (0)
             break;
 
         case 1:
-            ui.UnwindCode[0].FrameOffset = setUnwindCode(prolog_allocoffset, UWOP.ALLOC_SMALL, (sz - 8) / 8);
+            ui.UnwindCode[0].FrameOffset = setUnwindCode(cgstate.prolog_allocoffset, UWOP.ALLOC_SMALL, (sz - 8) / 8);
             break;
 
         case 2:
-            ui.UnwindCode[0].FrameOffset = setUnwindCode(prolog_allocoffset, UWOP.ALLOC_LARGE, 0);
+            ui.UnwindCode[0].FrameOffset = setUnwindCode(cgstate.prolog_allocoffset, UWOP.ALLOC_LARGE, 0);
             ui.UnwindCode[1].FrameOffset = (sz - 8) / 8;
             break;
 
         case 3:
-            ui.UnwindCode[0].FrameOffset = setUnwindCode(prolog_allocoffset, UWOP.ALLOC_LARGE, 1);
+            ui.UnwindCode[0].FrameOffset = setUnwindCode(cgstate.prolog_allocoffset, UWOP.ALLOC_LARGE, 1);
             ui.UnwindCode[1].FrameOffset = sz & 0x0FFFF;
             ui.UnwindCode[2].FrameOffset = sz / 0x10000;
             break;

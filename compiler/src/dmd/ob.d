@@ -1285,8 +1285,6 @@ void genKill(ref ObState obstate, ObNode* ob)
                 pvs.state = PtrState.Owner;
             pvs.deps.zero();
 
-            EscapeByResults er;
-            escapeByValue(e, &er, true);
             bool any = false;           // if any variables are assigned to v
 
             void by(VarDeclaration r)
@@ -1316,10 +1314,7 @@ void genKill(ref ObState obstate, ObNode* ob)
                 }
             }
 
-            foreach (VarDeclaration v2; er.byvalue)
-                by(v2);
-            foreach (VarDeclaration v2; er.byref)
-                by(v2);
+            escapeLive(e, &by);
 
             /* Make v an Owner for initializations like:
              *    scope v = malloc();
@@ -1454,8 +1449,6 @@ void genKill(ref ObState obstate, ObNode* ob)
                     if (!t.isTypeDelegate() && dve.e1.isVarExp())
                     {
                         //printf("dve: %s\n", dve.toChars());
-                        EscapeByResults er;
-                        escapeByValue(dve.e1, &er, true);
 
                         void byf(VarDeclaration v)
                         {
@@ -1481,10 +1474,7 @@ void genKill(ref ObState obstate, ObNode* ob)
                             }
                         }
 
-                        foreach (VarDeclaration v2; er.byvalue)
-                            byf(v2);
-                        foreach (VarDeclaration v2; er.byref)
-                            byf(v2);
+                        escapeLive(dve.e1, &byf);
                     }
                 }
 
@@ -1501,8 +1491,6 @@ void genKill(ref ObState obstate, ObNode* ob)
                         Parameter p = tf.parameterList[i - j];
                         auto pt = p.type.toBasetype();
 
-                        EscapeByResults er;
-                        escapeByValue(arg, &er, true);
 
                         if (!(p.storageClass & STC.out_ && arg.isVarExp()))
                             arg.accept(this);
@@ -1536,17 +1524,11 @@ void genKill(ref ObState obstate, ObNode* ob)
                             }
                         }
 
-                        foreach (VarDeclaration v2; er.byvalue)
-                            by(v2);
-                        foreach (VarDeclaration v2; er.byref)
-                            by(v2);
+                        escapeLive(arg, &by);
                     }
                     else // variadic args
                     {
                         arg.accept(this);
-
-                        EscapeByResults er;
-                        escapeByValue(arg, &er, true);
 
                         void byv(VarDeclaration v)
                         {
@@ -1569,10 +1551,7 @@ void genKill(ref ObState obstate, ObNode* ob)
                                 makeUndefined(vi, ob.gen);
                         }
 
-                        foreach (VarDeclaration v2; er.byvalue)
-                            byv(v2);
-                        foreach (VarDeclaration v2; er.byref)
-                            byv(v2);
+                        escapeLive(arg, &byv);
                     }
                 }
 
@@ -2007,6 +1986,25 @@ void doDataFlowAnalysis(ref ObState obstate)
 
 
 /***************************************
+ * Check for escaping variables using DIP1000's `escapeByValue`, with `live` set to `true`
+ * Params:
+ *   e = expression to check
+ *   onVar = gets called for each variable escaped through `e`, either by value or by ref
+ */
+void escapeLive(Expression e, scope void delegate(VarDeclaration) onVar)
+{
+    scope EscapeByResults er = EscapeByResults(
+        (VarDeclaration v, bool) => onVar(v),
+        onVar,
+        (FuncDeclaration f, bool) {},
+        (Expression e, bool) {},
+        true,
+    );
+
+    escapeByValue(e, er, true);
+}
+
+/***************************************
  * Check for Ownership/Borrowing errors.
  */
 void checkObErrors(ref ObState obstate)
@@ -2037,8 +2035,6 @@ void checkObErrors(ref ObState obstate)
             }
             pvs.deps.zero();
 
-            EscapeByResults er;
-            escapeByValue(e, &er, true);
 
             void by(VarDeclaration r)   // `v` = `r`
             {
@@ -2076,10 +2072,7 @@ void checkObErrors(ref ObState obstate)
                 }
             }
 
-            foreach (VarDeclaration v2; er.byvalue)
-                by(v2);
-            foreach (VarDeclaration v2; er.byref)
-                by(v2);
+            escapeLive(e, &by);
         }
         else
         {
@@ -2218,8 +2211,6 @@ void checkObErrors(ref ObState obstate)
                         if (!(p.storageClass & STC.out_ && arg.isVarExp()))
                             arg.accept(this);
 
-                        EscapeByResults er;
-                        escapeByValue(arg, &er, true);
 
                         void by(VarDeclaration v)
                         {
@@ -2253,18 +2244,11 @@ void checkObErrors(ref ObState obstate)
                             }
                         }
 
-                        foreach (VarDeclaration v2; er.byvalue)
-                            by(v2);
-                        foreach (VarDeclaration v2; er.byref)
-                            by(v2);
+                        escapeLive(arg, &by);
                     }
                     else // variadic args
                     {
                         arg.accept(this);
-
-                        EscapeByResults er;
-                        escapeByValue(arg, &er, true);
-
                         void byv(VarDeclaration v)
                         {
                             if (!isTrackableVar(v))
@@ -2292,10 +2276,7 @@ void checkObErrors(ref ObState obstate)
                             }
                         }
 
-                        foreach (VarDeclaration v2; er.byvalue)
-                            byv(v2);
-                        foreach (VarDeclaration v2; er.byref)
-                            byv(v2);
+                        escapeLive(arg, &byv);
                     }
                 }
 
@@ -2585,9 +2566,6 @@ void checkObErrors(ref ObState obstate)
 
         if (ob.obtype == ObType.retexp)
         {
-            EscapeByResults er;
-            escapeByValue(ob.exp, &er, true);
-
             void by(VarDeclaration r)   // `r` is the rvalue
             {
                 const ri = obstate.vars.find(r);
@@ -2615,11 +2593,7 @@ void checkObErrors(ref ObState obstate)
                     }
                 }
             }
-
-            foreach (VarDeclaration v2; er.byvalue)
-                by(v2);
-            foreach (VarDeclaration v2; er.byref)
-                by(v2);
+            escapeLive(ob.exp, &by);
         }
 
         if (ob.obtype == ObType.return_ || ob.obtype == ObType.retexp)

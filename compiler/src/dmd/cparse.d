@@ -89,6 +89,9 @@ final class CParser(AST) : Parser!AST
         this.wchar_tsize = target.wchar_tsize;
 
         // C `char` is always unsigned in ImportC
+
+        // We know that we are parsing out C, due the parent not knowing this, we have to setup tables here.
+        charLookup = compileEnv.cCharLookupTable;
     }
 
     /********************************************
@@ -1869,22 +1872,30 @@ final class CParser(AST) : Parser!AST
              * init-declarator:
              *    declarator simple-asm-expr (opt) gnu-attributes (opt)
              *    declarator simple-asm-expr (opt) gnu-attributes (opt) = initializer
+             *
+             * Clang also allows simple-asm-expr after gnu-attributes.
              */
+            while (1)
+            {
+                if (token.value == TOK.asm_)
+                {
+                    asmName = cparseGnuAsmLabel();
+                    /* This is a data definition, there cannot now be a
+                     * function definition.
+                     */
+                    first = false;
+                }
+                else if (token.value == TOK.__attribute__)
+                    cparseGnuAttributes(specifier);
+                else
+                    break;
+            }
+
             switch (token.value)
             {
                 case TOK.assign:
                 case TOK.comma:
                 case TOK.semicolon:
-                case TOK.asm_:
-                case TOK.__attribute__:
-                    if (token.value == TOK.asm_)
-                        asmName = cparseGnuAsmLabel();
-                    if (token.value == TOK.__attribute__)
-                    {
-                        cparseGnuAttributes(specifier);
-                        if (token.value == TOK.leftCurly)
-                            break;              // function definition
-                    }
                     /* This is a data definition, there cannot now be a
                      * function definition.
                      */

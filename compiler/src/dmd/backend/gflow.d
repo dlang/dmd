@@ -18,7 +18,6 @@ import core.stdc.string;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
-import dmd.backend.code_x86;
 import dmd.backend.oper;
 import dmd.backend.global;
 import dmd.backend.goh;
@@ -36,7 +35,7 @@ nothrow:
 void vec_setclear(size_t b, vec_t vs, vec_t vc) { vec_setbit(b, vs); vec_clearbit(b, vc); }
 
 @trusted
-bool Eunambig(elem* e) { return OTassign(e.Eoper) && e.EV.E1.Eoper == OPvar; }
+bool Eunambig(elem* e) { return OTassign(e.Eoper) && e.E1.Eoper == OPvar; }
 
 @trusted
 char symbol_isintab(const Symbol* s) { return sytab[s.Sclass] & SCSS; }
@@ -230,17 +229,17 @@ private uint numdefelems(const(elem)* e, ref uint num_unambig_def)
         if (OTdef(e.Eoper))
         {
             ++n;
-            if (OTassign(e.Eoper) && e.EV.E1.Eoper == OPvar)
+            if (OTassign(e.Eoper) && e.E1.Eoper == OPvar)
                 ++num_unambig_def;
         }
         if (OTbinary(e.Eoper))
         {
-            n += numdefelems(e.EV.E1, num_unambig_def);
-            e = e.EV.E2;
+            n += numdefelems(e.E1, num_unambig_def);
+            e = e.E2;
         }
         else if (OTunary(e.Eoper))
         {
-            e = e.EV.E1;
+            e = e.E1;
         }
         else
             break;
@@ -273,19 +272,19 @@ private void asgdefelems(block *b,elem *n, DefNode[] defnod, ref size_t i)
 
         if (ERTOL(n))
         {
-            asgdefelems(b,n.EV.E1,defnod,i);
-            n = n.EV.E2;
+            asgdefelems(b,n.E1,defnod,i);
+            n = n.E2;
             continue;
         }
         else if (OTbinary(op))
         {
-            asgdefelems(b,n.EV.E2,defnod,i);
-            n = n.EV.E1;
+            asgdefelems(b,n.E2,defnod,i);
+            n = n.E1;
             continue;
         }
         else if (OTunary(op))
         {
-            n = n.EV.E1;
+            n = n.E1;
             continue;
         }
         break;
@@ -310,7 +309,7 @@ private void initDNunambigVectors(DefNode[] defnod)
     foreach (const i; 0 .. defnod.length)
     {
         elem *e = defnod[i].DNelem;
-        if (OTassign(e.Eoper) && e.EV.E1.Eoper == OPvar)
+        if (OTassign(e.Eoper) && e.E1.Eoper == OPvar)
         {
             vec_t v = &go.dnunambig[j] + 2;
             assert(vec_dim(v) == 0);
@@ -351,11 +350,11 @@ private void initDNunambigVectors(DefNode[] defnod)
 private void fillInDNunambig(vec_t v, elem *e, size_t start, DefNode[] defnod)
 {
     assert(OTassign(e.Eoper));
-    elem *t = e.EV.E1;
+    elem *t = e.E1;
     assert(t.Eoper == OPvar);
-    Symbol *d = t.EV.Vsym;
+    Symbol *d = t.Vsym;
 
-    targ_size_t toff = t.EV.Voffset;
+    targ_size_t toff = t.Voffset;
     targ_size_t tsize = (e.Eoper == OPstreq) ? type_size(e.ET) : tysize(t.Ety);
     targ_size_t ttop = toff + tsize;
 
@@ -371,19 +370,19 @@ private void fillInDNunambig(vec_t v, elem *e, size_t start, DefNode[] defnod)
         targ_size_t tn1size;
 
         // If not same variable then no overlap
-        tn1 = tn.EV.E1;
-        if (d != tn1.EV.Vsym)
+        tn1 = tn.E1;
+        if (d != tn1.Vsym)
             continue;
 
         tn1size = (tn.Eoper == OPstreq)
             ? type_size(tn.ET) : tysize(tn1.Ety);
         // If t completely overlaps tn1
-        if (toff <= tn1.EV.Voffset && tn1.EV.Voffset + tn1size <= ttop)
+        if (toff <= tn1.Voffset && tn1.Voffset + tn1size <= ttop)
         {
             vec_setbit(i, v);
         }
         // if tn1 completely overlaps t
-        if (tn1.EV.Voffset <= toff && ttop <= tn1.EV.Voffset + tn1size)
+        if (tn1.Voffset <= toff && ttop <= tn1.Voffset + tn1size)
         {
             vec_setbit(start, v2);
         }
@@ -398,8 +397,6 @@ private void fillInDNunambig(vec_t v, elem *e, size_t start, DefNode[] defnod)
  *      n = elem tree to evaluate for GEN and KILL
  *      deftop = number of bits in vectors
  */
-
-@trusted
 private void rdelem(out vec_t GEN, out vec_t KILL, elem *n, uint deftop)
 {
     GEN  = vec_calloc(deftop);
@@ -418,16 +415,16 @@ private void accumrd(vec_t GEN,vec_t KILL,elem *n,uint deftop)
     assert(GEN && KILL && n);
     const op = n.Eoper;
     if (OTunary(op))
-        accumrd(GEN,KILL,n.EV.E1,deftop);
+        accumrd(GEN,KILL,n.E1,deftop);
     else if (OTbinary(op))
     {
         if (op == OPcolon || op == OPcolon2)
         {
             vec_t Gl,Kl,Gr,Kr;
-            rdelem(Gl, Kl, n.EV.E1, deftop);
-            rdelem(Gr, Kr, n.EV.E2, deftop);
+            rdelem(Gl, Kl, n.E1, deftop);
+            rdelem(Gr, Kr, n.E2, deftop);
 
-            switch (el_returns(n.EV.E1) * 2 | int(el_returns(n.EV.E2)))
+            switch (el_returns(n.E1) * 2 | int(el_returns(n.E2)))
             {
                 case 3: // E1 and E2 return
                     /* GEN = (GEN - Kl) | Gl |
@@ -477,10 +474,10 @@ private void accumrd(vec_t GEN,vec_t KILL,elem *n,uint deftop)
         }
         else if (op == OPandand || op == OPoror)
         {
-            accumrd(GEN,KILL,n.EV.E1,deftop);
+            accumrd(GEN,KILL,n.E1,deftop);
             vec_t Gr,Kr;
-            rdelem(Gr, Kr, n.EV.E2, deftop);
-            if (el_returns(n.EV.E2))
+            rdelem(Gr, Kr, n.E2, deftop);
+            if (el_returns(n.E2))
                 vec_orass(GEN,Gr);      // GEN |= Gr
 
             vec_free(Gr);
@@ -488,13 +485,13 @@ private void accumrd(vec_t GEN,vec_t KILL,elem *n,uint deftop)
         }
         else if (OTrtol(op) && ERTOL(n))
         {
-            accumrd(GEN,KILL,n.EV.E2,deftop);
-            accumrd(GEN,KILL,n.EV.E1,deftop);
+            accumrd(GEN,KILL,n.E2,deftop);
+            accumrd(GEN,KILL,n.E1,deftop);
         }
         else
         {
-            accumrd(GEN,KILL,n.EV.E1,deftop);
-            accumrd(GEN,KILL,n.EV.E2,deftop);
+            accumrd(GEN,KILL,n.E1,deftop);
+            accumrd(GEN,KILL,n.E2,deftop);
         }
     }
 
@@ -689,20 +686,20 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
             if (OTunary(op))
             {
                 n.Eexp = 0;
-                n = n.EV.E1;
+                n = n.E1;
                 continue;
             }
             else if (OTbinary(op))
             {
                 if (ERTOL(n))
                 {
-                    asgcpelems(n.EV.E2);
-                    asgcpelems(n.EV.E1);
+                    asgcpelems(n.E2);
+                    asgcpelems(n.E1);
                 }
                 else
                 {
-                    asgcpelems(n.EV.E1);
-                    asgcpelems(n.EV.E2);
+                    asgcpelems(n.E1);
+                    asgcpelems(n.E2);
                 }
 
                 /* look for elem of the form OPvar=OPvar, where they aren't the
@@ -712,12 +709,12 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
                 elem* e1;
                 elem* e2;
                 if ((op == OPeq || op == OPstreq) &&
-                    (e1 = n.EV.E1).Eoper == OPvar &&
-                    (e2 = n.EV.E2).Eoper == OPvar &&
+                    (e1 = n.E1).Eoper == OPvar &&
+                    (e2 = n.E2).Eoper == OPvar &&
                     !((e1.Ety | e2.Ety) & (mTYvolatile | mTYshared)) &&
                     (!config.fpxmmregs ||
-                     (!tyfloating(e1.EV.Vsym.Stype.Tty) == !tyfloating(e2.EV.Vsym.Stype.Tty))) &&
-                    e1.EV.Vsym != e2.EV.Vsym)
+                     (!tyfloating(e1.Vsym.Stype.Tty) == !tyfloating(e2.Vsym.Stype.Tty))) &&
+                    e1.Vsym != e2.Vsym)
                 {
                     n.Eexp = cast(uint)go.expnod.length;
                     go.expnod.push(n);
@@ -742,7 +739,7 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
         const op = n.Eoper;
         if (OTunary(op))
         {
-            ae = asgaeelems(n.EV.E1);
+            ae = asgaeelems(n.E1);
             // Disallow starred references to avoid problems with VBE's
             // being hoisted before tests of an invalid pointer.
             if (flowxx == VBE && op == OPind)
@@ -754,9 +751,9 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
         else if (OTbinary(op))
         {
             if (ERTOL(n))
-                ae = asgaeelems(n.EV.E2) & asgaeelems(n.EV.E1);
+                ae = asgaeelems(n.E2) & asgaeelems(n.E1);
             else
-                ae = asgaeelems(n.EV.E1) & asgaeelems(n.EV.E2);
+                ae = asgaeelems(n.E1) & asgaeelems(n.E2);
         }
         else
             ae = true;
@@ -832,14 +829,14 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
                 vec_free(b.Bgen2);
                 vec_free(b.Bkill2);
                 elem* e;
-                for (e = b.Belem; e.Eoper == OPcomma; e = e.EV.E2)
-                    accumaecp(b.Bgen,b.Bkill,e.EV.E1);
+                for (e = b.Belem; e.Eoper == OPcomma; e = e.E2)
+                    accumaecp(b.Bgen,b.Bkill,e.E1);
                 if (e.Eoper == OPandand || e.Eoper == OPoror)
                 {
-                    accumaecp(b.Bgen,b.Bkill,e.EV.E1);
+                    accumaecp(b.Bgen,b.Bkill,e.E1);
                     vec_t Kr = vec_calloc(go.expnod.length);
                     vec_t Gr = vec_calloc(go.expnod.length);
-                    accumaecp(Gr,Kr,e.EV.E2);
+                    accumaecp(Gr,Kr,e.E2);
 
                     // We might or might not have executed E2
                     // KILL1 = KILL | Kr
@@ -948,13 +945,13 @@ private void defstarkill()
         {
             const op = n.Eoper;
             assert(op == OPeq || op == OPstreq);
-            assert(n.EV.E1.Eoper==OPvar && n.EV.E2.Eoper==OPvar);
+            assert(n.E1.Eoper==OPvar && n.E2.Eoper==OPvar);
 
             // Set bit in defkill if either the left or the
             // right variable is killed by an ambiguous def.
 
-            if (Symbol_isAffected(*n.EV.E1.EV.Vsym) ||
-                Symbol_isAffected(*n.EV.E2.EV.Vsym))
+            if (Symbol_isAffected(*n.E1.Vsym) ||
+                Symbol_isAffected(*n.E2.Vsym))
             {
                 vec_setbit(i + 1,defkill);
             }
@@ -972,12 +969,12 @@ private void defstarkill()
             switch (op)
             {
                 case OPvar:
-                    if (Symbol_isAffected(*n.EV.Vsym))
+                    if (Symbol_isAffected(*n.Vsym))
                         vec_setbit(i,defkill);
                     break;
 
                 case OPind:         // if a 'starred' ref
-                    if (tybasic(n.EV.E1.Ety) == TYimmutPtr)
+                    if (tybasic(n.E1.Ety) == TYimmutPtr)
                         break;
                     goto case OPstrlen;
 
@@ -998,18 +995,18 @@ private void defstarkill()
                     if (OTunary(op))
                     {
                     Lunary:
-                        if (vec_testbit(n.EV.E1.Eexp,defkill))
+                        if (vec_testbit(n.E1.Eexp,defkill))
                             vec_setbit(i,defkill);
-                        if (vec_testbit(n.EV.E1.Eexp,starkill))
+                        if (vec_testbit(n.E1.Eexp,starkill))
                             vec_setbit(i,starkill);
                     }
                     else if (OTbinary(op))
                     {
-                        if (vec_testbit(n.EV.E1.Eexp,defkill) ||
-                            vec_testbit(n.EV.E2.Eexp,defkill))
+                        if (vec_testbit(n.E1.Eexp,defkill) ||
+                            vec_testbit(n.E2.Eexp,defkill))
                                 vec_setbit(i,defkill);
-                        if (vec_testbit(n.EV.E1.Eexp,starkill) ||
-                            vec_testbit(n.EV.E2.Eexp,starkill))
+                        if (vec_testbit(n.E1.Eexp,starkill) ||
+                            vec_testbit(n.E2.Eexp,starkill))
                                 vec_setbit(i,starkill);
                     }
                     break;
@@ -1117,8 +1114,8 @@ private void accumaecpx(elem *n)
         case OPcolon2:
         {   vec_t Gl,Kl,Gr,Kr;
 
-            aecpelem(Gl,Kl, n.EV.E1, go.exptop);
-            aecpelem(Gr,Kr, n.EV.E2, go.exptop);
+            aecpelem(Gl,Kl, n.E1, go.exptop);
+            aecpelem(Gr,Kr, n.E2, go.exptop);
 
             /* KILL |= Kl | Kr           */
             /* GEN =((GEN - Kl) | Gl) &  */
@@ -1144,10 +1141,10 @@ private void accumaecpx(elem *n)
         case OPoror:
         {   vec_t Gr,Kr;
 
-            accumaecpx(n.EV.E1);
-            aecpelem(Gr,Kr, n.EV.E2, go.exptop);
+            accumaecpx(n.E1);
+            aecpelem(Gr,Kr, n.E2, go.exptop);
 
-            if (el_returns(n.EV.E2))
+            if (el_returns(n.E2))
             {
                 // KILL |= Kr
                 // GEN &= (GEN - Kr) | Gr
@@ -1172,12 +1169,12 @@ private void accumaecpx(elem *n)
 
         case OPeq:
         case OPstreq:
-            accumaecpx(n.EV.E2);
+            accumaecpx(n.E2);
             goto case OPnegass;
 
         case OPnegass:
-            accumaecpx(n.EV.E1);
-            t = n.EV.E1;
+            accumaecpx(n.E1);
+            t = n.E1;
             break;
 
         case OPvp_fp:
@@ -1187,30 +1184,30 @@ private void accumaecpx(elem *n)
             break;
 
         case OPprefetch:
-            accumaecpx(n.EV.E1);                  // don't check E2
+            accumaecpx(n.E1);                  // don't check E2
             break;
 
         default:
             if (OTunary(op))
             {
         case OPind:                             // most common unary operator
-                accumaecpx(n.EV.E1);
+                accumaecpx(n.E1);
                 debug assert(!OTassign(op));
             }
             else if (OTbinary(op))
             {
                 if (OTrtol(op) && ERTOL(n))
                 {
-                    accumaecpx(n.EV.E2);
-                    accumaecpx(n.EV.E1);
+                    accumaecpx(n.E2);
+                    accumaecpx(n.E1);
                 }
                 else
                 {
-                    accumaecpx(n.EV.E1);
-                    accumaecpx(n.EV.E2);
+                    accumaecpx(n.E1);
+                    accumaecpx(n.E2);
                 }
                 if (OTassign(op))               // if assignment operator
-                    t = n.EV.E1;
+                    t = n.E1;
             }
             break;
     }
@@ -1230,7 +1227,7 @@ private void accumaecpx(elem *n)
         else                                    /* unambiguous def elem */
         {
             assert(t.Eoper == OPvar);
-            Symbol* s = t.EV.Vsym;                  // ptr to var being def'd
+            Symbol* s = t.Vsym;                  // ptr to var being def'd
             foreach (uint i; 1 .. go.exptop)        // for each ae elem
             {
                 elem *e = go.expnod[i];
@@ -1238,7 +1235,7 @@ private void accumaecpx(elem *n)
                 /* If it could be changed by the definition,     */
                 /* set bit in KILL.                              */
 
-                if (e.EV.E1.EV.Vsym == s || e.EV.E2.EV.Vsym == s)
+                if (e.E1.Vsym == s || e.E2.Vsym == s)
                     vec_setclear(i,KILL,GEN);
             }
         }
@@ -1276,7 +1273,7 @@ private void accumaecpx(elem *n)
         else                                    /* unambiguous def elem */
         {
             assert(t.Eoper == OPvar);
-            Symbol* s = t.EV.Vsym;             // idx of var being def'd
+            Symbol* s = t.Vsym;             // idx of var being def'd
             if (!(s.Sflags & SFLunambig))
             {
                 vec_orass(KILL,go.starkill);       /* kill all 'starred' refs */
@@ -1291,18 +1288,18 @@ private void accumaecpx(elem *n)
                 /* set bit in KILL.                              */
                 if (eop == OPvar)
                 {
-                    if (e.EV.Vsym != s)
+                    if (e.Vsym != s)
                         continue;
                 }
                 else if (OTunary(eop))
                 {
-                    if (!vec_testbit(e.EV.E1.Eexp,KILL))
+                    if (!vec_testbit(e.E1.Eexp,KILL))
                         continue;
                 }
                 else if (OTbinary(eop))
                 {
-                    if (!vec_testbit(e.EV.E1.Eexp,KILL) &&
-                        !vec_testbit(e.EV.E2.Eexp,KILL))
+                    if (!vec_testbit(e.E1.Eexp,KILL) &&
+                        !vec_testbit(e.E2.Eexp,KILL))
                         continue;
                 }
                 else
@@ -1477,7 +1474,6 @@ private void lvgenkill()
  *      length = number of global symbols
  */
 
-@trusted
 private void lvelem(out vec_t gen, out vec_t kill, const elem* n, const vec_t ambigsym, size_t length)
 {
     gen = vec_calloc(length);
@@ -1502,9 +1498,9 @@ private void accumlv(vec_t GEN, vec_t KILL, const(elem)* n, const vec_t ambigsym
         switch (op)
         {
             case OPvar:
-                if (symbol_isintab(n.EV.Vsym))
+                if (symbol_isintab(n.Vsym))
                 {
-                    const si = n.EV.Vsym.Ssymnum;
+                    const si = n.Vsym.Ssymnum;
 
                     assert(cast(uint)si < globsym.length);
                     if (!vec_testbit(si,KILL))  // if not in KILL
@@ -1516,8 +1512,8 @@ private void accumlv(vec_t GEN, vec_t KILL, const(elem)* n, const vec_t ambigsym
             case OPcolon2:
             {
                 vec_t Gl,Kl,Gr,Kr;
-                lvelem(Gl,Kl, n.EV.E1,ambigsym, globsym.length);
-                lvelem(Gr,Kr, n.EV.E2,ambigsym, globsym.length);
+                lvelem(Gl,Kl, n.E1,ambigsym, globsym.length);
+                lvelem(Gr,Kr, n.E2,ambigsym, globsym.length);
 
                 /* GEN |= (Gl | Gr) - KILL      */
                 /* KILL |= (Kl & Kr) - GEN      */
@@ -1540,8 +1536,8 @@ private void accumlv(vec_t GEN, vec_t KILL, const(elem)* n, const vec_t ambigsym
             case OPoror:
             {
                 vec_t Gr,Kr;
-                accumlv(GEN,KILL,n.EV.E1,ambigsym);
-                lvelem(Gr,Kr, n.EV.E2,ambigsym, globsym.length);
+                accumlv(GEN,KILL,n.E1,ambigsym);
+                lvelem(Gr,Kr, n.E2,ambigsym, globsym.length);
 
                 /* GEN |= Gr - KILL     */
                 /* KILL |= 0            */
@@ -1565,14 +1561,14 @@ private void accumlv(vec_t GEN, vec_t KILL, const(elem)* n, const vec_t ambigsym
             case OPmemcpy:
             case OPmemset:
                 debug assert(OTrtol(op));
-                accumlv(GEN,KILL,n.EV.E2,ambigsym);
-                accumlv(GEN,KILL,n.EV.E1,ambigsym);
+                accumlv(GEN,KILL,n.E2,ambigsym);
+                accumlv(GEN,KILL,n.E1,ambigsym);
                 goto L1;
 
             case OPstrcat:
                 debug assert(!OTrtol(op));
-                accumlv(GEN,KILL,n.EV.E1,ambigsym);
-                accumlv(GEN,KILL,n.EV.E2,ambigsym);
+                accumlv(GEN,KILL,n.E1,ambigsym);
+                accumlv(GEN,KILL,n.E2,ambigsym);
             L1:
                 vec_orass(GEN,ambigsym);
                 vec_subass(GEN,KILL);
@@ -1582,13 +1578,13 @@ private void accumlv(vec_t GEN, vec_t KILL, const(elem)* n, const vec_t ambigsym
             case OPstreq:
             {
                 /* Avoid GENing the lvalue of an =      */
-                accumlv(GEN,KILL,n.EV.E2,ambigsym);
-                const t = n.EV.E1;
+                accumlv(GEN,KILL,n.E2,ambigsym);
+                const t = n.E1;
                 if (t.Eoper != OPvar)
-                    accumlv(GEN,KILL,t.EV.E1,ambigsym);
+                    accumlv(GEN,KILL,t.E1,ambigsym);
                 else /* unambiguous assignment */
                 {
-                    const s = t.EV.Vsym;
+                    const s = t.Vsym;
                     symbol_debug(s);
 
                     uint tsz = tysize(t.Ety);
@@ -1598,7 +1594,7 @@ private void accumlv(vec_t GEN, vec_t KILL, const(elem)* n, const vec_t ambigsym
                     /* if not GENed already, KILL it */
                     if (symbol_isintab(s) &&
                         !vec_testbit(s.Ssymnum,GEN) &&
-                        t.EV.Voffset == 0 &&
+                        t.Voffset == 0 &&
                         tsz == type_size(s.Stype)
                        )
                     {
@@ -1613,8 +1609,8 @@ private void accumlv(vec_t GEN, vec_t KILL, const(elem)* n, const vec_t ambigsym
             case OPmemcmp:
             case OPstrcmp:
             case OPbt:                          // much like OPind
-                accumlv(GEN,KILL,n.EV.E1,ambigsym);
-                accumlv(GEN,KILL,n.EV.E2,ambigsym);
+                accumlv(GEN,KILL,n.E1,ambigsym);
+                accumlv(GEN,KILL,n.E2,ambigsym);
                 vec_orass(GEN,ambigsym);
                 vec_subass(GEN,KILL);
                 break;
@@ -1623,7 +1619,7 @@ private void accumlv(vec_t GEN, vec_t KILL, const(elem)* n, const vec_t ambigsym
             case OPucall:
             case OPucallns:
             case OPstrlen:
-                accumlv(GEN,KILL,n.EV.E1,ambigsym);
+                accumlv(GEN,KILL,n.E1,ambigsym);
 
                 /* If it was a *p elem, set bits in GEN for all symbols */
                 /* it could have referenced, but only if bits in KILL   */
@@ -1636,22 +1632,22 @@ private void accumlv(vec_t GEN, vec_t KILL, const(elem)* n, const vec_t ambigsym
             default:
                 if (OTunary(op))
                 {
-                    n = n.EV.E1;
+                    n = n.E1;
                     continue;
                 }
                 else if (OTrtol(op) && ERTOL(n))
                 {
-                    accumlv(GEN,KILL,n.EV.E2,ambigsym);
+                    accumlv(GEN,KILL,n.E2,ambigsym);
 
                     /* Note that lvalues of op=,i++,i-- elems */
                     /* are GENed.                               */
-                    n = n.EV.E1;
+                    n = n.E1;
                     continue;
                 }
                 else if (OTbinary(op))
                 {
-                    accumlv(GEN,KILL,n.EV.E1,ambigsym);
-                    n = n.EV.E2;
+                    accumlv(GEN,KILL,n.E1,ambigsym);
+                    n = n.E2;
                     continue;
                 }
                 break;
@@ -1767,8 +1763,8 @@ private void accumvbe(vec_t GEN,vec_t KILL,elem *n)
         {
             vec_t Gl,Gr,Kl,Kr;
 
-            aecpelem(Gl,Kl, n.EV.E1, go.exptop);
-            aecpelem(Gr,Kr, n.EV.E2, go.exptop);
+            aecpelem(Gl,Kl, n.E1, go.exptop);
+            aecpelem(Gr,Kr, n.E2, go.exptop);
 
             /* GEN |=((Gr - Kl) | (Gl - Kr)) - KILL */
             vec_subass(Gr,Kl);
@@ -1791,36 +1787,36 @@ private void accumvbe(vec_t GEN,vec_t KILL,elem *n)
 
         case OPandand:
         case OPoror:
-            accumvbe(GEN,KILL,n.EV.E1);
+            accumvbe(GEN,KILL,n.E1);
             /* WARNING: just so happens that it works this way.     */
             /* Be careful about (b+c)||(b+c) being VBEs, only the   */
             /* first should be GENed. Doing things this way instead */
             /* of (GEN |= Gr - KILL) and (KILL |= Kr - GEN) will    */
             /* ensure this.                                         */
-            accumvbe(GEN,KILL,n.EV.E2);
+            accumvbe(GEN,KILL,n.E2);
             break;
 
         case OPnegass:
-            t = n.EV.E1;
+            t = n.E1;
             if (t.Eoper != OPvar)
             {
-                accumvbe(GEN,KILL,t.EV.E1);
+                accumvbe(GEN,KILL,t.E1);
                 if (OTbinary(t.Eoper))
-                    accumvbe(GEN,KILL,t.EV.E2);
+                    accumvbe(GEN,KILL,t.E2);
             }
             break;
 
         case OPcall:
         case OPcallns:
-            accumvbe(GEN,KILL,n.EV.E2);
+            accumvbe(GEN,KILL,n.E2);
             goto case OPucall;
 
         case OPucall:
         case OPucallns:
-            t = n.EV.E1;
+            t = n.E1;
             // Do not VBE indirect function calls
             if (t.Eoper == OPind)
-                t = t.EV.E1;
+                t = t.E1;
             accumvbe(GEN,KILL,t);
             break;
 
@@ -1832,22 +1828,22 @@ private void accumvbe(vec_t GEN,vec_t KILL,elem *n)
         default:
             if (OTunary(op))
             {
-                t = n.EV.E1;
+                t = n.E1;
                 accumvbe(GEN,KILL,t);
             }
             else if (ERTOL(n))
             {
-                accumvbe(GEN,KILL,n.EV.E2);
-                t = n.EV.E1;
+                accumvbe(GEN,KILL,n.E2);
+                t = n.E1;
                 // do not GEN the lvalue of an assignment op
                 if (OTassign(op))
                 {
-                    t = n.EV.E1;
+                    t = n.E1;
                     if (t.Eoper != OPvar)
                     {
-                        accumvbe(GEN,KILL,t.EV.E1);
+                        accumvbe(GEN,KILL,t.E1);
                         if (OTbinary(t.Eoper))
-                            accumvbe(GEN,KILL,t.EV.E2);
+                            accumvbe(GEN,KILL,t.E2);
                     }
                 }
                 else
@@ -1858,17 +1854,17 @@ private void accumvbe(vec_t GEN,vec_t KILL,elem *n)
                 /* do not GEN the lvalue of an assignment op    */
                 if (OTassign(op))
                 {
-                    t = n.EV.E1;
+                    t = n.E1;
                     if (t.Eoper != OPvar)
                     {
-                        accumvbe(GEN,KILL,t.EV.E1);
+                        accumvbe(GEN,KILL,t.E1);
                         if (OTbinary(t.Eoper))
-                            accumvbe(GEN,KILL,t.EV.E2);
+                            accumvbe(GEN,KILL,t.E2);
                     }
                 }
                 else
-                    accumvbe(GEN,KILL,n.EV.E1);
-                accumvbe(GEN,KILL,n.EV.E2);
+                    accumvbe(GEN,KILL,n.E1);
+                accumvbe(GEN,KILL,n.E2);
             }
             break;
     }
@@ -1923,7 +1919,7 @@ private void accumvbe(vec_t GEN,vec_t KILL,elem *n)
         else                    /* unambiguous definition       */
         {
             assert(t.Eoper == OPvar);
-            Symbol* s = t.EV.Vsym;  // ptr to var being def'd
+            Symbol* s = t.Vsym;  // ptr to var being def'd
             if (!(s.Sflags & SFLunambig))
                 vec_orass(KILL,go.starkill);/* kill all 'starred' refs */
             foreach (uint i; 1 .. go.exptop)        // for each vbe elem
@@ -1935,18 +1931,18 @@ private void accumvbe(vec_t GEN,vec_t KILL,elem *n)
                 /* set bit in KILL.                              */
                 if (eop == OPvar)
                 {
-                    if (e.EV.Vsym != s)
+                    if (e.Vsym != s)
                         continue;
                 }
                 else if (OTbinary(eop))
                 {
-                    if (!vec_testbit(e.EV.E1.Eexp,KILL) &&
-                        !vec_testbit(e.EV.E2.Eexp,KILL))
+                    if (!vec_testbit(e.E1.Eexp,KILL) &&
+                        !vec_testbit(e.E2.Eexp,KILL))
                         continue;
                 }
                 else if (OTunary(eop))
                 {
-                    if (!vec_testbit(e.EV.E1.Eexp,KILL))
+                    if (!vec_testbit(e.E1.Eexp,KILL))
                         continue;
                 }
                 else /* OPconst or OPrelconst or OPstring */

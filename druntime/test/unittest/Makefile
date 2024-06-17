@@ -42,4 +42,4 @@ $(ROOT)/%.done: customhandler.d
 	$(QUIET)test -n "$(TESTTEXT)" || ! grep -q "unittests" $@
 
 clean:
-	rm -rf $(GENERATED)
+	rm -rf $(ROOT)

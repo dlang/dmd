@@ -20,7 +20,7 @@ import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder;
 import dmd.backend.mem;
 import dmd.backend.el;
@@ -34,7 +34,7 @@ nothrow:
 @safe:
 
 public import dmd.backend.dt : dt_get_nzeros;
-public import dmd.backend.cgcod : cgstate;
+public import dmd.backend.x86.cgcod : cgstate;
 
 /*****************************
  * Find last code in list.
@@ -190,16 +190,13 @@ void gencodelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,bool constflag)
 {
     if (e)
     {
-        uint stackpushsave;
-        int stackcleansave;
-
-        stackpushsave = stackpush;
-        stackcleansave = cgstate.stackclean;
+        const stackpushsave = cgstate.stackpush;
+        const stackcleansave = cgstate.stackclean;
         cgstate.stackclean = 0;                         // defer cleaning of stack
-        codelem(cdb,e,pretregs,constflag);
+        codelem(cgstate,cdb,e,pretregs,constflag);
         assert(cgstate.stackclean == 0);
         cgstate.stackclean = stackcleansave;
-        genstackclean(cdb,stackpush - stackpushsave,*pretregs);       // do defered cleaning
+        genstackclean(cdb,cgstate.stackpush - stackpushsave,*pretregs);       // do defered cleaning
     }
 }
 
@@ -216,9 +213,9 @@ bool reghasvalue(regm_t regm,targ_size_t value, out reg_t preg)
     //printf("reghasvalue(%s, %llx)\n", regm_str(regm), cast(ulong)value);
     /* See if another register has the right value      */
     reg_t r = 0;
-    for (regm_t mreg = regcon.immed.mval; mreg; mreg >>= 1)
+    for (regm_t mreg = cgstate.regcon.immed.mval; mreg; mreg >>= 1)
     {
-        if (mreg & regm & 1 && regcon.immed.value[r] == value)
+        if (mreg & regm & 1 && cgstate.regcon.immed.value[r] == value)
         {   preg = r;
             return true;
         }
@@ -241,9 +238,9 @@ reg_t regwithvalue(ref CodeBuilder cdb,regm_t regm,targ_size_t value, regm_t fla
     if (reghasvalue(regm,value,found))
         return found; // already have a register with the right value in it
 
-    regm_t save = regcon.immed.mval;
+    regm_t save = cgstate.regcon.immed.mval;
     const reg = allocreg(cdb,regm,TYint);  // allocate register
-    regcon.immed.mval = save;
+    cgstate.regcon.immed.mval = save;
     movregconst(cdb,reg,value,flags);   // store value into reg
     return reg;
 }

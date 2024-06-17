@@ -597,6 +597,14 @@ extern (C++) abstract class Type : ASTNode
         tsize_t    = basic[isLP64 ? Tuns64 : Tuns32];
         tptrdiff_t = basic[isLP64 ? Tint64 : Tint32];
         thash_t = tsize_t;
+
+        static if (__VERSION__ == 2081)
+        {
+            // Related issue: https://issues.dlang.org/show_bug.cgi?id=19134
+            // D 2.081.x regressed initializing class objects at compile time.
+            // As a workaround initialize this global at run-time instead.
+            TypeTuple.empty = new TypeTuple();
+        }
     }
 
     /**
@@ -1574,7 +1582,7 @@ extern (C++) abstract class Type : ASTNode
         }
     }
 
-    final pure inout nothrow @nogc @safe
+    final pure inout nothrow @nogc @trusted
     {
         inout(TypeError)      isTypeError()      { return ty == Terror     ? cast(typeof(return))this : null; }
         inout(TypeVector)     isTypeVector()     { return ty == Tvector    ? cast(typeof(return))this : null; }
@@ -1690,7 +1698,7 @@ extern (C++) abstract class TypeNext : Type
      * type is meant to be inferred, and semantic() hasn't yet ben run
      * on the function. After semantic(), it must no longer be NULL.
      */
-    override final Type nextOf()
+    override final Type nextOf() @safe
     {
         return next;
     }
@@ -3175,7 +3183,7 @@ extern (C++) final class TypeFunction : TypeNext
      * Returns:
      *  true if D-style variadic
      */
-    bool isDstyleVariadic() const pure nothrow
+    bool isDstyleVariadic() const pure nothrow @safe
     {
         return linkage == LINK.d && parameterList.varargs == VarArg.variadic;
     }
@@ -3492,7 +3500,7 @@ extern (C++) final class TypeDelegate : TypeNext
  * This is a shell containing a TraitsExp that can be
  * either resolved to a type or to a symbol.
  *
- * The point is to allow AliasDeclarationY to use `__traits()`, see https://issues.dlang.org/show_bug.cgi?id=7804.
+ * The point is to allow AliasDeclarationY to use `__traits()`, see $(LINK https://issues.dlang.org/show_bug.cgi?id=7804).
  */
 extern (C++) final class TypeTraits : Type
 {
@@ -4405,7 +4413,10 @@ extern (C++) final class TypeClass : Type
 extern (C++) final class TypeTuple : Type
 {
     // 'logically immutable' cached global - don't modify!
-    __gshared TypeTuple empty = new TypeTuple();
+    static if (__VERSION__ == 2081)
+        __gshared TypeTuple empty;  // See comment in Type._init
+    else
+        __gshared TypeTuple empty = new TypeTuple();
 
     Parameters* arguments;  // types making up the tuple
 

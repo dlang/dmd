@@ -52,7 +52,6 @@ src/rt/dwarfeh.d @WalterBright
 src/rt/lifetime.d @rainers @schveiguy @Burgos
 src/rt/minfo.d @schveiguy
 src/rt/msvc* @rainers
-src/rt/sections_android.d @joakim-noah
 src/rt/sections_win* @rainers @CyberShadow
 src/rt/sections_osx* @jacob-carlborg @klickverbot
 src/rt/sections_elf_shared* @Burgos

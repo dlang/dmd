@@ -22,7 +22,7 @@ import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.mem;
 import dmd.backend.aarray;
 import dmd.backend.dlist;
@@ -1972,15 +1972,15 @@ char *obj_mangle2(Symbol *s,char *dest)
     //dbg_printf("len %d\n",len);
     switch (type_mangle(s.Stype))
     {
-        case mTYman_pas:                // if upper case
-        case mTYman_for:
+        case Mangle.pascal:             // if upper case
+        case Mangle.fortran:
             if (len >= DEST_LEN)
                 dest = cast(char *)mem_malloc(len + 1);
             memcpy(dest,name,len + 1);  // copy in name and ending 0
             for (char *p = dest; *p; p++)
                 *p = cast(char)toupper(*p);
             break;
-        case mTYman_std:
+        case Mangle.stdcall:
         {
             bool cond = (tyfunc(s.ty()) && !variadic(s.Stype));
             if (cond)
@@ -1998,19 +1998,19 @@ char *obj_mangle2(Symbol *s,char *dest)
             }
             goto case;
         }
-        case mTYman_sys:
+        case Mangle.syscall:
         case 0:
             if (len >= DEST_LEN)
                 dest = cast(char *)mem_malloc(len + 1);
             memcpy(dest,name,len+1);// copy in name and trailing 0
             break;
 
-        case mTYman_c:
+        case Mangle.c:
             if (s.Sflags & SFLnounderscore)
                 goto case 0;
             goto case;
-        case mTYman_cpp:
-        case mTYman_d:
+        case Mangle.cpp:
+        case Mangle.d:
             if (len >= DEST_LEN - 1)
                 dest = cast(char *)mem_malloc(1 + len + 1);
             dest[0] = '_';
@@ -2707,7 +2707,6 @@ void MachObj_moduleinfo(Symbol *scc)
 
 /*************************************
  */
-@trusted
 void MachObj_gotref(Symbol *s)
 {
     //printf("MachObj_gotref(%x '%s', %d)\n",s,s.Sident.ptr, s.Sclass);
@@ -2899,7 +2898,7 @@ const struct VersionCommand
 }
 
 /// Holds an operating system version or a SDK version.
-immutable struct Version
+struct Version
 {
     ///
     int major;
@@ -2911,7 +2910,7 @@ immutable struct Version
     int build;
 
     /// Returns: `true` if the version is valid
-    bool isValid() pure nothrow @nogc @safe
+    bool isValid() pure nothrow @nogc @safe inout
     {
         return major >= 10 && major < 100 &&
             minor >= 0 && minor < 100 &&
@@ -2980,17 +2979,52 @@ Version operatingSystemVersion()
  * Returns: the converted `Version`.
  */
 @trusted
-Version toVersion(const char* str) @nogc
+Version toVersion(const(char)* str) @nogc
 {
-    import core.stdc.stdio : sscanf;
-
     if (!str)
         return Version();
 
+    const str_len = strlen(str);
+    if (str_len < 1)
+        return Version();
+
+    if (strspn(str, "0123456789.") != str_len)
+        return Version();
+
+    if (!isdigit(str[0]) || !isdigit(str[str_len - 1]))
+        return Version();
+
     Version version_;
+    const(char)* endptr;
 
     with (version_)
-        str.sscanf("%d.%d.%d", &major, &minor, &build);
+    {
+        major = cast(int)strtoul(str, &endptr, 10);
+        str = endptr + ((*endptr == '.') ? 1 : 0);
+
+        if (*str == '.')
+            return Version();
+
+        minor = cast(int)strtoul(str, &endptr, 10);
+        str = endptr + ((*endptr == '.') ? 1 : 0);
+
+        build = cast(int)strtoul(str, &endptr, 10);
+        if (*endptr != '\0')
+            return Version();
+    }
 
     return version_;
+}
+
+unittest
+{
+    assert(toVersion("10") == Version(10, 0, 0));
+    assert(toVersion("10.10") == Version(10, 10, 0));
+    assert(toVersion("10.10.1") == Version(10, 10, 1));
+    assert(toVersion("10.000010.1") == Version(10, 10, 1));
+    assert(toVersion("10.010.001") == Version(10, 10, 1));
+    assert(toVersion("000010.10.00001") == Version(10, 10, 1));
+    assert(toVersion(".9.1") == Version(0, 0, 0));
+    assert(toVersion("10..9") == Version(0, 0, 0));
+    assert(toVersion("10.10.") == Version(0, 0, 0));
 }

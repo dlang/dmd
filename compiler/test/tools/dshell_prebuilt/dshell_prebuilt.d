@@ -50,7 +50,7 @@ private alias requiredEnvVars = AliasSeq!(
     "BUILD"
 );
 private alias optionalEnvVars = AliasSeq!(
-    "CC", "PIC_FLAG"
+    "CC", "CXX", "PIC_FLAG"
 );
 private alias allVars = AliasSeq!(
     requiredEnvVars,

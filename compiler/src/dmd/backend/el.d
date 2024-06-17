@@ -71,15 +71,56 @@ struct elem
     debug ushort      id;
     enum IDelem = 0x4C45;   // 'EL'
 
-    version (OSX) // workaround https://issues.dlang.org/show_bug.cgi?id=16466
-        align(16) eve EV; // variants for each type of elem
-    else
-        eve EV;           // variants for each type of elem
-
     ubyte Eoper;        // operator (OPxxxx)
     ubyte Ecount;       // # of parents of this elem - 1,
                         // always 0 until CSE elimination is done
     eflags_t Eflags;
+
+    union
+    {
+        Vconst EV;                 // arithmetic constants
+
+        struct
+        {
+            elem* E1;           // left child for unary & binary nodes
+            elem* E2;           // right child for binary nodes
+            Symbol* Edtor;      // OPctor: destructor
+        }
+        struct
+        {
+            elem* Eleft2;       // left child for OPddtor
+            void* Edecl;        // VarDeclaration being constructed
+        }                       // OPdctor,OPddtor
+        struct                  // 48 bit 386 far pointer
+        {   targ_long   Voff;
+            targ_ushort Vseg;
+        }
+        struct
+        {
+            targ_size_t Voffset;// offset from symbol
+            Symbol *Vsym;       // pointer to symbol table
+            union
+            {
+                param_t* Vtal;  // template-argument-list for SCfunctempl,
+                                // used only to transmit it to cpp_overload()
+                LIST* Erd;      // OPvar: reaching definitions
+            }
+        }
+        struct
+        {
+            targ_size_t Voffset2;// member pointer offset
+            Classsym* Vsym2;    // struct tag
+            elem* ethis;        // OPrelconst: 'this' for member pointer
+        }
+        struct
+        {
+            targ_size_t Voffset3;// offset from string
+            char* Vstring;      // pointer to string (OPstring or OPasm)
+            size_t Vstrlen;     // length of string
+        }
+    }
+
+    alias EV this;      // convenience so .EV. is not necessary
 
     union
     {
@@ -125,13 +166,13 @@ void elem_debug(const elem* e)
     debug assert(e.id == e.IDelem);
 }
 
-@trusted tym_t typemask(const elem* e)
+tym_t typemask(const elem* e)
 {
     return e.Ety;
 }
 
 @trusted
-FL el_fl(const elem* e) { return e.EV.Vsym.Sfl; }
+FL el_fl(const elem* e) { return e.Vsym.Sfl; }
 
 //#define Eoffset         EV.sp.Voffset
 //#define Esymnum         EV.sp.Vsymnum

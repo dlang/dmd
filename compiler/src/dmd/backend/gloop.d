@@ -20,7 +20,6 @@ import core.stdc.string;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
-import dmd.backend.code_x86;
 import dmd.backend.evalu8 : el_toldoubled;
 import dmd.backend.oper;
 import dmd.backend.global;
@@ -67,7 +66,6 @@ nothrow:
     /*************************
      * Reset memory so this allocation can be re-used.
      */
-    @trusted
     void reset()
     {
         vec_free(Lloop);
@@ -86,8 +84,6 @@ nothrow:
     /***********************
      * Write loop.
      */
-
-    @trusted
     void print()
     {
         debug
@@ -122,7 +118,6 @@ nothrow:
         el_free(c2);
     }
 
-    @trusted
     void print() const
     {
         debug
@@ -150,7 +145,6 @@ nothrow:
     elem **IVincr;          // pointer to parent of IV increment elem
     Barray!famlist IVfamily;      // variables in this family
 
-    @trusted
     void reset()
     {
         foreach (ref fl; IVfamily)
@@ -160,7 +154,6 @@ nothrow:
         IVfamily.reset();
     }
 
-    @trusted
     void print() const
     {
         debug
@@ -586,8 +579,8 @@ private bool looprotate(ref Loop l)
         auto head2 = block_calloc(); // create new head block
         head2.Btry = head.Btry;
         head2.Bflags = head.Bflags;
-        head.Bflags = BFLnomerg;       // move flags over to head2
-        head2.Bflags |= BFLnomerg;
+        head.Bflags = BFL.nomerg;       // move flags over to head2
+        head2.Bflags |= BFL.nomerg;
         head2.BC = head.BC;
         assert(head2.BC != BCswitch);
         if (head.Belem)                // copy expression tree
@@ -962,22 +955,22 @@ private void markInvariants(int gref, block* gblock, vec_t lv, vec_t gin, elem *
             case OPcall:
             case OPvecsto:
             case OPcmpxchg:
-                markinvar(n.EV.E2,rd);
+                markinvar(n.E2,rd);
                 goto case OPnegass;
 
             case OPnegass:
-                n1 = n.EV.E1;
+                n1 = n.E1;
                 if (n1.Eoper == OPind)
-                        markinvar(n1.EV.E1,rd);
+                        markinvar(n1.E1,rd);
                 else if (OTbinary(n1.Eoper))
-                {   markinvar(n1.EV.E1,rd);
-                    markinvar(n1.EV.E2,rd);
+                {   markinvar(n1.E1,rd);
+                    markinvar(n1.E2,rd);
                 }
             L2:
                 if (n.Eoper == OPcall ||
                     gblock.Btry ||
                     !(n1.Eoper == OPvar &&
-                        symbol_isintab(n1.EV.Vsym)))
+                        symbol_isintab(n1.Vsym)))
                 {
                     gref = 1;
                 }
@@ -986,29 +979,29 @@ private void markInvariants(int gref, block* gblock, vec_t lv, vec_t gin, elem *
                 break;
 
             case OPcallns:
-                markinvar(n.EV.E2,rd);
-                markinvar(n.EV.E1,rd);
+                markinvar(n.E2,rd);
+                markinvar(n.E1,rd);
                 break;
 
             case OPstrcpy:
             case OPstrcat:
             case OPmemcpy:
             case OPmemset:
-                markinvar(n.EV.E2,rd);
-                markinvar(n.EV.E1,rd);
+                markinvar(n.E2,rd);
+                markinvar(n.E1,rd);
                 updaterd(n,rd,null);
                 break;
 
             case OPbtc:
             case OPbtr:
             case OPbts:
-                markinvar(n.EV.E1,rd);
-                markinvar(n.EV.E2,rd);
+                markinvar(n.E1,rd);
+                markinvar(n.E2,rd);
                 updaterd(n,rd,null);
                 break;
 
             case OPucall:
-                markinvar(n.EV.E1,rd);
+                markinvar(n.E1,rd);
                 goto case OPasm;
 
             case OPasm:
@@ -1025,7 +1018,7 @@ private void markInvariants(int gref, block* gblock, vec_t lv, vec_t gin, elem *
             case OPddtor:
             case OPinp:
             case OPprefetch:                // don't mark E2
-                markinvar(n.EV.E1,rd);
+                markinvar(n.E1,rd);
                 break;
 
             case OPcond:
@@ -1034,16 +1027,16 @@ private void markInvariants(int gref, block* gblock, vec_t lv, vec_t gin, elem *
             case OPmemcmp:
             case OPbt:                      // OPbt is like OPind, assume not LI
             case OPoutp:
-                markinvar(n.EV.E1,rd);
-                markinvar(n.EV.E2,rd);
+                markinvar(n.E1,rd);
+                markinvar(n.E2,rd);
                 break;
 
             case OPandand:
             case OPoror:
-                markinvar(n.EV.E1,rd);
+                markinvar(n.E1,rd);
                 tmp = vec_clone(rd);
-                markinvar(n.EV.E2,tmp);
-                if (el_returns(n.EV.E2))
+                markinvar(n.E2,tmp);
+                if (el_returns(n.E2))
                     vec_orass(rd,tmp);              // rd |= tmp
                 vec_free(tmp);
                 break;
@@ -1051,25 +1044,25 @@ private void markInvariants(int gref, block* gblock, vec_t lv, vec_t gin, elem *
             case OPcolon:
             case OPcolon2:
                 tmp = vec_clone(rd);
-                switch (el_returns(n.EV.E1) * 2 | int(el_returns(n.EV.E2)))
+                switch (el_returns(n.E1) * 2 | int(el_returns(n.E2)))
                 {
                     case 3: // E1 and E2 return
-                        markinvar(n.EV.E1,rd);
-                        markinvar(n.EV.E2,tmp);
+                        markinvar(n.E1,rd);
+                        markinvar(n.E2,tmp);
                         vec_orass(rd,tmp);              // rd |= tmp
                         break;
                     case 2: // E1 returns
-                        markinvar(n.EV.E1,rd);
-                        markinvar(n.EV.E2,tmp);
+                        markinvar(n.E1,rd);
+                        markinvar(n.E2,tmp);
                         break;
                     case 1: // E2 returns
-                        markinvar(n.EV.E1,tmp);
-                        markinvar(n.EV.E2,rd);
+                        markinvar(n.E1,tmp);
+                        markinvar(n.E2,rd);
                         break;
                     case 0: // neither returns
-                        markinvar(n.EV.E1,tmp);
+                        markinvar(n.E1,tmp);
                         vec_copy(tmp,rd);
-                        markinvar(n.EV.E2,tmp);
+                        markinvar(n.E2,tmp);
                         break;
                     default:
                         assert(0);
@@ -1078,8 +1071,8 @@ private void markInvariants(int gref, block* gblock, vec_t lv, vec_t gin, elem *
                 break;
 
             case OPaddr:            // mark addresses of OPvars as LI
-                markinvar(n.EV.E1,rd);
-                if (n.EV.E1.Eoper == OPvar || isLI(n.EV.E1))
+                markinvar(n.E1,rd);
+                if (n.E1.Eoper == OPvar || isLI(n.E1))
                     makeLI(n);
                 break;
 
@@ -1121,15 +1114,15 @@ private void markInvariants(int gref, block* gblock, vec_t lv, vec_t gin, elem *
             case OPnp_f16p: case OPf16p_np: case OPoffset: case OPnp_fp:
             case OPcvp_fp:
             case OPvecfill:
-                markinvar(n.EV.E1,rd);
-                if (isLI(n.EV.E1))        /* if child is LI               */
+                markinvar(n.E1,rd);
+                if (isLI(n.E1))        /* if child is LI               */
                     makeLI(n);
                 break;
 
             case OPeq:
             case OPstreq:
-                markinvar(n.EV.E2,rd);
-                n1 = n.EV.E1;
+                markinvar(n.E2,rd);
+                n1 = n.E1;
                 markinvar(n1,rd);
 
                 /* Determine if assignment is LI. Conditions are:       */
@@ -1138,9 +1131,9 @@ private void markInvariants(int gref, block* gblock, vec_t lv, vec_t gin, elem *
                 /* 3) Lvalue can only be affected by unambiguous defs   */
                 /* 4) No rd's of lvalue that are within the loop (other */
                 /*    than the current def)                             */
-                if (isLI(n.EV.E2) && n1.Eoper == OPvar)          /* 1 & 2 */
+                if (isLI(n.E2) && n1.Eoper == OPvar)          /* 1 & 2 */
                 {
-                    v = n1.EV.Vsym;
+                    v = n1.Vsym;
                     if (v.Sflags & SFLunambig)
                     {
                         tmp = vec_calloc(go.defnod.length);
@@ -1177,15 +1170,15 @@ private void markInvariants(int gref, block* gblock, vec_t lv, vec_t gin, elem *
             case OPscale:
             case OPyl2x:
             case OPyl2xp1:
-                markinvar(n.EV.E1,rd);
-                markinvar(n.EV.E2,rd);
-                if (isLI(n.EV.E2) && isLI(n.EV.E1))
+                markinvar(n.E1,rd);
+                markinvar(n.E2,rd);
+                if (isLI(n.E2) && isLI(n.E1))
                         makeLI(n);
                 break;
 
             case OPind:                     /* must assume this is not LI   */
-                markinvar(n.EV.E1,rd);
-                if (isLI(n.EV.E1))
+                markinvar(n.E1,rd);
+                if (isLI(n.E1))
                 {
                     static if (0)
                     {
@@ -1247,7 +1240,7 @@ private void markInvariants(int gref, block* gblock, vec_t lv, vec_t gin, elem *
                 break;
 
             case OPvar:
-                v = n.EV.Vsym;
+                v = n.Vsym;
                 if (v.Sflags & SFLunambig)     // must be unambiguous to be LI
                 {
                     tmp = vec_calloc(go.defnod.length);
@@ -1274,7 +1267,7 @@ private void markInvariants(int gref, block* gblock, vec_t lv, vec_t gin, elem *
                 break;
 
             case OPinfo:
-                markinvar(n.EV.E2,rd);
+                markinvar(n.E2,rd);
                 break;
 
             case OPstrthis:
@@ -1330,7 +1323,7 @@ void updaterd(elem *n,vec_t GEN,vec_t KILL)
     assert(ni != -1);
 
     // If unambiguous def
-    if (OTassign(op) && (t = n.EV.E1).Eoper == OPvar)
+    if (OTassign(op) && (t = n.E1).Eoper == OPvar)
     {
         vec_t v = go.defnod[ni].DNunambig;
         assert(v);
@@ -1357,7 +1350,7 @@ void updaterd(elem *n,vec_t GEN,vec_t KILL)
                         continue;
 
                     // If def of same variable, kill that def
-                    tn1 = tn.EV.E1;
+                    tn1 = tn.E1;
                     if (tn1.Eoper != OPind || t.Ejty != tn1.Ejty)
                         continue;
 
@@ -1380,7 +1373,7 @@ void updaterd(elem *n,vec_t GEN,vec_t KILL)
 @trusted
 private void unmarkall(elem *e)
 {
-    for (; 1; e = e.EV.E1)
+    for (; 1; e = e.E1)
     {
         assert(e);
         e.Nflags &= ~NFLli;            /* unmark this elem             */
@@ -1388,7 +1381,7 @@ private void unmarkall(elem *e)
             continue;
         else if (OTbinary(e.Eoper))
         {
-            unmarkall(e.EV.E2);
+            unmarkall(e.E2);
             continue;
         }
         return;
@@ -1425,7 +1418,7 @@ private bool refs(Symbol *v,elem *n,elem *nstop)
         bool f = false;
         const op = n.Eoper;
         if (OTunary(op))
-            f = walk(n.EV.E1);
+            f = walk(n.E1);
         else if (OTbinary(op))
         {
             if (ERTOL(n))                   /* watch order of evaluation    */
@@ -1433,26 +1426,26 @@ private bool refs(Symbol *v,elem *n,elem *nstop)
                 /* Note that (OPvar = e) is not a ref of OPvar, whereas     */
                 /* ((OPbit OPvar) = e) is a ref of OPvar, and (OPvar op= e) is */
                 /* a ref of OPvar, etc.                                     */
-                f = walk(n.EV.E2);
+                f = walk(n.E2);
                 if (!f)
                 {
                     if (op == OPeq)
                     {
-                        if (n.EV.E1.Eoper != OPvar)
-                            f = walk(n.EV.E1.EV.E1);
+                        if (n.E1.Eoper != OPvar)
+                            f = walk(n.E1.E1);
                     }
                     else
-                        f = walk(n.EV.E1);
+                        f = walk(n.E1);
                 }
             }
             else
-                f = walk(n.EV.E1) || walk(n.EV.E2);
+                f = walk(n.E1) || walk(n.E2);
         }
 
         if (n == nstop)
             stop = true;
         else if (n.Eoper == OPvar)           /* if variable reference        */
-            return v == n.EV.Vsym;
+            return v == n.Vsym;
         else if (op == OPasm)                /* everything is referenced     */
             return true;
         return f;
@@ -1522,18 +1515,18 @@ Lnextlis:
         {
             uint domexit;
 
-            movelis(n.EV.E1,b,l,pdomexit);        // always executed
+            movelis(n.E1,b,l,pdomexit);        // always executed
             domexit = pdomexit & ~1;   // sometimes executed
-            movelis(n.EV.E2,b,l,domexit);
+            movelis(n.E2,b,l,domexit);
             pdomexit |= domexit & 2;
             goto Lret;
         }
 
         case OPeq:
             // Do loop invariant assignments
-            if (isLI(n) && n.EV.E1.Eoper == OPvar)
+            if (isLI(n) && n.E1.Eoper == OPvar)
             {
-                v = n.EV.E1.EV.Vsym;          // variable index number
+                v = n.E1.Vsym;          // variable index number
 
                 if (!(v.Sflags & SFLunambig)) goto L3;         // case 6
 
@@ -1547,7 +1540,7 @@ Lnextlis:
                     v.Sclass == SC.fastpar || v.Sclass == SC.shadowreg)
                         goto L3;
 
-                if (el_sideeffect(n.EV.E2)) goto L3;              // case 5
+                if (el_sideeffect(n.E2)) goto L3;              // case 5
 
                 // If case 1 or case 2 is not satisfied, return
 
@@ -1581,7 +1574,7 @@ Lnextlis:
                     //        return;
 
                     //filterrd(tmp,dfo[i].Binrd,v);
-                    listrds(dfo[i].Binrd,n.EV.E1,tmp,null);
+                    listrds(dfo[i].Binrd,n.E1,tmp,null);
                     uint j;
                     for (j = 0; (j = cast(uint) vec_index(j, tmp)) < go.defnod.length; ++j)  // for each RD of v in Binrd
                     {
@@ -1603,7 +1596,7 @@ Lnextlis:
                 //         <can't move this assignment>
 
                 //filterrd(tmp,b.Binrd,v);
-                listrds(b.Binrd,n.EV.E1,tmp,null);
+                listrds(b.Binrd,n.E1,tmp,null);
                 uint j;
                 for (j = 0; (j = cast(uint) vec_index(j, tmp)) < go.defnod.length; ++j)  // for each RD of v in Binrd
                 {
@@ -1622,11 +1615,11 @@ Lnextlis:
                 // Check to see if the rvalue is already in the preheader.
                 foreach (e; l.Llis)
                 {
-                    if (el_match(n.EV.E2, e.EV.E2))
+                    if (el_match(n.E2, e.E2))
                     {
-                        el_free(n.EV.E2);
-                        n.EV.E2 = el_calloc();
-                        el_copy(n.EV.E2, e.EV.E1);
+                        el_free(n.E2);
+                        n.E2 = el_calloc();
+                        el_copy(n.E2, e.E1);
                         if (debugc) printf("LI assignment rvalue was replaced\n");
                         doflow = true;
                         go.changes++;
@@ -1652,7 +1645,7 @@ Lnextlis:
                 appendelem(ne,&(l.Lpreheader.Belem)); // append ne to preheader
                 l.Llis.push(ne);
 
-                el_copy(n,ne.EV.E1);      // replace n with just a reference to v
+                el_copy(n,ne.E1);      // replace n with just a reference to v
                 goto Lret;
             } // if
             break;
@@ -1664,8 +1657,8 @@ Lnextlis:
 
         case OPpair:
         case OPrpair:                   // don't move these, as they do not do computation
-            movelis(n.EV.E1,b,l,pdomexit);
-            n = n.EV.E2;
+            movelis(n.E1,b,l,pdomexit);
+            n = n.E2;
             goto Lnextlis;
 
         default:
@@ -1679,40 +1672,40 @@ L3:
         goto Lret;
     if (!isLI(n) || op == OPeq || op == OPcomma || OTrel(op) || op == OPnot ||
       // These are usually addressing modes, so moving them is a net loss
-      (I32 && op == OPshl && n.EV.E2.Eoper == OPconst && el_tolong(n.EV.E2) <= 3UL)
+      (I32 && op == OPshl && n.E2.Eoper == OPconst && el_tolong(n.E2) <= 3UL)
      )
     {
         if (OTassign(op))
         {
-            elem *n1 = n.EV.E1;
+            elem *n1 = n.E1;
             elem *n11;
 
             if (OTbinary(op))
-                movelis(n.EV.E2,b,l,pdomexit);
+                movelis(n.E2,b,l,pdomexit);
 
             // Do lvalue only if it is an expression
             if (n1.Eoper == OPvar)
                 goto Lret;
-            n11 = n1.EV.E1;
+            n11 = n1.E1;
             if (OTbinary(n1.Eoper))
             {
                 movelis(n11,b,l,pdomexit);
-                n = n1.EV.E2;
+                n = n1.E2;
             }
             // If *(x + c), just make x the LI, not the (x + c).
             // The +c comes free with the addressing mode.
             else if (n1.Eoper == OPind &&
                     isLI(n11) &&
                     n11.Eoper == OPadd &&
-                    n11.EV.E2.Eoper == OPconst
+                    n11.E2.Eoper == OPconst
                     )
             {
-                n = n11.EV.E1;
+                n = n11.E1;
             }
             else
                 n = n11;
             movelis(n,b,l,pdomexit);
-            if (b.Btry || !(n1.Eoper == OPvar && symbol_isintab(n1.EV.Vsym)))
+            if (b.Btry || !(n1.Eoper == OPvar && symbol_isintab(n1.Vsym)))
             {
                 //printf("assign to global => domexit |= 2\n");
                 pdomexit |= 2;
@@ -1720,25 +1713,25 @@ L3:
         }
         else if (OTunary(op))
         {
-            elem *e1 = n.EV.E1;
+            elem *e1 = n.E1;
 
             // If *(x + c), just make x the LI, not the (x + c).
             // The +c comes free with the addressing mode.
             if (op == OPind &&
                 isLI(e1) &&
                 e1.Eoper == OPadd &&
-                e1.EV.E2.Eoper == OPconst
+                e1.E2.Eoper == OPconst
                )
             {
-                n = e1.EV.E1;
+                n = e1.E1;
             }
             else
                 n = e1;
         }
         else if (OTbinary(op))
         {
-            movelis(n.EV.E1,b,l,pdomexit);
-            n = n.EV.E2;
+            movelis(n.E1,b,l,pdomexit);
+            n = n.E2;
         }
         goto Lnextlis;
   }
@@ -1759,14 +1752,14 @@ L3:
 
             printf("looking at:\n");
             elem_print(n);
-            s = el_basesym(n.EV.E1);
+            s = el_basesym(n.E1);
             if (s)
             {
                 foreach (el; l.Llis)
                 {
-                    el = el.EV.E2;
+                    el = el.E2;
                     elem_print(el);
-                    if (el.Eoper == OPind && el_basesym(el.EV.E1) == s)
+                    if (el.Eoper == OPind && el_basesym(el.E1) == s)
                     {
                         printf("  pass!\n");
                         goto Lpass;
@@ -1797,19 +1790,19 @@ L3:
         tym_t ty2;
 
         //printf("existing LI: "); WReqn(el); printf("\n");
-        ty2 = el.EV.E2.Ety;
+        ty2 = el.E2.Ety;
         if (tysize(ty) == tysize(ty2))
         {
-            el.EV.E2.Ety = ty;
-            if (el_match(n,el.EV.E2))
+            el.E2.Ety = ty;
+            if (el_match(n,el.E2))
             {
-                el.EV.E2.Ety = ty2;
+                el.E2.Ety = ty2;
                 if (!OTleaf(n.Eoper))
-                {       el_free(n.EV.E1);
+                {       el_free(n.E1);
                         if (OTbinary(n.Eoper))
-                                el_free(n.EV.E2);
+                                el_free(n.E2);
                 }
-                el_copy(n,el.EV.E1);      // make copy of temp
+                el_copy(n,el.E1);      // make copy of temp
                 n.Ety = ty;
 
                 debug
@@ -1826,7 +1819,7 @@ L3:
                 doflow = true;                  // redo flow analysis
                 goto Lret;
             }
-            el.EV.E2.Ety = ty2;
+            el.E2.Ety = ty2;
         }
     }
 
@@ -1846,7 +1839,7 @@ L3:
 
     debug
     {
-        if (debugc) printf("movelis() introduced new variable '%s' of type ",t.EV.Vsym.Sident.ptr);
+        if (debugc) printf("movelis() introduced new variable '%s' of type ",t.Vsym.Sident.ptr);
         if (debugc) printf("%s\n", tym_str(t.Ety));
         if (debugc) printf("\n");
     }
@@ -1892,7 +1885,7 @@ private void appendelem(elem *n,elem **pn)
         while ((*pn).Eoper == OPcomma)          /* while we see OPcomma elems */
         {
             (*pn).Ety = n.Ety;
-            pn = &((*pn).EV.E2);                /* cruise down right side */
+            pn = &((*pn).E2);                /* cruise down right side */
         }
         *pn = el_bin(OPcomma,n.Ety,*pn,n);
     }
@@ -1909,7 +1902,7 @@ private void appendelem(elem *n,elem **pn)
 @trusted
 private void newfamlist(famlist* fl, tym_t ty)
 {
-    eve c = void;
+    Vconst c = void;
     memset(&c,0,c.sizeof);
 
     fl.FLty = ty;
@@ -2056,20 +2049,20 @@ private void findbasivs(ref Loop l)
 
         n = go.defnod[i].DNelem;
         elem_debug(n);
-        if (OTassign(n.Eoper) && n.EV.E1.Eoper == OPvar)
+        if (OTassign(n.Eoper) && n.E1.Eoper == OPvar)
         {
             Symbol *s;                  /* if unambiguous def           */
 
-            s = n.EV.E1.EV.Vsym;
+            s = n.E1.Vsym;
             if (symbol_isintab(s))
             {
                 SYMIDX v;
 
-                v = n.EV.E1.EV.Vsym.Ssymnum;
+                v = n.E1.Vsym.Ssymnum;
                 if ((n.Eoper == OPaddass || n.Eoper == OPminass ||
                      n.Eoper == OPpostinc || n.Eoper == OPpostdec) &&
-                        (n.EV.E2.Eoper == OPconst || /* if x += c or x -= c          */
-                         n.EV.E2.Eoper == OPvar && isLI(n.EV.E2)))
+                        (n.E2.Eoper == OPconst || /* if x += c or x -= c          */
+                         n.E2.Eoper == OPvar && isLI(n.E2)))
                 {
                     if (vec_testbit(v,poss))
                         /* We've already seen this def elem,    */
@@ -2143,12 +2136,12 @@ private void findbasivs(ref Loop l)
         foreach (j; 0 .. go.defnod.length)
         {
             /* If go.defnod is a def of i and it is in the loop        */
-            if (go.defnod[j].DNelem.EV.E1 &&     /* OPasm are def nodes  */
-                go.defnod[j].DNelem.EV.E1.EV.Vsym == s &&
+            if (go.defnod[j].DNelem.E1 &&     /* OPasm are def nodes  */
+                go.defnod[j].DNelem.E1.Vsym == s &&
                 vec_testbit(go.defnod[j].DNblock.Bdfoidx,l.Lloop))
             {
                 biv.IVincr = el_parent(go.defnod[j].DNelem, go.defnod[j].DNblock.Belem);
-                assert(s == (*biv.IVincr).EV.E1.EV.Vsym);
+                assert(s == (*biv.IVincr).E1.Vsym);
 
                 debug if (debugc)
                 {
@@ -2196,16 +2189,16 @@ private void findopeqs(ref Loop l)
 
         n = go.defnod[i].DNelem;
         elem_debug(n);
-        if (OTopeq(n.Eoper) && n.EV.E1.Eoper == OPvar)
+        if (OTopeq(n.Eoper) && n.E1.Eoper == OPvar)
         {
             Symbol *s;                  // if unambiguous def
 
-            s = n.EV.E1.EV.Vsym;
+            s = n.E1.Vsym;
             if (symbol_isintab(s))
             {
                 SYMIDX v;
 
-                v = n.EV.E1.EV.Vsym.Ssymnum;
+                v = n.E1.Vsym.Ssymnum;
                 {
                     if (vec_testbit(v,poss))
                         // We've already seen this def elem,
@@ -2279,12 +2272,12 @@ private void findopeqs(ref Loop l)
         foreach (j; 0 .. go.defnod.length)
         {
             // If go.defnod is a def of i and it is in the loop
-            if (go.defnod[j].DNelem.EV.E1 &&     // OPasm are def nodes
-                go.defnod[j].DNelem.EV.E1.EV.Vsym == s &&
+            if (go.defnod[j].DNelem.E1 &&     // OPasm are def nodes
+                go.defnod[j].DNelem.E1.Vsym == s &&
                 vec_testbit(go.defnod[j].DNblock.Bdfoidx,l.Lloop))
             {
                 biv.IVincr = el_parent(go.defnod[j].DNelem, go.defnod[j].DNblock.Belem);
-                assert(s == (*biv.IVincr).EV.E1.EV.Vsym);
+                assert(s == (*biv.IVincr).E1.Vsym);
 
                 debug if (debugc)
                 {
@@ -2322,8 +2315,8 @@ private void findivfams(ref Loop l)
         /* Fold all the constant expressions in c1 and c2.      */
         foreach (ref fl; biv.IVfamily)
         {
-            fl.c1 = doptelem(fl.c1,GOALvalue | GOALagain);
-            fl.c2 = doptelem(fl.c2,GOALvalue | GOALagain);
+            fl.c1 = doptelem(fl.c1, Goal.value | Goal.again);
+            fl.c2 = doptelem(fl.c2, Goal.value | Goal.again);
         }
     }
 }
@@ -2347,16 +2340,16 @@ private void ivfamelems(Iv *biv,elem **pn)
     const op = n.Eoper;
     if (OTunary(op))
     {
-       ivfamelems(biv,&n.EV.E1);
-        n1 = n.EV.E1;
+       ivfamelems(biv,&n.E1);
+        n1 = n.E1;
         n2 = null;
     }
     else if (OTbinary(op))
     {
-        ivfamelems(biv,&n.EV.E1);
-        ivfamelems(biv,&n.EV.E2); /* LTOR or RTOL order is unimportant */
-        n1 = n.EV.E1;
-        n2 = n.EV.E2;
+        ivfamelems(biv,&n.E1);
+        ivfamelems(biv,&n.E2); /* LTOR or RTOL order is unimportant */
+        n1 = n.E1;
+        n2 = n.E2;
     }
     else                                /* else leaf elem               */
         return;                         /* which can't be in the family */
@@ -2384,9 +2377,9 @@ private void ivfamelems(Iv *biv,elem **pn)
         /* If we have (li + var), swap the leaves.                      */
         if (op == OPadd && isLI(n1) && n1.Eoper == OPvar && n2.Eoper == OPvar)
         {
-            n.EV.E1 = n2;
-            n2 = n.EV.E2 = n1;
-            n1 = n.EV.E1;
+            n.E1 = n2;
+            n2 = n.E2 = n1;
+            n1 = n.E1;
         }
 
         // Get rid of case where we painted a far pointer to a long
@@ -2401,7 +2394,7 @@ private void ivfamelems(Iv *biv,elem **pn)
         }
 
         /* Look for function of basic IV (-biv or biv op const)         */
-        if (n1.Eoper == OPvar && n1.EV.Vsym == biv.IVbasic)
+        if (n1.Eoper == OPvar && n1.Vsym == biv.IVbasic)
         {
             if (op == OPneg)
             {
@@ -2601,11 +2594,11 @@ private void intronvars(ref Loop l)
 
             ty = fl.FLty;
             T = el_alloctmp(ty);        /* allocate temporary T          */
-            fl.FLtemp = T.EV.Vsym;
+            fl.FLtemp = T.Vsym;
 
             debug
             {
-                if (debugc) printf("intronvars() introduced new variable '%s' of type ",T.EV.Vsym.Sident.ptr);
+                if (debugc) printf("intronvars() introduced new variable '%s' of type ",T.Vsym.Sident.ptr);
                 if (debugc) printf("%s\n", tym_str(ty));
                 if (debugc) printf("\n");
             }
@@ -2628,18 +2621,18 @@ private void intronvars(ref Loop l)
             /* Must prefix in case the value of the expression (biv+=C) */
             /* is used by somebody up the tree.                         */
             cmul = el_bin(OPmul,fl.c1.Ety,el_copytree(fl.c1),
-                                          el_copytree(bivinc.EV.E2));
+                                          el_copytree(bivinc.E2));
             t2 = el_bin(bivinc.Eoper,ty,el_copytree(T),cmul);
-            t2 = doptelem(t2,GOALvalue | GOALagain);
+            t2 = doptelem(t2, Goal.value | Goal.again);
             *biv.IVincr = el_bin(OPcomma,bivinc.Ety,t2,bivinc);
-            biv.IVincr = &((*biv.IVincr).EV.E2);
+            biv.IVincr = &((*biv.IVincr).E2);
 
             debug
                 if (debugc)
                 {
                     printf("Replacing elem (");
                     WReqn(*fl.FLpelem);
-                    printf(") with '%s'\n",T.EV.Vsym.Sident.ptr);
+                    printf(") with '%s'\n",T.Vsym.Sident.ptr);
                     printf("The init elem is (");
                     WReqn(ne);
                     printf(");\nThe increment elem is (");
@@ -2716,7 +2709,7 @@ private bool funcprev(ref Iv biv, ref famlist fl)
         {
             if (fls.c2.Eoper == OPrelconst &&
                 !(fl.c2.Eoper == OPrelconst &&
-                  fl.c2.EV.Vsym == fls.c2.EV.Vsym)
+                  fl.c2.Vsym == fls.c2.Vsym)
                )
                 continue;
         }
@@ -2747,7 +2740,7 @@ private bool funcprev(ref Iv biv, ref famlist fl)
         {
             if (e1.Eoper != OPrelconst || fls.c2.Eoper != OPrelconst)
                 goto L1;                /* assume expressions have diff segs */
-            if (e1.EV.Vsym.Sclass != fls.c2.EV.Vsym.Sclass)
+            if (e1.Vsym.Sclass != fls.c2.Vsym.Sclass)
             {
                L1:
                 el_free(flse1);
@@ -2773,10 +2766,10 @@ private bool funcprev(ref Iv biv, ref famlist fl)
         if (sz < tysize(tymin) && sz == tysize(e1.Ety))
         {
             assert(I16);
-            flse1.EV.E2 = el_una(OPoffset,fl.FLty,flse1.EV.E2);
+            flse1.E2 = el_una(OPoffset,fl.FLty,flse1.E2);
         }
 
-        flse1 = doptelem(flse1,GOALvalue | GOALagain);
+        flse1 = doptelem(flse1, Goal.value | Goal.again);
         fl.c2 = null;
     L2:
         debug if (debugc)
@@ -2850,20 +2843,20 @@ private void elimbasivs(ref Loop l)
             // Don't do the replacement if we would replace a
             // signed comparison with an unsigned one
             tym_t flty = fl.FLty;
-            if (tyuns(ref_.EV.E1.Ety) | tyuns(ref_.EV.E2.Ety))
+            if (tyuns(ref_.E1.Ety) | tyuns(ref_.E2.Ety))
                 flty = touns(flty);
 
             if (ref_.Eoper >= OPle && ref_.Eoper <= OPge &&
-                !(tyuns(ref_.EV.E1.Ety) | tyuns(ref_.EV.E2.Ety)) &&
+                !(tyuns(ref_.E1.Ety) | tyuns(ref_.E2.Ety)) &&
                  tyuns(flty))
                     continue;
 
             /* if we have (e relop X), replace it with (X relop e)  */
-            if (ref_.EV.E2.Eoper == OPvar && ref_.EV.E2.EV.Vsym == X)
+            if (ref_.E2.Eoper == OPvar && ref_.E2.Vsym == X)
             {
-                elem* tmp = ref_.EV.E2;
-                ref_.EV.E2 = ref_.EV.E1;
-                ref_.EV.E1 = tmp;
+                elem* tmp = ref_.E2;
+                ref_.E2 = ref_.E1;
+                ref_.E1 = tmp;
                 ref_.Eoper = cast(ubyte)swaprel(ref_.Eoper);
             }
 
@@ -2874,21 +2867,21 @@ private void elimbasivs(ref Loop l)
                 targ_llong c1 = el_tolong(fl.c1);
                 const int sz = tysize(ty);
                 if (sz == SHORTSIZE &&
-                    ((ref_.EV.E2.Eoper == OPconst &&
-                    c1 * el_tolong(ref_.EV.E2) & ~0x7FFFL) ||
+                    ((ref_.E2.Eoper == OPconst &&
+                    c1 * el_tolong(ref_.E2) & ~0x7FFFL) ||
                      c1 & ~0x7FFFL)
                    )
                     continue;
 
                 if (sz == LONGSIZE &&
-                    ((ref_.EV.E2.Eoper == OPconst &&
-                    c1 * el_tolong(ref_.EV.E2) & ~0x7FFFFFFFL) ||
+                    ((ref_.E2.Eoper == OPconst &&
+                    c1 * el_tolong(ref_.E2) & ~0x7FFFFFFFL) ||
                      c1 & ~0x7FFFFFFFL)
                    )
                     continue;
                 if (sz == LLONGSIZE &&
-                    ((ref_.EV.E2.Eoper == OPconst &&
-                    c1 * el_tolong(ref_.EV.E2) & ~0x7FFFFFFFFFFFFFFFL) ||
+                    ((ref_.E2.Eoper == OPconst &&
+                    c1 * el_tolong(ref_.E2) & ~0x7FFFFFFFFFFFFFFFL) ||
                      c1 & ~0x7FFFFFFFFFFFFFFFL)
                    )
                     continue;
@@ -2898,9 +2891,9 @@ private void elimbasivs(ref Loop l)
              * and its unsigned, then don't do it because it could drop below 0.
              * https://issues.dlang.org/show_bug.cgi?id=16189
              */
-            if ((einc.Eoper == OPminass || einc.EV.E2.Eoper == OPconst && el_tolong(einc.EV.E2) < 0) &&
+            if ((einc.Eoper == OPminass || einc.E2.Eoper == OPconst && el_tolong(einc.E2) < 0) &&
                 (ref_.Eoper == OPlt || ref_.Eoper == OPle) &&
-                (tyuns(ref_.EV.E1.Ety) | tyuns(ref_.EV.E2.Ety)))
+                (tyuns(ref_.E1.Ety) | tyuns(ref_.E2.Ety)))
                 continue;
 
             /* If loop started out with a signed conditional that was
@@ -2914,7 +2907,7 @@ private void elimbasivs(ref Loop l)
                     continue;
             }
 
-            elem *refE2 = el_copytree(ref_.EV.E2);
+            elem *refE2 = el_copytree(ref_.E2);
             int refEoper = ref_.Eoper;
 
             /* if c1 < 0 and relop is < <= > >=
@@ -2940,7 +2933,7 @@ private void elimbasivs(ref Loop l)
                                     refE2,
                                     el_copytree(fl.c1)),
                             C2);
-            fofe = doptelem(fofe,GOALvalue | GOALagain);    // fold any constants
+            fofe = doptelem(fofe, Goal.value | Goal.again);    // fold any constants
 
             if (tyuns(flty) && refEoper == OPge &&
                 fofe.Eoper == OPconst && el_allbits(fofe, 0) &&
@@ -2962,17 +2955,17 @@ private void elimbasivs(ref Loop l)
                 printf(" with ");
             }
 
-            el_free(ref_.EV.E2);
-            ref_.EV.E2 = refE2;
+            el_free(ref_.E2);
+            ref_.E2 = refE2;
             ref_.Eoper = cast(ubyte)refEoper;
 
             elimass(einc);          // dump the increment elem
 
             // replace X with T
-            assert(ref_.EV.E1.EV.Voffset == 0);
-            ref_.EV.E1.EV.Vsym = fl.FLtemp;
-            ref_.EV.E1.Ety = flty;
-            ref_.EV.E2 = fofe;
+            assert(ref_.E1.Voffset == 0);
+            ref_.E1.Vsym = fl.FLtemp;
+            ref_.E1.Ety = flty;
+            ref_.E2 = fofe;
 
             /* If sizes of expression worked out wrong...
                Which can happen if we have (int)ptr==e
@@ -2981,8 +2974,8 @@ private void elimbasivs(ref Loop l)
             {
                 const tym_t fofety = fofe.Ety;
                 const int sz = tysize(fofety);
-                tym_t ty1 = fofe.EV.E1.Ety;
-                const tym_t ty2 = fofe.EV.E2.Ety;
+                tym_t ty1 = fofe.E1.Ety;
+                const tym_t ty2 = fofe.E2.Ety;
                 /* Sizes of + expression must all be the same       */
                 if (sz != tysize(ty1) &&
                     sz != tysize(ty2)
@@ -2991,17 +2984,17 @@ private void elimbasivs(ref Loop l)
                     if (tyuns(fofety))      // if unsigned comparison
                         ty1 = touns(ty1);   /* to unsigned type     */
                     fofe.Ety = ty1;
-                    ref_.EV.E1.Ety = ty1;
+                    ref_.E1.Ety = ty1;
                 }
             }
 
             /* Fix if leaves of compare are TYfptrs and the compare */
             /* operator is < <= > >=.                               */
-            if (ref_.Eoper >= OPle && ref_.Eoper <= OPge && tyfv(ref_.EV.E1.Ety))
+            if (ref_.Eoper >= OPle && ref_.Eoper <= OPge && tyfv(ref_.E1.Ety))
             {
-                assert(tyfv(ref_.EV.E2.Ety));
-                ref_.EV.E1 = el_una(OPoffset,TYuint,ref_.EV.E1);
-                ref_.EV.E2 = el_una(OPoffset,TYuint,fofe);
+                assert(tyfv(ref_.E2.Ety));
+                ref_.E1 = el_una(OPoffset,TYuint,ref_.E1);
+                ref_.E2 = el_una(OPoffset,TYuint,fofe);
             }
 
             debug if (debugc)
@@ -3033,8 +3026,8 @@ private void elimbasivs(ref Loop l)
                     ne = el_bin(OPmin,ty,
                             el_var(fl.FLtemp),
                             C2);
-                    if (tybasic(ne.EV.E1.Ety) == TYfptr &&
-                        tybasic(ne.EV.E2.Ety) == TYfptr)
+                    if (tybasic(ne.E1.Ety) == TYfptr &&
+                        tybasic(ne.E2.Ety) == TYfptr)
                     {
                         ne.Ety = I64 ? TYllong : TYint;
                         if (tylong(ty) && _tysize[TYint] == 2)
@@ -3117,8 +3110,8 @@ private void elimbasivs(ref Loop l)
             {
                 elem* ei = *biv.IVincr;
                 ei.Eoper = OPcomma;
-                ei.EV.E1.Eoper = OPconst;
-                ei.EV.E1.Ety = TYint;
+                ei.E1.Eoper = OPconst;
+                ei.E1.Ety = TYint;
             }
 
             go.changes++;
@@ -3182,8 +3175,8 @@ private void elimopeqs(ref Loop l)
             {
                 elem* einc = *(biv.IVincr);
                 einc.Eoper = OPcomma;
-                einc.EV.E1.Eoper = OPconst;
-                einc.EV.E1.Ety = TYint;
+                einc.E1.Eoper = OPconst;
+                einc.E1.Ety = TYint;
             }
 
             go.changes++;
@@ -3241,8 +3234,8 @@ private bool flcmp(const ref famlist f1, const ref famlist f2)
 
     static if (0)
     {
-        printf("f1: c1 = %d, c2 = %d\n",t1.Vshort,f1.c2.EV.Vshort);
-        printf("f2: c1 = %d, c2 = %d\n",t2.Vshort,f2.c2.EV.Vshort);
+        printf("f1: c1 = %d, c2 = %d\n",t1.Vshort,f1.c2.Vshort);
+        printf("f2: c1 = %d, c2 = %d\n",t2.Vshort,f2.c2.Vshort);
         printf("%s %s\n", tym_str((*f1.FLpelem).Ety), tym_str((*f2.FLpelem).Ety));
     }
 
@@ -3255,7 +3248,7 @@ private bool flcmp(const ref famlist f1, const ref famlist f2)
             case TYschar:
             case TYuchar:
                 if (t2.Vuchar == 1 ||
-                    t1.Vuchar != 1 && f2.c2.EV.Vuchar == 0)
+                    t1.Vuchar != 1 && f2.c2.Vuchar == 0)
                         goto Lf2;
                 break;
 
@@ -3265,7 +3258,7 @@ private bool flcmp(const ref famlist f1, const ref famlist f2)
             case TYwchar_t:     // BUG: what about 4 byte wchar_t's?
             case_short:
                 if (t2.Vshort == 1 ||
-                    t1.Vshort != 1 && f2.c2.EV.Vshort == 0)
+                    t1.Vshort != 1 && f2.c2.Vshort == 0)
                         goto Lf2;
                 break;
 
@@ -3292,33 +3285,33 @@ private bool flcmp(const ref famlist f1, const ref famlist f2)
             case TYhptr:
             case_long:
                 if (t2.Vlong == 1 ||
-                    t1.Vlong != 1 && f2.c2.EV.Vlong == 0)
+                    t1.Vlong != 1 && f2.c2.Vlong == 0)
                         goto Lf2;
                 break;
 
             case TYfloat:
                 if (t2.Vfloat == 1 ||
-                    t1.Vfloat != 1 && f2.c2.EV.Vfloat == 0)
+                    t1.Vfloat != 1 && f2.c2.Vfloat == 0)
                         goto Lf2;
                 break;
 
             case TYdouble:
             case TYdouble_alias:
                 if (t2.Vdouble == 1.0 ||
-                    t1.Vdouble != 1.0 && f2.c2.EV.Vdouble == 0)
+                    t1.Vdouble != 1.0 && f2.c2.Vdouble == 0)
                         goto Lf2;
                 break;
 
             case TYldouble:
                 if (t2.Vldouble == 1.0 ||
-                    t1.Vldouble != 1.0 && f2.c2.EV.Vldouble == 0)
+                    t1.Vldouble != 1.0 && f2.c2.Vldouble == 0)
                         goto Lf2;
                 break;
 
             case TYllong:
             case TYullong:
                 if (t2.Vllong == 1 ||
-                    t1.Vllong != 1 && f2.c2.EV.Vllong == 0)
+                    t1.Vllong != 1 && f2.c2.Vllong == 0)
                         goto Lf2;
                 break;
 
@@ -3443,16 +3436,16 @@ private int countrefs(elem **pn,bool flag)
     if (n == sincn)                       /* if it is the increment elem  */
     {
         return OTbinary(n.Eoper)
-            ? countrefs(&n.EV.E2, false)
+            ? countrefs(&n.E2, false)
             : 0;                          // don't count lvalue
     }
     if (OTunary(n.Eoper))
-        return countrefs(&n.EV.E1,false);
+        return countrefs(&n.E1,false);
     else if (OTbinary(n.Eoper))
     {
         if (OTrel(n.Eoper))
         {
-            elem *e1 = n.EV.E1;
+            elem *e1 = n.E1;
 
             assert(e1.Eoper != OPcomma);
             if (e1 == sincn &&
@@ -3462,15 +3455,15 @@ private int countrefs(elem **pn,bool flag)
             /* Check both subtrees to see if n is the comparison node,
              * that is, if X is a leaf of the comparison.
              */
-            if (e1.Eoper == OPvar && e1.EV.Vsym == X && !countrefs2(n.EV.E2, X) ||
-                n.EV.E2.Eoper == OPvar && n.EV.E2.EV.Vsym == X && !countrefs2(e1, X))
+            if (e1.Eoper == OPvar && e1.Vsym == X && !countrefs2(n.E2, X) ||
+                n.E2.Eoper == OPvar && n.E2.Vsym == X && !countrefs2(e1, X))
                 nd = pn;                /* found the relop node */
         }
     L1:
-        return countrefs(&n.EV.E1,false) +
-               countrefs(&n.EV.E2,(flag && n.Eoper == OPcomma));
+        return countrefs(&n.E1,false) +
+               countrefs(&n.E2,(flag && n.Eoper == OPcomma));
     }
-    else if ((n.Eoper == OPvar || n.Eoper == OPrelconst) && n.EV.Vsym == X)
+    else if ((n.Eoper == OPvar || n.Eoper == OPrelconst) && n.Vsym == X)
     {
         if (flag)
             nd = pn;                    /* comparing it with 0          */
@@ -3488,11 +3481,11 @@ private int countrefs2(const(elem)* e, const Symbol* s)
 {
     debug elem_debug(e);
     while (OTunary(e.Eoper))
-        e = e.EV.E1;
+        e = e.E1;
     if (OTbinary(e.Eoper))
-        return countrefs2(e.EV.E1, s) + countrefs2(e.EV.E2, s);
+        return countrefs2(e.E1, s) + countrefs2(e.E2, s);
     return ((e.Eoper == OPvar || e.Eoper == OPrelconst) &&
-            e.EV.Vsym == s);
+            e.Vsym == s);
 }
 
 /****************************
@@ -3524,14 +3517,14 @@ private void elimspecwalk(elem **pn)
     n = *pn;
     assert(n);
     if (OTunary(n.Eoper))
-        elimspecwalk(&n.EV.E1);
+        elimspecwalk(&n.E1);
     else if (OTbinary(n.Eoper))
     {
-        elimspecwalk(&n.EV.E1);
-        elimspecwalk(&n.EV.E2);
+        elimspecwalk(&n.E1);
+        elimspecwalk(&n.E2);
         if (OTrel(n.Eoper))
         {
-            elem *e1 = n.EV.E1;
+            elem *e1 = n.E1;
 
             /* Replace ((e1,e2) rel e3) with (e1,(e2 rel e3).
              * This will reduce the number of cases for elimbasivs().
@@ -3545,20 +3538,20 @@ private void elimspecwalk(elem **pn)
                 debug if (debugc)
                 {   printf("3rewriting ("); WReqn(n); printf(")\n"); }
 
-                e = n.EV.E2;
-                n.EV.E2 = e1;
-                n.EV.E1 = n.EV.E2.EV.E1;
-                n.EV.E2.EV.E1 = n.EV.E2.EV.E2;
-                n.EV.E2.EV.E2 = e;
-                n.EV.E2.Eoper = n.Eoper;
-                n.EV.E2.Ety = n.Ety;
+                e = n.E2;
+                n.E2 = e1;
+                n.E1 = n.E2.E1;
+                n.E2.E1 = n.E2.E2;
+                n.E2.E2 = e;
+                n.E2.Eoper = n.Eoper;
+                n.E2.Ety = n.Ety;
                 n.Eoper = OPcomma;
 
                 go.changes++;
                 doflow = true;
 
-                elimspecwalk(&n.EV.E1);
-                elimspecwalk(&n.EV.E2);
+                elimspecwalk(&n.E1);
+                elimspecwalk(&n.E2);
             }
 
             /* Rewrite ((X op= e2) rel e3) into ((X op= e2),(X rel e3))
@@ -3569,7 +3562,7 @@ private void elimspecwalk(elem **pn)
             if ((OTopeq(e1.Eoper)
                  || OTpost(e1.Eoper)
                 ) &&
-                !el_sideeffect(e1.EV.E1))
+                !el_sideeffect(e1.E1))
             {
                 elem *e;
                 OPER op;
@@ -3579,9 +3572,9 @@ private void elimspecwalk(elem **pn)
 
                 e = el_calloc();
                 el_copy(e,n);
-                e.EV.E1 = el_copytree(e1.EV.E1);
-                e.EV.E1.Ety = n.EV.E1.Ety;
-                n.EV.E2 = e;
+                e.E1 = el_copytree(e1.E1);
+                e.E1.Ety = n.E1.Ety;
+                n.E2 = e;
                 switch (e1.Eoper)
                 {
                     case OPpostinc:
@@ -3592,7 +3585,7 @@ private void elimspecwalk(elem **pn)
                     case OPpostdec:
                         e1.Eoper = OPminass;
                         op = OPadd;
-                    L3: e.EV.E1 = el_bin(op,e.EV.E1.Ety,e.EV.E1,el_copytree(e1.EV.E2));
+                    L3: e.E1 = el_bin(op,e.E1.Ety,e.E1,el_copytree(e1.E2));
                         break;
 
                     default:
@@ -3604,8 +3597,8 @@ private void elimspecwalk(elem **pn)
                 //go.changes++;
                 doflow = true;
 
-                elimspecwalk(&n.EV.E1);
-                elimspecwalk(&n.EV.E2);
+                elimspecwalk(&n.E1);
+                elimspecwalk(&n.E2);
             }
         }
   }
@@ -3644,43 +3637,43 @@ private void unrollWalker(elem* e, uint defnum, Symbol* v, targ_llong increment,
         {
             if (e.Edef != defnum)
             {
-                walker(e.EV.E2); // this function is @trusted because of this union access
-                walker(e.EV.E1);
+                walker(e.E2); // this function is @trusted because of this union access
+                walker(e.E1);
             }
         }
         else if (OTbinary(op))
         {
             if (e.Edef != defnum)
             {
-                walker(e.EV.E1);
-                walker(e.EV.E2);
+                walker(e.E1);
+                walker(e.E2);
             }
         }
         else if (OTunary(op))
         {
             assert(e.Edef != defnum);
-            walker(e.EV.E1);
+            walker(e.E1);
         }
         else if (op == OPvar &&
                  state &&
-                 e.EV.Vsym == v)
+                 e.Vsym == v)
         {
             // overwrite e with (v+increment)
             elem *e1 = el_calloc();
             el_copy(e1,e);
             e.Eoper = OPadd;
-            e.EV.E1 = e1;
-            e.EV.E2 = el_long(e.Ety, increment * state);
+            e.E1 = e1;
+            e.E2 = el_long(e.Ety, increment * state);
         }
         if (OTdef(op) && e.Edef == defnum)
         {
             // found the increment elem; neuter all but the last one
             if (state + 1 < unrolls)
             {
-                el_free(e.EV.E1);
-                el_free(e.EV.E2);
+                el_free(e.E1);
+                el_free(e.E2);
                 e.Eoper = OPconst;
-                e.EV.Vllong = 0;
+                e.Vllong = 0;
             }
             ++state;
         }
@@ -3707,9 +3700,9 @@ bool loopunroll(ref Loop l)
     /* Do not repeatedly unroll the same loop,
      * or waste time attempting to
      */
-    if (l.Lhead.Bflags & BFLnounroll)
+    if (l.Lhead.Bflags & BFL.nounroll)
         return false;
-    l.Lhead.Bflags |= BFLnounroll;
+    l.Lhead.Bflags |= BFL.nounroll;
     if (log)
         WRfunc("loop", funcsym_p, startblock);
 
@@ -3756,15 +3749,15 @@ bool loopunroll(ref Loop l)
     /* Tail must be of the form: (v < c) or (v <= c) where v is an unsigned integer
      */
     if ((etail.Eoper != OPlt && etail.Eoper != OPle) ||
-        etail.EV.E1.Eoper != OPvar ||
-        etail.EV.E2.Eoper != OPconst)
+        etail.E1.Eoper != OPvar ||
+        etail.E2.Eoper != OPconst)
     {
         if (log) printf("\tnot (v < c)\n");
         return false;
     }
 
-    elem *e1 = etail.EV.E1;
-    elem *e2 = etail.EV.E2;
+    elem *e1 = etail.E1;
+    elem *e2 = etail.E2;
 
     if (!tyintegral(e1.Ety) ||
         tysize(e1.Ety) > targ_llong.sizeof ||
@@ -3784,7 +3777,7 @@ bool loopunroll(ref Loop l)
     }
     if (log) printf("cost %d\n", cost);
 
-    Symbol* v = e1.EV.Vsym;
+    Symbol* v = e1.Vsym;
 
     // RD info is only reliable for registers and autos
     if (!(sytab[v.Sclass] & SCRD) || !(v.Sflags & SFLunambig))
@@ -3803,8 +3796,8 @@ bool loopunroll(ref Loop l)
         return false;
     }
 
-    targ_llong initial = el_tolong(einitial.EV.E2);
-    targ_llong increment = el_tolong(eincrement.EV.E2);
+    targ_llong initial = el_tolong(einitial.E2);
+    targ_llong increment = el_tolong(eincrement.E2);
     if (eincrement.Eoper == OPpostdec || eincrement.Eoper == OPminass)
         increment = -increment;
     targ_llong final_ = el_tolong(e2);
@@ -3829,7 +3822,7 @@ bool loopunroll(ref Loop l)
     {
         if (log) printf("\tjust once\n");
         etail.Eoper = OPcomma;
-        e2.EV.Vllong = 0;
+        e2.Vllong = 0;
         e2.Ety = etail.Ety;
         return false;
     }
@@ -3850,7 +3843,7 @@ bool loopunroll(ref Loop l)
     if (log) printf("Unrolling starting\n");
 
     // Double the increment
-    eincrement.EV.E2.EV.Vllong *= unrolls;
+    eincrement.E2.Vllong *= unrolls;
     //printf("  4head:\t"); WReqn(l.Lhead.Belem); printf("\n");
 
     elem* e = null;
@@ -3872,7 +3865,7 @@ bool loopunroll(ref Loop l)
     {
         if (log) printf("\tcompletely unrolled\n");
         etail.Eoper = OPcomma;
-        e2.EV.Vllong = 0;
+        e2.Vllong = 0;
         e2.Ety = etail.Ety;
     }
 
@@ -3898,8 +3891,8 @@ private int el_length(elem *e)
         {
             if (e.Eoper == OPctor || e.Eoper == OPdtor)
                 return 10_000;
-            n += el_length(e.EV.E2);
-            e = e.EV.E1;
+            n += el_length(e.E2);
+            e = e.E1;
         }
         else
             break;

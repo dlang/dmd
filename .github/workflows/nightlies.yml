@@ -36,9 +36,10 @@ jobs:
       # Fetch all artifacts from the jobs defined above
       #
       - name: Download generated releases from the artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: dmd-release
+          pattern: dmd-release-*
+          merge-multiple: true
           path: ~/artifacts/
 
       #################################################################

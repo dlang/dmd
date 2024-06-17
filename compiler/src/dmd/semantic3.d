@@ -314,7 +314,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         fds.checkInContractOverrides();
 
         // Remember whether we need to generate an 'out' contract.
-        immutable bool needEnsure = FuncDeclaration.needsFensure(funcdecl);
+        immutable bool needEnsure = funcdecl.needsFensure();
 
         if (funcdecl.fbody || funcdecl.frequires || needEnsure)
         {
@@ -919,7 +919,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                                 exp = exp.implicitCastTo(sc2, tret);
 
                             exp = exp.toLvalue(sc2, "`ref` return");
-                            checkReturnEscapeRef(sc2, exp, false);
+                            checkReturnEscapeRef(*sc2, exp, false);
                             exp = exp.optimize(WANTvalue, /*keepLvalue*/ true);
                         }
                         else
@@ -938,7 +938,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                                 exp = doCopyOrMove(sc2, exp, f.next);
 
                             if (tret.hasPointers())
-                                checkReturnEscape(sc2, exp, false);
+                                checkReturnEscape(*sc2, exp, false);
                         }
 
                         exp = checkGC(sc2, exp);

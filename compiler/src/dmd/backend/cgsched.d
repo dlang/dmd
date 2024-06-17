@@ -21,7 +21,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgen : gen1, gen2;
 import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.dlist;
 import dmd.backend.global;
 import dmd.backend.mem;
@@ -158,9 +158,9 @@ public void cgsched_block(block* b)
         config.target_cpu >= TARGET_Pentium &&
         b.BC != BCasm)
     {
-        regm_t scratch = allregs;
+        regm_t scratch = cgstate.allregs;
 
-        scratch &= ~(b.Bregcon.used | b.Bregcon.params | mfuncreg);
+        scratch &= ~(b.Bregcon.used | b.Bregcon.params | cgstate.mfuncreg);
         scratch &= ~(b.Bregcon.immed.mval | b.Bregcon.cse.mval);
         cgsched_pentium(&b.Bcode,scratch);
         //printf("after schedule:\n"); WRcodlst(b.Bcode);
@@ -1275,8 +1275,6 @@ private int pair_class(code *c)
  * Returns:
  *     CInfo struct containing info about c
  */
-
-@trusted
 private Cinfo getinfo(code *c)
 {
     if (!c)
@@ -1468,8 +1466,8 @@ else
             c.Iflags |= CFpsw;
             break;
 
-        case ESCAPE:
-            if (c.Iop == (ESCAPE | ESCadjfpu))
+        case PSOP.root:
+            if (c.Iop == PSOP.adjfpu)
                 ci.fpuadjust = c.IEV1.Vint;
             break;
 
@@ -1892,7 +1890,7 @@ private code * cnext(code *c)
         if (c.Iflags & (CFtarg | CFtarg2))
             break;
         if (!(c.Iop == NOP ||
-              c.Iop == (ESCAPE | ESClinnum)))
+              c.Iop == PSOP.linnum))
             break;
     }
     return c;
@@ -2243,13 +2241,11 @@ nothrow:
         fpustackused = fpustackinit;
     }
 
-    @trusted
     void dtor()
     {
         stagelist.dtor();
     }
 
-@trusted
 code **assemble(code **pc)  // reassemble scheduled instructions
 {
     code *c;
@@ -2787,7 +2783,7 @@ private code * csnip(code *c)
             if (c.Iflags & (CFtarg | CFtarg2))
                 break;
             if (!(c.Iop == NOP ||
-                  c.Iop == (ESCAPE | ESClinnum) ||
+                  c.Iop == PSOP.linnum ||
                   c.Iflags & iflags))
                 break;
         }
@@ -2813,7 +2809,7 @@ private code *schedule(code *c,regm_t scratch)
     while (c)
     {
         if ((c.Iop == NOP ||
-             ((c.Iop & ESCAPEmask) == ESCAPE && c.Iop != (ESCAPE | ESCadjfpu)) ||
+             ((c.Iop & PSOP.mask) == PSOP.root && c.Iop != PSOP.adjfpu) ||
              c.Iflags & CFclassinit) &&
             !(c.Iflags & (CFtarg | CFtarg2)))
         {   code *cn;

@@ -339,7 +339,7 @@ private Symbol *callFuncsAndGates(Module m, Symbol*[] sctors, StaticDtorDeclarat
          *      extern (C) void func();
          */
         t = type_function(TYnfunc, null, false, tstypes[TYvoid]);
-        t.Tmangle = mTYman_c;
+        t.Tmangle = Mangle.c;
     }
 
     localgot = null;
@@ -389,16 +389,7 @@ private void obj_start(ref OutBuffer objbuf, const(char)* srcfile)
     version (Windows)
     {
         import dmd.backend.mscoffobj;
-        import dmd.backend.cgobj;
-
-        // Produce Ms COFF files by default, OMF for -m32omf
-        assert(objbuf.length() == 0);
-        switch (target.objectFormat())
-        {
-            case Target.ObjectFormat.coff: objmod = MsCoffObj_init(&objbuf, srcfile, null); break;
-            case Target.ObjectFormat.omf:  objmod = OmfObj_init(&objbuf, srcfile, null); break;
-            default: assert(0);
-        }
+        objmod = MsCoffObj_init(&objbuf, srcfile, null);
     }
     else
     {
@@ -525,7 +516,7 @@ private void genObjFile(Module m, bool multiobj)
          */
         m.cov = toSymbolX(m, "__coverage", SC.static_, type_fake(TYint), "Z");
         m.cov.Sflags |= SFLhidden;
-        m.cov.Stype.Tmangle = mTYman_d;
+        m.cov.Stype.Tmangle = Mangle.d;
         m.cov.Sfl = FLdata;
 
         auto dtb = DtBuilder(0);
@@ -606,7 +597,7 @@ private void genObjFile(Module m, bool multiobj)
          *      extern (C) void func();
          */
         type *t = type_function(TYnfunc, null, false, tstypes[TYvoid]);
-        t.Tmangle = mTYman_c;
+        t.Tmangle = Mangle.c;
 
         m.sictor = toSymbolX(m, "__modictor", SC.global, t, "FZv");
         cstate.CSpsymtab = &m.sictor.Sfunc.Flocsym;
@@ -1057,8 +1048,9 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 
         foreach (sp; params[0 .. pi])
         {
-            if (fpr.alloc(sp.Stype, sp.Stype.Tty, &sp.Spreg, &sp.Spreg2))
+            if (fpr.alloc(sp.Stype, sp.Stype.Tty, sp.Spreg, sp.Spreg2))
             {
+                // successful allocation
                 sp.Sclass = (target.os == Target.OS.Windows && target.isX86_64) ? SC.shadowreg : SC.fastpar;
                 sp.Sfl = (sp.Sclass == SC.shadowreg) ? FLpara : FLfast;
             }
@@ -1074,7 +1066,7 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 
     Statement sbody = fd.fbody;
 
-    Blockx bx;
+    BlockState bx;
     bx.startblock = block_calloc();
     bx.curblock = bx.startblock;
     bx.funcsym = s;
@@ -1267,7 +1259,7 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     cstate.CSpsymtab = symtabsave;
 
     if (fd.isExport() || driverParams.exportVisibility == ExpVis.public_)
-        objmod.export_symbol(s, cast(uint)Para.offset);
+        objmod.export_symbol(s, cast(uint)cgstate.Para.offset);
 
     if (fd.isCrtCtor)
         objmod.setModuleCtorDtor(s, true);
@@ -1306,7 +1298,7 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             //Build type
             newConstructor.Stype = type_function(TYnfunc, [], false, type_alloc(TYvoid));
             //Tell it it's supposed to be a C function. Does it do anything? Not sure.
-            type_setmangle(&newConstructor.Stype, mTYman_c);
+            type_setmangle(&newConstructor.Stype, Mangle.c);
             symbol_func(*newConstructor);
             //Global SC for now.
             newConstructor.Sclass = SC.static_;
@@ -1319,7 +1311,7 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             Symbol* dso_handle = symbol_calloc("__dso_handle");
             dso_handle.Stype = type_fake(TYint);
             //Try to get MacOS _ prefix-ism right.
-            type_setmangle(&dso_handle.Stype, mTYman_c);
+            type_setmangle(&dso_handle.Stype, Mangle.c);
             dso_handle.Sfl = FLextern;
             dso_handle.Sclass = SC.extern_;
             dso_handle.Stype.Tcount++;
@@ -1388,9 +1380,6 @@ private bool entryPointFunctions(Obj objmod, FuncDeclaration fd)
             case Target.ObjectFormat.coff:
                 objmod.external_def("main");
                 break;
-            case Target.ObjectFormat.omf:
-                objmod.external_def("_main");
-                break;
         }
         if (const libname = finalDefaultlibname())
             obj_includelib(libname);
@@ -1400,16 +1389,7 @@ private bool entryPointFunctions(Obj objmod, FuncDeclaration fd)
     // D runtime library
     if (fd.isRtInit())
     {
-        final switch (target.objectFormat())
-        {
-            case Target.ObjectFormat.elf:
-            case Target.ObjectFormat.macho:
-            case Target.ObjectFormat.coff:
-                objmod.ehsections();   // initialize exception handling sections
-                break;
-            case Target.ObjectFormat.omf:
-                break;
-        }
+        objmod.ehsections();   // initialize exception handling sections
         return true;
     }
 
@@ -1424,11 +1404,6 @@ private bool entryPointFunctions(Obj objmod, FuncDeclaration fd)
                 objmod.includelib("OLDNAMES");
                 break;
 
-            case Target.ObjectFormat.omf:
-                objmod.external_def("__acrtused_con"); // bring in C console startup code
-                objmod.includelib("snn.lib");          // bring in C runtime library
-                break;
-
             default:
                 break;
         }
@@ -1440,23 +1415,10 @@ private bool entryPointFunctions(Obj objmod, FuncDeclaration fd)
         (fd.isWinMain() || fd.isDllMain()) &&
         onlyOneMain(fd))
     {
-        switch (target.objectFormat())
-        {
-            case Target.ObjectFormat.coff:
-                objmod.includelib("uuid");
-                if (driverParams.mscrtlib.length && driverParams.mscrtlib[0])
-                    obj_includelib(driverParams.mscrtlib);
-                objmod.includelib("OLDNAMES");
-                break;
-
-            case Target.ObjectFormat.omf:
-                objmod.external_def(fd.isWinMain() ? "__acrtused" : "__acrtused_dll");
-                break;
-
-            default:
-                assert(0);
-        }
-
+        objmod.includelib("uuid");
+        if (driverParams.mscrtlib.length && driverParams.mscrtlib[0])
+            obj_includelib(driverParams.mscrtlib);
+        objmod.includelib("OLDNAMES");
         if (const libname = finalDefaultlibname())
             obj_includelib(libname);
         return true;
@@ -1654,7 +1616,7 @@ public Symbol* getBzeroSymbol()
 
     s = symbol_calloc("__bzeroBytes");
     s.Stype = type_static_array(128, type_fake(TYuchar));
-    s.Stype.Tmangle = mTYman_c;
+    s.Stype.Tmangle = Mangle.c;
     s.Stype.Tcount++;
     s.Sclass = SC.global;
     s.Sfl = FLdata;

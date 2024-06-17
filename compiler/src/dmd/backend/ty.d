@@ -280,7 +280,6 @@ bool ty64reg(tym_t ty) { return tytab[ty & 0xFF] & (TYFLintegral | TYFLptr | TYF
 uint tyxmmreg(tym_t ty) { return tytab[ty & 0xFF] & TYFLxmmreg; }
 
 // Is a vector type
-@trusted
 bool tyvector(tym_t ty) { return tybasic(ty) >= TYfloat4 && tybasic(ty) <= TYullong4; }
 
 /* Types that are chars or shorts       */
@@ -312,7 +311,6 @@ uint tynullptr(tym_t ty) { return tytab[ty & 0xFF] & TYFLnullptr; }
 uint tyfv(tym_t ty) { return tytab[ty & 0xFF] & TYFLfv; }
 
 /* All data types that fit in exactly 8 bits    */
-@trusted
 bool tybyte(tym_t ty) { return tysize(ty) == 1; }
 
 /* Types that fit into a single machine register        */
