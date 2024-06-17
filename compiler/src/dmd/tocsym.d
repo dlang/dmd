@@ -1,7 +1,7 @@
 /**
  * Convert a D symbol to a symbol the linker understands (with mangled name).
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/tocsym.d, _tocsym.d)
@@ -280,25 +280,25 @@ Symbol *toSymbol(Dsymbol s)
                 type_setcv(&t, t.Tty | mTYvolatile);
             }
 
-            mangle_t m = 0;
+            Mangle m = Mangle.none;
             final switch (vd.resolvedLinkage())
             {
                 case LINK.windows:
-                    m = target.isX86_64 ? mTYman_c : mTYman_std;
+                    m = target.isX86 ? Mangle.stdcall : Mangle.c;
                     break;
 
                 case LINK.objc:
                 case LINK.c:
-                    m = mTYman_c;
+                    m = Mangle.c;
                     break;
 
                 case LINK.d:
-                    m = mTYman_d;
+                    m = Mangle.d;
                     break;
 
                 case LINK.cpp:
                     s.Sflags |= SFLpublic;
-                    m = mTYman_cpp;
+                    m = Mangle.cpp;
                     break;
 
                 case LINK.default_:
@@ -384,7 +384,7 @@ Symbol *toSymbol(Dsymbol s)
                 ? SC.static_
                 : SC.global;
 
-            symbol_func(s);
+            symbol_func(*s);
             func_t *f = s.Sfunc;
             if (fd.isVirtual() && fd.vtblIndex != -1)
                 f.Fflags |= Fvirtual;
@@ -427,7 +427,7 @@ Symbol *toSymbol(Dsymbol s)
             if (fd.isMain())
             {
                 t.Tty = TYnfunc;
-                t.Tmangle = mTYman_c;
+                t.Tmangle = Mangle.c;
                 f.Fflags3 |= Fmain;
             }
             else
@@ -435,7 +435,7 @@ Symbol *toSymbol(Dsymbol s)
                 final switch (fd.resolvedLinkage())
                 {
                     case LINK.windows:
-                        t.Tmangle = target.isX86_64 ? mTYman_c : mTYman_std;
+                        t.Tmangle = target.isX86 ? Mangle.stdcall : Mangle.c;
                         break;
 
                     case LINK.c:
@@ -443,17 +443,17 @@ Symbol *toSymbol(Dsymbol s)
                             s.Sflags |= SFLnounderscore;
                         goto case;
                     case LINK.objc:
-                        t.Tmangle = mTYman_c;
+                        t.Tmangle = Mangle.c;
                         break;
 
                     case LINK.d:
-                        t.Tmangle = mTYman_d;
+                        t.Tmangle = Mangle.d;
                         break;
                     case LINK.cpp:
                         s.Sflags |= SFLpublic;
                         /* Nested functions use the same calling convention as
                          * member functions, because both can be used as delegates. */
-                        if ((fd.isThis() || fd.isNested()) && !target.isX86_64 && target.os == Target.OS.Windows)
+                        if ((fd.isThis() || fd.isNested()) && target.isX86 && target.os == Target.OS.Windows)
                         {
                             if ((cast(TypeFunction)fd.type).parameterList.varargs == VarArg.variadic)
                             {
@@ -464,7 +464,7 @@ Symbol *toSymbol(Dsymbol s)
                                 t.Tty = TYmfunc;
                             }
                         }
-                        t.Tmangle = mTYman_cpp;
+                        t.Tmangle = Mangle.cpp;
                         break;
                     case LINK.default_:
                     case LINK.system:
@@ -534,6 +534,10 @@ Symbol *toSymbol(Dsymbol s)
     scope ToSymbol v = new ToSymbol();
     s.accept(v);
     s.csym = v.result;
+
+    if (isDllImported(s))
+        s.csym.Sisym = createImport(s.csym, s.loc);
+
     return v.result;
 }
 
@@ -557,10 +561,15 @@ private Symbol *createImport(Symbol *sym, Loc loc)
     int idlen;
     if (target.os & Target.OS.Posix)
     {
-        error(loc, "could not generate import symbol for this platform");
-        fatal();
+        error(loc, "cannot generate import symbol `%s` for Posix platform", n);
+        assert(0);
     }
-    else if (sym.Stype.Tmangle == mTYman_std && tyfunc(sym.Stype.Tty))
+    else if (target.os & Target.OS.Windows && sym.Stype.Tty & mTYthread)
+    {
+        error(loc, "cannot generate import symbol for thread local symbol `%s`", n);
+        assert(0);
+    }
+    else if (sym.Stype.Tmangle == Mangle.stdcall && tyfunc(sym.Stype.Tty))
     {
         if (target.os == Target.OS.Windows && target.isX86_64)
             idlen = snprintf(id, allocLen, "__imp_%s",n);
@@ -569,17 +578,19 @@ private Symbol *createImport(Symbol *sym, Loc loc)
     }
     else
     {
-        idlen = snprintf(id, allocLen, (target.os == Target.OS.Windows && target.isX86_64) ? "__imp_%s" : (sym.Stype.Tmangle == mTYman_cpp) ? "_imp_%s" : "_imp__%s",n);
+        idlen = snprintf(id, allocLen, (target.os == Target.OS.Windows && target.isX86_64) ? "__imp_%s" : (sym.Stype.Tmangle == Mangle.cpp) ? "_imp_%s" : "_imp__%s",n);
     }
     auto t = type_alloc(TYnptr | mTYconst);
     t.Tnext = sym.Stype;
     t.Tnext.Tcount++;
-    t.Tmangle = mTYman_c;
+    t.Tmangle = Mangle.c;
     t.Tcount++;
     auto s = symbol_calloc(id[0 .. idlen]);
     s.Stype = t;
     s.Sclass = SC.extern_;
     s.Sfl = FLextern;
+    s.Sflags |= SFLimported;
+
     return s;
 }
 
@@ -587,15 +598,11 @@ private Symbol *createImport(Symbol *sym, Loc loc)
  * Generate import symbol from symbol.
  */
 
-Symbol *toImport(Declaration ds)
+Symbol *toImport(Dsymbol ds)
 {
-    if (!ds.isym)
-    {
-        if (!ds.csym)
-            ds.csym = toSymbol(ds);
-        ds.isym = createImport(ds.csym, ds.loc);
-    }
-    return ds.isym;
+    if (!ds.csym)
+        toSymbol(ds);
+    return ds.csym.Sisym;
 }
 
 /*************************************
@@ -639,7 +646,7 @@ Classsym *fake_classsym(Identifier id)
     t.Ttag.Sstruct.Sflags = STRglobal;
     t.Tflags |= TFsizeunknown | TFforward;
     assert(t.Tmangle == 0);
-    t.Tmangle = mTYman_d;
+    t.Tmangle = Mangle.d;
     return t.Ttag;
 }
 
@@ -656,7 +663,7 @@ Symbol *toVtblSymbol(ClassDeclaration cd, bool genCsymbol = true)
             toSymbol(cd);
 
         auto t = type_allocn(TYnptr | mTYconst, tstypes[TYvoid]);
-        t.Tmangle = mTYman_d;
+        t.Tmangle = Mangle.d;
         auto s = toSymbolX(cd, "__vtbl", SC.extern_, t, "Z");
         s.Sflags |= SFLnodebug;
         s.Sfl = FLextern;
@@ -694,7 +701,7 @@ Symbol *toInitializer(AggregateDeclaration ad)
             sd.type.size() <= 128 &&
             sd.zeroInit &&
             config.objfmt != OBJ_MACH && // same reason as in toobj.d toObjFile()
-            !(config.objfmt == OBJ_MSCOFF && !target.isX86_64)) // -m32mscoff relocations are wrong
+            !(config.objfmt == OBJ_MSCOFF && target.isX86)) // -m32mscoff relocations are wrong
         {
             auto bzsave = bzeroSymbol;
             ad.sinit = getBzeroSymbol();
@@ -728,6 +735,8 @@ Symbol *toInitializer(AggregateDeclaration ad)
             s.Sflags |= SFLnodebug;
             if (sd)
                 s.Salignment = sd.alignment.isDefault() ? -1 : sd.alignment.get();
+            if (isDllImported(ad))
+                s.Sisym = createImport(s, ad.loc);
             ad.sinit = s;
         }
     }
@@ -743,6 +752,8 @@ Symbol *toInitializer(EnumDeclaration ed)
         auto s = toSymbolX(ed, "__init", SC.extern_, stag.Stype, "Z");
         s.Sfl = FLextern;
         s.Sflags |= SFLnodebug;
+        if (isDllImported(ed))
+            s.Sisym = createImport(s, ed.loc);
         ed.sinit = s;
     }
     return ed.sinit;

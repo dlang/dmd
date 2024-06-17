@@ -16,11 +16,24 @@ struct S
 
 __gshared int result; // Trick the optimizer
 
-int main()
+int makeBadInstances()
 {
     auto a = new S;
     auto b = new S;
     a.other = b;
     b.other = a;
     return result;
+}
+
+int destroyStack()
+{
+    int[1000] x = result;
+    return x[123];
+}
+
+int main()
+{
+    int x = makeBadInstances();
+    x += destroyStack();
+    return x;
 }

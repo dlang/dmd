@@ -1,7 +1,7 @@
 /**
  * Converts expressions to Intermediate Representation (IR) for the backend.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/e2ir.d, _e2ir.d)
@@ -31,6 +31,7 @@ import dmd.ctfeexpr;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
+import dmd.dmdparams;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
@@ -38,7 +39,6 @@ import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.expression;
 import dmd.func;
-import dmd.globals;
 import dmd.glue;
 import dmd.hdrgen;
 import dmd.id;
@@ -56,13 +56,14 @@ import dmd.toctype;
 import dmd.toir;
 import dmd.tokens;
 import dmd.toobj;
+import dmd.typinf;
+import dmd.typesem;
 import dmd.visitor;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
 import dmd.backend.code;
-import dmd.backend.code_x86;
 import dmd.backend.cv4;
 import dmd.backend.dt;
 import dmd.backend.el;
@@ -74,6 +75,8 @@ import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.backend.x86.code_x86;
+
 alias Elems = Array!(elem *);
 
 import dmd.backend.util2 : mem_malloc2;
@@ -81,25 +84,18 @@ import dmd.backend.util2 : mem_malloc2;
 
 private int registerSize() { return _tysize[TYnptr]; }
 
-/* If variable var is a reference
- */
-bool ISREF(Declaration var)
-{
-    if (var.isReference())
-    {
-        return true;
-    }
-
-    return ISX64REF(var);
-}
-
-/* If variable var of type typ is a reference due to x64 calling conventions
+/*****
+ * If variable var is a value that will actually be passed as a reference
+ * Params:
+ *      var = parameter variable
+ * Returns:
+ *      true if actually implicitly passed by reference
  */
 bool ISX64REF(Declaration var)
 {
     if (var.isReference())
     {
-        return false;
+        return false; // it's not a value
     }
 
     if (var.isParameter())
@@ -233,12 +229,10 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
             void printHash()
             {
                 // Replace long string with hash of that string
-                import dmd.backend.md5;
-                MD5_CTX mdContext = void;
-                MD5Init(&mdContext);
-                MD5Update(&mdContext, cast(ubyte*)str, cast(uint)(len * sz));
-                MD5Final(&mdContext);
-                foreach (u; mdContext.digest)
+                import dmd.common.blake3;
+                //only use the first 16 bytes to match the length of md5
+                const hash = blake3((cast(ubyte*)str)[0 .. len * sz]);
+                foreach (u; hash[0 .. 16])
                 {
                     ubyte u1 = u >> 4;
                     buf.writeByte((u1 < 10) ? u1 + '0' : u1 + 'A' - 10);
@@ -268,7 +262,7 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
             si.Sclass = SC.comdat;
             si.Stype = type_static_array(cast(uint)(len * sz), tstypes[TYchar]);
             si.Stype.Tcount++;
-            type_setmangle(&si.Stype, mTYman_c);
+            type_setmangle(&si.Stype, Mangle.c);
             si.Sflags |= SFLnodebug | SFLartifical;
             si.Sfl = FLdata;
             si.Salignment = cast(ubyte)sz;
@@ -350,10 +344,10 @@ void toTraceGC(ref IRState irs, elem *e, const ref Loc loc)
     if (irs.params.tracegc && loc.filename)
     {
         assert(e.Eoper == OPcall);
-        elem *e1 = e.EV.E1;
+        elem *e1 = e.E1;
         assert(e1.Eoper == OPvar);
 
-        auto s = e1.EV.Vsym;
+        auto s = e1.Vsym;
         /* In -dip1008 code the allocation of exceptions is no longer done by the
          * gc, but by a manual reference counting mechanism implementend in druntime.
          * If that is the case, then there is nothing to trace.
@@ -364,8 +358,8 @@ void toTraceGC(ref IRState irs, elem *e, const ref Loc loc)
         {
             if (s == getRtlsym(m[0]))
             {
-                e1.EV.Vsym = getRtlsym(m[1]);
-                e.EV.E2 = el_param(e.EV.E2, filelinefunction(irs, loc));
+                e1.Vsym = getRtlsym(m[1]);
+                e.E2 = el_param(e.E2, filelinefunction(irs, loc));
                 return;
             }
         }
@@ -427,21 +421,18 @@ elem *addressElem(elem *e, Type t, bool alwaysCopy = false)
 {
     //printf("addressElem()\n");
 
-    elem **pe;
-    for (pe = &e; (*pe).Eoper == OPcomma; pe = &(*pe).EV.E2)
-    {
-    }
+    elem **pe  = el_scancommas(&e);
 
     // For conditional operator, both branches need conversion.
     if ((*pe).Eoper == OPcond)
     {
-        elem *ec = (*pe).EV.E2;
+        elem *ec = (*pe).E2;
 
-        ec.EV.E1 = addressElem(ec.EV.E1, t, alwaysCopy);
-        ec.EV.E2 = addressElem(ec.EV.E2, t, alwaysCopy);
+        ec.E1 = addressElem(ec.E1, t, alwaysCopy);
+        ec.E2 = addressElem(ec.E2, t, alwaysCopy);
 
-        (*pe).Ejty = (*pe).Ety = cast(ubyte)ec.EV.E1.Ety;
-        (*pe).ET = ec.EV.E1.ET;
+        (*pe).Ejty = (*pe).Ety = cast(ubyte)ec.E1.Ety;
+        (*pe).ET = ec.E1.ET;
 
         e.Ety = TYnptr;
         return e;
@@ -469,7 +460,7 @@ elem *addressElem(elem *e, Type t, bool alwaysCopy = false)
         *pe = el_bin(OPcomma,e2.Ety,eeq,el_var(stmp));
     }
     tym_t typ = TYnptr;
-    if (e.Eoper == OPind && tybasic(e.EV.E1.Ety) == TYimmutPtr)
+    if (e.Eoper == OPind && tybasic(e.E1.Ety) == TYimmutPtr)
         typ = TYimmutPtr;
     e = el_una(OPaddr,typ,e);
     return e;
@@ -490,6 +481,74 @@ void clearStringTab()
     }
 }
 private __gshared StringTable!(Symbol*) *stringTab;
+
+/*********************************************
+ * Figure out whether a data symbol should be dllimported
+ * Params:
+ *      var = declaration of the symbol
+ * Returns:
+ *      true if symbol should be imported from a DLL
+ */
+bool isDllImported(Dsymbol var)
+{
+    if (!(target.os & Target.OS.Windows))
+        return false;
+    if (var.isImportedSymbol())
+        return true;
+    if (driverParams.symImport == SymImport.none)
+        return false;
+    if (auto vd = var.isDeclaration())
+        if (!vd.isDataseg() || vd.isThreadlocal())
+            return false;
+    if (var.isFuncDeclaration())
+        return false; // can always jump through import table
+    if (auto tid = var.isTypeInfoDeclaration())
+    {
+        if (builtinTypeInfo(tid.tinfo))
+            return true;
+        else if (auto ad = isAggregate(tid.type))
+            var = ad;
+    }
+    if (driverParams.symImport == SymImport.defaultLibsOnly)
+    {
+        auto m = var.getModule();
+        if (!m || !m.md)
+            return false;
+        const id = m.md.packages.length ? m.md.packages[0] : null;
+        if (id && id != Id.core && id != Id.std)
+            return false;
+        else if (!id && m.md.id != Id.std && m.md.id != Id.object)
+            return false;
+    }
+    else if (driverParams.symImport != SymImport.all)
+        return false;
+    if (auto mod = var.isModule())
+        return !mod.isRoot(); // non-root ModuleInfo symbol
+    if (var.inNonRoot())
+        return true; // not instantiated, and defined in non-root
+    if (auto ti = var.isInstantiated()) // && !defineOnDeclare(sym, false))
+        return !ti.needsCodegen(); // instantiated but potentially culled (needsCodegen())
+    if (auto vd = var.isVarDeclaration())
+        if (vd.storage_class & STC.extern_)
+            return true; // externally defined global variable
+    return false;
+}
+
+/*********************************************
+ * Generate a backend symbol for a frontend symbol
+ * Params:
+ *      s = frontend symbol
+ * Returns:
+ *      the backend symbol or the associated symbol in the
+ *      import table if it is expected to be imported from a DLL
+ */
+Symbol* toExtSymbol(Dsymbol s)
+{
+    if (isDllImported(s))
+        return toImport(s);
+    else
+        return toSymbol(s);
+}
 
 /*********************************************
  * Convert Expression to backend elem.
@@ -635,7 +694,7 @@ elem* toElem(Expression e, ref IRState irs)
                 e = el_bin(OPadd, TYnptr, ethis, el_long(TYnptr, soffset));
                 if (se.op == EXP.variable)
                     e = el_una(OPind, TYnptr, e);
-                if (ISREF(se.var) && !(ISX64REF(se.var) && v && v.offset && !forceStackAccess))
+                if ((se.var.isReference() || ISX64REF(se.var)) && !(ISX64REF(se.var) && v && v.offset && !forceStackAccess))
                     e = el_una(OPind, s.Stype.Tty, e);
                 else if (se.op == EXP.symbolOffset && nrvo)
                 {
@@ -660,7 +719,7 @@ elem* toElem(Expression e, ref IRState irs)
                     e.ET = Type_toCtype(se.type);
                 elem_setLoc(e, se.loc);
             }
-            if (ISREF(se.var) && !ISX64REF(se.var))
+            if (se.var.isReference())
             {
                 e.Ety = TYnptr;
                 e = el_una(OPind, s.Stype.Tty, e);
@@ -683,7 +742,7 @@ elem* toElem(Expression e, ref IRState irs)
             symbol_add(s);
         }
 
-        if (se.var.isImportedSymbol())
+        if (se.op == EXP.variable && isDllImported(se.var))
         {
             assert(se.op == EXP.variable);
             if (target.os & Target.OS.Posix)
@@ -696,7 +755,7 @@ elem* toElem(Expression e, ref IRState irs)
                 e = el_una(OPind,s.Stype.Tty,e);
             }
         }
-        else if (ISREF(se.var))
+        else if (se.var.isReference() || ISX64REF(se.var))
         {
             // Out parameters are really references
             e = el_var(s);
@@ -883,17 +942,17 @@ elem* toElem(Expression e, ref IRState irs)
         {
             case TYfloat:
             case TYifloat:
-                e.EV.Vfloat = cast(float) re.value;
+                e.Vfloat = cast(float) re.value;
                 break;
 
             case TYdouble:
             case TYidouble:
-                e.EV.Vdouble = cast(double) re.value;
+                e.Vdouble = cast(double) re.value;
                 break;
 
             case TYldouble:
             case TYildouble:
-                e.EV.Vldouble = re.value;
+                e.Vldouble = re.value;
                 break;
 
             default:
@@ -922,47 +981,47 @@ elem* toElem(Expression e, ref IRState irs)
         {
             case TYcfloat:
                 union UF { float f; uint i; }
-                e.EV.Vcfloat.re = cast(float) re;
+                e.Vcfloat.re = cast(float) re;
                 if (CTFloat.isSNaN(re))
                 {
                     UF u;
-                    u.f = e.EV.Vcfloat.re;
+                    u.f = e.Vcfloat.re;
                     u.i &= 0xFFBFFFFFL;
-                    e.EV.Vcfloat.re = u.f;
+                    e.Vcfloat.re = u.f;
                 }
-                e.EV.Vcfloat.im = cast(float) im;
+                e.Vcfloat.im = cast(float) im;
                 if (CTFloat.isSNaN(im))
                 {
                     UF u;
-                    u.f = e.EV.Vcfloat.im;
+                    u.f = e.Vcfloat.im;
                     u.i &= 0xFFBFFFFFL;
-                    e.EV.Vcfloat.im = u.f;
+                    e.Vcfloat.im = u.f;
                 }
                 break;
 
             case TYcdouble:
                 union UD { double d; ulong i; }
-                e.EV.Vcdouble.re = cast(double) re;
+                e.Vcdouble.re = cast(double) re;
                 if (CTFloat.isSNaN(re))
                 {
                     UD u;
-                    u.d = e.EV.Vcdouble.re;
+                    u.d = e.Vcdouble.re;
                     u.i &= 0xFFF7FFFFFFFFFFFFUL;
-                    e.EV.Vcdouble.re = u.d;
+                    e.Vcdouble.re = u.d;
                 }
-                e.EV.Vcdouble.im = cast(double) im;
+                e.Vcdouble.im = cast(double) im;
                 if (CTFloat.isSNaN(re))
                 {
                     UD u;
-                    u.d = e.EV.Vcdouble.im;
+                    u.d = e.Vcdouble.im;
                     u.i &= 0xFFF7FFFFFFFFFFFFUL;
-                    e.EV.Vcdouble.im = u.d;
+                    e.Vcdouble.im = u.d;
                 }
                 break;
 
             case TYcldouble:
-                e.EV.Vcldouble.re = re;
-                e.EV.Vcldouble.im = im;
+                e.Vcldouble.re = re;
+                e.Vcldouble.im = im;
                 break;
 
             default:
@@ -1008,9 +1067,9 @@ elem* toElem(Expression e, ref IRState irs)
             e.Eoper = OPstring;
             // freed in el_free
             const len = cast(size_t)((se.numberOfCodeUnits() + 1) * se.sz);
-            e.EV.Vstring = cast(char *)mem_malloc2(cast(uint) len);
-            se.writeTo(e.EV.Vstring, true);
-            e.EV.Vstrlen = len;
+            e.Vstring = cast(char *)mem_malloc2(cast(uint) len);
+            se.writeTo(e.Vstring, true);
+            e.Vstrlen = len;
             e.Ety = TYnptr;
         }
         else
@@ -1069,13 +1128,13 @@ elem* toElem(Expression e, ref IRState irs)
 
                 if (cd.isNested())
                 {
-                    ey = el_same(&ex);
+                    ey = el_same(ex);
                     ez = el_copytree(ey);
                     if (cd.vthis2)
                         ew = el_copytree(ey);
                 }
                 else if (ne.member)
-                    ez = el_same(&ex);
+                    ez = el_same(ex);
 
                 ex = el_una(OPind, TYstruct, ex);
                 ex = elAssign(ex, ei, null, Type_toCtype(tclass).Tnext);
@@ -1084,7 +1143,7 @@ elem* toElem(Expression e, ref IRState irs)
             }
             else
             {
-                assert(!(global.params.ehnogc && ne.thrownew),
+                assert(!(irs.params.ehnogc && ne.thrownew),
                     "This should have been rewritten to `_d_newThrowable` in the semantic phase.");
 
                 ex = toElem(ne.lowering, irs);
@@ -1092,13 +1151,13 @@ elem* toElem(Expression e, ref IRState irs)
 
                 if (cd.isNested())
                 {
-                    ey = el_same(&ex);
+                    ey = el_same(ex);
                     ez = el_copytree(ey);
                     if (cd.vthis2)
                         ew = el_copytree(ey);
                 }
                 else if (ne.member)
-                    ez = el_same(&ex);
+                    ez = el_same(ex);
                 //elem_print(ex);
                 //elem_print(ey);
                 //elem_print(ez);
@@ -1197,7 +1256,7 @@ elem* toElem(Expression e, ref IRState irs)
 
             ectype = null;
 
-            elem *ev = el_same(&ex);
+            elem *ev = el_same(ex);
 
             if (ne.argprefix)
                     ezprefix = toElem(ne.argprefix, irs);
@@ -1231,7 +1290,7 @@ elem* toElem(Expression e, ref IRState irs)
             else
             {
                 StructLiteralExp sle = StructLiteralExp.create(ne.loc, sd, ne.arguments, t);
-                ez = toElemStructLit(sle, irs, EXP.construct, ev.EV.Vsym, false);
+                ez = toElemStructLit(sle, irs, EXP.construct, ev.Vsym, false);
             }
             //elem_print(ex);
             //elem_print(ey);
@@ -1316,8 +1375,8 @@ elem* toElem(Expression e, ref IRState irs)
                 elem *ez = el_calloc();
                 ez.Eoper = OPconst;
                 ez.Ety = e.Ety;
-                ez.EV.Vcent.lo = 0;
-                ez.EV.Vcent.hi = 0;
+                foreach (ref v; ez.Vlong8)
+                    v = 0;
                 e = el_bin(OPmin, totym(ne.type), ez, e);
                 break;
             }
@@ -1355,8 +1414,8 @@ elem* toElem(Expression e, ref IRState irs)
                 elem *ec = el_calloc();
                 ec.Eoper = OPconst;
                 ec.Ety = e1.Ety;
-                ec.EV.Vcent.lo = ~0L;
-                ec.EV.Vcent.hi = ~0L;
+                foreach (ref v; ec.Vlong8)
+                    v = ~0L;
                 e = el_bin(OPxor, ty, e1, ec);
                 break;
             }
@@ -1429,8 +1488,8 @@ elem* toElem(Expression e, ref IRState irs)
 
             // If e1 is a class object, call the class invariant on it
             if (irs.params.useInvariants == CHECKENABLE.on && t1.ty == Tclass &&
-                !(cast(TypeClass)t1).sym.isInterfaceDeclaration() &&
-                !(cast(TypeClass)t1).sym.isCPPclass())
+                !t1.isTypeClass().sym.isInterfaceDeclaration() &&
+                !t1.isTypeClass().sym.isCPPclass())
             {
                 ts = symbol_genauto(Type_toCtype(t1));
                 einv = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.DINVARIANT)), el_var(ts));
@@ -1438,7 +1497,7 @@ elem* toElem(Expression e, ref IRState irs)
             else if (irs.params.useInvariants == CHECKENABLE.on &&
                 t1.ty == Tpointer &&
                 t1.nextOf().ty == Tstruct &&
-                (inv = (cast(TypeStruct)t1.nextOf()).sym.inv) !is null)
+                (inv = t1.nextOf().isTypeStruct().sym.inv) !is null)
             {
                 // If e1 is a struct object, call the struct invariant on it
                 ts = symbol_genauto(Type_toCtype(t1));
@@ -1594,7 +1653,7 @@ elem* toElem(Expression e, ref IRState irs)
 
             el = toElem(e1, irs);
             el = addressElem(el, e1.type.pointerTo());
-            ev = el_same(&el);
+            ev = el_same(el);
 
             el = el_una(OPind, totym(e1.type), el);
 
@@ -1622,7 +1681,7 @@ elem* toElem(Expression e, ref IRState irs)
             }
 
             el = addressElem(el, be.e1.type.pointerTo());
-            ev = el_same(&el);
+            ev = el_same(el);
 
             el = el_una(OPind, tym, el);
             ev = el_una(OPind, tym, ev);
@@ -1769,7 +1828,7 @@ elem* toElem(Expression e, ref IRState irs)
                 if (el_sideeffect(e1) && e2.Eoper != OPconst)
                 {
                     ex = e1;
-                    e1 = el_same(&ex);
+                    e1 = el_same(ex);
                 }
 
                 // swap
@@ -1923,30 +1982,30 @@ elem* toElem(Expression e, ref IRState irs)
 
                 if (t1.ty == Tarray)
                 {
-                    elen1 = el_una(target.isX86_64 ? OP128_64 : OP64_32, TYsize_t, el_same(&earr1));
-                    esiz1 = el_bin(OPmul, TYsize_t, el_same(&elen1), el_long(TYsize_t, sz));
-                    eptr1 = array_toPtr(t1, el_same(&earr1));
+                    elen1 = el_una(target.isX86_64 ? OP128_64 : OP64_32, TYsize_t, el_same(earr1));
+                    esiz1 = el_bin(OPmul, TYsize_t, el_same(elen1), el_long(TYsize_t, sz));
+                    eptr1 = array_toPtr(t1, el_same(earr1));
                 }
                 else
                 {
                     elen1 = el_long(TYsize_t, (cast(TypeSArray)t1).dim.toInteger());
                     esiz1 = el_long(TYsize_t, t1.size());
                     earr1 = addressElem(earr1, t1);
-                    eptr1 = el_same(&earr1);
+                    eptr1 = el_same(earr1);
                 }
 
                 if (t2.ty == Tarray)
                 {
-                    elen2 = el_una(target.isX86_64 ? OP128_64 : OP64_32, TYsize_t, el_same(&earr2));
-                    esiz2 = el_bin(OPmul, TYsize_t, el_same(&elen2), el_long(TYsize_t, sz));
-                    eptr2 = array_toPtr(t2, el_same(&earr2));
+                    elen2 = el_una(target.isX86_64 ? OP128_64 : OP64_32, TYsize_t, el_same(earr2));
+                    esiz2 = el_bin(OPmul, TYsize_t, el_same(elen2), el_long(TYsize_t, sz));
+                    eptr2 = array_toPtr(t2, el_same(earr2));
                 }
                 else
                 {
                     elen2 = el_long(TYsize_t, (cast(TypeSArray)t2).dim.toInteger());
                     esiz2 = el_long(TYsize_t, t2.size());
                     earr2 = addressElem(earr2, t2);
-                    eptr2 = el_same(&earr2);
+                    eptr2 = el_same(earr2);
                 }
 
                 elem *esize = t2.ty == Tsarray ? esiz2 : esiz1;
@@ -1956,7 +2015,7 @@ elem* toElem(Expression e, ref IRState irs)
                 e = el_bin(eop, TYint, e, el_long(TYint, 0));
 
                 elem *elen = t2.ty == Tsarray ? elen2 : elen1;
-                elem *esizecheck = el_bin(eop, TYint, el_same(&elen), el_long(TYsize_t, 0));
+                elem *esizecheck = el_bin(eop, TYint, el_same(elen), el_long(TYsize_t, 0));
                 e = el_bin(ee.op == EXP.equal ? OPoror : OPandand, TYint, esizecheck, e);
 
                 if (t1.ty == Tsarray && t2.ty == Tsarray)
@@ -2009,8 +2068,8 @@ elem* toElem(Expression e, ref IRState irs)
             elem *ec = el_calloc();
             ec.Eoper = OPconst;
             ec.Ety = totym(t1);
-            ec.EV.Vcent.lo = ~0L;
-            ec.EV.Vcent.hi = ~0L;
+            foreach (ref v; ec.Vlong8)
+                v = ~0L;
             e = el_bin(OPxor, ec.Ety, ex, ec);
         }
         else
@@ -2187,12 +2246,12 @@ elem* toElem(Expression e, ref IRState irs)
                     n1 = array_toPtr(ta, n1);
                     enbytes = toElem(ts.dim, irs);
                     n1x = n1;
-                    n1 = el_same(&n1x);
+                    n1 = el_same(n1x);
                     einit = resolveLengthVar(are.lengthVar, &n1, ta);
                 }
                 else if (ta.ty == Tarray)
                 {
-                    n1 = el_same(&n1x);
+                    n1 = el_same(n1x);
                     einit = resolveLengthVar(are.lengthVar, &n1, ta);
                     enbytes = el_copytree(n1);
                     n1 = array_toPtr(ta, n1);
@@ -2200,16 +2259,16 @@ elem* toElem(Expression e, ref IRState irs)
                 }
                 else if (ta.ty == Tpointer)
                 {
-                    n1 = el_same(&n1x);
+                    n1 = el_same(n1x);
                     enbytes = el_long(TYsize_t, -1);   // largest possible index
                     einit = null;
                 }
 
                 // Enforce order of evaluation of n1[elwr..eupr] as n1,elwr,eupr
                 elem *elwrx = elwr;
-                if (elwr) elwr = el_same(&elwrx);
+                if (elwr) elwr = el_same(elwrx);
                 elem *euprx = eupr;
-                if (eupr) eupr = el_same(&euprx);
+                if (eupr) eupr = el_same(euprx);
 
                 version (none)
                 {
@@ -2239,7 +2298,7 @@ elem* toElem(Expression e, ref IRState irs)
                 {
                     assert(elwr);
                     elem *enbytesx = enbytes;
-                    enbytes = el_same(&enbytesx);
+                    enbytes = el_same(enbytesx);
                     elem *c1 = el_bin(OPle, TYint, el_copytree(eupr), enbytesx);
                     elem *c2 = el_bin(OPle, TYint, el_copytree(elwr), el_copytree(eupr));
                     c1 = el_bin(OPandand, TYint, c1, c2);
@@ -2295,17 +2354,17 @@ elem* toElem(Expression e, ref IRState irs)
 
                 if (!postblit && !destructor)
                 {
-                    elem *ex = el_same(&eto);
+                    elem *ex = el_same(eto);
 
                     /* Returns: length of array ex
                      */
                     static elem *getDotLength(ref IRState irs, elem *eto, elem *ex)
                     {
                         if (eto.Eoper == OPpair &&
-                            eto.EV.E1.Eoper == OPconst)
+                            eto.E1.Eoper == OPconst)
                         {
                             // It's a constant, so just pull it from eto
-                            return el_copytree(eto.EV.E1);
+                            return el_copytree(eto.E1);
                         }
                         else
                         {
@@ -2322,7 +2381,7 @@ elem* toElem(Expression e, ref IRState irs)
                     elem *echeck;
                     if (irs.arrayBoundsCheck()) // check array lengths match and do not overlap
                     {
-                        auto ey = el_same(&efrom);
+                        auto ey = el_same(efrom);
                         auto eleny = getDotLength(irs, efrom, ey);
                         epfr = array_toPtr(ae.e2.type, ey);
 
@@ -2331,9 +2390,9 @@ elem* toElem(Expression e, ref IRState irs)
 
                         /* Don't check overlap if epto and epfr point to different symbols
                          */
-                        if (!(epto.Eoper == OPaddr && epto.EV.E1.Eoper == OPvar &&
-                              epfr.Eoper == OPaddr && epfr.EV.E1.Eoper == OPvar &&
-                              epto.EV.E1.EV.Vsym != epfr.EV.E1.EV.Vsym))
+                        if (!(epto.Eoper == OPaddr && epto.E1.Eoper == OPvar &&
+                              epfr.Eoper == OPaddr && epfr.E1.Eoper == OPvar &&
+                              epto.E1.Vsym != epfr.E1.Vsym))
                         {
                             // Add overlap check (c && (px + nbytes <= py || py + nbytes <= px))
                             auto c2 = el_bin(OPle, TYint, el_bin(OPadd, TYsize_t, el_copytree(epto), el_copytree(nbytes)), el_copytree(epfr));
@@ -2400,7 +2459,7 @@ elem* toElem(Expression e, ref IRState irs)
             e = addressElem(e, ae.e2.type);
             elem *es = toElem(ae.e1, irs);
             if (es.Eoper == OPind)
-                es = es.EV.E1;
+                es = es.E1;
             else
                 es = el_una(OPaddr, TYnptr, es);
             es.Ety = TYnptr;
@@ -2430,7 +2489,7 @@ elem* toElem(Expression e, ref IRState irs)
              *  e1x = *tmp
              */
             e1 = addressElem(e1, null);
-            e1x = el_same(&e1);
+            e1x = el_same(e1);
             e1 = el_una(OPind, tym, e1);
             if (tybasic(tym) == TYstruct)
                 e1.ET = Type_toCtype(ae.e1.type);
@@ -2549,11 +2608,11 @@ elem* toElem(Expression e, ref IRState irs)
                     return setResult2(e);
                 }
 
-                auto ex = e1.Eoper == OPind ? e1.EV.E1 : e1;
-                if (ex.Eoper == OPvar && ex.EV.Voffset == 0 &&
+                auto ex = e1.Eoper == OPind ? e1.E1 : e1;
+                if (ex.Eoper == OPvar && ex.Voffset == 0 &&
                     (ae.op == EXP.construct || ae.op == EXP.blit))
                 {
-                    elem* e = toElemStructLit(sle, irs, ae.op, ex.EV.Vsym, true);
+                    elem* e = toElemStructLit(sle, irs, ae.op, ex.Vsym, true);
                     el_free(e1);
                     return setResult2(e);
                 }
@@ -2737,7 +2796,7 @@ elem* toElem(Expression e, ref IRState irs)
                 * of ev. Put any side effects into re1
                 */
                 elem* re1 = addressElem(e1, ce.e1.type.pointerTo(), false);
-                elem* ev = el_same(&re1);
+                elem* ev = el_same(re1);
 
                 // Append dchar to char[] or wchar[]
                 assert(tb2.ty == Tdchar &&
@@ -2887,7 +2946,7 @@ elem* toElem(Expression e, ref IRState irs)
         elem_setLoc(e, aae.loc);
 
         if (irs.params.cov && aae.e2.loc.linnum)
-            e.EV.E2 = el_combine(incUsageElem(irs, aae.e2.loc), e.EV.E2);
+            e.E2 = el_combine(incUsageElem(irs, aae.e2.loc), e.E2);
 
         return e;
     }
@@ -3076,12 +3135,13 @@ elem* toElem(Expression e, ref IRState irs)
         {
             // adjust bit offset for bitfield so the type tym encloses the bitfield
             const szbits = tysize(tym) * 8;
+            uint memalignsize = target.fieldalign(dve.type);
             auto bitOffset = bf.bitOffset;
             if (bitOffset + bf.fieldWidth > szbits)
             {
-                const advance = bf.bitOffset / szbits;
-                voffset += advance;
-                bitOffset -= advance * 8;
+                const advance = bf.bitOffset / (memalignsize * 8);
+                voffset += advance * memalignsize;
+                bitOffset -= advance * memalignsize * 8;
                 assert(bitOffset + bf.fieldWidth <= szbits);
             }
             //printf("voffset %u bitOffset %u fieldWidth %u bits %u\n", cast(uint)voffset, bitOffset, bf.fieldWidth, szbits);
@@ -3179,7 +3239,7 @@ elem* toElem(Expression e, ref IRState irs)
                 // Get pointer to function out of virtual table
 
                 assert(ethis);
-                ep = el_same(&ethis);
+                ep = el_same(ethis);
                 ep = el_una(OPind, TYnptr, ep);
                 uint vindex = de.func.vtblIndex;
 
@@ -3199,7 +3259,7 @@ elem* toElem(Expression e, ref IRState irs)
             ethis = ethis2;
         if (ethis.Eoper == OPcomma)
         {
-            ethis.EV.E2 = el_pair(TYdelegate, ethis.EV.E2, ep);
+            ethis.E2 = el_pair(TYdelegate, ethis.E2, ep);
             ethis.Ety = TYdelegate;
             e = ethis;
         }
@@ -3276,17 +3336,17 @@ elem* toElem(Expression e, ref IRState irs)
 
                         //printf("test30b\n");
                         if (ec.Eoper == OPcomma &&
-                            ec.EV.E1.Eoper == OPinfo &&
-                            ec.EV.E1.EV.E1.Eoper == OPdctor &&
-                            ec.EV.E1.EV.E2.Eoper == OPcomma)
+                            ec.E1.Eoper == OPinfo &&
+                            ec.E1.E1.Eoper == OPdctor &&
+                            ec.E1.E2.Eoper == OPcomma)
                         {   // ec: ((dctor info (* , *)) , *)
 
                             //printf("test30c\n");
                             dctor = true;                   // remember we detected it
 
                             // Split ec into eeq and ec per comment above
-                            eeq = ec.EV.E1;                   // (dctor info (*, *))
-                            ec.EV.E1 = null;
+                            eeq = ec.E1;                   // (dctor info (*, *))
+                            ec.E1 = null;
                             ec = el_selecte2(ec);           // *
                         }
                     }
@@ -3299,15 +3359,15 @@ elem* toElem(Expression e, ref IRState irs)
             }
             else if (ce.arguments && ce.arguments.length && ec.Eoper != OPvar)
             {
-                if (ec.Eoper == OPind && el_sideeffect(ec.EV.E1))
+                if (ec.Eoper == OPind && el_sideeffect(ec.E1))
                 {
                     /* Rewrite (*exp)(arguments) as:
                      * tmp = exp, (*tmp)(arguments)
                      */
-                    elem *ec1 = ec.EV.E1;
+                    elem *ec1 = ec.E1;
                     Symbol *stmp = symbol_genauto(type_fake(ec1.Ety));
                     eeq = el_bin(OPeq, ec.Ety, el_var(stmp), ec1);
-                    ec.EV.E1 = el_var(stmp);
+                    ec.E1 = el_var(stmp);
                 }
                 else if (tybasic(ec.Ety) != TYnptr)
                 {
@@ -3336,7 +3396,7 @@ elem* toElem(Expression e, ref IRState irs)
                 {   Expression arg = (*arguments)[0];
                     arg = arg.optimize(WANTvalue);
                     if (arg.isConst() && arg.type.isintegral())
-                    {   dinteger_t sz = arg.toInteger();
+                    {   const sz = arg.toInteger();
                         if (sz > 0 && sz < 0x40000)
                         {
                             // It's an alloca(sz) of a fixed amount.
@@ -3366,15 +3426,15 @@ elem* toElem(Expression e, ref IRState irs)
                  * We just do a quick hack to catch the more obvious cases, though
                  * we need to solve this generally.
                  */
-                if (ec.Eoper == OPind && el_sideeffect(ec.EV.E1))
+                if (ec.Eoper == OPind && el_sideeffect(ec.E1))
                 {
                     /* Rewrite (*exp)(arguments) as:
                      * tmp=exp, (*tmp)(arguments)
                      */
-                    elem *ec1 = ec.EV.E1;
+                    elem *ec1 = ec.E1;
                     Symbol *stmp = symbol_genauto(type_fake(ec1.Ety));
                     eeq = el_bin(OPeq, ec.Ety, el_var(stmp), ec1);
-                    ec.EV.E1 = el_var(stmp);
+                    ec.E1 = el_var(stmp);
                 }
                 else if (tybasic(ec.Ety) == TYdelegate && el_sideeffect(ec))
                 {
@@ -3410,20 +3470,20 @@ elem* toElem(Expression e, ref IRState irs)
              *    * (dctor info ((__ctmp = initializer),call(ce, args)))
              *    * (dctor info ((_flag=0),(__ctmp = initializer),call(ce, args)))
              */
-            elem *ea = ecall.EV.E1;           // ea: call(ce,args)
+            elem *ea = ecall.E1;           // ea: call(ce,args)
             tym_t ty = ea.Ety;
-            ecall.EV.E1 = eeq;
+            ecall.E1 = eeq;
             assert(eeq.Eoper == OPinfo);
-            elem *eeqcomma = eeq.EV.E2;
+            elem *eeqcomma = eeq.E2;
             assert(eeqcomma.Eoper == OPcomma);
-            while (eeqcomma.EV.E2.Eoper == OPcomma)
+            while (eeqcomma.E2.Eoper == OPcomma)
             {
                 eeqcomma.Ety = ty;
-                eeqcomma = eeqcomma.EV.E2;
+                eeqcomma = eeqcomma.E2;
             }
             eeq.Ety = ty;
-            el_free(eeqcomma.EV.E2);
-            eeqcomma.EV.E2 = ea;               // replace ,__ctmp with ,call(ce,args)
+            el_free(eeqcomma.E2);
+            eeqcomma.E2 = ea;               // replace ,__ctmp with ,call(ce,args)
             eeqcomma.Ety = ty;
             eeq = null;
         }
@@ -3553,32 +3613,32 @@ elem* toElem(Expression e, ref IRState irs)
                 {
                     case Tfloat32:
                         // Must not call toReal directly, to avoid dmd bug 14203 from breaking dmd
-                        e.EV.Vfloat8[i] = cast(float) complex.re;
+                        e.Vfloat8[i] = cast(float) complex.re;
                         break;
 
                     case Tfloat64:
                         // Must not call toReal directly, to avoid dmd bug 14203 from breaking dmd
-                        e.EV.Vdouble4[i] = cast(double) complex.re;
+                        e.Vdouble4[i] = cast(double) complex.re;
                         break;
 
                     case Tint64:
                     case Tuns64:
-                        e.EV.Vullong4[i] = integer;
+                        e.Vullong4[i] = integer;
                         break;
 
                     case Tint32:
                     case Tuns32:
-                        e.EV.Vulong8[i] = cast(uint)integer;
+                        e.Vulong8[i] = cast(uint)integer;
                         break;
 
                     case Tint16:
                     case Tuns16:
-                        e.EV.Vushort16[i] = cast(ushort)integer;
+                        e.Vushort16[i] = cast(ushort)integer;
                         break;
 
                     case Tint8:
                     case Tuns8:
-                        e.EV.Vuchar32[i] = cast(ubyte)integer;
+                        e.Vuchar32[i] = cast(ubyte)integer;
                         break;
 
                     default:
@@ -3701,7 +3761,7 @@ elem* toElem(Expression e, ref IRState irs)
             if (!einit)
             {
                 einit = e;
-                e = el_same(&einit);
+                e = el_same(einit);
             }
             // e is a temporary, typed:
             //  TYdarray if t.ty == Tarray
@@ -3709,7 +3769,7 @@ elem* toElem(Expression e, ref IRState irs)
 
             elem *elwr = toElem(se.lwr, irs);
             elem *eupr = toElem(se.upr, irs);
-            elem *elwr2 = el_sideeffect(eupr) ? el_copytotmp(&elwr) : el_same(&elwr);
+            elem *elwr2 = el_sideeffect(eupr) ? el_copytotmp(elwr) : el_same(elwr);
             elem *eupr2 = eupr;
 
             //printf("upperIsInBounds = %d lowerIsLessThanUpper = %d\n", se.upperIsInBounds, se.lowerIsLessThanUpper);
@@ -3723,7 +3783,7 @@ elem* toElem(Expression e, ref IRState irs)
                 elem *elen;
                 if (!se.upperIsInBounds)
                 {
-                    eupr2 = el_same(&eupr);
+                    eupr2 = el_same(eupr);
                     eupr2.Ety = TYsize_t;  // make sure unsigned comparison
 
                     if (auto tsa = t1.isTypeSArray())
@@ -3737,7 +3797,7 @@ elem* toElem(Expression e, ref IRState irs)
                         else
                         {
                             elen = e;
-                            e = el_same(&elen);
+                            e = el_same(elen);
                             elen = el_una(target.isX86_64 ? OP128_64 : OP64_32, TYsize_t, elen);
                         }
                     }
@@ -3754,7 +3814,7 @@ elem* toElem(Expression e, ref IRState irs)
                 }
                 else if (!se.lowerIsLessThanUpper)
                 {
-                    eupr2 = el_same(&eupr);
+                    eupr2 = el_same(eupr);
                     eupr2.Ety = TYsize_t;  // make sure unsigned comparison
 
                     c1 = el_bin(OPle, TYint, elwr2, eupr);
@@ -3811,6 +3871,7 @@ elem* toElem(Expression e, ref IRState irs)
             // If se is in left side operand of element-wise
             // assignment, the element type can be painted to the base class.
             int offset;
+            import dmd.typesem : isBaseOf;
             assert(t1.nextOf().equivalent(tb.nextOf()) ||
                    tb.nextOf().isBaseOf(t1.nextOf(), &offset) && offset == 0);
         }
@@ -3865,7 +3926,7 @@ elem* toElem(Expression e, ref IRState irs)
             e = el_bin(OPcall, TYnptr, el_var(s), ep);
             if (irs.arrayBoundsCheck())
             {
-                elem *n = el_same(&e);
+                elem *n = el_same(e);
 
                 // Construct: ((e || arrayBoundsError), n)
                 auto ea = buildRangeError(irs, ie.loc);
@@ -3895,11 +3956,11 @@ elem* toElem(Expression e, ref IRState irs)
                 else if (t1.ty == Tarray)
                 {
                     elength = n1;
-                    n1 = el_same(&elength);
+                    n1 = el_same(elength);
                     elength = el_una(target.isX86_64 ? OP128_64 : OP64_32, TYsize_t, elength);
                 L1:
                     elem *n2x = n2;
-                    n2 = el_same(&n2x);
+                    n2 = el_same(n2x);
                     n2x = el_bin(OPlt, TYint, n2x, elength);
 
                     // Construct: (n2x || arrayBoundsError)
@@ -4235,7 +4296,7 @@ elem *Dsymbol_toElem(Dsymbol s, ref IRState irs)
                 else
                 {
                     // Construct special elems to deal with exceptions
-                    e = el_ctor_dtor(e, edtor, &ed);
+                    e = el_ctor_dtor(e, edtor, ed);
                 }
 
                 // ed needs to be inserted into the code later
@@ -4497,7 +4558,7 @@ elem *toElemCast(CastExp ce, elem *e, bool isLvalue, ref IRState irs)
                 // Set array dimension to (length * (fsize / tsize))
                 // Generate pair(e.length * (fsize/tsize), es.ptr)
 
-                elem *es = el_same(&e);
+                elem *es = el_same(e);
 
                 elem *eptr = el_una(OPmsw, TYnptr, es);
                 elem *elen = el_una(target.isX86_64 ? OP128_64 : OP64_32, TYsize_t, e);
@@ -4543,7 +4604,7 @@ elem *toElemCast(CastExp ce, elem *e, bool isLvalue, ref IRState irs)
                 }
                 else
                 {
-                    elem *etmp = el_same(&e);
+                    elem *etmp = el_same(e);
                     elem *ex = el_bin(OPadd, TYnptr, etmp, el_long(TYsize_t, offset));
                     ex = el_bin(OPcolon, TYnptr, ex, el_long(TYnptr, 0));
                     e = el_bin(OPcond, TYnptr, e, ex);
@@ -4584,10 +4645,53 @@ elem *toElemCast(CastExp ce, elem *e, bool isLvalue, ref IRState irs)
              *  - class     => foreign interface (cross cast)
              *  - interface => base or foreign interface (cross cast)
              */
-            const rtl = cdfrom.isInterfaceDeclaration()
+            auto rtl = cdfrom.isInterfaceDeclaration()
                         ? RTLSYM.INTERFACE_CAST
                         : RTLSYM.DYNAMIC_CAST;
-            elem *ep = el_param(el_ptr(toSymbol(cdto)), e);
+
+            /* Check for:
+             *  class A { }
+             *  final class B : A { }
+             *  ... cast(B) A ...
+             */
+            if (rtl == RTLSYM.DYNAMIC_CAST &&
+                cdto.storage_class & STC.final_ &&
+                cdto.baseClass == cdfrom &&
+                (!cdto.interfaces || cdto.interfaces.length == 0) &&
+                (!cdfrom.interfaces || cdfrom.interfaces.length == 0))
+            {
+                /* do shortcut cast: if e is an instance of B, then it's just a type paint
+                 */
+                //printf("cdfrom: %s cdto: %s\n", cdfrom.toChars(), cdto.toChars());
+                rtl = RTLSYM.PAINT_CAST;
+            }
+            else if (rtl == RTLSYM.DYNAMIC_CAST &&
+                     !cdto.isInterfaceDeclaration())
+            {
+                //printf("cdfrom: %s cdto: %s\n", cdfrom.toChars(), cdto.toChars());
+                int level = 0;
+                auto b = cdto;
+                while (1)
+                {
+                    if (b == cdfrom)
+                        break;
+                    b = b.baseClass;
+                    if (!b)
+                    {
+                        // did not find cdfrom, so cast fails, return null
+                        e = el_long(TYnptr, 0);
+                        return Lret(ce, e);
+                    }
+                    ++level;
+                }
+                if (level == 0)
+                {
+                    return Lret(ce, e); // cast to self
+                }
+                // _d_class_cast(e, cdto);
+                rtl = RTLSYM.CLASS_CAST;
+            }
+            elem *ep = el_param(el_ptr(toExtSymbol(cdto)), e);
             e = el_bin(OPcall, TYnptr, el_var(getRtlsym(rtl)), ep);
         }
         return Lret(ce, e);
@@ -5272,7 +5376,7 @@ elem *useOPstrpar(elem *e)
     if (ty == TYstruct || ty == TYarray)
     {
         e = el_una(OPstrpar, TYstruct, e);
-        e.ET = e.EV.E1.ET;
+        e.ET = e.E1.ET;
         assert(e.ET);
     }
     return e;
@@ -5321,14 +5425,14 @@ elem *callfunc(const ref Loc loc,
         tf = t.nextOf().isTypeFunction();
         assert(tf);
         ethis = ec;
-        ec = el_same(&ethis);
+        ec = el_same(ethis);
         ethis = el_una(target.isX86_64 ? OP128_64 : OP64_32, TYnptr, ethis); // get this
         ec = array_toPtr(t, ec);                // get funcptr
         tym_t tym;
         /* Delegates use the same calling convention as member functions.
          * For extern(C++) on Win32 this differs from other functions.
          */
-        if (tf.linkage == LINK.cpp && !target.isX86_64 && target.os == Target.OS.Windows)
+        if (tf.linkage == LINK.cpp && target.isX86 && target.os == Target.OS.Windows)
             tym = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYmfunc;
         else
             tym = totym(tf);
@@ -5420,7 +5524,7 @@ elem *callfunc(const ref Loc loc,
             {
                 if (ea.Eoper == OPconst)
                 {
-                    ea.EV.Vullong = el_tolong(ea);
+                    ea.Vullong = el_tolong(ea);
                     ea.Ety = TYint;
                 }
                 else
@@ -5449,7 +5553,7 @@ elem *callfunc(const ref Loc loc,
                             opc = OPs16_32;
                         L1:
                             ea = el_una(opc, TYint, ea);
-                            ea.Esrcpos = ea.EV.E1.Esrcpos;
+                            ea.Esrcpos = ea.E1.Esrcpos;
                             break;
 
                         default:
@@ -5517,7 +5621,7 @@ elem *callfunc(const ref Loc loc,
             if (ep)
             {
                 /* // BUG: implement
-                if (left_to_right && type_mangle(tfunc) == mTYman_cpp)
+                if (left_to_right && type_mangle(tfunc) == Mangle.cpp)
                     ep = el_param(ehidden,ep);
                 else
                 */
@@ -5548,7 +5652,7 @@ elem *callfunc(const ref Loc loc,
             if (el_sideeffect(ethis))
             {
                 elem *ex = ethis;
-                ethis = el_copytotmp(&ex);
+                ethis = el_copytotmp(ex);
                 eside = el_combine(ex, eside);
             }
         }
@@ -5579,13 +5683,13 @@ elem *callfunc(const ref Loc loc,
         {
             // make virtual call
             assert(ethis);
-            elem *ev = el_same(&ethis);
+            elem *ev = el_same(ethis);
             ev = el_una(OPind, TYnptr, ev);
             uint vindex = fd.vtblIndex;
             assert(cast(int)vindex >= 0);
 
             // Build *(ev + vindex * 4)
-            if (!target.isX86_64)
+            if (target.isX86)
                 assert(tysize(TYnptr) == 4);
             ec = el_bin(OPadd,TYnptr,ev,el_long(TYsize_t, vindex * tysize(TYnptr)));
             ec = el_una(OPind,TYnptr,ec);
@@ -5620,20 +5724,20 @@ elem *callfunc(const ref Loc loc,
             {   /* This was a volatileStore(ptr, value) operation, rewrite as:
                  *   *ptr = value
                  */
-                e.EV.E1 = el_una(OPind, e.EV.E2.Ety | mTYvolatile, e.EV.E1);
+                e.E1 = el_una(OPind, e.E2.Ety | mTYvolatile, e.E1);
             }
             if (op == OPscale)
             {
-                elem *et = e.EV.E1;
-                e.EV.E1 = el_una(OPs32_d, TYdouble, e.EV.E2);
-                e.EV.E1 = el_una(OPd_ld, TYldouble, e.EV.E1);
-                e.EV.E2 = et;
+                elem *et = e.E1;
+                e.E1 = el_una(OPs32_d, TYdouble, e.E2);
+                e.E1 = el_una(OPd_ld, TYldouble, e.E1);
+                e.E2 = et;
             }
             else if (op == OPyl2x || op == OPyl2xp1)
             {
-                elem *et = e.EV.E1;
-                e.EV.E1 = e.EV.E2;
-                e.EV.E2 = et;
+                elem *et = e.E1;
+                e.E1 = e.E2;
+                e.E2 = et;
             }
         }
         else if (op == OPvector)
@@ -5648,13 +5752,13 @@ elem *callfunc(const ref Loc loc,
              * the optimizer.
              */
             if (e.Eoper == OPparam &&
-                e.EV.E1.Eoper == OPconst &&
-                isXMMstore(cast(uint)el_tolong(e.EV.E1)))
+                e.E1.Eoper == OPconst &&
+                isXMMstore(cast(uint)el_tolong(e.E1)))
             {
                 //printf("OPvecsto\n");
-                elem *tmp = e.EV.E1;
-                e.EV.E1 = e.EV.E2.EV.E1;
-                e.EV.E2.EV.E1 = tmp;
+                elem *tmp = e.E1;
+                e.E1 = e.E2.E1;
+                e.E2.E1 = tmp;
                 e.Eoper = OPvecsto;
                 e.Ety = tyret;
             }
@@ -5727,7 +5831,7 @@ elem *callfunc(const ref Loc loc,
         // CPP constructor returns void on Posix
         // https://itanium-cxx-abi.github.io/cxx-abi/abi.html#return-value-ctor
         e.Ety = TYvoid;
-        e = el_combine(e, el_same(&ethis));
+        e = el_combine(e, el_same(ethis));
     }
     else if (retmethod == RET.stack)
     {
@@ -5819,8 +5923,8 @@ extern (D) elem *fixArgumentEvaluationOrder(elem*[] elems)
     {
         while (e.Eoper == OPcomma)
         {
-            eside = el_combine(eside, e.EV.E1);
-            e = e.EV.E2;
+            eside = el_combine(eside, e.E1);
+            e = e.E2;
             elems[i] = e;
         }
 
@@ -5836,7 +5940,7 @@ extern (D) elem *fixArgumentEvaluationOrder(elem*[] elems)
         }
 
         elem *es = e;
-        elems[i] = el_copytotmp(&es);
+        elems[i] = el_copytotmp(es);
         eside = el_combine(eside, es);
     }
 
@@ -5851,13 +5955,13 @@ extern (D) elem *fixArgumentEvaluationOrder(elem*[] elems)
 bool elemIsLvalue(elem* e)
 {
     while (e.Eoper == OPcomma || e.Eoper == OPinfo)
-        e = e.EV.E2;
+        e = e.E2;
 
     // For conditional operator, both branches need to be lvalues.
     if (e.Eoper == OPcond)
     {
-        elem* ec = e.EV.E2;
-        return elemIsLvalue(ec.EV.E1) && elemIsLvalue(ec.EV.E2);
+        elem* ec = e.E2;
+        return elemIsLvalue(ec.E1) && elemIsLvalue(ec.E2);
     }
 
     if (e.Eoper == OPvar)
@@ -5867,18 +5971,18 @@ bool elemIsLvalue(elem* e)
      */
     elem* ev;
     if (e.Eoper == OPind &&
-        e.EV.E1.Eoper == OPadd &&
-        e.EV.E1.EV.E2.Eoper == OPconst &&
-        e.EV.E1.EV.E1.Eoper == OPaddr &&
-        (ev = e.EV.E1.EV.E1.EV.E1).Eoper == OPvar)
+        e.E1.Eoper == OPadd &&
+        e.E1.E2.Eoper == OPconst &&
+        e.E1.E1.Eoper == OPaddr &&
+        (ev = e.E1.E1.E1).Eoper == OPvar)
     {
-        if (strncmp(ev.EV.Vsym.Sident.ptr, Id.__tmpfordtor.toChars(), 12) == 0)
+        if (strncmp(ev.Vsym.Sident.ptr, Id.__tmpfordtor.toChars(), 12) == 0)
         {
             return false; // don't make reference to object being destroyed
         }
     }
 
-    return e.Eoper == OPind && !OTcall(e.EV.E1.Eoper);
+    return e.Eoper == OPind && !OTcall(e.E1.Eoper);
 }
 
 /*****************************************
@@ -5905,11 +6009,11 @@ elem *array_toPtr(Type t, elem *e)
             if (e.Eoper == OPcomma)
             {
                 e.Ety = TYnptr;
-                e.EV.E2 = array_toPtr(t, e.EV.E2);
+                e.E2 = array_toPtr(t, e.E2);
             }
             else if (e.Eoper == OPpair)
             {
-                if (el_sideeffect(e.EV.E1))
+                if (el_sideeffect(e.E1))
                 {
                     e.Eoper = OPcomma;
                     e.Ety = TYnptr;
@@ -5917,9 +6021,9 @@ elem *array_toPtr(Type t, elem *e)
                 else
                 {
                     auto r = e;
-                    e = e.EV.E2;
+                    e = e.E2;
                     e.Ety = TYnptr;
-                    r.EV.E2 = null;
+                    r.E2 = null;
                     el_free(r);
                 }
             }
@@ -5983,10 +6087,10 @@ elem *array_toDarray(Type t, elem *e)
                     es.Eoper = OPstring;
 
                     // freed in el_free
-                    es.EV.Vstring = cast(char*)mem_malloc2(cast(uint) len);
-                    memcpy(es.EV.Vstring, &e.EV, len);
+                    es.Vstring = cast(char*)mem_malloc2(cast(uint) len);
+                    memcpy(es.Vstring, &e.EV, len);
 
-                    es.EV.Vstrlen = len;
+                    es.Vstrlen = len;
                     es.Ety = TYnptr;
                     e = es;
                     break;
@@ -5997,19 +6101,19 @@ elem *array_toDarray(Type t, elem *e)
                     break;
 
                 case OPcomma:
-                    ef = el_combine(ef, e.EV.E1);
+                    ef = el_combine(ef, e.E1);
                     ex = e;
-                    e = e.EV.E2;
-                    ex.EV.E1 = null;
-                    ex.EV.E2 = null;
+                    e = e.E2;
+                    ex.E1 = null;
+                    ex.E2 = null;
                     el_free(ex);
                     goto L1;
 
                 case OPind:
                     ex = e;
-                    e = e.EV.E1;
-                    ex.EV.E1 = null;
-                    ex.EV.E2 = null;
+                    e = e.E1;
+                    ex.E1 = null;
+                    ex.E2 = null;
                     el_free(ex);
                     break;
 
@@ -6036,7 +6140,7 @@ elem *sarray_toDarray(const ref Loc loc, Type tfrom, Type tto, elem *e)
     //printf("sarray_toDarray()\n");
     //elem_print(e);
 
-    dinteger_t dim = (cast(TypeSArray)tfrom).dim.toInteger();
+    auto dim = tfrom.isTypeSArray().dim.toInteger();
 
     if (tto)
     {
@@ -6067,7 +6171,7 @@ elem *getTypeInfo(Expression e, Type t, ref IRState irs)
 {
     assert(t.ty != Terror);
     TypeInfo_toObjFile(e, e.loc, t);
-    elem* result = el_ptr(toSymbol(t.vtinfo));
+    elem* result = el_ptr(toExtSymbol(t.vtinfo));
     return result;
 }
 
@@ -6136,20 +6240,20 @@ Lagain:
             break;
         case Tfloat32:
         case Timaginary32:
-            if (!target.isX86_64)
+            if (target.isX86)
                 goto default;          // legacy binary compatibility
             r = RTLSYM.MEMSETFLOAT;
             break;
         case Tfloat64:
         case Timaginary64:
-            if (!target.isX86_64)
+            if (target.isX86)
                 goto default;          // legacy binary compatibility
             r = RTLSYM.MEMSETDOUBLE;
             break;
 
         case Tstruct:
         {
-            if (!target.isX86_64)
+            if (target.isX86)
                 goto default;
 
             TypeStruct tc = cast(TypeStruct)tb2;
@@ -6642,7 +6746,7 @@ elem *toElemStructLit(StructLiteralExp sle, ref IRState irs, EXP op, Symbol *sym
 
 elem *appendDtors(ref IRState irs, elem *er, size_t starti, size_t endi)
 {
-    //printf("appendDtors(%d .. %d)\n", starti, endi);
+    //printf("appendDtors(%d .. %d)\n", cast(int)starti, cast(int)endi);
 
     /* Code gen can be improved by determining if no exceptions can be thrown
      * between the OPdctor and OPddtor, and eliminating the OPdctor and OPddtor.
@@ -6667,7 +6771,7 @@ elem *appendDtors(ref IRState irs, elem *er, size_t starti, size_t endi)
     {
         if (irs.target.os == Target.OS.Windows && !irs.target.isX86_64) // Win32
         {
-            Blockx *blx = irs.blx;
+            BlockState *blx = irs.blx;
             nteh_declarvars(blx);
         }
 
@@ -6682,7 +6786,7 @@ elem *appendDtors(ref IRState irs, elem *er, size_t starti, size_t endi)
         else
         {
             elem **pe;
-            for (pe = &er; (*pe).Eoper == OPcomma; pe = &(*pe).EV.E2)
+            for (pe = &er; (*pe).Eoper == OPcomma; pe = &(*pe).E2)
             {
             }
             elem *erx = *pe;
@@ -6696,7 +6800,7 @@ elem *appendDtors(ref IRState irs, elem *er, size_t starti, size_t endi)
                 /* Lvalue, take a pointer to it
                  */
                 elem *ep = el_una(OPaddr, TYnptr, erx);
-                elem *e = el_same(&ep);
+                elem *e = el_same(ep);
                 ep = el_combine(ep, edtors);
                 ep = el_combine(ep, e);
                 e = el_una(OPind, erx.Ety, ep);
@@ -6705,7 +6809,7 @@ elem *appendDtors(ref IRState irs, elem *er, size_t starti, size_t endi)
             }
             else
             {
-                elem *e = el_copytotmp(&erx);
+                elem *e = el_copytotmp(erx);
                 erx = el_combine(erx, edtors);
                 *pe = el_combine(erx, e);
             }
@@ -6919,20 +7023,26 @@ elem *callCAssert(ref IRState irs, const ref Loc loc, Expression exp, Expression
     }
     else
     {
-        version (CRuntime_Musl)
+        Symbol *assertSym;
+        elem* params;
+        with (TargetC.Runtime) switch (irs.target.c.runtime)
         {
-            // __assert_fail(exp, file, line, func);
-            elem* efunc = getFuncName();
-            auto eassert = el_var(getRtlsym(RTLSYM.C__ASSERT_FAIL));
-            ea = el_bin(OPcall, TYvoid, eassert, el_params(elmsg, efilename, eline, efunc, null));
+            case Musl:
+            case Glibc:
+                // __assert_fail(exp, file, line, func);
+                assertSym = getRtlsym(RTLSYM.C__ASSERT_FAIL);
+                elem* efunc = getFuncName();
+                params = el_params(efunc, eline, efilename, elmsg, null);
+                break;
+            default:
+                // [_]_assert(msg, file, line);
+                const rtlsym = (irs.target.os == Target.OS.Windows) ? RTLSYM.C_ASSERT : RTLSYM.C__ASSERT;
+                assertSym = getRtlsym(rtlsym);
+                params = el_params(eline, efilename, elmsg, null);
+                break;
         }
-        else
-        {
-            // [_]_assert(msg, file, line);
-            const rtlsym = (irs.target.os == Target.OS.Windows) ? RTLSYM.C_ASSERT : RTLSYM.C__ASSERT;
-            auto eassert = el_var(getRtlsym(rtlsym));
-            ea = el_bin(OPcall, TYvoid, eassert, el_params(eline, efilename, elmsg, null));
-        }
+        auto eassert = el_var(assertSym);
+        ea = el_bin(OPcall, TYvoid, eassert, params);
     }
     return ea;
 }
@@ -7010,9 +7120,9 @@ elem* constructVa_start(elem* e)
     {
         // (OPparam &arg &va)  note arguments are swapped from 64 bit path
         // call as (OPva_start &va)
-        auto earg = e.EV.E1;
-        e.EV.E1 = e.EV.E2;
-        e.EV.E2 = earg;
+        auto earg = e.E1;
+        e.E1 = e.E2;
+        e.E2 = earg;
     }
     return e;
 }

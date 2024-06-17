@@ -1,7 +1,7 @@
 /**
  * Invoke the linker as a separate process.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/link.d, _link.d)
@@ -13,14 +13,13 @@ module dmd.link;
 
 import core.stdc.ctype;
 import core.stdc.stdio;
+import core.stdc.stdlib;
 import core.stdc.string;
-import core.sys.posix.stdio;
-import core.sys.posix.stdlib;
-import core.sys.posix.unistd;
-import core.sys.windows.winbase;
-import core.sys.windows.windef;
+
+import dmd.astenums;
 import dmd.dmdparams;
 import dmd.errors;
+import dmd.errorsink;
 import dmd.globals;
 import dmd.location;
 import dmd.root.array;
@@ -33,12 +32,28 @@ import dmd.root.rmem;
 import dmd.root.string;
 import dmd.utils;
 import dmd.target;
-import dmd.vsoptions;
 
-version (Posix) extern (C) int pipe(int*);
-
-version (Windows)
+version (Posix)
 {
+    import core.sys.posix.stdio;
+    import core.sys.posix.stdlib;
+    import core.sys.posix.unistd;
+
+    extern (C)
+    {
+        int pipe(int*);
+        pid_t vfork(); // work around lack of 'vfork' in older druntime binding for non-Glibc
+    }
+}
+else version (Windows)
+{
+    import core.sys.windows.windows;
+    import core.sys.windows.wtypes;
+    import core.sys.windows.psapi;
+    import core.sys.windows.winbase;
+    import core.sys.windows.windef;
+    import dmd.vsoptions;
+
     /* https://www.digitalmars.com/rtl/process.html#_spawn
      * https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/spawnvp-wspawnvp?view=msvc-170
      */
@@ -50,125 +65,75 @@ version (Windows)
         int spawnvp(int, const char*, const char**);
         enum _P_WAIT = 0;
     }
-}
 
-// Workaround lack of 'vfork' in older druntime binding for non-Glibc
-version (Posix) extern(C) pid_t vfork();
-version (CRuntime_Microsoft)
-{
-  // until the new windows bindings are available when building dmd.
-  static if(!is(STARTUPINFOA))
-  {
-    alias STARTUPINFOA = STARTUPINFO;
-
-    // dwCreationFlags for CreateProcess() and CreateProcessAsUser()
-    enum : DWORD {
-      DEBUG_PROCESS               = 0x00000001,
-      DEBUG_ONLY_THIS_PROCESS     = 0x00000002,
-      CREATE_SUSPENDED            = 0x00000004,
-      DETACHED_PROCESS            = 0x00000008,
-      CREATE_NEW_CONSOLE          = 0x00000010,
-      NORMAL_PRIORITY_CLASS       = 0x00000020,
-      IDLE_PRIORITY_CLASS         = 0x00000040,
-      HIGH_PRIORITY_CLASS         = 0x00000080,
-      REALTIME_PRIORITY_CLASS     = 0x00000100,
-      CREATE_NEW_PROCESS_GROUP    = 0x00000200,
-      CREATE_UNICODE_ENVIRONMENT  = 0x00000400,
-      CREATE_SEPARATE_WOW_VDM     = 0x00000800,
-      CREATE_SHARED_WOW_VDM       = 0x00001000,
-      CREATE_FORCEDOS             = 0x00002000,
-      BELOW_NORMAL_PRIORITY_CLASS = 0x00004000,
-      ABOVE_NORMAL_PRIORITY_CLASS = 0x00008000,
-      CREATE_BREAKAWAY_FROM_JOB   = 0x01000000,
-      CREATE_WITH_USERPROFILE     = 0x02000000,
-      CREATE_DEFAULT_ERROR_MODE   = 0x04000000,
-      CREATE_NO_WINDOW            = 0x08000000,
-      PROFILE_USER                = 0x10000000,
-      PROFILE_KERNEL              = 0x20000000,
-      PROFILE_SERVER              = 0x40000000
-    }
-  }
-}
-
-/****************************************
- * Write filename to cmdbuf, quoting if necessary.
- */
-private void writeFilename(OutBuffer* buf, const(char)[] filename) @safe
-{
-    /* Loop and see if we need to quote
-     */
-    foreach (const char c; filename)
+    // until the new windows bindings are available when building dmd.
+    static if(!is(STARTUPINFOA))
     {
-        if (isalnum(c) || c == '_')
-            continue;
-        /* Need to quote
-         */
-        buf.writeByte('"');
-        buf.writestring(filename);
-        buf.writeByte('"');
-        return;
-    }
-    /* No quoting necessary
-     */
-    buf.writestring(filename);
-}
+        alias STARTUPINFOA = STARTUPINFO;
 
-private void writeFilename(OutBuffer* buf, const(char)* filename)
-{
-    writeFilename(buf, filename.toDString());
+        // dwCreationFlags for CreateProcess() and CreateProcessAsUser()
+        enum : DWORD {
+            DEBUG_PROCESS               = 0x00000001,
+            DEBUG_ONLY_THIS_PROCESS     = 0x00000002,
+            CREATE_SUSPENDED            = 0x00000004,
+            DETACHED_PROCESS            = 0x00000008,
+            CREATE_NEW_CONSOLE          = 0x00000010,
+            NORMAL_PRIORITY_CLASS       = 0x00000020,
+            IDLE_PRIORITY_CLASS         = 0x00000040,
+            HIGH_PRIORITY_CLASS         = 0x00000080,
+            REALTIME_PRIORITY_CLASS     = 0x00000100,
+            CREATE_NEW_PROCESS_GROUP    = 0x00000200,
+            CREATE_UNICODE_ENVIRONMENT  = 0x00000400,
+            CREATE_SEPARATE_WOW_VDM     = 0x00000800,
+            CREATE_SHARED_WOW_VDM       = 0x00001000,
+            CREATE_FORCEDOS             = 0x00002000,
+            BELOW_NORMAL_PRIORITY_CLASS = 0x00004000,
+            ABOVE_NORMAL_PRIORITY_CLASS = 0x00008000,
+            CREATE_BREAKAWAY_FROM_JOB   = 0x01000000,
+            CREATE_WITH_USERPROFILE     = 0x02000000,
+            CREATE_DEFAULT_ERROR_MODE   = 0x04000000,
+            CREATE_NO_WINDOW            = 0x08000000,
+            PROFILE_USER                = 0x10000000,
+            PROFILE_KERNEL              = 0x20000000,
+            PROFILE_SERVER              = 0x40000000
+        }
+     }
 }
+else
+    static assert(0, "unsupported operating system");
 
 version (Posix)
 {
     /*****************************
-     * As it forwards the linker error message to stderr, checks for the presence
-     * of an error indicating lack of a main function (NME_ERR_MSG).
+     * Extract stderr piped through `fd` into OutBuffer `o` so it can be parsed for better error messages.
      *
-     * Returns:
-     *      1 if there is a no main error
-     *     -1 if there is an IO error
-     *      0 otherwise
+     * Returns: `true` on success, `false` on IO error
      */
-    private int findNoMainError(int fd)
+    private bool pipeProcessOutput(int fd, ref OutBuffer o)
     {
-        version (OSX)
-        {
-            static immutable(char*) nmeErrorMessage = "`__Dmain`, referenced from:";
-        }
-        else
-        {
-            static immutable(char*) nmeErrorMessage = "undefined reference to `_Dmain`";
-        }
         FILE* stream = fdopen(fd, "r");
         if (stream is null)
-            return -1;
+            return false;
         const(size_t) len = 64 * 1024 - 1;
-        char[len + 1] buffer; // + '\0'
+        char[len + 1] buffer = '\0'; // + '\0'
         size_t beg = 0, end = len;
-        bool nmeFound = false;
         for (;;)
         {
             // read linker output
             const(size_t) n = fread(&buffer[beg], 1, len - beg, stream);
             if (beg + n < len && ferror(stream))
-                return -1;
-            buffer[(end = beg + n)] = '\0';
-            // search error message, stop at last complete line
-            const(char)* lastSep = strrchr(buffer.ptr, '\n');
-            if (lastSep)
-                buffer[(end = lastSep - &buffer[0])] = '\0';
-            if (strstr(&buffer[0], nmeErrorMessage))
-                nmeFound = true;
-            if (lastSep)
-                buffer[end++] = '\n';
-            if (fwrite(&buffer[0], 1, end, stderr) < end)
-                return -1;
+                return false;
+            end = beg + n;
+
+            o.writestring(buffer[0 .. end]);
+            if (fwrite(&buffer[0], char.sizeof, end, stderr) < end)
+                return false;
             if (beg + n < len && feof(stream))
                 break;
             // copy over truncated last line
             memcpy(&buffer[0], &buffer[end], (beg = len - end));
         }
-        return nmeFound ? 1 : 0;
+        return true;
     }
 }
 
@@ -214,10 +179,16 @@ version (Windows)
     }
 }
 
+enum STATUS_FAILED = -1;
+
 /*****************************
- * Run the linker.  Return status of execution.
+ * Run the linker.
+ * Params:
+ *      verbose = print command to be executed
+ *      eSink = message sink
+ *  Returns: status of execution. STATUS_FAILED if failed for other reasons
  */
-public int runLINK()
+public int runLINK(bool verbose, ErrorSink eSink)
 {
     const phobosLibname = finalDefaultlibname();
 
@@ -269,7 +240,7 @@ public int runLINK()
             }
             // Make sure path to exe file exists
             if (!ensurePathToNameExists(Loc.initial, global.params.exefile))
-                fatal();
+                return STATUS_FAILED;
             cmdbuf.writeByte(' ');
             if (global.params.mapfile)
             {
@@ -324,7 +295,7 @@ public int runLINK()
             if (!linkcmd)
                 linkcmd = vsopt.linkerPath(target.isX86_64);
 
-            if (!target.isX86_64 && FileName.equals(FileName.name(linkcmd), "lld-link.exe"))
+            if (target.isX86 && FileName.equals(FileName.name(linkcmd), "lld-link.exe"))
             {
                 // object files not SAFESEH compliant, but LLD is more picky than MS link
                 cmdbuf.writestring(" /SAFESEH:NO");
@@ -346,7 +317,7 @@ public int runLINK()
             {
                 lnkfilename = FileName.forceExt(global.params.exefile, "lnk");
                 if (!writeFile(Loc.initial, lnkfilename, p))
-                    fatal();
+                    return STATUS_FAILED;
                 if (lnkfilename.length < p.length)
                 {
                     p[0] = '@';
@@ -355,127 +326,14 @@ public int runLINK()
                 }
             }
 
-            const int status = executecmd(linkcmd, p.ptr);
+            OutBuffer buf;
+            const int status = executecmd(linkcmd, p.ptr, verbose, eSink, buf);
             if (lnkfilename)
             {
                 lnkfilename.toCStringThen!(lf => remove(lf.ptr));
                 FileName.free(lnkfilename.ptr);
             }
-            return status;
-        }
-        else if (target.objectFormat() == Target.ObjectFormat.omf)
-        {
-            OutBuffer cmdbuf;
-            global.params.libfiles.push("user32");
-            global.params.libfiles.push("kernel32");
-            for (size_t i = 0; i < global.params.objfiles.length; i++)
-            {
-                if (i)
-                    cmdbuf.writeByte('+');
-                const(char)[] p = global.params.objfiles[i].toDString();
-                const(char)[] basename = FileName.removeExt(FileName.name(p));
-                const(char)[] ext = FileName.ext(p);
-                if (ext.length && !strchr(basename.ptr, '.'))
-                {
-                    // Write name sans extension (but not if a double extension)
-                    writeFilename(&cmdbuf, p[0 .. $ - ext.length - 1]);
-                }
-                else
-                    writeFilename(&cmdbuf, p);
-                FileName.free(basename.ptr);
-            }
-            cmdbuf.writeByte(',');
-            if (global.params.exefile)
-                writeFilename(&cmdbuf, global.params.exefile);
-            else
-            {
-                setExeFile();
-            }
-            // Make sure path to exe file exists
-            if (!ensurePathToNameExists(Loc.initial, global.params.exefile))
-                fatal();
-            cmdbuf.writeByte(',');
-            if (global.params.mapfile)
-                writeFilename(&cmdbuf, global.params.mapfile);
-            else if (driverParams.map)
-            {
-                writeFilename(&cmdbuf, getMapFilename());
-            }
-            else
-                cmdbuf.writestring("nul");
-            cmdbuf.writeByte(',');
-            for (size_t i = 0; i < global.params.libfiles.length; i++)
-            {
-                if (i)
-                    cmdbuf.writeByte('+');
-                writeFilename(&cmdbuf, global.params.libfiles[i]);
-            }
-            if (global.params.deffile)
-            {
-                cmdbuf.writeByte(',');
-                writeFilename(&cmdbuf, global.params.deffile);
-            }
-            /* Eliminate unnecessary trailing commas    */
-            while (1)
-            {
-                const size_t i = cmdbuf.length;
-                if (!i || cmdbuf[i - 1] != ',')
-                    break;
-                cmdbuf.setsize(cmdbuf.length - 1);
-            }
-            if (global.params.resfile)
-            {
-                cmdbuf.writestring("/RC:");
-                writeFilename(&cmdbuf, global.params.resfile);
-            }
-            if (driverParams.map || global.params.mapfile)
-                cmdbuf.writestring("/m");
-            version (none)
-            {
-                if (debuginfo)
-                    cmdbuf.writestring("/li");
-                if (codeview)
-                {
-                    cmdbuf.writestring("/co");
-                    if (codeview3)
-                        cmdbuf.writestring(":3");
-                }
-            }
-            else
-            {
-                if (driverParams.symdebug)
-                    cmdbuf.writestring("/co");
-            }
-            cmdbuf.writestring("/noi");
-            for (size_t i = 0; i < global.params.linkswitches.length; i++)
-            {
-                cmdbuf.writestring(global.params.linkswitches[i]);
-            }
-            cmdbuf.writeByte(';');
-            cmdbuf.writeByte(0); //null terminate the buffer
-            char[] p = cmdbuf.extractSlice()[0 .. $-1];
-            const(char)[] lnkfilename;
-            if (p.length > 7000)
-            {
-                lnkfilename = FileName.forceExt(global.params.exefile, "lnk");
-                if (!writeFile(Loc.initial, lnkfilename, p))
-                    fatal();
-                if (lnkfilename.length < p.length)
-                {
-                    p[0] = '@';
-                    p[1 .. lnkfilename.length +1] = lnkfilename;
-                    p[lnkfilename.length +1] = 0;
-                }
-            }
-            const(char)* linkcmd = getenv("LINKCMD");
-            if (!linkcmd)
-                linkcmd = "optlink";
-            const int status = executecmd(linkcmd, p.ptr);
-            if (lnkfilename)
-            {
-                lnkfilename.toCStringThen!(lf => remove(lf.ptr));
-                FileName.free(lnkfilename.ptr);
-            }
+            parseLinkerOutput(cast(const(char)[]) buf.peekSlice(), new ErrorSinkCompiler());
             return status;
         }
         else
@@ -536,7 +394,7 @@ public int runLINK()
                 int fd = mkstemp(name.ptr);
                 if (fd == -1)
                 {
-                    error(Loc.initial, "error creating temporary file");
+                    eSink.error(Loc.initial, "error creating temporary file");
                     return 1;
                 }
                 else
@@ -580,7 +438,7 @@ public int runLINK()
         }
         // Make sure path to exe file exists
         if (!ensurePathToNameExists(Loc.initial, global.params.exefile))
-            fatal();
+            return STATUS_FAILED;
         if (driverParams.symdebug)
             argv.push("-g");
         if (target.isX86_64)
@@ -778,17 +636,17 @@ public int runLINK()
             // Link against -lexecinfo for backtrace symbols
             argv.push("-lexecinfo");
         }
-        if (global.params.v.verbose)
+        OutBuffer buf;
+        foreach (i; 0 .. argv.length)
         {
-            // Print it
-            OutBuffer buf;
-            for (size_t i = 0; i < argv.length; i++)
-            {
-                buf.writestring(argv[i]);
-                buf.writeByte(' ');
-            }
-            message(buf.peekChars());
+            buf.writestring(argv[i]);
+            buf.writeByte(' ');
         }
+        const(char)* linkerCommand = buf.peekChars();
+
+        if (verbose)
+            eSink.message(Loc.initial, "%s", linkerCommand);
+
         argv.push(null);
         // set up pipes
         int[2] fds;
@@ -811,68 +669,64 @@ public int runLINK()
         else if (childpid == -1)
         {
             perror("unable to fork");
-            return -1;
+            return STATUS_FAILED;
         }
         close(fds[1]);
-        const(int) nme = findNoMainError(fds[0]);
+        OutBuffer outputBuf;
+        const pipeSuccess = pipeProcessOutput(fds[0], outputBuf);
+
+        ///
         waitpid(childpid, &status, 0);
         if (WIFEXITED(status))
         {
             status = WEXITSTATUS(status);
             if (status)
             {
-                if (nme == -1)
+                if (!pipeSuccess)
                 {
                     perror("error with the linker pipe");
                     return -1;
                 }
                 else
                 {
-                    error(Loc.initial, "linker exited with status %d", status);
-                    if (nme == 1)
-                        error(Loc.initial, "no main function specified");
+                    parseLinkerOutput(cast(const(char)[]) outputBuf.peekSlice(), new ErrorSinkCompiler());
+                    eSink.error(Loc.initial, "linker exited with status %d", status);
+                    eSink.errorSupplemental(Loc.initial, "%s", linkerCommand);
                 }
             }
         }
         else if (WIFSIGNALED(status))
         {
-            error(Loc.initial, "linker killed by signal %d", WTERMSIG(status));
+            eSink.error(Loc.initial, "linker killed by signal %d", WTERMSIG(status));
             status = 1;
         }
         return status;
     }
     else
     {
-        error(Loc.initial, "linking is not yet supported for this version of DMD.");
+        eSink.error(Loc.initial, "linking is not yet supported for this version of DMD.");
         return -1;
     }
 }
 
 
 /******************************
- * Execute a rule.  Return the status.
- *      cmd     program to run
- *      args    arguments to cmd, as a string
+ * Execute a rule.
+ * Params:
+ *      cmd =   program to run
+ *      args =  arguments to cmd, as a string
+ *      verbose = print command to be executed
+ *      eSink = message sink
+ * Returns:
+ *      the status
  */
 version (Windows)
 {
-    private int executecmd(const(char)* cmd, const(char)* args)
+    private int executecmd(const(char)* cmd, const(char)* args, bool verbose, ErrorSink eSink, ref OutBuffer buf)
     {
         int status;
-        size_t len;
-        if (global.params.v.verbose)
-            message("%s %s", cmd, args);
-        if (target.objectFormat() == Target.ObjectFormat.omf)
-        {
-            if ((len = strlen(args)) > 255)
-            {
-                status = putenvRestorable("_CMDLINE", args[0 .. len]);
-                if (status == 0)
-                    args = "@_CMDLINE";
-                else
-                    error(Loc.initial, "command line length of %llu is too long", cast(ulong) len);
-            }
-        }
+        if (verbose)
+            eSink.message(Loc.initial, "%s %s", cmd, args);
         // Normalize executable path separators
         // https://issues.dlang.org/show_bug.cgi?id=9330
         cmd = toWinPath(cmd);
@@ -887,14 +741,44 @@ version (Windows)
                 cmdbuf.writestring("\" ");
                 cmdbuf.writestring(args);
 
+                HANDLE[2] pipe;
+                SECURITY_ATTRIBUTES saAttr;
+                saAttr.nLength = SECURITY_ATTRIBUTES.sizeof;
+                saAttr.bInheritHandle = true;
+                saAttr.lpSecurityDescriptor = null;
+                if (!CreatePipe(&pipe[0], &pipe[1], &saAttr, /*buffer size suggestion*/ 0))
+                {
+                    GetLastError();
+                }
+                if (!SetHandleInformation(pipe[0], /*mask*/ HANDLE_FLAG_INHERIT, /*flags*/ 0))
+                {
+                    GetLastError();
+                }
+
                 STARTUPINFOA startInf;
+                startInf.cb = startInf.sizeof;
                 startInf.dwFlags = STARTF_USESTDHANDLES;
                 startInf.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
-                startInf.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+                startInf.hStdOutput = pipe[1];
                 startInf.hStdError = GetStdHandle(STD_ERROR_HANDLE);
                 PROCESS_INFORMATION procInf;
 
                 BOOL b = CreateProcessA(null, cmdbuf.peekChars(), null, null, 1, NORMAL_PRIORITY_CLASS, null, null, &startInf, &procInf);
+                CloseHandle(pipe[1]); // child does not need this end
+
+                ubyte[1024] buffer;
+                DWORD bytesRead;
+                for (;;)
+                {
+                    if (ReadFile(pipe[0], buffer.ptr, buffer.length, &bytesRead, /*lpOverlapped*/ null))
+                    {
+                        fwrite(buffer.ptr, bytesRead, ubyte.sizeof, stderr);
+                        buf.write(buffer[0 .. bytesRead]);
+                    }
+                    else
+                        break;
+                }
+
                 if (b)
                 {
                     WaitForSingleObject(procInf.hProcess, INFINITE);
@@ -920,9 +804,12 @@ version (Windows)
         if (status)
         {
             if (status == -1)
-                error(Loc.initial, "can't run '%s', check PATH", cmd);
+                eSink.error(Loc.initial, "can't run '%s', check PATH", cmd);
             else
-                error(Loc.initial, "linker exited with status %d", status);
+            {
+                eSink.error(Loc.initial, "linker exited with status %d", status);
+                errorSupplemental(Loc.initial, "%s %s", cmd, args);
+            }
         }
         return status;
     }
@@ -953,50 +840,59 @@ version (Windows)
 
 /***************************************
  * Run the compiled program.
- * Return exit status.
+ * Params:
+ *      exefile = program name
+ *      runargs = arguments to exefile
+ *      verbose = print command to be executed
+ *      eSink = message sink
+ * Returns: exit status
  */
-public int runProgram()
+public int runProgram(const char[] exefile, const char*[] runargs, bool verbose, ErrorSink eSink)
 {
     //printf("runProgram()\n");
-    if (global.params.v.verbose)
+
+    // print command line to user
+    if (verbose)
     {
         OutBuffer buf;
-        buf.writestring(global.params.exefile);
-        for (size_t i = 0; i < global.params.runargs.length; ++i)
+        buf.writestring(exefile);
+        foreach (arg; runargs)
         {
             buf.writeByte(' ');
-            buf.writestring(global.params.runargs[i]);
+            buf.writestring(arg);
         }
-        message(buf.peekChars());
+        eSink.message(Loc.initial, buf.peekChars());
     }
+
     // Build argv[]
     Strings argv;
-    argv.push(global.params.exefile.xarraydup.ptr);
-    for (size_t i = 0; i < global.params.runargs.length; ++i)
+    argv.push(exefile.xarraydup.ptr);
+    foreach (arg; runargs)
     {
-        const(char)* a = global.params.runargs[i];
         version (Windows)
         {
             // BUG: what about " appearing in the string?
-            if (strchr(a, ' '))
+            if (strchr(arg, ' '))
             {
-                const blen = 3 + strlen(a);
+                const blen = 3 + strlen(arg);
                 char* b = cast(char*)mem.xmalloc(blen);
-                snprintf(b, blen, "\"%s\"", a);
-                a = b;
+                snprintf(b, blen, "\"%s\"", arg);
+                argv.push(b);
+                continue;
             }
         }
-        argv.push(a);
+        argv.push(arg);
     }
     argv.push(null);
-    restoreEnvVars();
+
+    // Execute program
     version (Windows)
     {
-        const(char)[] ex = FileName.name(global.params.exefile);
-        if (ex == global.params.exefile)
+        const(char)[] ex = FileName.name(exefile);
+        if (ex == exefile)
             ex = FileName.combine(".", ex);
         else
-            ex = global.params.exefile;
+            ex = exefile;
         // spawnlp returns intptr_t in some systems, not int
         return spawnv(0, ex.xarraydup.ptr, argv.tdata());
     }
@@ -1016,7 +912,7 @@ public int runProgram()
                     // If execv returns, it failed to execute
                     perror(fnp.ptr);
                 });
-            return -1;
+            _exit(-1);
         }
         waitpid(childpid, &status, 0);
         if (WIFEXITED(status))
@@ -1026,7 +922,7 @@ public int runProgram()
         }
         else if (WIFSIGNALED(status))
         {
-            error(Loc.initial, "program killed by signal %d", WTERMSIG(status));
+            eSink.error(Loc.initial, "program killed by signal %d", WTERMSIG(status));
             status = 1;
         }
         return status;
@@ -1040,21 +936,51 @@ public int runProgram()
 /***************************************
  * Run the C preprocessor.
  * Params:
+ *    loc = source location where preprocess is requested from
  *    cpp = name of C preprocessor program
  *    filename = C source file name
  *    importc_h = filename of importc.h
  *    cppswitches = array of switches to pass to C preprocessor
- *    output = preprocessed output file name
+ *    verbose = print progress to eSink
+ *    eSink = for verbose messages and error messages
  *    defines = buffer to append any `#define` and `#undef` lines encountered to
+ *    text = set to preprocessed text
  * Returns:
- *    exit status.
+ *    error status, 0 for success
  */
-public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char)* importc_h, ref Array!(const(char)*) cppswitches,
-    const(char)[] output, OutBuffer* defines)
+public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] filename, const(char)* importc_h, ref Array!(const(char)*) cppswitches,
+    bool verbose, ErrorSink eSink, ref OutBuffer defines, out DArray!ubyte text)
 {
     //printf("runPreprocessor() cpp: %.*s filename: %.*s\n", cast(int)cpp.length, cpp.ptr, cast(int)filename.length, filename.ptr);
+
     version (Windows)
     {
+        // generate unique temporary file name for preprocessed output
+        const(char)* tmpname = tmpnam(null);
+        assert(tmpname);
+        const(char)[] ifilename = tmpname[0 .. strlen(tmpname) + 1];
+        ifilename = xarraydup(ifilename);
+        const(char)[] output = ifilename;
+
+        int returnResult(int status)
+        {
+            if (status)
+            {
+                eSink.error(loc, "C preprocess command %.*s failed for file %s, exit status %d\n",
+                    cast(int)cpp.length, cpp.ptr, filename.ptr, status);
+                return STATUS_FAILED;
+            }
+            //printf("C preprocess succeeded %s\n", ifilename.ptr);
+            OutBuffer buf;
+            auto readResult = File.read(ifilename, buf);
+            File.remove(ifilename.ptr);
+            Mem.xfree(cast(void*)ifilename.ptr);
+            if (readResult)
+                return STATUS_FAILED;
+            text = DArray!ubyte(cast(ubyte[])buf.extractSlice(true));
+            return 0;
+        }
+
         // Build argv[]
         Strings argv;
         if (target.objectFormat() == Target.ObjectFormat.coff)
@@ -1065,7 +991,7 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
                  */
                 OutBuffer buf;
                 buf.writestring(cpp);
-                buf.printf(" /P /Zc:preprocessor /PD /nologo %.*s /FI%s /Fi%.*s",
+                buf.printf(" /P /Zc:preprocessor /PD /nologo /utf-8 %.*s /FI%s /Fi%.*s",
                     cast(int)filename.length, filename.ptr, importc_h, cast(int)output.length, output.ptr);
 
                 /* Append preprocessor switches to command line
@@ -1079,8 +1005,8 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
                     }
                 }
 
-                if (global.params.v.verbose)
-                    message(buf.peekChars());
+                if (verbose)
+                    eSink.message(Loc.initial, buf.peekChars());
 
                 ubyte[2048] buffer = void;
 
@@ -1129,6 +1055,57 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
                 // Convert command to wchar
                 wchar[1024] scratch = void;
                 auto smbuf = SmallBuffer!wchar(scratch.length, scratch[]);
+
+                // INCLUDE
+                static VSOptions vsopt; // cache, as this can be expensive
+                static Strings includePaths;
+                if (includePaths.length == 0)
+                {
+                    if (!vsopt.VSInstallDir)
+                        vsopt.initialize();
+
+                    if (auto vcincludedir = vsopt.getVCIncludeDir()) {
+                        includePaths.push(vcincludedir);
+                    } else {
+                        return STATUS_FAILED;
+                    }
+                    if (auto sdkincludedir = vsopt.getSDKIncludePath()) {
+                        includePaths.push(FileName.combine(sdkincludedir, "ucrt"));
+                        includePaths.push(FileName.combine(sdkincludedir, "shared"));
+                        includePaths.push(FileName.combine(sdkincludedir, "um"));
+                        includePaths.push(FileName.combine(sdkincludedir, "winrt"));
+                        includePaths.push(FileName.combine(sdkincludedir, "cppwinrt"));
+                    } else {
+                        includePaths = Strings.init;
+                        return STATUS_FAILED;
+                    }
+                }
+
+                // Get current environment variable and rollback
+                auto oldIncludePathLen = GetEnvironmentVariableW("INCLUDE"w.ptr, null, 0);
+                wchar* oldIncludePaths = cast(wchar*)mem.xmalloc(oldIncludePathLen * wchar.sizeof);
+                oldIncludePathLen = GetEnvironmentVariableW("INCLUDE"w.ptr, oldIncludePaths, oldIncludePathLen);
+                scope (exit)
+                {
+                    SetEnvironmentVariableW("INCLUDE"w.ptr, oldIncludePaths);
+                    mem.xfree(oldIncludePaths);
+                }
+
+                // Make new environment variable
+                OutBuffer envbuf;
+                foreach (inc; includePaths[])
+                {
+                    if (FileName.exists(inc) == 2)
+                    {
+                        envbuf.write(cast(const ubyte[])toWStringz(inc[0..strlen(inc)], smbuf));
+                        envbuf.writewchar(';');
+                    }
+                }
+                envbuf.write(cast(const ubyte[])oldIncludePaths[0..oldIncludePathLen]);
+                envbuf.writewchar('\0');
+                // Temporarily set INCLUDE environment variable
+                SetEnvironmentVariableW("INCLUDE"w.ptr, cast(LPCWSTR)envbuf.buf);
+
                 auto szCommand = toWStringz(buf.peekChars()[0 .. buf.length], smbuf);
 
                 int exitCode = runProcessCollectStdout(szCommand.ptr, buffer[], &sink);
@@ -1136,7 +1113,7 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
                 if (linebuf.length && print)  // anything leftover from stdout collection
                     printf("%s\n", defines.peekChars());
 
-                return exitCode;
+                return returnResult(exitCode);
             }
             else
             {
@@ -1152,111 +1129,8 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
 
                 argv.push(null);                     // argv[] always ends with a null
                 // spawnlp returns intptr_t in some systems, not int
-                return spawnvp(_P_WAIT, "cl".ptr, argv.tdata());
-            }
-        }
-        else if (target.objectFormat() == Target.ObjectFormat.omf)
-        {
-            /* Digital Mars Win32 target
-             * sppn filename -oooutput
-             * https://www.digitalmars.com/ctg/sc.html
-             */
-
-            static if (1)
-            {
-                /* Run command
-                 */
-                OutBuffer buf;
-                buf.writestring(cpp);
-                buf.printf(" %.*s -HI%s -ED -o%.*s",
-                    cast(int)filename.length, filename.ptr, importc_h, cast(int)output.length, output.ptr);
-
-                /* Append preprocessor switches to command line
-                 */
-                foreach (a; cppswitches)
-                {
-                    if (a && a[0])
-                    {
-                        buf.writeByte(' ');
-                        buf.writestring(a);
-                    }
-                }
-
-                if (global.params.v.verbose)
-                    message(buf.peekChars());
-
-                ubyte[2048] buffer = void;
-
-                /* Write lines captured from stdout to either defines[] or stdout
-                 */
-                enum S
-                {
-                    start, // start of line
-                    hash,  // write to defines[]
-                    other, // write to stdout
-                }
-
-                S state = S.start;
-
-                void sinkomf(ubyte[] data)
-                {
-                    foreach (c; data)
-                    {
-                        final switch (state)
-                        {
-                            case S.start:
-                                if (c == '#')
-                                {
-                                    defines.writeByte(c);
-                                    state = S.hash;
-                                }
-                                else
-                                {
-                                    fputc(c, stdout);
-                                    state = S.other;
-                                }
-                                break;
-
-                            case S.hash:
-                                defines.writeByte(c);
-                                if (c == '\n')
-                                    state = S.start;
-                                break;
-
-                            case S.other:
-                                fputc(c, stdout);
-                                if (c == '\n')
-                                    state = S.start;
-                                break;
-                        }
-                    }
-                    //printf("%.*s", cast(int)data.length, data.ptr);
-                }
-
-                // Convert command to wchar
-                wchar[1024] scratch = void;
-                auto smbuf = SmallBuffer!wchar(scratch.length, scratch[]);
-                auto szCommand = toWStringz(buf.peekChars()[0 .. buf.length], smbuf);
-
-                //printf("szCommand: %ls\n", szCommand.ptr);
-                int exitCode = runProcessCollectStdout(szCommand.ptr, buffer[], &sinkomf);
-                printf("\n");
-                return exitCode;
-            }
-            else
-            {
-                auto cmd = cpp.xarraydup.ptr;
-                argv.push(cmd);                      // Digita; Mars C preprocessor
-                argv.push(filename.xarraydup.ptr);   // and the input file
-
-                OutBuffer buf;
-                buf.writestring("-o");        // https://www.digitalmars.com/ctg/sc.html#dashofilename
-                buf.writeString(output);
-                argv.push(buf.extractData()); // output file
-
-                argv.push(null);              // argv[] always ends with a null
-                // spawnlp returns intptr_t in some systems, not int
-                return spawnvp(_P_WAIT, cmd, argv.tdata());
+                auto exitCode = spawnvp(_P_WAIT, "cl".ptr, argv.tdata());
+                return returnResult(exitCode);
             }
         }
         else
@@ -1292,7 +1166,6 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
             argv.push("-include");          // OSX cpp has switch order dependencies
             argv.push(importc_h);
             argv.push(filename.xarraydup.ptr);  // and the input
-            argv.push("-o");                // specify output file
         }
         else
         {
@@ -1300,12 +1173,9 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
             argv.push("-include");
             argv.push(importc_h);
         }
-        if (target.os == Target.OS.FreeBSD || target.os == Target.OS.OpenBSD)
-            argv.push("-o");                // specify output file
-        argv.push(output.xarraydup.ptr);    // and the output
         argv.push(null);                    // argv[] always ends with a null
 
-        if (global.params.v.verbose)
+        if (verbose)
         {
             OutBuffer buf;
 
@@ -1318,20 +1188,50 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
                     buf.writestring(a);
                 }
             }
-            message(buf.peekChars());
+            eSink.message(Loc.initial, buf.peekChars());
+        }
+
+        // pipe so we can read the output of the preprocssor
+        int[2] pipefd;      // [0] is read, [1] is write
+        if (pipe(&pipefd[0]) == -1) {
+            perror("pipe");     // failed to create pipe
+            return STATUS_FAILED;
         }
 
         pid_t childpid = fork();
+        if (childpid == -1) {
+            perror("fork failed");     // fork failed
+            return STATUS_FAILED;
+        }
+
         if (childpid == 0)
-        {
+        {   // we're in the child process which will fork the preprocessor
+            close(pipefd[0]);  // don't need read
+            dup2(pipefd[1], STDOUT_FILENO);  // stdout to our pipe
+
             const(char)[] fn = argv[0].toDString();
             fn.toCStringThen!((fnp) {
                     execvp(fnp.ptr, argv.tdata());
-                    // If execv returns, it failed to execute
-                    perror(fnp.ptr);
+                    perror(fnp.ptr);   // execv returned, so it must have failed
+                    _exit(-1);
                 });
-            return -1;
+            _exit(-1);
         }
+
+        // Read the stdout from the preprocessor and append it to buffer
+        close(pipefd[1]);  // don't need write
+        OutBuffer buffer;
+        ubyte[1024] tmp = void;
+        ptrdiff_t nread;
+        while ((nread = read(pipefd[0], tmp.ptr, tmp.length)) > 0) {
+            buffer.write(tmp[0 .. nread]);
+        }
+
+        if (nread == -1) {
+            perror("read");
+            return STATUS_FAILED;
+        }
+
         int status;
         waitpid(childpid, &status, 0);
         if (WIFEXITED(status))
@@ -1341,10 +1241,19 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
         }
         else if (WIFSIGNALED(status))
         {
-            error(Loc.initial, "program killed by signal %d", WTERMSIG(status));
+            eSink.error(Loc.initial, "program killed by signal %d", WTERMSIG(status));
             status = 1;
         }
-        return status;
+
+        if (status)
+        {
+            eSink.error(loc, "C preprocess command %.*s failed for file %s, exit status %d\n",
+                cast(int)cpp.length, cpp.ptr, filename.ptr, status);
+            return STATUS_FAILED;
+        }
+
+        text = DArray!ubyte(cast(ubyte[])buffer.extractSlice(true));
+        return 0;
     }
     else
     {
@@ -1368,10 +1277,6 @@ public int runPreprocessor(const(char)[] cpp, const(char)[] filename, const(char
 version (Windows)
 int runProcessCollectStdout(const(wchar)* szCommand, ubyte[] buffer, void delegate(ubyte[]) sink)
 {
-    import core.sys.windows.windows;
-    import core.sys.windows.wtypes;
-    import core.sys.windows.psapi;
-
     //printf("runProcess() command: %ls\n", szCommand);
     // Set the bInheritHandle flag so pipe handles are inherited.
     SECURITY_ATTRIBUTES saAttr;
@@ -1437,16 +1342,19 @@ int runProcessCollectStdout(const(wchar)* szCommand, ubyte[] buffer, void delega
 
     while (true)
     {
+        bSuccess = GetExitCodeProcess(piProcInfo.hProcess, &exitCode);
+        // flush pipe even if program finished
         DWORD dwlen = cast(DWORD)buffer.length;
-        bSuccess = PeekNamedPipe(hStdOutRead, buffer.ptr + bytesFilled, dwlen - bytesFilled, &bytesRead, &bytesAvailable, null);
+        if (bSuccess)
+            bSuccess = PeekNamedPipe(hStdOutRead, buffer.ptr + bytesFilled, dwlen - bytesFilled, &bytesRead, &bytesAvailable, null);
         if (bSuccess && bytesRead > 0)
             bSuccess = ReadFile(hStdOutRead, buffer.ptr + bytesFilled, dwlen - bytesFilled, &bytesRead, null);
         if (bSuccess && bytesRead > 0)
         {
             sink(buffer[0 .. bytesRead]);
+            continue; // keep on reading from pipe before returning
         }
 
-        bSuccess = GetExitCodeProcess(piProcInfo.hProcess, &exitCode);
         if (!bSuccess || exitCode != 259) //259 == STILL_ACTIVE
         {
             break;
@@ -1461,4 +1369,265 @@ int runProcessCollectStdout(const(wchar)* szCommand, ubyte[] buffer, void delega
     CloseHandle(piProcInfo.hThread);
 
     return exitCode;
+}
+
+/****************************************
+ * Write filename to cmdbuf, quoting if necessary.
+ */
+private void writeFilename(OutBuffer* buf, const(char)* filename)
+{
+    writeFilename(buf, filename.toDString());
+}
+
+private void writeFilename(OutBuffer* buf, const(char)[] filename) @safe
+{
+    /* Loop and see if we need to quote
+     */
+    foreach (const char c; filename)
+    {
+        if (isalnum(c) || c == '_')
+            continue;
+        /* Need to quote
+         */
+        buf.writeByte('"');
+        buf.writestring(filename);
+        buf.writeByte('"');
+        return;
+    }
+    /* No quoting necessary
+     */
+    buf.writestring(filename);
+}
+
+/**
+Translate linker output to more user-friendly error messages, by extracting mangled symbols and demangling them
+Params:
+    linkerOutput = text that the linker printed
+    eSink = sink for translated errors
+*/
+void parseLinkerOutput(const(char)[] linkerOutput, ErrorSink eSink)
+{
+    // Some linkers quote symbols like `so' or 'so', strip the quotes
+    static string unquote(string s)
+    {
+        if (s.length < 2)
+            return s;
+        if (s[0] == '\'' || s[0] == '`' || s[0] == '"')
+            s = s[1 .. $];
+        if (s[$ - 1] == '\'' || s[$ - 1] == '"')
+            s = s[0 .. $ - 1];
+        return s;
+    }
+
+    static string stripLeft(string s)
+    {
+        while (s.length > 0 && s[0] == ' ')
+            s = s[1 .. $];
+        return s;
+    }
+
+    bool missingSymbols = false;
+    bool missingDfunction = false;
+    bool missingMain = false;
+
+    void missingSymbol(const(char)[] name, const(char)[] referencedFrom)
+    {
+        import core.demangle: demangle;
+        if (name.startsWith("__D"))
+            name = name[1 .. $]; // MS LINK prepends underscore to the existing one
+        auto sym = demangle(name);
+
+        missingSymbols = true;
+        if (sym == "main")
+            missingMain = true;
+        if (sym != name)
+            missingDfunction = true;
+
+        eSink.error(Loc.initial, "undefined reference to `%.*s`", cast(int) sym.length, sym.ptr);
+        if (referencedFrom.length > 0)
+        {
+            if (referencedFrom.startsWith("__D"))
+                referencedFrom = referencedFrom[1 .. $];
+
+            const(char)[] refFunc = demangle(referencedFrom);
+            eSink.errorSupplemental(Loc.initial, "referenced from `%.*s`", cast(int) refFunc.length, refFunc.ptr);
+        }
+    }
+
+    string lastSymbol;
+    void parseLine(const char[] line)
+    {
+        if (auto s0 = line.findSplit(" undefined reference to "))
+        {
+            if (string sym = unquote(s0[2]))
+            {
+                if (auto r = s0[0].findBetween("(.text.", "["))
+                    missingSymbol(sym, r);
+                else if (auto r = s0[0].findBetween(":function ", ":(.text"))
+                    missingSymbol(sym, r);
+                else
+                    missingSymbol(sym, null);
+            }
+        }
+        if (auto s0 = line.findSplit("LNK2019: unresolved external symbol "))
+        {
+            if (auto s1 = s0[2].findSplit(" referenced in function "))
+                missingSymbol(s1[0], s1[2]);
+            else
+                missingSymbol(s0[2], null);
+        }
+        if (auto s0 = line.findSplit("undefined symbol: "))
+        {
+            missingSymbol(s0[2], null);
+        }
+        if (auto s0 = line.findSplit(", referenced from:"))
+        {
+            if (string sym = unquote(stripLeft(s0[0])))
+            {
+                lastSymbol = sym; // ;missingSymbol(sym, null);
+            }
+        }
+        if (lastSymbol.length > 0)
+        {
+            if (auto s0 = line.findSplit(" in "))
+                missingSymbol(lastSymbol, stripLeft(s0[0]));
+            else
+                missingSymbol(lastSymbol,null);
+
+            lastSymbol = null;
+        }
+
+    }
+
+    size_t s = 0;
+    foreach (i; 0 .. linkerOutput.length)
+    {
+        if (linkerOutput[i] == '\n')
+        {
+            const cr = i > 0 && linkerOutput[i - 1] == '\r';
+            parseLine(linkerOutput[s .. i - cr]);
+            s = i + 1;
+        }
+    }
+    parseLine(linkerOutput[s .. $]);
+
+    if (missingMain)
+        eSink.errorSupplemental(Loc.initial, "perhaps define a `void main() {}` function or use the `-main` switch");
+
+    if (missingDfunction)
+        eSink.errorSupplemental(Loc.initial, "perhaps `.d` files need to be added on the command line, or use `-i` to compile imports");
+    else if (missingSymbols)
+        eSink.errorSupplemental(Loc.initial, "perhaps a library needs to be added with the `-L` flag or `pragma(lib, ...)`");
+}
+
+unittest
+{
+    // The following strings are the output of various linkers for this code:
+    // module app; void f(); void g() { f(); }
+
+    // ld (bfd is very similar)
+    string ldOutput = "
+/usr/bin/ld: app.o: in function `_D3app1gFZv':
+app.d:(.text._D3app1gFZv[_D3app1gFZv]+0x5): undefined reference to `_D3app1fFZv'
+";
+
+    // lld (mold is very similar)
+    string lldOutput = "
+ld.lld: error: undefined symbol: _D3app1fFZv
+>>> referenced by app.d
+>>>               app.o:(_D3app1gFZv)
+>>> did you mean: _D3app1gFZv
+>>> defined in: app.o
+";
+
+    // gold linker
+    string goldOutput = "
+app.o:app.d:function _D3app1gFZv:(.text._D3app1gFZv+0x5): error: undefined reference to '_D3app1fFZv'
+";
+
+    // Microsoft LINK
+    string linkOutput = "
+app.obj : error LNK2019: unresolved external symbol __D3app1fFZv referenced in function __D3app1gFZv
+app.exe : fatal error LNK1120: 1 unresolved externals
+";
+
+    // ld on MacOS
+    string macLd0 = `
+Undefined symbols for architecture arm64:
+  "__D3app1fFZv", referenced from:
+      __D3app1gFZv in app.o
+  "__D3app1hFZv", referenced from:
+      __D3app1fFZv in app.o
+ld: symbol(s) not found for architecture arm64
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+`;
+
+    string macLd1 = `
+ld: Undefined symbols:
+  __D3app1fFZv, referenced from:
+  __D3app1gFZv in test6.o
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+`;
+
+    class ErrorSinkTest : ErrorSink
+    {
+        public int errorCount = 0;
+        string expectedFormat = "undefined reference to `%.*s`";
+        string[] expectedSymbols;
+
+        extern(C++): override:
+
+        void error(const ref Loc loc, const(char)* format, ...)
+        {
+            assert(format[0 .. strlen(format)] == expectedFormat);
+            va_list ap;
+            va_start(ap, format);
+            const expectedSymbol = expectedSymbols[errorCount++];
+            assert(va_arg!int(ap) == expectedSymbol.length);
+            const actualSymbol = va_arg!(char*)(ap)[0 .. expectedSymbol.length];
+            assert(actualSymbol == expectedSymbol, "expected " ~ expectedSymbol ~ ", not " ~ actualSymbol);
+        }
+
+        void errorSupplemental(const ref Loc loc, const(char)* format, ...)
+        {
+            assert(format.startsWith("perhaps") || format.startsWith("referenced from "));
+        }
+
+        void warning(const ref Loc loc, const(char)* format, ...) {}
+        void warningSupplemental(const ref Loc loc, const(char)* format, ...) {}
+        void message(const ref Loc loc, const(char)* format, ...) {}
+        void deprecation(const ref Loc loc, const(char)* format, ...) {}
+        void deprecationSupplemental(const ref Loc loc, const(char)* format, ...) {}
+    }
+
+    void test(T...)(string linkerName, string output, T expectedSymbols)
+    {
+        auto testSink = new ErrorSinkTest();
+        testSink.expectedSymbols = [expectedSymbols];
+        parseLinkerOutput(output, testSink);
+        assert(testSink.errorCount > 0, "failed to demangle output of " ~ linkerName);
+    }
+
+    test("ld", ldOutput, "void app.f()");
+    test("lld", lldOutput, "void app.f()");
+    test("gold", goldOutput, "void app.f()");
+    test("link", linkOutput, "void app.f()");
+    test("ld", macLd0, "void app.f()", "void app.h()");
+    test("ld", macLd1, "void app.f()");
+
+    string missingMainOutput = "
+/usr/bin/ld: /usr/lib/gcc/x86_64-pc-linux-gnu/13.2.1/../../../../lib/Scrt1.o: in function `_start':
+(.text+0x1b): undefined reference to `main'
+";
+
+    test("ld", missingMainOutput, "main");
+
+    string missingExternCOutput = "
+/usr/bin/ld: app.o: in function `_D3app__T2αVAyaa3_616263ZQrFZv':
+../test/app.d:(.text._D3app__T2αVAyaa3_616263ZQrFZv[_D3app__T2αVAyaa3_616263ZQrFZv]+0x5): undefined reference to `my_A'
+/usr/bin/ld: ../test/app.d:(.text._D3app__T2αVAyaa3_616263ZQrFZv[_D3app__T2αVAyaa3_616263ZQrFZv]+0xa): undefined reference to `my_B'
+";
+
+    test("ld", missingExternCOutput, "my_A", "my_B");
+
 }

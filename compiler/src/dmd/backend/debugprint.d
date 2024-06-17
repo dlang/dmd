@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/debug.c, backend/debugprint.d)
@@ -23,7 +23,7 @@ import dmd.backend.cc;
 import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.goh;
 import dmd.backend.oper;
 import dmd.backend.symtab;
@@ -214,47 +214,47 @@ void WReqn(elem *e)
   {
         ferr(oper_str(e.Eoper));
         ferr(" ");
-        if (OTbinary(e.EV.E1.Eoper))
+        if (OTbinary(e.E1.Eoper))
         {       nest++;
                 ferr("(");
-                WReqn(e.EV.E1);
+                WReqn(e.E1);
                 ferr(")");
                 nest--;
         }
         else
-                WReqn(e.EV.E1);
+                WReqn(e.E1);
   }
   else if (e.Eoper == OPcomma && !nest)
-  {     WReqn(e.EV.E1);
+  {     WReqn(e.E1);
         printf(";\n\t");
-        WReqn(e.EV.E2);
+        WReqn(e.E2);
   }
   else if (OTbinary(e.Eoper))
   {
-        if (OTbinary(e.EV.E1.Eoper))
+        if (OTbinary(e.E1.Eoper))
         {       nest++;
                 ferr("(");
-                WReqn(e.EV.E1);
+                WReqn(e.E1);
                 ferr(")");
                 nest--;
         }
         else
-                WReqn(e.EV.E1);
+                WReqn(e.E1);
         ferr(" ");
         ferr(oper_str(e.Eoper));
         ferr(" ");
         if (e.Eoper == OPstreq)
             printf("%d", cast(int)type_size(e.ET));
         ferr(" ");
-        if (OTbinary(e.EV.E2.Eoper))
+        if (OTbinary(e.E2.Eoper))
         {       nest++;
                 ferr("(");
-                WReqn(e.EV.E2);
+                WReqn(e.E2);
                 ferr(")");
                 nest--;
         }
         else
-                WReqn(e.EV.E2);
+                WReqn(e.E2);
   }
   else
   {
@@ -267,22 +267,22 @@ void WReqn(elem *e)
                 goto case OPvar;
 
             case OPvar:
-                printf("%s",e.EV.Vsym.Sident.ptr);
-                if (e.EV.Vsym.Ssymnum != SYMIDX.max)
-                    printf("(%d)", cast(int) e.EV.Vsym.Ssymnum);
-                if (e.EV.Voffset != 0)
+                printf("%s",e.Vsym.Sident.ptr);
+                if (e.Vsym.Ssymnum != SYMIDX.max)
+                    printf("(%d)", cast(int) e.Vsym.Ssymnum);
+                if (e.Voffset != 0)
                 {
-                    if (e.EV.Voffset.sizeof == 8)
-                        printf(".x%llx", cast(ulong)e.EV.Voffset);
+                    if (e.Voffset.sizeof == 8)
+                        printf(".x%llx", cast(ulong)e.Voffset);
                     else
-                        printf(".%d",cast(int)e.EV.Voffset);
+                        printf(".%d",cast(int)e.Voffset);
                 }
                 break;
             case OPasm:
             case OPstring:
-                printf("\"%s\"",e.EV.Vstring);
-                if (e.EV.Voffset)
-                    printf("+%lld",cast(long)e.EV.Voffset);
+                printf("\"%s\"",e.Vstring);
+                if (e.Voffset)
+                    printf("+%lld",cast(long)e.Voffset);
                 break;
             case OPmark:
             case OPgot:

@@ -3,7 +3,7 @@
  * https://dlang.org/spec/iasm.html
  *
  * Copyright:   Copyright (c) 1992-1999 by Symantec
- *              Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     Mike Cote, John Micco and $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/iasmdmd.d, _iasmdmd.d)
@@ -38,6 +38,7 @@ import dmd.optimize;
 import dmd.statement;
 import dmd.target;
 import dmd.tokens;
+import dmd.typesem : pointerTo;
 
 import dmd.root.ctfloat;
 import dmd.common.outbuffer;
@@ -47,12 +48,12 @@ import dmd.rootobject;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.global;
 import dmd.backend.iasm;
 import dmd.backend.ptrntab : asm_opstr, asm_op_lookup;
-import dmd.backend.xmm;
+import dmd.backend.x86.xmm;
 
 //debug = EXTRA_DEBUG;
 //debug = debuga;
@@ -3669,7 +3670,7 @@ code *asm_db_parse(OP *pop)
                 else if (auto se = e.isStringExp())
                 {
                     const len = se.numberOfCodeUnits();
-                    auto q = cast(char *)se.peekString().ptr;
+                    auto q = se.peekString().ptr;
                     if (q)
                     {
                         writeBytes(q[0 .. len]);

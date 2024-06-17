@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/evalu8.d, backend/evalu8.d)
@@ -107,23 +107,23 @@ int boolres(elem *e)
                     break;
                 }
                 case TYcfloat:
-                    if (isnan(e.EV.Vcfloat.re) || isnan(e.EV.Vcfloat.im))
+                    if (isnan(e.Vcfloat.re) || isnan(e.Vcfloat.im))
                         b = 1;
                     else
-                        b = e.EV.Vcfloat.re != 0 || e.EV.Vcfloat.im != 0;
+                        b = e.Vcfloat.re != 0 || e.Vcfloat.im != 0;
                     break;
                 case TYcdouble:
                 case TYdouble2:
-                    if (isnan(e.EV.Vcdouble.re) || isnan(e.EV.Vcdouble.im))
+                    if (isnan(e.Vcdouble.re) || isnan(e.Vcdouble.im))
                         b = 1;
                     else
-                        b = e.EV.Vcdouble.re != 0 || e.EV.Vcdouble.im != 0;
+                        b = e.Vcdouble.re != 0 || e.Vcdouble.im != 0;
                     break;
                 case TYcldouble:
-                    if (isnan(e.EV.Vcldouble.re) || isnan(e.EV.Vcldouble.im))
+                    if (isnan(e.Vcldouble.re) || isnan(e.Vcldouble.im))
                         b = 1;
                     else
-                        b = e.EV.Vcldouble.re != 0 || e.EV.Vcldouble.im != 0;
+                        b = e.Vcldouble.re != 0 || e.Vcldouble.im != 0;
                     break;
 
                 case TYstruct:  // happens on syntax error of (struct x)0
@@ -144,12 +144,12 @@ int boolres(elem *e)
                 case TYulong4:
                 case TYllong2:
                 case TYullong2:
-                    b = e.EV.Vcent.lo || e.EV.Vcent.hi;
+                    b = e.Vcent.lo || e.Vcent.hi;
                     break;
 
                 case TYfloat4:
                 {   b = 0;
-                    foreach (f; e.EV.Vfloat4)
+                    foreach (f; e.Vfloat4)
                     {
                         if (f != 0)
                         {   b = 1;
@@ -168,13 +168,13 @@ int boolres(elem *e)
                 case TYllong4:
                 case TYullong4:
                     b = 0;
-                    foreach (elem; e.EV.Vulong8)
+                    foreach (elem; e.Vulong8)
                         b |= elem != 0;
                     break;
 
                 case TYfloat8:
                     b = 0;
-                    foreach (f; e.EV.Vfloat8)
+                    foreach (f; e.Vfloat8)
                     {
                         if (f != 0)
                         {   b = 1;
@@ -185,7 +185,7 @@ int boolres(elem *e)
 
                 case TYdouble4:
                     b = 0;
-                    foreach (f; e.EV.Vdouble4)
+                    foreach (f; e.Vdouble4)
                     {
                         if (f != 0)
                         {   b = 1;
@@ -220,7 +220,7 @@ int iftrue(elem *e)
         {
             case OPcomma:
             case OPinfo:
-                e = e.EV.E2;
+                e = e.E2;
                 break;
 
             case OPrelconst:
@@ -229,7 +229,7 @@ int iftrue(elem *e)
                 return boolres(e);
 
             case OPoror:
-                return tybasic(e.EV.E2.Ety) == TYnoreturn;
+                return tybasic(e.E2.Ety) == TYnoreturn;
 
             default:
                 return false;
@@ -252,14 +252,14 @@ int iffalse(elem *e)
         {
             case OPcomma:
             case OPinfo:
-                e = e.EV.E2;
+                e = e.E2;
                 break;
 
             case OPconst:
                 return !boolres(e);
 
             case OPandand:
-                return tybasic(e.EV.E2.Ety) == TYnoreturn;
+                return tybasic(e.E2.Ety) == TYnoreturn;
 
             default:
                 return false;
@@ -274,7 +274,7 @@ int iffalse(elem *e)
  */
 
 @trusted
-elem * evalu8(elem *e, goal_t goal)
+elem * evalu8(elem *e, Goal goal)
 {
     elem* e1;
     elem* e2;
@@ -291,7 +291,7 @@ elem * evalu8(elem *e, goal_t goal)
     assert(e && !OTleaf(e.Eoper));
     op = e.Eoper;
     elem_debug(e);
-    e1 = e.EV.E1;
+    e1 = e.E1;
 
     //printf("evalu8(): "); elem_print(e);
     elem_debug(e1);
@@ -300,7 +300,7 @@ elem * evalu8(elem *e, goal_t goal)
         tym2 = 0;
         e2 = null;
         if (OTbinary(e.Eoper))
-        {   e2 = e.EV.E2;
+        {   e2 = e.E2;
             elem_debug(e2);
             if (e2.Eoper == OPconst && !tyvector(e2.Ety))
             {
@@ -343,9 +343,9 @@ static if (0)
   if (0 && e2)
   {
       debug printf("d1 = %Lg, d2 = %Lg, op = %d, OPne = %d, tym = x%lx\n",d1,d2,op,OPne,tym);
-      debug printf("tym1 = x%lx, tym2 = x%lx, e2 = %g\n",tym,tym2,e2.EV.Vdouble);
+      debug printf("tym1 = x%lx, tym2 = x%lx, e2 = %g\n",tym,tym2,e2.Vdouble);
 
-      eve u;
+      Vconst u = void;
       debug printf("d1 = x%16llx\n", (u.Vldouble = d1, u.Vullong));
       debug printf("d2 = x%16llx\n", (u.Vldouble = d2, u.Vullong));
   }
@@ -359,15 +359,15 @@ static if (0)
                 switch (tym2)
                 {
                     case TYfloat:
-                        e.EV.Vfloat = e1.EV.Vfloat + e2.EV.Vfloat;
+                        e.Vfloat = e1.Vfloat + e2.Vfloat;
                         break;
                     case TYifloat:
-                        e.EV.Vcfloat.re = e1.EV.Vfloat;
-                        e.EV.Vcfloat.im = e2.EV.Vfloat;
+                        e.Vcfloat.re = e1.Vfloat;
+                        e.Vcfloat.im = e2.Vfloat;
                         break;
                     case TYcfloat:
-                        e.EV.Vcfloat.re = e1.EV.Vfloat + e2.EV.Vcfloat.re;
-                        e.EV.Vcfloat.im = 0            + e2.EV.Vcfloat.im;
+                        e.Vcfloat.re = e1.Vfloat + e2.Vcfloat.re;
+                        e.Vcfloat.im = 0            + e2.Vcfloat.im;
                         break;
                     default:
                         assert(0);
@@ -379,15 +379,15 @@ static if (0)
                 {
                     case TYdouble:
                     case TYdouble_alias:
-                            e.EV.Vdouble = e1.EV.Vdouble + e2.EV.Vdouble;
+                            e.Vdouble = e1.Vdouble + e2.Vdouble;
                         break;
                     case TYidouble:
-                        e.EV.Vcdouble.re = e1.EV.Vdouble;
-                        e.EV.Vcdouble.im = e2.EV.Vdouble;
+                        e.Vcdouble.re = e1.Vdouble;
+                        e.Vcdouble.im = e2.Vdouble;
                         break;
                     case TYcdouble:
-                        e.EV.Vcdouble.re = e1.EV.Vdouble + e2.EV.Vcdouble.re;
-                        e.EV.Vcdouble.im = 0             + e2.EV.Vcdouble.im;
+                        e.Vcdouble.re = e1.Vdouble + e2.Vcdouble.re;
+                        e.Vcdouble.im = 0             + e2.Vcdouble.im;
                         break;
                     default:
                         assert(0);
@@ -397,15 +397,15 @@ static if (0)
                 switch (tym2)
                 {
                     case TYldouble:
-                        e.EV.Vldouble = d1 + d2;
+                        e.Vldouble = d1 + d2;
                         break;
                     case TYildouble:
-                        e.EV.Vcldouble.re = d1;
-                        e.EV.Vcldouble.im = d2;
+                        e.Vcldouble.re = d1;
+                        e.Vcldouble.im = d2;
                         break;
                     case TYcldouble:
-                        e.EV.Vcldouble.re = d1 + e2.EV.Vcldouble.re;
-                        e.EV.Vcldouble.im = 0  + e2.EV.Vcldouble.im;
+                        e.Vcldouble.re = d1 + e2.Vcldouble.re;
+                        e.Vcldouble.im = 0  + e2.Vcldouble.im;
                         break;
                     default:
                         assert(0);
@@ -415,15 +415,15 @@ static if (0)
                 switch (tym2)
                 {
                     case TYfloat:
-                        e.EV.Vcfloat.re = e2.EV.Vfloat;
-                        e.EV.Vcfloat.im = e1.EV.Vfloat;
+                        e.Vcfloat.re = e2.Vfloat;
+                        e.Vcfloat.im = e1.Vfloat;
                         break;
                     case TYifloat:
-                        e.EV.Vfloat = e1.EV.Vfloat + e2.EV.Vfloat;
+                        e.Vfloat = e1.Vfloat + e2.Vfloat;
                         break;
                     case TYcfloat:
-                        e.EV.Vcfloat.re = 0            + e2.EV.Vcfloat.re;
-                        e.EV.Vcfloat.im = e1.EV.Vfloat + e2.EV.Vcfloat.im;
+                        e.Vcfloat.re = 0            + e2.Vcfloat.re;
+                        e.Vcfloat.im = e1.Vfloat + e2.Vcfloat.im;
                         break;
                     default:
                         assert(0);
@@ -433,15 +433,15 @@ static if (0)
                 switch (tym2)
                 {
                     case TYdouble:
-                        e.EV.Vcdouble.re = e2.EV.Vdouble;
-                        e.EV.Vcdouble.im = e1.EV.Vdouble;
+                        e.Vcdouble.re = e2.Vdouble;
+                        e.Vcdouble.im = e1.Vdouble;
                         break;
                     case TYidouble:
-                        e.EV.Vdouble = e1.EV.Vdouble + e2.EV.Vdouble;
+                        e.Vdouble = e1.Vdouble + e2.Vdouble;
                         break;
                     case TYcdouble:
-                        e.EV.Vcdouble.re = 0             + e2.EV.Vcdouble.re;
-                        e.EV.Vcdouble.im = e1.EV.Vdouble + e2.EV.Vcdouble.im;
+                        e.Vcdouble.re = 0             + e2.Vcdouble.re;
+                        e.Vcdouble.im = e1.Vdouble + e2.Vcdouble.im;
                         break;
                     default:
                         assert(0);
@@ -451,15 +451,15 @@ static if (0)
                 switch (tym2)
                 {
                     case TYldouble:
-                        e.EV.Vcldouble.re = d2;
-                        e.EV.Vcldouble.im = d1;
+                        e.Vcldouble.re = d2;
+                        e.Vcldouble.im = d1;
                         break;
                     case TYildouble:
-                        e.EV.Vldouble = d1 + d2;
+                        e.Vldouble = d1 + d2;
                         break;
                     case TYcldouble:
-                        e.EV.Vcldouble.re = 0  + e2.EV.Vcldouble.re;
-                        e.EV.Vcldouble.im = d1 + e2.EV.Vcldouble.im;
+                        e.Vcldouble.re = 0  + e2.Vcldouble.re;
+                        e.Vcldouble.im = d1 + e2.Vcldouble.im;
                         break;
                     default:
                         assert(0);
@@ -469,16 +469,16 @@ static if (0)
                 switch (tym2)
                 {
                     case TYfloat:
-                        e.EV.Vcfloat.re = e1.EV.Vcfloat.re + e2.EV.Vfloat;
-                        e.EV.Vcfloat.im = e1.EV.Vcfloat.im;
+                        e.Vcfloat.re = e1.Vcfloat.re + e2.Vfloat;
+                        e.Vcfloat.im = e1.Vcfloat.im;
                         break;
                     case TYifloat:
-                        e.EV.Vcfloat.re = e1.EV.Vcfloat.re;
-                        e.EV.Vcfloat.im = e1.EV.Vcfloat.im + e2.EV.Vfloat;
+                        e.Vcfloat.re = e1.Vcfloat.re;
+                        e.Vcfloat.im = e1.Vcfloat.im + e2.Vfloat;
                         break;
                     case TYcfloat:
-                        e.EV.Vcfloat.re = e1.EV.Vcfloat.re + e2.EV.Vcfloat.re;
-                        e.EV.Vcfloat.im = e1.EV.Vcfloat.im + e2.EV.Vcfloat.im;
+                        e.Vcfloat.re = e1.Vcfloat.re + e2.Vcfloat.re;
+                        e.Vcfloat.im = e1.Vcfloat.im + e2.Vcfloat.im;
                         break;
                     default:
                         assert(0);
@@ -488,16 +488,16 @@ static if (0)
                 switch (tym2)
                 {
                     case TYdouble:
-                        e.EV.Vcdouble.re = e1.EV.Vcdouble.re + e2.EV.Vdouble;
-                        e.EV.Vcdouble.im = e1.EV.Vcdouble.im;
+                        e.Vcdouble.re = e1.Vcdouble.re + e2.Vdouble;
+                        e.Vcdouble.im = e1.Vcdouble.im;
                         break;
                     case TYidouble:
-                        e.EV.Vcdouble.re = e1.EV.Vcdouble.re;
-                        e.EV.Vcdouble.im = e1.EV.Vcdouble.im + e2.EV.Vdouble;
+                        e.Vcdouble.re = e1.Vcdouble.re;
+                        e.Vcdouble.im = e1.Vcdouble.im + e2.Vdouble;
                         break;
                     case TYcdouble:
-                        e.EV.Vcdouble.re = e1.EV.Vcdouble.re + e2.EV.Vcdouble.re;
-                        e.EV.Vcdouble.im = e1.EV.Vcdouble.im + e2.EV.Vcdouble.im;
+                        e.Vcdouble.re = e1.Vcdouble.re + e2.Vcdouble.re;
+                        e.Vcdouble.im = e1.Vcdouble.im + e2.Vcdouble.im;
                         break;
                     default:
                         assert(0);
@@ -507,16 +507,16 @@ static if (0)
                 switch (tym2)
                 {
                     case TYldouble:
-                        e.EV.Vcldouble.re = e1.EV.Vcldouble.re + d2;
-                        e.EV.Vcldouble.im = e1.EV.Vcldouble.im;
+                        e.Vcldouble.re = e1.Vcldouble.re + d2;
+                        e.Vcldouble.im = e1.Vcldouble.im;
                         break;
                     case TYildouble:
-                        e.EV.Vcldouble.re = e1.EV.Vcldouble.re;
-                        e.EV.Vcldouble.im = e1.EV.Vcldouble.im + d2;
+                        e.Vcldouble.re = e1.Vcldouble.re;
+                        e.Vcldouble.im = e1.Vcldouble.im + d2;
                         break;
                     case TYcldouble:
-                        e.EV.Vcldouble.re = e1.EV.Vcldouble.re + e2.EV.Vcldouble.re;
-                        e.EV.Vcldouble.im = e1.EV.Vcldouble.im + e2.EV.Vcldouble.im;
+                        e.Vcldouble.re = e1.Vcldouble.re + e2.Vcldouble.re;
+                        e.Vcldouble.im = e1.Vcldouble.im + e2.Vcldouble.im;
                         break;
                     default:
                         assert(0);
@@ -525,24 +525,24 @@ static if (0)
 
             case TYcent:
             case TYucent:
-                e.EV.Vcent = dmd.common.int128.add(e1.EV.Vcent, e2.EV.Vcent);
+                e.Vcent = dmd.common.int128.add(e1.Vcent, e2.Vcent);
                 break;
 
             default:
                 if (_tysize[TYint] == 2)
                 {   if (tyfv(tym))
-                        e.EV.Vlong = cast(targ_long)((l1 & 0xFFFF0000) |
+                        e.Vlong = cast(targ_long)((l1 & 0xFFFF0000) |
                             cast(targ_ushort) (cast(targ_ushort) l1 + i2));
                     else if (tyfv(tym2))
-                        e.EV.Vlong = cast(targ_long)((l2 & 0xFFFF0000) |
+                        e.Vlong = cast(targ_long)((l2 & 0xFFFF0000) |
                             cast(targ_ushort) (i1 + cast(targ_ushort) l2));
                     else if (tyintegral(tym) || typtr(tym))
-                        e.EV.Vllong = l1 + l2;
+                        e.Vllong = l1 + l2;
                     else
                         assert(0);
                 }
                 else if (tyintegral(tym) || typtr(tym))
-                    e.EV.Vllong = l1 + l2;
+                    e.Vllong = l1 + l2;
                 else
                     assert(0);
                 break;
@@ -556,15 +556,15 @@ static if (0)
                 switch (tym2)
                 {
                     case TYfloat:
-                        e.EV.Vfloat = e1.EV.Vfloat - e2.EV.Vfloat;
+                        e.Vfloat = e1.Vfloat - e2.Vfloat;
                         break;
                     case TYifloat:
-                        e.EV.Vcfloat.re =  e1.EV.Vfloat;
-                        e.EV.Vcfloat.im = -e2.EV.Vfloat;
+                        e.Vcfloat.re =  e1.Vfloat;
+                        e.Vcfloat.im = -e2.Vfloat;
                         break;
                     case TYcfloat:
-                        e.EV.Vcfloat.re = e1.EV.Vfloat - e2.EV.Vcfloat.re;
-                        e.EV.Vcfloat.im = 0            - e2.EV.Vcfloat.im;
+                        e.Vcfloat.re = e1.Vfloat - e2.Vcfloat.re;
+                        e.Vcfloat.im = 0            - e2.Vcfloat.im;
                         break;
                     default:
                         assert(0);
@@ -576,15 +576,15 @@ static if (0)
                 {
                     case TYdouble:
                     case TYdouble_alias:
-                        e.EV.Vdouble = e1.EV.Vdouble - e2.EV.Vdouble;
+                        e.Vdouble = e1.Vdouble - e2.Vdouble;
                         break;
                     case TYidouble:
-                        e.EV.Vcdouble.re =  e1.EV.Vdouble;
-                        e.EV.Vcdouble.im = -e2.EV.Vdouble;
+                        e.Vcdouble.re =  e1.Vdouble;
+                        e.Vcdouble.im = -e2.Vdouble;
                         break;
                     case TYcdouble:
-                        e.EV.Vcdouble.re = e1.EV.Vdouble - e2.EV.Vcdouble.re;
-                        e.EV.Vcdouble.im = 0             - e2.EV.Vcdouble.im;
+                        e.Vcdouble.re = e1.Vdouble - e2.Vcdouble.re;
+                        e.Vcdouble.im = 0             - e2.Vcdouble.im;
                         break;
                     default:
                         assert(0);
@@ -594,15 +594,15 @@ static if (0)
                 switch (tym2)
                 {
                     case TYldouble:
-                        e.EV.Vldouble = d1 - d2;
+                        e.Vldouble = d1 - d2;
                         break;
                     case TYildouble:
-                        e.EV.Vcldouble.re =  d1;
-                        e.EV.Vcldouble.im = -d2;
+                        e.Vcldouble.re =  d1;
+                        e.Vcldouble.im = -d2;
                         break;
                     case TYcldouble:
-                        e.EV.Vcldouble.re = d1 - e2.EV.Vcldouble.re;
-                        e.EV.Vcldouble.im = 0  - e2.EV.Vcldouble.im;
+                        e.Vcldouble.re = d1 - e2.Vcldouble.re;
+                        e.Vcldouble.im = 0  - e2.Vcldouble.im;
                         break;
                     default:
                         assert(0);
@@ -612,15 +612,15 @@ static if (0)
                 switch (tym2)
                 {
                     case TYfloat:
-                        e.EV.Vcfloat.re = -e2.EV.Vfloat;
-                        e.EV.Vcfloat.im =  e1.EV.Vfloat;
+                        e.Vcfloat.re = -e2.Vfloat;
+                        e.Vcfloat.im =  e1.Vfloat;
                         break;
                     case TYifloat:
-                        e.EV.Vfloat = e1.EV.Vfloat - e2.EV.Vfloat;
+                        e.Vfloat = e1.Vfloat - e2.Vfloat;
                         break;
                     case TYcfloat:
-                        e.EV.Vcfloat.re = 0            - e2.EV.Vcfloat.re;
-                        e.EV.Vcfloat.im = e1.EV.Vfloat - e2.EV.Vcfloat.im;
+                        e.Vcfloat.re = 0            - e2.Vcfloat.re;
+                        e.Vcfloat.im = e1.Vfloat - e2.Vcfloat.im;
                         break;
                     default:
                         assert(0);
@@ -630,15 +630,15 @@ static if (0)
                 switch (tym2)
                 {
                     case TYdouble:
-                        e.EV.Vcdouble.re = -e2.EV.Vdouble;
-                        e.EV.Vcdouble.im =  e1.EV.Vdouble;
+                        e.Vcdouble.re = -e2.Vdouble;
+                        e.Vcdouble.im =  e1.Vdouble;
                         break;
                     case TYidouble:
-                        e.EV.Vdouble = e1.EV.Vdouble - e2.EV.Vdouble;
+                        e.Vdouble = e1.Vdouble - e2.Vdouble;
                         break;
                     case TYcdouble:
-                        e.EV.Vcdouble.re = 0             - e2.EV.Vcdouble.re;
-                        e.EV.Vcdouble.im = e1.EV.Vdouble - e2.EV.Vcdouble.im;
+                        e.Vcdouble.re = 0             - e2.Vcdouble.re;
+                        e.Vcdouble.im = e1.Vdouble - e2.Vcdouble.im;
                         break;
                     default:
                         assert(0);
@@ -648,15 +648,15 @@ static if (0)
                 switch (tym2)
                 {
                     case TYldouble:
-                        e.EV.Vcldouble.re = -d2;
-                        e.EV.Vcldouble.im =  d1;
+                        e.Vcldouble.re = -d2;
+                        e.Vcldouble.im =  d1;
                         break;
                     case TYildouble:
-                        e.EV.Vldouble = d1 - d2;
+                        e.Vldouble = d1 - d2;
                         break;
                     case TYcldouble:
-                        e.EV.Vcldouble.re = 0  - e2.EV.Vcldouble.re;
-                        e.EV.Vcldouble.im = d1 - e2.EV.Vcldouble.im;
+                        e.Vcldouble.re = 0  - e2.Vcldouble.re;
+                        e.Vcldouble.im = d1 - e2.Vcldouble.im;
                         break;
                     default:
                         assert(0);
@@ -666,16 +666,16 @@ static if (0)
                 switch (tym2)
                 {
                     case TYfloat:
-                        e.EV.Vcfloat.re = e1.EV.Vcfloat.re - e2.EV.Vfloat;
-                        e.EV.Vcfloat.im = e1.EV.Vcfloat.im;
+                        e.Vcfloat.re = e1.Vcfloat.re - e2.Vfloat;
+                        e.Vcfloat.im = e1.Vcfloat.im;
                         break;
                     case TYifloat:
-                        e.EV.Vcfloat.re = e1.EV.Vcfloat.re;
-                        e.EV.Vcfloat.im = e1.EV.Vcfloat.im - e2.EV.Vfloat;
+                        e.Vcfloat.re = e1.Vcfloat.re;
+                        e.Vcfloat.im = e1.Vcfloat.im - e2.Vfloat;
                         break;
                     case TYcfloat:
-                        e.EV.Vcfloat.re = e1.EV.Vcfloat.re - e2.EV.Vcfloat.re;
-                        e.EV.Vcfloat.im = e1.EV.Vcfloat.im - e2.EV.Vcfloat.im;
+                        e.Vcfloat.re = e1.Vcfloat.re - e2.Vcfloat.re;
+                        e.Vcfloat.im = e1.Vcfloat.im - e2.Vcfloat.im;
                         break;
                     default:
                         assert(0);
@@ -685,16 +685,16 @@ static if (0)
                 switch (tym2)
                 {
                     case TYdouble:
-                        e.EV.Vcdouble.re = e1.EV.Vcdouble.re - e2.EV.Vdouble;
-                        e.EV.Vcdouble.im = e1.EV.Vcdouble.im;
+                        e.Vcdouble.re = e1.Vcdouble.re - e2.Vdouble;
+                        e.Vcdouble.im = e1.Vcdouble.im;
                         break;
                     case TYidouble:
-                        e.EV.Vcdouble.re = e1.EV.Vcdouble.re;
-                        e.EV.Vcdouble.im = e1.EV.Vcdouble.im - e2.EV.Vdouble;
+                        e.Vcdouble.re = e1.Vcdouble.re;
+                        e.Vcdouble.im = e1.Vcdouble.im - e2.Vdouble;
                         break;
                     case TYcdouble:
-                        e.EV.Vcdouble.re = e1.EV.Vcdouble.re - e2.EV.Vcdouble.re;
-                        e.EV.Vcdouble.im = e1.EV.Vcdouble.im - e2.EV.Vcdouble.im;
+                        e.Vcdouble.re = e1.Vcdouble.re - e2.Vcdouble.re;
+                        e.Vcdouble.im = e1.Vcdouble.im - e2.Vcdouble.im;
                         break;
                     default:
                         assert(0);
@@ -704,16 +704,16 @@ static if (0)
                 switch (tym2)
                 {
                     case TYldouble:
-                        e.EV.Vcldouble.re = e1.EV.Vcldouble.re - d2;
-                        e.EV.Vcldouble.im = e1.EV.Vcldouble.im;
+                        e.Vcldouble.re = e1.Vcldouble.re - d2;
+                        e.Vcldouble.im = e1.Vcldouble.im;
                         break;
                     case TYildouble:
-                        e.EV.Vcldouble.re = e1.EV.Vcldouble.re;
-                        e.EV.Vcldouble.im = e1.EV.Vcldouble.im - d2;
+                        e.Vcldouble.re = e1.Vcldouble.re;
+                        e.Vcldouble.im = e1.Vcldouble.im - d2;
                         break;
                     case TYcldouble:
-                        e.EV.Vcldouble.re = e1.EV.Vcldouble.re - e2.EV.Vcldouble.re;
-                        e.EV.Vcldouble.im = e1.EV.Vcldouble.im - e2.EV.Vcldouble.im;
+                        e.Vcldouble.re = e1.Vcldouble.re - e2.Vcldouble.re;
+                        e.Vcldouble.im = e1.Vcldouble.im - e2.Vcldouble.im;
                         break;
                     default:
                         assert(0);
@@ -722,16 +722,16 @@ static if (0)
 
             case TYcent:
             case TYucent:
-                e.EV.Vcent = dmd.common.int128.sub(e1.EV.Vcent, e2.EV.Vcent);
+                e.Vcent = dmd.common.int128.sub(e1.Vcent, e2.Vcent);
                 break;
 
             default:
                 if (_tysize[TYint] == 2 &&
                     tyfv(tym) && _tysize[tym2] == 2)
-                    e.EV.Vllong = (l1 & 0xFFFF0000) |
+                    e.Vllong = (l1 & 0xFFFF0000) |
                         cast(targ_ushort) (cast(targ_ushort) l1 - i2);
                 else if (tyintegral(tym) || typtr(tym))
-                    e.EV.Vllong = l1 - l2;
+                    e.Vllong = l1 - l2;
                 else
                     assert(0);
                 break;
@@ -739,9 +739,9 @@ static if (0)
         break;
     case OPmul:
         if (tym == TYcent || tym == TYucent)
-            e.EV.Vcent = dmd.common.int128.mul(e1.EV.Vcent, e2.EV.Vcent);
+            e.Vcent = dmd.common.int128.mul(e1.Vcent, e2.Vcent);
         else if (tyintegral(tym) || typtr(tym))
-            e.EV.Vllong = l1 * l2;
+            e.Vllong = l1 * l2;
         else
         {   switch (tym)
             {
@@ -750,11 +750,11 @@ static if (0)
                     {
                         case TYfloat:
                         case TYifloat:
-                            e.EV.Vfloat = e1.EV.Vfloat * e2.EV.Vfloat;
+                            e.Vfloat = e1.Vfloat * e2.Vfloat;
                             break;
                         case TYcfloat:
-                            e.EV.Vcfloat.re = e1.EV.Vfloat * e2.EV.Vcfloat.re;
-                            e.EV.Vcfloat.im = e1.EV.Vfloat * e2.EV.Vcfloat.im;
+                            e.Vcfloat.re = e1.Vfloat * e2.Vcfloat.re;
+                            e.Vcfloat.im = e1.Vfloat * e2.Vcfloat.im;
                             break;
                         default:
                             assert(0);
@@ -767,11 +767,11 @@ static if (0)
                         case TYdouble:
                         case TYdouble_alias:
                         case TYidouble:
-                            e.EV.Vdouble = e1.EV.Vdouble * e2.EV.Vdouble;
+                            e.Vdouble = e1.Vdouble * e2.Vdouble;
                             break;
                         case TYcdouble:
-                            e.EV.Vcdouble.re = e1.EV.Vdouble * e2.EV.Vcdouble.re;
-                            e.EV.Vcdouble.im = e1.EV.Vdouble * e2.EV.Vcdouble.im;
+                            e.Vcdouble.re = e1.Vdouble * e2.Vcdouble.re;
+                            e.Vcdouble.im = e1.Vdouble * e2.Vcdouble.im;
                             break;
                         default:
                             assert(0);
@@ -782,11 +782,11 @@ static if (0)
                     {
                         case TYldouble:
                         case TYildouble:
-                            e.EV.Vldouble = d1 * d2;
+                            e.Vldouble = d1 * d2;
                             break;
                         case TYcldouble:
-                            e.EV.Vcldouble.re = d1 * e2.EV.Vcldouble.re;
-                            e.EV.Vcldouble.im = d1 * e2.EV.Vcldouble.im;
+                            e.Vcldouble.re = d1 * e2.Vcldouble.re;
+                            e.Vcldouble.im = d1 * e2.Vcldouble.im;
                             break;
                         default:
                             assert(0);
@@ -796,14 +796,14 @@ static if (0)
                     switch (tym2)
                     {
                         case TYfloat:
-                            e.EV.Vfloat = e1.EV.Vfloat * e2.EV.Vfloat;
+                            e.Vfloat = e1.Vfloat * e2.Vfloat;
                             break;
                         case TYifloat:
-                            e.EV.Vfloat = -e1.EV.Vfloat * e2.EV.Vfloat;
+                            e.Vfloat = -e1.Vfloat * e2.Vfloat;
                             break;
                         case TYcfloat:
-                            e.EV.Vcfloat.re = -e1.EV.Vfloat * e2.EV.Vcfloat.im;
-                            e.EV.Vcfloat.im =  e1.EV.Vfloat * e2.EV.Vcfloat.re;
+                            e.Vcfloat.re = -e1.Vfloat * e2.Vcfloat.im;
+                            e.Vcfloat.im =  e1.Vfloat * e2.Vcfloat.re;
                             break;
                         default:
                             assert(0);
@@ -813,14 +813,14 @@ static if (0)
                     switch (tym2)
                     {
                         case TYdouble:
-                            e.EV.Vdouble = e1.EV.Vdouble * e2.EV.Vdouble;
+                            e.Vdouble = e1.Vdouble * e2.Vdouble;
                             break;
                         case TYidouble:
-                            e.EV.Vdouble = -e1.EV.Vdouble * e2.EV.Vdouble;
+                            e.Vdouble = -e1.Vdouble * e2.Vdouble;
                             break;
                         case TYcdouble:
-                            e.EV.Vcdouble.re = -e1.EV.Vdouble * e2.EV.Vcdouble.im;
-                            e.EV.Vcdouble.im =  e1.EV.Vdouble * e2.EV.Vcdouble.re;
+                            e.Vcdouble.re = -e1.Vdouble * e2.Vcdouble.im;
+                            e.Vcdouble.im =  e1.Vdouble * e2.Vcdouble.re;
                             break;
                         default:
                             assert(0);
@@ -830,14 +830,14 @@ static if (0)
                     switch (tym2)
                     {
                         case TYldouble:
-                            e.EV.Vldouble = d1 * d2;
+                            e.Vldouble = d1 * d2;
                             break;
                         case TYildouble:
-                            e.EV.Vldouble = -d1 * d2;
+                            e.Vldouble = -d1 * d2;
                             break;
                         case TYcldouble:
-                            e.EV.Vcldouble.re = -d1 * e2.EV.Vcldouble.im;
-                            e.EV.Vcldouble.im =  d1 * e2.EV.Vcldouble.re;
+                            e.Vcldouble.re = -d1 * e2.Vcldouble.im;
+                            e.Vcldouble.im =  d1 * e2.Vcldouble.re;
                             break;
                         default:
                             assert(0);
@@ -847,15 +847,15 @@ static if (0)
                     switch (tym2)
                     {
                         case TYfloat:
-                            e.EV.Vcfloat.re = e1.EV.Vcfloat.re * e2.EV.Vfloat;
-                            e.EV.Vcfloat.im = e1.EV.Vcfloat.im * e2.EV.Vfloat;
+                            e.Vcfloat.re = e1.Vcfloat.re * e2.Vfloat;
+                            e.Vcfloat.im = e1.Vcfloat.im * e2.Vfloat;
                             break;
                         case TYifloat:
-                            e.EV.Vcfloat.re = -e1.EV.Vcfloat.im * e2.EV.Vfloat;
-                            e.EV.Vcfloat.im =  e1.EV.Vcfloat.re * e2.EV.Vfloat;
+                            e.Vcfloat.re = -e1.Vcfloat.im * e2.Vfloat;
+                            e.Vcfloat.im =  e1.Vcfloat.re * e2.Vfloat;
                             break;
                         case TYcfloat:
-                            e.EV.Vcfloat = Complex_f.mul(e1.EV.Vcfloat, e2.EV.Vcfloat);
+                            e.Vcfloat = Complex_f.mul(e1.Vcfloat, e2.Vcfloat);
                             break;
                         default:
                             assert(0);
@@ -865,15 +865,15 @@ static if (0)
                     switch (tym2)
                     {
                         case TYdouble:
-                            e.EV.Vcdouble.re = e1.EV.Vcdouble.re * e2.EV.Vdouble;
-                            e.EV.Vcdouble.im = e1.EV.Vcdouble.im * e2.EV.Vdouble;
+                            e.Vcdouble.re = e1.Vcdouble.re * e2.Vdouble;
+                            e.Vcdouble.im = e1.Vcdouble.im * e2.Vdouble;
                             break;
                         case TYidouble:
-                            e.EV.Vcdouble.re = -e1.EV.Vcdouble.im * e2.EV.Vdouble;
-                            e.EV.Vcdouble.im =  e1.EV.Vcdouble.re * e2.EV.Vdouble;
+                            e.Vcdouble.re = -e1.Vcdouble.im * e2.Vdouble;
+                            e.Vcdouble.im =  e1.Vcdouble.re * e2.Vdouble;
                             break;
                         case TYcdouble:
-                            e.EV.Vcdouble = Complex_d.mul(e1.EV.Vcdouble, e2.EV.Vcdouble);
+                            e.Vcdouble = Complex_d.mul(e1.Vcdouble, e2.Vcdouble);
                             break;
                         default:
                             assert(0);
@@ -883,15 +883,15 @@ static if (0)
                     switch (tym2)
                     {
                         case TYldouble:
-                            e.EV.Vcldouble.re = e1.EV.Vcldouble.re * d2;
-                            e.EV.Vcldouble.im = e1.EV.Vcldouble.im * d2;
+                            e.Vcldouble.re = e1.Vcldouble.re * d2;
+                            e.Vcldouble.im = e1.Vcldouble.im * d2;
                             break;
                         case TYildouble:
-                            e.EV.Vcldouble.re = -e1.EV.Vcldouble.im * d2;
-                            e.EV.Vcldouble.im =  e1.EV.Vcldouble.re * d2;
+                            e.Vcldouble.re = -e1.Vcldouble.im * d2;
+                            e.Vcldouble.im =  e1.Vcldouble.re * d2;
                             break;
                         case TYcldouble:
-                            e.EV.Vcldouble = Complex_ld.mul(e1.EV.Vcldouble, e2.EV.Vcldouble);
+                            e.Vcldouble = Complex_ld.mul(e1.Vcldouble, e2.Vcldouble);
                             break;
                         default:
                             assert(0);
@@ -913,12 +913,12 @@ static if (0)
         if (uns)
         {
             if (tym == TYucent)
-                e.EV.Vcent = dmd.common.int128.udiv(e1.EV.Vcent, e2.EV.Vcent);
+                e.Vcent = dmd.common.int128.udiv(e1.Vcent, e2.Vcent);
             else
-                e.EV.Vullong = (cast(targ_ullong) l1) / (cast(targ_ullong) l2);
+                e.Vullong = (cast(targ_ullong) l1) / (cast(targ_ullong) l2);
         }
         else if (tym == TYcent)
-            e.EV.Vcent = dmd.common.int128.div(e1.EV.Vcent, e2.EV.Vcent);
+            e.Vcent = dmd.common.int128.div(e1.Vcent, e2.Vcent);
         else
         {   switch (tym)
             {
@@ -926,15 +926,15 @@ static if (0)
                     switch (tym2)
                     {
                         case TYfloat:
-                            e.EV.Vfloat = e1.EV.Vfloat / e2.EV.Vfloat;
+                            e.Vfloat = e1.Vfloat / e2.Vfloat;
                             break;
                         case TYifloat:
-                            e.EV.Vfloat = -e1.EV.Vfloat / e2.EV.Vfloat;
+                            e.Vfloat = -e1.Vfloat / e2.Vfloat;
                             break;
                         case TYcfloat:
-                            e.EV.Vcfloat.re = cast(float)d1;
-                            e.EV.Vcfloat.im = 0;
-                            e.EV.Vcfloat = Complex_f.div(e.EV.Vcfloat, e2.EV.Vcfloat);
+                            e.Vcfloat.re = cast(float)d1;
+                            e.Vcfloat.im = 0;
+                            e.Vcfloat = Complex_f.div(e.Vcfloat, e2.Vcfloat);
                             break;
                         default:
                             assert(0);
@@ -946,19 +946,19 @@ static if (0)
                     {
                         case TYdouble:
                         case TYdouble_alias:
-                            e.EV.Vdouble = e1.EV.Vdouble / e2.EV.Vdouble;
+                            e.Vdouble = e1.Vdouble / e2.Vdouble;
                             break;
                         case TYldouble:
                             // cast is required because Vldouble is a soft type on windows
-                            e.EV.Vdouble = cast(double)(e1.EV.Vdouble / e2.EV.Vldouble);
+                            e.Vdouble = cast(double)(e1.Vdouble / e2.Vldouble);
                             break;
                         case TYidouble:
-                            e.EV.Vdouble = -e1.EV.Vdouble / e2.EV.Vdouble;
+                            e.Vdouble = -e1.Vdouble / e2.Vdouble;
                             break;
                         case TYcdouble:
-                            e.EV.Vcdouble.re = cast(double)d1;
-                            e.EV.Vcdouble.im = 0;
-                            e.EV.Vcdouble = Complex_d.div(e.EV.Vcdouble, e2.EV.Vcdouble);
+                            e.Vcdouble.re = cast(double)d1;
+                            e.Vcdouble.im = 0;
+                            e.Vcdouble = Complex_d.div(e.Vcdouble, e2.Vcdouble);
                             break;
                         default:
                             assert(0);
@@ -968,15 +968,15 @@ static if (0)
                     switch (tym2)
                     {
                         case TYldouble:
-                            e.EV.Vldouble = d1 / d2;
+                            e.Vldouble = d1 / d2;
                             break;
                         case TYildouble:
-                            e.EV.Vldouble = -d1 / d2;
+                            e.Vldouble = -d1 / d2;
                             break;
                         case TYcldouble:
-                            e.EV.Vcldouble.re = d1;
-                            e.EV.Vcldouble.im = 0;
-                            e.EV.Vcldouble = Complex_ld.div(e.EV.Vcldouble, e2.EV.Vcldouble);
+                            e.Vcldouble.re = d1;
+                            e.Vcldouble.im = 0;
+                            e.Vcldouble = Complex_ld.div(e.Vcldouble, e2.Vcldouble);
                             break;
                         default:
                             assert(0);
@@ -987,12 +987,12 @@ static if (0)
                     {
                         case TYfloat:
                         case TYifloat:
-                            e.EV.Vfloat = e1.EV.Vfloat / e2.EV.Vfloat;
+                            e.Vfloat = e1.Vfloat / e2.Vfloat;
                             break;
                         case TYcfloat:
-                            e.EV.Vcfloat.re = 0;
-                            e.EV.Vcfloat.im = e1.EV.Vfloat;
-                            e.EV.Vcfloat = Complex_f.div(e.EV.Vcfloat, e2.EV.Vcfloat);
+                            e.Vcfloat.re = 0;
+                            e.Vcfloat.im = e1.Vfloat;
+                            e.Vcfloat = Complex_f.div(e.Vcfloat, e2.Vcfloat);
                             break;
                         default:
                             assert(0);
@@ -1003,12 +1003,12 @@ static if (0)
                     {
                         case TYdouble:
                         case TYidouble:
-                            e.EV.Vdouble = e1.EV.Vdouble / e2.EV.Vdouble;
+                            e.Vdouble = e1.Vdouble / e2.Vdouble;
                             break;
                         case TYcdouble:
-                            e.EV.Vcdouble.re = 0;
-                            e.EV.Vcdouble.im = e1.EV.Vdouble;
-                            e.EV.Vcdouble = Complex_d.div(e.EV.Vcdouble, e2.EV.Vcdouble);
+                            e.Vcdouble.re = 0;
+                            e.Vcdouble.im = e1.Vdouble;
+                            e.Vcdouble = Complex_d.div(e.Vcdouble, e2.Vcdouble);
                             break;
                         default:
                             assert(0);
@@ -1019,12 +1019,12 @@ static if (0)
                     {
                         case TYldouble:
                         case TYildouble:
-                            e.EV.Vldouble = d1 / d2;
+                            e.Vldouble = d1 / d2;
                             break;
                         case TYcldouble:
-                            e.EV.Vcldouble.re = 0;
-                            e.EV.Vcldouble.im = d1;
-                            e.EV.Vcldouble = Complex_ld.div(e.EV.Vcldouble, e2.EV.Vcldouble);
+                            e.Vcldouble.re = 0;
+                            e.Vcldouble.im = d1;
+                            e.Vcldouble = Complex_ld.div(e.Vcldouble, e2.Vcldouble);
                             break;
                         default:
                             assert(0);
@@ -1034,15 +1034,15 @@ static if (0)
                     switch (tym2)
                     {
                         case TYfloat:
-                            e.EV.Vcfloat.re = e1.EV.Vcfloat.re / e2.EV.Vfloat;
-                            e.EV.Vcfloat.im = e1.EV.Vcfloat.im / e2.EV.Vfloat;
+                            e.Vcfloat.re = e1.Vcfloat.re / e2.Vfloat;
+                            e.Vcfloat.im = e1.Vcfloat.im / e2.Vfloat;
                             break;
                         case TYifloat:
-                            e.EV.Vcfloat.re =  e1.EV.Vcfloat.im / e2.EV.Vfloat;
-                            e.EV.Vcfloat.im = -e1.EV.Vcfloat.re / e2.EV.Vfloat;
+                            e.Vcfloat.re =  e1.Vcfloat.im / e2.Vfloat;
+                            e.Vcfloat.im = -e1.Vcfloat.re / e2.Vfloat;
                             break;
                         case TYcfloat:
-                            e.EV.Vcfloat = Complex_f.div(e1.EV.Vcfloat, e2.EV.Vcfloat);
+                            e.Vcfloat = Complex_f.div(e1.Vcfloat, e2.Vcfloat);
                             break;
                         default:
                             assert(0);
@@ -1052,15 +1052,15 @@ static if (0)
                     switch (tym2)
                     {
                         case TYdouble:
-                            e.EV.Vcdouble.re = e1.EV.Vcdouble.re / e2.EV.Vdouble;
-                            e.EV.Vcdouble.im = e1.EV.Vcdouble.im / e2.EV.Vdouble;
+                            e.Vcdouble.re = e1.Vcdouble.re / e2.Vdouble;
+                            e.Vcdouble.im = e1.Vcdouble.im / e2.Vdouble;
                             break;
                         case TYidouble:
-                            e.EV.Vcdouble.re =  e1.EV.Vcdouble.im / e2.EV.Vdouble;
-                            e.EV.Vcdouble.im = -e1.EV.Vcdouble.re / e2.EV.Vdouble;
+                            e.Vcdouble.re =  e1.Vcdouble.im / e2.Vdouble;
+                            e.Vcdouble.im = -e1.Vcdouble.re / e2.Vdouble;
                             break;
                         case TYcdouble:
-                            e.EV.Vcdouble = Complex_d.div(e1.EV.Vcdouble, e2.EV.Vcdouble);
+                            e.Vcdouble = Complex_d.div(e1.Vcdouble, e2.Vcdouble);
                             break;
                         default:
                             assert(0);
@@ -1070,22 +1070,22 @@ static if (0)
                     switch (tym2)
                     {
                         case TYldouble:
-                            e.EV.Vcldouble.re = e1.EV.Vcldouble.re / d2;
-                            e.EV.Vcldouble.im = e1.EV.Vcldouble.im / d2;
+                            e.Vcldouble.re = e1.Vcldouble.re / d2;
+                            e.Vcldouble.im = e1.Vcldouble.im / d2;
                             break;
                         case TYildouble:
-                            e.EV.Vcldouble.re =  e1.EV.Vcldouble.im / d2;
-                            e.EV.Vcldouble.im = -e1.EV.Vcldouble.re / d2;
+                            e.Vcldouble.re =  e1.Vcldouble.im / d2;
+                            e.Vcldouble.im = -e1.Vcldouble.re / d2;
                             break;
                         case TYcldouble:
-                            e.EV.Vcldouble = Complex_ld.div(e1.EV.Vcldouble, e2.EV.Vcldouble);
+                            e.Vcldouble = Complex_ld.div(e1.Vcldouble, e2.Vcldouble);
                             break;
                         default:
                             assert(0);
                     }
                     break;
                 default:
-                    e.EV.Vllong = l1 / l2;
+                    e.Vllong = l1 / l2;
                     break;
             }
         }
@@ -1107,12 +1107,12 @@ static if (0)
         if (uns)
         {
             if (tym == TYucent)
-                dmd.common.int128.udivmod(e1.EV.Vcent, e2.EV.Vcent, e.EV.Vcent);
+                dmd.common.int128.udivmod(e1.Vcent, e2.Vcent, e.Vcent);
             else
-                e.EV.Vullong = (cast(targ_ullong) l1) % (cast(targ_ullong) l2);
+                e.Vullong = (cast(targ_ullong) l1) % (cast(targ_ullong) l2);
         }
         else if (tym == TYcent)
-            dmd.common.int128.divmod(e1.EV.Vcent, e2.EV.Vcent, e.EV.Vcent);
+            dmd.common.int128.divmod(e1.Vcent, e2.Vcent, e.Vcent);
         else
         {
             // BUG: what do we do for imaginary, complex?
@@ -1120,23 +1120,23 @@ static if (0)
             {   case TYdouble:
                 case TYidouble:
                 case TYdouble_alias:
-                    e.EV.Vdouble = fmod(e1.EV.Vdouble,e2.EV.Vdouble);
+                    e.Vdouble = fmod(e1.Vdouble,e2.Vdouble);
                     break;
                 case TYfloat:
                 case TYifloat:
-                    e.EV.Vfloat = fmodf(e1.EV.Vfloat,e2.EV.Vfloat);
+                    e.Vfloat = fmodf(e1.Vfloat,e2.Vfloat);
                     break;
                 case TYldouble:
                 case TYildouble:
-                    e.EV.Vldouble = _modulo(d1, d2);
+                    e.Vldouble = _modulo(d1, d2);
                     break;
                 case TYcfloat:
                     switch (tym2)
                     {
                         case TYfloat:
                         case TYifloat:
-                            e.EV.Vcfloat.re = fmodf(e1.EV.Vcfloat.re, e2.EV.Vfloat);
-                            e.EV.Vcfloat.im = fmodf(e1.EV.Vcfloat.im, e2.EV.Vfloat);
+                            e.Vcfloat.re = fmodf(e1.Vcfloat.re, e2.Vfloat);
+                            e.Vcfloat.im = fmodf(e1.Vcfloat.im, e2.Vfloat);
                             break;
                         default:
                             assert(0);
@@ -1147,8 +1147,8 @@ static if (0)
                     {
                         case TYdouble:
                         case TYidouble:
-                            e.EV.Vcdouble.re = fmod(e1.EV.Vcdouble.re, e2.EV.Vdouble);
-                            e.EV.Vcdouble.im = fmod(e1.EV.Vcdouble.im, e2.EV.Vdouble);
+                            e.Vcdouble.re = fmod(e1.Vcdouble.re, e2.Vdouble);
+                            e.Vcdouble.im = fmod(e1.Vcdouble.im, e2.Vdouble);
                             break;
                         default:
                             assert(0);
@@ -1159,15 +1159,15 @@ static if (0)
                     {
                         case TYldouble:
                         case TYildouble:
-                            e.EV.Vcldouble.re = _modulo(e1.EV.Vcldouble.re, d2);
-                            e.EV.Vcldouble.im = _modulo(e1.EV.Vcldouble.im, d2);
+                            e.Vcldouble.re = _modulo(e1.Vcldouble.re, d2);
+                            e.Vcldouble.im = _modulo(e1.Vcldouble.im, d2);
                             break;
                         default:
                             assert(0);
                     }
                     break;
                 default:
-                    e.EV.Vllong = l1 % l2;
+                    e.Vllong = l1 % l2;
                     break;
             }
         }
@@ -1195,14 +1195,14 @@ static if (0)
         switch (tysize(tym))
         {
             case 2:
-                e.EV.Vllong = (rem << 16) | (quo & 0xFFFF);
+                e.Vllong = (rem << 16) | (quo & 0xFFFF);
                 break;
             case 4:
-                e.EV.Vllong = (rem << 32) | (quo & 0xFFFFFFFF);
+                e.Vllong = (rem << 32) | (quo & 0xFFFFFFFF);
                 break;
             case 8:
-                e.EV.Vcent.lo = quo;
-                e.EV.Vcent.hi = rem;
+                e.Vcent.lo = quo;
+                e.Vcent.hi = rem;
                 break;
             default:
                 assert(0);
@@ -1211,103 +1211,103 @@ static if (0)
     }
     case OPand:
         if (tym == TYcent || tym == TYucent)
-            e.EV.Vcent = dmd.common.int128.and(e1.EV.Vcent, e2.EV.Vcent);
+            e.Vcent = dmd.common.int128.and(e1.Vcent, e2.Vcent);
         else
-            e.EV.Vllong = l1 & l2;
+            e.Vllong = l1 & l2;
         break;
     case OPor:
         if (tym == TYcent || tym == TYucent)
-            e.EV.Vcent = dmd.common.int128.or(e1.EV.Vcent, e2.EV.Vcent);
+            e.Vcent = dmd.common.int128.or(e1.Vcent, e2.Vcent);
         else
-            e.EV.Vllong = l1 | l2;
+            e.Vllong = l1 | l2;
         break;
     case OPxor:
         if (tym == TYcent || tym == TYucent)
-            e.EV.Vcent = dmd.common.int128.xor(e1.EV.Vcent, e2.EV.Vcent);
+            e.Vcent = dmd.common.int128.xor(e1.Vcent, e2.Vcent);
         else
-            e.EV.Vllong = l1 ^ l2;
+            e.Vllong = l1 ^ l2;
         break;
     case OPnot:
-        e.EV.Vint = boolres(e1) ^ true;
+        e.Vint = boolres(e1) ^ true;
         break;
     case OPcom:
         if (tym == TYcent || tym == TYucent)
-            e.EV.Vcent = dmd.common.int128.com(e1.EV.Vcent);
+            e.Vcent = dmd.common.int128.com(e1.Vcent);
         else
-            e.EV.Vllong = ~l1;
+            e.Vllong = ~l1;
         break;
     case OPcomma:
         e.EV = e2.EV;
         break;
     case OPoror:
-        e.EV.Vint = boolres(e1) || boolres(e2);
+        e.Vint = boolres(e1) || boolres(e2);
         break;
     case OPandand:
-        e.EV.Vint = boolres(e1) && boolres(e2);
+        e.Vint = boolres(e1) && boolres(e2);
         break;
     case OPshl:
         if (tym == TYcent || tym == TYucent)
-            e.EV.Vcent = dmd.common.int128.shl(e1.EV.Vcent, i2);
+            e.Vcent = dmd.common.int128.shl(e1.Vcent, i2);
         else if (cast(targ_ullong) i2 < targ_ullong.sizeof * 8)
-            e.EV.Vllong = l1 << i2;
+            e.Vllong = l1 << i2;
         else
-            e.EV.Vllong = 0;
+            e.Vllong = 0;
         break;
     case OPshr:
         if (tym == TYcent || tym == TYucent)
         {
-            e.EV.Vcent = dmd.common.int128.shr(e1.EV.Vcent, i2);
+            e.Vcent = dmd.common.int128.shr(e1.Vcent, i2);
             break;
         }
         if (cast(targ_ullong) i2 > targ_ullong.sizeof * 8)
             i2 = targ_ullong.sizeof * 8;
         // Always unsigned
-        e.EV.Vullong = (cast(targ_ullong) l1) >> i2;
+        e.Vullong = (cast(targ_ullong) l1) >> i2;
         break;
 
     case OPbtst:
         if (cast(targ_ullong) i2 > targ_ullong.sizeof * 8)
             i2 = targ_ullong.sizeof * 8;
-        e.EV.Vullong = ((cast(targ_ullong) l1) >> i2) & 1;
+        e.Vullong = ((cast(targ_ullong) l1) >> i2) & 1;
         break;
 
     case OPashr:
         if (tym == TYcent || tym == TYucent)
         {
-            e.EV.Vcent = dmd.common.int128.sar(e1.EV.Vcent, i2);
+            e.Vcent = dmd.common.int128.sar(e1.Vcent, i2);
             break;
         }
         if (cast(targ_ullong) i2 > targ_ullong.sizeof * 8)
             i2 = targ_ullong.sizeof * 8;
         // Always signed
-        e.EV.Vllong = l1 >> i2;
+        e.Vllong = l1 >> i2;
         break;
 
     case OPpair:
         switch (tysize(e.Ety))
         {
             case 4:
-                e.EV.Vlong = (i2 << 16) | (i1 & 0xFFFF);
+                e.Vlong = (i2 << 16) | (i1 & 0xFFFF);
                 break;
             case 8:
                 if (tyfloating(tym))
                 {
-                    e.EV.Vcfloat.re = cast(float)d1;
-                    e.EV.Vcfloat.im = cast(float)d2;
+                    e.Vcfloat.re = cast(float)d1;
+                    e.Vcfloat.im = cast(float)d2;
                 }
                 else
-                    e.EV.Vllong = (l2 << 32) | (l1 & 0xFFFFFFFF);
+                    e.Vllong = (l2 << 32) | (l1 & 0xFFFFFFFF);
                 break;
             case 16:
                 if (tyfloating(tym))
                 {
-                    e.EV.Vcdouble.re = cast(double)d1;
-                    e.EV.Vcdouble.im = cast(double)d2;
+                    e.Vcdouble.re = cast(double)d1;
+                    e.Vcdouble.im = cast(double)d2;
                 }
                 else
                 {
-                    e.EV.Vcent.lo = l1;
-                    e.EV.Vcent.hi = l2;
+                    e.Vcent.lo = l1;
+                    e.Vcent.hi = l2;
                 }
                 break;
 
@@ -1317,8 +1317,8 @@ static if (0)
             default:
                 if (tyfloating(tym))
                 {
-                    e.EV.Vcldouble.re = d1;
-                    e.EV.Vcldouble.im = d2;
+                    e.Vcldouble.re = d1;
+                    e.Vcldouble.im = d2;
                 }
                 else
                 {
@@ -1333,35 +1333,35 @@ static if (0)
         switch (tysize(e.Ety))
         {
             case 4:
-                e.EV.Vlong = (i1 << 16) | (i2 & 0xFFFF);
+                e.Vlong = (i1 << 16) | (i2 & 0xFFFF);
                 break;
             case 8:
-                e.EV.Vllong = (l1 << 32) | (l2 & 0xFFFFFFFF);
+                e.Vllong = (l1 << 32) | (l2 & 0xFFFFFFFF);
                 if (tyfloating(tym))
                 {
-                    e.EV.Vcfloat.re = cast(float)d2;
-                    e.EV.Vcfloat.im = cast(float)d1;
+                    e.Vcfloat.re = cast(float)d2;
+                    e.Vcfloat.im = cast(float)d1;
                 }
                 else
-                    e.EV.Vllong = (l1 << 32) | (l2 & 0xFFFFFFFF);
+                    e.Vllong = (l1 << 32) | (l2 & 0xFFFFFFFF);
                 break;
             case 16:
                 if (tyfloating(tym))
                 {
-                    e.EV.Vcdouble.re = cast(double)d2;
-                    e.EV.Vcdouble.im = cast(double)d1;
+                    e.Vcdouble.re = cast(double)d2;
+                    e.Vcdouble.im = cast(double)d1;
                 }
                 else
                 {
-                    e.EV.Vcent.lo = l2;
-                    e.EV.Vcent.hi = l1;
+                    e.Vcent.lo = l2;
+                    e.Vcent.hi = l1;
                 }
                 break;
             default:
                 if (tyfloating(tym))
                 {
-                    e.EV.Vcldouble.re = d2;
-                    e.EV.Vcldouble.im = d1;
+                    e.Vcldouble.re = d2;
+                    e.Vcldouble.im = d1;
                 }
                 else
                 {
@@ -1373,41 +1373,41 @@ static if (0)
 
     case OPneg:
         // Avoid converting NANS to NAN
-        memcpy(&e.EV.Vcldouble,&e1.EV.Vcldouble,e.EV.Vcldouble.sizeof);
+        memcpy(&e.Vcldouble,&e1.Vcldouble,e.Vcldouble.sizeof);
         switch (tym)
         {   case TYdouble:
             case TYidouble:
             case TYdouble_alias:
-                e.EV.Vdouble = -e.EV.Vdouble;
+                e.Vdouble = -e.Vdouble;
                 break;
             case TYfloat:
             case TYifloat:
-                e.EV.Vfloat = -e.EV.Vfloat;
+                e.Vfloat = -e.Vfloat;
                 break;
             case TYldouble:
             case TYildouble:
-                e.EV.Vldouble = -e.EV.Vldouble;
+                e.Vldouble = -e.Vldouble;
                 break;
             case TYcfloat:
-                e.EV.Vcfloat.re = -e.EV.Vcfloat.re;
-                e.EV.Vcfloat.im = -e.EV.Vcfloat.im;
+                e.Vcfloat.re = -e.Vcfloat.re;
+                e.Vcfloat.im = -e.Vcfloat.im;
                 break;
             case TYcdouble:
-                e.EV.Vcdouble.re = -e.EV.Vcdouble.re;
-                e.EV.Vcdouble.im = -e.EV.Vcdouble.im;
+                e.Vcdouble.re = -e.Vcdouble.re;
+                e.Vcdouble.im = -e.Vcdouble.im;
                 break;
             case TYcldouble:
-                e.EV.Vcldouble.re = -e.EV.Vcldouble.re;
-                e.EV.Vcldouble.im = -e.EV.Vcldouble.im;
+                e.Vcldouble.re = -e.Vcldouble.re;
+                e.Vcldouble.im = -e.Vcldouble.im;
                 break;
 
             case TYcent:
             case TYucent:
-                e.EV.Vcent = dmd.common.int128.neg(e1.EV.Vcent);
+                e.Vcent = dmd.common.int128.neg(e1.Vcent);
                 break;
 
             default:
-                e.EV.Vllong = -l1;
+                e.Vllong = -l1;
                 break;
         }
         break;
@@ -1417,35 +1417,35 @@ static if (0)
             case TYdouble:
             case TYidouble:
             case TYdouble_alias:
-                e.EV.Vdouble = fabs(e1.EV.Vdouble);
+                e.Vdouble = fabs(e1.Vdouble);
                 break;
             case TYfloat:
             case TYifloat:
 version (DigitalMars)
-                e.EV.Vfloat = fabsf(e1.EV.Vfloat);
+                e.Vfloat = fabsf(e1.Vfloat);
 else
-                e.EV.Vfloat = fabs(e1.EV.Vfloat);
+                e.Vfloat = fabs(e1.Vfloat);
 
                 break;
             case TYldouble:
             case TYildouble:
-                e.EV.Vldouble = fabsl(d1);
+                e.Vldouble = fabsl(d1);
                 break;
             case TYcfloat:
-                e.EV.Vfloat = cast(float)Complex_f.abs(e1.EV.Vcfloat);
+                e.Vfloat = cast(float)Complex_f.abs(e1.Vcfloat);
                 break;
             case TYcdouble:
-                e.EV.Vdouble = cast(double)Complex_d.abs(e1.EV.Vcdouble);
+                e.Vdouble = cast(double)Complex_d.abs(e1.Vcdouble);
                 break;
             case TYcldouble:
-                e.EV.Vldouble = Complex_ld.abs(e1.EV.Vcldouble);
+                e.Vldouble = Complex_ld.abs(e1.Vcldouble);
                 break;
             case TYcent:
             case TYucent:
-                e.EV.Vcent = cast(long)e1.EV.Vcent.hi < 0 ? dmd.common.int128.neg(e1.EV.Vcent) : e1.EV.Vcent;
+                e.Vcent = cast(long)e1.Vcent.hi < 0 ? dmd.common.int128.neg(e1.Vcent) : e1.Vcent;
                 break;
             default:
-                e.EV.Vllong = l1 < 0 ? -l1 : l1;
+                e.Vllong = l1 < 0 ? -l1 : l1;
                 break;
         }
         break;
@@ -1461,7 +1461,7 @@ else
     case OPgt:
         if (!tyfloating(tym))
             goto Lnle;
-        e.EV.Vint = (op == OPngt) ^ (d1 > d2);
+        e.Vint = (op == OPngt) ^ (d1 > d2);
         break;
 
     case OPnle:
@@ -1472,7 +1472,7 @@ else
         if (uns)
         {
             if (tym == TYucent)
-                b = dmd.common.int128.ule(e1.EV.Vcent, e2.EV.Vcent);
+                b = dmd.common.int128.ule(e1.Vcent, e2.Vcent);
             else
                 b = cast(int)((cast(targ_ullong) l1) <= (cast(targ_ullong) l2));
         }
@@ -1481,11 +1481,11 @@ else
             if (tyfloating(tym))
                 b = cast(int)(!unordered(d1, d2) && d1 <= d2);
             else if (tym == TYcent)
-                b = dmd.common.int128.le(e1.EV.Vcent, e2.EV.Vcent);
+                b = dmd.common.int128.le(e1.Vcent, e2.Vcent);
             else
                 b = cast(int)(l1 <= l2);
         }
-        e.EV.Vint = (op != OPle) ^ b;
+        e.Vint = (op != OPle) ^ b;
         break;
     }
 
@@ -1493,7 +1493,7 @@ else
     case OPge:
         if (!tyfloating(tym))
             goto Lnlt;
-        e.EV.Vint = (op == OPnge) ^ (!unordered(d1, d2) && d1 >= d2);
+        e.Vint = (op == OPnge) ^ (!unordered(d1, d2) && d1 >= d2);
         break;
 
     case OPnlt:
@@ -1504,7 +1504,7 @@ else
         if (uns)
         {
             if (tym == TYucent)
-                b = dmd.common.int128.ult(e1.EV.Vcent, e2.EV.Vcent);
+                b = dmd.common.int128.ult(e1.Vcent, e2.Vcent);
             else
                 b = cast(int)((cast(targ_ullong) l1) < (cast(targ_ullong) l2));
         }
@@ -1513,11 +1513,11 @@ else
             if (tyfloating(tym))
                 b = cast(int)(!unordered(d1, d2) && d1 < d2);
             else if (tym == TYcent)
-                b = dmd.common.int128.lt(e1.EV.Vcent, e2.EV.Vcent);
+                b = dmd.common.int128.lt(e1.Vcent, e2.Vcent);
             else
                 b = cast(int)(l1 < l2);
         }
-        e.EV.Vint = (op != OPlt) ^ b;
+        e.Vint = (op != OPlt) ^ b;
         break;
     }
 
@@ -1530,157 +1530,157 @@ else
             switch (tybasic(tym))
             {
                 case TYcfloat:
-                    if (isnan(e1.EV.Vcfloat.re) || isnan(e1.EV.Vcfloat.im) ||
-                        isnan(e2.EV.Vcfloat.re) || isnan(e2.EV.Vcfloat.im))
+                    if (isnan(e1.Vcfloat.re) || isnan(e1.Vcfloat.im) ||
+                        isnan(e2.Vcfloat.re) || isnan(e2.Vcfloat.im))
                         b = 0;
                     else
-                        b = cast(int)((e1.EV.Vcfloat.re == e2.EV.Vcfloat.re) &&
-                                      (e1.EV.Vcfloat.im == e2.EV.Vcfloat.im));
+                        b = cast(int)((e1.Vcfloat.re == e2.Vcfloat.re) &&
+                                      (e1.Vcfloat.im == e2.Vcfloat.im));
                     break;
                 case TYcdouble:
-                    if (isnan(e1.EV.Vcdouble.re) || isnan(e1.EV.Vcdouble.im) ||
-                        isnan(e2.EV.Vcdouble.re) || isnan(e2.EV.Vcdouble.im))
+                    if (isnan(e1.Vcdouble.re) || isnan(e1.Vcdouble.im) ||
+                        isnan(e2.Vcdouble.re) || isnan(e2.Vcdouble.im))
                         b = 0;
                     else
-                        b = cast(int)((e1.EV.Vcdouble.re == e2.EV.Vcdouble.re) &&
-                                      (e1.EV.Vcdouble.im == e2.EV.Vcdouble.im));
+                        b = cast(int)((e1.Vcdouble.re == e2.Vcdouble.re) &&
+                                      (e1.Vcdouble.im == e2.Vcdouble.im));
                     break;
                 case TYcldouble:
-                    if (isnan(e1.EV.Vcldouble.re) || isnan(e1.EV.Vcldouble.im) ||
-                        isnan(e2.EV.Vcldouble.re) || isnan(e2.EV.Vcldouble.im))
+                    if (isnan(e1.Vcldouble.re) || isnan(e1.Vcldouble.im) ||
+                        isnan(e2.Vcldouble.re) || isnan(e2.Vcldouble.im))
                         b = 0;
                     else
-                        b = cast(int)((e1.EV.Vcldouble.re == e2.EV.Vcldouble.re) &&
-                                      (e1.EV.Vcldouble.im == e2.EV.Vcldouble.im));
+                        b = cast(int)((e1.Vcldouble.re == e2.Vcldouble.re) &&
+                                      (e1.Vcldouble.im == e2.Vcldouble.im));
                     break;
                 default:
                     b = cast(int)(d1 == d2);
                     break;
             }
-            //printf("%Lg + %Lgi, %Lg + %Lgi\n", e1.EV.Vcldouble.re, e1.EV.Vcldouble.im, e2.EV.Vcldouble.re, e2.EV.Vcldouble.im);
+            //printf("%Lg + %Lgi, %Lg + %Lgi\n", e1.Vcldouble.re, e1.Vcldouble.im, e2.Vcldouble.re, e2.Vcldouble.im);
         }
         else if (tym == TYcent || tym == TYucent)
-            b = cast(int)(e1.EV.Vcent == e2.EV.Vcent);
+            b = cast(int)(e1.Vcent == e2.Vcent);
         else
             b = cast(int)(l1 == l2);
-        e.EV.Vint = (op == OPne) ^ b;
+        e.Vint = (op == OPne) ^ b;
         break;
     }
 
     case OPord:
     case OPunord:
         // BUG: complex numbers
-        e.EV.Vint = (op == OPord) ^ (unordered(d1, d2)); // !<>=
+        e.Vint = (op == OPord) ^ (unordered(d1, d2)); // !<>=
         break;
 
     case OPnlg:
     case OPlg:
         // BUG: complex numbers
-        e.EV.Vint = (op == OPnlg) ^ (!unordered(d1, d2) && d1 != d2); // <>
+        e.Vint = (op == OPnlg) ^ (!unordered(d1, d2) && d1 != d2); // <>
         break;
 
     case OPnleg:
     case OPleg:
         // BUG: complex numbers
-        e.EV.Vint = (op == OPnleg) ^ (!unordered(d1, d2)); // <>=
+        e.Vint = (op == OPnleg) ^ (!unordered(d1, d2)); // <>=
         break;
 
     case OPnule:
     case OPule:
         // BUG: complex numbers
-        e.EV.Vint = (op == OPnule) ^ (unordered(d1, d2) || d1 <= d2); // !>
+        e.Vint = (op == OPnule) ^ (unordered(d1, d2) || d1 <= d2); // !>
         break;
 
     case OPnul:
     case OPul:
         // BUG: complex numbers
-        e.EV.Vint = (op == OPnul) ^ (unordered(d1, d2) || d1 < d2); // !>=
+        e.Vint = (op == OPnul) ^ (unordered(d1, d2) || d1 < d2); // !>=
         break;
 
     case OPnuge:
     case OPuge:
         // BUG: complex numbers
-        e.EV.Vint = (op == OPnuge) ^ (unordered(d1, d2) || d1 >= d2); // !<
+        e.Vint = (op == OPnuge) ^ (unordered(d1, d2) || d1 >= d2); // !<
         break;
 
     case OPnug:
     case OPug:
         // BUG: complex numbers
-        e.EV.Vint = (op == OPnug) ^ (unordered(d1, d2) || d1 > d2); // !<=
+        e.Vint = (op == OPnug) ^ (unordered(d1, d2) || d1 > d2); // !<=
         break;
 
     case OPnue:
     case OPue:
         // BUG: complex numbers
-        e.EV.Vint = (op == OPnue) ^ (unordered(d1, d2) || d1 == d2); // !<>
+        e.Vint = (op == OPnue) ^ (unordered(d1, d2) || d1 == d2); // !<>
         break;
 
     case OPs16_32:
-        e.EV.Vlong = cast(targ_short) i1;
+        e.Vlong = cast(targ_short) i1;
         break;
     case OPnp_fp:
     case OPu16_32:
-        e.EV.Vulong = cast(targ_ushort) i1;
+        e.Vulong = cast(targ_ushort) i1;
         break;
     case OPd_u32:
-        e.EV.Vulong = cast(targ_ulong)d1;
-        //printf("OPd_u32: dbl = %g, ulng = x%lx\n",d1,e.EV.Vulong);
+        e.Vulong = cast(targ_ulong)d1;
+        //printf("OPd_u32: dbl = %g, ulng = x%lx\n",d1,e.Vulong);
         break;
     case OPd_s32:
-        e.EV.Vlong = cast(targ_long)d1;
+        e.Vlong = cast(targ_long)d1;
         break;
     case OPu32_d:
-        e.EV.Vdouble = cast(uint) l1;
+        e.Vdouble = cast(uint) l1;
         break;
     case OPs32_d:
-        e.EV.Vdouble = cast(int) l1;
+        e.Vdouble = cast(int) l1;
         break;
     case OPd_s16:
-        e.EV.Vint = cast(targ_int)d1;
+        e.Vint = cast(targ_int)d1;
         break;
     case OPs16_d:
-        e.EV.Vdouble = cast(targ_short) i1;
+        e.Vdouble = cast(targ_short) i1;
         break;
     case OPd_u16:
-        e.EV.Vushort = cast(targ_ushort)d1;
+        e.Vushort = cast(targ_ushort)d1;
         break;
     case OPu16_d:
-        e.EV.Vdouble = cast(targ_ushort) i1;
+        e.Vdouble = cast(targ_ushort) i1;
         break;
     case OPd_s64:
-        e.EV.Vllong = cast(targ_llong)d1;
+        e.Vllong = cast(targ_llong)d1;
         break;
     case OPd_u64:
     case OPld_u64:
-        e.EV.Vullong = cast(targ_ullong)d1;
+        e.Vullong = cast(targ_ullong)d1;
         break;
     case OPs64_d:
-        e.EV.Vdouble = l1;
+        e.Vdouble = l1;
         break;
     case OPu64_d:
-        e.EV.Vdouble = cast(targ_ullong) l1;
+        e.Vdouble = cast(targ_ullong) l1;
         break;
     case OPd_f:
         assert((statusFE() & 0x3800) == 0);
-        e.EV.Vfloat = e1.EV.Vdouble;
+        e.Vfloat = e1.Vdouble;
         if (tycomplex(tym))
-            e.EV.Vcfloat.im = e1.EV.Vcdouble.im;
+            e.Vcfloat.im = e1.Vcdouble.im;
         assert((statusFE() & 0x3800) == 0);
         break;
     case OPf_d:
-        e.EV.Vdouble = e1.EV.Vfloat;
+        e.Vdouble = e1.Vfloat;
         if (tycomplex(tym))
-            e.EV.Vcdouble.im = e1.EV.Vcfloat.im;
+            e.Vcdouble.im = e1.Vcfloat.im;
         break;
     case OPd_ld:
-        e.EV.Vldouble = e1.EV.Vdouble;
+        e.Vldouble = e1.Vdouble;
         if (tycomplex(tym))
-            e.EV.Vcldouble.im = e1.EV.Vcdouble.im;
+            e.Vcldouble.im = e1.Vcdouble.im;
         break;
     case OPld_d:
-        e.EV.Vdouble = cast(double)e1.EV.Vldouble;
+        e.Vdouble = cast(double)e1.Vldouble;
         if (tycomplex(tym))
-            e.EV.Vcdouble.im = cast(double)e1.EV.Vcldouble.im;
+            e.Vcdouble.im = cast(double)e1.Vcldouble.im;
         break;
     case OPc_r:
         e.EV = e1.EV;
@@ -1689,92 +1689,92 @@ else
         switch (tym)
         {
             case TYcfloat:
-                e.EV.Vfloat = e1.EV.Vcfloat.im;
+                e.Vfloat = e1.Vcfloat.im;
                 break;
             case TYcdouble:
-                e.EV.Vdouble = e1.EV.Vcdouble.im;
+                e.Vdouble = e1.Vcdouble.im;
                 break;
             case TYcldouble:
-                e.EV.Vldouble = e1.EV.Vcldouble.im;
+                e.Vldouble = e1.Vcldouble.im;
                 break;
             default:
                 assert(0);
         }
         break;
     case OPs8_16:
-        e.EV.Vint = cast(targ_schar) i1;
+        e.Vint = cast(targ_schar) i1;
         break;
     case OPu8_16:
-        e.EV.Vint = i1 & 0xFF;
+        e.Vint = i1 & 0xFF;
         break;
     case OP16_8:
-        e.EV.Vint = i1;
+        e.Vint = i1;
         break;
     case OPbool:
-        e.EV.Vint = boolres(e1);
+        e.Vint = boolres(e1);
         break;
     case OP32_16:
     case OPoffset:
-        e.EV.Vint = cast(targ_int)l1;
+        e.Vint = cast(targ_int)l1;
         break;
 
     case OP64_32:
-        e.EV.Vlong = cast(targ_long)l1;
+        e.Vlong = cast(targ_long)l1;
         break;
     case OPs32_64:
-        e.EV.Vllong = cast(targ_long) l1;
+        e.Vllong = cast(targ_long) l1;
         break;
     case OPu32_64:
-        e.EV.Vllong = cast(targ_ulong) l1;
+        e.Vllong = cast(targ_ulong) l1;
         break;
 
     case OP128_64:
-        e.EV.Vllong = e1.EV.Vcent.lo;
+        e.Vllong = e1.Vcent.lo;
         break;
     case OPs64_128:
-        e.EV.Vcent.lo = e1.EV.Vllong;
-        e.EV.Vcent.hi = 0;
-        if (cast(targ_llong)e.EV.Vcent.lo < 0)
-            e.EV.Vcent.hi = ~cast(targ_ullong)0;
+        e.Vcent.lo = e1.Vllong;
+        e.Vcent.hi = 0;
+        if (cast(targ_llong)e.Vcent.lo < 0)
+            e.Vcent.hi = ~cast(targ_ullong)0;
         break;
     case OPu64_128:
-        e.EV.Vcent.lo = e1.EV.Vullong;
-        e.EV.Vcent.hi = 0;
+        e.Vcent.lo = e1.Vullong;
+        e.Vcent.hi = 0;
         break;
 
     case OPmsw:
         switch (tysize(tym))
         {
             case 4:
-                e.EV.Vllong = (l1 >> 16) & 0xFFFF;
+                e.Vllong = (l1 >> 16) & 0xFFFF;
                 break;
             case 8:
-                e.EV.Vllong = (l1 >> 32) & 0xFFFFFFFF;
+                e.Vllong = (l1 >> 32) & 0xFFFFFFFF;
                 break;
             case 16:
-                e.EV.Vllong = e1.EV.Vcent.hi;
+                e.Vllong = e1.Vcent.hi;
                 break;
             default:
                 assert(0);
         }
         break;
     case OPb_8:
-        e.EV.Vlong = i1 & 1;
+        e.Vlong = i1 & 1;
         break;
     case OPbswap:
         if (tysize(tym) == 2)
         {
-            e.EV.Vint = ((i1 >> 8) & 0x00FF) |
+            e.Vint = ((i1 >> 8) & 0x00FF) |
                         ((i1 << 8) & 0xFF00);
         }
         else if (tysize(tym) == 4)
-            e.EV.Vint = core.bitop.bswap(cast(uint) i1);
+            e.Vint = core.bitop.bswap(cast(uint) i1);
         else if (tysize(tym) == 8)
-            e.EV.Vllong = core.bitop.bswap(cast(ulong) l1);
+            e.Vllong = core.bitop.bswap(cast(ulong) l1);
         else
         {
-            e.EV.Vcent.hi = core.bitop.bswap(e1.EV.Vcent.lo);
-            e.EV.Vcent.lo = core.bitop.bswap(e1.EV.Vcent.hi);
+            e.Vcent.hi = core.bitop.bswap(e1.Vcent.lo);
+            e.Vcent.lo = core.bitop.bswap(e1.Vcent.hi);
         }
         break;
 
@@ -1789,7 +1789,7 @@ else
             case 8:     break;
             default:    assert(0);
         }
-        e.EV.Vllong = core.bitop.popcnt(cast(ulong) l1);
+        e.Vllong = core.bitop.popcnt(cast(ulong) l1);
         break;
     }
 
@@ -1802,22 +1802,22 @@ else
         {
             case 1:
                 n &= 7;
-                e.EV.Vuchar = cast(ubyte)((i1 << n) | ((i1 & 0xFF) >> (8 - n)));
+                e.Vuchar = cast(ubyte)((i1 << n) | ((i1 & 0xFF) >> (8 - n)));
                 break;
             case 2:
                 n &= 0xF;
-                e.EV.Vushort = cast(targ_ushort)((i1 << n) | ((i1 & 0xFFFF) >> (16 - n)));
+                e.Vushort = cast(targ_ushort)((i1 << n) | ((i1 & 0xFFFF) >> (16 - n)));
                 break;
             case 4:
                 n &= 0x1F;
-                e.EV.Vulong = cast(targ_ulong)((i1 << n) | ((i1 & 0xFFFFFFFF) >> (32 - n)));
+                e.Vulong = cast(targ_ulong)((i1 << n) | ((i1 & 0xFFFFFFFF) >> (32 - n)));
                 break;
             case 8:
                 n &= 0x3F;
-                e.EV.Vullong = cast(targ_ullong)((l1 << n) | ((l1 & 0xFFFFFFFFFFFFFFFFL) >> (64 - n)));
+                e.Vullong = cast(targ_ullong)((l1 << n) | ((l1 & 0xFFFFFFFFFFFFFFFFL) >> (64 - n)));
                 break;
             case 16:
-                e.EV.Vcent = dmd.common.int128.rol(e1.EV.Vcent, n);
+                e.Vcent = dmd.common.int128.rol(e1.Vcent, n);
                 break;
             default:
                 assert(0);
@@ -1836,7 +1836,7 @@ static if (0) // && MARS
         {
             error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum,
                 "dereference of null pointer");
-            e.EV.E1.EV.Vlong = 4096;     // suppress redundant messages
+            e.E1.Vlong = 4096;     // suppress redundant messages
         }
 }
         return e;
@@ -1846,61 +1846,61 @@ static if (0) // && MARS
         {
             // 16 byte vectors
             case TYfloat4:
-                foreach (ref lhsElem; e.EV.Vfloat4)
-                    lhsElem = e1.EV.Vfloat;
+                foreach (ref lhsElem; e.Vfloat4)
+                    lhsElem = e1.Vfloat;
                 break;
             case TYdouble2:
-                foreach (ref lhsElem; e.EV.Vdouble2)
-                    lhsElem = e1.EV.Vdouble;
+                foreach (ref lhsElem; e.Vdouble2)
+                    lhsElem = e1.Vdouble;
                 break;
             case TYschar16:
             case TYuchar16:
-                foreach (ref lhsElem; e.EV.Vuchar16)
+                foreach (ref lhsElem; e.Vuchar16)
                     lhsElem = cast(targ_uchar)i1;
                 break;
             case TYshort8:
             case TYushort8:
-                foreach (ref lhsElem; e.EV.Vushort8)
+                foreach (ref lhsElem; e.Vushort8)
                     lhsElem = cast(targ_ushort)i1;
                 break;
             case TYlong4:
             case TYulong4:
-                foreach (ref lhsElem; e.EV.Vulong4)
+                foreach (ref lhsElem; e.Vulong4)
                     lhsElem = cast(targ_ulong)i1;
                 break;
             case TYllong2:
             case TYullong2:
-                foreach (ref lhsElem; e.EV.Vullong2)
+                foreach (ref lhsElem; e.Vullong2)
                     lhsElem = cast(targ_ullong)l1;
                 break;
 
             // 32 byte vectors
             case TYfloat8:
-                foreach (ref lhsElem; e.EV.Vfloat8)
-                    lhsElem = e1.EV.Vfloat;
+                foreach (ref lhsElem; e.Vfloat8)
+                    lhsElem = e1.Vfloat;
                 break;
             case TYdouble4:
-                foreach (ref lhsElem; e.EV.Vdouble4)
-                    lhsElem = e1.EV.Vdouble;
+                foreach (ref lhsElem; e.Vdouble4)
+                    lhsElem = e1.Vdouble;
                 break;
             case TYschar32:
             case TYuchar32:
-                foreach (ref lhsElem; e.EV.Vuchar32)
+                foreach (ref lhsElem; e.Vuchar32)
                     lhsElem = cast(targ_uchar)i1;
                 break;
             case TYshort16:
             case TYushort16:
-                foreach (ref lhsElem; e.EV.Vushort16)
+                foreach (ref lhsElem; e.Vushort16)
                     lhsElem = cast(targ_ushort)i1;
                 break;
             case TYlong8:
             case TYulong8:
-                foreach (ref lhsElem; e.EV.Vulong8)
+                foreach (ref lhsElem; e.Vulong8)
                     lhsElem = cast(targ_ulong)i1;
                 break;
             case TYllong4:
             case TYullong4:
-                foreach (ref lhsElem; e.EV.Vullong4)
+                foreach (ref lhsElem; e.Vullong4)
                     lhsElem = cast(targ_ullong)l1;
                 break;
 
@@ -1913,7 +1913,7 @@ static if (0) // && MARS
         return e;
   }
 
-    if (!(goal & GOALignore_exceptions) &&
+    if (!(goal & Goal.ignoreExceptions) &&
         (config.flags4 & CFG4fastfloat) == 0 && testFE() &&
         (have_float_except() || tyfloating(tym) || tyfloating(tybasic(typemask(e))))
        )
@@ -1926,7 +1926,7 @@ static if (0) // && MARS
     {
     }
 
-  /*debug printf("result = x%lx\n",e.EV.Vlong);*/
+  /*debug printf("result = x%lx\n",e.Vlong);*/
   e.Eoper = OPconst;
   el_free(e1);
   if (e2)
@@ -1952,16 +1952,16 @@ extern (D) targ_ldouble el_toldoubled(elem *e)
     {
         case TYfloat:
         case TYifloat:
-            result = e.EV.Vfloat;
+            result = e.Vfloat;
             break;
         case TYdouble:
         case TYidouble:
         case TYdouble_alias:
-            result = e.EV.Vdouble;
+            result = e.Vdouble;
             break;
         case TYldouble:
         case TYildouble:
-            result = e.EV.Vldouble;
+            result = e.Vldouble;
             break;
         default:
             result = 0;

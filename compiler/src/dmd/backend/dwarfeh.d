@@ -2,7 +2,7 @@
  * Implements LSDA (Language Specific Data Area) table generation
  * for Dwarf Exception Handling.
  *
- * Copyright: Copyright (C) 2015-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 2015-2024 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, https://www.digitalmars.com
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dwarfeh.d, backend/dwarfeh.d)
@@ -17,7 +17,7 @@ import core.stdc.string;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 
 import dmd.backend.barray : Barray;
 import dmd.backend.dwarf;
@@ -48,7 +48,7 @@ package __gshared DwEhTable dwehtable;
  *      sfunc = function to generate table for
  *      seg = .gcc_except_table segment
  *      et = buffer to insert table into
- *      scancode = true if there are destructors in the code (i.e. usednteh & EHcleanup)
+ *      scancode = true if there are destructors in the code (i.e. cgstate.usednteh & EHcleanup)
  *      startoffset = size of function prolog
  *      retoffset = offset from start of function to epilog
  */
@@ -149,7 +149,7 @@ static if (0)
             int n = 0;
             for (code *c = b.Bcode; c; c = code_next(c))
             {
-                if (c.Iop == (ESCAPE | ESCdctor))
+                if (c.Iop == PSOP.dctor)
                 {
                     uint i = cast(uint) deh.length;
                     DwEhTableEntry *d = deh.push();
@@ -159,7 +159,7 @@ static if (0)
                     ++n;
                 }
 
-                if (c.Iop == (ESCAPE | ESCddtor))
+                if (c.Iop == PSOP.ddtor)
                 {
                     assert(n > 0);
                     --n;

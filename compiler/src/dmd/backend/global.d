@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/global.d, backend/global.d)
@@ -14,37 +14,28 @@ module dmd.backend.global;
 
 // Online documentation: https://dlang.org/phobos/dmd_backend_global.html
 
-@nogc:
-nothrow:
-
 import core.stdc.stdio;
 import core.stdc.stdint;
 
+import dmd.backend.barray;
 import dmd.backend.cdef;
-import dmd.backend.cc;
-import dmd.backend.cc : Symbol, block, Classsym, Blockx;
-import dmd.backend.code_x86 : code;
+import dmd.backend.cc : Symbol, block, Classsym, BlockState, FLdata;
 import dmd.backend.code;
 import dmd.backend.dlist;
-import dmd.backend.el;
 import dmd.backend.el : elem;
 import dmd.backend.mem;
 import dmd.backend.symtab;
+import dmd.backend.ty : TYnptr, TYvoid, tybasic, tysize;
 import dmd.backend.type;
-//import dmd.backend.obj;
-
-import dmd.backend.barray;
+import dmd.backend.var : _tysize;
 
 nothrow:
 @safe:
+@nogc:
 
 // FIXME: backend can't import front end modules because missing -J flag
 extern (C++) void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
 package extern (C++) void fatal();
-
-public import dmd.backend.eh : except_gentables;
-import dmd.backend.var : _tysize;
-import dmd.backend.ty : TYnptr, TYvoid, tybasic, tysize;
 
 /***********************************
  * Returns: aligned `offset` if it is of size `size`.
@@ -76,7 +67,7 @@ targ_size_t _align(targ_size_t size, targ_size_t offset) @trusted
 /*******************************
  * Get size of ty
  */
-targ_size_t size(tym_t ty) @trusted
+targ_size_t size(tym_t ty)
 {
     int sz = (tybasic(ty) == TYvoid) ? 1 : tysize(ty);
     debug
@@ -96,8 +87,8 @@ Symbol *symboldata(targ_size_t offset, tym_t ty)
     Symbol *s = symbol_generate(SC.locstat, type_fake(ty));
     s.Sfl = FLdata;
     s.Soffset = offset;
-    s.Stype.Tmangle = mTYman_sys; // writes symbol unmodified in Obj::mangle
-    symbol_keep(s);               // keep around
+    s.Stype.Tmangle = Mangle.syscall; // writes symbol unmodified in Obj::mangle
+    symbol_keep(s);                   // keep around
     return s;
 }
 
@@ -140,9 +131,9 @@ public import dmd.backend.symbol : symbol_print, symbol_term, symbol_ident, symb
     baseclass_nitems, symbol_free, symbol_add, symbol_add, symbol_insert, freesymtab,
     symbol_copy, symbol_reset, symbol_pointerType;
 
-public import dmd.backend.cg87 : loadconst, cg87_reset;
+public import dmd.backend.x86.cg87 : loadconst, cg87_reset;
 
-public import dmd.backend.cod3 : cod3_thunk;
+public import dmd.backend.x86.cod3 : cod3_thunk;
 
 public import dmd.backend.dout : outthunk, out_readonly, out_readonly_comdat,
     out_regcand, writefunc, alignOffset, out_reset, out_readonly_sym, out_string_literal, outdata;

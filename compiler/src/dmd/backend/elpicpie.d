@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/elpicpie.d, backend/elpicpie.d)
@@ -21,7 +21,7 @@ import core.stdc.string;
 import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.obj;
@@ -93,7 +93,7 @@ elem * el_var(Symbol *s)
     type_debug(s.Stype);
     e = el_calloc();
     e.Eoper = OPvar;
-    e.EV.Vsym = s;
+    e.Vsym = s;
     type_debug(s.Stype);
     e.Ety = s.ty();
     if (s.Stype.Tty & mTYthread)
@@ -141,7 +141,7 @@ else if (config.exe & EX_posix)
         if (I64)
             Obj.refGOTsym();
         elem *e1 = el_calloc();
-        e1.EV.Vsym = s;
+        e1.Vsym = s;
         if (s.Sclass == SC.global ||
             s.Sclass == SC.static_ ||
             s.Sclass == SC.locstat)
@@ -158,8 +158,8 @@ else if (config.exe & EX_posix)
         elem* e2 = el_una(OPind, TYsize, el_long(TYfgPtr, 0)); // I64: FS:[0000], I32: GS:[0000]
 
         e.Eoper = OPind;
-        e.EV.E1 = el_bin(OPadd,e1.Ety,e2,e1);
-        e.EV.E2 = null;
+        e.E1 = el_bin(OPadd,e1.Ety,e2,e1);
+        e.E2 = null;
 }
 else if (config.exe & EX_windos)
 {
@@ -192,7 +192,7 @@ else if (config.exe & EX_windos)
 
         e1 = el_calloc();
         e1.Eoper = OPrelconst;
-        e1.EV.Vsym = s;
+        e1.Vsym = s;
         e1.Ety = TYnptr;
 
         if (false && config.wflags & WFexe) // disabled to work with betterC/importC
@@ -209,8 +209,8 @@ else if (config.exe & EX_windos)
         e2 = el_una(OPind,TYsize_t,e2);
 
         e.Eoper = OPind;
-        e.EV.E1 = el_bin(OPadd,e1.Ety,e1,e2);
-        e.EV.E2 = null;
+        e.E1 = el_bin(OPadd,e1.Ety,e1,e2);
+        e.E2 = null;
 }
     }
     return e;
@@ -230,7 +230,7 @@ elem * el_ptr(Symbol *s)
     symbol_debug(s);
     type_debug(s.Stype);
 
-    const typtr = s.symbol_pointerType();
+    const typtr = symbol_pointerType(*s);
 
     if (config.exe & (EX_OSX | EX_OSX64))
     {
@@ -268,7 +268,7 @@ elem * el_ptr(Symbol *s)
         {
             elem* e = el_calloc();
             e.Eoper = OPvar;
-            e.EV.Vsym = s;
+            e.Vsym = s;
             if (I64)
                 e.Ety = typtr;
             else if (I32)
@@ -286,6 +286,11 @@ elem * el_ptr(Symbol *s)
 
     elem *e;
 
+    if (config.exe & EX_windos)
+    {
+        if (s.Sisym)
+            s = s.Sisym; // if imported, prefer the __imp_... symbol
+    }
     if (config.exe & EX_posix)
     {
         if (config.flags3 & CFG3pic &&
@@ -307,7 +312,14 @@ elem * el_ptr(Symbol *s)
     else
     {
         e = el_una(OPaddr, typtr, e);
-        e = doptelem(e, GOALvalue | GOALflags);
+        e = doptelem(e, Goal.value | Goal.flags);
+    }
+    if (config.exe & EX_windos)
+    {
+        if (s.Sflags & SFLimported)
+        {
+            e = el_una(OPind, s.Stype.Tty, e);
+        }
     }
     return e;
 }
@@ -374,7 +386,7 @@ private elem *el_picvar_OSX(Symbol *s)
     type_debug(s.Stype);
     e = el_calloc();
     e.Eoper = OPvar;
-    e.EV.Vsym = s;
+    e.Vsym = s;
     e.Ety = s.ty();
 
     switch (s.Sclass)
@@ -490,7 +502,7 @@ static if (1)
 
                 elem *e2 = el_calloc();
                 e2.Eoper = OPvar;
-                e2.EV.Vsym = s;
+                e2.Vsym = s;
                 e2.Ety = s.ty();
                 e2.Eoper = OPrelconst;
                 e2.Ety = TYnptr;
@@ -498,7 +510,7 @@ static if (1)
                 e2 = el_una(OPind, TYnptr, e2);
                 e2 = el_una(OPind, TYnptr, e2);
                 e2 = el_una(OPaddr, TYnptr, e2);
-                e2 = doptelem(e2, GOALvalue | GOALflags);
+                e2 = doptelem(e2, Goal.value | Goal.flags);
                 e2 = el_bin(OPadd, TYnptr, e2, el_long(TYullong, 0));
                 e2 = el_bin(OPcall, TYnptr, e, e2);
                 e2 = el_una(OPind, TYint, e2);
@@ -525,7 +537,7 @@ private elem *el_picvar_posix(Symbol *s)
     type_debug(s.Stype);
     e = el_calloc();
     e.Eoper = OPvar;
-    e.EV.Vsym = s;
+    e.Vsym = s;
     e.Ety = s.ty();
 
     /* For 32 bit PIC:
@@ -745,7 +757,7 @@ private elem *el_pievar(Symbol *s)
     type_debug(s.Stype);
     auto e = el_calloc();
     e.Eoper = OPvar;
-    e.EV.Vsym = s;
+    e.Vsym = s;
     e.Ety = s.ty();
 
     if (I64)
@@ -828,7 +840,7 @@ private elem *el_pieptr(Symbol *s)
     type_debug(s.Stype);
     auto e = el_calloc();
     e.Eoper = OPrelconst;
-    e.EV.Vsym = s;
+    e.Vsym = s;
     e.Ety = TYnptr;
 
     elem* e0 = el_una(OPind, TYsize, el_long(TYfgPtr, 0)); // I64: FS:[0000], I32: GS:[0000]

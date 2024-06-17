@@ -1,6 +1,6 @@
 
 /* Compiler implementation of the D programming language
- * Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * written by Walter Bright
  * https://www.digitalmars.com
  * Distributed under the Boost Software License, Version 1.0.
@@ -13,6 +13,7 @@
 #include "root/dcompat.h"
 #include "root/ctfloat.h"
 #include "common/outbuffer.h"
+#include "common/charactertables.h"
 #include "root/filename.h"
 #include "compiler.h"
 
@@ -80,6 +81,16 @@ enum class FeatureState : unsigned char
     default_ = 0,  /// Not specified by the user
     disabled = 1,  /// Specified as `-revert=`
     enabled  = 2,  /// Specified as `-preview=`
+};
+
+/// Different identifier tables specifiable by CLI
+enum class CLIIdentifierTable : unsigned char
+{
+    default_ = 0, /// Not specified by user
+    C99      = 1, /// Tables from C99 standard
+    C11      = 2, /// Tables from C11 standard
+    UAX31    = 3, /// Tables from the Unicode Standard Annex 31: UNICODE IDENTIFIERS AND SYNTAX
+    All      = 4, /// The least restrictive set of all other tables
 };
 
 struct Output
@@ -200,10 +211,13 @@ struct Param
 
     CHECKACTION checkAction;       // action to take when bounds, asserts or switch defaults are violated
 
+    CLIIdentifierTable dIdentifierTable;
+    CLIIdentifierTable cIdentifierTable;
+
     DString  argv0;    // program name
     Array<const char *> modFileAliasStrings; // array of char*'s of -I module filename alias strings
-    Array<const char *> *imppath;     // array of char*'s of where to look for import modules
-    Array<const char *> *fileImppath; // array of char*'s of where to look for file import modules
+    Array<const char *> imppath;     // array of char*'s of where to look for import modules
+    Array<const char *> fileImppath; // array of char*'s of where to look for file import modules
     DString objdir;    // .obj/.lib file output directory
     DString objname;   // .obj file output name
     DString libname;   // .lib file output name
@@ -274,6 +288,9 @@ struct CompileEnv
     DString timestamp;
     d_bool previewIn;
     d_bool ddocOutput;
+    d_bool masm;
+    IdentifierCharLookup cCharLookupTable;
+    IdentifierCharLookup dCharLookupTable;
 };
 
 struct Global
@@ -282,14 +299,15 @@ struct Global
 
     const DString copyright;
     const DString written;
-    Array<const char *> *path;        // Array of char*'s which form the import lookup path
-    Array<const char *> *filePath;    // Array of char*'s which form the file import lookup path
+    Array<const char *> path;        // Array of char*'s which form the import lookup path
+    Array<const char *> filePath;    // Array of char*'s which form the file import lookup path
 
     char datetime[26];       /// string returned by ctime()
     CompileEnv compileEnv;
 
     Param params;
     unsigned errors;         // number of errors reported so far
+    unsigned deprecations;   // number of deprecations reported so far
     unsigned warnings;       // number of warnings reported so far
     unsigned gag;            // !=0 means gag reporting of errors & warnings
     unsigned gaggedErrors;   // number of errors reported while gagged
@@ -297,8 +315,8 @@ struct Global
 
     void* console;         // opaque pointer to console for controlling text attributes
 
-    Array<class Identifier*>* versionids; // command line versions and predefined versions
-    Array<class Identifier*>* debugids;   // command line debug versions and predefined versions
+    Array<class Identifier*> versionids; // command line versions and predefined versions
+    Array<class Identifier*> debugids;   // command line debug versions and predefined versions
 
     d_bool hasMainFunction;
     unsigned varSequenceNumber;
@@ -307,7 +325,7 @@ struct Global
     ErrorSink* errorSink;       // where the error messages go
     ErrorSink* errorSinkNull;   // where the error messages disappear
 
-    FileName (*preprocess)(FileName, const Loc&, bool&, OutBuffer&);
+    DArray<unsigned char> (*preprocess)(FileName, const Loc&, OutBuffer&);
 
     /* Start gagging. Return the current number of gagged errors
      */

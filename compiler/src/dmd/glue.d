@@ -3,7 +3,7 @@
  *
  * generateCodeAndWrite() is the only function seen by the front end.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/glue.d, _glue.d)
@@ -143,12 +143,12 @@ public void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
                 obj_start(objbuf, m.srcfile.toChars());
             }
             if (verbose)
-                message("code      %s", m.toChars());
+                eSink.message(Loc.initial, "code      %s", m.toChars());
             genObjFile(m, false);
         }
         if (!global.errors && firstm)
         {
-            obj_end(objbuf, library, firstm.objfile.toChars());
+            obj_end(objbuf, library, firstm.objfile.toString());
         }
     }
     else
@@ -159,10 +159,10 @@ public void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
             if (m.filetype == FileType.dhdr)
                 continue;
             if (verbose)
-                message("code      %s", m.toChars());
+                eSink.message(Loc.initial, "code      %s", m.toChars());
             obj_start(objbuf, m.srcfile.toChars());
             genObjFile(m, multiobj);
-            obj_end(objbuf, library, m.objfile.toChars());
+            obj_end(objbuf, library, m.objfile.toString());
             obj_write_deferred(objbuf, library, glue.obj_symbols_towrite);
             if (global.errors && !writeLibrary)
                 m.deleteObjFile();
@@ -170,7 +170,7 @@ public void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
     }
     if (writeLibrary && !global.errors)
     {
-        if (global.params.v.verbose)
+        if (verbose)
             eSink.message(Loc.initial, "library   %s", library.loc.filename);
 
         auto filenameString = library.loc.filename.toDString;
@@ -203,12 +203,13 @@ struct Glue
     elem *eictor;
     Symbol *ictorlocalgot;
 
-    symbols sctors;
+    symbols sctors; // static constructorss
     StaticDtorDeclarations ectorgates;
     symbols sdtors;
     symbols stests;
 
-    symbols ssharedctors;
+    symbols ssharedctors; // shared static constructors
+    symbols sisharedctors; // standalone shared static constructors
     SharedStaticDtorDeclarations esharedctorgates;
     symbols sshareddtors;
 
@@ -257,6 +258,7 @@ private void obj_write_deferred(ref OutBuffer objbuf, Library library, ref Dsymb
             mname = glue.lastmname;
             assert(mname);
         }
+        auto mnames = mname.toDString();
 
         obj_start(objbuf, mname);
 
@@ -281,7 +283,7 @@ private void obj_write_deferred(ref OutBuffer objbuf, Library library, ref Dsymb
         {
             Identifier id = Identifier.create(idbuf.extractChars());
 
-            Module md = new Module(mname.toDString, id, 0, 0);
+            Module md = new Module(mnames, id, 0, 0);
             md.members = new Dsymbols();
             md.members.push(s);   // its only 'member' is s
             md.doppelganger = 1;       // identify this module as doppelganger
@@ -294,18 +296,17 @@ private void obj_write_deferred(ref OutBuffer objbuf, Library library, ref Dsymb
         /* Set object file name to be source name with sequence number,
          * as mangled symbol names get way too long.
          */
-        const(char)* fname = FileName.removeExt(mname);
+        const length = FileName.ext(mnames).length;
+        const fname = mnames[0 .. mnames.length - (length ? length + 1 : 0)];  // +1 to remove .
         OutBuffer namebuf;
         uint hash = 0;
         for (const(char)* p = s.toChars(); *p; p++)
             hash += *p;
-        namebuf.printf("%s_%x_%x.%.*s", fname, count, hash,
+        namebuf.printf("%.*s_%x_%x.%.*s", cast(int)fname.length, fname.ptr, count, hash,
                        cast(int)target.obj_ext.length, target.obj_ext.ptr);
-        FileName.free(cast(char *)fname);
-        fname = namebuf.extractChars();
 
         //printf("writing '%s'\n", fname);
-        obj_end(objbuf, library, fname);
+        obj_end(objbuf, library, namebuf.extractSlice());
     }
     glue.obj_symbols_towrite.length = 0;
 }
@@ -338,7 +339,7 @@ private Symbol *callFuncsAndGates(Module m, Symbol*[] sctors, StaticDtorDeclarat
          *      extern (C) void func();
          */
         t = type_function(TYnfunc, null, false, tstypes[TYvoid]);
-        t.Tmangle = mTYman_c;
+        t.Tmangle = Mangle.c;
     }
 
     localgot = null;
@@ -388,16 +389,7 @@ private void obj_start(ref OutBuffer objbuf, const(char)* srcfile)
     version (Windows)
     {
         import dmd.backend.mscoffobj;
-        import dmd.backend.cgobj;
-
-        // Produce Ms COFF files by default, OMF for -m32omf
-        assert(objbuf.length() == 0);
-        switch (target.objectFormat())
-        {
-            case Target.ObjectFormat.coff: objmod = MsCoffObj_init(&objbuf, srcfile, null); break;
-            case Target.ObjectFormat.omf:  objmod = OmfObj_init(&objbuf, srcfile, null); break;
-            default: assert(0);
-        }
+        objmod = MsCoffObj_init(&objbuf, srcfile, null);
     }
     else
     {
@@ -425,7 +417,7 @@ private void obj_start(ref OutBuffer objbuf, const(char)* srcfile)
  *      objfilename = what to call the object module
  *      library = if non-null, add object module to this library
  */
-private void obj_end(ref OutBuffer objbuf, Library library, const(char)* objfilename)
+private void obj_end(ref OutBuffer objbuf, Library library, const(char)[] objfilename)
 {
     objmod.term(objfilename);
     //delete objmod;
@@ -434,12 +426,12 @@ private void obj_end(ref OutBuffer objbuf, Library library, const(char)* objfile
     if (library)
     {
         // Transfer ownership of image buffer to library
-        library.addObject(objfilename.toDString(), cast(ubyte[]) objbuf.extractSlice[]);
+        library.addObject(objfilename, cast(ubyte[]) objbuf.extractSlice[]);
     }
     else
     {
         //printf("write obj %s\n", objfilename);
-        if (!writeFile(Loc.initial, objfilename.toDString, objbuf[]))
+        if (!writeFile(Loc.initial, objfilename, objbuf[]))
             return fatal();
 
         // For non-libraries, the object buffer should be cleared to
@@ -524,7 +516,7 @@ private void genObjFile(Module m, bool multiobj)
          */
         m.cov = toSymbolX(m, "__coverage", SC.static_, type_fake(TYint), "Z");
         m.cov.Sflags |= SFLhidden;
-        m.cov.Stype.Tmangle = mTYman_d;
+        m.cov.Stype.Tmangle = Mangle.d;
         m.cov.Sfl = FLdata;
 
         auto dtb = DtBuilder(0);
@@ -605,7 +597,7 @@ private void genObjFile(Module m, bool multiobj)
          *      extern (C) void func();
          */
         type *t = type_function(TYnfunc, null, false, tstypes[TYvoid]);
-        t.Tmangle = mTYman_c;
+        t.Tmangle = Mangle.c;
 
         m.sictor = toSymbolX(m, "__modictor", SC.global, t, "FZv");
         cstate.CSpsymtab = &m.sictor.Sfunc.Flocsym;
@@ -637,7 +629,7 @@ private void genObjFile(Module m, bool multiobj)
 
     // If coverage / static constructor / destructor / unittest calls
     if (glue.eictor || glue.sctors.length || glue.ectorgates.length || glue.sdtors.length ||
-        glue.ssharedctors.length || glue.esharedctorgates.length || glue.sshareddtors.length || glue.stests.length)
+        glue.ssharedctors.length || glue.esharedctorgates.length || glue.sshareddtors.length || glue.stests.length || glue.sisharedctors.length)
     {
         if (glue.eictor)
         {
@@ -653,6 +645,13 @@ private void genObjFile(Module m, bool multiobj)
 
         m.sctor = callFuncsAndGates(m, glue.sctors[], glue.ectorgates[], "__modctor");
         m.sdtor = callFuncsAndGates(m, glue.sdtors[], null, "__moddtor");
+
+        if (glue.sisharedctors.length > 0)
+        {
+            if (m.sictor)
+                glue.sisharedctors.shift(m.sictor);
+            m.sictor = callFuncsAndGates(m, glue.sisharedctors[], null, "__modsharedictor");
+        }
 
         m.ssharedctor = callFuncsAndGates(m, glue.ssharedctors[], cast(StaticDtorDeclaration[])glue.esharedctorgates[], "__modsharedctor");
         m.sshareddtor = callFuncsAndGates(m, glue.sshareddtors[], null, "__modshareddtor");
@@ -672,9 +671,12 @@ private void genObjFile(Module m, bool multiobj)
      /* Generate module info for templates and -cov.
      *  Don't generate ModuleInfo if `object.ModuleInfo` is not declared or
      *  explicitly disabled through compiler switches such as `-betterC`.
-     *  Don't generate ModuleInfo for C files.
+     *  Don't generate ModuleInfo for C files unless coverage testing,
+     *  although a D main needs to be present in order to pull in the druntime
+     *  code to actually generate the coverage report.
      */
-    if (global.params.useModuleInfo && Module.moduleinfo && m.filetype != FileType.c/*|| needModuleInfo()*/)
+    if (global.params.useModuleInfo && Module.moduleinfo &&
+        (global.params.cov || m.filetype != FileType.c) /*|| needModuleInfo()*/)
         genModuleInfo(m);
 
     objmod.termfile();
@@ -1046,8 +1048,9 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 
         foreach (sp; params[0 .. pi])
         {
-            if (fpr.alloc(sp.Stype, sp.Stype.Tty, &sp.Spreg, &sp.Spreg2))
+            if (fpr.alloc(sp.Stype, sp.Stype.Tty, sp.Spreg, sp.Spreg2))
             {
+                // successful allocation
                 sp.Sclass = (target.os == Target.OS.Windows && target.isX86_64) ? SC.shadowreg : SC.fastpar;
                 sp.Sfl = (sp.Sclass == SC.shadowreg) ? FLpara : FLfast;
             }
@@ -1063,7 +1066,7 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 
     Statement sbody = fd.fbody;
 
-    Blockx bx;
+    BlockState bx;
     bx.startblock = block_calloc();
     bx.curblock = bx.startblock;
     bx.funcsym = s;
@@ -1195,9 +1198,12 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         insertFinallyBlockCalls(f.Fstartblock);
 
     // If static constructor
-    if (fd.isSharedStaticCtorDeclaration())        // must come first because it derives from StaticCtorDeclaration
+    if (auto sctor = fd.isSharedStaticCtorDeclaration())        // must come first because it derives from StaticCtorDeclaration
     {
-        glue.ssharedctors.push(s);
+        if (sctor.standalone)
+            glue.sisharedctors.push(s);
+        else
+            glue.ssharedctors.push(s);
     }
     else if (fd.isStaticCtorDeclaration())
     {
@@ -1252,8 +1258,8 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     // Restore symbol table
     cstate.CSpsymtab = symtabsave;
 
-    if (fd.isExport())
-        objmod.export_symbol(s, cast(uint)Para.offset);
+    if (fd.isExport() || driverParams.exportVisibility == ExpVis.public_)
+        objmod.export_symbol(s, cast(uint)cgstate.Para.offset);
 
     if (fd.isCrtCtor)
         objmod.setModuleCtorDtor(s, true);
@@ -1292,8 +1298,8 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             //Build type
             newConstructor.Stype = type_function(TYnfunc, [], false, type_alloc(TYvoid));
             //Tell it it's supposed to be a C function. Does it do anything? Not sure.
-            type_setmangle(&newConstructor.Stype, mTYman_c);
-            symbol_func(newConstructor);
+            type_setmangle(&newConstructor.Stype, Mangle.c);
+            symbol_func(*newConstructor);
             //Global SC for now.
             newConstructor.Sclass = SC.static_;
             func_t* funcState = newConstructor.Sfunc;
@@ -1305,7 +1311,7 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             Symbol* dso_handle = symbol_calloc("__dso_handle");
             dso_handle.Stype = type_fake(TYint);
             //Try to get MacOS _ prefix-ism right.
-            type_setmangle(&dso_handle.Stype, mTYman_c);
+            type_setmangle(&dso_handle.Stype, Mangle.c);
             dso_handle.Sfl = FLextern;
             dso_handle.Sclass = SC.extern_;
             dso_handle.Stype.Tcount++;
@@ -1374,9 +1380,6 @@ private bool entryPointFunctions(Obj objmod, FuncDeclaration fd)
             case Target.ObjectFormat.coff:
                 objmod.external_def("main");
                 break;
-            case Target.ObjectFormat.omf:
-                objmod.external_def("_main");
-                break;
         }
         if (const libname = finalDefaultlibname())
             obj_includelib(libname);
@@ -1386,16 +1389,7 @@ private bool entryPointFunctions(Obj objmod, FuncDeclaration fd)
     // D runtime library
     if (fd.isRtInit())
     {
-        final switch (target.objectFormat())
-        {
-            case Target.ObjectFormat.elf:
-            case Target.ObjectFormat.macho:
-            case Target.ObjectFormat.coff:
-                objmod.ehsections();   // initialize exception handling sections
-                break;
-            case Target.ObjectFormat.omf:
-                break;
-        }
+        objmod.ehsections();   // initialize exception handling sections
         return true;
     }
 
@@ -1410,11 +1404,6 @@ private bool entryPointFunctions(Obj objmod, FuncDeclaration fd)
                 objmod.includelib("OLDNAMES");
                 break;
 
-            case Target.ObjectFormat.omf:
-                objmod.external_def("__acrtused_con"); // bring in C console startup code
-                objmod.includelib("snn.lib");          // bring in C runtime library
-                break;
-
             default:
                 break;
         }
@@ -1426,23 +1415,10 @@ private bool entryPointFunctions(Obj objmod, FuncDeclaration fd)
         (fd.isWinMain() || fd.isDllMain()) &&
         onlyOneMain(fd))
     {
-        switch (target.objectFormat())
-        {
-            case Target.ObjectFormat.coff:
-                objmod.includelib("uuid");
-                if (driverParams.mscrtlib.length && driverParams.mscrtlib[0])
-                    obj_includelib(driverParams.mscrtlib);
-                objmod.includelib("OLDNAMES");
-                break;
-
-            case Target.ObjectFormat.omf:
-                objmod.external_def(fd.isWinMain() ? "__acrtused" : "__acrtused_dll");
-                break;
-
-            default:
-                assert(0);
-        }
-
+        objmod.includelib("uuid");
+        if (driverParams.mscrtlib.length && driverParams.mscrtlib[0])
+            obj_includelib(driverParams.mscrtlib);
+        objmod.includelib("OLDNAMES");
         if (const libname = finalDefaultlibname())
             obj_includelib(libname);
         return true;
@@ -1640,7 +1616,7 @@ public Symbol* getBzeroSymbol()
 
     s = symbol_calloc("__bzeroBytes");
     s.Stype = type_static_array(128, type_fake(TYuchar));
-    s.Stype.Tmangle = mTYman_c;
+    s.Stype.Tmangle = Mangle.c;
     s.Stype.Tcount++;
     s.Sclass = SC.global;
     s.Sfl = FLdata;

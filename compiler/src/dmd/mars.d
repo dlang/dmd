@@ -4,7 +4,7 @@
  * utilities needed for arguments parsing, path manipulation, etc...
  * This file is not shared with other compilers which use the DMD front-end.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/mars.d, _mars.d)
@@ -34,7 +34,7 @@ import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.dtemplate;
 import dmd.dtoh;
-import dmd.errors;
+import dmd.errorsink;
 import dmd.expression;
 import dmd.globals;
 import dmd.hdrgen;
@@ -117,7 +117,15 @@ Where:
 %.*s", cast(int)inifileCanon.length, inifileCanon.ptr, cast(int)help.length, &help[0]);
 }
 
-extern (C++) void generateJson(ref Modules modules)
+/*******************************************
+ * Generate JSON file.
+ * Params:
+ *      modules = Modules
+ *      eSink = error message sink
+ * Returns:
+ *      true on error
+ */
+extern (C++) bool generateJson(ref Modules modules, ErrorSink eSink)
 {
     OutBuffer buf;
     json_generate(modules, buf);
@@ -143,8 +151,8 @@ extern (C++) void generateJson(ref Modules modules)
         {
             if (global.params.objfiles.length == 0)
             {
-                error(Loc.initial, "cannot determine JSON filename, use `-Xf=<file>` or provide a source file");
-                fatal();
+                eSink.error(Loc.initial, "cannot determine JSON filename, use `-Xf=<file>` or provide a source file");
+                return true;
             }
             // Generate json file name from first obj name
             const(char)[] n = global.params.objfiles[0].toDString;
@@ -154,8 +162,9 @@ extern (C++) void generateJson(ref Modules modules)
             jsonfilename = FileName.forceExt(n, json_ext);
         }
         if (!writeFile(Loc.initial, jsonfilename, buf[]))
-            fatal();
+            return true;
     }
+    return false;
 }
 
 version (DigitalMars)
@@ -276,7 +285,7 @@ void getenv_setargv(const(char)* envvalue, Strings* args)
 }
 
 /**
- * Parse command line arguments for the last instance of -m32, -m64, -m32mscoff or -m32omfobj
+ * Parse command line arguments for the last instance of -m32, -m64, -m32mscoff
  * to detect the desired architecture.
  *
  * Params:
@@ -285,7 +294,7 @@ void getenv_setargv(const(char)* envvalue, Strings* args)
  *          Should be "32" or "64"
  *
  * Returns:
- *   "32", "64" or "32omf" if the "-m32", "-m64", "-m32omf" flags were passed,
+ *   "32", or "64" if the "-m32", "-m64" flags were passed,
  *   respectively. If they weren't, return `arch`.
  */
 const(char)[] parse_arch_arg(Strings* args, const(char)[] arch)
@@ -296,7 +305,7 @@ const(char)[] parse_arch_arg(Strings* args, const(char)[] arch)
 
         if (arg.length && arg[0] == '-')
         {
-            if (arg[1 .. $] == "m32" || arg[1 .. $] == "m32omf" || arg[1 .. $] == "m64")
+            if (arg[1 .. $] == "m32" || arg[1 .. $] == "m64")
                 arch = arg[2 .. $];
             else if (arg[1 .. $] == "m32mscoff")
                 arch = "32";
@@ -343,52 +352,51 @@ const(char)[] parse_conf_arg(Strings* args)
  * override any value.
  * Note that if `-defaultlib=` or `-debuglib=` was used,
  * we don't override that either.
+ * Params:
+ *      target = parameters set by user
+ *      defaultlibname = set based on `target`
+ *      debuglibname = set based on `target`
  */
-void setDefaultLibrary(ref Param params, const ref Target target)
+pure @safe
+void setDefaultLibraries(const ref Target target, ref const(char)[] defaultlibname, ref const(char)[] debuglibname)
 {
-    if (driverParams.defaultlibname is null)
+    if (defaultlibname is null)
     {
         if (target.os == Target.OS.Windows)
         {
-            if (target.isX86_64)
-                driverParams.defaultlibname = "phobos64";
-            else if (!target.omfobj)
-                driverParams.defaultlibname = "phobos32mscoff";
-            else
-                driverParams.defaultlibname = "phobos";
+            defaultlibname = target.isX86_64 ? "phobos64" : "phobos32mscoff";
         }
         else if (target.os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
         {
-            driverParams.defaultlibname = "libphobos2.a";
+            defaultlibname = "libphobos2.a";
         }
         else if (target.os == Target.OS.OSX)
         {
-            driverParams.defaultlibname = "phobos2";
+            defaultlibname = "phobos2";
         }
         else
         {
             assert(0, "fix this");
         }
     }
-    else if (!driverParams.defaultlibname.length)  // if `-defaultlib=` (i.e. an empty defaultlib)
-        driverParams.defaultlibname = null;
+    else if (!defaultlibname.length)  // if `-defaultlib=` (i.e. an empty defaultlib)
+        defaultlibname = null;
 
-    if (driverParams.debuglibname is null)
-        driverParams.debuglibname = driverParams.defaultlibname;
+    if (debuglibname is null)
+        debuglibname = defaultlibname;
+    else if (!debuglibname.length)  // if `-debuglib=` (i.e. an empty debuglib)
+        debuglibname = null;
 }
 
 void printPredefinedVersions(FILE* stream)
 {
-    if (global.versionids)
+    OutBuffer buf;
+    foreach (const str; global.versionids)
     {
-        OutBuffer buf;
-        foreach (const str; *global.versionids)
-        {
-            buf.writeByte(' ');
-            buf.writestring(str.toChars());
-        }
-        stream.fprintf("predefs  %s\n", buf.peekChars());
+        buf.writeByte(' ');
+        buf.writestring(str.toChars());
     }
+    stream.fprintf("predefs  %s\n", buf.peekChars());
 }
 
 extern(C) void printGlobalConfigs(FILE* stream)
@@ -457,17 +465,20 @@ extern(C) void flushMixins()
  *      params = set to result of parsing `arguments`
  *      files = set to files pulled from `arguments`
  *      target = more things set to result of parsing `arguments`
+ *      driverParams = even more things to set
+ *      eSink = error sink
  * Returns:
  *      true if errors in command line
  */
 
-bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param params, ref Strings files, ref Target target)
+bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param params, ref Strings files,
+                      ref Target target, ref DMDparams driverParams, ErrorSink eSink)
 {
     bool errors;
 
     void error(Args ...)(const(char)* format, Args args)
     {
-        dmd.errors.error(Loc.initial, format, args);
+        eSink.error(Loc.initial, format, args);
         errors = true;
     }
 
@@ -484,7 +495,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
     {
         error("switch `%s` is invalid", p);
         if (availableOptions !is null)
-            errorSupplemental(Loc.initial, "%.*s", cast(int)availableOptions.length, availableOptions.ptr);
+            eSink.errorSupplemental(Loc.initial, "%.*s", cast(int)availableOptions.length, availableOptions.ptr);
     }
 
     enum CheckOptions { success, error, help }
@@ -508,7 +519,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         // Checks whether a flag has no options (e.g. -foo or -foo=)
         if (p.length == 0 || p == "=")
         {
-            .error(Loc.initial, "%.*s", cast(int)missingMsg.length, missingMsg.ptr);
+            eSink.error(Loc.initial, "%.*s", cast(int)missingMsg.length, missingMsg.ptr);
             errors = true;
             usageFlag = true;
             return CheckOptions.help;
@@ -569,7 +580,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 {
                     buf ~= `case "`~t.name~`":`;
                     if (t.deprecated_)
-                        buf ~= "deprecation(Loc.initial, \"`-"~name~"="~t.name~"` no longer has any effect.\"); ";
+                        buf ~= "eSink.deprecation(Loc.initial, \"`-"~name~"="~t.name~"` no longer has any effect.\"); ";
                     buf ~= `setFlagFor(name, params.`~t.paramName~`); return true;`;
                 }
                 return buf;
@@ -587,9 +598,9 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
 
     version (none)
     {
-        for (size_t i = 0; i < arguments.length; i++)
+        foreach (i, arg; arguments[])
         {
-            printf("arguments[%d] = '%s'\n", i, arguments[i]);
+            printf("arguments[%d] = '%s'\n", cast(int)i, arguments[i]);
         }
     }
 
@@ -615,6 +626,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     return false;
                 }
             }
+            //printf("push %s\n", p);
             files.push(p);
             continue;
         }
@@ -787,6 +799,44 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-shared")
             driverParams.dll = true;
+        else if (startsWith(p + 1, "visibility="))
+        {
+            const(char)[] vis = arg["-visibility=".length .. $];
+
+            switch (vis)
+            {
+                case "default":
+                    driverParams.exportVisibility = ExpVis.default_;
+                    break;
+                case "hidden":
+                    driverParams.exportVisibility = ExpVis.hidden;
+                    break;
+                case "public":
+                    driverParams.exportVisibility = ExpVis.public_;
+                    break;
+                default:
+                    error("unknown visibility '%.*s', must be 'default', 'hidden' or 'public'", cast(int) vis.length, vis.ptr);
+            }
+        }
+        else if (startsWith(p + 1, "dllimport="))
+        {
+            const(char)[] imp = arg["-dllimport=".length .. $];
+
+            switch (imp)
+            {
+                case "none":
+                    driverParams.symImport = SymImport.none;
+                    break;
+                case "defaultLibsOnly":
+                    driverParams.symImport = SymImport.defaultLibsOnly;
+                    break;
+                case "all":
+                    driverParams.symImport = SymImport.all;
+                    break;
+                default:
+                    error("unknown dllimport '%.*s', must be 'none', 'defaultLibsOnly' or 'all'", cast(int) imp.length, imp.ptr);
+            }
+        }
         else if (arg == "-fIBT")
         {
             driverParams.ibt = true;
@@ -850,23 +900,18 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
         {
+            target.isX86    = true;
             target.isX86_64 = false;
-            target.omfobj = false;
         }
         else if (arg == "-m64") // https://dlang.org/dmd.html#switch-m64
         {
+            target.isX86    = false;
             target.isX86_64 = true;
-            target.omfobj = false;
         }
         else if (arg == "-m32mscoff") // https://dlang.org/dmd.html#switch-m32mscoff
         {
+            target.isX86    = true;
             target.isX86_64 = false;
-            target.omfobj = false;
-        }
-        else if (arg == "-m32omf") // https://dlang.org/dmd.html#switch-m32omfobj
-        {
-            target.isX86_64 = false;
-            target.omfobj = true;
         }
         else if (startsWith(p + 1, "mscrtlib="))
         {
@@ -1100,7 +1145,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                         case 14_488:
                             break;
                         case 16_997:
-                            deprecation(Loc.initial, "`-transition=16997` is now the default behavior");
+                            eSink.deprecation(Loc.initial, "`-transition=16997` is now the default behavior");
                             break;
                         default:
                             error("transition `%s` is invalid", p);
@@ -1117,7 +1162,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                             params.dtorFields = FeatureState.enabled;
                             break;
                         case "intpromote":
-                            deprecation(Loc.initial, "`-transition=intpromote` is now the default behavior");
+                            eSink.deprecation(Loc.initial, "`-transition=intpromote` is now the default behavior");
                             break;
                         default:
                             error("transition `%s` is invalid", p);
@@ -1174,9 +1219,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.warnings = DiagnosticReporting.inform;
         else if (arg == "-wo")  // https://dlang.org/dmd.html#switch-wo
         {
-            // Obsolete features has been obsoleted until a DIP for "additions"
+            // Obsolete features has been obsoleted until a DIP for "editions"
             // has been drafted and ratified in the language spec.
             // Rather, these old features will just be accepted without warning.
+            // See also: @__edition_latest_do_not_use
         }
         else if (arg == "-O")   // https://dlang.org/dmd.html#switch-O
             driverParams.optimize = true;
@@ -1346,6 +1392,58 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.useInline = true;
             params.dihdr.fullOutput = true;
         }
+        else if (startsWith(p + 1, "identifiers-importc"))
+        {
+            enum len = "-identifiers-importc=".length;
+            // Parse:
+            //      -identifiers=table
+            immutable string msg = "Only `UAX31`, `c99`, `c11`, `all`, allowed for `-identifiers-importc`";
+            if (Identifier.isValidIdentifier(p + len))
+            {
+                const ident = p + len;
+                switch (ident.toDString())
+                {
+                    case "c99":     params.cIdentifierTable = CLIIdentifierTable.C99;   break;
+                    case "c11":     params.cIdentifierTable = CLIIdentifierTable.C11;   break;
+                    case "UAX31":   params.cIdentifierTable = CLIIdentifierTable.UAX31; break;
+                    case "all":     params.cIdentifierTable = CLIIdentifierTable.All;   break;
+                    default:
+                        errorInvalidSwitch(p, msg);
+                        return false;
+                }
+            }
+            else
+            {
+                errorInvalidSwitch(p, msg);
+                return false;
+            }
+        }
+        else if (startsWith(p + 1, "identifiers"))
+        {
+            enum len = "-identifiers=".length;
+            // Parse:
+            //      -identifiers=table
+            immutable string msg = "Only `UAX31`, `c99`, `c11`, `all`, allowed for `-identifiers`";
+            if (Identifier.isValidIdentifier(p + len))
+            {
+                const ident = p + len;
+                switch (ident.toDString())
+                {
+                    case "c99":     params.dIdentifierTable = CLIIdentifierTable.C99;   break;
+                    case "c11":     params.dIdentifierTable = CLIIdentifierTable.C11;   break;
+                    case "UAX31":   params.dIdentifierTable = CLIIdentifierTable.UAX31; break;
+                    case "all":     params.dIdentifierTable = CLIIdentifierTable.All;   break;
+                    default:
+                        errorInvalidSwitch(p, msg);
+                        return false;
+                }
+            }
+            else
+            {
+                errorInvalidSwitch(p, msg);
+                return false;
+            }
+        }
         else if (arg == "-i")
             includeImports = true;
         else if (startsWith(p + 1, "i="))
@@ -1366,7 +1464,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (arg == "-dip25")       // https://dlang.org/dmd.html#switch-dip25
         {
             // @@@ DEPRECATION 2.112 @@@
-            deprecation(Loc.initial, "`-dip25` no longer has any effect");
+            eSink.deprecation(Loc.initial, "`-dip25` no longer has any effect");
             params.useDIP25 =  FeatureState.enabled;
         }
         else if (arg == "-dip1000")
@@ -1431,8 +1529,6 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.useUnitTests = true;
         else if (p[1] == 'I')              // https://dlang.org/dmd.html#switch-I
         {
-            if (!params.imppath)
-                params.imppath = new Strings();
             params.imppath.push(p + 2 + (p[2] == '='));
         }
         else if (p[1] == 'm' && p[2] == 'v' && p[3] == '=') // https://dlang.org/dmd.html#switch-mv
@@ -1446,8 +1542,6 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (p[1] == 'J')             // https://dlang.org/dmd.html#switch-J
         {
-            if (!params.fileImppath)
-                params.fileImppath = new Strings();
             params.fileImppath.push(p + 2 + (p[2] == '='));
         }
         else if (startsWith(p + 1, "debug") && p[6] != 'l') // https://dlang.org/dmd.html#switch-debug
@@ -1465,7 +1559,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
 
                     // @@@DEPRECATED_2.111@@@
                     // Deprecated in 2.101, remove in 2.111
-                    deprecation(Loc.initial, "`-debug=number` is deprecated, use debug identifiers instead");
+                    eSink.deprecation(Loc.initial, "`-debug=number` is deprecated, use debug identifiers instead");
                 }
                 else if (Identifier.isValidIdentifier(p + 7))
                 {
@@ -1493,7 +1587,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
 
                     // @@@DEPRECATED_2.111@@@
                     // Deprecated in 2.101, remove in 2.111
-                    deprecation(Loc.initial, "`-version=number` is deprecated, use version identifiers instead");
+                    eSink.deprecation(Loc.initial, "`-version=number` is deprecated, use version identifiers instead");
                 }
                 else if (Identifier.isValidIdentifier(p + 9))
                 {
@@ -1671,30 +1765,29 @@ Params:
   libmodules = Array to which binaries (shared/static libs and object files)
                will be appended
   target = target system
-
+  m = created Module
 Returns:
-  A D module
+  true on error
 */
 private
-Module createModule(const(char)* file, ref Strings libmodules, const ref Target target)
+bool createModule(const(char)* file, ref Strings libmodules, const ref Target target, ErrorSink eSink, out Module m)
 {
-    const(char)[] name;
     version (Windows)
     {
         file = toWinPath(file);
     }
-    const(char)[] p = file.toDString();
-    p = FileName.name(p); // strip path
+    const(char)[] p = FileName.name(file.toDString()); // strip path
     const(char)[] ext = FileName.ext(p);
     if (!ext)
     {
         if (!p.length)
         {
-            error(Loc.initial, "invalid file name '%s'", file);
-            fatal();
+            eSink.error(Loc.initial, "invalid file name '%s'", file);
+            return true;
         }
         auto id = Identifier.idPool(p);
-        return new Module(file.toDString, id, global.params.ddoc.doOutput, global.params.dihdr.doOutput);
+        m = new Module(file.toDString, id, global.params.ddoc.doOutput, global.params.dihdr.doOutput);
+        return false;
     }
 
     /* Deduce what to do with a file based on its extension
@@ -1703,13 +1796,13 @@ Module createModule(const(char)* file, ref Strings libmodules, const ref Target 
     {
         global.params.objfiles.push(file);
         libmodules.push(file);
-        return null;
+        return false;
     }
     if (FileName.equals(ext, target.lib_ext))
     {
         global.params.libfiles.push(file);
         libmodules.push(file);
-        return null;
+        return false;
     }
     if (target.os & (Target.OS.linux | Target.OS.OSX| Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
     {
@@ -1717,36 +1810,36 @@ Module createModule(const(char)* file, ref Strings libmodules, const ref Target 
         {
             global.params.dllfiles.push(file);
             libmodules.push(file);
-            return null;
+            return false;
         }
     }
     if (FileName.equals(ext, ddoc_ext))
     {
         global.params.ddoc.files.push(file);
-        return null;
+        return false;
     }
     if (FileName.equals(ext, json_ext))
     {
         global.params.json.doOutput = true;
         global.params.json.name = file.toDString;
-        return null;
+        return false;
     }
     if (FileName.equals(ext, map_ext))
     {
         global.params.mapfile = file.toDString;
-        return null;
+        return false;
     }
     if (target.os == Target.OS.Windows)
     {
         if (FileName.equals(ext, "res"))
         {
             global.params.resfile = file.toDString;
-            return null;
+            return false;
         }
         if (FileName.equals(ext, "def"))
         {
             global.params.deffile = file.toDString;
-            return null;
+            return false;
         }
         if (FileName.equals(ext, "exe"))
         {
@@ -1762,25 +1855,23 @@ Module createModule(const(char)* file, ref Strings libmodules, const ref Target 
         FileName.equals(ext, c_ext   ) ||
         FileName.equals(ext, i_ext   ))
     {
-        name = FileName.removeExt(p);
+        // strip off .ext
+        const(char)[] name = p[0 .. p.length - ext.length - 1]; // -1 for the .
         if (!name.length || name == ".." || name == ".")
         {
-            error(Loc.initial, "invalid file name '%s'", file);
-            fatal();
+            eSink.error(Loc.initial, "invalid file name '%s'", file);
+            return true;
         }
-    }
-    else
-    {
-        error(Loc.initial, "unrecognized file extension %.*s", cast(int)ext.length, ext.ptr);
-        fatal();
-    }
+        /* name is the D source file name stripped of
+         * its path and extension.
+         */
+        auto id = Identifier.idPool(name);
 
-    /* At this point, name is the D source file name stripped of
-     * its path and extension.
-     */
-    auto id = Identifier.idPool(name);
-
-    return new Module(file.toDString, id, global.params.ddoc.doOutput, global.params.dihdr.doOutput);
+        m = new Module(file.toDString, id, global.params.ddoc.doOutput, global.params.dihdr.doOutput);
+        return false;
+    }
+    eSink.error(Loc.initial, "unrecognized file extension %.*s", cast(int)ext.length, ext.ptr);
+    return true;
 }
 
 /**
@@ -1796,18 +1887,20 @@ Params:
   libmodules = Array to which binaries (shared/static libs and object files)
                will be appended
   target = target system
+  eSink = error message sink
+  modules = empty array of modules to be filled in
 
 Returns:
-  An array of path to D modules
+  true on error
 */
-Modules createModules(ref Strings files, ref Strings libmodules, const ref Target target)
+bool createModules(ref Strings files, ref Strings libmodules, const ref Target target, ErrorSink eSink, ref Modules modules)
 {
-    Modules modules;
-    modules.reserve(files.length);
     bool firstmodule = true;
     foreach(file; files)
     {
-        auto m = createModule(file, libmodules, target);
+        Module m;
+        if (createModule(file, libmodules, target, eSink, m))
+            return true;
 
         if (m is null)
             continue;
@@ -1819,7 +1912,7 @@ Modules createModules(ref Strings files, ref Strings libmodules, const ref Targe
             firstmodule = false;
         }
     }
-    return modules;
+    return false;
 }
 
 /// Returns: a compiled module (semantic3) containing an empty main() function, for the -main flag

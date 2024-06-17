@@ -417,6 +417,10 @@
         white-space: pre-wrap;
       }
 
+      .ddoc .code_lines pre {
+        display: contents;
+      }
+
       .ddoc .code_lines li:only-of-type::before {
         color: rgba(255, 255, 255, 1);
         content: " ";
@@ -548,8 +552,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="keyword">assert</span>(<span class="psymbol">foo</span>(1, 1) == 2);
-</code></li>
+        <li><pre><code class="code"><span class="keyword">assert</span>(<span class="psymbol">foo</span>(1, 1) == 2);
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -596,9 +600,9 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="comment">// documented
+        <li><pre><code class="code"><span class="comment">// documented
 </span><span class="keyword">assert</span>(<span class="psymbol">bar</span>());
-</code></li>
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -684,8 +688,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="keyword">assert</span>(<span class="psymbol">add</span>(1, 1) == 2);
-</code></li>
+        <li><pre><code class="code"><span class="keyword">assert</span>(<span class="psymbol">add</span>(1, 1) == 2);
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -700,10 +704,10 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="comment">// documented
+        <li><pre><code class="code"><span class="comment">// documented
 </span><span class="keyword">assert</span>(<span class="psymbol">add</span>(3, 3) == 6);
 <span class="keyword">assert</span>(<span class="psymbol">add</span>(4, 4) == 8);
-</code></li>
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -718,10 +722,10 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="comment">// documented
+        <li><pre><code class="code"><span class="comment">// documented
 </span><span class="keyword">assert</span>(<span class="psymbol">add</span>(5, 5) == 10);
 <span class="keyword">assert</span>(<span class="psymbol">add</span>(6, 6) == 12);
-</code></li>
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -768,8 +772,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="psymbol">Foo</span> foo = <span class="keyword">new</span> <span class="psymbol">Foo</span>;
-</code></li>
+        <li><pre><code class="code"><span class="psymbol">Foo</span> foo = <span class="keyword">new</span> <span class="psymbol">Foo</span>;
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -816,8 +820,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="psymbol">SomeClass</span> sc = <span class="keyword">new</span> <span class="psymbol">SomeClass</span>;
-</code></li>
+        <li><pre><code class="code"><span class="psymbol">SomeClass</span> sc = <span class="keyword">new</span> <span class="psymbol">SomeClass</span>;
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -864,8 +868,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="psymbol">Outer</span> outer = <span class="keyword">new</span> <span class="psymbol">Outer</span>;
-</code></li>
+        <li><pre><code class="code"><span class="psymbol">Outer</span> outer = <span class="keyword">new</span> <span class="psymbol">Outer</span>;
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -910,8 +914,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="psymbol">Inner</span> inner = <span class="keyword">new</span> <span class="psymbol">Inner</span>;
-</code></li>
+        <li><pre><code class="code"><span class="psymbol">Inner</span> inner = <span class="keyword">new</span> <span class="psymbol">Inner</span>;
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -996,8 +1000,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="psymbol">foo</span>(1);
-</code></li>
+        <li><pre><code class="code"><span class="psymbol">foo</span>(1);
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -1013,8 +1017,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="psymbol">foo</span>(2);
-</code></li>
+        <li><pre><code class="code"><span class="psymbol">foo</span>(2);
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -1029,8 +1033,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="psymbol">foo</span>(2);
-</code></li>
+        <li><pre><code class="code"><span class="psymbol">foo</span>(2);
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -1045,8 +1049,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="psymbol">foo</span>(4);
-</code></li>
+        <li><pre><code class="code"><span class="psymbol">foo</span>(4);
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -1089,8 +1093,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="psymbol">fooImport</span>();
-</code></li>
+        <li><pre><code class="code"><span class="psymbol">fooImport</span>();
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -1133,8 +1137,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="psymbol">fooStaticImport</span>();
-</code></li>
+        <li><pre><code class="code"><span class="psymbol">fooStaticImport</span>();
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -1177,8 +1181,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="psymbol">fooSelectiveImport</span>();
-</code></li>
+        <li><pre><code class="code"><span class="psymbol">fooSelectiveImport</span>();
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -1221,8 +1225,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="psymbol">fooRenamedImport</span>();
-</code></li>
+        <li><pre><code class="code"><span class="psymbol">fooRenamedImport</span>();
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -1524,8 +1528,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="keyword">int</span> x1a;
-</code></li>
+        <li><pre><code class="code"><span class="keyword">int</span> x1a;
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -1567,8 +1571,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="keyword">int</span> x1b;
-</code></li>
+        <li><pre><code class="code"><span class="keyword">int</span> x1b;
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -1660,8 +1664,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="keyword">int</span> x4a;
-</code></li>
+        <li><pre><code class="code"><span class="keyword">int</span> x4a;
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -1703,8 +1707,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="keyword">int</span> x4b;
-</code></li>
+        <li><pre><code class="code"><span class="keyword">int</span> x4b;
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -1746,8 +1750,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="keyword">int</span> x6a;
-</code></li>
+        <li><pre><code class="code"><span class="keyword">int</span> x6a;
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -1789,8 +1793,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="keyword">int</span> x6b;
-</code></li>
+        <li><pre><code class="code"><span class="keyword">int</span> x6b;
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -1833,8 +1837,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="psymbol">foo9474</span>();
-</code></li>
+        <li><pre><code class="code"><span class="psymbol">foo9474</span>();
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -1882,8 +1886,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="psymbol">bar9474</span>();
-</code></li>
+        <li><pre><code class="code"><span class="psymbol">bar9474</span>();
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -1925,8 +1929,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="psymbol">S9474</span> s;
-</code></li>
+        <li><pre><code class="code"><span class="psymbol">S9474</span> s;
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -1968,8 +1972,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="keyword">int</span> v = <span class="psymbol">autovar9474</span>;
-</code></li>
+        <li><pre><code class="code"><span class="keyword">int</span> v = <span class="psymbol">autovar9474</span>;
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -2011,8 +2015,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="keyword">int</span> n = <span class="psymbol">autofun9474</span>();
-</code></li>
+        <li><pre><code class="code"><span class="keyword">int</span> n = <span class="psymbol">autofun9474</span>();
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -2053,8 +2057,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="keyword">alias</span> <span class="psymbol">Template9474</span>!() T;
-</code></li>
+        <li><pre><code class="code"><span class="keyword">alias</span> <span class="psymbol">Template9474</span>!() T;
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -2131,8 +2135,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="psymbol">fooNoDescription</span>();
-</code></li>
+        <li><pre><code class="code"><span class="psymbol">fooNoDescription</span>();
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -2147,8 +2151,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="keyword">if</span> (<span class="keyword">true</span>) {<span class="psymbol">fooNoDescription</span>(); } <span class="comment">/* comment */</span>
-</code></li>
+        <li><pre><code class="code"><span class="keyword">if</span> (<span class="keyword">true</span>) {<span class="psymbol">fooNoDescription</span>(); } <span class="comment">/* comment */</span>
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -2199,8 +2203,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="psymbol">foo9757</span>(); <span class="psymbol">bar9757</span>();
-</code></li>
+        <li><pre><code class="code"><span class="psymbol">foo9757</span>(); <span class="psymbol">bar9757</span>();
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -2215,8 +2219,8 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="psymbol">bar9757</span>(); <span class="psymbol">foo9757</span>();
-</code></li>
+        <li><pre><code class="code"><span class="psymbol">bar9757</span>(); <span class="psymbol">foo9757</span>();
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -2267,11 +2271,11 @@ auto <code class="code">redBlackTree</code>(alias less, E)(E[] <code class="code
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="keyword">auto</span> rbt1 = <span class="psymbol">redBlackTree</span>(0, 1, 5, 7);
+        <li><pre><code class="code"><span class="keyword">auto</span> rbt1 = <span class="psymbol">redBlackTree</span>(0, 1, 5, 7);
 <span class="keyword">auto</span> rbt2 = <span class="psymbol">redBlackTree</span>!string(<span class="string_literal">"hello"</span>, <span class="string_literal">"world"</span>);
 <span class="keyword">auto</span> rbt3 = <span class="psymbol">redBlackTree</span>!<span class="keyword">true</span>(0, 1, 5, 7, 5);
 <span class="keyword">auto</span> rbt4 = <span class="psymbol">redBlackTree</span>!<span class="string_literal">"a &gt; b"</span>(0, 1, 5, 7);
-</code></li>
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -2350,9 +2354,9 @@ auto <code class="code">redBlackTree</code>(alias less, E)(E[] <code class="code
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="keyword">auto</span> s = <span class="string_literal">"1 + (2 * (3 + 1 / 2)"</span>;
+        <li><pre><code class="code"><span class="keyword">auto</span> s = <span class="string_literal">"1 + (2 * (3 + 1 / 2)"</span>;
 <span class="keyword">assert</span>(!<span class="psymbol">balancedParens10519</span>(s, '(', ')'));
-</code></li>
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -2404,8 +2408,8 @@ auto <code class="code">redBlackTree</code>(alias less, E)(E[] <code class="code
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="keyword">int</span> a = 1;
-</code></li>
+        <li><pre><code class="code"><span class="keyword">int</span> a = 1;
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -2421,8 +2425,8 @@ auto <code class="code">redBlackTree</code>(alias less, E)(E[] <code class="code
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="keyword">int</span>[] arr;
-</code></li>
+        <li><pre><code class="code"><span class="keyword">int</span>[] arr;
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -2504,8 +2508,8 @@ auto <code class="code">redBlackTree</code>(alias less, E)(E[] <code class="code
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="psymbol">fun14594a</span>();
-</code></li>
+        <li><pre><code class="code"><span class="psymbol">fun14594a</span>();
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -2554,8 +2558,8 @@ void <code class="code">fun14594b</code>(T)(T);
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="psymbol">fun14594b</span>(); <span class="psymbol">fun14594b</span>(1);
-</code></li>
+        <li><pre><code class="code"><span class="psymbol">fun14594b</span>(); <span class="psymbol">fun14594b</span>(1);
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -2604,8 +2608,8 @@ void <code class="code">fun14594c</code>(T)(T);
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="psymbol">fun14594c</span>(); <span class="psymbol">fun14594c</span>(1);
-</code></li>
+        <li><pre><code class="code"><span class="psymbol">fun14594c</span>(); <span class="psymbol">fun14594c</span>(1);
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -2654,8 +2658,8 @@ void <code class="code">fun14594d</code>(T)(T);
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="psymbol">fun14594d</span>();
-</code></li>
+        <li><pre><code class="code"><span class="psymbol">fun14594d</span>();
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -2670,8 +2674,8 @@ void <code class="code">fun14594d</code>(T)(T);
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="psymbol">fun14594d</span>(1);
-</code></li>
+        <li><pre><code class="code"><span class="psymbol">fun14594d</span>(1);
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -2726,8 +2730,8 @@ void <code class="code">fun14594d</code>(T)(T);
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="psymbol">fun14594e</span>();
-</code></li>
+        <li><pre><code class="code"><span class="psymbol">fun14594e</span>();
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -2784,8 +2788,8 @@ void <code class="code">fun14594f</code>(T)(T);
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="psymbol">fun14594f</span>();
-</code></li>
+        <li><pre><code class="code"><span class="psymbol">fun14594f</span>();
+</code></pre></li>
       </ol>
     </div>
   </div>

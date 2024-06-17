@@ -2,7 +2,7 @@
  * Generate code instructions
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgen.d, backend/cgen.d)
@@ -20,7 +20,7 @@ import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder;
 import dmd.backend.mem;
 import dmd.backend.el;
@@ -34,7 +34,7 @@ nothrow:
 @safe:
 
 public import dmd.backend.dt : dt_get_nzeros;
-public import dmd.backend.cgcod : cgstate;
+public import dmd.backend.x86.cgcod : cgstate;
 
 /*****************************
  * Find last code in list.
@@ -190,16 +190,13 @@ void gencodelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,bool constflag)
 {
     if (e)
     {
-        uint stackpushsave;
-        int stackcleansave;
-
-        stackpushsave = stackpush;
-        stackcleansave = cgstate.stackclean;
+        const stackpushsave = cgstate.stackpush;
+        const stackcleansave = cgstate.stackclean;
         cgstate.stackclean = 0;                         // defer cleaning of stack
-        codelem(cdb,e,pretregs,constflag);
+        codelem(cgstate,cdb,e,pretregs,constflag);
         assert(cgstate.stackclean == 0);
         cgstate.stackclean = stackcleansave;
-        genstackclean(cdb,stackpush - stackpushsave,*pretregs);       // do defered cleaning
+        genstackclean(cdb,cgstate.stackpush - stackpushsave,*pretregs);       // do defered cleaning
     }
 }
 
@@ -216,9 +213,9 @@ bool reghasvalue(regm_t regm,targ_size_t value, out reg_t preg)
     //printf("reghasvalue(%s, %llx)\n", regm_str(regm), cast(ulong)value);
     /* See if another register has the right value      */
     reg_t r = 0;
-    for (regm_t mreg = regcon.immed.mval; mreg; mreg >>= 1)
+    for (regm_t mreg = cgstate.regcon.immed.mval; mreg; mreg >>= 1)
     {
-        if (mreg & regm & 1 && regcon.immed.value[r] == value)
+        if (mreg & regm & 1 && cgstate.regcon.immed.value[r] == value)
         {   preg = r;
             return true;
         }
@@ -230,21 +227,22 @@ bool reghasvalue(regm_t regm,targ_size_t value, out reg_t preg)
 
 /**************************************
  * Load a register from the mask regm with value.
- * Output:
- *      preg = the register selected
+ * Returns:
+ *      the register selected
  */
 @trusted
-void regwithvalue(ref CodeBuilder cdb,regm_t regm,targ_size_t value, out reg_t preg,regm_t flags)
+reg_t regwithvalue(ref CodeBuilder cdb,regm_t regm,targ_size_t value, regm_t flags)
 {
     //printf("regwithvalue(value = %lld)\n", cast(long)value);
+    reg_t found;
+    if (reghasvalue(regm,value,found))
+        return found; // already have a register with the right value in it
 
-    if (reghasvalue(regm,value,preg))
-        return; // already have a register with the right value in it
-
-    regm_t save = regcon.immed.mval;
-    allocreg(cdb,&regm,&preg,TYint);  // allocate register
-    regcon.immed.mval = save;
-    movregconst(cdb,preg,value,flags);   // store value into reg
+    regm_t save = cgstate.regcon.immed.mval;
+    const reg = allocreg(cdb,regm,TYint);  // allocate register
+    cgstate.regcon.immed.mval = save;
+    movregconst(cdb,reg,value,flags);   // store value into reg
+    return reg;
 }
 
 /************************

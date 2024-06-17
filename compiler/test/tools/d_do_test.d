@@ -60,8 +60,9 @@ void usage()
           ~ "      ARGS:          set to execute all combinations of\n"
           ~ "      REQUIRED_ARGS: arguments always passed to the compiler\n"
           ~ "      DMD:           compiler to use, ex: ../src/dmd (required)\n"
-          ~ "      CC:            C++ compiler to use, ex: dmc, g++\n"
-          ~ "      OS:            windows, linux, freebsd, osx, netbsd, dragonflybsd\n"
+          ~ "      CC:            C compiler to use, ex: cl, cc\n"
+          ~ "      CXX:           C++ compiler to use, ex: cl, g++\n"
+          ~ "      OS:            windows, linux, freebsd, osx, openbsd, netbsd, dragonflybsd\n"
           ~ "      RESULTS_DIR:   base directory for test results\n"
           ~ "      MODEL:         32 or 64 (required)\n"
           ~ "      AUTO_UPDATE:   set to 1 to auto-update mismatching test output\n"
@@ -93,7 +94,7 @@ struct TestArgs
     bool     link;                  /// `LINK`: force linking for `fail_compilation` & `compilable` tests
     bool     clearDflags;           /// `DFLAGS`: whether DFLAGS should be cleared before invoking dmd
     string   executeArgs;           /// `EXECUTE_ARGS`: arguments passed to the compiled executable (for `runnable[_cxx]`)
-    string   cxxflags;              /// `CXXFLAGS`: arguments passed to $CC when compiling `EXTRA_CPP_SOURCES`
+    string   cxxflags;              /// `CXXFLAGS`: arguments passed to $CXX when compiling `EXTRA_CPP_SOURCES`
     string[] sources;               /// `EXTRA_SOURCES`: additional D sources (+ main source file)
     string[] compiledImports;       /// `COMPILED_IMPORTS`: files compiled alongside the main source
     string[] cppSources;            /// `EXTRA_CPP_SOURCES`: additional C++ sources
@@ -103,6 +104,7 @@ struct TestArgs
     string   compileOutput;         /// `TEST_OUTPUT`: expected output of dmd
     string   compileOutputFile;     /// `TEST_OUTPUT_FILE`: file containing the expected `TEST_OUTPUT`
     string   runOutput;             /// `RUN_OUTPUT`: expected output of the compiled executable
+    ubyte    runReturn;             /// `RUN_RETURN` expected exit code of the executable when run
     string   gdbScript;             /// `GDB_SCRIPT`: script executed when running the compiled executable in GDB
     string   gdbMatch;              /// `GDB_MATCH`: regex describing the expected output from executing `GDB_SSCRIPT`
     string   postScript;            /// `POSTSCRIPT`: bash script executed after a successful test
@@ -129,7 +131,8 @@ struct EnvData
     string exe;                  /// `EXE`: executable file extension (none or `.exe`)
     string os;                   /// `OS`: host operating system (`linux`, `windows`, ...)
     string compiler;             /// `HOST_DMD`: host D compiler
-    string ccompiler;            /// `CC`: host C++ compiler
+    string ccompiler;            /// `CC`: host C compiler
+    string cxxcompiler;          /// `CXX`: host C++ compiler
     string model;                /// `MODEL`: target model (`32` or `64`)
     string required_args;        /// `REQUIRED_ARGS`: flags added to the tests `REQUIRED_ARGS` parameter
     string cxxCompatFlags;       /// Additional flags passed to $(compiler) when `EXTRA_CPP_SOURCES` is present
@@ -138,7 +141,6 @@ struct EnvData
     bool coverage_build;         /// `COVERAGE`: coverage build, skip linking & executing to save time
     bool autoUpdate;             /// `AUTO_UPDATE`: update `(TEST|RUN)_OUTPUT` on missmatch
     bool printRuntime;           /// `PRINT_RUNTIME`: Print time spent on a single test
-    bool usingMicrosoftCompiler; /// Using Visual Studio toolchain
     bool tryDisabled;            /// `TRY_DISABLED`:Silently try disabled tests (ignore failure and report success)
 }
 
@@ -171,6 +173,7 @@ immutable(EnvData) processEnvironment()
     envData.dmd            = replace(envGetRequired("DMD"), "/", envData.sep);
     envData.compiler       = "dmd"; //should be replaced for other compilers
     envData.ccompiler      = environment.get("CC");
+    envData.cxxcompiler    = environment.get("CXX");
     envData.model          = envGetRequired("MODEL");
     envData.required_args  = environment.get("REQUIRED_ARGS");
     envData.dobjc          = environment.get("D_OBJC") == "1";
@@ -184,20 +187,18 @@ immutable(EnvData) processEnvironment()
 
     if (envData.ccompiler.empty)
     {
-        if (envData.os != "windows")
-            envData.ccompiler = "c++";
-        else if (envData.model == "32omf")
-            envData.ccompiler = "dmc";
-        else if (envData.model == "64")
-            envData.ccompiler = `C:\"Program Files (x86)"\"Microsoft Visual Studio 10.0"\VC\bin\amd64\cl.exe`;
+        if (envData.os == "windows")
+            envData.ccompiler = "cl";
         else
-        {
-            writeln("Unknown $OS$MODEL combination: ", envData.os, envData.model);
-            throw new SilentQuit();
-        }
+            envData.ccompiler = "cc";
     }
-
-    envData.usingMicrosoftCompiler = envData.ccompiler.toLower.endsWith("cl.exe");
+    if (envData.cxxcompiler.empty)
+    {
+        if (envData.os == "windows")
+            envData.cxxcompiler = "cl";
+        else
+            envData.cxxcompiler = "c++";
+    }
 
     version (Windows) {} else
     {
@@ -520,8 +521,6 @@ private bool consumeNextToken(ref string file, const string token, ref const Env
 
                 // Check if the current environment matches an entry in oss, which can either
                 // be an OS (e.g. "linux") or a combination of OS + MODEL (e.g. "windows32").
-                // The latter is important on windows because m32 might require other
-                // parameters than m32mscoff/m64.
                 if (!oss.canFind!(o => o.skipOver(envData.os) && (o.empty || o == envData.model)))
                     continue; // Parameter was skipped
             }
@@ -618,9 +617,8 @@ string getDisabledReason(string[] disabledPlatforms, const ref EnvData envData)
 
 unittest
 {
-    immutable EnvData win32         = { os: "windows",  model: "32", };
-    immutable EnvData win32mscoff   = { os: "windows",  model: "32mscoff", };
-    immutable EnvData win64         = { os: "windows",  model: "64", };
+    immutable EnvData win32 = { os: "windows",  model: "32" };
+    immutable EnvData win64 = { os: "windows",  model: "64" };
 
     assert(getDisabledReason(null, win64) is null);
 
@@ -630,11 +628,8 @@ unittest
     assert(getDisabledReason([ "linux", "win64" ], win64) == "on win64");
     assert(getDisabledReason([ "linux", "win32" ], win64) is null);
 
-    assert(getDisabledReason([ "win32mscoff" ], win32mscoff) == "on win32mscoff");
-    assert(getDisabledReason([ "win32mscoff" ], win32) is null);
-
-    assert(getDisabledReason([ "win32" ], win32mscoff) == "on win32");
     assert(getDisabledReason([ "win32" ], win32) == "on win32");
+    assert(getDisabledReason([ "win32" ], win64) is null);
 }
 /**
  * Reads the test configuration from the source code (using `findTestParameter` and
@@ -820,6 +815,17 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
 
     findOutputParameter(file, "RUN_OUTPUT", testArgs.runOutput, envData);
 
+    string dummy;
+    if (findTestParameter(envData, file, "RUN_RETURN", dummy))
+    {
+        import std.conv : to;
+        scope(failure)
+        {
+            writeln("Something went wrong when parsing RUN_RETURN from " ~ dummy);
+        }
+        testArgs.runReturn = dummy.to!(typeof(testArgs.runReturn));
+    }
+
     findOutputParameter(file, "GDB_SCRIPT", testArgs.gdbScript, envData);
     findTestParameter(envData, file, "GDB_MATCH", testArgs.gdbMatch);
 
@@ -912,7 +918,7 @@ void tryRemove(in char[] filename)
  * Throws:
  *   Exception if `command` returns another exit code than 0/1 (depending on expectPass)
  */
-string execute(ref File f, string command, bool expectpass)
+string execute(ref File f, string command, const ubyte expectedRc)
 {
     f.writeln(command);
     const result = std.process.executeShell(command);
@@ -924,8 +930,7 @@ string execute(ref File f, string command, bool expectpass)
     }
     else
     {
-        const exp = expectpass ? 0 : 1;
-        enforce(result.status == exp, format("Expected rc == %d, but exited with rc == %d", exp, result.status));
+        enforce(result.status == expectedRc, format("Expected rc == %d, but exited with rc == %d", expectedRc, result.status));
     }
 
     return result.output;
@@ -1079,21 +1084,18 @@ unittest
  * Returns: false if a compilation error occurred
  */
 bool collectExtraSources (in string input_dir, in string output_dir, in string[] extraSources,
-                          ref string[] sources, in EnvData envData, in string compiler,
-                          const(char)[] cxxflags, ref File logfile)
+                          ref string[] sources, in EnvData envData, in string ccompiler,
+                          in string cxxcompiler, const(char)[] cxxflags, ref File logfile)
 {
     foreach (cur; extraSources)
     {
         auto curSrc = input_dir ~ envData.sep ~"extra-files" ~ envData.sep ~ cur;
         auto curObj = output_dir ~ envData.sep ~ cur ~ envData.obj;
-        string command = quoteSpaces(compiler);
-        if (envData.usingMicrosoftCompiler)
+        bool is_cpp_file = cur.extension() == ".cpp";
+        string command = quoteSpaces(is_cpp_file ? cxxcompiler : ccompiler);
+        if (envData.os == "windows") // cl.exe
         {
             command ~= ` /c /nologo `~curSrc~` /Fo`~curObj;
-        }
-        else if (envData.compiler == "dmd" && envData.os == "windows" && envData.model == "32omf")
-        {
-            command ~= " -c "~curSrc~" -o"~curObj;
         }
         else
         {
@@ -1374,8 +1376,8 @@ bool compareOutput(string output, string refoutput, const ref EnvData envData)
                 toSkip = chunk;
                 break;
             }
-            // Match against OS or model (accepts "32mscoff" as "32")
-            else if (searchResult[0].splitter('+').all!(c => c.among(envData.os, envData.model, envData.model[0 .. min(2, $)])))
+            // Match against OS or model
+            else if (searchResult[0].splitter('+').all!(c => c.among(envData.os, envData.model)))
             {
                 toSkip = searchResult[2];
                 break;
@@ -1448,7 +1450,7 @@ unittest
     const emptyFmt = "On <$?:windows=abc|$> use <$?:posix=$>!";
     assert(compareOutput("On <> use <>!", emptyFmt, ed));
 
-    ed.model = "32mscoff";
+    ed.model = "32";
     assert(compareOutput("size_t is uint!", "size_t is $?:32=uint|64=ulong$!", ed));
 
     assert(compareOutput("no", "$?:posix+64=yes|no$", ed));
@@ -1579,10 +1581,22 @@ int tryMain(string[] args)
     const input_dir      = input_file.dirName();
     const test_base_name = input_file.baseName();
     const test_name      = test_base_name.stripExtension();
+    const test_ext       = test_base_name.extension();
 
-    const result_path    = envData.results_dir ~ envData.sep;
-    const output_dir     = result_path ~ input_dir;
-    const output_file    = result_path ~ input_file ~ ".out";
+    // Previously we did not take into account the test file extension,
+    //  because of ImportC we now have the ability to have conflicting source file basenames (when ignoring extension).
+    // This can cause a race condition with the concurrent test runner,
+    //  in which whilst one test is running another will try to clobber it and fail.
+    // Unfortunately dshell does not take into account our output directory,
+    //  at least not in a way that'll allow us to take advantage of the test extension.
+    // However since its not really an issue for clobbering, we'll ignore it.
+    const result_path     = envData.results_dir ~ envData.sep;
+    const output_dir_base = result_path ~ input_dir;
+    const output_dir      = (input_dir == "dshell" ? output_dir_base : (output_dir_base ~ envData.sep ~ test_ext[1 .. $]));
+    const output_file     = result_path ~ input_file ~ ".out";
+
+    // We are potentially creating a test extension specific directory
+    mkdirRecurse(output_dir);
 
     TestArgs testArgs;
     switch (input_dir)
@@ -1603,7 +1617,7 @@ int tryMain(string[] args)
             return 1;
     }
 
-    if (test_base_name.extension() == ".sh")
+    if (test_ext == ".sh")
     {
         string file = cast(string) std.file.read(input_file);
         string disabledPlatforms;
@@ -1642,18 +1656,7 @@ int tryMain(string[] args)
 
     // Clear the DFLAGS environment variable if it was specified in the test file
     if (testArgs.clearDflags)
-    {
-        // `environment["DFLAGS"] = "";` doesn't seem to work on Win32 (might be a bug
-        // in std.process). So, resorting to `putenv` in snn.lib
-        version(Win32)
-        {
-            putenv("DFLAGS=");
-        }
-        else
-        {
-            environment["DFLAGS"] = "";
-        }
-    }
+        environment["DFLAGS"] = "";
 
     writef(" ... %-30s %s%s(%s)",
             input_file,
@@ -1675,10 +1678,10 @@ int tryMain(string[] args)
 
     if (
         //prepare cpp extra sources
-        !collectExtraSources(input_dir, output_dir, testArgs.cppSources, testArgs.sources, envData, envData.ccompiler, testArgs.cxxflags, f) ||
+        !collectExtraSources(input_dir, output_dir, testArgs.cppSources, testArgs.sources, envData, envData.ccompiler, envData.cxxcompiler, testArgs.cxxflags, f) ||
 
         //prepare objc extra sources
-        !collectExtraSources(input_dir, output_dir, testArgs.objcSources, testArgs.sources, envData, "clang", null, f)
+        !collectExtraSources(input_dir, output_dir, testArgs.objcSources, testArgs.sources, envData, "clang", "clang++", null, f)
     )
     {
         writeln();
@@ -1727,7 +1730,7 @@ int tryMain(string[] args)
                         (autoCompileImports ? "-i" : join(testArgs.compiledImports, " ")));
 
                 try
-                    compile_output = execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE);
+                    compile_output = execute(fThisRun, command, testArgs.mode == TestMode.FAIL_COMPILE);
                 catch (Exception e)
                 {
                     writeln(""); // We're at "... runnable/xxxx.d (args)"
@@ -1744,7 +1747,7 @@ int tryMain(string[] args)
 
                     command = format("%s -conf= -m%s -I%s %s %s -od%s -c %s %s", envData.dmd, envData.model, input_dir,
                         testArgs.requiredArgs, permutedArgs, output_dir, argSet, filename);
-                    compile_output ~= execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE);
+                    compile_output ~= execute(fThisRun, command, testArgs.mode == TestMode.FAIL_COMPILE);
                 }
 
                 if (testArgs.mode == TestMode.RUN || testArgs.link)
@@ -1755,7 +1758,7 @@ int tryMain(string[] args)
                         autoCompileImports ? "extraSourceIncludePaths" : "",
                         envData.required_args, testArgs.requiredArgsForLink, output_dir, test_app_dmd, join(toCleanup, " "));
 
-                    execute(fThisRun, command, true);
+                    execute(fThisRun, command, testArgs.runReturn);
                 }
             }
 
@@ -1821,20 +1824,21 @@ int tryMain(string[] args)
             {
                 toCleanup ~= test_app_dmd;
                 version(Windows)
-                    if (envData.usingMicrosoftCompiler)
-                    {
-                        toCleanup ~= test_app_dmd_base ~ to!string(permuteIndex) ~ ".ilk";
-                        toCleanup ~= test_app_dmd_base ~ to!string(permuteIndex) ~ ".pdb";
-                    }
+                {
+                    toCleanup ~= test_app_dmd_base ~ to!string(permuteIndex) ~ ".ilk";
+                    toCleanup ~= test_app_dmd_base ~ to!string(permuteIndex) ~ ".pdb";
+                }
 
                 if (testArgs.gdbScript is null)
                 {
                     command = test_app_dmd;
                     if (testArgs.executeArgs) command ~= " " ~ testArgs.executeArgs;
 
-                    const output = execute(fThisRun, command, true)
+                    string output = execute(fThisRun, command, testArgs.runReturn)
                                     .strip()
                                     .unifyNewLine();
+
+                    output.applyOutputTransformations(testArgs.transformOutput);
 
                     if (testArgs.runOutput && !compareOutput(output, testArgs.runOutput, envData))
                     {
@@ -1853,7 +1857,7 @@ int tryMain(string[] args)
                             write(testArgs.gdbScript);
                         }
                         string gdbCommand = "gdb "~test_app_dmd~" --batch -x "~script;
-                        auto gdb_output = execute(fThisRun, gdbCommand, true);
+                        auto gdb_output = execute(fThisRun, gdbCommand, 0);
                         if (testArgs.gdbMatch !is null)
                         {
                             enforce(match(gdb_output, regex(testArgs.gdbMatch)),
@@ -1871,7 +1875,7 @@ int tryMain(string[] args)
                 f.write("Executing post-test script: ");
                 string prefix = "";
                 version (Windows) prefix = "bash ";
-                execute(f, prefix ~ "tools/postscript.sh " ~ testArgs.postScript ~ " " ~ input_dir ~ " " ~ test_name ~ " " ~ thisRunName, true);
+                execute(f, prefix ~ "tools/postscript.sh " ~ testArgs.postScript ~ " " ~ input_dir ~ " " ~ test_name ~ " " ~ thisRunName, 0);
             }
 
             foreach (file; chain(toCleanup, testArgs.outputFiles))

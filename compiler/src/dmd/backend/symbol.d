@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      https://github.com/dlang/dmd/blob/master/src/dmd/backend/symbol.d
@@ -38,7 +38,7 @@ import dmd.backend.type;
 nothrow:
 @safe:
 
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 
 void struct_free(struct_t *st) { }
 
@@ -57,13 +57,11 @@ void func_free(func_t* f) { free(f); }
 /*******************************
  * Type out symbol information.
  */
-@trusted
-void symbol_print(const Symbol *s)
+void symbol_print(const ref Symbol s)
 {
 debug
 {
-    if (!s) return;
-    printf("symbol %p '%s'\n ",s,s.Sident.ptr);
+    printf("symbol '%s'\n ", s.Sident.ptr);
     printf(" Sclass = %s ", class_str(s.Sclass));
     printf(" Ssymnum = %d",cast(int)s.Ssymnum);
     printf(" Sfl = "); WRFL(cast(FL) s.Sfl);
@@ -235,11 +233,9 @@ bool Symbol_isAffected(const ref Symbol s)
 /***********************************
  * Get user name of symbol.
  */
-
-@trusted
-const(char)* symbol_ident(const Symbol *s)
+const(char)* symbol_ident(return ref const Symbol s)
 {
-    return s.Sident.ptr;
+    return &s.Sident[0];
 }
 
 /****************************************
@@ -271,7 +267,7 @@ Symbol * symbol_calloc(const(char)[] id)
  *      created Symbol
  */
 
-@trusted @nogc
+@nogc
 extern (C)
 Symbol * symbol_name(const(char)[] name, SC sclass, type *t)
 {
@@ -282,7 +278,7 @@ Symbol * symbol_name(const(char)[] name, SC sclass, type *t)
     s.Stype.Tcount++;
 
     if (tyfunc(t.Tty))
-        symbol_func(s);
+        symbol_func(*s);
     return s;
 }
 
@@ -311,7 +307,7 @@ Funcsym *symbol_funcalias(Funcsym *sf)
 Symbol * symbol_generate(SC sclass,type *t)
 {
     __gshared int tmpnum;
-    char[4 + tmpnum.sizeof * 3 + 1] name;
+    char[4 + tmpnum.sizeof * 3 + 1] name = void;
 
     //printf("symbol_generate(_TMP%d)\n", tmpnum);
     const length = snprintf(name.ptr,name.length,"_TMP%d",tmpnum++);
@@ -327,10 +323,9 @@ Symbol * symbol_generate(SC sclass,type *t)
  * Generate an auto symbol, and add it to the symbol table.
  */
 
-Symbol * symbol_genauto(type *t)
-{   Symbol *s;
-
-    s = symbol_generate(SC.auto_,t);
+Symbol* symbol_genauto(type* t)
+{
+    auto s = symbol_generate(SC.auto_,t);
     s.Sflags |= SFLfree;
     symbol_add(s);
     return s;
@@ -359,10 +354,10 @@ Symbol *symbol_genauto(tym_t ty)
  */
 
 @trusted @nogc
-void symbol_func(Symbol *s)
+void symbol_func(ref Symbol s)
 {
     //printf("symbol_func(%s, x%x)\n", s.Sident.ptr, fregsaved);
-    symbol_debug(s);
+    symbol_debug(&s);
     s.Sfl = FLfunc;
     // Interrupt functions modify all registers
     // BUG: do interrupt functions really save BP?
@@ -383,7 +378,7 @@ void symbol_func(Symbol *s)
  */
 
 @trusted
-void symbol_struct_addField(Symbol *s, const(char)* name, type *t, uint offset)
+void symbol_struct_addField(ref Symbol s, const(char)* name, type *t, uint offset)
 {
     Symbol *s2 = symbol_name(name[0 .. strlen(name)], SC.member, t);
     s2.Smemoff = offset;
@@ -402,7 +397,7 @@ void symbol_struct_addField(Symbol *s, const(char)* name, type *t, uint offset)
  */
 
 @trusted
-void symbol_struct_addBitField(Symbol *s, const(char)* name, type *t, uint offset, uint fieldWidth, uint bitOffset)
+void symbol_struct_addBitField(ref Symbol s, const(char)* name, type *t, uint offset, uint fieldWidth, uint bitOffset)
 {
     //printf("symbol_struct_addBitField() s: %s\n", s.Sident.ptr);
     Symbol *s2 = symbol_name(name[0 .. strlen(name)], SC.field, t);
@@ -419,21 +414,21 @@ void symbol_struct_addBitField(Symbol *s, const(char)* name, type *t, uint offse
  *      s      = the struct symbol
  */
 @trusted
-void symbol_struct_hasBitFields(Symbol *s)
+void symbol_struct_hasBitFields(ref Symbol s)
 {
     s.Sstruct.Sflags |= STRbitfields;
 }
 
 /***************************************
  * Add a base class to a struct s.
- * Input:
- *      s       the struct/class symbol
- *      t       the type of the base class
- *      offset  offset of the base class in the struct/class
+ * Params:
+ *      s      = the struct/class symbol
+ *      t      = the type of the base class
+ *      offset = offset of the base class in the struct/class
  */
 
 @trusted
-void symbol_struct_addBaseClass(Symbol *s, type *t, uint offset)
+void symbol_struct_addBaseClass(ref Symbol s, type *t, uint offset)
 {
     assert(t && t.Tty == TYstruct);
     auto bc = cast(baseclass_t*)mem_fmalloc(baseclass_t.sizeof);
@@ -450,10 +445,10 @@ void symbol_struct_addBaseClass(Symbol *s, type *t, uint offset)
 debug
 {
 
-void symbol_check(const Symbol *s)
+void symbol_check(ref const Symbol s) @trusted
 {
     //printf("symbol_check('%s',%p)\n",s.Sident.ptr,s);
-    symbol_debug(s);
+    debug symbol_debug(&s);
     if (s.Stype) type_debug(s.Stype);
     assert(cast(uint)s.Sclass < cast(uint)SCMAX);
 }
@@ -461,7 +456,7 @@ void symbol_check(const Symbol *s)
 void symbol_tree_check(const(Symbol)* s)
 {
     while (s)
-    {   symbol_check(s);
+    {   symbol_check(*s);
         symbol_tree_check(s.Sl);
         s = s.Sr;
     }
@@ -649,7 +644,7 @@ debug
 
 static if (0)
 {
-private void symbol_undef(Symbol *s)
+private void symbol_undef(ref Symbol s)
 {
   s.Sclass = SC.unde;
   s.Ssymnum = SYMIDX.max;
@@ -752,18 +747,18 @@ void freesymtab(Symbol **stab,SYMIDX n1,SYMIDX n2)
 }
 
 /****************************
- * Create a copy of a symbol.
+ * Create a copy of a Symbol.
  */
 
 @trusted
-Symbol * symbol_copy(Symbol *s)
+Symbol * symbol_copy(ref Symbol s)
 {   Symbol *scopy;
     type *t;
 
-    symbol_debug(s);
+    symbol_debug(&s);
     /*printf("symbol_copy(%s)\n",s.Sident.ptr);*/
     scopy = symbol_calloc(s.Sident.ptr[0 .. strlen(s.Sident.ptr)]);
-    memcpy(scopy,s,Symbol.sizeof - s.Sident.sizeof);
+    memcpy(scopy, &s, Symbol.sizeof - s.Sident.sizeof);
     scopy.Sl = scopy.Sr = scopy.Snext = null;
     scopy.Ssymnum = SYMIDX.max;
     if (scopy.Sdt)
@@ -790,11 +785,10 @@ static if (HYDRATE)
 {
 @trusted
 void symbol_tree_hydrate(Symbol **ps)
-{   Symbol *s;
-
+{
     while (isdehydrated(*ps))           /* if symbol is dehydrated      */
     {
-        s = symbol_hydrate(ps);
+        auto s = symbol_hydrate(ps);
         symbol_debug(s);
         if (s.Scover)
             symbol_hydrate(&s.Scover);
@@ -1519,7 +1513,7 @@ int baseclass_nitems(baseclass_t *b)
 /*************************************
  * Reset Symbol so that it's now an "extern" to the next obj file being created.
  */
-void symbol_reset(Symbol *s)
+void symbol_reset(ref Symbol s)
 {
     s.Soffset = 0;
     s.Sxtrnnum = 0;
@@ -1542,7 +1536,7 @@ void symbol_reset(Symbol *s)
  * Returns:
  *      pointer type to access it
  */
-tym_t symbol_pointerType(const Symbol* s)
+tym_t symbol_pointerType(ref const Symbol s)
 {
     return s.Stype.Tty & mTYimmutable ? TYimmutPtr : TYnptr;
 }

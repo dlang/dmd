@@ -417,6 +417,10 @@
         white-space: pre-wrap;
       }
 
+      .ddoc .code_lines pre {
+        display: contents;
+      }
+
       .ddoc .code_lines li:only-of-type::before {
         color: rgba(255, 255, 255, 1);
         content: " ";
@@ -551,7 +555,7 @@ test document note
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="keyword">import</span> std.stdio;   <span class="comment">//&amp;
+        <li><pre><code class="code"><span class="keyword">import</span> std.stdio;   <span class="comment">//&amp;
 </span>writeln(<span class="string_literal">"Hello world!"</span>);
 <span class="keyword">if</span> (test) {
   writefln(<span class="string_literal">"D programming language"</span>);
@@ -570,7 +574,7 @@ xxx;    <span class="comment">//comment
 <span class="keyword">uint</span> line = 0;
 <span class="comment">// The ElementType of data is not aggregation type
 </span><span class="keyword">foreach</span> (encoded; Base64.encoder(data))
-</code></li>
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -581,10 +585,10 @@ xxx;    <span class="comment">//comment
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code">wstring ws;
+        <li><pre><code class="code">wstring ws;
 transcode(<span class="string_literal">"hello world"</span>,ws);
     <span class="comment">// transcode from UTF-8 to UTF-16
-</span></code></li>
+</span></code></pre></li>
       </ol>
     </div>
   </div>
@@ -601,7 +605,7 @@ transcode(<span class="string_literal">"hello world"</span>,ws);
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="keyword">import</span> std.stdio;   <span class="comment">//&amp;
+        <li><pre><code class="code"><span class="keyword">import</span> std.stdio;   <span class="comment">//&amp;
 </span>writeln(<span class="string_literal">"Hello world!"</span>);
 <span class="keyword">if</span> (test) {
   writefln(<span class="string_literal">"D programming language"</span>);
@@ -614,7 +618,7 @@ xxx;    <span class="comment">//comment
 <span class="comment">/+ test
  + comment
  +/</span>
-</code></li>
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -625,10 +629,10 @@ xxx;    <span class="comment">//comment
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code">#!/usr/bin/env rdmd
+        <li><pre><code class="code">#!/usr/bin/env rdmd
 <span class="comment">// Computes average line length for standard input.
 </span><span class="keyword">import</span> std.stdio;
-</code></li>
+</code></pre></li>
       </ol>
     </div>
   </div>
@@ -639,13 +643,13 @@ xxx;    <span class="comment">//comment
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code">writefln(<span class="string_literal">q"EOS
+        <li><pre><code class="code">writefln(<span class="string_literal">q"EOS
 This
 is a multi-line
 heredoc string
 EOS"</span>
 );
-</code></li>
+</code></pre></li>
       </ol>
     </div>
   </div>

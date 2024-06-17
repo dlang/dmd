@@ -49,12 +49,10 @@ else version (Darwin)
     else
         static assert(0, "unimplemented");
 }
-else version (CRuntime_DigitalMars)
-    public import rt.sections_win32;
 else version (CRuntime_Microsoft)
     public import rt.sections_win64;
 else version (CRuntime_Bionic)
-    public import rt.sections_android;
+    public import rt.sections_elf_shared;
 else version (CRuntime_UClibc)
     public import rt.sections_elf_shared;
 else
@@ -80,7 +78,10 @@ static assert(is(typeof(&initTLSRanges) RT == return) &&
               is(typeof(&finiTLSRanges) == void function(RT) nothrow @nogc) &&
               is(typeof(&scanTLSRanges) == void function(RT, scope void delegate(void*, void*) nothrow) nothrow));
 
-version (Shared)
+version (Windows)
+{
+}
+else version (Shared)
 {
     static assert(is(typeof(&pinLoadedLibraries) == void* function() nothrow @nogc));
     static assert(is(typeof(&unpinLoadedLibraries) == void function(void*) nothrow @nogc));

@@ -7,7 +7,7 @@ set -uexo pipefail
 
 # N: number of parallel build jobs
 if [ -z ${N+x} ] ; then echo "Variable 'N' needs to be set."; exit 1; fi
-# OS_NAME: linux|osx|freebsd
+# OS_NAME: linux|osx|freebsd|windows
 if [ -z ${OS_NAME+x} ] ; then echo "Variable 'OS_NAME' needs to be set."; exit 1; fi
 # FULL_BUILD: true|false (true on Linux: use full permutations for DMD tests)
 if [ -z ${FULL_BUILD+x} ] ; then echo "Variable 'FULL_BUILD' needs to be set."; exit 1; fi
@@ -58,26 +58,41 @@ clone() {
 
 # build dmd (incl. building and running the unittests), druntime, phobos
 build() {
-    source ~/dlang/*/activate # activate host compiler, incl. setting `DMD`
+    local unittest=${1:-1}
+    if [ "$OS_NAME" != "windows" ]; then
+        source ~/dlang/*/activate # activate host compiler, incl. setting `DMD`
+    fi
     $DMD compiler/src/build.d -ofgenerated/build
-    generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" BUILD=debug unittest
-    generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=1 dmd
-    make -j$N -C druntime -f posix.mak MODEL=$MODEL
-    make -j$N -C ../phobos -f posix.mak MODEL=$MODEL
-    deactivate # deactivate host compiler
+    if [ $unittest -eq 1 ]; then
+        generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" BUILD=debug unittest
+    fi
+    generated/build -j$N MODEL=$MODEL HOST_DMD=$DMD DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=${ENABLE_RELEASE:-1} dmd
+    make -j$N -C druntime MODEL=$MODEL
+    make -j$N -C ../phobos MODEL=$MODEL
+    if [ "$OS_NAME" != "windows" ]; then
+        deactivate # deactivate host compiler
+    fi
 }
 
 # self-compile dmd
 rebuild() {
     local compare=${1:-0}
+
+    local dotexe=""
+    local conf="dmd.conf"
+    if [ "$OS_NAME" == "windows" ]; then
+        dotexe=".exe"
+        conf="sc.ini"
+    fi
+
     # `generated` gets cleaned in the next step, so we create another _generated
     # The nested folder hierarchy is needed to conform to those specified in
     # the generated dmd.conf
     mkdir -p _${build_path}
-    cp $build_path/dmd _${build_path}/host_dmd
-    cp $build_path/dmd.conf _${build_path}
+    cp $build_path/dmd$dotexe _${build_path}/host_dmd$dotexe
+    cp $build_path/$conf _${build_path}/
     rm -rf $build_path
-    generated/build -j$N MODEL=$MODEL HOST_DMD=_${build_path}/host_dmd DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=${ENABLE_RELEASE:-1} dmd
+    generated/build -j$N MODEL=$MODEL HOST_DMD=_${build_path}/host_dmd$dotexe DFLAGS="$CI_DFLAGS" ENABLE_RELEASE=${ENABLE_RELEASE:-1} dmd
 
     # compare binaries to test reproducible build
     if [ $compare -eq 1 ]; then
@@ -114,17 +129,19 @@ test_dmd() {
 
 # build and run druntime unit tests
 test_druntime() {
-    make -j$N -C druntime -f posix.mak MODEL=$MODEL unittest
+    make -j$N -C druntime MODEL=$MODEL unittest
 }
 
 # build and run Phobos unit tests
 test_phobos() {
-    make -j$N -C ../phobos -f posix.mak MODEL=$MODEL unittest
+    make -j$N -C ../phobos MODEL=$MODEL unittest
 }
 
 # test dub package
 test_dub_package() {
-    source ~/dlang/*/activate # activate host compiler
+    if [ "$OS_NAME" != "windows" ]; then
+        source ~/dlang/*/activate # activate host compiler
+    fi
     # GDC's standard library is too old for some example scripts
     if [[ "${DMD:-dmd}" =~ "gdmd" ]] ; then
         echo "Skipping DUB examples on GDC."
@@ -146,7 +163,9 @@ test_dub_package() {
         # Test rdmd build
         "${build_path}/dmd" -version=NoBackend -version=GC -version=NoMain -Jgenerated/dub -Jsrc/dmd/res -Isrc -i -run test/dub_package/frontend.d
     fi
-    deactivate
+    if [ "$OS_NAME" != "windows" ]; then
+        deactivate
+    fi
 }
 
 # clone phobos repos if not already available
@@ -241,7 +260,7 @@ if [ "$#" -gt 0 ]; then
   case $1 in
     install_host_compiler) install_host_compiler ;;
     setup_repos) setup_repos "$2" ;; # ci/run.sh setup_repos <git branch>
-    build) build ;;
+    build) build "${2:-}" ;; # ci/run.sh build [0]  (use `0` to skip running compiler unittests)
     rebuild) rebuild "${2:-}" ;; # ci/run.sh rebuild [1] (use `1` to compare binaries to test reproducible build)
     test) test ;;
     test_dmd) test_dmd ;;

@@ -11,6 +11,7 @@ SRCS=\
 	src\core\exception.d \
 	src\core\factory.d \
 	src\core\int128.d \
+	src\core\interpolation.d \
 	src\core\lifetime.d \
 	src\core\math.d \
 	src\core\memory.d \
@@ -169,12 +170,14 @@ SRCS=\
 	src\core\sys\freebsd\err.d \
 	src\core\sys\freebsd\execinfo.d \
 	src\core\sys\freebsd\ifaddrs.d \
+	src\core\sys\freebsd\mqueue.d \
 	src\core\sys\freebsd\pthread_np.d \
 	src\core\sys\freebsd\stdlib.d \
 	src\core\sys\freebsd\string.d \
 	src\core\sys\freebsd\time.d \
 	src\core\sys\freebsd\unistd.d \
 	\
+	src\core\sys\freebsd\net\if_.d \
 	src\core\sys\freebsd\net\if_dl.d \
 	\
 	src\core\sys\freebsd\netinet\in_.d \
@@ -251,6 +254,7 @@ SRCS=\
 	src\core\sys\linux\sys\file.d \
 	src\core\sys\linux\sys\inotify.d \
 	src\core\sys\linux\sys\mman.d \
+	src\core\sys\linux\sys\mount.d \
 	src\core\sys\linux\sys\signalfd.d \
 	src\core\sys\linux\sys\socket.d \
 	src\core\sys\linux\sys\sysinfo.d \
@@ -577,13 +581,11 @@ SRCS=\
 	src\rt\msvc_math.d \
 	src\rt\profilegc.d \
 	src\rt\sections.d \
-	src\rt\sections_android.d \
 	src\rt\sections_darwin_64.d \
 	src\rt\sections_elf_shared.d \
 	src\rt\sections_osx_x86.d \
 	src\rt\sections_osx_x86_64.d \
 	src\rt\sections_solaris.d \
-	src\rt\sections_win32.d \
 	src\rt\sections_win64.d \
 	src\rt\tlsgc.d \
 	src\rt\trace.d \

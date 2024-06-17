@@ -1,7 +1,7 @@
 /**
  * Glue code for Objective-C interop.
  *
- * Copyright:   Copyright (C) 2015-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2015-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/objc_glue.d, _objc_glue.d)
@@ -338,7 +338,7 @@ struct Segments
         immutable(char*) sectionName;
         immutable(char*) segmentName;
         immutable int flags;
-        immutable int alignment;
+        immutable int p2align;
 
         this(typeof(this.tupleof) tuple) @safe
         {
@@ -388,7 +388,7 @@ struct Segments
             return segments[id] = Obj.getsegment(
                 seg.sectionName,
                 seg.segmentName,
-                seg.alignment,
+                seg.p2align,
                 seg.flags
             );
         }
@@ -1159,7 +1159,7 @@ private:
         const symbolName = prefix ~ classDeclaration.objc.identifier.toString();
         auto symbol = Symbols.getStatic(symbolName);
         symbol.Sseg = Segments[Segments.Id.const_];
-        symbol.Salignment = 3;
+        symbol.Salignment = 8;
         symbol.Sdt = dtb.finish();
 
         return symbol;
@@ -1311,7 +1311,7 @@ struct ProtocolDeclaration
             symbol.Sseg = Segments[Segments.Id.protolist];
             symbol.Sclass = SC.comdat;
             symbol.Sflags |= SFLhidden;
-            symbol.Salignment = 3;
+            symbol.Salignment = 8;
 
             auto dtb = DtBuilder(0);
             dtb.xoff(protocol, 0);
@@ -1326,7 +1326,7 @@ struct ProtocolDeclaration
         symbol.Sseg = Segments[Segments.Id.data];
         symbol.Sclass = SC.comdat;
         symbol.Sflags |= SFLhidden;
-        symbol.Salignment = 3;
+        symbol.Salignment = 8;
 
         auto dtb = DtBuilder(0);
         toDt(dtb);
@@ -1478,7 +1478,7 @@ private:
 
         symbol.Sdt = dtb.finish();
         symbol.Sseg = Segments[Segments.Id.const_];
-        symbol.Salignment = 3;
+        symbol.Salignment = 8;
 
         return symbol;
     }
@@ -1512,7 +1512,7 @@ private:
 
         symbol.Sdt = dtb.finish();
         symbol.Sseg = Segments[Segments.Id.const_];
-        symbol.Salignment = 3;
+        symbol.Salignment = 8;
 
         outdata(symbol);
 
@@ -1546,7 +1546,7 @@ private:
 
         symbol.Sdt = dtb.finish();
         symbol.Sseg = Segments[Segments.Id.const_];
-        symbol.Salignment = 3;
+        symbol.Salignment = 8;
 
         outdata(symbol);
 

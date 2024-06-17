@@ -437,6 +437,7 @@ unittest
         string[412] names;
         ubyte[1024] moredata;
     }
+    version (OnlyLowMemUnittests) {} else
     test!(Large, Large);
 }
 
@@ -687,7 +688,7 @@ extern (C) inout(void[]) _aaValues(inout AA aa, const size_t keysz, const size_t
     {
         if (!b.filled)
             continue;
-        pval[0 .. valsz] = b.entry[off .. valsz + off];
+        pval[0 .. valsz] = cast(void[]) b.entry[off .. valsz + off];
         pval += valsz;
     }
     // postblit is done in object.values
@@ -709,7 +710,7 @@ extern (C) inout(void[]) _aaKeys(inout AA aa, const size_t keysz, const TypeInfo
     {
         if (!b.filled)
             continue;
-        pkey[0 .. keysz] = b.entry[0 .. keysz];
+        pkey[0 .. keysz] = cast(void[]) b.entry[0 .. keysz];
         pkey += keysz;
     }
     // postblit is done in object.keys

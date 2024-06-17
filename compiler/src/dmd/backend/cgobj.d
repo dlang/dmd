@@ -3,7 +3,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cgobj.d, backend/cgobj.d)
@@ -20,11 +20,13 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
 import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
+import dmd.backend.dcgcv : TOOFFSET;
 import dmd.backend.dlist;
+import dmd.backend.dvarstats;
 import dmd.backend.dvec;
 import dmd.backend.el;
-import dmd.backend.md5;
+import dmd.backend.filespec : filespecdotext, filespecgetroot, filespecname;
 import dmd.backend.mem;
 import dmd.backend.global;
 import dmd.backend.obj;
@@ -33,25 +35,24 @@ import dmd.backend.rtlsym;
 import dmd.backend.ty;
 import dmd.backend.type;
 
+import dmd.common.blake3;
 import dmd.common.outbuffer;
-
-nothrow:
-@safe:
-
-import dmd.backend.dvarstats;
-
-import dmd.backend.filespec : filespecdotext, filespecgetroot, filespecname;
 
 version (Windows)
 {
+    nothrow:
     extern (C) int memicmp(const(void)*, const(void)*, size_t) pure nothrow @nogc;
-    extern (C) int stricmp(const(char)*, const(char)*) pure nothrow @nogc;
-    alias filespeccmp = stricmp;
+    extern(C) char* getcwd(char*,size_t);
+}
+else version (Posix)
+{
+    import core.sys.posix.unistd : getcwd;
 }
 else
-    alias filespeccmp = strcmp;
+    static assert(0);
 
-extern(C) char* getcwd(char*,size_t);
+nothrow:
+@safe:
 
 struct Loc
 {
@@ -67,32 +68,12 @@ struct Loc
     }
 }
 
-version (Windows)
-{
-    extern(C) char* strupr(char*);
-}
-version (Posix)
-{
-    @trusted
-    extern(C) char* strupr(char* s)
-    {
-        for (char* p = s; *p; ++p)
-        {
-            char c = *p;
-            if ('a' <= c && c <= 'z')
-                *p = cast(char)(c - 'a' + 'A');
-        }
-        return s;
-    }
-}
-
 enum MULTISCOPE = 1;            /* account for bug in MultiScope debugger
                                    where it cannot handle a line number
                                    with multiple offsets. We use a bit vector
                                    to filter out the extra offsets.
                                  */
 
-import dmd.backend.dcgcv : TOOFFSET;
 
 @trusted
 void TOWORD(void* a, uint b)
@@ -595,7 +576,7 @@ Obj OmfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
         obj.ledatas.reset();    // recycle the memory used by ledatas
 
         foreach (s; obj.resetSymbols)
-            symbol_reset(s);
+            symbol_reset(*s);
         obj.resetSymbols.reset();
 
         obj.buf = objbuf;
@@ -710,7 +691,7 @@ void OmfObj_termfile()
  */
 
 @trusted
-void OmfObj_term(const(char)* objfilename)
+void OmfObj_term(const(char)[] objfilename)
 {
         //printf("OmfObj_term()\n");
         list_t dl;
@@ -935,14 +916,14 @@ static if (MULTISCOPE)
         if (offset >= vec_numbits(obj.offvec))
         {
             if (offset < 0xFF00)        // otherwise we overflow ph_malloc()
-                obj.offvec = vec_realloc(obj.offvec,cast(uint)offset * 2);
+                obj.offvec = vec_realloc(obj.offvec, cast(size_t)offset * 2);
         }
         bool cond3 =
             // disallow multiple offsets per line
             !vec_testbit(linnum,obj.linvec) &&  // if linnum not already used
 
             // disallow multiple lines per offset
-            (offset >= 0xFF00 || !vec_testbit(cast(uint)offset,obj.offvec));      // and offset not already used
+            (offset >= 0xFF00 || !vec_testbit(cast(size_t)offset,obj.offvec));      // and offset not already used
 }
 else
         enum cond3 = true;
@@ -953,7 +934,7 @@ static if (MULTISCOPE)
 {
             vec_setbit(linnum,obj.linvec);              // mark linnum as used
             if (offset < 0xFF00)
-                vec_setbit(cast(uint)offset,obj.offvec);  // mark offset as used
+                vec_setbit(cast(size_t)offset, obj.offvec); // mark offset as used
 }
             TOWORD(obj.linrec + obj.linreci,linnum);
             if (linos2)
@@ -1140,11 +1121,13 @@ bool OmfObj_includelib(scope const char[] name)
             if (memicmp(name[$ - 4 .. $].ptr, ".lib".ptr, 4) == 0)
                 n = name[0 .. $ - 4];
         }
-        else
+        else version (Posix)
         {
             if (memcmp(name[$ - 4 .. $].ptr, ".lib".ptr, 4) == 0)
                 n = name[0 .. $ - 4];
         }
+        else
+            static assert(0);
     }
 
     obj_comment(0x9F, n.ptr, n.length);
@@ -2206,16 +2189,14 @@ size_t OmfObj_mangle(Symbol *s,char *dest)
         name2 = id_compress(name, cast(int)len, &len2);
         if (len2 > LIBIDMAX)            // still too long
         {
-            /* Form md5 digest of the name and store it in the
+            /* Form blake3 hash of the name and store it in the
              * last 32 bytes of the name.
              */
-            MD5_CTX mdContext;
-            MD5Init(&mdContext);
-            MD5Update(&mdContext, cast(ubyte *)name, cast(uint)len);
-            MD5Final(&mdContext);
+            const hash = blake3((cast(ubyte*) name)[0 .. len]);
+
             memcpy(name2, name, LIBIDMAX - 32);
             for (int i = 0; i < 16; i++)
-            {   ubyte c = mdContext.digest[i];
+            {   ubyte c = hash[i];
                 ubyte c1 = (c >> 4) & 0x0F;
                 ubyte c2 = c & 0x0F;
                 c1 += (c1 < 10) ? '0' : 'A' - 10;
@@ -2239,18 +2220,18 @@ size_t OmfObj_mangle(Symbol *s,char *dest)
         dest += 3;
     switch (type_mangle(s.Stype))
     {
-        case mTYman_pas:                // if upper case
-        case mTYman_for:
+        case Mangle.pascal:             // if upper case
+        case Mangle.fortran:
             memcpy(dest + 1,name,len);  // copy in name
             dest[1 + len] = 0;
             strupr(dest + 1);           // to upper case
             break;
 
-        case mTYman_cpp:
+        case Mangle.cpp:
             memcpy(dest + 1,name,len);
             break;
 
-        case mTYman_std:
+        case Mangle.stdcall:
             if (!(config.flags4 & CFG4oldstdmangle) &&
                 config.exe == EX_WIN32 && tyfunc(s.ty()) &&
                 !variadic(s.Stype))
@@ -2265,8 +2246,8 @@ size_t OmfObj_mangle(Symbol *s,char *dest)
             }
             goto case;
 
-        case mTYman_c:
-        case mTYman_d:
+        case Mangle.c:
+        case Mangle.d:
             if (config.flags4 & CFG4underscore)
             {
                 dest[1] = '_';          // leading _ in name
@@ -2276,12 +2257,12 @@ size_t OmfObj_mangle(Symbol *s,char *dest)
             }
             goto case;
 
-        case mTYman_sys:
+        case Mangle.syscall:
             memcpy(dest + 1, name, len);        // no mangling
             dest[1 + len] = 0;
             break;
         default:
-            symbol_print(s);
+            symbol_print(*s);
             assert(0);
     }
     if (ilen > (255-2-int.sizeof*3))
@@ -3407,7 +3388,7 @@ static if (0)
                 if (external > obj.extidx)
                 {
                     printf("obj.extidx = %d\n", obj.extidx);
-                    symbol_print(s);
+                    symbol_print(*s);
                 }
 
                 assert(external <= obj.extidx);
@@ -3442,7 +3423,7 @@ static if (0)
                 val += s.Soffset;
             break;
         default:
-            symbol_print(s);
+            symbol_print(*s);
             assert(0);
     }
 
@@ -3781,4 +3762,23 @@ private void objflush_pointerRefs()
     foreach (ref pr; obj.ptrrefs)
         objflush_pointerRef(pr.sym, pr.offset);
     obj.ptrrefs.reset();
+}
+
+/***********************************
+ * Upper case a string in place.
+ * Params:
+ *      s = string to uppercase
+ * Returns:
+ *      uppercased string
+ */
+@trusted
+extern (C) char* strupr(char* s)
+{
+    for (char* p = s; *p; ++p)
+    {
+        char c = *p;
+        if ('a' <= c && c <= 'z')
+            *p = cast(char)(c - 'a' + 'A');
+    }
+    return s;
 }

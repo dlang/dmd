@@ -4,7 +4,7 @@
  * This is the POSIX side of the implementation.
  * It exports two functions to C++, `toCppMangleItanium` and `cppTypeInfoMangleItanium`.
  *
- * Copyright: Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright: Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors: Walter Bright, https://www.digitalmars.com
  * License:   $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:    $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/cppmangle.d, _cppmangle.d)
@@ -49,50 +49,67 @@ import dmd.typesem;
 import dmd.visitor;
 
 
-// helper to check if an identifier is a C++ operator
-enum CppOperator { Cast, Assign, Eq, Index, Call, Unary, Binary, OpAssign, Unknown }
-package CppOperator isCppOperator(Identifier id)
+// C++ operators
+enum CppOperator { Unknown, Cast, Assign, Eq, Index, Call, Unary, Binary, OpAssign }
+
+/**************
+ * Check if id is a C++ operator
+ * Params:
+ *      id = identifier to be checked
+ * Returns:
+ *      CppOperator, or Unknown if not a C++ operator
+ */
+package CppOperator isCppOperator(const scope Identifier id)
 {
-    __gshared const(Identifier)[] operators = null;
-    if (!operators)
-        operators = [Id._cast, Id.assign, Id.eq, Id.index, Id.call, Id.opUnary, Id.opBinary, Id.opOpAssign];
-    foreach (i, op; operators)
+    with (Id) with (CppOperator)
     {
-        if (op == id)
-            return cast(CppOperator)i;
+        return (id == _cast)      ? Cast     :
+               (id == assign)     ? Assign   :
+               (id == eq)         ? Eq       :
+               (id == index)      ? Index    :
+               (id == call)       ? Call     :
+               (id == opUnary)    ? Unary    :
+               (id == opBinary)   ? Binary   :
+               (id == opOpAssign) ? OpAssign :
+                                    Unknown  ;
     }
-    return CppOperator.Unknown;
 }
 
 ///
-extern(C++) const(char)* toCppMangleItanium(Dsymbol s)
+const(char)* toCppMangleItanium(Dsymbol s)
 {
     //printf("toCppMangleItanium(%s)\n", s.toChars());
     OutBuffer buf;
     scope CppMangleVisitor v = new CppMangleVisitor(&buf, s.loc);
     v.mangleOf(s);
+    if (v.errors)
+        fatal();
     return buf.extractChars();
 }
 
 ///
-extern(C++) const(char)* cppTypeInfoMangleItanium(Dsymbol s)
+const(char)* cppTypeInfoMangleItanium(Dsymbol s)
 {
     //printf("cppTypeInfoMangle(%s)\n", s.toChars());
     OutBuffer buf;
     buf.writestring("_ZTI");    // "TI" means typeinfo structure
     scope CppMangleVisitor v = new CppMangleVisitor(&buf, s.loc);
     v.cpp_mangle_name(s, false);
+    if (v.errors)
+        fatal();
     return buf.extractChars();
 }
 
 ///
-extern(C++) const(char)* cppThunkMangleItanium(FuncDeclaration fd, int offset)
+const(char)* cppThunkMangleItanium(FuncDeclaration fd, int offset)
 {
     //printf("cppThunkMangleItanium(%s)\n", fd.toChars());
     OutBuffer buf;
     buf.printf("_ZThn%u_", offset);  // "Th" means thunk, "n%u" is the call offset
     scope CppMangleVisitor v = new CppMangleVisitor(&buf, fd.loc);
     v.mangle_function_encoding(fd);
+    if (v.errors)
+        fatal();
     return buf.extractChars();
 }
 
@@ -163,6 +180,7 @@ private final class CppMangleVisitor : Visitor
     Objects components;         /// array of components available for substitution
     OutBuffer* buf;             /// append the mangling to buf[]
     Loc loc;                    /// location for use in error messages
+    bool errors;                /// failed to mangle properly
 
     /**
      * Constructor
@@ -484,7 +502,8 @@ private final class CppMangleVisitor : Visitor
             else
             {
                 .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template value parameter is not supported", ti.kind, ti.toPrettyChars, tv.valType.toChars());
-                fatal();
+                errors = true;
+                return;
             }
         }
         else if (tp.isTemplateAliasParameter())
@@ -519,13 +538,13 @@ private final class CppMangleVisitor : Visitor
             else
             {
                 .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template alias parameter is not supported", ti.kind, ti.toPrettyChars, o.toChars());
-                fatal();
+                errors = true;
             }
         }
         else if (tp.isTemplateThisParameter())
         {
             .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template this parameter is not supported", ti.kind, ti.toPrettyChars, o.toChars());
-            fatal();
+            errors = true;
         }
         else
         {
@@ -574,7 +593,8 @@ private final class CppMangleVisitor : Visitor
                     if (t is null)
                     {
                         .error(ti.loc, "%s `%s` internal compiler error: C++ `%s` template value parameter is not supported", ti.kind, ti.toPrettyChars, (*ti.tiargs)[j].toChars());
-                        fatal();
+                        errors = true;
+                        return false;
                     }
                     t.accept(this);
                 }
@@ -1012,7 +1032,8 @@ private final class CppMangleVisitor : Visitor
         if (!(d.storage_class & (STC.extern_ | STC.field | STC.gshared)))
         {
             .error(d.loc, "%s `%s` internal compiler error: C++ static non-`__gshared` non-`extern` variables not supported", d.kind, d.toPrettyChars);
-            fatal();
+            errors = true;
+            return;
         }
         Dsymbol p = d.toParent();
         if (p && !p.isModule()) //for example: char Namespace1::beta[6] should be mangled as "_ZN10Namespace14betaE"
@@ -1348,7 +1369,8 @@ private final class CppMangleVisitor : Visitor
                 // Static arrays in D are passed by value; no counterpart in C++
                 .error(loc, "internal compiler error: unable to pass static array `%s` to extern(C++) function, use pointer instead",
                     t.toChars());
-                fatal();
+                errors = true;
+                return;
             }
             auto prev = this.context.push({
                     TypeFunction tf;
@@ -1386,7 +1408,7 @@ private final class CppMangleVisitor : Visitor
         else
             p = "";
         .error(loc, "internal compiler error: %stype `%s` cannot be mapped to C++\n", p, t.toChars());
-        fatal(); //Fatal, because this error should be handled in frontend
+        errors = true; //Fatal, because this error should be handled in frontend
     }
 
     /****************************
@@ -2175,7 +2197,7 @@ private extern(C++) final class ComponentVisitor : Visitor
     /// Set to the result of the comparison
     private bool result;
 
-    public this(RootObject base) @safe
+    public this(RootObject base) @trusted
     {
         switch (base.dyncast())
         {

@@ -1,10 +1,29 @@
+# This makefile is designed to be run by gnu make.
+# - Windows: you may download a prebuilt zipped .exe from https://github.com/dlang/dmd/releases/download/nightly/gnumake-4.4-win64.zip.
+#   You also need a Git for Windows installation, for bash and common GNU tools like cp,mkdir,mv,rm,touch,which.
+# - FreeBSD: the default make program on FreeBSD is not gnu make; to install gnu make:
+#     pkg install gmake
+#   and then run as gmake rather than make.
+#
+# Examples:
+# - Build compiler (unoptimized) and druntime:
+#     make -j$(nproc)
+# - Build compiler (optimized) and druntime using an LDC host compiler:
+#     make -j$(nproc) HOST_DMD=ldmd2 ENABLE_RELEASE=1 [ENABLE_LTO=1]
+# - Build and run druntime tests:
+#     make -j$(nproc) druntime-test
+# - Run compiler tests (needs a built Phobos as prerequisite):
+#     make -j$(nproc) dmd-test
+#
+# See compiler/src/build.d for variables affecting the compiler build.
+
 include compiler/src/osmodel.mak
 
 INSTALL_DIR=$(shell pwd)/../install
 ECTAGS_LANGS = Make,C,C++,D,Sh
 ECTAGS_FILES = compiler/dmd/*.[chd] compiler/dmd/backend/*.[chd] compiler/dmd/root/*.[chd]
 
-EXE=$(if $(findstring windows,$(OS)),.exe,)
+EXE:=$(if $(findstring windows,$(OS)),.exe,)
 
 ifeq (,$(HOST_DMD))
     ifneq (,$(HOST_DC))
@@ -12,11 +31,11 @@ ifeq (,$(HOST_DMD))
         HOST_DMD:=$(HOST_DC)
     else ifneq (,$(DMD))
         HOST_DMD:=$(DMD)
-    else ifneq (,$(shell which dmd))
+    else ifneq (,$(shell which dmd 2>/dev/null))
         HOST_DMD:=dmd$(EXE)
-    else ifneq (,$(shell which ldmd2))
+    else ifneq (,$(shell which ldmd2 2>/dev/null))
         HOST_DMD:=ldmd2$(EXE)
-    else ifneq (,$(shell which gdmd))
+    else ifneq (,$(shell which gdmd 2>/dev/null))
         HOST_DMD:=gdmd$(EXE)
     else
         $(error Couldn't find a D host compiler. Please set variable HOST_DMD to the path to a dmd/ldmd2/gdmd executable)
@@ -25,9 +44,9 @@ ifeq (,$(HOST_DMD))
 endif
 export HOST_DMD
 
-GENERATED=generated
-BUILD_EXE=$(GENERATED)/build$(EXE)
-RUN_EXE=$(GENERATED)/run$(EXE)
+GENERATED:=generated
+BUILD_EXE:=$(GENERATED)/build$(EXE)
+RUN_EXE:=$(GENERATED)/run$(EXE)
 
 .PHONY: all clean test html install \
         dmd dmd-test druntime druntime-test \
@@ -57,9 +76,7 @@ clean:
 	rm -rf $(GENERATED)
 	cd compiler/test && rm -rf test_results *.lst trace.log trace.def
 	$(RM) tags
-ifneq (windows,$(OS))
-	$(QUIET)$(MAKE) -C druntime -f posix.mak clean
-endif
+	$(QUIET)$(MAKE) -C druntime clean
 
 dmd: $(BUILD_EXE)
 	$(BUILD_EXE) $@
@@ -69,18 +86,10 @@ dmd-test: dmd druntime $(BUILD_EXE) $(RUN_EXE)
 	$(RUN_EXE) --environment
 
 druntime: dmd
-ifeq (windows,$(OS))
-	@echo "Building druntime via top-level Makefile on Windows will come soon"
-else
-	$(QUIET)$(MAKE) -C druntime -f posix.mak
-endif
+	$(QUIET)$(MAKE) -C druntime
 
 druntime-test: dmd
-ifeq (windows,$(OS))
-	@echo "Testing druntime via top-level Makefile on Windows will come soon"
-else
-	$(QUIET)$(MAKE) -C druntime -f posix.mak unittest
-endif
+	$(QUIET)$(MAKE) -C druntime unittest
 
 test: dmd-test druntime-test
 
@@ -96,12 +105,13 @@ ifneq (,$(findstring Darwin_64_32, $(PWD)))
 install:
 	echo "Darwin_64_32_disabled"
 else
-install: all $(BUILD_EXE)
+install: $(BUILD_EXE)
 	$(BUILD_EXE) man
-	$(BUILD_EXE) install INSTALL_DIR=$(if $(findstring $(OS),windows),$(shell cygpath -w "$(INSTALL_DIR)"),$(INSTALL_DIR))
-	cp -r compiler/samples $(INSTALL_DIR)
-	mkdir -p $(INSTALL_DIR)/man
-	cp -r generated/docs/man/* $(INSTALL_DIR)/man/
+	$(BUILD_EXE) install INSTALL_DIR='$(if $(findstring $(OS),windows),$(shell cygpath -w '$(INSTALL_DIR)'),$(INSTALL_DIR))'
+	cp -r compiler/samples '$(INSTALL_DIR)'
+	mkdir -p '$(INSTALL_DIR)'/man
+	cp -r $(GENERATED)/docs/man/* '$(INSTALL_DIR)'/man/
+	$(QUIET)$(MAKE) -C druntime install INSTALL_DIR='$(INSTALL_DIR)'
 endif
 
 # Checks that all files have been committed and no temporary, untracked files exist.

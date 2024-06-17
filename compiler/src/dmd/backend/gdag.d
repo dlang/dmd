@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/gdag.d, backend/gdag.d)
@@ -19,7 +19,6 @@ import core.stdc.time;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
-import dmd.backend.code_x86;
 import dmd.backend.oper;
 import dmd.backend.global;
 import dmd.backend.goh;
@@ -39,7 +38,7 @@ enum Aetype { cse, arraybounds }
 private __gshared Aetype aetype;
 
 @trusted
-bool Eunambig(elem* e) { return OTassign(e.Eoper) && e.EV.E1.Eoper == OPvar; }
+bool Eunambig(elem* e) { return OTassign(e.Eoper) && e.E1.Eoper == OPvar; }
 
 /*************************************
  * Determine if floating point should be cse'd.
@@ -215,13 +214,13 @@ private void aewalk(elem **pn,vec_t ae)
                             vec_clearbit(i,ae);
                             if (OTunary(n.Eoper))
                             {
-                                n = n.EV.E1;
+                                n = n.E1;
                                 continue;
                             }
                             else if (OTbinary(n.Eoper))
                             {
-                                aeclear(n.EV.E1);
-                                n = n.EV.E2;
+                                aeclear(n.E1);
+                                n = n.E2;
                                 continue;
                             }
                             break;
@@ -245,8 +244,8 @@ private void aewalk(elem **pn,vec_t ae)
             // ae = ae & ael & aer
             // AEs gened by ael and aer are mutually exclusive
             vec_t aer = vec_clone(ae);
-            aewalk(&(n.EV.E1),ae);
-            aewalk(&(n.EV.E2),aer);
+            aewalk(&(n.E1),ae);
+            aewalk(&(n.E2),aer);
             vec_andass(ae,aer);
             vec_free(aer);
             break;
@@ -255,20 +254,20 @@ private void aewalk(elem **pn,vec_t ae)
         case OPandand:
         case OPoror:
         {
-            aewalk(&(n.EV.E1),ae);
+            aewalk(&(n.E1),ae);
             /* ae &= aer    */
             vec_t aer = vec_clone(ae);
-            aewalk(&(n.EV.E2),aer);
-            if (el_returns(n.EV.E2))
+            aewalk(&(n.E2),aer);
+            if (el_returns(n.E2))
                 vec_andass(ae,aer);
             vec_free(aer);
             break;
         }
 
         case OPnegass:
-            t = n.EV.E1;
+            t = n.E1;
             if (t.Eoper == OPind)
-                aewalk(&(t.EV.E1),ae);
+                aewalk(&(t.E1),ae);
             break;
 
         case OPctor:
@@ -288,30 +287,30 @@ private void aewalk(elem **pn,vec_t ae)
                 {
                     // Don't CSE constants that will turn into
                     // an INC or DEC anyway
-                    if (n.EV.E2.Eoper == OPconst &&
-                        n.EV.E2.EV.Vint == 1 &&
+                    if (n.E2.Eoper == OPconst &&
+                        n.E2.Vint == 1 &&
                         (op == OPaddass || op == OPminass ||
                          op == OPpostinc || op == OPpostdec)
                        )
                     {   }
                     else
-                        aewalk(&(n.EV.E2),ae);
+                        aewalk(&(n.E2),ae);
                 }
                 if (OTassign(op))
                 {
-                    t = n.EV.E1;
+                    t = n.E1;
                     if (t.Eoper == OPind)
-                        aewalk(&(t.EV.E1),ae);
+                        aewalk(&(t.E1),ae);
                 }
                 else
-                    aewalk(&(n.EV.E1),ae);
+                    aewalk(&(n.E1),ae);
                 if (!ERTOL(n))
-                    aewalk(&(n.EV.E2),ae);
+                    aewalk(&(n.E2),ae);
             }
             else if (OTunary(op))
             {
                 assert(op != OPnegass);
-                aewalk(&(n.EV.E1),ae);
+                aewalk(&(n.E1),ae);
             }
     }
 
@@ -322,7 +321,7 @@ private void aewalk(elem **pn,vec_t ae)
         if (Eunambig(n))        // if unambiguous definition
         {
             assert(t.Eoper == OPvar);
-            Symbol* s = t.EV.Vsym;
+            Symbol* s = t.Vsym;
             if (Symbol_isAffected(*s))
                 vec_subass(ae,go.starkill);
             for (uint i = 0; (i = cast(uint) vec_index(i, ae)) < go.exptop; ++i) // for each ae elem
@@ -332,18 +331,18 @@ private void aewalk(elem **pn,vec_t ae)
                 if (!e) continue;
                 if (OTunary(e.Eoper))
                 {
-                    if (vec_testbit(e.EV.E1.Eexp,ae))
+                    if (vec_testbit(e.E1.Eexp,ae))
                         continue;
                 }
                 else if (OTbinary(e.Eoper))
                 {
-                    if (vec_testbit(e.EV.E1.Eexp,ae) &&
-                        vec_testbit(e.EV.E2.Eexp,ae))
+                    if (vec_testbit(e.E1.Eexp,ae) &&
+                        vec_testbit(e.E2.Eexp,ae))
                         continue;
                 }
                 else if (e.Eoper == OPvar)
                 {
-                    if (e.EV.Vsym != s)
+                    if (e.Vsym != s)
                         continue;
                 }
                 else
@@ -402,33 +401,33 @@ private elem * delcse(elem **pe)
     assert(e.Ecount != 0);
     if (!OTleaf(e.Eoper))
     {
-        if (e.EV.E1.Ecount == 0xFF-1)
+        if (e.E1.Ecount == 0xFF-1)
         {
             elem *ereplace;
             ereplace = el_calloc();
-            el_copy(ereplace,e.EV.E1);
-            e.EV.E1 = ereplace;
+            el_copy(ereplace,e.E1);
+            e.E1 = ereplace;
             ereplace.Ecount = 0;
         }
         else
         {
-            e.EV.E1.Ecount++;
-            debug assert(e.EV.E1.Ecount != 0);
+            e.E1.Ecount++;
+            debug assert(e.E1.Ecount != 0);
         }
         if (OTbinary(e.Eoper))
         {
-            if (e.EV.E2.Ecount == 0xFF-1)
+            if (e.E2.Ecount == 0xFF-1)
             {
                 elem *ereplace;
                 ereplace = el_calloc();
-                el_copy(ereplace,e.EV.E2);
-                e.EV.E2 = ereplace;
+                el_copy(ereplace,e.E2);
+                e.E2 = ereplace;
                 ereplace.Ecount = 0;
             }
             else
             {
-                e.EV.E2.Ecount++;
-                debug assert(e.EV.E2.Ecount != 0);
+                e.E2.Ecount++;
+                debug assert(e.E2.Ecount != 0);
             }
         }
     }
@@ -465,67 +464,67 @@ L1:
         if (op == OPind)
         {
             bool scaledIndex = I32 || I64;      // if scaled index addressing mode support
-            elem *e1 = e.EV.E1;
+            elem *e1 = e.E1;
             if (e1.Eoper == OPadd &&
                 e1.Ecount
                )
             {
                 if (scaledIndex)
                 {
-                    e1 = delcse(&e.EV.E1);
-                    if (e1.EV.E1.Ecount) // == 1)
-                        delcse(&e1.EV.E1);
-                    if (e1.EV.E2.Ecount && e1.EV.E2.Eoper != OPind)
-                        delcse(&e1.EV.E2);
+                    e1 = delcse(&e.E1);
+                    if (e1.E1.Ecount) // == 1)
+                        delcse(&e1.E1);
+                    if (e1.E2.Ecount && e1.E2.Eoper != OPind)
+                        delcse(&e1.E2);
                 }
                 /* *(v +. c)
                  * *(*pc +. c)
                  * The + and the const shouldn't be CSEs.
                  */
-                else if (e1.EV.E2.Eoper == OPconst &&
-                    (e1.EV.E1.Eoper == OPvar || (e1.EV.E1.Eoper == OPind && e1.EV.E1.Ety & (mTYconst | mTYimmutable)))
+                else if (e1.E2.Eoper == OPconst &&
+                    (e1.E1.Eoper == OPvar || (e1.E1.Eoper == OPind && e1.E1.Ety & (mTYconst | mTYimmutable)))
                    )
                 {
-                    e1 = delcse(&e.EV.E1);
+                    e1 = delcse(&e.E1);
                 }
             }
 
             /* *(((e <<. 3) + e) + e)
              */
             if (scaledIndex && e1.Eoper == OPadd &&
-                e1.EV.E1.Eoper == OPadd &&
-                e1.EV.E1.EV.E1.Ecount &&
-                e1.EV.E1.EV.E1.Eoper == OPshl &&
-                e1.EV.E1.EV.E1.EV.E2.Eoper == OPconst &&
-                e1.EV.E1.EV.E1.EV.E2.EV.Vuns <= 3
+                e1.E1.Eoper == OPadd &&
+                e1.E1.E1.Ecount &&
+                e1.E1.E1.Eoper == OPshl &&
+                e1.E1.E1.E2.Eoper == OPconst &&
+                e1.E1.E1.E2.Vuns <= 3
                )
             {
-                delcse(&e1.EV.E1.EV.E1);        // the <<. operator
+                delcse(&e1.E1.E1);        // the <<. operator
             }
 
             /* *(((e << 3) +. e) + e)
             */
             if (scaledIndex && e1.Eoper == OPadd &&
-                e1.EV.E1.Eoper == OPadd &&
-                e1.EV.E1.Ecount &&
-                e1.EV.E1.EV.E1.Eoper == OPshl &&
-                e1.EV.E1.EV.E1.EV.E2.Eoper == OPconst &&
-                e1.EV.E1.EV.E1.EV.E2.EV.Vuns <= 3
+                e1.E1.Eoper == OPadd &&
+                e1.E1.Ecount &&
+                e1.E1.E1.Eoper == OPshl &&
+                e1.E1.E1.E2.Eoper == OPconst &&
+                e1.E1.E1.E2.Vuns <= 3
                )
             {
-                delcse(&e1.EV.E1);              // the +. operator
+                delcse(&e1.E1);              // the +. operator
             }
 
             /* *((e <<. 3) + e)
              */
             else if (scaledIndex && e1.Eoper == OPadd &&
-                e1.EV.E1.Ecount &&
-                e1.EV.E1.Eoper == OPshl &&
-                e1.EV.E1.EV.E2.Eoper == OPconst &&
-                e1.EV.E1.EV.E2.EV.Vuns <= 3
+                e1.E1.Ecount &&
+                e1.E1.Eoper == OPshl &&
+                e1.E1.E2.Eoper == OPconst &&
+                e1.E1.E2.Vuns <= 3
                )
             {
-                delcse(&e1.EV.E1);              // the <<. operator
+                delcse(&e1.E1);              // the <<. operator
             }
 
             // Remove *e1 where it's a double
@@ -536,24 +535,24 @@ L1:
         else if (op == OPu16_32 && I16 && e.Ecount)
             e = delcse(pe);
 
-        else if (op == OPd_ld && e.EV.E1.Ecount > 0)
-            delcse(&e.EV.E1);
+        else if (op == OPd_ld && e.E1.Ecount > 0)
+            delcse(&e.E1);
 
         // OPremquo is only worthwhile if its result is used more than once
-        else if (e.EV.E1.Eoper == OPremquo &&
+        else if (e.E1.Eoper == OPremquo &&
                  (op == OP64_32 || op == OP128_64 || op == OPmsw) &&
-                 e.EV.E1.Ecount == 0)
+                 e.E1.Ecount == 0)
         {   // Convert back to OPdiv or OPmod
-            elem *e1 = e.EV.E1;
+            elem *e1 = e.E1;
             e.Eoper = (op == OPmsw) ? OPmod : OPdiv;
-            e.EV.E1 = e1.EV.E1;
-            e.EV.E2 = e1.EV.E2;
-            e1.EV.E1 = null;
-            e1.EV.E2 = null;
+            e.E1 = e1.E1;
+            e.E2 = e1.E2;
+            e1.E1 = null;
+            e1.E2 = null;
             el_free(e1);
 
-            removecses(&(e.EV.E1));
-            pe = &(e.EV.E2);
+            removecses(&(e.E1));
+            pe = &(e.E2);
             goto L1;
         }
     }
@@ -563,18 +562,18 @@ L1:
             /* Don't CSE floating stuff if generating   */
             /* inline 8087 code, the code generator     */
             /* can't handle it yet                      */
-            && !(tyfloating(e.EV.E1.Ety) && config.inline8087)
+            && !(tyfloating(e.E1.Ety) && config.inline8087)
            )
                 e = delcse(pe);
         if (ERTOL(e))
         {
-            removecses(&(e.EV.E2));
-            pe = &(e.EV.E1);
+            removecses(&(e.E2));
+            pe = &(e.E1);
         }
         else
         {
-            removecses(&(e.EV.E1));
-            pe = &(e.EV.E2);
+            removecses(&(e.E1));
+            pe = &(e.E2);
         }
         goto L1;
     }
@@ -582,7 +581,7 @@ L1:
     {
         return;
     }
-    pe = &(e.EV.E1);
+    pe = &(e.E1);
     goto L1;
 }
 
@@ -605,8 +604,8 @@ void boolopt()
         return;
     static if (0)
     {
-        for (uint i = 0; i < go.exptop; i++)
-                printf("go.expnod[%d] = 0x%x\n",i,go.expnod[i]);
+        foreach (i; 0 .. go.exptop)
+                printf("go.expnod[%d] = 0x%x\n",cast(int)i,go.expnod[i]);
         printf("defkill  "); vec_println(go.defkill,go.exptop);
         printf("starkill "); vec_println(go.starkill,go.exptop);
         printf("vptrkill "); vec_println(go.vptrkill,go.exptop);
@@ -619,13 +618,13 @@ void boolopt()
     aevecval = vec_calloc(go.exptop);
 
     // Mark each expression that we know starts off with a non-zero value
-    for (uint i = 0; i < go.exptop; i++)
+    foreach (const i; 0 .. go.exptop)
     {
         elem *e = go.expnod[i];
         if (e)
         {
             elem_debug(e);
-            if (e.Eoper == OPvar && e.EV.Vsym.Sflags & SFLtrue)
+            if (e.Eoper == OPvar && e.Vsym.Sflags & SFLtrue)
             {
                 vec_setbit(i,aevec);
                 vec_setbit(i,aevecval);
@@ -678,34 +677,34 @@ private void abewalk(elem *n,vec_t ae,vec_t aeval)
     {
         case OPcond:
         {
-            assert(n.EV.E2.Eoper == OPcolon || n.EV.E2.Eoper == OPcolon2);
-            abewalk(n.EV.E1,ae,aeval);
-            abeboolres(n.EV.E1,ae,aeval);
+            assert(n.E2.Eoper == OPcolon || n.E2.Eoper == OPcolon2);
+            abewalk(n.E1,ae,aeval);
+            abeboolres(n.E1,ae,aeval);
             vec_t aer = vec_clone(ae);
             vec_t aerval = vec_clone(aeval);
-            if (!el_returns(n.EV.E2.EV.E1))
+            if (!el_returns(n.E2.E1))
             {
-                abeset(n.EV.E1,aer,aerval,true);
-                abewalk(n.EV.E2.EV.E1,aer,aerval);
-                abeset(n.EV.E1,ae,aeval,false);
-                abewalk(n.EV.E2.EV.E2,ae,aeval);
+                abeset(n.E1,aer,aerval,true);
+                abewalk(n.E2.E1,aer,aerval);
+                abeset(n.E1,ae,aeval,false);
+                abewalk(n.E2.E2,ae,aeval);
             }
-            else if (!el_returns(n.EV.E2.EV.E2))
+            else if (!el_returns(n.E2.E2))
             {
-                abeset(n.EV.E1,ae,aeval,true);
-                abewalk(n.EV.E2.EV.E1,ae,aeval);
-                abeset(n.EV.E1,aer,aerval,false);
-                abewalk(n.EV.E2.EV.E2,aer,aerval);
+                abeset(n.E1,ae,aeval,true);
+                abewalk(n.E2.E1,ae,aeval);
+                abeset(n.E1,aer,aerval,false);
+                abewalk(n.E2.E2,aer,aerval);
             }
             else
             {
                 /* ae = ae & ael & aer
                  * AEs gened by ael and aer are mutually exclusive
                  */
-                abeset(n.EV.E1,aer,aerval,true);
-                abewalk(n.EV.E2.EV.E1,aer,aerval);
-                abeset(n.EV.E1,ae,aeval,false);
-                abewalk(n.EV.E2.EV.E2,ae,aeval);
+                abeset(n.E1,aer,aerval,true);
+                abewalk(n.E2.E1,aer,aerval);
+                abeset(n.E1,ae,aeval,false);
+                abewalk(n.E2.E2,ae,aeval);
 
                 vec_xorass(aerval,aeval);
                 vec_subass(aer,aerval);
@@ -724,22 +723,22 @@ private void abewalk(elem *n,vec_t ae,vec_t aeval)
         case OPoror:
         {
             //printf("test1 %p: ", n); WReqn(n); printf("\n");
-            abewalk(n.EV.E1,ae,aeval);
-            abeboolres(n.EV.E1,ae,aeval);
+            abewalk(n.E1,ae,aeval);
+            abeboolres(n.E1,ae,aeval);
             vec_t aer = vec_clone(ae);
             vec_t aerval = vec_clone(aeval);
-            if (!el_returns(n.EV.E2))
+            if (!el_returns(n.E2))
             {
-                abeset(n.EV.E1,aer,aerval,(op == OPandand));
-                abewalk(n.EV.E2,aer,aerval);
-                abeset(n.EV.E1,ae,aeval,(op != OPandand));
+                abeset(n.E1,aer,aerval,(op == OPandand));
+                abewalk(n.E2,aer,aerval);
+                abeset(n.E1,ae,aeval,(op != OPandand));
             }
             else
             {
                 /* ae &= aer
                  */
-                abeset(n.EV.E1,aer,aerval,(op == OPandand));
-                abewalk(n.EV.E2,aer,aerval);
+                abeset(n.E1,aer,aerval,(op == OPandand));
+                abewalk(n.E2,aer,aerval);
 
                 vec_xorass(aerval,aeval);
                 vec_subass(aer,aerval);
@@ -753,8 +752,8 @@ private void abewalk(elem *n,vec_t ae,vec_t aeval)
 
         case OPbool:
         case OPnot:
-            abewalk(n.EV.E1,ae,aeval);
-            abeboolres(n.EV.E1,ae,aeval);
+            abewalk(n.E1,ae,aeval);
+            abeboolres(n.E1,ae,aeval);
             break;
 
         case OPeqeq:
@@ -768,15 +767,15 @@ private void abewalk(elem *n,vec_t ae,vec_t aeval)
         case OPngt:     case OPnge:     case OPnlt:     case OPnle:
         case OPord:     case OPnlg:     case OPnleg:    case OPnule:
         case OPnul:     case OPnuge:    case OPnug:     case OPnue:
-            abewalk(n.EV.E1,ae,aeval);
-            abewalk(n.EV.E2,ae,aeval);
+            abewalk(n.E1,ae,aeval);
+            abewalk(n.E2,ae,aeval);
             abeboolres(n,ae,aeval);
             break;
 
         case OPnegass:
-            t = n.EV.E1;
+            t = n.E1;
             if (t.Eoper == OPind)
-                abewalk(t.EV.E1,ae,aeval);
+                abewalk(t.E1,ae,aeval);
             break;
 
         case OPasm:
@@ -786,19 +785,19 @@ private void abewalk(elem *n,vec_t ae,vec_t aeval)
         default:
             if (OTbinary(op))
             {   if (ERTOL(n))
-                    abewalk(n.EV.E2,ae,aeval);
+                    abewalk(n.E2,ae,aeval);
                 if (OTassign(op))
-                {   t = n.EV.E1;
+                {   t = n.E1;
                     if (t.Eoper == OPind)
-                        abewalk(t.EV.E1,ae,aeval);
+                        abewalk(t.E1,ae,aeval);
                 }
                 else
-                        abewalk(n.EV.E1,ae,aeval);
+                        abewalk(n.E1,ae,aeval);
                 if (!ERTOL(n))
-                    abewalk(n.EV.E2,ae,aeval);
+                    abewalk(n.E2,ae,aeval);
             }
             else if (OTunary(op))
-                abewalk(n.EV.E1,ae,aeval);
+                abewalk(n.E1,ae,aeval);
             break;
     }
 
@@ -811,7 +810,7 @@ private void abewalk(elem *n,vec_t ae,vec_t aeval)
             Symbol *s;
 
             assert(t.Eoper == OPvar);
-            s = t.EV.Vsym;
+            s = t.Vsym;
             if (Symbol_isAffected(*s))
                 vec_subass(ae,go.starkill);
             for (uint i = 0; (i = cast(uint) vec_index(i, ae)) < go.exptop; ++i) // for each ae elem
@@ -831,7 +830,7 @@ private void abewalk(elem *n,vec_t ae,vec_t aeval)
         }
         /* GEN the lvalue of an assignment operator     */
         uint i1, i2;
-        if (op == OPeq && (i1 = t.Eexp) != 0 && (i2 = n.EV.E2.Eexp) != 0)
+        if (op == OPeq && (i1 = t.Eexp) != 0 && (i2 = n.E2.Eexp) != 0)
         {
             if (vec_testbit(i2,ae))
             {
@@ -885,7 +884,7 @@ private void abeboolres(elem *n,vec_t ae,vec_t aeval)
                 }
 
                 abefree(n,ae);
-                n.EV.Vlong = vec_testbit(i,aeval) != 0;
+                n.Vlong = vec_testbit(i,aeval) != 0;
                 n.Eoper = OPconst;
                 n.Ety = TYint;
                 go.changes++;
@@ -910,13 +909,13 @@ private void abefree(elem *e,vec_t ae)
     {
         if (OTbinary(e.Eoper))
         {
-            abefree(e.EV.E2,ae);
-            el_free(e.EV.E2);
-            e.EV.E2 = null;
+            abefree(e.E2,ae);
+            el_free(e.E2);
+            e.E2 = null;
         }
-        abefree(e.EV.E1,ae);
-        el_free(e.EV.E1);
-        e.EV.E1 = null;
+        abefree(e.E1,ae);
+        el_free(e.E1);
+        e.E1 = null;
     }
 }
 
@@ -943,12 +942,12 @@ private void abeset(elem *e,vec_t ae,vec_t aeval,int flag)
         switch (e.Eoper)
         {   case OPnot:
                 flag ^= 1;
-                e = e.EV.E1;
+                e = e.E1;
                 continue;
 
             case OPbool:
             case OPeq:
-                e = e.EV.E1;
+                e = e.E1;
                 continue;
 
             default:

@@ -2,7 +2,7 @@
 
 CURL_USER_AGENT="DMD-CI $(curl --version | head -n 1)"
 DMD_DIR="$PWD"
-N=$(($(nproc)+1))
+N=$(nproc)
 
 clone() {
     local url="$1"
@@ -42,20 +42,6 @@ install_host_dmd() {
     export PATH="$PWD/dmd2/windows/bin/:$PATH"
     export HOST_DC="$PWD/dmd2/windows/bin/dmd.exe"
     dmd --version
-}
-
-################################################################################
-# Download dmc
-################################################################################
-
-install_host_dmc() {
-    if [ ! -f dm/README.TXT ]; then
-        download "https://downloads.dlang.org/other/dm857c.zip" dmc.zip
-        7z x dmc.zip > /dev/null
-        download "http://ftp.digitalmars.com/sppn.zip" sppn.zip
-        7z x -odm/bin sppn.zip > /dev/null
-    fi
-    dm/bin/dmc | head -n 1 || true
 }
 
 ################################################################################

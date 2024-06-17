@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1986-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     Distributed under the Boost Software License, Version 1.0.
  *              https://www.boost.org/LICENSE_1_0.txt
@@ -271,7 +271,7 @@ void optfunc()
                     //el_check(b.Belem);
                 }
 
-                b.Belem = doptelem(b.Belem,bc_goal[b.BC] | GOALagain);
+                b.Belem = doptelem(b.Belem,bc_goal[b.BC] | Goal.again);
 
                 debug if (0 && debugf)
                 {
@@ -322,7 +322,7 @@ void optfunc()
         {
             if (b.Belem)
             {
-                b.Belem = doptelem(b.Belem,bc_goal[b.BC] | GOALstruct);
+                b.Belem = doptelem(b.Belem,bc_goal[b.BC] | Goal.struct_);
                 if (b.Belem)
                     b.Belem = el_convert(b.Belem);
             }

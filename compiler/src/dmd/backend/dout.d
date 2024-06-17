@@ -5,10 +5,12 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1984-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/out.d, backend/out.d)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dout.d, backend/dout.d)
+ * Documentation:  https://dlang.org/phobos/dmd_backend_dout.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/dout.d
  */
 
 module dmd.backend.dout;
@@ -16,37 +18,23 @@ module dmd.backend.dout;
 import core.stdc.stdio;
 import core.stdc.string;
 
+import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
 import dmd.backend.code;
-import dmd.backend.code_x86;
-import dmd.backend.cv4;
+import dmd.backend.x86.code_x86;
 import dmd.backend.dt;
 import dmd.backend.dlist;
-import dmd.backend.mem;
 import dmd.backend.el;
 import dmd.backend.global;
 import dmd.backend.goh;
 import dmd.backend.inliner;
 import dmd.backend.obj;
 import dmd.backend.oper;
-import dmd.backend.rtlsym;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
-
-import dmd.backend.barray;
-
-version (Windows)
-{
-    extern (C)
-    {
-        int stricmp(const(char)*, const(char)*) pure nothrow @nogc;
-        int memicmp(const(void)*, const(void)*, size_t) pure nothrow @nogc;
-    }
-}
-
 
 nothrow:
 @safe:
@@ -126,7 +114,7 @@ void outdata(Symbol *s)
                 }
                 else
                 {
-                    alignOffset(CDATA, 2 << dt.DTalign);
+                    alignOffset(CDATA, 1 << dt.DTalign);
                     dt.DTabytes += objmod.data_readonly(cast(char*)dt.DTpbytes,dt.DTnbytes,&dt.DTseg);
                 }
                 break;
@@ -499,6 +487,8 @@ void outcommon(Symbol *s,targ_size_t n)
 @trusted
 void out_readonly(Symbol *s)
 {
+    if (config.flags2 & CFG2noreadonly)
+        return;
     if (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH)
     {
         /* Cannot have pointers in CDATA when compiling PIC code, because
@@ -534,6 +524,9 @@ Symbol *out_string_literal(const(char)* str, uint len, uint sz)
         ty = TYchar16;
     else if (sz == 4)
         ty = TYdchar;
+    else if (sz == 8)
+        ty = TYulong;
+
     Symbol *s = symbol_generate(SC.static_,type_static_array(len, tstypes[ty]));
     switch (config.objfmt)
     {
@@ -582,6 +575,18 @@ Symbol *out_string_literal(const(char)* str, uint len, uint sz)
             }
             break;
 
+        case 8:
+            foreach (i; 0.. len)
+            {
+                auto p = cast(const(ulong)*)str;
+                if (p[i] == 0)
+                {
+                    s.Sseg = CDATA;
+                    break;
+                }
+            }
+            break;
+
         default:
             assert(0);
     }
@@ -616,9 +621,9 @@ again:
 debug
 {
     if (OTbinary(e.Eoper))
-        assert(e.EV.E1 && e.EV.E2);
+        assert(e.E1 && e.E2);
 //    else if (OTunary(e.Eoper))
-//      assert(e.EV.E1 && !e.EV.E2);
+//      assert(e.E1 && !e.E2);
 }
 
     switch (e.Eoper)
@@ -630,18 +635,18 @@ debug
         //if (!EOP(e)) printf("e.Eoper = x%x\n",e.Eoper);
 }
         if (OTbinary(e.Eoper))
-        {   outelem(e.EV.E1, addressOfParam);
-            e = e.EV.E2;
+        {   outelem(e.E1, addressOfParam);
+            e = e.E2;
         }
         else if (OTunary(e.Eoper))
         {
-            e = e.EV.E1;
+            e = e.E1;
         }
         else
             break;
         goto again;                     /* iterate instead of recurse   */
     case OPaddr:
-        e1 = e.EV.E1;
+        e1 = e.E1;
         if (e1.Eoper == OPvar)
         {   // Fold into an OPrelconst
             tym = e.Ety;
@@ -655,7 +660,7 @@ debug
 
     case OPrelconst:
     case OPvar:
-        s = e.EV.Vsym;
+        s = e.Vsym;
         assert(s);
         symbol_debug(s);
         switch (s.Sclass)
@@ -765,38 +770,38 @@ private void out_regcand_walk(elem *e, ref bool addressOfParam)
 
         if (OTbinary(e.Eoper))
         {   if (e.Eoper == OPstreq)
-            {   if (e.EV.E1.Eoper == OPvar)
+            {   if (e.E1.Eoper == OPvar)
                 {
-                    Symbol *s = e.EV.E1.EV.Vsym;
+                    Symbol *s = e.E1.Vsym;
                     s.Sflags &= ~(SFLunambig | GTregcand);
                 }
-                if (e.EV.E2.Eoper == OPvar)
+                if (e.E2.Eoper == OPvar)
                 {
-                    Symbol *s = e.EV.E2.EV.Vsym;
+                    Symbol *s = e.E2.Vsym;
                     s.Sflags &= ~(SFLunambig | GTregcand);
                 }
             }
-            out_regcand_walk(e.EV.E1, addressOfParam);
-            e = e.EV.E2;
+            out_regcand_walk(e.E1, addressOfParam);
+            e = e.E2;
         }
         else if (OTunary(e.Eoper))
         {
             // Don't put 'this' pointers in registers if we need
             // them for EH stack cleanup.
             if (e.Eoper == OPctor)
-            {   elem *e1 = e.EV.E1;
+            {   elem *e1 = e.E1;
 
                 if (e1.Eoper == OPadd)
-                    e1 = e1.EV.E1;
+                    e1 = e1.E1;
                 if (e1.Eoper == OPvar)
-                    e1.EV.Vsym.Sflags &= ~GTregcand;
+                    e1.Vsym.Sflags &= ~GTregcand;
             }
-            e = e.EV.E1;
+            e = e.E1;
         }
         else
         {   if (e.Eoper == OPrelconst)
             {
-                Symbol *s = e.EV.Vsym;
+                Symbol *s = e.Vsym;
                 assert(s);
                 symbol_debug(s);
                 switch (s.Sclass)
@@ -823,11 +828,11 @@ private void out_regcand_walk(elem *e, ref bool addressOfParam)
             }
             else if (e.Eoper == OPvar)
             {
-                if (e.EV.Voffset)
-                {   if (!(e.EV.Voffset == 1 && tybyte(e.Ety)) &&
-                        !(e.EV.Voffset == REGSIZE && tysize(e.Ety) == REGSIZE))
+                if (e.Voffset)
+                {   if (!(e.Voffset == 1 && tybyte(e.Ety)) &&
+                        !(e.Voffset == REGSIZE && tysize(e.Ety) == REGSIZE))
                     {
-                        e.EV.Vsym.Sflags &= ~GTregcand;
+                        e.Vsym.Sflags &= ~GTregcand;
                     }
                 }
             }
@@ -889,9 +894,8 @@ private void writefunc2(Symbol *sfunc)
     // TX86 computes parameter offsets in stackoffsets()
     //printf("globsym.length = %d\n", globsym.length);
 
-    for (SYMIDX si = 0; si < globsym.length; si++)
-    {   Symbol *s = globsym[si];
-
+    foreach (si, s; globsym[])
+    {
         symbol_debug(s);
         //printf("symbol %d '%s'\n",si,s.Sident.ptr);
 
@@ -939,7 +943,7 @@ private void writefunc2(Symbol *sfunc)
                 break;
 
             default:
-                symbol_print(s);
+                symbol_print(*s);
                 assert(0);
         }
     }
@@ -970,7 +974,7 @@ private void writefunc2(Symbol *sfunc)
         const marksi = globsym.length;
         eecontext.EEin++;
         outelem(eecontext.EEelem, addressOfParam);
-        eecontext.EEelem = doptelem(eecontext.EEelem,true);
+        eecontext.EEelem = doptelem(eecontext.EEelem, Goal.value);
         eecontext.EEin--;
         eecontext_convs(marksi);
     }
@@ -979,9 +983,9 @@ private void writefunc2(Symbol *sfunc)
     // address of all non-register parameters.
     if (addressOfParam | anyasm)        // if took address of a parameter
     {
-        for (SYMIDX si = 0; si < globsym.length; si++)
-            if (anyasm || globsym[si].Sclass == SC.parameter)
-                globsym[si].Sflags &= ~(SFLunambig | GTregcand);
+        foreach (s; globsym[])
+            if (anyasm || s.Sclass == SC.parameter)
+                s.Sflags &= ~(SFLunambig | GTregcand);
     }
 
     block_pred();                       // compute predecessors to blocks
@@ -1060,7 +1064,7 @@ private void writefunc2(Symbol *sfunc)
         sfunc.Sclass != SC.sinline &&
         !(sfunc.Sclass == SC.inline && !(config.flags2 & CFG2comdat)) &&
         sfunc.ty() & mTYexport)
-        objmod.export_symbol(sfunc,cast(uint)Para.offset);      // export function definition
+        objmod.export_symbol(sfunc,cast(uint)cgstate.Para.offset);      // export function definition
 
     if (config.fulltypes && config.fulltypes != CV8)
     {
@@ -1071,10 +1075,8 @@ private void writefunc2(Symbol *sfunc)
     /* This is to make uplevel references to SCfastpar variables
      * from nested functions work.
      */
-    for (SYMIDX si = 0; si < globsym.length; si++)
+    foreach (s; globsym[])
     {
-        Symbol *s = globsym[si];
-
         switch (s.Sclass)
         {   case SC.fastpar:
                 s.Sclass = SC.auto_;
@@ -1123,8 +1125,8 @@ Ldone:
     if (saveForInlining)
     {
         f.Flocsym.setLength(globsym.length);
-        foreach (si; 0 .. globsym.length)
-            f.Flocsym[si] = globsym[si];
+        foreach (si, s; globsym[])
+            f.Flocsym[si] = s;
     }
     else
     {

@@ -2,7 +2,7 @@
  * Control the various text mode attributes, such as color, when writing text
  * to the console.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/console.d, _console.d)
@@ -13,6 +13,8 @@
 module dmd.console;
 
 import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
 
 version (Windows)
 {
@@ -211,9 +213,7 @@ bool detectTerminal() nothrow
 {
     version (Posix)
     {
-        import core.stdc.stdlib : getenv;
         const(char)* term = getenv("TERM");
-        import core.stdc.string : strcmp;
         return isatty(STDERR_FILENO) && term && term[0] && strcmp(term, "dumb") != 0;
     }
     else version (Windows)
@@ -225,6 +225,8 @@ bool detectTerminal() nothrow
         CONSOLE_SCREEN_BUFFER_INFO sbi;
         return GetConsoleScreenBufferInfo(h, &sbi) != 0;
     }
+    else
+        static assert(0);
 }
 
 /**
@@ -235,7 +237,6 @@ bool detectTerminal() nothrow
 */
 bool detectColorPreference() nothrow @trusted
 {
-    import core.stdc.stdlib : getenv;
     const noColor = getenv("NO_COLOR");
         return noColor == null || noColor[0] == '\0';
 }

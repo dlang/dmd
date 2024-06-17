@@ -5,7 +5,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) 1985-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cdef.d, backend/_cdef.d)
@@ -71,10 +71,6 @@ enum
     ALOC_FUNC       = 8,   // follows function declaration
 }
 
-//#define ATTR_LINK_MODIFIERS (mTYconst|mTYvolatile|mTYcdecl|mTYstdcall)
-//#define ATTR_CAN_IGNORE(a) (((a) & (ATTR_LINKMOD|ATTR_TYPEMOD|ATTR_FUNCINFO|ATTR_DATAINFO|ATTR_TRANSU)) == 0)
-//#define LNX_CHECK_ATTRIBUTES(a,x) assert(((a) & ~(x|ATTR_IGNORED|ATTR_WARNING)) == 0)
-
 version (_WINDLL)
     enum SUFFIX = "nd";
 else version (_WIN64)
@@ -109,77 +105,11 @@ enum TARGET_SEGMENTED = false;
 //      2: new style
 enum NTEXCEPTIONS = 2;
 
-// For Shared Code Base
-//#if _WINDLL
-//#define dbg_printf dll_printf
-//#else
-//#define dbg_printf printf
-//#endif
-
-//#ifndef ERRSTREAM
-//#define ERRSTREAM stdout
-//#endif
-//#define err_printf printf
-//#define err_vprintf vfprintf
-//#define err_fputc fputc
-//#define dbg_fputc fputc
-//#define LF '\n'
-//#define LF_STR "\n"
-//#define CR '\r'
-//#define ANSI        config.ansi_c
-//#define ANSI_STRICT config.ansi_c
-//#define ANSI_RELAX  config.ansi_c
-//#define TRIGRAPHS   ANSI
-//#define T80x86(x)       x
-
-// For Share MEM_ macros - default to mem_xxx package
-// PH           precompiled header
-// PARF         parser, life of function
-// PARC         parser, life of compilation
-// BEF          back end, function
-// BEC          back end, compilation
-
-// If we can use 386 instruction set (possible in 16 bit code)
-//#define I386 (config.target_cpu >= TARGET_80386)
-
-// If we are generating 32 bit code
-//#if MARS
-//#define I16     0               // no 16 bit code for D
-//#define I32     (NPTRSIZE == 4)
-//#define I64     (NPTRSIZE == 8) // 1 if generating 64 bit code
-//#else
-//#define I16     (NPTRSIZE == 2)
-//#define I32     (NPTRSIZE == 4)
-//#define I64     (NPTRSIZE == 8) // 1 if generating 64 bit code
-//#endif
-
 /**********************************
  * Limits & machine dependent stuff.
  */
 
-/* Define stuff that's different between VAX and IBMPC.
- * HOSTBYTESWAPPED      TRUE if on the host machine the bytes are
- *                      swapped (TRUE for 6809, 68000, FALSE for 8088
- *                      and VAX).
- */
-
-
 enum EXIT_BREAK = 255;     // aborted compile with ^C
-
-/* Take advantage of machines that can store a word, lsb first  */
-//#if _M_I86              // if Intel processor
-//#define TOWORD(ptr,val) (*(unsigned short *)(ptr) = (unsigned short)(val))
-//#define TOLONG(ptr,val) (*(unsigned *)(ptr) = (unsigned)(val))
-//#else
-//#define TOWORD(ptr,val) (((ptr)[0] = (unsigned char)(val)),\
-//                         ((ptr)[1] = (unsigned char)((val) >> 8)))
-//#define TOLONG(ptr,val) (((ptr)[0] = (unsigned char)(val)),\
-//                         ((ptr)[1] = (unsigned char)((val) >> 8)),\
-//                         ((ptr)[2] = (unsigned char)((val) >> 16)),\
-//                         ((ptr)[3] = (unsigned char)((val) >> 24)))
-//#endif
-//
-//#define TOOFFSET(a,b)   (I32 ? TOLONG(a,b) : TOWORD(a,b))
 
 /***************************
  * Target machine data types as they appear on the host.
@@ -250,7 +180,8 @@ enum
     DGROUPIDX = 1,     // group index of DGROUP
 }
 
-enum REGMAX = 29;      // registers are numbered 0..10
+enum REGMAX = 29;      // registers are numbered 0...28
+enum reg_t NOREG = REGMAX;  // no register
 
 alias tym_t = uint;    // data type big enough for type masks
 
@@ -485,6 +416,7 @@ enum
     CFG2stomp       = 0x8000,  // enable stack stomping code
     CFG2gms         = 0x10000, // optimize debug symbols for microsoft debuggers
     CFG2genmain     = 0x20000, // main entrypoint is generated
+    CFG2noreadonly  = 0x40000, // do not generate read-only symbols, dllimport might have to patch them
 }
 
 alias config_flags3_t = uint;
@@ -699,11 +631,11 @@ struct con_t
 import dmd.backend.bcomplex;
 
 /*********************************
- * Union of all data types. Storage allocated must be the right
+ * Union of all arithmetic data types. Storage allocated must be the right
  * size of the data on the TARGET, not the host.
  */
 
-union eve
+union Vconst
 {
         targ_char       Vchar;
         targ_schar      Vschar;
@@ -750,45 +682,6 @@ union eve
         targ_ulong[8]   Vulong8;   // uint[8]
         targ_llong[4]   Vllong4;   // long[4]
         targ_ullong[4]  Vullong4;  // ulong[4]
-
-        struct                  // 48 bit 386 far pointer
-        {   targ_long   Voff;
-            targ_ushort Vseg;
-        }
-        struct
-        {
-            targ_size_t Voffset;// offset from symbol
-            Symbol *Vsym;       // pointer to symbol table
-            union
-            {
-                param_t* Vtal;  // template-argument-list for SCfunctempl,
-                                // used only to transmit it to cpp_overload()
-                LIST* Erd;      // OPvar: reaching definitions
-            }
-        }
-        struct
-        {
-            targ_size_t Voffset2;// member pointer offset
-            Classsym* Vsym2;    // struct tag
-            elem* ethis;        // OPrelconst: 'this' for member pointer
-        }
-        struct
-        {
-            targ_size_t Voffset3;// offset from string
-            char* Vstring;      // pointer to string (OPstring or OPasm)
-            size_t Vstrlen;     // length of string
-        }
-        struct
-        {
-            elem* E1;           // left child for unary & binary nodes
-            elem* E2;           // right child for binary nodes
-            Symbol* Edtor;      // OPctor: destructor
-        }
-        struct
-        {
-            elem* Eleft2;       // left child for OPddtor
-            void* Edecl;        // VarDeclaration being constructed
-        }                       // OPdctor,OPddtor
 }                               // variants for each type of elem
 
 // Symbols

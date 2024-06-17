@@ -5,6 +5,7 @@ DOCS=\
 	$(DOCDIR)\core_checkedint.html \
 	$(DOCDIR)\core_exception.html \
 	$(DOCDIR)\core_int128.html \
+	$(DOCDIR)\core_interpolation.html \
 	$(DOCDIR)\core_math.html \
 	$(DOCDIR)\core_vararg.html \
 	$(DOCDIR)\core_volatile.html \
@@ -552,7 +553,6 @@ DOCS=\
 	$(DOCDIR)\rt_sections.html \
 	$(DOCDIR)\rt_sections_darwin_64.html \
 	$(DOCDIR)\rt_sections_solaris.html \
-	$(DOCDIR)\rt_sections_win32.html \
 	$(DOCDIR)\rt_sections_win64.html \
 	$(DOCDIR)\rt_tlsgc.html \
 	$(DOCDIR)\rt_trace.html \
@@ -565,7 +565,6 @@ DOCS=\
 	$(DOCDIR)\rt_lifetime.html \
 	$(DOCDIR)\rt_minfo.html \
 	$(DOCDIR)\rt_profilegc.html \
-	$(DOCDIR)\rt_sections_android.html \
 	$(DOCDIR)\rt_sections_elf_shared.html \
 	$(DOCDIR)\rt_sections_osx_x86.html \
 	$(DOCDIR)\rt_sections_osx_x86_64.html \

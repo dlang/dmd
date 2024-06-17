@@ -180,17 +180,6 @@ version (GNUFP)
         static assert(0, "Unimplemented architecture");
     }
 }
-else version (CRuntime_DigitalMars)
-{
-    struct fenv_t
-    {
-        ushort    status;
-        ushort    control;
-        ushort    round;
-        ushort[2] reserved;
-    }
-    alias fexcept_t = int;
-}
 else version (CRuntime_Microsoft)
 {
     struct fenv_t
@@ -446,6 +435,49 @@ else version (CRuntime_Musl)
     else
     {
         static assert(false, "Architecture not supported.");
+    }
+}
+else version (CRuntime_Newlib)
+{
+    version (AArch64)
+    {
+        alias fenv_t = ulong;
+        alias fexcept_t = ulong;
+    }
+    else version (RISCV_Any)
+    {
+        alias fenv_t = size_t;
+        alias fexcept_t = size_t;
+    }
+    else version (X86_Any)
+    {
+        struct fenv_t
+        {
+            uint _fpu_cw;
+            uint _fpu_sw;
+            uint _fpu_tagw;
+            uint _fpu_ipoff;
+            uint _fpu_ipsel;
+            uint _fpu_opoff;
+            uint _fpu_opsel;
+            uint _sse_mxcsr;
+        }
+        alias fexcept_t = uint;
+    }
+    else version (SPARC64)
+    {
+        alias fenv_t = ulong;
+        alias fexcept_t = ulong;
+    }
+    else version (SPARC)
+    {
+        alias fenv_t = uint;
+        alias fexcept_t = uint;
+    }
+    else
+    {
+        alias fenv_t = int;
+        alias fexcept_t = int;
     }
 }
 else version (CRuntime_UClibc)
@@ -828,12 +860,6 @@ version (GNUFP)
 {
     ///
     enum FE_DFL_ENV = cast(fenv_t*)(-1);
-}
-else version (CRuntime_DigitalMars)
-{
-    private extern __gshared fenv_t _FE_DFL_ENV;
-    ///
-    enum fenv_t* FE_DFL_ENV = &_FE_DFL_ENV;
 }
 else version (CRuntime_Microsoft)
 {

@@ -14,7 +14,7 @@
  * - Protection (`private`, `public`)
  * - Deprecated declarations (`@deprecated`)
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/attrib.d, _attrib.d)
@@ -35,7 +35,6 @@ import dmd.dsymbol;
 import dmd.dsymbolsem;
 import dmd.errors;
 import dmd.expression;
-import dmd.expressionsem;
 import dmd.func;
 import dmd.globals;
 import dmd.hdrgen : visibilityToBuffer;
@@ -137,7 +136,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         return "attribute";
     }
 
-    override bool oneMember(Dsymbol* ps, Identifier ident)
+    override bool oneMember(out Dsymbol ps, Identifier ident)
     {
         Dsymbols* d = include(null);
         return Dsymbol.oneMembers(d, ps, ident);
@@ -225,10 +224,10 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
             sc.visibility, sc.explicitVisibility, sc.aligndecl, sc.inlining);
     }
 
-    override final bool oneMember(Dsymbol* ps, Identifier ident)
+    override final bool oneMember(out Dsymbol ps, Identifier ident)
     {
         bool t = Dsymbol.oneMembers(decl, ps, ident);
-        if (t && *ps)
+        if (t && ps)
         {
             /* This is to deal with the following case:
              * struct Tick {
@@ -238,7 +237,7 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
              * before the semantic analysis of 'to', so that template overloading based on the
              * 'this' pointer can be successful.
              */
-            FuncDeclaration fd = (*ps).isFuncDeclaration();
+            FuncDeclaration fd = ps.isFuncDeclaration();
             if (fd)
             {
                 /* Use storage_class2 instead of storage_class otherwise when we do .di generation
@@ -743,7 +742,7 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
         return new ConditionalDeclaration(loc, condition.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
     }
 
-    override final bool oneMember(Dsymbol* ps, Identifier ident)
+    override final bool oneMember(out Dsymbol ps, Identifier ident)
     {
         //printf("ConditionalDeclaration::oneMember(), inc = %d\n", condition.inc);
         if (condition.inc != Include.notComputed)
@@ -753,8 +752,8 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
         }
         else
         {
-            bool res = (Dsymbol.oneMembers(decl, ps, ident) && *ps is null && Dsymbol.oneMembers(elsedecl, ps, ident) && *ps is null);
-            *ps = null;
+            bool res = (Dsymbol.oneMembers(decl, ps, ident) && ps is null && Dsymbol.oneMembers(elsedecl, ps, ident) && ps is null);
+            ps = null;
             return res;
         }
     }
@@ -901,7 +900,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
             Dsymbol.arraySyntaxCopy(decl));
     }
 
-    override bool oneMember(Dsymbol* ps, Identifier ident)
+    override bool oneMember(out Dsymbol ps, Identifier ident)
     {
         // Required to support IFTI on a template that contains a
         // `static foreach` declaration.  `super.oneMember` calls
@@ -912,7 +911,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
         {
             return super.oneMember(ps, ident);
         }
-        *ps = null; // a `static foreach` declaration may in general expand to multiple symbols
+        ps = null; // a `static foreach` declaration may in general expand to multiple symbols
         return false;
     }
 
@@ -1121,21 +1120,6 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
         return udas;
     }
 
-    Expressions* getAttributes()
-    {
-        if (auto sc = _scope)
-        {
-            _scope = null;
-            arrayExpressionSemantic(atts.peekSlice(), sc);
-        }
-        auto exps = new Expressions();
-        if (userAttribDecl && userAttribDecl !is this)
-            exps.push(new TupleExp(Loc.initial, userAttribDecl.getAttributes()));
-        if (atts && atts.length)
-            exps.push(new TupleExp(Loc.initial, atts));
-        return exps;
-    }
-
     override const(char)* kind() const
     {
         return "UserAttribute";
@@ -1232,43 +1216,6 @@ bool isCoreUda(Dsymbol sym, Identifier ident)
 }
 
 /**
- * Iterates the UDAs attached to the given symbol.
- *
- * Params:
- *  sym = the symbol to get the UDAs from
- *  sc = scope to use for semantic analysis of UDAs
- *  dg = called once for each UDA
- *
- * Returns:
- *  If `dg` returns `!= 0`, stops the iteration and returns that value.
- *  Otherwise, returns 0.
- */
-int foreachUda(Dsymbol sym, Scope* sc, int delegate(Expression) dg)
-{
-    if (!sym.userAttribDecl)
-        return 0;
-
-    auto udas = sym.userAttribDecl.getAttributes();
-    arrayExpressionSemantic(udas.peekSlice(), sc, true);
-
-    return udas.each!((uda) {
-        if (!uda.isTupleExp())
-            return 0;
-
-        auto exps = uda.isTupleExp().exps;
-
-        return exps.each!((e) {
-            assert(e);
-
-            if (auto result = dg(e))
-                return result;
-
-            return 0;
-        });
-    });
-}
-
-/**
  * Iterates the UDAs attached to the given symbol, without performing semantic
  * analysis.
  *
@@ -1295,4 +1242,28 @@ int foreachUdaNoSemantic(Dsymbol sym, int delegate(Expression) dg)
     }
 
     return 0;
+}
+
+
+/**
+ * Returns: true if the given expression is an enum from `core.attribute` named `id`
+ */
+bool isEnumAttribute(Expression e, Identifier id)
+{
+    import dmd.attrib : isCoreUda;
+    import dmd.id : Id;
+
+    // Logic based on dmd.objc.Supported.declaredAsOptionalCount
+    auto typeExp = e.isTypeExp;
+    if (!typeExp)
+        return false;
+
+    auto typeEnum = typeExp.type.isTypeEnum();
+    if (!typeEnum)
+        return false;
+
+    if (isCoreUda(typeEnum.sym, id))
+        return true;
+
+    return false;
 }

@@ -7,7 +7,7 @@
  * $(LINK2 https://www.dlang.org, D programming language).
  *
  * Copyright:   Copyright (C) ?-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/elfobj.d, backend/elfobj.d)
@@ -27,7 +27,7 @@ import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.dout : symbol_iscomdat2;
 import dmd.backend.mem;
 import dmd.backend.aarray;
@@ -73,21 +73,16 @@ bool REQUIRE_DSO_REGISTRY()
 }
 
 /**
- * If set, produce .init_array/.fini_array instead of legacy .ctors/.dtors .
- * OpenBSD added the support in Aug 2016. Other supported platforms has
- * supported .init_array for years.
+ * All supported platforms have supported .init_array for years.
  */
-bool USE_INIT_ARRAY() { return !(config.exe & (EX_OPENBSD | EX_OPENBSD64)); }
+bool USE_INIT_ARRAY() { return true; }
 
 /******
- * FreeBSD uses ELF, but the linker crashes with Elf comdats with the following message:
- *  /usr/bin/ld: BFD 2.15 [FreeBSD] 2004-05-23 internal error, aborting at
- *  /usr/src/gnu/usr.bin/binutils/libbfd/../../../../contrib/binutils/bfd/elfcode.h
- *  line 213 in bfd_elf32_swap_symbol_out
- * For the time being, just stick with Linux.
+ * This should work on modern versions of GNU ld and all versions of LLVM lld.
+ * FreeBSD defaults to lld as of FreeBSD 13 (2021); OpenBSD as of 6.5 (2019).
  */
 
-bool ELF_COMDAT() { return (config.exe & (EX_LINUX | EX_LINUX64)) != 0; }
+bool ELF_COMDAT() { return (config.exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64)) != 0; }
 
 /***************************************************
  * Correspondence of relocation types
@@ -607,10 +602,12 @@ int ElfObj_string_literal_segment(uint sz)
      * .rodata.cstN   - N fixed size readonly constants N bytes in size,
      *              aligned to the same size
      */
-    static immutable char[4][3] name = [ "1.1", "2.2", "4.4" ];
-    const int i = (sz == 4) ? 2 : sz - 1;
-    const IDXSEC seg =
-        ElfObj_getsegment(".rodata.str".ptr, name[i].ptr, SHT_PROGBITS, SHF_ALLOC | SHF_MERGE | SHF_STRINGS, sz);
+    import core.bitop : bsr, bsf;
+    assert(sz != 0 && bsr(sz) == bsf(sz)); // sz must be power of 2
+    static immutable char[4][4] name = [ "1.1", "2.2", "4.4", "8.8" ];
+    const int i = bsr(sz);
+    // FIXME: can't use SHF_MERGE | SHF_STRINGS because of https://issues.dlang.org/show_bug.cgi?id=22483
+    const IDXSEC seg = ElfObj_getsegment(".rodata.str".ptr, name[i].ptr, SHT_PROGBITS, SHF_ALLOC, sz);
     return seg;
 }
 
@@ -706,7 +703,7 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
         elf_newsection2(NAMIDX.STRTAB,SHT_STRTAB, 0,                    0,0,0,0,0, 1,0);
         elf_newsection2(NAMIDX.SYMTAB,SHT_SYMTAB, 0,                    0,0,0,0,0, 8,0);
         elf_newsection2(NAMIDX.SHSTRTAB,SHT_STRTAB, 0,                  0,0,0,0,0, 1,0);
-        elf_newsection2(NAMIDX.COMMENT, SHT_PROGBITS,0,                 0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.COMMENT, SHT_PROGBITS,SHF_STRINGS|SHF_MERGE,0,0,0,0,0, 1,1);
         elf_newsection2(NAMIDX.NOTE,SHT_NOTE,   0,                      0,0,0,0,0, 1,0);
         elf_newsection2(NAMIDX.GNUSTACK,SHT_PROGBITS,0,                 0,0,0,0,0, 1,0);
         elf_newsection2(NAMIDX.CDATAREL,SHT_PROGBITS,SHF_ALLOC|SHF_WRITE,0,0,0,0,0, 16,0);
@@ -741,15 +738,15 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
         // name,type,flags,addr,offset,size,link,info,addralign,entsize
         elf_newsection2(0,               SHT_NULL,   0,                 0,0,0,0,0, 0,0);
         elf_newsection2(NAMIDX.TEXT,SHT_PROGBITS,SHF_ALLOC|SHF_EXECINSTR,0,0,0,0,0, 16,0);
-        elf_newsection2(NAMIDX.RELTEXT,SHT_REL, 0,0,0,0,SHN_SYMTAB,      SHN_TEXT, 4,8);
+        elf_newsection2(NAMIDX.RELTEXT,SHT_REL,SHF_INFO_LINK, 0,0,0,SHN_SYMTAB,      SHN_TEXT, 4,8);
         elf_newsection2(NAMIDX.DATA,SHT_PROGBITS,SHF_ALLOC|SHF_WRITE,   0,0,0,0,0, 4,0);
-        elf_newsection2(NAMIDX.RELDATA,SHT_REL, 0,0,0,0,SHN_SYMTAB,      SHN_DATA, 4,8);
+        elf_newsection2(NAMIDX.RELDATA,SHT_REL,SHF_INFO_LINK ,0,0,0,SHN_SYMTAB,      SHN_DATA, 4,8);
         elf_newsection2(NAMIDX.BSS, SHT_NOBITS,SHF_ALLOC|SHF_WRITE,     0,0,0,0,0, 32,0);
         elf_newsection2(NAMIDX.RODATA,SHT_PROGBITS,SHF_ALLOC,           0,0,0,0,0, 4,0);
         elf_newsection2(NAMIDX.STRTAB,SHT_STRTAB, 0,                    0,0,0,0,0, 1,0);
         elf_newsection2(NAMIDX.SYMTAB,SHT_SYMTAB, 0,                    0,0,0,0,0, 4,0);
         elf_newsection2(NAMIDX.SHSTRTAB,SHT_STRTAB, 0,                  0,0,0,0,0, 1,0);
-        elf_newsection2(NAMIDX.COMMENT, SHT_PROGBITS,0,                 0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX.COMMENT, SHT_PROGBITS,SHF_STRINGS|SHF_MERGE,0,0,0,0,0, 1,1);
         elf_newsection2(NAMIDX.NOTE,SHT_NOTE,   0,                      0,0,0,0,0, 1,0);
         elf_newsection2(NAMIDX.GNUSTACK,SHT_PROGBITS,0,                 0,0,0,0,0, 1,0);
         elf_newsection2(NAMIDX.CDATAREL,SHT_PROGBITS,SHF_ALLOC|SHF_WRITE,0,0,0,0,0, 1,0);
@@ -765,7 +762,7 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
     elfobj.SymbolTable64.reset();
 
     foreach (s; elfobj.resetSyms)
-        symbol_reset(s);
+        symbol_reset(*s);
     elfobj.resetSyms.reset();
 
     if (shndx_data)
@@ -1017,7 +1014,7 @@ void ElfObj_termfile()
  *    objfilename = file name for object module (not used)
  */
 
-void ElfObj_term(const(char)* objfilename)
+void ElfObj_term(const(char)[] objfilename)
 {
     //printf("ElfObj_term()\n");
     outfixlist();           // backpatches
@@ -2121,8 +2118,8 @@ char *obj_mangle2(Symbol *s,char *dest, size_t *destlen)
     //dbg_printf("len %d\n",len);
     switch (type_mangle(s.Stype))
     {
-        case mTYman_pas:                // if upper case
-        case mTYman_for:
+        case Mangle.pascal:                // if upper case
+        case Mangle.fortran:
             if (len >= DEST_LEN)
                 dest = cast(char *)mem_malloc(len + 1);
             memcpy(dest,name,len + 1);  // copy in name and ending 0
@@ -2134,7 +2131,7 @@ char *obj_mangle2(Symbol *s,char *dest, size_t *destlen)
                     dest[i] = cast(char)(c + 'A' - 'a');
             }
             break;
-        case mTYman_std:
+        case Mangle.stdcall:
         {
             bool cond = (tyfunc(s.ty()) && !variadic(s.Stype));
             if (cond)
@@ -2154,10 +2151,10 @@ char *obj_mangle2(Symbol *s,char *dest, size_t *destlen)
         }
             goto case;
 
-        case mTYman_cpp:
-        case mTYman_c:
-        case mTYman_d:
-        case mTYman_sys:
+        case Mangle.cpp:
+        case Mangle.c:
+        case Mangle.d:
+        case Mangle.syscall:
         case 0:
             if (len >= DEST_LEN)
                 dest = cast(char *)mem_malloc(len + 1);
@@ -2168,7 +2165,7 @@ char *obj_mangle2(Symbol *s,char *dest, size_t *destlen)
 debug
 {
             printf("mangling %x\n",type_mangle(s.Stype));
-            symbol_print(s);
+            symbol_print(*s);
 }
             printf("%d\n", type_mangle(s.Stype));
             assert(0);
@@ -2944,13 +2941,13 @@ int ElfObj_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
     int refseg;
     const segtyp = MAP_SEG2TYP(seg);
     //assert(val == 0);
-    int retsize = (flags & CFoffset64) ? 8 : 4;
+    int refSize = (flags & CFoffset64) ? 8 : 4;
 
 static if (0)
 {
     printf("\nElfObj_reftoident('%s' seg %d, offset x%llx, val x%llx, flags x%x)\n",
         s.Sident.ptr,seg,offset,val,flags);
-    printf("Sseg = %d, Sxtrnnum = %d, retsize = %d\n",s.Sseg,s.Sxtrnnum,retsize);
+    printf("Sseg = %d, Sxtrnnum = %d, refSize = %d\n",s.Sseg,s.Sxtrnnum,refSize);
     symbol_print(s);
 }
 
@@ -3002,7 +2999,7 @@ static if (0)
             if (flags & CFoffset64 && relinfo == R_X86_64_32)
             {
                 relinfo = R_X86_64_64;
-                retsize = 8;
+                refSize = 8;
             }
             refseg = STI_RODAT;
             val += s.Soffset;
@@ -3030,8 +3027,8 @@ static if (0)
             {   // not in symbol table yet - class might change
                 //printf("\tadding %s to fixlist\n",s.Sident.ptr);
                 size_t numbyteswritten = addtofixlist(s,offset,seg,val,flags);
-                assert(numbyteswritten == retsize);
-                return retsize;
+                assert(numbyteswritten == refSize);
+                return refSize;
             }
             else
             {
@@ -3171,14 +3168,14 @@ static if (0)
                 if (relinfo == R_X86_64_NONE)
                 {
                 outaddrval:
-                    writeaddrval(seg, cast(uint)offset, val, retsize);
+                    writeaddrval(seg, cast(uint)offset, val, refSize);
                 }
                 else
                 {
                 outrel:
                     //printf("\t\t************* adding relocation\n");
                     const size_t nbytes = ElfObj_writerel(seg, cast(uint)offset, relinfo, refseg, val);
-                    assert(nbytes == retsize);
+                    assert(nbytes == refSize);
                 }
             }
             break;
@@ -3203,7 +3200,7 @@ static if (0)
             //symbol_print(s);
             assert(0);
     }
-    return retsize;
+    return refSize;
 }
 
 /*****************************************

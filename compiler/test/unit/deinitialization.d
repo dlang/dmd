@@ -88,6 +88,7 @@ unittest
 unittest
 {
     import dmd.globals : Param;
+    import dmd.dmdparams : setTargetBuildDefaults;
     import dmd.target : target, Target;
 
     static bool isFPTypeProperties(T)()
@@ -114,6 +115,7 @@ unittest
     assertStructsEqual(target, init);
 
     Param params;
+    target.setTargetBuildDefaults();
     target._init(params);
     target.deinitialize();
 

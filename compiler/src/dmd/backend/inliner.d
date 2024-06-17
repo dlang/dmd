@@ -15,7 +15,7 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 2022-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 2022-2024 by The D Language Foundation, All Rights Reserved
  *              Some parts based on an inliner from the Digital Mars C compiler.
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
@@ -61,63 +61,87 @@ private enum log2 = false;
 @trusted
 bool canInlineFunction(Symbol *sfunc)
 {
-    if (log) debug printf("canInlineFunction(%s)\n",sfunc.Sident.ptr);
     auto f = sfunc.Sfunc;
+
+    bool no(int line)
+    {
+        f.Fflags &= ~Finline;   // don't check it again
+        if (log) debug printf("returns: no %d\n", line);
+        return false;
+    }
+
+    if (log) debug printf("canInlineFunction(%s)\n", sfunc.Sident.ptr);
+
+    if (config.flags & CFGnoinlines ||
+        !(f.Fflags & Finline))
+    {
+        if (log) debug printf("returns: no %d\n", __LINE__);
+        return false;
+    }
+
     auto t = sfunc.Stype;
     assert(f && tyfunc(t.Tty));
 
-    bool result = false;
-    if (!(config.flags & CFGnoinlines) && /* if inlining is turned on   */
-        f.Fflags & Finline &&
-        /* Cannot inline varargs or unprototyped functions      */
-        (t.Tflags & (TFfixed | TFprototype)) == (TFfixed | TFprototype) &&
-        !(t.Tty & mTYimport)           // do not inline imported functions
+    if (/* Cannot inline varargs or unprototyped functions      */
+        (t.Tflags & (TFfixed | TFprototype)) != (TFfixed | TFprototype) ||
+        (t.Tty & mTYimport)           // do not inline imported functions
        )
+        return no(__LINE__);
+
+    if (config.ehmethod == EHmethod.EH_WIN32 && !(f.Fflags3 & Feh_none))
+        return no(__LINE__);       // not working properly, so don't inline it
+
+    foreach (s; f.Flocsym[])
     {
-        auto b = f.Fstartblock;
-        if (!b)
-            return false;
-        if (config.ehmethod == EHmethod.EH_WIN32 && !(f.Fflags3 & Feh_none))
-            return false;       // not working properly, so don't inline it
+        assert(s);
+        if (s.Sclass == SC.bprel)
+            return no(__LINE__);
+    }
 
-        static if (1) // enable for the moment
-        while (b.BC == BCgoto && b.Bnext == b.nthSucc(0) && canInlineExpression(b.Belem))
-            b = b.Bnext;
+    auto b = f.Fstartblock;
+    if (!b)
+        return no(__LINE__);
 
+    while (1)
+    {
         switch (b.BC)
-        {   case BCret:
+        {
+            case BCgoto:
+                if (b.Bnext != b.nthSucc(0))
+                    return no(__LINE__);
+                b = b.Bnext;
+                continue;
+
+            case BCret:
                 if (tybasic(t.Tnext.Tty) != TYvoid
                     && !(f.Fflags & (Fctor | Fdtor | Finvariant))
                    )
                 {   // Message about no return value
                     // should already have been generated
-                    break;
+                    return no(__LINE__);
                 }
-                goto case BCretexp;
+                if (!b.Belem)
+                    return no(__LINE__);
+                break;
 
             case BCretexp:
-                if (b.Belem)
-                {
-                    result = canInlineExpression(b.Belem);
-                    if (log && !result) printf("not inlining function %s\n", sfunc.Sident.ptr);
-                }
                 break;
 
             default:
-                break;
+                return no(__LINE__);
         }
-
-        foreach (s; f.Flocsym[])
-        {
-            assert(s);
-            if (s.Sclass == SC.bprel)
-                return false;
-        }
+        break;
     }
-    if (!result)
-        f.Fflags &= ~Finline;
-    if (log) debug printf("returns: %d\n",result);
-    return result;
+
+    /* Do slowest check last */
+    for (b = f.Fstartblock; b; b = b.Bnext)
+    {
+        if (!canInlineExpression(b.Belem))
+            return no(__LINE__);
+    }
+
+    if (log) debug printf("returns: yes %d\n", __LINE__);
+    return true;
 }
 
 /**************************
@@ -179,9 +203,9 @@ bool canInlineExpression(elem* e)
                 /* Statics cannot be accessed from a different object file,
                  * so the reference will fail.
                  */
-                if (e.EV.Vsym.Sclass == SC.locstat || e.EV.Vsym.Sclass == SC.static_)
+                if (e.Vsym.Sclass == SC.locstat || e.Vsym.Sclass == SC.static_)
                 {
-                    if (log) printf("not inlining due to %s\n", e.EV.Vsym.Sident.ptr);
+                    if (log) printf("not inlining due to %s\n", e.Vsym.Sident.ptr);
                     return false;
                 }
             }
@@ -191,14 +215,14 @@ bool canInlineExpression(elem* e)
         }
         else if (OTunary(e.Eoper))
         {
-            e = e.EV.E1;
+            e = e.E1;
             continue;
         }
         else
         {
-            if (!canInlineExpression(e.EV.E1))
+            if (!canInlineExpression(e.E1))
                 return false;
-            e = e.EV.E2;
+            e = e.E2;
             continue;
         }
     }
@@ -219,84 +243,22 @@ elem* scanExpressionForInlines(elem *e)
     const op = e.Eoper;
     if (OTbinary(op))
     {
-        e.EV.E1 = scanExpressionForInlines(e.EV.E1);
-        e.EV.E2 = scanExpressionForInlines(e.EV.E2);
+        e.E1 = scanExpressionForInlines(e.E1);
+        e.E2 = scanExpressionForInlines(e.E2);
         if (op == OPcall)
             e = tryInliningCall(e);
     }
     else if (OTunary(op))
     {
-        if (op == OPstrctor) // never happens in MARS
+        assert(op != OPstrctor);  // never happens in MARS
+        e.E1 = scanExpressionForInlines(e.E1);
+        if (op == OPucall)
         {
-            elem* e1 = e.EV.E1;
-            while (e1.Eoper == OPcomma)
-            {
-                e1.EV.E1 = scanExpressionForInlines(e1.EV.E1);
-                e1 = e1.EV.E2;
-            }
-            if (e1.Eoper == OPcall && e1.EV.E1.Eoper == OPvar)
-            {   // Never inline expand this function
-
-                // But do expand templates
-                Symbol* s = e1.EV.E1.EV.Vsym;
-                if (tyfunc(s.ty()))
-                {
-                    // This function might be an inline template function that was
-                    // never parsed. If so, parse it now.
-                    if (s.Sfunc.Fbody)
-                    {
-                        //n2_instantiate_memfunc(s);
-                    }
-                }
-            }
-            else
-                e1.EV.E1 = scanExpressionForInlines(e1.EV.E1);
-            e1.EV.E2 = scanExpressionForInlines(e1.EV.E2);
-        }
-        else
-        {
-            e.EV.E1 = scanExpressionForInlines(e.EV.E1);
-            if (op == OPucall)
-            {
-                e = tryInliningCall(e);
-            }
+            e = tryInliningCall(e);
         }
     }
     else /* leaf */
     {
-        // If deferred allocation of variable, allocate it now.
-        // The deferred allocations are done by cpp_initctor().
-        if (0 && CPP &&
-            (op == OPvar || op == OPrelconst))
-        {
-            Symbol* s = e.EV.Vsym;
-            if (s.Sclass == SC.auto_ &&
-                s.Ssymnum == SYMIDX.max)
-            {   //dbg_printf("Deferred allocation of %p\n",s);
-                symbol_add(s);
-
-                if (tybasic(s.Stype.Tty) == TYstruct &&
-                    s.Stype.Ttag.Sstruct.Sdtor &&
-                    !(s.Sflags & SFLnodtor))
-                {
-                    //enum DTORmostderived = 4;
-                    //elem* eptr = el_ptr(s);
-                    //elem* edtor = cpp_destructor(s.Stype,eptr,null,DTORmostderived);
-                    //assert(edtor);
-                    //edtor = scanExpressionForInlines(edtor);
-                    //cpp_stidtors.push(edtor);
-                }
-            }
-            if (tyfunc(s.ty()))
-            {
-                // This function might be an inline template function that was
-                // never parsed. If so, parse it now.
-                if (s.Sfunc.Fbody)
-                {
-                    //n2_instantiate_memfunc(s);
-                }
-            }
-        }
     }
     return e;
 }
@@ -315,11 +277,11 @@ private elem* tryInliningCall(elem *e)
     //elem_debug(e);
     assert(e && (e.Eoper == OPcall || e.Eoper == OPucall));
 
-    if (e.EV.E1.Eoper != OPvar)
+    if (e.E1.Eoper != OPvar)
         return e;
 
     // This is an explicit function call (not through a pointer)
-    Symbol* sfunc = e.EV.E1.EV.Vsym;
+    Symbol* sfunc = e.E1.Vsym;
     if (log) printf("tryInliningCall: %s, class = %d\n", prettyident(sfunc),sfunc.Sclass);
 
     // sfunc may not be a function due to user's clever casting
@@ -392,7 +354,7 @@ private elem* inlineCall(elem *e,Symbol *sfunc)
             L1:
             {
                 //printf("  new symbol %s\n", s.Sident.ptr);
-                Symbol* snew = symbol_copy(s);
+                Symbol* snew = symbol_copy(*s);
                 snew.Sclass = sc;
                 snew.Sfl = FLauto;
                 snew.Sflags |= SFLfree;
@@ -411,7 +373,7 @@ private elem* inlineCall(elem *e,Symbol *sfunc)
                 break;
             default:
                 //fprintf(stderr, "Sclass = %d\n", sc);
-                symbol_print(s);
+                symbol_print(*s);
                 assert(0);
         }
     }
@@ -454,7 +416,7 @@ private elem* inlineCall(elem *e,Symbol *sfunc)
      */
     if (e.Eoper == OPcall)
     {
-        elem* eargs = initializeParamsWithArgs(e.EV.E2, sistart, globsym.length);
+        elem* eargs = initializeParamsWithArgs(e.E2, sistart, globsym.length);
         ec = el_combine(eargs,ec);
     }
 
@@ -501,7 +463,7 @@ private elem* initializeParamsWithArgs(elem* eargs, SYMIDX sistart, SYMIDX siend
         elem* e = args[n - 1];
 
         if (e.Eoper == OPstrpar)
-            e = e.EV.E1;
+            e = e.E1;
 
         /* Look for and return next parameter Symbol
          */
@@ -531,10 +493,10 @@ private elem* initializeParamsWithArgs(elem* eargs, SYMIDX sistart, SYMIDX siend
         //elem_print(e);
         if (e.Eoper == OPstrctor)
         {
-            ecopy = el_combine(el_copytree(e.EV.E1), ecopy);     // skip the OPstrctor
+            ecopy = el_combine(el_copytree(e.E1), ecopy);     // skip the OPstrctor
             e = ecopy;
             //while (e.Eoper == OPcomma)
-            //    e = e.EV.E2;
+            //    e = e.E2;
             debug
             {
                 if (e.Eoper != OPcall && e.Eoper != OPcond)
@@ -554,7 +516,7 @@ private elem* initializeParamsWithArgs(elem* eargs, SYMIDX sistart, SYMIDX siend
         {
             if (log) printf("detected slice with %s\n", s.Sident.ptr);
             auto s2 = nextSymbol(si);
-            if (!s2) { symbol_print(s); elem_print(e); assert(0); }
+            if (!s2) { symbol_print(*s); elem_print(e); assert(0); }
             assert(szs == type_size(s2.Stype));
             const ty = s.Stype.Tty;
 
@@ -563,17 +525,17 @@ private elem* initializeParamsWithArgs(elem* eargs, SYMIDX sistart, SYMIDX siend
             if (e.Eoper != OPvar)
             {
                 elem* ec = exp2_copytotemp(e);
-                e = ec.EV.E2;
-                ex = ec.EV.E1;
-                ec.EV.E1 = null;
-                ec.EV.E2 = null;
+                e = ec.E2;
+                ex = ec.E1;
+                ec.E1 = null;
+                ec.E2 = null;
                 el_free(ec);
-                e.EV.Vsym.Sfl = FLauto;
+                e.Vsym.Sfl = FLauto;
             }
             assert(e.Eoper == OPvar);
             elem* e2 = el_copytree(e);
-            e.EV.Voffset += 0;
-            e2.EV.Voffset += szs;
+            e.Voffset += 0;
+            e2.Voffset += szs;
             e.Ety = ty;
             e2.Ety = ty;
             elem* elo = el_bin(OPeq, ty, el_var(s), e);
@@ -617,8 +579,8 @@ private elem* initializeParamsWithArgs(elem* eargs, SYMIDX sistart, SYMIDX siend
             ty = TYshort;
             if (szs == 1)
             {
-                ex = el_una(OP16_8, TYchar, ex);
-                ty = TYchar;
+                ex = el_una(OP16_8, TYschar, ex);
+                ty = TYschar;
             }
         }
         evar.Ety = ty;
@@ -655,20 +617,20 @@ private void adjustExpression(elem *e)
         if (!OTleaf(e.Eoper))
         {
             if (OTbinary(e.Eoper))
-                adjustExpression(e.EV.E2);
+                adjustExpression(e.E2);
             else
-                assert(!e.EV.E2);
-            e = e.EV.E1;
+                assert(!e.E2);
+            e = e.E1;
         }
         else
         {
             if (e.Eoper == OPvar || e.Eoper == OPrelconst)
             {
-                Symbol *s = e.EV.Vsym;
+                Symbol *s = e.Vsym;
 
                 if (s.Sflags & SFLreplace)
                 {
-                    e.EV.Vsym = globsym[s.Ssymnum];
+                    e.Vsym = globsym[s.Ssymnum];
                     //printf("  replacing %p %s\n", e, s.Sident.ptr);
                 }
             }

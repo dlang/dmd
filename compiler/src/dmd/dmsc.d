@@ -1,7 +1,7 @@
 /**
  * Configures and initializes the backend.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/dmsc.d, _dmsc.d)
@@ -14,8 +14,6 @@ module dmd.dmsc;
 import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.stddef;
-
-extern (C++):
 
 import dmd.globals;
 import dmd.dclass;
@@ -34,19 +32,22 @@ import dmd.backend.type;
 import dmd.backend.backconfig;
 
 /**************************************
- * Initialize config variables.
+ * Initialize backend config variables.
+ * Params:
+ *      params = command line parameters
+ *      driverParams = more command line parameters
+ *      target = target machine info
  */
 
-void backend_init()
+void backend_init(const ref Param params, const ref DMDparams driverParams, const ref Target target)
 {
-    //printf("out_config_init()\n");
-    Param *params = &global.params;
+    //printf("backend_init()\n");
     exefmt_t exfmt;
     switch (target.os)
     {
-        case Target.OS.Windows: exfmt = target.isX86_64 ? EX_WIN64 : EX_WIN32;       break;
-        case Target.OS.linux:   exfmt = target.isX86_64 ? EX_LINUX64 : EX_LINUX;     break;
-        case Target.OS.OSX:     exfmt = target.isX86_64 ? EX_OSX64 : EX_OSX;         break;
+        case Target.OS.Windows: exfmt = target.isX86_64 ? EX_WIN64     : EX_WIN32;   break;
+        case Target.OS.linux:   exfmt = target.isX86_64 ? EX_LINUX64   : EX_LINUX;   break;
+        case Target.OS.OSX:     exfmt = target.isX86_64 ? EX_OSX64     : EX_OSX;     break;
         case Target.OS.FreeBSD: exfmt = target.isX86_64 ? EX_FREEBSD64 : EX_FREEBSD; break;
         case Target.OS.OpenBSD: exfmt = target.isX86_64 ? EX_OPENBSD64 : EX_OPENBSD; break;
         case Target.OS.Solaris: exfmt = target.isX86_64 ? EX_SOLARIS64 : EX_SOLARIS; break;
@@ -74,7 +75,7 @@ void backend_init()
         driverParams.nofloat,
         driverParams.vasm,
         params.v.verbose,
-        driverParams.optimize,
+        driverParams.optimize || params.useInline,
         driverParams.symdebug,
         driverParams.alwaysframe,
         driverParams.stackstomp,
@@ -87,7 +88,8 @@ void backend_init()
         driverParams.dwarf,
         global.versionString(),
         exfmt,
-        params.addMain
+        params.addMain,
+        driverParams.symImport != SymImport.none
     );
 
     out_config_debug(

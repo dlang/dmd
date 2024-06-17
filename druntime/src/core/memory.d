@@ -266,8 +266,8 @@ extern(C):
 
     /**
      * Enables automatic garbage collection behavior if collections have
-     * previously been suspended by a call to disable.  This function is
-     * reentrant, and must be called once for every call to disable before
+     * previously been suspended by a call to `GC.disable()`.  This function is
+     * reentrant, and must be called once for every call to `GC.disable()` before
      * automatic collections are enabled.
      */
     pragma(mangle, "gc_enable") static void enable() @safe nothrow pure;
@@ -278,7 +278,12 @@ extern(C):
      * process footprint.  Collections may continue to occur in instances
      * where the implementation deems necessary for correct program behavior,
      * such as during an out of memory condition.  This function is reentrant,
-     * but enable must be called once for each call to disable.
+     * but `GC.enable()` must be called once for each call to `GC.disable()`.
+     * Unlike the
+     * $(LINK2 https://dlang.org/spec/function.html#nogc-functions, `@nogc` attribute),
+     * `GC.disable()` halts
+     * collections across all threads, yet still allows GC allocations.
+     * Disabling collections eliminates GC pauses.
      */
     pragma(mangle, "gc_disable") static void disable() @safe nothrow pure;
 
@@ -317,7 +322,7 @@ extern(D):
         This can be used to manually allocate arrays. Initial slice size is 0.
 
         Note: The slice's usable size will not match the block size. Use
-        $(LREF capacity) to retrieve actual usable capacity.
+        $(REF1 capacity, object) to retrieve actual usable capacity.
 
         Example:
         ----
@@ -570,6 +575,7 @@ extern(C):
 
     // https://issues.dlang.org/show_bug.cgi?id=13111
     ///
+    version (OnlyLowMemUnittests) {} else // Test needs a lot of RAM
     unittest
     {
         enum size1 = 1 << 11 + 1; // page in large object pool
@@ -605,7 +611,7 @@ extern(C):
      * Note:
      *  Extend may also be used to extend slices (or memory blocks with
      *  $(LREF APPENDABLE) info). However, use the return value only
-     *  as an indicator of success. $(LREF capacity) should be used to
+     *  as an indicator of success. $(REF1 capacity, object) should be used to
      *  retrieve actual usable slice capacity.
      */
     version (D_ProfileGC)
@@ -1191,13 +1197,13 @@ $(UL
 )
 
 Note: Users should prefer $(REF1 destroy, object) to explicitly finalize objects,
-and only resort to $(REF __delete, core,memory) when $(REF destroy, object)
+and only resort to $(LREF __delete) when $(REF1 destroy, object)
 wouldn't be a feasible option.
 
 Params:
     x = aggregate object that should be destroyed
 
-See_Also: $(REF1 destroy, object), $(REF free, core,GC)
+See_Also: $(REF1 destroy, object), $(LREF GC.free)
 
 History:
 

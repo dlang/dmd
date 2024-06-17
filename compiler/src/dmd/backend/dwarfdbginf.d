@@ -4,7 +4,7 @@
  * Compiler implementation of the
  * $(LINK2 https://www.dlang.org, D programming language).
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/dwarfdbginf.d, backend/dwarfdbginf.d)
@@ -16,15 +16,19 @@
 Some generic information for debug info on macOS:
 
 The linker on macOS will remove any debug info, i.e. every section with the
-`S_ATTR_DEBUG` flag, this includes everything in the `__DWARF` section. By using
-the `S_REGULAR` flag the linker will not remove this section. This allows to get
-the filenames and line numbers for backtraces from the executable.
+`S_ATTR_DEBUG` flag, this includes everything in the `__DWARF` section.
+Because of this, it is not possible to get filenames and line numbers for
+backtraces from the executable alone.
 
 Normally the linker removes all the debug info but adds a reference to the
 object files. The debugger can then read the object files to get filename and
 line number information. It's also possible to use an additional tool that
 generates a separate `.dSYM` file. This file can then later be deployed with the
 application if debug info is needed when the application is deployed.
+
+Support in core.runtime for getting filename and line number for backtraces
+from these `.dSYM` files will need to be investigated.
+See: https://issues.dlang.org/show_bug.cgi?id=20510
 */
 
 module dmd.backend.dwarfdbginf;
@@ -44,17 +48,19 @@ version(Windows)
     nothrow
     private extern (C) int* _errno();   // not the multi-threaded version
 }
-else
+else version (Posix)
 {
     import core.sys.posix.unistd : getcwd;
 }
+else
+    static assert(0);
 
 static if (1)
 {
     import dmd.backend.aarray;
     import dmd.backend.barray;
     import dmd.backend.code;
-    import dmd.backend.code_x86;
+    import dmd.backend.x86.code_x86;
     import dmd.backend.drtlsym : getRtlsymPersonality;
     import dmd.backend.dwarf;
     import dmd.backend.dwarf2;
@@ -112,8 +118,8 @@ static if (1)
          * (It hangs in unittests for std.datetime.)
          * g++ on FreeBSD does not generate mixed frames, while g++ on OSX and Linux does.
          */
-        assert(!(usednteh & ~(EHtry | EHcleanup)));
-        return (usednteh & (EHtry | EHcleanup)) ||
+        assert(!(cgstate.usednteh & ~(EHtry | EHcleanup)));
+        return (cgstate.usednteh & (EHtry | EHcleanup)) ||
                (config.exe & (EX_FREEBSD | EX_FREEBSD64 | EX_OPENBSD | EX_OPENBSD64 | EX_DRAGONFLYBSD64)) && config.useExceptions;
     }
 
@@ -179,7 +185,7 @@ static if (1)
             {
                 type *t = tspvoid;
                 t.Tcount++;
-                type_setmangle(&t, mTYman_sys);         // no leading '_' for mangled name
+                type_setmangle(&t, Mangle.syscall);         // no leading '_' for mangled name
                 eh_frame_sym = symbol_name("EH_frame0", SC.static_, t);
                 Obj.pubdef(seg, eh_frame_sym, 0);
                 symbol_keep(eh_frame_sym);
@@ -476,7 +482,7 @@ static if (1)
         {
             name = n;
             if (config.objfmt == OBJ_MACH)
-                flags = S_ATTR_DEBUG;
+                flags = S_REGULAR | S_ATTR_DEBUG;
             else
                 flags = SHT_PROGBITS;
         }
@@ -550,10 +556,7 @@ static if (1)
         debug_abbrev   = Section("__debug_abbrev");
         debug_info     = Section("__debug_info");
         debug_str      = Section("__debug_str");
-        // We use S_REGULAR to make sure the linker doesn't remove this section. Needed
-        // for filenames and line numbers in backtraces.
         debug_line     = Section("__debug_line");
-        debug_line.flags = S_REGULAR;
     }
     void elfDebugSectionsInit()
     {
@@ -1025,7 +1028,7 @@ static if (1)
         /* ======================================== */
 
         foreach (s; resetSyms)
-            symbol_reset(s);
+            symbol_reset(*s);
         resetSyms.reset();
 
         /* *********************************************************************
@@ -1777,10 +1780,8 @@ static if (1)
 
         DWARFAbbrev dwarfabbrev;
 
-        for (SYMIDX si = 0; si < globsym.length; si++)
+        foreach (sa; globsym[])
         {
-            Symbol *sa = globsym[si];
-
             if (sa.Sflags & SFLnodebug) continue;
 
             static immutable uint[14] formal_var_abbrev_suffix =
@@ -1911,8 +1912,8 @@ static if (1)
         debug_info.buf.writeuLEB128(sfunc.Sfunc.Fstartline.Scharnum); // DW_AT_decl_column
 
         // DW_AT_low_pc and DW_AT_high_pc
-        dwarf_appreladdr(debug_info.seg, debug_info.buf, seg, funcoffset);
-        dwarf_appreladdr(debug_info.seg, debug_info.buf, seg, funcoffset + sfunc.Ssize);
+        dwarf_appreladdr(debug_info.seg, debug_info.buf, seg, cgstate.funcoffset);
+        dwarf_appreladdr(debug_info.seg, debug_info.buf, seg, cgstate.funcoffset + sfunc.Ssize);
 
         // DW_AT_frame_base
         if (config.objfmt == OBJ_ELF)
@@ -1923,10 +1924,8 @@ static if (1)
 
         if (haveparameters)
         {
-            for (SYMIDX si = 0; si < globsym.length; si++)
+            foreach (sa; globsym[])
             {
-                Symbol *sa = globsym[si];
-
                 if (sa.Sflags & SFLnodebug)
                     continue;
 
@@ -1988,7 +1987,7 @@ static if (1)
                             //    sa.Sident.ptr, sa.Sscope.Sident.ptr, closptr_off, memb_off);
 
                             debug_info.buf.writeByte(DW_OP_fbreg);
-                            debug_info.buf.writesLEB128(cast(uint)(Auto.size + BPoff - Para.size + closptr_off)); // closure pointer offset from frame base
+                            debug_info.buf.writesLEB128(cast(uint)(cgstate.Auto.size + cgstate.BPoff - cgstate.Para.size + closptr_off)); // closure pointer offset from frame base
                             debug_info.buf.writeByte(DW_OP_deref);
                             debug_info.buf.writeByte(DW_OP_plus_uconst);
                             debug_info.buf.writeuLEB128(cast(uint)memb_off); // closure variable offset
@@ -2000,11 +1999,11 @@ static if (1)
                                 sa.Sclass == SC.parameter)
                                 debug_info.buf.writesLEB128(cast(int)sa.Soffset);
                             else if (sa.Sclass == SC.fastpar)
-                                debug_info.buf.writesLEB128(cast(int)(Fast.size + BPoff - Para.size + sa.Soffset));
+                                debug_info.buf.writesLEB128(cast(int)(cgstate.Fast.size + cgstate.BPoff - cgstate.Para.size + sa.Soffset));
                             else if (sa.Sclass == SC.bprel)
-                                debug_info.buf.writesLEB128(cast(int)(-Para.size + sa.Soffset));
+                                debug_info.buf.writesLEB128(cast(int)(-cgstate.Para.size + sa.Soffset));
                             else
-                                debug_info.buf.writesLEB128(cast(int)(Auto.size + BPoff - Para.size + sa.Soffset));
+                                debug_info.buf.writesLEB128(cast(int)(cgstate.Auto.size + cgstate.BPoff - cgstate.Para.size + sa.Soffset));
                         }
                         debug_info.buf.buf[soffset] = cast(ubyte)(debug_info.buf.length() - soffset - 1);
                         break;
@@ -2028,14 +2027,14 @@ static if (1)
 
         if (sd.SDaranges_offset)
             // Extend existing entry size
-            *cast(ulong *)(debug_aranges.buf.buf + sd.SDaranges_offset + _tysize[TYnptr]) = funcoffset + sfunc.Ssize;
+            *cast(ulong *)(debug_aranges.buf.buf + sd.SDaranges_offset + _tysize[TYnptr]) = cgstate.funcoffset + sfunc.Ssize;
         else
         {   // Add entry
             sd.SDaranges_offset = cast(uint)debug_aranges.buf.length();
             // address of start of .text segment
             dwarf_appreladdr(debug_aranges.seg, debug_aranges.buf, seg, 0);
             // size of .text segment
-            append_addr(debug_aranges.buf, funcoffset + sfunc.Ssize);
+            append_addr(debug_aranges.buf, cgstate.funcoffset + sfunc.Ssize);
         }
 
         /* ============= debug_ranges =========================== */
@@ -2044,36 +2043,36 @@ static if (1)
          * indicate this by adding to the debug_ranges
          */
         // start of function and end of function
-        dwarf_appreladdr(debug_ranges.seg, debug_ranges.buf, seg, funcoffset);
-        dwarf_appreladdr(debug_ranges.seg, debug_ranges.buf, seg, funcoffset + sfunc.Ssize);
+        dwarf_appreladdr(debug_ranges.seg, debug_ranges.buf, seg, cgstate.funcoffset);
+        dwarf_appreladdr(debug_ranges.seg, debug_ranges.buf, seg, cgstate.funcoffset + sfunc.Ssize);
 
         /* ============= debug_loc =========================== */
 
-        assert(Para.size >= 2 * REGSIZE);
-        assert(Para.size < 63); // avoid sLEB128 encoding
+        assert(cgstate.Para.size >= 2 * REGSIZE);
+        assert(cgstate.Para.size < 63); // avoid sLEB128 encoding
         ushort op_size = 0x0002;
         ushort loc_op;
 
         // set the entry for this function in .debug_loc segment
         // after call
-        dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, funcoffset + 0);
-        dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, funcoffset + 1);
+        dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, cgstate.funcoffset + 0);
+        dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, cgstate.funcoffset + 1);
 
-        loc_op = cast(ushort)(((Para.size - REGSIZE) << 8) | (DW_OP_breg0 + dwarf_regno(SP)));
+        loc_op = cast(ushort)(((cgstate.Para.size - REGSIZE) << 8) | (DW_OP_breg0 + dwarf_regno(SP)));
         debug_loc.buf.write32(loc_op << 16 | op_size);
 
         // after push EBP
-        dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, funcoffset + 1);
-        dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, funcoffset + 3);
+        dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, cgstate.funcoffset + 1);
+        dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, cgstate.funcoffset + 3);
 
-        loc_op = cast(ushort)(((Para.size) << 8) | (DW_OP_breg0 + dwarf_regno(SP)));
+        loc_op = cast(ushort)(((cgstate.Para.size) << 8) | (DW_OP_breg0 + dwarf_regno(SP)));
         debug_loc.buf.write32(loc_op << 16 | op_size);
 
         // after mov EBP, ESP
-        dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, funcoffset + 3);
-        dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, funcoffset + sfunc.Ssize);
+        dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, cgstate.funcoffset + 3);
+        dwarf_appreladdr(debug_loc.seg, debug_loc.buf, seg, cgstate.funcoffset + sfunc.Ssize);
 
-        loc_op = cast(ushort)(((Para.size) << 8) | (DW_OP_breg0 + dwarf_regno(BP)));
+        loc_op = cast(ushort)(((cgstate.Para.size) << 8) | (DW_OP_breg0 + dwarf_regno(BP)));
         debug_loc.buf.write32(loc_op << 16 | op_size);
 
         // 2 zero addresses to end loc_list
@@ -3189,7 +3188,7 @@ static if (1)
             const length = snprintf(name.ptr, name.length, "GCC_except_table%d", ++except_table_num);
             type *t = tspvoid;
             t.Tcount++;
-            type_setmangle(&t, mTYman_sys);         // no leading '_' for mangled name
+            type_setmangle(&t, Mangle.syscall);         // no leading '_' for mangled name
             Symbol *s = symbol_name(name[0 .. length], SC.static_, t);
             Obj.pubdef(seg, s, cast(uint)buf.length());
             symbol_keep(s);
@@ -3197,7 +3196,7 @@ static if (1)
             sfunc.Sfunc.LSDAsym = s;
         }
         import dmd.backend.dwarfeh : dwehtable;
-        genDwarfEh(sfunc, seg, buf, (usednteh & EHcleanup) != 0, startoffset, retoffset, dwehtable);
+        genDwarfEh(sfunc, seg, buf, (cgstate.usednteh & EHcleanup) != 0, startoffset, retoffset, dwehtable);
     }
 
 }

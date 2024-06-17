@@ -2,7 +2,7 @@
  * A module defining an abstract library.
  * Implementations for various formats are in separate `libXXX.d` modules.
  *
- * Copyright:   Copyright (C) 1999-2023 by The D Language Foundation, All Rights Reserved
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/lib.d, _lib.d)
@@ -22,7 +22,6 @@ import dmd.target : Target;
 import dmd.libelf;
 import dmd.libmach;
 import dmd.libmscoff;
-import dmd.libomf;
 
 private enum LOG = false;
 
@@ -39,7 +38,6 @@ class Library
             case Target.ObjectFormat.elf:   lib = LibElf_factory();     break;
             case Target.ObjectFormat.macho: lib = LibMach_factory();    break;
             case Target.ObjectFormat.coff:  lib = LibMSCoff_factory();  break;
-            case Target.ObjectFormat.omf:   lib = LibOMF_factory();     break;
         }
         lib.lib_ext = lib_ext;
         lib.eSink = eSink;

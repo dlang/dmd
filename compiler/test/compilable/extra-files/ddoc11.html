@@ -417,6 +417,10 @@
         white-space: pre-wrap;
       }
 
+      .ddoc .code_lines pre {
+        display: contents;
+      }
+
       .ddoc .code_lines li:only-of-type::before {
         color: rgba(255, 255, 255, 1);
         content: " ";
@@ -1028,9 +1032,9 @@
   <div class="code_sample">
     <div class="dlang">
       <ol class="code_lines">
-        <li><code class="code"><span class="keyword">private</span>:
+        <li><pre><code class="code"><span class="keyword">private</span>:
     <span class="keyword">int</span> i = 0;
-</code></li>
+</code></pre></li>
       </ol>
     </div>
   </div>

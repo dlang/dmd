@@ -3,7 +3,7 @@
  * Generate exception handling tables.
  *
  * Copyright:   Copyright (C) 1994-1998 by Symantec
- *              Copyright (C) 2000-2023 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/eh.d, _eh.d)
@@ -21,7 +21,7 @@ import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.dt;
 import dmd.backend.el;
 import dmd.backend.global;
@@ -46,7 +46,7 @@ Symbol *except_gentables()
     {
         // BUG: alloca() changes the stack size, which is not reflected
         // in the fixed eh tables.
-        if (Alloca.size)
+        if (cgstate.Alloca.size)
             error(null, 0, 0, "cannot mix `core.std.stdlib.alloca()` and exception handling in `%s()`", &funcsym_p.Sident[0]);
 
         char[13+5+1] name = void;
@@ -133,22 +133,22 @@ void except_fillInEHTable(Symbol *s)
     sz += 4;
 
     // Offset from start of function to return code
-    dtb.dword(cast(int)retoffset);
+    dtb.dword(cast(int)cgstate.retoffset);
     sz += 4;
 
     // First, calculate starting catch offset
     int guarddim = 0;                               // max dimension of guard[]
-    int ndctors = 0;                                // number of ESCdctor's
+    int ndctors = 0;                                // number of PSOP.dctor's
     foreach (b; BlockRange(startblock))
     {
         if (b.BC == BC_try && b.Bscope_index >= guarddim)
             guarddim = b.Bscope_index + 1;
 //      printf("b.BC = %2d, Bscope_index = %2d, last_index = %2d, offset = x%x\n",
 //              b.BC, b.Bscope_index, b.Blast_index, b.Boffset);
-        if (usednteh & EHcleanup)
+        if (cgstate.usednteh & EHcleanup)
             for (code *c = b.Bcode; c; c = code_next(c))
             {
-                if (c.Iop == (ESCAPE | ESCddtor))
+                if (c.Iop == PSOP.ddtor)
                     ndctors++;
             }
     }
@@ -232,9 +232,9 @@ void except_fillInEHTable(Symbol *s)
 
     /* Append to guard[] the guard blocks for temporaries that are created and destroyed
      * within a single expression. These are marked by the special instruction pairs
-     * (ESCAPE | ESCdctor) and (ESCAPE | ESCddtor).
+     * PSOP.dctor and PSOP.ddtor.
      */
-    if (usednteh & EHcleanup)
+    if (cgstate.usednteh & EHcleanup)
     {
         Barray!int stack;
 
@@ -248,7 +248,7 @@ void except_fillInEHTable(Symbol *s)
         uint boffset = cast(uint)b.Boffset;
         for (code *c = b.Bcode; c; c = code_next(c))
         {
-            if (c.Iop == (ESCAPE | ESCdctor))
+            if (c.Iop == PSOP.dctor)
             {
                 code *c2 = code_next(c);
                 if (config.ehmethod == EHmethod.EH_WIN32)
@@ -266,7 +266,7 @@ void except_fillInEHTable(Symbol *s)
                     if (!c2)
                         goto Lnodtor;
 
-                    if (c2.Iop == (ESCAPE | ESCddtor))
+                    if (c2.Iop == PSOP.ddtor)
                     {
                         if (n)
                             n--;
@@ -294,7 +294,7 @@ void except_fillInEHTable(Symbol *s)
                             break;
                         }
                     }
-                    else if (c2.Iop == (ESCAPE | ESCdctor))
+                    else if (c2.Iop == PSOP.dctor)
                     {
                         n++;
                     }
@@ -315,7 +315,7 @@ void except_fillInEHTable(Symbol *s)
                 ++scopeindex;
                 sz += GUARD_SIZE;
             }
-            else if (c.Iop == (ESCAPE | ESCddtor))
+            else if (c.Iop == PSOP.ddtor)
             {
                 stack.setLength(stack.length - 1);
                 assert(stack.length != 0);

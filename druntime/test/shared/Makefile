@@ -1,73 +1,121 @@
-LINK_SHARED:=1
+# SHARED (from druntime/Makefile) is `1` for platforms supporting a shared druntime library, otherwise empty
+LINK_SHARED:=$(SHARED)
 
-include ../common.mak
+include ../common.mak # affected by LINK_SHARED!
 
-TESTS:=link load linkD linkDR loadDR host finalize dynamiccast
-TESTS+=link_linkdep load_linkdep link_loaddep load_loaddep load_13414
+ifneq (,$(LINK_SHARED))
+    # TODO: enable tests on Windows
+    ifeq (windows,$(OS))
+        TESTS:=link linkD linkDR loadDR
+    else
+        TESTS:=link load linkD linkDR loadDR host finalize dynamiccast \
+               link_linkdep load_linkdep link_loaddep load_loaddep load_13414
+    endif
+endif
+# there are extra tests for Windows, not requiring a druntime DLL
+ifeq (windows,$(OS))
+    TESTS+=loadlibwin dllrefcount dllgc dynamiccast
+endif
 
-EXPORT_DYNAMIC=$(if $(findstring $(OS),linux freebsd dragonflybsd),-L--export-dynamic,)
-NO_AS_NEEDED=$(if $(findstring $(OS),linux freebsd dragonflybsd),-L--no-as-needed,)
+DOTIMPLIB:=$(if $(findstring $(OS),windows),.lib,$(DOTDLL))
 
 .PHONY: all clean
 all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
 
-$(ROOT)/loadDR.done $(ROOT)/host.done: RUN_ARGS:=$(DRUNTIMESO)
+ifeq (windows,$(OS)) # extra tests on Windows
 
-$(ROOT)/dynamiccast.done: CLEANUP:=rm $(ROOT)/dynamiccast_endmain $(ROOT)/dynamiccast_endbar
+ifeq ($(SHARED),1)
+# dmd -shared does not (yet) imply -visibility=public
+$(ROOT)/%$(DOTDLL): DFLAGS += -visibility=public
 
-$(ROOT)/%.done: $(ROOT)/%
+DFLAGS+=-version=SharedRuntime
+PATH:=$(dir $(DRUNTIMESO));$(PATH)
+endif
+
+$(ROOT)/dllrefcount$(DOTEXE): $(SRC)/dllrefcount.d
+	$(QUIET)$(DMD) $(DFLAGS) -of$@ $<
+
+$(ROOT)/loadlibwin$(DOTEXE): $(SRC)/loadlibwin.d
+	$(QUIET)$(DMD) $(DFLAGS) -of$@ $<
+
+$(ROOT)/dllgc$(DOTEXE): $(SRC)/dllgc.d
+	$(QUIET)$(DMD) $(DFLAGS) -version=DLL -shared -of$(ROOT)/dllgc$(DOTDLL) $<
+	$(QUIET)$(DMD) $(DFLAGS) -of$@ $<
+
+endif # Windows
+
+$(ROOT)/loadDR.done $(ROOT)/host.done: RUN_ARGS:=$(DRUNTIMESO:.lib=.dll)
+
+$(ROOT)/%.done: $(ROOT)/%$(DOTEXE)
 	@echo Testing $*
 	$(QUIET)$(TIMELIMIT)$< $(RUN_ARGS)
-	$(CLEANUP)
 	@touch $@
 
-$(ROOT)/link: $(SRC)/link.d $(ROOT)/lib.so $(DRUNTIMESO)
-	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< -L$(ROOT)/lib.so
+$(ROOT)/dynamiccast.done: $(ROOT)/%.done: $(ROOT)/%$(DOTEXE)
+	@echo Testing $*
+	$(QUIET)rm -f $(ROOT)/dynamiccast_end{bar,main}
+	$(QUIET)$(TIMELIMIT)$< $(RUN_ARGS)
+	$(QUIET)test -f $(ROOT)/dynamiccast_endbar
+	$(QUIET)test -f $(ROOT)/dynamiccast_endmain
+	@touch $@
 
-$(ROOT)/link_linkdep: $(SRC)/link_linkdep.d $(ROOT)/lib.so $(ROOT)/liblinkdep.so $(DRUNTIMESO)
-	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< $(LINKFLAGS) -L$(ROOT)/liblinkdep.so -L$(ROOT)/lib.so
+$(ROOT)/link$(DOTEXE): $(SRC)/link.d $(ROOT)/lib$(DOTDLL) $(DRUNTIMESO)
+	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< -L$(ROOT)/lib$(DOTIMPLIB)
 
-$(ROOT)/load_linkdep: $(SRC)/load_linkdep.d $(ROOT)/lib.so $(ROOT)/liblinkdep.so $(DRUNTIMESO)
+$(ROOT)/link_linkdep$(DOTEXE): $(SRC)/link_linkdep.d $(ROOT)/lib$(DOTDLL) $(ROOT)/liblinkdep$(DOTDLL) $(DRUNTIMESO)
+	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< $(LINKFLAGS) -L$(ROOT)/liblinkdep$(DOTIMPLIB) -L$(ROOT)/lib$(DOTIMPLIB)
+
+$(ROOT)/load_linkdep$(DOTEXE): $(SRC)/load_linkdep.d $(ROOT)/lib$(DOTDLL) $(ROOT)/liblinkdep$(DOTDLL) $(DRUNTIMESO)
 	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< $(LINKFLAGS) $(LINKDL)
 
-$(ROOT)/link_loaddep: $(SRC)/link_loaddep.d $(ROOT)/lib.so $(ROOT)/libloaddep.so $(DRUNTIMESO)
-	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< $(LINKFLAGS) -L$(ROOT)/libloaddep.so
+$(ROOT)/link_loaddep$(DOTEXE): $(SRC)/link_loaddep.d $(ROOT)/lib$(DOTDLL) $(ROOT)/libloaddep$(DOTDLL) $(DRUNTIMESO)
+	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< $(LINKFLAGS) -L$(ROOT)/libloaddep$(DOTIMPLIB)
 
-$(ROOT)/load_loaddep: $(SRC)/load_loaddep.d $(ROOT)/lib.so $(ROOT)/libloaddep.so $(DRUNTIMESO)
+$(ROOT)/load_loaddep$(DOTEXE): $(SRC)/load_loaddep.d $(ROOT)/lib$(DOTDLL) $(ROOT)/libloaddep$(DOTDLL) $(DRUNTIMESO)
 	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< $(LINKFLAGS) $(LINKDL)
 
-$(ROOT)/load $(ROOT)/finalize: $(ROOT)/%: $(SRC)/%.d $(ROOT)/lib.so $(DRUNTIMESO)
+$(ROOT)/load$(DOTEXE) $(ROOT)/finalize$(DOTEXE): $(ROOT)/%$(DOTEXE): $(SRC)/%.d $(ROOT)/lib$(DOTDLL) $(DRUNTIMESO)
 	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< $(LINKDL)
 
-$(ROOT)/load_13414: $(ROOT)/%: $(SRC)/%.d $(ROOT)/lib_13414.so $(DRUNTIMESO)
+$(ROOT)/load_13414$(DOTEXE): $(ROOT)/%$(DOTEXE): $(SRC)/%.d $(ROOT)/lib_13414$(DOTDLL) $(DRUNTIMESO)
 	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< $(LINKDL)
 
-$(ROOT)/dynamiccast: $(SRC)/dynamiccast.d $(ROOT)/dynamiccast.so $(DRUNTIMESO)
+$(ROOT)/dynamiccast$(DOTEXE): $(SRC)/dynamiccast.d $(ROOT)/dynamiccast$(DOTDLL) $(if $(LINK_SHARED),$(DRUNTIMESO),$(DRUNTIME))
 	$(QUIET)$(DMD) $(DFLAGS) -of$@ $(SRC)/dynamiccast.d $(LINKDL)
 
-$(ROOT)/dynamiccast.so: $(SRC)/dynamiccast.d $(DRUNTIMESO)
-	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< -version=DLL -fPIC -shared $(LINKDL)
+$(ROOT)/dynamiccast$(DOTDLL): $(SRC)/dynamiccast.d  $(if $(LINK_SHARED),$(DRUNTIMESO),$(DRUNTIME))
+	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< -version=DLL -shared $(LINKDL)
 
-$(ROOT)/linkD: $(SRC)/linkD.c $(ROOT)/lib.so $(DRUNTIMESO)
-	$(QUIET)$(CC) $(CFLAGS) -o $@ $< $(ROOT)/lib.so $(LDL) -pthread
+ifeq (windows,$(OS))
+    CC:=cl
+    CC_OUTFLAG:=/Fe
+    # we additionally specify the .obj output path (/Fo) to prevent collisions
+    CC_EXTRAS:=
+else
+    CC_OUTFLAG:=-o
+    CC_EXTRAS:=$(LDL) -pthread
+endif
 
-$(ROOT)/linkDR: $(SRC)/linkDR.c $(ROOT)/lib.so $(DRUNTIMESO)
-	$(QUIET)$(CC) $(CFLAGS) -o $@ $< $(DRUNTIMESO) $(LDL) -pthread
+$(ROOT)/linkD$(DOTEXE): $(SRC)/linkD.c $(ROOT)/lib$(DOTDLL) $(DRUNTIMESO)
+	$(QUIET)$(CC) $(CFLAGS) $(CC_OUTFLAG)$@ $(if $(findstring $(OS),windows),/Fo$@.obj,) $< $(ROOT)/lib$(DOTIMPLIB) $(CC_EXTRAS)
 
-$(ROOT)/loadDR: $(SRC)/loadDR.c $(ROOT)/lib.so $(DRUNTIMESO)
-	$(QUIET)$(CC) $(CFLAGS) -o $@ $< $(LDL) -pthread
+$(ROOT)/linkDR$(DOTEXE): $(SRC)/linkDR.c $(ROOT)/lib$(DOTDLL) $(DRUNTIMESO)
+	$(QUIET)$(CC) $(CFLAGS) $(CC_OUTFLAG)$@ $(if $(findstring $(OS),windows),/Fo$@.obj,) $< $(DRUNTIME_IMPLIB) $(CC_EXTRAS)
 
-$(ROOT)/host: $(SRC)/host.c $(ROOT)/plugin1.so $(ROOT)/plugin2.so
-	$(QUIET)$(CC) $(CFLAGS) -o $@ $< $(LDL) -pthread
+$(ROOT)/loadDR$(DOTEXE): $(SRC)/loadDR.c $(ROOT)/lib$(DOTDLL) $(DRUNTIMESO)
+	$(QUIET)$(CC) $(CFLAGS) $(CC_OUTFLAG)$@ $(if $(findstring $(OS),windows),/Fo$@.obj,) $< $(CC_EXTRAS)
 
-$(ROOT)/liblinkdep.so: $(ROOT)/lib.so
-$(ROOT)/liblinkdep.so: DFLAGS+=-L$(ROOT)/lib.so
+$(ROOT)/host$(DOTEXE): $(SRC)/host.c $(ROOT)/plugin1$(DOTDLL) $(ROOT)/plugin2$(DOTDLL)
+	$(QUIET)$(CC) $(CFLAGS) $(CC_OUTFLAG)$@ $(if $(findstring $(OS),windows),/Fo$@.obj,) $< $(CC_EXTRAS)
 
-$(ROOT)/plugin1.so $(ROOT)/plugin2.so: $(SRC)/plugin.d $(DRUNTIMESO)
-	$(QUIET)$(DMD) -fPIC -shared $(DFLAGS) -of$@ $<
+$(ROOT)/liblinkdep$(DOTDLL): $(ROOT)/lib$(DOTDLL)
+$(ROOT)/liblinkdep$(DOTDLL): DFLAGS+=-L$(ROOT)/lib$(DOTIMPLIB)
 
-$(ROOT)/%.so: $(SRC)/%.d $(DRUNTIMESO)
-	$(QUIET)$(DMD) -fPIC -shared $(DFLAGS) -of$@ $< $(LINKDL)
+$(ROOT)/plugin1$(DOTDLL) $(ROOT)/plugin2$(DOTDLL): $(SRC)/plugin.d $(DRUNTIMESO)
+	$(QUIET)$(DMD) -shared $(DFLAGS) -of$@ $<
+
+$(ROOT)/%$(DOTDLL): $(SRC)/%.d $(DRUNTIMESO)
+	$(QUIET)$(DMD) -shared $(DFLAGS) -of$@ $< $(LINKDL)
 
 clean:
-	rm -rf $(GENERATED)
+	rm -rf $(ROOT)
