@@ -888,4 +888,11 @@ private extern(C++) final class StaticAAVisitor : SemanticTimeTransitiveVisitor
 
         aaExp.lowering = loweredExp;
     }
+
+    // https://issues.dlang.org/show_bug.cgi?id=24602
+    // TODO: Is this intionally not visited by SemanticTimeTransitiveVisitor?
+    override void visit(ClassReferenceExp crExp)
+    {
+        this.visit(crExp.value);
+    }
 }
