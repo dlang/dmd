@@ -4028,7 +4028,7 @@ extern (C++) final class TypeStruct : Type
              * The check should check for overlap of v with the previous field,
              * not just starting at the same point
              */
-            if (v.offset == offset) // v is at same offset as previous field
+            if (!global.params.fixImmutableConv && v.offset == offset) // v is at same offset as previous field
                 continue;       // ignore
 
             Type tvf = v.type.addMod(mod);    // from type
