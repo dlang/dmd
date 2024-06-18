@@ -100,7 +100,7 @@ private void getlvalue87(ref CodeBuilder cdb, ref code pcs,elem *e,regm_t keepms
     if (e.Eoper == OPvar || e.Eoper == OPrelconst)
         e.Vsym.Sflags &= ~GTregcand;
 
-    getlvalue(cdb, &pcs, e, keepmsk);
+    getlvalue(cdb, pcs, e, keepmsk);
     if (ADDFWAIT())
         pcs.Iflags |= CFwait;
     if (I32)
