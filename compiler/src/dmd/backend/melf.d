@@ -8,6 +8,7 @@
  * Translation to D of Linux's melf.h
  *
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/melf.d, backend/melf.d)
+ * References:  $(LINK2 https://github.com/ARM-software/abi-aa/blob/main/aaelf64/aaelf64.rst, aaelf64)
  */
 
 module dmd.backend.melf;
@@ -76,6 +77,7 @@ nothrow:
         enum EM_386      = 3;       /* Intel 80386 */
         enum EM_486      = 6;       /* Intel 80486 */
         enum EM_X86_64   = 62;      // Advanced Micro Devices X86-64 processor
+        enum EM_AARCH64  = 183;     // AMD AArch64
 
 // e_version
             enum EV_NONE     = 0;   // invalid version
@@ -459,3 +461,141 @@ struct Elf64_Rela
 enum GRP_COMDAT   = 1;
 enum GRP_MASKOS   = 0x0ff0_0000;
 enum GRP_MASKPROC = 0xf000_0000;
+
+/***************************** 64 bit AArch64 *****************************************/
+
+        enum R_AARCH64_NONE                        =    0;
+        enum R_AARCH64_P32_ABS32                   =    1;
+        enum R_AARCH64_P32_COPY                    =  180;
+        enum R_AARCH64_P32_GLOB_DAT                =  181;
+        enum R_AARCH64_P32_JUMP_SLOT               =  182;
+        enum R_AARCH64_P32_RELATIVE                =  183;
+        enum R_AARCH64_P32_TLS_DTPMOD              =  184;
+        enum R_AARCH64_P32_TLS_DTPREL              =  185;
+        enum R_AARCH64_P32_TLS_TPREL               =  186;
+        enum R_AARCH64_P32_TLSDESC                 =  187;
+        enum R_AARCH64_P32_IRELATIVE               =  188;
+        enum R_AARCH64_ABS64                       =  257;
+        enum R_AARCH64_ABS32                       =  258;
+        enum R_AARCH64_ABS16                       =  259;
+        enum R_AARCH64_PREL64                      =  260;
+        enum R_AARCH64_PREL32                      =  261;
+        enum R_AARCH64_PREL16                      =  262;
+        enum R_AARCH64_MOVW_UABS_G0                =  263;
+        enum R_AARCH64_MOVW_UABS_G0_NC             =  264;
+        enum R_AARCH64_MOVW_UABS_G1                =  265;
+        enum R_AARCH64_MOVW_UABS_G1_NC             =  266;
+        enum R_AARCH64_MOVW_UABS_G2                =  267;
+        enum R_AARCH64_MOVW_UABS_G2_NC             =  268;
+        enum R_AARCH64_MOVW_UABS_G3                =  269;
+        enum R_AARCH64_MOVW_SABS_G0                =  270;
+        enum R_AARCH64_MOVW_SABS_G1                =  271;
+        enum R_AARCH64_MOVW_SABS_G2                =  272;
+        enum R_AARCH64_LD_PREL_LO19                =  273;
+        enum R_AARCH64_ADR_PREL_LO21               =  274;
+        enum R_AARCH64_ADR_PREL_PG_HI21            =  275;
+        enum R_AARCH64_ADR_PREL_PG_HI21_NC         =  276;
+        enum R_AARCH64_ADD_ABS_LO12_NC             =  277;
+        enum R_AARCH64_LDST8_ABS_LO12_NC           =  278;
+        enum R_AARCH64_TSTBR14                     =  279;
+        enum R_AARCH64_CONDBR19                    =  280;
+        enum R_AARCH64_JUMP26                      =  282;
+        enum R_AARCH64_CALL26                      =  283;
+        enum R_AARCH64_LDST16_ABS_LO12_NC          =  284;
+        enum R_AARCH64_LDST32_ABS_LO12_NC          =  285;
+        enum R_AARCH64_LDST64_ABS_LO12_NC          =  286;
+        enum R_AARCH64_MOVW_PREL_G0                =  287;
+        enum R_AARCH64_MOVW_PREL_G0_NC             =  288;
+        enum R_AARCH64_MOVW_PREL_G1                =  289;
+        enum R_AARCH64_MOVW_PREL_G1_NC             =  290;
+        enum R_AARCH64_MOVW_PREL_G2                =  291;
+        enum R_AARCH64_MOVW_PREL_G2_NC             =  292;
+        enum R_AARCH64_MOVW_PREL_G3                =  293;
+        enum R_AARCH64_LDST128_ABS_LO12_NC         =  299;
+        enum R_AARCH64_MOVW_GOTOFF_G0              =  300;
+        enum R_AARCH64_MOVW_GOTOFF_G0_NC           =  301;
+        enum R_AARCH64_MOVW_GOTOFF_G1              =  302;
+        enum R_AARCH64_MOVW_GOTOFF_G1_NC           =  303;
+        enum R_AARCH64_MOVW_GOTOFF_G2              =  304;
+        enum R_AARCH64_MOVW_GOTOFF_G2_NC           =  305;
+        enum R_AARCH64_MOVW_GOTOFF_G3              =  306;
+        enum R_AARCH64_GOTREL64                    =  307;
+        enum R_AARCH64_GOTREL32                    =  308;
+        enum R_AARCH64_GOT_LD_PREL19               =  309;
+        enum R_AARCH64_LD64_GOTOFF_LO15            =  310;
+        enum R_AARCH64_ADR_GOT_PAGE                =  311;
+        enum R_AARCH64_LD64_GOT_LO12_NC            =  312;
+        enum R_AARCH64_LD64_GOTPAGE_LO15           =  313;
+        enum R_AARCH64_TLSGD_ADR_PREL21            =  512;
+        enum R_AARCH64_TLSGD_ADR_PAGE21            =  513;
+        enum R_AARCH64_TLSGD_ADD_LO12_NC           =  514;
+        enum R_AARCH64_TLSGD_MOVW_G1               =  515;
+        enum R_AARCH64_TLSGD_MOVW_G0_NC            =  516;
+        enum R_AARCH64_TLSLD_ADR_PREL21            =  517;
+        enum R_AARCH64_TLSLD_ADR_PAGE21            =  518;
+        enum R_AARCH64_TLSLD_ADD_LO12_NC           =  519;
+        enum R_AARCH64_TLSLD_MOVW_G1               =  520;
+        enum R_AARCH64_TLSLD_MOVW_G0_NC            =  521;
+        enum R_AARCH64_TLSLD_LD_PREL19             =  522;
+        enum R_AARCH64_TLSLD_MOVW_DTPREL_G2        =  523;
+        enum R_AARCH64_TLSLD_MOVW_DTPREL_G1        =  524;
+        enum R_AARCH64_TLSLD_MOVW_DTPREL_G1_NC     =  525;
+        enum R_AARCH64_TLSLD_MOVW_DTPREL_G0        =  526;
+        enum R_AARCH64_TLSLD_MOVW_DTPREL_G0_NC     =  527;
+        enum R_AARCH64_TLSLD_ADD_DTPREL_HI12       =  528;
+        enum R_AARCH64_TLSLD_ADD_DTPREL_LO12       =  529;
+        enum R_AARCH64_TLSLD_ADD_DTPREL_LO12_NC    =  530;
+        enum R_AARCH64_TLSLD_LDST8_DTPREL_LO12     =  531;
+        enum R_AARCH64_TLSLD_LDST8_DTPREL_LO12_NC  =  532;
+        enum R_AARCH64_TLSLD_LDST16_DTPREL_LO12    =  533;
+        enum R_AARCH64_TLSLD_LDST16_DTPREL_LO12_NC =  534;
+        enum R_AARCH64_TLSLD_LDST32_DTPREL_LO12    =  535;
+        enum R_AARCH64_TLSLD_LDST32_DTPREL_LO12_NC =  536;
+        enum R_AARCH64_TLSLD_LDST64_DTPREL_LO12    =  537;
+        enum R_AARCH64_TLSLD_LDST64_DTPREL_LO12_NC =  538;
+        enum R_AARCH64_TLSIE_MOVW_GOTTPREL_G1      =  539;
+        enum R_AARCH64_TLSIE_MOVW_GOTTPREL_G0_NC   =  540;
+        enum R_AARCH64_TLSIE_ADR_GOTTPREL_PAGE21   =  541;
+        enum R_AARCH64_TLSIE_LD64_GOTTPREL_LO12_NC =  542;
+        enum R_AARCH64_TLSIE_LD_GOTTPREL_PREL19    =  543;
+        enum R_AARCH64_TLSLE_MOVW_TPREL_G2         =  544;
+        enum R_AARCH64_TLSLE_MOVW_TPREL_G1         =  545;
+        enum R_AARCH64_TLSLE_MOVW_TPREL_G1_NC      =  546;
+        enum R_AARCH64_TLSLE_MOVW_TPREL_G0         =  547;
+        enum R_AARCH64_TLSLE_MOVW_TPREL_G0_NC      =  548;
+        enum R_AARCH64_TLSLE_ADD_TPREL_HI12        =  549;
+        enum R_AARCH64_TLSLE_ADD_TPREL_LO12        =  550;
+        enum R_AARCH64_TLSLE_ADD_TPREL_LO12_NC     =  551;
+        enum R_AARCH64_TLSLE_LDST8_TPREL_LO12      =  552;
+        enum R_AARCH64_TLSLE_LDST8_TPREL_LO12_NC   =  553;
+        enum R_AARCH64_TLSLE_LDST16_TPREL_LO12     =  554;
+        enum R_AARCH64_TLSLE_LDST16_TPREL_LO12_NC  =  555;
+        enum R_AARCH64_TLSLE_LDST32_TPREL_LO12     =  556;
+        enum R_AARCH64_TLSLE_LDST32_TPREL_LO12_NC  =  557;
+        enum R_AARCH64_TLSLE_LDST64_TPREL_LO12     =  558;
+        enum R_AARCH64_TLSLE_LDST64_TPREL_LO12_NC  =  559;
+        enum R_AARCH64_TLSDESC_LD_PREL19           =  560;
+        enum R_AARCH64_TLSDESC_ADR_PREL21          =  561;
+        enum R_AARCH64_TLSDESC_ADR_PAGE21          =  562;
+        enum R_AARCH64_TLSDESC_LD64_LO12           =  563;
+        enum R_AARCH64_TLSDESC_ADD_LO12            =  564;
+        enum R_AARCH64_TLSDESC_OFF_G1              =  565;
+        enum R_AARCH64_TLSDESC_OFF_G0_NC           =  566;
+        enum R_AARCH64_TLSDESC_LDR                 =  567;
+        enum R_AARCH64_TLSDESC_ADD                 =  568;
+        enum R_AARCH64_TLSDESC_CALL                =  569;
+        enum R_AARCH64_TLSLE_LDST128_TPREL_LO12    =  570;
+        enum R_AARCH64_TLSLE_LDST128_TPREL_LO12_NC =  571;
+        enum R_AARCH64_TLSLD_LDST128_DTPREL_LO12   =  572;
+        enum R_AARCH64_TLSLD_LDST128_DTPREL_LO12_NC=  573;
+        enum R_AARCH64_COPY                        = 1024;
+        enum R_AARCH64_GLOB_DAT                    = 1025;
+        enum R_AARCH64_JUMP_SLOT                   = 1026;
+        enum R_AARCH64_RELATIVE                    = 1027;
+        enum R_AARCH64_TLS_DTPMOD                  = 1028;
+        enum R_AARCH64_TLS_DTPMOD64                = 1028;
+        enum R_AARCH64_TLS_DTPREL                  = 1029;
+        enum R_AARCH64_TLS_DTPREL64                = 1029;
+        enum R_AARCH64_TLS_TPREL                   = 1030;
+        enum R_AARCH64_TLS_TPREL64                 = 1030;
+        enum R_AARCH64_TLSDESC                     = 1031;
