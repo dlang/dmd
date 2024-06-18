@@ -2,6 +2,7 @@
 *.deps
 .B*
 *~
+/compiler/src/bug2
 /compiler/test/test_results
 /compiler/test/trace.def
 /compiler/test/trace.log

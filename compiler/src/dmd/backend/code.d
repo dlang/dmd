@@ -112,7 +112,7 @@ struct REGSAVE
   nothrow:
     @trusted
     void reset() { off = 0; top = 0; idx = 0; alignment = _tysize[TYnptr]/*REGSIZE*/; }
-    void save(ref CodeBuilder cdb, reg_t reg, uint *pidx) { REGSAVE_save(this, cdb, reg, *pidx); }
+    void save(ref CodeBuilder cdb, reg_t reg, out uint pidx) { REGSAVE_save (this, cdb, reg, pidx); }
     void restore(ref CodeBuilder cdb, reg_t reg, uint idx) { REGSAVE_restore(this, cdb, reg, idx); }
 }
 
