@@ -2349,7 +2349,7 @@ L1:
  */
 
 @trusted
-void cod3_ptrchk(ref CodeBuilder cdb,code *pcs,regm_t keepmsk)
+void cod3_ptrchk(ref CodeBuilder cdb,ref code pcs,regm_t keepmsk)
 {
     ubyte sib;
     reg_t reg;
@@ -2384,7 +2384,7 @@ void cod3_ptrchk(ref CodeBuilder cdb,code *pcs,regm_t keepmsk)
         pcs.Iop = LEA;
         pcs.Irm |= modregrm(0,reg,0);
         pcs.Iflags &= ~(CFopsize | CFss | CFes | CFcs);        // no prefix bytes needed
-        cdb.gen(pcs);                 // LEA reg,EA
+        cdb.gen(&pcs);                 // LEA reg,EA
 
         pcs.Iflags = flagsave;
         pcs.Iop = opsave;
@@ -4593,7 +4593,7 @@ void gen_spill_reg(ref CodeBuilder cdb, Symbol* s, bool toreg)
             cs.Iop = xmmload(s.Stype.Tty);        // MOVSS/D xreg,mem
         else
             cs.Iop = xmmstore(s.Stype.Tty);       // MOVSS/D mem,xreg
-        getlvalue(cdb,&cs,e,keepmsk);
+        getlvalue(cdb,cs,e,keepmsk);
         cs.orReg(s.Sreglsw - XMM0);
         cdb.gen(&cs);
     }
@@ -4602,7 +4602,7 @@ void gen_spill_reg(ref CodeBuilder cdb, Symbol* s, bool toreg)
         const int sz = cast(int)type_size(s.Stype);
         cs.Iop = toreg ? 0x8B : 0x89; // MOV reg,mem[ESP] : MOV mem[ESP],reg
         cs.Iop ^= (sz == 1);
-        getlvalue(cdb,&cs,e,keepmsk);
+        getlvalue(cdb,cs,e,keepmsk);
         cs.orReg(s.Sreglsw);
         if (I64 && sz == 1 && s.Sreglsw >= 4)
             cs.Irex |= REX;
@@ -4615,7 +4615,7 @@ void gen_spill_reg(ref CodeBuilder cdb, Symbol* s, bool toreg)
         if (sz > REGSIZE)
         {
             cs.setReg(s.Sregmsw);
-            getlvalue_msw(&cs);
+            getlvalue_msw(cs);
             if ((cs.Irm & 0xC0) == 0xC0 &&              // reg,reg
                 (((cs.Irm >> 3) ^ cs.Irm) & 7) == 0 &&  // registers match
                 (((cs.Irex >> 2) ^ cs.Irex) & 1) == 0)  // REX_R and REX_B match

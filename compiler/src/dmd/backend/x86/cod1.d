@@ -696,9 +696,9 @@ void loadea(ref CodeBuilder cdb,elem *e,code *cs,uint op,uint reg,targ_size_t of
         }
     }
 
-    getlvalue(cdb, cs, e, keepmsk);
+    getlvalue(cdb, *cs, e, keepmsk);
     if (offset == REGSIZE)
-        getlvalue_msw(cs);
+        getlvalue_msw(*cs);
     else
         cs.IEV1.Voffset += offset;
     if (I64)
@@ -798,7 +798,7 @@ uint getaddrmode(regm_t idxregs)
     return mode;
 }
 
-void setaddrmode(code *c, regm_t idxregs)
+void setaddrmode(ref code c, regm_t idxregs)
 {
     uint mode = getaddrmode(idxregs);
     c.Irm = mode & 0xFF;
@@ -811,7 +811,7 @@ void setaddrmode(code *c, regm_t idxregs)
  */
 
 @trusted
-void getlvalue_msw(code *c)
+void getlvalue_msw(ref code c)
 {
     if (c.IFL1 == FLreg)
     {
@@ -830,7 +830,7 @@ void getlvalue_msw(code *c)
  */
 
 @trusted
-void getlvalue_lsw(code *c)
+void getlvalue_lsw(ref code c)
 {
     if (c.IFL1 == FLreg)
     {
@@ -847,19 +847,19 @@ void getlvalue_lsw(code *c)
 
 /******************
  * Compute addressing mode.
- * Generate & return sequence of code (if any).
  * Return in cs the info on it.
- * Input:
- *      pcs ->  where to store data about addressing mode
- *      e ->    the lvalue elem
- *      keepmsk mask of registers we must not destroy or use
+ * Params:
+ *      cdb = sink for any code generated
+ *      pcs = set to addressing mode
+ *      e   = the lvalue elem
+ *      keepmsk = mask of registers we must not destroy or use
  *              if (keepmsk & RMstore), this will be only a store operation
  *              into the lvalue
  *              if (keepmsk & RMload), this will be a read operation only
  */
 
 @trusted
-void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
+void getlvalue(ref CodeBuilder cdb,ref code pcs,elem *e,regm_t keepmsk)
 {
     FL fl;
     uint f, opsave;
@@ -1161,12 +1161,12 @@ void getlvalue(ref CodeBuilder cdb,code *pcs,elem *e,regm_t keepmsk)
                     flagsave = pcs.Iflags;
                     ubyte rexsave = pcs.Irex;
                     pcs.Iop = LEA;
-                    code_newreg(pcs, reg);
+                    code_newreg(&pcs, reg);
                     if (!I16)
                         pcs.Iflags &= ~CFopsize;
                     if (I64)
                         pcs.Irex |= REX_W;
-                    cdb.gen(pcs);                 // LEA idxreg,EA
+                    cdb.gen(&pcs);                 // LEA idxreg,EA
                     cssave(e1,idxregs,true);
                     if (!I16)
                     {
@@ -4682,7 +4682,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                         cs.IEV1.Voffset -= REGSIZE;
                         cdb.gen(&cs);                    // PUSH EA+4
                         cdb.genadjesp(REGSIZE);
-                        getlvalue_lsw(&cs);
+                        getlvalue_lsw(cs);
                         cdb.gen(&cs);                    // PUSH EA+2
                     }
                     else /* TYlong */
@@ -4690,7 +4690,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                     cdb.genadjesp(REGSIZE);
                 }
                 cgstate.stackpush += sz;
-                getlvalue_lsw(&cs);
+                getlvalue_lsw(cs);
                 cdb.gen(&cs);                            // PUSH EA
                 cdb.genadjesp(REGSIZE);
                 freenode(e);

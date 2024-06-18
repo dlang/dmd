@@ -310,12 +310,12 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,regm_t 
         postinc = e11.E2.Vint;
         if (e11.Eoper == OPpostdec)
             postinc = -postinc;
-        getlvalue(cdb,&cs,e11,RMstore | retregs);
+        getlvalue(cdb,cs,e11,RMstore | retregs);
         freenode(e11.E2);
     }
     else
     {   postinc = 0;
-        getlvalue(cdb,&cs,e1,RMstore | retregs);       // get lvalue (cl == CNIL if regvar)
+        getlvalue(cdb,cs,e1,RMstore | retregs);       // get lvalue (cl == CNIL if regvar)
     }
 
     getregs_imm(cdb,regvar ? varregm : 0);
@@ -561,7 +561,7 @@ void xmmopass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     if (!regvar)
     {
-        getlvalue(cdb,&cs,e1,rretregs);         // get EA
+        getlvalue(cdb,cs,e1,rretregs);         // get EA
         retregs = *pretregs & XMMREGS & ~rretregs;
         if (!retregs)
             retregs = XMMREGS & ~rretregs;
@@ -630,7 +630,7 @@ void xmmpost(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     code cs;
     if (!regvar)
     {
-        getlvalue(cdb,&cs,e1,0);                // get EA
+        getlvalue(cdb,cs,e1,0);                // get EA
         retregs = XMMREGS & ~*pretregs;
         if (!retregs)
             retregs = XMMREGS;
@@ -1276,7 +1276,7 @@ static if (0)
 
         if ((op1.Eoper == OPind && !op1.Ecount) || op1.Eoper == OPvar)
         {
-            getlvalue(cdb,&cs, op1, RMload);     // get addressing mode
+            getlvalue(cdb,cs, op1, RMload);     // get addressing mode
         }
         else
         {
@@ -1323,7 +1323,7 @@ static if (0)
 
         if (((op2.Eoper == OPind && !op2.Ecount) || op2.Eoper == OPvar) && !isMOVHLPS)
         {
-            getlvalue(cdb,&cs, op2, RMload | retregs);     // get addressing mode
+            getlvalue(cdb,cs, op2, RMload | retregs);     // get addressing mode
         }
         else
         {
@@ -1424,7 +1424,7 @@ static if (0)
 {
     if ((e1.Eoper == OPind && !e1.Ecount) || e1.Eoper == OPvar)
     {
-        cr = getlvalue(&cs, e1, RMload | retregs);     // get addressing mode
+        cr = getlvalue(cs, e1, RMload | retregs);     // get addressing mode
     }
     else
     {
@@ -1477,7 +1477,7 @@ static if (0)
             if (config.avx && e1.Eoper == OPind && !e1.Ecount)
             {
                 // VBROADCASTSS X/YMM,MEM
-                getlvalue(cdb,&cs, e1, 0);         // get addressing mode
+                getlvalue(cdb,cs, e1, 0);         // get addressing mode
                 assert((cs.Irm & 0xC0) != 0xC0);   // AVX1 doesn't have register source operands
                 const reg = allocreg(cdb,retregs,ty);
                 cs.Iop = VBROADCASTSS;
@@ -1517,7 +1517,7 @@ static if (0)
             if (config.avx && tysize(ty) == 32 && e1.Eoper == OPind && !e1.Ecount)
             {
                 // VBROADCASTSD YMM,MEM
-                getlvalue(cdb,&cs, e1, 0);         // get addressing mode
+                getlvalue(cdb,cs, e1, 0);         // get addressing mode
                 assert((cs.Irm & 0xC0) != 0xC0);   // AVX1 doesn't have register source operands
                 const reg = allocreg(cdb,retregs,ty);
                 cs.Iop = VBROADCASTSD;
@@ -1559,7 +1559,7 @@ static if (0)
             if (config.avx >= 2 && e1.Eoper == OPind && !e1.Ecount)
             {
                 // VPBROADCASTB X/YMM,MEM
-                getlvalue(cdb,&cs, e1, 0);         // get addressing mode
+                getlvalue(cdb,cs, e1, 0);         // get addressing mode
                 assert((cs.Irm & 0xC0) != 0xC0);   // AVX1 doesn't have register source operands
                 reg_t reg = allocreg(cdb,retregs,ty);
                 cs.Iop = VPBROADCASTB;
@@ -1625,7 +1625,7 @@ static if (0)
             if (config.avx >= 2 && e1.Eoper == OPind && !e1.Ecount)
             {
                 // VPBROADCASTW X/YMM,MEM
-                getlvalue(cdb,&cs, e1, 0);         // get addressing mode
+                getlvalue(cdb,cs, e1, 0);         // get addressing mode
                 assert((cs.Irm & 0xC0) != 0xC0);   // AVX1 doesn't have register source operands
                 reg_t reg = allocreg(cdb,retregs,ty);
                 cs.Iop = VPBROADCASTW;
@@ -1677,7 +1677,7 @@ static if (0)
             if (config.avx && e1.Eoper == OPind && !e1.Ecount)
             {
                 // VPBROADCASTD/VBROADCASTSS X/YMM,MEM
-                getlvalue(cdb,&cs, e1, 0);         // get addressing mode
+                getlvalue(cdb,cs, e1, 0);         // get addressing mode
                 assert((cs.Irm & 0xC0) != 0xC0);   // AVX1 doesn't have register source operands
                 reg_t reg = allocreg(cdb,retregs,ty);
                 cs.Iop = config.avx >= 2 ? VPBROADCASTD : VBROADCASTSS;
@@ -1719,7 +1719,7 @@ static if (0)
             if (e1.Eoper == OPind && !e1.Ecount)
             {
                 // VPBROADCASTQ/VBROADCASTSD/(V)PUNPCKLQDQ X/YMM,MEM
-                getlvalue(cdb,&cs, e1, 0);         // get addressing mode
+                getlvalue(cdb,cs, e1, 0);         // get addressing mode
                 assert((cs.Irm & 0xC0) != 0xC0);   // AVX1 doesn't have register source operands
                 reg_t reg = allocreg(cdb,retregs,ty);
                 cs.Iop = config.avx >= 2 ? VPBROADCASTQ : tysize(ty) == 32 ? VBROADCASTSD : PUNPCKLQDQ;
