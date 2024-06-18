@@ -345,46 +345,42 @@ uint gensaverestore(regm_t regm,ref CodeBuilder cdbsave,ref CodeBuilder cdbresto
 
     uint stackused = 0;
 
-    code *[regm.sizeof * 8] restore;
+    code *[regm.sizeof * 8] restore = void;
 
     reg_t i;
     for (i = 0; regm; i++)
     {
         if (regm & 1)
         {
-            code *cs2;
+            CodeBuilder cdb;
+            cdb.ctor();
             if (i == ES && I16)
             {
                 stackused += REGSIZE;
                 cdbsave.gen1(0x06);                     // PUSH ES
-                cs2 = gen1(null, 0x07);                 // POP  ES
+                cdb.gen1(0x07);                         // POP  ES
             }
             else if (i == ST0 || i == ST01)
             {
-                CodeBuilder cdb;
-                cdb.ctor();
                 gensaverestore87(1 << i, cdbsave, cdb);
-                cs2 = cdb.finish();
             }
             else if (i >= XMM0 || I64 || cgstate.funcarg.size)
-            {   uint idx;
-                cgstate.regsave.save(cdbsave, i, &idx);
-                CodeBuilder cdb;
-                cdb.ctor();
+            {
+                uint idx;
+                cgstate.regsave.save(cdbsave, i, idx);
                 cgstate.regsave.restore(cdb, i, idx);
-                cs2 = cdb.finish();
             }
             else
             {
                 stackused += REGSIZE;
                 cdbsave.gen1(0x50 + (i & 7));           // PUSH i
-                cs2 = gen1(null, 0x58 + (i & 7));       // POP  i
+                cdb.gen1(0x58 + (i & 7));               // POP  i
                 if (i & 8)
                 {   code_orrex(cdbsave.last(), REX_B);
-                    code_orrex(cs2, REX_B);
+                    code_orrex(cdb.last(),     REX_B);
                 }
             }
-            restore[i] = cs2;
+            restore[i] = cdb.finish();
         }
         else
             restore[i] = null;
@@ -3511,7 +3507,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, regm_t* pretregs)
                 if (mi & tosave)
                 {
                     uint idx;
-                    cgstate.regsave.save(cdbsave, j, &idx);
+                    cgstate.regsave.save(cdbsave, j, idx);
                     cgstate.regsave.restore(cdbrestore, j, idx);
                     saved |= mi;
                     keepmsk &= ~mi;             // don't need to keep these for rest of params
@@ -3579,7 +3575,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, regm_t* pretregs)
                         if (mi & tosave)
                         {
                             uint idx;
-                            cgstate.regsave.save(cdbsave, j, &idx);
+                            cgstate.regsave.save(cdbsave, j, idx);
                             cgstate.regsave.restore(cdbrestore, j, idx);
                             saved |= mi;
                             keepmsk &= ~mi;             // don't need to keep these for rest of params
