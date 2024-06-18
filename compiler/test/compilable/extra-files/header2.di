@@ -3,16 +3,19 @@
 class C
 {
 }
-void foo(const C c, const(char)[] s, const int* q, const(int*) p);
+void foo(const(C) c, const(char)[] s, const(int*) q, const(int*) p);
 void bar(in void* p);
 void f(void function() f2);
 class C2;
-void foo2(const C2 c);
+void foo2(const(C2) c);
 struct Foo3
 {
 	int k;
-	@nogc @live @trusted @disable ~this();
+	@disable ~this() @nogc @live @trusted;
 	this(this);
+	alias __xdtor = __dtor;
+	alias __xpostblit = __postblit;
+	@disable ref Foo3 opAssign(Foo3 p) @nogc @trusted;
 }
 class C3
 {
@@ -24,9 +27,6 @@ T foo3(T)()
 struct S4A(T)
 {
 	T x;
-	@safe ~this()
-	{
-	}
 }
 struct S4B(T) if (1)
 {
@@ -76,7 +76,7 @@ template templateVariableBar(T) if (is(T == int))
 {
 	enum int templateVariableBar = T.stringof.length;
 }
-extern typeof(3 / 2.0) flit;
+extern double flit;
 void foo11217()(const int[] arr)
 {
 }
@@ -105,7 +105,7 @@ void test13275();
 align (1) struct S9766
 {
 	align {}
-	align (true ? 2 : 3)
+	align (2)
 	{
 		int var1;
 		align int var2;
@@ -119,14 +119,14 @@ align (2) struct S12200_2
 {
 	align (1) {}
 }
-pure nothrow @trusted inout(T)[] overlap(T)(inout(T)[] r1, inout(T)[] r2)
+inout(T)[] overlap(T)(inout(T)[] r1, inout(T)[] r2) pure nothrow @trusted
 {
 	alias U = inout(T);
-	static nothrow U* max(U* a, U* b)
+	static U* max(U* a, U* b) nothrow
 	{
 		return a > b ? a : b;
 	}
-	static nothrow U* min(U* a, U* b)
+	static U* min(U* a, U* b) nothrow
 	{
 		return a < b ? a : b;
 	}
@@ -170,7 +170,7 @@ extern const typeof(new class LeClass, LeInterface
 ) levar;
 class CC
 {
-	@safe void fun()()
+	void fun()() @safe
 	{
 		() pure @trusted
 		{

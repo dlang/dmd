@@ -1696,7 +1696,7 @@ public:
     {
         debug (LOG)
         {
-            printf("%s Expression::interpret() '%s' %s\n", e.loc.toChars(), EXPtoString(e.op).ptr, e.toChars());
+            printf("%s Expression::interpret() '%s' %s\n", e.loc.toChars(), expressionTypeToString(e.op).ptr, e.toChars());
             printf("type = %s\n", e.type.toChars());
             showCtfeExpr(e);
         }
@@ -3266,7 +3266,7 @@ public:
             return;
 
         default:
-            printf("be = '%s' %s at [%s]\n", EXPtoString(e.op).ptr, e.toChars(), e.loc.toChars());
+            printf("be = '%s' %s at [%s]\n", expressionTypeToString(e.op).ptr, e.toChars(), e.loc.toChars());
             assert(0);
         }
     }
@@ -4778,7 +4778,7 @@ public:
                 if (auto ce = ea.isCastExp())
                     ea = ce.e1;
 
-                // printf("2 ea = %s, %s %s\n", ea.type.toChars(), EXPtoString(ea.op).ptr, ea.toChars());
+                // printf("2 ea = %s, %s %s\n", ea.type.toChars(), expressionTypeToString(ea.op).ptr, ea.toChars());
                 if (ea.op == EXP.variable || ea.op == EXP.symbolOffset)
                     result = getVarExp(e.loc, istate, (cast(SymbolExp)ea).var, CTFEGoal.RValue);
                 else if (auto ae = ea.isAddrExp())
@@ -7130,7 +7130,7 @@ private Expression copyRegionExp(Expression e)
             return e;
 
         default:
-            printf("e: %s, %s\n", EXPtoString(e.op).ptr, e.toChars());
+            printf("e: %s, %s\n", expressionTypeToString(e.op).ptr, e.toChars());
             assert(0);
     }
 

@@ -339,7 +339,7 @@ public:
             return;
 
         buf.writeByte('(');
-        buf.writestring(EXPtoString(exp.op));
+        buf.writestring(expressionTypeToString(exp.op));
         exp.e1.accept(this);
         if (buf.length != 0)
             buf.writestring(")_");
@@ -372,7 +372,7 @@ public:
             return;
 
         buf.writeByte('(');
-        buf.writestring(EXPtoString(exp.op).ptr);
+        buf.writestring(expressionTypeToString(exp.op).ptr);
 
         exp.e1.accept(this);
         if (buf.length == 0)

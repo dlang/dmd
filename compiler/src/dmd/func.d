@@ -620,8 +620,9 @@ extern (C++) class FuncDeclaration : Declaration
     /** for diagnostics, e.g. 'int foo(int x, int y) pure' */
     final const(char)* toFullSignature()
     {
+        HdrGenState hds;
         OutBuffer buf;
-        functionToBufferWithIdent(type.toTypeFunction(), buf, toChars(), isStatic);
+        hds.functionSignatureToBufferAsPostfix(type.toTypeFunction(), buf, toChars().toDString(), isStatic);
         return buf.extractChars();
     }
 

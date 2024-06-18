@@ -4,8 +4,8 @@
 /*
 TEST_OUTPUT:
 ---
-output foo: 1e: pure nothrow @nogc @safe void(int x)
-output foo: 3e: pure nothrow @nogc @safe void(int x)
+output foo: 1e: void(int x) pure nothrow @nogc @safe
+output foo: 3e: void(int x) pure nothrow @nogc @safe
 ---
 */
 

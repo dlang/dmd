@@ -277,7 +277,7 @@ extern(C) void testC8504() {}
 
 void test8504()
 {
-    static assert(typeof(foo8504!()).stringof == "pure nothrow @nogc @safe void()");
+    static assert(typeof(foo8504!()).stringof == "void() pure nothrow @nogc @safe");
     static assert(typeof(foo8504!()).mangleof == "FNaNbNiNfZv");
     static assert(demangle(foo8504!().mangleof) == "pure nothrow @nogc @safe void testInference.foo8504!().foo8504()");
 
@@ -350,14 +350,14 @@ struct S5933
     double foo()(double a) { return a * a; }
 }
 // outside function
-static assert(typeof(foo5933!()).stringof == "pure nothrow @nogc @safe int(int a)");
-static assert(typeof(S5933.init.foo!()).stringof == "pure nothrow @nogc @safe double(double a)");
+static assert(typeof(foo5933!()).stringof == "int(int a) pure nothrow @nogc @safe");
+static assert(typeof(S5933.init.foo!()).stringof == "double(double a) pure nothrow @nogc @safe");
 
 void test5933()
 {
     // inside function
-    static assert(typeof(foo5933!()).stringof == "pure nothrow @nogc @safe int(int a)");
-    static assert(typeof(S5933.init.foo!()).stringof == "pure nothrow @nogc @safe double(double a)");
+    static assert(typeof(foo5933!()).stringof == "int(int a) pure nothrow @nogc @safe");
+    static assert(typeof(S5933.init.foo!()).stringof == "double(double a) pure nothrow @nogc @safe");
 }
 
 /***************************************************/
@@ -655,7 +655,7 @@ void foo10296()()
 
     void bar()() { a[1] = 2; }
     bar();
-    static assert(typeof(bar!()).stringof == "pure nothrow @nogc @safe void()");    // nothrow @safe void()
+    static assert(typeof(bar!()).stringof == "void() pure nothrow @nogc @safe");    // nothrow @safe void()
 }
 pure void test10296()
 {

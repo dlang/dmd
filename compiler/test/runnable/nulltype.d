@@ -1,9 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-pure nothrow @safe Object(bool b)
-pure nothrow @safe int*(bool b)
-pure nothrow @safe int[](bool b)
+Object(bool b) pure nothrow @safe
+int*(bool b) pure nothrow @safe
+int[](bool b) pure nothrow @safe
 ---
 
 RUN_OUTPUT:

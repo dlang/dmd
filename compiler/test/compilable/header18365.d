@@ -13,9 +13,9 @@ struct FullCaseEntry
 	ubyte n;
 	ubyte size;
 	ubyte entry_len;
-	auto const pure nothrow @nogc @property @trusted value() return
+	@property const(dchar)[] value() const pure nothrow @nogc return @trusted
 	{
-		return seq[0..entry_len];
+		return this.seq[0..cast(ulong)this.entry_len];
 	}
 }
 ---

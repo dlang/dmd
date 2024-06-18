@@ -67,6 +67,7 @@
                         "kind": "shared static constructor",
                         "line": 15,
                         "name": "_sharedStaticCtor_L15_C5",
+                        "protection": "",
                         "storageClass": [
                             "static"
                         ]
@@ -78,6 +79,7 @@
                         "kind": "static constructor",
                         "line": 16,
                         "name": "_staticCtor_L16_C5",
+                        "protection": "",
                         "storageClass": [
                             "static"
                         ]
@@ -89,6 +91,7 @@
                         "kind": "shared static destructor",
                         "line": 17,
                         "name": "_sharedStaticDtor_L17_C5",
+                        "protection": "",
                         "storageClass": [
                             "static"
                         ]
@@ -100,6 +103,7 @@
                         "kind": "static destructor",
                         "line": 18,
                         "name": "_staticDtor_L18_C5",
+                        "protection": "",
                         "storageClass": [
                             "static"
                         ]
@@ -215,6 +219,7 @@
                                 "kind": "variable",
                                 "line": 21,
                                 "name": "t",
+                                "protection": "",
                                 "type": "T"
                             }
                         ],
@@ -247,7 +252,8 @@
                                 "init": "T",
                                 "kind": "variable",
                                 "line": 22,
-                                "name": "t"
+                                "name": "t",
+                                "protection": ""
                             }
                         ],
                         "name": "Bar",
@@ -279,7 +285,8 @@
                                 "kind": "function",
                                 "line": 23,
                                 "name": "t",
-                                "type": "const T[0]()"
+                                "protection": "",
+                                "type": "T[0]() const"
                             }
                         ],
                         "name": "Baz",
@@ -515,6 +522,7 @@
                                 "kind": "function",
                                 "line": 57,
                                 "name": "method1",
+                                "protection": "",
                                 "type": "void()"
                             },
                             {
@@ -522,6 +530,7 @@
                                 "kind": "function",
                                 "line": 61,
                                 "name": "method2",
+                                "protection": "",
                                 "type": "void()"
                             },
                             {
@@ -529,6 +538,7 @@
                                 "kind": "function",
                                 "line": 68,
                                 "name": "method4",
+                                "protection": "",
                                 "type": "void()"
                             }
                         ],
@@ -554,7 +564,7 @@
                 "kind": "function",
                 "line": 74,
                 "name": "bar",
-                "originalType": "@trusted myInt(ref uint blah, Bar2 foo = new Bar3(7))",
+                "originalType": "myInt(ref uint blah, Bar2 foo = new Bar3(7)) @trusted",
                 "parameters": [
                     {
                         "deco": "VALUE_REMOVED_FOR_TEST",
@@ -647,6 +657,7 @@
                                         "type": "T"
                                     }
                                 ],
+                                "protection": "",
                                 "type": "(T t)"
                             }
                         ],
@@ -874,6 +885,7 @@
                         "kind": "alias",
                         "line": 141,
                         "name": "Seq",
+                        "protection": "",
                         "type": "T"
                     }
                 ],

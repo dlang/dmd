@@ -2544,7 +2544,7 @@ public:
             case identity:      return "==";
             case notIdentity:   return "!=";
             default:
-                return EXPtoString(op);
+                return expressionTypeToString(op);
         }
     }
 

@@ -200,7 +200,7 @@ Objects* opToArg(Scope* sc, EXP op)
     default:
         break;
     }
-    Expression e = new StringExp(Loc.initial, EXPtoString(op));
+    Expression e = new StringExp(Loc.initial, expressionTypeToString(op));
     e = e.expressionSemantic(sc);
     auto tiargs = new Objects();
     tiargs.push(e);
@@ -409,7 +409,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                     {
                         // @@@DEPRECATED_2.110@@@.
                         // Deprecated in 2.088, made an error in 2.100
-                        error(e.loc, "`%s` is obsolete.  Use `opUnary(string op)() if (op == \"%s\")` instead.", id.toChars(), EXPtoString(e.op).ptr);
+                        error(e.loc, "`%s` is obsolete.  Use `opUnary(string op)() if (op == \"%s\")` instead.", id.toChars(), expressionTypeToString(e.op).ptr);
                         return ErrorExp.get();
                     }
                 }
@@ -419,7 +419,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                     /* Rewrite op(e1) as:
                      *      op(e1.aliasthis)
                      */
-                    //printf("att una %s e1 = %s\n", EXPtoString(op).ptr, this.e1.type.toChars());
+                    //printf("att una %s e1 = %s\n", expressionTypeToString(op).ptr, this.e1.type.toChars());
                     if (auto e1 = resolveAliasThis(sc, e.e1, true))
                     {
                         e.e1 = e1;
@@ -682,9 +682,9 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                         // @@@DEPRECATED_2.110@@@.
                         // Deprecated in 2.088, made an error in 2.100
                         if (id == Id.postinc || id == Id.postdec)
-                            error(e.loc, "`%s` is obsolete.  Use `opUnary(string op)() if (op == \"%s\")` instead.", id.toChars(), EXPtoString(e.op).ptr);
+                            error(e.loc, "`%s` is obsolete.  Use `opUnary(string op)() if (op == \"%s\")` instead.", id.toChars(), expressionTypeToString(e.op).ptr);
                         else
-                            error(e.loc, "`%s` is obsolete.  Use `opBinary(string op)(...) if (op == \"%s\")` instead.", id.toChars(), EXPtoString(e.op).ptr);
+                            error(e.loc, "`%s` is obsolete.  Use `opBinary(string op)(...) if (op == \"%s\")` instead.", id.toChars(), expressionTypeToString(e.op).ptr);
                         return ErrorExp.get();
                     }
                 }
@@ -700,7 +700,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                     {
                         // @@@DEPRECATED_2.110@@@.
                         // Deprecated in 2.088, made an error in 2.100
-                        error(e.loc, "`%s` is obsolete.  Use `opBinaryRight(string op)(...) if (op == \"%s\")` instead.", id_r.toChars(), EXPtoString(e.op).ptr);
+                        error(e.loc, "`%s` is obsolete.  Use `opBinaryRight(string op)(...) if (op == \"%s\")` instead.", id_r.toChars(), expressionTypeToString(e.op).ptr);
                         return ErrorExp.get();
                     }
                 }
@@ -923,8 +923,8 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                 t2.ty == Tclass && e.e1.op == EXP.null_)
             {
                 error(e.loc, "use `%s` instead of `%s` when comparing with `null`",
-                    EXPtoString(e.op == EXP.equal ? EXP.identity : EXP.notIdentity).ptr,
-                    EXPtoString(e.op).ptr);
+                    expressionTypeToString(e.op == EXP.equal ? EXP.identity : EXP.notIdentity).ptr,
+                    expressionTypeToString(e.op).ptr);
                 return ErrorExp.get();
             }
             if (t1.ty == Tclass && t2.ty == Tnull ||
@@ -1233,7 +1233,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
                 {
                     // @@@DEPRECATED_2.110@@@.
                     // Deprecated in 2.088, made an error in 2.100
-                    scope char[] op = EXPtoString(e.op).dup;
+                    scope char[] op = expressionTypeToString(e.op).dup;
                     op[$-1] = '\0'; // remove trailing `=`
                     error(e.loc, "`%s` is obsolete.  Use `opOpAssign(string op)(...) if (op == \"%s\")` instead.", id.toChars(), op.ptr);
                     return ErrorExp.get();

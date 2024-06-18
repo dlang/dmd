@@ -789,9 +789,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         if (s.semanticRun == PASS.initial)
             s.dsymbolSemantic(null);
 
-        auto protName = visibilityToString(s.visible().kind); // TODO: How about package(names)
-        assert(protName);
-        auto se = new StringExp(e.loc, protName);
+        OutBuffer protNameBuffer;
+        visibilityToBuffer(protNameBuffer, s.visible);
+        auto se = new StringExp(e.loc, protNameBuffer.extractSlice());
         return se.expressionSemantic(sc);
     }
     if (e.ident == Id.parent)
@@ -1281,7 +1281,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 Expression x = isExpression(o);
                 Type t = isType(o);
                 if (x)
-                    printf("e = %s %s\n", EXPtoString(x.op).ptr, x.toChars());
+                    printf("e = %s %s\n", expressionTypeToString(x.op).ptr, x.toChars());
                 if (t)
                     printf("t = %d %s\n", t.ty, t.toChars());
             }

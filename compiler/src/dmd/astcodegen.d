@@ -90,7 +90,7 @@ struct ASTCodegen
     alias Dsymbols                  = dmd.dsymbol.Dsymbols;
     alias Visibility                = dmd.dsymbol.Visibility;
 
-    alias stcToBuffer               = dmd.hdrgen.stcToBuffer;
+    alias stcToBuffer               = dmd.hdrgen.storageClassToBuffer;
     alias linkageToChars            = dmd.hdrgen.linkageToChars;
     alias visibilityToChars         = dmd.hdrgen.visibilityToChars;
 

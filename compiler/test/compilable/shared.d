@@ -1,8 +1,8 @@
 /* REQUIRED_ARGS: -preview=nosharedaccess
 TEST_OUTPUT:
 ---
-pure nothrow @nogc ref @safe shared(C1)(return ref shared(C1) c)
-pure nothrow @nogc ref @safe shared(int)(return ref shared(C3) c)
+ref shared(C1)(return ref shared(C1) c) pure nothrow @nogc @safe
+ref shared(int)(return ref shared(C3) c) pure nothrow @nogc @safe
 ---
 */
 ref shared(int) f(return shared ref int y)

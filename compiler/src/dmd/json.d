@@ -337,7 +337,7 @@ public:
             arrayStart();
             while (stc)
             {
-                auto p = stcToString(stc);
+                auto p = storageClassToString(stc);
                 assert(p.length);
                 item(p);
             }
@@ -430,8 +430,9 @@ public:
             else
                 property("kind", s.kind.toDString);
         }
-        // TODO: How about package(names)?
-        property("protection", visibilityToString(s.visible().kind));
+
+        writePropertyVisibility("protection", s.visible());
+
         if (EnumMember em = s.isEnumMember())
         {
             if (em.origValue)
@@ -518,7 +519,7 @@ public:
         property("comment", s.comment.toDString);
         property("line", "char", s.loc);
         if (s.visible().kind != Visibility.Kind.public_)
-            property("protection", visibilityToString(s.visible().kind));
+            writePropertyVisibility("protection", s.visible());
         if (s.aliasId)
             property("alias", s.aliasId.toString());
         bool hasRenamed = false;
@@ -969,6 +970,18 @@ public:
         }
         arrayEnd();
         objectEnd();
+    }
+
+private:
+    extern(D) void writePropertyVisibility(string name, Visibility visibility)
+    {
+        propertyStart(name);
+
+        stringStart();
+        visibilityToBuffer(*this.buf, visibility);
+        stringEnd();
+
+        comma();
     }
 }
 
