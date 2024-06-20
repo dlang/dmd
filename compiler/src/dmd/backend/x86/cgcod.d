@@ -24,7 +24,6 @@ import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.cgcse;
 import dmd.backend.codebuilder;
-import dmd.backend.disasm86;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
 import dmd.backend.melf;
@@ -41,6 +40,7 @@ import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.backend.x86.code_x86;
+import dmd.backend.x86.disasm86;
 import dmd.backend.x86.xmm;
 
 import dmd.backend.barray;
@@ -3044,11 +3044,11 @@ void disassemble(ubyte[] code)
     {
         printf("%04x:", cast(int)i);
         uint pc;
-        const sz = dmd.backend.disasm86.calccodsize(code, cast(uint)i, pc, model);
+        const sz = dmd.backend.x86.disasm86.calccodsize(code, cast(uint)i, pc, model);
 
         void put(char c) { printf("%c", c); }
 
-        dmd.backend.disasm86.getopstring(&put, code, cast(uint)i, sz, model, model == 16, true,
+        dmd.backend.x86.disasm86.getopstring(&put, code, cast(uint)i, sz, model, model == 16, true,
                 null, null, null, null);
         printf("\n");
         i += sz;
