@@ -1622,7 +1622,7 @@ auto sourceFiles()
             dtype.d debugprint.d fp.d symbol.d symtab.d elem.d dcode.d cgsched.d x86/cg87.d x86/cgxmm.d x86/cgcod.d x86/cod1.d x86/cod2.d
             x86/cod3.d cv8.d dcgcv.d pdata.d util2.d var.d backconfig.d drtlsym.d dwarfeh.d ptrntab.d
             dvarstats.d dwarfdbginf.d cgen.d goh.d barray.d cgcse.d elpicpie.d
-            machobj.d elfobj.d mscoffobj.d filespec.d cgobj.d aarray.d x86/disasm86.d
+            machobj.d elfobj.d mscoffobj.d filespec.d cgobj.d aarray.d x86/disasm86.d arm/disasmarm.d
             "
         ),
     };
