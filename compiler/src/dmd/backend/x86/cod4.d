@@ -3057,14 +3057,14 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             {
                 reg = findreg(retregs & cgstate.allregs);   // get reg that e1 is in
                 uint opsize = cs.Iflags & CFopsize;
-                loadea(cdb,e2,&cs,0x3B ^ isbyte ^ reverse,reg,0,RMload | retregs,0);
+                loadea(cdb,e2,cs,0x3B ^ isbyte ^ reverse,reg,0,RMload | retregs,0);
                 code_orflag(cdb.last(),opsize);
             }
             else if (sz <= 2 * REGSIZE)
             {
                 reg = findregmsw(retregs);   // get reg that e1 is in
                 // CMP reg,EA
-                loadea(cdb,e2,&cs,0x3B ^ reverse,reg,REGSIZE,RMload | retregs,0);
+                loadea(cdb,e2,cs,0x3B ^ reverse,reg,REGSIZE,RMload | retregs,0);
                 if (I32 && sz == 6)
                     cdb.last().Iflags |= CFopsize;        // seg is only 16 bits
                 genjmp(cdb,JNE,FLcode, cast(block *) ce);  // JNE ce
@@ -3076,7 +3076,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                     cdb.gen(&cs);
                 }
                 else
-                    loadea(cdb,e2,&cs,0x3B ^ reverse,reg,0,RMload | retregs,0);
+                    loadea(cdb,e2,cs,0x3B ^ reverse,reg,0,RMload | retregs,0);
             }
             else
                 assert(0);
@@ -3308,9 +3308,9 @@ void longcmp(ref CodeBuilder cdb,elem *e,bool jcond,uint fltarg,code *targ)
                 genmovreg(cdb,msreg,reg);                  // MOV msreg,reg
                 cdb.genc2(0xC1,modregrm(3,7,msreg),REGSIZE * 8 - 1);    // SAR msreg,31
                 cse_flush(cdb,1);
-                loadea(cdb,e2,&cs,0x3B,msreg,REGSIZE,mask(reg),0);
+                loadea(cdb,e2,cs,0x3B,msreg,REGSIZE,mask(reg),0);
                 cdb.append(cdbjmp);
-                loadea(cdb,e2,&cs,0x3B,reg,0,mask(reg),0);
+                loadea(cdb,e2,cs,0x3B,reg,0,mask(reg),0);
                 freenode(e2);
             }
             else
@@ -3318,10 +3318,10 @@ void longcmp(ref CodeBuilder cdb,elem *e,bool jcond,uint fltarg,code *targ)
                 scodelem(cgstate,cdb,e1,&retregs,0,true);  // compute left leaf
                 cse_flush(cdb,1);
                 reg = findregmsw(retregs);   // get reg that e1 is in
-                loadea(cdb,e2,&cs,0x3B,reg,REGSIZE,retregs,0);
+                loadea(cdb,e2,cs,0x3B,reg,REGSIZE,retregs,0);
                 cdb.append(cdbjmp);
                 reg = findreglsw(retregs);
-                loadea(cdb,e2,&cs,0x3B,reg,0,retregs,0);
+                loadea(cdb,e2,cs,0x3B,reg,0,retregs,0);
                 freenode(e2);
             }
             break;
@@ -3627,7 +3627,7 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             code cs;
 
             reg = allocreg(cdb,retregs,TYint);
-            loadea(cdb,e1,&cs,LOD,reg,0,retregs,retregs);  //  MOV Ereg,EA
+            loadea(cdb,e1,cs,LOD,reg,0,retregs,retregs);  //  MOV Ereg,EA
             freenode(e1);
         }
         else
@@ -3678,7 +3678,7 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 retregs = BYTEREGS;
             reg = allocreg(cdb,retregs,TYint);
             movregconst(cdb,reg,0,0);                   //  XOR reg,reg
-            loadea(cdb,e11,&cs,0x8A,reg,0,retregs,retregs);  //  MOV regL,EA
+            loadea(cdb,e11,cs,0x8A,reg,0,retregs,retregs);  //  MOV regL,EA
             freenode(e11);
             freenode(e1);
         }
@@ -3696,11 +3696,11 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             {
                 assert(I64);
                 // MOVSXD reg,e1
-                loadea(cdb,e1,&cs,0x63,reg,0,0,retregs);
+                loadea(cdb,e1,cs,0x63,reg,0,0,retregs);
                 code_orrex(cdb.last(), REX_W);
             }
             else
-                loadea(cdb,e1,&cs,opcode,reg,0,0,retregs);
+                loadea(cdb,e1,cs,opcode,reg,0,0,retregs);
             freenode(e1);
         }
         else
@@ -3827,12 +3827,12 @@ void cdbyteint(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 config.target_cpu < TARGET_PentiumPro)
             {
                 movregconst(cdb,reg,0,0);                 //  XOR reg,reg
-                loadea(cdb,e1,&cs,0x8A,reg,0,retregsx,retregsx); //  MOV regL,EA
+                loadea(cdb,e1,cs,0x8A,reg,0,retregsx,retregsx); //  MOV regL,EA
             }
             else
             {
                 const opcode = (op == OPu8_16) ? MOVZXb : MOVSXb; // MOVZX/MOVSX reg,EA
-                loadea(cdb,e1,&cs,opcode,reg,0,0,retregsx);
+                loadea(cdb,e1,cs,opcode,reg,0,0,retregsx);
             }
             freenode(e1);
             fixresult(cdb,e,retregsx,*pretregs);

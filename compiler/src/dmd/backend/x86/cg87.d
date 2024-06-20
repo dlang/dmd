@@ -1691,12 +1691,12 @@ L5:
                     case TYcfloat:
                     case TYcdouble:
                     case TYdouble_alias:
-                        loadea(cdb,e,&cs,ESC(mf,1),0,0,0,0); // FLD var
+                        loadea(cdb,e,cs,ESC(mf,1),0,0,0,0); // FLD var
                         break;
                     case TYldouble:
                     case TYildouble:
                     case TYcldouble:
-                        loadea(cdb,e,&cs,0xDB,5,0,0,0);      // FLD var
+                        loadea(cdb,e,cs,0xDB,5,0,0,0);      // FLD var
                         break;
                     default:
                         printf("ty = x%x\n", ty);
@@ -1734,7 +1734,7 @@ L5:
                 }
                 else
                 {
-                    loadea(cdb,e.E1,&cs,ESC(mf1,1),0,0,0,0); /* FLD e.E1 */
+                    loadea(cdb,e.E1,cs,ESC(mf1,1),0,0,0,0); /* FLD e.E1 */
                 }
 
                 // Variable cannot be put into a register anymore
@@ -2011,7 +2011,7 @@ void eq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     static if (0)
     {
         // Doesn't work if ST(0) gets saved to the stack by getlvalue()
-        loadea(cdb,e.E1,&cs,op1,op2,0,0,0);
+        loadea(cdb,e.E1,cs,op1,op2,0,0,0);
     }
     else
     {
@@ -2084,7 +2084,7 @@ void complex_eq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     code cs;
     opcode_t op1;
-    uint op2;
+    ubyte op2;
     uint sz;
     int fxch = 0;
 
@@ -2140,7 +2140,7 @@ void complex_eq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     }
     else
     {
-        loadea(cdb,e.E1,&cs,op1,op2,sz,0,0);
+        loadea(cdb,e.E1,cs,op1,op2,sz,0,0);
         genfwait(cdb);
     }
     if (fxch)
@@ -2204,7 +2204,7 @@ private void cnvteq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     code cs;
     opcode_t op1;
-    uint op2;
+    ubyte op2;
 
     assert(e.Eoper == OPeq);
     assert(!*pretregs);
@@ -2238,7 +2238,7 @@ private void cnvteq87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     cs.Iflags = ADDFWAIT() ? CFwait : 0;
     if (e.E1.Eoper == OPvar)
         notreg(e.E1);                    // cannot be put in register anymore
-    loadea(cdb,e.E1,&cs,op1,op2,0,0,0);
+    loadea(cdb,e.E1,cs,op1,op2,0,0,0);
 
     genfwait(cdb);
     genSetRoundingMode(cdb, CW.roundtonearest);   // FLDCW roundtonearest
@@ -3839,13 +3839,13 @@ void cload87(ref CodeBuilder cdb, elem *e, ref regm_t outretregs)
             {
                 case TYcfloat:
                 case TYcdouble:
-                    loadea(cdb,e,&cs,ESC(mf,1),0,0,0,0);        // FLD var
+                    loadea(cdb,e,cs,ESC(mf,1),0,0,0,0);        // FLD var
                     cs.IEV1.Voffset += sz;
                     cdb.gen(&cs);
                     break;
 
                 case TYcldouble:
-                    loadea(cdb,e,&cs,0xDB,5,0,0,0);             // FLD var
+                    loadea(cdb,e,cs,0xDB,5,0,0,0);             // FLD var
                     cs.IEV1.Voffset += sz;
                     cdb.gen(&cs);
                     break;

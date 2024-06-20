@@ -600,20 +600,19 @@ void logexp(ref CodeBuilder cdb, elem *e, int jcond, uint fltarg, code *targ)
  * Routine to aid in setting things up for gen().
  * Look for common subexpression.
  * Can handle indirection operators, but not if they're common subs.
- * Input:
- *      e ->    elem where we get some of the data from
- *      cs ->   partially filled code to add
- *      op =    opcode
- *      reg =   reg field of (mod reg r/m)
- *      offset = data to be added to Voffset field
+ * Params:
+ *      cdb     = generated code sink
+ *      e       = elem where we get some of the data from
+ *      cs      = partially filled code to add
+ *      op      = opcode
+ *      reg     = reg field of (mod reg r/m)
+ *      offset  = data to be added to Voffset field
  *      keepmsk = mask of registers we must not destroy
  *      desmsk  = mask of registers destroyed by executing the instruction
- * Returns:
- *      pointer to code generated
  */
 
 @trusted
-void loadea(ref CodeBuilder cdb,elem *e,code *cs,uint op,uint reg,targ_size_t offset,
+void loadea(ref CodeBuilder cdb,elem *e,ref code cs,uint op,reg_t reg,targ_size_t offset,
             regm_t keepmsk,regm_t desmsk)
 {
     code* c, cg, cd;
@@ -621,7 +620,7 @@ void loadea(ref CodeBuilder cdb,elem *e,code *cs,uint op,uint reg,targ_size_t of
     debug
     if (debugw)
         printf("loadea: e=%p cs=%p op=x%x reg=%s offset=%lld keepmsk=%s desmsk=%s\n",
-               e, cs, op, regstring[reg], cast(ulong)offset, regm_str(keepmsk), regm_str(desmsk));
+               e, &cs, op, regstring[reg], cast(ulong)offset, regm_str(keepmsk), regm_str(desmsk));
     assert(e);
     cs.Iflags = 0;
     cs.Irex = 0;
@@ -671,7 +670,7 @@ void loadea(ref CodeBuilder cdb,elem *e,code *cs,uint op,uint reg,targ_size_t of
                         cs.Iop = 0x8C; /* MOV reg,ES   */
                         cs.Irm = modregrm(3, 0, reg & 7);
                         if (reg & 8)
-                            code_orrex(cs, REX_B);
+                            code_orrex(&cs, REX_B);
                     }
                     else    // XXX reg,i
                     {
@@ -692,9 +691,9 @@ void loadea(ref CodeBuilder cdb,elem *e,code *cs,uint op,uint reg,targ_size_t of
         }
     }
 
-    getlvalue(cdb, *cs, e, keepmsk);
+    getlvalue(cdb, cs, e, keepmsk);
     if (offset == REGSIZE)
-        getlvalue_msw(*cs);
+        getlvalue_msw(cs);
     else
         cs.IEV1.Voffset += offset;
     if (I64)
@@ -708,7 +707,7 @@ void loadea(ref CodeBuilder cdb,elem *e,code *cs,uint op,uint reg,targ_size_t of
             (op == LODSD || op == STOSD))
             cs.Irex &= ~REX_W;                 // not needed for xmm ops
     }
-    code_newreg(cs, reg);                         // OR in reg field
+    code_newreg(&cs, reg);                        // OR in reg field
     if (!I16)
     {
         if (reg == 6 && op == 0xFF ||             /* don't PUSH a word    */
@@ -761,7 +760,7 @@ L2:
             cs.Iop = NOP;
     }
 
-    cdb.gen(cs);
+    cdb.gen(&cs);
 }
 
 
@@ -3973,7 +3972,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
                                                 // CALL [function]
             cs.Iflags = 0;
             cgstate.stackclean++;
-            loadea(cdbe, e11, &cs, 0xFF, farfunc ? 3 : 2, 0, keepmsk, desmsk);
+            loadea(cdbe, e11, cs, 0xFF, farfunc ? 3 : 2, 0, keepmsk, desmsk);
             cgstate.stackclean--;
             freenode(e11);
         }
@@ -4651,7 +4650,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                 if (I32)
                 {
                     assert(sz >= REGSIZE * 2);
-                    loadea(cdb, e, &cs, 0xFF, 6, sz - REGSIZE, 0, 0); // PUSH EA+4
+                    loadea(cdb, e, cs, 0xFF, 6, sz - REGSIZE, 0, 0); // PUSH EA+4
                     cdb.genadjesp(REGSIZE);
                     cgstate.stackpush += REGSIZE;
                     sz -= REGSIZE;
@@ -4674,7 +4673,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                 {
                     if (sz == DOUBLESIZE)
                     {
-                        loadea(cdb, e, &cs, 0xFF, 6, DOUBLESIZE - REGSIZE, 0, 0); // PUSH EA+6
+                        loadea(cdb, e, cs, 0xFF, 6, DOUBLESIZE - REGSIZE, 0, 0); // PUSH EA+6
                         cs.IEV1.Voffset -= REGSIZE;
                         cdb.gen(&cs);                    // PUSH EA+4
                         cdb.genadjesp(REGSIZE);
@@ -4682,7 +4681,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                         cdb.gen(&cs);                    // PUSH EA+2
                     }
                     else /* TYlong */
-                        loadea(cdb, e, &cs, 0xFF, 6, REGSIZE, 0, 0); // PUSH EA+2
+                        loadea(cdb, e, cs, 0xFF, 6, REGSIZE, 0, 0); // PUSH EA+2
                     cdb.genadjesp(REGSIZE);
                 }
                 cgstate.stackpush += sz;
@@ -4802,13 +4801,13 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                 code cs;
                 cs.Iflags = 0;
                 cs.Irex = 0;
-                loadea(cdb, e, &cs, 0xFF, 6, sz - regsize, RMload, 0);    // PUSH EA+sz-2
+                loadea(cdb, e, cs, 0xFF, 6, sz - regsize, RMload, 0);    // PUSH EA+sz-2
                 code_orflag(cdb.last(), flag);
                 cdb.genadjesp(REGSIZE);
                 cgstate.stackpush += sz;
                 while (cast(targ_int)(sz -= regsize) > 0)
                 {
-                    loadea(cdb, e, &cs, 0xFF, 6, sz - regsize, RMload, 0);
+                    loadea(cdb, e, cs, 0xFF, 6, sz - regsize, RMload, 0);
                     code_orflag(cdb.last(), flag);
                     cdb.genadjesp(REGSIZE);
                 }
@@ -5214,13 +5213,13 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
             if (!I16 && (tym == TYfloat || tym == TYifloat))
             {
                 reg = allocreg(cdb, regm, TYoffset);   // get a register
-                loadea(cdb, e, &cs, 0x8B, reg, 0, 0, 0);    // MOV reg,data
+                loadea(cdb, e, cs, 0x8B, reg, 0, 0, 0);    // MOV reg,data
                 cdb.gen2(0xD1,modregrmx(3,4,reg));           // SHL reg,1
             }
             else if (I64 && (tym == TYdouble || tym ==TYidouble))
             {
                 reg = allocreg(cdb, regm, TYoffset);   // get a register
-                loadea(cdb, e,&cs, 0x8B, reg, 0, 0, 0);    // MOV reg,data
+                loadea(cdb, e, cs, 0x8B, reg, 0, 0, 0);    // MOV reg,data
                 // remove sign bit, so that -0.0 == 0.0
                 cdb.gen2(0xD1, modregrmx(3, 4, reg));           // SHL reg,1
                 code_orrex(cdb.last(), REX_W);
@@ -5228,14 +5227,14 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
             else if (TARGET_OSX && e.Eoper == OPvar && movOnly(e))
             {
                 reg = allocreg(cdb, regm, TYoffset);   // get a register
-                loadea(cdb, e, &cs, 0x8B, reg, 0, 0, 0);    // MOV reg,data
+                loadea(cdb, e, cs, 0x8B, reg, 0, 0, 0);    // MOV reg,data
                 fixresult(cdb, e, regm, outretregs);
             }
             else
             {   cs.IFL2 = FLconst;
                 cs.IEV2.Vsize_t = 0;
                 op = (sz == 1) ? 0x80 : 0x81;
-                loadea(cdb, e, &cs, op, 7, 0, 0, 0);        // CMP EA,0
+                loadea(cdb, e, cs, op, 7, 0, 0, 0);        // CMP EA,0
 
                 // Convert to TEST instruction if EA is a register
                 // (to avoid register contention on Pentium)
@@ -5256,26 +5255,26 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
         {
             reg = allocreg(cdb, regm, TYoffset);  // get a register
             if (I32)                                    // it's a 48 bit pointer
-                loadea(cdb, e, &cs, MOVZXw, reg, REGSIZE, 0, 0); // MOVZX reg,data+4
+                loadea(cdb, e, cs, MOVZXw, reg, REGSIZE, 0, 0); // MOVZX reg,data+4
             else
             {
-                loadea(cdb, e, &cs, 0x8B, reg, REGSIZE, 0, 0); // MOV reg,data+2
+                loadea(cdb, e, cs, 0x8B, reg, REGSIZE, 0, 0); // MOV reg,data+2
                 if (tym == TYfloat || tym == TYifloat)       // dump sign bit
                     cdb.gen2(0xD1, modregrm(3, 4, reg));        // SHL reg,1
             }
-            loadea(cdb,e,&cs,0x0B,reg,0,regm,0);     // OR reg,data
+            loadea(cdb,e,cs,0x0B,reg,0,regm,0);     // OR reg,data
         }
         else if (sz == 8 || (I64 && sz == 2 * REGSIZE && !tyfloating(tym)))
         {
             reg = allocreg(cdb, regm, TYoffset);       // get a register
             int i = sz - REGSIZE;
-            loadea(cdb, e, &cs, 0x8B, reg, i, 0, 0);        // MOV reg,data+6
+            loadea(cdb, e, cs, 0x8B, reg, i, 0, 0);        // MOV reg,data+6
             if (tyfloating(tym))                             // TYdouble or TYdouble_alias
                 cdb.gen2(0xD1, modregrm(3, 4, reg));            // SHL reg,1
 
             while ((i -= REGSIZE) >= 0)
             {
-                loadea(cdb, e, &cs, 0x0B, reg, i, regm, 0); // OR reg,data+i
+                loadea(cdb, e, cs, 0x0B, reg, i, regm, 0); // OR reg,data+i
                 code *c = cdb.last();
                 if (i == 0)
                     c.Iflags |= CFpsw;                      // need the flags on last OR
@@ -5467,7 +5466,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
                 {
 //                    opmv = tyuns(tym) ? MOVZXb : MOVSXb;      // MOVZX/MOVSX
                 }
-                loadea(cdb, e, &cs, opmv, reg, 0, 0, 0);     // MOV regL,data
+                loadea(cdb, e, cs, opmv, reg, 0, 0, 0);     // MOV regL,data
             }
             else
             {
@@ -5476,7 +5475,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
                     nreg = reg;                             // already allocated
                 else
                     nreg = allocreg(cdb, nregm, tym);
-                loadea(cdb, e, &cs, opmv, nreg, 0, 0, 0);    // MOV nregL,data
+                loadea(cdb, e, cs, opmv, nreg, 0, 0, 0);    // MOV nregL,data
                 if (reg != nreg)
                 {
                     genmovreg(cdb, reg, nreg);   // MOV reg,nreg
@@ -5498,7 +5497,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
                     /* getlvalue() will unwind this and unregister s; could use a better solution */
                 }
             }
-            loadea(cdb, e, &cs, opmv, reg, 0, RMload, 0); // MOVSS/MOVSD reg,data
+            loadea(cdb, e, cs, opmv, reg, 0, RMload, 0); // MOVSS/MOVSD reg,data
             checkSetVex(cdb.last(),tym);
         }
         else if (sz <= REGSIZE)
@@ -5512,11 +5511,11 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
             {
 //                opmv = tyuns(tym) ? MOVZXw : MOVSXw;  // MOVZX/MOVSX
             }
-            loadea(cdb, e, &cs, opmv, reg, 0, RMload, 0);
+            loadea(cdb, e, cs, opmv, reg, 0, RMload, 0);
         }
         else if (sz <= 2 * REGSIZE && forregs & mES)
         {
-            loadea(cdb, e, &cs, 0xC4, reg, 0, 0, mES);    // LES data
+            loadea(cdb, e, cs, 0xC4, reg, 0, 0, mES);    // LES data
         }
         else if (sz <= 2 * REGSIZE)
         {
@@ -5530,7 +5529,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
                 int i = DOUBLESIZE - REGSIZE;
                 do
                 {
-                    loadea(cdb,e,&cs,0xFF,6,i,0,0); // PUSH EA+i
+                    loadea(cdb,e,cs,0xFF,6,i,0,0); // PUSH EA+i
                     cdb.genadjesp(REGSIZE);
                     cgstate.stackpush += REGSIZE;
                     i -= REGSIZE;
@@ -5541,11 +5540,11 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
             }
 
             reg = findregmsw(forregs);
-            loadea(cdb, e, &cs, 0x8B, reg, REGSIZE, forregs, 0); // MOV reg,data+2
+            loadea(cdb, e, cs, 0x8B, reg, REGSIZE, forregs, 0); // MOV reg,data+2
             if (I32 && sz == REGSIZE + 2)
                 cdb.last().Iflags |= CFopsize;                   // seg is 16 bits
             reg = findreglsw(forregs);
-            loadea(cdb, e, &cs, 0x8B, reg, 0, forregs, 0);       // MOV reg,data
+            loadea(cdb, e, cs, 0x8B, reg, 0, forregs, 0);       // MOV reg,data
         }
         else if (sz >= 8)
         {
@@ -5557,7 +5556,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
                 int i = sz - REGSIZE;
                 do
                 {
-                    loadea(cdb,e,&cs,0xFF,6,i,0,0); // PUSH EA+i
+                    loadea(cdb,e,cs,0xFF,6,i,0,0); // PUSH EA+i
                     cdb.genadjesp(REGSIZE);
                     cgstate.stackpush += REGSIZE;
                     i -= REGSIZE;
@@ -5568,10 +5567,10 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
             else
             {
                 assert(reg == AX);
-                loadea(cdb, e, &cs, 0x8B, AX, 6, 0,           0); // MOV AX,data+6
-                loadea(cdb, e, &cs, 0x8B, BX, 4, mAX,         0); // MOV BX,data+4
-                loadea(cdb, e, &cs, 0x8B, CX, 2, mAX|mBX,     0); // MOV CX,data+2
-                loadea(cdb, e, &cs, 0x8B, DX, 0, mAX|mCX|mCX, 0); // MOV DX,data
+                loadea(cdb, e, cs, 0x8B, AX, 6, 0,           0); // MOV AX,data+6
+                loadea(cdb, e, cs, 0x8B, BX, 4, mAX,         0); // MOV BX,data+4
+                loadea(cdb, e, cs, 0x8B, CX, 2, mAX|mBX,     0); // MOV CX,data+2
+                loadea(cdb, e, cs, 0x8B, DX, 0, mAX|mCX|mCX, 0); // MOV DX,data
             }
         }
         else
