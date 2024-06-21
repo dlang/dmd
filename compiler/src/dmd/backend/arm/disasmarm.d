@@ -14,6 +14,8 @@ module dmd.backend.arm.disasmarm;
 
 nothrow @nogc:
 
+@safe:
+
 /*****************************
  * Calculate and return the number of bytes in an instruction starting at code[c].
  * Params:
@@ -45,7 +47,6 @@ addr calccodsize(ubyte[] code, addr c, out addr pc, uint model)
  * Returns:
  *      true if jump or call target
  */
-@trusted
 public
 bool jmpTarget(ubyte[] code, ref addr c, out addr offset)
 {
@@ -106,14 +107,13 @@ static if (0)
  *          for the program counter value, and `offset` for the offset
  *          of the label from the pc.
  */
-@trusted
 public
-void getopstring(void delegate(char) nothrow @nogc put, ubyte[] code, uint c, addr siz,
+void getopstring(void delegate(char) nothrow @nogc @safe put, ubyte[] code, uint c, addr siz,
         uint model, int nearptr, ubyte bObjectcode,
-        const(char)*function(uint c, uint sz, uint offset) nothrow @nogc mem,
-        const(char)*function(ubyte[] code, uint c, int sz) nothrow @nogc immed16,
-        const(char)*function(uint c, uint offset, bool farflag, bool is16bit) nothrow @nogc labelcode,
-        const(char)*function(uint pc, int offset) nothrow @nogc shortlabel
+        const(char)* function(uint c, uint sz, uint offset) nothrow @nogc @safe mem,
+        const(char)* function(ubyte[] code, uint c, int sz) nothrow @nogc @safe immed16,
+        const(char)* function(uint c, uint offset, bool farflag, bool is16bit) nothrow @nogc @safe labelcode,
+        const(char)* function(uint pc, int offset) nothrow @nogc @safe shortlabel
         )
 {
     assert(model == 64);
@@ -143,13 +143,12 @@ struct Disasm
 {
   nothrow @nogc:
 
-    @trusted
-    this(void delegate(char) nothrow @nogc put, ubyte[] code, addr siz,
+    this(void delegate(char) nothrow @nogc @safe put, ubyte[] code, addr siz,
         uint model, int nearptr, ubyte bObjectcode,
-        const(char)*function(uint c, uint sz, uint offset) nothrow @nogc mem,
-        const(char)*function(ubyte[] code, uint c, int sz) nothrow @nogc immed16,
-        const(char)*function(uint c, uint offset, bool farflag, bool is16bit) nothrow @nogc labelcode,
-        const(char)*function(uint pc, int offset) nothrow @nogc shortlabel
+        const(char)* function(uint c, uint sz, uint offset) nothrow @nogc @safe mem,
+        const(char)* function(ubyte[] code, uint c, int sz) nothrow @nogc @safe immed16,
+        const(char)* function(uint c, uint offset, bool farflag, bool is16bit) nothrow @nogc @safe labelcode,
+        const(char)* function(uint pc, int offset) nothrow @nogc @safe shortlabel
         )
     {
         this.put = put;
@@ -173,7 +172,7 @@ struct Disasm
         opsize = defopsize;
         adsize = defadsize;
         fwait = 0;
-        segover = "".ptr;
+        segover = "";
     }
 
     /* Enough to get prefixbyte() working
@@ -187,7 +186,7 @@ struct Disasm
         opsize = defopsize;
         adsize = defadsize;
         fwait = 0;
-        segover = "".ptr;
+        segover = "";
     }
 
     ubyte[] code;               // the code segment contents
@@ -204,10 +203,10 @@ struct Disasm
     const(char)* segover;       // segment override string
 
     // Callbacks provided by caller
-    const(char)*function(uint c, uint sz, addr offset) mem;
-    const(char)*function(ubyte[] code, uint c, int sz) immed16;
-    const(char)*function(uint c, uint offset, bool farflag, bool is16bit) labelcode;
-    const(char)*function(uint pc, int offset) shortlabel;
+    const(char)* function(uint c, uint sz, addr offset) nothrow @nogc @safe mem;
+    const(char)* function(ubyte[] code, uint c, int sz) nothrow @nogc @safe immed16;
+    const(char)* function(uint c, uint offset, bool farflag, bool is16bit) nothrow @nogc @safe labelcode;
+    const(char)* function(uint pc, int offset) nothrow @nogc @safe shortlabel;
 
 
 addr calccodsize(addr c, out addr pc)
@@ -237,7 +236,7 @@ const(char)* immeds(uint c)
 
 
 
-void puts(const(char)* s)
+void puts(const(char)* s) @system
 {
     while (*s)
     {
@@ -252,7 +251,7 @@ void puts(const(char)* s)
  *      c = index into code[]
  */
 
-void disassemble(uint c)
+void disassemble(uint c) @trusted
 {
     //printf("disassemble(c = %d, siz = %d)\n", c, siz);
     enum log = false;
@@ -267,8 +266,8 @@ void disassemble(uint c)
     char[BUFMAX] buf = void;
 
     buf[0] = 0;
-    sep = ",".ptr;
-    s2 = "".ptr;
+    sep = ",";
+    s2 = "";
     s3 = s2;
     uint ins = *(cast(uint*)&code[c]);
     p0[0]='\0';
@@ -2016,7 +2015,7 @@ unittest
 
         if (code.length != 4)
         {
-            printf("Fail%d: %d hex code must be 4 bytes was %d\n",
+            debug printf("Fail%d: %d hex code must be 4 bytes was %d\n",
                 size, cast(int)(line + 2), cast(int)code.length);
             errors = true;
             return;
@@ -2062,7 +2061,7 @@ unittest
 
         if (!compareEqual(result, expected))
         {
-            printf("Fail%d: %d expected '%.*s' got '%.*s'\n",
+            debug printf("Fail%d: %d expected '%.*s' got '%.*s'\n",
                 size, cast(int)(line + 2),
                 cast(int)expected.length, expected.ptr, cast(int)result.length, result.ptr);
             errors = true;
@@ -2109,7 +2108,7 @@ ubyte[] hexToUbytes(ref Output!ubyte output, out size_t m, string s)
 
             case 0:
             case 0x1A:
-                printf("unterminated string constant at %d\n", cast(int)i);
+                debug printf("unterminated string constant at %d\n", cast(int)i);
                 assert(0);
 
             case '0': .. case '9':
@@ -2135,7 +2134,7 @@ ubyte[] hexToUbytes(ref Output!ubyte output, out size_t m, string s)
     }
     if (n & 1)
     {
-        printf("unterminated string constant\n");
+        debug printf("unterminated string constant\n");
         assert(0);
     }
     return output.peek;
