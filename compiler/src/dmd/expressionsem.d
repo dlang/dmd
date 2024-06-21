@@ -11873,6 +11873,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             (tb2.ty == Tarray || tb2.ty == Tsarray) &&
             (exp.e2.implicitConvTo(exp.e1.type) ||
              (tb2.nextOf().implicitConvTo(tb1next) &&
+             // Do not strip const(void)[]
+             (!global.params.fixImmutableConv || tb1next.ty != Tvoid) &&
               (tb2.nextOf().size(Loc.initial) == tb1next.size(Loc.initial)))))
         {
             // EXP.concatenateAssign
@@ -12622,7 +12624,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.type = tb.nextOf().arrayOf();
         if (exp.type.ty == Tarray && tb1next && tb2next && tb1next.mod != tb2next.mod)
         {
-            exp.type = exp.type.nextOf().toHeadMutable().arrayOf();
+            // Do not strip const(void)[]
+            if (!global.params.fixImmutableConv || tb.nextOf().ty != Tvoid)
+                exp.type = exp.type.nextOf().toHeadMutable().arrayOf();
         }
         if (Type tbn = tb.nextOf())
         {
