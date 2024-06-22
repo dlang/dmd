@@ -7,8 +7,8 @@
 
 import core.stdc.stdio;
 
-version (CppRuntime_Clang)       version = CppMangle_Itanium;
-version (CppRuntime_Gcc)         version = CppMangle_Itanium;
+version (CppRuntime_libcpp)      version = CppMangle_Itanium;
+version (CppRuntime_libstdcpp)   version = CppMangle_Itanium;
 version (CppRuntime_Microsoft)   version = CppMangle_MSVC;
 version (CppRuntime_Sun)         version = CppMangle_Itanium;
 

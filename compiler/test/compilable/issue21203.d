@@ -1,6 +1,6 @@
-version (CppRuntime_Clang) version = CppMangle_Itanium;
-version (CppRuntime_Gcc)   version = CppMangle_Itanium;
-version (CppRuntime_Sun)   version = CppMangle_Itanium;
+version (CppRuntime_libcpp)    version = CppMangle_Itanium;
+version (CppRuntime_libstdcpp) version = CppMangle_Itanium;
+version (CppRuntime_Sun)       version = CppMangle_Itanium;
 
 template ScopeClass(C , string name = C.stringof)
 //if (is(C == class) && __traits(getLinkage, C) == "C++")

@@ -84,8 +84,8 @@ struct TargetCPP
     enum class Runtime : unsigned char
     {
         Unspecified,
-        Clang,
-        Gcc,
+        libcpp,
+        libstdcpp,
         Microsoft,
         Sun
     };

@@ -298,8 +298,10 @@ struct Triple
     {
         with (TargetCPP.Runtime) switch (cppenv)
         {
-            case "clang":        return Clang;
-            case "gcc":          return Gcc;
+            case "libcpp":       return libcpp;
+            case "libstdcpp":    return libstdcpp;
+            case "clang":        return libcpp; // legacy option
+            case "gcc":          return libstdcpp; // legacy option
             case "msvc":         return Microsoft;
             case "sun":          return Sun;
             default:
