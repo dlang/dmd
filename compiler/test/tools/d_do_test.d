@@ -216,6 +216,10 @@ immutable(EnvData) processEnvironment()
                 envData.cxxCompatFlags = " -L-lstdc++ -L--no-demangle";
             else version (CppRuntime_libcpp)
                 envData.cxxCompatFlags = " -L-lc++ -L--no-demangle";
+            else version (CppRuntime_Gcc)
+                envData.cxxCompatFlags = " -L-lstdc++ -L--no-demangle";
+            else version (CppRuntime_Clang)
+                envData.cxxCompatFlags = " -L-lc++ -L--no-demangle";
             break;
 
         case "gdc":
