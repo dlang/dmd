@@ -8799,6 +8799,7 @@ struct Id final
     static Identifier* define;
     static Identifier* undef;
     static Identifier* ident;
+    static Identifier* packed;
     static void initialize();
     Id()
     {
