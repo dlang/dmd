@@ -659,9 +659,9 @@ extern (C++) final class VersionCondition : DVCondition
             case "AVR":
             case "BigEndian":
             case "BSD":
-            case "CppRuntime_libcpp":
+            case "CppRuntime_LLVM":
             case "CppRuntime_DigitalMars":
-            case "CppRuntime_libstdcpp":
+            case "CppRuntime_GNU":
             case "CppRuntime_Microsoft":
             case "CppRuntime_Sun":
             case "CRuntime_Bionic":

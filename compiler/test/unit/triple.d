@@ -37,14 +37,24 @@ unittest
     assert(triple.cpu == CPU.avx2);
 }
 
-@("-target=x86_64-unknown-linux-musl-libcpp")
+@("-target=x86_64-unknown-linux-musl-libcxx")
 unittest
 {
-    auto triple = Triple("x86_64-unknown-linux-musl-libcpp");
+    auto triple = Triple("x86_64-unknown-linux-musl-libcxx");
     assert(triple.isX86_64 == true);
     assert(triple.os == Target.OS.linux);
     assert(triple.cenv == TargetC.Runtime.Musl);
-    assert(triple.cppenv == TargetCPP.Runtime.libcpp);
+    assert(triple.cppenv == TargetCPP.Runtime.LLVM);
+}
+
+@("-target=x86_64-unknown-linux-musl-libc++")
+unittest
+{
+    auto triple = Triple("x86_64-unknown-linux-musl-libc++");
+    assert(triple.isX86_64 == true);
+    assert(triple.os == Target.OS.linux);
+    assert(triple.cenv == TargetC.Runtime.Musl);
+    assert(triple.cppenv == TargetCPP.Runtime.LLVM);
 }
 
 @("-target=x86_64-freebsd12")

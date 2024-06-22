@@ -56,7 +56,7 @@ version (CppRuntime_Microsoft)
         //virtual ~this();
     }
 }
-else version (CppRuntime_libstdcpp)
+else version (CppRuntime_GNU)
 {
     import core.stdcpp.exception;
 
@@ -110,7 +110,7 @@ else version (CppRuntime_libstdcpp)
         @weak override const(char)* what() const nothrow { return "bad typeid"; }
     }
 }
-else version (CppRuntime_libcpp)
+else version (CppRuntime_LLVM)
 {
     import core.stdcpp.exception;
 
