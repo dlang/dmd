@@ -5548,7 +5548,6 @@ targ_size_t cod3_bpoffset(Symbol *s)
             break;
 
         default:
-            WRFL(s.Sfl);
             symbol_print(*s);
             assert(0);
     }
@@ -6117,7 +6116,7 @@ void pinholeopt(code *c,block *b)
                             break;
 
                         default:
-                            WRFL(c.IFL2);
+                            printf("c.fl = %s\n", fl_str(c.IFL2));
                             assert(0);
                     }
                     break;
@@ -7341,7 +7340,7 @@ private void do64bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev,int flags)
             break;
 
         default:
-            WRFL(fl);
+            printf("fl: %s\n", fl_str(fl));
             assert(0);
     }
     pbuf.offset += 8;
@@ -7521,7 +7520,7 @@ private void do32bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev,int flags, int val
             break;
 
         default:
-            WRFL(fl);
+            printf("fl: %s\n", fl_str(fl));
             assert(0);
     }
     pbuf.offset += 4;
@@ -7609,7 +7608,7 @@ private void do16bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev,int flags)
             break;
 
         default:
-            WRFL(fl);
+            printf("fl: %s\n", fl_str(fl));
             assert(0);
     }
     pbuf.offset += 2;
@@ -7775,23 +7774,21 @@ extern (C) void code_print(scope code* c)
                 case FLbprel:
                 case FLtlsdata:
                 case FLextern:
-                    printf(" ");
-                    WRFL(c.IFL1);
+                    printf(" %s", fl_str(c.IFL1));
                     printf(" sym='%s'",c.IEV1.Vsym.Sident.ptr);
                     if (c.IEV1.Voffset)
                         printf(".%d", cast(int)c.IEV1.Voffset);
                     break;
 
                 default:
-                    WRFL(c.IFL1);
+                    printf("fl: %s\n", fl_str(c.IFL1));
                     break;
             }
         }
     }
     if (ins & T)
     {
-        printf(" ");
-        WRFL(c.IFL2);
+        printf(" %s\n", fl_str(c.IFL2));
         switch (c.IFL2)
         {
             case FLconst:
@@ -7830,7 +7827,7 @@ extern (C) void code_print(scope code* c)
                 break;
 
             default:
-                WRFL(c.IFL2);
+                printf("fl: %s\n", fl_str(c.IFL2));
                 break;
         }
     }

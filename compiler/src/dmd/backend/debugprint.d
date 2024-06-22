@@ -329,29 +329,48 @@ void WRdefnod()
 }
 
 @trusted
-void WRFL(FL fl)
+const(char)* fl_str(FL fl)
 {
-    __gshared const(char)[7][FLMAX] fls =
-    [    "unde  ","const ","oper  ","func  ","data  ",
-         "reg   ",
-         "pseudo",
-         "auto  ","fast  ","para  ","extrn ",
-         "code  ","block ","udata ","cs    ","swit  ",
-         "fltrg ","offst ","datsg ",
-         "ctor  ","dtor  ","regsav","asm   ",
-         "ndp   ",
-         "farda ","csdat ",
-         "local ","tlsdat",
-         "bprel ","frameh","blocko","alloca",
-         "stack ","dsym  ",
-         "got   ","gotoff",
-         "funcar",
+    __gshared const char*[FLMAX] fls =
+    [   "FLunde",
+        "FLconst",
+        "FLoper",
+        "FLfunc",
+        "FLdata",
+        "FLreg",
+        "FLpseudo",
+        "FLauto",
+        "FLfast",
+        "FLpara",
+        "FLextern",
+        "FLcode",
+        "FLblock",
+        "FLudata",
+        "FLcs",
+        "FLswitch",
+        "FLfltrg",
+        "FLoffset",
+        "FLdatseg",
+        "FLctor",
+        "FLdtor",
+        "FLregsave",
+        "FLasm",
+        "FLndp",
+        "FLfardata",
+        "FLcsdat",
+        "FLlocalsize",
+        "FLtlsdata",
+        "FLbprel",
+        "FLframehandler",
+        "FLblockoff",
+        "FLallocatmp",
+        "FLstack",
+        "FLdsymbol",
+        "FLgot",
+        "FLgotoff",
+        "FLfuncarg",
     ];
-
-    if (cast(uint)fl >= FLMAX)
-        printf("FL%d",fl);
-    else
-      printf("FL%s",fls[fl].ptr);
+    return fls[fl];
 }
 
 /***********************
