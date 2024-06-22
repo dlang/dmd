@@ -6013,8 +6013,8 @@ struct TargetCPP final
     enum class Runtime : uint8_t
     {
         Unspecified = 0u,
-        Clang = 1u,
-        Gcc = 2u,
+        libcpp = 1u,
+        libstdcpp = 2u,
         Microsoft = 3u,
         Sun = 4u,
     };
