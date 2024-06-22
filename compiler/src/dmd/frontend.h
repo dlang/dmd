@@ -5994,8 +5994,8 @@ struct TargetCPP final
     enum class Runtime : uint8_t
     {
         Unspecified = 0u,
-        libcpp = 1u,
-        libstdcpp = 2u,
+        LLVM = 1u,
+        GNU = 2u,
         Microsoft = 3u,
         Sun = 4u,
     };

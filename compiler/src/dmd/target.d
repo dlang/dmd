@@ -270,12 +270,12 @@ void addCppRuntimePredefinedGlobalIdent(const ref TargetCPP cpp)
     default:
     case Unspecified:
         return;
-    case libcpp:
-        predef("CppRuntime_libcpp");
+    case LLVM:
+        predef("CppRuntime_LLVM");
         predef("CppRuntime_Clang"); // legacy
         return;
-    case libstdcpp:
-        predef("CppRuntime_libstdcpp");
+    case GNU:
+        predef("CppRuntime_GNU");
         predef("CppRuntime_Gcc"); // legacy
         return;
     case Microsoft:
@@ -1465,8 +1465,8 @@ struct TargetCPP
     enum Runtime : ubyte
     {
         Unspecified,
-        libcpp,
-        libstdcpp,
+        LLVM,
+        GNU,
         Microsoft,
         Sun
     }
@@ -1495,11 +1495,11 @@ struct TargetCPP
         if (os == Target.OS.Windows)
             runtime = Runtime.Microsoft;
         else if (os & (Target.OS.linux | Target.OS.DragonFlyBSD))
-            runtime = Runtime.libstdcpp;
+            runtime = Runtime.GNU;
         else if (os & (Target.OS.OSX | Target.OS.FreeBSD | Target.OS.OpenBSD))
-            runtime = Runtime.libcpp;
+            runtime = Runtime.LLVM;
         else if (os == Target.OS.Solaris)
-            runtime = Runtime.libstdcpp;
+            runtime = Runtime.GNU;
         else
             assert(0);
         // C++ and D ABI incompatible on all (?) x86 32-bit platforms

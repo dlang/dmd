@@ -31,7 +31,7 @@ version (Darwin)
     version = _LIBCPP_ABI_ALTERNATE_STRING_LAYOUT;
 }
 
-version (CppRuntime_libstdcpp)
+version (CppRuntime_GNU)
 {
     version (_GLIBCXX_USE_CXX98_ABI)
     {
@@ -894,7 +894,7 @@ extern(D):
 
         _String_alloc!(_String_base_types!(T, Alloc)) _Base;
     }
-    else version (CppRuntime_libstdcpp)
+    else version (CppRuntime_GNU)
     {
         version (_GLIBCXX_USE_CXX98_ABI)
         {
@@ -1873,7 +1873,7 @@ extern(D):
             __d[0 .. __n] = __s[0 .. __n];
         }
     }
-    else version (CppRuntime_libcpp)
+    else version (CppRuntime_LLVM)
     {
         //----------------------------------------------------------------------------------
         // libc++ implementation
