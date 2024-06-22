@@ -4945,7 +4945,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem *e,reg_t reg)
             debug
             {
                 elem_print(e);
-                WRFL(fl);
+                printf("e.fl = %s\n", fl_str(el_fl(e)));
             }
             assert(0);
     }
