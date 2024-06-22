@@ -172,12 +172,12 @@ jobs:
     # Checking out up DMD, druntime, Phobos #
     #########################################
     - name: Checkout DMD
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: dmd
         persist-credentials: false
     - name: Checkout Phobos
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
         path: phobos
         repository: dlang/phobos
@@ -191,7 +191,7 @@ jobs:
     - name: '[Posix] Load cached clang'
       id: cache-clang
       if: matrix.compiler == 'clang' && runner.os != 'Windows'
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ${{ github.workspace }}/clang+llvm-${{ matrix.cxx-version }}-${{ matrix.arch }}/
         key: ${{ matrix.cxx-version }}-${{ matrix.arch }}-2022-09-25-2121
@@ -367,7 +367,7 @@ jobs:
     ########################################
     - name: Store artifacts
       if: ${{ matrix.storeArtifacts }}
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: dmd-${{ matrix.os }}
         path: install
