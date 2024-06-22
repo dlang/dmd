@@ -110,10 +110,10 @@ static if (0)
 public
 void getopstring(void delegate(char) nothrow @nogc @safe put, ubyte[] code, uint c, addr siz,
         uint model, int nearptr, ubyte bObjectcode,
-        const(char)* function(uint c, uint sz, uint offset) nothrow @nogc @safe mem,
-        const(char)* function(ubyte[] code, uint c, int sz) nothrow @nogc @safe immed16,
-        const(char)* function(uint c, uint offset, bool farflag, bool is16bit) nothrow @nogc @safe labelcode,
-        const(char)* function(uint pc, int offset) nothrow @nogc @safe shortlabel
+        const(char)[] function(uint c, uint sz, uint offset) nothrow @nogc @safe mem,
+        const(char)[] function(ubyte[] code, uint c, int sz) nothrow @nogc @safe immed16,
+        const(char)[] function(uint c, uint offset, bool farflag, bool is16bit) nothrow @nogc @safe labelcode,
+        const(char)[] function(uint pc, int offset) nothrow @nogc @safe shortlabel
         )
 {
     assert(model == 64);
@@ -145,10 +145,10 @@ struct Disasm
 
     this(void delegate(char) nothrow @nogc @safe put, ubyte[] code, addr siz,
         uint model, int nearptr, ubyte bObjectcode,
-        const(char)* function(uint c, uint sz, uint offset) nothrow @nogc @safe mem,
-        const(char)* function(ubyte[] code, uint c, int sz) nothrow @nogc @safe immed16,
-        const(char)* function(uint c, uint offset, bool farflag, bool is16bit) nothrow @nogc @safe labelcode,
-        const(char)* function(uint pc, int offset) nothrow @nogc @safe shortlabel
+        const(char)[] function(uint c, uint sz, uint offset) nothrow @nogc @safe mem,
+        const(char)[] function(ubyte[] code, uint c, int sz) nothrow @nogc @safe immed16,
+        const(char)[] function(uint c, uint offset, bool farflag, bool is16bit) nothrow @nogc @safe labelcode,
+        const(char)[] function(uint pc, int offset) nothrow @nogc @safe shortlabel
         )
     {
         this.put = put;
@@ -200,13 +200,13 @@ struct Disasm
     char adsize;                // if !=0, then 32 or 64 bit address
     char fwait;                 // if !=0, then saw an FWAIT
     uint model;                 // 16/32/64
-    const(char)* segover;       // segment override string
+    const(char)[] segover;       // segment override string
 
     // Callbacks provided by caller
-    const(char)* function(uint c, uint sz, addr offset) nothrow @nogc @safe mem;
-    const(char)* function(ubyte[] code, uint c, int sz) nothrow @nogc @safe immed16;
-    const(char)* function(uint c, uint offset, bool farflag, bool is16bit) nothrow @nogc @safe labelcode;
-    const(char)* function(uint pc, int offset) nothrow @nogc @safe shortlabel;
+    const(char)[] function(uint c, uint sz, addr offset) nothrow @nogc @safe mem;
+    const(char)[] function(ubyte[] code, uint c, int sz) nothrow @nogc @safe immed16;
+    const(char)[] function(uint c, uint offset, bool farflag, bool is16bit) nothrow @nogc @safe labelcode;
+    const(char)[] function(uint pc, int offset) nothrow @nogc @safe shortlabel;
 
 
 addr calccodsize(addr c, out addr pc)
@@ -219,7 +219,7 @@ addr calccodsize(addr c, out addr pc)
  * Load byte at code[c].
  */
 
-const(char)* immed8(uint c) @safe
+const(char)[] immed8(uint c)
 {
     return wordtostring(code[c]);
 }
@@ -228,7 +228,7 @@ const(char)* immed8(uint c) @safe
  * Load byte at code[c], and sign-extend it
  */
 
-const(char)* immeds(uint c)
+const(char)[] immeds(uint c)
 {
     return wordtostring(cast(byte) code[c]);
 }
@@ -236,13 +236,10 @@ const(char)* immeds(uint c)
 
 
 
-void puts(const(char)* s) @system
+void puts(const(char)[] s)
 {
-    while (*s)
-    {
-        put(*s);
-        ++s;
-    }
+    foreach (c; s)
+        put(c);
 }
 
 /*************************
@@ -260,9 +257,9 @@ void disassemble(uint c) @trusted
 
     int i;
     char[80] p0;
-    const(char)* sep;
-    const(char)* s2;
-    const(char)* s3;
+    const(char)[] sep;
+    const(char)[] s2;
+    const(char)[] s3;
     char[BUFMAX] buf = void;
 
     buf[0] = 0;
@@ -281,18 +278,18 @@ void disassemble(uint c) @trusted
     }
 
     char[8+1] p1buf = void;
-    snprintf(p1buf.ptr,p1buf.length,"%08x", ins);
-    if (log) printf("ins: %s %d %d\n", p1buf.ptr, field(ins, 28, 24), field(ins, 21, 21));
-    const(char)* p1 = p1buf.ptr;
-    const(char)* p2 = "";
-    const(char)* p3 = "";
-    const(char)* p4 = "";
-    const(char)* p5 = "";
-    const(char)* p6 = "";
-    const(char)* p7 = "";
+    const p1len = snprintf(p1buf.ptr,p1buf.length,"%08x", ins);
+    if (log) debug printf("ins: %s %d %d\n", p1buf.ptr, field(ins, 28, 24), field(ins, 21, 21));
+    const(char)[] p1 = p1buf[0 .. p1len];
+    const(char)[] p2 = "";
+    const(char)[] p3 = "";
+    const(char)[] p4 = "";
+    const(char)[] p5 = "";
+    const(char)[] p6 = "";
+    const(char)[] p7 = "";
 
-    immutable char*[4] addsubTab = [ "add", "adds", "sub", "subs" ];
-    immutable char*[16] condstring =
+    string[4] addsubTab = [ "add", "adds", "sub", "subs" ];
+    string[16] condstring =
         [ "eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc",
           "hi", "ls", "ge", "lt", "gt", "le", "al", "nv" ];
 
@@ -409,7 +406,7 @@ void disassemble(uint c) @trusted
 
         if (op == 0 && S == 0 && opc < 4)
         {
-            immutable char*[4] opstring = [ "smax", "umax", "smin", "umin" ];
+            string[4] opstring = [ "smax", "umax", "smin", "umin" ];
             p1 = opstring[opc];
             p2 = regString(sf, Rd);
             p3 = regString(sf, Rn);
@@ -429,7 +426,7 @@ void disassemble(uint c) @trusted
         //printf("N:%d immr:x%x imms:x%x\n", N, immr, imms);
         if (sf || N == 0)
         {
-            immutable char*[4] opstring = [ "and", "orr", "eor", "ands" ];
+            string[4] opstring = [ "and", "orr", "eor", "ands" ];
             p1 = opstring[opc];
             p2 = regString(sf, Rd);
             p3 = regString(sf, Rn);
@@ -490,8 +487,8 @@ void disassemble(uint c) @trusted
         if (hw)
         {
             __gshared char[5 + hw.sizeof * 3 + 1 + 1] P4 = void;
-            snprintf(P4.ptr, P4.length, "lsl #%d", hw * 16);
-            p4 = P4.ptr;
+            const n = snprintf(P4.ptr, P4.length, "lsl #%d", hw * 16);
+            p4 = P4[0 .. n];
         }
     }
     else if (field(ins, 28, 23) == 0x26) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#bitfield
@@ -650,8 +647,8 @@ void disassemble(uint c) @trusted
         uint cond  = field(ins, 3, 0);
 
         const char* format = oO ? "bc.%s" : "b.%s";
-        sprintf(buf.ptr, format, condstring[cond]);
-        p1 = buf.ptr;
+        const n = sprintf(buf.ptr, format, condstring[cond].ptr);
+        p1 = buf[0 .. n];
         p2 = wordtostring(imm19);
     }
     else if (field(ins, 31, 24) == 0x55) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#miscbranch
@@ -761,7 +758,7 @@ void disassemble(uint c) @trusted
                     if (CRm == 4 && (op2 & 1) == 0)
                     {
                         p1 = "bti";
-                        immutable char*[4] option = [ "", "c", "j", "jc" ];
+                        string[4] option = [ "", "c", "j", "jc" ];
                         p2 = option[op2 >> 1];
                     }
                     break;
@@ -811,7 +808,7 @@ void disassemble(uint c) @trusted
             else if ((CRm & 3) == 2 && op2 == 1)
             {
                 p1 = "dsb";
-                immutable char*[4] xs = [ "oshnXS", "nshnXS", "ishnXS", "synXS" ];
+                string[4] xs = [ "oshnXS", "nshnXS", "ishnXS", "synXS" ];
                 p2 = xs[CRm >> 2];
             }
             else if (CRm == 0 && op2 == 3)
@@ -916,17 +913,17 @@ void disassemble(uint c) @trusted
         uint op2   = field(ins,  7,  5);
         uint Rt    = field(ins,  4,  0);
 
-        snprintf(buf.ptr, cast(uint)buf.length, "S%d_%d_%s_%s_%d".ptr, oO + 2, op1, cregString(CRn), cregString(CRm), op2);
+        const n = snprintf(buf.ptr, cast(uint)buf.length, "S%d_%d_%s_%s_%d", oO + 2, op1, cregString(CRn).ptr, cregString(CRm).ptr, op2);
         if (L)
         {
             p1 = "mrs";
             p2 = regString(1, Rt);
-            p3 = buf.ptr;
+            p3 = buf[0 .. n];
         }
         else
         {
             p1 = "msr";
-            p2 = buf.ptr;
+            p3 = buf[0 .. n];
             p3 = regString(1, Rt);
         }
     }
@@ -966,18 +963,18 @@ void disassemble(uint c) @trusted
         uint op2   = field(ins,  7,  5);
         uint Rt    = field(ins,  4,  0);
 
-        snprintf(buf.ptr, cast(uint)buf.length, "S%d_%d_%s_%s_%d".ptr, oO + 2, op1, cregString(CRn), cregString(CRm), op2);
+        const n = snprintf(buf.ptr, cast(uint)buf.length, "S%d_%d_%s_%s_%d".ptr, oO + 2, op1, cregString(CRn).ptr, cregString(CRm).ptr, op2);
         if (L)
         {
             p1 = "mrrs";
             p2 = regString(1, Rt);
             p3 = regString(1, Rt + 1);
-            p4 = buf.ptr;
+            p4 = buf[0 .. n];
         }
         else
         {
             p1 = "msrr";
-            p2 = buf.ptr;
+            p2 = buf[0 .. n];
             p3 = regString(1, Rt);
             p4 = regString(1, Rt + 1);
         }
@@ -1318,17 +1315,17 @@ void disassemble(uint c) @trusted
         uint Rn      = field(ins,  9,  5);
         uint Rd      = field(ins,  4,  0);
 
-        immutable char*[8] opstring = [ "and", "bic", "orr", "orn", "eor", "eon", "ands", "bics" ];
+        string[8] opstring = [ "and", "bic", "orr", "orn", "eor", "eon", "ands", "bics" ];
         p1 = opstring[(opc << 1) | N];
         p2 = regString(sf, Rd);
         p3 = regString(sf, Rn);
         p4 = regString(sf, Rm);
-        immutable char*[4] shiftstring = [ "", "lsr ", "asr ", "ror " ];
+        string[4] shiftstring = [ "", "lsr ", "asr ", "ror " ];
         if (imm6)
         {
             __gshared char[4 + 3 + imm6.sizeof * 3 + 1 + 1] P5 = void;
-            snprintf(P5.ptr, P5.length, ((imm6 < 10) ? "%s #%d" : "#0x%X"), shiftstring[shift], imm6);
-            p5 = P5.ptr;
+            const n = snprintf(P5.ptr, P5.length, ((imm6 < 10) ? "%s #%d" : "#0x%X"), shiftstring[shift].ptr, imm6);
+            p5 = P5[0 .. n];
         }
         if (((opc << 1) | N) == 2 && Rn == 0x1F)
         {
@@ -1365,10 +1362,10 @@ void disassemble(uint c) @trusted
 
         if (immed6) // defaults to 0
         {
-            immutable char*[4] tab2 = [ "lsl", "lsr", "asr", "reserved" ];
+            string[4] tab2 = [ "lsl", "lsr", "asr", "reserved" ];
             __gshared char[1 + 8 + 1 + 3 + immed6.sizeof * 3 + 1 + 1] P5buf = void;
-            snprintf(P5buf.ptr, P5buf.length, ((immed6 < 10) ? "%s #%d".ptr : "#0x%X".ptr), tab2[shift], immed6);
-            p5 = P5buf.ptr;
+            const n = snprintf(P5buf.ptr, P5buf.length, ((immed6 < 10) ? "%s #%d".ptr : "#0x%X".ptr), tab2[shift].ptr, immed6);
+            p5 = P5buf[0 .. n];
         }
 
         if (opS == 1 && Rd == 31) // adds
@@ -1411,8 +1408,8 @@ void disassemble(uint c) @trusted
         uint Rd     = field(ins,  4,  0);
         //printf("Rd: x%x\n", Rd);
 
-        immutable char*[8] tab = [ "uxtb", "uxth", "ustw", "uxtx", "sxtb","sxth", "sxtw", "sxtx" ];
-        const(char)* extend;
+        string[8] tab = [ "uxtb", "uxth", "ustw", "uxtx", "sxtb","sxth", "sxtw", "sxtx" ];
+        const(char)[] extend;
         if (sf && Rn == 0x1F && option == 3 ||
            !sf && Rn == 0x1F && option == 2)
             extend = imm3 ? "lsl" : "";
@@ -1432,8 +1429,10 @@ void disassemble(uint c) @trusted
         if (imm3 == 0)
             p5 = extend;
         else
-            snprintf(P5buf2.ptr, P5buf2.length, ((imm3 < 10) ? "%s #%d" : "#0x%X"), extend, imm3);
-        p5 = P5buf2.ptr;
+        {
+            const n = snprintf(P5buf2.ptr, P5buf2.length, ((imm3 < 10) ? "%s #%d" : "#0x%X"), extend.ptr, imm3);
+            p5 = P5buf2[0 .. n];
+        }
 
         if (opS == 1 && Rd == 31)
         {
@@ -1456,7 +1455,7 @@ void disassemble(uint c) @trusted
         uint Rn     = field(ins,  9,  5);
         uint Rd     = field(ins,  4,  0);
 
-        immutable char*[4] opstring = [ "adc", "adcs", "sbc", "sbcs" ];
+        string[4] opstring = [ "adc", "adcs", "sbc", "sbcs" ];
         p1 = opstring[op * 2 + S];
         p2 = regString(sf, Rd);
         p3 = regString(sf, Rn);
@@ -1476,7 +1475,7 @@ void disassemble(uint c) @trusted
         uint sfopS  = field(ins, 31, 29);
         if (sfopS == 4 || sfopS == 6)
         {
-            immutable char*[4] opstring = [ "adc", "adcs", "sbc", "sbcs" ];
+            string[4] opstring = [ "adc", "adcs", "sbc", "sbcs" ];
             p1 = sfopS == 4 ? "addpt" : "subpt";
             p2 = regString(sf, Rd);
             p3 = regString(sf, Rn);
@@ -1486,7 +1485,7 @@ void disassemble(uint c) @trusted
                 __gshared char[7 + imm3.sizeof * 3 + 1] P5buf3 = void;
                 size_t n = snprintf(P5buf3.ptr, P5buf3.length, ((imm3 < 10) ? "LSL #%d" : "LSL #0x%X"), imm3);
                 assert(n <= P5buf3.length);
-                p5 = P5buf3.ptr;
+                p5 = P5buf3[0 .. n];
             }
         }
     }
@@ -1563,7 +1562,7 @@ void disassemble(uint c) @trusted
         uint Rn     = field(ins,  9,  5);
         uint Rd     = field(ins,  4,  0);
 
-        immutable char*[4] opstring = [ "csel", "csinc", "csinv", "csneg" ];
+        string[4] opstring = [ "csel", "csinc", "csinv", "csneg" ];
         p1 = opstring[op * 2 + (op2 & 1)];
         p2 = regString(sf, Rd);
         p3 = regString(sf, Rn);
@@ -1705,32 +1704,32 @@ void disassemble(uint c) @trusted
 
     put(' ');
     puts(p1);
-    if (*p2)
+    if (p2.length > 0)
     {
-        for (int len1 = cast(int)strlen(p1); len1 < 9; ++len1)
+        foreach (len1; p1.length .. 9)
             put(' ');
         put(' ');
         puts(s2);
-        if (*p2 != ' ')
+        if (p2[0] != ' ')
             puts(p2);
-        if (*p3)
+        if (p3.length > 0)
         {
             puts(sep);
             puts(s3);
             puts(p3);
-            if (*p4)
+            if (p4.length > 0)
             {
                 put(',');
                 puts(p4);
-                if (*p5)
+                if (p5.length > 0)
                 {
                     put(',');
                     puts(p5);
-                    if (*p6)
+                    if (p6.length > 0)
                     {
                         put(',');
                         puts(p6);
-                        if (*p7)
+                        if (p7.length > 0)
                         {
                             put(',');
                             puts(p7);
@@ -1755,11 +1754,11 @@ void disassemble(uint c) @trusted
  *      string representation of the memory address
  */
 @trusted
-const(char)* memoryDefault(uint c, uint sz, addr offset)
+const(char)[] memoryDefault(uint c, uint sz, addr offset)
 {
     __gshared char[12 + 1] EA;
-    snprintf(EA.ptr,EA.length,"[0%Xh]",offset);
-    return EA.ptr;
+    const n = snprintf(EA.ptr,EA.length,"[0%Xh]",offset);
+    return EA[0 .. n];
 }
 
 /***********************
@@ -1773,7 +1772,7 @@ const(char)* memoryDefault(uint c, uint sz, addr offset)
  *      string representation of the memory address
  */
 @trusted
-const(char)* immed16Default(ubyte[] code, uint c, int sz)
+const(char)[] immed16Default(ubyte[] code, uint c, int sz)
 {
     ulong offset;
     switch (sz)
@@ -1795,8 +1794,8 @@ const(char)* immed16Default(ubyte[] code, uint c, int sz)
     }
     __gshared char[1 + offset.sizeof * 3 + 1 + 1] buf;
 
-    snprintf(buf.ptr, buf.length,((cast(long)offset < 10) ? "%lld" : "0%llXh"), offset);
-    return buf.ptr;
+    const n = snprintf(buf.ptr, buf.length,((cast(long)offset < 10) ? "%lld" : "0%llXh"), offset);
+    return buf[0 .. n];
 }
 
 /***********************
@@ -1811,12 +1810,12 @@ const(char)* immed16Default(ubyte[] code, uint c, int sz)
  *      string representation of the memory address
  */
 @trusted
-const(char)* labelcodeDefault(uint c, uint offset, bool farflag, bool is16bit)
+const(char)[] labelcodeDefault(uint c, uint offset, bool farflag, bool is16bit)
 {
     //printf("offset = %x\n", offset);
     __gshared char[1 + uint.sizeof * 3 + 1] buf;
-    snprintf(buf.ptr, buf.length, "L%x", offset);
-    return buf.ptr;
+    const n = snprintf(buf.ptr, buf.length, "L%x", offset);
+    return buf[0 .. n];
 }
 
 /***********************
@@ -1828,11 +1827,11 @@ const(char)* labelcodeDefault(uint c, uint offset, bool farflag, bool is16bit)
  *      string representation of the memory address
  */
 @trusted
-const(char)* shortlabelDefault(uint pc, int offset)
+const(char)[] shortlabelDefault(uint pc, int offset)
 {
     __gshared char[1 + ulong.sizeof * 3 + 1] buf;
-    snprintf(buf.ptr, buf.length, "L%x", pc + offset);
-    return buf.ptr;
+    const n = snprintf(buf.ptr, buf.length, "L%x", pc + offset);
+    return buf[0 .. n];
 }
 
 /*****************************
@@ -1856,72 +1855,72 @@ addr dword(ubyte[] code, uint c)
 /*************************************
  */
 @trusted
-const(char)* wordtostring(uint w)
+const(char)[] wordtostring(uint w)
 {
     __gshared char[1 + 3 + w.sizeof * 3 + 1 + 1] EA;
 
-    snprintf(EA.ptr, EA.length, ((w < 10) ? "#%ld" : "#0x%lX"), w);
-    return EA.ptr;
+    const n = snprintf(EA.ptr, EA.length, ((w < 10) ? "#%ld" : "#0x%lX"), w);
+    return EA[0 .. n];
 }
 
 @trusted
-const(char)* wordtostring(ulong w)
+const(char)[] wordtostring(ulong w)
 {
     __gshared char[1 + 3 + w.sizeof * 3 + 1 + 1] EA;
 
-    snprintf(EA.ptr, EA.length, ((w < 10) ? "#%lld" : "#0x%llX"), w);
-    return EA.ptr;
+    const n = snprintf(EA.ptr, EA.length, ((w < 10) ? "#%lld" : "#0x%llX"), w);
+    return EA[0 .. n];
 }
 
 @trusted
-const(char)* wordtostring2(uint w)
+const(char)[] wordtostring2(uint w)
 {
     __gshared char[1 + 3 + w.sizeof * 3 + 1 + 1] EA;
 
-    snprintf(EA.ptr, EA.length, ((w < 10) ? "#%ld" : "#0x%lX"), w);
-    return EA.ptr;
+    const n = snprintf(EA.ptr, EA.length, ((w < 10) ? "#%ld" : "#0x%lX"), w);
+    return EA[0 .. n];
 }
 
 @trusted
-const(char)* labeltostring(ulong w)
+const(char)[] labeltostring(ulong w)
 {
     __gshared char[2 + w.sizeof * 3 + 1] EA;
 
-    auto n = snprintf(EA.ptr, EA.length, ((w < 10) ? "%lld" : "0x%llX"), w);
+    const n = snprintf(EA.ptr, EA.length, ((w < 10) ? "%lld" : "0x%llX"), w);
     assert(n <= EA.length);
-    return EA.ptr;
+    return EA[0 .. n];
 }
 
 @trusted
-const(char)* indexString(uint reg)
+const(char)[] indexString(uint reg)
 {
     __gshared char[1 + 2 + 1 + 1] EA;
 
-    auto n = snprintf(EA.ptr, EA.length, "[%s]", regString(1, reg));
+    const n = snprintf(EA.ptr, EA.length, "[%s]", regString(1, reg).ptr);
     assert(n <= EA.length);
-    return EA.ptr;
+    return EA[0 .. n];
 }
 
 
 /***************************************
  */
 pragma(inline, false)
-const(char)* regString(uint sf, uint reg) { return sf ? xregs[reg] : wregs[reg]; }
+const(char)[] regString(uint sf, uint reg) { return sf ? xregs[reg] : wregs[reg]; }
 
 pragma(inline, false)
-const(char)* cregString(uint reg) { return cregs[reg]; }
+const(char)[] cregString(uint reg) { return cregs[reg]; }
 
 immutable
 {
-    char*[32] xregs       = [ "x0","x1","x2","x3","x4","x5","x6","x7",
+    string[32] xregs      = [ "x0","x1","x2","x3","x4","x5","x6","x7",
                               "x8","x9","x10","x11","x12","x13","x14","x15",
                               "x16","x17","x18","x19","x20","x21","x22","x23",
                               "x24","x25","x26","x27","x28","x29","x30","sp" ];
-    char*[32] wregs       = [ "w0","w1","w2","w3","w4","w5","w6","w7",
+    string[32] wregs      = [ "w0","w1","w2","w3","w4","w5","w6","w7",
                               "w8","w9","w10","w11","w12","w13","w14","w15",
                               "w16","w17","w18","w19","w20","w21","w22","w23",
                               "w24","w25","w26","w27","w28","w29","w30","wsp" ];
-    char*[32] cregs       = [ "c0","c1","c2","c3","c4","c5","c6","c7",
+    string[32] cregs      = [ "c0","c1","c2","c3","c4","c5","c6","c7",
                               "c8","c9","c10","c11","c12","c13","c14","c15",
                               "c16","c17","c18","c19","c20","c21","c22","c23",
                               "c24","c25","c26","c27","c28","c29","c30","csp" ];
