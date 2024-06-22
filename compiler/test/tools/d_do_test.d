@@ -212,9 +212,9 @@ immutable(EnvData) processEnvironment()
     {
         case "dmd":
         case "ldc":
-            version (CppRuntime_Gcc)
+            version (CppRuntime_libstdcpp)
                 envData.cxxCompatFlags = " -L-lstdc++ -L--no-demangle";
-            else version (CppRuntime_Clang)
+            else version (CppRuntime_libcpp)
                 envData.cxxCompatFlags = " -L-lc++ -L--no-demangle";
             break;
 

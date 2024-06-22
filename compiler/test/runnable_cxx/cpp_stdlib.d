@@ -5,7 +5,7 @@ import core.stdc.stdio;
 
 // Disabled on windows because it needs bindings
 
-version (CppRuntime_Clang)
+version (CppRuntime_libcpp)
 {
     extern(C++, `std`, `__1`)
     {

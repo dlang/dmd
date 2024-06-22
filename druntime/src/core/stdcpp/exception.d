@@ -15,9 +15,9 @@ module core.stdcpp.exception;
 import core.stdcpp.xutility : __cplusplus, CppStdRevision;
 import core.attribute : weak;
 
-version (CppRuntime_Gcc)
+version (CppRuntime_libstdcpp)
     version = GenericBaseException;
-version (CppRuntime_Clang)
+version (CppRuntime_libcpp)
     version = GenericBaseException;
 version (CppRuntime_Sun)
     version = GenericBaseException;
