@@ -130,10 +130,6 @@ enum
     mST01   = (1 << ST01),    // 0x40000000
 }
 
-// Flags for getlvalue (must fit in regm_t)
-enum RMload  = (1 << 30);
-enum RMstore = (1 << 31);
-
     // To support positional independent code,
     // must be able to remove BX from available registers
     enum ALLREGS_INIT          = (mAX|mBX|mCX|mDX|mSI|mDI);

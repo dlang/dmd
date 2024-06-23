@@ -609,11 +609,12 @@ void logexp(ref CodeBuilder cdb, elem *e, int jcond, uint fltarg, code *targ)
  *      offset  = data to be added to Voffset field
  *      keepmsk = mask of registers we must not destroy
  *      desmsk  = mask of registers destroyed by executing the instruction
+ *      rmx     = RM.load/store
  */
 
 @trusted
 void loadea(ref CodeBuilder cdb,elem *e,ref code cs,uint op,reg_t reg,targ_size_t offset,
-            regm_t keepmsk,regm_t desmsk)
+            regm_t keepmsk,regm_t desmsk, RM rmx = RM.rw)
 {
     code* c, cg, cd;
 
@@ -691,7 +692,7 @@ void loadea(ref CodeBuilder cdb,elem *e,ref code cs,uint op,reg_t reg,targ_size_
         }
     }
 
-    getlvalue(cdb, cs, e, keepmsk);
+    getlvalue(cdb, cs, e, keepmsk, rmx);
     if (offset == REGSIZE)
         getlvalue_msw(cs);
     else
@@ -848,13 +849,13 @@ void getlvalue_lsw(ref code c)
  *      pcs = set to addressing mode
  *      e   = the lvalue elem
  *      keepmsk = mask of registers we must not destroy or use
- *              if (keepmsk & RMstore), this will be only a store operation
- *              into the lvalue
- *              if (keepmsk & RMload), this will be a read operation only
+ *      rm = RM.store a store operation into the lvalue only
+ *           RM.load a read operation from the lvalue only
+ *           RM.rw load and store
  */
 
 @trusted
-void getlvalue(ref CodeBuilder cdb,ref code pcs,elem *e,regm_t keepmsk)
+void getlvalue(ref CodeBuilder cdb,ref code pcs,elem *e,regm_t keepmsk,RM rm = RM.rw)
 {
     FL fl;
     uint f, opsave;
@@ -1190,7 +1191,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem *e,regm_t keepmsk)
             assert(idxregs);
             if (!I16 &&
                 (sz == REGSIZE || (I64 && sz == 4)) &&
-                keepmsk & RMstore)
+                rm == RM.store)
                 idxregs |= cgstate.regcon.mvar;
 
             switch (e1ty)
@@ -1380,7 +1381,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem *e,regm_t keepmsk)
                  */
                 if (cgstate.regcon.params & pregm /*&& s.Spreg2 == NOREG && !(pregm & XMMREGS)*/)
                 {
-                    if (keepmsk & RMload && !cgstate.anyiasm)
+                    if (rm == RM.load && !cgstate.anyiasm)
                     {
                         auto voffset = e.Voffset;
                         if (sz <= REGSIZE)
@@ -1601,8 +1602,8 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem *e,regm_t keepmsk)
                 s.Sflags &= ~GTregcand;
             }
 
-            if (!(keepmsk & RMstore))               // if not store only
-                s.Sflags |= SFLread;               // assume we are doing a read
+            if (rm != RM.store)               // if not store only
+                s.Sflags |= SFLread;          // assume we are doing a read
             break;
 
         case FLpseudo:
@@ -4800,13 +4801,13 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                 code cs;
                 cs.Iflags = 0;
                 cs.Irex = 0;
-                loadea(cdb, e, cs, 0xFF, 6, sz - regsize, RMload, 0);    // PUSH EA+sz-2
+                loadea(cdb, e, cs, 0xFF, 6, sz - regsize, 0, 0, RM.load);    // PUSH EA+sz-2
                 code_orflag(cdb.last(), flag);
                 cdb.genadjesp(REGSIZE);
                 cgstate.stackpush += sz;
                 while (cast(targ_int)(sz -= regsize) > 0)
                 {
-                    loadea(cdb, e, cs, 0xFF, 6, sz - regsize, RMload, 0);
+                    loadea(cdb, e, cs, 0xFF, 6, sz - regsize, 0, 0, RM.load);
                     code_orflag(cdb.last(), flag);
                     cdb.genadjesp(REGSIZE);
                 }
@@ -5496,7 +5497,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
                     /* getlvalue() will unwind this and unregister s; could use a better solution */
                 }
             }
-            loadea(cdb, e, cs, opmv, reg, 0, RMload, 0); // MOVSS/MOVSD reg,data
+            loadea(cdb, e, cs, opmv, reg, 0, 0, 0, RM.load); // MOVSS/MOVSD reg,data
             checkSetVex(cdb.last(),tym);
         }
         else if (sz <= REGSIZE)
@@ -5510,7 +5511,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
             {
 //                opmv = tyuns(tym) ? MOVZXw : MOVSXw;  // MOVZX/MOVSX
             }
-            loadea(cdb, e, cs, opmv, reg, 0, RMload, 0);
+            loadea(cdb, e, cs, opmv, reg, 0, 0, 0, RM.load);
         }
         else if (sz <= 2 * REGSIZE && forregs & mES)
         {

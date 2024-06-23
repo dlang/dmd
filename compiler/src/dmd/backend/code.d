@@ -382,3 +382,11 @@ regm_t iasm_regs(block *bp)
 
     return bp.usIasmregs;
 }
+
+// Flags for getlvalue
+enum RM
+{
+    rw = 0,
+    load = 1,
+    store = 2,
+}
