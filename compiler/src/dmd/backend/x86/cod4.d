@@ -444,13 +444,13 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 postinc = e11.E2.Vint;
                 if (e11.Eoper == OPpostdec)
                     postinc = -postinc;
-                getlvalue(cdb,cs,e1,RMstore);
+                getlvalue(cdb,cs,e1,0,RM.store);
                 freenode(e11.E2);
             }
             else
             {
                 postinc = 0;
-                getlvalue(cdb,cs,e1,RMstore);
+                getlvalue(cdb,cs,e1,0,RM.store);
 
                 if (e2oper == OPconst &&
                     config.flags4 & CFG4speed &&
@@ -712,13 +712,13 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         postinc = e11.E2.Vint;
         if (e11.Eoper == OPpostdec)
             postinc = -postinc;
-        getlvalue(cdb,cs,e1,RMstore | retregs);
+        getlvalue(cdb,cs,e1,retregs,RM.store);
         freenode(e11.E2);
     }
     else
     {
         postinc = 0;
-        getlvalue(cdb,cs,e1,RMstore | retregs);     // get lvalue (cl == null if regvar)
+        getlvalue(cdb,cs,e1,retregs,RM.store);     // get lvalue (cl == null if regvar)
     }
 
     getregs(cdb,varregm);
@@ -2864,7 +2864,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                  e1.Eoper == OPind) &&
                 !evalinregister(e1))
             {
-                getlvalue(cdb,cs,e1,RMload);
+                getlvalue(cdb,cs,e1,0,RM.load);
                 freenode(e1);
                 if (evalinregister(e2))
                 {
@@ -3041,7 +3041,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                )
             {
                 // CMP EA,e2
-                getlvalue(cdb,cs,e1,RMload);
+                getlvalue(cdb,cs,e1,0,RM.load);
                 freenode(e1);
                 cs.Iop = 0x39 ^ isbyte ^ reverse;
                 code_newreg(&cs,reg);
@@ -3057,14 +3057,14 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             {
                 reg = findreg(retregs & cgstate.allregs);   // get reg that e1 is in
                 uint opsize = cs.Iflags & CFopsize;
-                loadea(cdb,e2,cs,0x3B ^ isbyte ^ reverse,reg,0,RMload | retregs,0);
+                loadea(cdb,e2,cs,0x3B ^ isbyte ^ reverse,reg,0,retregs,0,RM.load);
                 code_orflag(cdb.last(),opsize);
             }
             else if (sz <= 2 * REGSIZE)
             {
                 reg = findregmsw(retregs);   // get reg that e1 is in
                 // CMP reg,EA
-                loadea(cdb,e2,cs,0x3B ^ reverse,reg,REGSIZE,RMload | retregs,0);
+                loadea(cdb,e2,cs,0x3B ^ reverse,reg,REGSIZE,retregs,0,RM.load);
                 if (I32 && sz == 6)
                     cdb.last().Iflags |= CFopsize;        // seg is only 16 bits
                 genjmp(cdb,JNE,FLcode, cast(block *) ce);  // JNE ce
@@ -3076,7 +3076,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                     cdb.gen(&cs);
                 }
                 else
-                    loadea(cdb,e2,cs,0x3B ^ reverse,reg,0,RMload | retregs,0);
+                    loadea(cdb,e2,cs,0x3B ^ reverse,reg,0,retregs,0,RM.load);
             }
             else
                 assert(0);
@@ -4200,7 +4200,7 @@ void cdbtst(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     regm_t idxregs;
     if ((e1.Eoper == OPind && !e1.Ecount) || e1.Eoper == OPvar)
     {
-        getlvalue(cdb, cs, e1, RMload);    // get addressing mode
+        getlvalue(cdb, cs, e1, 0, RM.load);  // get addressing mode
         idxregs = idxregm(&cs);             // mask if index regs used
     }
     else
@@ -4337,7 +4337,7 @@ void cdbt(ref CGstate cg, ref CodeBuilder cdb,elem *e, regm_t *pretregs)
     code cs;
     cs.Iflags = 0;
 
-    getlvalue(cdb, cs, e, RMload);      // get addressing mode
+    getlvalue(cdb, cs, e, 0, RM.load);      // get addressing mode
     if (e.Eoper == OPbt && *pretregs == 0)
     {
         codelem(cgstate,cdb,e2,pretregs,false);
@@ -4449,7 +4449,7 @@ void cdbscan(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 
     if ((e.E1.Eoper == OPind && !e.E1.Ecount) || e.E1.Eoper == OPvar)
     {
-        getlvalue(cdb, cs, e.E1, RMload);     // get addressing mode
+        getlvalue(cdb, cs, e.E1, 0, RM.load);     // get addressing mode
     }
     else
     {
@@ -4503,7 +4503,7 @@ void cdpopcnt(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     code cs = void;
     if ((e.E1.Eoper == OPind && !e.E1.Ecount) || e.E1.Eoper == OPvar)
     {
-        getlvalue(cdb, cs, e.E1, RMload);     // get addressing mode
+        getlvalue(cdb, cs, e.E1, 0, RM.load);     // get addressing mode
     }
     else
     {

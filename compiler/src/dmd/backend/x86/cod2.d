@@ -3249,7 +3249,7 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     code cs;
 
-     getlvalue(cdb,cs,e,RMload);          // get addressing mode
+     getlvalue(cdb,cs,e,0,RM.load);          // get addressing mode
     //printf("Irex = %02x, Irm = x%02x, Isib = x%02x\n", cs.Irex, cs.Irm, cs.Isib);
     //fprintf(stderr,"cd2 :\n"); WRcodlst(c);
     if (*pretregs == 0)
