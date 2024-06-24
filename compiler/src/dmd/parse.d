@@ -5080,6 +5080,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         AST.TemplateParameters* tpl = null;
         AST.ParameterList parameterList;
         AST.Type tret = null;
+        LINK linkage = LINK.default_;
         StorageClass stc = 0;
         TOK save = TOK.reserved;
 
@@ -5089,6 +5090,16 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         case TOK.delegate_:
             save = token.value;
             nextToken();
+            if (token.value == TOK.extern_)
+            {
+                ParsedLinkage!(AST) pl = parseLinkage();
+                // Reject C++-class-specific stuff
+                if (pl.cppmangle != CPPMANGLE.def)
+                    error("C++ mangle declaration not allowed here");
+                if (pl.idents != null || pl.identExps != null)
+                    error("C++ namespaces not allowed here");
+                linkage = pl.link;
+            }
             if (token.value == TOK.auto_)
             {
                 nextToken();
@@ -5197,6 +5208,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         auto tf = new AST.TypeFunction(parameterList, tret, linkage, stc);
         tf = cast(AST.TypeFunction)tf.addSTC(stc);
+        tf.linkage = linkage;
         auto fd = new AST.FuncLiteralDeclaration(loc, Loc.initial, tf, save, null, null, stc & STC.auto_);
 
         if (token.value == TOK.goesTo)
