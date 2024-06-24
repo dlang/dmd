@@ -74,7 +74,7 @@ enum NUMGENREGS = 16;
 // currently only used as a replacement for mES in cgcod.c
 enum NUMREGS = 25;
 
-enum PSW     = 25;
+enum PSW     = 30;
 enum STACK   = 26;      // top of stack
 enum ST0     = 27;      // 8087 top of stack register
 enum ST01    = 28;      // top two 8087 registers; for complex types
