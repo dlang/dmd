@@ -3924,10 +3924,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      * See_Also:
      *      https://dlang.org/spec/declaration.html#TypeSuffixes
      */
-    private AST.Type parseTypeSuffixes(AST.Type t, StorageClass stc2 = 0, bool isRef = false, LINK link = LINK.default_)
+    private AST.Type parseTypeSuffixes(AST.Type t, immutable StorageClass stc2 = 0, immutable bool isRef = false, immutable LINK link = LINK.default_)
     {
         //printf("parseTypeSuffixes()\n");
-        const requireCallable = isRef || link != LINK.default_;
+        immutable linkageSpecified = link != LINK.default_;
+        immutable requireCallable = isRef || linkageSpecified;
         AST.TypeFunction tf = null;
         while (1)
         {
@@ -3993,22 +3994,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
                     auto parameterList = parseParameterList(null);
 
-                    StorageClass stc = parsePostfix(STC.undefined_, null);
-                    // if (isRefCallable)
-                    // {
-                    //     stc = parsePostfix(STC.ref_, null);
-                    //     isRefCallable = false;
-                    // }
-                    // else
-                    // {
-                    //     stc = parsePostfix(STC.undefined_, null);
-                    // }
-                    if (tf !is null)
-                    {
-                        if (link != LINK.default_ && isRef) error("Linkage and `ref` are ambiguous. Use clarifying parentheses.");
-                        else if (isRef) error("`ref` is ambiguous. Use clarifying parentheses.");
-                        else if (link != LINK.default_) error("Linkage is ambiguous. Use clarifying parentheses.");
-                    }
+                    immutable StorageClass stc = parsePostfix(STC.undefined_, null);
+                    immutable bool ambiguous = requireCallable && tf !is null;
                     tf = new AST.TypeFunction(parameterList, t, linkage, stc);
                     if (stc & (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild | STC.return_))
                     {
@@ -4020,6 +4007,45 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     t = callableKeyword == TOK.delegate_
                         ? new AST.TypeDelegate(tf)
                         : new AST.TypePointer(tf); // pointer to function
+                    if (ambiguous)
+                    {
+                        // seek next inner function
+                        auto tt = (cast(AST.TypeNext)t).syntaxCopy;
+                        AST.TypeFunction oldTf = null;
+                        for ({AST.Type tx = (cast(AST.TypeFunction)tt.next).next; AST.TypeNext tn; } (tn = tx.isTypeNext) !is null; tx = tn.next)
+                        {
+                            if (tn.ty == Tfunction)
+                            {
+                                auto tfn = cast(AST.TypeFunction)tn;
+                                if (isRef) tfn.isref = true;
+                                if (linkageSpecified) tfn.linkage = link;
+                                goto Lfound;
+                            }
+                        }
+                        assert(0);
+                    Lfound:
+                        if (isRef && linkageSpecified)
+                        {
+                            error("Linkage and `ref` could refer to more than one `function` or `delegate` here.");
+                            eSink.errorSupplemental(token.loc, "Suggested clarifying parentheses:");
+                            eSink.errorSupplemental(token.loc, "   `extern (%s) ref %s` (possibly in parentheses)", AST.linkageToChars(link), t.toChars());
+                            eSink.errorSupplemental(token.loc, "or `%s`", tt.toChars());
+                        }
+                        else if (isRef)
+                        {
+                            error("`ref` could refer to more than one `function` or `delegate` here.");
+                            eSink.errorSupplemental(token.loc, "Suggested clarifying parentheses:");
+                            eSink.errorSupplemental(token.loc, "   `ref %s` (possibly in parentheses)", t.toChars());
+                            eSink.errorSupplemental(token.loc, "or `%s`", tt.toChars());
+                        }
+                        else if (linkageSpecified)
+                        {
+                            error("Linkage could refer to more than one `function` or `delegate` here.");
+                            eSink.errorSupplemental(token.loc, "Suggested clarifying parentheses:");
+                            eSink.errorSupplemental(token.loc, "   `extern (%s) %s` (possibly in parentheses)", AST.linkageToChars(link), t.toChars());
+                            eSink.errorSupplemental(token.loc, "or `%s`", tt.toChars());
+                        }
+                    }
                     continue;
                 }
             default:
@@ -4028,13 +4054,17 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     {
                         if (tf is null)
                         {
-                            if (link != LINK.default_ && isRef) error("linkage and `ref` are only valid for `function` and `delegate` types");
-                            else if (isRef) error("`ref` is only valid for `function` and `delegate` types");
-                            else error("linkage is only valid for `function` and `delegate` types");
+                            if (linkageSpecified && isRef) error("Linkage and `ref` are only valid for `function` and `delegate` types");
+                            else if (isRef)
+                            {
+                                error("`ref` is not a type qualifier.");
+                                eSink.errorSupplemental(token.loc, "It is only valid in function parameter lists and to indicate a function or delegate returns by reference.");
+                            }
+                            else error("Linkage is only valid for `function` and `delegate` types");
                         }
                         tf.next = tf.next.addSTC(stc2);
                         if (isRef) tf.isref = true;
-                        if (link != LINK.default_) tf.linkage = link;
+                        if (linkageSpecified) tf.linkage = link;
                     }
                     return t;
                 }

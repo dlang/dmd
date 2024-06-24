@@ -1607,6 +1607,28 @@ extern (C++) abstract class Type : ASTNode
         inout(TypeTraits)     isTypeTraits()     { return ty == Ttraits    ? cast(typeof(return))this : null; }
         inout(TypeNoreturn)   isTypeNoreturn()   { return ty == Tnoreturn  ? cast(typeof(return))this : null; }
         inout(TypeTag)        isTypeTag()        { return ty == Ttag       ? cast(typeof(return))this : null; }
+
+        inout(TypeArray)      isTypeArray()
+        {
+            switch (ty)
+            {
+            case Tsarray, Tarray, Taarray:
+                return cast(typeof(return))this;
+            default:
+                return null;
+            }
+        }
+        inout(TypeNext)       isTypeNext()
+        {
+            switch (ty)
+            {
+            case Tsarray, Tarray, Taarray:
+            case Tpointer, Treference, Tfunction, Tdelegate, Tslice:
+                    return cast(typeof(return))this;
+            default:
+                return null;
+            }
+    }
     }
 
     override void accept(Visitor v)
@@ -1684,6 +1706,8 @@ extern (C++) abstract class TypeNext : Type
         this.next = next;
     }
 
+    abstract override TypeNext syntaxCopy();
+
     override final int hasWild() const
     {
         if (ty == Tfunction)
@@ -1695,7 +1719,7 @@ extern (C++) abstract class TypeNext : Type
 
     /*******************************
      * For TypeFunction, nextOf() can return NULL if the function return
-     * type is meant to be inferred, and semantic() hasn't yet ben run
+     * type is meant to be inferred, and semantic() hasn't yet been run
      * on the function. After semantic(), it must no longer be NULL.
      */
     override final Type nextOf() @safe
@@ -2494,6 +2518,8 @@ extern (C++) abstract class TypeArray : TypeNext
     {
         super(ty, next);
     }
+
+    abstract override TypeArray syntaxCopy();
 
     override void accept(Visitor v)
     {

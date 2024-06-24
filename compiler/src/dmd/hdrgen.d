@@ -3903,7 +3903,24 @@ private void visitFuncIdentWithPostfix(TypeFunction t, const char[] ident, ref O
             openParenthesis();
             buf.write("ref ");
         }
+        immutable bool hasNestedNonParendCallable = {
+            for ({ Type tt = t; TypeNext tn = null; } (tn = tt.isTypeNext) !is null;)
+            {
+                tt = tn.next;
+                switch (tt.ty)
+                {
+                    case Tsarray, Tarray, Taarray, Tpointer, Treference, Tdelegate, Tslice: continue;
+                    case Tfunction:
+                        TypeFunction tf = cast(TypeFunction) tt;
+                        return !tf.isref && tf.linkage <= LINK.d;
+                    default: return false;
+                }
+            }
+            return false;
+        }();
+        if (hasNestedNonParendCallable) buf.writeByte('(');
         typeToBuffer(t.next, null, buf, hgs);
+        if (hasNestedNonParendCallable) buf.writeByte(')');
         if (ident)
             buf.writeByte(' ');
     }
