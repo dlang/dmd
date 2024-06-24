@@ -201,6 +201,7 @@ void codgen(Symbol *sfunc)
             {
                 cgstate.dfoidx = cast(int)i;
                 cgstate.regcon.used = cgstate.msavereg | cgstate.regcon.cse.mval;   // registers already in use
+                assert(!(cgstate.regcon.used & mPSW));
                 blcodgen(cgstate, b);                 // gen code in depth-first order
                 //printf("b.Bregcon.used = %s\n", regm_str(b.Bregcon.used));
                 cgreg_used(cgstate.dfoidx, b.Bregcon.used); // gather register used information
@@ -1361,6 +1362,7 @@ private void blcodgen(ref CGstate cg, block *bl)
         cdb.append(cdbload);
         cg.mfuncreg &= ~cg.regcon.mvar;               // use these registers
         cg.regcon.used |= cg.regcon.mvar;
+        assert(!(cg.regcon.used & mPSW));
 
         // Determine if we have more than 1 uncommitted index register
         cg.regcon.indexregs = IDXREGS & ~cg.regcon.mvar;
@@ -1394,6 +1396,7 @@ private void blcodgen(ref CGstate cg, block *bl)
     bl.Bregcon.immed = cg.regcon.immed;
     bl.Bregcon.cse = cg.regcon.cse;
     bl.Bregcon.used = cg.regcon.used;
+    assert(!(bl.Bregcon.used & mPSW));
     bl.Bregcon.params = cg.regcon.params;
 
     debug
@@ -1787,6 +1790,9 @@ regm_t lpadregs()
 void useregs(regm_t regm)
 {
     //printf("useregs(x%x) %s\n", regm, regm_str(regm));
+    assert(REGMAX <= 32);
+    regm &= (1 << REGMAX) - 1;
+    assert(!(regm & mPSW));
     cgstate.mfuncreg &= ~regm;
     cgstate.regcon.used |= regm;                // registers used in this block
     cgstate.regcon.params &= ~regm;
@@ -2854,6 +2860,7 @@ void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm
                         touse &= ~mj;
                         cg.mfuncreg &= ~mj;
                         cg.regcon.used |= mj;
+	                assert(!(cg.regcon.used & mPSW));
                         break;
                     }
                 }
@@ -3020,6 +3027,7 @@ void andregcon(const ref con_t pregconsave)
     }
     //printf("regcon.cse.mval = %s, cgstate.regconsave.mval = %s ",regm_str(regcon.cse.mval),regm_str(pregconsave.cse.mval));
     cgstate.regcon.used |= pregconsave.used;
+    assert(!(cgstate.regcon.used & mPSW));
     cgstate.regcon.cse.mval &= pregconsave.cse.mval;
     cgstate.regcon.immed.mval &= pregconsave.immed.mval;
     cgstate.regcon.params &= pregconsave.params;
