@@ -28,8 +28,7 @@ else version (WatchOS)
 
 version (Posix):
 extern (C):
-nothrow:
-@nogc:
+nothrow @nogc:
 
 //
 // Required
@@ -47,105 +46,43 @@ group* getgrnam(const scope char*);
 group* getgrgid(gid_t);
 */
 
+struct group
+{
+    char*   gr_name;
+    char*   gr_passwd;
+    gid_t   gr_gid;
+    char**  gr_mem;
+}
+
 version (CRuntime_Glibc)
 {
-    struct group
-    {
-        char*   gr_name;
-        char*   gr_passwd;
-        gid_t   gr_gid;
-        char**  gr_mem;
-    }
 }
 else version (Darwin)
 {
-    struct group
-    {
-        char*   gr_name;
-        char*   gr_passwd;
-        gid_t   gr_gid;
-        char**  gr_mem;
-    }
 }
 else version (FreeBSD)
 {
-    struct group
-    {
-        char*   gr_name;
-        char*   gr_passwd;
-        gid_t   gr_gid;
-        char**  gr_mem;
-    }
 }
 else version (NetBSD)
 {
-    struct group
-    {
-        char*   gr_name;
-        char*   gr_passwd;
-        gid_t   gr_gid;
-        char**  gr_mem;
-    }
 }
 else version (OpenBSD)
 {
-    struct group
-    {
-        char*   gr_name;
-        char*   gr_passwd;
-        gid_t   gr_gid;
-        char**  gr_mem;
-    }
 }
 else version (DragonFlyBSD)
 {
-    struct group
-    {
-        char*   gr_name;
-        char*   gr_passwd;
-        gid_t   gr_gid;
-        char**  gr_mem;
-    }
 }
 else version (Solaris)
 {
-    struct group
-    {
-        char*   gr_name;
-        char*   gr_passwd;
-        gid_t   gr_gid;
-        char**  gr_mem;
-    }
 }
 else version (CRuntime_Bionic)
 {
-    struct group
-    {
-        char*   gr_name;
-        char*   gr_passwd;
-        gid_t   gr_gid;
-        char**  gr_mem;
-    }
 }
 else version (CRuntime_UClibc)
 {
-    struct group
-    {
-        char*   gr_name;
-        char*   gr_passwd;
-        gid_t   gr_gid;
-        char**  gr_mem;
-    }
 }
 else version (CRuntime_Musl)
 {
-    struct group
-    {
-        char*   gr_name;
-        char*   gr_passwd;
-        gid_t   gr_gid;
-        char**  gr_mem;
-    }
 }
 else
 {
