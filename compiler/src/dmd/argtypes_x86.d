@@ -19,6 +19,7 @@ import dmd.declaration;
 import dmd.globals;
 import dmd.location;
 import dmd.mtype;
+import dmd.typesem;
 import dmd.target;
 import dmd.visitor;
 

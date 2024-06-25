@@ -53,6 +53,7 @@ import dmd.identifier;
 import dmd.id;
 import dmd.location;
 import dmd.mtype;
+import dmd.typesem;
 import dmd.target;
 import dmd.tocvdebug;
 import dmd.tocsym;
@@ -872,7 +873,7 @@ void buildClosure(FuncDeclaration fd, ref IRState irs)
 
         // Calculate the size of the closure
         VarDeclaration  vlast = fd.closureVars[fd.closureVars.length - 1];
-        typeof(Type.size()) lastsize;
+        typeof(size(vlast.type)) lastsize;
         if (vlast.storage_class & STC.lazy_)
             lastsize = target.ptrsize * 2;
         else if (vlast.isReference)
@@ -1104,7 +1105,7 @@ void buildAlignSection(FuncDeclaration fd, ref IRState irs)
 
     // Calculate the size of the align section
     VarDeclaration  vlast = alignSectionVars[$ - 1];
-    typeof(Type.size()) lastsize;
+    typeof(size(vlast.type)) lastsize;
     lastsize = vlast.type.size();
     bool overflow;
     auto structsize = addu(vlast.offset, lastsize, overflow);

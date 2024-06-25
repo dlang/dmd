@@ -27,6 +27,7 @@ import dmd.root.array;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.tokens;
+import dmd.typesem : size;
 
 /***********************************************************
  */

@@ -13,6 +13,7 @@ module dmd.argtypes_aarch64;
 
 import dmd.astenums;
 import dmd.mtype;
+import dmd.typesem;
 
 /****************************************************
  * This breaks a type down into 'simpler' types that can be passed to a function

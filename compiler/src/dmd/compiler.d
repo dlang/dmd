@@ -23,6 +23,7 @@ import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.mtype;
+import dmd.typesem;
 import dmd.root.array;
 import dmd.root.ctfloat;
 

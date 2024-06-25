@@ -38,7 +38,7 @@ import dmd.optimize;
 import dmd.statement;
 import dmd.target;
 import dmd.tokens;
-import dmd.typesem : pointerTo;
+import dmd.typesem : pointerTo, size;
 
 import dmd.root.ctfloat;
 import dmd.common.outbuffer;
