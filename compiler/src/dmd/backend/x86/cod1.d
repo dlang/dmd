@@ -1715,7 +1715,7 @@ void fltregs(ref CodeBuilder cdb, code* pcs, tym_t tym)
  */
 
 @trusted
-void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, uint saveflag)
+void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, bool saveflag)
 {
     reg_t scrreg;                      // scratch register
     regm_t scrregm;
@@ -2036,7 +2036,7 @@ void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, ref regm_t outretre
             fixresult87(cdb, e, retregs, outretregs);
         }
         else
-            tstresult(cdb, retregs, tym, forregs);
+            tstresult(cdb, retregs, tym, forregs != 0);
     }
 }
 

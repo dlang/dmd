@@ -1639,8 +1639,8 @@ void cdmulass(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             getlvalue_lsw(cs);
             if (config.target_cpu >= TARGET_PentiumPro)
             {
-                regm_t rlo = findreglsw(rretregs);
-                regm_t rhi = findregmsw(rretregs);
+                reg_t rlo = findreglsw(rretregs);
+                reg_t rhi = findregmsw(rretregs);
                 /*  IMUL    rhi,EAX
                     IMUL    EDX,rlo
                     ADD     rhi,EDX

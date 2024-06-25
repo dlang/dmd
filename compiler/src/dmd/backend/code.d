@@ -356,8 +356,8 @@ enum BackendPass
 
 public import dmd.backend.x86.cgcod : findreg;
 
-reg_t findregmsw(uint regm) { return findreg(regm & mMSW); }
-reg_t findreglsw(uint regm) { return findreg(regm & (mLSW | mBP)); }
+reg_t findregmsw(regm_t regm) { return findreg(regm & mMSW); }
+reg_t findreglsw(regm_t regm) { return findreg(regm & (mLSW | mBP)); }
 
 public import dmd.backend.x86.cod1;
 public import dmd.backend.x86.cod2;
