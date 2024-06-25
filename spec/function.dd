@@ -42,12 +42,13 @@ $(GNAME ParameterList):
     $(GLINK VariadicArgumentsAttributes)$(OPT) $(D ...)
 
 $(GNAME Parameter):
+    $(GLINK ParameterDeclaration)
+    $(GLINK ParameterDeclaration) $(D ...)
+    $(GLINK ParameterDeclaration) $(D =) $(ASSIGNEXPRESSION)
+
+$(GNAME ParameterDeclaration):
     $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator)
-    $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) $(D ...)
-    $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) $(D =) $(ASSIGNEXPRESSION)
     $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, Type)
-    $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, Type) $(D ...)
-    $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, Type) $(D =) $(ASSIGNEXPRESSION)
 
 $(GNAME ParameterAttributes):
     $(GLINK ParameterStorageClass)
