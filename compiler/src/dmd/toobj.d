@@ -60,6 +60,7 @@ import dmd.todt;
 import dmd.tokens;
 import dmd.traits;
 import dmd.typinf;
+import dmd.typesem : size;
 import dmd.visitor;
 
 import dmd.backend.cc;

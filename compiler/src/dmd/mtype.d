@@ -30,7 +30,6 @@ import dmd.dtemplate;
 import dmd.enumsem;
 import dmd.errors;
 import dmd.expression;
-import dmd.funcsem;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
@@ -618,20 +617,9 @@ extern (C++) abstract class Type : ASTNode
         stringtable = stringtable.init;
     }
 
-    final uinteger_t size()
-    {
-        return size(Loc.initial);
-    }
-
-    uinteger_t size(const ref Loc loc)
-    {
-        error(loc, "no size for type `%s`", toChars());
-        return SIZE_INVALID;
-    }
-
     uint alignsize()
     {
-        return cast(uint)size(Loc.initial);
+        return cast(uint)size(this, Loc.initial);
     }
 
     /*********************************
@@ -1656,11 +1644,6 @@ extern (C++) final class TypeError : Type
         return this;
     }
 
-    override uinteger_t size(const ref Loc loc)
-    {
-        return SIZE_INVALID;
-    }
-
     override Expression defaultInitLiteral(const ref Loc loc)
     {
         return ErrorExp.get();
@@ -2116,83 +2099,6 @@ extern (C++) final class TypeBasic : Type
         return this;
     }
 
-    override uinteger_t size(const ref Loc loc)
-    {
-        uint size;
-        //printf("TypeBasic::size()\n");
-        switch (ty)
-        {
-        case Tint8:
-        case Tuns8:
-            size = 1;
-            break;
-
-        case Tint16:
-        case Tuns16:
-            size = 2;
-            break;
-
-        case Tint32:
-        case Tuns32:
-        case Tfloat32:
-        case Timaginary32:
-            size = 4;
-            break;
-
-        case Tint64:
-        case Tuns64:
-        case Tfloat64:
-        case Timaginary64:
-            size = 8;
-            break;
-
-        case Tfloat80:
-        case Timaginary80:
-            size = target.realsize;
-            break;
-
-        case Tcomplex32:
-            size = 8;
-            break;
-
-        case Tcomplex64:
-        case Tint128:
-        case Tuns128:
-            size = 16;
-            break;
-
-        case Tcomplex80:
-            size = target.realsize * 2;
-            break;
-
-        case Tvoid:
-            //size = Type::size();      // error message
-            size = 1;
-            break;
-
-        case Tbool:
-            size = 1;
-            break;
-
-        case Tchar:
-            size = 1;
-            break;
-
-        case Twchar:
-            size = 2;
-            break;
-
-        case Tdchar:
-            size = 4;
-            break;
-
-        default:
-            assert(0);
-        }
-        //printf("TypeBasic::size() = %d\n", size);
-        return size;
-    }
-
     override uint alignsize()
     {
         return target.alignsize(this);
@@ -2290,7 +2196,7 @@ extern (C++) final class TypeBasic : Type
             // If converting from integral to integral
             if (tob.flags & TFlags.integral)
             {
-                const sz = size(Loc.initial);
+                const sz = size(this, Loc.initial);
                 const tosz = tob.size(Loc.initial);
 
                 /* Can't convert to smaller size
@@ -2394,11 +2300,6 @@ extern (C++) final class TypeVector : Type
     override TypeVector syntaxCopy()
     {
         return new TypeVector(basetype.syntaxCopy());
-    }
-
-    override uinteger_t size(const ref Loc loc)
-    {
-        return basetype.size();
     }
 
     override uint alignsize()
@@ -2543,22 +2444,6 @@ extern (C++) final class TypeSArray : TypeArray
     bool isIncomplete()
     {
         return dim.isIntegerExp() && dim.isIntegerExp().getInteger() == 0;
-    }
-
-    override uinteger_t size(const ref Loc loc)
-    {
-        //printf("TypeSArray::size()\n");
-        const n = numberOfElems(loc);
-        const elemsize = baseElemOf().size(loc);
-        bool overflow = false;
-        const sz = mulu(n, elemsize, overflow);
-        if (overflow || sz >= uint.max)
-        {
-            if (elemsize != SIZE_INVALID && n != uint.max)
-                error(loc, "static array `%s` size overflowed to %lld", toChars(), cast(long)sz);
-            return SIZE_INVALID;
-        }
-        return sz;
     }
 
     override uint alignsize()
@@ -2736,12 +2621,6 @@ extern (C++) final class TypeDArray : TypeArray
         return result;
     }
 
-    override uinteger_t size(const ref Loc loc)
-    {
-        //printf("TypeDArray::size()\n");
-        return target.ptrsize * 2;
-    }
-
     override uint alignsize()
     {
         // A DArray consists of two ptr-sized values, so align it on pointer size
@@ -2835,11 +2714,6 @@ extern (C++) final class TypeAArray : TypeArray
         return result;
     }
 
-    override uinteger_t size(const ref Loc loc)
-    {
-        return target.ptrsize;
-    }
-
     override bool isZeroInit(const ref Loc loc)
     {
         return true;
@@ -2920,11 +2794,6 @@ extern (C++) final class TypePointer : TypeNext
         auto result = new TypePointer(t);
         result.mod = mod;
         return result;
-    }
-
-    override uinteger_t size(const ref Loc loc)
-    {
-        return target.ptrsize;
     }
 
     override MATCH implicitConvTo(Type to)
@@ -3018,11 +2887,6 @@ extern (C++) final class TypeReference : TypeNext
         auto result = new TypeReference(t);
         result.mod = mod;
         return result;
-    }
-
-    override uinteger_t size(const ref Loc loc)
-    {
-        return target.ptrsize;
     }
 
     override bool isZeroInit(const ref Loc loc)
@@ -3447,11 +3311,6 @@ extern (C++) final class TypeDelegate : TypeNext
         return result;
     }
 
-    override uinteger_t size(const ref Loc loc)
-    {
-        return target.ptrsize * 2;
-    }
-
     override uint alignsize()
     {
         return target.ptrsize;
@@ -3533,11 +3392,6 @@ extern (C++) final class TypeTraits : Type
     override void accept(Visitor v)
     {
         v.visit(this);
-    }
-
-    override uinteger_t size(const ref Loc loc)
-    {
-        return SIZE_INVALID;
     }
 }
 
@@ -3648,12 +3502,6 @@ extern (C++) abstract class TypeQualified : Type
         idents.push(e);
     }
 
-    override uinteger_t size(const ref Loc loc)
-    {
-        error(this.loc, "size of type `%s` is not known", toChars());
-        return SIZE_INVALID;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -3759,14 +3607,6 @@ extern (C++) final class TypeTypeof : TypeQualified
         return t;
     }
 
-    override uinteger_t size(const ref Loc loc)
-    {
-        if (exp.type)
-            return exp.type.size(loc);
-        else
-            return TypeQualified.size(loc);
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -3823,11 +3663,6 @@ extern (C++) final class TypeStruct : Type
     override const(char)* kind() const
     {
         return "struct";
-    }
-
-    override uinteger_t size(const ref Loc loc)
-    {
-        return sym.size(loc);
     }
 
     override uint alignsize()
@@ -3895,7 +3730,7 @@ extern (C++) final class TypeStruct : Type
         /* Copy from the initializer symbol for larger symbols,
          * otherwise the literals expressed as code get excessively large.
          */
-        if (size(loc) > target.ptrsize * 4 && !needsNested())
+        if (size(this, loc) > target.ptrsize * 4 && !needsNested())
             structinit.useStaticInit = true;
 
         structinit.type = this;
@@ -4129,11 +3964,6 @@ extern (C++) final class TypeEnum : Type
         return this;
     }
 
-    override uinteger_t size(const ref Loc loc)
-    {
-        return sym.getMemtype(loc).size(loc);
-    }
-
     Type memType()
     {
         return sym.getMemtype(Loc.initial);
@@ -4290,11 +4120,6 @@ extern (C++) final class TypeClass : Type
     override const(char)* kind() const
     {
         return "class";
-    }
-
-    override uinteger_t size(const ref Loc loc)
-    {
-        return target.ptrsize;
     }
 
     override TypeClass syntaxCopy()
@@ -4651,11 +4476,6 @@ extern (C++) final class TypeNull : Type
         return true;
     }
 
-    override uinteger_t size(const ref Loc loc)
-    {
-        return tvoidptr.size(loc);
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -4708,11 +4528,6 @@ extern (C++) final class TypeNoreturn : Type
     override bool isBoolean()
     {
         return true;  // bottom type can be implicitly converted to any other type
-    }
-
-    override uinteger_t size(const ref Loc loc)
-    {
-        return 0;
     }
 
     override uint alignsize()

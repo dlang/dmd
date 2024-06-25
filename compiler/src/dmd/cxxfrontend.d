@@ -627,6 +627,18 @@ Type referenceTo(Type type)
     return dmd.typesem.referenceTo(type);
 }
 
+uinteger_t size(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.size(type);
+}
+
+uinteger_t size(Type type, const ref Loc loc)
+{
+    import dmd.typesem;
+    return dmd.typesem.size(type, loc);
+}
+
 /***********************************************************
  * typinf.d
  */
