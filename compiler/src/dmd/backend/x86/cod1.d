@@ -362,7 +362,7 @@ uint gensaverestore(regm_t regm,ref CodeBuilder cdbsave,ref CodeBuilder cdbresto
             }
             else if (i == ST0 || i == ST01)
             {
-                gensaverestore87(1 << i, cdbsave, cdb);
+                gensaverestore87(1UL << i, cdbsave, cdb);
             }
             else if (i >= XMM0 || I64 || cgstate.funcarg.size)
             {

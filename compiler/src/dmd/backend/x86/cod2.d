@@ -1985,7 +1985,7 @@ void cdnot(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 {
     //printf("cdnot()\n");
     reg_t reg;
-    tym_t forflags;
+    regm_t forflags;
     regm_t retregs;
     elem *e1 = e.E1;
 

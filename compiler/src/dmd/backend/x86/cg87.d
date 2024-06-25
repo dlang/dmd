@@ -418,6 +418,9 @@ void save87regs(ref CodeBuilder cdb, uint n)
 void gensaverestore87(regm_t regm, ref CodeBuilder cdbsave, ref CodeBuilder cdbrestore)
 {
     //printf("gensaverestore87(%s)\n", regm_str(regm));
+
+    if (regm != mST0 && regm != mST01) printf("gensaverestore87(%s) %llx\n", regm_str(regm), regm);
+
     assert(regm == mST0 || regm == mST01);
 
     auto ndp0 = NDP(el_calloc());

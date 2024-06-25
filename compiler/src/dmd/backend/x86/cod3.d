@@ -3730,7 +3730,7 @@ private void epilog_restoreregs(ref CodeBuilder cdb, regm_t topop)
         reg_t reg = I64 ? XMM7 : DI;
         if (!(topop & XMMREGS))
             reg = R15;
-        regm_t regm = 1 << reg;
+        regm_t regm = 1UL << reg;
 
         while (topop)
         {   if (topop & regm)

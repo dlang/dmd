@@ -338,7 +338,7 @@ void nteh_epilog(ref CodeBuilder cdb)
         mov     FS:__except_list,ECX
      */
     reg_t reg = CX;
-    useregs(1 << reg);
+    useregs(1UL << reg);
 
     code cs;
     cs.Iop = 0x8B;
@@ -567,7 +567,7 @@ void nteh_unwind(ref CodeBuilder cdb,regm_t saveregs,uint stop_index)
     // https://github.com/dlang/dmd/blob/cdfadf8a18f474e6a1b8352af2541efe3e3467cc/druntime/src/rt/deh_win32.d#L934
     const local_unwind = RTLSYM.D_LOCAL_UNWIND2;    // __d_local_unwind2()
 
-    const regm_t desregs = (~getRtlsym(local_unwind).Sregsaved & (ALLREGS)) | (1 << reg);
+    const regm_t desregs = (~getRtlsym(local_unwind).Sregsaved & (ALLREGS)) | (1UL << reg);
     CodeBuilder cdbs;
     cdbs.ctor();
     CodeBuilder cdbr;
