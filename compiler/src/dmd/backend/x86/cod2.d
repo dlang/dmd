@@ -1174,8 +1174,8 @@ void cdmul(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
                 {
                     regm_t rretregs = cgstate.allregs & ~retregs;           // second arg
                     scodelem(cgstate,cdb,e2,&rretregs,retregs,true); // get rvalue
-                    regm_t rlo = findreglsw(rretregs);
-                    regm_t rhi = findregmsw(rretregs);
+                    reg_t rlo = findreglsw(rretregs);
+                    reg_t rhi = findregmsw(rretregs);
                     /*  IMUL    rhi,EAX
                         IMUL    EDX,rlo
                         ADD     rhi,EDX

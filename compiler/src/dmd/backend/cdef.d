@@ -596,7 +596,7 @@ struct Configv
 }
 
 alias reg_t = ubyte;            // register number
-alias regm_t = uint;            // Register mask type
+alias regm_t = ulong;           // Register mask type
 struct immed_t
 {
     targ_size_t[REGMAX] value;  // immediate values in registers
