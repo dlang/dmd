@@ -235,6 +235,10 @@ bool isSafeCast(Expression e, Type tfrom, Type tto, ref string msg)
         // Runtime array cast reinterprets data
         if (ttobn.ty == Tbool && tfromn.ty != Tbool && e.op != EXP.arrayLiteral)
             msg = "Source element may have bytes which are not 0 or 1";
+        // Can't alias a bool pointer with a non-bool pointer
+        if (ttobn.ty != Tbool && tfromn.ty == Tbool && ttobn.isMutable() &&
+            e.op != EXP.arrayLiteral)
+            msg = "Target element could be assigned a byte which is not 0 or 1";
 
         // If the struct is opaque we don't know about the struct members then the cast becomes unsafe
         if (ttobn.ty == Tstruct && !(cast(TypeStruct)ttobn).sym.members)
