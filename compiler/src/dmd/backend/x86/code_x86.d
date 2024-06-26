@@ -74,10 +74,10 @@ enum NUMGENREGS = 16;
 // currently only used as a replacement for mES in cgcod.c
 enum NUMREGS = 25;
 
-enum PSW     = 30;
-enum STACK   = 26;      // top of stack
-enum ST0     = 27;      // 8087 top of stack register
-enum ST01    = 28;      // top two 8087 registers; for complex types
+enum PSW     = 61;
+enum STACK   = 60;      // top of stack
+enum ST0     = 59;      // 8087 top of stack register
+enum ST01    = 58;      // top two 8087 registers; for complex types
 
 enum
 {
@@ -121,13 +121,13 @@ enum
     mXMM7   = (1 << XMM7),
     XMMREGS = (mXMM0 |mXMM1 |mXMM2 |mXMM3 |mXMM4 |mXMM5 |mXMM6 |mXMM7),
 
-    mES     = (1 << ES),      // 0x1000000
-    mPSW    = (1 << PSW),     // 0x2000000
+    mES     = (1UL << ES),      // 0x1000000
+    mPSW    = (1UL << PSW),     // 0x2000000
 
-    mSTACK  = (1 << STACK),   // 0x4000000
+    mSTACK  = (1UL << STACK),   // 0x4000000
 
-    mST0    = (1 << ST0),     // 0x20000000
-    mST01   = (1 << ST01),    // 0x40000000
+    mST0    = (1UL << ST0),     // 0x20000000
+    mST01   = (1UL << ST01),    // 0x40000000
 }
 
     // To support positional independent code,

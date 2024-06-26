@@ -1791,7 +1791,7 @@ void useregs(regm_t regm)
 {
     //printf("useregs(x%x) %s\n", regm, regm_str(regm));
     assert(REGMAX <= 32);
-    regm &= (1 << REGMAX) - 1;
+    regm &= (1UL << REGMAX) - 1;
     assert(!(regm & mPSW));
     cgstate.mfuncreg &= ~regm;
     cgstate.regcon.used |= regm;                // registers used in this block
@@ -3015,7 +3015,7 @@ void docommas(ref CodeBuilder cdb, ref elem *pe)
 @trusted
 void andregcon(const ref con_t pregconsave)
 {
-    regm_t m = ~1;
+    regm_t m = ~1UL;
     foreach (i; 0 ..REGMAX)
     {
         if (pregconsave.cse.value[i] != cgstate.regcon.cse.value[i])
