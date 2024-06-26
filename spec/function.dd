@@ -3795,14 +3795,24 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
         $(UL
         $(LI No casting from a pointer type `T` to any type `U` with pointers, except when:)
             * `T` implicitly converts to `U`
-            * `U` implements class or interface `T`
+            * `U` $(DDSUBLINK spec/expression, cast_class, implements) class or interface
+              `T`, and both types are `extern(D)`
             * `T.opCast!U` is `@safe`
-            * Both types $(DDSUBLINK spec/expression, cast_array, are dynamic arrays) and:
-                * Casting a source element to a target element type is `@safe`
+            * Both types $(DDSUBLINK spec/expression, cast_array, are dynamic arrays), or
+              both types $(DDSUBLINK spec/expression, cast_pointers, are raw pointers), and:
+                * The target element type is not a pointer type
+                * The target element type is not mutable when the source element type is a pointer type
+                * Either the target element type is a dynamic array, or the target element
+                  type is no larger than the source element type
+                * Any source element type modifiers implicitly convert to the target element type modifiers
+                * Neither element type is a function type
                 * The target element type is not mutable when the source type is `void[]`
-                * The target type is not `bool[]` unless the operand is a literal
+                * The target element type is not $(DDSUBLINK spec/type, bool, `bool`)
+                * The source element type is not `bool` when the target element type is mutable
+                * Neither element type is $(DDSUBLINK spec/struct, opaque_struct_unions, opaque).
         $(LI No casting from any non-pointer type to a pointer type.)
-        $(LI No pointer arithmetic (including pointer indexing & slicing).)
+        $(LI No $(DDSUBLINK spec/expression, pointer_arithmetic, pointer arithmetic)
+            (including pointer indexing & slicing).)
         $(LI Cannot access union fields that:)
             * Have pointers or references overlapping with other types
             * Have invariants overlapping with other types
