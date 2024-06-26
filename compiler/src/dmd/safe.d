@@ -231,15 +231,6 @@ bool isSafeCast(Expression e, Type tfrom, Type tto, ref string msg)
             return false;
         }
 
-        // For bool, only 0 and 1 are safe values
-        // Runtime array cast reinterprets data
-        if (ttobn.ty == Tbool && tfromn.ty != Tbool && e.op != EXP.arrayLiteral)
-            msg = "Source element may have bytes which are not 0 or 1";
-        // Can't alias a bool pointer with a non-bool pointer
-        if (ttobn.ty != Tbool && tfromn.ty == Tbool && ttobn.isMutable() &&
-            e.op != EXP.arrayLiteral)
-            msg = "Target element could be assigned a byte which is not 0 or 1";
-
         // If the struct is opaque we don't know about the struct members then the cast becomes unsafe
         if (ttobn.ty == Tstruct && !(cast(TypeStruct)ttobn).sym.members)
         {
@@ -250,6 +241,22 @@ bool isSafeCast(Expression e, Type tfrom, Type tto, ref string msg)
         {
             msg = "Source element type is opaque";
             return false;
+        }
+
+        if (e.op != EXP.arrayLiteral)
+        {
+            // For bool, only 0 and 1 are safe values
+            // Runtime array cast reinterprets data
+            if (ttobn.ty == Tbool && tfromn.ty != Tbool)
+                msg = "Source element may have bytes which are not 0 or 1";
+            else if (ttobn.hasUnsafeBitpatterns())
+                msg = "Target element type has unsafe bit patterns";
+
+            // Can't alias a bool pointer with a non-bool pointer
+            if (ttobn.ty != Tbool && tfromn.ty == Tbool && ttobn.isMutable())
+                msg = "Target element could be assigned a byte which is not 0 or 1";
+            else if (tfromn.hasUnsafeBitpatterns() && ttobn.isMutable())
+                msg = "Source element type has unsafe bit patterns and target element type is mutable";
         }
 
         const frompointers = tfromn.hasPointers();
