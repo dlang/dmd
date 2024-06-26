@@ -395,6 +395,13 @@ if (enable) // disable while we test the inliner
                     if (log) printf(" can't because XMM reg\n");
                     sia[si].canSlice = false;
                 }
+                else if (sz == 2 * SLICESIZE &&
+                         (tybasic(s.Stype.Tty) == TYdouble || tybasic(s.Stype.Tty) == TYidouble) &&
+                         config.fpxmmregs)
+                {
+                    if (log) printf(" can't because XMM double\n");
+                    sia[si].canSlice = false;
+                }
                 else
                 {
                     anySlice = true;
