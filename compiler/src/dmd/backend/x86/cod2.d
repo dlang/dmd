@@ -4827,9 +4827,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem *e,reg_t reg)
 
             if (stack)
             {
-                cdb.gen1(0x50 + (reg & 7));      // PUSH reg
-                if (reg & 8)
-                    code_orrex(cdb.last(), REX_B);
+                cdb.genpush(reg);        // PUSH reg
                 cdb.genadjesp(REGSIZE);
                 cgstate.stackchanged = 1;
             }
@@ -4927,9 +4925,7 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem *e,reg_t reg)
                 loadea(cdb,e,cs,LEA,reg,0,0,0);    // LEA reg,EA
                 if (I64)
                     code_orrex(cdb.last(), REX_W);
-                cdb.gen1(0x50 + (reg & 7));               // PUSH reg
-                if (reg & 8)
-                    code_orrex(cdb.last(), REX_B);
+                cdb.genpush(reg);               // PUSH reg
                 cdb.genadjesp(REGSIZE);
                 cgstate.stackchanged = 1;
             }
