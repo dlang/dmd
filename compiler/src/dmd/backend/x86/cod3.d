@@ -1851,7 +1851,7 @@ else
             const r1 = allocreg(cdb,scratchm,TYint);
 
             cdb.genc2(CALL,0,0);                           //     CALL L1
-            cdb.gen1(0x58 + r1);                           // L1: POP R1
+            cdb.genpop(r1);                                // L1: POP R1
             cdb.genc1(0x03,modregrm(2,r1,4),FLswitch,0);   // ADD R1,disp[reg*4][EBX]
             cdb.last().IEV1.Vswitch = b;
             cdb.last().Isib = modregrm(2,reg,r1);
@@ -1927,7 +1927,7 @@ else
         {   // Add in GOT
             getregs(cdb,mDX);
             cdb.genc2(CALL,0,0);        //     CALL L1
-            cdb.gen1(0x58 + DI);        // L1: POP EDI
+            cdb.genpop(DI);             // L1: POP EDI
 
                                         //     ADD EDI,_GLOBAL_OFFSET_TABLE_+3
             Symbol *gotsym = Obj.getGOTsym();
@@ -2409,8 +2409,8 @@ void cod3_ptrchk(ref CodeBuilder cdb,ref code pcs,regm_t keepmsk)
                 pop = 0x07;
             }
             else
-            {   push = 0x50 + i;
-                pop = push | 8;
+            {   push = 0x50 | i;
+                pop  = 0x58 | i;
             }
             cdb.gen1(push);                     // PUSH i
             cs2 = cat(gen1(null,pop),cs2);      // POP i
@@ -2444,7 +2444,7 @@ void cod3_ptrchk(ref CodeBuilder cdb,ref code pcs,regm_t keepmsk)
         cdb.gen1(segreg);               // PUSH segreg
     }
 
-    cdb.gen1(0x50 + reg);               // PUSH reg
+    cdb.genpush(reg);               // PUSH reg
 
     // Rewrite the addressing mode in *pcs so it is just 0[reg]
     setaddrmode(pcs, idxregs);
@@ -2678,7 +2678,7 @@ void cdgot(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         const reg = allocreg(cdb,retregs, TYnptr);
 
         cdb.genc(CALL,0,0,0,FLgot,0);     //     CALL L1
-        cdb.gen1(0x58 + reg);             // L1: POP reg
+        cdb.genpop(reg);                  // L1: POP reg
 
         fixresult(cdb,e,retregs,*pretregs);
     }
@@ -2690,7 +2690,7 @@ void cdgot(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         const reg = allocreg(cdb,retregs, TYnptr);
 
         cdb.genc2(CALL,0,0);        //     CALL L1
-        cdb.gen1(0x58 + reg);       // L1: POP reg
+        cdb.genpop(reg);            // L1: POP reg
 
                                     //     ADD reg,_GLOBAL_OFFSET_TABLE_+3
         Symbol *gotsym = Obj.getGOTsym();
@@ -3348,8 +3348,8 @@ void prolog_16bit_windows_farfunc(ref CodeBuilder cdb, tym_t* tyf, bool* pushds)
     }
     if (wflags & WFincbp)
         cdb.gen1(0x40 + BP);              // INC  BP
-    cdb.gen1(0x50 + BP);                  // PUSH BP
-    genregs(cdb,0x8B,BP,SP); // MOV  BP,SP
+    cdb.genpush(BP);                      // PUSH BP
+    genregs(cdb,0x8B,BP,SP);              // MOV  BP,SP
     if (wflags & (WFsaveds | WFds | WFss | WFdgroup))
     {
         cdb.gen1(0x1E);                       // PUSH DS
@@ -3381,7 +3381,7 @@ void prolog_frame(ref CodeBuilder cdb, bool farfunc, ref uint xlocalsize, out bo
     {
         // PUSH RBP
         // LEA RBP,0[RSP]
-        cdb. gen1(0x50 + BP);
+        cdb.genpush(BP);
         cdb.genc1(LEA,(REX_W<<16) | (modregrm(0,4,SP)<<8) | modregrm(2,BP,4),FLconst,0);
         enter = false;
         return;
@@ -3401,7 +3401,7 @@ void prolog_frame(ref CodeBuilder cdb, bool farfunc, ref uint xlocalsize, out bo
          config.flags4 & CFG4speed)
        )
     {
-        cdb.gen1(0x50 + BP);      // PUSH BP
+        cdb.genpush(BP);      // PUSH BP
         genregs(cdb,0x8B,BP,SP);      // MOV  BP,SP
         if (I64)
             code_orrex(cdb.last(), REX_W);   // MOV RBP,RSP
@@ -3460,7 +3460,7 @@ void prolog_stackalign(ref CodeBuilder cdb)
 @trusted
 void prolog_frameadj(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool enter, bool* pushalloc)
 {
-    uint pushallocreg = (tyf == TYmfunc) ? CX : AX;
+    reg_t pushallocreg = (tyf == TYmfunc) ? CX : AX;
 
     bool check;
     if (config.exe & (EX_LINUX | EX_LINUX64))
@@ -3519,7 +3519,7 @@ void prolog_frameadj(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool enter
         }
         else if (xlocalsize == REGSIZE && config.flags4 & CFG4optimized)
         {
-            cdb. gen1(0x50 + pushallocreg);    // PUSH AX
+            cdb.genpush(pushallocreg);    // PUSH AX
             // Do this to prevent an -x[EBP] to be moved in
             // front of the push.
             code_orflag(cdb.last(),CFvolatile);
@@ -3532,16 +3532,16 @@ void prolog_frameadj(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool enter
 
 void prolog_frameadj2(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool* pushalloc)
 {
-    uint pushallocreg = (tyf == TYmfunc) ? CX : AX;
+    reg_t pushallocreg = (tyf == TYmfunc) ? CX : AX;
     if (xlocalsize == REGSIZE)
     {
-        cdb.gen1(0x50 + pushallocreg);      // PUSH AX
+        cdb.genpush(pushallocreg);      // PUSH AX
         *pushalloc = true;
     }
     else if (xlocalsize == 2 * REGSIZE)
     {
-        cdb.gen1(0x50 + pushallocreg);      // PUSH AX
-        cdb.gen1(0x50 + pushallocreg);      // PUSH AX
+        cdb.genpush(pushallocreg);      // PUSH AX
+        cdb.genpush(pushallocreg);      // PUSH AX
         *pushalloc = true;
     }
     else
@@ -3744,9 +3744,7 @@ private void epilog_restoreregs(ref CodeBuilder cdb, regm_t topop)
                 }
                 else
                 {
-                    cdb.gen1(0x58 + (reg & 7));         // POP reg
-                    if (reg & 8)
-                        code_orrex(cdb.last(), REX_B);
+                    cdb.genpop(reg);         // POP reg
                 }
                 topop &= ~regm;
             }
@@ -4397,7 +4395,7 @@ void epilog(block *b)
                 cpopds.Iop = NOP;              // don't need previous one
             cdbx.gen1(0x1F);                    // POP DS
         }
-        cdbx.gen1(0x58 + BP);                   // POP BP
+        cdbx.genpop(BP);                        // POP BP
         if (config.wflags & WFincbp)
             cdbx.gen1(0x48 + BP);               // DEC BP
         assert(cgstate.hasframe);
@@ -4440,13 +4438,13 @@ void epilog(block *b)
                     genjmp(cdbx,JNE,FLcode,cast(block *)c1);                  // JNE L1
                     // explicitly mark as short jump, needed for correct retsize calculation (Bugzilla 15779)
                     cdbx.last().Iflags &= ~CFjmp16;
-                    cdbx.gen1(0x58 + BP);                                 // POP BP
+                    cdbx.genpop(BP);                                      // POP BP
                 }
                 else if (config.exe == EX_WIN64)
                 {   // See https://msdn.microsoft.com/en-us/library/tawsa7cb%28v=vs.100%29.aspx
                     // LEA RSP,0[RBP]
                     cdbx.genc1(LEA,(REX_W<<16)|modregrm(2,SP,BPRM),FLconst,0);
-                    cdbx.gen1(0x58 + BP);      // POP RBP
+                    cdbx.genpop(BP);           // POP RBP
                 }
                 else if (config.target_cpu >= TARGET_80286 &&
                     !(config.target_cpu >= TARGET_80386 && config.flags4 & CFG4speed)
@@ -4455,26 +4453,26 @@ void epilog(block *b)
                 else if (0 && xlocalsize == REGSIZE && cgstate.Alloca.size == 0 && I32)
                 {   // This doesn't work - I should figure out why
                     cgstate.mfuncreg &= ~mask(regx);
-                    cdbx.gen1(0x58 + regx);    // POP regx
-                    cdbx.gen1(0x58 + BP);      // POP BP
+                    cdbx.genpop(regx);    // POP regx
+                    cdbx.genpop(BP);      // POP BP
                 }
                 else
                 {
                     genregs(cdbx,0x8B,SP,BP);  // MOV SP,BP
                     if (I64)
                         code_orrex(cdbx.last(), REX_W);   // MOV RSP,RBP
-                    cdbx.gen1(0x58 + BP);      // POP BP
+                    cdbx.genpop(BP);           // POP BP
                 }
             }
             else
-                cdbx.gen1(0x58 + BP);          // POP BP
+                cdbx.genpop(BP);               // POP BP
             if (config.wflags & WFincbp && farfunc)
                 cdbx.gen1(0x48 + BP);              // DEC BP
         }
         else if (xlocalsize == REGSIZE && (!I16 || b.BC == BCret))
         {
             cgstate.mfuncreg &= ~mask(regx);
-            cdbx.gen1(0x58 + regx);                    // POP regx
+            cdbx.genpop(regx);                     // POP regx
         }
         else if (xlocalsize)
             cod3_stackadj(cdbx, cast(int)-xlocalsize);
@@ -4504,7 +4502,7 @@ Lret:
                     ADD ESP, Para.offset
                     JMP REG
                 */
-                cdbx.gen1(0x58+regx);
+                cdbx.genpop(regx);
                 cdbx.genc2(0x81, modregrm(3,0,SP), cgstate.Para.offset);
                 if (I64)
                     code_orrex(cdbx.last(), REX_W);

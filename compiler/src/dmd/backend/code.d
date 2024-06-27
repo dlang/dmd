@@ -174,7 +174,8 @@ struct CGstate
     targ_size_t NDPoff;         // offset of saved 8087 registers
 
     targ_size_t pushoff;        // offset of saved registers
-    bool pushoffuse;            // using pushoff
+    bool pushoffuse;            // save/restore registers using pushoff rather than PUSH/POP
+
     char needframe;             // if true, then we will need the frame
                                 // pointer (BP for the 8088)
 

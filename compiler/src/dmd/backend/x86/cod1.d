@@ -314,7 +314,7 @@ void genEEcode()
     regm_t retregs = 0;    //regmask(eecontext.EEelem.Ety);
     assert(cgstate.EEStack.offset >= REGSIZE);
     cod3_stackadj(cdb, cast(int)(cgstate.EEStack.offset - REGSIZE));
-    cdb.gen1(0x50 + SI);                      // PUSH ESI
+    cdb.genpush(SI);                      // PUSH ESI
     cdb.genadjesp(cast(int)cgstate.EEStack.offset);
     gencodelem(cdb, eecontext.EEelem, &retregs, false);
     code *c = cdb.finish();
@@ -373,12 +373,8 @@ uint gensaverestore(regm_t regm,ref CodeBuilder cdbsave,ref CodeBuilder cdbresto
             else
             {
                 stackused += REGSIZE;
-                cdbsave.gen1(0x50 + (i & 7));           // PUSH i
-                cdb.gen1(0x58 + (i & 7));               // POP  i
-                if (i & 8)
-                {   code_orrex(cdbsave.last(), REX_B);
-                    code_orrex(cdb.last(),     REX_B);
-                }
+                cdbsave.genpush(i);           // PUSH i
+                cdb.genpop(i);                // POP  i
             }
             restore[i] = cdb.finish();
         }
@@ -434,7 +430,7 @@ void genstackclean(ref CodeBuilder cdb,uint numpara,regm_t keepmsk)
             if (scratchm)
             {
                 const r = allocreg(cdb, scratchm, TYint);
-                cdb.gen1(0x58 + r);           // POP r
+                cdb.genpop(r);           // POP r
             }
             else
                 cod3_stackadj(cdb, -numpara);
@@ -4838,7 +4834,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                 {
                     reg_t reg;
                     if (reghasvalue(cgstate.allregs, value, reg))
-                        cdb.gen1(0x50 + reg);           // PUSH reg
+                        cdb.genpush(reg);               // PUSH reg
                     else
                         cdb.genc2(0x68,0,value);        // PUSH value
                     value = e.Vulong4[i ^ 1];       // treat Vldouble as 2 element array of 32 bit uint
