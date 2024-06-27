@@ -120,7 +120,7 @@ private string generateTraceWrappers()
     return code;
 }
 
-static enum ParamPos { front, back }
+enum ParamPos { front, back }
 
 private string generateWrapper(alias Declaration, ParamPos pos = ParamPos.front)()
 {

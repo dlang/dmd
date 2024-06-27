@@ -51,7 +51,7 @@ unittest
     static assert(is(BaseElemOf!(int[1][2]) == int));
     static assert(is(BaseElemOf!(int[1][]) == int[1][]));
     static assert(is(BaseElemOf!(int[][1]) == int[]));
-    static enum E : int[2]{ test = [0, 1] }
+    enum E : int[2]{ test = [0, 1] }
     static assert(is(BaseElemOf!(E) == int));
 }
 
