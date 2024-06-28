@@ -29,15 +29,11 @@ U[] _dup(T, U)(scope T[] a) pure nothrow @trusted if (__traits(isPOD, T))
 
 U[] _dupCtfe(T, U)(scope T[] a)
 {
-    static if (is(T : void))
-        assert(0, "Cannot dup a void[] array at compile time.");
-    else
-    {
-        U[] res;
-        foreach (ref e; a)
-            res ~= e;
-        return res;
-    }
+    static assert(!is(T : void), "Cannot dup a void[] array at compile time.");
+    U[] res;
+    foreach (ref e; a)
+        res ~= e;
+    return res;
 }
 
 U[] _dup(T, U)(T[] a) if (!__traits(isPOD, T))
