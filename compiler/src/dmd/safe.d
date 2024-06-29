@@ -49,7 +49,7 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
     //printf("checkUnsafeAccess(e: '%s', readonly: %d, printmsg: %d)\n", e.toChars(), readonly, printmsg);
     if (e.op != EXP.dotVariable)
         return false;
-    DotVarExp dve = cast(DotVarExp)e;
+    auto dve = cast(DotVarExp)e;
     if (VarDeclaration v = dve.var.isVarDeclaration())
     {
         if (!sc.func)

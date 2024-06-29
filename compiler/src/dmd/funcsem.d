@@ -2539,7 +2539,7 @@ void buildEnsureRequire(FuncDeclaration thisfd)
     /* Rewrite contracts as nested functions, then call them. Doing it as nested
      * functions means that overriding functions can call them.
      */
-    TypeFunction f = cast(TypeFunction) thisfd.type;
+    auto f = cast(TypeFunction) thisfd.type;
     /* Make a copy of the parameters and make them all ref */
     static Parameters* toRefCopy(ParameterList parameterList)
     {
