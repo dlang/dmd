@@ -315,7 +315,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                         return arrayHasInvalidEnumInitializer((cast(StructLiteralExp)e).elements);
                     if (e.op == EXP.assocArrayLiteral)
                     {
-                        AssocArrayLiteralExp ae = cast(AssocArrayLiteralExp)e;
+                        auto ae = cast(AssocArrayLiteralExp)e;
                         return arrayHasInvalidEnumInitializer(ae.values) ||
                                arrayHasInvalidEnumInitializer(ae.keys);
                     }
