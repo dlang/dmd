@@ -183,7 +183,13 @@ int x, *y;  // x is an int, y is a pointer to int
 int x[], y; // x is an array/pointer, y is an int
 )
 
-$(H2 $(LEGACY_LNAME2 initializers, initialization, Initialization))
+$(H2 $(LNAME2 initialization, Initialization))
+
+        $(P When no *Initializer* is given, a variable is set to the
+        $(DDSUBLINK spec/property, init, default `.init` value) for
+        its type.)
+
+$(H3 $(LNAME2 initializers, Initializers))
 
 $(GRAMMAR
 $(GNAME Initializer):
@@ -191,18 +197,24 @@ $(GNAME Initializer):
     $(GLINK NonVoidInitializer)
 
 $(GNAME NonVoidInitializer):
-    $(GLINK2 expression, AssignExpression)$(LEGACY_LNAME2 ExpInitializer)
-    $(GLINK2 expression, ArrayLiteral)$(LEGACY_LNAME2 ArrayInitializer)
+    $(GLINK2 arrays, ArrayInitializer)$(LEGACY_LNAME2 ArrayInitializer)
     $(GLINK2 struct, StructInitializer)$(LEGACY_LNAME2 StructInitializer)
+    $(GLINK2 expression, AssignExpression)$(LEGACY_LNAME2 ExpInitializer)
 )
 
-        $(P When no *Initializer* is given, a variable is set to the
-        $(DDSUBLINK spec/property, init, default `.init` value) for
-        its type.)
+        $(P A variable can be initialized with a $(I NonVoidInitializer).
+        An *ArrayInitializer* or *StructInitializer* takes precedence over
+        an expression initializer.)
 
-        $(P A variable can be initialized with a $(I NonVoidInitializer).)
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct S { int i; }
 
-        $(P See also: $(DDSUBLINK spec/arrays, array-initialization, Array Initialization).)
+S s = {}; // struct initializer, not a function literal expression
+S[] a = [{2}]; // array initializer holding a struct initializer
+//a = [{2}]; // invalid array literal expression
+---
+)
 
 $(H3 $(LNAME2 void_init, Void Initialization))
 

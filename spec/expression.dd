@@ -2101,16 +2101,7 @@ $(H3 $(LNAME2 array_literals, Array Literals))
 
 $(GRAMMAR
 $(GNAME ArrayLiteral):
-    $(D [) $(I ArrayMemberInitializations)$(OPT) $(D ])
-
-$(GNAME ArrayMemberInitializations):
-    $(I ArrayMemberInitialization)
-    $(I ArrayMemberInitialization) $(D ,)
-    $(I ArrayMemberInitialization) $(D ,) $(GSELF ArrayMemberInitializations)
-
-$(GNAME ArrayMemberInitialization):
-    $(GLINK2 declaration, NonVoidInitializer)
-    $(GLINK AssignExpression) $(D :) $(GLINK2 declaration, NonVoidInitializer)
+    $(D [) $(GLINK ArgumentList)$(OPT) $(D ])
 )
 
     $(P An array literal is a comma-separated list of expressions
@@ -2161,27 +2152,6 @@ $(GNAME ArrayMemberInitialization):
             return [1, 2, 3];
         }
         ---
-
-    $(P To initialize an element at a particular index, use the
-        *AssignExpression* `:` *NonVoidInitializer* syntax.
-        The *AssignExpression* must be known at compile-time.
-        Any missing elements will be initialized to the default value
-        of the element type.
-        Note that if the array type is not specified, the literal will
-        be parsed as an
-        $(RELATIVE_LINK2 associative_array_literals, associative array).)
-
-        $(SPEC_RUNNABLE_EXAMPLE_RUN
-        ---
-        int n = 4;
-        auto aa = [0:1, 3:n]; // associative array `int[int]`
-
-        int[] a = [1, 3:n, 5];
-        assert(a == [1, 0, 0, n, 5]);
-
-        //int[] e = [n:2]; // error, n not known at compile-time
-        ---
-        )
 
 $(H4 $(LNAME2 cast_array_literal, Casting))
 
