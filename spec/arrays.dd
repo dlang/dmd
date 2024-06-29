@@ -1032,13 +1032,13 @@ $(GNAME ArrayElementInitializer):
     $(GLINK2 expression, AssignExpression) $(D :) $(GLINK2 declaration, NonVoidInitializer)
 )
 
-$(H4 $(LNAME2 static-init-static, Static Initialization of Statically Allocated Arrays))
-
-        $(P Static initalizations are supplied by a list of array
+        $(P An *ArrayInitializer* is a list of array
         element values enclosed in `[ ]`. The values can be optionally
         preceded by an index and a `:`.
         If an index is not supplied, it is set to the previous index
         plus 1, or 0 if it is the first value.
+        Any missing elements will be initialized to the default value
+        of the element type.
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
@@ -1064,29 +1064,9 @@ assert(value == [5, 6, 2]);
 ---------
 )
 
-        $(P All elements of a static array can be initialized to a specific value with:)
-
-$(SPEC_RUNNABLE_EXAMPLE_RUN
----------
-int[4] a = 42; // set all elements of a to 42
-
-assert(a == [42, 42, 42, 42]);
----------
-)
-
-        $(P These arrays are statically allocated when they appear in global scope.
-        Otherwise, they need to be marked with $(D const) or $(D static)
-        storage classes to make them statically allocated arrays.)
-
-$(H4 $(LNAME2 index-initializers, Index Initializers))
-
-    $(P To initialize an element at a particular index, use the
-        *AssignExpression* `:` *NonVoidInitializer* syntax.
-        The *AssignExpression* must be known at compile-time.
-        Any missing elements will be initialized to the default value
-        of the element type.
-        Note that if the array type is not specified, the array initializer will
-        be parsed as an
+        $(P Any indices must be known at compile-time.
+        Note that if the array type is not specified and every element has an index,
+        it will be inferred as an
         $(DDSUBLINK spec/expression, associative_array_literals, associative array
         literal).)
 
@@ -1101,6 +1081,22 @@ $(H4 $(LNAME2 index-initializers, Index Initializers))
         //int[] e = [n:2]; // error, n not known at compile-time
         ---
         )
+
+$(H3 $(LNAME2 static-init-static, Static Initialization of Statically Allocated Arrays))
+
+        $(P All elements of a static array can be initialized to a specific value with:)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---------
+int[4] a = 42; // set all elements of a to 42
+
+assert(a == [42, 42, 42, 42]);
+---------
+)
+
+        $(P These arrays are statically allocated when they appear in global scope.
+        Otherwise, they need to be marked with $(D const) or $(D static)
+        storage classes to make them statically allocated arrays.)
 
 
 $(H2 $(LNAME2 special-array, Special Array Types))
@@ -1332,7 +1328,7 @@ $(H3 $(LNAME2 void_arrays, Void Arrays))
     the exact type of the array elements are unimportant. The $(D .length) of a
     void array is the length of the data in bytes, rather than the number of
     elements in its original type. Array indices in slicing
-    operations are interpreted as byte indices.)
+    operations are interpreted as byte indices. A void array cannot be indexed.)
 
     $(P Arrays of any type can be implicitly converted to a (tail qualified) void array - the
     compiler inserts the appropriate calculations so that the $(D .length) of
@@ -1355,10 +1351,12 @@ void main()
     arr[0..4] = [5];               // Assign first 4 bytes to 1 int element
     assert(data1 == [5,2,3]);
 
+    arr ~= [6];                    // Append the 4 bytes of an int
     //data1 = arr;                 // Error: void[] does not implicitly
                                    // convert to int[].
     int[] data2 = cast(int[]) arr; // OK, can convert with explicit cast.
-    assert(data2 is data1);
+    assert(data2 is arr);          // both point to the same set of bytes
+    assert(data2 == [5,2,3,6]);
 }
 ---------
 )
