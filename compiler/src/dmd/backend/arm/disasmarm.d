@@ -338,7 +338,7 @@ void disassemble(uint c) @trusted
                       : ((immhi << 2) | immlo);
         p3 = wordtostring(imm);
     }
-    else if (field(ins, 28, 23) == 0x22) // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_ext
+    else if (field(ins, 28, 23) == 0x22) // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_imm
     {
         if (log) printf("Add/subtract (immediate)\n");
         uint sf    = field(ins, 31, 31);
@@ -1637,7 +1637,23 @@ void disassemble(uint c) @trusted
         }
     }
     else
+    if (field(ins, 31, 31) == 1 && field(ins, 29, 22) == 0xE5) // LDR (immediate) Unsigned offset
+    {                                                          // https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_gen.html
+        uint imm12 = field(ins, 21, 10);
+        uint Rn = field(ins, 9, 5);
+        uint Rt = field(ins, 4, 0);
+        uint is64 = field(ins, 30, 30);
 
+        p1 = "ldr";
+        p2 = regString(is64, Rt);
+        size_t n;
+        if (imm12)
+            n = snprintf(buf.ptr, cast(uint)buf.length, "[%s,%s]", regString(1, Rn).ptr, wordtostring(imm12 * (is64 ? 8 : 4)).ptr);
+        else
+            n = snprintf(buf.ptr, cast(uint)buf.length, "[%s]", regString(1, Rn).ptr);
+        p3 = buf[0 .. n];
+    }
+    else
     // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst Loads and Stores
     if (field(ins, 29, 27) == 7 && field(ins, 25, 24) == 1)
     {
@@ -1954,8 +1970,10 @@ unittest
 unittest
 {
     int line64 = __LINE__;
-    string[41] cases64 =      // 64 bit code gen
+    string[42] cases64 =      // 64 bit code gen
     [
+        "B9 40 0B E0         ldr   w0,[sp,#8]",
+
         "39 C0 00 20         ldrsb w0,[x1]",
         "39 40 00 20         ldrb  w0,[x1]",
         "79 C0 00 20         ldrsh w0,[x1]",
