@@ -196,10 +196,10 @@ extern (C++) final class ArrayInitializer : Initializer
     {
         foreach (idx; index)
         {
-            if (idx)
-                return true;
+            if (!idx)
+                return false; // each AA value must have a key
         }
-        return false;
+        return true;
     }
 
     override void accept(Visitor v)
