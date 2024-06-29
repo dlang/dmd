@@ -896,18 +896,18 @@ else
     }
     else if (cg.needframe)                 // if variables or parameters
     {
-        prolog_frame(cdbx, farfunc, xlocalsize, enter, cfa_offset);
+        prolog_frame(cg, cdbx, farfunc, xlocalsize, enter, cfa_offset);
         cg.hasframe = true;
     }
 
     /* Align the stack if necessary */
-    prolog_stackalign(cdbx);
+    prolog_stackalign(cg, cdbx);
 
     /* Subtract from stack pointer the size of the local stack frame
      */
     if (config.flags & CFGstack)        // if stack overflow check
     {
-        prolog_frameadj(cdbx, tyf, xlocalsize, enter, &pushalloc);
+        prolog_frameadj(cg, cdbx, tyf, xlocalsize, enter, &pushalloc);
         if (cg.Alloca.size)
             prolog_setupalloca(cdbx);
     }
@@ -915,7 +915,7 @@ else
     {
         if (xlocalsize)                 /* if any stack offset          */
         {
-            prolog_frameadj(cdbx, tyf, xlocalsize, enter, &pushalloc);
+            prolog_frameadj(cg, cdbx, tyf, xlocalsize, enter, &pushalloc);
             if (cg.Alloca.size)
                 prolog_setupalloca(cdbx);
         }
@@ -925,7 +925,7 @@ else
     else if (xlocalsize)
     {
         assert(I32 || I64);
-        prolog_frameadj2(cdbx, tyf, xlocalsize, &pushalloc);
+        prolog_frameadj2(cg, cdbx, tyf, xlocalsize, &pushalloc);
         version (FRAMEPTR) { } else
             cg.BPoff += REGSIZE;
     }
@@ -958,7 +958,7 @@ else
     }
 
     cdb.append(cdbx);
-    prolog_saveregs(cdb, topush, cfa_offset);
+    prolog_saveregs(cg, cdb, topush, cfa_offset);
 
 Lcont:
 
@@ -984,7 +984,7 @@ Lcont:
     prolog_loadparams(cdb, tyf, pushalloc);
 
     if (sv64)
-        prolog_genvarargs(cdb, sv64);
+        prolog_genvarargs(cg, cdb, sv64);
 
     /* Alignment checks
      */

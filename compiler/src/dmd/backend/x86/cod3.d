@@ -3363,6 +3363,7 @@ void prolog_16bit_windows_farfunc(ref CodeBuilder cdb, tym_t* tyf, bool* pushds)
 /**********************************************
  * Set up frame register.
  * Params:
+ *      cg         = code generator state
  *      cdb        = write generated code here
  *      farfunc    = true if a far function
  *      enter      = set to true if ENTER instruction can be used, false otherwise
@@ -3372,7 +3373,7 @@ void prolog_16bit_windows_farfunc(ref CodeBuilder cdb, tym_t* tyf, bool* pushds)
  *      generated code
  */
 @trusted
-void prolog_frame(ref CodeBuilder cdb, bool farfunc, ref uint xlocalsize, out bool enter, out int cfa_offset)
+void prolog_frame(ref CGstate cg, ref CodeBuilder cdb, bool farfunc, ref uint xlocalsize, out bool enter, out int cfa_offset)
 {
     //printf("prolog_frame\n");
     cfa_offset = 0;
@@ -3396,7 +3397,7 @@ void prolog_frame(ref CodeBuilder cdb, bool farfunc, ref uint xlocalsize, out bo
         (xlocalsize >= 0x1000 && config.exe & EX_flat) ||
         localsize >= 0x10000 ||
         (NTEXCEPTIONS == 2 &&
-         (cgstate.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags3 & Feh_none) || config.ehmethod == EHmethod.EH_SEH))) ||
+         (cg.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags3 & Feh_none) || config.ehmethod == EHmethod.EH_SEH))) ||
         (config.target_cpu >= TARGET_80386 &&
          config.flags4 & CFG4speed)
        )
@@ -3410,7 +3411,7 @@ void prolog_frame(ref CodeBuilder cdb, bool farfunc, ref uint xlocalsize, out bo
             code_orflag(cdb.last(), CFvolatile);
 static if (NTEXCEPTIONS == 2)
 {
-        if (cgstate.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags3 & Feh_none) || config.ehmethod == EHmethod.EH_SEH))
+        if (cg.usednteh & (NTEH_try | NTEH_except | NTEHcpp | EHcleanup | EHtry | NTEHpassthru) && (config.ehmethod == EHmethod.EH_WIN32 && !(funcsym_p.Sfunc.Fflags3 & Feh_none) || config.ehmethod == EHmethod.EH_SEH))
         {
             nteh_prolog(cdb);
             int sz = nteh_contextsym_size();
@@ -3447,18 +3448,18 @@ static if (NTEXCEPTIONS == 2)
  *      generated code
  */
 @trusted
-void prolog_stackalign(ref CodeBuilder cdb)
+void prolog_stackalign(ref CGstate cg, ref CodeBuilder cdb)
 {
-    if (!cgstate.enforcealign)
+    if (!cg.enforcealign)
         return;
 
-    const offset = (cgstate.hasframe ? 2 : 1) * REGSIZE;   // 1 for the return address + 1 for the PUSH EBP
+    const offset = (cg.hasframe ? 2 : 1) * REGSIZE;   // 1 for the return address + 1 for the PUSH EBP
     if (offset & (STACKALIGN - 1) || TARGET_STACKALIGN < STACKALIGN)
         cod3_stackalign(cdb, STACKALIGN);
 }
 
 @trusted
-void prolog_frameadj(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool enter, bool* pushalloc)
+void prolog_frameadj(ref CGstate cg, ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool enter, bool* pushalloc)
 {
     reg_t pushallocreg = (tyf == TYmfunc) ? CX : AX;
 
@@ -3505,7 +3506,7 @@ void prolog_frameadj(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool enter
             {   cdb.gen1(0x48 + DX);                  // DEC EDX
                 cdb.genc2(JNE,0,cast(targ_uns)-12);
             }
-            cgstate.regimmed_set(reg,0);             // reg is now 0
+            cg.regimmed_set(reg,0);             // reg is now 0
             cod3_stackadj(cdb, xlocalsize & 0xFFF);
             useregs(mask(reg));
         }
@@ -3530,7 +3531,7 @@ void prolog_frameadj(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool enter
     }
 }
 
-void prolog_frameadj2(ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool* pushalloc)
+void prolog_frameadj2(ref CGstate cg, ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool* pushalloc)
 {
     reg_t pushallocreg = (tyf == TYmfunc) ? CX : AX;
     if (xlocalsize == REGSIZE)
@@ -3575,16 +3576,16 @@ void prolog_setupalloca(ref CodeBuilder cdb)
  */
 
 @trusted
-void prolog_saveregs(ref CodeBuilder cdb, regm_t topush, int cfa_offset)
+void prolog_saveregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topush, int cfa_offset)
 {
-    if (cgstate.pushoffuse)
+    if (cg.pushoffuse)
     {
         // Save to preallocated section in the stack frame
         int xmmtopush = popcnt(topush & XMMREGS);   // XMM regs take 16 bytes
         int gptopush = popcnt(topush) - xmmtopush;  // general purpose registers to save
-        targ_size_t xmmoffset = cgstate.pushoff + cgstate.BPoff;
-        if (!cgstate.hasframe || cgstate.enforcealign)
-            xmmoffset += cgstate.EBPtoESP;
+        targ_size_t xmmoffset = cg.pushoff + cg.BPoff;
+        if (!cg.hasframe || cg.enforcealign)
+            xmmoffset += cg.EBPtoESP;
         targ_size_t gpoffset = xmmoffset + xmmtopush * 16;
         while (topush)
         {
@@ -3592,7 +3593,7 @@ void prolog_saveregs(ref CodeBuilder cdb, regm_t topush, int cfa_offset)
             topush &= ~mask(reg);
             if (isXMMreg(reg))
             {
-                if (cgstate.hasframe && !cgstate.enforcealign)
+                if (cg.hasframe && !cg.enforcealign)
                 {
                     // MOVUPD xmmoffset[EBP],xmm
                     cdb.genc1(STOUPD,modregxrm(2,reg-XMM0,BPRM),FLconst,xmmoffset);
@@ -3606,7 +3607,7 @@ void prolog_saveregs(ref CodeBuilder cdb, regm_t topush, int cfa_offset)
             }
             else
             {
-                if (cgstate.hasframe && !cgstate.enforcealign)
+                if (cg.hasframe && !cg.enforcealign)
                 {
                     // MOV gpoffset[EBP],reg
                     cdb.genc1(0x89,modregxrm(2,reg,BPRM),FLconst,gpoffset);
@@ -3644,14 +3645,14 @@ void prolog_saveregs(ref CodeBuilder cdb, regm_t topush, int cfa_offset)
                 cod3_stackadj(cdb, 16);
                 // MOVUPD 0[RSP],xmm
                 cdb.genc1(STOUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FLconst,0);
-                cgstate.EBPtoESP += 16;
-                cgstate.spoff += 16;
+                cg.EBPtoESP += 16;
+                cg.spoff += 16;
             }
             else
             {
                 genpush(cdb, reg);
-                cgstate.EBPtoESP += REGSIZE;
-                cgstate.spoff += REGSIZE;
+                cg.EBPtoESP += REGSIZE;
+                cg.spoff += REGSIZE;
                 if (config.fulltypes == CVDWARF_C || config.fulltypes == CVDWARF_D ||
                     config.ehmethod == EHmethod.EH_DWARF)
                 {   // Emit debug_frame data giving location of saved register
@@ -3659,7 +3660,7 @@ void prolog_saveregs(ref CodeBuilder cdb, regm_t topush, int cfa_offset)
                     code *c = cdb.finish();
                     pinholeopt(c, null);
                     dwarf_CFA_set_loc(calcblksize(c));  // address after PUSH reg
-                    dwarf_CFA_offset(reg, -cgstate.EBPtoESP - cfa_offset);
+                    dwarf_CFA_offset(reg, -cg.EBPtoESP - cfa_offset);
                     cdb.reset();
                     cdb.append(c);
                 }
@@ -3673,21 +3674,21 @@ void prolog_saveregs(ref CodeBuilder cdb, regm_t topush, int cfa_offset)
  */
 
 @trusted
-private void epilog_restoreregs(ref CodeBuilder cdb, regm_t topop)
+private void epilog_restoreregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topop)
 {
     debug
     if (topop & ~(XMMREGS | 0xFFFF))
-        printf("fregsaved = %s, mfuncreg = %s\n",regm_str(fregsaved),regm_str(cgstate.mfuncreg));
+        printf("fregsaved = %s, mfuncreg = %s\n",regm_str(fregsaved),regm_str(cg.mfuncreg));
 
     assert(!(topop & ~(XMMREGS | 0xFFFF)));
-    if (cgstate.pushoffuse)
+    if (cg.pushoffuse)
     {
         // Save to preallocated section in the stack frame
         int xmmtopop = popcnt(topop & XMMREGS);   // XMM regs take 16 bytes
         int gptopop = popcnt(topop) - xmmtopop;   // general purpose registers to save
-        targ_size_t xmmoffset = cgstate.pushoff + cgstate.BPoff;
-        if (!cgstate.hasframe || cgstate.enforcealign)
-            xmmoffset += cgstate.EBPtoESP;
+        targ_size_t xmmoffset = cg.pushoff + cg.BPoff;
+        if (!cg.hasframe || cg.enforcealign)
+            xmmoffset += cg.EBPtoESP;
         targ_size_t gpoffset = xmmoffset + xmmtopop * 16;
         while (topop)
         {
@@ -3695,7 +3696,7 @@ private void epilog_restoreregs(ref CodeBuilder cdb, regm_t topop)
             topop &= ~mask(reg);
             if (isXMMreg(reg))
             {
-                if (cgstate.hasframe && !cgstate.enforcealign)
+                if (cg.hasframe && !cg.enforcealign)
                 {
                     // MOVUPD xmm,xmmoffset[EBP]
                     cdb.genc1(LODUPD,modregxrm(2,reg-XMM0,BPRM),FLconst,xmmoffset);
@@ -3709,7 +3710,7 @@ private void epilog_restoreregs(ref CodeBuilder cdb, regm_t topop)
             }
             else
             {
-                if (cgstate.hasframe && !cgstate.enforcealign)
+                if (cg.hasframe && !cg.enforcealign)
                 {
                     // MOV reg,gpoffset[EBP]
                     cdb.genc1(0x8B,modregxrm(2,reg,BPRM),FLconst,gpoffset);
@@ -3757,11 +3758,12 @@ private void epilog_restoreregs(ref CodeBuilder cdb, regm_t topop)
 /******************************
  * Generate special varargs prolog for Posix 64 bit systems.
  * Params:
+ *      cg = code generator state
  *      cdb = sink for generated code
  *      sv = symbol for __va_argsave
  */
 @trusted
-void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv)
+void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
 {
     /* Generate code to move any arguments passed in registers into
      * the stack variable __va_argsave,
@@ -3803,14 +3805,14 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv)
 
     /* Save registers into the voff area on the stack
      */
-    targ_size_t voff = cgstate.Auto.size + cgstate.BPoff + sv.Soffset;  // EBP offset of start of sv
+    targ_size_t voff = cg.Auto.size + cg.BPoff + sv.Soffset;  // EBP offset of start of sv
     const int vregnum = 6;
     const uint vsize = vregnum * 8 + 8 * 16;
 
     static immutable reg_t[vregnum] regs = [ DI,SI,DX,CX,R8,R9 ];
 
-    if (!cgstate.hasframe || cgstate.enforcealign)
-        voff += cgstate.EBPtoESP;
+    if (!cg.hasframe || cg.enforcealign)
+        voff += cg.EBPtoESP;
 
     regm_t namedargs = prolog_namedArgs();
     foreach (i, r; regs)
@@ -3818,7 +3820,7 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv)
         if (!(mask(r) & namedargs))  // unnamed arguments would be the ... ones
         {
             uint ea = (REX_W << 16) | modregxrm(2,r,BPRM);
-            if (!cgstate.hasframe || cgstate.enforcealign)
+            if (!cg.hasframe || cg.enforcealign)
                 ea = (REX_W << 16) | (modregrm(0,4,SP) << 8) | modregxrm(2,r,4);
             cdb.genc1(0x89,ea,FLconst,voff + i*8);  // MOV voff+i*8[RBP],r
         }
@@ -3828,7 +3830,7 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv)
     genregs(cdb,0x84,AX,AX);                   // TEST AL,AL
 
     uint ea = (REX_W << 16) | modregrm(2,AX,BPRM);
-    if (!cgstate.hasframe || cgstate.enforcealign)
+    if (!cg.hasframe || cg.enforcealign)
         // add sib byte for [RSP] addressing
         ea = (REX_W << 16) | (modregrm(0,4,SP) << 8) | modregxrm(2,AX,4);
     int raxoff = cast(int)(voff+6*8+0x7F);
@@ -3845,10 +3847,10 @@ void prolog_genvarargs(ref CodeBuilder cdb, Symbol* sv)
 
     // LEA R11, Para.size+Para.offset[RBP]
     uint ea2 = modregxrm(2,R11,BPRM);
-    if (!cgstate.hasframe)
+    if (!cg.hasframe)
         ea2 = (modregrm(0,4,SP) << 8) | modregrm(2,DX,4);
-    cgstate.Para.offset = (cgstate.Para.offset + (REGSIZE - 1)) & ~(REGSIZE - 1);
-    cdb.genc1(LEA,(REX_W << 16) | ea2,FLconst,cgstate.Para.size + cgstate.Para.offset);
+    cg.Para.offset = (cg.Para.offset + (REGSIZE - 1)) & ~(REGSIZE - 1);
+    cdb.genc1(LEA,(REX_W << 16) | ea2,FLconst,cg.Para.size + cg.Para.offset);
 
     // MOV 9+16[RAX],R11
     cdb.genc1(0x89,(REX_W << 16) | modregxrm(2,R11,AX),FLconst,9 + 16);   // into stack_args_save
@@ -4364,7 +4366,7 @@ void epilog(block *b)
      * order they were pushed.
      */
     topop = fregsaved & ~cgstate.mfuncreg;
-    epilog_restoreregs(cdbx, topop);
+    epilog_restoreregs(cgstate, cdbx, topop);
 
     if (cgstate.usednteh & NTEHjmonitor)
     {
