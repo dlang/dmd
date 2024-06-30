@@ -1702,7 +1702,60 @@ void disassemble(uint c) @trusted
     // Memory Copy and Memory Set
     // Load/store no-allocate pair (offset)
     // Load/store register pair (post-indexed)
-    // Load/store register pair (offset)
+
+    // Load/store register pair (offset) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldstpair_off
+    if (field(ins, 29, 27) == 5 && field(ins, 25, 23) == 2)
+    {
+        uint opc  = field(ins, 31, 30);
+        uint VR   = field(ins, 26, 26);
+        uint L    = field(ins, 22, 22);
+        uint imm7 = field(ins, 21, 15);
+        uint Rt2  = field(ins, 14, 10);
+        uint Rn   = field(ins,  9,  5);
+        uint Rt   = field(ins,  4,  0);
+
+        uint decode2(uint opc, uint VR, uint L) { return (opc << 2) | (VR << 1) | L; }
+
+        switch (decode2(opc, VR, L))
+        {
+            case decode2(0,0,0):
+            case decode2(0,1,0):
+            case decode2(1,1,0):
+            case decode2(2,0,0):
+            case decode2(2,1,0): p1 = "stp"; break;
+
+            case decode2(0,0,1):
+            case decode2(0,1,1):
+            case decode2(1,1,1):
+            case decode2(2,0,1):
+            case decode2(2,1,1): p1 = "ldp"; break;
+
+            case decode2(1,0,0): p1 = "stgp"; break;
+            case decode2(1,0,1): p1 = "ldpsw"; break;
+            default:
+                break;
+        }
+
+        if (VR == 1) // SIMD&FP, not implemented
+        {
+            p1 = "";
+        }
+        else
+        {
+            p2 = regString(opc >> 1, Rt);
+            p3 = regString(opc >> 1, Rt2);
+            if (imm7)
+            {   // imm7 is signed, not sure how to format it
+                uint n = snprintf(buf.ptr, cast(uint)buf.length, "[%s,%s]", regString(1, Rn).ptr, wordtostring(imm7 * ((opc & 2) ? 8 : 4)).ptr);
+                p4 = buf[0 .. n];
+            }
+            else
+            {
+                p4 = indexString(Rn);
+            }
+        }
+    }
+
     // Load/store register pair (pre-indexed)
     // Load/store register pair (unscaled immediate)
     // Load/store register pair (immediate post-indexed)
@@ -2042,8 +2095,10 @@ unittest
 unittest
 {
     int line64 = __LINE__;
-    string[42] cases64 =      // 64 bit code gen
+    string[44] cases64 =      // 64 bit code gen
     [
+        "A9 01 7B FD         stp   x29,x30,[sp,#0x10]",
+        "A9 41 7B FD         ldp   x29,x30,[sp,#0x10]",
         "B9 40 0B E0         ldr   w0,[sp,#8]",
 
         "39 C0 00 20         ldrsb w0,[x1]",
