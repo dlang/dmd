@@ -2722,7 +2722,7 @@ $(GNAME ImportExpression):
         to a constant string.
         The text contents of the string are interpreted as a file
         name. The file is read, and the exact contents of the file
-        become a string literal.
+        become a $(RELATIVE_LINK2 hex_string_literals, hex string literal).
     )
 
     $(P Implementations may restrict the file name in order to avoid
