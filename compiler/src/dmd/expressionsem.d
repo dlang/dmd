@@ -7752,6 +7752,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (auto fmResult = global.fileManager.getFileContents(fileName))
             {
                 se = new StringExp(e.loc, fmResult);
+                se.hexString = true;
             }
             else
             {
