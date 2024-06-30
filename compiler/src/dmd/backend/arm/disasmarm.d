@@ -303,14 +303,38 @@ void disassemble(uint c) @trusted
         p7 = "";
     }
 
-    if (field(ins, 31, 16) == 0) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#reserved
+    /*{====================== Reserved ============================
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#reserved
+     */
+    if (field(ins, 31, 31) == 0 && field(ins, 28, 25) == 0)
     {
-        if (log) printf("reserved");
-        uint imm16 = field(ins, 15, 0);
-        p1 = "udf";
-        p2 = wordtostring(imm16);
+        // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#reserved
+        if (log) printf("Reserved");
+        if (field(ins, 30, 29) == 0)
+        {
+            uint imm16 = field(ins, 15, 0);
+            p1 = "udf";
+            p2 = wordtostring(imm16);
+        }
+        else
+            p1 = "reserved";
     }
-    else if (field(ins, 30, 23) == 0xE7) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#dp_1src_imm
+    /* } */
+    else
+    /*{====================== SME encodings ============================
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#sme
+     */
+    /* } */
+
+    /*{====================== SVE encodings ============================
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#sve
+     */
+    /* } */
+
+    /*{====================== Data Processing -- Immediate ============================
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#dpimm
+     */
+    if (field(ins, 30, 23) == 0xE7) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#dp_1src_imm
     {
         if (log) printf("Data-processing (1 source immediate)\n");
         uint sf    = field(ins, 31, 31);
@@ -639,7 +663,8 @@ void disassemble(uint c) @trusted
             p5 = wordtostring(imms);
         }
     }
-    else if (field(ins, 31, 24) == 0x54) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#condbranch
+    else
+    if (field(ins, 31, 24) == 0x54) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#condbranch
     {
         if (log) printf("Conditional branch (immediate)\n");
         uint imm19 = field(ins, 23, 5);
@@ -979,7 +1004,12 @@ void disassemble(uint c) @trusted
             p4 = regString(1, Rt + 1);
         }
     }
-    else if (field(ins, 31, 25) == 0x6B) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#branch_reg
+    /* } */
+    else
+    /*{====================== Branches, Exception Generating and System instructions ============================
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#control
+     */
+    if (field(ins, 31, 25) == 0x6B) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#branch_reg
     {
         if (log) printf("Unconditional branch (register)\n");
         uint opc = field(ins, 24, 21);
@@ -1111,7 +1141,12 @@ void disassemble(uint c) @trusted
         p3 = wordtostring((b5 << 5) | b40);
         p4 = wordtostring(imm14 * 4);
     }
-    else if (field(ins, 30, 30) == 0 && field(ins, 28, 21) == 0xD6) // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#dp_2src
+    /* } */
+    else
+    /*{====================== Data Processing -- Register ============================
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#dpreg
+     */
+    if (field(ins, 30, 30) == 0 && field(ins, 28, 21) == 0xD6) // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#dp_2src
     {
         if (log) printf("Data-processing (2 source)\n");
         uint sf      = field(ins, 31, 31);
@@ -1636,25 +1671,48 @@ void disassemble(uint c) @trusted
             }
         }
     }
+    /* } */
     else
-    if (field(ins, 31, 31) == 1 && field(ins, 29, 22) == 0xE5) // LDR (immediate) Unsigned offset
-    {                                                          // https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_gen.html
-        uint imm12 = field(ins, 21, 10);
-        uint Rn = field(ins, 9, 5);
-        uint Rt = field(ins, 4, 0);
-        uint is64 = field(ins, 30, 30);
+    /*{====================== Data Processing -- Scalar Floating-Point and Advanced SIMD ============================
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#simd_dp
+     */
+    /* } */
+    /*{===================== Loads and Stores ============================
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst
+     */
+    // Compare and swap pair
+    // Advanced SIMD load/store multiple structures
+    // Advanced SIMD load/store multiple structures (post-indexed)
+    // Advanced SIMD load/store single structure
+    // Advanced SIMD load/store single structure (post-indexed)
+    // RCW compare and swap
+    // RCW compare and swap pair
+    // 128-bi atomic memory operations
+    // GCS load/store
+    // Load/store memory tags
+    // Load/store exclusive pair
+    // Load/store exclusive register
+    // Load/store ordered
+    // Compare and swap
+    // LDIAPP/STILP
+    // LDAPR/STLR (writeback)
+    // LDAPR/STLR (unscaled immediate)
+    // LDAPR/STLR (SIMD&FP)
+    // Load register (literal)
+    // Memory Copy and Memory Set
+    // Load/store no-allocate pair (offset)
+    // Load/store register pair (post-indexed)
+    // Load/store register pair (offset)
+    // Load/store register pair (pre-indexed)
+    // Load/store register pair (unscaled immediate)
+    // Load/store register pair (immediate post-indexed)
+    // Load/store register pair (unprivileged)
+    // Load/store register pair (immediate pre-indexed)
+    // Atomic memory operations
+    // Load/store register (register offset)
+    // Load/store register (pac)
 
-        p1 = "ldr";
-        p2 = regString(is64, Rt);
-        size_t n;
-        if (imm12)
-            n = snprintf(buf.ptr, cast(uint)buf.length, "[%s,%s]", regString(1, Rn).ptr, wordtostring(imm12 * (is64 ? 8 : 4)).ptr);
-        else
-            n = snprintf(buf.ptr, cast(uint)buf.length, "[%s]", regString(1, Rn).ptr);
-        p3 = buf[0 .. n];
-    }
-    else
-    // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst Loads and Stores
+    // Load/store register (unsigned immediate) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_pos
     if (field(ins, 29, 27) == 7 && field(ins, 25, 24) == 1)
     {
         uint size = field(ins, 31, 30);
@@ -1664,57 +1722,71 @@ void disassemble(uint c) @trusted
         uint Rn = field(ins, 9, 5);
         uint Rt = field(ins, 4, 0);
 
-        // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_pos Load/store register (unsigned immediate)
-        // https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_gen.html STR (immediate)
-        // https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_gen.html LDR (immediate)
-
-        uint ldr(uint size, uint VR, uint opc) { return (size << 3) | (VR << 2) | opc; }
-
-        bool is64 = false;
-        switch (ldr(size, VR, opc))
+        if (size & 2 && VR == 0 && opc == 1) // LDR (immediate) Unsigned offset
+        {   // https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_gen.html
+            uint is64 = field(ins, 30, 30);
+            p1 = "ldr";
+            p2 = regString(is64, Rt);
+            size_t n;
+            if (imm12)
+                n = snprintf(buf.ptr, cast(uint)buf.length, "[%s,%s]", regString(1, Rn).ptr, wordtostring(imm12 * (is64 ? 8 : 4)).ptr);
+            else
+                n = snprintf(buf.ptr, cast(uint)buf.length, "[%s]", regString(1, Rn).ptr);
+            p3 = buf[0 .. n];
+        }
+        else
         {
-            case ldr(0,0,0): p1 = "strb";  goto Lldr;
-            case ldr(0,0,1): p1 = "ldrb";  goto Lldr;
-            case ldr(0,0,2): p1 = "ldrsb"; goto Lldr64;
-            case ldr(0,0,3): p1 = "ldrsb"; goto Lldr;
-            case ldr(1,0,0): p1 = "strh";  goto Lldr;
-            case ldr(1,0,1): p1 = "ldrh";  goto Lldr;
-            case ldr(1,0,2): p1 = "ldrsh"; goto Lldr64;
-            case ldr(1,0,3): p1 = "ldrsh"; goto Lldr;
-            case ldr(2,0,0): p1 = "str";   goto Lldr;
-            case ldr(2,0,1): p1 = "ldr";   goto Lldr;
-            case ldr(2,0,2): p1 = "ldrsw"; goto Lldr64;
-            case ldr(3,0,0): p1 = "str";   goto Lldr64;
-            case ldr(3,0,1): p1 = "ldr";   goto Lldr64;
-            Lldr64:
-                is64 = true;
-            Lldr:
-                p2 = regString(is64, Rt);
-                p3 = indexString(Rn);
-                if (imm12)
-                    p4 = wordtostring(imm12);
-                break;
+            // https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_gen.html STR (immediate)
+            // https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_gen.html LDR (immediate)
 
-            static if (0) // fix later
+            uint ldr(uint size, uint VR, uint opc) { return (size << 3) | (VR << 2) | opc; }
+
+            bool is64 = false;
+            switch (ldr(size, VR, opc))
             {
-            case ldr(0,1,0): p1 = "str";
-            case ldr(0,1,1): p1 = "ldr";
-            case ldr(0,1,2): p1 = "str";
-            case ldr(0,1,3): p1 = "ldr";
-            case ldr(1,1,0): p1 = "str";
-            case ldr(1,1,1): p1 = "ldr";
-            case ldr(2,1,0): p1 = "str";
-            case ldr(2,1,1): p1 = "ldr";
-            case ldr(3,0,1): p1 = "prfm";
-            case ldr(3,1,0): p1 = "str";
-            case ldr(3,1,1): p1 = "ldr";
-            }
+                case ldr(0,0,0): p1 = "strb";  goto Lldr;
+                case ldr(0,0,1): p1 = "ldrb";  goto Lldr;
+                case ldr(0,0,2): p1 = "ldrsb"; goto Lldr64;
+                case ldr(0,0,3): p1 = "ldrsb"; goto Lldr;
+                case ldr(1,0,0): p1 = "strh";  goto Lldr;
+                case ldr(1,0,1): p1 = "ldrh";  goto Lldr;
+                case ldr(1,0,2): p1 = "ldrsh"; goto Lldr64;
+                case ldr(1,0,3): p1 = "ldrsh"; goto Lldr;
+                case ldr(2,0,0): p1 = "str";   goto Lldr;
+                case ldr(2,0,1): p1 = "ldr";   goto Lldr;
+                case ldr(2,0,2): p1 = "ldrsw"; goto Lldr64;
+                case ldr(3,0,0): p1 = "str";   goto Lldr64;
+                case ldr(3,0,1): p1 = "ldr";   goto Lldr64;
+                Lldr64:
+                    is64 = true;
+                Lldr:
+                    p2 = regString(is64, Rt);
+                    p3 = indexString(Rn);
+                    if (imm12)
+                        p4 = wordtostring(imm12);
+                    break;
 
-            default:
-                break;
+                static if (0) // fix later
+                {
+                case ldr(0,1,0): p1 = "str";
+                case ldr(0,1,1): p1 = "ldr";
+                case ldr(0,1,2): p1 = "str";
+                case ldr(0,1,3): p1 = "ldr";
+                case ldr(1,1,0): p1 = "str";
+                case ldr(1,1,1): p1 = "ldr";
+                case ldr(2,1,0): p1 = "str";
+                case ldr(2,1,1): p1 = "ldr";
+                case ldr(3,0,1): p1 = "prfm";
+                case ldr(3,1,0): p1 = "str";
+                case ldr(3,1,1): p1 = "ldr";
+                }
+
+                default:
+                    break;
+            }
         }
     }
-
+    /* } */
     //printf("%x\n", field(ins, 31, 25));
     //printf("p1: %s\n", p1);
 
