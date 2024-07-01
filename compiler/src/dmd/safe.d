@@ -17,6 +17,7 @@ import core.stdc.stdio;
 
 import dmd.aggregate;
 import dmd.astenums;
+import dmd.dcast : implicitConvTo;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dscope;
