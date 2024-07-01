@@ -16,12 +16,12 @@ import core.stdc.string;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.iasm;
 import dmd.backend.oper;
 import dmd.backend.code;
 import dmd.backend.global;
-import dmd.backend.xmm;
+import dmd.backend.x86.xmm;
 
 import dmd.backend.cdef;
 import dmd.backend.dlist;

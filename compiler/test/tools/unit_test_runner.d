@@ -259,6 +259,7 @@ string[] buildCmdArgs(string runnerPath, string outputPath, const string[] testF
         "-version=NoMain",
         "-version=MARS",
         "-version=DMDLIB",
+        "-g",
         "-unittest",
         "-J" ~ buildOutputPath,
         "-Jsrc/dmd/res",
@@ -276,10 +277,6 @@ string[] buildCmdArgs(string runnerPath, string outputPath, const string[] testF
     // Generate coverage reports if requested
     if (environment.get("DMD_TEST_COVERAGE", "0") == "1")
         flags ~= "-cov";
-
-    // older versions of Optlink causes: "Error 45: Too Much DEBUG Data for Old CodeView format"
-    if (!usesOptlink)
-        flags ~= "-g";
 
     return flags;
 }
@@ -304,15 +301,6 @@ bool missingTestFiles(Range)(Range givenFiles)
     }
 
     return false;
-}
-
-bool usesOptlink()
-{
-    version (DigitalMars)
-        return os == "windows" && model == "32";
-
-    else
-        return false;
 }
 
 int main(string[] args)

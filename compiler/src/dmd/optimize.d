@@ -110,7 +110,7 @@ Expression expandVar(int result, VarDeclaration v)
                 }
                 if (ei.op == EXP.construct || ei.op == EXP.blit)
                 {
-                    AssignExp ae = cast(AssignExp)ei;
+                    auto ae = cast(AssignExp)ei;
                     ei = ae.e2;
                     if (ei.isConst() == 1)
                     {

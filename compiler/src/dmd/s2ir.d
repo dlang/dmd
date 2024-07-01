@@ -54,7 +54,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
 import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.cv4;
 import dmd.backend.dlist;
 import dmd.backend.dt;
@@ -118,7 +118,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
     void visitIf(IfStatement s)
     {
         elem *e;
-        Blockx *blx = irs.blx;
+        BlockState *blx = irs.blx;
 
         //printf("IfStatement.toIR('%s')\n", s.condition.toChars());
 
@@ -178,7 +178,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 
     void visitDo(DoStatement s)
     {
-        Blockx *blx = irs.blx;
+        BlockState *blx = irs.blx;
 
         StmtState mystate = StmtState(stmtstate, s);
         mystate.breakBlock = block_calloc(blx);
@@ -208,7 +208,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
     void visitFor(ForStatement s)
     {
         //printf("visit(ForStatement)) %u..%u\n", s.loc.linnum, s.endloc.linnum);
-        Blockx *blx = irs.blx;
+        BlockState *blx = irs.blx;
 
         StmtState mystate = StmtState(stmtstate, s);
         mystate.breakBlock = block_calloc(blx);
@@ -262,7 +262,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
     {
         block *bbreak;
         block *b;
-        Blockx *blx = irs.blx;
+        BlockState *blx = irs.blx;
 
         bbreak = stmtstate.getBreakBlock(s.ident);
         assert(bbreak);
@@ -289,7 +289,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
     {
         block *bcont;
         block *b;
-        Blockx *blx = irs.blx;
+        BlockState *blx = irs.blx;
 
         //printf("ContinueStatement.toIR() %p\n", this);
         bcont = stmtstate.getContBlock(s.ident);
@@ -316,7 +316,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 
     void visitGoto(GotoStatement s)
     {
-        Blockx *blx = irs.blx;
+        BlockState *blx = irs.blx;
 
         assert(s.label.statement);
         assert(s.tf == s.label.statement.tf);
@@ -333,7 +333,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
     void visitLabel(LabelStatement s)
     {
         //printf("LabelStatement.toIR() %p, statement: `%s`\n", this, s.statement.toChars());
-        Blockx *blx = irs.blx;
+        BlockState *blx = irs.blx;
         block *bc = blx.curblock;
         StmtState mystate = StmtState(stmtstate, s);
         mystate.ident = s.ident;
@@ -353,7 +353,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 
     void visitSwitch(SwitchStatement s)
     {
-        Blockx *blx = irs.blx;
+        BlockState *blx = irs.blx;
 
         //printf("SwitchStatement.toIR()\n");
         StmtState mystate = StmtState(stmtstate, s);
@@ -461,7 +461,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 
     void visitCase(CaseStatement s)
     {
-        Blockx *blx = irs.blx;
+        BlockState *blx = irs.blx;
         block *bcase = blx.curblock;
         block* cb = cast(block*)s.extra;
         block_next(blx, BCgoto, cb);
@@ -477,7 +477,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 
     void visitDefault(DefaultStatement s)
     {
-        Blockx *blx = irs.blx;
+        BlockState *blx = irs.blx;
         block *bcase = blx.curblock;
         block *bdefault = stmtstate.getDefaultBlock();
         block_next(blx,BCgoto,bdefault);
@@ -491,7 +491,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
     void visitGotoDefault(GotoDefaultStatement s)
     {
         block *b;
-        Blockx *blx = irs.blx;
+        BlockState *blx = irs.blx;
         block *bdest = stmtstate.getDefaultBlock();
 
         b = blx.curblock;
@@ -505,7 +505,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 
     void visitGotoCase(GotoCaseStatement s)
     {
-        Blockx *blx = irs.blx;
+        BlockState *blx = irs.blx;
         block *bdest = cast(block*)s.cs.extra;
         block *b = blx.curblock;
 
@@ -522,7 +522,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         // We still need the call wrapped in SwitchErrorStatement to pass compiler error checks.
         assert(s.exp !is null, "SwitchErrorStatement needs to have a valid Expression.");
 
-        Blockx *blx = irs.blx;
+        BlockState *blx = irs.blx;
 
         //printf("SwitchErrorStatement.toIR(), exp = %s\n", s.exp ? s.exp.toChars() : "");
         incUsage(irs, s.loc);
@@ -535,7 +535,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
     void visitReturn(ReturnStatement s)
     {
         //printf("s2ir.ReturnStatement: %s\n", s.toChars());
-        Blockx *blx = irs.blx;
+        BlockState *blx = irs.blx;
         BC bc;
 
         incUsage(irs, s.loc);
@@ -676,7 +676,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 
     void visitExp(ExpStatement s)
     {
-        Blockx *blx = irs.blx;
+        BlockState *blx = irs.blx;
 
         //printf("ExpStatement.toIR(), exp: %p %s\n", s.exp, s.exp ? s.exp.toChars() : "");
         if (s.exp)
@@ -730,7 +730,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 
     void visitUnrolledLoop(UnrolledLoopStatement s)
     {
-        Blockx *blx = irs.blx;
+        BlockState *blx = irs.blx;
 
         StmtState mystate = StmtState(stmtstate, s);
         mystate.breakBlock = block_calloc(blx);
@@ -770,7 +770,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
     {
         if (s.statement)
         {
-            Blockx *blx = irs.blx;
+            BlockState *blx = irs.blx;
             StmtState mystate = StmtState(stmtstate, s);
 
             if (mystate.prev.ident)
@@ -821,7 +821,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
     {
         // throw(exp)
 
-        Blockx *blx = irs.blx;
+        BlockState *blx = irs.blx;
 
         incUsage(irs, s.loc);
         elem *e = toElemDtor(s.exp, irs);
@@ -842,7 +842,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 
     void visitTryCatch(TryCatchStatement s)
     {
-        Blockx *blx = irs.blx;
+        BlockState *blx = irs.blx;
 
         if (blx.funcsym.Sfunc.Fflags3 & Feh_none) printf("visit %s\n", blx.funcsym.Sident.ptr);
         if (blx.funcsym.Sfunc.Fflags3 & Feh_none) assert(0);
@@ -1127,7 +1127,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
     {
         //printf("TryFinallyStatement.toIR()\n");
 
-        Blockx *blx = irs.blx;
+        BlockState *blx = irs.blx;
 
         if (config.ehmethod == EHmethod.EH_WIN32 && !(blx.funcsym.Sfunc.Fflags3 & Feh_none))
             nteh_declarvars(blx);
@@ -1371,7 +1371,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         block *bpre;
         block *basm;
         Symbol *sym;
-        Blockx *blx = irs.blx;
+        BlockState *blx = irs.blx;
 
         //printf("AsmStatement.toIR(asmcode = %x)\n", asmcode);
         bpre = blx.curblock;
@@ -1737,7 +1737,7 @@ private bool isAssertFalse(const Statement s) nothrow
  * Generate code to set index into scope table.
  */
 
-private void setScopeIndex(Blockx *blx, block *b, int scope_index)
+private void setScopeIndex(BlockState *blx, block *b, int scope_index)
 {
     if (config.ehmethod == EHmethod.EH_WIN32 && !(blx.funcsym.Sfunc.Fflags3 & Feh_none))
         block_appendexp(b, nteh_setScopeTableIndex(blx, scope_index));
@@ -1747,7 +1747,7 @@ private void setScopeIndex(Blockx *blx, block *b, int scope_index)
  * Allocate a new block, and set the tryblock.
  */
 
-private block *block_calloc(Blockx *blx) @safe
+private block *block_calloc(BlockState *blx) @safe
 {
     block *b = dmd.backend.global.block_calloc();
     b.Btry = blx.tryblock;

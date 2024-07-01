@@ -21,7 +21,7 @@ import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.dt;
 import dmd.backend.el;
 import dmd.backend.global;
@@ -133,7 +133,7 @@ void except_fillInEHTable(Symbol *s)
     sz += 4;
 
     // Offset from start of function to return code
-    dtb.dword(cast(int)retoffset);
+    dtb.dword(cast(int)cgstate.retoffset);
     sz += 4;
 
     // First, calculate starting catch offset
@@ -145,7 +145,7 @@ void except_fillInEHTable(Symbol *s)
             guarddim = b.Bscope_index + 1;
 //      printf("b.BC = %2d, Bscope_index = %2d, last_index = %2d, offset = x%x\n",
 //              b.BC, b.Bscope_index, b.Blast_index, b.Boffset);
-        if (usednteh & EHcleanup)
+        if (cgstate.usednteh & EHcleanup)
             for (code *c = b.Bcode; c; c = code_next(c))
             {
                 if (c.Iop == PSOP.ddtor)
@@ -234,7 +234,7 @@ void except_fillInEHTable(Symbol *s)
      * within a single expression. These are marked by the special instruction pairs
      * PSOP.dctor and PSOP.ddtor.
      */
-    if (usednteh & EHcleanup)
+    if (cgstate.usednteh & EHcleanup)
     {
         Barray!int stack;
 

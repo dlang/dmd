@@ -60,13 +60,14 @@ import dmd.todt;
 import dmd.tokens;
 import dmd.traits;
 import dmd.typinf;
+import dmd.typesem : size;
 import dmd.visitor;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
 import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.cv4;
 import dmd.backend.dt;
 import dmd.backend.el;
@@ -1015,7 +1016,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
         }
 
         /**
-         * Returns the target mangling mangle_t for the given variable.
+         * Returns the target mangling Mangle for the given variable.
          *
          * Params:
          *      vd = the variable declaration
@@ -1023,22 +1024,22 @@ void toObjFile(Dsymbol ds, bool multiobj)
          * Returns:
          *      the mangling that should be used for variable
          */
-        static mangle_t mangle(const VarDeclaration vd)
+        static Mangle mangle(const VarDeclaration vd)
         {
             final switch (vd.resolvedLinkage())
             {
                 case LINK.windows:
-                    return target.isX86_64 ? mTYman_c : mTYman_std;
+                    return target.isX86 ? Mangle.stdcall : Mangle.c;
 
                 case LINK.objc:
                 case LINK.c:
-                    return mTYman_c;
+                    return Mangle.c;
 
                 case LINK.d:
-                    return mTYman_d;
+                    return Mangle.d;
 
                 case LINK.cpp:
-                    return mTYman_cpp;
+                    return Mangle.cpp;
 
                 case LINK.default_:
                 case LINK.system:
@@ -1100,8 +1101,8 @@ private bool finishVtbl(ClassDeclaration cd)
                 continue;
             if (fd2.isFuture())
                 continue;
-            if (!FuncDeclaration.leastAsSpecialized(fd, fd2, null) &&
-                !FuncDeclaration.leastAsSpecialized(fd2, fd, null))
+            if (!fd.leastAsSpecialized(fd2, null) &&
+                !fd2.leastAsSpecialized(fd, null))
                 continue;
             // Hiding detected: same name, overlapping specializations
             TypeFunction tf = fd.type.toTypeFunction();

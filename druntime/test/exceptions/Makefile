@@ -146,4 +146,4 @@ $(ROOT)/%$(DOTEXE): $(SRC)/%.d $(DMD) $(DRUNTIME)
 	$(QUIET)$(DMD) $(DFLAGS) -of$@ $<
 
 clean:
-	rm -rf $(GENERATED)
+	rm -rf $(ROOT)

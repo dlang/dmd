@@ -9,6 +9,13 @@
  */
 
 /**********************
+ * Silence noisy warnings for this file
+ */
+#ifdef __GNUC__
+#pragma GCC system_header
+#endif
+
+/**********************
  * For special casing ImportC code.
  */
 #define __IMPORTC__ 1

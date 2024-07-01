@@ -17,7 +17,7 @@ import core.stdc.string;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 
 import dmd.backend.barray : Barray;
 import dmd.backend.dwarf;
@@ -48,7 +48,7 @@ package __gshared DwEhTable dwehtable;
  *      sfunc = function to generate table for
  *      seg = .gcc_except_table segment
  *      et = buffer to insert table into
- *      scancode = true if there are destructors in the code (i.e. usednteh & EHcleanup)
+ *      scancode = true if there are destructors in the code (i.e. cgstate.usednteh & EHcleanup)
  *      startoffset = size of function prolog
  *      retoffset = offset from start of function to epilog
  */

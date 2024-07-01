@@ -1,5 +1,5 @@
 /* REQUIRED_ARGS: -m64
-DISABLED: win32 linux32 osx32 freebsd32
+DISABLED: win32 linux32 osx32 freebsd32 openbsd32
 TEST_OUTPUT:
 ---
 fail_compilation/fail17105.d(20): Error: missing 4th parameter to `__simd()`

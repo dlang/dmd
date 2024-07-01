@@ -22,7 +22,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
 import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.cv4;
 import dmd.backend.dlist;
 import dmd.backend.dvec;
@@ -1566,14 +1566,14 @@ private void cv4_outsym(Symbol *s)
             // Offsets
             if (I32)
             {   TOLONG(debsym + 16,cast(uint)s.Ssize);           // proc length
-                TOLONG(debsym + 20,cast(uint)startoffset);        // debug start
-                TOLONG(debsym + 24,cast(uint)retoffset);          // debug end
+                TOLONG(debsym + 20,cast(uint)cgstate.startoffset);        // debug start
+                TOLONG(debsym + 24,cast(uint)cgstate.retoffset);          // debug end
                 u = 28;                                 // offset to fixup
             }
             else
             {   TOWORD(debsym + 16,cast(uint)s.Ssize);           // proc length
-                TOWORD(debsym + 18,cast(uint)startoffset);        // debug start
-                TOWORD(debsym + 20,cast(uint)retoffset);          // debug end
+                TOWORD(debsym + 18,cast(uint)cgstate.startoffset);        // debug start
+                TOWORD(debsym + 20,cast(uint)cgstate.retoffset);          // debug end
                 u = 22;                                 // offset to fixup
             }
             length += cv_namestring(debsym + u + _tysize[TYint] + 2 + cgcv.sz_idx + 1,id);
@@ -1587,14 +1587,14 @@ private void cv4_outsym(Symbol *s)
             // Offsets
             if (I32)
             {   TOLONG(debsym + 16 + cgcv.sz_idx,cast(uint)s.Ssize);             // proc length
-                TOLONG(debsym + 20 + cgcv.sz_idx,cast(uint)startoffset);  // debug start
-                TOLONG(debsym + 24 + cgcv.sz_idx,cast(uint)retoffset);            // debug end
+                TOLONG(debsym + 20 + cgcv.sz_idx,cast(uint)cgstate.startoffset);  // debug start
+                TOLONG(debsym + 24 + cgcv.sz_idx,cast(uint)cgstate.retoffset);            // debug end
                 u = 28;                                         // offset to fixup
             }
             else
             {   TOWORD(debsym + 16 + cgcv.sz_idx,cast(uint)s.Ssize);             // proc length
-                TOWORD(debsym + 18 + cgcv.sz_idx,cast(uint)startoffset);  // debug start
-                TOWORD(debsym + 20 + cgcv.sz_idx,cast(uint)retoffset);            // debug end
+                TOWORD(debsym + 18 + cgcv.sz_idx,cast(uint)cgstate.startoffset);  // debug start
+                TOWORD(debsym + 20 + cgcv.sz_idx,cast(uint)cgstate.retoffset);            // debug end
                 u = 22;                                         // offset to fixup
             }
             u += cgcv.sz_idx;
@@ -1637,7 +1637,7 @@ private void cv4_outsym(Symbol *s)
                     s.Sfl = FLreg;
                     goto case_register;
                 }
-                base = cgstate.Para.size - BPoff;    // cancel out add of BPoff
+                base = cgstate.Para.size - cgstate.BPoff;    // cancel out add of BPoff
                 goto L1;
 
             case SC.auto_:
@@ -1650,11 +1650,11 @@ private void cv4_outsym(Symbol *s)
                     goto Lret;
                 TOWORD(debsym + 2,I32 ? S_BPREL32 : S_BPREL16);
                 if (config.fulltypes == CV4)
-                {   TOOFFSET(debsym + 4,s.Soffset + base + BPoff);
+                {   TOOFFSET(debsym + 4,s.Soffset + base + cgstate.BPoff);
                     TOIDX(debsym + 4 + _tysize[TYint],typidx);
                 }
                 else
-                {   TOOFFSET(debsym + 4 + cgcv.sz_idx,s.Soffset + base + BPoff);
+                {   TOOFFSET(debsym + 4 + cgcv.sz_idx,s.Soffset + base + cgstate.BPoff);
                     TOIDX(debsym + 4,typidx);
                 }
                 length = 2 + 2 + _tysize[TYint] + cgcv.sz_idx;
@@ -1663,7 +1663,7 @@ private void cv4_outsym(Symbol *s)
                 break;
 
             case SC.bprel:
-                base = -BPoff;
+                base = -cgstate.BPoff;
                 goto L1;
 
             case SC.fastpar:

@@ -201,11 +201,9 @@ Note that these groups have no strict meaning, the category assignments are a bi
 | [libelf.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/libelf.d)         | Library in ELF format (Unix)                         |
 | [libmach.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/libmach.d)       | Library in Mach-O format (macOS)                     |
 | [libmscoff.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/libmscoff.d)   | Library in COFF format (32/64-bit Windows)           |
-| [libomf.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/libomf.d)         | Library in OMF format (legacy 32-bit Windows)        |
 | [scanelf.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/scanelf.d)       | Extract symbol names from a library in ELF format    |
 | [scanmach.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/scanmach.d)     | Extract symbol names from a library in Mach-O format |
 | [scanmscoff.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/scanmscoff.d) | Extract symbol names from a library in COFF format   |
-| [scanomf.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/scanomf.d)       | Extract symbol names from a library in OMF format    |
 
 ### Code generation / back-end interfacing
 
@@ -253,6 +251,8 @@ Note that these groups have no strict meaning, the category assignments are a bi
 | [hdrgen.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/hdrgen.d) | Convert an AST into D source code for `.di` header generation, as well as `-vcg-ast` and error messages |
 | [json.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/json.d)     | Describe the module in a `.json` file for the `-X` flag                                                 |
 | [dtoh.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dtoh.d)     | C++ header generation from D source files                                                               |
+| [disasm86.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/disasm86.d)       | x86-64 dissassembly generation
+| [disasmarm.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/backend/arm/disasmarm.d) | AArch64 disassembly generation
 
 ### Utility
 

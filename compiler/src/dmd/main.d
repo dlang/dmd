@@ -337,7 +337,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         if (params.jsonFieldFlags)
         {
             Modules modules;            // empty
-            generateJson(modules);
+            if (generateJson(modules, global.errorSink))
+                fatal();
             return EXIT_SUCCESS;
         }
         usage();
@@ -345,7 +346,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
 
     reconcileCommands(params, target);
-    setDefaultLibrary(params, target);
+    setDefaultLibraries(target, driverParams.defaultlibname, driverParams.debuglibname);
 
     // Initialization
     target._init(params);
@@ -396,7 +397,11 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     buildPath(params.fileImppath, global.filePath);
 
     // Create Modules
-    Modules modules = createModules(files, libmodules, target);
+    Modules modules;
+    modules.reserve(files.length);
+    if (createModules(files, libmodules, target, global.errorSink, modules))
+        fatal();
+
     // Read files
     foreach (m; modules)
     {
@@ -522,7 +527,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (global.errors)
         removeHdrFilesAndFail(params, modules);
 
-    backend_init();
+    backend_init(params, driverParams, target);
 
     // Do semantic analysis
     foreach (m; modules)
@@ -625,7 +630,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // Generate output files
     if (params.json.doOutput)
     {
-        generateJson(modules);
+        if (generateJson(modules, global.errorSink))
+            fatal();
     }
     if (!global.errors && params.ddoc.doOutput)
     {
@@ -812,7 +818,6 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     bool isX86_64 = arch[0] == '6';
 
     version(Windows) // delete LIB entry in [Environment] (necessary for optlink) to allow inheriting environment for MS-COFF
-    if (arch != "32omf")
         environment.update("LIB", 3).value = null;
 
     // read from DFLAGS in [Environment{arch}] section
@@ -825,7 +830,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     updateRealEnvironment(environment);
     environment.reset(1); // don't need environment cache any more
 
-    if (parseCommandLine(arguments, argc, params, files, target))
+    if (parseCommandLine(arguments, argc, params, files, target, driverParams, global.errorSink))
     {
         Loc loc;
         errorSupplemental(loc, "run `dmd` to print the compiler manual");
@@ -971,8 +976,6 @@ void reconcileCommands(ref Param params, ref Target target)
     }
     else
     {
-        if (target.omfobj)
-            error(Loc.initial, "`-m32omf` can only be used when targetting windows");
         if (driverParams.mscrtlib)
             error(Loc.initial, "`-mscrtlib` can only be used when targetting windows");
     }

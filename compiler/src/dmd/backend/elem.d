@@ -25,7 +25,7 @@ import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.cgcv;
 import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.dlist;
 import dmd.backend.dt;
 import dmd.backend.dvec;

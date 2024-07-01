@@ -38,7 +38,7 @@ import dmd.backend.type;
 nothrow:
 @safe:
 
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 
 void struct_free(struct_t *st) { }
 
@@ -64,7 +64,7 @@ debug
     printf("symbol '%s'\n ", s.Sident.ptr);
     printf(" Sclass = %s ", class_str(s.Sclass));
     printf(" Ssymnum = %d",cast(int)s.Ssymnum);
-    printf(" Sfl = "); WRFL(cast(FL) s.Sfl);
+    printf(" Sfl = %s", fl_str(cast(FL) s.Sfl));
     printf(" Sseg = %d\n",s.Sseg);
 //  printf(" Ssize   = x%02x\n",s.Ssize);
     printf(" Soffset = x%04llx",cast(ulong)s.Soffset);

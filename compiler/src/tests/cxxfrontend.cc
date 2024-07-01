@@ -742,7 +742,7 @@ public:
         else
         {
             (void)t->ctype;
-            (void)t->size(t->sym->loc);
+            dmd::size(t, t->sym->loc);
             if (t->sym->members)
             {
                 for (size_t i = 0; i < t->sym->members->length; i++)
@@ -1340,8 +1340,8 @@ public:
                     continue;
                 if (fd2->isFuture())
                     continue;
-                if (FuncDeclaration::leastAsSpecialized(fd, fd2, NULL) != MATCH::nomatch ||
-                    FuncDeclaration::leastAsSpecialized(fd2, fd, NULL) != MATCH::nomatch)
+                if (dmd::leastAsSpecialized(fd, fd2, NULL) != MATCH::nomatch ||
+                    dmd::leastAsSpecialized(fd2, fd, NULL) != MATCH::nomatch)
                 {
                     return;
                 }
@@ -1558,7 +1558,7 @@ public:
         else if (d->isDataseg() && !(d->storage_class & STCextern))
         {
             visitDeclaration(d);
-            (void)d->type->size(d->loc);
+            dmd::size(d->type, d->loc);
             if (d->_init)
             {
                 if (!d->_init->isVoidInitializer())

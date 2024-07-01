@@ -20,7 +20,7 @@ import core.stdc.string;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.global;
 import dmd.backend.rtlsym;
 import dmd.backend.symtab;
@@ -62,12 +62,12 @@ Symbol *getRtlsym(RTLSYM i) @trusted
     if (!t)
     {
         t = type_fake(TYnfunc);
-        t.Tmangle = mTYman_c;
+        t.Tmangle = Mangle.c;
         t.Tcount++;
 
         // Variadic function
         tv = type_fake(TYnfunc);
-        tv.Tmangle = mTYman_c;
+        tv.Tmangle = Mangle.c;
         tv.Tcount++;
     }
 

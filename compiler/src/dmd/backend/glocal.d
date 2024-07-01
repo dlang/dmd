@@ -21,7 +21,6 @@ import core.stdc.time;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
-import dmd.backend.code_x86;
 import dmd.backend.oper;
 import dmd.backend.global;
 import dmd.backend.goh;
@@ -230,7 +229,7 @@ Loop:
                             {   printf("Combined equation ");
                                 WReqn(e);
                                 printf(";\n");
-                                e = doptelem(e,GOALvalue);
+                                e = doptelem(e, Goal.value);
                             }
 
                             break;

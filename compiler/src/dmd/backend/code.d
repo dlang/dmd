@@ -18,7 +18,7 @@ module dmd.backend.code;
 import dmd.backend.barray;
 import dmd.backend.cc;
 import dmd.backend.cdef;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.el : elem;
 import dmd.backend.oper : OPMAX;
@@ -112,7 +112,7 @@ struct REGSAVE
   nothrow:
     @trusted
     void reset() { off = 0; top = 0; idx = 0; alignment = _tysize[TYnptr]/*REGSIZE*/; }
-    void save(ref CodeBuilder cdb, reg_t reg, uint *pidx) { REGSAVE_save(this, cdb, reg, *pidx); }
+    void save(ref CodeBuilder cdb, reg_t reg, out uint pidx) { REGSAVE_save (this, cdb, reg, pidx); }
     void restore(ref CodeBuilder cdb, reg_t reg, uint idx) { REGSAVE_restore(this, cdb, reg, idx); }
 }
 
@@ -156,7 +156,34 @@ enum
 
 struct CGstate
 {
-    int stackclean;     // if != 0, then clean the stack after function call
+    bool floatreg;              // !=0 if floating register is required
+    bool hasframe;              // true if this function has a stack frame
+    bool enforcealign;          // enforced stack alignment
+    bool anyiasm;               // !=0 if any inline assembler
+    char calledafunc;           // !=0 if we called a function
+
+    int stackclean;             // if != 0, then clean the stack after function call
+
+    int BPoff;                  // offset from BP
+    int EBPtoESP;               // add to EBP offset to get ESP offset
+    REGSAVE regsave;
+
+    targ_size_t spoff;
+    targ_size_t Foff;           // BP offset of floating register
+    targ_size_t CSoff;          // offset of common sub expressions
+    targ_size_t NDPoff;         // offset of saved 8087 registers
+
+    targ_size_t pushoff;        // offset of saved registers
+    bool pushoffuse;            // save/restore registers using pushoff rather than PUSH/POP
+
+    char needframe;             // if true, then we will need the frame
+                                // pointer (BP for the 8088)
+
+    int stackchanged;           /* set to !=0 if any use of the stack
+                                   other than accessing parameters. Used
+                                   to see if we can address parameters
+                                   with ESP rather than EBP.
+                                 */
 
     LocalSection funcarg;       // where function arguments are placed
     LocalSection Para;          // section of function parameters
@@ -165,17 +192,59 @@ struct CGstate
     LocalSection EEStack;       // offset of SCstack variables from ESP
     LocalSection Alloca;        // data for alloca() temporary
 
+    Symbol *retsym;             // symbol that should be placed in AX
+
+    uint stackpush;             // # of bytes that SP is beyond BP.
+
     targ_size_t funcargtos;     // current high water level of arguments being moved onto
                                 // the funcarg section. It is filled from top to bottom,
                                 // as if they were 'pushed' on the stack.
                                 // Special case: if funcargtos==~0, then no
                                 // arguments are there.
+    char gotref;                // !=0 if the GOTsym was referenced
+    int refparam;               // !=0 if we referenced any parameters
     bool accessedTLS;           // set if accessed Thread Local Storage (TLS)
+    bool calledFinally;         // true if called a BC_finally block
+    int reflocal;               // !=0 if we referenced any locals
+
+    regm_t[4] lastRetregs;      // used to not allocate the same register over and over again,
+                                // to improve instruction scheduling
+
+    targ_size_t     prolog_allocoffset;     // offset past adj of stack allocation
+
+    targ_size_t     startoffset; // size of function entry code
+    targ_size_t     funcoffset; // offset of start of function
+    targ_size_t     retoffset;  // offset from start of func to ret code
+    targ_size_t     retsize;    // size of function return code
+
+    int dfoidx;                 // which block we are in
+    regm_t allregs;             // ALLREGS optionally including mBP
+    regm_t mfuncreg;            // mask of registers preserved by function
+    regm_t msavereg;            // Mask of registers that we would like to save.
+                                // they are temporaries (set by scodelem())
+
+    uint usednteh;              // if !=0, then used NT exception handling
+    con_t regcon;               // register contents
+    BackendPass pass;
+
+    int cmp_flag;               // pass extra flag from cdcod() to cdcmp()
+    /**********************************
+     * Set value in regimmed for reg.
+     * NOTE: For 16 bit generator, this is always a (targ_short) sign-extended
+     *      value.
+     */
+    @trusted nothrow
+    void regimmed_set(int reg, targ_size_t e)
+    {
+        regcon.immed.value[reg] = e;
+        regcon.immed.mval |= 1 << (reg);
+        //printf("regimmed_set %s %d\n", regm_str(1 << reg), cast(int)e);
+    }
 }
 
-public import dmd.backend.nteh;
+public import dmd.backend.x86.nteh;
 public import dmd.backend.cgen;
-public import dmd.backend.cgreg : cgreg_init, cgreg_term, cgreg_reset, cgreg_used,
+public import dmd.backend.x86.cgreg : cgreg_init, cgreg_term, cgreg_reset, cgreg_used,
     cgreg_spillreg_prolog, cgreg_spillreg_epilog, cgreg_assign, cgreg_unregister;
 
 public import dmd.backend.cgsched : cgsched_block;
@@ -260,7 +329,7 @@ struct FuncParamRegs
     //this(tym_t tyf);
     static FuncParamRegs create(tym_t tyf) { return FuncParamRegs_create(tyf); }
 
-    int alloc(type *t, tym_t ty, ubyte *reg1, ubyte *reg2)
+    bool alloc(type *t, tym_t ty, out reg_t reg1, out reg_t reg2)
     { return FuncParamRegs_alloc(this, t, ty, reg1, reg2); }
 
   private:
@@ -271,14 +340,14 @@ struct FuncParamRegs
     int xmmcnt;                 // how many fp registers are allocated
     uint numintegerregs;        // number of gp registers that can be allocated
     uint numfloatregs;          // number of fp registers that can be allocated
-    const(ubyte)* argregs;      // map to gp register
-    const(ubyte)* floatregs;    // map to fp register
+    const(reg_t)* argregs;      // map to gp register
+    const(reg_t)* floatregs;    // map to fp register
 }
 
 public import dmd.backend.cg : BPRM, FLOATREGS, FLOATREGS2, DOUBLEREGS,
     localsize, framehandleroffset, cseg, STACKALIGN, TARGET_STACKALIGN;
 
-public import dmd.backend.cgcod;
+public import dmd.backend.x86.cgcod;
 enum BackendPass
 {
     initial,    /// initial pass through code generator
@@ -286,20 +355,20 @@ enum BackendPass
     final_,     /// final pass
 }
 
-public import dmd.backend.cgcod : retsize, findreg;
+public import dmd.backend.x86.cgcod : findreg;
 
-reg_t findregmsw(uint regm) { return findreg(regm & mMSW); }
-reg_t findreglsw(uint regm) { return findreg(regm & (mLSW | mBP)); }
+reg_t findregmsw(regm_t regm) { return findreg(regm & mMSW); }
+reg_t findreglsw(regm_t regm) { return findreg(regm & (mLSW | mBP)); }
 
-public import dmd.backend.cod1;
-public import dmd.backend.cod2;
-public import dmd.backend.cod3;
-public import dmd.backend.cod4;
-public import dmd.backend.cod5;
+public import dmd.backend.x86.cod1;
+public import dmd.backend.x86.cod2;
+public import dmd.backend.x86.cod3;
+public import dmd.backend.x86.cod4;
+public import dmd.backend.x86.cod5;
 public import dmd.backend.cgen : outfixlist, addtofixlist;
 
-public import dmd.backend.cgxmm;
-public import dmd.backend.cg87;
+public import dmd.backend.x86.cgxmm;
+public import dmd.backend.x86.cg87;
 
 /**********************************
  * Get registers used by a given block
@@ -312,19 +381,13 @@ regm_t iasm_regs(block *bp)
     debug (debuga)
         printf("Block iasm regs = 0x%X\n", bp.usIasmregs);
 
-    refparam |= bp.bIasmrefparam;
     return bp.usIasmregs;
 }
 
-/**********************************
- * Set value in regimmed for reg.
- * NOTE: For 16 bit generator, this is always a (targ_short) sign-extended
- *      value.
- */
-@trusted
-void regimmed_set(int reg, targ_size_t e)
+// Flags for getlvalue
+enum RM
 {
-    regcon.immed.value[reg] = e;
-    regcon.immed.mval |= 1 << (reg);
-    //printf("regimmed_set %s %d\n", regm_str(1 << reg), cast(int)e);
+    rw = 0,
+    load = 1,
+    store = 2,
 }

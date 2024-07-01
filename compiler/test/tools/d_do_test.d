@@ -60,9 +60,9 @@ void usage()
           ~ "      ARGS:          set to execute all combinations of\n"
           ~ "      REQUIRED_ARGS: arguments always passed to the compiler\n"
           ~ "      DMD:           compiler to use, ex: ../src/dmd (required)\n"
-          ~ "      CC:            C compiler to use, ex: dmc, cc\n"
-          ~ "      CXX:           C++ compiler to use, ex: dmc, g++\n"
-          ~ "      OS:            windows, linux, freebsd, osx, netbsd, dragonflybsd\n"
+          ~ "      CC:            C compiler to use, ex: cl, cc\n"
+          ~ "      CXX:           C++ compiler to use, ex: cl, g++\n"
+          ~ "      OS:            windows, linux, freebsd, osx, openbsd, netbsd, dragonflybsd\n"
           ~ "      RESULTS_DIR:   base directory for test results\n"
           ~ "      MODEL:         32 or 64 (required)\n"
           ~ "      AUTO_UPDATE:   set to 1 to auto-update mismatching test output\n"
@@ -175,15 +175,6 @@ immutable(EnvData) processEnvironment()
     envData.ccompiler      = environment.get("CC");
     envData.cxxcompiler    = environment.get("CXX");
     envData.model          = envGetRequired("MODEL");
-    if (envData.os == "windows" && envData.model == "32")
-    {
-        // FIXME: we need to translate the default 32-bit model (COFF) on Windows to legacy `32mscoff`.
-        // Reason: OMF-specific tests are currently specified like this:
-        //   DISABLED: win32mscoff win64 …
-        // and `DISABLED: win32` would disable it for `win32omf` too.
-        // So we'd need something like an `ENABLED: win32omf` parameter to restrict tests to specific platforms.
-        envData.model = "32mscoff";
-    }
     envData.required_args  = environment.get("REQUIRED_ARGS");
     envData.dobjc          = environment.get("D_OBJC") == "1";
     envData.coverage_build = environment.get("DMD_TEST_COVERAGE") == "1";
@@ -196,35 +187,17 @@ immutable(EnvData) processEnvironment()
 
     if (envData.ccompiler.empty)
     {
-        if (envData.os != "windows")
-            envData.ccompiler = "cc";
-        else if (envData.model == "32omf")
-            envData.ccompiler = "dmc";
-        else if (envData.model == "64")
-            envData.ccompiler = "cl";
-        else if (envData.model == "32mscoff")
+        if (envData.os == "windows")
             envData.ccompiler = "cl";
         else
-        {
-            writeln("Can't determine C compiler (CC). Unknown $OS$MODEL combination: ", envData.os, envData.model);
-            throw new SilentQuit();
-        }
+            envData.ccompiler = "cc";
     }
     if (envData.cxxcompiler.empty)
     {
-        if (envData.os != "windows")
-            envData.cxxcompiler = "c++";
-        else if (envData.model == "32omf")
-            envData.cxxcompiler = "dmc";
-        else if (envData.model == "64")
-            envData.cxxcompiler = "cl";
-        else if (envData.model == "32mscoff")
+        if (envData.os == "windows")
             envData.cxxcompiler = "cl";
         else
-        {
-            writeln("Can't determine C++ compiler (CXX). Unknown $OS$MODEL combination: ", envData.os, envData.model);
-            throw new SilentQuit();
-        }
+            envData.cxxcompiler = "c++";
     }
 
     version (Windows) {} else
@@ -239,7 +212,11 @@ immutable(EnvData) processEnvironment()
     {
         case "dmd":
         case "ldc":
-            version (CppRuntime_Gcc)
+            version (CppRuntime_GNU)
+                envData.cxxCompatFlags = " -L-lstdc++ -L--no-demangle";
+            else version (CppRuntime_LLVM)
+                envData.cxxCompatFlags = " -L-lc++ -L--no-demangle";
+            else version (CppRuntime_Gcc)
                 envData.cxxCompatFlags = " -L-lstdc++ -L--no-demangle";
             else version (CppRuntime_Clang)
                 envData.cxxCompatFlags = " -L-lc++ -L--no-demangle";
@@ -547,9 +524,7 @@ private bool consumeNextToken(ref string file, const string token, ref const Env
                 file = file.stripLeft!(ch => ch == ' '); // Don't read line breaks
 
                 // Check if the current environment matches an entry in oss, which can either
-                // be an OS (e.g. "linux") or a combination of OS + MODEL (e.g. "windows32omf").
-                // The latter is important on windows because m32omf might require other
-                // parameters than m32mscoff/m64.
+                // be an OS (e.g. "linux") or a combination of OS + MODEL (e.g. "windows32").
                 if (!oss.canFind!(o => o.skipOver(envData.os) && (o.empty || o == envData.model)))
                     continue; // Parameter was skipped
             }
@@ -646,9 +621,8 @@ string getDisabledReason(string[] disabledPlatforms, const ref EnvData envData)
 
 unittest
 {
-    immutable EnvData win32omf      = { os: "windows",  model: "32omf" };
-    immutable EnvData win32mscoff   = { os: "windows",  model: "32mscoff" };
-    immutable EnvData win64         = { os: "windows",  model: "64" };
+    immutable EnvData win32 = { os: "windows",  model: "32" };
+    immutable EnvData win64 = { os: "windows",  model: "64" };
 
     assert(getDisabledReason(null, win64) is null);
 
@@ -658,11 +632,8 @@ unittest
     assert(getDisabledReason([ "linux", "win64" ], win64) == "on win64");
     assert(getDisabledReason([ "linux", "win32" ], win64) is null);
 
-    assert(getDisabledReason([ "win32mscoff" ], win32mscoff) == "on win32mscoff");
-    assert(getDisabledReason([ "win32mscoff" ], win32omf) is null);
-
-    assert(getDisabledReason([ "win32" ], win32mscoff) == "on win32");
-    assert(getDisabledReason([ "win32" ], win32omf) == "on win32");
+    assert(getDisabledReason([ "win32" ], win32) == "on win32");
+    assert(getDisabledReason([ "win32" ], win64) is null);
 }
 /**
  * Reads the test configuration from the source code (using `findTestParameter` and
@@ -1126,11 +1097,7 @@ bool collectExtraSources (in string input_dir, in string output_dir, in string[]
         auto curObj = output_dir ~ envData.sep ~ cur ~ envData.obj;
         bool is_cpp_file = cur.extension() == ".cpp";
         string command = quoteSpaces(is_cpp_file ? cxxcompiler : ccompiler);
-        if (envData.model == "32omf") // dmc.exe
-        {
-            command ~= " -c "~curSrc~" -o"~curObj;
-        }
-        else if (envData.os == "windows") // cl.exe
+        if (envData.os == "windows") // cl.exe
         {
             command ~= ` /c /nologo `~curSrc~` /Fo`~curObj;
         }
@@ -1413,8 +1380,8 @@ bool compareOutput(string output, string refoutput, const ref EnvData envData)
                 toSkip = chunk;
                 break;
             }
-            // Match against OS or model (accepts "32mscoff" as "32")
-            else if (searchResult[0].splitter('+').all!(c => c.among(envData.os, envData.model, envData.model[0 .. min(2, $)])))
+            // Match against OS or model
+            else if (searchResult[0].splitter('+').all!(c => c.among(envData.os, envData.model)))
             {
                 toSkip = searchResult[2];
                 break;
@@ -1487,7 +1454,7 @@ unittest
     const emptyFmt = "On <$?:windows=abc|$> use <$?:posix=$>!";
     assert(compareOutput("On <> use <>!", emptyFmt, ed));
 
-    ed.model = "32mscoff";
+    ed.model = "32";
     assert(compareOutput("size_t is uint!", "size_t is $?:32=uint|64=ulong$!", ed));
 
     assert(compareOutput("no", "$?:posix+64=yes|no$", ed));
@@ -1693,18 +1660,7 @@ int tryMain(string[] args)
 
     // Clear the DFLAGS environment variable if it was specified in the test file
     if (testArgs.clearDflags)
-    {
-        // `environment["DFLAGS"] = "";` doesn't seem to work on Win32 (might be a bug
-        // in std.process). So, resorting to `putenv` in snn.lib
-        version(Win32)
-        {
-            putenv("DFLAGS=");
-        }
-        else
-        {
-            environment["DFLAGS"] = "";
-        }
-    }
+        environment["DFLAGS"] = "";
 
     writef(" ... %-30s %s%s(%s)",
             input_file,
@@ -1872,11 +1828,10 @@ int tryMain(string[] args)
             {
                 toCleanup ~= test_app_dmd;
                 version(Windows)
-                    if (envData.model != "32omf")
-                    {
-                        toCleanup ~= test_app_dmd_base ~ to!string(permuteIndex) ~ ".ilk";
-                        toCleanup ~= test_app_dmd_base ~ to!string(permuteIndex) ~ ".pdb";
-                    }
+                {
+                    toCleanup ~= test_app_dmd_base ~ to!string(permuteIndex) ~ ".ilk";
+                    toCleanup ~= test_app_dmd_base ~ to!string(permuteIndex) ~ ".pdb";
+                }
 
                 if (testArgs.gdbScript is null)
                 {

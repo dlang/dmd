@@ -7259,25 +7259,6 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
                 return;
             }
         }
-        else if (style == TargetC.BitFieldStyle.DM)
-        {
-            if (anon && bfd.fieldWidth && (!fieldState.inFlight || fieldState.bitOffset == 0))
-                return;  // this probably should be a bug in DMC
-            if (ad.alignsize == 0)
-                ad.alignsize = 1;
-            if (bfd.fieldWidth == 0)
-            {
-                if (fieldState.inFlight && !isunion)
-                {
-                    const alsz = memsize;
-                    fieldState.offset = (fieldState.offset + alsz - 1) & ~(alsz - 1);
-                    ad.structsize = fieldState.offset;
-                }
-
-                fieldState.inFlight = false;
-                return;
-            }
-        }
 
         if (!fieldState.inFlight)
         {
@@ -7289,7 +7270,7 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
             // If the bit-field spans more units of alignment than its type,
             // start a new field at the next alignment boundary.
             if (fieldState.bitOffset == fieldState.fieldSize * 8 &&
-                fieldState.bitOffset + bfd.fieldWidth > memalignsize * 8)
+                fieldState.bitOffset + bfd.fieldWidth > memsize * 8)
             {
                 if (log) printf("more units of alignment than its type\n");
                 startNewField();        // the bit field is full
@@ -7297,18 +7278,17 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
             else
             {
                 // if alignment boundary is crossed
-                uint start = fieldState.fieldOffset * 8 + fieldState.bitOffset;
+                uint start = (fieldState.fieldOffset * 8 + fieldState.bitOffset) % (memalignsize * 8);
                 uint end   = start + bfd.fieldWidth;
                 //printf("%s start: %d end: %d memalignsize: %d\n", ad.toChars(), start, end, memalignsize);
-                if (start / (memalignsize * 8) != (end - 1) / (memalignsize * 8))
+                if (start / (memsize * 8) != (end - 1) / (memsize * 8))
                 {
                     if (log) printf("alignment is crossed\n");
                     startNewField();
                 }
             }
         }
-        else if (style == TargetC.BitFieldStyle.DM ||
-                 style == TargetC.BitFieldStyle.MS)
+        else if (style == TargetC.BitFieldStyle.MS)
         {
             if (memsize != fieldState.fieldSize ||
                 fieldState.bitOffset + bfd.fieldWidth > fieldState.fieldSize * 8)

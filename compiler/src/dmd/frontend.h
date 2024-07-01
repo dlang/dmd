@@ -1487,6 +1487,7 @@ public:
     bool hasStaticCtorOrDtor() override;
     const char* kind() const override;
     const char* toChars() const override;
+    const char* toCharsNoConstraints() const;
     Visibility visible() override;
     const char* getConstraintEvalError(const char*& tip);
     TemplateDeclaration* isTemplateDeclaration() override;
@@ -1825,8 +1826,6 @@ public:
     char* toPrettyChars(bool QualifyTypes = false);
     static void _init();
     static void deinitialize();
-    uinteger_t size();
-    virtual uinteger_t size(const Loc& loc);
     virtual uint32_t alignsize();
     void modToBuffer(OutBuffer& buf) const;
     char* modToChars() const;
@@ -1862,7 +1861,6 @@ public:
     virtual Type* makeSharedWildConst();
     virtual Type* makeMutable();
     Type* toBasetype();
-    virtual MATCH implicitConvTo(Type* to);
     virtual MATCH constConv(Type* to);
     virtual uint8_t deduceWild(Type* t, bool isRef);
     virtual ClassDeclaration* isClassHandle();
@@ -3620,14 +3618,6 @@ struct ObjcFuncDeclaration final
         {}
 };
 
-enum class PURE : uint8_t
-{
-    impure = 0u,
-    fwdref = 1u,
-    weak = 2u,
-    const_ = 3u,
-};
-
 enum class VarArg : uint8_t
 {
     none = 0u,
@@ -3781,7 +3771,6 @@ public:
     bool equals(const RootObject* const o) const final override;
     bool overloadInsert(Dsymbol* s) override;
     bool inUnittest();
-    static MATCH leastAsSpecialized(FuncDeclaration* f, FuncDeclaration* g, Array<Identifier* >* names);
     LabelDsymbol* searchLabel(Identifier* ident, const Loc& loc);
     enum : int32_t { LevelError = -2 };
 
@@ -3798,7 +3787,6 @@ public:
     bool isOverloadable() const final override;
     bool isAbstract() final override;
     void initInferAttributes();
-    PURE isPure();
     bool isSafe();
     bool isTrusted();
     bool isNogc();
@@ -3815,7 +3803,6 @@ public:
     bool needsClosure();
     bool checkClosure();
     bool hasNestedFrameRefs();
-    static bool needsFensure(FuncDeclaration* fd);
     ParameterList getParameterList();
     static FuncDeclaration* genCfunc(Array<Parameter* >* fparams, Type* treturn, const char* name, StorageClass stc = 0);
     static FuncDeclaration* genCfunc(Array<Parameter* >* fparams, Type* treturn, Identifier* id, StorageClass stc = 0);
@@ -3983,6 +3970,7 @@ struct HdrGenState final
     bool doFuncBodies;
     bool vcg_ast;
     bool skipConstraints;
+    bool showOneMember;
     bool fullQual;
     int32_t tpltMember;
     int32_t autoMember;
@@ -3999,6 +3987,7 @@ struct HdrGenState final
         doFuncBodies(),
         vcg_ast(),
         skipConstraints(),
+        showOneMember(true),
         fullQual(),
         tpltMember(),
         autoMember(),
@@ -4009,7 +3998,7 @@ struct HdrGenState final
         inEnumDecl()
     {
     }
-    HdrGenState(bool hdrgen, bool ddoc = false, bool fullDump = false, bool importcHdr = false, bool doFuncBodies = false, bool vcg_ast = false, bool skipConstraints = false, bool fullQual = false, int32_t tpltMember = 0, int32_t autoMember = 0, int32_t forStmtInit = 0, int32_t insideFuncBody = 0, int32_t insideAggregate = 0, bool declstring = false, EnumDeclaration* inEnumDecl = nullptr) :
+    HdrGenState(bool hdrgen, bool ddoc = false, bool fullDump = false, bool importcHdr = false, bool doFuncBodies = false, bool vcg_ast = false, bool skipConstraints = false, bool showOneMember = true, bool fullQual = false, int32_t tpltMember = 0, int32_t autoMember = 0, int32_t forStmtInit = 0, int32_t insideFuncBody = 0, int32_t insideAggregate = 0, bool declstring = false, EnumDeclaration* inEnumDecl = nullptr) :
         hdrgen(hdrgen),
         ddoc(ddoc),
         fullDump(fullDump),
@@ -4017,6 +4006,7 @@ struct HdrGenState final
         doFuncBodies(doFuncBodies),
         vcg_ast(vcg_ast),
         skipConstraints(skipConstraints),
+        showOneMember(showOneMember),
         fullQual(fullQual),
         tpltMember(tpltMember),
         autoMember(autoMember),
@@ -4225,10 +4215,8 @@ public:
     static TypeAArray* create(Type* t, Type* index);
     const char* kind() const override;
     TypeAArray* syntaxCopy() override;
-    uinteger_t size(const Loc& loc) override;
     bool isZeroInit(const Loc& loc) override;
     bool isBoolean() override;
-    MATCH implicitConvTo(Type* to) override;
     MATCH constConv(Type* to) override;
     void accept(Visitor* v) override;
 };
@@ -4240,7 +4228,6 @@ public:
     uint32_t flags;
     const char* kind() const override;
     TypeBasic* syntaxCopy() override;
-    uinteger_t size(const Loc& loc) override;
     uint32_t alignsize() override;
     bool isintegral() override;
     bool isfloating() override;
@@ -4249,7 +4236,6 @@ public:
     bool iscomplex() override;
     bool isscalar() override;
     bool isunsigned() override;
-    MATCH implicitConvTo(Type* to) override;
     bool isZeroInit(const Loc& loc) override;
     bool hasUnsafeBitpatterns() override;
     TypeBasic* isTypeBasic() override;
@@ -4273,10 +4259,8 @@ public:
     AliasThisRec att;
     CPPMANGLE cppmangle;
     const char* kind() const override;
-    uinteger_t size(const Loc& loc) override;
     TypeClass* syntaxCopy() override;
     ClassDeclaration* isClassHandle() override;
-    MATCH implicitConvTo(Type* to) override;
     MATCH constConv(Type* to) override;
     uint8_t deduceWild(Type* t, bool isRef) override;
     bool isZeroInit(const Loc& loc) override;
@@ -4290,12 +4274,10 @@ class TypeDArray final : public TypeArray
 public:
     const char* kind() const override;
     TypeDArray* syntaxCopy() override;
-    uinteger_t size(const Loc& loc) override;
     uint32_t alignsize() override;
     bool isString() override;
     bool isZeroInit(const Loc& loc) override;
     bool isBoolean() override;
-    MATCH implicitConvTo(Type* to) override;
     void accept(Visitor* v) override;
 };
 
@@ -4305,9 +4287,7 @@ public:
     static TypeDelegate* create(TypeFunction* t);
     const char* kind() const override;
     TypeDelegate* syntaxCopy() override;
-    uinteger_t size(const Loc& loc) override;
     uint32_t alignsize() override;
-    MATCH implicitConvTo(Type* to) override;
     bool isZeroInit(const Loc& loc) override;
     bool isBoolean() override;
     void accept(Visitor* v) override;
@@ -4319,7 +4299,6 @@ public:
     EnumDeclaration* sym;
     const char* kind() const override;
     TypeEnum* syntaxCopy() override;
-    uinteger_t size(const Loc& loc) override;
     Type* memType();
     uint32_t alignsize() override;
     bool isintegral() override;
@@ -4335,7 +4314,6 @@ public:
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
-    MATCH implicitConvTo(Type* to) override;
     MATCH constConv(Type* to) override;
     bool isZeroInit(const Loc& loc) override;
     bool hasVoidInitPointers() override;
@@ -4350,7 +4328,6 @@ class TypeError final : public Type
 public:
     const char* kind() const override;
     TypeError* syntaxCopy() override;
-    uinteger_t size(const Loc& loc) override;
     Expression* defaultInitLiteral(const Loc& loc) override;
     void accept(Visitor* v) override;
 };
@@ -4361,6 +4338,14 @@ enum class TRUST : uint8_t
     system = 1u,
     trusted = 2u,
     safe = 3u,
+};
+
+enum class PURE : uint8_t
+{
+    impure = 0u,
+    fwdref = 1u,
+    weak = 2u,
+    const_ = 3u,
 };
 
 class TypeFunction final : public TypeNext
@@ -4472,7 +4457,6 @@ public:
     Loc loc;
     Array<RootObject* > idents;
     TypeQualified* syntaxCopy() override = 0;
-    uinteger_t size(const Loc& loc) override;
     void accept(Visitor* v) override;
 };
 
@@ -4512,10 +4496,8 @@ class TypeNoreturn final : public Type
 public:
     const char* kind() const override;
     TypeNoreturn* syntaxCopy() override;
-    MATCH implicitConvTo(Type* to) override;
     MATCH constConv(Type* to) override;
     bool isBoolean() override;
-    uinteger_t size(const Loc& loc) override;
     uint32_t alignsize() override;
     void accept(Visitor* v) override;
 };
@@ -4525,9 +4507,7 @@ class TypeNull final : public Type
 public:
     const char* kind() const override;
     TypeNull* syntaxCopy() override;
-    MATCH implicitConvTo(Type* to) override;
     bool isBoolean() override;
-    uinteger_t size(const Loc& loc) override;
     void accept(Visitor* v) override;
 };
 
@@ -4537,8 +4517,6 @@ public:
     static TypePointer* create(Type* t);
     const char* kind() const override;
     TypePointer* syntaxCopy() override;
-    uinteger_t size(const Loc& loc) override;
-    MATCH implicitConvTo(Type* to) override;
     MATCH constConv(Type* to) override;
     bool isscalar() override;
     bool isZeroInit(const Loc& loc) override;
@@ -4550,7 +4528,6 @@ class TypeReference final : public TypeNext
 public:
     const char* kind() const override;
     TypeReference* syntaxCopy() override;
-    uinteger_t size(const Loc& loc) override;
     bool isZeroInit(const Loc& loc) override;
     void accept(Visitor* v) override;
 };
@@ -4570,13 +4547,11 @@ public:
     const char* kind() const override;
     TypeSArray* syntaxCopy() override;
     bool isIncomplete();
-    uinteger_t size(const Loc& loc) override;
     uint32_t alignsize() override;
     bool isString() override;
     bool isZeroInit(const Loc& loc) override;
     structalign_t alignment() override;
     MATCH constConv(Type* to) override;
-    MATCH implicitConvTo(Type* to) override;
     Expression* defaultInitLiteral(const Loc& loc) override;
     bool hasUnsafeBitpatterns() override;
     bool hasVoidInitPointers() override;
@@ -4605,7 +4580,6 @@ public:
     bool inuse;
     static TypeStruct* create(StructDeclaration* sym);
     const char* kind() const override;
-    uinteger_t size(const Loc& loc) override;
     uint32_t alignsize() override;
     TypeStruct* syntaxCopy() override;
     structalign_t alignment() override;
@@ -4619,7 +4593,6 @@ public:
     bool hasVoidInitPointers() override;
     bool hasUnsafeBitpatterns() override;
     bool hasInvariant() override;
-    MATCH implicitConvTo(Type* to) override;
     MATCH constConv(Type* to) override;
     uint8_t deduceWild(Type* t, bool isRef) override;
     void accept(Visitor* v) override;
@@ -4650,7 +4623,6 @@ public:
     const char* kind() const override;
     TypeTraits* syntaxCopy() override;
     void accept(Visitor* v) override;
-    uinteger_t size(const Loc& loc) override;
 };
 
 class TypeTuple final : public Type
@@ -4665,7 +4637,6 @@ public:
     const char* kind() const override;
     TypeTuple* syntaxCopy() override;
     bool equals(const RootObject* const o) const override;
-    MATCH implicitConvTo(Type* to) override;
     void accept(Visitor* v) override;
 };
 
@@ -4676,7 +4647,6 @@ public:
     int32_t inuse;
     const char* kind() const override;
     TypeTypeof* syntaxCopy() override;
-    uinteger_t size(const Loc& loc) override;
     void accept(Visitor* v) override;
 };
 
@@ -4687,14 +4657,12 @@ public:
     static TypeVector* create(Type* basetype);
     const char* kind() const override;
     TypeVector* syntaxCopy() override;
-    uinteger_t size(const Loc& loc) override;
     uint32_t alignsize() override;
     bool isintegral() override;
     bool isfloating() override;
     bool isscalar() override;
     bool isunsigned() override;
     bool isBoolean() override;
-    MATCH implicitConvTo(Type* to) override;
     Expression* defaultInitLiteral(const Loc& loc) override;
     TypeBasic* elementType();
     bool isZeroInit(const Loc& loc) override;
@@ -5957,21 +5925,19 @@ struct TargetC final
     {
         Unspecified = 0u,
         Bionic = 1u,
-        DigitalMars = 2u,
-        Glibc = 3u,
-        Microsoft = 4u,
-        Musl = 5u,
-        Newlib = 6u,
-        UClibc = 7u,
-        WASI = 8u,
+        Glibc = 2u,
+        Microsoft = 3u,
+        Musl = 4u,
+        Newlib = 5u,
+        UClibc = 6u,
+        WASI = 7u,
     };
 
     enum class BitFieldStyle : uint8_t
     {
         Unspecified = 0u,
-        DM = 1u,
-        MS = 2u,
-        Gcc_Clang = 3u,
+        MS = 1u,
+        Gcc_Clang = 2u,
     };
 
     bool crtDestructorsSupported;
@@ -6014,11 +5980,10 @@ struct TargetCPP final
     enum class Runtime : uint8_t
     {
         Unspecified = 0u,
-        Clang = 1u,
-        DigitalMars = 2u,
-        Gcc = 3u,
-        Microsoft = 4u,
-        Sun = 5u,
+        LLVM = 1u,
+        GNU = 2u,
+        Microsoft = 3u,
+        Sun = 4u,
     };
 
     bool reverseOverloads;
@@ -7547,12 +7512,12 @@ struct Target final
     _d_dynamicArray< const char > architectureName;
     CPU cpu;
     bool isX86_64;
+    bool isX86;
     bool isLP64;
     _d_dynamicArray< const char > obj_ext;
     _d_dynamicArray< const char > lib_ext;
     _d_dynamicArray< const char > dll_ext;
     bool run_noext;
-    bool omfobj;
     template <typename T>
     struct FPTypeProperties final
     {
@@ -7619,12 +7584,12 @@ public:
         objc(),
         architectureName(),
         isX86_64(),
+        isX86(),
         isLP64(),
         obj_ext(),
         lib_ext(),
         dll_ext(),
         run_noext(),
-        omfobj(),
         FloatProperties(),
         DoubleProperties(),
         RealProperties(),
@@ -7632,7 +7597,7 @@ public:
         params()
     {
     }
-    Target(OS os, uint8_t osMajor = 0u, uint8_t ptrsize = 0u, uint8_t realsize = 0u, uint8_t realpad = 0u, uint8_t realalignsize = 0u, uint8_t classinfosize = 0u, uint64_t maxStaticDataSize = 0LLU, TargetC c = TargetC(), TargetCPP cpp = TargetCPP(), TargetObjC objc = TargetObjC(), _d_dynamicArray< const char > architectureName = {}, CPU cpu = (CPU)0u, bool isX86_64 = false, bool isLP64 = false, _d_dynamicArray< const char > obj_ext = {}, _d_dynamicArray< const char > lib_ext = {}, _d_dynamicArray< const char > dll_ext = {}, bool run_noext = false, bool omfobj = false, FPTypeProperties<float > FloatProperties = FPTypeProperties<float >(), FPTypeProperties<double > DoubleProperties = FPTypeProperties<double >(), FPTypeProperties<_d_real > RealProperties = FPTypeProperties<_d_real >(), Type* tvalist = nullptr, const Param* params = nullptr) :
+    Target(OS os, uint8_t osMajor = 0u, uint8_t ptrsize = 0u, uint8_t realsize = 0u, uint8_t realpad = 0u, uint8_t realalignsize = 0u, uint8_t classinfosize = 0u, uint64_t maxStaticDataSize = 0LLU, TargetC c = TargetC(), TargetCPP cpp = TargetCPP(), TargetObjC objc = TargetObjC(), _d_dynamicArray< const char > architectureName = {}, CPU cpu = (CPU)0u, bool isX86_64 = false, bool isX86 = false, bool isLP64 = false, _d_dynamicArray< const char > obj_ext = {}, _d_dynamicArray< const char > lib_ext = {}, _d_dynamicArray< const char > dll_ext = {}, bool run_noext = false, FPTypeProperties<float > FloatProperties = FPTypeProperties<float >(), FPTypeProperties<double > DoubleProperties = FPTypeProperties<double >(), FPTypeProperties<_d_real > RealProperties = FPTypeProperties<_d_real >(), Type* tvalist = nullptr, const Param* params = nullptr) :
         os(os),
         osMajor(osMajor),
         ptrsize(ptrsize),
@@ -7647,12 +7612,12 @@ public:
         architectureName(architectureName),
         cpu(cpu),
         isX86_64(isX86_64),
+        isX86(isX86),
         isLP64(isLP64),
         obj_ext(obj_ext),
         lib_ext(lib_ext),
         dll_ext(dll_ext),
         run_noext(run_noext),
-        omfobj(omfobj),
         FloatProperties(FloatProperties),
         DoubleProperties(DoubleProperties),
         RealProperties(RealProperties),
@@ -7807,6 +7772,7 @@ public:
     void visit(DebugStatement* s) override;
     void visit(ForwardingStatement* s) override;
     void visit(StructLiteralExp* e) override;
+    void visit(ClassReferenceExp* e) override;
     void visit(CompoundLiteralExp* e) override;
     void visit(DotTemplateExp* e) override;
     void visit(DotVarExp* e) override;
@@ -8800,6 +8766,7 @@ struct Id final
     static Identifier* define;
     static Identifier* undef;
     static Identifier* ident;
+    static Identifier* packed;
     static void initialize();
     Id()
     {

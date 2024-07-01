@@ -134,14 +134,12 @@ subPackage {
     libelf,\
     libmach,\
     libmscoff,\
-    libomf,\
     link,\
     objc_glue,\
     s2ir,\
     scanelf,\
     scanmach,\
     scanmscoff,\
-    scanomf,\
     tocsym,\
     toctype,\
     tocvdebug,\

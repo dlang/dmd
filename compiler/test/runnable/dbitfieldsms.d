@@ -1,6 +1,6 @@
 /* test bitfields for Microsoft C
  * REQUIRED_ARGS: -preview=bitfields
- * DISABLED: win32 linux32 freebsd32 osx32 linux64 freebsd64 osx64
+ * DISABLED: win32 linux freebsd openbsd osx
  * RUN_OUTPUT:
 ---
                 DM |   MS |  P32 |  P64

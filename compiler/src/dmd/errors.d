@@ -616,7 +616,7 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
 
     if (global.params.v.showGaggedErrors && global.gag)
         fprintf(stderr, "(spec:%d) ", global.gag);
-    Console con = cast(Console) global.console;
+    auto con = cast(Console) global.console;
     const p = info.loc.toChars();
     if (con)
         con.setColorBright(true);

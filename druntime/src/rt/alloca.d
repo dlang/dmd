@@ -11,20 +11,6 @@
 
 module rt.alloca;
 
-version (Posix)
-{
-    version = alloca;
-}
-else version (CRuntime_Microsoft)
-{
-    version = alloca;
-}
-
-// Use DMC++'s alloca() for Win32
-
-version (alloca)
-{
-
 /*******************************************
  * Allocate data from the caller's stack frame.
  * This is a 'magic' function that needs help from the compiler to
@@ -214,6 +200,4 @@ extern (C) void* __alloca(int nbytes)
   }
   else
         static assert(0);
-}
-
 }

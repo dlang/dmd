@@ -283,7 +283,6 @@ struct Triple
             case "musl":         return Musl;
             case "msvc":         return Microsoft;
             case "bionic":       return Bionic;
-            case "digital_mars": return DigitalMars;
             case "newlib":       return Newlib;
             case "uclibc":       return UClibc;
             case "glibc":        return Glibc;
@@ -299,11 +298,14 @@ struct Triple
     {
         with (TargetCPP.Runtime) switch (cppenv)
         {
-            case "clang":        return Clang;
-            case "gcc":          return Gcc;
+            case "libc++":       return LLVM;
+            case "libstdc++":    return GNU;
+            case "libcxx":       return LLVM;
+            case "libstdcxx":    return GNU;
+            case "clang":        return LLVM; // legacy option
+            case "gcc":          return GNU; // legacy option
             case "msvc":         return Microsoft;
             case "sun":          return Sun;
-            case "digital_mars": return DigitalMars;
             default:
             {
                 unknown(cppenv, "C++ runtime environment");
@@ -323,14 +325,15 @@ void setTargetBuildDefaults(ref Target target)
     target.os = defaultTargetOS();
     target.osMajor = defaultTargetOSMajor();
     target.cpu = CPU.baseline;
-    target.omfobj = false;
     target.isX86_64 = (size_t.sizeof == 8);
+    target.isX86 = !target.isX86_64;
 }
 
 void setTriple(ref Target target, const ref Triple triple) @safe
 {
     target.cpu     = triple.cpu;
     target.isX86_64 = triple.isX86_64;
+    target.isX86    = !target.isX86_64;
     target.isLP64  = triple.isLP64;
     target.os      = triple.os;
     target.osMajor = triple.osMajor;

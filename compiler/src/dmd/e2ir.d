@@ -28,6 +28,7 @@ import dmd.astenums;
 import dmd.attrib;
 import dmd.canthrow;
 import dmd.ctfeexpr;
+import dmd.dcast : implicitConvTo;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
@@ -64,7 +65,6 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
 import dmd.backend.code;
-import dmd.backend.code_x86;
 import dmd.backend.cv4;
 import dmd.backend.dt;
 import dmd.backend.el;
@@ -75,6 +75,8 @@ import dmd.backend.rtlsym;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
+
+import dmd.backend.x86.code_x86;
 
 alias Elems = Array!(elem *);
 
@@ -261,7 +263,7 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
             si.Sclass = SC.comdat;
             si.Stype = type_static_array(cast(uint)(len * sz), tstypes[TYchar]);
             si.Stype.Tcount++;
-            type_setmangle(&si.Stype, mTYman_c);
+            type_setmangle(&si.Stype, Mangle.c);
             si.Sflags |= SFLnodebug | SFLartifical;
             si.Sfl = FLdata;
             si.Salignment = cast(ubyte)sz;
@@ -3134,12 +3136,13 @@ elem* toElem(Expression e, ref IRState irs)
         {
             // adjust bit offset for bitfield so the type tym encloses the bitfield
             const szbits = tysize(tym) * 8;
+            uint memalignsize = target.fieldalign(dve.type);
             auto bitOffset = bf.bitOffset;
             if (bitOffset + bf.fieldWidth > szbits)
             {
-                const advance = bf.bitOffset / szbits;
-                voffset += advance;
-                bitOffset -= advance * 8;
+                const advance = bf.bitOffset / (memalignsize * 8);
+                voffset += advance * memalignsize;
+                bitOffset -= advance * memalignsize * 8;
                 assert(bitOffset + bf.fieldWidth <= szbits);
             }
             //printf("voffset %u bitOffset %u fieldWidth %u bits %u\n", cast(uint)voffset, bitOffset, bf.fieldWidth, szbits);
@@ -5430,7 +5433,7 @@ elem *callfunc(const ref Loc loc,
         /* Delegates use the same calling convention as member functions.
          * For extern(C++) on Win32 this differs from other functions.
          */
-        if (tf.linkage == LINK.cpp && !target.isX86_64 && target.os == Target.OS.Windows)
+        if (tf.linkage == LINK.cpp && target.isX86 && target.os == Target.OS.Windows)
             tym = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYmfunc;
         else
             tym = totym(tf);
@@ -5619,7 +5622,7 @@ elem *callfunc(const ref Loc loc,
             if (ep)
             {
                 /* // BUG: implement
-                if (left_to_right && type_mangle(tfunc) == mTYman_cpp)
+                if (left_to_right && type_mangle(tfunc) == Mangle.cpp)
                     ep = el_param(ehidden,ep);
                 else
                 */
@@ -5687,7 +5690,7 @@ elem *callfunc(const ref Loc loc,
             assert(cast(int)vindex >= 0);
 
             // Build *(ev + vindex * 4)
-            if (!target.isX86_64)
+            if (target.isX86)
                 assert(tysize(TYnptr) == 4);
             ec = el_bin(OPadd,TYnptr,ev,el_long(TYsize_t, vindex * tysize(TYnptr)));
             ec = el_una(OPind,TYnptr,ec);
@@ -6238,20 +6241,20 @@ Lagain:
             break;
         case Tfloat32:
         case Timaginary32:
-            if (!target.isX86_64)
+            if (target.isX86)
                 goto default;          // legacy binary compatibility
             r = RTLSYM.MEMSETFLOAT;
             break;
         case Tfloat64:
         case Timaginary64:
-            if (!target.isX86_64)
+            if (target.isX86)
                 goto default;          // legacy binary compatibility
             r = RTLSYM.MEMSETDOUBLE;
             break;
 
         case Tstruct:
         {
-            if (!target.isX86_64)
+            if (target.isX86)
                 goto default;
 
             TypeStruct tc = cast(TypeStruct)tb2;
@@ -6769,7 +6772,7 @@ elem *appendDtors(ref IRState irs, elem *er, size_t starti, size_t endi)
     {
         if (irs.target.os == Target.OS.Windows && !irs.target.isX86_64) // Win32
         {
-            Blockx *blx = irs.blx;
+            BlockState *blx = irs.blx;
             nteh_declarvars(blx);
         }
 
@@ -7021,20 +7024,26 @@ elem *callCAssert(ref IRState irs, const ref Loc loc, Expression exp, Expression
     }
     else
     {
-        version (CRuntime_Musl)
+        Symbol *assertSym;
+        elem* params;
+        with (TargetC.Runtime) switch (irs.target.c.runtime)
         {
-            // __assert_fail(exp, file, line, func);
-            elem* efunc = getFuncName();
-            auto eassert = el_var(getRtlsym(RTLSYM.C__ASSERT_FAIL));
-            ea = el_bin(OPcall, TYvoid, eassert, el_params(elmsg, efilename, eline, efunc, null));
+            case Musl:
+            case Glibc:
+                // __assert_fail(exp, file, line, func);
+                assertSym = getRtlsym(RTLSYM.C__ASSERT_FAIL);
+                elem* efunc = getFuncName();
+                params = el_params(efunc, eline, efilename, elmsg, null);
+                break;
+            default:
+                // [_]_assert(msg, file, line);
+                const rtlsym = (irs.target.os == Target.OS.Windows) ? RTLSYM.C_ASSERT : RTLSYM.C__ASSERT;
+                assertSym = getRtlsym(rtlsym);
+                params = el_params(eline, efilename, elmsg, null);
+                break;
         }
-        else
-        {
-            // [_]_assert(msg, file, line);
-            const rtlsym = (irs.target.os == Target.OS.Windows) ? RTLSYM.C_ASSERT : RTLSYM.C__ASSERT;
-            auto eassert = el_var(getRtlsym(rtlsym));
-            ea = el_bin(OPcall, TYvoid, eassert, el_params(eline, efilename, elmsg, null));
-        }
+        auto eassert = el_var(assertSym);
+        ea = el_bin(OPcall, TYvoid, eassert, params);
     }
     return ea;
 }

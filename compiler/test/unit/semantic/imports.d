@@ -10,10 +10,21 @@ import dmd.common.outbuffer;
 
 import support;
 
+@beforeEach void initializeFrontend()
+{
+    import dmd.frontend : initDMD;
+    initDMD();
+}
+
+@afterEach void deinitializeFrontend()
+{
+    import dmd.frontend : deinitializeDMD;
+    deinitializeDMD();
+}
+
 @("semantics - imported modules")
 unittest
 {
-    initDMD();
     defaultImportPaths.each!addImport;
 
     auto t = parseModule!ASTCodegen("test.d", q{

@@ -653,14 +653,18 @@ struct SafeS
 		{
 			return this;
 		}
-		scope SafeS foo2() return
+		SafeS foo2() return scope
 		{
 			return this;
 		}
-		ref scope SafeS foo3() return
+		ref SafeS foo3() scope
 		{
 			static SafeS s;
 			return s;
+		}
+		ref SafeS foo4() scope return
+		{
+			return this;
 		}
 		int* p;
 	}

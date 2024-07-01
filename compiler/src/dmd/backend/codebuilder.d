@@ -20,7 +20,7 @@ import core.stdc.string;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.mem;
 import dmd.backend.ty;
 import dmd.backend.type;
@@ -213,7 +213,7 @@ struct CodeBuilder
         ce.Iflags = CFaddrsize;
         ce.IFL1 = FLblockoff;
         ce.IEV1.Vblock = label;
-        label.Bflags |= BFLlabel;
+        label.Bflags |= BFL.label;
 
         *pTail = ce;
         pTail = &ce.next;
@@ -344,8 +344,8 @@ struct CodeBuilder
     @trusted
     void genfltreg(opcode_t opcode,int reg,targ_size_t offset)
     {
-        floatreg = true;
-        reflocal = true;
+        cgstate.floatreg = true;
+        cgstate.reflocal = true;
         if ((opcode & ~7) == 0xD8)
             genfwait(this);
         genc1(opcode,modregxrm(2,reg,BPRM),FLfltreg,offset);
@@ -355,8 +355,8 @@ struct CodeBuilder
     void genxmmreg(opcode_t opcode,reg_t xreg,targ_size_t offset, tym_t tym)
     {
         assert(isXMMreg(xreg));
-        floatreg = true;
-        reflocal = true;
+        cgstate.floatreg = true;
+        cgstate.reflocal = true;
         genc1(opcode,modregxrm(2,xreg - XMM0,BPRM),FLfltreg,offset);
         checkSetVex(last(), tym);
     }

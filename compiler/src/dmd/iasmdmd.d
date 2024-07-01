@@ -38,7 +38,7 @@ import dmd.optimize;
 import dmd.statement;
 import dmd.target;
 import dmd.tokens;
-import dmd.typesem : pointerTo;
+import dmd.typesem : pointerTo, size;
 
 import dmd.root.ctfloat;
 import dmd.common.outbuffer;
@@ -48,12 +48,12 @@ import dmd.rootobject;
 import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder : CodeBuilder;
 import dmd.backend.global;
 import dmd.backend.iasm;
 import dmd.backend.ptrntab : asm_opstr, asm_op_lookup;
-import dmd.backend.xmm;
+import dmd.backend.x86.xmm;
 
 //debug = EXTRA_DEBUG;
 //debug = debuga;

@@ -20,7 +20,6 @@ import core.stdc.string;
 
 import dmd.backend.cc;
 import dmd.backend.cdef;
-import dmd.backend.code_x86;
 import dmd.backend.evalu8 : el_toldoubled;
 import dmd.backend.oper;
 import dmd.backend.global;
@@ -580,8 +579,8 @@ private bool looprotate(ref Loop l)
         auto head2 = block_calloc(); // create new head block
         head2.Btry = head.Btry;
         head2.Bflags = head.Bflags;
-        head.Bflags = BFLnomerg;       // move flags over to head2
-        head2.Bflags |= BFLnomerg;
+        head.Bflags = BFL.nomerg;       // move flags over to head2
+        head2.Bflags |= BFL.nomerg;
         head2.BC = head.BC;
         assert(head2.BC != BCswitch);
         if (head.Belem)                // copy expression tree
@@ -2316,8 +2315,8 @@ private void findivfams(ref Loop l)
         /* Fold all the constant expressions in c1 and c2.      */
         foreach (ref fl; biv.IVfamily)
         {
-            fl.c1 = doptelem(fl.c1,GOALvalue | GOALagain);
-            fl.c2 = doptelem(fl.c2,GOALvalue | GOALagain);
+            fl.c1 = doptelem(fl.c1, Goal.value | Goal.again);
+            fl.c2 = doptelem(fl.c2, Goal.value | Goal.again);
         }
     }
 }
@@ -2624,7 +2623,7 @@ private void intronvars(ref Loop l)
             cmul = el_bin(OPmul,fl.c1.Ety,el_copytree(fl.c1),
                                           el_copytree(bivinc.E2));
             t2 = el_bin(bivinc.Eoper,ty,el_copytree(T),cmul);
-            t2 = doptelem(t2,GOALvalue | GOALagain);
+            t2 = doptelem(t2, Goal.value | Goal.again);
             *biv.IVincr = el_bin(OPcomma,bivinc.Ety,t2,bivinc);
             biv.IVincr = &((*biv.IVincr).E2);
 
@@ -2770,7 +2769,7 @@ private bool funcprev(ref Iv biv, ref famlist fl)
             flse1.E2 = el_una(OPoffset,fl.FLty,flse1.E2);
         }
 
-        flse1 = doptelem(flse1,GOALvalue | GOALagain);
+        flse1 = doptelem(flse1, Goal.value | Goal.again);
         fl.c2 = null;
     L2:
         debug if (debugc)
@@ -2934,7 +2933,7 @@ private void elimbasivs(ref Loop l)
                                     refE2,
                                     el_copytree(fl.c1)),
                             C2);
-            fofe = doptelem(fofe,GOALvalue | GOALagain);    // fold any constants
+            fofe = doptelem(fofe, Goal.value | Goal.again);    // fold any constants
 
             if (tyuns(flty) && refEoper == OPge &&
                 fofe.Eoper == OPconst && el_allbits(fofe, 0) &&
@@ -3701,9 +3700,9 @@ bool loopunroll(ref Loop l)
     /* Do not repeatedly unroll the same loop,
      * or waste time attempting to
      */
-    if (l.Lhead.Bflags & BFLnounroll)
+    if (l.Lhead.Bflags & BFL.nounroll)
         return false;
-    l.Lhead.Bflags |= BFLnounroll;
+    l.Lhead.Bflags |= BFL.nounroll;
     if (log)
         WRfunc("loop", funcsym_p, startblock);
 

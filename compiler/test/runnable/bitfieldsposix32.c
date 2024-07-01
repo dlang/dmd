@@ -1,5 +1,5 @@
 /* test bitfields
- * DISABLED: win32 win64 linux64 freebsd64 osx64
+ * DISABLED: win32 win64 linux64 freebsd64 openbsd64 osx64
  * RUN_OUTPUT:
 ---
 T0 = 1 1 | 1 1
@@ -41,6 +41,10 @@ A8  = 8 4 | 8 4
 A9  = 16 4 | 16 4
 A10 = 2 2 | 2 2
 A11 = 12 4 | 12 4
+Issue24592a = 8 4 | 8 4
+Issue24592b = 12 4 | 12 4
+Issue24592c = 24 4 | 24 4
+Issue24592d = 12 4 | 12 4
 S9 = x30200
 S14 = x300000201
 S15 = xe01
@@ -112,6 +116,10 @@ struct A9  { unsigned short a:8; long b:16;          // 16 4 (32 bit) 16 8 (64 b
 struct A10 { unsigned short a:8; char b; };          // 2 2
 struct A11 { char a; int b:5, c:11, :0, d:8;         // 12 4
              struct { int ee:8; } e; };
+struct Issue24592a { unsigned long long a:20, b:20, c:24; };
+struct Issue24592b { unsigned int x; unsigned long long a:20, b:20, c:24; };
+struct Issue24592c { unsigned long long a:20, b:32, c:32, d:32, e:32, f:32; };
+struct Issue24592d { unsigned long long a:10, b:16, c:16, d:16, e:16, f:16; };
 
 int main()
 {
@@ -154,6 +162,10 @@ int main()
     printf("A9  = %d %d | 16 4\n", (int)sizeof(struct A9), (int)_Alignof(struct A9));
     printf("A10 = %d %d | 2 2\n", (int)sizeof(struct A10), (int)_Alignof(struct A10));
     printf("A11 = %d %d | 12 4\n", (int)sizeof(struct A11), (int)_Alignof(struct A11));
+    printf("Issue24592a = %d %d | 8 4\n", (int)sizeof(struct Issue24592a), (int)_Alignof(struct Issue24592a));
+    printf("Issue24592b = %d %d | 12 4\n", (int)sizeof(struct Issue24592b), (int)_Alignof(struct Issue24592b));
+    printf("Issue24592c = %d %d | 24 4\n", (int)sizeof(struct Issue24592c), (int)_Alignof(struct Issue24592c));
+    printf("Issue24592d = %d %d | 12 4\n", (int)sizeof(struct Issue24592d), (int)_Alignof(struct Issue24592d));
 
     {
         struct S9 s;

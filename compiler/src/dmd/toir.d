@@ -53,6 +53,7 @@ import dmd.identifier;
 import dmd.id;
 import dmd.location;
 import dmd.mtype;
+import dmd.typesem;
 import dmd.target;
 import dmd.tocvdebug;
 import dmd.tocsym;
@@ -76,7 +77,7 @@ struct IRState
     Symbol* shidden;                // hidden parameter to function
     Symbol* sthis;                  // 'this' parameter to function (member and nested)
     Symbol* sclosure;               // pointer to closure instance
-    Blockx* blx;
+    BlockState* blx;
     Dsymbols* deferToObj;           // array of Dsymbol's to run toObjFile(bool multiobj) on later
     elem* ehidden;                  // transmit hidden pointer to CallExp::toElem()
     Symbol* startaddress;
@@ -596,7 +597,7 @@ int intrinsic_op(FuncDeclaration fd)
         }
     }
 
-    if (!target.isX86_64)
+    if (target.isX86)
     // No 64-bit bsf bsr in 32bit mode
     {
         if ((op == OPbsf || op == OPbsr) && argtype1 is Type.tuns64)
@@ -872,7 +873,7 @@ void buildClosure(FuncDeclaration fd, ref IRState irs)
 
         // Calculate the size of the closure
         VarDeclaration  vlast = fd.closureVars[fd.closureVars.length - 1];
-        typeof(Type.size()) lastsize;
+        typeof(size(vlast.type)) lastsize;
         if (vlast.storage_class & STC.lazy_)
             lastsize = target.ptrsize * 2;
         else if (vlast.isReference)
@@ -1104,7 +1105,7 @@ void buildAlignSection(FuncDeclaration fd, ref IRState irs)
 
     // Calculate the size of the align section
     VarDeclaration  vlast = alignSectionVars[$ - 1];
-    typeof(Type.size()) lastsize;
+    typeof(size(vlast.type)) lastsize;
     lastsize = vlast.type.size();
     bool overflow;
     auto structsize = addu(vlast.offset, lastsize, overflow);

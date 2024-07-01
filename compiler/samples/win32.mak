@@ -3,7 +3,7 @@ DMD=..\..\windows\bin\dmd
 DFLAGS=-m$(MODEL)
 
 EXAMPLES = hello d2html dhry pi sieve wc wc2 \
-	winsamp dserver$(MODEL) mydll$(MODEL) htmlget listener
+	winsamp dserver mydll htmlget listener
 
 all: $(EXAMPLES)
 	echo done
@@ -50,22 +50,12 @@ winsamp:
 
 # COM client/server example
 # dclient will fail unless run with administrator rights
-dserver32:
-	$(DMD) dserver.d chello.d $(DFLAGS) dserver.def advapi32.lib ole32.lib user32.lib
-	$(DMD) dclient $(DFLAGS) ole32.lib uuid.lib
-	.\dclient.exe
-
-dserver64 dserver32mscoff:
+dserver:
 	$(DMD) dserver.d chello.d $(DFLAGS) -L/DLL dserver64.def advapi32.lib ole32.lib user32.lib
 	$(DMD) dclient $(DFLAGS) ole32.lib uuid.lib
 	.\dclient.exe
 
-mydll32:
-	$(DMD) $(DFLAGS) -ofmydll.dll -L/IMPLIB mydll\mydll.d mydll\dll.d mydll\mydll.def
-	$(DMD) $(DFLAGS) -ofdlltest.exe mydll\test.d mydll\mydll.di mydll.lib
-	.\dlltest.exe
-
-mydll64 mydll32mscoff:
+mydll:
 	$(DMD) $(DFLAGS) -ofmydll.dll mydll\mydll.d mydll\dll.d -L/DLL
 	$(DMD) $(DFLAGS) -ofdlltest.exe mydll\test.d mydll\mydll.di mydll.lib
 	.\dlltest.exe

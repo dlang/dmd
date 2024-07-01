@@ -81,19 +81,19 @@ block *block_calloc()
 /*********************************
  */
 
-__gshared goal_t[BCMAX] bc_goal;
+__gshared Goal[BCMAX] bc_goal;
 
 @trusted
 void block_init()
 {
     for (size_t i = 0; i < BCMAX; i++)
-        bc_goal[i] = GOALvalue;
+        bc_goal[i] = Goal.value;
 
-    bc_goal[BCgoto] = GOALnone;
-    bc_goal[BCret ] = GOALnone;
-    bc_goal[BCexit] = GOALnone;
+    bc_goal[BCgoto] = Goal.none;
+    bc_goal[BCret ] = Goal.none;
+    bc_goal[BCexit] = Goal.none;
 
-    bc_goal[BCiftrue] = GOALflags;
+    bc_goal[BCiftrue] = Goal.flags;
 }
 
 /*********************************
@@ -115,7 +115,7 @@ void block_term()
  */
 
 @trusted
-void block_next(Blockx *bctx,int bc,block *bn)
+void block_next(BlockState *bctx,int bc,block *bn)
 {
     bctx.curblock.BC = cast(ubyte) bc;
     block_last = bctx.curblock;
@@ -131,7 +131,7 @@ void block_next(Blockx *bctx,int bc,block *bn)
  * Finish up this block and start the next one.
  */
 
-block *block_goto(Blockx *bx,int bc,block *bn)
+block *block_goto(BlockState *bx,int bc,block *bn)
 {
     block *b;
 
@@ -224,7 +224,7 @@ void block_pred()
 void block_clearvisit()
 {
     for (block *b = startblock; b; b = b.Bnext)       // for each block
-        b.Bflags &= ~BFLvisited;               // mark as unvisited
+        b.Bflags = cast(BFL)(b.Bflags & ~cast(uint)BFL.visited); // mark as unvisited
 }
 
 /********************************************
@@ -233,12 +233,12 @@ void block_clearvisit()
 
 void block_visit(block *b)
 {
-    b.Bflags |= BFLvisited;
+    b.Bflags |= BFL.visited;
     foreach (l; ListRange(b.Bsucc))
     {
         block *bs = list_block(l);
         assert(bs);
-        if ((bs.Bflags & BFLvisited) == 0)     // if not visited
+        if ((bs.Bflags & BFL.visited) == 0)     // if not visited
             block_visit(bs);
     }
 }
@@ -601,7 +601,7 @@ void blockopt(int iter)
 
             if (b.Belem)
             {
-                b.Belem = doptelem(b.Belem,bc_goal[b.BC] | GOALstruct);
+                b.Belem = doptelem(b.Belem,bc_goal[b.BC] | Goal.struct_);
                 if (b.Belem)
                     b.Belem = el_convert(b.Belem);
             }
@@ -907,7 +907,7 @@ private void bropt()
                 list_subtract(&(db.Bpred),b);
                 b.BC = BCgoto;
                 /* delete elem if it has no side effects */
-                b.Belem = doptelem(b.Belem,GOALnone | GOALagain);
+                b.Belem = doptelem(b.Belem, Goal.none | Goal.again);
                 debug if (debugc) printf("CHANGE: if (const)\n");
                 go.changes++;
             }
@@ -957,7 +957,7 @@ private void bropt()
             list_free(&b.Bsucc,FPNULL);
             b.appendSucc(db);
             b.BC = BCgoto;
-            b.Belem = doptelem(b.Belem,GOALnone | GOALagain);
+            b.Belem = doptelem(b.Belem, Goal.none | Goal.again);
             debug if (debugc) printf("CHANGE: switch (const)\n");
             go.changes++;
         }
@@ -1036,7 +1036,7 @@ private void brrear()
                     b.BC ^= BCiffalse ^ BCiftrue;  /* toggle */
                     b.setNthSucc(0, belse);
                     b.setNthSucc(1, bif);
-                    b.Bflags |= bif.Bflags & BFLvisited;
+                    b.Bflags |= bif.Bflags & BFL.visited;
                     debug if (debugc) printf("if (e) L1 else L2\n");
                 }
             }
@@ -1066,13 +1066,13 @@ void compdfo(ref Barray!(block*) dfo, block* startblock)
     void walkDFO(block *b)
     {
         assert(b);
-        b.Bflags |= BFLvisited;             // executed at least once
+        b.Bflags |= BFL.visited;             // executed at least once
 
         foreach (bl; ListRange(b.Bsucc))   // for each successor
         {
             block *bs = list_block(bl);
             assert(bs);
-            if ((bs.Bflags & BFLvisited) == 0) // if not visited
+            if ((bs.Bflags & BFL.visited) == 0) // if not visited
                 walkDFO(bs);
         }
 
@@ -1122,8 +1122,8 @@ private void elimblks()
     block *b;
     for (block **pb = &startblock; (b = *pb) != null;)
     {
-        if (((b.Bflags & BFLvisited) == 0)   // if block is not visited
-            && ((b.Bflags & BFLlabel) == 0)  // need label offset
+        if (((b.Bflags & BFL.visited) == 0)   // if block is not visited
+            && ((b.Bflags & BFL.label) == 0)  // need label offset
             )
         {
             /* for each marked successor S to b                     */
@@ -1132,7 +1132,7 @@ private void elimblks()
             foreach (s; ListRange(b.Bsucc))
             {
                 assert(list_block(s));
-                if (list_block(s).Bflags & BFLvisited) /* if it is marked */
+                if (list_block(s).Bflags & BFL.visited) /* if it is marked */
                     list_subtract(&(list_block(s).Bpred),b);
             }
             if (b.Balign && b.Bnext && b.Balign > b.Bnext.Balign)
@@ -1200,7 +1200,7 @@ private int mergeblks()
                 /* JOIN the elems               */
                 elem *e = el_combine(b.Belem,bL2.Belem);
                 if (b.Belem && bL2.Belem)
-                    e = doptelem(e,bc_goal[bL2.BC] | GOALagain);
+                    e = doptelem(e,bc_goal[bL2.BC] | Goal.again);
                 bL2.Belem = e;
                 b.Belem = null;
 
@@ -1263,7 +1263,7 @@ private void blident()
     for (block *bn = startblock; bn; bn = bnext)
     {
         bnext = bn.Bnext;
-        if (bn.Bflags & BFLnomerg)
+        if (bn.Bflags & BFL.nomerg)
             continue;
 
         for (block *b = bnext; b; b = b.Bnext)
@@ -1280,7 +1280,7 @@ private void blident()
                 enum additionalAnd = true;
             if (b.BC == bn.BC &&
                 //(!OPTIMIZER || !(go.mfoptim & MFtime) || !b.Bsucc) &&
-                (!OPTIMIZER || !(b.Bflags & BFLnomerg) || !b.Bsucc) &&
+                (!OPTIMIZER || !(b.Bflags & BFL.nomerg) || !b.Bsucc) &&
                 list_equal(b.Bsucc,bn.Bsucc) &&
                 additionalAnd &&
                 el_match(b.Belem,bn.Belem)

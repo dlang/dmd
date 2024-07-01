@@ -11,6 +11,8 @@
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/backend/cv8.d, backend/cv8.d)
+ * Documentation:  https://dlang.org/phobos/dmd_backend_cv8.html
+ * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/backend/cv8.d
  */
 
 module dmd.backend.cv8;
@@ -24,7 +26,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcv;
 import dmd.backend.code;
-import dmd.backend.code_x86;
+import dmd.backend.x86.code_x86;
 import dmd.backend.cv4;
 import dmd.backend.mem;
 import dmd.backend.el;
@@ -37,7 +39,6 @@ import dmd.backend.rtlsym;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.dvarstats;
-import dmd.backend.xmm;
 
 
 nothrow:
@@ -426,8 +427,8 @@ void cv8_func_term(Symbol *sfunc)
     buf.write32(0);            // pend
     buf.write32(0);            // pnext
     buf.write32(cast(uint)currentfuncdata.section_length); // size of function
-    buf.write32(cast(uint)startoffset);                    // size of prolog
-    buf.write32(cast(uint)retoffset);                      // offset to epilog
+    buf.write32(cast(uint)cgstate.startoffset);                    // size of prolog
+    buf.write32(cast(uint)cgstate.retoffset);                      // offset to epilog
     buf.write32(typidx);
 
     F1_Fixups f1f;
@@ -702,7 +703,7 @@ void cv8_outsym(Symbol *s)
                 s.Sfl = FLreg;
                 goto case_register;
             }
-            base = cast(uint)(cgstate.Para.size - BPoff);    // cancel out add of BPoff
+            base = cast(uint)(cgstate.Para.size - cgstate.BPoff);    // cancel out add of BPoff
             goto L1;
 
         case SC.auto_:
@@ -719,7 +720,7 @@ static if (1)
             buf.reserve(cast(uint)(2 + 2 + 4 + 4 + 2 + len + 1));
             buf.write16n(cast(uint)(2 + 4 + 4 + 2 + len + 1));
             buf.write16n(0x1111);
-            buf.write32(cast(uint)(s.Soffset + base + BPoff));
+            buf.write32(cast(uint)(s.Soffset + base + cgstate.BPoff));
             buf.write32(typidx);
             buf.write16n(I64 ? 334 : 22);       // relative to RBP/EBP
             cv8_writename(buf, id, len);
@@ -731,7 +732,7 @@ else
             buf.reserve(2 + 2 + 4 + 4 + len + 1);
             buf.write16n( 2 + 4 + 4 + len + 1);
             buf.write16n(S_BPREL_V3);
-            buf.write32(s.Soffset + base + BPoff);
+            buf.write32(s.Soffset + base + cgstate.BPoff);
             buf.write32(typidx);
             cv8_writename(buf, id, len);
             buf.writeByte(0);
@@ -739,7 +740,7 @@ else
             break;
 
         case SC.bprel:
-            base = -BPoff;
+            base = -cgstate.BPoff;
             goto L1;
 
         case SC.fastpar:

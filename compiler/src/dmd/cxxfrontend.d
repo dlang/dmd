@@ -265,6 +265,12 @@ bool functionSemantic3(FuncDeclaration fd)
     return dmd.funcsem.functionSemantic3(fd);
 }
 
+MATCH leastAsSpecialized(FuncDeclaration fd, FuncDeclaration g, Identifiers* names)
+{
+    import dmd.funcsem;
+    return dmd.funcsem.leastAsSpecialized(fd, g, names);
+}
+
 /***********************************************************
  * hdrgen.d
  */
@@ -619,6 +625,18 @@ Type referenceTo(Type type)
 {
     import dmd.typesem;
     return dmd.typesem.referenceTo(type);
+}
+
+uinteger_t size(Type type)
+{
+    import dmd.typesem;
+    return dmd.typesem.size(type);
+}
+
+uinteger_t size(Type type, const ref Loc loc)
+{
+    import dmd.typesem;
+    return dmd.typesem.size(type, loc);
 }
 
 /***********************************************************
