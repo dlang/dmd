@@ -22,5 +22,5 @@ void foo1(T)(in T v, string) {}
 
 // Ensure that `in` has a unique mangling
 static assert(foo.mangleof       == `_D6diagin3fooFIiZv`);
-static assert(foo1!int.mangleof  == `_D6diagin__T4foo1TiZQiFNaNbNiNfIiAyaZv`);
-static assert(foo1!char.mangleof == `_D6diagin__T4foo1TaZQiFNaNbNiNfIaAyaZv`);
+static assert(foo1!int.mangleof  == `_D6diagin__T4foo1TiZQiFNaNbNiNfIiMAyaZv`);
+static assert(foo1!char.mangleof == `_D6diagin__T4foo1TaZQiFNaNbNiNfIaMAyaZv`);

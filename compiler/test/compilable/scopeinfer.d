@@ -5,10 +5,10 @@
 @safe:
 
 auto foo(void* p) { return 0; }
-static assert(typeof(foo).mangleof == "FNaNbNiNfPvZi");
+static assert(typeof(foo).mangleof == "FNaNbNiNfMPvZi");
 
 auto bar(void* p) { return p; }
-static assert(typeof(bar).mangleof == "FNaNbNiNfPvZQd");
+static assert(typeof(bar).mangleof == "FNaNbNiNfNkMPvZQd");
 
 // https://issues.dlang.org/show_bug.cgi?id=19857
 
