@@ -1303,6 +1303,10 @@ Expression initializerToExpression(Initializer init, Type itype = null, const bo
                 assert(0);
             }
         }
+        else if (init.isAssociativeArray())
+        {
+            return init.toAssocArrayLiteral();
+        }
         else
         {
             /* Calculate the length of the array literal
