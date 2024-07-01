@@ -115,6 +115,9 @@ static assert(Foo.init.a == 0);
 static assert(Foo.init.b == 7);
 ----------------
 )
+
+$(H3 $(LNAME2 init-vs-construction, `.init` vs Default Construction))
+
     $(P Note that $(D .init) produces a default initialized object, not a
     default constructed one. If there is a default constructor for an object,
     it may produce a different value.)
@@ -134,6 +137,8 @@ void main()
     }
     S s1;           // OK. S() correctly initialize its context pointer.
     S s2 = S();     // OK. same as s1
+    s1.foo();       // OK
+
     S s3 = S.init;  // Bad. the context pointer in s3 is null
     s3.foo();       // Access violation
 }

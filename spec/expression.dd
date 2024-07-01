@@ -389,7 +389,8 @@ $(GNAME ConditionalExpression):
     $(GLINK OrOrExpression) $(D ?) $(GLINK Expression) $(D :) $(GSELF ConditionalExpression)
 )
 
-    $(P The first expression is converted to $(D bool), and is evaluated.
+    $(P The first expression is $(DDSUBLINK spec/statement, boolean-conditions,
+        converted to $(D bool)), and is evaluated.
     )
 
     $(P If it is $(D true), then the second expression is evaluated, and
@@ -447,7 +448,8 @@ $(GNAME OrOrExpression):
     $(P The $(I OrOrExpression) evaluates its left operand.
     )
 
-    $(P If the left operand, converted to type $(D bool), evaluates to
+    $(P If the left operand, $(DDSUBLINK spec/statement, boolean-conditions,
+        converted to type $(D bool)), evaluates to
         $(D true), then the right operand is not evaluated. If the result type of
         the $(I OrOrExpression) is $(D bool) then the result of the
         expression is $(D true).
@@ -475,7 +477,8 @@ $(GNAME AndAndExpression):
     $(P The $(I AndAndExpression) evaluates its left operand.
     )
 
-    $(P If the left operand, converted to type $(D bool), evaluates to
+    $(P If the left operand, $(DDSUBLINK spec/statement, boolean-conditions,
+        converted to type $(D bool)), evaluates to
         $(D false), then the right operand is not evaluated. If the result type of
         the $(I AndAndExpression) is $(D bool) then the result of the
         expression is $(D false).
@@ -1218,6 +1221,8 @@ $(H4 $(LNAME2 cast_basic_data_types, Basic Data Types))
             -------------
         )
 
+    $(P See also: $(RELATIVE_LINK2 cast_integers, Casting Integers).)
+
 $(H4 $(LNAME2 cast_class, Class References))
 
     $(P Any casting of a class reference to a
@@ -1332,10 +1337,18 @@ $(H4 $(LNAME2 cast_pointers, Pointers))
 
 $(H4 $(LNAME2 cast_array, Arrays))
 
-    $(P Casting a dynamic array to another dynamic array is done only if the
-        array lengths multiplied by the element sizes match. The cast is done
-        as a type paint, with the array length adjusted to match any change in
-        element size. If there's not a match, a runtime error is generated.)
+    ---
+    T[] a;
+    ...
+    cast(U[]) a
+    ---
+    $(P Casting a non-literal dynamic array `a` to another dynamic array type `U[]`
+        is allowed only when the result will contain every byte of data that was
+        referenced by `a`.
+        This is enforced with a runtime check that the byte length of `a`'s elements
+        is divisible by `U.sizeof`. If there is a remainder, a runtime error is generated.
+        The cast is done as a type paint, and the resulting array's length is set to
+        `(a.length * T.sizeof) / U.sizeof`.)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
             ---
@@ -1349,6 +1362,9 @@ $(H4 $(LNAME2 cast_array, Arrays))
             writeln(d);
             ---
         )
+
+    $(UNDEFINED_BEHAVIOR Casting a non-literal array to `bool[]` when any
+        element has a byte representation $(DDSUBLINK spec/type, bool, other than 0 or 1).)
 
     $(DDOC_SEE_ALSO $(RELATIVE_LINK2 cast_array_literal, Casting array literals).)
 
@@ -1713,7 +1729,8 @@ $(H3 $(LEGACY_LNAME2 slice_operations, slice_expressions, Slice Operations))
 $(GRAMMAR
 $(GNAME SliceOperation):
     $(D [ ])
-    $(D [) $(GLINK Slice) $(D ,)$(OPT) $(D ])
+    $(D [) $(GLINK Slice) $(D ])
+    $(D [) $(GLINK Slice) $(D ,) $(D ])
 
 $(GNAME Slice):
     $(GLINK AssignExpression)
@@ -2084,16 +2101,7 @@ $(H3 $(LNAME2 array_literals, Array Literals))
 
 $(GRAMMAR
 $(GNAME ArrayLiteral):
-    $(D [) $(I ArrayMemberInitializations)$(OPT) $(D ])
-
-$(GNAME ArrayMemberInitializations):
-    $(I ArrayMemberInitialization)
-    $(I ArrayMemberInitialization) $(D ,)
-    $(I ArrayMemberInitialization) $(D ,) $(GSELF ArrayMemberInitializations)
-
-$(GNAME ArrayMemberInitialization):
-    $(GLINK2 declaration, NonVoidInitializer)
-    $(GLINK AssignExpression) $(D :) $(GLINK2 declaration, NonVoidInitializer)
+    $(D [) $(GLINK ArgumentList)$(OPT) $(D ])
 )
 
     $(P An array literal is a comma-separated list of expressions
@@ -2144,27 +2152,6 @@ $(GNAME ArrayMemberInitialization):
             return [1, 2, 3];
         }
         ---
-
-    $(P To initialize an element at a particular index, use the
-        *AssignExpression* `:` *NonVoidInitializer* syntax.
-        The *AssignExpression* must be known at compile-time.
-        Any missing elements will be initialized to the default value
-        of the element type.
-        Note that if the array type is not specified, the literal will
-        be parsed as an
-        $(RELATIVE_LINK2 associative_array_literals, associative array).)
-
-        $(SPEC_RUNNABLE_EXAMPLE_RUN
-        ---
-        int n = 4;
-        auto aa = [0:1, 3:n]; // associative array `int[int]`
-
-        int[] a = [1, 3:n, 5];
-        assert(a == [1, 0, 0, n, 5]);
-
-        //int[] e = [n:2]; // error, n not known at compile-time
-        ---
-        )
 
 $(H4 $(LNAME2 cast_array_literal, Casting))
 
@@ -2255,9 +2242,9 @@ $(H3 $(LNAME2 function_literals, Function Literals))
 
 $(GRAMMAR
 $(GNAME FunctionLiteral):
-    $(D function) $(GLINK RefOrAutoRef)$(OPT) $(GLINK2 type, Type)$(OPT) $(GLINK ParameterWithAttributes)$(OPT) $(GLINK FunctionLiteralBody2)
-    $(D delegate) $(GLINK RefOrAutoRef)$(OPT) $(GLINK2 type, Type)$(OPT) $(GLINK ParameterWithMemberAttributes)$(OPT) $(GLINK FunctionLiteralBody2)
-    $(GLINK RefOrAutoRef)$(OPT) $(GLINK ParameterWithMemberAttributes) $(GLINK FunctionLiteralBody2)
+    $(D function) $(GLINK RefOrAutoRef)$(OPT) $(GLINK2 type, Type)$(OPT) $(GLINK ParameterWithAttributes)$(OPT) $(GLINK FunctionLiteralBody)
+    $(D delegate) $(GLINK RefOrAutoRef)$(OPT) $(GLINK2 type, Type)$(OPT) $(GLINK ParameterWithMemberAttributes)$(OPT) $(GLINK FunctionLiteralBody)
+    $(GLINK RefOrAutoRef)$(OPT) $(GLINK ParameterWithMemberAttributes) $(GLINK FunctionLiteralBody)
     $(GLINK2 statement, BlockStatement)
     $(IDENTIFIER) $(D =>) $(GLINK AssignExpression)
 
@@ -2267,7 +2254,7 @@ $(GNAME ParameterWithAttributes):
 $(GNAME ParameterWithMemberAttributes):
     $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT)
 
-$(GNAME FunctionLiteralBody2):
+$(GNAME FunctionLiteralBody):
     $(D =>) $(GLINK AssignExpression)
     $(GLINK2 function, SpecifiedFunctionBody)
 
@@ -2313,7 +2300,7 @@ $(GNAME RefOrAutoRef):
         }
         -------------
 
-    $(P A delegate is necessary if the $(I FunctionLiteralBody2) accesses any non-static
+    $(P A delegate is necessary if the $(I FunctionLiteralBody) accesses any non-static
         local variables in enclosing functions.)
 
         -------------
@@ -2596,11 +2583,14 @@ $(GNAME AssertExpression):
     $(D assert $(LPAREN)) $(GLINK AssertArguments) $(D $(RPAREN))
 
 $(GNAME AssertArguments):
-    $(GLINK AssignExpression) $(D ,)$(OPT)
-    $(GLINK AssignExpression) $(D ,) $(GLINK AssignExpression) $(D ,)$(OPT)
+    $(GLINK AssignExpression)
+    $(GLINK AssignExpression) $(D ,)
+    $(GLINK AssignExpression) $(D ,) $(GLINK AssignExpression)
+    $(GLINK AssignExpression) $(D ,) $(GLINK AssignExpression) $(D ,)
 )
 
-    $(P The first $(I AssignExpression) is evaluated and converted to a boolean value.
+    $(P The first $(I AssignExpression) is evaluated and
+    $(DDSUBLINK spec/statement, boolean-conditions, converted to a boolean value).
     If the value is not `true`, an $(I Assert Failure)
     has occurred and the program enters an $(I Invalid State).
     )
@@ -2732,7 +2722,7 @@ $(GNAME ImportExpression):
         to a constant string.
         The text contents of the string are interpreted as a file
         name. The file is read, and the exact contents of the file
-        become a string literal.
+        become a $(RELATIVE_LINK2 hex_string_literals, hex string literal).
     )
 
     $(P Implementations may restrict the file name in order to avoid

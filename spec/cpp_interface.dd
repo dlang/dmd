@@ -951,12 +951,118 @@ $(H2 $(LNAME2 lifetime-management, Lifetime Management))
     operators work in the two languages. For example, in D all objects are
     movable and there is no move constructor.)
 
-$(H2 $(LNAME2 special-member-functions, Special Member Functions))
-
-    $(P D cannot directly call C++ special member functions, and vice versa.
-    These include constructors, destructors, conversion operators,
-    operator overloading, and allocators.
+$(H2 $(LNAME2 operator-overloading, Operator Overloading))
+    $(P D's operator overloading is primarily involved with overloading its unary
+    and binary operators including the increment, index, slice, cast, function call,
+    comparison operator etc. Overloads of these operators that exist in C++ can be
+    directly called from D provided the D operator and its C++ counterpart semantically agree.
+    Below is a simple use case involving the assignment, index, and function call operator
+    overloads interoperating between D and C++.
     )
+
+    $(P In a foo.cpp file: )
+
+$(CPPLISTING
+#include $(LT)iostream$(GT)
+
+class A
+{
+public:
+    int a;
+    int b;
+    int buffer[3];
+    A()
+    {
+        a = 0;
+        b = 0;
+    }
+    A(int a, int b);
+    A& operator=(const A& obj); //overloading the assignment operator
+    void operator()(int a, int b, int c); // overloading the call operator
+    int& operator[](int value); // overloading the index operator
+    void printbuffer();
+};
+
+A::A(int a, int b)
+{
+    this->a = a;
+    this->b = b;
+}
+
+A& A::operator=(const A& obj)
+{
+    a = obj.a;
+    b = obj.b;
+    return *this;
+}
+
+void A::operator()(int a, int b, int c)
+{
+    std::cout << "value of a is "<< a << std::endl;
+    std::cout << "value of b is "<< b << std::endl;
+    std::cout << "value of c is "<< c << std::endl;
+}
+
+int& A::operator[](int value)
+{
+    return buffer[value];
+}
+
+void A::printbuffer()
+{
+    for (int i = 0; i < 3; i++)
+    {
+        std::cout << "the buffer numbers of index "<< i << " is "<< buffer[i] << std:: endl;
+    }
+}
+)
+
+    $(P In a bar.d file: )
+
+------
+import std.stdio;
+
+extern(C++) struct A
+{
+    int a;
+    int b;
+    int[3] buffer;
+    this(int a, int b);
+    ref A opAssign(ref const A); // links with A::operator=
+    void opCall(int a, int b, int c); // links with A::operator()
+    ref int opIndex(int value); // links with A::operator[]
+    void printbuffer();
+}
+
+void main()
+{
+    auto obj1 = A(1, 3);
+    auto obj2 = A(13, 43);
+    obj2 = obj1; // opAssign called here
+    writeln("obj2's a is ", obj2.a);
+    writeln("obj2's b is ", obj2.b);
+    obj2(20, 40, 60);
+    obj2[0] = 30;
+    obj2[1] = 60;
+    obj2[2] = 90;
+    obj2.printbuffer();
+}
+------
+
+    $(P Compiling, linking, and running produces the output:)
+
+$(CONSOLE
+$(GT) g++ -c foo.cpp
+$(GT) dmd bar.d foo.o -L-lstdc++ && ./bar
+obj2's a is 1
+obj2's b is 3
+value of a is 20
+value of b is 40
+value of c is 60
+the buffer numbers of index 0 is 30
+the buffer numbers of index 1 is 60
+the buffer numbers of index 2 is 90
+)
 
 $(H2 $(LNAME2 rtti, Runtime Type Identification))
 

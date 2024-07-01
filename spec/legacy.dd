@@ -20,6 +20,8 @@ $(COMMENT
         $(TROW `alias` target first syntax, use `alias name = target` instead.)
         $(TROW Struct/union postblit, use a $(DDSUBLINK spec/struct, struct-copy-constructor,
             copy constructor) instead.)
+        $(TROW $(RELATIVE_LINK2 alias-instance-member, Aliasing an instance member),
+            use `typeof(instance).member` instead.)
     )
 
 $(H2 $(LNAME2 body, `body` keyword))
@@ -53,6 +55,36 @@ $(H3 Corrective Action)
         which led to frequent trouble for people interfacing with other languages
         (e.g. javascript) or auto-generating code.
     )
+
+$(H2 $(LNAME2 alias-instance-member, Aliasing an instance member))
+
+    $(P E.g. `alias a = instance.field;`.
+        Such an alias actually aliases a member of the instance's *type*, not
+        the instance member itself. That could be confusing.
+        Instead, alias a member of the type.)
+
+    $(NOTE Aliasing `this.member` and `super.member` are valid inside
+        methods.)
+
+---
+struct Bar
+{
+    Foo f;
+    alias v = f.v; // Error, use `typeof(f).v`
+}
+
+struct Foo
+{
+    int v;
+    void test(Foo that) const
+    {
+        alias a = this.v; // OK
+        alias b = that.v; // Error, use `typeof(that).v` instead
+        assert(&a is &b); // passes
+        assert(&b !is &that.v);
+    }
+}
+---
 
 
 $(SPEC_SUBNAV_PREV glossary, Glossary)

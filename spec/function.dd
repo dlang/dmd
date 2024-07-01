@@ -22,7 +22,10 @@ $(GNAME FuncDeclaratorSuffix):
     $(GLINK2 template, TemplateParameters) $(GLINK Parameters) $(GLINK MemberFunctionAttributes)$(OPT) $(GLINK2 template, Constraint)$(OPT)
 )
 
-        * A *FuncDeclaration* with a $(GLINK FunctionBody) is called a *function definition*.
+        * A *FuncDeclaration* with a function body is called a
+          $(RELATIVE_LINK2 function-bodies, function definition).
+        * A *FuncDeclaration* without a function body is called a
+          $(RELATIVE_LINK2 function-declarations, function prototype).
         * A *FuncDeclaration* with *TemplateParameters* defines a
           $(DDSUBLINK spec/template, function-templates, function template).
 
@@ -39,12 +42,13 @@ $(GNAME ParameterList):
     $(GLINK VariadicArgumentsAttributes)$(OPT) $(D ...)
 
 $(GNAME Parameter):
+    $(GLINK ParameterDeclaration)
+    $(GLINK ParameterDeclaration) $(D ...)
+    $(GLINK ParameterDeclaration) $(D =) $(ASSIGNEXPRESSION)
+
+$(GNAME ParameterDeclaration):
     $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator)
-    $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) $(D ...)
-    $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) $(D =) $(ASSIGNEXPRESSION)
     $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, Type)
-    $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, Type) $(D ...)
-    $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, Type) $(D =) $(ASSIGNEXPRESSION)
 
 $(GNAME ParameterAttributes):
     $(GLINK ParameterStorageClass)
@@ -135,7 +139,7 @@ $(LEGACY_LNAME2 FunctionLiteralBody)
         This syntax also applies for $(DDSUBLINK spec/expression, function_literals, function literals).)
 
 
-$(H3 $(LNAME2 function-declarations, Functions without Bodies))
+$(H3 $(LNAME2 function-declarations, Function Prototypes))
 
 $(GRAMMAR
 $(GNAME MissingFunctionBody):
@@ -144,16 +148,23 @@ $(GNAME MissingFunctionBody):
     $(GLINK FunctionContracts)$(OPT) $(GLINK InOutStatement)
 )
 
-    $(P Functions without bodies:)
+    $(P Function declarations with a *MissingFunctionBody*, e.g.:)
 
 ---
 int foo();
 ---
 
-    $(P that are not declared as $(D abstract) are expected to have their implementations
+    $(P that are not declared as $(DDSUBLINK spec/class, abstract, `abstract`)
+    are expected to have their implementations
     elsewhere, and that implementation will be provided at the link step.
     This enables an implementation of a function to be completely hidden from the user
     of it, and the implementation may be in another language such as C, assembler, etc.
+    Typically a function prototype would have non-`extern(D)`
+    $(DDSUBLINK spec/attribute, linkage, linkage).
+    )
+
+    $(P A function prototype can have `extern(D)` linkage.
+    This is useful for $(DDSUBLINK dmd, interface-files, D interface files).
     )
 
 
@@ -179,20 +190,6 @@ $(GNAME InOutContractExpression):
 $(GNAME InOutStatement):
     $(GLINK InStatement)
     $(GLINK OutStatement)
-
-$(GNAME InContractExpression):
-    $(D in $(LPAREN)) $(GLINK2 expression, AssertArguments) $(D $(RPAREN))
-
-$(GNAME OutContractExpression):
-    $(D out $(LPAREN) ;) $(GLINK2 expression, AssertArguments) $(D $(RPAREN))
-    $(D out $(LPAREN)) $(GLINK_LEX Identifier) $(D ;) $(GLINK2 expression, AssertArguments) $(D $(RPAREN))
-
-$(GNAME InStatement):
-    $(D in) $(GLINK2 statement, BlockStatement)
-
-$(GNAME OutStatement):
-    $(D out) $(GLINK2 statement, BlockStatement)
-    $(D out) $(D $(LPAREN)) $(GLINK_LEX Identifier) $(D $(RPAREN)) $(GLINK2 statement, BlockStatement)
 )
 
         $(P Function Contracts specify the preconditions and postconditions of a function.
@@ -203,20 +200,27 @@ $(GNAME OutStatement):
 
     $(H3 $(LNAME2 preconditions, Preconditions))
 
-        $(P An $(GLINK InContractExpression) is a precondition.)
+$(GRAMMAR
+$(GNAME InContractExpression):
+    $(D in $(LPAREN)) $(GLINK2 expression, AssertArguments) $(D $(RPAREN))
 
-        $(P The first $(GLINK2 expression, AssignExpression) of the $(GLINK2 expression, AssertArguments)
-        must evaluate to true. If it does not, the precondition has failed.)
+$(GNAME InStatement):
+    $(D in) $(GLINK2 statement, BlockStatement)
+)
 
-        $(P The second $(I AssignExpression), if present, must be implicitly convertible to type `const(char)[]`.
-        )
+        $(P An $(I InContractExpression) is a precondition.)
+
+        * The first $(GLINK2 expression, AssignExpression) of the $(I AssertArguments)
+          must evaluate to true. If it does not, the precondition has failed.)
+
+        * The second $(I AssignExpression), if present, must be implicitly convertible to type `const(char)[]`.
 
         $(P An $(GLINK InStatement) is also a precondition. Any $(GLINK2 expression, AssertExpression) appearing
         in an $(I InStatement) will be an $(I InContractExpression).
         )
 
         $(P Preconditions must semantically be satisfied before the function starts executing.
-        If it is not, the program enters an $(I Invalid State).
+        If a precondition fails, the program enters an $(I Invalid State).
         )
 
         $(IMPLEMENTATION_DEFINED Whether the preconditions are actually run or not is implementation defined.
@@ -258,20 +262,29 @@ $(GNAME OutStatement):
 
     $(H3 $(LNAME2 postconditions, Postconditions))
 
-        $(P An $(GLINK OutContractExpression) is a postcondition.)
+$(GRAMMAR
+$(GNAME OutContractExpression):
+    $(D out $(LPAREN) ;) $(GLINK2 expression, AssertArguments) $(D $(RPAREN))
+    $(D out $(LPAREN)) $(GLINK_LEX Identifier) $(D ;) $(GLINK2 expression, AssertArguments) $(D $(RPAREN))
 
-        $(P The first $(GLINK2 expression, AssignExpression) of the $(GLINK2 expression, AssertArguments)
-        must evaluate to true. If it does not, the postcondition has failed.)
+$(GNAME OutStatement):
+    $(D out) $(GLINK2 statement, BlockStatement)
+    $(D out) $(D $(LPAREN)) $(GLINK_LEX Identifier) $(D $(RPAREN)) $(GLINK2 statement, BlockStatement)
+)
 
-        $(P The second $(I AssignExpression), if present, must be implicitly convertible to type `const(char)[]`.
-        )
+        $(P An $(I OutContractExpression) is a postcondition.)
 
-        $(P An $(GLINK OutStatement) is also a postcondition. Any $(GLINK2 expression, AssertExpression) appearing
+        * The first $(GLINK2 expression, AssignExpression) of the $(I AssertArguments)
+          must evaluate to true. If it does not, the postcondition has failed.
+
+        * The second $(I AssignExpression), if present, must be implicitly convertible to type `const(char)[]`.
+
+        $(P An $(I OutStatement) is also a postcondition. Any $(GLINK2 expression, AssertExpression) appearing
         in an $(I OutStatement) will be an $(I OutContractExpression).
         )
 
         $(P Postconditions must semantically be satisfied after the function finishes executing.
-        If it is not, the program enters an $(I Invalid State).
+        If a postcondition fails, the program enters an $(I Invalid State).
         )
 
         $(IMPLEMENTATION_DEFINED Whether the postconditions are actually run or not is implementation defined.
@@ -281,8 +294,9 @@ $(GNAME OutStatement):
         $(I AssignExpression).
         )
 
-        $(BEST_PRACTICE Use postconditions to validate that the input arguments and return value have values that are
-        expected by the function.)
+        $(BEST_PRACTICE Use postconditions to validate that on leaving the function:)
+        * Any mutable input arguments each have the expected value/range of values.
+        * Any return value has a correct value/range of values.
 
         $(BEST_PRACTICE Since postconditions may or may not be actually checked at runtime, avoid
         using postconditions that have side effects.)
@@ -317,9 +331,10 @@ $(GNAME OutStatement):
         ---
 
         $(P The optional identifier in either type of postcondition is set to the return value
-        of the function, and can be accessed from within the postcondition.)
+        of the function, and can be accessed from within the postcondition.
+        It is implicitly `const`.)
 
-    $(H3 Example)
+    $(H3 $(LNAME2 example-contracts, Example))
 
         ---
         int fun(ref int a, int b)
@@ -3780,28 +3795,44 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
         $(UL
         $(LI No casting from a pointer type `T` to any type `U` with pointers, except when:)
             * `T` implicitly converts to `U`
-            * `U` implements class or interface `T`
-            * Both types are dynamic arrays
+            * `U` $(DDSUBLINK spec/expression, cast_class, implements) class or interface
+              `T`, and both types are `extern(D)`
             * `T.opCast!U` is `@safe`
+            * Both types $(DDSUBLINK spec/expression, cast_array, are dynamic arrays), or
+              both types $(DDSUBLINK spec/expression, cast_pointers, are raw pointers), and:
+                * The target element type is not a pointer type
+                * The target element type is not mutable when the source element type is a pointer type
+                * Either the target element type is a dynamic array, or the target element
+                  type is no larger than the source element type
+                * Any source element type modifiers implicitly convert to the target element type modifiers
+                * Neither element type is a function type
+                * The target element type is not mutable when the source type is `void[]`
+                * The target element type is not $(DDSUBLINK spec/type, bool, `bool`)
+                * The source element type is not `bool` when the target element type is mutable
+                * Neither element type is $(DDSUBLINK spec/struct, opaque_struct_unions, opaque).
         $(LI No casting from any non-pointer type to a pointer type.)
-        $(LI No pointer arithmetic (including pointer indexing).)
-        $(LI Cannot access unions that:)
+        $(LI No $(DDSUBLINK spec/expression, pointer_arithmetic, pointer arithmetic)
+            (including pointer indexing & slicing).)
+        $(LI Cannot access union fields that:)
             * Have pointers or references overlapping with other types
-            * Have fields with invariants overlapping with other types
+            * Have invariants overlapping with other types
+            * Contain a $(DDSUBLINK spec/type, bool, `bool`)
         $(LI Calling any $(RELATIVE_LINK2 system-functions, System Functions).)
         $(LI No catching of exceptions that are not derived from
         $(LINK2 https://dlang.org/phobos/object.html#.Exception, $(D class Exception)).)
-        $(LI No inline assembler.)
-        $(LI No explicit casting of:)
-            * mutable objects to immutable
-            * immutable objects to mutable
+        $(LI $(DDSUBLINK spec/iasm, asmstatements, Inline assembler) must be marked as
+            `@trusted`.)
+        $(LI No explicit casting (except with a matching `@safe` `opCast`) of:)
+            * mutable objects to immutable (except basic data types)
+            * immutable objects to mutable (except basic data types)
             * thread local objects to shared
             * shared objects to thread local
         $(LI Cannot access $(DDSUBLINK spec/attribute, system-variables, `@system`)
             or $(D __gshared) variables.)
-        $(LI Cannot use $(D void) initializers for:)
-            * Pointers/reference types or any type containing them
-            * Types that have invariants
+        $(LI Cannot use $(D void) initializers for types containing:)
+            * Pointers/reference types
+            * Types with invariants
+            * `bool`
         )
 
         $(NOTE When indexing or slicing an array, an out of bounds access

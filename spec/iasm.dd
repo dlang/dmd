@@ -41,22 +41,28 @@ $(GNAME AsmInstructionList):
 
     $(P Assembler instructions must be located inside an `asm` block.
         Like functions, `asm` statements must be anotated with adequate function attributes to be compatible with the caller.
-        Asm statements attributes must be explicitly defined, they are not infered.
+        Asm statements attributes must be explicitly defined, they are not inferred.
     )
+    $(P `@safe` is not allowed as an attribute, as the compiler does no safety checking of
+        assembly statements - use `@trusted` instead.)
 
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
 ---
-void func1() pure nothrow @safe @nogc
+void ok() pure nothrow @safe @nogc
 {
     asm pure nothrow @trusted @nogc
     {}
 }
 
-void func2() @safe @nogc
+void error() @safe @nogc
 {
     asm @nogc // Error: asm statement is assumed to be @system - mark it with '@trusted' if it is not
     {}
+    asm @safe @nogc // Deprecation: asm statement cannot be @safe, use @trusted instead
+    {}
 }
 ---
+)
 
 $(H2 $(LNAME2 asminstruction, Asm instruction))
 

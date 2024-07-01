@@ -164,6 +164,12 @@ void foo(B b)
 
 $(H2 $(LNAME2 class_properties, Class Properties))
 
+$(TABLE2 Class Properties,
+$(THEAD Property, Description)
+$(TROW $(RELATIVE_LINK2 tupleof, `.tupleof`),
+    Symbol sequence of fields in the class.)
+)
+
 $(TABLE2 Class Instance Properties,
 $(THEAD Property, Description)
 $(TROW $(DDSUBLINK spec/property, classinfo, $(D .classinfo)),
@@ -172,16 +178,19 @@ $(TROW $(RELATIVE_LINK2 outer-property, `.outer`), $(ARGS For
         a nested class instance, provides either the parent class instance,
         or the parent function's context pointer when there is no parent
         class.))
-$(TROW $(D .tupleof), See below.)
 )
 
 $(H3 $(LNAME2 tupleof, `.tupleof`))
 
-        $(P The $(D .tupleof) property is an
-        $(DDSUBLINK spec/template, lvalue-sequences, lvalue sequence)
-        of all the non-static fields in the class, excluding the hidden fields and
-        the fields in the base class.)
+        $(P The $(D .tupleof) property provides a symbol sequence
+        of all the non-static fields in the class, excluding the
+        $(RELATIVE_LINK2 hidden-fields, hidden fields) and
+        the fields in the base class.
+        When used on an instance, `.tupleof` gives an
+        $(DDSUBLINK spec/template, lvalue-sequences, lvalue sequence).)
+
         $(P The order of the fields in the tuple matches the order in which the fields are declared.)
+
         $(NOTE `.tupleof` is not available for `extern(Objective-C)` classes due to
         their fields having a dynamic offset.
         )

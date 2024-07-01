@@ -634,13 +634,13 @@ $(H3 $(GNAME initSymbol))
         $(P Takes a single argument, which must evaluate to a `class`, `struct` or `union` type.
             Returns a `const(void)[]` that holds the initial state of any instance of the supplied type.
             The slice is constructed for any type `T` as follows:
+        )
 
             - `ptr` points to either the initializer symbol of `T`
-               or `null` if `T` is a zero-initialized struct / unions.
+               or `null` if `T` is a $(RELATIVE_LINK2 isZeroInit, zero-initialized) struct/union.
 
-            - `length` is equal to the size of an instance, i.e. `T.sizeof` for structs / unions and
-              $(RELATIVE_LINK2 classInstanceSize, $(D __traits(classInstanceSize, T)`)) for classes.
-        )
+            - `length` is equal to the size of an instance, i.e. `T.sizeof` for a struct/union and
+              $(RELATIVE_LINK2 classInstanceSize, $(D __traits(classInstanceSize, T))) for a class.
 
         $(P
             This trait matches the behaviour of `TypeInfo.initializer()` but can also be used when
@@ -648,11 +648,14 @@ $(H3 $(GNAME initSymbol))
         )
 
         $(P
-            This traits is not available during $(DDSUBLINK spec/glossary, ctfe, CTFE) because the actual address
+            This trait is not available during $(DDSUBLINK spec/glossary, ctfe, CTFE) because the actual address
             of the initializer symbol will be set by the linker and hence is not available at compile time.
         )
 
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
+        import core.stdc.stdlib;
+
         class C
         {
             int i = 4;
@@ -666,12 +669,14 @@ $(H3 $(GNAME initSymbol))
             void* ptr = malloc(initSym.length);
             scope (exit) free(ptr);
 
-            ptr[0..initSym.length] = initSym[];
+            // Note: allocated memory will only be written to through `c`, so cast is safe
+            ptr[0..initSym.length] = cast(void[]) initSym[];
 
             C c = cast(C) ptr;
             assert(c.i == 4);
         }
         ---
+        )
 
 
 $(H2 $(LNAME2 functions, Function Traits))
@@ -694,8 +699,8 @@ static assert(!__traits(isDisabled, Foo.bar));
 ---
 )
 
-    $(P For any other declaration even if `@disable` is a syntactically valid
-    attribute `false` is returned because the annotation has no effect.)
+    $(P For any other declaration, even if `@disable` is a syntactically valid
+    attribute, `false` is returned because the annotation has no effect.)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
@@ -1185,13 +1190,33 @@ $(H3 $(GNAME isNested))
 $(H3 $(GNAME isFuture))
 
     $(P Takes one argument. It returns `true` if the argument is a symbol
-    marked with the `@future` keyword, otherwise `false`. Currently, only
-    functions and variable declarations have support for the `@future` keyword.)
+    marked with the $(DDSUBLINK spec/attribute, future, `@__future` attribute),
+    otherwise `false`. Currently, only
+    functions and variable declarations have support for the `@__future` keyword.)
 
 $(H3 $(GNAME isDeprecated))
 
     $(P Takes one argument. It returns `true` if the argument is a symbol
     marked with the `deprecated` keyword, otherwise `false`.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+deprecated("No longer supported")
+int i;
+
+struct A
+{
+    int foo() { return 1; }
+
+    deprecated("please use foo")
+    int bar() { return 1; }
+}
+
+static assert(__traits(isDeprecated, i));
+static assert(!__traits(isDeprecated, A.foo));
+static assert(__traits(isDeprecated, A.bar));
+---
+)
 
 $(H3 $(GNAME isTemplate))
 
@@ -1202,9 +1227,9 @@ $(H3 $(GNAME isTemplate))
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 void foo(T)(){}
-static assert(__traits(isTemplate,foo));
-static assert(!__traits(isTemplate,foo!int()));
-static assert(!__traits(isTemplate,"string"));
+static assert(__traits(isTemplate, foo));
+static assert(!__traits(isTemplate, foo!int()));
+static assert(!__traits(isTemplate, "string"));
 ---
 )
 
@@ -1239,12 +1264,14 @@ $(H3 $(GNAME isPackage))
         otherwise $(D false).
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 import std.algorithm.sorting;
 static assert(__traits(isPackage, std));
 static assert(__traits(isPackage, std.algorithm));
 static assert(!__traits(isPackage, std.algorithm.sorting));
 ---
+)
 
 $(H3 $(GNAME hasMember))
 
@@ -1268,11 +1295,12 @@ void main()
 {
     S s;
 
-    writeln(__traits(hasMember, S, "m")); // true
-    writeln(__traits(hasMember, s, "m")); // true
-    writeln(__traits(hasMember, S, "y")); // false
-    writeln(__traits(hasMember, S, "write")); // false, but callable like a member via UFCS
-    writeln(__traits(hasMember, int, "sizeof")); // true
+    static assert(__traits(hasMember, S, "m"));
+    static assert(__traits(hasMember, s, "m"));
+    static assert(!__traits(hasMember, S, "y"));
+    static assert(!__traits(hasMember, S, "write")); // false, but callable like a member via UFCS
+    static assert(__traits(hasMember, int, "sizeof"));
+    static assert(__traits(hasMember, 5, "sizeof"));
 }
 ---
 )
@@ -1282,13 +1310,10 @@ $(H3 $(GNAME identifier))
         $(P Takes one argument, a symbol. Returns the identifier
         for that symbol as a string literal.
         )
-$(SPEC_RUNNABLE_EXAMPLE_RUN
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 int var = 123;
-pragma(msg, typeof(var));                       // int
-pragma(msg, typeof(__traits(identifier, var))); // string
-writeln(var);                                   // 123
-writeln(__traits(identifier, var));             // "var"
+static assert(__traits(identifier, var) == "var");
 ---
 )
 
@@ -1549,11 +1574,9 @@ $(H3 $(GNAME getUnitTests))
                 $(DDSUBLINK spec/attribute, uda, UDAs) will be accessible.
         )
 
-        $(H4 Note:)
-
-        $(P
-                The -unittest flag needs to be passed to the compiler. If the flag
-                is not passed $(CODE __traits(getUnitTests)) will always return an
+        $(NOTE
+                The `-unittest` flag needs to be passed to the compiler. If the flag
+                is not passed, $(CODE __traits(getUnitTests)) will always return an
                 empty sequence.
         )
 
@@ -1677,7 +1700,8 @@ $(H3 $(GNAME allMembers))
         $(P Takes a single argument, which must evaluate to either
         a module, a struct, a union, a class, an interface, an enum, or a
         template instantiation.
-
+        )
+        $(P
         A sequence of string literals is returned, each of which
         is the name of a member of that argument combined with all
         of the members of its base classes (if the argument is a class).
