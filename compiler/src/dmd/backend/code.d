@@ -34,7 +34,7 @@ nothrow:
 alias segidx_t = int;           // index into SegData[]
 
 /**********************************
- * Code data type
+ * Variant for operand of code struct
  */
 
 struct _Declaration;
@@ -49,7 +49,7 @@ union evc
     targ_size_t Vsize_t;
     struct
     {
-        targ_size_t Vpointer;
+        targ_size_t Vpointer;   /// offset from start of segment
         int Vseg;               /// segment the pointer is in
     }
     Srcpos      Vsrcpos;        /// source position for OPlinnum
@@ -60,19 +60,12 @@ union evc
     struct
     {
         targ_size_t Voffset;    /// offset from symbol
-        Symbol  *Vsym;          /// pointer to symbol table (FLfunc,FLextern)
-    }
-
-    struct
-    {
-        targ_size_t Vdoffset;   /// offset from symbol
-        _Declaration *Vdsym;    /// pointer to D symbol table
-    }
-
-    struct
-    {
-        targ_size_t Vloffset;   /// offset from symbol
-        _LabelDsymbol *Vlsym;   /// pointer to D Label
+        union
+        {
+            Symbol* Vsym;          /// pointer to symbol table (FLfunc,FLextern)
+            _Declaration* Vdsym;   /// pointer to D Declaration
+            _LabelDsymbol* Vlsym;  /// pointer to D LabelDSymbol
+        }
     }
 
     struct
