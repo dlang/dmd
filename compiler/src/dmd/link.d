@@ -216,7 +216,8 @@ public int runLINK(bool verbose, ErrorSink eSink)
         if (target.objectFormat() == Target.ObjectFormat.coff)
         {
             OutBuffer cmdbuf;
-            cmdbuf.writestring("/NOLOGO");
+            cmdbuf.writestring("/NOLOGO /OPT:REF");
+            cmdbuf.writestring(driverParams.symdebug ? " /OPT:NOICF" : " /OPT:ICF");
             for (size_t i = 0; i < global.params.objfiles.length; i++)
             {
                 cmdbuf.writeByte(' ');
@@ -268,9 +269,6 @@ public int runLINK(bool verbose, ErrorSink eSink)
             {
                 cmdbuf.writeByte(' ');
                 cmdbuf.writestring("/DEBUG");
-                // in release mode we need to reactivate /OPT:REF after /DEBUG
-                if (global.params.release)
-                    cmdbuf.writestring(" /OPT:REF");
             }
             if (driverParams.dll)
             {
