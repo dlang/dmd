@@ -199,7 +199,7 @@ extern (C++) final class ArrayInitializer : Initializer
             if (!idx)
                 return false; // each AA value must have a key
         }
-        return true;
+        return index.length > 0;
     }
 
     override void accept(Visitor v)
