@@ -84,7 +84,7 @@ void backend_init(const ref Param params, const ref DMDparams driverParams, cons
         driverParams.pic,
         params.useModuleInfo && Module.moduleinfo,
         params.useTypeInfo && Type.dtypeinfo,
-        params.useExceptions && ClassDeclaration.throwable,
+        params.useExceptions,
         driverParams.dwarf,
         global.versionString(),
         exfmt,
