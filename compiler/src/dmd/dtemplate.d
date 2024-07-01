@@ -3679,7 +3679,22 @@ extern (C++) class TemplateInstance : ScopeDsymbol
     Dsymbol tempdecl;           // referenced by foo.bar.abc
     Dsymbol enclosing;          // if referencing local symbols, this is the context
     Dsymbol aliasdecl;          // !=null if instance is an alias for its sole member
-    TemplateInstance inst;      // refer to existing instance
+
+    /**
+    If this is not null and it has a value that is not the current object,
+     then this field points to an existing template instance
+     and that object has been duplicated into us.
+
+    If this object is a duplicate,
+     the ``memberOf`` field will be set to a root module (passed on CLI).
+
+    This information is useful to deduplicate analysis that may occur
+     after semantic 3 has completed.
+
+    See_Also: memberOf
+    */
+    TemplateInstance inst;
+
     ScopeDsymbol argsym;        // argument symbol table
     size_t hash;                // cached result of toHash()
 
@@ -3691,7 +3706,15 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
     TemplateInstances* deferred;
 
-    Module memberOf;            // if !null, then this TemplateInstance appears in memberOf.members[]
+    /**
+    If this is not null then this template instance appears in a root module's members.
+
+    Note:   This is not useful for determining duplication status of this template instance.
+            Use the field ``inst`` for determining if a template instance has been duplicated into this object.
+
+    See_Also: inst
+    */
+    Module memberOf;
 
     // Used to determine the instance needs code generation.
     // Note that these are inaccurate until semantic analysis phase completed.
