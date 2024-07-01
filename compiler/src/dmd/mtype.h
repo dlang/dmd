@@ -264,7 +264,6 @@ public:
     virtual Type *makeSharedWildConst();
     virtual Type *makeMutable();
     Type *toBasetype();
-    virtual MATCH implicitConvTo(Type *to);
     virtual MATCH constConv(Type *to);
     virtual unsigned char deduceWild(Type *t, bool isRef);
 
@@ -363,7 +362,6 @@ public:
     bool iscomplex() override;
     bool isscalar() override;
     bool isunsigned() override;
-    MATCH implicitConvTo(Type *to) override;
     bool isZeroInit(const Loc &loc) override;
 
     // For eliminating dynamic_cast
@@ -385,7 +383,6 @@ public:
     bool isscalar() override;
     bool isunsigned() override;
     bool isBoolean() override;
-    MATCH implicitConvTo(Type *to) override;
     Expression *defaultInitLiteral(const Loc &loc) override;
     TypeBasic *elementType();
     bool isZeroInit(const Loc &loc) override;
@@ -413,7 +410,6 @@ public:
     bool isZeroInit(const Loc &loc) override;
     structalign_t alignment() override;
     MATCH constConv(Type *to) override;
-    MATCH implicitConvTo(Type *to) override;
     Expression *defaultInitLiteral(const Loc &loc) override;
     bool hasUnsafeBitpatterns() override;
     bool hasVoidInitPointers() override;
@@ -435,7 +431,6 @@ public:
     bool isString() override;
     bool isZeroInit(const Loc &loc) override;
     bool isBoolean() override;
-    MATCH implicitConvTo(Type *to) override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -451,7 +446,6 @@ public:
     TypeAArray *syntaxCopy() override;
     bool isZeroInit(const Loc &loc) override;
     bool isBoolean() override;
-    MATCH implicitConvTo(Type *to) override;
     MATCH constConv(Type *to) override;
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -463,7 +457,6 @@ public:
     static TypePointer *create(Type *t);
     const char *kind() override;
     TypePointer *syntaxCopy() override;
-    MATCH implicitConvTo(Type *to) override;
     MATCH constConv(Type *to) override;
     bool isscalar() override;
     bool isZeroInit(const Loc &loc) override;
@@ -606,7 +599,6 @@ public:
     const char *kind() override;
     TypeDelegate *syntaxCopy() override;
     unsigned alignsize() override;
-    MATCH implicitConvTo(Type *to) override;
     bool isZeroInit(const Loc &loc) override;
     bool isBoolean() override;
 
@@ -726,7 +718,6 @@ public:
     bool hasVoidInitPointers() override;
     bool hasUnsafeBitpatterns() override;
     bool hasInvariant() override;
-    MATCH implicitConvTo(Type *to) override;
     MATCH constConv(Type *to) override;
     unsigned char deduceWild(Type *t, bool isRef) override;
 
@@ -755,7 +746,6 @@ public:
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
-    MATCH implicitConvTo(Type *to) override;
     MATCH constConv(Type *to) override;
     bool isZeroInit(const Loc &loc) override;
     bool hasVoidInitPointers() override;
@@ -776,7 +766,6 @@ public:
     const char *kind() override;
     TypeClass *syntaxCopy() override;
     ClassDeclaration *isClassHandle() override;
-    MATCH implicitConvTo(Type *to) override;
     MATCH constConv(Type *to) override;
     unsigned char deduceWild(Type *t, bool isRef) override;
     bool isZeroInit(const Loc &loc) override;
@@ -821,7 +810,6 @@ public:
     const char *kind() override;
 
     TypeNull *syntaxCopy() override;
-    MATCH implicitConvTo(Type *to) override;
     bool isBoolean() override;
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -832,7 +820,6 @@ class TypeNoreturn final : public Type
 public:
     const char *kind() override;
     TypeNoreturn *syntaxCopy() override;
-    MATCH implicitConvTo(Type* to) override;
     MATCH constConv(Type* to) override;
     bool isBoolean() override;
     unsigned alignsize() override;
@@ -885,4 +872,5 @@ namespace dmd
     Type *substWildTo(Type *type, unsigned mod);
     uinteger_t size(Type *type);
     uinteger_t size(Type *type, const Loc &loc);
+    MATCH implicitConvTo(Type* from, Type* to);
 }

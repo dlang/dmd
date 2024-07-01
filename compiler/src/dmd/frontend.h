@@ -1861,7 +1861,6 @@ public:
     virtual Type* makeSharedWildConst();
     virtual Type* makeMutable();
     Type* toBasetype();
-    virtual MATCH implicitConvTo(Type* to);
     virtual MATCH constConv(Type* to);
     virtual uint8_t deduceWild(Type* t, bool isRef);
     virtual ClassDeclaration* isClassHandle();
@@ -4218,7 +4217,6 @@ public:
     TypeAArray* syntaxCopy() override;
     bool isZeroInit(const Loc& loc) override;
     bool isBoolean() override;
-    MATCH implicitConvTo(Type* to) override;
     MATCH constConv(Type* to) override;
     void accept(Visitor* v) override;
 };
@@ -4238,7 +4236,6 @@ public:
     bool iscomplex() override;
     bool isscalar() override;
     bool isunsigned() override;
-    MATCH implicitConvTo(Type* to) override;
     bool isZeroInit(const Loc& loc) override;
     bool hasUnsafeBitpatterns() override;
     TypeBasic* isTypeBasic() override;
@@ -4264,7 +4261,6 @@ public:
     const char* kind() const override;
     TypeClass* syntaxCopy() override;
     ClassDeclaration* isClassHandle() override;
-    MATCH implicitConvTo(Type* to) override;
     MATCH constConv(Type* to) override;
     uint8_t deduceWild(Type* t, bool isRef) override;
     bool isZeroInit(const Loc& loc) override;
@@ -4282,7 +4278,6 @@ public:
     bool isString() override;
     bool isZeroInit(const Loc& loc) override;
     bool isBoolean() override;
-    MATCH implicitConvTo(Type* to) override;
     void accept(Visitor* v) override;
 };
 
@@ -4293,7 +4288,6 @@ public:
     const char* kind() const override;
     TypeDelegate* syntaxCopy() override;
     uint32_t alignsize() override;
-    MATCH implicitConvTo(Type* to) override;
     bool isZeroInit(const Loc& loc) override;
     bool isBoolean() override;
     void accept(Visitor* v) override;
@@ -4320,7 +4314,6 @@ public:
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
-    MATCH implicitConvTo(Type* to) override;
     MATCH constConv(Type* to) override;
     bool isZeroInit(const Loc& loc) override;
     bool hasVoidInitPointers() override;
@@ -4503,7 +4496,6 @@ class TypeNoreturn final : public Type
 public:
     const char* kind() const override;
     TypeNoreturn* syntaxCopy() override;
-    MATCH implicitConvTo(Type* to) override;
     MATCH constConv(Type* to) override;
     bool isBoolean() override;
     uint32_t alignsize() override;
@@ -4515,7 +4507,6 @@ class TypeNull final : public Type
 public:
     const char* kind() const override;
     TypeNull* syntaxCopy() override;
-    MATCH implicitConvTo(Type* to) override;
     bool isBoolean() override;
     void accept(Visitor* v) override;
 };
@@ -4526,7 +4517,6 @@ public:
     static TypePointer* create(Type* t);
     const char* kind() const override;
     TypePointer* syntaxCopy() override;
-    MATCH implicitConvTo(Type* to) override;
     MATCH constConv(Type* to) override;
     bool isscalar() override;
     bool isZeroInit(const Loc& loc) override;
@@ -4562,7 +4552,6 @@ public:
     bool isZeroInit(const Loc& loc) override;
     structalign_t alignment() override;
     MATCH constConv(Type* to) override;
-    MATCH implicitConvTo(Type* to) override;
     Expression* defaultInitLiteral(const Loc& loc) override;
     bool hasUnsafeBitpatterns() override;
     bool hasVoidInitPointers() override;
@@ -4604,7 +4593,6 @@ public:
     bool hasVoidInitPointers() override;
     bool hasUnsafeBitpatterns() override;
     bool hasInvariant() override;
-    MATCH implicitConvTo(Type* to) override;
     MATCH constConv(Type* to) override;
     uint8_t deduceWild(Type* t, bool isRef) override;
     void accept(Visitor* v) override;
@@ -4649,7 +4637,6 @@ public:
     const char* kind() const override;
     TypeTuple* syntaxCopy() override;
     bool equals(const RootObject* const o) const override;
-    MATCH implicitConvTo(Type* to) override;
     void accept(Visitor* v) override;
 };
 
@@ -4676,7 +4663,6 @@ public:
     bool isscalar() override;
     bool isunsigned() override;
     bool isBoolean() override;
-    MATCH implicitConvTo(Type* to) override;
     Expression* defaultInitLiteral(const Loc& loc) override;
     TypeBasic* elementType();
     bool isZeroInit(const Loc& loc) override;

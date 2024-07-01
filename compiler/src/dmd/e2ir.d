@@ -28,6 +28,7 @@ import dmd.astenums;
 import dmd.attrib;
 import dmd.canthrow;
 import dmd.ctfeexpr;
+import dmd.dcast : implicitConvTo;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;

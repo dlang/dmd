@@ -25,6 +25,7 @@ import dmd.astenums;
 import dmd.backend.type;
 import dmd.ctfeexpr;
 import dmd.declaration;
+import dmd.dcast : implicitConvTo;
 import dmd.dclass;
 import dmd.denum;
 import dmd.dstruct;
