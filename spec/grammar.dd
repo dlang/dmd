@@ -8,7 +8,7 @@ $(H2 Lexical Syntax)
 
     $(P Refer to the page for $(LINK2 lex.html, lexical syntax).)
 
-$(GRAMMAR_SUMMARY)
+$(SUMMARY_GRAMMAR)
 
 $(SPEC_SUBNAV_PREV_NEXT istring, Interpolation Expression Sequence, module, Modules)
 )
@@ -29,4 +29,4 @@ Macros:
         PSCURLYSCOPE=$(GLINK NonEmptyOrScopeBlockStatement)
         TRAITS_LINK2=$(LINK2 traits.html#$1, $(D $1))
         GLINK2=$(GLINK $2)
-        GRAMMAR_SUMMARY=$0
+        SUMMARY_GRAMMAR=$0

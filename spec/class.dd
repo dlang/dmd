@@ -1446,7 +1446,7 @@ $(GNAME AnonBaseClassList):
 
 which is equivalent to:
 
-$(GRAMMAR_INFORMATIVE
+$(INFORMATIVE_GRAMMAR
 $(D class) $(GLINK_LEX Identifier) $(D :) $(I AnonBaseClassList) $(I AggregateBody)
 // ...
 $(D new) $(I Identifier) $(I ConstructorArgs)

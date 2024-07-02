@@ -55,7 +55,7 @@ import core.simd;
 
         $(P The types defined will all follow the naming convention:)
 
-$(GRAMMAR_INFORMATIVE
+$(INFORMATIVE_GRAMMAR
 $(I typeNN)
 )
         where $(I type) is the vector element type and $(I NN) is the number

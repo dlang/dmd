@@ -398,7 +398,7 @@ $(H2 $(LNAME2 implementation, Implementation))
 
     $(P This is described in C11 7.6.1)
 
-$(GRAMMAR_INFORMATIVE
+$(INFORMATIVE_GRAMMAR
 #pragma STDC FENV_ACCESS on-off-switch
 
 on-off-switch:
