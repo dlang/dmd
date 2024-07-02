@@ -2834,7 +2834,7 @@ void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm
     code *cs2 = null;
     int adjesp = 0;
 
-    for (uint i = 0; tosave; i++)
+    for (reg_t i = 0; tosave; i++)
     {
         regm_t mi = mask(i);
 
@@ -2843,7 +2843,7 @@ void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm
         {
             if (touse)          /* if any scratch registers             */
             {
-                uint j;
+                reg_t j;
                 for (j = 0; j < 8; j++)
                 {
                     regm_t mj = mask(j);

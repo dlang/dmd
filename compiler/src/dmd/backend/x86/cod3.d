@@ -2803,7 +2803,7 @@ void genpop(ref CodeBuilder cdb, reg_t reg)
  */
 
 @trusted
-void genmovreg(ref CodeBuilder cdb, uint to, uint from, tym_t tym = TYMAX)
+void genmovreg(ref CodeBuilder cdb, reg_t to, reg_t from, tym_t tym = TYMAX)
 {
     // register kind. ex: GPR,XMM,SEG
     static uint _K(uint reg)
@@ -2875,7 +2875,7 @@ void genmovreg(ref CodeBuilder cdb, uint to, uint from, tym_t tym = TYMAX)
  */
 
 @trusted
-void genmulimm(ref CodeBuilder cdb,uint r1,uint r2,targ_int imm)
+void genmulimm(ref CodeBuilder cdb,reg_t r1,reg_t r2,targ_int imm)
 {
     // These optimizations should probably be put into pinholeopt()
     switch (imm)
