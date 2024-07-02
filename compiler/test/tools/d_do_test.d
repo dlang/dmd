@@ -1127,6 +1127,7 @@ Applies custom transformations defined in transformOutput to testOutput.
 
 Currently the following actions are supported:
  * "sanitize_json"       = replace compiler/plattform specific data from generated JSON
+ * "sanitize_timetrace"  = parse -ftime-trace profiler output, and only extract event names
  * "remove_lines(<re>)" = remove all lines matching a regex <re>
 
 Params:
@@ -1184,6 +1185,11 @@ void applyOutputTransformations(ref string testOutput, string transformOutput)
                     .join('\n');
                 break;
             }
+
+            case "sanitize_timetrace":
+                import sanitize_timetrace;
+                sanitizeTimeTrace(testOutput);
+                break;
 
             default:
                 throw new Exception(format(`Unknown transformation: "%s"!`, step));

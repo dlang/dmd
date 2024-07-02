@@ -466,6 +466,10 @@ private void genObjFile(Module m, bool multiobj)
 
     //printf("Module.genobjfile(multiobj = %d) %s\n", multiobj, m.toChars());
 
+    import dmd.timetrace;
+    timeTraceBeginEvent(TimeTraceEventType.codegenModule);
+    scope(exit) timeTraceEndEvent(TimeTraceEventType.codegenModule, m);
+
     glue.lastmname = m.srcfile.toChars();
 
     objmod.initfile(glue.lastmname, null, m.toPrettyChars());
@@ -746,6 +750,10 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     UnitTestDeclaration ud = fd.isUnitTestDeclaration();
     if (ud && !global.params.useUnitTests)
         return;
+
+    import dmd.timetrace;
+    timeTraceBeginEvent(TimeTraceEventType.codegenFunction);
+    scope (exit) timeTraceEndEvent(TimeTraceEventType.codegenFunction, fd);
 
     if (multiobj && !fd.isStaticDtorDeclaration() && !fd.isStaticCtorDeclaration()
         && !(fd.isCrtCtor || fd.isCrtDtor))
