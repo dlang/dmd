@@ -118,82 +118,25 @@ else version (TVOS)
 else version (WatchOS)
     version = Darwin;
 
-version (Windows)
+import core.stdc.datamodel;
+
+static if (dataModel == DataModel.ILP32 || dataModel == DataModel.LLP64)
 {
-    enum __c_long  : int;
-    enum __c_ulong : uint;
-
-    alias int   c_long;
-    alias uint  c_ulong;
-
-    alias __c_long   cpp_long;
-    alias __c_ulong  cpp_ulong;
-
-    alias long  cpp_longlong;
-    alias ulong cpp_ulonglong;
+    alias c_long = int;
+    alias c_ulong = uint;
 }
-else version (Posix)
+else static if (dataModel == DataModel.LP64)
 {
-  static if ( (void*).sizeof > int.sizeof )
-  {
-    enum __c_longlong  : long;
-    enum __c_ulonglong : ulong;
-
-    alias long  c_long;
-    alias ulong c_ulong;
-
-    alias long   cpp_long;
-    alias ulong  cpp_ulong;
-
-    alias __c_longlong  cpp_longlong;
-    alias __c_ulonglong cpp_ulonglong;
-  }
-  else
-  {
-    enum __c_long  : int;
-    enum __c_ulong : uint;
-
-    alias int   c_long;
-    alias uint  c_ulong;
-
-    alias __c_long   cpp_long;
-    alias __c_ulong  cpp_ulong;
-
-    alias long  cpp_longlong;
-    alias ulong cpp_ulonglong;
-  }
+    alias c_long = long;
+    alias c_ulong = ulong;
 }
-else version (WASI)
-{
-    static if ( (void*).sizeof > int.sizeof )
-    {
-        enum __c_longlong  : long;
-        enum __c_ulonglong : ulong;
+else
+    static assert(false, "Unsupported C data model");
 
-        alias long  c_long;
-        alias ulong c_ulong;
-
-        alias long   cpp_long;
-        alias ulong  cpp_ulong;
-
-        alias __c_longlong  cpp_longlong;
-        alias __c_ulonglong cpp_ulonglong;
-    }
-    else
-    {
-        enum __c_long  : int;
-        enum __c_ulong : uint;
-
-        alias int   c_long;
-        alias uint  c_ulong;
-
-        alias __c_long   cpp_long;
-        alias __c_ulong  cpp_ulong;
-
-        alias long  cpp_longlong;
-        alias ulong cpp_ulonglong;
-    }
-}
+alias cpp_long = c_long;
+alias cpp_ulong = c_long;
+alias cpp_longlong = long;
+alias cpp_ulonglong = ulong;
 
 version (GNU)
     alias c_long_double = real;

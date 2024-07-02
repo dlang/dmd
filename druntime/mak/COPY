@@ -94,6 +94,7 @@ COPY=\
 	$(IMPDIR)\core\stdc\complex.d \
 	$(IMPDIR)\core\stdc\config.d \
 	$(IMPDIR)\core\stdc\ctype.d \
+	$(IMPDIR)\core\stdc\datamodel.d \
 	$(IMPDIR)\core\stdc\errno.d \
 	$(IMPDIR)\core\stdc\fenv.d \
 	$(IMPDIR)\core\stdc\float_.d \
