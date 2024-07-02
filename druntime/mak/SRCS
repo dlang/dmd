@@ -92,6 +92,7 @@ SRCS=\
 	src\core\stdc\complex.d \
 	src\core\stdc\config.d \
 	src\core\stdc\ctype.d \
+	src\core\stdc\datamodel.d \
 	src\core\stdc\errno.d \
 	src\core\stdc\fenv.d \
 	src\core\stdc\float_.d \
