@@ -1865,7 +1865,7 @@ void template_h(TemplateParameter *tp, Scope *sc, TemplateParameters *tps,
 void typinf_h(Expression *e, const Loc &loc, Type *t, Scope *sc)
 {
     dmd::genTypeInfo(e, loc, t, sc);
-    ::getTypeInfoType(loc, t, sc, false);
+    ::getTypeInfoType(loc, t, sc);
     dmd::isSpeculativeType(t);
     dmd::builtinTypeInfo(t);
 }
