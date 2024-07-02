@@ -13,6 +13,35 @@
 
 module core.stdc.config;
 
+/**
+ * The choices made by each C implementation about the sizes of the
+ * fundamental types are known as "data model".
+ *
+ * See_Also: https://en.cppreference.com/w/c/language/arithmetic_types
+ */
+enum DataModel
+{
+    ILP32,  /// or 4/4/4 (int, long, and pointer are 32-bit)
+    LP64,   /// or 4/8/8 (int is 32-bit, long and pointer are 64-bit)
+    LLP64,  /// or 4/4/8 (int and long are 32-bit, pointer is 64-bit)
+}
+
+version (D_LP64)
+{
+    version (Cygwin)
+        enum dataModel = DataModel.LP64; ///
+    else version (Windows)
+        enum dataModel = DataModel.LLP64; ///
+    else
+        enum dataModel = DataModel.LP64; ///
+}
+else // 32-bit pointers
+{
+    enum dataModel = DataModel.ILP32; ///
+}
+
+static assert(__traits(compiles, typeof(dataModel)));
+
 version (StdDdoc)
 {
     private
@@ -109,6 +138,37 @@ version (StdDdoc)
 else
 {
 
+static if (dataModel == DataModel.ILP32 || dataModel == DataModel.LLP64)
+{
+    enum __c_long  : int;
+    enum __c_ulong : uint;
+
+    alias c_long = int;
+    alias c_ulong = uint;
+
+    alias cpp_long = __c_long;
+    alias cpp_ulong = __c_ulong;
+
+    alias cpp_longlong = long;
+    alias cpp_ulonglong = ulong;
+}
+else static if (dataModel == DataModel.LP64)
+{
+    enum __c_longlong  : long;
+    enum __c_ulonglong : ulong;
+
+    alias c_long = long;
+    alias c_ulong = ulong;
+
+    alias cpp_long = long;
+    alias cpp_ulong = ulong;
+
+    alias cpp_longlong = __c_longlong;
+    alias cpp_ulonglong = __c_ulonglong;
+}
+else
+    static assert(false, "Unsupported C data model");
+
 version (OSX)
     version = Darwin;
 else version (iOS)
@@ -117,83 +177,6 @@ else version (TVOS)
     version = Darwin;
 else version (WatchOS)
     version = Darwin;
-
-version (Windows)
-{
-    enum __c_long  : int;
-    enum __c_ulong : uint;
-
-    alias int   c_long;
-    alias uint  c_ulong;
-
-    alias __c_long   cpp_long;
-    alias __c_ulong  cpp_ulong;
-
-    alias long  cpp_longlong;
-    alias ulong cpp_ulonglong;
-}
-else version (Posix)
-{
-  static if ( (void*).sizeof > int.sizeof )
-  {
-    enum __c_longlong  : long;
-    enum __c_ulonglong : ulong;
-
-    alias long  c_long;
-    alias ulong c_ulong;
-
-    alias long   cpp_long;
-    alias ulong  cpp_ulong;
-
-    alias __c_longlong  cpp_longlong;
-    alias __c_ulonglong cpp_ulonglong;
-  }
-  else
-  {
-    enum __c_long  : int;
-    enum __c_ulong : uint;
-
-    alias int   c_long;
-    alias uint  c_ulong;
-
-    alias __c_long   cpp_long;
-    alias __c_ulong  cpp_ulong;
-
-    alias long  cpp_longlong;
-    alias ulong cpp_ulonglong;
-  }
-}
-else version (WASI)
-{
-    static if ( (void*).sizeof > int.sizeof )
-    {
-        enum __c_longlong  : long;
-        enum __c_ulonglong : ulong;
-
-        alias long  c_long;
-        alias ulong c_ulong;
-
-        alias long   cpp_long;
-        alias ulong  cpp_ulong;
-
-        alias __c_longlong  cpp_longlong;
-        alias __c_ulonglong cpp_ulonglong;
-    }
-    else
-    {
-        enum __c_long  : int;
-        enum __c_ulong : uint;
-
-        alias int   c_long;
-        alias uint  c_ulong;
-
-        alias __c_long   cpp_long;
-        alias __c_ulong  cpp_ulong;
-
-        alias long  cpp_longlong;
-        alias ulong cpp_ulonglong;
-    }
-}
 
 version (GNU)
     alias c_long_double = real;
