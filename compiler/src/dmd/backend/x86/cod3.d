@@ -305,7 +305,7 @@ bool hasModregrm(scope const code* c)
 {
     uint ins;
     opcode_t op1 = c.Iop & 0xFF;
-    if (op1 == PSOP.root)
+    if ((c.Iop & PSOP.mask) == PSOP.root)
         ins = 0;
     else if ((c.Iop & 0xFFFD00) == 0x0F3800)
         ins = inssize2[(c.Iop >> 8) & 0xFF];
@@ -6380,6 +6380,9 @@ uint calccodsize(code *c)
     iflags = c.Iflags;
     opcode_t op = c.Iop;
     //printf("calccodsize(x%08x), Iflags = x%x\n", op, iflags);
+    if ((op & PSOP.mask) == PSOP.root)
+        return 0;
+
     if (iflags & CFvex && c.Ivex.pfx == 0xC4)
     {
         ins = vex_inssize(c);
@@ -6414,7 +6417,6 @@ uint calccodsize(code *c)
             goto Lret2;
 
         case NOP:
-        case PSOP.root:
             size = 0;                   // since these won't be output
             goto Lret2;
 
@@ -6797,31 +6799,26 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
         }
 
         opcode_t op = c.Iop;
+        if ((op & PSOP.mask) == PSOP.root)
+        {
+            switch (op)
+            {   case PSOP.linnum:
+                    /* put out line number stuff    */
+                    objmod.linnum(c.IEV1.Vsrcpos,seg,ggen.getOffset());
+                    break;
+                case PSOP.adjesp:
+                    //printf("adjust ESP %ld\n", cast(long)c.IEV1.Vint);
+                    break;
+
+                default:
+                    break;
+            }
+            continue;
+        }
+
         ins = inssize[op & 0xFF];
         switch (op & 0xFF)
         {
-            case PSOP.root:
-                /* Check for SSE4 opcode v/pmaxuw xmm1,xmm2/m128 */
-                if(op == 0x660F383E || c.Iflags & CFvex) break;
-
-                switch (op)
-                {   case PSOP.linnum:
-                        /* put out line number stuff    */
-                        objmod.linnum(c.IEV1.Vsrcpos,seg,ggen.getOffset());
-                        break;
-                    case PSOP.adjesp:
-                        //printf("adjust ESP %ld\n", cast(long)c.IEV1.Vint);
-                        break;
-
-                    default:
-                        break;
-                }
-
-                debug
-                assert(calccodsize(c) == 0);
-
-                continue;
-
             case NOP:                   /* don't send them out          */
                 if (op != NOP)
                     break;
