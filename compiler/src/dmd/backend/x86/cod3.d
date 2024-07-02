@@ -30,6 +30,8 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcse;
 import dmd.backend.code;
+import dmd.backend.arm.cod3;
+import dmd.backend.arm.instr;
 import dmd.backend.x86.code_x86;
 import dmd.backend.codebuilder;
 import dmd.backend.dlist;
@@ -45,7 +47,6 @@ import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.x86.xmm;
-
 
 nothrow:
 @safe:
@@ -323,6 +324,7 @@ bool hasModregrm(scope const code* c)
 @trusted
 void cod3_setdefault()
 {
+    cgstate.BP = BP;
     fregsaved = mBP | mSI | mDI;
 }
 
@@ -332,6 +334,8 @@ void cod3_setdefault()
 @trusted
 void cod3_set32()
 {
+    cgstate.BP = BP;
+
     inssize[0xA0] = T|5;
     inssize[0xA1] = T|5;
     inssize[0xA2] = T|5;
@@ -357,6 +361,8 @@ void cod3_set32()
 @trusted
 void cod3_set64()
 {
+    cgstate.BP = BP;
+
     inssize[0xA0] = T|5;                // MOV AL,mem
     inssize[0xA1] = T|5;                // MOV RAX,mem
     inssize[0xA2] = T|5;                // MOV mem,AL
@@ -375,6 +381,25 @@ void cod3_set64()
         v = W|T|6;
 
     TARGET_STACKALIGN = config.fpxmmregs ? 16 : 8;
+}
+
+/********************************
+ * Fix global variables for AArch64.
+ */
+
+@trusted
+void cod3_setAArch64()
+{
+    cgstate.AArch64 = true;
+    cgstate.BP = 29;
+
+    /* Registers x19-x28, x29, v8-v15
+     */
+    fregsaved = (1<<19) | (1<<20) | (1<<21) | (1<<22) | (1<<23) | (1<<24) | (1<<25) | (1<<26) | (1<<27) | (1<<28) | (1<<29) |
+                // (1<<(32+8)) | (1<<(32+9)) | (1<<(32+10)) | (1<<(32+11)) | (1<<(32+12)) | (1<<(32+13)) | (1<<(32+14)) | (1<<(32+15)) |
+                (1<<29);
+
+    TARGET_STACKALIGN = 16;
 }
 
 /*********************************
@@ -471,9 +496,34 @@ void cod3_align(int seg)
  *      cdb = code builder
  *      nbytes = number of bytes to adjust stack pointer
  */
+@trusted
 void cod3_stackadj(ref CodeBuilder cdb, int nbytes)
 {
     //printf("cod3_stackadj(%d)\n", nbytes);
+    if (cgstate.AArch64)
+    {
+        // https://www.scs.stanford.edu/~zyedidia/arm64/sub_addsub_imm.html
+        // add/sub Xd,Xn,#imm{,shift}
+        uint sf = 1;
+        uint op = nbytes < 0 ? 0 : 1;
+        uint S = 0;
+        uint sh = 0;
+        uint imm12 = nbytes < 0 ? -nbytes : nbytes;
+        uint Rn = 0x1F;
+        uint Rd = 0x1F;
+        uint ins = (sf    << 31) |
+                   (op    << 30) |
+                   (S     << 29) |
+                   (0x22  << 23) |
+                   (sh    << 22) |
+                   (imm12 << 10) |
+                   (Rn    <<  5) |
+                    Rd;
+        cdb.gen1(ins);
+        assert(imm12 < (1 << 12));  // only 12 bits allowed
+        assert((imm12 & 0xF) == 0); // 16 byte aligned
+        return;
+    }
     uint grex = I64 ? REX_W << 16 : 0;
     uint rm;
     if (nbytes > 0)
@@ -2805,6 +2855,9 @@ void genpop(ref CodeBuilder cdb, reg_t reg)
 @trusted
 void genmovreg(ref CodeBuilder cdb, reg_t to, reg_t from, tym_t tym = TYMAX)
 {
+    if (cgstate.AArch64)
+        return dmd.backend.arm.cod3.genmovreg(cdb, cast(reg_t)to, cast(reg_t)from, tym);
+
     // register kind. ex: GPR,XMM,SEG
     static uint _K(uint reg)
     {
@@ -2932,6 +2985,9 @@ void genshift(ref CodeBuilder cdb)
 @trusted
 void movregconst(ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags)
 {
+    if (cgstate.AArch64)
+        return dmd.backend.arm.cod3.movregconst(cdb, reg, value, flags);
+
     reg_t r;
     regm_t mreg;
 
@@ -3402,10 +3458,13 @@ void prolog_frame(ref CGstate cg, ref CodeBuilder cdb, bool farfunc, ref uint xl
          config.flags4 & CFG4speed)
        )
     {
-        cdb.genpush(BP);      // PUSH BP
-        genregs(cdb,0x8B,BP,SP);      // MOV  BP,SP
-        if (I64)
-            code_orrex(cdb.last(), REX_W);   // MOV RBP,RSP
+        if (!cgstate.AArch64)
+        {
+            cdb.genpush(BP);      // PUSH BP
+            genregs(cdb,0x8B,BP,SP);      // MOV  BP,SP
+            if (I64)
+                code_orrex(cdb.last(), REX_W);   // MOV RBP,RSP
+        }
         if ((config.objfmt & (OBJ_ELF | OBJ_MACH)) && config.fulltypes)
             // Don't reorder instructions, as dwarf CFA relies on it
             code_orflag(cdb.last(), CFvolatile);
@@ -3461,6 +3520,7 @@ void prolog_stackalign(ref CGstate cg, ref CodeBuilder cdb)
 @trusted
 void prolog_frameadj(ref CGstate cg, ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool enter, bool* pushalloc)
 {
+    //printf("prolog_frameadj()\n");
     reg_t pushallocreg = (tyf == TYmfunc) ? CX : AX;
 
     bool check;
@@ -3511,6 +3571,58 @@ void prolog_frameadj(ref CGstate cg, ref CodeBuilder cdb, tym_t tyf, uint xlocal
             useregs(mask(reg));
         }
     }
+    else if (cgstate.AArch64)
+    {
+        /* sub sp,sp,#16+xlocalsize
+           stp x29,x30,[sp,#xlocalsize]
+           add x29,sp,#xlocalsize
+         */
+        cod3_stackadj(cdb, 16 + xlocalsize);
+
+        // https://www.scs.stanford.edu/~zyedidia/arm64/stp_gen.html
+        // stp x29,x30,[sp,#xlocalsize]
+        {
+            uint opc = 2;
+            uint imm7 = xlocalsize;
+            uint Rt2 = 30;
+            uint Rn = 0x1F;
+            uint Rt = 29;
+            uint ins =
+                (opc  << 30) |
+                (0xA4 << 22) |
+                (imm7 << 15) |
+                (Rt2  << 10) |
+                (Rn   <<  5) |
+                 Rt;
+            cdb.gen1(ins);
+            assert(imm7 < (1 << 7));  // only 7 bits allowed
+            assert((imm7 & 0xF) == 0); // 16 byte aligned
+        }
+
+        // https://www.scs.stanford.edu/~zyedidia/arm64/sub_addsub_imm.html
+        // add Xd,Xn,#imm{,shift}
+        {
+            uint sf = 1;
+            uint op = 0;
+            uint S = 0;
+            uint sh = 0;
+            uint imm12 = xlocalsize;
+            uint Rn = 0x1F;
+            uint Rd = 29;
+            uint ins =
+                   (sf    << 31) |
+                   (op    << 30) |
+                   (S     << 29) |
+                   (0x22  << 23) |
+                   (sh    << 22) |
+                   (imm12 << 10) |
+                   (Rn    <<  5) |
+                    Rd;
+            cdb.gen1(ins);
+            assert(imm12 < (1 << 12));  // only 12 bits allowed
+            assert((imm12 & 0xF) == 0); // 16 byte aligned
+        }
+    }
     else
     {
         if (enter)
@@ -3533,6 +3645,15 @@ void prolog_frameadj(ref CGstate cg, ref CodeBuilder cdb, tym_t tyf, uint xlocal
 
 void prolog_frameadj2(ref CGstate cg, ref CodeBuilder cdb, tym_t tyf, uint xlocalsize, bool* pushalloc)
 {
+    //debug printf("prolog_frameadj2()\n");
+    if (cg.AArch64)
+    {
+        /* sub sp,sp,#xlocalsize
+         */
+        cod3_stackadj(cdb, xlocalsize);
+        return;
+    }
+
     reg_t pushallocreg = (tyf == TYmfunc) ? CX : AX;
     if (xlocalsize == REGSIZE)
     {
@@ -4001,7 +4122,8 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
     debug
     foreach (s; globsym[])
     {
-        if (debugr && (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg))
+        if (debugr)
+        if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
         {
             printf("symbol '%s' is fastpar in register [l %s, m %s]\n", s.Sident.ptr,
                 regm_str(mask(s.Spreg)),
@@ -4011,6 +4133,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
         }
     }
 
+    bool AArch64 = cgstate.AArch64;
     uint pushallocreg = (tyf == TYmfunc) ? CX : AX;
 
     /* Copy SCfastpar and SCshadowreg (parameters passed in registers) that were not assigned
@@ -4086,35 +4209,51 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
             {
                 if (cgstate.hasframe && (!cgstate.enforcealign || s.Sclass == SC.shadowreg))
                 {
-                    // MOV x[EBP],preg
-                    cdb.genc1(op,modregxrm(2,preg,BPRM),FLconst,offset);
-                    if (isXMMreg(preg))
+                    if (AArch64)
                     {
-                        checkSetVex(cdb.last(), t.Tty);
+                        // str preg,bp,#offset
+                        cdb.gen1(INSTR.str_imm_gen(sz > 4, preg, 29, offset));
                     }
                     else
                     {
-                        //printf("%s Fast.size = %d, BPoff = %d, Soffset = %d, sz = %d\n",
-                        //         s.Sident, (int)cgstate.Fast.size, (int)cgstate.BPoff, (int)s.Soffset, (int)sz);
-                        if (I64 && sz > 4)
-                            code_orrex(cdb.last(), REX_W);
+                        // MOV x[EBP],preg
+                        cdb.genc1(op,modregxrm(2,preg,BPRM),FLconst,offset);
+                        if (isXMMreg(preg))
+                        {
+                            checkSetVex(cdb.last(), t.Tty);
+                        }
+                        else
+                        {
+                            //printf("%s Fast.size = %d, BPoff = %d, Soffset = %d, sz = %d\n",
+                            //         s.Sident, (int)cgstate.Fast.size, (int)cgstate.BPoff, (int)s.Soffset, (int)sz);
+                            if (I64 && sz > 4)
+                                code_orrex(cdb.last(), REX_W);
+                        }
                     }
                 }
                 else
                 {
-                    // MOV offset[ESP],preg
-                    // BUG: byte size?
-                    cdb.genc1(op,
-                              (modregrm(0,4,SP) << 8) |
-                               modregxrm(2,preg,4),FLconst,offset);
-                    if (isXMMreg(preg))
+                    if (AArch64)
                     {
-                        checkSetVex(cdb.last(), t.Tty);
+                        // str preg,sp,#offset
+                        cdb.gen1(INSTR.str_imm_gen(sz > 4, preg, 31, offset));
                     }
                     else
                     {
-                        if (I64 && sz > 4)
-                            cdb.last().Irex |= REX_W;
+                        // MOV offset[ESP],preg
+                        // BUG: byte size?
+                        cdb.genc1(op,
+                                  (modregrm(0,4,SP) << 8) |
+                                   modregxrm(2,preg,4),FLconst,offset);
+                        if (isXMMreg(preg))
+                        {
+                            checkSetVex(cdb.last(), t.Tty);
+                        }
+                        else
+                        {
+                            if (I64 && sz > 4)
+                                cdb.last().Irex |= REX_W;
+                        }
                     }
                 }
             }
@@ -4299,6 +4438,9 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
 @trusted
 void epilog(block *b)
 {
+    if (cgstate.AArch64)
+        return dmd.backend.arm.cod3.epilog(b);
+
     code *cpopds;
     reg_t reg;
     reg_t regx;                      // register that's not a return reg
@@ -4850,6 +4992,12 @@ void makeitextern(Symbol *s)
 @trusted
 int branch(block *bl,int flag)
 {
+    if (cgstate.AArch64)
+    {
+        import dmd.backend.arm.cod3 : branch;
+        return branch(bl, flag);
+    }
+
     int bytesaved;
     code* c,cn,ct;
     targ_size_t offset,disp;
@@ -5132,6 +5280,12 @@ void assignaddr(block *bl)
 @trusted
 void assignaddrc(code *c)
 {
+    if (cgstate.AArch64)
+    {
+        import dmd.backend.arm.cod3 : assignaddrc;
+        return assignaddrc(c);
+    }
+
     int sn;
     Symbol *s;
     ubyte ins,rm;
@@ -5573,6 +5727,9 @@ targ_size_t cod3_bpoffset(Symbol *s)
 @trusted
 void pinholeopt(code *c,block *b)
 {
+    if (cgstate.AArch64)
+        return;
+
     targ_size_t a;
     uint mod;
     ubyte ins;
@@ -6275,6 +6432,12 @@ void simplify_code(code* c)
 @trusted
 void jmpaddr(code *c)
 {
+    if (cgstate.AArch64)
+    {
+        import dmd.backend.arm.cod3 : jmpaddr;
+        return jmpaddr(c);
+    }
+
     code* ci,cn,ctarg,cstart;
     targ_size_t ad;
 
@@ -6368,6 +6531,12 @@ uint calcblksize(code *c)
 @trusted
 uint calccodsize(code *c)
 {
+    if (cgstate.AArch64)
+    {
+        import dmd.backend.arm.cod3 : calccodsize;
+        return calccodsize(c);
+    }
+
     uint size;
     ubyte rm,mod,ins;
     uint iflags;
@@ -6676,7 +6845,7 @@ nomatch:
  * Little buffer allocated on the stack to accumulate instruction bytes to
  * later be sent along to objmod
  */
-private struct MiniCodeBuf
+struct MiniCodeBuf
 {
 nothrow:
     uint index;
@@ -6709,6 +6878,9 @@ nothrow:
     }
 
     void gen(ubyte c) { bytes[index++] = c; }
+
+    @trusted
+    void gen32(uint c)  { assert(index <= bytes.length - 4); *(cast(uint*)(&bytes[index])) = c; index += 4; }
 
     @trusted
     void genp(uint n, void *p) { memcpy(&bytes[index], p, n); index += n; }
@@ -6773,6 +6945,9 @@ nothrow:
 @trusted
 uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
 {
+    if (cgstate.AArch64)
+        return dmd.backend.arm.cod3.codout(seg, c, disasmBuf);
+
     ubyte rm,mod;
     ubyte ins;
     code *cn;
@@ -7657,8 +7832,11 @@ void WRcodlst(code *c)
 }
 
 @trusted
-extern (C) void code_print(scope code* c)
+void code_print(scope code* c)
 {
+    if (cgstate.AArch64)
+        return dmd.backend.arm.cod3.code_print(c);
+
     ubyte ins;
     ubyte rexb;
 

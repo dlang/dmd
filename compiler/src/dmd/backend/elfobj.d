@@ -1325,6 +1325,8 @@ void ElfObj_term(const(char)[] objfilename)
         h64.EHident[EI_OSABI] = ELFOSABI;
         h64.e_shoff     = e_shoff;
         h64.e_shnum     = e_shnum;
+        if (config.target_cpu == TARGET_AArch64)
+            h64.e_machine = EM_AARCH64;
         fobjbuf.write(&h64, hdrsize);
     }
     else

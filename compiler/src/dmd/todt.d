@@ -1419,7 +1419,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoStructDeclaration d)
     {
         //printf("TypeInfoStructDeclaration.toDt() '%s'\n", d.toChars());
-        if (target.isX86_64)
+        if (target.isX86_64 || target.isAArch64)
             verifyStructSize(Type.typeinfostruct, 17 * target.ptrsize);
         else
             verifyStructSize(Type.typeinfostruct, 15 * target.ptrsize);
@@ -1544,7 +1544,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         // uint m_align;
         dtb.size(tc.alignsize());
 
-        if (target.isX86_64)
+        if (target.isX86_64 || target.isAArch64)
         {
             foreach (i; 0 .. 2)
             {
