@@ -1969,9 +1969,9 @@ void escapeByRef(Expression e, ref scope EscapeByResults er, bool retRefTransiti
         auto v = e.var.isVarDeclaration();
         if (v)
         {
-            if (v.storage_class & STC.ref_ && v.storage_class & (STC.foreach_ | STC.temp) && v._init)
+            if (v.storage_class & STC.ref_ && v._init)
             {
-                /* If compiler generated ref temporary
+                /* If ref
                     *   (ref v = ex; ex)
                     * look at the initializer instead
                     */
