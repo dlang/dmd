@@ -7091,17 +7091,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // Handle this in the glue layer
             e = new TypeidExp(exp.loc, ta);
 
-            bool genObjCode = true;
-
-            // https://issues.dlang.org/show_bug.cgi?id=23650
-            // We generate object code for typeinfo, required
-            // by typeid, only if in non-speculative context
-            if (sc.flags & SCOPE.compile)
-            {
-                genObjCode = false;
-            }
-
-            e.type = getTypeInfoType(exp.loc, ta, sc, genObjCode);
+            e.type = getTypeInfoType(exp.loc, ta, sc);
             semanticTypeInfo(sc, ta);
 
             if (ea)
