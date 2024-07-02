@@ -437,9 +437,31 @@ private BlkInfo __arrayAlloc(size_t arrsize, ref BlkInfo info, const scope TypeI
         return BlkInfo();
     }
 
-    auto bi = GC.qalloc(padded_size, info.attr, tinext);
+    auto bi = GC.qalloc(padded_size, info.attr | BlkAttr.APPENDABLE, tinext);
     __arrayClearPad(bi, arrsize, padsize);
     return bi;
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=24617
+unittest
+{
+    static struct S
+    {
+        int[1] val;
+    }
+    auto s = new S;
+    int[] arr = s.val[];
+    assert(arr.capacity == 0); // starts out without appendability
+    arr.length = 2;
+    assert(arr.capacity > 0);
+
+    arr = s.val[]; // reset
+    arr.reserve(100);
+    assert(arr.capacity > 0);
+
+    arr = s.val[]; // reset
+    arr ~= 10;
+    assert(arr.capacity > 0);
 }
 
 /**
