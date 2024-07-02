@@ -3774,7 +3774,7 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     else
     {
         // OPs16_32, OPs32_64, OPs64_128
-        uint msreg,lsreg;
+        reg_t msreg,lsreg;
 
         retregs = *pretregs & mLSW;
         assert(retregs);
