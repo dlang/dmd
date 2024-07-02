@@ -2000,10 +2000,10 @@ void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, ref regm_t outretre
             }
             else if (sz > REGSIZE)
             {
-                uint msreg = findregmsw(retregs);
-                uint lsreg = findreglsw(retregs);
-                uint msrreg = findregmsw(outretregs);
-                uint lsrreg = findreglsw(outretregs);
+                reg_t msreg = findregmsw(retregs);
+                reg_t lsreg = findreglsw(retregs);
+                reg_t msrreg = findregmsw(outretregs);
+                reg_t lsrreg = findreglsw(outretregs);
 
                 genmovreg(cdb, msrreg, msreg); // MOV msrreg,msreg
                 genmovreg(cdb, lsrreg, lsreg); // MOV lsrreg,lsreg
@@ -3473,7 +3473,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, regm_t* pretregs)
     for (int i = 0; i < np; i++)
     {
         elem* ep = parameters[i].e;
-        int preg = parameters[i].reg;
+        reg_t preg = parameters[i].reg;
         //printf("parameter[%d] = %d, np = %d\n", i, preg, np);
         if (preg == NOREG)
         {
@@ -3533,7 +3533,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, regm_t* pretregs)
             regm_t retregs = mask(preg);
             if (retregs & XMMREGS)
                 ++xmmcnt;
-            int preg2 = parameters[i].reg2;
+            reg_t preg2 = parameters[i].reg2;
             reg_t mreg,lreg;
             if (preg2 != NOREG || tybasic(ep.Ety) == TYcfloat)
             {
