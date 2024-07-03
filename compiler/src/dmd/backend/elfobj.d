@@ -100,23 +100,34 @@ bool ELF_COMDAT() { return (config.exe & (EX_LINUX | EX_LINUX64 | EX_FREEBSD | E
 
 alias reltype_t = uint;
 
+/****************************************************
+ * Elf global symbols
+ */
+struct ElfGlbl
+{
+    Symbol* GOTsym;             // global offset table reference
+    OutBuffer* section_names;	// Section Names  - String table for section names only
+    AApair2* section_names_hashtable; // Hash table for section_names
+    int jmpseg;
+}
+
+private __gshared ElfGlbl elfGlbl;
+
 /******************************************
  */
 
-private __gshared Symbol *GOTsym; // global offset table reference
-
 Symbol *ElfObj_getGOTsym()
 {
-    if (!GOTsym)
+    if (!elfGlbl.GOTsym)
     {
-        GOTsym = symbol_name("_GLOBAL_OFFSET_TABLE_",SC.global,tspvoid);
+        elfGlbl.GOTsym = symbol_name("_GLOBAL_OFFSET_TABLE_",SC.global,tspvoid);
     }
-    return GOTsym;
+    return elfGlbl.GOTsym;
 }
 
 void ElfObj_refGOTsym()
 {
-    if (!GOTsym)
+    if (!elfGlbl.GOTsym)
     {
         Symbol *s = ElfObj_getGOTsym();
         ElfObj_external(s);
@@ -136,15 +147,8 @@ void ElfObj_refGOTsym()
 //              Notes section
 //              Comment data
 
-// Section Names  - String table for section names only
-private __gshared OutBuffer *section_names;
 enum SEC_NAMES_INIT = 800;
 enum SEC_NAMES_INC  = 400;
-
-// Hash table for section_names
-__gshared AApair2 *section_names_hashtable;
-
-__gshared int jmpseg;
 
 /* ======================================================================== */
 
@@ -157,7 +161,7 @@ __gshared Barray!(Elf32_Shdr) SecHdrTab;        // section header table
 
 const(char)* GET_SECTION_NAME(int secidx)
 {
-    return cast(const(char)*)section_names.buf + SecHdrTab[secidx].sh_name;
+    return cast(const(char)*)elfGlbl.section_names.buf + SecHdrTab[secidx].sh_name;
 }
 
 // The relocation for text and data seems to get lost.
@@ -474,7 +478,7 @@ private IDXSEC elf_newsection2(
         foreach (i; SHN_LORESERVE .. SHN_HIRESERVE + 1)
             SecHdrTab.push();
         // shndx itself becomes the first section with an extended index
-        IDXSTR namidx = ElfObj_addstr(section_names, ".symtab_shndx");
+        IDXSTR namidx = ElfObj_addstr(elfGlbl.section_names, ".symtab_shndx");
         elf_newsection2(namidx,SHT_SYMTAB_SHNDX,0,0,0,0,SHN_SYMTAB,0,4,4);
     }
     const si = SecHdrTab.length;
@@ -495,18 +499,18 @@ Returns:
  */
 private Pair* elf_addsectionname(const(char)* name, const(char)* suffix = null, bool *padded = null)
 {
-    IDXSTR namidx = cast(IDXSTR)section_names.length();
-    section_names.writeStringz(name);
+    IDXSTR namidx = cast(IDXSTR)elfGlbl.section_names.length();
+    elfGlbl.section_names.writeStringz(name);
     if (suffix)
     {   // Append suffix string
-        section_names.setsize(cast(uint)section_names.length() - 1);  // back up over terminating 0
-        section_names.writeStringz(suffix);
+        elfGlbl.section_names.setsize(cast(uint)elfGlbl.section_names.length() - 1);  // back up over terminating 0
+        elfGlbl.section_names.writeStringz(suffix);
     }
-    Pair* pidx = section_names_hashtable.get(namidx, cast(uint)section_names.length() - 1);
+    Pair* pidx = elfGlbl.section_names_hashtable.get(namidx, cast(uint)elfGlbl.section_names.length() - 1);
     if (pidx.start)
     {
         // this section name already exists, remove addition
-        section_names.setsize(namidx);
+        elfGlbl.section_names.setsize(namidx);
         return pidx;
     }
     if (padded)
@@ -635,7 +639,7 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
     comment_data = null;
     seg_tlsseg = UNKNOWN;
     seg_tlsseg_bss = UNKNOWN;
-    GOTsym = null;
+    elfGlbl.GOTsym = null;
 
     // Initialize buffers
 
@@ -677,20 +681,20 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
           "\0.symtab\0.strtab\0.shstrtab\0.text\0.data\0.bss\0.note" ~
           "\0.comment\0.rodata\0.note.GNU-stack\0.data.rel.ro\0.rela.text\0.rela.data";
 
-        if (section_names)
-            section_names.setsize(section_names_init64.sizeof);
+        if (elfGlbl.section_names)
+            elfGlbl.section_names.setsize(section_names_init64.sizeof);
         else
         {
-            section_names = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-            if (!section_names)
+            elfGlbl.section_names = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
+            if (!elfGlbl.section_names)
                 err_nomem();
-            section_names.reserve(1024);
-            section_names.writen(section_names_init64.ptr, section_names_init64.sizeof);
+            elfGlbl.section_names.reserve(1024);
+            elfGlbl.section_names.writen(section_names_init64.ptr, section_names_init64.sizeof);
         }
 
-        if (section_names_hashtable)
-            AApair2.destroy(section_names_hashtable);
-        section_names_hashtable = AApair2.create(section_names.bufptr);
+        if (elfGlbl.section_names_hashtable)
+            AApair2.destroy(elfGlbl.section_names_hashtable);
+        elfGlbl.section_names_hashtable = AApair2.create(elfGlbl.section_names.bufptr);
 
         // name,type,flags,addr,offset,size,link,info,addralign,entsize
         elf_newsection2(0,               SHT_NULL,   0,                 0,0,0,0,0, 0,0);
@@ -711,7 +715,7 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
         foreach (idxname; __traits(allMembers, NAMIDX)[1 .. $])
         {
             NAMIDX idx = mixin("NAMIDX." ~ idxname);
-            section_names_hashtable.get(idx, cast(uint)section_names_init64.sizeof).start = idx;
+            elfGlbl.section_names_hashtable.get(idx, cast(uint)section_names_init64.sizeof).start = idx;
         }
     }
     else
@@ -720,20 +724,20 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
           "\0.symtab\0.strtab\0.shstrtab\0.text\0.data\0.bss\0.note" ~
           "\0.comment\0.rodata\0.note.GNU-stack\0.data.rel.ro\0.rel.text\0.rel.data";
 
-        if (section_names)
-            section_names.setsize(section_names_init.sizeof);
+        if (elfGlbl.section_names)
+            elfGlbl.section_names.setsize(section_names_init.sizeof);
         else
         {
-            section_names = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-            if (!section_names)
+            elfGlbl.section_names = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
+            if (!elfGlbl.section_names)
                 err_nomem();
-            section_names.reserve(100*1024);
-            section_names.writen(section_names_init.ptr, section_names_init.sizeof);
+            elfGlbl.section_names.reserve(100*1024);
+            elfGlbl.section_names.writen(section_names_init.ptr, section_names_init.sizeof);
         }
 
-        if (section_names_hashtable)
-            AApair2.destroy(section_names_hashtable);
-        section_names_hashtable = AApair2.create(section_names.bufptr);
+        if (elfGlbl.section_names_hashtable)
+            AApair2.destroy(elfGlbl.section_names_hashtable);
+        elfGlbl.section_names_hashtable = AApair2.create(elfGlbl.section_names.bufptr);
 
         // name,type,flags,addr,offset,size,link,info,addralign,entsize
         elf_newsection2(0,               SHT_NULL,   0,                 0,0,0,0,0, 0,0);
@@ -754,7 +758,7 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
         foreach (idxname; __traits(allMembers, NAMIDX)[1 .. $])
         {
             NAMIDX idx = mixin("NAMIDX." ~ idxname);
-            section_names_hashtable.get(idx, cast(uint)section_names_init.sizeof).start = idx;
+            elfGlbl.section_names_hashtable.get(idx, cast(uint)section_names_init.sizeof).start = idx;
         }
     }
 
@@ -1125,10 +1129,10 @@ void ElfObj_term(const(char)[] objfilename)
     /* Then output string table for section names
      */
     sechdr = &SecHdrTab[SHN_SECNAMES];  // Section Names
-    sechdr.sh_size = cast(uint)section_names.length();
+    sechdr.sh_size = cast(uint)elfGlbl.section_names.length();
     sechdr.sh_offset = foffset;
     //dbg_printf("section names offset %d\n",foffset);
-    fobjbuf.write(section_names.buf[0 .. sechdr.sh_size]);
+    fobjbuf.write(elfGlbl.section_names.buf[0 .. sechdr.sh_size]);
     foffset += sechdr.sh_size;
 
     /* Symbol table and string table for symbols next
@@ -1166,7 +1170,7 @@ void ElfObj_term(const(char)[] objfilename)
     /* Now the relocation data for program code and data sections
      */
     foffset = elf_align(4,foffset);
-    //dbg_printf("output relocations size 0x%x, foffset 0x%x\n",section_names.length(),foffset);
+    //dbg_printf("output relocations size 0x%x, foffset 0x%x\n",elfGlbl.section_names.length(),foffset);
     for (int i=1; i < SegData.length; i++)
     {
         seg = SegData[i];
@@ -1758,8 +1762,8 @@ int ElfObj_readonly_comdat(Symbol *s)
 
 int ElfObj_jmpTableSegment(Symbol *s)
 {
-    segidx_t seg = jmpseg;
-    if (seg)                            // memoize the jmpseg on a per-function basis
+    segidx_t seg = elfGlbl.jmpseg;
+    if (seg)                            // memoize the elfGlbl.jmpseg on a per-function basis
         return seg;
 
     if (config.flags & CFGromable)
@@ -1778,7 +1782,7 @@ int ElfObj_jmpTableSegment(Symbol *s)
         else
             seg = CDATA;
     }
-    jmpseg = seg;
+    elfGlbl.jmpseg = seg;
     return seg;
 }
 
@@ -2243,7 +2247,7 @@ void ElfObj_func_start(Symbol *sfunc)
         sfunc.Sseg = CODE;
     //dbg_printf("sfunc.Sseg %d CODE %d cseg %d Coffset %d\n",sfunc.Sseg,CODE,cseg,Offset(cseg));
     cseg = sfunc.Sseg;
-    jmpseg = 0;                         // only 1 jmp seg per function
+    elfGlbl.jmpseg = 0;                         // only 1 jmp seg per function
     assert(cseg == CODE || cseg > COMD);
 if (ELF_COMDAT())
 {
@@ -3078,7 +3082,7 @@ static if (0)
                             relinfo = I64 ? R_X86_64_PC32 : R_386_GOTOFF;
                         }
                     }
-                    else if (config.flags3 & CFG3pic && s == GOTsym)
+                    else if (config.flags3 & CFG3pic && s == elfGlbl.GOTsym)
                     {                   // relocation for Gbl Offset Tab
                         relinfo =  I64 ? R_X86_64_NONE : R_386_GOTPC;
                     }
