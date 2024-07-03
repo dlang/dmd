@@ -119,31 +119,25 @@ struct IRState
     {
         if (m.filetype == FileType.c)
             return false;
-        bool result;
         final switch (params.useArrayBounds)
         {
         case CHECKENABLE.off:
-            result = false;
-            break;
+            return false;
         case CHECKENABLE.on:
-            result = true;
-            break;
+            return true;
         case CHECKENABLE.safeonly:
             {
-                result = false;
-                FuncDeclaration fd = getFunc();
-                if (fd)
+                if (FuncDeclaration fd = getFunc())
                 {
                     Type t = fd.type;
                     if (t.ty == Tfunction && (cast(TypeFunction)t).trust == TRUST.safe)
-                        result = true;
+                        return true;
                 }
-                break;
+                return false;
             }
         case CHECKENABLE._default:
             assert(0);
         }
-        return result;
     }
 
     /****************************
