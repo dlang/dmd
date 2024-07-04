@@ -191,7 +191,7 @@ struct ElfObj
     OutBuffer* section_names;   // Section Names  - String table for section names only
     AApair2* section_names_hashtable; // Hash table for section_names
     int jmpseg;
-    OutBuffer* symtab_strings;        // String Table  - String table for all other names
+    OutBuffer symtab_strings;         // String Table  - String table for all other names
     Barray!(Elf32_Shdr) SecHdrTab;    // section header table
 
     // Symbol Table
@@ -622,16 +622,9 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
 
     // Initialize buffers
 
-    if (elfobj.symtab_strings)
-        elfobj.symtab_strings.setsize(1);
-    else
-    {
-        elfobj.symtab_strings = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        if (!elfobj.symtab_strings)
-            err_nomem();
-        elfobj.symtab_strings.reserve(2048);
-        elfobj.symtab_strings.writeByte(0);
-    }
+    elfobj.symtab_strings.reset();
+    elfobj.symtab_strings.reserve(2048);
+    elfobj.symtab_strings.writeByte(0);
 
     elfobj.SecHdrTab.reset();
 
@@ -812,7 +805,7 @@ void ElfObj_initfile(const(char)* filename, const(char)* csegname, const(char)* 
 {
     //printf("ElfObj_initfile(filename = %s, modname = %s)\n",filename,modname);
 
-    IDXSTR name = ElfObj_addstr(elfobj.symtab_strings, filename);
+    IDXSTR name = ElfObj_addstr(&elfobj.symtab_strings, filename);
     if (I64)
         elfobj.SymbolTable64[STI_FILE].st_name = name;
     else
@@ -822,9 +815,9 @@ static if (0)
 {
     // compiler flag for linker
     if (I64)
-        elfobj.SymbolTable64[STI_GCC].st_name = ElfObj_addstr(elfobj.symtab_strings,"gcc2_compiled.");
+        elfobj.SymbolTable64[STI_GCC].st_name = ElfObj_addstr(&elfobj.symtab_strings,"gcc2_compiled.");
     else
-        elfobj.SymbolTable[STI_GCC].st_name = ElfObj_addstr(elfobj.symtab_strings,"gcc2_compiled.");
+        elfobj.SymbolTable[STI_GCC].st_name = ElfObj_addstr(&elfobj.symtab_strings,"gcc2_compiled.");
 }
 
     if (csegname && *csegname && strcmp(csegname,".text"))
@@ -1477,7 +1470,7 @@ void ElfObj_wkext(Symbol *s1,Symbol *s2)
 void ElfObj_filename(const(char)* modname)
 {
     //dbg_printf("ElfObj_filename(char *%s)\n",modname);
-    uint strtab_idx = ElfObj_addstr(elfobj.symtab_strings,modname);
+    uint strtab_idx = ElfObj_addstr(&elfobj.symtab_strings,modname);
     elf_addsym(strtab_idx,0,0,STT_FILE,STB_LOCAL,SHN_ABS);
 }
 
@@ -1574,7 +1567,7 @@ private void obj_tlssections()
         const sec = ElfObj_getsegment(".tdata", null, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, align_);
         ElfObj_bytes(sec, 0, align_, null);
 
-        const namidx = ElfObj_addstr(elfobj.symtab_strings,"_tlsstart");
+        const namidx = ElfObj_addstr(&elfobj.symtab_strings,"_tlsstart");
         elf_addsym(namidx, 0, align_, STT_TLS, STB_GLOBAL, MAP_SEG2SECIDX(sec));
     }
 
@@ -1582,7 +1575,7 @@ private void obj_tlssections()
 
     {
         const sec = ElfObj_getsegment(".tcommon", null, SHT_NOBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, align_);
-        const namidx = ElfObj_addstr(elfobj.symtab_strings,"_tlsend");
+        const namidx = ElfObj_addstr(&elfobj.symtab_strings,"_tlsend");
         elf_addsym(namidx, 0, align_, STT_TLS, STB_GLOBAL, MAP_SEG2SECIDX(sec));
     }
 }
@@ -1657,7 +1650,7 @@ else
         }
 
         // Create a weak symbol for the comdat
-        const namidxcd = ElfObj_addstr(elfobj.symtab_strings, p);
+        const namidxcd = ElfObj_addstr(&elfobj.symtab_strings, p);
         s.Sxtrnnum = elf_addsym(namidxcd, 0, 0, STT_FUNC, STB_WEAK, MAP_SEG2SECIDX(s.Sseg));
 
         if (added)
@@ -2347,7 +2340,7 @@ int ElfObj_external_def(const(char)* name)
 {
     //dbg_printf("ElfObj_external_def('%s')\n",name);
     assert(name);
-    const namidx = ElfObj_addstr(elfobj.symtab_strings,name);
+    const namidx = ElfObj_addstr(&elfobj.symtab_strings,name);
     const symidx = elf_addsym(namidx, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF);
     return symidx;
 }
@@ -3300,21 +3293,21 @@ private void obj_rtinit()
 
     if (config.exe & (EX_OPENBSD | EX_OPENBSD64))
     {
-        const namidx3 = ElfObj_addstr(elfobj.symtab_strings,"__start_deh");
+        const namidx3 = ElfObj_addstr(&elfobj.symtab_strings,"__start_deh");
         deh_beg = elf_addsym(namidx3, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
 
         ElfObj_getsegment("deh", null, SHT_PROGBITS, shf_flags, _tysize[TYnptr]);
 
-        const namidx4 = ElfObj_addstr(elfobj.symtab_strings,"__stop_deh");
+        const namidx4 = ElfObj_addstr(&elfobj.symtab_strings,"__stop_deh");
         deh_end = elf_addsym(namidx4, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
     }
 
-    const namidx = ElfObj_addstr(elfobj.symtab_strings,"__start_minfo");
+    const namidx = ElfObj_addstr(&elfobj.symtab_strings,"__start_minfo");
     minfo_beg = elf_addsym(namidx, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
 
     ElfObj_getsegment("minfo", null, SHT_PROGBITS, shf_flags, _tysize[TYnptr]);
 
-    const namidx2 = ElfObj_addstr(elfobj.symtab_strings,"__stop_minfo");
+    const namidx2 = ElfObj_addstr(&elfobj.symtab_strings,"__stop_minfo");
     minfo_end = elf_addsym(namidx2, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF, STV_HIDDEN);
     }
 
@@ -3378,7 +3371,7 @@ private void obj_rtinit()
         debug
         {
             // adds a local symbol (name) to the code, useful to set a breakpoint
-            const namidx = ElfObj_addstr(elfobj.symtab_strings, "__d_dso_init");
+            const namidx = ElfObj_addstr(&elfobj.symtab_strings, "__d_dso_init");
             elf_addsym(namidx, 0, 0, STT_FUNC, STB_LOCAL, MAP_SEG2SECIDX(codseg));
         }
 
@@ -3534,7 +3527,7 @@ else
 {
 
         // use a weak reference for _d_dso_registry
-        const namidx2 = ElfObj_addstr(elfobj.symtab_strings, "_d_dso_registry");
+        const namidx2 = ElfObj_addstr(&elfobj.symtab_strings, "_d_dso_registry");
         const IDXSYM symidx = elf_addsym(namidx2, 0, 0, STT_NOTYPE, STB_WEAK, SHN_UNDEF);
 
         if (config.flags3 & CFG3pic)
