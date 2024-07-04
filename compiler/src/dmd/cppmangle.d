@@ -725,8 +725,7 @@ private final class CppMangleVisitor : Visitor
      */
     static Dsymbol getInstance(Dsymbol s)
     {
-        Dsymbol p = s.toParent();
-        if (p)
+        if (Dsymbol p = s.toParent())
         {
             if (TemplateInstance ti = p.isTemplateInstance())
                 return ti;

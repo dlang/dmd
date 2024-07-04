@@ -1262,8 +1262,7 @@ extern (C++) class FuncDeclaration : Declaration
     {
         if (type)
         {
-            TypeFunction fdtype = type.isTypeFunction();
-            if (fdtype) // Could also be TypeError
+            if (TypeFunction fdtype = type.isTypeFunction()) // Could also be TypeError
                 return fdtype.parameterList;
         }
 
