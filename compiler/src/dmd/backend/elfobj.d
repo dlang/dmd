@@ -203,7 +203,7 @@ struct ElfObj
     int symbol_idx;          // Number of symbols in symbol table
     int local_cnt;           // Number of symbols with STB_LOCAL
 
-    OutBuffer* shndx_data;   // Extended section header indices
+    OutBuffer shndx_data;    // Extended section header indices
 
     OutBuffer* note_data;    // Notes data (note currently used)
 
@@ -373,13 +373,7 @@ private IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
     if (sec > SHN_HIRESERVE)
     {   // If the section index is too big we need to store it as
         // extended section header index.
-        if (!elfobj.shndx_data)
-        {
-            elfobj.shndx_data = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-            if (!elfobj.shndx_data)
-                err_nomem();
-            elfobj.shndx_data.reserve(50 * (Elf64_Word).sizeof);
-        }
+
         // fill with zeros up to symbol_idx
         const size_t shndx_idx = elfobj.shndx_data.length() / Elf64_Word.sizeof;
         elfobj.shndx_data.writezeros(cast(uint)((elfobj.symbol_idx - shndx_idx) * Elf64_Word.sizeof));
@@ -732,8 +726,8 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
         symbol_reset(*s);
     elfobj.resetSyms.reset();
 
-    if (elfobj.shndx_data)
-        elfobj.shndx_data.reset();
+    elfobj.shndx_data.reset();
+    elfobj.shndx_data.reserve(50 * (Elf64_Word).sizeof);
 
     if (elfobj.note_data)
         elfobj.note_data.reset();
@@ -893,7 +887,7 @@ void *elf_renumbersyms()
     }
 
     // Reorder extended section header indices
-    if (elfobj.shndx_data && elfobj.shndx_data.length())
+    if (elfobj.shndx_data.length())
     {
         // fill with zeros up to symbol_idx
         const size_t shndx_idx = elfobj.shndx_data.length() / Elf64_Word.sizeof;
@@ -1113,7 +1107,7 @@ void ElfObj_term(const(char)[] objfilename)
     foffset += sechdr.sh_size;
     util_free(symtab);
 
-    if (elfobj.shndx_data && elfobj.shndx_data.length())
+    if (elfobj.shndx_data.length())
     {
         assert(elfobj.SecHdrTab.length >= secidx_shndx);
         sechdr = &elfobj.SecHdrTab[secidx_shndx];
