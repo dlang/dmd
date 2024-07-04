@@ -33,7 +33,7 @@ $(GNAME EnumMemberAttributes):
 $(GNAME EnumMemberAttribute):
     $(GLINK2 attribute, DeprecatedAttribute)
     $(GLINK2 attribute, UserDefinedAttribute)
-    $(D @)$(LINK2 attribute.html#disable, $(D disable))
+    $(D @) $(LINK2 attribute.html#disable, $(D disable))
 )
 $(GRAMMAR
 $(GNAME AnonymousEnumDeclaration):
