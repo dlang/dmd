@@ -106,7 +106,7 @@ alias reltype_t = uint;
 struct ElfGlbl
 {
     Symbol* GOTsym;             // global offset table reference
-    OutBuffer* section_names;	// Section Names  - String table for section names only
+    OutBuffer* section_names;   // Section Names  - String table for section names only
     AApair2* section_names_hashtable; // Hash table for section_names
     int jmpseg;
     OutBuffer* symtab_strings;        // String Table  - String table for all other names
@@ -181,11 +181,7 @@ enum
     SHN_CDATAREL    = 13,
 }
 
-__gshared IDXSYM *mapsec2sym;
 enum S2S_INC = 20;
-
-private __gshared int symbol_idx;          // Number of symbols in symbol table
-private __gshared int local_cnt;           // Number of symbols with STB_LOCAL
 
 enum
 {
@@ -214,6 +210,9 @@ struct ElfObj
     Barray!Elf64_Sym SymbolTable64;
 
     Barray!(Symbol*) resetSyms; // Keep pointers to reset symbols
+
+    int symbol_idx;          // Number of symbols in symbol table
+    int local_cnt;           // Number of symbols with STB_LOCAL
 }
 
 private ElfObj elfobj;
@@ -397,7 +396,7 @@ private IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
         }
         // fill with zeros up to symbol_idx
         const size_t shndx_idx = shndx_data.length() / Elf64_Word.sizeof;
-        shndx_data.writezeros(cast(uint)((symbol_idx - shndx_idx) * Elf64_Word.sizeof));
+        shndx_data.writezeros(cast(uint)((elfobj.symbol_idx - shndx_idx) * Elf64_Word.sizeof));
 
         shndx_data.write32(sec);
         sec = SHN_XINDEX;
@@ -425,9 +424,9 @@ private IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, uint sz,
     }
 
     if (bind == STB_LOCAL)
-        local_cnt++;
-    //dbg_printf("\treturning symbol table index %d\n",symbol_idx);
-    return symbol_idx++;
+        elfobj.local_cnt++;
+    //dbg_printf("\treturning symbol table index %d\n",elfobj.symbol_idx);
+    return elfobj.symbol_idx++;
 }
 
 /*******************************
@@ -628,7 +627,6 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
     cseg = CODE;
     fobjbuf = objbuf;
 
-    mapsec2sym = null;
     note_data = null;
     secidx_note = 0;
     comment_data = null;
@@ -773,8 +771,8 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
     if (comment_data)
         comment_data.reset();
 
-    symbol_idx = 0;
-    local_cnt = 0;
+    elfobj.symbol_idx = 0;
+    elfobj.local_cnt = 0;
     // The symbols that every object file has
     elf_addsym(0, 0, 0, STT_NOTYPE,  STB_LOCAL, 0);
     elf_addsym(0, 0, 0, STT_FILE,    STB_LOCAL, SHN_ABS);       // STI_FILE
@@ -865,19 +863,19 @@ static if (0)
 void *elf_renumbersyms()
 {   void *symtab;
     int nextlocal = 0;
-    int nextglobal = local_cnt;
+    int nextglobal = elfobj.local_cnt;
 
-    SYMIDX *sym_map = cast(SYMIDX *)util_malloc(SYMIDX.sizeof,symbol_idx);
+    SYMIDX *sym_map = cast(SYMIDX *)util_malloc(SYMIDX.sizeof,elfobj.symbol_idx);
 
     if (I64)
     {
         Elf64_Sym *oldsymtab = &elfobj.SymbolTable64[0];
-        Elf64_Sym *symtabend = oldsymtab+symbol_idx;
+        Elf64_Sym *symtabend = oldsymtab+elfobj.symbol_idx;
 
-        symtab = util_malloc(Elf64_Sym.sizeof,symbol_idx);
+        symtab = util_malloc(Elf64_Sym.sizeof,elfobj.symbol_idx);
 
         Elf64_Sym *sl = cast(Elf64_Sym *)symtab;
-        Elf64_Sym *sg = sl + local_cnt;
+        Elf64_Sym *sg = sl + elfobj.local_cnt;
 
         int old_idx = 0;
         for(Elf64_Sym *s = oldsymtab; s != symtabend; s++)
@@ -899,12 +897,12 @@ void *elf_renumbersyms()
     else
     {
         Elf32_Sym *oldsymtab = &elfobj.SymbolTable[0];
-        Elf32_Sym *symtabend = oldsymtab+symbol_idx;
+        Elf32_Sym *symtabend = oldsymtab+elfobj.symbol_idx;
 
-        symtab = util_malloc(Elf32_Sym.sizeof,symbol_idx);
+        symtab = util_malloc(Elf32_Sym.sizeof,elfobj.symbol_idx);
 
         Elf32_Sym *sl = cast(Elf32_Sym *)symtab;
-        Elf32_Sym *sg = sl + local_cnt;
+        Elf32_Sym *sg = sl + elfobj.local_cnt;
 
         int old_idx = 0;
         for(Elf32_Sym *s = oldsymtab; s != symtabend; s++)
@@ -929,16 +927,16 @@ void *elf_renumbersyms()
     {
         // fill with zeros up to symbol_idx
         const size_t shndx_idx = shndx_data.length() / Elf64_Word.sizeof;
-        shndx_data.writezeros(cast(uint)((symbol_idx - shndx_idx) * Elf64_Word.sizeof));
+        shndx_data.writezeros(cast(uint)((elfobj.symbol_idx - shndx_idx) * Elf64_Word.sizeof));
 
         Elf64_Word *old_buf = cast(Elf64_Word *)shndx_data.buf;
-        Elf64_Word *tmp_buf = cast(Elf64_Word *)util_malloc(Elf64_Word.sizeof, symbol_idx);
-        for (SYMIDX old_idx = 0; old_idx < symbol_idx; ++old_idx)
+        Elf64_Word *tmp_buf = cast(Elf64_Word *)util_malloc(Elf64_Word.sizeof, elfobj.symbol_idx);
+        for (SYMIDX old_idx = 0; old_idx < elfobj.symbol_idx; ++old_idx)
         {
             const SYMIDX new_idx = sym_map[old_idx];
             tmp_buf[new_idx] = old_buf[old_idx];
         }
-        memcpy(old_buf, tmp_buf, Elf64_Word.sizeof * symbol_idx);
+        memcpy(old_buf, tmp_buf, Elf64_Word.sizeof * elfobj.symbol_idx);
         util_free(tmp_buf);
     }
 
@@ -951,7 +949,7 @@ void *elf_renumbersyms()
         if (elfGlbl.SecHdrTab[pseg.SDshtidx].sh_type == SHT_GROUP)
         {   // map symbol index of group section header
             uint oidx = elfGlbl.SecHdrTab[pseg.SDshtidx].sh_info;
-            assert(oidx < symbol_idx);
+            assert(oidx < elfobj.symbol_idx);
             // we only have one symbol table
             assert(elfGlbl.SecHdrTab[pseg.SDshtidx].sh_link == SHN_SYMTAB);
             elfGlbl.SecHdrTab[pseg.SDshtidx].sh_info = cast(uint) sym_map[oidx];
@@ -966,7 +964,7 @@ void *elf_renumbersyms()
                 {
                     uint t = ELF64_R_TYPE(rel.r_info);
                     uint si = ELF64_R_SYM(rel.r_info);
-                    assert(si < symbol_idx);
+                    assert(si < elfobj.symbol_idx);
                     rel.r_info = ELF64_R_INFO(sym_map[si],t);
                     rel++;
                 }
@@ -979,7 +977,7 @@ void *elf_renumbersyms()
                 {
                     uint t = ELF32_R_TYPE(rel.r_info);
                     uint si = ELF32_R_SYM(rel.r_info);
-                    assert(si < symbol_idx);
+                    assert(si < elfobj.symbol_idx);
                     rel.r_info = ELF32_R_INFO(cast(uint) sym_map[si],t);
                     rel++;
                 }
@@ -1138,7 +1136,7 @@ void ElfObj_term(const(char)[] objfilename)
                          : cast(uint)(elfobj.SymbolTable.length   * Elf32_Sym.sizeof);
     sechdr.sh_entsize = I64 ? (Elf64_Sym).sizeof : (Elf32_Sym).sizeof;
     sechdr.sh_link = SHN_STRINGS;
-    sechdr.sh_info = local_cnt;
+    sechdr.sh_info = elfobj.local_cnt;
     foffset = elf_align(4,foffset);
     sechdr.sh_offset = foffset;
     fobjbuf.write(symtab[0 .. sechdr.sh_size]);
