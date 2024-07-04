@@ -1281,7 +1281,7 @@ void ElfObj_term(const(char)[] objfilename)
     elfobj.fobjbuf.position(0, hdrsize);
     if (I64)
     {
-        __gshared Elf64_Ehdr h64 =
+        __gshared immutable Elf64_Ehdr h64_init =
         {
             [
                 ELFMAG0,ELFMAG1,ELFMAG2,ELFMAG3,
@@ -1305,6 +1305,7 @@ void ElfObj_term(const(char)[] objfilename)
             0,                              // e_shnum
             SHN_SECNAMES                    // e_shstrndx
         };
+        Elf64_Ehdr h64 = h64_init;
         h64.EHident[EI_OSABI] = ELFOSABI;
         h64.e_shoff     = e_shoff;
         h64.e_shnum     = e_shnum;
@@ -1312,7 +1313,7 @@ void ElfObj_term(const(char)[] objfilename)
     }
     else
     {
-        __gshared Elf32_Ehdr h32 =
+        __gshared immutable Elf32_Ehdr h32_init =
         {
             [
                 ELFMAG0,ELFMAG1,ELFMAG2,ELFMAG3,
@@ -1336,6 +1337,7 @@ void ElfObj_term(const(char)[] objfilename)
             0,                              // e_shnum
             SHN_SECNAMES                    // e_shstrndx
         };
+        Elf32_Ehdr h32 = h32_init;
         h32.EHident[EI_OSABI] = ELFOSABI;
         h32.e_shoff     = cast(uint)e_shoff;
         h32.e_shnum     = e_shnum;
