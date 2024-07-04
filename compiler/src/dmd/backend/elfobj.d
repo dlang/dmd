@@ -188,7 +188,7 @@ struct ElfObj
     OutBuffer* fobjbuf;
 
     Symbol* GOTsym;             // global offset table reference
-    OutBuffer* section_names;   // Section Names  - String table for section names only
+    OutBuffer section_names;    // Section Names  - String table for section names only
     AApair2* section_names_hashtable; // Hash table for section_names
     int jmpseg;
     OutBuffer* symtab_strings;        // String Table  - String table for all other names
@@ -458,7 +458,7 @@ private IDXSEC elf_newsection2(
         foreach (i; SHN_LORESERVE .. SHN_HIRESERVE + 1)
             elfobj.SecHdrTab.push();
         // shndx itself becomes the first section with an extended index
-        IDXSTR namidx = ElfObj_addstr(elfobj.section_names, ".symtab_shndx");
+        IDXSTR namidx = ElfObj_addstr(&elfobj.section_names, ".symtab_shndx");
         elf_newsection2(namidx,SHT_SYMTAB_SHNDX,0,0,0,0,SHN_SYMTAB,0,4,4);
     }
     const si = elfobj.SecHdrTab.length;
@@ -654,22 +654,15 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
         RELDATA64 = 107,    // .rela.data
     }
 
+    elfobj.section_names.reset();
+    elfobj.section_names.reserve(1024);
     if (I64)
     {
         static immutable char[107 + 12] section_names_init64 =
           "\0.symtab\0.strtab\0.shstrtab\0.text\0.data\0.bss\0.note" ~
           "\0.comment\0.rodata\0.note.GNU-stack\0.data.rel.ro\0.rela.text\0.rela.data";
 
-        if (elfobj.section_names)
-            elfobj.section_names.setsize(section_names_init64.sizeof);
-        else
-        {
-            elfobj.section_names = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-            if (!elfobj.section_names)
-                err_nomem();
-            elfobj.section_names.reserve(1024);
-            elfobj.section_names.writen(section_names_init64.ptr, section_names_init64.sizeof);
-        }
+        elfobj.section_names.writen(section_names_init64.ptr, section_names_init64.sizeof);
 
         if (elfobj.section_names_hashtable)
             AApair2.destroy(elfobj.section_names_hashtable);
@@ -703,16 +696,7 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
           "\0.symtab\0.strtab\0.shstrtab\0.text\0.data\0.bss\0.note" ~
           "\0.comment\0.rodata\0.note.GNU-stack\0.data.rel.ro\0.rel.text\0.rel.data";
 
-        if (elfobj.section_names)
-            elfobj.section_names.setsize(section_names_init.sizeof);
-        else
-        {
-            elfobj.section_names = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-            if (!elfobj.section_names)
-                err_nomem();
-            elfobj.section_names.reserve(100*1024);
-            elfobj.section_names.writen(section_names_init.ptr, section_names_init.sizeof);
-        }
+        elfobj.section_names.writen(section_names_init.ptr, section_names_init.sizeof);
 
         if (elfobj.section_names_hashtable)
             AApair2.destroy(elfobj.section_names_hashtable);
