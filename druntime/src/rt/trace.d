@@ -679,8 +679,7 @@ extern(C) void _c_trace_pro(size_t idlen, char* idptr)
 extern(C) void _c_trace_epi()
 {
     //printf("_c_trace_epi()\n");
-    auto tos = trace_tos;
-    if (tos)
+    if (auto tos = trace_tos)
     {
         timer_t endtime;
         QueryPerformanceCounter(&endtime);
