@@ -209,7 +209,7 @@ struct ElfObj
 
     IDXSEC secidx_note;      // Final table index for note data
 
-    OutBuffer* comment_data; // Comment data for compiler version
+    OutBuffer comment_data;  // Comment data for compiler version
 
     int seg_tlsseg = UNKNOWN;
     int seg_tlsseg_bss = UNKNOWN;
@@ -615,7 +615,7 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
 
     elfobj.note_data = null;
     elfobj.secidx_note = 0;
-    elfobj.comment_data = null;
+    elfobj.comment_data.reset();
     elfobj.seg_tlsseg = UNKNOWN;
     elfobj.seg_tlsseg_bss = UNKNOWN;
     elfobj.GOTsym = null;
@@ -738,8 +738,7 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
     if (elfobj.note_data)
         elfobj.note_data.reset();
 
-    if (elfobj.comment_data)
-        elfobj.comment_data.reset();
+    elfobj.comment_data.reset();
 
     elfobj.symbol_idx = 0;
     elfobj.local_cnt = 0;
@@ -1080,7 +1079,7 @@ void ElfObj_term(const(char)[] objfilename)
         foffset += sechdr.sh_size;
     }
 
-    if (elfobj.comment_data)
+    if (elfobj.comment_data.length())
     {
         sechdr = &elfobj.SecHdrTab[SHN_COM];           // Comments
         sechdr.sh_size = cast(uint)elfobj.comment_data.length();
@@ -1432,14 +1431,8 @@ void ElfObj_exestr(const(char)* p)
 void ElfObj_user(const(char)* p)
 {
     //printf("ElfObj_user(char *%s)\n",p);
-    if (!elfobj.comment_data)
-    {
-        elfobj.comment_data = cast(OutBuffer*) calloc(1, OutBuffer.sizeof);
-        if (!elfobj.comment_data)
-            err_nomem();
+    if (elfobj.comment_data.length() == 0)
         elfobj.comment_data.writeByte(0);
-    }
-
     elfobj.comment_data.writestring(p);
     elfobj.comment_data.writeByte(0);
 }
