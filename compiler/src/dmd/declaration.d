@@ -353,8 +353,7 @@ extern (C++) abstract class Declaration : Dsymbol
         // is an overload in the overload set that isn't
         if (isAliasedDeclaration)
         {
-            FuncDeclaration fd = isFuncDeclaration();
-            if (fd)
+            if (FuncDeclaration fd = isFuncDeclaration())
             {
                 for (FuncDeclaration ovl = fd; ovl; ovl = cast(FuncDeclaration)ovl.overnext)
                     if (!(ovl.storage_class & STC.disable))

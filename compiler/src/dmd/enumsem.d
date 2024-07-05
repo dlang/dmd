@@ -219,8 +219,7 @@ void enumSemantic(Scope* sc, EnumDeclaration ed)
      */
     ed.members.foreachDsymbol( (s)
     {
-        EnumMember em = s.isEnumMember();
-        if (em)
+        if (EnumMember em = s.isEnumMember())
             em._scope = sce;
     });
 
@@ -386,8 +385,7 @@ Expression getDefaultValue(EnumDeclaration ed, const ref Loc loc)
 
     foreach (const i; 0 .. ed.members.length)
     {
-        EnumMember em = (*ed.members)[i].isEnumMember();
-        if (em)
+        if (EnumMember em = (*ed.members)[i].isEnumMember())
         {
             if (em.semanticRun < PASS.semanticdone)
             {
