@@ -1297,7 +1297,7 @@ void ElfObj_term(const(char)[] objfilename)
     }
     else
     {
-        __gshared immutable Elf32_Ehdr h32_init =
+        immutable Elf32_Ehdr h32_init =
         {
             [
                 ELFMAG0,ELFMAG1,ELFMAG2,ELFMAG3,
