@@ -1250,7 +1250,7 @@ void ElfObj_term(const(char)[] objfilename)
     elfobj.fobjbuf.position(0, hdrsize);
     if (I64)
     {
-        __gshared immutable Elf64_Ehdr h64_init =
+        immutable Elf64_Ehdr h64_init =
         {
             [
                 ELFMAG0,ELFMAG1,ELFMAG2,ELFMAG3,
@@ -1282,7 +1282,7 @@ void ElfObj_term(const(char)[] objfilename)
     }
     else
     {
-        __gshared immutable Elf32_Ehdr h32_init =
+        immutable Elf32_Ehdr h32_init =
         {
             [
                 ELFMAG0,ELFMAG1,ELFMAG2,ELFMAG3,
