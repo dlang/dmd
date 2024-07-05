@@ -345,8 +345,7 @@ nothrow:
         {
             while (e)
             {
-                auto result = dg(cast(Key*)(e + 1), cast(Value*)(cast(void*)(e + 1) + aligned_keysize));
-                if (result)
+                if (auto result = dg(cast(Key*)(e + 1), cast(Value*)(cast(void*)(e + 1) + aligned_keysize)))
                     return result;
                 e = e.next;
             }

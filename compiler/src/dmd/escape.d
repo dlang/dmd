@@ -1569,8 +1569,7 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool retRefTransi
 
     void visitSymOff(SymOffExp e)
     {
-        VarDeclaration v = e.var.isVarDeclaration();
-        if (v)
+        if (VarDeclaration v = e.var.isVarDeclaration())
             er.byRef(v, retRefTransition);
     }
 
@@ -1966,8 +1965,7 @@ void escapeByRef(Expression e, ref scope EscapeByResults er, bool retRefTransiti
 
     void visitVar(VarExp e)
     {
-        auto v = e.var.isVarDeclaration();
-        if (v)
+        if (auto v = e.var.isVarDeclaration())
         {
             if (v.storage_class & STC.ref_ && v.storage_class & (STC.foreach_ | STC.temp) && v._init)
             {

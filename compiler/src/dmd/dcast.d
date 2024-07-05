@@ -704,7 +704,7 @@ MATCH implicitConvTo(Expression e, Type t)
                     return MATCH.nomatch;
                 m = MATCH.constant;
             }
-            if (e.hexString && tn.isintegral && (tn.size == e.sz || (!e.committed && (e.len % tn.size) == 0)))
+            if (e.hexString && tn.isintegral && (tn.size == e.sz || (!e.committed && e.len % tn.size == 0)))
             {
                 m = MATCH.convert;
                 return m;
@@ -2140,8 +2140,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         {
             if (hasAliasThis)
             {
-                auto result = tryAliasThisCast();
-                if (result)
+                if (auto result = tryAliasThisCast())
                     return result;
             }
 
@@ -2235,8 +2234,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
              */
             if (hasAliasThis)
             {
-                auto result = tryAliasThisCast();
-                if (result)
+                if (auto result = tryAliasThisCast())
                     return result;
             }
             error(e.loc, "cannot cast expression `%s` of type `%s` to `%s`", e.toChars(), e.type.toChars(), t.toChars());
@@ -2557,7 +2555,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         // See if need to truncate or extend the literal
         if (auto tsa = tb.isTypeSArray())
         {
-            size_t dim2 = cast(size_t)tsa.dim.toInteger();
+            const dim2 = cast(size_t)tsa.dim.toInteger();
             //printf("dim from = %d, to = %d\n", cast(int)se.len, cast(int)dim2);
 
             // Changing dimensions
@@ -2637,8 +2635,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
             tb.ty == Tpointer && tb.nextOf().ty == Tfunction)
         {
             auto ve = e.e1.isVarExp();
-            auto f = ve.var.isFuncDeclaration();
-            if (f)
+            if (auto f = ve.var.isFuncDeclaration())
             {
                 assert(f.isImportedSymbol());
                 f = f.overloadExactMatch(tb.nextOf());
@@ -2946,8 +2943,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         {
             if (e.func)
             {
-                auto f = e.func.overloadExactMatch(tb.nextOf());
-                if (f)
+                if (auto f = e.func.overloadExactMatch(tb.nextOf()))
                 {
                     int offset;
                     if (f.tintro && f.tintro.nextOf().isBaseOf(f.type.nextOf(), &offset) && offset)
