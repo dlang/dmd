@@ -7259,8 +7259,7 @@ Type stripDefaultArgs(Type t)
         {
             foreach (i, p; *parameters)
             {
-                Parameter ps = stripParameter(p);
-                if (ps)
+                if (Parameter ps = stripParameter(p))
                 {
                     // Replace params with a copy we can modify
                     Parameters* nparams = new Parameters(parameters.length);

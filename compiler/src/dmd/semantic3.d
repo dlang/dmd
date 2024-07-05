@@ -543,8 +543,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             Statement fpreinv = null;
             if (funcdecl.addPreInvariant())
             {
-                Expression e = addInvariant(funcdecl.isThis(), funcdecl.vthis);
-                if (e)
+                if (Expression e = addInvariant(funcdecl.isThis(), funcdecl.vthis))
                     fpreinv = new ExpStatement(Loc.initial, e);
             }
 
@@ -552,8 +551,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             Statement fpostinv = null;
             if (funcdecl.addPostInvariant())
             {
-                Expression e = addInvariant(funcdecl.isThis(), funcdecl.vthis);
-                if (e)
+                if (Expression e = addInvariant(funcdecl.isThis(), funcdecl.vthis))
                     fpostinv = new ExpStatement(Loc.initial, e);
             }
 
