@@ -331,7 +331,7 @@ void WRdefnod()
 @trusted
 const(char)* fl_str(FL fl)
 {
-    __gshared const char*[FLMAX] fls =
+    immutable const char*[FLMAX] fls =
     [   "FLunde",
         "FLconst",
         "FLoper",
