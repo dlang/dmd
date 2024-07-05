@@ -205,7 +205,7 @@ struct ElfObj
 
     OutBuffer shndx_data;    // Extended section header indices
 
-    OutBuffer* note_data;    // Notes data (note currently used)
+    OutBuffer note_data;     // Notes data (note currently used)
 
     IDXSEC secidx_note;      // Final table index for note data
 
@@ -607,7 +607,7 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
     cseg = CODE;
     elfobj.fobjbuf = objbuf;
 
-    elfobj.note_data = null;
+    elfobj.note_data.reset();
     elfobj.secidx_note = 0;
     elfobj.comment_data = null;
     elfobj.seg_tlsseg = UNKNOWN;
@@ -722,8 +722,7 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
     elfobj.shndx_data.reset();
     elfobj.shndx_data.reserve(50 * (Elf64_Word).sizeof);
 
-    if (elfobj.note_data)
-        elfobj.note_data.reset();
+    elfobj.note_data.reset();
 
     if (elfobj.comment_data)
         elfobj.comment_data.reset();
@@ -1058,7 +1057,7 @@ void ElfObj_term(const(char)[] objfilename)
 
     /* Next output any notes or comments
      */
-    if (elfobj.note_data)
+    if (elfobj.note_data.length())
     {
         sechdr = &elfobj.SecHdrTab[elfobj.secidx_note];               // Notes
         sechdr.sh_size = cast(uint)elfobj.note_data.length();
