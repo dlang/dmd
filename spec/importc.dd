@@ -20,29 +20,28 @@ $(H2 $(LNAME2 examples, Quick Examples))
 
     $(P C code in file $(TT hello.c):)
 
-    $(CCODE
-    #include &lt;stdio.h&gt;
-    int main()
-    {
-        printf("hello world\n");
-        return 0;
-    })
+$(CCODE
+#include &lt;stdio.h&gt;
+int main()
+{
+    printf("hello world\n");
+    return 0;
+})
 
     $(P Compile and run:)
 
-    $(CONSOLE
-    dmd hello.c
-    ./hello
-    hello world)
+$(CONSOLE
+dmd hello.c
+./hello
+hello world)
 
     $(P C function in file $(TT functions.c):)
 
-    $(CCODE
-    int square(int i)
-    {
-        return i * i;
-    }
-    )
+$(CCODE
+int square(int i)
+{
+    return i * i;
+})
 
     $(P D program in file $(TT demo.d):)
 
@@ -58,12 +57,10 @@ $(H2 $(LNAME2 examples, Quick Examples))
 
     $(P Compile and run:)
 
-    $(CONSOLE
-    dmd demo.d functions.c
-    ./demo
-    The square of 7 is 49
-    )
-
+$(CONSOLE
+dmd demo.d functions.c
+./demo
+The square of 7 is 49)
 
 $(H2 $(LNAME2 dialect, ImportC Dialect))
 
@@ -102,9 +99,8 @@ $(H2 $(LNAME2 command-line, Invoking ImportC))
     extension is given, `.i` is tried first, then `.c`.
     )
 
-    $(CONSOLE
-    dmd hello.c
-    )
+$(CONSOLE
+dmd hello.c)
 
     $(P will compile `hello.c` with ImportC and link it to create the executable
     file `hello` (`hello.exe` on Windows)
@@ -181,9 +177,8 @@ $(H2 $(LNAME2 preprocessor, Preprocessor))
 
     $(P $(LINK2 https://www.digitalmars.com/ctg/sc.html, $(TT sppn.exe)) runs on Win32 and is invoked as:)
 
-    $(CONSOLE
-    sppn file.c
-    )
+$(CONSOLE
+sppn file.c)
 
     $(P and the preprocessed output is written to $(TT file.i).)
 
@@ -191,26 +186,23 @@ $(H2 $(LNAME2 preprocessor, Preprocessor))
 
     $(P The $(LINK2 https://gcc.gnu.org/onlinedocs/gcc/Preprocessor-Options.html, Gnu C Preprocessor) can be invoked as:)
 
-    $(CONSOLE
-    gcc -E file.c > file.i
-    )
+$(CONSOLE
+gcc -E file.c > file.i)
 
     $(H4 $(LNAME2 clang-preprocessor, Clang C Preprocessor))
 
     $(P The Clang Preprocessor can be invoked as:)
 
-    $(CONSOLE
-    clang -E file.c -o file.i
-    )
+$(CONSOLE
+clang -E file.c -o file.i)
 
     $(H4 $(LNAME2 vc-preprocessor, Microsoft VC Preprocessor))
 
     $(P The $(LINK2 https://docs.microsoft.com/en-us/cpp/preprocessor/c-cpp-preprocessor-reference?view=msvc-170,
     VC Preprocessor) can be invoked as:)
 
-    $(CONSOLE
-    cl /P /Zc:preprocessor file.c -Fifile.i
-    )
+$(CONSOLE
+cl /P /Zc:preprocessor file.c -Fifile.i)
 
     $(P and the preprocessed output is written to $(TT file.i).)
 
@@ -218,9 +210,8 @@ $(H2 $(LNAME2 preprocessor, Preprocessor))
 
     $(P The $(LINK2 https://github.com/DigitalMars/dmpp, dmpp C Preprocessor) can be invoked as:)
 
-    $(CONSOLE
-    dmpp file.c
-    )
+$(CONSOLE
+dmpp file.c)
 
     $(P and the preprocessed output is written to $(TT file.i).)
 
@@ -380,12 +371,11 @@ $(H2 $(LNAME2 implementation, Implementation))
 
     $(P Implicit function declarations:)
 
-    $(CCODE
-    int main()
-    {
-        func();  // implicit declaration of func()
-    }
-    )
+$(CCODE
+int main()
+{
+    func();  // implicit declaration of func()
+})
 
     $(P were allowed in K+R C and C89, but were invalidated in C99 and C11. Although many
     C compilers still support them, ImportC does not.
@@ -419,8 +409,8 @@ $(H2 $(LNAME2 limitations, Limitations))
     $(H3 $(LNAME2 const, Const))
 
     $(P C11 specifies that `const` only applies locally. `const` in ImportC applies transitively,
-    meaning that although $(CCODE int *const p;) means in C11 that p is a const pointer to int,
-    in ImportC it means p is a const pointer to a const int.)
+    meaning that although $(CCODE int *const p;) means in C11 that `p` is a const pointer to `int`,
+    in ImportC it means `p` is a `const` pointer to a `const int`.)
 
     $(H3 $(LNAME2 volatile, Volatile))
 
@@ -629,7 +619,7 @@ _Static_assert(sizeof(A) == 1, "A should be size 1");
     $(H3 $(LNAME2 typeof, typeof Operator))
 
     $(P The `typeof` operator may be used as a type specifier:)
-$(GRAMMAR
+$(INFORMATIVE_GRAMMAR
 $(GNAME type-specifier):
     $(GNAME typeof-specifier)
 
@@ -642,7 +632,7 @@ $(GNAME typeof-specifier):
 
     $(P Modules can be imported with a $(I CImportDeclaration):)
 
-$(GRAMMAR
+$(INFORMATIVE_GRAMMAR
 $(GNAME CImportDeclaration):
     $(D __import) $(GLINK2 module, ImportList) $(D ;)
 )
@@ -758,10 +748,11 @@ $(H2 $(LNAME2 gnu-clang-extensions, Gnu and Clang Extensions))
     not part of the function's type. In D, a function that never returns
     has the return type $(GLINK2 type, noreturn). The difference can be
     seen with the code:)
-    $(CCODE
-    attribute((noreturn)) int foo();
-    size_t x = sizeof(foo());
-    )
+
+$(CCODE
+attribute((noreturn)) int foo();
+size_t x = sizeof(foo());)
+
     $(P This code is accepted by `gcc`, but makes no sense for D. Hence,
     although it works in ImportC, it is not representable as D code,
     meaning one must use judgement in creating a .di file to interface
@@ -873,36 +864,32 @@ $(H2 $(LNAME2 d-side, ImportC from D's Point of View))
     keywords, (C11 6.7.2.3). In C, they are placed in a different symbol table from other
     identifiers. This means two different symbols can use the same name:)
 
-    $(CCODE
-    int S;
-    struct S { int a, b; };
-    S = 3;
-    struct S *ps;
-    )
+$(CCODE
+int S;
+struct S { int a, b; };
+S = 3;
+struct S *ps;)
 
     $(P D does not make this distinction. Given a tag symbol that is the only declaration of an
     identifier, that's what the D compiler recognizes. Given a tag symbol and a non-tag symbol
     that share an identifier, the D compiler recognizes the non-tag symbol. This is normally
     not a problem due to the common C practice of applying `typedef`, as in:)
 
-    $(CCODE
-    typedef struct S { int a, b; } S;
-    )
+$(CCODE
+typedef struct S { int a, b; } S;)
 
     $(P The D compiler recognizes the `typedef` applied to `S`, and the code compiles as expected. But when `typedef` is absent, as in:)
 
-    $(CCODE
-    int S;
-    struct S { int a, b; };
-    )
+$(CCODE
+int S;
+struct S { int a, b; };)
 
-    $(P the most pragmatic workaround is to add a `typedef` to the C code:)
+    $(P The most pragmatic workaround is to add a `typedef` to the C code:)
 
-    $(CCODE
-    int S;
-    struct S { int a, b; };
-    typedef struct S S_t;    // add this typedef
-    )
+$(CCODE
+int S;
+struct S { int a, b; };
+typedef struct S S_t;    // add this typedef)
 
     $(P Then the D compiler can access the struct tag symbol via `S_t`.)
 
@@ -911,27 +898,24 @@ $(H2 $(LNAME2 wrapping, Wrapping C Code))
 
     $(P Many difficulties with adapting C code to ImportC can be done without
     editing the C code itself. Wrap the C code in another C file and then
-    $(CCODE #include) it. Consider the following problematic C file $(TT file.c):)
+    `#include` it. Consider the following problematic C file $(TT file.c):)
 
-    $(CCODE
-    void func(int *__restrict p);
-    int S;
-    struct S { int a, b; };
-    )
+$(CCODE
+void func(int *__restrict p);
+int S;
+struct S { int a, b; };)
 
-    $(P The problems are that $(CCODE __restrict) is not a type qualifier recognized by ImportC
+    $(P The problems are that `__restrict` is not a type qualifier recognized by ImportC
     (or C11),
-    and the struct `S` is hidden from D by the declaration $(CCODE int S;).
+    and the struct `S` is hidden from D by the declaration `int S;`.
     To wrap $(TT file.c) with a fix, create the file $(TT file_ic.c) with the contents:)
 
-    $(CCODE
-    #define __restrict restrict
-    #include "file.c"
-    typedef struct S S_t;
-    )
+$(CCODE
+#define __restrict restrict
+#include "file.c"
+typedef struct S S_t;)
 
-    $(P Then, `import file_ic;` instead of `import file;`, and use `S_t` when $(CCODE struct S) is desired.)
-
+    $(P Then, `import file_ic;` instead of `import file;`, and use `S_t` when `struct S` is desired.)
 
 $(H2 $(LNAME2 ctod, Converting C Code to D Code))
 
@@ -948,8 +932,7 @@ $(H2 $(LNAME2 ctod, Converting C Code to D Code))
     $(P This can be done with the D compiler by using the $(TT -Hf) switch:)
 
 $(CONSOLE
-dmd -c mycode.c -Hf=mycode.di
-)
+dmd -c mycode.c -Hf=mycode.di)
 
     $(P which will convert the C source code in $(TT mycode.c) to D source code in $(TT mycode.di).
     If the $(TT -inline) switch is also used, it will emit the C function bodies as well, instead
@@ -962,14 +945,13 @@ $(H3 Impedance Mismatch)
     to exact C semantics than is expressible in D source code. Hence, the translation to
     D source code will be less than perfect. For example:)
 
-    $(CCODE
-    int S;
-    struct S { int a, b; };
-    int foo(struct S s)
-    {
-        return S + s.a;
-    }
-    )
+$(CCODE
+int S;
+struct S { int a, b; };
+int foo(struct S s)
+{
+    return S + s.a;
+})
 
     $(P will work fine in ImportC, because the `int S` and the `struct S` are in different
     symbol tables. But in the generated D code, both symbols would be in the same symbol table, and will collide.
