@@ -215,7 +215,7 @@ version (Shared)
                 auto size = tlsdir.EndAddressOfRawData - tlsdir.StartAddressOfRawData + tlsdir.SizeOfZeroFill;
 
                 if (conservative)
-                    dg( beg, beg + size);
+                    dg(beg, beg + size);
                 else
                     scanTLSPrecise(cast(uint*)&sec._tpSection[0], cast(uint*)&sec._tpSection[$], beg, dg);
             }
@@ -435,8 +435,7 @@ void* initLibrary(void* mod)
     // (What? LoadLibrary() is a Windows API call, it shouldn't call rt_init().)
     if (mod is null)
         return mod;
-    gcSetFn gcSet = cast(gcSetFn) GetProcAddress(mod, "gc_setProxy");
-    if (gcSet !is null)
+    if (auto gcSet = cast(gcSetFn) GetProcAddress(mod, "gc_setProxy"))
     {   // BUG: Set proxy, but too late
         gcSet(gc_getProxy());
     }
@@ -453,8 +452,7 @@ void* initLibrary(void* mod)
  */
 extern (C) int rt_unloadLibrary(void* ptr)
 {
-    gcClrFn gcClr  = cast(gcClrFn) GetProcAddress(ptr, "gc_clrProxy");
-    if (gcClr !is null)
+    if (auto gcClr = cast(gcClrFn) GetProcAddress(ptr, "gc_clrProxy"))
         gcClr();
     return FreeLibrary(ptr) != 0;
 }
