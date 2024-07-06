@@ -7257,9 +7257,11 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
         }
         else if (!isMicrosoftStyle)
         {
-            // If the bit-field spans more units of alignment than its type,
-            // start a new field at the next alignment boundary.
-            if (fieldState.bitOffset == fieldState.fieldSize * 8 &&
+            // If the bit-field spans more units of alignment than its type
+            // and is at the alignment boundary, start a new field at the
+            // next alignment boundary. This affects when offsetof reports
+            // a higher number and bitoffsetof starts at zero again.
+            if (fieldState.bitOffset % (memalignsize * 8) == 0 &&
                 fieldState.bitOffset + bfd.fieldWidth > memsize * 8)
             {
                 if (log) printf("more units of alignment than its type\n");
