@@ -3211,7 +3211,14 @@ Expression getProperty(Type t, Scope* scope_, const ref Loc loc, Identifier iden
                 else
                 {
                     if (src)
-                        error(loc, "no property `%s` for `%s` of type `%s`", ident.toChars(), src.toChars(), mt.toPrettyChars(true));
+                    {
+                        error(loc, "no property `%s` for `%s` of type `%s`",
+                            ident.toChars(), src.toChars(), mt.toPrettyChars(true));
+                        auto s2 = scope_.search_correct(ident);
+                        if (s2 && s2.isFuncDeclaration)
+                            errorSupplemental(loc, "did you mean %s `%s`?",
+                                s2.kind(), s2.toChars());
+                    }
                     else
                         error(loc, "no property `%s` for type `%s`", ident.toChars(), mt.toPrettyChars(true));
 
