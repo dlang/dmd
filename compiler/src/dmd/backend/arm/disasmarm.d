@@ -348,7 +348,7 @@ void disassemble(uint c) @trusted
             p2 = wordtostring(imm16);
         }
     }
-    else if (field(ins, 28, 23) == 0x10) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#pcreladdr
+    else if (field(ins, 28, 24) == 0x10) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#pcreladdr
     {
         if (log) printf("PC-rel. addressing\n");
         uint op    = field(ins, 31, 31);
@@ -1443,7 +1443,7 @@ void disassemble(uint c) @trusted
         uint Rd     = field(ins,  4,  0);
         //printf("Rd: x%x\n", Rd);
 
-        string[8] tab = [ "uxtb", "uxth", "ustw", "uxtx", "sxtb","sxth", "sxtw", "sxtx" ];
+        string[8] tab = [ "uxtb", "uxth", "uxtw", "uxtx", "sxtb","sxth", "sxtw", "sxtx" ];
         const(char)[] extend;
         if (sf && Rn == 0x1F && option == 3 ||
            !sf && Rn == 0x1F && option == 2)
@@ -1700,19 +1700,28 @@ void disassemble(uint c) @trusted
     // LDAPR/STLR (SIMD&FP)
     // Load register (literal)
     // Memory Copy and Memory Set
-    // Load/store no-allocate pair (offset)
-    // Load/store register pair (post-indexed)
 
-    // Load/store register pair (offset) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldstpair_off
-    if (field(ins, 29, 27) == 5 && field(ins, 25, 23) == 2)
+    // Load/store no-allocate pair (offset)    https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldstnapair_offs
+    // Load/store register pair (post-indexed) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldstpair_post
+    // Load/store register pair (offset)       https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldstpair_off
+    // Load/store register pair (pre-indexed)  https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldstpair_pre
+    if (field(ins, 29, 27) == 5 && field(ins, 25, 25) == 0)
     {
         uint opc  = field(ins, 31, 30);
         uint VR   = field(ins, 26, 26);
+        uint op24 = field(ins, 24, 23);
         uint L    = field(ins, 22, 22);
         uint imm7 = field(ins, 21, 15);
         uint Rt2  = field(ins, 14, 10);
         uint Rn   = field(ins,  9,  5);
         uint Rt   = field(ins,  4,  0);
+
+        /* bits 24...23
+         * 00: no-allocate pair (offset)
+         * 01: register pair (post-indexed)
+         * 10: register pair (offset)
+         * 11: register pair (pre-indexed)
+         */
 
         uint decode2(uint opc, uint VR, uint L) { return (opc << 2) | (VR << 1) | L; }
 
@@ -1722,16 +1731,16 @@ void disassemble(uint c) @trusted
             case decode2(0,1,0):
             case decode2(1,1,0):
             case decode2(2,0,0):
-            case decode2(2,1,0): p1 = "stp"; break;
+            case decode2(2,1,0): p1 = op24 == 0 ? "stnp" : "stp"; break;
 
             case decode2(0,0,1):
             case decode2(0,1,1):
             case decode2(1,1,1):
             case decode2(2,0,1):
-            case decode2(2,1,1): p1 = "ldp"; break;
+            case decode2(2,1,1): p1 = op24 == 0 ? "ldnp" : "ldp"; break;
 
-            case decode2(1,0,0): p1 = "stgp"; break;
-            case decode2(1,0,1): p1 = "ldpsw"; break;
+            case decode2(1,0,0): if (op24) p1 = "stgp"; break;
+            case decode2(1,0,1): if (op24) p1 = "ldpsw"; break;
             default:
                 break;
         }
@@ -1744,19 +1753,52 @@ void disassemble(uint c) @trusted
         {
             p2 = regString(opc >> 1, Rt);
             p3 = regString(opc >> 1, Rt2);
-            if (imm7)
-            {   // imm7 is signed, not sure how to format it
-                uint n = snprintf(buf.ptr, cast(uint)buf.length, "[%s,%s]", regString(1, Rn).ptr, wordtostring(imm7 * ((opc & 2) ? 8 : 4)).ptr);
-                p4 = buf[0 .. n];
-            }
-            else
+            switch (op24)
             {
-                p4 = indexString(Rn);
+                case 1:
+                    if (imm7)
+                    {   // imm7 is signed, not sure how to format it
+                        uint n = snprintf(buf.ptr, cast(uint)buf.length, "[%s],%s", regString(1, Rn).ptr, wordtostring(imm7 * ((opc & 2) ? 8 : 4)).ptr);
+                        p4 = buf[0 .. n];
+                    }
+                    else
+                    {
+                        p4 = indexString(Rn);
+                    }
+                    break;
+
+                case 0:
+                case 2:
+                    if (imm7)
+                    {   // imm7 is signed, not sure how to format it
+                        uint n = snprintf(buf.ptr, cast(uint)buf.length, "[%s,%s]", regString(1, Rn).ptr, wordtostring(imm7 * ((opc & 2) ? 8 : 4)).ptr);
+                        p4 = buf[0 .. n];
+                    }
+                    else
+                    {
+                        p4 = indexString(Rn);
+                    }
+                    break;
+
+                case 3:
+                    if (imm7)
+                    {   // imm7 is signed, not sure how to format it
+                        uint n = snprintf(buf.ptr, cast(uint)buf.length, "[%s,%s]!", regString(1, Rn).ptr, wordtostring(imm7 * ((opc & 2) ? 8 : 4)).ptr);
+                        p4 = buf[0 .. n];
+                    }
+                    else
+                    {
+                        uint n = snprintf(buf.ptr, cast(uint)buf.length, "[%s]!", regString(1, Rn).ptr);
+                        p4 = buf[0 .. n];
+                        p4 = indexString(Rn);
+                    }
+                    break;
+
+                default: assert(0);
             }
         }
     }
 
-    // Load/store register pair (pre-indexed)
     // Load/store register pair (unscaled immediate)
     // Load/store register pair (immediate post-indexed)
     // Load/store register pair (unprivileged)
@@ -1775,68 +1817,56 @@ void disassemble(uint c) @trusted
         uint Rn = field(ins, 9, 5);
         uint Rt = field(ins, 4, 0);
 
-        if (size & 2 && VR == 0 && opc == 1) // LDR (immediate) Unsigned offset
-        {   // https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_gen.html
-            uint is64 = field(ins, 30, 30);
-            p1 = "ldr";
-            p2 = regString(is64, Rt);
-            size_t n;
-            if (imm12)
-                n = snprintf(buf.ptr, cast(uint)buf.length, "[%s,%s]", regString(1, Rn).ptr, wordtostring(imm12 * (is64 ? 8 : 4)).ptr);
-            else
-                n = snprintf(buf.ptr, cast(uint)buf.length, "[%s]", regString(1, Rn).ptr);
-            p3 = buf[0 .. n];
-        }
-        else
+        // https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_gen.html STR (immediate)
+        // https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_gen.html LDR (immediate)
+
+        uint ldr(uint size, uint VR, uint opc) { return (size << 3) | (VR << 2) | opc; }
+
+        bool is64 = false;
+        switch (ldr(size, VR, opc))
         {
-            // https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_gen.html STR (immediate)
-            // https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_gen.html LDR (immediate)
+            case ldr(0,0,0): p1 = "strb";  goto Lldr;
+            case ldr(0,0,1): p1 = "ldrb";  goto Lldr;
+            case ldr(0,0,2): p1 = "ldrsb"; goto Lldr64;
+            case ldr(0,0,3): p1 = "ldrsb"; goto Lldr;
+            case ldr(1,0,0): p1 = "strh";  goto Lldr;
+            case ldr(1,0,1): p1 = "ldrh";  goto Lldr;
+            case ldr(1,0,2): p1 = "ldrsh"; goto Lldr64;
+            case ldr(1,0,3): p1 = "ldrsh"; goto Lldr;
+            case ldr(2,0,0): p1 = "str";   goto Lldr;
+            case ldr(2,0,1): p1 = "ldr";   goto Lldr;
+            case ldr(2,0,2): p1 = "ldrsw"; goto Lldr64;
+            case ldr(3,0,0): p1 = "str";   goto Lldr64;
+            case ldr(3,0,1): p1 = "ldr";   goto Lldr64;
+            Lldr64:
+                is64 = true;
+            Lldr:
+                p2 = regString(is64, Rt);
+                size_t n;
+                if (imm12)
+                    n = snprintf(buf.ptr, cast(uint)buf.length, "[%s,%s]", regString(1, Rn).ptr, wordtostring(imm12 * (is64 ? 8 : 4)).ptr);
+                else
+                    n = snprintf(buf.ptr, cast(uint)buf.length, "[%s]", regString(1, Rn).ptr);
+                p3 = buf[0 .. n];
+                break;
 
-            uint ldr(uint size, uint VR, uint opc) { return (size << 3) | (VR << 2) | opc; }
-
-            bool is64 = false;
-            switch (ldr(size, VR, opc))
+            static if (0) // fix later
             {
-                case ldr(0,0,0): p1 = "strb";  goto Lldr;
-                case ldr(0,0,1): p1 = "ldrb";  goto Lldr;
-                case ldr(0,0,2): p1 = "ldrsb"; goto Lldr64;
-                case ldr(0,0,3): p1 = "ldrsb"; goto Lldr;
-                case ldr(1,0,0): p1 = "strh";  goto Lldr;
-                case ldr(1,0,1): p1 = "ldrh";  goto Lldr;
-                case ldr(1,0,2): p1 = "ldrsh"; goto Lldr64;
-                case ldr(1,0,3): p1 = "ldrsh"; goto Lldr;
-                case ldr(2,0,0): p1 = "str";   goto Lldr;
-                case ldr(2,0,1): p1 = "ldr";   goto Lldr;
-                case ldr(2,0,2): p1 = "ldrsw"; goto Lldr64;
-                case ldr(3,0,0): p1 = "str";   goto Lldr64;
-                case ldr(3,0,1): p1 = "ldr";   goto Lldr64;
-                Lldr64:
-                    is64 = true;
-                Lldr:
-                    p2 = regString(is64, Rt);
-                    p3 = indexString(Rn);
-                    if (imm12)
-                        p4 = wordtostring(imm12);
-                    break;
-
-                static if (0) // fix later
-                {
-                case ldr(0,1,0): p1 = "str";
-                case ldr(0,1,1): p1 = "ldr";
-                case ldr(0,1,2): p1 = "str";
-                case ldr(0,1,3): p1 = "ldr";
-                case ldr(1,1,0): p1 = "str";
-                case ldr(1,1,1): p1 = "ldr";
-                case ldr(2,1,0): p1 = "str";
-                case ldr(2,1,1): p1 = "ldr";
-                case ldr(3,0,1): p1 = "prfm";
-                case ldr(3,1,0): p1 = "str";
-                case ldr(3,1,1): p1 = "ldr";
-                }
-
-                default:
-                    break;
+            case ldr(0,1,0): p1 = "str";
+            case ldr(0,1,1): p1 = "ldr";
+            case ldr(0,1,2): p1 = "str";
+            case ldr(0,1,3): p1 = "ldr";
+            case ldr(1,1,0): p1 = "str";
+            case ldr(1,1,1): p1 = "ldr";
+            case ldr(2,1,0): p1 = "str";
+            case ldr(2,1,1): p1 = "ldr";
+            case ldr(3,0,1): p1 = "prfm";
+            case ldr(3,1,0): p1 = "str";
+            case ldr(3,1,1): p1 = "ldr";
             }
+
+            default:
+                break;
         }
     }
     /* } */
@@ -2095,8 +2125,10 @@ unittest
 unittest
 {
     int line64 = __LINE__;
-    string[44] cases64 =      // 64 bit code gen
+    string[46] cases64 =      // 64 bit code gen
     [
+        "A8 C1 7B FD         ldp   x29,x30,[sp],#0x10",
+        "90 00 00 00         adrp  x0,#0",
         "A9 01 7B FD         stp   x29,x30,[sp,#0x10]",
         "A9 41 7B FD         ldp   x29,x30,[sp,#0x10]",
         "B9 40 0B E0         ldr   w0,[sp,#8]",
