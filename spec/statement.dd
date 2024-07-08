@@ -239,10 +239,18 @@ $(GNAME IfStatement):
 
 $(GNAME IfCondition):
     $(EXPRESSION)
-    $(D auto) $(GLINK_LEX Identifier) $(D =) $(EXPRESSION)
-    $(D scope) $(GLINK_LEX Identifier) $(D =) $(EXPRESSION)
-    $(GLINK2 type, TypeCtors) $(GLINK_LEX Identifier) $(D =) $(EXPRESSION)
-    $(GLINK2 type, TypeCtors)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) $(D =) $(EXPRESSION)
+    $(GLINK IfConditionStorageClasses) $(GLINK_LEX Identifier) $(D =) $(EXPRESSION)
+    $(GLINK IfConditionStorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator) $(D =) $(EXPRESSION)
+
+$(GNAME IfConditionStorageClasses):
+    $(GLINK IfConditionStorageClass)
+    $(GLINK IfConditionStorageClass) $(GLINK IfConditionStorageClasses)
+
+$(GNAME IfConditionStorageClass):
+    $(D scope)
+    $(D auto)
+    $(D ref)
+    $(GLINK2 type, TypeCtor)
 
 $(GNAME ThenStatement):
     $(PSSCOPE)
@@ -260,6 +268,9 @@ $(GNAME ElseStatement):
 
         $(P The $(I ElseStatement) is associated with the innermost `if`
         statement which does not already have an associated $(I ElseStatement).)
+
+        $(P If both, `auto` and `ref` are present, the variable is a reference
+        if and only if the *Expression* is an lvalue.)
 
 $(H3 $(LNAME2 boolean-conditions, Boolean Conversion))
 
