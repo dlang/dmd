@@ -219,7 +219,7 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
         $(TROW $(ARGS $(D DigitalMars)) , $(ARGS DMD (Digital Mars D) is the compiler))
         $(TROW $(ARGS $(D GNU)) , $(ARGS GDC (GNU D Compiler) is the compiler))
         $(TROW $(ARGS $(D LDC)) , $(ARGS LDC (LLVM D Compiler) is the compiler))
-        $(TROW $(ARGS $(D SDC)) , $(ARGS SDC (Stupid D Compiler) is the compiler))
+        $(TROW $(ARGS $(D SDC)) , $(ARGS SDC (Snazzy D Compiler) is the compiler))
         $(TROW $(ARGS $(D Windows)) , $(ARGS Microsoft Windows systems))
         $(TROW $(ARGS $(D Win32)) , $(ARGS Microsoft 32-bit Windows systems))
         $(TROW $(ARGS $(D Win64)) , $(ARGS Microsoft 64-bit Windows systems))
