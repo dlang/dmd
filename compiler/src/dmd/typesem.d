@@ -3215,9 +3215,23 @@ Expression getProperty(Type t, Scope* scope_, const ref Loc loc, Identifier iden
                         error(loc, "no property `%s` for `%s` of type `%s`",
                             ident.toChars(), src.toChars(), mt.toPrettyChars(true));
                         auto s2 = scope_.search_correct(ident);
+                        // UFCS
                         if (s2 && s2.isFuncDeclaration)
                             errorSupplemental(loc, "did you mean %s `%s`?",
                                 s2.kind(), s2.toChars());
+                        else if (src.type.ty == Tpointer)
+                        {
+                            // structPtr.field
+                            auto tn = (cast(TypeNext) src.type).nextOf();
+                            if (auto as = tn.isAggregate())
+                            {
+                                if (auto s3 = as.search_correct(ident))
+                                {
+                                    errorSupplemental(loc, "did you mean %s `%s`?",
+                                        s3.kind(), s3.toChars());
+                                }
+                            }
+                        }
                     }
                     else
                         error(loc, "no property `%s` for type `%s`", ident.toChars(), mt.toPrettyChars(true));
