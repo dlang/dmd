@@ -1432,7 +1432,7 @@ public:
         if (d->isAnonymous())
             return;
         TypeEnum *tc = d->type->isTypeEnum();
-        if (tc->sym->members && !d->type->isZeroInit())
+        if (tc->sym->members && !dmd::isZeroInit(d->type))
         {
             (void)d->sinit;
             tc->sym->defaultval->accept(this);
