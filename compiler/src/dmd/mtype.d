@@ -1344,12 +1344,6 @@ extern (C++) abstract class Type : ASTNode
         return defaultInit(this, loc);
     }
 
-    // if initializer is 0
-    bool isZeroInit(const ref Loc loc)
-    {
-        return false; // assume not
-    }
-
     /***************************************
      * Return !=0 if the type or any of its subtypes is wild.
      */
@@ -2078,28 +2072,6 @@ extern (C++) final class TypeBasic : Type
         return (flags & TFlags.unsigned) != 0;
     }
 
-    override bool isZeroInit(const ref Loc loc)
-    {
-        switch (ty)
-        {
-        case Tchar:
-        case Twchar:
-        case Tdchar:
-        case Timaginary32:
-        case Timaginary64:
-        case Timaginary80:
-        case Tfloat32:
-        case Tfloat64:
-        case Tfloat80:
-        case Tcomplex32:
-        case Tcomplex64:
-        case Tcomplex80:
-            return false; // no
-        default:
-            return true; // yes
-        }
-    }
-
     override bool hasUnsafeBitpatterns()
     {
         return ty == Tbool;
@@ -2199,11 +2171,6 @@ extern (C++) final class TypeVector : Type
         return tb;
     }
 
-    override bool isZeroInit(const ref Loc loc)
-    {
-        return basetype.isZeroInit(loc);
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -2278,11 +2245,6 @@ extern (C++) final class TypeSArray : TypeArray
     {
         TY nty = next.toBasetype().ty;
         return nty.isSomeChar;
-    }
-
-    override bool isZeroInit(const ref Loc loc)
-    {
-        return next.isZeroInit(loc);
     }
 
     override structalign_t alignment()
@@ -2388,11 +2350,6 @@ extern (C++) final class TypeDArray : TypeArray
         return nty.isSomeChar;
     }
 
-    override bool isZeroInit(const ref Loc loc)
-    {
-        return true;
-    }
-
     override bool isBoolean()
     {
         return true;
@@ -2437,11 +2394,6 @@ extern (C++) final class TypeAArray : TypeArray
         auto result = new TypeAArray(t, ti);
         result.mod = mod;
         return result;
-    }
-
-    override bool isZeroInit(const ref Loc loc)
-    {
-        return true;
     }
 
     override bool isBoolean()
@@ -2490,11 +2442,6 @@ extern (C++) final class TypePointer : TypeNext
         return true;
     }
 
-    override bool isZeroInit(const ref Loc loc)
-    {
-        return true;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -2525,11 +2472,6 @@ extern (C++) final class TypeReference : TypeNext
         auto result = new TypeReference(t);
         result.mod = mod;
         return result;
-    }
-
-    override bool isZeroInit(const ref Loc loc)
-    {
-        return true;
     }
 
     override void accept(Visitor v)
@@ -2901,11 +2843,6 @@ extern (C++) final class TypeDelegate : TypeNext
     override uint alignsize()
     {
         return target.ptrsize;
-    }
-
-    override bool isZeroInit(const ref Loc loc)
-    {
-        return true;
     }
 
     override bool isBoolean()
@@ -3301,13 +3238,6 @@ extern (C++) final class TypeStruct : Type
         return structinit;
     }
 
-    override bool isZeroInit(const ref Loc loc)
-    {
-        // Determine zeroInit here, as this can be called before semantic2
-        sym.determineSize(sym.loc);
-        return sym.zeroInit;
-    }
-
     override bool isAssignable()
     {
         bool assignable = true;
@@ -3598,11 +3528,6 @@ extern (C++) final class TypeEnum : Type
         return tb.castMod(mod);         // retain modifier bits from 'this'
     }
 
-    override bool isZeroInit(const ref Loc loc)
-    {
-        return sym.getDefaultValue(loc).toBool().hasValue(false);
-    }
-
     override bool hasVoidInitPointers()
     {
         return memType().hasVoidInitPointers();
@@ -3707,11 +3632,6 @@ extern (C++) final class TypeClass : Type
         }
 
         return wm;
-    }
-
-    override bool isZeroInit(const ref Loc loc)
-    {
-        return true;
     }
 
     override bool isscope()

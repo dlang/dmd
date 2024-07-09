@@ -269,7 +269,6 @@ public:
     virtual ClassDeclaration *isClassHandle();
     virtual structalign_t alignment();
     virtual Expression *defaultInitLiteral(const Loc &loc);
-    virtual bool isZeroInit(const Loc &loc = Loc()); // if initializer is 0
     virtual int hasWild() const;
     virtual bool hasVoidInitPointers();
     virtual bool hasUnsafeBitpatterns();
@@ -360,7 +359,6 @@ public:
     bool iscomplex() override;
     bool isscalar() override;
     bool isunsigned() override;
-    bool isZeroInit(const Loc &loc) override;
 
     // For eliminating dynamic_cast
     TypeBasic *isTypeBasic() override;
@@ -383,7 +381,6 @@ public:
     bool isBoolean() override;
     Expression *defaultInitLiteral(const Loc &loc) override;
     TypeBasic *elementType();
-    bool isZeroInit(const Loc &loc) override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -405,7 +402,6 @@ public:
     bool isIncomplete();
     unsigned alignsize() override;
     bool isString() override;
-    bool isZeroInit(const Loc &loc) override;
     structalign_t alignment() override;
     Expression *defaultInitLiteral(const Loc &loc) override;
     bool hasUnsafeBitpatterns() override;
@@ -426,7 +422,6 @@ public:
     TypeDArray *syntaxCopy() override;
     unsigned alignsize() override;
     bool isString() override;
-    bool isZeroInit(const Loc &loc) override;
     bool isBoolean() override;
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -441,7 +436,6 @@ public:
     static TypeAArray *create(Type *t, Type *index);
     const char *kind() override;
     TypeAArray *syntaxCopy() override;
-    bool isZeroInit(const Loc &loc) override;
     bool isBoolean() override;
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -454,7 +448,6 @@ public:
     const char *kind() override;
     TypePointer *syntaxCopy() override;
     bool isscalar() override;
-    bool isZeroInit(const Loc &loc) override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -464,7 +457,6 @@ class TypeReference final : public TypeNext
 public:
     const char *kind() override;
     TypeReference *syntaxCopy() override;
-    bool isZeroInit(const Loc &loc) override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -593,7 +585,6 @@ public:
     const char *kind() override;
     TypeDelegate *syntaxCopy() override;
     unsigned alignsize() override;
-    bool isZeroInit(const Loc &loc) override;
     bool isBoolean() override;
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -703,7 +694,6 @@ public:
     TypeStruct *syntaxCopy() override;
     structalign_t alignment() override;
     Expression *defaultInitLiteral(const Loc &loc) override;
-    bool isZeroInit(const Loc &loc) override;
     bool isAssignable() override;
     bool isBoolean() override;
     bool needsDestruction() override;
@@ -739,7 +729,6 @@ public:
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
-    bool isZeroInit(const Loc &loc) override;
     bool hasVoidInitPointers() override;
     bool hasUnsafeBitpatterns() override;
     bool hasInvariant() override;
@@ -759,7 +748,6 @@ public:
     TypeClass *syntaxCopy() override;
     ClassDeclaration *isClassHandle() override;
     unsigned char deduceWild(Type *t, bool isRef) override;
-    bool isZeroInit(const Loc &loc) override;
     bool isscope() override;
     bool isBoolean() override;
 
@@ -837,6 +825,7 @@ namespace dmd
     bool equivalent(Type *src, Type *t);
     Covariant covariant(Type *, Type *, StorageClass * = nullptr, bool = false);
     bool isBaseOf(Type *tthis, Type *t, int *poffset);
+    bool isZeroInit(Type *t, const Loc &loc = Loc());
     Type *trySemantic(Type *type, const Loc &loc, Scope *sc);
     Type *pointerTo(Type *type);
     Type *referenceTo(Type *type);

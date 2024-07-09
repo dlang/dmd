@@ -5720,6 +5720,74 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
     }
 }
 
+// if initializer is 0
+bool isZeroInit(Type t, const ref Loc loc)
+{
+    bool visitType(Type _)
+    {
+        return false;       // assume not
+    }
+
+    bool visitBasic(TypeBasic t)
+    {
+        switch (t.ty)
+        {
+            case Tchar:
+            case Twchar:
+            case Tdchar:
+            case Timaginary32:
+            case Timaginary64:
+            case Timaginary80:
+            case Tfloat32:
+            case Tfloat64:
+            case Tfloat80:
+            case Tcomplex32:
+            case Tcomplex64:
+            case Tcomplex80:
+                return false; // no
+            default:
+                return true; // yes
+        }
+    }
+
+    bool visitVector(TypeVector t)
+    {
+        return t.basetype.isZeroInit(loc);
+    }
+
+    bool visitSArray(TypeSArray t)
+    {
+        return t.next.isZeroInit(loc);
+    }
+
+    bool visitStruct(TypeStruct t)
+    {
+        // Determine zeroInit here, as this can be called before semantic2
+        t.sym.determineSize(t.sym.loc);
+        return t.sym.zeroInit;
+    }
+
+    bool visitEnum(TypeEnum t)
+    {
+        return t.sym.getDefaultValue(loc).toBool().hasValue(false);
+    }
+
+    switch(t.ty)
+    {
+        default:               return t.isTypeBasic() ? visitBasic(cast(TypeBasic)t) : visitType(t);
+        case Tvector:          return visitVector(t.isTypeVector());
+        case Tsarray:          return visitSArray(t.isTypeSArray());
+        case Taarray:
+        case Tarray:
+        case Treference:
+        case Tdelegate:
+        case Tclass:
+        case Tpointer:         return true;
+        case Tstruct:          return visitStruct(t.isTypeStruct());
+        case Tenum:            return visitEnum(t.isTypeEnum());
+    }
+}
+
 
 /************************
  * Get the default initialization expression for a type.
