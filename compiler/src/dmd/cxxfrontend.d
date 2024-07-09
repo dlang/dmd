@@ -639,6 +639,18 @@ uinteger_t size(Type type, const ref Loc loc)
     return dmd.typesem.size(type, loc);
 }
 
+MATCH implicitConvTo(Type from, Type to)
+{
+    import dmd.dcast;
+    return dmd.dcast.implicitConvTo(from, to);
+}
+
+MATCH constConv(Type from, Type to)
+{
+    import dmd.typesem;
+    return dmd.typesem.constConv(from, to);
+}
+
 /***********************************************************
  * typinf.d
  */
