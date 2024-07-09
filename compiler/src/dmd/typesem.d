@@ -1445,6 +1445,163 @@ uinteger_t size(Type t, const ref Loc loc)
     }
 }
 
+/*******************************
+ * Determine if converting 'this' to 'to' is an identity operation,
+ * a conversion to const operation, or the types aren't the same.
+ * Returns:
+ *      MATCH.exact      'this' == 'to'
+ *      MATCH.constant      'to' is const
+ *      MATCH.nomatch    conversion to mutable or invariant
+ */
+MATCH constConv(Type from, Type to)
+{
+    MATCH visitType(Type from)
+    {
+        //printf("Type::constConv(this = %s, to = %s)\n", from.toChars(), to.toChars());
+        if (from.equals(to))
+            return MATCH.exact;
+        if (from.ty == to.ty && MODimplicitConv(from.mod, to.mod))
+            return MATCH.constant;
+        return MATCH.nomatch;
+    }
+
+    MATCH visitNext(TypeNext from)
+    {
+        //printf("TypeNext::constConv from = %s, to = %s\n", from.toChars(), to.toChars());
+        if (from.equals(to))
+            return MATCH.exact;
+
+        if (!(from.ty == to.ty && MODimplicitConv(from.mod, to.mod)))
+            return MATCH.nomatch;
+
+        Type tn = to.nextOf();
+        if (!(tn && from.next.ty == tn.ty))
+            return MATCH.nomatch;
+
+        MATCH m;
+        if (to.isConst()) // whole tail const conversion
+        {
+            // Recursive shared level check
+            m = from.next.constConv(tn);
+            if (m == MATCH.exact)
+                m = MATCH.constant;
+        }
+        else
+        {
+            //printf("\tnext => %s, to.next => %s\n", from.next.toChars(), tn.toChars());
+            m = from.next.equals(tn) ? MATCH.constant : MATCH.nomatch;
+        }
+        return m;
+    }
+
+    MATCH visitSArray(TypeSArray from)
+    {
+        if (auto tsa = to.isTypeSArray())
+        {
+            if (!from.dim.equals(tsa.dim))
+                return MATCH.nomatch;
+        }
+        return visitNext(from);
+    }
+
+    MATCH visitAArray(TypeAArray from)
+    {
+        if (auto taa = to.isTypeAArray())
+        {
+            MATCH mindex = from.index.constConv(taa.index);
+            MATCH mkey = from.next.constConv(taa.next);
+            // Pick the worst match
+            return mkey < mindex ? mkey : mindex;
+        }
+        return visitType(from);
+    }
+
+    MATCH visitPointer(TypePointer from)
+    {
+        if (from.next.ty == Tfunction)
+        {
+            if (to.nextOf() && from.next.equals((cast(TypeNext)to).next))
+                return visitType(from);
+            else
+                return MATCH.nomatch;
+        }
+        return visitNext(from);
+    }
+
+    MATCH visitFunction(TypeFunction from)
+    {
+        // Attributes need to match exactly, otherwise it's an implicit conversion
+        if (from.ty != to.ty || !from.attributesEqual(cast(TypeFunction) to))
+            return MATCH.nomatch;
+
+        return visitNext(from);
+    }
+
+    MATCH visitStruct(TypeStruct from)
+    {
+        if (from.equals(to))
+            return MATCH.exact;
+        if (from.ty == to.ty && from.sym == (cast(TypeStruct)to).sym && MODimplicitConv(from.mod, to.mod))
+            return MATCH.constant;
+        return MATCH.nomatch;
+    }
+
+    MATCH visitEnum(TypeEnum from)
+    {
+        if (from.equals(to))
+            return MATCH.exact;
+        if (from.ty == to.ty && from.sym == (cast(TypeEnum)to).sym && MODimplicitConv(from.mod, to.mod))
+            return MATCH.constant;
+        return MATCH.nomatch;
+    }
+
+    MATCH visitClass(TypeClass from)
+    {
+        if (from.equals(to))
+            return MATCH.exact;
+        if (from.ty == to.ty && from.sym == (cast(TypeClass)to).sym && MODimplicitConv(from.mod, to.mod))
+            return MATCH.constant;
+
+        /* Conversion derived to const(base)
+         */
+        int offset = 0;
+        if (to.isBaseOf(from, &offset) && offset == 0 && MODimplicitConv(from.mod, to.mod))
+        {
+            // Disallow:
+            //  derived to base
+            //  inout(derived) to inout(base)
+            if (!to.isMutable() && !to.isWild())
+                return MATCH.convert;
+        }
+
+        return MATCH.nomatch;
+    }
+
+    MATCH visitNoreturn(TypeNoreturn from)
+    {
+        // Either another noreturn or conversion to any type
+        return from.implicitConvTo(to);
+    }
+
+    switch(from.ty)
+    {
+        default:            return visitType(from);
+        case Tsarray:       return visitSArray(from.isTypeSArray());
+        case Taarray:       return visitAArray(from.isTypeAArray());
+        case Treference:
+        case Tdelegate:
+        case Tslice:
+        case Tarray:        return visitNext(cast(TypeNext)from);
+        case Tpointer:      return visitPointer(from.isTypePointer());
+        case Tfunction:     return visitFunction(from.isTypeFunction());
+        case Tstruct:       return visitStruct(from.isTypeStruct());
+        case Tenum:         return visitEnum(from.isTypeEnum());
+        case Tclass:        return visitClass(from.isTypeClass());
+        case Tnoreturn:     return visitNoreturn(from.isTypeNoreturn());
+    }
+}
+
+
 /******************************************
  * Perform semantic analysis on a type.
  * Params:
