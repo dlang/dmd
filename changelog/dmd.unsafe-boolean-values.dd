@@ -8,8 +8,8 @@ has other bits set is implementation-defined and should be avoided.
 Consequently the following are deprecated in `@safe` code:
 
 * `void` initialization of booleans (since 2.109)
-* Reading a `bool` field from a union (since 2.109)
-* Runtime casting a dynamic array to a `bool` dynamic array type
-* Runtime casting a `bool` dynamic array to a tail mutable dynamic array type
-* Casting a pointer to a `bool` pointer type
-* Casting a `bool` pointer to a tail mutable pointer type
+* Reading a (possibly qualified) `bool` field from a union that overlaps with a non-`bool` type (since 2.109)
+* Runtime casting a non-`bool` dynamic array to a (possibly qualified) `bool` dynamic array type
+* Runtime casting a (possibly qualified) `bool` dynamic array to a dynamic array type with mutable or `inout` non-`const`, non-`bool` elements
+* Casting a non-`bool` pointer to a (possibly qualified) `bool` pointer type
+* Casting a (possibly qualified) `bool` pointer to a pointer to a mutable or `inout` non-`const`, non-`bool` type
