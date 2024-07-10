@@ -489,6 +489,12 @@ Covariant covariant(Type src, Type t, StorageClass* pstc = null, bool
     return dmd.typesem.covariant(src, t, pstc, cppCovariant);
 }
 
+bool isZeroInit(Type t, const ref Loc loc)
+{
+    import dmd.typesem;
+    return dmd.typesem.isZeroInit(t, loc);
+}
+
 bool isBaseOf(Type tthis, Type t, int* poffset)
 {
     import dmd.typesem;
@@ -637,6 +643,18 @@ uinteger_t size(Type type, const ref Loc loc)
 {
     import dmd.typesem;
     return dmd.typesem.size(type, loc);
+}
+
+MATCH implicitConvTo(Type from, Type to)
+{
+    import dmd.dcast;
+    return dmd.dcast.implicitConvTo(from, to);
+}
+
+MATCH constConv(Type from, Type to)
+{
+    import dmd.typesem;
+    return dmd.typesem.constConv(from, to);
 }
 
 /***********************************************************

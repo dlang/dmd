@@ -710,6 +710,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 TypeInfo_toObjFile(null, ed.loc, ed.type);
 
             TypeEnum tc = ed.type.isTypeEnum();
+            import dmd.typesem : isZeroInit;
             if (!tc.sym.members || ed.type.isZeroInit(Loc.initial))
             {
             }
