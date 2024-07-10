@@ -58,7 +58,10 @@ static if (__VERSION__ < 2095)
     private alias StringValueType = StringValue!Type;
 }
 
-private auto X(T, U)(T m, U n) => (m << 4) | n;
+private auto X(T, U)(T m, U n)
+{
+    return (m << 4) | n;
+}
 
 /***************************
  * Return !=0 if modfrom can be implicitly converted to modto

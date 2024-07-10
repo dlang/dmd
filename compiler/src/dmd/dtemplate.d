@@ -1012,7 +1012,10 @@ size_t templateParameterLookup(Type tparam, TemplateParameters* parameters)
     return IDX_NOTFOUND;
 }
 
-private auto X(T, U)(T m, U n) => (m << 4) | n;
+private auto X(T, U)(T m, U n)
+{
+    return (m << 4) | n;
+}
 
 ubyte deduceWildHelper(Type t, Type* at, Type tparam)
 {
