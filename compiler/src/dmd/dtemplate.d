@@ -1012,17 +1012,14 @@ size_t templateParameterLookup(Type tparam, TemplateParameters* parameters)
     return IDX_NOTFOUND;
 }
 
+private auto X(T, U)(T m, U n) => (m << 4) | n;
+
 ubyte deduceWildHelper(Type t, Type* at, Type tparam)
 {
     if ((tparam.mod & MODFlags.wild) == 0)
         return 0;
 
     *at = null;
-
-    auto X(T, U)(T U, U T)
-    {
-        return (U << 4) | T;
-    }
 
     switch (X(tparam.mod, t.mod))
     {
@@ -1098,12 +1095,6 @@ private Type rawTypeMerge(Type t1, Type t2)
 MATCH deduceTypeHelper(Type t, out Type at, Type tparam)
 {
     // 9*9 == 81 cases
-
-    auto X(T, U)(T U, U T)
-    {
-        return (U << 4) | T;
-    }
-
     switch (X(tparam.mod, t.mod))
     {
     case X(0, 0):
