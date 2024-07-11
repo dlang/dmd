@@ -225,8 +225,8 @@ else version(D_InlineAsm_X86_64)
     // longdouble_soft passed by reference
     extern(D):
     private:
-    enum fld_arg(string arg) = `asm nothrow @nogc pure @trusted { fld real ptr [` ~ arg ~ `]; };`;
-    enum fstp_arg(string arg) = `asm nothrow @nogc pure @trusted { fstp real ptr [` ~ arg ~ `]; };`;
+    enum fld_arg(string arg) = "asm nothrow @nogc pure @trusted { mov RAX, " ~ arg ~ "; fld real ptr [RAX]; }";
+    enum fstp_arg(string arg) = "asm nothrow @nogc pure @trusted { mov RAX, " ~ arg ~ "; fstp real ptr [RAX]; }";
     alias fld_parg = fld_arg;
     alias fstp_parg = fstp_arg;
 }
