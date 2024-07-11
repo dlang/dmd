@@ -7382,6 +7382,100 @@ bool isRecursiveAliasThis(ref Type att, Type t)
     return false;
 }
 
+MATCH implicitConvToWithoutAliasThis(TypeStruct from, Type to)
+{
+    //printf("TypeStruct::implicitConvToWithoutAliasThis(%s => %s)\n", toChars(), to.toChars());
+
+    auto tos = to.isTypeStruct();
+    if (!(tos && from.sym == tos.sym))
+        return MATCH.nomatch;
+
+    if (from.mod == to.mod)
+        return MATCH.exact;
+
+    if (MODimplicitConv(from.mod, to.mod))
+        return MATCH.constant;
+
+    /* Check all the fields. If they can all be converted,
+     * allow the conversion.
+     */
+    MATCH m = MATCH.constant;
+    uint offset = ~0; // must never match a field offset
+    foreach (v; from.sym.fields[])
+    {
+        /* Why are we only looking at the first member of a union?
+         * The check should check for overlap of v with the previous field,
+         * not just starting at the same point
+         */
+        if (!global.params.fixImmutableConv && v.offset == offset) // v is at same offset as previous field
+            continue;       // ignore
+
+        Type tvf = v.type.addMod(from.mod);    // from type
+        Type tvt  = v.type.addMod(to.mod);     // to type
+
+        // field match
+        MATCH mf = tvf.implicitConvTo(tvt);
+        //printf("\t%s => %s, match = %d\n", v.type.toChars(), tvt.toChars(), mf);
+
+        if (mf == MATCH.nomatch)
+            return MATCH.nomatch;
+        if (mf < m) // if field match is worse
+            m = mf;
+        offset = v.offset;
+    }
+    return m;
+}
+
+MATCH implicitConvToWithoutAliasThis(TypeClass from, Type to)
+{
+    ClassDeclaration cdto = to.isClassHandle();
+    MATCH m = constConv(from, to);
+    if (m > MATCH.nomatch)
+        return m;
+
+    if (cdto && cdto.isBaseOf(from.sym, null) && MODimplicitConv(from.mod, to.mod))
+    {
+        //printf("'to' is base\n");
+        return MATCH.convert;
+    }
+    return MATCH.nomatch;
+}
+
+MATCH implicitConvToThroughAliasThis(TypeClass from, Type to)
+{
+    MATCH m;
+    if (from.sym.aliasthis && !(from.att & AliasThisRec.tracing))
+    {
+        if (auto ato = aliasthisOf(from))
+        {
+            from.att = cast(AliasThisRec)(from.att | AliasThisRec.tracing);
+            m = ato.implicitConvTo(to);
+            from.att = cast(AliasThisRec)(from.att & ~AliasThisRec.tracing);
+        }
+    }
+    return m;
+}
+
+MATCH implicitConvToThroughAliasThis(TypeStruct from, Type to)
+{
+    auto tos = to.isTypeStruct();
+    if (!(tos && from.sym == tos.sym) &&
+        from.sym.aliasthis &&
+        !(from.att & AliasThisRec.tracing))
+    {
+        if (auto ato = aliasthisOf(from))
+        {
+            from.att = cast(AliasThisRec)(from.att | AliasThisRec.tracing);
+            MATCH m = ato.implicitConvTo(to);
+            from.att = cast(AliasThisRec)(from.att & ~AliasThisRec.tracing);
+            return m;
+        }
+    }
+    return MATCH.nomatch;
+}
+
+
+
 /******************************* Private *****************************************/
 
 private:
