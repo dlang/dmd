@@ -26,7 +26,6 @@ struct INSTR
 {
   pure nothrow:
 
-    enum uint ret = 0xd65f03c0;
     enum uint nop = 0xD503201F;
 
 
@@ -118,6 +117,15 @@ struct INSTR
 
     /****************************** Branches, Exception Generating and System instructions **************/
     /* https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#control                          */
+
+    /* Unconditional branch (register)
+     * BLR
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#branch_reg
+     */
+    static uint branch_reg(uint opc, uint op2, uint op3, ubyte Rn, uint op4)
+    {
+        return (0x6B << 25) | (opc << 21) | (op2 << 16) | (op3 << 10) | (Rn << 5) | op4;
+    }
 
     /* Unconditional branch (immediate)
      * B/BL
@@ -350,6 +358,7 @@ struct INSTR
      */
     static uint ldstpair(uint opc, uint VR, uint opc2, uint L, uint imm7, ubyte Rt2, ubyte Rn, ubyte Rt)
     {
+        assert(imm7 < 0x80);
         return (opc  << 30) |
                (5    << 27) |
                (VR   << 26) |
@@ -393,6 +402,39 @@ struct INSTR
 
     /* =============================================================================== */
     /* =============================================================================== */
+
+    /********* Branches, Exception Generating and System Instructions **********/
+
+    /* BR Xn
+     * https://www.scs.stanford.edu/~zyedidia/arm64/br.html
+     */
+    static uint br(ubyte Rn)
+    {
+        return branch_reg(0, 0x1F, 0, Rn, 0);
+    }
+
+    /* BLR Xn
+     * https://www.scs.stanford.edu/~zyedidia/arm64/blr.html
+     */
+    static uint blr(ubyte Rn)
+    {
+        return branch_reg(1, 0x1F, 0, Rn, 0);
+    }
+
+    /* RET Xn
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ret.html
+     */
+    static ret(ubyte Rn = 30)
+    {
+        return branch_reg(2, 0x1F, 0, Rn, 0);
+    }
+
+    static assert(ret() == 0xd65f03c0);
+
+
+    /****************************** Data Processing -- Register **********************************/
+    /* https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#dpreg                     */
+
 
     /* MADD
      * https://www.scs.stanford.edu/~zyedidia/arm64/madd.html
@@ -502,7 +544,18 @@ struct INSTR
     {
         // str Rt,[Rn,#offset]
         uint size = 2 + is64;
-        uint imm12 = cast(uint)offset >> (is64 ? 3 : 2);
+        uint imm12 = (cast(uint)offset >> (is64 ? 3 : 2)) & 0xFFF;
+        return ldst_pos(size, 0, 0, imm12, Rn, Rt);
+    }
+
+    /* LDR (immediate) Unsigned offset
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_gen.html
+     */
+    static uint ldr_imm_gen(uint is64, ubyte Rt, ubyte Rn, ulong offset)
+    {
+        // ldr Rt,[Rn,#offset]
+        uint size = 2 + is64;
+        uint imm12 = (cast(uint)offset >> (is64 ? 3 : 2)) & 0xFFF;
         return ldst_pos(size, 0, 1, imm12, Rn, Rt);
     }
 }

@@ -1753,49 +1753,11 @@ void disassemble(uint c) @trusted
         {
             p2 = regString(opc >> 1, Rt);
             p3 = regString(opc >> 1, Rt2);
-            switch (op24)
-            {
-                case 1:
-                    if (imm7)
-                    {   // imm7 is signed, not sure how to format it
-                        uint n = snprintf(buf.ptr, cast(uint)buf.length, "[%s],%s", regString(1, Rn).ptr, wordtostring(imm7 * ((opc & 2) ? 8 : 4)).ptr);
-                        p4 = buf[0 .. n];
-                    }
-                    else
-                    {
-                        p4 = indexString(Rn);
-                    }
-                    break;
-
-                case 0:
-                case 2:
-                    if (imm7)
-                    {   // imm7 is signed, not sure how to format it
-                        uint n = snprintf(buf.ptr, cast(uint)buf.length, "[%s,%s]", regString(1, Rn).ptr, wordtostring(imm7 * ((opc & 2) ? 8 : 4)).ptr);
-                        p4 = buf[0 .. n];
-                    }
-                    else
-                    {
-                        p4 = indexString(Rn);
-                    }
-                    break;
-
-                case 3:
-                    if (imm7)
-                    {   // imm7 is signed, not sure how to format it
-                        uint n = snprintf(buf.ptr, cast(uint)buf.length, "[%s,%s]!", regString(1, Rn).ptr, wordtostring(imm7 * ((opc & 2) ? 8 : 4)).ptr);
-                        p4 = buf[0 .. n];
-                    }
-                    else
-                    {
-                        uint n = snprintf(buf.ptr, cast(uint)buf.length, "[%s]!", regString(1, Rn).ptr);
-                        p4 = buf[0 .. n];
-                        p4 = indexString(Rn);
-                    }
-                    break;
-
-                default: assert(0);
-            }
+            uint offset = imm7;
+            if (offset & 0x40)                        // bit 6 is sign bit
+                offset |= 0xFFFF_FF80;                // sign extend
+            offset *= (opc & 2) ? 8 : 4;              // scale
+            p4 = eaString(op24, cast(ubyte)Rn, offset);
         }
     }
 
@@ -1842,12 +1804,8 @@ void disassemble(uint c) @trusted
                 is64 = true;
             Lldr:
                 p2 = regString(is64, Rt);
-                size_t n;
-                if (imm12)
-                    n = snprintf(buf.ptr, cast(uint)buf.length, "[%s,%s]", regString(1, Rn).ptr, wordtostring(imm12 * (is64 ? 8 : 4)).ptr);
-                else
-                    n = snprintf(buf.ptr, cast(uint)buf.length, "[%s]", regString(1, Rn).ptr);
-                p3 = buf[0 .. n];
+                uint offset = imm12 * (is64 ? 8 : 4);
+                p3 = eaString(0, cast(ubyte)Rn, offset);
                 break;
 
             static if (0) // fix later
@@ -2053,6 +2011,15 @@ const(char)[] wordtostring2(uint w)
 }
 
 @trusted
+const(char)[] signedWordtostring(int w)
+{
+    __gshared char[1 + 3 + 1 + w.sizeof * 3 + 1 + 1] EA;
+
+    const n = snprintf(EA.ptr, EA.length, ((w <= 16 && w >= -32) ? "#%d" : "#0x%X"), w);
+    return EA[0 .. n];
+}
+
+@trusted
 const(char)[] labeltostring(ulong w)
 {
     __gshared char[2 + w.sizeof * 3 + 1] EA;
@@ -2072,6 +2039,69 @@ const(char)[] indexString(uint reg)
     return EA[0 .. n];
 }
 
+
+
+/*************************************
+ * Compute string of an effective address for an indexed pointer
+ * Params:
+ *      op = 1 Post-index
+ *           0,2 offset
+ *           3 Pre-index
+ *      Rn = index register
+ *      offset = offset to be added
+ * Returns:
+ *      generated string
+ */
+@trusted
+const(char)[] eaString(uint op, ubyte Rn, int offset)
+{
+    __gshared char[1 + 3 + 2 + 2 + 1 + offset.sizeof * 3 + 1 + 1] EA;
+
+    const(char)[] p;
+    switch (op)
+    {
+        case 1:
+            if (offset)
+            {
+                uint n = snprintf(EA.ptr, cast(uint)EA.length, "[%s],%s", regString(1, Rn).ptr, signedWordtostring(offset).ptr);
+                p = EA[0 .. n];
+            }
+            else
+            {
+                p = indexString(Rn);
+            }
+            break;
+
+        case 0:
+        case 2:
+            if (offset)
+            {
+                uint n = snprintf(EA.ptr, cast(uint)EA.length, "[%s,%s]", regString(1, Rn).ptr, signedWordtostring(offset).ptr);
+                p = EA[0 .. n];
+            }
+            else
+            {
+                p = indexString(Rn);
+            }
+            break;
+
+        case 3:
+            if (offset)
+            {
+                uint n = snprintf(EA.ptr, cast(uint)EA.length, "[%s,%s]!", regString(1, Rn).ptr, signedWordtostring(offset).ptr);
+                p = EA[0 .. n];
+            }
+            else
+            {
+                uint n = snprintf(EA.ptr, cast(uint)EA.length, "[%s]!", regString(1, Rn).ptr);
+                p = EA[0 .. n];
+            }
+            break;
+
+        default: assert(0);
+    }
+    return p;
+}
 
 /***************************************
  */
@@ -2127,10 +2157,10 @@ unittest
     int line64 = __LINE__;
     string[46] cases64 =      // 64 bit code gen
     [
-        "A8 C1 7B FD         ldp   x29,x30,[sp],#0x10",
+        "A8 C1 7B FD         ldp   x29,x30,[sp],#16",
         "90 00 00 00         adrp  x0,#0",
-        "A9 01 7B FD         stp   x29,x30,[sp,#0x10]",
-        "A9 41 7B FD         ldp   x29,x30,[sp,#0x10]",
+        "A9 01 7B FD         stp   x29,x30,[sp,#16]",
+        "A9 41 7B FD         ldp   x29,x30,[sp,#16]",
         "B9 40 0B E0         ldr   w0,[sp,#8]",
 
         "39 C0 00 20         ldrsb w0,[x1]",
