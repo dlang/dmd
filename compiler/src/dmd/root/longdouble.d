@@ -217,24 +217,18 @@ version(LDC)
 
     extern(D):
     private:
-    string fld_arg  (string arg)() { return `__asm("fldt $0",  "*m,~{st}",  &` ~ arg ~ `);`; }
-    string fstp_arg (string arg)() { return `__asm("fstpt $0", "=*m,~{st}", &` ~ arg ~ `);`; }
-    string fld_parg (string arg)() { return `__asm("fldt $0",  "*m,~{st}",   ` ~ arg ~ `);`; }
-    string fstp_parg(string arg)() { return `__asm("fstpt $0", "=*m,~{st}",  ` ~ arg ~ `);`; }
+    enum fld_arg(string arg) = `__asm("fldt $0",  "*m,~{st}",  &` ~ arg ~ `);`;
+    enum fstp_arg(string arg) = `__asm("fstpt $0", "=*m,~{st}", &` ~ arg ~ `);`;
+    enum fld_parg(string arg) = `__asm("fldt $0",  "*m,~{st}",   ` ~ arg ~ `);`;
+    enum fstp_parg(string arg) = `__asm("fstpt $0", "=*m,~{st}",  ` ~ arg ~ `);`;
 }
 else version(D_InlineAsm_X86_64)
 {
     // longdouble_soft passed by reference
     extern(D):
     private:
-    string fld_arg(string arg)()
-    {
-        return "asm nothrow @nogc pure @trusted { mov RAX, " ~ arg ~ "; fld real ptr [RAX]; }";
-    }
-    string fstp_arg(string arg)()
-    {
-        return "asm nothrow @nogc pure @trusted { mov RAX, " ~ arg ~ "; fstp real ptr [RAX]; }";
-    }
+    enum fld_arg(string arg) = `asm nothrow @nogc pure @trusted { fld real ptr [` ~ arg ~ `]; };`;
+    enum fstp_arg(string arg) = `asm nothrow @nogc pure @trusted { fstp real ptr [` ~ arg ~ `]; };`;
     alias fld_parg = fld_arg;
     alias fstp_parg = fstp_arg;
 }
@@ -243,22 +237,10 @@ else version(D_InlineAsm_X86)
     // longdouble_soft passed by value
     extern(D):
     private:
-    string fld_arg(string arg)()
-    {
-        return "asm nothrow @nogc pure @trusted { lea EAX, " ~ arg ~ "; fld real ptr [EAX]; }";
-    }
-    string fstp_arg(string arg)()
-    {
-        return "asm nothrow @nogc pure @trusted { lea EAX, " ~ arg ~ "; fstp real ptr [EAX]; }";
-    }
-    string fld_parg(string arg)()
-    {
-        return "asm nothrow @nogc pure @trusted { mov EAX, " ~ arg ~ "; fld real ptr [EAX]; }";
-    }
-    string fstp_parg(string arg)()
-    {
-        return "asm nothrow @nogc pure @trusted { mov EAX, " ~ arg ~ "; fstp real ptr [EAX]; }";
-    }
+    enum fld_arg(string arg) = "asm nothrow @nogc pure @trusted { lea EAX, " ~ arg ~ "; fld real ptr [EAX]; }";
+    enum fstp_arg(string arg) = "asm nothrow @nogc pure @trusted { lea EAX, " ~ arg ~ "; fstp real ptr [EAX]; }";
+    enum fld_parg(string arg) = "asm nothrow @nogc pure @trusted { mov EAX, " ~ arg ~ "; fld real ptr [EAX]; }";
+    enum fstp_parg(string arg) = "asm nothrow @nogc pure @trusted { mov EAX, " ~ arg ~ "; fstp real ptr [EAX]; }";
 }
 
 double ld_read(const longdouble_soft* pthis)
