@@ -2435,9 +2435,9 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         if (e.committed)
             goto Lcast;
 
-        auto X(T, U)(T tf, U tt)
+        static auto X(T, U)(T tf, U tt)
         {
-            return (cast(int)tf * 256 + cast(int)tt);
+            return cast(int)tf * 256 + cast(int)tt;
         }
 
         {
