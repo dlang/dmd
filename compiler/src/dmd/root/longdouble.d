@@ -170,25 +170,23 @@ nothrow @nogc pure:
         T opCast(T)() const @trusted
         {
             static      if (is(T == bool))   return mantissa != 0 || (exp_sign & 0x7fff) != 0;
-            else static if (is(T == byte))   return cast(T)ld_read(&this);
-            else static if (is(T == ubyte))  return cast(T)ld_read(&this);
-            else static if (is(T == short))  return cast(T)ld_read(&this);
-            else static if (is(T == ushort)) return cast(T)ld_read(&this);
-            else static if (is(T == int))    return cast(T)ld_read(&this);
-            else static if (is(T == uint))   return cast(T)ld_read(&this);
-            else static if (is(T == float))  return cast(T)ld_read(&this);
-            else static if (is(T == double)) return cast(T)ld_read(&this);
+            else static if (is(T == byte) || is(T == ubyte) ||
+                            is(T == short) || is(T == ushort) ||
+                            is(T == int) || is(T == uint))
+                                             return cast(T)ld_read(&this);
+            else static if (is(T == float) || is(T == double))
+                                             return cast(T)ld_read(&this);
             else static if (is(T == long))   return ld_readll(&this);
             else static if (is(T == ulong))  return ld_readull(&this);
             else static if (is(T == real))
             {
                 // convert to front end real if built with dmd
-                if (real.sizeof > 8)
+                static if (real.sizeof > 8)
                     return *cast(real*)&this;
                 else
                     return ld_read(&this);
             }
-            else static assert(false, "usupported type");
+            else static assert(false, "unsupported type");
         }
     }
 
@@ -248,7 +246,7 @@ double ld_read(const longdouble_soft* pthis)
     double res;
     version(AsmX86)
     {
-        mixin(fld_parg!("pthis"));
+        mixin(fld_parg!"pthis");
         asm nothrow @nogc pure @trusted
         {
             fstp res;
@@ -302,7 +300,7 @@ void ld_set(longdouble_soft* pthis, double d)
         {
             fld d;
         }
-        mixin(fstp_parg!("pthis"));
+        mixin(fstp_parg!"pthis");
     }
 }
 
@@ -314,7 +312,7 @@ void ld_setll(longdouble_soft* pthis, long d)
         {
             fild qword ptr d;
         }
-        mixin(fstp_parg!("pthis"));
+        mixin(fstp_parg!"pthis");
     }
 }
 
@@ -324,13 +322,13 @@ void ld_setull(longdouble_soft* pthis, ulong d)
     version(AsmX86)
     {
         auto pTwoPow63 = &twoPow63;
-        mixin(fld_parg!("pTwoPow63"));
+        mixin(fld_parg!"pTwoPow63");
         asm nothrow @nogc pure @trusted
         {
             fild qword ptr d;
             faddp;
         }
-        mixin(fstp_parg!("pthis"));
+        mixin(fstp_parg!"pthis");
     }
 }
 
@@ -343,13 +341,13 @@ longdouble_soft ldexpl(longdouble_soft ld, int exp)
         {
             fild    dword ptr exp;
         }
-        mixin(fld_arg!("ld"));
+        mixin(fld_arg!"ld");
         asm nothrow @nogc pure @trusted
         {
             fscale;                 // ST(0) = ST(0) * (2**ST(1))
             fstp    ST(1);
         }
-        mixin(fstp_arg!("ld"));
+        mixin(fstp_arg!"ld");
     }
     return ld;
 }
@@ -359,13 +357,13 @@ longdouble_soft ld_add(longdouble_soft ld1, longdouble_soft ld2)
 {
     version(AsmX86)
     {
-        mixin(fld_arg!("ld1"));
-        mixin(fld_arg!("ld2"));
+        mixin(fld_arg!"ld1");
+        mixin(fld_arg!"ld2");
         asm nothrow @nogc pure @trusted
         {
             fadd;
         }
-        mixin(fstp_arg!("ld1"));
+        mixin(fstp_arg!"ld1");
     }
     return ld1;
 }
@@ -374,13 +372,13 @@ longdouble_soft ld_sub(longdouble_soft ld1, longdouble_soft ld2)
 {
     version(AsmX86)
     {
-        mixin(fld_arg!("ld1"));
-        mixin(fld_arg!("ld2"));
+        mixin(fld_arg!"ld1");
+        mixin(fld_arg!"ld2");
         asm nothrow @nogc pure @trusted
         {
             fsub;
         }
-        mixin(fstp_arg!("ld1"));
+        mixin(fstp_arg!"ld1");
     }
     return ld1;
 }
@@ -389,13 +387,13 @@ longdouble_soft ld_mul(longdouble_soft ld1, longdouble_soft ld2)
 {
     version(AsmX86)
     {
-        mixin(fld_arg!("ld1"));
-        mixin(fld_arg!("ld2"));
+        mixin(fld_arg!"ld1");
+        mixin(fld_arg!"ld2");
         asm nothrow @nogc pure @trusted
         {
             fmul;
         }
-        mixin(fstp_arg!("ld1"));
+        mixin(fstp_arg!"ld1");
     }
     return ld1;
 }
@@ -404,13 +402,13 @@ longdouble_soft ld_div(longdouble_soft ld1, longdouble_soft ld2)
 {
     version(AsmX86)
     {
-        mixin(fld_arg!("ld1"));
-        mixin(fld_arg!("ld2"));
+        mixin(fld_arg!"ld1");
+        mixin(fld_arg!"ld2");
         asm nothrow @nogc pure @trusted
         {
             fdiv;
         }
-        mixin(fstp_arg!("ld1"));
+        mixin(fstp_arg!"ld1");
     }
     return ld1;
 }
@@ -421,8 +419,8 @@ bool ld_cmpb(longdouble_soft x, longdouble_soft y)
     bool res;
     version(AsmX86)
     {
-        mixin(fld_arg!("y"));
-        mixin(fld_arg!("x"));
+        mixin(fld_arg!"y");
+        mixin(fld_arg!"x");
         asm nothrow @nogc pure @trusted
         {
             fucomip ST(1);
@@ -442,8 +440,8 @@ bool ld_cmpbe(longdouble_soft x, longdouble_soft y)
     bool res;
     version(AsmX86)
     {
-        mixin(fld_arg!("y"));
-        mixin(fld_arg!("x"));
+        mixin(fld_arg!"y");
+        mixin(fld_arg!"x");
         asm nothrow @nogc pure @trusted
         {
             fucomip ST(1);
@@ -463,8 +461,8 @@ bool ld_cmpa(longdouble_soft x, longdouble_soft y)
     bool res;
     version(AsmX86)
     {
-        mixin(fld_arg!("y"));
-        mixin(fld_arg!("x"));
+        mixin(fld_arg!"y");
+        mixin(fld_arg!"x");
         asm nothrow @nogc pure @trusted
         {
             fucomip ST(1);
@@ -484,8 +482,8 @@ bool ld_cmpae(longdouble_soft x, longdouble_soft y)
     bool res;
     version(AsmX86)
     {
-        mixin(fld_arg!("y"));
-        mixin(fld_arg!("x"));
+        mixin(fld_arg!"y");
+        mixin(fld_arg!"x");
         asm nothrow @nogc pure @trusted
         {
             fucomip ST(1);
@@ -505,8 +503,8 @@ bool ld_cmpe(longdouble_soft x, longdouble_soft y)
     bool res;
     version(AsmX86)
     {
-        mixin(fld_arg!("y"));
-        mixin(fld_arg!("x"));
+        mixin(fld_arg!"y");
+        mixin(fld_arg!"x");
         asm nothrow @nogc pure @trusted
         {
             fucomip ST(1);
@@ -526,8 +524,8 @@ bool ld_cmpne(longdouble_soft x, longdouble_soft y)
     bool res;
     version(AsmX86)
     {
-        mixin(fld_arg!("y"));
-        mixin(fld_arg!("x"));
+        mixin(fld_arg!"y");
+        mixin(fld_arg!"x");
         asm nothrow @nogc pure @trusted
         {
             fucomip ST(1);
@@ -548,8 +546,8 @@ int ld_cmp(longdouble_soft x, longdouble_soft y)
     int res;
     version(AsmX86)
     {
-        mixin(fld_arg!("y"));
-        mixin(fld_arg!("x"));
+        mixin(fld_arg!"y");
+        mixin(fld_arg!"x");
         asm nothrow @nogc pure @trusted
         {
             fucomip ST(1);
@@ -582,12 +580,12 @@ longdouble_soft sqrtl(longdouble_soft ld)
 {
     version(AsmX86)
     {
-        mixin(fld_arg!("ld"));
+        mixin(fld_arg!"ld");
         asm nothrow @nogc pure @trusted
         {
             fsqrt;
         }
-        mixin(fstp_arg!("ld"));
+        mixin(fstp_arg!"ld");
     }
     return ld;
 }
@@ -598,12 +596,12 @@ longdouble_soft sinl (longdouble_soft ld)
 {
     version(AsmX86)
     {
-        mixin(fld_arg!("ld"));
+        mixin(fld_arg!"ld");
         asm nothrow @nogc pure @trusted
         {
             fsin; // exact for |x|<=PI/4
         }
-        mixin(fstp_arg!("ld"));
+        mixin(fstp_arg!"ld");
     }
     return ld;
 }
@@ -611,12 +609,12 @@ longdouble_soft cosl (longdouble_soft ld)
 {
     version(AsmX86)
     {
-        mixin(fld_arg!("ld"));
+        mixin(fld_arg!"ld");
         asm nothrow @nogc pure @trusted
         {
             fcos; // exact for |x|<=PI/4
         }
-        mixin(fstp_arg!("ld"));
+        mixin(fstp_arg!"ld");
     }
     return ld;
 }
@@ -624,13 +622,13 @@ longdouble_soft tanl (longdouble_soft ld)
 {
     version(AsmX86)
     {
-        mixin(fld_arg!("ld"));
+        mixin(fld_arg!"ld");
         asm nothrow @nogc pure @trusted
         {
             fptan;
             fstp ST(0); // always 1
         }
-        mixin(fstp_arg!("ld"));
+        mixin(fstp_arg!"ld");
     }
     return ld;
 }
@@ -645,8 +643,8 @@ longdouble_soft ld_mod(longdouble_soft x, longdouble_soft y)
     short sw;
     version(AsmX86)
     {
-        mixin(fld_arg!("y"));
-        mixin(fld_arg!("x"));
+        mixin(fld_arg!"y");
+        mixin(fld_arg!"x");
         asm nothrow @nogc pure @trusted
         {
         FM1:    // We don't use fprem1 because for some inexplicable
@@ -659,7 +657,7 @@ longdouble_soft ld_mod(longdouble_soft x, longdouble_soft y)
             jp      FM1;                    // continue till ST < ST1
             fstp    ST(1);                  // leave remainder on stack
         }
-        mixin(fstp_arg!("x"));
+        mixin(fstp_arg!"x");
     }
     return x;
 }
