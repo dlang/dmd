@@ -57,6 +57,11 @@ static if (__VERSION__ < 2095)
     private alias StringValueType = StringValue!Type;
 }
 
+private auto X(T, U)(T m, U n)
+{
+    return (m << 4) | n;
+}
+
 /***************************
  * Return !=0 if modfrom can be implicitly converted to modto
  */
@@ -66,10 +71,6 @@ bool MODimplicitConv(MOD modfrom, MOD modto) pure nothrow @nogc @safe
         return true;
 
     //printf("MODimplicitConv(from = %x, to = %x)\n", modfrom, modto);
-    auto X(T, U)(T m, U n)
-    {
-        return ((m << 4) | n);
-    }
 
     switch (X(modfrom & ~MODFlags.shared_, modto & ~MODFlags.shared_))
     {
@@ -96,11 +97,6 @@ MATCH MODmethodConv(MOD modfrom, MOD modto) pure nothrow @nogc @safe
         return MATCH.exact;
     if (MODimplicitConv(modfrom, modto))
         return MATCH.constant;
-
-    auto X(T, U)(T m, U n)
-    {
-        return ((m << 4) | n);
-    }
 
     switch (X(modfrom, modto))
     {
