@@ -21,7 +21,6 @@ import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.ast_node;
-import dmd.dcast : implicitConvTo;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum;
@@ -3332,68 +3331,6 @@ extern (C++) final class TypeStruct : Type
         return sym.hasInvariant() || sym.hasFieldWithInvariant;
     }
 
-    extern (D) MATCH implicitConvToWithoutAliasThis(Type to)
-    {
-        //printf("TypeStruct::implicitConvToWithoutAliasThis(%s => %s)\n", toChars(), to.toChars());
-
-        auto tos = to.isTypeStruct();
-        if (!(tos && sym == tos.sym))
-            return MATCH.nomatch;
-
-        if (mod == to.mod)
-            return MATCH.exact;
-
-        if (MODimplicitConv(mod, to.mod))
-            return MATCH.constant;
-
-        /* Check all the fields. If they can all be converted,
-         * allow the conversion.
-         */
-        MATCH m = MATCH.constant;
-        uint offset = ~0; // must never match a field offset
-        foreach (v; sym.fields[])
-        {
-            /* Why are we only looking at the first member of a union?
-             * The check should check for overlap of v with the previous field,
-             * not just starting at the same point
-             */
-            if (!global.params.fixImmutableConv && v.offset == offset) // v is at same offset as previous field
-                continue;       // ignore
-
-            Type tvf = v.type.addMod(mod);    // from type
-            Type tvt  = v.type.addMod(to.mod); // to type
-
-            // field match
-            MATCH mf = tvf.implicitConvTo(tvt);
-            //printf("\t%s => %s, match = %d\n", v.type.toChars(), tvt.toChars(), mf);
-
-            if (mf == MATCH.nomatch)
-                return MATCH.nomatch;
-            if (mf < m) // if field match is worse
-                m = mf;
-            offset = v.offset;
-        }
-        return m;
-    }
-
-    extern (D) MATCH implicitConvToThroughAliasThis(Type to)
-    {
-        auto tos = to.isTypeStruct();
-        if (!(tos && sym == tos.sym) &&
-            sym.aliasthis &&
-            !(att & AliasThisRec.tracing))
-        {
-            if (auto ato = aliasthisOf(this))
-            {
-                att = cast(AliasThisRec)(att | AliasThisRec.tracing);
-                MATCH m = ato.implicitConvTo(to);
-                att = cast(AliasThisRec)(att & ~AliasThisRec.tracing);
-                return m;
-            }
-        }
-        return MATCH.nomatch;
-    }
-
     override MOD deduceWild(Type t, bool isRef)
     {
         if (ty == t.ty && sym == (cast(TypeStruct)t).sym)
@@ -3581,36 +3518,6 @@ extern (C++) final class TypeClass : Type
     override inout(ClassDeclaration) isClassHandle() inout
     {
         return sym;
-    }
-
-    extern (D) MATCH implicitConvToWithoutAliasThis(Type to)
-    {
-        ClassDeclaration cdto = to.isClassHandle();
-        MATCH m = constConv(this, to);
-        if (m > MATCH.nomatch)
-            return m;
-
-        if (cdto && cdto.isBaseOf(sym, null) && MODimplicitConv(mod, to.mod))
-        {
-            //printf("'to' is base\n");
-            return MATCH.convert;
-        }
-        return MATCH.nomatch;
-    }
-
-    extern (D) MATCH implicitConvToThroughAliasThis(Type to)
-    {
-        MATCH m;
-        if (sym.aliasthis && !(att & AliasThisRec.tracing))
-        {
-            if (auto ato = aliasthisOf(this))
-            {
-                att = cast(AliasThisRec)(att | AliasThisRec.tracing);
-                m = ato.implicitConvTo(to);
-                att = cast(AliasThisRec)(att & ~AliasThisRec.tracing);
-            }
-        }
-        return m;
     }
 
     override MOD deduceWild(Type t, bool isRef)
