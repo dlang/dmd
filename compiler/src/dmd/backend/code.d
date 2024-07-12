@@ -345,7 +345,7 @@ struct FuncParamRegs
 }
 
 public import dmd.backend.cg : BPRM, FLOATREGS, FLOATREGS2, DOUBLEREGS,
-    localsize, framehandleroffset, cseg, STACKALIGN, TARGET_STACKALIGN;
+    localsize, cseg, STACKALIGN, TARGET_STACKALIGN;
 
 public import dmd.backend.x86.cgcod;
 enum BackendPass

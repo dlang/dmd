@@ -25,7 +25,6 @@ import dmd.backend.type;
 
 __gshared
 {
-targ_size_t     framehandleroffset;     // offset of C++ frame handler
 targ_size_t     localgotoffset; // offset of where localgot refers to
 
 int cseg = CODE;                // current code segment
