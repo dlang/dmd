@@ -1911,6 +1911,25 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     {
         if (sa.semanticRun < PASS.semanticdone)
             sa.semanticRun = PASS.semanticdone;
+        else
+            return;
+
+        // https://issues.dlang.org/show_bug.cgi?id=24645
+        // This is a short-circuit. Usually, static assert conditions are evaluated
+        // in semantic2, but it's not uncommon to use this pattern:
+        // ---
+        // version(X)
+        // {}
+        // else
+        //   static assert(false, "unsupported platform");
+        // ---
+        // However, without this short-circuit, the static assert error may get drowned
+        // out by subsequent semantic1 (import) errors. Only short-circuit at module scope though,
+        // inside mixin templates you want an instantiation trace (which you don't get here).
+        if (sc.parent && sc.parent.isModule())
+            if (auto i = sa.exp.isIntegerExp())
+                if (i.toInteger() == 0)
+                    staticAssertFail(sa, sc);
     }
 
     override void visit(DebugSymbol ds)
