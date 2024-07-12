@@ -391,10 +391,12 @@ void codgen(Symbol *sfunc)
         swoffset = coffset;
     }
 
+    targ_size_t framehandleroffset;     // offset of C++ frame handler
+
     // Emit the generated code
     if (eecontext.EEcompile == 1)
     {
-        codout(sfunc.Sseg,eecontext.EEcode,null);
+        codout(sfunc.Sseg,eecontext.EEcode,null,framehandleroffset);
         code_free(eecontext.EEcode);
     }
     else
@@ -434,7 +436,7 @@ void codgen(Symbol *sfunc)
             }
             assert(b.Boffset == Offset(sfunc.Sseg));
 
-            codout(sfunc.Sseg,b.Bcode,configv.vasm ? &disasmBuf : null);   // output code
+            codout(sfunc.Sseg,b.Bcode,(configv.vasm ? &disasmBuf : null), framehandleroffset);   // output code
         }
         if (coffset != Offset(sfunc.Sseg))
         {
