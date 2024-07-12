@@ -498,7 +498,7 @@ void codgen(Symbol *sfunc)
         static if (MARS)
         {
             if (config.exe == EX_WIN64)
-                win64_pdata(sfunc);
+                win64_pdata(sfunc, localsize);
         }
 
         static if (MARS)
@@ -2860,7 +2860,7 @@ void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm
                         touse &= ~mj;
                         cg.mfuncreg &= ~mj;
                         cg.regcon.used |= mj;
-	                assert(!(cg.regcon.used & mPSW));
+                        assert(!(cg.regcon.used & mPSW));
                         break;
                     }
                 }
