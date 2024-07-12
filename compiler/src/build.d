@@ -83,9 +83,9 @@ void runMain(string[] args)
     bool calledFromMake = false;
     auto res = getopt(args,
         "j|jobs", "Specifies the number of jobs (commands) to run simultaneously (default: %d)".format(totalCPUs), &jobs,
-        "v|verbose", "Verbose command output", (cast(bool*) &verbose),
-        "f|force", "Force run (ignore timestamps and always run all tests)", (cast(bool*) &force),
-        "d|dry-run", "Print commands instead of executing them", (cast(bool*) &dryRun),
+        "v|verbose", "Verbose command output", cast(bool*) &verbose,
+        "f|force", "Force run (ignore timestamps and always run all tests)", cast(bool*) &force,
+        "d|dry-run", "Print commands instead of executing them", cast(bool*) &dryRun,
         "called-from-make", "Calling the build script from the Makefile", &calledFromMake
     );
     void showHelp()
@@ -2345,7 +2345,7 @@ void installRelativeFiles(T)(string targetDir, string sourceBase, T files, uint 
     {
         string name;
         string relativeName;
-        string toString() { return relativeName; }
+        string toString() const { return relativeName; }
     }
     FileToCopy[][string] filesByDir;
     foreach (file; files)
