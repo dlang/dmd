@@ -33,6 +33,7 @@ import dmd.dclass;
 import dmd.dcast;
 import dmd.delegatize;
 import dmd.denum;
+import dmd.deps;
 import dmd.dimport;
 import dmd.dinterpret;
 import dmd.dmangle;
@@ -7723,29 +7724,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             const slice = se.peekString();
             message("file      %.*s\t(%s)", cast(int)slice.length, slice.ptr, resolvedNamez.ptr);
         }
-        if (global.params.moduleDeps.buffer !is null)
-        {
-            OutBuffer* ob = global.params.moduleDeps.buffer;
-            Module imod = sc._module;
 
-            if (!global.params.moduleDeps.name)
-                ob.writestring("depsFile ");
-            ob.writestring(imod.toPrettyChars());
-            ob.writestring(" (");
-            escapePath(ob, imod.srcfile.toChars());
-            ob.writestring(") : ");
-            if (global.params.moduleDeps.name)
-                ob.writestring("string : ");
-            ob.write(se.peekString());
-            ob.writestring(" (");
-            escapePath(ob, resolvedNamez.ptr);
-            ob.writestring(")");
-            ob.writenl();
-        }
-        if (global.params.makeDeps.doOutput)
-        {
-            global.params.makeDeps.files.push(resolvedNamez.ptr);
-        }
+        addImportExpDep(global.params, resolvedNamez, se.peekString(), sc._module);
 
         {
             auto fileName = FileName(resolvedNamez);
