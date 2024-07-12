@@ -4806,7 +4806,8 @@ void cod3_thunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
     thunkoffset = Offset(seg);
     code *c = cdb.finish();
     pinholeopt(c,null);
-    codout(seg,c,null);
+    targ_size_t framehandleroffset;
+    codout(seg,c,null,framehandleroffset);
     code_free(c);
 
     sthunk.Soffset = thunkoffset;
@@ -6685,6 +6686,7 @@ nothrow:
     uint offset;
     int seg;
     Barray!ubyte* disasmBuf;
+    targ_size_t framehandleroffset;
     ubyte[256] bytes; // = void;
 
     this(int seg)
@@ -6768,12 +6770,13 @@ nothrow:
  *      seg = code segment to write to, code starts at Offset(seg)
  *      c = list of instructions to write
  *      disasmBuf = if not null, then also write object code here
+ *      framehandleroffset = offset of C++ frame handler
  * Returns:
  *      offset of end of code emitted
  */
 
 @trusted
-uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
+uint codout(int seg, code *c, Barray!ubyte* disasmBuf, ref targ_size_t framehandleroffset)
 {
     ubyte rm,mod;
     ubyte ins;
@@ -6788,6 +6791,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
     ggen.index = 0;
     ggen.offset = cast(uint)Offset(seg);
     ggen.seg = seg;
+    ggen.framehandleroffset = framehandleroffset;
     ggen.disasmBuf = disasmBuf;
 
     for (; c; c = code_next(c))
@@ -7224,6 +7228,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf)
     }
     ggen.flush();
     Offset(seg) = ggen.offset;
+    framehandleroffset = ggen.framehandleroffset;
     //printf("-codout(), Coffset = x%x\n", Offset(seg));
     return cast(uint)ggen.offset;                      /* ending address               */
 }
@@ -7252,7 +7257,7 @@ private void do64bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev,int flags)
             break;
 
         case FLframehandler:
-            framehandleroffset = pbuf.getOffset();
+            pbuf.framehandleroffset = pbuf.getOffset();
             ad = 0;
             goto L1;
 
@@ -7367,7 +7372,7 @@ private void do32bit(ref MiniCodeBuf pbuf, FL fl, ref evc uev,int flags, int val
             break;
 
         case FLframehandler:
-            framehandleroffset = pbuf.getOffset();
+            pbuf.framehandleroffset = pbuf.getOffset();
             ad = 0;
             goto L1;
 
