@@ -118,43 +118,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
         else if (result)
             return;
 
-        if (sa.msgs)
-        {
-            OutBuffer msgbuf;
-            for (size_t i = 0; i < sa.msgs.length; i++)
-            {
-                Expression e = (*sa.msgs)[i];
-                sc = sc.startCTFE();
-                e = e.expressionSemantic(sc);
-                e = resolveProperties(sc, e);
-                sc = sc.endCTFE();
-                e = ctfeInterpretForPragmaMsg(e);
-                if (e.op == EXP.error)
-                {
-                    errorSupplemental(sa.loc, "while evaluating `static assert` argument `%s`", (*sa.msgs)[i].toChars());
-                    return;
-                }
-                StringExp se = e.toStringExp();
-                if (se)
-                {
-                    const slice = se.toUTF8(sc).peekString();
-                    // Hack to keep old formatting to avoid changing error messages everywhere
-                    if (sa.msgs.length == 1)
-                        msgbuf.printf("\"%.*s\"", cast(int)slice.length, slice.ptr);
-                    else
-                        msgbuf.printf("%.*s", cast(int)slice.length, slice.ptr);
-                }
-                else
-                    msgbuf.printf("%s", e.toChars());
-            }
-            error(sa.loc, "static assert:  %s", msgbuf.extractChars());
-        }
-        else
-            error(sa.loc, "static assert:  `%s` is false", sa.exp.toChars());
-        if (sc.tinst)
-            sc.tinst.printInstantiationTrace();
-        if (!global.gag)
-            fatal();
+        staticAssertFail(sa, sc);
     }
 
     override void visit(TemplateInstance tempinst)
@@ -895,4 +859,53 @@ private extern(C++) final class StaticAAVisitor : SemanticTimeTransitiveVisitor
     {
         this.visit(crExp.value);
     }
+}
+
+/**
+ * Given a static assert with a failing condition, print an error
+ * Params:
+ *   sa = Static assert with failing condition
+ *   sc = scope for evaluating assert message and printing context
+ */
+void staticAssertFail(StaticAssert sa, Scope* sc)
+{
+    if (sa.msgs)
+    {
+        OutBuffer msgbuf;
+        for (size_t i = 0; i < sa.msgs.length; i++)
+        {
+            Expression e = (*sa.msgs)[i];
+            sc = sc.startCTFE();
+            e = e.expressionSemantic(sc);
+            e = resolveProperties(sc, e);
+            sc = sc.endCTFE();
+            e = ctfeInterpretForPragmaMsg(e);
+            if (e.op == EXP.error)
+            {
+                errorSupplemental(sa.loc, "while evaluating `static assert` argument `%s`", (*sa.msgs)[i].toChars());
+                if (!global.gag)
+                    fatal();
+                return;
+            }
+            StringExp se = e.toStringExp();
+            if (se)
+            {
+                const slice = se.toUTF8(sc).peekString();
+                // Hack to keep old formatting to avoid changing error messages everywhere
+                if (sa.msgs.length == 1)
+                    msgbuf.printf("\"%.*s\"", cast(int)slice.length, slice.ptr);
+                else
+                    msgbuf.printf("%.*s", cast(int)slice.length, slice.ptr);
+            }
+            else
+                msgbuf.printf("%s", e.toChars());
+        }
+        error(sa.loc, "static assert:  %s", msgbuf.extractChars());
+    }
+    else
+        error(sa.loc, "static assert:  `%s` is false", sa.exp.toChars());
+    if (sc.tinst)
+        sc.tinst.printInstantiationTrace();
+    if (!global.gag)
+        fatal();
 }
