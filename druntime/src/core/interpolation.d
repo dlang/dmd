@@ -134,7 +134,7 @@ struct InterpolatedLiteral(string text) {
         segment of the tuple, for easy access and compatibility with
         existing functions like `std.stdio.writeln` and `std.conv.text`.
     +/
-    static string toString() const @nogc pure nothrow @safe {
+    static string toString() @nogc pure nothrow @safe {
         return text;
     }
 }
