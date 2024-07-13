@@ -6991,7 +6991,8 @@ struct ASTBase
     }
 }
 
-private immutable ubyte[EXP.max + 1] exptab =
+private:
+immutable ubyte[EXP.max + 1] exptab =
 () {
     ubyte[EXP.max + 1] tab;
     with (EXPFLAGS)
@@ -7003,14 +7004,14 @@ private immutable ubyte[EXP.max + 1] exptab =
     return tab;
 } ();
 
-private enum EXPFLAGS : ubyte
+enum EXPFLAGS : ubyte
 {
     unary = 1,
     binary = 2,
     binaryAssign = 4,
 }
 
-private static immutable Eunary =
+enum Eunary =
     [
         EXP.import_, EXP.assert_, EXP.throw_, EXP.dotIdentifier, EXP.dotTemplateDeclaration,
         EXP.dotVariable, EXP.dotTemplateInstance, EXP.delegate_, EXP.dotType, EXP.call,
@@ -7019,7 +7020,7 @@ private static immutable Eunary =
         EXP.delegateFunctionPointer, EXP.preMinusMinus, EXP.prePlusPlus,
     ];
 
-private static immutable Ebinary =
+enum Ebinary =
     [
         EXP.dot, EXP.comma, EXP.index, EXP.minusMinus, EXP.plusPlus, EXP.assign,
         EXP.add, EXP.min, EXP.concatenate, EXP.mul, EXP.div, EXP.mod, EXP.pow, EXP.leftShift,
@@ -7030,7 +7031,7 @@ private static immutable Ebinary =
         EXP.construct, EXP.blit,
     ];
 
-private static immutable EbinaryAssign =
+enum EbinaryAssign =
     [
         EXP.addAssign, EXP.minAssign, EXP.mulAssign, EXP.divAssign, EXP.modAssign,
         EXP.andAssign, EXP.orAssign, EXP.xorAssign, EXP.powAssign,
