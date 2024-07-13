@@ -1,4 +1,4 @@
-/* REQUIRED_ARGS: -O -inline -noboundscheck
+/* REQUIRED_ARGS: -O -inline -boundscheck=off
  */
 // https://github.com/dlang/pull/13220
 

@@ -1493,6 +1493,9 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (arg == "-noboundscheck") // https://dlang.org/dmd.html#switch-noboundscheck
         {
+            /// @@@DEPRECATED_2.113@@@
+            // Deprecated since forever, deprecation message added in 2.111. Remove in 2.113
+            eSink.deprecation(Loc.initial, "`-noboundscheck` is deprecated. Use `-boundscheck=off` instead");
             params.boundscheck = CHECKENABLE.off;
         }
         else if (startsWith(p + 1, "boundscheck")) // https://dlang.org/dmd.html#switch-boundscheck
