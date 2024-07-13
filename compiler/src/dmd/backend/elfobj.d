@@ -52,7 +52,7 @@ enum MATCH_SECTION = 1;
 enum DEST_LEN = (IDMAX + IDOHD + 1);
 
 // C++ name mangling is handled by front end
-const(char)* cpp_mangle2(Symbol* s) { return &s.Sident[0]; }
+const(char)* cpp_mangle2(return ref Symbol s) { return &s.Sident[0]; }
 
 void addSegmentToComdat(segidx_t seg, segidx_t comdatseg);
 
@@ -290,7 +290,7 @@ private IDXSTR elf_addmangled(Symbol *s)
     char[DEST_LEN] buf = void;
 
     IDXSTR namidx = cast(IDXSTR)elfobj.symtab_strings.length();
-    char[] desta = obj_mangle2(s, buf);
+    char[] desta = obj_mangle2(*s, buf);
     size_t len = desta.length;
     const(char)* name = desta.ptr;
     if (CPP && name[0] == '_' && name[1] == '_')
@@ -1586,7 +1586,7 @@ else
 {
         elfobj.resetSyms.push(s);
 
-        const(char)* p = cpp_mangle2(s);
+        const(char)* p = cpp_mangle2(*s);
 
         bool added = false;
         Pair* pidx = elf_addsectionname(".text.", p, &added);
@@ -1671,7 +1671,7 @@ else
         flags = SHF_ALLOC|SHF_WRITE;
     }
 
-    s.Sseg = ElfObj_getsegment(prefix, cpp_mangle2(s), type, flags, align_);
+    s.Sseg = ElfObj_getsegment(prefix, cpp_mangle2(*s), type, flags, align_);
                                 // find or create new segment
     if (s.Salignment > align_)
         SegData[s.Sseg].SDalignment = s.Salignment;
@@ -2054,10 +2054,10 @@ private extern (D) char* unsstr(uint value)
  */
 
 private extern (D)
-char[] obj_mangle2(Symbol *s, char[] dest)
+char[] obj_mangle2(ref Symbol s, char[] dest)
 {
     //printf("ElfObj_mangle('%s'), mangle = x%x\n",s.Sident.ptr,type_mangle(s.Stype));
-    symbol_debug(s);
+    symbol_debug(&s);
     assert(dest);
 
     // C++ name mangling is handled by front end
@@ -2083,14 +2083,13 @@ char[] obj_mangle2(Symbol *s, char[] dest)
         case Mangle.fortran:
             setLength(dest, len);
             memcpy(dest.ptr,name,len + 1);  // copy in name and ending 0
-            for (size_t i = 0; 1; ++i)
-            {   char c = dest[i];
-                if (!c)
-                    break;
+            foreach (ref char c; dest[])
+            {
                 if (c >= 'a' && c <= 'z')
-                    dest[i] = cast(char)(c + 'A' - 'a');
+                    c = cast(char)(c + 'A' - 'a');
             }
             break;
+
         case Mangle.stdcall:
         {
             bool cond = (tyfunc(s.ty()) && !variadic(s.Stype));
@@ -2123,7 +2122,7 @@ char[] obj_mangle2(Symbol *s, char[] dest)
 debug
 {
             printf("mangling %x\n",type_mangle(s.Stype));
-            symbol_print(*s);
+            symbol_print(s);
 }
             printf("%d\n", type_mangle(s.Stype));
             assert(0);
@@ -2193,7 +2192,7 @@ void ElfObj_func_start(Symbol *sfunc)
     if ((tybasic(sfunc.ty()) == TYmfunc) && (sfunc.Sclass == SC.extern_))
     {                                   // create a new code segment
         sfunc.Sseg =
-            ElfObj_getsegment(".gnu.linkonce.t.", cpp_mangle2(sfunc), SHT_PROGBITS, SHF_ALLOC|SHF_EXECINSTR,4);
+            ElfObj_getsegment(".gnu.linkonce.t.", cpp_mangle2(*sfunc), SHT_PROGBITS, SHF_ALLOC|SHF_EXECINSTR,4);
 
     }
     else if (sfunc.Sseg == UNKNOWN)
@@ -2380,7 +2379,7 @@ int ElfObj_common_block(Symbol *s,targ_size_t size,targ_size_t count)
     int align_ = I64 ? 16 : 4;
     if (s.ty() & mTYthread)
     {
-        s.Sseg = ElfObj_getsegment(".tbss.", cpp_mangle2(s),
+        s.Sseg = ElfObj_getsegment(".tbss.", cpp_mangle2(*s),
                 SHT_NOBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, align_);
         s.Sfl = FLtlsdata;
         SegData[s.Sseg].SDsym = s;
@@ -2390,7 +2389,7 @@ int ElfObj_common_block(Symbol *s,targ_size_t size,targ_size_t count)
     }
     else
     {
-        s.Sseg = ElfObj_getsegment(".bss.", cpp_mangle2(s),
+        s.Sseg = ElfObj_getsegment(".bss.", cpp_mangle2(*s),
                 SHT_NOBITS, SHF_ALLOC|SHF_WRITE, align_);
         s.Sfl = FLudata;
         SegData[s.Sseg].SDsym = s;
