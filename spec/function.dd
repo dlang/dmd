@@ -1758,11 +1758,32 @@ int* mars(return ref int i) @safe
 ---
 )
 
-$(P If a function returns `void`, and the first parameter is `ref` or `out`, then
+$(PANEL
+If a function returns `void`, and the first parameter is `ref` or `out`, then
 all subsequent `return ref` parameters are considered as being assigned to
 the first parameter for lifetime checking.
+
+---
+void f(ref scope int* p, return ref int i) @safe
+{
+    p = &i; // OK with -preview=dip1000
+}
+
+void main() @safe
+{
+    int i;
+    int* p;
+    f(p, i); // OK, lifetime of p is shorter than i
+    *p = 5;
+    assert(i == 5);
+
+    int j;
+    //f(p, j); // error, lifetime of p is longer than j
+}
+---
+
 The `this` reference parameter to a struct non-static member function is
-considered the first parameter.)
+considered the first parameter.
 
 ---
 struct S
@@ -1771,7 +1792,7 @@ struct S
 
     void f(return ref int i) scope @safe
     {
-        p = &i;
+        p = &i; // OK with -preview=dip1000
     }
 }
 
@@ -1779,11 +1800,12 @@ void main() @safe
 {
     int i;
     S s;
-    s.f(i); // OK with -preview=dip1000, lifetime of `s` is shorter than `i`
+    s.f(i); // OK, lifetime of `s` is shorter than `i`
     *s.p = 2;
     assert(i == 2);
 }
 ---
+)
 
 $(P If there are multiple `return ref` parameters, the lifetime of the return
 value is the smallest lifetime of the corresponding arguments.)
