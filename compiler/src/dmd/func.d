@@ -501,8 +501,7 @@ extern (C++) class FuncDeclaration : Declaration
         while (f && f.overnext)
         {
             //printf("f.overnext = %p %s\n", f.overnext, f.overnext.toChars());
-            TemplateDeclaration td = f.overnext.isTemplateDeclaration();
-            if (td)
+            if (TemplateDeclaration td = f.overnext.isTemplateDeclaration())
                 return td;
             f = f.overnext.isFuncDeclaration();
         }
@@ -1731,8 +1730,7 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
     {
         if (parent)
         {
-            TemplateInstance ti = parent.isTemplateInstance();
-            if (ti)
+            if (TemplateInstance ti = parent.isTemplateInstance())
                 return ti.tempdecl.toPrettyChars(QualifyTypes);
         }
         return Dsymbol.toPrettyChars(QualifyTypes);

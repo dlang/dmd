@@ -826,8 +826,7 @@ private final class CppMangleVisitor : Visitor
             return buf.writestring("St");
 
         auto si = getInstance(s);
-        Dsymbol p = getQualifier(si);
-        if (p)
+        if (Dsymbol p = getQualifier(si))
         {
             if (isStd(p))
             {
