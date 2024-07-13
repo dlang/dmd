@@ -59,19 +59,33 @@ $(H2 $(LNAME2 usage, Usage))
          passed to functions. Such pointers include: raw pointers, arrays, `this`, classes, `ref` parameters, delegate/lazy parameters,
          and aggregates containing a pointer.)
 
+         $(P The $(DDSUBLINK spec/function, return-ref-parameters, `return ref`) attributes on a parameter indicate:)
+
+         * A pointer derived from the parameter's address may be returned from the function
+           (e.g. returning the parameter by reference).
+         * A pointer derived from the parameter's address may be stored in the first parameter of
+           a function returning `void`, *iff* the first parameter is `ref`.
+           The `this` reference is considered the first parameter of a method.
+
          $(P $(D scope) ensures that no references to the pointed-to object are retained, in global variables or pointers passed to the
          function (and recursively to other functions called in the function), as a result of calling the function.
          Variables in the function body and parameter list that are `scope` may have their allocations elided as a result.)
 
-         $(P $(D return) indicates that either the return value of the function or the first parameter is a pointer derived from the
-         `return` parameter or any other parameters also marked `return`.
-         For constructors, `return` applies to the (implicitly returned) `this` reference.
-         For void functions, `return` applies to the first parameter $(I iff) it is `ref`; this is to support UFCS,
+         $(P The $(DDSUBLINK spec/function, return-scope-parameters, `return scope`) attributes on a parameter indicate:)
+
+         * A pointer derived from that parameter may be returned from the function.
+         * A pointer derived from that parameter may be stored in the first parameter of
+           a function returning `void`, *iff* the first parameter is `ref`.
+           The `this` reference is considered the first parameter of a method.
+
+         $(RATIONALE The second case is to support UFCS,
          property setters and non-member functions (e.g. `put` used like `put(dest, source)`).)
 
-         $(P These attributes may appear after the formal parameter list, in which case they apply either to a method's `this` parameter, or to
-         a free function's first parameter $(I iff) it is `ref`.
-         `return` or `scope` is ignored when applied to a type that is not a low-level pointer.)
+         $(P These attributes may appear after the formal parameter list of a method,
+         in which case they apply to the `this` reference.
+         For constructors, `return` applies to the (implicitly returned) `this` reference.)
+
+         $(P `return` or `scope` is ignored when applied to a type that is not a low-level pointer.)
 
          $(P $(B Note:) Checks for `scope` parameters are currently enabled
          only for `@safe` code compiled with the `-dip1000` command-line flag.)
