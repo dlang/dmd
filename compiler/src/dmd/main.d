@@ -30,6 +30,7 @@ import dmd.compiler;
 import dmd.cond;
 import dmd.console;
 import dmd.cpreprocess;
+import dmd.deps;
 import dmd.dinifile;
 import dmd.dinterpret;
 import dmd.dmdparams;
@@ -721,7 +722,18 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     // Output the makefile dependencies
     if (params.makeDeps.doOutput)
-        emitMakeDeps(params);
+    {
+        OutBuffer buf;
+        writeMakeDeps(buf, params, driverParams.link, driverParams.lib, target.lib_ext);
+        const data = buf[];
+        if (params.makeDeps.name)
+        {
+            if (!writeFile(Loc.initial, params.makeDeps.name, data))
+                fatal();
+        }
+        else
+            printf("%.*s", cast(int) data.length, data.ptr);
+    }
 
     if (global.warnings)
         errorOnWarning();
@@ -850,63 +862,6 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     return false;
 }
 
-/// Emit the makefile dependencies for the -makedeps switch
-void emitMakeDeps(ref Param params)
-{
-    assert(params.makeDeps.doOutput);
-
-    OutBuffer buf;
-
-    // start by resolving and writing the target (which is sometimes resolved during link phase)
-    if (driverParams.link && params.exefile)
-    {
-        buf.writeEscapedMakePath(&params.exefile[0]);
-    }
-    else if (driverParams.lib)
-    {
-        const(char)[] libname = params.libname ? params.libname : FileName.name(params.objfiles[0].toDString);
-        libname = FileName.forceExt(libname,target.lib_ext);
-
-        buf.writeEscapedMakePath(&libname[0]);
-    }
-    else if (params.objname)
-    {
-        buf.writeEscapedMakePath(&params.objname[0]);
-    }
-    else if (params.objfiles.length)
-    {
-        buf.writeEscapedMakePath(params.objfiles[0]);
-        foreach (of; params.objfiles[1 .. $])
-        {
-            buf.writestring(" ");
-            buf.writeEscapedMakePath(of);
-        }
-    }
-    else
-    {
-        assert(false, "cannot resolve makedeps target");
-    }
-
-    buf.writestring(":");
-
-    // then output every dependency
-    foreach (dep; params.makeDeps.files)
-    {
-        buf.writestringln(" \\");
-        buf.writestring("  ");
-        buf.writeEscapedMakePath(dep);
-    }
-    buf.writenl();
-
-    const data = buf[];
-    if (params.makeDeps.name)
-    {
-        if (!writeFile(Loc.initial, params.makeDeps.name, data))
-            fatal();
-    }
-    else
-        printf("%.*s", cast(int) data.length, data.ptr);
-}
 
 // in druntime:
 alias MainFunc = extern(C) int function(char[][] args);
