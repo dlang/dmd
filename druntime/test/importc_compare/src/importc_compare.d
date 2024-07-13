@@ -45,7 +45,6 @@ immutable ErrorFilter[] knownProblems = [
     ErrorFilter("core.stdc.math.double_t", "", "linux", 0, ""),
     ErrorFilter("core.stdc.math.float_t", "", "linux", 0, ""),
     ErrorFilter("core.stdc.signal.sig_atomic_t", "", "FreeBSD", 0, ""),
-    ErrorFilter("core.stdc.stdatomic.atomic_wchar_t", "", "Posix", 0, ""),
     ErrorFilter("core.stdc.stdio.FILE", "", "FreeBSD", 0, ""),
     ErrorFilter("core.stdc.stdio.FILE", "", "linux", 0, ""),
     ErrorFilter("core.stdc.stdio._IO_FILE", "", "linux", 0, ""),
