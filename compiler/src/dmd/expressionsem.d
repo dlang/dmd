@@ -7725,7 +7725,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             message("file      %.*s\t(%s)", cast(int)slice.length, slice.ptr, resolvedNamez.ptr);
         }
 
-        addImportExpDep(global.params, resolvedNamez, se.peekString(), sc._module);
+        addImportExpDep(global.params.moduleDeps, global.params.makeDeps, resolvedNamez, se.peekString(), sc._module);
 
         {
             auto fileName = FileName(resolvedNamez);

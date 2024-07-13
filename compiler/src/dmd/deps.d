@@ -35,7 +35,7 @@ import core.stdc.string : strcmp;
 import dmd.common.outbuffer;
 import dmd.dimport : Import;
 import dmd.dmodule : Module;
-import dmd.globals : Param;
+import dmd.globals : Param, Output;
 import dmd.hdrgen : visibilityToBuffer;
 import dmd.id : Id;
 import dmd.location : Loc;
@@ -100,24 +100,25 @@ void writeMakeDeps(ref OutBuffer buf, const ref Param params, bool link, bool li
 /**
  * Add an import expression to module dependencies
  * Params:
- *   params = params containig moduleDeps settings
- *   fileNameZ = 0-termminated string containing the import exp's resolved filename
+ *   moduleDeps = output settings for `-deps`
+ *   makeDeps = output settings for `-makedeps`
+ *   fileNameZ = 0-termminated string containing the import expression's resolved filename
  *   importString = raw string passed to import exp
  *   imod = module import exp is in
  */
-void addImportExpDep(ref Param params, const(char)[] fileNameZ, const(char)[] importString, Module imod)
+void addImportExpDep(ref Output moduleDeps, ref Output makeDeps, const(char)[] fileNameZ, const(char)[] importString, Module imod)
 {
-    if (params.moduleDeps.buffer !is null)
+    if (moduleDeps.buffer !is null)
     {
-        OutBuffer* ob = params.moduleDeps.buffer;
+        OutBuffer* ob = moduleDeps.buffer;
 
-        if (!params.moduleDeps.name)
+        if (!moduleDeps.name)
             ob.writestring("depsFile ");
         ob.writestring(imod.toPrettyChars());
         ob.writestring(" (");
         escapePath(ob, imod.srcfile.toChars());
         ob.writestring(") : ");
-        if (params.moduleDeps.name)
+        if (moduleDeps.name)
             ob.writestring("string : ");
         ob.write(importString);
         ob.writestring(" (");
@@ -125,32 +126,32 @@ void addImportExpDep(ref Param params, const(char)[] fileNameZ, const(char)[] im
         ob.writestring(")");
         ob.writenl();
     }
-    if (params.makeDeps.doOutput)
+    if (makeDeps.doOutput)
     {
-        params.makeDeps.files.push(fileNameZ.ptr);
+        makeDeps.files.push(fileNameZ.ptr);
     }
 }
 
 /**
  * Add an import statement to module dependencies
  * Params:
- *   params = params containing moduleDeps settings
+ *   moduleDeps = output settings
  *   imp = import to add
  *   imod = module that the import is in
  */
-void addImportDep(ref Param params, Import imp, Module imod)
+void addImportDep(ref Output moduleDeps, Import imp, Module imod)
 {
     // object self-imports itself, so skip that
     // https://issues.dlang.org/show_bug.cgi?id=7547
     // don't list pseudo modules __entrypoint.d, __main.d
     // https://issues.dlang.org/show_bug.cgi?id=11117
     // https://issues.dlang.org/show_bug.cgi?id=11164
-    if (params.moduleDeps.buffer is null || (imp.id == Id.object && imod.ident == Id.object) ||
+    if (moduleDeps.buffer is null || (imp.id == Id.object && imod.ident == Id.object) ||
         strcmp(imod.ident.toChars(), "__main") == 0)
         return;
 
-    OutBuffer* ob = params.moduleDeps.buffer;
-    if (!params.moduleDeps.name)
+    OutBuffer* ob = moduleDeps.buffer;
+    if (!moduleDeps.name)
         ob.writestring("depsImport ");
     ob.writestring(imod.toPrettyChars());
     ob.writestring(" (");

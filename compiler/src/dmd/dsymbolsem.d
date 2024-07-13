@@ -1636,7 +1636,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         imp.semanticRun = PASS.semanticdone;
-        addImportDep(global.params, imp, sc._module);
+        addImportDep(global.params.moduleDeps, imp, sc._module);
     }
 
     void attribSemantic(AttribDeclaration ad)
