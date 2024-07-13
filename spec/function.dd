@@ -3807,8 +3807,8 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
                 * Any source element type modifiers implicitly convert to the target element type modifiers
                 * Neither element type is a function type
                 * The target element type is not mutable when the source type is `void[]`
-                * The target element type is not $(DDSUBLINK spec/type, bool, `bool`)
-                * The source element type is not `bool` when the target element type is mutable
+                * The target element type only stores $(RELATIVE_LINK2 safe-values, safe values)
+                * The source element type only stores safe values when the target element type is mutable
                 * Neither element type is $(DDSUBLINK spec/struct, opaque_struct_unions, opaque).
         $(LI No casting from any non-pointer type to a pointer type.)
         $(LI No $(DDSUBLINK spec/expression, pointer_arithmetic, pointer arithmetic)
@@ -3816,7 +3816,7 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
         $(LI Cannot access union fields that:)
             * Have pointers or references overlapping with other types
             * Have invariants overlapping with other types
-            * Contain a $(DDSUBLINK spec/type, bool, `bool`)
+            * Overlap with fields that could become $(RELATIVE_LINK2 safe-values, unsafe values)
         $(LI Calling any $(RELATIVE_LINK2 system-functions, System Functions).)
         $(LI No catching of exceptions that are not derived from
         $(LINK2 https://dlang.org/phobos/object.html#.Exception, $(D class Exception)).)
@@ -3832,7 +3832,7 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
         $(LI Cannot use $(D void) initializers for types containing:)
             * Pointers/reference types
             * Types with invariants
-            * `bool`
+            * Unsafe values
         )
 
         $(NOTE When indexing or slicing an array, an out of bounds access
@@ -4014,7 +4014,10 @@ $(H3 $(LNAME2 safe-interfaces, Safe Interfaces))
 
 $(H3 $(LNAME2 safe-values, Safe Values))
 
-        $(P For a `bool`, only 0 and 1 are safe values.)
+        $(P A variable or field $(DDSUBLINK spec/attribute, system-variables,
+        marked as `@system`) does not hold a safe value, regardless of its type.)
+
+        $(P For a $(DDSUBLINK spec/type, bool, `bool`), only 0 and 1 are safe values.)
 
         $(P For all other $(DDSUBLINK spec/type, basic-data-types, basic data types), all
         possible bit patterns are safe.)
