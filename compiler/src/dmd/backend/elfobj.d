@@ -287,12 +287,12 @@ IDXSTR ElfObj_addstr(OutBuffer *strtab, const(char)* str)
 private IDXSTR elf_addmangled(Symbol *s)
 {
     //printf("elf_addmangled(%s)\n", s.Sident.ptr);
-    char[DEST_LEN] dest = void;
+    char[DEST_LEN] buf = void;
 
     IDXSTR namidx = cast(IDXSTR)elfobj.symtab_strings.length();
-    size_t len;
-    char *destr = obj_mangle2(s, dest.ptr, &len);
-    const(char)* name = destr;
+    char[] desta = obj_mangle2(s, buf);
+    size_t len = desta.length;
+    const(char)* name = desta.ptr;
     if (CPP && name[0] == '_' && name[1] == '_')
     {
         if (strncmp(name,"__ct__",6) == 0)
@@ -335,8 +335,8 @@ static if (0)
         len = strlen(name);
     }
     elfobj.symtab_strings.write(name[0 .. len + 1]);
-    if (destr != dest.ptr)                  // if we resized result
-        mem_free(destr);
+    if (desta.ptr != buf.ptr)                  // if we resized result
+        mem_free(desta.ptr);
     //dbg_printf("\telf_addmagled symtab_strings %s namidx %d len %d size %d\n",name, namidx,len,elfobj.symtab_strings.length());
     return namidx;
 }
@@ -2046,32 +2046,44 @@ private extern (D) char* unsstr(uint value)
 
 /*******************************
  * Mangle a name.
+ * Params:
+ *      s = symbol to mangle
+ *      dest = buffer to hold mangled result
  * Returns:
- *      mangled name
+ *      mangled name with terminating 0
  */
 
 private extern (D)
-char *obj_mangle2(Symbol *s,char *dest, size_t *destlen)
+char[] obj_mangle2(Symbol *s, char[] dest)
 {
-    char *name;
-
-    //dbg_printf("ElfObj_mangle('%s'), mangle = x%x\n",s.Sident.ptr,type_mangle(s.Stype));
+    //printf("ElfObj_mangle('%s'), mangle = x%x\n",s.Sident.ptr,type_mangle(s.Stype));
     symbol_debug(s);
     assert(dest);
 
     // C++ name mangling is handled by front end
-    name = s.Sident.ptr;
+    char* name = s.Sident.ptr;
 
     size_t len = strlen(name);                 // # of bytes in name
-    //dbg_printf("len %d\n",len);
+
+    static void setLength(ref char[] dest, size_t len)
+    {
+        if (len < dest.length)          // leave room for terminating 0
+            dest = dest[0 .. len];
+        else
+        {
+            char* p = cast(char *)mem_malloc(len + 1);
+            dest = p[0 .. len];
+        }
+    }
+
+    //printf("len %d\n", castr(int)len);
     switch (type_mangle(s.Stype))
     {
         case Mangle.pascal:                // if upper case
         case Mangle.fortran:
-            if (len >= DEST_LEN)
-                dest = cast(char *)mem_malloc(len + 1);
-            memcpy(dest,name,len + 1);  // copy in name and ending 0
-            for (int i = 0; 1; i++)
+            setLength(dest, len);
+            memcpy(dest.ptr,name,len + 1);  // copy in name and ending 0
+            for (size_t i = 0; 1; ++i)
             {   char c = dest[i];
                 if (!c)
                     break;
@@ -2088,11 +2100,10 @@ char *obj_mangle2(Symbol *s,char *dest, size_t *destlen)
                 size_t pstrlen = strlen(pstr);
                 size_t dlen = len + 1 + pstrlen;
 
-                if (dlen >= DEST_LEN)
-                    dest = cast(char *)mem_malloc(dlen + 1);
-                memcpy(dest,name,len);
+                setLength(dest, dlen);
+                memcpy(dest.ptr,name,len);
                 dest[len] = '@';
-                memcpy(dest + 1 + len, pstr, pstrlen + 1);
+                memcpy(dest.ptr + 1 + len, pstr, pstrlen + 1);
                 len = dlen;
                 break;
             }
@@ -2104,9 +2115,8 @@ char *obj_mangle2(Symbol *s,char *dest, size_t *destlen)
         case Mangle.d:
         case Mangle.syscall:
         case 0:
-            if (len >= DEST_LEN)
-                dest = cast(char *)mem_malloc(len + 1);
-            memcpy(dest,name,len+1);// copy in name and trailing 0
+            setLength(dest, len);
+            memcpy(dest.ptr,name,len+1);// copy in name and trailing 0
             break;
 
         default:
@@ -2119,7 +2129,6 @@ debug
             assert(0);
     }
     //dbg_printf("\t %s\n",dest);
-    *destlen = len;
     return dest;
 }
 
