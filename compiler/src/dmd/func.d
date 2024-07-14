@@ -431,8 +431,7 @@ extern (C++) class FuncDeclaration : Declaration
     {
         //printf("FuncDeclaration::overloadInsert(s = %s) this = %s\n", s.toChars(), toChars());
         assert(s != this);
-        AliasDeclaration ad = s.isAliasDeclaration();
-        if (ad)
+        if (AliasDeclaration ad = s.isAliasDeclaration())
         {
             if (overnext)
                 return overnext.overloadInsert(ad);
@@ -445,8 +444,7 @@ extern (C++) class FuncDeclaration : Declaration
             //printf("\ttrue: no conflict\n");
             return true;
         }
-        TemplateDeclaration td = s.isTemplateDeclaration();
-        if (td)
+        if (TemplateDeclaration td = s.isTemplateDeclaration())
         {
             if (!td.funcroot)
                 td.funcroot = this;

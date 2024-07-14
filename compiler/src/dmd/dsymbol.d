@@ -396,8 +396,7 @@ extern (C++) class Dsymbol : ASTNode
         while (s)
         {
             //printf("\ts = %s '%s'\n", s.kind(), s.toPrettyChars());
-            Module m = s.isModule();
-            if (m)
+            if (Module m = s.isModule())
                 return m;
             s = s.parent;
         }
@@ -428,8 +427,7 @@ extern (C++) class Dsymbol : ASTNode
         while (s)
         {
             //printf("\ts = %s '%s'\n", s.kind(), s.toPrettyChars());
-            Module m = s.isModule();
-            if (m)
+            if (Module m = s.isModule())
                 return m;
             TemplateInstance ti = s.isTemplateInstance();
             if (ti && ti.enclosing)
