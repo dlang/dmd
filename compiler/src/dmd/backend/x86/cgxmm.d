@@ -146,9 +146,15 @@ void movxmmconst(ref CodeBuilder cdb, reg_t xreg, tym_t ty, Vconst* pev, regm_t 
  */
 
 @trusted
-void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
+void orthxmm(ref CodeBuilder cdb, elem *e, regm_t* pretregs)
 {
-    //printf("orthxmm(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
+    return orthxmm(cdb, e, *pretregs);
+}
+
+@trusted
+void orthxmm(ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
+{
+    //printf("orthxmm(e = %p, pretregs = %s)\n", e, regm_str(pretregs));
     elem *e1 = e.E1;
     elem *e2 = e.E2;
 
@@ -157,7 +163,7 @@ void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         ((tyreal(e1.Ety) && tyimaginary(e2.Ety)) ||
          (tyreal(e2.Ety) && tyimaginary(e1.Ety))))
     {
-        regm_t retregs = *pretregs & XMMREGS;
+        regm_t retregs = pretregs & XMMREGS;
         if (!retregs)
             retregs = XMMREGS;
 
@@ -198,12 +204,12 @@ void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
             const opcode_t xop = (sz == 8) ? XORPD : XORPS;       // XORPD/S rreg,sreg
             cdb.gen2(xop,modregxrmx(3,rreg-XMM0,sreg-XMM0));
         }
-        if (retregs != *pretregs)
-            fixresult(cdb,e,retregs,*pretregs);
+        if (retregs != pretregs)
+            fixresult(cdb,e,retregs,pretregs);
         return;
     }
 
-    regm_t retregs = *pretregs & XMMREGS;
+    regm_t retregs = pretregs & XMMREGS;
     if (!retregs)
         retregs = XMMREGS;
     const constflag = OTrel(e.Eoper);
@@ -246,8 +252,8 @@ void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         c.IEV2.Vsize_t = imm8;
     }
     checkSetVex(cdb.last(), e1.Ety);
-    if (retregs != *pretregs)
-        fixresult(cdb,e,retregs,*pretregs);
+    if (retregs != pretregs)
+        fixresult(cdb,e,retregs,pretregs);
 }
 
 
@@ -257,7 +263,7 @@ void orthxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
  *      opcode = store opcode to use, CMP means generate one
  */
 @trusted
-void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,regm_t *pretregs)
+void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,ref regm_t pretregs)
 {
     tym_t tymll;
     int i;
@@ -266,9 +272,9 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,regm_t 
     bool regvar;                  /* true means evaluate into register variable */
     targ_int postinc;
 
-    //printf("xmmeq(e1 = %p, e2 = %p, *pretregs = %s)\n", e1, e2, regm_str(*pretregs));
+    //printf("xmmeq(e1 = %p, e2 = %p, pretregs = %s)\n", e1, e2, regm_str(pretregs));
     tym_t tyml = tybasic(e1.Ety);              /* type of lvalue               */
-    regm_t retregs = *pretregs;
+    regm_t retregs = pretregs;
 
     if (!(retregs & XMMREGS))
         retregs = XMMREGS;              // pick any XMM reg
@@ -293,10 +299,10 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,regm_t 
         else
             varregm = 0;
     }
-    if (*pretregs & mPSW && OTleaf(e1.Eoper))     // if evaluating e1 couldn't change flags
+    if (pretregs & mPSW && OTleaf(e1.Eoper))     // if evaluating e1 couldn't change flags
     {   // Be careful that this lines up with jmpopcode()
         retregs |= mPSW;
-        *pretregs &= ~mPSW;
+        pretregs &= ~mPSW;
     }
     scodelem(cgstate,cdb,e2,&retregs,0,true);    // get rvalue
 
@@ -341,11 +347,11 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,regm_t 
         cssave(e1,retregs,!OTleaf(e1.Eoper));     // if lvalue is a CSE
     }
 
-    fixresult(cdb,e,retregs,*pretregs);
+    fixresult(cdb,e,retregs,pretregs);
     if (postinc)
     {
         const increg = findreg(idxregm(&cs));  // the register to increment
-        if (*pretregs & mPSW)
+        if (pretregs & mPSW)
         {   // Use LEA to avoid touching the flags
             uint rm = cs.Irm & 7;
             if (cs.Irex & REX_B)
@@ -389,9 +395,15 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,regm_t 
  */
 
 @trusted
-void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void xmmcnvt(ref CodeBuilder cdb,elem *e, regm_t* pretregs)
 {
-    //printf("xmmconvt: %p, %s\n", e, regm_str(*pretregs));
+    return xmmcnvt(cdb, e, *pretregs);
+}
+
+@trusted
+void xmmcnvt(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
+{
+    //printf("xmmconvt: %p, %s\n", e, regm_str(pretregs));
     opcode_t op = NoOpcode;
     regm_t regs;
     tym_t ty;
@@ -464,7 +476,7 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         case OPld_d:
             if (e.Eoper == OPd_s64)
             {
-                cnvt87(cdb,e,pretregs); // precision
+                cnvt87(cdb,e,&pretregs); // precision
                 return;
             }
             goto default;
@@ -498,9 +510,9 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         code_orflag(cdb.last(),CFvolatile);
     }
 
-    regm_t retregs = *pretregs;
+    regm_t retregs = pretregs;
     if (tyxmmreg(ty)) // target is XMM
-    {   if (!(*pretregs & XMMREGS))
+    {   if (!(pretregs & XMMREGS))
             retregs = XMMREGS;
     }
     else              // source is XMM
@@ -518,8 +530,8 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     if (rex)
         code_orrex(cdb.last(), rex);
 
-    if (*pretregs != retregs)
-        fixresult(cdb,e,retregs,*pretregs);
+    if (pretregs != retregs)
+        fixresult(cdb,e,retregs,pretregs);
 }
 
 /********************************
@@ -527,12 +539,18 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void xmmopass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void xmmopass(ref CodeBuilder cdb,elem *e,regm_t* pretregs)
+{
+    xmmopass(cdb, e, *pretregs);
+}
+
+@trusted
+void xmmopass(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {   elem *e1 = e.E1;
     elem *e2 = e.E2;
     tym_t ty1 = tybasic(e1.Ety);
     const sz1 = _tysize[ty1];
-    regm_t rretregs = XMMREGS & ~*pretregs;
+    regm_t rretregs = XMMREGS & ~pretregs;
     if (!rretregs)
         rretregs = XMMREGS;
 
@@ -562,7 +580,7 @@ void xmmopass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     if (!regvar)
     {
         getlvalue(cdb,cs,e1,rretregs,RM.rw);         // get EA
-        retregs = *pretregs & XMMREGS & ~rretregs;
+        retregs = pretregs & XMMREGS & ~rretregs;
         if (!retregs)
             retregs = XMMREGS & ~rretregs;
         reg = allocreg(cdb,retregs,ty1);
@@ -592,7 +610,7 @@ void xmmopass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         cssave(e1,retregs,!OTleaf(e1.Eoper));     // if lvalue is a CSE
     }
 
-    fixresult(cdb,e,retregs,*pretregs);
+    fixresult(cdb,e,retregs,pretregs);
     freenode(e1);
 }
 
@@ -601,7 +619,7 @@ void xmmopass(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void xmmpost(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void xmmpost(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
     elem *e1 = e.E1;
     elem *e2 = e.E2;
@@ -631,7 +649,7 @@ void xmmpost(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     if (!regvar)
     {
         getlvalue(cdb,cs,e1,0,RM.rw);                // get EA
-        retregs = XMMREGS & ~*pretregs;
+        retregs = XMMREGS & ~pretregs;
         if (!retregs)
             retregs = XMMREGS;
         reg = allocreg(cdb,retregs,ty1);
@@ -642,7 +660,7 @@ void xmmpost(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     }
 
     // Result register
-    regm_t resultregs = XMMREGS & *pretregs & ~retregs;
+    regm_t resultregs = XMMREGS & pretregs & ~retregs;
     if (!resultregs)
         resultregs = XMMREGS & ~retregs;
     const resultreg = allocreg(cdb,resultregs, ty1);
@@ -650,7 +668,7 @@ void xmmpost(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     cdb.gen2(xmmload(ty1,true),modregxrmx(3,resultreg-XMM0,reg-XMM0));   // MOVSS/D resultreg,reg
     checkSetVex(cdb.last(), ty1);
 
-    regm_t rretregs = XMMREGS & ~(*pretregs | retregs | resultregs);
+    regm_t rretregs = XMMREGS & ~(pretregs | retregs | resultregs);
     if (!rretregs)
         rretregs = XMMREGS & ~(retregs | resultregs);
     codelem(cgstate,cdb,e2,&rretregs,false); // eval right leaf
@@ -676,7 +694,7 @@ void xmmpost(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         cssave(e1,retregs,!OTleaf(e1.Eoper));     // if lvalue is a CSE
     }
 
-    fixresult(cdb,e,resultregs,*pretregs);
+    fixresult(cdb,e,resultregs,pretregs);
     freenode(e1);
 }
 
@@ -685,15 +703,15 @@ void xmmpost(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void xmmneg(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void xmmneg(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
     //printf("xmmneg()\n");
     //elem_print(e);
-    assert(*pretregs);
+    assert(pretregs);
     tym_t tyml = tybasic(e.E1.Ety);
     int sz = _tysize[tyml];
 
-    regm_t retregs = *pretregs & XMMREGS;
+    regm_t retregs = pretregs & XMMREGS;
     if (!retregs)
         retregs = XMMREGS;
 
@@ -718,7 +736,7 @@ void xmmneg(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     getregs(cdb,retregs);
     const op = (sz == 8) ? XORPD : XORPS;       // XORPD/S reg,rreg
     cdb.gen2(op,modregxrmx(3,reg-XMM0,rreg-XMM0));
-    fixresult(cdb,e,retregs,*pretregs);
+    fixresult(cdb,e,retregs,pretregs);
 }
 
 /******************
@@ -726,15 +744,15 @@ void xmmneg(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
  */
 
 @trusted
-void xmmabs(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+void xmmabs(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
     //printf("xmmabs()\n");
     //elem_print(e);
-    assert(*pretregs);
+    assert(pretregs);
     tym_t tyml = tybasic(e.E1.Ety);
     int sz = _tysize[tyml];
 
-    regm_t retregs = *pretregs & XMMREGS;
+    regm_t retregs = pretregs & XMMREGS;
     if (!retregs)
         retregs = XMMREGS;
 
@@ -758,7 +776,7 @@ void xmmabs(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     getregs(cdb,retregs);
     const op = (sz == 8) ? ANDPD : ANDPS;       // ANDPD/S reg,rreg
     cdb.gen2(op,modregxrmx(3,reg-XMM0,rreg-XMM0));
-    fixresult(cdb,e,retregs,*pretregs);
+    fixresult(cdb,e,retregs,pretregs);
 }
 
 /*****************************
@@ -1180,6 +1198,12 @@ private opcode_t xmmoperator(tym_t tym, OPER oper)
 @trusted
 void cdvector(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
+    cdvector(cg, cdb, e, *pretregs);
+}
+
+@trusted
+void cdvector(ref CGstate cg, ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
+{
     /* e should look like one of:
      *    vector
      *      |
@@ -1212,13 +1236,13 @@ static if (0)
     }
 }
 
-    if (*pretregs == 0)
+    if (pretregs == 0)
     {   /* Evaluate for side effects only
          */
         foreach (i; 0 .. n)
         {
-            codelem(cgstate,cdb,params[i], pretregs, false);
-            *pretregs = 0;      // in case they got set
+            codelem(cgstate,cdb,params[i], &pretregs, false);
+            pretregs = 0;      // in case they got set
         }
         return;
     }
@@ -1242,7 +1266,7 @@ static if (0)
     if (n == 3 && ty2 == TYuchar && op2.Eoper == OPconst)
     {   // Handle: op xmm,imm8
 
-        retregs = *pretregs & XMMREGS;
+        retregs = pretregs & XMMREGS;
         if (!retregs)
             retregs = XMMREGS;
         codelem(cgstate,cdb,op1,&retregs,false); // eval left leaf
@@ -1290,7 +1314,7 @@ static if (0)
                 cs.Irex |= REX_B;
         }
 
-        retregs = *pretregs & XMMREGS;
+        retregs = pretregs & XMMREGS;
         if (!retregs)
             retregs = XMMREGS;
         const reg = allocreg(cdb,retregs, e.Ety);
@@ -1307,7 +1331,7 @@ static if (0)
 
         code cs;
 
-        retregs = *pretregs & XMMREGS;
+        retregs = pretregs & XMMREGS;
         if (!retregs)
             retregs = XMMREGS;
         codelem(cgstate,cdb,op1,&retregs,false); // eval left leaf
@@ -1378,7 +1402,7 @@ static if (0)
     }
     else
         assert(0);
-    fixresult(cdb,e,retregs,*pretregs);
+    fixresult(cdb,e,retregs,pretregs);
     free(params);
     freenode(e);
 }
@@ -1391,6 +1415,12 @@ static if (0)
  */
 @trusted
 void cdvecsto(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
+{
+    cdvecsto(cg, cdb, e, *pretregs);
+}
+
+@trusted
+void cdvecsto(ref CGstate cg, ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
 {
     //printf("cdvecsto()\n");
     //elem_print(e);
@@ -1410,9 +1440,15 @@ void cdvecsto(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 @trusted
 void cdvecfill(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
 {
-    //printf("cdvecfill(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
+    cdvecfill(cg, cdb, e, *pretregs);
+}
 
-    regm_t retregs = *pretregs & XMMREGS;
+@trusted
+void cdvecfill(ref CGstate cg, ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
+{
+    //printf("cdvecfill(e = %p, pretregs = %s)\n",e,regm_str(pretregs));
+
+    regm_t retregs = pretregs & XMMREGS;
     if (!retregs)
         retregs = XMMREGS;
 
@@ -1758,7 +1794,7 @@ static if (0)
             assert(0);
     }
 
-    fixresult(cdb,e,retregs,*pretregs);
+    fixresult(cdb,e,retregs,pretregs);
 }
 
 /*******************************************
@@ -1916,12 +1952,18 @@ void checkSetVex(code *c, tym_t ty)
  */
 
 @trusted
-void cloadxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
+void cloadxmm(ref CodeBuilder cdb, elem *e, regm_t* pretregs)
 {
-    //printf("e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
+    return cloadxmm(cdb, e, *pretregs);
+}
+
+@trusted
+void cloadxmm(ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
+{
+    //printf("e = %p, pretregs = %s)\n", e, regm_str(pretregs));
     //elem_print(e);
-    assert(*pretregs & (XMMREGS | mPSW));
-    if (*pretregs == (mXMM0 | mXMM1) &&
+    assert(pretregs & (XMMREGS | mPSW));
+    if (pretregs == (mXMM0 | mXMM1) &&
         e.Eoper != OPconst)
     {
         code cs = void;
@@ -1943,7 +1985,7 @@ void cloadxmm(ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     }
 
     // See test/complex.d for cases winding up here
-    cload87(cdb, e, *pretregs);
+    cload87(cdb, e, pretregs);
 }
 
 /***********************************
