@@ -444,7 +444,8 @@ extern (C++) class FuncDeclaration : Declaration
             //printf("\ttrue: no conflict\n");
             return true;
         }
-        if (TemplateDeclaration td = s.isTemplateDeclaration())
+        TemplateDeclaration td = s.isTemplateDeclaration();
+        if (td)
         {
             if (!td.funcroot)
                 td.funcroot = this;
