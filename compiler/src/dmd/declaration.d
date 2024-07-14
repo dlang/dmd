@@ -1238,8 +1238,7 @@ extern (C++) class VarDeclaration : Declaration
              */
             for (auto s = cast(Dsymbol)this; s; s = s.parent)
             {
-                auto ad = (cast(inout)s).isMember();
-                if (ad)
+                if (auto ad = (cast(inout)s).isMember())
                     return ad;
                 if (!s.parent || !s.parent.isTemplateMixin())
                     break;

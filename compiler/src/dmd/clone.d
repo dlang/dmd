@@ -99,8 +99,7 @@ StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration f) pure
  */
 FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope* sc)
 {
-    Dsymbol assign = search_function(ad, Id.assign);
-    if (assign)
+    if (Dsymbol assign = search_function(ad, Id.assign))
     {
         /* check identity opAssign exists
          */
