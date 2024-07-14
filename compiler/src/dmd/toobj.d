@@ -1197,8 +1197,7 @@ private size_t emitVtbl(ref DtBuilder dtb, BaseClass *b, ref FuncDeclarations bv
 
     foreach (j; jstart .. id_vtbl_dim)
     {
-        FuncDeclaration fd = bvtbl[j];
-        if (fd)
+        if (FuncDeclaration fd = bvtbl[j])
         {
             auto offset2 = b.offset;
             if (fd.interfaceVirtual)

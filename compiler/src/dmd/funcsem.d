@@ -1047,8 +1047,7 @@ Ldone:
             }
 
             // If it's a member template
-            ClassDeclaration cd = ti.tempdecl.isClassMember();
-            if (cd)
+            if (ClassDeclaration cd = ti.tempdecl.isClassMember())
             {
                 .error(funcdecl.loc, "%s `%s` cannot use template to add virtual function to class `%s`", funcdecl.kind, funcdecl.toPrettyChars, cd.toChars());
             }

@@ -495,8 +495,7 @@ extern (C++) struct Scope
                 if (global.params.fixAliasThis)
                 {
                     Expression exp = new ThisExp(loc);
-                    Dsymbol aliasSym = checkAliasThis(sc.scopesym.isAggregateDeclaration(), ident, flags, &exp);
-                    if (aliasSym)
+                    if (Dsymbol aliasSym = checkAliasThis(sc.scopesym.isAggregateDeclaration(), ident, flags, &exp))
                     {
                         //printf("found aliassym: %s\n", aliasSym.toChars());
                         pscopesym = new ExpressionDsymbol(exp);
