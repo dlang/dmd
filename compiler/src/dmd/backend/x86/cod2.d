@@ -125,7 +125,7 @@ void opdouble(ref CodeBuilder cdb, elem *e,regm_t *pretregs,uint clib)
 {
     if (config.inline8087)
     {
-        orth87(cdb,e,pretregs);
+        orth87(cdb,e,*pretregs);
         return;
     }
 
@@ -193,7 +193,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         }
         if (config.inline8087)
         {
-            orth87(cdb,e,pretregs);
+            orth87(cdb,e,*pretregs);
             return;
         }
         if (config.exe & EX_windos)
@@ -916,7 +916,7 @@ void cdmul(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             return;
         }
         if (config.exe & EX_posix)
-            orth87(cdb,e,pretregs);
+            orth87(cdb,e,*pretregs);
         else
             opdouble(cdb,e,pretregs,(oper == OPmul) ? CLIB.dmul : CLIB.ddiv);
 
@@ -1302,7 +1302,7 @@ void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             return;
         }
         if (config.exe & EX_posix)
-            orth87(cdb,e,pretregs);
+            orth87(cdb,e,*pretregs);
         else
             opdouble(cdb,e,pretregs,(oper == OPmul) ? CLIB.dmul : CLIB.ddiv);
 
