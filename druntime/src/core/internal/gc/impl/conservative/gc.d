@@ -1609,7 +1609,7 @@ struct Gcx
     void Invariant() const { }
 
     debug(INVARIANT)
-    invariant()
+    invariant
     {
         if (initialized)
         {
@@ -3171,8 +3171,7 @@ Lmark:
     {
         // first, we find the Pool this block is in, then check to see if the
         // mark bit is clear.
-        auto pool = findPool(addr);
-        if (pool)
+        if (auto pool = findPool(addr))
         {
             auto offset = cast(size_t)(addr - pool.baseAddr);
             auto pn = offset / PAGESIZE;
@@ -3924,7 +3923,7 @@ struct Pool
     void Invariant() const {}
 
     debug(INVARIANT)
-    invariant()
+    invariant
     {
         if (baseAddr)
         {
