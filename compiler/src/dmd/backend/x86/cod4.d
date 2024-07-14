@@ -363,7 +363,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
     if (tyxmmreg(tyml) && config.fpxmmregs)
     {
-        xmmeq(cdb, e, CMP, e1, e2, pretregs);
+        xmmeq(cdb, e, CMP, e1, e2, *pretregs);
         return;
     }
 
@@ -671,7 +671,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             if (varregm & XMMREGS)
             {
                 // Could be an integer vector in the XMMREGS
-                xmmeq(cdb, e, CMP, e1, e2, pretregs);
+                xmmeq(cdb, e, CMP, e1, e2, *pretregs);
                 return;
             }
             regvar = true;
@@ -853,7 +853,7 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     // See if evaluate in XMM registers
     if (config.fpxmmregs && tyxmmreg(tyml) && op != OPnegass && !(*pretregs & mST0))
     {
-        xmmopass(cdb,e,pretregs);
+        xmmopass(cdb,e,*pretregs);
         return;
     }
 
@@ -1686,7 +1686,7 @@ void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     // See if evaluate in XMM registers
     if (config.fpxmmregs && tyxmmreg(tyml) && op != OPmodass && !(*pretregs & mST0))
     {
-        xmmopass(cdb,e,pretregs);
+        xmmopass(cdb,e,*pretregs);
         return;
     }
 
@@ -2517,7 +2517,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     }
 
     if (tyvector(tybasic(e1.Ety)))
-        return orthxmm(cdb,e,pretregs);
+        return orthxmm(cdb,e,*pretregs);
 
     uint jop = jmpopcode(e);        // must be computed before
                                         // leaves are free'd
@@ -2542,7 +2542,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         {
             retregs = mPSW;
             if (tyxmmreg(tym))
-                orthxmm(cdb,e,&retregs);
+                orthxmm(cdb,e,retregs);
             else
                 orth87(cdb,e,&retregs);
         }

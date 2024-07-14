@@ -4973,7 +4973,7 @@ void cdneg(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         }
         if (tyxmmreg(tyml) && e.Eoper == OPneg && *pretregs & XMMREGS)
         {
-            xmmneg(cdb,e,pretregs);
+            xmmneg(cdb,e,*pretregs);
             return;
         }
         if (config.inline8087 &&
@@ -5053,7 +5053,7 @@ void cdabs(ref CGstate cg, ref CodeBuilder cdb,elem *e, regm_t *pretregs)
     {
         if (tyxmmreg(tyml) && *pretregs & XMMREGS)
         {
-            xmmabs(cdb,e,pretregs);
+            xmmabs(cdb,e,*pretregs);
             return;
         }
         if (config.inline8087 && ((*pretregs & (ALLREGS | mBP)) == 0 || I64))
@@ -5180,7 +5180,7 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             !tycomplex(tyml) // SIMD code is not set up to deal with complex
            )
         {
-            xmmpost(cdb,e,pretregs);
+            xmmpost(cdb,e,*pretregs);
             return;
         }
 
@@ -5289,7 +5289,7 @@ if (config.exe & EX_windos)
     }
     if (tyxmmreg(tyml))
     {
-        xmmpost(cdb,e,pretregs);
+        xmmpost(cdb,e,*pretregs);
         return;
     }
 
