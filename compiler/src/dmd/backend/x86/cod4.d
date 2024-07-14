@@ -131,7 +131,7 @@ void modEA(ref CodeBuilder cdb,code *c)
  * Gen code for op= for doubles.
  */
 @trusted
-private void opassdbl(ref CodeBuilder cdb,elem *e,regm_t *pretregs,OPER op)
+private void opassdbl(ref CodeBuilder cdb,elem *e,ref regm_t pretregs,OPER op)
 {
     assert(config.exe & EX_windos);  // for targets that may not have an 8087
 
@@ -224,7 +224,7 @@ private void opassdbl(ref CodeBuilder cdb,elem *e,regm_t *pretregs,OPER op)
     freenode(e1);
     cs.Iop = STO;                              // MOV EA,DOUBLEREGS
     fltregs(cdb,&cs,tym);
-    fixresult(cdb,e,retregs,*pretregs);
+    fixresult(cdb,e,retregs,pretregs);
 }
 
 /****************************
@@ -371,7 +371,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     {
         if (tycomplex(tyml))
         {
-            complex_eq87(cdb, e, pretregs);
+            complex_eq87(cdb, e, *pretregs);
             return;
         }
 
@@ -379,19 +379,19 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
               (e2oper == OPconst || e2oper == OPvar || e2oper == OPind))
            )
         {
-            eq87(cdb,e,pretregs);
+            eq87(cdb,e,*pretregs);
             return;
         }
         if (config.target_cpu >= TARGET_PentiumPro &&
             (e2oper == OPvar || e2oper == OPind)
            )
         {
-            eq87(cdb,e,pretregs);
+            eq87(cdb,e,*pretregs);
             return;
         }
         if (tyml == TYldouble || tyml == TYildouble)
         {
-            eq87(cdb,e,pretregs);
+            eq87(cdb,e,*pretregs);
             return;
         }
     }
@@ -864,14 +864,14 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             if (op == OPnegass)
                 cdnegass87(cdb,e,pretregs);
             else
-                opass87(cdb,e,pretregs);
+                opass87(cdb,e,*pretregs);
         }
         else
         {
             if (op == OPnegass)
                 opnegassdbl(cdb,e,pretregs);
             else
-                opassdbl(cdb,e,pretregs,op);
+                opassdbl(cdb,e,*pretregs,op);
         }
         return;
     }
@@ -1414,11 +1414,11 @@ void cdmulass(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     {
         if (config.exe & EX_posix)
         {
-            opass87(cdb,e,pretregs);
+            opass87(cdb,e,*pretregs);
         }
         else
         {
-            opassdbl(cdb,e,pretregs,op);
+            opassdbl(cdb,e,*pretregs,op);
         }
         return;
     }
@@ -1694,11 +1694,11 @@ void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     {
         if (config.exe & EX_posix)
         {
-            opass87(cdb,e,pretregs);
+            opass87(cdb,e,*pretregs);
         }
         else
         {
-            opassdbl(cdb,e,pretregs,op);
+            opassdbl(cdb,e,*pretregs,op);
         }
         return;
     }
@@ -2544,11 +2544,11 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             if (tyxmmreg(tym))
                 orthxmm(cdb,e,&retregs);
             else
-                orth87(cdb,e,&retregs);
+                orth87(cdb,e,retregs);
         }
         else if (config.inline8087)
         {   retregs = mPSW;
-            orth87(cdb,e,&retregs);
+            orth87(cdb,e,retregs);
         }
         else
         {
