@@ -1506,14 +1506,12 @@ code *asm_emit(Loc loc,
         // an immediate and does not affect operation size
         case 3:
         case 2:
-            if ((!target.isX86_64 &&
+            if (!target.isX86_64 &&
                   (amods[1] == _addr16 ||
                    (isOneOf(OpndSize._16, uSizemaskTable[1]) && aoptyTable[1] == _rel ) ||
                    (isOneOf(OpndSize._32, uSizemaskTable[1]) && aoptyTable[1] == _mnoi) ||
                    (ptb.pptb2.usFlags & _16_bit_addr)
-                 )
-                )
-              )
+                 ))
                 setImmediateFlags(1);
 
         /* Fall through, operand 1 controls the opsize, but the
@@ -1525,11 +1523,11 @@ code *asm_emit(Loc loc,
             goto case;
 
         case 1:
-            if ((!target.isX86_64 &&
+            if (!target.isX86_64 &&
                   (amods[0] == _addr16 ||
                    (isOneOf(OpndSize._16, uSizemaskTable[0]) && aoptyTable[0] == _rel ) ||
                    (isOneOf(OpndSize._32, uSizemaskTable[0]) && aoptyTable[0] == _mnoi) ||
-                    (ptb.pptb1.usFlags & _16_bit_addr))))
+                    (ptb.pptb1.usFlags & _16_bit_addr)))
                 setImmediateFlags(0);
 
             // If the size of the operand is unknown, assume that it is
@@ -1852,8 +1850,7 @@ L3:
         }
         else
         {
-            LabelDsymbol label = s.isLabel();
-            if (label)
+            if (LabelDsymbol label = s.isLabel())
             {
                 if ((pc.Iop & ~0x0F) == 0x70)
                     pc.Iflags |= CFjmp16;
@@ -1876,8 +1873,8 @@ L3:
         case 0:
             break;
         case 1:
-            if (((aoptyTable[0] == _reg || aoptyTable[0] == _float) &&
-                 amodTable[0] == _normal && (uRegmaskTable[0] & _rplus_r)))
+            if ((aoptyTable[0] == _reg || aoptyTable[0] == _float) &&
+                 amodTable[0] == _normal && (uRegmaskTable[0] & _rplus_r))
             {
                 uint reg = opnds[0].base.val;
                 if (reg & 8)
@@ -1957,9 +1954,9 @@ L3:
         }
         else
         {
-            if (((aoptyTable[0] == _reg || aoptyTable[0] == _float) &&
+            if ((aoptyTable[0] == _reg || aoptyTable[0] == _float) &&
                  amodTable[0] == _normal &&
-                 (uRegmaskTable[0] & _rplus_r)))
+                 (uRegmaskTable[0] & _rplus_r))
             {
                 uint reg = opnds[0].base.val;
                 if (reg & 8)
@@ -1979,9 +1976,9 @@ L3:
                     pc.Iop += reg;
                 debug instruction[insIdx-1] += reg;
             }
-            else if (((aoptyTable[1] == _reg || aoptyTable[1] == _float) &&
+            else if ((aoptyTable[1] == _reg || aoptyTable[1] == _float) &&
                  amodTable[1] == _normal &&
-                 (uRegmaskTable[1] & _rplus_r)))
+                 (uRegmaskTable[1] & _rplus_r))
             {
                 uint reg = opnds[1].base.val;
                 if (reg & 8)
@@ -2056,9 +2053,9 @@ L3:
 
             bool setRegisterProperties(int i)
             {
-                if (((aoptyTable[i] == _reg || aoptyTable[i] == _float) &&
+                if ((aoptyTable[i] == _reg || aoptyTable[i] == _float) &&
                      amodTable[i] == _normal &&
-                     (uRegmaskTable[i] &_rplus_r)))
+                     (uRegmaskTable[i] &_rplus_r))
                 {
                     uint reg = opnds[i].base.val;
                     if (reg & 8)
@@ -2243,7 +2240,6 @@ private void asm_merge_opnds(ref OPND o1, ref OPND o2)
                 }
                 break;
             default:
-                break;
             }
             asmerr("invalid asm operand `%s`", o1.s.toChars());
         }
@@ -4312,7 +4308,7 @@ version (none)
             return type_ref(o1, Type.tuns16);
         case TOK.uns32:
             return type_ref(o1, Type.tuns32);
-        case TOK.uns64 :
+        case TOK.uns64:
             return type_ref(o1, Type.tuns64);
 
         case TOK.int8:
@@ -4587,7 +4583,7 @@ TOK tryExpressionToOperand(Expression e, out OPND o1, out Dsymbol s)
  * If c is a power of 2, return that power else -1.
  */
 
-private int ispow2(uint c) @safe
+int ispow2(uint c) @safe
 {
     int i;
 
@@ -4603,7 +4599,6 @@ private int ispow2(uint c) @safe
 /*************************************
  * Returns: true if szop is one of the values in sztbl
  */
-private
 bool isOneOf(OpndSize szop, OpndSize sztbl) @safe
 {
     with (OpndSize)
