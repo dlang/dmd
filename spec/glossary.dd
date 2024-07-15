@@ -26,7 +26,7 @@ $(DL
         $(DD Refers to the ability to execute regular D
         functions at compile time rather than at run time.)
 
-        $(DT code point) $(DD In Unicode terminology, a $(LUCKY code point)
+        $(DT $(LNAME2 code-point, Code Point)) $(DD In Unicode terminology, a $(LUCKY code point)
         is a logical character. The range of code points is $(D 0)
         through $(D 0x10FFFF). Only $(D dchar)s can store code points
         directly; arrays of $(D char) and $(D wchar) need to use the
@@ -58,8 +58,14 @@ $(DL
         one and only one call to free().
         )
 
-        $(DT Higher-order function) $(DD A function that either accepts another
+        $(DT $(LNAME2 hof, Higher-Order Function)) $(DD A function that either accepts another
         function as a parameter, returns a function, or both.
+        )
+
+        $(DT $(LNAME2 ies, $(ACRONYM IES, Interpolated Expression Sequence)))
+        $(DD A $(DDSUBLINK spec/template, homogeneous_sequences, value sequence)
+        of interspersed string literals and expressions.
+        See $(LINK2 $(ROOT_DIR)spec/istring.html, spec).
         )
 
     $(DT $(LNAME2 ifti, $(ACRONYM IFTI, Implicit Function Template Instantiation)))
@@ -68,20 +74,19 @@ $(DL
     Instead, the types are inferred automatically from the types of the
     runtime arguments. See $(LINK2 spec/template.html#ifti, spec) for details.)
 
-        $(DT Illegal)
+        $(DT $(LNAME2 illegal, Illegal))
         $(DD A code construct is illegal if it does not conform to the
         D language specification.
         This may be true even if the compiler or runtime fails to detect
         the error.
         )
 
-        $(DT Input range) $(DD A type (i.e., a struct or a class) that
-        defines the member functions empty, head, and next. Input ranges
+        $(DT $(LNAME2 input-range, Input Range)) $(DD A type (i.e., a struct or a class) that
+        defines the member functions `empty`, `front`, and `popFront`. Input ranges
         are assumed to be strictly one-pass: there is no way to save the
-        state of the iteration in a copy of the range. See also $(LINK2
-        phobos/std_range.html,range).)
+        state of the iteration in a copy of the range. See also $(MREF std, range).)
 
-        $(DT Implementation Defined Behavior)
+        $(DT $(LNAME2 implementation-defined, Implementation-Defined Behavior))
         $(DD This is variation in behavior of the D language in a manner
         that is up to the implementor of the language.
         An example of implementation defined behavior would be the size in
@@ -91,7 +96,7 @@ $(DL
         maximize the portability of code.
         )
 
-        $(DT $(LNAME2 lvalue, lvalue))
+        $(DT $(LNAME2 lvalue, Lvalue))
         $(DD An lvalue is an abstract term referring to a value with an accessible
         address (through e.g. the unary $(D &) operator). Typical examples of
         lvalues include variables, constants introduced with `const` or `immutable`
@@ -173,7 +178,8 @@ void test()
         instead of passing through two other instances.)
         )
 
-        $(DT $(LEGACY_LNAME2 narrow strings, narrow-strings, narrow strings)) $(DD All arrays
+        $(DT $(LEGACY_LNAME2 narrow strings, narrow-strings, Narrow Strings))
+        $(DD All arrays
         that use $(D char), $(D wchar), and their qualified versions are
         narrow strings. (Those include $(D string) and $(D
         wstring)). Range-oriented functions in the standard library handle
@@ -203,11 +209,11 @@ void test()
         delegate returning a Boolean result. Predicates can be nullary
         (take no arguments), unary (take one argument), binary (take
         two arguments), or n-ary (take n arguments). Usually
-        predicates are mentioned within the context of higher-order
-        functions, which accept predicates as parameters.
+        predicates are mentioned within the context of $(ALOCAL hof, higher-order
+        functions), which accept predicates as parameters.
         )
 
-        $(DT $(LNAME2 qualifier-convertible, qualifier-convertible)) $(DD A type `T` is
+        $(DT $(LNAME2 qualifier-convertible, Qualifier-Convertible)) $(DD A type `T` is
         qualifer-convertible to type `U` if and only if they only differ in qualifiers
         and if a reference to `T` can be implicitly converted to a reference to `U` per
         the $(LINK2 $(ROOT_DIR)spec/const3.html, language rules).)
@@ -224,7 +230,7 @@ void test()
         $(DDSUBLINK spec/attribute, scope-class-var, $(D scope) storage class).
         )
 
-        $(DT $(LNAME2 rvalue, rvalue))
+        $(DT $(LNAME2 rvalue, Rvalue))
         $(DD An rvalue is an abstract term referring to a value resulting from an
         expression that has no accessible memory address. This lack of address is
         only conceptual; the implementation has the liberty to store an rvalue in
