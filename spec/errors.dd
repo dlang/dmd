@@ -139,7 +139,7 @@ $(DL
 
         $(DT It is easy to make the error handling source code look good.)
         $(DD The try/catch/finally statements look a lot nicer than endless
-        if (error) goto errorhandler; statements.)
+        `if (error) goto errorhandler;` statements.)
 )
 
 How does this meet our assumptions about errors?
@@ -175,7 +175,7 @@ $(DL
 )
 
 Using exceptions to handle errors leads to another issue - how to write
-exception safe programs. $(DPLLINK exception-safe.html, Here's how).
+exception safe programs. $(LINK2 $(ROOT_DIR)articles/exception-safe.html, Here's how).
 
 $(COMMENT
         $(OL
