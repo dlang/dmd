@@ -63,7 +63,7 @@ __gshared const   byte[8] regtorm   =   [ -1,-1,-1, 7,-1, 6, 4, 5 ];
  *      `true` if `s` is a register parameter and leave it in the register it came in
  */
 @trusted
-bool regParamInPreg(Symbol* s)
+bool regParamInPreg(ref Symbol s)
 {
     //printf("regPAramInPreg %s\n", s.Sident.ptr);
     return (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg) &&
@@ -99,7 +99,7 @@ int isscaledindex(elem *e)
  */
 
 @trusted
-/*private*/ void cdisscaledindex(ref CodeBuilder cdb,elem *e,regm_t *pidxregs,regm_t keepmsk)
+private void cdisscaledindex(ref CodeBuilder cdb,elem *e,ref regm_t pidxregs,regm_t keepmsk)
 {
     // Load index register with result of e.E1
     while (e.Eoper == OPcomma)
@@ -110,7 +110,7 @@ int isscaledindex(elem *e)
         e = e.E2;
     }
     assert(e.Eoper == OPshl);
-    scodelem(cgstate,cdb, e.E1, pidxregs, keepmsk, true);
+    scodelem(cgstate,cdb, e.E1, &pidxregs, keepmsk, true);
     freenode(e.E2);
     freenode(e);
 }
@@ -166,6 +166,7 @@ private __gshared const Ssindex[21] ssindex_array =
     { 64, 3, 3, SSFLnobase1 | SSFLnobase },
 ];
 
+@safe
 int ssindex(OPER op,targ_uns product)
 {
     if (op == OPshl)
@@ -188,6 +189,7 @@ int ssindex(OPER op,targ_uns product)
  *      disp    displacement
  */
 
+@safe
 void buildEA(code *c,int base,int index,int scale,targ_size_t disp)
 {
     ubyte rm;
@@ -279,7 +281,7 @@ void buildEA(code *c,int base,int index,int scale,targ_size_t disp)
 /*********************************************
  * Build REX, modregrm and sib bytes
  */
-
+@safe
 uint buildModregrm(int mod, int reg, int rm)
 {
     uint m;
@@ -765,7 +767,7 @@ L2:
  * Get addressing mode.
  */
 
-@trusted
+@safe
 uint getaddrmode(regm_t idxregs)
 {
     uint mode;
@@ -790,6 +792,7 @@ uint getaddrmode(regm_t idxregs)
     return mode;
 }
 
+@safe
 void setaddrmode(ref code c, regm_t idxregs)
 {
     uint mode = getaddrmode(idxregs);
@@ -990,7 +993,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem *e,regm_t keepmsk,RM rm = R
                     if (ss)
                     {
                         /* Load index register with result of e11.E1       */
-                        cdisscaledindex(cdb, e11, &idxregs, keepmsk);
+                        cdisscaledindex(cdb, e11, idxregs, keepmsk);
                         reg = findreg(idxregs);
                         {
                             t = stackfl[f] ? 2 : 0;
@@ -1250,7 +1253,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem *e,regm_t keepmsk,RM rm = R
                 }
                 if (!I16 && (ss = isscaledindex(e11)) != 0)
                 {   // (v * scale) + const
-                    cdisscaledindex(cdb, e11, &idxregs, keepmsk);
+                    cdisscaledindex(cdb, e11, idxregs, keepmsk);
                     reg = findreg(idxregs);
                     pcs.Irm = modregrm(0, 0, 4);
                     pcs.Isib = modregrm(ss, reg & 7, 5);
@@ -1282,14 +1285,14 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem *e,regm_t keepmsk,RM rm = R
                 {
                     scodelem(cgstate,cdb, e11, &idxregs, keepmsk, true);
                     idxregs2 = cgstate.allregs & ~(idxregs | keepmsk);
-                    cdisscaledindex(cdb, e12, &idxregs2, keepmsk | idxregs);
+                    cdisscaledindex(cdb, e12, idxregs2, keepmsk | idxregs);
                 }
 
                 // Look for *(v1 << scale + v2)
                 else if ((ss = isscaledindex(e11)) != 0)
                 {
                     idxregs2 = idxregs;
-                    cdisscaledindex(cdb, e11, &idxregs2, keepmsk);
+                    cdisscaledindex(cdb, e11, idxregs2, keepmsk);
                     idxregs = cgstate.allregs & ~(idxregs2 | keepmsk);
                     scodelem(cgstate,cdb, e12, &idxregs, keepmsk | idxregs2, true);
                 }
@@ -1301,7 +1304,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem *e,regm_t keepmsk,RM rm = R
                 {
                     pcs.IEV1.Vuns = e11.E2.Vuns;
                     idxregs2 = idxregs;
-                    cdisscaledindex(cdb, e11.E1, &idxregs2, keepmsk);
+                    cdisscaledindex(cdb, e11.E1, idxregs2, keepmsk);
                     idxregs = cgstate.allregs & ~(idxregs2 | keepmsk);
                     scodelem(cgstate,cdb, e12, &idxregs, keepmsk | idxregs2, true);
                     freenode(e11.E2);
@@ -1369,7 +1372,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem *e,regm_t keepmsk,RM rm = R
 
         case FLauto:
         case FLfast:
-            if (regParamInPreg(s))
+            if (regParamInPreg(*s))
             {
                 regm_t pregm = s.Spregm();
                 /* See if the parameter is still hanging about in a register,
@@ -2785,9 +2788,9 @@ void getClibInfo(uint clib, Symbol** ps, ClibInfo** pinfo, objfmt_t objfmt, exef
  */
 
 @trusted
-void callclib(ref CodeBuilder cdb, elem* e, uint clib, regm_t* pretregs, regm_t keepmask)
+void callclib(ref CodeBuilder cdb, elem* e, uint clib, ref regm_t pretregs, regm_t keepmask)
 {
-    //printf("callclib(e = %p, clib = %d, *pretregs = %s, keepmask = %s\n", e, clib, regm_str(*pretregs), regm_str(keepmask));
+    //printf("callclib(e = %p, clib = %d, pretregs = %s, keepmask = %s\n", e, clib, regm_str(pretregs), regm_str(keepmask));
     //elem_print(e);
 
     Symbol* s;
@@ -2882,7 +2885,7 @@ void callclib(ref CodeBuilder cdb, elem* e, uint clib, regm_t* pretregs, regm_t 
         cgstate.stackpush -= cinfo.pop;
     regm_t retregs = I16 ? cinfo.retregs16 : cinfo.retregs32;
     cdb.append(cdbpop);
-    fixresult(cdb, e, retregs, *pretregs);
+    fixresult(cdb, e, retregs, pretregs);
 }
 
 
@@ -5410,7 +5413,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
     {
         // See if we can use register that parameter was passed in
         if (cgstate.regcon.params &&
-            regParamInPreg(e.Vsym) &&
+            regParamInPreg(*e.Vsym) &&
             !cgstate.anyiasm &&   // may have written to the memory for the parameter
             (cgstate.regcon.params & mask(e.Vsym.Spreg) && e.Voffset == 0 ||
              cgstate.regcon.params & mask(e.Vsym.Spreg2) && e.Voffset == REGSIZE) &&
