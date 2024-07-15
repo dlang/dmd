@@ -1794,9 +1794,9 @@ StorageClass getThisStorageClass(FuncDeclaration fd)
     if (tf.isreturnscope)
         stc |= STC.returnScope | STC.scope_;
     auto ad = fd.isThis();
-    if (ad.isClassDeclaration() || tf.isScopeQual)
+    if ((ad && ad.isClassDeclaration()) || tf.isScopeQual)
         stc |= STC.scope_;
-    if (ad.isStructDeclaration())
+    if (ad && ad.isStructDeclaration())
         stc |= STC.ref_;        // `this` for a struct member function is passed by `ref`
     return stc;
 }
@@ -1879,68 +1879,12 @@ void escapeCallExp(CallExp e, ref scope EscapeByResults er, bool retRefTransitio
             }
         }
     }
-    // If 'this' is returned, check it too
-    Type t1 = e.e1.type.toBasetype();
-    DotVarExp dve = e.e1.isDotVarExp();
-    if (dve && t1.ty == Tfunction)
+
+    // If `fd` is a nested function that's return ref / return scope, check that
+    // it doesn't escape closure vars
+    void checkNested(FuncDeclaration fd)
     {
-        FuncDeclaration fd = dve.var.isFuncDeclaration();
-
-        // https://issues.dlang.org/show_bug.cgi?id=20149#c10
-        if (byRef && dve.var.isCtorDeclaration())
-        {
-            er.byExp(e, false);
-            return;
-        }
-
-        if (byRef)
-        {
-            StorageClass stc = dve.var.storage_class & (STC.return_ | STC.scope_ | STC.ref_);
-            if (tf.isreturn)
-                stc |= STC.return_;
-            if (tf.isref)
-                stc |= STC.ref_;
-            if (tf.isScopeQual)
-                stc |= STC.scope_;
-            if (tf.isreturnscope)
-                stc |= STC.returnScope;
-
-            const psr = buildScopeRef(stc);
-            if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
-            {
-                escapeByRef(dve.e1, er, psr == ScopeRef.ReturnRef_Scope);
-            }
-            else if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
-            {
-                escapeByValue(dve.e1, er, retRefTransition);
-            }
-        }
-        else if (fd && fd.isThis())
-        {
-            // Calling a non-static member function dve.var, which is returning `this`, and with dve.e1 representing `this`
-            const psr = buildScopeRef(getThisStorageClass(fd));
-            if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
-            {
-                if (!tf.isref || tf.isctor)
-                    escapeByValue(dve.e1, er, retRefTransition);
-            }
-            else if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
-            {
-                if (tf.isref)
-                {
-                    // Treat calling:
-                    //   struct S { ref S foo() return; }
-                    // as:
-                    //   this;
-                    escapeByValue(dve.e1, er, retRefTransition);
-                }
-                else
-                    escapeByRef(dve.e1, er, psr == ScopeRef.ReturnRef_Scope);
-            }
-        }
-
-        // If it's also a nested function that is 'return scope' / 'return ref'
-        if (fd && fd.isNested() && tf.isreturn)
+        if (fd.isNested() && tf.isreturn)
         {
             if (byRef)
             {
@@ -1956,6 +1900,46 @@ void escapeCallExp(CallExp e, ref scope EscapeByResults er, bool retRefTransitio
         }
     }
 
+    // If 'this' is returned, check it too
+    Type t1 = e.e1.type.toBasetype();
+    DotVarExp dve = e.e1.isDotVarExp();
+    if (dve && t1.ty == Tfunction)
+    {
+        FuncDeclaration fd = dve.var.isFuncDeclaration();
+        if (!fd)
+            return;
+
+        // https://issues.dlang.org/show_bug.cgi?id=20149#c10
+        if (byRef && dve.var.isCtorDeclaration())
+        {
+            er.byExp(e, false);
+            return;
+        }
+
+        // Calling a non-static member function dve.var, which is returning `this`, and with dve.e1 representing `this`
+        const psr = buildScopeRef(getThisStorageClass(fd));
+        if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
+        {
+            if (byRef || !tf.isref || tf.isctor)
+                escapeByValue(dve.e1, er, retRefTransition);
+        }
+        else if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
+        {
+            if (!byRef && tf.isref)
+            {
+                // Treat calling:
+                //   struct S { ref S foo() return; }
+                // as:
+                //   this;
+                escapeByValue(dve.e1, er, retRefTransition);
+            }
+            else
+                escapeByRef(dve.e1, er, psr == ScopeRef.ReturnRef_Scope);
+        }
+
+        checkNested(fd);
+    }
+
     // If returning the result of a delegate call, the .ptr
     // field of the delegate must be checked.
     if (t1.isTypeDelegate())
@@ -1969,21 +1953,8 @@ void escapeCallExp(CallExp e, ref scope EscapeByResults er, bool retRefTransitio
     // If it's a nested function that is 'return scope'
     if (auto ve = e.e1.isVarExp())
     {
-        FuncDeclaration fd = ve.var.isFuncDeclaration();
-        if (fd && fd.isNested())
-        {
-            if (byRef && tf.isreturn)
-            {
-                er.byExp(e, false);
-            }
-            else if (!byRef && tf.isreturn && tf.isScopeQual)
-            {
-                if (tf.isreturnscope)
-                    er.byFunc(fd, true);
-                else
-                    er.byExp(e, false);
-            }
-        }
+        if (FuncDeclaration fd = ve.var.isFuncDeclaration())
+            checkNested(fd);
     }
 }
 
