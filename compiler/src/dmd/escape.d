@@ -381,17 +381,11 @@ bool checkParamArgumentEscape(ref Scope sc, FuncDeclaration fdc, Identifier parI
         if (parStc & STC.scope_ || v.isDataseg())
             return;
 
-        Dsymbol p = v.toParent2();
-
         notMaybeScope(v, vPar);
 
         if (v.isScope())
         {
             unsafeAssign!"scope variable"(v);
-        }
-        else if (v.isTypesafeVariadicArray && p == sc.func)
-        {
-            unsafeAssign!"variadic variable"(v);
         }
     }
 
@@ -784,12 +778,6 @@ bool checkAssignEscape(ref Scope sc, Expression e, bool gag, bool byRef)
                 return;
             }
             result |= sc.setUnsafeDIP1000(gag, ae.loc, "scope variable `%s` assigned to non-scope `%s`", v, e1);
-        }
-        else if (v.isTypesafeVariadicArray && p == fd)
-        {
-            if (inferScope(va))
-                return;
-            result |= sc.setUnsafeDIP1000(gag, ae.loc, "variadic variable `%s` assigned to non-scope `%s`", v, e1);
         }
         else
         {
