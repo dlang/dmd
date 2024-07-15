@@ -323,9 +323,9 @@ int[] testSlice2() { int[3] sa; int n; return sa[n..2][1..2]; }
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13902.d(324): Error: returning `vda[0]` escapes a reference to parameter `vda`
+fail_compilation/fail13902.d(324): Error: returning `vda[0]` escapes a reference to variadic parameter `vda`
+fail_compilation/fail13902.d(325): Error: returning `vda[]` escapes a reference to variadic parameter `vda`
 ---
-
 */
 ref int testDynamicArrayVariadic1(int[] vda...) { return vda[0]; }
 @safe int[]   testDynamicArrayVariadic2(int[] vda...) { return vda[]; }

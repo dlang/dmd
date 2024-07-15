@@ -1215,7 +1215,13 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
             return;
         }
 
-        if (v.isScope())
+        if (v.isTypesafeVariadicArray && p == sc.func)
+        {
+            if (!gag)
+                sc.eSink.error(e.loc, "returning `%s` escapes a reference to variadic parameter `%s`", e.toChars(), v.toChars());
+            result = false;
+        }
+        else if (v.isScope())
         {
             /* If `return scope` applies to v.
              */
@@ -1269,12 +1275,6 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
                     return;
                 }
             }
-        }
-        else if (v.isTypesafeVariadicArray && p == sc.func)
-        {
-            if (!gag)
-                sc.eSink.error(e.loc, "returning `%s` escapes a reference to variadic parameter `%s`", e.toChars(), v.toChars());
-            result = false;
         }
         else
         {
@@ -2023,15 +2023,6 @@ void escapeByRef(Expression e, ref scope EscapeByResults er, bool retRefTransiti
     void visitIndex(IndexExp e)
     {
         Type tb = e.e1.type.toBasetype();
-        if (auto ve = e.e1.isVarExp())
-        {
-            VarDeclaration v = ve.var.isVarDeclaration();
-            if (v && v.isTypesafeVariadicArray)
-            {
-                er.byRef(v, retRefTransition);
-                return;
-            }
-        }
         if (tb.ty == Tsarray)
         {
             escapeByRef(e.e1, er, retRefTransition);
