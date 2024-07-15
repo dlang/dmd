@@ -2009,9 +2009,7 @@ void escapeByRef(Expression e, ref scope EscapeByResults er, bool retRefTransiti
 
     void visitThis(ThisExp e)
     {
-        if (e.var && e.var.toParent2().isFuncDeclaration().hasDualContext())
-            escapeByValue(e, er, retRefTransition);
-        else if (e.var)
+        if (e.var)
             er.byRef(e.var, retRefTransition);
     }
 
