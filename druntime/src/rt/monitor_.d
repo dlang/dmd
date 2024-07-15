@@ -150,19 +150,12 @@ nothrow:
 
 extern (C) void _d_monitor_staticctor() @nogc nothrow
 {
-    version (Posix)
-    {
-        pthread_mutexattr_init(&gattr);
-        pthread_mutexattr_settype(&gattr, PTHREAD_MUTEX_RECURSIVE);
-    }
     initMutex(&gmtx);
 }
 
 extern (C) void _d_monitor_staticdtor() @nogc nothrow
 {
     destroyMutex(&gmtx);
-    version (Posix)
-        pthread_mutexattr_destroy(&gattr);
 }
 
 package:
@@ -193,12 +186,15 @@ else version (Posix)
 
     void initMutex(pthread_mutex_t* mtx)
     {
+        pthread_mutexattr_init(&gattr);
+        pthread_mutexattr_settype(&gattr, PTHREAD_MUTEX_RECURSIVE);
         pthread_mutex_init(mtx, &gattr) && assert(0);
     }
 
     void destroyMutex(pthread_mutex_t* mtx)
     {
         pthread_mutex_destroy(mtx) && assert(0);
+        pthread_mutexattr_destroy(&gattr);
     }
 
     void lockMutex(pthread_mutex_t* mtx)
