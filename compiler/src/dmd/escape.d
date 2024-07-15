@@ -1680,29 +1680,17 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool retRefTransi
 
     void visitSlice(SliceExp e)
     {
-        if (auto ve = e.e1.isVarExp())
-        {
-            VarDeclaration v = ve.var.isVarDeclaration();
-            Type tb = e.type.toBasetype();
-            if (v)
-            {
-                if (tb.ty == Tsarray)
-                    return;
-                if (v.isTypesafeVariadicArray)
-                {
-                    er.byValue(v);
-                    return;
-                }
-            }
-        }
-        Type t1b = e.e1.type.toBasetype();
-        if (t1b.ty == Tsarray)
-        {
-            Type tb = e.type.toBasetype();
-            if (tb.ty != Tsarray)
-                escapeByRef(e.e1, er, retRefTransition);
-        }
-        else
+        // Usually: slicing a static array escapes by ref, slicing a dynamic array escapes by value.
+        // However, slices with compile-time known length can implicitly converted to static arrays:
+        // int*[3] b = sa[0 .. 3];
+        // So we need to compare the type before slicing and after slicing
+        const bool staticBefore = e.e1.type.toBasetype().isTypeSArray() !is null;
+        const bool staticAfter = e.type.toBasetype().isTypeSArray() !is null;
+        const int deref = staticAfter - staticBefore;
+
+        if (deref == -1)
+            escapeByRef(e.e1, er, retRefTransition);
+        else if (deref == 0)
             escapeByValue(e.e1, er, retRefTransition);
     }
 
@@ -2076,6 +2064,20 @@ void escapeByRef(Expression e, ref scope EscapeByResults er, bool retRefTransiti
         escapeByRef(e.e2, er, retRefTransition);
     }
 
+    void visitSlice(SliceExp e)
+    {
+        // This is rare because the slice operator usually doesn't create an lvalue,
+        // but slices with compile-time known length implicitly convert to static arrays
+        const bool staticBefore = e.e1.type.toBasetype().isTypeSArray() !is null;
+        const bool staticAfter = e.type.toBasetype().isTypeSArray() !is null;
+        const int deref = staticAfter - staticBefore;
+
+        if (deref == 0)
+            escapeByRef(e.e1, er, retRefTransition);
+        else if (deref == 1)
+            escapeByValue(e.e1, er, retRefTransition);
+    }
+
     switch (e.op)
     {
         case EXP.variable: return visitVar(e.isVarExp());
@@ -2089,6 +2091,7 @@ void escapeByRef(Expression e, ref scope EscapeByResults er, bool retRefTransiti
         case EXP.assign: return visitAssign(e.isAssignExp());
         case EXP.comma: return visitComma(e.isCommaExp());
         case EXP.question: return visitCond(e.isCondExp());
+        case EXP.slice: return visitSlice(e.isSliceExp());
         case EXP.call: return escapeCallExp(e.isCallExp(), er, retRefTransition, true);
         default:
             if (auto ba = e.isBinAssignExp())
