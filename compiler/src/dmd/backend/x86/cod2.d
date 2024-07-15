@@ -3210,7 +3210,7 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         {
             if (*pretregs & mST0)
             {
-                cdind87(cdb, e, pretregs);
+                cdind87(cdb, e, *pretregs);
                 return;
             }
             if (I64 && tym == TYcfloat && *pretregs & (ALLREGS | mBP))
@@ -3223,7 +3223,7 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
             if (*pretregs & mPSW)
             {
-                cdind87(cdb, e, pretregs);
+                cdind87(cdb, e, *pretregs);
                 return;
             }
         }
@@ -4968,7 +4968,7 @@ void cdneg(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     {
         if (tycomplex(tyml))
         {
-            neg_complex87(cdb, e, pretregs);
+            neg_complex87(cdb, e, *pretregs);
             return;
         }
         if (tyxmmreg(tyml) && e.Eoper == OPneg && *pretregs & XMMREGS)
@@ -5186,7 +5186,7 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
 
         if (config.inline8087)
         {
-            post87(cdb,e,pretregs);
+            post87(cdb,e,*pretregs);
             return;
         }
 if (config.exe & EX_windos)

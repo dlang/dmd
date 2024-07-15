@@ -3491,7 +3491,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb,elem *e, regm_t *pretregs)
                 }
                 if (I32 || I64)
                 {
-                    cdd_u32(cdb,e,pretregs);
+                    cdd_u32(cdb,e,*pretregs);
                     return;
                 }
                 if (config.exe & EX_posix)
@@ -3507,7 +3507,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb,elem *e, regm_t *pretregs)
             case OPd_u64:
                 if (I32 || I64)
                 {
-                    cdd_u64(cdb,e,pretregs);
+                    cdd_u64(cdb,e,*pretregs);
                     return;
                 }
                 retregs = DOUBLEREGS;
@@ -3527,7 +3527,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb,elem *e, regm_t *pretregs)
             {
                 if (I32 || I64)
                 {
-                    cdd_u64(cdb,e,pretregs);
+                    cdd_u64(cdb,e,*pretregs);
                     return;
                 }
                 regm_t retregsx = mST0;
