@@ -237,8 +237,7 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
              * before the semantic analysis of 'to', so that template overloading based on the
              * 'this' pointer can be successful.
              */
-            FuncDeclaration fd = ps.isFuncDeclaration();
-            if (fd)
+            if (FuncDeclaration fd = ps.isFuncDeclaration())
             {
                 /* Use storage_class2 instead of storage_class otherwise when we do .di generation
                  * we'll wind up with 'const const' rather than 'const'.
