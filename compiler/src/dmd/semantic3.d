@@ -1210,8 +1210,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 {
                     /* Wrap the entire function body in a synchronized statement
                      */
-                    ClassDeclaration cd = funcdecl.toParentDecl().isClassDeclaration();
-                    if (cd)
+                    if (ClassDeclaration cd = funcdecl.toParentDecl().isClassDeclaration())
                     {
                         if (target.libraryObjectMonitors(funcdecl, sbody))
                         {

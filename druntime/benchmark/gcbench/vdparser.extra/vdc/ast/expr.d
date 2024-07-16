@@ -821,8 +821,7 @@ class PostfixExpression : Expression
                     return val.opSlice(beg, end);
                 }
                 assert(members.length == 1);  // full slice
-                Node nodelen = val.getType().getScope().resolve("length", val.getType(), false);
-                if(nodelen)
+                if (Node nodelen = val.getType().getScope().resolve("length", val.getType(), false))
                     return val.opSlice(Value.create(0), nodelen.interpret(sc));
                 return val;
 

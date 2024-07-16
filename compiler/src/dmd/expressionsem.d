@@ -966,8 +966,7 @@ private Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
     FuncDeclaration f = s.isFuncDeclaration();
     if (f)
     {
-        TemplateDeclaration td = getFuncTemplateDecl(f);
-        if (td)
+        if (TemplateDeclaration td = getFuncTemplateDecl(f))
         {
             if (td.overroot)
                 td = td.overroot;
@@ -3862,8 +3861,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                 if (global.params.fixAliasThis)
                 {
-                    ExpressionDsymbol expDsym = scopesym.isExpressionDsymbol();
-                    if (expDsym)
+                    if (ExpressionDsymbol expDsym = scopesym.isExpressionDsymbol())
                     {
                         //printf("expDsym = %s\n", expDsym.exp.toChars());
                         result = expDsym.exp.expressionSemantic(sc);

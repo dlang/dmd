@@ -1733,8 +1733,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         // This feature allows a limited form of conditional compilation.
         if (cs.condition.include(sc))
         {
-            DebugCondition dc = cs.condition.isDebugCondition();
-            if (dc)
+            if (DebugCondition dc = cs.condition.isDebugCondition())
             {
                 sc = sc.push();
                 sc.flags |= SCOPE.debug_;
