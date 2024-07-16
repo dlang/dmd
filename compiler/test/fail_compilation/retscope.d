@@ -299,15 +299,31 @@ struct S7
 
 /***************************************************/
 
+/*
+TEST_OUTPUT:
+---
+fail_compilation/retscope.d(315): Error: scope parameter `p` may not be returned
+fail_compilation/retscope.d(316): Error: returning `p[]` escapes a reference to parameter `p`
+fail_compilation/retscope.d(319): Error: scope parameter `p` may not be returned
+---
+*/
+
 int[3] escape8(scope int[] p) @safe { return p[0 .. 3]; } // should not error
 char*[3] escape9(scope char*[] p) @safe { return p[0 .. 3]; }
+
+// https://issues.dlang.org/show_bug.cgi?id=24663
+    int*[3] escape8b(scope int*[3] p) @safe { return p[]; }
+ref int*[3] escape9b(      int*[3] p) @safe { return p[]; }
+
+ref int[3] asStatic(return scope int[] p) @safe { return p[0 .. 3]; }
+ref int[3] asStatic2(      scope int[] p) @safe { return p[0 .. 3]; }
 
 /***************************************************/
 
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(319): Error: reference to local variable `i` assigned to non-scope `f`
+fail_compilation/retscope.d(335): Error: reference to local variable `i` assigned to non-scope `f`
 ---
 */
 
@@ -331,7 +347,7 @@ int* bar10( scope int** ptr ) @safe
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(342): Error: cannot take address of `scope` variable `aa` since `scope` applies to first indirection only
+fail_compilation/retscope.d(358): Error: cannot take address of `scope` variable `aa` since `scope` applies to first indirection only
 ---
 */
 

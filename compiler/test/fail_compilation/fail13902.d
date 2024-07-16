@@ -335,7 +335,7 @@ int[3]  testDynamicArrayVariadic3(int[] vda...) { return vda[0..3]; }   // no er
 TEST_OUTPUT:
 ---
 fail_compilation/fail13902.d(335): Error: returning `vsa[0]` escapes a reference to parameter `vsa`
-fail_compilation/fail13902.d(336): Error: returning `vsa[]` escapes a reference to variadic parameter `vsa`
+fail_compilation/fail13902.d(336): Error: returning `vsa[]` escapes a reference to parameter `vsa`
 ---
 */
 ref int testStaticArrayVariadic1(int[3] vsa...) { return vsa[0]; }
