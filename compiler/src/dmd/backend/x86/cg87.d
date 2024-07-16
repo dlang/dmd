@@ -618,7 +618,7 @@ private void genftst(ref CodeBuilder cdb,elem *e,int pop)
         // Call library function which does not raise exceptions
         regm_t regm = 0;
 
-        callclib(cdb,e,CLIB.ftest,&regm,0);
+        callclib(cdb,e,CLIB.ftest,regm,0);
         if (pop)
         {
             cdb.genf2(0xDD,modregrm(3,3,0)); // FPOP
@@ -840,7 +840,7 @@ void fixresult87(ref CodeBuilder cdb,elem *e,regm_t retregs, ref regm_t outretre
             regm = 0;           // don't worry about result from CLIB.xxx
             callclib(cdb,e,
                     ((sz == FLOATSIZE) ? CLIB.fltto87 : CLIB.dblto87),
-                    &regm,0);
+                    regm,0);
         }
     }
     else if (outretregs & (mBP | ALLREGS) && retregs & mST0)
@@ -1100,7 +1100,7 @@ void orth87(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
                 {
                     regm_t regm = 0;
 
-                    callclib(cdb,e,CLIB.ftest0,&regm,0);
+                    callclib(cdb,e,CLIB.ftest0,regm,0);
                     pop87();
                 }
                 else
@@ -1126,7 +1126,7 @@ void orth87(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
                     else
                         // Call a function instead so that exceptions
                         // are not generated.
-                        callclib(cdb,e,CLIB.fcompp,&resregm,0);
+                        callclib(cdb,e,CLIB.fcompp,resregm,0);
                 }
             }
 
@@ -1212,7 +1212,7 @@ void orth87(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
             else
             {
                 int clib = eoper == OPmul ? CLIB.cmul : CLIB.cdiv;
-                callclib(cdb, e, clib, &retregs, 0);
+                callclib(cdb, e, clib, retregs, 0);
             }
             fixresult_complex87(cdb, e, retregs, pretregs);
             return;
@@ -1270,7 +1270,7 @@ void orth87(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
             makesure87(cdb, e1, sz2, 2, 0);
             makesure87(cdb, e1, 0, 3, 0);
             regm_t retregs = 0;
-            callclib(cdb, e, CLIB.ccmp, &retregs, 0);
+            callclib(cdb, e, CLIB.ccmp, retregs, 0);
             return;
         }
 
@@ -1520,7 +1520,7 @@ void orth87(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
         makesure87(cdb, e1,0,1,0);
         if (op == 7)                    // if reverse divide
             cdb.genf2(0xD9,0xC8 + 1);       // FXCH ST(1)
-        callclib(cdb,e,CLIB.fdiv87,&retregs,0);
+        callclib(cdb,e,CLIB.fdiv87,retregs,0);
         pop87();
         regm_t resregm = mST0;
         freenode(e2);
@@ -2309,7 +2309,7 @@ public void opass87(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
             cs.Irm |= modregrm(0, 5, 0);    // FLD tbyte ptr ...
         cdb.gen(&cs);
         cdb.genf2(0xD9,0xC8 + 1);           // FXCH ST(1)
-        callclib(cdb,e,CLIB.fdiv87,&retregs,0);
+        callclib(cdb,e,CLIB.fdiv87,retregs,0);
         pop87();
     }
     else if (e.Eoper == OPmodass)
@@ -2678,7 +2678,7 @@ private void opass_complex87(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
                 cs.IEV1.Voffset += sz2;
                 cdb.gen(&cs);                   // FLD e.E1.im
                 retregs = mST01;
-                callclib(cdb, e, CLIB.cmul, &retregs, 0);
+                callclib(cdb, e, CLIB.cmul, retregs, 0);
                 goto L2;
             }
             else
@@ -2689,7 +2689,7 @@ private void opass_complex87(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
                 cs.IEV1.Voffset += sz2;
                 cdb.gen(&cs);                   // FLD e.E1.im
                 retregs = mST01;
-                callclib(cdb, e, CLIB.cmul, &retregs, 0);
+                callclib(cdb, e, CLIB.cmul, retregs, 0);
                 if (pretregs & (mST01 | mPSW))
                 {
                     cs.Irm |= modregrm(0, 2, 0);
@@ -2725,7 +2725,7 @@ private void opass_complex87(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
                 cdb.gen(&cs);                   // FLD e.E1.im
                 cdb.genf2(0xD9,0xC8 + 2);       // FXCH ST(2)
                 retregs = mST01;
-                callclib(cdb, e, CLIB.cdiv, &retregs, idxregs);
+                callclib(cdb, e, CLIB.cdiv, retregs, idxregs);
                 goto L2;
             }
             else
@@ -2738,7 +2738,7 @@ private void opass_complex87(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
                 cdb.gen(&cs);                   // FLD e.E1.im
                 cdb.genf2(0xD9,0xC8 + 2);       // FXCH ST(2)
                 retregs = mST01;
-                callclib(cdb, e, CLIB.cdiv, &retregs, idxregs);
+                callclib(cdb, e, CLIB.cdiv, retregs, idxregs);
                 if (pretregs & (mST01 | mPSW))
                 {
                     cs.Irm |= modregrm(0, 2, 0);
@@ -3213,12 +3213,12 @@ void cnvt87(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
         if (clib == CLIB.dblllng)
         {   retregs = I32 ? DOUBLEREGS_32 : DOUBLEREGS_16;
             codelem(cgstate,cdb,e.E1,&retregs,false);
-            callclib(cdb,e,clib,&pretregs,0);
+            callclib(cdb,e,clib,pretregs,0);
         }
         else
         {   retregs = mST0; //I32 ? DOUBLEREGS_32 : DOUBLEREGS_16;
             codelem(cgstate,cdb,e.E1,&retregs,false);
-            callclib(cdb,e,clib,&pretregs,0);
+            callclib(cdb,e,clib,pretregs,0);
             pop87();
         }
     }

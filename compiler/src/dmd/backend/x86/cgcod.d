@@ -1321,7 +1321,7 @@ private void blcodgen(ref CGstate cg, block *bl)
         foreach (i, s; globsym[])
         {
             sflsave[i] = s.Sfl;
-            if (regParamInPreg(s) &&
+            if (regParamInPreg(*s) &&
                 cg.regcon.params & s.Spregm() &&
                 vec_testbit(cg.dfoidx,s.Srange))
             {
