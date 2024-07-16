@@ -114,7 +114,7 @@ struct DSO
 
 private:
 
-    invariant()
+    invariant
     {
         safeAssert(_moduleGroup.modules.length > 0, "No modules for DSO.");
         version (CRuntime_UClibc) {} else
