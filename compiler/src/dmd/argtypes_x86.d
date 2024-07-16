@@ -135,8 +135,7 @@ TypeTuple toArgTypes_x86(Type t)
             {
                 if (t2)
                     return twoTypes(t1, t2);
-                else
-                    return oneType(t1);
+                return oneType(t1);
             }
             else
                 return memory();

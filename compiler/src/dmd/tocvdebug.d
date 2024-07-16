@@ -69,10 +69,10 @@ uint visibilityToCVAttr(Visibility.Kind vis) pure nothrow @safe @nogc
     final switch (vis)
     {
         case Visibility.Kind.private_:       attribute = 1;  break;
-        case Visibility.Kind.package_:       attribute = 2;  break;
-        case Visibility.Kind.protected_:     attribute = 2;  break;
-        case Visibility.Kind.public_:        attribute = 3;  break;
-        case Visibility.Kind.export_:        attribute = 3;  break;
+        case Visibility.Kind.package_,
+             Visibility.Kind.protected_:     attribute = 2;  break;
+        case Visibility.Kind.public_,
+             Visibility.Kind.export_:        attribute = 3;  break;
 
         case Visibility.Kind.undefined:
         case Visibility.Kind.none:
