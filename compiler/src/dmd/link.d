@@ -1426,8 +1426,8 @@ void parseLinkerOutput(const(char)[] linkerOutput, ErrorSink eSink)
         return s;
     }
 
-    bool missingSymbols = false;
-    bool missingDfunction = false;
+    bool missingCSymbols = false;
+    bool missingDsymbols = false;
     bool missingMain = false;
 
     void missingSymbol(const(char)[] name, const(char)[] referencedFrom)
@@ -1437,11 +1437,12 @@ void parseLinkerOutput(const(char)[] linkerOutput, ErrorSink eSink)
             name = name[1 .. $]; // MS LINK prepends underscore to the existing one
         auto sym = demangle(name);
 
-        missingSymbols = true;
         if (sym == "main")
             missingMain = true;
-        if (sym != name)
-            missingDfunction = true;
+        else if (sym != name)
+            missingDsymbols = true;
+        else
+            missingCSymbols = true;
 
         eSink.error(Loc.initial, "undefined reference to `%.*s`", cast(int) sym.length, sym.ptr);
         if (referencedFrom.length > 0)
@@ -1513,10 +1514,9 @@ void parseLinkerOutput(const(char)[] linkerOutput, ErrorSink eSink)
 
     if (missingMain)
         eSink.errorSupplemental(Loc.initial, "perhaps define a `void main() {}` function or use the `-main` switch");
-
-    if (missingDfunction)
+    else if (missingDsymbols)
         eSink.errorSupplemental(Loc.initial, "perhaps `.d` files need to be added on the command line, or use `-i` to compile imports");
-    else if (missingSymbols)
+    else if (missingCSymbols)
         eSink.errorSupplemental(Loc.initial, "perhaps a library needs to be added with the `-L` flag or `pragma(lib, ...)`");
 }
 
