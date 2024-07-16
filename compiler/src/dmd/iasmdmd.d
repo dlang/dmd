@@ -2144,14 +2144,14 @@ opflag_t asm_float_type_size(Type ptype, opflag_t *pusFloat)
 /*******************************
  */
 
-private @safe pure bool asm_isint(const ref OPND o)
+@safe pure bool asm_isint(const ref OPND o)
 {
     if (o.base || o.s)
         return false;
     return true;
 }
 
-private @safe pure bool asm_isNonZeroInt(const ref OPND o)
+@safe pure bool asm_isNonZeroInt(const ref OPND o)
 {
     if (o.base || o.s)
         return false;
@@ -2161,7 +2161,7 @@ private @safe pure bool asm_isNonZeroInt(const ref OPND o)
 /*******************************
  */
 
-private @trusted bool asm_is_fpreg(const(char)[] szReg)
+@trusted bool asm_is_fpreg(const(char)[] szReg)
 {
     return stringEq(szReg, "ST", asmstate.statement.caseSensitive);
 }
@@ -2170,7 +2170,7 @@ private @trusted bool asm_is_fpreg(const(char)[] szReg)
  * Merge operands o1 and o2 into a single operand, o1.
  */
 
-private void asm_merge_opnds(ref OPND o1, ref OPND o2)
+void asm_merge_opnds(ref OPND o1, ref OPND o2)
 {
     void illegalAddressError(string debugWhy)
     {
@@ -3376,7 +3376,7 @@ bool asm_match_float_flags(opflag_t usOp, opflag_t usTable) @safe
 void printOperands(OP* pop, scope OPND[] opnds)
 {
     printf("\t%s\t", asm_opstr(pop));
-    foreach (i, ref  opnd; opnds)
+    foreach (i, ref opnd; opnds)
     {
         asm_output_popnd(opnd);
         if (i != opnds.length - 1)
