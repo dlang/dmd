@@ -294,7 +294,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
         {
             // Cannot initialize a thread-local class or pointer to struct variable with a literal
             // that itself is a thread-local reference and would need dynamic initialization also.
-            if ((vd.type.ty == Tclass) && vd.type.isMutable() && !vd.type.isShared())
+            if (vd.type.ty == Tclass && vd.type.isMutable() && !vd.type.isShared())
             {
                 ExpInitializer ei = vd._init.isExpInitializer();
                 if (ei && ei.exp.op == EXP.classReference)
@@ -887,8 +887,7 @@ void staticAssertFail(StaticAssert sa, Scope* sc)
                     fatal();
                 return;
             }
-            StringExp se = e.toStringExp();
-            if (se)
+            if (StringExp se = e.toStringExp())
             {
                 const slice = se.toUTF8(sc).peekString();
                 // Hack to keep old formatting to avoid changing error messages everywhere
