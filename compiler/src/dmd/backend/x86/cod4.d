@@ -51,11 +51,11 @@ nothrow:
  */
 
 @trusted
-private int intree(Symbol *s,elem *e)
+private int intree(ref Symbol s,elem *e)
 {
     if (!OTleaf(e.Eoper))
         return intree(s,e.E1) + (OTbinary(e.Eoper) ? intree(s,e.E2) : 0);
-    return e.Eoper == OPvar && e.Vsym == s;
+    return e.Eoper == OPvar && e.Vsym == &s;
 }
 
 /***********************************
@@ -78,7 +78,7 @@ int doinreg(Symbol *s, elem *e)
     if (op == OPind ||
         OTcall(op)  ||
         OTleaf(op) ||
-        (in_ = intree(s,e)) == 0 ||
+        (in_ = intree(*s,e)) == 0 ||
         (OTunary(op) && OTleaf(e.E1.Eoper))
        )
         return 1;
@@ -93,7 +93,7 @@ int doinreg(Symbol *s, elem *e)
             case OPxor:
             case OPshl:
             case OPmul:
-                if (!intree(s,e.E2))
+                if (!intree(*s,e.E2))
                 {
                     e = e.E1;
                     goto L1;
@@ -232,7 +232,7 @@ private void opassdbl(ref CodeBuilder cdb,elem *e,ref regm_t pretregs,OPER op)
  */
 
 @trusted
-private void opnegassdbl(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
+private void opnegassdbl(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
     assert(config.exe & EX_windos);  // for targets that may not have an 8087
 
@@ -246,7 +246,7 @@ private void opnegassdbl(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     int sz = _tysize[tym];
     code cs;
 
-    getlvalue(cdb,cs,e1,*pretregs ? DOUBLEREGS | mBX | mCX : 0);
+    getlvalue(cdb,cs,e1,pretregs ? DOUBLEREGS | mBX | mCX : 0);
     modEA(cdb,&cs);
     cs.Irm |= modregrm(0,6,0);
     cs.Iop = 0x80;
@@ -261,7 +261,7 @@ private void opnegassdbl(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     }
 
     regm_t retregs;
-    if (*pretregs || e1.Ecount)
+    if (pretregs || e1.Ecount)
     {
         cs.IEV1.Voffset -= sz - 1;
 
@@ -333,7 +333,7 @@ private void opnegassdbl(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     }
 
     freenode(e1);
-    fixresult(cdb,e,retregs,*pretregs);
+    fixresult(cdb,e,retregs,pretregs);
 }
 
 
@@ -869,7 +869,7 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         else
         {
             if (op == OPnegass)
-                opnegassdbl(cdb,e,pretregs);
+                opnegassdbl(cdb,e,*pretregs);
             else
                 opassdbl(cdb,e,*pretregs,op);
         }
@@ -1660,7 +1660,7 @@ void cdmulass(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             }
         }
 
-        opAssStorePair(cdb, cs, e, findregmsw(retregs), findreglsw(retregs), pretregs);
+        opAssStorePair(cdb, cs, e, findregmsw(retregs), findreglsw(retregs), *pretregs);
         return;
     }
     else
@@ -2156,7 +2156,7 @@ void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             movregconst(cdb,rhi,0,0);                              // MOV rhi,0
         }
 
-        opAssStorePair(cdb, cs, e, rlo, rhi, pretregs);
+        opAssStorePair(cdb, cs, e, rlo, rhi, *pretregs);
         return;
     }
 
@@ -2226,7 +2226,7 @@ void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
             cdb.gen2(0x2B,grex | modregxrmx(3,rhi,r1));               // SUB  rhi,r1
         }
 
-        opAssStorePair(cdb, cs, e, rlo, rhi, pretregs);
+        opAssStorePair(cdb, cs, e, rlo, rhi, *pretregs);
         return;
     }
 
@@ -2243,7 +2243,7 @@ void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         ++lib;
     callclib(cdb,e,lib,&retregs,idxregm(&cs));
 
-    opAssStorePair(cdb, cs, e, findregmsw(retregs), findreglsw(retregs), pretregs);
+    opAssStorePair(cdb, cs, e, findregmsw(retregs), findreglsw(retregs), *pretregs);
 }
 
 
@@ -4808,7 +4808,14 @@ void opAssLoadPair(ref CodeBuilder cdb, ref code cs, elem* e, out reg_t rhi, out
  */
 @trusted
 private
-void opAssStoreReg(ref CodeBuilder cdb, ref code cs, elem* e, reg_t reg, regm_t* pretregs)
+void opAssStoreReg(ref CodeBuilder cdb, ref code cs, elem* e, reg_t reg, regm_t *pretregs)
+{
+    opAssStoreReg(cdb, cs, e, reg, *pretregs);
+}
+
+@trusted
+private
+void opAssStoreReg(ref CodeBuilder cdb, ref code cs, elem* e, reg_t reg, ref regm_t pretregs)
 {
     elem* e1 = e.E1;
     const tym_t tyml = tybasic(e1.Ety);     // type of lvalue
@@ -4820,7 +4827,7 @@ void opAssStoreReg(ref CodeBuilder cdb, ref code cs, elem* e, reg_t reg, regm_t*
     if (e1.Ecount)                          // if we gen a CSE
         cssave(e1,mask(reg),!OTleaf(e1.Eoper));
     freenode(e1);
-    fixresult(cdb,e,mask(reg),*pretregs);
+    fixresult(cdb,e,mask(reg),pretregs);
 }
 
 /*********************************************************
@@ -4835,7 +4842,14 @@ void opAssStoreReg(ref CodeBuilder cdb, ref code cs, elem* e, reg_t reg, regm_t*
  */
 @trusted
 private
-void opAssStorePair(ref CodeBuilder cdb, ref code cs, elem* e, reg_t rhi, reg_t rlo, regm_t* pretregs)
+void opAssStorePair(ref CodeBuilder cdb, ref code cs, elem* e, reg_t rhi, reg_t rlo, regm_t *pretregs)
+{
+    opAssStorePair(cdb, cs, e, rhi, rlo, *pretregs);
+}
+
+@trusted
+private
+void opAssStorePair(ref CodeBuilder cdb, ref code cs, elem* e, reg_t rhi, reg_t rlo, ref regm_t pretregs)
 {
     cs.Iop = STO;
     code_newreg(&cs,rlo);
@@ -4848,5 +4862,5 @@ void opAssStorePair(ref CodeBuilder cdb, ref code cs, elem* e, reg_t rhi, reg_t 
     if (e1.Ecount)                 // if we gen a CSE
         cssave(e1,retregs,!OTleaf(e1.Eoper));
     freenode(e1);
-    fixresult(cdb,e,retregs,*pretregs);
+    fixresult(cdb,e,retregs,pretregs);
 }
