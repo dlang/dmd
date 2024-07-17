@@ -1580,6 +1580,7 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRe
             {
                 // If compiler generated ref temporary
                 //   (ref v = ex; ex)
+                // e.g. to extract side effects of `Tuple!(int, int).modify().expand[0]`
                 // look at the initializer instead
                 if (ExpInitializer ez = v._init.isExpInitializer())
                 {
@@ -1587,11 +1588,12 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRe
                         escapeExp(ce.e2, er, deref, retRefTransition);
                     else
                         escapeExp(ez.exp, er, deref, retRefTransition);
-
                     return;
                 }
             }
-            er.varDeref(v, deref, retRefTransition);
+
+            if (deref < 0 || e.type.hasPointers())
+                er.varDeref(v, deref, retRefTransition);
         }
     }
 
@@ -1610,7 +1612,8 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRe
 
     void visitPtr(PtrExp e)
     {
-        escapeExp(e.e1, er, deref + 1, retRefTransition);
+        if (deref < 0 || (er.live && e.type.hasPointers()))
+            escapeExp(e.e1, er, deref + 1, retRefTransition);
     }
 
     void visitDotVar(DotVarExp e)
@@ -1619,7 +1622,7 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRe
         // Accessing a class field dereferences the `this` pointer
         if (t1b.isTypeClass())
             escapeExp(e.e1, er, deref + 1, retRefTransition);
-        else
+        else if (deref < 0 || e.type.hasPointers())
             escapeExp(e.e1, er, deref, retRefTransition);
     }
 
@@ -1690,7 +1693,7 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRe
 
     void visitCast(CastExp e)
     {
-        if (deref < 0)
+        if (deref < 0 || !e.type.hasPointers())
             return;
         Type tb = e.type.toBasetype();
         if (tb.isTypeDArray() && e.e1.type.toBasetype().isTypeSArray())
@@ -1758,7 +1761,7 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRe
     if (deref > 0 && !er.live)
         return; // scope is not transitive currently, so dereferencing expressions don't escape
 
-    if (deref >= 0 && !e.type.hasPointers())
+    if (deref >= 0 && er.live && !e.type.hasPointers())
         return; // can't escape non-pointer values by value
 
     switch (e.op)
@@ -1830,6 +1833,10 @@ void escapeCallExp(CallExp e, ref scope EscapeByResults er, bool retRefTransitio
         er.byExp(e, retRefTransition);
         return;
     }
+
+    // A function may have a return scope struct parameter, but only return an `int` field of that struct
+    if (!byRef && !e.type.hasPointers())
+        return;
 
     if (e.arguments && e.arguments.length)
     {
