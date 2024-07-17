@@ -1740,8 +1740,7 @@ int ElfObj_jmpTableSegment(Symbol *s)
 private void addSectionToComdat(IDXSEC secidx, segidx_t comdatseg)
 {
     seg_data *pseg = SegData[comdatseg];
-    segidx_t groupseg = pseg.SDassocseg;
-    if (groupseg)
+    if (segidx_t groupseg = pseg.SDassocseg)
     {
         seg_data *pgroupseg = SegData[groupseg];
 
@@ -2092,7 +2091,7 @@ char[] obj_mangle2(ref Symbol s, char[] dest)
 
         case Mangle.stdcall:
         {
-            bool cond = (tyfunc(s.ty()) && !variadic(s.Stype));
+            bool cond = tyfunc(s.ty()) && !variadic(s.Stype);
             if (cond)
             {
                 char *pstr = unsstr(type_paramsize(s.Stype));

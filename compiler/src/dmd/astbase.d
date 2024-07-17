@@ -4244,11 +4244,9 @@ struct ASTBase
 
         override Expression toExpression()
         {
-            Expression e = next.toExpression();
-            if (e)
+            if (Expression e = next.toExpression())
             {
-                Expression ei = index.toExpression();
-                if (ei)
+                if (Expression ei = index.toExpression())
                     return new ArrayExp(loc, e, ei);
             }
             return null;
@@ -5392,8 +5390,7 @@ struct ASTBase
         extern (C++) Dsymbol getDsymbol(RootObject oarg)
         {
             Dsymbol sa;
-            Expression ea = isExpression(oarg);
-            if (ea)
+            if (Expression ea = isExpression(oarg))
             {
                 // Try to convert Expression to symbol
                 if (ea.op == EXP.variable)
@@ -5413,8 +5410,7 @@ struct ASTBase
             else
             {
                 // Try to convert Type to symbol
-                Type ta = isType(oarg);
-                if (ta)
+                if (Type ta = isType(oarg))
                     sa = ta.toDsymbol(null);
                 else
                     sa = isDsymbol(oarg); // if already a symbol

@@ -468,7 +468,7 @@ class SourceModule
     Parser parser;
     ParseError[] parseErrors;
 
-    bool parsing() { return parser !is null; }
+    bool parsing() const { return parser !is null; }
 }
 
 version = no_syntaxcopy;
