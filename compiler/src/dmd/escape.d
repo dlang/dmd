@@ -1539,6 +1539,17 @@ private bool inferReturn(FuncDeclaration fd, VarDeclaration v, bool returnScope)
 public
 void escapeByValue(Expression e, ref scope EscapeByResults er, bool retRefTransition = false)
 {
+    escapeExp(e, er, 0, retRefTransition);
+}
+
+// Unified implementation of `escapeByValue` and `escapeByRef`
+// deref = derference level, if `p` has deref 0, then `*p` has deref 1, `&p` has -1, and `**p` has 2 etc.
+// For escapeByValue, deref = 0
+// For escapeByRef, deref = -1
+// Currently, `scope` is not transitive, so deref > 0 means no escaping, but `@live` does do transitive checking,
+// and future enhancements might add some form of transitive scope.
+void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRefTransition)
+{
     //printf("[%s] escapeByValue, e: %s\n", e.loc.toChars(), e.toChars());
 
     void visit(Expression e)
@@ -1551,44 +1562,81 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool retRefTransi
          * allowed, but CTFE can generate one out of a new expression,
          * but it'll be placed in static data so no need to check it.
          */
-        if (e.e1.op != EXP.structLiteral)
-            escapeByRef(e.e1, er, retRefTransition);
+        if (deref == 0 && e.e1.op != EXP.structLiteral)
+            escapeExp(e.e1, er, deref - 1, retRefTransition);
     }
 
     void visitSymOff(SymOffExp e)
     {
         if (VarDeclaration v = e.var.isVarDeclaration())
-            er.byRef(v, retRefTransition);
+            er.varDeref(v, deref - 1, retRefTransition);
     }
 
     void visitVar(VarExp e)
     {
         if (auto v = e.var.isVarDeclaration())
         {
-            if (v.type.hasPointers() || // not tracking non-pointers
-                v.storage_class & STC.lazy_) // lazy variables are actually pointers
-                er.byValue(v);
+            if (deref == 0)
+            {
+                if (v.type.hasPointers() || // not tracking non-pointers
+                    v.storage_class & STC.lazy_) // lazy variables are actually pointers
+                    er.varDeref(v, deref, retRefTransition);
+            }
+            else if (deref == -1)
+            {
+                if (v.storage_class & STC.ref_ && v.storage_class & (STC.foreach_ | STC.temp) && v._init)
+                {
+                    // If compiler generated ref temporary
+                    //   (ref v = ex; ex)
+                    // look at the initializer instead
+                    if (ExpInitializer ez = v._init.isExpInitializer())
+                    {
+                        if (auto ce = ez.exp.isConstructExp())
+                            escapeExp(ce.e2, er, deref, retRefTransition);
+                        else
+                            escapeExp(ez.exp, er, deref, retRefTransition);
+                    }
+                }
+                else
+                    er.varDeref(v, deref, retRefTransition);
+            }
         }
     }
 
     void visitThis(ThisExp e)
     {
+        // Special case because `__this2` isn't `ref` internally
+        if (deref == -1 && e.var && e.var.toParent2().isFuncDeclaration().hasDualContext())
+        {
+            escapeByValue(e, er, retRefTransition);
+            return;
+        }
+
         if (e.var)
-            er.byValue(e.var);
+            er.varDeref(e.var, deref, retRefTransition);
     }
 
     void visitPtr(PtrExp e)
     {
+        if (deref == -1)
+            escapeExp(e.e1, er, deref + 1, retRefTransition);
         if (er.live && e.type.hasPointers())
             escapeByValue(e.e1, er, retRefTransition);
     }
 
     void visitDotVar(DotVarExp e)
     {
-        auto t = e.e1.type.toBasetype();
-        if (e.type.hasPointers() && (er.live || t.ty == Tstruct))
+        auto t1b = e.e1.type.toBasetype();
+        if (deref == -1)
         {
-            escapeByValue(e.e1, er, retRefTransition);
+            if (t1b.ty == Tclass)
+                escapeExp(e.e1, er, deref + 1, retRefTransition);
+            else
+                escapeExp(e.e1, er, deref, retRefTransition);
+        }
+        else if (e.type.hasPointers() && (er.live || t1b.ty == Tstruct))
+        {
+            escapeExp(e.e1, er, deref, retRefTransition);
         }
     }
 
@@ -1619,11 +1667,11 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool retRefTransi
         if (tb.ty == Tsarray || tb.ty == Tarray)
         {
             if (e.basis)
-                escapeByValue(e.basis, er, retRefTransition);
+                escapeExp(e.basis, er, deref, retRefTransition);
             foreach (el; *e.elements)
             {
                 if (el)
-                    escapeByValue(el, er, retRefTransition);
+                    escapeExp(el, er, deref, retRefTransition);
             }
         }
     }
@@ -1635,8 +1683,12 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool retRefTransi
             foreach (ex; *e.elements)
             {
                 if (ex)
-                    escapeByValue(ex, er, retRefTransition);
+                    escapeExp(ex, er, deref, retRefTransition);
             }
+        }
+        if (deref == -1)
+        {
+            er.byExp(e, retRefTransition);
         }
     }
 
@@ -1648,22 +1700,20 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool retRefTransi
             foreach (ex; *e.arguments)
             {
                 if (ex)
-                    escapeByValue(ex, er, retRefTransition);
+                    escapeExp(ex, er, deref, retRefTransition);
             }
         }
     }
 
     void visitCast(CastExp e)
     {
-        if (!e.type.hasPointers())
+        if (deref < 0 || !e.type.hasPointers())
             return;
         Type tb = e.type.toBasetype();
         if (tb.ty == Tarray && e.e1.type.toBasetype().ty == Tsarray)
-        {
-            escapeByRef(e.e1, er, retRefTransition);
-        }
+            escapeExp(e.e1, er, deref - 1, retRefTransition);
         else
-            escapeByValue(e.e1, er, retRefTransition);
+            escapeExp(e.e1, er, deref, retRefTransition);
     }
 
     void visitSlice(SliceExp e)
@@ -1674,20 +1724,20 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool retRefTransi
         // So we need to compare the type before slicing and after slicing
         const bool staticBefore = e.e1.type.toBasetype().isTypeSArray() !is null;
         const bool staticAfter = e.type.toBasetype().isTypeSArray() !is null;
-        const int deref = staticAfter - staticBefore;
-
-        if (deref == -1)
-            escapeByRef(e.e1, er, retRefTransition);
-        else if (deref == 0)
-            escapeByValue(e.e1, er, retRefTransition);
+        escapeExp(e.e1, er, deref + staticAfter - staticBefore, retRefTransition);
     }
 
     void visitIndex(IndexExp e)
     {
-        if (e.e1.type.toBasetype().ty == Tsarray ||
-            er.live && e.type.hasPointers())
+        Type tb = e.e1.type.toBasetype();
+
+        if (tb.ty == Tsarray || (er.live && e.type.hasPointers()))
         {
-            escapeByValue(e.e1, er, retRefTransition);
+            escapeExp(e.e1, er, deref, retRefTransition);
+        }
+        else if (tb.ty == Tarray)
+        {
+            escapeExp(e.e1, er, deref + 1, retRefTransition);
         }
     }
 
@@ -1696,31 +1746,34 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool retRefTransi
         Type tb = e.type.toBasetype();
         if (tb.ty == Tpointer)
         {
-            escapeByValue(e.e1, er, retRefTransition);
-            escapeByValue(e.e2, er, retRefTransition);
+            escapeExp(e.e1, er, deref, retRefTransition);
+            escapeExp(e.e2, er, deref, retRefTransition);
         }
     }
 
     void visitBinAssign(BinAssignExp e)
     {
-        escapeByValue(e.e1, er, retRefTransition);
+        escapeExp(e.e1, er, deref, retRefTransition);
     }
 
     void visitAssign(AssignExp e)
     {
-        escapeByValue(e.e1, er, retRefTransition);
+        escapeExp(e.e1, er, deref, retRefTransition);
     }
 
     void visitComma(CommaExp e)
     {
-        escapeByValue(e.e2, er, retRefTransition);
+        escapeExp(e.e2, er, deref, retRefTransition);
     }
 
     void visitCond(CondExp e)
     {
-        escapeByValue(e.e1, er, retRefTransition);
-        escapeByValue(e.e2, er, retRefTransition);
+        escapeExp(e.e1, er, deref, retRefTransition);
+        escapeExp(e.e2, er, deref, retRefTransition);
     }
+
+    if (deref > 0 && !er.live)
+        return; // scope is not transitive currently, so dereferencing expressions don't escape
 
     switch (e.op)
     {
@@ -1744,12 +1797,12 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool retRefTransi
         case EXP.assign: return visitAssign(e.isAssignExp());
         case EXP.comma: return visitComma(e.isCommaExp());
         case EXP.question: return visitCond(e.isCondExp());
-        case EXP.call: return escapeCallExp(e.isCallExp(), er, retRefTransition, false);
+        case EXP.call: return escapeCallExp(e.isCallExp(), er, retRefTransition, deref == -1);
         default:
-            if (auto b = e.isBinExp())
-                return visitBin(b);
             if (auto ba = e.isBinAssignExp())
                 return visitBinAssign(ba);
+            if (auto b = e.isBinExp())
+                return visitBin(b);
             return visit(e);
     }
 }
@@ -1952,140 +2005,9 @@ void escapeCallExp(CallExp e, ref scope EscapeByResults er, bool retRefTransitio
  *      er = where to place collected data
  *      retRefTransition = if `e` is returned through a `return (ref) scope` function call
  */
-private
 void escapeByRef(Expression e, ref scope EscapeByResults er, bool retRefTransition = false)
 {
-    //printf("[%s] escapeByRef, e: %s, retRefTransition: %d\n", e.loc.toChars(), e.toChars(), retRefTransition);
-    void visit(Expression e)
-    {
-    }
-
-    void visitVar(VarExp e)
-    {
-        if (auto v = e.var.isVarDeclaration())
-        {
-            if (v.storage_class & STC.ref_ && v.storage_class & (STC.foreach_ | STC.temp) && v._init)
-            {
-                /* If compiler generated ref temporary
-                    *   (ref v = ex; ex)
-                    * look at the initializer instead
-                    */
-                if (ExpInitializer ez = v._init.isExpInitializer())
-                {
-                    if (auto ce = ez.exp.isConstructExp())
-                        escapeByRef(ce.e2, er, retRefTransition);
-                    else
-                        escapeByRef(ez.exp, er, retRefTransition);
-                }
-            }
-            else
-                er.byRef(v, retRefTransition);
-        }
-    }
-
-    void visitThis(ThisExp e)
-    {
-        if (e.var && e.var.toParent2().isFuncDeclaration().hasDualContext())
-            escapeByValue(e, er, retRefTransition);
-        else if (e.var)
-            er.byRef(e.var, retRefTransition);
-    }
-
-    void visitPtr(PtrExp e)
-    {
-        escapeByValue(e.e1, er, retRefTransition);
-    }
-
-    void visitIndex(IndexExp e)
-    {
-        Type tb = e.e1.type.toBasetype();
-        if (tb.ty == Tsarray)
-        {
-            escapeByRef(e.e1, er, retRefTransition);
-        }
-        else if (tb.ty == Tarray)
-        {
-            escapeByValue(e.e1, er, retRefTransition);
-        }
-    }
-
-    void visitStructLiteral(StructLiteralExp e)
-    {
-        if (e.elements)
-        {
-            foreach (ex; *e.elements)
-            {
-                if (ex)
-                    escapeByRef(ex, er, retRefTransition);
-            }
-        }
-        er.byExp(e, retRefTransition);
-    }
-
-    void visitDotVar(DotVarExp e)
-    {
-        Type t1b = e.e1.type.toBasetype();
-        if (t1b.ty == Tclass)
-            escapeByValue(e.e1, er, retRefTransition);
-        else
-            escapeByRef(e.e1, er, retRefTransition);
-    }
-
-    void visitBinAssign(BinAssignExp e)
-    {
-        escapeByRef(e.e1, er, retRefTransition);
-    }
-
-    void visitAssign(AssignExp e)
-    {
-        escapeByRef(e.e1, er, retRefTransition);
-    }
-
-    void visitComma(CommaExp e)
-    {
-        escapeByRef(e.e2, er, retRefTransition);
-    }
-
-    void visitCond(CondExp e)
-    {
-        escapeByRef(e.e1, er, retRefTransition);
-        escapeByRef(e.e2, er, retRefTransition);
-    }
-
-    void visitSlice(SliceExp e)
-    {
-        // This is rare because the slice operator usually doesn't create an lvalue,
-        // but slices with compile-time known length implicitly convert to static arrays
-        const bool staticBefore = e.e1.type.toBasetype().isTypeSArray() !is null;
-        const bool staticAfter = e.type.toBasetype().isTypeSArray() !is null;
-        const int deref = staticAfter - staticBefore;
-
-        if (deref == 0)
-            escapeByRef(e.e1, er, retRefTransition);
-        else if (deref == 1)
-            escapeByValue(e.e1, er, retRefTransition);
-    }
-
-    switch (e.op)
-    {
-        case EXP.variable: return visitVar(e.isVarExp());
-        case EXP.this_: return visitThis(e.isThisExp());
-        case EXP.star: return visitPtr(e.isPtrExp());
-        case EXP.structLiteral: return visitStructLiteral(e.isStructLiteralExp());
-        case EXP.dotVariable: return visitDotVar(e.isDotVarExp());
-        case EXP.index: return visitIndex(e.isIndexExp());
-        case EXP.blit: return visitAssign(e.isBlitExp());
-        case EXP.construct: return visitAssign(e.isConstructExp());
-        case EXP.assign: return visitAssign(e.isAssignExp());
-        case EXP.comma: return visitComma(e.isCommaExp());
-        case EXP.question: return visitCond(e.isCondExp());
-        case EXP.slice: return visitSlice(e.isSliceExp());
-        case EXP.call: return escapeCallExp(e.isCallExp(), er, retRefTransition, true);
-        default:
-            if (auto ba = e.isBinAssignExp())
-                return visitBinAssign(ba);
-            return visit(e);
-    }
+    escapeExp(e, er, -1, retRefTransition);
 }
 
 /************************************
@@ -2113,6 +2035,18 @@ struct EscapeByResults
     void delegate(VarDeclaration, bool retRefTransition) byRef;
     /// called on variables with values containing pointers
     void delegate(VarDeclaration) byValue;
+
+    /// Switch over `byValue` and `byRef` based on `deref` level (-1 = by ref, 0 = by value, 1 = only for live currently)
+    private void varDeref(VarDeclaration var, int deref, bool retRefTransition = false)
+    {
+        if (deref == -1)
+            byRef(var, retRefTransition);
+        else if (deref == 0)
+            byValue(var);
+        else if (deref > 0 && live)
+            byValue(var);
+    }
+
     /// called on nested functions that are turned into delegates
     /// When `called` is true, it means the delegate escapes variables
     /// from the closure through a call to it, while `false` means the
