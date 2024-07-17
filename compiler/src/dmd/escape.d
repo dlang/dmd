@@ -1534,12 +1534,11 @@ private bool inferReturn(FuncDeclaration fd, VarDeclaration v, bool returnScope)
  * Params:
  *      e = expression to be returned by value
  *      er = where to place collected data
-  *     retRefTransition = if `e` is returned through a `return (ref) scope` function call
  */
 public
-void escapeByValue(Expression e, ref scope EscapeByResults er, bool retRefTransition = false)
+void escapeByValue(Expression e, ref scope EscapeByResults er)
 {
-    escapeExp(e, er, 0, retRefTransition);
+    escapeExp(e, er, 0);
 }
 
 // Unified implementation of `escapeByValue` and `escapeByRef`
@@ -1548,7 +1547,7 @@ void escapeByValue(Expression e, ref scope EscapeByResults er, bool retRefTransi
 // For escapeByRef, deref = -1
 // Currently, `scope` is not transitive, so deref > 0 means no escaping, but `@live` does do transitive checking,
 // and future enhancements might add some form of transitive scope.
-void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRefTransition)
+void escapeExp(Expression e, ref scope EscapeByResults er, int deref)
 {
     //printf("[%s] escapeByValue, e: %s\n", e.loc.toChars(), e.toChars());
 
@@ -1563,13 +1562,13 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRe
          * but it'll be placed in static data so no need to check it.
          */
         if (deref == 0 && e.e1.op != EXP.structLiteral)
-            escapeExp(e.e1, er, deref - 1, retRefTransition);
+            escapeExp(e.e1, er, deref - 1);
     }
 
     void visitSymOff(SymOffExp e)
     {
         if (VarDeclaration v = e.var.isVarDeclaration())
-            er.varDeref(v, deref - 1, retRefTransition);
+            er.varDeref(v, deref - 1);
     }
 
     void visitVar(VarExp e)
@@ -1585,15 +1584,15 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRe
                 if (ExpInitializer ez = v._init.isExpInitializer())
                 {
                     if (auto ce = ez.exp.isConstructExp())
-                        escapeExp(ce.e2, er, deref, retRefTransition);
+                        escapeExp(ce.e2, er, deref);
                     else
-                        escapeExp(ez.exp, er, deref, retRefTransition);
+                        escapeExp(ez.exp, er, deref);
                     return;
                 }
             }
 
             if (deref < 0 || e.type.hasPointers())
-                er.varDeref(v, deref, retRefTransition);
+                er.varDeref(v, deref);
         }
     }
 
@@ -1602,18 +1601,18 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRe
         // Special case because `__this2` isn't `ref` internally
         if (deref == -1 && e.var && e.var.toParent2().isFuncDeclaration().hasDualContext())
         {
-            escapeByValue(e, er, retRefTransition);
+            escapeByValue(e, er);
             return;
         }
 
         if (e.var)
-            er.varDeref(e.var, deref, retRefTransition);
+            er.varDeref(e.var, deref);
     }
 
     void visitPtr(PtrExp e)
     {
         if (deref < 0 || (er.live && e.type.hasPointers()))
-            escapeExp(e.e1, er, deref + 1, retRefTransition);
+            escapeExp(e.e1, er, deref + 1);
     }
 
     void visitDotVar(DotVarExp e)
@@ -1621,18 +1620,18 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRe
         auto t1b = e.e1.type.toBasetype();
         // Accessing a class field dereferences the `this` pointer
         if (t1b.isTypeClass())
-            escapeExp(e.e1, er, deref + 1, retRefTransition);
+            escapeExp(e.e1, er, deref + 1);
         else if (deref < 0 || e.type.hasPointers())
-            escapeExp(e.e1, er, deref, retRefTransition);
+            escapeExp(e.e1, er, deref);
     }
 
     void visitDelegate(DelegateExp e)
     {
         Type t = e.e1.type.toBasetype();
         if (t.isTypeClass() || t.isTypePointer())
-            escapeByValue(e.e1, er, retRefTransition);
+            escapeByValue(e.e1, er);
         else
-            escapeByRef(e.e1, er, retRefTransition);
+            escapeByRef(e.e1, er);
         er.byFunc(e.func, false);
     }
 
@@ -1653,11 +1652,11 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRe
         if (tb.isTypeSArray() || tb.isTypeDArray())
         {
             if (e.basis)
-                escapeExp(e.basis, er, deref, retRefTransition);
+                escapeExp(e.basis, er, deref);
             foreach (el; *e.elements)
             {
                 if (el)
-                    escapeExp(el, er, deref, retRefTransition);
+                    escapeExp(el, er, deref);
             }
         }
     }
@@ -1669,12 +1668,12 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRe
             foreach (ex; *e.elements)
             {
                 if (ex)
-                    escapeExp(ex, er, deref, retRefTransition);
+                    escapeExp(ex, er, deref);
             }
         }
         if (deref == -1)
         {
-            er.byExp(e, retRefTransition);
+            er.byExp(e, er.inRetRefTransition > 0); //
         }
     }
 
@@ -1686,7 +1685,7 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRe
             foreach (ex; *e.arguments)
             {
                 if (ex)
-                    escapeExp(ex, er, deref, retRefTransition);
+                    escapeExp(ex, er, deref);
             }
         }
     }
@@ -1697,9 +1696,9 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRe
             return;
         Type tb = e.type.toBasetype();
         if (tb.isTypeDArray() && e.e1.type.toBasetype().isTypeSArray())
-            escapeExp(e.e1, er, deref - 1, retRefTransition);
+            escapeExp(e.e1, er, deref - 1);
         else
-            escapeExp(e.e1, er, deref, retRefTransition);
+            escapeExp(e.e1, er, deref);
     }
 
     void visitSlice(SliceExp e)
@@ -1710,7 +1709,7 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRe
         // So we need to compare the type before slicing and after slicing
         const bool staticBefore = e.e1.type.toBasetype().isTypeSArray() !is null;
         const bool staticAfter = e.type.toBasetype().isTypeSArray() !is null;
-        escapeExp(e.e1, er, deref + staticAfter - staticBefore, retRefTransition);
+        escapeExp(e.e1, er, deref + staticAfter - staticBefore);
     }
 
     void visitIndex(IndexExp e)
@@ -1719,11 +1718,11 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRe
 
         if (tb.isTypeSArray())
         {
-            escapeExp(e.e1, er, deref, retRefTransition);
+            escapeExp(e.e1, er, deref);
         }
         else if (tb.isTypeDArray())
         {
-            escapeExp(e.e1, er, deref + 1, retRefTransition);
+            escapeExp(e.e1, er, deref + 1);
         }
     }
 
@@ -1732,30 +1731,30 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRe
         if (e.type.toBasetype().isTypePointer())
         {
             // The expression must be pointer arithmetic, e.g. `p + 1` or `1 + p`
-            escapeExp(e.e1, er, deref, retRefTransition);
-            escapeExp(e.e2, er, deref, retRefTransition);
+            escapeExp(e.e1, er, deref);
+            escapeExp(e.e2, er, deref);
         }
     }
 
     void visitBinAssign(BinAssignExp e)
     {
-        escapeExp(e.e1, er, deref, retRefTransition);
+        escapeExp(e.e1, er, deref);
     }
 
     void visitAssign(AssignExp e)
     {
-        escapeExp(e.e1, er, deref, retRefTransition);
+        escapeExp(e.e1, er, deref);
     }
 
     void visitComma(CommaExp e)
     {
-        escapeExp(e.e2, er, deref, retRefTransition);
+        escapeExp(e.e2, er, deref);
     }
 
     void visitCond(CondExp e)
     {
-        escapeExp(e.e1, er, deref, retRefTransition);
-        escapeExp(e.e2, er, deref, retRefTransition);
+        escapeExp(e.e1, er, deref);
+        escapeExp(e.e2, er, deref);
     }
 
     if (deref > 0 && !er.live)
@@ -1786,7 +1785,7 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRe
         case EXP.assign: return visitAssign(e.isAssignExp());
         case EXP.comma: return visitComma(e.isCommaExp());
         case EXP.question: return visitCond(e.isCondExp());
-        case EXP.call: return escapeCallExp(e.isCallExp(), er, retRefTransition, deref == -1);
+        case EXP.call: return escapeCallExp(e.isCallExp(), er, deref == -1);
         default:
             if (auto ba = e.isBinAssignExp())
                 return visitBinAssign(ba);
@@ -1820,7 +1819,7 @@ StorageClass getThisStorageClass(FuncDeclaration fd)
 }
 
 // byRef = `true` for escapeByRef, `false` for `escapeByValue`
-void escapeCallExp(CallExp e, ref scope EscapeByResults er, bool retRefTransition, bool byRef)
+void escapeCallExp(CallExp e, ref scope EscapeByResults er, bool byRef)
 {
     //printf("CallExp(): %s\n", e.toChars());
     // Check each argument that is passed as 'return scope'.
@@ -1830,7 +1829,7 @@ void escapeCallExp(CallExp e, ref scope EscapeByResults er, bool retRefTransitio
 
     if (byRef && !tf.isref)
     {
-        er.byExp(e, retRefTransition);
+        er.byExp(e, er.inRetRefTransition > 0);
         return;
     }
 
@@ -1860,10 +1859,10 @@ void escapeCallExp(CallExp e, ref scope EscapeByResults er, bool retRefTransitio
                         //   ref P foo(return ref P p)
                         // as:
                         //   p;
-                        escapeByValue(arg, er, retRefTransition);
+                        escapeByValue(arg, er);
                     }
                     else
-                        escapeByRef(arg, er, retRefTransition);
+                        escapeByRef(arg, er);
                 }
                 else if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
                 {
@@ -1875,7 +1874,7 @@ void escapeCallExp(CallExp e, ref scope EscapeByResults er, bool retRefTransitio
                                 er.byExp(de, false);
                         }
                         else
-                            escapeByValue(arg, er, retRefTransition);
+                            escapeByValue(arg, er);
                     }
                     else if (tf.isref)
                     {
@@ -1888,11 +1887,15 @@ void escapeCallExp(CallExp e, ref scope EscapeByResults er, bool retRefTransitio
                             if (auto fd = dve.var.isFuncDeclaration())
                                 if (fd.isCtorDeclaration() && tf.next.toBasetype().isTypeStruct())
                                 {
-                                    escapeByValue(arg, er, retRefTransition);
+                                    escapeByValue(arg, er);
                                 }
                     }
                     else
-                        escapeByValue(arg, er, true);
+                    {
+                        er.inRetRefTransition++;
+                        escapeByValue(arg, er);
+                        er.inRetRefTransition--;
+                    }
                 }
             }
         }
@@ -1939,7 +1942,7 @@ void escapeCallExp(CallExp e, ref scope EscapeByResults er, bool retRefTransitio
         if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
         {
             if (byRef || !tf.isref || tf.isctor)
-                escapeByValue(dve.e1, er, retRefTransition);
+                escapeByValue(dve.e1, er);
         }
         else if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
         {
@@ -1949,10 +1952,14 @@ void escapeCallExp(CallExp e, ref scope EscapeByResults er, bool retRefTransitio
                 //   struct S { ref S foo() return; }
                 // as:
                 //   this;
-                escapeByValue(dve.e1, er, retRefTransition);
+                escapeByValue(dve.e1, er);
             }
             else
-                escapeByRef(dve.e1, er, psr == ScopeRef.ReturnRef_Scope);
+            {
+                er.inRetRefTransition += (psr == ScopeRef.ReturnRef_Scope);
+                escapeByRef(dve.e1, er);
+                er.inRetRefTransition -= (psr == ScopeRef.ReturnRef_Scope);
+            }
         }
 
         checkNested(fd);
@@ -1963,9 +1970,9 @@ void escapeCallExp(CallExp e, ref scope EscapeByResults er, bool retRefTransitio
     if (t1.isTypeDelegate())
     {
         if (byRef && e.e1.isVarExp())
-            escapeByValue(e.e1, er, retRefTransition);
+            escapeByValue(e.e1, er);
         if (!byRef && tf.isreturn)
-            escapeByValue(e.e1, er, retRefTransition);
+            escapeByValue(e.e1, er);
     }
 
     // If it's a nested function that is 'return scope'
@@ -1992,11 +1999,10 @@ void escapeCallExp(CallExp e, ref scope EscapeByResults er, bool retRefTransitio
  * Params:
  *      e = expression to be returned by 'ref'
  *      er = where to place collected data
- *      retRefTransition = if `e` is returned through a `return (ref) scope` function call
  */
-void escapeByRef(Expression e, ref scope EscapeByResults er, bool retRefTransition = false)
+void escapeByRef(Expression e, ref scope EscapeByResults er)
 {
-    escapeExp(e, er, -1, retRefTransition);
+    escapeExp(e, er, -1);
 }
 
 /************************************
@@ -2026,10 +2032,10 @@ struct EscapeByResults
     void delegate(VarDeclaration) byValue;
 
     /// Switch over `byValue` and `byRef` based on `deref` level (-1 = by ref, 0 = by value, 1 = only for live currently)
-    private void varDeref(VarDeclaration var, int deref, bool retRefTransition = false)
+    private void varDeref(VarDeclaration var, int deref)
     {
         if (deref == -1)
-            byRef(var, retRefTransition);
+            byRef(var, inRetRefTransition > 0);
         else if (deref == 0)
             byValue(var);
         else if (deref > 0 && live)
@@ -2046,6 +2052,10 @@ struct EscapeByResults
 
     /// if @live semantics apply, i.e. expressions `p`, `*p`, `**p`, etc., all return `p`.
     bool live = false;
+
+    /// Incremented / decremented every time an ambiguous return ref/scope parameter is checked.
+    /// See retRefTransition above.
+    private int inRetRefTransition = 0;
 }
 
 /*************************
