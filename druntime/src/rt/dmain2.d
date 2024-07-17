@@ -494,7 +494,8 @@ private extern (C) int _d_run_main2(char[][] args, size_t totalArgsLength, MainF
         {
             version(Shared) version(CRuntime_Microsoft) version (DigitalMars)
             {
-                if (auto exeHandle = handleForAddr(mainFunc))
+                auto exeHandle = handleForAddr(mainFunc);
+                if (exeHandle)
                     if (!rt_initSharedModule(exeHandle))
                         exeHandle = null;
             }
