@@ -262,3 +262,29 @@ struct S23669
         a.length += 1;
     }
 }
+
+/************************************/
+
+// Calling `hasPointers` in escape.d at some point caused
+// a "circular `typeof` definition" error in std.typecons
+// https://github.com/dlang/dmd/pull/16719
+struct Unique
+{
+    int* p;
+    alias ValueType = typeof({ return p; } ());
+    static if (is(ValueType == int*)) {}
+}
+
+// Without handling tuple expansion in escape.d, this error occurs:
+// Error: returning `(ref Tuple!(int, int) __tup2 = this.tuple.get();) , &__tup2.__expand_field_0` escapes a reference to local variable `__tup2`
+struct Tuple(Types...)
+{
+    Types expand;
+    ref Tuple!Types get() { return this; }
+}
+
+struct S2
+{
+    Tuple!(int, int) tuple;
+    int* f() return { return &tuple.get().expand[0]; }
+}
