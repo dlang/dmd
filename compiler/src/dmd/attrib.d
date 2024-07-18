@@ -983,7 +983,7 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
  *          pragma(msg, mixin("x" ~ to!string(i))); // ok, all 10 symbols are visible as they were forwarded to the global scope
  *      }
  *
- *      static assert (!is(typeof(i))); // loop index variable is not visible outside of the static foreach loop
+ *      static assert(!is(typeof(i))); // loop index variable is not visible outside of the static foreach loop
  *
  * A StaticForeachDeclaration generates one
  * ForwardingAttribDeclaration for each expansion of its body.  The
