@@ -1818,7 +1818,7 @@ StorageClass getThisStorageClass(FuncDeclaration fd)
     return stc;
 }
 
-// deref = -1 for `escapeByRef`, 0 for `escapeByValue`
+// See `escapeExp`
 void escapeCallExp(CallExp e, ref scope EscapeByResults er, int deref)
 {
     //printf("CallExp(): %s\n", e.toChars());
@@ -1837,14 +1837,18 @@ void escapeCallExp(CallExp e, ref scope EscapeByResults er, int deref)
     if (deref >= 0 && !e.type.hasPointers())
         return;
 
+    /// Given a `scope` / `return scope` / `return ref` annotation,
+    /// get the corresponding pointer dereference level
+    static int paramDeref(ScopeRef psr)
+    {
+        return
+            (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope) ? -1 :
+            (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope) ? 0 :
+            +1;
+    }
+
     if (e.arguments && e.arguments.length)
     {
-        bool isStructConstructor = false;
-        if (auto dve = e.e1.isDotVarExp())
-            if (auto fd = dve.var.isFuncDeclaration())
-                if (fd.isCtorDeclaration() && tf.next.toBasetype().isTypeStruct())
-                    isStructConstructor = true;
-
         // j=1 if _arguments[] is first argument,
         // skip it because it is not passed by ref
         int j = tf.isDstyleVariadic();
@@ -1857,32 +1861,28 @@ void escapeCallExp(CallExp e, ref scope EscapeByResults er, int deref)
                 Parameter p = tf.parameterList[i - j];
                 const stc = tf.parameterStorageClass(null, p);
                 ScopeRef psr = buildScopeRef(stc);
-                if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
-                {
-                    escapeExp(arg, er, deref - 1 + tf.isref);
-                }
-                else if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
-                {
-                    if (deref < 0)
-                    {
-                        if (auto de = arg.isDelegateExp())
-                        {
-                            if (de.func.isNested())
-                                er.byExp(de, false);
 
-                            continue;
-                        }
+                if (deref < 0 && paramDeref(psr) == 0)
+                {
+                    if (auto de = arg.isDelegateExp())
+                    {
+                        if (de.func.isNested())
+                            er.byExp(de, false);
+
+                        continue;
                     }
-                    // For struct constructors, `tf.isref` is true, but for escape analysis,
-                    // it's as if they return `void` and escape through the first (`this`) parameter:
-                    // void assign(ref S this, return scope constructorArgs...)
-                    // After all, there's no `return` statements in constructor, but the constructor
-                    // does automatically return the constructed (stack-allocated) struct instance,
-                    // so we treat that as returning by value instead of by ref.
-                    er.inRetRefTransition += (deref == 0);
-                    escapeExp(arg, er, deref + (tf.isref && !isStructConstructor));
-                    er.inRetRefTransition -= (deref == 0);
                 }
+                // For struct constructors, `tf.isref` is true, but for escape analysis,
+                // it's as if they return `void` and escape through the first (`this`) parameter:
+                // void assign(ref S this, return scope constructorArgs...)
+                // If you then return the constructed result by value, it doesn't count
+                // as dereferencing the scope arguments, they're still escaped.
+                const isRef = tf.isref && !(tf.isctor && paramDeref(psr) == 0);
+                const maybeInaccurate = deref == 0 && paramDeref(psr) == 0;
+                er.inRetRefTransition += maybeInaccurate;
+                if (paramDeref(psr) <= 0)
+                    escapeExp(arg, er, deref + paramDeref(psr) + isRef);
+                er.inRetRefTransition -= maybeInaccurate;
             }
         }
     }
@@ -1925,17 +1925,10 @@ void escapeCallExp(CallExp e, ref scope EscapeByResults er, int deref)
 
         // Calling a non-static member function dve.var, which is returning `this`, and with dve.e1 representing `this`
         const psr = buildScopeRef(getThisStorageClass(fd));
-        if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
-        {
-            if (deref < 0 || !tf.isref || tf.isctor)
-                escapeExp(dve.e1, er, 0);
-        }
-        else if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
-        {
-            er.inRetRefTransition += (psr == ScopeRef.ReturnRef_Scope);
-            escapeExp(dve.e1, er, deref - 1 + tf.isref);
-            er.inRetRefTransition -= (psr == ScopeRef.ReturnRef_Scope);
-        }
+        er.inRetRefTransition += (psr == ScopeRef.ReturnRef_Scope);
+        if (paramDeref(psr) <= 0)
+            escapeExp(dve.e1, er, deref + paramDeref(psr) + (tf.isref && !tf.isctor));
+        er.inRetRefTransition -= (psr == ScopeRef.ReturnRef_Scope);
 
         checkNested(fd);
     }
