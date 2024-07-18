@@ -827,8 +827,8 @@ static if (0)
 
     char linos2 = config.exe == EX_OS2 && !seg_is_comdat(SegData[seg].segidx);
 
-    bool cond = (!obj.term &&
-        (seg_is_comdat(SegData[seg].segidx) || (srcpos.Sfilename && srcpos.Sfilename != obj.modname)));
+    bool cond = !obj.term &&
+        (seg_is_comdat(SegData[seg].segidx) || (srcpos.Sfilename && srcpos.Sfilename != obj.modname));
     if (cond)
     {
         // Not original source file, or a COMDAT.
