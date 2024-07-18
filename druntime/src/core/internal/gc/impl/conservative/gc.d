@@ -788,7 +788,7 @@ class ConservativeGC : GC
             if (lpool.pagetable[pagenum] != Bins.B_PAGE)
                 return 0;
 
-            const psz = lpool.bPageOffsets[pagenum];
+            uint psz = lpool.bPageOffsets[pagenum];
             assert(psz > 0);
 
             const minsz = lpool.numPages(minsize);
