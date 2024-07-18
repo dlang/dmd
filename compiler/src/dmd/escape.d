@@ -1576,30 +1576,24 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRe
     {
         if (auto v = e.var.isVarDeclaration())
         {
-            if (deref == 0)
+            if (deref == -1 && v.storage_class & STC.ref_ && v.storage_class & (STC.foreach_ | STC.temp) && v._init)
             {
-                if (v.type.hasPointers() || // not tracking non-pointers
-                    v.storage_class & STC.lazy_) // lazy variables are actually pointers
-                    er.varDeref(v, deref, retRefTransition);
-            }
-            else if (deref == -1)
-            {
-                if (v.storage_class & STC.ref_ && v.storage_class & (STC.foreach_ | STC.temp) && v._init)
+                // If compiler generated ref temporary
+                //   (ref v = ex; ex)
+                // e.g. to extract side effects of `Tuple!(int, int).modify().expand[0]`
+                // look at the initializer instead
+                if (ExpInitializer ez = v._init.isExpInitializer())
                 {
-                    // If compiler generated ref temporary
-                    //   (ref v = ex; ex)
-                    // look at the initializer instead
-                    if (ExpInitializer ez = v._init.isExpInitializer())
-                    {
-                        if (auto ce = ez.exp.isConstructExp())
-                            escapeExp(ce.e2, er, deref, retRefTransition);
-                        else
-                            escapeExp(ez.exp, er, deref, retRefTransition);
-                    }
+                    if (auto ce = ez.exp.isConstructExp())
+                        escapeExp(ce.e2, er, deref, retRefTransition);
+                    else
+                        escapeExp(ez.exp, er, deref, retRefTransition);
+                    return;
                 }
-                else
-                    er.varDeref(v, deref, retRefTransition);
             }
+
+            if (deref < 0 || e.type.hasPointers())
+                er.varDeref(v, deref, retRefTransition);
         }
     }
 
@@ -1618,32 +1612,24 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRe
 
     void visitPtr(PtrExp e)
     {
-        if (deref == -1)
+        if (deref < 0 || (er.live && e.type.hasPointers()))
             escapeExp(e.e1, er, deref + 1, retRefTransition);
-        if (er.live && e.type.hasPointers())
-            escapeByValue(e.e1, er, retRefTransition);
     }
 
     void visitDotVar(DotVarExp e)
     {
         auto t1b = e.e1.type.toBasetype();
-        if (deref == -1)
-        {
-            if (t1b.ty == Tclass)
-                escapeExp(e.e1, er, deref + 1, retRefTransition);
-            else
-                escapeExp(e.e1, er, deref, retRefTransition);
-        }
-        else if (e.type.hasPointers() && (er.live || t1b.ty == Tstruct))
-        {
+        // Accessing a class field dereferences the `this` pointer
+        if (t1b.isTypeClass())
+            escapeExp(e.e1, er, deref + 1, retRefTransition);
+        else if (deref < 0 || e.type.hasPointers())
             escapeExp(e.e1, er, deref, retRefTransition);
-        }
     }
 
     void visitDelegate(DelegateExp e)
     {
         Type t = e.e1.type.toBasetype();
-        if (t.ty == Tclass || t.ty == Tpointer)
+        if (t.isTypeClass() || t.isTypePointer())
             escapeByValue(e.e1, er, retRefTransition);
         else
             escapeByRef(e.e1, er, retRefTransition);
@@ -1664,7 +1650,7 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRe
     void visitArrayLiteral(ArrayLiteralExp e)
     {
         Type tb = e.type.toBasetype();
-        if (tb.ty == Tsarray || tb.ty == Tarray)
+        if (tb.isTypeSArray() || tb.isTypeDArray())
         {
             if (e.basis)
                 escapeExp(e.basis, er, deref, retRefTransition);
@@ -1695,7 +1681,7 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRe
     void visitNew(NewExp e)
     {
         Type tb = e.newtype.toBasetype();
-        if (tb.ty == Tstruct && !e.member && e.arguments)
+        if (tb.isTypeStruct() && !e.member && e.arguments)
         {
             foreach (ex; *e.arguments)
             {
@@ -1710,7 +1696,7 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRe
         if (deref < 0 || !e.type.hasPointers())
             return;
         Type tb = e.type.toBasetype();
-        if (tb.ty == Tarray && e.e1.type.toBasetype().ty == Tsarray)
+        if (tb.isTypeDArray() && e.e1.type.toBasetype().isTypeSArray())
             escapeExp(e.e1, er, deref - 1, retRefTransition);
         else
             escapeExp(e.e1, er, deref, retRefTransition);
@@ -1731,11 +1717,11 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRe
     {
         Type tb = e.e1.type.toBasetype();
 
-        if (tb.ty == Tsarray || (er.live && e.type.hasPointers()))
+        if (tb.isTypeSArray())
         {
             escapeExp(e.e1, er, deref, retRefTransition);
         }
-        else if (tb.ty == Tarray)
+        else if (tb.isTypeDArray())
         {
             escapeExp(e.e1, er, deref + 1, retRefTransition);
         }
@@ -1743,9 +1729,9 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRe
 
     void visitBin(BinExp e)
     {
-        Type tb = e.type.toBasetype();
-        if (tb.ty == Tpointer)
+        if (e.type.toBasetype().isTypePointer())
         {
+            // The expression must be pointer arithmetic, e.g. `p + 1` or `1 + p`
             escapeExp(e.e1, er, deref, retRefTransition);
             escapeExp(e.e2, er, deref, retRefTransition);
         }
@@ -1774,6 +1760,9 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref, bool retRe
 
     if (deref > 0 && !er.live)
         return; // scope is not transitive currently, so dereferencing expressions don't escape
+
+    if (deref >= 0 && er.live && !e.type.hasPointers())
+        return; // can't escape non-pointer values by value
 
     switch (e.op)
     {
