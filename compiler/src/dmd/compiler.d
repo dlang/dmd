@@ -344,7 +344,7 @@ pure @safe
 private ushort parseModulePatternDepth(const char[] modulePattern)
 {
     const length = modulePattern.length;
-    size_t i = (length && modulePattern[0] == '-'); // skip past leading '-'
+    size_t i = length && modulePattern[0] == '-'; // skip past leading '-'
 
     // handle special case
     if (i + 1 == length && modulePattern[i] == '.')

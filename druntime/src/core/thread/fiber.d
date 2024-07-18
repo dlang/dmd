@@ -1454,7 +1454,7 @@ private:
             // Only need to set return address ($r1).  Everything else is fine
             // zero initialized.
             pstack -= size_t.sizeof * 11;    // skip past space reserved for $r21-$r31
-            push (cast(size_t) &fiber_entryPoint);
+            push(cast(size_t) &fiber_entryPoint);
             pstack += size_t.sizeof;         // adjust sp (newp) above lr
         }
         else version (AsmAArch64_Posix)
