@@ -1785,7 +1785,7 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref)
         case EXP.assign: return visitAssign(e.isAssignExp());
         case EXP.comma: return visitComma(e.isCommaExp());
         case EXP.question: return visitCond(e.isCondExp());
-        case EXP.call: return escapeCallExp(e.isCallExp(), er, deref == -1);
+        case EXP.call: return escapeCallExp(e.isCallExp(), er, deref);
         default:
             if (auto ba = e.isBinAssignExp())
                 return visitBinAssign(ba);
@@ -1818,8 +1818,8 @@ StorageClass getThisStorageClass(FuncDeclaration fd)
     return stc;
 }
 
-// byRef = `true` for escapeByRef, `false` for `escapeByValue`
-void escapeCallExp(CallExp e, ref scope EscapeByResults er, bool byRef)
+// deref = -1 for `escapeByRef`, 0 for `escapeByValue`
+void escapeCallExp(CallExp e, ref scope EscapeByResults er, int deref)
 {
     //printf("CallExp(): %s\n", e.toChars());
     // Check each argument that is passed as 'return scope'.
@@ -1827,18 +1827,24 @@ void escapeCallExp(CallExp e, ref scope EscapeByResults er, bool byRef)
     if (!tf)
         return;
 
-    if (byRef && !tf.isref)
+    if (deref < 0 && !tf.isref)
     {
         er.byExp(e, er.inRetRefTransition > 0);
         return;
     }
 
     // A function may have a return scope struct parameter, but only return an `int` field of that struct
-    if (!byRef && !e.type.hasPointers())
+    if (deref >= 0 && !e.type.hasPointers())
         return;
 
     if (e.arguments && e.arguments.length)
     {
+        bool isStructConstructor = false;
+        if (auto dve = e.e1.isDotVarExp())
+            if (auto fd = dve.var.isFuncDeclaration())
+                if (fd.isCtorDeclaration() && tf.next.toBasetype().isTypeStruct())
+                    isStructConstructor = true;
+
         // j=1 if _arguments[] is first argument,
         // skip it because it is not passed by ref
         int j = tf.isDstyleVariadic();
@@ -1853,49 +1859,29 @@ void escapeCallExp(CallExp e, ref scope EscapeByResults er, bool byRef)
                 ScopeRef psr = buildScopeRef(stc);
                 if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
                 {
-                    if (tf.isref && !byRef)
-                    {
-                        // Treat:
-                        //   ref P foo(return ref P p)
-                        // as:
-                        //   p;
-                        escapeByValue(arg, er);
-                    }
-                    else
-                        escapeByRef(arg, er);
+                    escapeExp(arg, er, deref - 1 + tf.isref);
                 }
                 else if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
                 {
-                    if (byRef)
+                    if (deref < 0)
                     {
                         if (auto de = arg.isDelegateExp())
                         {
                             if (de.func.isNested())
                                 er.byExp(de, false);
+
+                            continue;
                         }
-                        else
-                            escapeByValue(arg, er);
                     }
-                    else if (tf.isref)
-                    {
-                        // ignore `ref` on struct constructor return because
-                        //   struct S { this(return scope int* q) { this.p = q; } int* p; }
-                        // is different from:
-                        //   ref char* front(return scope char** q) { return *q; }
-                        // https://github.com/dlang/dmd/pull/14869
-                        if (auto dve = e.e1.isDotVarExp())
-                            if (auto fd = dve.var.isFuncDeclaration())
-                                if (fd.isCtorDeclaration() && tf.next.toBasetype().isTypeStruct())
-                                {
-                                    escapeByValue(arg, er);
-                                }
-                    }
-                    else
-                    {
-                        er.inRetRefTransition++;
-                        escapeByValue(arg, er);
-                        er.inRetRefTransition--;
-                    }
+                    // For struct constructors, `tf.isref` is true, but for escape analysis,
+                    // it's as if they return `void` and escape through the first (`this`) parameter:
+                    // void assign(ref S this, return scope constructorArgs...)
+                    // After all, there's no `return` statements in constructor, but the constructor
+                    // does automatically return the constructed (stack-allocated) struct instance,
+                    // so we treat that as returning by value instead of by ref.
+                    er.inRetRefTransition += (deref == 0);
+                    escapeExp(arg, er, deref + (tf.isref && !isStructConstructor));
+                    er.inRetRefTransition -= (deref == 0);
                 }
             }
         }
@@ -1907,7 +1893,7 @@ void escapeCallExp(CallExp e, ref scope EscapeByResults er, bool byRef)
     {
         if (fd.isNested() && tf.isreturn)
         {
-            if (byRef)
+            if (deref < 0)
             {
                 er.byExp(e, false);
             }
@@ -1931,7 +1917,7 @@ void escapeCallExp(CallExp e, ref scope EscapeByResults er, bool byRef)
             return;
 
         // https://issues.dlang.org/show_bug.cgi?id=20149#c10
-        if (byRef && dve.var.isCtorDeclaration())
+        if (deref < 0 && dve.var.isCtorDeclaration())
         {
             er.byExp(e, false);
             return;
@@ -1941,25 +1927,14 @@ void escapeCallExp(CallExp e, ref scope EscapeByResults er, bool byRef)
         const psr = buildScopeRef(getThisStorageClass(fd));
         if (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope)
         {
-            if (byRef || !tf.isref || tf.isctor)
-                escapeByValue(dve.e1, er);
+            if (deref < 0 || !tf.isref || tf.isctor)
+                escapeExp(dve.e1, er, 0);
         }
         else if (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope)
         {
-            if (!byRef && tf.isref)
-            {
-                // Treat calling:
-                //   struct S { ref S foo() return; }
-                // as:
-                //   this;
-                escapeByValue(dve.e1, er);
-            }
-            else
-            {
-                er.inRetRefTransition += (psr == ScopeRef.ReturnRef_Scope);
-                escapeByRef(dve.e1, er);
-                er.inRetRefTransition -= (psr == ScopeRef.ReturnRef_Scope);
-            }
+            er.inRetRefTransition += (psr == ScopeRef.ReturnRef_Scope);
+            escapeExp(dve.e1, er, deref - 1 + tf.isref);
+            er.inRetRefTransition -= (psr == ScopeRef.ReturnRef_Scope);
         }
 
         checkNested(fd);
@@ -1969,9 +1944,9 @@ void escapeCallExp(CallExp e, ref scope EscapeByResults er, bool byRef)
     // field of the delegate must be checked.
     if (t1.isTypeDelegate())
     {
-        if (byRef && e.e1.isVarExp())
+        if (deref < 0 && e.e1.isVarExp())
             escapeByValue(e.e1, er);
-        if (!byRef && tf.isreturn)
+        if (deref >= 0 && tf.isreturn)
             escapeByValue(e.e1, er);
     }
 
