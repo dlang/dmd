@@ -1836,7 +1836,7 @@ public:
     virtual bool iscomplex();
     virtual bool isscalar();
     virtual bool isunsigned();
-    virtual bool isscope();
+    virtual bool isScopeClass();
     virtual bool isString();
     virtual bool isAssignable();
     virtual bool isBoolean();
@@ -4256,7 +4256,7 @@ public:
     TypeClass* syntaxCopy() override;
     ClassDeclaration* isClassHandle() override;
     uint8_t deduceWild(Type* t, bool isRef) override;
-    bool isscope() override;
+    bool isScopeClass() override;
     bool isBoolean() override;
     void accept(Visitor* v) override;
 };
