@@ -1054,7 +1054,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         FuncDeclaration fd = parent.isFuncDeclaration();
-        if (dsym.type.isscope() && !(dsym.storage_class & STC.nodtor))
+        if (dsym.type.isScopeClass() && !(dsym.storage_class & STC.nodtor))
         {
             if (dsym.storage_class & (STC.field | STC.out_ | STC.ref_ | STC.static_ | STC.manifest | STC.gshared) || !fd)
             {
