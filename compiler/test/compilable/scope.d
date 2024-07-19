@@ -288,3 +288,44 @@ struct S2
     Tuple!(int, int) tuple;
     int* f() return { return &tuple.get().expand[0]; }
 }
+
+/************************************/
+
+// https://issues.dlang.org/show_bug.cgi?id=23300
+
+auto array(Range)(Range r)
+{
+    int[] result;
+    foreach (e; r)
+        result ~= e;
+    return result;
+}
+
+struct Range
+{
+    int* ptr;
+    int front = 3;
+    enum empty = true;
+    void popFront() @safe scope {}
+}
+
+auto f() @safe
+{
+    scope Range r;
+    return r.array;
+}
+
+/************************************/
+
+// Test that there's no endless loop forwarding `__appendtmp1 => __appendtmp1.this(null)`
+struct SD
+{
+    int* p;
+    this(int*) return scope {}
+}
+
+auto fsd() @safe
+{
+    SD[] a;
+    a ~= SD(null);
+}
