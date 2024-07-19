@@ -1862,16 +1862,6 @@ void escapeCallExp(CallExp e, ref scope EscapeByResults er, int deref)
                 const stc = tf.parameterStorageClass(null, p);
                 ScopeRef psr = buildScopeRef(stc);
 
-                if (deref < 0 && paramDeref(psr) == 0)
-                {
-                    if (auto de = arg.isDelegateExp())
-                    {
-                        if (de.func.isNested())
-                            er.byExp(de, false);
-
-                        continue;
-                    }
-                }
                 // For struct constructors, `tf.isref` is true, but for escape analysis,
                 // it's as if they return `void` and escape through the first (`this`) parameter:
                 // void assign(ref S this, return scope constructorArgs...)
