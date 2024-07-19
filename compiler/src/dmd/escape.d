@@ -1832,17 +1832,10 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref)
         {
             if (fd.isNested() && tf.isreturn)
             {
-                if (deref < 0)
-                {
+                if (deref < 0 || !tf.isreturnscope)
                     er.byExp(e, false);
-                }
                 else if (tf.isScopeQual)
-                {
-                    if (tf.isreturnscope)
-                        er.byFunc(fd, true);
-                    else
-                        er.byExp(e, false);
-                }
+                    er.byFunc(fd, true);
             }
         }
 
@@ -1872,14 +1865,11 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref)
             checkNested(fd);
         }
 
-        // If returning the result of a delegate call, the .ptr
-        // field of the delegate must be checked.
-        if (t1.isTypeDelegate())
+        // The return value of a delegate call with return (scope) may point to a closure variable,
+        // so escape the delegate in case it's `scope` / stack allocated.
+        if (t1.isTypeDelegate() && tf.isreturn)
         {
-            if (deref < 0 && e.e1.isVarExp())
-                escapeByValue(e.e1, er);
-            if (deref >= 0 && tf.isreturn)
-                escapeByValue(e.e1, er);
+            escapeExp(e.e1, er, deref + tf.isref);
         }
 
         // If it's a nested function that is 'return scope'
