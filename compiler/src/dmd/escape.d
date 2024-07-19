@@ -661,6 +661,13 @@ bool checkAssignEscape(ref Scope sc, Expression e, bool gag, bool byRef)
         va = null;
     }
 
+    if (e.op == EXP.construct && va && (va.storage_class & STC.temp) && va._init)
+    {
+        // Initializing a temporary is safe, `escapeExp` will forward such vars
+        // to their `va._init` if needed.
+        return false;
+    }
+
     if (log && va) printf("va: %s\n", va.toChars());
 
     FuncDeclaration fd = sc.func;
@@ -1575,7 +1582,9 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref)
     {
         if (auto v = e.var.isVarDeclaration())
         {
-            if (deref == -1 && v.storage_class & STC.ref_ && v.storage_class & (STC.foreach_ | STC.temp) && v._init)
+            const refAddr = deref < 0 && v.storage_class & STC.ref_ ;
+            const tempVar = deref == 0 && v.storage_class & STC.temp;
+            if ((refAddr || tempVar) && v._init)
             {
                 // If compiler generated ref temporary
                 //   (ref v = ex; ex)
@@ -1583,8 +1592,13 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref)
                 // look at the initializer instead
                 if (ExpInitializer ez = v._init.isExpInitializer())
                 {
-                    if (auto ce = ez.exp.isConstructExp())
-                        escapeExp(ce.e2, er, deref);
+                    // Prevent endless loops. Consider:
+                    // `__field0 = (S __tup1 = S(x, y);) , __field0 = __tup1.__fields_field_0`
+                    // escapeExp would recurse on the lhs of the last assignment, which is __field0
+                    // again. In this case, we want the rhs.
+                    auto lc = ez.exp.lastComma();
+                    if (lc.isAssignExp || lc.isConstructExp || lc.isBlitExp)
+                        escapeExp(lc.isBinExp().e2, er, deref);
                     else
                         escapeExp(ez.exp, er, deref);
                     return;
