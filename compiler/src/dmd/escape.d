@@ -703,17 +703,6 @@ bool checkAssignEscape(ref Scope sc, Expression e, bool gag, bool byRef)
 
         Dsymbol p = v.toParent2();
 
-        if (va && !vaIsRef && !va.isScope() && !v.isScope() &&
-            !v.isTypesafeVariadicArray && !va.isTypesafeVariadicArray &&
-            (va.isParameter() && va.maybeScope && v.isParameter() && v.maybeScope) &&
-            p == fd)
-        {
-            /* Add v to va's list of dependencies
-             */
-            va.addMaybe(v);
-            return;
-        }
-
         if (vaIsFirstRef && p == fd)
         {
             inferReturn(fd, v, /*returnScope:*/ true);
@@ -2125,29 +2114,6 @@ void finishScopeParamInference(FuncDeclaration funcdecl, ref TypeFunction f)
         return;
     funcdecl.inferScope = false;
 
-    // Eliminate maybescope's
-    {
-        // Create and fill array[] with maybe candidates from the `this` and the parameters
-        VarDeclaration[10] tmp = void;
-        size_t dim = (funcdecl.vthis !is null) + (funcdecl.parameters ? funcdecl.parameters.length : 0);
-
-        import dmd.common.smallbuffer : SmallBuffer;
-        auto sb = SmallBuffer!VarDeclaration(dim, tmp[]);
-        VarDeclaration[] array = sb[];
-
-        size_t n = 0;
-        if (funcdecl.vthis)
-            array[n++] = funcdecl.vthis;
-        if (funcdecl.parameters)
-        {
-            foreach (v; *funcdecl.parameters)
-            {
-                array[n++] = v;
-            }
-        }
-        eliminateMaybeScopes(array[0 .. n]);
-    }
-
     // Infer STC.scope_
     if (funcdecl.parameters && !funcdecl.errors)
     {
@@ -2169,61 +2135,6 @@ void finishScopeParamInference(FuncDeclaration funcdecl, ref TypeFunction f)
         f.isScopeQual = funcdecl.vthis.isScope();
         f.isscopeinferred = !!(funcdecl.vthis.storage_class & STC.scopeinferred);
     }
-}
-
-/**********************************************
- * Have some variables that are maybescopes that were
- * assigned values from other maybescope variables.
- * Now that semantic analysis of the function is
- * complete, we can finalize this by turning off
- * maybescope for array elements that cannot be scope.
- *
- * $(TABLE2 Scope Table,
- * $(THEAD `va`, `v`,    =>,  `va` ,  `v`  )
- * $(TROW maybe, maybe,  =>,  scope,  scope)
- * $(TROW scope, scope,  =>,  scope,  scope)
- * $(TROW scope, maybe,  =>,  scope,  scope)
- * $(TROW maybe, scope,  =>,  scope,  scope)
- * $(TROW -    , -    ,  =>,  -    ,  -    )
- * $(TROW -    , maybe,  =>,  -    ,  -    )
- * $(TROW -    , scope,  =>,  error,  error)
- * $(TROW maybe, -    ,  =>,  scope,  -    )
- * $(TROW scope, -    ,  =>,  scope,  -    )
- * )
- * Params:
- *      array = array of variables that were assigned to from maybescope variables
- */
-private void eliminateMaybeScopes(VarDeclaration[] array)
-{
-    enum log = false;
-    if (log) printf("eliminateMaybeScopes()\n");
-    bool changes;
-    do
-    {
-        changes = false;
-        foreach (va; array)
-        {
-            if (log) printf("  va = %s\n", va.toChars());
-            if (!(va.maybeScope || va.isScope()))
-            {
-                if (va.maybes)
-                {
-                    foreach (v; *va.maybes)
-                    {
-                        if (log) printf("    v = %s\n", v.toChars());
-                        if (v.maybeScope)
-                        {
-                            // v cannot be scope since it is assigned to a non-scope va
-                            notMaybeScope(v, va);
-                            if (!v.isReference())
-                                v.storage_class &= ~(STC.return_ | STC.returninferred);
-                            changes = true;
-                        }
-                    }
-                }
-            }
-        }
-    } while (changes);
 }
 
 /************************************************
@@ -2351,24 +2262,6 @@ private EnclosedBy enclosesLifetimeOf(VarDeclaration va, VarDeclaration v)
         return EnclosedBy.longerScope;
 
     return EnclosedBy.none;
-}
-
-/***************************************
- * Add variable `v` to maybes[]
- *
- * When a maybescope variable `v` is assigned to a maybescope variable `va`,
- * we cannot determine if `this` is actually scope until the semantic
- * analysis for the function is completed. Thus, we save the data
- * until then.
- * Params:
- *     v = a variable with `maybeScope == true` that was assigned to `this`
- */
-private void addMaybe(VarDeclaration va, VarDeclaration v)
-{
-    //printf("add %s to %s's list of dependencies\n", v.toChars(), toChars());
-    if (!va.maybes)
-        va.maybes = new VarDeclarations();
-    va.maybes.push(v);
 }
 
 // `setUnsafePreview` partially evaluated for dip1000
