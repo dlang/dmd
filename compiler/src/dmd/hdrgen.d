@@ -3927,7 +3927,7 @@ private void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, Te
 
     /* Use 'storage class' (prefix) style for attributes
      */
-    if (t.mod && !hgs.ddoc)
+    if (t.mod && !(hgs.ddoc || hgs.hdrgen))
     {
         MODtoBuffer(buf, t.mod);
         buf.writeByte(' ');
@@ -3977,8 +3977,8 @@ private void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, Te
         buf.writeByte(')');
     }
     parametersToBuffer(t.parameterList, buf, hgs);
-    // postfix TypeCtor attributes are more readable
-    if (t.mod && hgs.ddoc)
+    // postfix this attributes are more readable
+    if (t.mod && (hgs.ddoc || hgs.hdrgen))
     {
         buf.writeByte(' ');
         MODtoBuffer(buf, t.mod);
