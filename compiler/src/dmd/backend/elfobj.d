@@ -190,6 +190,7 @@ struct ElfObj
     Symbol* GOTsym;             // global offset table reference
     OutBuffer section_names;    // Section Names  - String table for section names only
     AApair2* section_names_hashtable; // Hash table for section_names
+    bool AArch64;                     // AArch64 relocations
     int jmpseg;
     OutBuffer symtab_strings;         // String Table  - String table for all other names
     Barray!(Elf32_Shdr) SecHdrTab;    // section header table
@@ -605,6 +606,7 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
     Obj obj = cast(Obj)mem_calloc(__traits(classInstanceSize, Obj));
 
     cseg = CODE;
+    elfobj.AArch64 = config.target_cpu == TARGET_AArch64;
     elfobj.fobjbuf = objbuf;
 
     elfobj.note_data.reset();
@@ -1278,6 +1280,8 @@ void ElfObj_term(const(char)[] objfilename)
         h64.EHident[EI_OSABI] = ELFOSABI;
         h64.e_shoff     = e_shoff;
         h64.e_shnum     = e_shnum;
+        if (elfobj.AArch64)
+            h64.e_machine = EM_AARCH64;
         elfobj.fobjbuf.write(&h64, hdrsize);
     }
     else
@@ -2663,6 +2667,14 @@ private size_t relsize64(uint type)
         case R_X86_64_GOTPC32:   return 4;
 
         default:
+            if (type >= 180 && type <= 188 ||
+                type >= 257 && type <= 293 ||
+                type >= 299 && type <= 313 ||
+                type >= 512 && type <= 573 ||
+                type >= 1024 && type <= 1031)
+            {
+                return 4;     // R_AARCH64_XXXX
+            }
             assert(0);
     }
 }
@@ -2749,7 +2761,8 @@ size_t ElfObj_writerel(int targseg, size_t offset, reltype_t reltype,
     {
         // Elf64_Rela stores addend in Rela.r_addend field
         sz = relsize64(reltype);
-        writeaddrval(targseg, offset, 0, sz);
+        if (!elfobj.AArch64)
+            writeaddrval(targseg, offset, 0, sz);
         ElfObj_addrel(targseg, offset, reltype, symidx, val);
     }
     else
@@ -2892,6 +2905,9 @@ static if (0)
 int ElfObj_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
         int flags)
 {
+    if (elfobj.AArch64)
+        return ElfObj_reftoidentAArch64(seg, offset, s, val, flags);
+
     bool external = true;
     reltype_t relinfo = R_X86_64_NONE;
     int refseg;
@@ -2904,7 +2920,7 @@ static if (0)
     printf("\nElfObj_reftoident('%s' seg %d, offset x%llx, val x%llx, flags x%x)\n",
         s.Sident.ptr,seg,offset,val,flags);
     printf("Sseg = %d, Sxtrnnum = %d, refSize = %d\n",s.Sseg,s.Sxtrnnum,refSize);
-    symbol_print(s);
+    symbol_print(*s);
 }
 
     const tym_t ty = s.ty();
@@ -3159,6 +3175,214 @@ static if (0)
     return refSize;
 }
 
+int ElfObj_reftoidentAArch64(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
+        int flags)
+{
+    bool external = true;
+    reltype_t relinfo = R_X86_64_NONE;
+    int refseg;
+    const segtyp = MAP_SEG2TYP(seg);
+    //assert(val == 0);
+    int refSize = (flags & CFoffset64) ? 8 : 4;
+
+static if (0)
+{
+    printf("\nElfObj_reftoident('%s' seg %d, offset x%llx, val x%llx, flags x%x)\n",
+        s.Sident.ptr,seg,offset,val,flags);
+    printf("Sseg = %d, Sxtrnnum = %d, refSize = %d\n",s.Sseg,s.Sxtrnnum,refSize);
+    symbol_print(*s);
+}
+
+    const tym_t ty = s.ty();
+    if (s.Sxtrnnum)
+    {                           // identifier is defined somewhere else
+        if (elfobj.SymbolTable64[s.Sxtrnnum].st_shndx != SHN_UNDEF)
+            external = false;
+    }
+
+    switch (s.Sclass)
+    {
+        case SC.locstat:
+            if (s.Sfl == FLtlsdata)
+            {
+                if (config.flags3 & CFG3pie)
+                    relinfo = R_X86_64_TPOFF32;
+                else
+                    relinfo = config.flags3 & CFG3pic ? R_X86_64_TLSGD : R_X86_64_TPOFF32;
+            }
+            else
+            {
+                relinfo = flags & CFadd ? R_AARCH64_ADD_ABS_LO12_NC : R_AARCH64_ADR_PREL_PG_HI21;
+                //relinfo = config.flags3 & CFG3pic ? R_X86_64_PC32 : R_X86_64_32;
+                //if (flags & CFpc32)
+                    //relinfo = R_X86_64_PC32;
+            }
+
+            if (flags & CFoffset64 && relinfo == R_X86_64_32)
+            {
+                relinfo = R_X86_64_64;
+                refSize = 8;
+            }
+            refseg = STI_RODAT;
+            //val += s.Soffset;
+            goto outrel;
+
+        case SC.comdat:
+        case_SCcomdat:
+        case SC.static_:
+static if (0)
+{
+            if ((s.Sflags & SFLthunk) && s.Soffset)
+            {                   // A thunk symbol that has been defined
+                assert(s.Sseg == seg);
+                val = (s.Soffset+val) - (offset+4);
+                goto outaddrval;
+            }
+}
+            goto case;
+
+        case SC.extern_:
+        case SC.comdef:
+        case_extern:
+        case SC.global:
+            if (!s.Sxtrnnum)
+            {   // not in symbol table yet - class might change
+                //printf("\tadding %s to fixlist\n",s.Sident.ptr);
+                size_t numbyteswritten = addtofixlist(s,offset,seg,val,flags);
+                assert(numbyteswritten == refSize);
+                return refSize;
+            }
+            else
+            {
+                refseg = s.Sxtrnnum;       // default to name symbol table entry
+
+                if (flags & CFselfrel)
+                {               // only for function references within code segments
+                    if (!external &&            // local definition found
+                         s.Sseg == seg &&      // within same code segment
+                          (!(config.flags3 & CFG3pic) ||        // not position indp code
+                           s.Sclass == SC.static_)) // or is pic, but declared static
+                    {                   // Can use PC relative
+                        printf("\tdoing PC relative\n");
+                        val = (s.Soffset+val) - (offset+4);
+                    }
+                    else
+                    {
+                        //printf("\tadding relocation\n");
+                        if (s.Sclass == SC.global && config.flags3 & CFG3pie && tyfunc(s.ty()))
+                            relinfo = R_X86_64_PC32;
+                        else
+                            relinfo = R_AARCH64_CALL26;
+                            //relinfo = config.flags3 & CFG3pic ?  R_X86_64_PLT32 : R_X86_64_PC32;
+                        //val = -cast(targ_size_t)4;
+                    }
+                }
+                else
+                {       // code to code code to data, data to code, data to data refs
+                    if (s.Sclass == SC.static_)
+                    {                           // offset into .data or .bss seg
+                        if ((s.ty() & mTYLINK) & mTYthread)
+                        { }
+                        else
+                            refseg = MAP_SEG2SYMIDX(s.Sseg);    // use segment symbol table entry
+                        val += s.Soffset;
+                        if (!(config.flags3 & CFG3pic) ||       // all static refs from normal code
+                             segtyp == DATA)    // or refs from data from posi indp
+                        {
+                            relinfo = (flags & CFpc32) ? R_X86_64_PC32 : R_X86_64_32;
+                        }
+                        else
+                        {
+                            relinfo = R_X86_64_PC32;
+                        }
+                    }
+                    else if (config.flags3 & CFG3pic && s == elfobj.GOTsym)
+                    {                   // relocation for Gbl Offset Tab
+                        relinfo =  R_X86_64_NONE;
+                    }
+                    else if (segtyp == DATA)
+                    {                   // relocation from within DATA seg
+                        relinfo = R_X86_64_32;
+                        if (I64 && flags & CFpc32)
+                            relinfo = R_X86_64_PC32;
+                    }
+                    else
+                    {                   // relocation from within CODE seg
+                        if (config.flags3 & CFG3pie && s.Sclass == SC.global)
+                            relinfo = R_X86_64_PC32;
+                        else if (config.flags3 & CFG3pic)
+                            relinfo = R_X86_64_GOTPCREL;
+                        else
+                            relinfo = (flags & CFpc32) ? R_X86_64_PC32 : R_X86_64_32;
+                    }
+                    if ((s.ty() & mTYLINK) & mTYthread)
+                    {
+                        if (config.flags3 & CFG3pie)
+                        {
+                            if (s.Sclass == SC.static_ || s.Sclass == SC.global)
+                                relinfo = R_X86_64_TPOFF32;
+                            else
+                                relinfo = R_X86_64_GOTTPOFF;
+                        }
+                        else if (config.flags3 & CFG3pic)
+                        {
+                            /+if (s.Sclass == SC.static_ || s.Sclass == SC.locstat)
+                                // Could use 'local dynamic (LD)' to optimize multiple local TLS reads
+                                relinfo = R_X86_64_TLSGD;
+                            else+/
+                                relinfo = R_X86_64_TLSGD;
+                        }
+                        else
+                        {
+                            if (s.Sclass == SC.static_ || s.Sclass == SC.locstat)
+                                relinfo = R_X86_64_TPOFF32;
+                            else
+                                relinfo = R_X86_64_GOTTPOFF;
+                        }
+                    }
+                    if (flags & CFoffset64 && relinfo == R_X86_64_32)
+                    {
+                        relinfo = R_X86_64_64;
+                    }
+                }
+                if (relinfo == R_X86_64_NONE)
+                {
+                outaddrval:
+                    writeaddrval(seg, cast(uint)offset, val, refSize);
+                }
+                else
+                {
+                outrel:
+                    //printf("\t\t************* adding relocation\n");
+                    const size_t nbytes = ElfObj_writerel(seg, cast(uint)offset, relinfo, refseg, val);
+                    assert(nbytes == refSize);
+                }
+            }
+            break;
+
+        case SC.sinline:
+        case SC.einline:
+            printf ("Undefined inline value <<fixme>>\n");
+            //warerr(WM_undefined_inline,s.Sident.ptr);
+            goto  case;
+
+        case SC.inline:
+            if (tyfunc(ty))
+            {
+                s.Sclass = SC.extern_;
+                goto case_extern;
+            }
+            else if (config.flags2 & CFG2comdat)
+                goto case_SCcomdat;     // treat as initialized common block
+            goto default;
+
+        default:
+            //symbol_print(s);
+            assert(0);
+    }
+    return refSize;
+}
+
 /*****************************************
  * Generate far16 thunk.
  * Input:
@@ -3261,6 +3485,9 @@ void ElfObj_dehinfo(Symbol *scc)
 
 private void obj_rtinit()
 {
+    if (config.target_cpu == TARGET_AArch64)
+        return;
+
     // section start/stop symbols are defined by the linker (https://www.airs.com/blog/archives/56)
     // make the symbols hidden so that each DSO gets its own brackets
     IDXSYM minfo_beg, minfo_end, dso_rec;
@@ -3666,6 +3893,7 @@ void ElfObj_write_pointerRef(Symbol* s, uint off)
  */
 int elf_dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val)
 {
+    //printf("elf_dwarf_reftoident()\n");
     if (config.flags3 & CFG3pic)
     {
         /* fixup: R_X86_64_PC32 sym="DW.ref.name"
