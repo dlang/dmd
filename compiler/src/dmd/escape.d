@@ -1584,7 +1584,7 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref)
         {
             const refAddr = deref < 0 && v.storage_class & STC.ref_ ;
             const tempVar = deref == 0 && v.storage_class & STC.temp;
-            if ((refAddr || tempVar) && v._init)
+            if ((refAddr || tempVar) && v._init && v != er.lastTemp)
             {
                 // If compiler generated ref temporary
                 //   (ref v = ex; ex)
@@ -1596,11 +1596,19 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref)
                     // `__field0 = (S __tup1 = S(x, y);) , __field0 = __tup1.__fields_field_0`
                     // escapeExp would recurse on the lhs of the last assignment, which is __field0
                     // again. In this case, we want the rhs.
+                    // Also consider appending a struct with a `return scope` constructor:
+                    // __appendtmp34 = __appendtmp34.this(null)
+                    // In that case we just break the cycle using `lastTemp`.
                     auto lc = ez.exp.lastComma();
+                    auto restoreLastTemp = er.lastTemp;
+                    er.lastTemp = v;
+                    // printf("%s %s    TO    %s\n", e.loc.toChars, e.toChars, lc.toChars);
                     if (lc.isAssignExp || lc.isConstructExp || lc.isBlitExp)
                         escapeExp(lc.isBinExp().e2, er, deref);
                     else
                         escapeExp(ez.exp, er, deref);
+
+                    er.lastTemp = restoreLastTemp;
                     return;
                 }
             }
@@ -2038,6 +2046,10 @@ struct EscapeByResults
     /// Incremented / decremented every time an ambiguous return ref/scope parameter is checked.
     /// See retRefTransition above.
     private int inRetRefTransition = 0;
+
+    /// When forwarding a temp var to its initializer,
+    /// keep track of the temp var to break endless loops
+    private VarDeclaration lastTemp = null;
 }
 
 /*************************

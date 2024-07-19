@@ -314,3 +314,18 @@ auto f() @safe
     scope Range r;
     return r.array;
 }
+
+/************************************/
+
+// Test that there's no endless loop forwarding `__appendtmp1 => __appendtmp1.this(null)`
+struct SD
+{
+    int* p;
+    this(int*) return scope {}
+}
+
+auto fsd() @safe
+{
+    SD[] a;
+    a ~= SD(null);
+}
