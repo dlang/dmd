@@ -329,3 +329,28 @@ auto fsd() @safe
     SD[] a;
     a ~= SD(null);
 }
+
+/************************************/
+
+// Test that `return scope` inference from assignment doesn't force the function to be `scope`
+struct Scape
+{
+    int* p;
+
+    this()(int* input)
+    {
+        p = input; // return scope inferred here
+        notScope(); // not-scope inferred here
+    }
+
+    void notScope() @safe
+    {
+        static int* g;
+        g = p;
+    }
+}
+
+@safe testScape()
+{
+    Scape(null);
+}
