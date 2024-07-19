@@ -5098,7 +5098,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return;
             }
             else if (sc.needsCodegen() && // interpreter doesn't need this lowered
-                     !exp.onstack && !exp.type.isscope()) // these won't use the GC
+                     !exp.onstack && !exp.type.isScopeClass()) // these won't use the GC
             {
                 /* replace `new T(arguments)` with `core.lifetime._d_newclassT!T(arguments)`
                  * or `_d_newclassTTrace`

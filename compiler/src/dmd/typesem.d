@@ -1810,7 +1810,7 @@ Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         default:
             break;
         }
-        if (tbn.isscope())
+        if (tbn.isScopeClass())
         {
             .error(loc, "cannot have array of scope `%s`", tbn.toChars());
             return error();
@@ -1844,7 +1844,7 @@ Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         default:
             break;
         }
-        if (tn.isscope())
+        if (tn.isScopeClass())
         {
             .error(loc, "cannot have array of scope `%s`", tn.toChars());
             return error();
@@ -2050,7 +2050,7 @@ Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         default:
             break;
         }
-        if (mtype.next.isscope())
+        if (mtype.next.isScopeClass())
         {
             .error(loc, "cannot have array of scope `%s`", mtype.next.toChars());
             return error();
@@ -2216,7 +2216,7 @@ Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             tf.next = tf.next.typeSemantic(loc, sc);
             sc = sc.pop();
             errors |= tf.checkRetType(loc);
-            if (tf.next.isscope() && !tf.isctor)
+            if (tf.next.isScopeClass() && !tf.isctor)
             {
                 .error(loc, "functions cannot return `scope %s`", tf.next.toChars());
                 errors = true;

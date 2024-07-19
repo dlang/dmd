@@ -677,7 +677,7 @@ extern (C++) abstract class Type : ASTNode
         return false;
     }
 
-    bool isscope()
+    bool isScopeClass()
     {
         return false;
     }
@@ -3537,7 +3537,7 @@ extern (C++) final class TypeClass : Type
         return wm;
     }
 
-    override bool isscope()
+    override bool isScopeClass()
     {
         return sym.stack;
     }
