@@ -293,22 +293,22 @@ ref int testEscapeRef2(
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13902.d(294): Error: returning `[& x]` escapes a reference to local variable `x`
 fail_compilation/fail13902.d(295): Error: returning `[& x]` escapes a reference to local variable `x`
 ---
 */
-int*[]  testArrayLiteral1() { int x; return [&x]; }
+
+int*[]  testArrayLiteral1() { int x; return [&x]; } // not caught in `@system` code
 int*[1] testArrayLiteral2() { int x; return [&x]; }
 
 /*
 TEST_OUTPUT:
 ---
 fail_compilation/fail13902.d(304): Error: returning `S2(& x)` escapes a reference to local variable `x`
-fail_compilation/fail13902.d(305): Error: returning `new S2(& x)` escapes a reference to local variable `x`
 ---
 */
+
 S2  testStructLiteral1() { int x; return     S2(&x); }
-S2* testStructLiteral2() { int x; return new S2(&x); }
+S2* testStructLiteral2() { int x; return new S2(&x); } // not caught in `@system` code
 
 /*
 TEST_OUTPUT:

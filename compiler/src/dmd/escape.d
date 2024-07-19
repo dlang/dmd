@@ -1659,16 +1659,16 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref)
 
     void visitArrayLiteral(ArrayLiteralExp e)
     {
-        Type tb = e.type.toBasetype();
-        if (tb.isTypeSArray() || tb.isTypeDArray())
+        // Putting something in an array literal dereferences it (usually caught by `checkNewEscape`)
+        // unless it's a static array
+        const bool isDynamic = e.type.toBasetype().isTypeSArray() is null;
+
+        if (e.basis)
+            escapeExp(e.basis, er, deref + isDynamic);
+        foreach (el; *e.elements)
         {
-            if (e.basis)
-                escapeExp(e.basis, er, deref);
-            foreach (el; *e.elements)
-            {
-                if (el)
-                    escapeExp(el, er, deref);
-            }
+            if (el)
+                escapeExp(el, er, deref + isDynamic);
         }
     }
 
@@ -1684,7 +1684,7 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref)
         }
         if (deref == -1)
         {
-            er.byExp(e, er.inRetRefTransition > 0); //
+            er.byExp(e, er.inRetRefTransition > 0);
         }
     }
 
@@ -1696,7 +1696,7 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref)
             foreach (ex; *e.arguments)
             {
                 if (ex)
-                    escapeExp(ex, er, deref);
+                    escapeExp(ex, er, deref + 1);
             }
         }
     }
@@ -1725,16 +1725,8 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref)
 
     void visitIndex(IndexExp e)
     {
-        Type tb = e.e1.type.toBasetype();
-
-        if (tb.isTypeSArray())
-        {
-            escapeExp(e.e1, er, deref);
-        }
-        else if (tb.isTypeDArray())
-        {
-            escapeExp(e.e1, er, deref + 1);
-        }
+        const bool isDynamic = e.e1.type.toBasetype().isTypeSArray() is null;
+        escapeExp(e.e1, er, deref + isDynamic);
     }
 
     void visitBin(BinExp e)
