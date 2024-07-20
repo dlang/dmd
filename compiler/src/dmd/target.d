@@ -747,7 +747,6 @@ extern (C++) struct Target
         if (vecsize != 16 && vecsize != 32)
             return false;
 
-        bool supported = false;
         switch (op)
         {
         case EXP.uadd:
