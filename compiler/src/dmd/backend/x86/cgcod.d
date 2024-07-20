@@ -2576,11 +2576,17 @@ private immutable nothrow void function (ref CGstate, ref CodeBuilder,elem *,reg
 @trusted
 void codelem(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint constflag)
 {
+    codelem(cg, cdb, e, *pretregs, constflag);
+}
+
+@trusted
+void codelem(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs,uint constflag)
+{
     Symbol *s;
 
     debug if (debugw)
     {
-        printf("+codelem(e=%p,*pretregs=%s) %s ",e,regm_str(*pretregs),oper_str(e.Eoper));
+        printf("+codelem(e=%p,*pretregs=%s) %s ",e,regm_str(pretregs),oper_str(e.Eoper));
         printf("msavereg=%s cg.regcon.cse.mval=%s regcon.cse.mops=%s\n",
                 regm_str(cg.msavereg),regm_str(cg.regcon.cse.mval),regm_str(cg.regcon.cse.mops));
         printf("Ecount = %d, Ecomsub = %d\n", e.Ecount, e.Ecomsub);
@@ -2592,7 +2598,7 @@ void codelem(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint c
     {
         debug
         {
-            printf("+codelem(e=%p,*pretregs=%s) ", e, regm_str(*pretregs));
+            printf("+codelem(e=%p,*pretregs=%s) ", e, regm_str(pretregs));
             elem_print(e);
             printf("msavereg=%s cg.regcon.cse.mval=%s regcon.cse.mops=%s\n",
                     regm_str(cg.msavereg),regm_str(cg.regcon.cse.mval),regm_str(cg.regcon.cse.mops));
@@ -2601,13 +2607,13 @@ void codelem(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint c
         assert(0);
     }
 
-    if (!(constflag & 1) && *pretregs & (mES | ALLREGS | mBP | XMMREGS) & ~cg.regcon.mvar)
-        *pretregs &= ~cg.regcon.mvar;                      /* can't use register vars */
+    if (!(constflag & 1) && pretregs & (mES | ALLREGS | mBP | XMMREGS) & ~cg.regcon.mvar)
+        pretregs &= ~cg.regcon.mvar;                      /* can't use register vars */
 
     uint op = e.Eoper;
     if (e.Ecount && e.Ecount != e.Ecomsub)     // if common subexp
     {
-        comsub(cdb,e, *pretregs);
+        comsub(cdb,e, pretregs);
         goto L1;
     }
 
@@ -2620,53 +2626,53 @@ void codelem(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint c
             if (e.Ecount)                          /* if common subexp     */
             {
                 /* if no return value       */
-                if ((*pretregs & (mSTACK | mES | ALLREGS | mBP | XMMREGS)) == 0)
+                if ((pretregs & (mSTACK | mES | ALLREGS | mBP | XMMREGS)) == 0)
                 {
-                    if (*pretregs & (mST0 | mST01))
+                    if (pretregs & (mST0 | mST01))
                     {
                         //printf("generate ST0 comsub for:\n");
                         //elem_print(e);
 
-                        regm_t retregs = *pretregs & mST0 ? mXMM0 : mXMM0|mXMM1;
+                        regm_t retregs = pretregs & mST0 ? mXMM0 : mXMM0|mXMM1;
                         (*cdxxx[op])(cg,cdb,e,&retregs);
                         cssave(e,retregs,!OTleaf(op));
-                        fixresult(cdb, e, retregs, *pretregs);
+                        fixresult(cdb, e, retregs, pretregs);
                         goto L1;
                     }
                     if (tysize(e.Ety) == 1)
-                        *pretregs |= BYTEREGS;
+                        pretregs |= BYTEREGS;
                     else if ((tyxmmreg(e.Ety) || tysimd(e.Ety)) && config.fpxmmregs)
-                        *pretregs |= XMMREGS;
+                        pretregs |= XMMREGS;
                     else if (tybasic(e.Ety) == TYdouble || tybasic(e.Ety) == TYdouble_alias)
-                        *pretregs |= DOUBLEREGS;
+                        pretregs |= DOUBLEREGS;
                     else
-                        *pretregs |= ALLREGS;       /* make one             */
+                        pretregs |= ALLREGS;       /* make one             */
                 }
 
                 /* BUG: For CSEs, make sure we have both an MSW             */
                 /* and an LSW specified in *pretregs                        */
             }
             assert(op <= OPMAX);
-            (*cdxxx[op])(cg,cdb,e,pretregs);
+            (*cdxxx[op])(cg,cdb,e,&pretregs);
             break;
 
         case OPrelconst:
-            cdrelconst(cg, cdb,e,pretregs);
+            cdrelconst(cg, cdb,e,&pretregs);
             break;
 
         case OPvar:
             if (constflag & 1 && (s = e.Vsym).Sfl == FLreg &&
-                (s.Sregm & *pretregs) == s.Sregm)
+                (s.Sregm & pretregs) == s.Sregm)
             {
                 if (tysize(e.Ety) <= REGSIZE && tysize(s.Stype.Tty) == 2 * REGSIZE)
-                    *pretregs &= mPSW | (s.Sregm & mLSW);
+                    pretregs &= mPSW | (s.Sregm & mLSW);
                 else
-                    *pretregs &= mPSW | s.Sregm;
+                    pretregs &= mPSW | s.Sregm;
             }
             goto case OPconst;
 
         case OPconst:
-            if (*pretregs == 0 && (e.Ecount >= 3 || e.Ety & mTYvolatile))
+            if (pretregs == 0 && (e.Ecount >= 3 || e.Ety & mTYvolatile))
             {
                 switch (tybasic(e.Ety))
                 {
@@ -2674,7 +2680,7 @@ void codelem(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint c
                     case TYchar:
                     case TYschar:
                     case TYuchar:
-                        *pretregs |= BYTEREGS;
+                        pretregs |= BYTEREGS;
                         break;
 
                     case TYnref:
@@ -2685,7 +2691,7 @@ void codelem(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint c
                     case TYimmutPtr:
                     case TYsharePtr:
                     case TYrestrictPtr:
-                        *pretregs |= I16 ? IDXREGS : ALLREGS;
+                        pretregs |= I16 ? IDXREGS : ALLREGS;
                         break;
 
                     case TYshort:
@@ -2701,24 +2707,24 @@ void codelem(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint c
                     case TYfptr:
                     case TYhptr:
                     case TYvptr:
-                        *pretregs |= ALLREGS;
+                        pretregs |= ALLREGS;
                         break;
 
                     default:
                         break;
                 }
             }
-            loaddata(cdb,e,*pretregs);
+            loaddata(cdb,e,pretregs);
             break;
     }
-    cssave(e,*pretregs,!OTleaf(op));
+    cssave(e,pretregs,!OTleaf(op));
 L1:
     if (!(constflag & 2))
         freenode(e);
 
     debug if (debugw)
     {
-        printf("-codelem(e=%p,*pretregs=%s) %s ",e,regm_str(*pretregs), oper_str(op));
+        printf("-codelem(e=%p,pretregs=%s) %s ",e,regm_str(pretregs), oper_str(op));
         printf("msavereg=%s cg.regcon.cse.mval=%s regcon.cse.mops=%s\n",
                 regm_str(cg.msavereg),regm_str(cg.regcon.cse.mval),regm_str(cg.regcon.cse.mops));
     }
@@ -2743,11 +2749,17 @@ L1:
 @trusted
 void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
 {
+    scodelem(cg, cdb, e, *pretregs, keepmsk, constflag);
+}
+
+@trusted
+void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem *e,ref regm_t pretregs,regm_t keepmsk,bool constflag)
+{
     regm_t touse;
 
     debug if (debugw)
         printf("+scodelem(e=%p *pretregs=%s keepmsk=%s constflag=%d\n",
-                e,regm_str(*pretregs),regm_str(keepmsk),constflag);
+                e,regm_str(pretregs),regm_str(keepmsk),constflag);
 
     elem_debug(e);
     if (constflag)
@@ -2756,7 +2768,7 @@ void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm
         reg_t reg;
 
         if (isregvar(e, regm, reg) &&           // if e is a register variable
-            (regm & *pretregs) == regm &&       // in one of the right regs
+            (regm & pretregs) == regm &&        // in one of the right regs
             e.Voffset == 0
            )
         {
@@ -2764,13 +2776,13 @@ void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm
             uint sz2 = tysize(e.Vsym.Stype.Tty);
             if (sz1 <= REGSIZE && sz2 > REGSIZE)
                 regm &= mLSW | XMMREGS;
-            fixresult(cdb,e,regm,*pretregs);
+            fixresult(cdb,e,regm,pretregs);
             cssave(e,regm,0);
             freenode(e);
 
             debug if (debugw)
                 printf("-scodelem(e=%p *pretregs=%s keepmsk=%s constflag=%d\n",
-                        e,regm_str(*pretregs),regm_str(keepmsk),constflag);
+                        e,regm_str(pretregs),regm_str(keepmsk),constflag);
 
             return;
         }
@@ -2785,13 +2797,13 @@ void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm
     char calledafuncsave = cg.calledafunc;
     cg.calledafunc = 0;
     CodeBuilder cdbx; cdbx.ctor();
-    codelem(cg,cdbx,e,pretregs,constflag);    // generate code for the elem
+    codelem(cg,cdbx,e,&pretregs,constflag);    // generate code for the elem
 
     regm_t tosave = keepmsk & ~cg.msavereg; /* registers to save                    */
     if (tosave)
     {
         cg.stackclean++;
-        genstackclean(cdbx,cg.stackpush - stackpushsave,*pretregs | cg.msavereg);
+        genstackclean(cdbx,cg.stackpush - stackpushsave,pretregs | cg.msavereg);
         cg.stackclean--;
     }
 
@@ -2918,12 +2930,11 @@ void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm
 
     debug if (debugw)
         printf("-scodelem(e=%p *pretregs=%s keepmsk=%s constflag=%d\n",
-                e,regm_str(*pretregs),regm_str(keepmsk),constflag);
+                e,regm_str(pretregs),regm_str(keepmsk),constflag);
 
     cdb.append(cdbs1);
     cdb.append(cdbx);
     cdb.append(cdbs2);
-    return;
 }
 
 /*********************************************
