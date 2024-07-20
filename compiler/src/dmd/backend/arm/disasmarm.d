@@ -1676,6 +1676,71 @@ void disassemble(uint c) @trusted
     /*{====================== Data Processing -- Scalar Floating-Point and Advanced SIMD ============================
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#simd_dp
      */
+
+    // Cryptographic AES
+    if (field(ins, 31, 24) == 0x4E && field(ins, 21, 17) == 0x14 && field(ins, 11, 10) == 2)
+    {
+        uint size   = field(ins, 23, 22);
+        uint opcode = field(ins, 16, 12);
+        uint Rn     = field(ins, 9, 5);
+        uint Rd     = field(ins, 4, 0);
+
+        if (size == 0)
+            switch (opcode)
+            {
+                case 4: p1 = "aese";   break;
+                case 5: p1 = "aesd";   break;
+                case 6: p1 = "aesmc";  break;
+                case 7: p1 = "aesimc"; break;
+                default: break;
+            }
+
+        const n = snprintf(buf.ptr, buf.length, "V%d.16B, V%d.16B", Rd, Rn);
+        p2 = buf[0 .. n];
+    }
+    else
+
+    // Cryptographic three-register SHA
+    // Cryptographic two-register SHA
+    // Advanced SIMD scalar copy
+    // Advanced SIMD scalar three same FP16
+    // Advanced SIMD scalar two-register miscellaneous FP16
+    // Advanced SIMD scalar three same extra
+    // Advanced SIMD two-register miscellaneous
+    // Advanced SIMD scalar pairwise
+    // Advanced SIMD scalar three different
+    // Advanced SIMD scalar three same
+    // Advanced SIMD scalar shift by immediate
+    // Advanced SIMD scalar x indexed element
+    // Advanced SIMD table lookup
+    // Advanced SIMD permute
+    // Advanced SIMD extract
+    // Advanced SIMD copy
+    // Advanced SIMD three same (FP16)
+    // Advanced SIMD two-register miscellaneous (FP16)
+    // Advanced SIMD three-register extension
+    // Advanced SIMD two-register miscellaneous
+    // Advanced SIMD across lanes
+    // Advanced SIMD three different
+    // Advanced SIMD three same
+    // Advanced SIMD modified immediate
+    // Advanced SIMD shift by immediate
+    // Advanced SIMD vector x indexed element
+    // Cryptographic three-register, imm2
+    // Cryptographic three-register SHA 512
+    // Cryptographic four-register
+    // XAR
+    // Cryptographic two-regsiter SHA 512
+    // Conversion between floating-point and fixed-point
+    // Conversion between floating-point and integer
+    // Floating-point data-processing (1 source)
+    // Floating-point compare
+    // Floating-point immediate
+    // Floating-point conditional compare
+    // Floating-point data-processing (2 source)
+    // Floating-point conditional select
+    // Floating-point data-processing (3 source)
+
     /* } */
     /*{===================== Loads and Stores ============================
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst

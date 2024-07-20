@@ -682,6 +682,7 @@ static if (1)
          * EH code: "zPLR"
          */
 
+        const bool AArch64 = config.target_cpu == TARGET_AArch64;
         const uint startsize = cast(uint)buf.length();
 
         // Length of CIE, not including padding
@@ -689,9 +690,9 @@ static if (1)
             (ehunwind ? 5 : 3) +
             1 + 1 + 1 +
             (ehunwind ? 8 : 2) +
-            5;
+            (AArch64 ? 3 : 5);
 
-        const uint pad = -cielen & (I64 ? 7 : 3);      // pad to addressing unit size boundary
+        const uint pad = -cielen & (AArch64 ? 3 : (I64 ? 7 : 3));  // pad to addressing unit size boundary
         const uint length = cielen + pad - 4;
 
         buf.reserve(length + 4);
@@ -703,9 +704,9 @@ static if (1)
         else
             buf.writen("zR".ptr, 3);
         // not present: EH Data: 4 bytes for I32, 8 bytes for I64
-        buf.writeByten(1);                 // code alignment factor
+        buf.writeByten(AArch64 ? 4 : 1);                // code alignment factor
         buf.writeByten(cast(ubyte)(0x80 - OFFSET_FAC)); // data alignment factor (I64 ? -8 : -4)
-        buf.writeByten(I64 ? 16 : 8);      // return address register
+        buf.writeByten(AArch64 ? 30 : (I64 ? 16 : 8));  // return address register
         if (ehunwind)
         {
             ubyte personality_pointer_encoding = 0;
@@ -757,12 +758,21 @@ static if (1)
         // Set CFA beginning state at function entry point
         if (I64)
         {
-            buf.writeByten(DW_CFA_def_cfa);        // DEF_CFA r7,8   RSP is at offset 8
-            buf.writeByten(7);                     // r7 is RSP
-            buf.writeByten(8);
+            if (AArch64)
+            {
+                buf.writeByten(DW_CFA_def_cfa);        // DEF_CFA r31,0   RSP is at offset 0
+                buf.writeByten(31);                    // r31 is RSP
+                buf.writeByten(0);
+            }
+            else
+            {
+                buf.writeByten(DW_CFA_def_cfa);        // DEF_CFA r7,8   RSP is at offset 8
+                buf.writeByten(7);                     // r7 is RSP
+                buf.writeByten(8);
 
-            buf.writeByten(DW_CFA_offset + 16);    // OFFSET r16,1   RIP is at -8*1[RSP]
-            buf.writeByten(1);
+                buf.writeByten(DW_CFA_offset + 16);    // OFFSET r16,1   RIP is at -8*1[RSP]
+                buf.writeByten(1);
+            }
         }
         else
         {
@@ -942,6 +952,8 @@ static if (1)
         if (config.objfmt == OBJ_ELF)
         {
             fixup = I64 ? R_X86_64_PC32 : R_386_PC32;
+            if (config.target_cpu == TARGET_AArch64)
+                fixup = R_AARCH64_PREL32;
             buf.write32(cast(uint)(I64 ? 0 : sfunc.Soffset));             // address of function
             Obj.addrel(dfseg, startsize + 8, fixup, cast(int)MAP_SEG2SYMIDX(sfunc.Sseg), sfunc.Soffset);
             //Obj.reftoident(dfseg, startsize + 8, sfunc, 0, CFpc32 | CFoff); // PC_begin
