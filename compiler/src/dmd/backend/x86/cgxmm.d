@@ -186,8 +186,8 @@ void orthxmm(ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
         }
         assert(retregs && rretregs);
 
-        codelem(cgstate,cdb,e1,&retregs,false); // eval left leaf
-        scodelem(cgstate,cdb, e2, &rretregs, retregs, true);  // eval right leaf
+        codelem(cgstate,cdb,e1,retregs,false); // eval left leaf
+        scodelem(cgstate,cdb, e2, rretregs, retregs, true);  // eval right leaf
 
         retregs |= rretregs;
         if (e.Eoper == OPmin)
@@ -213,10 +213,10 @@ void orthxmm(ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
     if (!retregs)
         retregs = XMMREGS;
     const constflag = OTrel(e.Eoper);
-    codelem(cgstate,cdb,e1,&retregs,constflag); // eval left leaf
+    codelem(cgstate,cdb,e1,retregs,constflag); // eval left leaf
     const reg = findreg(retregs);
     regm_t rretregs = XMMREGS & ~retregs;
-    scodelem(cgstate,cdb, e2, &rretregs, retregs, true);  // eval right leaf
+    scodelem(cgstate,cdb, e2, rretregs, retregs, true);  // eval right leaf
 
     const rreg = findreg(rretregs);
     const op = xmmoperator(e1.Ety, e.Eoper);
@@ -304,7 +304,7 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,ref reg
         retregs |= mPSW;
         pretregs &= ~mPSW;
     }
-    scodelem(cgstate,cdb,e2,&retregs,0,true);    // get rvalue
+    scodelem(cgstate,cdb,e2,retregs,0,true);    // get rvalue
 
     // Look for special case of (*p++ = ...), where p is a register variable
     if (e1.Eoper == OPind &&
@@ -498,7 +498,7 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
     }
     assert(op != NoOpcode);
 
-    codelem(cgstate,cdb,e1, &regs, false);
+    codelem(cgstate,cdb,e1, regs, false);
     reg_t reg = findreg(regs);
     if (isXMMreg(reg))
         reg -= XMM0;
@@ -554,7 +554,7 @@ void xmmopass(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
     if (!rretregs)
         rretregs = XMMREGS;
 
-    codelem(cgstate,cdb,e2,&rretregs,false); // eval right leaf
+    codelem(cgstate,cdb,e2,rretregs,false); // eval right leaf
     reg_t rreg = findreg(rretregs);
 
     code cs;
@@ -671,7 +671,7 @@ void xmmpost(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
     regm_t rretregs = XMMREGS & ~(pretregs | retregs | resultregs);
     if (!rretregs)
         rretregs = XMMREGS & ~(retregs | resultregs);
-    codelem(cgstate,cdb,e2,&rretregs,false); // eval right leaf
+    codelem(cgstate,cdb,e2,rretregs,false); // eval right leaf
     const rreg = findreg(rretregs);
 
     const op = xmmoperator(e1.Ety, e.Eoper);
@@ -720,7 +720,7 @@ void xmmneg(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
      *    MOV rreg,signbit
      *    XOR reg,rreg
      */
-    codelem(cgstate,cdb,e.E1,&retregs,false);
+    codelem(cgstate,cdb,e.E1,retregs,false);
     getregs(cdb,retregs);
     const reg = findreg(retregs);
     regm_t rretregs = XMMREGS & ~retregs;
@@ -761,7 +761,7 @@ void xmmabs(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
      *    MOV rreg,mask
      *    AND reg,rreg
      */
-    codelem(cgstate,cdb,e.E1,&retregs,false);
+    codelem(cgstate,cdb,e.E1,retregs,false);
     getregs(cdb,retregs);
     const reg = findreg(retregs);
     regm_t rretregs = XMMREGS & ~retregs;
@@ -1241,7 +1241,7 @@ static if (0)
          */
         foreach (i; 0 .. n)
         {
-            codelem(cgstate,cdb,params[i], &pretregs, false);
+            codelem(cgstate,cdb,params[i], pretregs, false);
             pretregs = 0;      // in case they got set
         }
         return;
@@ -1269,7 +1269,7 @@ static if (0)
         retregs = pretregs & XMMREGS;
         if (!retregs)
             retregs = XMMREGS;
-        codelem(cgstate,cdb,op1,&retregs,false); // eval left leaf
+        codelem(cgstate,cdb,op1,retregs,false); // eval left leaf
         const reg = findreg(retregs);
         int r;
         switch (op)
@@ -1305,7 +1305,7 @@ static if (0)
         else
         {
             regm_t rretregs = XMMREGS;
-            codelem(cgstate,cdb,op1, &rretregs, false);
+            codelem(cgstate,cdb,op1, rretregs, false);
             const rreg = findreg(rretregs) - XMM0;
             cs.Irm = modregrm(3,0,rreg & 7);
             cs.Iflags = 0;
@@ -1334,7 +1334,7 @@ static if (0)
         retregs = pretregs & XMMREGS;
         if (!retregs)
             retregs = XMMREGS;
-        codelem(cgstate,cdb,op1,&retregs,false); // eval left leaf
+        codelem(cgstate,cdb,op1,retregs,false); // eval left leaf
         const reg = findreg(retregs);
 
         /* MOVHLPS and LODLPS have the same opcode. They are distinguished
@@ -1353,7 +1353,7 @@ static if (0)
         {
             // load op2 into XMM register
             regm_t rretregs = XMMREGS & ~retregs;
-            scodelem(cgstate,cdb, op2, &rretregs, retregs, true);
+            scodelem(cgstate,cdb, op2, rretregs, retregs, true);
             const rreg = findreg(rretregs) - XMM0;
             cs.Irm = modregrm(3,0,rreg & 7);
             cs.Iflags = 0;
@@ -1465,7 +1465,7 @@ static if (0)
     else
     {
         regm_t rretregs = XMMREGS & ~retregs;
-        cr = scodelem(cgstate,op2, &rretregs, retregs, true);
+        cr = scodelem(cgstate,op2, rretregs, retregs, true);
         const rreg = findreg(rretregs) - XMM0;
         cs.Irm = modregrm(3,0,rreg & 7);
         cs.Iflags = 0;
@@ -1524,7 +1524,7 @@ static if (0)
             }
             else
             {
-                codelem(cgstate,cdb,e1,&retregs,false); // eval left leaf
+                codelem(cgstate,cdb,e1,retregs,false); // eval left leaf
                 const reg = cast(reg_t)(findreg(retregs) - XMM0);
                 getregs(cdb,retregs);
                 if (config.avx >= 2)
@@ -1564,7 +1564,7 @@ static if (0)
             }
             else
             {
-                codelem(cgstate,cdb,e1,&retregs,false); // eval left leaf
+                codelem(cgstate,cdb,e1,retregs,false); // eval left leaf
                 const reg = cast(reg_t)(findreg(retregs) - XMM0);
                 getregs(cdb,retregs);
                 if (config.avx >= 2 && tysize(ty) == 32)
@@ -1607,7 +1607,7 @@ static if (0)
             else
             {
                 regm_t regm = ALLREGS;
-                codelem(cgstate,cdb,e1,&regm,true); // eval left leaf
+                codelem(cgstate,cdb,e1,regm,true); // eval left leaf
                 const r = findreg(regm);
 
                 reg_t reg = allocreg(cdb,retregs, e.Ety);
@@ -1674,7 +1674,7 @@ static if (0)
             else
             {
                 regm_t regm = ALLREGS;
-                codelem(cgstate,cdb,e1,&regm,true); // eval left leaf
+                codelem(cgstate,cdb,e1,regm,true); // eval left leaf
                 reg_t r = findreg(regm);
 
                 reg_t reg = allocreg(cdb,retregs, e.Ety);
@@ -1724,7 +1724,7 @@ static if (0)
             }
             else
             {
-                codelem(cgstate,cdb,e1,&retregs,true); // eval left leaf
+                codelem(cgstate,cdb,e1,retregs,true); // eval left leaf
                 const reg = cast(reg_t)(findreg(retregs) - XMM0);
                 getregs(cdb,retregs);
                 if (config.avx >= 2)
@@ -1766,7 +1766,7 @@ static if (0)
             }
             else
             {
-                codelem(cgstate,cdb,e1,&retregs,true); // eval left leaf
+                codelem(cgstate,cdb,e1,retregs,true); // eval left leaf
                 const reg = cast(reg_t)(findreg(retregs) - XMM0);
                 getregs(cdb,retregs);
                 if (config.avx >= 2)
