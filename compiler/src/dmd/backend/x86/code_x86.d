@@ -294,6 +294,9 @@ enum
 
     CFSEG       = CFes | CFss | CFds | CFcs | CFfs | CFgs,
     CFPREFIX    = CFSEG | CFopsize | CFaddrsize,
+
+    // AArch64
+    CFadd       = 0x1000_0000,
 }
 
 struct code
