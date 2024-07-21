@@ -137,6 +137,10 @@ extern int test21970a;
 extern char *test21970b;
 
 /***************************************************/
+// https://issues.dlang.org/show_bug.cgi?id=24447
+extern int x = 3;
+
+/***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=21973
 
 struct S21973
