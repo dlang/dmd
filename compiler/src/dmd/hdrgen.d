@@ -4279,13 +4279,23 @@ private void typeToBufferx(Type t, ref OutBuffer buf, ref HdrGenState hgs)
 
     void visitTag(TypeTag t)
     {
-        if (t.mod & MODFlags.const_)
-            buf.writestring("const ");
         if (hgs.importcHdr && t.id)
         {
+            // https://issues.dlang.org/show_bug.cgi?id=24670
+            // `const` must be parenthesized because it can be a return type
+            if (t.mod & MODFlags.const_)
+                buf.writestring("const(");
+
+            // For C to D translation, `struct S` or `enum S` simply becomes `S`
             buf.writestring(t.id.toString());
+
+            if (t.mod & MODFlags.const_)
+                buf.writestring(")");
             return;
         }
+        // The following produces something like "const enum E : short"
+        if (t.mod & MODFlags.const_)
+            buf.writestring("const ");
         buf.writestring(Token.toString(t.tok));
         buf.writeByte(' ');
         if (t.id)
