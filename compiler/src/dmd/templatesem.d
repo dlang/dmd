@@ -154,7 +154,7 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
 
     /* Calculate TemplateParameter.dependent
      */
-    TemplateParameters tparams = TemplateParameters(1);
+    auto tparams = TemplateParameters(1);
     for (size_t i = 0; i < tempdecl.parameters.length; i++)
     {
         TemplateParameter tp = (*tempdecl.parameters)[i];
@@ -336,8 +336,7 @@ MATCH matchWithInstance(Scope* sc, TemplateDeclaration td, TemplateInstance ti, 
             ti.parent = td.parent;
 
         // Similar to doHeaderInstantiation
-        FuncDeclaration fd = td.onemember ? td.onemember.isFuncDeclaration() : null;
-        if (fd)
+        if (FuncDeclaration fd = td.onemember ? td.onemember.isFuncDeclaration() : null)
         {
             TypeFunction tf = fd.type.isTypeFunction().syntaxCopy();
 
