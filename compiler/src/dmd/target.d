@@ -1392,6 +1392,9 @@ struct TargetC
                               /// https://docs.microsoft.com/en-us/cpp/c-language/c-bit-fields?view=msvc-160
                               /// https://docs.microsoft.com/en-us/cpp/cpp/cpp-bit-fields?view=msvc-160
         Gcc_Clang,            /// gcc and clang
+        Gcc_Clang_ARM,        /// Like `Gcc_Clang`, except that anonymous and 0-length bit fields contribute
+                              /// to the aggregate alignment. Used for 32 & 64 bit ARM targets, except for
+                              /// Apple ARM64.
     }
     bool  crtDestructorsSupported = true; /// Not all platforms support crt_destructor
     ubyte boolsize;           /// size of a C `_Bool` type

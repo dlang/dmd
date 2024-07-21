@@ -5892,6 +5892,7 @@ struct TargetC final
         Unspecified = 0u,
         MS = 1u,
         Gcc_Clang = 2u,
+        Gcc_Clang_ARM = 3u,
     };
 
     bool crtDestructorsSupported;
