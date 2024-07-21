@@ -119,7 +119,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         sc.tinst = tempinst;
         sc.minst = tempinst.minst;
 
-        int needGagging = (tempinst.gagged && !global.gag);
+        bool needGagging = tempinst.gagged && !global.gag;
         uint olderrors = global.errors;
         int oldGaggedErrors = -1; // dead-store to prevent spurious warning
         /* If this is a gagged instantiation, gag errors.
