@@ -336,7 +336,8 @@ MATCH matchWithInstance(Scope* sc, TemplateDeclaration td, TemplateInstance ti, 
             ti.parent = td.parent;
 
         // Similar to doHeaderInstantiation
-        if (FuncDeclaration fd = td.onemember ? td.onemember.isFuncDeclaration() : null)
+        FuncDeclaration fd = td.onemember ? td.onemember.isFuncDeclaration() : null;
+        if (fd)
         {
             TypeFunction tf = fd.type.isTypeFunction().syntaxCopy();
 
