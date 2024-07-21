@@ -597,7 +597,17 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         if (dsym.storage_class & STC.extern_ && dsym._init)
-            .error(dsym.loc, "%s `%s` extern symbols cannot have initializers", dsym.kind, dsym.toPrettyChars);
+        {
+            if (sc.flags & SCOPE.Cfile)
+            {
+                // https://issues.dlang.org/show_bug.cgi?id=24447
+                // extern int x = 3; is allowed in C
+                dsym.storage_class &= ~STC.extern_;
+            }
+            else
+                .error(dsym.loc, "%s `%s` extern symbols cannot have initializers", dsym.kind, dsym.toPrettyChars);
+
+        }
 
         AggregateDeclaration ad = dsym.isThis();
         if (ad)
