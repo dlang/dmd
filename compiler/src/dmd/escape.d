@@ -1768,6 +1768,128 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref)
         escapeExp(e.e2, er, deref);
     }
 
+    void visitCall(CallExp e)
+    {
+        //printf("CallExp(): %s\n", e.toChars());
+        // Check each argument that is passed as 'return scope'.
+        TypeFunction tf = e.calledFunctionType();
+        if (!tf)
+            return;
+
+        if (deref < 0 && !tf.isref)
+        {
+            er.byExp(e, er.inRetRefTransition > 0);
+            return;
+        }
+
+        // A function may have a return scope struct parameter, but only return an `int` field of that struct
+        if (deref >= 0 && !e.type.hasPointers())
+            return;
+
+        /// Given a `scope` / `return scope` / `return ref` annotation,
+        /// get the corresponding pointer dereference level
+        static int paramDeref(ScopeRef psr)
+        {
+            return
+                (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope) ? -1 :
+                (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope) ? 0 :
+                +1;
+        }
+
+        if (e.arguments && e.arguments.length)
+        {
+            // j=1 if _arguments[] is first argument,
+            // skip it because it is not passed by ref
+            int j = tf.isDstyleVariadic();
+            for (size_t i = j; i < e.arguments.length; ++i)
+            {
+                Expression arg = (*e.arguments)[i];
+                size_t nparams = tf.parameterList.length;
+                if (i - j < nparams && i >= j)
+                {
+                    Parameter p = tf.parameterList[i - j];
+                    const stc = tf.parameterStorageClass(null, p);
+                    ScopeRef psr = buildScopeRef(stc);
+
+                    // For struct constructors, `tf.isref` is true, but for escape analysis,
+                    // it's as if they return `void` and escape through the first (`this`) parameter:
+                    // void assign(ref S this, return scope constructorArgs...)
+                    // If you then return the constructed result by value, it doesn't count
+                    // as dereferencing the scope arguments, they're still escaped.
+                    const isRef = tf.isref && !(tf.isctor && paramDeref(psr) == 0);
+                    const maybeInaccurate = deref == 0 && paramDeref(psr) == 0;
+                    er.inRetRefTransition += maybeInaccurate;
+                    if (paramDeref(psr) <= 0)
+                        escapeExp(arg, er, deref + paramDeref(psr) + isRef);
+                    er.inRetRefTransition -= maybeInaccurate;
+                }
+            }
+        }
+
+        // If `fd` is a nested function that's return ref / return scope, check that
+        // it doesn't escape closure vars
+        void checkNested(FuncDeclaration fd)
+        {
+            if (fd.isNested() && tf.isreturn)
+            {
+                if (deref < 0)
+                {
+                    er.byExp(e, false);
+                }
+                else if (tf.isScopeQual)
+                {
+                    if (tf.isreturnscope)
+                        er.byFunc(fd, true);
+                    else
+                        er.byExp(e, false);
+                }
+            }
+        }
+
+        // If 'this' is returned, check it too
+        Type t1 = e.e1.type.toBasetype();
+        DotVarExp dve = e.e1.isDotVarExp();
+        if (dve && t1.ty == Tfunction)
+        {
+            FuncDeclaration fd = dve.var.isFuncDeclaration();
+            if (!fd)
+                return;
+
+            // https://issues.dlang.org/show_bug.cgi?id=20149#c10
+            if (deref < 0 && dve.var.isCtorDeclaration())
+            {
+                er.byExp(e, false);
+                return;
+            }
+
+            // Calling a non-static member function dve.var, which is returning `this`, and with dve.e1 representing `this`
+            const psr = buildScopeRef(getThisStorageClass(fd));
+            er.inRetRefTransition += (psr == ScopeRef.ReturnRef_Scope);
+            if (paramDeref(psr) <= 0)
+                escapeExp(dve.e1, er, deref + paramDeref(psr) + (tf.isref && !tf.isctor));
+            er.inRetRefTransition -= (psr == ScopeRef.ReturnRef_Scope);
+
+            checkNested(fd);
+        }
+
+        // If returning the result of a delegate call, the .ptr
+        // field of the delegate must be checked.
+        if (t1.isTypeDelegate())
+        {
+            if (deref < 0 && e.e1.isVarExp())
+                escapeByValue(e.e1, er);
+            if (deref >= 0 && tf.isreturn)
+                escapeByValue(e.e1, er);
+        }
+
+        // If it's a nested function that is 'return scope'
+        if (auto ve = e.e1.isVarExp())
+        {
+            if (FuncDeclaration fd = ve.var.isFuncDeclaration())
+                checkNested(fd);
+        }
+    }
+
     if (deref > 0 && !er.live)
         return; // scope is not transitive currently, so dereferencing expressions don't escape
 
@@ -1796,7 +1918,7 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref)
         case EXP.assign: return visitAssign(e.isAssignExp());
         case EXP.comma: return visitComma(e.isCommaExp());
         case EXP.question: return visitCond(e.isCondExp());
-        case EXP.call: return escapeCallExp(e.isCallExp(), er, deref);
+        case EXP.call: return visitCall(e.isCallExp());
         default:
             if (auto ba = e.isBinAssignExp())
                 return visitBinAssign(ba);
@@ -1827,129 +1949,6 @@ StorageClass getThisStorageClass(FuncDeclaration fd)
     if (ad && ad.isStructDeclaration())
         stc |= STC.ref_;        // `this` for a struct member function is passed by `ref`
     return stc;
-}
-
-// See `escapeExp`
-void escapeCallExp(CallExp e, ref scope EscapeByResults er, int deref)
-{
-    //printf("CallExp(): %s\n", e.toChars());
-    // Check each argument that is passed as 'return scope'.
-    TypeFunction tf = e.calledFunctionType();
-    if (!tf)
-        return;
-
-    if (deref < 0 && !tf.isref)
-    {
-        er.byExp(e, er.inRetRefTransition > 0);
-        return;
-    }
-
-    // A function may have a return scope struct parameter, but only return an `int` field of that struct
-    if (deref >= 0 && !e.type.hasPointers())
-        return;
-
-    /// Given a `scope` / `return scope` / `return ref` annotation,
-    /// get the corresponding pointer dereference level
-    static int paramDeref(ScopeRef psr)
-    {
-        return
-            (psr == ScopeRef.ReturnRef || psr == ScopeRef.ReturnRef_Scope) ? -1 :
-            (psr == ScopeRef.ReturnScope || psr == ScopeRef.Ref_ReturnScope) ? 0 :
-            +1;
-    }
-
-    if (e.arguments && e.arguments.length)
-    {
-        // j=1 if _arguments[] is first argument,
-        // skip it because it is not passed by ref
-        int j = tf.isDstyleVariadic();
-        for (size_t i = j; i < e.arguments.length; ++i)
-        {
-            Expression arg = (*e.arguments)[i];
-            size_t nparams = tf.parameterList.length;
-            if (i - j < nparams && i >= j)
-            {
-                Parameter p = tf.parameterList[i - j];
-                const stc = tf.parameterStorageClass(null, p);
-                ScopeRef psr = buildScopeRef(stc);
-
-                // For struct constructors, `tf.isref` is true, but for escape analysis,
-                // it's as if they return `void` and escape through the first (`this`) parameter:
-                // void assign(ref S this, return scope constructorArgs...)
-                // If you then return the constructed result by value, it doesn't count
-                // as dereferencing the scope arguments, they're still escaped.
-                const isRef = tf.isref && !(tf.isctor && paramDeref(psr) == 0);
-                const maybeInaccurate = deref == 0 && paramDeref(psr) == 0;
-                er.inRetRefTransition += maybeInaccurate;
-                if (paramDeref(psr) <= 0)
-                    escapeExp(arg, er, deref + paramDeref(psr) + isRef);
-                er.inRetRefTransition -= maybeInaccurate;
-            }
-        }
-    }
-
-    // If `fd` is a nested function that's return ref / return scope, check that
-    // it doesn't escape closure vars
-    void checkNested(FuncDeclaration fd)
-    {
-        if (fd.isNested() && tf.isreturn)
-        {
-            if (deref < 0)
-            {
-                er.byExp(e, false);
-            }
-            else if (tf.isScopeQual)
-            {
-                if (tf.isreturnscope)
-                    er.byFunc(fd, true);
-                else
-                    er.byExp(e, false);
-            }
-        }
-    }
-
-    // If 'this' is returned, check it too
-    Type t1 = e.e1.type.toBasetype();
-    DotVarExp dve = e.e1.isDotVarExp();
-    if (dve && t1.ty == Tfunction)
-    {
-        FuncDeclaration fd = dve.var.isFuncDeclaration();
-        if (!fd)
-            return;
-
-        // https://issues.dlang.org/show_bug.cgi?id=20149#c10
-        if (deref < 0 && dve.var.isCtorDeclaration())
-        {
-            er.byExp(e, false);
-            return;
-        }
-
-        // Calling a non-static member function dve.var, which is returning `this`, and with dve.e1 representing `this`
-        const psr = buildScopeRef(getThisStorageClass(fd));
-        er.inRetRefTransition += (psr == ScopeRef.ReturnRef_Scope);
-        if (paramDeref(psr) <= 0)
-            escapeExp(dve.e1, er, deref + paramDeref(psr) + (tf.isref && !tf.isctor));
-        er.inRetRefTransition -= (psr == ScopeRef.ReturnRef_Scope);
-
-        checkNested(fd);
-    }
-
-    // If returning the result of a delegate call, the .ptr
-    // field of the delegate must be checked.
-    if (t1.isTypeDelegate())
-    {
-        if (deref < 0 && e.e1.isVarExp())
-            escapeByValue(e.e1, er);
-        if (deref >= 0 && tf.isreturn)
-            escapeByValue(e.e1, er);
-    }
-
-    // If it's a nested function that is 'return scope'
-    if (auto ve = e.e1.isVarExp())
-    {
-        if (FuncDeclaration fd = ve.var.isFuncDeclaration())
-            checkNested(fd);
-    }
 }
 
 /****************************************
