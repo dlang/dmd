@@ -180,7 +180,7 @@ class Node
     int semanticSearches;
     Scope scop;
 
-    version(COUNT) static __gshared int countNodes;
+    version(COUNT) __gshared int countNodes;
 
     this()
     {
