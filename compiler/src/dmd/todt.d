@@ -480,14 +480,12 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
                 goto case Tpointer;
 
             case Tpointer:
-            {
                 if (auto d = dtbarray.finish())
                     dtb.dtoff(d, 0);
                 else
                     dtb.size(0);
 
                 break;
-            }
 
             default:
                 assert(0);
