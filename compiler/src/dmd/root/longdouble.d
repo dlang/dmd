@@ -267,13 +267,11 @@ ulong ld_readull(const longdouble_soft* pthis)
     // so we roll our own conversion (it also allows the usual C wrap-around
     // instead of the "invalid value" created by the FPU)
     int expo = pthis.exponent - 0x3fff;
-    ulong u;
     if(expo < 0 || expo > 127)
         return 0;
-    if(expo < 64)
-        u = pthis.mantissa >> (63 - expo);
-    else
-        u = pthis.mantissa << (expo - 63);
+    ulong u = expo < 64 ?
+        pthis.mantissa >> (63 - expo) :
+        pthis.mantissa << (expo - 63);
     if(pthis.sign)
         u = ~u + 1;
     return u;
