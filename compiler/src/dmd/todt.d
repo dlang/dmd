@@ -958,6 +958,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
             switch (target.c.bitFieldStyle)
             {
                 case TargetC.BitFieldStyle.Gcc_Clang:
+                case TargetC.BitFieldStyle.Gcc_Clang_ARM:
                     bitFieldSize = (bf.bitOffset + bf.fieldWidth + 7) / 8;
                     break;
 
