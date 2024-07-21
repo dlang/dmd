@@ -270,8 +270,8 @@ ulong ld_readull(const longdouble_soft* pthis)
     if(expo < 0 || expo > 127)
         return 0;
     ulong u = expo < 64 ?
-        pthis.mantissa << (63 - expo) :
-        pthis.mantissa >> (expo - 63);
+        pthis.mantissa >> (63 - expo) :
+        pthis.mantissa << (expo - 63);
     if(pthis.sign)
         u = ~u + 1;
     return u;
