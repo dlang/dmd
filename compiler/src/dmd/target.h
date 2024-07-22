@@ -16,6 +16,7 @@
 #include "globals.h"
 #include "tokens.h"
 
+class BitFieldDeclaration;
 class ClassDeclaration;
 class Dsymbol;
 class Expression;
@@ -65,9 +66,6 @@ struct TargetC
                               // https://docs.microsoft.com/en-us/cpp/c-language/c-bit-fields?view=msvc-160
                               // https://docs.microsoft.com/en-us/cpp/cpp/cpp-bit-fields?view=msvc-160
         Gcc_Clang,            // gcc and clang
-        Gcc_Clang_ARM,        // Like `Gcc_Clang`, except that anonymous and 0-length bit fields contribute
-                              // to the aggregate alignment. Used for 32 & 64 bit ARM targets, except for
-                              // Apple ARM64.
     };
 
     uint8_t crtDestructorsSupported; // Not all platforms support crt_destructor
@@ -80,6 +78,8 @@ struct TargetC
     uint8_t wchar_tsize;         // size of a C 'wchar_t' type
     Runtime runtime;
     BitFieldStyle bitFieldStyle; // different C compilers do it differently
+
+    bool contributesToAggregateAlignment(BitFieldDeclaration *bfd);
 };
 
 struct TargetCPP
