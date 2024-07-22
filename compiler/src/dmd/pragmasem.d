@@ -557,32 +557,19 @@ private uint setMangleOverride(Dsymbol s, const(char)[] sym)
 private bool pragmaMsgSemantic(Loc loc, Scope* sc, Expressions* args)
 {
     import dmd.tokens;
+    import dmd.common.outbuffer;
 
     if (!args)
         return true;
-    foreach (arg; *args)
-    {
-        sc = sc.startCTFE();
-        auto e = arg.expressionSemantic(sc);
-        e = resolveProperties(sc, e);
-        sc = sc.endCTFE();
 
-        // pragma(msg) is allowed to contain types as well as expressions
-        e = ctfeInterpretForPragmaMsg(e);
-        if (e.op == EXP.error)
-        {
-            errorSupplemental(loc, "while evaluating `pragma(msg, %s)`", arg.toChars());
-            return false;
-        }
-        if (auto se = e.toStringExp())
-        {
-            const slice = se.toUTF8(sc).peekString();
-            fprintf(stderr, "%.*s", cast(int)slice.length, slice.ptr);
-        }
-        else
-            fprintf(stderr, "%s", e.toChars());
+    OutBuffer buf;
+    if (expressionsToString(buf, sc, args, loc, "while evaluating `pragma(msg, %s)`", false))
+        return false;
+    else
+    {
+        buf.writestring("\n");
+        fprintf(stderr, buf.extractChars);
     }
-    fprintf(stderr, "\n");
     return true;
 }
 
