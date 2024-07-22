@@ -1891,7 +1891,7 @@ public:
                 // Create a CTFE pointer &val[ofs..ofs+d]
                 auto se = ctfeEmplaceExp!SliceExp(e.loc, val, elwr, eupr);
                 se.type = pointee;
-                emplaceExp!(AddrExp)(pue, e.loc, se, e.type);
+                emplaceExp!AddrExp(pue, e.loc, se, e.type);
                 result = pue.exp();
                 return;
             }
@@ -1904,7 +1904,7 @@ public:
                     // Create a CTFE pointer &var
                     auto ve = ctfeEmplaceExp!VarExp(e.loc, e.var);
                     ve.type = elemtype;
-                    emplaceExp!(AddrExp)(pue, e.loc, ve, e.type);
+                    emplaceExp!AddrExp(pue, e.loc, ve, e.type);
                     result = pue.exp();
                     return;
                 }
@@ -1934,7 +1934,7 @@ public:
                 auto ofs = ctfeEmplaceExp!IntegerExp(e.loc, indx, Type.tsize_t);
                 auto ei = ctfeEmplaceExp!IndexExp(e.loc, aggregate, ofs);
                 ei.type = elemtype;
-                emplaceExp!(AddrExp)(pue, e.loc, ei, e.type);
+                emplaceExp!AddrExp(pue, e.loc, ei, e.type);
                 result = pue.exp();
                 return;
             }
@@ -1944,7 +1944,7 @@ public:
             // Create a CTFE pointer &var
             auto ve = ctfeEmplaceExp!VarExp(e.loc, e.var);
             ve.type = e.var.type;
-            emplaceExp!(AddrExp)(pue, e.loc, ve, e.type);
+            emplaceExp!AddrExp(pue, e.loc, ve, e.type);
             result = pue.exp();
             return;
         }
@@ -1973,7 +1973,7 @@ public:
             if (decl.isDataseg()) {
                 // Normally this is already done by optimize()
                 // Do it here in case optimize(WANTvalue) wasn't run before CTFE
-                emplaceExp!(SymOffExp)(pue, e.loc, e.e1.isVarExp().var, 0);
+                emplaceExp!SymOffExp(pue, e.loc, e.e1.isVarExp().var, 0);
                 result = pue.exp();
                 result.type = e.type;
                 return;
@@ -1988,7 +1988,7 @@ public:
             return;
 
         // Return a simplified address expression
-        emplaceExp!(AddrExp)(pue, e.loc, er, e.type);
+        emplaceExp!AddrExp(pue, e.loc, er, e.type);
         result = pue.exp();
     }
 
@@ -2021,7 +2021,7 @@ public:
         else
         {
             er = (er == pue.exp()) ? pue.copy() : er;
-            emplaceExp!(DelegateExp)(pue, e.loc, er, e.func, false);
+            emplaceExp!DelegateExp(pue, e.loc, er, e.func, false);
             result = pue.exp();
             result.type = e.type;
         }
@@ -2407,7 +2407,7 @@ public:
             ClassDeclaration cd = result.isClassReferenceExp().originalClass();
             assert(cd);
 
-            emplaceExp!(TypeidExp)(pue, e.loc, cd.type);
+            emplaceExp!TypeidExp(pue, e.loc, cd.type);
             result = pue.exp();
             result.type = e.type;
             return;
@@ -2452,7 +2452,7 @@ public:
         if (expsx !is e.exps)
         {
             expandTuples(expsx);
-            emplaceExp!(TupleExp)(pue, e.loc, expsx);
+            emplaceExp!TupleExp(pue, e.loc, expsx);
             result = pue.exp();
             result.type = new TypeTuple(expsx);
         }
@@ -2527,7 +2527,7 @@ public:
                 result = CTFEExp.cantexp;
                 return;
             }
-            emplaceExp!(ArrayLiteralExp)(pue, e.loc, e.type, basis, expsx);
+            emplaceExp!ArrayLiteralExp(pue, e.loc, e.type, basis, expsx);
             auto ale = pue.exp().isArrayLiteralExp();
             ale.ownedByCtfe = OwnedBy.ctfe;
             result = ale;
@@ -2711,7 +2711,7 @@ public:
                 result = CTFEExp.cantexp;
                 return;
             }
-            emplaceExp!(StructLiteralExp)(pue, e.loc, e.sd, expsx);
+            emplaceExp!StructLiteralExp(pue, e.loc, e.sd, expsx);
             auto sle = pue.exp().isStructLiteralExp();
             sle.type = e.type;
             sle.ownedByCtfe = OwnedBy.ctfe;
@@ -2743,7 +2743,7 @@ public:
             auto elements = new Expressions(len);
             foreach (ref element; *elements)
                 element = copyLiteral(elem).copy();
-            emplaceExp!(ArrayLiteralExp)(pue, loc, newtype, elements);
+            emplaceExp!ArrayLiteralExp(pue, loc, newtype, elements);
             auto ae = pue.exp().isArrayLiteralExp();
             ae.ownedByCtfe = OwnedBy.ctfe;
             return ae;
@@ -2818,7 +2818,7 @@ public:
             if (exceptionOrCant(result))
                 return;
             Expression ev = (result == pue.exp()) ? pue.copy() : result;
-            emplaceExp!(AddrExp)(pue, e.loc, ev, e.type);
+            emplaceExp!AddrExp(pue, e.loc, ev, e.type);
             result = pue.exp();
             return;
         }
@@ -2922,7 +2922,7 @@ public:
 
             auto ei = ctfeEmplaceExp!IndexExp(e.loc, ae, ctfeEmplaceExp!IntegerExp(Loc.initial, 0, Type.tsize_t));
             ei.type = e.newtype;
-            emplaceExp!(AddrExp)(pue, e.loc, ei, e.type);
+            emplaceExp!AddrExp(pue, e.loc, ei, e.type);
             result = pue.exp();
             return;
         }
@@ -3163,7 +3163,7 @@ public:
                 result = IntegerExp.createBool(cmp != 0);
             else
             {
-                emplaceExp!(IntegerExp)(pue, e.loc, cmp, e.type);
+                emplaceExp!IntegerExp(pue, e.loc, cmp, e.type);
                 result = (*pue).exp();
             }
             return;
@@ -3191,7 +3191,7 @@ public:
             result = IntegerExp.createBool(cmp);
         else
         {
-            emplaceExp!(IntegerExp)(pue, e.loc, cmp, e.type);
+            emplaceExp!IntegerExp(pue, e.loc, cmp, e.type);
             result = (*pue).exp();
         }
     }
@@ -4561,7 +4561,7 @@ public:
                 (dir1 != dir2 && pointToSameMemoryBlock(agg1, agg3) && pointToSameMemoryBlock(agg2, agg4)))
             {
                 // it's a legal two-sided comparison
-                emplaceExp!(IntegerExp)(pue, e.loc, (e.op == EXP.andAnd) ? 0 : 1, e.type);
+                emplaceExp!IntegerExp(pue, e.loc, e.op == EXP.andAnd ? 0 : 1, e.type);
                 result = pue.exp();
                 return;
             }
@@ -4620,7 +4620,7 @@ public:
             result = interpret(pue, e.e2, istate);
             return;
         }
-        emplaceExp!(IntegerExp)(pue, e.loc, (e.op == EXP.andAnd) ? 0 : 1, e.type);
+        emplaceExp!IntegerExp(pue, e.loc, e.op == EXP.andAnd ? 0 : 1, e.type);
         result = pue.exp();
     }
 
@@ -4681,7 +4681,7 @@ public:
                 result = IntegerExp.createBool(res);
             else
             {
-                emplaceExp!(IntegerExp)(pue, e.loc, res, e.type);
+                emplaceExp!IntegerExp(pue, e.loc, res, e.type);
                 result = pue.exp();
             }
         }
@@ -5162,7 +5162,7 @@ public:
             result = CTFEExp.cantexp;
             return;
         }
-        emplaceExp!(IntegerExp)(pue, e.loc, resolveArrayLength(e1), e.type);
+        emplaceExp!IntegerExp(pue, e.loc, resolveArrayLength(e1), e.type);
         result = pue.exp();
     }
 
@@ -5186,7 +5186,7 @@ public:
                 element = copyLiteral(e.e1).copy();
             auto type = (e.type.ty == Tvector) ? e.type.isTypeVector().basetype : e.type.isTypeSArray();
             assert(type);
-            emplaceExp!(ArrayLiteralExp)(pue, e.loc, type, elements);
+            emplaceExp!ArrayLiteralExp(pue, e.loc, type, elements);
             auto ale = pue.exp().isArrayLiteralExp();
             ale.ownedByCtfe = OwnedBy.ctfe;
             return ale;
@@ -5217,7 +5217,7 @@ public:
         }
         if (e1 == pue.exp())
             e1 = pue.copy();
-        emplaceExp!(VectorExp)(pue, e.loc, e1, e.to);
+        emplaceExp!VectorExp(pue, e.loc, e1, e.to);
         auto ve = pue.exp().isVectorExp();
         ve.type = e.type;
         ve.dim = e.dim;
@@ -5426,7 +5426,7 @@ public:
                 {
                     // if we need a reference, IndexExp shouldn't be interpreting
                     // the expression to a value, it should stay as a reference
-                    emplaceExp!(IndexExp)(pue, e.loc, agg, ctfeEmplaceExp!IntegerExp(e.e2.loc, indexToAccess, e.e2.type));
+                    emplaceExp!IndexExp(pue, e.loc, agg, ctfeEmplaceExp!IntegerExp(e.e2.loc, indexToAccess, e.e2.type));
                     result = pue.exp();
                     result.type = e.type;
                     return;
@@ -5471,7 +5471,7 @@ public:
                     result = e;
                 else
                 {
-                    emplaceExp!(IndexExp)(pue, e.loc, e1, e2);
+                    emplaceExp!IndexExp(pue, e.loc, e1, e2);
                     result = pue.exp();
                     result.type = e.type;
                 }
@@ -5501,7 +5501,7 @@ public:
         if (goal == CTFEGoal.LValue)
         {
             Expression e2 = ctfeEmplaceExp!IntegerExp(e.e2.loc, indexToAccess, Type.tsize_t);
-            emplaceExp!(IndexExp)(pue, e.loc, agg, e2);
+            emplaceExp!IndexExp(pue, e.loc, agg, e2);
             result = pue.exp();
             result.type = e.type;
             return;
@@ -5593,7 +5593,7 @@ public:
                 lwr = ctfeEmplaceExp!IntegerExp(e.loc, ilwr, lwr.type);
                 upr = ctfeEmplaceExp!IntegerExp(e.loc, iupr, upr.type);
             }
-            emplaceExp!(SliceExp)(pue, e.loc, agg, lwr, upr);
+            emplaceExp!SliceExp(pue, e.loc, agg, lwr, upr);
             result = pue.exp();
             result.type = e.type;
             return;
@@ -5694,7 +5694,7 @@ public:
             }
             ilwr += lo1;
             iupr += lo1;
-            emplaceExp!(SliceExp)(pue, e.loc, se.e1,
+            emplaceExp!SliceExp(pue, e.loc, se.e1,
                 ctfeEmplaceExp!IntegerExp(e.loc, ilwr, lwr.type),
                 ctfeEmplaceExp!IntegerExp(e.loc, iupr, upr.type));
             result = pue.exp();
@@ -5710,7 +5710,7 @@ public:
                 return;
             }
         }
-        emplaceExp!(SliceExp)(pue, e.loc, e1, lwr, upr);
+        emplaceExp!SliceExp(pue, e.loc, e1, lwr, upr);
         result = pue.exp();
         result.type = e.type;
     }
@@ -5729,7 +5729,7 @@ public:
             return;
         if (e2.op == EXP.null_)
         {
-            emplaceExp!(NullExp)(pue, e.loc, e.type);
+            emplaceExp!NullExp(pue, e.loc, e.type);
             result = pue.exp();
             return;
         }
@@ -5746,7 +5746,7 @@ public:
             return;
         if (!result)
         {
-            emplaceExp!(NullExp)(pue, e.loc, e.type);
+            emplaceExp!NullExp(pue, e.loc, e.type);
             result = pue.exp();
         }
         else
@@ -5754,7 +5754,7 @@ public:
             // Create a CTFE pointer &aa[index]
             result = ctfeEmplaceExp!IndexExp(e.loc, e2, e1);
             result.type = e.type.nextOf();
-            emplaceExp!(AddrExp)(pue, e.loc, result, e.type);
+            emplaceExp!AddrExp(pue, e.loc, result, e.type);
             result = pue.exp();
         }
     }
@@ -5968,7 +5968,7 @@ public:
                 // Create a CTFE pointer &aggregate[1..2]
                 auto ei = ctfeEmplaceExp!IndexExp(e.loc, se.e1, se.lwr);
                 ei.type = e.type.nextOf();
-                emplaceExp!(AddrExp)(pue, e.loc, ei, e.type);
+                emplaceExp!AddrExp(pue, e.loc, ei, e.type);
                 result = pue.exp();
                 return;
             }
@@ -5977,7 +5977,7 @@ public:
                 // Create a CTFE pointer &[1,2,3][0] or &"abc"[0]
                 auto ei = ctfeEmplaceExp!IndexExp(e.loc, e1, ctfeEmplaceExp!IntegerExp(e.loc, 0, Type.tsize_t));
                 ei.type = e.type.nextOf();
-                emplaceExp!(AddrExp)(pue, e.loc, ei, e.type);
+                emplaceExp!AddrExp(pue, e.loc, ei, e.type);
                 result = pue.exp();
                 return;
             }
@@ -6014,7 +6014,7 @@ public:
                         return;
                     }
                 }
-                emplaceExp!(IndexExp)(pue, e1.loc, ie.e1, ie.e2);
+                emplaceExp!IndexExp(pue, e1.loc, ie.e1, ie.e2);
                 result = pue.exp();
                 result.type = e.type;
                 return;
@@ -6025,7 +6025,7 @@ public:
                 Type origType = ae.e1.type;
                 if (isSafePointerCast(origType, pointee))
                 {
-                    emplaceExp!(AddrExp)(pue, e.loc, ae.e1, e.type);
+                    emplaceExp!AddrExp(pue, e.loc, ae.e1, e.type);
                     result = pue.exp();
                     return;
                 }
@@ -6041,7 +6041,7 @@ public:
                     // Create a CTFE pointer &val[idx..idx+dim]
                     auto er = ctfeEmplaceExp!SliceExp(e.loc, ie.e1, lwr, upr);
                     er.type = pointee;
-                    emplaceExp!(AddrExp)(pue, e.loc, er, e.type);
+                    emplaceExp!AddrExp(pue, e.loc, er, e.type);
                     result = pue.exp();
                     return;
                 }
@@ -6058,9 +6058,9 @@ public:
                     return;
                 }
                 if (auto ve = e1.isVarExp())
-                    emplaceExp!(VarExp)(pue, e.loc, ve.var);
+                    emplaceExp!VarExp(pue, e.loc, ve.var);
                 else
-                    emplaceExp!(SymOffExp)(pue, e.loc, e1.isSymOffExp().var, e1.isSymOffExp().offset);
+                    emplaceExp!SymOffExp(pue, e.loc, e1.isSymOffExp().var, e1.isSymOffExp().offset);
                 result = pue.exp();
                 result.type = e.to;
                 return;
@@ -6095,7 +6095,7 @@ public:
                 result = CTFEExp.cantexp;
                 return;
             }
-            emplaceExp!(SliceExp)(pue, e1.loc, se.e1, se.lwr, se.upr);
+            emplaceExp!SliceExp(pue, e1.loc, se.e1, se.lwr, se.upr);
             result = pue.exp();
             result.type = e.to;
             return;
@@ -6119,7 +6119,7 @@ public:
                 }
 
                 auto str = arrayCastBigEndian(se.peekData(), sz);
-                emplaceExp!(StringExp)(pue, e1.loc, str, se.len / sz, cast(ubyte) sz);
+                emplaceExp!StringExp(pue, e1.loc, str, se.len / sz, cast(ubyte) sz);
                 result = pue.exp();
                 result.type = e.to;
                 return;
@@ -6138,16 +6138,16 @@ public:
         auto tobt = e.to.toBasetype();
         if (tobt.ty == Tbool && e1.type.ty == Tpointer)
         {
-            emplaceExp!(IntegerExp)(pue, e.loc, e1.op != EXP.null_, e.to);
+            emplaceExp!IntegerExp(pue, e.loc, e1.op != EXP.null_, e.to);
             result = pue.exp();
             return;
         }
         else if (tobt.isTypeBasic() && e1.op == EXP.null_)
         {
             if (tobt.isintegral())
-                emplaceExp!(IntegerExp)(pue, e.loc, 0, e.to);
+                emplaceExp!IntegerExp(pue, e.loc, 0, e.to);
             else if (tobt.isreal())
-                emplaceExp!(RealExp)(pue, e.loc, CTFloat.zero, e.to);
+                emplaceExp!RealExp(pue, e.loc, CTFloat.zero, e.to);
             result = pue.exp();
             return;
         }
@@ -6347,7 +6347,7 @@ public:
                 result = e; // optimize: reuse this CTFE reference
             else
             {
-                emplaceExp!(DotVarExp)(pue, e.loc, ex, f, false);
+                emplaceExp!DotVarExp(pue, e.loc, ex, f, false);
                 result = pue.exp();
                 result.type = e.type;
             }
@@ -6429,7 +6429,7 @@ public:
                 result = e;
             else
             {
-                emplaceExp!(DotVarExp)(pue, e.loc, ex, v);
+                emplaceExp!DotVarExp(pue, e.loc, ex, v);
                 result = pue.exp();
                 result.type = e.type;
             }
@@ -7154,7 +7154,7 @@ private Expression interpret_length(UnionExp* pue, InterState* istate, Expressio
         len = aae.keys.length;
     else
         assert(earg.op == EXP.null_);
-    emplaceExp!(IntegerExp)(pue, earg.loc, len, Type.tsize_t);
+    emplaceExp!IntegerExp(pue, earg.loc, len, Type.tsize_t);
     return pue.exp();
 }
 
@@ -7169,7 +7169,7 @@ private Expression interpret_keys(UnionExp* pue, InterState* istate, Expression 
         return earg;
     if (earg.op == EXP.null_)
     {
-        emplaceExp!(NullExp)(pue, earg.loc, earg.type);
+        emplaceExp!NullExp(pue, earg.loc, earg.type);
         return pue.exp();
     }
     if (earg.op != EXP.assocArrayLiteral && earg.type.toBasetype().ty != Taarray)
@@ -7192,7 +7192,7 @@ private Expression interpret_values(UnionExp* pue, InterState* istate, Expressio
         return earg;
     if (earg.op == EXP.null_)
     {
-        emplaceExp!(NullExp)(pue, earg.loc, earg.type);
+        emplaceExp!NullExp(pue, earg.loc, earg.type);
         return pue.exp();
     }
     if (earg.op != EXP.assocArrayLiteral && earg.type.toBasetype().ty != Taarray)
@@ -7216,7 +7216,7 @@ private Expression interpret_dup(UnionExp* pue, InterState* istate, Expression e
         return earg;
     if (earg.op == EXP.null_)
     {
-        emplaceExp!(NullExp)(pue, earg.loc, earg.type);
+        emplaceExp!NullExp(pue, earg.loc, earg.type);
         return pue.exp();
     }
     if (earg.op != EXP.assocArrayLiteral && earg.type.toBasetype().ty != Taarray)
@@ -7242,7 +7242,7 @@ private Expression interpret_aaApply(UnionExp* pue, InterState* istate, Expressi
         return aa;
     if (aa.op != EXP.assocArrayLiteral)
     {
-        emplaceExp!(IntegerExp)(pue, deleg.loc, 0, Type.tsize_t);
+        emplaceExp!IntegerExp(pue, deleg.loc, 0, Type.tsize_t);
         return pue.exp();
     }
 
@@ -7353,7 +7353,7 @@ private Expression foreachApplyUtf(UnionExp* pue, InterState* istate, Expression
     size_t len = cast(size_t)resolveArrayLength(str);
     if (len == 0)
     {
-        emplaceExp!(IntegerExp)(pue, deleg.loc, 0, indexType);
+        emplaceExp!IntegerExp(pue, deleg.loc, 0, indexType);
         return pue.exp();
     }
 

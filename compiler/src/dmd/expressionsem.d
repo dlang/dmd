@@ -172,7 +172,7 @@ bool expressionsToString(ref OutBuffer buf, Scope* sc, Expressions* exps)
         // char literals exp `.toStringExp` return `null` but we cant override it
         // because in most contexts we don't want the conversion to succeed.
         IntegerExp ie = e4.isIntegerExp();
-        const ty = (ie && ie.type) ? ie.type.ty : Terror;
+        const ty = ie && ie.type ? ie.type.ty : Terror;
         if (ty.isSomeChar)
         {
             auto tsa = new TypeSArray(ie.type, IntegerExp.literal!1);

@@ -2168,7 +2168,7 @@ void cdcom(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
     }
     tym_t tym = tybasic(e.Ety);
     int sz = _tysize[tym];
-    uint rex = (I64 && sz == 8) ? REX_W : 0;
+    uint rex = I64 && sz == 8 ? REX_W : 0;
     regm_t possregs = (sz == 1) ? BYTEREGS : cgstate.allregs;
     regm_t retregs = *pretregs & possregs;
     if (retregs == 0)
