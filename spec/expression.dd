@@ -2143,7 +2143,9 @@ $(GNAME ArrayLiteral):
         are inserted as expressions in place of the sequence.
     )
 
-    $(P Escaping array literals are allocated on the memory managed heap.
+$(H4 $(LNAME2 array-literal-heap, GC Allocation))
+
+    $(P Escaping array literals are always allocated on the memory managed heap.
         Thus, they can be returned safely from functions:)
 
         ---
@@ -2152,6 +2154,36 @@ $(GNAME ArrayLiteral):
             return [1, 2, 3];
         }
         ---
+
+    $(P An array literal is not GC allocated if:)
+
+    * It initializes or assigns to a static array.
+    * It initializes a $(DDSUBLINK spec/attribute, scope, `scope`) slice.
+    * It is used on one side of a $(GLINK EqualExpression) or $(GLINK RelExpression).
+    * It is immediately $(RELATIVE_LINK2 index_operations, indexed) and used as an rvalue.
+    * It is used as a `foreach` aggregate where the element variable is not `ref`.
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    void f(scope int[] a, int[2] sa) @nogc
+    {
+        sa = [7, 8];
+    }
+    void g(int[] b) @nogc; // `b` is not scope, so may escape
+
+    void main() @nogc
+    {
+        int[3] sa = [1, 2, 3];
+        f([1, 2], [3, 4]);
+        //scope int[] a = [5, 6]; // requires `-preview=dip1000`
+        //g([1, 2]); // error, array literal heap allocated
+        assert([1, 2] < [3, 2]);
+        assert([1, 2][1] == 2);
+        foreach (e; [4, 2, 9])
+            assert(e > 0);
+    }
+    ---
+    )
 
 $(H4 $(LNAME2 cast_array_literal, Casting))
 

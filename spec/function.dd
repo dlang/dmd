@@ -3723,16 +3723,17 @@ $(H2 $(LNAME2 nogc-functions, No-GC Functions))
         )
 
         $(OL
-        $(LI $(DDSUBLINK spec/expression, ArrayLiteral, constructing an array) on the heap)
+        $(LI $(DDSUBLINK spec/expression, array-literal-heap, constructing an array) on the heap)
         $(LI resizing an array by writing to its $(D .length) property)
         $(LI $(DDSUBLINK spec/expression, CatExpression, array concatenation))
         $(LI $(DDSUBLINK spec/expression, simple_assignment_expressions, array appending))
         $(LI $(DDSUBLINK spec/expression, AssocArrayLiteral, constructing an associative array))
         $(LI $(DDSUBLINK spec/expression, IndexOperation, indexing) an associative array
-            $(NOTE because it may throw $(D RangeError) if the specified key is not present))
+            $(RATIONALE Indexing may throw a $(D RangeError) if the specified key is not present.))
         $(LI $(DDSUBLINK spec/expression, NewExpression, allocating an object with `new`) on the heap
-            $(NOTE `new` declarations of $(D class types) in function scopes are compatible with
-            $(D @nogc) if used for $(D scope) variables, as they result in allocations on the stack))
+            $(NOTE `new` declarations of $(D class) types in function scopes are compatible with
+            $(D @nogc) if used to initialize a $(DDSUBLINK spec/attribute, scope-class-var, $(D scope) variable),
+            as they result in allocations on the stack.))
         $(LI calling functions that are not `@nogc`, unless the call is
             in a $(GLINK2 version, ConditionalStatement)
             controlled by a $(GLINK2 version, DebugCondition))
