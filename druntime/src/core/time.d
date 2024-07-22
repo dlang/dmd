@@ -3356,10 +3356,10 @@ deprecated:
         {
             T t1 = TickDuration.currSystemTick;
             T t2 = t1 + t1;
-            assert((t2 / 2 == t1) == true);
+            assert(t2 / 2 == t1);
             immutable tol = TickDuration(cast(long)(_abs(t2.length) * double.epsilon / 2.0));
             assertApprox(t2 / 2.0, t1 - tol, t1 + tol);
-            assert((t2 / 2.1 < t1) == true);
+            assert(t2 / 2.1 < t1);
 
             _assertThrownDep!TimeException(t2 / 0);
         }
