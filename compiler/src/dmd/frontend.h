@@ -5892,7 +5892,6 @@ struct TargetC final
         Unspecified = 0u,
         MS = 1u,
         Gcc_Clang = 2u,
-        Gcc_Clang_ARM = 3u,
     };
 
     bool crtDestructorsSupported;
@@ -5905,6 +5904,7 @@ struct TargetC final
     uint8_t wchar_tsize;
     Runtime runtime;
     BitFieldStyle bitFieldStyle;
+    bool contributesToAggregateAlignment(BitFieldDeclaration* bfd);
     TargetC() :
         crtDestructorsSupported(true),
         boolsize(),
