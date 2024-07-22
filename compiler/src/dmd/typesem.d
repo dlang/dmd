@@ -7853,7 +7853,7 @@ Expression getMaxMinValue(EnumDeclaration ed, const ref Loc loc, Identifier id)
 RootObject compileTypeMixin(TypeMixin tm, ref const Loc loc, Scope* sc)
 {
     OutBuffer buf;
-    if (expressionsToString(buf, sc, tm.exps))
+    if (expressionsToString(buf, sc, tm.exps, tm.loc, null, true))
         return null;
 
     const errors = global.errors;
