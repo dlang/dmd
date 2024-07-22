@@ -1360,6 +1360,8 @@ extern (C++) struct Target
  */
 struct TargetC
 {
+    import dmd.declaration : BitFieldDeclaration;
+
     enum Runtime : ubyte
     {
         Unspecified,
@@ -1379,9 +1381,6 @@ struct TargetC
                               /// https://docs.microsoft.com/en-us/cpp/c-language/c-bit-fields?view=msvc-160
                               /// https://docs.microsoft.com/en-us/cpp/cpp/cpp-bit-fields?view=msvc-160
         Gcc_Clang,            /// gcc and clang
-        Gcc_Clang_ARM,        /// Like `Gcc_Clang`, except that anonymous and 0-length bit fields contribute
-                              /// to the aggregate alignment. Used for 32 & 64 bit ARM targets, except for
-                              /// Apple ARM64.
     }
     bool  crtDestructorsSupported = true; /// Not all platforms support crt_destructor
     ubyte boolsize;           /// size of a C `_Bool` type
@@ -1451,6 +1450,24 @@ struct TargetC
         {
             crtDestructorsSupported = false;
         }
+    }
+
+    /**
+     * Indicates whether the specified bit-field contributes to the alignment
+     * of the containing aggregate.
+     * E.g., (not all) ARM ABIs do NOT ignore anonymous (incl. 0-length)
+     * bit-fields.
+     */
+    extern (C++) bool contributesToAggregateAlignment(BitFieldDeclaration bfd)
+    {
+        if (bitFieldStyle == BitFieldStyle.MS)
+            return true;
+        if (bitFieldStyle == BitFieldStyle.Gcc_Clang)
+        {
+            // sufficient for DMD's currently supported architectures
+            return !bfd.isAnonymous();
+        }
+        assert(0);
     }
 }
 

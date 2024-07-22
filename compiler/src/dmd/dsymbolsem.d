@@ -7186,15 +7186,11 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
             error(bfd.loc, "bit field width %d is larger than type", bfd.fieldWidth);
 
         const style = target.c.bitFieldStyle;
-        if (style != TargetC.BitFieldStyle.MS &&
-            style != TargetC.BitFieldStyle.Gcc_Clang &&
-            style != TargetC.BitFieldStyle.Gcc_Clang_ARM)
-        {
+        if (style != TargetC.BitFieldStyle.MS && style != TargetC.BitFieldStyle.Gcc_Clang)
             assert(0, "unsupported bit-field style");
-        }
 
         const isMicrosoftStyle = style == TargetC.BitFieldStyle.MS;
-        const contributesToAggregateAlignment = !anon || style != TargetC.BitFieldStyle.Gcc_Clang;
+        const contributesToAggregateAlignment = target.c.contributesToAggregateAlignment(bfd);
 
         void startNewField()
         {
