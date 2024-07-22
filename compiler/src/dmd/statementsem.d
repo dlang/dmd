@@ -4803,7 +4803,7 @@ private Statements* flatten(Statement statement, Scope* sc)
 
 
             OutBuffer buf;
-            if (expressionsToString(buf, sc, cs.exps))
+            if (expressionsToString(buf, sc, cs.exps, cs.loc, null, true))
                 return errorStatements();
 
             const errors = global.errors;
