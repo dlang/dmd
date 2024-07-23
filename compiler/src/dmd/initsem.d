@@ -1107,12 +1107,14 @@ Initializer inferType(Initializer init, Scope* sc)
             for (size_t i = 0; i < init.value.length; i++)
             {
                 Expression e = init.index[i];
-                if (!e)
-                    goto Lno;
+                assert(e); // enforced by isAssociativeArray()
                 (*keys)[i] = e;
                 Initializer iz = init.value[i];
                 if (!iz)
-                    goto Lno;
+                {
+                    error(init.loc, "not an associative array initializer");
+                    return new ErrorInitializer();
+                }
                 iz = iz.inferType(sc);
                 if (iz.isErrorInitializer())
                 {
@@ -1127,36 +1129,10 @@ Initializer inferType(Initializer init, Scope* sc)
         }
         else
         {
-            auto elements = new Expressions(init.value.length);
-            elements.zero();
-            for (size_t i = 0; i < init.value.length; i++)
-            {
-                assert(!init.index[i]); // already asserted by isAssociativeArray()
-                Initializer iz = init.value[i];
-                if (!iz)
-                    goto Lno;
-                iz = iz.inferType(sc);
-                if (iz.isErrorInitializer())
-                {
-                    return iz;
-                }
-                (*elements)[i] = iz.isExpInitializer().exp;
-                assert(!(*elements)[i].isErrorExp());
-            }
-            Expression e = new ArrayLiteralExp(init.loc, null, elements);
+            Expression e = initializerToExpression(init);
             auto ei = new ExpInitializer(init.loc, e);
             return ei.inferType(sc);
         }
-    Lno:
-        if (keys)
-        {
-            error(init.loc, "not an associative array initializer");
-        }
-        else
-        {
-            error(init.loc, "cannot infer type from array initializer");
-        }
-        return new ErrorInitializer();
     }
 
     Initializer visitExp(ExpInitializer init)
