@@ -121,11 +121,11 @@ regm_t idxregm(const code* c)
  */
 
 @trusted
-void opdouble(ref CodeBuilder cdb, elem *e,regm_t *pretregs,uint clib)
+void opdouble(ref CodeBuilder cdb, elem *e,ref regm_t pretregs,uint clib)
 {
     if (config.inline8087)
     {
-        orth87(cdb,e,*pretregs);
+        orth87(cdb,e,pretregs);
         return;
     }
 
@@ -154,7 +154,7 @@ void opdouble(ref CodeBuilder cdb, elem *e,regm_t *pretregs,uint clib)
     scodelem(cgstate,cdb,e.E2, retregs2, retregs1 & ~mSTACK, false);
     if (retregs1 & mSTACK)
         cgstate.stackclean--;
-    callclib(cdb, e, clib, *pretregs, 0);
+    callclib(cdb, e, clib, pretregs, 0);
 }
 
 /*****************************
@@ -198,7 +198,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         }
         if (config.exe & EX_windos)
         {
-            opdouble(cdb,e,pretregs,(e.Eoper == OPadd) ? CLIB.dadd
+            opdouble(cdb,e,*pretregs,(e.Eoper == OPadd) ? CLIB.dadd
                                                        : CLIB.dsub);
             return;
         }
@@ -918,7 +918,7 @@ void cdmul(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         if (config.exe & EX_posix)
             orth87(cdb,e,*pretregs);
         else
-            opdouble(cdb,e,pretregs,(oper == OPmul) ? CLIB.dmul : CLIB.ddiv);
+            opdouble(cdb,e,*pretregs,(oper == OPmul) ? CLIB.dmul : CLIB.ddiv);
 
         return;
     }
@@ -1304,7 +1304,7 @@ void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
         if (config.exe & EX_posix)
             orth87(cdb,e,*pretregs);
         else
-            opdouble(cdb,e,pretregs,(oper == OPmul) ? CLIB.dmul : CLIB.ddiv);
+            opdouble(cdb,e,*pretregs,(oper == OPmul) ? CLIB.dmul : CLIB.ddiv);
 
         return;
     }
