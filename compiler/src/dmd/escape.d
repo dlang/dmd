@@ -1306,16 +1306,10 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
         Dsymbol p = v.toParent2();
 
         // https://issues.dlang.org/show_bug.cgi?id=19965
-        if (!refs)
+        if (!refs && checkScopeVarAddr(v, e, sc, gag))
         {
-            if (sc.func.vthis == v)
-                notMaybeScope(v, e);
-
-            if (checkScopeVarAddr(v, e, sc, gag))
-            {
-                result = true;
-                return;
-            }
+            result = true;
+            return;
         }
 
         if (!v.isReference())
