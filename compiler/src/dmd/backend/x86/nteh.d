@@ -475,7 +475,7 @@ void nteh_gensindex(ref CodeBuilder cdb, int sindex)
  */
 
 @trusted
-void cdsetjmp(ref CGstate cg, ref CodeBuilder cdb, elem *e,regm_t *pretregs)
+void cdsetjmp(ref CGstate cg, ref CodeBuilder cdb, elem *e,ref regm_t pretregs)
 {
     code cs;
     regm_t retregs;
@@ -547,7 +547,7 @@ void cdsetjmp(ref CGstate cg, ref CodeBuilder cdb, elem *e,regm_t *pretregs)
 
     cgstate.stackpush = stackpushsave;
     retregs = regmask(e.Ety, TYnfunc);
-    fixresult(cdb,e,retregs,*pretregs);
+    fixresult(cdb,e,retregs,pretregs);
 }
 
 /****************************************
