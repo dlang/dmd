@@ -1239,11 +1239,9 @@ public:
     void scanVar(Dsymbol s)
     {
         //printf("scanVar(%s %s)\n", s.kind(), s.toPrettyChars());
-        VarDeclaration vd = s.isVarDeclaration();
-        if (vd)
+        if (VarDeclaration vd = s.isVarDeclaration())
         {
-            TupleDeclaration td = vd.toAlias().isTupleDeclaration();
-            if (td)
+            if (TupleDeclaration td = vd.toAlias().isTupleDeclaration())
             {
                 td.foreachVar((s)
                 {

@@ -154,7 +154,7 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
 
     /* Calculate TemplateParameter.dependent
      */
-    TemplateParameters tparams = TemplateParameters(1);
+    auto tparams = TemplateParameters(1);
     for (size_t i = 0; i < tempdecl.parameters.length; i++)
     {
         TemplateParameter tp = (*tempdecl.parameters)[i];

@@ -353,8 +353,7 @@ extern (C++) abstract class Declaration : Dsymbol
         // is an overload in the overload set that isn't
         if (isAliasedDeclaration)
         {
-            FuncDeclaration fd = isFuncDeclaration();
-            if (fd)
+            if (FuncDeclaration fd = isFuncDeclaration())
             {
                 for (FuncDeclaration ovl = fd; ovl; ovl = cast(FuncDeclaration)ovl.overnext)
                     if (!(ovl.storage_class & STC.disable))
@@ -1137,7 +1136,6 @@ extern (C++) class VarDeclaration : Declaration
     VarDeclaration lastVar;         // Linked list of variables for goto-skips-init detection
     Expression edtor;               // if !=null, does the destruction of the variable
     IntRange* range;                // if !=null, the variable is known to be within the range
-    VarDeclarations* maybes;        // maybeScope variables that are assigned to this maybeScope variable
 
     uint endlinnum;                 // line number of end of scope that this var lives in
     uint offset;
@@ -1239,8 +1237,7 @@ extern (C++) class VarDeclaration : Declaration
              */
             for (auto s = cast(Dsymbol)this; s; s = s.parent)
             {
-                auto ad = (cast(inout)s).isMember();
-                if (ad)
+                if (auto ad = (cast(inout)s).isMember())
                     return ad;
                 if (!s.parent || !s.parent.isTemplateMixin())
                     break;

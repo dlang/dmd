@@ -64,7 +64,7 @@ debug
     printf("symbol '%s'\n ", s.Sident.ptr);
     printf(" Sclass = %s ", class_str(s.Sclass));
     printf(" Ssymnum = %d",cast(int)s.Ssymnum);
-    printf(" Sfl = "); WRFL(cast(FL) s.Sfl);
+    printf(" Sfl = %s", fl_str(cast(FL) s.Sfl));
     printf(" Sseg = %d\n",s.Sseg);
 //  printf(" Ssize   = x%02x\n",s.Ssize);
     printf(" Soffset = x%04llx",cast(ulong)s.Soffset);
@@ -362,7 +362,7 @@ void symbol_func(ref Symbol s)
     // Interrupt functions modify all registers
     // BUG: do interrupt functions really save BP?
     // Note that fregsaved may not be set yet
-    s.Sregsaved = (s.Stype && tybasic(s.Stype.Tty) == TYifunc) ? cast(regm_t) mBP : fregsaved;
+    s.Sregsaved = s.Stype && tybasic(s.Stype.Tty) == TYifunc ? cast(regm_t) mBP : fregsaved;
     s.Sseg = UNKNOWN;          // don't know what segment it is in
     if (!s.Sfunc)
         s.Sfunc = func_calloc();

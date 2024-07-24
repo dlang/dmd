@@ -947,8 +947,7 @@ int actionTableLookup(_Unwind_Exception* exceptionObject, uint actionRecordPtr, 
             {
                 // sti is catch clause type_info
                 auto sti = cast(CppTypeInfo)((cast(__cpp_type_info_ptr)cast(void*)ci).ptr);
-                auto p = getCppPtrToThrownObject(exceptionObject, sti);
-                if (p) // if found
+                if (auto p = getCppPtrToThrownObject(exceptionObject, sti)) // if found
                 {
                     auto eh = CppExceptionHeader.toExceptionHeader(exceptionObject);
                     eh.thrownPtr = p;                   // for __cxa_begin_catch()

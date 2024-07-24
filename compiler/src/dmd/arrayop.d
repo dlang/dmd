@@ -16,6 +16,7 @@ module dmd.arrayop;
 import core.stdc.stdio;
 import dmd.arraytypes;
 import dmd.astenums;
+import dmd.dcast : implicitConvTo;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.dsymbol;
@@ -286,9 +287,8 @@ bool isUnaArrayOp(EXP op) @safe
     case EXP.tilde:
         return true;
     default:
-        break;
+        return false;
     }
-    return false;
 }
 
 /***********************************************
@@ -309,9 +309,8 @@ bool isBinArrayOp(EXP op) @safe
     case EXP.pow:
         return true;
     default:
-        break;
+        return false;
     }
-    return false;
 }
 
 /***********************************************
@@ -332,9 +331,8 @@ bool isBinAssignArrayOp(EXP op) @safe
     case EXP.powAssign:
         return true;
     default:
-        break;
+        return false;
     }
-    return false;
 }
 
 /***********************************************

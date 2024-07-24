@@ -119,7 +119,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         sc.tinst = tempinst;
         sc.minst = tempinst.minst;
 
-        int needGagging = (tempinst.gagged && !global.gag);
+        bool needGagging = tempinst.gagged && !global.gag;
         uint olderrors = global.errors;
         int oldGaggedErrors = -1; // dead-store to prevent spurious warning
         /* If this is a gagged instantiation, gag errors.
@@ -543,8 +543,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             Statement fpreinv = null;
             if (funcdecl.addPreInvariant())
             {
-                Expression e = addInvariant(funcdecl.isThis(), funcdecl.vthis);
-                if (e)
+                if (Expression e = addInvariant(funcdecl.isThis(), funcdecl.vthis))
                     fpreinv = new ExpStatement(Loc.initial, e);
             }
 
@@ -552,8 +551,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             Statement fpostinv = null;
             if (funcdecl.addPostInvariant())
             {
-                Expression e = addInvariant(funcdecl.isThis(), funcdecl.vthis);
-                if (e)
+                if (Expression e = addInvariant(funcdecl.isThis(), funcdecl.vthis))
                     fpostinv = new ExpStatement(Loc.initial, e);
             }
 
@@ -1212,8 +1210,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 {
                     /* Wrap the entire function body in a synchronized statement
                      */
-                    ClassDeclaration cd = funcdecl.toParentDecl().isClassDeclaration();
-                    if (cd)
+                    if (ClassDeclaration cd = funcdecl.toParentDecl().isClassDeclaration())
                     {
                         if (target.libraryObjectMonitors(funcdecl, sbody))
                         {

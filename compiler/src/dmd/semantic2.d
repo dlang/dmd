@@ -118,43 +118,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
         else if (result)
             return;
 
-        if (sa.msgs)
-        {
-            OutBuffer msgbuf;
-            for (size_t i = 0; i < sa.msgs.length; i++)
-            {
-                Expression e = (*sa.msgs)[i];
-                sc = sc.startCTFE();
-                e = e.expressionSemantic(sc);
-                e = resolveProperties(sc, e);
-                sc = sc.endCTFE();
-                e = ctfeInterpretForPragmaMsg(e);
-                if (e.op == EXP.error)
-                {
-                    errorSupplemental(sa.loc, "while evaluating `static assert` argument `%s`", (*sa.msgs)[i].toChars());
-                    return;
-                }
-                StringExp se = e.toStringExp();
-                if (se)
-                {
-                    const slice = se.toUTF8(sc).peekString();
-                    // Hack to keep old formatting to avoid changing error messages everywhere
-                    if (sa.msgs.length == 1)
-                        msgbuf.printf("\"%.*s\"", cast(int)slice.length, slice.ptr);
-                    else
-                        msgbuf.printf("%.*s", cast(int)slice.length, slice.ptr);
-                }
-                else
-                    msgbuf.printf("%s", e.toChars());
-            }
-            error(sa.loc, "static assert:  %s", msgbuf.extractChars());
-        }
-        else
-            error(sa.loc, "static assert:  `%s` is false", sa.exp.toChars());
-        if (sc.tinst)
-            sc.tinst.printInstantiationTrace();
-        if (!global.gag)
-            fatal();
+        staticAssertFail(sa, sc);
     }
 
     override void visit(TemplateInstance tempinst)
@@ -315,7 +279,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                         return arrayHasInvalidEnumInitializer((cast(StructLiteralExp)e).elements);
                     if (e.op == EXP.assocArrayLiteral)
                     {
-                        AssocArrayLiteralExp ae = cast(AssocArrayLiteralExp)e;
+                        auto ae = cast(AssocArrayLiteralExp)e;
                         return arrayHasInvalidEnumInitializer(ae.values) ||
                                arrayHasInvalidEnumInitializer(ae.keys);
                     }
@@ -330,7 +294,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
         {
             // Cannot initialize a thread-local class or pointer to struct variable with a literal
             // that itself is a thread-local reference and would need dynamic initialization also.
-            if ((vd.type.ty == Tclass) && vd.type.isMutable() && !vd.type.isShared())
+            if (vd.type.ty == Tclass && vd.type.isMutable() && !vd.type.isShared())
             {
                 ExpInitializer ei = vd._init.isExpInitializer();
                 if (ei && ei.exp.op == EXP.classReference)
@@ -888,4 +852,59 @@ private extern(C++) final class StaticAAVisitor : SemanticTimeTransitiveVisitor
 
         aaExp.lowering = loweredExp;
     }
+
+    // https://issues.dlang.org/show_bug.cgi?id=24602
+    // TODO: Is this intionally not visited by SemanticTimeTransitiveVisitor?
+    override void visit(ClassReferenceExp crExp)
+    {
+        this.visit(crExp.value);
+    }
+}
+
+/**
+ * Given a static assert with a failing condition, print an error
+ * Params:
+ *   sa = Static assert with failing condition
+ *   sc = scope for evaluating assert message and printing context
+ */
+void staticAssertFail(StaticAssert sa, Scope* sc)
+{
+    if (sa.msgs)
+    {
+        OutBuffer msgbuf;
+        for (size_t i = 0; i < sa.msgs.length; i++)
+        {
+            Expression e = (*sa.msgs)[i];
+            sc = sc.startCTFE();
+            e = e.expressionSemantic(sc);
+            e = resolveProperties(sc, e);
+            sc = sc.endCTFE();
+            e = ctfeInterpretForPragmaMsg(e);
+            if (e.op == EXP.error)
+            {
+                errorSupplemental(sa.loc, "while evaluating `static assert` argument `%s`", (*sa.msgs)[i].toChars());
+                if (!global.gag)
+                    fatal();
+                return;
+            }
+            if (StringExp se = e.toStringExp())
+            {
+                const slice = se.toUTF8(sc).peekString();
+                // Hack to keep old formatting to avoid changing error messages everywhere
+                if (sa.msgs.length == 1)
+                    msgbuf.printf("\"%.*s\"", cast(int)slice.length, slice.ptr);
+                else
+                    msgbuf.printf("%.*s", cast(int)slice.length, slice.ptr);
+            }
+            else
+                msgbuf.printf("%s", e.toChars());
+        }
+        error(sa.loc, "static assert:  %s", msgbuf.extractChars());
+    }
+    else
+        error(sa.loc, "static assert:  `%s` is false", sa.exp.toChars());
+    if (sc.tinst)
+        sc.tinst.printInstantiationTrace();
+    if (!global.gag)
+        fatal();
 }

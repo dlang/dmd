@@ -98,7 +98,7 @@ int REGSIZE() @trusted { return _tysize[TYnptr]; }
 public import dmd.backend.var : debuga, debugb, debugc, debugd, debuge, debugf,
     debugr, debugs, debugt, debugu, debugw, debugx, debugy;
 
-extern (D) uint mask(uint m) { return 1 << m; }
+extern (D) regm_t mask(uint m) { return cast(regm_t)1 << m; }
 
 public import dmd.backend.var : OPTIMIZER, PARSER, globsym, controlc_saw, pointertype, sytab;
 public import dmd.backend.cg : fregsaved, localgot, tls_get_addr_sym;

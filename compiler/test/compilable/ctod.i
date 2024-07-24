@@ -31,6 +31,11 @@ extern (C)
 	{
 		A,
 	}
+	struct S24326
+	{
+		int x = void;
+	}
+	const(S24326) fun(int y);
 	/+enum int __DATE__ = 1+/;
 	/+enum int __TIME__ = 1+/;
 	/+enum int __TIMESTAMP__ = 1+/;
@@ -76,3 +81,7 @@ typedef S T;
 
 // https://issues.dlang.org/show_bug.cgi?id=24326
 enum { A };
+
+// https://issues.dlang.org/show_bug.cgi?id=24670
+struct S24326 { int x; };
+const struct S24326 fun(int y);

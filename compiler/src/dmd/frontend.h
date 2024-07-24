@@ -1826,8 +1826,6 @@ public:
     char* toPrettyChars(bool QualifyTypes = false);
     static void _init();
     static void deinitialize();
-    uinteger_t size();
-    virtual uinteger_t size(const Loc& loc);
     virtual uint32_t alignsize();
     void modToBuffer(OutBuffer& buf) const;
     char* modToChars() const;
@@ -1838,7 +1836,7 @@ public:
     virtual bool iscomplex();
     virtual bool isscalar();
     virtual bool isunsigned();
-    virtual bool isscope();
+    virtual bool isScopeClass();
     virtual bool isString();
     virtual bool isAssignable();
     virtual bool isBoolean();
@@ -1863,13 +1861,10 @@ public:
     virtual Type* makeSharedWildConst();
     virtual Type* makeMutable();
     Type* toBasetype();
-    virtual MATCH implicitConvTo(Type* to);
-    virtual MATCH constConv(Type* to);
     virtual uint8_t deduceWild(Type* t, bool isRef);
     virtual ClassDeclaration* isClassHandle();
     virtual structalign_t alignment();
     virtual Expression* defaultInitLiteral(const Loc& loc);
-    virtual bool isZeroInit(const Loc& loc);
     virtual int32_t hasWild() const;
     virtual bool hasVoidInitPointers();
     virtual bool hasUnsafeBitpatterns();
@@ -4198,7 +4193,6 @@ public:
     Type* makeSharedWild() final override;
     Type* makeSharedWildConst() final override;
     Type* makeMutable() final override;
-    MATCH constConv(Type* to) override;
     uint8_t deduceWild(Type* t, bool isRef) final override;
     void transitive();
     void accept(Visitor* v) override;
@@ -4218,11 +4212,7 @@ public:
     static TypeAArray* create(Type* t, Type* index);
     const char* kind() const override;
     TypeAArray* syntaxCopy() override;
-    uinteger_t size(const Loc& loc) override;
-    bool isZeroInit(const Loc& loc) override;
     bool isBoolean() override;
-    MATCH implicitConvTo(Type* to) override;
-    MATCH constConv(Type* to) override;
     void accept(Visitor* v) override;
 };
 
@@ -4233,7 +4223,6 @@ public:
     uint32_t flags;
     const char* kind() const override;
     TypeBasic* syntaxCopy() override;
-    uinteger_t size(const Loc& loc) override;
     uint32_t alignsize() override;
     bool isintegral() override;
     bool isfloating() override;
@@ -4242,8 +4231,6 @@ public:
     bool iscomplex() override;
     bool isscalar() override;
     bool isunsigned() override;
-    MATCH implicitConvTo(Type* to) override;
-    bool isZeroInit(const Loc& loc) override;
     bool hasUnsafeBitpatterns() override;
     TypeBasic* isTypeBasic() override;
     void accept(Visitor* v) override;
@@ -4266,14 +4253,10 @@ public:
     AliasThisRec att;
     CPPMANGLE cppmangle;
     const char* kind() const override;
-    uinteger_t size(const Loc& loc) override;
     TypeClass* syntaxCopy() override;
     ClassDeclaration* isClassHandle() override;
-    MATCH implicitConvTo(Type* to) override;
-    MATCH constConv(Type* to) override;
     uint8_t deduceWild(Type* t, bool isRef) override;
-    bool isZeroInit(const Loc& loc) override;
-    bool isscope() override;
+    bool isScopeClass() override;
     bool isBoolean() override;
     void accept(Visitor* v) override;
 };
@@ -4283,12 +4266,9 @@ class TypeDArray final : public TypeArray
 public:
     const char* kind() const override;
     TypeDArray* syntaxCopy() override;
-    uinteger_t size(const Loc& loc) override;
     uint32_t alignsize() override;
     bool isString() override;
-    bool isZeroInit(const Loc& loc) override;
     bool isBoolean() override;
-    MATCH implicitConvTo(Type* to) override;
     void accept(Visitor* v) override;
 };
 
@@ -4298,10 +4278,7 @@ public:
     static TypeDelegate* create(TypeFunction* t);
     const char* kind() const override;
     TypeDelegate* syntaxCopy() override;
-    uinteger_t size(const Loc& loc) override;
     uint32_t alignsize() override;
-    MATCH implicitConvTo(Type* to) override;
-    bool isZeroInit(const Loc& loc) override;
     bool isBoolean() override;
     void accept(Visitor* v) override;
 };
@@ -4312,7 +4289,6 @@ public:
     EnumDeclaration* sym;
     const char* kind() const override;
     TypeEnum* syntaxCopy() override;
-    uinteger_t size(const Loc& loc) override;
     Type* memType();
     uint32_t alignsize() override;
     bool isintegral() override;
@@ -4328,9 +4304,6 @@ public:
     bool needsDestruction() override;
     bool needsCopyOrPostblit() override;
     bool needsNested() override;
-    MATCH implicitConvTo(Type* to) override;
-    MATCH constConv(Type* to) override;
-    bool isZeroInit(const Loc& loc) override;
     bool hasVoidInitPointers() override;
     bool hasUnsafeBitpatterns() override;
     bool hasInvariant() override;
@@ -4343,7 +4316,6 @@ class TypeError final : public Type
 public:
     const char* kind() const override;
     TypeError* syntaxCopy() override;
-    uinteger_t size(const Loc& loc) override;
     Expression* defaultInitLiteral(const Loc& loc) override;
     void accept(Visitor* v) override;
 };
@@ -4462,7 +4434,6 @@ public:
     TypeFunction* syntaxCopy() override;
     bool hasLazyParameters();
     bool isDstyleVariadic() const;
-    MATCH constConv(Type* to) override;
     bool iswild() const;
     void accept(Visitor* v) override;
 };
@@ -4473,7 +4444,6 @@ public:
     Loc loc;
     Array<RootObject* > idents;
     TypeQualified* syntaxCopy() override = 0;
-    uinteger_t size(const Loc& loc) override;
     void accept(Visitor* v) override;
 };
 
@@ -4513,10 +4483,7 @@ class TypeNoreturn final : public Type
 public:
     const char* kind() const override;
     TypeNoreturn* syntaxCopy() override;
-    MATCH implicitConvTo(Type* to) override;
-    MATCH constConv(Type* to) override;
     bool isBoolean() override;
-    uinteger_t size(const Loc& loc) override;
     uint32_t alignsize() override;
     void accept(Visitor* v) override;
 };
@@ -4526,9 +4493,7 @@ class TypeNull final : public Type
 public:
     const char* kind() const override;
     TypeNull* syntaxCopy() override;
-    MATCH implicitConvTo(Type* to) override;
     bool isBoolean() override;
-    uinteger_t size(const Loc& loc) override;
     void accept(Visitor* v) override;
 };
 
@@ -4538,11 +4503,7 @@ public:
     static TypePointer* create(Type* t);
     const char* kind() const override;
     TypePointer* syntaxCopy() override;
-    uinteger_t size(const Loc& loc) override;
-    MATCH implicitConvTo(Type* to) override;
-    MATCH constConv(Type* to) override;
     bool isscalar() override;
-    bool isZeroInit(const Loc& loc) override;
     void accept(Visitor* v) override;
 };
 
@@ -4551,8 +4512,6 @@ class TypeReference final : public TypeNext
 public:
     const char* kind() const override;
     TypeReference* syntaxCopy() override;
-    uinteger_t size(const Loc& loc) override;
-    bool isZeroInit(const Loc& loc) override;
     void accept(Visitor* v) override;
 };
 
@@ -4571,13 +4530,9 @@ public:
     const char* kind() const override;
     TypeSArray* syntaxCopy() override;
     bool isIncomplete();
-    uinteger_t size(const Loc& loc) override;
     uint32_t alignsize() override;
     bool isString() override;
-    bool isZeroInit(const Loc& loc) override;
     structalign_t alignment() override;
-    MATCH constConv(Type* to) override;
-    MATCH implicitConvTo(Type* to) override;
     Expression* defaultInitLiteral(const Loc& loc) override;
     bool hasUnsafeBitpatterns() override;
     bool hasVoidInitPointers() override;
@@ -4606,12 +4561,10 @@ public:
     bool inuse;
     static TypeStruct* create(StructDeclaration* sym);
     const char* kind() const override;
-    uinteger_t size(const Loc& loc) override;
     uint32_t alignsize() override;
     TypeStruct* syntaxCopy() override;
     structalign_t alignment() override;
     Expression* defaultInitLiteral(const Loc& loc) override;
-    bool isZeroInit(const Loc& loc) override;
     bool isAssignable() override;
     bool isBoolean() override;
     bool needsDestruction() override;
@@ -4620,8 +4573,6 @@ public:
     bool hasVoidInitPointers() override;
     bool hasUnsafeBitpatterns() override;
     bool hasInvariant() override;
-    MATCH implicitConvTo(Type* to) override;
-    MATCH constConv(Type* to) override;
     uint8_t deduceWild(Type* t, bool isRef) override;
     void accept(Visitor* v) override;
 };
@@ -4651,7 +4602,6 @@ public:
     const char* kind() const override;
     TypeTraits* syntaxCopy() override;
     void accept(Visitor* v) override;
-    uinteger_t size(const Loc& loc) override;
 };
 
 class TypeTuple final : public Type
@@ -4666,7 +4616,6 @@ public:
     const char* kind() const override;
     TypeTuple* syntaxCopy() override;
     bool equals(const RootObject* const o) const override;
-    MATCH implicitConvTo(Type* to) override;
     void accept(Visitor* v) override;
 };
 
@@ -4677,7 +4626,6 @@ public:
     int32_t inuse;
     const char* kind() const override;
     TypeTypeof* syntaxCopy() override;
-    uinteger_t size(const Loc& loc) override;
     void accept(Visitor* v) override;
 };
 
@@ -4688,17 +4636,14 @@ public:
     static TypeVector* create(Type* basetype);
     const char* kind() const override;
     TypeVector* syntaxCopy() override;
-    uinteger_t size(const Loc& loc) override;
     uint32_t alignsize() override;
     bool isintegral() override;
     bool isfloating() override;
     bool isscalar() override;
     bool isunsigned() override;
     bool isBoolean() override;
-    MATCH implicitConvTo(Type* to) override;
     Expression* defaultInitLiteral(const Loc& loc) override;
     TypeBasic* elementType();
-    bool isZeroInit(const Loc& loc) override;
     void accept(Visitor* v) override;
 };
 
@@ -6013,8 +5958,8 @@ struct TargetCPP final
     enum class Runtime : uint8_t
     {
         Unspecified = 0u,
-        Clang = 1u,
-        Gcc = 2u,
+        LLVM = 1u,
+        GNU = 2u,
         Microsoft = 3u,
         Sun = 4u,
     };
@@ -6755,7 +6700,6 @@ public:
     VarDeclaration* lastVar;
     Expression* edtor;
     IntRange* range;
-    Array<VarDeclaration* >* maybes;
     uint32_t endlinnum;
     uint32_t offset;
     uint32_t sequenceNumber;
@@ -7805,6 +7749,7 @@ public:
     void visit(DebugStatement* s) override;
     void visit(ForwardingStatement* s) override;
     void visit(StructLiteralExp* e) override;
+    void visit(ClassReferenceExp* e) override;
     void visit(CompoundLiteralExp* e) override;
     void visit(DotTemplateExp* e) override;
     void visit(DotVarExp* e) override;
@@ -8798,6 +8743,7 @@ struct Id final
     static Identifier* define;
     static Identifier* undef;
     static Identifier* ident;
+    static Identifier* packed;
     static void initialize();
     Id()
     {

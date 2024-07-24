@@ -455,7 +455,7 @@ extern (C++, std)
     {
     }
 
-    version (CppRuntime_Gcc)
+    version (CppRuntime_GNU)
     {
         // https://gcc.gnu.org/onlinedocs/libstdc++/manual/using_dual_abi.html
         static if (__traits(getTargetInfo, "cppStd") >= 201103)

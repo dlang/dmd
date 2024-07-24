@@ -314,6 +314,12 @@ $(DOC_OUTPUT_DIR)/core_thread.html : import/core/thread/package.d $(DMD)
 $(DOC_OUTPUT_DIR)/core_thread_%.html : import/core/thread/%.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
+$(DOC_OUTPUT_DIR)/core_thread_fiber.html : import/core/thread/fiber/package.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
+$(DOC_OUTPUT_DIR)/core_thread_fiber_%.html : import/core/thread/fiber/%.d $(DMD)
+	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
+
 $(DOC_OUTPUT_DIR)/core_builtins.html : import/core/builtins.d $(DMD)
 	$(DMD) $(DDOCFLAGS) -Df$@ project.ddoc $(DOCFMT) $<
 
@@ -421,7 +427,7 @@ HAS_ADDITIONAL_TESTS:=$(shell test -d test && echo 1)
 ifeq ($(HAS_ADDITIONAL_TESTS),1)
     ADDITIONAL_TESTS:=test/init_fini test/exceptions test/coverage test/profile test/cycles test/allocations test/typeinfo \
         test/aa test/cpuid test/gc test/hash test/lifetime test/shared \
-        test/thread test/unittest test/imports test/betterc test/stdcpp test/config test/traits
+        test/thread test/unittest test/imports test/betterc test/stdcpp test/config test/traits test/importc_compare
     ifeq (windows,$(OS))
         ADDITIONAL_TESTS+=test/uuid
     else

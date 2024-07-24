@@ -910,7 +910,7 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     int reverse = tyrevfunc(s.Stype.Tty);
 
     assert(fd.type.ty == Tfunction);
-    TypeFunction tf = cast(TypeFunction)fd.type;
+    auto tf = cast(TypeFunction)fd.type;
     RET retmethod = retStyle(tf, fd.needThis());
     if (retmethod == RET.stack)
     {

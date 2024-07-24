@@ -287,6 +287,18 @@ private bool match(RootObject o1, RootObject o2)
             o1, o1.toChars(), o1.dyncast(), o2, o2.toChars(), o2.dyncast());
     }
 
+    bool yes()
+    {
+        static if (log)
+            printf("\t. match\n");
+        return true;
+    }
+    bool no()
+    {
+        static if (log)
+            printf("\t. nomatch\n");
+        return false;
+    }
     /* A proper implementation of the various equals() overrides
      * should make it possible to just do o1.equals(o2), but
      * we'll do that another day.
@@ -299,7 +311,7 @@ private bool match(RootObject o1, RootObject o2)
     {
         auto t2 = isType(o2);
         if (!t2)
-            goto Lnomatch;
+            return no();
 
         static if (log)
         {
@@ -307,15 +319,15 @@ private bool match(RootObject o1, RootObject o2)
             printf("\tt2 = %s\n", t2.toChars());
         }
         if (!t1.equals(t2))
-            goto Lnomatch;
+            return no();
 
-        goto Lmatch;
+        return yes();
     }
     if (auto e1 = getExpression(o1))
     {
         auto e2 = getExpression(o2);
         if (!e2)
-            goto Lnomatch;
+            return no();
 
         static if (log)
         {
@@ -328,15 +340,15 @@ private bool match(RootObject o1, RootObject o2)
         // as well as expression equality to ensure templates are properly
         // matched.
         if (!(e1.type && e2.type && e1.type.equals(e2.type)) || !e1.equals(e2))
-            goto Lnomatch;
+            return no();
 
-        goto Lmatch;
+        return yes();
     }
     if (auto s1 = isDsymbol(o1))
     {
         auto s2 = isDsymbol(o2);
         if (!s2)
-            goto Lnomatch;
+            return no();
 
         static if (log)
         {
@@ -344,17 +356,17 @@ private bool match(RootObject o1, RootObject o2)
             printf("\ts2 = %s \n", s2.kind(), s2.toChars());
         }
         if (!s1.equals(s2))
-            goto Lnomatch;
+            return no();
         if (s1.parent != s2.parent && !s1.isFuncDeclaration() && !s2.isFuncDeclaration())
-            goto Lnomatch;
+            return no();
 
-        goto Lmatch;
+        return yes();
     }
     if (auto u1 = isTuple(o1))
     {
         auto u2 = isTuple(o2);
         if (!u2)
-            goto Lnomatch;
+            return no();
 
         static if (log)
         {
@@ -362,19 +374,11 @@ private bool match(RootObject o1, RootObject o2)
             printf("\tu2 = %s\n", u2.toChars());
         }
         if (!arrayObjectMatch(u1.objects, u2.objects))
-            goto Lnomatch;
+            return no();
 
-        goto Lmatch;
+        return yes();
     }
-Lmatch:
-    static if (log)
-        printf("\t. match\n");
-    return true;
-
-Lnomatch:
-    static if (log)
-        printf("\t. nomatch\n");
-    return false;
+    return yes();
 }
 
 /************************************
@@ -419,8 +423,7 @@ private size_t arrayObjectHash(ref Objects oa1)
             hash = mixHash(hash, expressionHash(e1));
         else if (auto s1 = isDsymbol(o1))
         {
-            auto fa1 = s1.isFuncAliasDeclaration();
-            if (fa1)
+            if (auto fa1 = s1.isFuncAliasDeclaration())
                 s1 = fa1.toAliasFunc();
             hash = mixHash(hash, mixHash(cast(size_t)cast(void*)s1.getIdent(), cast(size_t)cast(void*)s1.parent));
         }
@@ -1008,17 +1011,17 @@ size_t templateParameterLookup(Type tparam, TemplateParameters* parameters)
     return IDX_NOTFOUND;
 }
 
+private auto X(T, U)(T m, U n)
+{
+    return (m << 4) | n;
+}
+
 ubyte deduceWildHelper(Type t, Type* at, Type tparam)
 {
     if ((tparam.mod & MODFlags.wild) == 0)
         return 0;
 
     *at = null;
-
-    auto X(T, U)(T U, U T)
-    {
-        return (U << 4) | T;
-    }
 
     switch (X(tparam.mod, t.mod))
     {
@@ -1094,12 +1097,6 @@ private Type rawTypeMerge(Type t1, Type t2)
 MATCH deduceTypeHelper(Type t, out Type at, Type tparam)
 {
     // 9*9 == 81 cases
-
-    auto X(T, U)(T U, U T)
-    {
-        return (U << 4) | T;
-    }
-
     switch (X(tparam.mod, t.mod))
     {
     case X(0, 0):
@@ -2553,8 +2550,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
  */
 private void deduceBaseClassParameters(ref BaseClass b, Scope* sc, Type tparam, ref TemplateParameters parameters, ref Objects dedtypes, ref Objects best, ref int numBaseClassMatches)
 {
-    TemplateInstance parti = b.sym ? b.sym.parent.isTemplateInstance() : null;
-    if (parti)
+    if (TemplateInstance parti = b.sym ? b.sym.parent.isTemplateInstance() : null)
     {
         // Make a temporary copy of dedtypes so we don't destroy it
         auto tmpdedtypes = new Objects(dedtypes.length);

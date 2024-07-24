@@ -33,6 +33,7 @@ import dmd.dclass;
 import dmd.dcast;
 import dmd.delegatize;
 import dmd.denum;
+import dmd.deps;
 import dmd.dimport;
 import dmd.dinterpret;
 import dmd.dmangle;
@@ -965,8 +966,7 @@ private Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
     FuncDeclaration f = s.isFuncDeclaration();
     if (f)
     {
-        TemplateDeclaration td = getFuncTemplateDecl(f);
-        if (td)
+        if (TemplateDeclaration td = getFuncTemplateDecl(f))
         {
             if (td.overroot)
                 td = td.overroot;
@@ -3861,8 +3861,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                 if (global.params.fixAliasThis)
                 {
-                    ExpressionDsymbol expDsym = scopesym.isExpressionDsymbol();
-                    if (expDsym)
+                    if (ExpressionDsymbol expDsym = scopesym.isExpressionDsymbol())
                     {
                         //printf("expDsym = %s\n", expDsym.exp.toChars());
                         result = expDsym.exp.expressionSemantic(sc);
@@ -5099,7 +5098,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return;
             }
             else if (sc.needsCodegen() && // interpreter doesn't need this lowered
-                     !exp.onstack && !exp.type.isscope()) // these won't use the GC
+                     !exp.onstack && !exp.type.isScopeClass()) // these won't use the GC
             {
                 /* replace `new T(arguments)` with `core.lifetime._d_newclassT!T(arguments)`
                  * or `_d_newclassTTrace`
@@ -7723,35 +7722,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             const slice = se.peekString();
             message("file      %.*s\t(%s)", cast(int)slice.length, slice.ptr, resolvedNamez.ptr);
         }
-        if (global.params.moduleDeps.buffer !is null)
-        {
-            OutBuffer* ob = global.params.moduleDeps.buffer;
-            Module imod = sc._module;
 
-            if (!global.params.moduleDeps.name)
-                ob.writestring("depsFile ");
-            ob.writestring(imod.toPrettyChars());
-            ob.writestring(" (");
-            escapePath(ob, imod.srcfile.toChars());
-            ob.writestring(") : ");
-            if (global.params.moduleDeps.name)
-                ob.writestring("string : ");
-            ob.write(se.peekString());
-            ob.writestring(" (");
-            escapePath(ob, resolvedNamez.ptr);
-            ob.writestring(")");
-            ob.writenl();
-        }
-        if (global.params.makeDeps.doOutput)
-        {
-            global.params.makeDeps.files.push(resolvedNamez.ptr);
-        }
+        addImportExpDep(global.params.moduleDeps, global.params.makeDeps, resolvedNamez, se.peekString(), sc._module);
 
         {
             auto fileName = FileName(resolvedNamez);
             if (auto fmResult = global.fileManager.getFileContents(fileName))
             {
                 se = new StringExp(e.loc, fmResult);
+                se.hexString = true;
             }
             else
             {
@@ -11873,6 +11852,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             (tb2.ty == Tarray || tb2.ty == Tsarray) &&
             (exp.e2.implicitConvTo(exp.e1.type) ||
              (tb2.nextOf().implicitConvTo(tb1next) &&
+             // Do not strip const(void)[]
+             (!global.params.fixImmutableConv || tb1next.ty != Tvoid) &&
               (tb2.nextOf().size(Loc.initial) == tb1next.size(Loc.initial)))))
         {
             // EXP.concatenateAssign
@@ -12622,7 +12603,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.type = tb.nextOf().arrayOf();
         if (exp.type.ty == Tarray && tb1next && tb2next && tb1next.mod != tb2next.mod)
         {
-            exp.type = exp.type.nextOf().toHeadMutable().arrayOf();
+            // Do not strip const(void)[]
+            if (!global.params.fixImmutableConv || tb.nextOf().ty != Tvoid)
+                exp.type = exp.type.nextOf().toHeadMutable().arrayOf();
         }
         if (Type tbn = tb.nextOf())
         {

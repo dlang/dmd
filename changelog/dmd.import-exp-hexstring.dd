@@ -1,0 +1,12 @@
+Import expressions are now treated as hex strings
+
+While [Import expressions](https://dlang.org/spec/expression.html#import_expressions) are typed as `string`, they are also used to embed binary files.
+By treating them the same as hex strings, they will implicitly convert to arrays of integral types other than `char`.
+
+---
+// Formerly, a cast was required:
+immutable ubyte[] iconImg = cast(immutable ubyte[]) import("icon.png");
+
+// Now, it implicitly converts to integral arrays:
+immutable ubyte[] iconImg = import("icon.png");
+---

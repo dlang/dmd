@@ -17,6 +17,7 @@ import core.stdc.stdio;
 
 import dmd.aggregate;
 import dmd.astenums;
+import dmd.dcast : implicitConvTo;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dscope;
@@ -26,7 +27,7 @@ import dmd.identifier;
 import dmd.mtype;
 import dmd.target;
 import dmd.tokens;
-import dmd.typesem : hasPointers, arrayOf;
+import dmd.typesem : hasPointers, arrayOf, size;
 import dmd.funcsem : setUnsafe, setUnsafePreview;
 
 /*************************************************************
@@ -49,7 +50,7 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
     //printf("checkUnsafeAccess(e: '%s', readonly: %d, printmsg: %d)\n", e.toChars(), readonly, printmsg);
     if (e.op != EXP.dotVariable)
         return false;
-    DotVarExp dve = cast(DotVarExp)e;
+    auto dve = cast(DotVarExp)e;
     if (VarDeclaration v = dve.var.isVarDeclaration())
     {
         if (!sc.func)
@@ -127,8 +128,8 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
 
         if (hasPointers && v.type.toBasetype().ty != Tstruct)
         {
-            if ((!ad.type.alignment.isDefault() && ad.type.alignment.get() < target.ptrsize ||
-                 (v.offset & (target.ptrsize - 1))))
+            if ((!ad.type.alignment.isDefault() && ad.type.alignment.get() < target.ptrsize) ||
+                 (v.offset & (target.ptrsize - 1)))
             {
                 if (sc.setUnsafe(!printmsg, e.loc,
                     "field `%s.%s` cannot modify misaligned pointers in `@safe` code", ad, v))
@@ -231,11 +232,6 @@ bool isSafeCast(Expression e, Type tfrom, Type tto, ref string msg)
             return false;
         }
 
-        // For bool, only 0 and 1 are safe values
-        // Runtime array cast reinterprets data
-        if (ttobn.ty == Tbool && tfromn.ty != Tbool && e.op != EXP.arrayLiteral)
-            msg = "Array data may have bytes which are not 0 or 1";
-
         // If the struct is opaque we don't know about the struct members then the cast becomes unsafe
         if (ttobn.ty == Tstruct && !(cast(TypeStruct)ttobn).sym.members)
         {
@@ -246,6 +242,22 @@ bool isSafeCast(Expression e, Type tfrom, Type tto, ref string msg)
         {
             msg = "Source element type is opaque";
             return false;
+        }
+
+        if (e.op != EXP.arrayLiteral)
+        {
+            // For bool, only 0 and 1 are safe values
+            // Runtime array cast reinterprets data
+            if (ttobn.ty == Tbool && tfromn.ty != Tbool)
+                msg = "Source element may have bytes which are not 0 or 1";
+            else if (ttobn.hasUnsafeBitpatterns())
+                msg = "Target element type has unsafe bit patterns";
+
+            // Can't alias a bool pointer with a non-bool pointer
+            if (ttobn.ty != Tbool && tfromn.ty == Tbool && ttobn.isMutable())
+                msg = "Target element could be assigned a byte which is not 0 or 1";
+            else if (tfromn.hasUnsafeBitpatterns() && ttobn.isMutable())
+                msg = "Source element type has unsafe bit patterns and target element type is mutable";
         }
 
         const frompointers = tfromn.hasPointers();

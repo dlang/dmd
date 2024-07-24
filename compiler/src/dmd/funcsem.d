@@ -1047,8 +1047,7 @@ Ldone:
             }
 
             // If it's a member template
-            ClassDeclaration cd = ti.tempdecl.isClassMember();
-            if (cd)
+            if (ClassDeclaration cd = ti.tempdecl.isClassMember())
             {
                 .error(funcdecl.loc, "%s `%s` cannot use template to add virtual function to class `%s`", funcdecl.kind, funcdecl.toPrettyChars, cd.toChars());
             }
@@ -2539,7 +2538,7 @@ void buildEnsureRequire(FuncDeclaration thisfd)
     /* Rewrite contracts as nested functions, then call them. Doing it as nested
      * functions means that overriding functions can call them.
      */
-    TypeFunction f = cast(TypeFunction) thisfd.type;
+    auto f = cast(TypeFunction) thisfd.type;
     /* Make a copy of the parameters and make them all ref */
     static Parameters* toRefCopy(ParameterList parameterList)
     {
