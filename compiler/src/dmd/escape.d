@@ -1108,7 +1108,12 @@ bool checkNewEscape(ref Scope sc, Expression e, bool gag)
         }
     }
 
-    void onFunc(FuncDeclaration fd, bool called) {}
+    void onFunc(FuncDeclaration fd, bool called)
+    {
+        if (called)
+            result |= sc.setUnsafeDIP1000(gag, e.loc,
+                "nested function `%s` returns `scope` values and escapes them into allocated memory", fd);
+    }
 
     void onExp(Expression ee, bool retRefTransition)
     {
@@ -1832,10 +1837,7 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref)
         {
             if (fd.isNested() && tf.isreturn)
             {
-                if (deref < 0 || !tf.isreturnscope)
-                    er.byExp(e, false);
-                else if (tf.isScopeQual)
-                    er.byFunc(fd, true);
+                er.byFunc(fd, true);
             }
         }
 
