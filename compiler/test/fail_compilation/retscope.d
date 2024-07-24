@@ -7,7 +7,7 @@ fail_compilation/retscope.d(32): Error: returning `b ? nested1(& i) : nested2(& 
 fail_compilation/retscope.d(45): Error: scope variable `p` assigned to global variable `q`
 fail_compilation/retscope.d(47): Error: address of variable `i` assigned to `q` with longer lifetime
 fail_compilation/retscope.d(48): Error: scope variable `a` assigned to global variable `b`
-fail_compilation/retscope.d(49): Error: address of struct temporary returned by `(*fp2)()` assigned to longer lived variable `q`
+fail_compilation/retscope.d(49): Error: address of expression temporary returned by `(*fp2)()` assigned to `q` with longer lifetime
 ---
 */
 

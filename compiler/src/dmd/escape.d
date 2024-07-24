@@ -840,8 +840,6 @@ bool checkAssignEscape(ref Scope sc, Expression e, bool gag, bool byRef)
                 va.storage_class |= STC.return_ | STC.returninferred;
             return;
         }
-        if (e1.op == EXP.structLiteral)
-            return;
 
         result |= sc.setUnsafeDIP1000(gag, ae.loc, "reference to local variable `%s` assigned to non-scope `%s`", v, e1);
     }
@@ -893,8 +891,7 @@ bool checkAssignEscape(ref Scope sc, Expression e, bool gag, bool byRef)
 
         /* Do not allow slicing of a static array returned by a function
          */
-        if (ee.op == EXP.call && ee.type.toBasetype().isTypeSArray() && e1.type.toBasetype().isTypeDArray() &&
-            !(va && va.storage_class & STC.temp))
+        if (ee.op == EXP.call && ee.type.toBasetype().isTypeSArray() && e1.type.toBasetype().isTypeDArray())
         {
             if (!gag)
                 sc.eSink.deprecation(ee.loc, "slice of static array temporary returned by `%s` assigned to longer lived variable `%s`",
@@ -903,31 +900,11 @@ bool checkAssignEscape(ref Scope sc, Expression e, bool gag, bool byRef)
             return;
         }
 
-        if (ee.op == EXP.call && ee.type.toBasetype().isTypeStruct() &&
-            (!va || !(va.storage_class & STC.temp) && !va.isScope()))
-        {
-            if (sc.setUnsafeDIP1000(gag, ee.loc, "address of struct temporary returned by `%s` assigned to longer lived variable `%s`", ee, e1))
-            {
-                result = true;
-                return;
-            }
-        }
+        const(char)* msg = (ee.op == EXP.structLiteral) ?
+            "address of struct literal `%s` assigned to `%s` with longer lifetime" :
+            "address of expression temporary returned by `%s` assigned to `%s` with longer lifetime";
 
-        if (ee.op == EXP.structLiteral &&
-            (!va || !(va.storage_class & STC.temp)))
-        {
-            if (sc.setUnsafeDIP1000(gag, ee.loc, "address of struct literal `%s` assigned to longer lived variable `%s`", ee, e1))
-            {
-                result = true;
-                return;
-            }
-        }
-
-        if (inferScope(va))
-            return;
-
-        result |= sc.setUnsafeDIP1000(gag, ee.loc,
-            "reference to stack allocated value returned by `%s` assigned to non-scope `%s`", ee, e1);
+        result |= sc.setUnsafeDIP1000(gag, ee.loc, msg, ee, e1);
     }
 
     scope EscapeByResults er = EscapeByResults(&onRef, &onValue, &onFunc, &onExp);
