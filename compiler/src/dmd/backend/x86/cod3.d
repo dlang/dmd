@@ -877,7 +877,7 @@ void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const(char
                 nextb.BC != BC_finally)
             {
                 regm_t retregsx = 0;
-                gencodelem(cdb,e,&retregsx,true);
+                gencodelem(cdb,e,retregsx,true);
                 int toindex = nextb.Btry ? nextb.Btry.Bscope_index : -1;
                 assert(bl.Btry);
                 int fromindex = bl.Btry.Bscope_index;
@@ -930,7 +930,7 @@ void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const(char
         case_goto:
         {
             regm_t retregsx = 0;
-            gencodelem(cdb,e,&retregsx,true);
+            gencodelem(cdb,e,retregsx,true);
             if (anyspill)
             {   // Add in the epilog code
                 CodeBuilder cdbstore; cdbstore.ctor();
@@ -977,7 +977,7 @@ void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const(char
                 getregsNoSave(lpadregs());
 
                 regm_t retregsx = 0;
-                gencodelem(cdb,bl.Belem,&retregsx,true);
+                gencodelem(cdb,bl.Belem,retregsx,true);
 
                 // JMP bl.nthSucc(1)
                 nextb = bl.nthSucc(1);
@@ -1012,7 +1012,7 @@ void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const(char
             getregsNoSave(lpadregs());
 
             regm_t retregsx = 0;
-            gencodelem(cdb,bl.Belem,&retregsx,true);
+            gencodelem(cdb,bl.Belem,retregsx,true);
 
             // JMP bl.nthSucc(0)
             nextb = bl.nthSucc(0);
@@ -1022,7 +1022,7 @@ void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const(char
         case BC_ret:
         {
             regm_t retregsx = 0;
-            gencodelem(cdb,e,&retregsx,true);
+            gencodelem(cdb,e,retregsx,true);
             if (ehmethod(funcsym_p) == EHmethod.EH_DWARF)
             {
             }
@@ -1049,7 +1049,7 @@ static if (NTEXCEPTIONS)
             // register assignments to variables used in filter blocks.
             getregsNoSave(cgstate.allregs);
             regm_t retregsx = regmask(e.Ety, TYnfunc);
-            gencodelem(cdb,e,&retregsx,true);
+            gencodelem(cdb,e,retregsx,true);
             cdb.gen1(0xC3);   // RET
             break;
         }
@@ -1092,12 +1092,12 @@ static if (NTEXCEPTIONS)
                 docommas(cdb,e);
                 usedsave = cgstate.regcon.used;
                 if (!OTleaf(e.Eoper))
-                    gencodelem(cdb,e,&retregs,true);
+                    gencodelem(cdb,e,retregs,true);
                 else
                 {
                     if (e.Eoper == OPconst)
                         cgstate.regcon.mvar = 0;
-                    gencodelem(cdb,e,&retregs,true);
+                    gencodelem(cdb,e,retregs,true);
                     cgstate.regcon.used = usedsave;
                     if (e.Eoper == OPvar)
                     {   Symbol *s = e.Vsym;
@@ -1109,7 +1109,7 @@ static if (NTEXCEPTIONS)
             }
             else
             {
-                gencodelem(cdb,e,&retregs,true);
+                gencodelem(cdb,e,retregs,true);
             }
 
             if (reg1 == NOREG)
@@ -1170,7 +1170,7 @@ static if (NTEXCEPTIONS)
 
         case BCret:
             retregs = 0;
-            gencodelem(cdb,e,&retregs,true);
+            gencodelem(cdb,e,retregs,true);
         L4:
             if (retregs == mST0)
             {   assert(global87.stackused == 1);
@@ -1226,7 +1226,7 @@ static if (NTEXCEPTIONS)
 
         case BCexit:
             retregs = 0;
-            gencodelem(cdb,e,&retregs,true);
+            gencodelem(cdb,e,retregs,true);
             if (config.flags4 & CFG4optimized)
                 cgstate.mfuncreg = mfuncregsave;
             break;
@@ -2646,9 +2646,9 @@ void gen_loadcse(ref CodeBuilder cdb, tym_t tym, reg_t reg, size_t slot)
  */
 
 @trusted
-void cdframeptr(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
+void cdframeptr(ref CGstate cg, ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
 {
-    regm_t retregs = *pretregs & cgstate.allregs;
+    regm_t retregs = pretregs & cgstate.allregs;
     if  (!retregs)
         retregs = cgstate.allregs;
     const reg = allocreg(cdb,retregs, TYint);
@@ -2659,7 +2659,7 @@ void cdframeptr(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
     cs.Irex = 0;
     cs.Irm = cast(ubyte)reg;
     cdb.gen(&cs);
-    fixresult(cdb,e,retregs,*pretregs);
+    fixresult(cdb,e,retregs,pretregs);
 }
 
 /***************************************
@@ -2668,11 +2668,11 @@ void cdframeptr(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
  */
 
 @trusted
-void cdgot(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
+void cdgot(ref CGstate cg, ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
 {
     if (config.exe & (EX_OSX | EX_OSX64))
     {
-        regm_t retregs = *pretregs & cgstate.allregs;
+        regm_t retregs = pretregs & cgstate.allregs;
         if  (!retregs)
             retregs = cgstate.allregs;
         const reg = allocreg(cdb,retregs, TYnptr);
@@ -2680,11 +2680,11 @@ void cdgot(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         cdb.genc(CALL,0,0,0,FLgot,0);     //     CALL L1
         cdb.genpop(reg);                  // L1: POP reg
 
-        fixresult(cdb,e,retregs,*pretregs);
+        fixresult(cdb,e,retregs,pretregs);
     }
     else if (config.exe & EX_posix)
     {
-        regm_t retregs = *pretregs & cgstate.allregs;
+        regm_t retregs = pretregs & cgstate.allregs;
         if  (!retregs)
             retregs = cgstate.allregs;
         const reg = allocreg(cdb,retregs, TYnptr);
@@ -2705,7 +2705,7 @@ void cdgot(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
         cgot.IEV2.Voffset = (reg == AX) ? 2 : 3;
 
         makeitextern(gotsym);
-        fixresult(cdb,e,retregs,*pretregs);
+        fixresult(cdb,e,retregs,pretregs);
     }
     else
         assert(0);
