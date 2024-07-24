@@ -1337,10 +1337,10 @@ extern (D) MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, Templat
                          * We also save/restore sc.func.flags to avoid messing up
                          * attribute inference in the evaluation.
                         */
-                        const oldflags = sc.func ? sc.func.flags : 0;
+                        const oldflags = sc.func ? sc.func.saveFlags : 0;
                         auto e = resolveAliasThis(sc, farg, true);
                         if (sc.func)
-                            sc.func.flags = oldflags;
+                            sc.func.restoreFlags(oldflags);
                         if (e)
                         {
                             farg = e;

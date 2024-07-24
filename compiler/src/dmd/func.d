@@ -729,12 +729,12 @@ extern (C++) class FuncDeclaration : Declaration
         inferScope = true;
     }
 
-    extern (D) final uint flags()
+    extern (D) final uint saveFlags()
     {
         return bitFields;
     }
 
-    extern (D) final uint flags(uint f)
+    extern (D) final uint restoreFlags(uint f)
     {
         bitFields = f;
         return bitFields;
