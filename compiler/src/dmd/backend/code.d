@@ -112,7 +112,7 @@ struct REGSAVE
   nothrow:
     @trusted
     void reset() { off = 0; top = 0; idx = 0; alignment = _tysize[TYnptr]/*REGSIZE*/; }
-    void save(ref CodeBuilder cdb, reg_t reg, uint *pidx) { REGSAVE_save(this, cdb, reg, *pidx); }
+    void save(ref CodeBuilder cdb, reg_t reg, out uint pidx) { REGSAVE_save (this, cdb, reg, pidx); }
     void restore(ref CodeBuilder cdb, reg_t reg, uint idx) { REGSAVE_restore(this, cdb, reg, idx); }
 }
 
@@ -174,7 +174,8 @@ struct CGstate
     targ_size_t NDPoff;         // offset of saved 8087 registers
 
     targ_size_t pushoff;        // offset of saved registers
-    bool pushoffuse;            // using pushoff
+    bool pushoffuse;            // save/restore registers using pushoff rather than PUSH/POP
+
     char needframe;             // if true, then we will need the frame
                                 // pointer (BP for the 8088)
 
@@ -344,7 +345,7 @@ struct FuncParamRegs
 }
 
 public import dmd.backend.cg : BPRM, FLOATREGS, FLOATREGS2, DOUBLEREGS,
-    localsize, framehandleroffset, cseg, STACKALIGN, TARGET_STACKALIGN;
+    localsize, cseg, STACKALIGN, TARGET_STACKALIGN;
 
 public import dmd.backend.x86.cgcod;
 enum BackendPass
@@ -356,8 +357,8 @@ enum BackendPass
 
 public import dmd.backend.x86.cgcod : findreg;
 
-reg_t findregmsw(uint regm) { return findreg(regm & mMSW); }
-reg_t findreglsw(uint regm) { return findreg(regm & (mLSW | mBP)); }
+reg_t findregmsw(regm_t regm) { return findreg(regm & mMSW); }
+reg_t findreglsw(regm_t regm) { return findreg(regm & (mLSW | mBP)); }
 
 public import dmd.backend.x86.cod1;
 public import dmd.backend.x86.cod2;
@@ -381,4 +382,12 @@ regm_t iasm_regs(block *bp)
         printf("Block iasm regs = 0x%X\n", bp.usIasmregs);
 
     return bp.usIasmregs;
+}
+
+// Flags for getlvalue
+enum RM
+{
+    rw = 0,
+    load = 1,
+    store = 2,
 }

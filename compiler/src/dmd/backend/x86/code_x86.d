@@ -74,10 +74,10 @@ enum NUMGENREGS = 16;
 // currently only used as a replacement for mES in cgcod.c
 enum NUMREGS = 25;
 
-enum PSW     = 25;
-enum STACK   = 26;      // top of stack
-enum ST0     = 27;      // 8087 top of stack register
-enum ST01    = 28;      // top two 8087 registers; for complex types
+enum PSW     = 61;
+enum STACK   = 60;      // top of stack
+enum ST0     = 59;      // 8087 top of stack register
+enum ST01    = 58;      // top two 8087 registers; for complex types
 
 enum
 {
@@ -121,18 +121,14 @@ enum
     mXMM7   = (1 << XMM7),
     XMMREGS = (mXMM0 |mXMM1 |mXMM2 |mXMM3 |mXMM4 |mXMM5 |mXMM6 |mXMM7),
 
-    mES     = (1 << ES),      // 0x1000000
-    mPSW    = (1 << PSW),     // 0x2000000
+    mES     = (1UL << ES),      // 0x1000000
+    mPSW    = (1UL << PSW),     // 0x2000000
 
-    mSTACK  = (1 << STACK),   // 0x4000000
+    mSTACK  = (1UL << STACK),   // 0x4000000
 
-    mST0    = (1 << ST0),     // 0x20000000
-    mST01   = (1 << ST01),    // 0x40000000
+    mST0    = (1UL << ST0),     // 0x20000000
+    mST01   = (1UL << ST01),    // 0x40000000
 }
-
-// Flags for getlvalue (must fit in regm_t)
-enum RMload  = (1 << 30);
-enum RMstore = (1 << 31);
 
     // To support positional independent code,
     // must be able to remove BX from available registers
@@ -298,6 +294,9 @@ enum
 
     CFSEG       = CFes | CFss | CFds | CFcs | CFfs | CFgs,
     CFPREFIX    = CFSEG | CFopsize | CFaddrsize,
+
+    // AArch64
+    CFadd       = 0x1000_0000,
 }
 
 struct code
@@ -458,34 +457,34 @@ enum
 
     ASM     = SEGSS,   // string of asm bytes
 
-    //PSOP.root  = SEGDS,  // marker that special information is here
-                       // (Iop2 is the type of special information)
     ENDBR32 = 0xF30F1EFB,
     ENDBR64 = 0xF30F1EFA,
 }
 
 
 /* Pseudo instructions inserted into the code stream to trigger special
- * behaviors in the code generator
+ * behaviors in the code generator.
+ * Pick them so they are neither valid x86 nor AArch64 opcodes.
  */
-enum PSOP : ushort
+enum PSOP : uint
 {
-    root     = SEGDS,            // unused instruction used to identify a PSOP
-    mask     = 0xFF,             // used to determine if this is an actual PSOP
-    linnum   = (1 << 8)  | root, // line number information
-    ctor     = (2 << 8)  | root, // object is constructed
-    dtor     = (3 << 8)  | root, // object is destructed
-    mark     = (4 << 8)  | root, // mark eh stack
-    release  = (5 << 8)  | root, // release eh stack
-    offset   = (6 << 8)  | root, // set code offset for eh
-    adjesp   = (7 << 8)  | root, // adjust ESP by IEV2.Vint
-    mark2    = (8 << 8)  | root, // mark eh stack
-    release2 = (9 << 8)  | root, // release eh stack
-    frameptr = (10 << 8) | root, // replace with load of frame pointer
-    dctor    = (11 << 8) | root, // D object is constructed
-    ddtor    = (12 << 8) | root, // D object is destructed
-    adjfpu   = (13 << 8) | root, // adjust fpustackused by IEV2.Vint
-    fixesp   = (14 << 8) | root, // reset ESP to end of local frame
+    root     = 0x6100_0000,      // unused instruction used to identify a PSOP
+    mask     = 0xFFFF_0000,      // ((Iop & mask) == root) determines if this is a PSOP
+    linnum   = ( 1 << 12) | root, // line number information
+    ctor     = ( 2 << 12) | root, // object is constructed
+    dtor     = ( 3 << 12) | root, // object is destructed
+    mark     = ( 4 << 12) | root, // mark eh stack
+    release  = ( 5 << 12) | root, // release eh stack
+    offset   = ( 6 << 12) | root, // set code offset for eh
+    adjesp   = ( 7 << 12) | root, // adjust ESP by IEV2.Vint
+    mark2    = ( 8 << 12) | root, // mark eh stack
+    release2 = ( 9 << 12) | root, // release eh stack
+    frameptr = (10 << 12) | root, // replace with load of frame pointer
+    dctor    = (11 << 12) | root, // D object is constructed
+    ddtor    = (12 << 12) | root, // D object is destructed
+    adjfpu   = (13 << 12) | root, // adjust fpustackused by IEV2.Vint
+    fixesp   = (14 << 12) | root, // reset ESP to end of local frame
+    // bottom 12 bits gives us a place to put two reg_t numbers
 }
 
 /*********************************

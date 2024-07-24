@@ -69,10 +69,10 @@ uint visibilityToCVAttr(Visibility.Kind vis) pure nothrow @safe @nogc
     final switch (vis)
     {
         case Visibility.Kind.private_:       attribute = 1;  break;
-        case Visibility.Kind.package_:       attribute = 2;  break;
-        case Visibility.Kind.protected_:     attribute = 2;  break;
-        case Visibility.Kind.public_:        attribute = 3;  break;
-        case Visibility.Kind.export_:        attribute = 3;  break;
+        case Visibility.Kind.package_,
+             Visibility.Kind.protected_:     attribute = 2;  break;
+        case Visibility.Kind.public_,
+             Visibility.Kind.export_:        attribute = 3;  break;
 
         case Visibility.Kind.undefined:
         case Visibility.Kind.none:
@@ -146,12 +146,12 @@ enum CV8_NAMELENMAX = 0xffff;                   // length record is 16-bit only
 uint cv4_Denum(EnumDeclaration e)
 {
     //dbg_printf("cv4_Denum(%s)\n", e.toChars());
-    const uint property = (!e.members || !e.memtype || !e.memtype.isintegral())
+    const uint property = !e.members || !e.memtype || !e.memtype.isintegral()
         ? 0x80               // enum is forward referenced or non-integer
         : 0;
 
     // Compute the number of fields, and the length of the fieldlist record
-    CvFieldList mc = CvFieldList(0, 0);
+    auto mc = CvFieldList(0, 0);
     if (!property)
     {
         for (size_t i = 0; i < e.members.length; i++)

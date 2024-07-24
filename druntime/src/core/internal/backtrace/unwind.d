@@ -166,17 +166,8 @@ void* _Unwind_GetLanguageSpecificData(_Unwind_Context*);
 _Unwind_Ptr _Unwind_GetRegionStart(_Unwind_Context* context);
 void* _Unwind_FindEnclosingFunction(void* pc);
 
-version (X68_64)
+version (X86_64)
 {
-    _Unwind_Ptr _Unwind_GetDataRelBase(_Unwind_Context* context)
-    {
-        return _Unwind_GetGR(context, 1);
-    }
-
-    _Unwind_Ptr _Unwind_GetTextRelBase(_Unwind_Context* context)
-    {
-        assert(0);
-    }
 }
 else
 {

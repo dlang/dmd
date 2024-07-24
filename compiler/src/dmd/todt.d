@@ -25,6 +25,7 @@ import dmd.astenums;
 import dmd.backend.type;
 import dmd.ctfeexpr;
 import dmd.declaration;
+import dmd.dcast : implicitConvTo;
 import dmd.dclass;
 import dmd.denum;
 import dmd.dstruct;
@@ -479,14 +480,12 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
                 goto case Tpointer;
 
             case Tpointer:
-            {
                 if (auto d = dtbarray.finish())
                     dtb.dtoff(d, 0);
                 else
                     dtb.size(0);
 
                 break;
-            }
 
             default:
                 assert(0);

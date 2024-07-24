@@ -53,9 +53,10 @@ enum ALLOCA_LIMIT = 0x10000;
  *
  * Params:
  *      sf = function to generate unwind data for
+ *      localsize = offset to symbols on stack
  */
 @trusted
-public void win64_pdata(Symbol *sf)
+public void win64_pdata(Symbol *sf, targ_size_t localsize)
 {
     //printf("win64_pdata()\n");
     assert(config.exe == EX_WIN64);
@@ -71,7 +72,7 @@ public void win64_pdata(Symbol *sf)
     symbol_keep(spdata);
     symbol_debug(spdata);
 
-    Symbol *sunwind = win64_unwind(sf);
+    Symbol *sunwind = win64_unwind(sf, localsize);
 
     /* 3 pointers are emitted:
      *  1. pointer to start of function sf
@@ -96,13 +97,14 @@ private:
 
 /**************************************************
  * Unwind data symbol goes in the .xdata section.
- * Input:
- *      sf      function to generate unwind data for
+ * Params:
+ *      sf        = function to generate unwind data for
+ *      localsize = offset to symbols on stack
  * Returns:
  *      generated symbol referring to unwind data
  */
 @trusted
-private Symbol *win64_unwind(Symbol *sf)
+private Symbol *win64_unwind(Symbol *sf, targ_size_t localsize)
 {
     // Generate the unwind name, which is $unwind$funcname
     size_t sflen = strlen(sf.Sident.ptr);
@@ -115,7 +117,7 @@ private Symbol *win64_unwind(Symbol *sf)
     symbol_keep(sunwind);
     symbol_debug(sunwind);
 
-    sunwind.Sdt = unwind_data();
+    sunwind.Sdt = unwind_data(localsize);
     sunwind.Sseg = symbol_iscomdat3(sf) ? MsCoffObj_seg_xdata_comdat(sf) : MsCoffObj_seg_xdata();
     sunwind.Salignment = 1;
     outdata(sunwind);
@@ -199,7 +201,7 @@ static if (0)
 
 
 @trusted
-private dt_t *unwind_data()
+private dt_t *unwind_data(targ_size_t localsize)
 {
     UNWIND_INFO ui;
 

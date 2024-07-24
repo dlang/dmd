@@ -83,9 +83,9 @@ void runMain(string[] args)
     bool calledFromMake = false;
     auto res = getopt(args,
         "j|jobs", "Specifies the number of jobs (commands) to run simultaneously (default: %d)".format(totalCPUs), &jobs,
-        "v|verbose", "Verbose command output", (cast(bool*) &verbose),
-        "f|force", "Force run (ignore timestamps and always run all tests)", (cast(bool*) &force),
-        "d|dry-run", "Print commands instead of executing them", (cast(bool*) &dryRun),
+        "v|verbose", "Verbose command output", cast(bool*) &verbose,
+        "f|force", "Force run (ignore timestamps and always run all tests)", cast(bool*) &force,
+        "d|dry-run", "Print commands instead of executing them", cast(bool*) &dryRun,
         "called-from-make", "Calling the build script from the Makefile", &calledFromMake
     );
     void showHelp()
@@ -1566,7 +1566,7 @@ auto sourceFiles()
             access.d aggregate.d aliasthis.d argtypes_x86.d argtypes_sysv_x64.d argtypes_aarch64.d arrayop.d
             arraytypes.d astenums.d ast_node.d astcodegen.d asttypename.d attrib.d attribsem.d basicmangle.d blockexit.d builtin.d canthrow.d chkformat.d
             cli.d clone.d compiler.d cond.d constfold.d cppmangle.d cppmanglewin.d cpreprocess.d ctfeexpr.d
-            ctorflow.d dcast.d dclass.d declaration.d delegatize.d denum.d dimport.d
+            ctorflow.d dcast.d dclass.d declaration.d delegatize.d denum.d deps.d dimport.d
             dinterpret.d dmacro.d dmangle.d dmodule.d doc.d dscope.d dstruct.d dsymbol.d dsymbolsem.d
             dtemplate.d dtoh.d dversion.d enumsem.d escape.d expression.d expressionsem.d func.d funcsem.d hdrgen.d iasm.d iasmgcc.d
             impcnvtab.d imphint.d importc.d init.d initsem.d inline.d inlinecost.d intrange.d json.d lambdacomp.d
@@ -1622,7 +1622,7 @@ auto sourceFiles()
             dtype.d debugprint.d fp.d symbol.d symtab.d elem.d dcode.d cgsched.d x86/cg87.d x86/cgxmm.d x86/cgcod.d x86/cod1.d x86/cod2.d
             x86/cod3.d cv8.d dcgcv.d pdata.d util2.d var.d backconfig.d drtlsym.d dwarfeh.d ptrntab.d
             dvarstats.d dwarfdbginf.d cgen.d goh.d barray.d cgcse.d elpicpie.d
-            machobj.d elfobj.d mscoffobj.d filespec.d cgobj.d aarray.d disasm86.d
+            machobj.d elfobj.d mscoffobj.d filespec.d cgobj.d aarray.d x86/disasm86.d arm/disasmarm.d arm/instr.d
             "
         ),
     };
@@ -2345,7 +2345,7 @@ void installRelativeFiles(T)(string targetDir, string sourceBase, T files, uint 
     {
         string name;
         string relativeName;
-        string toString() { return relativeName; }
+        string toString() const { return relativeName; }
     }
     FileToCopy[][string] filesByDir;
     foreach (file; files)

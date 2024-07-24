@@ -60,6 +60,7 @@ import dmd.todt;
 import dmd.tokens;
 import dmd.traits;
 import dmd.typinf;
+import dmd.typesem : size;
 import dmd.visitor;
 
 import dmd.backend.cc;
@@ -709,6 +710,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 TypeInfo_toObjFile(null, ed.loc, ed.type);
 
             TypeEnum tc = ed.type.isTypeEnum();
+            import dmd.typesem : isZeroInit;
             if (!tc.sym.members || ed.type.isZeroInit(Loc.initial))
             {
             }
@@ -1195,8 +1197,7 @@ private size_t emitVtbl(ref DtBuilder dtb, BaseClass *b, ref FuncDeclarations bv
 
     foreach (j; jstart .. id_vtbl_dim)
     {
-        FuncDeclaration fd = bvtbl[j];
-        if (fd)
+        if (FuncDeclaration fd = bvtbl[j])
         {
             auto offset2 = b.offset;
             if (fd.interfaceVirtual)

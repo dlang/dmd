@@ -57,7 +57,7 @@ StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration f) pure
         return s1;
     StorageClass s2 = (f.storage_class & STC.disable);
 
-    TypeFunction tf = cast(TypeFunction)f.type;
+    auto tf = cast(TypeFunction)f.type;
     if (tf.trust == TRUST.safe)
         s2 |= STC.safe;
     else if (tf.trust == TRUST.system)
@@ -99,8 +99,7 @@ StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration f) pure
  */
 FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope* sc)
 {
-    Dsymbol assign = search_function(ad, Id.assign);
-    if (assign)
+    if (Dsymbol assign = search_function(ad, Id.assign))
     {
         /* check identity opAssign exists
          */
@@ -177,7 +176,7 @@ private bool needOpAssign(StructDeclaration sd)
         Type tv = v.type.baseElemOf();
         if (tv.ty == Tstruct)
         {
-            TypeStruct ts = cast(TypeStruct)tv;
+            auto ts = cast(TypeStruct)tv;
             if (ts.sym.isUnionDeclaration())
                 continue;
             if (needOpAssign(ts.sym))
@@ -314,7 +313,7 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     else if (sd.dtor)
     {
         //printf("\tswap copy\n");
-        TypeFunction tdtor = cast(TypeFunction)sd.dtor.type;
+        auto tdtor = cast(TypeFunction)sd.dtor.type;
         assert(tdtor.ty == Tfunction);
 
         auto idswap = Identifier.generateId("__swap");
@@ -435,7 +434,7 @@ bool needOpEquals(StructDeclaration sd)
         auto tvbase = tv.baseElemOf();
         if (tvbase.ty == Tstruct)
         {
-            TypeStruct ts = cast(TypeStruct)tvbase;
+            auto ts = cast(TypeStruct)tvbase;
             if (ts.sym.isUnionDeclaration() && ts.sym.fields.length != 1)
                 continue;
             if (needOpEquals(ts.sym))
@@ -762,7 +761,7 @@ private bool needToHash(StructDeclaration sd)
         auto tvbase = tv.baseElemOf();
         if (tvbase.ty == Tstruct)
         {
-            TypeStruct ts = cast(TypeStruct)tvbase;
+            auto ts = cast(TypeStruct)tvbase;
             if (ts.sym.isUnionDeclaration())
                 continue;
             if (needToHash(ts.sym))

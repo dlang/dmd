@@ -3964,15 +3964,15 @@ private void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, Te
 
     /* Use 'storage class' (prefix) style for attributes
      */
-    if (t.mod)
+    if (t.mod && !(hgs.ddoc || hgs.hdrgen))
     {
         MODtoBuffer(buf, t.mod);
         buf.writeByte(' ');
     }
 
-    void ignoreReturn(string str)
+    void dg(string str)
     {
-        if (str != "return")
+        if (str != "return" && str != "scope")
         {
             // don't write 'ref' for ctors
             if ((ident == Id.ctor) && str == "ref")
@@ -3981,7 +3981,7 @@ private void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, Te
             buf.writeByte(' ');
         }
     }
-    t.attributesApply(&ignoreReturn);
+    t.attributesApply(&dg);
 
     if (t.linkage > LINK.d && hgs.ddoc != 1 && !hgs.hdrgen)
     {
@@ -4014,7 +4014,21 @@ private void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, Te
         buf.writeByte(')');
     }
     parametersToBuffer(t.parameterList, buf, hgs);
-    if (t.isreturn)
+    // postfix this attributes are more readable
+    if (t.mod && (hgs.ddoc || hgs.hdrgen))
+    {
+        buf.writeByte(' ');
+        MODtoBuffer(buf, t.mod);
+    }
+    if (t.isreturnscope && !t.isreturninferred)
+    {
+        buf.writestring(" return scope");
+    }
+    else if (t.isScopeQual && !t.isscopeinferred)
+    {
+        buf.writestring(" scope");
+    }
+    if (t.isreturn && !t.isreturnscope && !t.isreturninferred)
     {
         buf.writestring(" return");
     }
@@ -4302,13 +4316,23 @@ private void typeToBufferx(Type t, ref OutBuffer buf, ref HdrGenState hgs)
 
     void visitTag(TypeTag t)
     {
-        if (t.mod & MODFlags.const_)
-            buf.writestring("const ");
         if (hgs.importcHdr && t.id)
         {
+            // https://issues.dlang.org/show_bug.cgi?id=24670
+            // `const` must be parenthesized because it can be a return type
+            if (t.mod & MODFlags.const_)
+                buf.writestring("const(");
+
+            // For C to D translation, `struct S` or `enum S` simply becomes `S`
             buf.writestring(t.id.toString());
+
+            if (t.mod & MODFlags.const_)
+                buf.writestring(")");
             return;
         }
+        // The following produces something like "const enum E : short"
+        if (t.mod & MODFlags.const_)
+            buf.writestring("const ");
         buf.writestring(Token.toString(t.tok));
         buf.writeByte(' ');
         if (t.id)

@@ -458,7 +458,10 @@ extern (C++) void verrorReport(const ref Loc loc, const(char)* format, va_list a
             info.headerColor = Classification.error;
             verrorPrint(format, ap, info);
             if (global.params.v.errorLimit && global.errors >= global.params.v.errorLimit)
+            {
+                fprintf(stderr, "error limit (%d) reached, use `-verrors=0` to show all\n", global.params.v.errorLimit);
                 fatal(); // moderate blizzard of cascading messages
+            }
         }
         else
         {
@@ -616,7 +619,7 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
 
     if (global.params.v.showGaggedErrors && global.gag)
         fprintf(stderr, "(spec:%d) ", global.gag);
-    Console con = cast(Console) global.console;
+    auto con = cast(Console) global.console;
     const p = info.loc.toChars();
     if (con)
         con.setColorBright(true);

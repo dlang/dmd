@@ -452,11 +452,11 @@ int bar11(T)()
 }
 struct S6360
 {
-	const pure nothrow @property long weeks1()
+	pure nothrow @property long weeks1() const
 	{
 		return 0;
 	}
-	const pure nothrow @property long weeks2()
+	pure nothrow @property long weeks2() const
 	{
 		return 0;
 	}
@@ -472,10 +472,10 @@ struct S12
 }
 struct T12
 {
-	immutable this()(int args)
+	this()(int args) immutable
 	{
 	}
-	immutable this(A...)(A args)
+	this(A...)(A args) immutable
 	{
 	}
 }
@@ -624,7 +624,7 @@ size_t magic()
 class Foo2A
 {
 	immutable(FooA) Dummy = new immutable(FooA);
-	private immutable pure nothrow @nogc @safe this()
+	private pure nothrow @nogc @safe this() immutable
 	{
 	}
 }
@@ -653,14 +653,18 @@ struct SafeS
 		{
 			return this;
 		}
-		scope SafeS foo2() return
+		SafeS foo2() return scope
 		{
 			return this;
 		}
-		ref scope SafeS foo3() return
+		ref SafeS foo3() scope
 		{
 			static SafeS s;
 			return s;
+		}
+		ref SafeS foo4() scope return
+		{
+			return this;
 		}
 		int* p;
 	}

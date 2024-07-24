@@ -180,7 +180,7 @@ enum
     DGROUPIDX = 1,     // group index of DGROUP
 }
 
-enum REGMAX = 29;      // registers are numbered 0...28
+enum REGMAX = 32;      // registers are numbered 0...31
 enum reg_t NOREG = REGMAX;  // no register
 
 alias tym_t = uint;    // data type big enough for type masks
@@ -228,6 +228,7 @@ enum
     TARGET_PentiumMMX       = 6,
     TARGET_PentiumPro       = 7,
     TARGET_PentiumII        = 8,
+    TARGET_AArch64          = 9,
 }
 
 // Symbolic debug info
@@ -596,7 +597,7 @@ struct Configv
 }
 
 alias reg_t = ubyte;            // register number
-alias regm_t = uint;            // Register mask type
+alias regm_t = ulong;           // Register mask type
 struct immed_t
 {
     targ_size_t[REGMAX] value;  // immediate values in registers

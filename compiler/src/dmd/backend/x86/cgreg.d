@@ -294,7 +294,7 @@ static if (1) // causes assert failure in std.range(4488) from std.parallelism's
 
     // Make sure we have enough uses to justify
     // using a register we must save
-    if (fregsaved & (1 << reg) & cgstate.mfuncreg)
+    if (fregsaved & (1UL << reg) & cgstate.mfuncreg)
         benefit -= 1 + nretblocks;
 
     for (bi = 0; (bi = cast(uint) vec_index(bi, s.Srange)) < dfo.length; ++bi)
@@ -695,8 +695,8 @@ private void cgreg_map(Symbol *s, reg_t regmsw, reg_t reglsw)
         }
     }
     s.Sreglsw = cast(ubyte)reglsw;
-    s.Sregm = (1 << reglsw);
-    cgstate.mfuncreg &= ~(1 << reglsw);
+    s.Sregm = (1UL << reglsw);
+    cgstate.mfuncreg &= ~(1UL << reglsw);
     if (regmsw != NOREG)
         vec_subass(s.Slvreg,regrange[regmsw]);
     vec_orass(regrange[reglsw],s.Slvreg);
@@ -719,8 +719,8 @@ private void cgreg_map(Symbol *s, reg_t regmsw, reg_t reglsw)
     {
         assert(regmsw < 8);
         s.Sregmsw = cast(ubyte)regmsw;
-        s.Sregm |= 1 << regmsw;
-        cgstate.mfuncreg &= ~(1 << regmsw);
+        s.Sregm |= 1UL << regmsw;
+        cgstate.mfuncreg &= ~(1UL << regmsw);
         vec_orass(regrange[regmsw],s.Slvreg);
 
         debug
@@ -828,8 +828,8 @@ int cgreg_assign(Symbol *retsym)
     reg_t dst_integer_reg;
     reg_t dst_float_reg;
     cgreg_dst_regs(&dst_integer_reg, &dst_float_reg);
-    regm_t dst_integer_mask = 1 << dst_integer_reg;
-    regm_t dst_float_mask = 1 << dst_float_reg;
+    regm_t dst_integer_mask = 1UL << dst_integer_reg;
+    regm_t dst_float_mask = 1UL << dst_float_reg;
 
     /* Find all the parameters passed as named registers
      */
@@ -922,7 +922,7 @@ static if (0 && TARGET_LINUX)
 }
             /* Don't enregister any parameters to variadicPrologRegs
              */
-            if (variadicPrologRegs & (1 << reg))
+            if (variadicPrologRegs & (1UL << reg))
             {
                 if (s.Sclass == SC.parameter || s.Sclass == SC.fastpar)
                     continue;
@@ -933,12 +933,12 @@ static if (0 && TARGET_LINUX)
             /* Don't assign register parameter to another register parameter
              */
             if ((s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg) &&
-                (1 << reg) & regparams &&
+                (1UL << reg) & regparams &&
                 reg != s.Spreg)
                 continue;
 
             if (s.Sflags & GTbyte &&
-                !((1 << reg) & BYTEREGS))
+                !((1UL << reg) & BYTEREGS))
                     continue;
 
             int benefit = cgreg_benefit(s,reg,retsym);
@@ -964,7 +964,7 @@ static if (0 && TARGET_LINUX)
                         if (regmsw == reg)              // can't assign msw and lsw to same reg
                             continue;
                         if ((s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg) &&
-                            (1 << regmsw) & regparams &&
+                            (1UL << regmsw) & regparams &&
                             regmsw != s.Spreg2)
                             continue;
 
@@ -1010,12 +1010,12 @@ Ltried:
         foreach (s; globsym[])
         {
             if (s.Sfl == FLreg &&                // if assigned to register
-                (1 << s.Sreglsw) & fregsaved &&   // and that register is not scratch
+                (1UL << s.Sreglsw) & fregsaved &&   // and that register is not scratch
                 type_size(s.Stype) <= REGSIZE && // don't bother with register pairs
                 !tyfloating(s.ty()))             // don't assign floating regs to non-floating regs
             {
                 s.Sreglsw = findreg((cgstate.mfuncreg & ~fregsaved) & ALLREGS);
-                s.Sregm = 1 << s.Sreglsw;
+                s.Sregm = 1UL << s.Sreglsw;
                 flag = true;
 
                 debug if (debugr)

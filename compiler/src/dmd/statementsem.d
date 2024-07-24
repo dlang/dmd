@@ -1381,7 +1381,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                         p.type = p.type.addStorageClass(sc).typeSemantic(loc, sc2);
                         if (!exp.implicitConvTo(p.type))
                         {
-                            error(fs.loc, "cannot implicilty convert range element of type `%s` to variable `%s` of type `%s`",
+                            error(fs.loc, "cannot implicitly convert tuple element of type `%s` to variable `%s` of type `%s`",
                                 exp.type.toChars(), p.toChars(), p.type.toChars());
                             return retError();
                         }
@@ -1733,8 +1733,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         // This feature allows a limited form of conditional compilation.
         if (cs.condition.include(sc))
         {
-            DebugCondition dc = cs.condition.isDebugCondition();
-            if (dc)
+            if (DebugCondition dc = cs.condition.isDebugCondition())
             {
                 sc = sc.push();
                 sc.flags |= SCOPE.debug_;
