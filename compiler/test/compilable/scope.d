@@ -354,3 +354,24 @@ struct Scape
 {
     Scape(null);
 }
+
+/************************************/
+
+// Test `scope` inference in presence of nested function returning `this`:
+// `save()` can still be called on a `scope Result`
+struct Result
+{
+    int* source;
+    auto save()
+    {
+        int* saveI() { return this.source; }
+        auto saveResult = Result(saveI());
+    }
+}
+
+@safe escapeNested()
+{
+    int s;
+    auto r = Result(&s);
+    r.save();
+}
