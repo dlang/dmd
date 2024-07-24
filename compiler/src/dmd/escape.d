@@ -381,7 +381,7 @@ bool checkParamArgumentEscape(ref Scope sc, FuncDeclaration fdc, Identifier parI
         if (parStc & STC.scope_ || v.isDataseg())
             return;
 
-        notMaybeScope(v, vPar);
+        doNotInferScope(v, vPar);
 
         if (v.isScope())
         {
@@ -397,7 +397,7 @@ bool checkParamArgumentEscape(ref Scope sc, FuncDeclaration fdc, Identifier parI
 
         Dsymbol p = v.toParent2();
 
-        notMaybeScope(v, arg);
+        doNotInferScope(v, arg);
         if (checkScopeVarAddr(v, arg, sc, gag))
         {
             result = true;
@@ -426,7 +426,7 @@ bool checkParamArgumentEscape(ref Scope sc, FuncDeclaration fdc, Identifier parI
 
             Dsymbol p = v.toParent2();
 
-            notMaybeScope(v, arg);
+            doNotInferScope(v, arg);
 
             if ((v.isReference() || v.isScope()) && p == sc.func)
             {
@@ -716,7 +716,7 @@ bool checkAssignEscape(ref Scope sc, Expression e, bool gag, bool byRef)
         }
 
         if (!(va && va.isScope()) || vaIsRef)
-            notMaybeScope(v, e);
+            doNotInferScope(v, e);
 
         if (v.isScope())
         {
@@ -781,7 +781,8 @@ bool checkAssignEscape(ref Scope sc, Expression e, bool gag, bool byRef)
              * It may escape via that assignment, therefore, v can never be 'scope'.
              */
             //printf("no infer for %s in %s, %d\n", v.toChars(), fd.ident.toChars(), __LINE__);
-            doNotInferScope(v, e);
+            if (!v.isParameter)
+                doNotInferScope(v, e);
         }
     }
 
@@ -829,7 +830,7 @@ bool checkAssignEscape(ref Scope sc, Expression e, bool gag, bool byRef)
         }
 
         if (!(va && va.isScope()))
-            notMaybeScope(v, e);
+            doNotInferScope(v, e);
 
         if (p != sc.func)
             return;
@@ -866,7 +867,7 @@ bool checkAssignEscape(ref Scope sc, Expression e, bool gag, bool byRef)
             Dsymbol p = v.toParent2();
 
             if (!(va && va.isScope()))
-                notMaybeScope(v, e);
+                doNotInferScope(v, e);
 
             if (!(v.isReference() || v.isScope()) || p != fd)
                 return;
@@ -950,7 +951,7 @@ bool checkThrowEscape(ref Scope sc, Expression e, bool gag)
         }
         else
         {
-            notMaybeScope(v, new ThrowExp(e.loc, e));
+            doNotInferScope(v, new ThrowExp(e.loc, e));
         }
     }
     void onFunc(FuncDeclaration fd, bool called) {}
@@ -1018,7 +1019,7 @@ bool checkNewEscape(ref Scope sc, Expression e, bool gag)
         else
         {
             //printf("no infer for %s in %s, %d\n", v.toChars(), sc.func.ident.toChars(), __LINE__);
-            notMaybeScope(v, e);
+            doNotInferScope(v, e);
         }
     }
 
@@ -1242,7 +1243,7 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
                 }
             }
         }
-        else
+        else if (p == sc.func || !v.isParameter())
         {
             //printf("no infer for %s in %s, %d\n", v.toChars(), sc.func.ident.toChars(), __LINE__);
             doNotInferScope(v, e);
@@ -2028,7 +2029,7 @@ public void findAllOuterAccessedVariables(FuncDeclaration fd, VarDeclarations* v
  *          - `VarDeclaration` of a non-scope parameter it was assigned to
  *          - `null` for no reason
  */
-private void notMaybeScope(VarDeclaration v, RootObject o)
+private void doNotInferScope(VarDeclaration v, RootObject o)
 {
     if (v.maybeScope)
     {
@@ -2036,23 +2037,6 @@ private void notMaybeScope(VarDeclaration v, RootObject o)
         if (o && v.isParameter())
             EscapeState.scopeInferFailure[v.sequenceNumber] = o;
     }
-}
-
-/***********************************
- * Turn off `maybeScope` for variable `v` if it's not a parameter.
- *
- * This is for compatibility with the old system with both `STC.maybescope` and `VarDeclaration.doNotInferScope`,
- * which is now just `VarDeclaration.maybeScope`.
- * This function should probably be removed in future refactors.
- *
- * Params:
- *      v = variable
- *      o = reason for it being turned off
- */
-private void doNotInferScope(VarDeclaration v, RootObject o)
-{
-    if (!v.isParameter)
-        notMaybeScope(v, o);
 }
 
 /***********************************
@@ -2261,7 +2245,7 @@ private bool checkScopeVarAddr(VarDeclaration v, Expression e, ref Scope sc, boo
 
     if (!v.isScope())
     {
-        notMaybeScope(v, e);
+        doNotInferScope(v, e);
         return false;
     }
 
