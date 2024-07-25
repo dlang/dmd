@@ -57,7 +57,9 @@ if (__traits(isUnsigned, T))
     foreach (size_t i, mem; __traits(allMembers, S))
     {
         // propagate private/public from field to getter/setter
-        enum visibility = __traits(getVisibility, __traits(getMember, S, mem));
+        // Note: The traits was renamed to `getVisibility` in 2.096,
+        // use `getProtection` until the bootstrap compiler is new enough
+        enum visibility = __traits(getProtection, __traits(getMember, S, mem));
 
         enum typeName = typeof(__traits(getMember, S, mem)).stringof;
         enum shift = toString!(bitInfo.offset[i]);
@@ -113,6 +115,6 @@ unittest
     s.w = 3;
     assert(s.w == 3);
 
-    static assert(__traits(getVisibility, S.x) == "public");
-    static assert(__traits(getVisibility, S.w) == "private");
+    static assert(__traits(getProtection, S.x) == "public");
+    static assert(__traits(getProtection, S.w) == "private");
 }
