@@ -2776,7 +2776,7 @@ void modifyReturns(FuncLiteralDeclaration fld, Scope* sc, Type tret)
  */
 bool isRootTraitsCompilesScope(Scope* sc)
 {
-    return (sc.flags & SCOPE.compile) && !(sc.func.flags & SCOPE.compile);
+    return (sc.flags & SCOPE.compile) && !sc.func.skipCodegen;
 }
 
 /**************************************
