@@ -4993,6 +4993,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 {
                     .error(loc, "%s `%s` %s `%s`", kind, toPrettyChars, msg, tmsg);
                 }
+                this.printInstantiationTrace(Classification.error);
+                errorSupplemental(tdecl.loc, "Candidate match: %s", tdecl.toChars());
 
                 if (tdecl.parameters.length == tiargs.length)
                 {
