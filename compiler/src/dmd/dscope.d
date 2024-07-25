@@ -69,13 +69,13 @@ private extern (D) struct BitFields
     /// https://issues.dlang.org/show_bug.cgi?id=15907
     bool ignoresymbolvisibility;
 
-    private bool _padding0; // To keep the layout the same as when the old `SCOPE` enum bitflags were used
+    bool _padding0; // To keep the layout the same as when the old `SCOPE` enum bitflags were used
 
     bool inCfile;            /// C semantics apply
 
-    private bool _padding1;
-    private bool _padding2;
-    private bool _padding3;
+    bool _padding1;
+    bool _padding2;
+    bool _padding3;
 
     bool canFree;            /// is on free list
 

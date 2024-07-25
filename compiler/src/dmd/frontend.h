@@ -7167,8 +7167,16 @@ struct Scope final
     bool traitsCompiles(bool v);
     bool ignoresymbolvisibility() const;
     bool ignoresymbolvisibility(bool v);
+    bool _padding0() const;
+    bool _padding0(bool v);
     bool inCfile() const;
     bool inCfile(bool v);
+    bool _padding1() const;
+    bool _padding1(bool v);
+    bool _padding2() const;
+    bool _padding2(bool v);
+    bool _padding3() const;
+    bool _padding3(bool v);
     bool canFree() const;
     bool canFree(bool v);
     bool fullinst() const;
