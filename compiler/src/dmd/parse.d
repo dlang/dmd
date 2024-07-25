@@ -3514,6 +3514,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      */
     AST.Type parseType(Identifier* pident = null, AST.TemplateParameters** ptpl = null, Loc* pdeclLoc = null)
     {
+        //printf("parseType()\n");
         immutable stc = parseTypeCtor();
         // Handle linkage for function pointer and delegate types
         immutable LINK link = () {
@@ -4058,7 +4059,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                             else if (isRef)
                             {
                                 error("`ref` is not a type qualifier.");
-                                eSink.errorSupplemental(token.loc, "It is only valid in function parameter lists and to indicate a function or delegate returns by reference.");
+                                eSink.errorSupplemental(token.loc, "To form a basic type, it must be followed by a function pointer or delegate suffix.");
                             }
                             else error("Linkage is only valid for `function` and `delegate` types");
                         }
@@ -5801,6 +5802,47 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         return param;
     }
 
+    /++
+     + Returns whether `t` probably points to the start of a lambda expression.
+     +/
+    private bool isLikelyLambdaExpressionStart(Token* t)
+    {
+        // With `function` or `delegate`, we assume the case is clear.
+        if (t.value == TOK.function_ || t.value == TOK.delegate_)
+            return true;
+
+        // Same with `{}` or `identifier =>`
+        if (t.value == TOK.leftCurly || t.value == TOK.identifier && peek(t).value == TOK.goesTo)
+            return true;
+
+        // The hard part: `auto`/`auto ref` Parameters MemberFunctionAttributes? FunctionLiteralBody
+        if (t.value == TOK.auto_) t = peek(t);
+        if (t.value == TOK.ref_)  t = peek(t);
+
+        if (t.value != TOK.leftParenthesis)
+            return false;
+        // Parameter list: Just assume it’s fine.
+        size_t nesting = 1;
+        do
+        {
+            t = peek(t);
+            nesting += (t.value == TOK.leftParenthesis) - (t.value == TOK.rightParenthesis);
+        }
+        while (nesting > 0 || t.value != TOK.rightParenthesis);
+        // MemberFunctionAttributes:
+        do
+            t = peek(t);
+        while (
+            // Proper member function attributes:
+            t.value == TOK.const_ || t.value == TOK.immutable_ || t.value == TOK.inout_ ||
+            t.value == TOK.return_ || t.value == TOK.scope_ || t.value == TOK.shared_ ||
+            // Function attributes:
+            t.value == TOK.nothrow_ || t.value == TOK.pure_ ||
+            (t.value == TOK.at && (t = peek(t)).value == TOK.identifier)
+        );
+        return t.value == TOK.goesTo || t.value == TOK.leftCurly;
+    }
+
     /*****************************************
      * Input:
      *      flags   PSxxxx
@@ -6025,15 +6067,14 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 goto Lexp;
             if (peekNext() == TOK.leftParenthesis)
                 goto Lexp;
-            goto case;
+            goto Ldeclaration;
 
         // FunctionLiteral `auto ref (`
+        // FunctionLiteral: `ref (`
+        // Reference variable: `ref BasicType`
         case TOK.auto_:
-            if (peekNext() == TOK.ref_ && peekNext2() == TOK.leftParenthesis)
-                goto Lexp;
-            goto Ldeclaration;
         case TOK.ref_:
-            if (peekNext() == TOK.leftParenthesis)
+            if (isLikelyLambdaExpressionStart(&token))
                 goto Lexp;
             goto Ldeclaration;
 
@@ -7224,6 +7265,23 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         mustIfDstyle,   // Declarator part must have identifier, but don't recognize old C-style syntax
     }
 
+    /++
+     + Returns whether the token starts `scope(exit)`, `scope(failure)`, or `scope(success)`.
+     +/
+    private bool isScopeGuard(Token* t)
+    {
+        if (t.value != TOK.scope_) return false;
+        t = peek(t);
+        if (t.value != TOK.leftParenthesis) return false;
+        t = peek(t);
+        if (t.value != TOK.identifier) return false;
+        if (t.ident != Id.exit && t.ident != Id.failure && t.ident != Id.success)
+            return false;
+        t = peek(t);
+        if (t.value != TOK.rightParenthesis) return false;
+        return true;
+    }
+
     /************************************
      * Determine if the scanner is sitting on the start of a declaration.
      * Params:
@@ -7236,45 +7294,57 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      */
     private bool isDeclaration(Token* t, NeedDeclaratorId needId, TOK endtok, Token** pt)
     {
-        //printf("isDeclaration(needId = %d)\n", needId);
-        int haveId = 0;
-        int haveTpl = 0;
+        // printf("isDeclaration(needId: %d) %s\n", needId, t.toChars());
 
-        while (1)
+        // `scope` can be a storage class, but a scope guard takes priority
+        if (isScopeGuard(t)) return false;
+
+        bool skipStroageClassTypeCtor()
         {
-            if ((t.value == TOK.const_ || t.value == TOK.immutable_ || t.value == TOK.inout_ || t.value == TOK.shared_) && peek(t).value != TOK.leftParenthesis)
+            bool isTypeCtor() => t.value == TOK.const_ || t.value == TOK.immutable_ || t.value == TOK.inout_ || t.value == TOK.shared_;
+            bool isFreestandingTypeCtor() => isTypeCtor() && peek(t).value != TOK.leftParenthesis;
+            bool storageClassSeen = false;
+            while (isFreestandingTypeCtor() || t.value == TOK.ref_ || t.value == TOK.auto_ || t.value == TOK.scope_)
             {
-                /* const type
-                 * immutable type
-                 * shared type
-                 * wild type
-                 */
                 t = peek(t);
-                continue;
+                storageClassSeen = true;
             }
-            break;
+            return storageClassSeen;
         }
 
-        if (!isBasicType(&t))
+        immutable bool anyStorageClass = skipStroageClassTypeCtor();
+        // If there are any storage classes, a type is optional and inferred if not present.
+        // That is exactly the case when an identifier follows plus either an opening parentheses (function declaration) or `=`.
+        if (!anyStorageClass || t.value != TOK.identifier || peek(t).value != TOK.leftParenthesis && peek(t).value != TOK.assign)
         {
+            const bool isBT = isBasicType(&t);
+            // printf("isDeclaration() (%d,%d) isBasicType: %d; anyStorageClass: %d\n", t.loc.linnum, t.loc.charnum, isBT, anyStorageClass);
+            if (!isBT && !anyStorageClass)
+            {
+                goto Lisnot;
+            }
+        }
+        {
+            int haveId = 0;
+            int haveTpl = 0;
+            const bool isDecl = isDeclarator(&t, &haveId, &haveTpl, endtok, allowAltSyntax: anyStorageClass || needId != NeedDeclaratorId.mustIfDstyle);
+            // printf("isDeclaration() (%d,%d) isDeclarator: %d\n", t.loc.linnum, t.loc.charnum, isDecl);
+            if (!isDecl)
+                goto Lisnot;
+            // needed for `__traits(compiles, arr[0] = 0)`
+            if (!haveId && t.value == TOK.assign)
+                goto Lisnot;
+            if ((needId == NeedDeclaratorId.no && !haveId) ||
+                (needId == NeedDeclaratorId.opt) ||
+                (needId == NeedDeclaratorId.must && haveId) ||
+                (needId == NeedDeclaratorId.mustIfDstyle && haveId))
+            {
+                if (pt)
+                    *pt = t;
+                goto Lis;
+            }
             goto Lisnot;
         }
-        if (!isDeclarator(&t, &haveId, &haveTpl, endtok, needId != NeedDeclaratorId.mustIfDstyle))
-            goto Lisnot;
-        // needed for `__traits(compiles, arr[0] = 0)`
-        if (!haveId && t.value == TOK.assign)
-            goto Lisnot;
-        if ((needId == NeedDeclaratorId.no && !haveId) ||
-            (needId == NeedDeclaratorId.opt) ||
-            (needId == NeedDeclaratorId.must && haveId) ||
-            (needId == NeedDeclaratorId.mustIfDstyle && haveId))
-        {
-            if (pt)
-                *pt = t;
-            goto Lis;
-        }
-        goto Lisnot;
-
     Lis:
         //printf("\tis declaration, t = %s\n", t.toChars());
         return true;
@@ -7462,17 +7532,62 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         case TOK.leftParenthesis:
             // (type)
             t = peek(t);
-            const bool isRef = t.value == TOK.ref_;
+            while (t.value == TOK.const_ || t.value == TOK.immutable_ || t.value == TOK.inout_ || t.value == TOK.shared_)
+                t = peek(t);
+            bool hasLinkage = false;
+            if (t.value == TOK.extern_)
+            {
+                t = peek(t);
+                if (t.value != TOK.leftParenthesis)
+                    goto Lfalse;
+                t = peek(t);
+                if (t.value != TOK.identifier) goto Lfalse;
+                switch (t.ident.toString())
+                {
+                case "D":
+                case "System":
+                case "Windows":
+                    t = peek(t);
+                    if (t.value != TOK.rightParenthesis) goto Lfalse;
+                    t = peek(t);
+                    break;
+
+                case "C": // C or C++
+                    t = peek(t);
+                    if (t.value == TOK.plusPlus) // C++ linkage
+                    {
+                        t = peek(t);
+                    }
+                    if (t.value != TOK.rightParenthesis) goto Lfalse;
+                    t = peek(t);
+                    break;
+
+                case "Objective": // Objective-C
+                    t = peek(t);
+                    if (t.value != TOK.min) goto Lfalse;
+                    t = peek(t);
+                    if (t.value != TOK.identifier || t.ident.toString() != "C") goto Lfalse;
+                    t = peek(t);
+                    if (t.value != TOK.rightParenthesis) goto Lfalse;
+                    t = peek(t);
+                    break;
+
+                default:
+                    goto Lfalse;
+                }
+
+                hasLinkage = true;
+            }
+            immutable bool isRef = t.value == TOK.ref_;
             if (isRef) t = peek(t);
             while (t.value == TOK.const_ || t.value == TOK.immutable_ || t.value == TOK.inout_ || t.value == TOK.shared_)
                 t = peek(t);
             if (!isBasicType(&t))
                 goto Lfalse;
-            if (isRef && t.value != TOK.function_ && t.value != TOK.delegate_)
-                goto Lfalse;
+
             int haveId = 1;
             int haveTpl = 0;
-            if (!isDeclarator(&t, &haveId, &haveTpl, TOK.rightParenthesis))
+            if (!isDeclarator(&t, &haveId, &haveTpl, TOK.rightParenthesis, requireCallable: hasLinkage || isRef))
                 goto Lfalse;
             if (t.value != TOK.rightParenthesis)
                 goto Lfalse;
@@ -7496,11 +7611,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         return false;
     }
 
-    private bool isDeclarator(Token** pt, int* haveId, int* haveTpl, TOK endtok, bool allowAltSyntax = true)
+    private bool isDeclarator(Token** pt, int* haveId, int* haveTpl, TOK endtok, bool allowAltSyntax = true, bool requireCallable = false)
     {
         // This code parallels parseDeclarator()
         Token* t = *pt;
         bool parens;
+        uint callables = 0;
 
         //printf("Parser::isDeclarator() %s\n", t.toChars());
         if (t.value == TOK.assign)
@@ -7520,6 +7636,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 t = peek(t);
                 if (t.value == TOK.rightBracket)
                 {
+                    // [ ]
                     t = peek(t);
                 }
                 else if (isDeclaration(t, NeedDeclaratorId.no, TOK.rightBracket, &t))
@@ -7604,6 +7721,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 if (!isParameters(&t))
                     return false;
                 skipAttributes(t, &t);
+                ++callables;
                 continue;
 
             default:
@@ -7611,6 +7729,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             }
             break;
         }
+
+        if (requireCallable && callables != 1) return false;
 
         while (1)
         {
@@ -9697,7 +9817,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     {
         if (mod.edition >= Edition.v2024)
         {
-            eSink.error(token.loc, "usage of identifer `body` as a keyword is obsolete. Use `do` instead.");
+            eSink.error(token.loc, "usage of identifier `body` as a keyword is obsolete. Use `do` instead.");
         }
     }
 }

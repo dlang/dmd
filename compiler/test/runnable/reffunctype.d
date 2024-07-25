@@ -6,7 +6,7 @@
 void a( ref (int function()) ) { }
 void b((ref  int function()) ) { }
 
-// `c` is `a` without clarifiying parentheses.
+// `c` is `a` without clarifying parentheses.
 void c( ref  int function()  ) { }
 
 static assert(!is( typeof(&a) == typeof(&b) ));
@@ -18,7 +18,7 @@ static assert( is( typeof(&a) == typeof(&c) ));
  ref (int function()) x() { static typeof(return) fp = null; return fp; }
 (ref  int function()) y() => null;
 
-// `z` is `x` without clarifiying parentheses.
+// `z` is `x` without clarifying parentheses.
  ref  int function()  z() => x();
 
 static assert(!is( typeof(&x) == typeof(&y) ));

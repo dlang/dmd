@@ -1572,7 +1572,7 @@ extern (C++) abstract class Type : ASTNode
             default:
                 return null;
             }
-    }
+        }
     }
 
     override void accept(Visitor v)
