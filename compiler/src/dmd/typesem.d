@@ -235,7 +235,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
         Dsymbol sm = s.searchX(loc, sc, id, flags);
         if (sm)
         {
-            if (!(sc.flags & SCOPE.ignoresymbolvisibility) && !symbolIsVisible(sc, sm))
+            if (!sc.ignoresymbolvisibility && !symbolIsVisible(sc, sm))
             {
                 .error(loc, "`%s` is not visible from module `%s`", sm.toPrettyChars(), sc._module.toChars());
                 sm = null;
@@ -620,7 +620,7 @@ extern (D) bool checkComplexTransition(Type type, const ref Loc loc, Scope* sc)
         return false;
     // Don't complain if we're inside a template constraint
     // https://issues.dlang.org/show_bug.cgi?id=21831
-    if (sc.flags & SCOPE.constraint)
+    if (sc.inTemplateConstraint)
         return false;
 
     Type t = type.baseElemOf();
@@ -633,7 +633,7 @@ extern (D) bool checkComplexTransition(Type type, const ref Loc loc, Scope* sc)
 
     if (t.isimaginary() || t.iscomplex())
     {
-        if (sc.flags & SCOPE.Cfile)
+        if (sc.inCfile)
             return true;            // complex/imaginary not deprecated in C code
         Type rt;
         switch (t.ty)
@@ -1012,7 +1012,7 @@ private extern(D) MATCH argumentMatchParameter (TypeFunction tf, Parameter p,
         else
         {
             import dmd.dcast : cimplicitConvTo;
-            m = (sc && sc.flags & SCOPE.Cfile) ? arg.cimplicitConvTo(tprm) : arg.implicitConvTo(tprm);
+            m = (sc && sc.inCfile) ? arg.cimplicitConvTo(tprm) : arg.implicitConvTo(tprm);
         }
     }
 
@@ -1636,7 +1636,7 @@ Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 
     Type visitComplex(TypeBasic t)
     {
-        if (!(sc.flags & SCOPE.Cfile))
+        if (!sc.inCfile)
             return visitType(t);
 
         auto tc = getComplexLibraryType(loc, sc, t.ty);
@@ -2614,7 +2614,7 @@ Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         }
 
         if (tf.parameterList.varargs == VarArg.variadic && tf.linkage != LINK.d && tf.parameterList.length == 0 &&
-            !(sc.flags & SCOPE.Cfile))
+            !sc.inCfile)
         {
             .error(loc, "variadic functions with non-D linkage must have at least one parameter");
             errors = true;
@@ -4075,7 +4075,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
             // compile time sequences are valid types
             !mt.exp.type.isTypeTuple())
         {
-            if (!(sc.flags & SCOPE.Cfile) && // in (extended) C typeof may be used on types as with sizeof
+            if (!sc.inCfile && // in (extended) C typeof may be used on types as with sizeof
                 mt.exp.checkType())
                 goto Lerr;
 
@@ -4964,7 +4964,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
         assert(e.op != EXP.dot);
 
         // https://issues.dlang.org/show_bug.cgi?id=14010
-        if (!(sc.flags & SCOPE.Cfile) && ident == Id._mangleof)
+        if (!sc.inCfile && ident == Id._mangleof)
         {
             return mt.getProperty(sc, e.loc, ident, flag & 1);
         }
@@ -4976,7 +4976,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             /* Create a TupleExp out of the fields of the struct e:
              * (e.field0, e.field1, e.field2, ...)
              */
-            e = e.expressionSemantic(sc); // do this before turning on noaccesscheck
+            e = e.expressionSemantic(sc); // do this before turning on noAccessCheck
 
             if (!mt.sym.determineFields())
             {
@@ -5006,20 +5006,20 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
 
             e = new TupleExp(e.loc, e0, exps);
             Scope* sc2 = sc.push();
-            sc2.flags |= SCOPE.noaccesscheck;
+            sc2.noAccessCheck = true;
             e = e.expressionSemantic(sc2);
             sc2.pop();
             return e;
         }
 
-        immutable flags = sc.flags & SCOPE.ignoresymbolvisibility ? SearchOpt.ignoreVisibility : 0;
+        immutable flags = sc.ignoresymbolvisibility ? SearchOpt.ignoreVisibility : 0;
         s = mt.sym.search(e.loc, ident, flags | SearchOpt.ignorePrivateImports);
     L1:
         if (!s)
         {
             return noMember(mt, sc, e, ident, flag);
         }
-        if (!(sc.flags & SCOPE.ignoresymbolvisibility) && !symbolIsVisible(sc, s))
+        if (!sc.ignoresymbolvisibility && !symbolIsVisible(sc, s))
         {
             return noMember(mt, sc, e, ident, flag);
         }
@@ -5256,7 +5256,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
 
             /* Create a TupleExp
              */
-            e = e.expressionSemantic(sc); // do this before turning on noaccesscheck
+            e = e.expressionSemantic(sc); // do this before turning on noAccessCheck
 
             mt.sym.size(e.loc); // do semantic of type
 
@@ -5286,13 +5286,13 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
 
             e = new TupleExp(e.loc, e0, exps);
             Scope* sc2 = sc.push();
-            sc2.flags |= SCOPE.noaccesscheck;
+            sc2.noAccessCheck = true;
             e = e.expressionSemantic(sc2);
             sc2.pop();
             return e;
         }
 
-        SearchOptFlags flags = sc.flags & SCOPE.ignoresymbolvisibility ? SearchOpt.ignoreVisibility : SearchOpt.all;
+        SearchOptFlags flags = sc.ignoresymbolvisibility ? SearchOpt.ignoreVisibility : SearchOpt.all;
         s = mt.sym.search(e.loc, ident, flags | SearchOpt.ignorePrivateImports);
 
     L1:
@@ -5445,7 +5445,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
 
             return noMember(mt, sc, e, ident, flag & 1);
         }
-        if (!(sc.flags & SCOPE.ignoresymbolvisibility) && !symbolIsVisible(sc, s))
+        if (!sc.ignoresymbolvisibility && !symbolIsVisible(sc, s))
         {
             return noMember(mt, sc, e, ident, flag);
         }

@@ -229,7 +229,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             auto f = funcdecl.type.isTypeFunction();
 
             // C11 5.1.2.2.3
-            if (sc.flags & SCOPE.Cfile && funcdecl.isCMain() && f.next.ty == Tint32)
+            if (sc.inCfile && funcdecl.isCMain() && f.next.ty == Tint32)
                 return true;
 
             return f.next.ty == Tvoid && (funcdecl.isMain() || funcdecl.isCMain());
@@ -290,7 +290,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             }
         }
 
-        //printf(" sc.incontract = %d\n", (sc.flags & SCOPE.contract));
+        //printf(" sc.incontract = %d\n", sc.contract);
         if (funcdecl.semanticRun >= PASS.semantic3)
             return;
         funcdecl.semanticRun = PASS.semantic3;
@@ -342,7 +342,10 @@ private extern(C++) final class Semantic3Visitor : Visitor
             sc2.explicitVisibility = 0;
             sc2.aligndecl = null;
             if (funcdecl.ident != Id.require && funcdecl.ident != Id.ensure)
-                sc2.flags = sc.flags & ~SCOPE.contract;
+            {
+                sc2.copyFlagsFrom(sc);
+                sc2.contract = Contract.none;
+            }
             sc2.tf = null;
             sc2.os = null;
             sc2.inLoop = false;
@@ -818,7 +821,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 else
                 {
                     const(bool) inlineAsm = (funcdecl.hasReturnExp & 8) != 0;
-                    if ((blockexit & BE.fallthru) && f.next.ty != Tvoid && !inlineAsm && !(sc.flags & SCOPE.Cfile))
+                    if ((blockexit & BE.fallthru) && f.next.ty != Tvoid && !inlineAsm && !sc.inCfile)
                     {
                         if (!funcdecl.hasReturnExp)
                             .error(funcdecl.loc, "%s `%s` has no `return` statement, but is expected to return a value of type `%s`", funcdecl.kind, funcdecl.toPrettyChars, f.next.toChars());
@@ -994,7 +997,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 sym.parent = sc2.scopesym;
                 sym.endlinnum = funcdecl.endloc.linnum;
                 sc2 = sc2.push(sym);
-                sc2.flags = (sc2.flags & ~SCOPE.contract) | SCOPE.require;
+                sc2.contract = Contract.require;
 
                 // BUG: need to error if accessing out parameters
                 // BUG: need to disallow returns
@@ -1039,7 +1042,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 }
 
                 sc2 = scout; //push
-                sc2.flags = (sc2.flags & ~SCOPE.contract) | SCOPE.ensure;
+                sc2.contract = Contract.ensure;
 
                 // BUG: need to disallow returns and throws
 

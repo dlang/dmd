@@ -246,7 +246,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
             // https://issues.dlang.org/show_bug.cgi?id=14166
             // https://issues.dlang.org/show_bug.cgi?id=20417
             // Don't run CTFE for the temporary variables inside typeof or __traits(compiles)
-            vd._init = vd._init.initializerSemantic(sc, vd.type, sc.intypeof == 1 || sc.flags & SCOPE.compile ? INITnointerpret : INITinterpret);
+            vd._init = vd._init.initializerSemantic(sc, vd.type, sc.intypeof == 1 || sc.traitsCompiles ? INITnointerpret : INITinterpret);
             lowerStaticAAs(vd, sc);
             vd.inuse--;
         }
