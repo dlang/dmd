@@ -121,7 +121,6 @@ private struct FUNCFLAG
     bool nogcInprocess;      /// working on determining @nogc
     bool scopeInprocess;     /// infer `return` and `scope` for parameters
     bool inlineScanned;      /// function has been scanned for inline possibilities
-    bool dummy;              /// unused
     bool hasCatches;         /// function has try-catch statements
     bool skipCodegen;        /// do not generate code for this function.
     bool printf;             /// is a printf-like function
