@@ -57,24 +57,20 @@ if (__traits(isUnsigned, T))
 
     foreach (size_t i, mem; __traits(allMembers, S))
     {
-        // propagate private/public from field to getter/setter
-        // Note: The traits was renamed to `getVisibility` in 2.096,
-        // use `getProtection` until the bootstrap compiler is new enough
-        enum visibility = __traits(getProtection, __traits(getMember, S, mem));
-
         enum typeName = typeof(__traits(getMember, S, mem)).stringof;
         enum shift = toString!(bitInfo.offset[i]);
         enum sizeMask = toString!((1 << bitInfo.size[i]) - 1); // 0x01 for bool, 0xFF for ubyte etc.
         result ~= "
-        "~visibility~" "~typeName~" "~mem~"() const scope { return cast("~typeName~") ((bitFields >>> "~shift~") & "~sizeMask~"); }
-        "~visibility~" "~typeName~" "~mem~"("~typeName~" v) scope
+        "~typeName~" "~mem~"() const scope { return cast("~typeName~") ((bitFields >>> "~shift~") & "~sizeMask~"); }
+        "~typeName~" "~mem~"("~typeName~" v) scope
         {
             bitFields &= ~("~sizeMask~" << "~shift~");
             bitFields |= v << "~shift~";
             return v;
         }";
     }
-    return result ~ "\n}\n private "~T.stringof~" bitFields = " ~ toString!(bitInfo.initialValue) ~ ";\n";
+    enum TP initVal = bitInfo.initialValue;
+    return result ~ "\n}\n private "~T.stringof~" bitFields = " ~ toString!(initVal) ~ ";\n";
 }
 
 ///
@@ -118,7 +114,4 @@ unittest
     assert(s.w == 77);
     s.w = 3;
     assert(s.w == 3);
-
-    static assert(__traits(getProtection, S.x) == "public");
-    static assert(__traits(getProtection, S.w) == "private");
 }
