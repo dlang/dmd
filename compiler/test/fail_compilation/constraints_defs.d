@@ -8,39 +8,55 @@ fail_compilation/constraints_defs.d(49): Error: template instance `constraints_d
        R = __lambda1`
   must satisfy the following constraint:
 `       N!T`
+fail_compilation/constraints_defs.d(49):        instantiated from here: `def!(int, 0, (a) => a)`
+fail_compilation/imports/constraints.d(53):        Candidate match: def(T, int i = 5, alias R)() if (N!T)
 fail_compilation/constraints_defs.d(50): Error: template instance `imports.constraints.defa!int` does not match template declaration `defa(T, U = int)()`
   with `T = int`
   must satisfy the following constraint:
 `       N!T`
+fail_compilation/constraints_defs.d(50):        instantiated from here: `defa!int`
+fail_compilation/imports/constraints.d(54):        Candidate match: defa(T, U = int)() if (N!T)
 fail_compilation/constraints_defs.d(51): Error: template instance `imports.constraints.defv!()` does not match template declaration `defv(T = bool, int i = 5, Ts...)()`
   with `Ts = ()`
   must satisfy the following constraint:
 `       N!T`
+fail_compilation/constraints_defs.d(51):        instantiated from here: `defv!()`
+fail_compilation/imports/constraints.d(55):        Candidate match: defv(T = bool, int i = 5, Ts...)() if (N!T)
 fail_compilation/constraints_defs.d(52): Error: template instance `imports.constraints.defv!int` does not match template declaration `defv(T = bool, int i = 5, Ts...)()`
   with `T = int,
        Ts = ()`
   must satisfy the following constraint:
 `       N!T`
+fail_compilation/constraints_defs.d(52):        instantiated from here: `defv!int`
+fail_compilation/imports/constraints.d(55):        Candidate match: defv(T = bool, int i = 5, Ts...)() if (N!T)
 fail_compilation/constraints_defs.d(53): Error: template instance `imports.constraints.defv!(int, 0)` does not match template declaration `defv(T = bool, int i = 5, Ts...)()`
   with `T = int,
        i = 0,
        Ts = ()`
   must satisfy the following constraint:
 `       N!T`
+fail_compilation/constraints_defs.d(53):        instantiated from here: `defv!(int, 0)`
+fail_compilation/imports/constraints.d(55):        Candidate match: defv(T = bool, int i = 5, Ts...)() if (N!T)
 fail_compilation/constraints_defs.d(54): Error: template instance `imports.constraints.defv!(int, 0, bool)` does not match template declaration `defv(T = bool, int i = 5, Ts...)()`
   with `T = int,
        i = 0,
        Ts = (bool)`
   must satisfy the following constraint:
 `       N!T`
+fail_compilation/constraints_defs.d(54):        instantiated from here: `defv!(int, 0, bool)`
+fail_compilation/imports/constraints.d(55):        Candidate match: defv(T = bool, int i = 5, Ts...)() if (N!T)
 fail_compilation/constraints_defs.d(55): Error: template instance `imports.constraints.defv!(int, 0, bool, float)` does not match template declaration `defv(T = bool, int i = 5, Ts...)()`
   with `T = int,
        i = 0,
        Ts = (bool, float)`
   must satisfy the following constraint:
 `       N!T`
+fail_compilation/constraints_defs.d(55):        instantiated from here: `defv!(int, 0, bool, float)`
+fail_compilation/imports/constraints.d(55):        Candidate match: defv(T = bool, int i = 5, Ts...)() if (N!T)
 ---
 */
+
+#line 100
 
 void main()
 {
