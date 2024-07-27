@@ -2274,11 +2274,14 @@ $(H3 $(LNAME2 function_literals, Function Literals))
 
 $(GRAMMAR
 $(GNAME FunctionLiteral):
-    $(D function) $(GLINK RefOrAutoRef)$(OPT) $(GLINK2 type, Type)$(OPT) $(GLINK ParameterWithAttributes)$(OPT) $(GLINK FunctionLiteralBody)
-    $(D delegate) $(GLINK RefOrAutoRef)$(OPT) $(GLINK2 type, Type)$(OPT) $(GLINK ParameterWithMemberAttributes)$(OPT) $(GLINK FunctionLiteralBody)
+    $(D function) $(GLINK RefOrAutoRef)$(OPT) $(GLINK BasicTypeWithSuffixes)$(OPT) $(GLINK ParameterWithAttributes)$(OPT) $(GLINK FunctionLiteralBody)
+    $(D delegate) $(GLINK RefOrAutoRef)$(OPT) $(GLINK BasicTypeWithSuffixes)$(OPT) $(GLINK ParameterWithMemberAttributes)$(OPT) $(GLINK FunctionLiteralBody)
     $(GLINK RefOrAutoRef)$(OPT) $(GLINK ParameterWithMemberAttributes) $(GLINK FunctionLiteralBody)
     $(GLINK2 statement, BlockStatement)
     $(IDENTIFIER) $(D =>) $(GLINK AssignExpression)
+
+$(GNAME BasicTypeWithSuffixes):
+    $(GLINK2 type, BasicType) $(GLINK2 type, TypeSuffixes)$(OPT)
 
 $(GNAME ParameterWithAttributes):
     $(GLINK2 function, Parameters) $(GLINK2 function, FunctionAttributes)$(OPT)
