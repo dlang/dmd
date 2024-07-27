@@ -45,6 +45,7 @@ $(GNAME Parameter):
     $(GLINK ParameterDeclaration)
     $(GLINK ParameterDeclaration) $(D ...)
     $(GLINK ParameterDeclaration) $(D =) $(ASSIGNEXPRESSION)
+    $(GLINK ParameterDeclaration) $(D =) $(ASSIGNEXPRESSION) $(D ...)
 
 $(GNAME ParameterDeclaration):
     $(GLINK ParameterAttributes)$(OPT) $(GLINK2 type, BasicType) $(GLINK2 declaration, Declarator)
