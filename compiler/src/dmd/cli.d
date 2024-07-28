@@ -760,6 +760,18 @@ dmd -cov -unittest myprog.d
             `$(UNIX Generate shared library)
              $(WINDOWS Generate DLL library)`,
         ),
+        Option("sar=[on|off|<path/package>]",
+            "turn reading source archive files on or off, or create source archive at <path/package.sar>",
+            `Controls source archive files and usage.
+                $(UL
+                    $(LI $(I on): use source archive files (default))
+                    $(LI $(I off): ignore source archive files)
+                    $(LI $(I path/package): create source archive file.
+                    <path> is where the root package of the files to be archived are.
+                    All the modules in <package> are written to the source archive file <path/package.sar>.
+                    Do not use in combination with compiling, as that will be very slow.)
+                )`
+        ),
         Option("target=<triple>",
                "use <triple> as <arch>-[<vendor>-]<os>[-<cenv>[-<cppenv]]",
                "$(I arch) is the architecture: either `x86`, `x64`, `x86_64` or `x32`,
