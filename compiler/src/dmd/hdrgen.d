@@ -2682,10 +2682,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
     void visitDotId(DotIdExp e)
     {
         expToBuffer(e.e1, PREC.primary, buf, hgs);
-        if (e.arrow)
-            buf.writestring("->");
-        else
-            buf.writeByte('.');
+        buf.writeByte('.');
         buf.writestring(e.ident.toString());
     }
 
