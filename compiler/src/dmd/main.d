@@ -67,6 +67,7 @@ import dmd.root.stringtable;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.target;
+import dmd.timetrace;
 import dmd.utils;
 import dmd.vsoptions;
 
@@ -397,6 +398,12 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     buildPath(params.imppath, global.path);
     buildPath(params.fileImppath, global.filePath);
 
+    if (params.timeTrace)
+    {
+        import dmd.timetrace;
+        initializeTimeTrace(params.timeTraceGranularityUs, argv[0]);
+    }
+
     // Create Modules
     Modules modules;
     modules.reserve(files.length);
@@ -427,9 +434,12 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         ddocbufIsRead = true;
     }
 
-    // Parse files
     bool anydocfiles = false;
     OutBuffer ddocOutputText;
+    {
+    // Parse files
+    timeTraceBeginEvent(TimeTraceEventType.parseGeneral);
+    scope (exit) timeTraceEndEvent(TimeTraceEventType.parseGeneral);
     size_t filecount = modules.length;
     for (size_t filei = 0, modi = 0; filei < filecount; filei++, modi++)
     {
@@ -485,6 +495,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
                 driverParams.link = false;
         }
     }
+    }
 
     if (anydocfiles && modules.length && (driverParams.oneobj || params.objname))
     {
@@ -517,6 +528,10 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     }
     if (global.errors)
         removeHdrFilesAndFail(params, modules);
+
+    {
+    timeTraceBeginEvent(TimeTraceEventType.semaGeneral);
+    scope (exit) timeTraceEndEvent(TimeTraceEventType.semaGeneral);
 
     // load all unconditional imports for better symbol resolving
     foreach (m; modules)
@@ -624,6 +639,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         else
             printf("%.*s", cast(int)data.length, data.ptr);
     }
+    }
 
     printCtfePerformanceStats();
     printTemplateStats(global.params.v.templatesListInstances, global.errorSink);
@@ -683,9 +699,13 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             params.objfiles.push(mainModule.objfile.toChars());
     }
 
-    generateCodeAndWrite(modules[], libmodules[], params.libname, params.objdir,
-                         driverParams.lib, params.obj, driverParams.oneobj, params.multiobj,
-                         params.v.verbose);
+    {
+        timeTraceBeginEvent(TimeTraceEventType.codegenGlobal);
+        scope (exit) timeTraceEndEvent(TimeTraceEventType.codegenGlobal);
+        generateCodeAndWrite(modules[], libmodules[], params.libname, params.objdir,
+                            driverParams.lib, params.obj, driverParams.oneobj, params.multiobj,
+                            params.v.verbose);
+    }
 
     backend_term();
 
@@ -700,7 +720,11 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     else
     {
         if (driverParams.link)
+        {
+            timeTraceBeginEvent(TimeTraceEventType.link);
+            scope (exit) timeTraceEndEvent(TimeTraceEventType.link);
             status = runLINK(global.params.v.verbose, global.errorSink);
+        }
         if (params.run)
         {
             if (!status)
@@ -718,6 +742,45 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
                 params.exefile.toCStringThen!(ef => File.remove(ef.ptr));
             }
         }
+    }
+
+    if (params.timeTrace)
+    {
+        import dmd.timetrace;
+        auto fileName = params.timeTraceFile.toDString();
+        if (!fileName)
+        {
+            if (global.params.objfiles.length)
+            {
+                fileName = global.params.objfiles[0].toDString() ~ ".time-trace";
+            }
+            else
+            {
+                fileName = "out.time-trace";
+            }
+        }
+
+        OutBuffer buf;
+        timeTraceProfiler.writeToBuffer(buf);
+        if (fileName == "-")
+        {
+            // Write to stdout
+            import core.stdc.stdio : fwrite, stdout;
+
+            size_t n = fwrite(buf[].ptr, 1, buf.length, stdout);
+            if (n != buf.length)
+            {
+                error(Loc.initial, "Error writing -ftime-trace profile to stdout");
+            }
+        }
+        else if (!File.write(fileName, buf[]))
+        {
+            error(Loc.initial,
+                "Error writing -ftime-trace profile: could not open '%*.s'",
+                cast(int) fileName.length, fileName.ptr);
+        }
+
+        deinitializeTimeTrace();
     }
 
     // Output the makefile dependencies
