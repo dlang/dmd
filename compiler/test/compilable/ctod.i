@@ -36,6 +36,11 @@ extern (C)
 		int x = void;
 	}
 	const(S24326) fun(int y);
+	struct foo
+	{
+		int x = void;
+	}
+	alias weird = int[(cast(foo*)cast(void*)0).x.sizeof];
 	/+enum int __DATE__ = 1+/;
 	/+enum int __TIME__ = 1+/;
 	/+enum int __TIMESTAMP__ = 1+/;
@@ -85,3 +90,9 @@ enum { A };
 // https://issues.dlang.org/show_bug.cgi?id=24670
 struct S24326 { int x; };
 const struct S24326 fun(int y);
+
+// https://issues.dlang.org/show_bug.cgi?id=24375
+struct foo {
+    int x;
+};
+typedef int weird[sizeof(((struct foo *)((void*)0))->x)];
