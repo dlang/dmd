@@ -221,6 +221,11 @@ private extern(C++) final class Semantic3Visitor : Visitor
     override void visit(FuncDeclaration funcdecl)
     {
         //printf("FuncDeclaration::semantic3(%s '%s', sc = %p)\n", funcdecl.kind(), funcdecl.toChars(), sc);
+        import dmd.timetrace;
+        import dmd.root.string : toDString;
+        timeTraceBeginEvent(TimeTraceEventType.sema3);
+        scope (exit) timeTraceEndEvent(TimeTraceEventType.sema3, funcdecl);
+
         /* Determine if function should add `return 0;`
          */
         bool addReturn0()

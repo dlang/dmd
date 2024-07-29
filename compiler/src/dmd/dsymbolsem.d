@@ -24,6 +24,7 @@ import dmd.attrib;
 import dmd.attribsem;
 import dmd.clone;
 import dmd.cond;
+import dmd.timetrace;
 import dmd.dcast;
 import dmd.dclass;
 import dmd.declaration;
@@ -1560,6 +1561,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(Import imp)
     {
+        timeTraceBeginEvent(TimeTraceEventType.sema1Import);
+        scope (exit) timeTraceEndEvent(TimeTraceEventType.sema1Import, imp);
         static if (LOG)
         {
             printf("Import::semantic('%s') %s\n", imp.toPrettyChars(), imp.id.toChars());
@@ -1933,6 +1936,10 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     {
         if (m.semanticRun != PASS.initial)
             return;
+
+        timeTraceBeginEvent(TimeTraceEventType.sema1Module);
+        scope (exit) timeTraceEndEvent(TimeTraceEventType.sema1Module, m);
+
         //printf("+Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
         m.semanticRun = PASS.semantic;
         // Note that modules get their own scope, from scratch.
