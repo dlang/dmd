@@ -119,9 +119,8 @@ private struct FUNCFLAG
     bool safetyInprocess;    /// working on determining safety
     bool nothrowInprocess;   /// working on determining nothrow
     bool nogcInprocess;      /// working on determining @nogc
-    bool returnInprocess;    /// working on inferring 'return' for parameters
+    bool scopeInprocess;     /// infer `return` and `scope` for parameters
     bool inlineScanned;      /// function has been scanned for inline possibilities
-    bool inferScope;         /// infer 'scope' for parameters
     bool hasCatches;         /// function has try-catch statements
     bool skipCodegen;        /// do not generate code for this function.
     bool printf;             /// is a printf-like function
@@ -722,11 +721,8 @@ extern (C++) class FuncDeclaration : Declaration
         if (!tf.isnogc)
             nogcInprocess = true;
 
-        if (!isVirtual() || this.isIntroducing())
-            returnInprocess = true;
-
         // Initialize for inferring STC.scope_
-        inferScope = true;
+        scopeInprocess = true;
     }
 
     extern (D) final uint saveFlags()
@@ -1674,7 +1670,7 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
         this.fes = fes;
         // Always infer scope for function literals
         // See https://issues.dlang.org/show_bug.cgi?id=20362
-        this.inferScope = true;
+        this.scopeInprocess = true;
         //printf("FuncLiteralDeclaration() id = '%s', type = '%s'\n", this.ident.toChars(), type.toChars());
     }
 
