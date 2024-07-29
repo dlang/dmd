@@ -1320,7 +1320,7 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
                 return;
             }
             FuncDeclaration fd = p.isFuncDeclaration();
-            if (fd && sc.func.returnInprocess)
+            if (fd && sc.func.scopeInprocess)
             {
                 /* Code like:
                  *   int x;
@@ -1448,7 +1448,7 @@ private bool inferReturn(FuncDeclaration fd, VarDeclaration v, bool returnScope)
     if (!v.isParameter() || v.isTypesafeVariadicArray || (returnScope && v.doNotInferReturn))
         return false;
 
-    if (!fd.returnInprocess)
+    if (!fd.scopeInprocess)
         return false;
 
     if (returnScope && !(v.isScope() || v.maybeScope))
@@ -2073,24 +2073,20 @@ private void doNotInferScope(VarDeclaration v, RootObject o)
 public
 void finishScopeParamInference(FuncDeclaration funcdecl, ref TypeFunction f)
 {
+    if (!funcdecl.scopeInprocess)
+        return;
+    funcdecl.scopeInprocess = false;
 
-    if (funcdecl.returnInprocess)
+    if (funcdecl.storage_class & STC.return_)
     {
-        funcdecl.returnInprocess = false;
-        if (funcdecl.storage_class & STC.return_)
-        {
-            if (funcdecl.type == f)
-                f = cast(TypeFunction)f.copy();
-            f.isreturn = true;
-            f.isreturnscope = cast(bool) (funcdecl.storage_class & STC.returnScope);
-            if (funcdecl.storage_class & STC.returninferred)
-                f.isreturninferred = true;
-        }
+        if (funcdecl.type == f)
+            f = cast(TypeFunction)f.copy();
+        f.isreturn = true;
+        f.isreturnscope = cast(bool) (funcdecl.storage_class & STC.returnScope);
+        if (funcdecl.storage_class & STC.returninferred)
+            f.isreturninferred = true;
     }
 
-    if (!funcdecl.inferScope)
-        return;
-    funcdecl.inferScope = false;
 
     // Infer STC.scope_
     if (funcdecl.parameters && !funcdecl.errors)
