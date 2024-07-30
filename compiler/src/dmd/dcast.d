@@ -71,7 +71,7 @@ Expression implicitCastTo(Expression e, Scope* sc, Type t)
     Expression visit(Expression e)
     {
         //printf("Expression.implicitCastTo(%s of type %s) => %s\n", e.toChars(), e.type.toChars(), t.toChars());
-        if (const match = (sc && sc.flags & SCOPE.Cfile) ? e.cimplicitConvTo(t) : e.implicitConvTo(t))
+        if (const match = (sc && sc.inCfile) ? e.cimplicitConvTo(t) : e.implicitConvTo(t))
         {
             // no need for an extra cast when matching is exact
 
@@ -2304,7 +2304,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         //printf("StringExp::castTo(t = %s), '%s' committed = %d\n", t.toChars(), e.toChars(), e.committed);
 
         if (!e.committed && t.ty == Tpointer && t.nextOf().ty == Tvoid &&
-            (!sc || !(sc.flags & SCOPE.Cfile)))
+            (!sc || !sc.inCfile))
         {
             error(e.loc, "cannot convert string literal to `void*`");
             return ErrorExp.get();
@@ -3356,7 +3356,7 @@ Type typeMerge(Scope* sc, EXP op, ref Expression pe1, ref Expression pe2)
     Type t1b = e1.type.toBasetype();
     Type t2b = e2.type.toBasetype();
 
-    if (sc && sc.flags & SCOPE.Cfile)
+    if (sc && sc.inCfile)
     {
         // Integral types can be implicitly converted to pointers
         if ((t1b.ty == Tpointer) != (t2b.ty == Tpointer))
@@ -4216,7 +4216,7 @@ Expression integralPromotions(Expression e, Scope* sc)
 
 void fix16997(Scope* sc, UnaExp ue)
 {
-    if (global.params.fix16997 || sc.flags & SCOPE.Cfile)
+    if (global.params.fix16997 || sc.inCfile)
         ue.e1 = integralPromotions(ue.e1, sc);          // desired C-like behavor
     else
     {

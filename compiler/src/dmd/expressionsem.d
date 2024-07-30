@@ -562,7 +562,7 @@ private Expression extractOpDollarSideEffect(Scope* sc, UnaExp ue)
     // https://issues.dlang.org/show_bug.cgi?id=12585
     // Extract the side effect part if ue.e1 is comma.
 
-    if ((sc.flags & SCOPE.ctfe) ? hasSideEffect(e1) : !isTrivialExp(e1)) // match logic in extractSideEffect()
+    if (sc.ctfe ? hasSideEffect(e1) : !isTrivialExp(e1)) // match logic in extractSideEffect()
     {
         /* Even if opDollar is needed, 'e1' should be evaluate only once. So
          * Rewrite:
@@ -963,7 +963,7 @@ private Expression searchUFCS(Scope* sc, UnaExp ue, Identifier ident)
     SearchOptFlags flags = SearchOpt.all;
     Dsymbol s;
 
-    if (sc.flags & SCOPE.ignoresymbolvisibility)
+    if (sc.ignoresymbolvisibility)
         flags |= SearchOpt.ignoreVisibility;
 
     // First look in local scopes
@@ -1365,7 +1365,7 @@ private Expression resolveUFCSProperties(Scope* sc, Expression e1, Expression e2
         e = new CallExp(loc, e, arguments);
 
         // https://issues.dlang.org/show_bug.cgi?id=24017
-        if (sc.flags & SCOPE.debug_)
+        if (sc.debug_)
             e.isCallExp().inDebugStatement = true;
 
         e = e.expressionSemantic(sc);
@@ -1879,7 +1879,7 @@ private bool checkPurity(FuncDeclaration f, const ref Loc loc, Scope* sc)
         return false;
     if (sc.intypeof == 1)
         return false;
-    if (sc.flags & (SCOPE.ctfe | SCOPE.debug_))
+    if (sc.ctfe || sc.debug_)
         return false;
 
     // If the call has a pure parent, then the called func must be pure.
@@ -1988,7 +1988,7 @@ private bool checkPurity(VarDeclaration v, const ref Loc loc, Scope* sc)
         return false;
     if (sc.intypeof == 1)
         return false; // allow violations inside typeof(expression)
-    if (sc.flags & (SCOPE.ctfe | SCOPE.debug_))
+    if (sc.ctfe || sc.debug_)
         return false; // allow violations inside compile-time evaluated expressions and debug conditionals
     if (v.ident == Id.ctfe)
         return false; // magic variable never violates pure and safe
@@ -2118,9 +2118,9 @@ private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc)
         return false;
     if (sc.intypeof == 1)
         return false;
-    if (sc.flags & SCOPE.debug_)
+    if (sc.debug_)
         return false;
-    if ((sc.flags & SCOPE.ctfe) && sc.func)
+    if (sc.ctfe && sc.func)
         return false;
 
     if (!sc.func)
@@ -2193,7 +2193,7 @@ private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
         return false;
     if (sc.intypeof == 1)
         return false;
-    if (sc.flags & (SCOPE.ctfe | SCOPE.debug_))
+    if (sc.ctfe || sc.debug_)
         return false;
     /* The original expressions (`new S(...)` or `new S[...]``) will be
      * verified instead. This is to keep errors related to the original code
@@ -2405,7 +2405,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
         tthis = dve.e1.type;
         goto Lfd;
     }
-    else if (sc && sc.flags & SCOPE.Cfile && e1.isVarExp() && !e2)
+    else if (sc && sc.inCfile && e1.isVarExp() && !e2)
     {
         // ImportC: do not implicitly call function if no ( ) are present
     }
@@ -3738,7 +3738,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     {
         if (!e.type)
             e.type = Type.tfloat64;
-        else if (e.type.isimaginary && sc.flags & SCOPE.Cfile)
+        else if (e.type.isimaginary && sc.inCfile)
         {
             /* Convert to core.stdc.config.complex
              */
@@ -3919,7 +3919,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (exp.ident == Id.ctfe)
         {
-            if (sc.flags & SCOPE.ctfe)
+            if (sc.ctfe)
             {
                 error(exp.loc, "variable `__ctfe` cannot be read at compile time");
                 return setError();
@@ -4303,7 +4303,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             buffer.write4(0);
             e.setData(buffer.extractData(), newlen, 4);
-            if (sc && sc.flags & SCOPE.Cfile)
+            if (sc && sc.inCfile)
                 e.type = Type.tuns32.sarrayOf(e.len + 1);
             else
                 e.type = Type.tdchar.immutableOf().arrayOf();
@@ -4328,7 +4328,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             buffer.writeUTF16(0);
             e.setData(buffer.extractData(), newlen, 2);
-            if (sc && sc.flags & SCOPE.Cfile)
+            if (sc && sc.inCfile)
                 e.type = Type.tuns16.sarrayOf(e.len + 1);
             else
                 e.type = Type.twchar.immutableOf().arrayOf();
@@ -4340,7 +4340,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             goto default;
 
         default:
-            if (sc && sc.flags & SCOPE.Cfile)
+            if (sc && sc.inCfile)
                 e.type = Type.tchar.sarrayOf(e.len + 1);
             else
                 e.type = Type.tchar.immutableOf().arrayOf();
@@ -4539,7 +4539,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         Type t = cle.type.typeSemantic(cle.loc, sc);
         auto init = initializerSemantic(cle.initializer, sc, t, INITnointerpret);
-        auto e = initializerToExpression(init, t, (sc.flags & SCOPE.Cfile) != 0);
+        auto e = initializerToExpression(init, t, sc.inCfile);
         if (!e)
         {
             error(cle.loc, "cannot convert initializer `%s` to expression", toChars(init));
@@ -5440,7 +5440,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         Expression d = new DeclarationExp(e.loc, e.cd);
         sc = sc.push(); // just create new scope
-        sc.flags &= ~SCOPE.ctfe; // temporary stop CTFE
+        sc.ctfe = false; // temporary stop CTFE
         d = d.expressionSemantic(sc);
         sc = sc.pop();
 
@@ -5608,7 +5608,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         uint olderrors;
 
         sc = sc.push(); // just create new scope
-        sc.flags &= ~SCOPE.ctfe; // temporary stop CTFE
+        sc.ctfe = false; // temporary stop CTFE
         sc.visibility = Visibility(Visibility.Kind.public_); // https://issues.dlang.org/show_bug.cgi?id=12506
 
         /* fd.treq might be incomplete type,
@@ -5835,7 +5835,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return;
             }
         }
-        if (sc.flags & SCOPE.Cfile)
+        if (sc.inCfile)
         {
             /* See if need to rewrite the AST because of cast/call ambiguity
              */
@@ -6018,7 +6018,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 // Rewrite (*fp)(arguments) to fp(arguments)
                 exp.e1 = (cast(PtrExp)exp.e1).e1;
             }
-            else if (exp.e1.op == EXP.type && (sc && sc.flags & SCOPE.Cfile))
+            else if (exp.e1.op == EXP.type && (sc && sc.inCfile))
             {
                 const numArgs = exp.arguments ? exp.arguments.length : 0;
 
@@ -6635,7 +6635,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (exp.f.checkNestedReference(sc, exp.loc))
                     return setError();
             }
-            else if (sc.func && sc.intypeof != 1 && !(sc.flags & (SCOPE.ctfe | SCOPE.debug_)))
+            else if (sc.func && sc.intypeof != 1 && !(sc.ctfe || sc.debug_))
             {
                 bool err = false;
                 if (!tf.purity && sc.func.setImpure(exp.loc, "`pure` %s `%s` cannot call impure `%s`", exp.e1))
@@ -6899,7 +6899,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             VarDeclaration v = s.isVarDeclaration();
             if (v)
             {
-                if (sc.flags & SCOPE.Cfile)
+                if (sc.inCfile)
                 {
                     /* Do semantic() on the type before inserting v into the symbol table
                      */
@@ -6933,7 +6933,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             }
 
-            if (v && (sc.flags & SCOPE.Cfile))
+            if (v && sc.inCfile)
             {
                 /* Do semantic() on initializer last so this will be legal:
                  *      int a = a;
@@ -6971,7 +6971,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     // The mangling change only works for D mangling
                 }
 
-                if (!(sc.flags & SCOPE.Cfile))
+                if (!sc.inCfile)
                 {
                     /* https://issues.dlang.org/show_bug.cgi?id=21272
                      * If we are in a foreach body we need to extract the
@@ -7104,7 +7104,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // Handle this in the glue layer
             e = new TypeidExp(exp.loc, ta);
 
-            e.type = getTypeInfoType(exp.loc, ta, sc);
+            bool genObjCode = true;
+
+            // https://issues.dlang.org/show_bug.cgi?id=23650
+            // We generate object code for typeinfo, required
+            // by typeid, only if in non-speculative context
+            if (sc.traitsCompiles)
+            {
+                genObjCode = false;
+            }
+
+            e.type = getTypeInfoType(exp.loc, ta, sc, genObjCode);
             semanticTypeInfo(sc, ta);
 
             if (ea)
@@ -7182,7 +7192,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             printf("IsExp::semantic(%s)\n", e.toChars());
         }
-        if (e.id && !(sc.flags & SCOPE.condition))
+        if (e.id && !sc.condition)
         {
             error(e.loc, "can only declare type aliases within `static if` conditionals or `static assert`s");
             return setError();
@@ -7211,7 +7221,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             Scope* sc2 = sc.copy(); // keep sc.flags
             sc2.tinst = null;
             sc2.minst = null;
-            sc2.flags |= SCOPE.fullinst;
+            sc2.fullinst = true;
             Type t = dmd.typesem.trySemantic(e.targ, e.loc, sc2);
             sc2.pop();
             if (!t) // errors, so condition is false
@@ -8092,7 +8102,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             //printf("e1.op = %d, '%s'\n", e1.op, Token.toChars(e1.op));
         }
 
-        if (sc.flags & SCOPE.Cfile)
+        if (sc.inCfile)
         {
             /* See if need to rewrite the AST because of cast/call ambiguity
              */
@@ -8485,7 +8495,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        if (sc.flags & SCOPE.Cfile)
+        if (sc.inCfile)
         {
             /* Special handling for &"string"/&(T[]){0, 1}
              * since C regards string/array literals as lvalues
@@ -8725,7 +8735,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         result = e;
                         return;
                     }
-                    if (sc.func && !sc.intypeof && !(sc.flags & SCOPE.debug_))
+                    if (sc.func && !sc.intypeof && !sc.debug_)
                     {
                         sc.setUnsafe(false, exp.loc,
                             "`this` reference necessary to take address of member `%s` in `@safe` function `%s`",
@@ -8816,7 +8826,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             goto case Terror;
         }
 
-        if (sc.flags & SCOPE.Cfile && exp.type && exp.type.toBasetype().ty == Tvoid)
+        if (sc.inCfile && exp.type && exp.type.toBasetype().ty == Tvoid)
         {
             // https://issues.dlang.org/show_bug.cgi?id=23752
             // `&*((void*)(0))` is allowed in C
@@ -8987,7 +8997,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (checkNonAssignmentArrayOp(e.e1))
             return setError();
 
-        e.type = (sc && sc.flags & SCOPE.Cfile) ? Type.tint32 : Type.tbool;
+        e.type = (sc && sc.inCfile) ? Type.tint32 : Type.tbool;
         result = e;
     }
 
@@ -9066,7 +9076,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        if ((sc && sc.flags & SCOPE.Cfile) &&
+        if ((sc && sc.inCfile) &&
             exp.to && (exp.to.ty == Tident || exp.to.ty == Tsarray) &&
             (exp.e1.op == EXP.address || exp.e1.op == EXP.star ||
              exp.e1.op == EXP.uadd || exp.e1.op == EXP.negate))
@@ -9320,7 +9330,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
-        if (sc && sc.flags & SCOPE.Cfile)
+        if (sc && sc.inCfile)
         {
             /* C11 6.5.4-5: A cast does not yield an lvalue.
              * So ensure that castTo does not strip away the cast so that this
@@ -9726,7 +9736,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         assert(!exp.type);
 
-        if (sc.flags & SCOPE.Cfile)
+        if (sc.inCfile)
         {
             /* See if need to rewrite the AST because of cast/call ambiguity
              */
@@ -9824,7 +9834,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         e.type = e.e2.type;
         result = e;
 
-        if (sc.flags & SCOPE.Cfile)
+        if (sc.inCfile)
             return;
 
         if (e.type is Type.tvoid)
@@ -10123,7 +10133,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     // OR it in, because it might already be set for C array indexing
                     exp.indexIsInBounds |= bounds.contains(getIntRange(exp.e2));
                 }
-                else if (sc.flags & SCOPE.Cfile && t1b.ty == Tsarray)
+                else if (sc.inCfile && t1b.ty == Tsarray)
                 {
                     if (auto ve = exp.e1.isVarExp())
                     {
@@ -10154,7 +10164,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        if (sc.flags & SCOPE.Cfile)
+        if (sc.inCfile)
         {
             /* See if need to rewrite the AST because of cast/call ambiguity
              */
@@ -10330,7 +10340,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (auto e2comma = exp.e2.isCommaExp())
         {
-            if (!e2comma.isGenerated && !(sc.flags & SCOPE.Cfile))
+            if (!e2comma.isGenerated && !sc.inCfile)
                 error(exp.loc, "using the result of a comma expression is not allowed");
 
             /* Rewrite to get rid of the comma from rvalue
@@ -10475,7 +10485,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                 e1x = e;
             }
-            else if (sc.flags & SCOPE.Cfile && e1x.isDotIdExp())
+            else if (sc.inCfile && e1x.isDotIdExp())
             {
                 auto die = e1x.isDotIdExp();
                 e1x = fieldLookup(die.e1, sc, die.ident, die.arrow);
@@ -11070,7 +11080,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              * string to match the size of e1.
              */
             Type t2 = e2x.type.toBasetype();
-            if (sc.flags & SCOPE.Cfile && e2x.isStringExp() && t2.isTypeSArray())
+            if (sc.inCfile && e2x.isStringExp() && t2.isTypeSArray())
             {
                 uinteger_t dim1 = t1.isTypeSArray().dim.toInteger();
                 uinteger_t dim2 = t2.isTypeSArray().dim.toInteger();
@@ -13276,14 +13286,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         e1x = resolveProperties(sc, e1x);
         e1x = e1x.toBoolean(sc);
 
-        if (sc.flags & SCOPE.condition)
+        if (sc.condition)
         {
             /* If in static if, don't evaluate e2 if we don't have to.
              */
             e1x = e1x.optimize(WANTvalue);
             if (e1x.toBool().hasValue(exp.op == EXP.orOr))
             {
-                if (sc.flags & SCOPE.Cfile)
+                if (sc.inCfile)
                     result = new IntegerExp(exp.op == EXP.orOr);
                 else
                     result = IntegerExp.createBool(exp.op == EXP.orOr);
@@ -13331,7 +13341,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (e2x.type.ty == Tvoid)
             exp.type = Type.tvoid;
         else
-            exp.type = (sc && sc.flags & SCOPE.Cfile) ? Type.tint32 : Type.tbool;
+            exp.type = (sc && sc.inCfile) ? Type.tint32 : Type.tbool;
 
         exp.e1 = e1x;
         exp.e2 = e2x;
@@ -13428,7 +13438,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (f1 || f2)
             return setError();
 
-        exp.type = (sc && sc.flags & SCOPE.Cfile) ? Type.tint32 : Type.tbool;
+        exp.type = (sc && sc.inCfile) ? Type.tint32 : Type.tbool;
 
         // Special handling for array comparisons
         Expression arrayLowering = null;
@@ -13723,7 +13733,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (f1 || f2)
             return setError();
 
-        exp.type = (sc && sc.flags & SCOPE.Cfile) ? Type.tint32 : Type.tbool;
+        exp.type = (sc && sc.inCfile) ? Type.tint32 : Type.tbool;
 
         if (!isArrayComparison)
         {
@@ -13939,7 +13949,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         // https://issues.dlang.org/show_bug.cgi?id=23767
         // `cast(void*) 0` should be treated as `null` so the ternary expression
         // gets the pointer type of the other branch
-        if (sc.flags & SCOPE.Cfile)
+        if (sc.inCfile)
         {
             static void rewriteCNull(ref Expression e, ref Type t)
             {
@@ -14255,7 +14265,7 @@ private Expression dotIdSemanticPropX(DotIdExp exp, Scope* sc)
     if (Expression ex = unaSemantic(exp, sc))
         return ex;
 
-    if (!(sc.flags & SCOPE.Cfile) && exp.ident == Id._mangleof)
+    if (!sc.inCfile && exp.ident == Id._mangleof)
     {
         // symbol.mangleof
 
@@ -14391,7 +14401,7 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
 
     //{ static int z; fflush(stdout); if (++z == 10) *(char*)0=0; }
 
-    const cfile = (sc.flags & SCOPE.Cfile) != 0;
+    const cfile = sc.inCfile;
 
     /* Special case: rewrite this.id and super.id
      * to be classtype.id and baseclasstype.id
@@ -14446,13 +14456,13 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
          */
         if (ie.sds.isModule() && ie.sds != sc._module)
             flags |= SearchOpt.ignorePrivateImports;
-        if (sc.flags & SCOPE.ignoresymbolvisibility)
+        if (sc.ignoresymbolvisibility)
             flags |= SearchOpt.ignoreVisibility;
         Dsymbol s = ie.sds.search(exp.loc, exp.ident, flags);
         /* Check for visibility before resolving aliases because public
          * aliases to private symbols are public.
          */
-        if (s && !(sc.flags & SCOPE.ignoresymbolvisibility) && !symbolIsVisible(sc._module, s))
+        if (s && !sc.ignoresymbolvisibility && !symbolIsVisible(sc._module, s))
         {
             s = null;
         }
@@ -15110,7 +15120,7 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
     if (global.params.noSharedAccess != FeatureState.enabled ||
         !sc ||
         sc.intypeof ||
-        sc.flags & SCOPE.ctfe)
+        sc.ctfe)
     {
         return false;
     }
@@ -15681,7 +15691,7 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
 
     Expression visitStructLiteral(StructLiteralExp _this)
     {
-        if (sc.flags & SCOPE.Cfile)
+        if (sc.inCfile)
             return _this;  // C struct literals are lvalues
         else
             return visit(_this);
@@ -15728,7 +15738,7 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
         auto e1 = _this.e1;
         auto var = _this.var;
         //printf("DotVarExp::toLvalue(%s)\n", toChars());
-        if (sc && sc.flags & SCOPE.Cfile)
+        if (sc && sc.inCfile)
         {
             /* C11 6.5.2.3-3: A postfix expression followed by the '.' or '->' operator
              * is an lvalue if the first expression is an lvalue.
@@ -15774,7 +15784,7 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
 
     Expression visitCast(CastExp _this)
     {
-        if (sc && sc.flags & SCOPE.Cfile)
+        if (sc && sc.inCfile)
         {
             /* C11 6.5.4-5: A cast does not yield an lvalue.
              */
@@ -16277,7 +16287,7 @@ bool checkAddressable(Expression e, Scope* sc)
                 continue;
 
             case EXP.variable:
-                if (sc.flags & SCOPE.Cfile)
+                if (sc.inCfile)
                 {
                     // C11 6.5.3.2: A variable that has its address taken cannot be
                     // stored in a register.
@@ -16579,7 +16589,7 @@ Expression getVarExp(EnumMember em, const ref Loc loc, Scope* sc)
         return ErrorExp.get();
     Expression e = new VarExp(loc, em);
     e = e.expressionSemantic(sc);
-    if (!(sc.flags & SCOPE.Cfile) && em.isCsymbol())
+    if (!sc.inCfile && em.isCsymbol())
     {
         /* C11 types them as int. But if in D file,
          * type qualified names as the enum
@@ -16620,7 +16630,7 @@ Expression toBoolean(Expression exp, Scope* sc)
         case EXP.construct:
         case EXP.blit:
         case EXP.loweredAssignExp:
-            if (sc.flags & SCOPE.Cfile)
+            if (sc.inCfile)
                 return exp;
             // Things like:
             //  if (a = b) ...
@@ -16759,7 +16769,7 @@ bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool 
         const uint nerrors = global.errors;
 
         sc = sc.startCTFE();
-        sc.flags |= SCOPE.condition;
+        sc.condition = true;
 
         e = e.expressionSemantic(sc);
         e = resolveProperties(sc, e);

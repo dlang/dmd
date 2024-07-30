@@ -41,7 +41,7 @@ import dmd.typesem;
  */
 Type cAdjustParamType(Type t, Scope* sc)
 {
-    if (!(sc.flags & SCOPE.Cfile))
+    if (!sc.inCfile)
         return t;
 
     Type tb = t.toBasetype();
@@ -77,7 +77,7 @@ Type cAdjustParamType(Type t, Scope* sc)
 Expression arrayFuncConv(Expression e, Scope* sc)
 {
     //printf("arrayFuncConv() %s\n", e.toChars());
-    if (!(sc.flags & SCOPE.Cfile))
+    if (!sc.inCfile)
         return e;
 
     auto t = e.type.toBasetype();
@@ -154,7 +154,7 @@ Expression fieldLookup(Expression e, Scope* sc, Identifier id, bool arrow)
  */
 Expression carraySemantic(ArrayExp ae, Scope* sc)
 {
-    if (!(sc.flags & SCOPE.Cfile))
+    if (!sc.inCfile)
         return null;
 
     auto e1 = ae.e1.expressionSemantic(sc);
