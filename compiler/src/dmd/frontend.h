@@ -950,6 +950,14 @@ struct CtorFlow final
         {}
 };
 
+enum class Contract : uint8_t
+{
+    none = 0u,
+    invariant_ = 1u,
+    require = 2u,
+    ensure = 3u,
+};
+
 template <typename K, typename V>
 struct AssocArray final
 {
@@ -7139,7 +7147,47 @@ struct Scope final
     int32_t explicitVisibility;
     StorageClass stc;
     DeprecatedDeclaration* depdecl;
-    uint32_t flags;
+    bool ctor() const;
+    bool ctor(bool v);
+    bool noAccessCheck() const;
+    bool noAccessCheck(bool v);
+    bool condition() const;
+    bool condition(bool v);
+    bool debug_() const;
+    bool debug_(bool v);
+    bool inTemplateConstraint() const;
+    bool inTemplateConstraint(bool v);
+    Contract contract() const;
+    Contract contract(Contract v);
+    bool ctfe() const;
+    bool ctfe(bool v);
+    bool traitsCompiles() const;
+    bool traitsCompiles(bool v);
+    bool ignoresymbolvisibility() const;
+    bool ignoresymbolvisibility(bool v);
+    bool _padding0() const;
+    bool _padding0(bool v);
+    bool inCfile() const;
+    bool inCfile(bool v);
+    bool _padding1() const;
+    bool _padding1(bool v);
+    bool _padding2() const;
+    bool _padding2(bool v);
+    bool _padding3() const;
+    bool _padding3(bool v);
+    bool canFree() const;
+    bool canFree(bool v);
+    bool fullinst() const;
+    bool fullinst(bool v);
+    bool ctfeBlock() const;
+    bool ctfeBlock(bool v);
+    bool dip1000() const;
+    bool dip1000(bool v);
+    bool dip25() const;
+    bool dip25(bool v);
+private:
+    uint32_t bitFields;
+public:
     UserAttributeDeclaration* userAttribDecl;
     DocComment* lastdc;
     void* anchorCounts;
@@ -7181,14 +7229,14 @@ struct Scope final
         explicitVisibility(),
         stc(),
         depdecl(),
-        flags(),
+        bitFields(0u),
         userAttribDecl(),
         lastdc(),
         prevAnchor(),
         aliasAsg()
     {
     }
-    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* sw = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tf = nullptr, ScopeGuardStatement* os = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Dsymbol* inunion = nullptr, bool nofree = false, bool inLoop = false, bool inDefaultArg = false, int32_t intypeof = 0, VarDeclaration* lastVar = nullptr, ErrorSink* eSink = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), int32_t explicitVisibility = 0, uint64_t stc = 0LLU, DeprecatedDeclaration* depdecl = nullptr, uint32_t flags = 0u, UserAttributeDeclaration* userAttribDecl = nullptr, DocComment* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr) :
+    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* sw = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tf = nullptr, ScopeGuardStatement* os = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Dsymbol* inunion = nullptr, bool nofree = false, bool inLoop = false, bool inDefaultArg = false, int32_t intypeof = 0, VarDeclaration* lastVar = nullptr, ErrorSink* eSink = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), int32_t explicitVisibility = 0, uint64_t stc = 0LLU, DeprecatedDeclaration* depdecl = nullptr, uint32_t bitFields = 0u, UserAttributeDeclaration* userAttribDecl = nullptr, DocComment* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr) :
         enclosing(enclosing),
         _module(_module),
         scopesym(scopesym),
@@ -7223,7 +7271,7 @@ struct Scope final
         explicitVisibility(explicitVisibility),
         stc(stc),
         depdecl(depdecl),
-        flags(flags),
+        bitFields(bitFields),
         userAttribDecl(userAttribDecl),
         lastdc(lastdc),
         anchorCounts(anchorCounts),

@@ -457,7 +457,7 @@ bool evaluateConstraint(TemplateDeclaration td, TemplateInstance ti, Scope* sc, 
     // (previously, this was immediately before calling evalStaticCondition), so the
     // semantic pass knows not to issue deprecation warnings for these throw-away decls.
     // https://issues.dlang.org/show_bug.cgi?id=21831
-    scx.flags |= SCOPE.constraint;
+    scx.inTemplateConstraint = true;
 
     assert(!ti.symtab);
     if (fd)

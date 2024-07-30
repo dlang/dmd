@@ -130,7 +130,7 @@ AlignDeclaration getAlignment(AlignDeclaration ad, Scope* sc)
         else
         {
             auto n = e.toInteger();
-            if (sc.flags & SCOPE.Cfile && n == 0)       // C11 6.7.5-6 allows 0 for alignment
+            if (sc.inCfile && n == 0)       // C11 6.7.5-6 allows 0 for alignment
                 continue;
 
             if (n < 1 || n & (n - 1) || ushort.max < n || !e.type.isintegral())
@@ -182,7 +182,7 @@ bool checkDeprecated(Dsymbol d, const ref Loc loc, Scope* sc)
         return false;
     // Don't complain if we're inside a template constraint
     // https://issues.dlang.org/show_bug.cgi?id=21831
-    if (sc.flags & SCOPE.constraint)
+    if (sc.inTemplateConstraint)
         return false;
 
     const(char)* message = null;
@@ -600,7 +600,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (dsym.storage_class & STC.extern_ && dsym._init)
         {
-            if (sc.flags & SCOPE.Cfile)
+            if (sc.inCfile)
             {
                 // https://issues.dlang.org/show_bug.cgi?id=24447
                 // extern int x = 3; is allowed in C
@@ -627,12 +627,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             bool needctfe = (dsym.storage_class & (STC.manifest | STC.static_)) != 0 || !sc.func;
             if (needctfe)
             {
-                sc.flags |= SCOPE.condition;
+                sc.condition = true;
                 sc = sc.startCTFE();
             }
             //printf("inferring type for %s with init %s\n", dsym.toChars(), dsym._init.toChars());
             dsym._init = dsym._init.inferType(sc);
-            dsym.type = dsym._init.initializerToExpression(null, (sc.flags & SCOPE.Cfile) != 0).type;
+            dsym.type = dsym._init.initializerToExpression(null, sc.inCfile).type;
             if (needctfe)
                 sc = sc.endCTFE();
 
@@ -741,7 +741,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
              * and add those.
              */
             size_t nelems = Parameter.dim(tt.arguments);
-            Expression ie = (dsym._init && !dsym._init.isVoidInitializer()) ? dsym._init.initializerToExpression(null, (sc.flags & SCOPE.Cfile) != 0) : null;
+            Expression ie = (dsym._init && !dsym._init.isVoidInitializer()) ? dsym._init.initializerToExpression(null, sc.inCfile) : null;
             if (ie)
                 ie = ie.expressionSemantic(sc);
             if (nelems > 0 && ie)
@@ -1142,7 +1142,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         bool isBlit = false;
         uinteger_t sz;
-        if (sc.flags & SCOPE.Cfile && !dsym._init)
+        if (sc.inCfile && !dsym._init)
         {
             addDefaultCInitializer(dsym);
         }
@@ -1207,7 +1207,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             sc = sc.push();
             sc.stc &= ~(STC.TYPECTOR | STC.pure_ | STC.nothrow_ | STC.nogc | STC.ref_ | STC.disable);
 
-            if (sc.flags & SCOPE.Cfile &&
+            if (sc.inCfile &&
                 dsym.type.isTypeSArray() &&
                 dsym.type.isTypeSArray().isIncomplete() &&
                 dsym._init.isVoidInitializer() &&
@@ -1237,12 +1237,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         if (ai && tb.ty == Taarray)
                             e = ai.toAssocArrayLiteral();
                         else
-                            e = dsym._init.initializerToExpression(null, (sc.flags & SCOPE.Cfile) != 0);
+                            e = dsym._init.initializerToExpression(null, sc.inCfile);
                         if (!e)
                         {
                             // Run semantic, but don't need to interpret
                             dsym._init = dsym._init.initializerSemantic(sc, dsym.type, INITnointerpret);
-                            e = dsym._init.initializerToExpression(null, (sc.flags & SCOPE.Cfile) != 0);
+                            e = dsym._init.initializerToExpression(null, sc.inCfile);
                             if (!e)
                             {
                                 .error(dsym.loc, "%s `%s` is not a static and cannot have static initializer", dsym.kind, dsym.toPrettyChars);
@@ -1252,7 +1252,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         ei = new ExpInitializer(dsym._init.loc, e);
                         dsym._init = ei;
                     }
-                    else if (sc.flags & SCOPE.Cfile && dsym.type.isTypeSArray() &&
+                    else if (sc.inCfile && dsym.type.isTypeSArray() &&
                              dsym.type.isTypeSArray().isIncomplete())
                     {
                         // C11 6.7.9-22 determine the size of the incomplete array,
@@ -1368,7 +1368,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
             else if (dsym.storage_class & (STC.const_ | STC.immutable_ | STC.manifest) ||
                      dsym.type.isConst() || dsym.type.isImmutable() ||
-                     sc.flags & SCOPE.Cfile)
+                     sc.inCfile)
             {
                 /* Because we may need the results of a const declaration in a
                  * subsequent type, such as an array dimension, before semantic2()
@@ -1513,7 +1513,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (dsym.errors)
             return;
 
-        if (!(global.params.bitfields || sc.flags & SCOPE.Cfile))
+        if (!(global.params.bitfields || sc.inCfile))
         {
             version (IN_GCC)
                 .error(dsym.loc, "%s `%s` use `-fpreview=bitfields` for bitfield support", dsym.kind, dsym.toPrettyChars);
@@ -1735,7 +1735,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         sc = sc.push();
         sc.stc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.gshared);
         sc.inunion = scd.isunion ? scd : null;
-        sc.flags = 0;
+        sc.resetAllFlags();
         for (size_t i = 0; i < scd.decl.length; i++)
         {
             Dsymbol s = (*scd.decl)[i];
@@ -2786,7 +2786,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         sc = sc.push();
         sc.stc &= ~STC.static_; // not a static invariant
         sc.stc |= STC.const_; // invariant() is always const
-        sc.flags = (sc.flags & ~SCOPE.contract) | SCOPE.invariant_;
+        sc.contract = Contract.invariant_;
         sc.linkage = LINK.d;
 
         funcDeclarationSemantic(sc, invd);
@@ -3005,7 +3005,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         buildOpAssign(sd, sc2);
         buildOpEquals(sd, sc2);
 
-        if (!(sc2.flags & SCOPE.Cfile) &&
+        if (!sc2.inCfile &&
             global.params.useTypeInfo && Type.dtypeinfo)  // these functions are used for TypeInfo
         {
             sd.xeq = buildXopEquals(sd, sc2);
@@ -4141,7 +4141,7 @@ private extern(C++) class AddMemberVisitor : Visitor
             }
 
             // If using C tag/prototype/forward declaration rules
-            if (sc.flags & SCOPE.Cfile && !dsym.isImport())
+            if (sc.inCfile && !dsym.isImport())
             {
                 if (handleTagSymbols(*sc, dsym, s2, sds))
                     return;
@@ -4162,7 +4162,7 @@ private extern(C++) class AddMemberVisitor : Visitor
         if (sds.isAggregateDeclaration() || sds.isEnumDeclaration())
         {
             if (dsym.ident == Id.__sizeof ||
-                !(sc && sc.flags & SCOPE.Cfile) && (dsym.ident == Id.__xalignof || dsym.ident == Id._mangleof))
+                !(sc && sc.inCfile) && (dsym.ident == Id.__xalignof || dsym.ident == Id._mangleof))
             {
                 .error(dsym.loc, "%s `%s` `.%s` property cannot be redefined", dsym.kind, dsym.toPrettyChars, dsym.ident.toChars());
                 dsym.errors = true;
@@ -4438,7 +4438,7 @@ private extern(C++) class AddMemberVisitor : Visitor
  */
 void addEnumMembersToSymtab(EnumDeclaration ed, Scope* sc, ScopeDsymbol sds)
 {
-    const bool isCEnum = (sc.flags & SCOPE.Cfile) != 0; // it's an ImportC enum
+    const bool isCEnum = sc.inCfile; // it's an ImportC enum
     //printf("addEnumMembersToSymtab(ed: %s added: %d Cfile: %d)\n", ed.toChars(), ed.added, isCEnum);
     if (ed.added)
         return;
@@ -4974,7 +4974,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
     if (global.errors != errorsave)
         goto Laftersemantic;
 
-    if ((sc.func || (sc.flags & SCOPE.fullinst)) && !tempinst.tinst)
+    if ((sc.func || sc.fullinst) && !tempinst.tinst)
     {
         /* If a template is instantiated inside function, the whole instantiation
          * should be done at that position. But, immediate running semantic3 of

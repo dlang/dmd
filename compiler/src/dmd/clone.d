@@ -824,7 +824,7 @@ FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
      * Note that it would only be necessary if it has floating point fields.
      * For now, we'll just not generate a toHash() for C files.
      */
-    if (sc.flags & SCOPE.Cfile)
+    if (sc.inCfile)
         return null;
 
     //printf("StructDeclaration::buildXtoHash() %s\n", sd.toPrettyChars());
