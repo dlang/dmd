@@ -378,7 +378,7 @@ bool checkParamArgumentEscape(ref Scope sc, FuncDeclaration fdc, Identifier parI
     void onValue(VarDeclaration v)
     {
         if (log) printf("byvalue %s\n", v.toChars());
-        if (parStc & STC.scope_ || v.isDataseg())
+        if (parStc & STC.scope_)
             return;
 
         notMaybeScope(v, vPar);
@@ -392,8 +392,6 @@ bool checkParamArgumentEscape(ref Scope sc, FuncDeclaration fdc, Identifier parI
     void onRef(VarDeclaration v, bool retRefTransition)
     {
         if (log) printf("byref %s\n", v.toChars());
-        if (v.isDataseg())
-            return;
 
         Dsymbol p = v.toParent2();
 
@@ -702,8 +700,6 @@ bool checkAssignEscape(ref Scope sc, Expression e, bool gag, bool byRef)
     void onValue(VarDeclaration v)
     {
         if (log) printf("byvalue: %s\n", v.toChars());
-        if (v.isDataseg())
-            return;
 
         if (v == va)
             return;
@@ -788,8 +784,6 @@ bool checkAssignEscape(ref Scope sc, Expression e, bool gag, bool byRef)
     void onRef(VarDeclaration v, bool retRefTransition)
     {
         if (log) printf("byref: %s\n", v.toChars());
-        if (v.isDataseg())
-            return;
 
         if (checkScopeVarAddr(v, ae, sc, gag))
         {
@@ -938,9 +932,6 @@ bool checkThrowEscape(ref Scope sc, Expression e, bool gag)
     void onValue(VarDeclaration v)
     {
         //printf("byvalue %s\n", v.toChars());
-        if (v.isDataseg())
-            return;
-
         if (v.isScope() && !v.iscatchvar)       // special case: allow catch var to be rethrown
                                                 // despite being `scope`
         {
@@ -986,8 +977,6 @@ bool checkNewEscape(ref Scope sc, Expression e, bool gag)
     void onValue(VarDeclaration v)
     {
         if (log) printf("byvalue `%s`\n", v.toChars());
-        if (v.isDataseg())
-            return;
 
         Dsymbol p = v.toParent2();
 
@@ -1035,9 +1024,6 @@ bool checkNewEscape(ref Scope sc, Expression e, bool gag)
                 "copying `%s` into allocated memory escapes a reference to local variable `%s`";
             return setUnsafePreview(&sc, fs, gag, e.loc, msg, e, v);
         }
-
-        if (v.isDataseg())
-            return;
 
         Dsymbol p = v.toParent2();
 
@@ -1169,8 +1155,6 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
     void onValue(VarDeclaration v)
     {
         if (log) printf("byvalue `%s`\n", v.toChars());
-        if (v.isDataseg())
-            return;
 
         const vsr = buildScopeRef(v.storage_class);
 
@@ -1297,9 +1281,6 @@ private bool checkReturnEscapeImpl(ref Scope sc, Expression e, bool refs, bool g
                 }
             }
         }
-
-        if (v.isDataseg())
-            return;
 
         const vsr = buildScopeRef(v.storage_class);
 
@@ -1965,6 +1946,8 @@ struct EscapeByResults
     /// Switch over `byValue` and `byRef` based on `deref` level (-1 = by ref, 0 = by value, 1 = only for live currently)
     private void varDeref(VarDeclaration var, int deref)
     {
+        if (var.isDataseg())
+            return;
         if (deref == -1)
             byRef(var, inRetRefTransition > 0);
         else if (deref == 0)
