@@ -1010,11 +1010,6 @@ bool checkNewEscape(ref Scope sc, Expression e, bool gag)
                 return;
             }
         }
-        else if (v.isTypesafeVariadicArray && p == sc.func)
-        {
-            result |= sc.setUnsafeDIP1000(gag, e.loc,
-                "copying `%s` into allocated memory escapes a reference to variadic parameter `%s`", e, v);
-        }
         else
         {
             //printf("no infer for %s in %s, %d\n", v.toChars(), sc.func.ident.toChars(), __LINE__);
