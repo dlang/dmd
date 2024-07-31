@@ -1802,16 +1802,6 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref)
             }
         }
 
-        // If `fd` is a nested function that's return ref / return scope, check that
-        // it doesn't escape closure vars
-        void checkNested(FuncDeclaration fd)
-        {
-            if (fd.isNested() && tf.isreturn)
-            {
-                er.byFunc(fd, true);
-            }
-        }
-
         // If 'this' is returned, check it too
         Type t1 = e.e1.type.toBasetype();
         DotVarExp dve = e.e1.isDotVarExp();
@@ -1834,8 +1824,6 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref)
             if (paramDeref(psr) <= 0)
                 escapeExp(dve.e1, er, deref + paramDeref(psr) + (tf.isref && !tf.isctor));
             er.inRetRefTransition -= (psr == ScopeRef.ReturnRef_Scope);
-
-            checkNested(fd);
         }
 
         // The return value of a delegate call with return (scope) may point to a closure variable,
@@ -1845,11 +1833,17 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref)
             escapeExp(e.e1, er, deref + tf.isref);
         }
 
-        // If it's a nested function that is 'return scope'
+        // If `fd` is a nested function that's return ref / return scope, check that
+        // it doesn't escape closure vars
         if (auto ve = e.e1.isVarExp())
         {
             if (FuncDeclaration fd = ve.var.isFuncDeclaration())
-                checkNested(fd);
+            {
+                if (fd.isNested() && tf.isreturn)
+                {
+                    er.byFunc(fd, true);
+                }
+            }
         }
     }
 
