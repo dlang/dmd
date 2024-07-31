@@ -396,7 +396,7 @@ extern (C++) abstract class Declaration : Dsymbol
         {
             for (Scope* scx = sc; scx; scx = scx.enclosing)
             {
-                if (scx.func == parent && (scx.flags & SCOPE.contract))
+                if (scx.func == parent && scx.contract != Contract.none)
                 {
                     const(char)* s = isParameter() && parent.ident != Id.ensure ? "parameter" : "result";
                     if (!(flag & ModifyFlags.noError))
@@ -411,7 +411,7 @@ extern (C++) abstract class Declaration : Dsymbol
             VarDeclaration vthis = e1.isThisExp().var;
             for (Scope* scx = sc; scx; scx = scx.enclosing)
             {
-                if (scx.func == vthis.parent && (scx.flags & SCOPE.contract))
+                if (scx.func == vthis.parent && scx.contract != Contract.none)
                 {
                     if (!(flag & ModifyFlags.noError))
                         error(loc, "%s `%s` cannot modify parameter `this` in contract", kind, toPrettyChars);
@@ -1577,7 +1577,7 @@ extern (C++) class VarDeclaration : Declaration
     extern (D) final bool checkNestedReference(Scope* sc, Loc loc)
     {
         //printf("VarDeclaration::checkNestedReference() %s\n", toChars());
-        if (sc.intypeof == 1 || (sc.flags & SCOPE.ctfe))
+        if (sc.intypeof == 1 || sc.ctfe)
             return false;
         if (!parent || parent == sc.parent)
             return false;
@@ -1612,7 +1612,7 @@ extern (C++) class VarDeclaration : Declaration
         }
 
         // Add this VarDeclaration to fdv.closureVars[] if not already there
-        if (!sc.intypeof && !(sc.flags & SCOPE.compile) &&
+        if (!sc.intypeof && !sc.traitsCompiles &&
             // https://issues.dlang.org/show_bug.cgi?id=17605
             (fdv.skipCodegen || !fdthis.skipCodegen))
         {
