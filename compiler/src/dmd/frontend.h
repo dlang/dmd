@@ -457,12 +457,12 @@ public:
     Identifier* ident;
     Dsymbol* parent;
     Symbol* csym;
-    const Loc loc;
     Scope* _scope;
     const char* prettystring;
 private:
     DsymbolAttributes* atts;
 public:
+    const Loc loc;
     bool errors;
     PASS semanticRun;
     uint16_t localNum;
