@@ -265,10 +265,10 @@ extern (C++) class Dsymbol : ASTNode
     Identifier ident;
     Dsymbol parent;
     Symbol* csym;           // symbol for code generator
-    const Loc loc;          // where defined
     Scope* _scope;          // !=null means context to use for semantic()
     const(char)* prettystring;  // cached value of toPrettyChars()
     private DsymbolAttributes* atts; /// attached attribute declarations
+    const Loc loc;          // where defined
     bool errors;            // this symbol failed to pass semantic()
     PASS semanticRun = PASS.initial;
     ushort localNum;        /// perturb mangled name to avoid collisions with those in FuncDeclaration.localsymtab
