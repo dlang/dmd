@@ -433,10 +433,8 @@ enum FirstCKeyword = TOK.inline;
 // that none of them overlap
 static assert(() {
     foreach (idx, enumName; __traits(allMembers, TOK)) {
-       static if (idx != __traits(getMember, TOK, enumName)) {
-           pragma(msg, "Error: Expected TOK.", enumName, " to be ", idx, " but is ", __traits(getMember, TOK, enumName));
-           static assert(0);
-       }
+        static assert(idx == __traits(getMember, TOK, enumName),
+        "Error: Expected TOK.", enumName, " to be ", idx, " but is ", __traits(getMember, TOK, enumName));
     }
     return true;
 }());
