@@ -8737,7 +8737,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              *   &a[i]
              * check 'a' the same as for a regular variable
              */
-            if (VarDeclaration v = expToVariable(exp.e1))
+            int deref;
+            if (VarDeclaration v = expToVariable(exp.e1, deref))
             {
                 v.checkPurity(exp.e1.loc, sc);
             }

@@ -612,17 +612,6 @@ bool checkAssignEscape(ref Scope sc, Expression e, bool gag, bool byRef)
     if (!e1.type.hasPointers())
         return false;
 
-    if (e1.isSliceExp())
-    {
-        if (VarDeclaration va = expToVariable(e1))
-        {
-            if (!va.type.toBasetype().isTypeSArray() || // treat static array slice same as a variable
-                !va.type.hasPointers())
-                return false;
-        }
-        else
-            return false;
-    }
 
     /* The struct literal case can arise from the S(e2) constructor call:
      *    return S(e2);
@@ -633,7 +622,24 @@ bool checkAssignEscape(ref Scope sc, Expression e, bool gag, bool byRef)
     if (e1.isStructLiteralExp())
         return false;
 
-    VarDeclaration va = expToVariable(e1);
+    int deref;
+    VarDeclaration va = expToVariable(e1, deref);
+    // transitive scope not implemented, so can't assign scope pointers to a dereferenced variable
+    if (deref > 0)
+        va = null;
+
+    if (e1.isSliceExp())
+    {
+        // slice-copy is not assigning a pointer, but copying array content
+        if (va)
+        {
+            if (!va.type.toBasetype().isTypeSArray() || // treat static array slice same as a variable
+                !va.type.hasPointers())
+                return false;
+        }
+        else
+            return false;
+    }
 
     if (va && e.op == EXP.concatenateElemAssign)
     {
@@ -643,18 +649,6 @@ bool checkAssignEscape(ref Scope sc, Expression e, bool gag, bool byRef)
          * and:
          *   va ~= e;
          * since we are not assigning to va, but are assigning indirectly through va.
-         */
-        va = null;
-    }
-
-    if (va && e1.isDotVarExp() && va.type.toBasetype().isTypeClass())
-    {
-        /* https://issues.dlang.org/show_bug.cgi?id=17949
-         * Draw an equivalence between:
-         *   *q = p;
-         * and:
-         *   va.field = e2;
-         * since we are not assigning to va, but are assigning indirectly through class reference va.
          */
         va = null;
     }
