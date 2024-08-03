@@ -4,6 +4,8 @@ $(SPEC_S Attributes,
 
 $(HEADERNAV_TOC)
 
+$(H2 $(LNAME2 grammar, Grammar))
+
 $(GRAMMAR
 $(GNAME AttributeSpecifier):
     $(GLINK Attribute) $(D :)
@@ -69,12 +71,37 @@ attribute:     // affects all declarations until the end of
   declaration;
   ...
 
-attribute {    // affects all declarations in the block
+attribute      // affects all declarations in the block
+{
   declaration;
   declaration;
   ...
 }
 ---
+        $(P Function attributes `@nogc`, `nothrow` and `pure` do not propagate inside
+        aggregate declarations.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+const pure @safe
+{
+    int i; // function attributes ignored for non-functions
+    void f(); // const attribute ignored for free function
+
+    struct S
+    {
+        int i;
+        void f(); // pure ignored inside struct
+    }
+}
+static assert(is(typeof(i) == const int));
+static assert(is(typeof(&f) == void function() pure @safe));
+static assert(is(typeof(S.i) == const int));
+static assert(is(typeof(&S().f) == void delegate() const @safe));
+---
+)
+        $(P See also: $(MREF core, attribute) for other compiler-recognized attributes.)
+
 
 $(H2 $(LNAME2 linkage, Linkage Attribute))
 
