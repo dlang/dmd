@@ -237,45 +237,49 @@ DotIdExp typeDotIdExp(const ref Loc loc, Type type, Identifier ident) @safe
  * For example, `a[index]` is really `a`, and `s.f` is really `s`.
  * Params:
  *      e = Expression to look at
+ *      deref = number of dereferences encountered
  * Returns:
  *      variable if there is one, null if not
  */
-VarDeclaration expToVariable(Expression e)
+VarDeclaration expToVariable(Expression e, out int deref)
 {
+    deref = 0;
     while (1)
     {
         switch (e.op)
         {
             case EXP.variable:
-                return (cast(VarExp)e).var.isVarDeclaration();
+                return e.isVarExp().var.isVarDeclaration();
 
             case EXP.dotVariable:
-                e = (cast(DotVarExp)e).e1;
+                e = e.isDotVarExp().e1;
+                if (e.type.toBasetype().isTypeClass())
+                    deref++;
+
                 continue;
 
             case EXP.index:
             {
-                IndexExp ei = cast(IndexExp)e;
-                e = ei.e1;
-                Type ti = e.type.toBasetype();
-                if (ti.ty == Tsarray)
-                    continue;
-                return null;
+                e = e.isIndexExp().e1;
+                if (!e.type.toBasetype().isTypeSArray())
+                    deref++;
+
+                continue;
             }
 
             case EXP.slice:
             {
-                SliceExp ei = cast(SliceExp)e;
-                e = ei.e1;
-                Type ti = e.type.toBasetype();
-                if (ti.ty == Tsarray)
-                    continue;
-                return null;
+                e = e.isSliceExp().e1;
+                if (!e.type.toBasetype().isTypeSArray())
+                    deref++;
+
+                continue;
             }
 
-            case EXP.this_:
             case EXP.super_:
-                return (cast(ThisExp)e).var.isVarDeclaration();
+                return e.isSuperExp().var.isVarDeclaration();
+            case EXP.this_:
+                return e.isThisExp().var.isVarDeclaration();
 
             // Temporaries for rvalues that need destruction
             // are of form: (T s = rvalue, s). For these cases
