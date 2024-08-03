@@ -734,8 +734,6 @@ bool checkAssignEscape(ref Scope sc, Expression e, bool gag, bool byRef)
                         msg = "scope variable `%s` assigned to return scope `%s`";
                         break;
                     case EnclosedBy.longerScope:
-                        if (v.storage_class & STC.temp)
-                            return;
                         msg = "scope variable `%s` assigned to `%s` with longer lifetime";
                         break;
                     case EnclosedBy.refVar:
@@ -2218,9 +2216,6 @@ bool setUnsafeDIP1000(ref Scope sc, bool gag, Loc loc, const(char)* msg,
  */
 private bool checkScopeVarAddr(VarDeclaration v, Expression e, ref Scope sc, bool gag)
 {
-    if (v.storage_class & STC.temp)
-        return false;
-
     if (!v.isScope())
     {
         doNotInferScope(v, e);
