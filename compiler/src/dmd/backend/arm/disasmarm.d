@@ -378,12 +378,15 @@ void disassemble(uint c) @trusted
         p1 = addsubTab[opS];
         p2 = regString(sf, Rd);
         p3 = regString(sf, Rn);
-        p4 = wordtostring(imm12 << (sh * 12));
+        p4 = wordtostring(imm12);
+        if (sh)
+            p5 = "lsl #12";
 
         if (opS == 0 && sh == 0 && imm12 == 0 && (Rd == 31 || Rn == 31))
         {
             p1 = "mov"; // https://www.scs.stanford.edu/~zyedidia/arm64/add_addsub_imm.html
             p4 = "";
+            p5 = "";
         }
         else if (opS == 1 && Rd == 31) // adds
         {
@@ -1377,7 +1380,7 @@ void disassemble(uint c) @trusted
             p5 = "";
         }
     }
-    else if (field(ins, 28, 24) == 11 && field(ins, 21, 21) == 0) // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_shift
+    else if (field(ins, 28, 24) == 0x0B && field(ins, 21, 21) == 0) // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_shift
     {
         if (log) printf("Add/subtract (shifted register)\n");
         uint sf     = field(ins, 31, 31);
@@ -1429,7 +1432,7 @@ void disassemble(uint c) @trusted
             }
         }
     }
-    else if (field(ins, 28, 24) == 11 && field(ins, 21, 21)) // https://www.scs.stanford.edu/~zyedidia/arm64/subs_addsub_ext.html
+    else if (field(ins, 28, 24) == 0x0B && field(ins, 21, 21)) // https://www.scs.stanford.edu/~zyedidia/arm64/subs_addsub_ext.html
     {
         if (log) printf("Add/subtract (extended register)\n");
         uint sf     = field(ins, 31, 31);
@@ -1474,7 +1477,7 @@ void disassemble(uint c) @trusted
             p1 = "cmn"; // https://www.scs.stanford.edu/~zyedidia/arm64/cmn_adds_addsub_ext.html
             shiftP();
         }
-        else if (opS == 3 && Rd == 0)
+        else if (opS == 3 && Rd == 31)
         {
             p1 = "cmp"; // https://www.scs.stanford.edu/~zyedidia/arm64/cmp_subs_addsub_ext.html
             shiftP();
@@ -1600,9 +1603,18 @@ void disassemble(uint c) @trusted
         string[4] opstring = [ "csel", "csinc", "csinv", "csneg" ];
         p1 = opstring[op * 2 + (op2 & 1)];
         p2 = regString(sf, Rd);
-        p3 = regString(sf, Rn);
-        p4 = regString(sf, Rm);
-        p5 = condstring[cond];
+        if (op * 2 + (op2 & 1) == 1 &&
+            Rm == 0x1F && Rn == 0x1F)
+        {
+            p1 = "cset";
+            p3 = condstring[cond ^ 1];
+        }
+        else
+        {
+            p3 = regString(sf, Rn);
+            p4 = regString(sf, Rm);
+            p5 = condstring[cond];
+        }
     }
     else if (field(ins, 28, 24) == 0x1B) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#dp_3src
     {
@@ -2097,7 +2109,7 @@ const(char)[] labeltostring(ulong w)
 @trusted
 const(char)[] indexString(uint reg)
 {
-    __gshared char[1 + 2 + 1 + 1] EA;
+    __gshared char[1 + 3 + 1 + 1] EA;
 
     const n = snprintf(EA.ptr, EA.length, "[%s]", regString(1, reg).ptr);
     assert(n <= EA.length);
@@ -2220,8 +2232,12 @@ unittest
 unittest
 {
     int line64 = __LINE__;
-    string[46] cases64 =      // 64 bit code gen
+    string[50] cases64 =      // 64 bit code gen
     [
+        "B9 00 03 A1         str   w1,[x29]",
+        "1A 9F A7 E0         cset  w0,lt",
+        "91 40 00 00         add   x0,x0,#0,lsl #12",
+        "D5 3B D0 40         mrs   x0,S3_3_c13_c0_2",
         "A8 C1 7B FD         ldp   x29,x30,[sp],#16",
         "90 00 00 00         adrp  x0,#0",
         "A9 01 7B FD         stp   x29,x30,[sp,#16]",
