@@ -705,7 +705,7 @@ MATCH implicitConvTo(Expression e, Type t)
                     return MATCH.nomatch;
                 m = MATCH.constant;
             }
-            if (e.hexString && tn.isIntegral && (tn.size == e.sz || (!e.committed && (e.len % tn.size) == 0)))
+            if (e.type != t && e.hexString && tn.isintegral && (tn.size == e.sz || (!e.committed && (e.len % tn.size) == 0)))
             {
                 m = MATCH.convert;
                 return m;
