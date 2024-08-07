@@ -1613,6 +1613,8 @@ $(TABLE
         * Access a $(DDLINK spec/property, Properties, property) of a type or expression.
         * Access a member of a module, package, aggregate type or instance, enum
           or template instance.
+        * Dereference a $(DDSUBLINK spec/struct, struct-pointer, pointer to a struct/union)
+          instance and access a member of it.
         * Call a free function using $(DDSUBLINK spec/function, pseudo-member, UFCS).
     )
     $(TROW `.` *NewExpression*, Instantiate a $(DDSUBLINK spec/class, nested-explicit,

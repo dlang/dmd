@@ -59,12 +59,19 @@ void main()
 ---
 )
 
-    $(P For local variables, a struct instance is allocated on the stack
-    by default. To allocate on the heap, use `new`:)
+    $(P For local variables, a struct/union instance is allocated on the stack
+    by default. To allocate on the heap, use $(DDSUBLINK spec/expression, new_expressions,
+    `new`), which gives a pointer.)
+
+    $(PANEL
+    A $(LNAME2 struct-pointer, pointer to a struct) or union is automatically
+    dereferenced when using the `.` operator to access members.
     ---
     S* p = new S;
-    assert(p.i == 0);
+    assert(p.i == 0); // `p.i` is the same as `(*p).i`
     ---
+    $(NOTE There is no `->` operator as in C.)
+    )
 
     $(P A struct can contain multiple fields which are stored sequentially.
     Conversely, multiple fields in a union use overlapping storage.)
