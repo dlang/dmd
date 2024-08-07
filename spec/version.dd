@@ -306,6 +306,7 @@ $(H3 $(LEGACY_LNAME2 PredefinedVersions, predefined-versions, Predefined Version
         $(TROW $(ARGS $(D SH)) , $(ARGS The SuperH architecture, 32-bit))
         $(TROW $(ARGS $(D WebAssembly)) , $(ARGS The WebAssembly virtual ISA $(LPAREN)instruction set architecture$(RPAREN), 32-bit))
         $(TROW $(ARGS $(D WASI)) , $(ARGS The WebAssembly System Interface))
+        $(TROW $(ARGS $(D Xtensa)) , $(ARGS The Xtensa Architecture, 32-bit))
         $(TROW $(ARGS $(D Alpha)) , $(ARGS The Alpha architecture))
         $(TROW $(ARGS $(D Alpha_SoftFloat)) , $(ARGS The Alpha soft float ABI))
         $(TROW $(ARGS $(D Alpha_HardFloat)) , $(ARGS The Alpha hard float ABI))
