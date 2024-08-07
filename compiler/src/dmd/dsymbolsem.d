@@ -615,6 +615,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (ad)
             dsym.storage_class |= ad.storage_class & STC.TYPECTOR;
 
+        if ((dsym.storage_class & STC.auto_) && (dsym.storage_class & STC.ref_))
+            dsym.storage_class |= STC.autoref;
+
         /* If auto type inference, do the inference
          */
         int inferred = 0;
@@ -732,7 +735,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 dsym.type = Type.terror;
             }
         }
-        if ((dsym.storage_class & STC.auto_) && !inferred)
+        if ((dsym.storage_class & STC.auto_) && !inferred && !(dsym.storage_class & STC.autoref))
             .error(dsym.loc, "%s `%s` - storage class `auto` has no effect if type is not inferred, did you mean `scope`?", dsym.kind, dsym.toPrettyChars);
 
         if (auto tt = tb.isTypeTuple())
@@ -1069,7 +1072,19 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (dsymIsRef)
         {
             if (!dsym._init && dsym.ident != Id.This)
-                .error(dsym.loc, "%s `%s` - initializer is required for `ref` variable", dsym.kind, dsym.toPrettyChars);
+            {
+                if (dsym.storage_class & STC.autoref)
+                {
+                    dsymIsRef = false;
+                    dsym.storage_class &= ~STC.ref_;
+                }
+                else
+                    .error(dsym.loc, "%s `%s` - initializer is required for `ref` variable", dsym.kind, dsym.toPrettyChars);
+            }
+            else if (dsym._init.isVoidInitializer())
+            {
+                .error(dsym.loc, "%s `%s` - void initializer not allowed for `ref` variable", dsym.kind, dsym.toPrettyChars);
+            }
         }
 
         FuncDeclaration fd = parent.isFuncDeclaration();
@@ -1303,31 +1318,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                     Expression exp = ei.exp;
                     Expression e1 = new VarExp(dsym.loc, dsym);
-                    if (dsymIsRef) // follow logic similar to typesem.argumentMatchParameter() and statementsem.visitForeach()
-                    {
-                        dsym.storage_class |= STC.nodtor;
-                        exp = exp.expressionSemantic(sc);
-                        Type tp = dsym.type;
-                        Type ta = exp.type;
-                        if (!exp.isLvalue())
-                        {
-                            .error(dsym.loc, "rvalue `%s` cannot be assigned to `ref %s`", exp.toChars(), dsym.toChars());
-                            exp = ErrorExp.get();
-                        }
-                        else if (!ta.constConv(tp))
-                        {
-                            .error(dsym.loc, "type `%s` cannot be assigned to `ref %s %s`", ta.toChars(), tp.toChars(), dsym.toChars());
-                            exp = ErrorExp.get();
-                        }
-                        else
-                        {
-                            exp = new ConstructExp(dsym.loc, e1, exp);
-                            dsym.canassign++;
-                            exp = exp.expressionSemantic(sc);
-                            dsym.canassign--;
-                        }
-                    }
-                    else
+
+                    void constructInit(bool isBlit)
                     {
                         if (isBlit)
                             exp = new BlitExp(dsym.loc, e1, exp);
@@ -1336,6 +1328,48 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                         dsym.canassign++;
                         exp = exp.expressionSemantic(sc);
                         dsym.canassign--;
+                    }
+
+                    if (dsymIsRef) // follow logic similar to typesem.argumentMatchParameter() and statementsem.visitForeach()
+                    {
+                        dsym.storage_class |= STC.nodtor;
+                        exp = exp.expressionSemantic(sc);
+                        Type tp = dsym.type;
+                        Type ta = exp.type;
+                        if (!exp.isLvalue())
+                        {
+                            if (dsym.storage_class & STC.autoref)
+                            {
+                                dsym.storage_class &= ~STC.ref_;
+                                constructInit(isBlit);
+                            }
+                            else
+                            {
+                                .error(dsym.loc, "rvalue `%s` cannot be assigned to `ref %s`", exp.toChars(), dsym.toChars());
+                                exp = ErrorExp.get();
+                            }
+                        }
+                        else if (!ta.constConv(tp))
+                        {
+                            if (dsym.storage_class & STC.autoref)
+                            {
+                                dsym.storage_class &= ~STC.ref_;
+                                constructInit(false);
+                            }
+                            else
+                            {
+                                .error(dsym.loc, "type `%s` cannot be assigned to `ref %s %s`", ta.toChars(), tp.toChars(), dsym.toChars());
+                                exp = ErrorExp.get();
+                            }
+                        }
+                        else
+                        {
+                            constructInit(false);
+                        }
+                    }
+                    else
+                    {
+                        constructInit(isBlit);
                     }
 
                     if (exp.op == EXP.error)
@@ -4469,6 +4503,8 @@ void addEnumMembersToSymtab(EnumDeclaration ed, Scope* sc, ScopeDsymbol sds)
                  * the enum members to both symbol tables.
                  */
                 em.addMember(sc, ed);   // add em to ed's symbol table
+                if (em.errors)
+                    return;
                 em.addMember(sc, sds);  // add em to symbol table that ed is in
                 em.parent = ed; // restore it after previous addMember() changed it
             }
