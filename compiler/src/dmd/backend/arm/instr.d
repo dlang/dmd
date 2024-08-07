@@ -19,6 +19,19 @@ import core.stdc.stdio;
 nothrow:
 @safe:
 
+enum Extend
+{
+    UXTB,
+    UXTH,
+    UXTW,
+    LSL,
+    UXTX = LSL,
+    SXTB,
+    SXTH,
+    SXTW,
+    SXTX,
+}
+
 /************************
  * AArch64 instructions
  */
@@ -28,6 +41,7 @@ struct INSTR
 
     enum uint nop = 0xD503201F;
 
+    alias reg_t = ubyte;
 
     /************************************ Reserved ***********************************************/
     /* https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#reserved                  */
@@ -68,6 +82,7 @@ struct INSTR
      */
     static uint addsub_imm(uint sf, uint op, uint S, uint sh, uint imm12, ubyte Rn, ubyte Rd)
     {
+        assert(imm12 < 0x1000);
         return (sf     << 31) |
                (op     << 30) |
                (S      << 29) |
@@ -117,6 +132,17 @@ struct INSTR
 
     /****************************** Branches, Exception Generating and System instructions **************/
     /* https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#control                          */
+
+    /* System register move
+     * MSR/MRS
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#systemmove
+     */
+    static uint systemmove(uint L, uint sysreg, ubyte Rt)
+    {
+        return (0x354 << 22) | (L << 21) | (1 << 20) | (sysreg << 5) | Rt;
+    }
+
+    enum tpidr_el0 = 0x5E82;
 
     /* Unconditional branch (register)
      * BLR
@@ -211,10 +237,12 @@ struct INSTR
      */
     static uint addsub_shift(uint sf, uint op, uint S, uint shift, ubyte Rm, uint imm6, ubyte Rn, ubyte Rd)
     {
+        assert(shift < 4);
+        assert(imm6 < 64);
         return (sf    << 31) |
                (op    << 30) |
                (S     << 29) |
-               (0xA   << 24) |
+               (0xB   << 24) |
                (shift << 22) |
                (0     << 21) |
                (Rm    << 16) |
@@ -229,6 +257,7 @@ struct INSTR
      */
     static uint addsub_ext(uint sf, uint op, uint S, uint opt, ubyte Rm, uint option, uint imm3, ubyte Rn, ubyte Rd)
     {
+        assert(imm3 < 8);
         return (sf   << 31) |
                (op   << 30) |
                (S    << 29) |
@@ -308,6 +337,7 @@ struct INSTR
      */
     static uint condsel(uint sf, uint op, uint S, ubyte Rm, uint cond, uint o2, ubyte Rn, ubyte Rd)
     {
+        assert(cond < 16);
         return (sf << 31) | (op << 30) | (S << 29) | (0xD4 << 21) | (Rm << 16) | (cond << 12) | (o2 << 10) | (Rn << 5) | Rd;
     }
 
@@ -382,6 +412,24 @@ struct INSTR
                (opc  << 22) |
                (imm9 << 12) |
                (Rn   <<  5) |
+                Rt;
+    }
+
+    /* Load/store register (register offset)
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_regoff
+     */
+    static uint ldst_regoff(uint size, uint VR, uint opc, ubyte Rm, uint option, uint S, ubyte Rn, ubyte Rt)
+    {
+        return (size   << 30) |
+               (7      << 27) |
+               (VR     << 26) |
+               (opc    << 22) |
+               (1      << 21) |
+               (Rm     << 16) |
+               (option << 13) |
+               (S      << 12) |
+               (1      << 11) |
+               (Rn     <<  5) |
                 Rt;
     }
 
@@ -485,6 +533,38 @@ struct INSTR
         return subs_imm(sf, sh, imm12, Rn, 31);
     }
 
+    /* SUBS Rd, Rn, Rm, shift, #imm6
+     * http://www.scs.stanford.edu/~zyedidia/arm64/subs_addsub_shift.html
+     */
+    static uint subs_shift(uint sf, ubyte Rm, uint shift, uint imm6, ubyte Rn, ubyte Rd)
+    {
+        return addsub_shift(sf, 1, 1, shift, Rm, imm6, Rn, Rd);
+    }
+
+    /* CMP Rn, Rm, shift, #imm6
+     * http://www.scs.stanford.edu/~zyedidia/arm64/cmp_subs_addsub_shift.html
+     */
+    static uint cmp_shift(uint sf, ubyte Rm, uint shift, uint imm6, ubyte Rn)
+    {
+        return addsub_shift(sf, 1, 1, shift, Rm, imm6, Rn, 0x1F);
+    }
+
+    /* SUBS Rd, Rn, Rm, extend, #imm3
+     * http://www.scs.stanford.edu/~zyedidia/arm64/cmp_subs_addsub_ext.html
+     */
+    static uint subs_ext(uint sf, ubyte Rm, uint option, uint imm3, ubyte Rn, ubyte Rd)
+    {
+        return addsub_ext(sf, 1, 1, 0, Rm, option, imm3, Rn, Rd);
+    }
+
+    /* CMP Rn, Rm, extend, #imm3
+     * http://www.scs.stanford.edu/~zyedidia/arm64/cmp_subs_addsub_ext.html
+     */
+    static uint cmp_ext(uint sf, ubyte Rm, uint option, uint imm3, ubyte Rn)
+    {
+        return addsub_ext(sf, 1, 1, 0, Rm, option, imm3, Rn, 0x1F);
+    }
+
     /* ORR Rd, Rn, Rm{, shift #amount}
      * https://www.scs.stanford.edu/~zyedidia/arm64/orr_log_shift.html
      */
@@ -501,6 +581,14 @@ struct INSTR
     static uint mov_register(uint sf, ubyte Rm, ubyte Rd)
     {
         return orr_shifted_register(sf, 0, Rm, 0, 31, Rd);
+    }
+
+    /* CSINC Rd, Rn, Rm, <cond>?
+     * https://www.scs.stanford.edu/~zyedidia/arm64/csinc.html
+     */
+    static uint csinc(uint sf, ubyte Rm, uint cond, ubyte Rn, ubyte Rd)
+    {
+        return condsel(sf, 0, 0, Rm, cond, 1, Rn, Rd);
     }
 
     /* Loads and Stores */
@@ -537,12 +625,36 @@ struct INSTR
         return ldstpair(opc, VR, 3, L, imm7, Rt2, Rn, Rt);
     }
 
+    /* STRB (immediate) Unsigned offset
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_pos
+     * https://www.scs.stanford.edu/~zyedidia/arm64/strb_imm.html
+     */
+    static uint strb_imm(ubyte Rt, ubyte Rn, ulong offset)
+    {
+        // STRB Rt,[Xn,#offset]
+        uint size = 0;
+        uint imm12 = offset & 0xFFF;
+        return ldst_pos(0, 0, 0, imm12, Rn, Rt);
+    }
+
+    /* STRH (immediate) Unsigned offset
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_pos
+     * https://www.scs.stanford.edu/~zyedidia/arm64/strh_imm.html
+     */
+    static uint strh_imm(ubyte Rt, ubyte Rn, ulong offset)
+    {
+        // STRH Rt,[Xn,#offset]
+        uint size = 1;
+        uint imm12 = offset & 0xFFF;
+        return ldst_pos(0, 0, 0, imm12, Rn, Rt);
+    }
+
     /* STR (immediate) Unsigned offset
      * https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_gen.html
      */
     static uint str_imm_gen(uint is64, ubyte Rt, ubyte Rn, ulong offset)
     {
-        // str Rt,[Rn,#offset]
+        // STR Rt,[Xn,#offset]
         uint size = 2 + is64;
         uint imm12 = (cast(uint)offset >> (is64 ? 3 : 2)) & 0xFFF;
         return ldst_pos(size, 0, 0, imm12, Rn, Rt);
@@ -557,5 +669,85 @@ struct INSTR
         uint size = 2 + is64;
         uint imm12 = (cast(uint)offset >> (is64 ? 3 : 2)) & 0xFFF;
         return ldst_pos(size, 0, 1, imm12, Rn, Rt);
+    }
+
+    /* STRB (register)
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_regoff
+     * https://www.scs.stanford.edu/~zyedidia/arm64/strb_reg.html
+     */
+    static uint strb_reg(reg_t Rindex,uint extend,uint S,reg_t Xbase,reg_t Rt)
+    {
+        // STRB Rt,Xbase,Rindex,extend S
+        return ldst_regoff(0, 0, 0, Rindex, extend, S, Xbase, Rt);
+    }
+
+    /* STRH (register)
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_regoff
+     * https://www.scs.stanford.edu/~zyedidia/arm64/strh_reg.html
+     */
+    static uint strh_reg(reg_t Rindex,uint extend,uint S,reg_t Xbase,reg_t Rt)
+    {
+        // STRH Rt,Xbase,Rindex,extend S
+        return ldst_regoff(0, 1, 0, Rindex, extend, S, Xbase, Rt);
+    }
+
+    /* STR (register)
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_regoff
+     * https://www.scs.stanford.edu/~zyedidia/arm64/str_reg_gen.html
+     */
+    static uint str_reg_gen(uint sz,reg_t Rindex,uint extend,uint S,reg_t Rbase,reg_t Rt)
+    {
+        // STR Rt,Rbase,Rindex,extend S
+        return ldst_regoff(2 | sz, 0, 0, Rindex, extend, S, Rbase, Rt);
+    }
+
+    /* LDRB (register) Extended register
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_regoff
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ldrb_reg.html
+     */
+    static uint ldrb_reg(uint sz,reg_t Rindex,uint extend,uint S,reg_t Rbase,reg_t Rt)
+    {
+        // LDRB Rt,Rbase,Rindex,extend S
+        return ldst_regoff(0, 0, 1, Rindex, extend, S, Rbase, Rt);
+    }
+
+    /* LDRSB (register) Extended register
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_regoff
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ldrb_reg.html
+     */
+    static uint ldrsb_reg(uint sz,reg_t Rindex,uint extend,uint S,reg_t Rbase,reg_t Rt)
+    {
+        // LDRB Rt,Rbase,Rindex,extend S
+        return ldst_regoff(0, 0, 2 + (sz == 8), Rindex, extend, S, Rbase, Rt);
+    }
+
+    /* LDRH (register) Extended register
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_regoff
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ldrh_reg.html
+     */
+    static uint ldrh_reg(uint sz,reg_t Rindex,uint extend,uint S,reg_t Rbase,reg_t Rt)
+    {
+        // LDRH Rt,Rbase,Rindex,extend S
+        return ldst_regoff(1, 0, 1, Rindex, extend, S, Rbase, Rt);
+    }
+
+    /* LDRSH (register) Extended register
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_regoff
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ldrsh_reg.html
+     */
+    static uint ldrsh_reg(uint sz,reg_t Rindex,uint extend,uint S,reg_t Rbase,reg_t Rt)
+    {
+        // LDRSH Rt,Rbase,Rindex,extend S
+        return ldst_regoff(1, 0, 2 + (sz == 8), Rindex, extend, S, Rbase, Rt);
+    }
+
+    /* LDR (register)
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_regoff
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ldr_reg_gen.html
+     */
+    static uint ldr_reg_gen(uint sz,reg_t Rindex,uint extend,uint S,reg_t Rbase,reg_t Rt)
+    {
+        // LDR Rt,Rbase,Rindex,extend S
+        return ldst_regoff(2 | sz, 0, 1, Rindex, extend, S, Rbase, Rt);
     }
 }

@@ -2300,13 +2300,13 @@ reload:                                 /* reload result from memory    */
     switch (e.Eoper)
     {
         case OPrelconst:
-            cdrelconst(cgstate, cdb,e,&pretregs);
+            cdrelconst(cgstate, cdb,e,pretregs);
             break;
 
         case OPgot:
             if (config.exe & EX_posix)
             {
-                cdgot(cgstate, cdb,e,&pretregs);
+                cdgot(cgstate, cdb,e,pretregs);
                 break;
             }
             goto default;
@@ -2359,13 +2359,13 @@ private void loadcse(ref CodeBuilder cdb,elem *e,reg_t reg,regm_t regm)
 
 
 @trusted
-void callcdxxx(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs, OPER op)
+void callcdxxx(ref CGstate cg, ref CodeBuilder cdb, elem *e, ref regm_t pretregs, OPER op)
 {
     (*cdxxx[op])(cg, cdb, e, pretregs);
 }
 
 // jump table
-private immutable nothrow void function (ref CGstate, ref CodeBuilder,elem *,regm_t *)[OPMAX] cdxxx =
+private immutable nothrow void function (ref CGstate, ref CodeBuilder,elem *,ref regm_t)[OPMAX] cdxxx =
 [
     OPunde:    &cderr,
     OPadd:     &cdorth,
@@ -2570,15 +2570,9 @@ private immutable nothrow void function (ref CGstate, ref CodeBuilder,elem *,reg
  *                      Note:   longs are in AX,BX or CX,DX or SI,DI
  *                              doubles are AX,BX,CX,DX only
  *      constflag =     1 for user of result will not modify the
- *                      registers returned in *pretregs.
+ *                      registers returned in pretregs.
  *                      2 for freenode() not called.
  */
-@trusted
-void codelem(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs,uint constflag)
-{
-    codelem(cg, cdb, e, *pretregs, constflag);
-}
-
 @trusted
 void codelem(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs,uint constflag)
 {
@@ -2586,7 +2580,7 @@ void codelem(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs,uin
 
     debug if (debugw)
     {
-        printf("+codelem(e=%p,*pretregs=%s) %s ",e,regm_str(pretregs),oper_str(e.Eoper));
+        printf("+codelem(e=%p,pretregs=%s) %s ",e,regm_str(pretregs),oper_str(e.Eoper));
         printf("msavereg=%s cg.regcon.cse.mval=%s regcon.cse.mops=%s\n",
                 regm_str(cg.msavereg),regm_str(cg.regcon.cse.mval),regm_str(cg.regcon.cse.mops));
         printf("Ecount = %d, Ecomsub = %d\n", e.Ecount, e.Ecomsub);
@@ -2598,7 +2592,7 @@ void codelem(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs,uin
     {
         debug
         {
-            printf("+codelem(e=%p,*pretregs=%s) ", e, regm_str(pretregs));
+            printf("+codelem(e=%p,pretregs=%s) ", e, regm_str(pretregs));
             elem_print(e);
             printf("msavereg=%s cg.regcon.cse.mval=%s regcon.cse.mops=%s\n",
                     regm_str(cg.msavereg),regm_str(cg.regcon.cse.mval),regm_str(cg.regcon.cse.mops));
@@ -2634,7 +2628,7 @@ void codelem(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs,uin
                         //elem_print(e);
 
                         regm_t retregs = pretregs & mST0 ? mXMM0 : mXMM0|mXMM1;
-                        (*cdxxx[op])(cg,cdb,e,&retregs);
+                        (*cdxxx[op])(cg,cdb,e,retregs);
                         cssave(e,retregs,!OTleaf(op));
                         fixresult(cdb, e, retregs, pretregs);
                         goto L1;
@@ -2650,14 +2644,14 @@ void codelem(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs,uin
                 }
 
                 /* BUG: For CSEs, make sure we have both an MSW             */
-                /* and an LSW specified in *pretregs                        */
+                /* and an LSW specified in pretregs                        */
             }
             assert(op <= OPMAX);
-            (*cdxxx[op])(cg,cdb,e,&pretregs);
+            (*cdxxx[op])(cg,cdb,e,pretregs);
             break;
 
         case OPrelconst:
-            cdrelconst(cg, cdb,e,&pretregs);
+            cdrelconst(cg, cdb,e,pretregs);
             break;
 
         case OPvar:
@@ -2743,22 +2737,15 @@ L1:
  *                              doubles are AX,BX,CX,DX only
  *      keepmask =      mask of registers not to be changed during execution of e
  *      constflag =     true if user of result will not modify the
- *                      registers returned in *pretregs.
+ *                      registers returned in pretregs.
  */
-
-@trusted
-void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
-{
-    scodelem(cg, cdb, e, *pretregs, keepmsk, constflag);
-}
-
 @trusted
 void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem *e,ref regm_t pretregs,regm_t keepmsk,bool constflag)
 {
     regm_t touse;
 
     debug if (debugw)
-        printf("+scodelem(e=%p *pretregs=%s keepmsk=%s constflag=%d\n",
+        printf("+scodelem(e=%p pretregs=%s keepmsk=%s constflag=%d\n",
                 e,regm_str(pretregs),regm_str(keepmsk),constflag);
 
     elem_debug(e);
@@ -2781,7 +2768,7 @@ void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem *e,ref regm_t pretregs,r
             freenode(e);
 
             debug if (debugw)
-                printf("-scodelem(e=%p *pretregs=%s keepmsk=%s constflag=%d\n",
+                printf("-scodelem(e=%p pretregs=%s keepmsk=%s constflag=%d\n",
                         e,regm_str(pretregs),regm_str(keepmsk),constflag);
 
             return;
@@ -2797,7 +2784,7 @@ void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem *e,ref regm_t pretregs,r
     char calledafuncsave = cg.calledafunc;
     cg.calledafunc = 0;
     CodeBuilder cdbx; cdbx.ctor();
-    codelem(cg,cdbx,e,&pretregs,constflag);    // generate code for the elem
+    codelem(cg,cdbx,e,pretregs,constflag);    // generate code for the elem
 
     regm_t tosave = keepmsk & ~cg.msavereg; /* registers to save                    */
     if (tosave)
@@ -2929,7 +2916,7 @@ void scodelem(ref CGstate cg, ref CodeBuilder cdb, elem *e,ref regm_t pretregs,r
     cg.mfuncreg &= oldmfuncreg;        /* update original                    */
 
     debug if (debugw)
-        printf("-scodelem(e=%p *pretregs=%s keepmsk=%s constflag=%d\n",
+        printf("-scodelem(e=%p pretregs=%s keepmsk=%s constflag=%d\n",
                 e,regm_str(pretregs),regm_str(keepmsk),constflag);
 
     cdb.append(cdbs1);
@@ -3008,7 +2995,7 @@ void docommas(ref CodeBuilder cdb, ref elem *pe)
         if (e.Eoper != OPcomma)
             break;
         regm_t retregs = 0;
-        codelem(cgstate,cdb,e.E1,&retregs,true);
+        codelem(cgstate,cdb,e.E1,retregs,true);
         elem* eold = e;
         e = e.E2;
         freenode(eold);

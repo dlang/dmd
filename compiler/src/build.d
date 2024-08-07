@@ -1560,7 +1560,7 @@ auto sourceFiles()
             s2ir.d tocsym.d toctype.d tocvdebug.d todt.d toir.d toobj.d
         "),
         driver: fileArray(env["D"], "dinifile.d dmdparams.d gluelayer.d lib.d libelf.d libmach.d libmscoff.d
-            link.d mars.d main.d scanelf.d scanmach.d scanmscoff.d vsoptions.d
+            link.d mars.d main.d scanelf.d scanmach.d scanmscoff.d timetrace.d vsoptions.d
         "),
         frontend: fileArray(env["D"], "
             access.d aggregate.d aliasthis.d argtypes_x86.d argtypes_sysv_x64.d argtypes_aarch64.d arrayop.d
@@ -1717,7 +1717,7 @@ string detectModel()
     else
         uname = ["uname", "-m"].execute.output;
 
-    if (uname.canFind("x86_64", "amd64", "arm64", "64-bit", "64-Bit", "64 bit"))
+    if (uname.canFind("x86_64", "amd64", "aarch64", "arm64", "64-bit", "64-Bit", "64 bit"))
         return "64";
     if (uname.canFind("i386", "i586", "i686", "32-bit", "32-Bit", "32 bit"))
         return "32";

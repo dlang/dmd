@@ -2770,12 +2770,6 @@ private void opass_complex87(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
  */
 
 @trusted
-void cdnegass87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
-{
-    cdnegass87(cdb, e, *pretregs);
-}
-
-@trusted
 void cdnegass87(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
     regm_t retregs;
@@ -3159,13 +3153,6 @@ void cdd_u32(ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
  *      OPd_u16
  *      OPd_s64
  */
-
-@trusted
-void cnvt87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
-{
-    cnvt87(cdb, e, *pretregs);
-}
-
 @trusted
 void cnvt87(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
@@ -3319,13 +3306,6 @@ void cnvt87(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 /************************
  * Do OPrndtol.
  */
-
-@trusted
-void cdrndtol(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
-{
-    cdrndtol(cg, cdb, e, *pretregs);
-}
-
 @trusted
 void cdrndtol(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
@@ -3382,13 +3362,6 @@ void cdrndtol(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 /*************************
  * Do OPscale, OPyl2x, OPyl2xp1.
  */
-
-@trusted
-void cdscale(ref CGstate cg, ref CodeBuilder cdb,elem *e,regm_t *pretregs)
-{
-    cdscale(cg,cdb,e,*pretregs);
-}
-
 @trusted
 void cdscale(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
@@ -3425,13 +3398,6 @@ void cdscale(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 /**********************************
  * Unary -, absolute value, square root, sine, cosine
  */
-
-@trusted
-void neg87(ref CodeBuilder cdb,elem *e,regm_t *pretregs)
-{
-    neg87(cdb, e, *pretregs);
-}
-
 @trusted
 void neg87(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
@@ -3796,13 +3762,6 @@ void fixresult_complex87(ref CodeBuilder cdb,elem *e,regm_t retregs, ref regm_t 
 /*****************************************
  * Operators OPc_r and OPc_i
  */
-
-@trusted
-void cdconvt87(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
-{
-    cdconvt87(cg, cdb, e, *pretregs);
-}
-
 @trusted
 void cdconvt87(ref CGstate cg, ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
 {
@@ -3950,12 +3909,6 @@ void loadPair87(ref CodeBuilder cdb, elem *e, ref regm_t outretregs)
  * Round 80 bit precision to 32 or 64 bits.
  * OPtoprec
  */
-@trusted
-void cdtoprec(ref CGstate cg, ref CodeBuilder cdb, elem* e, regm_t *pretregs)
-{
-    cdtoprec(cg, cdb, e, *pretregs);
-}
-
 @trusted
 void cdtoprec(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 {

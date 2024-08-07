@@ -144,13 +144,6 @@ void movxmmconst(ref CodeBuilder cdb, reg_t xreg, tym_t ty, Vconst* pev, regm_t 
 /***********************************************
  * Do simple orthogonal operators for XMM registers.
  */
-
-@trusted
-void orthxmm(ref CodeBuilder cdb, elem *e, regm_t* pretregs)
-{
-    return orthxmm(cdb, e, *pretregs);
-}
-
 @trusted
 void orthxmm(ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
 {
@@ -393,13 +386,6 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,ref reg
  *      OPd_s64 (64-bit only)
  *
  */
-
-@trusted
-void xmmcnvt(ref CodeBuilder cdb,elem *e, regm_t* pretregs)
-{
-    return xmmcnvt(cdb, e, *pretregs);
-}
-
 @trusted
 void xmmcnvt(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
@@ -476,7 +462,7 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
         case OPld_d:
             if (e.Eoper == OPd_s64)
             {
-                cnvt87(cdb,e,&pretregs); // precision
+                cnvt87(cdb,e,pretregs); // precision
                 return;
             }
             goto default;
@@ -537,13 +523,6 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 /********************************
  * Generate code for op=
  */
-
-@trusted
-void xmmopass(ref CodeBuilder cdb,elem *e,regm_t* pretregs)
-{
-    xmmopass(cdb, e, *pretregs);
-}
-
 @trusted
 void xmmopass(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {   elem *e1 = e.E1;
@@ -1196,12 +1175,6 @@ private opcode_t xmmoperator(tym_t tym, OPER oper)
 }
 
 @trusted
-void cdvector(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
-{
-    cdvector(cg, cdb, e, *pretregs);
-}
-
-@trusted
 void cdvector(ref CGstate cg, ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
 {
     /* e should look like one of:
@@ -1414,12 +1387,6 @@ static if (0)
  * where op is the store instruction STOxxxx.
  */
 @trusted
-void cdvecsto(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
-{
-    cdvecsto(cg, cdb, e, *pretregs);
-}
-
-@trusted
 void cdvecsto(ref CGstate cg, ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
 {
     //printf("cdvecsto()\n");
@@ -1437,12 +1404,6 @@ void cdvecsto(ref CGstate cg, ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
  * OPvecfill takes the single value in e1 and
  * fills the vector type with it.
  */
-@trusted
-void cdvecfill(ref CGstate cg, ref CodeBuilder cdb, elem *e, regm_t *pretregs)
-{
-    cdvecfill(cg, cdb, e, *pretregs);
-}
-
 @trusted
 void cdvecfill(ref CGstate cg, ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
 {
@@ -1950,13 +1911,6 @@ void checkSetVex(code *c, tym_t ty)
 /**************************************
  * Load complex operand into XMM registers or flags or both.
  */
-
-@trusted
-void cloadxmm(ref CodeBuilder cdb, elem *e, regm_t* pretregs)
-{
-    return cloadxmm(cdb, e, *pretregs);
-}
-
 @trusted
 void cloadxmm(ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
 {

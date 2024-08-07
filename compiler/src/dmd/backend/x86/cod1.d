@@ -50,7 +50,7 @@ private __gshared const byte[8] regtorm32 =   [  0, 1, 2, 3,-1, 5, 6, 7 ];
 __gshared const   byte[8] regtorm   =   [ -1,-1,-1, 7,-1, 6, 4, 5 ];
 
 //void funccall(ref CodeBuilder cdb,elem *e,uint numpara,uint numalign,
-//        regm_t *pretregs,regm_t keepmsk, bool usefuncarg);
+//        ref regm_t pretregs,regm_t keepmsk, bool usefuncarg);
 
 /*********************************
  * Determine if we should leave parameter `s` in the register it
@@ -317,7 +317,7 @@ void genEEcode()
     cod3_stackadj(cdb, cast(int)(cgstate.EEStack.offset - REGSIZE));
     cdb.genpush(SI);                      // PUSH ESI
     cdb.genadjesp(cast(int)cgstate.EEStack.offset);
-    gencodelem(cdb, eecontext.EEelem, &retregs, false);
+    gencodelem(cdb, eecontext.EEelem, retregs, false);
     code *c = cdb.finish();
     assignaddrc(c);
     pinholeopt(c,null);
@@ -3275,7 +3275,7 @@ void argtypes(type* t, out type* arg1type, out type* arg2type)
  */
 
 @trusted
-void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, regm_t* pretregs)
+void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 {
     //printf("cdfunc()\n"); elem_print(e);
     assert(e);
@@ -3752,17 +3752,17 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, regm_t* pretregs)
  */
 
 @trusted
-void cdstrthis(ref CGstate cg, ref CodeBuilder cdb, elem* e, regm_t* pretregs)
+void cdstrthis(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 {
     assert(tysize(e.Ety) == REGSIZE);
-    const reg = findreg(*pretregs & cgstate.allregs);
+    const reg = findreg(pretregs & cgstate.allregs);
     getregs(cdb,mask(reg));
     // LEA reg,np[ESP]
     uint np = cgstate.stackpush - e.Vuns;        // stack delta to parameter
     cdb.genc1(LEA,(modregrm(0,4,SP) << 8) | modregxrm(2,reg,4),FLconst,np);
     if (I64)
         code_orrex(cdb.last(), REX_W);
-    fixresult(cdb, e, mask(reg), *pretregs);
+    fixresult(cdb, e, mask(reg), pretregs);
 }
 
 /******************************
@@ -3778,9 +3778,9 @@ void cdstrthis(ref CGstate cg, ref CodeBuilder cdb, elem* e, regm_t* pretregs)
 
 @trusted
 private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
-                      regm_t* pretregs,regm_t keepmsk, bool usefuncarg)
+                      ref regm_t pretregs,regm_t keepmsk, bool usefuncarg)
 {
-    //printf("funccall(e = %p, *pretregs = %s, numpara = %d, numalign = %d, usefuncarg=%d)\n",e,regm_str(*pretregs),numpara,numalign,usefuncarg);
+    //printf("funccall(e = %p, pretregs = %s, numpara = %d, numalign = %d, usefuncarg=%d)\n",e,regm_str(pretregs),numpara,numalign,usefuncarg);
     //printf("  from %s\n", funcsym_p.Sident.ptr);
     //elem_print(e);
     cgstate.calledafunc = 1;
@@ -3847,7 +3847,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
             retregs = cgstate.allregs & ~keepmsk;
             s.Sflags &= ~GTregcand;
             s.Sflags |= SFLread;
-            cdrelconst(cgstate,cdbe,e1,&retregs);
+            cdrelconst(cgstate,cdbe,e1,retregs);
             if (farfunc)
             {
                 const reg = findregmsw(retregs);
@@ -4020,7 +4020,7 @@ static if (0)
     reg_t reg1, reg2;
     retregs = allocretregs(e.Ety, e.ET, tym1, reg1, reg2);
 
-    assert(retregs || !*pretregs);
+    assert(retregs || !pretregs);
 
     if (!usefuncarg)
     {
@@ -4070,11 +4070,11 @@ static if (0)
     if (retregs & mST0)
     {
         cdb.genadjfpu(1);
-        if (*pretregs)                  // if we want the result
+        if (pretregs)                  // if we want the result
         {
             //assert(global87.stackused == 0);
             push87(cdb);                // one item on 8087 stack
-            fixresult87(cdb,e,retregs,*pretregs);
+            fixresult87(cdb,e,retregs,pretregs);
             return;
         }
         else
@@ -4084,12 +4084,12 @@ static if (0)
     else if (retregs & mST01)
     {
         cdb.genadjfpu(2);
-        if (*pretregs)                  // if we want the result
+        if (pretregs)                  // if we want the result
         {
             assert(global87.stackused == 0);
             push87(cdb);
             push87(cdb);                // two items on 8087 stack
-            fixresult_complex87(cdb, e, retregs, *pretregs, true);
+            fixresult_complex87(cdb, e, retregs, pretregs, true);
             return;
         }
         else
@@ -4103,7 +4103,7 @@ static if (0)
     /* Special handling for functions that return one part
        in XMM0 and the other part in AX
      */
-    if (*pretregs && retregs)
+    if (pretregs && retregs)
     {
         if (reg1 == NOREG || reg2 == NOREG)
         {}
@@ -4135,7 +4135,7 @@ static if (0)
 
     if (I64
         && config.exe != EX_WIN64 // broken
-        && *pretregs && tybasic(e.Ety) == TYcfloat)
+        && pretregs && tybasic(e.Ety) == TYcfloat)
     {
         assert(reg2 == NOREG);
         // spill
@@ -4162,7 +4162,7 @@ static if (0)
         retregs = mST01;
     }
 
-    fixresult(cdb, e, retregs, *pretregs);
+    fixresult(cdb, e, retregs, pretregs);
 }
 
 /***************************
@@ -4540,7 +4540,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                         seg = CFes;
                         retregs |= mES;
                     }
-                    cdrelconst(cgstate, cdb, e1, &retregs);
+                    cdrelconst(cgstate, cdb, e1, retregs);
                     // Reverse the effect of the previous add
                     if (doneoff)
                         e1.Voffset -= sz - pushsize;
@@ -4750,7 +4750,7 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
                     else
                     {
                         regm_t retregs;
-                        offsetinreg(cdb, e, &retregs);
+                        offsetinreg(cdb, e, retregs);
                         const reg = findreg(retregs);
                         genpush(cdb,reg);                    // PUSH reg
                         cdb.genadjesp(REGSIZE);
@@ -5091,11 +5091,11 @@ void pushParams(ref CodeBuilder cdb, elem* e, uint stackalign, tym_t tyf)
 
 /*******************************
  * Get offset portion of e, and store it in an index
- * register. Return mask of index register in *pretregs.
+ * register. Return mask of index register in pretregs.
  */
 
 @trusted
-void offsetinreg(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
+void offsetinreg(ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 {
     reg_t reg;
     regm_t retregs = mLSW;                     // want only offset
@@ -5106,19 +5106,19 @@ void offsetinreg(ref CodeBuilder cdb, elem* e, regm_t* pretregs)
         {
             if (mask(i) & rm && cgstate.regcon.cse.value[i] == e)
             {
-                *pretregs = mask(i);
-                getregs(cdb, *pretregs);
+                pretregs = mask(i);
+                getregs(cdb, pretregs);
                 goto L3;
             }
             rm &= ~mask(i);
         }
     }
 
-    *pretregs = retregs;
-    reg = allocreg(cdb, *pretregs, TYoffset);
+    pretregs = retregs;
+    reg = allocreg(cdb, pretregs, TYoffset);
     getoffset(cgstate, cdb,e,reg);
 L3:
-    cssave(e, *pretregs,false);
+    cssave(e, pretregs,false);
     freenode(e);
 }
 
@@ -5151,7 +5151,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
     tym = tybasic(e.Ety);
     if (tym == TYstruct)
     {
-        cdrelconst(cgstate,cdb,e,&outretregs);
+        cdrelconst(cgstate,cdb,e,outretregs);
         return;
     }
     if (tyfloating(tym))
@@ -5162,7 +5162,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
             (outretregs & (XMMREGS | mPSW))
            )
         {
-            cloadxmm(cdb, e, &outretregs);
+            cloadxmm(cdb, e, outretregs);
             return;
         }
         else if (config.inline8087)

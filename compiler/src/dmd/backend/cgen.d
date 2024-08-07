@@ -186,7 +186,7 @@ code *gennop(code *c)
  */
 
 @trusted
-void gencodelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,bool constflag)
+void gencodelem(ref CodeBuilder cdb,elem *e,ref regm_t pretregs,bool constflag)
 {
     if (e)
     {
@@ -196,7 +196,7 @@ void gencodelem(ref CodeBuilder cdb,elem *e,regm_t *pretregs,bool constflag)
         codelem(cgstate,cdb,e,pretregs,constflag);
         assert(cgstate.stackclean == 0);
         cgstate.stackclean = stackcleansave;
-        genstackclean(cdb,cgstate.stackpush - stackpushsave,*pretregs);       // do defered cleaning
+        genstackclean(cdb,cgstate.stackpush - stackpushsave,pretregs);       // do defered cleaning
     }
 }
 
