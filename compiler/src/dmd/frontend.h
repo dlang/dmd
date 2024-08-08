@@ -8793,6 +8793,9 @@ struct Id final
     static Identifier* show;
     static Identifier* push;
     static Identifier* pop;
+    static Identifier* importc_ignore;
+    static Identifier* function_decl;
+    static Identifier* function_def;
     static Identifier* _pure;
     static Identifier* define;
     static Identifier* undef;
