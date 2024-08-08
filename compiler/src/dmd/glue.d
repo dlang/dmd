@@ -1059,6 +1059,7 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             if (fpr.alloc(sp.Stype, sp.Stype.Tty, sp.Spreg, sp.Spreg2))
             {
                 // successful allocation
+                //printf("ident %s reg %d reg2 %d\n", sp.Sident.ptr, sp.Spreg, sp.Spreg2);
                 sp.Sclass = (target.os == Target.OS.Windows && target.isX86_64) ? SC.shadowreg : SC.fastpar;
                 sp.Sfl = (sp.Sclass == SC.shadowreg) ? FLpara : FLfast;
             }
@@ -1088,7 +1089,7 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (fd.v_argptr)
     {
         // Declare va_argsave
-        if (target.isX86_64 &&
+        if ((target.isX86_64 || target.isAArch64) &&
             target.os & Target.OS.Posix)
         {
             type *t = type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3 + 8, null, null, false, false, true, false);

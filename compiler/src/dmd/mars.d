@@ -917,18 +917,27 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         {
             continue; // skip druntime options, e.g. used to configure the GC
         }
+        else if (arg == "-arm") // https://dlang.org/dmd.html#switch-arm
+        {
+            target.isAArch64 = true;
+            target.isX86    = false;
+            target.isX86_64 = false;
+        }
         else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
         {
+            target.isAArch64 = false;
             target.isX86    = true;
             target.isX86_64 = false;
         }
         else if (arg == "-m64") // https://dlang.org/dmd.html#switch-m64
         {
+            target.isAArch64 = false;
             target.isX86    = false;
             target.isX86_64 = true;
         }
         else if (arg == "-m32mscoff") // https://dlang.org/dmd.html#switch-m32mscoff
         {
+            target.isAArch64 = false;
             target.isX86    = true;
             target.isX86_64 = false;
         }

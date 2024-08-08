@@ -218,7 +218,7 @@ struct INSTR
      * AND/BIC/ORR/ORN/EOR/ANDS/BICS Rd, Rn, Rm, {shift #amount}
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#log_shift
      */
-    static uint log_shift_reg(uint sf, uint opc, uint shift, uint N, ubyte Rm, uint imm6, ubyte Rn, ubyte Rd)
+    static uint log_shift(uint sf, uint opc, uint shift, uint N, ubyte Rm, uint imm6, ubyte Rn, ubyte Rd)
     {
         return (sf    << 31) |
                (opc   << 29) |
@@ -549,6 +549,15 @@ struct INSTR
         return addsub_shift(sf, 1, 1, shift, Rm, imm6, Rn, 0x1F);
     }
 
+    /* NEG/NEGS Rd,Rm,shift #imm6
+     * http://www.scs.stanford.edu/~zyedidia/arm64/neg_sub_addsub_shift.html
+     * http://www.scs.stanford.edu/~zyedidia/arm64/negs_subs_addsub_shift.html
+     */
+    static uint neg_sub_addsub_shift(uint sf, uint S, uint shift, reg_t Rm, uint imm6, reg_t Rd)
+    {
+        return addsub_shift(sf, 1, S, shift, Rm, imm6, 0x1F, Rd);
+    }
+
     /* SUBS Rd, Rn, Rm, extend, #imm3
      * http://www.scs.stanford.edu/~zyedidia/arm64/cmp_subs_addsub_ext.html
      */
@@ -572,7 +581,7 @@ struct INSTR
     {
         uint opc = 1;
         uint N = 0;
-        return log_shift_reg(sf, opc, shift, N, Rm, imm6, Rn, Rd);
+        return log_shift(sf, opc, shift, N, Rm, imm6, Rn, Rd);
     }
 
     /* MOV Rd, Rn, Rm{, shift #amount}
@@ -660,6 +669,50 @@ struct INSTR
         return ldst_pos(size, 0, 0, imm12, Rn, Rt);
     }
 
+    /* LDRB(immediate) Unsigned offset
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ldrb_imm_gen.html
+     */
+    static uint ldrb_imm(uint is64, ubyte Rt, ubyte Rn, ulong offset)
+    {
+        // ldrb Rt,[Xn,#offset]
+        uint size = 0;
+        uint imm12 = cast(uint)offset & 0xFFF;
+        return ldst_pos(size, 0, 1, imm12, Rn, Rt);
+    }
+
+    /* LDRSB(immediate) Unsigned offset
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ldrsb_imm_gen.html
+     */
+    static uint ldrsb_imm(uint is64, ubyte Rt, ubyte Rn, ulong offset)
+    {
+        // ldrsb Rt,[Xn,#offset]
+        uint size = 0;
+        uint imm12 = cast(uint)offset & 0xFFF;
+        return ldst_pos(size, 0, 2 + is64, imm12, Rn, Rt);
+    }
+
+    /* LDRH(immediate) Unsigned offset
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ldrh_imm_gen.html
+     */
+    static uint ldrh_imm(uint is64, ubyte Rt, ubyte Rn, ulong offset)
+    {
+        // ldrb Rt,[Xn,#offset]
+        uint size = 1;
+        uint imm12 = cast(uint)offset & 0xFFF;
+        return ldst_pos(size, 0, 1, imm12, Rn, Rt);
+    }
+
+    /* LDRSH(immediate) Unsigned offset
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ldrsh_imm_gen.html
+     */
+    static uint ldrsh_imm(uint is64, ubyte Rt, ubyte Rn, ulong offset)
+    {
+        // ldrsh Rt,[Xn,#offset]
+        uint size = 1;
+        uint imm12 = cast(uint)offset & 0xFFF;
+        return ldst_pos(size, 0, 2 + is64, imm12, Rn, Rt);
+    }
+
     /* LDR (immediate) Unsigned offset
      * https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_gen.html
      */
@@ -713,7 +766,7 @@ struct INSTR
 
     /* LDRSB (register) Extended register
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_regoff
-     * https://www.scs.stanford.edu/~zyedidia/arm64/ldrb_reg.html
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ldrsb_reg.html
      */
     static uint ldrsb_reg(uint sz,reg_t Rindex,uint extend,uint S,reg_t Rbase,reg_t Rt)
     {

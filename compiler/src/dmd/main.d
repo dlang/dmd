@@ -917,7 +917,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     if (char* p = getenv("DDOCFILE"))
         global.params.ddoc.files.shift(p);
 
-    if (target.isX86_64 != isX86_64)
+    if (target.isX86_64 != isX86_64 && !target.isAArch64)
         error(Loc.initial, "the architecture must not be changed in the %s section of %.*s",
               envsection.ptr, cast(int)global.inifilename.length, global.inifilename.ptr);
 

@@ -166,6 +166,7 @@ struct CGstate
 
     int BPoff;                  // offset from BP
     int EBPtoESP;               // add to EBP offset to get ESP offset
+    reg_t BP;                   // frame pointer
     REGSAVE regsave;
 
     targ_size_t spoff;
@@ -226,6 +227,8 @@ struct CGstate
     uint usednteh;              // if !=0, then used NT exception handling
     con_t regcon;               // register contents
     BackendPass pass;
+
+    bool AArch64;               // true if AArch64 code generator
 
     int cmp_flag;               // pass extra flag from cdcod() to cdcmp()
     /**********************************
