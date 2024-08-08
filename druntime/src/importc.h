@@ -98,6 +98,7 @@ typedef unsigned long long __uint64_t;
 
 #define __builtin_isnan(x) isnan(x)
 #define __builtin_isfinite(x) finite(x)
+#define __builtin_isinf_sign(x) isinf(x)
 #define __builtin_alloca(x) alloca(x)
 
 /********************************
