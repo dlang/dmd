@@ -1364,6 +1364,8 @@ struct MatchAccumulator final
 
 enum : char { PathSeparator = '/' };
 
+typedef uint16_t ModBits;
+
 enum class StructFlags
 {
     none = 0,
@@ -5487,6 +5489,7 @@ struct ASTCodegen final
     using Module = ::Module;
     using ModuleDeclaration = ::ModuleDeclaration;
     using Package = ::Package;
+    using ModBits = ::ModBits;
     using StructDeclaration = ::StructDeclaration;
     using StructFlags = ::StructFlags;
     using UnionDeclaration = ::UnionDeclaration;
@@ -7284,6 +7287,7 @@ class StructDeclaration : public AggregateDeclaration
 public:
     Array<FuncDeclaration* > postblits;
     FuncDeclaration* postblit;
+    void* copyCtorsQualifiers;
     FuncDeclaration* xeq;
     FuncDeclaration* xcmp;
     FuncDeclaration* xhash;
