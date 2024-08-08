@@ -363,7 +363,7 @@ extern (C++) struct Target
     bool isX86_64;          // generate 64 bit code for x86_64; true by default for 64 bit dmd
     bool isX86;             // generate 32 bit Intel x86 code
     bool isLP64;            // pointers are 64 bits
-
+    extern(D) bool is64() const @safe { return isX86_64 /*|| isAArch64*/; }
     // Environmental
     const(char)[] obj_ext;    /// extension for object files
     const(char)[] lib_ext;    /// extension for static library files
@@ -465,7 +465,7 @@ extern (C++) struct Target
         }
         else
             assert(0);
-        if (isX86_64)
+        if (is64())
         {
             if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris))
             {
@@ -605,7 +605,7 @@ extern (C++) struct Target
     {
         const size = type.alignsize();
 
-        if ((isX86_64 || os == Target.OS.OSX) && (size == 16 || size == 32))
+        if ((is64() || os == Target.OS.OSX) && (size == 16 || size == 32))
             return size;
 
         return (8 < size) ? 8 : size;
@@ -630,7 +630,7 @@ extern (C++) struct Target
         }
         else if (os & Target.OS.Posix)
         {
-            if (isX86_64)
+            if (is64())
             {
                 import dmd.identifier : Identifier;
                 import dmd.mtype : TypeIdentifier;
@@ -957,7 +957,7 @@ extern (C++) struct Target
     {
         import dmd.argtypes_x86 : toArgTypes_x86;
         import dmd.argtypes_sysv_x64 : toArgTypes_sysv_x64;
-        if (isX86_64)
+        if (is64())
         {
             // no argTypes for Win64 yet
             return isPOSIX ? toArgTypes_sysv_x64(t) : null;
@@ -1005,7 +1005,7 @@ extern (C++) struct Target
         const sz = tn.size();
         Type tns = tn;
 
-        if (os == Target.OS.Windows && isX86_64)
+        if (os == Target.OS.Windows && is64())
         {
             // https://msdn.microsoft.com/en-us/library/7572ztz4%28v=vs.100%29.aspx
             if (tns.ty == TY.Tcomplex32)
@@ -1039,7 +1039,7 @@ extern (C++) struct Target
                     return true;
             }
         }
-        else if (isX86_64 && isPOSIX)
+        else if (is64() && isPOSIX)
         {
             TypeTuple tt = toArgTypes_sysv_x64(tn);
             if (!tt)
@@ -1114,7 +1114,7 @@ extern (C++) struct Target
                         return false;     // return small structs in regs
                                             // (not 3 byte structs!)
                     case 16:
-                        if (os & Target.OS.Posix && isX86_64)
+                        if (os & Target.OS.Posix && is64())
                            return false;
                         break;
 
@@ -1163,7 +1163,7 @@ extern (C++) struct Target
     extern (C++) bool preferPassByRef(Type t)
     {
         const size = t.size();
-        if (isX86_64)
+        if (is64())
         {
             if (os == Target.OS.Windows)
             {
@@ -1325,7 +1325,7 @@ extern (C++) struct Target
      */
     extern (D) bool isXmmSupported() @safe
     {
-        return isX86_64 || (isX86 && os == Target.OS.OSX);
+        return is64() || (isX86 && os == Target.OS.OSX);
     }
 
     /**
@@ -1405,14 +1405,14 @@ struct TargetC
             longsize = 4;
         else
             assert(0);
-        if (target.isX86_64)
+        if (target.is64())
         {
             if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris))
                 longsize = 8;
             else if (os == Target.OS.OSX)
                 longsize = 8;
         }
-        if (target.isX86_64 && os == Target.OS.Windows)
+        if (target.is64 && os == Target.OS.Windows)
             long_doublesize = 8;
         else
             long_doublesize = target.realsize;
@@ -1626,7 +1626,7 @@ struct TargetObjC
 
     extern (D) void initialize(ref const Param params, ref const Target target) @safe
     {
-        if (target.os == Target.OS.OSX && target.isX86_64)
+        if (target.os == Target.OS.OSX && target.is64())
             supported = true;
     }
 }
