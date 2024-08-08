@@ -1,10 +1,16 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail213.d(18): Error: template instance `Foo!int` does not match template declaration `Foo(T : immutable(T))`
-fail_compilation/fail213.d(25): Error: template instance `Foo!(const(int))` does not match template declaration `Foo(T : immutable(T))`
+fail_compilation/fail213.d(110): Error: template instance `Foo!int` does not match template declaration `Foo(T : immutable(T))`
+fail_compilation/fail213.d(110):        instantiated from here: `Foo!int`
+fail_compilation/fail213.d(101):        Candidate match: Foo(T : immutable(T))
+fail_compilation/fail213.d(117): Error: template instance `Foo!(const(int))` does not match template declaration `Foo(T : immutable(T))`
+fail_compilation/fail213.d(117):        instantiated from here: `Foo!(const(int))`
+fail_compilation/fail213.d(101):        Candidate match: Foo(T : immutable(T))
 ---
 */
+
+#line 100
 
 template Foo(T:immutable(T))
 {

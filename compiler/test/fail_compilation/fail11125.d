@@ -1,16 +1,22 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail11125.d(26): Error: template instance `fail11125.filter!(function (int a) pure nothrow @nogc @safe => a + 1)` does not match template declaration `filter(alias predfun)`
+fail_compilation/fail11125.d(112): Error: template instance `fail11125.filter!(function (int a) pure nothrow @nogc @safe => a + 1)` does not match template declaration `filter(alias predfun)`
   with `predfun = __lambda1`
   must satisfy the following constraint:
 `       is(ReturnType!predfun == bool)`
-fail_compilation/fail11125.d(27): Error: template instance `fail11125.filter!(function (int a) pure nothrow @nogc @safe => a + 1)` does not match template declaration `filter(alias predfun)`
+fail_compilation/fail11125.d(112):        instantiated from here: `filter!(function (int a) pure nothrow @nogc @safe => a + 1)`
+fail_compilation/fail11125.d(103):        Candidate match: filter(alias predfun) if (is(ReturnType!predfun == bool))
+fail_compilation/fail11125.d(113): Error: template instance `fail11125.filter!(function (int a) pure nothrow @nogc @safe => a + 1)` does not match template declaration `filter(alias predfun)`
   with `predfun = __lambda2`
   must satisfy the following constraint:
 `       is(ReturnType!predfun == bool)`
+fail_compilation/fail11125.d(113):        instantiated from here: `filter!(function (int a) pure nothrow @nogc @safe => a + 1)`
+fail_compilation/fail11125.d(103):        Candidate match: filter(alias predfun) if (is(ReturnType!predfun == bool))
 ---
 */
+
+#line 100
 
 template ReturnType(alias fun) { alias int ReturnType; }
 
