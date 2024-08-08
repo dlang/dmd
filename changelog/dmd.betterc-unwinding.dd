@@ -1,0 +1,5 @@
+Stack unwinding is now working in `-betterC` mode.
+
+It can now properly use APIs like `backtrace` to generate stack traces, wich is very useful for debugging purposes.
+
+Use the compiler flag `-nothrow` to completly disable EH/Unwinding.
