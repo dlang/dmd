@@ -1,0 +1,3 @@
+D's global version conditionals are now passed to C source files
+
+C source files now innherit D's version conditionals, they are prefixed with `_D_VERSION_` to avoid clashes.
