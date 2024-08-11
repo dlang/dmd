@@ -1120,6 +1120,11 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
                 argv.push("cl".ptr);            // null terminated copy
                 argv.push("/P".ptr);            // preprocess only
                 argv.push("/nologo".ptr);       // don't print logo
+                foreach(id; global.versionids)
+                {
+                    argv.push("-D");
+                    argv.push(id.toChars());
+                }
                 argv.push(filename.xarraydup.ptr);   // and the input
 
                 OutBuffer buf;
@@ -1173,6 +1178,13 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
             argv.push("-include");
             argv.push(importc_h);
         }
+
+        foreach(id; global.versionids)
+        {
+            argv.push("-D");
+            argv.push(id.toChars());
+        }
+
         argv.push(null);                    // argv[] always ends with a null
 
         if (verbose)
