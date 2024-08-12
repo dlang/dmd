@@ -1120,15 +1120,15 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
                 argv.push("cl".ptr);            // null terminated copy
                 argv.push("/P".ptr);            // preprocess only
                 argv.push("/nologo".ptr);       // don't print logo
-                foreach(id; global.versionids)
-                {
-                    argv.push(("/D_D_VERSION_"~id.toString()~" \0").ptr);
-                }
                 argv.push(filename.xarraydup.ptr);   // and the input
 
                 OutBuffer buf;
                 buf.writestring("/Fi");       // https://docs.microsoft.com/en-us/cpp/build/reference/fi-preprocess-output-file-name?view=msvc-170
                 buf.writeStringz(output);
+                foreach(id; global.versionids)
+                {
+                    buf.writeStringz("/D _D_VERSION_"~id.toString()~" ");
+                }
                 argv.push(buf.extractData()); // output file
 
                 argv.push(null);                     // argv[] always ends with a null
