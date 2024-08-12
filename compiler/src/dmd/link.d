@@ -1125,7 +1125,9 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
                 OutBuffer buf;
                 foreach(id; global.versionids)
                 {
-                    buf.writeString(" /D_D_VERSION_"~id.toString()~" ");
+                    buf.writestring(" /D_D_VERSION_");
+                    buf.writestring(id.toString());
+                    buf.writestring(" ");
                 }
                 buf.writestring("/Fi");       // https://docs.microsoft.com/en-us/cpp/build/reference/fi-preprocess-output-file-name?view=msvc-170
                 buf.writeStringz(output);
