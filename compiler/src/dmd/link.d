@@ -1127,7 +1127,7 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
                 buf.writeStringz(output);
                 foreach(id; global.versionids)
                 {
-                    buf.writeStringz("/D _D_VERSION_"~id.toString()~" ");
+                    buf.writeStringz("/D_D_VERSION_"~id.toString()~" ");
                 }
                 argv.push(buf.extractData()); // output file
 
