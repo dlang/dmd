@@ -991,6 +991,12 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
                  */
                 OutBuffer buf;
                 buf.writestring(cpp);
+                foreach(id; global.versionids)
+                {
+                    buf.writestring(" /D_D_VERSION_");
+                    buf.writestring(id.toString());
+                    buf.writestring(" ");
+                }
                 buf.printf(" /P /Zc:preprocessor /PD /nologo /utf-8 %.*s /FI%s /Fi%.*s",
                     cast(int)filename.length, filename.ptr, importc_h, cast(int)output.length, output.ptr);
 
