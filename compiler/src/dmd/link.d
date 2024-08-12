@@ -1133,6 +1133,7 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
 
                 argv.push(null);                     // argv[] always ends with a null
                 // spawnlp returns intptr_t in some systems, not int
+                printf("----------- LOG ME HERE HELLO: %s\n", argv.tdata());
                 auto exitCode = spawnvp(_P_WAIT, "cl".ptr, argv.tdata());
                 return returnResult(exitCode);
             }
