@@ -1125,7 +1125,7 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
                 OutBuffer buf;
                 foreach(id; global.versionids)
                 {
-                    buf.writeStringz(" /D_D_VERSION_"~id.toString()~" ");
+                    buf.writeString(" /D_D_VERSION_"~id.toString()~" ");
                 }
                 buf.writestring("/Fi");       // https://docs.microsoft.com/en-us/cpp/build/reference/fi-preprocess-output-file-name?view=msvc-170
                 buf.writeStringz(output);
@@ -1133,7 +1133,6 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
 
                 argv.push(null);                     // argv[] always ends with a null
                 // spawnlp returns intptr_t in some systems, not int
-                printf("----------- LOG ME HERE HELLO: %s\n", argv.tdata());
                 auto exitCode = spawnvp(_P_WAIT, "cl".ptr, argv.tdata());
                 return returnResult(exitCode);
             }
