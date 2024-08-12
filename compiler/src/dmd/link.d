@@ -1122,8 +1122,7 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
                 argv.push("/nologo".ptr);       // don't print logo
                 foreach(id; global.versionids)
                 {
-                    argv.push("/D");
-                    argv.push(("_D_VERSION_"~id.toString()~" \0").ptr);
+                    argv.push(("/D_D_VERSION_"~id.toString()~" \0").ptr);
                 }
                 argv.push(filename.xarraydup.ptr);   // and the input
 
