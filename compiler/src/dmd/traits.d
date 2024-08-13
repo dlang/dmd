@@ -327,16 +327,19 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         printf("TraitsExp::semantic() %s\n", e.toChars());
     }
 
-    if (e.ident != Id.compiles &&
-        e.ident != Id.isSame &&
-        e.ident != Id.identifier &&
-        e.ident != Id.getProtection && e.ident != Id.getVisibility &&
-        e.ident != Id.getAttributes)
+    // printf("%.*s\n", cast(int)e.ident.toString.length, e.ident.toString.ptr);
+    // const x = Id.compiles.stringof;
+    // printf("%.*s\n", cast(int)x.length, x.ptr);
+    if (e.ident.toString != "compiles" &&
+        e.ident.toString != "isSame" &&
+        e.ident.toString != "identifier" &&
+        e.ident.toString != "getProtection" && e.ident.toString != "getVisibility" &&
+        e.ident.toString != "getAttributes")
     {
         // Pretend we're in a deprecated scope so that deprecation messages
         // aren't triggered when checking if a symbol is deprecated
         const save = sc.stc;
-        if (e.ident == Id.isDeprecated)
+        if (e.ident.toString == "isDeprecated")
             sc.stc |= STC.deprecated_;
         if (!TemplateInstance.semanticTiargs(e.loc, sc, e.args, 1))
         {
@@ -442,1688 +445,1697 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         });
     }
 
-    if (e.ident == Id.isArithmetic)
+    switch (e.ident.toString)
     {
-        return isTypeX(t => t.isintegral() || t.isfloating());
-    }
-    if (e.ident == Id.isFloating)
-    {
-        return isTypeX(t => t.isfloating());
-    }
-    if (e.ident == Id.isIntegral)
-    {
-        return isTypeX(t => t.isintegral());
-    }
-    if (e.ident == Id.isScalar)
-    {
-        return isTypeX(t => t.isscalar());
-    }
-    if (e.ident == Id.isUnsigned)
-    {
-        return isTypeX(t => t.isunsigned());
-    }
-    if (e.ident == Id.isAssociativeArray)
-    {
-        return isTypeX(t => t.toBasetype().ty == Taarray);
-    }
-    if (e.ident == Id.isDeprecated)
-    {
-        if (isTypeX(t => t.iscomplex() || t.isimaginary()).toBool().hasValue(true))
-            return True();
-        return isDsymX(t => t.isDeprecated());
-    }
-    if (e.ident == Id.isFuture)
-    {
-       return isDeclX(t => t.isFuture());
-    }
-    if (e.ident == Id.isStaticArray)
-    {
-        return isTypeX(t => t.toBasetype().ty == Tsarray);
-    }
-    if (e.ident == Id.isAbstractClass)
-    {
-        return isTypeX(t => t.toBasetype().isTypeClass() &&
-                            t.toBasetype().isTypeClass().sym.isAbstract());
-    }
-    if (e.ident == Id.isFinalClass)
-    {
-        return isTypeX(t => t.toBasetype().isTypeClass() &&
-                            (t.toBasetype().isTypeClass().sym.storage_class & STC.final_) != 0);
-    }
-    if (e.ident == Id.isTemplate)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        return isDsymX((s)
+        case "isArithmetic":
         {
-            if (!s.toAlias().isOverloadable())
-                return false;
-            return overloadApply(s,
-                sm => sm.isTemplateDeclaration() !is null) != 0;
-        });
-    }
-    if (e.ident == Id.isBitfield)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        return isDsymX((s)
-        {
-            s = s.toAlias();
-            return s.isBitFieldDeclaration() !is null;
-        });
-    }
-    if (e.ident == Id.isPOD)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        auto o = (*e.args)[0];
-        auto t = isType(o);
-        if (!t)
-        {
-            error(e.loc, "type expected as second argument of __traits `%s` instead of `%s`",
-                e.ident.toChars(), o.toChars());
-            return ErrorExp.get();
+            return isTypeX(t => t.isintegral() || t.isfloating());
         }
-
-        Type tb = t.baseElemOf();
-        auto ts = tb.isTypeStruct();
-        if (auto sd = ts ? ts.sym : null)
+        case "isFloating":
         {
-            return sd.isPOD() ? True() : False();
+            return isTypeX(t => t.isfloating());
         }
-        return True();
-    }
-    if (e.ident == Id.hasCopyConstructor || e.ident == Id.hasPostblit)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        auto o = (*e.args)[0];
-        auto t = isType(o);
-        if (!t)
+        case "isIntegral":
         {
-            error(e.loc, "type expected as second argument of __traits `%s` instead of `%s`",
-                e.ident.toChars(), o.toChars());
-            return ErrorExp.get();
+            return isTypeX(t => t.isintegral());
         }
-
-        Type tb = t.baseElemOf();
-        auto ts = tb.isTypeStruct();
-        if (auto sd = ts ? ts.sym : null)
+        case "isScalar":
         {
-            return (e.ident == Id.hasPostblit) ? (sd.postblit ? True() : False())
-                 : (sd.hasCopyCtor ? True() : False());
+            return isTypeX(t => t.isscalar());
         }
-        return False();
-    }
-    if (e.ident == Id.isCopyable)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        auto o = (*e.args)[0];
-        auto t = isType(o);
-        if (!t)
+        case "isUnsigned":
         {
-            error(e.loc, "type expected as second argument of __traits `%s` instead of `%s`",
+            return isTypeX(t => t.isunsigned());
+        }
+        case "isAssociativeArray":
+        {
+            return isTypeX(t => t.toBasetype().ty == Taarray);
+        }
+        case "isDeprecated":
+        {
+            if (isTypeX(t => t.iscomplex() || t.isimaginary()).toBool().hasValue(true))
+                return True();
+            return isDsymX(t => t.isDeprecated());
+        }
+        case "isFuture":
+        {
+           return isDeclX(t => t.isFuture());
+        }
+        case "isStaticArray":
+        {
+            return isTypeX(t => t.toBasetype().ty == Tsarray);
+        }
+        case "isAbstractClass":
+        {
+            return isTypeX(t => t.toBasetype().isTypeClass() &&
+                                t.toBasetype().isTypeClass().sym.isAbstract());
+        }
+        case "isFinalClass":
+        {
+            return isTypeX(t => t.toBasetype().isTypeClass() &&
+                                (t.toBasetype().isTypeClass().sym.storage_class & STC.final_) != 0);
+        }
+        case "isTemplate":
+        {
+            if (dim != 1)
+                return dimError(1);
+
+            return isDsymX((s)
+            {
+                if (!s.toAlias().isOverloadable())
+                    return false;
+                return overloadApply(s,
+                    sm => sm.isTemplateDeclaration() !is null) != 0;
+            });
+        }
+        case "isBitfield":
+        {
+            if (dim != 1)
+                return dimError(1);
+
+            return isDsymX((s)
+            {
+                s = s.toAlias();
+                return s.isBitFieldDeclaration() !is null;
+            });
+        }
+        case "isPOD":
+        {
+            if (dim != 1)
+                return dimError(1);
+
+            auto o = (*e.args)[0];
+            auto t = isType(o);
+            if (!t)
+            {
+                error(e.loc, "type expected as second argument of __traits `%s` instead of `%s`",
                     e.ident.toChars(), o.toChars());
-            return ErrorExp.get();
-        }
-
-        t = t.toBasetype();     // get the base in case `t` is an `enum`
-
-        if (auto ts = t.isTypeStruct())
-        {
-            ts.sym.dsymbolSemantic(sc);
-        }
-
-        return isCopyable(t) ? True() : False();
-    }
-
-    if (e.ident == Id.isNested)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        auto o = (*e.args)[0];
-        auto s = getDsymbolWithoutExpCtx(o);
-        if (!s)
-        {
-        }
-        else if (auto ad = s.isAggregateDeclaration())
-        {
-            return ad.isNested() ? True() : False();
-        }
-        else if (auto fd = s.isFuncDeclaration())
-        {
-            return fd.isNested() ? True() : False();
-        }
-
-        error(e.loc, "aggregate or function expected instead of `%s`", o.toChars());
-        return ErrorExp.get();
-    }
-    if (e.ident == Id.isDisabled)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        return isDeclX(f => f.isDisabled());
-    }
-    if (e.ident == Id.isAbstractFunction)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        return isFuncX(f => f.isAbstract());
-    }
-    if (e.ident == Id.isVirtualFunction)
-    {
-        // @@@DEPRECATED2.121@@@
-        // Deprecated in 2.101 - Can be removed from 2.121
-        deprecation(e.loc, "`traits(isVirtualFunction)` is deprecated. Use `traits(isVirtualMethod)` instead");
-
-        if (dim != 1)
-            return dimError(1);
-
-        return isFuncX(f => f.isVirtual());
-    }
-    if (e.ident == Id.isVirtualMethod)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        return isFuncX(f => f.isVirtualMethod());
-    }
-    if (e.ident == Id.isFinalFunction)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        return isFuncX(f => f.isFinalFunc());
-    }
-    if (e.ident == Id.isOverrideFunction)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        return isFuncX(f => f.isOverride());
-    }
-    if (e.ident == Id.isStaticFunction)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        return isFuncX(f => !f.needThis() && !f.isNested());
-    }
-    if (e.ident == Id.isModule)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        return isPkgX(p => p.isModule() || p.isPackageMod());
-    }
-    if (e.ident == Id.isPackage)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        return isPkgX(p => p.isModule() is null);
-    }
-    if (e.ident == Id.isRef)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        return isDeclX(d => d.isRef());
-    }
-    if (e.ident == Id.isOut)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        return isDeclX(d => d.isOut());
-    }
-    if (e.ident == Id.isLazy)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        return isDeclX(d => (d.storage_class & STC.lazy_) != 0);
-    }
-    if (e.ident == Id.identifier)
-    {
-        // Get identifier for symbol as a string literal
-        /* Specify 0 for bit 0 of the flags argument to semanticTiargs() so that
-         * a symbol should not be folded to a constant.
-         * Bit 1 means don't convert Parameter to Type if Parameter has an identifier
-         */
-        if (!TemplateInstance.semanticTiargs(e.loc, sc, e.args, 2))
-            return ErrorExp.get();
-        if (dim != 1)
-            return dimError(1);
-
-        auto o = (*e.args)[0];
-        Identifier id;
-        if (auto po = isParameter(o))
-        {
-            if (!po.ident)
-            {
-                error(e.loc, "argument `%s` has no identifier", po.type.toChars());
                 return ErrorExp.get();
             }
-            id = po.ident;
-        }
-        else
-        {
-            Dsymbol s = getDsymbolWithoutExpCtx(o);
-            if (!s || !s.ident)
+
+            Type tb = t.baseElemOf();
+            auto ts = tb.isTypeStruct();
+            if (auto sd = ts ? ts.sym : null)
             {
-                error(e.loc, "argument `%s` has no identifier", o.toChars());
+                return sd.isPOD() ? True() : False();
+            }
+            return True();
+        }
+        case "hasCopyConstructor":
+        case "hasPostblit":
+        {
+            if (dim != 1)
+                return dimError(1);
+
+            auto o = (*e.args)[0];
+            auto t = isType(o);
+            if (!t)
+            {
+                error(e.loc, "type expected as second argument of __traits `%s` instead of `%s`",
+                    e.ident.toChars(), o.toChars());
                 return ErrorExp.get();
             }
-            id = s.ident;
+
+            Type tb = t.baseElemOf();
+            auto ts = tb.isTypeStruct();
+            if (auto sd = ts ? ts.sym : null)
+            {
+                return (e.ident.toString == "hasPostblit") ? (sd.postblit ? True() : False())
+                     : (sd.hasCopyCtor ? True() : False());
+            }
+            return False();
+        }
+        case "isCopyable":
+        {
+            if (dim != 1)
+                return dimError(1);
+
+            auto o = (*e.args)[0];
+            auto t = isType(o);
+            if (!t)
+            {
+                error(e.loc, "type expected as second argument of __traits `%s` instead of `%s`",
+                        e.ident.toChars(), o.toChars());
+                return ErrorExp.get();
+            }
+
+            t = t.toBasetype();     // get the base in case `t` is an `enum`
+
+            if (auto ts = t.isTypeStruct())
+            {
+                ts.sym.dsymbolSemantic(sc);
+            }
+
+            return isCopyable(t) ? True() : False();
         }
 
-        auto se = new StringExp(e.loc, id.toString());
-        return se.expressionSemantic(sc);
-    }
-    if (e.ident == Id.fullyQualifiedName) // https://dlang.org/spec/traits.html#fullyQualifiedName
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        Scope* sc2 = sc.push();
-        sc2.copyFlagsFrom(sc);
-        sc2.noAccessCheck = true;
-        sc2.ignoresymbolvisibility = true;
-        bool ok = TemplateInstance.semanticTiargs(e.loc, sc2, e.args, 1);
-        sc2.pop();
-        if (!ok)
-            return ErrorExp.get();
-
-        const(char)[] fqn;
-        auto o = (*e.args)[0];
-        if (auto s = getDsymbolWithoutExpCtx(o))
+        case "isNested":
         {
+            if (dim != 1)
+                return dimError(1);
+
+            auto o = (*e.args)[0];
+            auto s = getDsymbolWithoutExpCtx(o);
+            if (!s)
+            {
+            }
+            else if (auto ad = s.isAggregateDeclaration())
+            {
+                return ad.isNested() ? True() : False();
+            }
+            else if (auto fd = s.isFuncDeclaration())
+            {
+                return fd.isNested() ? True() : False();
+            }
+
+            error(e.loc, "aggregate or function expected instead of `%s`", o.toChars());
+            return ErrorExp.get();
+        }
+        case "isDisabled":
+        {
+            if (dim != 1)
+                return dimError(1);
+
+            return isDeclX(f => f.isDisabled());
+        }
+        case "isAbstractFunction":
+        {
+            if (dim != 1)
+                return dimError(1);
+
+            return isFuncX(f => f.isAbstract());
+        }
+        case "isVirtualFunction":
+        {
+            // @@@DEPRECATED2.121@@@
+            // Deprecated in 2.101 - Can be removed from 2.121
+            deprecation(e.loc, "`traits(isVirtualFunction)` is deprecated. Use `traits(isVirtualMethod)` instead");
+
+            if (dim != 1)
+                return dimError(1);
+
+            return isFuncX(f => f.isVirtual());
+        }
+        case "isVirtualMethod":
+        {
+            if (dim != 1)
+                return dimError(1);
+
+            return isFuncX(f => f.isVirtualMethod());
+        }
+        case "isFinalFunction":
+        {
+            if (dim != 1)
+                return dimError(1);
+
+            return isFuncX(f => f.isFinalFunc());
+        }
+        case "isOverrideFunction":
+        {
+            if (dim != 1)
+                return dimError(1);
+
+            return isFuncX(f => f.isOverride());
+        }
+        case "isStaticFunction":
+        {
+            if (dim != 1)
+                return dimError(1);
+
+            return isFuncX(f => !f.needThis() && !f.isNested());
+        }
+        case "isModule":
+        {
+            if (dim != 1)
+                return dimError(1);
+
+            return isPkgX(p => p.isModule() || p.isPackageMod());
+        }
+        case "isPackage":
+        {
+            if (dim != 1)
+                return dimError(1);
+
+            return isPkgX(p => p.isModule() is null);
+        }
+        case "isRef":
+        {
+            if (dim != 1)
+                return dimError(1);
+
+            return isDeclX(d => d.isRef());
+        }
+        case "isOut":
+        {
+            if (dim != 1)
+                return dimError(1);
+
+            return isDeclX(d => d.isOut());
+        }
+        case "isLazy":
+        {
+            if (dim != 1)
+                return dimError(1);
+
+            return isDeclX(d => (d.storage_class & STC.lazy_) != 0);
+        }
+        case "identifier":
+        {
+            // Get identifier for symbol as a string literal
+            /* Specify 0 for bit 0 of the flags argument to semanticTiargs() so that
+             * a symbol should not be folded to a constant.
+             * Bit 1 means don't convert Parameter to Type if Parameter has an identifier
+             */
+            if (!TemplateInstance.semanticTiargs(e.loc, sc, e.args, 2))
+                return ErrorExp.get();
+            if (dim != 1)
+                return dimError(1);
+
+            auto o = (*e.args)[0];
+            Identifier id;
+            if (auto po = isParameter(o))
+            {
+                if (!po.ident)
+                {
+                    error(e.loc, "argument `%s` has no identifier", po.type.toChars());
+                    return ErrorExp.get();
+                }
+                id = po.ident;
+            }
+            else
+            {
+                Dsymbol s = getDsymbolWithoutExpCtx(o);
+                if (!s || !s.ident)
+                {
+                    error(e.loc, "argument `%s` has no identifier", o.toChars());
+                    return ErrorExp.get();
+                }
+                id = s.ident;
+            }
+
+            auto se = new StringExp(e.loc, id.toString());
+            return se.expressionSemantic(sc);
+        }
+        case "fullyQualifiedName":
+        {
+            if (dim != 1)
+                return dimError(1);
+
+            Scope* sc2 = sc.push();
+            sc2.copyFlagsFrom(sc);
+            sc2.noAccessCheck = true;
+            sc2.ignoresymbolvisibility = true;
+            bool ok = TemplateInstance.semanticTiargs(e.loc, sc2, e.args, 1);
+            sc2.pop();
+            if (!ok)
+                return ErrorExp.get();
+
+            const(char)[] fqn;
+            auto o = (*e.args)[0];
+            if (auto s = getDsymbolWithoutExpCtx(o))
+            {
+                if (s.semanticRun == PASS.initial)
+                    s.dsymbolSemantic(null);
+
+                fqn = s.toPrettyChars().toDString();
+            }
+            else if (auto t = getType(o))
+            {
+                fqn = t.toPrettyChars(true).toDString();
+            }
+            else
+            {
+                if (!isError(o))
+                    error(e.loc, "argument `%s` has no identifier", o.toChars());
+                return ErrorExp.get();
+            }
+            assert(fqn);
+            auto se = new StringExp(e.loc, fqn);
+            return se.expressionSemantic(sc);
+
+        }
+        case "getProtection":
+        case "getVisibility":
+        {
+            if (dim != 1)
+                return dimError(1);
+
+            Scope* sc2 = sc.push();
+            sc2.copyFlagsFrom(sc);
+            sc2.noAccessCheck = true;
+            sc2.ignoresymbolvisibility = true;
+            bool ok = TemplateInstance.semanticTiargs(e.loc, sc2, e.args, 1);
+            sc2.pop();
+            if (!ok)
+                return ErrorExp.get();
+
+            auto o = (*e.args)[0];
+            auto s = getDsymbolWithoutExpCtx(o);
+            if (!s)
+            {
+                if (!isError(o))
+                    error(e.loc, "argument `%s` has no visibility", o.toChars());
+                return ErrorExp.get();
+            }
             if (s.semanticRun == PASS.initial)
                 s.dsymbolSemantic(null);
 
-            fqn = s.toPrettyChars().toDString();
+            auto protName = visibilityToString(s.visible().kind); // TODO: How about package(names)
+            assert(protName);
+            auto se = new StringExp(e.loc, protName);
+            return se.expressionSemantic(sc);
         }
-        else if (auto t = getType(o))
+        case "parent":
         {
-            fqn = t.toPrettyChars(true).toDString();
-        }
-        else
-        {
-            if (!isError(o))
-                error(e.loc, "argument `%s` has no identifier", o.toChars());
-            return ErrorExp.get();
-        }
-        assert(fqn);
-        auto se = new StringExp(e.loc, fqn);
-        return se.expressionSemantic(sc);
+            if (dim != 1)
+                return dimError(1);
 
-    }
-    if (e.ident == Id.getProtection || e.ident == Id.getVisibility)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        Scope* sc2 = sc.push();
-        sc2.copyFlagsFrom(sc);
-        sc2.noAccessCheck = true;
-        sc2.ignoresymbolvisibility = true;
-        bool ok = TemplateInstance.semanticTiargs(e.loc, sc2, e.args, 1);
-        sc2.pop();
-        if (!ok)
-            return ErrorExp.get();
-
-        auto o = (*e.args)[0];
-        auto s = getDsymbolWithoutExpCtx(o);
-        if (!s)
-        {
-            if (!isError(o))
-                error(e.loc, "argument `%s` has no visibility", o.toChars());
-            return ErrorExp.get();
-        }
-        if (s.semanticRun == PASS.initial)
-            s.dsymbolSemantic(null);
-
-        auto protName = visibilityToString(s.visible().kind); // TODO: How about package(names)
-        assert(protName);
-        auto se = new StringExp(e.loc, protName);
-        return se.expressionSemantic(sc);
-    }
-    if (e.ident == Id.parent)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        auto o = (*e.args)[0];
-        auto s = getDsymbolWithoutExpCtx(o);
-        if (s)
-        {
-            // https://issues.dlang.org/show_bug.cgi?id=12496
-            // Consider:
-            // class T1
-            // {
-            //     class C(uint value) { }
-            // }
-            // __traits(parent, T1.C!2)
-            if (auto ad = s.isAggregateDeclaration())  // `s` is `C`
+            auto o = (*e.args)[0];
+            auto s = getDsymbolWithoutExpCtx(o);
+            if (s)
             {
-                if (ad.isNested())                     // `C` is nested
+                // https://issues.dlang.org/show_bug.cgi?id=12496
+                // Consider:
+                // class T1
+                // {
+                //     class C(uint value) { }
+                // }
+                // __traits(parent, T1.C!2)
+                if (auto ad = s.isAggregateDeclaration())  // `s` is `C`
                 {
-                    if (auto p = s.toParent())         // `C`'s parent is `C!2`, believe it or not
+                    if (ad.isNested())                     // `C` is nested
                     {
-                        if (auto ti = p.isTemplateInstance())    // `C!2` is a template instance
+                        if (auto p = s.toParent())         // `C`'s parent is `C!2`, believe it or not
                         {
-                            s = p;                     // `C!2`'s parent is `T1`
-                            auto td = ti.tempdecl;
-                            if (td)
-                                s = td;                // get the declaration context just in case there's two contexts
-                        }
-                    }
-                }
-            }
-
-            if (auto fd = s.isFuncDeclaration()) // https://issues.dlang.org/show_bug.cgi?id=8943
-                s = fd.toAliasFunc();
-            if (!s.isImport()) // https://issues.dlang.org/show_bug.cgi?id=8922
-                s = s.toParent();
-        }
-        if (!s || s.isImport())
-        {
-            error(e.loc, "argument `%s` has no parent", o.toChars());
-            return ErrorExp.get();
-        }
-
-        if (auto f = s.isFuncDeclaration())
-        {
-            if (auto td = getFuncTemplateDecl(f))
-            {
-                if (td.overroot) // if not start of overloaded list of TemplateDeclaration's
-                    td = td.overroot; // then get the start
-                Expression ex = new TemplateExp(e.loc, td, f);
-                ex = ex.expressionSemantic(sc);
-                return ex;
-            }
-            if (auto fld = f.isFuncLiteralDeclaration())
-            {
-                // Directly translate to VarExp instead of FuncExp
-                Expression ex = new VarExp(e.loc, fld, true);
-                return ex.expressionSemantic(sc);
-            }
-        }
-        return symbolToExp(s, e.loc, sc, false);
-    }
-    if (e.ident == Id.child)
-    {
-        if (dim != 2)
-            return dimError(2);
-
-        Expression ex;
-        auto op = (*e.args)[0];
-        if (auto symp = getDsymbol(op))
-            ex = new DsymbolExp(e.loc, symp);
-        else if (auto exp = op.isExpression())
-            ex = exp;
-        else
-        {
-            error(e.loc, "symbol or expression expected as first argument of __traits `child` instead of `%s`", op.toChars());
-            return ErrorExp.get();
-        }
-
-        ex = ex.expressionSemantic(sc);
-        auto oc = (*e.args)[1];
-        auto symc = getDsymbol(oc);
-        if (!symc)
-        {
-            error(e.loc, "symbol expected as second argument of __traits `child` instead of `%s`", oc.toChars());
-            return ErrorExp.get();
-        }
-
-        if (auto d = symc.isDeclaration())
-            ex = new DotVarExp(e.loc, ex, d);
-        else if (auto td = symc.isTemplateDeclaration())
-            ex = new DotExp(e.loc, ex, new TemplateExp(e.loc, td));
-        else if (auto ti = symc.isScopeDsymbol())
-            ex = new DotExp(e.loc, ex, new ScopeExp(e.loc, ti));
-        else
-            assert(0);
-
-        ex = ex.expressionSemantic(sc);
-        return ex;
-    }
-    if (e.ident == Id.toType)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        auto ex = isExpression((*e.args)[0]);
-        if (!ex)
-        {
-            error(e.loc, "expression expected as second argument of __traits `%s`", e.ident.toChars());
-            return ErrorExp.get();
-        }
-        ex = ex.ctfeInterpret();
-
-        StringExp se = semanticString(sc, ex, "__traits(toType, string)");
-        if (!se)
-        {
-            return ErrorExp.get();
-        }
-        Type t = decoToType(se.toUTF8(sc).peekString());
-        if (!t)
-        {
-            error(e.loc, "cannot determine `%s`", e.toChars());
-            return ErrorExp.get();
-        }
-        return (new TypeExp(e.loc, t)).expressionSemantic(sc);
-    }
-    if (e.ident == Id.hasMember ||
-        e.ident == Id.getMember ||
-        e.ident == Id.getOverloads ||
-        e.ident == Id.getVirtualMethods ||
-        e.ident == Id.getVirtualFunctions)
-    {
-        if (dim != 2 && !(dim == 3 && e.ident == Id.getOverloads))
-            return dimError(2);
-
-        auto o = (*e.args)[0];
-        auto ex = isExpression((*e.args)[1]);
-        if (!ex)
-        {
-            error(e.loc, "expression expected as second argument of __traits `%s`", e.ident.toChars());
-            return ErrorExp.get();
-        }
-        ex = ex.ctfeInterpret();
-
-        bool includeTemplates = false;
-        if (dim == 3 && e.ident == Id.getOverloads)
-        {
-            auto b = isExpression((*e.args)[2]);
-            b = b.ctfeInterpret();
-            if (!b.type.equals(Type.tbool))
-            {
-                error(e.loc, "`bool` expected as third argument of `__traits(getOverloads)`, not `%s` of type `%s`", b.toChars(), b.type.toChars());
-                return ErrorExp.get();
-            }
-            includeTemplates = b.toBool().get();
-        }
-
-        StringExp se = ex.toStringExp();
-        if (!se || se.len == 0)
-        {
-            error(e.loc, "string expected as second argument of __traits `%s` instead of `%s`", e.ident.toChars(), ex.toChars());
-            return ErrorExp.get();
-        }
-        se = se.toUTF8(sc);
-
-        if (se.sz != 1)
-        {
-            error(e.loc, "string must be chars");
-            return ErrorExp.get();
-        }
-        auto id = Identifier.idPool(se.peekString());
-
-        /* Prefer a Type, because getDsymbol(Type) can lose type modifiers.
-           Then a Dsymbol, because it might need some runtime contexts.
-         */
-
-        Dsymbol sym = getDsymbol(o);
-
-        if (sym && e.ident == Id.hasMember)
-        {
-            if (auto sm = sym.search(e.loc, id))
-                return True();
-
-            // https://issues.dlang.org/show_bug.cgi?id=23951
-            if (auto decl = sym.isDeclaration())
-            {
-                ex = typeDotIdExp(e.loc, decl.type, id);
-                goto doSemantic;
-            }
-        }
-
-        if (auto t = isType(o))
-            ex = typeDotIdExp(e.loc, t, id);
-        else if (sym)
-        {
-            ex = new DsymbolExp(e.loc, sym);
-            ex = new DotIdExp(e.loc, ex, id);
-        }
-        else if (auto ex2 = isExpression(o))
-            ex = new DotIdExp(e.loc, ex2, id);
-        else
-        {
-            error(e.loc, "invalid first argument");
-            return ErrorExp.get();
-        }
-    doSemantic:
-        // ignore symbol visibility and disable access checks for these traits
-        Scope* scx = sc.push();
-        scx.ignoresymbolvisibility = true;
-        scx.noAccessCheck = true;
-        scope (exit) scx.pop();
-
-        if (e.ident == Id.hasMember)
-        {
-            /* Take any errors as meaning it wasn't found
-             */
-            ex = ex.trySemantic(scx);
-            return ex ? True() : False();
-        }
-        else if (e.ident == Id.getMember)
-        {
-            if (auto die = ex.isDotIdExp())
-                // Prevent semantic() from replacing Symbol with its initializer
-                die.wantsym = true;
-            ex = ex.expressionSemantic(scx);
-            return ex;
-        }
-        else if (e.ident == Id.getVirtualFunctions ||
-                 e.ident == Id.getVirtualMethods ||
-                 e.ident == Id.getOverloads)
-        {
-            uint errors = global.errors;
-            Expression eorig = ex;
-            ex = ex.expressionSemantic(scx);
-            if (errors < global.errors)
-                error(e.loc, "`%s` cannot be resolved", eorig.toChars());
-
-            if (e.ident == Id.getVirtualFunctions)
-            {
-                // @@@DEPRECATED2.121@@@
-                // Deprecated in 2.101 - Can be removed from 2.121
-                deprecation(e.loc, "`traits(getVirtualFunctions)` is deprecated. Use `traits(getVirtualMethods)` instead");
-            }
-
-            /* Create tuple of functions of ex
-             */
-            auto exps = new Expressions();
-            Dsymbol f;
-            if (auto ve = ex.isVarExp)
-            {
-                if (ve.var.isFuncDeclaration() || ve.var.isOverDeclaration())
-                    f = ve.var;
-                ex = null;
-            }
-            else if (auto dve = ex.isDotVarExp)
-            {
-                if (dve.var.isFuncDeclaration() || dve.var.isOverDeclaration())
-                    f = dve.var;
-                if (dve.e1.op == EXP.dotType || dve.e1.op == EXP.this_)
-                    ex = null;
-                else
-                    ex = dve.e1;
-            }
-            else if (auto te = ex.isTemplateExp)
-            {
-                auto td = te.td;
-                f = td;
-                if (td && td.funcroot)
-                    f = td.funcroot;
-                ex = null;
-            }
-            else if (auto dte = ex.isDotTemplateExp)
-            {
-                auto td = dte.td;
-                f = td;
-                if (td && td.funcroot)
-                    f = td.funcroot;
-                ex = null;
-                if (dte.e1.op != EXP.dotType && dte.e1.op != EXP.this_)
-                    ex = dte.e1;
-            }
-            bool[string] funcTypeHash;
-
-            /* Compute the function signature and insert it in the
-             * hashtable, if not present. This is needed so that
-             * traits(getOverlods, F3, "visit") does not count `int visit(int)`
-             * twice in the following example:
-             *
-             * =============================================
-             * interface F1 { int visit(int);}
-             * interface F2 { int visit(int); void visit(); }
-             * interface F3 : F2, F1 {}
-             *==============================================
-             */
-            void insertInterfaceInheritedFunction(FuncDeclaration fd, Expression e)
-            {
-                auto signature = fd.type.toString();
-                //printf("%s - %s\n", fd.toChars, signature);
-                if (signature !in funcTypeHash)
-                {
-                    funcTypeHash[signature] = true;
-                    exps.push(e);
-                }
-            }
-
-            int dg(Dsymbol s)
-            {
-                auto fd = s.isFuncDeclaration();
-                if (!fd)
-                {
-                    if (includeTemplates)
-                    {
-                        if (auto td = s.isTemplateDeclaration())
-                        {
-                            // if td is part of an overload set we must take a copy
-                            // which shares the same `instances` cache but without
-                            // `overroot` and `overnext` set to avoid overload
-                            // behaviour in the result.
-                            if (td.overnext !is null)
+                            if (auto ti = p.isTemplateInstance())    // `C!2` is a template instance
                             {
-                                if (td.instances is null)
-                                {
-                                    // create an empty AA just to copy it
-                                    scope ti = new TemplateInstance(Loc.initial, Id.empty, null);
-                                    auto tib = TemplateInstanceBox(ti);
-                                    td.instances[tib] = null;
-                                    td.instances.clear();
-                                }
-                                td = td.syntaxCopy(null);
-                                import core.stdc.string : memcpy;
-                                memcpy(cast(void*) td, cast(void*) s,
-                                        __traits(classInstanceSize, TemplateDeclaration));
-                                td.overroot = null;
-                                td.overnext = null;
+                                s = p;                     // `C!2`'s parent is `T1`
+                                auto td = ti.tempdecl;
+                                if (td)
+                                    s = td;                // get the declaration context just in case there's two contexts
                             }
-
-                            auto e = ex ? new DotTemplateExp(Loc.initial, ex, td)
-                                        : new DsymbolExp(Loc.initial, td);
-                            exps.push(e);
                         }
                     }
-                    return 0;
                 }
-                if (e.ident == Id.getVirtualFunctions && !fd.isVirtual())
-                    return 0;
-                if (e.ident == Id.getVirtualMethods && !fd.isVirtualMethod())
-                    return 0;
 
-                auto fa = new FuncAliasDeclaration(fd.ident, fd, false);
-                fa.visibility = fd.visibility;
-
-                auto e = ex ? new DotVarExp(Loc.initial, ex, fa, false)
-                            : new DsymbolExp(Loc.initial, fa, false);
-
-                // if the parent is an interface declaration
-                // we must check for functions with the same signature
-                // in different inherited interfaces
-                if (sym && sym.isInterfaceDeclaration())
-                    insertInterfaceInheritedFunction(fd, e);
-                else
-                    exps.push(e);
-                return 0;
+                if (auto fd = s.isFuncDeclaration()) // https://issues.dlang.org/show_bug.cgi?id=8943
+                    s = fd.toAliasFunc();
+                if (!s.isImport()) // https://issues.dlang.org/show_bug.cgi?id=8922
+                    s = s.toParent();
             }
-
-            InterfaceDeclaration ifd = null;
-            if (sym)
-                ifd = sym.isInterfaceDeclaration();
-            // If the symbol passed as a parameter is an
-            // interface that inherits other interfaces
-            overloadApply(f, &dg);
-            if (ifd && ifd.interfaces && f)
+            if (!s || s.isImport())
             {
-                // check the overloads of each inherited interface individually
-                foreach (bc; ifd.interfaces)
-                {
-                    if (auto fd = bc.sym.search(e.loc, f.ident))
-                        overloadApply(fd, &dg);
-                }
-            }
-
-            auto tup = new TupleExp(e.loc, exps);
-            return tup.expressionSemantic(scx);
-        }
-        else
-            assert(0);
-    }
-    if (e.ident == Id.classInstanceSize || e.ident == Id.classInstanceAlignment)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        auto o = (*e.args)[0];
-        auto s = getDsymbol(o);
-        auto cd = s ? s.isClassDeclaration() : null;
-        if (!cd)
-        {
-            error(e.loc, "first argument is not a class");
-            return ErrorExp.get();
-        }
-        if (cd.sizeok != Sizeok.done)
-        {
-            cd.size(e.loc);
-        }
-        if (cd.sizeok != Sizeok.done)
-        {
-            error(e.loc, "%s `%s` is forward referenced", cd.kind(), cd.toChars());
-            return ErrorExp.get();
-        }
-
-        return new IntegerExp(e.loc, e.ident == Id.classInstanceSize ? cd.structsize : cd.alignsize, Type.tsize_t);
-    }
-    if (e.ident == Id.getAliasThis)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        auto o = (*e.args)[0];
-        auto s = getDsymbol(o);
-        auto ad = s ? s.isAggregateDeclaration() : null;
-
-        auto exps = new Expressions();
-        if (ad && ad.aliasthis)
-            exps.push(new StringExp(e.loc, ad.aliasthis.ident.toString()));
-        Expression ex = new TupleExp(e.loc, exps);
-        ex = ex.expressionSemantic(sc);
-        return ex;
-    }
-    if (e.ident == Id.getAttributes)
-    {
-        /* Specify 0 for bit 0 of the flags argument to semanticTiargs() so that
-         * a symbol should not be folded to a constant.
-         * Bit 1 means don't convert Parameter to Type if Parameter has an identifier
-         */
-        if (!TemplateInstance.semanticTiargs(e.loc, sc, e.args, 3))
-            return ErrorExp.get();
-
-        if (dim != 1)
-            return dimError(1);
-
-        auto o = (*e.args)[0];
-        auto po = isParameter(o);
-        auto s = getDsymbolWithoutExpCtx(o);
-        auto typeOfArg = isType(o);
-        UserAttributeDeclaration udad = null;
-        if (po)
-        {
-            udad = po.userAttribDecl;
-        }
-        else if (s)
-        {
-            // @@@DEPRECATION 2.100.2
-            if (auto fd = s.isFuncDeclaration())
-            {
-                if (fd.overnext)
-                {
-                    deprecation(e.loc, "`__traits(getAttributes)` may only be used for individual functions, not the overload set `%s`", fd.toChars());
-                    deprecationSupplemental(e.loc, "the result of `__traits(getOverloads)` may be used to select the desired function to extract attributes from");
-                }
-            }
-
-            // @@@DEPRECATION 2.100.2
-            if (auto td = s.isTemplateDeclaration())
-            {
-                if (td.overnext)
-                {
-                    deprecation(e.loc, "`__traits(getAttributes)` may only be used for individual functions, not the overload set `%s`", td.ident.toChars());
-                    deprecationSupplemental(e.loc, "the result of `__traits(getOverloads)` may be used to select the desired function to extract attributes from");
-                }
-            }
-            if (s.isImport())
-            {
-                s = s.isImport().mod;
-            }
-            //printf("getAttributes %s, attrs = %p, scope = %p\n", s.toChars(), s.userAttribDecl, s._scope);
-            udad = s.userAttribDecl;
-        }
-        else if (typeOfArg)
-        {
-            // If there is a type but no symbol, do nothing rather than erroring.
-        }
-        else
-        {
-            version (none)
-            {
-                Expression x = isExpression(o);
-                Type t = isType(o);
-                if (x)
-                    printf("e = %s %s\n", EXPtoString(x.op).ptr, x.toChars());
-                if (t)
-                    printf("t = %d %s\n", t.ty, t.toChars());
-            }
-            error(e.loc, "first argument is not a symbol");
-            return ErrorExp.get();
-        }
-
-        auto exps = udad ? udad.getAttributes() : new Expressions();
-        auto tup = new TupleExp(e.loc, exps);
-        return tup.expressionSemantic(sc);
-    }
-    if (e.ident == Id.getFunctionAttributes)
-    {
-        /* Extract all function attributes as a tuple (const/shared/inout/pure/nothrow/etc) except UDAs.
-         * https://dlang.org/spec/traits.html#getFunctionAttributes
-         */
-        if (dim != 1)
-            return dimError(1);
-
-        FuncDeclaration fd;
-        TypeFunction tf = toTypeFunction((*e.args)[0], fd);
-
-        if (!tf)
-        {
-            error(e.loc, "first argument is not a function");
-            return ErrorExp.get();
-        }
-
-        // https://issues.dlang.org/show_bug.cgi?id=19706
-        // When getting the attributes of the instance of a
-        // templated member function semantic tiargs does
-        // not perform semantic3 on the instance.
-        // For more information see FuncDeclaration.functionSemantic.
-        // For getFunctionAttributes it is mandatory to do
-        // attribute inference.
-        if (fd && fd.parent && fd.parent.isTemplateInstance)
-        {
-            functionSemantic3(fd);
-            tf = fd.type.isTypeFunction();
-        }
-
-        auto mods = new Expressions();
-
-        void addToMods(string str)
-        {
-            mods.push(new StringExp(Loc.initial, str));
-        }
-        tf.modifiersApply(&addToMods);
-        tf.attributesApply(&addToMods, TRUSTformatSystem);
-
-        auto tup = new TupleExp(e.loc, mods);
-        return tup.expressionSemantic(sc);
-    }
-    if (e.ident == Id.isReturnOnStack)
-    {
-        /* Extract as a boolean if function return value is on the stack
-         * https://dlang.org/spec/traits.html#isReturnOnStack
-         */
-        if (dim != 1)
-            return dimError(1);
-
-        RootObject o = (*e.args)[0];
-        FuncDeclaration fd;
-        TypeFunction tf = toTypeFunction(o, fd);
-
-        if (!tf)
-        {
-            error(e.loc, "argument to `__traits(isReturnOnStack, %s)` is not a function", o.toChars());
-            return ErrorExp.get();
-        }
-
-        bool value = target.isReturnOnStack(tf, fd && fd.needThis());
-        return IntegerExp.createBool(value);
-    }
-    if (e.ident == Id.getFunctionVariadicStyle)
-    {
-        /* Accept a symbol or a type. Returns one of the following:
-         *  "none"      not a variadic function
-         *  "argptr"    extern(D) void dstyle(...), use `__argptr` and `__arguments`
-         *  "stdarg"    extern(C) void cstyle(int, ...), use core.stdc.stdarg
-         *  "typesafe"  void typesafe(T[] ...)
-         *  "KR"        old K+R style
-         */
-        // get symbol linkage as a string
-        if (dim != 1)
-            return dimError(1);
-
-        LINK link;
-        VarArg varargs;
-        auto o = (*e.args)[0];
-
-        FuncDeclaration fd;
-        TypeFunction tf = toTypeFunction(o, fd);
-
-        if (tf)
-        {
-            link = tf.linkage;
-            varargs = tf.parameterList.varargs;
-        }
-        else
-        {
-            if (!fd)
-            {
-                error(e.loc, "argument to `__traits(getFunctionVariadicStyle, %s)` is not a function", o.toChars());
+                error(e.loc, "argument `%s` has no parent", o.toChars());
                 return ErrorExp.get();
             }
-            link = fd._linkage;
-            varargs = fd.getParameterList().varargs;
+
+            if (auto f = s.isFuncDeclaration())
+            {
+                if (auto td = getFuncTemplateDecl(f))
+                {
+                    if (td.overroot) // if not start of overloaded list of TemplateDeclaration's
+                        td = td.overroot; // then get the start
+                    Expression ex = new TemplateExp(e.loc, td, f);
+                    ex = ex.expressionSemantic(sc);
+                    return ex;
+                }
+                if (auto fld = f.isFuncLiteralDeclaration())
+                {
+                    // Directly translate to VarExp instead of FuncExp
+                    Expression ex = new VarExp(e.loc, fld, true);
+                    return ex.expressionSemantic(sc);
+                }
+            }
+            return symbolToExp(s, e.loc, sc, false);
         }
-        string style;
-        final switch (varargs)
+        case "child":
         {
-            case VarArg.none:     style = "none";           break;
-            case VarArg.variadic: style = (link == LINK.d)
-                                             ? "argptr"
-                                             : "stdarg";    break;
-            case VarArg.KRvariadic: style = "KR";           break;
-            case VarArg.typesafe: style = "typesafe";       break;
-        }
-        auto se = new StringExp(e.loc, style);
-        return se.expressionSemantic(sc);
-    }
-    if (e.ident == Id.getParameterStorageClasses)
-    {
-        /* Accept a function symbol or a type, followed by a parameter index.
-         * Returns a tuple of strings of the parameter's storage classes.
-         */
-        // get symbol linkage as a string
-        if (dim != 2)
-            return dimError(2);
+            if (dim != 2)
+                return dimError(2);
 
-        auto o = (*e.args)[0];
-        auto o1 = (*e.args)[1];
-
-        ParameterList fparams;
-
-        CallExp ce;
-        if (auto exp = isExpression(o))
-            ce = exp.isCallExp();
-
-        if (ce)
-        {
-            fparams = ce.f.getParameterList();
-        }
-        else
-        {
-            FuncDeclaration fd;
-            auto tf = toTypeFunction(o, fd);
-            if (tf)
-                fparams = tf.parameterList;
-            else if (fd)
-                fparams = fd.getParameterList();
+            Expression ex;
+            auto op = (*e.args)[0];
+            if (auto symp = getDsymbol(op))
+                ex = new DsymbolExp(e.loc, symp);
+            else if (auto exp = op.isExpression())
+                ex = exp;
             else
             {
-                error(e.loc, "first argument to `__traits(getParameterStorageClasses, %s, %s)` is not a function or a function call",
+                error(e.loc, "symbol or expression expected as first argument of __traits `child` instead of `%s`", op.toChars());
+                return ErrorExp.get();
+            }
+
+            ex = ex.expressionSemantic(sc);
+            auto oc = (*e.args)[1];
+            auto symc = getDsymbol(oc);
+            if (!symc)
+            {
+                error(e.loc, "symbol expected as second argument of __traits `child` instead of `%s`", oc.toChars());
+                return ErrorExp.get();
+            }
+
+            if (auto d = symc.isDeclaration())
+                ex = new DotVarExp(e.loc, ex, d);
+            else if (auto td = symc.isTemplateDeclaration())
+                ex = new DotExp(e.loc, ex, new TemplateExp(e.loc, td));
+            else if (auto ti = symc.isScopeDsymbol())
+                ex = new DotExp(e.loc, ex, new ScopeExp(e.loc, ti));
+            else
+                assert(0);
+
+            ex = ex.expressionSemantic(sc);
+            return ex;
+        }
+        case "toType":
+        {
+            if (dim != 1)
+                return dimError(1);
+
+            auto ex = isExpression((*e.args)[0]);
+            if (!ex)
+            {
+                error(e.loc, "expression expected as second argument of __traits `%s`", e.ident.toChars());
+                return ErrorExp.get();
+            }
+            ex = ex.ctfeInterpret();
+
+            StringExp se = semanticString(sc, ex, "__traits(toType, string)");
+            if (!se)
+            {
+                return ErrorExp.get();
+            }
+            Type t = decoToType(se.toUTF8(sc).peekString());
+            if (!t)
+            {
+                error(e.loc, "cannot determine `%s`", e.toChars());
+                return ErrorExp.get();
+            }
+            return (new TypeExp(e.loc, t)).expressionSemantic(sc);
+        }
+        case "hasMember":
+        case "getMember":
+        case "getOverloads":
+        case "getVirtualMethods":
+        case "getVirtualFunctions":
+        {
+            if (dim != 2 && !(dim == 3 && e.ident.toString == "getOverloads"))
+                return dimError(2);
+
+            auto o = (*e.args)[0];
+            auto ex = isExpression((*e.args)[1]);
+            if (!ex)
+            {
+                error(e.loc, "expression expected as second argument of __traits `%s`", e.ident.toChars());
+                return ErrorExp.get();
+            }
+            ex = ex.ctfeInterpret();
+
+            bool includeTemplates = false;
+            if (dim == 3 && e.ident.toString == "getOverloads")
+            {
+                auto b = isExpression((*e.args)[2]);
+                b = b.ctfeInterpret();
+                if (!b.type.equals(Type.tbool))
+                {
+                    error(e.loc, "`bool` expected as third argument of `__traits(getOverloads)`, not `%s` of type `%s`", b.toChars(), b.type.toChars());
+                    return ErrorExp.get();
+                }
+                includeTemplates = b.toBool().get();
+            }
+
+            StringExp se = ex.toStringExp();
+            if (!se || se.len == 0)
+            {
+                error(e.loc, "string expected as second argument of __traits `%s` instead of `%s`", e.ident.toChars(), ex.toChars());
+                return ErrorExp.get();
+            }
+            se = se.toUTF8(sc);
+
+            if (se.sz != 1)
+            {
+                error(e.loc, "string must be chars");
+                return ErrorExp.get();
+            }
+            auto id = Identifier.idPool(se.peekString());
+
+            /* Prefer a Type, because getDsymbol(Type) can lose type modifiers.
+               Then a Dsymbol, because it might need some runtime contexts.
+             */
+
+            Dsymbol sym = getDsymbol(o);
+
+            if (sym && e.ident.toString == "hasMember")
+            {
+                if (auto sm = sym.search(e.loc, id))
+                    return True();
+
+                // https://issues.dlang.org/show_bug.cgi?id=23951
+                if (auto decl = sym.isDeclaration())
+                {
+                    ex = typeDotIdExp(e.loc, decl.type, id);
+                    goto doSemantic;
+                }
+            }
+
+            if (auto t = isType(o))
+                ex = typeDotIdExp(e.loc, t, id);
+            else if (sym)
+            {
+                ex = new DsymbolExp(e.loc, sym);
+                ex = new DotIdExp(e.loc, ex, id);
+            }
+            else if (auto ex2 = isExpression(o))
+                ex = new DotIdExp(e.loc, ex2, id);
+            else
+            {
+                error(e.loc, "invalid first argument");
+                return ErrorExp.get();
+            }
+        doSemantic:
+            // ignore symbol visibility and disable access checks for these traits
+            Scope* scx = sc.push();
+            scx.ignoresymbolvisibility = true;
+            scx.noAccessCheck = true;
+            scope (exit) scx.pop();
+
+            if (e.ident.toString == "hasMember")
+            {
+                /* Take any errors as meaning it wasn't found
+                 */
+                ex = ex.trySemantic(scx);
+                return ex ? True() : False();
+            }
+            else if (e.ident.toString == "getMember")
+            {
+                if (auto die = ex.isDotIdExp())
+                    // Prevent semantic() from replacing Symbol with its initializer
+                    die.wantsym = true;
+                ex = ex.expressionSemantic(scx);
+                return ex;
+            }
+            else if (e.ident.toString == "getVirtualFunctions" ||
+                     e.ident.toString == "getVirtualMethods" ||
+                     e.ident.toString == "getOverloads")
+            {
+                uint errors = global.errors;
+                Expression eorig = ex;
+                ex = ex.expressionSemantic(scx);
+                if (errors < global.errors)
+                    error(e.loc, "`%s` cannot be resolved", eorig.toChars());
+
+                if (e.ident.toString == "getVirtualFunctions")
+                {
+                    // @@@DEPRECATED2.121@@@
+                    // Deprecated in 2.101 - Can be removed from 2.121
+                    deprecation(e.loc, "`traits(getVirtualFunctions)` is deprecated. Use `traits(getVirtualMethods)` instead");
+                }
+
+                /* Create tuple of functions of ex
+                 */
+                auto exps = new Expressions();
+                Dsymbol f;
+                if (auto ve = ex.isVarExp)
+                {
+                    if (ve.var.isFuncDeclaration() || ve.var.isOverDeclaration())
+                        f = ve.var;
+                    ex = null;
+                }
+                else if (auto dve = ex.isDotVarExp)
+                {
+                    if (dve.var.isFuncDeclaration() || dve.var.isOverDeclaration())
+                        f = dve.var;
+                    if (dve.e1.op == EXP.dotType || dve.e1.op == EXP.this_)
+                        ex = null;
+                    else
+                        ex = dve.e1;
+                }
+                else if (auto te = ex.isTemplateExp)
+                {
+                    auto td = te.td;
+                    f = td;
+                    if (td && td.funcroot)
+                        f = td.funcroot;
+                    ex = null;
+                }
+                else if (auto dte = ex.isDotTemplateExp)
+                {
+                    auto td = dte.td;
+                    f = td;
+                    if (td && td.funcroot)
+                        f = td.funcroot;
+                    ex = null;
+                    if (dte.e1.op != EXP.dotType && dte.e1.op != EXP.this_)
+                        ex = dte.e1;
+                }
+                bool[string] funcTypeHash;
+
+                /* Compute the function signature and insert it in the
+                 * hashtable, if not present. This is needed so that
+                 * traits(getOverlods, F3, "visit") does not count `int visit(int)`
+                 * twice in the following example:
+                 *
+                 * =============================================
+                 * interface F1 { int visit(int);}
+                 * interface F2 { int visit(int); void visit(); }
+                 * interface F3 : F2, F1 {}
+                 *==============================================
+                 */
+                void insertInterfaceInheritedFunction(FuncDeclaration fd, Expression e)
+                {
+                    auto signature = fd.type.toString();
+                    //printf("%s - %s\n", fd.toChars, signature);
+                    if (signature !in funcTypeHash)
+                    {
+                        funcTypeHash[signature] = true;
+                        exps.push(e);
+                    }
+                }
+
+                int dg(Dsymbol s)
+                {
+                    auto fd = s.isFuncDeclaration();
+                    if (!fd)
+                    {
+                        if (includeTemplates)
+                        {
+                            if (auto td = s.isTemplateDeclaration())
+                            {
+                                // if td is part of an overload set we must take a copy
+                                // which shares the same `instances` cache but without
+                                // `overroot` and `overnext` set to avoid overload
+                                // behaviour in the result.
+                                if (td.overnext !is null)
+                                {
+                                    if (td.instances is null)
+                                    {
+                                        // create an empty AA just to copy it
+                                        scope ti = new TemplateInstance(Loc.initial, Id.empty, null);
+                                        auto tib = TemplateInstanceBox(ti);
+                                        td.instances[tib] = null;
+                                        td.instances.clear();
+                                    }
+                                    td = td.syntaxCopy(null);
+                                    import core.stdc.string : memcpy;
+                                    memcpy(cast(void*) td, cast(void*) s,
+                                            __traits(classInstanceSize, TemplateDeclaration));
+                                    td.overroot = null;
+                                    td.overnext = null;
+                                }
+
+                                auto e = ex ? new DotTemplateExp(Loc.initial, ex, td)
+                                            : new DsymbolExp(Loc.initial, td);
+                                exps.push(e);
+                            }
+                        }
+                        return 0;
+                    }
+                    if (e.ident.toString == "getVirtualFunctions" && !fd.isVirtual())
+                        return 0;
+                    if (e.ident.toString == "getVirtualMethods" && !fd.isVirtualMethod())
+                        return 0;
+
+                    auto fa = new FuncAliasDeclaration(fd.ident, fd, false);
+                    fa.visibility = fd.visibility;
+
+                    auto e = ex ? new DotVarExp(Loc.initial, ex, fa, false)
+                                : new DsymbolExp(Loc.initial, fa, false);
+
+                    // if the parent is an interface declaration
+                    // we must check for functions with the same signature
+                    // in different inherited interfaces
+                    if (sym && sym.isInterfaceDeclaration())
+                        insertInterfaceInheritedFunction(fd, e);
+                    else
+                        exps.push(e);
+                    return 0;
+                }
+
+                InterfaceDeclaration ifd = null;
+                if (sym)
+                    ifd = sym.isInterfaceDeclaration();
+                // If the symbol passed as a parameter is an
+                // interface that inherits other interfaces
+                overloadApply(f, &dg);
+                if (ifd && ifd.interfaces && f)
+                {
+                    // check the overloads of each inherited interface individually
+                    foreach (bc; ifd.interfaces)
+                    {
+                        if (auto fd = bc.sym.search(e.loc, f.ident))
+                            overloadApply(fd, &dg);
+                    }
+                }
+
+                auto tup = new TupleExp(e.loc, exps);
+                return tup.expressionSemantic(scx);
+            }
+            else
+                assert(0);
+        }
+        case "classInstanceSize":
+        case "classInstanceAlignment":
+        {
+            if (dim != 1)
+                return dimError(1);
+
+            auto o = (*e.args)[0];
+            auto s = getDsymbol(o);
+            auto cd = s ? s.isClassDeclaration() : null;
+            if (!cd)
+            {
+                error(e.loc, "first argument is not a class");
+                return ErrorExp.get();
+            }
+            if (cd.sizeok != Sizeok.done)
+            {
+                cd.size(e.loc);
+            }
+            if (cd.sizeok != Sizeok.done)
+            {
+                error(e.loc, "%s `%s` is forward referenced", cd.kind(), cd.toChars());
+                return ErrorExp.get();
+            }
+
+            return new IntegerExp(e.loc, e.ident.toString == "classInstanceSize" ? cd.structsize : cd.alignsize, Type.tsize_t);
+        }
+        case "getAliasThis":
+        {
+            if (dim != 1)
+                return dimError(1);
+
+            auto o = (*e.args)[0];
+            auto s = getDsymbol(o);
+            auto ad = s ? s.isAggregateDeclaration() : null;
+
+            auto exps = new Expressions();
+            if (ad && ad.aliasthis)
+                exps.push(new StringExp(e.loc, ad.aliasthis.ident.toString()));
+            Expression ex = new TupleExp(e.loc, exps);
+            ex = ex.expressionSemantic(sc);
+            return ex;
+        }
+        case "getAttributes":
+        {
+            /* Specify 0 for bit 0 of the flags argument to semanticTiargs() so that
+             * a symbol should not be folded to a constant.
+             * Bit 1 means don't convert Parameter to Type if Parameter has an identifier
+             */
+            if (!TemplateInstance.semanticTiargs(e.loc, sc, e.args, 3))
+                return ErrorExp.get();
+
+            if (dim != 1)
+                return dimError(1);
+
+            auto o = (*e.args)[0];
+            auto po = isParameter(o);
+            auto s = getDsymbolWithoutExpCtx(o);
+            auto typeOfArg = isType(o);
+            UserAttributeDeclaration udad = null;
+            if (po)
+            {
+                udad = po.userAttribDecl;
+            }
+            else if (s)
+            {
+                // @@@DEPRECATION 2.100.2
+                if (auto fd = s.isFuncDeclaration())
+                {
+                    if (fd.overnext)
+                    {
+                        deprecation(e.loc, "`__traits(getAttributes)` may only be used for individual functions, not the overload set `%s`", fd.toChars());
+                        deprecationSupplemental(e.loc, "the result of `__traits(getOverloads)` may be used to select the desired function to extract attributes from");
+                    }
+                }
+
+                // @@@DEPRECATION 2.100.2
+                if (auto td = s.isTemplateDeclaration())
+                {
+                    if (td.overnext)
+                    {
+                        deprecation(e.loc, "`__traits(getAttributes)` may only be used for individual functions, not the overload set `%s`", td.ident.toChars());
+                        deprecationSupplemental(e.loc, "the result of `__traits(getOverloads)` may be used to select the desired function to extract attributes from");
+                    }
+                }
+                if (s.isImport())
+                {
+                    s = s.isImport().mod;
+                }
+                //printf("getAttributes %s, attrs = %p, scope = %p\n", s.toChars(), s.userAttribDecl, s._scope);
+                udad = s.userAttribDecl;
+            }
+            else if (typeOfArg)
+            {
+                // If there is a type but no symbol, do nothing rather than erroring.
+            }
+            else
+            {
+                version (none)
+                {
+                    Expression x = isExpression(o);
+                    Type t = isType(o);
+                    if (x)
+                        printf("e = %s %s\n", EXPtoString(x.op).ptr, x.toChars());
+                    if (t)
+                        printf("t = %d %s\n", t.ty, t.toChars());
+                }
+                error(e.loc, "first argument is not a symbol");
+                return ErrorExp.get();
+            }
+
+            auto exps = udad ? udad.getAttributes() : new Expressions();
+            auto tup = new TupleExp(e.loc, exps);
+            return tup.expressionSemantic(sc);
+        }
+        case "getFunctionAttributes":
+        {
+            /* Extract all function attributes as a tuple (const/shared/inout/pure/nothrow/etc) except UDAs.
+             * https://dlang.org/spec/traits.html#getFunctionAttributes
+             */
+            if (dim != 1)
+                return dimError(1);
+
+            FuncDeclaration fd;
+            TypeFunction tf = toTypeFunction((*e.args)[0], fd);
+
+            if (!tf)
+            {
+                error(e.loc, "first argument is not a function");
+                return ErrorExp.get();
+            }
+
+            // https://issues.dlang.org/show_bug.cgi?id=19706
+            // When getting the attributes of the instance of a
+            // templated member function semantic tiargs does
+            // not perform semantic3 on the instance.
+            // For more information see FuncDeclaration.functionSemantic.
+            // For getFunctionAttributes it is mandatory to do
+            // attribute inference.
+            if (fd && fd.parent && fd.parent.isTemplateInstance)
+            {
+                functionSemantic3(fd);
+                tf = fd.type.isTypeFunction();
+            }
+
+            auto mods = new Expressions();
+
+            void addToMods(string str)
+            {
+                mods.push(new StringExp(Loc.initial, str));
+            }
+            tf.modifiersApply(&addToMods);
+            tf.attributesApply(&addToMods, TRUSTformatSystem);
+
+            auto tup = new TupleExp(e.loc, mods);
+            return tup.expressionSemantic(sc);
+        }
+        case "isReturnOnStack":
+        {
+            /* Extract as a boolean if function return value is on the stack
+             * https://dlang.org/spec/traits.html#isReturnOnStack
+             */
+            if (dim != 1)
+                return dimError(1);
+
+            RootObject o = (*e.args)[0];
+            FuncDeclaration fd;
+            TypeFunction tf = toTypeFunction(o, fd);
+
+            if (!tf)
+            {
+                error(e.loc, "argument to `__traits(isReturnOnStack, %s)` is not a function", o.toChars());
+                return ErrorExp.get();
+            }
+
+            bool value = target.isReturnOnStack(tf, fd && fd.needThis());
+            return IntegerExp.createBool(value);
+        }
+        case "getFunctionVariadicStyle":
+        {
+            /* Accept a symbol or a type. Returns one of the following:
+             *  "none"      not a variadic function
+             *  "argptr"    extern(D) void dstyle(...), use `__argptr` and `__arguments`
+             *  "stdarg"    extern(C) void cstyle(int, ...), use core.stdc.stdarg
+             *  "typesafe"  void typesafe(T[] ...)
+             *  "KR"        old K+R style
+             */
+            // get symbol linkage as a string
+            if (dim != 1)
+                return dimError(1);
+
+            LINK link;
+            VarArg varargs;
+            auto o = (*e.args)[0];
+
+            FuncDeclaration fd;
+            TypeFunction tf = toTypeFunction(o, fd);
+
+            if (tf)
+            {
+                link = tf.linkage;
+                varargs = tf.parameterList.varargs;
+            }
+            else
+            {
+                if (!fd)
+                {
+                    error(e.loc, "argument to `__traits(getFunctionVariadicStyle, %s)` is not a function", o.toChars());
+                    return ErrorExp.get();
+                }
+                link = fd._linkage;
+                varargs = fd.getParameterList().varargs;
+            }
+            string style;
+            final switch (varargs)
+            {
+                case VarArg.none:     style = "none";           break;
+                case VarArg.variadic: style = (link == LINK.d)
+                                                 ? "argptr"
+                                                 : "stdarg";    break;
+                case VarArg.KRvariadic: style = "KR";           break;
+                case VarArg.typesafe: style = "typesafe";       break;
+            }
+            auto se = new StringExp(e.loc, style);
+            return se.expressionSemantic(sc);
+        }
+        case "getParameterStorageClasses":
+        {
+            /* Accept a function symbol or a type, followed by a parameter index.
+             * Returns a tuple of strings of the parameter's storage classes.
+             */
+            // get symbol linkage as a string
+            if (dim != 2)
+                return dimError(2);
+
+            auto o = (*e.args)[0];
+            auto o1 = (*e.args)[1];
+
+            ParameterList fparams;
+
+            CallExp ce;
+            if (auto exp = isExpression(o))
+                ce = exp.isCallExp();
+
+            if (ce)
+            {
+                fparams = ce.f.getParameterList();
+            }
+            else
+            {
+                FuncDeclaration fd;
+                auto tf = toTypeFunction(o, fd);
+                if (tf)
+                    fparams = tf.parameterList;
+                else if (fd)
+                    fparams = fd.getParameterList();
+                else
+                {
+                    error(e.loc, "first argument to `__traits(getParameterStorageClasses, %s, %s)` is not a function or a function call",
+                        o.toChars(), o1.toChars());
+                    return ErrorExp.get();
+                }
+            }
+
+            // Avoid further analysis for invalid functions leading to misleading error messages
+            if (!fparams.parameters)
+                return ErrorExp.get();
+
+            StorageClass stc;
+
+            // Set stc to storage class of the ith parameter
+            auto ex = isExpression((*e.args)[1]);
+            if (!ex)
+            {
+                error(e.loc, "expression expected as second argument of `__traits(getParameterStorageClasses, %s, %s)`",
                     o.toChars(), o1.toChars());
                 return ErrorExp.get();
             }
-        }
-
-        // Avoid further analysis for invalid functions leading to misleading error messages
-        if (!fparams.parameters)
-            return ErrorExp.get();
-
-        StorageClass stc;
-
-        // Set stc to storage class of the ith parameter
-        auto ex = isExpression((*e.args)[1]);
-        if (!ex)
-        {
-            error(e.loc, "expression expected as second argument of `__traits(getParameterStorageClasses, %s, %s)`",
-                o.toChars(), o1.toChars());
-            return ErrorExp.get();
-        }
-        ex = ex.ctfeInterpret();
-        auto ii = ex.toUInteger();
-        if (ii >= fparams.length)
-        {
-            error(e.loc, "parameter index must be in range 0..%u not %s", cast(uint)fparams.length, ex.toChars());
-            return ErrorExp.get();
-        }
-
-        uint n = cast(uint)ii;
-        Parameter p = fparams[n];
-        stc = p.storageClass;
-
-        // This mirrors hdrgen.visit(Parameter p)
-        if (p.type && p.type.mod & MODFlags.shared_)
-            stc &= ~STC.shared_;
-
-        auto exps = new Expressions;
-
-        void push(string s)
-        {
-            exps.push(new StringExp(e.loc, s));
-        }
-
-        if (stc & STC.auto_)
-            push("auto");
-        if (stc & STC.return_)
-            push("return");
-
-        if (stc & STC.out_)
-            push("out");
-        else if (stc & STC.in_)
-            push("in");
-        else if (stc & STC.ref_)
-            push("ref");
-        else if (stc & STC.lazy_)
-            push("lazy");
-        else if (stc & STC.alias_)
-            push("alias");
-
-        if (stc & STC.const_)
-            push("const");
-        if (stc & STC.immutable_)
-            push("immutable");
-        if (stc & STC.wild)
-            push("inout");
-        if (stc & STC.shared_)
-            push("shared");
-        if (stc & STC.scope_ && !(stc & STC.scopeinferred))
-            push("scope");
-
-        auto tup = new TupleExp(e.loc, exps);
-        return tup.expressionSemantic(sc);
-    }
-    if (e.ident == Id.getLinkage)
-    {
-        // get symbol linkage as a string
-        if (dim != 1)
-            return dimError(1);
-
-        LINK link;
-        auto o = (*e.args)[0];
-
-        FuncDeclaration fd;
-        TypeFunction tf = toTypeFunction(o, fd);
-
-        if (tf)
-        {
-            link = fd ? fd.toAliasFunc()._linkage : tf.linkage;
-        }
-        else
-        {
-            auto s = getDsymbol(o);
-            Declaration d;
-            AggregateDeclaration agg;
-            if (!s || ((d = s.isDeclaration()) is null && (agg = s.isAggregateDeclaration()) is null))
+            ex = ex.ctfeInterpret();
+            auto ii = ex.toUInteger();
+            if (ii >= fparams.length)
             {
-                error(e.loc, "argument to `__traits(getLinkage, %s)` is not a declaration", o.toChars());
+                error(e.loc, "parameter index must be in range 0..%u not %s", cast(uint)fparams.length, ex.toChars());
                 return ErrorExp.get();
             }
 
-            if (d !is null)
-                link = d._linkage;
+            uint n = cast(uint)ii;
+            Parameter p = fparams[n];
+            stc = p.storageClass;
+
+            // This mirrors hdrgen.visit(Parameter p)
+            if (p.type && p.type.mod & MODFlags.shared_)
+                stc &= ~STC.shared_;
+
+            auto exps = new Expressions;
+
+            void push(string s)
+            {
+                exps.push(new StringExp(e.loc, s));
+            }
+
+            if (stc & STC.auto_)
+                push("auto");
+            if (stc & STC.return_)
+                push("return");
+
+            if (stc & STC.out_)
+                push("out");
+            else if (stc & STC.in_)
+                push("in");
+            else if (stc & STC.ref_)
+                push("ref");
+            else if (stc & STC.lazy_)
+                push("lazy");
+            else if (stc & STC.alias_)
+                push("alias");
+
+            if (stc & STC.const_)
+                push("const");
+            if (stc & STC.immutable_)
+                push("immutable");
+            if (stc & STC.wild)
+                push("inout");
+            if (stc & STC.shared_)
+                push("shared");
+            if (stc & STC.scope_ && !(stc & STC.scopeinferred))
+                push("scope");
+
+            auto tup = new TupleExp(e.loc, exps);
+            return tup.expressionSemantic(sc);
+        }
+        case "getLinkage":
+        {
+            // get symbol linkage as a string
+            if (dim != 1)
+                return dimError(1);
+
+            LINK link;
+            auto o = (*e.args)[0];
+
+            FuncDeclaration fd;
+            TypeFunction tf = toTypeFunction(o, fd);
+
+            if (tf)
+            {
+                link = fd ? fd.toAliasFunc()._linkage : tf.linkage;
+            }
             else
             {
-                // Resolves forward references
-                if (agg.sizeok != Sizeok.done)
+                auto s = getDsymbol(o);
+                Declaration d;
+                AggregateDeclaration agg;
+                if (!s || ((d = s.isDeclaration()) is null && (agg = s.isAggregateDeclaration()) is null))
                 {
-                    agg.size(e.loc);
+                    error(e.loc, "argument to `__traits(getLinkage, %s)` is not a declaration", o.toChars());
+                    return ErrorExp.get();
+                }
+
+                if (d !is null)
+                    link = d._linkage;
+                else
+                {
+                    // Resolves forward references
                     if (agg.sizeok != Sizeok.done)
                     {
-                        error(e.loc, "%s `%s` is forward referenced", agg.kind(), agg.toChars());
-                        return ErrorExp.get();
+                        agg.size(e.loc);
+                        if (agg.sizeok != Sizeok.done)
+                        {
+                            error(e.loc, "%s `%s` is forward referenced", agg.kind(), agg.toChars());
+                            return ErrorExp.get();
+                        }
+                    }
+
+                    final switch (agg.classKind)
+                    {
+                        case ClassKind.d:
+                            link = LINK.d;
+                            break;
+                        case ClassKind.cpp:
+                            link = LINK.cpp;
+                            break;
+                        case ClassKind.objc:
+                            link = LINK.objc;
+                            break;
+                        case ClassKind.c:
+                            link = LINK.c;
+                            break;
                     }
                 }
-
-                final switch (agg.classKind)
-                {
-                    case ClassKind.d:
-                        link = LINK.d;
-                        break;
-                    case ClassKind.cpp:
-                        link = LINK.cpp;
-                        break;
-                    case ClassKind.objc:
-                        link = LINK.objc;
-                        break;
-                    case ClassKind.c:
-                        link = LINK.c;
-                        break;
-                }
             }
+            auto linkage = linkageToChars(link);
+            auto se = new StringExp(e.loc, linkage.toDString());
+            return se.expressionSemantic(sc);
         }
-        auto linkage = linkageToChars(link);
-        auto se = new StringExp(e.loc, linkage.toDString());
-        return se.expressionSemantic(sc);
-    }
-    if (e.ident == Id.allMembers ||
-        e.ident == Id.derivedMembers)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        auto o = (*e.args)[0];
-        auto s = getDsymbol(o);
-        if (!s)
+        case "allMembers":
+        case "derivedMembers":
         {
-            error(e.loc, "in expression `%s` `%s` can't have members", e.toChars(), o.toChars());
-            errorSupplemental(e.loc, "`%s` must evaluate to either a module, a struct, an union, a class, an interface or a template instantiation", o.toChars());
+            if (dim != 1)
+                return dimError(1);
 
-            return ErrorExp.get();
-        }
-        if (auto imp = s.isImport())
-        {
-            // https://issues.dlang.org/show_bug.cgi?id=9692
-            // https://issues.dlang.org/show_bug.cgi?id=20008
-            if (imp.pkg)
-                s = imp.pkg;
-        }
-
-        // https://issues.dlang.org/show_bug.cgi?id=16044
-        if (auto p = s.isPackage())
-        {
-            if (auto pm = p.isPackageMod())
-                s = pm;
-        }
-
-        auto sds = s.isScopeDsymbol();
-        if (!sds || sds.isTemplateDeclaration())
-        {
-            error(e.loc, "in expression `%s` %s `%s` has no members", e.toChars(), s.kind(), s.toChars());
-            errorSupplemental(e.loc, "`%s` must evaluate to either a module, a struct, an union, a class, an interface or a template instantiation", s.toChars());
-            return ErrorExp.get();
-        }
-
-        auto idents = new Identifiers();
-
-        int pushIdentsDg(size_t n, Dsymbol sm)
-        {
-            if (!sm)
-                return 1;
-
-            // skip local symbols, such as static foreach loop variables
-            if (auto decl = sm.isDeclaration())
+            auto o = (*e.args)[0];
+            auto s = getDsymbol(o);
+            if (!s)
             {
-                if (decl.storage_class & STC.local)
-                {
-                    return 0;
-                }
-                // skip 'this' context pointers
-                else if (decl.isThisDeclaration())
-                    return 0;
+                error(e.loc, "in expression `%s` `%s` can't have members", e.toChars(), o.toChars());
+                errorSupplemental(e.loc, "`%s` must evaluate to either a module, a struct, an union, a class, an interface or a template instantiation", o.toChars());
+
+                return ErrorExp.get();
+            }
+            if (auto imp = s.isImport())
+            {
+                // https://issues.dlang.org/show_bug.cgi?id=9692
+                // https://issues.dlang.org/show_bug.cgi?id=20008
+                if (imp.pkg)
+                    s = imp.pkg;
             }
 
-            // https://issues.dlang.org/show_bug.cgi?id=20915
-            // skip version and debug identifiers
-            if (sm.isVersionSymbol() || sm.isDebugSymbol())
-                return 0;
-
-            //printf("\t[%i] %s %s\n", i, sm.kind(), sm.toChars());
-            if (sm.ident)
+            // https://issues.dlang.org/show_bug.cgi?id=16044
+            if (auto p = s.isPackage())
             {
-                // https://issues.dlang.org/show_bug.cgi?id=10096
-                // https://issues.dlang.org/show_bug.cgi?id=10100
-                // Skip over internal members in __traits(allMembers)
-                if ((sm.isCtorDeclaration() && sm.ident != Id.ctor) ||
-                    (sm.isDtorDeclaration() && sm.ident != Id.dtor) ||
-                    (sm.isPostBlitDeclaration() && sm.ident != Id.postblit) ||
-                    sm.isInvariantDeclaration() ||
-                    sm.isUnitTestDeclaration())
+                if (auto pm = p.isPackageMod())
+                    s = pm;
+            }
 
+            auto sds = s.isScopeDsymbol();
+            if (!sds || sds.isTemplateDeclaration())
+            {
+                error(e.loc, "in expression `%s` %s `%s` has no members", e.toChars(), s.kind(), s.toChars());
+                errorSupplemental(e.loc, "`%s` must evaluate to either a module, a struct, an union, a class, an interface or a template instantiation", s.toChars());
+                return ErrorExp.get();
+            }
+
+            auto idents = new Identifiers();
+
+            int pushIdentsDg(size_t n, Dsymbol sm)
+            {
+                if (!sm)
+                    return 1;
+
+                // skip local symbols, such as static foreach loop variables
+                if (auto decl = sm.isDeclaration())
                 {
-                    return 0;
+                    if (decl.storage_class & STC.local)
+                    {
+                        return 0;
+                    }
+                    // skip 'this' context pointers
+                    else if (decl.isThisDeclaration())
+                        return 0;
                 }
-                if (sm.ident == Id.empty)
-                {
-                    return 0;
-                }
-                if (sm.isTypeInfoDeclaration()) // https://issues.dlang.org/show_bug.cgi?id=15177
-                    return 0;
-                if ((!sds.isModule() && !sds.isPackage()) && sm.isImport()) // https://issues.dlang.org/show_bug.cgi?id=17057
+
+                // https://issues.dlang.org/show_bug.cgi?id=20915
+                // skip version and debug identifiers
+                if (sm.isVersionSymbol() || sm.isDebugSymbol())
                     return 0;
 
-                //printf("\t%s\n", sm.ident.toChars());
-
-                /* Skip if already present in idents[]
-                 */
-                foreach (id; *idents)
+                //printf("\t[%i] %s %s\n", i, sm.kind(), sm.toChars());
+                if (sm.ident)
                 {
-                    if (id == sm.ident)
+                    // https://issues.dlang.org/show_bug.cgi?id=10096
+                    // https://issues.dlang.org/show_bug.cgi?id=10100
+                    // Skip over internal members in __traits(allMembers)
+                    if ((sm.isCtorDeclaration() && sm.ident != Id.ctor) ||
+                        (sm.isDtorDeclaration() && sm.ident != Id.dtor) ||
+                        (sm.isPostBlitDeclaration() && sm.ident != Id.postblit) ||
+                        sm.isInvariantDeclaration() ||
+                        sm.isUnitTestDeclaration())
+
+                    {
+                        return 0;
+                    }
+                    if (sm.ident == Id.empty)
+                    {
+                        return 0;
+                    }
+                    if (sm.isTypeInfoDeclaration()) // https://issues.dlang.org/show_bug.cgi?id=15177
+                        return 0;
+                    if ((!sds.isModule() && !sds.isPackage()) && sm.isImport()) // https://issues.dlang.org/show_bug.cgi?id=17057
                         return 0;
 
-                    // Avoid using strcmp in the first place due to the performance impact in an O(N^2) loop.
-                    debug
+                    //printf("\t%s\n", sm.ident.toChars());
+
+                    /* Skip if already present in idents[]
+                     */
+                    foreach (id; *idents)
                     {
-                        import core.stdc.string : strcmp;
-                        assert(strcmp(id.toChars(), sm.ident.toChars()) != 0);
+                        if (id == sm.ident)
+                            return 0;
+
+                        // Avoid using strcmp in the first place due to the performance impact in an O(N^2) loop.
+                        debug
+                        {
+                            import core.stdc.string : strcmp;
+                            assert(strcmp(id.toChars(), sm.ident.toChars()) != 0);
+                        }
+                    }
+                    idents.push(sm.ident);
+                }
+                else if (auto ed = sm.isEnumDeclaration())
+                {
+                    _foreach(null, ed.members, &pushIdentsDg);
+                }
+                return 0;
+            }
+
+            _foreach(sc, sds.members, &pushIdentsDg);
+            auto cd = sds.isClassDeclaration();
+            if (cd && e.ident.toString == "allMembers")
+            {
+                if (cd.semanticRun < PASS.semanticdone)
+                    cd.dsymbolSemantic(null); // https://issues.dlang.org/show_bug.cgi?id=13668
+                                       // Try to resolve forward reference
+
+                void pushBaseMembersDg(ClassDeclaration cd)
+                {
+                    for (size_t i = 0; i < cd.baseclasses.length; i++)
+                    {
+                        auto cb = (*cd.baseclasses)[i].sym;
+                        assert(cb);
+                        _foreach(null, cb.members, &pushIdentsDg);
+                        if (cb.baseclasses.length)
+                            pushBaseMembersDg(cb);
                     }
                 }
-                idents.push(sm.ident);
-            }
-            else if (auto ed = sm.isEnumDeclaration())
-            {
-                _foreach(null, ed.members, &pushIdentsDg);
-            }
-            return 0;
-        }
 
-        _foreach(sc, sds.members, &pushIdentsDg);
-        auto cd = sds.isClassDeclaration();
-        if (cd && e.ident == Id.allMembers)
-        {
-            if (cd.semanticRun < PASS.semanticdone)
-                cd.dsymbolSemantic(null); // https://issues.dlang.org/show_bug.cgi?id=13668
-                                   // Try to resolve forward reference
-
-            void pushBaseMembersDg(ClassDeclaration cd)
-            {
-                for (size_t i = 0; i < cd.baseclasses.length; i++)
-                {
-                    auto cb = (*cd.baseclasses)[i].sym;
-                    assert(cb);
-                    _foreach(null, cb.members, &pushIdentsDg);
-                    if (cb.baseclasses.length)
-                        pushBaseMembersDg(cb);
-                }
+                pushBaseMembersDg(cd);
             }
 
-            pushBaseMembersDg(cd);
-        }
-
-        // Turn Identifiers into StringExps reusing the allocated array
-        assert(Expressions.sizeof == Identifiers.sizeof);
-        auto exps = cast(Expressions*)idents;
-        foreach (i, id; *idents)
-        {
-            auto se = new StringExp(e.loc, id.toString());
-            (*exps)[i] = se;
-        }
-
-        /* Making this a tuple is more flexible, as it can be statically unrolled.
-         * To make an array literal, enclose __traits in [ ]:
-         *   [ __traits(allMembers, ...) ]
-         */
-        Expression ex = new TupleExp(e.loc, exps);
-        ex = ex.expressionSemantic(sc);
-        return ex;
-    }
-    if (e.ident == Id.compiles)
-    {
-        /* Determine if all the objects - types, expressions, or symbols -
-         * compile without error
-         */
-        if (!dim)
-            return False();
-
-        foreach (o; *e.args)
-        {
-            uint errors = global.startGagging();
-            Scope* sc2 = sc.push();
-            sc2.tinst = null;
-            sc2.minst = null;   // this is why code for these are not emitted to object file
-            sc2.copyFlagsFrom(sc);
-            sc2.ctfe = false;
-            sc2.condition = false;
-            sc2.traitsCompiles = true;
-            sc2.fullinst = true;
-
-            bool err = false;
-
-            auto t = isType(o);
-            auto ex = isExpression(o);
-            if (t)
+            // Turn Identifiers into StringExps reusing the allocated array
+            assert(Expressions.sizeof == Identifiers.sizeof);
+            auto exps = cast(Expressions*)idents;
+            foreach (i, id; *idents)
             {
-                Dsymbol s;
-                t.resolve(e.loc, sc2, ex, t, s);
+                auto se = new StringExp(e.loc, id.toString());
+                (*exps)[i] = se;
+            }
+
+            /* Making this a tuple is more flexible, as it can be statically unrolled.
+             * To make an array literal, enclose __traits in [ ]:
+             *   [ __traits(allMembers, ...) ]
+             */
+            Expression ex = new TupleExp(e.loc, exps);
+            ex = ex.expressionSemantic(sc);
+            return ex;
+        }
+        case "compiles":
+        {
+            /* Determine if all the objects - types, expressions, or symbols -
+             * compile without error
+             */
+            if (!dim)
+                return False();
+
+            foreach (o; *e.args)
+            {
+                uint errors = global.startGagging();
+                Scope* sc2 = sc.push();
+                sc2.tinst = null;
+                sc2.minst = null;   // this is why code for these are not emitted to object file
+                sc2.copyFlagsFrom(sc);
+                sc2.ctfe = false;
+                sc2.condition = false;
+                sc2.traitsCompiles = true;
+                sc2.fullinst = true;
+
+                bool err = false;
+
+                auto t = isType(o);
+                auto ex = isExpression(o);
                 if (t)
                 {
-                    t.typeSemantic(e.loc, sc2);
-                    if (t.ty == Terror)
+                    Dsymbol s;
+                    t.resolve(e.loc, sc2, ex, t, s);
+                    if (t)
+                    {
+                        t.typeSemantic(e.loc, sc2);
+                        if (t.ty == Terror)
+                            err = true;
+                    }
+                    else if (s && s.errors)
                         err = true;
                 }
-                else if (s && s.errors)
-                    err = true;
-            }
-            if (ex)
-            {
-                ex = ex.expressionSemantic(sc2);
-                ex = resolvePropertiesOnly(sc2, ex);
-                ex = ex.optimize(WANTvalue);
-                if (sc2.func && sc2.func.type.isTypeFunction())
+                if (ex)
                 {
-                    const tf = sc2.func.type.isTypeFunction();
-                    err |= tf.isnothrow && canThrow(ex, sc2.func, null);
+                    ex = ex.expressionSemantic(sc2);
+                    ex = resolvePropertiesOnly(sc2, ex);
+                    ex = ex.optimize(WANTvalue);
+                    if (sc2.func && sc2.func.type.isTypeFunction())
+                    {
+                        const tf = sc2.func.type.isTypeFunction();
+                        err |= tf.isnothrow && canThrow(ex, sc2.func, null);
+                    }
+                    ex = checkGC(sc2, ex);
+                    if (ex.op == EXP.error)
+                        err = true;
                 }
-                ex = checkGC(sc2, ex);
-                if (ex.op == EXP.error)
-                    err = true;
+
+                // Carefully detach the scope from the parent and throw it away as
+                // we only need it to evaluate the expression
+                // https://issues.dlang.org/show_bug.cgi?id=15428
+                sc2.detach();
+
+                if (global.endGagging(errors) || err)
+                {
+                    return False();
+                }
             }
+            return True();
+        }
+        case "isSame":
+        {
+            /* Determine if two symbols are the same
+             */
+            if (dim != 2)
+                return dimError(2);
 
-            // Carefully detach the scope from the parent and throw it away as
-            // we only need it to evaluate the expression
-            // https://issues.dlang.org/show_bug.cgi?id=15428
-            sc2.detach();
-
-            if (global.endGagging(errors) || err)
-            {
+            // https://issues.dlang.org/show_bug.cgi?id=20761
+            // tiarg semantic may expand in place the list of arguments, for example:
+            //
+            //     before tiarg sema:  __traits(isSame, seq!(0,0), seq!(1,1))
+            //     after            :  __traits(isSame, 0, 0, 1, 1)
+            //
+            // so we split in two lists
+            Objects ob1;
+            ob1.push((*e.args)[0]);
+            Objects ob2;
+            ob2.push((*e.args)[1]);
+            if (!TemplateInstance.semanticTiargs(e.loc, sc, &ob1, 0))
+                return ErrorExp.get();
+            if (!TemplateInstance.semanticTiargs(e.loc, sc, &ob2, 0))
+                return ErrorExp.get();
+            if (ob1.length != ob2.length)
                 return False();
-            }
+            foreach (immutable i; 0 .. ob1.length)
+                if (!ob1[i].isSame(ob2[i], sc))
+                    return False();
+            return True();
         }
-        return True();
-    }
-    if (e.ident == Id.isSame)
-    {
-        /* Determine if two symbols are the same
-         */
-        if (dim != 2)
-            return dimError(2);
-
-        // https://issues.dlang.org/show_bug.cgi?id=20761
-        // tiarg semantic may expand in place the list of arguments, for example:
-        //
-        //     before tiarg sema:  __traits(isSame, seq!(0,0), seq!(1,1))
-        //     after            :  __traits(isSame, 0, 0, 1, 1)
-        //
-        // so we split in two lists
-        Objects ob1;
-        ob1.push((*e.args)[0]);
-        Objects ob2;
-        ob2.push((*e.args)[1]);
-        if (!TemplateInstance.semanticTiargs(e.loc, sc, &ob1, 0))
-            return ErrorExp.get();
-        if (!TemplateInstance.semanticTiargs(e.loc, sc, &ob2, 0))
-            return ErrorExp.get();
-        if (ob1.length != ob2.length)
-            return False();
-        foreach (immutable i; 0 .. ob1.length)
-            if (!ob1[i].isSame(ob2[i], sc))
-                return False();
-        return True();
-    }
-    if (e.ident == Id.getUnitTests)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        auto o = (*e.args)[0];
-        auto s = getDsymbolWithoutExpCtx(o);
-        if (!s)
+        case "getUnitTests":
         {
-            error(e.loc, "argument `%s` to __traits(getUnitTests) must be a module or aggregate",
-                o.toChars());
-            return ErrorExp.get();
-        }
-        if (auto imp = s.isImport()) // https://issues.dlang.org/show_bug.cgi?id=10990
-            s = imp.mod;
+            if (dim != 1)
+                return dimError(1);
 
-        auto sds = s.isScopeDsymbol();
-        if (!sds || sds.isTemplateDeclaration())
-        {
-            error(e.loc, "argument `%s` to __traits(getUnitTests) must be a module or aggregate, not a %s",
-                s.toChars(), s.kind());
-            return ErrorExp.get();
-        }
-
-        auto exps = new Expressions();
-        if (global.params.useUnitTests)
-        {
-            bool[void*] uniqueUnitTests;
-
-            void symbolDg(Dsymbol s)
+            auto o = (*e.args)[0];
+            auto s = getDsymbolWithoutExpCtx(o);
+            if (!s)
             {
-                if (auto ad = s.isAttribDeclaration())
-                {
-                    ad.include(null).foreachDsymbol(&symbolDg);
-                }
-                else if (auto tm = s.isTemplateMixin())
-                {
-                    tm.members.foreachDsymbol(&symbolDg);
-                }
-                else if (auto ud = s.isUnitTestDeclaration())
-                {
-                    if (cast(void*)ud in uniqueUnitTests)
-                        return;
-
-                    uniqueUnitTests[cast(void*)ud] = true;
-
-                    auto ad = new FuncAliasDeclaration(ud.ident, ud, false);
-                    ad.visibility = ud.visibility;
-
-                    auto e = new DsymbolExp(Loc.initial, ad, false);
-                    exps.push(e);
-                }
-            }
-
-            sds.members.foreachDsymbol(&symbolDg);
-        }
-        auto te = new TupleExp(e.loc, exps);
-        return te.expressionSemantic(sc);
-    }
-    if (e.ident == Id.getVirtualIndex)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        auto o = (*e.args)[0];
-        auto s = getDsymbolWithoutExpCtx(o);
-
-        auto fd = s ? s.isFuncDeclaration() : null;
-        if (!fd)
-        {
-            error(e.loc, "first argument to __traits(getVirtualIndex) must be a function");
-            return ErrorExp.get();
-        }
-
-        fd = fd.toAliasFunc(); // Necessary to support multiple overloads.
-        return new IntegerExp(e.loc, fd.vtblIndex, Type.tptrdiff_t);
-    }
-    if (e.ident == Id.getPointerBitmap)
-    {
-        return pointerBitmap(e, global.errorSink);
-    }
-    if (e.ident == Id.initSymbol)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        auto o = (*e.args)[0];
-
-        ErrorExp badArgument()
-        {
-            error(e.loc, "struct / class type expected as argument to __traits(initSymbol) instead of `%s`", o.toChars());
-            return ErrorExp.get();
-        }
-
-        Type t = isType(o);
-
-        if (!t || t.isTypeEnum())
-            return badArgument();
-
-        AggregateDeclaration ad = isAggregate(t);
-
-        // Interfaces don't have an init symbol and hence cause linker errors
-        if (!ad || ad.isInterfaceDeclaration())
-            return badArgument();
-
-        Declaration d = new SymbolDeclaration(ad.loc, ad);
-        d.type = Type.tvoid.arrayOf().constOf();
-        d.storage_class |= STC.rvalue;
-        return new VarExp(e.loc, d);
-    }
-    if (e.ident == Id.isZeroInit)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        auto o = (*e.args)[0];
-        Type t = isType(o);
-        if (!t)
-        {
-            error(e.loc, "type expected as second argument of __traits `%s` instead of `%s`",
-                e.ident.toChars(), o.toChars());
-            return ErrorExp.get();
-        }
-
-        // https://issues.dlang.org/show_bug.cgi?id=23534
-        //
-        // For enums, we need to get the enum initializer
-        // (the first enum member), not the initializer of the
-        // type of the enum members.
-        Type tb = t.isTypeEnum ? t : t.baseElemOf();
-        return tb.isZeroInit(e.loc) ? True() : False();
-    }
-    if (e.ident == Id.getTargetInfo)
-    {
-        if (dim != 1)
-            return dimError(1);
-
-        auto ex = isExpression((*e.args)[0]);
-        StringExp se = ex ? ex.ctfeInterpret().toStringExp() : null;
-        if (!ex || !se || se.len == 0)
-        {
-            error(e.loc, "string expected as argument of __traits `%s` instead of `%s`", e.ident.toChars(), (*e.args)[0].toChars());
-            return ErrorExp.get();
-        }
-        se = se.toUTF8(sc);
-
-        const slice = se.peekString();
-        Expression r = target.getTargetInfo(slice.ptr, e.loc); // BUG: reliance on terminating 0
-        if (!r)
-        {
-            error(e.loc, "`getTargetInfo` key `\"%.*s\"` not supported by this implementation",
-                cast(int)slice.length, slice.ptr);
-            return ErrorExp.get();
-        }
-        return r.expressionSemantic(sc);
-    }
-    if (e.ident == Id.getLocation)
-    {
-        if (dim != 1)
-            return dimError(1);
-        auto arg0 = (*e.args)[0];
-        Dsymbol s = getDsymbolWithoutExpCtx(arg0);
-        if (!s || !s.loc.isValid())
-        {
-            error(e.loc, "can only get the location of a symbol, not `%s`", arg0.toChars());
-            return ErrorExp.get();
-        }
-
-        const fd = s.isFuncDeclaration();
-        // FIXME:td.overnext is always set, even when using an index on it
-        //const td = s.isTemplateDeclaration();
-        if ((fd && fd.overnext) /*|| (td && td.overnext)*/)
-        {
-            error(e.loc, "cannot get location of an overload set, " ~
-                    "use `__traits(getOverloads, ..., \"%s\"%s)[N]` " ~
-                    "to get the Nth overload",
-                    arg0.toChars(), /*td ? ", true".ptr :*/ "".ptr);
-            return ErrorExp.get();
-        }
-
-        auto exps = new Expressions(3);
-        (*exps)[0] = new StringExp(e.loc, s.loc.filename.toDString());
-        (*exps)[1] = new IntegerExp(e.loc, s.loc.linnum,Type.tint32);
-        (*exps)[2] = new IntegerExp(e.loc, s.loc.charnum,Type.tint32);
-        auto tup = new TupleExp(e.loc, exps);
-        return tup.expressionSemantic(sc);
-    }
-    if (e.ident == Id.getCppNamespaces)
-    {
-        auto o = (*e.args)[0];
-        auto s = getDsymbolWithoutExpCtx(o);
-        auto exps = new Expressions(0);
-        if (auto d = s.isDeclaration())
-        {
-            if (d.inuse)
-            {
-                .error(d.loc, "%s `%s` circular reference in `__traits(GetCppNamespaces,...)`", d.kind, d.toPrettyChars);
+                error(e.loc, "argument `%s` to __traits(getUnitTests) must be a module or aggregate",
+                    o.toChars());
                 return ErrorExp.get();
             }
-            d.inuse = 1;
-        }
+            if (auto imp = s.isImport()) // https://issues.dlang.org/show_bug.cgi?id=10990
+                s = imp.mod;
 
-        /**
-         Prepend the namespaces in the linked list `ns` to `es`.
-
-         Returns: true if `ns` contains an `ErrorExp`.
-         */
-        bool prependNamespaces(Expressions* es, CPPNamespaceDeclaration ns)
-        {
-            // Semantic processing will convert `extern(C++, "a", "b", "c")`
-            // into `extern(C++, "a") extern(C++, "b") extern(C++, "c")`,
-            // creating a linked list what `a`'s `cppnamespace` points to `b`,
-            // and `b`'s points to `c`. Our entry point is `a`.
-            for (; ns !is null; ns = ns.cppnamespace)
+            auto sds = s.isScopeDsymbol();
+            if (!sds || sds.isTemplateDeclaration())
             {
-                ns.dsymbolSemantic(sc);
-
-                if (ns.exp.isErrorExp())
-                    return true;
-
-                auto se = ns.exp.toStringExp();
-                // extern(C++, (emptyTuple))
-                // struct D {}
-                // will produce a blank ident
-                if (!se.len)
-                    continue;
-                es.insert(0, se);
-            }
-            return false;
-        }
-        for (auto p = s; !p.isModule(); p = p.toParent())
-        {
-            p.dsymbolSemantic(sc);
-            auto pp = p.toParent();
-            if (pp.isTemplateInstance())
-            {
-                if (!p.cppnamespace)
-                    continue;
-                //if (!p.toParent().cppnamespace)
-                //    continue;
-                auto inner = new Expressions(0);
-                auto outer = new Expressions(0);
-                if (prependNamespaces(inner,  p.cppnamespace)) return ErrorExp.get();
-                if (prependNamespaces(outer, pp.cppnamespace)) return ErrorExp.get();
-
-                size_t i = 0;
-                while(i < outer.length && ((*inner)[i]) == (*outer)[i])
-                    i++;
-
-                foreach_reverse (ns; (*inner)[][i .. $])
-                    exps.insert(0, ns);
-                continue;
-            }
-
-            if (p.isNspace())
-                exps.insert(0, new StringExp(p.loc, p.ident.toString()));
-
-            if (prependNamespaces(exps, p.cppnamespace))
+                error(e.loc, "argument `%s` to __traits(getUnitTests) must be a module or aggregate, not a %s",
+                    s.toChars(), s.kind());
                 return ErrorExp.get();
-        }
-        if (auto d = s.isDeclaration())
-            d.inuse = 0;
-        auto tup = new TupleExp(e.loc, exps);
-        return tup.expressionSemantic(sc);
-    }
-    //https://issues.dlang.org/show_bug.cgi?id=22291
-    if (e.ident == Id.parameters)
-    {
-        //No args are valid
-        if (e.args)
-        {
-            char[] contents = cast(char[]) e.args.toString();
-            contents = contents[1..$];
-            contents[$-1] = '\0';
-            error(e.loc, "`__traits(parameters)` cannot have arguments, but `%s` was supplied", contents.ptr);
-            return ErrorExp.get();
-        }
+            }
 
-        auto fd = sc.getEnclosingFunction();
-        if (!fd)
-        {
-            error(e.loc, "`__traits(parameters)` may only be used inside a function");
-            return ErrorExp.get();
-        }
+            auto exps = new Expressions();
+            if (global.params.useUnitTests)
+            {
+                bool[void*] uniqueUnitTests;
 
-        auto tf = fd.type.isTypeFunction();
-        assert(tf);
-        auto exps = new Expressions(0);
-        int addParameterDG(size_t idx, Parameter x)
-        {
-            assert(x.ident);
-            exps.push(new IdentifierExp(e.loc, x.ident));
-            return 0;
+                void symbolDg(Dsymbol s)
+                {
+                    if (auto ad = s.isAttribDeclaration())
+                    {
+                        ad.include(null).foreachDsymbol(&symbolDg);
+                    }
+                    else if (auto tm = s.isTemplateMixin())
+                    {
+                        tm.members.foreachDsymbol(&symbolDg);
+                    }
+                    else if (auto ud = s.isUnitTestDeclaration())
+                    {
+                        if (cast(void*)ud in uniqueUnitTests)
+                            return;
+
+                        uniqueUnitTests[cast(void*)ud] = true;
+
+                        auto ad = new FuncAliasDeclaration(ud.ident, ud, false);
+                        ad.visibility = ud.visibility;
+
+                        auto e = new DsymbolExp(Loc.initial, ad, false);
+                        exps.push(e);
+                    }
+                }
+
+                sds.members.foreachDsymbol(&symbolDg);
+            }
+            auto te = new TupleExp(e.loc, exps);
+            return te.expressionSemantic(sc);
         }
-        /*
-            This is required since not all "parameters" actually have a name
-            until they (tuples) are expanded e.g. an anonymous tuple parameter's
-            contents get given names but not the tuple itself.
-        */
-        Parameter._foreach(tf.parameterList.parameters, &addParameterDG);
-        auto tup = new TupleExp(e.loc, exps);
-        return tup.expressionSemantic(sc);
+        case "getVirtualIndex":
+        {
+            if (dim != 1)
+                return dimError(1);
+
+            auto o = (*e.args)[0];
+            auto s = getDsymbolWithoutExpCtx(o);
+
+            auto fd = s ? s.isFuncDeclaration() : null;
+            if (!fd)
+            {
+                error(e.loc, "first argument to __traits(getVirtualIndex) must be a function");
+                return ErrorExp.get();
+            }
+
+            fd = fd.toAliasFunc(); // Necessary to support multiple overloads.
+            return new IntegerExp(e.loc, fd.vtblIndex, Type.tptrdiff_t);
+        }
+        case "getPointerBitmap":
+        {
+            return pointerBitmap(e, global.errorSink);
+        }
+        case "initSymbol":
+        {
+            if (dim != 1)
+                return dimError(1);
+
+            auto o = (*e.args)[0];
+
+            ErrorExp badArgument()
+            {
+                error(e.loc, "struct / class type expected as argument to __traits(initSymbol) instead of `%s`", o.toChars());
+                return ErrorExp.get();
+            }
+
+            Type t = isType(o);
+
+            if (!t || t.isTypeEnum())
+                return badArgument();
+
+            AggregateDeclaration ad = isAggregate(t);
+
+            // Interfaces don't have an init symbol and hence cause linker errors
+            if (!ad || ad.isInterfaceDeclaration())
+                return badArgument();
+
+            Declaration d = new SymbolDeclaration(ad.loc, ad);
+            d.type = Type.tvoid.arrayOf().constOf();
+            d.storage_class |= STC.rvalue;
+            return new VarExp(e.loc, d);
+        }
+        case "isZeroInit":
+        {
+            if (dim != 1)
+                return dimError(1);
+
+            auto o = (*e.args)[0];
+            Type t = isType(o);
+            if (!t)
+            {
+                error(e.loc, "type expected as second argument of __traits `%s` instead of `%s`",
+                    e.ident.toChars(), o.toChars());
+                return ErrorExp.get();
+            }
+
+            // https://issues.dlang.org/show_bug.cgi?id=23534
+            //
+            // For enums, we need to get the enum initializer
+            // (the first enum member), not the initializer of the
+            // type of the enum members.
+            Type tb = t.isTypeEnum ? t : t.baseElemOf();
+            return tb.isZeroInit(e.loc) ? True() : False();
+        }
+        case "getTargetInfo":
+        {
+            if (dim != 1)
+                return dimError(1);
+
+            auto ex = isExpression((*e.args)[0]);
+            StringExp se = ex ? ex.ctfeInterpret().toStringExp() : null;
+            if (!ex || !se || se.len == 0)
+            {
+                error(e.loc, "string expected as argument of __traits `%s` instead of `%s`", e.ident.toChars(), (*e.args)[0].toChars());
+                return ErrorExp.get();
+            }
+            se = se.toUTF8(sc);
+
+            const slice = se.peekString();
+            Expression r = target.getTargetInfo(slice.ptr, e.loc); // BUG: reliance on terminating 0
+            if (!r)
+            {
+                error(e.loc, "`getTargetInfo` key `\"%.*s\"` not supported by this implementation",
+                    cast(int)slice.length, slice.ptr);
+                return ErrorExp.get();
+            }
+            return r.expressionSemantic(sc);
+        }
+        case "getLocation":
+        {
+            if (dim != 1)
+                return dimError(1);
+            auto arg0 = (*e.args)[0];
+            Dsymbol s = getDsymbolWithoutExpCtx(arg0);
+            if (!s || !s.loc.isValid())
+            {
+                error(e.loc, "can only get the location of a symbol, not `%s`", arg0.toChars());
+                return ErrorExp.get();
+            }
+
+            const fd = s.isFuncDeclaration();
+            // FIXME:td.overnext is always set, even when using an index on it
+            //const td = s.isTemplateDeclaration();
+            if ((fd && fd.overnext) /*|| (td && td.overnext)*/)
+            {
+                error(e.loc, "cannot get location of an overload set, " ~
+                        "use `__traits(getOverloads, ..., \"%s\"%s)[N]` " ~
+                        "to get the Nth overload",
+                        arg0.toChars(), /*td ? ", true".ptr :*/ "".ptr);
+                return ErrorExp.get();
+            }
+
+            auto exps = new Expressions(3);
+            (*exps)[0] = new StringExp(e.loc, s.loc.filename.toDString());
+            (*exps)[1] = new IntegerExp(e.loc, s.loc.linnum,Type.tint32);
+            (*exps)[2] = new IntegerExp(e.loc, s.loc.charnum,Type.tint32);
+            auto tup = new TupleExp(e.loc, exps);
+            return tup.expressionSemantic(sc);
+        }
+        case "getCppNamespaces":
+        {
+            auto o = (*e.args)[0];
+            auto s = getDsymbolWithoutExpCtx(o);
+            auto exps = new Expressions(0);
+            if (auto d = s.isDeclaration())
+            {
+                if (d.inuse)
+                {
+                    .error(d.loc, "%s `%s` circular reference in `__traits(GetCppNamespaces,...)`", d.kind, d.toPrettyChars);
+                    return ErrorExp.get();
+                }
+                d.inuse = 1;
+            }
+
+            /**
+             Prepend the namespaces in the linked list `ns` to `es`.
+
+             Returns: true if `ns` contains an `ErrorExp`.
+             */
+            bool prependNamespaces(Expressions* es, CPPNamespaceDeclaration ns)
+            {
+                // Semantic processing will convert `extern(C++, "a", "b", "c")`
+                // into `extern(C++, "a") extern(C++, "b") extern(C++, "c")`,
+                // creating a linked list what `a`'s `cppnamespace` points to `b`,
+                // and `b`'s points to `c`. Our entry point is `a`.
+                for (; ns !is null; ns = ns.cppnamespace)
+                {
+                    ns.dsymbolSemantic(sc);
+
+                    if (ns.exp.isErrorExp())
+                        return true;
+
+                    auto se = ns.exp.toStringExp();
+                    // extern(C++, (emptyTuple))
+                    // struct D {}
+                    // will produce a blank ident
+                    if (!se.len)
+                        continue;
+                    es.insert(0, se);
+                }
+                return false;
+            }
+            for (auto p = s; !p.isModule(); p = p.toParent())
+            {
+                p.dsymbolSemantic(sc);
+                auto pp = p.toParent();
+                if (pp.isTemplateInstance())
+                {
+                    if (!p.cppnamespace)
+                        continue;
+                    //if (!p.toParent().cppnamespace)
+                    //    continue;
+                    auto inner = new Expressions(0);
+                    auto outer = new Expressions(0);
+                    if (prependNamespaces(inner,  p.cppnamespace)) return ErrorExp.get();
+                    if (prependNamespaces(outer, pp.cppnamespace)) return ErrorExp.get();
+
+                    size_t i = 0;
+                    while(i < outer.length && ((*inner)[i]) == (*outer)[i])
+                        i++;
+
+                    foreach_reverse (ns; (*inner)[][i .. $])
+                        exps.insert(0, ns);
+                    continue;
+                }
+
+                if (p.isNspace())
+                    exps.insert(0, new StringExp(p.loc, p.ident.toString()));
+
+                if (prependNamespaces(exps, p.cppnamespace))
+                    return ErrorExp.get();
+            }
+            if (auto d = s.isDeclaration())
+                d.inuse = 0;
+            auto tup = new TupleExp(e.loc, exps);
+            return tup.expressionSemantic(sc);
+        }
+        //https://issues.dlang.org/show_bug.cgi?id=22291
+        case "parameters":
+        {
+            //No args are valid
+            if (e.args)
+            {
+                char[] contents = cast(char[]) e.args.toString();
+                contents = contents[1..$];
+                contents[$-1] = '\0';
+                error(e.loc, "`__traits(parameters)` cannot have arguments, but `%s` was supplied", contents.ptr);
+                return ErrorExp.get();
+            }
+
+            auto fd = sc.getEnclosingFunction();
+            if (!fd)
+            {
+                error(e.loc, "`__traits(parameters)` may only be used inside a function");
+                return ErrorExp.get();
+            }
+
+            auto tf = fd.type.isTypeFunction();
+            assert(tf);
+            auto exps = new Expressions(0);
+            int addParameterDG(size_t idx, Parameter x)
+            {
+                assert(x.ident);
+                exps.push(new IdentifierExp(e.loc, x.ident));
+                return 0;
+            }
+            /*
+                This is required since not all "parameters" actually have a name
+                until they (tuples) are expanded e.g. an anonymous tuple parameter's
+                contents get given names but not the tuple itself.
+            */
+            Parameter._foreach(tf.parameterList.parameters, &addParameterDG);
+            auto tup = new TupleExp(e.loc, exps);
+            return tup.expressionSemantic(sc);
+        }
+        default:
+            break;
     }
+
 
     /* Can't find the identifier. Try a spell check for a better error message
      */
