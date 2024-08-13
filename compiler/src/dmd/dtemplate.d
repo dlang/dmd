@@ -4505,8 +4505,14 @@ extern (C++) class TemplateInstance : ScopeDsymbol
 
         // The arguments are not treated as part of a default argument,
         // because they are evaluated at compile time.
+        const inCondition = !!(sc.flags & SCOPE.condition);
+        // For master branch: const inCondition = sc.condition;
         sc = sc.push();
         sc.inDefaultArg = false;
+
+        // https://issues.dlang.org/show_bug.cgi?id=24699
+        sc.flags |= SCOPE.condition * inCondition;
+        // For master branch: sc.condition = inCondition;
 
         for (size_t j = 0; j < tiargs.length; j++)
         {
