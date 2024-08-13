@@ -2456,15 +2456,21 @@ void MsCoffObj_write_pointerRef(Symbol* s, uint soff)
  * Params:
  *      s    = symbol that contains the pointer
  *      soff = offset of the pointer inside the Symbol's memory
+ *      segments = lazy indices into tls / data pointer sections
  */
 @trusted
-extern (D) private void objflush_pointerRef(Symbol* s, uint soff)
+extern (D) private void objflush_pointerRef(Symbol* s, uint soff, ref segidx_t[2] segments)
 {
     bool isTls = (s.Sfl == FLtlsdata);
-    const(char)* segname = isTls ? ".tp$B" : ".dp$B";
-    int attr = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_ALIGN_4BYTES | IMAGE_SCN_MEM_READ;
-    int seg = MsCoffObj_getsegment(segname, attr);
 
+    if (segments[isTls] == UNKNOWN)
+    {
+        const(char)* segname = isTls ? ".tp$B" : ".dp$B";
+        int attr = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_ALIGN_4BYTES | IMAGE_SCN_MEM_READ;
+        segments[isTls] = MsCoffObj_getsegment(segname, attr);
+    }
+
+    const seg = segments[isTls];
     targ_size_t offset = SegData[seg].SDoffset;
     MsCoffObj_addrel(seg, offset, s, cast(uint)offset, RELaddr32, 0);
     OutBuffer* buf = SegData[seg].SDbuf;
@@ -2485,13 +2491,14 @@ extern (D) private void objflush_pointerRefs()
 
     ubyte *p = ptrref_buf.buf;
     ubyte *end = ptrref_buf.buf + ptrref_buf.length();
+    segidx_t[2] segments = UNKNOWN;
     while (p < end)
     {
         Symbol* s = *cast(Symbol**)p;
         p += s.sizeof;
         uint soff = *cast(uint*)p;
         p += soff.sizeof;
-        objflush_pointerRef(s, soff);
+        objflush_pointerRef(s, soff, segments);
     }
     ptrref_buf.reset();
 }
