@@ -567,8 +567,11 @@ extern (C++) void verrorReportSupplemental(const ref Loc loc, const(char)* forma
             goto case ErrorKind.error;
         else if (global.params.useDeprecated == DiagnosticReporting.inform && !global.gag)
         {
-            info.headerColor = Classification.deprecation;
-            verrorPrint(format, ap, info);
+            if (global.params.v.errorLimit == 0 || global.deprecations <= global.params.v.errorLimit)
+            {
+                info.headerColor = Classification.deprecation;
+                verrorPrint(format, ap, info);
+            }
         }
         break;
 
