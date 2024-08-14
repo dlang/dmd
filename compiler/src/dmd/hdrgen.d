@@ -2609,9 +2609,9 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         // the `sideeffect.copyToTemp` function.
         auto ve = e.e2.isVarExp();
 
-        // not a CommaExp introduced for temporaries, go on
-        // the old path
-        if (!ve || !(ve.var.storage_class & STC.temp))
+        // Not a CommaExp introduced for temporaries, or -vcg-ast,
+        // print the full comma
+        if (!ve || !(ve.var.storage_class & STC.temp) || hgs.vcg_ast)
         {
             visitBin(cast(BinExp)e);
             return;
