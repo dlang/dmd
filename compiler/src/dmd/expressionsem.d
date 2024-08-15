@@ -9949,6 +9949,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (exp.e1.type.ty == Terror)
             return setError();
 
+        /// Immediately indexed array literal [1, 2, 3][x] doesn't require GC allocation
+        if (auto ale = exp.e1.isArrayLiteralExp())
+            ale.onstack = true;
+
         // Note that unlike C we do not implement the int[ptr]
 
         Type t1b = exp.e1.type.toBasetype();

@@ -1,0 +1,12 @@
+Immediately indexed array literals are `@nogc`
+
+They are now put on the stack, allowing this pattern in `@nogc` code:
+
+---
+int getFormat(int channels) @nogc
+{
+    return [0, GL_RED, GL_RG, GL_RGB, GL_RGBA][channels];
+}
+---
+
+This is not done recursively on multi-dimensional arrays yet.

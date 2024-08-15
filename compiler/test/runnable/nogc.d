@@ -68,12 +68,25 @@ void test12936() @nogc
 
 /***********************/
 
+void testIndexedArrayLiteral() @nogc
+{
+    int i = 2;
+    int x = [10, 20, 30, 40][i];
+    assert(x == 30);
+
+    enum arr = [100, 200, 300, 400][1 .. $];
+	assert(arr[i] == 400);
+}
+
+/***********************/
+
 int main()
 {
     test1();
     test3032();
     test12642();
     test12936();
+    testIndexedArrayLiteral();
 
     printf("Success\n");
     return 0;
