@@ -1888,32 +1888,32 @@ Expression addInvariant(AggregateDeclaration ad, VarDeclaration vthis)
             break;
         inv = cd.inv;
     }
-    if (inv)
+    if (!inv)
+        return e;
+
+    version (all)
     {
-        version (all)
-        {
-            // Workaround for https://issues.dlang.org/show_bug.cgi?id=13394
-            // For the correct mangling,
-            // run attribute inference on inv if needed.
-            functionSemantic(inv);
-        }
-
-        //e = new DsymbolExp(Loc.initial, inv);
-        //e = new CallExp(Loc.initial, e);
-        //e = e.semantic(sc2);
-
-        /* https://issues.dlang.org/show_bug.cgi?id=13113
-         * Currently virtual invariant calls completely
-         * bypass attribute enforcement.
-         * Change the behavior of pre-invariant call by following it.
-         */
-        e = new ThisExp(Loc.initial);
-        e.type = ad.type.addMod(vthis.type.mod);
-        e = new DotVarExp(Loc.initial, e, inv, false);
-        e.type = inv.type;
-        e = new CallExp(Loc.initial, e);
-        e.type = Type.tvoid;
+        // Workaround for https://issues.dlang.org/show_bug.cgi?id=13394
+        // For the correct mangling,
+        // run attribute inference on inv if needed.
+        functionSemantic(inv);
     }
+
+    //e = new DsymbolExp(Loc.initial, inv);
+    //e = new CallExp(Loc.initial, e);
+    //e = e.semantic(sc2);
+
+    /* https://issues.dlang.org/show_bug.cgi?id=13113
+     * Currently virtual invariant calls completely
+     * bypass attribute enforcement.
+     * Change the behavior of pre-invariant call by following it.
+     */
+    e = new ThisExp(Loc.initial);
+    e.type = ad.type.addMod(vthis.type.mod);
+    e = new DotVarExp(Loc.initial, e, inv, false);
+    e.type = inv.type;
+    e = new CallExp(Loc.initial, e);
+    e.type = Type.tvoid;
     return e;
 }
 
