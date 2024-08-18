@@ -2091,6 +2091,26 @@ FuncDeclaration overloadModMatch(FuncDeclaration thisfd, const ref Loc loc, Type
         auto tf = f.type.toTypeFunction();
         //printf("tf = %s\n", tf.toChars());
         MATCH match;
+        int lastIsBetter()
+        {
+            //printf("\tlastbetter\n");
+            m.count++; // count up
+            return 0;
+        }
+        int currIsBetter()
+        {
+            //printf("\tisbetter\n");
+            if (m.last <= MATCH.convert)
+            {
+                // clear last secondary matching
+                m.nextf = null;
+                m.count = 0;
+            }
+            m.last = match;
+            m.lastf = f;
+            m.count++; // count up
+            return 0;
+        }
         if (tthis) // non-static functions are preferred than static ones
         {
             if (f.needThis())
@@ -2107,30 +2127,14 @@ FuncDeclaration overloadModMatch(FuncDeclaration thisfd, const ref Loc loc, Type
         }
         if (match == MATCH.nomatch)
             return 0;
-        if (match > m.last) goto LcurrIsBetter;
-        if (match < m.last) goto LlastIsBetter;
+        if (match > m.last) return currIsBetter();
+        if (match < m.last) return lastIsBetter();
         // See if one of the matches overrides the other.
-        if (m.lastf.overrides(f)) goto LlastIsBetter;
-        if (f.overrides(m.lastf)) goto LcurrIsBetter;
+        if (m.lastf.overrides(f)) return lastIsBetter();
+        if (f.overrides(m.lastf)) return currIsBetter();
         //printf("\tambiguous\n");
         m.nextf = f;
         m.count++;
-        return 0;
-    LlastIsBetter:
-        //printf("\tlastbetter\n");
-        m.count++; // count up
-        return 0;
-    LcurrIsBetter:
-        //printf("\tisbetter\n");
-        if (m.last <= MATCH.convert)
-        {
-            // clear last secondary matching
-            m.nextf = null;
-            m.count = 0;
-        }
-        m.last = match;
-        m.lastf = f;
-        m.count++; // count up
         return 0;
     });
     if (m.count == 1)       // exact match
