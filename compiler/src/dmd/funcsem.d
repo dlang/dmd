@@ -1331,54 +1331,54 @@ int findVtblIndex(FuncDeclaration fd, Dsymbol[] vtbl)
     for (int vi = 0; vi < cast(int)vtbl.length; vi++)
     {
         FuncDeclaration fdv = vtbl[vi].isFuncDeclaration();
-        if (fdv && fdv.ident == fd.ident)
+        if (!fdv || fdv.ident != fd.ident)
+            continue;
+
+        if (fd.type.equals(fdv.type)) // if exact match
         {
-            if (fd.type.equals(fdv.type)) // if exact match
+            if (fdv.parent.isClassDeclaration())
             {
-                if (fdv.parent.isClassDeclaration())
+                if (fdv.isFuture())
                 {
-                    if (fdv.isFuture())
-                    {
-                        bestvi = vi;
-                        continue;           // keep looking
-                    }
-                    return vi; // no need to look further
+                    bestvi = vi;
+                    continue;           // keep looking
                 }
-
-                if (exactvi >= 0)
-                {
-                    .error(fd.loc, "%s `%s` cannot determine overridden function", fd.kind, fd.toPrettyChars);
-                    return exactvi;
-                }
-                exactvi = vi;
-                bestvi = vi;
-                continue;
+                return vi; // no need to look further
             }
 
-            StorageClass stc = 0;
-            const cov = fd.type.covariant(fdv.type, &stc);
-            //printf("\tbaseclass cov = %d\n", cov);
-            final switch (cov)
+            if (exactvi >= 0)
             {
-            case Covariant.distinct:
-                // types are distinct
-                break;
-
-            case Covariant.yes:
-                bestvi = vi; // covariant, but not identical
-                break;
-                // keep looking for an exact match
-
-            case Covariant.no:
-                mismatchvi = vi;
-                mismatchstc = stc;
-                mismatch = fdv; // overrides, but is not covariant
-                break;
-                // keep looking for an exact match
-
-            case Covariant.fwdref:
-                return -2; // forward references
+                .error(fd.loc, "%s `%s` cannot determine overridden function", fd.kind, fd.toPrettyChars);
+                return exactvi;
             }
+            exactvi = vi;
+            bestvi = vi;
+            continue;
+        }
+
+        StorageClass stc = 0;
+        const cov = fd.type.covariant(fdv.type, &stc);
+        //printf("\tbaseclass cov = %d\n", cov);
+        final switch (cov)
+        {
+        case Covariant.distinct:
+            // types are distinct
+            break;
+
+        case Covariant.yes:
+            bestvi = vi; // covariant, but not identical
+            break;
+            // keep looking for an exact match
+
+        case Covariant.no:
+            mismatchvi = vi;
+            mismatchstc = stc;
+            mismatch = fdv; // overrides, but is not covariant
+            break;
+            // keep looking for an exact match
+
+        case Covariant.fwdref:
+            return -2; // forward references
         }
     }
     if (fd._linkage == LINK.cpp && bestvi != -1)
