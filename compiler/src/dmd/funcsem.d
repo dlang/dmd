@@ -1961,19 +1961,19 @@ FuncDeclaration overloadExactMatch(FuncDeclaration thisfd, Type t)
  */
 int overrides(FuncDeclaration fd1, FuncDeclaration fd2)
 {
-    int result = 0;
-    if (fd1.ident == fd2.ident)
-    {
-        const cov = fd1.type.covariant(fd2.type);
-        if (cov != Covariant.distinct)
-        {
-            ClassDeclaration cd1 = fd1.toParent().isClassDeclaration();
-            ClassDeclaration cd2 = fd2.toParent().isClassDeclaration();
-            if (cd1 && cd2 && cd2.isBaseOf(cd1, null))
-                result = 1;
-        }
-    }
-    return result;
+    if (fd1.ident != fd2.ident)
+        return 0;
+
+    const cov = fd1.type.covariant(fd2.type);
+    if (cov == Covariant.distinct)
+        return 0;
+
+    ClassDeclaration cd1 = fd1.toParent().isClassDeclaration();
+    ClassDeclaration cd2 = fd2.toParent().isClassDeclaration();
+
+    if (cd1 && cd2 && cd2.isBaseOf(cd1, null))
+        return 1;
+    return 0;
 }
 
 /*************************************
