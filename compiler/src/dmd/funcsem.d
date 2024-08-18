@@ -2273,7 +2273,7 @@ bool checkNestedReference(FuncDeclaration fd, Scope* sc, const ref Loc loc)
         ensureStaticLinkTo(fdthis, p2);
     if (!fd.isNested())
         return false;
-    
+
     // The function that this function is in
     bool checkEnclosing(FuncDeclaration fdv)
     {
@@ -2680,40 +2680,40 @@ Statement mergeFensure(FuncDeclaration fd, Statement sf, Identifier oid, Express
             sc.pop();
         }
         sf = fdv.mergeFensure(sf, oid, params);
-        if (fdv.fdensure)
+        if (!fdv.fdensure)
+            continue;
+
+        //printf("fdv.fensure: %s\n", fdv.fensure.toChars());
+        // Make the call: __ensure(result, params)
+        params = Expression.arraySyntaxCopy(params);
+        if (fd.canBuildResultVar())
         {
-            //printf("fdv.fensure: %s\n", fdv.fensure.toChars());
-            // Make the call: __ensure(result, params)
-            params = Expression.arraySyntaxCopy(params);
-            if (fd.canBuildResultVar())
+            Type t1 = fdv.type.nextOf().toBasetype();
+            Type t2 = fd.type.nextOf().toBasetype();
+            if (t1.isBaseOf(t2, null))
             {
-                Type t1 = fdv.type.nextOf().toBasetype();
-                Type t2 = fd.type.nextOf().toBasetype();
-                if (t1.isBaseOf(t2, null))
-                {
-                    /* Making temporary reference variable is necessary
-                     * in covariant return.
-                     * https://issues.dlang.org/show_bug.cgi?id=5204
-                     * https://issues.dlang.org/show_bug.cgi?id=10479
-                     */
-                    Expression* eresult = &(*params)[0];
-                    auto ei = new ExpInitializer(Loc.initial, *eresult);
-                    auto v = new VarDeclaration(Loc.initial, t1, Identifier.generateId("__covres"), ei);
-                    v.storage_class |= STC.temp;
-                    auto de = new DeclarationExp(Loc.initial, v);
-                    auto ve = new VarExp(Loc.initial, v);
-                    *eresult = new CommaExp(Loc.initial, de, ve);
-                }
+                /* Making temporary reference variable is necessary
+                 * in covariant return.
+                 * https://issues.dlang.org/show_bug.cgi?id=5204
+                 * https://issues.dlang.org/show_bug.cgi?id=10479
+                 */
+                Expression* eresult = &(*params)[0];
+                auto ei = new ExpInitializer(Loc.initial, *eresult);
+                auto v = new VarDeclaration(Loc.initial, t1, Identifier.generateId("__covres"), ei);
+                v.storage_class |= STC.temp;
+                auto de = new DeclarationExp(Loc.initial, v);
+                auto ve = new VarExp(Loc.initial, v);
+                *eresult = new CommaExp(Loc.initial, de, ve);
             }
-            Expression e = new CallExp(fd.loc, new VarExp(fd.loc, fdv.fdensure, false), params);
-            Statement s2 = new ExpStatement(fd.loc, e);
-            if (sf)
-            {
-                sf = new CompoundStatement(sf.loc, s2, sf);
-            }
-            else
-                sf = s2;
         }
+        Expression e = new CallExp(fd.loc, new VarExp(fd.loc, fdv.fdensure, false), params);
+        Statement s2 = new ExpStatement(fd.loc, e);
+        if (sf)
+        {
+            sf = new CompoundStatement(sf.loc, s2, sf);
+        }
+        else
+            sf = s2;
     }
     return sf;
 }
