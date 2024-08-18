@@ -2454,33 +2454,31 @@ Statement mergeFrequireInclusivePreview(FuncDeclaration fd, Statement sf, Expres
             sc.pop();
         }
         sf = fdv.mergeFrequireInclusivePreview(sf, params);
-        if (sf && fdv.fdrequire)
-        {
-            const loc = fd.fdrequire.loc;
-            //printf("fdv.frequire: %s\n", fdv.frequire.toChars());
-            /* Make the call:
-             *   try { frequire; }
-             *   catch (Throwable thr) { __require(params); assert(false, "Logic error: " ~ thr.msg); }
-             */
-            Identifier id = Identifier.generateId("thr");
-            params = Expression.arraySyntaxCopy(params);
-            Expression e = new CallExp(loc, new VarExp(loc, fdv.fdrequire, false), params);
-            Statement s2 = new ExpStatement(loc, e);
-            // assert(false, ...)
-            // TODO make this a runtime helper to allow:
-            // - chaining the original expression
-            // - nogc concatenation
-            Expression msg = new StringExp(loc, "Logic error: in-contract was tighter than parent in-contract");
-            Statement fail = new ExpStatement(loc, new AssertExp(loc, IntegerExp.literal!0, msg));
-            Statement s3 = new CompoundStatement(loc, s2, fail);
-            auto c = new Catch(loc, getThrowable(), id, s3);
-            c.internalCatch = true;
-            auto catches = new Catches();
-            catches.push(c);
-            sf = new TryCatchStatement(loc, sf, catches);
-        }
-        else
+        if (!sf || !fdv.fdrequire)
             return null;
+
+        const loc = fd.fdrequire.loc;
+        //printf("fdv.frequire: %s\n", fdv.frequire.toChars());
+        /* Make the call:
+         *   try { frequire; }
+         *   catch (Throwable thr) { __require(params); assert(false, "Logic error: " ~ thr.msg); }
+         */
+        Identifier id = Identifier.generateId("thr");
+        params = Expression.arraySyntaxCopy(params);
+        Expression e = new CallExp(loc, new VarExp(loc, fdv.fdrequire, false), params);
+        Statement s2 = new ExpStatement(loc, e);
+        // assert(false, ...)
+        // TODO make this a runtime helper to allow:
+        // - chaining the original expression
+        // - nogc concatenation
+        Expression msg = new StringExp(loc, "Logic error: in-contract was tighter than parent in-contract");
+        Statement fail = new ExpStatement(loc, new AssertExp(loc, IntegerExp.literal!0, msg));
+        Statement s3 = new CompoundStatement(loc, s2, fail);
+        auto c = new Catch(loc, getThrowable(), id, s3);
+        c.internalCatch = true;
+        auto catches = new Catches();
+        catches.push(c);
+        sf = new TryCatchStatement(loc, sf, catches);
     }
     return sf;
 }
