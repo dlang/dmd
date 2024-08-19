@@ -70,13 +70,13 @@ class C : Object
 			{
 			}
 			{
-				const ref const(int) r = __result;
+				ref const const(int) r = __result;
 				{
 				}
 			}
 			assert(true);
 			{
-				const ref const(int) r = __result;
+				ref const const(int) r = __result;
 				assert(true);
 			}
 		}

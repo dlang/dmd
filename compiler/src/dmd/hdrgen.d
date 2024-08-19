@@ -3190,6 +3190,12 @@ bool stcToBuffer(ref OutBuffer buf, StorageClass stc) @safe
         stc &= ~(STC.return_ | STC.returninferred);
     }
 
+    // ensure `auto ref` keywords are (almost) adjacent
+    if (stc & STC.auto_)
+    {
+        buf.writestring("auto ");
+        stc &= ~STC.auto_;
+    }
     /* Put scope ref return into a standard order
      */
     string rrs;
@@ -3199,12 +3205,12 @@ bool stcToBuffer(ref OutBuffer buf, StorageClass stc) @safe
     {
         case ScopeRef.None:
         case ScopeRef.Scope:
-        case ScopeRef.Ref:
         case ScopeRef.Return:
             break;
 
         case ScopeRef.ReturnScope:      rrs = "return scope"; goto L1;
         case ScopeRef.ReturnRef:        rrs = isout ? "return out"       : "return ref";       goto L1;
+        case ScopeRef.Ref:              rrs = isout ? "out"              : "ref";              goto L1;
         case ScopeRef.RefScope:         rrs = isout ? "out scope"        : "ref scope";        goto L1;
         case ScopeRef.ReturnRef_Scope:  rrs = isout ? "return out scope" : "return ref scope"; goto L1;
         case ScopeRef.Ref_ReturnScope:  rrs = isout ? "out return scope" : "ref return scope"; goto L1;
