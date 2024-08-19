@@ -9131,6 +9131,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
+        // https://issues.dlang.org/show_bug.cgi?id=24701
+        auto r = checkNoreturnVarAccess(exp.e1);
+        if (r != exp.e1 && exp.to && !exp.to.isTypeNoreturn())
+        {
+            result = r;
+            return;
+        }
+
         if (exp.to && !exp.to.isTypeSArray() && !exp.to.isTypeFunction())
             exp.e1 = exp.e1.arrayFuncConv(sc);
 
