@@ -327,16 +327,16 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         printf("TraitsExp::semantic() %s\n", e.toChars());
     }
 
-    if (e.ident != Id.compiles &&
-        e.ident != Id.isSame &&
-        e.ident != Id.identifier &&
-        e.ident != Id.getProtection && e.ident != Id.getVisibility &&
-        e.ident != Id.getAttributes)
+    if (e.ident !is Id.compiles &&
+        e.ident !is Id.isSame &&
+        e.ident !is Id.identifier &&
+        e.ident !is Id.getProtection && e.ident !is Id.getVisibility &&
+        e.ident !is Id.getAttributes)
     {
         // Pretend we're in a deprecated scope so that deprecation messages
         // aren't triggered when checking if a symbol is deprecated
         const save = sc.stc;
-        if (e.ident == Id.isDeprecated)
+        if (e.ident is Id.isDeprecated)
             sc.stc |= STC.deprecated_;
         if (!TemplateInstance.semanticTiargs(e.loc, sc, e.args, 1))
         {
@@ -442,55 +442,55 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         });
     }
 
-    if (e.ident == Id.isArithmetic)
+    if (e.ident is Id.isArithmetic)
     {
         return isTypeX(t => t.isintegral() || t.isfloating());
     }
-    if (e.ident == Id.isFloating)
+    if (e.ident is Id.isFloating)
     {
         return isTypeX(t => t.isfloating());
     }
-    if (e.ident == Id.isIntegral)
+    if (e.ident is Id.isIntegral)
     {
         return isTypeX(t => t.isintegral());
     }
-    if (e.ident == Id.isScalar)
+    if (e.ident is Id.isScalar)
     {
         return isTypeX(t => t.isscalar());
     }
-    if (e.ident == Id.isUnsigned)
+    if (e.ident is Id.isUnsigned)
     {
         return isTypeX(t => t.isunsigned());
     }
-    if (e.ident == Id.isAssociativeArray)
+    if (e.ident is Id.isAssociativeArray)
     {
         return isTypeX(t => t.toBasetype().ty == Taarray);
     }
-    if (e.ident == Id.isDeprecated)
+    if (e.ident is Id.isDeprecated)
     {
         if (isTypeX(t => t.iscomplex() || t.isimaginary()).toBool().hasValue(true))
             return True();
         return isDsymX(t => t.isDeprecated());
     }
-    if (e.ident == Id.isFuture)
+    if (e.ident is Id.isFuture)
     {
        return isDeclX(t => t.isFuture());
     }
-    if (e.ident == Id.isStaticArray)
+    if (e.ident is Id.isStaticArray)
     {
         return isTypeX(t => t.toBasetype().ty == Tsarray);
     }
-    if (e.ident == Id.isAbstractClass)
+    if (e.ident is Id.isAbstractClass)
     {
         return isTypeX(t => t.toBasetype().isTypeClass() &&
                             t.toBasetype().isTypeClass().sym.isAbstract());
     }
-    if (e.ident == Id.isFinalClass)
+    if (e.ident is Id.isFinalClass)
     {
         return isTypeX(t => t.toBasetype().isTypeClass() &&
                             (t.toBasetype().isTypeClass().sym.storage_class & STC.final_) != 0);
     }
-    if (e.ident == Id.isTemplate)
+    if (e.ident is Id.isTemplate)
     {
         if (dim != 1)
             return dimError(1);
@@ -503,7 +503,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 sm => sm.isTemplateDeclaration() !is null) != 0;
         });
     }
-    if (e.ident == Id.isBitfield)
+    if (e.ident is Id.isBitfield)
     {
         if (dim != 1)
             return dimError(1);
@@ -514,7 +514,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return s.isBitFieldDeclaration() !is null;
         });
     }
-    if (e.ident == Id.isPOD)
+    if (e.ident is Id.isPOD)
     {
         if (dim != 1)
             return dimError(1);
@@ -536,7 +536,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         return True();
     }
-    if (e.ident == Id.hasCopyConstructor || e.ident == Id.hasPostblit)
+    if (e.ident is Id.hasCopyConstructor || e.ident is Id.hasPostblit)
     {
         if (dim != 1)
             return dimError(1);
@@ -554,12 +554,12 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto ts = tb.isTypeStruct();
         if (auto sd = ts ? ts.sym : null)
         {
-            return (e.ident == Id.hasPostblit) ? (sd.postblit ? True() : False())
+            return (e.ident is Id.hasPostblit) ? (sd.postblit ? True() : False())
                  : (sd.hasCopyCtor ? True() : False());
         }
         return False();
     }
-    if (e.ident == Id.isCopyable)
+    if (e.ident is Id.isCopyable)
     {
         if (dim != 1)
             return dimError(1);
@@ -583,7 +583,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         return isCopyable(t) ? True() : False();
     }
 
-    if (e.ident == Id.isNested)
+    if (e.ident is Id.isNested)
     {
         if (dim != 1)
             return dimError(1);
@@ -605,21 +605,21 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         error(e.loc, "aggregate or function expected instead of `%s`", o.toChars());
         return ErrorExp.get();
     }
-    if (e.ident == Id.isDisabled)
+    if (e.ident is Id.isDisabled)
     {
         if (dim != 1)
             return dimError(1);
 
         return isDeclX(f => f.isDisabled());
     }
-    if (e.ident == Id.isAbstractFunction)
+    if (e.ident is Id.isAbstractFunction)
     {
         if (dim != 1)
             return dimError(1);
 
         return isFuncX(f => f.isAbstract());
     }
-    if (e.ident == Id.isVirtualFunction)
+    if (e.ident is Id.isVirtualFunction)
     {
         // @@@DEPRECATED2.121@@@
         // Deprecated in 2.101 - Can be removed from 2.121
@@ -630,70 +630,70 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         return isFuncX(f => f.isVirtual());
     }
-    if (e.ident == Id.isVirtualMethod)
+    if (e.ident is Id.isVirtualMethod)
     {
         if (dim != 1)
             return dimError(1);
 
         return isFuncX(f => f.isVirtualMethod());
     }
-    if (e.ident == Id.isFinalFunction)
+    if (e.ident is Id.isFinalFunction)
     {
         if (dim != 1)
             return dimError(1);
 
         return isFuncX(f => f.isFinalFunc());
     }
-    if (e.ident == Id.isOverrideFunction)
+    if (e.ident is Id.isOverrideFunction)
     {
         if (dim != 1)
             return dimError(1);
 
         return isFuncX(f => f.isOverride());
     }
-    if (e.ident == Id.isStaticFunction)
+    if (e.ident is Id.isStaticFunction)
     {
         if (dim != 1)
             return dimError(1);
 
         return isFuncX(f => !f.needThis() && !f.isNested());
     }
-    if (e.ident == Id.isModule)
+    if (e.ident is Id.isModule)
     {
         if (dim != 1)
             return dimError(1);
 
         return isPkgX(p => p.isModule() || p.isPackageMod());
     }
-    if (e.ident == Id.isPackage)
+    if (e.ident is Id.isPackage)
     {
         if (dim != 1)
             return dimError(1);
 
         return isPkgX(p => p.isModule() is null);
     }
-    if (e.ident == Id.isRef)
+    if (e.ident is Id.isRef)
     {
         if (dim != 1)
             return dimError(1);
 
         return isDeclX(d => d.isRef());
     }
-    if (e.ident == Id.isOut)
+    if (e.ident is Id.isOut)
     {
         if (dim != 1)
             return dimError(1);
 
         return isDeclX(d => d.isOut());
     }
-    if (e.ident == Id.isLazy)
+    if (e.ident is Id.isLazy)
     {
         if (dim != 1)
             return dimError(1);
 
         return isDeclX(d => (d.storage_class & STC.lazy_) != 0);
     }
-    if (e.ident == Id.identifier)
+    if (e.ident is Id.identifier)
     {
         // Get identifier for symbol as a string literal
         /* Specify 0 for bit 0 of the flags argument to semanticTiargs() so that
@@ -730,7 +730,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto se = new StringExp(e.loc, id.toString());
         return se.expressionSemantic(sc);
     }
-    if (e.ident == Id.fullyQualifiedName) // https://dlang.org/spec/traits.html#fullyQualifiedName
+    if (e.ident is Id.fullyQualifiedName) // https://dlang.org/spec/traits.html#fullyQualifiedName
     {
         if (dim != 1)
             return dimError(1);
@@ -768,7 +768,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         return se.expressionSemantic(sc);
 
     }
-    if (e.ident == Id.getProtection || e.ident == Id.getVisibility)
+    if (e.ident is Id.getProtection || e.ident is Id.getVisibility)
     {
         if (dim != 1)
             return dimError(1);
@@ -798,7 +798,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto se = new StringExp(e.loc, protName);
         return se.expressionSemantic(sc);
     }
-    if (e.ident == Id.parent)
+    if (e.ident is Id.parent)
     {
         if (dim != 1)
             return dimError(1);
@@ -861,7 +861,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         return symbolToExp(s, e.loc, sc, false);
     }
-    if (e.ident == Id.child)
+    if (e.ident is Id.child)
     {
         if (dim != 2)
             return dimError(2);
@@ -899,7 +899,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         ex = ex.expressionSemantic(sc);
         return ex;
     }
-    if (e.ident == Id.toType)
+    if (e.ident is Id.toType)
     {
         if (dim != 1)
             return dimError(1);
@@ -925,13 +925,13 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         return (new TypeExp(e.loc, t)).expressionSemantic(sc);
     }
-    if (e.ident == Id.hasMember ||
-        e.ident == Id.getMember ||
-        e.ident == Id.getOverloads ||
-        e.ident == Id.getVirtualMethods ||
-        e.ident == Id.getVirtualFunctions)
+    if (e.ident is Id.hasMember ||
+        e.ident is Id.getMember ||
+        e.ident is Id.getOverloads ||
+        e.ident is Id.getVirtualMethods ||
+        e.ident is Id.getVirtualFunctions)
     {
-        if (dim != 2 && !(dim == 3 && e.ident == Id.getOverloads))
+        if (dim != 2 && !(dim == 3 && e.ident is Id.getOverloads))
             return dimError(2);
 
         auto o = (*e.args)[0];
@@ -944,7 +944,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         ex = ex.ctfeInterpret();
 
         bool includeTemplates = false;
-        if (dim == 3 && e.ident == Id.getOverloads)
+        if (dim == 3 && e.ident is Id.getOverloads)
         {
             auto b = isExpression((*e.args)[2]);
             b = b.ctfeInterpret();
@@ -977,7 +977,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         Dsymbol sym = getDsymbol(o);
 
-        if (sym && e.ident == Id.hasMember)
+        if (sym && e.ident is Id.hasMember)
         {
             if (auto sm = sym.search(e.loc, id))
                 return True();
@@ -1011,14 +1011,14 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         scx.noAccessCheck = true;
         scope (exit) scx.pop();
 
-        if (e.ident == Id.hasMember)
+        if (e.ident is Id.hasMember)
         {
             /* Take any errors as meaning it wasn't found
              */
             ex = ex.trySemantic(scx);
             return ex ? True() : False();
         }
-        else if (e.ident == Id.getMember)
+        else if (e.ident is Id.getMember)
         {
             if (auto die = ex.isDotIdExp())
                 // Prevent semantic() from replacing Symbol with its initializer
@@ -1026,9 +1026,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             ex = ex.expressionSemantic(scx);
             return ex;
         }
-        else if (e.ident == Id.getVirtualFunctions ||
-                 e.ident == Id.getVirtualMethods ||
-                 e.ident == Id.getOverloads)
+        else if (e.ident is Id.getVirtualFunctions ||
+                 e.ident is Id.getVirtualMethods ||
+                 e.ident is Id.getOverloads)
         {
             uint errors = global.errors;
             Expression eorig = ex;
@@ -1036,7 +1036,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             if (errors < global.errors)
                 error(e.loc, "`%s` cannot be resolved", eorig.toChars());
 
-            if (e.ident == Id.getVirtualFunctions)
+            if (e.ident is Id.getVirtualFunctions)
             {
                 // @@@DEPRECATED2.121@@@
                 // Deprecated in 2.101 - Can be removed from 2.121
@@ -1142,9 +1142,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                     }
                     return 0;
                 }
-                if (e.ident == Id.getVirtualFunctions && !fd.isVirtual())
+                if (e.ident is Id.getVirtualFunctions && !fd.isVirtual())
                     return 0;
-                if (e.ident == Id.getVirtualMethods && !fd.isVirtualMethod())
+                if (e.ident is Id.getVirtualMethods && !fd.isVirtualMethod())
                     return 0;
 
                 auto fa = new FuncAliasDeclaration(fd.ident, fd, false);
@@ -1185,7 +1185,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         else
             assert(0);
     }
-    if (e.ident == Id.classInstanceSize || e.ident == Id.classInstanceAlignment)
+    if (e.ident is Id.classInstanceSize || e.ident is Id.classInstanceAlignment)
     {
         if (dim != 1)
             return dimError(1);
@@ -1208,9 +1208,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return ErrorExp.get();
         }
 
-        return new IntegerExp(e.loc, e.ident == Id.classInstanceSize ? cd.structsize : cd.alignsize, Type.tsize_t);
+        return new IntegerExp(e.loc, e.ident is Id.classInstanceSize ? cd.structsize : cd.alignsize, Type.tsize_t);
     }
-    if (e.ident == Id.getAliasThis)
+    if (e.ident is Id.getAliasThis)
     {
         if (dim != 1)
             return dimError(1);
@@ -1226,7 +1226,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         ex = ex.expressionSemantic(sc);
         return ex;
     }
-    if (e.ident == Id.getAttributes)
+    if (e.ident is Id.getAttributes)
     {
         /* Specify 0 for bit 0 of the flags argument to semanticTiargs() so that
          * a symbol should not be folded to a constant.
@@ -1298,7 +1298,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto tup = new TupleExp(e.loc, exps);
         return tup.expressionSemantic(sc);
     }
-    if (e.ident == Id.getFunctionAttributes)
+    if (e.ident is Id.getFunctionAttributes)
     {
         /* Extract all function attributes as a tuple (const/shared/inout/pure/nothrow/etc) except UDAs.
          * https://dlang.org/spec/traits.html#getFunctionAttributes
@@ -1340,7 +1340,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto tup = new TupleExp(e.loc, mods);
         return tup.expressionSemantic(sc);
     }
-    if (e.ident == Id.isReturnOnStack)
+    if (e.ident is Id.isReturnOnStack)
     {
         /* Extract as a boolean if function return value is on the stack
          * https://dlang.org/spec/traits.html#isReturnOnStack
@@ -1361,7 +1361,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         bool value = target.isReturnOnStack(tf, fd && fd.needThis());
         return IntegerExp.createBool(value);
     }
-    if (e.ident == Id.getFunctionVariadicStyle)
+    if (e.ident is Id.getFunctionVariadicStyle)
     {
         /* Accept a symbol or a type. Returns one of the following:
          *  "none"      not a variadic function
@@ -1409,7 +1409,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto se = new StringExp(e.loc, style);
         return se.expressionSemantic(sc);
     }
-    if (e.ident == Id.getParameterStorageClasses)
+    if (e.ident is Id.getParameterStorageClasses)
     {
         /* Accept a function symbol or a type, followed by a parameter index.
          * Returns a tuple of strings of the parameter's storage classes.
@@ -1514,7 +1514,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto tup = new TupleExp(e.loc, exps);
         return tup.expressionSemantic(sc);
     }
-    if (e.ident == Id.getLinkage)
+    if (e.ident is Id.getLinkage)
     {
         // get symbol linkage as a string
         if (dim != 1)
@@ -1577,8 +1577,8 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto se = new StringExp(e.loc, linkage.toDString());
         return se.expressionSemantic(sc);
     }
-    if (e.ident == Id.allMembers ||
-        e.ident == Id.derivedMembers)
+    if (e.ident is Id.allMembers ||
+        e.ident is Id.derivedMembers)
     {
         if (dim != 1)
             return dimError(1);
@@ -1645,9 +1645,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 // https://issues.dlang.org/show_bug.cgi?id=10096
                 // https://issues.dlang.org/show_bug.cgi?id=10100
                 // Skip over internal members in __traits(allMembers)
-                if ((sm.isCtorDeclaration() && sm.ident != Id.ctor) ||
-                    (sm.isDtorDeclaration() && sm.ident != Id.dtor) ||
-                    (sm.isPostBlitDeclaration() && sm.ident != Id.postblit) ||
+                if ((sm.isCtorDeclaration() && sm.ident !is Id.ctor) ||
+                    (sm.isDtorDeclaration() && sm.ident !is Id.dtor) ||
+                    (sm.isPostBlitDeclaration() && sm.ident !is Id.postblit) ||
                     sm.isInvariantDeclaration() ||
                     sm.isUnitTestDeclaration())
 
@@ -1690,7 +1690,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         _foreach(sc, sds.members, &pushIdentsDg);
         auto cd = sds.isClassDeclaration();
-        if (cd && e.ident == Id.allMembers)
+        if (cd && e.ident is Id.allMembers)
         {
             if (cd.semanticRun < PASS.semanticdone)
                 cd.dsymbolSemantic(null); // https://issues.dlang.org/show_bug.cgi?id=13668
@@ -1728,7 +1728,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         ex = ex.expressionSemantic(sc);
         return ex;
     }
-    if (e.ident == Id.compiles)
+    if (e.ident is Id.compiles)
     {
         /* Determine if all the objects - types, expressions, or symbols -
          * compile without error
@@ -1792,7 +1792,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         return True();
     }
-    if (e.ident == Id.isSame)
+    if (e.ident is Id.isSame)
     {
         /* Determine if two symbols are the same
          */
@@ -1821,7 +1821,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 return False();
         return True();
     }
-    if (e.ident == Id.getUnitTests)
+    if (e.ident is Id.getUnitTests)
     {
         if (dim != 1)
             return dimError(1);
@@ -1880,7 +1880,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto te = new TupleExp(e.loc, exps);
         return te.expressionSemantic(sc);
     }
-    if (e.ident == Id.getVirtualIndex)
+    if (e.ident is Id.getVirtualIndex)
     {
         if (dim != 1)
             return dimError(1);
@@ -1898,11 +1898,11 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         fd = fd.toAliasFunc(); // Necessary to support multiple overloads.
         return new IntegerExp(e.loc, fd.vtblIndex, Type.tptrdiff_t);
     }
-    if (e.ident == Id.getPointerBitmap)
+    if (e.ident is Id.getPointerBitmap)
     {
         return pointerBitmap(e, global.errorSink);
     }
-    if (e.ident == Id.initSymbol)
+    if (e.ident is Id.initSymbol)
     {
         if (dim != 1)
             return dimError(1);
@@ -1931,7 +1931,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         d.storage_class |= STC.rvalue;
         return new VarExp(e.loc, d);
     }
-    if (e.ident == Id.isZeroInit)
+    if (e.ident is Id.isZeroInit)
     {
         if (dim != 1)
             return dimError(1);
@@ -1953,7 +1953,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         Type tb = t.isTypeEnum ? t : t.baseElemOf();
         return tb.isZeroInit(e.loc) ? True() : False();
     }
-    if (e.ident == Id.getTargetInfo)
+    if (e.ident is Id.getTargetInfo)
     {
         if (dim != 1)
             return dimError(1);
@@ -1977,7 +1977,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         }
         return r.expressionSemantic(sc);
     }
-    if (e.ident == Id.getLocation)
+    if (e.ident is Id.getLocation)
     {
         if (dim != 1)
             return dimError(1);
@@ -2008,7 +2008,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         auto tup = new TupleExp(e.loc, exps);
         return tup.expressionSemantic(sc);
     }
-    if (e.ident == Id.getCppNamespaces)
+    if (e.ident is Id.getCppNamespaces)
     {
         auto o = (*e.args)[0];
         auto s = getDsymbolWithoutExpCtx(o);
@@ -2087,7 +2087,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         return tup.expressionSemantic(sc);
     }
     //https://issues.dlang.org/show_bug.cgi?id=22291
-    if (e.ident == Id.parameters)
+    if (e.ident is Id.parameters)
     {
         //No args are valid
         if (e.args)
