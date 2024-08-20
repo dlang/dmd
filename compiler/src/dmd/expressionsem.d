@@ -9824,13 +9824,16 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (sc.inCfile)
             return;
 
-        if (e.type is Type.tvoid)
+        if (!e.isGenerated)
         {
-            checkMustUse(e.e1, sc);
-            discardValue(e.e1);
+            if (e.allowCommaExp)
+            {
+                checkMustUse(e.e1, sc);
+                discardValue(e.e1);
+            }
+            else
+                error(e.loc, "using the result of a comma expression is not allowed");
         }
-        else if (!e.allowCommaExp && !e.isGenerated)
-            error(e.loc, "using the result of a comma expression is not allowed");
     }
 
     override void visit(IntervalExp e)
@@ -15155,10 +15158,8 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
             {
                 if (e.var.isThisDeclaration())
                     return false;
-                else
-                    return sharedError(e);
             }
-            else if (!allowRef && e.var.type.isShared())
+            if (!allowRef && e.var.type.isShared())
                 return sharedError(e);
 
             return false;

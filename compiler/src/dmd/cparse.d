@@ -5956,6 +5956,30 @@ final class CParser(AST) : Parser!AST
 
                     AST.Type t;
 
+                    bool hasMinus;
+                    if (token.value == TOK.min)
+                    {
+                        nextToken();
+                        // Only allow integer and float literals after minus.
+                        switch (token.value)
+                        {
+                            case TOK.int32Literal:
+                            case TOK.uns32Literal:
+                            case TOK.int64Literal:
+                            case TOK.uns64Literal:
+                            case TOK.float32Literal:
+                            case TOK.float64Literal:
+                            case TOK.float80Literal:
+                            case TOK.imaginary32Literal:
+                            case TOK.imaginary64Literal:
+                            case TOK.imaginary80Literal:
+                                hasMinus = true;
+                                break;
+                            default:
+                                continue;
+                        }
+                    }
+
                 Lswitch:
                     switch (token.value)
                     {
@@ -5980,6 +6004,8 @@ final class CParser(AST) : Parser!AST
                                  *  enum id = intvalue;
                                  */
                                 AST.Expression e = new AST.IntegerExp(scanloc, intvalue, t);
+                                if (hasMinus)
+                                    e = new AST.NegExp(scanloc, e);
                                 auto v = new AST.VarDeclaration(scanloc, t, id, new AST.ExpInitializer(scanloc, e), STC.manifest);
                                 addSym(v);
                                 ++p;
@@ -6003,6 +6029,8 @@ final class CParser(AST) : Parser!AST
                                  *  enum id = floatvalue;
                                  */
                                 AST.Expression e = new AST.RealExp(scanloc, floatvalue, t);
+                                if (hasMinus)
+                                    e = new AST.NegExp(scanloc, e);
                                 auto v = new AST.VarDeclaration(scanloc, t, id, new AST.ExpInitializer(scanloc, e), STC.manifest);
                                 addSym(v);
                                 ++p;

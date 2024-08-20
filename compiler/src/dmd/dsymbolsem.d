@@ -616,7 +616,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             dsym.storage_class |= ad.storage_class & STC.TYPECTOR;
 
         if ((dsym.storage_class & STC.auto_) && (dsym.storage_class & STC.ref_))
-            dsym.storage_class |= STC.autoref;
+        {
+            if (!(dsym.storage_class & STC.autoref))
+            {
+                .error(dsym.loc, "%s `%s` - `auto ref` variable must have `auto` and `ref` adjacent", dsym.kind, dsym.toChars());
+                dsym.storage_class |= STC.autoref;
+            }
+        }
 
         /* If auto type inference, do the inference
          */

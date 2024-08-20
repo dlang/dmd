@@ -744,6 +744,7 @@ extern (C++) final class VersionCondition : DVCondition
             case "Win32":
             case "Win64":
             case "Windows":
+            case "Xtensa":
             case "X86":
             case "X86_64":
                 return true;
