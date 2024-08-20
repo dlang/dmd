@@ -218,8 +218,10 @@ void testCast()
     try
         auto a = cast(int)foo;
     catch (Throwable e)
+    {
         assert(e.msg == "Accessed expression of type `noreturn`");
         return;
+    }
 
     assert(0);
 }
