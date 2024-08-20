@@ -249,6 +249,9 @@ addr calccodsize(addr c, out addr pc)
     ubyte rex = 0;
 
     op = code[c] & 0xFF;
+    //printf("c: x%02x op: x%02x\n", cast(int)c, op);
+    if (op == 0 && c + 1 == code.length)        // skip zero padding
+        return 1;
 
     // if VEX prefix
     if (op == 0xC4 || op == 0xC5)
@@ -1876,6 +1879,8 @@ void disassemble(uint c)
     s3 = s2;
     opcode = code[c];
     p0[0]='\0';
+    if (opcode == 0 && c + 1 >= code.length)
+        return;
     if (bObjectcode) {
         for (i=0; i<siz; i++) {
             snprintf( buf.ptr, buf.length, "%02X ", code[c+i] );
@@ -1912,7 +1917,8 @@ void disassemble(uint c)
         }
     }
     if (inssize[opcode] & M)    /* if modregrm byte             */
-    {   reg = (code[c + 1] >> 3) & 7;
+    {
+        reg = (code[c + 1] >> 3) & 7;
         if (rex & REX_R)
             reg |= 8;
     }
@@ -3613,7 +3619,7 @@ __gshared const
 unittest
 {
     int line16 = __LINE__;
-    string[20] cases16 =      // 16 bit code gen
+    string[21] cases16 =      // 16 bit code gen
     [
         "      55            push    BP",
         "      8B EC         mov     BP,SP",
@@ -3635,6 +3641,7 @@ unittest
         "26    03 07         add     AX,ES:[BX]",
         "      03 06 00 00   add     AX,[00h]",
         "      31 C0         xor     AX,AX",
+        "      00                ",
     ];
 
     int line32 = __LINE__;
