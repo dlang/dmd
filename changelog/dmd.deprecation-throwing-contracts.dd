@@ -1,0 +1,17 @@
+An error is now issued for `in`/`out` contracts of `nothrow` functions that may throw
+
+This used to issue a deprecation, it is now an error:
+```
+void test() nothrow
+in
+{
+    throw new Exception(null); // Error: `in` contract may throw but function is marked as `nothrow`
+}
+out
+{
+    throw new Exception(null); // Error: `out` contract may throw but function is marked as `nothrow`
+}
+do
+{
+}
+```
