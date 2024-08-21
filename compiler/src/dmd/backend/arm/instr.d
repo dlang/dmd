@@ -56,6 +56,21 @@ struct INSTR
     /************************************ SVE encodings *******************************************/
     /* https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#sve                        */
 
+    /* SVE integer unary operations (predicated)
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#sve_int_pred_un
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#sve_int_un_pred_arit_0
+     */
+    static uint sve_int_un_pred_arit_0(uint size, uint opc, uint Pg, reg_t Zn, reg_t Zd)
+    {
+        return (4    << 24) |
+               (size << 22) |
+               (2    << 19) |
+               (opc  << 16) |
+               (5    << 13) |
+               (Pg   << 10) |
+               (Zn   <<  5) |
+                Zd;
+    }
 
     /************************************ Data Processing -- Immediate ****************************/
     /* https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#dpimm                      */
@@ -129,6 +144,40 @@ struct INSTR
                 Rd;
      }
 
+    /* Bitfield
+     * SBFM/BFM/UBFM
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#dpimm
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#bitfield
+     */
+    static uint bitfield(uint sf, uint opc, uint N, uint immr, uint imms, reg_t Rn, reg_t Rd)
+    {
+        return (sf   << 31) |
+               (opc  << 29) |
+               (0x26 << 23) |
+               (N    << 22) |
+               (immr << 16) |
+               (imms << 10) |
+               (Rn   <<  5) |
+                Rd;
+    }
+
+    /* Extract
+     * EXTR
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#dpimm
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#extract
+     */
+    static uint extract(uint sf, uint op21, uint N, uint o0, reg_t Rm, uint imms, reg_t Rn, reg_t Rd)
+    {
+        return (sf   << 31) |
+               (op21 << 29) |
+               (0x27 << 23) |
+               (N    << 22) |
+               (o0   << 21) |
+               (Rm   << 16) |
+               (imms << 10) |
+               (Rn   <<  5) |
+                Rd;
+    }
 
     /****************************** Branches, Exception Generating and System instructions **************/
     /* https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#control                          */
@@ -218,7 +267,7 @@ struct INSTR
      * AND/BIC/ORR/ORN/EOR/ANDS/BICS Rd, Rn, Rm, {shift #amount}
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#log_shift
      */
-    static uint log_shift_reg(uint sf, uint opc, uint shift, uint N, ubyte Rm, uint imm6, ubyte Rn, ubyte Rd)
+    static uint log_shift(uint sf, uint opc, uint shift, uint N, ubyte Rm, uint imm6, ubyte Rn, ubyte Rd)
     {
         return (sf    << 31) |
                (opc   << 29) |
@@ -451,6 +500,63 @@ struct INSTR
     /* =============================================================================== */
     /* =============================================================================== */
 
+    /* SBFM Rd,Rn,#immr,#imms
+     * https://www.scs.stanford.edu/~zyedidia/arm64/sbfm.html
+     */
+    static uint sbfm(uint sf, uint N, uint immr, uint imms, reg_t Rn, reg_t Rd)
+    {
+        return bitfield(sf, 0, N, immr, imms, Rn, Rd);
+    }
+
+    /* ASR Rd,Rn,#shift
+     * https://www.scs.stanford.edu/~zyedidia/arm64/asr_sbfm.html
+     */
+    static uint asr_sbfm(uint sf, uint immr, reg_t Rn, reg_t Rd)
+    {
+        return sbfm(sf, sf, immr, sf ? 63 : 31, Rn, Rd);
+    }
+
+    /* SBFIZ Rd,Rn,#lsb,#width
+     * https://www.scs.stanford.edu/~zyedidia/arm64/sbfiz_sbfm.html
+     */
+    static uint sbfiz_sbfm(uint sf, uint lsb, uint width, reg_t Rn, reg_t Rd)
+    {
+        return sbfm(sf, sf, -lsb & (sf ? 0x3F : 0x1F), width - 1, Rn, Rd);
+    }
+
+    /* SBFX Rd,Rn,#lsb,#width
+     * https://www.scs.stanford.edu/~zyedidia/arm64/sbfx_sbfm.html
+     */
+    static uint sbfx_sbfm(uint sf, uint lsb, uint width, reg_t Rn, reg_t Rd)
+    {
+        return sbfm(sf, sf, lsb, lsb + width - 1, Rn, Rd);
+    }
+
+    /* SXTB Rd,Wn
+     * https://www.scs.stanford.edu/~zyedidia/arm64/sxtw_sbfm.html
+     */
+    static uint sxtb_sbfm(uint sf, reg_t Rn, reg_t Rd)
+    {
+        return sbfm(sf, sf, 0, 7, Rn, Rd);
+    }
+
+    /* SXTH Rd,Wn
+     * https://www.scs.stanford.edu/~zyedidia/arm64/sxth_sbfm.html
+     */
+    static uint sxth_sbfm(uint sf, reg_t Rn, reg_t Rd)
+    {
+        return sbfm(sf, sf, 0, 15, Rn, Rd);
+    }
+
+    /* SXTW Xd,Wn
+     * https://www.scs.stanford.edu/~zyedidia/arm64/sxtw_sbfm.html
+     */
+    static uint sxtw_sbfm(reg_t Rn, reg_t Rd)
+    {
+        return sbfm(1, 1, 0, 31, Rn, Rd);
+    }
+
+
     /********* Branches, Exception Generating and System Instructions **********/
 
     /* BR Xn
@@ -549,6 +655,15 @@ struct INSTR
         return addsub_shift(sf, 1, 1, shift, Rm, imm6, Rn, 0x1F);
     }
 
+    /* NEG/NEGS Rd,Rm,shift #imm6
+     * http://www.scs.stanford.edu/~zyedidia/arm64/neg_sub_addsub_shift.html
+     * http://www.scs.stanford.edu/~zyedidia/arm64/negs_subs_addsub_shift.html
+     */
+    static uint neg_sub_addsub_shift(uint sf, uint S, uint shift, reg_t Rm, uint imm6, reg_t Rd)
+    {
+        return addsub_shift(sf, 1, S, shift, Rm, imm6, 0x1F, Rd);
+    }
+
     /* SUBS Rd, Rn, Rm, extend, #imm3
      * http://www.scs.stanford.edu/~zyedidia/arm64/cmp_subs_addsub_ext.html
      */
@@ -572,7 +687,7 @@ struct INSTR
     {
         uint opc = 1;
         uint N = 0;
-        return log_shift_reg(sf, opc, shift, N, Rm, imm6, Rn, Rd);
+        return log_shift(sf, opc, shift, N, Rm, imm6, Rn, Rd);
     }
 
     /* MOV Rd, Rn, Rm{, shift #amount}
@@ -660,6 +775,50 @@ struct INSTR
         return ldst_pos(size, 0, 0, imm12, Rn, Rt);
     }
 
+    /* LDRB(immediate) Unsigned offset
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ldrb_imm_gen.html
+     */
+    static uint ldrb_imm(uint is64, ubyte Rt, ubyte Rn, ulong offset)
+    {
+        // ldrb Rt,[Xn,#offset]
+        uint size = 0;
+        uint imm12 = cast(uint)offset & 0xFFF;
+        return ldst_pos(size, 0, 1, imm12, Rn, Rt);
+    }
+
+    /* LDRSB(immediate) Unsigned offset
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ldrsb_imm_gen.html
+     */
+    static uint ldrsb_imm(uint is64, ubyte Rt, ubyte Rn, ulong offset)
+    {
+        // ldrsb Rt,[Xn,#offset]
+        uint size = 0;
+        uint imm12 = cast(uint)offset & 0xFFF;
+        return ldst_pos(size, 0, 2 + is64, imm12, Rn, Rt);
+    }
+
+    /* LDRH(immediate) Unsigned offset
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ldrh_imm_gen.html
+     */
+    static uint ldrh_imm(uint is64, ubyte Rt, ubyte Rn, ulong offset)
+    {
+        // ldrb Rt,[Xn,#offset]
+        uint size = 1;
+        uint imm12 = cast(uint)offset & 0xFFF;
+        return ldst_pos(size, 0, 1, imm12, Rn, Rt);
+    }
+
+    /* LDRSH(immediate) Unsigned offset
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ldrsh_imm_gen.html
+     */
+    static uint ldrsh_imm(uint is64, ubyte Rt, ubyte Rn, ulong offset)
+    {
+        // ldrsh Rt,[Xn,#offset]
+        uint size = 1;
+        uint imm12 = cast(uint)offset & 0xFFF;
+        return ldst_pos(size, 0, 2 + is64, imm12, Rn, Rt);
+    }
+
     /* LDR (immediate) Unsigned offset
      * https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_gen.html
      */
@@ -713,7 +872,7 @@ struct INSTR
 
     /* LDRSB (register) Extended register
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_regoff
-     * https://www.scs.stanford.edu/~zyedidia/arm64/ldrb_reg.html
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ldrsb_reg.html
      */
     static uint ldrsb_reg(uint sz,reg_t Rindex,uint extend,uint S,reg_t Rbase,reg_t Rt)
     {
@@ -750,4 +909,187 @@ struct INSTR
         // LDR Rt,Rbase,Rindex,extend S
         return ldst_regoff(2 | sz, 0, 1, Rindex, extend, S, Rbase, Rt);
     }
+}
+
+/**********************
+ * Encode bit mask
+ * Params:
+ *      bitmask = mask to encode
+ *      N = set to N bit
+ *      immr = set to immr value
+ *      imms = set to imms value
+ * Returns:
+ *      true = success
+ *      false = failure
+ * References:
+ *      * https://www.scs.stanford.edu/~zyedidia/arm64/shared_pseudocode.html#impl-aarch64.DecodeBitMasks.5
+ */
+bool encodeNImmrImms(ulong value, out uint N, out uint immr, out uint imms)
+{
+    if (value == 0 || value == ~0L)
+        return false;
+
+    /* `size` is the number of bits in the pattern
+     */
+    uint size = 64;
+    if ((value ^ (value >> 32)) & 0xFFFF_FFFF)
+        size = 64;
+    else
+    {
+        value &= 0xFFFF_FFFF;
+        if (value == 0 || value == 0xFFFF_FFFF)
+            return false;
+        if ((value ^ (value >> 16)) & 0xFFFF)
+            size = 32;
+        else
+        {
+            value &= 0xFFFF;
+            if ((value ^ (value >> 8)) & 0xFF)
+                size = 16;
+            else
+            {
+                value &= 0xFF;
+                if ((value ^ (value >> 4)) & 0xF)
+                    size = 8;
+                else
+                {
+                    value &= 0xF;
+                    if ((value ^ (value >> 2)) & 3)
+                        size = 4;
+                    else
+                    {
+                        value &= 3;
+                        size = 2;
+                    }
+                }
+            }
+        }
+    }
+
+    /* `value` is now the pattern that is `size` bits in length
+     */
+
+    static uint popcount(ulong x)
+    {
+        uint n = 0;
+        while (x)
+        {
+            n += cast(uint)x & 1;
+            x >>= 1;
+        }
+        return n;
+    }
+
+    uint numOnes = popcount(value);
+
+    /* Is n a right-justified run of 1's?
+     */
+    static bool isRunRJ(ulong n) { return ((n + 1) & n) == 0; }
+
+    uint rotation;  // how much value has been rotated left
+    ulong leftMostBit = 1L << (size - 1);
+
+    /* Case 000111 */
+    if (isRunRJ(value))
+    {
+        rotation = 0;
+    }
+    /* Case 011100 */
+    else if (!(value & 1))
+    {
+        do
+        {
+            value >>= 1;
+            ++rotation;
+        } while (!(value & 1));
+    }
+    /* Case 100011 */
+    else
+    {
+        do
+        {
+            value = (value << 1) | 1;
+            --rotation;
+        } while (value & leftMostBit);
+        if (size != 64)  // avoid undefined behavior for <<64
+            value &= (1L << size) - 1UL;
+        rotation += size;
+    }
+    if (!isRunRJ(value))        // if embedded 0s in pattern
+        return false;
+
+    immr = ((size - rotation) & (size - 1)) & 0x3F;
+    imms = ((~(size - 1) << 1) | (numOnes - 1)) & 0x3F;
+    N = size == 64;
+    return true;
+}
+
+unittest
+{
+    uint N,immr,imms;
+    assert(encodeNImmrImms(0x5555_5555_5555_5555,N,immr,imms));
+    assert(N == 0 && immr == 0 && imms == 0x3C);
+
+    assert(encodeNImmrImms(0xFFFF,N,immr,imms));
+    assert(N == 1 && immr == 0 && imms == 0xF);
+
+    assert(encodeNImmrImms(0xFF,N,immr,imms));
+    assert(N == 1 && immr == 0 && imms == 0x7);
+}
+
+/******************************
+ * Extract field from instruction in manner lifted from spec.
+ * Params:
+ *      opcode = opcode to extract field
+ *      end = leftmost bit number 31..0
+ *      start = rightmost bit number 31..0
+ * Returns:
+ *      extracted field
+ */
+public
+uint field(uint opcode, uint end, uint start) pure
+{
+    assert(end < 32 && start < 32 && start <= end);
+    //printf("%08x\n", (cast(uint)((cast(ulong)1 << (end + 1)) - 1) & opcode) >> start);
+    return (cast(uint)((1UL << (end + 1)) - 1) & opcode) >> start; // UL prevents <<32 undefined behavior
+}
+
+unittest
+{
+    assert(field(0xFFFF_FFFF, 31, 31) == 1);
+    assert(field(0xFFFF_FFFF, 31, 0) == 0xFFFF_FFFF);
+    assert(field(0x0000_FFCF,  7, 4) == 0x0000_000C);
+}
+
+/******************************
+ * Set field in instruction in manner lifted from spec.
+ * Params:
+ *      opcode = opcode to set field in
+ *      end = leftmost bit number 31..0
+ *      start = rightmost bit number 31..0
+ *      value = new field value
+ */
+public
+uint setField(uint ins, uint end, uint start, uint value) pure
+{
+    assert(end < 32 && start < 32 && start <= end);
+    uint width = end - start + 1;
+    uint mask = cast(uint)((1UL << width) - 1); // UL prevents <<32 undefined behavior
+    uint shmask = mask << start;
+    //printf("value: %08x end:%d start:%d width: %d mask: %08x shmask: %08x\n", value, end, start, width, mask, shmask);
+    assert(value <= shmask);
+    ins = (ins & ~shmask) | (value << start);
+    //printf("ins: x%08x\n", ins);
+    return ins;
+}
+
+unittest
+{
+    //printf("ins %08x\n", setField(0xFFFF_FFF1, 31, 31, 0));
+    assert(setField(0xFFFF_FFF1, 31, 31,           0) == 0x7FFF_FFF1);
+    assert(setField(0xFFF3_FFFF, 31, 31,           1) == 0xFFF3_FFFF);
+    assert(setField(0x8000_FFCF,  7,  4,         0xD) == 0x8000_FFDF);
+    assert(setField(0x8000_FFCF,  0,  0,           0) == 0x8000_FFCE);
+    assert(setField(0x8000_FFCF,  0,  0,           1) == 0x8000_FFCF);
+    assert(setField(0xFFFF_FFFF, 31,  0, 0x1234_5678) == 0x1234_5678);
 }
