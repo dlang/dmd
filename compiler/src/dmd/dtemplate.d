@@ -3555,6 +3555,8 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
             default:
             }
         }
+        else if (Expression ea = isExpression(defaultAlias))
+            da = ea.syntaxCopy();
 
         RootObject o = aliasParameterSemantic(loc, sc, da, null); // use the parameter loc
         return o;
