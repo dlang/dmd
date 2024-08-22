@@ -1452,10 +1452,6 @@ private extern(C++) final class Semantic3Visitor : Visitor
         auto sexp = new ExpStatement(ctor.loc, ce);
         auto ss = new ScopeStatement(ctor.loc, sexp, ctor.loc);
 
-        // @@@DEPRECATED_2.106@@@
-        // Allow negligible attribute violations to allow for a smooth
-        // transition. Remove this after the usual deprecation period
-        // after 2.106.
         if (global.params.dtorFields == FeatureState.default_)
         {
             auto ctf = cast(TypeFunction) ctor.type;
@@ -1474,9 +1470,9 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     (puErr ? STC.pure_ : 0) |
                     (saErr ? STC.system : 0)
                 );
-                ctor.loc.deprecation("`%s` has stricter attributes than its destructor (`%s`)", ctor.toPrettyChars(), ob.peekChars());
-                ctor.loc.deprecationSupplemental("The destructor will be called if an exception is thrown");
-                ctor.loc.deprecationSupplemental("Either make the constructor `nothrow` or adjust the field destructors");
+                ctor.loc.error("`%s` has stricter attributes than its destructor (`%s`)", ctor.toPrettyChars(), ob.peekChars());
+                ctor.loc.errorSupplemental("The destructor will be called if an exception is thrown");
+                ctor.loc.errorSupplemental("Either make the constructor `nothrow` or adjust the field destructors");
 
                 ce.ignoreAttributes = true;
             }
