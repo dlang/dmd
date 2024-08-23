@@ -1510,7 +1510,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.betterC = true;
             params.allInst = true;
         }
-        else if (arg == "-vcp)
+        else if (arg == "-vcp")
         {
             params.passVersionsToPreprocessor = true;
         }
