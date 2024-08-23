@@ -991,7 +991,7 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
                  */
                 OutBuffer buf;
                 buf.writestring(cpp);
-                if (global.passVersionsToPreprocessor)
+                if (globa.params.passVersionsToPreprocessor)
                 {
                     foreach(id; global.versionids)
                     {
@@ -1132,7 +1132,7 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
                 argv.push(filename.xarraydup.ptr);   // and the input
 
                 OutBuffer buf;
-                if (global.passVersionsToPreprocessor)
+                if (globa.params.passVersionsToPreprocessor)
                 {
                     foreach(id; global.versionids)
                     {
@@ -1192,7 +1192,7 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
             argv.push(importc_h);
         }
 
-        if (global.passVersionsToPreprocessor)
+        if (globa.params.passVersionsToPreprocessor)
         {
             foreach(id; global.versionids)
             {
