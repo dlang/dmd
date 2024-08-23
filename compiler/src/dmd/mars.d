@@ -1510,6 +1510,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.betterC = true;
             params.allInst = true;
         }
+        else if (arg == "-vcp)
+        {
+            params.passVersionsToPreprocessor = true;
+        }
         else if (arg == "-noboundscheck") // https://dlang.org/dmd.html#switch-noboundscheck
         {
             /// @@@DEPRECATED_2.113@@@

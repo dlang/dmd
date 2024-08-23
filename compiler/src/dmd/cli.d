@@ -164,6 +164,9 @@ struct Usage
         Option("allinst",
             "generate code for all template instantiations"
         ),
+        Option("vcp",
+            "pass version conditionals to the C preprocessor"
+        ),
         Option("betterC",
             "omit generating some runtime information and helper functions",
             "Adjusts the compiler to implement D as a $(LINK2 $(ROOT_DIR)spec/betterc.html, better C):

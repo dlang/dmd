@@ -991,11 +991,14 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
                  */
                 OutBuffer buf;
                 buf.writestring(cpp);
-                foreach(id; global.versionids)
+                if (global.passVersionsToPreprocessor)
                 {
-                    buf.writestring(" /D_D_VERSION_");
-                    buf.writestring(id.toString());
-                    buf.writestring(" ");
+                    foreach(id; global.versionids)
+                    {
+                        buf.writestring(" /D_D_VERSION_");
+                        buf.writestring(id.toString());
+                        buf.writestring(" ");
+                    }
                 }
                 buf.printf(" /P /Zc:preprocessor /PD /nologo /utf-8 %.*s /FI%s /Fi%.*s",
                     cast(int)filename.length, filename.ptr, importc_h, cast(int)output.length, output.ptr);
@@ -1129,11 +1132,14 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
                 argv.push(filename.xarraydup.ptr);   // and the input
 
                 OutBuffer buf;
-                foreach(id; global.versionids)
+                if (global.passVersionsToPreprocessor)
                 {
-                    buf.writestring(" /D_D_VERSION_");
-                    buf.writestring(id.toString());
-                    buf.writestring(" ");
+                    foreach(id; global.versionids)
+                    {
+                        buf.writestring(" /D_D_VERSION_");
+                        buf.writestring(id.toString());
+                        buf.writestring(" ");
+                    }
                 }
                 buf.writestring("/Fi");       // https://docs.microsoft.com/en-us/cpp/build/reference/fi-preprocess-output-file-name?view=msvc-170
                 buf.writeStringz(output);
@@ -1186,9 +1192,12 @@ public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] f
             argv.push(importc_h);
         }
 
-        foreach(id; global.versionids)
+        if (global.passVersionsToPreprocessor)
         {
-            argv.push(("-D_D_VERSION_"~id.toString()~"\0").ptr);
+            foreach(id; global.versionids)
+            {
+                argv.push(("-D_D_VERSION_"~id.toString()~"\0").ptr);
+            }
         }
 
         argv.push(null);                    // argv[] always ends with a null

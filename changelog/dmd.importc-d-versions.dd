@@ -1,3 +1,3 @@
-D's global version conditionals are now passed to C source files
+Added a new compiler switch to pass D's global version conditionals are now passed to C source files
 
-C source files now innherit D's version conditionals, they are prefixed with `_D_VERSION_` to avoid clashes.
+When compiled with `-vcp`, D's gC source files will innherit D's version conditionals, they are prefixed with `_D_VERSION_` to avoid clashes.

@@ -8051,6 +8051,7 @@ struct Param final
     bool addMain;
     bool allInst;
     bool bitfields;
+    bool passVersionsToPreprocessor;
     CppStdRevision cplusplus;
     Help help;
     Verbose v;
@@ -8137,6 +8138,7 @@ struct Param final
         addMain(),
         allInst(),
         bitfields(),
+        passVersionsToPreprocessor(),
         cplusplus((CppStdRevision)201103u),
         help(),
         v(),

@@ -170,6 +170,7 @@ extern (C++) struct Param
     bool addMain;           // add a default main() function
     bool allInst;           // generate code for all template instantiations
     bool bitfields;         // support C style bit fields
+    bool passVersionsToPreprocessor;    // pass version conditionals to the C preprocessor
 
     CppStdRevision cplusplus = CppStdRevision.cpp11;    // version of C++ standard to support
 

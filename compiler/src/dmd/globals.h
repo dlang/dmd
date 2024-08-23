@@ -173,6 +173,7 @@ struct Param
     d_bool addMain;       // add a default main() function
     d_bool allInst;       // generate code for all template instantiations
     d_bool bitfields;         // support C style bit fields
+    d_bool passVersionsToPreprocessor;    // pass version conditionals to the C preprocessor
     CppStdRevision cplusplus;  // version of C++ name mangling to support
 
     Help help;
