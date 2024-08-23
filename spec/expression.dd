@@ -2820,38 +2820,45 @@ $(GNAME NewExpression):
         collected) heap by default.
     )
 
-    $(P The `new` *Type* form constructs an instance of a type and default-initializes it.)
-    $(P The *Type(NamedArgumentList)* form allows passing either a single initializer
-        of the same type, or multiple arguments for more complex types.
-        For class types, *NamedArgumentList* is passed to the class constructor.
-        For a dynamic array, the argument sets the initial array length.
-        For multidimensional dynamic arrays, each argument corresponds to
-        an initial length (see $(RELATIVE_LINK2 new_multidimensional, below)).)
+    $(P `new T` constructs an instance of type `T` and default-initializes it.
+        The result is:)
+    * `T` when `T` is a reference type (e.g. class, dynamic array,
+      $(DDSUBLINK spec/hash-map, construction_and_ref_semantic, associative array))
+    * `T*` when `T` is a value type (e.g. basic types, structs)
+
+    $(P The $(INLINE_GRAMMAR *Type(NamedArgumentList)*) form allows passing either a single initializer
+        of the same type, or multiple arguments for more complex types:)
+
+    * For class and struct types, *NamedArgumentList* is passed to the constructor.
+    * For a dynamic array, the argument sets the initial array length.
+    * For multidimensional dynamic arrays, each argument corresponds to
+      an initial length (see $(RELATIVE_LINK2 new_multidimensional, below)).
 
     $(SPEC_RUNNABLE_EXAMPLE_RUN
     ---
     int* i = new int;
-    assert(*i == 0);
+    assert(*i == 0); // int.init
     i = new int(5);
     assert(*i == 5);
 
     Object o = new Object;
     Exception e = new Exception("info");
 
-    auto a = new int[](2);
+    int[] a = new int[](2);
     assert(a.length == 2);
+    a = new int[2]; // same, see below
     ---
     )
 
-    $(P The *Type[AssignExpression]* form allocates a dynamic array with
+    $(P The $(INLINE_GRAMMAR *Type[AssignExpression]*) form allocates a dynamic array with
         length equal to *AssignExpression*.
-        It is preferred to use the *Type(NamedArgumentList)* form when allocating
+        It is preferred to use the $(INLINE_GRAMMAR *Type(NamedArgumentList)*) form when allocating
         dynamic arrays instead, as it is more general.)
 
     $(NOTE It is not possible to allocate a static array directly with
         `new` (only by using a type alias).)
 
-    $(P The result is a $(DDSUBLINK const3, unique-expressions, unique expression)
+    $(P The result is a $(DDSUBLINK spec/const3, unique-expressions, unique expression)
     which can implicitly convert to other qualifiers:)
 
     ---
