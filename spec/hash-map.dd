@@ -406,6 +406,7 @@ $(SPEC_RUNNABLE_EXAMPLE_RUN
         int[int] aa;             // defaults to null
         int[int] aa2 = aa;       // copies the null reference
 
+        assert(aa is null);
         aa[1] = 1;
         assert(aa2.length == 0); // aa2 still is null
         aa2 = aa;
@@ -413,6 +414,20 @@ $(SPEC_RUNNABLE_EXAMPLE_RUN
         assert(aa[2] == 2);      // now both refer to the same instance
         ------
 )
+
+    $(P A $(GLINK2 expression, NewExpression) allows constructing an associative array instance
+        immediately, rather than when $(DDSUBLINK spec/hash-map, construction_assignment_entries, inserting a key).)
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---
+        int[string] a = new int[string];
+        auto b = a; // a and b point to the same AA instance
+
+        assert(b !is null);
+        a["1"] = 1;
+        assert(b["1"] == 1);
+        ---
+        )
 
 $(H2 $(LNAME2 properties, Properties))
 
