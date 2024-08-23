@@ -96,14 +96,20 @@ $(GLINK OrOrExpression) (`||`), such that $(I expr) is a subexpression of $(I sc
 ---
 ((f() * 2 && g()) + 1) || h()
 ---
-The smallest short-circuit expression
-of the subexpression `f() * 2` above is `f() * 2 && g()`. Example:
+$(P The smallest short-circuit expression
+of the subexpression `f() * 2` above is `f() * 2 && g()`. Example:)
 ---
 (f() && g()) + h()
 ---
-The subexpression `h()` above has no smallest short-circuit expression.
+$(P The subexpression `h()` above has no smallest short-circuit expression.)
+
 
 $(H2 $(LNAME2 order-of-evaluation, Order Of Evaluation))
+
+$(BEST_PRACTICE Even when the order of evaluation is well-defined, writing code that
+depends on it is rarely recommended.)
+
+$(H3 $(LNAME2 order-increment, Increment and Decrement))
 
 $(P Built-in prefix unary expressions `++` and `--` are evaluated as if lowered (rewritten) to
 $(RELATIVE_LINK2 assignment_operator_expressions, assignments) as follows:)
@@ -129,6 +135,21 @@ $(TABLE
 $(P Therefore, the result of postfix
 `++` and `--` is an rvalue just before the side effect has been effected.)
 
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+int i = 0;
+assert(++i == 1);
+assert(i++ == 1);
+assert(i == 2);
+
+int* p = [1, 2].ptr;
+assert(*p++ == 1);
+assert(*p == 2);
+---
+)
+
+$(H3 $(LNAME2 order-binary, Binary Expressions))
+
 $(P Binary expressions except for $(GLINK AssignExpression), $(GLINK OrOrExpression), and
 $(GLINK AndAndExpression) are evaluated in lexical order (left-to-right). Example:)
 
@@ -145,14 +166,24 @@ first. Then, $(GLINK OrOrExpression) evaluates its right-hand side if and only i
 side does not evaluate to nonzero. $(GLINK AndAndExpression) evaluates its right-hand side if and
 only if its left-hand side evaluates to nonzero.)
 
+    $(IMPLEMENTATION_DEFINED The order of evaluation of the operands of $(GLINK AssignExpression).)
+
+$(H3 $(LNAME2 order-conditional, Conditional Expressions))
+
 $(P $(GLINK ConditionalExpression) evaluates its left-hand side argument
 first. Then, if the result is nonzero, the second operand is evaluated. Otherwise, the third operand
 is evaluated.)
 
+$(H3 $(LNAME2 order-calls, Function Calls))
+
 $(P Calls to functions  with `extern(D)` $(DDSUBLINK spec/attribute, linkage, linkage) (which is
-the default linkage) are evaluated in the following order: first, if necessary, the address of the
-function to call is evaluated (e.g. in the case of a computed function pointer or delegate). Then,
-arguments are evaluated left to right. Finally, transfer is passed to the function. Example:)
+the default linkage) are evaluated in the following order:)
+1. If necessary, the address of the
+   function to call is evaluated (e.g. in the case of a computed function pointer or delegate).
+1. Arguments are evaluated left to right.
+1. Transfer of execution is passed to the function.
+
+$(P Example calling a $(DDSUBLINK spec/function, function-pointers, function pointer):)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ---
@@ -173,14 +204,8 @@ fun()(f1(), f3(f2()), f4());
 ---
 )
 
-    $(IMPLEMENTATION_DEFINED
-    $(OL
-    $(LI The order of evaluation of the operands of $(GLINK AssignExpression).)
-    $(LI The order of evaluation of function arguments for functions with linkage other than `extern (D)`.)
-    ))
+    $(IMPLEMENTATION_DEFINED The order of evaluation of function arguments for functions with linkage other than `extern(D)`.)
 
-    $(BEST_PRACTICE Even though the order of evaluation is well-defined, writing code that
-    depends on it is rarely recommended.)
 
 $(H2 $(LNAME2 temporary-lifetime, Lifetime of Temporaries))
 
