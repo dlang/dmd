@@ -114,7 +114,17 @@ private bool isNeedThisScope(Scope* sc, Declaration d)
         //printf("\ts = %s %s, toParent2() = %p\n", s.kind(), s.toChars(), s.toParent2());
         if (AggregateDeclaration ad2 = s.isAggregateDeclaration())
         {
+            bool isSubclassOf(ClassDeclaration base, ClassDeclaration sub)
+            {
+                if (!base || !sub) return false;
+                for (ClassDeclaration cd = sub; cd; cd = cd.baseClass)
+                    if (cd == base)
+                        return true;
+                return false;
+            }
             if (ad2 == ad)
+                return false;
+            else if (isSubclassOf(ad2.isClassDeclaration(), ad.isClassDeclaration()))
                 return false;
             else if (ad2.isNested())
                 continue;
