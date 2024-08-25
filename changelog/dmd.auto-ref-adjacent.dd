@@ -1,6 +1,6 @@
-`auto ref` variables must have adjacent keywords `auto` and `ref`
+Keywords `auto` and `ref` must be adjacent
 
-It's now deprecated to declare `auto ref` parameters without putting those two keywords next to eachother.
+It's now deprecated to declare `auto ref` parameters without putting those two keywords next to each other.
 This way it's clear that `auto ref` semantics are intended, rather than `ref` and `auto` semantics separately.
 For the newly introduced `ref` local / global variables, it's an error immediately.
 
