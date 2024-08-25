@@ -482,13 +482,19 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
     }
     if (e.ident == Id.isAbstractClass)
     {
-        return isTypeX(t => t.toBasetype().isTypeClass() &&
-                            t.toBasetype().isTypeClass().sym.isAbstract());
+        return isTypeX((t)
+        {
+            auto c = t.toBasetype().isTypeClass();
+            return c && c.sym.isAbstract();
+        });
     }
     if (e.ident == Id.isFinalClass)
     {
-        return isTypeX(t => t.toBasetype().isTypeClass() &&
-                            (t.toBasetype().isTypeClass().sym.storage_class & STC.final_) != 0);
+        return isTypeX((t)
+        {
+            const c = t.toBasetype().isTypeClass();
+            return c && (c.sym.storage_class & STC.final_) != 0;
+        });
     }
     if (e.ident == Id.isTemplate)
     {
