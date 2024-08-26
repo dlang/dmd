@@ -931,7 +931,7 @@ MATCH implicitConvTo(Expression e, Type t)
          */
         Type tb = t.toBasetype();
         MOD mod = tb.mod;
-        if (tf.isref)
+        if (tf.isRef)
         {
         }
         else
@@ -3487,8 +3487,8 @@ Lagain:
                 d.purity = PURE.impure;
             assert(d.purity != PURE.fwdref);
 
-            d.isnothrow = (tf1.isnothrow && tf2.isnothrow);
-            d.isnogc = (tf1.isnogc && tf2.isnogc);
+            d.isNothrow = (tf1.isNothrow && tf2.isNothrow);
+            d.isNogc = (tf1.isNogc && tf2.isNogc);
 
             if (tf1.trust == tf2.trust)
                 d.trust = tf1.trust;

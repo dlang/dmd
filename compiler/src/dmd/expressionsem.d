@@ -1375,12 +1375,12 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
             auto td = s.isTemplateDeclaration();
             if (fd)
             {
-                if (fd.type.isTypeFunction().isproperty)
+                if (fd.type.isTypeFunction().isProperty)
                     return resolveProperties(sc, e1);
             }
             else if (td && td.onemember && (fd = td.onemember.isFuncDeclaration()) !is null)
             {
-                if (fd.type.isTypeFunction().isproperty ||
+                if (fd.type.isTypeFunction().isProperty ||
                     (fd.storage_class2 & STC.property) ||
                     (td._scope.stc & STC.property))
                     return resolveProperties(sc, e1);
@@ -1396,7 +1396,7 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
         {
             if (auto fd = td.onemember.isFuncDeclaration())
             {
-                if (fd.type.isTypeFunction().isproperty ||
+                if (fd.type.isTypeFunction().isProperty ||
                     (fd.storage_class2 & STC.property) ||
                     (td._scope.stc & STC.property))
                     return resolveProperties(sc, e1);
@@ -1408,7 +1408,7 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
     Expression handleFuncDecl(FuncDeclaration fd)
     {
         assert(fd);
-        if (fd.type.isTypeFunction().isproperty)
+        if (fd.type.isTypeFunction().isProperty)
             return resolveProperties(sc, e1);
         return e1;
     }
@@ -2208,7 +2208,7 @@ private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
                     f.errorSupplementalInferredAttr(/*max depth*/ 10, /*deprecation*/ false, STC.nogc);
             }
 
-            f.checkOverriddenDtor(sc, loc, dd => dd.type.toTypeFunction().isnogc, "non-@nogc");
+            f.checkOverriddenDtor(sc, loc, dd => dd.type.toTypeFunction().isNogc, "non-@nogc");
 
             return true;
         }
@@ -2314,7 +2314,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
                     fd = f;
                     assert(fd.type.ty == Tfunction);
                     auto tf = fd.type.isTypeFunction();
-                    if (!tf.isref && e2)
+                    if (!tf.isRef && e2)
                     {
                         error(loc, "%s is not an lvalue", e1.toChars());
                         return ErrorExp.get();
@@ -2429,7 +2429,7 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
                 if (fd.errors)
                     return ErrorExp.get();
                 TypeFunction tf = fd.type.isTypeFunction();
-                if (!e2 || tf.isref)
+                if (!e2 || tf.isRef)
                 {
                     Expression e = new CallExp(loc, e1);
                     if (e2)
@@ -3049,7 +3049,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
     }
     if ((wildmatch == MODFlags.mutable || wildmatch == MODFlags.immutable_) &&
         tf.next && tf.next.hasWild() &&
-        (tf.isref || !tf.next.implicitConvTo(tf.next.immutableOf())))
+        (tf.isRef || !tf.next.implicitConvTo(tf.next.immutableOf())))
     {
         bool errorInout(MOD wildmatch)
         {
@@ -3574,7 +3574,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
     /* Test compliance with DIP1021 Argument Ownership and Function Calls
      */
     if (global.params.useDIP1021 && (tf.trust == TRUST.safe || tf.trust == TRUST.default_) ||
-        tf.islive)
+        tf.isLive)
         err |= checkMutableArguments(*sc, fd, tf, ethis, arguments, false);
 
     // If D linkage and variadic, add _arguments[] as first argument
@@ -6630,7 +6630,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         sc.func.kind(), sc.func.toPrettyChars(), p, exp.e1.toChars());
                     err = true;
                 }
-                if (!tf.isnogc && sc.func.setGC(exp.loc, "`@nogc` %s `%s` cannot call non-@nogc `%s`", exp.e1))
+                if (!tf.isNogc && sc.func.setGC(exp.loc, "`@nogc` %s `%s` cannot call non-@nogc `%s`", exp.e1))
                 {
                     error(exp.loc, "`@nogc` %s `%s` cannot call non-@nogc %s `%s`",
                         sc.func.kind(), sc.func.toPrettyChars(), p, exp.e1.toChars());
@@ -15040,11 +15040,11 @@ MATCH matchType(FuncExp funcExp, Type to, Scope* sc, FuncExp* presult, ErrorSink
                     tfx.linkage, STC.undefined_);
         tfy.mod = tfx.mod;
         tfy.trust = tfx.trust;
-        tfy.isnothrow = tfx.isnothrow;
-        tfy.isnogc = tfx.isnogc;
+        tfy.isNothrow = tfx.isNothrow;
+        tfy.isNogc = tfx.isNogc;
         tfy.purity = tfx.purity;
-        tfy.isproperty = tfx.isproperty;
-        tfy.isref = tfx.isref;
+        tfy.isProperty = tfx.isProperty;
+        tfy.isRef = tfx.isRef;
         tfy.isInOutParam = tfx.isInOutParam;
         tfy.isInOutQual = tfx.isInOutQual;
         tfy.deco = tfy.merge().deco;
@@ -15569,7 +15569,7 @@ Expression addDtorHook(Expression e, Scope* sc)
 
         if (auto tf = e1.type.isTypeFunction())
         {
-            if (tf.isref)
+            if (tf.isRef)
                 return exp;
         }
 

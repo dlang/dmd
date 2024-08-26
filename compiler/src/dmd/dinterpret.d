@@ -720,9 +720,9 @@ private Expression interpretFunction(UnionExp* pue, FuncDeclaration fd, InterSta
         }
     }
 
-    if (tf.isref && e.op == EXP.variable && e.isVarExp().var == fd.vthis)
+    if (tf.isRef && e.op == EXP.variable && e.isVarExp().var == fd.vthis)
         e = thisarg;
-    if (tf.isref && fd.hasDualContext() && e.op == EXP.index)
+    if (tf.isRef && fd.hasDualContext() && e.op == EXP.index)
     {
         auto ie = e.isIndexExp();
         auto pe = ie.e1.isPtrExp();
@@ -999,7 +999,7 @@ Expression interpretStatement(UnionExp* pue, Statement s, InterState* istate)
         /* If the function returns a ref AND it's been called from an assignment,
          * we need to return an lvalue. Otherwise, just do an (rvalue) interpret.
          */
-        if (tf.isref)
+        if (tf.isRef)
         {
             result = interpret(pue, s.exp, istate, CTFEGoal.LValue);
             return;

@@ -1595,7 +1595,7 @@ public tym_t totym(Type tx)
                     printf("linkage = %d\n", tf.linkage);
                     assert(0);
             }
-            if (tf.isnothrow)
+            if (tf.isNothrow)
                 t |= mTYnothrow;
             return t;
         }

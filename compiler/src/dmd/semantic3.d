@@ -610,7 +610,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     }
                 }
 
-                bool inferRef = (f.isref && (funcdecl.storage_class & STC.auto_));
+                bool inferRef = (f.isRef && (funcdecl.storage_class & STC.auto_));
 
                 funcdecl.fbody = funcdecl.fbody.statementSemantic(sc2);
                 if (!funcdecl.fbody)
@@ -654,12 +654,12 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             funcdecl.returns.remove(i);
                             continue;
                         }
-                        if (inferRef && f.isref && !exp.type.constConv(f.next)) // https://issues.dlang.org/show_bug.cgi?id=13336
-                            f.isref = false;
+                        if (inferRef && f.isRef && !exp.type.constConv(f.next)) // https://issues.dlang.org/show_bug.cgi?id=13336
+                            f.isRef = false;
                         i++;
                     }
                 }
-                if (f.isref) // Function returns a reference
+                if (f.isRef) // Function returns a reference
                 {
                     if (funcdecl.storage_class & STC.auto_)
                         funcdecl.storage_class &= ~STC.auto_;
@@ -766,8 +766,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 funcdecl.buildEnsureRequire();
 
                 // Check for errors related to 'nothrow'.
-                const blockexit = funcdecl.fbody.blockExit(funcdecl, f.isnothrow ? global.errorSink : null);
-                if (f.isnothrow && blockexit & BE.throw_)
+                const blockexit = funcdecl.fbody.blockExit(funcdecl, f.isNothrow ? global.errorSink : null);
+                if (f.isNothrow && blockexit & BE.throw_)
                     error(funcdecl.loc, "%s `%s` may throw but is marked as `nothrow`", funcdecl.kind(), funcdecl.toPrettyChars());
 
                 if (!(blockexit & (BE.throw_ | BE.halt) || funcdecl.hasCatches))
@@ -782,7 +782,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 {
                     if (funcdecl.type == f)
                         f = cast(TypeFunction)f.copy();
-                    f.isnothrow = !(blockexit & BE.throw_);
+                    f.isNothrow = !(blockexit & BE.throw_);
                 }
 
                 if (funcdecl.fbody.isErrorStatement())
@@ -916,7 +916,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         }
 
                         // Function returns a reference
-                        if (f.isref)
+                        if (f.isRef)
                         {
                             if (!MODimplicitConv(exp.type.mod, tret.mod) && !tret.isTypeSArray())
                                 error(exp.loc, "expression `%s` of type `%s` is not implicitly convertible to return type `ref %s`",
@@ -993,7 +993,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             /* Do the semantic analysis on the [in] preconditions and
              * [out] postconditions.
              */
-            immutable bool isnothrow = f.isnothrow && !funcdecl.nothrowInprocess;
+            immutable bool isNothrow = f.isNothrow && !funcdecl.nothrowInprocess;
             if (freq)
             {
                 /* frequire is composed of the [in] contracts
@@ -1012,11 +1012,11 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 const blockExit = freq.blockExit(funcdecl, null);
                 if (blockExit & BE.throw_)
                 {
-                    if (isnothrow)
+                    if (isNothrow)
                         error(funcdecl.loc, "`%s`: `in` contract may throw but function is marked as `nothrow`",
                             funcdecl.toPrettyChars());
                     else if (funcdecl.nothrowInprocess)
-                        f.isnothrow = false;
+                        f.isNothrow = false;
                 }
 
                 funcdecl.hasNoEH = false;
@@ -1056,11 +1056,11 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 const blockExit = fens.blockExit(funcdecl, null);
                 if (blockExit & BE.throw_)
                 {
-                    if (isnothrow)
+                    if (isNothrow)
                         error(funcdecl.loc, "`%s`: `out` contract may throw but function is marked as `nothrow`",
                             funcdecl.toPrettyChars());
                     else if (funcdecl.nothrowInprocess)
-                        f.isnothrow = false;
+                        f.isNothrow = false;
                 }
 
                 funcdecl.hasNoEH = false;
@@ -1188,17 +1188,17 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                             s = s.statementSemantic(sc2);
 
-                            const blockexit = s.blockExit(funcdecl, isnothrow ? global.errorSink : null);
+                            const blockexit = s.blockExit(funcdecl, isNothrow ? global.errorSink : null);
                             if (blockexit & BE.throw_)
                             {
                                 funcdecl.hasNoEH = false;
-                                if (isnothrow)
+                                if (isNothrow)
                                     error(funcdecl.loc, "%s `%s` may throw but is marked as `nothrow`", funcdecl.kind(), funcdecl.toPrettyChars());
                                 else if (funcdecl.nothrowInprocess)
-                                    f.isnothrow = false;
+                                    f.isNothrow = false;
                             }
 
-                            if (sbody.blockExit(funcdecl, f.isnothrow ? global.errorSink : null) == BE.fallthru)
+                            if (sbody.blockExit(funcdecl, f.isNothrow ? global.errorSink : null) == BE.fallthru)
                                 sbody = new CompoundStatement(Loc.initial, sbody, s);
                             else
                                 sbody = new TryFinallyStatement(Loc.initial, sbody, s);
@@ -1305,7 +1305,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             funcdecl.nogcInprocess = false;
             if (funcdecl.type == f)
                 f = cast(TypeFunction)f.copy();
-            f.isnogc = true;
+            f.isNogc = true;
         }
 
         finishScopeParamInference(funcdecl, f);
@@ -1319,7 +1319,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         {
             sc = sc.push();
             if (funcdecl.isCtorDeclaration()) // https://issues.dlang.org/show_bug.cgi?id=#15665
-                f.isctor = true;
+                f.isCtor = true;
             sc.stc = 0;
             sc.linkage = funcdecl._linkage; // https://issues.dlang.org/show_bug.cgi?id=8496
             funcdecl.type = f.typeSemantic(funcdecl.loc, sc);
@@ -1396,7 +1396,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
         // Do live analysis
         if (global.params.useDIP1021 && funcdecl.fbody && funcdecl.type.ty != Terror &&
-            funcdecl.type.isTypeFunction().islive)
+            funcdecl.type.isTypeFunction().isLive)
         {
             oblive(funcdecl);
         }
@@ -1433,7 +1433,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
          */
         AggregateDeclaration ad = ctor.isMemberDecl();
         if (!ctor.fbody || !ad || !ad.fieldDtor ||
-            global.params.dtorFields == FeatureState.disabled || !global.params.useExceptions || ctor.type.toTypeFunction.isnothrow)
+            global.params.dtorFields == FeatureState.disabled || !global.params.useExceptions || ctor.type.toTypeFunction.isNothrow)
             return visit(cast(FuncDeclaration)ctor);
 
         /* Generate:
@@ -1451,7 +1451,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             auto ctf = cast(TypeFunction) ctor.type;
             auto dtf = cast(TypeFunction) ad.fieldDtor.type;
 
-            const ngErr = ctf.isnogc && !dtf.isnogc;
+            const ngErr = ctf.isNogc && !dtf.isNogc;
             const puErr = ctf.purity && !dtf.purity;
             const saErr = ctf.trust == TRUST.safe && dtf.trust <= TRUST.system;
 

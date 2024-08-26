@@ -987,7 +987,7 @@ extern(D):
         else
         {
             Type rettype = type.next;
-            if (type.isref)
+            if (type.isRef)
                 rettype = rettype.referenceTo();
             ignoreConst = false;
             if (rettype.ty == Tstruct)

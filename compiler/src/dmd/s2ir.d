@@ -623,7 +623,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                 e = el_var(irs.shidden);
                 e = el_bin(OPcomma, e.Ety, es, e);
             }
-            else if (tf.isref)
+            else if (tf.isRef)
             {
                 // Reference return, so convert to a pointer
                 e = toElemDtor(s.exp, irs);
