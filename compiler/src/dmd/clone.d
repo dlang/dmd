@@ -440,7 +440,7 @@ bool needOpEquals(StructDeclaration sd)
             if (needOpEquals(ts.sym))
                 goto Lneed;
         }
-        if (tvbase.isfloating())
+        if (tvbase.isFloating())
         {
             // This is necessray for:
             //  1. comparison of +0.0 and -0.0 should be true.
@@ -767,7 +767,7 @@ private bool needToHash(StructDeclaration sd)
             if (needToHash(ts.sym))
                 goto Lneed;
         }
-        if (tvbase.isfloating())
+        if (tvbase.isFloating())
         {
             /* This is necessary because comparison of +0.0 and -0.0 should be true,
              * i.e. not a bit compare.

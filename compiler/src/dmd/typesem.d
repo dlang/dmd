@@ -631,7 +631,7 @@ extern (D) bool checkComplexTransition(Type type, const ref Loc loc, Scope* sc)
     if (t.ty == Tenum && !(cast(TypeEnum)t).sym.memtype)
         return false;
 
-    if (t.isimaginary() || t.iscomplex())
+    if (t.isImaginary() || t.isComplex())
     {
         if (sc.inCfile)
             return true;            // complex/imaginary not deprecated in C code
@@ -660,7 +660,7 @@ extern (D) bool checkComplexTransition(Type type, const ref Loc loc, Scope* sc)
         // Deprecated in 2.097 - Can be made an error from 2.117.
         // The deprecation period is longer than usual as `cfloat`,
         // `cdouble`, and `creal` were quite widely used.
-        if (t.iscomplex())
+        if (t.isComplex())
         {
             deprecation(loc, "use of complex type `%s` is deprecated, use `std.complex.Complex!(%s)` instead",
                 type.toChars(), rt.toChars());
@@ -3429,7 +3429,7 @@ Expression getProperty(Type t, Scope* scope_, const ref Loc loc, Identifier iden
 
         Expression floatValue(real_t r)
         {
-            if (mt.isreal() || mt.isimaginary())
+            if (mt.isReal() || mt.isImaginary())
                 return new RealExp(loc, r, mt);
             else
             {
@@ -7713,7 +7713,7 @@ Expression getMaxMinValue(EnumDeclaration ed, const ref Loc loc, Identifier id)
         .error(loc, "%s `%s` is opaque and has no `.%s`", ed.kind, ed.toPrettyChars, id.toChars(), id.toChars());
         return errorReturn();
     }
-    if (!(ed.memtype && ed.memtype.isintegral()))
+    if (!(ed.memtype && ed.memtype.isIntegral()))
     {
         .error(loc, "%s `%s` has no `.%s` property because base type `%s` is not an integral type", ed.kind, ed.toPrettyChars, id.toChars(),
               id.toChars(), ed.memtype ? ed.memtype.toChars() : "");

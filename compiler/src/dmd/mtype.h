@@ -232,13 +232,13 @@ public:
     void modToBuffer(OutBuffer& buf) const;
     char *modToChars() const;
 
-    virtual bool isintegral();
-    virtual bool isfloating();   // real, imaginary, or complex
-    virtual bool isreal();
-    virtual bool isimaginary();
-    virtual bool iscomplex();
-    virtual bool isscalar();
-    virtual bool isunsigned();
+    virtual bool isIntegral();
+    virtual bool isFloating();   // real, imaginary, or complex
+    virtual bool isReal();
+    virtual bool isImaginary();
+    virtual bool isComplex();
+    virtual bool isScalar();
+    virtual bool isUnsigned();
     virtual bool isScopeClass();
     virtual bool isString();
     virtual bool isAssignable();
@@ -352,13 +352,13 @@ public:
     const char *kind() override;
     TypeBasic *syntaxCopy() override;
     unsigned alignsize() override;
-    bool isintegral() override;
-    bool isfloating() override;
-    bool isreal() override;
-    bool isimaginary() override;
-    bool iscomplex() override;
-    bool isscalar() override;
-    bool isunsigned() override;
+    bool isIntegral() override;
+    bool isFloating() override;
+    bool isReal() override;
+    bool isImaginary() override;
+    bool isComplex() override;
+    bool isScalar() override;
+    bool isUnsigned() override;
 
     // For eliminating dynamic_cast
     TypeBasic *isTypeBasic() override;
@@ -374,10 +374,10 @@ public:
     const char *kind() override;
     TypeVector *syntaxCopy() override;
     unsigned alignsize() override;
-    bool isintegral() override;
-    bool isfloating() override;
-    bool isscalar() override;
-    bool isunsigned() override;
+    bool isIntegral() override;
+    bool isFloating() override;
+    bool isScalar() override;
+    bool isUnsigned() override;
     bool isBoolean() override;
     Expression *defaultInitLiteral(const Loc &loc) override;
     TypeBasic *elementType();
@@ -447,7 +447,7 @@ public:
     static TypePointer *create(Type *t);
     const char *kind() override;
     TypePointer *syntaxCopy() override;
-    bool isscalar() override;
+    bool isScalar() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -716,13 +716,13 @@ public:
     TypeEnum *syntaxCopy() override;
     unsigned alignsize() override;
     Type *memType(const Loc &loc);
-    bool isintegral() override;
-    bool isfloating() override;
-    bool isreal() override;
-    bool isimaginary() override;
-    bool iscomplex() override;
-    bool isscalar() override;
-    bool isunsigned() override;
+    bool isIntegral() override;
+    bool isFloating() override;
+    bool isReal() override;
+    bool isImaginary() override;
+    bool isComplex() override;
+    bool isScalar() override;
+    bool isUnsigned() override;
     bool isBoolean() override;
     bool isString() override;
     bool isAssignable() override;

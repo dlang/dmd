@@ -1794,7 +1794,7 @@ elem* toElem(Expression e, ref IRState irs)
                 printf("%s\n", ce.toChars());
                 assert(0);
         }
-        if (!t1.isfloating())
+        if (!t1.isFloating())
         {
             // Convert from floating point compare to equivalent
             // integral compare
@@ -1838,7 +1838,7 @@ elem* toElem(Expression e, ref IRState irs)
                 e1 = tmp;
             }
 
-            if (t1.isfloating())
+            if (t1.isFloating())
             {
                 /* Rewrite in terms of < or <= operator
                  */
@@ -1882,7 +1882,7 @@ elem* toElem(Expression e, ref IRState irs)
             if (swap)
                 swapOps();
 
-            if (t1.isunsigned() || t2.isunsigned())
+            if (t1.isUnsigned() || t2.isUnsigned())
             {
                 /* only signed compare is available. Bias
                  * unsigned values by subtracting int.min
@@ -1965,7 +1965,7 @@ elem* toElem(Expression e, ref IRState irs)
             Type telement  = t1.nextOf().toBasetype();
             Type telement2 = t2.nextOf().toBasetype();
 
-            if ((telement.isintegral() || telement.ty == Tvoid) && telement.ty == telement2.ty)
+            if ((telement.isIntegral() || telement.ty == Tvoid) && telement.ty == telement2.ty)
             {
                 // Optimize comparisons of arrays of basic types
                 // For arrays of integers/characters, and void[],
@@ -2110,7 +2110,7 @@ elem* toElem(Expression e, ref IRState irs)
             // we can skip the compare if the structs are empty
             e = el_long(TYbool, ie.op == EXP.identity);
         }
-        else if (t1.ty == Tstruct || t1.isfloating())
+        else if (t1.ty == Tstruct || t1.isFloating())
         {
             // Do bit compare of struct's
             elem *es1 = toElem(ie.e1, irs);
@@ -2897,7 +2897,7 @@ elem* toElem(Expression e, ref IRState irs)
             CastExp ce = cast(CastExp)e.e1;
             t1 = ce.e1.type;
         }
-        return toElemBinAssign(e, t1.isunsigned() ? OPshrass : OPashrass);
+        return toElemBinAssign(e, t1.isUnsigned() ? OPshrass : OPashrass);
     }
 
     /***************************************
@@ -2989,7 +2989,7 @@ elem* toElem(Expression e, ref IRState irs)
 
     elem* visitShr(ShrExp e)
     {
-        return toElemBin(e, e.e1.type.isunsigned() ? OPshr : OPashr);
+        return toElemBin(e, e.e1.type.isUnsigned() ? OPshr : OPashr);
     }
 
     /***************************************
@@ -3396,7 +3396,7 @@ elem* toElem(Expression e, ref IRState irs)
                     arguments && arguments.length == 1)
                 {   Expression arg = (*arguments)[0];
                     arg = arg.optimize(WANTvalue);
-                    if (arg.isConst() && arg.type.isintegral())
+                    if (arg.isConst() && arg.type.isIntegral())
                     {   const sz = arg.toInteger();
                         if (sz > 0 && sz < 0x40000)
                         {
