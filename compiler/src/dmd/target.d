@@ -751,7 +751,7 @@ extern (C++) struct Target
         {
         case EXP.uadd:
             // Expression is a no-op, supported everywhere.
-            return tvec.isscalar();
+            return tvec.isScalar();
 
         case EXP.negate:
             if (vecsize == 16)
@@ -763,16 +763,16 @@ extern (C++) struct Target
                 if (elemty == TY.Tfloat64 && cpu >= CPU.sse2)
                     return true;
                 // (u)byte[16]/short[8]/int[4]/long[2] negate needs SSE2 support ({V}PSUB[BWDQ])
-                if (tvec.isintegral() && cpu >= CPU.sse2)
+                if (tvec.isIntegral() && cpu >= CPU.sse2)
                     return true;
             }
             else if (vecsize == 32)
             {
                 // float[8]/double[4] negate needs AVX support (VSUBP[SD])
-                if (tvec.isfloating() && cpu >= CPU.avx)
+                if (tvec.isFloating() && cpu >= CPU.avx)
                     return true;
                 // (u)byte[32]/short[16]/int[8]/long[4] negate needs AVX2 support (VPSUB[BWDQ])
-                if (tvec.isintegral() && cpu >= CPU.avx2)
+                if (tvec.isIntegral() && cpu >= CPU.avx2)
                     return true;
             }
             break;
@@ -791,7 +791,7 @@ extern (C++) struct Target
                 // double[2] comparison needs SSE2 support (CMP{EQ,NEQ,LT,LE}PD)
                 if (elemty == TY.Tfloat64 && cpu >= CPU.sse2)
                     return true;
-                if (tvec.isintegral())
+                if (tvec.isIntegral())
                 {
                     if (elemty == TY.Tint64 || elemty == TY.Tuns64)
                     {
@@ -810,10 +810,10 @@ extern (C++) struct Target
             else if (vecsize == 32)
             {
                 // float[8]/double[4] comparison needs AVX support (VCMP{EQ,NEQ,LT,LE}P[SD])
-                if (tvec.isfloating() && cpu >= CPU.avx)
+                if (tvec.isFloating() && cpu >= CPU.avx)
                     return true;
                 // (u)byte[32]/short[16]/int[8]/long[4] comparison needs AVX2 support (VPCMP{EQ,GT}[BWDQ])
-                if (tvec.isintegral() && cpu >= CPU.avx2)
+                if (tvec.isIntegral() && cpu >= CPU.avx2)
                     return true;
             }
             break;
@@ -831,16 +831,16 @@ extern (C++) struct Target
                 if (elemty == TY.Tfloat64 && cpu >= CPU.sse2)
                     return true;
                 // (u)byte[16]/short[8]/int[4]/long[2] add/sub needs SSE2 support ({V}PADD[BWDQ], {V}PSUB[BWDQ])
-                if (tvec.isintegral() && cpu >= CPU.sse2)
+                if (tvec.isIntegral() && cpu >= CPU.sse2)
                     return true;
             }
             else if (vecsize == 32)
             {
                 // float[8]/double[4] add/sub needs AVX support (VADDP[SD], VSUBP[SD])
-                if (tvec.isfloating() && cpu >= CPU.avx)
+                if (tvec.isFloating() && cpu >= CPU.avx)
                     return true;
                 // (u)byte[32]/short[16]/int[8]/long[4] add/sub needs AVX2 support (VPADD[BWDQ], VPSUB[BWDQ])
-                if (tvec.isintegral() && cpu >= CPU.avx2)
+                if (tvec.isIntegral() && cpu >= CPU.avx2)
                     return true;
             }
             break;
@@ -864,7 +864,7 @@ extern (C++) struct Target
             else if (vecsize == 32)
             {
                 // float[8]/double[4] multiply needs AVX support (VMULP[SD])
-                if (tvec.isfloating() && cpu >= CPU.avx)
+                if (tvec.isFloating() && cpu >= CPU.avx)
                     return true;
                 // (u)short[16] multiply needs AVX2 support (VPMULLW)
                 if ((elemty == TY.Tint16 || elemty == TY.Tuns16) && cpu >= CPU.avx2)
@@ -888,7 +888,7 @@ extern (C++) struct Target
             else if (vecsize == 32)
             {
                 // float[8]/double[4] multiply needs AVX support (VDIVP[SD])
-                if (tvec.isfloating() && cpu >= CPU.avx)
+                if (tvec.isFloating() && cpu >= CPU.avx)
                     return true;
             }
             break;
@@ -897,7 +897,7 @@ extern (C++) struct Target
             return false;
 
         case EXP.and, EXP.andAssign, EXP.or, EXP.orAssign, EXP.xor, EXP.xorAssign:
-            if (tvec.isintegral())
+            if (tvec.isIntegral())
             {
                 // (u)byte[16]/short[8]/int[4]/long[2] bitwise ops needs SSE2 support ({V}PAND, {V}POR, {V}PXOR)
                 if (vecsize == 16 && cpu >= CPU.sse2)
@@ -912,7 +912,7 @@ extern (C++) struct Target
             return false;
 
         case EXP.tilde:
-            if (tvec.isintegral())
+            if (tvec.isIntegral())
             {
                 // (u)byte[16]/short[8]/int[4]/long[2] logical exclusive needs SSE2 support ({V}PXOR)
                 if (vecsize == 16 && cpu >= CPU.sse2)
@@ -1010,7 +1010,7 @@ extern (C++) struct Target
             // https://msdn.microsoft.com/en-us/library/7572ztz4%28v=vs.100%29.aspx
             if (tns.ty == TY.Tcomplex32)
                 return true;
-            if (tns.isscalar())
+            if (tns.isScalar())
                 return false;
 
             tns = tns.baseElemOf();
@@ -1127,7 +1127,7 @@ extern (C++) struct Target
         }
         else if (os & Target.OS.Posix &&
                  (tf.linkage == LINK.c || tf.linkage == LINK.cpp) &&
-                 tns.iscomplex())
+                 tns.isComplex())
         {
             if (tns.ty == TY.Tcomplex32)
                 return false;     // in EDX:EAX, not ST1:ST0
@@ -1137,7 +1137,7 @@ extern (C++) struct Target
         else if (os == Target.OS.Windows &&
                  isX86 &&
                  tf.linkage == LINK.cpp &&
-                 tf.isfloating())
+                 tf.isFloating())
         {
             /* See DMC++ function exp2_retmethod()
              * https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/dexp2.d#L149

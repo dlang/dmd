@@ -133,7 +133,7 @@ AlignDeclaration getAlignment(AlignDeclaration ad, Scope* sc)
             if (sc.inCfile && n == 0)       // C11 6.7.5-6 allows 0 for alignment
                 continue;
 
-            if (n < 1 || n & (n - 1) || ushort.max < n || !e.type.isintegral())
+            if (n < 1 || n & (n - 1) || ushort.max < n || !e.type.isIntegral())
             {
                 error(ad.loc, "alignment must be an integer positive power of 2, not 0x%llx", cast(ulong)n);
                 errors = true;
@@ -1570,7 +1570,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         auto width = dsym.width.expressionSemantic(sc);
         sc = sc.endCTFE();
         width = width.ctfeInterpret();
-        if (!dsym.type.isintegral())
+        if (!dsym.type.isIntegral())
         {
             // C11 6.7.2.1-5
             error(width.loc, "bit-field type `%s` is not an integer type", dsym.type.toChars());

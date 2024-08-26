@@ -108,7 +108,7 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
     // value.
 
     asmstate.bReturnax = true;
-    if (sc.func.type.nextOf().isscalar())
+    if (sc.func.type.nextOf().isScalar())
         asmstate.bReturnax = false;
 }
 
@@ -2113,7 +2113,7 @@ opflag_t asm_float_type_size(Type ptype, opflag_t *pusFloat)
     *pusFloat = 0;
 
     //printf("asm_float_type_size('%s')\n", ptype.toChars());
-    if (ptype && ptype.isscalar())
+    if (ptype && ptype.isScalar())
     {
         int sz = cast(int)ptype.size();
         if (sz == target.realsize)
@@ -2365,7 +2365,7 @@ void asm_merge_symbol(ref OPND o1, Dsymbol s)
             goto L2;
         }
 
-        if (!v.type.isfloating() && v.type.ty != Tvector)
+        if (!v.type.isFloating() && v.type.ty != Tvector)
         {
             if (auto e = expandVar(WANTexpand, v))
             {
@@ -3457,7 +3457,7 @@ OpndSize asm_type_size(Type ptype, bool bPtr)
 
     //if (ptype) printf("asm_type_size('%s') = %d\n", ptype.toChars(), (int)ptype.size());
     u = OpndSize._anysize;
-    if (ptype && ptype.ty != Tfunction /*&& ptype.isscalar()*/)
+    if (ptype && ptype.ty != Tfunction /*&& ptype.isScalar()*/)
     {
         switch (cast(int)ptype.size())
         {
@@ -4563,12 +4563,12 @@ TOK tryExpressionToOperand(Expression e, out OPND o1, out Dsymbol s)
     }
     if (e.isConst())
     {
-        if (e.type.isintegral())
+        if (e.type.isIntegral())
         {
             o1.disp = e.toInteger();
             return TOK.const_;
         }
-        if (e.type.isreal())
+        if (e.type.isReal())
         {
             o1.vreal = e.toReal();
             o1.ptype = e.type;

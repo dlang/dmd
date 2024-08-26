@@ -2928,7 +2928,7 @@ public:
             result = eref;
             return;
         }
-        if (e.newtype.toBasetype().isscalar())
+        if (e.newtype.toBasetype().isScalar())
         {
             Expression newval;
             if (e.arguments && e.arguments.length)
@@ -3027,7 +3027,7 @@ public:
             result = pointerDifference(pue, e.loc, e.type, e1, e2);
             return;
         }
-        if (e.e1.type.ty == Tpointer && e.e2.type.isintegral())
+        if (e.e1.type.ty == Tpointer && e.e2.type.isIntegral())
         {
             UnionExp ue1 = void;
             Expression e1 = interpret(&ue1, e.e1, istate);
@@ -3040,7 +3040,7 @@ public:
             result = pointerArithmetic(pue, e.loc, e.op, e.type, e1, e2);
             return;
         }
-        if (e.e2.type.ty == Tpointer && e.e1.type.isintegral() && e.op == EXP.add)
+        if (e.e2.type.ty == Tpointer && e.e1.type.isIntegral() && e.op == EXP.add)
         {
             UnionExp ue1 = void;
             Expression e1 = interpret(&ue1, e.e1, istate);
@@ -3636,7 +3636,7 @@ public:
 
                 newval = (*fp)(e.loc, e.type, oldval, newval).copy();
             }
-            else if (e.e2.type.isintegral() &&
+            else if (e.e2.type.isIntegral() &&
                      (e.op == EXP.addAssign ||
                       e.op == EXP.minAssign ||
                       e.op == EXP.plusPlus ||
@@ -3869,7 +3869,7 @@ public:
                 if (auto bf = v.isBitFieldDeclaration())
                 {
                     sinteger_t value = ival.toInteger();
-                    if (bf.type.isunsigned())
+                    if (bf.type.isUnsigned())
                         value &= (1L << bf.fieldWidth) - 1; // zero extra bits
                     else
                     {   // sign extend extra bits
@@ -6169,9 +6169,9 @@ public:
         }
         else if (tobt.isTypeBasic() && e1.op == EXP.null_)
         {
-            if (tobt.isintegral())
+            if (tobt.isIntegral())
                 emplaceExp!(IntegerExp)(pue, e.loc, 0, e.to);
-            else if (tobt.isreal())
+            else if (tobt.isReal())
                 emplaceExp!(RealExp)(pue, e.loc, CTFloat.zero, e.to);
             result = pue.exp();
             return;
