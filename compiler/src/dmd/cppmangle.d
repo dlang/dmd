@@ -234,7 +234,7 @@ private final class CppMangleVisitor : Visitor
         // if so, just pick up the type from the instance
         if (!rt)
             rt = tf.nextOf();
-        if (tf.isref)
+        if (tf.isRef)
             rt = rt.referenceTo();
         auto prev = this.context.push(tf.nextOf());
         scope (exit) this.context.pop(prev);
@@ -1915,7 +1915,7 @@ extern(C++):
         if (t.linkage == LINK.c)
             buf.writeByte('Y');
         Type tn = t.next;
-        if (t.isref)
+        if (t.isRef)
             tn = tn.referenceTo();
         tn.accept(this);
         mangleFunctionParameters(t.parameterList);

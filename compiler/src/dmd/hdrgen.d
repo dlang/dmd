@@ -3986,15 +3986,15 @@ private void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, Te
         buf.writeByte(' ');
         MODtoBuffer(buf, t.mod);
     }
-    if (t.isreturnscope && !t.isreturninferred)
+    if (t.isReturnScope && !t.isReturnInferred)
     {
         buf.writestring(" return scope");
     }
-    else if (t.isScopeQual && !t.isscopeinferred)
+    else if (t.isScopeQual && !t.isScopeInferred)
     {
         buf.writestring(" scope");
     }
-    if (t.isreturn && !t.isreturnscope && !t.isreturninferred)
+    if (t.isReturn && !t.isReturnScope && !t.isReturnInferred)
     {
         buf.writestring(" return");
     }
@@ -4184,7 +4184,7 @@ private void typeToBufferx(Type t, ref OutBuffer buf, ref HdrGenState hgs)
 
     void visitFunction(TypeFunction t)
     {
-        //printf("TypeFunction::toCBuffer2() t = %p, ref = %d\n", t, t.isref);
+        //printf("TypeFunction::toCBuffer2() t = %p, ref = %d\n", t, t.isRef);
         visitFuncIdentWithPostfix(t, null, buf, hgs, false);
     }
 

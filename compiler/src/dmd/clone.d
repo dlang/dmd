@@ -67,9 +67,9 @@ StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration f) pure
 
     if (tf.purity != PURE.impure)
         s2 |= STC.pure_;
-    if (tf.isnothrow)
+    if (tf.isNothrow)
         s2 |= STC.nothrow_;
-    if (tf.isnogc)
+    if (tf.isNogc)
         s2 |= STC.nogc;
 
     const sa = s1 & s2;
@@ -377,7 +377,7 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
         auto er = new ThisExp(loc);
         Statement s2 = new ReturnStatement(loc, er);
         fop.fbody = new CompoundStatement(loc, s1, s2);
-        tf.isreturn = true;
+        tf.isReturn = true;
     }
     sd.members.push(fop);
     fop.addMember(sc, sd);
@@ -1274,7 +1274,7 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         // block to destroy any prior successfully postblitted fields should
         // this field's postblit fail.
         // Don't generate it for betterC code since it cannot throw exceptions.
-        if (fieldsToDestroy.length > 0 && !(cast(TypeFunction)sdv.postblit.type).isnothrow && global.params.useExceptions)
+        if (fieldsToDestroy.length > 0 && !(cast(TypeFunction)sdv.postblit.type).isNothrow && global.params.useExceptions)
         {
              // create a list of destructors that need to be called
             Expression[] dtorCalls;

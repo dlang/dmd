@@ -4348,84 +4348,84 @@ public:
 private:
     struct BitFields final
     {
-        bool isnothrow;
-        bool isnogc;
-        bool isproperty;
-        bool isref;
-        bool isreturn;
+        bool isNothrow;
+        bool isNogc;
+        bool isProperty;
+        bool isRef;
+        bool isReturn;
         bool isScopeQual;
-        bool isreturninferred;
-        bool isscopeinferred;
-        bool islive;
+        bool isReturnInferred;
+        bool isScopeInferred;
+        bool isLive;
         bool incomplete;
         bool isInOutParam;
         bool isInOutQual;
-        bool isctor;
-        bool isreturnscope;
+        bool isCtor;
+        bool isReturnScope;
         BitFields() :
-            isnothrow(),
-            isnogc(),
-            isproperty(),
-            isref(),
-            isreturn(),
+            isNothrow(),
+            isNogc(),
+            isProperty(),
+            isRef(),
+            isReturn(),
             isScopeQual(),
-            isreturninferred(),
-            isscopeinferred(),
-            islive(),
+            isReturnInferred(),
+            isScopeInferred(),
+            isLive(),
             incomplete(),
             isInOutParam(),
             isInOutQual(),
-            isctor(),
-            isreturnscope()
+            isCtor(),
+            isReturnScope()
         {
         }
-        BitFields(bool isnothrow, bool isnogc = false, bool isproperty = false, bool isref = false, bool isreturn = false, bool isScopeQual = false, bool isreturninferred = false, bool isscopeinferred = false, bool islive = false, bool incomplete = false, bool isInOutParam = false, bool isInOutQual = false, bool isctor = false, bool isreturnscope = false) :
-            isnothrow(isnothrow),
-            isnogc(isnogc),
-            isproperty(isproperty),
-            isref(isref),
-            isreturn(isreturn),
+        BitFields(bool isNothrow, bool isNogc = false, bool isProperty = false, bool isRef = false, bool isReturn = false, bool isScopeQual = false, bool isReturnInferred = false, bool isScopeInferred = false, bool isLive = false, bool incomplete = false, bool isInOutParam = false, bool isInOutQual = false, bool isCtor = false, bool isReturnScope = false) :
+            isNothrow(isNothrow),
+            isNogc(isNogc),
+            isProperty(isProperty),
+            isRef(isRef),
+            isReturn(isReturn),
             isScopeQual(isScopeQual),
-            isreturninferred(isreturninferred),
-            isscopeinferred(isscopeinferred),
-            islive(islive),
+            isReturnInferred(isReturnInferred),
+            isScopeInferred(isScopeInferred),
+            isLive(isLive),
             incomplete(incomplete),
             isInOutParam(isInOutParam),
             isInOutQual(isInOutQual),
-            isctor(isctor),
-            isreturnscope(isreturnscope)
+            isCtor(isCtor),
+            isReturnScope(isReturnScope)
             {}
     };
 
 public:
-    bool isnothrow() const;
-    bool isnothrow(bool v);
-    bool isnogc() const;
-    bool isnogc(bool v);
-    bool isproperty() const;
-    bool isproperty(bool v);
-    bool isref() const;
-    bool isref(bool v);
-    bool isreturn() const;
-    bool isreturn(bool v);
+    bool isNothrow() const;
+    bool isNothrow(bool v);
+    bool isNogc() const;
+    bool isNogc(bool v);
+    bool isProperty() const;
+    bool isProperty(bool v);
+    bool isRef() const;
+    bool isRef(bool v);
+    bool isReturn() const;
+    bool isReturn(bool v);
     bool isScopeQual() const;
     bool isScopeQual(bool v);
-    bool isreturninferred() const;
-    bool isreturninferred(bool v);
-    bool isscopeinferred() const;
-    bool isscopeinferred(bool v);
-    bool islive() const;
-    bool islive(bool v);
+    bool isReturnInferred() const;
+    bool isReturnInferred(bool v);
+    bool isScopeInferred() const;
+    bool isScopeInferred(bool v);
+    bool isLive() const;
+    bool isLive(bool v);
     bool incomplete() const;
     bool incomplete(bool v);
     bool isInOutParam() const;
     bool isInOutParam(bool v);
     bool isInOutQual() const;
     bool isInOutQual(bool v);
-    bool isctor() const;
-    bool isctor(bool v);
-    bool isreturnscope() const;
-    bool isreturnscope(bool v);
+    bool isCtor() const;
+    bool isCtor(bool v);
+    bool isReturnScope() const;
+    bool isReturnScope(bool v);
 private:
     uint16_t bitFields;
 public:

@@ -3610,7 +3610,7 @@ extern (C++) final class CallExp : UnaExp
         if (tb.ty == Tdelegate || tb.ty == Tpointer)
             tb = tb.nextOf();
         auto tf = tb.isTypeFunction();
-        if (tf && tf.isref)
+        if (tf && tf.isRef)
         {
             if (auto dve = e1.isDotVarExp())
                 if (dve.var.isCtorDeclaration())

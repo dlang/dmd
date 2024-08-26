@@ -2018,7 +2018,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
         {
             auto tmp = Identifier.generateId("__retvar");
             vret = new VarDeclaration(fd.loc, fd.nrvo_var.type, tmp, new VoidInitializer(fd.loc));
-            assert(!tf.isref);
+            assert(!tf.isRef);
             vret.storage_class = STC.temp | STC.rvalue;
             vret._linkage = tf.linkage;
             vret.parent = parent;
@@ -2214,7 +2214,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
 
         import dmd.expressionsem : toLvalue;
         // https://issues.dlang.org/show_bug.cgi?id=11322
-        if (tf.isref)
+        if (tf.isRef)
             e = e.toLvalue(null, "`ref` return");
 
         /* If the inlined function returns a copy of a struct,
@@ -2241,7 +2241,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
             auto ei = new ExpInitializer(callLoc, e);
             auto tmp = Identifier.generateId("__inlineretval");
             auto vd = new VarDeclaration(callLoc, tf.next, tmp, ei);
-            vd.storage_class = STC.temp | (tf.isref ? STC.ref_ : STC.rvalue);
+            vd.storage_class = STC.temp | (tf.isRef ? STC.ref_ : STC.rvalue);
             vd._linkage = tf.linkage;
             vd.parent = parent;
 

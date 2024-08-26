@@ -332,15 +332,15 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
             }
         }
 
-        if (tf.isref)
+        if (tf.isRef)
             sc.stc |= STC.ref_;
         if (tf.isScopeQual)
             sc.stc |= STC.scope_;
-        if (tf.isnothrow)
+        if (tf.isNothrow)
             sc.stc |= STC.nothrow_;
-        if (tf.isnogc)
+        if (tf.isNogc)
             sc.stc |= STC.nogc;
-        if (tf.isproperty)
+        if (tf.isProperty)
             sc.stc |= STC.property;
         if (tf.purity == PURE.fwdref)
             sc.stc |= STC.pure_;
@@ -358,7 +358,7 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
 
         if (funcdecl.isCtorDeclaration())
         {
-            tf.isctor = true;
+            tf.isCtor = true;
             Type tret = ad.handleType();
             assert(tret);
             tret = tret.addStorageClass(funcdecl.storage_class | sc.stc);
@@ -369,7 +369,7 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
         }
 
         // 'return' on a non-static class member function implies 'scope' as well
-        if (ad && ad.isClassDeclaration() && (tf.isreturn || sc.stc & STC.return_) && !(sc.stc & STC.static_))
+        if (ad && ad.isClassDeclaration() && (tf.isReturn || sc.stc & STC.return_) && !(sc.stc & STC.static_))
             sc.stc |= STC.scope_;
 
         // If 'this' has no pointers, remove 'scope' as it has no meaning
@@ -380,11 +380,11 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
         {
             sc.stc &= ~STC.scope_;
             tf.isScopeQual = false;
-            if (tf.isreturnscope)
+            if (tf.isReturnScope)
             {
                 sc.stc &= ~(STC.return_ | STC.returnScope);
-                tf.isreturn = false;
-                tf.isreturnscope = false;
+                tf.isReturn = false;
+                tf.isReturnScope = false;
             }
         }
 
@@ -430,12 +430,12 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
         TypeFunction tfo = funcdecl.originalType.toTypeFunction();
         tfo.mod = f.mod;
         tfo.isScopeQual = f.isScopeQual;
-        tfo.isreturninferred = f.isreturninferred;
-        tfo.isscopeinferred = f.isscopeinferred;
-        tfo.isref = f.isref;
-        tfo.isnothrow = f.isnothrow;
-        tfo.isnogc = f.isnogc;
-        tfo.isproperty = f.isproperty;
+        tfo.isReturnInferred = f.isReturnInferred;
+        tfo.isScopeInferred = f.isScopeInferred;
+        tfo.isRef = f.isRef;
+        tfo.isNothrow = f.isNothrow;
+        tfo.isNogc = f.isNogc;
+        tfo.isProperty = f.isProperty;
         tfo.purity = f.purity;
         tfo.trust = f.trust;
 
@@ -472,10 +472,10 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
         funcdecl.overnext = null;   // don't overload the redeclarations
     }
 
-    if ((funcdecl.storage_class & STC.auto_) && !f.isref && !funcdecl.inferRetType)
+    if ((funcdecl.storage_class & STC.auto_) && !f.isRef && !funcdecl.inferRetType)
         .error(funcdecl.loc, "%s `%s` storage class `auto` has no effect if return type is not inferred", funcdecl.kind, funcdecl.toPrettyChars);
 
-    if (f.isreturn && !funcdecl.needThis() && !funcdecl.isNested())
+    if (f.isReturn && !funcdecl.needThis() && !funcdecl.isNested())
     {
         /* Non-static nested functions have a hidden 'this' pointer to which
          * the 'return' applies
@@ -1268,11 +1268,11 @@ extern (D) void declareThis(FuncDeclaration fd, Scope* sc)
 
     if (auto tf = fd.type.isTypeFunction())
     {
-        if (tf.isreturn)
+        if (tf.isReturn)
             fd.vthis.storage_class |= STC.return_;
         if (tf.isScopeQual)
             fd.vthis.storage_class |= STC.scope_;
-        if (tf.isreturnscope)
+        if (tf.isReturnScope)
             fd.vthis.storage_class |= STC.returnScope;
     }
 
@@ -2354,7 +2354,7 @@ void buildResultVar(FuncDeclaration fd, Scope* sc, Type tret)
     if (sc && fd.vresult.semanticRun == PASS.initial)
     {
         TypeFunction tf = fd.type.toTypeFunction();
-        if (tf.isref)
+        if (tf.isRef)
             fd.vresult.storage_class |= STC.ref_;
         fd.vresult.type = tret;
         fd.vresult.dsymbolSemantic(sc);
@@ -2573,8 +2573,8 @@ void buildEnsureRequire(FuncDeclaration thisfd)
         auto fo = cast(TypeFunction)(thisfd.originalType ? thisfd.originalType : f);
         auto fparams = toRefCopy(fo.parameterList);
         auto tf = new TypeFunction(ParameterList(fparams), Type.tvoid, LINK.d);
-        tf.isnothrow = f.isnothrow;
-        tf.isnogc = f.isnogc;
+        tf.isNothrow = f.isNothrow;
+        tf.isNogc = f.isNogc;
         tf.purity = f.purity;
         tf.trust = f.trust;
         auto fd = new FuncDeclaration(loc, loc, Id.require, STC.undefined_, tf);
@@ -2614,8 +2614,8 @@ void buildEnsureRequire(FuncDeclaration thisfd)
         auto fo = cast(TypeFunction)(thisfd.originalType ? thisfd.originalType : f);
         fparams.pushSlice((*toRefCopy(fo.parameterList))[]);
         auto tf = new TypeFunction(ParameterList(fparams), Type.tvoid, LINK.d);
-        tf.isnothrow = f.isnothrow;
-        tf.isnogc = f.isnogc;
+        tf.isNothrow = f.isNothrow;
+        tf.isNogc = f.isNogc;
         tf.purity = f.purity;
         tf.trust = f.trust;
         auto fd = new FuncDeclaration(loc, loc, Id.ensure, STC.undefined_, tf);
@@ -3026,7 +3026,7 @@ extern (D) bool checkNRVO(FuncDeclaration fd)
         return false;
 
     auto tf = fd.type.toTypeFunction();
-    if (tf.isref)
+    if (tf.isRef)
         return false;
 
     foreach (rs; *fd.returns)
@@ -3345,7 +3345,7 @@ extern (D) bool isReturnIsolated(FuncDeclaration fd)
     assert(tf.next);
 
     Type treti = tf.next;
-    if (tf.isref)
+    if (tf.isRef)
         return fd.isTypeIsolatedIndirect(treti);              // check influence from parameters
 
     return fd.isTypeIsolated(treti);
