@@ -372,16 +372,16 @@ void test_types()
     StorageClass stc = STCnothrow|STCproperty|STCreturn|STCreturninferred|STCtrusted;
     TypeFunction *tfunction = TypeFunction::create(args, Type::tvoid, VARARGnone, LINK::d, stc);
 
-    assert(tfunction->isnothrow());
-    assert(!tfunction->isnogc());
-    assert(tfunction->isproperty());
-    assert(!tfunction->isref());
-    tfunction->isref(true);
-    assert(tfunction->isref());
-    assert(tfunction->isreturn());
+    assert(tfunction->isNothrow());
+    assert(!tfunction->isNogc());
+    assert(tfunction->isProperty());
+    assert(!tfunction->isRef());
+    tfunction->isRef(true);
+    assert(tfunction->isRef());
+    assert(tfunction->isReturn());
     assert(!tfunction->isScopeQual());
-    assert(tfunction->isreturninferred());
-    assert(!tfunction->isscopeinferred());
+    assert(tfunction->isReturnInferred());
+    assert(!tfunction->isScopeInferred());
     assert(tfunction->linkage == LINK::d);
     assert(tfunction->trust == TRUST::trusted);
     assert(tfunction->purity == PURE::impure);
@@ -672,7 +672,7 @@ public:
         if (t->next != NULL)
         {
             t->next->accept(this);
-            (void)t->isref();
+            (void)t->isRef();
         }
         (void)t->ctype;
         switch (t->linkage)

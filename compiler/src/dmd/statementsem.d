@@ -1309,7 +1309,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 if (auto ftt = tfront.toBasetype().isTypeFunction())
                 {
                     tfront = tfront.toBasetype().nextOf();
-                    if (!ftt.isref)
+                    if (!ftt.isRef)
                     {
                         // .front() does not return a ref. We ignore ref on foreach arg.
                         // see https://issues.dlang.org/show_bug.cgi?id=11934
@@ -2469,7 +2469,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         Type tret = tf.next;
         Type tbret = tret ? tret.toBasetype() : null;
 
-        bool inferRef = (tf.isref && (fd.storage_class & STC.auto_));
+        bool inferRef = (tf.isRef && (fd.storage_class & STC.auto_));
         Expression e0 = null;
 
         bool errors = false;
@@ -2525,7 +2525,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             rs.exp = rs.exp.expressionSemantic(sc);
             rs.exp = rs.exp.arrayFuncConv(sc);
             // If we're returning by ref, allow the expression to be `shared`
-            const returnSharedRef = (tf.isref && (fd.inferRetType || tret.isShared()));
+            const returnSharedRef = (tf.isRef && (fd.inferRetType || tret.isShared()));
             rs.exp.checkSharedAccess(sc, returnSharedRef);
 
             // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
@@ -2643,8 +2643,8 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
                 void turnOffRef(scope void delegate() supplemental)
                 {
-                    tf.isref = false;    // return by value
-                    tf.isreturn = false; // ignore 'return' attribute, whether explicit or inferred
+                    tf.isRef = false;    // return by value
+                    tf.isReturn = false; // ignore 'return' attribute, whether explicit or inferred
                     fd.storage_class &= ~STC.return_;
 
                     // If we previously assumed the function could be ref when
@@ -2716,7 +2716,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
             // https://issues.dlang.org/show_bug.cgi?id=23914
             if (inferRef && !resType.isTypeNoreturn()) // deduce 'auto ref'
-                tf.isref = false;
+                tf.isRef = false;
 
             if (tbret.ty != Tvoid && !resType.isTypeNoreturn()) // if non-void return
             {

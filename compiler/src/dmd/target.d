@@ -980,7 +980,7 @@ extern (C++) struct Target
         import dmd.argtypes_sysv_x64 : toArgTypes_sysv_x64;
         import dmd.typesem : castMod;
 
-        if (tf.isref)
+        if (tf.isRef)
         {
             //printf("  ref false\n");
             return false;                 // returns a pointer

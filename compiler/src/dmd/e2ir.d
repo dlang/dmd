@@ -5848,7 +5848,7 @@ elem *callfunc(const ref Loc loc,
         e = el_una(OPind, tyret, e);
     }
 
-    if (tf.isref)
+    if (tf.isRef)
     {
         e.Ety = TYnptr;
         e = el_una(OPind, tyret, e);

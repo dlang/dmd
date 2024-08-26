@@ -1779,7 +1779,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                 if (sc2.func && sc2.func.type.isTypeFunction())
                 {
                     const tf = sc2.func.type.isTypeFunction();
-                    err |= tf.isnothrow && canThrow(ex, sc2.func, null);
+                    err |= tf.isNothrow && canThrow(ex, sc2.func, null);
                 }
                 ex = checkGC(sc2, ex);
                 if (ex.op == EXP.error)

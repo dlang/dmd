@@ -1841,7 +1841,7 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
 
                     Parameter a = t.parameterList[i];
 
-                    if (!a.isCovariant(t.isref, ap) ||
+                    if (!a.isCovariant(t.isRef, ap) ||
                         !deduceType(a.type, sc, ap.type, parameters, dedtypes))
                     {
                         result = MATCH.nomatch;

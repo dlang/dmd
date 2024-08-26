@@ -710,10 +710,10 @@ extern (C++) class FuncDeclaration : Declaration
         if (tf.trust == TRUST.default_)
             safetyInprocess = true;
 
-        if (!tf.isnothrow)
+        if (!tf.isNothrow)
             nothrowInprocess = true;
 
-        if (!tf.isnogc)
+        if (!tf.isNogc)
             nogcInprocess = true;
 
         // Initialize for inferring STC.scope_
@@ -803,7 +803,7 @@ extern (C++) class FuncDeclaration : Declaration
         //printf("isNogc() %s, inprocess: %d\n", toChars(), !!(flags & FUNCFLAG.nogcInprocess));
         if (nogcInprocess)
             setGC(loc, null);
-        return type.toTypeFunction().isnogc;
+        return type.toTypeFunction().isNogc;
     }
 
     extern (D) final bool isNogcBypassingInference()
@@ -840,7 +840,7 @@ extern (C++) class FuncDeclaration : Declaration
             else if (arg0)
                 nogcViolation = new AttributeViolation(loc, fmt, arg0); // call to non-@nogc function
 
-            type.toTypeFunction().isnogc = false;
+            type.toTypeFunction().isNogc = false;
             if (fes)
                 fes.func.setGC(Loc.init, null, null);
         }
