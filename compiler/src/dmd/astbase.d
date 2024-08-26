@@ -3385,7 +3385,7 @@ struct ASTBase
         }
 
         // TypeBasic, TypeVector, TypePointer, TypeEnum override this method
-        bool isscalar()
+        bool isScalar()
         {
             return false;
         }
@@ -3589,7 +3589,7 @@ struct ASTBase
             merge();
         }
 
-        override bool isscalar()
+        override bool isScalar()
         {
             return (flags & (TFlags.integral | TFlags.floating)) != 0;
         }
@@ -4748,7 +4748,7 @@ struct ASTBase
         {
             super(loc, EXP.int64, __traits(classInstanceSize, IntegerExp));
             assert(type);
-            if (!type.isscalar())
+            if (!type.isScalar())
             {
                 if (type.ty != Terror)
                     error("integral constant must be scalar type, not %s", type.toChars());

@@ -3016,7 +3016,7 @@ void floatToBuffer(Type type, const real_t value, ref OutBuffer buf, const bool 
         default:
             break;
         }
-        if (t.isimaginary())
+        if (t.isImaginary())
             buf.writeByte('i');
     }
 }

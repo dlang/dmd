@@ -545,7 +545,7 @@ extern(D):
      */
     void mangleTemplateValue(RootObject o, TemplateValueParameter tv, Dsymbol sym)
     {
-        if (!tv.valType.isintegral())
+        if (!tv.valType.isIntegral())
         {
             eSink.error(sym.loc, "%s `%s` internal compiler error: C++ %s template value parameter is not supported", sym.kind, sym.toPrettyChars, tv.valType.toChars());
             errors = true;
@@ -555,7 +555,7 @@ extern(D):
         buf.writeByte('0');
         Expression e = isExpression(o);
         assert(e);
-        if (tv.valType.isunsigned())
+        if (tv.valType.isUnsigned())
         {
             mangleNumber(buf, e.toUInteger());
         }

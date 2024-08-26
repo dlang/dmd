@@ -558,7 +558,7 @@ extern (C++) abstract class Expression : ASTNode
             return true;
         if (type.toBasetype().ty == Terror)
             return true;
-        if (!type.isscalar())
+        if (!type.isScalar())
         {
             error(loc, "`%s` is not a scalar, it is a `%s`", toChars(), type.toChars());
             return true;
@@ -586,7 +586,7 @@ extern (C++) abstract class Expression : ASTNode
             return true;
         if (type.toBasetype().ty == Terror)
             return true;
-        if (!type.isintegral())
+        if (!type.isIntegral())
         {
             error(loc, "`%s` is not of integral type, it is a `%s`", toChars(), type.toChars());
             return true;
@@ -600,7 +600,7 @@ extern (C++) abstract class Expression : ASTNode
             return true;
         if (type.toBasetype().ty == Terror)
             return true;
-        if (!type.isintegral() && !type.isfloating())
+        if (!type.isIntegral() && !type.isFloating())
         {
             // unary aggregate ops error here
             const char* msg = type.isAggregate() ?
@@ -879,7 +879,7 @@ extern (C++) final class IntegerExp : Expression
         super(loc, EXP.int64);
         //printf("IntegerExp(value = %lld, type = '%s')\n", value, type ? type.toChars() : "");
         assert(type);
-        if (!type.isscalar())
+        if (!type.isScalar())
         {
             //printf("%s, loc = %d\n", toChars(), loc.linnum);
             if (type.ty != Terror)
@@ -1199,12 +1199,12 @@ extern (C++) final class RealExp : Expression
 
     override real_t toReal()
     {
-        return type.isreal() ? value : CTFloat.zero;
+        return type.isReal() ? value : CTFloat.zero;
     }
 
     override real_t toImaginary()
     {
-        return type.isreal() ? CTFloat.zero : value;
+        return type.isReal() ? CTFloat.zero : value;
     }
 
     override complex_t toComplex()

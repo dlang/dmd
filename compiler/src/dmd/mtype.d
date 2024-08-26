@@ -641,38 +641,38 @@ extern (C++) abstract class Type : ASTNode
         return buf.extractChars();
     }
 
-    bool isintegral()
+    bool isIntegral()
     {
         return false;
     }
 
     // real, imaginary, or complex
-    bool isfloating()
+    bool isFloating()
     {
         return false;
     }
 
-    bool isreal()
+    bool isReal()
     {
         return false;
     }
 
-    bool isimaginary()
+    bool isImaginary()
     {
         return false;
     }
 
-    bool iscomplex()
+    bool isComplex()
     {
         return false;
     }
 
-    bool isscalar()
+    bool isScalar()
     {
         return false;
     }
 
-    bool isunsigned()
+    bool isUnsigned()
     {
         return false;
     }
@@ -705,7 +705,7 @@ extern (C++) abstract class Type : ASTNode
      */
     bool isBoolean()
     {
-        return isscalar();
+        return isScalar();
     }
 
     final bool isConst() const nothrow pure @nogc @safe
@@ -2031,38 +2031,38 @@ extern (C++) final class TypeBasic : Type
         return target.alignsize(this);
     }
 
-    override bool isintegral()
+    override bool isIntegral()
     {
-        //printf("TypeBasic::isintegral('%s') x%x\n", toChars(), flags);
+        //printf("TypeBasic::isIntegral('%s') x%x\n", toChars(), flags);
         return (flags & TFlags.integral) != 0;
     }
 
-    override bool isfloating()
+    override bool isFloating()
     {
         return (flags & TFlags.floating) != 0;
     }
 
-    override bool isreal()
+    override bool isReal()
     {
         return (flags & TFlags.real_) != 0;
     }
 
-    override bool isimaginary()
+    override bool isImaginary()
     {
         return (flags & TFlags.imaginary) != 0;
     }
 
-    override bool iscomplex()
+    override bool isComplex()
     {
         return (flags & TFlags.complex) != 0;
     }
 
-    override bool isscalar()
+    override bool isScalar()
     {
         return (flags & (TFlags.integral | TFlags.floating)) != 0;
     }
 
-    override bool isunsigned()
+    override bool isUnsigned()
     {
         return (flags & TFlags.unsigned) != 0;
     }
@@ -2120,25 +2120,25 @@ extern (C++) final class TypeVector : Type
         return cast(uint)basetype.size();
     }
 
-    override bool isintegral()
+    override bool isIntegral()
     {
-        //printf("TypeVector::isintegral('%s') x%x\n", toChars(), flags);
-        return basetype.nextOf().isintegral();
+        //printf("TypeVector::isIntegral('%s') x%x\n", toChars(), flags);
+        return basetype.nextOf().isIntegral();
     }
 
-    override bool isfloating()
+    override bool isFloating()
     {
-        return basetype.nextOf().isfloating();
+        return basetype.nextOf().isFloating();
     }
 
-    override bool isscalar()
+    override bool isScalar()
     {
-        return basetype.nextOf().isscalar();
+        return basetype.nextOf().isScalar();
     }
 
-    override bool isunsigned()
+    override bool isUnsigned()
     {
-        return basetype.nextOf().isunsigned();
+        return basetype.nextOf().isUnsigned();
     }
 
     override bool isBoolean()
@@ -2432,7 +2432,7 @@ extern (C++) final class TypePointer : TypeNext
         return result;
     }
 
-    override bool isscalar()
+    override bool isScalar()
     {
         return true;
     }
@@ -3388,39 +3388,39 @@ extern (C++) final class TypeEnum : Type
         return t.alignsize();
     }
 
-    override bool isintegral()
+    override bool isIntegral()
     {
-        return memType().isintegral();
+        return memType().isIntegral();
     }
 
-    override bool isfloating()
+    override bool isFloating()
     {
-        return memType().isfloating();
+        return memType().isFloating();
     }
 
-    override bool isreal()
+    override bool isReal()
     {
-        return memType().isreal();
+        return memType().isReal();
     }
 
-    override bool isimaginary()
+    override bool isImaginary()
     {
-        return memType().isimaginary();
+        return memType().isImaginary();
     }
 
-    override bool iscomplex()
+    override bool isComplex()
     {
-        return memType().iscomplex();
+        return memType().isComplex();
     }
 
-    override bool isscalar()
+    override bool isScalar()
     {
-        return memType().isscalar();
+        return memType().isScalar();
     }
 
-    override bool isunsigned()
+    override bool isUnsigned()
     {
-        return memType().isunsigned();
+        return memType().isUnsigned();
     }
 
     override bool isBoolean()

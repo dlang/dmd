@@ -975,7 +975,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 if (dim == 2)
                 {
                     Type tindex = (*fs.parameters)[0].type;
-                    if (!tindex.isintegral())
+                    if (!tindex.isIntegral())
                     {
                         error(fs.loc, "foreach: key cannot be of non-integral type `%s`", tindex.toChars());
                         return retError();
@@ -1539,7 +1539,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         if (fs.op == TOK.foreach_reverse_)
         {
             cond = new PostExp(EXP.minusMinus, loc, new VarExp(loc, fs.key));
-            if (fs.prm.type.isscalar())
+            if (fs.prm.type.isScalar())
             {
                 // key-- > tmp
                 cond = new CmpExp(EXP.greaterThan, loc, cond, new VarExp(loc, tmp));
@@ -1552,7 +1552,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         }
         else
         {
-            if (fs.prm.type.isscalar())
+            if (fs.prm.type.isScalar())
             {
                 // key < tmp
                 cond = new CmpExp(EXP.lessThan, loc, new VarExp(loc, fs.key), new VarExp(loc, tmp));
@@ -1837,7 +1837,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 break;
             }
             ss.condition = integralPromotions(ss.condition, sc);
-            if (!ss.condition.isErrorExp() && ss.condition.type.isintegral())
+            if (!ss.condition.isErrorExp() && ss.condition.type.isIntegral())
                 break;
 
             auto ad = isAggregate(ss.condition.type);
@@ -2145,7 +2145,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             {
                 VarDeclaration v = ve.var.isVarDeclaration();
                 Type t = cs.exp.type.toBasetype();
-                if (v && (t.isintegral() || t.ty == Tclass))
+                if (v && (t.isIntegral() || t.ty == Tclass))
                 {
                     /* Flag that we need to do special code generation
                     * for this, i.e. generate a sequence of if-then-else
@@ -2298,7 +2298,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
         uinteger_t fval = crs.first.toInteger();
         uinteger_t lval = crs.last.toInteger();
-        if ((crs.first.type.isunsigned() && fval > lval) || (!crs.first.type.isunsigned() && cast(sinteger_t)fval > cast(sinteger_t)lval))
+        if ((crs.first.type.isUnsigned() && fval > lval) || (!crs.first.type.isUnsigned() && cast(sinteger_t)fval > cast(sinteger_t)lval))
         {
             error(crs.loc, "first `case %s` is greater than last `case %s`", crs.first.toChars(), crs.last.toChars());
             errors = true;
@@ -4382,7 +4382,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
             }
             p.type = p.type.typeSemantic(loc, sc);
 
-            if (!p.type.isintegral())
+            if (!p.type.isIntegral())
             {
                 error(fs.loc, "foreach: key cannot be of non-integral type `%s`",
                          p.type.toChars());

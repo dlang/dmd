@@ -634,7 +634,7 @@ public:
     }
     void visit(TypeSArray *t) override
     {
-        if (t->dim->isConst() && t->dim->type->isintegral())
+        if (t->dim->isConst() && t->dim->type->isIntegral())
         {
             (void)t->dim->toUInteger();
             t->next->accept(this);
@@ -958,7 +958,7 @@ public:
         s->getRelatedLabeled()->accept(this);
         s->condition->accept(this);
         Type *condtype = s->condition->type->toBasetype();
-        if (!condtype->isscalar())
+        if (!condtype->isScalar())
             assert(0);
         if (s->cases)
         {
@@ -976,7 +976,7 @@ public:
     void visit(CaseStatement *s) override
     {
         s->getRelatedLabeled()->accept(this);
-        if (s->exp->type->isscalar())
+        if (s->exp->type->isScalar())
             s->exp->accept(this);
         else
             (void)s->index;
@@ -1552,7 +1552,7 @@ public:
         }
         if (!d->canTakeAddressOf())
         {
-            if (!d->type->isscalar())
+            if (!d->type->isScalar())
                 visitDeclaration(d);
         }
         else if (d->isDataseg() && !(d->storage_class & STCextern))
