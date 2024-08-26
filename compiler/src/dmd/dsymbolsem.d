@@ -5358,9 +5358,11 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
                 mt.ident != Id.This && mt.ident != Id._super)
             {
                 s = tident.toDsymbol(sc);
-                if (s && s.isVarDeclaration()) {
-                    error(mt.loc, "cannot alias member of variable `%s`", mt.ident.toChars());
-                    errorSupplemental(mt.loc, "Use `typeof(%s)` instead to preserve behaviour",
+                // don't error for `var1.static_symbol`
+                if (s && s.needThis()) {
+                    error(ds.loc, "cannot alias %s member `%s` of variable `%s`",
+                        s.kind(), s.toChars(), mt.ident.toChars());
+                    errorSupplemental(ds.loc, "Use `typeof(%s)` instead to preserve behaviour",
                         mt.ident.toChars());
                 }
             }
