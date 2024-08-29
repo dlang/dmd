@@ -81,7 +81,6 @@ void codgen(Symbol *sfunc)
 
     cgreg_init();
     CSE.initialize();
-    cgstate.allregs = ALLREGS;
     cgstate.Alloca.initialize();
     cgstate.anyiasm = 0;
 

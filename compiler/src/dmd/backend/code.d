@@ -166,6 +166,7 @@ struct CGstate
 
     int BPoff;                  // offset from BP
     int EBPtoESP;               // add to EBP offset to get ESP offset
+    reg_t BP;                   // frame pointer
     REGSAVE regsave;
 
     targ_size_t spoff;
@@ -219,6 +220,8 @@ struct CGstate
 
     int dfoidx;                 // which block we are in
     regm_t allregs;             // ALLREGS optionally including mBP
+    regm_t fpregs;              // all floating point registers
+    regm_t xmmregs;             // all XMM registers
     regm_t mfuncreg;            // mask of registers preserved by function
     regm_t msavereg;            // Mask of registers that we would like to save.
                                 // they are temporaries (set by scodelem())
@@ -226,6 +229,8 @@ struct CGstate
     uint usednteh;              // if !=0, then used NT exception handling
     con_t regcon;               // register contents
     BackendPass pass;
+
+    bool AArch64;               // true if AArch64 code generator
 
     int cmp_flag;               // pass extra flag from cdcod() to cdcmp()
     /**********************************

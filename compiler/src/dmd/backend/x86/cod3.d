@@ -348,6 +348,7 @@ void cod3_set32()
         v = W|T|6;
 
     TARGET_STACKALIGN = config.fpxmmregs ? 16 : 4;
+    cgstate.allregs = mAX|mBX|mCX|mDX|mSI|mDI;
 }
 
 /********************************
@@ -375,6 +376,7 @@ void cod3_set64()
         v = W|T|6;
 
     TARGET_STACKALIGN = config.fpxmmregs ? 16 : 8;
+    cgstate.allregs = mAX|mBX|mCX|mDX|mSI|mDI| mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15;
 }
 
 /*********************************
