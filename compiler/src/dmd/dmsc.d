@@ -43,16 +43,15 @@ void backend_init(const ref Param params, const ref DMDparams driverParams, cons
 {
     //printf("backend_init()\n");
     exefmt_t exfmt;
-    const is64 = target.isLP64;
     switch (target.os)
     {
-        case Target.OS.Windows: exfmt = is64 ? EX_WIN64     : EX_WIN32;   break;
-        case Target.OS.linux:   exfmt = is64 ? EX_LINUX64   : EX_LINUX;   break;
-        case Target.OS.OSX:     exfmt = is64 ? EX_OSX64     : EX_OSX;     break;
-        case Target.OS.FreeBSD: exfmt = is64 ? EX_FREEBSD64 : EX_FREEBSD; break;
-        case Target.OS.OpenBSD: exfmt = is64 ? EX_OPENBSD64 : EX_OPENBSD; break;
-        case Target.OS.Solaris: exfmt = is64 ? EX_SOLARIS64 : EX_SOLARIS; break;
-        case Target.OS.DragonFlyBSD: assert(is64); exfmt = EX_DRAGONFLYBSD64; break;
+        case Target.OS.Windows: exfmt = target.isX86_64 ? EX_WIN64     : EX_WIN32;   break;
+        case Target.OS.linux:   exfmt = target.isX86_64 ? EX_LINUX64   : EX_LINUX;   break;
+        case Target.OS.OSX:     exfmt = target.isX86_64 ? EX_OSX64     : EX_OSX;     break;
+        case Target.OS.FreeBSD: exfmt = target.isX86_64 ? EX_FREEBSD64 : EX_FREEBSD; break;
+        case Target.OS.OpenBSD: exfmt = target.isX86_64 ? EX_OPENBSD64 : EX_OPENBSD; break;
+        case Target.OS.Solaris: exfmt = target.isX86_64 ? EX_SOLARIS64 : EX_SOLARIS; break;
+        case Target.OS.DragonFlyBSD: exfmt = EX_DRAGONFLYBSD64; break;
         default: assert(0);
     }
 
