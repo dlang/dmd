@@ -1088,7 +1088,7 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (fd.v_argptr)
     {
         // Declare va_argsave
-        if (target.isLP64 &&
+        if (target.isX86_64 &&
             target.os & Target.OS.Posix)
         {
             type *t = type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3 + 8, null, null, false, false, true, false);

@@ -1417,7 +1417,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoStructDeclaration d)
     {
         //printf("TypeInfoStructDeclaration.toDt() '%s'\n", d.toChars());
-        if (target.isLP64)
+        if (target.isX86_64)
             verifyStructSize(Type.typeinfostruct, 17 * target.ptrsize);
         else
             verifyStructSize(Type.typeinfostruct, 15 * target.ptrsize);
