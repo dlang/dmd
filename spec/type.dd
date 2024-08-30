@@ -107,8 +107,8 @@ $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
     $(TROW $(D uint), $(D 0u), unsigned 32 bits)
     $(TROW $(D long), $(D 0L), signed 64 bits)
     $(TROW $(D ulong), $(D 0uL), unsigned 64 bits)
-    $(TROW $(D cent), $(D 0), signed 128 bits)
-    $(TROW $(D ucent), $(D 0u), unsigned 128 bits)
+    $(TROW $(GDEPRECATED $(D cent)), $(D 0), signed 128 bits)
+    $(TROW $(GDEPRECATED $(D ucent)), $(D 0u), unsigned 128 bits)
     $(TROW $(D float), $(D float.nan), 32 bit floating point)
     $(TROW $(D double), $(D double.nan), 64 bit floating point)
     $(TROW $(D real), $(D real.nan), largest floating point size available)
@@ -129,6 +129,9 @@ $(H2 $(LEGACY_LNAME2 Basic Data Types, basic-data-types, Basic Data Types))
     of the `double` type. On x86 CPUs it is often implemented as the 80 bit Extended Real
     type supported by the x86 FPU.
     )
+
+    $(NOTE 128-bit integer types `cent` and `ucent`
+    $(DDSUBLINK deprecate, 128-bit integer types, have been deprecated).)
 
     $(P NOTE: Complex and imaginary types `ifloat`, `idouble`, `ireal`, `cfloat`, `cdouble`,
     and `creal` have been deprecated in favor of `std.complex.Complex`.)
