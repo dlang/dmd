@@ -300,10 +300,28 @@ $(GNAME CommaExpression):
 )
 
     $(P The left operand of the $(D ,) is evaluated, then the right operand
-        is evaluated. The type of the expression is the type of the right
-        operand, and the result is the result of the right operand.
-        Using the result of comma expressions isn't allowed.
+        is evaluated.
+        In C, the result of a comma expression is the result of the right operand.
+        In D, using the result of a comma expression isn't allowed.
+        Consequently a comma expression is only useful when each operand has
+        a side effect.
     )
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+int x, y;
+// expression statement
+x = 1, y = 1;
+// evaluate a comma expression at the end of each loop iteration
+for (; y < 10; x++, y *= 2)
+    writefln("%s, %s", x, y);
+---
+)
+    $(RATIONALE The comma expression has been used unintentionally, either by
+    bracket nesting mistakes or when users expect a sequence of arguments instead
+    of a single expression. Those bugs can be hard to detect in code review.
+    Disallowing use of the result turns those bugs into errors.)
+
 
 $(H2 $(LNAME2 assign_expressions, Assign Expressions))
 
