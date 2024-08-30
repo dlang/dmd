@@ -5813,7 +5813,7 @@ final class CParser(AST) : Parser!AST
                 if (len == 1)   // stack is now empty
                     packalign.setDefault();
                 else
-                    packalign = (*this.packs)[len - 1];
+                    packalign = (*this.packs)[len - 2];
                 return closingParen();
             }
             while (n.value == TOK.comma)        // #pragma pack ( pop ,
