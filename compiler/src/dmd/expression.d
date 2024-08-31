@@ -474,7 +474,7 @@ extern (C++) abstract class Expression : ASTNode
     dinteger_t toInteger()
     {
         //printf("Expression %s\n", EXPtoString(op).ptr);
-        if (!type.isTypeError())
+        if (!type || !type.isTypeError())
             error(loc, "integer constant expression expected instead of `%s`", toChars());
         return 0;
     }
