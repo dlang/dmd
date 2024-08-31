@@ -1695,7 +1695,9 @@ MATCH deduceType(RootObject o, Scope* sc, Type tparam, ref TemplateParameters pa
                     edim = s ? getValue(s) : getValue(e);
                 }
             }
-            if (tp && tp.matchArg(sc, t.dim, i, &parameters, dedtypes, null) || edim && edim.toInteger() == t.dim.toInteger())
+            if ((tp && tp.matchArg(sc, t.dim, i, &parameters, dedtypes, null)) ||
+                (edim && edim.isIntegerExp() && edim.toInteger() == t.dim.toInteger())
+                )
             {
                 result = deduceType(t.next, sc, tparam.nextOf(), parameters, dedtypes, wm);
                 return;
