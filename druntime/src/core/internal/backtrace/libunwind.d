@@ -154,5 +154,10 @@ else version (RISCV64) // 32 is not supported
     enum _LIBUNWIND_CONTEXT_SIZE = 64;
     enum _LIBUNWIND_CURSOR_SIZE = 76;
 }
+else version (LoongArch64)
+{
+    enum _LIBUNWIND_CONTEXT_SIZE = 65;
+    enum _LIBUNWIND_CURSOR_SIZE = 77;
+}
 else
     static assert(0, "Platform not supported");
