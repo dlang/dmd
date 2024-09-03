@@ -26,7 +26,7 @@ import dmd.backend.dlist;
 import dmd.backend.dvarstats;
 import dmd.backend.dvec;
 import dmd.backend.el;
-import dmd.backend.filespec : filespecdotext, filespecgetroot, filespecname;
+import dmd.backend.filespec : filespecgetroot, filespecname;
 import dmd.backend.mem;
 import dmd.backend.global;
 import dmd.backend.obj;
