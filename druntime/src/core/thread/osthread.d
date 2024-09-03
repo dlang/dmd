@@ -1088,52 +1088,6 @@ unittest
     t.join();
 }
 
-unittest
-{
-    // NOTE: This entire test is based on the assumption that no
-    //       memory is allocated after the child thread is
-    //       started. If an allocation happens, a collection could
-    //       trigger, which would cause the synchronization below
-    //       to cause a deadlock.
-    // NOTE: DO NOT USE LOCKS IN CRITICAL REGIONS IN NORMAL CODE.
-
-    import core.sync.semaphore;
-
-    auto sema = new Semaphore(),
-         semb = new Semaphore();
-
-    auto thr = new Thread(
-    {
-        thread_enterCriticalRegion();
-        assert(thread_inCriticalRegion());
-        sema.notify();
-
-        semb.wait();
-        assert(thread_inCriticalRegion());
-
-        thread_exitCriticalRegion();
-        assert(!thread_inCriticalRegion());
-        sema.notify();
-
-        semb.wait();
-        assert(!thread_inCriticalRegion());
-    });
-
-    thr.start();
-
-    sema.wait();
-    synchronized (ThreadBase.criticalRegionLock)
-        assert(thr.m_isInCriticalRegion);
-    semb.notify();
-
-    sema.wait();
-    synchronized (ThreadBase.criticalRegionLock)
-        assert(!thr.m_isInCriticalRegion);
-    semb.notify();
-
-    thr.join();
-}
-
 // https://issues.dlang.org/show_bug.cgi?id=22124
 unittest
 {
@@ -1144,36 +1098,6 @@ unittest
         return t;
     }
     static assert(!__traits(compiles, () @nogc => fun(thread, 3) ));
-}
-
-unittest
-{
-    import core.sync.semaphore;
-
-    shared bool inCriticalRegion;
-    auto sema = new Semaphore(),
-         semb = new Semaphore();
-
-    auto thr = new Thread(
-    {
-        thread_enterCriticalRegion();
-        inCriticalRegion = true;
-        sema.notify();
-        semb.wait();
-
-        Thread.sleep(dur!"msecs"(1));
-        inCriticalRegion = false;
-        thread_exitCriticalRegion();
-    });
-    thr.start();
-
-    sema.wait();
-    assert(inCriticalRegion);
-    semb.notify();
-
-    thread_suspendAll();
-    assert(!inCriticalRegion);
-    thread_resumeAll();
 }
 
 @nogc @safe nothrow
@@ -1562,20 +1486,10 @@ private extern(D) void* getStackBottom() nothrow @nogc
  */
 private extern (D) bool suspend( Thread t ) nothrow @nogc
 {
-    Duration waittime = dur!"usecs"(10);
- Lagain:
     if (!t.isRunning)
     {
         Thread.remove(t);
         return false;
-    }
-    else if (t.m_isInCriticalRegion)
-    {
-        Thread.criticalRegionLock.unlock_nothrow();
-        Thread.sleep(waittime);
-        if (waittime < dur!"msecs"(10)) waittime *= 2;
-        Thread.criticalRegionLock.lock_nothrow();
-        goto Lagain;
     }
 
     version (Windows)
@@ -1821,8 +1735,6 @@ extern (C) void thread_suspendAll() nothrow
         if ( ++suspendDepth > 1 )
             return;
 
-        Thread.criticalRegionLock.lock_nothrow();
-        scope (exit) Thread.criticalRegionLock.unlock_nothrow();
         size_t cnt;
         bool suspendedSelf;
         Thread t = ThreadBase.sm_tbeg.toThread;
