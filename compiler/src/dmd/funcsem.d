@@ -1621,6 +1621,8 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     {
         .error(loc, "none of the overloads of `%s` are callable using argument types `!(%s)%s`",
                od.ident.toChars(), tiargsBuf.peekChars(), fargsBuf.peekChars());
+        if (!global.gag || global.params.v.showGaggedErrors)
+            printCandidates(loc, od, sc.isDeprecated());
         return null;
     }
 
@@ -1745,7 +1747,6 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
  *      showDeprecated = If `false`, `deprecated` function won't be shown
  */
 private void printCandidates(Decl)(const ref Loc loc, Decl declaration, bool showDeprecated)
-if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
 {
     // max num of overloads to print (-v or -verror-supplements overrides this).
     const uint DisplayLimit = global.params.v.errorSupplementCount();
