@@ -2936,6 +2936,31 @@ Statement mergeFrequireInclusivePreview(FuncDeclaration fd, Statement sf, Expres
 }
 
 /****************************************************
+ * Unpack parameters of function literal.
+ */
+void unpackFunctionParameters(FuncDeclaration thisfd)
+{
+    if (!thisfd.fbody || !thisfd.type || thisfd.type.ty != Tfunction)
+        return;
+    TypeFunction f = cast(TypeFunction)thisfd.type;
+    Statements* ups = null;
+    foreach (i, Parameter p; f.parameterList)
+    {
+        if (!p.unpack)
+            continue;
+        if (ups is null)
+            ups = new Statements();
+        p.unpack._init = new IdentifierExp(p.loc, p.ident);
+        ups.push(new ExpStatement(p.unpack.loc, p.unpack));
+    }
+    if (ups !is null)
+    {
+        ups.push(thisfd.fbody);
+        thisfd.fbody = new CompoundStatement(thisfd.fbody.loc, ups);
+    }
+}
+
+/****************************************************
  * Rewrite contracts as statements.
  */
 void buildEnsureRequire(FuncDeclaration thisfd)

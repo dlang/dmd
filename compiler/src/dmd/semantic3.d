@@ -611,6 +611,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
                 bool inferRef = (f.isRef && (funcdecl.storage_class & STC.auto_));
 
+                unpackFunctionParameters(funcdecl);
+
                 funcdecl.fbody = funcdecl.fbody.statementSemantic(sc2);
                 if (!funcdecl.fbody)
                     funcdecl.fbody = new CompoundStatement(Loc.initial, new Statements());
