@@ -3088,25 +3088,25 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     break;
 
                 case TOK.const_:
-                    if (peekNext() == TOK.leftParenthesis)
+                    if (isTypeConstructor())
                         goto default;
                     stc = STC.const_;
                     goto L2;
 
                 case TOK.immutable_:
-                    if (peekNext() == TOK.leftParenthesis)
+                    if (isTypeConstructor())
                         goto default;
                     stc = STC.immutable_;
                     goto L2;
 
                 case TOK.shared_:
-                    if (peekNext() == TOK.leftParenthesis)
+                    if (isTypeConstructor())
                         goto default;
                     stc = STC.shared_;
                     goto L2;
 
                 case TOK.inout_:
-                    if (peekNext() == TOK.leftParenthesis)
+                    if (isTypeConstructor())
                         goto default;
                     stc = STC.wild;
                     goto L2;
@@ -3202,8 +3202,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
                         const tv = peekNext();
                         Loc loc;
-                        if (tpl && token.value == TOK.identifier &&
-                            (tv == TOK.comma || tv == TOK.rightParenthesis || tv == TOK.dotDotDot))
+                        AST.UnpackDeclaration unpack = null;
+                        void makeTypeParameter()
                         {
                             Identifier id = Identifier.generateId("__T");
                             loc = token.loc;
@@ -3212,7 +3212,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                                 *tpl = new AST.TemplateParameters();
                             AST.TemplateParameter tp = new AST.TemplateTypeParameter(loc, id, null, null);
                             (*tpl).push(tp);
+                        }
 
+                        if (tpl && token.value == TOK.identifier &&
+                            (tv == TOK.comma || tv == TOK.rightParenthesis || tv == TOK.dotDotDot))
+                        {
+                            makeTypeParameter();
                             ai = token.ident;
                             nextToken();
                         }
@@ -3220,7 +3225,30 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         {
                             if (tpl && !*tpl && hasAutoRefParam)
                                 *tpl = new AST.TemplateParameters();
+
+                            if (tpl && token.value == TOK.leftParenthesis)
+                            {
+                                const tv2 = peekPastParen(&token).value;
+                                if (tv2 == TOK.comma || tv2 == TOK.rightParenthesis || tv2 == TOK.dotDotDot)
+                                {
+                                    makeTypeParameter();
+                                    if (storageClass & STC.lazy_)
+                                    {
+                                        error("unpacking `lazy` parameters is not supported");
+                                    }
+                                    if (storageClass & STC.autoref)
+                                    {
+                                        error("unpacking `auto ref` parameters is not supported");
+                                    }
+                                    unpack = parseUnpackDeclaration(storageClass & ~STC.lazy_ & ~STC.out_ | STC.temp | STC.ctfe, false, true);
+                                    ai = Identifier.generateId("__unpack");
+                                    goto LskipType;
+                                }
+                            }
+
                             at = parseType(&ai, &loc);
+
+                        LskipType:;
                         }
                         ae = null;
                         if (token.value == TOK.assign) // = defaultArg
@@ -3228,7 +3256,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                             nextToken();
                             ae = parseAssignExp();
                         }
-                        auto param = new AST.Parameter(loc, storageClass | STC.parameter, at, ai, ae, null, null);
+                        auto param = new AST.Parameter(loc, storageClass | STC.parameter, at, ai, ae, null, unpack);
                         if (udas)
                         {
                             auto a = new AST.Dsymbols();
