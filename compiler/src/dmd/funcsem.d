@@ -1799,13 +1799,16 @@ if (is(Decl == TemplateDeclaration) || is(Decl == FuncDeclaration))
             if (!print)
                 return true;
 
+            // if td.onemember is a function, toCharsMaybeConstraints can print it
+            // without us recursing, otherwise we have to handle it.
             // td.onemember may not have overloads set
             // (see fail_compilation/onemember_overloads.d)
             // assume if more than one member it is overloaded internally
-            bool recurse = td.onemember && td.members.length > 1;
+            bool recurse = td.onemember && (!td.onemember.isFuncDeclaration ||
+                td.members.length > 1);
             OutBuffer buf;
             HdrGenState hgs;
-            hgs.skipConstraints = true;
+            hgs.skipConstraints = true; // failing constraint should get printed below
             hgs.showOneMember = !recurse;
             toCharsMaybeConstraints(td, buf, hgs);
             const tmsg = buf.peekChars();
