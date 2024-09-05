@@ -3055,7 +3055,7 @@ void disassemble(ubyte[] code)
 
         void put(char c) { printf("%c", c); }
 
-        dmd.backend.x86.disasm86.getopstring(&put, code, cast(uint)i, sz, model, model == 16, true,
+        dmd.backend.x86.disasm86.getopstring(&put, code, cast(uint)i, sz, model, model == 16, true, false,
                 null, null, null, null);
         printf("\n");
         i += sz;

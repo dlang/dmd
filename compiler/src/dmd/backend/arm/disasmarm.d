@@ -1,6 +1,7 @@
 /*********************************************************
  * ARM64 disassembler.
- * For unit tests: dmd disasmarm.d -unittest -main
+ * For unit tests: dmd disasmarm.d -unittest -main -debug -fPIC
+ * For standalone disasmarm: dmd disasmarm.d -version=StandAlone -fPIC
  *
  * Copyright:   Copyright (C) 1982-1998 by Symantec
  *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
@@ -85,6 +86,7 @@ static if (0)
  *      model = memory model, 16/32/64
  *      nearptr = use 'near ptr' when writing memory references
  *      bObjectcode = also prepend hex characters of object code
+ *      bURL = append URL (if any) to output
  *      mem = if not null, then function that returns a string
  *          representing the label for the memory address. Parameters are `c`
  *          for the address of the memory reference in `code[]`, `sz` for the
@@ -109,7 +111,7 @@ static if (0)
  */
 public
 void getopstring(void delegate(char) nothrow @nogc @safe put, ubyte[] code, uint c, addr siz,
-        uint model, int nearptr, ubyte bObjectcode,
+        uint model, int nearptr, ubyte bObjectcode, ubyte bURL,
         const(char)[] function(uint c, uint sz, uint offset) nothrow @nogc @safe mem,
         const(char)[] function(ubyte[] code, uint c, int sz) nothrow @nogc @safe immed16,
         const(char)[] function(uint c, uint offset, bool farflag, bool is16bit) nothrow @nogc @safe labelcode,
@@ -118,7 +120,7 @@ void getopstring(void delegate(char) nothrow @nogc @safe put, ubyte[] code, uint
 {
     assert(model == 64);
     auto disasm = Disasm(put, code, siz,
-                model, nearptr, bObjectcode,
+                model, nearptr, bObjectcode, bURL,
                 mem, immed16, labelcode, shortlabel);
     disasm.disassemble(c);
 }
@@ -144,7 +146,7 @@ struct Disasm
   nothrow @nogc:
 
     this(void delegate(char) nothrow @nogc @safe put, ubyte[] code, addr siz,
-        uint model, int nearptr, ubyte bObjectcode,
+        uint model, int nearptr, ubyte bObjectcode, ubyte bURL,
         const(char)[] function(uint c, uint sz, uint offset) nothrow @nogc @safe mem,
         const(char)[] function(ubyte[] code, uint c, int sz) nothrow @nogc @safe immed16,
         const(char)[] function(uint c, uint offset, bool farflag, bool is16bit) nothrow @nogc @safe labelcode,
@@ -157,6 +159,7 @@ struct Disasm
         this.model = model;
         this.nearptr = nearptr;
         this.bObjectcode = bObjectcode;
+        this.bURL = bURL;
 
         /* Set null function pointers to default functions
          */
@@ -194,13 +197,14 @@ struct Disasm
     addr siz;
     int nearptr;
     ubyte bObjectcode;
+    ubyte bURL;                 // append URL string to decoded instruction
     bool defopsize;             // default value for opsize
     char defadsize;             // default value for adsize
     bool opsize;                // if 0, then 32 bit operand
     char adsize;                // if !=0, then 32 or 64 bit address
     char fwait;                 // if !=0, then saw an FWAIT
     uint model;                 // 16/32/64
-    const(char)[] segover;       // segment override string
+    const(char)[] segover;      // segment override string
 
     // Callbacks provided by caller
     const(char)[] function(uint c, uint sz, addr offset) nothrow @nogc @safe mem;
@@ -261,6 +265,7 @@ void disassemble(uint c) @trusted
     const(char)[] s2;
     const(char)[] s3;
     char[BUFMAX] buf = void;
+    char[14] rbuf = void;
 
     buf[0] = 0;
     sep = ",";
@@ -287,11 +292,14 @@ void disassemble(uint c) @trusted
     const(char)[] p5 = "";
     const(char)[] p6 = "";
     const(char)[] p7 = "";
+    const(char)[] url = "";
 
     string[4] addsubTab = [ "add", "adds", "sub", "subs" ];
     string[16] condstring =
         [ "eq", "ne", "cs", "cc", "mi", "pl", "vs", "vc",
           "hi", "ls", "ge", "lt", "gt", "le", "al", "nv" ];
+
+    immutable char[5] fpPrefix = ['b','h','s','d','q']; // SIMD&FP register prefix
 
     void shiftP()
     {
@@ -308,7 +316,7 @@ void disassemble(uint c) @trusted
      */
     if (field(ins, 31, 31) == 0 && field(ins, 28, 25) == 0)
     {
-        // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#reserved
+        url = "http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#reserved";
         if (log) printf("Reserved");
         if (field(ins, 30, 29) == 0)
         {
@@ -334,9 +342,10 @@ void disassemble(uint c) @trusted
     /*{====================== Data Processing -- Immediate ============================
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#dpimm
      */
-    if (field(ins, 30, 23) == 0xE7) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#dp_1src_imm
+    if (field(ins, 30, 23) == 0xE7)
     {
         if (log) printf("Data-processing (1 source immediate)\n");
+        url        = "http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#dp_1src_imm";
         uint sf    = field(ins, 31, 31);
         uint opc   = field(ins, 22, 21);
         uint imm16 = field(ins, 20, 05);
@@ -348,9 +357,10 @@ void disassemble(uint c) @trusted
             p2 = wordtostring(imm16);
         }
     }
-    else if (field(ins, 28, 24) == 0x10) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#pcreladdr
+    else if (field(ins, 28, 24) == 0x10)
     {
         if (log) printf("PC-rel. addressing\n");
+        url        = "http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#pcreladdr";
         uint op    = field(ins, 31, 31);
         uint immlo = field(ins, 30, 29);
         uint immhi = field(ins, 23, 05);
@@ -362,9 +372,10 @@ void disassemble(uint c) @trusted
                       : ((immhi << 2) | immlo);
         p3 = wordtostring(imm);
     }
-    else if (field(ins, 28, 23) == 0x22) // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_imm
+    else if (field(ins, 28, 23) == 0x22)
     {
         if (log) printf("Add/subtract (immediate)\n");
+        url        = "https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_imm";
         uint sf    = field(ins, 31, 31);
         uint op    = field(ins, 30, 30);
         uint S     = field(ins, 29, 29);
@@ -399,9 +410,10 @@ void disassemble(uint c) @trusted
             shiftP();
         }
     }
-    else if (field(ins, 28, 22) == 0x45) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#pcreladdr
+    else if (field(ins, 28, 22) == 0x45)
     {
         if (log) printf("Add/subtract (immediate, with tags)\n");
+        url         = "http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#pcreladdr";
         uint sf    = field(ins, 31, 31);
         uint op    = field(ins, 30, 30);
         uint S     = field(ins, 29, 29);
@@ -420,9 +432,10 @@ void disassemble(uint c) @trusted
             p5 = wordtostring(uimm4);
         }
     }
-    else if (field(ins, 28, 22) == 0x47) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#minmax_imm
+    else if (field(ins, 28, 22) == 0x47)
     {
         if (log) printf("Min/max (immediate)\n");
+        url        = "http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#minmax_imm";
         uint sf    = field(ins, 31, 31);
         uint op    = field(ins, 30, 30);
         uint S     = field(ins, 29, 29);
@@ -440,9 +453,10 @@ void disassemble(uint c) @trusted
             p4 = wordtostring(imm8);
         }
     }
-    else if (field(ins, 28, 23) == 0x24) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#log_imm
+    else if (field(ins, 28, 23) == 0x24)
     {
         if (log) printf("Logical (immediate)\n");
+        url        = "http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#log_imm";
         uint sf    = field(ins, 31, 31);
         uint opc   = field(ins, 30, 29);
         uint N     = field(ins, 22, 22);
@@ -450,14 +464,14 @@ void disassemble(uint c) @trusted
         uint imms  = field(ins, 15, 10);
         uint Rn    = field(ins,  9,  5);
         uint Rd    = field(ins,  4,  0);
-        //printf("N:%d immr:x%x imms:x%x\n", N, immr, imms);
+        //printf("sf:%d N:%d immr:x%x imms:x%x\n", sf, N, immr, imms);
         if (sf || N == 0)
         {
             string[4] opstring = [ "and", "orr", "eor", "ands" ];
             p1 = opstring[opc];
             p2 = regString(sf, Rd);
             p3 = regString(sf, Rn);
-            uint imm = sf ? (imms << 6) | immr : (N << 12) | (imms << 6) | immr;
+            ulong imm = decodeNImmrImms(N,immr,imms);
             p4 = wordtostring(imm);
             if (opc == 3 && Rd == 0x1F)
             {
@@ -472,9 +486,10 @@ void disassemble(uint c) @trusted
             }
         }
     }
-    else if (field(ins, 28, 23) == 0x25) // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#movewidex
+    else if (field(ins, 28, 23) == 0x25)
     {
         if (log) printf("Move wide (immediate)\n");
+        url        = "https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#movewidex";
         uint sf    = field(ins, 31, 31);
         uint opc   = field(ins, 30, 29);
         uint hw    = field(ins, 22, 21);
@@ -518,9 +533,10 @@ void disassemble(uint c) @trusted
             p4 = P4[0 .. n];
         }
     }
-    else if (field(ins, 28, 23) == 0x26) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#bitfield
+    else if (field(ins, 28, 23) == 0x26)
     {
         if (log) printf("Bitfield\n");
+        url        = "http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#bitfield";
         uint sf    = field(ins, 31, 31);
         uint opc   = field(ins, 30, 29);
         uint N     = field(ins, 22, 22);
@@ -534,7 +550,12 @@ void disassemble(uint c) @trusted
 
         if (opc == 0) // SBFM
         {
-           if ((sf ? 63 : 31) == imms)
+           if (sf == 1 && N != 1 ||
+               sf == 0 && N)
+           {
+                // undefined
+           }
+           else if ((sf ? 63 : 31) == imms)
            {
                 p1 = "asr";
                 p4 = wordtostring(immr);
@@ -550,14 +571,17 @@ void disassemble(uint c) @trusted
            else if (immr == 0 && imms == 7)
            {
                 p1 = "sxtb";
+                p3 = regString(0, Rn);
            }
            else if (immr == 0 && imms == 15)
            {
                 p1 = "sxth";
+                p3 = regString(0, Rn);
            }
            else if (immr == 0 && imms == 31)
            {
                 p1 = "sxtw";
+                p3 = regString(0, Rn);
            }
            else if (1) // https://www.scs.stanford.edu/~zyedidia/arm64/sbfx_sbfm.html
            {
@@ -639,9 +663,10 @@ void disassemble(uint c) @trusted
            }
         }
     }
-    else if (field(ins, 28, 23) == 0x27) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#extract
+    else if (field(ins, 28, 23) == 0x27)
     {
         if (log) printf("Extract\n");
+        url        = "http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#extract";
         uint sf    = field(ins, 31, 31);
         uint op21  = field(ins, 30, 29);
         uint N     = field(ins, 22, 22);
@@ -667,9 +692,10 @@ void disassemble(uint c) @trusted
         }
     }
     else
-    if (field(ins, 31, 24) == 0x54) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#condbranch
+    if (field(ins, 31, 24) == 0x54)
     {
         if (log) printf("Conditional branch (immediate)\n");
+        url        = "http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#condbranch";
         uint imm19 = field(ins, 23, 5);
         uint oO    = field(ins, 4, 4);
         uint cond  = field(ins, 3, 0);
@@ -679,9 +705,10 @@ void disassemble(uint c) @trusted
         p1 = buf[0 .. n];
         p2 = wordtostring(imm19);
     }
-    else if (field(ins, 31, 24) == 0x55) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#miscbranch
+    else if (field(ins, 31, 24) == 0x55)
     {
         if (log) printf("Miscellaneous branch (immediate)\n");
+        url        = "http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#miscbranch";
         uint opc   = field(ins, 23, 21);
         uint imm16 = field(ins, 20,  5);
         uint op2   = field(ins,  4,  0);
@@ -692,9 +719,10 @@ void disassemble(uint c) @trusted
             p2 = labeltostring(imm16 << 2);
         }
     }
-    else if (field(ins, 31, 24) == 0xB4) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#exception
+    else if (field(ins, 31, 24) == 0xB4)
     {
         if (log) printf("Exception generation\n");
+        url        = "http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#exception";
         uint opc   = field(ins, 23, 21);
         uint imm16 = field(ins, 20,  5);
         uint op2   = field(ins,  4,  2);
@@ -1718,7 +1746,25 @@ void disassemble(uint c) @trusted
     // Advanced SIMD scalar three same FP16
     // Advanced SIMD scalar two-register miscellaneous FP16
     // Advanced SIMD scalar three same extra
-    // Advanced SIMD two-register miscellaneous
+
+    // Advanced SIMD two-register miscellaneous http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdmisc
+    if (field(ins,31,30) == 1 && field(ins,28,24) == 0x1E && field(ins,21,17) == 0x10 && field(ins,11,10) == 2)
+    {
+        uint U      = field(ins,29,29);
+        uint size   = field(ins,23,22);
+        uint opcode = field(ins,16,12);
+        uint Rn     = field(ins, 9, 5);
+        uint Rd     = field(ins, 4, 0);
+
+        if (U == 0 && (size & 2) && opcode == 0x1B)
+        {
+            p1 = "fcvtzs";
+            p2 = fregString(rbuf[0 .. 4],"sd h"[size & 1],Rd);
+            p3 = fregString(rbuf[4 .. 8],"sd h"[size & 1],Rn);
+        }
+    }
+    else
+
     // Advanced SIMD scalar pairwise
     // Advanced SIMD scalar three different
     // Advanced SIMD scalar three same
@@ -1744,12 +1790,114 @@ void disassemble(uint c) @trusted
     // XAR
     // Cryptographic two-regsiter SHA 512
     // Conversion between floating-point and fixed-point
-    // Conversion between floating-point and integer
-    // Floating-point data-processing (1 source)
+
+    // Conversion between floating-point and integer http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#float2int
+    if (field(ins,30,30) == 0 &&
+        field(ins,28,24) == 0x1E &&
+        field(ins,21,21) == 1 &&
+        field(ins,15,10) == 0)
+    {
+        uint sf     = field(ins,31,31);
+        uint S      = field(ins,29,29);
+        uint ftype  = field(ins,23,22);
+        uint rmode  = field(ins,20,19);
+        uint opcode = field(ins,18,16);
+        uint Rn     = field(ins, 9, 5);
+        uint Rd     = field(ins, 4, 0);
+
+        if (S == 0 && rmode == 3 && opcode == 0)
+        {
+            p1 = "fcvtzs";
+            p2 = regString(sf,Rd);
+            p3 = fregString(rbuf[4 .. 8],"sd h"[ftype],Rn);
+        }
+    }
+    else
+
+    // Floating-point data-processing (1 source) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatdp1
+    if (field(ins,28,24) == 0x1E &&
+        field(ins,21,21) == 1 &&
+        field(ins,14,10) == 0x10)
+    {
+        uint M      = field(ins,31,31);
+        uint S      = field(ins,29,29);
+        uint ftype  = field(ins,23,22);
+        uint opcode = field(ins,20,15);
+        uint Rn     = field(ins, 9, 5);
+        uint Rd     = field(ins, 4, 0);
+
+        static immutable string[20] fops = ["fmov",  "fabs",    "fneg",    "fqsrt",   "fcvt",
+                                            "fcvt",  "",        "fcvt",    "frintn",  "frintp",
+                                            "frintm","frintz",  "frinta",  "",        "frintx",
+                                            "frinti","frint32z","frint32x","frint64z","frint64x"];
+        if (M == 1 || S == 1 ||
+            (opcode & 0x20) ||
+            ((ftype & 1)  && opcode == 0xD) ||
+            ((ftype & 2) == 0 && (opcode & 0x3C) == 0x18) ||
+            ((ftype & 2) == 0 && (opcode & 0x38) == 0x08) ||
+            (ftype == 0 && (opcode & 0x3D) == 0x4) ||
+            (ftype == 1 && opcode == 5) ||
+            (ftype == 2 && (opcode & 0x20) == 0) ||
+            (ftype == 3 && (opcode & 0x07) == 0x06) ||
+            (ftype == 3 && (opcode & 0x30) == 0x10))
+        {
+        }
+        else
+        {
+            uint opc = opcode & 3;
+            p1 = fops[opcode];
+            if ((opcode & 0x3C) != 0x04)
+                opc = ftype;
+            p2 = fregString(rbuf[0 .. 4],"sd h"[opc],Rd);
+            p3 = fregString(rbuf[4 .. 8],"sd h"[ftype],Rn);
+        }
+    }
+    else
+
     // Floating-point compare
-    // Floating-point immediate
+
+    // Floating-point immediate http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatimm
+    if (field(ins,31,24) == 0x1E && field(ins,21,21) == 1 && field(ins,12,10) == 4)
+    {
+        uint ftype  = field(ins,23,22);
+        ubyte imm8  = cast(ubyte)field(ins,20,13);
+        uint Rd     = field(ins, 4, 0);
+
+        p1 = "fmov";
+        p2 = fregString(rbuf[0..4],"sd h"[ftype],Rd);
+        uint sz = ftype == 0 ? 32 : ftype == 1 ? 64 : 16;
+        float f = decodeImm8ToFloat(imm8);
+        if (sz == 16)
+            p1 = "";   // no support half-float literals
+        p3 = doubletostring(f);
+    }
+
     // Floating-point conditional compare
-    // Floating-point data-processing (2 source)
+
+    // Floating-point data-processing (2 source) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatdp2
+    if (field(ins, 30, 30) == 0 && field(ins, 28, 24) == 0x1E && field(ins,21,21) == 1 &&  field(ins, 11, 10) == 2)
+    {
+        uint M      = field(ins,31,31);
+        uint S      = field(ins,29,29);
+        uint ftype  = field(ins,23,22);
+        uint Rm     = field(ins,20,16);
+        uint opcode = field(ins,15,12);
+        uint Rn     = field(ins, 9, 5);
+        uint Rd     = field(ins, 4, 0);
+
+        static immutable string[9] fopsx = ["fmul", "fdiv","fadd","fsub","fmax","fmin","fmaxnm","fminnm","fnmul"];
+        if (!M && !S && ftype != 2 && opcode <= 8)
+        {
+            p1 = fopsx[opcode];
+            string s = "sd h";
+            char prefix = s[ftype];
+            p2 = fregString(rbuf[0 .. 4],prefix,Rd);
+            p3 = fregString(rbuf[4 .. 8],prefix,Rn);
+            p4 = fregString(rbuf[8 ..12],prefix,Rm);
+        }
+    }
+    else
+
     // Floating-point conditional select
     // Floating-point data-processing (3 source)
 
@@ -1822,20 +1970,22 @@ void disassemble(uint c) @trusted
                 break;
         }
 
-        if (VR == 1) // SIMD&FP, not implemented
+        if (VR == 1) // SIMD&FP
         {
-            p1 = "";
+            char prefix = fpPrefix[opc + 2];
+            p2 = fregString(buf[0..4],prefix,Rt);
+            p3 = fregString(buf[4..8],prefix,Rt2);
         }
         else
         {
             p2 = regString(opc >> 1, Rt);
             p3 = regString(opc >> 1, Rt2);
-            uint offset = imm7;
-            if (offset & 0x40)                        // bit 6 is sign bit
-                offset |= 0xFFFF_FF80;                // sign extend
-            offset *= (opc & 2) ? 8 : 4;              // scale
-            p4 = eaString(op24, cast(ubyte)Rn, offset);
         }
+        uint offset = imm7;
+        if (offset & 0x40)                        // bit 6 is sign bit
+            offset |= 0xFFFF_FF80;                // sign extend
+        offset *= (opc & 2) ? 8 : 4;              // scale
+        p4 = eaString(op24, cast(ubyte)Rn, offset);
     }
 
     // Load/store register pair (unscaled immediate)
@@ -1846,9 +1996,11 @@ void disassemble(uint c) @trusted
     // Load/store register (register offset)
     // Load/store register (pac)
 
-    // Load/store register (unsigned immediate) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_pos
+    // Load/store register (unsigned immediate)
     if (field(ins, 29, 27) == 7 && field(ins, 25, 24) == 1)
     {
+        url = "https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_pos";
+
         uint size = field(ins, 31, 30);
         uint VR = field(ins, 26, 26);
         uint opc = field(ins, 23, 22);
@@ -1877,6 +2029,7 @@ void disassemble(uint c) @trusted
             case ldr(2,0,2): p1 = "ldrsw"; goto Lldr64;
             case ldr(3,0,0): p1 = "str";   goto Lldr64;
             case ldr(3,0,1): p1 = "ldr";   goto Lldr64;
+            //case ldr(3,0,2): p1 = "prfm";
             Lldr64:
                 is64 = true;
             Lldr:
@@ -1885,20 +2038,22 @@ void disassemble(uint c) @trusted
                 p3 = eaString(0, cast(ubyte)Rn, offset);
                 break;
 
-            static if (0) // fix later
-            {
-            case ldr(0,1,0): p1 = "str";
-            case ldr(0,1,1): p1 = "ldr";
-            case ldr(0,1,2): p1 = "str";
-            case ldr(0,1,3): p1 = "ldr";
-            case ldr(1,1,0): p1 = "str";
-            case ldr(1,1,1): p1 = "ldr";
-            case ldr(2,1,0): p1 = "str";
-            case ldr(2,1,1): p1 = "ldr";
-            case ldr(3,0,1): p1 = "prfm";
-            case ldr(3,1,0): p1 = "str";
-            case ldr(3,1,1): p1 = "ldr";
-            }
+            case ldr(0,1,0): p1 = "str";  goto LsimdFp;
+            case ldr(0,1,1): p1 = "ldr";  goto LsimdFp;
+            case ldr(0,1,2): p1 = "str";  goto LsimdFp;
+            case ldr(0,1,3): p1 = "ldr";  goto LsimdFp;
+            case ldr(1,1,0): p1 = "str";  goto LsimdFp;
+            case ldr(1,1,1): p1 = "ldr";  goto LsimdFp;
+            case ldr(2,1,0): p1 = "str";  goto LsimdFp;
+            case ldr(2,1,1): p1 = "ldr";  goto LsimdFp;
+            case ldr(3,1,0): p1 = "str";  goto LsimdFp;
+            case ldr(3,1,1): p1 = "ldr";  goto LsimdFp;
+            LsimdFp:
+                uint shift = size + ((opc & 2) << 1);
+                p2 = fregString(buf[0..4], fpPrefix[shift], Rt);
+                uint offset = imm12 << shift;
+                p3 = eaString(0, cast(ubyte)Rn, offset);
+                break;
 
             default:
                 break;
@@ -1944,6 +2099,12 @@ void disassemble(uint c) @trusted
                 }
             }
         }
+    }
+
+    if (bURL && url)
+    {
+        puts("    // ");
+        puts(url);
     }
 }
 
@@ -2097,6 +2258,15 @@ const(char)[] signedWordtostring(int w)
 }
 
 @trusted
+const(char)[] doubletostring(double d)
+{
+    __gshared char[1 + 20 + 1] EA;
+
+    const n = snprintf(EA.ptr, EA.length, "#%e", d);
+    return EA[0 .. n];
+}
+
+@trusted
 const(char)[] labeltostring(ulong w)
 {
     __gshared char[2 + w.sizeof * 3 + 1] EA;
@@ -2204,6 +2374,14 @@ immutable
                               "c24","c25","c26","c27","c28","c29","c30","csp" ];
 }
 
+@trusted
+pragma(inline, false)
+const(char)[] fregString(char[] buf, char c, uint reg)
+{
+    uint n = snprintf(buf.ptr, cast(uint)buf.length, "%c%d", c, reg);
+    return buf[0 .. n];
+}
+
 /******************************
  * Extract fields from instruction in manner lifted from spec.
  * Params:
@@ -2213,6 +2391,7 @@ immutable
  * Returns:
  *      extracted field
  */
+public
 uint field(uint opcode, uint end, uint start)
 {
     assert(end < 32 && start < 32 && start <= end);
@@ -2227,13 +2406,217 @@ unittest
     assert(field(0x0000_FFCF,  7, 4) == 0x0000_000C);
 }
 
+/**********************
+ * Decode the encoding of bit masks
+ * Params:
+ *      N = 1 for 64, 0 for 32
+ *      immr = immr field
+ *      imms = imms field
+ * Returns:
+ *      decoded value, or 0 if cannot decode
+ */
+ulong decodeNImmrImms(uint N, uint immr, uint imms)
+{
+    uint size;
+    uint length;
+    if (N)
+    {
+        size = 64;
+        length = imms & 0x3F;
+        if (length == 0x3F)
+            return 0; // cannot decode it
+    }
+    else
+    {
+        size = 32;
+        uint mask = 0x1F;
+        for (uint u = imms; u & 0x20; u <<= 1)
+        {
+            size >>= 1;
+            mask >>= 1;
+        }
+        length = imms & mask;
+    }
+    if (immr >= size)
+        return 0;       // cannot decode it
+    ulong pattern = (1L << (length + 1)) - 1;
+    pattern = (pattern >> immr) | (pattern << size - immr); // rotate right
+    ulong result = 0;
+    foreach (i; 0 .. 64 / size)
+    {
+        result |= pattern << (i * size);
+    }
+    if (!N)
+        result &= 0xFFFF_FFFF;
+
+    return result;
+}
+
+unittest
+{
+    assert(decodeNImmrImms(0,   0,0x3C) == 0x5555_5555);
+    assert(decodeNImmrImms(0,0x0D,0x21) == 0x0018_0018);
+    assert(decodeNImmrImms(0,0x02,0x28) == 0xC07F_C07F);
+    assert(decodeNImmrImms(0,0x0A,0x2E) == 0xFFDF_FFDF);
+
+    assert(decodeNImmrImms(0,0x00,0x1E) == 0x7FFF_FFFF);
+    assert(decodeNImmrImms(0,0x1F,0x1E) == 0xFFFF_FFFE);
+    assert(decodeNImmrImms(1,   0,   0) == 0x0000_0000_0000_0001);
+    assert(decodeNImmrImms(1,   1,0x00) == 0x8000_0000_0000_0000);
+}
+
+
+/***********************************************
+ * Convert the imm8 bit pattern into a floating point value.
+ * Params:
+ *      imm8 = 8 bit encoding
+ * Returns:
+ *      result as float
+ */
+float decodeImm8ToFloat(ubyte imm8)
+{
+    uint sign     = (imm8 & 0x80) ? 1 : 0;
+    uint exponent = (imm8 & 0x70) >> 4;
+    uint fraction =  imm8 & 0x0F;
+
+    //debug printf("sign: %d exponent %d fraction %d\n", sign, exponent, fraction);
+
+    uint bit6 = exponent >> 2;
+    uint notbit6 = bit6 ^ 1;
+
+
+    union U
+    {
+        uint ui;
+        float f;
+    }
+    U u;
+
+    uint expf = (notbit6 << 7) |
+                (bit6 ? 0x7C : 0) |
+                (exponent & 3);
+    u.ui = (sign << 31) |
+           (expf << 23) |
+           (fraction << 19);
+    return u.f;
+}
+
+unittest
+{
+    assert(decodeImm8ToFloat(0x00) == 2.0);
+    assert(decodeImm8ToFloat(0x08) == 3.0);
+    assert(decodeImm8ToFloat(0x10) == 4.0);
+    assert(decodeImm8ToFloat(0x14) == 5.0);
+    assert(decodeImm8ToFloat(0x18) == 6.0);
+    assert(decodeImm8ToFloat(0x1C) == 7.0);
+    assert(decodeImm8ToFloat(0x20) == 8.0);
+    assert(decodeImm8ToFloat(0x70) == 1.0);
+    assert(decodeImm8ToFloat(0x88) == -3.0);
+    assert(decodeImm8ToFloat(0xE0) == -0.5);
+    assert(decodeImm8ToFloat(0xFF) == -1.9375);
+
+    static if (0) // print all cases
+    foreach (imm; 0 .. 128)
+    {
+        ubyte imm8 = cast(ubyte)imm;
+        float f = decodeImm8ToFloat(imm8);
+        debug printf("imm8: x%02x d: %g\n", imm8, f);
+    }
+}
+
+/***************************************
+ * Is double encodable into 8 bits?
+ * Params:
+ *      d = double to encode
+ *      imm8 = result if successful
+ * Returns:
+ *      true for success
+ */
+bool encodeHFD(double d, out ubyte imm8)
+{
+    float f = d;
+    if (f != d)
+    {
+        return false;   // must not lose bits
+    }
+
+    union U
+    {
+        uint ui;
+        float f;
+    }
+
+    U u;
+    u.f = f;
+    uint ui = u.ui;
+
+    if (ui & ((1 << 19) - 1))   // these significand bits should be 0
+    {
+        return false;
+    }
+    ubyte result = (ui >> 19) & 0x0F;   // the fraction part
+
+    if (ui & 0x8000_0000)
+        result |= 0x80;                 // the sign
+
+    uint bit6 = ui & (1 << (7 + 23));
+    if (bit6)
+    {
+        if (ui & (0x1F << (2 + 23)))
+        {
+            return false;
+        }
+    }
+    else
+    {
+        if ((ui & (0x1F << (2 + 23))) != (0x1F << (2 + 23)))
+        {
+            return false;
+        }
+        result |= 0x40;
+    }
+    result |= ((ui >> 23) & 3) << 4; // bits 4 and 5 of exponent
+    imm8 = result;
+    return true;
+}
+
+unittest
+{
+    ubyte imm8;
+
+    assert(encodeHFD(2.0, imm8)); assert(imm8 == 0x00);
+    assert(encodeHFD(3.0, imm8)); assert(imm8 == 0x08);
+    assert(encodeHFD(4.0, imm8)); assert(imm8 == 0x10);
+    assert(encodeHFD(5.0, imm8)); assert(imm8 == 0x14);
+    assert(encodeHFD(6.0, imm8)); assert(imm8 == 0x18);
+    assert(encodeHFD(7.0, imm8)); assert(imm8 == 0x1C);
+    assert(encodeHFD(8.0, imm8)); assert(imm8 == 0x20);
+    assert(encodeHFD(1.0, imm8)); assert(imm8 == 0x70);
+    assert(encodeHFD(-3.0, imm8)); assert(imm8 == 0x88);
+    assert(encodeHFD(-0.5, imm8)); assert(imm8 == 0xE0);
+    assert(encodeHFD(-1.9375, imm8)); assert(imm8 == 0xFF);
+}
+
 /************************************* Tests ***********************************/
 
 unittest
 {
     int line64 = __LINE__;
-    string[50] cases64 =      // 64 bit code gen
+    string[62] cases64 =      // 64 bit code gen
     [
+        "1E 78 03 E0         fcvtzs w0,d31",
+        "5E A1 BB FF         fcvtzs s31,s31",
+        "1E 23 90 07         fmov  s7,#7.000000e+00",
+        "1E 61 10 03         fmov  d3,#3.000000e+00",
+        "1E 20 43 E0         fmov  s0,s31",
+        "1E 22 C3 FE         fcvt  d30,s31",
+        "1E 7F 3B DF         fsub  d31,d30,d31",
+
+        "FD 00 0F E4         str   d4,[sp,#0x18]",
+        "BD 40 43 FF         ldr   s31,[sp,#0x40]",
+        "92 40 3C A0         and   x0,x5,#0xFFFF",
+        "92 40 1C C0         and   x0,x6,#0xFF",
+        "93 40 7C 60         sxtw  x0,w3",
         "B9 00 03 A1         str   w1,[x29]",
         "1A 9F A7 E0         cset  w0,lt",
         "91 40 00 00         add   x0,x0,#0,lsl #12",
@@ -2255,7 +2638,7 @@ unittest
         "B9 80 00 20         ldrsw x0,[x1]",
         "F9 40 00 20         ldr   x0,[x1]",
 
-        "B2 50 AF E0         mov  x0,#0xAD0",
+        "B2 50 AF E0         mov  x0,#0xFFFF00000FFFFFFF",
         "EB 03 08 9F         cmp  x4,x3,lsl #2",
         "F1 00 08 7F         cmp  x3,#2",
         "91 00 0C 00         add  x0,x0,#3",
@@ -2319,7 +2702,7 @@ unittest
 
         auto output = Output!char(buf[]);
         getopstring(&output.put, code, 0, length,
-                size, 0, 0, null, null, null, null);
+                size, 0, 0, 0, null, null, null, null);
         auto result = output.peek();
 
         static bool compareEqual(const(char)[] result, const(char)[] expected)
@@ -2362,6 +2745,11 @@ unittest
 }
 
 version (unittest)
+    version = Extra;
+version (StandAlone)
+    version = Extra;
+
+version (Extra)
 {
 
 /**********************
@@ -2405,6 +2793,13 @@ ubyte[] hexToUbytes(ref Output!ubyte output, out size_t m, string s)
             case 'A': .. case 'F':
                 c -= 'A' - 10;
                 break;
+
+        version (StandAlone)
+        {
+            case 'a': .. case 'f':
+                c -= 'a' - 10;
+                break;
+        }
 
             default:
                 break Loop;
@@ -2452,4 +2847,41 @@ struct Output(T)
     }
 }
 
+}
+
+version (StandAlone)
+{
+@trusted
+int main(string[] args)
+{
+    if (args.length != 2 || args[1].length != 8)
+    {
+        printf(
+"AArch64 Disassembler
+Usage:
+    disasmarm XXXXXXXX
+
+    XXXXXXXX = 32 bit number in hex representing an AArch64 instruction
+");
+        return 1;
+    }
+    ubyte[4] buf2;
+    auto codput = Output!ubyte(buf2[]);
+    size_t m;
+    ubyte[] code = hexToUbytes(codput, m, args[1]);
+
+    // Reverse code[]
+    ubyte c = code[0]; code[0] = code[3]; code[3] = c;
+          c = code[1]; code[1] = code[2]; code[2] = c;
+
+    char[BUFMAX] buf;
+    auto output = Output!char(buf[]);
+    getopstring(&output.put, code, 0, 4,
+            64, 0, true, true, null, null, null, null);
+    auto result = output.peek();
+
+    printf("%.*s\n", cast(int)result.length, result.ptr);
+
+    return 0;
+}
 }
