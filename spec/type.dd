@@ -145,7 +145,22 @@ $(H2 $(LEGACY_LNAME2 Derived Data Types, derived-data-types, Derived Data Types)
     $(LI $(DDLINK spec/hash-map, Associative Array, Associative Arrays))
     $(LI $(RELATIVE_LINK2 functions, Function Types))
     $(LI $(RELATIVE_LINK2 delegates, Delegate Types))
+    $(LI $(DDSUBLINK spec/template, homogeneous_sequences, Type Sequences))
     )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+int* p; // pointer
+int[2] sa; // static array
+int[] da; // dynamic array/slice
+
+int[string] aa; // associative array
+void function() fp; // function pointer
+
+import std.meta : AliasSeq;
+AliasSeq!(int, string) tsi; // type sequence instance
+---
+)
 
 $(H3 $(LNAME2 pointers, Pointers))
 
