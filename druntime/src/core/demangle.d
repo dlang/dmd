@@ -3285,7 +3285,8 @@ private struct BufSlice
  *  bufferLength = The length of the destination buffer.
  *
  * Returns:
- *  1 for success 0 for failure
+ *  0 for failure or the length of the demangled string
+ *  if the buffer is too small, nothing gets written to the buffer
  */
 extern(C) int d_demangle(const(char*) mangled, char* buffer, size_t bufferLength)
 {
@@ -3299,13 +3300,13 @@ extern(C) int d_demangle(const(char*) mangled, char* buffer, size_t bufferLength
     if (demangled.ptr == null || demangled.ptr == mangled)
         return 0;
 
-    if (demangled.length > bufferLength)
-        return 0;
+    if (demangled.length >= bufferLength)
+        return cast(int) demangled.length;
 
     memcpy(buffer, demangled.ptr, demangled.length);
     buffer[demangled.length] = 0;
 
-    return 1;
+    return cast(int) demangled.length;
 }
 
 
