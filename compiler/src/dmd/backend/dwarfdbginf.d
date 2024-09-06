@@ -276,7 +276,7 @@ static if (1)
         size_t location;
         int reg;                    // CFA register number
         int offset;                 // CFA register offset
-        CFA_reg[17] regstates;      // register states
+        CFA_reg[97] regstates;      // register states
     }
 
     /***********************
@@ -288,7 +288,6 @@ static if (1)
      */
     int dwarf_regno(int reg)
     {
-        assert(reg < NUMGENREGS);
         if (I32)
         {
             if (config.objfmt == OBJ_MACH)
@@ -298,9 +297,12 @@ static if (1)
             }
             return reg;
         }
-        else
+        else if (config.target_cpu == TARGET_AArch64)
+        {   // https://github.com/ARM-software/abi-aa/blob/main/aadwarf64/aadwarf64.rst#dwarf-register-names
+            return (reg < 32) ? reg : reg - 32 + 64;
+        }
+        else if (I64)
         {
-            assert(I64);
             /* See https://software.intel.com/sites/default/files/article/402129/mpx-linux64-abi.pdf
              * Figure 3.3.8 pg. 62
              * R8..15    :  8..15
@@ -314,6 +316,8 @@ static if (1)
             [   0, 2, 1, 3, 7, 6, 4, 5 ];
             return reg < 8 ? to_amd64_reg_map[reg] : reg;
         }
+        else
+            assert(0);
     }
 
     private __gshared
@@ -1720,14 +1724,24 @@ static if (1)
     void dwarf_func_start(Symbol *sfunc)
     {
         //printf("dwarf_func_start(%s)\n", sfunc.Sident.ptr);
-        if (I16 || I32)
-            CFA_state_current = CFA_state_init_32;
-        else if (I64)
-            CFA_state_current = CFA_state_init_64;
+        if (config.target_cpu == TARGET_AArch64)
+        {
+            memset(&CFA_state_current,0,CFA_state.sizeof);
+            CFA_state_current.offset   = 4;
+            CFA_state_current.reg      = 31;      // SP
+            CFA_state_current.regstates[32].offset = -8; // PC
+        }
         else
-            assert(0);
-        CFA_state_current.reg = dwarf_regno(SP);
-        assert(CFA_state_current.offset == OFFSET_FAC);
+        {
+            if (I16 || I32)
+                CFA_state_current = CFA_state_init_32;
+            else if (I64)
+                CFA_state_current = CFA_state_init_64;
+            else
+                assert(0);
+            CFA_state_current.reg = dwarf_regno(SP);
+            assert(CFA_state_current.offset == OFFSET_FAC);
+        }
         cfa_buf.reset();
     }
 

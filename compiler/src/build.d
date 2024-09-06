@@ -1628,7 +1628,7 @@ auto sourceFiles()
             machobj.d elfobj.d mscoffobj.d
             x86/nteh.d x86/cgreg.d x86/cg87.d x86/cgxmm.d x86/disasm86.d
             x86/cgcod.d x86/cod1.d x86/cod2.d x86/cod3.d x86/cod4.d x86/cod5.d
-            arm/disasmarm.d arm/instr.d
+            arm/disasmarm.d arm/instr.d arm/cod1.d arm/cod2.d arm/cod3.d arm/cod4.d
             "
         ),
     };

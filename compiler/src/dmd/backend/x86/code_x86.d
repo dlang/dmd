@@ -297,6 +297,7 @@ enum
 
     // AArch64
     CFadd       = 0x1000_0000,
+    CFfixup     = 0x2000_0000,   // needs a fixup
 }
 
 struct code
@@ -357,6 +358,13 @@ struct code
             ubyte Irm;          // reg/mode
             ubyte Isib;         // SIB byte
             ubyte Irex;         // REX prefix
+        }
+        struct                  // AArch64 EA information
+        {
+            reg_t reg;          // EA is register
+            reg_t base;         // base register
+            reg_t index;        // index register
+            ubyte Sextend;      // S is bit 3, extend is bits 2..0
         }
     }
 
@@ -468,23 +476,27 @@ enum
  */
 enum PSOP : uint
 {
+    //uint Rt:5, Rn:5, op:6, root:16;
     root     = 0x6100_0000,      // unused instruction used to identify a PSOP
     mask     = 0xFFFF_0000,      // ((Iop & mask) == root) determines if this is a PSOP
-    linnum   = ( 1 << 12) | root, // line number information
-    ctor     = ( 2 << 12) | root, // object is constructed
-    dtor     = ( 3 << 12) | root, // object is destructed
-    mark     = ( 4 << 12) | root, // mark eh stack
-    release  = ( 5 << 12) | root, // release eh stack
-    offset   = ( 6 << 12) | root, // set code offset for eh
-    adjesp   = ( 7 << 12) | root, // adjust ESP by IEV2.Vint
-    mark2    = ( 8 << 12) | root, // mark eh stack
-    release2 = ( 9 << 12) | root, // release eh stack
-    frameptr = (10 << 12) | root, // replace with load of frame pointer
-    dctor    = (11 << 12) | root, // D object is constructed
-    ddtor    = (12 << 12) | root, // D object is destructed
-    adjfpu   = (13 << 12) | root, // adjust fpustackused by IEV2.Vint
-    fixesp   = (14 << 12) | root, // reset ESP to end of local frame
-    // bottom 12 bits gives us a place to put two reg_t numbers
+    operator = 0xFF00_0000 | (0x3F << 10),
+    linnum   = ( 1 << 10) | root, // line number information
+    ctor     = ( 2 << 10) | root, // object is constructed
+    dtor     = ( 3 << 10) | root, // object is destructed
+    mark     = ( 4 << 10) | root, // mark eh stack
+    release  = ( 5 << 10) | root, // release eh stack
+    offset   = ( 6 << 10) | root, // set code offset for eh
+    adjesp   = ( 7 << 10) | root, // adjust ESP by IEV2.Vint
+    mark2    = ( 8 << 10) | root, // mark eh stack
+    release2 = ( 9 << 10) | root, // release eh stack
+    frameptr = (10 << 10) | root, // replace with load of frame pointer
+    dctor    = (11 << 10) | root, // D object is constructed
+    ddtor    = (12 << 10) | root, // D object is destructed
+    adjfpu   = (13 << 10) | root, // adjust fpustackused by IEV2.Vint
+    fixesp   = (14 << 10) | root, // reset ESP to end of local frame
+    // bottom 10 bits gives us a place to put two reg_t numbers
+    ldr      = (15 << 10) | root, // load register from memory
+    str      = (16 << 10) | root, // store register into memory
 }
 
 /*********************************

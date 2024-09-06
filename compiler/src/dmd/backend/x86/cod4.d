@@ -341,10 +341,15 @@ private void opnegassdbl(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 /************************
  * Generate code for an assignment.
  */
-
 @trusted
 void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+    {
+        import dmd.backend.arm.cod4 : cdeq;
+        return cdeq(cg, cdb, e, pretregs);
+    }
+
     tym_t tymll;
     reg_t reg;
     code cs;
@@ -841,6 +846,12 @@ Lp:
 @trusted
 void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+    {
+        import dmd.backend.arm.cod4 : cdaddass;
+        return cdaddass(cg, cdb, e, pretregs);
+    }
+
     //printf("cdaddass(e=%p, pretregs = %s)\n",e,regm_str(pretregs));
     OPER op = e.Eoper;
     regm_t retregs = 0;
@@ -1386,6 +1397,12 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 @trusted
 void cdmulass(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+    {
+        import dmd.backend.arm.cod4 : cdmulass;
+        return cdmulass(cg, cdb, e, pretregs);
+    }
+
     code cs;
     regm_t retregs;
     reg_t resreg;
@@ -1677,6 +1694,12 @@ void cdmulass(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 @trusted
 void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+    {
+        import dmd.backend.arm.cod4 : cddivass;
+        return cddivass(cg, cdb, e, pretregs);
+    }
+
     elem *e1 = e.E1;
     elem *e2 = e.E2;
 
@@ -2254,6 +2277,12 @@ void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 @trusted
 void cdshass(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+    {
+        import dmd.backend.arm.cod4 : cdshass;
+        return cdshass(cg, cdb, e, pretregs);
+    }
+
     code cs;
     uint op1,op2;
 
@@ -2497,6 +2526,12 @@ void cdshass(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 @trusted
 void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+    {
+        import dmd.backend.arm.cod4 : cdcmp;
+        return cdcmp(cg, cdb, e, pretregs);
+    }
+
     regm_t retregs,rretregs;
     reg_t reg,rreg;
     int fl;
@@ -3338,11 +3373,31 @@ void longcmp(ref CodeBuilder cdb,elem *e,bool jcond,uint fltarg,code *targ)
 /*****************************
  * Do conversions.
  * Depends on OPd_s32 and CLIB.dbllng being in sequence.
+    OPvp_fp
+    OPcvp_fp
+    OPd_s32
+    OPb_8
+    OPs32_d
+    OPd_s16
+    OPs16_d
+    OPd_u16
+    OPu16_d
+    OPd_u32
+    OPu32_d
+    OPd_f
+    OPf_d
+    OPd_ld
+    OPld_d
  */
-
 @trusted
 void cdcnvt(ref CGstate cg, ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
 {
+    if (cg.AArch64)
+    {
+        import dmd.backend.arm.cod4 : cdcnvt;
+        return cdcnvt(cg, cdb, e, pretregs);
+    }
+
     //printf("cdcnvt: %p pretregs = %s\n", e, regm_str(pretregs));
     //elem_print(e);
 
@@ -3557,13 +3612,24 @@ L1:
 
 /***************************
  * Convert short to long.
- * For OPs16_32, OPu16_32, OPnp_fp, OPu32_64, OPs32_64,
- * OPu64_128, OPs64_128
+    OPnp_fp
+    OPs16_32
+    OPu16_32
+    OPu32_64
+    OPs32_64
+    OPu64_128
+    OPs64_128
  */
 
 @trusted
 void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+    {
+        import dmd.backend.arm.cod4 : cdshtlng;
+        return cdshtlng(cg, cdb, e, pretregs);
+    }
+
     reg_t reg;
     regm_t retregs;
 
@@ -3800,6 +3866,12 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 @trusted
 void cdbyteint(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+    {
+        import dmd.backend.arm.cod4 : cdbyteint;
+        return cdbyteint(cg, cdb, e, pretregs);
+    }
+
     regm_t retregs;
     char size;
 
@@ -3927,16 +3999,23 @@ void cdbyteint(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 
 
 /***************************
- * Convert long to short (OP32_16).
- * Get offset of far pointer (OPoffset).
- * Convert int to byte (OP16_8).
- * Convert long long to long (OP64_32).
- * OP128_64
+ * Convert long to short.
+    OPoffset
+    OP32_16
+    OP16_8
+    OP64_32
+    OP128_64
  */
 
 @trusted
 void cdlngsht(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+    {
+        import dmd.backend.arm.cod4 : cdlngsht;
+        return cdlngsht(cg, cdb, e, pretregs);
+    }
+
     debug
     {
         switch (e.Eoper)
@@ -4004,6 +4083,12 @@ void cdlngsht(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 @trusted
 void cdmsw(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+    {
+        import dmd.backend.arm.cod4 : cdmsw;
+        return cdmsw(cg, cdb, e, pretregs);
+    }
+
     assert(e.Eoper == OPmsw);
 
     regm_t retregs = pretregs ? ALLREGS : 0;
@@ -4040,6 +4125,7 @@ void cdmsw(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 void cdport(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
     //printf("cdport\n");
+    assert(!cg.AArch64);
     ubyte op = 0xE4;            // root of all IN/OUT opcodes
     elem *e1 = e.E1;
 
@@ -4090,6 +4176,15 @@ void cdport(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 @trusted
 void cdasm(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+    {
+        // Assume only regs normally destroyed by a function are destroyed
+        getregs(cdb,cg.allregs & ~fregsaved);
+        cdb.genasm(cast(ubyte[])e.Vstring[0 .. e.Vstrlen]);
+        fixresult(cdb,e,0,pretregs);
+        return;
+    }
+
     // Assume only regs normally destroyed by a function are destroyed
     getregs(cdb,(ALLREGS | mES) & ~fregsaved);
     cdb.genasm(cast(ubyte[])e.Vstring[0 .. e.Vstrlen]);
@@ -4103,6 +4198,7 @@ void cdasm(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 @trusted
 void cdfar16(ref CGstate cg, ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
 {
+    assert(!cg.AArch64);
     code *cnop;
     code cs;
 
@@ -4176,6 +4272,7 @@ void cdfar16(ref CGstate cg, ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
 @trusted
 void cdbtst(ref CGstate cg, ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
 {
+    assert(!cg.AArch64);
     regm_t retregs;
     reg_t reg;
 
@@ -4316,6 +4413,7 @@ void cdbtst(ref CGstate cg, ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
 void cdbt(ref CGstate cg, ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
 {
     //printf("cdbt(%p, %s)\n", e, regm_str(pretregs));
+    assert(!cg.AArch64);
     regm_t retregs;
     reg_t reg;
     opcode_t op;
@@ -4436,6 +4534,7 @@ void cdbscan(ref CGstate cg, ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
 {
     //printf("cdbscan()\n");
     //elem_print(e);
+    assert(!cg.AArch64);
     if (!pretregs)
     {
         codelem(cgstate,cdb,e.E1,pretregs,false);
@@ -4486,6 +4585,12 @@ void cdbscan(ref CGstate cg, ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
 @trusted
 void cdpopcnt(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+    {
+        import dmd.backend.arm.cod4 : cdpopcnt;
+        return cdpopcnt(cg, cdb, e, pretregs);
+    }
+
     //printf("cdpopcnt()\n");
     //elem_print(e);
     assert(!I16);
@@ -4552,6 +4657,7 @@ void cdpair(ref CGstate cg, ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
         return;
     }
 
+    assert(!cg.AArch64);
     //printf("\ncdpair(e = %p, pretregs = %s)\n", e, regm_str(pretregs));
     //WRTYxx(e.Ety);printf("\n");
     //printf("Ecount = %d\n", e.Ecount);
@@ -4623,7 +4729,8 @@ void cdcmpxchg(ref CGstate cg, ref CodeBuilder cdb, elem *e, ref regm_t pretregs
      *        old     new
      */
 
-    //printf("cdmulass(e=%p, pretregs = %s)\n",e,regm_str(pretregs));
+    assert(!cg.AArch64);
+    //printf("cdcmpxchg(e=%p, pretregs = %s)\n",e,regm_str(pretregs));
     elem *e1 = e.E1;
     elem *e2 = e.E2;
     assert(e2.Eoper == OPparam);
@@ -4713,6 +4820,7 @@ void cdprefetch(ref CGstate cg, ref CodeBuilder cdb, elem *e, ref regm_t pretreg
      *    4: prefetchw
      *    5: prefetchwt1
      */
+    assert(!cg.AArch64);
     //printf("cdprefetch\n");
     elem *e1 = e.E1;
 
