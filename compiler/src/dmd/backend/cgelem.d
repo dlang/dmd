@@ -1551,7 +1551,8 @@ private elem * elbitwise(elem *e, Goal goal)
                 ul == 1 &&
                 (e.E1.Eoper == OPshr || e.E1.Eoper == OPashr) &&
                 sz <= REGSIZE &&
-                tysize(e1.Ety) >= 2     // BT doesn't work on byte operands
+                tysize(e1.Ety) >= 2 &&   // BT doesn't work on byte operands
+                config.target_cpu != TARGET_AArch64
                )
             {
                 e.E1.Eoper = OPbtst;
@@ -1605,7 +1606,9 @@ private elem * elbitwise(elem *e, Goal goal)
             elem **pp  = &e2.E1.E2;
 
             if (el_match(*pb1, *pb2) &&
-                !el_sideeffect(*pb1))
+                !el_sideeffect(*pb1) &&
+                config.target_cpu != TARGET_AArch64
+               )
             {
                 e.Eoper = OPbt;
                 e.E1 = *pp;            // p
@@ -1626,7 +1629,9 @@ private elem * elbitwise(elem *e, Goal goal)
          */
         if (e1.Eoper == OPshl &&
             ELCONST(e1.E1,1) &&
-            tysize(e.E1.Ety) <= REGSIZE)
+            tysize(e.E1.Ety) <= REGSIZE &&
+            config.target_cpu != TARGET_AArch64
+           )
         {
             const int sz1 = tysize(e.E1.Ety);
             e.Eoper = OPbtst;
@@ -1711,6 +1716,21 @@ private elem *elor(elem *e, Goal goal)
     uint sz = tysize(e.Ety);
     if (sz <= REGSIZE)
     {
+        elem* rol()
+        {
+            if (config.target_cpu == TARGET_AArch64)
+            {
+                // AArch64 does not have ROL instruction, convert (a rol b) to (a ror -b)
+                e1.Eoper = OPror;
+                e = el_selecte1(e);
+                e.E2 = el_una(OPneg, e.E2.Ety, e.E2);
+                e.Eoper = OPror;
+                return e;
+            }
+            e1.Eoper = OProl;
+            return el_selecte1(e);
+        }
+
         if (e1.Eoper == OPshl && e2.Eoper == OPshr &&
             tyuns(e2.E1.Ety) && e2.E2.Eoper == OPmin &&
             e2.E2.E1.Eoper == OPconst &&
@@ -1720,8 +1740,7 @@ private elem *elor(elem *e, Goal goal)
             !el_sideeffect(e)
            )
         {
-            e1.Eoper = OProl;
-            return el_selecte1(e);
+            return rol();
         }
         if (e1.Eoper == OPshr && e2.Eoper == OPshl &&
             tyuns(e1.E1.Ety) && e2.E2.Eoper == OPmin &&
@@ -1745,8 +1764,7 @@ private elem *elor(elem *e, Goal goal)
             !el_sideeffect(e)
            )
         {
-            e1.Eoper = OProl;
-            return el_selecte1(e);
+            return rol();
         }
         // rotate right by a constant
         if (e1.Eoper == OPshr && e2.Eoper == OPshl &&
@@ -2859,7 +2877,7 @@ L1:
 @trusted
 private bool optim_loglog(ref elem* pe)
 {
-    if (I16)
+    if (I16 || config.target_cpu == TARGET_AArch64)
         return false;
     elem *e = pe;
     const op = e.Eoper;
@@ -4735,7 +4753,8 @@ private elem * elbool(elem *e, Goal goal)
                  e.E1.Eoper == OPand &&
                  e.E1.E1.Eoper == OPshl &&
                  e.E1.E1.E1.Eoper == OPconst && el_tolong(e.E1.E1.E1) == 1 &&
-                 tysize(e.E1.Ety) <= REGSIZE
+                 tysize(e.E1.Ety) <= REGSIZE &&
+                 config.target_cpu != TARGET_AArch64
                 )
         {
             tym_t ty = e.Ety;

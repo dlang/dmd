@@ -34,6 +34,9 @@ struct CodeBuilder
     code *head;
     code **pTail;
 
+    enum BADINS = 0x1234_5678;
+//    enum BADINS = 0xF940_03A8;
+
   nothrow:
   public:
     //this() { pTail = &head; }
@@ -116,6 +119,7 @@ struct CodeBuilder
     {
         /* this is a high usage routine */
         debug assert(cs);
+assert(cs.Iop != BADINS);
         assert(I64 || cs.Irex == 0);
         code* ce = code_malloc();
         *ce = *cs;
@@ -131,6 +135,8 @@ struct CodeBuilder
 
     void gen1(opcode_t op)
     {
+        //debug printf("gen1(%08x)\n", op);
+assert(op != BADINS);
         code *ce = code_calloc();
         ce.Iop = op;
         ccheck(ce);
@@ -142,6 +148,7 @@ struct CodeBuilder
 
     void gen2(opcode_t op, uint rm)
     {
+assert(op != BADINS);
         code *ce = code_calloc();
         ce.Iop = op;
         ce.Iea = rm;
@@ -156,6 +163,7 @@ struct CodeBuilder
      */
     void genf2(opcode_t op, uint rm)
     {
+assert(op != BADINS);
         genfwait(this);
         gen2(op, rm);
     }
@@ -220,8 +228,25 @@ struct CodeBuilder
     }
 
     @trusted
+    void gencs1(opcode_t op, uint ea, FL FL1, Symbol *s)
+    {
+assert(op != BADINS);
+        code cs;
+        cs.Iop = op;
+        cs.Iflags = 0;
+        cs.Iea = ea;
+        ccheck(&cs);
+        cs.IFL1 = FL1;
+        cs.IEV1.Vsym = s;
+        cs.IEV1.Voffset = 0;
+
+        gen(&cs);
+    }
+
+    @trusted
     void gencs(opcode_t op, uint ea, FL FL2, Symbol *s)
     {
+assert(op != BADINS);
         code cs;
         cs.Iop = op;
         cs.Iflags = 0;
@@ -237,6 +262,7 @@ struct CodeBuilder
     @trusted
     void genc2(opcode_t op, uint ea, targ_size_t EV2)
     {
+assert(op != BADINS);
         code cs;
         cs.Iop = op;
         cs.Iflags = 0;
@@ -252,6 +278,7 @@ struct CodeBuilder
     @trusted
     void genc1(opcode_t op, uint ea, FL FL1, targ_size_t EV1)
     {
+assert(op != BADINS);
         code cs;
         assert(FL1 < FLMAX);
         cs.Iop = op;
@@ -267,6 +294,7 @@ struct CodeBuilder
     @trusted
     void genc(opcode_t op, uint ea, FL FL1, targ_size_t EV1, FL FL2, targ_size_t EV2)
     {
+assert(op != BADINS);
         code cs;
         assert(FL1 < FLMAX);
         cs.Iop = op;
