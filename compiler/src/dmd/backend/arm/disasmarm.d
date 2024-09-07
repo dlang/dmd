@@ -1,4 +1,4 @@
-/*********************************************************
+/**********************************************************
  * ARM64 disassembler.
  * For unit tests: dmd disasmarm.d -unittest -main -debug -fPIC
  * For standalone disasmarm: dmd disasmarm.d -version=StandAlone -fPIC
@@ -311,7 +311,7 @@ void disassemble(uint c) @trusted
         p7 = "";
     }
 
-    /*{====================== Reserved ============================
+    /* ====================== Reserved ============================
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#reserved
      */
     if (field(ins, 31, 31) == 0 && field(ins, 28, 25) == 0)
@@ -327,21 +327,33 @@ void disassemble(uint c) @trusted
         else
             p1 = "reserved";
     }
-    /* } */
     else
-    /*{====================== SME encodings ============================
+
+    /* ====================== SME encodings ============================
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#sme
      */
-    /* } */
+    if (field(ins,31,31) == 1 && field(ins,28,25) == 0)
+    {
+        url = "sme";//
+    }
+    else
 
-    /*{====================== SVE encodings ============================
+    /* ====================== SVE encodings ============================
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#sve
      */
-    /* } */
+    if (field(ins,28,25) == 2)
+    {
+        url = "sve";
+    }
+    else
 
-    /*{====================== Data Processing -- Immediate ============================
+    /*====================== Data Processing -- Immediate ============================
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#dpimm
      */
+    if (field(ins,28,26) == 4)
+    {
+        url = "dpimm";
+
     if (field(ins, 30, 23) == 0xE7) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#dp_1src_imm
     {
         if (log) printf("Data-processing (1 source immediate)\n");
@@ -691,7 +703,16 @@ void disassemble(uint c) @trusted
             p5 = wordtostring(imms);
         }
     }
+    }
     else
+
+    /* ====================== Branches, Exception Generating and System instructions ============================
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#control
+     */
+    if (field(ins,28,26) == 5)
+    {
+        url = "control";
+
     if (field(ins, 31, 24) == 0x54) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#condbranch
     {
         if (log) printf("Conditional branch (immediate)\n");
@@ -1044,11 +1065,8 @@ void disassemble(uint c) @trusted
             p4 = regString(1, Rt + 1);
         }
     }
-    /* } */
     else
-    /*{====================== Branches, Exception Generating and System instructions ============================
-     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#control
-     */
+
     if (field(ins, 31, 25) == 0x6B) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#branch_reg
     {
         if (log) printf("Unconditional branch (register)\n");
@@ -1185,11 +1203,16 @@ void disassemble(uint c) @trusted
         p3 = wordtostring((b5 << 5) | b40);
         p4 = wordtostring(imm14 * 4);
     }
-    /* } */
+    }
     else
-    /*{====================== Data Processing -- Register ============================
+
+    /* ====================== Data Processing -- Register ============================
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#dpreg
      */
+    if (field(ins,27,25) == 5)
+    {
+        url = "dpreg";
+
     if (field(ins, 30, 30) == 0 && field(ins, 28, 21) == 0xD6) // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#dp_2src
     {
         if (log) printf("Data-processing (2 source)\n");
@@ -1736,11 +1759,15 @@ void disassemble(uint c) @trusted
             }
         }
     }
-    /* } */
+    }
     else
-    /*{====================== Data Processing -- Scalar Floating-Point and Advanced SIMD ============================
+
+    /*====================== Data Processing -- Scalar Floating-Point and Advanced SIMD ============================
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#simd_dp
      */
+    if (field(ins,27,25) == 7)
+    {
+        url = "simd_dp";
 
     // Cryptographic AES
     if (field(ins, 31, 24) == 0x4E && field(ins, 21, 17) == 0x14 && field(ins, 11, 10) == 2) // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#cryptoaes
@@ -1766,12 +1793,12 @@ void disassemble(uint c) @trusted
     }
     else
 
-    // Cryptographic three-register SHA
-    // Cryptographic two-register SHA
-    // Advanced SIMD scalar copy
-    // Advanced SIMD scalar three same FP16
-    // Advanced SIMD scalar two-register miscellaneous FP16
-    // Advanced SIMD scalar three same extra
+    // Cryptographic three-register SHA https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#cryptosha3
+    // Cryptographic two-register SHA https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#cryptosha2
+    // Advanced SIMD scalar copy https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdone
+    // Advanced SIMD scalar three same FP16 https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdsamefp16
+    // Advanced SIMD scalar two-register miscellaneous FP16 https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdmiscfp16
+    // Advanced SIMD scalar three same extra https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdsame2
 
     // Advanced SIMD two-register miscellaneous http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdmisc
     if (field(ins,31,30) == 1 && field(ins,28,24) == 0x1E && field(ins,21,17) == 0x10 && field(ins,11,10) == 2)
@@ -1792,31 +1819,31 @@ void disassemble(uint c) @trusted
     }
     else
 
-    // Advanced SIMD scalar pairwise
-    // Advanced SIMD scalar three different
-    // Advanced SIMD scalar three same
-    // Advanced SIMD scalar shift by immediate
-    // Advanced SIMD scalar x indexed element
-    // Advanced SIMD table lookup
-    // Advanced SIMD permute
-    // Advanced SIMD extract
-    // Advanced SIMD copy
-    // Advanced SIMD three same (FP16)
-    // Advanced SIMD two-register miscellaneous (FP16)
-    // Advanced SIMD three-register extension
-    // Advanced SIMD two-register miscellaneous
-    // Advanced SIMD across lanes
-    // Advanced SIMD three different
-    // Advanced SIMD three same
-    // Advanced SIMD modified immediate
-    // Advanced SIMD shift by immediate
-    // Advanced SIMD vector x indexed element
-    // Cryptographic three-register, imm2
-    // Cryptographic three-register SHA 512
-    // Cryptographic four-register
-    // XAR
-    // Cryptographic two-regsiter SHA 512
-    // Conversion between floating-point and fixed-point
+    // Advanced SIMD scalar pairwise https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdpair
+    // Advanced SIMD scalar three different https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisddiff
+    // Advanced SIMD scalar three same https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdsame
+    // Advanced SIMD scalar shift by immediate https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdshf
+    // Advanced SIMD scalar x indexed element https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdelem
+    // Advanced SIMD table lookup https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdtbl
+    // Advanced SIMD permute https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdperm
+    // Advanced SIMD extract https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdext
+    // Advanced SIMD copy https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdins
+    // Advanced SIMD three same (FP16) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdsamefp16
+    // Advanced SIMD two-register miscellaneous (FP16) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdmiscfp16
+    // Advanced SIMD three-register extension https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdsame2
+    // Advanced SIMD two-register miscellaneous https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdmisc
+    // Advanced SIMD across lanes https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdall
+    // Advanced SIMD three different https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimddiff
+    // Advanced SIMD three same https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdsame
+    // Advanced SIMD modified immediate https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdimm
+    // Advanced SIMD shift by immediate https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdshf
+    // Advanced SIMD vector x indexed element https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdelem
+    // Cryptographic three-register, imm2 https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#crypto3_imm2
+    // Cryptographic three-register SHA 512 https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#cryptosha512_3
+    // Cryptographic four-register https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#crypto4
+    // XAR https://www.scs.stanford.edu/~zyedidia/arm64/xar_advsimd.html
+    // Cryptographic two-regsiter SHA 512 https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#cryptosha512_2
+    // Conversion between floating-point and fixed-point https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#float2fix
 
     // Conversion between floating-point and integer http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#float2int
     if (field(ins,30,30) == 0 &&
@@ -1931,35 +1958,51 @@ void disassemble(uint c) @trusted
             p4 = fregString(rbuf[8 ..12],prefix,Rm);
         }
     }
+
+    // Floating-point conditional select https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatsel
+    // Floating-point data-processing (3 source) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatdp3
+    }
     else
 
-    // Floating-point conditional select
-    // Floating-point data-processing (3 source)
-
-    /* } */
-    /*{===================== Loads and Stores ============================
+    /* ===================== Loads and Stores ============================
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst
      */
-    // Compare and swap pair
-    // Advanced SIMD load/store multiple structures
-    // Advanced SIMD load/store multiple structures (post-indexed)
-    // Advanced SIMD load/store single structure
-    // Advanced SIMD load/store single structure (post-indexed)
-    // RCW compare and swap
-    // RCW compare and swap pair
-    // 128-bi atomic memory operations
-    // GCS load/store
-    // Load/store memory tags
-    // Load/store exclusive pair
-    // Load/store exclusive register
-    // Load/store ordered
-    // Compare and swap
-    // LDIAPP/STILP
-    // LDAPR/STLR (writeback)
-    // LDAPR/STLR (unscaled immediate)
-    // LDAPR/STLR (SIMD&FP)
-    // Load register (literal)
-    // Memory Copy and Memory Set
+    if (field(ins,27,27) == 1 && field(ins,25,25) == 0)
+    {
+        url = "ldst";
+
+    // Compare and swap pair https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#comswappr
+    if (field(ins,31,31) == 0 && field(ins,29,23) == 0x10 && field(ins,21,21) == 1)
+    {
+        url = "comswappr";
+    }
+    else
+
+    // Advanced SIMD load/store multiple structures https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdlse
+    if (field(ins,31,31) == 0 && field(ins,29,23) == 0x18 && field(ins,21,16) == 0)
+    {
+        url = "asisdlse";
+    }
+    else
+
+    // Advanced SIMD load/store multiple structures (post-indexed) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdlsep
+    // Advanced SIMD load/store single structure https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdlso
+    // Advanced SIMD load/store single structure (post-indexed) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdlsop
+    // RCW compare and swap https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#rcwcomswap
+    // RCW compare and swap pair https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#rcwcomswappr
+    // 128-bi atomic memory operations https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#memop_128
+    // GCS load/store https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_gcs
+    // Load/store memory tags https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldsttags
+    // Load/store exclusive pair https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldstexclp
+    // Load/store exclusive register https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldstexclr
+    // Load/store ordered https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldstord
+    // Compare and swap https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#comswap
+    // LDIAPP/STILP https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldiappstilp
+    // LDAPR/STLR (writeback) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldapstl_writeback
+    // LDAPR/STLR (unscaled immediate) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldapstl_unscaled
+    // LDAPR/STLR (SIMD&FP) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldapstl_simd
+    // Load register (literal) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#loadlit
+    // Memory Copy and Memory Set  https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#memcms
 
     // Load/store no-allocate pair (offset)    https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldstnapair_offs
     // Load/store register pair (post-indexed) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldstpair_post
@@ -2025,13 +2068,13 @@ void disassemble(uint c) @trusted
         p4 = eaString(op24, cast(ubyte)Rn, offset);
     }
 
-    // Load/store register pair (unscaled immediate)
-    // Load/store register pair (immediate post-indexed)
-    // Load/store register pair (unprivileged)
-    // Load/store register pair (immediate pre-indexed)
-    // Atomic memory operations
-    // Load/store register (register offset)
-    // Load/store register (pac)
+    // Load/store register pair (unscaled immediate) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_unscaled
+    // Load/store register pair (immediate post-indexed) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_immpost
+    // Load/store register pair (unprivileged) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_unpriv
+    // Load/store register pair (immediate pre-indexed) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_immpre
+    // Atomic memory operations https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#memop
+    // Load/store register (register offset) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_regoff
+    // Load/store register (pac) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_pac
 
     // Load/store register (unsigned immediate)
     if (field(ins, 29, 27) == 7 && field(ins, 25, 24) == 1) // https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_pos
@@ -2096,7 +2139,7 @@ void disassemble(uint c) @trusted
                 break;
         }
     }
-    /* } */
+    }
     //printf("%x\n", field(ins, 31, 25));
     //printf("p1: %s\n", p1);
 
@@ -2144,7 +2187,6 @@ void disassemble(uint c) @trusted
         puts(url);
     }
 }
-
 }
 
 /***********************
