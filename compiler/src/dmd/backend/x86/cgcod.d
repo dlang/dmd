@@ -88,15 +88,12 @@ void codgen(Symbol *sfunc)
     cgstate.AArch64 = config.target_cpu == TARGET_AArch64;
     cgstate.BP = cgstate.AArch64 ? 29 : BP;
 
-    if (config.ehmethod == EHmethod.EH_DWARF)
+    /* Sadly, the dwarf and Windows unwinders relies on the function epilog to exist
+     */
+    for (block* b = startblock; b; b = b.Bnext)
     {
-        /* The dwarf unwinder relies on the function epilog to exist
-         */
-        for (block* b = startblock; b; b = b.Bnext)
-        {
-            if (b.BC == BCexit)
-                b.BC = BCret;
-        }
+        if (b.BC == BCexit)
+            b.BC = BCret;
     }
 
     /* Generate code repeatedly until we cannot do any better. Each
