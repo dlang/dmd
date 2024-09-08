@@ -2262,7 +2262,8 @@ private void blassertsplit()
 @trusted
 private void blexit()
 {
-    debug if (debugc) printf("blexit()\n");
+    debug if (debugc)
+        printf("blexit()\n");
 
     Barray!(block*) bexits;
     for (block *b = startblock; b; b = b.Bnext)
@@ -2273,7 +2274,14 @@ private void blexit()
             continue;
 
         if (b.BC == BCexit)
+        {
+            /* If b is not already at the end, put it at the end
+             * because we don't care about speed for BCexit blocks
+             */
+            if (b != startblock && b.Bnext && b.Bnext.BC != BCexit)
+                bexits.push(b);
             continue;
+        }
 
         if (!b.Belem || el_returns(b.Belem))
             continue;
