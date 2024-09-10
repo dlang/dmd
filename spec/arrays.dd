@@ -826,11 +826,12 @@ void fun()
 $(H3 $(LNAME2 capacity-reserve, `capacity` and `reserve`))
 
         $(P The $(D capacity) property gives the maximum length a dynamic array
-        can grow to without reallocating. If the array does not point to
-        GC-allocated memory, the capacity will be zero.
-        The spare capacity for an array *a* is `a.capacity - a.length`.)
+        can grow to without reallocating.
+        The spare capacity for an array *a* is `a.capacity - a.length`.
+        The capacity for a slice is zero:)
 
-        $(P By default, `capacity` will be zero if an element has been stored after the slice.)
+        * If it does not point to GC-allocated dynamic array memory.
+        * By default, when an element has been stored after the slice.
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
@@ -838,6 +839,7 @@ $(H3 $(LNAME2 capacity-reserve, `capacity` and `reserve`))
         assert(a.capacity == 0);
         a.length = 3; // may allocate spare capacity too
         assert(a.capacity >= 3);
+
         auto b = a[1..3];
         assert(b.capacity >= 2); // either a or b can append into any spare capacity
         b = a[0..2];
@@ -849,8 +851,9 @@ $(H3 $(LNAME2 capacity-reserve, `capacity` and `reserve`))
         elements in another slice. It is also necessary to protect immutable
         elements from being overwritten.)
 
-        $(P The $(D reserve)
-        function expands an array's capacity for use by the
+        $(P The $(REF1 reserve, object) function requests a minimum capacity for an array.
+        It returns the new capacity, which may be more than requested.
+        Any spare capacity can be used by the
         $(RELATIVE_LINK2 array-appending, append operator) or `.length` assignment.)
 
 $(SPEC_RUNNABLE_EXAMPLE_RUN
@@ -859,6 +862,7 @@ int[] array;
 const size_t cap = array.reserve(10); // request
 assert(cap >= 10); // allocated may be more than request
 assert(array.ptr != null);
+assert(array.length == 0);
 
 int[] copy = array;
 assert(copy.capacity == cap); // array and copy have same capacity
@@ -866,8 +870,9 @@ array ~= [1, 2, 3, 4, 5]; // grow in place
 assert(cap == array.capacity); // array memory was not reallocated
 assert(copy.ptr == array.ptr);
 assert(copy.capacity == 0);
-copy ~= 0; // new allocation
+copy ~= 0; // allocates a new array
 assert(copy.ptr != array.ptr);
+assert(array[0] == 1);
 ---------
 )
         $(P Above, `copy`'s length remains zero but it points to the same
@@ -876,7 +881,7 @@ assert(copy.ptr != array.ptr);
         is the address of `array[0]`. So `copy.capacity` will be zero to
         prevent any appending to `copy` from overwriting elements in `array`.)
 
-        $(NOTE The runtime uses the number of appended elements to track the
+        $(NOTE The runtime uses the last element of a slice to track the
         start of the spare capacity for the memory allocation.)
 
         $(P When an array with spare capacity has its length reduced, or is
@@ -885,7 +890,7 @@ assert(copy.ptr != array.ptr);
 
         $(P The `@system` function $(REF1 assumeSafeAppend, object) allows the
         capacity to be regained, but care must be taken not to overwrite
-        immutable elements that may exist in a longer slice.)
+        immutable elements that may exist in another slice.)
 
         $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
@@ -901,7 +906,8 @@ assert(copy.ptr != array.ptr);
         acquire a global lock and perform a cache lookup.)
 
         $(BEST_PRACTICE Avoid intensive use of `.capacity` in performance-sensitive code.
-        Instead, track the capacity locally when building an array via a unique reference.)
+        Instead, track the capacity locally when building an array via a unique reference.
+        E.g. $(REF Appender, std,array).)
 
 
 $(H3 $(LNAME2 func-as-property, Functions as Array Properties))
