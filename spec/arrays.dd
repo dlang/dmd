@@ -295,6 +295,9 @@ writeln(b[7]);      // 10
 
 $(H2 $(LNAME2 array-length, Array Length))
 
+        $(P The $(RELATIVE_LINK2 array-properties, `.length` property)
+        for static and dynamic arrays gives the number of elements in the array.)
+
         $(P When indexing or slicing a static or dynamic array,
         the symbol $(D $) represents the length of the array.
         )
@@ -302,16 +305,18 @@ $(H2 $(LNAME2 array-length, Array Length))
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
 int[4] foo;
-int[]  bar = foo;
+int[] bar;
 
-// These expressions are equivalent:
+// These assignments are equivalent:
 bar = foo;
 bar = foo[];
 bar = foo[0 .. 4];
 bar = foo[0 .. $];
 bar = foo[0 .. foo.length];
+assert(bar.length == 4);
 
-int* p = foo.ptr;
+int* p = foo.ptr; // a pointer has no length property
+bar = p[0 .. 4]; // OK
 //bar = p[0 .. $]; // error, '$' is not defined, since p is not an array
 
 int i;
@@ -654,28 +659,37 @@ Returns an array literal with each element of the literal being the $(D .init) p
         array. It is of type $(D size_t).)
         $(TROW $(D .capacity), Returns the length an array can grow to without reallocating.
             See $(RELATIVE_LINK2 capacity-reserve, here) for details.)
-        $(TROW $(D .ptr), Returns a pointer to the first element of the array.)
+        $(TROW $(D .ptr), Returns a pointer to the first element of the array.
+            See $(RELATIVE_LINK2 assignment, assignment).)
         $(TROW $(D .dup), Create a dynamic array of the same size and copy the contents of the array into it. The copy will have any immutability or const stripped. If this conversion is invalid the call will not compile.)
         $(TROW $(D .idup), Create a dynamic array of the same size and copy the contents of the array into it. The copy is typed as being immutable. If this conversion is invalid the call will not compile.)
                 )
 
     $(P Examples:)
 
-$(SPEC_RUNNABLE_EXAMPLE_FAIL
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
 int* p;
 int[3] s;
 int[] a;
 
-p.length; // error, length not known for pointer
-s.length; // compile time constant 3
-a.length; // runtime value
+size_t len;
+//len = p.length;   // error, pointer has no length property
+enum sl = s.length; // compile time constant
+static assert(sl == 3);
 
-p.dup;    // error, length not known
-s.dup;    // creates an array of 3 elements, copies
-          // elements of s into it
-a.dup;    // creates an array of a.length elements, copies
-          // elements of a into it
+len = a.length; // runtime value
+assert(len == 0);
+
+//a = p.dup; // error, length not known
+a = s.dup;   // allocates an array of 3 elements, copies
+             // elements of `s` into it
+assert(a == s[]);
+assert(a.ptr != s.ptr);
+
+int[] b = a.dup; // allocates a new array of `a.length` elements, copies
+                 // elements of `a` into it
+assert(b !is a); // b is an independent copy of a
 ---------
 )
 
