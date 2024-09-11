@@ -400,7 +400,8 @@ $(H2 $(LNAME2 function-return-values, Function Return Values))
         unless:)
         $(UL
         $(LI the function executes an infinite loop)
-        $(LI the function executes an `assert(0)` statement)
+        $(LI the function executes an $(DDSUBLINK spec/expression, assert-ct,
+            `assert(0)` statement))
         $(LI the function evaluates an expression of type
             $(DDSUBLINK spec/type, noreturn, `noreturn`))
         $(LI the function contains inline assembler code)

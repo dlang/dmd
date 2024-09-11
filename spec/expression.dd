@@ -2744,10 +2744,29 @@ $(H4 $(LNAME2 assert-ct, Compile-time Evaluation))
     Compile Time Function Execution (CTFE) is not attempted.
     )
 
+    $(P This allows the compiler to suppress an error when there is a
+    missing return statement:)
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    int f(int x)
+    {
+        if (x > 0)
+        {
+            return 5 / x;
+        }
+        assert(0);
+        // no need to use a dummy return statement here
+    }
+    ---
+    )
+
     $(P The implementation may handle the case of the first $(I AssignExpression) evaluating to `false`
     at compile time differently - even when other `assert`s are ignored,
     it may still generate a $(D HLT) instruction or equivalent.
     )
+
+    $(RATIONALE Halting the program prevents undefined behaviour from occurring.)
 
     $(P See also: $(DDSUBLINK spec/version, static-assert, `static assert`).)
 
@@ -2765,7 +2784,7 @@ $(H4 $(LNAME2 assert-message, Assert Message))
         }
         ----
 
-    $(P When compiled and run, it will produce the message:)
+    $(P When compiled and run, typically it will produce the message:)
 
     $(CONSOLE core.exception.AssertError@test.d(3) an error message)
 
