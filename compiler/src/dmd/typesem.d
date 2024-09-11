@@ -836,7 +836,9 @@ extern (D) MATCH callMatch(TypeFunction tf, Type tthis, ArgumentList argumentLis
         L1:
             if (parameterList.varargs == VarArg.typesafe && u + 1 == nparams) // if last varargs param
             {
-                auto trailingArgs = args[u .. $];
+                Expression[] trailingArgs;
+                if (args.length >= u)
+                    trailingArgs = args[u .. $];
                 if (auto vmatch = matchTypeSafeVarArgs(tf, p, trailingArgs, pMessage))
                     return vmatch < match ? vmatch : match;
                 // Error message was already generated in `matchTypeSafeVarArgs`
