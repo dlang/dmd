@@ -405,7 +405,7 @@ const(SOCKET)* stop = start + set.fd_count;
 
 
 // Adds.
-void FD_SET(SOCKET fd, fd_set* set)     pure @nogc
+void FD_SET(SOCKET fd, fd_set* set) pure @nogc
 {
     uint c = set.fd_count;
     set.fd_array.ptr[c] = fd;
@@ -702,12 +702,12 @@ struct hostent
 // Note: These are Winsock2!!
 struct WSAOVERLAPPED;
 alias LPWSAOVERLAPPED = WSAOVERLAPPED*;
-alias LPWSAOVERLAPPED_COMPLETION_ROUTINE = void function(uint, uint, LPWSAOVERLAPPED, uint);
+alias LPWSAOVERLAPPED_COMPLETION_ROUTINE = void function(uint, uint, LPWSAOVERLAPPED, uint) nothrow @nogc;
 int WSAIoctl(SOCKET s, uint dwIoControlCode,
     void* lpvInBuffer, uint cbInBuffer,
     void* lpvOutBuffer, uint cbOutBuffer,
     uint* lpcbBytesReturned,
-    LPWSAOVERLAPPED lpOverlapped, LPWSAOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine);
+    LPWSAOVERLAPPED lpOverlapped, LPWSAOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine) @nogc;
 
 
 enum IOC_VENDOR = 0x18000000;
