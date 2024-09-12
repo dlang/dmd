@@ -7473,3 +7473,139 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
         }
     }
 }
+
+// newly imported sem func
+extern(C++) void newScope(Dsymbol d, Scope* sc)
+{
+    scope iav = new newScopeVisitor(sc);
+    d.accept(iav);
+}
+
+extern(C++) class newScopeVisitor : Visitor
+{
+    alias visit = typeof(super).visit;
+    Scope* sc;
+
+    this(Scope* sc)
+    {
+        this.sc = sc;
+    }
+
+override Scope* visit(Scope* sc)
+    {
+        if (pkg_identifiers)
+            dsymbolSemantic(this, sc);
+        return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, this.visibility, 1, sc.aligndecl, sc.inlining);
+    }
+
+    /**
+     * Returns:
+     *   A copy of the parent scope, with `this` as `namespace` and C++ linkage
+     */
+    override Scope* visit(Scope* sc)
+    {
+        auto scx = sc.copy();
+        scx.linkage = LINK.cpp;
+        scx.namespace = this;
+        return scx;
+    }
+
+    override Scope* newScope(Scope* sc)
+    {
+        return createNewScope(sc, sc.stc, LINK.cpp, cppmangle, sc.visibility, sc.explicitVisibility,
+            sc.aligndecl, sc.inlining);
+    }
+
+override Scope* newScope(Scope* sc)
+    {
+        return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility, this, sc.inlining);
+    }
+
+override Scope* newScope(Scope* sc)
+    {
+        if (ident == Id.Pinline)
+        {
+            // We keep track of this pragma inside scopes,
+            // then it's evaluated on demand in function semantic
+            return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility, sc.aligndecl, this);
+        }
+        return sc;
+    }
+
+override Scope* newScope(Scope* sc)
+    {
+        return createNewScope(sc, sc.stc, this.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility,
+            sc.aligndecl, sc.inlining);
+    }
+
+/**
+     * Provides a new scope with `STC.deprecated_` and `Scope.depdecl` set
+     *
+     * Calls `StorageClassDeclaration.newScope` (as it must be called or copied
+     * in any function overriding `newScope`), then set the `Scope`'s depdecl.
+     *
+     * Returns:
+     *   Always a new scope, to use for this `DeprecatedDeclaration`'s members.
+     */
+    override Scope* newScope(Scope* sc)
+    {
+        auto scx = super.newScope(sc);
+        // The enclosing scope is deprecated as well
+        if (scx == sc)
+            scx = sc.push();
+        scx.depdecl = this;
+        return scx;
+    }
+
+    /**************************************
+     * Use the ForwardingScopeDsymbol as the parent symbol for members.
+     */
+    override Scope* newScope(Scope* sc)
+    {
+        return sc.push(sym);
+    }
+
+    override Scope* newScope(Scope* sc)
+    {
+        StorageClass scstc = sc.stc;
+        /* These sets of storage classes are mutually exclusive,
+         * so choose the innermost or most recent one.
+         */
+        if (stc & (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.manifest))
+            scstc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.manifest);
+        if (stc & (STC.auto_ | STC.scope_ | STC.static_ | STC.manifest | STC.gshared))
+            scstc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.manifest | STC.gshared);
+        if (stc & (STC.const_ | STC.immutable_ | STC.manifest))
+            scstc &= ~(STC.const_ | STC.immutable_ | STC.manifest);
+        if (stc & (STC.gshared | STC.shared_))
+            scstc &= ~(STC.gshared | STC.shared_);
+        if (stc & (STC.safe | STC.trusted | STC.system))
+            scstc &= ~(STC.safe | STC.trusted | STC.system);
+        scstc |= stc;
+        //printf("scstc = x%llx\n", scstc);
+        return createNewScope(sc, scstc, sc.linkage, sc.cppmangle,
+            sc.visibility, sc.explicitVisibility, sc.aligndecl, sc.inlining);
+    }
+
+/****************************************
+     * A hook point to supply scope for members.
+     * addMember, setScope, importAll, semantic, semantic2 and semantic3 will use this.
+     */
+    Scope* newScope(Scope* sc)
+    {
+        return sc;
+    }
+
+
+override Scope* newScope(Scope* sc)
+    {
+        Scope* sc2 = sc;
+        if (atts && atts.length)
+        {
+            // create new one for changes
+            sc2 = sc.copy();
+            sc2.userAttribDecl = this;
+        }
+        return sc2;
+    }
+}

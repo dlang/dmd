@@ -32,7 +32,7 @@ import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem;
+//import dmd.dsymbolsem;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
@@ -113,14 +113,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         return sc2;
     }
 
-    /****************************************
-     * A hook point to supply scope for members.
-     * addMember, setScope, importAll, semantic, semantic2 and semantic3 will use this.
-     */
-    Scope* newScope(Scope* sc)
-    {
-        return sc;
-    }
+    
 
     override void addComment(const(char)* comment)
     {
@@ -202,27 +195,7 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
         return new StorageClassDeclaration(stc, Dsymbol.arraySyntaxCopy(decl));
     }
 
-    override Scope* newScope(Scope* sc)
-    {
-        StorageClass scstc = sc.stc;
-        /* These sets of storage classes are mutually exclusive,
-         * so choose the innermost or most recent one.
-         */
-        if (stc & (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.manifest))
-            scstc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.manifest);
-        if (stc & (STC.auto_ | STC.scope_ | STC.static_ | STC.manifest | STC.gshared))
-            scstc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.manifest | STC.gshared);
-        if (stc & (STC.const_ | STC.immutable_ | STC.manifest))
-            scstc &= ~(STC.const_ | STC.immutable_ | STC.manifest);
-        if (stc & (STC.gshared | STC.shared_))
-            scstc &= ~(STC.gshared | STC.shared_);
-        if (stc & (STC.safe | STC.trusted | STC.system))
-            scstc &= ~(STC.safe | STC.trusted | STC.system);
-        scstc |= stc;
-        //printf("scstc = x%llx\n", scstc);
-        return createNewScope(sc, scstc, sc.linkage, sc.cppmangle,
-            sc.visibility, sc.explicitVisibility, sc.aligndecl, sc.inlining);
-    }
+    
 
     override final bool oneMember(out Dsymbol ps, Identifier ident)
     {
@@ -286,24 +259,7 @@ extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
         return new DeprecatedDeclaration(msg.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl));
     }
 
-    /**
-     * Provides a new scope with `STC.deprecated_` and `Scope.depdecl` set
-     *
-     * Calls `StorageClassDeclaration.newScope` (as it must be called or copied
-     * in any function overriding `newScope`), then set the `Scope`'s depdecl.
-     *
-     * Returns:
-     *   Always a new scope, to use for this `DeprecatedDeclaration`'s members.
-     */
-    override Scope* newScope(Scope* sc)
-    {
-        auto scx = super.newScope(sc);
-        // The enclosing scope is deprecated as well
-        if (scx == sc)
-            scx = sc.push();
-        scx.depdecl = this;
-        return scx;
-    }
+    
 
     override void accept(Visitor v)
     {
@@ -339,11 +295,6 @@ extern (C++) final class LinkDeclaration : AttribDeclaration
         return new LinkDeclaration(loc, linkage, Dsymbol.arraySyntaxCopy(decl));
     }
 
-    override Scope* newScope(Scope* sc)
-    {
-        return createNewScope(sc, sc.stc, this.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility,
-            sc.aligndecl, sc.inlining);
-    }
 
     override const(char)* toChars() const
     {
@@ -386,11 +337,7 @@ extern (C++) final class CPPMangleDeclaration : AttribDeclaration
         return new CPPMangleDeclaration(loc, cppmangle, Dsymbol.arraySyntaxCopy(decl));
     }
 
-    override Scope* newScope(Scope* sc)
-    {
-        return createNewScope(sc, sc.stc, LINK.cpp, cppmangle, sc.visibility, sc.explicitVisibility,
-            sc.aligndecl, sc.inlining);
-    }
+    
 
     override const(char)* toChars() const
     {
@@ -462,17 +409,7 @@ extern (C++) final class CPPNamespaceDeclaration : AttribDeclaration
             this.loc, this.ident, this.exp, Dsymbol.arraySyntaxCopy(this.decl), this.cppnamespace);
     }
 
-    /**
-     * Returns:
-     *   A copy of the parent scope, with `this` as `namespace` and C++ linkage
-     */
-    override Scope* newScope(Scope* sc)
-    {
-        auto scx = sc.copy();
-        scx.linkage = LINK.cpp;
-        scx.namespace = this;
-        return scx;
-    }
+    
 
     override const(char)* toChars() const
     {
@@ -545,12 +482,7 @@ extern (C++) final class VisibilityDeclaration : AttribDeclaration
             return new VisibilityDeclaration(this.loc, visibility, Dsymbol.arraySyntaxCopy(decl));
     }
 
-    override Scope* newScope(Scope* sc)
-    {
-        if (pkg_identifiers)
-            dsymbolSemantic(this, sc);
-        return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, this.visibility, 1, sc.aligndecl, sc.inlining);
-    }
+    
 
     override const(char)* kind() const
     {
@@ -621,10 +553,7 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
             Dsymbol.arraySyntaxCopy(decl));
     }
 
-    override Scope* newScope(Scope* sc)
-    {
-        return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility, this, sc.inlining);
-    }
+    
 
     override void accept(Visitor v)
     {
@@ -694,16 +623,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
         return new PragmaDeclaration(loc, ident, Expression.arraySyntaxCopy(args), Dsymbol.arraySyntaxCopy(decl));
     }
 
-    override Scope* newScope(Scope* sc)
-    {
-        if (ident == Id.Pinline)
-        {
-            // We keep track of this pragma inside scopes,
-            // then it's evaluated on demand in function semantic
-            return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility, sc.aligndecl, this);
-        }
-        return sc;
-    }
+    
 
     override const(char)* kind() const
     {
@@ -1005,13 +925,7 @@ extern(C++) final class ForwardingAttribDeclaration : AttribDeclaration
         sym.symtab = new DsymbolTable();
     }
 
-    /**************************************
-     * Use the ForwardingScopeDsymbol as the parent symbol for members.
-     */
-    override Scope* newScope(Scope* sc)
-    {
-        return sc.push(sym);
-    }
+    
 
     override inout(ForwardingAttribDeclaration) isForwardingAttribDeclaration() inout
     {
@@ -1088,18 +1002,7 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
         return new UserAttributeDeclaration(Expression.arraySyntaxCopy(this.atts), Dsymbol.arraySyntaxCopy(decl));
     }
 
-    override Scope* newScope(Scope* sc)
-    {
-        Scope* sc2 = sc;
-        if (atts && atts.length)
-        {
-            // create new one for changes
-            sc2 = sc.copy();
-            sc2.userAttribDecl = this;
-        }
-        return sc2;
-    }
-
+    
     extern (D) static Expressions* concat(Expressions* udas1, Expressions* udas2)
     {
         Expressions* udas;
