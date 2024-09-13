@@ -1286,6 +1286,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                     goto Lerror;
                 params.preservePaths = true;
                 break;
+            case 'q':
+                if (p[3])
+                    goto Lerror;
+                params.fullyQualifiedObjectFiles = true;
+                break;
             case 0:
                 error("-o no longer supported, use -of or -od");
                 break;
