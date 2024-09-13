@@ -453,6 +453,17 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 //            m.deleteObjFile();
 
         m.parse();
+
+        // Finalize output filenames. Update if `-oq` was specified (only feasible after parsing).
+        if (params.fullyQualifiedObjectFiles && m.md)
+        {
+            m.objfile = m.setOutfilename(params.objname, params.objdir, m.arg, FileName.ext(m.objfile.toString()));
+            if (m.docfile)
+                m.setDocfile();
+            if (m.hdrfile)
+                m.hdrfile = m.setOutfilename(params.dihdr.name, params.dihdr.dir, m.arg, hdr_ext);
+        }
+
         if (m.filetype == FileType.dhdr)
         {
             // Remove m's object file from list of object files
