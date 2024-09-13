@@ -690,6 +690,12 @@ dmd -cov -unittest myprog.d
             off when generating an object, interface, or Ddoc file
             name. $(SWLINK -op) will leave it on.`,
         ),
+        Option("oq",
+            "Write object files with fully qualified file names",
+            `When compiling pkg/app.d, the resulting object file name will be pkg_app.obj
+            instead of app.o. This helps to prevent name conflicts when compiling multiple
+            packages in the same directory with the $(SWLINK -od) flag.`,
+        ),
         Option("os=<os>",
             "sets target operating system to <os>",
             `Set the target operating system as other than the host.
