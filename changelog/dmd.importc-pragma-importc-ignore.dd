@@ -1,0 +1,48 @@
+ImportC acquires `#pragma importc_ignore`
+
+ImportC now has `#pragma importc_ignore`, which is used to ignore kinds of
+declarations and definitions with specific identifiers.
+
+This is for situations where it is desirable for ImportC to look past
+a C declaration/definition of a symbol, and instead use a declaration/definition
+from an `__import`ed D module.
+
+---
+
+`#pragma importc_ignore` has one form:
+1. `#pragma importc_ignore(+/-<category>... : <identifier>,...)`
+
+That is, a sequence of plus-or-minus-prefixed categories, followed by a colon,
+and then a comma-separated list of identifiers.
+
+The categories recognized by `#pragma importc_ignore` are as follows:
+- `function_decl`: which ignores function declarations, e.g. `void foo(int);`.
+- `function_def`: which ignores function definitions, e.g. `void foo(int x) {}`.
+
+When a category is prefixed with a plus (`+`), declarations/definitions of that category
+will begin to be ignored if their identifier is included in the list of identifiers supplied to
+`#pragma importc_ignore`.
+When a category is prefixed with a minus (`-`), declarations/definitions of that category
+will no longer be ignored if their identifier is included in the list of identifiers supplied to
+`#pragma importc_ignore`.
+
+For example:
+``` c
+// We start ignoring function-declarations and function-definitions of `foo` and `bar`.
+#pragma importc_ignore(+function_decl +function_def : foo, bar)
+// This declaration of `foo` is ignored.
+void foo(int);
+// As is this definition of `foo`.
+void foo(int x)
+{}
+
+// We stop ignoring function-definitions of `bar`.
+#pragma importc_ignore(-function_def : bar)
+// This declaration of `bar` is ignored.
+void bar(int);
+// This definition of `bar` is not ignored.
+float bar(float x, float y)
+{
+    return x * y;
+}
+```
