@@ -1011,17 +1011,24 @@ $(H3 $(LNAME2 default-initialization, Default Initialization))
         )
 
 $(H3 $(LNAME2 length-initialization, Length Initialization))
+
         $(P The $(D new) expression can be used to allocate a dynamic array
         with a specified length by specifying its type and then using the
         `(size)` syntax:
         )
 
-$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+$(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
-int[] i = new int[](5); //i.length == 5
-int[][] j = new int[][](10, 5); //j.length == 10, j[0].length == 5
+int[] i = new int[](5);
+i = new int[5]; // same allocation, alternate syntax
+assert(i.length == 5);
+
+int[][] j = new int[][](10, 5);
+assert(j.length == 10);
+assert(j[0].length == 5);
 ---------
 )
+        $(P See $(GLINK2 expression, NewExpression) for details.)
 
 $(H3 $(LNAME2 void-initialization, Void Initialization))
 

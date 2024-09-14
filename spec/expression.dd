@@ -2858,11 +2858,20 @@ $(GNAME NewExpression):
     )
 
     $(P `new T` constructs an instance of type `T` and default-initializes it.
-        The result is:)
-    * `T` when `T` is a reference type (e.g. class, dynamic array,
-      $(DDSUBLINK spec/hash-map, construction_and_ref_semantic, associative array))
+        The result's type is:)
+    * `T` when `T` is a reference type (e.g. classes,
+      $(DDSUBLINK spec/hash-map, construction_and_ref_semantic, associative arrays))
     * `T*` when `T` is a value type (e.g. basic types, structs)
 
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
+    ---
+    int* i = new int;
+    assert(*i == 0); // int.init
+
+    Object o = new Object;
+    //int[] a = new int[]; // error, need length argument
+    ---
+    )
     $(P The $(INLINE_GRAMMAR *Type(NamedArgumentList)*) form allows passing either a single initializer
         of the same type, or multiple arguments for more complex types:)
 
@@ -2873,13 +2882,11 @@ $(GNAME NewExpression):
 
     $(SPEC_RUNNABLE_EXAMPLE_RUN
     ---
-    int* i = new int;
-    assert(*i == 0); // int.init
-    i = new int(5);
+    int* i = new int(5);
     assert(*i == 5);
 
-    Object o = new Object;
     Exception e = new Exception("info");
+    assert(e.msg == "info");
 
     int[] a = new int[](2);
     assert(a.length == 2);
