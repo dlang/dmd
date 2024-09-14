@@ -2,6 +2,8 @@ Ddoc
 
 $(SPEC_S Grammar,
 
+    $(NOTE This page is auto-generated, see the other pages for details.)
+
 $(HEADERNAV_TOC)
 
 $(H2 Lexical Syntax)
