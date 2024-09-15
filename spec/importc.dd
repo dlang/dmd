@@ -333,6 +333,33 @@ $(H2 $(LNAME2 preprocessor-directives, Preprocessor Directives))
     $(LI $(TT #pragma pack ( pop PopList )))
     )
 
+    $(H4 $(LNAME2 pragma-attribute, pragma attribute))
+
+    The following pragma for ImportC allows to set default storage
+    classes for function declarations:
+    ---
+    #pragma attribute(push, [storage classes...])
+    ---
+    The storage classes `nothrow`, `nogc` and `pure` are supported.
+    Unrecognized attributes are ignored.
+    Enabling a default storage class affects all function declarations
+    after the pragma until it is disabled with another pragma.
+    Declarations in includes are also affected. The following example
+    enables `@nogc` and `nothrow` for a library:
+
+    ---
+    #pragma attribute(push, nogc, nothrow)
+    #include <somelibrary.h>
+    ---
+
+    The changed storage classes are pushed on a stack. The last change can
+    be undone with the following pragma:
+    ---
+    #pragma attribute(pop)
+    ---
+    This can also disable multiple default storage classes at the same time,
+    if they were enabled with a single `#pragma attribute(push, ...)` directive.
+
 $(H2 $(LNAME2 _builtins, $(TT src/__builtins.di)))
 
     $(P The first thing the compiler does when preprocessing is complete is to import
