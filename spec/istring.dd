@@ -12,7 +12,7 @@ can be overloaded or handled by template functions.)
 
 $(H2 $(LNAME2 ies, IES Literals))
 
-$(GRAMMAR
+$(GRAMMAR_LEX
 $(GNAME InterpolationExpressionSequence):
     $(GLINK InterpolatedDoubleQuotedLiteral)
     $(GLINK InterpolatedWysiwygLiteral)
@@ -28,7 +28,7 @@ width of the character type for the string expressions.)
 
 $(H3 $(LNAME2 ies_doublequoted, Double Quoted IES Literals))
 
-$(GRAMMAR
+$(GRAMMAR_LEX
 $(GNAME InterpolatedDoubleQuotedLiteral):
     $(B i") $(GLINK InterpolatedDoubleQuotedCharacters)$(OPT) $(B ")
 
@@ -61,7 +61,7 @@ expression, and escapes are not needed inside that part of the expression.)
 
 $(H3 $(LNAME2 ies_wysiwyg, Wysiwyg IES Literals))
 
-$(GRAMMAR
+$(GRAMMAR_LEX
 $(GNAME InterpolatedWysiwygLiteral):
     $(B i$(BACKTICK)) $(GLINK InterpolatedWysiwygCharacters)$(OPT) $(B $(BACKTICK))
 
@@ -80,7 +80,7 @@ escapes are recognized inside these literals.)
 
 $(H3 $(LNAME2 ies_token, Token IES Literals))
 
-$(GRAMMAR
+$(GRAMMAR_LEX
 $(GNAME InterpolatedTokenLiteral):
     $(D iq{) $(GLINK InterpolatedTokenStringTokens)$(OPT) $(D })
 
