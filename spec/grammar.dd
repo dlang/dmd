@@ -2,13 +2,29 @@ Ddoc
 
 $(SPEC_S Grammar,
 
-    $(NOTE This page is auto-generated, see the other pages for details.)
+    $(P After the $(DDLINK spec/lex, Lexical, lexical analyzer) has created tokens
+    from the source text, the tokens are parsed into the following key constructs:)
+
+    * A $(DDSUBLINK spec/module, Module, *Module*) normally has
+      $(DDSUBLINK spec/module, DeclDef, *DeclDef*)s.
+    * *DeclDef* can be a $(DDSUBLINK spec/declaration, Declaration, *Declaration*).
+    * *Declaration* includes:
+        * $(DDSUBLINK spec/declaration, VarDeclarations, *VarDeclarations*),
+          which declares one or more variables with a $(DDSUBLINK spec/type, Type, *Type*)
+        * $(DDSUBLINK spec/function, FuncDeclaration, *FuncDeclaration*), which can have a
+          $(DDSUBLINK spec/statement, BlockStatement, *BlockStatement*)
+    * *BlockStatement* can have $(DDSUBLINK spec/statement, Statement, *Statement*)s.
+    * *Statement* includes:
+         * *BlockStatement*
+         * $(DDSUBLINK spec/statement, DeclarationStatement, *DeclarationStatement*), which has a
+           *Declaration*
+         * $(DDSUBLINK spec/statement, ExpressionStatement, *ExpressionStatement*), which has an
+           $(DDSUBLINK spec/expression, Expression, *Expression*)
+
+    $(NOTE The remainder of this page is auto-generated, see the other pages for
+    semantic details.)
 
 $(HEADERNAV_TOC)
-
-$(H2 Lexical Syntax)
-
-    $(P Refer to the page for $(LINK2 lex.html, lexical syntax).)
 
 $(GRAMMAR_SUMMARY)
 
