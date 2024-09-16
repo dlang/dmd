@@ -7058,56 +7058,55 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         ta.checkComplexTransition(exp.loc, sc);
 
-        Expression e;
         auto tb = ta.toBasetype();
         if (ea && tb.ty == Tclass)
         {
             if (tb.toDsymbol(sc).isClassDeclaration().classKind == ClassKind.cpp)
             {
                 error(exp.loc, "runtime type information is not supported for `extern(C++)` classes");
-                e = ErrorExp.get();
+                return setError();
             }
             else if (!Type.typeinfoclass)
             {
                 error(exp.loc, "`object.TypeInfo_Class` could not be found, but is implicitly used");
-                e = ErrorExp.get();
+                return setError();
             }
             else
             {
                 /* Get the dynamic type, which is .classinfo
                 */
                 ea = ea.expressionSemantic(sc);
-                e = new TypeidExp(ea.loc, ea);
+                Expression e = new TypeidExp(ea.loc, ea);
                 e.type = Type.typeinfoclass.type;
+                result = e;
+                return;
             }
         }
         else if (ta.ty == Terror)
         {
-            e = ErrorExp.get();
+            return setError();
         }
-        else
+
+        // Handle this in the glue layer
+        Expression e = new TypeidExp(exp.loc, ta);
+
+        bool genObjCode = true;
+
+        // https://issues.dlang.org/show_bug.cgi?id=23650
+        // We generate object code for typeinfo, required
+        // by typeid, only if in non-speculative context
+        if (sc.traitsCompiles)
         {
-            // Handle this in the glue layer
-            e = new TypeidExp(exp.loc, ta);
+            genObjCode = false;
+        }
 
-            bool genObjCode = true;
+        e.type = getTypeInfoType(exp.loc, ta, sc, genObjCode);
+        semanticTypeInfo(sc, ta);
 
-            // https://issues.dlang.org/show_bug.cgi?id=23650
-            // We generate object code for typeinfo, required
-            // by typeid, only if in non-speculative context
-            if (sc.traitsCompiles)
-            {
-                genObjCode = false;
-            }
-
-            e.type = getTypeInfoType(exp.loc, ta, sc, genObjCode);
-            semanticTypeInfo(sc, ta);
-
-            if (ea)
-            {
-                e = new CommaExp(exp.loc, ea, e); // execute ea
-                e = e.expressionSemantic(sc);
-            }
+        if (ea)
+        {
+            e = new CommaExp(exp.loc, ea, e); // execute ea
+            e = e.expressionSemantic(sc);
         }
         result = e;
     }
