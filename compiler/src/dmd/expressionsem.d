@@ -3933,35 +3933,37 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (!sc2.scopesym)
                 continue;
 
-            if (auto ss = sc2.scopesym.isWithScopeSymbol())
+            auto ss = sc2.scopesym.isWithScopeSymbol();
+            if (!ss)
+                continue;
+
+            if (ss.withstate.wthis)
             {
-                if (ss.withstate.wthis)
+                Expression e;
+                e = new VarExp(exp.loc, ss.withstate.wthis);
+                e = new DotIdExp(exp.loc, e, exp.ident);
+                e = e.trySemantic(sc);
+                if (e)
                 {
-                    Expression e;
-                    e = new VarExp(exp.loc, ss.withstate.wthis);
-                    e = new DotIdExp(exp.loc, e, exp.ident);
-                    e = e.trySemantic(sc);
-                    if (e)
-                    {
-                        result = e;
-                        return;
-                    }
+                    result = e;
+                    return;
                 }
-                // Try Type.opDispatch (so the static version)
-                else if (ss.withstate.exp && ss.withstate.exp.op == EXP.type)
+            }
+            // Try Type.opDispatch (so the static version)
+            else if (ss.withstate.exp && ss.withstate.exp.op == EXP.type)
+            {
+                Type t = ss.withstate.exp.isTypeExp().type;
+                if (!t)
+                    continue;
+
+                Expression e;
+                e = new TypeExp(exp.loc, t);
+                e = new DotIdExp(exp.loc, e, exp.ident);
+                e = e.trySemantic(sc);
+                if (e)
                 {
-                    if (Type t = ss.withstate.exp.isTypeExp().type)
-                    {
-                        Expression e;
-                        e = new TypeExp(exp.loc, t);
-                        e = new DotIdExp(exp.loc, e, exp.ident);
-                        e = e.trySemantic(sc);
-                        if (e)
-                        {
-                            result = e;
-                            return;
-                        }
-                    }
+                    result = e;
+                    return;
                 }
             }
         }
