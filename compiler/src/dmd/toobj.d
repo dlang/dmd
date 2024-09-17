@@ -801,7 +801,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 se.writeTo(directive.ptr, true);
 
-                if (pd.ident == Id.lib)
+                if (pd.ident == Id.linkerDirective)
                     obj_linkerdirective(directive.ptr);
                 else
                 {
