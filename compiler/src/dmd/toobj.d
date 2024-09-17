@@ -809,13 +809,13 @@ void toObjFile(Dsymbol ds, bool multiobj)
                      * The linker will then automatically
                      * search that library, too.
                      */
-                    if (!obj_includelib(name[0 .. strlen(name)]))
+                    if (!obj_includelib(directive.ptr[0 .. strlen(directive.ptr)]))
                     {
                         /* The format does not allow embedded library names,
                          * so instead append the library name to the list to be passed
                          * to the linker.
                          */
-                        global.params.libfiles.push(name);
+                        global.params.libfiles.push(directive.ptr);
                     }
                 }
             }
