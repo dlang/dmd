@@ -692,51 +692,49 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                 auto di = ci.initializerList[index];
                 if (di.designatorList && fieldi != 0)
                     break;          // back to top level
-                else
+
+                VarDeclaration field;
+                while (1)   // skip field if it overlaps with previously seen fields
                 {
-                    VarDeclaration field;
-                    while (1)   // skip field if it overlaps with previously seen fields
+                    field = sd.fields[fieldi];
+                    ++fieldi;
+                    if (!overlaps(field, sd.fields[], si))
+                        break;
+                    if (fieldi == nfields)
+                        break;
+                }
+                auto tn = field.type.toBasetype();
+                auto tnsa = tn.isTypeSArray();
+                auto tns = tn.isTypeStruct();
+                auto ix = di.initializer;
+                if (tnsa && ix.isExpInitializer())
+                {
+                    ExpInitializer ei = ix.isExpInitializer();
+                    if (ei.exp.isStringExp() && tnsa.nextOf().isIntegral())
                     {
-                        field = sd.fields[fieldi];
-                        ++fieldi;
-                        if (!overlaps(field, sd.fields[], si))
-                            break;
-                        if (fieldi == nfields)
-                            break;
-                    }
-                    auto tn = field.type.toBasetype();
-                    auto tnsa = tn.isTypeSArray();
-                    auto tns = tn.isTypeStruct();
-                    auto ix = di.initializer;
-                    if (tnsa && ix.isExpInitializer())
-                    {
-                        ExpInitializer ei = ix.isExpInitializer();
-                        if (ei.exp.isStringExp() && tnsa.nextOf().isIntegral())
-                        {
-                            si.addInit(field.ident, ei);
-                            ++index;
-                        }
-                        else
-                            si.addInit(field.ident, subArray(tnsa, index)); // fwd ref of subArray is why subStruct is a template
-                    }
-                    else if (tns && ix.isExpInitializer())
-                    {
-                        /* Disambiguate between an exp representing the entire
-                         * struct, and an exp representing the first field of the struct
-                         */
-                        if (representsStruct(ix.isExpInitializer(), tns)) // initializer represents the entire struct
-                        {
-                            si.addInit(field.ident, initializerSemantic(ix, sc, tn, needInterpret));
-                            ++index;
-                        }
-                        else                                // field initializers for struct
-                            si.addInit(field.ident, subStruct(tns, index)); // the first field
-                    }
-                    else
-                    {
-                        si.addInit(field.ident, ix);
+                        si.addInit(field.ident, ei);
                         ++index;
                     }
+                    else
+                        si.addInit(field.ident, subArray(tnsa, index)); // fwd ref of subArray is why subStruct is a template
+                }
+                else if (tns && ix.isExpInitializer())
+                {
+                    /* Disambiguate between an exp representing the entire
+                     * struct, and an exp representing the first field of the struct
+                     */
+                    if (representsStruct(ix.isExpInitializer(), tns)) // initializer represents the entire struct
+                    {
+                        si.addInit(field.ident, initializerSemantic(ix, sc, tn, needInterpret));
+                        ++index;
+                    }
+                    else                                // field initializers for struct
+                        si.addInit(field.ident, subStruct(tns, index)); // the first field
+                }
+                else
+                {
+                    si.addInit(field.ident, ix);
+                    ++index;
                 }
             }
             //printf("subStruct() returns ai: %s, index: %d\n", si.toChars(), cast(int)index);
@@ -837,112 +835,110 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                     error(ci.loc, "`.%s` is not a field of `%s`\n", id.toChars(), sd.toChars());
                     return err();
                 }
-                else
+
+                if (fieldi == nfields)
+                    break;
+
+                auto ix = di.initializer;
+
+                /* If a C initializer is wrapped in a C initializer, with no designators,
+                 * peel off the outer one
+                 */
+                if (ix.isCInitializer())
                 {
-                    if (fieldi == nfields)
-                        break;
-
-                    auto ix = di.initializer;
-
-                    /* If a C initializer is wrapped in a C initializer, with no designators,
-                     * peel off the outer one
-                     */
-                    if (ix.isCInitializer())
+                    CInitializer cix = ix.isCInitializer();
+                    if (cix.initializerList.length == 1)
                     {
-                        CInitializer cix = ix.isCInitializer();
-                        if (cix.initializerList.length == 1)
+                        DesigInit dix = cix.initializerList[0];
+                        if (!dix.designatorList)
                         {
-                            DesigInit dix = cix.initializerList[0];
-                            if (!dix.designatorList)
-                            {
-                                Initializer inix = dix.initializer;
-                                if (inix.isCInitializer())
-                                    ix = inix;
-                            }
+                            Initializer inix = dix.initializer;
+                            if (inix.isCInitializer())
+                                ix = inix;
                         }
                     }
+                }
 
-                    if (auto cix = ix.isCInitializer())
+                if (auto cix = ix.isCInitializer())
+                {
+                    /* ImportC loses the structure from anonymous structs, but this is retained
+                     * by the initializer syntax. if a CInitializer has a Designator, it is probably
+                     * a nested anonymous struct
+                     */
+                    int found;
+                    foreach (dix; cix.initializerList)
                     {
-                        /* ImportC loses the structure from anonymous structs, but this is retained
-                         * by the initializer syntax. if a CInitializer has a Designator, it is probably
-                         * a nested anonymous struct
-                         */
-                        int found;
-                        foreach (dix; cix.initializerList)
+                        Designators* dlistx = dix.designatorList;
+                        if (!dlistx)
+                            continue;
+                        if ((*dlistx).length == 1 && (*dlistx)[0].ident)
                         {
-                            Designators* dlistx = dix.designatorList;
-                            if (!dlistx)
-                                continue;
-                            if ((*dlistx).length == 1 && (*dlistx)[0].ident)
+                            auto id = (*dlistx)[0].ident;
+                            foreach (k, f; sd.fields[])         // linear search for now
                             {
-                                auto id = (*dlistx)[0].ident;
-                                foreach (k, f; sd.fields[])         // linear search for now
+                                if (f.ident == id)
                                 {
-                                    if (f.ident == id)
-                                    {
-                                        fieldi = k;
-                                        si.addInit(id, dix.initializer);
-                                        ++fieldi;
-                                        ++index;
-                                        ++found;
-                                        break;
-                                    }
+                                    fieldi = k;
+                                    si.addInit(id, dix.initializer);
+                                    ++fieldi;
+                                    ++index;
+                                    ++found;
+                                    break;
                                 }
                             }
-                            else {
-                                error(ci.loc, "only 1 designator currently allowed for C struct field initializer `%s`", toChars(ci));
-                            }
                         }
-
-                        if (found == cix.initializerList.length)
-                            continue Loop1;
-                    }
-
-                    VarDeclaration field;
-                    while (1)   // skip field if it overlaps with previously seen fields
-                    {
-                        field = sd.fields[fieldi];
-                        ++fieldi;
-                        if (!overlaps(field, sd.fields[], si))
-                            break;
-                        if (fieldi == nfields)
-                            break;
-                    }
-
-                    auto tn = field.type.toBasetype();
-                    auto tnsa = tn.isTypeSArray();
-                    auto tns = tn.isTypeStruct();
-
-                    if (tnsa && ix.isExpInitializer())
-                    {
-                        ExpInitializer ei = ix.isExpInitializer();
-                        if (ei.exp.isStringExp() && tnsa.nextOf().isIntegral())
-                        {
-                            si.addInit(field.ident, ei);
-                            ++index;
+                        else {
+                            error(ci.loc, "only 1 designator currently allowed for C struct field initializer `%s`", toChars(ci));
                         }
-                        else
-                            si.addInit(field.ident, subArray(tnsa, index));
                     }
-                    else if (tns && ix.isExpInitializer())
+
+                    if (found == cix.initializerList.length)
+                        continue Loop1;
+                }
+
+                VarDeclaration field;
+                while (1)   // skip field if it overlaps with previously seen fields
+                {
+                    field = sd.fields[fieldi];
+                    ++fieldi;
+                    if (!overlaps(field, sd.fields[], si))
+                        break;
+                    if (fieldi == nfields)
+                        break;
+                }
+
+                auto tn = field.type.toBasetype();
+                auto tnsa = tn.isTypeSArray();
+                auto tns = tn.isTypeStruct();
+
+                if (tnsa && ix.isExpInitializer())
+                {
+                    ExpInitializer ei = ix.isExpInitializer();
+                    if (ei.exp.isStringExp() && tnsa.nextOf().isIntegral())
                     {
-                        /* Disambiguate between an exp representing the entire
-                         * struct, and an exp representing the first field of the struct
-                         */
-                        if (representsStruct(ix.isExpInitializer(), tns)) // initializer represents the entire struct
-                        {
-                            si.addInit(field.ident, initializerSemantic(ix, sc, tn, needInterpret));
-                            ++index;
-                        }
-                        else                                // field initializers for struct
-                            si.addInit(field.ident, subStruct(tns, index)); // the first field
-                    }
-                    else
-                    {
-                        si.addInit(field.ident, di.initializer);
+                        si.addInit(field.ident, ei);
                         ++index;
                     }
+                    else
+                        si.addInit(field.ident, subArray(tnsa, index));
+                }
+                else if (tns && ix.isExpInitializer())
+                {
+                    /* Disambiguate between an exp representing the entire
+                     * struct, and an exp representing the first field of the struct
+                     */
+                    if (representsStruct(ix.isExpInitializer(), tns)) // initializer represents the entire struct
+                    {
+                        si.addInit(field.ident, initializerSemantic(ix, sc, tn, needInterpret));
+                        ++index;
+                    }
+                    else                                // field initializers for struct
+                        si.addInit(field.ident, subStruct(tns, index)); // the first field
+                }
+                else
+                {
+                    si.addInit(field.ident, di.initializer);
+                    ++index;
                 }
             }
             return initializerSemantic(si, sc, t, needInterpret);
