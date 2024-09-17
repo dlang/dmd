@@ -318,7 +318,7 @@ $(H2 $(LNAME2 preprocessor-directives, Preprocessor Directives))
     $(P $(LINK2 https://gcc.gnu.org/onlinedocs/gcc-11.1.0/cpp/Preprocessor-Output.html, linemarker)
     directives are normally embedded in the output of C preprocessors.)
 
-    $(H3 $(LNAME2 pragma, pragma))
+    $(H3 $(LNAME2 pragma, Pragmas))
 
     $(P The following pragmas are supported:)
 
@@ -333,7 +333,7 @@ $(H2 $(LNAME2 preprocessor-directives, Preprocessor Directives))
     $(LI $(TT #pragma pack ( pop PopList )))
     )
 
-    $(H4 $(LNAME2 pragma-attribute, pragma attribute))
+    $(H4 $(LNAME2 pragma-attribute, `#pragma attribute`))
 
     The following pragma for ImportC allows to set default storage
     classes for function declarations:
@@ -411,7 +411,7 @@ int main()
     $(RATIONALE Implicit function declarations are very error-prone and cause hard
     to find bugs.)
 
-    $(H3 $(LNAME2 pragma-STDC-FENV_ACCESS, #pragma STDC FENV_ACCESS))
+    $(H3 $(LNAME2 pragma-STDC-FENV_ACCESS, `#pragma STDC FENV_ACCESS`))
 
     $(P This is described in C11 7.6.1)
 
@@ -436,13 +436,17 @@ $(H2 $(LNAME2 limitations, Limitations))
     $(H3 $(LNAME2 const, Const))
 
     $(P C11 specifies that `const` only applies locally. `const` in ImportC applies transitively,
-    meaning that although $(CCODE int *const p;) means in C11 that `p` is a const pointer to `int`,
+    meaning that although:)
+
+    $(CCODE int *const p;)
+
+    $(P means in C11 that `p` is a const pointer to `int`,
     in ImportC it means `p` is a `const` pointer to a `const int`.)
 
     $(H3 $(LNAME2 volatile, Volatile))
 
     $(P The `volatile` type-qualifier (C11 6.7.3) is ignored. Use of `volatile` to implement shared
-    memory access is unlikely to work anyway, $(LINK2 #_atomic, _Atomic) is for that.
+    memory access is unlikely to work anyway, $(RELATIVE_LINK2 _atomic, _Atomic) is for that.
     To use `volatile` as a device register, call a function to do it that is compiled separately,
     or use inline assembler.
     )
@@ -451,7 +455,7 @@ $(H2 $(LNAME2 limitations, Limitations))
 
     $(P The `restrict` type-qualifier (C11 6.7.3) is ignored.)
 
-    $(H3 $(LNAME2 _atomic, _Atomic))
+    $(H3 $(LNAME2 _atomic, `_Atomic`))
 
     $(P The `_Atomic` type-qualifier (C11 6.7.3) is ignored.
     To do atomic operations, use an externally compiled function for that, or the inline assembler.)
@@ -499,14 +503,14 @@ struct S { int version; };)
 
     $(P On some platforms, C `long` and `unsigned long` are the same size as `int` and `unsigned int`, respectively.
     On other platforms, C `long` and `unsigned long` are the same size as `long long` and `unsigned long long`.
-    `long double` and `long  double _Complex` can be same size as `double` and `double _Complex`.
+    `long double` and `long  double _Complex` can be the same size as `double` and `double _Complex`.
     In ImportC, these types that are the same size and signed-ness are treated as the same types.
     )
 
-    $(H3 $(LNAME2 _generic, _Generic))
+    $(H3 $(LNAME2 _generic, `_Generic`))
 
     $(P $(B Generic selection) expressions (C11 6.5.1.1) differ from ImportC.
-    The types in $(LINK2 #same_only_different, Same only Different Types) are
+    The types in $(RELATIVE_LINK2 same_only_different, Same only Different Types) are
     indistinguishable in the $(I type-name) parts of $(I generic-association).
     Instead of giving an error for duplicate types per C11 6.5.1.1-2, ImportC
     will select the first compatible $(I type-name) in the $(I generic-assoc-list).
@@ -643,7 +647,7 @@ _Static_assert(sizeof(A) == 1, "A should be size 1");
     $(P Arrays can have `register` storage class, and may be enregistered by the compiler. C11 6.3.2.1-3)
 
 
-    $(H3 $(LNAME2 typeof, typeof Operator))
+    $(H3 $(LNAME2 typeof, `typeof` Operator))
 
     $(P The `typeof` operator may be used as a type specifier:)
 $(INFORMATIVE_GRAMMAR
@@ -672,7 +676,7 @@ $(GNAME CImportDeclaration):
     )
 
     $(P Imports also enable ImportC code to directly import other C files without
-    needing to create a .h file for them, either.
+    needing to create a `.h` file for them, either.
     Imported C functions become available to be inlined.
     )
 
@@ -730,13 +734,13 @@ enum E { A = 3; }
 
     $(P A control-Z character `\x1A` in the source text means End Of File.)
 
-    $(H3 $(LNAME2 largeDecimal, Signed Integer Literal Larger Than long long))
+    $(H3 $(LNAME2 largeDecimal, Signed Integer Literal Larger Than `long long`))
 
     $(P A signed integer constant with no suffix that is larger than a `long long` type,
     but will fit into an `unsigned long long` type, is accepted and typed as `unsigned long long`.
     This matches D behavior, and that of some C compilers.)
 
-    $(H3 $(LNAME2 dotArrow, Dot and Arror Operators))
+    $(H3 $(LNAME2 dotArrow, Dot and Arrow Operators))
 
     $(P The `.` operator is used to designate a member of a struct or union value.
         The `->` operator is used to designate a member of a struct or union value pointed to
@@ -782,7 +786,7 @@ size_t x = sizeof(foo());)
 
     $(P This code is accepted by `gcc`, but makes no sense for D. Hence,
     although it works in ImportC, it is not representable as D code,
-    meaning one must use judgement in creating a .di file to interface
+    meaning one must use judgement in creating a `.di` file to interface
     with C `noreturn` functions.)
 
     $(P Furthermore, the D compiler takes advantage of `noreturn` functions
@@ -999,12 +1003,6 @@ $(H2 $(LNAME2 warnings, Warnings))
     If C11 says it is legal, ImportC accepts it.)
 
 
-$(H2 $(LNAME2 builtins, $(TT __builtins.di)))
-
-    $(P ImportC uses D to implement several features. These are implemented in the file
-    $(LINK2 https://github.com/dlang/dmd/blob/master/druntime/src/__builtins.di, $(TT __builtins.di))
-    which is automatically imported for every ImportC compilation.)
-
 $(H2 $(LNAME2 importcpp, ImportC++))
 
     $(P ImportC will not compile C++ code. For that, use $(TT dpp).)
@@ -1021,7 +1019,7 @@ $(H2 $(LNAME2 other-solutions, Other Solutions))
     $(P From the Article:)
 
     $(BLOCKQUOTE dpp is a compiler wrapper that will parse a D source
-    file with the .dpp extension and expand in place any #include directives
+    file with the `.dpp` extension and expand in place any `#include` directives
     it encounters, translating all of the C or C++ symbols to D, and then
     pass the result to a D compiler (DMD by default).)
 
@@ -1063,7 +1061,7 @@ $(H2 $(LNAME2 internals, How ImportC Works))
     $(P This co-opting of the D semantic implementation allows ImportC to be able to do things
     like handle forward references, CTFE (Compile Time Function Execution), and inlining of C functions
     into D code. Being able to handle forward references means it is not necessary to even
-    write a .h file to be able to import C declarations into D. Being able to perform CTFE is
+    write a `.h` file to be able to import C declarations into D. Being able to perform CTFE is
     very handy for testing that ImportC is working without needing to generate an executable.
     But, in general, the strong temptation to add D features to ImportC has been resisted.)
 
