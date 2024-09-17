@@ -785,42 +785,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
         override void visit(PragmaDeclaration pd)
         {
-            if (pd.ident == Id.lib)
-            {
-                assert(pd.args && pd.args.length == 1);
-
-                Expression e = (*pd.args)[0];
-
-                assert(e.op == EXP.string_);
-
-                StringExp se = e.isStringExp();
-                char *name = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
-                se.writeTo(name, true);
-
-                /* Embed the library names into the object file.
-                 * The linker will then automatically
-                 * search that library, too.
-                 */
-                if (!obj_includelib(name[0 .. strlen(name)]))
-                {
-                    /* The format does not allow embedded library names,
-                     * so instead append the library name to the list to be passed
-                     * to the linker.
-                     */
-                    global.params.libfiles.push(name);
-                }
-            }
-            else if (pd.ident == Id.startaddress)
-            {
-                assert(pd.args && pd.args.length == 1);
-                Expression e = (*pd.args)[0];
-                Dsymbol sa = getDsymbol(e);
-                FuncDeclaration f = sa.isFuncDeclaration();
-                assert(f);
-                Symbol *s = toSymbol(f);
-                obj_startaddress(s);
-            }
-            else if (pd.ident == Id.linkerDirective)
+            if (pd.ident == Id.lib || pd.ident == Id.linkerDirective)
             {
                 assert(pd.args && pd.args.length == 1);
 
@@ -836,7 +801,33 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 se.writeTo(directive.ptr, true);
 
-                obj_linkerdirective(directive.ptr);
+                if (pd.ident == Id.lib)
+                    obj_linkerdirective(directive.ptr);
+                else
+                {
+                    /* Embed the library names into the object file.
+                     * The linker will then automatically
+                     * search that library, too.
+                     */
+                    if (!obj_includelib(name[0 .. strlen(name)]))
+                    {
+                        /* The format does not allow embedded library names,
+                         * so instead append the library name to the list to be passed
+                         * to the linker.
+                         */
+                        global.params.libfiles.push(name);
+                    }
+                }
+            }
+            else if (pd.ident == Id.startaddress)
+            {
+                assert(pd.args && pd.args.length == 1);
+                Expression e = (*pd.args)[0];
+                Dsymbol sa = getDsymbol(e);
+                FuncDeclaration f = sa.isFuncDeclaration();
+                assert(f);
+                Symbol *s = toSymbol(f);
+                obj_startaddress(s);
             }
 
             visit(cast(AttribDeclaration)pd);
