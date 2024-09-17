@@ -794,28 +794,25 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 assert(e.op == EXP.string_);
 
                 StringExp se = e.isStringExp();
-                size_t length = se.numberOfCodeUnits() + 1;
-                debug enum LEN = 2; else enum LEN = 20;
-                char[LEN] buffer = void;
-                SmallBuffer!char directive = SmallBuffer!char(length, buffer);
+                char *name = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
 
-                se.writeTo(directive.ptr, true);
+                se.writeTo(name, true);
 
                 if (pd.ident == Id.linkerDirective)
-                    obj_linkerdirective(directive.ptr);
+                    obj_linkerdirective(name);
                 else
                 {
                     /* Embed the library names into the object file.
                      * The linker will then automatically
                      * search that library, too.
                      */
-                    if (!obj_includelib(directive.ptr[0 .. strlen(directive.ptr)]))
+                    if (!obj_includelib(name[0 .. strlen(name)]))
                     {
                         /* The format does not allow embedded library names,
                          * so instead append the library name to the list to be passed
                          * to the linker.
                          */
-                        global.params.libfiles.push(directive.ptr);
+                        global.params.libfiles.push(name);
                     }
                 }
             }
