@@ -854,7 +854,7 @@ package mixin template ParseVisitMethods(AST)
     override void visit(AST.FuncLiteralDeclaration f)
     {
         //printf("Visiting FuncLiteralDeclaration\n");
-        if (f.type.ty == Terror)
+        if (f.type.isTypeError())
             return;
         auto tf = f.type.isTypeFunction();
         if (!f.inferRetType && tf.next)
