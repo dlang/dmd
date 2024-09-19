@@ -12,11 +12,9 @@
 module dmd.visitor;
 
 import dmd.astcodegen;
-import dmd.astenums;
 import dmd.parsetimevisitor;
 import dmd.tokens;
 import dmd.transitivevisitor;
-import dmd.expression;
 import dmd.rootobject;
 
 /**
@@ -251,7 +249,7 @@ extern (C++) class SemanticTimeTransitiveVisitor : SemanticTimePermissiveVisitor
     override void visit(ASTCodegen.LoweredAssignExp e)
     {
         e.lowering.accept(this);
-        visit(cast(AssignExp)e);
+        visit(cast(ASTCodegen.AssignExp)e);
     }
 }
 
