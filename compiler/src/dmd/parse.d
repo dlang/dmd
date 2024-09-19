@@ -7343,8 +7343,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         bool skipStroageClassTypeCtor()
         {
-            bool isTypeCtor() => t.value == TOK.const_ || t.value == TOK.immutable_ || t.value == TOK.inout_ || t.value == TOK.shared_;
-            bool isFreestandingTypeCtor() => isTypeCtor() && peek(t).value != TOK.leftParenthesis;
+            bool isTypeCtor() { return t.value == TOK.const_ || t.value == TOK.immutable_ || t.value == TOK.inout_ || t.value == TOK.shared_; }
+            bool isFreestandingTypeCtor() { return isTypeCtor() && peek(t).value != TOK.leftParenthesis; }
             bool storageClassSeen = false;
             while (isFreestandingTypeCtor() || t.value == TOK.ref_ || t.value == TOK.auto_ || t.value == TOK.scope_)
             {
