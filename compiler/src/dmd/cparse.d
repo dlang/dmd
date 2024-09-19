@@ -2088,7 +2088,7 @@ final class CParser(AST) : Parser!AST
                     {
                         auto str = asmName.peekString();
                         p.mangleOverride = str;
-                        alias flag = = AST.VarDeclaration.nounderscore;
+                        alias flag = AST.VarDeclaration.nounderscore;
                         p.adFlags |= flag;
                     }
                 }
