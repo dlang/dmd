@@ -3936,7 +3936,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         //printf("parseTypeSuffixes()\n");
         immutable linkageSpecified = link != LINK.default_;
         immutable requireCallable = isRef || linkageSpecified;
-        AST.TypeFunction tf = null;
+        AST.TypeFunction tf = null; // The function type underlying the last function pointer or delegate suffix
+        AST.TypeNext tn = null; // last function pointer or delegate suffix
         while (1)
         {
             switch (token.value)
@@ -4011,19 +4012,22 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         else
                             tf = cast(AST.TypeFunction)tf.addSTC(stc);
                     }
-                    t = callableKeyword == TOK.delegate_
+                    t = tn = callableKeyword == TOK.delegate_
                         ? new AST.TypeDelegate(tf)
                         : new AST.TypePointer(tf); // pointer to function
                     if (ambiguous)
                     {
                         // seek next inner function
                         auto tt = (cast(AST.TypeNext)t).syntaxCopy;
-                        AST.TypeFunction oldTf = null;
-                        for ({AST.Type tx = (cast(AST.TypeFunction)tt.next).next; AST.TypeNext tn; } (tn = tx.isTypeNext) !is null; tx = tn.next)
+                        for (
+                            {AST.Type tnextt = (cast(AST.TypeFunction)tt.next).next; AST.TypeNext tnextn; }
+                            (tnextn = tnextt.isTypeNext) !is null;
+                            tnextt = tnextn.next
+                        )
                         {
-                            if (tn.ty == Tfunction)
+                            if (tnextn.ty == Tfunction)
                             {
-                                auto tfn = cast(AST.TypeFunction)tn;
+                                auto tfn = cast(AST.TypeFunction)tnextn;
                                 if (isRef) tfn.isref = true;
                                 if (linkageSpecified) tfn.linkage = link;
                                 goto Lfound;
@@ -4071,7 +4075,37 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         }
                         tf.next = tf.next.addSTC(stc2);
                         if (isRef) tf.isref = true;
-                        if (linkageSpecified) tf.linkage = link;
+                        if (linkageSpecified)
+                        {
+                            // tf.linkage = link;
+                            // NOTE: The above should work, but does not.
+                            // Everything that follows is a workaround.
+
+                            // Idea: Replace tn by
+                            //      typeof(function{ extern(<link>) <tn< __result; return __result; }())
+
+                            auto resultId = new Identifier("__result");
+                            auto loc_ = loc;
+                            auto fd = new AST.FuncLiteralDeclaration(loc_, Loc.initial, new AST.TypeFunction(AST.ParameterList(), null, LINK.default_), TOK.function_, null);
+                            auto vardecl = new AST.Dsymbols();
+                            vardecl.push(new AST.VarDeclaration(loc_, tn, resultId, null));
+                            fd.fbody = new AST.CompoundStatement(loc_,
+                                new AST.ExpStatement(loc_, new AST.DeclarationExp(loc_, new AST.LinkDeclaration(loc_, link, vardecl))),
+                                new AST.ReturnStatement(loc_, new AST.IdentifierExp(loc_, resultId))
+                            );
+                            auto typeoftype = new AST.TypeTypeof(loc_, new AST.CallExp(loc_, new AST.FuncExp(loc_, fd)));
+                            
+                            if (t is tn) return typeoftype;
+                            
+                            AST.TypeNext tx = t.isTypeNext();
+                            assert(tx !is null);
+                            while (tx.next !is tn)
+                            {
+                                tx = tx.next.isTypeNext();
+                                assert(tx !is null);
+                            }
+                            tx.next = typeoftype;
+                        }
                     }
                     return t;
                 }
@@ -5735,7 +5769,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         {
             switch (token.value)
             {
-            // parse ref for better error
             case TOK.ref_:
                 stc = STC.ref_;
                 break;
@@ -5788,8 +5821,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             storageClass = appendStorageClass(storageClass, stc);
             nextToken();
         }
-        auto n = peek(&token);
-        if (storageClass != 0 && token.value == TOK.identifier && n.value == TOK.assign)
+        if (storageClass != 0 && token.value == TOK.identifier && peek(&token).value == TOK.assign)
         {
             Identifier ai = token.ident;
             AST.Type at = null; // infer parameter type
@@ -5798,7 +5830,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             check(TOK.assign);
             param = new AST.Parameter(aloc, storageClass, at, ai, null, null);
         }
-        else if (isDeclaration(&token, NeedDeclaratorId.must, TOK.assign, null))
+        else if (token.value == TOK.extern_ || isDeclaration(&token, NeedDeclaratorId.must, TOK.assign, null))
         {
             Identifier ai;
             const aloc = token.loc;
@@ -5807,7 +5839,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             param = new AST.Parameter(aloc, storageClass, at, ai, null, null);
         }
         else if (storageClass != 0)
-            error("found `%s` while expecting `=` or identifier", n.toChars());
+            error("found `%s` while expecting `=` or identifier", peek(&token).toChars());
 
         return param;
     }
@@ -6081,7 +6113,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         // FunctionLiteral `auto ref (`
         // FunctionLiteral: `ref (`
-        // Reference variable: `ref BasicType`
+        // Reference variable: `ref BasicType`; BasicType can start with `(`.
         case TOK.auto_:
         case TOK.ref_:
             if (isLikelyLambdaExpressionStart(&token))
