@@ -2230,13 +2230,6 @@ extern (C++) final class AssocArrayLiteralExp : Expression
     }
 }
 
-enum stageScrub             = 0x1;  /// scrubReturnValue is running
-enum stageSearchPointers    = 0x2;  /// hasNonConstPointers is running
-enum stageOptimize          = 0x4;  /// optimize is running
-enum stageApply             = 0x8;  /// apply is running
-enum stageInlineScan        = 0x10; /// inlineScan is running
-enum stageToCBuffer         = 0x20; /// toCBuffer is running
-
 /***********************************************************
  * sd( e1, e2, e3, ... )
  */
@@ -2269,7 +2262,17 @@ extern (C++) final class StructLiteralExp : Expression
      * 'inlinecopy' uses similar 'stageflags' and from multiple evaluation 'doInline'
      * (with infinite recursion) of this expression.
      */
-    ubyte stageflags;
+    enum StageFlags : ubyte
+    {
+        none              = 0x0,
+        scrub             = 0x1,  /// scrubReturnValue is running
+        searchPointers    = 0x2,  /// hasNonConstPointers is running
+        optimize          = 0x4,  /// optimize is running
+        apply             = 0x8,  /// apply is running
+        inlineScan        = 0x10, /// inlineScan is running
+        toCBuffer         = 0x20 /// toCBuffer is running
+    }
+    StageFlags stageflags;
 
     bool useStaticInit;     /// if this is true, use the StructDeclaration's init symbol
     bool isOriginal = false; /// used when moving instances to indicate `this is this.origin`

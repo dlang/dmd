@@ -3379,7 +3379,18 @@ public:
         StructLiteralExp* inlinecopy;
     };
     StructLiteralExp* origin;
-    uint8_t stageflags;
+    enum class StageFlags : uint8_t
+    {
+        none = 0u,
+        scrub = 1u,
+        searchPointers = 2u,
+        optimize = 4u,
+        apply = 8u,
+        inlineScan = 16u,
+        toCBuffer = 32u,
+    };
+
+    StageFlags stageflags;
     bool useStaticInit;
     bool isOriginal;
     OwnedBy ownedByCtfe;
@@ -3554,18 +3565,6 @@ class XorExp final : public BinExp
 public:
     void accept(Visitor* v) override;
 };
-
-enum : int32_t { stageApply = 8 };
-
-enum : int32_t { stageInlineScan = 16 };
-
-enum : int32_t { stageOptimize = 4 };
-
-enum : int32_t { stageScrub = 1 };
-
-enum : int32_t { stageSearchPointers = 2 };
-
-enum : int32_t { stageToCBuffer = 32 };
 
 struct AttributeViolation final
 {
