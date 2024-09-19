@@ -1,0 +1,78 @@
+hascpp17 != echo wow | $(CXX) -std=c++17 -E -xc++ - > /dev/null 2>&1 && echo yes
+
+TESTS98:=allocator new utility
+TESTS11:=array
+TESTS17:=string_view
+TESTSOLDABI:=
+
+ifeq (osx,$(OS))
+    TESTS11+=memory
+#   TESTS98+=string
+#   TESTS98+=vector
+endif
+ifeq (linux,$(OS))
+    TESTS11+=exception typeinfo
+    TESTS98+=typeinfo
+#   TESTS98+=string
+#   TESTS98+=vector
+    TESTSOLDABI+=string
+endif
+ifeq (freebsd,$(OS))
+    TESTS11+=memory
+    TESTS98+=string
+#   TESTS98+=vector
+endif
+
+# some build machines have ancient compilers, so we need to disable C++17 tests
+ifneq (yes,$(hascpp17))
+    TESTS17:=
+endif
+
+TESTS := $(TESTS98:=_98) $(TESTS11:=_11) $(TESTS17:=_17) $(TESTSOLDABI:=_oldabi)
+
+include ../common.mak
+
+# -L-lm -L-lpthread => -lm -lpthread
+d_platform_libs_cc_form := $(d_platform_libs:-L%=%)
+
+$(OBJDIR)/%_98_d$(DOTOBJ): %_test.d $(DMD_DEP)
+	$(COMPILE.d) $(OUTPUT_OPTION.d) $< $(extra_sources)
+$(OBJDIR)/%_98_d$(DOTOBJ): private extra_dflags += -extern-std=c++98
+
+$(OBJDIR)/%_11_d$(DOTOBJ): %_test.d $(DMD_DEP)
+	$(COMPILE.d) $(OUTPUT_OPTION.d) $< $(extra_sources)
+$(OBJDIR)/%_11_d$(DOTOBJ): private extra_dflags += -extern-std=c++11
+
+$(OBJDIR)/%_17_d$(DOTOBJ): %_test.d $(DMD_DEP)
+	$(COMPILE.d) $(OUTPUT_OPTION.d) $< $(extra_sources)
+$(OBJDIR)/%_17_d$(DOTOBJ): private extra_dflags += -extern-std=c++17
+
+$(OBJDIR)/%_oldabi_d$(DOTOBJ): %_test.d $(DMD_DEP)
+	$(COMPILE.d) $(OUTPUT_OPTION.d) $< $(extra_sources)
+$(OBJDIR)/%_oldabi_d$(DOTOBJ): private extra_dflags += -version=_GLIBCXX_USE_CXX98_ABI
+
+$(OBJDIR)/%_d$(DOTOBJ): private extra_dflags += -main -unittest -version=CoreUnittest
+
+$(OBJDIR)/%_98$(DOTEXE): %.cpp $(OBJDIR)/%_98_d$(DOTOBJ) $(DRUNTIME_DEP)
+	$(LINK.cpp) $< $(OBJDIR)/$*_98_d$(DOTOBJ) $(extra_sources) $(extra_ldlibs) $(LDLIBS) $(OUTPUT_OPTION)
+$(OBJDIR)/%_98$(DOTEXE): private extra_cxxflags += -std=c++98
+
+$(OBJDIR)/%_11$(DOTEXE): %.cpp $(OBJDIR)/%_11_d$(DOTOBJ) $(DRUNTIME_DEP)
+	$(LINK.cpp) $< $(OBJDIR)/$*_11_d$(DOTOBJ) $(extra_sources) $(extra_ldlibs) $(LDLIBS) $(OUTPUT_OPTION)
+$(OBJDIR)/%_11$(DOTEXE): private extra_cxxflags += -std=c++11
+
+$(OBJDIR)/%_17$(DOTEXE): %.cpp $(OBJDIR)/%_17_d$(DOTOBJ) $(DRUNTIME_DEP)
+	$(LINK.cpp) $< $(OBJDIR)/$*_17_d$(DOTOBJ) $(extra_sources) $(extra_ldlibs) $(LDLIBS) $(OUTPUT_OPTION)
+$(OBJDIR)/%_17$(DOTEXE): private extra_cxxflags += -std=c++17
+
+$(OBJDIR)/%_oldabi$(DOTEXE): %.cpp $(OBJDIR)/%_oldabi_d$(DOTOBJ) $(DRUNTIME_DEP)
+	$(LINK.cpp) $< $(OBJDIR)/$*_oldabi_d$(DOTOBJ) $(extra_sources) $(extra_ldlibs) $(LDLIBS) $(OUTPUT_OPTION)
+$(OBJDIR)/%_oldabi$(DOTEXE): private extra_cppflags += -D_GLIBCXX_USE_CXX11_ABI=0
+
+$(OBJDIR)/%$(DOTEXE): private extra_ldlibs += $(druntime_for_linking) $(d_platform_libs_cc_form)
+
+short_test_names = 98 11 17 oldabi
+.NOTINTERMEDIATE: \
+    $(short_test_names:%=$(OBJDIR)/\%_%_d$(DOTOBJ)) \
+    $(short_test_names:%=$(OBJDIR)/\%_%$(DOTEXE))
+# .NOTINTERMEDIATE: $(OBJDIR)/%_98_d$(DOTOBJ) $(OBJDIR)/T_98$(DOTEXE) ...
