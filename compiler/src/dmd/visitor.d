@@ -151,10 +151,11 @@ extern (C++) class SemanticTimeTransitiveVisitor : SemanticTimePermissiveVisitor
     {
         // CTFE can generate struct literals that contain an AddrExp pointing to themselves,
         // need to avoid infinite recursion.
-        if (!(e.stageflags & stageToCBuffer))
+        alias flag = ASTCodegen.StructLiteralExp.StageFlags.toCBuffer;
+        if (!(e.stageflags & flag))
         {
             const old = e.stageflags;
-            e.stageflags |= stageToCBuffer;
+            e.stageflags |= flag;
             foreach (el; *e.elements)
                 if (el)
                     el.accept(this);

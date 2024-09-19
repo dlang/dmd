@@ -1553,10 +1553,10 @@ public:
     override void visit(StructLiteralExp e)
     {
         //printf("StructLiteralExp.inlineScan()\n");
-        if (e.stageflags & stageInlineScan)
+        if (e.stageflags & StructLiteralExp.StageFlags.inlineScan)
             return;
         const old = e.stageflags;
-        e.stageflags |= stageInlineScan;
+        e.stageflags |= StructLiteralExp.StageFlags.inlineScan;
         arrayInlineScan(e.elements);
         e.stageflags = old;
     }
