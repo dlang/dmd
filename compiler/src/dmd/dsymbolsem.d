@@ -7482,59 +7482,63 @@ extern(C++) void newScope(Dsymbol d, Scope* sc)
 }
 
 extern(C++) class newScopeVisitor : Visitor
-{
+{    
+    //Scope returnScope;
+    
     alias visit = typeof(super).visit;
+    //alias visit = Visitor.visit;
     Scope* sc;
-
     this(Scope* sc)
     {
         this.sc = sc;
     }
 
-override Scope* visit(Scope* sc)
+//previously override void visit(Scope* sc)
+override void visit(AttribDeclaration atbd)
     {
+        //Scope returnScope;
         if (pkg_identifiers)
             dsymbolSemantic(this, sc);
-        return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, this.visibility, 1, sc.aligndecl, sc.inlining);
+        
+            createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, this.visibility, 1, sc.aligndecl, sc.inlining);
     }
 
     /**
      * Returns:
      *   A copy of the parent scope, with `this` as `namespace` and C++ linkage
-     */
-    override Scope* visit(Scope* sc)
+     *///override Scope* visit(Scope* sc)
+    override void visit(StorageClassDeclaration scd)
     {
         auto scx = sc.copy();
         scx.linkage = LINK.cpp;
         scx.namespace = this;
-        return scx;
     }
 
-    override Scope* newScope(Scope* sc)
+//override Scope* visit(Scope* sc)
+    override void visit(CPPMangleDeclaration _)
     {
-        return createNewScope(sc, sc.stc, LINK.cpp, cppmangle, sc.visibility, sc.explicitVisibility,
+        createNewScope(sc, sc.stc, LINK.cpp, cppmangle, sc.visibility, sc.explicitVisibility,
             sc.aligndecl, sc.inlining);
     }
 
-override Scope* newScope(Scope* sc)
+    override void visit(VisibilityDeclaration visd)
     {
-        return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility, this, sc.inlining);
+        createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility, this, sc.inlining);
     }
 
-override Scope* newScope(Scope* sc)
+override void visit(PragmaDeclaration _)
     {
         if (ident == Id.Pinline)
         {
             // We keep track of this pragma inside scopes,
             // then it's evaluated on demand in function semantic
-            return createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility, sc.aligndecl, this);
+            createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility, sc.aligndecl, this);
         }
-        return sc;
     }
 
-override Scope* newScope(Scope* sc)
+override void visit(LinkDeclaration  sc)
     {
-        return createNewScope(sc, sc.stc, this.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility,
+        createNewScope(sc, sc.stc, this.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility,
             sc.aligndecl, sc.inlining);
     }
 
@@ -7547,27 +7551,26 @@ override Scope* newScope(Scope* sc)
      * Returns:
      *   Always a new scope, to use for this `DeprecatedDeclaration`'s members.
      */
-    override Scope* newScope(Scope* sc)
+    override void visit(DeprecatedDeclaration dpd)
     {
         auto scx = super.newScope(sc);
         // The enclosing scope is deprecated as well
-        if (scx == sc)
-            scx = sc.push();
+        if (dpd.scx == sc)
+            dpd.scx = sc.push();
         scx.depdecl = this;
-        return scx;
     }
 
     /**************************************
      * Use the ForwardingScopeDsymbol as the parent symbol for members.
      */
-    override Scope* newScope(Scope* sc)
+    override void visit(ForwardingAttribDeclaration  fad)
     {
-        return sc.push(sym);
+        sc.push(sym);
     }
-
-    override Scope* newScope(Scope* sc)
+    
+ override void visit(StorageClassDeclaration swt)
     {
-        StorageClass scstc = sc.stc;
+        StorageClass scstc = swt.stc;
         /* These sets of storage classes are mutually exclusive,
          * so choose the innermost or most recent one.
          */
@@ -7583,29 +7586,27 @@ override Scope* newScope(Scope* sc)
             scstc &= ~(STC.safe | STC.trusted | STC.system);
         scstc |= stc;
         //printf("scstc = x%llx\n", scstc);
-        return createNewScope(sc, scstc, sc.linkage, sc.cppmangle,
+        createNewScope(sc, scstc, sc.linkage, sc.cppmangle,
             sc.visibility, sc.explicitVisibility, sc.aligndecl, sc.inlining);
+    return;
     }
 
 /****************************************
      * A hook point to supply scope for members.
      * addMember, setScope, importAll, semantic, semantic2 and semantic3 will use this.
      */
-    Scope* newScope(Scope* sc)
-    {
-        return sc;
-    }
+    //previously Scope* newScope(Scope* sc)
+    override void visit(Dsymbol dc){}
 
 
-override Scope* newScope(Scope* sc)
+override void visit(UserAttributeDeclaration uac)
     {
         Scope* sc2 = sc;
-        if (atts && atts.length)
+        if (uac.atts && atts.length)
         {
             // create new one for changes
             sc2 = sc.copy();
             sc2.userAttribDecl = this;
         }
-        return sc2;
     }
 }
