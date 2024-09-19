@@ -38,23 +38,28 @@ endif
 	$(QUIET)$(DIFF) src-$*.lst.exp $(ROOT)/src-$*.lst
 	@touch $@
 
-$(ROOT)/merge_override.done: $(ROOT)/%.done: $(ROOT)/%$(DOTEXE)
+$(ROOT)/merge_override.done: $(ROOT)/%.done: $(ROOT)/%$(DOTEXE) $(ROOT)/1/$(SRC)/%.d $(ROOT)/2/$(SRC)/%.d src-%.lst_1.exp src-%.lst_2.exp
 	@echo Testing $*
 	@rm -f $(ROOT)/src-$*.lst
-	$(QUIET)$(SED) $(SED_INPLACE) 's/CHANGEVAR/CHANGE_VAR/g' src/$*.d
-	$(QUIET)$(ROOT)/$* $(ROOT) $(RUN_ARGS)
-	$(QUIET)$(SED) $(SED_INPLACE) 's/CHANGE_VAR/CHANGEVAR/g' src/$*.d
+	$(QUIET)$(ROOT)/$* $(ROOT) $(ROOT)/1
 ifeq (windows,$(OS))
 	$(QUIET)$(SED) $(SED_INPLACE) 's:^src\\:src/:g' $(ROOT)/src-$*.lst
 endif
 	$(QUIET)$(DIFF) src-$*.lst_1.exp $(ROOT)/src-$*.lst
-	$(QUIET)$(ROOT)/$* $(ROOT) $(RUN_ARGS)
-	$(QUIET)$(SED) $(SED_INPLACE) 's/CHANGEVAR/CHANGE_VAR/g' src/$*.d
+	$(QUIET)$(ROOT)/$* $(ROOT) $(ROOT)/2
 ifeq (windows,$(OS))
 	$(QUIET)$(SED) $(SED_INPLACE) 's:^src\\:src/:g' $(ROOT)/src-$*.lst
 endif
 	$(QUIET)$(DIFF) src-$*.lst_2.exp $(ROOT)/src-$*.lst
 	@touch $@
+
+$(ROOT)/1/$(SRC)/merge_override.d: $(SRC)/merge_override.d | $(ROOT)/1/$(SRC)
+	cp $< $@
+$(ROOT)/2/$(SRC)/merge_override.d: $(SRC)/merge_override.d | $(ROOT)/2/$(SRC)
+	cp $< $@
+	$(SED) $(SED_INPLACE) 's/CHANGE_VAR/CHANGEVAR/g' $@
+$(ROOT)/1/$(SRC) $(ROOT)/2/$(SRC):
+	mkdir -p $@
 
 $(ROOT)/no_code.done: $(ROOT)/%.done: $(ROOT)/%$(DOTEXE)
 	@echo Testing $*
