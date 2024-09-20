@@ -11,7 +11,6 @@
 
 module dmd.postordervisitor;
 
-import dmd.arraytypes;
 import dmd.dtemplate;
 import dmd.expression;
 import dmd.root.array;
@@ -133,10 +132,10 @@ public:
 
     override void visit(StructLiteralExp e)
     {
-        if (e.stageflags & stageApply)
+        if (e.stageflags & StructLiteralExp.StageFlags.apply)
             return;
         const old = e.stageflags;
-        e.stageflags |= stageApply;
+        e.stageflags |= StructLiteralExp.StageFlags.apply;
         doCond(e.elements.peekSlice()) || applyTo(e);
         e.stageflags = old;
     }

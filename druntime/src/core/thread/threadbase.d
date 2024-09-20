@@ -966,6 +966,13 @@ package __gshared uint suspendDepth = 0;
 private alias resume = externDFunc!("core.thread.osthread.resume", void function(ThreadBase) nothrow @nogc);
 
 /**
+ * Run the necessary operation required after the world was resumed.
+ */
+extern (C) void thread_postRestartTheWorld() nothrow {
+    ThreadBase.slock.unlock_nothrow();
+}
+
+/**
  * Resume all threads but the calling thread for "stop the world" garbage
  * collection runs.  This function must be called once for each preceding
  * call to thread_suspendAll before the threads are actually resumed.
@@ -991,7 +998,7 @@ do
         return;
     }
 
-    scope(exit) ThreadBase.slock.unlock_nothrow();
+    scope(exit) thread_postRestartTheWorld();
     {
         if (--suspendDepth > 0)
             return;
