@@ -1023,7 +1023,7 @@ private extern(D) MATCH argumentMatchParameter (TypeFunction tf, Parameter p,
     // Non-lvalues do not match ref or out parameters
     if (!p.isReference())
         return m;
-    
+
     // https://issues.dlang.org/show_bug.cgi?id=13783
     // Don't use toBasetype() to handle enum types.
     Type ta = targ;
