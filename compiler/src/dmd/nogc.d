@@ -18,6 +18,7 @@ import core.stdc.stdio;
 import dmd.aggregate;
 import dmd.astenums;
 import dmd.declaration;
+import dmd.dmodule;
 import dmd.dscope;
 import dmd.dtemplate : isDsymbol;
 import dmd.errors;
@@ -25,6 +26,7 @@ import dmd.expression;
 import dmd.func;
 import dmd.globals;
 import dmd.init;
+import dmd.location;
 import dmd.mtype;
 import dmd.postordervisitor;
 import dmd.tokens;
@@ -232,6 +234,18 @@ Expression checkGC(Scope* sc, Expression e)
         }
     }
     return e;
+}
+
+extern (D) void printGCUsage(FuncDeclaration fd, const ref Loc loc, const(char)* warn)
+{
+    if (!global.params.v.gc)
+        return;
+
+    Module m = fd.getModule();
+    if (m && m.isRoot() && !fd.inUnittest())
+    {
+        message(loc, "vgc: %s", warn);
+    }
 }
 
 /**
