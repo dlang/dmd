@@ -1021,101 +1021,102 @@ private extern(D) MATCH argumentMatchParameter (TypeFunction tf, Parameter p,
     }
 
     // Non-lvalues do not match ref or out parameters
-    if (p.isReference())
+    if (!p.isReference())
+        return m;
+    
+    // https://issues.dlang.org/show_bug.cgi?id=13783
+    // Don't use toBasetype() to handle enum types.
+    Type ta = targ;
+    Type tp = tprm;
+    //printf("fparam[%d] ta = %s, tp = %s\n", u, ta.toChars(), tp.toChars());
+
+    if (m && !arg.isLvalue())
     {
-        // https://issues.dlang.org/show_bug.cgi?id=13783
-        // Don't use toBasetype() to handle enum types.
-        Type ta = targ;
-        Type tp = tprm;
-        //printf("fparam[%d] ta = %s, tp = %s\n", u, ta.toChars(), tp.toChars());
-
-        if (m && !arg.isLvalue())
-        {
-            if (p.storageClass & STC.out_)
-            {
-                if (pMessage) *pMessage = tf.getParamError(arg, p);
-                return MATCH.nomatch;
-            }
-
-            if (arg.op == EXP.string_ && tp.ty == Tsarray)
-            {
-                if (ta.ty != Tsarray)
-                {
-                    Type tn = tp.nextOf().castMod(ta.nextOf().mod);
-                    dinteger_t dim = (cast(StringExp)arg).len;
-                    ta = tn.sarrayOf(dim);
-                }
-            }
-            else if (arg.op == EXP.slice && tp.ty == Tsarray)
-            {
-                // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
-                if (ta.ty != Tsarray)
-                {
-                    Type tn = ta.nextOf();
-                    dinteger_t dim = (cast(TypeSArray)tp).dim.toUInteger();
-                    ta = tn.sarrayOf(dim);
-                }
-            }
-            else if (p.storageClass & STC.constscoperef)
-            {
-                // Allow converting a literal to an `in` which is `ref`
-                if (arg.op == EXP.arrayLiteral && tp.ty == Tsarray)
-                {
-                    Type tn = tp.nextOf();
-                    dinteger_t dim = (cast(TypeSArray)tp).dim.toUInteger();
-                    ta = tn.sarrayOf(dim);
-                }
-
-                // Need to make this a rvalue through a temporary
-                m = MATCH.convert;
-            }
-            else if (global.params.rvalueRefParam != FeatureState.enabled ||
-                     p.storageClass & STC.out_ ||
-                     !arg.type.isCopyable())  // can't copy to temp for ref parameter
-            {
-                if (pMessage) *pMessage = tf.getParamError(arg, p);
-                return MATCH.nomatch;
-            }
-            else
-            {
-                /* in functionParameters() we'll convert this
-                 * rvalue into a temporary
-                 */
-                m = MATCH.convert;
-            }
-        }
-
-        /* If the match is not already perfect or if the arg
-           is not a lvalue then try the `alias this` chain
-           see  https://issues.dlang.org/show_bug.cgi?id=15674
-           and https://issues.dlang.org/show_bug.cgi?id=21905
-        */
-        if (ta != tp || !arg.isLvalue())
-        {
-            Type firsttab = ta.toBasetype();
-            while (1)
-            {
-                Type tab = ta.toBasetype();
-                Type tat = tab.aliasthisOf();
-                if (!tat || !tat.implicitConvTo(tprm))
-                    break;
-                if (tat == tab || tat == firsttab)
-                    break;
-                ta = tat;
-            }
-        }
-
-        /* A ref variable should work like a head-const reference.
-         * e.g. disallows:
-         *  ref T      <- an lvalue of const(T) argument
-         *  ref T[dim] <- an lvalue of const(T[dim]) argument
-         */
-        if (!ta.constConv(tp))
+        if (p.storageClass & STC.out_)
         {
             if (pMessage) *pMessage = tf.getParamError(arg, p);
             return MATCH.nomatch;
         }
+
+        if (arg.op == EXP.string_ && tp.ty == Tsarray)
+        {
+            if (ta.ty != Tsarray)
+            {
+                Type tn = tp.nextOf().castMod(ta.nextOf().mod);
+                dinteger_t dim = (cast(StringExp)arg).len;
+                ta = tn.sarrayOf(dim);
+            }
+        }
+        else if (arg.op == EXP.slice && tp.ty == Tsarray)
+        {
+            // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
+            if (ta.ty != Tsarray)
+            {
+                Type tn = ta.nextOf();
+                dinteger_t dim = (cast(TypeSArray)tp).dim.toUInteger();
+                ta = tn.sarrayOf(dim);
+            }
+        }
+        else if (p.storageClass & STC.constscoperef)
+        {
+            // Allow converting a literal to an `in` which is `ref`
+            if (arg.op == EXP.arrayLiteral && tp.ty == Tsarray)
+            {
+                Type tn = tp.nextOf();
+                dinteger_t dim = (cast(TypeSArray)tp).dim.toUInteger();
+                ta = tn.sarrayOf(dim);
+            }
+
+            // Need to make this a rvalue through a temporary
+            m = MATCH.convert;
+        }
+        else if (global.params.rvalueRefParam != FeatureState.enabled ||
+                 p.storageClass & STC.out_ ||
+                 !arg.type.isCopyable())  // can't copy to temp for ref parameter
+        {
+            if (pMessage) *pMessage = tf.getParamError(arg, p);
+            return MATCH.nomatch;
+        }
+        else
+        {
+            /* in functionParameters() we'll convert this
+             * rvalue into a temporary
+             */
+            m = MATCH.convert;
+        }
     }
+
+    /* If the match is not already perfect or if the arg
+       is not a lvalue then try the `alias this` chain
+       see  https://issues.dlang.org/show_bug.cgi?id=15674
+       and https://issues.dlang.org/show_bug.cgi?id=21905
+    */
+    if (ta != tp || !arg.isLvalue())
+    {
+        Type firsttab = ta.toBasetype();
+        while (1)
+        {
+            Type tab = ta.toBasetype();
+            Type tat = tab.aliasthisOf();
+            if (!tat || !tat.implicitConvTo(tprm))
+                break;
+            if (tat == tab || tat == firsttab)
+                break;
+            ta = tat;
+        }
+    }
+
+    /* A ref variable should work like a head-const reference.
+     * e.g. disallows:
+     *  ref T      <- an lvalue of const(T) argument
+     *  ref T[dim] <- an lvalue of const(T[dim]) argument
+     */
+    if (!ta.constConv(tp))
+    {
+        if (pMessage) *pMessage = tf.getParamError(arg, p);
+        return MATCH.nomatch;
+    }
+
     return m;
 }
 
