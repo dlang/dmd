@@ -7494,20 +7494,21 @@ extern(C++) class newScopeVisitor : Visitor
     }
 
 //previously override void visit(Scope* sc)
-override void visit(AttribDeclaration atbd)
+override void visit(VisibilityDeclaration atbd)
     {
         //Scope returnScope;
-        if (pkg_identifiers)
+        if (atbd.pkg_identifiers){
             dsymbolSemantic(this, sc);
         
             createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, this.visibility, 1, sc.aligndecl, sc.inlining);
+        }
     }
 
     /**
      * Returns:
      *   A copy of the parent scope, with `this` as `namespace` and C++ linkage
      *///override Scope* visit(Scope* sc)
-    override void visit(StorageClassDeclaration scd)
+    override void visit(CPPNamespaceDeclaration scd)
     {
         auto scx = sc.copy();
         scx.linkage = LINK.cpp;
@@ -7521,7 +7522,7 @@ override void visit(AttribDeclaration atbd)
             sc.aligndecl, sc.inlining);
     }
 
-    override void visit(VisibilityDeclaration visd)
+    override void visit(AttribDeclaration visd)
     {
         createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility, this, sc.inlining);
     }
