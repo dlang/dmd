@@ -3302,14 +3302,14 @@ Expression getProperty(Type t, Scope* scope_, const ref Loc loc, Identifier iden
             const sz = mt.size(loc);
             if (sz == SIZE_INVALID)
                 return ErrorExp.get();
-            e = new IntegerExp(loc, sz, Type.tsize_t);
+            return new IntegerExp(loc, sz, Type.tsize_t);
         }
         else if (ident == Id.__xalignof)
         {
             const explicitAlignment = mt.alignment();
             const naturalAlignment = mt.alignsize();
             const actualAlignment = (explicitAlignment.isDefault() ? naturalAlignment : explicitAlignment.get());
-            e = new IntegerExp(loc, actualAlignment, Type.tsize_t);
+            return new IntegerExp(loc, actualAlignment, Type.tsize_t);
         }
         else if (ident == Id._init)
         {
@@ -3319,13 +3319,14 @@ Expression getProperty(Type t, Scope* scope_, const ref Loc loc, Identifier iden
             {
                 e.isStructLiteralExp().useStaticInit = true;
             }
+            return e;
         }
         else if (ident == Id._mangleof)
         {
             if (!mt.deco)
             {
                 error(loc, "forward reference of type `%s.mangleof`", mt.toChars());
-                e = ErrorExp.get();
+                return ErrorExp.get();
             }
             else
             {
@@ -3334,6 +3335,7 @@ Expression getProperty(Type t, Scope* scope_, const ref Loc loc, Identifier iden
                 sc.eSink = global.errorSink;
                 e = e.expressionSemantic(&sc);
             }
+            return e;
         }
         else if (ident == Id.stringof)
         {
@@ -3342,74 +3344,74 @@ Expression getProperty(Type t, Scope* scope_, const ref Loc loc, Identifier iden
             Scope sc;
             sc.eSink = global.errorSink;
             e = e.expressionSemantic(&sc);
+            return e;
         }
         else if (flag && mt != Type.terror)
         {
             return null;
         }
+
+        Dsymbol s = null;
+        if (mt.ty == Tstruct || mt.ty == Tclass || mt.ty == Tenum)
+            s = mt.toDsymbol(null);
+        if (s)
+            s = s.search_correct(ident);
+        if (s && !symbolIsVisible(scope_, s))
+            s = null;
+
+        if (mt == Type.terror)
+            return ErrorExp.get();
+
+        if (s)
+            error(loc, "no property `%s` for type `%s`, did you mean `%s`?", ident.toChars(), mt.toChars(), s.toPrettyChars());
+        else if (ident == Id.call && mt.ty == Tclass)
+            error(loc, "no property `%s` for type `%s`, did you mean `new %s`?", ident.toChars(), mt.toChars(), mt.toPrettyChars());
+
+        else if (const n = importHint(ident.toString()))
+                error(loc, "no property `%s` for type `%s`, perhaps `import %.*s;` is needed?", ident.toChars(), mt.toChars(), cast(int)n.length, n.ptr);
         else
         {
-            Dsymbol s = null;
-            if (mt.ty == Tstruct || mt.ty == Tclass || mt.ty == Tenum)
-                s = mt.toDsymbol(null);
-            if (s)
-                s = s.search_correct(ident);
-            if (s && !symbolIsVisible(scope_, s))
-                s = null;
-            if (mt != Type.terror)
+            if (src)
             {
-                if (s)
-                    error(loc, "no property `%s` for type `%s`, did you mean `%s`?", ident.toChars(), mt.toChars(), s.toPrettyChars());
-                else if (ident == Id.call && mt.ty == Tclass)
-                    error(loc, "no property `%s` for type `%s`, did you mean `new %s`?", ident.toChars(), mt.toChars(), mt.toPrettyChars());
-
-                else if (const n = importHint(ident.toString()))
-                        error(loc, "no property `%s` for type `%s`, perhaps `import %.*s;` is needed?", ident.toChars(), mt.toChars(), cast(int)n.length, n.ptr);
-                else
+                error(loc, "no property `%s` for `%s` of type `%s`",
+                    ident.toChars(), src.toChars(), mt.toPrettyChars(true));
+                auto s2 = scope_.search_correct(ident);
+                // UFCS
+                if (s2 && s2.isFuncDeclaration)
+                    errorSupplemental(loc, "did you mean %s `%s`?",
+                        s2.kind(), s2.toChars());
+                else if (src.type.ty == Tpointer)
                 {
-                    if (src)
+                    // structPtr.field
+                    auto tn = (cast(TypeNext) src.type).nextOf();
+                    if (auto as = tn.isAggregate())
                     {
-                        error(loc, "no property `%s` for `%s` of type `%s`",
-                            ident.toChars(), src.toChars(), mt.toPrettyChars(true));
-                        auto s2 = scope_.search_correct(ident);
-                        // UFCS
-                        if (s2 && s2.isFuncDeclaration)
+                        if (auto s3 = as.search_correct(ident))
+                        {
                             errorSupplemental(loc, "did you mean %s `%s`?",
-                                s2.kind(), s2.toChars());
-                        else if (src.type.ty == Tpointer)
-                        {
-                            // structPtr.field
-                            auto tn = (cast(TypeNext) src.type).nextOf();
-                            if (auto as = tn.isAggregate())
-                            {
-                                if (auto s3 = as.search_correct(ident))
-                                {
-                                    errorSupplemental(loc, "did you mean %s `%s`?",
-                                        s3.kind(), s3.toChars());
-                                }
-                            }
+                                s3.kind(), s3.toChars());
                         }
-                    }
-                    else
-                        error(loc, "no property `%s` for type `%s`", ident.toChars(), mt.toPrettyChars(true));
-
-                    if (auto dsym = mt.toDsymbol(scope_))
-                    {
-                        if (auto sym = dsym.isAggregateDeclaration())
-                        {
-                            if (auto fd = search_function(sym, Id.opDispatch))
-                                errorSupplemental(loc, "potentially malformed `opDispatch`. Use an explicit instantiation to get a better error message");
-                            else if (!sym.members)
-                                errorSupplemental(sym.loc, "`%s %s` is opaque and has no members.", sym.kind, mt.toPrettyChars(true));
-                        }
-                        errorSupplemental(dsym.loc, "%s `%s` defined here",
-                            dsym.kind, dsym.toChars());
                     }
                 }
             }
-            e = ErrorExp.get();
+            else
+                error(loc, "no property `%s` for type `%s`", ident.toChars(), mt.toPrettyChars(true));
+
+            if (auto dsym = mt.toDsymbol(scope_))
+            {
+                if (auto sym = dsym.isAggregateDeclaration())
+                {
+                    if (auto fd = search_function(sym, Id.opDispatch))
+                        errorSupplemental(loc, "potentially malformed `opDispatch`. Use an explicit instantiation to get a better error message");
+                    else if (!sym.members)
+                        errorSupplemental(sym.loc, "`%s %s` is opaque and has no members.", sym.kind, mt.toPrettyChars(true));
+                }
+                errorSupplemental(dsym.loc, "%s `%s` defined here",
+                    dsym.kind, dsym.toChars());
+            }
         }
-        return e;
+
+        return ErrorExp.get();
     }
 
     Expression visitError(TypeError)
