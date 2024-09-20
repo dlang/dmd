@@ -350,8 +350,10 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
         // Determine if struct is all zeros or not
         zeroInit = true;
-        foreach (vd; fields)
+        foreach (i, vd; fields)
         {
+            if (i == 1 && vd.overlapped) // union init is same as first member
+                break;
             if (vd._init)
             {
                 if (vd._init.isVoidInitializer())
