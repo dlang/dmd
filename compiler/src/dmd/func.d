@@ -888,18 +888,6 @@ extern (C++) class FuncDeclaration : Declaration
         return setThrow(loc, null, f);
     }
 
-    extern (D) final void printGCUsage(const ref Loc loc, const(char)* warn)
-    {
-        if (!global.params.v.gc)
-            return;
-
-        Module m = getModule();
-        if (m && m.isRoot() && !inUnittest())
-        {
-            message(loc, "vgc: %s", warn);
-        }
-    }
-
     /****************************************
      * Determine if function needs a static frame pointer.
      * Returns:
@@ -1139,75 +1127,6 @@ extern (C++) class FuncDeclaration : Declaration
         return false;
 
     Lyes:
-        return true;
-    }
-
-    /***********************************************
-     * Check that the function contains any closure.
-     * If it's @nogc, report suitable errors.
-     * This is mostly consistent with FuncDeclaration::needsClosure().
-     *
-     * Returns:
-     *      true if any errors occur.
-     */
-    extern (C++) final bool checkClosure()
-    {
-        //printf("checkClosure() %s\n", toPrettyChars());
-        if (!needsClosure())
-            return false;
-
-        if (setGC(loc, "%s `%s` is `@nogc` yet allocates closure for `%s()` with the GC", this))
-        {
-            .error(loc, "%s `%s` is `@nogc` yet allocates closure for `%s()` with the GC", kind, toPrettyChars, toChars());
-            if (global.gag)     // need not report supplemental errors
-                return true;
-        }
-        else if (!global.params.useGC)
-        {
-            .error(loc, "%s `%s` is `-betterC` yet allocates closure for `%s()` with the GC", kind, toPrettyChars, toChars());
-            if (global.gag)     // need not report supplemental errors
-                return true;
-        }
-        else
-        {
-            printGCUsage(loc, "using closure causes GC allocation");
-            return false;
-        }
-
-        FuncDeclarations a;
-        foreach (v; closureVars)
-        {
-            foreach (f; v.nestedrefs)
-            {
-                assert(f !is this);
-
-            LcheckAncestorsOfANestedRef:
-                for (Dsymbol s = f; s && s !is this; s = s.toParentP(this))
-                {
-                    auto fx = s.isFuncDeclaration();
-                    if (!fx)
-                        continue;
-                    if (fx.isThis() ||
-                        fx.tookAddressOf ||
-                        checkEscapingSiblings(fx, this))
-                    {
-                        foreach (f2; a)
-                        {
-                            if (f2 == f)
-                                break LcheckAncestorsOfANestedRef;
-                        }
-                        a.push(f);
-                        .errorSupplemental(f.loc, "%s `%s` closes over variable `%s`",
-                            f.kind, f.toPrettyChars(), v.toChars());
-                        if (v.ident != Id.This)
-                            .errorSupplemental(v.loc, "`%s` declared here", v.toChars());
-
-                        break LcheckAncestorsOfANestedRef;
-                    }
-                }
-            }
-        }
-
         return true;
     }
 
@@ -1539,7 +1458,7 @@ private void markAsNeedingClosure(Dsymbol f, FuncDeclaration outerFunc)
  * Returns:
  *      true if any closures were needed
  */
-private bool checkEscapingSiblings(FuncDeclaration f, FuncDeclaration outerFunc, void* p = null)
+bool checkEscapingSiblings(FuncDeclaration f, FuncDeclaration outerFunc, void* p = null)
 {
     static struct PrevSibling
     {
