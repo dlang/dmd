@@ -339,6 +339,61 @@ StringExp toUTF8(StringExp se, Scope* sc)
     }
     return se;
 }
+/********************************
+ * The type for a unary expression is incompatible.
+ * Print error message.
+ * Returns:
+ *  ErrorExp
+ */
+extern (D) Expression incompatibleTypes(UnaExp e)
+{
+    if (e.e1.type.toBasetype() == Type.terror)
+        return e.e1;
+
+    if (e.e1.op == EXP.type)
+    {
+        error(e.loc, "incompatible type for `%s(%s)`: cannot use `%s` with types", EXPtoString(e.op).ptr, e.e1.toChars(), EXPtoString(e.op).ptr);
+    }
+    else
+    {
+        error(e.loc, "incompatible type for `%s(%s)`: `%s`", EXPtoString(e.op).ptr, e.e1.toChars(), e.e1.type.toChars());
+    }
+    return ErrorExp.get();
+}
+
+/********************************
+ * The types for a binary expression are incompatible.
+ * Print error message.
+ * Returns:
+ *  ErrorExp
+ */
+extern (D) Expression incompatibleTypes(BinExp e)
+{
+    if (e.e1.type.toBasetype() == Type.terror)
+        return e.e1;
+    if (e.e2.type.toBasetype() == Type.terror)
+        return e.e2;
+
+    // CondExp uses 'a ? b : c' but we're comparing 'b : c'
+    const(char)* thisOp = (e.op == EXP.question) ? ":" : EXPtoString(e.op).ptr;
+    if (e.e1.op == EXP.type || e.e2.op == EXP.type)
+    {
+        error(e.loc, "incompatible types for `(%s) %s (%s)`: cannot use `%s` with types",
+            e.e1.toChars(), thisOp, e.e2.toChars(), EXPtoString(e.op).ptr);
+    }
+    else if (e.e1.type.equals(e.e2.type))
+    {
+        error(e.loc, "incompatible types for `(%s) %s (%s)`: both operands are of type `%s`",
+            e.e1.toChars(), thisOp, e.e2.toChars(), e.e1.type.toChars());
+    }
+    else
+    {
+        auto ts = toAutoQualChars(e.e1.type, e.e2.type);
+        error(e.loc, "incompatible types for `(%s) %s (%s)`: `%s` and `%s`",
+            e.e1.toChars(), thisOp, e.e2.toChars(), ts[0], ts[1]);
+    }
+    return ErrorExp.get();
+}
 
 private Expression reorderSettingAAElem(BinExp exp, Scope* sc)
 {
