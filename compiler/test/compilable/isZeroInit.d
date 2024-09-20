@@ -95,3 +95,19 @@ struct S7
     }
 }
 static assert(!__traits(isZeroInit, S7));
+
+union U
+{
+    float x = 0;
+    float y;
+}
+
+static assert(__traits(isZeroInit, U));
+
+union U2
+{
+    float x;
+    int y;
+}
+
+static assert(!__traits(isZeroInit, U2));
