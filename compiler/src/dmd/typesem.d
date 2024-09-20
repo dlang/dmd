@@ -891,66 +891,70 @@ private extern(D) bool isCopyConstructorCallable (StructDeclaration argStruct,
     if (dmd.expressionsem.trySemantic(e, sc))
         return true;
 
-    if (pMessage)
-    {
-        /* https://issues.dlang.org/show_bug.cgi?id=22202
-         *
-         * If a function was deduced by semantic on the CallExp,
-         * it means that resolveFuncCall completed succesfully.
-         * Therefore, there exists a callable copy constructor,
-         * however, it cannot be called because scope constraints
-         * such as purity, safety or nogc.
-         */
-        OutBuffer buf;
-        auto callExp = e.isCallExp();
-        if (auto f = callExp.f)
-        {
-            char[] s;
-            if (!f.isPure && sc.func.setImpure())
-                s ~= "pure ";
-            if (!f.isSafe() && !f.isTrusted() && sc.setUnsafe())
-                s ~= "@safe ";
-            if (!f.isNogc && sc.func.setGC(arg.loc, null))
-                s ~= "nogc ";
-            if (f.isDisabled() && !f.isGenerated())
-            {
-                /* https://issues.dlang.org/show_bug.cgi?id=24301
-                 * Copy constructor is explicitly disabled
-                 */
-                buf.printf("`%s` copy constructor cannot be used because it is annotated with `@disable`",
-                    f.type.toChars());
-            }
-            else if (s)
-            {
-                s[$-1] = '\0';
-                buf.printf("`%s` copy constructor cannot be called from a `%s` context", f.type.toChars(), s.ptr);
-            }
-            else if (f.isGenerated() && f.isDisabled())
-            {
-                /* https://issues.dlang.org/show_bug.cgi?id=23097
-                 * Compiler generated copy constructor failed.
-                 */
-                buf.printf("generating a copy constructor for `struct %s` failed, therefore instances of it are uncopyable",
-                           argStruct.toChars());
-            }
-            else
-            {
-                /* Although a copy constructor may exist, no suitable match was found.
-                 * i.e: `inout` constructor creates `const` object, not mutable.
-                 * Fallback to using the original generic error before https://issues.dlang.org/show_bug.cgi?id=22202.
-                 */
-                goto Lnocpctor;
-            }
-        }
-        else
-        {
-        Lnocpctor:
-            buf.printf("`struct %s` does not define a copy constructor for `%s` to `%s` copies",
-                       argStruct.toChars(), arg.type.toChars(), tprm.toChars());
-        }
+    if (!pMessage)
+        return false;
 
-        *pMessage = buf.extractChars();
+    /* https://issues.dlang.org/show_bug.cgi?id=22202
+     *
+     * If a function was deduced by semantic on the CallExp,
+     * it means that resolveFuncCall completed succesfully.
+     * Therefore, there exists a callable copy constructor,
+     * however, it cannot be called because scope constraints
+     * such as purity, safety or nogc.
+     */
+    OutBuffer buf;
+    auto callExp = e.isCallExp();
+    void nocpctor()
+    {
+        buf.printf("`struct %s` does not define a copy constructor for `%s` to `%s` copies",
+                   argStruct.toChars(), arg.type.toChars(), tprm.toChars());
     }
+    auto f = callExp.f;
+    if (!f)
+    {
+        nocpctor();
+        *pMessage = buf.extractChars();
+        return false;
+    }
+    char[] s;
+    if (!f.isPure && sc.func.setImpure())
+        s ~= "pure ";
+    if (!f.isSafe() && !f.isTrusted() && sc.setUnsafe())
+        s ~= "@safe ";
+    if (!f.isNogc && sc.func.setGC(arg.loc, null))
+        s ~= "nogc ";
+    if (f.isDisabled() && !f.isGenerated())
+    {
+        /* https://issues.dlang.org/show_bug.cgi?id=24301
+         * Copy constructor is explicitly disabled
+         */
+        buf.printf("`%s` copy constructor cannot be used because it is annotated with `@disable`",
+            f.type.toChars());
+    }
+    else if (s)
+    {
+        s[$-1] = '\0';
+        buf.printf("`%s` copy constructor cannot be called from a `%s` context", f.type.toChars(), s.ptr);
+    }
+    else if (f.isGenerated() && f.isDisabled())
+    {
+        /* https://issues.dlang.org/show_bug.cgi?id=23097
+         * Compiler generated copy constructor failed.
+         */
+        buf.printf("generating a copy constructor for `struct %s` failed, therefore instances of it are uncopyable",
+                   argStruct.toChars());
+    }
+    else
+    {
+        /* Although a copy constructor may exist, no suitable match was found.
+         * i.e: `inout` constructor creates `const` object, not mutable.
+         * Fallback to using the original generic error before https://issues.dlang.org/show_bug.cgi?id=22202.
+         */
+        nocpctor();
+    }
+
+    *pMessage = buf.extractChars();
+
     return false;
 }
 
