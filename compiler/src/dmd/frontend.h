@@ -3802,7 +3802,6 @@ public:
     const char* kind() const override;
     bool isUnique() const;
     bool needsClosure();
-    bool checkClosure();
     bool hasNestedFrameRefs();
     ParameterList getParameterList();
     static FuncDeclaration* genCfunc(Array<Parameter* >* fparams, Type* treturn, const char* name, StorageClass stc = 0);
