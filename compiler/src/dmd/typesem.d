@@ -3219,37 +3219,36 @@ Type merge(Type type)
     }
 
     //printf("merge(%s)\n", toChars());
-    if (!type.deco)
+    if (type.deco)
+        return type;
+
+    OutBuffer buf;
+    buf.reserve(32);
+
+    mangleToBuffer(type, buf);
+
+    auto sv = type.stringtable.update(buf[]);
+    if (sv.value)
     {
-        OutBuffer buf;
-        buf.reserve(32);
-
-        mangleToBuffer(type, buf);
-
-        auto sv = type.stringtable.update(buf[]);
-        if (sv.value)
+        Type t = sv.value;
+        debug
         {
-            Type t = sv.value;
-            debug
-            {
-                import core.stdc.stdio;
-                if (!t.deco)
-                    printf("t = %s\n", t.toChars());
-            }
-            assert(t.deco);
-            //printf("old value, deco = '%s' %p\n", t.deco, t.deco);
-            return t;
+            import core.stdc.stdio;
+            if (!t.deco)
+                printf("t = %s\n", t.toChars());
         }
-        else
-        {
-            Type t = stripDefaultArgs(type);
-            sv.value = t;
-            type.deco = t.deco = cast(char*)sv.toDchars();
-            //printf("new value, deco = '%s' %p\n", t.deco, t.deco);
-            return t;
-        }
+        assert(t.deco);
+        //printf("old value, deco = '%s' %p\n", t.deco, t.deco);
+        return t;
     }
-    return type;
+    else
+    {
+        Type t = stripDefaultArgs(type);
+        sv.value = t;
+        type.deco = t.deco = cast(char*)sv.toDchars();
+        //printf("new value, deco = '%s' %p\n", t.deco, t.deco);
+        return t;
+    }
 }
 
 /*************************************
