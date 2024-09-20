@@ -12,6 +12,7 @@
 module dmd.postordervisitor;
 
 import dmd.expression;
+import dmd.root.array;
 import dmd.visitor;
 
 bool walkPostorder(Expression e, StoppableVisitor v)
