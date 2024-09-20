@@ -2681,53 +2681,51 @@ Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             //printf("\tit's a type %d, %s, %s\n", t.ty, t.toChars(), t.deco);
             return t.addMod(mtype.mod);
         }
-        else
+
+        if (s)
         {
-            if (s)
-            {
-                auto td = s.isTemplateDeclaration;
-                if (td && td.onemember && td.onemember.isAggregateDeclaration)
-                    .error(loc, "template %s `%s` is used as a type without instantiation"
-                        ~ "; to instantiate it use `%s!(arguments)`",
-                        s.kind, s.toPrettyChars, s.ident.toChars);
-                else
-                    .error(loc, "%s `%s` is used as a type", s.kind, s.toPrettyChars);
-                //assert(0);
-            }
-            else if (e.op == EXP.variable) // special case: variable is used as a type
-            {
-                /*
-                    N.B. This branch currently triggers for the following code
-                    template test(x* x)
-                    {
-
-                    }
-                    i.e. the compiler prints "variable x is used as a type"
-                    which isn't a particularly good error message (x is a variable?).
-                */
-                Dsymbol varDecl = mtype.toDsymbol(sc);
-                const(Loc) varDeclLoc = varDecl.getLoc();
-                Module varDeclModule = varDecl.getModule(); //This can be null
-
-                .error(loc, "variable `%s` is used as a type", mtype.toChars());
-                //Check for null to avoid https://issues.dlang.org/show_bug.cgi?id=22574
-                if ((varDeclModule !is null) && varDeclModule != sc._module) // variable is imported
-                {
-                    const(Loc) varDeclModuleImportLoc = varDeclModule.getLoc();
-                    .errorSupplemental(
-                        varDeclModuleImportLoc,
-                        "variable `%s` is imported here from: `%s`",
-                        varDecl.toChars,
-                        varDeclModule.toPrettyChars,
-                    );
-                }
-
-                .errorSupplemental(varDeclLoc, "variable `%s` is declared here", varDecl.toChars);
-            }
+            auto td = s.isTemplateDeclaration;
+            if (td && td.onemember && td.onemember.isAggregateDeclaration)
+                .error(loc, "template %s `%s` is used as a type without instantiation"
+                    ~ "; to instantiate it use `%s!(arguments)`",
+                    s.kind, s.toPrettyChars, s.ident.toChars);
             else
-                .error(loc, "`%s` is used as a type", mtype.toChars());
-            return error();
+                .error(loc, "%s `%s` is used as a type", s.kind, s.toPrettyChars);
+            //assert(0);
         }
+        else if (e.op == EXP.variable) // special case: variable is used as a type
+        {
+            /*
+                N.B. This branch currently triggers for the following code
+                template test(x* x)
+                {
+
+                }
+                i.e. the compiler prints "variable x is used as a type"
+                which isn't a particularly good error message (x is a variable?).
+            */
+            Dsymbol varDecl = mtype.toDsymbol(sc);
+            const(Loc) varDeclLoc = varDecl.getLoc();
+            Module varDeclModule = varDecl.getModule(); //This can be null
+
+            .error(loc, "variable `%s` is used as a type", mtype.toChars());
+            //Check for null to avoid https://issues.dlang.org/show_bug.cgi?id=22574
+            if ((varDeclModule !is null) && varDeclModule != sc._module) // variable is imported
+            {
+                const(Loc) varDeclModuleImportLoc = varDeclModule.getLoc();
+                .errorSupplemental(
+                    varDeclModuleImportLoc,
+                    "variable `%s` is imported here from: `%s`",
+                    varDecl.toChars,
+                    varDeclModule.toPrettyChars,
+                );
+            }
+
+            .errorSupplemental(varDeclLoc, "variable `%s` is declared here", varDecl.toChars);
+        }
+        else
+            .error(loc, "`%s` is used as a type", mtype.toChars());
+        return error();
     }
 
     Type visitInstance(TypeInstance mtype)
