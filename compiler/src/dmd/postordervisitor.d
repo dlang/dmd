@@ -11,6 +11,7 @@
 
 module dmd.postordervisitor;
 
+import dmd.dtemplate;
 import dmd.expression;
 import dmd.root.array;
 import dmd.visitor;
