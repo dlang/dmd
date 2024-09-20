@@ -78,3 +78,20 @@ static if (is(Vector!(int[4])))
     static assert(__traits(isZeroInit, Holder!(Vector!(int[4]), 0)));
     static assert(!__traits(isZeroInit, Holder!(Vector!(int[4]), 1)));
 }
+
+struct S6 {
+    union {
+        int i1;
+        float f1;
+    }
+}
+static assert(__traits(isZeroInit, S6));
+
+struct S7
+{
+    union {
+        float f2;
+        int i2;
+    }
+}
+static assert(!__traits(isZeroInit, S7));
