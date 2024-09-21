@@ -8862,6 +8862,23 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             {
                 AST.Dsymbol s = parseFunctionLiteral();
                 e = new AST.FuncExp(loc, s);
+
+                if (!s.isTemplateDeclaration)
+                {
+                    auto tf = cast(AST.TypeFunction) (cast(AST.FuncLiteralDeclaration) s).type;
+                    if (tf.linkage != LINK.default_)
+                    {
+                        auto resultId = new Identifier("__result");
+                        auto fd = new AST.FuncLiteralDeclaration(loc, Loc.initial, new AST.TypeFunction(AST.ParameterList(), null, LINK.default_), TOK.delegate_, null);
+                        auto vardecl = new AST.Dsymbols();
+                        vardecl.push(new AST.VarDeclaration(loc, null, resultId, new AST.ExpInitializer(loc, e)));
+                        fd.fbody = new AST.CompoundStatement(loc,
+                            new AST.ExpStatement(loc, new AST.DeclarationExp(loc, new AST.LinkDeclaration(loc, tf.linkage, vardecl))),
+                            new AST.ReturnStatement(loc, new AST.IdentifierExp(loc, resultId))
+                        );
+                        e = new AST.CallExp(loc, new AST.FuncExp(loc, fd));
+                    }
+                }
                 break;
             }
 
