@@ -7490,41 +7490,37 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             MATCH m = deduceType(e.targ, sc, e.tspec, *e.parameters, dedtypes, null, 0, e.tok == TOK.equal);
 
             if (m == MATCH.nomatch || (m != MATCH.exact && e.tok == TOK.equal))
-            {
                 return no();
-            }
-            else
+
+            tded = cast(Type)dedtypes[0];
+            if (!tded)
+                tded = e.targ;
+            Objects tiargs = Objects(1);
+            tiargs[0] = e.targ;
+
+            /* Declare trailing parameters
+             */
+            for (size_t i = 1; i < e.parameters.length; i++)
             {
-                tded = cast(Type)dedtypes[0];
-                if (!tded)
-                    tded = e.targ;
-                Objects tiargs = Objects(1);
-                tiargs[0] = e.targ;
+                TemplateParameter tp = (*e.parameters)[i];
+                Declaration s = null;
 
-                /* Declare trailing parameters
-                 */
-                for (size_t i = 1; i < e.parameters.length; i++)
+                m = tp.matchArg(e.loc, sc, &tiargs, i, e.parameters, dedtypes, &s);
+                if (m == MATCH.nomatch)
+                    return no();
+                s.dsymbolSemantic(sc);
+                if (!sc.insert(s))
                 {
-                    TemplateParameter tp = (*e.parameters)[i];
-                    Declaration s = null;
-
-                    m = tp.matchArg(e.loc, sc, &tiargs, i, e.parameters, dedtypes, &s);
-                    if (m == MATCH.nomatch)
-                        return no();
-                    s.dsymbolSemantic(sc);
-                    if (!sc.insert(s))
-                    {
-                        Dsymbol pscopesym;
-                        auto conflict = sc.search(Loc.initial, s.ident, pscopesym);
-                        error(e.loc, "declaration `%s` is already defined", s.toPrettyChars());
-                        errorSupplemental(conflict.loc, "`%s` `%s` is defined here",
-                                          conflict.kind(), conflict.toChars());
-                    }
-
-                    unSpeculative(sc, s);
+                    Dsymbol pscopesym;
+                    auto conflict = sc.search(Loc.initial, s.ident, pscopesym);
+                    error(e.loc, "declaration `%s` is already defined", s.toPrettyChars());
+                    errorSupplemental(conflict.loc, "`%s` `%s` is defined here",
+                                        conflict.kind(), conflict.toChars());
                 }
-                return yes();
+
+                unSpeculative(sc, s);
             }
+            return yes();
         }
         else if (e.id)
         {
