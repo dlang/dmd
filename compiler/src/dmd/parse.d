@@ -5034,6 +5034,14 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     }
 
                     v = new AST.AliasDeclaration(loc, ident, s);
+
+                    if (auto tpl_ = s.isTemplateDeclaration)
+                    {
+                        assert(tpl_.members.length == 1);
+                        auto fd = cast(AST.FuncLiteralDeclaration) (*tpl_.members)[0];
+                        auto tf = cast(AST.TypeFunction) fd.type;
+                        link = tf.linkage;
+                    }
                 }
                 else
                 {
