@@ -6935,15 +6935,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         while (1)
         {
             AttribDeclaration ad = s.isAttribDeclaration();
-            if (ad)
-            {
-                if (ad.decl && ad.decl.length == 1)
-                {
-                    s = (*ad.decl)[0];
-                    continue;
-                }
-            }
-            break;
+            if (!ad)
+                break;
+            if (ad.decl && ad.decl.length == 1)
+                s = (*ad.decl)[0];
         }
 
         //printf("inserting '%s' %p into sc = %p\n", s.toChars(), s, sc);
@@ -7039,27 +7034,26 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     // Disallow shadowing
                     for (Scope* scx = sc.enclosing; scx && (scx.func == sc.func || (fes_enclosing_func && scx.func == fes_enclosing_func)); scx = scx.enclosing)
                     {
-                        Dsymbol s2;
-                        if (scx.scopesym && scx.scopesym.symtab && (s2 = scx.scopesym.symtab.lookup(s.ident)) !is null && s != s2)
+                        if (!scx.scopesym || !scx.scopesym.symtab)
+                            continue;
+                        Dsymbol s2 = scx.scopesym.symtab.lookup(s.ident);
+                        if (s2 is null || s == s2)
+                            continue;
+                        // allow STC.local symbols to be shadowed
+                        // TODO: not really an optimal design
+                        auto decl = s2.isDeclaration();
+                        if (decl && (decl.storage_class & STC.local))
+                            continue;
+                        if (sc.func.fes)
                         {
-                            // allow STC.local symbols to be shadowed
-                            // TODO: not really an optimal design
-                            auto decl = s2.isDeclaration();
-                            if (!decl || !(decl.storage_class & STC.local))
-                            {
-                                if (sc.func.fes)
-                                {
-                                    deprecation(e.loc, "%s `%s` is shadowing %s `%s`", s.kind(), s.ident.toChars(), s2.kind(), s2.toPrettyChars());
-                                    deprecationSupplemental(s2.loc, "declared here");
-
-                                }
-                                else
-                                {
-                                    error(e.loc, "%s `%s` is shadowing %s `%s`", s.kind(), s.ident.toChars(), s2.kind(), s2.toPrettyChars());
-                                    errorSupplemental(s2.loc, "declared here");
-                                    return setError();
-                                }
-                            }
+                            deprecation(e.loc, "%s `%s` is shadowing %s `%s`", s.kind(), s.ident.toChars(), s2.kind(), s2.toPrettyChars());
+                            deprecationSupplemental(s2.loc, "declared here");
+                        }
+                        else
+                        {
+                            error(e.loc, "%s `%s` is shadowing %s `%s`", s.kind(), s.ident.toChars(), s2.kind(), s2.toPrettyChars());
+                            errorSupplemental(s2.loc, "declared here");
+                            return setError();
                         }
                     }
                 }
