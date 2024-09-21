@@ -679,6 +679,13 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
     AggregateDeclaration ad = isAggregate(ae.e1.type);
     Dsymbol slice = search_function(ad, Id.slice);
     //printf("slice = %s %s\n", slice.kind(), slice.toChars());
+    Expression fallback()
+    {
+        if (ae.arguments.length == 1)
+            return null;
+        error(ae.loc, "multi-dimensional slicing requires template `opSlice`");
+        return ErrorExp.get();
+    }
     foreach (i, e; *ae.arguments)
     {
         if (i == 0)
@@ -686,11 +693,7 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
 
         if (e.op == EXP.interval && !(slice && slice.isTemplateDeclaration()))
         {
-        Lfallback:
-            if (ae.arguments.length == 1)
-                return null;
-            error(ae.loc, "multi-dimensional slicing requires template `opSlice`");
-            return ErrorExp.get();
+            return fallback();
         }
         //printf("[%d] e = %s\n", i, e.toChars());
 
@@ -730,7 +733,7 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
             sc = sc.pop();
             global.endGagging(xerrors);
             if (!fslice)
-                goto Lfallback;
+                return fallback();
 
             e = new DotTemplateInstanceExp(ae.loc, ae.e1, slice.ident, tiargs);
             e = new CallExp(ae.loc, e, fargs);
