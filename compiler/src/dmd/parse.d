@@ -8871,7 +8871,17 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 AST.Dsymbol s = parseFunctionLiteral();
                 e = new AST.FuncExp(loc, s);
 
-                if (!s.isTemplateDeclaration)
+                if (auto tpl = s.isTemplateDeclaration)
+                {
+                    assert(tpl.members.length == 1);
+                    auto fd = cast(AST.FuncLiteralDeclaration) (*tpl.members)[0];
+                    auto tf = cast(AST.TypeFunction) fd.type;
+                    if (tf.linkage != LINK.default_)
+                    {
+                        error("Explicit linkage for template lambdas is not supported, except for alias declarations.");
+                    }
+                }
+                else
                 {
                     auto tf = cast(AST.TypeFunction) (cast(AST.FuncLiteralDeclaration) s).type;
                     if (tf.linkage != LINK.default_)
