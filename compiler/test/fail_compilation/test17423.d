@@ -1,8 +1,9 @@
 /* REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/test17423.d(27): Error: reference to local `this` assigned to non-scope parameter `dlg` calling `opApply`
-fail_compilation/test17423.d(16):        which is not `scope` because of `this.myDlg = dlg`
+fail_compilation/test17423.d(28): Error: reference to local `this` assigned to non-scope parameter `dlg` calling `opApply`
+fail_compilation/test17423.d(17):        which is not `scope` because of `this.myDlg = dlg`
+fail_compilation/test17423.d(27): Error: constructor `test17423.Foo.this` cannot close over `ref` variable `this`
 ---
 */
 
