@@ -232,7 +232,8 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         zeroInit = true;
         foreach (i, vd; fields)
         {
-            if (i == 1 && vd.overlapped) // union init is same as first member
+            // union init is same as first member
+            if (i == 1 && isUnionDeclaration())
                 break;
             if (vd._init)
             {
