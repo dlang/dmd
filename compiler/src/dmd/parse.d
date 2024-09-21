@@ -4094,9 +4094,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                                 new AST.ReturnStatement(loc_, new AST.IdentifierExp(loc_, resultId))
                             );
                             auto typeoftype = new AST.TypeTypeof(loc_, new AST.CallExp(loc_, new AST.FuncExp(loc_, fd)));
-                            
+
                             if (t is tn) return typeoftype;
-                            
+
                             AST.TypeNext tx = t.isTypeNext();
                             assert(tx !is null);
                             while (tx.next !is tn)
