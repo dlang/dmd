@@ -11,7 +11,8 @@ fail_compilation/fail22881.d(207):        while evaluating: `static assert(null2
 fail_compilation/fail22881.d(305): Error: slice `[2..4]` exceeds array bounds `[0..3]`
 fail_compilation/fail22881.d(308):        called from here: `slice22881()`
 fail_compilation/fail22881.d(308):        while evaluating: `static assert(slice22881())`
-fail_compilation/fail22881.d(401): Error: slice `[0..1]` exceeds array bounds `[0..0]`
+fail_compilation/fail22881.d(401): Error: in slice `[][0..1]`, upper bound is greater than array length `0`
+fail_compilation/fail22881.d(401): Error: in slice `[][0..1]`, upper bound is greater than array length `0`
 fail_compilation/fail22881.d(403): Error: slice `[0..1]` exceeds array bounds `[0..0]`
 ---
 */

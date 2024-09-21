@@ -1447,12 +1447,24 @@ extern (C++) class VarDeclaration : Declaration
             }
             else
             {
-                // __ArrayDtor(v[0 .. n])
+                // __ArrayDtor((cast(T[n])v)[0 .. n])
                 e = new VarExp(loc, this);
 
                 const sdsz = sd.type.size();
                 assert(sdsz != SIZE_INVALID && sdsz != 0);
                 const n = sz / sdsz;
+
+                // The cast to an static array of size n needs to be done here to explicitly
+                // cast any multi-dimensional array into its lineralized form. This is safe to
+                // do since multi-dimensional arrays are layed out linearly in memory.
+                // Doing this prevents the compiler down the line to report an error to the user,
+                // which might be confused since this here is generated code the user didn't
+                // explicitly wrote.
+                Type sty = sd.type.sarrayOf(n);
+
+                e = new CastExp(loc, e, sty);
+                e.type = sty;
+
                 SliceExp se = new SliceExp(loc, e, new IntegerExp(loc, 0, Type.tsize_t),
                     new IntegerExp(loc, n, Type.tsize_t));
 
