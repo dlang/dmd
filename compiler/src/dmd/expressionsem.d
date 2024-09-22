@@ -339,6 +339,61 @@ StringExp toUTF8(StringExp se, Scope* sc)
     }
     return se;
 }
+/********************************
+ * The type for a unary expression is incompatible.
+ * Print error message.
+ * Returns:
+ *  ErrorExp
+ */
+extern (D) Expression incompatibleTypes(UnaExp e)
+{
+    if (e.e1.type.toBasetype() == Type.terror)
+        return e.e1;
+
+    if (e.e1.op == EXP.type)
+    {
+        error(e.loc, "incompatible type for `%s(%s)`: cannot use `%s` with types", EXPtoString(e.op).ptr, e.e1.toChars(), EXPtoString(e.op).ptr);
+    }
+    else
+    {
+        error(e.loc, "incompatible type for `%s(%s)`: `%s`", EXPtoString(e.op).ptr, e.e1.toChars(), e.e1.type.toChars());
+    }
+    return ErrorExp.get();
+}
+
+/********************************
+ * The types for a binary expression are incompatible.
+ * Print error message.
+ * Returns:
+ *  ErrorExp
+ */
+extern (D) Expression incompatibleTypes(BinExp e)
+{
+    if (e.e1.type.toBasetype() == Type.terror)
+        return e.e1;
+    if (e.e2.type.toBasetype() == Type.terror)
+        return e.e2;
+
+    // CondExp uses 'a ? b : c' but we're comparing 'b : c'
+    const(char)* thisOp = (e.op == EXP.question) ? ":" : EXPtoString(e.op).ptr;
+    if (e.e1.op == EXP.type || e.e2.op == EXP.type)
+    {
+        error(e.loc, "incompatible types for `(%s) %s (%s)`: cannot use `%s` with types",
+            e.e1.toChars(), thisOp, e.e2.toChars(), EXPtoString(e.op).ptr);
+    }
+    else if (e.e1.type.equals(e.e2.type))
+    {
+        error(e.loc, "incompatible types for `(%s) %s (%s)`: both operands are of type `%s`",
+            e.e1.toChars(), thisOp, e.e2.toChars(), e.e1.type.toChars());
+    }
+    else
+    {
+        auto ts = toAutoQualChars(e.e1.type, e.e2.type);
+        error(e.loc, "incompatible types for `(%s) %s (%s)`: `%s` and `%s`",
+            e.e1.toChars(), thisOp, e.e2.toChars(), ts[0], ts[1]);
+    }
+    return ErrorExp.get();
+}
 
 private Expression reorderSettingAAElem(BinExp exp, Scope* sc)
 {
@@ -610,6 +665,13 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
     AggregateDeclaration ad = isAggregate(ae.e1.type);
     Dsymbol slice = search_function(ad, Id.slice);
     //printf("slice = %s %s\n", slice.kind(), slice.toChars());
+    Expression fallback()
+    {
+        if (ae.arguments.length == 1)
+            return null;
+        error(ae.loc, "multi-dimensional slicing requires template `opSlice`");
+        return ErrorExp.get();
+    }
     foreach (i, e; *ae.arguments)
     {
         if (i == 0)
@@ -617,11 +679,7 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
 
         if (e.op == EXP.interval && !(slice && slice.isTemplateDeclaration()))
         {
-        Lfallback:
-            if (ae.arguments.length == 1)
-                return null;
-            error(ae.loc, "multi-dimensional slicing requires template `opSlice`");
-            return ErrorExp.get();
+            return fallback();
         }
         //printf("[%d] e = %s\n", i, e.toChars());
 
@@ -661,7 +719,7 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
             sc = sc.pop();
             global.endGagging(xerrors);
             if (!fslice)
-                goto Lfallback;
+                return fallback();
 
             e = new DotTemplateInstanceExp(ae.loc, ae.e1, slice.ident, tiargs);
             e = new CallExp(ae.loc, e, fargs);
@@ -6866,15 +6924,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         while (1)
         {
             AttribDeclaration ad = s.isAttribDeclaration();
-            if (ad)
-            {
-                if (ad.decl && ad.decl.length == 1)
-                {
-                    s = (*ad.decl)[0];
-                    continue;
-                }
-            }
-            break;
+            if (!ad)
+                break;
+            if (ad.decl && ad.decl.length == 1)
+                s = (*ad.decl)[0];
         }
 
         //printf("inserting '%s' %p into sc = %p\n", s.toChars(), s, sc);
@@ -6970,27 +7023,26 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     // Disallow shadowing
                     for (Scope* scx = sc.enclosing; scx && (scx.func == sc.func || (fes_enclosing_func && scx.func == fes_enclosing_func)); scx = scx.enclosing)
                     {
-                        Dsymbol s2;
-                        if (scx.scopesym && scx.scopesym.symtab && (s2 = scx.scopesym.symtab.lookup(s.ident)) !is null && s != s2)
+                        if (!scx.scopesym || !scx.scopesym.symtab)
+                            continue;
+                        Dsymbol s2 = scx.scopesym.symtab.lookup(s.ident);
+                        if (s2 is null || s == s2)
+                            continue;
+                        // allow STC.local symbols to be shadowed
+                        // TODO: not really an optimal design
+                        auto decl = s2.isDeclaration();
+                        if (decl && (decl.storage_class & STC.local))
+                            continue;
+                        if (sc.func.fes)
                         {
-                            // allow STC.local symbols to be shadowed
-                            // TODO: not really an optimal design
-                            auto decl = s2.isDeclaration();
-                            if (!decl || !(decl.storage_class & STC.local))
-                            {
-                                if (sc.func.fes)
-                                {
-                                    deprecation(e.loc, "%s `%s` is shadowing %s `%s`", s.kind(), s.ident.toChars(), s2.kind(), s2.toPrettyChars());
-                                    deprecationSupplemental(s2.loc, "declared here");
-
-                                }
-                                else
-                                {
-                                    error(e.loc, "%s `%s` is shadowing %s `%s`", s.kind(), s.ident.toChars(), s2.kind(), s2.toPrettyChars());
-                                    errorSupplemental(s2.loc, "declared here");
-                                    return setError();
-                                }
-                            }
+                            deprecation(e.loc, "%s `%s` is shadowing %s `%s`", s.kind(), s.ident.toChars(), s2.kind(), s2.toPrettyChars());
+                            deprecationSupplemental(s2.loc, "declared here");
+                        }
+                        else
+                        {
+                            error(e.loc, "%s `%s` is shadowing %s `%s`", s.kind(), s.ident.toChars(), s2.kind(), s2.toPrettyChars());
+                            errorSupplemental(s2.loc, "declared here");
+                            return setError();
                         }
                     }
                 }
@@ -7058,56 +7110,55 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         ta.checkComplexTransition(exp.loc, sc);
 
-        Expression e;
         auto tb = ta.toBasetype();
         if (ea && tb.ty == Tclass)
         {
             if (tb.toDsymbol(sc).isClassDeclaration().classKind == ClassKind.cpp)
             {
                 error(exp.loc, "runtime type information is not supported for `extern(C++)` classes");
-                e = ErrorExp.get();
+                return setError();
             }
             else if (!Type.typeinfoclass)
             {
                 error(exp.loc, "`object.TypeInfo_Class` could not be found, but is implicitly used");
-                e = ErrorExp.get();
+                return setError();
             }
             else
             {
                 /* Get the dynamic type, which is .classinfo
                 */
                 ea = ea.expressionSemantic(sc);
-                e = new TypeidExp(ea.loc, ea);
+                Expression e = new TypeidExp(ea.loc, ea);
                 e.type = Type.typeinfoclass.type;
+                result = e;
+                return;
             }
         }
         else if (ta.ty == Terror)
         {
-            e = ErrorExp.get();
+            return setError();
         }
-        else
+
+        // Handle this in the glue layer
+        Expression e = new TypeidExp(exp.loc, ta);
+
+        bool genObjCode = true;
+
+        // https://issues.dlang.org/show_bug.cgi?id=23650
+        // We generate object code for typeinfo, required
+        // by typeid, only if in non-speculative context
+        if (sc.traitsCompiles)
         {
-            // Handle this in the glue layer
-            e = new TypeidExp(exp.loc, ta);
+            genObjCode = false;
+        }
 
-            bool genObjCode = true;
+        e.type = getTypeInfoType(exp.loc, ta, sc, genObjCode);
+        semanticTypeInfo(sc, ta);
 
-            // https://issues.dlang.org/show_bug.cgi?id=23650
-            // We generate object code for typeinfo, required
-            // by typeid, only if in non-speculative context
-            if (sc.traitsCompiles)
-            {
-                genObjCode = false;
-            }
-
-            e.type = getTypeInfoType(exp.loc, ta, sc, genObjCode);
-            semanticTypeInfo(sc, ta);
-
-            if (ea)
-            {
-                e = new CommaExp(exp.loc, ea, e); // execute ea
-                e = e.expressionSemantic(sc);
-            }
+        if (ea)
+        {
+            e = new CommaExp(exp.loc, ea, e); // execute ea
+            e = e.expressionSemantic(sc);
         }
         result = e;
     }
@@ -7441,41 +7492,37 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             MATCH m = deduceType(e.targ, sc, e.tspec, *e.parameters, dedtypes, null, 0, e.tok == TOK.equal);
 
             if (m == MATCH.nomatch || (m != MATCH.exact && e.tok == TOK.equal))
-            {
                 return no();
-            }
-            else
+
+            tded = cast(Type)dedtypes[0];
+            if (!tded)
+                tded = e.targ;
+            Objects tiargs = Objects(1);
+            tiargs[0] = e.targ;
+
+            /* Declare trailing parameters
+             */
+            for (size_t i = 1; i < e.parameters.length; i++)
             {
-                tded = cast(Type)dedtypes[0];
-                if (!tded)
-                    tded = e.targ;
-                Objects tiargs = Objects(1);
-                tiargs[0] = e.targ;
+                TemplateParameter tp = (*e.parameters)[i];
+                Declaration s = null;
 
-                /* Declare trailing parameters
-                 */
-                for (size_t i = 1; i < e.parameters.length; i++)
+                m = tp.matchArg(e.loc, sc, &tiargs, i, e.parameters, dedtypes, &s);
+                if (m == MATCH.nomatch)
+                    return no();
+                s.dsymbolSemantic(sc);
+                if (!sc.insert(s))
                 {
-                    TemplateParameter tp = (*e.parameters)[i];
-                    Declaration s = null;
-
-                    m = tp.matchArg(e.loc, sc, &tiargs, i, e.parameters, dedtypes, &s);
-                    if (m == MATCH.nomatch)
-                        return no();
-                    s.dsymbolSemantic(sc);
-                    if (!sc.insert(s))
-                    {
-                        Dsymbol pscopesym;
-                        auto conflict = sc.search(Loc.initial, s.ident, pscopesym);
-                        error(e.loc, "declaration `%s` is already defined", s.toPrettyChars());
-                        errorSupplemental(conflict.loc, "`%s` `%s` is defined here",
-                                          conflict.kind(), conflict.toChars());
-                    }
-
-                    unSpeculative(sc, s);
+                    Dsymbol pscopesym;
+                    auto conflict = sc.search(Loc.initial, s.ident, pscopesym);
+                    error(e.loc, "declaration `%s` is already defined", s.toPrettyChars());
+                    errorSupplemental(conflict.loc, "`%s` `%s` is defined here",
+                                        conflict.kind(), conflict.toChars());
                 }
-                return yes();
+
+                unSpeculative(sc, s);
             }
+            return yes();
         }
         else if (e.id)
         {

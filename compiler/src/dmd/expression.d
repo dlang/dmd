@@ -3031,28 +3031,6 @@ extern (C++) abstract class UnaExp : Expression
         return e;
     }
 
-    /********************************
-     * The type for a unary expression is incompatible.
-     * Print error message.
-     * Returns:
-     *  ErrorExp
-     */
-    extern (D) final Expression incompatibleTypes()
-    {
-        if (e1.type.toBasetype() == Type.terror)
-            return e1;
-
-        if (e1.op == EXP.type)
-        {
-            error(loc, "incompatible type for `%s(%s)`: cannot use `%s` with types", EXPtoString(op).ptr, e1.toChars(), EXPtoString(op).ptr);
-        }
-        else
-        {
-            error(loc, "incompatible type for `%s(%s)`: `%s`", EXPtoString(op).ptr, e1.toChars(), e1.type.toChars());
-        }
-        return ErrorExp.get();
-    }
-
     /*********************
      * Mark the operand as will never be dereferenced,
      * which is useful info for @safe checks.
@@ -3095,40 +3073,6 @@ extern (C++) abstract class BinExp : Expression
         e.e1 = e.e1.syntaxCopy();
         e.e2 = e.e2.syntaxCopy();
         return e;
-    }
-
-    /********************************
-     * The types for a binary expression are incompatible.
-     * Print error message.
-     * Returns:
-     *  ErrorExp
-     */
-    extern (D) final Expression incompatibleTypes()
-    {
-        if (e1.type.toBasetype() == Type.terror)
-            return e1;
-        if (e2.type.toBasetype() == Type.terror)
-            return e2;
-
-        // CondExp uses 'a ? b : c' but we're comparing 'b : c'
-        const(char)* thisOp = (op == EXP.question) ? ":" : EXPtoString(op).ptr;
-        if (e1.op == EXP.type || e2.op == EXP.type)
-        {
-            error(loc, "incompatible types for `(%s) %s (%s)`: cannot use `%s` with types",
-                e1.toChars(), thisOp, e2.toChars(), EXPtoString(op).ptr);
-        }
-        else if (e1.type.equals(e2.type))
-        {
-            error(loc, "incompatible types for `(%s) %s (%s)`: both operands are of type `%s`",
-                e1.toChars(), thisOp, e2.toChars(), e1.type.toChars());
-        }
-        else
-        {
-            auto ts = toAutoQualChars(e1.type, e2.type);
-            error(loc, "incompatible types for `(%s) %s (%s)`: `%s` and `%s`",
-                e1.toChars(), thisOp, e2.toChars(), ts[0], ts[1]);
-        }
-        return ErrorExp.get();
     }
 
     extern (D) final bool checkIntegralBin()
