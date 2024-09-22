@@ -1095,64 +1095,50 @@ Initializer inferType(Initializer init, Scope* sc)
     {
         //printf("ArrayInitializer::inferType() %s\n", toChars());
         Expressions* keys = null;
-        Expressions* values;
-        if (init.isAssociativeArray())
+        Expressions* values = new Expressions(init.value.length);
+        Initializer no()
         {
+            if (keys)
+                error(init.loc, "not an associative array initializer");
+            else
+                error(init.loc, "cannot infer type from array initializer");
+            return new ErrorInitializer();
+        }
+        const bool isAssoc = init.isAssociativeArray();
+        if (isAssoc)
             keys = new Expressions(init.value.length);
-            values = new Expressions(init.value.length);
-            for (size_t i = 0; i < init.value.length; i++)
+        else
+            values.zero();
+
+        for (size_t i = 0; i < init.value.length; i++)
+        {
+            if (isAssoc)
             {
                 Expression e = init.index[i];
                 if (!e)
-                    goto Lno;
+                    return no();
                 (*keys)[i] = e;
-                Initializer iz = init.value[i];
-                if (!iz)
-                    goto Lno;
-                iz = iz.inferType(sc);
-                if (iz.isErrorInitializer())
-                {
-                    return iz;
-                }
-                (*values)[i] = iz.isExpInitializer().exp;
-                assert(!(*values)[i].isErrorExp());
             }
-            Expression e = new AssocArrayLiteralExp(init.loc, keys, values);
-            auto ei = new ExpInitializer(init.loc, e);
-            return ei.inferType(sc);
-        }
-        else
-        {
-            auto elements = new Expressions(init.value.length);
-            elements.zero();
-            for (size_t i = 0; i < init.value.length; i++)
-            {
+            else
                 assert(!init.index[i]); // already asserted by isAssociativeArray()
-                Initializer iz = init.value[i];
-                if (!iz)
-                    goto Lno;
-                iz = iz.inferType(sc);
-                if (iz.isErrorInitializer())
-                {
-                    return iz;
-                }
-                (*elements)[i] = iz.isExpInitializer().exp;
-                assert(!(*elements)[i].isErrorExp());
+            Initializer iz = init.value[i];
+            if (!iz)
+                return no();
+            iz = iz.inferType(sc);
+            if (iz.isErrorInitializer())
+            {
+                return iz;
             }
-            Expression e = new ArrayLiteralExp(init.loc, null, elements);
-            auto ei = new ExpInitializer(init.loc, e);
-            return ei.inferType(sc);
+            (*values)[i] = iz.isExpInitializer().exp;
+            assert(!(*values)[i].isErrorExp());
         }
-    Lno:
-        if (keys)
-        {
-            error(init.loc, "not an associative array initializer");
-        }
-        else
-        {
-            error(init.loc, "cannot infer type from array initializer");
-        }
-        return new ErrorInitializer();
+
+        Expression e;
+        e = isAssoc
+            ? new AssocArrayLiteralExp(init.loc, keys, values)
+            : new ArrayLiteralExp(init.loc, null, values);
+        auto ei = new ExpInitializer(init.loc, e);
+        return ei.inferType(sc);
     }
 
     Initializer visitExp(ExpInitializer init)
