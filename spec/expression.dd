@@ -2203,8 +2203,12 @@ $(H4 $(LNAME2 array-literal-heap, GC Allocation))
     $(P An array literal is not GC allocated if:)
 
     * It initializes or assigns to a static array.
-    * It initializes a $(DDSUBLINK spec/attribute, scope, `scope`) slice.
-    * It is used on one side of a $(GLINK EqualExpression) or $(GLINK RelExpression).
+    * It is an argument to a $(DDSUBLINK spec/function, scope-parameters, `scope`
+      function parameter).
+    * It initializes a $(DDSUBLINK spec/attribute, scope, `scope`) slice (`-preview=dip1000`
+      $(LINK2 $(ROOT_DIR)changelog/2.102.0.html#dmd.scope-array-on-stack,
+      is required for this)).
+    * It is used on one side of an $(GLINK EqualExpression) or $(GLINK RelExpression).
     * It is immediately $(RELATIVE_LINK2 index_operations, indexed) and used as an rvalue.
     * It is used as a `foreach` aggregate where the element variable is not `ref`.
 

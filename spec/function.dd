@@ -1931,10 +1931,11 @@ int* balin(scope int* q, int* r)
 }
 ---
 
-    $(P As a `scope` parameter must not escape, the compiler can potentially avoid heap-allocating a
+    $(IMPLEMENTATION_DEFINED
+    As a `scope` parameter must not escape, the compiler can potentially avoid heap-allocating a
     unique argument to a `scope` parameter. Due to this, passing an array literal, delegate
     literal or a $(GLINK2 expression, NewExpression) to a scope parameter may be allowed in a
-    `@nogc` context, depending on the compiler implementation.)
+    `@nogc` context.)
 
 $(H3 $(LNAME2 return-scope-parameters, Return Scope Parameters))
 

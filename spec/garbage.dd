@@ -372,16 +372,19 @@ $(H2 D $(LNAME2 op_involving_gc, Operations That Involve the Garbage Collector))
         $(LI $(GLINK2 expression, NewExpression))
         $(LI Array appending)
         $(LI Array concatenation)
-        $(LI Array literals (except when used to initialize static data))
+        $(LI Array literals (see $(DDSUBLINK spec/expression, array-literal-heap, exceptions)))
         $(LI Associative array literals)
         $(LI Any insertion or removal in an associative array)
         $(LI Extracting keys or values from an associative array)
-                $(LI Taking the address of (i.e. making a delegate to) a nested function that
+        $(LI Taking the address of (i.e. making a delegate to) a nested function that
          accesses variables in an outer scope)
         $(LI A function literal that accesses variables in an outer scope)
-
         $(LI An $(GLINK2 expression, AssertExpression) that fails its condition)
         )
+
+        $(P There is a $(DDSUBLINK spec/function, nogc-functions, `@nogc` function attribute)
+        which will error at compile-time if any construct is used which would make a GC
+        allocation.)
 
 $(H2 $(LNAME2 gc_config, Configuring the Garbage Collector))
 
