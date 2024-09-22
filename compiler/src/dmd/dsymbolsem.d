@@ -7498,9 +7498,9 @@ override void visit(VisibilityDeclaration atbd)
     {
         //Scope returnScope;
         if (atbd.pkg_identifiers){
-            dsymbolSemantic(this, sc);
+            dsymbolSemantic(atbd, sc);
         
-            createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, this.visibility, 1, sc.aligndecl, sc.inlining);
+            atbd.createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, atbd.visibility, 1, sc.aligndecl, sc.inlining);
         }
     }
 
@@ -7512,11 +7512,11 @@ override void visit(VisibilityDeclaration atbd)
     {
         auto scx = sc.copy();
         scx.linkage = LINK.cpp;
-        scx.namespace = this;
+        scx.namespace = scd;
     }
 
 //override Scope* visit(Scope* sc)
-    override void visit(CPPMangleDeclaration _)
+    override void visit(CPPMangleDeclaration cpmd)
     {
         createNewScope(sc, sc.stc, LINK.cpp, cppmangle, sc.visibility, sc.explicitVisibility,
             sc.aligndecl, sc.inlining);
@@ -7527,9 +7527,9 @@ override void visit(VisibilityDeclaration atbd)
         createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility, this, sc.inlining);
     }
 
-override void visit(PragmaDeclaration _)
+override void visit(PragmaDeclaration prd)
     {
-        if (ident == Id.Pinline)
+        if (prd.ident == Id.Pinline)
         {
             // We keep track of this pragma inside scopes,
             // then it's evaluated on demand in function semantic
@@ -7556,9 +7556,9 @@ override void visit(LinkDeclaration  sc)
     {
         auto scx = super.newScope(sc);
         // The enclosing scope is deprecated as well
-        if (dpd.scx == sc)
-            dpd.scx = sc.push();
-        scx.depdecl = this;
+        if (scx == sc)
+            scx = sc.push();
+        scx.depdecl = dpd;
     }
 
     /**************************************
@@ -7596,18 +7596,17 @@ override void visit(LinkDeclaration  sc)
      * A hook point to supply scope for members.
      * addMember, setScope, importAll, semantic, semantic2 and semantic3 will use this.
      */
-    //previously Scope* newScope(Scope* sc)
     override void visit(Dsymbol dc){}
 
 
 override void visit(UserAttributeDeclaration uac)
     {
         Scope* sc2 = sc;
-        if (uac.atts && atts.length)
+        if (uac.atts && uac.atts.length)
         {
             // create new one for changes
             sc2 = sc.copy();
-            sc2.userAttribDecl = this;
+            sc2.userAttribDecl = uac;
         }
     }
 }
