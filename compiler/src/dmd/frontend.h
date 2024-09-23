@@ -3788,7 +3788,6 @@ public:
     bool isCodeseg() const final override;
     bool isOverloadable() const final override;
     bool isAbstract() final override;
-    void initInferAttributes();
     bool isSafe();
     bool isTrusted();
     bool isNogc();
