@@ -99,7 +99,7 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     StorageClass storage_class; ///
     uint structsize;            /// size of struct
     uint alignsize;             /// size of struct for alignment purposes
-    VarDeclarations fields;     /// VarDeclaration fields
+    VarDeclarations fields;     /// VarDeclaration fields including flattened AnonDeclaration members
     Dsymbol deferred;           /// any deferred semantic2() or semantic3() symbol
 
     /// specifies whether this is a D, C++, Objective-C or anonymous struct/class/interface

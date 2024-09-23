@@ -350,21 +350,22 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
         // Determine if struct is all zeros or not
         zeroInit = true;
-        foreach (i, vd; fields)
+        auto i = 0;
+        foreach (vd; fields)
         {
-            // union init is same as first member
-            if (i == 1 && isUnionDeclaration())
+            // Zero size fields are zero initialized
+            if (vd.type.size(vd.loc) == 0)
+                continue;
+            // union init is same as first sized member
+            if (i++ == 1 && isunion)
                 break;
+
             if (vd._init)
             {
                 if (vd._init.isVoidInitializer())
                     /* Treat as 0 for the purposes of putting the initializer
                      * in the BSS segment, or doing a mass set to 0
                      */
-                    continue;
-
-                // Zero size fields are zero initialized
-                if (vd.type.size(vd.loc) == 0)
                     continue;
 
                 // Examine init to see if it is all 0s.
