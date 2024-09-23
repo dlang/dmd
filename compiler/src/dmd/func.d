@@ -56,7 +56,6 @@ import dmd.semantic3;
 import dmd.statement_rewrite_walker;
 import dmd.statement;
 import dmd.tokens;
-import dmd.typesem;
 import dmd.visitor;
 
 version (IN_GCC) {}
@@ -451,26 +450,6 @@ extern (C++) class FuncDeclaration : Declaration
         FuncDeclaration fd = s.isFuncDeclaration();
         if (!fd)
             return false;
-
-        version (none)
-        {
-            /* Disable this check because:
-             *  const void foo();
-             * semantic() isn't run yet on foo(), so the const hasn't been
-             * applied yet.
-             */
-            if (type)
-            {
-                printf("type = %s\n", type.toChars());
-                printf("fd.type = %s\n", fd.type.toChars());
-            }
-            // fd.type can be NULL for overloaded constructors
-            if (type && fd.type && fd.type.covariant(type) && fd.type.mod == type.mod && !isFuncAliasDeclaration())
-            {
-                //printf("\tfalse: conflict %s\n", kind());
-                return false;
-            }
-        }
 
         if (overnext)
         {
