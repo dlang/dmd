@@ -775,69 +775,6 @@ extern (C++) class FuncDeclaration : Declaration
         return setUnsafe(false, f.loc, null, f, null);
     }
 
-    final bool isNogc()
-    {
-        //printf("isNogc() %s, inprocess: %d\n", toChars(), !!(flags & FUNCFLAG.nogcInprocess));
-        if (nogcInprocess)
-            setGC(loc, null);
-        return type.toTypeFunction().isNogc;
-    }
-
-    extern (D) final bool isNogcBypassingInference()
-    {
-        return !nogcInprocess && isNogc();
-    }
-
-    /**************************************
-     * The function is doing something that may allocate with the GC,
-     * so mark it as not nogc (not no-how).
-     *
-     * Params:
-     *     loc = location of impure action
-     *     fmt = format string for error message. Must include "%s `%s`" for the function kind and name.
-     *     arg0 = (optional) argument to format string
-     *
-     * Returns:
-     *      true if function is marked as @nogc, meaning a user error occurred
-     */
-    extern (D) final bool setGC(Loc loc, const(char)* fmt, RootObject arg0 = null)
-    {
-        //printf("setGC() %s\n", toChars());
-        if (nogcInprocess && semanticRun < PASS.semantic3 && _scope)
-        {
-            this.semantic2(_scope);
-            this.semantic3(_scope);
-        }
-
-        if (nogcInprocess)
-        {
-            nogcInprocess = false;
-            if (fmt)
-                nogcViolation = new AttributeViolation(loc, fmt, this, arg0); // action that requires GC
-            else if (arg0)
-                nogcViolation = new AttributeViolation(loc, fmt, arg0); // call to non-@nogc function
-
-            type.toTypeFunction().isNogc = false;
-            if (fes)
-                fes.func.setGC(Loc.init, null, null);
-        }
-        else if (isNogc())
-            return true;
-        return false;
-    }
-
-    /**************************************
-     * The function calls non-`@nogc` function f, mark it as not nogc.
-     * Params:
-     *     f = function being called
-     * Returns:
-     *      true if function is marked as @nogc, meaning a user error occurred
-     */
-    extern (D) final bool setGCCall(FuncDeclaration f)
-    {
-        return setGC(loc, null, f);
-    }
-
     /**************************************
      * The function is doing something that may throw an exception, register that in case nothrow is being inferred
      *

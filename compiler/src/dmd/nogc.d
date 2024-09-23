@@ -21,6 +21,7 @@ import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dtemplate : isDsymbol;
+import dmd.dsymbol : PASS;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
@@ -29,6 +30,9 @@ import dmd.init;
 import dmd.location;
 import dmd.mtype;
 import dmd.postordervisitor;
+import dmd.rootobject : RootObject, DYNCAST;
+import dmd.semantic2;
+import dmd.semantic3;
 import dmd.tokens;
 import dmd.visitor;
 
@@ -258,7 +262,6 @@ private FuncDeclaration stripHookTraceImpl(FuncDeclaration fd)
 {
     import dmd.id : Id;
     import dmd.dsymbol : Dsymbol;
-    import dmd.rootobject : RootObject, DYNCAST;
 
     if (fd.ident != Id._d_HookTraceImpl)
         return fd;
@@ -269,4 +272,69 @@ private FuncDeclaration stripHookTraceImpl(FuncDeclaration fd)
     Dsymbol s = hook.isDsymbol();
     assert(s, "Expected _d_HookTraceImpl's second template parameter to be an alias to the hook!");
     return s.isFuncDeclaration;
+}
+
+/**************************************
+ * The function is doing something that may allocate with the GC,
+ * so mark it as not nogc (not no-how).
+ *
+ * Params:
+ *     fd = function
+ *     loc = location of GC action
+ *     fmt = format string for error message. Must include "%s `%s`" for the function kind and name.
+ *     arg0 = (optional) argument to format string
+ *
+ * Returns:
+ *      true if function is marked as @nogc, meaning a user error occurred
+ */
+extern (D) bool setGC(FuncDeclaration fd, Loc loc, const(char)* fmt, RootObject arg0 = null)
+{
+    //printf("setGC() %s\n", toChars());
+    if (fd.nogcInprocess && fd.semanticRun < PASS.semantic3 && fd._scope)
+    {
+        fd.semantic2(fd._scope);
+        fd.semantic3(fd._scope);
+    }
+
+    if (fd.nogcInprocess)
+    {
+        fd.nogcInprocess = false;
+        if (fmt)
+            fd.nogcViolation = new AttributeViolation(loc, fmt, fd, arg0); // action that requires GC
+        else if (arg0)
+            fd.nogcViolation = new AttributeViolation(loc, fmt, arg0); // call to non-@nogc function
+
+        fd.type.toTypeFunction().isNogc = false;
+        if (fd.fes)
+            fd.fes.func.setGC(Loc.init, null, null);
+    }
+    else if (fd.isNogc())
+        return true;
+    return false;
+}
+
+/**************************************
+ * The function calls non-`@nogc` function f, mark it as not nogc.
+ * Params:
+ *     fd = function doin the call
+ *     f = function being called
+ * Returns:
+ *      true if function is marked as @nogc, meaning a user error occurred
+ */
+extern (D) bool setGCCall(FuncDeclaration fd, FuncDeclaration f)
+{
+    return fd.setGC(fd.loc, null, f);
+}
+
+ bool isNogc(FuncDeclaration fd)
+{
+    //printf("isNogc() %s, inprocess: %d\n", toChars(), !!(flags & FUNCFLAG.nogcInprocess));
+    if (fd.nogcInprocess)
+        fd.setGC(fd.loc, null);
+    return fd.type.toTypeFunction().isNogc;
+}
+
+extern (D) bool isNogcBypassingInference(FuncDeclaration fd)
+{
+    return !fd.nogcInprocess && fd.isNogc();
 }

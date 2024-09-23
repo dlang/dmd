@@ -63,6 +63,7 @@ import dmd.location;
 import dmd.mtype;
 import dmd.mustuse;
 import dmd.nspace;
+import dmd.nogc;
 import dmd.objc;
 import dmd.opover;
 import dmd.optimize;

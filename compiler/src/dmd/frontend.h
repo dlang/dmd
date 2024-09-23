@@ -3790,7 +3790,6 @@ public:
     bool isAbstract() final override;
     bool isSafe();
     bool isTrusted();
-    bool isNogc();
     virtual bool isNested() const;
     AggregateDeclaration* isThis() override;
     bool needThis() final override;
