@@ -646,25 +646,21 @@ TupleDeclaration isAliasThisTuple(Expression e)
     Type t = e.type.toBasetype();
     while (true)
     {
-        if (Dsymbol s = t.toDsymbol(null))
+        Dsymbol s = t.toDsymbol(null);
+        if (!s)
+            return null;
+        auto ad = s.isAggregateDeclaration();
+        if (!ad)
+            return null;
+        s = ad.aliasthis ? ad.aliasthis.sym : null;
+        if (s && s.isVarDeclaration())
         {
-            if (auto ad = s.isAggregateDeclaration())
-            {
-                s = ad.aliasthis ? ad.aliasthis.sym : null;
-                if (s && s.isVarDeclaration())
-                {
-                    TupleDeclaration td = s.isVarDeclaration().toAlias().isTupleDeclaration();
-                    if (td && td.isexp)
-                        return td;
-                }
-                if (Type att = t.aliasthisOf())
-                {
-                    t = att;
-                    continue;
-                }
-            }
+            TupleDeclaration td = s.isVarDeclaration().toAlias().isTupleDeclaration();
+            if (td && td.isexp)
+                return td;
         }
-        return null;
+        if (Type att = t.aliasthisOf())
+            t = att;
     }
 }
 
@@ -859,40 +855,40 @@ extern (D) Expression doCopyOrMove(Scope *sc, Expression e, Type t = null)
  */
 private Expression callCpCtor(Scope* sc, Expression e, Type destinationType)
 {
-    if (auto ts = e.type.baseElemOf().isTypeStruct())
+    auto ts = e.type.baseElemOf().isTypeStruct();
+
+    if (!ts)
+        return e;
+    StructDeclaration sd = ts.sym;
+    if (!sd.postblit && !sd.hasCopyCtor)
+        return e;
+
+    /* Create a variable tmp, and replace the argument e with:
+     *      (tmp = e),tmp
+     * and let AssignExp() handle the construction.
+     * This is not the most efficient, ideally tmp would be constructed
+     * directly onto the stack.
+     */
+    auto tmp = copyToTemp(STC.rvalue, "__copytmp", e);
+    if (sd.hasCopyCtor && destinationType)
     {
-        StructDeclaration sd = ts.sym;
-        if (sd.postblit || sd.hasCopyCtor)
-        {
-            /* Create a variable tmp, and replace the argument e with:
-             *      (tmp = e),tmp
-             * and let AssignExp() handle the construction.
-             * This is not the most efficient, ideally tmp would be constructed
-             * directly onto the stack.
-             */
-            auto tmp = copyToTemp(STC.rvalue, "__copytmp", e);
-            if (sd.hasCopyCtor && destinationType)
-            {
-                // https://issues.dlang.org/show_bug.cgi?id=22619
-                // If the destination type is inout we can preserve it
-                // only if inside an inout function; if we are not inside
-                // an inout function, then we will preserve the type of
-                // the source
-                if (destinationType.hasWild && !(sc.func.storage_class & STC.wild))
-                    tmp.type = e.type;
-                else
-                    tmp.type = destinationType;
-            }
-            tmp.storage_class |= STC.nodtor;
-            tmp.dsymbolSemantic(sc);
-            Expression de = new DeclarationExp(e.loc, tmp);
-            Expression ve = new VarExp(e.loc, tmp);
-            de.type = Type.tvoid;
-            ve.type = e.type;
-            return Expression.combine(de, ve);
-        }
+        // https://issues.dlang.org/show_bug.cgi?id=22619
+        // If the destination type is inout we can preserve it
+        // only if inside an inout function; if we are not inside
+        // an inout function, then we will preserve the type of
+        // the source
+        if (destinationType.hasWild && !(sc.func.storage_class & STC.wild))
+            tmp.type = e.type;
+        else
+            tmp.type = destinationType;
     }
-    return e;
+    tmp.storage_class |= STC.nodtor;
+    tmp.dsymbolSemantic(sc);
+    Expression de = new DeclarationExp(e.loc, tmp);
+    Expression ve = new VarExp(e.loc, tmp);
+    de.type = Type.tvoid;
+    ve.type = e.type;
+    return Expression.combine(de, ve);
 }
 
 /************************************************
@@ -1105,41 +1101,41 @@ private void hookDtors(CondExp ce, Scope* sc)
         override void visit(DeclarationExp e)
         {
             auto v = e.declaration.isVarDeclaration();
-            if (v && !v.isDataseg())
+            if (!v || v.isDataseg())
+                return;
+
+            if (v._init)
             {
-                if (v._init)
-                {
-                    if (auto ei = v._init.isExpInitializer())
-                        walkPostorder(ei.exp, this);
-                }
-
-                if (v.edtor)
-                    walkPostorder(v.edtor, this);
-
-                if (v.needsScopeDtor())
-                {
-                    if (!vcond)
-                    {
-                        vcond = copyToTemp(STC.volatile_ | STC.const_, "__cond", ce.econd);
-                        vcond.dsymbolSemantic(sc);
-
-                        Expression de = new DeclarationExp(ce.econd.loc, vcond);
-                        de = de.expressionSemantic(sc);
-
-                        Expression ve = new VarExp(ce.econd.loc, vcond);
-                        ce.econd = Expression.combine(de, ve);
-                    }
-
-                    //printf("\t++v = %s, v.edtor = %s\n", v.toChars(), v.edtor.toChars());
-                    Expression ve = new VarExp(vcond.loc, vcond);
-                    if (isThen)
-                        v.edtor = new LogicalExp(v.edtor.loc, EXP.andAnd, ve, v.edtor);
-                    else
-                        v.edtor = new LogicalExp(v.edtor.loc, EXP.orOr, ve, v.edtor);
-                    v.edtor = v.edtor.expressionSemantic(sc);
-                    //printf("\t--v = %s, v.edtor = %s\n", v.toChars(), v.edtor.toChars());
-                }
+                if (auto ei = v._init.isExpInitializer())
+                    walkPostorder(ei.exp, this);
             }
+
+            if (v.edtor)
+                walkPostorder(v.edtor, this);
+
+            if (!v.needsScopeDtor())
+                return;
+
+            if (!vcond)
+            {
+                vcond = copyToTemp(STC.volatile_ | STC.const_, "__cond", ce.econd);
+                vcond.dsymbolSemantic(sc);
+
+                Expression de = new DeclarationExp(ce.econd.loc, vcond);
+                de = de.expressionSemantic(sc);
+
+                Expression ve = new VarExp(ce.econd.loc, vcond);
+                ce.econd = Expression.combine(de, ve);
+            }
+
+            //printf("\t++v = %s, v.edtor = %s\n", v.toChars(), v.edtor.toChars());
+            Expression ve = new VarExp(vcond.loc, vcond);
+            if (isThen)
+                v.edtor = new LogicalExp(v.edtor.loc, EXP.andAnd, ve, v.edtor);
+            else
+                v.edtor = new LogicalExp(v.edtor.loc, EXP.orOr, ve, v.edtor);
+            v.edtor = v.edtor.expressionSemantic(sc);
+            //printf("\t--v = %s, v.edtor = %s\n", v.toChars(), v.edtor.toChars());
         }
     }
 
@@ -2260,31 +2256,32 @@ private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
     if (f.ident == Id._d_newitemT || f.ident == Id._d_newarrayT || f.ident == Id._d_newarraymTX)
         return false;
 
-    if (!f.isNogc())
+    if (f.isNogc())
+        return false;
+
+    if (isRootTraitsCompilesScope(sc) ? sc.func.isNogcBypassingInference() : sc.func.setGCCall(f))
     {
-        if (isRootTraitsCompilesScope(sc) ? sc.func.isNogcBypassingInference() : sc.func.setGCCall(f))
+        if (loc.linnum == 0) // e.g. implicitly generated dtor
+            loc = sc.func.loc;
+
+        // Lowered non-@nogc'd hooks will print their own error message inside of nogc.d (NOGCVisitor.visit(CallExp e)),
+        // so don't print anything to avoid double error messages.
+        if (!(f.ident == Id._d_HookTraceImpl || f.ident == Id._d_arraysetlengthT
+            || f.ident == Id._d_arrayappendT || f.ident == Id._d_arrayappendcTX
+            || f.ident == Id._d_arraycatnTX || f.ident == Id._d_newclassT))
         {
-            if (loc.linnum == 0) // e.g. implicitly generated dtor
-                loc = sc.func.loc;
+            error(loc, "`@nogc` %s `%s` cannot call non-@nogc %s `%s`",
+                sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
 
-            // Lowered non-@nogc'd hooks will print their own error message inside of nogc.d (NOGCVisitor.visit(CallExp e)),
-            // so don't print anything to avoid double error messages.
-            if (!(f.ident == Id._d_HookTraceImpl || f.ident == Id._d_arraysetlengthT
-                || f.ident == Id._d_arrayappendT || f.ident == Id._d_arrayappendcTX
-                || f.ident == Id._d_arraycatnTX || f.ident == Id._d_newclassT))
-            {
-                error(loc, "`@nogc` %s `%s` cannot call non-@nogc %s `%s`",
-                    sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
-
-                if (!f.isDtorDeclaration)
-                    f.errorSupplementalInferredAttr(/*max depth*/ 10, /*deprecation*/ false, STC.nogc);
-            }
-
-            f.checkOverriddenDtor(sc, loc, dd => dd.type.toTypeFunction().isNogc, "non-@nogc");
-
-            return true;
+            if (!f.isDtorDeclaration)
+                f.errorSupplementalInferredAttr(/*max depth*/ 10, /*deprecation*/ false, STC.nogc);
         }
+
+        f.checkOverriddenDtor(sc, loc, dd => dd.type.toTypeFunction().isNogc, "non-@nogc");
+
+        return true;
     }
+
     return false;
 }
 
@@ -2294,30 +2291,31 @@ private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
  */
 private bool checkPostblit(Type t, ref Loc loc, Scope* sc)
 {
-    if (auto ts = t.baseElemOf().isTypeStruct())
+    auto ts = t.baseElemOf().isTypeStruct();
+    if (!ts)
+        return false;
+
+    if (global.params.useTypeInfo && Type.dtypeinfo)
     {
-        if (global.params.useTypeInfo && Type.dtypeinfo)
-        {
-            // https://issues.dlang.org/show_bug.cgi?id=11395
-            // Require TypeInfo generation for array concatenation
-            semanticTypeInfo(sc, t);
-        }
-
-        StructDeclaration sd = ts.sym;
-        if (sd.postblit)
-        {
-            if (sd.postblit.checkDisabled(loc, sc))
-                return true;
-
-            //checkDeprecated(sc, sd.postblit);        // necessary?
-            sd.postblit.checkPurity(loc, sc);
-            sd.postblit.checkSafety(loc, sc);
-            sd.postblit.checkNogc(loc, sc);
-            //checkAccess(sd, loc, sc, sd.postblit);   // necessary?
-            return false;
-        }
+        // https://issues.dlang.org/show_bug.cgi?id=11395
+        // Require TypeInfo generation for array concatenation
+        semanticTypeInfo(sc, t);
     }
+
+    StructDeclaration sd = ts.sym;
+    if (!sd.postblit)
+        return false;
+
+    if (sd.postblit.checkDisabled(loc, sc))
+        return true;
+
+    //checkDeprecated(sc, sd.postblit);        // necessary?
+    sd.postblit.checkPurity(loc, sc);
+    sd.postblit.checkSafety(loc, sc);
+    sd.postblit.checkNogc(loc, sc);
+    //checkAccess(sd, loc, sc, sd.postblit);   // necessary?
     return false;
+
 }
 
 /***************************************
@@ -2813,48 +2811,49 @@ private Expression rewriteOpAssign(BinExp exp)
 private bool preFunctionParameters(Scope* sc, ArgumentList argumentList, const bool reportErrors = true)
 {
     Expressions* exps = argumentList.arguments;
+    if (!exps)
+        return false;
+
+    expandTuples(exps, argumentList.names);
+
     bool err = false;
-    if (exps)
+    for (size_t i = 0; i < exps.length; i++)
     {
-        expandTuples(exps, argumentList.names);
-
-        for (size_t i = 0; i < exps.length; i++)
+        Expression arg = (*exps)[i];
+        arg = resolveProperties(sc, arg);
+        arg = arg.arrayFuncConv(sc);
+        if (arg.op == EXP.type)
         {
-            Expression arg = (*exps)[i];
-            arg = resolveProperties(sc, arg);
-            arg = arg.arrayFuncConv(sc);
-            if (arg.op == EXP.type)
-            {
-                // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
-                arg = resolveAliasThis(sc, arg);
+            // for static alias this: https://issues.dlang.org/show_bug.cgi?id=17684
+            arg = resolveAliasThis(sc, arg);
 
-                if (arg.op == EXP.type)
-                {
-                    if (reportErrors)
-                    {
-                        error(arg.loc, "cannot pass type `%s` as a function argument", arg.toChars());
-                        arg = ErrorExp.get();
-                    }
-                    err = true;
-                }
-            }
-            else if (arg.type.toBasetype().ty == Tfunction)
+            if (arg.op == EXP.type)
             {
                 if (reportErrors)
                 {
-                    error(arg.loc, "cannot pass function `%s` as a function argument", arg.toChars());
+                    error(arg.loc, "cannot pass type `%s` as a function argument", arg.toChars());
                     arg = ErrorExp.get();
                 }
                 err = true;
             }
-            else if (checkNonAssignmentArrayOp(arg))
-            {
-                arg = ErrorExp.get();
-                err = true;
-            }
-            (*exps)[i] = arg;
         }
+        else if (arg.type.toBasetype().ty == Tfunction)
+        {
+            if (reportErrors)
+            {
+                error(arg.loc, "cannot pass function `%s` as a function argument", arg.toChars());
+                arg = ErrorExp.get();
+            }
+            err = true;
+        }
+        else if (checkNonAssignmentArrayOp(arg))
+        {
+            arg = ErrorExp.get();
+            err = true;
+        }
+        (*exps)[i] = arg;
     }
+
     return err;
 }
 
@@ -2979,143 +2978,144 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
     {
         Expression arg = (i < nargs) ? (*arguments)[i] : null;
 
-        if (i < nparams)
+        if (i >= nparams)
+            break;
+
+        bool errorArgs()
         {
-            bool errorArgs()
+            error(loc, "expected %llu function arguments, not %llu", cast(ulong)nparams, cast(ulong)nargs);
+            return true;
+        }
+
+        Parameter p = tf.parameterList[i];
+
+        if (!arg)
+        {
+            if (!p.defaultArg)
             {
-                error(loc, "expected %llu function arguments, not %llu", cast(ulong)nparams, cast(ulong)nargs);
-                return true;
+                if (tf.parameterList.varargs == VarArg.typesafe && i + 1 == nparams)
+                    goto L2;
+                return errorArgs();
             }
-
-            Parameter p = tf.parameterList[i];
-
-            if (!arg)
+            arg = p.defaultArg;
+            if (!arg.type)
+                arg = arg.expressionSemantic(sc);
+            arg = inlineCopy(arg, sc);
+            // __FILE__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__
+            arg = arg.resolveLoc(loc, sc);
+            if (i >= nargs)
             {
-                if (!p.defaultArg)
-                {
-                    if (tf.parameterList.varargs == VarArg.typesafe && i + 1 == nparams)
-                        goto L2;
-                    return errorArgs();
-                }
-                arg = p.defaultArg;
-                if (!arg.type)
-                    arg = arg.expressionSemantic(sc);
-                arg = inlineCopy(arg, sc);
-                // __FILE__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__
-                arg = arg.resolveLoc(loc, sc);
-                if (i >= nargs)
-                {
-                    arguments.push(arg);
-                    nargs++;
-                }
-                else
-                    (*arguments)[i] = arg;
+                arguments.push(arg);
+                nargs++;
             }
             else
+                (*arguments)[i] = arg;
+        }
+        else
+        {
+            if (arg.isDefaultInitExp())
             {
-                if (arg.isDefaultInitExp())
+                arg = arg.resolveLoc(loc, sc);
+                (*arguments)[i] = arg;
+            }
+        }
+
+
+        if (tf.parameterList.varargs == VarArg.typesafe && i + 1 == nparams) // https://dlang.org/spec/function.html#variadic
+        {
+            //printf("\t\tvarargs == 2, p.type = '%s'\n", p.type.toChars());
+            {
+                MATCH m;
+                if ((m = arg.implicitConvTo(p.type)) > MATCH.nomatch)
                 {
-                    arg = arg.resolveLoc(loc, sc);
-                    (*arguments)[i] = arg;
+                    if (p.type.nextOf() && arg.implicitConvTo(p.type.nextOf()) >= m)
+                        goto L2;
+                    else if (nargs != nparams)
+                        return errorArgs();
+                    goto L1;
                 }
             }
-
-
-            if (tf.parameterList.varargs == VarArg.typesafe && i + 1 == nparams) // https://dlang.org/spec/function.html#variadic
+        L2:
+            Type tb = p.type.toBasetype();
+            switch (tb.ty)
             {
-                //printf("\t\tvarargs == 2, p.type = '%s'\n", p.type.toChars());
+            case Tsarray:
+            case Tarray:
                 {
-                    MATCH m;
-                    if ((m = arg.implicitConvTo(p.type)) > MATCH.nomatch)
-                    {
-                        if (p.type.nextOf() && arg.implicitConvTo(p.type.nextOf()) >= m)
-                            goto L2;
-                        else if (nargs != nparams)
-                            return errorArgs();
-                        goto L1;
-                    }
-                }
-            L2:
-                Type tb = p.type.toBasetype();
-                switch (tb.ty)
-                {
-                case Tsarray:
-                case Tarray:
-                    {
-                        /* Create a static array variable v of type arg.type:
-                         *  T[dim] __arrayArg = [ arguments[i], ..., arguments[nargs-1] ];
-                         *
-                         * The array literal in the initializer of the hidden variable
-                         * is now optimized.
-                         * https://issues.dlang.org/show_bug.cgi?id=2356
-                         */
-                        Type tbn = (cast(TypeArray)tb).next;    // array element type
-                        Type tret = p.isLazyArray();
+                    /* Create a static array variable v of type arg.type:
+                     *  T[dim] __arrayArg = [ arguments[i], ..., arguments[nargs-1] ];
+                     *
+                     * The array literal in the initializer of the hidden variable
+                     * is now optimized.
+                     * https://issues.dlang.org/show_bug.cgi?id=2356
+                     */
+                    Type tbn = (cast(TypeArray)tb).next;    // array element type
+                    Type tret = p.isLazyArray();
 
-                        auto elements = new Expressions(nargs - i);
-                        foreach (u; 0 .. elements.length)
-                        {
-                            Expression a = (*arguments)[i + u];
-                            assert(a);
-                            if (tret && a.implicitConvTo(tret))
-                            {
-                                // p is a lazy array of delegates, tret is return type of the delegates
-                                a = a.implicitCastTo(sc, tret)
-                                     .optimize(WANTvalue)
-                                     .toDelegate(tret, sc);
-                            }
-                            else
-                                a = a.implicitCastTo(sc, tbn);
-                            a = a.addDtorHook(sc);
-                            (*elements)[u] = a;
-                        }
-                        // https://issues.dlang.org/show_bug.cgi?id=14395
-                        // Convert to a static array literal, or its slice.
-                        arg = new ArrayLiteralExp(loc, tbn.sarrayOf(nargs - i), elements);
-                        if (tb.ty == Tarray)
-                        {
-                            arg = new SliceExp(loc, arg, null, null);
-                            arg.type = p.type;
-                        }
-                        break;
-                    }
-                case Tclass:
+                    auto elements = new Expressions(nargs - i);
+                    foreach (u; 0 .. elements.length)
                     {
-                        /* Set arg to be:
-                         *      new Tclass(arg0, arg1, ..., argn)
-                         */
-                        auto args = new Expressions(nargs - i);
-                        foreach (u; i .. nargs)
-                            (*args)[u - i] = (*arguments)[u];
-                        arg = new NewExp(loc, null, p.type, args);
-                        break;
+                        Expression a = (*arguments)[i + u];
+                        assert(a);
+                        if (tret && a.implicitConvTo(tret))
+                        {
+                            // p is a lazy array of delegates, tret is return type of the delegates
+                            a = a.implicitCastTo(sc, tret)
+                                 .optimize(WANTvalue)
+                                 .toDelegate(tret, sc);
+                        }
+                        else
+                            a = a.implicitCastTo(sc, tbn);
+                        a = a.addDtorHook(sc);
+                        (*elements)[u] = a;
                     }
-                default:
-                    if (!arg)
+                    // https://issues.dlang.org/show_bug.cgi?id=14395
+                    // Convert to a static array literal, or its slice.
+                    arg = new ArrayLiteralExp(loc, tbn.sarrayOf(nargs - i), elements);
+                    if (tb.ty == Tarray)
                     {
-                        error(loc, "not enough arguments");
-                        return true;
+                        arg = new SliceExp(loc, arg, null, null);
+                        arg.type = p.type;
                     }
                     break;
                 }
-                arg = arg.expressionSemantic(sc);
-                //printf("\targ = '%s'\n", arg.toChars());
-                arguments.setDim(i + 1);
-                (*arguments)[i] = arg;
-                nargs = i + 1;
-                done = true;
-            }
-
-        L1:
-            if (!(p.isLazy() && p.type.ty == Tvoid))
-            {
-                if (ubyte wm = arg.type.deduceWild(p.type, p.isReference()))
+            case Tclass:
                 {
-                    wildmatch = wildmatch ? MODmerge(wildmatch, wm) : wm;
-                    //printf("[%d] p = %s, a = %s, wm = %d, wildmatch = %d\n", i, p.type.toChars(), arg.type.toChars(), wm, wildmatch);
+                    /* Set arg to be:
+                     *      new Tclass(arg0, arg1, ..., argn)
+                     */
+                    auto args = new Expressions(nargs - i);
+                    foreach (u; i .. nargs)
+                        (*args)[u - i] = (*arguments)[u];
+                    arg = new NewExp(loc, null, p.type, args);
+                    break;
                 }
+            default:
+                if (!arg)
+                {
+                    error(loc, "not enough arguments");
+                    return true;
+                }
+                break;
+            }
+            arg = arg.expressionSemantic(sc);
+            //printf("\targ = '%s'\n", arg.toChars());
+            arguments.setDim(i + 1);
+            (*arguments)[i] = arg;
+            nargs = i + 1;
+            done = true;
+        }
+
+    L1:
+        if (!(p.isLazy() && p.type.ty == Tvoid))
+        {
+            if (ubyte wm = arg.type.deduceWild(p.type, p.isReference()))
+            {
+                wildmatch = wildmatch ? MODmerge(wildmatch, wm) : wm;
+                //printf("[%d] p = %s, a = %s, wm = %d, wildmatch = %d\n", i, p.type.toChars(), arg.type.toChars(), wm, wildmatch);
             }
         }
+
         if (done)
             break;
     }
@@ -5603,48 +5603,48 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     private void genIdent(FuncExp exp, Scope* sc)
     {
-        if (exp.fd.ident == Id.empty)
-        {
-            const(char)[] s;
-            if (exp.fd.fes)
-                s = "__foreachbody";
-            else if (exp.fd.tok == TOK.reserved)
-                s = "__lambda";
-            else if (exp.fd.tok == TOK.delegate_)
-                s = "__dgliteral";
-            else
-                s = "__funcliteral";
+        if (exp.fd.ident != Id.empty)
+            return;
 
-            DsymbolTable symtab;
-            if (FuncDeclaration func = sc.parent.isFuncDeclaration())
+        const(char)[] s;
+        if (exp.fd.fes)
+            s = "__foreachbody";
+        else if (exp.fd.tok == TOK.reserved)
+            s = "__lambda";
+        else if (exp.fd.tok == TOK.delegate_)
+            s = "__dgliteral";
+        else
+            s = "__funcliteral";
+
+        DsymbolTable symtab;
+        if (FuncDeclaration func = sc.parent.isFuncDeclaration())
+        {
+            if (func.localsymtab is null)
             {
-                if (func.localsymtab is null)
-                {
-                    // Inside template constraint, symtab is not set yet.
-                    // Initialize it lazily.
-                    func.localsymtab = new DsymbolTable();
-                }
-                symtab = func.localsymtab;
+                // Inside template constraint, symtab is not set yet.
+                // Initialize it lazily.
+                func.localsymtab = new DsymbolTable();
             }
-            else
-            {
-                ScopeDsymbol sds = sc.parent.isScopeDsymbol();
-                if (!sds.symtab)
-                {
-                    // Inside template constraint, symtab may not be set yet.
-                    // Initialize it lazily.
-                    assert(sds.isTemplateInstance());
-                    sds.symtab = new DsymbolTable();
-                }
-                symtab = sds.symtab;
-            }
-            assert(symtab);
-            Identifier id = Identifier.generateId(s, symtab.length() + 1);
-            exp.fd.ident = id;
-            if (exp.td)
-                exp.td.ident = id;
-            symtab.insert(exp.td ? cast(Dsymbol)exp.td : cast(Dsymbol)exp.fd);
+            symtab = func.localsymtab;
         }
+        else
+        {
+            ScopeDsymbol sds = sc.parent.isScopeDsymbol();
+            if (!sds.symtab)
+            {
+                // Inside template constraint, symtab may not be set yet.
+                // Initialize it lazily.
+                assert(sds.isTemplateInstance());
+                sds.symtab = new DsymbolTable();
+            }
+            symtab = sds.symtab;
+        }
+        assert(symtab);
+        Identifier id = Identifier.generateId(s, symtab.length() + 1);
+        exp.fd.ident = id;
+        if (exp.td)
+            exp.td.ident = id;
+        symtab.insert(exp.td ? cast(Dsymbol)exp.td : cast(Dsymbol)exp.fd);
     }
 
     override void visit(FuncExp exp)
@@ -5781,70 +5781,69 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
      */
     Expression callExpSemantic(FuncExp exp, Scope* sc, Expressions* arguments)
     {
-        if ((!exp.type || exp.type == Type.tvoid) && exp.td && arguments && arguments.length)
+        if ((exp.type && exp.type != Type.tvoid) || !exp.td ||! arguments || !arguments.length)
+            return exp.expressionSemantic(sc);
+
+        for (size_t k = 0; k < arguments.length; k++)
         {
-            for (size_t k = 0; k < arguments.length; k++)
+            Expression checkarg = (*arguments)[k];
+            if (checkarg.op == EXP.error)
+                return checkarg;
+        }
+
+        genIdent(exp, sc);
+
+        assert(exp.td.parameters && exp.td.parameters.length);
+        exp.td.dsymbolSemantic(sc);
+
+        TypeFunction tfl = cast(TypeFunction)exp.fd.type;
+        size_t dim = tfl.parameterList.length;
+        if (arguments.length < dim)
+        {
+            // Default arguments are always typed, so they don't need inference.
+            Parameter p = tfl.parameterList[arguments.length];
+            if (p.defaultArg)
+                dim = arguments.length;
+        }
+
+        if ((tfl.parameterList.varargs == VarArg.none && arguments.length > dim) ||
+            arguments.length < dim)
+        {
+            OutBuffer buf;
+            foreach (idx, ref arg; *arguments)
+                buf.printf("%s%s", (idx ? ", ".ptr : "".ptr), arg.type.toChars());
+            error(exp.loc, "function literal `%s%s` is not callable using argument types `(%s)`",
+                      exp.fd.toChars(), parametersTypeToChars(tfl.parameterList),
+                      buf.peekChars());
+            errorSupplemental(exp.loc, "too %s arguments, expected %d, got %d",
+                                  arguments.length < dim ? "few".ptr : "many".ptr,
+                                  cast(int)dim, cast(int)arguments.length);
+            return ErrorExp.get();
+        }
+
+        auto tiargs = new Objects();
+        tiargs.reserve(exp.td.parameters.length);
+
+        for (size_t i = 0; i < exp.td.parameters.length; i++)
+        {
+            TemplateParameter tp = (*exp.td.parameters)[i];
+            assert(dim <= tfl.parameterList.length);
+            foreach (u, p; tfl.parameterList)
             {
-                Expression checkarg = (*arguments)[k];
-                if (checkarg.op == EXP.error)
-                    return checkarg;
-            }
+                if (u == dim)
+                    break;
 
-            genIdent(exp, sc);
-
-            assert(exp.td.parameters && exp.td.parameters.length);
-            exp.td.dsymbolSemantic(sc);
-
-            TypeFunction tfl = cast(TypeFunction)exp.fd.type;
-            size_t dim = tfl.parameterList.length;
-            if (arguments.length < dim)
-            {
-                // Default arguments are always typed, so they don't need inference.
-                Parameter p = tfl.parameterList[arguments.length];
-                if (p.defaultArg)
-                    dim = arguments.length;
-            }
-
-            if ((tfl.parameterList.varargs == VarArg.none && arguments.length > dim) ||
-                arguments.length < dim)
-            {
-                OutBuffer buf;
-                foreach (idx, ref arg; *arguments)
-                    buf.printf("%s%s", (idx ? ", ".ptr : "".ptr), arg.type.toChars());
-                error(exp.loc, "function literal `%s%s` is not callable using argument types `(%s)`",
-                          exp.fd.toChars(), parametersTypeToChars(tfl.parameterList),
-                          buf.peekChars());
-                errorSupplemental(exp.loc, "too %s arguments, expected %d, got %d",
-                                      arguments.length < dim ? "few".ptr : "many".ptr,
-                                      cast(int)dim, cast(int)arguments.length);
-                return ErrorExp.get();
-            }
-
-            auto tiargs = new Objects();
-            tiargs.reserve(exp.td.parameters.length);
-
-            for (size_t i = 0; i < exp.td.parameters.length; i++)
-            {
-                TemplateParameter tp = (*exp.td.parameters)[i];
-                assert(dim <= tfl.parameterList.length);
-                foreach (u, p; tfl.parameterList)
+                if (p.type.ty == Tident && (cast(TypeIdentifier)p.type).ident == tp.ident)
                 {
-                    if (u == dim)
-                        break;
-
-                    if (p.type.ty == Tident && (cast(TypeIdentifier)p.type).ident == tp.ident)
-                    {
-                        Expression e = (*arguments)[u];
-                        tiargs.push(e.type);
-                        break;
-                    }
+                    Expression e = (*arguments)[u];
+                    tiargs.push(e.type);
+                    break;
                 }
             }
-
-            auto ti = new TemplateInstance(exp.loc, exp.td, tiargs);
-            return (new ScopeExp(exp.loc, ti)).expressionSemantic(sc);
         }
-        return exp.expressionSemantic(sc);
+
+        auto ti = new TemplateInstance(exp.loc, exp.td, tiargs);
+        return (new ScopeExp(exp.loc, ti)).expressionSemantic(sc);
     }
 
     override void visit(CallExp exp)
