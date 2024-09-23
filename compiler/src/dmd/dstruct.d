@@ -350,15 +350,13 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 
         // Determine if struct is all zeros or not
         zeroInit = true;
-        auto i = 0;
+        auto lastOffset = -1;
         foreach (vd; fields)
         {
-            // Zero size fields are zero initialized
-            if (vd.type.size(vd.loc) == 0)
+            // only consider first sized member of an (anonymous) union
+            if (vd.overlapped && vd.offset == lastOffset && vd.type.size(vd.loc) != 0)
                 continue;
-            // union init is same as first sized member
-            if (i++ == 1 && isunion)
-                break;
+            lastOffset = vd.offset;
 
             if (vd._init)
             {
@@ -366,6 +364,10 @@ extern (C++) class StructDeclaration : AggregateDeclaration
                     /* Treat as 0 for the purposes of putting the initializer
                      * in the BSS segment, or doing a mass set to 0
                      */
+                    continue;
+
+                // Zero size fields are zero initialized
+                if (vd.type.size(vd.loc) == 0)
                     continue;
 
                 // Examine init to see if it is all 0s.
