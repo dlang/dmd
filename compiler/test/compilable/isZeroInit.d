@@ -86,8 +86,7 @@ struct S6 {
         float f1;
     }
 }
-//FIXME
-//static assert(__traits(isZeroInit, S6));
+static assert(__traits(isZeroInit, S6));
 
 struct S7
 {
