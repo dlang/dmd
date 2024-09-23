@@ -1123,6 +1123,28 @@ Ldone:
     }
 }
 
+/*****************************************
+ * Initialize for inferring the attributes of this function.
+ */
+private void initInferAttributes(FuncDeclaration fd)
+{
+    //printf("initInferAttributes() for %s (%s)\n", toPrettyChars(), ident.toChars());
+    TypeFunction tf = fd.type.toTypeFunction();
+    if (tf.purity == PURE.impure) // purity not specified
+        fd.purityInprocess = true;
+
+    if (tf.trust == TRUST.default_)
+        fd.safetyInprocess = true;
+
+    if (!tf.isNothrow)
+        fd.nothrowInprocess = true;
+
+    if (!tf.isNogc)
+        fd.nogcInprocess = true;
+
+    // Initialize for inferring STC.scope_
+    fd.scopeInprocess = true;
+}
 
 /****************************************************
  * Resolve forward reference of function signature -

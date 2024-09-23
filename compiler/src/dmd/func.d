@@ -697,29 +697,6 @@ extern (C++) class FuncDeclaration : Declaration
         return false;
     }
 
-    /*****************************************
-     * Initialize for inferring the attributes of this function.
-     */
-    final void initInferAttributes()
-    {
-        //printf("initInferAttributes() for %s (%s)\n", toPrettyChars(), ident.toChars());
-        TypeFunction tf = type.toTypeFunction();
-        if (tf.purity == PURE.impure) // purity not specified
-            purityInprocess = true;
-
-        if (tf.trust == TRUST.default_)
-            safetyInprocess = true;
-
-        if (!tf.isNothrow)
-            nothrowInprocess = true;
-
-        if (!tf.isNogc)
-            nogcInprocess = true;
-
-        // Initialize for inferring STC.scope_
-        scopeInprocess = true;
-    }
-
     extern (D) final uint saveFlags()
     {
         return bitFields;
