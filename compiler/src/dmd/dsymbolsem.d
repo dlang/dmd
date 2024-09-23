@@ -67,6 +67,7 @@ import dmd.root.filename;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.rootobject;
+import dmd.safe;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.sideeffect;

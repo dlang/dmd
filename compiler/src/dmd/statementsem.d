@@ -57,6 +57,7 @@ import dmd.opover;
 import dmd.parse;
 import dmd.common.outbuffer;
 import dmd.root.string;
+import dmd.safe : isSafe, setUnsafe;
 import dmd.semantic2;
 import dmd.sideeffect;
 import dmd.statement;

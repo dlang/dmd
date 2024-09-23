@@ -46,6 +46,7 @@ import dmd.root.ctfloat;
 import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.utf;
+import dmd.safe : setUnsafe;
 import dmd.tokens;
 import dmd.typesem;
 
