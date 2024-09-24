@@ -3792,6 +3792,7 @@ class CtorDeclaration final : public FuncDeclaration
 {
 public:
     bool isCpCtor;
+    bool isMoveCtor;
     CtorDeclaration* syntaxCopy(Dsymbol* s) override;
     const char* kind() const override;
     const char* toChars() const override;
@@ -7256,12 +7257,16 @@ public:
     bool hasIdentityAssign(bool v);
     bool hasBlitAssign() const;
     bool hasBlitAssign(bool v);
+    bool hasMoveAssign() const;
+    bool hasMoveAssign(bool v);
     bool hasIdentityEquals() const;
     bool hasIdentityEquals(bool v);
     bool hasNoFields() const;
     bool hasNoFields(bool v);
     bool hasCopyCtor() const;
     bool hasCopyCtor(bool v);
+    bool hasMoveCtor() const;
+    bool hasMoveCtor(bool v);
     bool hasPointerField() const;
     bool hasPointerField(bool v);
     bool hasVoidInitPointers() const;
@@ -8576,6 +8581,7 @@ struct Id final
     static Identifier* This;
     static Identifier* _super;
     static Identifier* ctor;
+    static Identifier* moveCtor;
     static Identifier* dtor;
     static Identifier* cppdtor;
     static Identifier* ticppdtor;
