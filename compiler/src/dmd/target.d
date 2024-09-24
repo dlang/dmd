@@ -424,7 +424,7 @@ extern (C++) struct Target
     {
         // isX86_64 and cpu are initialized in parseCommandLine
         isX86 = !isX86_64;
-	assert(isX86 + isX86_64 + isAArch64 == 1); // there can be only one
+        assert(isX86 + isX86_64 + isAArch64 == 1); // there can be only one
 
         this.params = &params;
 
