@@ -12,10 +12,10 @@
 module dmd.visitor;
 
 import dmd.astcodegen;
-import dmd.parsetimevisitor;
 import dmd.tokens;
-import dmd.transitivevisitor;
 import dmd.rootobject;
+import dmd.visitor.parsetime;
+import dmd.visitor.transitive;
 
 /**
  * Classic Visitor class which implements visit methods for all the AST

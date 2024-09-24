@@ -69,7 +69,6 @@ import dmd.opover;
 import dmd.optimize;
 import dmd.parse;
 import dmd.printast;
-import dmd.postordervisitor;
 import dmd.root.array;
 import dmd.root.ctfloat;
 import dmd.root.filename;
@@ -89,6 +88,7 @@ import dmd.typinf;
 import dmd.utils;
 import dmd.utils : arrayCastBigEndian;
 import dmd.visitor;
+import dmd.visitor.postorder;
 
 enum LOGSEMANTIC = false;
 
