@@ -9,7 +9,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/apply.d
  */
 
-module dmd.postordervisitor;
+module dmd.visitor.postorder;
 
 import dmd.dtemplate;
 import dmd.expression;
