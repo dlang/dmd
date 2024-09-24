@@ -7566,7 +7566,7 @@ override void visit(LinkDeclaration  sc)
      */
     override void visit(ForwardingAttribDeclaration  fad)
     {
-        sc.push(sym);
+        sc.push(fad.sym);
     }
     
  override void visit(StorageClassDeclaration swt)
