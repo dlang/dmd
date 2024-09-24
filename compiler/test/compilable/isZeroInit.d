@@ -103,7 +103,6 @@ union U
     float x = 0;
     float y;
 }
-
 static assert(__traits(isZeroInit, U));
 
 union U2
@@ -111,5 +110,13 @@ union U2
     float x;
     int y;
 }
-
 static assert(!__traits(isZeroInit, U2));
+
+struct S8 {
+    int[0] dummy; // same offset as anon union, but doesn't overlap; should be ignored anyway for zero-init check
+    union {
+        float f; // is the first member of the anon union and must be checked
+        int i;
+    }
+}
+static assert(!__traits(isZeroInit, S8));
