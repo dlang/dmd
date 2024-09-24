@@ -233,8 +233,12 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         auto lastOffset = -1;
         foreach (vd; fields)
         {
+            // First skip zero sized fields
+            if (vd.type.size(vd.loc) == 0)
+                continue;
+
             // only consider first sized member of an (anonymous) union
-            if (vd.overlapped && vd.offset == lastOffset && vd.type.size(vd.loc) != 0)
+            if (vd.overlapped && vd.offset == lastOffset)
                 continue;
             lastOffset = vd.offset;
 
@@ -244,10 +248,6 @@ extern (C++) class StructDeclaration : AggregateDeclaration
                     /* Treat as 0 for the purposes of putting the initializer
                      * in the BSS segment, or doing a mass set to 0
                      */
-                    continue;
-
-                // Zero size fields are zero initialized
-                if (vd.type.size(vd.loc) == 0)
                     continue;
 
                 // Examine init to see if it is all 0s.
