@@ -1,0 +1,11 @@
+Warnings for unused imports
+
+The D frontend now issues warnings for unused imports if the source is compiled with -w or -wi.
+
+```d
+import std.stdio; // source.d(1): Warning: Import `std.stdio` is unused
+
+void main() {}
+```
+
+Imports that are added by default by the compiler are not flagged (i.e. object)
