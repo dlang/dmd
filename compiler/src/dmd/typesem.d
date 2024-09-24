@@ -53,6 +53,7 @@ import dmd.initsem;
 import dmd.location;
 import dmd.visitor;
 import dmd.mtype;
+import dmd.nogc;
 import dmd.objc;
 import dmd.opover;
 import dmd.optimize;
