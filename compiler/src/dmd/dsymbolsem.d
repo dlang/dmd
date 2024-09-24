@@ -1689,6 +1689,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
             sc = sc.push(imp.mod);
             sc.visibility = imp.visibility;
+            if (imp.aliasdecls.length)
+                imp.used = true;
             for (size_t i = 0; i < imp.aliasdecls.length; i++)
             {
                 AliasDeclaration ad = imp.aliasdecls[i];
@@ -6149,6 +6151,7 @@ private extern(C++) class SearchVisitor : Visitor
         //printf(" look in imports\n");
         Dsymbol s = null;
         OverloadSet a = null;
+        Import importedFrom = null;
         // Look in imported modules
         foreach(sym, importer; sds.importedScopes)
         {
@@ -6182,6 +6185,7 @@ private extern(C++) class SearchVisitor : Visitor
             if (!s)
             {
                 s = s2;
+                importedFrom = imp;
                 if (s && s.isOverloadSet())
                     a = sds.mergeOverloadSet(ident, a, s);
             }
@@ -6195,7 +6199,10 @@ private extern(C++) class SearchVisitor : Visitor
                      * the other.
                      */
                     if (s.isDeprecated() || s.visible() < s2.visible() && s2.visible().kind != Visibility.Kind.none)
+                    {
                         s = s2;
+                        importedFrom = imp;
+                    }
                 }
                 else
                 {
@@ -6226,6 +6233,8 @@ private extern(C++) class SearchVisitor : Visitor
                             }
                             if (!symbolIsVisible(sds, s))
                                 s = s2;
+
+                            importedFrom = imp;
                             continue;
                         }
 
@@ -6273,6 +6282,13 @@ private extern(C++) class SearchVisitor : Visitor
                     a = sds.mergeOverloadSet(ident, a, s);
                 s = a;
             }
+            if (importedFrom)
+            {
+                importedFrom.used = true;
+                //if (sc.module_ && sc.module_.isRoot)
+                    //printf("import %s is used\n", importedFrom.toChars());
+            }
+
             //printf("\tfound in imports %s.%s\n", toChars(), s.toChars());
             return setResult(s);
         }
@@ -6936,6 +6952,8 @@ extern(C++) class ImportAllVisitor : Visitor
              (*m.members)[0].isImport() is null))
         {
             auto im = new Import(Loc.initial, null, Id.object, null, 0);
+            // consider it used;
+            im.used = true;
             m.members.shift(im);
         }
         if (!m.symtab)

@@ -612,6 +612,13 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (global.errors)
         removeHdrFilesAndFail(params, modules);
 
+    if (global.params.warnings != DiagnosticReporting.off)
+    {
+        import unused_import : checkUnusedImports;
+        foreach(m; modules)
+            checkUnusedImports(m);
+    }
+
     // Scan for functions to inline
     foreach (m; modules)
     {
