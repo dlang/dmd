@@ -40,11 +40,11 @@ import dmd.location;
 import dmd.mtype;
 import dmd.opover;
 import dmd.printast;
-import dmd.postordervisitor;
 import dmd.statement;
 import dmd.tokens;
 import dmd.typesem : pointerTo, sarrayOf;
 import dmd.visitor;
+import dmd.visitor.postorder;
 import dmd.inlinecost;
 
 /***********************************************************

@@ -3,8 +3,8 @@
 dependency "dmd" path="../../.."
 +/
 
-import dmd.permissivevisitor;
-import dmd.transitivevisitor;
+import dmd.visitor.permissive;
+import dmd.visitor.transitive;
 
 import dmd.tokens;
 import dmd.common.outbuffer;
