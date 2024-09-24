@@ -1670,7 +1670,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                 if (!imp.isstatic)
                 {
-                    scopesym.importScope(imp.mod, imp.visibility);
+                    scopesym.importScope(imp.mod, imp.visibility, imp);
                 }
 
 
@@ -6150,13 +6150,14 @@ private extern(C++) class SearchVisitor : Visitor
         Dsymbol s = null;
         OverloadSet a = null;
         // Look in imported modules
-        for (size_t i = 0; i < sds.importedScopes.length; i++)
+        foreach(sym, importer; sds.importedScopes)
         {
+            auto imp = importer.isImport();
             // If private import, don't search it
-            if ((flags & SearchOpt.ignorePrivateImports) && sds.visibilities[i] == Visibility.Kind.private_)
+            if ((flags & SearchOpt.ignorePrivateImports) && (imp && imp.visibility.kind == Visibility.Kind.private_))
                 continue;
             SearchOptFlags sflags = flags & (SearchOpt.ignoreErrors | SearchOpt.ignoreAmbiguous); // remember these in recursive searches
-            Dsymbol ss = (*sds.importedScopes)[i];
+            Dsymbol ss = sym;
             //printf("\tscanning import '%s', visibilities = %d, isModule = %p, isImport = %p\n", ss.toChars(), visibilities[i], ss.isModule(), ss.isImport());
 
             if (ss.isModule())
@@ -6897,7 +6898,7 @@ extern(C++) class ImportAllVisitor : Visitor
         if (sc.explicitVisibility)
             imp.visibility = sc.visibility;
         if (!imp.isstatic && !imp.aliasId && !imp.names.length)
-            sc.scopesym.importScope(imp.mod, imp.visibility);
+            sc.scopesym.importScope(imp.mod, imp.visibility, imp);
         // Enable access to pkgs/mod as soon as posible, because compiler
         // can traverse them before the import gets semantic (Issue: 21501)
         if (!imp.aliasId && !imp.names.length)

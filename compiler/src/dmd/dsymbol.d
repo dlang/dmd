@@ -1106,9 +1106,10 @@ extern (C++) class ScopeDsymbol : Dsymbol
     Dsymbols* members;          // all Dsymbol's in this scope
     DsymbolTable symtab;        // members[] sorted into table
     uint endlinnum;             // the linnumber of the statement after the scope (0 if unknown)
-    /// symbols whose members have been imported, i.e. imported modules and template mixins
-    Dsymbols* importedScopes;
-    Visibility.Kind* visibilities; // array of Visibility.Kind, one for each import
+    /// Hashtable of imported scopes:
+    // K = imported scopes i.e. the AST node for the imported modules or template mixins
+    // V = the import AST node or null in case of template mixins
+    Dsymbol[Dsymbol] importedScopes;
 
 private:
 
@@ -1186,57 +1187,21 @@ public:
         return os;
     }
 
-    void importScope(Dsymbol s, Visibility visibility) nothrow
+    void importScope(Dsymbol s, Visibility visibility, Import imp = null) nothrow
     {
         //printf("%s.ScopeDsymbol::importScope(%s, %d)\n", toChars(), s.toChars(), visibility);
         // No circular or redundant import's
         if (s != this)
         {
-            if (!importedScopes)
-                importedScopes = new Dsymbols();
-            else
+            if (s in importedScopes)
             {
-                for (size_t i = 0; i < importedScopes.length; i++)
-                {
-                    Dsymbol ss = (*importedScopes)[i];
-                    if (ss == s) // if already imported
-                    {
-                        if (visibility.kind > visibilities[i])
-                            visibilities[i] = visibility.kind; // upgrade access
-                        return;
-                    }
-                }
+                if (imp && visibility.kind > imp.visibility.kind)
+                    importedScopes[s] = imp;
+                return;
             }
-            importedScopes.push(s);
-            visibilities = cast(Visibility.Kind*)mem.xrealloc(visibilities, importedScopes.length * (visibilities[0]).sizeof);
-            visibilities[importedScopes.length - 1] = visibility.kind;
+
+            importedScopes[s] = imp ? imp : s;
         }
-    }
-
-
-    /*****************************************
-     * Returns: the symbols whose members have been imported, i.e. imported modules
-     * and template mixins.
-     *
-     * See_Also: importScope
-     */
-    extern (D) final Dsymbols* getImportedScopes() nothrow @nogc @safe pure
-    {
-        return importedScopes;
-    }
-
-    /*****************************************
-     * Returns: the array of visibilities associated with each imported scope. The
-     * length of the array matches the imported scopes array.
-     *
-     * See_Also: getImportedScopes
-     */
-    extern (D) final Visibility.Kind[] getImportVisibilities() nothrow @nogc @safe pure
-    {
-        if (!importedScopes)
-            return null;
-
-        return (() @trusted => visibilities[0 .. importedScopes.length])();
     }
 
     extern (D) final void addAccessiblePackage(Package p, Visibility visibility) nothrow
@@ -1247,16 +1212,18 @@ public:
         (*pary)[p.tag] = true;
     }
 
-    bool isPackageAccessible(Package p, Visibility visibility, SearchOptFlags flags = SearchOpt.all) nothrow
+    bool isPackageAccessible(Package p, Visibility visibility, SearchOptFlags flags = SearchOpt.all)
     {
         if (p.tag < accessiblePackages.length && accessiblePackages[p.tag] ||
             visibility.kind == Visibility.Kind.private_ && p.tag < privateAccessiblePackages.length && privateAccessiblePackages[p.tag])
             return true;
-        foreach (i, ss; importedScopes ? (*importedScopes)[] : null)
+        foreach (sym, importer; importedScopes)
         {
+            auto imp = importer.isImport();
+
             // only search visible scopes && imported modules should ignore private imports
-            if (visibility.kind <= visibilities[i] &&
-                ss.isScopeDsymbol.isPackageAccessible(p, visibility, SearchOpt.ignorePrivateImports))
+            if ((!imp || visibility.kind <= imp.visibility.kind) &&
+                sym.isScopeDsymbol.isPackageAccessible(p, visibility, SearchOpt.ignorePrivateImports))
                 return true;
         }
         return false;
@@ -1536,11 +1503,11 @@ extern (C++) final class ForwardingScopeDsymbol : ScopeDsymbol
         return forward.symtabLookup(s,id);
     }
 
-    override void importScope(Dsymbol s, Visibility visibility)
+    override void importScope(Dsymbol s, Visibility visibility, Import imp = null)
     {
         auto forward = parent.isScopeDsymbol();
         assert(forward);
-        forward.importScope(s, visibility);
+        forward.importScope(s, visibility, imp);
     }
 
     override const(char)* kind()const{ return "local scope"; }
