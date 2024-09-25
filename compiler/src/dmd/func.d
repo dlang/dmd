@@ -53,7 +53,6 @@ import dmd.root.string;
 import dmd.root.stringtable;
 import dmd.semantic2;
 import dmd.semantic3;
-import dmd.statement_rewrite_walker;
 import dmd.statement;
 import dmd.tokens;
 import dmd.visitor;
