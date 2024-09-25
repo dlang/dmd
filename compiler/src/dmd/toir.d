@@ -53,6 +53,7 @@ import dmd.identifier;
 import dmd.id;
 import dmd.location;
 import dmd.mtype;
+import dmd.semantic3 : checkClosure;
 import dmd.typesem;
 import dmd.target;
 import dmd.tocvdebug;

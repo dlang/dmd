@@ -3788,10 +3788,8 @@ public:
     bool isCodeseg() const final override;
     bool isOverloadable() const final override;
     bool isAbstract() final override;
-    void initInferAttributes();
     bool isSafe();
     bool isTrusted();
-    bool isNogc();
     virtual bool isNested() const;
     AggregateDeclaration* isThis() override;
     bool needThis() final override;
@@ -3803,7 +3801,6 @@ public:
     const char* kind() const override;
     bool isUnique() const;
     bool needsClosure();
-    bool checkClosure();
     bool hasNestedFrameRefs();
     ParameterList getParameterList();
     static FuncDeclaration* genCfunc(Array<Parameter* >* fparams, Type* treturn, const char* name, StorageClass stc = 0);

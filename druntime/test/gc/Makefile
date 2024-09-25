@@ -1,5 +1,3 @@
-include ../common.mak
-
 TESTS:=attributes sentinel printf memstomp invariant logging \
        precise precisegc \
        recoverfree nocollect
@@ -8,104 +6,90 @@ ifneq ($(OS),windows)
     # some .d files are for Posix only
     TESTS+=sentinel1 sentinel2 forkgc forkgc2 sigmaskgc startbackgc
     # and some tests require the `fork` GC, only supported on Posix
-    TEST+=concurrent precise_concurrent hospital
+    TESTS+=concurrent precise_concurrent hospital
 endif
 
-ifeq ($(OS),linux)
-    TESTS+=issue22843
+VALGRIND = valgrind
+has_valgrind != command -v $(VALGRIND) > /dev/null 2>&1 && echo 1
+
+ifeq ($(has_valgrind),1)
+valgrind_new_enough != $(VALGRIND) --version | grep -E 'valgrind-3.([0-9]|1[012])\b' || echo 1
 endif
 
-SRC_GC=../../src/core/internal/gc/impl/conservative/gc.d
-SRC=$(SRC_GC) ../../src/rt/lifetime.d
+ifeq ($(valgrind_new_enough),1)
+TESTS += issue22843
+endif
+
+include ../common.mak
+vpath
+
+src_gc := ../../src/core/internal/gc/impl/conservative/gc.d
+src_lifetime=$(src_gc) ../../src/rt/lifetime.d
 # ../../src/object.d causes duplicate symbols
-UDFLAGS=$(DFLAGS) -unittest -version=CoreUnittest
-
-.PHONY: all clean
-all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
-
-$(ROOT)/%.done: $(ROOT)/%$(DOTEXE)
-	@echo Testing $*
-	$(QUIET)$(TIMELIMIT)$(ROOT)/$* $(RUN_ARGS)
-	@touch $@
+core_ut = -unittest -version=CoreUnittest
 
 # https://issues.dlang.org/show_bug.cgi?id=22843
 # needs to run under valgrind
 # versions before 3.13.0 don't handle clone() correctly, skip them
 $(ROOT)/issue22843.done: $(ROOT)/issue22843$(DOTEXE)
-	@echo Testing issue22843
-	$(QUIET)if ! command -v valgrind >/dev/null; then \
-		echo valgrind not installed, skipping; \
-	elif valgrind --version | grep -Eq 'valgrind-3.([0-9]|1[012])\b'; then \
-		echo valgrind version too old, skipping; \
-	else \
-		$(TIMELIMIT)valgrind --quiet --tool=none $(ROOT)/issue22843 $(RUN_ARGS); \
-	fi
+	@echo Testing $(<F:$(DOTEXE)=)
+	$(TIMELIMIT)$(VALGRIND) --quiet --tool=none $(ROOT)/issue22843 $(run_args)
 	@touch $@
 
-$(ROOT)/sentinel$(DOTEXE): $(SRC)
-	$(DMD) -debug=SENTINEL $(UDFLAGS) -main -of$@ $(SRC)
+$(ROOT)/sentinel$(DOTEXE): $(src_lifetime)
+$(ROOT)/sentinel$(DOTEXE): private extra_sources = $(src_lifetime)
+$(ROOT)/sentinel$(DOTEXE): extra_dflags += -debug=SENTINEL $(core_ut) -main
+$(ROOT)/sentinel1$(DOTEXE): $(src_lifetime)
+$(ROOT)/sentinel1$(DOTEXE): private extra_sources = $(src_lifetime)
+$(ROOT)/sentinel1$(DOTEXE): extra_dflags += -debug=SENTINEL -debug=GC_RECURSIVE_LOCK
+$(ROOT)/sentinel2$(DOTEXE): $(src_lifetime)
+$(ROOT)/sentinel2$(DOTEXE): private extra_sources = $(src_lifetime)
+$(ROOT)/sentinel2$(DOTEXE): extra_dflags += -debug=SENTINEL -debug=GC_RECURSIVE_LOCK -gx
 
-$(ROOT)/sentinel1$(DOTEXE): $(SRC) sentinel1.d
-	$(DMD) -debug=SENTINEL -debug=GC_RECURSIVE_LOCK $(DFLAGS) sentinel1.d -of$@ $(SRC)
+$(ROOT)/printf$(DOTEXE): $(src_gc)
+$(ROOT)/printf$(DOTEXE): private extra_sources = $(src_gc)
+$(ROOT)/printf$(DOTEXE): extra_dflags += \
+	-debug=PRINTF -debug=PRINTF_TO_FILE -debug=COLLECT_PRINTF $(core_ut) -main
 
-$(ROOT)/sentinel2$(DOTEXE): $(SRC) sentinel2.d
-	$(DMD) -debug=SENTINEL -debug=GC_RECURSIVE_LOCK $(DFLAGS) sentinel2.d -gx -of$@ $(SRC)
+$(ROOT)/memstomp$(DOTEXE): $(src_lifetime)
+$(ROOT)/memstomp$(DOTEXE): private extra_sources = $(src_lifetime)
+$(ROOT)/memstomp$(DOTEXE): extra_dflags += -debug=MEMSTOMP $(core_ut) -main
 
-$(ROOT)/printf$(DOTEXE): $(SRC)
-	$(DMD) -debug=PRINTF -debug=PRINTF_TO_FILE -debug=COLLECT_PRINTF $(UDFLAGS) -main -of$@ $(SRC_GC)
+$(ROOT)/invariant$(DOTEXE): $(src_lifetime)
+$(ROOT)/invariant$(DOTEXE): private extra_sources = $(src_lifetime)
+$(ROOT)/invariant$(DOTEXE): extra_dflags += $(core_ut) \
+    -debug -debug=INVARIANT -check=invariant -debug=PTRCHECK -debug=PTRCHECK2 -main
 
-$(ROOT)/memstomp$(DOTEXE): $(SRC)
-	$(DMD) -debug=MEMSTOMP $(UDFLAGS) -main -of$@ $(SRC)
+$(ROOT)/logging$(DOTEXE): $(src_lifetime)
+$(ROOT)/logging$(DOTEXE): private extra_sources = $(src_lifetime)
+$(ROOT)/logging$(DOTEXE): extra_dflags += -debug=LOGGING -main $(core_ut)
 
-$(ROOT)/invariant$(DOTEXE): $(SRC)
-	$(DMD) -debug -debug=INVARIANT -debug=PTRCHECK -debug=PTRCHECK2 $(UDFLAGS) -main -of$@ $(SRC)
+$(ROOT)/precise$(DOTEXE): $(src_lifetime)
+$(ROOT)/precise$(DOTEXE): private extra_sources = $(src_lifetime)
+$(ROOT)/precise$(DOTEXE): extra_dflags += $(core_ut) \
+    -debug -debug=INVARIANT -check=invariant -debug=MEMSTOMP -main
+$(ROOT)/precise.done: run_args += --DRT-gcopt=gc:precise
 
-$(ROOT)/logging$(DOTEXE): $(SRC)
-	$(DMD) -debug=LOGGING $(UDFLAGS) -main -of$@ $(SRC)
+$(ROOT)/precisegc$(DOTEXE): $(src_lifetime)
+$(ROOT)/precisegc$(DOTEXE): private extra_sources = $(src_lifetime)
+$(ROOT)/precisegc$(DOTEXE): extra_dflags += $(core_ut) -gx
 
-$(ROOT)/precise$(DOTEXE): $(SRC)
-	$(DMD) -debug -debug=INVARIANT -debug=MEMSTOMP $(UDFLAGS) -main -of$@ $(SRC)
-$(ROOT)/precise.done: RUN_ARGS+=--DRT-gcopt=gc:precise
+$(ROOT)/concurrent$(DOTEXE): $(src_lifetime)
+$(ROOT)/concurrent$(DOTEXE): private extra_sources = $(src_lifetime)
+$(ROOT)/concurrent$(DOTEXE): extra_dflags += $(core_ut) -main
+$(ROOT)/concurrent.done: run_args+=--DRT-gcopt=fork:1
 
-$(ROOT)/precisegc$(DOTEXE): $(SRC) precisegc.d
-	$(DMD) $(UDFLAGS) -gx -of$@ $(SRC) precisegc.d
+$(ROOT)/precise_concurrent$(DOTEXE): $(src_lifetime)
+$(ROOT)/precise_concurrent$(DOTEXE): private extra_sources = $(src_lifetime)
+$(ROOT)/precise_concurrent$(DOTEXE): extra_dflags += $(core_ut) -main
+$(ROOT)/precise_concurrent.done: run_args+="--DRT-gcopt=gc:precise fork:1"
 
-$(ROOT)/concurrent$(DOTEXE): $(SRC)
-	$(DMD) $(UDFLAGS) -main -of$@ $(SRC)
-$(ROOT)/concurrent.done: RUN_ARGS+=--DRT-gcopt=fork:1
-
-$(ROOT)/precise_concurrent$(DOTEXE): $(SRC)
-	$(DMD) $(UDFLAGS) -main -of$@ $(SRC)
-$(ROOT)/precise_concurrent.done: RUN_ARGS+="--DRT-gcopt=gc:precise fork:1"
-
-$(ROOT)/attributes$(DOTEXE): attributes.d
-	$(DMD) $(UDFLAGS) -of$@ attributes.d
-
-$(ROOT)/forkgc$(DOTEXE): forkgc.d
-	$(DMD) $(UDFLAGS) -of$@ forkgc.d
-
-$(ROOT)/forkgc2$(DOTEXE): forkgc2.d
-	$(DMD) $(UDFLAGS) -of$@ forkgc2.d
-
-$(ROOT)/sigmaskgc$(DOTEXE): sigmaskgc.d
-	$(DMD) $(UDFLAGS) -of$@ sigmaskgc.d
-
-$(ROOT)/startbackgc$(DOTEXE): startbackgc.d
-	$(DMD) $(UDFLAGS) -of$@ startbackgc.d
-
-$(ROOT)/recoverfree$(DOTEXE): recoverfree.d
-	$(DMD) $(DFLAGS) -of$@ recoverfree.d
-
-$(ROOT)/nocollect$(DOTEXE): nocollect.d
-	$(DMD) $(DFLAGS) -of$@ nocollect.d
-
-$(ROOT)/hospital$(DOTEXE): hospital.d
-	$(DMD) $(DFLAGS) -d -of$@ hospital.d
-$(ROOT)/hospital.done: RUN_ARGS+=--DRT-gcopt=fork:1
-
-$(ROOT)/issue22843$(DOTEXE): issue22843.d
-	$(DMD) $(UDFLAGS) -of$@ issue22843.d
-$(ROOT)/issue22843.done: RUN_ARGS+="--DRT-gcopt=fork:1 initReserve:0 minPoolSize:1"
-
-clean:
-	rm -rf $(ROOT)
+$(ROOT)/attributes$(DOTEXE): extra_dflags += $(core_ut)
+$(ROOT)/forkgc$(DOTEXE): extra_dflags += $(core_ut)
+$(ROOT)/forkgc2$(DOTEXE): extra_dflags += $(core_ut)
+$(ROOT)/sigmaskgc$(DOTEXE): extra_dflags += $(core_ut)
+$(ROOT)/startbackgc$(DOTEXE): extra_dflags += $(core_ut)
+$(ROOT)/hospital$(DOTEXE): extra_dflags += -d
+$(ROOT)/hospital.done: run_args+=--DRT-gcopt=fork:1
+$(ROOT)/issue22843$(DOTEXE): extra_dflags += $(core_ut)
+$(ROOT)/issue22843.done: run_args+="--DRT-gcopt=fork:1 initReserve:0 minPoolSize:1"
