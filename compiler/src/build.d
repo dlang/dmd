@@ -1574,7 +1574,7 @@ auto sourceFiles()
             parse.d parsetimevisitor.d permissivevisitor.d postordervisitor.d pragmasem.d printast.d rootobject.d safe.d
             semantic2.d semantic3.d sideeffect.d statement.d statement_rewrite_walker.d
             statementsem.d staticassert.d staticcond.d stmtstate.d target.d templatesem.d templateparamsem.d traits.d
-            transitivevisitor.d typesem.d typinf.d utils.d visitor.d foreachvar.d
+            transitivevisitor.d typesem.d typinf.d utils.d unused_import.d visitor.d foreachvar.d
             cparse.d
         "),
         backendHeaders: fileArray(env["C"], "

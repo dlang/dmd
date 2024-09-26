@@ -133,6 +133,7 @@ final class CParser(AST) : Parser!AST
                      * Import their definitions
                      */
                     auto s = new AST.Import(Loc.initial, null, Id.importc_builtins, null, false);
+                    s.used = true;
                     wrap.push(s);
                 }
 
