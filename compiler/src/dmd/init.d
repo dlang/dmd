@@ -38,6 +38,7 @@ extern (C++) class Initializer : ASTNode
 {
     Loc loc;
     InitKind kind;
+    bool semanticDone = false; /// initializerSemantic has been run on this
 
     override DYNCAST dyncast() const
     {
