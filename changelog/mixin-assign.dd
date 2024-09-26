@@ -1,0 +1,8 @@
+Mixin templates can now use assignment syntax
+
+Previously, giving a name to a mixed-in mixin template instance required putting the name at the end.
+Now, it can also go in front of the instantiation using assignment syntax.
+---
+mixin MyMixinTemplate!(Args) myName; // old style
+mixin myName = MyMixinTemplate!(Args); // new style
+---
