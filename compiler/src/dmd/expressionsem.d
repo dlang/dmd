@@ -12202,7 +12202,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        if (tb1.ty == Tpointer && tb2.ty == Tpointer)
+        if (tb1.ty == Tpointer && tb2.ty == Tpointer ||
+	    tb1.ty == Tnull && tb2.ty == Tnull)
         {
             result = exp.incompatibleTypes();
             return;
@@ -12298,6 +12299,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (t2.ty == Tdelegate || t2.isPtrToFunction())
         {
             err |= exp.e2.checkArithmetic(exp.op) || exp.e2.checkSharedAccess(sc);
+        }
+        if (t1.ty == Tnull && t2.ty == Tnull)
+        {
+            exp.incompatibleTypes();
+            return setError();
         }
         if (err)
             return setError();
