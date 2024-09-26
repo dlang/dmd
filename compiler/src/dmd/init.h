@@ -33,6 +33,7 @@ class Initializer : public ASTNode
 public:
     Loc loc;
     unsigned char kind;
+    d_bool semanticDone;
 
     DYNCAST dyncast() const override { return DYNCAST_INITIALIZER; }
 

@@ -4035,6 +4035,7 @@ class Initializer : public ASTNode
 public:
     Loc loc;
     InitKind kind;
+    bool semanticDone;
     DYNCAST dyncast() const override;
     ErrorInitializer* isErrorInitializer();
     VoidInitializer* isVoidInitializer();
