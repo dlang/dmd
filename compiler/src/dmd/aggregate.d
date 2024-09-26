@@ -793,6 +793,7 @@ public uint alignmember(structalign_t alignment, uint memalignsize, uint offset)
 /****************************************
  * Place a field (mem) into an aggregate (agg), which can be a struct, union or class
  * Params:
+ *    loc           = source location for error messages
  *    nextoffset    = location just past the end of the previous field in the aggregate.
  *                    Updated to be just past the end of this field to be placed, i.e. the future nextoffset
  *    memsize       = size of field
@@ -805,8 +806,8 @@ public uint alignmember(structalign_t alignment, uint memalignsize, uint offset)
  *    aligned offset to place field at
  *
  */
-public uint placeField(ref uint nextoffset, uint memsize, uint memalignsize,
-    structalign_t alignment, ref uint aggsize, ref uint aggalignsize, bool isunion) @safe pure nothrow
+public uint placeField(Loc loc, ref uint nextoffset, uint memsize, uint memalignsize,
+    structalign_t alignment, ref uint aggsize, ref uint aggalignsize, bool isunion) @trusted nothrow
 {
     static if (0)
     {
@@ -829,7 +830,12 @@ public uint placeField(ref uint nextoffset, uint memsize, uint memalignsize,
     bool overflow;
     const sz = addu(memsize, actualAlignment, overflow);
     addu(ofs, sz, overflow);
-    if (overflow) assert(0);
+    if (overflow)
+    {
+        error(loc, "max object size %u exceeded from adding field size %u + alignment adjustment %u + field offset %u when placing field in aggregate",
+                uint.max, memsize, actualAlignment, ofs);
+        return 0;
+    }
 
     // Skip no-op for noreturn without custom aligment
     if (memalignsize != 0 || !alignment.isDefault())
