@@ -4032,7 +4032,7 @@ elem* toElem(Expression e, ref IRState irs)
         if (dim > 0)
         {
             if (ale.onstack || tb.ty == Tsarray ||
-                irs.Cfile && tb.ty == Tpointer)
+                (irs.Cfile||irs.params.betterC) && tb.ty == Tpointer)
             {
                 Symbol *stmp = null;
                 e = ExpressionsToStaticArray(irs, ale.loc, ale.elements, &stmp, 0, ale.basis);
