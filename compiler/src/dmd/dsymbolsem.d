@@ -2601,48 +2601,51 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         sc.pop();
     }
 
-    override void visit(StaticCtorDeclaration scd)
+    void visitStaticCDtorDeclaration(FuncDeclaration sd, bool isDestructor)
     {
-        //printf("StaticCtorDeclaration::semantic()\n");
-        if (scd.semanticRun >= PASS.semanticdone)
+        if (sd.semanticRun >= PASS.semanticdone)
             return;
-        if (scd._scope)
+        if (sd._scope)
         {
-            sc = scd._scope;
-            scd._scope = null;
+            sc = sd._scope;
+            sd._scope = null;
         }
-
-        scd.parent = sc.parent;
-        Dsymbol p = scd.parent.pastMixin();
+        sd.parent = sc.parent;
+        Dsymbol p = sd.parent.pastMixin();
+        const bool isShared = !!(sd.isSharedStaticDtorDeclaration() || sd.isSharedStaticCtorDeclaration());
+        const(char)* what = isDestructor ? "destructor" : "constructor";
         if (!p.isScopeDsymbol())
         {
-            const(char)* s = (scd.isSharedStaticCtorDeclaration() ? "shared " : "");
-            error(scd.loc, "`%sstatic` constructor can only be member of module/aggregate/template, not %s `%s`", s, p.kind(), p.toChars());
-            scd.type = Type.terror;
-            scd.errors = true;
+            const(char)* s = isShared ? "shared " : "";
+            error(sd.loc, "`%sstatic` %s can only be member of module/aggregate/template, not %s `%s`", s, what, p.kind(), p.toChars());
+            sd.type = Type.terror;
+            sd.errors = true;
             return;
         }
-        if (!scd.type)
-            scd.type = new TypeFunction(ParameterList(), Type.tvoid, LINK.d, scd.storage_class);
 
-        /* If the static ctor appears within a template instantiation,
+        if (!sd.type)
+            sd.type = new TypeFunction(ParameterList(), Type.tvoid, LINK.d, sd.storage_class);
+
+        /* If the static [dc]tor appears within a template instantiation,
          * it could get called multiple times by the module constructors
          * for different modules. Thus, protect it with a gate.
          */
-        if (scd.isInstantiated() && scd.semanticRun < PASS.semantic)
+        if (sd.isInstantiated() && sd.semanticRun < PASS.semantic)
         {
             /* Add this prefix to the constructor:
              * ```
              * static int gate;
-             * if (++gate != 1) return;
+             * if ([--|++]gate != [0|1]) return; // dependant on ctor/dtor
              * ```
              * or, for shared constructor:
              * ```
              * shared int gate;
-             * if (core.atomic.atomicOp!"+="(gate, 1) != 1) return;
+             * enum op  = isDestructor ? "-=" : "+=";
+             * enum cmp = isDestructor ? 0 : 1;
+             * if (core.atomic.atomicOp!op(gate, 1) != cmp) return;
              * ```
              */
-            const bool isShared = !!scd.isSharedStaticCtorDeclaration();
+
             auto v = new VarDeclaration(Loc.initial, Type.tint32, Id.gate, null);
             v.storage_class = STC.temp | STC.static_ | (isShared ? STC.shared_ : 0);
 
@@ -2653,49 +2656,56 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             Expression e;
             if (isShared)
             {
-                e = doAtomicOp("+=", v.ident, IntegerExp.literal!(1));
+                e = doAtomicOp(isDestructor ? "-=" : "+=", v.ident, IntegerExp.literal!(1));
                 if (e is null)
                 {
-                    .error(scd.loc, "%s `%s` shared static constructor within a template require `core.atomic : atomicOp` to be present", scd.kind, scd.toPrettyChars);
+                    .error(sd.loc, "%s `%s` shared static %s within a template require `core.atomic : atomicOp` to be present", sd.kind, sd.toPrettyChars, what);
                     return;
                 }
             }
             else
             {
+                IntegerExp one = isDestructor ? IntegerExp.literal!(-1) : IntegerExp.literal!(1);
                 e = new AddAssignExp(
-                    Loc.initial, new IdentifierExp(Loc.initial, v.ident), IntegerExp.literal!1);
+                    Loc.initial, new IdentifierExp(Loc.initial, v.ident), one);
             }
-
-            e = new EqualExp(EXP.notEqual, Loc.initial, e, IntegerExp.literal!1);
+            IntegerExp cmp = isDestructor ? IntegerExp.literal!0 : IntegerExp.literal!1;
+            e = new EqualExp(EXP.notEqual, Loc.initial, e, cmp);
             s = new IfStatement(Loc.initial, null, e, new ReturnStatement(Loc.initial, null), null, Loc.initial);
 
             sa.push(s);
-            if (scd.fbody)
-                sa.push(scd.fbody);
+            if (sd.fbody)
+                sa.push(sd.fbody);
 
-            scd.fbody = new CompoundStatement(Loc.initial, sa);
+            sd.fbody = new CompoundStatement(Loc.initial, sa);
+            if (isDestructor)
+                (cast(StaticDtorDeclaration)sd).vgate = v;
         }
-
         const LINK save = sc.linkage;
         if (save != LINK.d)
         {
-            const(char)* s = (scd.isSharedStaticCtorDeclaration() ? "shared " : "");
-            deprecation(scd.loc, "`%sstatic` constructor can only be of D linkage", s);
+            const(char)* s = isShared ? "shared " : "";
+            deprecation(sd.loc, "`%sstatic` %s can only be of D linkage", s, what);
             // Just correct it
             sc.linkage = LINK.d;
         }
-        funcDeclarationSemantic(sc, scd);
+        funcDeclarationSemantic(sc, sd);
         sc.linkage = save;
 
         // We're going to need ModuleInfo
-        Module m = scd.getModule();
+        Module m = sd.getModule();
         if (!m)
             m = sc._module;
         if (m)
         {
             m.needmoduleinfo = 1;
-            //printf("module1 %s needs moduleinfo\n", m.toChars());
+            //printf("module2 %s needs moduleinfo\n", m.toChars());
         }
+    }
+    override void visit(StaticCtorDeclaration scd)
+    {
+        //printf("StaticCtorDeclaration::semantic()\n");
+        visitStaticCDtorDeclaration(scd, false);
 
         foreachUda(scd, sc, (Expression e) {
             import dmd.attrib : isEnumAttribute;
@@ -2718,100 +2728,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
     override void visit(StaticDtorDeclaration sdd)
     {
-        if (sdd.semanticRun >= PASS.semanticdone)
-            return;
-        if (sdd._scope)
-        {
-            sc = sdd._scope;
-            sdd._scope = null;
-        }
-
-        sdd.parent = sc.parent;
-        Dsymbol p = sdd.parent.pastMixin();
-        if (!p.isScopeDsymbol())
-        {
-            const(char)* s = (sdd.isSharedStaticDtorDeclaration() ? "shared " : "");
-            error(sdd.loc, "`%sstatic` destructor can only be member of module/aggregate/template, not %s `%s`", s, p.kind(), p.toChars());
-            sdd.type = Type.terror;
-            sdd.errors = true;
-            return;
-        }
-        if (!sdd.type)
-            sdd.type = new TypeFunction(ParameterList(), Type.tvoid, LINK.d, sdd.storage_class);
-
-        /* If the static ctor appears within a template instantiation,
-         * it could get called multiple times by the module constructors
-         * for different modules. Thus, protect it with a gate.
-         */
-        if (sdd.isInstantiated() && sdd.semanticRun < PASS.semantic)
-        {
-            /* Add this prefix to the constructor:
-             * ```
-             * static int gate;
-             * if (--gate != 0) return;
-             * ```
-             * or, for shared constructor:
-             * ```
-             * shared int gate;
-             * if (core.atomic.atomicOp!"-="(gate, 1) != 0) return;
-             * ```
-             */
-            const bool isShared = !!sdd.isSharedStaticDtorDeclaration();
-            auto v = new VarDeclaration(Loc.initial, Type.tint32, Id.gate, null);
-            v.storage_class = STC.temp | STC.static_ | (isShared ? STC.shared_ : 0);
-
-            auto sa = new Statements();
-            Statement s = new ExpStatement(Loc.initial, v);
-            sa.push(s);
-
-            Expression e;
-            if (isShared)
-            {
-                e = doAtomicOp("-=", v.ident, IntegerExp.literal!(1));
-                if (e is null)
-                {
-                    .error(sdd.loc, "%s `%s` shared static destructo within a template require `core.atomic : atomicOp` to be present", sdd.kind, sdd.toPrettyChars);
-                    return;
-                }
-            }
-            else
-            {
-                e = new AddAssignExp(
-                    Loc.initial, new IdentifierExp(Loc.initial, v.ident), IntegerExp.literal!(-1));
-            }
-
-            e = new EqualExp(EXP.notEqual, Loc.initial, e, IntegerExp.literal!0);
-            s = new IfStatement(Loc.initial, null, e, new ReturnStatement(Loc.initial, null), null, Loc.initial);
-
-            sa.push(s);
-            if (sdd.fbody)
-                sa.push(sdd.fbody);
-
-            sdd.fbody = new CompoundStatement(Loc.initial, sa);
-
-            sdd.vgate = v;
-        }
-
-        const LINK save = sc.linkage;
-        if (save != LINK.d)
-        {
-            const(char)* s = (sdd.isSharedStaticDtorDeclaration() ? "shared " : "");
-            deprecation(sdd.loc, "`%sstatic` destructor can only be of D linkage", s);
-            // Just correct it
-            sc.linkage = LINK.d;
-        }
-        funcDeclarationSemantic(sc, sdd);
-        sc.linkage = save;
-
-        // We're going to need ModuleInfo
-        Module m = sdd.getModule();
-        if (!m)
-            m = sc._module;
-        if (m)
-        {
-            m.needmoduleinfo = 1;
-            //printf("module2 %s needs moduleinfo\n", m.toChars());
-        }
+        visitStaticCDtorDeclaration(sdd, true);
     }
 
     override void visit(InvariantDeclaration invd)
