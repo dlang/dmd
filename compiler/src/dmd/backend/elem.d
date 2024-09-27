@@ -1364,25 +1364,6 @@ elem *el_convstring(elem *e)
     e.Vstring = null;
     size_t len = e.Vstrlen;
 
-    // Handle strings that go into the code segment
-    if (tybasic(e.Ety) == TYcptr ||
-        (tyfv(e.Ety) && config.flags3 & CFG3strcod))
-    {
-        assert(config.objfmt == OBJ_OMF);         // option not done yet for others
-        s = symbol_generate(SC.static_, type_fake(mTYcs | e.Ety));
-        s.Sfl = FLcsdata;
-        s.Soffset = Offset(cseg);
-        s.Sseg = cseg;
-        symbol_keep(s);
-        if (!eecontext.EEcompile || eecontext.EEin)
-        {
-            objmod.bytes(cseg,Offset(cseg),cast(uint)len,p);
-            Offset(cseg) += len;
-        }
-        mem_free(p);
-        goto L1;
-    }
-
     if (eecontext.EEin)                 // if compiling debugger expression
     {
         s = out_readonly_sym(e.Ety, p, cast(int)len);
