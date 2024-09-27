@@ -206,11 +206,6 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
         const(uint) amax = 0x80000000;
         bool errors = false;
         //printf("ArrayInitializer::semantic(%s), ai: %s\n", t.toChars(), toChars(i));
-        if (i.sem) // if semantic() already run
-        {
-            return i;
-        }
-        i.sem = true;
         t = t.toBasetype();
         switch (t.ty)
         {
