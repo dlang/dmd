@@ -4054,7 +4054,6 @@ public:
     Array<Initializer* > value;
     uint32_t dim;
     Type* type;
-    bool sem;
     bool isCarray;
     bool isAssociativeArray() const;
     void accept(Visitor* v) override;
@@ -4065,7 +4064,6 @@ class CInitializer final : public Initializer
 public:
     Array<DesigInit > initializerList;
     Type* type;
-    bool sem;
     void accept(Visitor* v) override;
 };
 

@@ -86,7 +86,6 @@ public:
     Initializers value; // of Initializer *'s
     unsigned dim;       // length of array being initialized
     Type *type;         // type that array will be used to initialize
-    d_bool sem;           // true if semantic() is run
     d_bool isCarray;      // C array semantics
 
     bool isAssociativeArray() const;
@@ -120,7 +119,6 @@ class CInitializer final : public Initializer
 public:
     DesigInits initializerList;
     Type *type;         // type that array will be used to initialize
-    d_bool sem;           // true if semantic() is run
 
     void accept(Visitor *v) override { v->visit(this); }
 };
