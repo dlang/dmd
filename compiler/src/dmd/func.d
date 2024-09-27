@@ -46,7 +46,6 @@ import dmd.init;
 import dmd.location;
 import dmd.mtype;
 import dmd.objc;
-import dmd.root.aav;
 import dmd.common.outbuffer;
 import dmd.rootobject;
 import dmd.root.string;
