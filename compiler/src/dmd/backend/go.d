@@ -50,7 +50,7 @@ nothrow:
 
 
 @trusted
-void go_term()
+void go_term(ref GlobalOptimizer go)
 {
     vec_free(go.defkill);
     vec_free(go.starkill);
@@ -89,7 +89,7 @@ else
  *      !=0     recognized
  */
 @trusted
-int go_flag(char *cp)
+int go_flag(ref GlobalOptimizer go, char *cp)
 {
     enum GL     // indices of various flags in flagtab[]
     {
@@ -214,7 +214,7 @@ void dbg_optprint(char *title)
  */
 
 @trusted
-void optfunc()
+void optfunc(ref GlobalOptimizer go)
 {
     if (debugc) printf("optfunc()\n");
     dbg_optprint("optfunc\n");
@@ -288,14 +288,14 @@ void optfunc()
             scanForInlines(funcsym_p);
 
         if (go.mfoptim & MFdc)
-            blockopt(0);                // do block optimization
+            blockopt(go, 0);            // do block optimization
         out_regcand(&globsym);          // recompute register candidates
         go.changes = 0;                 // no changes yet
         sliceStructs(globsym, startblock);
         if (go.mfoptim & MFcnp)
-            constprop();                /* make relationals unsigned     */
+            constprop(go);              /* make relationals unsigned     */
         if (go.mfoptim & (MFli | MFliv))
-            loopopt();                  /* remove loop invariants and    */
+            loopopt(go);                /* remove loop invariants and    */
                                         /* induction vars                */
                                         /* do loop rotation              */
         else
@@ -304,14 +304,14 @@ void optfunc()
         dbg_optprint("boolopt\n");
 
         if (go.mfoptim & MFcnp)
-            boolopt();                  // optimize boolean values
+            boolopt(go);                  // optimize boolean values
         if (go.changes && go.mfoptim & MFloop && (clock() - starttime) < 30 * CLOCKS_PER_SEC)
             continue;
 
         if (go.mfoptim & MFcnp)
-            constprop();                /* constant propagation          */
+            constprop(go);              /* constant propagation          */
         if (go.mfoptim & MFcp)
-            copyprop();                 /* do copy propagation           */
+            copyprop(go);               /* do copy propagation           */
 
         /* Floating point constants and string literals need to be
          * replaced with loads from variables in read-only data.
@@ -324,7 +324,7 @@ void optfunc()
             {
                 b.Belem = doptelem(b.Belem,bc_goal[b.BC] | Goal.struct_);
                 if (b.Belem)
-                    b.Belem = el_convert(b.Belem);
+                    b.Belem = el_convert(go, b.Belem);
             }
         }
         if (localgot != localgotsave)
@@ -342,9 +342,9 @@ void optfunc()
          * code generation which assumes at most one (localgotoffset).
          */
         if (go.mfoptim & MFlocal)
-            localize();                 // improve expression locality
+            localize(go);                 // improve expression locality
         if (go.mfoptim & MFda)
-            rmdeadass();                /* remove dead assignments       */
+            rmdeadass(go);                /* remove dead assignments       */
 
         if (debugc) printf("changes = %d\n", go.changes);
         if (!(go.changes && go.mfoptim & MFloop && (clock() - starttime) < 30 * CLOCKS_PER_SEC))
@@ -353,7 +353,7 @@ void optfunc()
     if (debugc) printf("%d iterations\n",iter);
 
     if (go.mfoptim & MFdc)
-        blockopt(1);                    // do block optimization
+        blockopt(go, 1);                // do block optimization
 
     for (block* b = startblock; b; b = b.Bnext)
     {
@@ -361,9 +361,9 @@ void optfunc()
             postoptelem(b.Belem);
     }
     if (go.mfoptim & MFvbe)
-        verybusyexp();              /* very busy expressions         */
+        verybusyexp(go);              /* very busy expressions         */
     if (go.mfoptim & MFcse)
-        builddags();                /* common subexpressions         */
+        builddags(go);                /* common subexpressions         */
     if (go.mfoptim & MFdv)
         deadvar();                  /* eliminate dead variables      */
 

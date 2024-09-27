@@ -247,11 +247,11 @@ void block_visit(block *b)
  * Compute number of parents (Bcount) of each basic block.
  */
 @trusted
-void block_compbcount()
+void block_compbcount(ref GlobalOptimizer go)
 {
     block_clearvisit();
     block_visit(startblock);                    // visit all reachable blocks
-    elimblks();                                 // eliminate unvisited blocks
+    elimblks(go);                               // eliminate unvisited blocks
 }
 
 /*******************************
@@ -541,11 +541,11 @@ void block_endfunc(int flag)
  */
 
 @trusted
-void blockopt(int iter)
+void blockopt(ref GlobalOptimizer go, int iter)
 {
     if (OPTIMIZER)
     {
-        blassertsplit();                // only need this once
+        blassertsplit(go);              // only need this once
 
         int iterationLimit = 200;
         if (iterationLimit < dfo.length)
@@ -555,16 +555,16 @@ void blockopt(int iter)
         {
             //printf("changes = %d, count = %d, dfo.length = %d\n",go.changes,count,dfo.length);
             go.changes = 0;
-            bropt();                    // branch optimization
+            bropt(go);                  // branch optimization
             brrear();                   // branch rearrangement
-            blident();                  // combine identical blocks
-            blreturn();                 // split out return blocks
-            bltailmerge();              // do tail merging
-            brtailrecursion();          // do tail recursion
-            brcombine();                // convert graph to expressions
-            blexit();
+            blident(go);                // combine identical blocks
+            blreturn(go);               // split out return blocks
+            bltailmerge(go);            // do tail merging
+            brtailrecursion(go);        // do tail recursion
+            brcombine(go);              // convert graph to expressions
+            blexit(go);
             if (iter >= 2)
-                brmin();                // minimize branching
+                brmin(go);              // minimize branching
 
             // Switched to one block per Statement, do not undo it
             enum merge = false;
@@ -572,7 +572,7 @@ void blockopt(int iter)
             do
             {
                 compdfo(dfo, startblock); // compute depth first order (DFO)
-                elimblks();             /* remove blocks not in DFO      */
+                elimblks(go);           /* remove blocks not in DFO      */
                 assert(count < iterationLimit);
                 count++;
             } while (merge && mergeblks());      // merge together blocks
@@ -603,7 +603,7 @@ void blockopt(int iter)
             {
                 b.Belem = doptelem(b.Belem,bc_goal[b.BC] | Goal.struct_);
                 if (b.Belem)
-                    b.Belem = el_convert(b.Belem);
+                    b.Belem = el_convert(go, b.Belem);
             }
 
             debug if (debugb)
@@ -621,9 +621,9 @@ void blockopt(int iter)
             startblock.Belem = el_combine(e, startblock.Belem);
         }
 
-        bropt();                        /* branch optimization           */
+        bropt(go);                      /* branch optimization           */
         brrear();                       /* branch rearrangement          */
-        comsubs();                      /* eliminate common subexpressions */
+        comsubs(go);                    /* eliminate common subexpressions */
 
         debug if (debugb)
         {
@@ -639,7 +639,7 @@ void blockopt(int iter)
  */
 
 @trusted
-void brcombine()
+void brcombine(ref GlobalOptimizer go)
 {
     debug if (debugc) printf("brcombine()\n");
     //WRfunc("brcombine()", funcsym_p, startblock);
@@ -843,7 +843,7 @@ void brcombine()
  */
 
 @trusted
-private void bropt()
+private void bropt(ref GlobalOptimizer go)
 {
     debug if (debugc) printf("bropt()\n");
     assert(!PARSER);
@@ -1115,7 +1115,7 @@ void compdfo(ref Barray!(block*) dfo, block* startblock)
  */
 
 @trusted
-private void elimblks()
+private void elimblks(ref GlobalOptimizer go)
 {
     debug if (debugc) printf("elimblks()\n");
     block *bf = null;
@@ -1254,7 +1254,7 @@ private int mergeblks()
  */
 
 @trusted
-private void blident()
+private void blident(ref GlobalOptimizer go)
 {
     debug if (debugc) printf("blident()\n");
     assert(startblock);
@@ -1385,7 +1385,7 @@ private void blident()
  */
 
 @trusted
-private void blreturn()
+private void blreturn(ref GlobalOptimizer go)
 {
     if (!(go.mfoptim & MFtime))            /* if optimized for space       */
     {
@@ -1444,7 +1444,7 @@ private void blreturn()
             }
         }
 
-        blident();                      /* combine return blocks        */
+        blident(go);                    /* combine return blocks        */
     }
 }
 
@@ -1529,7 +1529,7 @@ private elem * bl_delist(list_t el)
  */
 
 @trusted
-private void bltailmerge()
+private void bltailmerge(ref GlobalOptimizer go)
 {
     debug if (debugc) printf("bltailmerge()\n");
     assert(!PARSER && OPTIMIZER);
@@ -1663,7 +1663,7 @@ private void bltailmerge()
  */
 
 @trusted
-private void brmin()
+private void brmin(ref GlobalOptimizer go)
 {
     debug if (debugc) printf("brmin()\n");
     debug assert(startblock);
@@ -1764,7 +1764,7 @@ private void block_check()
  */
 
 @trusted
-private void brtailrecursion()
+private void brtailrecursion(ref GlobalOptimizer go)
 {
     if (funcsym_p.Sfunc.Fflags3 & Fnotailrecursion)
         return;
@@ -1964,7 +1964,7 @@ private elem * assignparams(elem **pe,int *psi,elem **pe2)
  */
 
 @trusted
-private void emptyloops()
+private void emptyloops(ref GlobalOptimizer go)
 {
     debug if (debugc) printf("emptyloops()\n");
     for (block *b = startblock; b; b = b.Bnext)
@@ -2119,7 +2119,7 @@ private int el_anyframeptr(elem *e)
  */
 
 @trusted
-private void blassertsplit()
+private void blassertsplit(ref GlobalOptimizer go)
 {
     debug if (debugc) printf("blassertsplit()\n");
     Barray!(elem*) elems;
@@ -2260,7 +2260,7 @@ private void blassertsplit()
  * Detect exit blocks and move them to the end.
  */
 @trusted
-private void blexit()
+private void blexit(ref GlobalOptimizer go)
 {
     debug if (debugc)
         printf("blexit()\n");

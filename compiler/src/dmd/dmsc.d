@@ -30,6 +30,7 @@ import dmd.backend.global;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.backconfig;
+import dmd.backend.var : go;
 
 /**************************************
  * Initialize backend config variables.
@@ -92,7 +93,8 @@ void backend_init(const ref Param params, const ref DMDparams driverParams, cons
         global.versionString(),
         exfmt,
         params.addMain,
-        driverParams.symImport != SymImport.none
+        driverParams.symImport != SymImport.none,
+        go
     );
 
     out_config_debug(
