@@ -1658,85 +1658,88 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 imp.mod.checkImportDeprecation(imp.loc, sc);
             }
         }
-        if (imp.mod)
+        if (!imp.mod)
         {
-            // Modules need a list of each imported module
-
-            // if inside a template instantiation, the instantianting
-            // module gets the import.
-            // https://issues.dlang.org/show_bug.cgi?id=17181
-            Module importer = sc._module;
-            if (sc.minst && sc.tinst)
-            {
-                importer = sc.minst;
-                if (!sc.tinst.importedModules.contains(imp.mod))
-                    sc.tinst.importedModules.push(imp.mod);
-            }
-            //printf("%s imports %s\n", importer.toChars(), imp.mod.toChars());
-            if (!importer.aimports.contains(imp.mod))
-                importer.aimports.push(imp.mod);
-
-            if (sc.explicitVisibility)
-                imp.visibility = sc.visibility;
-
-            if (!imp.aliasId && !imp.names.length) // neither a selective nor a renamed import
-            {
-                ScopeDsymbol scopesym = sc.getScopesym();
-
-                if (!imp.isstatic)
-                {
-                    scopesym.importScope(imp.mod, imp.visibility);
-                }
-
-
-                imp.addPackageAccess(scopesym);
-            }
-
-            // if a module has errors it means that parsing has failed.
-            if (!imp.mod.errors)
-                imp.mod.dsymbolSemantic(null);
-
-            if (imp.mod.needmoduleinfo)
-            {
-                //printf("module4 %s because of %s\n", importer.toChars(), imp.mod.toChars());
-                importer.needmoduleinfo = 1;
-            }
-
-            sc = sc.push(imp.mod);
-            sc.visibility = imp.visibility;
-            for (size_t i = 0; i < imp.aliasdecls.length; i++)
-            {
-                AliasDeclaration ad = imp.aliasdecls[i];
-                //printf("\tImport %s alias %s = %s, scope = %p\n", toPrettyChars(), aliases[i].toChars(), names[i].toChars(), ad._scope);
-                Dsymbol sym = imp.mod.search(imp.loc, imp.names[i], SearchOpt.ignorePrivateImports);
-                if (sym)
-                {
-                    import dmd.access : symbolIsVisible;
-                    if (!symbolIsVisible(sc, sym) && !sym.errors)
-                    {
-                        .error(imp.loc, "%s `%s` member `%s` is not visible from module `%s`", imp.mod.kind, imp.mod.toPrettyChars,
-                            imp.names[i].toChars(), sc._module.toChars());
-                        sym.errors = true;
-                    }
-                    ad.dsymbolSemantic(sc);
-                    // If the import declaration is in non-root module,
-                    // analysis of the aliased symbol is deferred.
-                    // Therefore, don't see the ad.aliassym or ad.type here.
-                }
-                else
-                {
-                    Dsymbol s = imp.mod.search_correct(imp.names[i]);
-                    // https://issues.dlang.org/show_bug.cgi?id=23908
-                    // Don't suggest symbols from the importer's module
-                    if (s && s.parent != importer)
-                        .error(imp.loc, "%s `%s` import `%s` not found, did you mean %s `%s`?", imp.mod.kind, imp.mod.toPrettyChars, imp.names[i].toChars(), s.kind(), s.toPrettyChars());
-                    else
-                        .error(imp.loc, "%s `%s` import `%s` not found", imp.mod.kind, imp.mod.toPrettyChars, imp.names[i].toChars());
-                    ad.type = Type.terror;
-                }
-            }
-            sc = sc.pop();
+            imp.semanticRun = PASS.semanticdone;
+            addImportDep(global.params.moduleDeps, imp, sc._module);
         }
+
+        // Modules need a list of each imported module
+
+        // if inside a template instantiation, the instantianting
+        // module gets the import.
+        // https://issues.dlang.org/show_bug.cgi?id=17181
+        Module importer = sc._module;
+        if (sc.minst && sc.tinst)
+        {
+            importer = sc.minst;
+            if (!sc.tinst.importedModules.contains(imp.mod))
+                sc.tinst.importedModules.push(imp.mod);
+        }
+        //printf("%s imports %s\n", importer.toChars(), imp.mod.toChars());
+        if (!importer.aimports.contains(imp.mod))
+            importer.aimports.push(imp.mod);
+
+        if (sc.explicitVisibility)
+            imp.visibility = sc.visibility;
+
+        if (!imp.aliasId && !imp.names.length) // neither a selective nor a renamed import
+        {
+            ScopeDsymbol scopesym = sc.getScopesym();
+
+            if (!imp.isstatic)
+            {
+                scopesym.importScope(imp.mod, imp.visibility);
+            }
+
+
+            imp.addPackageAccess(scopesym);
+        }
+
+        // if a module has errors it means that parsing has failed.
+        if (!imp.mod.errors)
+            imp.mod.dsymbolSemantic(null);
+
+        if (imp.mod.needmoduleinfo)
+        {
+            //printf("module4 %s because of %s\n", importer.toChars(), imp.mod.toChars());
+            importer.needmoduleinfo = 1;
+        }
+
+        sc = sc.push(imp.mod);
+        sc.visibility = imp.visibility;
+        for (size_t i = 0; i < imp.aliasdecls.length; i++)
+        {
+            AliasDeclaration ad = imp.aliasdecls[i];
+            //printf("\tImport %s alias %s = %s, scope = %p\n", toPrettyChars(), aliases[i].toChars(), names[i].toChars(), ad._scope);
+            Dsymbol sym = imp.mod.search(imp.loc, imp.names[i], SearchOpt.ignorePrivateImports);
+            if (sym)
+            {
+                import dmd.access : symbolIsVisible;
+                if (!symbolIsVisible(sc, sym) && !sym.errors)
+                {
+                    .error(imp.loc, "%s `%s` member `%s` is not visible from module `%s`", imp.mod.kind, imp.mod.toPrettyChars,
+                        imp.names[i].toChars(), sc._module.toChars());
+                    sym.errors = true;
+                }
+                ad.dsymbolSemantic(sc);
+                // If the import declaration is in non-root module,
+                // analysis of the aliased symbol is deferred.
+                // Therefore, don't see the ad.aliassym or ad.type here.
+            }
+            else
+            {
+                Dsymbol s = imp.mod.search_correct(imp.names[i]);
+                // https://issues.dlang.org/show_bug.cgi?id=23908
+                // Don't suggest symbols from the importer's module
+                if (s && s.parent != importer)
+                    .error(imp.loc, "%s `%s` import `%s` not found, did you mean %s `%s`?", imp.mod.kind, imp.mod.toPrettyChars, imp.names[i].toChars(), s.kind(), s.toPrettyChars());
+                else
+                    .error(imp.loc, "%s `%s` import `%s` not found", imp.mod.kind, imp.mod.toPrettyChars, imp.names[i].toChars());
+                ad.type = Type.terror;
+            }
+        }
+        sc = sc.pop();
 
         imp.semanticRun = PASS.semanticdone;
         addImportDep(global.params.moduleDeps, imp, sc._module);
@@ -1749,20 +1752,24 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         ad.semanticRun = PASS.semantic;
         Dsymbols* d = ad.include(sc);
         //printf("\tAttribDeclaration::semantic '%s', d = %p\n",toChars(), d);
-        if (d)
+        if (!d)
         {
-            Scope* sc2 = ad.newScope(sc);
-            bool errors;
-            for (size_t i = 0; i < d.length; i++)
-            {
-                Dsymbol s = (*d)[i];
-                s.dsymbolSemantic(sc2);
-                errors |= s.errors;
-            }
-            ad.errors |= errors;
-            if (sc2 != sc)
-                sc2.pop();
+            ad.semanticRun = PASS.semanticdone;
+            return;
         }
+
+        Scope* sc2 = ad.newScope(sc);
+        bool errors;
+        for (size_t i = 0; i < d.length; i++)
+        {
+            Dsymbol s = (*d)[i];
+            s.dsymbolSemantic(sc2);
+            errors |= s.errors;
+        }
+        ad.errors |= errors;
+        if (sc2 != sc)
+            sc2.pop();
+
         ad.semanticRun = PASS.semanticdone;
     }
 
