@@ -1310,6 +1310,26 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
         finishScopeParamInference(funcdecl, f);
 
+        {
+            // Promote array literals like `auto x = [y];` to stack if possible
+            import dmd.foreachvar;
+            void dgVar(VarDeclaration v)
+            {
+                if (v.maybeScope && v._init)
+                    if (auto ei = v._init.isExpInitializer())
+                        if (auto ce = ei.exp.isConstructExp())
+                            if (auto ale = ce.e2.isArrayLiteralExp())
+                                ale.onstack = true;
+            }
+
+            void dgExp(Expression e)
+            {
+                foreachVar(e, &dgVar);
+            }
+
+            foreachExpAndVar(funcdecl.fbody, &dgExp, &dgVar);
+        }
+
         // reset deco to apply inference result to mangled name
         if (f != funcdecl.type)
             f.deco = null;
