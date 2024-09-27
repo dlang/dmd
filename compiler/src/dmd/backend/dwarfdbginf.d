@@ -1075,12 +1075,12 @@ static if (1)
         {
             if (infoFileName_table)
             {
-                AAchars.destroy(infoFileName_table);
+                infoFileName_table.destroy();
                 infoFileName_table = null;
             }
             if (lineDirectories)
             {
-                AAchars.destroy(lineDirectories);
+                lineDirectories.destroy();
                 lineDirectories = null;
             }
 
@@ -1191,7 +1191,7 @@ static if (1)
             // Free only if starting another file. Waste of time otherwise.
             if (abbrev_table)
             {
-                AApair.destroy(abbrev_table);
+                abbrev_table.destroy();
                 abbrev_table = null;
             }
 
@@ -1389,7 +1389,7 @@ static if (1)
         uint *pidx = aachars.get(str);
         if (!*pidx)                 // if no idx assigned yet
         {
-            *pidx = aachars.length(); // assign newly computed idx
+            *pidx = cast(uint) aachars.length(); // assign newly computed idx
         }
         return *pidx;
     }
@@ -1488,13 +1488,13 @@ static if (1)
 
             if (config.dwarf >= 5)
             {
-                debug_line.buf.writeuLEB128(lineDirectories ? lineDirectories.length() : 0);   // directories_count
+                debug_line.buf.writeuLEB128(lineDirectories ? cast(uint) lineDirectories.length() : 0);   // directories_count
             }
 
             if (lineDirectories)
             {
                 // include_directories
-                auto dirkeys = lineDirectories.aa.keys();
+                auto dirkeys = lineDirectories.keys();
                 if (dirkeys)
                 {
                     foreach (id; 1 .. lineDirectories.length() + 1)
@@ -1533,13 +1533,13 @@ static if (1)
                 auto file_name_entry_format = FileNameEntryFormat.init;
                 debug_line.buf.write(&file_name_entry_format, file_name_entry_format.sizeof);
 
-                debug_line.buf.writeuLEB128(infoFileName_table ? infoFileName_table.length() : 0);  // file_names_count
+                debug_line.buf.writeuLEB128(infoFileName_table ? cast(uint) infoFileName_table.length() : 0);  // file_names_count
             }
 
             if (infoFileName_table)
             {
                 // file_names
-                auto filekeys = infoFileName_table.aa.keys();
+                auto filekeys = infoFileName_table.keys();
                 if (filekeys)
                 {
                     foreach (id; 1 .. infoFileName_table.length() + 1)
@@ -1706,12 +1706,12 @@ static if (1)
         // Free only if starting another file. Waste of time otherwise.
         if (type_table)
         {
-            AApair.destroy(type_table);
+            type_table.destroy();
             type_table = null;
         }
         if (functype_table)
         {
-            AApair.destroy(functype_table);
+            functype_table.destroy();
             functype_table = null;
         }
         if (functypebuf)
@@ -2626,7 +2626,7 @@ static if (1)
                  */
                 if (!functype_table)
                     functype_table = AApair.create(functypebuf.bufptr);
-                uint *pidx = cast(uint *)functype_table.get(functypebufidx, cast(uint)functypebuf.length());
+                uint *pidx = cast(uint *)functype_table.get(Pair(functypebufidx, cast(uint)functypebuf.length()));
                 if (*pidx)
                 {
                     // Reuse existing typidx
@@ -3044,7 +3044,7 @@ static if (1)
              */
             type_table = AApair.create(debug_info.buf.bufptr);
 
-        uint *pidx = type_table.get(idx, cast(uint)debug_info.buf.length());
+        uint *pidx = type_table.get(Pair(idx, cast(uint)debug_info.buf.length()));
         if (!*pidx)                 // if no idx assigned yet
         {
             *pidx = idx;            // assign newly computed idx
@@ -3174,7 +3174,7 @@ static if (1)
          * discard this one and use the previous one.
          */
 
-        uint *pcode = abbrev_table.get(cast(uint)start, cast(uint)end);
+        uint *pcode = abbrev_table.get(Pair(cast(uint) start, cast(uint) end));
         if (!*pcode)
         {
             // if no code assigned yet, assign newly computed code
