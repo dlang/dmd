@@ -2240,12 +2240,12 @@ else version (Posix)
             void op(void* sp) nothrow
             {
                 bool supported = thread_preSuspend(getStackTop());
-                assert(supported, "Tried to suspend a detached tread!");
+                assert(supported, "Tried to suspend a detached thread!");
 
                 scope(exit)
                 {
                     supported = thread_postSuspend();
-                    assert(supported, "Tried to suspend a detached tread!");
+                    assert(supported, "Tried to suspend a detached thread!");
                 }
 
                 sigset_t    sigres = void;
