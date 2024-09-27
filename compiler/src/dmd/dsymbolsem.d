@@ -7475,10 +7475,12 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
 }
 
 // newly imported sem func
-extern(C++) void newScope(Dsymbol d, Scope* sc)
+//extern(C++) void newScope(Dsymbol d, Scope* sc)
+Scope* newScope(Dsymbol d, Scope* sc)
 {
-    scope iav = new newScopeVisitor(sc);
-    d.accept(iav);
+    scope nsv = new newScopeVisitor(sc);
+    d.accept(nsv);
+    return nsv.sc;
 }
 
 extern(C++) class newScopeVisitor : Visitor
@@ -7500,7 +7502,7 @@ override void visit(VisibilityDeclaration atbd)
         if (atbd.pkg_identifiers){
             dsymbolSemantic(atbd, sc);
         
-            atbd.createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, atbd.visibility, 1, sc.aligndecl, sc.inlining);
+           sc= atbd.createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, atbd.visibility, 1, sc.aligndecl, sc.inlining);
         }
     }
 
@@ -7515,16 +7517,15 @@ override void visit(VisibilityDeclaration atbd)
         scx.namespace = scd;
     }
 
-//override Scope* visit(Scope* sc)
     override void visit(CPPMangleDeclaration cpmd)
     {
-        createNewScope(sc, sc.stc, LINK.cpp, cppmangle, sc.visibility, sc.explicitVisibility,
+        sc = cpmd.createNewScope(sc, sc.stc, LINK.cpp, cpmd.cppmangle, sc.visibility, sc.explicitVisibility,
             sc.aligndecl, sc.inlining);
     }
 
-    override void visit(AttribDeclaration visd)
+    override void visit(AlignDeclaration visd)
     {
-        createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility, this, sc.inlining);
+     sc = visd.createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility, visd, sc.inlining);
     }
 
 override void visit(PragmaDeclaration prd)
@@ -7533,13 +7534,14 @@ override void visit(PragmaDeclaration prd)
         {
             // We keep track of this pragma inside scopes,
             // then it's evaluated on demand in function semantic
-            createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility, sc.aligndecl, this);
+            sc = prd.createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility, sc.aligndecl, prd); // @suppress(dscanner.style.long_line)
         }
+        return;
     }
 
-override void visit(LinkDeclaration  sc)
+override void visit(LinkDeclaration  lid)
     {
-        createNewScope(sc, sc.stc, this.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility,
+        sc= lid.createNewScope(sc, sc.stc, lid.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility,
             sc.aligndecl, sc.inlining);
     }
 
@@ -7552,14 +7554,24 @@ override void visit(LinkDeclaration  sc)
      * Returns:
      *   Always a new scope, to use for this `DeprecatedDeclaration`'s members.
      */
+
+
     override void visit(DeprecatedDeclaration dpd)
     {
-        auto scx = super.newScope(sc);
+        auto scx = dpd.newScope(sc); //super.newScope(sc); 
         // The enclosing scope is deprecated as well
         if (scx == sc)
             scx = sc.push();
         scx.depdecl = dpd;
     }
+   /*override void visit(DeprecatedDeclaration dpd)
+{
+    // Create a new scope manually if newScope doesn't return anything
+    Scope* scx = sc.push();  // Push the current scope to create a new one
+
+    // The enclosing scope is deprecated as well
+    scx.depdecl = dpd;
+}*/
 
     /**************************************
      * Use the ForwardingScopeDsymbol as the parent symbol for members.
@@ -7575,19 +7587,19 @@ override void visit(LinkDeclaration  sc)
         /* These sets of storage classes are mutually exclusive,
          * so choose the innermost or most recent one.
          */
-        if (stc & (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.manifest))
+        if (scstc & (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.manifest))
             scstc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.manifest);
-        if (stc & (STC.auto_ | STC.scope_ | STC.static_ | STC.manifest | STC.gshared))
+        if (scstc & (STC.auto_ | STC.scope_ | STC.static_ | STC.manifest | STC.gshared))
             scstc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.manifest | STC.gshared);
-        if (stc & (STC.const_ | STC.immutable_ | STC.manifest))
+        if (scstc & (STC.const_ | STC.immutable_ | STC.manifest))
             scstc &= ~(STC.const_ | STC.immutable_ | STC.manifest);
-        if (stc & (STC.gshared | STC.shared_))
+        if (scstc & (STC.gshared | STC.shared_))
             scstc &= ~(STC.gshared | STC.shared_);
-        if (stc & (STC.safe | STC.trusted | STC.system))
+        if (scstc & (STC.safe | STC.trusted | STC.system))
             scstc &= ~(STC.safe | STC.trusted | STC.system);
-        scstc |= stc;
+        scstc |= swt.stc;
         //printf("scstc = x%llx\n", scstc);
-        createNewScope(sc, scstc, sc.linkage, sc.cppmangle,
+        sc = swt.createNewScope(sc, scstc, sc.linkage, sc.cppmangle,
             sc.visibility, sc.explicitVisibility, sc.aligndecl, sc.inlining);
     return;
     }
@@ -7596,7 +7608,9 @@ override void visit(LinkDeclaration  sc)
      * A hook point to supply scope for members.
      * addMember, setScope, importAll, semantic, semantic2 and semantic3 will use this.
      */
-    override void visit(Dsymbol dc){}
+    override void visit(Dsymbol dc) {
+        return;
+    }
 
 
 override void visit(UserAttributeDeclaration uac)
@@ -7608,5 +7622,6 @@ override void visit(UserAttributeDeclaration uac)
             sc2 = sc.copy();
             sc2.userAttribDecl = uac;
         }
+        return;
     }
 }
