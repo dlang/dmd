@@ -361,7 +361,7 @@ else
                         if (dt.DTseg == CDATA)
                             objmod.reftodatseg(seg,offset,dt.DTabytes,CDATA,flags);
                         else
-                            objmod.reftofarseg(seg,offset,dt.DTabytes,dt.DTseg,flags);
+                            assert(0);
                     }
 }
                 }
