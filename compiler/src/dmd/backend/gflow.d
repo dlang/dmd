@@ -94,9 +94,9 @@ private __gshared
  */
 
 @trusted
-void flowrd()
+void flowrd(ref GlobalOptimizer go)
 {
-    rdgenkill();            /* Compute Bgen and Bkill for RDs       */
+    rdgenkill(go);            /* Compute Bgen and Bkill for RDs       */
     if (go.defnod.length == 0)     /* if no definition elems               */
         return;             /* no analysis to be done               */
 
@@ -155,7 +155,7 @@ void flowrd()
  */
 
 @trusted
-private void rdgenkill()
+private void rdgenkill(ref GlobalOptimizer go)
 {
     /* Compute number of definition elems. */
     uint num_unambig_def = 0;
@@ -188,7 +188,7 @@ private void rdgenkill()
             asgdefelems(b, b.Belem, go.defnod[], i);    // fill in go.defnod[]
     assert(i == 0);
 
-    initDNunambigVectors(go.defnod[]);
+    initDNunambigVectors(go, go.defnod[]);
 
     foreach (b; dfo[])    // for each block
     {
@@ -199,7 +199,7 @@ private void rdgenkill()
         vec_free(b.Boutrd);
 
         /* calculate and create new vectors */
-        rdelem(b.Bgen, b.Bkill, b.Belem, deftop);
+        rdelem(go, b.Bgen, b.Bkill, b.Belem, deftop);
         if (b.BC == BCasm)
         {
             vec_clear(b.Bkill);        // KILL nothing
@@ -296,7 +296,7 @@ private void asgdefelems(block *b,elem *n, DefNode[] defnod, ref size_t i)
  */
 
 @trusted
-private void initDNunambigVectors(DefNode[] defnod)
+private void initDNunambigVectors(ref GlobalOptimizer go, DefNode[] defnod)
 {
     //printf("initDNunambigVectors()\n");
     const size_t numbits = defnod.length;
@@ -397,12 +397,12 @@ private void fillInDNunambig(vec_t v, elem *e, size_t start, DefNode[] defnod)
  *      n = elem tree to evaluate for GEN and KILL
  *      deftop = number of bits in vectors
  */
-private void rdelem(out vec_t GEN, out vec_t KILL, elem *n, uint deftop)
+private void rdelem(ref GlobalOptimizer go, out vec_t GEN, out vec_t KILL, elem *n, uint deftop)
 {
     GEN  = vec_calloc(deftop);
     KILL = vec_calloc(deftop);
     if (n)
-        accumrd(GEN, KILL, n, deftop);
+        accumrd(go, GEN, KILL, n, deftop);
 }
 
 /**************************************
@@ -410,19 +410,19 @@ private void rdelem(out vec_t GEN, out vec_t KILL, elem *n, uint deftop)
  */
 
 @trusted
-private void accumrd(vec_t GEN,vec_t KILL,elem *n,uint deftop)
+private void accumrd(ref GlobalOptimizer go, vec_t GEN,vec_t KILL,elem *n,uint deftop)
 {
     assert(GEN && KILL && n);
     const op = n.Eoper;
     if (OTunary(op))
-        accumrd(GEN,KILL,n.E1,deftop);
+        accumrd(go, GEN, KILL, n.E1, deftop);
     else if (OTbinary(op))
     {
         if (op == OPcolon || op == OPcolon2)
         {
             vec_t Gl,Kl,Gr,Kr;
-            rdelem(Gl, Kl, n.E1, deftop);
-            rdelem(Gr, Kr, n.E2, deftop);
+            rdelem(go, Gl, Kl, n.E1, deftop);
+            rdelem(go, Gr, Kr, n.E2, deftop);
 
             switch (el_returns(n.E1) * 2 | int(el_returns(n.E2)))
             {
@@ -474,9 +474,9 @@ private void accumrd(vec_t GEN,vec_t KILL,elem *n,uint deftop)
         }
         else if (op == OPandand || op == OPoror)
         {
-            accumrd(GEN,KILL,n.E1,deftop);
+            accumrd(go, GEN, KILL, n.E1, deftop);
             vec_t Gr,Kr;
-            rdelem(Gr, Kr, n.E2, deftop);
+            rdelem(go, Gr, Kr, n.E2, deftop);
             if (el_returns(n.E2))
                 vec_orass(GEN,Gr);      // GEN |= Gr
 
@@ -485,18 +485,18 @@ private void accumrd(vec_t GEN,vec_t KILL,elem *n,uint deftop)
         }
         else if (OTrtol(op) && ERTOL(n))
         {
-            accumrd(GEN,KILL,n.E2,deftop);
-            accumrd(GEN,KILL,n.E1,deftop);
+            accumrd(go, GEN, KILL, n.E2, deftop);
+            accumrd(go, GEN, KILL, n.E1, deftop);
         }
         else
         {
-            accumrd(GEN,KILL,n.E1,deftop);
-            accumrd(GEN,KILL,n.E2,deftop);
+            accumrd(go, GEN, KILL, n.E1, deftop);
+            accumrd(go, GEN, KILL, n.E2, deftop);
         }
     }
 
     if (OTdef(op))                  /* if definition elem           */
-        updaterd(n,GEN,KILL);
+        updaterd(go, n, GEN, KILL);
 }
 
 /******************** AVAILABLE EXPRESSIONS ***********************/
@@ -509,10 +509,10 @@ private void accumrd(vec_t GEN,vec_t KILL,elem *n,uint deftop)
  */
 
 @trusted
-void flowae()
+void flowae(ref GlobalOptimizer go)
 {
     flowxx = AE;
-    flowaecp(AE);
+    flowaecp(go, AE);
 }
 
 /**************************** COPY PROPAGATION ************************/
@@ -527,10 +527,10 @@ void flowae()
  */
 
 @trusted
-void flowcp()
+void flowcp(ref GlobalOptimizer go)
 {
     flowxx = CP;
-    flowaecp(CP);
+    flowaecp(go, CP);
 }
 
 /*****************************************
@@ -541,7 +541,7 @@ void flowcp()
  */
 
 @trusted
-private void flowaecp(int flowxx)
+private void flowaecp(ref GlobalOptimizer go, int flowxx)
 {
     aecpgenkill(go, flowxx);   // Compute Bgen and Bkill for AEs or CPs
     if (go.exptop <= 1)        /* if no expressions                    */
@@ -799,7 +799,7 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
     if (go.exptop <= 1)
         return;
 
-    defstarkill();                  /* compute go.defkill and go.starkill */
+    defstarkill(go);                  /* compute go.defkill and go.starkill */
 
     static if (0)
     {
@@ -830,13 +830,13 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
                 vec_free(b.Bkill2);
                 elem* e;
                 for (e = b.Belem; e.Eoper == OPcomma; e = e.E2)
-                    accumaecp(b.Bgen,b.Bkill,e.E1);
+                    accumaecp(go, b.Bgen,b.Bkill,e.E1);
                 if (e.Eoper == OPandand || e.Eoper == OPoror)
                 {
-                    accumaecp(b.Bgen,b.Bkill,e.E1);
+                    accumaecp(go, b.Bgen,b.Bkill,e.E1);
                     vec_t Kr = vec_calloc(go.expnod.length);
                     vec_t Gr = vec_calloc(go.expnod.length);
-                    accumaecp(Gr,Kr,e.E2);
+                    accumaecp(go, Gr,Kr,e.E2);
 
                     // We might or might not have executed E2
                     // KILL1 = KILL | Kr
@@ -879,7 +879,7 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
                 }
                 else
                 {
-                    accumaecp(b.Bgen,b.Bkill,e);
+                    accumaecp(go, b.Bgen,b.Bkill,e);
                     b.Bgen2 = vec_clone(b.Bgen);
                     b.Bkill2 = vec_clone(b.Bkill);
                 }
@@ -894,7 +894,7 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
             default:
                 // calculate GEN & KILL vectors
                 if (b.Belem)
-                    accumaecp(b.Bgen,b.Bkill,b.Belem);
+                    accumaecp(go, b.Bgen,b.Bkill,b.Belem);
                 break;
         }
         static if (0)
@@ -919,7 +919,7 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
  */
 
 @trusted
-private void defstarkill()
+private void defstarkill(ref GlobalOptimizer go)
 {
     const exptop = go.exptop;
     vec_recycle(go.defkill, exptop);
@@ -1022,7 +1022,7 @@ private void defstarkill()
  */
 
 @trusted
-void genkillae()
+void genkillae(ref GlobalOptimizer go)
 {
     flowxx = AE;
     assert(go.exptop > 1);
@@ -1032,7 +1032,7 @@ void genkillae()
         vec_clear(b.Bgen);
         vec_clear(b.Bkill);
         if (b.Belem)
-            accumaecp(b.Bgen,b.Bkill,b.Belem);
+            accumaecp(go, b.Bgen,b.Bkill,b.Belem);
         else if (b.BC == BCasm)
         {
             vec_set(b.Bkill);          // KILL everything
@@ -1051,16 +1051,16 @@ void genkillae()
  */
 
 @trusted
-private void aecpelem(out vec_t gen, out vec_t kill, elem *n, uint exptop)
+private void aecpelem(ref GlobalOptimizer go, out vec_t gen, out vec_t kill, elem *n, uint exptop)
 {
     gen = vec_calloc(exptop);
     kill = vec_calloc(exptop);
     if (n)
     {
         if (flowxx == VBE)
-            accumvbe(gen,kill,n);
+            accumvbe(go, gen,kill,n);
         else
-            accumaecp(gen,kill,n);
+            accumaecp(go, gen,kill,n);
     }
 }
 
@@ -1075,7 +1075,7 @@ private __gshared
 }
 
 @trusted
-private void accumaecp(vec_t g,vec_t k,elem *n)
+private void accumaecp(ref GlobalOptimizer go, vec_t g,vec_t k,elem *n)
 {   vec_t GENsave,KILLsave;
 
     assert(g && k);
@@ -1083,13 +1083,13 @@ private void accumaecp(vec_t g,vec_t k,elem *n)
     KILLsave = KILL;
     GEN = g;
     KILL = k;
-    accumaecpx(n);
+    accumaecpx(go, n);
     GEN = GENsave;
     KILL = KILLsave;
 }
 
 @trusted
-private void accumaecpx(elem *n)
+private void accumaecpx(ref GlobalOptimizer go, elem *n)
 {
     elem *t;
 
@@ -1114,8 +1114,8 @@ private void accumaecpx(elem *n)
         case OPcolon2:
         {   vec_t Gl,Kl,Gr,Kr;
 
-            aecpelem(Gl,Kl, n.E1, go.exptop);
-            aecpelem(Gr,Kr, n.E2, go.exptop);
+            aecpelem(go, Gl,Kl, n.E1, go.exptop);
+            aecpelem(go, Gr,Kr, n.E2, go.exptop);
 
             /* KILL |= Kl | Kr           */
             /* GEN =((GEN - Kl) | Gl) &  */
@@ -1141,8 +1141,8 @@ private void accumaecpx(elem *n)
         case OPoror:
         {   vec_t Gr,Kr;
 
-            accumaecpx(n.E1);
-            aecpelem(Gr,Kr, n.E2, go.exptop);
+            accumaecpx(go, n.E1);
+            aecpelem(go, Gr,Kr, n.E2, go.exptop);
 
             if (el_returns(n.E2))
             {
@@ -1169,11 +1169,11 @@ private void accumaecpx(elem *n)
 
         case OPeq:
         case OPstreq:
-            accumaecpx(n.E2);
+            accumaecpx(go, n.E2);
             goto case OPnegass;
 
         case OPnegass:
-            accumaecpx(n.E1);
+            accumaecpx(go, n.E1);
             t = n.E1;
             break;
 
@@ -1184,27 +1184,27 @@ private void accumaecpx(elem *n)
             break;
 
         case OPprefetch:
-            accumaecpx(n.E1);                  // don't check E2
+            accumaecpx(go, n.E1);                  // don't check E2
             break;
 
         default:
             if (OTunary(op))
             {
         case OPind:                             // most common unary operator
-                accumaecpx(n.E1);
+                accumaecpx(go, n.E1);
                 debug assert(!OTassign(op));
             }
             else if (OTbinary(op))
             {
                 if (OTrtol(op) && ERTOL(n))
                 {
-                    accumaecpx(n.E2);
-                    accumaecpx(n.E1);
+                    accumaecpx(go, n.E2);
+                    accumaecpx(go, n.E1);
                 }
                 else
                 {
-                    accumaecpx(n.E1);
-                    accumaecpx(n.E2);
+                    accumaecpx(go, n.E1);
+                    accumaecpx(go, n.E2);
                 }
                 if (OTassign(op))               // if assignment operator
                     t = n.E1;
@@ -1672,7 +1672,7 @@ private void accumlv(vec_t GEN, vec_t KILL, const(elem)* n, const vec_t ambigsym
  */
 
 @trusted
-void flowvbe()
+void flowvbe(ref GlobalOptimizer go)
 {
     flowxx = VBE;
     aecpgenkill(go, VBE);   // compute Bgen and Bkill for VBEs
@@ -1749,7 +1749,7 @@ void flowvbe()
  */
 
 @trusted
-private void accumvbe(vec_t GEN,vec_t KILL,elem *n)
+private void accumvbe(ref GlobalOptimizer go, vec_t GEN,vec_t KILL,elem *n)
 {
     elem *t;
 
@@ -1763,8 +1763,8 @@ private void accumvbe(vec_t GEN,vec_t KILL,elem *n)
         {
             vec_t Gl,Gr,Kl,Kr;
 
-            aecpelem(Gl,Kl, n.E1, go.exptop);
-            aecpelem(Gr,Kr, n.E2, go.exptop);
+            aecpelem(go, Gl,Kl, n.E1, go.exptop);
+            aecpelem(go, Gr,Kr, n.E2, go.exptop);
 
             /* GEN |=((Gr - Kl) | (Gl - Kr)) - KILL */
             vec_subass(Gr,Kl);
@@ -1787,28 +1787,28 @@ private void accumvbe(vec_t GEN,vec_t KILL,elem *n)
 
         case OPandand:
         case OPoror:
-            accumvbe(GEN,KILL,n.E1);
+            accumvbe(go, GEN, KILL, n.E1);
             /* WARNING: just so happens that it works this way.     */
             /* Be careful about (b+c)||(b+c) being VBEs, only the   */
             /* first should be GENed. Doing things this way instead */
             /* of (GEN |= Gr - KILL) and (KILL |= Kr - GEN) will    */
             /* ensure this.                                         */
-            accumvbe(GEN,KILL,n.E2);
+            accumvbe(go, GEN, KILL, n.E2);
             break;
 
         case OPnegass:
             t = n.E1;
             if (t.Eoper != OPvar)
             {
-                accumvbe(GEN,KILL,t.E1);
+                accumvbe(go, GEN, KILL, t.E1);
                 if (OTbinary(t.Eoper))
-                    accumvbe(GEN,KILL,t.E2);
+                    accumvbe(go, GEN, KILL, t.E2);
             }
             break;
 
         case OPcall:
         case OPcallns:
-            accumvbe(GEN,KILL,n.E2);
+            accumvbe(go, GEN, KILL, n.E2);
             goto case OPucall;
 
         case OPucall:
@@ -1817,23 +1817,23 @@ private void accumvbe(vec_t GEN,vec_t KILL,elem *n)
             // Do not VBE indirect function calls
             if (t.Eoper == OPind)
                 t = t.E1;
-            accumvbe(GEN,KILL,t);
+            accumvbe(go, GEN, KILL, t);
             break;
 
         case OPasm:                 // if the dreaded OPasm elem
             vec_set(KILL);          // KILL everything
-            vec_subass(KILL,GEN);   // except for GENed stuff
+            vec_subass(KILL, GEN);   // except for GENed stuff
             return;
 
         default:
             if (OTunary(op))
             {
                 t = n.E1;
-                accumvbe(GEN,KILL,t);
+                accumvbe(go, GEN, KILL, t);
             }
             else if (ERTOL(n))
             {
-                accumvbe(GEN,KILL,n.E2);
+                accumvbe(go, GEN, KILL, n.E2);
                 t = n.E1;
                 // do not GEN the lvalue of an assignment op
                 if (OTassign(op))
@@ -1841,13 +1841,13 @@ private void accumvbe(vec_t GEN,vec_t KILL,elem *n)
                     t = n.E1;
                     if (t.Eoper != OPvar)
                     {
-                        accumvbe(GEN,KILL,t.E1);
+                        accumvbe(go, GEN, KILL, t.E1);
                         if (OTbinary(t.Eoper))
-                            accumvbe(GEN,KILL,t.E2);
+                            accumvbe(go, GEN, KILL, t.E2);
                     }
                 }
                 else
-                    accumvbe(GEN,KILL,t);
+                    accumvbe(go, GEN, KILL, t);
             }
             else if (OTbinary(op))
             {
@@ -1857,14 +1857,14 @@ private void accumvbe(vec_t GEN,vec_t KILL,elem *n)
                     t = n.E1;
                     if (t.Eoper != OPvar)
                     {
-                        accumvbe(GEN,KILL,t.E1);
+                        accumvbe(go, GEN, KILL, t.E1);
                         if (OTbinary(t.Eoper))
-                            accumvbe(GEN,KILL,t.E2);
+                            accumvbe(go, GEN, KILL, t.E2);
                     }
                 }
                 else
-                    accumvbe(GEN,KILL,n.E1);
-                accumvbe(GEN,KILL,n.E2);
+                    accumvbe(go, GEN, KILL, n.E1);
+                accumvbe(go, GEN, KILL, n.E2);
             }
             break;
     }

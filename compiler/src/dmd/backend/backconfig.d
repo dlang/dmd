@@ -18,6 +18,7 @@ import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.code;
 import dmd.backend.global;
+import dmd.backend.goh : GlobalOptimizer;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -82,7 +83,8 @@ extern (C) void out_config_init(
         string _version,
         exefmt_t exefmt,
         bool generatedMain,     // a main entrypoint is generated
-        bool dataimports)
+        bool dataimports,
+        ref GlobalOptimizer go)
 {
     //printf("out_config_init()\n");
 
@@ -314,7 +316,7 @@ static if (0)
     configv.verbose = verbose;
 
     if (optimize)
-        go_flag(cast(char*)"-o".ptr);
+        go_flag(go, cast(char*)"-o".ptr);
 
     if (symdebug)
     {
