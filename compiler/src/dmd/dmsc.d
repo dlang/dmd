@@ -72,8 +72,7 @@ void backend_init(const ref Param params, const ref DMDparams driverParams, cons
 
     out_config_init(
         target.isAArch64,
-        (is64 ? 64 : 32) |
-         (target.objectFormat() == Target.ObjectFormat.coff),
+        is64 ? 64 : 32,
         exe,
         false, //params.trace,
         driverParams.nofloat,
