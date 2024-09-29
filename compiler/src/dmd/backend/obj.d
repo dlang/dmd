@@ -36,7 +36,6 @@ else
 
 /******************************************************************/
 
-import dmd.backend.cgobj;
 import dmd.backend.mscoffobj;
 import dmd.backend.elfobj;
 import dmd.backend.machobj;
