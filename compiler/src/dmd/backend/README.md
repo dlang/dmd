@@ -68,7 +68,6 @@ Miscellaneous
 * **cc.d**            common definitions
 * **cdef.d**          configuration
 * **backconfig.d**    transfer configuration from front end to back end
-* **compress.d**      identifier comperssion
 * **debugprint.d**    pretty print data structures
 * **iasm.d**          declarations for inline assembler
 * **ptrntab.d**       instruction tables for inline assembler
