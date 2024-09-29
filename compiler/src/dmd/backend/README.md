@@ -50,7 +50,6 @@ Object File Generation
 * **elfobj.d**        generate ELF object files
 * **machobj.d**       generate Mach-O object files
 * **mach.d**          declarations for Mach-O object file format
-* **cgobj.d**         generate OMF object files
 * **obj.d**           interface to *obj.d files
 
 Exception Handling
