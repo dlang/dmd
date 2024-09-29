@@ -1621,7 +1621,7 @@ auto sourceFiles()
         "),
         backend: fileArray(env["C"], "
             bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d
-            dout.d inliner.d eh.d filespec.d cgobj.d aarray.d
+            dout.d inliner.d eh.d filespec.d aarray.d
             gloop.d cgelem.d cgcs.d ee.d blockopt.d mem.d cg.d
             dtype.d debugprint.d fp.d symbol.d symtab.d elem.d dcode.d cgsched.d
             pdata.d util2.d var.d backconfig.d drtlsym.d ptrntab.d

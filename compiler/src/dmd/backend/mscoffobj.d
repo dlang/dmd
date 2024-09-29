@@ -42,7 +42,25 @@ nothrow:
 alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
 extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
 
-extern (C) char* strupr(char*);
+
+/***********************************
+ * Upper case a string in place.
+ * Params:
+ *      s = string to uppercase
+ * Returns:
+ *      uppercased string
+ */
+@trusted
+extern (C) char* strupr(char* s)
+{
+    for (char* p = s; *p; ++p)
+    {
+        char c = *p;
+        if ('a' <= c && c <= 'z')
+            *p = cast(char)(c - 'a' + 'A');
+    }
+    return s;
+}
 
 private extern (D) __gshared OutBuffer *fobjbuf;
 
