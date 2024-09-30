@@ -7474,8 +7474,6 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
     }
 }
 
-// newly imported sem func
-//extern(C++) void newScope(Dsymbol d, Scope* sc)
 Scope* newScope(Dsymbol d, Scope* sc)
 {
     scope nsv = new newScopeVisitor(sc);
@@ -7485,34 +7483,29 @@ Scope* newScope(Dsymbol d, Scope* sc)
 
 extern(C++) class newScopeVisitor : Visitor
 {    
-    //Scope returnScope;
-    
     alias visit = typeof(super).visit;
-    //alias visit = Visitor.visit;
     Scope* sc;
     this(Scope* sc)
     {
         this.sc = sc;
     }
 
-//previously override void visit(Scope* sc)
 override void visit(VisibilityDeclaration atbd)
     {
-        //Scope returnScope;
-        if (atbd.pkg_identifiers){
+        if (atbd.pkg_identifiers)
+        {
             dsymbolSemantic(atbd, sc);
-        
-           sc= atbd.createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, atbd.visibility, 1, sc.aligndecl, sc.inlining);
+           sc = atbd.createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, atbd.visibility, 1, sc.aligndecl, sc.inlining);
         }
     }
-
     /**
      * Returns:
      *   A copy of the parent scope, with `this` as `namespace` and C++ linkage
      *///override Scope* visit(Scope* sc)
     override void visit(CPPNamespaceDeclaration scd)
-    {
+    {   
         auto scx = sc.copy();
+        sc = scx;
         scx.linkage = LINK.cpp;
         scx.namespace = scd;
     }
@@ -7528,7 +7521,7 @@ override void visit(VisibilityDeclaration atbd)
      sc = visd.createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility, visd, sc.inlining);
     }
 
-override void visit(PragmaDeclaration prd)
+    override void visit(PragmaDeclaration prd)
     {
         if (prd.ident == Id.Pinline)
         {
@@ -7554,31 +7547,21 @@ override void visit(LinkDeclaration  lid)
      * Returns:
      *   Always a new scope, to use for this `DeprecatedDeclaration`'s members.
      */
-
-
     override void visit(DeprecatedDeclaration dpd)
     {
         auto scx = dpd.newScope(sc); //super.newScope(sc); 
         // The enclosing scope is deprecated as well
+        sc = scx;
         if (scx == sc)
             scx = sc.push();
         scx.depdecl = dpd;
     }
-   /*override void visit(DeprecatedDeclaration dpd)
-{
-    // Create a new scope manually if newScope doesn't return anything
-    Scope* scx = sc.push();  // Push the current scope to create a new one
-
-    // The enclosing scope is deprecated as well
-    scx.depdecl = dpd;
-}*/
-
     /**************************************
      * Use the ForwardingScopeDsymbol as the parent symbol for members.
      */
     override void visit(ForwardingAttribDeclaration  fad)
     {
-        sc.push(fad.sym);
+        sc = sc.push(fad.sym);
     }
     
  override void visit(StorageClassDeclaration swt)
@@ -7608,10 +7591,10 @@ override void visit(LinkDeclaration  lid)
      * A hook point to supply scope for members.
      * addMember, setScope, importAll, semantic, semantic2 and semantic3 will use this.
      */
-    override void visit(Dsymbol dc) {
+    override void visit(Dsymbol dc)
+    {
         return;
     }
-
 
 override void visit(UserAttributeDeclaration uac)
     {
@@ -7622,6 +7605,6 @@ override void visit(UserAttributeDeclaration uac)
             sc2 = sc.copy();
             sc2.userAttribDecl = uac;
         }
-        return;
+        sc = sc2;
     }
 }

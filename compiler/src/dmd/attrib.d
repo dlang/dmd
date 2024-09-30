@@ -113,7 +113,6 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         return sc2;
     }
 
-    
 
     override void addComment(const(char)* comment)
     {
@@ -194,7 +193,6 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
         assert(!s);
         return new StorageClassDeclaration(stc, Dsymbol.arraySyntaxCopy(decl));
     }
-
     
 
     override final bool oneMember(out Dsymbol ps, Identifier ident)
@@ -257,9 +255,7 @@ extern (C++) final class DeprecatedDeclaration : StorageClassDeclaration
     {
         assert(!s);
         return new DeprecatedDeclaration(msg.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl));
-    }
-
-    
+    }    
 
     override void accept(Visitor v)
     {
@@ -409,7 +405,6 @@ extern (C++) final class CPPNamespaceDeclaration : AttribDeclaration
             this.loc, this.ident, this.exp, Dsymbol.arraySyntaxCopy(this.decl), this.cppnamespace);
     }
 
-    
 
     override const(char)* toChars() const
     {
@@ -481,7 +476,6 @@ extern (C++) final class VisibilityDeclaration : AttribDeclaration
         else
             return new VisibilityDeclaration(this.loc, visibility, Dsymbol.arraySyntaxCopy(decl));
     }
-
     
 
     override const(char)* kind() const
@@ -552,7 +546,6 @@ extern (C++) final class AlignDeclaration : AttribDeclaration
             Expression.arraySyntaxCopy(exps),
             Dsymbol.arraySyntaxCopy(decl));
     }
-
     
 
     override void accept(Visitor v)
@@ -621,9 +614,7 @@ extern (C++) final class PragmaDeclaration : AttribDeclaration
         //printf("PragmaDeclaration::syntaxCopy(%s)\n", toChars());
         assert(!s);
         return new PragmaDeclaration(loc, ident, Expression.arraySyntaxCopy(args), Dsymbol.arraySyntaxCopy(decl));
-    }
-
-    
+    }    
 
     override const(char)* kind() const
     {
@@ -925,7 +916,6 @@ extern(C++) final class ForwardingAttribDeclaration : AttribDeclaration
         sym.symtab = new DsymbolTable();
     }
 
-    
 
     override inout(ForwardingAttribDeclaration) isForwardingAttribDeclaration() inout
     {
@@ -1001,7 +991,6 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
         assert(!s);
         return new UserAttributeDeclaration(Expression.arraySyntaxCopy(this.atts), Dsymbol.arraySyntaxCopy(decl));
     }
-
     
     extern (D) static Expressions* concat(Expressions* udas1, Expressions* udas2)
     {
