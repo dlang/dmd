@@ -1221,7 +1221,7 @@ int el_countCommas(const(elem)* e)
  * Needed iff floating point code can't load immediate constants.
  */
 @trusted
-elem *el_convfloat(elem *e)
+elem* el_convfloat(ref GlobalOptimizer go, elem* e)
 {
     ubyte[32] buffer = void;
 
@@ -1313,7 +1313,7 @@ elem *el_convfloat(elem *e)
  */
 
 @trusted
-elem *el_convxmm(elem *e)
+elem* el_convxmm(ref GlobalOptimizer go, elem* e)
 {
     ubyte[Vconst.sizeof] buffer = void;
 
@@ -1363,25 +1363,6 @@ elem *el_convstring(elem *e)
     p = e.Vstring;
     e.Vstring = null;
     size_t len = e.Vstrlen;
-
-    // Handle strings that go into the code segment
-    if (tybasic(e.Ety) == TYcptr ||
-        (tyfv(e.Ety) && config.flags3 & CFG3strcod))
-    {
-        assert(config.objfmt == OBJ_OMF);         // option not done yet for others
-        s = symbol_generate(SC.static_, type_fake(mTYcs | e.Ety));
-        s.Sfl = FLcsdata;
-        s.Soffset = Offset(cseg);
-        s.Sseg = cseg;
-        symbol_keep(s);
-        if (!eecontext.EEcompile || eecontext.EEin)
-        {
-            objmod.bytes(cseg,Offset(cseg),cast(uint)len,p);
-            Offset(cseg) += len;
-        }
-        mem_free(p);
-        goto L1;
-    }
 
     if (eecontext.EEin)                 // if compiling debugger expression
     {
@@ -1484,7 +1465,7 @@ void shrinkLongDoubleConstantIfPossible(elem *e)
  * Run through a tree converting it to CODGEN.
  */
 @trusted
-elem *el_convert(elem *e)
+elem* el_convert(ref GlobalOptimizer go, elem* e)
 {
     //printf("el_convert(%p)\n", e);
     elem_debug(e);
@@ -1496,9 +1477,9 @@ elem *el_convert(elem *e)
 
         case OPconst:
             if (tyvector(e.Ety))
-                e = el_convxmm(e);
+                e = el_convxmm(go, e);
             else if (tyfloating(e.Ety) && config.inline8087)
-                e = el_convfloat(e);
+                e = el_convfloat(go, e);
             break;
 
         case OPstring:
@@ -1517,7 +1498,7 @@ elem *el_convert(elem *e)
             if (tyreal(e.Ety) &&       // don't bother with imaginary or complex
                 e.E2.Eoper == OPconst && el_toldoubled(e.E2) == 2.0L)
             {
-                e.E1 = el_convert(e.E1);
+                e.E1 = el_convert(go, e.E1);
                 /* Don't call el_convert(e.E2), we want it to stay as a constant
                  * which will be detected by code gen.
                  */
@@ -1538,12 +1519,12 @@ elem *el_convert(elem *e)
         default:
             if (OTbinary(op))
             {
-                e.E1 = el_convert(e.E1);
-                e.E2 = el_convert(e.E2);
+                e.E1 = el_convert(go, e.E1);
+                e.E2 = el_convert(go, e.E2);
             }
             else if (OTunary(op))
             {
-                e.E1 = el_convert(e.E1);
+                e.E1 = el_convert(go, e.E1);
             }
             break;
     }

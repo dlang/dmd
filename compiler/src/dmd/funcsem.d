@@ -56,7 +56,6 @@ import dmd.root.string;
 import dmd.root.stringtable;
 import dmd.semantic2;
 import dmd.semantic3;
-import dmd.statement_rewrite_walker;
 import dmd.statement;
 import dmd.statementsem;
 import dmd.target;
@@ -64,6 +63,7 @@ import dmd.templatesem;
 import dmd.tokens;
 import dmd.typesem;
 import dmd.visitor;
+import dmd.visitor.statement_rewrite_walker;
 
 version (IN_GCC) {}
 else version (IN_LLVM) {}
@@ -2757,7 +2757,6 @@ Statement mergeFensure(FuncDeclaration fd, Statement sf, Identifier oid, Express
  */
 void modifyReturns(FuncLiteralDeclaration fld, Scope* sc, Type tret)
 {
-    import dmd.statement_rewrite_walker;
     extern (C++) final class RetWalker : StatementRewriteWalker
     {
         alias visit = typeof(super).visit;

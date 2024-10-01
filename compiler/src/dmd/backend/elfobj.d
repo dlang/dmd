@@ -257,7 +257,7 @@ IDXSYM      MAP_SEG2SYMIDX(int seg) { return SegData[seg].SDsymidx; }
 Elf32_Shdr* MAP_SEG2SEC(int seg)    { return &elfobj.SecHdrTab[MAP_SEG2SECIDX(seg)]; }
 int         MAP_SEG2TYP(int seg)    { return MAP_SEG2SEC(seg).sh_flags & SHF_EXECINSTR ? CODE : DATA; }
 
-extern (C++) extern __gshared Rarray!(seg_data*) SegData;
+import dmd.backend.code: SegData;
 
 /*******************************
  * Output a string into a string table
@@ -481,7 +481,7 @@ private Pair* elf_addsectionname(const(char)* name, const(char)* suffix = null, 
         elfobj.section_names.setsize(cast(uint)elfobj.section_names.length() - 1);  // back up over terminating 0
         elfobj.section_names.writeStringz(suffix);
     }
-    Pair* pidx = elfobj.section_names_hashtable.get(namidx, cast(uint)elfobj.section_names.length() - 1);
+    Pair* pidx = elfobj.section_names_hashtable.get(Pair(namidx, cast(uint)elfobj.section_names.length() - 1));
     if (pidx.start)
     {
         // this section name already exists, remove addition
@@ -654,7 +654,7 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
         elfobj.section_names.writen(section_names_init64.ptr, section_names_init64.sizeof);
 
         if (elfobj.section_names_hashtable)
-            AApair2.destroy(elfobj.section_names_hashtable);
+            elfobj.section_names_hashtable.destroy();
         elfobj.section_names_hashtable = AApair2.create(elfobj.section_names.bufptr);
 
         // name,type,flags,addr,offset,size,link,info,addralign,entsize
@@ -676,7 +676,7 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
         foreach (idxname; __traits(allMembers, NAMIDX)[1 .. $])
         {
             NAMIDX idx = mixin("NAMIDX." ~ idxname);
-            elfobj.section_names_hashtable.get(idx, cast(uint)section_names_init64.sizeof).start = idx;
+            elfobj.section_names_hashtable.get(Pair(idx, cast(uint)section_names_init64.sizeof)).start = idx;
         }
     }
     else
@@ -688,7 +688,7 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
         elfobj.section_names.writen(section_names_init.ptr, section_names_init.sizeof);
 
         if (elfobj.section_names_hashtable)
-            AApair2.destroy(elfobj.section_names_hashtable);
+            elfobj.section_names_hashtable.destroy();
         elfobj.section_names_hashtable = AApair2.create(elfobj.section_names.bufptr);
 
         // name,type,flags,addr,offset,size,link,info,addralign,entsize
@@ -710,7 +710,7 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
         foreach (idxname; __traits(allMembers, NAMIDX)[1 .. $])
         {
             NAMIDX idx = mixin("NAMIDX." ~ idxname);
-            elfobj.section_names_hashtable.get(idx, cast(uint)section_names_init.sizeof).start = idx;
+            elfobj.section_names_hashtable.get(Pair(idx, cast(uint)section_names_init.sizeof)).start = idx;
         }
     }
 

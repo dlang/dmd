@@ -1762,10 +1762,8 @@ private void cv4_outsym(Symbol *s)
                  */
                 assert(length <= 0x1000);
                 if (idx2 != 0)
-                {   uint offset = cast(uint)Offset(DEBSYM);
-                    objmod.write_bytes(SegData[DEBSYM],debsym[0 .. length]);
-                    objmod.write_long(DEBSYM,offset + fixoff,cast(uint)s.Soffset,
-                        cgcv.LCFDpointer + fd,idx1,idx2);
+                {
+                    assert(0);
                 }
                 goto Lret;
 

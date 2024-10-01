@@ -29,12 +29,12 @@ import dmd.globals;
 import dmd.init;
 import dmd.location;
 import dmd.mtype;
-import dmd.postordervisitor;
 import dmd.rootobject : RootObject, DYNCAST;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.tokens;
 import dmd.visitor;
+import dmd.visitor.postorder;
 
 /**************************************
  * Look for GC-allocations

@@ -315,7 +315,7 @@ struct LinOff
     uint offset;
 }
 
-public import dmd.backend.cgobj : SegData;
+__gshared Rarray!(seg_data*) SegData;
 
 @trusted
 ref targ_size_t Offset(int seg) { return SegData[seg].SDoffset; }

@@ -13,7 +13,7 @@ import dmd.astbase;
 import dmd.errorsink;
 import dmd.parse;
 import dmd.target;
-import dmd.transitivevisitor;
+import dmd.visitor.transitive;
 
 import dmd.globals;
 import dmd.id;

@@ -318,7 +318,7 @@ void WRblocklist(list_t bl)
 }
 
 @trusted
-void WRdefnod()
+void WRdefnod(ref GlobalOptimizer go)
 { int i;
 
   for (i = 0; i < go.defnod.length; i++)

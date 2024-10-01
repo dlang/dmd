@@ -188,10 +188,10 @@ int mach_seg_data_isCode(const ref seg_data sd)
     }
 }
 
+import dmd.backend.code: SegData;
 
 __gshared
 {
-extern (C++) extern Rarray!(seg_data*) SegData;
 
 /**
  * Section index for the __thread_vars/__tls_data section.
