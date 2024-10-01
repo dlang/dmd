@@ -30,6 +30,7 @@ import dmd.backend.global;
 import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.backconfig;
+import dmd.backend.var : go;
 
 /**************************************
  * Initialize backend config variables.
@@ -71,8 +72,7 @@ void backend_init(const ref Param params, const ref DMDparams driverParams, cons
 
     out_config_init(
         target.isAArch64,
-        (is64 ? 64 : 32) |
-         (target.objectFormat() == Target.ObjectFormat.coff),
+        is64 ? 64 : 32,
         exe,
         false, //params.trace,
         driverParams.nofloat,
@@ -92,7 +92,8 @@ void backend_init(const ref Param params, const ref DMDparams driverParams, cons
         global.versionString(),
         exfmt,
         params.addMain,
-        driverParams.symImport != SymImport.none
+        driverParams.symImport != SymImport.none,
+        go
     );
 
     out_config_debug(

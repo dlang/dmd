@@ -1571,10 +1571,12 @@ auto sourceFiles()
             dtemplate.d dtoh.d dversion.d enumsem.d escape.d expression.d expressionsem.d func.d funcsem.d hdrgen.d iasm.d iasmgcc.d
             impcnvtab.d imphint.d importc.d init.d initsem.d inline.d inlinecost.d intrange.d json.d lambdacomp.d
             mtype.d mustuse.d nogc.d nspace.d ob.d objc.d opover.d optimize.d
-            parse.d parsetimevisitor.d permissivevisitor.d postordervisitor.d pragmasem.d printast.d rootobject.d safe.d
-            semantic2.d semantic3.d sideeffect.d statement.d statement_rewrite_walker.d
+            parse.d pragmasem.d printast.d rootobject.d safe.d
+            semantic2.d semantic3.d sideeffect.d statement.d
             statementsem.d staticassert.d staticcond.d stmtstate.d target.d templatesem.d templateparamsem.d traits.d
-            transitivevisitor.d typesem.d typinf.d utils.d visitor.d foreachvar.d
+            typesem.d typinf.d utils.d
+            visitor/package.d visitor/foreachvar.d visitor/parsetime.d visitor/permissive.d visitor/postorder.d visitor/statement_rewrite_walker.d
+            visitor/strict.d visitor/transitive.d
             cparse.d
         "),
         backendHeaders: fileArray(env["C"], "
@@ -1618,11 +1620,11 @@ auto sourceFiles()
         backend: fileArray(env["C"], "
             bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d
             dout.d inliner.d
-            gloop.d compress.d cgelem.d cgcs.d ee.d x86/cod4.d x86/cod5.d eh.d x86/nteh.d blockopt.d mem.d cg.d x86/cgreg.d
+            gloop.d cgelem.d cgcs.d ee.d x86/cod4.d x86/cod5.d eh.d x86/nteh.d blockopt.d mem.d cg.d x86/cgreg.d
             dtype.d debugprint.d fp.d symbol.d symtab.d elem.d dcode.d cgsched.d x86/cg87.d x86/cgxmm.d x86/cgcod.d x86/cod1.d x86/cod2.d
             x86/cod3.d cv8.d dcgcv.d pdata.d util2.d var.d backconfig.d drtlsym.d dwarfeh.d ptrntab.d
             dvarstats.d dwarfdbginf.d cgen.d goh.d barray.d cgcse.d elpicpie.d
-            machobj.d elfobj.d mscoffobj.d filespec.d cgobj.d aarray.d x86/disasm86.d arm/disasmarm.d arm/instr.d
+            machobj.d elfobj.d mscoffobj.d filespec.d aarray.d x86/disasm86.d arm/disasmarm.d arm/instr.d
             arm/cod1.d arm/cod2.d arm/cod3.d arm/cod4.d
             "
         ),

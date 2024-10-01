@@ -106,6 +106,9 @@ Expression toAssocArrayLiteral(ArrayInitializer ai)
 Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedInterpret needInterpret)
 {
     //printf("initializerSemantic() tx: %p %s\n", tx, tx.toChars());
+    if (init.semanticDone)
+        return init;
+
     Type t = tx;
 
     static Initializer err()
@@ -203,11 +206,6 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
         const(uint) amax = 0x80000000;
         bool errors = false;
         //printf("ArrayInitializer::semantic(%s), ai: %s\n", t.toChars(), toChars(i));
-        if (i.sem) // if semantic() already run
-        {
-            return i;
-        }
-        i.sem = true;
         t = t.toBasetype();
         switch (t.ty)
         {
@@ -1055,6 +1053,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
 
     mixin VisitInitializer!Initializer visit;
     auto result = visit.VisitInitializer(init);
+    result.semanticDone = true;
     return (result !is null) ? result : new ErrorInitializer();
 }
 

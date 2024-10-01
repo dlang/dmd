@@ -23,6 +23,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.code;
 import dmd.backend.el;
+import dmd.backend.goh : GlobalOptimizer;
 import dmd.backend.global;
 import dmd.backend.oper;
 import dmd.backend.ty;
@@ -41,11 +42,11 @@ nothrow:
  */
 
 @trusted
-public void comsubs()
+public void comsubs(ref GlobalOptimizer go)
 {
     debug if (debugx) printf("comsubs(%p)\n",startblock);
 
-    comsubs2(startblock, cgcsdata);
+    comsubs2(startblock, cgcsdata, go);
 
     debug if (debugx)
         printf("done with comsubs()\n");
@@ -73,10 +74,10 @@ alias hash_t = uint;    // for hash values
  * String together as many blocks as we can.
  */
 @trusted
-void comsubs2(block* startblock, ref CGCS cgcs)
+void comsubs2(block* startblock, ref CGCS cgcs, ref GlobalOptimizer go)
 {
     // No longer just compute Bcount - eliminate unreachable blocks too
-    block_compbcount();                   // eliminate unreachable blocks
+    block_compbcount(go);                 // eliminate unreachable blocks
 
     cgcs.start();
 

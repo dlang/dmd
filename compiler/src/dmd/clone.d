@@ -1637,16 +1637,8 @@ bool needCopyCtor(StructDeclaration sd, out bool hasCpCtor)
             return 0;
         }
 
-        auto tf = ctorDecl.type.toTypeFunction();
-        const dim = tf.parameterList.length;
-        if (dim == 1 || (dim > 1 && tf.parameterList[1].defaultArg))
-        {
-            auto param = tf.parameterList[0];
-            if (param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
-            {
-                rvalueCtor = ctorDecl;
-            }
-        }
+        if (isRvalueConstructor(sd, ctorDecl))
+            rvalueCtor = ctorDecl;
         return 0;
     });
 

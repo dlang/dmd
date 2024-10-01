@@ -11,7 +11,7 @@
 module dmd.astbase;
 
 import dmd.astenums;
-import dmd.parsetimevisitor;
+import dmd.visitor.parsetime;
 import dmd.tokens : EXP;
 
 /** The ASTBase  family defines a family of AST nodes appropriate for parsing with

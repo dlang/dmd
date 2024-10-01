@@ -361,7 +361,7 @@ else
                         if (dt.DTseg == CDATA)
                             objmod.reftodatseg(seg,offset,dt.DTabytes,CDATA,flags);
                         else
-                            objmod.reftofarseg(seg,offset,dt.DTabytes,dt.DTseg,flags);
+                            assert(0);
                     }
 }
                 }
@@ -851,13 +851,14 @@ private void out_regcand_walk(elem *e, ref bool addressOfParam)
 @trusted
 void writefunc(Symbol *sfunc)
 {
+    import dmd.backend.var : go;
     cstate.CSpsymtab = &globsym;
-    writefunc2(sfunc);
+    writefunc2(sfunc, go);
     cstate.CSpsymtab = null;
 }
 
 @trusted
-private void writefunc2(Symbol *sfunc)
+private void writefunc2(Symbol *sfunc, ref GlobalOptimizer go)
 {
     func_t *f = sfunc.Sfunc;
 
@@ -989,7 +990,7 @@ private void writefunc2(Symbol *sfunc)
     }
 
     block_pred();                       // compute predecessors to blocks
-    block_compbcount();                 // eliminate unreachable blocks
+    block_compbcount(go);               // eliminate unreachable blocks
 
     debug { } else
     {
@@ -1000,14 +1001,15 @@ private void writefunc2(Symbol *sfunc)
     }
 
     if (go.mfoptim)
-    {   OPTIMIZER = 1;
-        optfunc();                      /* optimize function            */
+    {
+        OPTIMIZER = 1;
+        optfunc(go);                    /* optimize function            */
         OPTIMIZER = 0;
     }
     else
     {
         //printf("blockopt()\n");
-        blockopt(0);                    /* optimize                     */
+        blockopt(go, 0);                /* optimize                     */
     }
 
     assert(funcsym_p == sfunc);

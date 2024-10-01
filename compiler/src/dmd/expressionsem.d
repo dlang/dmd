@@ -69,7 +69,6 @@ import dmd.opover;
 import dmd.optimize;
 import dmd.parse;
 import dmd.printast;
-import dmd.postordervisitor;
 import dmd.root.array;
 import dmd.root.ctfloat;
 import dmd.root.filename;
@@ -89,6 +88,7 @@ import dmd.typinf;
 import dmd.utils;
 import dmd.utils : arrayCastBigEndian;
 import dmd.visitor;
+import dmd.visitor.postorder;
 
 enum LOGSEMANTIC = false;
 
@@ -12202,7 +12202,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        if (tb1.ty == Tpointer && tb2.ty == Tpointer)
+        if (tb1.ty == Tpointer && tb2.ty == Tpointer ||
+	    tb1.ty == Tnull && tb2.ty == Tnull)
         {
             result = exp.incompatibleTypes();
             return;
@@ -12298,6 +12299,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (t2.ty == Tdelegate || t2.isPtrToFunction())
         {
             err |= exp.e2.checkArithmetic(exp.op) || exp.e2.checkSharedAccess(sc);
+        }
+        if (t1.ty == Tnull && t2.ty == Tnull)
+        {
+            exp.incompatibleTypes();
+            return setError();
         }
         if (err)
             return setError();
