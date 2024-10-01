@@ -7495,8 +7495,8 @@ override void visit(VisibilityDeclaration atbd)
         if (atbd.pkg_identifiers)
         {
             dsymbolSemantic(atbd, sc);
-           sc = atbd.createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, atbd.visibility, 1, sc.aligndecl, sc.inlining);
         }
+        sc = atbd.createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, atbd.visibility, 1, sc.aligndecl, sc.inlining);
     }
     /**
      * Returns:
@@ -7529,7 +7529,6 @@ override void visit(VisibilityDeclaration atbd)
             // then it's evaluated on demand in function semantic
             sc = prd.createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility, sc.aligndecl, prd); // @suppress(dscanner.style.long_line)
         }
-        return;
     }
 
 override void visit(LinkDeclaration  lid)
@@ -7551,10 +7550,10 @@ override void visit(LinkDeclaration  lid)
     {
         auto scx = dpd.newScope(sc); //super.newScope(sc); 
         // The enclosing scope is deprecated as well
-        sc = scx;
         if (scx == sc)
             scx = sc.push();
         scx.depdecl = dpd;
+        sc = scx;
     }
     /**************************************
      * Use the ForwardingScopeDsymbol as the parent symbol for members.
@@ -7584,17 +7583,13 @@ override void visit(LinkDeclaration  lid)
         //printf("scstc = x%llx\n", scstc);
         sc = swt.createNewScope(sc, scstc, sc.linkage, sc.cppmangle,
             sc.visibility, sc.explicitVisibility, sc.aligndecl, sc.inlining);
-    return;
     }
 
 /****************************************
      * A hook point to supply scope for members.
      * addMember, setScope, importAll, semantic, semantic2 and semantic3 will use this.
      */
-    override void visit(Dsymbol dc)
-    {
-        return;
-    }
+    override void visit(Dsymbol dc){}
 
 override void visit(UserAttributeDeclaration uac)
     {
