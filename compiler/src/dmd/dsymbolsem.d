@@ -7505,9 +7505,9 @@ override void visit(VisibilityDeclaration atbd)
     override void visit(CPPNamespaceDeclaration scd)
     {   
         auto scx = sc.copy();
-        sc = scx;
         scx.linkage = LINK.cpp;
         scx.namespace = scd;
+        sc = scx;
     }
 
     override void visit(CPPMangleDeclaration cpmd)
@@ -7548,13 +7548,12 @@ override void visit(LinkDeclaration  lid)
      */
     override void visit(DeprecatedDeclaration dpd)
     {
-        auto scx = dpd.newScope(sc); //super.newScope(sc); 
-        // The enclosing scope is deprecated as well
-        if (scx == sc)
-            scx = sc.push();
-        scx.depdecl = dpd;
-        sc = scx;
+        auto oldsc = sc;
+        visit(cast(StorageClassDeclaration) dpd);
+        auto scx = sc;
+        sc = oldsc;
     }
+    
     /**************************************
      * Use the ForwardingScopeDsymbol as the parent symbol for members.
      */
