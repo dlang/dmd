@@ -9802,8 +9802,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        if (isAggregate(exp.e1.type))
+        if (auto ad = isAggregate(exp.e1.type))
+        {
             error(exp.loc, "no `[]` operator overload for type `%s`", exp.e1.type.toChars());
+            errorSupplemental(ad.loc, "`%s` declared here", ad.toPrettyChars());
+        }
         else if (exp.e1.op == EXP.type && exp.e1.type.ty != Ttuple)
             error(exp.loc, "static array of `%s` with multiple lengths not allowed", exp.e1.type.toChars());
         else if (isIndexableNonAggregate(exp.e1.type))
