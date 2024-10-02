@@ -247,7 +247,7 @@ struct OutBuffer
     /**
      * Writes a 16 bit value, no reserve check.
      */
-    nothrow
+    nothrow @safe
     void write16n(int v)
     {
         auto x = cast(ushort) v;
@@ -367,7 +367,7 @@ struct OutBuffer
     }
 
     // Position buffer to accept the specified number of bytes at offset
-    void position(size_t where, size_t nbytes) nothrow
+    void position(size_t where, size_t nbytes) nothrow @safe
     {
         if (where + nbytes > data.length)
         {

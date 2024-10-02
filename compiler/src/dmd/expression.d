@@ -1880,7 +1880,7 @@ extern (C++) final class InterpExp : Expression
 
     enum char NoPostfix = 0;
 
-    extern (D) this(const ref Loc loc, InterpolatedSet* set, char postfix = NoPostfix) scope
+    extern (D) this(const ref Loc loc, InterpolatedSet* set, char postfix = NoPostfix) scope @safe
     {
         super(loc, EXP.interpolated);
         this.interpolatedSet = set;
@@ -4575,7 +4575,7 @@ extern (C++) class CatAssignExp : BinAssignExp
 {
     Expression lowering;    // lowered druntime hook `_d_arrayappend{cTX,T}`
 
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.concatenateAssign, e1, e2);
     }
@@ -5286,7 +5286,7 @@ extern (C++) final class ObjcClassReferenceExp : Expression
 {
     ClassDeclaration classDeclaration;
 
-    extern (D) this(const ref Loc loc, ClassDeclaration classDeclaration)
+    extern (D) this(const ref Loc loc, ClassDeclaration classDeclaration) @safe
     {
         super(loc, EXP.objcClassReference);
         this.classDeclaration = classDeclaration;
