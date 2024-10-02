@@ -45,24 +45,24 @@ Expressions* getAttributes(UserAttributeDeclaration a)
 }
 
 /***********************************************************
- * cppmangle.d
+ * mangle/cpp.d
  */
 const(char)* toCppMangleItanium(Dsymbol s)
 {
-    import dmd.cppmangle;
-    return dmd.cppmangle.toCppMangleItanium(s);
+    import dmd.mangle.cpp;
+    return dmd.mangle.cpp.toCppMangleItanium(s);
 }
 
 const(char)* cppTypeInfoMangleItanium(Dsymbol s)
 {
-    import dmd.cppmangle;
-    return dmd.cppmangle.cppTypeInfoMangleItanium(s);
+    import dmd.mangle.cpp;
+    return dmd.mangle.cpp.cppTypeInfoMangleItanium(s);
 }
 
 const(char)* cppThunkMangleItanium(FuncDeclaration fd, int offset)
 {
-    import dmd.cppmangle;
-    return dmd.cppmangle.cppThunkMangleItanium(fd, offset);
+    import dmd.mangle.cpp;
+    return dmd.mangle.cpp.cppThunkMangleItanium(fd, offset);
 }
 
 /***********************************************************
@@ -75,36 +75,36 @@ Expression ctfeInterpret(Expression e)
 }
 
 /***********************************************************
- * dmangle.d
+ * mangle/package.d
  */
 const(char)* mangleExact(FuncDeclaration fd)
 {
-    import dmd.dmangle;
-    return dmd.dmangle.mangleExact(fd);
+    import dmd.mangle;
+    return dmd.mangle.mangleExact(fd);
 }
 
 void mangleToBuffer(Type t, ref OutBuffer buf)
 {
-    import dmd.dmangle;
-    return dmd.dmangle.mangleToBuffer(t, buf);
+    import dmd.mangle;
+    return dmd.mangle.mangleToBuffer(t, buf);
 }
 
 void mangleToBuffer(Expression e, ref OutBuffer buf)
 {
-    import dmd.dmangle;
-    return dmd.dmangle.mangleToBuffer(e, buf);
+    import dmd.mangle;
+    return dmd.mangle.mangleToBuffer(e, buf);
 }
 
 void mangleToBuffer(Dsymbol s, ref OutBuffer buf)
 {
-    import dmd.dmangle;
-    return dmd.dmangle.mangleToBuffer(s, buf);
+    import dmd.mangle;
+    return dmd.mangle.mangleToBuffer(s, buf);
 }
 
 void mangleToBuffer(TemplateInstance ti, ref OutBuffer buf)
 {
-    import dmd.dmangle;
-    return dmd.dmangle.mangleToBuffer(ti, buf);
+    import dmd.mangle;
+    return dmd.mangle.mangleToBuffer(ti, buf);
 }
 
 /***********************************************************

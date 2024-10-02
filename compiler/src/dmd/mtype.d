@@ -515,7 +515,7 @@ extern (C++) abstract class Type : ASTNode
 
         static Type merge(Type t)
         {
-            import dmd.basicmangle : tyToDecoBuffer;
+            import dmd.mangle.basic : tyToDecoBuffer;
 
             OutBuffer buf;
             buf.reserve(3);

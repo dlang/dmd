@@ -15,12 +15,12 @@ module dmd.builtin;
 
 import dmd.arraytypes;
 import dmd.astenums;
-import dmd.dmangle;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
 import dmd.location;
+import dmd.mangle;
 import dmd.mtype;
 import dmd.root.ctfloat;
 import dmd.tokens;
