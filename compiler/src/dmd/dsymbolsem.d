@@ -7487,10 +7487,14 @@ override void visit(LinkDeclaration  lid)
      */
     override void visit(DeprecatedDeclaration dpd)
     {
-        auto oldsc = sc;
+         auto oldsc = sc;
         visit(cast(StorageClassDeclaration) dpd);
         auto scx = sc;
         sc = oldsc;
+        if (scx == sc) 
+        scx = sc.push(); 
+        scx.depdecl = dpd; 
+        sc = scx;
     }
     
     /**************************************
