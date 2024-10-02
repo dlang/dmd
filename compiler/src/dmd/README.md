@@ -233,10 +233,10 @@ Note that these groups have no strict meaning, the category assignments are a bi
 
 | File                                                                              | Purpose                                                          |
 |-----------------------------------------------------------------------------------|------------------------------------------------------------------|
-| [cppmangle.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/cppmangle.d)       | C++ name mangling                                                |
-| [cppmanglewin.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/cppmanglewin.d) | C++ name mangling for Windows                                    |
-| [basicmangle.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/basicmangle.d)   | D name mangling for basic types                                  |
-| [dmangle.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/dmangle.d)           | D [name mangling](https://dlang.org/spec/abi.html#name_mangling) |
+| [mangle/cpp.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/mangle/cpp.d)       | C++ name mangling                                                |
+| [mangle/cppwin.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/mangle/cppwin.d) | C++ name mangling for Windows                                    |
+| [mangle/basic.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/mangle/basic.d)   | D name mangling for basic types                                  |
+| [mangle/package.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/mangle/package.d)           | D [name mangling](https://dlang.org/spec/abi.html#name_mangling) |
 
 ### Linking
 

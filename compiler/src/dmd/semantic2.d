@@ -720,8 +720,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
  */
 private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
 {
-    import dmd.dmangle;
-
+    import dmd.mangle : isValidMangling;
     // When `@gnuAbiTag` is used, the type will be the UDA, not the struct literal
     if (e.op == EXP.type)
     {

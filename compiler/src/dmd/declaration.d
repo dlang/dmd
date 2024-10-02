@@ -1762,7 +1762,7 @@ extern (C++) final class SymbolDeclaration : Declaration
  */
 private Identifier getTypeInfoIdent(Type t)
 {
-    import dmd.dmangle;
+    import dmd.mangle;
     import core.stdc.stdlib;
     import dmd.root.rmem;
     // _init_10TypeInfo_%s

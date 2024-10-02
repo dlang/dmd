@@ -36,14 +36,12 @@ import dmd.backend.rtlsym;
 import dmd.backend.symtab;
 import dmd.backend.ty;
 import dmd.backend.type;
-
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.blockexit;
 import dmd.dclass;
 import dmd.declaration;
-import dmd.dmangle;
 import dmd.dmdparams;
 import dmd.dmodule;
 import dmd.dmsc;

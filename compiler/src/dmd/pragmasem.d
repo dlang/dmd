@@ -40,10 +40,10 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
 {
     import dmd.aggregate;
     import dmd.common.outbuffer;
-    import dmd.dmangle;
     import dmd.dmodule;
     import dmd.dsymbolsem;
     import dmd.identifier;
+    import dmd.mangle : isValidMangling;
     import dmd.root.rmem;
     import dmd.root.utf;
     import dmd.target;

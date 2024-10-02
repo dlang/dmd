@@ -1548,8 +1548,8 @@ struct TargetCPP
      */
     extern (C++) const(char)* toMangle(Dsymbol s)
     {
-        import dmd.cppmangle : toCppMangleItanium;
-        import dmd.cppmanglewin : toCppMangleMSVC;
+        import dmd.mangle.cpp : toCppMangleItanium;
+        import dmd.mangle.cppwin : toCppMangleMSVC;
 
         if (target.os & (Target.OS.linux | Target.OS.OSX | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
             return toCppMangleItanium(s);
@@ -1568,8 +1568,8 @@ struct TargetCPP
      */
     extern (C++) const(char)* typeInfoMangle(ClassDeclaration cd)
     {
-        import dmd.cppmangle : cppTypeInfoMangleItanium;
-        import dmd.cppmanglewin : cppTypeInfoMangleMSVC;
+        import dmd.mangle.cpp : cppTypeInfoMangleItanium;
+        import dmd.mangle.cppwin : cppTypeInfoMangleMSVC;
 
         if (target.os & (Target.OS.linux | Target.OS.OSX | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
             return cppTypeInfoMangleItanium(cd);

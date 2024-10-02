@@ -23,7 +23,6 @@ import dmd.dcast;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dinterpret;
-import dmd.dmangle;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
