@@ -9,7 +9,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/scanmach.d
  */
 
-module dmd.scanmach;
+module dmd.lib.scanmach;
 
 import core.stdc.string;
 import core.stdc.stdint;
@@ -34,6 +34,7 @@ private enum LOG = false;
  *      loc =         location to use for error printing
  *      eSink =       where the error messages go
  */
+package(dmd.lib)
 void scanMachObjModule(void delegate(const(char)[] name, int pickAny) nothrow pAddSymbol,
         const ubyte[] base, const char* module_name, Loc loc, ErrorSink eSink)
 {

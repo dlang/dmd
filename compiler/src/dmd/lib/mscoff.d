@@ -9,7 +9,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/libmscoff.d
  */
 
-module dmd.libmscoff;
+module dmd.lib.mscoff;
 
 import core.stdc.stdlib;
 import core.stdc.string;
@@ -46,10 +46,10 @@ import dmd.root.rmem;
 import dmd.root.string;
 import dmd.root.stringtable;
 
-import dmd.scanmscoff;
+import dmd.lib.scanmscoff;
 
 // Entry point (only public symbol in this module).
-public extern (C++) Library LibMSCoff_factory() @safe
+package(dmd.lib) extern (C++) Library LibMSCoff_factory() @safe
 {
     return new LibMSCoff();
 }
