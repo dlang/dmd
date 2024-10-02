@@ -9,13 +9,12 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/cppmanglewin.d
  */
 
-module dmd.cppmanglewin;
+module dmd.mangle.cppwin;
 
 import core.stdc.stdio;
 
 import dmd.arraytypes;
 import dmd.astenums;
-import dmd.cppmangle : isAggregateDtor, isCppOperator, CppOperator;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.denum : isSpecialEnumIdent;
@@ -31,6 +30,7 @@ import dmd.globals;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
+import dmd.mangle.cpp : isAggregateDtor, isCppOperator, CppOperator;
 import dmd.mtype;
 import dmd.common.outbuffer;
 import dmd.rootobject;

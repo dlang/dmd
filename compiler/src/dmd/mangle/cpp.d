@@ -21,7 +21,7 @@
  *  enter `C++, mangling` as the keywords.
  */
 
-module dmd.cppmangle;
+module dmd.mangle.cpp;
 
 import core.stdc.stdio;
 

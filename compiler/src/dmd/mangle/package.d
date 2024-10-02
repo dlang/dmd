@@ -12,7 +12,7 @@
  * References:  https://dlang.org/blog/2017/12/20/ds-newfangled-name-mangling/
  */
 
-module dmd.dmangle;
+module dmd.mangle;
 
 
 /******************************************************************************
@@ -70,7 +70,7 @@ void mangleToBuffer(TemplateInstance ti, ref OutBuffer buf)
 }
 
 /// Returns: `true` if the given character is a valid mangled character
-package bool isValidMangling(dchar c) nothrow
+package(dmd) bool isValidMangling(dchar c) nothrow
 {
     import dmd.common.charactertables;
 
@@ -139,7 +139,7 @@ import core.stdc.string;
 import dmd.aggregate;
 import dmd.arraytypes;
 import dmd.astenums;
-import dmd.basicmangle;
+import dmd.mangle.basic;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dinterpret;

@@ -37,7 +37,6 @@ import dmd.astenums;
 import dmd.attrib;
 import dmd.dclass;
 import dmd.declaration;
-import dmd.dmangle;
 import dmd.dmdparams;
 import dmd.dmodule;
 import dmd.dstruct;
