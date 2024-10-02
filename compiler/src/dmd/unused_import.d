@@ -1,9 +1,12 @@
 import core.stdc.stdio;
 
-import dmd.dimport : Import;
-import dmd.dmodule : Module;
-import dmd.errors : warning;
-import dmd.visitor : SemanticTimeTransitiveVisitor;
+import dmd.cond;
+import dmd.dimport;
+import dmd.dmodule;
+import dmd.dtemplate;
+import dmd.errors;
+import dmd.visitor;
+import dmd.attrib;
 
 void checkUnusedImports(Module m)
 {
@@ -15,9 +18,17 @@ extern(C++) class UnusedImportVisitor : SemanticTimeTransitiveVisitor
 {
     alias visit = typeof(super).visit;
 
+    // skip template declarations as it is tricky or even
+    // impossible in same cases to know whether the import
+    // is accessed or not. Issuing warning for specific
+    // template instances is easier and less error prone.
+    override void visit(TemplateDeclaration ) {}
+    override void visit(ConditionalDeclaration) {}
+    override void visit(TemplateInstance ti) { printf("ti = %s\n", ti.toChars()); }
+
     override void visit(Import imp)
     {
-        if (!imp.used)
+        if (!imp.used && !imp.isstatic)
         {
             string s;
             foreach (const packageId; imp.packages)
