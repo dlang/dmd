@@ -2802,7 +2802,7 @@ void modifyReturns(FuncLiteralDeclaration fld, Scope* sc, Type tret)
  * Returns: `true` if the provided scope is the root
  * of the traits compiles list of scopes.
  */
-bool isRootTraitsCompilesScope(Scope* sc)
+bool isRootTraitsCompilesScope(Scope* sc) @safe
 {
     return (sc.traitsCompiles) && !sc.func.skipCodegen;
 }

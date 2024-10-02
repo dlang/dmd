@@ -134,7 +134,7 @@ extern(C++) struct Verbose
     uint errorLimit = 20;
     uint errorSupplementLimit = 6;      // Limit the number of supplemental messages for each error (0 means unlimited)
 
-    uint errorSupplementCount()
+    uint errorSupplementCount() @safe
     {
         if (verbose)
             return uint.max;
@@ -256,7 +256,7 @@ extern (C++) struct Param
     const(char)* timeTraceFile; /// File path of output file
 
     ///
-    bool parsingUnittestsRequired()
+    bool parsingUnittestsRequired() @safe
     {
         return useUnitTests || ddoc.doOutput || dihdr.doOutput;
     }
