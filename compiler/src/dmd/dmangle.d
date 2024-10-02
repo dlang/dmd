@@ -415,12 +415,6 @@ void mangleParameter(Parameter p, ref OutBuffer buf, ref Backref backref)
 
     auto stc = p.storageClass;
 
-    // Inferred storage classes don't get mangled in
-    if (stc & STC.scopeinferred)
-        stc &= ~(STC.scope_ | STC.scopeinferred);
-    if (stc & STC.returninferred)
-        stc &= ~(STC.return_ | STC.returninferred);
-
     // much like hdrgen.stcToBuffer()
     string rrs;
     const isout = (stc & STC.out_) != 0;

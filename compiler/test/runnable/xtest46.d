@@ -7983,8 +7983,8 @@ void test17349()
     static struct S
     {
         // Specify attribute inferred for dg1/dg2
-        int bar(void delegate(ref int*) pure nothrow @nogc @safe) { return 1; }
-        int bar(void delegate(ref const int*) pure nothrow @nogc @safe) const { return 2; }
+        int bar(void delegate(ref scope int*) pure nothrow @nogc @safe) { return 1; }
+        int bar(void delegate(ref scope const int*) pure nothrow @nogc @safe) const { return 2; }
     }
 
     void dg1(ref int*) { }
