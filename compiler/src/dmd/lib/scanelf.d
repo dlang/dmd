@@ -9,7 +9,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/scanelf.d
  */
 
-module dmd.scanelf;
+module dmd.lib.scanelf;
 
 import core.stdc.string;
 import core.stdc.stdint;
@@ -32,6 +32,7 @@ enum LOG = false;
  *      loc =         location to use for error printing
  *      eSink =       where the error messages go
  */
+package(dmd.lib)
 void scanElfObjModule(void delegate(const(char)[] name, int pickAny) nothrow pAddSymbol,
         scope const ubyte[] base, const char* module_name, Loc loc, ErrorSink eSink)
 {
