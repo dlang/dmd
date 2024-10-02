@@ -199,13 +199,13 @@ Note that these groups have no strict meaning, the category assignments are a bi
 
 | File                                                                          | Purpose                                              |
 |-------------------------------------------------------------------------------|------------------------------------------------------|
-| [lib.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/lib.d)               | Abstract library class                               |
-| [libelf.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/libelf.d)         | Library in ELF format (Unix)                         |
-| [libmach.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/libmach.d)       | Library in Mach-O format (macOS)                     |
-| [libmscoff.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/libmscoff.d)   | Library in COFF format (32/64-bit Windows)           |
-| [scanelf.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/scanelf.d)       | Extract symbol names from a library in ELF format    |
-| [scanmach.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/scanmach.d)     | Extract symbol names from a library in Mach-O format |
-| [scanmscoff.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/scanmscoff.d) | Extract symbol names from a library in COFF format   |
+| [lib/package.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/lib/package.d)               | Abstract library class                               |
+| [lib/elf.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/lib/elf.d)         | Library in ELF format (Unix)                         |
+| [lib/mach.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/lib/mach.d)       | Library in Mach-O format (macOS)                     |
+| [lib/mscoff.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/lib/mscoff.d)   | Library in COFF format (32/64-bit Windows)           |
+| [lib/scanelf.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/lib/scanelf.d)       | Extract symbol names from a library in ELF format    |
+| [lib/scanmach.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/lib/scanmach.d)     | Extract symbol names from a library in Mach-O format |
+| [lib/scanmscoff.d](https://github.com/dlang/dmd/blob/master/compiler/src/dmd/lib/scanmscoff.d) | Extract symbol names from a library in COFF format   |
 
 ### Code generation / back-end interfacing
 

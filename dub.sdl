@@ -123,16 +123,16 @@ subPackage {
     iasmdmd,\
     iasmgcc,\
     irstate,\
-    lib,\
-    libelf,\
-    libmach,\
-    libmscoff,\
+    lib/package,\
+    lib/elf,\
+    lib/mach,\
+    lib/mscoff,\
+    lib/scanelf,\
+    lib/scanmach,\
+    lib/scanmscoff,\
     link,\
     objc_glue,\
     s2ir,\
-    scanelf,\
-    scanmach,\
-    scanmscoff,\
     tocsym,\
     toctype,\
     tocvdebug,\
