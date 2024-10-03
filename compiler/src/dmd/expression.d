@@ -54,29 +54,6 @@ import dmd.visitor;
 
 enum LOGSEMANTIC = false;
 
-/// Return value for `checkModifiable`
-enum Modifiable
-{
-    /// Not modifiable
-    no,
-    /// Modifiable (the type is mutable)
-    yes,
-    /// Modifiable because it is initialization
-    initialization,
-}
-/**
- * Specifies how the checkModify deals with certain situations
- */
-enum ModifyFlags
-{
-    /// Issue error messages on invalid modifications of the variable
-    none,
-    /// No errors are emitted for invalid modifications
-    noError = 0x1,
-    /// The modification occurs for a subfield of the current variable
-    fieldAssign = 0x2,
-}
-
 /****************************************
  * Find the last non-comma expression.
  * Params:
