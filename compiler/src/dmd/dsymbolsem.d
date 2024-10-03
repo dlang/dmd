@@ -7429,14 +7429,65 @@ extern(C++) class newScopeVisitor : Visitor
         this.sc = sc;
     }
 
-override void visit(VisibilityDeclaration atbd)
+    /****************************************
+     * A hook point to supply scope for members.
+     * addMember, setScope, importAll, semantic, semantic2 and semantic3 will use this.
+     */
+    override void visit(AttribDeclaration dc){}
+
+    override void visit(StorageClassDeclaration swt)
     {
-        if (atbd.pkg_identifiers)
-        {
-            dsymbolSemantic(atbd, sc);
-        }
-        sc = atbd.createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, atbd.visibility, 1, sc.aligndecl, sc.inlining);
+        StorageClass scstc = sc.stc;
+        /* These sets of storage classes are mutually exclusive,
+         * so choose the innermost or most recent one.
+         */
+        if (swt.stc & (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.manifest))
+            scstc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.manifest);
+        if (swt.stc & (STC.auto_ | STC.scope_ | STC.static_ | STC.manifest | STC.gshared))
+            scstc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.manifest | STC.gshared);
+        if (swt.stc & (STC.const_ | STC.immutable_ | STC.manifest))
+            scstc &= ~(STC.const_ | STC.immutable_ | STC.manifest);
+        if (swt.stc & (STC.gshared | STC.shared_))
+            scstc &= ~(STC.gshared | STC.shared_);
+        if (swt.stc & (STC.safe | STC.trusted | STC.system))
+            scstc &= ~(STC.safe | STC.trusted | STC.system);
+        scstc |= swt.stc;
+        //printf("scstc = x%llx\n", scstc);
+        sc = swt.createNewScope(sc, scstc, sc.linkage, sc.cppmangle,
+        sc.visibility, sc.explicitVisibility, sc.aligndecl, sc.inlining);
     }
+
+    /**
+     * Provides a new scope with `STC.deprecated_` and `Scope.depdecl` set
+     *
+     * Calls `StorageClassDeclaration.newScope` (as it must be called or copied
+     * in any function overriding `newScope`), then set the `Scope`'s depdecl.
+     *
+     * Returns:
+     *   Always a new scope, to use for this `DeprecatedDeclaration`'s members.
+     */
+    override void visit(DeprecatedDeclaration dpd)
+    {
+        auto scx = (cast(StorageClassDeclaration)dpd).newScope(sc);
+        // The enclosing scope is deprecated as well
+        if (scx == sc)
+            scx = sc.push();
+            scx.depdecl = dpd;
+            sc = scx;
+    }
+
+    override void visit(LinkDeclaration  lid)
+    {
+        sc= lid.createNewScope(sc, sc.stc, lid.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility,
+        sc.aligndecl, sc.inlining);
+    }
+
+    override void visit(CPPMangleDeclaration cpmd)
+    {
+        sc = cpmd.createNewScope(sc, sc.stc, LINK.cpp, cpmd.cppmangle, sc.visibility, sc.explicitVisibility,
+        sc.aligndecl, sc.inlining);
+    }
+
     /**
      * Returns:
      *   A copy of the parent scope, with `this` as `namespace` and C++ linkage
@@ -7449,15 +7500,19 @@ override void visit(VisibilityDeclaration atbd)
         sc = scx;
     }
 
-    override void visit(CPPMangleDeclaration cpmd)
+    override void visit(VisibilityDeclaration atbd)
     {
-        sc = cpmd.createNewScope(sc, sc.stc, LINK.cpp, cpmd.cppmangle, sc.visibility, sc.explicitVisibility,
-            sc.aligndecl, sc.inlining);
+        if (atbd.pkg_identifiers)
+        {
+            dsymbolSemantic(atbd, sc);
+        }
+        sc = atbd.createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, atbd.visibility, 1, sc.aligndecl, sc.inlining);
     }
 
     override void visit(AlignDeclaration visd)
     {
-     sc = visd.createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility, visd, sc.inlining);
+        sc = visd.createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility, 
+        sc.explicitVisibility, visd, sc.inlining);
     }
 
     override void visit(PragmaDeclaration prd)
@@ -7470,33 +7525,6 @@ override void visit(VisibilityDeclaration atbd)
         }
     }
 
-override void visit(LinkDeclaration  lid)
-    {
-        sc= lid.createNewScope(sc, sc.stc, lid.linkage, sc.cppmangle, sc.visibility, sc.explicitVisibility,
-            sc.aligndecl, sc.inlining);
-    }
-
-/**
-     * Provides a new scope with `STC.deprecated_` and `Scope.depdecl` set
-     *
-     * Calls `StorageClassDeclaration.newScope` (as it must be called or copied
-     * in any function overriding `newScope`), then set the `Scope`'s depdecl.
-     *
-     * Returns:
-     *   Always a new scope, to use for this `DeprecatedDeclaration`'s members.
-     */
-    override void visit(DeprecatedDeclaration dpd)
-    {
-         auto oldsc = sc;
-        visit(cast(StorageClassDeclaration) dpd);
-        auto scx = sc;
-        sc = oldsc;
-        if (scx == sc) 
-        scx = sc.push(); 
-        scx.depdecl = dpd; 
-        sc = scx;
-    }
-    
     /**************************************
      * Use the ForwardingScopeDsymbol as the parent symbol for members.
      */
@@ -7505,35 +7533,7 @@ override void visit(LinkDeclaration  lid)
         sc = sc.push(fad.sym);
     }
     
- override void visit(StorageClassDeclaration swt)
-    {
-        StorageClass scstc = swt.stc;
-        /* These sets of storage classes are mutually exclusive,
-         * so choose the innermost or most recent one.
-         */
-        if (scstc & (STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.manifest))
-            scstc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.manifest);
-        if (scstc & (STC.auto_ | STC.scope_ | STC.static_ | STC.manifest | STC.gshared))
-            scstc &= ~(STC.auto_ | STC.scope_ | STC.static_ | STC.manifest | STC.gshared);
-        if (scstc & (STC.const_ | STC.immutable_ | STC.manifest))
-            scstc &= ~(STC.const_ | STC.immutable_ | STC.manifest);
-        if (scstc & (STC.gshared | STC.shared_))
-            scstc &= ~(STC.gshared | STC.shared_);
-        if (scstc & (STC.safe | STC.trusted | STC.system))
-            scstc &= ~(STC.safe | STC.trusted | STC.system);
-        scstc |= swt.stc;
-        //printf("scstc = x%llx\n", scstc);
-        sc = swt.createNewScope(sc, scstc, sc.linkage, sc.cppmangle,
-            sc.visibility, sc.explicitVisibility, sc.aligndecl, sc.inlining);
-    }
-
-/****************************************
-     * A hook point to supply scope for members.
-     * addMember, setScope, importAll, semantic, semantic2 and semantic3 will use this.
-     */
-    override void visit(Dsymbol dc){}
-
-override void visit(UserAttributeDeclaration uac)
+    override void visit(UserAttributeDeclaration uac)
     {
         Scope* sc2 = sc;
         if (uac.atts && uac.atts.length)
