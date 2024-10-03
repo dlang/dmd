@@ -17118,3 +17118,123 @@ private bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e
     }
     return false;
 }
+
+/***************************************
+ * Request additional semantic analysis for TypeInfo generation.
+ * Params:
+ *      sc = context
+ *      t = type that TypeInfo is being generated for
+ */
+void semanticTypeInfo(Scope* sc, Type t)
+{
+    if (sc)
+    {
+        if (sc.intypeof)
+            return;
+        if (!sc.needsCodegen())
+            return;
+    }
+
+    if (!t)
+        return;
+
+    void visitVector(TypeVector t)
+    {
+        semanticTypeInfo(sc, t.basetype);
+    }
+
+    void visitAArray(TypeAArray t)
+    {
+        semanticTypeInfo(sc, t.index);
+        semanticTypeInfo(sc, t.next);
+    }
+
+    void visitStruct(TypeStruct t)
+    {
+        //printf("semanticTypeInfo.visit(TypeStruct = %s)\n", t.toChars());
+        StructDeclaration sd = t.sym;
+
+        /* Step 1: create TypeInfoDeclaration
+         */
+        if (!sc) // inline may request TypeInfo.
+        {
+            Scope scx;
+            scx.eSink = global.errorSink;
+            scx._module = sd.getModule();
+            getTypeInfoType(sd.loc, t, &scx);
+            sd.requestTypeInfo = true;
+        }
+        else if (!sc.minst)
+        {
+            // don't yet have to generate TypeInfo instance if
+            // the typeid(T) expression exists in speculative scope.
+        }
+        else
+        {
+            getTypeInfoType(sd.loc, t, sc);
+            sd.requestTypeInfo = true;
+
+            // https://issues.dlang.org/show_bug.cgi?id=15149
+            // if the typeid operand type comes from a
+            // result of auto function, it may be yet speculative.
+            // unSpeculative(sc, sd);
+        }
+
+        /* Step 2: If the TypeInfo generation requires sd.semantic3, run it later.
+         * This should be done even if typeid(T) exists in speculative scope.
+         * Because it may appear later in non-speculative scope.
+         */
+        if (!sd.members)
+            return; // opaque struct
+        if (!sd.xeq && !sd.xcmp && !sd.postblit && !sd.tidtor && !sd.xhash && !search_toString(sd))
+            return; // none of TypeInfo-specific members
+
+        // If the struct is in a non-root module, run semantic3 to get
+        // correct symbols for the member function.
+        if (sd.semanticRun >= PASS.semantic3)
+        {
+            // semantic3 is already done
+        }
+        else if (TemplateInstance ti = sd.isInstantiated())
+        {
+            if (ti.minst && !ti.minst.isRoot())
+                Module.addDeferredSemantic3(sd);
+        }
+        else
+        {
+            if (sd.inNonRoot())
+            {
+                //printf("deferred sem3 for TypeInfo - sd = %s, inNonRoot = %d\n", sd.toChars(), sd.inNonRoot());
+                Module.addDeferredSemantic3(sd);
+            }
+        }
+    }
+
+    void visitTuple(TypeTuple t)
+    {
+        if (t.arguments)
+        {
+            foreach (arg; *t.arguments)
+            {
+                semanticTypeInfo(sc, arg.type);
+            }
+        }
+    }
+
+    /* Note structural similarity of this Type walker to that in isSpeculativeType()
+     */
+
+    Type tb = t.toBasetype();
+    switch (tb.ty)
+    {
+        case Tvector:   visitVector(tb.isTypeVector()); break;
+        case Taarray:   visitAArray(tb.isTypeAArray()); break;
+        case Tstruct:   visitStruct(tb.isTypeStruct()); break;
+        case Ttuple:    visitTuple (tb.isTypeTuple());  break;
+
+        case Tclass:
+        case Tenum:     break;
+
+        default:        semanticTypeInfo(sc, tb.nextOf()); break;
+    }
+}
