@@ -118,7 +118,7 @@ void enumSemantic(Scope* sc, EnumDeclaration ed)
     ed.cppnamespace = sc.namespace;
 
     ed.semanticRun = PASS.semantic;
-    UserAttributeDeclaration.checkGNUABITag(ed, sc.linkage);
+    checkGNUABITag(ed, sc.linkage);
     checkMustUseReserved(ed);
 
     if (!ed.members && !ed.memtype) // enum ident;
