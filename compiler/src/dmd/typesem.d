@@ -7481,6 +7481,62 @@ MATCH implicitConvToThroughAliasThis(TypeStruct from, Type to)
     return MATCH.nomatch;
 }
 
+/*******************************************
+ * Compute number of elements for a (possibly multidimensional) static array,
+ * or 1 for other types.
+ * Params:
+ *  t = static array type
+ *  loc = for error message
+ * Returns:
+ *  number of elements, uint.max on overflow
+ */
+uint numberOfElems(Type t, const ref Loc loc)
+{
+    //printf("Type::numberOfElems()\n");
+    uinteger_t n = 1;
+    Type tb = t;
+    while ((tb = tb.toBasetype()).ty == Tsarray)
+    {
+        bool overflow = false;
+        n = mulu(n, (cast(TypeSArray)tb).dim.toUInteger(), overflow);
+        if (overflow || n >= uint.max)
+        {
+            error(loc, "static array `%s` size overflowed to %llu", t.toChars(), cast(ulong)n);
+            return uint.max;
+        }
+        tb = (cast(TypeSArray)tb).next;
+    }
+    return cast(uint)n;
+}
+
+bool checkRetType(TypeFunction tf, const ref Loc loc)
+{
+    Type tb = tf.next.toBasetype();
+    if (tb.ty == Tfunction)
+    {
+        error(loc, "functions cannot return a function");
+        tf.next = Type.terror;
+    }
+    if (tb.ty == Ttuple)
+    {
+        error(loc, "functions cannot return a sequence (use `std.typecons.Tuple`)");
+        tf.next = Type.terror;
+    }
+    if (!tf.isRef && (tb.ty == Tstruct || tb.ty == Tsarray))
+    {
+        if (auto ts = tb.baseElemOf().isTypeStruct())
+        {
+            if (!ts.sym.members)
+            {
+                error(loc, "functions cannot return opaque type `%s` by value", tb.toChars());
+                tf.next = Type.terror;
+            }
+        }
+    }
+    if (tb.ty == Terror)
+        return true;
+    return false;
+}
 
 
 /******************************* Private *****************************************/
