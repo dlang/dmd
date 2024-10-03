@@ -1720,10 +1720,10 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         //printf("FuncDeclaration::toCBuffer() '%s'\n", f.toChars());
         if (stcToBuffer(buf, f.storage_class))
             buf.writeByte(' ');
+        typeToBuffer(f.type, f.ident, buf, hgs);
         auto tf = f.type.isTypeFunction();
-        typeToBuffer(tf, f.ident, buf, hgs);
 
-        if (hgs.hdrgen)
+        if (hgs.hdrgen && tf)
         {
             // if the return type is missing (e.g. ref functions or auto)
             // https://issues.dlang.org/show_bug.cgi?id=20090
