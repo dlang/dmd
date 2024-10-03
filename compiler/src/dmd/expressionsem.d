@@ -16857,3 +16857,38 @@ bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool 
     }
     return impl(e);
 }
+
+/************************************
+ * Check to see the aggregate type is nested and its context pointer is
+ * accessible from the current scope.
+ * Returns true if error occurs.
+ */
+bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, size_t iStart = 0)
+{
+    Dsymbol sparent = ad.toParentLocal();
+    Dsymbol sparent2 = ad.toParent2();
+    Dsymbol s = sc.func;
+    if (ad.isNested() && s)
+    {
+        //printf("ad = %p %s [%s], parent:%p\n", ad, ad.toChars(), ad.loc.toChars(), ad.parent);
+        //printf("sparent = %p %s [%s], parent: %s\n", sparent, sparent.toChars(), sparent.loc.toChars(), sparent.parent,toChars());
+        //printf("sparent2 = %p %s [%s], parent: %s\n", sparent2, sparent2.toChars(), sparent2.loc.toChars(), sparent2.parent,toChars());
+        if (!ensureStaticLinkTo(s, sparent) || sparent != sparent2 && !ensureStaticLinkTo(s, sparent2))
+        {
+            error(loc, "cannot access frame pointer of `%s`", ad.toPrettyChars());
+            return true;
+        }
+    }
+
+    bool result = false;
+    for (size_t i = iStart; i < ad.fields.length; i++)
+    {
+        VarDeclaration vd = ad.fields[i];
+        Type tb = vd.type.baseElemOf();
+        if (tb.ty == Tstruct)
+        {
+            result |= checkFrameAccess(loc, sc, (cast(TypeStruct)tb).sym);
+        }
+    }
+    return result;
+}
