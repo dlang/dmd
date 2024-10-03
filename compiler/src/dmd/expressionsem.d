@@ -16906,3 +16906,215 @@ bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, size_t iStart
     }
     return result;
 }
+
+/// Return value for `checkModifiable`
+enum Modifiable
+{
+    /// Not modifiable
+    no,
+    /// Modifiable (the type is mutable)
+    yes,
+    /// Modifiable because it is initialization
+    initialization,
+}
+
+/**
+ * Specifies how the checkModify deals with certain situations
+ */
+enum ModifyFlags
+{
+    /// Issue error messages on invalid modifications of the variable
+    none,
+    /// No errors are emitted for invalid modifications
+    noError = 0x1,
+    /// The modification occurs for a subfield of the current variable
+    fieldAssign = 0x2,
+}
+
+/*************************************
+ * Check to see if declaration can be modified in this context (sc).
+ * Issue error if not.
+ * Params:
+ *  loc  = location for error messages
+ *  e1   = `null` or `this` expression when this declaration is a field
+ *  sc   = context
+ *  flag = if the first bit is set it means do not issue error message for
+ *         invalid modification; if the second bit is set, it means that
+           this declaration is a field and a subfield of it is modified.
+ * Returns:
+ *  Modifiable.yes or Modifiable.initialization
+ */
+private Modifiable checkModify(Declaration d, Loc loc, Scope* sc, Expression e1, ModifyFlags flag)
+{
+    VarDeclaration v = d.isVarDeclaration();
+    if (v && v.canassign)
+        return Modifiable.initialization;
+
+    if (d.isParameter() || d.isResult())
+    {
+        for (Scope* scx = sc; scx; scx = scx.enclosing)
+        {
+            if (scx.func == d.parent && scx.contract != Contract.none)
+            {
+                const(char)* s = d.isParameter() && d.parent.ident != Id.ensure ? "parameter" : "result";
+                if (!(flag & ModifyFlags.noError))
+                    error(loc, "%s `%s` cannot modify %s `%s` in contract", d.kind, d.toPrettyChars, s, d.toChars());
+                return Modifiable.initialization; // do not report type related errors
+            }
+        }
+    }
+
+    if (e1 && e1.op == EXP.this_ && d.isField())
+    {
+        VarDeclaration vthis = e1.isThisExp().var;
+        for (Scope* scx = sc; scx; scx = scx.enclosing)
+        {
+            if (scx.func == vthis.parent && scx.contract != Contract.none)
+            {
+                if (!(flag & ModifyFlags.noError))
+                    error(loc, "%s `%s` cannot modify parameter `this` in contract", d.kind, d.toPrettyChars);
+                return Modifiable.initialization; // do not report type related errors
+            }
+        }
+    }
+
+    if (v && (v.isCtorinit() || d.isField()))
+    {
+        // It's only modifiable if inside the right constructor
+        if ((d.storage_class & (STC.foreach_ | STC.ref_)) == (STC.foreach_ | STC.ref_))
+            return Modifiable.initialization;
+        if (flag & ModifyFlags.fieldAssign)
+            return Modifiable.yes;
+        return modifyFieldVar(loc, sc, v, e1) ? Modifiable.initialization : Modifiable.yes;
+    }
+    return Modifiable.yes;
+}
+
+/***********************************************
+ * Mark variable v as modified if it is inside a constructor that var
+ * is a field in.
+ * Also used to allow immutable globals to be initialized inside a static constructor.
+ * Returns:
+ *    true if it's an initialization of v
+ */
+private bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
+{
+    //printf("modifyFieldVar(var = %s)\n", var.toChars());
+    Dsymbol s = sc.func;
+    while (1)
+    {
+        FuncDeclaration fd = null;
+        if (s)
+            fd = s.isFuncDeclaration();
+        if (fd &&
+            ((fd.isCtorDeclaration() && var.isField()) ||
+             ((fd.isStaticCtorDeclaration() || fd.isCrtCtor) && !var.isField())) &&
+            fd.toParentDecl() == var.toParent2() &&
+            (!e1 || e1.op == EXP.this_))
+        {
+            bool result = true;
+
+            var.ctorinit = true;
+            //printf("setting ctorinit\n");
+
+            if (var.isField() && sc.ctorflow.fieldinit.length && !sc.intypeof)
+            {
+                assert(e1);
+                auto mustInit = ((var.storage_class & STC.nodefaultctor) != 0 ||
+                                 var.type.needsNested());
+
+                const dim = sc.ctorflow.fieldinit.length;
+                auto ad = fd.isMemberDecl();
+                assert(ad);
+                size_t i;
+                for (i = 0; i < dim; i++) // same as findFieldIndexByName in ctfeexp.c ?
+                {
+                    if (ad.fields[i] == var)
+                        break;
+                }
+                assert(i < dim);
+                auto fieldInit = &sc.ctorflow.fieldinit[i];
+                const fi = fieldInit.csx;
+
+                if (fi & CSX.this_ctor)
+                {
+                    if (var.type.isMutable() && e1.type.isMutable())
+                        result = false;
+                    else
+                    {
+                        const(char)* modStr = !var.type.isMutable() ? MODtoChars(var.type.mod) : MODtoChars(e1.type.mod);
+                        .error(loc, "%s field `%s` initialized multiple times", modStr, var.toChars());
+                        .errorSupplemental(fieldInit.loc, "Previous initialization is here.");
+                    }
+                }
+                else if (sc.inLoop || (fi & CSX.label))
+                {
+                    if (!mustInit && var.type.isMutable() && e1.type.isMutable())
+                        result = false;
+                    else
+                    {
+                        const(char)* modStr = !var.type.isMutable() ? MODtoChars(var.type.mod) : MODtoChars(e1.type.mod);
+                        .error(loc, "%s field `%s` initialization is not allowed in loops or after labels", modStr, var.toChars());
+                    }
+                }
+
+                fieldInit.csx |= CSX.this_ctor;
+                fieldInit.loc = e1.loc;
+                if (var.overlapped) // https://issues.dlang.org/show_bug.cgi?id=15258
+                {
+                    foreach (j, v; ad.fields)
+                    {
+                        if (v is var || !var.isOverlappedWith(v))
+                            continue;
+                        v.ctorinit = true;
+                        sc.ctorflow.fieldinit[j].csx = CSX.this_ctor;
+                    }
+                }
+            }
+            else if (fd != sc.func)
+            {
+                if (var.type.isMutable())
+                    result = false;
+                else if (sc.func.fes)
+                {
+                    const(char)* p = var.isField() ? "field" : var.kind();
+                    .error(loc, "%s %s `%s` initialization is not allowed in foreach loop",
+                        MODtoChars(var.type.mod), p, var.toChars());
+                }
+                else
+                {
+                    const(char)* p = var.isField() ? "field" : var.kind();
+                    .error(loc, "%s %s `%s` initialization is not allowed in nested function `%s`",
+                        MODtoChars(var.type.mod), p, var.toChars(), sc.func.toChars());
+                }
+            }
+            else if (fd.isStaticCtorDeclaration() && !fd.isSharedStaticCtorDeclaration() &&
+                     var.type.isImmutable())
+            {
+                .error(loc, "%s %s `%s` initialization is not allowed in `static this`",
+                    MODtoChars(var.type.mod), var.kind(), var.toChars());
+                errorSupplemental(loc, "Use `shared static this` instead.");
+            }
+            else if (fd.isStaticCtorDeclaration() && !fd.isSharedStaticCtorDeclaration() &&
+                    var.type.isConst())
+            {
+                // @@@DEPRECATED_2.116@@@
+                // Turn this into an error, merging with the branch above
+                .deprecation(loc, "%s %s `%s` initialization is not allowed in `static this`",
+                    MODtoChars(var.type.mod), var.kind(), var.toChars());
+                deprecationSupplemental(loc, "Use `shared static this` instead.");
+            }
+            return result;
+        }
+        else
+        {
+            if (s)
+            {
+                s = s.toParentP(var.toParent2());
+                continue;
+            }
+        }
+        break;
+    }
+    return false;
+}

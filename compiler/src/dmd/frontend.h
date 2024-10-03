@@ -3094,20 +3094,6 @@ public:
     void accept(Visitor* v) override;
 };
 
-enum class Modifiable
-{
-    no = 0,
-    yes = 1,
-    initialization = 2,
-};
-
-enum class ModifyFlags
-{
-    none = 0,
-    noError = 1,
-    fieldAssign = 2,
-};
-
 class ModuleInitExp final : public DefaultInitExp
 {
 public:
@@ -5590,8 +5576,6 @@ struct ASTCodegen final
     using MixinExp = ::MixinExp;
     using ModAssignExp = ::ModAssignExp;
     using ModExp = ::ModExp;
-    using Modifiable = ::Modifiable;
-    using ModifyFlags = ::ModifyFlags;
     using ModuleInitExp = ::ModuleInitExp;
     using MulAssignExp = ::MulAssignExp;
     using MulExp = ::MulExp;
