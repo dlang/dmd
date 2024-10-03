@@ -21,7 +21,6 @@ import dmd.arraytypes;
 import dmd.attrib;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
-import dmd.errors;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
