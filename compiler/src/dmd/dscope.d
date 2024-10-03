@@ -253,13 +253,13 @@ extern (C++) struct Scope
     }
 
     /// Copy flags from scope `other`
-    extern(D) void copyFlagsFrom(Scope* other)
+    extern(D) void copyFlagsFrom(Scope* other) @safe
     {
         this.bitFields = other.bitFields;
     }
 
     /// Set all scope flags to their initial value
-    extern(D) void resetAllFlags()
+    extern(D) void resetAllFlags() @safe
     {
         this.bitFields = 0;
     }

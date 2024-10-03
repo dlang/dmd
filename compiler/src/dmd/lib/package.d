@@ -19,9 +19,9 @@ import dmd.errorsink;
 import dmd.location;
 import dmd.target : Target;
 
-import dmd.libelf;
-import dmd.libmach;
-import dmd.libmscoff;
+import dmd.lib.elf;
+import dmd.lib.mach;
+import dmd.lib.mscoff;
 
 private enum LOG = false;
 

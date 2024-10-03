@@ -33,7 +33,6 @@ import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
 import dmd.dsymbolsem;
-import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
@@ -1019,70 +1018,6 @@ extern (C++) final class UserAttributeDeclaration : AttribDeclaration
     override void accept(Visitor v)
     {
         v.visit(this);
-    }
-
-    /**
-     * Check if the provided expression references `core.attribute.gnuAbiTag`
-     *
-     * This should be called after semantic has been run on the expression.
-     * Semantic on UDA happens in semantic2 (see `dmd.semantic2`).
-     *
-     * Params:
-     *   e = Expression to check (usually from `UserAttributeDeclaration.atts`)
-     *
-     * Returns:
-     *   `true` if the expression references the compiler-recognized `gnuAbiTag`
-     */
-    static bool isGNUABITag(Expression e)
-    {
-        if (global.params.cplusplus < CppStdRevision.cpp11)
-            return false;
-
-        auto ts = e.type ? e.type.isTypeStruct() : null;
-        if (!ts)
-            return false;
-        if (ts.sym.ident != Id.udaGNUAbiTag || !ts.sym.parent)
-            return false;
-        // Can only be defined in druntime
-        Module m = ts.sym.parent.isModule();
-        if (!m || !m.isCoreModule(Id.attribute))
-            return false;
-        return true;
-    }
-
-    /**
-     * Called from a symbol's semantic to check if `gnuAbiTag` UDA
-     * can be applied to them
-     *
-     * Directly emits an error if the UDA doesn't work with this symbol
-     *
-     * Params:
-     *   sym = symbol to check for `gnuAbiTag`
-     *   linkage = Linkage of the symbol (Declaration.link or sc.link)
-     */
-    static void checkGNUABITag(Dsymbol sym, LINK linkage)
-    {
-        if (global.params.cplusplus < CppStdRevision.cpp11)
-            return;
-
-        foreachUdaNoSemantic(sym, (exp) {
-            if (isGNUABITag(exp))
-            {
-                if (sym.isCPPNamespaceDeclaration() || sym.isNspace())
-                {
-                    .error(exp.loc, "`@%s` cannot be applied to namespaces", Id.udaGNUAbiTag.toChars());
-                    sym.errors = true;
-                }
-                else if (linkage != LINK.cpp)
-                {
-                    .error(exp.loc, "`@%s` can only apply to C++ symbols", Id.udaGNUAbiTag.toChars());
-                    sym.errors = true;
-                }
-                // Only one `@gnuAbiTag` is allowed by semantic2
-                return 1; // break
-            }
-            return 0; // continue
-        });
     }
 }
 

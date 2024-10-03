@@ -433,7 +433,7 @@ Returns:
    a `FindSplit` object that casts to `true` iff `needle` was found inside `str`.
    In that case, `split[1]` is the needle, and `split[0]`/`split[2]` are before/after the needle.
 */
-FindSplit findSplit(return scope const(char)[] str, scope const(char)[] needle)
+FindSplit findSplit(return scope const(char)[] str, scope const(char)[] needle) @safe
 {
     if (needle.length > str.length)
         return FindSplit([str, null, null]);
@@ -469,7 +469,7 @@ Params:
 Returns:
    substring of `str` inbetween `l` and `r`
 */
-const(char)[] findBetween(const(char)[] str, const(char)[] l, const(char)[] r)
+const(char)[] findBetween(const(char)[] str, const(char)[] l, const(char)[] r) @safe
 {
     if (auto s0 = str.findSplit(l))
         if (auto s1 = s0[2].findSplit(r))

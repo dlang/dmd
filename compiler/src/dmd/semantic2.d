@@ -230,7 +230,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
             return;
         }
 
-        UserAttributeDeclaration.checkGNUABITag(vd, vd._linkage);
+        checkGNUABITag(vd, vd._linkage);
 
         if (vd._init && !vd.toParent().isFuncDeclaration())
         {
@@ -471,7 +471,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
             return;
         TypeFunction f = cast(TypeFunction) fd.type;
 
-        UserAttributeDeclaration.checkGNUABITag(fd, fd._linkage);
+        checkGNUABITag(fd, fd._linkage);
         //semantic for parameters' UDAs
         foreach (i, param; f.parameterList)
         {
@@ -505,7 +505,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
             printf("+Nspace::semantic2('%s')\n", ns.toChars());
             scope(exit) printf("-Nspace::semantic2('%s')\n", ns.toChars());
         }
-        UserAttributeDeclaration.checkGNUABITag(ns, LINK.cpp);
+        checkGNUABITag(ns, LINK.cpp);
         if (!ns.members)
             return;
 
@@ -563,7 +563,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
     override void visit(CPPNamespaceDeclaration decl)
     {
-        UserAttributeDeclaration.checkGNUABITag(decl, LINK.cpp);
+        checkGNUABITag(decl, LINK.cpp);
         visit(cast(AttribDeclaration)decl);
     }
 
@@ -590,7 +590,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 }
 
                 // Handles compiler-recognized `core.attribute.gnuAbiTag`
-                if (UserAttributeDeclaration.isGNUABITag(e))
+                if (isGNUABITag(e))
                     doGNUABITagSemantic(e, lastTag);
             }
         }
@@ -612,8 +612,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
             return;
         }
 
-        UserAttributeDeclaration.checkGNUABITag(
-            ad, ad.classKind == ClassKind.cpp ? LINK.cpp : LINK.d);
+        checkGNUABITag(ad, ad.classKind == ClassKind.cpp ? LINK.cpp : LINK.d);
 
         auto sc2 = ad.newScope(sc);
 
@@ -720,8 +719,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
  */
 private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
 {
-    import dmd.dmangle;
-
+    import dmd.mangle : isValidMangling;
     // When `@gnuAbiTag` is used, the type will be the UDA, not the struct literal
     if (e.op == EXP.type)
     {
