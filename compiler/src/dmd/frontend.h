@@ -6416,8 +6416,6 @@ public:
     Scope* newScope(Scope* sc) override;
     const char* kind() const override;
     void accept(Visitor* v) override;
-    static bool isGNUABITag(Expression* e);
-    static void checkGNUABITag(Dsymbol* sym, LINK linkage);
 };
 
 extern BUILTIN isBuiltin(FuncDeclaration* fd);
