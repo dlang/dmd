@@ -7415,13 +7415,13 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
 
 Scope* newScope(Dsymbol d, Scope* sc)
 {
-    scope nsv = new newScopeVisitor(sc);
+    scope nsv = new NewScopeVisitor(sc);
     d.accept(nsv);
     return nsv.sc;
 }
 
-extern(C++) class newScopeVisitor : Visitor
-{    
+extern(C++) class NewScopeVisitor : Visitor
+{
     alias visit = typeof(super).visit;
     Scope* sc;
     this(Scope* sc)
@@ -7468,12 +7468,15 @@ extern(C++) class newScopeVisitor : Visitor
      */
     override void visit(DeprecatedDeclaration dpd)
     {
-        auto scx = (cast(StorageClassDeclaration)dpd).newScope(sc);
+        auto oldsc = sc;
+        visit((cast(StorageClassDeclaration)dpd));
+        auto scx = sc;
+        sc = oldsc;
         // The enclosing scope is deprecated as well
         if (scx == sc)
             scx = sc.push();
-            scx.depdecl = dpd;
-            sc = scx;
+        scx.depdecl = dpd;
+        sc = scx;
     }
 
     override void visit(LinkDeclaration  lid)
@@ -7493,7 +7496,7 @@ extern(C++) class newScopeVisitor : Visitor
      *   A copy of the parent scope, with `this` as `namespace` and C++ linkage
      *///override Scope* visit(Scope* sc)
     override void visit(CPPNamespaceDeclaration scd)
-    {   
+    {
         auto scx = sc.copy();
         scx.linkage = LINK.cpp;
         scx.namespace = scd;
@@ -7503,9 +7506,8 @@ extern(C++) class newScopeVisitor : Visitor
     override void visit(VisibilityDeclaration atbd)
     {
         if (atbd.pkg_identifiers)
-        {
             dsymbolSemantic(atbd, sc);
-        }
+
         sc = atbd.createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, atbd.visibility, 1, sc.aligndecl, sc.inlining);
     }
 
