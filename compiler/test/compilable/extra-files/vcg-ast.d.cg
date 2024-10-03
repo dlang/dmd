@@ -100,6 +100,12 @@ void main()
 	values();
 	return 0;
 }
+import imports.vcg_ast_import;
+template imported()
+{
+	import imported = imports.vcg_ast_import;
+}
+alias myImport = vcg_ast_import;
 R!int
 {
 	struct _R
@@ -126,6 +132,21 @@ mixin _d_cmain!();
 		}
 	}
 }
+imported!()
+{
+	import object;
+	struct O
+	{
+		invariant
+		{
+		}
+		invariant
+		{
+			__invariant0();
+		}
+	}
+
+}
 RTInfo!(C)
 {
 	enum immutable(void)* RTInfo = null;
@@ -150,4 +171,3 @@ RTInfo!(_R)
 	enum immutable(void)* RTInfo = null;
 
 }
-
