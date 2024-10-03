@@ -28,6 +28,7 @@ import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.expression;
+import dmd.expressionsem : semanticTypeInfo;
 import dmd.errors;
 import dmd.func;
 import dmd.funcsem;
