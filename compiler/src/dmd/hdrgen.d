@@ -1858,9 +1858,9 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         if (stcToBuffer(buf, d.storage_class))
             buf.writeByte(' ');
         buf.writestring("invariant");
-        if(auto es = d.fbody.isExpStatement())
+        auto es = d.fbody.isExpStatement();
+        if (es && es.exp && es.exp.op == EXP.assert_)
         {
-            assert(es.exp && es.exp.op == EXP.assert_);
             buf.writestring(" (");
             (cast(AssertExp)es.exp).e1.expressionToBuffer(buf, hgs);
             buf.writestring(");");
