@@ -9749,6 +9749,7 @@ immutable PREC[EXP.max + 1] precedence =
     EXP.assign : PREC.assign,
     EXP.construct : PREC.assign,
     EXP.blit : PREC.assign,
+    EXP.loweredAssignExp : PREC.assign,
     EXP.addAssign : PREC.assign,
     EXP.minAssign : PREC.assign,
     EXP.concatenateAssign : PREC.assign,
