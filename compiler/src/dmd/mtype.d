@@ -1398,33 +1398,6 @@ extern (C++) abstract class Type : ASTNode
         return t;
     }
 
-    /*******************************************
-     * Compute number of elements for a (possibly multidimensional) static array,
-     * or 1 for other types.
-     * Params:
-     *  loc = for error message
-     * Returns:
-     *  number of elements, uint.max on overflow
-     */
-    final uint numberOfElems(const ref Loc loc)
-    {
-        //printf("Type::numberOfElems()\n");
-        uinteger_t n = 1;
-        Type tb = this;
-        while ((tb = tb.toBasetype()).ty == Tsarray)
-        {
-            bool overflow = false;
-            n = mulu(n, (cast(TypeSArray)tb).dim.toUInteger(), overflow);
-            if (overflow || n >= uint.max)
-            {
-                error(loc, "static array `%s` size overflowed to %llu", toChars(), cast(ulong)n);
-                return uint.max;
-            }
-            tb = (cast(TypeSArray)tb).next;
-        }
-        return cast(uint)n;
-    }
-
     /****************************************
      * Return the mask that an integral type will
      * fit into.
@@ -2723,36 +2696,6 @@ extern (C++) final class TypeFunction : TypeNext
         newArgs.setDim(e);
         return newArgs;
     }
-
-    extern (D) bool checkRetType(const ref Loc loc)
-    {
-        Type tb = next.toBasetype();
-        if (tb.ty == Tfunction)
-        {
-            error(loc, "functions cannot return a function");
-            next = Type.terror;
-        }
-        if (tb.ty == Ttuple)
-        {
-            error(loc, "functions cannot return a sequence (use `std.typecons.Tuple`)");
-            next = Type.terror;
-        }
-        if (!isRef && (tb.ty == Tstruct || tb.ty == Tsarray))
-        {
-            if (auto ts = tb.baseElemOf().isTypeStruct())
-            {
-                if (!ts.sym.members)
-                {
-                    error(loc, "functions cannot return opaque type `%s` by value", tb.toChars());
-                    next = Type.terror;
-                }
-            }
-        }
-        if (tb.ty == Terror)
-            return true;
-        return false;
-    }
-
 
     /// Returns: `true` the function is `isInOutQual` or `isInOutParam` ,`false` otherwise.
     bool iswild() const pure nothrow @safe @nogc
