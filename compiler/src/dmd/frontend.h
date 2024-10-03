@@ -1878,7 +1878,6 @@ public:
     virtual bool hasInvariant();
     virtual Type* nextOf();
     Type* baseElemOf();
-    uint32_t numberOfElems(const Loc& loc);
     virtual bool needsDestruction();
     virtual bool needsCopyOrPostblit();
     virtual bool needsNested();
