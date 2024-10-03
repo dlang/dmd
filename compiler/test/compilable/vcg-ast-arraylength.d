@@ -23,4 +23,9 @@ void main()
 
     static assert(is(typeof(a.length = 0) == size_t));
     static assert(is(typeof(a.length = f.length = 0) == size_t));
+
+    // https://issues.dlang.org/show_bug.cgi?id=24790
+    struct S { int[] payload; }
+    S s;
+    s.payload.length += 3;
 }
