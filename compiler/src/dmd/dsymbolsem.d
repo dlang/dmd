@@ -7413,14 +7413,14 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
     }
 }
 
-Scope* newScope(Dsymbol d, Scope* sc)
+extern(C++) Scope* newScope(Dsymbol d, Scope* sc)
 {
     scope nsv = new NewScopeVisitor(sc);
     d.accept(nsv);
     return nsv.sc;
 }
 
-extern(C++) class NewScopeVisitor : Visitor
+private extern(C++) class NewScopeVisitor : Visitor
 {
     alias visit = typeof(super).visit;
     Scope* sc;
@@ -7508,7 +7508,7 @@ extern(C++) class NewScopeVisitor : Visitor
         if (atbd.pkg_identifiers)
             dsymbolSemantic(atbd, sc);
 
-        sc = atbd.createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, atbd.visibility, 1, sc.aligndecl, sc.inlining);
+       sc = atbd.createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, atbd.visibility, 1, sc.aligndecl, sc.inlining);
     }
 
     override void visit(AlignDeclaration visd)
@@ -7534,7 +7534,7 @@ extern(C++) class NewScopeVisitor : Visitor
     {
         sc = sc.push(fad.sym);
     }
-    
+
     override void visit(UserAttributeDeclaration uac)
     {
         Scope* sc2 = sc;
