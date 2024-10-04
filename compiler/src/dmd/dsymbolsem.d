@@ -7513,7 +7513,7 @@ private extern(C++) class NewScopeVisitor : Visitor
 
     override void visit(AlignDeclaration visd)
     {
-        sc = visd.createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility, 
+        sc = visd.createNewScope(sc, sc.stc, sc.linkage, sc.cppmangle, sc.visibility,
         sc.explicitVisibility, visd, sc.inlining);
     }
 
