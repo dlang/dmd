@@ -71,9 +71,9 @@ subPackage {
   sourceFiles \
     "compiler/src/dmd/astbase.d" \
     "compiler/src/dmd/parse.d" \
-    "compiler/src/dmd/transitivevisitor.d" \
-    "compiler/src/dmd/permissivevisitor.d" \
-    "compiler/src/dmd/strictvisitor.d"
+    "compiler/src/dmd/visitor/transitive.d" \
+    "compiler/src/dmd/visitor/permissive.d" \
+    "compiler/src/dmd/visitor/strict.d"
 
   versions "CallbackAPI"
 
@@ -108,12 +108,12 @@ subPackage {
     identifier,\
     lexer,\
     parse,\
-    permissivevisitor,\
-    strictvisitor,\
     tokens,\
-    transitivevisitor,\
     utf,\
-    utils\
+    utils,\
+    visitor/permissive,\
+    visitor/strict,\
+    visitor/transitive,\
   }.d"
   excludedSourceFiles "compiler/src/dmd/{\
     dmsc,\
@@ -123,16 +123,16 @@ subPackage {
     iasmdmd,\
     iasmgcc,\
     irstate,\
-    lib,\
-    libelf,\
-    libmach,\
-    libmscoff,\
+    lib/package,\
+    lib/elf,\
+    lib/mach,\
+    lib/mscoff,\
+    lib/scanelf,\
+    lib/scanmach,\
+    lib/scanmscoff,\
     link,\
     objc_glue,\
     s2ir,\
-    scanelf,\
-    scanmach,\
-    scanmscoff,\
     tocsym,\
     toctype,\
     tocvdebug,\

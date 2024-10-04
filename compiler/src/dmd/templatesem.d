@@ -23,7 +23,6 @@ import dmd.dcast;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dinterpret;
-import dmd.dmangle;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
@@ -109,7 +108,7 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
     tempdecl.isstatic = tempdecl.toParent().isModule() || (tempdecl._scope.stc & STC.static_);
     tempdecl.deprecated_ = !!(sc.stc & STC.deprecated_);
 
-    UserAttributeDeclaration.checkGNUABITag(tempdecl, sc.linkage);
+    checkGNUABITag(tempdecl, sc.linkage);
 
     if (!tempdecl.isstatic)
     {

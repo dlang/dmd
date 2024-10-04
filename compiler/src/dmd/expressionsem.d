@@ -36,7 +36,6 @@ import dmd.denum;
 import dmd.deps;
 import dmd.dimport;
 import dmd.dinterpret;
-import dmd.dmangle;
 import dmd.dmodule;
 import dmd.dstruct;
 import dmd.dsymbolsem;
@@ -60,6 +59,7 @@ import dmd.initsem;
 import dmd.inline;
 import dmd.intrange;
 import dmd.location;
+import dmd.mangle;
 import dmd.mtype;
 import dmd.mustuse;
 import dmd.nspace;
@@ -9802,8 +9802,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        if (isAggregate(exp.e1.type))
+        if (auto ad = isAggregate(exp.e1.type))
+        {
             error(exp.loc, "no `[]` operator overload for type `%s`", exp.e1.type.toChars());
+            errorSupplemental(ad.loc, "`%s` declared here", ad.toPrettyChars());
+        }
         else if (exp.e1.op == EXP.type && exp.e1.type.ty != Ttuple)
             error(exp.loc, "static array of `%s` with multiple lengths not allowed", exp.e1.type.toChars());
         else if (isIndexableNonAggregate(exp.e1.type))
@@ -16853,4 +16856,371 @@ bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool 
         return opt.get();
     }
     return impl(e);
+}
+
+/************************************
+ * Check to see the aggregate type is nested and its context pointer is
+ * accessible from the current scope.
+ * Returns true if error occurs.
+ */
+bool checkFrameAccess(Loc loc, Scope* sc, AggregateDeclaration ad, size_t iStart = 0)
+{
+    Dsymbol sparent = ad.toParentLocal();
+    Dsymbol sparent2 = ad.toParent2();
+    Dsymbol s = sc.func;
+    if (ad.isNested() && s)
+    {
+        //printf("ad = %p %s [%s], parent:%p\n", ad, ad.toChars(), ad.loc.toChars(), ad.parent);
+        //printf("sparent = %p %s [%s], parent: %s\n", sparent, sparent.toChars(), sparent.loc.toChars(), sparent.parent,toChars());
+        //printf("sparent2 = %p %s [%s], parent: %s\n", sparent2, sparent2.toChars(), sparent2.loc.toChars(), sparent2.parent,toChars());
+        if (!ensureStaticLinkTo(s, sparent) || sparent != sparent2 && !ensureStaticLinkTo(s, sparent2))
+        {
+            error(loc, "cannot access frame pointer of `%s`", ad.toPrettyChars());
+            return true;
+        }
+    }
+
+    bool result = false;
+    for (size_t i = iStart; i < ad.fields.length; i++)
+    {
+        VarDeclaration vd = ad.fields[i];
+        Type tb = vd.type.baseElemOf();
+        if (tb.ty == Tstruct)
+        {
+            result |= checkFrameAccess(loc, sc, (cast(TypeStruct)tb).sym);
+        }
+    }
+    return result;
+}
+
+/// Return value for `checkModifiable`
+enum Modifiable
+{
+    /// Not modifiable
+    no,
+    /// Modifiable (the type is mutable)
+    yes,
+    /// Modifiable because it is initialization
+    initialization,
+}
+
+/**
+ * Specifies how the checkModify deals with certain situations
+ */
+enum ModifyFlags
+{
+    /// Issue error messages on invalid modifications of the variable
+    none,
+    /// No errors are emitted for invalid modifications
+    noError = 0x1,
+    /// The modification occurs for a subfield of the current variable
+    fieldAssign = 0x2,
+}
+
+/*************************************
+ * Check to see if declaration can be modified in this context (sc).
+ * Issue error if not.
+ * Params:
+ *  loc  = location for error messages
+ *  e1   = `null` or `this` expression when this declaration is a field
+ *  sc   = context
+ *  flag = if the first bit is set it means do not issue error message for
+ *         invalid modification; if the second bit is set, it means that
+           this declaration is a field and a subfield of it is modified.
+ * Returns:
+ *  Modifiable.yes or Modifiable.initialization
+ */
+private Modifiable checkModify(Declaration d, Loc loc, Scope* sc, Expression e1, ModifyFlags flag)
+{
+    VarDeclaration v = d.isVarDeclaration();
+    if (v && v.canassign)
+        return Modifiable.initialization;
+
+    if (d.isParameter() || d.isResult())
+    {
+        for (Scope* scx = sc; scx; scx = scx.enclosing)
+        {
+            if (scx.func == d.parent && scx.contract != Contract.none)
+            {
+                const(char)* s = d.isParameter() && d.parent.ident != Id.ensure ? "parameter" : "result";
+                if (!(flag & ModifyFlags.noError))
+                    error(loc, "%s `%s` cannot modify %s `%s` in contract", d.kind, d.toPrettyChars, s, d.toChars());
+                return Modifiable.initialization; // do not report type related errors
+            }
+        }
+    }
+
+    if (e1 && e1.op == EXP.this_ && d.isField())
+    {
+        VarDeclaration vthis = e1.isThisExp().var;
+        for (Scope* scx = sc; scx; scx = scx.enclosing)
+        {
+            if (scx.func == vthis.parent && scx.contract != Contract.none)
+            {
+                if (!(flag & ModifyFlags.noError))
+                    error(loc, "%s `%s` cannot modify parameter `this` in contract", d.kind, d.toPrettyChars);
+                return Modifiable.initialization; // do not report type related errors
+            }
+        }
+    }
+
+    if (v && (v.isCtorinit() || d.isField()))
+    {
+        // It's only modifiable if inside the right constructor
+        if ((d.storage_class & (STC.foreach_ | STC.ref_)) == (STC.foreach_ | STC.ref_))
+            return Modifiable.initialization;
+        if (flag & ModifyFlags.fieldAssign)
+            return Modifiable.yes;
+        return modifyFieldVar(loc, sc, v, e1) ? Modifiable.initialization : Modifiable.yes;
+    }
+    return Modifiable.yes;
+}
+
+/***********************************************
+ * Mark variable v as modified if it is inside a constructor that var
+ * is a field in.
+ * Also used to allow immutable globals to be initialized inside a static constructor.
+ * Returns:
+ *    true if it's an initialization of v
+ */
+private bool modifyFieldVar(Loc loc, Scope* sc, VarDeclaration var, Expression e1)
+{
+    //printf("modifyFieldVar(var = %s)\n", var.toChars());
+    Dsymbol s = sc.func;
+    while (1)
+    {
+        FuncDeclaration fd = null;
+        if (s)
+            fd = s.isFuncDeclaration();
+        if (fd &&
+            ((fd.isCtorDeclaration() && var.isField()) ||
+             ((fd.isStaticCtorDeclaration() || fd.isCrtCtor) && !var.isField())) &&
+            fd.toParentDecl() == var.toParent2() &&
+            (!e1 || e1.op == EXP.this_))
+        {
+            bool result = true;
+
+            var.ctorinit = true;
+            //printf("setting ctorinit\n");
+
+            if (var.isField() && sc.ctorflow.fieldinit.length && !sc.intypeof)
+            {
+                assert(e1);
+                auto mustInit = ((var.storage_class & STC.nodefaultctor) != 0 ||
+                                 var.type.needsNested());
+
+                const dim = sc.ctorflow.fieldinit.length;
+                auto ad = fd.isMemberDecl();
+                assert(ad);
+                size_t i;
+                for (i = 0; i < dim; i++) // same as findFieldIndexByName in ctfeexp.c ?
+                {
+                    if (ad.fields[i] == var)
+                        break;
+                }
+                assert(i < dim);
+                auto fieldInit = &sc.ctorflow.fieldinit[i];
+                const fi = fieldInit.csx;
+
+                if (fi & CSX.this_ctor)
+                {
+                    if (var.type.isMutable() && e1.type.isMutable())
+                        result = false;
+                    else
+                    {
+                        const(char)* modStr = !var.type.isMutable() ? MODtoChars(var.type.mod) : MODtoChars(e1.type.mod);
+                        .error(loc, "%s field `%s` initialized multiple times", modStr, var.toChars());
+                        .errorSupplemental(fieldInit.loc, "Previous initialization is here.");
+                    }
+                }
+                else if (sc.inLoop || (fi & CSX.label))
+                {
+                    if (!mustInit && var.type.isMutable() && e1.type.isMutable())
+                        result = false;
+                    else
+                    {
+                        const(char)* modStr = !var.type.isMutable() ? MODtoChars(var.type.mod) : MODtoChars(e1.type.mod);
+                        .error(loc, "%s field `%s` initialization is not allowed in loops or after labels", modStr, var.toChars());
+                    }
+                }
+
+                fieldInit.csx |= CSX.this_ctor;
+                fieldInit.loc = e1.loc;
+                if (var.overlapped) // https://issues.dlang.org/show_bug.cgi?id=15258
+                {
+                    foreach (j, v; ad.fields)
+                    {
+                        if (v is var || !var.isOverlappedWith(v))
+                            continue;
+                        v.ctorinit = true;
+                        sc.ctorflow.fieldinit[j].csx = CSX.this_ctor;
+                    }
+                }
+            }
+            else if (fd != sc.func)
+            {
+                if (var.type.isMutable())
+                    result = false;
+                else if (sc.func.fes)
+                {
+                    const(char)* p = var.isField() ? "field" : var.kind();
+                    .error(loc, "%s %s `%s` initialization is not allowed in foreach loop",
+                        MODtoChars(var.type.mod), p, var.toChars());
+                }
+                else
+                {
+                    const(char)* p = var.isField() ? "field" : var.kind();
+                    .error(loc, "%s %s `%s` initialization is not allowed in nested function `%s`",
+                        MODtoChars(var.type.mod), p, var.toChars(), sc.func.toChars());
+                }
+            }
+            else if (fd.isStaticCtorDeclaration() && !fd.isSharedStaticCtorDeclaration() &&
+                     var.type.isImmutable())
+            {
+                .error(loc, "%s %s `%s` initialization is not allowed in `static this`",
+                    MODtoChars(var.type.mod), var.kind(), var.toChars());
+                errorSupplemental(loc, "Use `shared static this` instead.");
+            }
+            else if (fd.isStaticCtorDeclaration() && !fd.isSharedStaticCtorDeclaration() &&
+                    var.type.isConst())
+            {
+                // @@@DEPRECATED_2.116@@@
+                // Turn this into an error, merging with the branch above
+                .deprecation(loc, "%s %s `%s` initialization is not allowed in `static this`",
+                    MODtoChars(var.type.mod), var.kind(), var.toChars());
+                deprecationSupplemental(loc, "Use `shared static this` instead.");
+            }
+            return result;
+        }
+        else
+        {
+            if (s)
+            {
+                s = s.toParentP(var.toParent2());
+                continue;
+            }
+        }
+        break;
+    }
+    return false;
+}
+
+/***************************************
+ * Request additional semantic analysis for TypeInfo generation.
+ * Params:
+ *      sc = context
+ *      t = type that TypeInfo is being generated for
+ */
+void semanticTypeInfo(Scope* sc, Type t)
+{
+    if (sc)
+    {
+        if (sc.intypeof)
+            return;
+        if (!sc.needsCodegen())
+            return;
+    }
+
+    if (!t)
+        return;
+
+    void visitVector(TypeVector t)
+    {
+        semanticTypeInfo(sc, t.basetype);
+    }
+
+    void visitAArray(TypeAArray t)
+    {
+        semanticTypeInfo(sc, t.index);
+        semanticTypeInfo(sc, t.next);
+    }
+
+    void visitStruct(TypeStruct t)
+    {
+        //printf("semanticTypeInfo.visit(TypeStruct = %s)\n", t.toChars());
+        StructDeclaration sd = t.sym;
+
+        /* Step 1: create TypeInfoDeclaration
+         */
+        if (!sc) // inline may request TypeInfo.
+        {
+            Scope scx;
+            scx.eSink = global.errorSink;
+            scx._module = sd.getModule();
+            getTypeInfoType(sd.loc, t, &scx);
+            sd.requestTypeInfo = true;
+        }
+        else if (!sc.minst)
+        {
+            // don't yet have to generate TypeInfo instance if
+            // the typeid(T) expression exists in speculative scope.
+        }
+        else
+        {
+            getTypeInfoType(sd.loc, t, sc);
+            sd.requestTypeInfo = true;
+
+            // https://issues.dlang.org/show_bug.cgi?id=15149
+            // if the typeid operand type comes from a
+            // result of auto function, it may be yet speculative.
+            // unSpeculative(sc, sd);
+        }
+
+        /* Step 2: If the TypeInfo generation requires sd.semantic3, run it later.
+         * This should be done even if typeid(T) exists in speculative scope.
+         * Because it may appear later in non-speculative scope.
+         */
+        if (!sd.members)
+            return; // opaque struct
+        if (!sd.xeq && !sd.xcmp && !sd.postblit && !sd.tidtor && !sd.xhash && !search_toString(sd))
+            return; // none of TypeInfo-specific members
+
+        // If the struct is in a non-root module, run semantic3 to get
+        // correct symbols for the member function.
+        if (sd.semanticRun >= PASS.semantic3)
+        {
+            // semantic3 is already done
+        }
+        else if (TemplateInstance ti = sd.isInstantiated())
+        {
+            if (ti.minst && !ti.minst.isRoot())
+                Module.addDeferredSemantic3(sd);
+        }
+        else
+        {
+            if (sd.inNonRoot())
+            {
+                //printf("deferred sem3 for TypeInfo - sd = %s, inNonRoot = %d\n", sd.toChars(), sd.inNonRoot());
+                Module.addDeferredSemantic3(sd);
+            }
+        }
+    }
+
+    void visitTuple(TypeTuple t)
+    {
+        if (t.arguments)
+        {
+            foreach (arg; *t.arguments)
+            {
+                semanticTypeInfo(sc, arg.type);
+            }
+        }
+    }
+
+    /* Note structural similarity of this Type walker to that in isSpeculativeType()
+     */
+
+    Type tb = t.toBasetype();
+    switch (tb.ty)
+    {
+        case Tvector:   visitVector(tb.isTypeVector()); break;
+        case Taarray:   visitAArray(tb.isTypeAArray()); break;
+        case Tstruct:   visitStruct(tb.isTypeStruct()); break;
+        case Ttuple:    visitTuple (tb.isTypeTuple());  break;
+
+        case Tclass:
+        case Tenum:     break;
+
+        default:        semanticTypeInfo(sc, tb.nextOf()); break;
+    }
 }

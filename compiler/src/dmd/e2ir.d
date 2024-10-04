@@ -254,7 +254,7 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
         printHash();
     else
     {
-        import dmd.dmangle;
+        import dmd.mangle;
         scope StringExp se = new StringExp(Loc.initial, str[0 .. len], len, cast(ubyte)sz, 'c');
         mangleToBuffer(se, buf);   // recycle how strings are mangled for templates
 

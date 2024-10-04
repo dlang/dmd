@@ -1878,7 +1878,6 @@ public:
     virtual bool hasInvariant();
     virtual Type* nextOf();
     Type* baseElemOf();
-    uint32_t numberOfElems(const Loc& loc);
     virtual bool needsDestruction();
     virtual bool needsCopyOrPostblit();
     virtual bool needsNested();
@@ -3092,20 +3091,6 @@ class ModExp final : public BinExp
 {
 public:
     void accept(Visitor* v) override;
-};
-
-enum class Modifiable
-{
-    no = 0,
-    yes = 1,
-    initialization = 2,
-};
-
-enum class ModifyFlags
-{
-    none = 0,
-    noError = 1,
-    fieldAssign = 2,
 };
 
 class ModuleInitExp final : public DefaultInitExp
@@ -5590,8 +5575,6 @@ struct ASTCodegen final
     using MixinExp = ::MixinExp;
     using ModAssignExp = ::ModAssignExp;
     using ModExp = ::ModExp;
-    using Modifiable = ::Modifiable;
-    using ModifyFlags = ::ModifyFlags;
     using ModuleInitExp = ::ModuleInitExp;
     using MulAssignExp = ::MulAssignExp;
     using MulExp = ::MulExp;
@@ -6416,8 +6399,6 @@ public:
     Scope* newScope(Scope* sc) override;
     const char* kind() const override;
     void accept(Visitor* v) override;
-    static bool isGNUABITag(Expression* e);
-    static void checkGNUABITag(Dsymbol* sym, LINK linkage);
 };
 
 extern BUILTIN isBuiltin(FuncDeclaration* fd);

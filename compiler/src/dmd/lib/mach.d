@@ -9,7 +9,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/libmach.d
  */
 
-module dmd.libmach;
+module dmd.lib.mach;
 
 import core.stdc.time;
 import core.stdc.string;
@@ -45,10 +45,10 @@ import dmd.root.rmem;
 import dmd.root.string;
 import dmd.root.stringtable;
 
-import dmd.scanmach;
+import dmd.lib.scanmach;
 
 // Entry point (only public symbol in this module).
-public extern (C++) Library LibMach_factory()
+package(dmd.lib) extern (C++) Library LibMach_factory()
 {
     return new LibMach();
 }

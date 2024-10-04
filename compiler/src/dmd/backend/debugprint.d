@@ -328,7 +328,6 @@ void WRdefnod(ref GlobalOptimizer go)
   }
 }
 
-@trusted
 const(char)* fl_str(FL fl)
 {
     immutable char*[FLMAX] fls =

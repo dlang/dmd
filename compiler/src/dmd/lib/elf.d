@@ -9,7 +9,7 @@
  * Coverage:    https://codecov.io/gh/dlang/dmd/src/master/src/dmd/libelf.d
  */
 
-module dmd.libelf;
+module dmd.lib.elf;
 
 import core.stdc.time;
 import core.stdc.string;
@@ -44,10 +44,10 @@ import dmd.root.rmem;
 import dmd.root.string;
 import dmd.root.stringtable;
 
-import dmd.scanelf;
+import dmd.lib.scanelf;
 
 // Entry point (only public symbol in this module).
-public extern (C++) Library LibElf_factory()
+package(dmd.lib) extern (C++) Library LibElf_factory()
 {
     return new LibElf();
 }

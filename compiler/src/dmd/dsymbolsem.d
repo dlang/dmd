@@ -2359,7 +2359,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         ns.semanticRun = PASS.semantic;
         ns.parent = sc.parent;
         // Link does not matter here, if the UDA is present it will error
-        UserAttributeDeclaration.checkGNUABITag(ns, LINK.cpp);
+        checkGNUABITag(ns, LINK.cpp);
 
         if (!ns.members)
         {
@@ -2909,7 +2909,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
 
         sd.semanticRun = PASS.semantic;
-        UserAttributeDeclaration.checkGNUABITag(sd, sc.linkage);
+        checkGNUABITag(sd, sc.linkage);
 
         if (!sd.members) // if opaque declaration
         {
@@ -3149,7 +3149,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             return;
         }
         cldec.semanticRun = PASS.semantic;
-        UserAttributeDeclaration.checkGNUABITag(cldec, sc.linkage);
+        checkGNUABITag(cldec, sc.linkage);
         checkMustUseReserved(cldec);
 
         if (cldec.baseok < Baseok.done)
@@ -3861,7 +3861,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (!idec.baseclasses.length && sc.linkage == LINK.cpp)
                 idec.classKind = ClassKind.cpp;
             idec.cppnamespace = sc.namespace;
-            UserAttributeDeclaration.checkGNUABITag(idec, sc.linkage);
+            checkGNUABITag(idec, sc.linkage);
             checkMustUseReserved(idec);
 
             if (sc.linkage == LINK.objc)
@@ -4082,7 +4082,7 @@ private extern(C++) class AddMemberVisitor : Visitor
     Scope* sc;
     ScopeDsymbol sds;
 
-    this(Scope* sc, ScopeDsymbol sds)
+    this(Scope* sc, ScopeDsymbol sds) @safe
     {
         this.sc = sc;
         this.sds = sds;
@@ -6045,7 +6045,7 @@ private extern(C++) class SearchVisitor : Visitor
     SearchOptFlags flags;
     Dsymbol result;
 
-    this(const ref Loc loc, Identifier ident, SearchOptFlags flags)
+    this(const ref Loc loc, Identifier ident, SearchOptFlags flags) @safe
     {
         this.loc = loc;
         this.ident = ident;
@@ -6651,7 +6651,7 @@ private extern(C++) class SetScopeVisitor : Visitor
     alias visit = typeof(super).visit;
     Scope* sc;
 
-    this(Scope* sc)
+    this(Scope* sc) @safe
     {
         this.sc = sc;
     }
@@ -6794,7 +6794,7 @@ extern(C++) class ImportAllVisitor : Visitor
     alias visit = typeof(super).visit;
     Scope* sc;
 
-    this(Scope* sc)
+    this(Scope* sc) @safe
     {
         this.sc = sc;
     }
@@ -7037,7 +7037,7 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
     FieldState* fieldState;
     bool isunion;
 
-    this(AggregateDeclaration ad, FieldState* fieldState, bool isunion)
+    this(AggregateDeclaration ad, FieldState* fieldState, bool isunion) @safe
     {
         this.ad = ad;
         this.fieldState = fieldState;
@@ -7126,7 +7126,7 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
         assert(sz != SIZE_INVALID && sz < uint.max);
         uint memsize = cast(uint)sz;                // size of member
         uint memalignsize = target.fieldalign(t);   // size of member for alignment purposes
-        vd.offset = placeField(
+        vd.offset = placeField(vd.loc,
             fieldState.offset,
             memsize, memalignsize, vd.alignment,
             ad.structsize, ad.alignsize,
@@ -7193,7 +7193,7 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
                 alignsize = memsize; // not memalignsize
 
             uint dummy;
-            bfd.offset = placeField(
+            bfd.offset = placeField(bfd.loc,
                 fieldState.offset,
                 memsize, alignsize, bfd.alignment,
                 ad.structsize,
@@ -7395,7 +7395,7 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
             /* Given the anon 'member's size and alignment,
              * go ahead and place it.
              */
-            anond.anonoffset = placeField(
+            anond.anonoffset = placeField(anond.loc,
                 fieldState.offset,
                 anond.anonstructsize, anond.anonalignsize, alignment,
                 ad.structsize, ad.alignsize,
@@ -7546,4 +7546,176 @@ private extern(C++) class NewScopeVisitor : Visitor
         }
         sc = sc2;
     }
+}
+/**
+ * Called from a symbol's semantic to check if `gnuAbiTag` UDA
+ * can be applied to them
+ *
+ * Directly emits an error if the UDA doesn't work with this symbol
+ *
+ * Params:
+ *   sym = symbol to check for `gnuAbiTag`
+ *   linkage = Linkage of the symbol (Declaration.link or sc.link)
+ */
+void checkGNUABITag(Dsymbol sym, LINK linkage)
+{
+    if (global.params.cplusplus < CppStdRevision.cpp11)
+        return;
+
+    foreachUdaNoSemantic(sym, (exp) {
+        if (!isGNUABITag(exp))
+            return 0; // continue
+        if (sym.isCPPNamespaceDeclaration() || sym.isNspace())
+        {
+            .error(exp.loc, "`@%s` cannot be applied to namespaces", Id.udaGNUAbiTag.toChars());
+            sym.errors = true;
+        }
+        else if (linkage != LINK.cpp)
+        {
+            .error(exp.loc, "`@%s` can only apply to C++ symbols", Id.udaGNUAbiTag.toChars());
+            sym.errors = true;
+        }
+        // Only one `@gnuAbiTag` is allowed by semantic2
+        return 1; // break
+    });
+}
+
+/**
+ * Check if the provided expression references `core.attribute.gnuAbiTag`
+ *
+ * This should be called after semantic has been run on the expression.
+ * Semantic on UDA happens in semantic2 (see `dmd.semantic2`).
+ *
+ * Params:
+ *   e = Expression to check (usually from `UserAttributeDeclaration.atts`)
+ *
+ * Returns:
+ *   `true` if the expression references the compiler-recognized `gnuAbiTag`
+ */
+bool isGNUABITag(Expression e)
+{
+    if (global.params.cplusplus < CppStdRevision.cpp11)
+        return false;
+
+    auto ts = e.type ? e.type.isTypeStruct() : null;
+    if (!ts)
+        return false;
+    if (ts.sym.ident != Id.udaGNUAbiTag || !ts.sym.parent)
+        return false;
+    // Can only be defined in druntime
+    Module m = ts.sym.parent.isModule();
+    if (!m || !m.isCoreModule(Id.attribute))
+        return false;
+    return true;
+}
+
+/******************************************
+ * If a variable has a scope destructor call, return call for it.
+ * Otherwise, return NULL.
+ */
+private Expression callScopeDtor(VarDeclaration vd, Scope* sc)
+{
+    //printf("VarDeclaration::callScopeDtor() %s\n", toChars());
+
+    // Destruction of STC.field's is handled by buildDtor()
+    if (vd.storage_class & (STC.nodtor | STC.ref_ | STC.out_ | STC.field))
+    {
+        return null;
+    }
+
+    if (vd.iscatchvar)
+        return null;    // destructor is built by `void semantic(Catch c, Scope* sc)`, not here
+
+    Expression e = null;
+    // Destructors for structs and arrays of structs
+    Type tv = vd.type.baseElemOf();
+    if (tv.ty == Tstruct)
+    {
+        StructDeclaration sd = (cast(TypeStruct)tv).sym;
+        if (!sd.dtor || sd.errors)
+            return null;
+
+        const sz = vd.type.size();
+        assert(sz != SIZE_INVALID);
+        if (!sz)
+            return null;
+
+        if (vd.type.toBasetype().ty == Tstruct)
+        {
+            // v.__xdtor()
+            e = new VarExp(vd.loc, vd);
+
+            /* This is a hack so we can call destructors on const/immutable objects.
+             * Need to add things like "const ~this()" and "immutable ~this()" to
+             * fix properly.
+             */
+            e.type = e.type.mutableOf();
+
+            // Enable calling destructors on shared objects.
+            // The destructor is always a single, non-overloaded function,
+            // and must serve both shared and non-shared objects.
+            e.type = e.type.unSharedOf;
+
+            e = new DotVarExp(vd.loc, e, sd.dtor, false);
+            e = new CallExp(vd.loc, e);
+        }
+        else
+        {
+            // __ArrayDtor(v[0 .. n])
+            e = new VarExp(vd.loc, vd);
+
+            const sdsz = sd.type.size();
+            assert(sdsz != SIZE_INVALID && sdsz != 0);
+            const n = sz / sdsz;
+            SliceExp se = new SliceExp(vd.loc, e, new IntegerExp(vd.loc, 0, Type.tsize_t),
+                new IntegerExp(vd.loc, n, Type.tsize_t));
+
+            // Prevent redundant bounds check
+            se.upperIsInBounds = true;
+            se.lowerIsLessThanUpper = true;
+
+            // This is a hack so we can call destructors on const/immutable objects.
+            se.type = sd.type.arrayOf();
+
+            e = new CallExp(vd.loc, new IdentifierExp(vd.loc, Id.__ArrayDtor), se);
+        }
+        return e;
+    }
+    // Destructors for classes
+    if (!(vd.storage_class & (STC.auto_ | STC.scope_) && !(vd.storage_class & STC.parameter)))
+        return null;
+
+    for (ClassDeclaration cd = vd.type.isClassHandle(); cd; cd = cd.baseClass)
+    {
+        /* We can do better if there's a way with onstack
+         * classes to determine if there's no way the monitor
+         * could be set.
+         */
+        //if (cd.isInterfaceDeclaration())
+        //    error("interface `%s` cannot be scope", cd.toChars());
+
+        if (!vd.onstack) // if any destructors
+            continue;
+        // delete'ing C++ classes crashes (and delete is deprecated anyway)
+        if (cd.classKind == ClassKind.cpp)
+        {
+            // Don't call non-existant dtor
+            if (!cd.dtor)
+                break;
+
+            e = new VarExp(vd.loc, vd);
+            e.type = e.type.mutableOf().unSharedOf(); // Hack for mutable ctor on immutable instances
+            e = new DotVarExp(vd.loc, e, cd.dtor, false);
+            e = new CallExp(vd.loc, e);
+            break;
+        }
+
+        // delete this;
+        Expression ec;
+        ec = new VarExp(vd.loc, vd);
+        e = new DeleteExp(vd.loc, ec, true);
+        e.type = Type.tvoid;
+        break;
+    }
+    return e;
 }

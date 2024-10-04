@@ -2384,7 +2384,6 @@ private void loadcse(ref CodeBuilder cdb,elem *e,reg_t reg,regm_t regm)
 }
 
 
-@trusted
 void callcdxxx(ref CGstate cg, ref CodeBuilder cdb, elem *e, ref regm_t pretregs, OPER op)
 {
     (*cdxxx[op])(cg, cdb, e, pretregs);

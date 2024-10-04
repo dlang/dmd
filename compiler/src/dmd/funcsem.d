@@ -243,7 +243,7 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
 
     funcdecl.visibility = sc.visibility;
     funcdecl.userAttribDecl = sc.userAttribDecl;
-    UserAttributeDeclaration.checkGNUABITag(funcdecl, funcdecl._linkage);
+    checkGNUABITag(funcdecl, funcdecl._linkage);
     checkMustUseReserved(funcdecl);
 
     if (!funcdecl.originalType)
@@ -2802,7 +2802,7 @@ void modifyReturns(FuncLiteralDeclaration fld, Scope* sc, Type tret)
  * Returns: `true` if the provided scope is the root
  * of the traits compiles list of scopes.
  */
-bool isRootTraitsCompilesScope(Scope* sc)
+bool isRootTraitsCompilesScope(Scope* sc) @safe
 {
     return (sc.traitsCompiles) && !sc.func.skipCodegen;
 }

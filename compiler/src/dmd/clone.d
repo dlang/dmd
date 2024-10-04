@@ -51,7 +51,7 @@ import dmd.tokens;
  * Returns:
  *      merged storage class
  */
-StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration f) pure
+StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration f) pure @safe
 {
     if (!f)
         return s1;
