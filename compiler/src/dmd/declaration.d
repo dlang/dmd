@@ -700,6 +700,15 @@ extern (C++) final class AliasDeclaration : Declaration
         assert(this != aliassym);
         //static int count; if (++count == 10) *(char*)0=0;
 
+        Dsymbol err()
+        {
+            // Avoid breaking "recursive alias" state during errors gagged
+            if (global.gag)
+                return this;
+            aliassym = new AliasDeclaration(loc, ident, Type.terror);
+            type = Type.terror;
+            return aliassym;
+        }
         // Reading the AliasDeclaration
         if (!(adFlags & ignoreRead))
             adFlags |= wasRead;                 // can never assign to this AliasDeclaration again
@@ -711,12 +720,12 @@ extern (C++) final class AliasDeclaration : Declaration
             Dsymbol s = type.toDsymbol(_scope);
             //printf("[%s] type = %s, s = %p, this = %p\n", loc.toChars(), type.toChars(), s, this);
             if (global.errors != olderrors)
-                goto Lerr;
+                return err();
             if (s)
             {
                 s = s.toAlias();
                 if (global.errors != olderrors)
-                    goto Lerr;
+                    return err();
                 aliassym = s;
                 inuse = 0;
             }
@@ -724,9 +733,9 @@ extern (C++) final class AliasDeclaration : Declaration
             {
                 Type t = type.typeSemantic(loc, _scope);
                 if (t.ty == Terror)
-                    goto Lerr;
+                    return err();
                 if (global.errors != olderrors)
-                    goto Lerr;
+                    return err();
                 //printf("t = %s\n", t.toChars());
                 inuse = 0;
             }
@@ -734,14 +743,7 @@ extern (C++) final class AliasDeclaration : Declaration
         if (inuse)
         {
             .error(loc, "%s `%s` recursive alias declaration", kind, toPrettyChars);
-
-        Lerr:
-            // Avoid breaking "recursive alias" state during errors gagged
-            if (global.gag)
-                return this;
-            aliassym = new AliasDeclaration(loc, ident, Type.terror);
-            type = Type.terror;
-            return aliassym;
+            return err();
         }
 
         if (semanticRun >= PASS.semanticdone)
