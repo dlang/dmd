@@ -101,46 +101,45 @@ StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration f) pure @safe
  */
 FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope* sc)
 {
-    if (Dsymbol assign = search_function(ad, Id.assign))
+    Dsymbol assign = search_function(ad, Id.assign);
+    if (!assign)
+        return null;
+
+    /* check identity opAssign exists
+     */
+    scope er = new NullExp(ad.loc, ad.type);    // dummy rvalue
+    scope el = new IdentifierExp(ad.loc, Id.p); // dummy lvalue
+    el.type = ad.type;
+    const errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it.
+    sc = sc.push();
+    sc.tinst = null;
+    sc.minst = null;
+
+    auto a = new Expressions(1);
+    (*a)[0] = er;
+    auto f = resolveFuncCall(ad.loc, sc, assign, null, ad.type, ArgumentList(a), FuncResolveFlag.quiet);
+    if (!f)
     {
-        /* check identity opAssign exists
-         */
-        scope er = new NullExp(ad.loc, ad.type);    // dummy rvalue
-        scope el = new IdentifierExp(ad.loc, Id.p); // dummy lvalue
-        el.type = ad.type;
-        const errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it.
-        sc = sc.push();
-        sc.tinst = null;
-        sc.minst = null;
-
-        auto a = new Expressions(1);
-        (*a)[0] = er;
-        auto f = resolveFuncCall(ad.loc, sc, assign, null, ad.type, ArgumentList(a), FuncResolveFlag.quiet);
-        if (!f)
-        {
-            (*a)[0] = el;
-            f = resolveFuncCall(ad.loc, sc, assign, null, ad.type, ArgumentList(a), FuncResolveFlag.quiet);
-        }
-
-        sc = sc.pop();
-        global.endGagging(errors);
-        if (f)
-        {
-            if (f.errors)
-                return null;
-            auto fparams = f.getParameterList();
-            if (fparams.length)
-            {
-                auto fparam0 = fparams[0];
-                if (fparam0.type.toDsymbol(null) != ad)
-                    f = null;
-            }
-        }
-        // BUGS: This detection mechanism cannot find some opAssign-s like follows:
-        // struct S { void opAssign(ref immutable S) const; }
-        return f;
+        (*a)[0] = el;
+        f = resolveFuncCall(ad.loc, sc, assign, null, ad.type, ArgumentList(a), FuncResolveFlag.quiet);
     }
-    return null;
+
+    sc = sc.pop();
+    global.endGagging(errors);
+    if (!f)
+        return null;
+    if (f.errors)
+        return null;
+    auto fparams = f.getParameterList();
+    if (fparams.length)
+    {
+        auto fparam0 = fparams[0];
+        if (fparam0.type.toDsymbol(null) != ad)
+            f = null;
+    }
+    // BUGS: This detection mechanism cannot find some opAssign-s like follows:
+    // struct S { void opAssign(ref immutable S) const; }
+    return f;
 }
 
 /*******************************************
