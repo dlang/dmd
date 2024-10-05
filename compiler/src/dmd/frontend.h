@@ -6214,7 +6214,6 @@ class AttribDeclaration : public Dsymbol
 public:
     Array<Dsymbol* >* decl;
     virtual Array<Dsymbol* >* include(Scope* sc);
-    virtual Scope* newScope(Scope* sc);
     void addComment(const char* comment) override;
     const char* kind() const override;
     bool oneMember(Dsymbol*& ps, Identifier* ident) override;
@@ -6231,7 +6230,6 @@ class StorageClassDeclaration : public AttribDeclaration
 public:
     StorageClass stc;
     StorageClassDeclaration* syntaxCopy(Dsymbol* s) override;
-    Scope* newScope(Scope* sc) override;
     bool oneMember(Dsymbol*& ps, Identifier* ident) final override;
     StorageClassDeclaration* isStorageClassDeclaration() override;
     void accept(Visitor* v) override;
@@ -6243,7 +6241,6 @@ public:
     Expression* msg;
     const char* msgstr;
     DeprecatedDeclaration* syntaxCopy(Dsymbol* s) override;
-    Scope* newScope(Scope* sc) override;
     void accept(Visitor* v) override;
 };
 
@@ -6253,7 +6250,6 @@ public:
     LINK linkage;
     static LinkDeclaration* create(const Loc& loc, LINK p, Array<Dsymbol* >* decl);
     LinkDeclaration* syntaxCopy(Dsymbol* s) override;
-    Scope* newScope(Scope* sc) override;
     const char* toChars() const override;
     void accept(Visitor* v) override;
 };
@@ -6263,7 +6259,6 @@ class CPPMangleDeclaration final : public AttribDeclaration
 public:
     CPPMANGLE cppmangle;
     CPPMangleDeclaration* syntaxCopy(Dsymbol* s) override;
-    Scope* newScope(Scope* sc) override;
     const char* toChars() const override;
     void accept(Visitor* v) override;
 };
@@ -6273,7 +6268,6 @@ class CPPNamespaceDeclaration final : public AttribDeclaration
 public:
     Expression* exp;
     CPPNamespaceDeclaration* syntaxCopy(Dsymbol* s) override;
-    Scope* newScope(Scope* sc) override;
     const char* toChars() const override;
     void accept(Visitor* v) override;
     CPPNamespaceDeclaration* isCPPNamespaceDeclaration() override;
@@ -6285,7 +6279,6 @@ public:
     Visibility visibility;
     _d_dynamicArray< Identifier* > pkg_identifiers;
     VisibilityDeclaration* syntaxCopy(Dsymbol* s) override;
-    Scope* newScope(Scope* sc) override;
     const char* kind() const override;
     const char* toPrettyChars(bool __param_0_) override;
     VisibilityDeclaration* isVisibilityDeclaration() override;
@@ -6298,7 +6291,6 @@ public:
     Array<Expression* >* exps;
     structalign_t salign;
     AlignDeclaration* syntaxCopy(Dsymbol* s) override;
-    Scope* newScope(Scope* sc) override;
     void accept(Visitor* v) override;
 };
 
@@ -6321,7 +6313,6 @@ class PragmaDeclaration final : public AttribDeclaration
 public:
     Array<Expression* >* args;
     PragmaDeclaration* syntaxCopy(Dsymbol* s) override;
-    Scope* newScope(Scope* sc) override;
     const char* kind() const override;
     void accept(Visitor* v) override;
 };
@@ -6374,7 +6365,6 @@ class ForwardingAttribDeclaration final : public AttribDeclaration
 public:
     ForwardingScopeDsymbol* sym;
     ForwardingAttribDeclaration(Array<Dsymbol* >* decl);
-    Scope* newScope(Scope* sc) override;
     ForwardingAttribDeclaration* isForwardingAttribDeclaration() override;
     void accept(Visitor* v) override;
 };
@@ -6396,7 +6386,6 @@ class UserAttributeDeclaration final : public AttribDeclaration
 public:
     Array<Expression* >* atts;
     UserAttributeDeclaration* syntaxCopy(Dsymbol* s) override;
-    Scope* newScope(Scope* sc) override;
     const char* kind() const override;
     void accept(Visitor* v) override;
 };
