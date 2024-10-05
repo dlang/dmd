@@ -3501,7 +3501,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         name = _alias;
                         _alias = null;
                     }
-                    s.addAlias(name, _alias);
+                    if (s.isstatic)
+                        error(loc, "static import `%s` cannot have an import bind list", s.toPrettyChars());
+                    if (!s.aliasId)
+                        s.ident = null; // make it an anonymous import
+                    s.names.push(name);
+                    s.aliases.push(_alias);
                 }
                 while (token.value == TOK.comma);
                 break; // no comma-separated imports of this form
