@@ -2264,10 +2264,10 @@ bool canInferAttributes(FuncDeclaration fd, Scope* sc)
 }
 
 /*********************************************
- * In the current function, we are calling 'this' function.
- * 1. Check to see if the current function can call 'this' function, issue error if not.
- * 2. If the current function is not the parent of 'this' function, then add
- *    the current function to the list of siblings of 'this' function.
+ * In the current function 'sc.func', we are calling 'fd'.
+ * 1. Check to see if the current function can call 'fd' , issue error if not.
+ * 2. If the current function is not the parent of 'fd' , then add
+ *    the current function to the list of siblings of 'fd' .
  * 3. If the current function is a literal, and it's accessing an uplevel scope,
  *    then mark it as a delegate.
  * Returns true if error occurs.
