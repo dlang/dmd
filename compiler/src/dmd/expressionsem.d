@@ -5571,7 +5571,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else if (auto f = e.var.isFuncDeclaration())
         {
-            if (f.checkNestedReference(sc, e.loc))
+            if (f.checkNestedFuncReference(sc, e.loc))
                 return setError();
         }
 
@@ -5625,10 +5625,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else if (fd)
         {
-            // TODO: If fd isn't yet resolved its overload, the checkNestedReference
+            // TODO: If fd isn't yet resolved its overload, the checkNestedFuncReference
             // call would cause incorrect validation.
             // Maybe here should be moved in CallExp, or AddrExp for functions.
-            if (fd.checkNestedReference(sc, e.loc))
+            if (fd.checkNestedFuncReference(sc, e.loc))
                 return setError();
         }
         else if (auto od = e.var.isOverDeclaration())
@@ -6727,7 +6727,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.f.checkPurity(exp.loc, sc);
                 exp.f.checkSafety(exp.loc, sc);
                 exp.f.checkNogc(exp.loc, sc);
-                if (exp.f.checkNestedReference(sc, exp.loc))
+                if (exp.f.checkNestedFuncReference(sc, exp.loc))
                     return setError();
             }
             else if (sc.func && sc.intypeof != 1 && !(sc.ctfe || sc.debug_))
@@ -6810,7 +6810,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (exp.f.needThis())
             {
                 // Change the ancestor lambdas to delegate before hasThis(sc) call.
-                if (exp.f.checkNestedReference(sc, exp.loc))
+                if (exp.f.checkNestedFuncReference(sc, exp.loc))
                     return setError();
 
                 auto memberFunc = hasThis(sc);
@@ -6845,7 +6845,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             checkFunctionAttributes(exp, sc, exp.f);
             checkAccess(exp.loc, sc, null, exp.f);
-            if (exp.f.checkNestedReference(sc, exp.loc))
+            if (exp.f.checkNestedFuncReference(sc, exp.loc))
                 return setError();
 
             ethis = null;

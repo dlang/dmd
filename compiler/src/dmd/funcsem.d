@@ -2272,9 +2272,9 @@ bool canInferAttributes(FuncDeclaration fd, Scope* sc)
  *    then mark it as a delegate.
  * Returns true if error occurs.
  */
-bool checkNestedReference(FuncDeclaration fd, Scope* sc, const ref Loc loc)
+bool checkNestedFuncReference(FuncDeclaration fd, Scope* sc, const ref Loc loc)
 {
-    //printf("FuncDeclaration::checkNestedReference() %s\n", toPrettyChars());
+    //printf("FuncDeclaration::checkNestedFuncReference() %s\n", toPrettyChars());
     if (auto fld = fd.isFuncLiteralDeclaration())
     {
         if (fld.tok == TOK.reserved)
