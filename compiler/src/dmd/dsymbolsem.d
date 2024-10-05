@@ -7413,7 +7413,7 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
     }
 }
 
-extern(C++) Scope* newScope(Dsymbol d, Scope* sc)
+extern(D) Scope* newScope(Dsymbol d, Scope* sc)
 {
     scope nsv = new NewScopeVisitor(sc);
     d.accept(nsv);

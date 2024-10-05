@@ -448,5 +448,4 @@ namespace dmd
     Dsymbol *search(Dsymbol *d, const Loc &loc, Identifier *ident, SearchOptFlags flags = (SearchOptFlags)SearchOpt::localsOnly);
     void setScope(Dsymbol *d, Scope *sc);
     void importAll(Dsymbol *d, Scope *sc);
-    Scope* newScope(Dsymbol *d, Scope *sc);
 }
