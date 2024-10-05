@@ -4702,49 +4702,51 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 continue;
             }
 
-            if (auto v = s.isVarDeclaration())
+            auto v = s.isVarDeclaration();
+            if (!v)
             {
-                if (!v.type)
-                {
-                    error(exp.loc, "forward reference of %s `%s`", v.kind(), v.toChars());
-                    return setError();
-                }
-                if ((v.storage_class & STC.manifest) && v._init)
-                {
-                    /* When an instance that will be converted to a constant exists,
-                     * the instance representation "foo!tiargs" is treated like a
-                     * variable name, and its recursive appearance check (note that
-                     * it's equivalent with a recursive instantiation of foo) is done
-                     * separately from the circular initialization check for the
-                     * eponymous enum variable declaration.
-                     *
-                     *  template foo(T) {
-                     *    enum bool foo = foo;    // recursive definition check (v.inuse)
-                     *  }
-                     *  template bar(T) {
-                     *    enum bool bar = bar!T;  // recursive instantiation check (ti.inuse)
-                     *  }
-                     */
-                    if (ti.inuse)
-                    {
-                        error(exp.loc, "recursive expansion of %s `%s`", ti.kind(), ti.toPrettyChars());
-                        return setError();
-                    }
-                    v.checkDeprecated(exp.loc, sc);
-                    auto e = v.expandInitializer(exp.loc);
-                    ti.inuse++;
-                    e = e.expressionSemantic(sc);
-                    ti.inuse--;
-                    result = e;
-                    return;
-                }
+                //printf("s = %s, '%s'\n", s.kind(), s.toChars());
+                auto e = symbolToExp(s, exp.loc, sc, true);
+                //printf("-1ScopeExp::semantic()\n");
+                result = e;
+                return;
             }
 
-            //printf("s = %s, '%s'\n", s.kind(), s.toChars());
-            auto e = symbolToExp(s, exp.loc, sc, true);
-            //printf("-1ScopeExp::semantic()\n");
-            result = e;
-            return;
+            if (!v.type)
+            {
+                error(exp.loc, "forward reference of %s `%s`", v.kind(), v.toChars());
+                return setError();
+            }
+            if ((v.storage_class & STC.manifest) && v._init)
+            {
+                /* When an instance that will be converted to a constant exists,
+                 * the instance representation "foo!tiargs" is treated like a
+                 * variable name, and its recursive appearance check (note that
+                 * it's equivalent with a recursive instantiation of foo) is done
+                 * separately from the circular initialization check for the
+                 * eponymous enum variable declaration.
+                 *
+                 *  template foo(T) {
+                 *    enum bool foo = foo;    // recursive definition check (v.inuse)
+                 *  }
+                 *  template bar(T) {
+                 *    enum bool bar = bar!T;  // recursive instantiation check (ti.inuse)
+                 *  }
+                 */
+                if (ti.inuse)
+                {
+                    error(exp.loc, "recursive expansion of %s `%s`", ti.kind(), ti.toPrettyChars());
+                    return setError();
+                }
+                v.checkDeprecated(exp.loc, sc);
+                auto e = v.expandInitializer(exp.loc);
+                ti.inuse++;
+                e = e.expressionSemantic(sc);
+                ti.inuse--;
+                result = e;
+                return;
+            }
+
         }
 
         //printf("sds2 = %s, '%s'\n", sds2.kind(), sds2.toChars());
