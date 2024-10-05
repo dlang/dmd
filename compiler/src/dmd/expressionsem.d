@@ -2116,23 +2116,21 @@ private bool checkPurity(VarDeclaration v, const ref Loc loc, Scope* sc)
             FuncDeclaration ff = s.isFuncDeclaration();
             if (!ff)
                 break;
-            if (ff.isNested() || ff.isThis())
+            if (!ff.isNested() && !ff.isThis())
+                break;
+            if (ff.type.isImmutable() ||
+                ff.type.isShared() && !MODimplicitConv(ff.type.mod, v.type.mod))
             {
-                if (ff.type.isImmutable() ||
-                    ff.type.isShared() && !MODimplicitConv(ff.type.mod, v.type.mod))
-                {
-                    OutBuffer ffbuf;
-                    OutBuffer vbuf;
-                    MODMatchToBuffer(&ffbuf, ff.type.mod, v.type.mod);
-                    MODMatchToBuffer(&vbuf, v.type.mod, ff.type.mod);
-                    error(loc, "%s%s `%s` cannot access %sdata `%s`",
-                        ffbuf.peekChars(), ff.kind(), ff.toPrettyChars(), vbuf.peekChars(), v.toChars());
-                    err = true;
-                    break;
-                }
-                continue;
+                OutBuffer ffbuf;
+                OutBuffer vbuf;
+                MODMatchToBuffer(&ffbuf, ff.type.mod, v.type.mod);
+                MODMatchToBuffer(&vbuf, v.type.mod, ff.type.mod);
+                error(loc, "%s%s `%s` cannot access %sdata `%s`",
+                    ffbuf.peekChars(), ff.kind(), ff.toPrettyChars(), vbuf.peekChars(), v.toChars());
+                err = true;
+                break;
             }
-            break;
+            continue;
         }
     }
 
@@ -2260,30 +2258,28 @@ private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
     if (f.isNogc())
         return false;
 
-    if (isRootTraitsCompilesScope(sc) ? sc.func.isNogcBypassingInference() : sc.func.setGCCall(f))
+    if (isRootTraitsCompilesScope(sc) ? !sc.func.isNogcBypassingInference() : !sc.func.setGCCall(f))
+        return false;
+
+    if (loc.linnum == 0) // e.g. implicitly generated dtor
+        loc = sc.func.loc;
+
+    // Lowered non-@nogc'd hooks will print their own error message inside of nogc.d (NOGCVisitor.visit(CallExp e)),
+    // so don't print anything to avoid double error messages.
+    if (!(f.ident == Id._d_HookTraceImpl || f.ident == Id._d_arraysetlengthT
+        || f.ident == Id._d_arrayappendT || f.ident == Id._d_arrayappendcTX
+        || f.ident == Id._d_arraycatnTX || f.ident == Id._d_newclassT))
     {
-        if (loc.linnum == 0) // e.g. implicitly generated dtor
-            loc = sc.func.loc;
+        error(loc, "`@nogc` %s `%s` cannot call non-@nogc %s `%s`",
+            sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
 
-        // Lowered non-@nogc'd hooks will print their own error message inside of nogc.d (NOGCVisitor.visit(CallExp e)),
-        // so don't print anything to avoid double error messages.
-        if (!(f.ident == Id._d_HookTraceImpl || f.ident == Id._d_arraysetlengthT
-            || f.ident == Id._d_arrayappendT || f.ident == Id._d_arrayappendcTX
-            || f.ident == Id._d_arraycatnTX || f.ident == Id._d_newclassT))
-        {
-            error(loc, "`@nogc` %s `%s` cannot call non-@nogc %s `%s`",
-                sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
-
-            if (!f.isDtorDeclaration)
-                f.errorSupplementalInferredAttr(/*max depth*/ 10, /*deprecation*/ false, STC.nogc);
-        }
-
-        f.checkOverriddenDtor(sc, loc, dd => dd.type.toTypeFunction().isNogc, "non-@nogc");
-
-        return true;
+        if (!f.isDtorDeclaration)
+            f.errorSupplementalInferredAttr(/*max depth*/ 10, /*deprecation*/ false, STC.nogc);
     }
 
-    return false;
+    f.checkOverriddenDtor(sc, loc, dd => dd.type.toTypeFunction().isNogc, "non-@nogc");
+
+    return true;
 }
 
 /********************************************
@@ -2375,37 +2371,35 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
                 return e.expressionSemantic(sc);
             }
         }
+        for (size_t i = 0; i < os.a.length; i++)
         {
-            for (size_t i = 0; i < os.a.length; i++)
+            FuncDeclaration f = resolveFuncCall(loc, sc, os.a[i], tiargs, tthis, ArgumentList(), FuncResolveFlag.quiet);
+            if (!f)
+                continue;
+            if (f.errors)
+                return ErrorExp.get();
+            fd = f;
+            assert(fd.type.ty == Tfunction);
+            auto tf = fd.type.isTypeFunction();
+            if (!tf.isRef && e2)
             {
-                if (FuncDeclaration f = resolveFuncCall(loc, sc, os.a[i], tiargs, tthis, ArgumentList(), FuncResolveFlag.quiet))
+                error(loc, "%s is not an lvalue", e1.toChars());
+                return ErrorExp.get();
+            }
+        }
+        if (fd)
+        {
+            Expression e = new CallExp(loc, e1);
+            if (e2)
+            {
+                e = new AssignExp(loc, e, e2);
+                if (saveAtts)
                 {
-                    if (f.errors)
-                        return ErrorExp.get();
-                    fd = f;
-                    assert(fd.type.ty == Tfunction);
-                    auto tf = fd.type.isTypeFunction();
-                    if (!tf.isRef && e2)
-                    {
-                        error(loc, "%s is not an lvalue", e1.toChars());
-                        return ErrorExp.get();
-                    }
+                    (cast(BinExp)e).att1 = saveAtts.att1;
+                    (cast(BinExp)e).att2 = saveAtts.att2;
                 }
             }
-            if (fd)
-            {
-                Expression e = new CallExp(loc, e1);
-                if (e2)
-                {
-                    e = new AssignExp(loc, e, e2);
-                    if (saveAtts)
-                    {
-                        (cast(BinExp)e).att1 = saveAtts.att1;
-                        (cast(BinExp)e).att2 = saveAtts.att2;
-                    }
-                }
-                return e.expressionSemantic(sc);
-            }
+            return e.expressionSemantic(sc);
         }
         if (e2)
             goto Leprop;
@@ -2493,33 +2487,31 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
                 return e.expressionSemantic(sc);
             }
         }
+        FuncDeclaration fd = resolveFuncCall(loc, sc, s, tiargs, tthis, ArgumentList(), FuncResolveFlag.quiet);
+        if (fd && fd.type)
         {
-            FuncDeclaration fd = resolveFuncCall(loc, sc, s, tiargs, tthis, ArgumentList(), FuncResolveFlag.quiet);
-            if (fd && fd.type)
+            if (fd.errors)
+                return ErrorExp.get();
+            TypeFunction tf = fd.type.isTypeFunction();
+            if (!e2 || tf.isRef)
             {
-                if (fd.errors)
-                    return ErrorExp.get();
-                TypeFunction tf = fd.type.isTypeFunction();
-                if (!e2 || tf.isRef)
+                Expression e = new CallExp(loc, e1);
+                if (e2)
                 {
-                    Expression e = new CallExp(loc, e1);
-                    if (e2)
+                    e = new AssignExp(loc, e, e2);
+                    if (saveAtts)
                     {
-                        e = new AssignExp(loc, e, e2);
-                        if (saveAtts)
-                        {
-                            (cast(BinExp)e).att1 = saveAtts.att1;
-                            (cast(BinExp)e).att2 = saveAtts.att2;
-                        }
+                        (cast(BinExp)e).att1 = saveAtts.att1;
+                        (cast(BinExp)e).att2 = saveAtts.att2;
                     }
-                    return e.expressionSemantic(sc);
                 }
+                return e.expressionSemantic(sc);
             }
         }
-        if (FuncDeclaration fd = s.isFuncDeclaration())
+        if (FuncDeclaration fd2 = s.isFuncDeclaration())
         {
             // Keep better diagnostic message for invalid property usage of functions
-            assert(fd.type.ty == Tfunction);
+            assert(fd2.type.ty == Tfunction);
             Expression e = new CallExp(loc, e1, e2);
             return e.expressionSemantic(sc);
         }
@@ -2578,20 +2570,19 @@ private bool checkRightThis(Expression e, Scope* sc)
 {
     if (e.op == EXP.error)
         return true;
-    if (e.op == EXP.variable && e.type.ty != Terror)
-    {
-        VarExp ve = cast(VarExp)e;
-        if (isNeedThisScope(sc, ve.var))
-        {
-            //printf("checkRightThis sc.intypeof = %d, ad = %p, func = %p, fdthis = %p\n",
-            //        sc.intypeof, sc.getStructClassScope(), func, fdthis);
-            auto t = ve.var.isThis();
-            assert(t);
-            error(e.loc, "accessing non-static variable `%s` requires an instance of `%s`", ve.var.toChars(), t.toChars());
-            return true;
-        }
-    }
-    return false;
+    if (e.op != EXP.variable || e.type.ty == Terror)
+        return false;
+
+    VarExp ve = cast(VarExp)e;
+    if (!isNeedThisScope(sc, ve.var))
+        return false;
+
+    //printf("checkRightThis sc.intypeof = %d, ad = %p, func = %p, fdthis = %p\n",
+    //        sc.intypeof, sc.getStructClassScope(), func, fdthis);
+    auto t = ve.var.isThis();
+    assert(t);
+    error(e.loc, "accessing non-static variable `%s` requires an instance of `%s`", ve.var.toChars(), t.toChars());
+    return true;
 }
 
 Expression resolveProperties(Scope* sc, Expression e)
@@ -3012,29 +3003,22 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             else
                 (*arguments)[i] = arg;
         }
-        else
+        else if (arg.isDefaultInitExp())
         {
-            if (arg.isDefaultInitExp())
-            {
-                arg = arg.resolveLoc(loc, sc);
-                (*arguments)[i] = arg;
-            }
+            arg = arg.resolveLoc(loc, sc);
+            (*arguments)[i] = arg;
         }
-
 
         if (tf.parameterList.varargs == VarArg.typesafe && i + 1 == nparams) // https://dlang.org/spec/function.html#variadic
         {
             //printf("\t\tvarargs == 2, p.type = '%s'\n", p.type.toChars());
+            if (MATCH m = arg.implicitConvTo(p.type))
             {
-                MATCH m;
-                if ((m = arg.implicitConvTo(p.type)) > MATCH.nomatch)
-                {
-                    if (p.type.nextOf() && arg.implicitConvTo(p.type.nextOf()) >= m)
-                        goto L2;
-                    else if (nargs != nparams)
-                        return errorArgs();
-                    goto L1;
-                }
+                if (p.type.nextOf() && arg.implicitConvTo(p.type.nextOf()) >= m)
+                    goto L2;
+                else if (nargs != nparams)
+                    return errorArgs();
+                goto L1;
             }
         L2:
             Type tb = p.type.toBasetype();
