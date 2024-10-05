@@ -390,16 +390,6 @@ struct ASTBase
                 this.ident = id;
             }
         }
-        void addAlias(Identifier name, Identifier _alias)
-        {
-            if (isstatic)
-                error(loc, "cannot have an import bind list");
-            if (!aliasId)
-                this.ident = null;
-
-            names.push(name);
-            aliases.push(_alias);
-        }
 
         override void accept(Visitor v)
         {
