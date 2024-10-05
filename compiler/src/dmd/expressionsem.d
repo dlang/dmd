@@ -4113,6 +4113,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         ClassDeclaration cd;
         Dsymbol s;
 
+        void err()
+        {
+            error(e.loc, "`super` is only allowed in non-static class member functions");
+            result = ErrorExp.get();
+        }
         /* Special case for typeof(this) and typeof(super) since both
          * should work even if they are not inside a non-static member function
          */
@@ -4142,7 +4147,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
         if (!fd)
-            goto Lerr;
+            return err();
 
         e.var = fd.vthis;
         assert(e.var && e.var.parent);
@@ -4154,7 +4159,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         cd = s.isClassDeclaration();
         //printf("parent is %s %s\n", fd.toParent().kind(), fd.toParent().toChars());
         if (!cd)
-            goto Lerr;
+            return err();
         if (!cd.baseClass)
         {
             error(e.loc, "no base class for `%s`", cd.toChars());
@@ -4170,11 +4175,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
 
         result = e;
-        return;
-
-    Lerr:
-        error(e.loc, "`super` is only allowed in non-static class member functions");
-        result = ErrorExp.get();
     }
 
     override void visit(NullExp e)
