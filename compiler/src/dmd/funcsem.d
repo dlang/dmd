@@ -1648,6 +1648,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
         return null;
     }
 
+    import dmd.expressionsem : checkDisabled;
     // remove when deprecation period of class allocators and deallocators is over
     if (fd.isNewDeclaration() && fd.checkDisabled(loc, sc))
         return null;
