@@ -12,14 +12,18 @@
 module dmd.templateparamsem;
 
 import dmd.arraytypes;
+import dmd.astenums;
+import dmd.declaration : TupleDeclaration;
 import dmd.dinterpret;
 import dmd.dsymbol;
 import dmd.dscope;
 import dmd.dtemplate;
+import dmd.func;
 import dmd.globals;
 import dmd.location;
 import dmd.expression;
 import dmd.expressionsem;
+import dmd.optimize;
 import dmd.rootobject;
 import dmd.mtype;
 import dmd.typesem;
@@ -198,4 +202,302 @@ RootObject aliasParameterSemantic(Loc loc, Scope* sc, RootObject o, TemplatePara
     else if (ea)
         return eaCTFE();
     return o;
+}
+
+/**********************************
+ * Run semantic of tiargs as arguments of template.
+ * Input:
+ *      loc
+ *      sc
+ *      tiargs  array of template arguments
+ *      flags   1: replace const variables with their initializers
+ *              2: don't devolve Parameter to Type
+ *      atd     tuple being optimized. If found, it's not expanded here
+ *              but in AliasAssign semantic.
+ * Returns:
+ *      false if one or more arguments have errors.
+ */
+extern (D) bool semanticTiargs(const ref Loc loc, Scope* sc, Objects* tiargs, int flags, TupleDeclaration atd = null)
+{
+    // Run semantic on each argument, place results in tiargs[]
+    //printf("+TemplateInstance.semanticTiargs()\n");
+    if (!tiargs)
+        return true;
+    bool err = false;
+
+    // The arguments are not treated as part of a default argument,
+    // because they are evaluated at compile time.
+    sc = sc.push();
+    sc.inDefaultArg = false;
+
+    for (size_t j = 0; j < tiargs.length; j++)
+    {
+        RootObject o = (*tiargs)[j];
+        Type ta = isType(o);
+        Expression ea = isExpression(o);
+        Dsymbol sa = isDsymbol(o);
+
+        //printf("1: (*tiargs)[%d] = %p, s=%p, v=%p, ea=%p, ta=%p\n", j, o, isDsymbol(o), isTuple(o), ea, ta);
+        if (ta)
+        {
+            //printf("type %s\n", ta.toChars());
+
+            // It might really be an Expression or an Alias
+            ta.resolve(loc, sc, ea, ta, sa, (flags & 1) != 0);
+            if (ea)
+                goto Lexpr;
+            if (sa)
+                goto Ldsym;
+            if (ta is null)
+            {
+                assert(global.errors);
+                ta = Type.terror;
+            }
+
+        Ltype:
+            if (TypeTuple tt = ta.isTypeTuple())
+            {
+                // Expand tuple
+                size_t dim = tt.arguments.length;
+                tiargs.remove(j);
+                if (dim)
+                {
+                    tiargs.reserve(dim);
+                    foreach (i, arg; *tt.arguments)
+                    {
+                        if (flags & 2 && (arg.storageClass & STC.parameter))
+                            tiargs.insert(j + i, arg);
+                        else
+                            tiargs.insert(j + i, arg.type);
+                    }
+                }
+                j--;
+                continue;
+            }
+            if (ta.ty == Terror)
+            {
+                err = true;
+                continue;
+            }
+            (*tiargs)[j] = ta.merge2();
+        }
+        else if (ea)
+        {
+        Lexpr:
+            //printf("+[%d] ea = %s %s\n", j, EXPtoString(ea.op).ptr, ea.toChars());
+            if (flags & 1) // only used by __traits
+            {
+                ea = ea.expressionSemantic(sc);
+
+                // must not interpret the args, excepting template parameters
+                if (!ea.isVarExp() || (ea.isVarExp().var.storage_class & STC.templateparameter))
+                {
+                    ea = ea.optimize(WANTvalue);
+                }
+            }
+            else
+            {
+                sc = sc.startCTFE();
+                ea = ea.expressionSemantic(sc);
+                sc = sc.endCTFE();
+
+                if (auto varExp = ea.isVarExp())
+                {
+                    /* If the parameter is a function that is not called
+                     * explicitly, i.e. `foo!func` as opposed to `foo!func()`,
+                     * then it is a dsymbol, not the return value of `func()`
+                     */
+                    Declaration vd = varExp.var;
+                    if (auto fd = vd.isFuncDeclaration())
+                    {
+                        sa = fd;
+                        goto Ldsym;
+                    }
+                    /* Otherwise skip substituting a const var with
+                     * its initializer. The problem is the initializer won't
+                     * match with an 'alias' parameter. Instead, do the
+                     * const substitution in TemplateValueParameter.matchArg().
+                     */
+                }
+                else if (definitelyValueParameter(ea))
+                {
+                    if (ea.checkValue()) // check void expression
+                        ea = ErrorExp.get();
+                    uint olderrs = global.errors;
+                    ea = ea.ctfeInterpret();
+                    if (global.errors != olderrs)
+                        ea = ErrorExp.get();
+                }
+            }
+            //printf("-[%d] ea = %s %s\n", j, EXPtoString(ea.op).ptr, ea.toChars());
+            if (TupleExp te = ea.isTupleExp())
+            {
+                // Expand tuple
+                size_t dim = te.exps.length;
+                tiargs.remove(j);
+                if (dim)
+                {
+                    tiargs.reserve(dim);
+                    foreach (i, exp; *te.exps)
+                        tiargs.insert(j + i, exp);
+                }
+                j--;
+                continue;
+            }
+            if (ea.op == EXP.error)
+            {
+                err = true;
+                continue;
+            }
+            (*tiargs)[j] = ea;
+
+            if (ea.op == EXP.type)
+            {
+                ta = ea.type;
+                goto Ltype;
+            }
+            if (ea.op == EXP.scope_)
+            {
+                sa = ea.isScopeExp().sds;
+                goto Ldsym;
+            }
+            if (FuncExp fe = ea.isFuncExp())
+            {
+                /* A function literal, that is passed to template and
+                 * already semanticed as function pointer, never requires
+                 * outer frame. So convert it to global function is valid.
+                 */
+                if (fe.fd.tok == TOK.reserved && fe.type.ty == Tpointer)
+                {
+                    // change to non-nested
+                    fe.fd.tok = TOK.function_;
+                    fe.fd.vthis = null;
+                }
+                else if (fe.td)
+                {
+                    /* If template argument is a template lambda,
+                     * get template declaration itself. */
+                    //sa = fe.td;
+                    //goto Ldsym;
+                }
+            }
+            if (ea.op == EXP.dotVariable && !(flags & 1))
+            {
+                // translate expression to dsymbol.
+                sa = ea.isDotVarExp().var;
+                goto Ldsym;
+            }
+            if (auto te = ea.isTemplateExp())
+            {
+                sa = te.td;
+                goto Ldsym;
+            }
+            if (ea.op == EXP.dotTemplateDeclaration && !(flags & 1))
+            {
+                // translate expression to dsymbol.
+                sa = ea.isDotTemplateExp().td;
+                goto Ldsym;
+            }
+            if (auto de = ea.isDotExp())
+            {
+                if (auto se = de.e2.isScopeExp())
+                {
+                    sa = se.sds;
+                    goto Ldsym;
+                }
+            }
+        }
+        else if (sa)
+        {
+        Ldsym:
+            //printf("dsym %s %s\n", sa.kind(), sa.toChars());
+            if (sa.errors)
+            {
+                err = true;
+                continue;
+            }
+
+            TupleDeclaration d = sa.toAlias().isTupleDeclaration();
+            if (d)
+            {
+                if (d is atd)
+                {
+                    (*tiargs)[j] = d;
+                    continue;
+                }
+                // Expand tuple
+                tiargs.remove(j);
+                tiargs.insert(j, d.objects);
+                j--;
+                continue;
+            }
+            if (FuncAliasDeclaration fa = sa.isFuncAliasDeclaration())
+            {
+                FuncDeclaration f = fa.toAliasFunc();
+                if (!fa.hasOverloads && f.isUnique())
+                {
+                    // Strip FuncAlias only when the aliased function
+                    // does not have any overloads.
+                    sa = f;
+                }
+            }
+            (*tiargs)[j] = sa;
+
+            TemplateDeclaration td = sa.isTemplateDeclaration();
+            if (td && td.semanticRun == PASS.initial && td.literal)
+            {
+                td.dsymbolSemantic(sc);
+            }
+            FuncDeclaration fd = sa.isFuncDeclaration();
+            if (fd)
+                functionSemantic(fd);
+        }
+        else if (isParameter(o))
+        {
+        }
+        else
+        {
+            assert(0);
+        }
+        //printf("1: (*tiargs)[%d] = %p\n", j, (*tiargs)[j]);
+    }
+    sc.pop();
+    version (none)
+    {
+        printf("-TemplateInstance.semanticTiargs()\n");
+        for (size_t j = 0; j < tiargs.length; j++)
+        {
+            RootObject o = (*tiargs)[j];
+            Type ta = isType(o);
+            Expression ea = isExpression(o);
+            Dsymbol sa = isDsymbol(o);
+            Tuple va = isTuple(o);
+            printf("\ttiargs[%d] = ta %p, ea %p, sa %p, va %p\n", j, ta, ea, sa, va);
+        }
+    }
+    return !err;
+}
+
+/**********************************
+ * Run semantic on the elements of tiargs.
+ * Input:
+ *      sc
+ * Returns:
+ *      false if one or more arguments have errors.
+ * Note:
+ *      This function is reentrant against error occurrence. If returns false,
+ *      all elements of tiargs won't be modified.
+ */
+extern (D) bool semanticTiargs(TemplateInstance ti,Scope* sc)
+{
+    //printf("+TemplateInstance.semanticTiargs() %s\n", toChars());
+    if (ti.semantictiargsdone)
+        return true;
+    if (semanticTiargs(loc, sc, tiargs, 0))
+    {
+        // cache the result iff semantic analysis succeeded entirely
+        semantictiargsdone = 1;
+        return true;
+    }
+    return false;
 }

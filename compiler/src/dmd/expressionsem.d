@@ -81,6 +81,7 @@ import dmd.semantic3;
 import dmd.sideeffect;
 import dmd.safe;
 import dmd.target;
+import dmd.templateparamsem;
 import dmd.tokens;
 import dmd.traits;
 import dmd.typesem;
