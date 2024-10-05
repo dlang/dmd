@@ -3767,37 +3767,37 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     {
         if (!e.type)
             e.type = Type.tfloat64;
-        else if (e.type.isImaginary && sc.inCfile)
+        else if (!e.type.isImaginary || !sc.inCfile)
         {
-            /* Convert to core.stdc.config.complex
-             */
-            Type t = getComplexLibraryType(e.loc, sc, e.type.ty);
-            if (t.ty == Terror)
-                return setError();
-
-            Type tf;
-            switch (e.type.ty)
-            {
-                case Timaginary32: tf = Type.tfloat32; break;
-                case Timaginary64: tf = Type.tfloat64; break;
-                case Timaginary80: tf = Type.tfloat80; break;
-                default:
-                    assert(0);
-            }
-
-            /* Construct ts{re : 0.0, im : e}
-             */
-            TypeStruct ts = t.isTypeStruct;
-            Expressions* elements = new Expressions(2);
-            (*elements)[0] = new RealExp(e.loc,    CTFloat.zero, tf);
-            (*elements)[1] = new RealExp(e.loc, e.toImaginary(), tf);
-            Expression sle = new StructLiteralExp(e.loc, ts.sym, elements);
-            result = sle.expressionSemantic(sc);
+            e.type = e.type.typeSemantic(e.loc, sc);
+            result = e;
             return;
         }
-        else
-            e.type = e.type.typeSemantic(e.loc, sc);
-        result = e;
+
+        /* Convert to core.stdc.config.complex
+         */
+        Type t = getComplexLibraryType(e.loc, sc, e.type.ty);
+        if (t.ty == Terror)
+            return setError();
+
+        Type tf;
+        switch (e.type.ty)
+        {
+            case Timaginary32: tf = Type.tfloat32; break;
+            case Timaginary64: tf = Type.tfloat64; break;
+            case Timaginary80: tf = Type.tfloat80; break;
+            default:
+                assert(0);
+        }
+
+        /* Construct ts{re : 0.0, im : e}
+         */
+        TypeStruct ts = t.isTypeStruct;
+        Expressions* elements = new Expressions(2);
+        (*elements)[0] = new RealExp(e.loc,    CTFloat.zero, tf);
+        (*elements)[1] = new RealExp(e.loc, e.toImaginary(), tf);
+        Expression sle = new StructLiteralExp(e.loc, ts.sym, elements);
+        result = sle.expressionSemantic(sc);
     }
 
     override void visit(ComplexExp e)
