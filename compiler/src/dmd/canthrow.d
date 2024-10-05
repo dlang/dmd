@@ -22,6 +22,7 @@ import dmd.declaration;
 import dmd.dsymbol;
 import dmd.errorsink;
 import dmd.expression;
+import dmd.expressionsem : errorSupplementalInferredAttr;
 import dmd.func;
 import dmd.globals;
 import dmd.init;
