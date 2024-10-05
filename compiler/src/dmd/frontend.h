@@ -3773,8 +3773,6 @@ public:
     bool isCodeseg() const final override;
     bool isOverloadable() const final override;
     bool isAbstract() final override;
-    bool isSafe();
-    bool isTrusted();
     virtual bool isNested() const;
     AggregateDeclaration* isThis() override;
     bool needThis() final override;

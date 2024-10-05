@@ -42,6 +42,7 @@ import dmd.init;
 import dmd.location;
 import dmd.mangle;
 import dmd.mtype;
+import dmd.safe : isSafe;
 import dmd.target;
 import dmd.toctype;
 import dmd.todt;
