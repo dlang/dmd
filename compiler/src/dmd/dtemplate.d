@@ -4021,66 +4021,63 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         if (enclosing != ti.enclosing)
         {
             //printf("test2 enclosing %s ti.enclosing %s\n", enclosing ? enclosing.toChars() : "", ti.enclosing ? ti.enclosing.toChars() : "");
-            goto Lnotequals;
+            return false;
         }
         //printf("parent = %s, ti.parent = %s\n", parent.toPrettyChars(), ti.parent.toPrettyChars());
 
         if (!arrayObjectMatch(tdtypes, ti.tdtypes))
-            goto Lnotequals;
+            return false;
 
         /* Template functions may have different instantiations based on
          * "auto ref" parameters.
          */
-        if (auto fd = ti.toAlias().isFuncDeclaration())
+        auto fd = ti.toAlias().isFuncDeclaration();
+        if (!fd)
+            return true;
+        if (fd.errors)
+            return true;
+
+        auto resolvedArgs = fd.type.isTypeFunction().resolveNamedArgs(
+            ArgumentList(this.fargs, this.fnames), null);
+
+        // resolvedArgs can be null when there's an error: fail_compilation/fail14669.d
+        // In that case, equalsx returns true to prevent endless template instantiations
+        // However, it can also mean the function was explicitly instantiated
+        // without function arguments: fail_compilation/fail14669
+        // Hence the following check:
+        if (this.fargs && !resolvedArgs)
+            return true;
+
+        Expression[] args = resolvedArgs ? (*resolvedArgs)[] : [];
+
+        auto fparameters = fd.getParameterList();
+        size_t nfparams = fparameters.length;   // Num function parameters
+        for (size_t j = 0; j < nfparams; j++)
         {
-            if (!fd.errors)
+            Parameter fparam = fparameters[j];
+            if (!(fparam.storageClass & STC.autoref) )      // if "auto ref"
+                continue;
+
+            Expression farg = (j < args.length) ? args[j] : fparam.defaultArg;
+            // resolveNamedArgs strips trailing nulls / default params
+            // when it doesn't anymore, the ternary can be replaced with:
+            // assert(j < resolvedArgs.length);
+            if (!farg)
+                farg = fparam.defaultArg;
+            if (!farg)
+                return false;
+            if (farg.isLvalue())
             {
-                auto resolvedArgs = fd.type.isTypeFunction().resolveNamedArgs(
-                    ArgumentList(this.fargs, this.fnames), null);
-
-                // resolvedArgs can be null when there's an error: fail_compilation/fail14669.d
-                // In that case, equalsx returns true to prevent endless template instantiations
-                // However, it can also mean the function was explicitly instantiated
-                // without function arguments: fail_compilation/fail14669
-                // Hence the following check:
-                if (this.fargs && !resolvedArgs)
-                    return true;
-
-                Expression[] args = resolvedArgs ? (*resolvedArgs)[] : [];
-
-                auto fparameters = fd.getParameterList();
-                size_t nfparams = fparameters.length;   // Num function parameters
-                for (size_t j = 0; j < nfparams; j++)
-                {
-                    Parameter fparam = fparameters[j];
-                    if (fparam.storageClass & STC.autoref)       // if "auto ref"
-                    {
-                        Expression farg = (j < args.length) ? args[j] : fparam.defaultArg;
-                        // resolveNamedArgs strips trailing nulls / default params
-                        // when it doesn't anymore, the ternary can be replaced with:
-                        // assert(j < resolvedArgs.length);
-                        if (!farg)
-                            farg = fparam.defaultArg;
-                        if (!farg)
-                            goto Lnotequals;
-                        if (farg.isLvalue())
-                        {
-                            if (!(fparam.storageClass & STC.ref_))
-                                goto Lnotequals; // auto ref's don't match
-                        }
-                        else
-                        {
-                            if (fparam.storageClass & STC.ref_)
-                                goto Lnotequals; // auto ref's don't match
-                        }
-                    }
-                }
+                if (!(fparam.storageClass & STC.ref_))
+                    return false; // auto ref's don't match
+            }
+            else
+            {
+                if (fparam.storageClass & STC.ref_)
+                    return false; // auto ref's don't match
             }
         }
         return true;
-
-    Lnotequals:
-        return false;
     }
 
     extern (D) final size_t toHash()
