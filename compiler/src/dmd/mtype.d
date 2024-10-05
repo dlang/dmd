@@ -28,7 +28,6 @@ import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.enumsem;
-import dmd.errors;
 import dmd.expression;
 import dmd.globals;
 import dmd.hdrgen;
@@ -3534,17 +3533,19 @@ extern (C++) final class TypeTuple : Type
     extern (D) this(Expressions* exps)
     {
         super(Ttuple);
-        auto arguments = new Parameters(exps ? exps.length : 0);
-        if (exps)
+        if (!exps)
         {
-            for (size_t i = 0; i < exps.length; i++)
-            {
-                Expression e = (*exps)[i];
-                if (e.type.ty == Ttuple)
-                    error(e.loc, "cannot form sequence of sequences");
-                auto arg = new Parameter(e.loc, STC.undefined_, e.type, null, null, null);
-                (*arguments)[i] = arg;
-            }
+            this.arguments = new Parameters(0);
+            return;
+        }
+        auto arguments = new Parameters(exps.length);
+
+        for (size_t i = 0; i < exps.length; i++)
+        {
+            Expression e = (*exps)[i];
+            assert(e.type.ty != Ttuple);
+            auto arg = new Parameter(e.loc, STC.undefined_, e.type, null, null, null);
+            (*arguments)[i] = arg;
         }
         this.arguments = arguments;
         //printf("TypeTuple() %p, %s\n", this, toChars());
