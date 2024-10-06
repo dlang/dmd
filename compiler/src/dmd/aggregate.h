@@ -117,7 +117,6 @@ public:
     Sizeok sizeok;              // set when structsize contains valid data
 
     virtual Scope *newScope(Scope *sc);
-    virtual void finalizeSize() = 0;
     uinteger_t size(const Loc &loc) override final;
     bool fill(const Loc &loc, Expressions &elements, bool ctorinit);
     Type *getType() override final;
@@ -171,7 +170,6 @@ public:
     static StructDeclaration *create(const Loc &loc, Identifier *id, bool inObject);
     StructDeclaration *syntaxCopy(Dsymbol *s) override;
     const char *kind() const override;
-    void finalizeSize() override final;
     bool isPOD();
     bool zeroInit() const;          // !=0 if initialize with 0 fill
     bool zeroInit(bool v);
@@ -288,7 +286,6 @@ public:
     virtual bool isBaseOf(ClassDeclaration *cd, int *poffset);
 
     bool isBaseInfoComplete();
-    void finalizeSize() override;
     bool hasMonitor();
     bool isFuncHidden(FuncDeclaration *fd);
     bool isCOMclass() const;

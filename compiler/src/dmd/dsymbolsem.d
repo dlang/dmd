@@ -7659,3 +7659,376 @@ private Expression callScopeDtor(VarDeclaration vd, Scope* sc)
     }
     return e;
 }
+
+/***************************************
+ * Collect all instance fields, then determine instance size.
+ * Returns:
+ *      false if failed to determine the size.
+ */
+bool determineSize(AggregateDeclaration ad, const ref Loc loc)
+{
+    //printf("AggregateDeclaration::determineSize() %s, sizeok = %d\n", toChars(), sizeok);
+
+    // The previous instance size finalizing had:
+    if (ad.type.ty == Terror || ad.errors)
+        return false;   // failed already
+    if (ad.sizeok == Sizeok.done)
+        return true;    // succeeded
+
+    if (!ad.members)
+    {
+        .error(loc, "%s `%s` unknown size", ad.kind, ad.toPrettyChars);
+        return false;
+    }
+
+    if (ad._scope)
+        dsymbolSemantic(ad, null);
+
+    // Determine the instance size of base class first.
+    if (auto cd = ad.isClassDeclaration())
+    {
+        cd = cd.baseClass;
+        if (cd && !cd.determineSize(loc))
+            goto Lfail;
+    }
+
+    // Determine instance fields when sizeok == Sizeok.none
+    if (!ad.determineFields())
+        goto Lfail;
+    if (ad.sizeok != Sizeok.done)
+        finalizeSize(ad);
+
+    // this aggregate type has:
+    if (ad.type.ty == Terror)
+        return false;   // marked as invalid during the finalizing.
+    if (ad.sizeok == Sizeok.done)
+        return true;    // succeeded to calculate instance size.
+
+Lfail:
+    // There's unresolvable forward reference.
+    if (ad.type != Type.terror)
+        error(loc, "%s `%s` no size because of forward reference", ad.kind, ad.toPrettyChars);
+    // Don't cache errors from speculative semantic, might be resolvable later.
+    // https://issues.dlang.org/show_bug.cgi?id=16574
+    if (!global.gag)
+    {
+        ad.type = Type.terror;
+        ad.errors = true;
+    }
+    return false;
+}
+
+private void finalizeSize(AggregateDeclaration ad)
+{
+    if (StructDeclaration sd = ad.isStructDeclaration())
+        finalizeSize(sd);
+    else if (ClassDeclaration cd = ad.isClassDeclaration())
+        finalizeSize(cd);
+}
+private void finalizeSize(StructDeclaration sd)
+{
+    //printf("StructDeclaration::finalizeSize() %s, sizeok = %d\n", toChars(), sizeok);
+    assert(sd.sizeok != Sizeok.done);
+
+    if (sd.sizeok == Sizeok.inProcess)
+    {
+        return;
+    }
+    sd.sizeok = Sizeok.inProcess;
+
+    //printf("+StructDeclaration::finalizeSize() %s, fields.length = %d, sizeok = %d\n", toChars(), fields.length, sizeok);
+
+    sd.fields.setDim(0);   // workaround
+
+    // Set the offsets of the fields and determine the size of the struct
+    FieldState fieldState;
+    bool isunion = sd.isUnionDeclaration() !is null;
+    for (size_t i = 0; i < sd.members.length; i++)
+    {
+        Dsymbol s = (*sd.members)[i];
+        s.setFieldOffset(sd, &fieldState, isunion);
+    }
+    if (sd.type.ty == Terror)
+    {
+        sd.errors = true;
+        return;
+    }
+
+    if (sd.structsize == 0)
+    {
+        sd.hasNoFields = true;
+        sd.alignsize = 1;
+
+        // A fine mess of what size a zero sized struct should be
+        final switch (sd.classKind)
+        {
+            case ClassKind.d:
+            case ClassKind.cpp:
+                sd.structsize = 1;
+                break;
+
+            case ClassKind.c:
+            case ClassKind.objc:
+                if (target.c.bitFieldStyle == TargetC.BitFieldStyle.MS)
+                {
+                    /* Undocumented MS behavior for:
+                     *   struct S { int :0; };
+                     */
+                    sd.structsize = 4;
+                }
+                else
+                    sd.structsize = 0;
+                break;
+        }
+    }
+
+    // Round struct size up to next alignsize boundary.
+    // This will ensure that arrays of structs will get their internals
+    // aligned properly.
+    if (sd.alignment.isDefault() || sd.alignment.isPack())
+        sd.structsize = (sd.structsize + sd.alignsize - 1) & ~(sd.alignsize - 1);
+    else
+        sd.structsize = (sd.structsize + sd.alignment.get() - 1) & ~(sd.alignment.get() - 1);
+
+    sd.sizeok = Sizeok.done;
+
+    //printf("-StructDeclaration::finalizeSize() %s, fields.length = %d, structsize = %d\n", toChars(), cast(int)fields.length, cast(int)structsize);
+
+    if (sd.errors)
+        return;
+
+    // Calculate fields[i].overlapped
+    if (sd.checkOverlappedFields())
+    {
+        sd.errors = true;
+        return;
+    }
+
+    // Determine if struct is all zeros or not
+    sd.zeroInit = true;
+    auto lastOffset = -1;
+    foreach (vd; sd.fields)
+    {
+        // First skip zero sized fields
+        if (vd.type.size(vd.loc) == 0)
+            continue;
+
+        // only consider first sized member of an (anonymous) union
+        if (vd.overlapped && vd.offset == lastOffset)
+            continue;
+        lastOffset = vd.offset;
+
+        if (vd._init)
+        {
+            if (vd._init.isVoidInitializer())
+                /* Treat as 0 for the purposes of putting the initializer
+                 * in the BSS segment, or doing a mass set to 0
+                 */
+                continue;
+
+            // Examine init to see if it is all 0s.
+            auto exp = vd.getConstInitializer();
+            if (!exp || !_isZeroInit(exp))
+            {
+                sd.zeroInit = false;
+                break;
+            }
+        }
+        else if (!vd.type.isZeroInit(sd.loc))
+        {
+            sd.zeroInit = false;
+            break;
+        }
+    }
+    sd.argTypes = target.toArgTypes(sd.type);
+}
+private void finaliseSize(ClassDeclaration cd)
+{
+    assert(cd.sizeok != Sizeok.done);
+
+    // Set the offsets of the fields and determine the size of the class
+    if (cd.baseClass)
+    {
+        assert(cd.baseClass.sizeok == Sizeok.done);
+
+        cd.alignsize = cd.baseClass.alignsize;
+        if (cd.classKind == ClassKind.cpp)
+            cd.structsize = target.cpp.derivedClassOffset(cd.baseClass);
+        else
+            cd.structsize = cd.baseClass.structsize;
+    }
+    else if (cd.classKind == ClassKind.objc)
+        cd.structsize = 0; // no hidden member for an Objective-C class
+    else if (cd.isInterfaceDeclaration())
+    {
+        if (cd.interfaces.length == 0)
+        {
+            cd.alignsize = target.ptrsize;
+            cd.structsize = target.ptrsize;      // allow room for __vptr
+        }
+    }
+    else
+    {
+        cd.alignsize = target.ptrsize;
+        cd.structsize = target.ptrsize;      // allow room for __vptr
+        if (cd.hasMonitor())
+            cd.structsize += target.ptrsize; // allow room for __monitor
+    }
+
+    //printf("finalizeSize() %s, sizeok = %d\n", toChars(), sizeok);
+    size_t bi = 0;                  // index into vtblInterfaces[]
+
+    /****
+     * Runs through the inheritance graph to set the BaseClass.offset fields.
+     * Recursive in order to account for the size of the interface classes, if they are
+     * more than just interfaces.
+     * Params:
+     *      cd = interface to look at
+     *      baseOffset = offset of where cd will be placed
+     * Returns:
+     *      subset of instantiated size used by cd for interfaces
+     */
+    uint membersPlace(ClassDeclaration cd, uint baseOffset)
+    {
+        //printf("    membersPlace(%s, %d)\n", cd.toChars(), baseOffset);
+        uint offset = baseOffset;
+
+        foreach (BaseClass* b; cd.interfaces)
+        {
+            if (b.sym.sizeok != Sizeok.done)
+                b.sym.finalizeSize();
+            assert(b.sym.sizeok == Sizeok.done);
+
+            if (!b.sym.alignsize)
+                b.sym.alignsize = target.ptrsize;
+            offset = alignmember(structalign_t(cast(ushort)b.sym.alignsize), b.sym.alignsize, offset);
+            assert(bi < cd.vtblInterfaces.length);
+
+            BaseClass* bv = (*cd.vtblInterfaces)[bi];
+            if (b.sym.interfaces.length == 0)
+            {
+                //printf("\tvtblInterfaces[%d] b=%p b.sym = %s, offset = %d\n", bi, bv, bv.sym.toChars(), offset);
+                bv.offset = offset;
+                ++bi;
+                // All the base interfaces down the left side share the same offset
+                for (BaseClass* b2 = bv; b2.baseInterfaces.length; )
+                {
+                    b2 = &b2.baseInterfaces[0];
+                    b2.offset = offset;
+                    //printf("\tvtblInterfaces[%d] b=%p   sym = %s, offset = %d\n", bi, b2, b2.sym.toChars(), b2.offset);
+                }
+            }
+            membersPlace(b.sym, offset);
+            //printf(" %s size = %d\n", b.sym.toChars(), b.sym.structsize);
+            offset += b.sym.structsize;
+            if (cd.alignsize < b.sym.alignsize)
+                cd.alignsize = b.sym.alignsize;
+        }
+        return offset - baseOffset;
+    }
+
+    cd.structsize += membersPlace(cd, cd.structsize);
+
+    if (cd.isInterfaceDeclaration())
+    {
+        cd.sizeok = Sizeok.done;
+        return;
+    }
+
+    // FIXME: Currently setFieldOffset functions need to increase fields
+    // to calculate each variable offsets. It can be improved later.
+    cd.fields.setDim(0);
+
+    FieldState fieldState;
+    fieldState.offset = cd.structsize;
+    foreach (s; *cd.members)
+    {
+        s.setFieldOffset(cd, &fieldState, false);
+    }
+
+    cd.sizeok = Sizeok.done;
+
+    // Calculate fields[i].overlapped
+    cd.checkOverlappedFields();
+}
+
+/***************************************
+ * Calculate field[i].overlapped and overlapUnsafe, and check that all of explicit
+ * field initializers have unique memory space on instance.
+ * Returns:
+ *      true if any errors happen.
+ */
+private bool checkOverlappedFields(AggregateDeclaration ad)
+{
+    //printf("AggregateDeclaration::checkOverlappedFields() %s\n", toChars());
+    assert(ad.sizeok == Sizeok.done);
+    size_t nfields = ad.fields.length;
+    if (ad.isNested())
+    {
+        auto cd = ad.isClassDeclaration();
+        if (!cd || !cd.baseClass || !cd.baseClass.isNested())
+            nfields--;
+        if (cd.vthis2 && !(cd && cd.baseClass && cd.baseClass.vthis2))
+            nfields--;
+    }
+    bool errors = false;
+
+    // Fill in missing any elements with default initializers
+    foreach (i; 0 .. nfields)
+    {
+        auto vd = ad.fields[i];
+        if (vd.errors)
+        {
+            errors = true;
+            continue;
+        }
+
+        const vdIsVoidInit = vd._init && vd._init.isVoidInitializer();
+
+        // Find overlapped fields with the hole [vd.offset .. vd.offset.size()].
+        foreach (j; 0 .. nfields)
+        {
+            if (i == j)
+                continue;
+            auto v2 = ad.fields[j];
+            if (v2.errors)
+            {
+                errors = true;
+                continue;
+            }
+            if (!vd.isOverlappedWith(v2))
+                continue;
+
+            // vd and v2 are overlapping.
+            vd.overlapped = true;
+            v2.overlapped = true;
+
+            if (!MODimplicitConv(vd.type.mod, v2.type.mod))
+                v2.overlapUnsafe = true;
+            if (!MODimplicitConv(v2.type.mod, vd.type.mod))
+                vd.overlapUnsafe = true;
+
+            if (i > j)
+                continue;
+
+            if (!v2._init)
+                continue;
+
+            if (v2._init.isVoidInitializer())
+                continue;
+
+            if (vd._init && !vdIsVoidInit && v2._init)
+            {
+                .error(ad.loc, "overlapping default initialization for field `%s` and `%s`", v2.toChars(), vd.toChars());
+                errors = true;
+            }
+            else if (v2._init && i < j)
+            {
+                .error(v2.loc, "union field `%s` with default initialization `%s` must be before field `%s`",
+                    v2.toChars(), dmd.hdrgen.toChars(v2._init), vd.toChars());
+                errors = true;
+            }
+        }
+    }
+    return errors;
+}

@@ -21,6 +21,7 @@ import dmd.dcast : implicitConvTo;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dscope;
+import dmd.dsymbolsem : determineSize;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;

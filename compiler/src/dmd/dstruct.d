@@ -35,7 +35,6 @@ import dmd.identifier;
 import dmd.location;
 import dmd.mtype;
 import dmd.opover;
-import dmd.target;
 import dmd.tokens;
 import dmd.typesem : isZeroInit, merge, size, hasPointers;
 import dmd.typinf;
@@ -147,126 +146,6 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     override const(char)* kind() const
     {
         return "struct";
-    }
-
-    override final void finalizeSize()
-    {
-        //printf("StructDeclaration::finalizeSize() %s, sizeok = %d\n", toChars(), sizeok);
-        assert(sizeok != Sizeok.done);
-
-        if (sizeok == Sizeok.inProcess)
-        {
-            return;
-        }
-        sizeok = Sizeok.inProcess;
-
-        //printf("+StructDeclaration::finalizeSize() %s, fields.length = %d, sizeok = %d\n", toChars(), fields.length, sizeok);
-
-        fields.setDim(0);   // workaround
-
-        // Set the offsets of the fields and determine the size of the struct
-        FieldState fieldState;
-        bool isunion = isUnionDeclaration() !is null;
-        for (size_t i = 0; i < members.length; i++)
-        {
-            Dsymbol s = (*members)[i];
-            s.setFieldOffset(this, &fieldState, isunion);
-        }
-        if (type.ty == Terror)
-        {
-            errors = true;
-            return;
-        }
-
-        if (structsize == 0)
-        {
-            hasNoFields = true;
-            alignsize = 1;
-
-            // A fine mess of what size a zero sized struct should be
-            final switch (classKind)
-            {
-                case ClassKind.d:
-                case ClassKind.cpp:
-                    structsize = 1;
-                    break;
-
-                case ClassKind.c:
-                case ClassKind.objc:
-                    if (target.c.bitFieldStyle == TargetC.BitFieldStyle.MS)
-                    {
-                        /* Undocumented MS behavior for:
-                         *   struct S { int :0; };
-                         */
-                        structsize = 4;
-                    }
-                    else
-                        structsize = 0;
-                    break;
-            }
-        }
-
-        // Round struct size up to next alignsize boundary.
-        // This will ensure that arrays of structs will get their internals
-        // aligned properly.
-        if (alignment.isDefault() || alignment.isPack())
-            structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
-        else
-            structsize = (structsize + alignment.get() - 1) & ~(alignment.get() - 1);
-
-        sizeok = Sizeok.done;
-
-        //printf("-StructDeclaration::finalizeSize() %s, fields.length = %d, structsize = %d\n", toChars(), cast(int)fields.length, cast(int)structsize);
-
-        if (errors)
-            return;
-
-        // Calculate fields[i].overlapped
-        if (checkOverlappedFields())
-        {
-            errors = true;
-            return;
-        }
-
-        // Determine if struct is all zeros or not
-        zeroInit = true;
-        auto lastOffset = -1;
-        foreach (vd; fields)
-        {
-            // First skip zero sized fields
-            if (vd.type.size(vd.loc) == 0)
-                continue;
-
-            // only consider first sized member of an (anonymous) union
-            if (vd.overlapped && vd.offset == lastOffset)
-                continue;
-            lastOffset = vd.offset;
-
-            if (vd._init)
-            {
-                if (vd._init.isVoidInitializer())
-                    /* Treat as 0 for the purposes of putting the initializer
-                     * in the BSS segment, or doing a mass set to 0
-                     */
-                    continue;
-
-                // Examine init to see if it is all 0s.
-                auto exp = vd.getConstInitializer();
-                if (!exp || !_isZeroInit(exp))
-                {
-                    zeroInit = false;
-                    break;
-                }
-            }
-            else if (!vd.type.isZeroInit(loc))
-            {
-                zeroInit = false;
-                break;
-            }
-        }
-
-
-        argTypes = target.toArgTypes(type);
     }
 
     /// Compute cached type properties for `TypeStruct`
