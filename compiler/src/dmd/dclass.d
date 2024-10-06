@@ -23,7 +23,7 @@ import dmd.gluelayer;
 import dmd.declaration;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem;
+import dmd.dsymbolsem : dsymbolSemantic, addMember, search, setFieldOffset;
 import dmd.errors;
 import dmd.func;
 import dmd.funcsem;
