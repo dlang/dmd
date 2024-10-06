@@ -37,7 +37,7 @@ import dmd.mtype;
 import dmd.opover;
 import dmd.target;
 import dmd.tokens;
-import dmd.typesem;
+import dmd.typesem : isZeroInit, merge, size, hasPointers;
 import dmd.typinf;
 import dmd.visitor;
 
