@@ -1446,7 +1446,6 @@ public:
     virtual bool hasDefaultArg() = 0;
     const char* toChars() const override;
     DYNCAST dyncast() const override;
-    virtual RootObject* dummyArg() = 0;
     void accept(Visitor* v) override;
 };
 
@@ -1463,7 +1462,6 @@ public:
     RootObject* specialization() override;
     RootObject* defaultArg(const Loc& instLoc, Scope* sc) override;
     bool hasDefaultArg() override;
-    RootObject* dummyArg() override;
     void accept(Visitor* v) override;
 };
 
@@ -1621,7 +1619,6 @@ public:
     RootObject* specialization() final override;
     RootObject* defaultArg(const Loc& instLoc, Scope* sc) final override;
     bool hasDefaultArg() final override;
-    RootObject* dummyArg() final override;
     void accept(Visitor* v) override;
 };
 
@@ -1643,7 +1640,6 @@ public:
     RootObject* specialization() override;
     RootObject* defaultArg(const Loc& instLoc, Scope* sc) override;
     bool hasDefaultArg() override;
-    RootObject* dummyArg() override;
     void accept(Visitor* v) override;
 };
 
@@ -1660,7 +1656,6 @@ public:
     RootObject* specialization() override;
     RootObject* defaultArg(const Loc& instLoc, Scope* sc) override;
     bool hasDefaultArg() override;
-    RootObject* dummyArg() override;
     void accept(Visitor* v) override;
 };
 

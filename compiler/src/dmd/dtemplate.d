@@ -3235,10 +3235,6 @@ extern (C++) class TemplateParameter : ASTNode
         return DYNCAST.templateparameter;
     }
 
-    /* Create dummy argument based on parameter.
-     */
-    abstract RootObject dummyArg();
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -3317,19 +3313,6 @@ extern (C++) class TemplateTypeParameter : TemplateParameter
     override final bool hasDefaultArg()
     {
         return defaultType !is null;
-    }
-
-    override final RootObject dummyArg()
-    {
-        Type t = specType;
-        if (!t)
-        {
-            // Use this for alias-parameter's too (?)
-            if (!tdummy)
-                tdummy = new TypeIdentifier(loc, ident);
-            t = tdummy;
-        }
-        return t;
     }
 
     override void accept(Visitor v)
@@ -3476,24 +3459,6 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
         return defaultValue !is null;
     }
 
-    override RootObject dummyArg()
-    {
-        Expression e = specValue;
-        if (!e)
-        {
-            // Create a dummy value
-            auto pe = cast(void*)valType in edummies;
-            if (!pe)
-            {
-                e = valType.defaultInit(Loc.initial);
-                edummies[cast(void*)valType] = e;
-            }
-            else
-                e = *pe;
-        }
-        return e;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -3579,18 +3544,6 @@ extern (C++) final class TemplateAliasParameter : TemplateParameter
         return defaultAlias !is null;
     }
 
-    override RootObject dummyArg()
-    {
-        RootObject s = specAlias;
-        if (!s)
-        {
-            if (!sdummy)
-                sdummy = new Dsymbol();
-            s = sdummy;
-        }
-        return s;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -3666,11 +3619,6 @@ extern (C++) final class TemplateTupleParameter : TemplateParameter
     override bool hasDefaultArg()
     {
         return false;
-    }
-
-    override RootObject dummyArg()
-    {
-        return null;
     }
 
     override void accept(Visitor v)
