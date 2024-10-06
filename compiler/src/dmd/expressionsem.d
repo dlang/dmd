@@ -81,6 +81,7 @@ import dmd.semantic3;
 import dmd.sideeffect;
 import dmd.safe;
 import dmd.target;
+import dmd.templatesem : matchWithInstance;
 import dmd.tokens;
 import dmd.traits;
 import dmd.typesem;
@@ -17386,4 +17387,134 @@ private Expression expandInitializer(VarDeclaration vd, Loc loc)
     e = e.copy();
     e.loc = loc;    // for better error message
     return e;
+}
+
+/*****************************************************
+ * Determine if template instance is really a template function,
+ * and that template function needs to infer types from the function
+ * arguments.
+ *
+ * Like findBestMatch, iterate possible template candidates,
+ * but just looks only the necessity of type inference.
+ */
+private bool needsTypeInference(TemplateInstance ti, Scope* sc, int flag = 0)
+{
+    //printf("TemplateInstance.needsTypeInference() %s\n", toChars());
+    if (ti.semanticRun != PASS.initial)
+        return false;
+
+    uint olderrs = global.errors;
+    Objects dedtypes;
+    size_t count = 0;
+
+    auto tovers = ti.tempdecl.isOverloadSet();
+    foreach (size_t oi; 0 .. tovers ? tovers.a.length : 1)
+    {
+        Dsymbol dstart = tovers ? tovers.a[oi] : ti.tempdecl;
+        int r = overloadApply(dstart, (Dsymbol s)
+        {
+            auto td = s.isTemplateDeclaration();
+            if (!td)
+                return 0;
+
+            /* If any of the overloaded template declarations need inference,
+             * then return true
+             */
+            if (!td.onemember)
+                return 0;
+            if (auto td2 = td.onemember.isTemplateDeclaration())
+            {
+                if (!td2.onemember || !td2.onemember.isFuncDeclaration())
+                    return 0;
+                if (ti.tiargs.length >= td.parameters.length - (td.isVariadic() ? 1 : 0))
+                    return 0;
+                return 1;
+            }
+            auto fd = td.onemember.isFuncDeclaration();
+            if (!fd || fd.type.ty != Tfunction)
+                return 0;
+
+            foreach (tp; *td.parameters)
+            {
+                if (tp.isTemplateThisParameter())
+                    return 1;
+            }
+
+            /* Determine if the instance arguments, tiargs, are all that is necessary
+             * to instantiate the template.
+             */
+            //printf("tp = %p, td.parameters.length = %d, tiargs.length = %d\n", tp, td.parameters.length, tiargs.length);
+            auto tf = fd.type.isTypeFunction();
+            if (tf.parameterList.length)
+            {
+                auto tp = td.isVariadic();
+                if (tp && td.parameters.length > 1)
+                    return 1;
+
+                if (!tp && ti.tiargs.length < td.parameters.length)
+                {
+                    // Can remain tiargs be filled by default arguments?
+                    foreach (size_t i; ti.tiargs.length .. td.parameters.length)
+                    {
+                        if (!(*td.parameters)[i].hasDefaultArg())
+                            return 1;
+                    }
+                }
+
+                foreach (i, fparam; tf.parameterList)
+                {
+                    // 'auto ref' needs inference.
+                    if (fparam.storageClass & STC.auto_)
+                        return 1;
+                }
+            }
+
+            if (!flag)
+            {
+                /* Calculate the need for overload resolution.
+                 * When only one template can match with tiargs, inference is not necessary.
+                 */
+                dedtypes.setDim(td.parameters.length);
+                dedtypes.zero();
+                if (td.semanticRun == PASS.initial)
+                {
+                    if (td._scope)
+                    {
+                        // Try to fix forward reference. Ungag errors while doing so.
+                        Ungag ungag = td.ungagSpeculative();
+                        td.dsymbolSemantic(td._scope);
+                    }
+                    if (td.semanticRun == PASS.initial)
+                    {
+                        .error(ti.loc, "%s `%s` `%s` forward references template declaration `%s`",
+                               ti.kind, ti.toPrettyChars, ti.toChars(), td.toChars());
+                        return 1;
+                    }
+                }
+                MATCH m = matchWithInstance(sc, td, ti, dedtypes, ArgumentList(), 0);
+                if (m == MATCH.nomatch)
+                    return 0;
+            }
+
+            /* If there is more than one function template which matches, we may
+             * need type inference (see https://issues.dlang.org/show_bug.cgi?id=4430)
+             */
+            return ++count > 1 ? 1 : 0;
+        });
+        if (r)
+            return true;
+    }
+
+    if (olderrs != global.errors)
+    {
+        if (!global.gag)
+        {
+            errorSupplemental(ti.loc, "while looking for match for `%s`", ti.toChars());
+            ti.semanticRun = PASS.semanticdone;
+            ti.inst = ti;
+        }
+        ti.errors = true;
+    }
+    //printf("false\n");
+    return false;
 }
