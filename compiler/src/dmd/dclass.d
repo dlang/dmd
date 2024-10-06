@@ -615,6 +615,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
 
     final bool isFuncHidden(FuncDeclaration fd)
     {
+        import dmd.funcsem : overloadApply;
         //printf("ClassDeclaration.isFuncHidden(class = %s, fd = %s)\n", toChars(), fd.toPrettyChars());
         Dsymbol s = this.search(Loc.initial, fd.ident, SearchOpt.ignoreAmbiguous | SearchOpt.ignoreErrors);
         if (!s)
