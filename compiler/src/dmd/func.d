@@ -35,9 +35,9 @@ import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
-import dmd.errors;
 import dmd.escape;
 import dmd.expression;
+import dmd.funcsem : overloadApply;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
@@ -50,8 +50,6 @@ import dmd.common.outbuffer;
 import dmd.rootobject;
 import dmd.root.string;
 import dmd.root.stringtable;
-import dmd.semantic2;
-import dmd.semantic3;
 import dmd.statement;
 import dmd.tokens;
 import dmd.visitor;
@@ -1056,118 +1054,6 @@ extern (C++) class FuncDeclaration : Declaration
     {
         v.visit(this);
     }
-}
-
-/***************************************************
- * Visit each overloaded function/template in turn, and call dg(s) on it.
- * Exit when no more, or dg(s) returns nonzero.
- *
- * Params:
- *  fstart = symbol to start from
- *  dg = the delegate to be called on the overload
- *  sc = context used to check if symbol is accessible (and therefore visible),
- *       can be null
- *
- * Returns:
- *      ==0     continue
- *      !=0     done (and the return value from the last dg() call)
- */
-extern (D) int overloadApply(Dsymbol fstart, scope int delegate(Dsymbol) dg, Scope* sc = null)
-{
-    Dsymbols visited;
-
-    int overloadApplyRecurse(Dsymbol fstart, scope int delegate(Dsymbol) dg, Scope* sc)
-    {
-        // Detect cyclic calls.
-        if (visited.contains(fstart))
-            return 0;
-        visited.push(fstart);
-
-        Dsymbol next;
-        for (auto d = fstart; d; d = next)
-        {
-            import dmd.access : checkSymbolAccess;
-            if (auto od = d.isOverDeclaration())
-            {
-                /* The scope is needed here to check whether a function in
-                   an overload set was added by means of a private alias (or a
-                   selective import). If the scope where the alias is created
-                   is imported somewhere, the overload set is visible, but the private
-                   alias is not.
-                */
-                if (sc)
-                {
-                    if (checkSymbolAccess(sc, od))
-                    {
-                        if (int r = overloadApplyRecurse(od.aliassym, dg, sc))
-                            return r;
-                    }
-                }
-                else if (int r = overloadApplyRecurse(od.aliassym, dg, sc))
-                    return r;
-                next = od.overnext;
-            }
-            else if (auto fa = d.isFuncAliasDeclaration())
-            {
-                if (fa.hasOverloads)
-                {
-                    if (int r = overloadApplyRecurse(fa.funcalias, dg, sc))
-                        return r;
-                }
-                else if (auto fd = fa.toAliasFunc())
-                {
-                    if (int r = dg(fd))
-                        return r;
-                }
-                else
-                {
-                    .error(d.loc, "%s `%s` is aliased to a function", d.kind, d.toPrettyChars);
-                    break;
-                }
-                next = fa.overnext;
-            }
-            else if (auto ad = d.isAliasDeclaration())
-            {
-                if (sc)
-                {
-                    if (checkSymbolAccess(sc, ad))
-                        next = ad.toAlias();
-                }
-                else
-                   next = ad.toAlias();
-                if (next == ad)
-                    break;
-                if (next == fstart)
-                    break;
-            }
-            else if (auto td = d.isTemplateDeclaration())
-            {
-                if (int r = dg(td))
-                    return r;
-                next = td.overnext;
-            }
-            else if (auto fd = d.isFuncDeclaration())
-            {
-                if (int r = dg(fd))
-                    return r;
-                next = fd.overnext;
-            }
-            else if (auto os = d.isOverloadSet())
-            {
-                foreach (ds; os.a)
-                    if (int r = dg(ds))
-                        return r;
-            }
-            else
-            {
-                .error(d.loc, "%s `%s` is aliased to a function", d.kind, d.toPrettyChars);
-                break;
-                // BUG: should print error message?
-            }
-        }
-        return 0;
-    }
-    return overloadApplyRecurse(fstart, dg, sc);
 }
 
 /**
