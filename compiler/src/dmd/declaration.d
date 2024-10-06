@@ -1129,7 +1129,7 @@ extern (C++) class VarDeclaration : Declaration
         auto vbitoffset = v.offset * 8;
 
         // Bitsize of types are overridden by any bit-field widths.
-        ulong tbitsize = void;
+        ulong tbitsize;
         if (auto bf = isBitFieldDeclaration())
         {
             bitoffset += bf.bitOffset;
@@ -1138,7 +1138,7 @@ extern (C++) class VarDeclaration : Declaration
         else
             tbitsize = tsz * 8;
 
-        ulong vbitsize = void;
+        ulong vbitsize;
         if (auto vbf = v.isBitFieldDeclaration())
         {
             vbitoffset += vbf.bitOffset;
