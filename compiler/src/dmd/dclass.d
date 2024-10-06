@@ -26,7 +26,6 @@ import dmd.dsymbol;
 import dmd.dsymbolsem : dsymbolSemantic, addMember, search, setFieldOffset;
 import dmd.errors;
 import dmd.func;
-import dmd.funcsem;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
@@ -34,7 +33,7 @@ import dmd.mtype;
 import dmd.objc;
 import dmd.root.rmem;
 import dmd.target;
-import dmd.typesem;
+import dmd.typesem : covariant, immutableOf, sarrayOf;
 import dmd.visitor;
 
 /***********************************************************
