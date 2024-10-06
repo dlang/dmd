@@ -2428,3 +2428,70 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
         m.last = MATCH.nomatch;
     }
 }
+/* Create dummy argument based on parameter.
+ */
+private RootObject dummyArg(TemplateParameter tp)
+{
+    scope v = new DummyArgVisitor();
+    tp.accept(v);
+    return v.result;
+}
+private extern(C++) class DummyArgVisitor : Visitor
+{
+    RootObject result;
+
+    alias visit = typeof(super).visit;
+    override void visit(TemplateTypeParameter ttp)
+    {
+        Type t = ttp.specType;
+        if (t)
+        {
+            result = t;
+            return;
+        }
+        // Use this for alias-parameter's too (?)
+        if (!ttp.tdummy)
+            ttp.tdummy = new TypeIdentifier(ttp.loc, ttp.ident);
+        result = ttp.tdummy;
+    }
+
+    override void visit(TemplateValueParameter tvp)
+    {
+        Expression e = tvp.specValue;
+        if (e)
+        {
+            result = e;
+            return;
+        }
+
+        // Create a dummy value
+        auto pe = cast(void*)tvp.valType in tvp.edummies;
+        if (pe)
+        {
+            result = *pe;
+            return;
+        }
+
+        e = tvp.valType.defaultInit(Loc.initial);
+        tvp.edummies[cast(void*)tvp.valType] = e;
+        result = e;
+    }
+
+    override void visit(TemplateAliasParameter tap)
+    {
+        RootObject s = tap.specAlias;
+        if (s)
+        {
+            result = s;
+            return;
+        }
+        if (!tap.sdummy)
+            tap.sdummy = new Dsymbol();
+        result = tap.sdummy;
+    }
+
+    override void visit(TemplateTupleParameter tap)
+    {
+        result = null;
+    }
+}
