@@ -139,20 +139,6 @@ enum class PASS : uint8_t
     obj             // toObjFile() run
 };
 
-enum
-{
-    PASSinit,           // initial state
-    PASSsemantic,       // semantic() started
-    PASSsemanticdone,   // semantic() done
-    PASSsemantic2,      // semantic2() started
-    PASSsemantic2done,  // semantic2() done
-    PASSsemantic3,      // semantic3() started
-    PASSsemantic3done,  // semantic3() done
-    PASSinline,         // inline started
-    PASSinlinedone,     // inline done
-    PASSobj             // toObjFile() run
-};
-
 /* Flags for symbol search
  */
 typedef unsigned SearchOptFlags;
