@@ -14887,6 +14887,13 @@ Expression dotTemplateSemanticProp(DotTemplateInstanceExp exp, Scope* sc, bool g
     auto die = new DotIdExp(exp.loc, e1, exp.ti.name);
 
     Expression e = die.dotIdSemanticPropX(sc);
+
+    Expression notTemplate()
+    {
+        error(exp.loc, "`%s` isn't a template", e.toChars());
+        return errorExp();
+    }
+
     if (e == die)
     {
         exp.e1 = die.e1; // take back
@@ -14931,7 +14938,7 @@ Expression dotTemplateSemanticProp(DotTemplateInstanceExp exp, Scope* sc, bool g
             exp.e1 = dve.e1; // pull semantic() result
 
             if (!exp.findTempDecl(sc))
-                goto Lerr;
+                return notTemplate();
             if (exp.ti.needsTypeInference(sc))
                 return exp;
             exp.ti.dsymbolSemantic(sc);
@@ -15027,9 +15034,7 @@ Expression dotTemplateSemanticProp(DotTemplateInstanceExp exp, Scope* sc, bool g
                .expressionSemantic(sc);
     }
 
-Lerr:
-    error(exp.loc, "`%s` isn't a template", e.toChars());
-    return errorExp();
+    return notTemplate();
 }
 
 MATCH matchType(FuncExp funcExp, Type to, Scope* sc, FuncExp* presult, ErrorSink eSink)
