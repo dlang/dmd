@@ -39,6 +39,7 @@ import dmd.dstruct;
 import dmd.dsymbol;
 import dmd.dtemplate;
 import dmd.expression;
+import dmd.expressionsem : fill;
 import dmd.func;
 import dmd.glue;
 import dmd.hdrgen;
