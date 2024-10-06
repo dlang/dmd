@@ -14495,14 +14495,6 @@ private Expression dotIdSemanticPropX(DotIdExp exp, Scope* sc)
     return exp;
 }
 
-private bool checkDisabled(Dsymbol s, ref Loc loc, Scope* sc)
-{
-    if (auto d = s.isDeclaration())
-        return d.checkDisabled(loc, sc);
-
-    return false;
-}
-
 /******************************
  * Resolve properties, i.e. `e1.ident`, without seeing UFCS.
  * Params:
@@ -14597,7 +14589,8 @@ Expression dotIdSemanticProp(DotIdExp exp, Scope* sc, bool gag)
             s = s.toAlias();
 
             s.checkDeprecated(exp.loc, sc);
-            s.checkDisabled(exp.loc, sc);
+            if (auto d = s.isDeclaration())
+                d.checkDisabled(exp.loc, sc);
 
             if (auto em = s.isEnumMember())
             {
@@ -17284,4 +17277,108 @@ void semanticTypeInfo(Scope* sc, Type t)
 
         default:        semanticTypeInfo(sc, tb.nextOf()); break;
     }
+}
+
+/**
+ * Issue an error if an attempt to call a disabled method is made
+ *
+ * If the declaration is disabled but inside a disabled function,
+ * returns `true` but do not issue an error message.
+ *
+ * Params:
+ *   d = Declaration to check
+ *   loc = Location information of the call
+ *   sc  = Scope in which the call occurs
+ *   isAliasedDeclaration = if `true` searches overload set
+ *
+ * Returns:
+ *   `true` if this `Declaration` is `@disable`d, `false` otherwise.
+ */
+bool checkDisabled(Declaration d, Loc loc, Scope* sc, bool isAliasedDeclaration = false)
+{
+    if (!(d.storage_class & STC.disable))
+        return false;
+
+    if (sc.func && sc.func.storage_class & STC.disable)
+        return true;
+
+    if (auto p = d.toParent())
+    {
+        if (auto postblit = d.isPostBlitDeclaration())
+        {
+            /* https://issues.dlang.org/show_bug.cgi?id=21885
+             *
+             * If the generated postblit is disabled, it
+             * means that one of the fields has a disabled
+             * postblit. Print the first field that has
+             * a disabled postblit.
+             */
+            if (postblit.isGenerated())
+            {
+                auto sd = p.isStructDeclaration();
+                assert(sd);
+                for (size_t i = 0; i < sd.fields.length; i++)
+                {
+                    auto structField = sd.fields[i];
+                    if (structField.overlapped)
+                        continue;
+                    Type tv = structField.type.baseElemOf();
+                    if (tv.ty != Tstruct)
+                        continue;
+                    auto sdv = (cast(TypeStruct)tv).sym;
+                    if (!sdv.postblit)
+                        continue;
+                    if (sdv.postblit.isDisabled())
+                    {
+                        .error(loc, "%s `%s` is not copyable because field `%s` is not copyable", p.kind, p.toPrettyChars, structField.toChars());
+                        return true;
+                    }
+                }
+            }
+            .error(loc, "%s `%s` is not copyable because it has a disabled postblit", p.kind, p.toPrettyChars);
+            return true;
+        }
+    }
+
+    // if the function is @disabled, maybe there
+    // is an overload in the overload set that isn't
+    if (isAliasedDeclaration)
+    {
+        if (FuncDeclaration fd = d.isFuncDeclaration())
+        {
+            for (FuncDeclaration ovl = fd; ovl; ovl = cast(FuncDeclaration)ovl.overnext)
+                if (!(ovl.storage_class & STC.disable))
+                    return false;
+        }
+    }
+
+    if (auto ctor = d.isCtorDeclaration())
+    {
+        if (ctor.isCpCtor && ctor.isGenerated())
+        {
+            .error(loc, "generating an `inout` copy constructor for `struct %s` failed, therefore instances of it are uncopyable", d.parent.toPrettyChars());
+            return true;
+        }
+    }
+    .error(loc, "%s `%s` cannot be used because it is annotated with `@disable`", d.kind, d.toPrettyChars);
+    return true;
+}
+
+/*******************************************
+ * Helper function for the expansion of manifest constant.
+ */
+private Expression expandInitializer(VarDeclaration vd, Loc loc)
+{
+    assert((vd.storage_class & STC.manifest) && vd._init);
+
+    auto e = vd.getConstInitializer();
+    if (!e)
+    {
+        .error(loc, "cannot make expression out of initializer for `%s`", vd.toChars());
+        return ErrorExp.get();
+    }
+
+    e = e.copy();
+    e.loc = loc;    // for better error message
+    return e;
 }
