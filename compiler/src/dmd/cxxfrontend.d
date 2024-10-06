@@ -250,6 +250,13 @@ Expression expressionSemantic(Expression e, Scope* sc)
     return dmd.expressionsem.expressionSemantic(e, sc);
 }
 
+bool fill(StructDeclaration sd, const ref Loc loc,
+          ref Expressions elements, bool ctorinit)
+{
+    import dmd.expressionsem;
+    return dmd.expressionsem.fill(sd, loc, elements, ctorinit);
+}
+
 /***********************************************************
  * funcsem.d
  */
