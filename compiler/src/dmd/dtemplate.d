@@ -3439,34 +3439,35 @@ extern (C++) final class TemplateValueParameter : TemplateParameter
     override RootObject defaultArg(const ref Loc instLoc, Scope* sc)
     {
         Expression e = defaultValue;
-        if (e)
+        if (!e)
+            return null;
+
+        e = e.syntaxCopy();
+        Scope* sc2 = sc.push();
+        sc2.inDefaultArg = true;
+        e = e.expressionSemantic(sc2);
+        sc2.pop();
+        if (e is null)
+            return null;
+        if (auto te = e.isTemplateExp())
         {
-            e = e.syntaxCopy();
-            Scope* sc2 = sc.push();
-            sc2.inDefaultArg = true;
-            e = e.expressionSemantic(sc2);
-            sc2.pop();
-            if (e is null)
-                return null;
-            if (auto te = e.isTemplateExp())
+            assert(sc && sc.tinst);
+            if (te.td == sc.tinst.tempdecl)
             {
-                assert(sc && sc.tinst);
-                if (te.td == sc.tinst.tempdecl)
-                {
-                    // defaultValue is a reference to its template declaration
-                    // i.e: `template T(int arg = T)`
-                    // Raise error now before calling resolveProperties otherwise we'll
-                    // start looping on the expansion of the template instance.
-                    auto td = sc.tinst.tempdecl;
-                    .error(td.loc, "%s `%s` recursive template expansion", td.kind, td.toPrettyChars);
-                    return ErrorExp.get();
-                }
+                // defaultValue is a reference to its template declaration
+                // i.e: `template T(int arg = T)`
+                // Raise error now before calling resolveProperties otherwise we'll
+                // start looping on the expansion of the template instance.
+                auto td = sc.tinst.tempdecl;
+                .error(td.loc, "%s `%s` recursive template expansion", td.kind, td.toPrettyChars);
+                return ErrorExp.get();
             }
-            if ((e = resolveProperties(sc, e)) is null)
-                return null;
-            e = e.resolveLoc(instLoc, sc); // use the instantiated loc
-            e = e.optimize(WANTvalue);
         }
+        if ((e = resolveProperties(sc, e)) is null)
+            return null;
+        e = e.resolveLoc(instLoc, sc); // use the instantiated loc
+        e = e.optimize(WANTvalue);
+
         return e;
     }
 
@@ -4229,77 +4230,75 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             // Elide codegen because there's no instantiation from any root modules.
             return false;
         }
-        else
+
+        // Prefer instantiations from non-root modules, to minimize object code size.
+
+        /* If a TemplateInstance is ever instantiated from a non-root module,
+         * we do not have to generate code for it,
+         * because it will be generated when the non-root module is compiled.
+         *
+         * But, if the non-root 'minst' imports any root modules, it might still need codegen.
+         *
+         * The problem is if A imports B, and B imports A, and both A
+         * and B instantiate the same template, does the compilation of A
+         * or the compilation of B do the actual instantiation?
+         *
+         * See https://issues.dlang.org/show_bug.cgi?id=2500.
+         *
+         * => Elide codegen if there is at least one instantiation from a non-root module
+         *    which doesn't import any root modules.
+         */
+        static ThreeState needsCodegenRootOnly(TemplateInstance tithis, TemplateInstance tinst)
         {
-            // Prefer instantiations from non-root modules, to minimize object code size.
-
-            /* If a TemplateInstance is ever instantiated from a non-root module,
-             * we do not have to generate code for it,
-             * because it will be generated when the non-root module is compiled.
-             *
-             * But, if the non-root 'minst' imports any root modules, it might still need codegen.
-             *
-             * The problem is if A imports B, and B imports A, and both A
-             * and B instantiate the same template, does the compilation of A
-             * or the compilation of B do the actual instantiation?
-             *
-             * See https://issues.dlang.org/show_bug.cgi?id=2500.
-             *
-             * => Elide codegen if there is at least one instantiation from a non-root module
-             *    which doesn't import any root modules.
-             */
-            static ThreeState needsCodegenRootOnly(TemplateInstance tithis, TemplateInstance tinst)
+            // If the ancestor isn't speculative,
+            // 1. do codegen if the ancestor needs it
+            // 2. elide codegen if the ancestor doesn't need it (non-root instantiation of ancestor incl. subtree)
+            if (tinst && tinst.inst)
             {
-                // If the ancestor isn't speculative,
-                // 1. do codegen if the ancestor needs it
-                // 2. elide codegen if the ancestor doesn't need it (non-root instantiation of ancestor incl. subtree)
-                if (tinst && tinst.inst)
+                tinst = tinst.inst;
+                const needsCodegen = tinst.needsCodegen(); // sets tinst.minst
+                if (tinst.minst) // not speculative
                 {
-                    tinst = tinst.inst;
-                    const needsCodegen = tinst.needsCodegen(); // sets tinst.minst
-                    if (tinst.minst) // not speculative
-                    {
-                        tithis.minst = tinst.minst; // cache result
-                        return needsCodegen ? ThreeState.yes : ThreeState.no;
-                    }
-                }
-
-                // Elide codegen if `this` doesn't need it.
-                if (tithis.minst && !tithis.minst.isRoot() && !tithis.minst.rootImports())
-                    return ThreeState.no;
-
-                return ThreeState.none;
-            }
-
-            if (const needsCodegen = needsCodegenRootOnly(this, tinst))
-                return needsCodegen == ThreeState.yes ? true : false;
-
-            // Elide codegen if a (non-speculative) sibling doesn't need it.
-            for (; tnext; tnext = tnext.tnext)
-            {
-                const needsCodegen = needsCodegenRootOnly(tnext, tnext.tinst); // sets tnext.minst
-                if (tnext.minst) // not speculative
-                {
-                    if (needsCodegen == ThreeState.no)
-                    {
-                        minst = tnext.minst; // cache result
-                        assert(!minst.isRoot() && !minst.rootImports());
-                        return false;
-                    }
-                    else if (!minst)
-                    {
-                        minst = tnext.minst; // cache result from non-speculative sibling
-                        // continue searching
-                    }
-                    else if (needsCodegen != ThreeState.none)
-                        break;
+                    tithis.minst = tinst.minst; // cache result
+                    return needsCodegen ? ThreeState.yes : ThreeState.no;
                 }
             }
 
-            // Unless `this` is still speculative (=> all further siblings speculative too),
-            // do codegen because we found no guaranteed-codegen'd non-root instantiation.
-            return minst !is null;
+            // Elide codegen if `this` doesn't need it.
+            if (tithis.minst && !tithis.minst.isRoot() && !tithis.minst.rootImports())
+                return ThreeState.no;
+
+            return ThreeState.none;
         }
+
+        if (const needsCodegen = needsCodegenRootOnly(this, tinst))
+            return needsCodegen == ThreeState.yes ? true : false;
+
+        // Elide codegen if a (non-speculative) sibling doesn't need it.
+        for (; tnext; tnext = tnext.tnext)
+        {
+            const needsCodegen = needsCodegenRootOnly(tnext, tnext.tinst); // sets tnext.minst
+            if (tnext.minst) // not speculative
+            {
+                if (needsCodegen == ThreeState.no)
+                {
+                    minst = tnext.minst; // cache result
+                    assert(!minst.isRoot() && !minst.rootImports());
+                    return false;
+                }
+                else if (!minst)
+                {
+                    minst = tnext.minst; // cache result from non-speculative sibling
+                    // continue searching
+                }
+                else if (needsCodegen != ThreeState.none)
+                    break;
+            }
+        }
+
+        // Unless `this` is still speculative (=> all further siblings speculative too),
+        // do codegen because we found no guaranteed-codegen'd non-root instantiation.
+        return minst !is null;
     }
 
     /**********************************************
