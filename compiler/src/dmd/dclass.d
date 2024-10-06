@@ -26,6 +26,7 @@ import dmd.dsymbol;
 import dmd.dsymbolsem : dsymbolSemantic, addMember, search, setFieldOffset;
 import dmd.errors;
 import dmd.func;
+import dmd.funcsem : overloadApply;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
