@@ -360,7 +360,7 @@ StringExp toUTF8(StringExp se, Scope* sc)
  * Returns:
  *  ErrorExp
  */
-extern (D) Expression incompatibleTypes(UnaExp e)
+private Expression incompatibleTypes(UnaExp e)
 {
     if (e.e1.type.toBasetype() == Type.terror)
         return e.e1;
@@ -16334,7 +16334,7 @@ private Expression modifiableLvalueImpl(Expression _this, Scope* sc, Expression 
  * Returns:
  *      `true` if ok, `false` for error
  */
-bool checkAddressVar(Scope* sc, Expression exp, VarDeclaration v)
+private bool checkAddressVar(Scope* sc, Expression exp, VarDeclaration v)
 {
     //printf("checkAddressVar(exp: %s, v: %s)\n", exp.toChars(), v.toChars());
     if (v is null)
@@ -16518,7 +16518,7 @@ Expression getThisSkipNestedFuncs(const ref Loc loc, Scope* sc, Dsymbol s, Aggre
  *      newly created variable such that a closure is made for the variable when
  *      the address of `fd` is taken.
  */
-VarDeclaration makeThis2Argument(const ref Loc loc, Scope* sc, FuncDeclaration fd)
+private VarDeclaration makeThis2Argument(const ref Loc loc, Scope* sc, FuncDeclaration fd)
 {
     Type tthis2 = Type.tvoidptr.sarrayOf(2);
     VarDeclaration vthis2 = new VarDeclaration(loc, tthis2, Identifier.generateId("__this"), null);
