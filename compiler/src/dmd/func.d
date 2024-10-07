@@ -29,7 +29,6 @@ import dmd.dcast;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.delegatize;
-import dmd.dinterpret;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
