@@ -7475,6 +7475,95 @@ private extern(C++) class NewScopeVisitor : Visitor
         sc = sc2;
     }
 }
+
+extern(C++) Dsymbols* include(Dsymbol d, Scope* sc)
+{
+    scope icv = new IncludeVisitor(sc);
+    d.accept(icv);
+    return icv.sc;
+}
+
+extern(C++) class IncludeVisitor : Visitor
+{
+    alias visit = typeof(super).visit;
+    Scope* sc;
+    this(Scope* sc)
+    {
+        this.sc = sc;
+    }
+
+    override void visit(StaticIfDeclaration sfd)
+    {
+    /****************************************
+     * Different from other AttribDeclaration subclasses, include() call requires
+     * the completion of addMember and setScope phases.
+     */
+        //printf("StaticIfDeclaration::include(sc = %p) scope = %p\n", sc, _scope);
+        if (sfd.errors || sfd.onStack)
+            //return null;
+        sfd.onStack = true;
+        scope(exit) sfd.onStack = false;
+
+        if (sc && condition.inc == Include.notComputed)
+        {
+            assert(sfd.scopesym); // addMember is already done
+            assert(_scope); // setScope is already done
+            d = ConditionalDeclaration.include(_scope);
+            if (d && !addisdone)
+            {
+                // Add members lazily.
+                sfd.d.foreachDsymbol( s => s.addMember(_scope, scopesym) );
+
+                // Set the member scopes lazily.
+                d.foreachDsymbol( s => s.setScope(_scope) );
+
+                addisdone = true;
+            }
+            return d;
+        }
+        else
+        {
+            return ConditionalDeclaration.include(sc);
+        }
+    }
+
+    override void visit(StaticForeachDeclaration sed)
+    {
+        if (errors || onStack)
+            return null;
+        if (cached)
+        {
+            assert(!onStack);
+            return cache;
+        }
+        onStack = true;
+        scope(exit) onStack = false;
+
+        if (_scope)
+        {
+            sfe.prepare(_scope); // lower static foreach aggregate
+        }
+        if (!sfe.ready())
+        {
+            return null; // TODO: ok?
+        }
+
+        // expand static foreach
+        import dmd.statementsem: makeTupleForeach;
+        Dsymbols* d = makeTupleForeach(_scope, true, true, sfe.aggrfe, decl, sfe.needExpansion).decl;
+        if (d) // process generated declarations
+        {
+            // Add members lazily.
+            sed.d.foreachDsymbol( s => s.addMember(_scope, scopesym) );
+
+            // Set the member scopes lazily.
+            d.foreachDsymbol( s => s.setScope(_scope) );
+        }
+        cached = true;
+        cache = d;
+        return d;
+    }
+}
 /**
  * Called from a symbol's semantic to check if `gnuAbiTag` UDA
  * can be applied to them

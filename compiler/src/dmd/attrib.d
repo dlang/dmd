@@ -32,7 +32,7 @@ import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem : setScope, addMember;
+//import dmd.dsymbolsem : setScope, addMember;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
@@ -701,8 +701,8 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
 extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
 {
     ScopeDsymbol scopesym;          /// enclosing symbol (e.g. module) where symbols will be inserted
-    private bool addisdone = false; /// true if members have been added to scope
-    private bool onStack = false;   /// true if a call to `include` is currently active
+    public bool addisdone = false; /// true if members have been added to scope
+    public bool onStack = false;   /// true if a call to `include` is currently active
 
     extern (D) this(const ref Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl) @safe
     {
@@ -714,42 +714,6 @@ extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
     {
         assert(!s);
         return new StaticIfDeclaration(loc, condition.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
-    }
-
-    /****************************************
-     * Different from other AttribDeclaration subclasses, include() call requires
-     * the completion of addMember and setScope phases.
-     */
-    override Dsymbols* include(Scope* sc)
-    {
-        //printf("StaticIfDeclaration::include(sc = %p) scope = %p\n", sc, _scope);
-
-        if (errors || onStack)
-            return null;
-        onStack = true;
-        scope(exit) onStack = false;
-
-        if (sc && condition.inc == Include.notComputed)
-        {
-            assert(scopesym); // addMember is already done
-            assert(_scope); // setScope is already done
-            Dsymbols* d = ConditionalDeclaration.include(_scope);
-            if (d && !addisdone)
-            {
-                // Add members lazily.
-                d.foreachDsymbol( s => s.addMember(_scope, scopesym) );
-
-                // Set the member scopes lazily.
-                d.foreachDsymbol( s => s.setScope(_scope) );
-
-                addisdone = true;
-            }
-            return d;
-        }
-        else
-        {
-            return ConditionalDeclaration.include(sc);
-        }
     }
 
     override const(char)* kind() const
@@ -818,43 +782,6 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
         return false;
     }
 
-    override Dsymbols* include(Scope* sc)
-    {
-        if (errors || onStack)
-            return null;
-        if (cached)
-        {
-            assert(!onStack);
-            return cache;
-        }
-        onStack = true;
-        scope(exit) onStack = false;
-
-        if (_scope)
-        {
-            sfe.prepare(_scope); // lower static foreach aggregate
-        }
-        if (!sfe.ready())
-        {
-            return null; // TODO: ok?
-        }
-
-        // expand static foreach
-        import dmd.statementsem: makeTupleForeach;
-        Dsymbols* d = makeTupleForeach(_scope, true, true, sfe.aggrfe, decl, sfe.needExpansion).decl;
-        if (d) // process generated declarations
-        {
-            // Add members lazily.
-            d.foreachDsymbol( s => s.addMember(_scope, scopesym) );
-
-            // Set the member scopes lazily.
-            d.foreachDsymbol( s => s.setScope(_scope) );
-        }
-        cached = true;
-        cache = d;
-        return d;
-    }
-
     override void addComment(const(char)* comment)
     {
         // do nothing
@@ -920,7 +847,6 @@ extern(C++) final class ForwardingAttribDeclaration : AttribDeclaration
         v.visit(this);
     }
 }
-
 
 /***********************************************************
  * Mixin declarations, like:
