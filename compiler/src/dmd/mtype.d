@@ -26,6 +26,7 @@ import dmd.declaration;
 import dmd.denum;
 import dmd.dstruct;
 import dmd.dsymbol;
+import dmd.dsymbolsem : determineSize;
 import dmd.dtemplate;
 import dmd.enumsem;
 import dmd.errors;
