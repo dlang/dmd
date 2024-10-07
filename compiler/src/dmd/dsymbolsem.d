@@ -7487,77 +7487,79 @@ extern(C++) class IncludeVisitor : Visitor
 {
     alias visit = typeof(super).visit;
     Scope* sc;
+    Dsymbols* symbols;
     this(Scope* sc)
     {
         this.sc = sc;
+        this.symbols = new Dsymbols();
     }
 
-    override void visit(StaticIfDeclaration sfd)
+    override void visit(StaticIfDeclaration sif)
     {
     /****************************************
      * Different from other AttribDeclaration subclasses, include() call requires
      * the completion of addMember and setScope phases.
      */
         //printf("StaticIfDeclaration::include(sc = %p) scope = %p\n", sc, _scope);
-        if (sfd.errors || sfd.onStack)
+        if (sif.errors || sif.onStack)
             //return null;
-        sfd.onStack = true;
-        scope(exit) sfd.onStack = false;
+        sif.onStack = true;
+        scope(exit) sif.onStack = false;
 
-        if (sc && condition.inc == Include.notComputed)
+        if (sc && sif.condition.inc == Include.notComputed)
         {
-            assert(sfd.scopesym); // addMember is already done
+            assert(sif.scopesym); // addMember is already done
             assert(_scope); // setScope is already done
             d = ConditionalDeclaration.include(_scope);
-            if (d && !addisdone)
+            if (d && !sif.addisdone)
             {
                 // Add members lazily.
-                sfd.d.foreachDsymbol( s => s.addMember(_scope, scopesym) );
+                d.foreachDsymbol( s => s.addMember(_scope, scopesym) );
 
                 // Set the member scopes lazily.
                 d.foreachDsymbol( s => s.setScope(_scope) );
 
-                addisdone = true;
+                sif.addisdone = true;
             }
-            return d;
+            visit(cast(d)sif);
         }
         else
         {
-            return ConditionalDeclaration.include(sc);
+            visit(cast(ConditionalDeclaration)sif);
         }
     }
 
-    override void visit(StaticForeachDeclaration sed)
+    override void visit(StaticForeachDeclaration sfd)
     {
-        if (errors || onStack)
+        if (sfd.errors || sfd.onStack)
             return null;
-        if (cached)
+        if (sfd.cached)
         {
-            assert(!onStack);
+            assert(!sfd.onStack);
             return cache;
         }
-        onStack = true;
-        scope(exit) onStack = false;
+        sfd.onStack = true;
+        scope(exit) sfd.onStack = false;
 
-        if (_scope)
+        if (sfd._scope)
         {
-            sfe.prepare(_scope); // lower static foreach aggregate
+            sfd.sfe.prepare(sfd._scope); // lower static foreach aggregate
         }
-        if (!sfe.ready())
+        if (!sfd.sfe.ready())
         {
             return null; // TODO: ok?
         }
 
         // expand static foreach
         import dmd.statementsem: makeTupleForeach;
-        Dsymbols* d = makeTupleForeach(_scope, true, true, sfe.aggrfe, decl, sfe.needExpansion).decl;
+        Dsymbols* d = makeTupleForeach(sfd._scope, true, true, sfd.sfe.aggrfe, sfd.decl, sfd.sfe.needExpansion).decl;
         if (d) // process generated declarations
         {
             // Add members lazily.
-            sed.d.foreachDsymbol( s => s.addMember(_scope, scopesym) );
+            sfd.d.foreachDsymbol( s => s.addMember(sfd._scope, scopesym) );
 
             // Set the member scopes lazily.
-            d.foreachDsymbol( s => s.setScope(_scope) );
+            d.foreachDsymbol( s => s.setScope(sfd._scope) );
         }
         cached = true;
         cache = d;
