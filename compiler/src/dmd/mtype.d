@@ -30,6 +30,7 @@ import dmd.dtemplate;
 import dmd.enumsem;
 import dmd.errors;
 import dmd.expression;
+import dmd.dsymbolsem : determineSize;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
