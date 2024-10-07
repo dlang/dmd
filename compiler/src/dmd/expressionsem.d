@@ -140,16 +140,26 @@ private bool isNeedThisScope(Scope* sc, Declaration d)
  *      buf = append generated string to buffer
  *      sc = context
  *      exps = array of Expressions
+ *      loc = location of the pragma / mixin where this conversion was requested, for supplemental error
+ *      fmt = format string for supplemental error. May contain 1 `%s` which prints the faulty expression
+ *      expandTuples = whether tuples should be expanded rather than printed as tuple syntax
  * Returns:
  *      true on error
  */
-bool expressionsToString(ref OutBuffer buf, Scope* sc, Expressions* exps)
+bool expressionsToString(ref OutBuffer buf, Scope* sc, Expressions* exps,
+    Loc loc, const(char)* fmt, bool expandTuples)
 {
     if (!exps)
         return false;
 
     foreach (ex; *exps)
     {
+        bool error()
+        {
+            if (loc != Loc.initial && fmt)
+                errorSupplemental(loc, fmt, ex.toChars());
+            return true;
+        }
         if (!ex)
             continue;
         auto sc2 = sc.startCTFE();
@@ -162,15 +172,16 @@ bool expressionsToString(ref OutBuffer buf, Scope* sc, Expressions* exps)
         // allowed to contain types as well as expressions
         auto e4 = ctfeInterpretForPragmaMsg(e3);
         if (!e4 || e4.op == EXP.error)
-            return true;
+            return error();
 
         // expand tuple
-        if (auto te = e4.isTupleExp())
-        {
-            if (expressionsToString(buf, sc, te.exps))
-                return true;
-            continue;
-        }
+        if (expandTuples)
+            if (auto te = e4.isTupleExp())
+            {
+                if (expressionsToString(buf, sc, te.exps, loc, fmt, true))
+                    return error();
+                continue;
+            }
         // char literals exp `.toStringExp` return `null` but we cant override it
         // because in most contexts we don't want the conversion to succeed.
         IntegerExp ie = e4.isIntegerExp();
@@ -181,9 +192,11 @@ bool expressionsToString(ref OutBuffer buf, Scope* sc, Expressions* exps)
             e4 = new ArrayLiteralExp(ex.loc, tsa, ie);
         }
 
-        if (StringExp se = e4.toStringExp())
+        StringExp se = e4.toStringExp();
+
+        if (se && se.type.nextOf().ty.isSomeChar)
             buf.writestring(se.toUTF8(sc).peekString());
-        else
+        else if (!(se && se.len == 0)) // don't print empty array literal `[]`
             buf.writestring(e4.toString());
     }
     return false;
@@ -336,6 +349,7 @@ StringExp toUTF8(StringExp se, Scope* sc)
         Expression e = castTo(se, sc, Type.tchar.arrayOf());
         e = e.optimize(WANTvalue);
         auto result = e.isStringExp();
+        assert(result);
         assert(result.sz == 1);
         return result;
     }
@@ -7194,17 +7208,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         // Handle this in the glue layer
         Expression e = new TypeidExp(exp.loc, ta);
 
-        bool genObjCode = true;
-
-        // https://issues.dlang.org/show_bug.cgi?id=23650
-        // We generate object code for typeinfo, required
-        // by typeid, only if in non-speculative context
-        if (sc.traitsCompiles)
-        {
-            genObjCode = false;
-        }
-
-        e.type = getTypeInfoType(exp.loc, ta, sc, genObjCode);
+        e.type = getTypeInfoType(exp.loc, ta, sc);
         semanticTypeInfo(sc, ta);
 
         if (ea)
@@ -7704,7 +7708,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     private Expression compileIt(MixinExp exp, Scope *sc)
     {
         OutBuffer buf;
-        if (expressionsToString(buf, sc, exp.exps))
+        if (expressionsToString(buf, sc, exp.exps, exp.loc, null, true))
             return null;
 
         uint errors = global.errors;

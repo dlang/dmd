@@ -5904,6 +5904,7 @@ struct TargetC final
     uint8_t wchar_tsize;
     Runtime runtime;
     BitFieldStyle bitFieldStyle;
+    bool contributesToAggregateAlignment(BitFieldDeclaration* bfd);
     TargetC() :
         crtDestructorsSupported(true),
         boolsize(),
@@ -7596,7 +7597,7 @@ public:
 
 extern Target target;
 
-extern Type* getTypeInfoType(const Loc& loc, Type* t, Scope* sc, bool genObjCode = true);
+extern Type* getTypeInfoType(const Loc& loc, Type* t, Scope* sc);
 
 class SemanticTimeTransitiveVisitor : public SemanticTimePermissiveVisitor
 {

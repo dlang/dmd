@@ -1832,7 +1832,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
     {
         //printf("MixinDeclaration::compileIt(loc = %d) %s\n", cd.loc.linnum, cd.exp.toChars());
         OutBuffer buf;
-        if (expressionsToString(buf, sc, cd.exps))
+        if (expressionsToString(buf, sc, cd.exps, cd.loc, null, true))
             return null;
 
         const errors = global.errors;
@@ -7113,12 +7113,19 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
             error(bfd.loc, "bit field width %d is larger than type", bfd.fieldWidth);
 
         const style = target.c.bitFieldStyle;
+        if (style != TargetC.BitFieldStyle.MS && style != TargetC.BitFieldStyle.Gcc_Clang)
+            assert(0, "unsupported bit-field style");
+
+        const isMicrosoftStyle = style == TargetC.BitFieldStyle.MS;
+        const contributesToAggregateAlignment = target.c.contributesToAggregateAlignment(bfd);
 
         void startNewField()
         {
             if (log) printf("startNewField()\n");
             uint alignsize;
-            if (style == TargetC.BitFieldStyle.Gcc_Clang)
+            if (isMicrosoftStyle)
+               alignsize = memsize; // not memalignsize
+            else
             {
                 if (bfd.fieldWidth > 32)
                     alignsize = memalignsize;
@@ -7129,15 +7136,13 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
                 else
                     alignsize = 1;
             }
-            else
-                alignsize = memsize; // not memalignsize
 
             uint dummy;
             bfd.offset = placeField(bfd.loc,
                 fieldState.offset,
                 memsize, alignsize, bfd.alignment,
                 ad.structsize,
-                (anon && style == TargetC.BitFieldStyle.Gcc_Clang) ? dummy : ad.alignsize,
+                contributesToAggregateAlignment ? ad.alignsize : dummy,
                 isunion);
 
             fieldState.inFlight = true;
@@ -7146,45 +7151,30 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
             fieldState.fieldSize = memsize;
         }
 
-        if (style == TargetC.BitFieldStyle.Gcc_Clang)
-        {
-            if (bfd.fieldWidth == 0)
-            {
-                if (!isunion)
-                {
-                    // Use type of zero width field to align to next field
-                    fieldState.offset = (fieldState.offset + memalignsize - 1) & ~(memalignsize - 1);
-                    ad.structsize = fieldState.offset;
-                }
+        if (ad.alignsize == 0)
+            ad.alignsize = 1;
+        if (!isMicrosoftStyle && contributesToAggregateAlignment && ad.alignsize < memalignsize)
+            ad.alignsize = memalignsize;
 
-                fieldState.inFlight = false;
-                return;
+        if (bfd.fieldWidth == 0)
+        {
+            if (!isMicrosoftStyle && !isunion)
+            {
+                // Use type of zero width field to align to next field
+                fieldState.offset = (fieldState.offset + memalignsize - 1) & ~(memalignsize - 1);
+                ad.structsize = fieldState.offset;
+            }
+            else if (isMicrosoftStyle && fieldState.inFlight && !isunion)
+            {
+                // documentation says align to next int
+                //const alsz = cast(uint)Type.tint32.size();
+                const alsz = memsize; // but it really does this
+                fieldState.offset = (fieldState.offset + alsz - 1) & ~(alsz - 1);
+                ad.structsize = fieldState.offset;
             }
 
-            if (ad.alignsize == 0)
-                ad.alignsize = 1;
-            if (!anon &&
-                  ad.alignsize < memalignsize)
-                ad.alignsize = memalignsize;
-        }
-        else if (style == TargetC.BitFieldStyle.MS)
-        {
-            if (ad.alignsize == 0)
-                ad.alignsize = 1;
-            if (bfd.fieldWidth == 0)
-            {
-                if (fieldState.inFlight && !isunion)
-                {
-                    // documentation says align to next int
-                    //const alsz = cast(uint)Type.tint32.size();
-                    const alsz = memsize; // but it really does this
-                    fieldState.offset = (fieldState.offset + alsz - 1) & ~(alsz - 1);
-                    ad.structsize = fieldState.offset;
-                }
-
-                fieldState.inFlight = false;
-                return;
-            }
+            fieldState.inFlight = false;
+            return;
         }
 
         if (!fieldState.inFlight)
@@ -7192,7 +7182,7 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
             //printf("not in flight\n");
             startNewField();
         }
-        else if (style == TargetC.BitFieldStyle.Gcc_Clang)
+        else if (!isMicrosoftStyle)
         {
             // If the bit-field spans more units of alignment than its type
             // and is at the alignment boundary, start a new field at the
@@ -7217,7 +7207,7 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
                 }
             }
         }
-        else if (style == TargetC.BitFieldStyle.MS)
+        else
         {
             if (memsize != fieldState.fieldSize ||
                 fieldState.bitOffset + bfd.fieldWidth > fieldState.fieldSize * 8)
@@ -7226,14 +7216,14 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
                 startNewField();
             }
         }
-        else
-            assert(0);
 
         bfd.offset = fieldState.fieldOffset;
         bfd.bitOffset = fieldState.bitOffset;
 
         const pastField = bfd.bitOffset + bfd.fieldWidth;
-        if (style == TargetC.BitFieldStyle.Gcc_Clang)
+        if (isMicrosoftStyle)
+            fieldState.fieldSize = memsize;
+        else
         {
             auto size = (pastField + 7) / 8;
             fieldState.fieldSize = size;
@@ -7247,8 +7237,6 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
             else
                 ad.structsize = bfd.offset + size;
         }
-        else
-            fieldState.fieldSize = memsize;
         //printf("at end: ad.structsize = %d\n", cast(int)ad.structsize);
         //print(fieldState);
 

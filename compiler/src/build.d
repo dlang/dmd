@@ -1581,10 +1581,12 @@ auto sourceFiles()
             cparse.d
         "),
         backendHeaders: fileArray(env["C"], "
-            cc.d cdef.d cgcv.d code.d cv4.d dt.d el.d global.d
-            obj.d oper.d rtlsym.d x86/code_x86.d iasm.d codebuilder.d
-            ty.d type.d mach.d mscoff.d dwarf.d dwarf2.d x86/xmm.d
-            dlist.d melf.d
+            cc.d cdef.d cgcv.d code.d dt.d el.d global.d
+            obj.d oper.d rtlsym.d iasm.d codebuilder.d
+            ty.d type.d dlist.d
+            dwarf.d dwarf2.d cv4.d
+            melf.d mscoff.d mach.d
+            x86/code_x86.d x86/xmm.d
         "),
     };
     foreach (member; __traits(allMembers, DmdSources))
@@ -1620,13 +1622,16 @@ auto sourceFiles()
         "),
         backend: fileArray(env["C"], "
             bcomplex.d evalu8.d divcoeff.d dvec.d go.d gsroa.d glocal.d gdag.d gother.d gflow.d
-            dout.d inliner.d
-            gloop.d cgelem.d cgcs.d ee.d x86/cod4.d x86/cod5.d eh.d x86/nteh.d blockopt.d mem.d cg.d x86/cgreg.d
-            dtype.d debugprint.d fp.d symbol.d symtab.d elem.d dcode.d cgsched.d x86/cg87.d x86/cgxmm.d x86/cgcod.d x86/cod1.d x86/cod2.d
-            x86/cod3.d cv8.d dcgcv.d pdata.d util2.d var.d backconfig.d drtlsym.d dwarfeh.d ptrntab.d
-            dvarstats.d dwarfdbginf.d cgen.d goh.d barray.d cgcse.d elpicpie.d
-            machobj.d elfobj.d mscoffobj.d filespec.d aarray.d x86/disasm86.d arm/disasmarm.d arm/instr.d
-            arm/cod1.d arm/cod2.d arm/cod3.d arm/cod4.d
+            dout.d inliner.d eh.d filespec.d aarray.d
+            gloop.d cgelem.d cgcs.d ee.d blockopt.d mem.d cg.d
+            dtype.d debugprint.d fp.d symbol.d symtab.d elem.d dcode.d cgsched.d
+            pdata.d util2.d var.d backconfig.d drtlsym.d ptrntab.d
+            dvarstats.d cgen.d goh.d barray.d cgcse.d elpicpie.d
+            dwarfeh.d dwarfdbginf.d cv8.d dcgcv.d
+            machobj.d elfobj.d mscoffobj.d
+            x86/nteh.d x86/cgreg.d x86/cg87.d x86/cgxmm.d x86/disasm86.d
+            x86/cgcod.d x86/cod1.d x86/cod2.d x86/cod3.d x86/cod4.d x86/cod5.d
+            arm/disasmarm.d arm/instr.d arm/cod1.d arm/cod2.d arm/cod3.d arm/cod4.d
             "
         ),
     };
