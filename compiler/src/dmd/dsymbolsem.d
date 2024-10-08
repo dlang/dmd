@@ -7480,7 +7480,7 @@ extern(C++) Dsymbols* include(Dsymbol d, Scope* sc)
 {
     scope icv = new IncludeVisitor(sc);
     d.accept(icv);
-    return icv.sc;
+    return icv.symbols;
 }
 
 extern(C++) class IncludeVisitor : Visitor
@@ -7509,19 +7509,18 @@ extern(C++) class IncludeVisitor : Visitor
         if (sc && sif.condition.inc == Include.notComputed)
         {
             assert(sif.scopesym); // addMember is already done
-            assert(_scope); // setScope is already done
-            d = ConditionalDeclaration.include(_scope);
+            assert(sif._scope); // setScope is already done
+            Dsymbols* d = include(cast(ConditionalDeclaration)sif, sif._scope);
             if (d && !sif.addisdone)
             {
                 // Add members lazily.
-                d.foreachDsymbol( s => s.addMember(_scope, scopesym) );
+                d.foreachDsymbol( s => s.addMember(sif._scope, sif.scopesym) );
 
                 // Set the member scopes lazily.
-                d.foreachDsymbol( s => s.setScope(_scope) );
+                d.foreachDsymbol( s => s.setScope(sif._scope) );
 
                 sif.addisdone = true;
             }
-            visit(cast(d)sif);
         }
         else
         {
@@ -7561,9 +7560,9 @@ extern(C++) class IncludeVisitor : Visitor
             // Set the member scopes lazily.
             d.foreachDsymbol( s => s.setScope(sfd._scope) );
         }
-        cached = true;
+        sfd.cached = true;
         cache = d;
-        return d;
+        cast(void) d;
     }
 }
 /**
