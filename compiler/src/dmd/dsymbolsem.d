@@ -7647,3 +7647,61 @@ private Expression callScopeDtor(VarDeclaration vd, Scope* sc)
     }
     return e;
 }
+
+/***************************************
+ * Collect all instance fields, then determine instance size.
+ * Returns:
+ *      false if failed to determine the size.
+ */
+bool determineSize(AggregateDeclaration ad, const ref Loc loc)
+{
+    //printf("AggregateDeclaration::determineSize() %s, sizeok = %d\n", toChars(), sizeok);
+
+    // The previous instance size finalizing had:
+    if (ad.type.ty == Terror || ad.errors)
+        return false;   // failed already
+    if (ad.sizeok == Sizeok.done)
+        return true;    // succeeded
+
+    if (!ad.members)
+    {
+        .error(loc, "%s `%s` unknown size", ad.kind, ad.toPrettyChars);
+        return false;
+    }
+
+    if (ad._scope)
+        dsymbolSemantic(ad, null);
+
+    // Determine the instance size of base class first.
+    if (auto cd = ad.isClassDeclaration())
+    {
+        cd = cd.baseClass;
+        if (cd && !cd.determineSize(loc))
+            goto Lfail;
+    }
+
+    // Determine instance fields when sizeok == Sizeok.none
+    if (!ad.determineFields())
+        goto Lfail;
+    if (ad.sizeok != Sizeok.done)
+        ad.finalizeSize();
+
+    // this aggregate type has:
+    if (ad.type.ty == Terror)
+        return false;   // marked as invalid during the finalizing.
+    if (ad.sizeok == Sizeok.done)
+        return true;    // succeeded to calculate instance size.
+
+Lfail:
+    // There's unresolvable forward reference.
+    if (ad.type != Type.terror)
+        error(loc, "%s `%s` no size because of forward reference", ad.kind, ad.toPrettyChars);
+    // Don't cache errors from speculative semantic, might be resolvable later.
+    // https://issues.dlang.org/show_bug.cgi?id=16574
+    if (!global.gag)
+    {
+        ad.type = Type.terror;
+        ad.errors = true;
+    }
+    return false;
+}
