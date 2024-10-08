@@ -205,9 +205,9 @@ else
     }
 
 /// Callback for when the backend wants to report an error
-void errorBackend(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...)
+extern(C++) void errorBackend(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...)
 {
-    const loc = Loc(filename, linnum, charnum);
+    const loc = SourceLoc(filename.toDString, linnum, charnum);
     va_list ap;
     va_start(ap, format);
     verrorReport(loc, format, ap, ErrorKind.error);

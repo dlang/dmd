@@ -33,7 +33,7 @@ nothrow:
 @nogc:
 
 /// Callback for errors raised by the backend
-alias ErrorCallbackBackend = void function(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
+alias ErrorCallbackBackend = extern(C++) void function(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
 
 package(dmd.backend) __gshared ErrorCallbackBackend errorCallbackBackend;
 

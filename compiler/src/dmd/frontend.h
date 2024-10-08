@@ -8076,6 +8076,8 @@ extern void error(const Loc& loc, const char* format, ...);
 
 extern void error(const char* filename, uint32_t linnum, uint32_t charnum, const char* format, ...);
 
+extern void errorBackend(const char* filename, uint32_t linnum, uint32_t charnum, const char* format, ...);
+
 extern void errorSupplemental(const Loc& loc, const char* format, ...);
 
 extern void warning(const Loc& loc, const char* format, ...);
