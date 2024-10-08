@@ -35,7 +35,6 @@ nothrow:
 
 // FIXME: backend can't import front end modules because missing -J flag
 extern (C++) void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
-package extern (C++) void fatal();
 
 /***********************************
  * Returns: aligned `offset` if it is of size `size`.
