@@ -16,6 +16,7 @@ import core.stdc.stdio;
 import dmd.common.outbuffer;
 import dmd.root.array;
 import dmd.root.filename;
+import dmd.root.string: toDString;
 
 version (DMDLIB)
 {
@@ -126,35 +127,7 @@ nothrow:
         MessageStyle messageStyle = Loc.messageStyle) const nothrow
     {
         OutBuffer buf;
-        if (fileIndex)
-        {
-            buf.writestring(filename);
-        }
-        if (linnum)
-        {
-            final switch (messageStyle)
-            {
-                case MessageStyle.digitalmars:
-                    buf.writeByte('(');
-                    buf.print(linnum);
-                    if (showColumns && charnum)
-                    {
-                        buf.writeByte(',');
-                        buf.print(charnum);
-                    }
-                    buf.writeByte(')');
-                    break;
-                case MessageStyle.gnu: // https://www.gnu.org/prep/standards/html_node/Errors.html
-                    buf.writeByte(':');
-                    buf.print(linnum);
-                    if (showColumns && charnum)
-                    {
-                        buf.writeByte(':');
-                        buf.print(charnum);
-                    }
-                    break;
-            }
-        }
+        writeSourceLoc(buf, filename.toDString(), linnum, charnum, showColumns, messageStyle);
         return buf.extractChars();
     }
 
@@ -208,5 +181,51 @@ nothrow:
     bool isValid() const pure @safe
     {
         return fileIndex != 0;
+    }
+}
+
+/**
+ * Format a source location for error messages
+ *
+ * Params:
+ *   buf = buffer to write string into
+ *   filename = source file name
+ *   linnum = line number
+ *   charnum = column number
+ *   showColumns = include column number in message
+ *   messageStyle = select error message format
+ */
+void writeSourceLoc(ref OutBuffer buf,
+    const(char)[] filename,
+    int linnum,
+    int charnum,
+    bool showColumns = Loc.showColumns,
+    MessageStyle messageStyle = Loc.messageStyle) nothrow
+{
+    buf.writestring(filename);
+    if (linnum)
+    {
+        final switch (messageStyle)
+        {
+            case MessageStyle.digitalmars:
+                buf.writeByte('(');
+                buf.print(linnum);
+                if (showColumns && charnum)
+                {
+                    buf.writeByte(',');
+                    buf.print(charnum);
+                }
+                buf.writeByte(')');
+                break;
+            case MessageStyle.gnu: // https://www.gnu.org/prep/standards/html_node/Errors.html
+                buf.writeByte(':');
+                buf.print(linnum);
+                if (showColumns && charnum)
+                {
+                    buf.writeByte(':');
+                    buf.print(charnum);
+                }
+                break;
+        }
     }
 }
