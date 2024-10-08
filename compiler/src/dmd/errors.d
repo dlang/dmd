@@ -204,6 +204,16 @@ else
         va_end(ap);
     }
 
+/// Callback for when the backend wants to report an error
+void errorBackend(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...)
+{
+    const loc = Loc(filename, linnum, charnum);
+    va_list ap;
+    va_start(ap, format);
+    verrorReport(loc, format, ap, ErrorKind.error);
+    va_end(ap);
+}
+
 /**
  * Print additional details about an error message.
  * Doesn't increase the error count or print an additional error prefix.

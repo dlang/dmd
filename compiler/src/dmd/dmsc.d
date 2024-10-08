@@ -19,6 +19,7 @@ import dmd.globals;
 import dmd.dclass;
 import dmd.dmdparams;
 import dmd.dmodule;
+import dmd.errors : errorBackend;
 import dmd.mtype;
 import dmd.target;
 
@@ -93,7 +94,9 @@ void backend_init(const ref Param params, const ref DMDparams driverParams, cons
         exfmt,
         params.addMain,
         driverParams.symImport != SymImport.none,
-        go
+        go,
+        // FIXME: casting to @nogc because errors.d is not marked @nogc yet
+        cast(ErrorCallbackBackend) &errorBackend,
     );
 
     out_config_debug(

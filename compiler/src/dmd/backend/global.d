@@ -19,7 +19,7 @@ import core.stdc.stdint;
 
 import dmd.backend.barray;
 import dmd.backend.cdef;
-import dmd.backend.cc : Symbol, block, Classsym, BlockState, FLdata;
+import dmd.backend.cc : Symbol, block, Classsym, BlockState, FLdata, Srcpos;
 import dmd.backend.code;
 import dmd.backend.dlist;
 import dmd.backend.el : elem;
@@ -30,11 +30,26 @@ import dmd.backend.type;
 import dmd.backend.var : _tysize;
 
 nothrow:
-@safe:
 @nogc:
 
-// FIXME: backend can't import front end modules because missing -J flag
-extern (C++) void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
+/// Callback for errors raised by the backend
+alias ErrorCallbackBackend = void function(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
+
+package(dmd.backend) __gshared ErrorCallbackBackend errorCallbackBackend;
+
+/**
+ * Backend error report function
+ * Params:
+ *     srcPos = source location
+ *     format = printf format string with error message
+ *     args = printf format string arguments
+ */
+void error(T...)(Srcpos srcPos, const(char)* format, T args)
+{
+    errorCallbackBackend(srcPos.Sfilename, srcPos.Slinnum, srcPos.Scharnum, format, args);
+}
+
+@safe:
 
 /***********************************
  * Returns: aligned `offset` if it is of size `size`.

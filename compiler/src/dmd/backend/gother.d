@@ -475,8 +475,7 @@ private void chkrd(elem *n, Barray!(elem*) rdlist)
          */
         if (type_size(sv.Stype) != 0)
         {
-            error(n.Esrcpos.Sfilename, n.Esrcpos.Slinnum, n.Esrcpos.Scharnum,
-                "variable %s used before set", sv.Sident.ptr);
+            error(n.Esrcpos, "variable %s used before set", sv.Sident.ptr);
         }
     }
 
