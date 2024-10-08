@@ -127,7 +127,7 @@ nothrow:
         MessageStyle messageStyle = Loc.messageStyle) const nothrow
     {
         OutBuffer buf;
-        writeSourceLoc(buf, filename.toDString(), linnum, charnum, showColumns, messageStyle);
+        writeSourceLoc(buf, SourceLoc(this), showColumns, messageStyle);
         return buf.extractChars();
     }
 
@@ -189,43 +189,70 @@ nothrow:
  *
  * Params:
  *   buf = buffer to write string into
- *   filename = source file name
- *   linnum = line number
- *   charnum = column number
+ *   loc = source location to write
  *   showColumns = include column number in message
  *   messageStyle = select error message format
  */
 void writeSourceLoc(ref OutBuffer buf,
-    const(char)[] filename,
-    int linnum,
-    int charnum,
-    bool showColumns = Loc.showColumns,
-    MessageStyle messageStyle = Loc.messageStyle) nothrow
+    SourceLoc loc,
+    bool showColumns,
+    MessageStyle messageStyle) nothrow
 {
-    buf.writestring(filename);
-    if (linnum)
+    buf.writestring(loc.filename);
+    if (loc.line == 0)
+        return;
+
+    final switch (messageStyle)
     {
-        final switch (messageStyle)
-        {
-            case MessageStyle.digitalmars:
-                buf.writeByte('(');
-                buf.print(linnum);
-                if (showColumns && charnum)
-                {
-                    buf.writeByte(',');
-                    buf.print(charnum);
-                }
-                buf.writeByte(')');
-                break;
-            case MessageStyle.gnu: // https://www.gnu.org/prep/standards/html_node/Errors.html
+        case MessageStyle.digitalmars:
+            buf.writeByte('(');
+            buf.print(loc.line);
+            if (showColumns && loc.column)
+            {
+                buf.writeByte(',');
+                buf.print(loc.column);
+            }
+            buf.writeByte(')');
+            break;
+        case MessageStyle.gnu: // https://www.gnu.org/prep/standards/html_node/Errors.html
+            buf.writeByte(':');
+            buf.print(loc.line);
+            if (showColumns && loc.column)
+            {
                 buf.writeByte(':');
-                buf.print(linnum);
-                if (showColumns && charnum)
-                {
-                    buf.writeByte(':');
-                    buf.print(charnum);
-                }
-                break;
-        }
+                buf.print(loc.column);
+            }
+            break;
+    }
+}
+
+/**
+ * Describes a location in the source code as a file + line number + column number
+ *
+ * While `Loc` is a compact opaque location meant to be stored in the AST,
+ * this struct has simple modifiable fields and is used for printing.
+ */
+struct SourceLoc
+{
+    const(char)[] filename; /// name of source file
+    uint line; /// line number (starts at 1)
+    uint column; /// column number (starts at 1)
+
+    // aliases for backwards compatibility
+    alias linnum = line;
+    alias charnum = column;
+
+    this(const(char)[] filename, uint line, uint column) nothrow
+    {
+        this.filename = filename;
+        this.line = line;
+        this.column = column;
+    }
+
+    this(Loc loc) nothrow
+    {
+        this.filename = loc.filename.toDString();
+        this.line = loc.linnum;
+        this.column = loc.charnum;
     }
 }

@@ -6010,6 +6010,19 @@ enum class ErrorKind
     message = 4,
 };
 
+struct SourceLoc final
+{
+    _d_dynamicArray< const char > filename;
+    uint32_t line;
+    uint32_t column;
+    SourceLoc() :
+        filename(),
+        line(),
+        column()
+    {
+    }
+};
+
 enum class DiagnosticReporting : uint8_t
 {
     error = 0u,
@@ -8079,9 +8092,13 @@ extern void message(const char* format, ...);
 
 extern void tip(const char* format, ...);
 
-extern void verrorReport(const Loc& loc, const char* format, va_list ap, ErrorKind kind, const char* p1 = nullptr, const char* p2 = nullptr);
+extern void verrorReport(const Loc loc, const char* format, va_list ap, ErrorKind kind, const char* p1 = nullptr, const char* p2 = nullptr);
+
+extern void verrorReport(const SourceLoc loc, const char* format, va_list ap, ErrorKind kind, const char* p1 = nullptr, const char* p2 = nullptr);
 
 extern void verrorReportSupplemental(const Loc& loc, const char* format, va_list ap, ErrorKind kind);
+
+extern void verrorReportSupplemental(const SourceLoc loc, const char* format, va_list ap, ErrorKind kind);
 
 extern void fatal();
 
