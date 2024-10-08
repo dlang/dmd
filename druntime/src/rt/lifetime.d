@@ -1783,7 +1783,7 @@ size_t newCapacity(size_t newlength, size_t elemsize)
      * growing if 2x would fill up the address space (for 32-bit)
      */
     enum largestAllowed = (ulong.max >> 8) & (size_t.max >> 1);
-    if (newcap & ~largestAllowed)
+    if (!newcap || (newcap & ~largestAllowed))
         return newcap;
 
     /*
