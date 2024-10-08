@@ -521,13 +521,12 @@ extern (C++) void verrorReport(const ref Loc loc, const(char)* format, va_list a
         break;
 
     case ErrorKind.message:
-        const p = info.loc.toChars();
-        if (*p)
-        {
-            fprintf(stdout, "%s: ", p);
-            mem.xfree(cast(void*)p);
-        }
         OutBuffer tmp;
+        writeSourceLoc(tmp, info.loc.filename.toDString(), info.loc.linnum, info.loc.charnum);
+        if (tmp.length)
+            fprintf(stdout, "%s: ", tmp.extractChars());
+
+        tmp.reset();
         tmp.vprintf(format, ap);
         fputs(tmp.peekChars(), stdout);
         fputc('\n', stdout);
@@ -623,20 +622,23 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
     if (global.params.v.showGaggedErrors && global.gag)
         fprintf(stderr, "(spec:%d) ", global.gag);
     auto con = cast(Console) global.console;
-    const p = info.loc.toChars();
+
+    OutBuffer tmp;
+    writeSourceLoc(tmp, info.loc.filename.toDString(), info.loc.linnum, info.loc.charnum);
+    const locString = tmp.extractSlice();
     if (con)
         con.setColorBright(true);
-    if (*p)
+    if (locString.length)
     {
-        fprintf(stderr, "%s: ", p);
-        mem.xfree(cast(void*)p);
+        fprintf(stderr, "%.*s: ", cast(int) locString.length, locString.ptr);
     }
     if (con)
         con.setColor(info.headerColor);
     fputs(header, stderr);
     if (con)
         con.resetColor();
-    OutBuffer tmp;
+
+    tmp.reset();
     if (info.p1)
     {
         tmp.writestring(info.p1);
