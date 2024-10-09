@@ -93,8 +93,8 @@ final class LibElf : Library
 
         void corrupt(int reason)
         {
-            eSink.error(loc, "corrupt ELF object module %.*s %d",
-                  cast(int)module_name.length, module_name.ptr, reason);
+            eSink.error(Loc.initial, "corrupt ELF object `%.*s` module %.*s %d",
+                filename.fTuple.expand, module_name.fTuple.expand, reason);
         }
 
         int fromfile = 0;
@@ -329,7 +329,7 @@ final class LibElf : Library
                 s = tab.lookup(name.ptr, name.length);
                 assert(s);
                 ElfObjSymbol* os = s.value;
-                eSink.error(loc, "multiple definition of %s: %s and %s: %s", om.name.ptr, name.ptr, os.om.name.ptr, os.name.ptr);
+                eSink.error(Loc.initial, "multiple definition of %s: %s and %s: %s", om.name.ptr, name.ptr, os.om.name.ptr, os.name.ptr);
             }
         }
         else
@@ -359,7 +359,7 @@ private:
             this.addSymbol(om, name, pickAny);
         }
 
-        scanElfObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc, eSink);
+        scanElfObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, filename, eSink);
     }
 
     /*****************************************************************************/

@@ -16,9 +16,9 @@ import core.stdc.stdint;
 
 import dmd.errorsink;
 import dmd.location;
-
 //import core.sys.darwin.mach.loader;
 import dmd.backend.mach;
+import dmd.root.string : fTuple;
 
 nothrow:
 
@@ -31,12 +31,12 @@ private enum LOG = false;
  *      pAddSymbol =  function to pass the names to
  *      base =        array of contents of object module
  *      module_name = name of the object module (used for error messages)
- *      loc =         location to use for error printing
+ *      filename =    object file name for error printing
  *      eSink =       where the error messages go
  */
 package(dmd.lib)
 void scanMachObjModule(void delegate(const(char)[] name, int pickAny) nothrow pAddSymbol,
-        const ubyte[] base, const char* module_name, Loc loc, ErrorSink eSink)
+        const ubyte[] base, const char* module_name, const(char)[] filename, ErrorSink eSink)
 {
     static if (LOG)
     {
@@ -45,7 +45,7 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) nothrow pA
 
     void corrupt(int reason)
     {
-        eSink.error(loc, "corrupt Mach-O object module `%s` %d", module_name, reason);
+        eSink.error(Loc.initial, "corrupt Mach-O object `%.*s` module `%s` %d", filename.fTuple.expand, module_name, reason);
     }
 
     const buf = base.ptr;
@@ -62,12 +62,12 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) nothrow pA
     {
         if (header.cputype != CPU_TYPE_I386)
         {
-            eSink.error(loc, "Mach-O object module `%s` has cputype = %d, should be %d", module_name, header.cputype, CPU_TYPE_I386);
+            eSink.error(Loc.initial, "Mach-O object module `%s` has cputype = %d, should be %d", module_name, header.cputype, CPU_TYPE_I386);
             return;
         }
         if (header.filetype != MH_OBJECT)
         {
-            eSink.error(loc, "Mach-O object module `%s` has file type = %d, should be %d", module_name, header.filetype, MH_OBJECT);
+            eSink.error(Loc.initial, "Mach-O object module `%s` has file type = %d, should be %d", module_name, header.filetype, MH_OBJECT);
             return;
         }
         if (buflen < mach_header.sizeof + header.sizeofcmds)
@@ -81,12 +81,12 @@ void scanMachObjModule(void delegate(const(char)[] name, int pickAny) nothrow pA
             return corrupt(__LINE__);
         if (header64.cputype != CPU_TYPE_X86_64)
         {
-            eSink.error(loc, "Mach-O object module `%s` has cputype = %d, should be %d", module_name, header64.cputype, CPU_TYPE_X86_64);
+            eSink.error(Loc.initial, "Mach-O object module `%s` has cputype = %d, should be %d", module_name, header64.cputype, CPU_TYPE_X86_64);
             return;
         }
         if (header64.filetype != MH_OBJECT)
         {
-            eSink.error(loc, "Mach-O object module `%s` has file type = %d, should be %d", module_name, header64.filetype, MH_OBJECT);
+            eSink.error(Loc.initial, "Mach-O object module `%s` has file type = %d, should be %d", module_name, header64.filetype, MH_OBJECT);
             return;
         }
         if (buflen < mach_header_64.sizeof + header64.sizeofcmds)

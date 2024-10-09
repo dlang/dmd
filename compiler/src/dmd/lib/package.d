@@ -67,5 +67,4 @@ class Library
 
   public:
     const(char)[] filename; /// the filename of the library
-    Loc loc; /// used for error printing
 }

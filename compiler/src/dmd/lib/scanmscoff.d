@@ -18,6 +18,7 @@ import dmd.root.string;
 
 import dmd.errorsink;
 import dmd.location;
+import dmd.root.string : fTuple;
 
 nothrow:
 
@@ -30,12 +31,12 @@ private enum LOG = false;
  *      pAddSymbol =  function to pass the names to
  *      base =        array of contents of object module
  *      module_name = name of the object module (used for error messages)
- *      loc =         location to use for error printing
+ *      filename =    object file name for error printing
  *      eSink =       where the error messages go
  */
 package(dmd.lib)
 void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) nothrow pAddSymbol,
-        scope const ubyte[] base, const char* module_name, Loc loc, ErrorSink eSink)
+        scope const ubyte[] base, const char* module_name, const(char)[] filename, ErrorSink eSink)
 {
     static if (LOG)
     {
@@ -44,7 +45,7 @@ void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) nothrow 
 
     void corrupt(int reason)
     {
-        eSink.error(loc, "corrupt MS-Coff object module `%s` %d", module_name, reason);
+        eSink.error(Loc.initial, "corrupt MS-Coff object `%.*s` module `%s` %d", filename.fTuple.expand, module_name, reason);
     }
 
     const buf = &base[0];
@@ -77,16 +78,16 @@ void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) nothrow 
         break;
     default:
         if (buf[0] == 0x80)
-            eSink.error(loc, "object module `%s` is 32 bit OMF, but it should be 64 bit MS-Coff", module_name);
+            eSink.error(Loc.initial, "object module `%s` is 32 bit OMF, but it should be 64 bit MS-Coff", module_name);
         else
-            eSink.error(loc, "MS-Coff object module `%s` has magic = %x, should be %x", module_name, header.Machine, IMAGE_FILE_MACHINE_AMD64);
+            eSink.error(Loc.initial, "MS-Coff object module `%s` has magic = %x, should be %x", module_name, header.Machine, IMAGE_FILE_MACHINE_AMD64);
         return;
     }
     // Get string table:  string_table[0..string_len]
     size_t off = header.PointerToSymbolTable;
     if (off == 0)
     {
-        eSink.error(loc, "MS-Coff object module `%s` has no string table", module_name);
+        eSink.error(Loc.initial, "MS-Coff object module `%s` has no string table", module_name);
         return;
     }
     off += header.NumberOfSymbols * (is_old_coff ? SymbolTable.sizeof : SymbolTable32.sizeof);
