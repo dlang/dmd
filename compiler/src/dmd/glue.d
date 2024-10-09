@@ -169,23 +169,22 @@ public void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
     if (writeLibrary && !global.errors)
     {
         if (verbose)
-            eSink.message(Loc.initial, "library   %s", library.loc.filename);
+            eSink.message(Loc.initial, "library   %.*s", library.filename.fTuple.expand);
 
-        auto filenameString = library.loc.filename.toDString;
-        if (!ensurePathToNameExists(Loc.initial, filenameString))
+        if (!ensurePathToNameExists(Loc.initial, library.filename))
             fatal();
 
         /* Write library to temporary file. If that is successful,
          * then and only then replace the existing file with the temporary file
          */
-        auto tmpname = filenameString ~ ".tmp\0";
+        auto tmpname = library.filename ~ ".tmp\0";
 
         auto libbuf = OutBuffer(tmpname.ptr);
         library.writeLibToBuffer(libbuf);
 
-        if (!libbuf.moveToFile(library.loc.filename))
+        if (!libbuf.moveToFile(library.filename))
         {
-            eSink.error(library.loc, "error writing file '%s'", library.loc.filename);
+            eSink.error(Loc.initial, "error writing file '%.*s'", library.filename.fTuple.expand);
             destroy(tmpname);
             fatal();
         }
