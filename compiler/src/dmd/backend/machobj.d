@@ -2964,7 +2964,7 @@ Version operatingSystemVersion()
         if (version_.isValid)
             return version_;
 
-        error(null, 0, 0, "invalid version number in 'MACOSX_DEPLOYMENT_TARGET=%s'", deploymentTarget);
+        error(Srcpos.init, "invalid version number in 'MACOSX_DEPLOYMENT_TARGET=%s'", deploymentTarget);
     }
     return Version();
 }

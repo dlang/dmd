@@ -1096,11 +1096,11 @@ static if (0)
             if (!boolres(e2))
             {
                 div0:
-                    error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum, "divide by zero");
+                    error(e.Esrcpos, "divide by zero");
                     break;
 
                 overflow:
-                    error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum, "integer overflow");
+                    error(e.Esrcpos, "integer overflow");
                     break;
             }
         }
@@ -1834,8 +1834,7 @@ static if (0) // && MARS
          */
         if (l1 >= 0 && l1 < 4096)
         {
-            error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum,
-                "dereference of null pointer");
+            error(e.Esrcpos, "dereference of null pointer");
             e.E1.Vlong = 4096;     // suppress redundant messages
         }
 }
