@@ -101,8 +101,8 @@ final class LibMSCoff : Library
 
         void corrupt(int reason)
         {
-            eSink.error(loc, "corrupt MS Coff object module %.*s %d",
-                  cast(int)module_name.length, module_name.ptr, reason);
+            eSink.error(Loc.initial, "corrupt MS Coff object `%.*s` module %.*s %d",
+                filename.fTuple.expand, module_name.fTuple.expand, reason);
         }
 
         int fromfile = 0;
@@ -400,7 +400,7 @@ private:
             this.addSymbol(om, name, pickAny);
         }
 
-        scanMSCoffObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc, eSink);
+        scanMSCoffObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, filename, eSink);
     }
 
     /*****************************************************************************/

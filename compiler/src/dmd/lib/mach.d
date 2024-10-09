@@ -94,8 +94,8 @@ final class LibMach : Library
 
         void corrupt(int reason)
         {
-            eSink.error(loc, "corrupt Mach object module %.*s %d",
-                  cast(int)module_name.length, module_name.ptr, reason);
+            eSink.error(Loc.initial, "corrupt Mach object `%.*s` module %.*s %d",
+                filename.fTuple.expand, module_name.fTuple.expand, reason);
         }
 
         int fromfile = 0;
@@ -323,7 +323,7 @@ private:
             this.addSymbol(om, name, pickAny);
         }
 
-        scanMachObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, loc, eSink);
+        scanMachObjModule(&addSymbol, om.base[0 .. om.length], om.name.ptr, filename, eSink);
     }
 
     /*****************************************************************************/

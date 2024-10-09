@@ -62,19 +62,9 @@ class Library
                    cast(int)filename.length, filename.ptr);
         }
 
-        loc = Loc(filename.ptr, 0, 0);
-    }
-
-    /*************
-     * Retrieve library file name
-     * Returns:
-     *  filename = name of library file
-     */
-    final const(char)* getFilename() const
-    {
-        return loc.filename;
+        this.filename = filename;
     }
 
   public:
-    Loc loc;                  // the filename of the library
+    const(char)[] filename; /// the filename of the library
 }
