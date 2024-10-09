@@ -45,7 +45,7 @@ nothrow:
 @safe:
 
 @trusted
-extern (C) void TOOFFSET(void* p, targ_size_t value)
+void TOOFFSET(void* p, targ_size_t value)
 {
     switch (_tysize[TYnptr])
     {

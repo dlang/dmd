@@ -51,7 +51,7 @@ extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar
  *      uppercased string
  */
 @trusted
-extern (C) char* strupr(char* s)
+char* strupr(char* s)
 {
     for (char* p = s; *p; ++p)
     {

@@ -404,7 +404,7 @@ void el_opFree(elem *e, OPER op)
  */
 
 @trusted
-extern (C) elem *el_opCombine(elem **args, size_t length, OPER op, tym_t ty)
+elem *el_opCombine(elem **args, size_t length, OPER op, tym_t ty)
 {
     if (length == 0)
         return null;
@@ -883,7 +883,7 @@ elem* el_una(OPER op,tym_t ty,elem *e1)
  */
 
 @trusted
-extern (C) elem * el_longt(type *t,targ_llong val)
+elem* el_longt(type *t,targ_llong val)
 {
     assert(PARSER);
     elem* e = el_calloc();
@@ -898,9 +898,7 @@ extern (C) elem * el_longt(type *t,targ_llong val)
     return e;
 }
 
-extern (C) // necessary because D <=> C++ mangling of "long long" is not consistent across memory models
-{
-elem * el_long(tym_t t,targ_llong val)
+elem* el_long(tym_t t,targ_llong val)
 {
     elem* e = el_calloc();
     e.Eoper = OPconst;
@@ -1002,7 +1000,6 @@ elem* el_vectorConst(tym_t ty, ulong val)
             assert(0);
     }
     return e;
-}
 }
 
 /*******************************

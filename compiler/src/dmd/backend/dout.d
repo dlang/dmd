@@ -52,8 +52,8 @@ bool symbol_iscomdat2(Symbol* s)
  * Output function thunk.
  */
 @trusted
-extern (C) void outthunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
-        targ_size_t d,int i,targ_size_t d2)
+void outthunk(Symbol* sthunk, Symbol* sfunc, uint p, tym_t thisty,
+        targ_size_t d, int i, targ_size_t d2)
 {
     sthunk.Sseg = cseg;
     cod3_thunk(sthunk,sfunc,p,thisty,cast(uint)d,i,cast(uint)d2);
