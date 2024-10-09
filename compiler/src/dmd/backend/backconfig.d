@@ -60,7 +60,7 @@ nothrow:
  */
 public
 @trusted
-extern (C) void out_config_init(
+void out_config_init(
         bool arm,       // true for generating AArch64 code
         int model,
         bool exe,

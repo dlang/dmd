@@ -243,7 +243,6 @@ const(char)* symbol_ident(return ref const Symbol s)
  */
 
 @trusted @nogc
-extern (C)
 Symbol * symbol_calloc(const(char)[] id)
 {
     //printf("sizeof(symbol)=%d, sizeof(s.Sident)=%d, len=%d\n", symbol.sizeof, s.Sident.sizeof, cast(int)id.length);
@@ -268,7 +267,6 @@ Symbol * symbol_calloc(const(char)[] id)
  */
 
 @nogc
-extern (C)
 Symbol * symbol_name(const(char)[] name, SC sclass, type *t)
 {
     type_debug(t);

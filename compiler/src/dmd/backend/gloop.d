@@ -1308,7 +1308,6 @@ private void markInvariants(ref GlobalOptimizer go, int gref, block* gblock, vec
  *      vecdim  go.defnod.length
  */
 
-extern (C) {
 @trusted
 void updaterd(ref GlobalOptimizer go, elem *n,vec_t GEN,vec_t KILL)
 {
@@ -1363,7 +1362,6 @@ void updaterd(ref GlobalOptimizer go, elem *n,vec_t GEN,vec_t KILL)
     }
 
     vec_setbit(ni,GEN);                 // set bit in GEN for this def
-}
 }
 
 /***************************

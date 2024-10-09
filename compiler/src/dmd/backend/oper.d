@@ -384,7 +384,7 @@ public import dmd.backend.cgelem : swaprel;
 
 extern (D):
 
-extern (C) immutable ubyte[OPMAX] optab1 =
+immutable ubyte[OPMAX] optab1 =
 () {
     ubyte[OPMAX] tab;
     foreach (i; Ebinary) { tab[i] |= _OTbinary; }
