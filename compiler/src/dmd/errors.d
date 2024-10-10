@@ -922,28 +922,29 @@ private void writeHighlights(Console con, ref const OutBuffer buf)
     for (size_t i = 0; i < buf.length; ++i)
     {
         const c = buf[i];
-        if (c == HIGHLIGHT.Escape)
+        if (c != HIGHLIGHT.Escape)
         {
-            const color = buf[++i];
-            if (color == HIGHLIGHT.Default)
-            {
-                con.resetColor();
-                colors = false;
-            }
-            else
-            if (color == Color.white)
-            {
-                con.resetColor();
-                con.setColorBright(true);
-                colors = true;
-            }
-            else
-            {
-                con.setColor(cast(Color)color);
-                colors = true;
-            }
+            fputc(c, con.fp);
+            continue;
+        }
+
+        const color = buf[++i];
+        if (color == HIGHLIGHT.Default)
+        {
+            con.resetColor();
+            colors = false;
         }
         else
-            fputc(c, con.fp);
+        if (color == Color.white)
+        {
+            con.resetColor();
+            con.setColorBright(true);
+            colors = true;
+        }
+        else
+        {
+            con.setColor(cast(Color)color);
+            colors = true;
+        }
     }
 }
