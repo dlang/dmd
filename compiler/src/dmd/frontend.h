@@ -6086,6 +6086,7 @@ struct CompileEnv final
     _d_dynamicArray< const char > vendor;
     _d_dynamicArray< const char > timestamp;
     bool previewIn;
+    bool transitionIn;
     bool ddocOutput;
     bool masm;
     IdentifierCharLookup cCharLookupTable;
@@ -6097,19 +6098,21 @@ struct CompileEnv final
         vendor(),
         timestamp(),
         previewIn(),
+        transitionIn(),
         ddocOutput(),
         masm(),
         cCharLookupTable(),
         dCharLookupTable()
     {
     }
-    CompileEnv(uint32_t versionNumber, _d_dynamicArray< const char > date = {}, _d_dynamicArray< const char > time = {}, _d_dynamicArray< const char > vendor = {}, _d_dynamicArray< const char > timestamp = {}, bool previewIn = false, bool ddocOutput = false, bool masm = false, IdentifierCharLookup cCharLookupTable = IdentifierCharLookup(), IdentifierCharLookup dCharLookupTable = IdentifierCharLookup()) :
+    CompileEnv(uint32_t versionNumber, _d_dynamicArray< const char > date = {}, _d_dynamicArray< const char > time = {}, _d_dynamicArray< const char > vendor = {}, _d_dynamicArray< const char > timestamp = {}, bool previewIn = false, bool transitionIn = false, bool ddocOutput = false, bool masm = false, IdentifierCharLookup cCharLookupTable = IdentifierCharLookup(), IdentifierCharLookup dCharLookupTable = IdentifierCharLookup()) :
         versionNumber(versionNumber),
         date(date),
         time(time),
         vendor(vendor),
         timestamp(timestamp),
         previewIn(previewIn),
+        transitionIn(transitionIn),
         ddocOutput(ddocOutput),
         masm(masm),
         cCharLookupTable(cCharLookupTable),

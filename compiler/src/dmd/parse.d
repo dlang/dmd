@@ -49,8 +49,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         bool doUnittests; // parse unittest blocks
     }
 
-    bool transitionIn = false; /// `-transition=in` is active, `in` parameters are listed
-
     /*********************
      * Use this constructor for string mixins.
      * Input:
@@ -2918,7 +2916,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         // Don't call nextToken again.
                     }
                 case TOK.in_:
-                    if (transitionIn)
+                    if (compileEnv.transitionIn)
                         eSink.message(scanloc, "Usage of 'in' on parameter");
                     stc = STC.in_;
                     if (compileEnv.previewIn)
