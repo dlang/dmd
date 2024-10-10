@@ -18,7 +18,6 @@ import dmd.root.string;
 
 import dmd.errorsink;
 import dmd.location;
-import dmd.root.string : fTuple;
 
 nothrow:
 
