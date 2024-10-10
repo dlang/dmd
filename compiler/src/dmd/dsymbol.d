@@ -344,19 +344,6 @@ extern (C++) class Dsymbol : ASTNode
         return toChars();
     }
 
-    final const(Loc) getLoc()
-    {
-        if (!loc.isValid()) // avoid bug 5861.
-            if (const m = getModule())
-                return Loc(m.srcfile.toChars(), 0, 0);
-        return loc;
-    }
-
-    final const(char)* locToChars()
-    {
-        return getLoc().toChars();
-    }
-
     override bool equals(const RootObject o) const
     {
         if (this == o)
@@ -1303,7 +1290,7 @@ public:
         }
         else
         {
-            .error(s1.loc, "%s `%s` conflicts with %s `%s` at %s", s1.kind, s1.toPrettyChars, s2.kind(), s2.toPrettyChars(), s2.locToChars());
+            .error(s1.loc, "%s `%s` conflicts with %s `%s` at %s", s1.kind, s1.toPrettyChars, s2.kind(), s2.toPrettyChars(), s2.loc.toChars());
         }
     }
 

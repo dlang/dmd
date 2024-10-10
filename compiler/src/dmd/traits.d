@@ -1991,9 +1991,9 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             return dimError(1);
         auto arg0 = (*e.args)[0];
         Dsymbol s = getDsymbolWithoutExpCtx(arg0);
-        if (!s || !s.loc.isValid())
+        if (!s || !s.loc.isValid() || s.isModule())
         {
-            error(e.loc, "can only get the location of a symbol, not `%s`", arg0.toChars());
+            error(e.loc, "can only get the location of a symbol, not `%s`", s ? s.toPrettyChars() : arg0.toChars());
             return ErrorExp.get();
         }
 

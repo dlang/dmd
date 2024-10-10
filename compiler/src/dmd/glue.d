@@ -280,7 +280,7 @@ private void obj_write_deferred(ref OutBuffer objbuf, Library library, ref Dsymb
         {
             Identifier id = Identifier.create(idbuf.extractChars());
 
-            Module md = new Module(mnames, id, 0, 0);
+            Module md = new Module(m.loc, mnames, id, 0, 0);
             md.members = new Dsymbols();
             md.members.push(s);   // its only 'member' is s
             md.doppelganger = 1;       // identify this module as doppelganger

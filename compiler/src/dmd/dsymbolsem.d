@@ -6813,7 +6813,7 @@ extern(C++) class ImportAllVisitor : Visitor
              (*m.members)[0].ident != Id.object ||
              (*m.members)[0].isImport() is null))
         {
-            auto im = new Import(Loc.initial, null, Id.object, null, 0);
+            auto im = new Import(m.loc, null, Id.object, null, 0);
             m.members.shift(im);
         }
         if (!m.symtab)
