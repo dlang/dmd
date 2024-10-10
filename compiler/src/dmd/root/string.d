@@ -26,7 +26,7 @@ unittest
     import core.stdc.stdio: snprintf;
     char[6] buf = '.';
     const(char)[] str = "cutoff"[0..4];
-    snprintf(buf.ptr, buf.length, "%.*s", str.fTuple.expand);
+    snprintf(buf.ptr, buf.length, "%.*s", cast(int) str.length, str.ptr);
     assert(buf[] == "cuto\0.");
 }
 
