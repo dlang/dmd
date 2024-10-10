@@ -291,6 +291,7 @@ struct CompileEnv
     DString vendor;
     DString timestamp;
     d_bool previewIn;
+    d_bool transitionIn;
     d_bool ddocOutput;
     d_bool masm;
     IdentifierCharLookup cCharLookupTable;
