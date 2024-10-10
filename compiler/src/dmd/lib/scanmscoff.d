@@ -45,7 +45,7 @@ void scanMSCoffObjModule(void delegate(const(char)[] name, int pickAny) nothrow 
 
     void corrupt(int reason)
     {
-        eSink.error(Loc.initial, "corrupt MS-Coff object `%.*s` module `%s` %d", filename.fTuple.expand, module_name, reason);
+        eSink.error(Loc.initial, "corrupt MS-Coff object `%.*s` module `%s` %d", cast(int) filename.length, filename.ptr, module_name, reason);
     }
 
     const buf = &base[0];

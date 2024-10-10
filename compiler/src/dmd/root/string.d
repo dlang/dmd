@@ -20,17 +20,6 @@ inout(char)[] toDString (inout(char)* s) pure nothrow @nogc
     return s ? s[0 .. strlen(s)] : null;
 }
 
-private struct FTuple(T...)
-{
-    T expand;
-}
-
-/// Returns: a (length, ptr) tuple for passing a D string to `printf`-style functions with the format string `%.*s`
-auto fTuple(const(char)[] str)
-{
-    return FTuple!(int, const(char)*)(cast(int) str.length, str.ptr);
-}
-
 ///
 unittest
 {
