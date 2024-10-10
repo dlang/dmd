@@ -474,8 +474,6 @@ public:
     CPPNamespaceDeclaration* cppnamespace(CPPNamespaceDeclaration* ns);
     UserAttributeDeclaration* userAttribDecl(UserAttributeDeclaration* uad);
     virtual const char* toPrettyCharsHelper();
-    const Loc getLoc();
-    const char* locToChars();
     bool equals(const RootObject* const o) const override;
     bool isAnonymous() const;
     Module* getModule();

@@ -2712,23 +2712,21 @@ Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                 which isn't a particularly good error message (x is a variable?).
             */
             Dsymbol varDecl = mtype.toDsymbol(sc);
-            const(Loc) varDeclLoc = varDecl.getLoc();
             Module varDeclModule = varDecl.getModule(); //This can be null
 
             .error(loc, "variable `%s` is used as a type", mtype.toChars());
             //Check for null to avoid https://issues.dlang.org/show_bug.cgi?id=22574
             if ((varDeclModule !is null) && varDeclModule != sc._module) // variable is imported
             {
-                const(Loc) varDeclModuleImportLoc = varDeclModule.getLoc();
                 .errorSupplemental(
-                    varDeclModuleImportLoc,
+                    varDeclModule.loc,
                     "variable `%s` is imported here from: `%s`",
                     varDecl.toChars,
                     varDeclModule.toPrettyChars,
                 );
             }
 
-            .errorSupplemental(varDeclLoc, "variable `%s` is declared here", varDecl.toChars);
+            .errorSupplemental(varDecl.loc, "variable `%s` is declared here", varDecl.toChars);
         }
         else
             .error(loc, "`%s` is used as a type", mtype.toChars());

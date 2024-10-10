@@ -632,7 +632,7 @@ extern (C++) final class Module : Package
         const name = srcfile.toString();
         if (FileName.equals(name, "object.d"))
         {
-            ObjectNotFound(loc, ident);
+            ObjectNotFound(Loc.initial, ident);
         }
         else if (FileName.ext(this.arg) || !loc.isValid())
         {
@@ -1408,7 +1408,7 @@ private const(char)[] processSource (const(ubyte)[] src, Module mod)
 {
     enum SourceEncoding { utf16, utf32}
     enum Endian { little, big}
-    immutable loc = mod.getLoc();
+    immutable loc = mod.loc;
 
     /*
      * Convert a buffer from UTF32 to UTF8
