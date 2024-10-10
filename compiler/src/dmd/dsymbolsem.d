@@ -7491,7 +7491,19 @@ extern(C++) class IncludeVisitor : Visitor
     this(Scope* sc)
     {
         this.sc = sc;
-        this.symbols = new Dsymbols();
+        //this.symbols = new Dsymbols();
+    }
+
+    override void visit(AttribDeclaration ad)
+    {
+        // Create a new Dsymbols if needed for the AttribDeclaration
+        if (!symbols)
+        {
+            symbols = new Dsymbols();
+        }
+
+        // Populate symbols as necessary
+        Dsymbols* d = ad.include(sc);
     }
 
     override void visit(StaticIfDeclaration sif)
@@ -7531,11 +7543,10 @@ extern(C++) class IncludeVisitor : Visitor
     override void visit(StaticForeachDeclaration sfd)
     {
         if (sfd.errors || sfd.onStack)
-            return null;
         if (sfd.cached)
         {
             assert(!sfd.onStack);
-            return cache;
+            symbols= sfd.cache;
         }
         sfd.onStack = true;
         scope(exit) sfd.onStack = false;
@@ -7546,7 +7557,7 @@ extern(C++) class IncludeVisitor : Visitor
         }
         if (!sfd.sfe.ready())
         {
-            return null; // TODO: ok?
+            // TODO: ok?
         }
 
         // expand static foreach
@@ -7555,14 +7566,14 @@ extern(C++) class IncludeVisitor : Visitor
         if (d) // process generated declarations
         {
             // Add members lazily.
-            sfd.d.foreachDsymbol( s => s.addMember(sfd._scope, scopesym) );
+            d.foreachDsymbol( s => s.addMember(sfd._scope, sfd.scopesym) );
 
             // Set the member scopes lazily.
             d.foreachDsymbol( s => s.setScope(sfd._scope) );
         }
         sfd.cached = true;
-        cache = d;
-        cast(void) d;
+        sfd.cache = d;
+        visit(cast(AttribDeclaration)d);
     }
 }
 /**
