@@ -6328,46 +6328,45 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 if (tiargs && s.isFuncDeclaration())
                     continue;
-                if (auto f2 = resolveFuncCall(loc, sc, s, tiargs, tthis, argumentList, FuncResolveFlag.quiet))
+                auto f2 = resolveFuncCall(loc, sc, s, tiargs, tthis, argumentList, FuncResolveFlag.quiet);
+                if (!f2)
+                    continue;
+                if (f2.errors)
+                    return null;
+                if (!f)
                 {
-                    if (f2.errors)
-                        return null;
-                    if (f)
-                    {
-                        /* Match in more than one overload set,
-                         * even if one is a 'better' match than the other.
-                         */
-                        if (f.isCsymbol() && f2.isCsymbol())
-                        {
-                            /* C has global name space, so just pick one, such as f.
-                             * If f and f2 are not compatible, that's how C rolls.
-                             */
-                        }
-                        else
-                            ScopeDsymbol.multiplyDefined(loc, f, f2); // issue error
-                    }
-                    else
-                        f = f2;
+                    f = f2;
+                    continue;
                 }
+                /* Match in more than one overload set,
+                 * even if one is a 'better' match than the other.
+                 */
+                if (f.isCsymbol() && f2.isCsymbol())
+                {
+                    /* C has global name space, so just pick one, such as f.
+                     * If f and f2 are not compatible, that's how C rolls.
+                     */
+                }
+                else
+                    ScopeDsymbol.multiplyDefined(loc, f, f2); // issue error
             }
-            if (!f)
+            if (f && f.errors)
+                return null;
+            if (f)
+                return f;
+            .error(loc, "no overload matches for `%s`", exp.toChars());
+            errorSupplemental(loc, "Candidates are:");
+            foreach (s; os.a)
             {
-                .error(loc, "no overload matches for `%s`", exp.toChars());
-                errorSupplemental(loc, "Candidates are:");
-                foreach (s; os.a)
-                {
-                    overloadApply(s, (ds){
-                        if (auto fd = ds.isFuncDeclaration())
-                            .errorSupplemental(ds.loc, "%s%s", fd.toChars(),
-                                fd.type.toTypeFunction().parameterList.parametersTypeToChars());
-                        else
-                            .errorSupplemental(ds.loc, "%s", ds.toChars());
-                        return 0;
-                    });
-                }
+                overloadApply(s, (ds){
+                    if (auto fd = ds.isFuncDeclaration())
+                        .errorSupplemental(ds.loc, "%s%s", fd.toChars(),
+                            fd.type.toTypeFunction().parameterList.parametersTypeToChars());
+                    else
+                        .errorSupplemental(ds.loc, "%s", ds.toChars());
+                    return 0;
+                });
             }
-            else if (f.errors)
-                f = null;
             return f;
         }
 
