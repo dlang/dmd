@@ -619,7 +619,7 @@ extern (C++) final class AliasDeclaration : Declaration
         Dsymbol err()
         {
             // Avoid breaking "recursive alias" state during errors gagged
-            if (global.gag)
+            if (global.diag.gag)
                 return this;
             aliassym = new AliasDeclaration(loc, ident, Type.terror);
             type = Type.terror;
@@ -632,15 +632,15 @@ extern (C++) final class AliasDeclaration : Declaration
         if (inuse == 1 && type && _scope)
         {
             inuse = 2;
-            const olderrors = global.errors;
+            const olderrors = global.diag.errors;
             Dsymbol s = type.toDsymbol(_scope);
             //printf("[%s] type = %s, s = %p, this = %p\n", loc.toChars(), type.toChars(), s, this);
-            if (global.errors != olderrors)
+            if (global.diag.errors != olderrors)
                 return err();
             if (s)
             {
                 s = s.toAlias();
-                if (global.errors != olderrors)
+                if (global.diag.errors != olderrors)
                     return err();
                 aliassym = s;
                 inuse = 0;
@@ -650,7 +650,7 @@ extern (C++) final class AliasDeclaration : Declaration
                 Type t = type.typeSemantic(loc, _scope);
                 if (t.ty == Terror)
                     return err();
-                if (global.errors != olderrors)
+                if (global.diag.errors != olderrors)
                     return err();
                 //printf("t = %s\n", t.toChars());
                 inuse = 0;
@@ -1099,12 +1099,12 @@ extern (C++) class VarDeclaration : Declaration
         assert(type && _init);
 
         // Ungag errors when not speculative
-        const oldgag = global.gag;
-        if (global.gag)
+        const oldgag = global.diag.gag;
+        if (global.diag.gag)
         {
             Dsymbol sym = isMember();
             if (sym && !sym.isSpeculative())
-                global.gag = 0;
+                global.diag.gag = 0;
         }
 
         if (_scope)
@@ -1118,7 +1118,7 @@ extern (C++) class VarDeclaration : Declaration
         }
 
         Expression e = _init.initializerToExpression(needFullType ? type : null);
-        global.gag = oldgag;
+        global.diag.gag = oldgag;
         return e;
     }
 

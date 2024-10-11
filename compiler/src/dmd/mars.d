@@ -646,11 +646,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
         }
         else if (arg == "-de")               // https://dlang.org/dmd.html#switch-de
-            params.useDeprecated = DiagnosticReporting.error;
+            global.diag.useDeprecated = DiagnosticReporting.error;
         else if (arg == "-d")                // https://dlang.org/dmd.html#switch-d
-            params.useDeprecated = DiagnosticReporting.off;
+           global.diag.useDeprecated = DiagnosticReporting.off;
         else if (arg == "-dw")               // https://dlang.org/dmd.html#switch-dw
-            params.useDeprecated = DiagnosticReporting.inform;
+           global.diag.useDeprecated = DiagnosticReporting.inform;
         else if (arg == "-c")                // https://dlang.org/dmd.html#switch-c
             driverParams.link = false;
         else if (startsWith(p + 1, "checkaction")) // https://dlang.org/dmd.html#switch-checkaction
@@ -1002,13 +1002,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
             if (startsWith(p + 9, "spec"))
             {
-                params.v.showGaggedErrors = true;
+                global.diag.showGaggedErrors = true;
             }
             else if (startsWith(p + 9, "context"))
             {
-                params.v.printErrorContext = true;
+                global.diag.printErrorContext = true;
             }
-            else if (!params.v.errorLimit.parseDigits(p.toDString()[9 .. $]))
+            else if (!global.diag.errorLimit.parseDigits(p.toDString()[9 .. $]))
             {
                 errorInvalidSwitch(p, "Only number, `spec`, or `context` are allowed for `-verrors`");
                 return true;
@@ -1016,7 +1016,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         }
         else if (startsWith(p + 1, "verror-supplements"))
         {
-            if (!params.v.errorSupplementLimit.parseDigits(p.toDString()[20 .. $]))
+            if (!global.diag.errorSupplementLimit.parseDigits(p.toDString()[20 .. $]))
             {
                 errorInvalidSwitch(p, "Only a number is allowed for `-verror-supplements`");
                 return true;
@@ -1029,10 +1029,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             switch (style)
             {
             case "digitalmars":
-                params.v.messageStyle = MessageStyle.digitalmars;
+                global.diag.messageStyle = MessageStyle.digitalmars;
                 break;
             case "gnu":
-                params.v.messageStyle = MessageStyle.gnu;
+                global.diag.messageStyle = MessageStyle.gnu;
                 break;
             default:
                 error("unknown error style '%.*s', must be 'digitalmars' or 'gnu'", cast(int) style.length, style.ptr);
@@ -1242,9 +1242,9 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
         }
         else if (arg == "-w")   // https://dlang.org/dmd.html#switch-w
-            params.useWarnings = DiagnosticReporting.error;
+            global.diag.useWarnings = DiagnosticReporting.error;
         else if (arg == "-wi")  // https://dlang.org/dmd.html#switch-wi
-            params.useWarnings = DiagnosticReporting.inform;
+            global.diag.useWarnings = DiagnosticReporting.inform;
         else if (arg == "-wo")  // https://dlang.org/dmd.html#switch-wo
         {
             // Obsolete features has been obsoleted until a DIP for "editions"

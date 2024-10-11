@@ -336,7 +336,7 @@ void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
                 eSink.message(Loc.initial, "code      %s", m.toChars());
             genObjFile(m, false);
         }
-        if (!global.errors && firstm)
+        if (!global.diag.errors && firstm)
         {
             obj_end(objbuf, library, firstm.objfile.toString());
         }
@@ -354,11 +354,11 @@ void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
             genObjFile(m, multiobj);
             obj_end(objbuf, library, m.objfile.toString());
             obj_write_deferred(objbuf, library, glue.obj_symbols_towrite);
-            if (global.errors && !writeLibrary)
+            if (global.diag.errors && !writeLibrary)
                 m.deleteObjFile();
         }
     }
-    if (writeLibrary && !global.errors)
+    if (writeLibrary && !global.diag.errors)
     {
         if (verbose)
             eSink.message(Loc.initial, "library   %.*s", library.filename.fTuple.expand);
@@ -443,7 +443,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     if (fd.hasSemantic3Errors)
         return;
 
-    if (global.errors)
+    if (global.diag.errors)
         return;
 
     if (!fd.fbody)
@@ -880,7 +880,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 
     Statement_toIR(sbody, irs);
 
-    if (global.errors)
+    if (global.diag.errors)
     {
         // Restore symbol table
         cstate.CSpsymtab = symtabsave;
@@ -958,7 +958,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         glue.stests.push(s);
     }
 
-    if (global.errors)
+    if (global.diag.errors)
     {
         // Restore symbol table
         cstate.CSpsymtab = symtabsave;

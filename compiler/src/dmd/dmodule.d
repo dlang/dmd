@@ -655,7 +655,7 @@ extern (C++) final class Module : Package
                     cast(int)name.length, name.ptr, cast(int)pkgfile.length, pkgfile.ptr);
             }
         }
-        if (!global.gag)
+        if (!global.diag.gag)
         {
             /* Print path
              */
@@ -929,7 +929,7 @@ extern (C++) final class Module : Package
                     error(md ? md.loc : loc, "%s `%s` from file %s conflicts with package name %s", kind, toPrettyChars, srcname, pkg.toChars());
             }
             else
-                assert(global.errors);
+                assert(global.diag.errors);
         }
         else
         {
@@ -1085,7 +1085,7 @@ extern (C++) final class Module : Package
             //printf("[%d] %s semantic2a\n", i, s.toPrettyChars());
             s.semantic2(null);
 
-            if (global.errors)
+            if (global.diag.errors)
                 break;
         }
         a.setDim(0);
@@ -1102,7 +1102,7 @@ extern (C++) final class Module : Package
             //printf("[%d] %s semantic3a\n", i, s.toPrettyChars());
             s.semantic3(null);
 
-            if (global.errors)
+            if (global.diag.errors)
                 break;
         }
         a.setDim(0);
@@ -1260,14 +1260,14 @@ extern (C++) final class Module : Package
         auto imp = new Import(Loc.initial, pkgids[], modid, null, true);
         // Module.load will call fatal() if there's no module available.
         // Gag the error here, pushing the error handling to the caller.
-        const errors = global.startGagging();
+        const errors = global.diag.startGagging();
         imp.load(null);
         if (imp.mod)
         {
             imp.mod.importAll(null);
             imp.mod.dsymbolSemantic(null);
         }
-        global.endGagging(errors);
+        global.diag.endGagging(errors);
         mod = imp.mod;
         return mod;
     }

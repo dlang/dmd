@@ -86,7 +86,7 @@ struct Ungag
     unsigned oldgag;
 
     Ungag(unsigned old) : oldgag(old) {}
-    ~Ungag() { global.gag = oldgag; }
+    ~Ungag() { global.diag.gag = oldgag; }
 };
 
 enum class ThreeState : uint8_t

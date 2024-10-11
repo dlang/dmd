@@ -562,7 +562,7 @@ extern (C++) struct Scope
 
     extern (D) Dsymbol search_correct(Identifier ident)
     {
-        if (global.gag)
+        if (global.diag.gag)
             return null; // don't do it for speculative compiles; too time consuming
 
         /************************************************

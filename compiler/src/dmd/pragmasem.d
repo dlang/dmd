@@ -335,7 +335,7 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
     buf.writestring(pd.ident.toString());
     if (pd.args)
     {
-        const errors_save = global.startGagging();
+        const errors_save = global.diag.startGagging();
         for (size_t i = 0; i < pd.args.length; i++)
         {
             Expression e = (*pd.args)[i];
@@ -352,7 +352,7 @@ void pragmaDeclSemantic(PragmaDeclaration pd, Scope* sc)
         }
         if (pd.args.length)
             buf.writeByte(')');
-        global.endGagging(errors_save);
+        global.diag.endGagging(errors_save);
     }
     message("pragma    %s", buf.peekChars());
     return declarations();

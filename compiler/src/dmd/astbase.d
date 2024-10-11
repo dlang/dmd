@@ -2502,7 +2502,7 @@ struct ASTBase
         extern (D) this()
         {
             super(Loc.initial, STMT.Error);
-            assert(global.gaggedErrors || global.errors);
+            assert(global.diag.gaggedErrors || global.diag.errors);
         }
 
         override void accept(Visitor v)
@@ -6350,7 +6350,7 @@ struct ASTBase
             if (errorexp is null)
                 errorexp = new ErrorExp();
 
-            if (global.errors == 0 && global.gaggedErrors == 0)
+            if (global.diag.errors == 0 && global.diag.gaggedErrors == 0)
             {
                 /* Unfortunately, errors can still leak out of gagged errors,
                 * and we need to set the error count to prevent bogus code

@@ -173,11 +173,11 @@ Dsymbol findSymbol(Dsymbol sym, string name, bool allowMissing = false)
 {
     assert(sym, "Missing symbol while searching for: " ~ name);
 
-    const oldErrors = global.errors;
+    const oldErrors = global.diag.errors;
     Identifier id = Identifier.idPool(name);
     Dsymbol found = sym.search(Loc.initial, id, SearchOpt.ignoreErrors);
 
-    assert(global.errors == oldErrors, "Searching " ~ name ~ " caused errors!");
+    assert(global.diag.errors == oldErrors, "Searching " ~ name ~ " caused errors!");
     assert(allowMissing || found, name ~ " not found!");
     return found;
 }

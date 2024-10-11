@@ -350,7 +350,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             sc = sc.endCTFE();
         if (i.exp.op == EXP.error)
             return err();
-        const olderrors = global.errors;
+        const olderrors = global.diag.errors;
 
         /* ImportC: convert arrays to pointers, functions to pointers to functions
          */
@@ -372,7 +372,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             {
                 i.exp = i.exp.implicitCastTo(sc, t);
             }
-            if (!global.gag && olderrors != global.errors)
+            if (!global.diag.gag && olderrors != global.diag.errors)
             {
                 return i;
             }
@@ -401,7 +401,7 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
             i.exp = i.exp.optimize(WANTvalue);
         }
 
-        if (!global.gag && olderrors != global.errors)
+        if (!global.diag.gag && olderrors != global.diag.errors)
         {
             return i; // Failed, suppress duplicate error messages
         }
@@ -582,9 +582,9 @@ Initializer initializerSemantic(Initializer init, Scope* sc, ref Type tx, NeedIn
                 }
             }
             Type et = i.exp.type;
-            const errors = global.startGagging();
+            const errors = global.diag.startGagging();
             i.exp = i.exp.implicitCastTo(sc, t);
-            if (global.endGagging(errors))
+            if (global.diag.endGagging(errors))
                 error(currExp.loc, "cannot implicitly convert expression `%s` of type `%s` to `%s`", currExp.toChars(), et.toChars(), t.toChars());
         }
         }

@@ -119,9 +119,9 @@ private extern(C++) final class Semantic3Visitor : Visitor
         sc.tinst = tempinst;
         sc.minst = tempinst.minst;
 
-        bool needGagging = tempinst.gagged && !global.gag;
-        const olderrors = global.errors;
-        const oldGaggedErrors = needGagging ? global.startGagging() : -1;
+        bool needGagging = tempinst.gagged && !global.diag.gag;
+        const olderrors = global.diag.errors;
+        const oldGaggedErrors = needGagging ? global.diag.startGagging() : -1;
         /* If this is a gagged instantiation, gag errors.
          * Future optimisation: If the results are actually needed, errors
          * would already be gagged, so we don't really need to run semantic
@@ -132,11 +132,11 @@ private extern(C++) final class Semantic3Visitor : Visitor
         {
             Dsymbol s = (*tempinst.members)[i];
             s.semantic3(sc);
-            if (tempinst.gagged && global.errors != olderrors)
+            if (tempinst.gagged && global.diag.errors != olderrors)
                 break;
         }
 
-        if (global.errors != olderrors)
+        if (global.diag.errors != olderrors)
         {
             if (!tempinst.errors)
             {
@@ -148,7 +148,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             tempinst.errors = true;
         }
         if (needGagging)
-            global.endGagging(oldGaggedErrors);
+            global.diag.endGagging(oldGaggedErrors);
 
         sc = sc.pop();
         sc.pop();
@@ -169,7 +169,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         sc = sc.push(tmix.argsym);
         sc = sc.push(tmix);
 
-        const olderrors = global.errors;
+        const olderrors = global.diag.errors;
 
         for (size_t i = 0; i < tmix.members.length; i++)
         {
@@ -177,7 +177,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             s.semantic3(sc);
         }
 
-        if (global.errors != olderrors)
+        if (global.diag.errors != olderrors)
             errorSupplemental(tmix.loc, "parent scope from here: `mixin %s`", tmix.toChars());
 
         sc = sc.pop();
@@ -242,7 +242,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
         if (!funcdecl.parent)
         {
-            if (global.errors)
+            if (global.diag.errors)
                 return;
             //printf("FuncDeclaration::semantic3(%s '%s', sc = %p)\n", kind(), toChars(), sc);
             assert(0);
@@ -278,11 +278,11 @@ private extern(C++) final class Semantic3Visitor : Visitor
                  * For generated opAssign function, any errors
                  * from its body need to be gagged.
                  */
-                const oldErrors = global.startGagging();
+                const oldErrors = global.diag.startGagging();
                 ++funcdecl.inuse;
                 funcdecl.semantic3(sc);
                 --funcdecl.inuse;
-                if (global.endGagging(oldErrors))   // if errors happened
+                if (global.diag.endGagging(oldErrors))   // if errors happened
                 {
                     // Disable generated opAssign, because some members forbid identity assignment.
                     funcdecl.storage_class |= STC.disable;
@@ -311,7 +311,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             return;
         }
 
-        const oldErrors = global.errors;
+        const oldErrors = global.diag.errors;
         auto fds = FuncDeclSem3(funcdecl,sc);
 
         fds.checkInContractOverrides();
@@ -1404,7 +1404,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
          * Otherwise, error gagging should be temporarily ungagged by functionSemantic3.
          */
         funcdecl.semanticRun = PASS.semantic3done;
-        if ((global.errors != oldErrors) || (funcdecl.fbody && funcdecl.fbody.isErrorStatement()))
+        if ((global.diag.errors != oldErrors) || (funcdecl.fbody && funcdecl.fbody.isErrorStatement()))
             funcdecl.hasSemantic3Errors = true;
         else
             funcdecl.hasSemantic3Errors = false;
@@ -1569,7 +1569,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         // Instantiate RTInfo!S to provide a pointer bitmap for the GC
         // Don't do it in -betterC or on unused deprecated / error types
         if (!ad.getRTInfo && global.params.useTypeInfo && Type.rtinfo &&
-            (!ad.isDeprecated() || global.params.useDeprecated != DiagnosticReporting.error) &&
+            (!ad.isDeprecated() || global.diag.useDeprecated != DiagnosticReporting.error) &&
             (ad.type && ad.type.ty != Terror))
         {
             // Evaluate: RTinfo!type
@@ -1638,9 +1638,9 @@ void semanticTypeInfoMembers(StructDeclaration sd)
         sd.xeq._scope &&
         sd.xeq.semanticRun < PASS.semantic3done)
     {
-        const errors = global.startGagging();
+        const errors = global.diag.startGagging();
         sd.xeq.semantic3(sd.xeq._scope);
-        if (global.endGagging(errors))
+        if (global.diag.endGagging(errors))
             sd.xeq = sd.xerreq;
     }
 
@@ -1648,9 +1648,9 @@ void semanticTypeInfoMembers(StructDeclaration sd)
         sd.xcmp._scope &&
         sd.xcmp.semanticRun < PASS.semantic3done)
     {
-        const errors = global.startGagging();
+        const errors = global.diag.startGagging();
         sd.xcmp.semantic3(sd.xcmp._scope);
-        if (global.endGagging(errors))
+        if (global.diag.endGagging(errors))
             sd.xcmp = sd.xerrcmp;
     }
 
@@ -1701,13 +1701,13 @@ extern (D) bool checkClosure(FuncDeclaration fd)
     if (fd.setGC(fd.loc, "%s `%s` is `@nogc` yet allocates closure for `%s()` with the GC", fd))
     {
         .error(fd.loc, "%s `%s` is `@nogc` yet allocates closure for `%s()` with the GC", fd.kind, fd.toPrettyChars(), fd.toChars());
-        if (global.gag)     // need not report supplemental errors
+        if (global.diag.gag)     // need not report supplemental errors
             return true;
     }
     else if (!global.params.useGC)
     {
         .error(fd.loc, "%s `%s` is `-betterC` yet allocates closure for `%s()` with the GC", fd.kind, fd.toPrettyChars(), fd.toChars());
-        if (global.gag)     // need not report supplemental errors
+        if (global.diag.gag)     // need not report supplemental errors
             return true;
     }
     else

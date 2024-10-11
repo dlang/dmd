@@ -125,23 +125,9 @@ extern(C++) struct Verbose
     bool field;             // identify non-mutable field variables
     bool complex = true;    // identify complex/imaginary type usage
     bool vin;               // identify 'in' parameters
-    bool showGaggedErrors;  // print gagged errors anyway
-    bool printErrorContext; // print errors with the error context (the error line in the source file)
     bool logo;              // print compiler logo
     bool color;             // use ANSI colors in console output
     bool cov;               // generate code coverage data
-    MessageStyle messageStyle = MessageStyle.digitalmars; // style of file/line annotations on messages
-    uint errorLimit = 20;
-    uint errorSupplementLimit = 6;      // Limit the number of supplemental messages for each error (0 means unlimited)
-
-    uint errorSupplementCount() @safe
-    {
-        if (verbose)
-            return uint.max;
-        if (errorSupplementLimit == 0)
-            return uint.max;
-        return errorSupplementLimit;
-    }
 }
 
 /// Put command line switches in here
@@ -152,12 +138,10 @@ extern (C++) struct Param
     bool trace;             // insert profiling hooks
     bool tracegc;           // instrument calls to 'new'
     bool vcg_ast;           // write-out codegen-ast
-    DiagnosticReporting useDeprecated = DiagnosticReporting.inform;  // how use of deprecated features are handled
     bool useUnitTests;          // generate unittest code
     bool useInline = false;     // inline expand functions
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file
-    DiagnosticReporting useWarnings = DiagnosticReporting.off;  // how compiler warnings are handled
     bool cov;               // generate code coverage data
     ubyte covPercent;       // 0..100 code coverage percentage required
     bool ctfe_cov = false;  // generate coverage data for ctfe
@@ -290,12 +274,6 @@ extern (C++) struct Global
     CompileEnv compileEnv;
 
     Param params;           /// command line parameters
-    uint errors;            /// number of errors reported so far
-    uint deprecations;      /// number of deprecations reported so far
-    uint warnings;          /// number of warnings reported so far
-    uint gag;               /// !=0 means gag reporting of errors & warnings
-    uint gaggedErrors;      /// number of errors reported while gagged
-    uint gaggedWarnings;    /// number of warnings reported while gagged
 
     void* console;         /// opaque pointer to console for controlling text attributes
 
@@ -310,60 +288,13 @@ extern (C++) struct Global
 
     enum recursionLimit = 500; /// number of recursive template expansions before abort
 
+    Diagnostics diag;
     ErrorSink errorSink;       /// where the error messages go
     ErrorSink errorSinkNull;   /// where the error messages are ignored
 
     extern (C++) DArray!ubyte function(FileName, ref const Loc, ref OutBuffer) preprocess;
 
   nothrow:
-
-    /**
-     * Start ignoring compile errors instead of reporting them.
-     *
-     * Used for speculative compilation like `__traits(compiles, XXX)`, but also internally
-     * to e.g. try out an `alias this` rewrite without comitting to it.
-     *
-     * Works like a stack, so N calls to `startGagging` should be paired with N
-     * calls to `endGagging`.
-     *
-     * Returns: the current number of gagged errors, which should later be passed to `endGagging`
-     */
-    extern (C++) uint startGagging() @safe
-    {
-        ++gag;
-        gaggedWarnings = 0;
-        return gaggedErrors;
-    }
-
-    /**
-     * Stop gagging, restoring the old gagged state before the most recent call to `startGagging`.
-     *
-     * Params:
-     *   oldGagged = the previous number of errors, as returned by `startGagging`
-     * Returns: true if errors occurred while gagged.
-     */
-    extern (C++) bool endGagging(uint oldGagged) @safe
-    {
-        bool anyErrs = (gaggedErrors != oldGagged);
-        --gag;
-        // Restore the original state of gagged errors; set total errors
-        // to be original errors + new ungagged errors.
-        errors -= (gaggedErrors - oldGagged);
-        gaggedErrors = oldGagged;
-        return anyErrs;
-    }
-
-    /**
-     * Increment the error count to record that an error has occurred in the current context.
-     *
-     * An error message may or may not have been printed.
-     */
-    extern (C++) void increaseErrorCount() @safe
-    {
-        if (gag)
-            ++gaggedErrors;
-        ++errors;
-    }
 
     extern (C++) void _init()
     {

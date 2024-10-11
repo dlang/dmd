@@ -118,7 +118,7 @@ struct Ungag
 
     extern (C++) ~this() nothrow
     {
-        global.gag = oldgag;
+        global.diag.gag = oldgag;
     }
 }
 
@@ -605,9 +605,9 @@ extern (C++) class Dsymbol : ASTNode
 
     final Ungag ungagSpeculative() const
     {
-        const oldgag = global.gag;
-        if (global.gag && !isSpeculative() && !toParent2().isFuncDeclaration())
-            global.gag = 0;
+        const oldgag = global.diag.gag;
+        if (global.diag.gag && !isSpeculative() && !toParent2().isFuncDeclaration())
+            global.diag.gag = 0;
         return Ungag(oldgag);
     }
 

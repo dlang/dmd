@@ -146,9 +146,9 @@ private extern(C++) final class Semantic2Visitor : Visitor
         sc.tinst = tempinst;
         sc.minst = tempinst.minst;
 
-        const needGagging = (tempinst.gagged && !global.gag);
-        const olderrors = global.errors;
-        const oldGaggedErrors = needGagging ? global.startGagging() : -1;
+        const needGagging = (tempinst.gagged && !global.diag.gag);
+        const olderrors = global.diag.errors;
+        const oldGaggedErrors = needGagging ? global.diag.startGagging() : -1;
 
         for (size_t i = 0; i < tempinst.members.length; i++)
         {
@@ -158,11 +158,11 @@ private extern(C++) final class Semantic2Visitor : Visitor
                 printf("\tmember '%s', kind = '%s'\n", s.toChars(), s.kind());
             }
             s.semantic2(sc);
-            if (tempinst.gagged && global.errors != olderrors)
+            if (tempinst.gagged && global.diag.errors != olderrors)
                 break;
         }
 
-        if (global.errors != olderrors)
+        if (global.diag.errors != olderrors)
         {
             if (!tempinst.errors)
             {
@@ -174,7 +174,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
             tempinst.errors = true;
         }
         if (needGagging)
-            global.endGagging(oldGaggedErrors);
+            global.diag.endGagging(oldGaggedErrors);
 
         sc = sc.pop();
         sc.pop();
@@ -730,7 +730,7 @@ private void doGNUABITagSemantic(ref Expression e, ref Expression* lastTag)
     auto sle = e.isStructLiteralExp();
     if (sle is null)
     {
-        assert(global.errors);
+        assert(global.diag.errors);
         return;
     }
     // The definition of `gnuAttributes` only have 1 member, `string[] tags`
@@ -884,7 +884,7 @@ void staticAssertFail(StaticAssert sa, Scope* sc)
             if (e.op == EXP.error)
             {
                 errorSupplemental(sa.loc, "while evaluating `static assert` argument `%s`", (*sa.msgs)[i].toChars());
-                if (!global.gag)
+                if (!global.diag.gag)
                     fatal();
                 return;
             }
@@ -906,6 +906,6 @@ void staticAssertFail(StaticAssert sa, Scope* sc)
         error(sa.loc, "static assert:  `%s` is false", sa.exp.toChars());
     if (sc.tinst)
         sc.tinst.printInstantiationTrace();
-    if (!global.gag)
+    if (!global.diag.gag)
         fatal();
 }

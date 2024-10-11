@@ -433,7 +433,7 @@ bool setUnsafe(Scope* sc,
     {
         if (sc.func.isSafeBypassingInference())
         {
-            // Message wil be gagged, but still call error() to update global.errors and for
+            // Message wil be gagged, but still call error() to update global.diag.errors and for
             // -verrors=spec
             .error(loc, fmt, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "", arg2 ? arg2.toChars() : "");
             return true;

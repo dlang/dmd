@@ -1738,7 +1738,7 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
         if (!functionSemantic3(fd))
             return false;
         Module.runDeferredSemantic3();
-        if (global.errors)
+        if (global.diag.errors)
             return false;
         assert(fd.semanticRun >= PASS.semantic3done);
     }
@@ -1923,7 +1923,7 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
     return true;
 
 Lno:
-    if (fd.inlining == PINLINE.always && global.params.useWarnings == DiagnosticReporting.inform)
+    if (fd.inlining == PINLINE.always && global.diag.useWarnings == DiagnosticReporting.inform)
         warning(fd.loc, "cannot inline function `%s`", fd.toPrettyChars());
 
     if (!hdrscan) // Don't modify inlineStatus for header content scan

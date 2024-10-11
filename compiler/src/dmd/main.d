@@ -241,7 +241,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     static int printHelpUsage(string help)
     {
         printf("%.*s", cast(int)help.length, &help[0]);
-        return global.errors ? EXIT_FAILURE : EXIT_SUCCESS;
+        return global.diag.errors ? EXIT_FAILURE : EXIT_SUCCESS;
     }
 
     /*
@@ -256,10 +256,10 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     // In case deprecation messages were omitted, inform the user about it
     static void mentionOmittedDeprecations()
     {
-        if (global.params.v.errorLimit != 0 &&
-            global.deprecations > global.params.v.errorLimit)
+        if (global.diag.errorLimit != 0 &&
+            global.diag.deprecations > global.diag.errorLimit)
         {
-            const omitted = global.deprecations - global.params.v.errorLimit;
+            const omitted = global.diag.deprecations - global.diag.errorLimit;
             message(Loc.initial, "%d deprecation warning%s omitted, use `-verrors=0` to show all",
                 omitted, omitted == 1 ? "".ptr : "s".ptr);
         }
@@ -329,9 +329,9 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         global.console = cast(void*) createConsole(core.stdc.stdio.stderr);
 
     target.setCPU();
-    Loc.set(params.v.showColumns, params.v.messageStyle);
+    Loc.set(params.v.showColumns, global.diag.messageStyle);
 
-    if (global.errors)
+    if (global.diag.errors)
     {
         fatal();
     }
@@ -514,7 +514,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         error(Loc.initial, "conflicting Ddoc and obj generation options");
         fatal();
     }
-    if (global.errors)
+    if (global.diag.errors)
         fatal();
 
     if (params.dihdr.doOutput)
@@ -538,7 +538,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
                 fatal();
         }
     }
-    if (global.errors)
+    if (global.diag.errors)
         removeHdrFilesAndFail(params, modules);
 
     {
@@ -552,7 +552,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             message("importall %s", m.toChars());
         m.importAll(null);
     }
-    if (global.errors)
+    if (global.diag.errors)
         removeHdrFilesAndFail(params, modules);
 
     backend_init(params, driverParams, target);
@@ -564,7 +564,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             message("semantic  %s", m.toChars());
         m.dsymbolSemantic(null);
     }
-    //if (global.errors)
+    //if (global.diag.errors)
     //    fatal();
     Module.runDeferredSemantic();
     if (Module.deferred.length)
@@ -585,7 +585,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         m.semantic2(null);
     }
     Module.runDeferredSemantic2();
-    if (global.errors)
+    if (global.diag.errors)
         removeHdrFilesAndFail(params, modules);
 
     // Do pass 3 semantic analysis
@@ -610,7 +610,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         }
     }
     Module.runDeferredSemantic3();
-    if (global.errors)
+    if (global.diag.errors)
         removeHdrFilesAndFail(params, modules);
 
     // Scan for functions to inline
@@ -624,14 +624,14 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         }
     }
 
-    if (global.warnings)
+    if (global.diag.warnings)
         errorOnWarning();
 
-    if (global.params.useDeprecated == DiagnosticReporting.inform)
+    if (global.diag.useDeprecated == DiagnosticReporting.inform)
         mentionOmittedDeprecations();
 
     // Do not attempt to generate output files if errors or warnings occurred
-    if (global.errors || global.warnings)
+    if (global.diag.errors || global.diag.warnings)
         removeHdrFilesAndFail(params, modules);
 
     // inlineScan incrementally run semantic3 of each expanded functions.
@@ -662,7 +662,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         if (generateJson(modules, global.errorSink))
             fatal();
     }
-    if (!global.errors && params.ddoc.doOutput)
+    if (!global.diag.errors && params.ddoc.doOutput)
     {
         foreach (m; modules)
         {
@@ -694,7 +694,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     if (global.params.cxxhdr.doOutput)
         genCppHdrFiles(modules);
 
-    if (global.errors)
+    if (global.diag.errors)
         fatal();
 
     if (driverParams.lib && params.objfiles.length == 0)
@@ -721,7 +721,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     backend_term();
 
-    if (global.errors)
+    if (global.diag.errors)
         fatal();
     int status = EXIT_SUCCESS;
     if (!params.objfiles.length)
@@ -810,10 +810,10 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
             printf("%.*s", cast(int) data.length, data.ptr);
     }
 
-    if (global.warnings)
+    if (global.diag.warnings)
         errorOnWarning();
 
-    if (global.errors || global.warnings)
+    if (global.diag.errors || global.diag.warnings)
         removeHdrFilesAndFail(params, modules);
 
     return status;

@@ -276,7 +276,7 @@ void test_semantic()
 
     Module *m = Module::create("object.d", Identifier::idPool("object"), 0, 0);
 
-    unsigned errors = global.startGagging();
+    unsigned errors = global.diag.startGagging();
 
     m->src = src;
     m->parse();
@@ -297,7 +297,7 @@ void test_semantic()
     ClassDeclaration *cd = ad->isClassDeclaration();
     assert(cd && cd->hasMonitor());
 
-    assert(!global.endGagging(errors));
+    assert(!global.diag.endGagging(errors));
 }
 
 /**********************************/
@@ -314,7 +314,7 @@ void test_skip_importall()
 
     Module *m = Module::create("rootobject.d", Identifier::idPool("rootobject"), 0, 0);
 
-    unsigned errors = global.startGagging();
+    unsigned errors = global.diag.startGagging();
 
     m->src = src;
     m->parse();
@@ -323,7 +323,7 @@ void test_skip_importall()
     dmd::semantic2(m, NULL);
     dmd::semantic3(m, NULL);
 
-    assert(!global.endGagging(errors));
+    assert(!global.diag.endGagging(errors));
 }
 
 /**********************************/
@@ -500,7 +500,7 @@ void test_cppmangle()
 
     Module *m = Module::create("cppa.d", Identifier::idPool("cppa"), 0, 0);
 
-    unsigned errors = global.startGagging();
+    unsigned errors = global.diag.startGagging();
     FuncDeclaration *fd;
     const char *mangle;
 
@@ -530,15 +530,15 @@ void test_cppmangle()
     mangle = dmd::cppThunkMangleItanium(fd, b->offset);
     assert(strcmp(mangle, "_ZThn8_N7Derived7MethodDEv") == 0);
 
-    assert(!global.endGagging(errors));
+    assert(!global.diag.endGagging(errors));
 }
 
 void test_module()
 {
-    unsigned errors = global.startGagging();
+    unsigned errors = global.diag.startGagging();
     Module *mod = Module::load(Loc(), NULL, Identifier::idPool("doesnotexist.d"));
     assert(mod == NULL);
-    assert(global.endGagging(errors));
+    assert(global.diag.endGagging(errors));
 }
 
 void test_optional()
@@ -1624,7 +1624,7 @@ public:
             dmd::functionSemantic3(d);
             Module::runDeferredSemantic3();
         }
-        if (global.errors)
+        if (global.diag.errors)
             return;
         visitDeclaration(d);
         if (!d->fbody)

@@ -2121,7 +2121,7 @@ public:
                     v.inuse++;
                     e = interpret(e, istate);
                     v.inuse--;
-                    if (CTFEExp.isCantExp(e) && !global.gag && !ctfeGlobals.stackTraceCallsToSuppress)
+                    if (CTFEExp.isCantExp(e) && !global.diag.gag && !ctfeGlobals.stackTraceCallsToSuppress)
                         errorSupplemental(loc, "while evaluating %s.init", v.toChars());
                     if (exceptionOrCantInterpret(e))
                         return e;
@@ -4992,7 +4992,7 @@ public:
             result = paintTypeOntoLiteral(pue, e.type, result);
             result.loc = e.loc;
         }
-        else if (CTFEExp.isCantExp(result) && !global.gag)
+        else if (CTFEExp.isCantExp(result) && !global.diag.gag)
             showCtfeBackTrace(e, fd); // Print a stack trace.
     }
 

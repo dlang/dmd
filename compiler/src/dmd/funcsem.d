@@ -1167,15 +1167,15 @@ bool functionSemantic(FuncDeclaration fd)
     if (!fd.originalType) // semantic not yet run
     {
         TemplateInstance spec = fd.isSpeculative();
-        const olderrs = global.errors;
-        const oldgag = global.gag;
-        if (global.gag && !spec)
-            global.gag = 0;
+        const olderrs = global.diag.errors;
+        const oldgag = global.diag.gag;
+        if (global.diag.gag && !spec)
+            global.diag.gag = 0;
         dsymbolSemantic(fd, fd._scope);
-        global.gag = oldgag;
-        if (spec && global.errors != olderrs)
-            spec.errors = (global.errors - olderrs != 0);
-        if (olderrs != global.errors) // if errors compiling this function
+        global.diag.gag = oldgag;
+        if (spec && global.diag.errors != olderrs)
+            spec.errors = (global.diag.errors - olderrs != 0);
+        if (olderrs != global.diag.errors) // if errors compiling this function
             return false;
     }
 
@@ -1223,18 +1223,18 @@ bool functionSemantic3(FuncDeclaration fd)
          * we need to temporarily ungag errors.
          */
         TemplateInstance spec = fd.isSpeculative();
-        const olderrs = global.errors;
-        const oldgag = global.gag;
-        if (global.gag && !spec)
-            global.gag = 0;
+        const olderrs = global.diag.errors;
+        const oldgag = global.diag.gag;
+        if (global.diag.gag && !spec)
+            global.diag.gag = 0;
         semantic3(fd, fd._scope);
-        global.gag = oldgag;
+        global.diag.gag = oldgag;
 
         // If it is a speculatively-instantiated template, and errors occur,
         // we need to mark the template as having errors.
-        if (spec && global.errors != olderrs)
-            spec.errors = (global.errors - olderrs != 0);
-        if (olderrs != global.errors) // if errors compiling this function
+        if (spec && global.diag.errors != olderrs)
+            spec.errors = (global.diag.errors - olderrs != 0);
+        if (olderrs != global.diag.errors) // if errors compiling this function
             return false;
     }
 
@@ -1627,7 +1627,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
             }
 
 
-            if (!global.gag || global.params.v.showGaggedErrors)
+            if (!global.diag.gag || global.diag.showGaggedErrors)
                 printCandidates(loc, td, sc.isDeprecated());
             return null;
         }
@@ -1644,7 +1644,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     {
         .error(loc, "none of the overloads of `%s` are callable using argument types `!(%s)%s`",
                od.ident.toChars(), tiargsBuf.peekChars(), fargsBuf.peekChars());
-        if (!global.gag || global.params.v.showGaggedErrors)
+        if (!global.diag.gag || global.diag.showGaggedErrors)
             printCandidates(loc, od, sc.isDeprecated());
         return null;
     }
@@ -1679,7 +1679,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                 .error(loc, "none of the overloads of `%s` are callable using a %sobject with argument types `(%s)`",
                     fd.toChars(), thisBuf.peekChars(), buf.peekChars());
 
-            if (!global.gag || global.params.v.showGaggedErrors)
+            if (!global.diag.gag || global.diag.showGaggedErrors)
                 printCandidates(loc, fd, sc.isDeprecated());
             return null;
         }
@@ -1717,7 +1717,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
     {
         .error(loc, "none of the overloads of `%s` are callable using argument types `%s`",
                fd.toChars(), fargsBuf.peekChars());
-        if (!global.gag || global.params.v.showGaggedErrors)
+        if (!global.diag.gag || global.diag.showGaggedErrors)
             printCandidates(loc, fd, sc.isDeprecated());
         return null;
     }
@@ -1726,7 +1726,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
            fd.kind(), fd.toPrettyChars(), parametersTypeToChars(tf.parameterList),
            tf.modToChars(), fargsBuf.peekChars());
 
-    if (global.gag && !global.params.v.showGaggedErrors)
+    if (global.diag.gag && !global.diag.showGaggedErrors)
         return null;
 
     // re-resolve to check for supplemental message
@@ -1773,7 +1773,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
 private void printCandidates(Decl)(const ref Loc loc, Decl declaration, bool showDeprecated)
 {
     // max num of overloads to print (-v or -verror-supplements overrides this).
-    const uint DisplayLimit = global.params.v.errorSupplementCount();
+    const uint DisplayLimit = global.diag.errorSupplementCount();
     const(char)* constraintsTip;
 
     int printed = 0; // number of candidates printed

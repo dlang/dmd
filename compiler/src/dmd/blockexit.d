@@ -108,7 +108,7 @@ int blockExit(Statement s, FuncDeclaration func, ErrorSink eSink)
 
         void visitMixin(MixinStatement s)
         {
-            assert(global.errors);
+            assert(global.diag.errors);
             result = BE.fallthru;
         }
 
@@ -177,7 +177,7 @@ int blockExit(Statement s, FuncDeclaration func, ErrorSink eSink)
 
         void visitWhile(WhileStatement s)
         {
-            assert(global.errors);
+            assert(global.diag.errors);
             result = BE.fallthru;
         }
 
@@ -249,7 +249,7 @@ int blockExit(Statement s, FuncDeclaration func, ErrorSink eSink)
 
         void visitForeachRange(ForeachRangeStatement s)
         {
-            assert(global.errors);
+            assert(global.diag.errors);
             result = BE.fallthru;
         }
 

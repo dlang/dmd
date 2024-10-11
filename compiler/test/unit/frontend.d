@@ -205,7 +205,7 @@ unittest
 
     t.module_.fullSemantic();
 
-    assert(global.errors == 0);
+    assert(global.diag.errors == 0);
 }
 
 @("initDMD - version identifiers")
@@ -233,7 +233,7 @@ unittest
 
     t.module_.fullSemantic();
 
-    assert(global.errors == 0);
+    assert(global.diag.errors == 0);
 }
 
 @("initDMD - custom diagnostic handling")
@@ -296,7 +296,7 @@ unittest
 
     t.module_.fullSemantic();
 
-    assert(global.errors == 0);
+    assert(global.diag.errors == 0);
 }
 
 @("initDMD - floating-point")
@@ -319,7 +319,7 @@ unittest
 
     t.module_.fullSemantic();
 
-    assert(global.errors == 0);
+    assert(global.diag.errors == 0);
 }
 
 @("inline assembly")
@@ -348,7 +348,7 @@ unittest
 
     t.module_.fullSemantic();
 
-    assert(global.errors == 0);
+    assert(global.diag.errors == 0);
 }
 
 // Issue https://issues.dlang.org/show_bug.cgi?id=22906
@@ -387,7 +387,7 @@ unittest
 
     t.module_.fullSemantic();
 
-    assert(global.errors == 1);
+    assert(global.diag.errors == 1);
     assert(endsWith(diagnosticMessages[0], "is a Ddoc file, cannot import it"));
 }
 

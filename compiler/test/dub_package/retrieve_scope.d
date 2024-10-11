@@ -74,7 +74,7 @@ int main()
                             va_list args,
                             const(char)* prefix1,
                             const(char)* prefix2) => true;
-    global.gag = 1;
+    global.diag.gag = 1;
     initDMD(diagnosticHandler);
 
     Module m = parseModule("testfiles/correct.d").module_;

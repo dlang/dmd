@@ -654,7 +654,7 @@ UnionExp Equal(EXP op, const ref Loc loc, Type type, Expression e1, Expression e
         StringExp es2 = e2.isStringExp();
         if (es1.sz != es2.sz)
         {
-            assert(global.errors);
+            assert(global.diag.errors);
             cantExp(ue);
             return ue;
         }
@@ -1477,7 +1477,7 @@ UnionExp Cat(const ref Loc loc, Type type, Expression e1, Expression e2)
             /* Can happen with:
              *   auto s = "foo"d ~ "bar"c;
              */
-            assert(global.errors);
+            assert(global.diag.errors);
             cantExp(ue);
             assert(ue.exp().type);
             return ue;
