@@ -7514,8 +7514,7 @@ extern(C++) class IncludeVisitor : Visitor
             return;
 
         assert(cdc.condition);
-        //Dsymbols* d = condition.include(cast(ConditionalDeclaration)cdc, cdc._scope ? cdc._scope : sc) ? decl : cdc.elsedecl;
-        return condition.include(cdc._scope ? cdc._scope : sc) ? decl : cdc.elsedecl;
+        symbols = cdc.condition.include(cdc._scope ? cdc._scope : sc) ? cdc.decl : cdc.elsedecl;
     }
 
     override void visit(StaticIfDeclaration sif)
@@ -7526,10 +7525,8 @@ extern(C++) class IncludeVisitor : Visitor
      */
         //printf("StaticIfDeclaration::include(sc = %p) scope = %p\n", sc, _scope);
         if (sif.errors || sif.onStack)
-        {
             symbols = null;
             return;
-        }
         sif.onStack = true;
         scope(exit) sif.onStack = false;
 
