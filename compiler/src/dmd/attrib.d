@@ -661,18 +661,6 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
         }
     }
 
-    // Decide if 'then' or 'else' code should be included
-    override Dsymbols* include(Scope* sc)
-    {
-        //printf("ConditionalDeclaration::include(sc = %p) scope = %p\n", sc, _scope);
-
-        if (errors)
-            return null;
-
-        assert(condition);
-        return condition.include(_scope ? _scope : sc) ? decl : elsedecl;
-    }
-
     override final void addComment(const(char)* comment)
     {
         /* Because addComment is called by the parser, if we called

@@ -7491,19 +7491,31 @@ extern(C++) class IncludeVisitor : Visitor
     this(Scope* sc)
     {
         this.sc = sc;
-        //this.symbols = new Dsymbols();
+        this.symbols = new Dsymbols();
     }
 
     override void visit(AttribDeclaration ad)
     {
-        // Create a new Dsymbols if needed for the AttribDeclaration
-        if (!symbols)
-        {
-            symbols = new Dsymbols();
-        }
+        if (ad.errors)
+            symbols = null;
+            return;
 
-        // Populate symbols as necessary
-        Dsymbols* d = ad.include(sc);
+        symbols = ad.decl;
+        return;
+    }
+
+// Decide if 'then' or 'else' code should be included
+    override void visit(ConditionalDeclaration cdc)
+    {
+        //printf("ConditionalDeclaration::include(sc = %p) scope = %p\n", sc, _scope);
+
+        if (cdc.errors)
+            symbols = null;
+            return;
+
+        assert(cdc.condition);
+        //Dsymbols* d = condition.include(cast(ConditionalDeclaration)cdc, cdc._scope ? cdc._scope : sc) ? decl : cdc.elsedecl;
+        return condition.include(cdc._scope ? cdc._scope : sc) ? decl : cdc.elsedecl;
     }
 
     override void visit(StaticIfDeclaration sif)
@@ -7514,7 +7526,10 @@ extern(C++) class IncludeVisitor : Visitor
      */
         //printf("StaticIfDeclaration::include(sc = %p) scope = %p\n", sc, _scope);
         if (sif.errors || sif.onStack)
-            //return null;
+        {
+            symbols = null;
+            return;
+        }
         sif.onStack = true;
         scope(exit) sif.onStack = false;
 
@@ -7543,10 +7558,15 @@ extern(C++) class IncludeVisitor : Visitor
     override void visit(StaticForeachDeclaration sfd)
     {
         if (sfd.errors || sfd.onStack)
+        {
+            symbols = null;
+            return;
+        }
         if (sfd.cached)
         {
             assert(!sfd.onStack);
-            symbols= sfd.cache;
+            symbols = sfd.cache;
+            return;
         }
         sfd.onStack = true;
         scope(exit) sfd.onStack = false;
@@ -7557,7 +7577,8 @@ extern(C++) class IncludeVisitor : Visitor
         }
         if (!sfd.sfe.ready())
         {
-            // TODO: ok?
+            symbols = null;// TODO: ok?
+            return;
         }
 
         // expand static foreach
@@ -7573,9 +7594,11 @@ extern(C++) class IncludeVisitor : Visitor
         }
         sfd.cached = true;
         sfd.cache = d;
-        visit(cast(AttribDeclaration)d);
+        symbols = d;
+        return;
     }
 }
+
 /**
  * Called from a symbol's semantic to check if `gnuAbiTag` UDA
  * can be applied to them
