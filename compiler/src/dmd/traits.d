@@ -1038,7 +1038,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                  e.ident == Id.getVirtualMethods ||
                  e.ident == Id.getOverloads)
         {
-            uint errors = global.errors;
+            const errors = global.errors;
             Expression eorig = ex;
             ex = ex.expressionSemantic(scx);
             if (errors < global.errors)

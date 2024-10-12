@@ -1167,7 +1167,7 @@ bool functionSemantic(FuncDeclaration fd)
     if (!fd.originalType) // semantic not yet run
     {
         TemplateInstance spec = fd.isSpeculative();
-        uint olderrs = global.errors;
+        const olderrs = global.errors;
         uint oldgag = global.gag;
         if (global.gag && !spec)
             global.gag = 0;
@@ -1223,7 +1223,7 @@ bool functionSemantic3(FuncDeclaration fd)
          * we need to temporarily ungag errors.
          */
         TemplateInstance spec = fd.isSpeculative();
-        uint olderrs = global.errors;
+        const olderrs = global.errors;
         uint oldgag = global.gag;
         if (global.gag && !spec)
             global.gag = 0;
