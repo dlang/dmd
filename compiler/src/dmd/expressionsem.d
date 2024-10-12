@@ -5716,7 +5716,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         Expression e = exp;
-        uint olderrors;
 
         sc = sc.push(); // just create new scope
         sc.ctfe = false; // temporary stop CTFE
@@ -5745,6 +5744,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
+        void done()
+        {
+            sc = sc.pop();
+            result = e;
+        }
+
         //printf("td = %p, treq = %p\n", td, fd.treq);
         if (exp.td)
         {
@@ -5760,10 +5765,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 else
                     e = ErrorExp.get();
             }
-            goto Ldone;
+            return done();
         }
 
-        olderrors = global.errors;
+        const olderrors = global.errors;
         exp.fd.dsymbolSemantic(sc);
         if (olderrors == global.errors)
         {
@@ -5776,7 +5781,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (exp.fd.type && exp.fd.type.ty == Tfunction && !exp.fd.type.nextOf())
                 (cast(TypeFunction)exp.fd.type).next = Type.terror;
             e = ErrorExp.get();
-            goto Ldone;
+            return done();
         }
 
         // Type is a "delegate to" or "pointer to" the function literal
@@ -5789,7 +5794,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (exp.fd.type.isTypeError())
             {
                 e = ErrorExp.get();
-                goto Ldone;
+                return done();
             }
             exp.type = new TypeDelegate(exp.fd.type.isTypeFunction());
             exp.type = exp.type.typeSemantic(exp.loc, sc);
@@ -5818,10 +5823,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
         exp.fd.tookAddressOf++;
-
-    Ldone:
-        sc = sc.pop();
-        result = e;
+        done();
     }
 
     /**
@@ -6978,7 +6980,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("DeclarationExp::semantic() %s\n", e.toChars());
         }
 
-        uint olderrors = global.errors;
+        const olderrors = global.errors;
 
         /* This is here to support extern(linkage) declaration,
          * where the extern(linkage) winds up being an AttribDeclaration
@@ -7710,7 +7712,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (expressionsToString(buf, sc, exp.exps, exp.loc, null, true))
             return null;
 
-        uint errors = global.errors;
+        const errors = global.errors;
         const len = buf.length;
         const str = buf.extractChars()[0 .. len];
         const bool doUnittests = global.params.parsingUnittestsRequired();
@@ -17391,7 +17393,7 @@ private bool needsTypeInference(TemplateInstance ti, Scope* sc, int flag = 0)
     if (ti.semanticRun != PASS.initial)
         return false;
 
-    uint olderrs = global.errors;
+    const olderrs = global.errors;
     Objects dedtypes;
     size_t count = 0;
 

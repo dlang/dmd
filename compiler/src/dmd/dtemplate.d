@@ -4607,7 +4607,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     {
                         if (ea.checkValue()) // check void expression
                             ea = ErrorExp.get();
-                        uint olderrs = global.errors;
+                        const olderrs = global.errors;
                         ea = ea.ctfeInterpret();
                         if (global.errors != olderrs)
                             ea = ErrorExp.get();
@@ -4819,7 +4819,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             printf("TemplateInstance.findBestMatch()\n");
         }
 
-        uint errs = global.errors;
+        const errs = global.errors;
         TemplateDeclaration td_last = null;
         Objects dedtypes;
 

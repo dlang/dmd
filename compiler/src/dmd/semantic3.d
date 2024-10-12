@@ -120,7 +120,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         sc.minst = tempinst.minst;
 
         bool needGagging = tempinst.gagged && !global.gag;
-        uint olderrors = global.errors;
+        const olderrors = global.errors;
         int oldGaggedErrors = -1; // dead-store to prevent spurious warning
         /* If this is a gagged instantiation, gag errors.
          * Future optimisation: If the results are actually needed, errors
@@ -171,7 +171,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
         sc = sc.push(tmix.argsym);
         sc = sc.push(tmix);
 
-        uint olderrors = global.errors;
+        const olderrors = global.errors;
 
         for (size_t i = 0; i < tmix.members.length; i++)
         {
@@ -313,7 +313,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             return;
         }
 
-        uint oldErrors = global.errors;
+        const oldErrors = global.errors;
         auto fds = FuncDeclSem3(funcdecl,sc);
 
         fds.checkInContractOverrides();

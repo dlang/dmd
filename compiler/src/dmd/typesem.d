@@ -230,7 +230,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
         }
 
         Type t = s.getType(); // type symbol, type alias, or type tuple?
-        uint errorsave = global.errors;
+        const errorsave = global.errors;
         SearchOptFlags flags = t is null ? SearchOpt.localsOnly : SearchOpt.ignorePrivateImports;
 
         Dsymbol sm = s.searchX(loc, sc, id, flags);

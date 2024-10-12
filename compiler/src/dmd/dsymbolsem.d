@@ -1435,7 +1435,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                  */
                 if (!inferred)
                 {
-                    uint errors = global.errors;
+                    const errors = global.errors;
                     dsym.inuse++;
                     // Bug 20549. Don't try this on modules or packages, syntaxCopy
                     // could crash (inf. recursion) on a mod/pkg referencing itself
@@ -2214,7 +2214,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         tm.argsym.parent = scy.parent;
         Scope* argscope = scy.push(tm.argsym);
 
-        uint errorsave = global.errors;
+        const errorsave = global.errors;
 
         // Declare each template parameter as an alias for the argument type
         tm.declareParameters(argscope);
@@ -2842,7 +2842,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (sd.semanticRun >= PASS.semanticdone)
             return;
-        int errors = global.errors;
+        const errors = global.errors;
 
         //printf("+StructDeclaration::semantic(this=%p, '%s', sizeok = %d)\n", sd, sd.toPrettyChars(), sd.sizeok);
         Scope* scx = null;
@@ -3089,7 +3089,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (cldec.semanticRun >= PASS.semanticdone)
             return;
-        int errors = global.errors;
+        const errors = global.errors;
 
         //printf("+ClassDeclaration.dsymbolSemantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
 
@@ -3752,7 +3752,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         //printf("InterfaceDeclaration.dsymbolSemantic(%s), type = %p\n", toChars(), type);
         if (idec.semanticRun >= PASS.semanticdone)
             return;
-        int errors = global.errors;
+        const errors = global.errors;
 
         //printf("+InterfaceDeclaration.dsymbolSemantic(%s), type = %p\n", toChars(), type);
 
@@ -4762,7 +4762,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
         printf("\timplement template instance %s '%s'\n", tempdecl.parent.toChars(), tempinst.toChars());
         printf("\ttempdecl %s\n", tempdecl.toChars());
     }
-    uint errorsave = global.errors;
+    const errorsave = global.errors;
 
     tempinst.inst = tempinst;
     tempinst.parent = tempinst.enclosing ? tempinst.enclosing : tempdecl.parent;
@@ -6461,7 +6461,7 @@ private extern(C++) class SearchVisitor : Visitor
             return setResult(m.searchCacheSymbol);
         }
 
-        uint errors = global.errors;
+        const errors = global.errors;
 
         m.insearch = true;
         visit(cast(ScopeDsymbol)m);
@@ -6899,7 +6899,7 @@ extern (D) bool load(Import imp, Scope* sc)
             {
                 if (p.isPkgMod == PKG.unknown)
                 {
-                    uint preverrors = global.errors;
+                    const preverrors = global.errors;
                     imp.mod = Module.load(imp.loc, imp.packages, imp.id);
                     if (!imp.mod)
                         p.isPkgMod = PKG.package_;
