@@ -144,7 +144,7 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
             if (ispow2(_align) == -1)
             {
                 asmerr("`align %d` must be a power of 2", _align);
-                goto AFTER_EMIT;
+                return new ErrorStatement();
             }
             else
                 s.asmalign = _align;
@@ -196,7 +196,7 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
                 {
                     asm_cond_exp(opnds[i]);
                     if (asmstate.errors)
-                        goto AFTER_EMIT;
+                        return new ErrorStatement();
                     nOps = i + 1;
                     if (asmstate.tokValue != TOK.comma)
                         break;
@@ -209,7 +209,7 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
 
             ptb = asm_classify(o, opnds[0 .. nOps], usNumops);
             if (asmstate.errors)
-                goto AFTER_EMIT;
+                return new ErrorStatement();
 
             assert(ptb.pptb0);
 
@@ -256,7 +256,7 @@ version (none)
 
 AFTER_EMIT:
 
-    if (asmstate.tokValue != TOK.endOfFile)
+    if (asmstate.tokValue != TOK.endOfFile && !asmstate.errors)
     {
         asmerr("end of instruction expected, not `%s`", asmstate.tok.toChars());  // end of line expected
     }
@@ -2094,8 +2094,6 @@ L3:
 
 void asmerr(const(char)* format, ...)
 {
-    if (asmstate.errors)
-        return;
 
     va_list ap;
     va_start(ap, format);
