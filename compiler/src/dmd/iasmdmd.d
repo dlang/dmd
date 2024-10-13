@@ -95,7 +95,7 @@ public Statement inlineAsmSemantic(InlineAsmStatement s, Scope *sc)
     asmstate.ucItype = 0;
     asmstate.bReturnax = false;
     asmstate.lbracketNestCount = 0;
-    asmstate.errors = false;
+    asmstate.startErrors = global.errors;
 
     asmstate.statement = s;
     asmstate.sc = sc;
@@ -143,7 +143,7 @@ version (none) // don't use bReturnax anymore, and will fail anyway if we use re
             uint _align = asm_getnum();
             if (ispow2(_align) == -1)
             {
-                asmerr("`align %d` must be a power of 2", _align);
+                error(asmstate.loc, "`align %d` must be a power of 2", _align);
                 return new ErrorStatement();
             }
             else
@@ -250,7 +250,7 @@ version (none)
 
         default:
         OPCODE_EXPECTED:
-            asmerr("opcode expected, not `%s`", asmstate.tok.toChars());
+            error(asmstate.loc, "opcode expected, not `%s`", asmstate.tok.toChars());
             break;
     }
 
@@ -258,7 +258,7 @@ AFTER_EMIT:
 
     if (asmstate.tokValue != TOK.endOfFile && !asmstate.errors)
     {
-        asmerr("end of instruction expected, not `%s`", asmstate.tok.toChars());  // end of line expected
+        error(asmstate.loc, "end of instruction expected, not `%s`", asmstate.tok.toChars());  // end of line expected
     }
     return asmstate.errors ? new ErrorStatement() : s;
 }
@@ -320,7 +320,7 @@ struct ASM_STATE
     ucItype_t ucItype;  /// Instruction type
     Loc loc;
     bool bInit;
-    bool errors;        /// true if semantic errors occurred
+    uint startErrors;  // global.errors at start of iasm
     LabelDsymbol psDollar;
     Dsymbol psLocalsize;
     bool bReturnax;
@@ -329,6 +329,7 @@ struct ASM_STATE
     Token* tok;
     TOK tokValue;
     int lbracketNestCount;
+    bool errors() { return global.errors > startErrors; }
 }
 
 __gshared ASM_STATE asmstate;
@@ -647,7 +648,7 @@ void asm_chktok(TOK toknum, const(char)* msg)
         /* When we run out of tokens, asmstate.tok is null.
          * But when this happens when a ';' was hit.
          */
-        asmerr(msg, asmstate.tok ? asmstate.tok.toChars() : ";");
+        error(asmstate.loc, msg, asmstate.tok ? asmstate.tok.toChars() : ";");
     }
     asm_token();        // keep consuming tokens
 }
@@ -677,7 +678,7 @@ PTRNTAB asm_classify(OP *pop, OPND[] opnds, out int outNumops)
 
     void paramError()
     {
-        asmerr("%u operands found for `%s` instead of the expected %d", usNumops, asm_opstr(pop), usActual);
+        error(asmstate.loc, "%u operands found for `%s` instead of the expected %d", usNumops, asm_opstr(pop), usActual);
     }
 
     if (usActual != usNumops && asmstate.ucItype != ITopt &&
@@ -704,7 +705,7 @@ PTRNTAB asm_classify(OP *pop, OPND[] opnds, out int outNumops)
 
             if (i == 0 && bRetry && opnd.s && !opnd.s.isLabel())
             {
-                asmerr("label expected", opnd.s.toChars());
+                error(asmstate.loc, "label expected", opnd.s.toChars());
                 return;
             }
             opnd.usFlags |= CONSTRUCT_FLAGS(0, 0, 0, _fanysize);
@@ -712,9 +713,9 @@ PTRNTAB asm_classify(OP *pop, OPND[] opnds, out int outNumops)
         if (bRetry)
         {
             if(bInvalid64bit)
-                asmerr("operand for `%s` invalid in 64bit mode", asm_opstr(pop));
+                error(asmstate.loc, "operand for `%s` invalid in 64bit mode", asm_opstr(pop));
             else
-                asmerr("bad type/size of operands `%s`", asm_opstr(pop));
+                error(asmstate.loc, "bad type/size of operands `%s`", asm_opstr(pop));
             return;
         }
         bRetry = true;
@@ -724,7 +725,7 @@ PTRNTAB asm_classify(OP *pop, OPND[] opnds, out int outNumops)
     {
         if (bRetry)
         {
-            asmerr("bad type/size of operands `%s`", asm_opstr(pop));
+            error(asmstate.loc, "bad type/size of operands `%s`", asm_opstr(pop));
         }
         return ret;
     }
@@ -754,7 +755,7 @@ RETRY:
         case 0:
             if (target.isX86_64 && (pop.ptb.pptb0.usFlags & _i64_bit))
             {
-                asmerr("opcode `%s` is unavailable in 64bit mode", asm_opstr(pop));  // illegal opcode in 64bit mode
+                error(asmstate.loc, "opcode `%s` is unavailable in 64bit mode", asm_opstr(pop));  // illegal opcode in 64bit mode
                 break;
             }
             if ((asmstate.ucItype == ITopt ||
@@ -807,7 +808,7 @@ RETRY:
                         (table1 + 1).opcode != ASM_END &&
                         getOpndSize(table1.usOp1) == OpndSize._8)
                     {
-                        asmerr("operand size for opcode `%s` is ambiguous, add `ptr byte/short/int/long` prefix", asm_opstr(pop));
+                        error(asmstate.loc, "operand size for opcode `%s` is ambiguous, add `ptr byte/short/int/long` prefix", asm_opstr(pop));
                         break RETRY;
                     }
 
@@ -863,7 +864,7 @@ RETRY:
                 if (log) { printf("table1   = "); asm_output_flags(table2.usOp1); printf("\n"); }
                 if (log) { printf("table2   = "); asm_output_flags(table2.usOp2); printf("\n"); }
                 if (target.isX86_64 && (table2.usFlags & _i64_bit))
-                    asmerr("opcode `%s` is unavailable in 64bit mode", asm_opstr(pop));
+                    error(asmstate.loc, "opcode `%s` is unavailable in 64bit mode", asm_opstr(pop));
 
                 const bMatch1 = asm_match_flags(opflags[0], table2.usOp1);
                 const bMatch2 = asm_match_flags(opflags[1], table2.usOp2);
@@ -923,7 +924,7 @@ RETRY:
                         (table2 + 1).opcode != ASM_END &&
                         getOpndSize(table2.usOp1) == OpndSize._8)
                     {
-                        asmerr("operand size for opcode `%s` is ambiguous, add `ptr byte/short/int/long` prefix", asm_opstr(pop));
+                        error(asmstate.loc, "operand size for opcode `%s` is ambiguous, add `ptr byte/short/int/long` prefix", asm_opstr(pop));
                         break RETRY;
                     }
 
@@ -1006,7 +1007,7 @@ version (none)
                         (table3 + 1).opcode != ASM_END &&
                         getOpndSize(table3.usOp1) == OpndSize._8)
                     {
-                        asmerr("operand size for opcode `%s` is ambiguous, add `ptr byte/short/int/long` prefix", asm_opstr(pop));
+                        error(asmstate.loc, "operand size for opcode `%s` is ambiguous, add `ptr byte/short/int/long` prefix", asm_opstr(pop));
                         break RETRY;
                     }
 
@@ -1168,7 +1169,7 @@ version (none)
     }
 }
 
-    asmerr("unknown operand for floating point instruction");
+    error(asmstate.loc, "unknown operand for floating point instruction");
     return 0;
 }
 
@@ -1188,7 +1189,7 @@ opflag_t asm_determine_operand_flags(ref OPND popnd)
     // If specified 'offset' or 'segment' but no symbol
     if ((popnd.bOffset || popnd.bSeg) && !popnd.s)
     {
-        asmerr("specified 'offset' or 'segment' but no symbol");
+        error(asmstate.loc, "specified 'offset' or 'segment' but no symbol");
         return 0;
     }
 
@@ -1371,7 +1372,7 @@ code *asm_emit(Loc loc,
         {
             if (!(d && d.isDataseg()))
             {
-                asmerr("bad addr mode");
+                error(asmstate.loc, "bad addr mode");
                 return;
             }
         }
@@ -1479,7 +1480,7 @@ code *asm_emit(Loc loc,
     asmstate.statement.regs |= asm_modify_regs(ptb, opnds);
 
     if (ptb.pptb0.usFlags & _64_bit && !target.isX86_64)
-        asmerr("use -m64 to compile 64 bit instructions");
+        error(asmstate.loc, "use -m64 to compile 64 bit instructions");
 
     if (target.isX86_64 && (ptb.pptb0.usFlags & _64_bit))
     {
@@ -1567,7 +1568,7 @@ code *asm_emit(Loc loc,
                 if (pregSegment.val != usDefaultseg)
                 {
                     if (asmstate.ucItype == ITjump)
-                        asmerr("Cannot generate a segment prefix for a branching instruction");
+                        error(asmstate.loc, "Cannot generate a segment prefix for a branching instruction");
                     else
                         switch (pregSegment.val)
                         {
@@ -2092,20 +2093,6 @@ L3:
 /*******************************
  */
 
-void asmerr(const(char)* format, ...)
-{
-
-    va_list ap;
-    va_start(ap, format);
-    verrorReport(asmstate.loc, format, ap, ErrorKind.error);
-    va_end(ap);
-
-    asmstate.errors = true;
-}
-
-/*******************************
- */
-
 opflag_t asm_float_type_size(Type ptype, opflag_t *pusFloat)
 {
     *pusFloat = 0;
@@ -2174,7 +2161,7 @@ void asm_merge_opnds(ref OPND o1, ref OPND o2)
     {
         debug (debuga) printf("Invalid addr because /%.s/\n",
                               debugWhy.ptr, cast(int)debugWhy.length);
-        asmerr("cannot have two symbols in addressing mode");
+        error(asmstate.loc, "cannot have two symbols in addressing mode");
     }
 
     //printf("asm_merge_opnds()\n");
@@ -2213,7 +2200,7 @@ void asm_merge_opnds(ref OPND o1, ref OPND o2)
         size_t index = cast(int)o2.disp;
         if (index >= tup.objects.length)
         {
-            asmerr("sequence index `%llu` out of bounds `[0 .. %llu]`",
+            error(asmstate.loc, "sequence index `%llu` out of bounds `[0 .. %llu]`",
                     cast(ulong) index, cast(ulong) tup.objects.length);
         }
         else
@@ -2239,7 +2226,7 @@ void asm_merge_opnds(ref OPND o1, ref OPND o2)
                 break;
             default:
             }
-            asmerr("invalid asm operand `%s`", o1.s.toChars());
+            error(asmstate.loc, "invalid asm operand `%s`", o1.s.toChars());
         }
     }
 
@@ -2289,13 +2276,13 @@ void asm_merge_opnds(ref OPND o1, ref OPND o2)
 
     if (o1.base && o1.pregDisp1)
     {
-        asmerr("operand cannot have both %s and [%s]", o1.base.regstr.ptr, o1.pregDisp1.regstr.ptr);
+        error(asmstate.loc, "operand cannot have both %s and [%s]", o1.base.regstr.ptr, o1.pregDisp1.regstr.ptr);
         return;
     }
 
     if (o1.base && o1.disp)
     {
-        asmerr("operand cannot have both %s and 0x%llx", o1.base.regstr.ptr, o1.disp);
+        error(asmstate.loc, "operand cannot have both %s and 0x%llx", o1.base.regstr.ptr, o1.disp);
         return;
     }
 
@@ -2376,12 +2363,12 @@ void asm_merge_symbol(ref OPND o1, Dsymbol s)
 
         if (v.isThreadlocal())
         {
-            asmerr("cannot directly load TLS variable `%s`", v.toChars());
+            error(asmstate.loc, "cannot directly load TLS variable `%s`", v.toChars());
             return;
         }
         else if (v.isDataseg() && driverParams.pic != PIC.fixed)
         {
-            asmerr("cannot directly load global variable `%s` with PIC or PIE code", v.toChars());
+            error(asmstate.loc, "cannot directly load global variable `%s` with PIC or PIE code", v.toChars());
             return;
         }
     }
@@ -2396,10 +2383,10 @@ L2:
     Declaration d = s.isDeclaration();
     if (!d)
     {
-        asmerr("%s `%s` is not a declaration", s.kind(), s.toChars());
+        error(asmstate.loc, "%s `%s` is not a declaration", s.kind(), s.toChars());
     }
     else if (d.getType())
-        asmerr("cannot use type `%s` as an operand", d.getType().toChars());
+        error(asmstate.loc, "cannot use type `%s` as an operand", d.getType().toChars());
     else if (d.isTupleDeclaration())
     {
     }
@@ -2593,7 +2580,7 @@ void asm_make_modrm_byte(
             {
                 if (!target.isX86_64 && amod == _addr16)
                 {
-                    asmerr("cannot have 16 bit addressing mode in 32 bit code");
+                    error(asmstate.loc, "cannot have 16 bit addressing mode in 32 bit code");
                     return;
                 }
                 goto DATA_REF;
@@ -2654,7 +2641,7 @@ void asm_make_modrm_byte(
                 case Y(_DI):    rm = 5; break;
 
                 default:
-                    asmerr("bad 16 bit index address mode");
+                    error(asmstate.loc, "bad 16 bit index address mode");
                     return;
             }
         }
@@ -2694,7 +2681,7 @@ void asm_make_modrm_byte(
             {
                 if (opnds[0].pregDisp2.val == _ESP)
                 {
-                    asmerr("`ESP` cannot be scaled index register");
+                    error(asmstate.loc, "`ESP` cannot be scaled index register");
                     return;
                 }
             }
@@ -2703,7 +2690,7 @@ void asm_make_modrm_byte(
                 if (opnds[0].uchMultiplier &&
                     opnds[0].pregDisp1.val ==_ESP)
                 {
-                    asmerr("`ESP` cannot be scaled index register");
+                    error(asmstate.loc, "`ESP` cannot be scaled index register");
                     return;
                 }
                 bDisp = true;
@@ -2729,7 +2716,7 @@ void asm_make_modrm_byte(
                     {
                         if (opnds[0].pregDisp2.val != _EBP)
                         {
-                            asmerr("`EBP` cannot be base register");
+                            error(asmstate.loc, "`EBP` cannot be base register");
                             return;
                         }
                     }
@@ -2783,7 +2770,7 @@ void asm_make_modrm_byte(
                 case 8: sib.ss = 3; break;
 
                 default:
-                    asmerr("scale factor must be one of 0,1,2,4,8");
+                    error(asmstate.loc, "scale factor must be one of 0,1,2,4,8");
                     return;
             }
         }
@@ -2793,7 +2780,7 @@ void asm_make_modrm_byte(
 
             if (opnds[0].uchMultiplier)
             {
-                asmerr("scale factor not allowed");
+                error(asmstate.loc, "scale factor not allowed");
                 return;
             }
             switch (opnds[0].pregDisp1.val & (NUM_MASKR | NUM_MASK))
@@ -2809,7 +2796,7 @@ void asm_make_modrm_byte(
                     break;
 
                 case _ESP:
-                    asmerr("`[ESP]` addressing mode not allowed");
+                    error(asmstate.loc, "`[ESP]` addressing mode not allowed");
                     return;
 
                 default:
@@ -3459,7 +3446,7 @@ OpndSize asm_type_size(Type ptype, bool bPtr)
     {
         switch (cast(int)ptype.size())
         {
-            case 0:     asmerr("bad type/size of operands `%s`", "0 size".ptr);    break;
+            case 0:     error(asmstate.loc, "bad type/size of operands `%s`", "0 size".ptr);    break;
             case 1:     u = OpndSize._8;         break;
             case 2:     u = OpndSize._16;        break;
             case 4:     u = OpndSize._32;        break;
@@ -3505,7 +3492,7 @@ code *asm_da_parse(OP *pop)
             LabelDsymbol label = asmstate.sc.func.searchLabel(asmstate.tok.ident, asmstate.loc);
             if (!label)
             {
-                asmerr("label `%s` not found", asmstate.tok.ident.toChars());
+                error(asmstate.loc, "label `%s` not found", asmstate.tok.ident.toChars());
                 break;
             }
             else
@@ -3517,7 +3504,7 @@ code *asm_da_parse(OP *pop)
         }
         else
         {
-            asmerr("label expected as argument to DA pseudo-op"); // illegal addressing mode
+            error(asmstate.loc, "label expected as argument to DA pseudo-op"); // illegal addressing mode
             break;
         }
         asm_token();
@@ -3570,7 +3557,7 @@ code *asm_db_parse(OP *pop)
                         case 2: bytes.writeword(b); break;
                         case 4: bytes.write4(b);    break;
                         default:
-                            asmerr("floating point expected");
+                            error(asmstate.loc, "floating point expected");
                             break;
                     }
                 }
@@ -3600,7 +3587,7 @@ code *asm_db_parse(OP *pop)
                     case OPdl:
                         break;
                     default:
-                        asmerr("floating point expected");
+                        error(asmstate.loc, "floating point expected");
                 }
                 goto L2;
 
@@ -3619,7 +3606,7 @@ code *asm_db_parse(OP *pop)
                         dt.ld = asmstate.tok.floatvalue;
                         break;
                     default:
-                        asmerr("integer expected");
+                        error(asmstate.loc, "integer expected");
                 }
                 goto L2;
 
@@ -3657,7 +3644,7 @@ code *asm_db_parse(OP *pop)
                             dt.ld = e.toReal();
                             break;
                         default:
-                            asmerr("integer expected");
+                            error(asmstate.loc, "integer expected");
                     }
                     goto L2;
                 }
@@ -3682,7 +3669,7 @@ code *asm_db_parse(OP *pop)
             }
 
             default:
-                asmerr("constant initializer expected");          // constant initializer
+                error(asmstate.loc, "constant initializer expected");          // constant initializer
                 break;
         }
 
@@ -3735,11 +3722,11 @@ int asm_getnum()
             i = e.toInteger();
             v = cast(int) i;
             if (v != i)
-                asmerr("integer expected");
+                error(asmstate.loc, "integer expected");
             break;
         }
         default:
-            asmerr("integer expected");
+            error(asmstate.loc, "integer expected");
             v = 0;              // no uninitialized values
             break;
     }
@@ -3783,7 +3770,7 @@ void asm_log_or_exp(out OPND o1)
         if (asm_isint(o1) && asm_isint(o2))
             o1.disp = o1.disp || o2.disp;
         else
-            asmerr("bad integral operand");
+            error(asmstate.loc, "bad integral operand");
         o1.disp = 0;
         asm_merge_opnds(o1, o2);
     }
@@ -3803,7 +3790,7 @@ void asm_log_and_exp(out OPND o1)
         if (asm_isint(o1) && asm_isint(o2))
             o1.disp = o1.disp && o2.disp;
         else
-            asmerr("bad integral operand");
+            error(asmstate.loc, "bad integral operand");
         o2.disp = 0;
         asm_merge_opnds(o1, o2);
     }
@@ -3823,7 +3810,7 @@ void asm_inc_or_exp(out OPND o1)
         if (asm_isint(o1) && asm_isint(o2))
             o1.disp |= o2.disp;
         else
-            asmerr("bad integral operand");
+            error(asmstate.loc, "bad integral operand");
         o2.disp = 0;
         asm_merge_opnds(o1, o2);
     }
@@ -3843,7 +3830,7 @@ void asm_xor_exp(out OPND o1)
         if (asm_isint(o1) && asm_isint(o2))
             o1.disp ^= o2.disp;
         else
-            asmerr("bad integral operand");
+            error(asmstate.loc, "bad integral operand");
         o2.disp = 0;
         asm_merge_opnds(o1, o2);
     }
@@ -3863,7 +3850,7 @@ void asm_and_exp(out OPND o1)
         if (asm_isint(o1) && asm_isint(o2))
             o1.disp &= o2.disp;
         else
-            asmerr("bad integral operand");
+            error(asmstate.loc, "bad integral operand");
         o2.disp = 0;
         asm_merge_opnds(o1, o2);
     }
@@ -3887,7 +3874,7 @@ void asm_equal_exp(out OPND o1)
                 if (asm_isint(o1) && asm_isint(o2))
                     o1.disp = o1.disp == o2.disp;
                 else
-                    asmerr("bad integral operand");
+                    error(asmstate.loc, "bad integral operand");
                 o2.disp = 0;
                 asm_merge_opnds(o1, o2);
                 break;
@@ -3901,7 +3888,7 @@ void asm_equal_exp(out OPND o1)
                 if (asm_isint(o1) && asm_isint(o2))
                     o1.disp = o1.disp != o2.disp;
                 else
-                    asmerr("bad integral operand");
+                    error(asmstate.loc, "bad integral operand");
                 o2.disp = 0;
                 asm_merge_opnds(o1, o2);
                 break;
@@ -3952,7 +3939,7 @@ void asm_rel_exp(out OPND o1)
                     }
                 }
                 else
-                    asmerr("bad integral operand");
+                    error(asmstate.loc, "bad integral operand");
                 o2.disp = 0;
                 asm_merge_opnds(o1, o2);
                 break;
@@ -3985,7 +3972,7 @@ void asm_shift_exp(out OPND o1)
                 o1.disp >>= o2.disp;
         }
         else
-            asmerr("bad integral operand");
+            error(asmstate.loc, "bad integral operand");
         o2.disp = 0;
         asm_merge_opnds(o1, o2);
     }
@@ -4016,7 +4003,7 @@ void asm_add_exp(out OPND o1)
                 OPND o2;
                 asm_mul_exp(o2);
                 if (o2.base || o2.pregDisp1 || o2.pregDisp2)
-                    asmerr("cannot subtract register");
+                    error(asmstate.loc, "cannot subtract register");
                 if (asm_isint(o1) && asm_isint(o2))
                 {
                     o1.disp -= o2.disp;
@@ -4071,7 +4058,7 @@ void asm_mul_exp(out OPND o1)
                 else if (asm_isint(o1) && asm_isint(o2))
                     o1.disp *= o2.disp;
                 else
-                    asmerr("bad operand");
+                    error(asmstate.loc, "bad operand");
                 o2.disp = 0;
                 asm_merge_opnds(o1, o2);
                 break;
@@ -4085,7 +4072,7 @@ void asm_mul_exp(out OPND o1)
                 if (asm_isint(o1) && asm_isint(o2))
                     o1.disp /= o2.disp;
                 else
-                    asmerr("bad integral operand");
+                    error(asmstate.loc, "bad integral operand");
                 o2.disp = 0;
                 asm_merge_opnds(o1, o2);
                 break;
@@ -4099,7 +4086,7 @@ void asm_mul_exp(out OPND o1)
                 if (asm_isint(o1) && asm_isint(o2))
                     o1.disp %= o2.disp;
                 else
-                    asmerr("bad integral operand");
+                    error(asmstate.loc, "bad integral operand");
                 o2.disp = 0;
                 asm_merge_opnds(o1, o2);
                 break;
@@ -4170,7 +4157,7 @@ void asm_una_exp(ref OPND o1)
             }
             else
             {
-                asmerr("property of basic type `%s` expected", ptype.toChars());
+                error(asmstate.loc, "property of basic type `%s` expected", ptype.toChars());
             }
             asm_token();
             return;
@@ -4204,7 +4191,7 @@ void asm_una_exp(ref OPND o1)
             asm_token();
             asm_una_exp(o1);
             if (o1.base || o1.pregDisp1 || o1.pregDisp2)
-                asmerr("cannot negate register");
+                error(asmstate.loc, "cannot negate register");
             if (asm_isint(o1))
                 o1.disp = -o1.disp;
             break;
@@ -4254,7 +4241,7 @@ version (none)
             // Check for offset keyword
             if (asmstate.tok.ident == Id.offset)
             {
-                asmerr("use offsetof instead of offset");
+                error(asmstate.loc, "use offsetof instead of offset");
                 goto Loffset;
             }
             if (asmstate.tok.ident == Id.offsetof)
@@ -4370,7 +4357,7 @@ void asm_primary_exp(out OPND o1)
                     if (regp.val == _RIP)
                         o1.bRIP = true;
                     else if (o1.pregDisp1)
-                        asmerr("bad operand");
+                        error(asmstate.loc, "bad operand");
                     else
                         o1.pregDisp1 = regp;
                 }
@@ -4379,7 +4366,7 @@ void asm_primary_exp(out OPND o1)
                     if (o1.base == null)
                         o1.base = regp;
                     else
-                        asmerr("bad operand");
+                        error(asmstate.loc, "bad operand");
                 }
                 break;
             }
@@ -4395,7 +4382,7 @@ void asm_primary_exp(out OPND o1)
                     {
                         uint n = cast(uint)asmstate.tok.unsvalue;
                         if (n > 7)
-                            asmerr("bad operand");
+                            error(asmstate.loc, "bad operand");
                         else
                             o1.base = &(aregFp[n]);
                     }
@@ -4444,7 +4431,7 @@ void asm_primary_exp(out OPND o1)
                         }
                         else
                         {
-                            asmerr("identifier expected");
+                            error(asmstate.loc, "identifier expected");
                             break;
                         }
                     }
@@ -4528,7 +4515,7 @@ void asm_primary_exp(out OPND o1)
             break;
 
          default:
-            asmerr("expression expected not `%s`", asmstate.tok ? asmstate.tok.toChars() : ";");
+            error(asmstate.loc, "expression expected not `%s`", asmstate.tok ? asmstate.tok.toChars() : ";");
             break;
     }
 }
@@ -4573,7 +4560,7 @@ TOK tryExpressionToOperand(Expression e, out OPND o1, out Dsymbol s)
             return TOK.const_;
         }
     }
-    asmerr("bad type/size of operands `%s`", e.toChars());
+    error(asmstate.loc, "bad type/size of operands `%s`", e.toChars());
     return TOK.error;
 }
 
