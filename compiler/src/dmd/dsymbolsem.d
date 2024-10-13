@@ -7476,6 +7476,7 @@ private extern(C++) class NewScopeVisitor : Visitor
     }
 }
 
+
 extern(C++) Dsymbols* include(Dsymbol d, Scope* sc)
 {
     scope icv = new IncludeVisitor(sc);
@@ -7491,15 +7492,16 @@ extern(C++) class IncludeVisitor : Visitor
     this(Scope* sc)
     {
         this.sc = sc;
-        this.symbols = new Dsymbols();
+        this.symbols = symbols;
     }
 
     override void visit(AttribDeclaration ad)
     {
         if (ad.errors)
+        {
             symbols = null;
             return;
-
+        }
         symbols = ad.decl;
         return;
     }
@@ -7510,9 +7512,10 @@ extern(C++) class IncludeVisitor : Visitor
         //printf("ConditionalDeclaration::include(sc = %p) scope = %p\n", sc, _scope);
 
         if (cdc.errors)
+        {
             symbols = null;
             return;
-
+        }
         assert(cdc.condition);
         symbols = cdc.condition.include(cdc._scope ? cdc._scope : sc) ? cdc.decl : cdc.elsedecl;
     }
@@ -7525,8 +7528,10 @@ extern(C++) class IncludeVisitor : Visitor
      */
         //printf("StaticIfDeclaration::include(sc = %p) scope = %p\n", sc, _scope);
         if (sif.errors || sif.onStack)
+        {
             symbols = null;
             return;
+        }
         sif.onStack = true;
         scope(exit) sif.onStack = false;
 
