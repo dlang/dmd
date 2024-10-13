@@ -3708,7 +3708,7 @@ struct ASTBase
                 {
                     Expression e = (*exps)[i];
                     if (e.type.ty == Ttuple)
-                        e.error("cannot form sequence of sequences");
+                        error(e.loc, "cannot form sequence of sequences");
                     auto arg = new Parameter(e.loc, STC.undefined_, e.type, null, null, null);
                     (*arguments)[i] = arg;
                 }
@@ -4563,17 +4563,6 @@ struct ASTBase
             return copy();
         }
 
-        final void error(const(char)* format, ...) const
-        {
-            if (type != Type.terror)
-            {
-                va_list ap;
-                va_start(ap, format);
-                verrorReport(loc, format, ap, ErrorKind.error);
-                va_end(ap);
-            }
-        }
-
         final Expression copy()
         {
             Expression e;
@@ -4741,7 +4730,7 @@ struct ASTBase
             if (!type.isScalar())
             {
                 if (type.ty != Terror)
-                    error("integral constant must be scalar type, not %s", type.toChars());
+                    error(loc, "integral constant must be scalar type, not %s", type.toChars());
                 type = Type.terror;
             }
             this.type = type;
@@ -5363,7 +5352,7 @@ struct ASTBase
                         this.exps.push(e);
                         break;
                     default:
-                        error("%s is not an expression", o.toChars());
+                        error(loc, "%s is not an expression", o.toChars());
                         break;
                     }
                 }
