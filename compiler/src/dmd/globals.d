@@ -383,7 +383,15 @@ extern (C++) struct Global
         {
             compileEnv.vendor = "GNU D";
         }
-        compileEnv.versionNumber = parseVersionNumber(_version);
+        else version (IN_LLVM)
+        {
+            compileEnv.vendor = "LDC";
+
+            import dmd.console : detectTerminal;
+            params.v.color = detectTerminal();
+        }
+
+        compileEnv.versionNumber = parseVersionNumber(versionString());
 
         /* Initialize date, time, and timestamp
          */
