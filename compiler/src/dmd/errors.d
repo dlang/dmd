@@ -488,7 +488,7 @@ extern (C++) void verrorReport(const SourceLoc loc, const(char)* format, va_list
             }
             global.gaggedErrors++;
         }
-        break;
+        return;
 
     case ErrorKind.deprecation:
         if (global.params.useDeprecated == DiagnosticReporting.error)
@@ -509,7 +509,7 @@ extern (C++) void verrorReport(const SourceLoc loc, const(char)* format, va_list
                 global.gaggedWarnings++;
             }
         }
-        break;
+        return;
 
     case ErrorKind.warning:
         if (global.params.useWarnings != DiagnosticReporting.off)
@@ -526,7 +526,7 @@ extern (C++) void verrorReport(const SourceLoc loc, const(char)* format, va_list
                 global.gaggedWarnings++;
             }
         }
-        break;
+        return;
 
     case ErrorKind.tip:
         if (!global.gag)
@@ -534,7 +534,7 @@ extern (C++) void verrorReport(const SourceLoc loc, const(char)* format, va_list
             info.headerColor = Classification.tip;
             verrorPrint(format, ap, info);
         }
-        break;
+        return;
 
     case ErrorKind.message:
         OutBuffer tmp;
@@ -547,7 +547,7 @@ extern (C++) void verrorReport(const SourceLoc loc, const(char)* format, va_list
         fputs(tmp.peekChars(), stdout);
         fputc('\n', stdout);
         fflush(stdout);     // ensure it gets written out in case of compiler aborts
-        break;
+        return;
     }
 }
 
@@ -584,7 +584,7 @@ extern (C++) void verrorReportSupplemental(const SourceLoc loc, const(char)* for
         else
             info.headerColor = Classification.error;
         verrorPrint(format, ap, info);
-        break;
+        return;
 
     case ErrorKind.deprecation:
         if (global.params.useDeprecated == DiagnosticReporting.error)
@@ -597,7 +597,7 @@ extern (C++) void verrorReportSupplemental(const SourceLoc loc, const(char)* for
                 verrorPrint(format, ap, info);
             }
         }
-        break;
+        return;
 
     case ErrorKind.warning:
         if (global.params.useWarnings != DiagnosticReporting.off && !global.gag)
@@ -605,7 +605,7 @@ extern (C++) void verrorReportSupplemental(const SourceLoc loc, const(char)* for
             info.headerColor = Classification.warning;
             verrorPrint(format, ap, info);
         }
-        break;
+        return;
 
     default:
         assert(false, "internal error: unhandled kind in error report");
