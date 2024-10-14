@@ -3825,59 +3825,55 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
                 pe = new DsymbolExp(loc, s);
             returnExp(new ArrayExp(loc, pe, mt.dim));
         }
-        else if (ps)
-        {
-            Dsymbol s = ps;
-            if (auto tup = s.isTupleDeclaration())
-            {
-                mt.dim = semanticLength(sc, tup, mt.dim);
-                mt.dim = mt.dim.ctfeInterpret();
-                if (mt.dim.op == EXP.error)
-                    return returnError();
-
-                const d = mt.dim.toUInteger();
-                if (d >= tup.objects.length)
-                {
-                    error(loc, "sequence index `%llu` out of bounds `[0 .. %llu]`", d, cast(ulong) tup.objects.length);
-                    return returnError();
-                }
-
-                RootObject o = (*tup.objects)[cast(size_t)d];
-                switch (o.dyncast()) with (DYNCAST)
-                {
-                case dsymbol:
-                    return returnSymbol(cast(Dsymbol)o);
-                case expression:
-                    Expression e = cast(Expression)o;
-                    if (e.op == EXP.dSymbol)
-                        return returnSymbol(e.isDsymbolExp().s);
-                    else
-                        return returnExp(e);
-                case type:
-                    return returnType((cast(Type)o).addMod(mt.mod));
-                default:
-                    break;
-                }
-
-                /* Create a new TupleDeclaration which
-                 * is a slice [d..d+1] out of the old one.
-                 * Do it this way because TemplateInstance::semanticTiargs()
-                 * can handle unresolved Objects this way.
-                 */
-                auto objects = new Objects(1);
-                (*objects)[0] = o;
-                return returnSymbol(new TupleDeclaration(loc, tup.ident, objects));
-            }
-            else
-                return visitType(mt);
-        }
-        else
+        else if (!ps)
         {
             if (pt.ty != Terror)
                 mt.next = pt; // prevent re-running semantic() on 'next'
-            visitType(mt);
+            return visitType(mt);
         }
 
+        Dsymbol s = ps;
+        auto tup = s.isTupleDeclaration();
+        if (!tup)
+            return visitType(mt);
+
+        mt.dim = semanticLength(sc, tup, mt.dim);
+        mt.dim = mt.dim.ctfeInterpret();
+        if (mt.dim.op == EXP.error)
+            return returnError();
+
+        const d = mt.dim.toUInteger();
+        if (d >= tup.objects.length)
+        {
+            error(loc, "sequence index `%llu` out of bounds `[0 .. %llu]`", d, cast(ulong) tup.objects.length);
+            return returnError();
+        }
+
+        RootObject o = (*tup.objects)[cast(size_t)d];
+        switch (o.dyncast()) with (DYNCAST)
+        {
+        case dsymbol:
+            return returnSymbol(cast(Dsymbol)o);
+        case expression:
+            Expression e = cast(Expression)o;
+            if (e.op == EXP.dSymbol)
+                return returnSymbol(e.isDsymbolExp().s);
+            else
+                return returnExp(e);
+        case type:
+            return returnType((cast(Type)o).addMod(mt.mod));
+        default:
+            break;
+        }
+
+        /* Create a new TupleDeclaration which
+         * is a slice [d..d+1] out of the old one.
+         * Do it this way because TemplateInstance::semanticTiargs()
+         * can handle unresolved Objects this way.
+         */
+        auto objects = new Objects(1);
+        (*objects)[0] = o;
+        return returnSymbol(new TupleDeclaration(loc, tup.ident, objects));
     }
 
     void visitDArray(TypeDArray mt)
@@ -3914,26 +3910,25 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
         //printf("TypeAArray::resolve() %s\n", mt.toChars());
         // Deal with the case where we thought the index was a type, but
         // in reality it was an expression.
-        if (mt.index.ty == Tident || mt.index.ty == Tinstance || mt.index.ty == Tsarray)
+        if (mt.index.ty != Tident && mt.index.ty != Tinstance && mt.index.ty != Tsarray)
+            return visitType(mt);
+
+        Expression e;
+        Type t;
+        Dsymbol s;
+        mt.index.resolve(loc, sc, e, t, s, intypeid);
+        if (e)
         {
-            Expression e;
-            Type t;
-            Dsymbol s;
-            mt.index.resolve(loc, sc, e, t, s, intypeid);
-            if (e)
-            {
-                // It was an expression -
-                // Rewrite as a static array
-                auto tsa = new TypeSArray(mt.next, e);
-                tsa.mod = mt.mod; // just copy mod field so tsa's semantic is not yet done
-                return tsa.resolve(loc, sc, pe, pt, ps, intypeid);
-            }
-            else if (t)
-                mt.index = t;
-            else
-                .error(loc, "index is not a type or an expression");
+            // It was an expression -
+            // Rewrite as a static array
+            auto tsa = new TypeSArray(mt.next, e);
+            tsa.mod = mt.mod; // just copy mod field so tsa's semantic is not yet done
+            return tsa.resolve(loc, sc, pe, pt, ps, intypeid);
         }
-        visitType(mt);
+        else if (t)
+            mt.index = t;
+        else
+            .error(loc, "index is not a type or an expression");
     }
 
     /*************************************
@@ -4190,58 +4185,54 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
                 pe = new DsymbolExp(loc, s);
             return returnExp(new ArrayExp(loc, pe, new IntervalExp(loc, mt.lwr, mt.upr)));
         }
-        else if (ps)
-        {
-            Dsymbol s = ps;
-            TupleDeclaration td = s.isTupleDeclaration();
-            if (td)
-            {
-                /* It's a slice of a TupleDeclaration
-                 */
-                ScopeDsymbol sym = new ArrayScopeSymbol(sc, td);
-                sym.parent = sc.scopesym;
-                sc = sc.push(sym);
-                sc = sc.startCTFE();
-                mt.lwr = mt.lwr.expressionSemantic(sc);
-                mt.upr = mt.upr.expressionSemantic(sc);
-                sc = sc.endCTFE();
-                sc = sc.pop();
-
-                mt.lwr = mt.lwr.ctfeInterpret();
-                mt.upr = mt.upr.ctfeInterpret();
-                const i1 = mt.lwr.toUInteger();
-                const i2 = mt.upr.toUInteger();
-                if (!(i1 <= i2 && i2 <= td.objects.length))
-                {
-                    error(loc, "slice `[%llu..%llu]` is out of range of [0..%llu]", i1, i2, cast(ulong) td.objects.length);
-                    return returnError();
-                }
-
-                if (i1 == 0 && i2 == td.objects.length)
-                {
-                    return returnSymbol(td);
-                }
-
-                /* Create a new TupleDeclaration which
-                 * is a slice [i1..i2] out of the old one.
-                 */
-                auto objects = new Objects(cast(size_t)(i2 - i1));
-                for (size_t i = 0; i < objects.length; i++)
-                {
-                    (*objects)[i] = (*td.objects)[cast(size_t)i1 + i];
-                }
-
-                return returnSymbol(new TupleDeclaration(loc, td.ident, objects));
-            }
-            else
-                visitType(mt);
-        }
-        else
+        else if (!ps)
         {
             if (pt.ty != Terror)
                 mt.next = pt; // prevent re-running semantic() on 'next'
-            visitType(mt);
+            return visitType(mt);
         }
+
+        Dsymbol s = ps;
+        TupleDeclaration td = s.isTupleDeclaration();
+        if (!td)
+            return visitType(mt);
+
+        /* It's a slice of a TupleDeclaration
+         */
+        ScopeDsymbol sym = new ArrayScopeSymbol(sc, td);
+        sym.parent = sc.scopesym;
+        sc = sc.push(sym);
+        sc = sc.startCTFE();
+        mt.lwr = mt.lwr.expressionSemantic(sc);
+        mt.upr = mt.upr.expressionSemantic(sc);
+        sc = sc.endCTFE();
+        sc = sc.pop();
+
+        mt.lwr = mt.lwr.ctfeInterpret();
+        mt.upr = mt.upr.ctfeInterpret();
+        const i1 = mt.lwr.toUInteger();
+        const i2 = mt.upr.toUInteger();
+        if (!(i1 <= i2 && i2 <= td.objects.length))
+        {
+            error(loc, "slice `[%llu..%llu]` is out of range of [0..%llu]", i1, i2, cast(ulong) td.objects.length);
+            return returnError();
+        }
+
+        if (i1 == 0 && i2 == td.objects.length)
+        {
+            return returnSymbol(td);
+        }
+
+        /* Create a new TupleDeclaration which
+         * is a slice [i1..i2] out of the old one.
+         */
+        auto objects = new Objects(cast(size_t)(i2 - i1));
+        for (size_t i = 0; i < objects.length; i++)
+        {
+            (*objects)[i] = (*td.objects)[cast(size_t)i1 + i];
+        }
+
+        return returnSymbol(new TupleDeclaration(loc, td.ident, objects));
     }
 
     void visitMixin(TypeMixin mt)
@@ -4768,28 +4759,24 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
         {
             printf("TypeAArray::dotExp(e = '%s', ident = '%s')\n", e.toChars(), ident.toChars());
         }
-        if (ident == Id.length)
-        {
-            __gshared FuncDeclaration fd_aaLen = null;
-            if (fd_aaLen is null)
-            {
-                auto fparams = new Parameters();
-                fparams.push(new Parameter(Loc.initial, STC.const_ | STC.scope_, mt, null, null, null));
-                fd_aaLen = FuncDeclaration.genCfunc(fparams, Type.tsize_t, Id.aaLen);
-                TypeFunction tf = fd_aaLen.type.toTypeFunction();
-                tf.purity = PURE.const_;
-                tf.isNothrow = true;
-                tf.isNogc = false;
-            }
-            Expression ev = new VarExp(e.loc, fd_aaLen, false);
-            e = new CallExp(e.loc, ev, e);
-            e.type = fd_aaLen.type.toTypeFunction().next;
-            return e;
-        }
-        else
-        {
+        if (ident != Id.length)
             return visitType(mt);
+
+        __gshared FuncDeclaration fd_aaLen = null;
+        if (fd_aaLen is null)
+        {
+            auto fparams = new Parameters();
+            fparams.push(new Parameter(Loc.initial, STC.const_ | STC.scope_, mt, null, null, null));
+            fd_aaLen = FuncDeclaration.genCfunc(fparams, Type.tsize_t, Id.aaLen);
+            TypeFunction tf = fd_aaLen.type.toTypeFunction();
+            tf.purity = PURE.const_;
+            tf.isNothrow = true;
+            tf.isNogc = false;
         }
+        Expression ev = new VarExp(e.loc, fd_aaLen, false);
+        e = new CallExp(e.loc, ev, e);
+        e.type = fd_aaLen.type.toTypeFunction().next;
+        return e;
     }
 
     Expression visitReference(TypeReference mt)
@@ -4870,95 +4857,96 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
         if (// https://issues.dlang.org/show_bug.cgi?id=22054
             // if a class or struct does not have a body
             // there is no point in searching for its members
-            sym.members &&
-            ident != Id.__sizeof &&
-            ident != Id.__xalignof &&
-            ident != Id._init &&
-            ident != Id._mangleof &&
-            ident != Id.stringof &&
-            ident != Id.offsetof &&
-            ident != Id.bitoffsetof &&
-            ident != Id.bitwidth &&
+            sym.members ||
+            ident == Id.__sizeof ||
+            ident == Id.__xalignof ||
+            ident == Id._init ||
+            ident == Id._mangleof ||
+            ident == Id.stringof ||
+            ident == Id.offsetof ||
+            ident == Id.bitoffsetof ||
+            ident == Id.bitwidth ||
             // https://issues.dlang.org/show_bug.cgi?id=15045
             // Don't forward special built-in member functions.
-            ident != Id.ctor &&
-            ident != Id.dtor &&
-            ident != Id.__xdtor &&
-            ident != Id.postblit &&
-            ident != Id.__xpostblit)
+            ident == Id.ctor ||
+            ident == Id.dtor ||
+            ident == Id.__xdtor ||
+            ident == Id.postblit ||
+            ident == Id.__xpostblit)
         {
-            /* Look for overloaded opDot() to see if we should forward request
-             * to it.
+            return returnExp(visitType(mt));
+        }
+        /* Look for overloaded opDot() to see if we should forward request
+         * to it.
+         */
+        if (auto fd = search_function(sym, Id.opDot))
+        {
+            /* Rewrite e.ident as:
+             *  e.opDot().ident
              */
-            if (auto fd = search_function(sym, Id.opDot))
+            e = build_overload(e.loc, sc, e, null, fd);
+            // @@@DEPRECATED_2.110@@@.
+            // Deprecated in 2.082, made an error in 2.100.
+            error(e.loc, "`opDot` is obsolete. Use `alias this`");
+            return ErrorExp.get();
+        }
+
+        /* Look for overloaded opDispatch to see if we should forward request
+         * to it.
+         */
+        if (auto fd = search_function(sym, Id.opDispatch))
+        {
+            /* Rewrite e.ident as:
+             *  e.opDispatch!("ident")
+             */
+            TemplateDeclaration td = fd.isTemplateDeclaration();
+            if (!td)
             {
-                /* Rewrite e.ident as:
-                 *  e.opDot().ident
-                 */
-                e = build_overload(e.loc, sc, e, null, fd);
-                // @@@DEPRECATED_2.110@@@.
-                // Deprecated in 2.082, made an error in 2.100.
-                error(e.loc, "`opDot` is obsolete. Use `alias this`");
-                return ErrorExp.get();
+                .error(fd.loc, "%s `%s` must be a template `opDispatch(string s)`, not a %s", fd.kind, fd.toPrettyChars, fd.kind());
+                return returnExp(ErrorExp.get());
+            }
+            auto se = new StringExp(e.loc, ident.toString());
+            auto tiargs = new Objects();
+            tiargs.push(se);
+            auto dti = new DotTemplateInstanceExp(e.loc, e, Id.opDispatch, tiargs);
+            dti.ti.tempdecl = td;
+            /* opDispatch, which doesn't need IFTI,  may occur instantiate error.
+             * e.g.
+             *  template opDispatch(name) if (isValid!name) { ... }
+             */
+            uint errors = gagError ? global.startGagging() : 0;
+            e = dti.dotTemplateSemanticProp(sc, DotExpFlag.none);
+            if (gagError && global.endGagging(errors))
+                e = null;
+            return returnExp(e);
+        }
+
+        /* See if we should forward to the alias this.
+         */
+        auto alias_e = flag & DotExpFlag.noAliasThis ? null
+                                                     : resolveAliasThis(sc, e, gagError);
+        if (alias_e && alias_e != e)
+        {
+            /* Rewrite e.ident as:
+             *  e.aliasthis.ident
+             */
+            auto die = new DotIdExp(e.loc, alias_e, ident);
+
+            auto errors = gagError ? 0 : global.startGagging();
+            auto exp = die.dotIdSemanticProp(sc, gagError);
+            if (!gagError)
+            {
+                global.endGagging(errors);
+                if (exp && exp.op == EXP.error)
+                    exp = null;
             }
 
-            /* Look for overloaded opDispatch to see if we should forward request
-             * to it.
-             */
-            if (auto fd = search_function(sym, Id.opDispatch))
-            {
-                /* Rewrite e.ident as:
-                 *  e.opDispatch!("ident")
-                 */
-                TemplateDeclaration td = fd.isTemplateDeclaration();
-                if (!td)
-                {
-                    .error(fd.loc, "%s `%s` must be a template `opDispatch(string s)`, not a %s", fd.kind, fd.toPrettyChars, fd.kind());
-                    return returnExp(ErrorExp.get());
-                }
-                auto se = new StringExp(e.loc, ident.toString());
-                auto tiargs = new Objects();
-                tiargs.push(se);
-                auto dti = new DotTemplateInstanceExp(e.loc, e, Id.opDispatch, tiargs);
-                dti.ti.tempdecl = td;
-                /* opDispatch, which doesn't need IFTI,  may occur instantiate error.
-                 * e.g.
-                 *  template opDispatch(name) if (isValid!name) { ... }
-                 */
-                uint errors = gagError ? global.startGagging() : 0;
-                e = dti.dotTemplateSemanticProp(sc, DotExpFlag.none);
-                if (gagError && global.endGagging(errors))
-                    e = null;
-                return returnExp(e);
-            }
+            if (exp && gagError)
+                // now that we know that the alias this leads somewhere useful,
+                // go back and print deprecations/warnings that we skipped earlier due to the gag
+                resolveAliasThis(sc, e, false);
 
-            /* See if we should forward to the alias this.
-             */
-            auto alias_e = flag & DotExpFlag.noAliasThis ? null
-                                                         : resolveAliasThis(sc, e, gagError);
-            if (alias_e && alias_e != e)
-            {
-                /* Rewrite e.ident as:
-                 *  e.aliasthis.ident
-                 */
-                auto die = new DotIdExp(e.loc, alias_e, ident);
-
-                auto errors = gagError ? 0 : global.startGagging();
-                auto exp = die.dotIdSemanticProp(sc, gagError);
-                if (!gagError)
-                {
-                    global.endGagging(errors);
-                    if (exp && exp.op == EXP.error)
-                        exp = null;
-                }
-
-                if (exp && gagError)
-                    // now that we know that the alias this leads somewhere useful,
-                    // go back and print deprecations/warnings that we skipped earlier due to the gag
-                    resolveAliasThis(sc, e, false);
-
-                return returnExp(exp);
-            }
+            return returnExp(exp);
         }
         return returnExp(visitType(mt));
     }
@@ -5208,38 +5196,38 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             mt.sym.dsymbolSemantic(null);
 
         Dsymbol s = mt.sym.search(e.loc, ident);
-        if (!s)
+        if (s)
         {
-            if (ident == Id._init)
-            {
-                return mt.getProperty(sc, e.loc, ident, flag & 1);
-            }
-
-            /* Allow special enums to not need a member list
-             */
-            if ((ident == Id.max || ident == Id.min) && (mt.sym.members || !mt.sym.isSpecial()))
-            {
-                return mt.getProperty(sc, e.loc, ident, flag & 1);
-            }
-
-            Expression res = mt.sym.getMemtype(Loc.initial).dotExp(sc, e, ident, DotExpFlag.gag);
-            if (!(flag & 1) && !res)
-            {
-                if (auto ns = mt.sym.search_correct(ident))
-                    error(e.loc, "no property `%s` for type `%s`. Did you mean `%s.%s` ?", ident.toChars(), mt.toChars(), mt.toChars(),
-                        ns.toChars());
-                else
-                    error(e.loc, "no property `%s` for type `%s`", ident.toChars(),
-                        mt.toChars());
-
-                errorSupplemental(mt.sym.loc, "%s `%s` defined here",
-                    mt.sym.kind, mt.toChars());
-                return ErrorExp.get();
-            }
-            return res;
+            EnumMember m = s.isEnumMember();
+            return m.getVarExp(e.loc, sc);
         }
-        EnumMember m = s.isEnumMember();
-        return m.getVarExp(e.loc, sc);
+        if (ident == Id._init)
+        {
+            return mt.getProperty(sc, e.loc, ident, flag & 1);
+        }
+
+        /* Allow special enums to not need a member list
+         */
+        if ((ident == Id.max || ident == Id.min) && (mt.sym.members || !mt.sym.isSpecial()))
+        {
+            return mt.getProperty(sc, e.loc, ident, flag & 1);
+        }
+
+        Expression res = mt.sym.getMemtype(Loc.initial).dotExp(sc, e, ident, DotExpFlag.gag);
+        if (!(flag & 1) && !res)
+        {
+            if (auto ns = mt.sym.search_correct(ident))
+                error(e.loc, "no property `%s` for type `%s`. Did you mean `%s.%s` ?", ident.toChars(), mt.toChars(), mt.toChars(),
+                    ns.toChars());
+            else
+                error(e.loc, "no property `%s` for type `%s`", ident.toChars(),
+                    mt.toChars());
+
+            errorSupplemental(mt.sym.loc, "%s `%s` defined here",
+                mt.sym.kind, mt.toChars());
+            return ErrorExp.get();
+        }
+        return res;
     }
 
     Expression visitClass(TypeClass mt)
