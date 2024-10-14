@@ -681,6 +681,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 return false;
             }
         }
+        else if (arg == "--sarif") // Custom SARIF flag handling
+        {
+            global.params.sarifEnabled = true; // Set SARIF flag
+        }
         else if (startsWith(p + 1, "check")) // https://dlang.org/dmd.html#switch-check
         {
             enum len = "-check=".length;
