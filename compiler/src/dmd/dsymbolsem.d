@@ -7518,6 +7518,7 @@ extern(C++) class IncludeVisitor : Visitor
         }
         assert(cdc.condition);
         symbols = cdc.condition.include(cdc._scope ? cdc._scope : sc) ? cdc.decl : cdc.elsedecl;
+        return;
     }
 
     override void visit(StaticIfDeclaration sif)
@@ -7550,6 +7551,8 @@ extern(C++) class IncludeVisitor : Visitor
 
                 sif.addisdone = true;
             }
+            symbols = d;
+            return;
         }
         else
         {
