@@ -512,13 +512,13 @@ extern (C++) void verrorReport(const SourceLoc loc, const(char)* format, va_list
         break;
 
     case ErrorKind.warning:
-        if (global.params.warnings != DiagnosticReporting.off)
+        if (global.params.useWarnings != DiagnosticReporting.off)
         {
             if (!global.gag)
             {
                 info.headerColor = Classification.warning;
                 verrorPrint(format, ap, info);
-                if (global.params.warnings == DiagnosticReporting.error)
+                if (global.params.useWarnings == DiagnosticReporting.error)
                     global.warnings++;
             }
             else
@@ -600,7 +600,7 @@ extern (C++) void verrorReportSupplemental(const SourceLoc loc, const(char)* for
         break;
 
     case ErrorKind.warning:
-        if (global.params.warnings != DiagnosticReporting.off && !global.gag)
+        if (global.params.useWarnings != DiagnosticReporting.off && !global.gag)
         {
             info.headerColor = Classification.warning;
             verrorPrint(format, ap, info);

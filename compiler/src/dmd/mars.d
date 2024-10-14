@@ -1242,9 +1242,9 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
         }
         else if (arg == "-w")   // https://dlang.org/dmd.html#switch-w
-            params.warnings = DiagnosticReporting.error;
+            params.useWarnings = DiagnosticReporting.error;
         else if (arg == "-wi")  // https://dlang.org/dmd.html#switch-wi
-            params.warnings = DiagnosticReporting.inform;
+            params.useWarnings = DiagnosticReporting.inform;
         else if (arg == "-wo")  // https://dlang.org/dmd.html#switch-wo
         {
             // Obsolete features has been obsoleted until a DIP for "editions"

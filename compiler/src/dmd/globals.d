@@ -157,7 +157,7 @@ extern (C++) struct Param
     bool useInline = false;     // inline expand functions
     bool release;           // build release version
     bool preservePaths;     // true means don't strip path from source file
-    DiagnosticReporting warnings = DiagnosticReporting.off;  // how compiler warnings are handled
+    DiagnosticReporting useWarnings = DiagnosticReporting.off;  // how compiler warnings are handled
     bool cov;               // generate code coverage data
     ubyte covPercent;       // 0..100 code coverage percentage required
     bool ctfe_cov = false;  // generate coverage data for ctfe
