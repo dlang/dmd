@@ -1728,7 +1728,6 @@ L1:
             case OPconst:
                 if (gmatch2 & 1)
                     break;
-            Lagain:
                 switch (tybasic(tym))
                 {
                     case TYshort:
@@ -2376,7 +2375,6 @@ void elem_print_const(const elem* e)
 {
     assert(e.Eoper == OPconst);
     tym_t tym = tybasic(typemask(e));
-case_tym:
     switch (tym)
     {   case TYbool:
         case TYchar:
