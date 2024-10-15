@@ -68,7 +68,6 @@ static if (1)
     import dmd.backend.dlist;
     import dmd.backend.el;
     import dmd.backend.elfobj : addSegmentToComdat;
-    import dmd.backend.filespec;
     import dmd.backend.machobj : getsegment2;
     import dmd.backend.global;
     import dmd.backend.obj;
@@ -3233,4 +3232,37 @@ else
     void dwarf_CFA_set_reg_offset(int reg, int offset) { }
     void dwarf_CFA_offset(int reg, int offset) { }
     void dwarf_except_gentables(Funcsym *sfunc, uint startoffset, uint retoffset) { }
+}
+
+version (Windows)
+{
+    private enum DIRCHAR = '\\';
+
+    private bool ispathdelim(char c) nothrow { return c == DIRCHAR || c == ':' || c == '/'; }
+}
+else
+{
+    private enum DIRCHAR = '/';
+
+    private bool ispathdelim(char c) nothrow { return c == DIRCHAR; }
+}
+
+/**********************
+ * Returns: string that is the filename plus dot and extension.
+ * The string returned is NOT mem_malloc'ed.
+ */
+@trusted
+private char* filespecname(const(char)* filespec) nothrow
+{
+    const(char)* p;
+
+    /* Start at end of string and back up till we find the beginning
+     * of the filename or a path
+     */
+    for (p = filespec + strlen(filespec);
+         p != filespec && !ispathdelim(*(p - 1));
+         p--
+        )
+    { }
+    return cast(char *)p;
 }
