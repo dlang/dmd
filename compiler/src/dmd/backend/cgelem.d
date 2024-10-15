@@ -6185,7 +6185,6 @@ beg:
 elem *doptelem(elem *e, Goal goal)
 {
     //printf("doptelem(e = %p, goal = x%x)\n", e, goal);
-    assert(!PARSER);
     do
     {   again = false;
         topair = false;

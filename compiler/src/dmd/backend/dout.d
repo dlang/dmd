@@ -969,7 +969,6 @@ private void writefunc2(Symbol *sfunc, ref GlobalOptimizer go)
         }
         assert(b != b.Bnext);
     }
-    PARSER = 0;
     if (eecontext.EEelem)
     {
         const marksi = globsym.length;
