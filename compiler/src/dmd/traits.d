@@ -1746,7 +1746,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         foreach (o; *e.args)
         {
-            uint errors = global.startGagging();
+            const errors = global.startGagging();
             Scope* sc2 = sc.push();
             sc2.tinst = null;
             sc2.minst = null;   // this is why code for these are not emitted to object file

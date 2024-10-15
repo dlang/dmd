@@ -5856,7 +5856,7 @@ MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, Templ
             /* If a function is really property-like, and then
              * it's CTFEable, ei will be a literal expression.
              */
-            uint olderrors = global.startGagging();
+            const olderrors = global.startGagging();
             ei = resolveProperties(sc, ei);
             ei = ei.ctfeInterpret();
             if (global.endGagging(olderrors) || ei.op == EXP.error)

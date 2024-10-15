@@ -4925,7 +4925,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                  * e.g.
                  *  template opDispatch(name) if (isValid!name) { ... }
                  */
-                uint errors = gagError ? global.startGagging() : 0;
+                const errors = gagError ? global.startGagging() : 0;
                 e = dti.dotTemplateSemanticProp(sc, DotExpFlag.none);
                 if (gagError && global.endGagging(errors))
                     e = null;
@@ -4943,7 +4943,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                  */
                 auto die = new DotIdExp(e.loc, alias_e, ident);
 
-                auto errors = gagError ? 0 : global.startGagging();
+                const errors = gagError ? 0 : global.startGagging();
                 auto exp = die.dotIdSemanticProp(sc, gagError);
                 if (!gagError)
                 {

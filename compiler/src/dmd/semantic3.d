@@ -121,14 +121,12 @@ private extern(C++) final class Semantic3Visitor : Visitor
 
         bool needGagging = tempinst.gagged && !global.gag;
         const olderrors = global.errors;
-        int oldGaggedErrors = -1; // dead-store to prevent spurious warning
+        const oldGaggedErrors = needGagging ? global.startGagging() : -1;
         /* If this is a gagged instantiation, gag errors.
          * Future optimisation: If the results are actually needed, errors
          * would already be gagged, so we don't really need to run semantic
          * on the members.
          */
-        if (needGagging)
-            oldGaggedErrors = global.startGagging();
 
         for (size_t i = 0; i < tempinst.members.length; i++)
         {
@@ -280,7 +278,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                  * For generated opAssign function, any errors
                  * from its body need to be gagged.
                  */
-                uint oldErrors = global.startGagging();
+                const oldErrors = global.startGagging();
                 ++funcdecl.inuse;
                 funcdecl.semantic3(sc);
                 --funcdecl.inuse;
@@ -1640,7 +1638,7 @@ void semanticTypeInfoMembers(StructDeclaration sd)
         sd.xeq._scope &&
         sd.xeq.semanticRun < PASS.semantic3done)
     {
-        uint errors = global.startGagging();
+        const errors = global.startGagging();
         sd.xeq.semantic3(sd.xeq._scope);
         if (global.endGagging(errors))
             sd.xeq = sd.xerreq;
@@ -1650,7 +1648,7 @@ void semanticTypeInfoMembers(StructDeclaration sd)
         sd.xcmp._scope &&
         sd.xcmp.semanticRun < PASS.semantic3done)
     {
-        uint errors = global.startGagging();
+        const errors = global.startGagging();
         sd.xcmp.semantic3(sd.xcmp._scope);
         if (global.endGagging(errors))
             sd.xcmp = sd.xerrcmp;
