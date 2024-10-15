@@ -221,7 +221,7 @@ void optfunc(ref GlobalOptimizer go)
 
     debug if (debugb)
     {
-        WRfunc("before optimization", funcsym_p, startblock);
+        WRfunc("before optimization", funcsym_p, bo.startblock);
     }
 
     if (localgot)
@@ -230,14 +230,14 @@ void optfunc(ref GlobalOptimizer go)
         elem *e = el_long(TYnptr, 0);
         e.Eoper = OPgot;
         e = el_bin(OPeq, TYnptr, el_var(localgot), e);
-        startblock.Belem = el_combine(e, startblock.Belem);
+        bo.startblock.Belem = el_combine(e, bo.startblock.Belem);
     }
 
     // Each pass through the loop can reduce only one level of comma expression.
     // The infinite loop check needs to take this into account.
     // Add 100 just to give optimizer more rope to try to converge.
     int iterationLimit = 100;
-    for (block* b = startblock; b; b = b.Bnext)
+    for (block* b = bo.startblock; b; b = b.Bnext)
     {
         if (!b.Belem)
             continue;
@@ -261,7 +261,7 @@ void optfunc(ref GlobalOptimizer go)
 
         //printf("optelem\n");
         /* canonicalize the trees        */
-        foreach (b; BlockRange(startblock))
+        foreach (b; BlockRange(bo.startblock))
             if (b.Belem)
             {
                 debug if (debuge)
@@ -291,7 +291,7 @@ void optfunc(ref GlobalOptimizer go)
             blockopt(go, 0);            // do block optimization
         out_regcand(&globsym);          // recompute register candidates
         go.changes = 0;                 // no changes yet
-        sliceStructs(globsym, startblock);
+        sliceStructs(globsym, bo.startblock);
         if (go.mfoptim & MFcnp)
             constprop(go);              /* make relationals unsigned     */
         if (go.mfoptim & (MFli | MFliv))
@@ -299,7 +299,7 @@ void optfunc(ref GlobalOptimizer go)
                                         /* induction vars                */
                                         /* do loop rotation              */
         else
-            foreach (b; BlockRange(startblock))
+            foreach (b; BlockRange(bo.startblock))
                 b.Bweight = 1;
         dbg_optprint("boolopt\n");
 
@@ -318,7 +318,7 @@ void optfunc(ref GlobalOptimizer go)
          * This can result in localgot getting needed.
          */
         Symbol *localgotsave = localgot;
-        for (block* b = startblock; b; b = b.Bnext)
+        for (block* b = bo.startblock; b; b = b.Bnext)
         {
             if (b.Belem)
             {
@@ -334,7 +334,7 @@ void optfunc(ref GlobalOptimizer go)
             elem *e = el_long(TYnptr, 0);
             e.Eoper = OPgot;
             e = el_bin(OPeq, TYnptr, el_var(localgot), e);
-            startblock.Belem = el_combine(e, startblock.Belem);
+            bo.startblock.Belem = el_combine(e, bo.startblock.Belem);
         }
 
         /* localize() is after localgot, otherwise we wind up with
@@ -355,7 +355,7 @@ void optfunc(ref GlobalOptimizer go)
     if (go.mfoptim & MFdc)
         blockopt(go, 1);                // do block optimization
 
-    for (block* b = startblock; b; b = b.Bnext)
+    for (block* b = bo.startblock; b; b = b.Bnext)
     {
         if (b.Belem)
             postoptelem(b.Belem);
@@ -369,11 +369,11 @@ void optfunc(ref GlobalOptimizer go)
 
     debug if (debugb)
     {
-        WRfunc("after optimization", funcsym_p, startblock);
+        WRfunc("after optimization", funcsym_p, bo.startblock);
     }
 
     // Prepare for code generator
-    for (block* b = startblock; b; b = b.Bnext)
+    for (block* b = bo.startblock; b; b = b.Bnext)
     {
         block_optimizer_free(b);
     }
