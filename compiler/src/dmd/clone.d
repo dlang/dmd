@@ -738,7 +738,7 @@ FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
     Expression e2 = new IdentifierExp(loc, Id.p);
     Expression e = new CallExp(loc, new DotIdExp(loc, e1, Id.cmp), e2);
     fop.fbody = new ReturnStatement(loc, e);
-    uint errors = global.startGagging(); // Do not report errors
+    const errors = global.startGagging(); // Do not report errors
     Scope* sc2 = sc.push();
     sc2.stc = 0;
     sc2.linkage = LINK.d;

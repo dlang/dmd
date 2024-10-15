@@ -605,7 +605,7 @@ extern (C++) class Dsymbol : ASTNode
 
     final Ungag ungagSpeculative() const
     {
-        uint oldgag = global.gag;
+        const oldgag = global.gag;
         if (global.gag && !isSpeculative() && !toParent2().isFuncDeclaration())
             global.gag = 0;
         return Ungag(oldgag);
