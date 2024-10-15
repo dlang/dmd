@@ -3014,7 +3014,7 @@ static if (1)
                 foreach (sl2; ListRange(s.Senum.SEenumlist))
                 {
                     Symbol *sf = cast(Symbol *)list_ptr(sl2);
-                    const value = cast(uint)el_tolongt(sf.Svalue);
+                    const value = cast(uint)el_tolong(sf.Svalue);
 
                     debug_info.buf.writeuLEB128(membercode);
                     debug_info.buf.writeStringz(getSymName(sf)); // DW_AT_name

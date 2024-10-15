@@ -396,30 +396,6 @@ void block_initvar(Symbol *s)
 
 }
 
-/*******************
- * Mark end of function.
- * flag:
- *      0       do a "return"
- *      1       do a "return 0"
- */
-
-@trusted
-void block_endfunc(int flag)
-{
-    bo.curblock.Bsymend = globsym.length;
-    bo.curblock.Bendscope = bo.curblock;
-    if (flag)
-    {
-        elem *e = el_longt(tstypes[TYint], 0);
-        block_appendexp(bo.curblock, e);
-        bo.curblock.BC = BCretexp;        // put a return at the end
-    }
-    else
-        bo.curblock.BC = BCret;           // put a return at the end
-    bo.curblock = null;                    // undefined from now on
-    bo.block_last = null;
-}
-
 /******************************
  * Perform branch optimization on basic blocks.
  */
@@ -552,7 +528,7 @@ void brcombine(ref GlobalOptimizer go)
                     continue;
                 if (b2 == bo.startblock)
                     continue;
-                if (!PARSER && b2.Belem && !OTleaf(b2.Belem.Eoper))
+                if (b2.Belem && !OTleaf(b2.Belem.Eoper))
                     continue;
 
                 ubyte bc2 = b2.BC;
@@ -563,8 +539,7 @@ void brcombine(ref GlobalOptimizer go)
                     if (b2.Belem)
                     {
                         int op = OPandand;
-                        b.Belem = PARSER ? el_bint(op,tstypes[TYint],b.Belem,b2.Belem)
-                                          : el_bin(op,TYint,b.Belem,b2.Belem);
+                        b.Belem = el_bin(op,TYint,b.Belem,b2.Belem);
                         b2.Belem = null;
                     }
                     list_subtract(&(b.Bsucc),b2);
@@ -578,20 +553,11 @@ void brcombine(ref GlobalOptimizer go)
                          //|| (bc2 == BCret && b3.BC == BCret)
                         )
                 {
-                    if (PARSER)
-                    {
-                        type *t = (bc2 == BCretexp) ? b2.Belem.ET : tstypes[TYvoid];
-                        elem *e = el_bint(OPcolon2,t,b2.Belem,b3.Belem);
-                        b.Belem = el_bint(OPcond,t,b.Belem,e);
-                    }
-                    else
-                    {
-                        if (!OTleaf(b3.Belem.Eoper))
-                            continue;
-                        tym_t ty = (bc2 == BCretexp) ? b2.Belem.Ety : cast(tym_t) TYvoid;
-                        elem *e = el_bin(OPcolon2,ty,b2.Belem,b3.Belem);
-                        b.Belem = el_bin(OPcond,ty,b.Belem,e);
-                    }
+                    if (!OTleaf(b3.Belem.Eoper))
+                        continue;
+                    tym_t ty = (bc2 == BCretexp) ? b2.Belem.Ety : cast(tym_t) TYvoid;
+                    elem *e = el_bin(OPcolon2,ty,b2.Belem,b3.Belem);
+                    b.Belem = el_bin(OPcond,ty,b.Belem,e);
                     b.BC = bc2;
                     b.Belem.ET = b2.Belem.ET;
                     b2.Belem = null;
@@ -610,36 +576,19 @@ void brcombine(ref GlobalOptimizer go)
                     if (b2.Belem)
                     {
                         elem *e;
-                        if (PARSER)
+                        if (b3.Belem)
                         {
-                            if (b3.Belem)
-                            {
-                                e = el_bint(OPcolon2,b2.Belem.ET,
-                                        b2.Belem,b3.Belem);
-                                e = el_bint(OPcond,e.ET,b.Belem,e);
-                            }
-                            else
-                            {
-                                int op = OPandand;
-                                e = el_bint(op,tstypes[TYint],b.Belem,b2.Belem);
-                            }
+                            if (!OTleaf(b3.Belem.Eoper))
+                                continue;
+                            e = el_bin(OPcolon2,b2.Belem.Ety,
+                                    b2.Belem,b3.Belem);
+                            e = el_bin(OPcond,e.Ety,b.Belem,e);
+                            e.ET = b2.Belem.ET;
                         }
                         else
                         {
-                            if (b3.Belem)
-                            {
-                                if (!OTleaf(b3.Belem.Eoper))
-                                    continue;
-                                e = el_bin(OPcolon2,b2.Belem.Ety,
-                                        b2.Belem,b3.Belem);
-                                e = el_bin(OPcond,e.Ety,b.Belem,e);
-                                e.ET = b2.Belem.ET;
-                            }
-                            else
-                            {
-                                int op = OPandand;
-                                e = el_bin(op,TYint,b.Belem,b2.Belem);
-                            }
+                            int op = OPandand;
+                            e = el_bin(op,TYint,b.Belem,b2.Belem);
                         }
                         b2.Belem = null;
                         b.Belem = e;
@@ -647,8 +596,7 @@ void brcombine(ref GlobalOptimizer go)
                     else if (b3.Belem)
                     {
                         int op = OPoror;
-                        b.Belem = PARSER ? el_bint(op,tstypes[TYint],b.Belem,b3.Belem)
-                                         : el_bin(op,TYint,b.Belem,b3.Belem);
+                        b.Belem = el_bin(op,TYint,b.Belem,b3.Belem);
                     }
                     b.BC = BCgoto;
                     b3.Belem = null;
@@ -669,51 +617,6 @@ void brcombine(ref GlobalOptimizer go)
                     anychanges++;
                 }
             }
-            else if (bc == BCgoto && PARSER)
-            {
-                block *b2 = b.nthSucc(0);
-                if (!list_next(b2.Bpred) && b2.BC != BCasm    // if b is only parent
-                    && b2 != bo.startblock
-                    && b2.BC != BCtry
-                    && b2.BC != BC_try
-                    && b.Btry == b2.Btry
-                   )
-                {
-                    if (b2.Belem)
-                    {
-                        if (PARSER)
-                        {
-                            block_appendexp(b,b2.Belem);
-                        }
-                        else if (b.Belem)
-                            b.Belem = el_bin(OPcomma,b2.Belem.Ety,b.Belem,b2.Belem);
-                        else
-                            b.Belem = b2.Belem;
-                        b2.Belem = null;
-                    }
-                    list_subtract(&b.Bsucc,b2);
-                    list_subtract(&b2.Bpred,b);
-
-                    /* change predecessor of successors of b2 from b2 to b */
-                    foreach (bl; ListRange(b2.Bsucc))
-                    {
-                        list_t bp;
-                        for (bp = list_block(bl).Bpred; bp; bp = list_next(bp))
-                        {
-                            if (list_block(bp) == b2)
-                                bp.ptr = cast(void *)b;
-                        }
-                    }
-
-                    b.BC = b2.BC;
-                    b.BS = b2.BS;
-                    b.Bsucc = b2.Bsucc;
-                    b2.Bsucc = null;
-                    b2.BC = BCret;             /* a harmless one       */
-                    debug if (debugc) printf("brcombine(): %p goto %p eliminated\n",b,b2);
-                    anychanges++;
-                }
-            }
         }
         if (anychanges)
         {   go.changes++;
@@ -730,7 +633,6 @@ void brcombine(ref GlobalOptimizer go)
 private void bropt(ref GlobalOptimizer go)
 {
     debug if (debugc) printf("bropt()\n");
-    assert(!PARSER);
     for (block *b = bo.startblock; b; b = b.Bnext)   // for each block
     {
         elem **pn = &(b.Belem);
@@ -941,7 +843,6 @@ void compdfo(ref Barray!(block*) dfo, block* startblock)
     debug if (debugc) printf("compdfo()\n");
     debug assert(OPTIMIZER);
     block_clearvisit();
-    debug assert(!PARSER);
     dfo.setLength(0);
 
     /******************************
@@ -1416,7 +1317,7 @@ private elem * bl_delist(list_t el)
 private void bltailmerge(ref GlobalOptimizer go)
 {
     debug if (debugc) printf("bltailmerge()\n");
-    assert(!PARSER && OPTIMIZER);
+    assert(OPTIMIZER);
     if (!(go.mfoptim & MFtime))            /* if optimized for space       */
     {
         /* Split each block into a reversed linked list of elems        */
