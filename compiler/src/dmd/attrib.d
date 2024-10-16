@@ -72,14 +72,6 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         this.decl = decl;
     }
 
-    Dsymbols* include(Scope* sc)
-    {
-        if (errors)
-            return null;
-
-        return decl;
-    }
-
     /****************************************
      * Create a new scope if one or more given attributes
      * are different from the sc's.
