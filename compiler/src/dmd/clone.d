@@ -1723,27 +1723,65 @@ bool buildCopyCtor(StructDeclaration sd, Scope* sc)
     if (!needCopyCtor(sd, hasCpCtor))
         return hasCpCtor;
 
-    //printf("generating copy constructor for %s\n", sd.toChars());
-    const MOD paramMod = MODFlags.wild;
-    const MOD funcMod = MODFlags.wild;
-    auto ccd = generateCopyCtorDeclaration(sd, ModToStc(paramMod), ModToStc(funcMod));
-    auto copyCtorBody = generateCopyCtorBody(sd);
-    ccd.fbody = copyCtorBody;
-    sd.members.push(ccd);
-    ccd.addMember(sc, sd);
-    const errors = global.startGagging();
-    Scope* sc2 = sc.push();
-    sc2.stc = 0;
-    sc2.linkage = LINK.d;
-    ccd.dsymbolSemantic(sc2);
-    ccd.semantic2(sc2);
-    ccd.semantic3(sc2);
-    //printf("ccd semantic: %s\n", ccd.type.toChars());
-    sc2.pop();
-    if (global.endGagging(errors) || sd.isUnionDeclaration())
+    // some fields have copy ctors
+    // so we need to collect the copy ctor types
+
+    // hashtable used to store what copy constructors should be generated
+    bool[ModBits] copyCtorTable;
+
+    // see if any struct members define a copy constructor
+    foreach (v; sd.fields)
     {
-        ccd.storage_class |= STC.disable;
-        ccd.fbody = null;
+        if (v.storage_class & STC.ref_)
+            continue;
+        if (v.overlapped)
+            continue;
+        Type tv = v.type.baseElemOf();
+        if (tv.ty != Tstruct)
+            continue;
+
+        auto ts = v.type.baseElemOf().isTypeStruct();
+        if (!ts)
+            continue;
+        if (ts.sym.hasCopyCtor)
+        {
+            foreach(key; ts.sym.copyCtorsQualifiers.keys())
+            {
+                copyCtorTable[key] = true;
+            }
+        }
     }
+
+    if (!copyCtorTable.length)
+        return false;
+
+    // if any field defines a copy constructor
+    // generate the body that does memberwise initialization
+    auto copyCtorBody = generateCopyCtorBody(sd);
+    foreach (key; copyCtorTable.keys)
+    {
+        MOD paramMod = cast(MOD)(key >> 8);
+        MOD funcMod = cast(MOD)key;
+        auto ccd = generateCopyCtorDeclaration(sd, ModToStc(paramMod), ModToStc(funcMod));
+        //printf("generating for %s\n", ccd.type.toChars());
+        ccd.fbody = copyCtorBody.syntaxCopy();
+        sd.members.push(ccd);
+        ccd.addMember(sc, sd);
+        const errors = global.startGagging();
+        Scope* sc2 = sc.push();
+        sc2.stc = 0;
+        sc2.linkage = LINK.d;
+        ccd.dsymbolSemantic(sc2);
+        ccd.semantic2(sc2);
+        ccd.semantic3(sc2);
+        //printf("ccd semantic: %s\n", ccd.type.toChars());
+        sc2.pop();
+        if (global.endGagging(errors) || sd.isUnionDeclaration())
+        {
+            ccd.storage_class |= STC.disable;
+            ccd.fbody = null;
+        }
+    }
+
     return true;
 }
