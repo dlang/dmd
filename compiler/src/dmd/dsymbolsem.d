@@ -174,7 +174,7 @@ const(char)* getMessage(DeprecatedDeclaration dd)
 
 bool checkDeprecated(Dsymbol d, const ref Loc loc, Scope* sc)
 {
-    if (global.params.useDeprecated == DiagnosticReporting.off)
+    if (global.diag.useDeprecated == DiagnosticReporting.off)
         return false;
     if (!d.isDeprecated())
         return false;
@@ -314,10 +314,10 @@ Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false, bool find
             Loc loc = e.loc;
             Type tthis = (e.op == EXP.type ? e.type : null);
             const flags = cast(DotExpFlag) (DotExpFlag.noAliasThis | (gag * DotExpFlag.gag));
-            const olderrors = gag ? global.startGagging() : 0;
+            const olderrors = gag ? global.diag.startGagging() : 0;
             e = dotExp(ad.type, sc, e, ad.aliasthis.ident, flags);
             if (!e || findOnly)
-                return gag && global.endGagging(olderrors) ? null : e;
+                return gag && global.diag.endGagging(olderrors) ? null : e;
 
             if (tthis && ad.aliasthis.sym.needThis())
             {
@@ -355,7 +355,7 @@ Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false, bool find
             e = resolveProperties(sc, e);
             if (!gag)
                 ad.aliasthis.checkDeprecatedAliasThis(loc, sc);
-            else if (global.endGagging(olderrors))
+            else if (global.diag.endGagging(olderrors))
                 e = null;
         }
 
@@ -390,7 +390,7 @@ Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false, bool find
  */
 private bool checkDeprecatedAliasThis(AliasThis at, const ref Loc loc, Scope* sc)
 {
-    if (global.params.useDeprecated != DiagnosticReporting.off
+    if (global.diag.useDeprecated != DiagnosticReporting.off
         && at.isDeprecated() && !sc.isDeprecated())
     {
         const(char)* message = null;
@@ -1435,7 +1435,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                  */
                 if (!inferred)
                 {
-                    const errors = global.errors;
+                    const errors = global.diag.errors;
                     dsym.inuse++;
                     // Bug 20549. Don't try this on modules or packages, syntaxCopy
                     // could crash (inf. recursion) on a mod/pkg referencing itself
@@ -1498,7 +1498,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                     dsym._init = dsym._init.initializerSemantic(sc, dsym.type, INITinterpret);
                     dsym.inuse--;
-                    if (global.errors > errors)
+                    if (global.diag.errors > errors)
                     {
                         dsym._init = new ErrorInitializer();
                         dsym.type = Type.terror;
@@ -1835,7 +1835,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (expressionsToString(buf, sc, cd.exps, cd.loc, null, true))
             return null;
 
-        const errors = global.errors;
+        const errors = global.diag.errors;
         const len = buf.length;
         buf.writeByte(0);
         const str = buf.extractSlice()[0 .. len];
@@ -1845,7 +1845,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         p.nextToken();
 
         auto d = p.parseDeclDefs(0);
-        if (global.errors != errors)
+        if (global.diag.errors != errors)
             return null;
 
         if (p.token.value != TOK.endOfFile)
@@ -2214,7 +2214,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         tm.argsym.parent = scy.parent;
         Scope* argscope = scy.push(tm.argsym);
 
-        const errorsave = global.errors;
+        const errorsave = global.diag.errors;
 
         // Declare each template parameter as an alias for the argument type
         tm.declareParameters(argscope);
@@ -2234,7 +2234,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         //printf("%d\n", nest);
         if (++nest > global.recursionLimit)
         {
-            global.gag = 0; // ensure error message gets printed
+            global.diag.gag = 0; // ensure error message gets printed
             .error(tm.loc, "%s `%s` recursive expansion", tm.kind, tm.toPrettyChars);
             fatal();
         }
@@ -2261,7 +2261,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         }
 
         // Give additional context info if error occurred during instantiation
-        if (global.errors != errorsave)
+        if (global.diag.errors != errorsave)
         {
             .error(tm.loc, "%s `%s` error instantiating", tm.kind, tm.toPrettyChars);
             tm.errors = true;
@@ -2842,7 +2842,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (sd.semanticRun >= PASS.semanticdone)
             return;
-        const errors = global.errors;
+        const errors = global.diag.errors;
 
         //printf("+StructDeclaration::semantic(this=%p, '%s', sizeok = %d)\n", sd, sd.toPrettyChars(), sd.sizeok);
         Scope* scx = null;
@@ -3004,13 +3004,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             Dsymbol scall = sd.search(Loc.initial, Id.call);
             if (scall)
             {
-                const xerrors = global.startGagging();
+                const xerrors = global.diag.startGagging();
                 sc = sc.push();
                 sc.tinst = null;
                 sc.minst = null;
                 auto fcall = resolveFuncCall(sd.loc, sc, scall, null, null, ArgumentList(), FuncResolveFlag.quiet);
                 sc = sc.pop();
-                global.endGagging(xerrors);
+                global.diag.endGagging(xerrors);
 
                 if (fcall && fcall.isStatic())
                 {
@@ -3042,7 +3042,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
-        if (global.errors != errors)
+        if (global.diag.errors != errors)
         {
             // The type is no good.
             sd.type = Type.terror;
@@ -3051,7 +3051,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 sd.deferred.errors = true;
         }
 
-        if (sd.deferred && !global.gag)
+        if (sd.deferred && !global.diag.gag)
         {
             sd.deferred.semantic2(sc);
             sd.deferred.semantic3(sc);
@@ -3089,7 +3089,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (cldec.semanticRun >= PASS.semanticdone)
             return;
-        const errors = global.errors;
+        const errors = global.diag.errors;
 
         //printf("+ClassDeclaration.dsymbolSemantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
 
@@ -3697,7 +3697,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             .error(cldec.loc, "%s `%s` already exists at %s. Perhaps in another function with the same name?", cldec.kind, cldec.toPrettyChars, cd.loc.toChars());
         }
 
-        if (global.errors != errors || (cldec.baseClass && cldec.baseClass.errors))
+        if (global.diag.errors != errors || (cldec.baseClass && cldec.baseClass.errors))
         {
             // The type is no good, but we should keep the
             // the type so that we have more accurate error messages
@@ -3721,7 +3721,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             }
         }
 
-        if (cldec.deferred && !global.gag)
+        if (cldec.deferred && !global.diag.gag)
         {
             cldec.deferred.semantic2(sc);
             cldec.deferred.semantic3(sc);
@@ -3752,7 +3752,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         //printf("InterfaceDeclaration.dsymbolSemantic(%s), type = %p\n", toChars(), type);
         if (idec.semanticRun >= PASS.semanticdone)
             return;
-        const errors = global.errors;
+        const errors = global.diag.errors;
 
         //printf("+InterfaceDeclaration.dsymbolSemantic(%s), type = %p\n", toChars(), type);
 
@@ -4021,7 +4021,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         sc2.pop();
 
-        if (global.errors != errors)
+        if (global.diag.errors != errors)
         {
             // The type is no good.
             idec.type = Type.terror;
@@ -4488,7 +4488,7 @@ private bool isDRuntimeHook(Identifier id)
 
 void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList argumentList)
 {
-    //printf("[%s] TemplateInstance.dsymbolSemantic('%s', this=%p, gag = %d, sc = %p)\n", tempinst.loc.toChars(), tempinst.toChars(), tempinst, global.gag, sc);
+    //printf("[%s] TemplateInstance.dsymbolSemantic('%s', this=%p, gag = %d, sc = %p)\n", tempinst.loc.toChars(), tempinst.toChars(), tempinst, global.diag.gag, sc);
     version (none)
     {
         for (Dsymbol s = tempinst; s; s = s.parent)
@@ -4521,9 +4521,9 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
         {
             printf("Recursive template expansion\n");
         }
-        auto ungag = Ungag(global.gag);
+        auto ungag = Ungag(global.diag.gag);
         if (!tempinst.gagged)
-            global.gag = 0;
+            global.diag.gag = 0;
         .error(tempinst.loc, "%s `%s` recursive template expansion", tempinst.kind, tempinst.toPrettyChars);
         if (tempinst.gagged)
             tempinst.semanticRun = PASS.initial;
@@ -4546,7 +4546,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
         tempinst.minst = null;
     }
 
-    tempinst.gagged = (global.gag > 0);
+    tempinst.gagged = (global.diag.gag > 0);
 
     tempinst.semanticRun = PASS.semantic;
 
@@ -4636,8 +4636,8 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
 
         // If both this and the previous instantiation were gagged,
         // use the number of errors that happened last time.
-        global.errors += tempinst.errors;
-        global.gaggedErrors += tempinst.errors;
+        global.diag.errors += tempinst.errors;
+        global.diag.gaggedErrors += tempinst.errors;
 
         // If the first instantiation was gagged, but this is not:
         if (tempinst.inst.gagged)
@@ -4762,7 +4762,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
         printf("\timplement template instance %s '%s'\n", tempdecl.parent.toChars(), tempinst.toChars());
         printf("\ttempdecl %s\n", tempdecl.toChars());
     }
-    const errorsave = global.errors;
+    const errorsave = global.diag.errors;
 
     tempinst.inst = tempinst;
     tempinst.parent = tempinst.enclosing ? tempinst.enclosing : tempdecl.parent;
@@ -4910,7 +4910,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
         }
     }
 
-    if (global.errors != errorsave)
+    if (global.diag.errors != errorsave)
         goto Laftersemantic;
 
     /* If any of the instantiation members didn't get semantic() run
@@ -4952,7 +4952,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
          */
         tempinst.semantic2(sc2);
     }
-    if (global.errors != errorsave)
+    if (global.diag.errors != errorsave)
         goto Laftersemantic;
 
     if ((sc.func || sc.fullinst) && !tempinst.tinst)
@@ -4973,13 +4973,13 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
          * types. Deprecations are disabled while analysing hooks to avoid
          * spurious error messages.
          */
-        auto saveUseDeprecated = global.params.useDeprecated;
+        auto saveUseDeprecated = global.diag.useDeprecated;
         if (sc.isDeprecated() && isDRuntimeHook(tempinst.name))
-            global.params.useDeprecated = DiagnosticReporting.off;
+            global.diag.useDeprecated = DiagnosticReporting.off;
 
         tempinst.trySemantic3(sc2);
 
-        global.params.useDeprecated = saveUseDeprecated;
+        global.diag.useDeprecated = saveUseDeprecated;
 
         for (size_t i = 0; i < deferred.length; i++)
         {
@@ -5048,7 +5048,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
             ti = ti.tinst;
             if (++nest > global.recursionLimit)
             {
-                global.gag = 0; // ensure error message gets printed
+                global.diag.gag = 0; // ensure error message gets printed
                 .error(tempinst.loc, "%s `%s` recursive expansion", tempinst.kind, tempinst.toPrettyChars);
                 fatal();
             }
@@ -5092,7 +5092,7 @@ Laftersemantic:
     _scope.pop();
 
     // Give additional context info if error occurred during instantiation
-    if (global.errors != errorsave)
+    if (global.diag.errors != errorsave)
     {
         if (!tempinst.errors)
         {
@@ -5270,16 +5270,16 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
     // type. If it is a symbol, then `.aliassym` is set and type is `null` -
     // toAlias() will return `.aliassym`
 
-    const errors = global.errors;
+    const errors = global.diag.errors;
     Type oldtype = ds.type;
 
     // Ungag errors when not instantiated DeclDefs scope alias
-    auto ungag = Ungag(global.gag);
-    //printf("%s parent = %s, gag = %d, instantiated = %d\n", ds.toChars(), ds.parent.toChars(), global.gag, ds.isInstantiated() !is null);
-    if (ds.parent && global.gag && !ds.isInstantiated() && !ds.toParent2().isFuncDeclaration() && (sc.minst || sc.tinst))
+    auto ungag = Ungag(global.diag.gag);
+    //printf("%s parent = %s, gag = %d, instantiated = %d\n", ds.toChars(), ds.parent.toChars(), global.diag.gag, ds.isInstantiated() !is null);
+    if (ds.parent && global.diag.gag && !ds.isInstantiated() && !ds.toParent2().isFuncDeclaration() && (sc.minst || sc.tinst))
     {
         //printf("%s type = %s\n", ds.toPrettyChars(), ds.type.toChars());
-        global.gag = 0;
+        global.diag.gag = 0;
     }
 
     // https://issues.dlang.org/show_bug.cgi?id=18480
@@ -5323,7 +5323,7 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
      * try to convert identifier x to 3.
      */
     auto s = ds.type.toDsymbol(sc);
-    if (errors != global.errors)
+    if (errors != global.diag.errors)
         return errorRet();
     if (s == ds)
     {
@@ -5367,7 +5367,7 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
     }
     if (s == ds)
     {
-        assert(global.errors);
+        assert(global.diag.errors);
         return errorRet();
     }
     if (s) // it's a symbolic alias
@@ -5383,7 +5383,7 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
         ds.aliassym = null;
     }
 
-    if (global.gag && errors != global.errors)
+    if (global.diag.gag && errors != global.diag.errors)
         return errorRet();
 
     normalRet();
@@ -5498,7 +5498,7 @@ private void aliasAssignSemantic(AliasAssign ds, Scope* sc)
      * It appears here as `ds.type`. Do semantic analysis on `def` to disambiguate.
      */
 
-    const errors = global.errors;
+    const errors = global.diag.errors;
     Dsymbol s;
 
     // Try AliasSeq optimization
@@ -5521,7 +5521,7 @@ private void aliasAssignSemantic(AliasAssign ds, Scope* sc)
      * try to convert identifier x to 3.
      */
     s = ds.type.toDsymbol(sc);
-    if (errors != global.errors)
+    if (errors != global.diag.errors)
         return errorRet();
     if (s == aliassym)
     {
@@ -5566,7 +5566,7 @@ private void aliasAssignSemantic(AliasAssign ds, Scope* sc)
     }
     if (s == aliassym)
     {
-        assert(global.errors);
+        assert(global.diag.errors);
         return errorRet();
     }
 
@@ -5591,7 +5591,7 @@ private void aliasAssignSemantic(AliasAssign ds, Scope* sc)
     aliassym.adFlags &= ~Declaration.ignoreRead;
 
     if (aliassym.type && aliassym.type.ty == Terror ||
-        global.gag && errors != global.errors)
+        global.diag.gag && errors != global.diag.errors)
     {
         aliassym.type = Type.terror;
         aliassym.aliassym = null;
@@ -5965,7 +5965,7 @@ Dsymbol search_correct(Dsymbol d, Identifier ident)
         return s.search(Loc.initial, id, SearchOpt.ignoreErrors);
     }
 
-    if (global.gag)
+    if (global.diag.gag)
         return null; // don't do it for speculative compiles; too time consuming
     // search for exact name first
     if (auto s = d.search(Loc.initial, ident, SearchOpt.ignoreErrors))
@@ -6461,14 +6461,14 @@ private extern(C++) class SearchVisitor : Visitor
             return setResult(m.searchCacheSymbol);
         }
 
-        const errors = global.errors;
+        const errors = global.diag.errors;
 
         m.insearch = true;
         visit(cast(ScopeDsymbol)m);
         Dsymbol s = result;
         m.insearch = false;
 
-        if (errors == global.errors)
+        if (errors == global.diag.errors)
         {
             // https://issues.dlang.org/show_bug.cgi?id=10752
             // Can cache the result only when it does not cause
@@ -6873,7 +6873,7 @@ extern(C++) class ImportAllVisitor : Visitor
 extern (D) bool load(Import imp, Scope* sc)
 {
     // See if existing module
-    const errors = global.errors;
+    const errors = global.diag.errors;
     DsymbolTable dst = Package.resolve(imp.packages, null, &imp.pkg);
     version (none)
     {
@@ -6899,7 +6899,7 @@ extern (D) bool load(Import imp, Scope* sc)
             {
                 if (p.isPkgMod == PKG.unknown)
                 {
-                    const preverrors = global.errors;
+                    const preverrors = global.diag.errors;
                     imp.mod = Module.load(imp.loc, imp.packages, imp.id);
                     if (!imp.mod)
                         p.isPkgMod = PKG.package_;
@@ -6911,7 +6911,7 @@ extern (D) bool load(Import imp, Scope* sc)
                         else
                         {
                             // show error if Module.load does not
-                            if (preverrors == global.errors)
+                            if (preverrors == global.diag.errors)
                                 .error(imp.loc, "%s `%s` from file %s conflicts with %s `%s`", imp.mod.kind(), imp.mod.toPrettyChars(), imp.mod.srcfile.toChars, p.kind(), p.toPrettyChars());
                             return true;
                         }
@@ -6959,7 +6959,7 @@ extern (D) bool load(Import imp, Scope* sc)
         else
             imp.pkg = imp.mod;
     }
-    return global.errors != errors;
+    return global.diag.errors != errors;
 }
 
 void setFieldOffset(Dsymbol d, AggregateDeclaration ad, FieldState* fieldState, bool isunion)
@@ -7697,7 +7697,7 @@ Lfail:
         error(loc, "%s `%s` no size because of forward reference", ad.kind, ad.toPrettyChars);
     // Don't cache errors from speculative semantic, might be resolvable later.
     // https://issues.dlang.org/show_bug.cgi?id=16574
-    if (!global.gag)
+    if (!global.diag.gag)
     {
         ad.type = Type.terror;
         ad.errors = true;

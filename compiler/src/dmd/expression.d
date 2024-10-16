@@ -522,7 +522,7 @@ extern (C++) abstract class Expression : ASTNode
         {
             error(loc, "expression `%s` is `void` and has no value", toChars());
             //print(); assert(0);
-            if (!global.gag)
+            if (!global.diag.gag)
                 type = Type.terror;
             return true;
         }
@@ -1062,7 +1062,7 @@ extern (C++) final class ErrorExp : Expression
         if (errorexp is null)
             errorexp = new ErrorExp();
 
-        if (global.errors == 0 && global.gaggedErrors == 0)
+        if (global.diag.errors == 0 && global.diag.gaggedErrors == 0)
         {
             /* Unfortunately, errors can still leak out of gagged errors,
               * and we need to set the error count to prevent bogus code

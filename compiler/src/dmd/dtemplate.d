@@ -3858,9 +3858,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
      *  max_shown = maximum number of trace elements printed (controlled with -v/-verror-limit)
      */
     extern(D) final void printInstantiationTrace(Classification cl = Classification.error,
-                                                 const(uint) max_shown = global.params.v.errorSupplementCount())
+                                                 const(uint) max_shown = global.diag.errorSupplementCount())
     {
-        if (global.gag)
+        if (global.diag.gag)
             return;
 
         // Print full trace for verbose mode, otherwise only short traces
@@ -3888,8 +3888,8 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             // Set error here as we don't want it to depend on the number of
             // entries that are being printed.
             if (cl == Classification.error ||
-                (cl == Classification.warning && global.params.useWarnings == DiagnosticReporting.error) ||
-                (cl == Classification.deprecation && global.params.useDeprecated == DiagnosticReporting.error))
+                (cl == Classification.warning && global.diag.useWarnings == DiagnosticReporting.error) ||
+                (cl == Classification.deprecation && global.diag.useDeprecated == DiagnosticReporting.error))
                 cur.errors = true;
 
             // If two instantiations use the same declaration, they are recursive.
@@ -4431,7 +4431,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             return true;
 
         // Error already issued, just return `false`
-        if (!s.parent && global.errors)
+        if (!s.parent && global.diag.errors)
             return false;
 
         if (!s.parent && s.getType())
@@ -4534,7 +4534,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     goto Ldsym;
                 if (ta is null)
                 {
-                    assert(global.errors);
+                    assert(global.diag.errors);
                     ta = Type.terror;
                 }
 
@@ -4607,9 +4607,9 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     {
                         if (ea.checkValue()) // check void expression
                             ea = ErrorExp.get();
-                        const olderrs = global.errors;
+                        const olderrs = global.diag.errors;
                         ea = ea.ctfeInterpret();
-                        if (global.errors != olderrs)
+                        if (global.diag.errors != olderrs)
                             ea = ErrorExp.get();
                     }
                 }
@@ -4819,7 +4819,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             printf("TemplateInstance.findBestMatch()\n");
         }
 
-        const errs = global.errors;
+        const errs = global.diag.errors;
         TemplateDeclaration td_last = null;
         Objects dedtypes;
 
@@ -4949,14 +4949,14 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         else if (errors && inst)
         {
             // instantiation was failed with error reporting
-            assert(global.errors);
+            assert(global.diag.errors);
             return false;
         }
         else
         {
             auto tdecl = tempdecl.isTemplateDeclaration();
 
-            if (errs != global.errors)
+            if (errs != global.diag.errors)
                 errorSupplemental(loc, "while looking for match for `%s`", toChars());
             else if (tdecl && !tdecl.overnext)
             {
@@ -5031,7 +5031,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         {
             printf("\tIt's a match with template declaration '%s'\n", tempdecl.toChars());
         }
-        return (errs == global.errors);
+        return (errs == global.diag.errors);
     }
 
     /*****************************************
@@ -5328,7 +5328,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         //printf("%d\n", nest);
         if (++nest > global.recursionLimit)
         {
-            global.gag = 0; // ensure error message gets printed
+            global.diag.gag = 0; // ensure error message gets printed
             .error(loc, "%s `%s` recursive expansion exceeded allowed nesting limit", kind, toPrettyChars);
             fatal();
         }
@@ -5345,7 +5345,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         //printf("%d\n", nest);
         if (++nest > global.recursionLimit)
         {
-            global.gag = 0; // ensure error message gets printed
+            global.diag.gag = 0; // ensure error message gets printed
             .error(loc, "%s `%s` recursive expansion exceeded allowed nesting limit", kind, toPrettyChars);
             fatal();
         }
@@ -5856,10 +5856,10 @@ MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, Templ
             /* If a function is really property-like, and then
              * it's CTFEable, ei will be a literal expression.
              */
-            const olderrors = global.startGagging();
+            const olderrors = global.diag.startGagging();
             ei = resolveProperties(sc, ei);
             ei = ei.ctfeInterpret();
-            if (global.endGagging(olderrors) || ei.op == EXP.error)
+            if (global.diag.endGagging(olderrors) || ei.op == EXP.error)
                 return matchArgNoMatch();
 
             /* https://issues.dlang.org/show_bug.cgi?id=14520
