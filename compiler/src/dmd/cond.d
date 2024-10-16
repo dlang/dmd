@@ -24,7 +24,7 @@ import dmd.dscope;
 import dmd.dsymbol;
 import dmd.errors;
 import dmd.expression;
-import dmd.expressionsem : expressionSemantic, evalStaticCondition, resolveProperties;
+//import dmd.expressionsem : expressionSemantic, evalStaticCondition, resolveProperties;
 import dmd.globals;
 import dmd.identifier;
 import dmd.location;
@@ -153,7 +153,7 @@ extern (C++) final class StaticForeach : RootObject
      * Returns:
      *     AST of the expression `(){ s; }()` with location loc.
      */
-    private extern(D) Expression wrapAndCall(const ref Loc loc, Statement s)
+    extern(D) Expression wrapAndCall(const ref Loc loc, Statement s)
     {
         auto tf = new TypeFunction(ParameterList(), null, LINK.default_, 0);
         auto fd = new FuncLiteralDeclaration(loc, loc, tf, TOK.reserved, null);
@@ -176,7 +176,7 @@ extern (C++) final class StaticForeach : RootObject
      *     `foreach (parameters; lower .. upper) s;`
      *     Where aggregate/lower, upper are as for the current StaticForeach.
      */
-    private extern(D) Statement createForeach(const ref Loc loc, Parameters* parameters, Statement s)
+    extern(D) Statement createForeach(const ref Loc loc, Parameters* parameters, Statement s)
     {
         if (aggrfe)
         {
@@ -209,7 +209,7 @@ extern (C++) final class StaticForeach : RootObject
      *         }
      */
 
-    private extern(D) TypeStruct createTupleType(const ref Loc loc, Expressions* e, Scope* sc)
+    extern(D) TypeStruct createTupleType(const ref Loc loc, Expressions* e, Scope* sc)
     {   // TODO: move to druntime?
         auto sid = Identifier.generateId("Tuple");
         auto sdecl = new StructDeclaration(loc, sid, false);
@@ -235,43 +235,9 @@ extern (C++) final class StaticForeach : RootObject
      *     An AST for the expression `Tuple(e)`.
      */
 
-    private extern(D) Expression createTuple(const ref Loc loc, TypeStruct type, Expressions* e) @safe
+    extern(D) Expression createTuple(const ref Loc loc, TypeStruct type, Expressions* e) @safe
     {   // TODO: move to druntime?
         return new CallExp(loc, new TypeExp(loc, type), e);
-    }
-
-    /*****************************************
-     * Perform `static foreach` lowerings that are necessary in order
-     * to finally expand the `static foreach` using
-     * `dmd.statementsem.makeTupleForeach`.
-     */
-    extern(D) void prepare(Scope* sc)
-    {
-        assert(sc);
-
-        if (aggrfe)
-        {
-            sc = sc.startCTFE();
-            aggrfe.aggr = aggrfe.aggr.expressionSemantic(sc);
-            sc = sc.endCTFE();
-        }
-
-        if (aggrfe && aggrfe.aggr.type.toBasetype().ty == Terror)
-        {
-            return;
-        }
-
-        if (!ready())
-        {
-            if (aggrfe && aggrfe.aggr.type.toBasetype().ty == Tarray)
-            {
-                lowerArrayAggregate(sc);
-            }
-            else
-            {
-                lowerNonArrayAggregate(sc);
-            }
-        }
     }
 
     /*****************************************
@@ -739,6 +705,7 @@ extern (C++) final class StaticIfCondition : Condition
         import dmd.staticcond;
         bool errors;
 
+        import dmd.expressionsem;
         bool result = evalStaticCondition(sc, exp, exp, errors);
 
         // Prevent repeated condition evaluation.

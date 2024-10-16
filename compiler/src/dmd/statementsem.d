@@ -5161,9 +5161,9 @@ bool checkLabel(GotoStatement gs)
                 }
                 if (!tplty)
                 {
-                    tplty = createTupleType(aloc, e, sc);
+                    tplty = lstf.createTupleType(aloc, e, sc);
                 }
-                res[i] = createTuple(aloc, tplty, e);
+                res[i] = lstf.createTuple(aloc, tplty, e);
             }
             lstf.needExpansion = true; // need to expand the tuples later
         }
@@ -5174,21 +5174,21 @@ bool checkLabel(GotoStatement gs)
             sc = sc.startCTFE();
             lstf.rangefe.lwr = lstf.rangefe.lwr.expressionSemantic(sc);
             lstf.rangefe.lwr = resolveProperties(sc, lstf.rangefe.lwr);
-            rangefe.upr = rangefe.upr.expressionSemantic(sc);
-            rangefe.upr = resolveProperties(sc, rangefe.upr);
+            lstf.rangefe.upr = lstf.rangefe.upr.expressionSemantic(sc);
+            lstf.rangefe.upr = resolveProperties(sc, lstf.rangefe.upr);
             sc = sc.endCTFE();
-            rangefe.lwr = rangefe.lwr.optimize(WANTvalue);
-            rangefe.lwr = rangefe.lwr.ctfeInterpret();
-            rangefe.upr = rangefe.upr.optimize(WANTvalue);
-            rangefe.upr = rangefe.upr.ctfeInterpret();
+            lstf.rangefe.lwr = lstf.rangefe.lwr.optimize(WANTvalue);
+            lstf.rangefe.lwr = lstf.rangefe.lwr.ctfeInterpret();
+            lstf.rangefe.upr = lstf.rangefe.upr.optimize(WANTvalue);
+            lstf.rangefe.upr = lstf.rangefe.upr.ctfeInterpret();
         }
         auto s1 = new Statements();
         auto sfe = new Statements();
-        if (tplty) sfe.push(new ExpStatement(loc, tplty.sym));
+        if (tplty) sfe.push(new ExpStatement(lstf.loc, tplty.sym));
         sfe.push(new ReturnStatement(aloc, res[0]));
-        s1.push(createForeach(aloc, pparams[0], new CompoundStatement(aloc, sfe)));
+        s1.push(lstf.createForeach(aloc, pparams[0], new CompoundStatement(aloc, sfe)));
         s1.push(new ExpStatement(aloc, new AssertExp(aloc, IntegerExp.literal!0)));
-        Type ety = new TypeTypeof(aloc, wrapAndCall(aloc, new CompoundStatement(aloc, s1)));
+        Type ety = new TypeTypeof(aloc, lstf.wrapAndCall(aloc, new CompoundStatement(aloc, s1)));
         auto aty = ety.arrayOf();
         auto idres = Identifier.generateId("__res");
         auto vard = new VarDeclaration(aloc, aty, idres, null, STC.temp);
@@ -5199,27 +5199,27 @@ bool checkLabel(GotoStatement gs)
         uint olderrors = global.startGagging();
         ety = ety.typeSemantic(aloc, sc);
         if (global.endGagging(olderrors))
-            s2.push(createForeach(aloc, pparams[1], null));
+            s2.push(lstf.createForeach(aloc, pparams[1], null));
         else
         {
             s2.push(new ExpStatement(aloc, vard));
             auto catass = new CatAssignExp(aloc, new IdentifierExp(aloc, idres), res[1]);
-            s2.push(createForeach(aloc, pparams[1], new ExpStatement(aloc, catass)));
+            s2.push(lstf.createForeach(aloc, pparams[1], new ExpStatement(aloc, catass)));
             s2.push(new ReturnStatement(aloc, new IdentifierExp(aloc, idres)));
         }
 
         Expression aggr = void;
         Type indexty = void;
 
-        if (rangefe && (indexty = ety).isIntegral())
+        if (lstf.rangefe && (indexty = ety).isIntegral())
         {
-            rangefe.lwr.type = indexty;
-            rangefe.upr.type = indexty;
-            auto lwrRange = getIntRange(rangefe.lwr);
-            auto uprRange = getIntRange(rangefe.upr);
+            lstf.rangefe.lwr.type = indexty;
+            lstf.rangefe.upr.type = indexty;
+            auto lwrRange = getIntRange(lstf.rangefe.lwr);
+            auto uprRange = getIntRange(lstf.rangefe.upr);
 
-            const lwr = rangefe.lwr.toInteger();
-            auto  upr = rangefe.upr.toInteger();
+            const lwr = lstf.rangefe.lwr.toInteger();
+            auto  upr = lstf.rangefe.upr.toInteger();
             size_t length = 0;
 
             if (lwrRange.imin <= uprRange.imax)
@@ -5227,7 +5227,7 @@ bool checkLabel(GotoStatement gs)
 
             auto exps = new Expressions(length);
 
-            if (rangefe.op == TOK.foreach_)
+            if (lstf.rangefe.op == TOK.foreach_)
             {
                 foreach (i; 0 .. length)
                     (*exps)[i] = new IntegerExp(aloc, lwr + i, indexty);
@@ -5242,7 +5242,7 @@ bool checkLabel(GotoStatement gs)
         }
         else
         {
-            aggr = wrapAndCall(aloc, new CompoundStatement(aloc, s2));
+            aggr = lstf.wrapAndCall(aloc, new CompoundStatement(aloc, s2));
             sc = sc.startCTFE();
             aggr = aggr.expressionSemantic(sc);
             aggr = resolveProperties(sc, aggr);
@@ -5251,10 +5251,44 @@ bool checkLabel(GotoStatement gs)
             aggr = aggr.ctfeInterpret();
         }
 
-        assert(!!aggrfe ^ !!rangefe);
-        aggrfe = new ForeachStatement(loc, TOK.foreach_, pparams[2], aggr,
-                                      aggrfe ? aggrfe._body : rangefe._body,
-                                      aggrfe ? aggrfe.endloc : rangefe.endloc);
-        rangefe = null;
-        lowerArrayAggregate(sc); // finally, turn generated array into expression tuple
+        assert(!!lstf.aggrfe ^ !!lstf.rangefe);
+        lstf.aggrfe = new ForeachStatement(lstf.loc, TOK.foreach_, pparams[2], aggr,
+                                      lstf.aggrfe ? lstf.aggrfe._body : lstf.rangefe._body,
+                                      lstf.aggrfe ? lstf.aggrfe.endloc : lstf.rangefe.endloc);
+        lstf.rangefe = null;
+        lowerArrayAggregate(lstf, sc); // finally, turn generated array into expression tuple
+    }
+
+    /*****************************************
+     * Perform `static foreach` lowerings that are necessary in order
+     * to finally expand the `static foreach` using
+     * `dmd.statementsem.makeTupleForeach`.
+     */
+    void prepare(StaticForeach lstf, Scope* sc)
+    {
+        assert(sc);
+
+        if (lstf.aggrfe)
+        {
+            sc = sc.startCTFE();
+            lstf.aggrfe.aggr = lstf.aggrfe.aggr.expressionSemantic(sc);
+            sc = sc.endCTFE();
+        }
+
+        if (lstf.aggrfe && lstf.aggrfe.aggr.type.toBasetype().ty == Terror)
+        {
+            return;
+        }
+
+        if (!lstf.ready())
+        {
+            if (lstf.aggrfe && lstf.aggrfe.aggr.type.toBasetype().ty == Tarray)
+            {
+                lowerArrayAggregate(lstf,sc);
+            }
+            else
+            {
+                lowerNonArrayAggregate(lstf, sc);
+            }
+        }
     }
