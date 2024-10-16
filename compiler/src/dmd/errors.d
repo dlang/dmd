@@ -456,13 +456,13 @@ private struct ErrorInfo
  *      p1          = additional message prefix
  *      p2          = additional message prefix
  */
-extern (C++) void verrorReport(const Loc loc, const(char)* format, va_list ap, ErrorKind kind, const(char)* p1 = null, const(char)* p2 = null)
+private extern(C++) void verrorReport(const Loc loc, const(char)* format, va_list ap, ErrorKind kind, const(char)* p1 = null, const(char)* p2 = null)
 {
     return verrorReport(loc.SourceLoc, format, ap, kind, p1, p2);
 }
 
 /// ditto
-extern (C++) void verrorReport(const SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind, const(char)* p1 = null, const(char)* p2 = null)
+private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind, const(char)* p1 = null, const(char)* p2 = null)
 {
     auto info = ErrorInfo(loc, kind, p1, p2);
     final switch (info.kind)
@@ -562,13 +562,13 @@ extern (C++) void verrorReport(const SourceLoc loc, const(char)* format, va_list
  *      ap          = printf-style variadic arguments
  *      kind        = kind of error being printed
  */
-extern (C++) void verrorReportSupplemental(const ref Loc loc, const(char)* format, va_list ap, ErrorKind kind)
+private extern(C++) void verrorReportSupplemental(const ref Loc loc, const(char)* format, va_list ap, ErrorKind kind)
 {
     return verrorReportSupplemental(loc.SourceLoc, format, ap, kind);
 }
 
 /// ditto
-extern (C++) void verrorReportSupplemental(const SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind)
+private extern(C++) void verrorReportSupplemental(const SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind)
 {
     auto info = ErrorInfo(loc, kind);
     info.supplemental = true;
