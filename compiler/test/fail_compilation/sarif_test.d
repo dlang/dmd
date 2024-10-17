@@ -10,7 +10,7 @@ fail_compilation/sarif_test.d(34): Error: undefined identifier `x`
     {
       "location": {
         "artifactLocation": {
-          "uri": "file:///home/royalpinto007/d-build-source/dmd/compiler/test/fail_compilation/sarif_test.d"
+          "uri": "$p:sarif_test\\.d$"
         },
         "region": {
           "startLine": 34,
@@ -23,7 +23,7 @@ fail_compilation/sarif_test.d(34): Error: undefined identifier `x`
   ],
   "tool": {
     "name": "DMD",
-    "version": "v2.110.0-beta.1-324-gab8582b70f-dirty"
+    "version": "$r:v2\\..*$"
   }
 }
 ---
@@ -31,5 +31,5 @@ fail_compilation/sarif_test.d(34): Error: undefined identifier `x`
 // REQUIRED_ARGS: --sarif
 
 void main() {
-    x = 5; // Undefined identifier 'x' to trigger an error
+    x = 5; // Undefined variable to trigger the error
 }
