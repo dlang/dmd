@@ -32,7 +32,7 @@ import dmd.declaration;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem : setScope, addMember;
+import dmd.dsymbolsem : setScope, addMember, include;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
@@ -110,7 +110,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         //printf("AttribDeclaration::addComment %s\n", comment);
         if (comment)
         {
-            include(null).foreachDsymbol( s => s.addComment(comment) );
+            this.include(null).foreachDsymbol( s => s.addComment(comment) );
         }
     }
 
@@ -121,23 +121,23 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
 
     override bool oneMember(out Dsymbol ps, Identifier ident)
     {
-        Dsymbols* d = include(null);
+        Dsymbols* d = this.include(null);
         return Dsymbol.oneMembers(d, ps, ident);
     }
 
     override final bool hasPointers()
     {
-        return include(null).foreachDsymbol( (s) { return s.hasPointers(); } ) != 0;
+        return this.include(null).foreachDsymbol( (s) { return s.hasPointers(); } ) != 0;
     }
 
     override final bool hasStaticCtorOrDtor()
     {
-        return include(null).foreachDsymbol( (s) { return s.hasStaticCtorOrDtor(); } ) != 0;
+        return this.include(null).foreachDsymbol( (s) { return s.hasStaticCtorOrDtor(); } ) != 0;
     }
 
     override final void checkCtorConstInit()
     {
-        include(null).foreachDsymbol( s => s.checkCtorConstInit() );
+        this.include(null).foreachDsymbol( s => s.checkCtorConstInit() );
     }
 
     /****************************************
