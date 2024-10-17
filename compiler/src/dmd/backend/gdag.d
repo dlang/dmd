@@ -75,7 +75,7 @@ void builddags(ref GlobalOptimizer go)
     vec_t aevec;
 
     debug if (debugc) printf("builddags()\n");
-    assert(dfo);
+    assert(bo.dfo);
     flowae(go);                       /* compute available expressions */
     if (go.exptop <= 1)             /* if no AEs                     */
         return;
@@ -130,14 +130,14 @@ void builddags(ref GlobalOptimizer go)
         /* the code generator can only track register contents          */
         /* properly across extended basic blocks.                       */
         aevec = vec_calloc(go.exptop);
-        foreach (i, b; dfo[])
+        foreach (i, b; bo.dfo[])
         {
             /* if not first block and (there are more than one      */
             /* predecessor or the only predecessor is not the       */
             /* previous block), then zero out the available         */
             /* expressions.                                         */
             if ((i != 0 &&
-                 (list_block(b.Bpred) != dfo[i - 1] ||
+                 (list_block(b.Bpred) != bo.dfo[i - 1] ||
                   list_next(b.Bpred) != null))
                 || b.BC == BCasm
                 || b.BC == BC_finally
@@ -154,7 +154,7 @@ void builddags(ref GlobalOptimizer go)
 
     // Need 2 passes to converge on solution
     foreach (j; 0 .. 2)
-        foreach (b; dfo[])
+        foreach (b; bo.dfo[])
         {
             if (b.Belem)
             {
@@ -598,8 +598,8 @@ void boolopt(ref GlobalOptimizer go)
     vec_t aevecval;
 
     debug if (debugc) printf("boolopt()\n");
-    if (!dfo.length)
-        compdfo(dfo, startblock);
+    if (!bo.dfo.length)
+        compdfo(bo.dfo, bo.startblock);
     flowae(go);                       /* compute available expressions */
     if (go.exptop <= 1)             /* if no AEs                     */
         return;
@@ -633,14 +633,14 @@ void boolopt(ref GlobalOptimizer go)
         }
     }
 
-    foreach (i, b; dfo[])
+    foreach (i, b; bo.dfo[])
     {
         /* if not first block and (there are more than one      */
         /* predecessor or the only predecessor is not the       */
         /* previous block), then zero out the available         */
         /* expressions.                                         */
         if ((i != 0 &&
-             (list_block(b.Bpred) != dfo[i - 1] ||
+             (list_block(b.Bpred) != bo.dfo[i - 1] ||
               list_next(b.Bpred) != null))
             || b.BC == BCasm
             || b.BC == BC_finally

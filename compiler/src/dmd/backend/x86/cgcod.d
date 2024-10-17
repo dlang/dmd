@@ -90,7 +90,7 @@ void codgen(Symbol *sfunc)
 
     /* Sadly, the dwarf and Windows unwinders relies on the function epilog to exist
      */
-    for (block* b = startblock; b; b = b.Bnext)
+    for (block* b = bo.startblock; b; b = b.Bnext)
     {
         if (b.BC == BCexit)
             b.BC = BCret;
@@ -152,7 +152,7 @@ void codgen(Symbol *sfunc)
                                             //  we use one)
         assert(!(cgstate.needframe && cgstate.mfuncreg & mask(cgstate.BP))); // needframe needs mBP
 
-        for (block* b = startblock; b; b = b.Bnext)
+        for (block* b = bo.startblock; b; b = b.Bnext)
         {
             memset(&b.Bregcon,0,b.Bregcon.sizeof);       // Clear out values in registers
             if (b.Belem)
@@ -194,10 +194,10 @@ void codgen(Symbol *sfunc)
                 !(sfunc.ty() & mTYnaked))      // naked functions may have hidden veys of returning
                 sfunc.Sflags |= SFLexit;       // mark function as never returning
 
-            assert(dfo);
+            assert(bo.dfo);
 
             cgreg_reset();
-            foreach (i, b; dfo[])
+            foreach (i, b; bo.dfo[])
             {
                 cgstate.dfoidx = cast(int)i;
                 cgstate.regcon.used = cgstate.msavereg | cgstate.regcon.cse.mval;   // registers already in use
@@ -210,7 +210,7 @@ void codgen(Symbol *sfunc)
         else
         {
             cgstate.pass = BackendPass.final_;
-            for (block* b = startblock; b; b = b.Bnext)
+            for (block* b = bo.startblock; b; b = b.Bnext)
             {
                 blcodgen(cgstate, b);        // generate the code for each block
                 //for (code* cx = b.Bcode; cx; cx = code_next(cx)) printf("Bcode x%08x\n", cx.Iop);
@@ -242,7 +242,7 @@ void codgen(Symbol *sfunc)
 
         /* free up generated code for next pass
          */
-        for (block* b = startblock; b; b = b.Bnext)
+        for (block* b = bo.startblock; b; b = b.Bnext)
         {
             code_free(b.Bcode);
             b.Bcode = null;
@@ -278,14 +278,14 @@ void codgen(Symbol *sfunc)
     }
 
     stackoffsets(cgstate, globsym, false); // compute final offsets of stack variables
-    cod5_prol_epi(startblock);    // see where to place prolog/epilog
+    cod5_prol_epi(bo.startblock);    // see where to place prolog/epilog
     CSE.finish();                 // compute addresses and sizes of CSE saves
 
     if (configv.addlinenumbers)
         objmod.linnum(sfunc.Sfunc.Fstartline,sfunc.Sseg,Offset(sfunc.Sseg));
 
     // Otherwise, jmp's to startblock will execute the prolog again
-    assert(!startblock.Bpred);
+    assert(!bo.startblock.Bpred);
 
     CodeBuilder cdbprolog; cdbprolog.ctor();
     prolog(cgstate, cdbprolog);           // gen function start code
@@ -299,7 +299,7 @@ void codgen(Symbol *sfunc)
     if (eecontext.EEelem)
         genEEcode();
 
-    for (block* b = startblock; b; b = b.Bnext)
+    for (block* b = bo.startblock; b; b = b.Bnext)
     {
         // We couldn't do this before because localsize was unknown
         switch (b.BC)
@@ -349,7 +349,7 @@ void codgen(Symbol *sfunc)
     do
     {
         flag = false;
-        for (block* b = startblock; b; b = b.Bnext)
+        for (block* b = bo.startblock; b; b = b.Bnext)
         {
             if (b.Bflags & BFL.jmpoptdone)      /* if no more jmp opts for this blk */
                 continue;
@@ -407,7 +407,7 @@ void codgen(Symbol *sfunc)
         __gshared Barray!ubyte disasmBuf;
         disasmBuf.reset();
 
-        for (block* b = startblock; b; b = b.Bnext)
+        for (block* b = bo.startblock; b; b = b.Bnext)
         {
             if (b.BC == BCjmptab || b.BC == BCswitch)
             {
@@ -463,7 +463,7 @@ static if (0)
         }
 
         // Write out switch tables
-        for (block* b = startblock; b; b = b.Bnext)
+        for (block* b = bo.startblock; b; b = b.Bnext)
         {
             switch (b.BC)
             {
@@ -521,13 +521,13 @@ static if (0)
             }
             if (config.ehmethod == EHmethod.EH_DWARF)
             {
-                sfunc.Sfunc.Fstartblock = startblock;
+                sfunc.Sfunc.Fstartblock = bo.startblock;
                 dwarf_except_gentables(sfunc, cast(uint)cgstate.startoffset, cast(uint)cgstate.retoffset);
                 sfunc.Sfunc.Fstartblock = null;
             }
         }
 
-        for (block* b = startblock; b; b = b.Bnext)
+        for (block* b = bo.startblock; b; b = b.Bnext)
         {
             code_free(b.Bcode);
             b.Bcode = null;

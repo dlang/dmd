@@ -740,7 +740,7 @@ void out_regcand(symtab_t *psymtab)
     }
 
     bool addressOfParam = false;                  // haven't taken addr of param yet
-    for (block *b = startblock; b; b = b.Bnext)
+    for (block *b = bo.startblock; b; b = b.Bnext)
     {
         if (b.Belem)
             out_regcand_walk(b.Belem, addressOfParam);
@@ -883,10 +883,10 @@ private void writefunc2(Symbol *sfunc, ref GlobalOptimizer go)
     foreach (si; 0 .. nsymbols)
         globsym[si] = f.Flocsym[si];
 
-    assert(startblock == null);
-    startblock = sfunc.Sfunc.Fstartblock;
+    assert(bo.startblock == null);
+    bo.startblock = sfunc.Sfunc.Fstartblock;
     sfunc.Sfunc.Fstartblock = null;
-    assert(startblock);
+    assert(bo.startblock);
 
     assert(funcsym_p == null);
     funcsym_p = sfunc;
@@ -951,7 +951,7 @@ private void writefunc2(Symbol *sfunc, ref GlobalOptimizer go)
 
     bool addressOfParam = false;  // see if any parameters get their address taken
     bool anyasm = false;
-    for (block *b = startblock; b; b = b.Bnext)
+    for (block *b = bo.startblock; b; b = b.Bnext)
     {
         memset(&b._BLU,0,block.sizeof - block._BLU.offsetof);
         if (b.Belem)
@@ -969,7 +969,6 @@ private void writefunc2(Symbol *sfunc, ref GlobalOptimizer go)
         }
         assert(b != b.Bnext);
     }
-    PARSER = 0;
     if (eecontext.EEelem)
     {
         const marksi = globsym.length;
@@ -996,7 +995,7 @@ private void writefunc2(Symbol *sfunc, ref GlobalOptimizer go)
     {
         if (debugb)
         {
-            WRfunc("codegen", funcsym_p, startblock);
+            WRfunc("codegen", funcsym_p, bo.startblock);
         }
     }
 
@@ -1035,16 +1034,16 @@ private void writefunc2(Symbol *sfunc, ref GlobalOptimizer go)
     //printf("codgen()\n");
     codgen(sfunc);                  // generate code
     //printf("after codgen for %s Coffset %x\n",sfunc.Sident.ptr,Offset(cseg));
-    sfunc.Sfunc.Fstartblock = startblock;
+    sfunc.Sfunc.Fstartblock = bo.startblock;
     bool saveForInlining = canInlineFunction(sfunc);
     if (saveForInlining)
     {
-        startblock = null;
+        bo.startblock = null;
     }
     else
     {
         sfunc.Sfunc.Fstartblock = null;
-        blocklist_free(&startblock);
+        blocklist_free(&bo.startblock);
     }
 
     objmod.func_term(sfunc);

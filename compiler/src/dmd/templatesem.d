@@ -353,7 +353,7 @@ MATCH matchWithInstance(Scope* sc, TemplateDeclaration td, TemplateInstance ti, 
 
             // Resolve parameter types and 'auto ref's.
             tf.inferenceArguments = argumentList;
-            uint olderrors = global.startGagging();
+            const olderrors = global.startGagging();
             fd.type = tf.typeSemantic(td.loc, paramscope);
             global.endGagging(olderrors);
             if (fd.type.ty != Tfunction)
@@ -1421,7 +1421,7 @@ extern (D) MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, Templat
                             Dsymbol s;
                             Scope *sco;
 
-                            uint errors = global.startGagging();
+                            const errors = global.startGagging();
                             /* ref: https://issues.dlang.org/show_bug.cgi?id=11118
                              * The parameter isn't part of the template
                              * ones, let's try to find it in the

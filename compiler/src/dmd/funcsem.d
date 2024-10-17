@@ -1168,7 +1168,7 @@ bool functionSemantic(FuncDeclaration fd)
     {
         TemplateInstance spec = fd.isSpeculative();
         const olderrs = global.errors;
-        uint oldgag = global.gag;
+        const oldgag = global.gag;
         if (global.gag && !spec)
             global.gag = 0;
         dsymbolSemantic(fd, fd._scope);
@@ -1224,7 +1224,7 @@ bool functionSemantic3(FuncDeclaration fd)
          */
         TemplateInstance spec = fd.isSpeculative();
         const olderrs = global.errors;
-        uint oldgag = global.gag;
+        const oldgag = global.gag;
         if (global.gag && !spec)
             global.gag = 0;
         semantic3(fd, fd._scope);

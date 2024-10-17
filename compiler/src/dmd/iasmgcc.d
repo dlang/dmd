@@ -410,7 +410,7 @@ unittest
     if (!global.errorSink)
         global.errorSink = new ErrorSinkCompiler;
 
-    uint errors = global.startGagging();
+    const errors = global.startGagging();
     scope(exit) global.endGagging(errors);
 
     // If this check fails, then Type._init() was called before reaching here,

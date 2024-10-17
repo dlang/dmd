@@ -35,7 +35,6 @@ __gshared:
 /* Global flags:
  */
 
-char PARSER = 0;                    // indicate we're in the parser
 char OPTIMIZER = 0;                 // indicate we're in the optimizer
 int structalign;                /* alignment for members of structures  */
 char dbcs = 0;                      // current double byte character set

@@ -1792,7 +1792,7 @@ static if (1)
 
             case SC.const_:
                 // The only constants are enum members
-                value = cast(uint)el_tolongt(s.Svalue);
+                value = cast(uint)el_tolong(s.Svalue);
                 TOWORD(debsym + 2,S_CONST);
                 TOIDX(debsym + 4,typidx);
                 length = 4 + cgcv.sz_idx;

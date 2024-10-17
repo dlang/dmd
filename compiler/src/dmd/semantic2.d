@@ -148,9 +148,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
 
         const needGagging = (tempinst.gagged && !global.gag);
         const olderrors = global.errors;
-        int oldGaggedErrors = -1; // dead-store to prevent spurious warning
-        if (needGagging)
-            oldGaggedErrors = global.startGagging();
+        const oldGaggedErrors = needGagging ? global.startGagging() : -1;
 
         for (size_t i = 0; i < tempinst.members.length; i++)
         {

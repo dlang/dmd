@@ -725,7 +725,7 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
             (*fargs)[0] = ie.lwr;
             (*fargs)[1] = ie.upr;
 
-            uint xerrors = global.startGagging();
+            const xerrors = global.startGagging();
             sc = sc.push();
             FuncDeclaration fslice = resolveFuncCall(ae.loc, sc, slice, tiargs, ae.e1.type, ArgumentList(fargs), FuncResolveFlag.quiet);
             sc = sc.pop();
@@ -1225,7 +1225,7 @@ private Expression resolveUFCS(Scope* sc, CallExp ce)
                     // check them for issues.
                     Expressions* originalArguments = Expression.arraySyntaxCopy(ce.arguments);
 
-                    uint errors = global.startGagging();
+                    const errors = global.startGagging();
                     e = ce.expressionSemantic(sc);
                     if (!global.endGagging(errors))
                         return e;
@@ -8244,7 +8244,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (e && isDotOpDispatch(e))
         {
             auto ode = e;
-            uint errors = global.startGagging();
+            const errors = global.startGagging();
             e = resolvePropertiesX(sc, e);
             // Any error or if 'e' is not resolved, go to UFCS
             if (global.endGagging(errors) || e is ode)
@@ -10607,7 +10607,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                      */
                     auto ode = e;
                     exp.e2 = exp.e2.expressionSemantic(sc);
-                    uint errors = global.startGagging();
+                    const errors = global.startGagging();
                     e = resolvePropertiesX(sc, e, exp.e2);
                     // Any error or if 'e' is not resolved, go to UFCS
                     if (global.endGagging(errors) || e is ode)
@@ -14289,7 +14289,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 Expression trySemantic(Expression exp, Scope* sc)
 {
     //printf("+trySemantic(%s)\n", exp.toChars());
-    uint errors = global.startGagging();
+    const errors = global.startGagging();
     Expression e = expressionSemantic(exp, sc);
     if (global.endGagging(errors))
     {
