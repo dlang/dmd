@@ -43,6 +43,7 @@ extern (C) void main()
     testRuntimeLowerings();
     test18457();
     test20737();
+    testScopeInferenceArrayLiteral();
 }
 
 /*******************************************/
@@ -220,4 +221,16 @@ void test22427()
 
     char[] p;
     auto a = cast(int[])p;
+}
+
+/*******************************************/
+// Test that local variable can be inferred scope, moving
+// array literal from GC to stack, allowing usage in betterC
+
+int testScopeInferenceArrayLiteral()
+{
+    auto x = [10, 20, 30] ~ [40];
+    x[0] = 50;
+    assert(x[0] + x[1] == 70);
+    return x[0];
 }
