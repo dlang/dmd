@@ -10,7 +10,7 @@ fail_compilation/sarif_test.d(34): Error: undefined identifier `x`
     {
       "location": {
         "artifactLocation": {
-          "uri": "$p:sarif_test\\.d$"
+          "uri": "$p:(.*[\\\\/])?sarif_test\\.d$"
         },
         "region": {
           "startLine": 34,
@@ -23,7 +23,7 @@ fail_compilation/sarif_test.d(34): Error: undefined identifier `x`
   ],
   "tool": {
     "name": "DMD",
-    "version": "$r:v2\\..*$"
+    "version": "$r:v2\\..*\\s?"
   }
 }
 ---
