@@ -725,7 +725,7 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
             (*fargs)[0] = ie.lwr;
             (*fargs)[1] = ie.upr;
 
-            uint xerrors = global.startGagging();
+            const xerrors = global.startGagging();
             sc = sc.push();
             FuncDeclaration fslice = resolveFuncCall(ae.loc, sc, slice, tiargs, ae.e1.type, ArgumentList(fargs), FuncResolveFlag.quiet);
             sc = sc.pop();
@@ -1225,7 +1225,7 @@ private Expression resolveUFCS(Scope* sc, CallExp ce)
                     // check them for issues.
                     Expressions* originalArguments = Expression.arraySyntaxCopy(ce.arguments);
 
-                    uint errors = global.startGagging();
+                    const errors = global.startGagging();
                     e = ce.expressionSemantic(sc);
                     if (!global.endGagging(errors))
                         return e;
@@ -5716,7 +5716,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         Expression e = exp;
-        uint olderrors;
 
         sc = sc.push(); // just create new scope
         sc.ctfe = false; // temporary stop CTFE
@@ -5745,6 +5744,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
+        void done()
+        {
+            sc = sc.pop();
+            result = e;
+        }
+
         //printf("td = %p, treq = %p\n", td, fd.treq);
         if (exp.td)
         {
@@ -5760,10 +5765,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 else
                     e = ErrorExp.get();
             }
-            goto Ldone;
+            return done();
         }
 
-        olderrors = global.errors;
+        const olderrors = global.errors;
         exp.fd.dsymbolSemantic(sc);
         if (olderrors == global.errors)
         {
@@ -5776,7 +5781,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (exp.fd.type && exp.fd.type.ty == Tfunction && !exp.fd.type.nextOf())
                 (cast(TypeFunction)exp.fd.type).next = Type.terror;
             e = ErrorExp.get();
-            goto Ldone;
+            return done();
         }
 
         // Type is a "delegate to" or "pointer to" the function literal
@@ -5789,7 +5794,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (exp.fd.type.isTypeError())
             {
                 e = ErrorExp.get();
-                goto Ldone;
+                return done();
             }
             exp.type = new TypeDelegate(exp.fd.type.isTypeFunction());
             exp.type = exp.type.typeSemantic(exp.loc, sc);
@@ -5818,10 +5823,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
         exp.fd.tookAddressOf++;
-
-    Ldone:
-        sc = sc.pop();
-        result = e;
+        done();
     }
 
     /**
@@ -6343,46 +6345,45 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 if (tiargs && s.isFuncDeclaration())
                     continue;
-                if (auto f2 = resolveFuncCall(loc, sc, s, tiargs, tthis, argumentList, FuncResolveFlag.quiet))
+                auto f2 = resolveFuncCall(loc, sc, s, tiargs, tthis, argumentList, FuncResolveFlag.quiet);
+                if (!f2)
+                    continue;
+                if (f2.errors)
+                    return null;
+                if (!f)
                 {
-                    if (f2.errors)
-                        return null;
-                    if (f)
-                    {
-                        /* Match in more than one overload set,
-                         * even if one is a 'better' match than the other.
-                         */
-                        if (f.isCsymbol() && f2.isCsymbol())
-                        {
-                            /* C has global name space, so just pick one, such as f.
-                             * If f and f2 are not compatible, that's how C rolls.
-                             */
-                        }
-                        else
-                            ScopeDsymbol.multiplyDefined(loc, f, f2); // issue error
-                    }
-                    else
-                        f = f2;
+                    f = f2;
+                    continue;
                 }
+                /* Match in more than one overload set,
+                 * even if one is a 'better' match than the other.
+                 */
+                if (f.isCsymbol() && f2.isCsymbol())
+                {
+                    /* C has global name space, so just pick one, such as f.
+                     * If f and f2 are not compatible, that's how C rolls.
+                     */
+                }
+                else
+                    ScopeDsymbol.multiplyDefined(loc, f, f2); // issue error
             }
-            if (!f)
+            if (f && f.errors)
+                return null;
+            if (f)
+                return f;
+            .error(loc, "no overload matches for `%s`", exp.toChars());
+            errorSupplemental(loc, "Candidates are:");
+            foreach (s; os.a)
             {
-                .error(loc, "no overload matches for `%s`", exp.toChars());
-                errorSupplemental(loc, "Candidates are:");
-                foreach (s; os.a)
-                {
-                    overloadApply(s, (ds){
-                        if (auto fd = ds.isFuncDeclaration())
-                            .errorSupplemental(ds.loc, "%s%s", fd.toChars(),
-                                fd.type.toTypeFunction().parameterList.parametersTypeToChars());
-                        else
-                            .errorSupplemental(ds.loc, "%s", ds.toChars());
-                        return 0;
-                    });
-                }
+                overloadApply(s, (ds){
+                    if (auto fd = ds.isFuncDeclaration())
+                        .errorSupplemental(ds.loc, "%s%s", fd.toChars(),
+                            fd.type.toTypeFunction().parameterList.parametersTypeToChars());
+                    else
+                        .errorSupplemental(ds.loc, "%s", ds.toChars());
+                    return 0;
+                });
             }
-            else if (f.errors)
-                f = null;
             return f;
         }
 
@@ -6979,7 +6980,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("DeclarationExp::semantic() %s\n", e.toChars());
         }
 
-        uint olderrors = global.errors;
+        const olderrors = global.errors;
 
         /* This is here to support extern(linkage) declaration,
          * where the extern(linkage) winds up being an AttribDeclaration
@@ -7711,13 +7712,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (expressionsToString(buf, sc, exp.exps, exp.loc, null, true))
             return null;
 
-        uint errors = global.errors;
+        const errors = global.errors;
         const len = buf.length;
         const str = buf.extractChars()[0 .. len];
         const bool doUnittests = global.params.parsingUnittestsRequired();
         auto loc = adjustLocForMixin(str, exp.loc, global.params.mixinOut);
         scope p = new Parser!ASTCodegen(loc, sc._module, str, false, global.errorSink, &global.compileEnv, doUnittests);
-        p.transitionIn = global.params.v.vin;
         p.nextToken();
         //printf("p.loc.linnum = %d\n", p.loc.linnum);
 
@@ -8244,7 +8244,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (e && isDotOpDispatch(e))
         {
             auto ode = e;
-            uint errors = global.startGagging();
+            const errors = global.startGagging();
             e = resolvePropertiesX(sc, e);
             // Any error or if 'e' is not resolved, go to UFCS
             if (global.endGagging(errors) || e is ode)
@@ -10607,7 +10607,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                      */
                     auto ode = e;
                     exp.e2 = exp.e2.expressionSemantic(sc);
-                    uint errors = global.startGagging();
+                    const errors = global.startGagging();
                     e = resolvePropertiesX(sc, e, exp.e2);
                     // Any error or if 'e' is not resolved, go to UFCS
                     if (global.endGagging(errors) || e is ode)
@@ -14289,7 +14289,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 Expression trySemantic(Expression exp, Scope* sc)
 {
     //printf("+trySemantic(%s)\n", exp.toChars());
-    uint errors = global.startGagging();
+    const errors = global.startGagging();
     Expression e = expressionSemantic(exp, sc);
     if (global.endGagging(errors))
     {
@@ -17393,7 +17393,7 @@ private bool needsTypeInference(TemplateInstance ti, Scope* sc, int flag = 0)
     if (ti.semanticRun != PASS.initial)
         return false;
 
-    uint olderrs = global.errors;
+    const olderrs = global.errors;
     Objects dedtypes;
     size_t count = 0;
 

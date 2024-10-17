@@ -382,7 +382,7 @@ extern (C++) final class StaticForeach : RootObject
 
         // Run 'typeof' gagged to avoid duplicate errors and if it fails just create
         // an empty foreach to expose them.
-        uint olderrors = global.startGagging();
+        const olderrors = global.startGagging();
         ety = ety.typeSemantic(aloc, sc);
         if (global.endGagging(olderrors))
             s2.push(createForeach(aloc, pparams[1], null));

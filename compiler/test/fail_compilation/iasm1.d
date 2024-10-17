@@ -82,6 +82,7 @@ void test3()
 TEST_OUTPUT:
 ---
 fail_compilation/iasm1.d(403): Error: expression expected not `;`
+fail_compilation/iasm1.d(403): Error: `]` expected instead of `;`
 ---
 */
 

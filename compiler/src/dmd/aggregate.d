@@ -25,7 +25,7 @@ import dmd.declaration;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem : dsymbolSemantic, determineFields, search, include;
+import dmd.dsymbolsem : dsymbolSemantic, determineFields, search, determineSize, include;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
@@ -187,70 +187,12 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
         return fields.length - isNested() - (vthis2 !is null);
     }
 
-    /***************************************
-     * Collect all instance fields, then determine instance size.
-     * Returns:
-     *      false if failed to determine the size.
-     */
-    extern (D) final bool determineSize(const ref Loc loc)
-    {
-        //printf("AggregateDeclaration::determineSize() %s, sizeok = %d\n", toChars(), sizeok);
-
-        // The previous instance size finalizing had:
-        if (type.ty == Terror || errors)
-            return false;   // failed already
-        if (sizeok == Sizeok.done)
-            return true;    // succeeded
-
-        if (!members)
-        {
-            .error(loc, "%s `%s` unknown size", kind, toPrettyChars);
-            return false;
-        }
-
-        if (_scope)
-            dsymbolSemantic(this, null);
-
-        // Determine the instance size of base class first.
-        if (auto cd = isClassDeclaration())
-        {
-            cd = cd.baseClass;
-            if (cd && !cd.determineSize(loc))
-                goto Lfail;
-        }
-
-        // Determine instance fields when sizeok == Sizeok.none
-        if (!this.determineFields())
-            goto Lfail;
-        if (sizeok != Sizeok.done)
-            finalizeSize();
-
-        // this aggregate type has:
-        if (type.ty == Terror)
-            return false;   // marked as invalid during the finalizing.
-        if (sizeok == Sizeok.done)
-            return true;    // succeeded to calculate instance size.
-
-    Lfail:
-        // There's unresolvable forward reference.
-        if (type != Type.terror)
-            error(loc, "%s `%s` no size because of forward reference", kind, toPrettyChars);
-        // Don't cache errors from speculative semantic, might be resolvable later.
-        // https://issues.dlang.org/show_bug.cgi?id=16574
-        if (!global.gag)
-        {
-            type = Type.terror;
-            errors = true;
-        }
-        return false;
-    }
-
     abstract void finalizeSize();
 
     override final uinteger_t size(const ref Loc loc)
     {
         //printf("+AggregateDeclaration::size() %s, scope = %p, sizeok = %d\n", toChars(), _scope, sizeok);
-        bool ok = determineSize(loc);
+        bool ok = determineSize(this, loc);
         //printf("-AggregateDeclaration::size() %s, scope = %p, sizeok = %d\n", toChars(), _scope, sizeok);
         return ok ? structsize : SIZE_INVALID;
     }

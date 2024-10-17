@@ -19,7 +19,7 @@ import core.stdc.stdint;
 
 import dmd.backend.barray;
 import dmd.backend.cdef;
-import dmd.backend.cc : Symbol, block, Classsym, BlockState, FLdata;
+import dmd.backend.cc : Symbol, block, Classsym, BlockState, FLdata, Srcpos;
 import dmd.backend.code;
 import dmd.backend.dlist;
 import dmd.backend.el : elem;
@@ -30,12 +30,26 @@ import dmd.backend.type;
 import dmd.backend.var : _tysize;
 
 nothrow:
-@safe:
 @nogc:
 
-// FIXME: backend can't import front end modules because missing -J flag
-extern (C++) void error(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
-package extern (C++) void fatal();
+/// Callback for errors raised by the backend
+alias ErrorCallbackBackend = extern(C++) void function(const(char)* filename, uint linnum, uint charnum, const(char)* format, ...);
+
+package(dmd.backend) __gshared ErrorCallbackBackend errorCallbackBackend;
+
+/**
+ * Backend error report function
+ * Params:
+ *     srcPos = source location
+ *     format = printf format string with error message
+ *     args = printf format string arguments
+ */
+void error(T...)(Srcpos srcPos, const(char)* format, T args)
+{
+    errorCallbackBackend(srcPos.Sfilename, srcPos.Slinnum, srcPos.Scharnum, format, args);
+}
+
+@safe:
 
 /***********************************
  * Returns: aligned `offset` if it is of size `size`.
@@ -100,9 +114,9 @@ public import dmd.backend.var : debuga, debugb, debugc, debugd, debuge, debugf,
 
 extern (D) regm_t mask(uint m) { return cast(regm_t)1 << m; }
 
-public import dmd.backend.var : OPTIMIZER, PARSER, globsym, controlc_saw, pointertype, sytab;
+public import dmd.backend.var : OPTIMIZER, globsym, controlc_saw, pointertype, sytab;
 public import dmd.backend.cg : fregsaved, localgot, tls_get_addr_sym;
-public import dmd.backend.blockopt : startblock, dfo, curblock, block_last;
+public import dmd.backend.blockopt : bo;
 
 __gshared Configv configv;                // non-ph part of configuration
 
@@ -141,7 +155,7 @@ public import dmd.backend.dout : outthunk, out_readonly, out_readonly_comdat,
 public import dmd.backend.blockopt : bc_goal, block_calloc, block_init, block_term, block_next,
     block_next, block_goto, block_goto, block_goto, block_goto, block_ptr, block_pred,
     block_clearvisit, block_visit, block_compbcount, blocklist_free, block_optimizer_free,
-    block_free, block_appendexp, block_endfunc, brcombine, blockopt, compdfo;
+    block_free, block_appendexp, brcombine, blockopt, compdfo;
 
 public import dmd.backend.var : regstring;
 public import dmd.backend.debugprint;

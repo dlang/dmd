@@ -632,7 +632,7 @@ extern (C++) final class AliasDeclaration : Declaration
         if (inuse == 1 && type && _scope)
         {
             inuse = 2;
-            uint olderrors = global.errors;
+            const olderrors = global.errors;
             Dsymbol s = type.toDsymbol(_scope);
             //printf("[%s] type = %s, s = %p, this = %p\n", loc.toChars(), type.toChars(), s, this);
             if (global.errors != olderrors)
@@ -1099,7 +1099,7 @@ extern (C++) class VarDeclaration : Declaration
         assert(type && _init);
 
         // Ungag errors when not speculative
-        uint oldgag = global.gag;
+        const oldgag = global.gag;
         if (global.gag)
         {
             Dsymbol sym = isMember();

@@ -30,6 +30,7 @@ import dmd.dtemplate;
 import dmd.enumsem;
 import dmd.errors;
 import dmd.expression;
+import dmd.dsymbolsem : determineSize;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
@@ -1115,65 +1116,66 @@ extern (C++) abstract class Type : ASTNode
         Type t = this;
         if (t.isImmutable())
         {
+            return t;
         }
         else if (stc & STC.immutable_)
         {
             t = t.makeImmutable();
+            return t;
         }
-        else
+
+        if ((stc & STC.shared_) && !t.isShared())
         {
-            if ((stc & STC.shared_) && !t.isShared())
+            if (t.isWild())
+            {
+                if (t.isConst())
+                    t = t.makeSharedWildConst();
+                else
+                    t = t.makeSharedWild();
+            }
+            else
+            {
+                if (t.isConst())
+                    t = t.makeSharedConst();
+                else
+                    t = t.makeShared();
+            }
+        }
+        if ((stc & STC.const_) && !t.isConst())
+        {
+            if (t.isShared())
             {
                 if (t.isWild())
-                {
-                    if (t.isConst())
-                        t = t.makeSharedWildConst();
-                    else
-                        t = t.makeSharedWild();
-                }
+                    t = t.makeSharedWildConst();
                 else
-                {
-                    if (t.isConst())
-                        t = t.makeSharedConst();
-                    else
-                        t = t.makeShared();
-                }
+                    t = t.makeSharedConst();
             }
-            if ((stc & STC.const_) && !t.isConst())
+            else
             {
-                if (t.isShared())
-                {
-                    if (t.isWild())
-                        t = t.makeSharedWildConst();
-                    else
-                        t = t.makeSharedConst();
-                }
+                if (t.isWild())
+                    t = t.makeWildConst();
                 else
-                {
-                    if (t.isWild())
-                        t = t.makeWildConst();
-                    else
-                        t = t.makeConst();
-                }
-            }
-            if ((stc & STC.wild) && !t.isWild())
-            {
-                if (t.isShared())
-                {
-                    if (t.isConst())
-                        t = t.makeSharedWildConst();
-                    else
-                        t = t.makeSharedWild();
-                }
-                else
-                {
-                    if (t.isConst())
-                        t = t.makeWildConst();
-                    else
-                        t = t.makeWild();
-                }
+                    t = t.makeConst();
             }
         }
+        if ((stc & STC.wild) && !t.isWild())
+        {
+            if (t.isShared())
+            {
+                if (t.isConst())
+                    t = t.makeSharedWildConst();
+                else
+                    t = t.makeSharedWild();
+            }
+            else
+            {
+                if (t.isConst())
+                    t = t.makeWildConst();
+                else
+                    t = t.makeWild();
+            }
+        }
+
         return t;
     }
 

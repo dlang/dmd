@@ -830,7 +830,7 @@ public:
                     continue;
                 }
                 // Now that we know it is not an alias, we MUST obtain a value
-                uint olderr = global.errors;
+                const olderr = global.errors;
                 ea = ea.ctfeInterpret();
                 if (ea.op == EXP.error || olderr != global.errors)
                     continue;

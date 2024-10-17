@@ -17,6 +17,7 @@ import core.checkedint;
 
 import dmd.errorsink;
 import dmd.location;
+import dmd.root.string : fTuple;
 
 nothrow:
 
@@ -29,12 +30,12 @@ enum LOG = false;
  *      pAddSymbol =  function to pass the names to
  *      base =        array of contents of object module
  *      module_name = name of the object module (used for error messages)
- *      loc =         location to use for error printing
+ *      filename =    object file name for error printing
  *      eSink =       where the error messages go
  */
 package(dmd.lib)
 void scanElfObjModule(void delegate(const(char)[] name, int pickAny) nothrow pAddSymbol,
-        scope const ubyte[] base, const char* module_name, Loc loc, ErrorSink eSink)
+        scope const ubyte[] base, const char* module_name, const(char)[] filename, ErrorSink eSink)
 {
     static if (LOG)
     {
@@ -43,7 +44,7 @@ void scanElfObjModule(void delegate(const(char)[] name, int pickAny) nothrow pAd
 
     void corrupt(int reason)
     {
-        eSink.error(loc, "corrupt ELF object module `%s` %d", module_name, reason);
+        eSink.error(Loc.initial, "corrupt ELF object `%.*s` module `%s` %d", filename.fTuple.expand, module_name, reason);
     }
 
     if (base.length < Elf32_Ehdr.sizeof)
@@ -54,16 +55,16 @@ void scanElfObjModule(void delegate(const(char)[] name, int pickAny) nothrow pAd
 
     if (base[EI_VERSION] != EV_CURRENT)
     {
-        return eSink.error(loc, "ELF object module `%s` has EI_VERSION = %d, should be %d",
+        return eSink.error(Loc.initial, "ELF object module `%s` has EI_VERSION = %d, should be %d",
             module_name, base[EI_VERSION], EV_CURRENT);
     }
     if (base[EI_DATA] != ELFDATA2LSB)
     {
-        return eSink.error(loc, "ELF object module `%s` is byte swapped and unsupported", module_name);
+        return eSink.error(Loc.initial, "ELF object module `%s` is byte swapped and unsupported", module_name);
     }
     if (base[EI_CLASS] != ELFCLASS32 && base[EI_CLASS] != ELFCLASS64)
     {
-        return eSink.error(loc, "ELF object module `%s` is unrecognized class %d", module_name, base[EI_CLASS]);
+        return eSink.error(Loc.initial, "ELF object module `%s` is unrecognized class %d", module_name, base[EI_CLASS]);
     }
 
     void scanELF(uint model)() nothrow
@@ -87,7 +88,7 @@ void scanElfObjModule(void delegate(const(char)[] name, int pickAny) nothrow pAd
 
         const eh = cast(const(ElfXX_Ehdr)*) base.ptr;
         if (eh.e_type != ET_REL)
-            return eSink.error(loc, "ELF object module `%s` is not relocatable", module_name);
+            return eSink.error(Loc.initial, "ELF object module `%s` is not relocatable", module_name);
         if (eh.e_version != EV_CURRENT)
             return corrupt(__LINE__);
 

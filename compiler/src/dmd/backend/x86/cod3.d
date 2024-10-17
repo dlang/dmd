@@ -1554,8 +1554,6 @@ regm_t allocretregs(const tym_t ty, type* t, const tym_t tyf, out reg_t reg1, ou
 private alias _compare_fp_t = extern(C) nothrow int function(const void*, const void*);
 extern(C) void qsort(void* base, size_t nmemb, size_t size, _compare_fp_t compar);
 
-extern (C)  // qsort cmp functions need to be "C"
-{
 struct CaseVal
 {
     targ_ullong val;
@@ -1569,7 +1567,6 @@ struct CaseVal
         const(CaseVal)* c2 = cast(const(CaseVal)*)q;
         return (c1.val < c2.val) ? -1 : ((c1.val == c2.val) ? 0 : 1);
     }
-}
 }
 
 /***
@@ -8089,7 +8086,7 @@ void code_print(scope code* c)
  *      cf = CF mask
  */
 @trusted
-extern (C) void CF_print(uint cf)
+void CF_print(uint cf)
 {
     void print(uint mask, const(char)* string)
     {

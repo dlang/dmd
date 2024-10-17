@@ -230,7 +230,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
         }
 
         Type t = s.getType(); // type symbol, type alias, or type tuple?
-        uint errorsave = global.errors;
+        const errorsave = global.errors;
         SearchOptFlags flags = t is null ? SearchOpt.localsOnly : SearchOpt.ignorePrivateImports;
 
         Dsymbol sm = s.searchX(loc, sc, id, flags);
@@ -2712,23 +2712,21 @@ Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                 which isn't a particularly good error message (x is a variable?).
             */
             Dsymbol varDecl = mtype.toDsymbol(sc);
-            const(Loc) varDeclLoc = varDecl.getLoc();
             Module varDeclModule = varDecl.getModule(); //This can be null
 
             .error(loc, "variable `%s` is used as a type", mtype.toChars());
             //Check for null to avoid https://issues.dlang.org/show_bug.cgi?id=22574
             if ((varDeclModule !is null) && varDeclModule != sc._module) // variable is imported
             {
-                const(Loc) varDeclModuleImportLoc = varDeclModule.getLoc();
                 .errorSupplemental(
-                    varDeclModuleImportLoc,
+                    varDeclModule.loc,
                     "variable `%s` is imported here from: `%s`",
                     varDecl.toChars,
                     varDeclModule.toPrettyChars,
                 );
             }
 
-            .errorSupplemental(varDeclLoc, "variable `%s` is declared here", varDecl.toChars);
+            .errorSupplemental(varDecl.loc, "variable `%s` is declared here", varDecl.toChars);
         }
         else
             .error(loc, "`%s` is used as a type", mtype.toChars());
@@ -4927,7 +4925,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                  * e.g.
                  *  template opDispatch(name) if (isValid!name) { ... }
                  */
-                uint errors = gagError ? global.startGagging() : 0;
+                const errors = gagError ? global.startGagging() : 0;
                 e = dti.dotTemplateSemanticProp(sc, DotExpFlag.none);
                 if (gagError && global.endGagging(errors))
                     e = null;
@@ -4945,7 +4943,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                  */
                 auto die = new DotIdExp(e.loc, alias_e, ident);
 
-                auto errors = gagError ? 0 : global.startGagging();
+                const errors = gagError ? 0 : global.startGagging();
                 auto exp = die.dotIdSemanticProp(sc, gagError);
                 if (!gagError)
                 {
@@ -7865,7 +7863,6 @@ RootObject compileTypeMixin(TypeMixin tm, ref const Loc loc, Scope* sc)
     const bool doUnittests = global.params.parsingUnittestsRequired();
     auto locm = adjustLocForMixin(str, loc, global.params.mixinOut);
     scope p = new Parser!ASTCodegen(locm, sc._module, str, false, global.errorSink, &global.compileEnv, doUnittests);
-    p.transitionIn = global.params.v.vin;
     p.nextToken();
     //printf("p.loc.linnum = %d\n", p.loc.linnum);
 

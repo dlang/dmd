@@ -2543,7 +2543,7 @@ private elem * elremquo(elem *e, Goal goal)
 {
     static if (0)
     if (cnst(e.E2) && !boolres(e.E2))
-        error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum, "divide by zero\n");
+        error(e.Esrcpos, "divide by zero\n");
 
     return e;
 }
@@ -2576,7 +2576,7 @@ private elem * eldiv(elem *e, Goal goal)
     {
         static if (0)
         if (!boolres(e2))
-            error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum, "divide by zero\n");
+            error(e.Esrcpos, "divide by zero\n");
 
         if (uns)
         {
@@ -6185,7 +6185,6 @@ beg:
 elem *doptelem(elem *e, Goal goal)
 {
     //printf("doptelem(e = %p, goal = x%x)\n", e, goal);
-    assert(!PARSER);
     do
     {   again = false;
         topair = false;
@@ -6235,7 +6234,7 @@ void postoptelem(elem *e)
                     const targ_ullong v = el_tolong(e.E1);
                     if (v < 4096 && !(e.Ety & mTYvolatile))
                     {
-                        error(pos.Sfilename, pos.Slinnum, pos.Scharnum, "null dereference in function %s", funcsym_p.Sident.ptr);
+                        error(pos, "null dereference in function %s", funcsym_p.Sident.ptr);
                         e.E1.Vlong = 4096;     // suppress redundant messages
                     }
                 }

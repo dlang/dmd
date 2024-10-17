@@ -1242,9 +1242,9 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
         }
         else if (arg == "-w")   // https://dlang.org/dmd.html#switch-w
-            params.warnings = DiagnosticReporting.error;
+            params.useWarnings = DiagnosticReporting.error;
         else if (arg == "-wi")  // https://dlang.org/dmd.html#switch-wi
-            params.warnings = DiagnosticReporting.inform;
+            params.useWarnings = DiagnosticReporting.inform;
         else if (arg == "-wo")  // https://dlang.org/dmd.html#switch-wo
         {
             // Obsolete features has been obsoleted until a DIP for "editions"
@@ -1814,6 +1814,7 @@ bool createModule(const(char)* file, ref Strings libmodules, const ref Target ta
     }
     const(char)[] p = FileName.name(file.toDString()); // strip path
     const(char)[] ext = FileName.ext(p);
+    Loc loc = Loc(file, 0, 0);
     if (!ext)
     {
         if (!p.length)
@@ -1822,7 +1823,7 @@ bool createModule(const(char)* file, ref Strings libmodules, const ref Target ta
             return true;
         }
         auto id = Identifier.idPool(p);
-        m = new Module(file.toDString, id, global.params.ddoc.doOutput, global.params.dihdr.doOutput);
+        m = new Module(loc, file.toDString, id, global.params.ddoc.doOutput, global.params.dihdr.doOutput);
         return false;
     }
 
@@ -1902,8 +1903,7 @@ bool createModule(const(char)* file, ref Strings libmodules, const ref Target ta
          * its path and extension.
          */
         auto id = Identifier.idPool(name);
-
-        m = new Module(file.toDString, id, global.params.ddoc.doOutput, global.params.dihdr.doOutput);
+        m = new Module(loc, file.toDString, id, global.params.ddoc.doOutput, global.params.dihdr.doOutput);
         return false;
     }
     eSink.error(Loc.initial, "unrecognized file extension %.*s", cast(int)ext.length, ext.ptr);
@@ -1954,7 +1954,7 @@ bool createModules(ref Strings files, ref Strings libmodules, const ref Target t
 /// Returns: a compiled module (semantic3) containing an empty main() function, for the -main flag
 Module moduleWithEmptyMain()
 {
-    auto result = new Module("__main.d", Identifier.idPool("__main"), false, false);
+    auto result = new Module(Loc.initial, "__main.d", Identifier.idPool("__main"), false, false);
     // need 2 trailing nulls for sentinel and 2 for lexer
     auto data = arraydup("version(D_BetterC)extern(C)int main(){return 0;}else int main(){return 0;}\0\0\0\0");
     result.src = cast(ubyte[]) data[0 .. $-4];

@@ -69,11 +69,203 @@ import dmd.toobj;
 import dmd.typesem;
 import dmd.utils;
 
-private:
 
-alias symbols = Array!(Symbol*);
+// Used in e2ir.d
+elem *toEfilenamePtr(Module m)
+{
+    //printf("toEfilenamePtr(%s)\n", m.toChars());
+    const(char)* id = m.srcfile.toChars();
+    size_t len = strlen(id);
+    Symbol* s = toStringSymbol(id, len, 1);
+    return el_ptr(s);
+}
 
 public alias toSymbol = dmd.tocsym.toSymbol;
+
+//extern
+__gshared Symbol* bzeroSymbol;        /// common location for immutable zeros
+
+/*******************************************
+ * Generate readonly symbol that consists of a bunch of zeros.
+ * Immutable Symbol instances can be mapped over it.
+ * Only one is generated per object file.
+ * Returns:
+ *    bzero symbol
+ */
+Symbol* getBzeroSymbol()
+{
+    Symbol* s = bzeroSymbol;
+    if (s)
+        return s;
+
+    s = symbol_calloc("__bzeroBytes");
+    s.Stype = type_static_array(128, type_fake(TYuchar));
+    s.Stype.Tmangle = Mangle.c;
+    s.Stype.Tcount++;
+    s.Sclass = SC.global;
+    s.Sfl = FLdata;
+    s.Sflags |= SFLnodebug;
+    s.Salignment = 16;
+
+    auto dtb = DtBuilder(0);
+    dtb.nzeros(128);
+    s.Sdt = dtb.finish();
+    dt2common(&s.Sdt);
+
+    outdata(s);
+
+    bzeroSymbol = s;
+    return s;
+}
+
+/*****************************
+ * Return back end type corresponding to D front end type.
+ */
+tym_t totym(Type tx)
+{
+    tym_t t;
+    switch (tx.ty)
+    {
+        case Tvoid:     t = TYvoid;     break;
+        case Tint8:     t = TYschar;    break;
+        case Tuns8:     t = TYuchar;    break;
+        case Tint16:    t = TYshort;    break;
+        case Tuns16:    t = TYushort;   break;
+        case Tint32:    t = TYint;      break;
+        case Tuns32:    t = TYuint;     break;
+        case Tint64:    t = TYllong;    break;
+        case Tuns64:    t = TYullong;   break;
+        case Tfloat32:  t = TYfloat;    break;
+        case Tfloat64:  t = TYdouble;   break;
+        case Tfloat80:  t = TYldouble;  break;
+        case Timaginary32: t = TYifloat; break;
+        case Timaginary64: t = TYidouble; break;
+        case Timaginary80: t = TYildouble; break;
+        case Tcomplex32: t = TYcfloat;  break;
+        case Tcomplex64: t = TYcdouble; break;
+        case Tcomplex80: t = TYcldouble; break;
+        case Tbool:     t = TYbool;     break;
+        case Tchar:     t = TYchar;     break;
+        case Twchar:    t = TYwchar_t;  break;
+        case Tdchar:
+            t = (driverParams.symdebug == 1 || target.os & Target.OS.Posix) ? TYdchar : TYulong;
+            break;
+
+        case Taarray:   t = TYaarray;   break;
+        case Tclass:
+        case Treference:
+        case Tpointer:  t = TYnptr;     break;
+        case Tdelegate: t = TYdelegate; break;
+        case Tarray:    t = TYdarray;   break;
+        case Tsarray:   t = TYstruct;   break;
+        case Tnoreturn: t = TYnoreturn; break;
+
+        case Tstruct:
+            t = TYstruct;
+            break;
+
+        case Tenum:
+        {
+            Type tb = tx.toBasetype();
+            const id = tx.toDsymbol(null).ident;
+            if (id == Id.__c_long)
+                t = tb.ty == Tint32 ? TYlong : TYllong;
+            else if (id == Id.__c_ulong)
+                t = tb.ty == Tuns32 ? TYulong : TYullong;
+            else if (id == Id.__c_long_double)
+                t = tb.size() == 8 ? TYdouble : TYldouble;
+            else if (id == Id.__c_complex_float)
+                t = TYcfloat;
+            else if (id == Id.__c_complex_double)
+                t = TYcdouble;
+            else if (id == Id.__c_complex_real)
+                t = tb.size() == 16 ? TYcdouble : TYcldouble;
+            else
+                t = totym(tb);
+            break;
+        }
+
+        case Tident:
+        case Ttypeof:
+        case Tmixin:
+            //printf("ty = %d, '%s'\n", tx.ty, tx.toChars());
+            error(Loc.initial, "forward reference of `%s`", tx.toChars());
+            t = TYint;
+            break;
+
+        case Tnull:
+            t = TYnptr;
+            break;
+
+        case Tvector:
+        {
+            auto tv = cast(TypeVector)tx;
+            const tb = tv.elementType();
+            const s32 = tv.alignsize() == 32;   // if 32 byte, 256 bit vector
+            switch (tb.ty)
+            {
+                case Tvoid:
+                case Tint8:     t = s32 ? TYschar32  : TYschar16;  break;
+                case Tuns8:     t = s32 ? TYuchar32  : TYuchar16;  break;
+                case Tint16:    t = s32 ? TYshort16  : TYshort8;   break;
+                case Tuns16:    t = s32 ? TYushort16 : TYushort8;  break;
+                case Tint32:    t = s32 ? TYlong8    : TYlong4;    break;
+                case Tuns32:    t = s32 ? TYulong8   : TYulong4;   break;
+                case Tint64:    t = s32 ? TYllong4   : TYllong2;   break;
+                case Tuns64:    t = s32 ? TYullong4  : TYullong2;  break;
+                case Tfloat32:  t = s32 ? TYfloat8   : TYfloat4;   break;
+                case Tfloat64:  t = s32 ? TYdouble4  : TYdouble2;  break;
+                default:
+                    assert(0);
+            }
+            break;
+        }
+
+        case Tfunction:
+        {
+            auto tf = cast(TypeFunction)tx;
+            final switch (tf.linkage)
+            {
+                case LINK.windows:
+                    if (target.isX86_64)
+                        goto case LINK.c;
+                    t = (tf.parameterList.varargs == VarArg.variadic ||
+                         tf.parameterList.varargs == VarArg.KRvariadic) ? TYnfunc : TYnsfunc;
+                    break;
+
+                case LINK.c:
+                case LINK.cpp:
+                case LINK.objc:
+                    t = TYnfunc;
+                    if (target.os == Target.OS.Windows)
+                    {
+                    }
+                    else if (!target.isX86_64 && retStyle(tf, false) == RET.stack)
+                        t = TYhfunc;
+                    break;
+
+                case LINK.d:
+                    t = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYjfunc;
+                    break;
+
+                case LINK.default_:
+                case LINK.system:
+                    printf("linkage = %d\n", tf.linkage);
+                    assert(0);
+            }
+            if (tf.isNothrow)
+                t |= mTYnothrow;
+            return t;
+        }
+        default:
+            //printf("ty = %d, '%s'\n", tx.ty, tx.toChars());
+            assert(0);
+    }
+
+    t |= modToTym(tx.mod);    // Add modifiers
+
+    return t;
+}
 
 /**
  * Generate code for `modules` and write objects/libraries
@@ -89,7 +281,7 @@ public alias toSymbol = dmd.tocsym.toSymbol;
  *  multiobj = break one object file into multiple ones
  *  verbose = print progress message when generatig code
  */
-public void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
+void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
                           const(char)[] libname, const(char)[] objdir,
                           bool writeLibrary, bool obj, bool oneobj, bool multiobj,
                           bool verbose)
@@ -169,23 +361,22 @@ public void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
     if (writeLibrary && !global.errors)
     {
         if (verbose)
-            eSink.message(Loc.initial, "library   %s", library.loc.filename);
+            eSink.message(Loc.initial, "library   %.*s", library.filename.fTuple.expand);
 
-        auto filenameString = library.loc.filename.toDString;
-        if (!ensurePathToNameExists(Loc.initial, filenameString))
+        if (!ensurePathToNameExists(Loc.initial, library.filename))
             fatal();
 
         /* Write library to temporary file. If that is successful,
          * then and only then replace the existing file with the temporary file
          */
-        auto tmpname = filenameString ~ ".tmp\0";
+        auto tmpname = library.filename ~ ".tmp\0";
 
         auto libbuf = OutBuffer(tmpname.ptr);
         library.writeLibToBuffer(libbuf);
 
-        if (!libbuf.moveToFile(library.loc.filename))
+        if (!libbuf.moveToFile(library.filename))
         {
-            eSink.error(library.loc, "error writing file '%s'", library.loc.filename);
+            eSink.error(Loc.initial, "error writing file '%.*s'", library.filename.fTuple.expand);
             destroy(tmpname);
             fatal();
         }
@@ -193,516 +384,32 @@ public void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
     }
 }
 
-//extern
-public __gshared Symbol* bzeroSymbol;        /// common location for immutable zeros
-
-struct Glue
-{
-    elem *eictor;
-    Symbol *ictorlocalgot;
-
-    symbols sctors; // static constructorss
-    StaticDtorDeclarations ectorgates;
-    symbols sdtors;
-    symbols stests;
-
-    symbols ssharedctors; // shared static constructors
-    symbols sisharedctors; // standalone shared static constructors
-    SharedStaticDtorDeclarations esharedctorgates;
-    symbols sshareddtors;
-
-    const(char)* lastmname;
-    Dsymbols obj_symbols_towrite;
-}
-
-private __gshared Glue glue;
-
-
 /**************************************
  * Append s to list of object files to generate later.
  * Only happens with multiobj.
  */
-public void obj_append(Dsymbol s)
+void obj_append(Dsymbol s)
 {
     //printf("deferred: %s\n", s.toChars());
     glue.obj_symbols_towrite.push(s);
 }
 
-/*******************************
- * Generating multiple object files, one per Dsymbol
- * in symbols_towrite[].
- * Params:
- *      library = library to write object files to
- *      symbols_towrite = array of Dsymbols
- */
-extern (D)
-private void obj_write_deferred(ref OutBuffer objbuf, Library library, ref Dsymbols symbols_towrite)
-{
-    // this array can grow during the loop; do not replace with foreach
-    for (size_t i = 0; i < symbols_towrite.length; ++i)
-    {
-        Dsymbol s = symbols_towrite[i];
-        Module m = s.getModule();
-
-        const(char)* mname;
-        if (m)
-        {
-            mname = m.srcfile.toChars();
-            glue.lastmname = mname;
-        }
-        else
-        {
-            //mname = s.ident.toChars();
-            mname = glue.lastmname;
-            assert(mname);
-        }
-        auto mnames = mname.toDString();
-
-        obj_start(objbuf, mname);
-
-        __gshared int count;
-        count++;                // sequence for generating names
-
-        /* Create a module that's a doppelganger of m, with just
-         * enough to be able to create the moduleinfo.
-         */
-        OutBuffer idbuf;
-        idbuf.printf("%s.%d", m ? m.ident.toChars() : mname, count);
-
-        if (!m)
-        {
-            // it doesn't make sense to make up a module if we don't know where to put the symbol
-            //  so output it into its own object file without ModuleInfo
-            objmod.initfile(idbuf.peekChars(), null, mname);
-            toObjFile(s, false);
-            objmod.termfile();
-        }
-        else
-        {
-            Identifier id = Identifier.create(idbuf.extractChars());
-
-            Module md = new Module(mnames, id, 0, 0);
-            md.members = new Dsymbols();
-            md.members.push(s);   // its only 'member' is s
-            md.doppelganger = 1;       // identify this module as doppelganger
-            md.md = m.md;
-            md.aimports.push(m);       // it only 'imports' m
-
-            genObjFile(md, false);
-        }
-
-        /* Set object file name to be source name with sequence number,
-         * as mangled symbol names get way too long.
-         */
-        const length = FileName.ext(mnames).length;
-        const fname = mnames[0 .. mnames.length - (length ? length + 1 : 0)];  // +1 to remove .
-        OutBuffer namebuf;
-        uint hash = 0;
-        for (const(char)* p = s.toChars(); *p; p++)
-            hash += *p;
-        namebuf.printf("%.*s_%x_%x.%.*s", cast(int)fname.length, fname.ptr, count, hash,
-                       cast(int)target.obj_ext.length, target.obj_ext.ptr);
-
-        //printf("writing '%s'\n", fname);
-        obj_end(objbuf, library, namebuf.extractSlice());
-    }
-    glue.obj_symbols_towrite.length = 0;
-}
-
-
-/***********************************************
- * Generate function that calls array of functions and gates.
- * Params:
- *      m = module symbol (for name mangling purposes)
- *      sctors = array of functions
- *      ectorgates = array of gates
- *      id = identifier string for generator function
- * Returns:
- *      function Symbol generated
- */
-
-extern (D)
-private Symbol *callFuncsAndGates(Module m, Symbol*[] sctors, StaticDtorDeclaration[] ectorgates,
-        const(char)* id)
-{
-    if (!sctors.length && !ectorgates.length)
-        return null;
-
-    Symbol *sctor = null;
-
-    __gshared type *t;
-    if (!t)
-    {
-        /* t will be the type of the functions generated:
-         *      extern (C) void func();
-         */
-        t = type_function(TYnfunc, null, false, tstypes[TYvoid]);
-        t.Tmangle = Mangle.c;
-    }
-
-    localgot = null;
-    sctor = toSymbolX(m, id, SC.global, t, "FZv");
-    cstate.CSpsymtab = &sctor.Sfunc.Flocsym;
-    elem *ector = null;
-
-    foreach (f; ectorgates)
-    {
-        Symbol *s = toSymbol(f.vgate);
-        elem *e = el_var(s);
-        e = el_bin(OPaddass, TYint, e, el_long(TYint, 1));
-        ector = el_combine(ector, e);
-    }
-
-    foreach (s; sctors)
-    {
-        elem *e = el_una(OPucall, TYvoid, el_var(s));
-        ector = el_combine(ector, e);
-    }
-
-    block *b = block_calloc();
-    b.BC = BCret;
-    b.Belem = ector;
-    sctor.Sfunc.Fstartline.Sfilename = m.arg.xarraydup.ptr;
-    sctor.Sfunc.Fstartblock = b;
-    writefunc(sctor); // hand off to backend
-
-    return sctor;
-}
-
-/**************************************
- * Prepare for generating obj file.
- * Params:
- *      objbuf = write object file contents to this
- *      srcfile = name of the source file
- */
-
-private void obj_start(ref OutBuffer objbuf, const(char)* srcfile)
-{
-    //printf("obj_start()\n");
-
-    bzeroSymbol = null;
-    rtlsym_reset();
-    clearStringTab();
-
-    version (Windows)
-    {
-        import dmd.backend.mscoffobj;
-        objmod = MsCoffObj_init(&objbuf, srcfile, null);
-    }
-    else
-    {
-        objmod = Obj.initialize(&objbuf, srcfile, null);
-    }
-
-    OutBuffer buf;
-    buf.write("DMD ");
-    buf.write(global.versionString());
-    Obj.compiler(buf.peekChars());
-
-    el_reset();
-    cg87_reset();
-    out_reset();
-    objc.reset();
-}
-
-
-/****************************************
- * Finish creating the object module and writing it to objbuf[].
- * Then either write the object module to an actual file,
- * or add it to a library.
- * Params:
- *      objbuf = contains the generated contents of the object file
- *      objfilename = what to call the object module
- *      library = if non-null, add object module to this library
- */
-private void obj_end(ref OutBuffer objbuf, Library library, const(char)[] objfilename)
-{
-    objmod.term(objfilename);
-    //delete objmod;
-    objmod = null;
-
-    if (library)
-    {
-        // Transfer ownership of image buffer to library
-        library.addObject(objfilename, cast(ubyte[]) objbuf.extractSlice[]);
-    }
-    else
-    {
-        //printf("write obj %s\n", objfilename);
-        if (!writeFile(Loc.initial, objfilename, objbuf[]))
-            return fatal();
-
-        // For non-libraries, the object buffer should be cleared to
-        // avoid repetitions.
-        objbuf.destroy();
-    }
-}
-
-public extern (D) bool obj_includelib(scope const char[] name) nothrow
+extern (D) bool obj_includelib(scope const char[] name) nothrow
 {
     return objmod.includelib(name);
 }
 
-public void obj_startaddress(Symbol *s)
+void obj_startaddress(Symbol *s)
 {
     return objmod.startaddress(s);
 }
 
-public bool obj_linkerdirective(scope const(char)* directive)
+bool obj_linkerdirective(scope const(char)* directive)
 {
     return objmod.linkerdirective(directive);
 }
 
-
-/**************************************
- * Generate .obj file for Module.
- */
-
-private void genObjFile(Module m, bool multiobj)
-{
-    //EEcontext *ee = env.getEEcontext();
-
-    //printf("Module.genobjfile(multiobj = %d) %s\n", multiobj, m.toChars());
-
-    import dmd.timetrace;
-    timeTraceBeginEvent(TimeTraceEventType.codegenModule);
-    scope(exit) timeTraceEndEvent(TimeTraceEventType.codegenModule, m);
-
-    glue.lastmname = m.srcfile.toChars();
-
-    objmod.initfile(glue.lastmname, null, m.toPrettyChars());
-
-    glue.eictor = null;
-    glue.ictorlocalgot = null;
-    glue.sctors.setDim(0);
-    glue.ectorgates.setDim(0);
-    glue.sdtors.setDim(0);
-    glue.ssharedctors.setDim(0);
-    glue.esharedctorgates.setDim(0);
-    glue.sshareddtors.setDim(0);
-    glue.stests.setDim(0);
-
-    if (m.doppelganger)
-    {
-        /* Generate a reference to the moduleinfo, so the module constructors
-         * and destructors get linked in.
-         */
-        Module mod = m.aimports[0];
-        assert(mod);
-        if (mod.sictor || mod.sctor || mod.sdtor || mod.ssharedctor || mod.sshareddtor)
-        {
-            Symbol *s = toSymbol(mod);
-            //objextern(s);
-            //if (!s.Sxtrnnum) objextdef(s.Sident);
-            if (!s.Sxtrnnum)
-            {
-                //printf("%s\n", s.Sident);
-//#if 0 /* This should work, but causes optlink to fail in common/newlib.asm */
-//                objextdef(s.Sident);
-//#else
-                Symbol *sref = symbol_generate(SC.static_, type_fake(TYnptr));
-                sref.Sfl = FLdata;
-                auto dtb = DtBuilder(0);
-                dtb.xoff(s, 0, TYnptr);
-                sref.Sdt = dtb.finish();
-                outdata(sref);
-//#endif
-            }
-        }
-    }
-
-    if (global.params.cov)
-    {
-        /* Create coverage identifier:
-         *  uint[numlines] __coverage;
-         */
-        m.cov = toSymbolX(m, "__coverage", SC.static_, type_fake(TYint), "Z");
-        m.cov.Sflags |= SFLhidden;
-        m.cov.Stype.Tmangle = Mangle.d;
-        m.cov.Sfl = FLdata;
-
-        auto dtb = DtBuilder(0);
-
-        if (m.ctfe_cov)
-        {
-            // initalize the uint[] __coverage symbol with data from ctfe.
-            static extern (C) int comp_uints (const scope void* a, const scope void* b)
-                { return (*cast(uint*) a) - (*cast(uint*) b); }
-
-            uint[] sorted_lines = m.ctfe_cov.keys;
-            qsort(sorted_lines.ptr, sorted_lines.length, sorted_lines[0].sizeof,
-                &comp_uints);
-
-            uint lastLine = 0;
-            foreach (line;sorted_lines)
-            {
-                // zero fill from last line to line.
-                if (line)
-                {
-                    assert(line > lastLine);
-                    dtb.nzeros((line - lastLine - 1) * 4);
-                }
-                dtb.dword(m.ctfe_cov[line]);
-                lastLine = line;
-            }
-            // zero fill from last line to end
-            if (m.numlines > lastLine)
-                dtb.nzeros((m.numlines - lastLine) * 4);
-        }
-        else
-        {
-            dtb.nzeros(4 * m.numlines);
-        }
-        m.cov.Sdt = dtb.finish();
-
-        outdata(m.cov);
-
-        size_t sz = m.covb[0].sizeof;
-        size_t n = (m.numlines + sz * 8) / (sz * 8);
-        uint* p =  cast(uint*)Mem.check(calloc(n, sz));
-        m.covb = p[0 .. n];
-    }
-
-    for (int i = 0; i < m.members.length; i++)
-    {
-        auto member = (*m.members)[i];
-        //printf("toObjFile %s %s\n", member.kind(), member.toChars());
-        toObjFile(member, multiobj);
-    }
-
-    if (global.params.cov)
-    {
-        /* Generate
-         *  private bit[numlines] __bcoverage;
-         */
-        Symbol *bcov = symbol_calloc("__bcoverage");
-        bcov.Stype = type_fake(TYuint);
-        bcov.Stype.Tcount++;
-        bcov.Sclass = SC.static_;
-        bcov.Sfl = FLdata;
-
-        auto dtb = DtBuilder(0);
-        dtb.nbytes(cast(uint)(m.covb.length * m.covb[0].sizeof), cast(char*)m.covb.ptr);
-        bcov.Sdt = dtb.finish();
-
-        outdata(bcov);
-
-        free(m.covb.ptr);
-        m.covb = null;
-
-        /* Generate:
-         *  _d_cover_register(uint[] __coverage, BitArray __bcoverage, string filename);
-         * and prepend it to the static constructor.
-         */
-
-        /* t will be the type of the functions generated:
-         *      extern (C) void func();
-         */
-        type *t = type_function(TYnfunc, null, false, tstypes[TYvoid]);
-        t.Tmangle = Mangle.c;
-
-        m.sictor = toSymbolX(m, "__modictor", SC.global, t, "FZv");
-        cstate.CSpsymtab = &m.sictor.Sfunc.Flocsym;
-        localgot = glue.ictorlocalgot;
-
-        elem *ecov  = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(m.cov));
-        elem *ebcov = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(bcov));
-
-        if (target.os == Target.OS.Windows && target.isX86_64)
-        {
-            ecov  = addressElem(ecov,  Type.tvoid.arrayOf(), false);
-            ebcov = addressElem(ebcov, Type.tvoid.arrayOf(), false);
-        }
-
-        elem *efilename = toEfilename(m);
-        if (target.os == Target.OS.Windows && target.isX86_64)
-            efilename = addressElem(efilename, Type.tstring, true);
-
-        elem *e = el_params(
-                      el_long(TYuchar, global.params.covPercent),
-                      ecov,
-                      ebcov,
-                      efilename,
-                      null);
-        e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.DCOVER2)), e);
-        glue.eictor = el_combine(e, glue.eictor);
-        glue.ictorlocalgot = localgot;
-    }
-
-    // If coverage / static constructor / destructor / unittest calls
-    if (glue.eictor || glue.sctors.length || glue.ectorgates.length || glue.sdtors.length ||
-        glue.ssharedctors.length || glue.esharedctorgates.length || glue.sshareddtors.length || glue.stests.length || glue.sisharedctors.length)
-    {
-        if (glue.eictor)
-        {
-            localgot = glue.ictorlocalgot;
-
-            block *b = block_calloc();
-            b.BC = BCret;
-            b.Belem = glue.eictor;
-            m.sictor.Sfunc.Fstartline.Sfilename = m.arg.xarraydup.ptr;
-            m.sictor.Sfunc.Fstartblock = b;
-            writefunc(m.sictor);
-        }
-
-        m.sctor = callFuncsAndGates(m, glue.sctors[], glue.ectorgates[], "__modctor");
-        m.sdtor = callFuncsAndGates(m, glue.sdtors[], null, "__moddtor");
-
-        if (glue.sisharedctors.length > 0)
-        {
-            if (m.sictor)
-                glue.sisharedctors.shift(m.sictor);
-            m.sictor = callFuncsAndGates(m, glue.sisharedctors[], null, "__modsharedictor");
-        }
-
-        m.ssharedctor = callFuncsAndGates(m, glue.ssharedctors[], cast(StaticDtorDeclaration[])glue.esharedctorgates[], "__modsharedctor");
-        m.sshareddtor = callFuncsAndGates(m, glue.sshareddtors[], null, "__modshareddtor");
-        m.stest = callFuncsAndGates(m, glue.stests[], null, "__modtest");
-
-        if (m.doppelganger)
-            genModuleInfo(m);
-    }
-
-    if (m.doppelganger)
-    {
-        objc.generateModuleInfo(m);
-        objmod.termfile();
-        return;
-    }
-
-     /* Generate module info for templates and -cov.
-     *  Don't generate ModuleInfo if `object.ModuleInfo` is not declared or
-     *  explicitly disabled through compiler switches such as `-betterC`.
-     *  Don't generate ModuleInfo for C files unless coverage testing,
-     *  although a D main needs to be present in order to pull in the druntime
-     *  code to actually generate the coverage report.
-     */
-    if (global.params.useModuleInfo && Module.moduleinfo &&
-        (global.params.cov || m.filetype != FileType.c) /*|| needModuleInfo()*/)
-        genModuleInfo(m);
-
-    objmod.termfile();
-}
-
-
-
-/* ================================================================== */
-
-private UnitTestDeclaration needsDeferredNested(FuncDeclaration fd)
-{
-    while (fd && fd.isNested())
-    {
-        FuncDeclaration fdp = fd.toParent2().isFuncDeclaration();
-        if (!fdp)
-            break;
-        if (UnitTestDeclaration udp = fdp.isUnitTestDeclaration())
-            return udp.semanticRun < PASS.obj ? udp : null;
-        fd = fdp;
-    }
-    return null;
-}
-
-public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
+void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 {
     ClassDeclaration cd = fd.parent.isClassDeclaration();
     //printf("FuncDeclaration_toObjFile(%p, %s.%s)\n", fd, fd.parent.toChars(), fd.toChars());
@@ -1359,6 +1066,488 @@ public void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     }
 }
 
+private:
+
+alias symbols = Array!(Symbol*);
+
+struct Glue
+{
+    elem *eictor;
+    Symbol *ictorlocalgot;
+
+    symbols sctors; // static constructorss
+    StaticDtorDeclarations ectorgates;
+    symbols sdtors;
+    symbols stests;
+
+    symbols ssharedctors; // shared static constructors
+    symbols sisharedctors; // standalone shared static constructors
+    SharedStaticDtorDeclarations esharedctorgates;
+    symbols sshareddtors;
+
+    const(char)* lastmname;
+    Dsymbols obj_symbols_towrite;
+}
+
+private __gshared Glue glue;
+
+/*******************************
+ * Generating multiple object files, one per Dsymbol
+ * in symbols_towrite[].
+ * Params:
+ *      library = library to write object files to
+ *      symbols_towrite = array of Dsymbols
+ */
+extern (D)
+private void obj_write_deferred(ref OutBuffer objbuf, Library library, ref Dsymbols symbols_towrite)
+{
+    // this array can grow during the loop; do not replace with foreach
+    for (size_t i = 0; i < symbols_towrite.length; ++i)
+    {
+        Dsymbol s = symbols_towrite[i];
+        Module m = s.getModule();
+
+        const(char)* mname;
+        if (m)
+        {
+            mname = m.srcfile.toChars();
+            glue.lastmname = mname;
+        }
+        else
+        {
+            //mname = s.ident.toChars();
+            mname = glue.lastmname;
+            assert(mname);
+        }
+        auto mnames = mname.toDString();
+
+        obj_start(objbuf, mname);
+
+        __gshared int count;
+        count++;                // sequence for generating names
+
+        /* Create a module that's a doppelganger of m, with just
+         * enough to be able to create the moduleinfo.
+         */
+        OutBuffer idbuf;
+        idbuf.printf("%s.%d", m ? m.ident.toChars() : mname, count);
+
+        if (!m)
+        {
+            // it doesn't make sense to make up a module if we don't know where to put the symbol
+            //  so output it into its own object file without ModuleInfo
+            objmod.initfile(idbuf.peekChars(), null, mname);
+            toObjFile(s, false);
+            objmod.termfile();
+        }
+        else
+        {
+            Identifier id = Identifier.create(idbuf.extractChars());
+
+            Module md = new Module(m.loc, mnames, id, 0, 0);
+            md.members = new Dsymbols();
+            md.members.push(s);   // its only 'member' is s
+            md.doppelganger = 1;       // identify this module as doppelganger
+            md.md = m.md;
+            md.aimports.push(m);       // it only 'imports' m
+
+            genObjFile(md, false);
+        }
+
+        /* Set object file name to be source name with sequence number,
+         * as mangled symbol names get way too long.
+         */
+        const length = FileName.ext(mnames).length;
+        const fname = mnames[0 .. mnames.length - (length ? length + 1 : 0)];  // +1 to remove .
+        OutBuffer namebuf;
+        uint hash = 0;
+        for (const(char)* p = s.toChars(); *p; p++)
+            hash += *p;
+        namebuf.printf("%.*s_%x_%x.%.*s", cast(int)fname.length, fname.ptr, count, hash,
+                       cast(int)target.obj_ext.length, target.obj_ext.ptr);
+
+        //printf("writing '%s'\n", fname);
+        obj_end(objbuf, library, namebuf.extractSlice());
+    }
+    glue.obj_symbols_towrite.length = 0;
+}
+
+
+/***********************************************
+ * Generate function that calls array of functions and gates.
+ * Params:
+ *      m = module symbol (for name mangling purposes)
+ *      sctors = array of functions
+ *      ectorgates = array of gates
+ *      id = identifier string for generator function
+ * Returns:
+ *      function Symbol generated
+ */
+
+extern (D)
+private Symbol *callFuncsAndGates(Module m, Symbol*[] sctors, StaticDtorDeclaration[] ectorgates,
+        const(char)* id)
+{
+    if (!sctors.length && !ectorgates.length)
+        return null;
+
+    Symbol *sctor = null;
+
+    __gshared type *t;
+    if (!t)
+    {
+        /* t will be the type of the functions generated:
+         *      extern (C) void func();
+         */
+        t = type_function(TYnfunc, null, false, tstypes[TYvoid]);
+        t.Tmangle = Mangle.c;
+    }
+
+    localgot = null;
+    sctor = toSymbolX(m, id, SC.global, t, "FZv");
+    cstate.CSpsymtab = &sctor.Sfunc.Flocsym;
+    elem *ector = null;
+
+    foreach (f; ectorgates)
+    {
+        Symbol *s = toSymbol(f.vgate);
+        elem *e = el_var(s);
+        e = el_bin(OPaddass, TYint, e, el_long(TYint, 1));
+        ector = el_combine(ector, e);
+    }
+
+    foreach (s; sctors)
+    {
+        elem *e = el_una(OPucall, TYvoid, el_var(s));
+        ector = el_combine(ector, e);
+    }
+
+    block *b = block_calloc();
+    b.BC = BCret;
+    b.Belem = ector;
+    sctor.Sfunc.Fstartline.Sfilename = m.arg.xarraydup.ptr;
+    sctor.Sfunc.Fstartblock = b;
+    writefunc(sctor); // hand off to backend
+
+    return sctor;
+}
+
+/**************************************
+ * Prepare for generating obj file.
+ * Params:
+ *      objbuf = write object file contents to this
+ *      srcfile = name of the source file
+ */
+
+private void obj_start(ref OutBuffer objbuf, const(char)* srcfile)
+{
+    //printf("obj_start()\n");
+
+    bzeroSymbol = null;
+    rtlsym_reset();
+    clearStringTab();
+
+    version (Windows)
+    {
+        import dmd.backend.mscoffobj;
+        objmod = MsCoffObj_init(&objbuf, srcfile, null);
+    }
+    else
+    {
+        objmod = Obj.initialize(&objbuf, srcfile, null);
+    }
+
+    OutBuffer buf;
+    buf.write("DMD ");
+    buf.write(global.versionString());
+    Obj.compiler(buf.peekChars());
+
+    el_reset();
+    cg87_reset();
+    out_reset();
+    objc.reset();
+}
+
+
+/****************************************
+ * Finish creating the object module and writing it to objbuf[].
+ * Then either write the object module to an actual file,
+ * or add it to a library.
+ * Params:
+ *      objbuf = contains the generated contents of the object file
+ *      objfilename = what to call the object module
+ *      library = if non-null, add object module to this library
+ */
+private void obj_end(ref OutBuffer objbuf, Library library, const(char)[] objfilename)
+{
+    objmod.term(objfilename);
+    //delete objmod;
+    objmod = null;
+
+    if (library)
+    {
+        // Transfer ownership of image buffer to library
+        library.addObject(objfilename, cast(ubyte[]) objbuf.extractSlice[]);
+    }
+    else
+    {
+        //printf("write obj %s\n", objfilename);
+        if (!writeFile(Loc.initial, objfilename, objbuf[]))
+            return fatal();
+
+        // For non-libraries, the object buffer should be cleared to
+        // avoid repetitions.
+        objbuf.destroy();
+    }
+}
+
+/**************************************
+ * Generate .obj file for Module.
+ */
+
+private void genObjFile(Module m, bool multiobj)
+{
+    //EEcontext *ee = env.getEEcontext();
+
+    //printf("Module.genobjfile(multiobj = %d) %s\n", multiobj, m.toChars());
+
+    import dmd.timetrace;
+    timeTraceBeginEvent(TimeTraceEventType.codegenModule);
+    scope(exit) timeTraceEndEvent(TimeTraceEventType.codegenModule, m);
+
+    glue.lastmname = m.srcfile.toChars();
+
+    objmod.initfile(glue.lastmname, null, m.toPrettyChars());
+
+    glue.eictor = null;
+    glue.ictorlocalgot = null;
+    glue.sctors.setDim(0);
+    glue.ectorgates.setDim(0);
+    glue.sdtors.setDim(0);
+    glue.ssharedctors.setDim(0);
+    glue.esharedctorgates.setDim(0);
+    glue.sshareddtors.setDim(0);
+    glue.stests.setDim(0);
+
+    if (m.doppelganger)
+    {
+        /* Generate a reference to the moduleinfo, so the module constructors
+         * and destructors get linked in.
+         */
+        Module mod = m.aimports[0];
+        assert(mod);
+        if (mod.sictor || mod.sctor || mod.sdtor || mod.ssharedctor || mod.sshareddtor)
+        {
+            Symbol *s = toSymbol(mod);
+            //objextern(s);
+            //if (!s.Sxtrnnum) objextdef(s.Sident);
+            if (!s.Sxtrnnum)
+            {
+                //printf("%s\n", s.Sident);
+//#if 0 /* This should work, but causes optlink to fail in common/newlib.asm */
+//                objextdef(s.Sident);
+//#else
+                Symbol *sref = symbol_generate(SC.static_, type_fake(TYnptr));
+                sref.Sfl = FLdata;
+                auto dtb = DtBuilder(0);
+                dtb.xoff(s, 0, TYnptr);
+                sref.Sdt = dtb.finish();
+                outdata(sref);
+//#endif
+            }
+        }
+    }
+
+    if (global.params.cov)
+    {
+        /* Create coverage identifier:
+         *  uint[numlines] __coverage;
+         */
+        m.cov = toSymbolX(m, "__coverage", SC.static_, type_fake(TYint), "Z");
+        m.cov.Sflags |= SFLhidden;
+        m.cov.Stype.Tmangle = Mangle.d;
+        m.cov.Sfl = FLdata;
+
+        auto dtb = DtBuilder(0);
+
+        if (m.ctfe_cov)
+        {
+            // initalize the uint[] __coverage symbol with data from ctfe.
+            static extern (C) int comp_uints (const scope void* a, const scope void* b)
+                { return (*cast(uint*) a) - (*cast(uint*) b); }
+
+            uint[] sorted_lines = m.ctfe_cov.keys;
+            qsort(sorted_lines.ptr, sorted_lines.length, sorted_lines[0].sizeof,
+                &comp_uints);
+
+            uint lastLine = 0;
+            foreach (line;sorted_lines)
+            {
+                // zero fill from last line to line.
+                if (line)
+                {
+                    assert(line > lastLine);
+                    dtb.nzeros((line - lastLine - 1) * 4);
+                }
+                dtb.dword(m.ctfe_cov[line]);
+                lastLine = line;
+            }
+            // zero fill from last line to end
+            if (m.numlines > lastLine)
+                dtb.nzeros((m.numlines - lastLine) * 4);
+        }
+        else
+        {
+            dtb.nzeros(4 * m.numlines);
+        }
+        m.cov.Sdt = dtb.finish();
+
+        outdata(m.cov);
+
+        size_t sz = m.covb[0].sizeof;
+        size_t n = (m.numlines + sz * 8) / (sz * 8);
+        uint* p =  cast(uint*)Mem.check(calloc(n, sz));
+        m.covb = p[0 .. n];
+    }
+
+    for (int i = 0; i < m.members.length; i++)
+    {
+        auto member = (*m.members)[i];
+        //printf("toObjFile %s %s\n", member.kind(), member.toChars());
+        toObjFile(member, multiobj);
+    }
+
+    if (global.params.cov)
+    {
+        /* Generate
+         *  private bit[numlines] __bcoverage;
+         */
+        Symbol *bcov = symbol_calloc("__bcoverage");
+        bcov.Stype = type_fake(TYuint);
+        bcov.Stype.Tcount++;
+        bcov.Sclass = SC.static_;
+        bcov.Sfl = FLdata;
+
+        auto dtb = DtBuilder(0);
+        dtb.nbytes(cast(uint)(m.covb.length * m.covb[0].sizeof), cast(char*)m.covb.ptr);
+        bcov.Sdt = dtb.finish();
+
+        outdata(bcov);
+
+        free(m.covb.ptr);
+        m.covb = null;
+
+        /* Generate:
+         *  _d_cover_register(uint[] __coverage, BitArray __bcoverage, string filename);
+         * and prepend it to the static constructor.
+         */
+
+        /* t will be the type of the functions generated:
+         *      extern (C) void func();
+         */
+        type *t = type_function(TYnfunc, null, false, tstypes[TYvoid]);
+        t.Tmangle = Mangle.c;
+
+        m.sictor = toSymbolX(m, "__modictor", SC.global, t, "FZv");
+        cstate.CSpsymtab = &m.sictor.Sfunc.Flocsym;
+        localgot = glue.ictorlocalgot;
+
+        elem *ecov  = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(m.cov));
+        elem *ebcov = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(bcov));
+
+        if (target.os == Target.OS.Windows && target.isX86_64)
+        {
+            ecov  = addressElem(ecov,  Type.tvoid.arrayOf(), false);
+            ebcov = addressElem(ebcov, Type.tvoid.arrayOf(), false);
+        }
+
+        elem *efilename = toEfilename(m);
+        if (target.os == Target.OS.Windows && target.isX86_64)
+            efilename = addressElem(efilename, Type.tstring, true);
+
+        elem *e = el_params(
+                      el_long(TYuchar, global.params.covPercent),
+                      ecov,
+                      ebcov,
+                      efilename,
+                      null);
+        e = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.DCOVER2)), e);
+        glue.eictor = el_combine(e, glue.eictor);
+        glue.ictorlocalgot = localgot;
+    }
+
+    // If coverage / static constructor / destructor / unittest calls
+    if (glue.eictor || glue.sctors.length || glue.ectorgates.length || glue.sdtors.length ||
+        glue.ssharedctors.length || glue.esharedctorgates.length || glue.sshareddtors.length || glue.stests.length || glue.sisharedctors.length)
+    {
+        if (glue.eictor)
+        {
+            localgot = glue.ictorlocalgot;
+
+            block *b = block_calloc();
+            b.BC = BCret;
+            b.Belem = glue.eictor;
+            m.sictor.Sfunc.Fstartline.Sfilename = m.arg.xarraydup.ptr;
+            m.sictor.Sfunc.Fstartblock = b;
+            writefunc(m.sictor);
+        }
+
+        m.sctor = callFuncsAndGates(m, glue.sctors[], glue.ectorgates[], "__modctor");
+        m.sdtor = callFuncsAndGates(m, glue.sdtors[], null, "__moddtor");
+
+        if (glue.sisharedctors.length > 0)
+        {
+            if (m.sictor)
+                glue.sisharedctors.shift(m.sictor);
+            m.sictor = callFuncsAndGates(m, glue.sisharedctors[], null, "__modsharedictor");
+        }
+
+        m.ssharedctor = callFuncsAndGates(m, glue.ssharedctors[], cast(StaticDtorDeclaration[])glue.esharedctorgates[], "__modsharedctor");
+        m.sshareddtor = callFuncsAndGates(m, glue.sshareddtors[], null, "__modshareddtor");
+        m.stest = callFuncsAndGates(m, glue.stests[], null, "__modtest");
+
+        if (m.doppelganger)
+            genModuleInfo(m);
+    }
+
+    if (m.doppelganger)
+    {
+        objc.generateModuleInfo(m);
+        objmod.termfile();
+        return;
+    }
+
+     /* Generate module info for templates and -cov.
+     *  Don't generate ModuleInfo if `object.ModuleInfo` is not declared or
+     *  explicitly disabled through compiler switches such as `-betterC`.
+     *  Don't generate ModuleInfo for C files unless coverage testing,
+     *  although a D main needs to be present in order to pull in the druntime
+     *  code to actually generate the coverage report.
+     */
+    if (global.params.useModuleInfo && Module.moduleinfo &&
+        (global.params.cov || m.filetype != FileType.c) /*|| needModuleInfo()*/)
+        genModuleInfo(m);
+
+    objmod.termfile();
+}
+
+
+
+/* ================================================================== */
+
+private UnitTestDeclaration needsDeferredNested(FuncDeclaration fd)
+{
+    while (fd && fd.isNested())
+    {
+        FuncDeclaration fdp = fd.toParent2().isFuncDeclaration();
+        if (!fdp)
+            break;
+        if (UnitTestDeclaration udp = fdp.isUnitTestDeclaration())
+            return udp.semanticRun < PASS.obj ? udp : null;
+        fd = fdp;
+    }
+    return null;
+}
 
 /*******************************************
  * Detect entry points like `main()`.
@@ -1459,190 +1648,6 @@ private bool onlyOneMain(FuncDeclaration fd)
 
 /* ================================================================== */
 
-/*****************************
- * Return back end type corresponding to D front end type.
- */
-public tym_t totym(Type tx)
-{
-    tym_t t;
-    switch (tx.ty)
-    {
-        case Tvoid:     t = TYvoid;     break;
-        case Tint8:     t = TYschar;    break;
-        case Tuns8:     t = TYuchar;    break;
-        case Tint16:    t = TYshort;    break;
-        case Tuns16:    t = TYushort;   break;
-        case Tint32:    t = TYint;      break;
-        case Tuns32:    t = TYuint;     break;
-        case Tint64:    t = TYllong;    break;
-        case Tuns64:    t = TYullong;   break;
-        case Tfloat32:  t = TYfloat;    break;
-        case Tfloat64:  t = TYdouble;   break;
-        case Tfloat80:  t = TYldouble;  break;
-        case Timaginary32: t = TYifloat; break;
-        case Timaginary64: t = TYidouble; break;
-        case Timaginary80: t = TYildouble; break;
-        case Tcomplex32: t = TYcfloat;  break;
-        case Tcomplex64: t = TYcdouble; break;
-        case Tcomplex80: t = TYcldouble; break;
-        case Tbool:     t = TYbool;     break;
-        case Tchar:     t = TYchar;     break;
-        case Twchar:    t = TYwchar_t;  break;
-        case Tdchar:
-            t = (driverParams.symdebug == 1 || target.os & Target.OS.Posix) ? TYdchar : TYulong;
-            break;
-
-        case Taarray:   t = TYaarray;   break;
-        case Tclass:
-        case Treference:
-        case Tpointer:  t = TYnptr;     break;
-        case Tdelegate: t = TYdelegate; break;
-        case Tarray:    t = TYdarray;   break;
-        case Tsarray:   t = TYstruct;   break;
-        case Tnoreturn: t = TYnoreturn; break;
-
-        case Tstruct:
-            t = TYstruct;
-            break;
-
-        case Tenum:
-        {
-            Type tb = tx.toBasetype();
-            const id = tx.toDsymbol(null).ident;
-            if (id == Id.__c_long)
-                t = tb.ty == Tint32 ? TYlong : TYllong;
-            else if (id == Id.__c_ulong)
-                t = tb.ty == Tuns32 ? TYulong : TYullong;
-            else if (id == Id.__c_long_double)
-                t = tb.size() == 8 ? TYdouble : TYldouble;
-            else if (id == Id.__c_complex_float)
-                t = TYcfloat;
-            else if (id == Id.__c_complex_double)
-                t = TYcdouble;
-            else if (id == Id.__c_complex_real)
-                t = tb.size() == 16 ? TYcdouble : TYcldouble;
-            else
-                t = totym(tb);
-            break;
-        }
-
-        case Tident:
-        case Ttypeof:
-        case Tmixin:
-            //printf("ty = %d, '%s'\n", tx.ty, tx.toChars());
-            error(Loc.initial, "forward reference of `%s`", tx.toChars());
-            t = TYint;
-            break;
-
-        case Tnull:
-            t = TYnptr;
-            break;
-
-        case Tvector:
-        {
-            auto tv = cast(TypeVector)tx;
-            const tb = tv.elementType();
-            const s32 = tv.alignsize() == 32;   // if 32 byte, 256 bit vector
-            switch (tb.ty)
-            {
-                case Tvoid:
-                case Tint8:     t = s32 ? TYschar32  : TYschar16;  break;
-                case Tuns8:     t = s32 ? TYuchar32  : TYuchar16;  break;
-                case Tint16:    t = s32 ? TYshort16  : TYshort8;   break;
-                case Tuns16:    t = s32 ? TYushort16 : TYushort8;  break;
-                case Tint32:    t = s32 ? TYlong8    : TYlong4;    break;
-                case Tuns32:    t = s32 ? TYulong8   : TYulong4;   break;
-                case Tint64:    t = s32 ? TYllong4   : TYllong2;   break;
-                case Tuns64:    t = s32 ? TYullong4  : TYullong2;  break;
-                case Tfloat32:  t = s32 ? TYfloat8   : TYfloat4;   break;
-                case Tfloat64:  t = s32 ? TYdouble4  : TYdouble2;  break;
-                default:
-                    assert(0);
-            }
-            break;
-        }
-
-        case Tfunction:
-        {
-            auto tf = cast(TypeFunction)tx;
-            final switch (tf.linkage)
-            {
-                case LINK.windows:
-                    if (target.isX86_64)
-                        goto case LINK.c;
-                    t = (tf.parameterList.varargs == VarArg.variadic ||
-                         tf.parameterList.varargs == VarArg.KRvariadic) ? TYnfunc : TYnsfunc;
-                    break;
-
-                case LINK.c:
-                case LINK.cpp:
-                case LINK.objc:
-                    t = TYnfunc;
-                    if (target.os == Target.OS.Windows)
-                    {
-                    }
-                    else if (!target.isX86_64 && retStyle(tf, false) == RET.stack)
-                        t = TYhfunc;
-                    break;
-
-                case LINK.d:
-                    t = (tf.parameterList.varargs == VarArg.variadic) ? TYnfunc : TYjfunc;
-                    break;
-
-                case LINK.default_:
-                case LINK.system:
-                    printf("linkage = %d\n", tf.linkage);
-                    assert(0);
-            }
-            if (tf.isNothrow)
-                t |= mTYnothrow;
-            return t;
-        }
-        default:
-            //printf("ty = %d, '%s'\n", tx.ty, tx.toChars());
-            assert(0);
-    }
-
-    t |= modToTym(tx.mod);    // Add modifiers
-
-    return t;
-}
-
-/*******************************************
- * Generate readonly symbol that consists of a bunch of zeros.
- * Immutable Symbol instances can be mapped over it.
- * Only one is generated per object file.
- * Returns:
- *    bzero symbol
- */
-public Symbol* getBzeroSymbol()
-{
-    Symbol* s = bzeroSymbol;
-    if (s)
-        return s;
-
-    s = symbol_calloc("__bzeroBytes");
-    s.Stype = type_static_array(128, type_fake(TYuchar));
-    s.Stype.Tmangle = Mangle.c;
-    s.Stype.Tcount++;
-    s.Sclass = SC.global;
-    s.Sfl = FLdata;
-    s.Sflags |= SFLnodebug;
-    s.Salignment = 16;
-
-    auto dtb = DtBuilder(0);
-    dtb.nzeros(128);
-    s.Sdt = dtb.finish();
-    dt2common(&s.Sdt);
-
-    outdata(s);
-
-    bzeroSymbol = s;
-    return s;
-}
-
-
-
 /**************************************
  * Generate elem that is a dynamic array slice of the module file name.
  */
@@ -1661,14 +1666,4 @@ private elem *toEfilename(Module m)
 
     // Turn static array into dynamic array
     return el_pair(TYdarray, el_long(TYsize_t, len), el_ptr(m.sfilename));
-}
-
-// Used in e2ir.d
-public elem *toEfilenamePtr(Module m)
-{
-    //printf("toEfilenamePtr(%s)\n", m.toChars());
-    const(char)* id = m.srcfile.toChars();
-    size_t len = strlen(id);
-    Symbol* s = toStringSymbol(id, len, 1);
-    return el_ptr(s);
 }

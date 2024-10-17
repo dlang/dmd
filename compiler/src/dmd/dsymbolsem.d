@@ -314,7 +314,7 @@ Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false, bool find
             Loc loc = e.loc;
             Type tthis = (e.op == EXP.type ? e.type : null);
             const flags = cast(DotExpFlag) (DotExpFlag.noAliasThis | (gag * DotExpFlag.gag));
-            uint olderrors = gag ? global.startGagging() : 0;
+            const olderrors = gag ? global.startGagging() : 0;
             e = dotExp(ad.type, sc, e, ad.aliasthis.ident, flags);
             if (!e || findOnly)
                 return gag && global.endGagging(olderrors) ? null : e;
@@ -1435,7 +1435,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                  */
                 if (!inferred)
                 {
-                    uint errors = global.errors;
+                    const errors = global.errors;
                     dsym.inuse++;
                     // Bug 20549. Don't try this on modules or packages, syntaxCopy
                     // could crash (inf. recursion) on a mod/pkg referencing itself
@@ -1842,7 +1842,6 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         const bool doUnittests = global.params.parsingUnittestsRequired();
         auto loc = adjustLocForMixin(str, cd.loc, global.params.mixinOut);
         scope p = new Parser!ASTCodegen(loc, sc._module, str, false, global.errorSink, &global.compileEnv, doUnittests);
-        p.transitionIn = global.params.v.vin;
         p.nextToken();
 
         auto d = p.parseDeclDefs(0);
@@ -2215,7 +2214,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         tm.argsym.parent = scy.parent;
         Scope* argscope = scy.push(tm.argsym);
 
-        uint errorsave = global.errors;
+        const errorsave = global.errors;
 
         // Declare each template parameter as an alias for the argument type
         tm.declareParameters(argscope);
@@ -2843,7 +2842,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (sd.semanticRun >= PASS.semanticdone)
             return;
-        int errors = global.errors;
+        const errors = global.errors;
 
         //printf("+StructDeclaration::semantic(this=%p, '%s', sizeok = %d)\n", sd, sd.toPrettyChars(), sd.sizeok);
         Scope* scx = null;
@@ -3005,7 +3004,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             Dsymbol scall = sd.search(Loc.initial, Id.call);
             if (scall)
             {
-                uint xerrors = global.startGagging();
+                const xerrors = global.startGagging();
                 sc = sc.push();
                 sc.tinst = null;
                 sc.minst = null;
@@ -3090,7 +3089,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (cldec.semanticRun >= PASS.semanticdone)
             return;
-        int errors = global.errors;
+        const errors = global.errors;
 
         //printf("+ClassDeclaration.dsymbolSemantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
 
@@ -3753,7 +3752,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         //printf("InterfaceDeclaration.dsymbolSemantic(%s), type = %p\n", toChars(), type);
         if (idec.semanticRun >= PASS.semanticdone)
             return;
-        int errors = global.errors;
+        const errors = global.errors;
 
         //printf("+InterfaceDeclaration.dsymbolSemantic(%s), type = %p\n", toChars(), type);
 
@@ -4763,7 +4762,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
         printf("\timplement template instance %s '%s'\n", tempdecl.parent.toChars(), tempinst.toChars());
         printf("\ttempdecl %s\n", tempdecl.toChars());
     }
-    uint errorsave = global.errors;
+    const errorsave = global.errors;
 
     tempinst.inst = tempinst;
     tempinst.parent = tempinst.enclosing ? tempinst.enclosing : tempdecl.parent;
@@ -6462,7 +6461,7 @@ private extern(C++) class SearchVisitor : Visitor
             return setResult(m.searchCacheSymbol);
         }
 
-        uint errors = global.errors;
+        const errors = global.errors;
 
         m.insearch = true;
         visit(cast(ScopeDsymbol)m);
@@ -6813,7 +6812,7 @@ extern(C++) class ImportAllVisitor : Visitor
              (*m.members)[0].ident != Id.object ||
              (*m.members)[0].isImport() is null))
         {
-            auto im = new Import(Loc.initial, null, Id.object, null, 0);
+            auto im = new Import(m.loc, null, Id.object, null, 0);
             m.members.shift(im);
         }
         if (!m.symtab)
@@ -6900,7 +6899,7 @@ extern (D) bool load(Import imp, Scope* sc)
             {
                 if (p.isPkgMod == PKG.unknown)
                 {
-                    uint preverrors = global.errors;
+                    const preverrors = global.errors;
                     imp.mod = Module.load(imp.loc, imp.packages, imp.id);
                     if (!imp.mod)
                         p.isPkgMod = PKG.package_;
@@ -7775,4 +7774,62 @@ private Expression callScopeDtor(VarDeclaration vd, Scope* sc)
         break;
     }
     return e;
+}
+
+/***************************************
+ * Collect all instance fields, then determine instance size.
+ * Returns:
+ *      false if failed to determine the size.
+ */
+bool determineSize(AggregateDeclaration ad, const ref Loc loc)
+{
+    //printf("AggregateDeclaration::determineSize() %s, sizeok = %d\n", toChars(), sizeok);
+
+    // The previous instance size finalizing had:
+    if (ad.type.ty == Terror || ad.errors)
+        return false;   // failed already
+    if (ad.sizeok == Sizeok.done)
+        return true;    // succeeded
+
+    if (!ad.members)
+    {
+        .error(loc, "%s `%s` unknown size", ad.kind, ad.toPrettyChars);
+        return false;
+    }
+
+    if (ad._scope)
+        dsymbolSemantic(ad, null);
+
+    // Determine the instance size of base class first.
+    if (auto cd = ad.isClassDeclaration())
+    {
+        cd = cd.baseClass;
+        if (cd && !cd.determineSize(loc))
+            goto Lfail;
+    }
+
+    // Determine instance fields when sizeok == Sizeok.none
+    if (!ad.determineFields())
+        goto Lfail;
+    if (ad.sizeok != Sizeok.done)
+        ad.finalizeSize();
+
+    // this aggregate type has:
+    if (ad.type.ty == Terror)
+        return false;   // marked as invalid during the finalizing.
+    if (ad.sizeok == Sizeok.done)
+        return true;    // succeeded to calculate instance size.
+
+Lfail:
+    // There's unresolvable forward reference.
+    if (ad.type != Type.terror)
+        error(loc, "%s `%s` no size because of forward reference", ad.kind, ad.toPrettyChars);
+    // Don't cache errors from speculative semantic, might be resolvable later.
+    // https://issues.dlang.org/show_bug.cgi?id=16574
+    if (!global.gag)
+    {
+        ad.type = Type.terror;
+        ad.errors = true;
+    }
+    return false;
 }

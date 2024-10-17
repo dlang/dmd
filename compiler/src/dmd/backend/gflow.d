@@ -105,7 +105,7 @@ void flowrd(ref GlobalOptimizer go)
     /*      Bout = (Bin - Bkill) | Bgen                             */
     /* Using Ullman's algorithm:                                    */
 
-    foreach (b; dfo[])
+    foreach (b; bo.dfo[])
         vec_copy(b.Boutrd, b.Bgen);
 
     bool anychng;
@@ -113,7 +113,7 @@ void flowrd(ref GlobalOptimizer go)
     do
     {
         anychng = false;
-        foreach (b; dfo[])    // for each block
+        foreach (b; bo.dfo[])    // for each block
         {
             /* Binrd = union of Boutrds of all predecessors of b */
             vec_clear(b.Binrd);
@@ -160,7 +160,7 @@ private void rdgenkill(ref GlobalOptimizer go)
     /* Compute number of definition elems. */
     uint num_unambig_def = 0;
     uint deftop = 0;
-    foreach (b; dfo[])    // for each block
+    foreach (b; bo.dfo[])    // for each block
         if (b.Belem)
         {
             deftop += numdefelems(b.Belem, num_unambig_def);
@@ -183,14 +183,14 @@ private void rdgenkill(ref GlobalOptimizer go)
 
     go.defnod.setLength(deftop);
     size_t i = deftop;
-    foreach_reverse (b; dfo[])    // for each block
+    foreach_reverse (b; bo.dfo[])    // for each block
         if (b.Belem)
             asgdefelems(b, b.Belem, go.defnod[], i);    // fill in go.defnod[]
     assert(i == 0);
 
     initDNunambigVectors(go, go.defnod[]);
 
-    foreach (b; dfo[])    // for each block
+    foreach (b; bo.dfo[])    // for each block
     {
         /* dump any existing vectors */
         vec_free(b.Bgen);
@@ -552,13 +552,13 @@ private void flowaecp(ref GlobalOptimizer go, int flowxx)
     /*      Bout = (Bin - Bkill) | Bgen             */
     /* Using Ullman's algorithm:                    */
 
-    vec_clear(startblock.Bin);
-    vec_copy(startblock.Bout,startblock.Bgen); /* these never change */
-    if (startblock.BC == BCiftrue)
-        vec_copy(startblock.Bout2,startblock.Bgen2); // these never change
+    vec_clear(bo.startblock.Bin);
+    vec_copy(bo.startblock.Bout,bo.startblock.Bgen); /* these never change */
+    if (bo.startblock.BC == BCiftrue)
+        vec_copy(bo.startblock.Bout2,bo.startblock.Bgen2); // these never change
 
     /* For all blocks except startblock     */
-    foreach (b; dfo[1 .. $])
+    foreach (b; bo.dfo[1 .. $])
     {
         vec_set(b.Bin);        /* Bin = all expressions        */
 
@@ -579,7 +579,7 @@ private void flowaecp(ref GlobalOptimizer go, int flowxx)
         anychng = false;
 
         // For all blocks except startblock
-        foreach (b; dfo[1 .. $])
+        foreach (b; bo.dfo[1 .. $])
         {
             // Bin = & of Bout of all predecessors
             // Bout = (Bin - Bkill) | Bgen
@@ -782,7 +782,7 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
     go.expblk.setLength(0);             // dump any existing one
     go.expblk.push(null);
 
-    foreach (b; dfo[])
+    foreach (b; bo.dfo[])
     {
         if (b.Belem)
         {
@@ -813,7 +813,7 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
         {   dbg_printf("vptrkill "); vec_println(go.vptrkill); }
     }
 
-    foreach (i, b; dfo[])
+    foreach (i, b; bo.dfo[])
     {
         /* dump any existing vectors    */
         vec_free(b.Bin);
@@ -1026,7 +1026,7 @@ void genkillae(ref GlobalOptimizer go)
 {
     flowxx = AE;
     assert(go.exptop > 1);
-    foreach (b; dfo[])
+    foreach (b; bo.dfo[])
     {
         assert(b);
         vec_clear(b.Bgen);
@@ -1354,7 +1354,7 @@ void flowlv()
     /*      Bout = union of Bin of all successors to B.     */
     /* Using Ullman's algorithm:                            */
 
-    foreach (b; dfo[])
+    foreach (b; bo.dfo[])
     {
         vec_copy(b.Binlv, b.Bgen);   // Binlv = Bgen
     }
@@ -1367,7 +1367,7 @@ void flowlv()
         anychng = false;
 
         /* For each block B in reverse DFO order        */
-        foreach_reverse (b; dfo[])
+        foreach_reverse (b; bo.dfo[])
         {
             /* Bout = union of Bins of all successors to B. */
             bool first = true;
@@ -1444,7 +1444,7 @@ private void lvgenkill()
         }
     }
 
-    foreach (b; dfo[])
+    foreach (b; bo.dfo[])
     {
         vec_free(b.Bgen);
         vec_free(b.Bkill);
@@ -1690,7 +1690,7 @@ void flowvbe(ref GlobalOptimizer go)
     /*printf("defkill = "); vec_println(go.defkill);
     printf("starkill = "); vec_println(go.starkill);*/
 
-    foreach (b; dfo[])
+    foreach (b; bo.dfo[])
     {
         /*printf("block %p\n",b);
         printf("Bgen = "); vec_println(b.Bgen);
@@ -1713,7 +1713,7 @@ void flowvbe(ref GlobalOptimizer go)
         anychng = false;
 
         /* for all blocks except return blocks in reverse dfo order */
-        foreach_reverse (b; dfo[])
+        foreach_reverse (b; bo.dfo[])
         {
             if (b.BC == BCret || b.BC == BCretexp || b.BC == BCexit)
                 continue;

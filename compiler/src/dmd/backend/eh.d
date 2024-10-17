@@ -47,7 +47,7 @@ Symbol *except_gentables()
         // BUG: alloca() changes the stack size, which is not reflected
         // in the fixed eh tables.
         if (cgstate.Alloca.size)
-            error(null, 0, 0, "cannot mix `core.std.stdlib.alloca()` and exception handling in `%s()`", &funcsym_p.Sident[0]);
+            error(Srcpos.init, "cannot mix `core.std.stdlib.alloca()` and exception handling in `%s()`", &funcsym_p.Sident[0]);
 
         char[13+5+1] name = void;
         __gshared int tmpnum;
@@ -139,7 +139,7 @@ void except_fillInEHTable(Symbol *s)
     // First, calculate starting catch offset
     int guarddim = 0;                               // max dimension of guard[]
     int ndctors = 0;                                // number of PSOP.dctor's
-    foreach (b; BlockRange(startblock))
+    foreach (b; BlockRange(bo.startblock))
     {
         if (b.BC == BC_try && b.Bscope_index >= guarddim)
             guarddim = b.Bscope_index + 1;
@@ -164,7 +164,7 @@ void except_fillInEHTable(Symbol *s)
 
     // Generate guard[]
     int i = 0;
-    foreach (b; BlockRange(startblock))
+    foreach (b; BlockRange(bo.startblock))
     {
         //printf("b = %p, b.Btry = %p, b.offset = %x\n", b, b.Btry, b.Boffset);
         if (b.BC == BC_try)
@@ -182,7 +182,7 @@ void except_fillInEHTable(Symbol *s)
             if (config.ehmethod == EHmethod.EH_DM)
             {
             //printf("DHandlerInfo: offset = %x", cast(int)(b.Boffset - startblock.Boffset));
-            dtb.dword(cast(int)(b.Boffset - startblock.Boffset));    // offset to start of block
+            dtb.dword(cast(int)(b.Boffset - bo.startblock.Boffset));    // offset to start of block
 
             // Compute ending offset
             uint endoffset;
@@ -191,7 +191,7 @@ void except_fillInEHTable(Symbol *s)
                 //printf("\tbn = %p, bn.Btry = %p, bn.offset = %x\n", bn, bn.Btry, bn.Boffset);
                 assert(bn);
                 if (bn.Btry == b.Btry)
-                {    endoffset = cast(uint)(bn.Boffset - startblock.Boffset);
+                {    endoffset = cast(uint)(bn.Boffset - bo.startblock.Boffset);
                      break;
                 }
             }
@@ -220,8 +220,8 @@ void except_fillInEHTable(Symbol *s)
                 // finally handler address
                 if (config.ehmethod == EHmethod.EH_DM)
                 {
-                    assert(bhandler.Boffset > startblock.Boffset);
-                    dtb.size(bhandler.Boffset - startblock.Boffset);    // finally handler offset
+                    assert(bhandler.Boffset > bo.startblock.Boffset);
+                    dtb.size(bhandler.Boffset - bo.startblock.Boffset);    // finally handler offset
                 }
                 else
                     dtb.coff(cast(uint)bhandler.Boffset);
@@ -239,7 +239,7 @@ void except_fillInEHTable(Symbol *s)
         Barray!int stack;
 
     int scopeindex = guarddim;
-    foreach (b; BlockRange(startblock))
+    foreach (b; BlockRange(bo.startblock))
     {
         /* Set up stack of scope indices
          */
@@ -254,7 +254,7 @@ void except_fillInEHTable(Symbol *s)
                 if (config.ehmethod == EHmethod.EH_WIN32)
                     nteh_patchindex(c2, scopeindex);
                 if (config.ehmethod == EHmethod.EH_DM)
-                    dtb.dword(cast(int)(boffset - startblock.Boffset)); // guard offset
+                    dtb.dword(cast(int)(boffset - bo.startblock.Boffset)); // guard offset
                 // Find corresponding ddtor instruction
                 int n = 0;
                 uint eoffset = boffset;
@@ -290,7 +290,7 @@ void except_fillInEHTable(Symbol *s)
                             //cf = code_next(cf);
                             //foffset += calccodsize(cf);
                             if (config.ehmethod == EHmethod.EH_DM)
-                                dtb.dword(cast(int)(eoffset - startblock.Boffset)); // guard offset
+                                dtb.dword(cast(int)(eoffset - bo.startblock.Boffset)); // guard offset
                             break;
                         }
                     }
@@ -306,8 +306,8 @@ void except_fillInEHTable(Symbol *s)
                 dtb.dword(0);           // no catch offset
                 if (config.ehmethod == EHmethod.EH_DM)
                 {
-                    assert(foffset > startblock.Boffset);
-                    dtb.size(foffset - startblock.Boffset);    // finally handler offset
+                    assert(foffset > bo.startblock.Boffset);
+                    dtb.size(foffset - bo.startblock.Boffset);    // finally handler offset
                 }
                 else
                     dtb.coff(foffset);  // finally handler address
@@ -328,7 +328,7 @@ void except_fillInEHTable(Symbol *s)
     }
 
     // Generate catch[]
-    foreach (b; BlockRange(startblock))
+    foreach (b; BlockRange(bo.startblock))
     {
         if (b.BC == BC_try && b.jcatchvar)         // if try-catch
         {
@@ -347,8 +347,8 @@ void except_fillInEHTable(Symbol *s)
                 // catch handler address
                 if (config.ehmethod == EHmethod.EH_DM)
                 {
-                    assert(bcatch.Boffset > startblock.Boffset);
-                    dtb.size(bcatch.Boffset - startblock.Boffset);  // catch handler offset
+                    assert(bcatch.Boffset > bo.startblock.Boffset);
+                    dtb.size(bcatch.Boffset - bo.startblock.Boffset);  // catch handler offset
                 }
                 else
                     dtb.coff(cast(uint)bcatch.Boffset);

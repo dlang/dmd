@@ -353,24 +353,23 @@ extern (C++) struct Scope
             error(loc, "one path skips constructor");
 
         const fies = ctorflow.fieldinit;
-        if (this.ctorflow.fieldinit.length && fies.length)
+        if (!this.ctorflow.fieldinit.length || !fies.length)
+            return;
+        FuncDeclaration f = func;
+        if (fes)
+            f = fes.func;
+        auto ad = f.isMemberDecl();
+        assert(ad);
+        foreach (i, v; ad.fields)
         {
-            FuncDeclaration f = func;
-            if (fes)
-                f = fes.func;
-            auto ad = f.isMemberDecl();
-            assert(ad);
-            foreach (i, v; ad.fields)
+            bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
+            auto fieldInit = &this.ctorflow.fieldinit[i];
+            const fiesCurrent = fies[i];
+            if (fieldInit.loc is Loc.init)
+                fieldInit.loc = fiesCurrent.loc;
+            if (!mergeFieldInit(this.ctorflow.fieldinit[i].csx, fiesCurrent.csx) && mustInit)
             {
-                bool mustInit = (v.storage_class & STC.nodefaultctor || v.type.needsNested());
-                auto fieldInit = &this.ctorflow.fieldinit[i];
-                const fiesCurrent = fies[i];
-                if (fieldInit.loc is Loc.init)
-                    fieldInit.loc = fiesCurrent.loc;
-                if (!mergeFieldInit(this.ctorflow.fieldinit[i].csx, fiesCurrent.csx) && mustInit)
-                {
-                    error(loc, "one path skips field `%s`", v.toChars());
-                }
+                error(loc, "one path skips field `%s`", v.toChars());
             }
         }
     }

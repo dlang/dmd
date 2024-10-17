@@ -60,7 +60,7 @@ nothrow:
  */
 public
 @trusted
-extern (C) void out_config_init(
+void out_config_init(
         bool arm,       // true for generating AArch64 code
         int model,
         bool exe,
@@ -83,10 +83,12 @@ extern (C) void out_config_init(
         exefmt_t exefmt,
         bool generatedMain,     // a main entrypoint is generated
         bool dataimports,
-        ref GlobalOptimizer go)
+        ref GlobalOptimizer go,
+        ErrorCallbackBackend errorCallback)
 {
     //printf("out_config_init()\n");
 
+    errorCallbackBackend = errorCallback;
     auto cfg = &config;
 
     cfg._version = _version;
@@ -112,7 +114,7 @@ extern (C) void out_config_init(
     {
         if (dwarf)
         {
-            error(null, 0, 0, "DWARF version %u is not supported", dwarf);
+            error(Srcpos.init, "DWARF version %u is not supported", dwarf);
         }
 
         // Default DWARF version

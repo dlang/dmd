@@ -162,7 +162,7 @@ void scanForInlines(Symbol *sfunc)
     if (1 || f.Fflags3 & Fdoinline)  // if any inline functions called
     {
         f.Fflags |= Finlinenest;
-        foreach (b; BlockRange(startblock))
+        foreach (b; BlockRange(bo.startblock))
             if (b.Belem)
             {
                 //elem_print(b.Belem);

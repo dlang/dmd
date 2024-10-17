@@ -147,13 +147,13 @@ void constprop(ref GlobalOptimizer go)
 private void rd_compute(ref GlobalOptimizer go, ref EqRelInc eqrelinc)
 {
     if (debugc) printf("constprop()\n");
-    assert(dfo);
+    assert(bo.dfo);
     flowrd(go);               /* compute reaching definitions (rd)    */
     if (go.defnod.length == 0)     /* if no reaching defs                  */
         return;
     assert(eqrelinc.rellist.length == 0 && eqrelinc.inclist.length == 0 && eqrelinc.eqeqlist.length == 0);
     block_clearvisit();
-    foreach (b; dfo[])    // for each block
+    foreach (b; bo.dfo[])    // for each block
     {
         switch (b.BC)
         {
@@ -170,7 +170,7 @@ private void rd_compute(ref GlobalOptimizer go, ref EqRelInc eqrelinc)
         }
     }
 
-    foreach (i, b; dfo[])    // for each block
+    foreach (i, b; bo.dfo[])    // for each block
     {
         //printf("block %d Bin ",i); vec_println(b.Binrd);
         //printf("       Bout "); vec_println(b.Boutrd);
@@ -438,7 +438,7 @@ private void chkrd(elem *n, Barray!(elem*) rdlist)
     }
 
     // If there are any asm blocks, don't print the message
-    foreach (b; dfo[])
+    foreach (b; bo.dfo[])
         if (b.BC == BCasm)
             return;
 
@@ -475,8 +475,7 @@ private void chkrd(elem *n, Barray!(elem*) rdlist)
          */
         if (type_size(sv.Stype) != 0)
         {
-            error(n.Esrcpos.Sfilename, n.Esrcpos.Slinnum, n.Esrcpos.Scharnum,
-                "variable %s used before set", sv.Sident.ptr);
+            error(n.Esrcpos, "variable %s used before set", sv.Sident.ptr);
         }
     }
 
@@ -1080,7 +1079,7 @@ public void copyprop(ref GlobalOptimizer go)
 {
     out_regcand(&globsym);
     if (debugc) printf("copyprop()\n");
-    assert(dfo);
+    assert(bo.dfo);
 
 Louter:
     while (1)
@@ -1097,7 +1096,7 @@ Louter:
                 printf(");\n");
             }
         }
-        foreach (i, b; dfo[])    // for each block
+        foreach (i, b; bo.dfo[])    // for each block
         {
             if (b.Belem)
             {
@@ -1376,7 +1375,7 @@ public void rmdeadass(ref GlobalOptimizer go)
 {
     if (debugc) printf("rmdeadass()\n");
     flowlv();                       /* compute live variables       */
-    foreach (b; dfo[])         // for each block b
+    foreach (b; bo.dfo[])         // for each block b
     {
         if (!b.Belem)          /* if no elems at all           */
             continue;
@@ -1779,7 +1778,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
 @trusted
 public void deadvar()
 {
-        assert(dfo);
+        assert(bo.dfo);
 
         /* First, mark each candidate as dead.  */
         /* Initialize vectors for live ranges.  */
@@ -1790,14 +1789,14 @@ public void deadvar()
                 s.Sflags |= SFLdead;
                 if (s.Sflags & GTregcand)
                 {
-                    s.Srange = vec_realloc(s.Srange, dfo.length);
+                    s.Srange = vec_realloc(s.Srange, bo.dfo.length);
                     vec_clear(s.Srange);
                 }
             }
         }
 
         /* Go through trees and "liven" each one we see.        */
-        foreach (i, b; dfo[])
+        foreach (i, b; bo.dfo[])
             if (b.Belem)
                 dvwalk(b.Belem,cast(uint)i);
 
@@ -1807,7 +1806,7 @@ public void deadvar()
         foreach (i, s; globsym[])
         {
             if (s.Srange /*&& s.Sclass != CLMOS*/)
-                foreach (j, b; dfo[])
+                foreach (j, b; bo.dfo[])
                     if (vec_testbit(i,b.Binlv))
                         vec_setbit(j, globsym[i].Srange);
         }
@@ -1884,11 +1883,11 @@ public void verybusyexp(ref GlobalOptimizer go)
     genkillae(go);                  /* compute Bgen and Bkill for   */
                                     /* AEs                          */
     /*chkvecdim(go.exptop,0);*/
-    blockseen = vec_calloc(dfo.length);
+    blockseen = vec_calloc(bo.dfo.length);
 
     /* Go backwards through dfo so that VBEs are evaluated as       */
     /* close as possible to where they are used.                    */
-    foreach_reverse (i, b; dfo[])     // for each block
+    foreach_reverse (i, b; bo.dfo[])     // for each block
     {
         int done;
 

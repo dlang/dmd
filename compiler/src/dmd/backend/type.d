@@ -53,7 +53,6 @@ enum
                             // TYmptr: the Stag is TYident type
     TFfuncret     = 0x20,   // C++,tyfunc(): overload based on function return value
     TFfuncparam   = 0x20,   // TYarray: top level function parameter
-    TFhydrated    = 0x20,   // type data already hydrated
     TFstatic      = 0x40,   // TYarray: static dimension
     TFvla         = 0x80,   // TYarray: variable length array
     TFemptyexc    = 0x100,  // tyfunc(): empty exception specification

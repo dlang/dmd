@@ -3888,7 +3888,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             // Set error here as we don't want it to depend on the number of
             // entries that are being printed.
             if (cl == Classification.error ||
-                (cl == Classification.warning && global.params.warnings == DiagnosticReporting.error) ||
+                (cl == Classification.warning && global.params.useWarnings == DiagnosticReporting.error) ||
                 (cl == Classification.deprecation && global.params.useDeprecated == DiagnosticReporting.error))
                 cur.errors = true;
 
@@ -4607,7 +4607,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                     {
                         if (ea.checkValue()) // check void expression
                             ea = ErrorExp.get();
-                        uint olderrs = global.errors;
+                        const olderrs = global.errors;
                         ea = ea.ctfeInterpret();
                         if (global.errors != olderrs)
                             ea = ErrorExp.get();
@@ -4819,7 +4819,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
             printf("TemplateInstance.findBestMatch()\n");
         }
 
-        uint errs = global.errors;
+        const errs = global.errors;
         TemplateDeclaration td_last = null;
         Objects dedtypes;
 
@@ -5856,7 +5856,7 @@ MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, Templ
             /* If a function is really property-like, and then
              * it's CTFEable, ei will be a literal expression.
              */
-            uint olderrors = global.startGagging();
+            const olderrors = global.startGagging();
             ei = resolveProperties(sc, ei);
             ei = ei.ctfeInterpret();
             if (global.endGagging(olderrors) || ei.op == EXP.error)

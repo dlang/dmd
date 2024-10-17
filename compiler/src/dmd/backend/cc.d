@@ -173,14 +173,6 @@ enum
     PFLmfc           = 0x10000, // something will affect MFC compatibility
 }
 
-alias sthflags_t = char;
-enum
-{
-    FLAG_INPLACE    = 0,       // in place hydration
-    FLAG_HX         = 1,       // HX file hydration
-    FLAG_SYM        = 2,       // .SYM file hydration
-}
-
 /**********************************
  * Current 'state' of the compiler.
  * Used to gather together most global variables.
@@ -217,9 +209,6 @@ struct Pstate
                                 // function Symbol.
 
     stflags_t STflags;
-
-    // should probably be inside #if HYDRATE, but unclear for the dmc source
-    sthflags_t SThflag;         // FLAG_XXXX: hydration flag
 
     Classsym *STclasssym;       // if in the scope of this class
     symlist_t STclasslist;      // list of classes that have deferred inline

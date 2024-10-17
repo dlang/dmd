@@ -44,9 +44,9 @@ nothrow:
 @trusted
 public void comsubs(ref GlobalOptimizer go)
 {
-    debug if (debugx) printf("comsubs(%p)\n",startblock);
+    debug if (debugx) printf("comsubs(%p)\n",bo.startblock);
 
-    comsubs2(startblock, cgcsdata, go);
+    comsubs2(bo.startblock, cgcsdata, go);
 
     debug if (debugx)
         printf("done with comsubs()\n");
