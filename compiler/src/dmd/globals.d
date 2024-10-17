@@ -170,6 +170,7 @@ extern (C++) struct Param
     bool addMain;           // add a default main() function
     bool allInst;           // generate code for all template instantiations
     bool bitfields;         // support C style bit fields
+    bool sarifEnabled = false; // New flag to track SARIF reporting
 
     CppStdRevision cplusplus = CppStdRevision.cpp11;    // version of C++ standard to support
 
