@@ -72,6 +72,8 @@ enum StructFlags : int
     hasPointers = 0x1, // NB: should use noPointers as in ClassFlags
 }
 
+alias ModBits = ushort;
+
 /***********************************************************
  * All `struct` declarations are an instance of this.
  */
@@ -79,6 +81,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
 {
     FuncDeclarations postblits; // Array of postblit functions
     FuncDeclaration postblit;   // aggregate postblit
+    bool[ModBits] copyCtorsQualifiers; // source-destination qualifiers for the struct cpctors
 
     FuncDeclaration xeq;        // TypeInfo_Struct.xopEquals
     FuncDeclaration xcmp;       // TypeInfo_Struct.xopCmp
