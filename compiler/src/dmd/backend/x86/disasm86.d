@@ -1472,11 +1472,11 @@ Ldone:
     }
 
     puts(p0);
-    put('t');
+    puts("    ");
     puts(p1);
     if (*p2)
     {
-        put('t');
+        puts("    ");
         puts(p2);
         if (*p3)
         {
@@ -1757,14 +1757,16 @@ L2:
     }
 
     puts(p0);
-    put('\t');
-    if (waitflag)
+    put(' ');
+    if (0 && waitflag)
         puts(p1 + 2);
     else
         puts(p1);
     if (*p2)
     {
-        put('\t');
+        for (int len1 = cast(int)strlen(p1); len1 < 9; ++len1)
+            put(' ');
+        put(' ');
         if (*mfp)
         {
             puts(mfp);
@@ -3669,7 +3671,7 @@ unittest
     ];
 
     int line64 = __LINE__;
-    string[26] cases64 =      // 64 bit code gen
+    string[27] cases64 =      // 64 bit code gen
     [
         "31 C0               xor  EAX,EAX",
         "48 89 4C 24 08      mov  8[RSP],RCX",
@@ -3697,6 +3699,7 @@ unittest
         "66 0F 73 FF 99      pslldq    XMM7,099h",
         "F3 0F 1E FB         endbr32",
         "F3 0F 1E FA         endbr64",
+        "DD 1C 24            fnstp  qword ptr [RSP]",
     ];
 
     char[BUFMAX] buf;
