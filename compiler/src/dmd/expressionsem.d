@@ -823,6 +823,7 @@ extern(D) bool arrayExpressionSemantic(
  */
 extern (D) Expression doCopyOrMove(Scope *sc, Expression e, Type t = null)
 {
+    //printf("doCopyOrMove() %s\n", toChars(e));
     if (auto ce = e.isCondExp())
     {
         ce.e1 = doCopyOrMove(sc, ce.e1);
@@ -846,6 +847,7 @@ extern (D) Expression doCopyOrMove(Scope *sc, Expression e, Type t = null)
  */
 private Expression callCpCtor(Scope* sc, Expression e, Type destinationType)
 {
+    //printf("callCpCtor() %s\n", toChars(e));
     auto ts = e.type.baseElemOf().isTypeStruct();
 
     if (!ts)
@@ -888,6 +890,7 @@ private Expression callCpCtor(Scope* sc, Expression e, Type destinationType)
  */
 Expression valueNoDtor(Expression e)
 {
+    //printf("valueNoDtor()\n");
     auto ex = lastComma(e);
 
     if (auto ce = ex.isCallExp())
@@ -10929,6 +10932,21 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                                 return;
                             }
                         }
+                        else if (sd.hasMoveCtor)
+                        {
+                            /* Rewrite as:
+                             * e1.moveCtor(e2);
+                             */
+                            Expression e;
+                            e = new DotIdExp(exp.loc, e1x, Id.moveCtor);
+                            e = new CallExp(exp.loc, e, e2x);
+
+                            //printf("e: %s\n", e.toChars());
+
+                            result = e.expressionSemantic(sc);
+                            //printf("result: %s\n", e.toChars());
+                            return;
+                        }
                         else
                         {
                             /* The struct value returned from the function is transferred
@@ -12247,7 +12265,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         if (tb1.ty == Tpointer && tb2.ty == Tpointer ||
-	    tb1.ty == Tnull && tb2.ty == Tnull)
+            tb1.ty == Tnull && tb2.ty == Tnull)
         {
             result = exp.incompatibleTypes();
             return;
