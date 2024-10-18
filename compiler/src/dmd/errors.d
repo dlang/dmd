@@ -690,50 +690,56 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
 
     __gshared SourceLoc old_loc;
     auto loc = info.loc;
-    if (global.params.v.printErrorContext &&
-        // ignore supplemental messages with same loc
-        (loc != old_loc || !info.supplemental) &&
-        // ignore invalid files
-        loc != SourceLoc.init &&
-        // ignore mixins for now
-        !loc.filename.startsWith(".d-mixin-") &&
-        !global.params.mixinOut.doOutput)
+    void finish()
     {
-        import dmd.root.filename : FileName;
-        const fileName = FileName(loc.filename);
-        if (auto text = global.fileManager.getFileContents(fileName))
-        {
-            auto range = dmd.root.string.splitLines(cast(const(char[])) text);
-            size_t linnum;
-            foreach (line; range)
-            {
-                ++linnum;
-                if (linnum != loc.linnum)
-                    continue;
-                if (loc.charnum < line.length)
-                {
-                    fprintf(stderr, "%.*s\n", cast(int)line.length, line.ptr);
-                    // The number of column bytes and the number of display columns
-                    // occupied by a character are not the same for non-ASCII charaters.
-                    // https://issues.dlang.org/show_bug.cgi?id=21849
-                    size_t col = 0;
-                    while (col < loc.charnum - 1)
-                    {
-                        import dmd.root.utf : utf_decodeChar;
-                        dchar u;
-                        const msg = utf_decodeChar(line, col, u);
-                        assert(msg is null, msg);
-                        fputc(' ', stderr);
-                    }
-                    fputc('^', stderr);
-                    fputc('\n', stderr);
-                }
-                break;
-            }
-        }
+        old_loc = loc;
+        fflush(stderr);     // ensure it gets written out in case of compiler aborts
     }
-    old_loc = loc;
-    fflush(stderr);     // ensure it gets written out in case of compiler aborts
+    if (!global.params.v.printErrorContext ||
+        // ignore supplemental messages with same loc
+        (loc == old_loc && info.supplemental) ||
+        // ignore invalid files
+        loc == SourceLoc.init ||
+        // ignore mixins for now
+        loc.filename.startsWith(".d-mixin-") ||
+        global.params.mixinOut.doOutput)
+    {
+        finish();
+    }
+    import dmd.root.filename : FileName;
+    const fileName = FileName(loc.filename);
+    auto text = global.fileManager.getFileContents(fileName);
+    if (!text)
+        finish();
+
+    auto range = dmd.root.string.splitLines(cast(const(char[])) text);
+    size_t linnum;
+    foreach (line; range)
+    {
+        ++linnum;
+        if (linnum != loc.linnum)
+            continue;
+        if (loc.charnum >= line.length)
+            continue;
+
+        fprintf(stderr, "%.*s\n", cast(int)line.length, line.ptr);
+        // The number of column bytes and the number of display columns
+        // occupied by a character are not the same for non-ASCII charaters.
+        // https://issues.dlang.org/show_bug.cgi?id=21849
+        size_t col = 0;
+        while (col < loc.charnum - 1)
+        {
+            import dmd.root.utf : utf_decodeChar;
+            dchar u;
+            const msg = utf_decodeChar(line, col, u);
+            assert(msg is null, msg);
+            fputc(' ', stderr);
+        }
+        fputc('^', stderr);
+        fputc('\n', stderr);
+        break;
+    }
+    finish();
 }
 
 /**
