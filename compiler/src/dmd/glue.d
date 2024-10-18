@@ -361,7 +361,7 @@ void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
     if (writeLibrary && !global.errors)
     {
         if (verbose)
-            eSink.message(Loc.initial, "library   %.*s", library.filename.fTuple.expand);
+            eSink.message(Loc.initial, "library   %.*s", cast(int) library.filename.length, library.filename.ptr);
 
         if (!ensurePathToNameExists(Loc.initial, library.filename))
             fatal();
@@ -376,7 +376,7 @@ void generateCodeAndWrite(Module[] modules, const(char)*[] libmodules,
 
         if (!libbuf.moveToFile(library.filename))
         {
-            eSink.error(Loc.initial, "error writing file '%.*s'", library.filename.fTuple.expand);
+            eSink.error(Loc.initial, "error writing file '%.*s'", cast(int) library.filename.length, library.filename.ptr);
             destroy(tmpname);
             fatal();
         }
