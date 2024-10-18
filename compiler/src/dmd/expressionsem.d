@@ -327,14 +327,11 @@ StringExp semanticString(Scope *sc, Expression exp, const char* s)
             return null;
     }
 
-    auto se = e.toStringExp();
-    if (!se)
-    {
-        error(exp.loc, "`string` expected for %s, not `(%s)` of type `%s`",
-            s, exp.toChars(), exp.type.toChars());
-        return null;
-    }
-    return se;
+    if (auto se = e.toStringExp())
+        return se;
+    error(exp.loc, "`string` expected for %s, not `(%s)` of type `%s`",
+          s, exp.toChars(), exp.type.toChars());
+    return null;
 }
 
 /****************************************
@@ -342,18 +339,16 @@ StringExp semanticString(Scope *sc, Expression exp, const char* s)
  */
 StringExp toUTF8(StringExp se, Scope* sc)
 {
-    if (se.sz != 1)
-    {
-        // Convert to UTF-8 string
-        se.committed = false;
-        Expression e = castTo(se, sc, Type.tchar.arrayOf());
-        e = e.optimize(WANTvalue);
-        auto result = e.isStringExp();
-        assert(result);
-        assert(result.sz == 1);
-        return result;
-    }
-    return se;
+    if (se.sz == 1)
+        return se;
+    // Convert to UTF-8 string
+    se.committed = false;
+    Expression e = castTo(se, sc, Type.tchar.arrayOf());
+    e = e.optimize(WANTvalue);
+    auto result = e.isStringExp();
+    assert(result);
+    assert(result.sz == 1);
+    return result;
 }
 /********************************
  * The type for a unary expression is incompatible.
@@ -523,82 +518,76 @@ private Expression checkOpAssignTypes(BinExp binExp, Scope* sc)
             e2 = e2.castTo(sc, t1);
         }
     }
-    if (op == EXP.mulAssign)
+    if (op == EXP.mulAssign && t2.isFloating())
     {
-        if (t2.isFloating())
+        if (t1.isReal())
         {
-            if (t1.isReal())
+            if (t2.isImaginary() || t2.isComplex())
             {
-                if (t2.isImaginary() || t2.isComplex())
-                {
-                    e2 = e2.castTo(sc, t1);
-                }
-            }
-            else if (t1.isImaginary())
-            {
-                if (t2.isImaginary() || t2.isComplex())
-                {
-                    switch (t1.ty)
-                    {
-                    case Timaginary32:
-                        t2 = Type.tfloat32;
-                        break;
-
-                    case Timaginary64:
-                        t2 = Type.tfloat64;
-                        break;
-
-                    case Timaginary80:
-                        t2 = Type.tfloat80;
-                        break;
-
-                    default:
-                        assert(0);
-                    }
-                    e2 = e2.castTo(sc, t2);
-                }
+                e2 = e2.castTo(sc, t1);
             }
         }
-    }
-    else if (op == EXP.divAssign)
-    {
-        if (t2.isImaginary())
+        else if (t1.isImaginary())
         {
-            if (t1.isReal())
+            if (t2.isImaginary() || t2.isComplex())
             {
-                // x/iv = i(-x/v)
-                // Therefore, the result is 0
-                e2 = new CommaExp(loc, e2, new RealExp(loc, CTFloat.zero, t1));
-                e2.type = t1;
-                Expression e = new AssignExp(loc, e1, e2);
-                e.type = t1;
-                return e;
-            }
-            else if (t1.isImaginary())
-            {
-                Type t3;
                 switch (t1.ty)
                 {
                 case Timaginary32:
-                    t3 = Type.tfloat32;
+                    t2 = Type.tfloat32;
                     break;
 
                 case Timaginary64:
-                    t3 = Type.tfloat64;
+                    t2 = Type.tfloat64;
                     break;
 
                 case Timaginary80:
-                    t3 = Type.tfloat80;
+                    t2 = Type.tfloat80;
                     break;
 
                 default:
                     assert(0);
                 }
-                e2 = e2.castTo(sc, t3);
-                Expression e = new AssignExp(loc, e1, e2);
-                e.type = t1;
-                return e;
+                e2 = e2.castTo(sc, t2);
             }
+        }
+    }
+    else if (op == EXP.divAssign && t2.isImaginary())
+    {
+        if (t1.isReal())
+        {
+            // x/iv = i(-x/v)
+            // Therefore, the result is 0
+            e2 = new CommaExp(loc, e2, new RealExp(loc, CTFloat.zero, t1));
+            e2.type = t1;
+            Expression e = new AssignExp(loc, e1, e2);
+            e.type = t1;
+            return e;
+        }
+        else if (t1.isImaginary())
+        {
+            Type t3;
+            switch (t1.ty)
+            {
+            case Timaginary32:
+                t3 = Type.tfloat32;
+                break;
+
+            case Timaginary64:
+                t3 = Type.tfloat64;
+                break;
+
+            case Timaginary80:
+                t3 = Type.tfloat80;
+                break;
+
+            default:
+                assert(0);
+            }
+            e2 = e2.castTo(sc, t3);
+            Expression e = new AssignExp(loc, e1, e2);
+            e.type = t1;
+            return e;
         }
     }
     else if (op == EXP.modAssign)
