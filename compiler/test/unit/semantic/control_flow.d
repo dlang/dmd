@@ -898,7 +898,7 @@ void testBlockExit(FuncDeclaration fd, Statement stmt, const BE expected)
     const actual = blockExit(stmt, fd, null);
     assert(actual == expected, beToString(actual) ~ " != " ~ beToString(expected));
 
-    assert(!global.errors, "`blockExit` raised an error!");
+    assert(!global.diag.errors, "`blockExit` raised an error!");
 }
 
 //========================================================================================

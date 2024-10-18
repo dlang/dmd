@@ -2068,9 +2068,9 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
              *   cast(to)e1.aliasthis
              */
             auto exp = resolveAliasThis(sc, e);
-            const errors = global.startGagging();
+            const errors = global.diag.startGagging();
             exp = castTo(exp, sc, t, att);
-            return global.endGagging(errors) ? null : exp;
+            return global.diag.endGagging(errors) ? null : exp;
         }
 
         bool hasAliasThis;

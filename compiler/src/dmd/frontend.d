@@ -25,28 +25,6 @@ import core.stdc.stdarg;
 version (Windows) private enum sep = ";", exe = ".exe";
 version (Posix) private enum sep = ":", exe = "";
 
-/// Contains aggregated diagnostics information.
-immutable struct Diagnostics
-{
-    /// Number of errors diagnosed
-    uint errors;
-
-    /// Number of warnings diagnosed
-    uint warnings;
-
-    /// Returns: `true` if errors have been diagnosed
-    bool hasErrors()
-    {
-        return errors > 0;
-    }
-
-    /// Returns: `true` if warnings have been diagnosed
-    bool hasWarnings()
-    {
-        return warnings > 0;
-    }
-}
-
 /// Indicates the checking state of various contracts.
 enum ContractChecking : CHECKENABLE
 {
@@ -410,12 +388,7 @@ Tuple!(Module, "module_", Diagnostics, "diagnostics") parseModule(AST = ASTCodeg
     m.importedFrom = m;
     m = m.parseModule!AST();
 
-    Diagnostics diagnostics = {
-        errors: global.errors,
-        warnings: global.warnings
-    };
-
-    return typeof(return)(m, diagnostics);
+    return typeof(return)(m, global.diag);
 }
 
 /**

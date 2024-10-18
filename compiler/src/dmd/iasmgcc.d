@@ -58,9 +58,9 @@ public Statement gccAsmSemantic(GccAsmStatement s, Scope *sc)
     p.scanloc = s.loc;
 
     // Parse the gcc asm statement.
-    const errors = global.errors;
+    const errors = global.diag.errors;
     s = p.parseGccAsm(s);
-    if (errors != global.errors)
+    if (errors != global.diag.errors)
         return null;
     s.stc = sc.stc;
 
@@ -410,8 +410,8 @@ unittest
     if (!global.errorSink)
         global.errorSink = new ErrorSinkCompiler;
 
-    const errors = global.startGagging();
-    scope(exit) global.endGagging(errors);
+    const errors = global.diag.startGagging();
+    scope(exit) global.diag.endGagging(errors);
 
     // If this check fails, then Type._init() was called before reaching here,
     // and the entire chunk of code that follows can be removed.
@@ -430,13 +430,13 @@ unittest
     // Imitates asmSemantic if version = IN_GCC.
     static int semanticAsm(Token* tokens)
     {
-        const errors = global.errors;
+        const errors = global.diag.errors;
         scope gas = new GccAsmStatement(Loc.initial, tokens);
         const bool doUnittests = false;
         scope p = new Parser!ASTCodegen(null, ";", false, global.errorSink, &global.compileEnv, doUnittests);
         p.token = *tokens;
         p.parseGccAsm(gas);
-        return global.errors - errors;
+        return global.diag.errors - errors;
     }
 
     // Imitates parseStatement for asm statements.

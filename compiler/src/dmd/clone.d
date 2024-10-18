@@ -110,7 +110,7 @@ FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope* sc)
     scope er = new NullExp(ad.loc, ad.type);    // dummy rvalue
     scope el = new IdentifierExp(ad.loc, Id.p); // dummy lvalue
     el.type = ad.type;
-    const errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it.
+    const errors = global.diag.startGagging(); // Do not report errors, even if the template opAssign fbody makes it.
     sc = sc.push();
     sc.tinst = null;
     sc.minst = null;
@@ -125,7 +125,7 @@ FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope* sc)
     }
 
     sc = sc.pop();
-    global.endGagging(errors);
+    global.diag.endGagging(errors);
     if (!f)
         return null;
     if (f.errors)
@@ -385,7 +385,7 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     sd.members.push(fop);
     fop.addMember(sc, sd);
     sd.hasIdentityAssign = true; // temporary mark identity assignable
-    const errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it.
+    const errors = global.diag.startGagging(); // Do not report errors, even if the template opAssign fbody makes it.
     Scope* sc2 = sc.push();
     sc2.stc = 0;
     sc2.linkage = LINK.d;
@@ -395,7 +395,7 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     //semantic3(fop, sc2); // isn't run here for lazy forward reference resolution.
 
     sc2.pop();
-    if (global.endGagging(errors)) // if errors happened
+    if (global.diag.endGagging(errors)) // if errors happened
     {
         // Disable generated opAssign, because some members forbid identity assignment.
         fop.storage_class |= STC.disable;
@@ -494,7 +494,7 @@ private FuncDeclaration hasIdentityOpEquals(AggregateDeclaration ad, Scope* sc)
 
     bool hasIt(Type tthis)
     {
-        const errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it
+        const errors = global.diag.startGagging(); // Do not report errors, even if the template opAssign fbody makes it
         sc = sc.push();
         sc.tinst = null;
         sc.minst = null;
@@ -511,7 +511,7 @@ private FuncDeclaration hasIdentityOpEquals(AggregateDeclaration ad, Scope* sc)
             f = rfc(el);
 
         sc = sc.pop();
-        global.endGagging(errors);
+        global.diag.endGagging(errors);
 
         return f !is null;
     }
@@ -614,14 +614,14 @@ FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
     Expression e2 = new IdentifierExp(loc, Id.p);
     Expression e = new EqualExp(EXP.equal, loc, e1, e2);
     fop.fbody = new ReturnStatement(loc, e);
-    const errors = global.startGagging(); // Do not report errors
+    const errors = global.diag.startGagging(); // Do not report errors
     Scope* sc2 = sc.push();
     sc2.stc = 0;
     sc2.linkage = LINK.d;
     fop.dsymbolSemantic(sc2);
     fop.semantic2(sc2);
     sc2.pop();
-    if (global.endGagging(errors)) // if errors happened
+    if (global.diag.endGagging(errors)) // if errors happened
         fop = sd.xerreq;
     return fop;
 }
@@ -738,14 +738,14 @@ FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
     Expression e2 = new IdentifierExp(loc, Id.p);
     Expression e = new CallExp(loc, new DotIdExp(loc, e1, Id.cmp), e2);
     fop.fbody = new ReturnStatement(loc, e);
-    const errors = global.startGagging(); // Do not report errors
+    const errors = global.diag.startGagging(); // Do not report errors
     Scope* sc2 = sc.push();
     sc2.stc = 0;
     sc2.linkage = LINK.d;
     fop.dsymbolSemantic(sc2);
     fop.semantic2(sc2);
     sc2.pop();
-    if (global.endGagging(errors)) // if errors happened
+    if (global.diag.endGagging(errors)) // if errors happened
         fop = sd.xerrcmp;
     return fop;
 }
@@ -1617,7 +1617,7 @@ private Statement generateCopyCtorBody(StructDeclaration sd)
  */
 bool needCopyCtor(StructDeclaration sd, out bool hasCpCtor)
 {
-    if (global.errors)
+    if (global.diag.errors)
         return false;
 
     auto ctor = sd.search(sd.loc, Id.ctor);
@@ -1731,7 +1731,7 @@ bool buildCopyCtor(StructDeclaration sd, Scope* sc)
     ccd.fbody = copyCtorBody;
     sd.members.push(ccd);
     ccd.addMember(sc, sd);
-    const errors = global.startGagging();
+    const errors = global.diag.startGagging();
     Scope* sc2 = sc.push();
     sc2.stc = 0;
     sc2.linkage = LINK.d;
@@ -1740,7 +1740,7 @@ bool buildCopyCtor(StructDeclaration sd, Scope* sc)
     ccd.semantic3(sc2);
     //printf("ccd semantic: %s\n", ccd.type.toChars());
     sc2.pop();
-    if (global.endGagging(errors) || sd.isUnionDeclaration())
+    if (global.diag.endGagging(errors) || sd.isUnionDeclaration())
     {
         ccd.storage_class |= STC.disable;
         ccd.fbody = null;

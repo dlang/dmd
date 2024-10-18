@@ -661,9 +661,9 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             // @@@DEPRECATED_2.112@@@
             // remove gagging and deprecation() to turn deprecation into an error when
             // deprecation cycle is over
-            const olderrors = global.startGagging();
+            const olderrors = global.diag.startGagging();
             discardValue(fs.increment);
-            if (global.endGagging(olderrors))
+            if (global.diag.endGagging(olderrors))
                 deprecation(fs.increment.loc, "`%s` has no effect", fs.increment.toChars());
             if (checkNonAssignmentArrayOp(fs.increment))
                 fs.increment = ErrorExp.get();
@@ -1927,7 +1927,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             if (ed && ss.cases.length < ed.members.length)
             {
                 int missingMembers = 0;
-                const maxShown = global.params.v.errorSupplementCount();
+                const maxShown = global.diag.errorSupplementCount();
             Lmembers:
                 foreach (es; *ed.members)
                 {
@@ -2569,14 +2569,14 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
                 rs.exp = checkNoreturnVarAccess(rs.exp);
 
                 // @@@DEPRECATED_2.111@@@
-                const olderrors = global.startGagging();
+                const olderrors = global.diag.startGagging();
                 // uncomment to turn deprecation into an error when
                 // deprecation cycle is over
                 if (discardValue(rs.exp))
                 {
                     //errors = true;
                 }
-                if (global.endGagging(olderrors))
+                if (global.diag.endGagging(olderrors))
                     deprecation(rs.exp.loc, "`%s` has no effect", rs.exp.toChars());
 
                 /* Replace:
@@ -4806,7 +4806,7 @@ private Statements* flatten(Statement statement, Scope* sc)
             if (expressionsToString(buf, sc, cs.exps, cs.loc, null, true))
                 return errorStatements();
 
-            const errors = global.errors;
+            const errors = global.diag.errors;
             const len = buf.length;
             buf.writeByte(0);
             const str = buf.extractSlice()[0 .. len];
@@ -4819,7 +4819,7 @@ private Statements* flatten(Statement statement, Scope* sc)
             while (p.token.value != TOK.endOfFile)
             {
                 Statement s = p.parseStatement(ParseStatementFlags.curlyScope);
-                if (!s || global.errors != errors)
+                if (!s || global.diag.errors != errors)
                     return errorStatements();
                 a.push(s);
             }

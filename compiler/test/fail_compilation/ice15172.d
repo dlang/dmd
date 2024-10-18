@@ -28,6 +28,6 @@ void onThreadError()
     // 7. ctfeInterpret
     //    Finally, FuncDeclaration::interpret may encounter a function which is semantic3Errors == true. So
     //    7a. functionSemantic3() should return false if semantic3Errors is true.
-    //    7b. the function body errors may not happen during ctfeInterpret call and global.errors could be unincremented.
+    //    7b. the function body errors may not happen during ctfeInterpret call and global.diag.errors could be unincremented.
     __gshared auto ThreadError = new ThreadError(null);
 }

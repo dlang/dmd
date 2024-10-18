@@ -1038,10 +1038,10 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
                  e.ident == Id.getVirtualMethods ||
                  e.ident == Id.getOverloads)
         {
-            const errors = global.errors;
+            const errors = global.diag.errors;
             Expression eorig = ex;
             ex = ex.expressionSemantic(scx);
-            if (errors < global.errors)
+            if (errors < global.diag.errors)
                 error(e.loc, "`%s` cannot be resolved", eorig.toChars());
 
             if (e.ident == Id.getVirtualFunctions)
@@ -1746,7 +1746,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         foreach (o; *e.args)
         {
-            const errors = global.startGagging();
+            const errors = global.diag.startGagging();
             Scope* sc2 = sc.push();
             sc2.tinst = null;
             sc2.minst = null;   // this is why code for these are not emitted to object file
@@ -1793,7 +1793,7 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
             // https://issues.dlang.org/show_bug.cgi?id=15428
             sc2.detach();
 
-            if (global.endGagging(errors) || err)
+            if (global.diag.endGagging(errors) || err)
             {
                 return False();
             }

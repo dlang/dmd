@@ -106,7 +106,7 @@ CT canThrow(Expression e, FuncDeclaration func, ErrorSink eSink)
             if (ce.inDebugStatement)
                 return;
 
-            if (global.errors && !ce.e1.type)
+            if (global.diag.errors && !ce.e1.type)
                 return; // error recovery
 
             if (ce.f && ce.arguments.length > 0)
