@@ -797,7 +797,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         Statement s = new ReturnStatement(funcdecl.loc, null);
                         s = s.statementSemantic(sc2);
                         funcdecl.fbody = new CompoundStatement(funcdecl.loc, funcdecl.fbody, s);
-                        funcdecl.hasReturnExp |= (funcdecl.hasReturnExp & 1 ? 16 : 1);
+                        funcdecl.hasMultipleReturnExp = funcdecl.hasReturnExp;
+                        funcdecl.hasReturnExp = true;
                     }
                 }
                 else if (funcdecl.fes)
@@ -808,7 +809,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         Expression e = IntegerExp.literal!0;
                         Statement s = new ReturnStatement(Loc.initial, e);
                         funcdecl.fbody = new CompoundStatement(Loc.initial, funcdecl.fbody, s);
-                        funcdecl.hasReturnExp |= (funcdecl.hasReturnExp & 1 ? 16 : 1);
+                        funcdecl.hasMultipleReturnExp = funcdecl.hasReturnExp;
+                        funcdecl.hasReturnExp = true;
                     }
                     assert(!funcdecl.returnLabel);
                 }
@@ -823,8 +825,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 }
                 else
                 {
-                    const(bool) inlineAsm = (funcdecl.hasReturnExp & 8) != 0;
-                    if ((blockexit & BE.fallthru) && f.next.ty != Tvoid && !inlineAsm && !sc.inCfile)
+                    if ((blockexit & BE.fallthru) && f.next.ty != Tvoid && !funcdecl.hasInlineAsm && !sc.inCfile)
                     {
                         if (!funcdecl.hasReturnExp)
                             .error(funcdecl.loc, "%s `%s` has no `return` statement, but is expected to return a value of type `%s`", funcdecl.kind, funcdecl.toPrettyChars, f.next.toChars());
