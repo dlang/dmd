@@ -3656,7 +3656,6 @@ public:
     BaseClass* interfaceVirtual;
     Type* tintro;
     StorageClass storage_class2;
-    int32_t hasReturnExp;
     VarDeclaration* nrvo_var;
     Symbol* shidden;
     Array<ReturnStatement* >* returns;
@@ -3726,6 +3725,12 @@ public:
     bool dllImport(bool v);
     bool dllExport() const;
     bool dllExport(bool v);
+    bool hasReturnExp() const;
+    bool hasReturnExp(bool v);
+    bool hasInlineAsm() const;
+    bool hasInlineAsm(bool v);
+    bool hasMultipleReturnExp() const;
+    bool hasMultipleReturnExp(bool v);
 private:
     uint32_t bitFields;
 public:

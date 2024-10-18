@@ -8135,8 +8135,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             /* This is an `assert(0)` which means halt program execution
              */
             FuncDeclaration fd = sc.parent.isFuncDeclaration();
-            if (fd)
-                fd.hasReturnExp |= 4;
             sc.ctorflow.orCSX(CSX.halt);
 
             if (global.params.useAssert == CHECKENABLE.off)

@@ -137,6 +137,10 @@ private struct FUNCFLAG
     bool computedEscapingSiblings; /// `hasEscapingSiblings` has been computed
     bool dllImport;          /// __declspec(dllimport)
     bool dllExport;          /// __declspec(dllexport)
+
+    bool hasReturnExp;         /// Has return exp; statement
+    bool hasInlineAsm;         /// Has asm{} statement
+    bool hasMultipleReturnExp; /// Has multiple return exp; statements
 }
 
 /***********************************************************
@@ -233,13 +237,6 @@ extern (C++) class FuncDeclaration : Declaration
     StorageClass storage_class2;        /// storage class for template onemember's
 
     // Things that should really go into Scope
-
-    /// 1 if there's a return exp; statement
-    /// 2 if there's a throw statement
-    /// 4 if there's an assert(0)
-    /// 8 if there's inline asm
-    /// 16 if there are multiple return statements
-    int hasReturnExp;
 
     VarDeclaration nrvo_var;            /// variable to replace with shidden
     Symbol* shidden;                    /// hidden pointer passed to function
