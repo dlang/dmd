@@ -22,6 +22,7 @@ import dmd.common.outbuffer;
 import dmd.root.rmem;
 import dmd.root.string;
 import dmd.console;
+import dmd.root.filename;
 
 nothrow:
 
@@ -33,6 +34,152 @@ enum ErrorKind
     error,
     tip,
     message,
+}
+
+// Struct for SARIF Tool Information
+struct ToolInformation {
+    string name;
+    string toolVersion;
+
+    string toJson() nothrow {
+        return `{"name": "` ~ name ~ `", "version": "` ~ toolVersion ~ `"}`;
+    }
+}
+
+// Struct for SARIF Result
+struct Result {
+    string ruleId;  // Rule identifier
+    string message;  // Error message
+    string uri;  // File path (URI)
+    int startLine;  // Line number where the error occurs
+    int startColumn;  // Column number where the error occurs
+
+    string toJson() nothrow {
+        return `{"ruleId": "` ~ ruleId ~ `", "message": "` ~ message ~ `", "location": {"artifactLocation": {"uri": "` ~ uri ~ `"}, "region": {"startLine": ` ~ intToString(startLine) ~ `, "startColumn": ` ~ intToString(startColumn) ~ `}}}`;
+    }
+}
+
+// SARIF Report Struct
+struct SarifReport {
+    ToolInformation tool;  // Information about the tool
+    Invocation invocation;  // Information about the execution
+    Result[] results;  // List of results (errors, warnings, etc.)
+
+    string toJson() nothrow {
+        string resultsJson = "[" ~ results[0].toJson();
+        foreach (result; results[1 .. $]) {
+            resultsJson ~= ", " ~ result.toJson();
+        }
+        resultsJson ~= "]";
+
+        return `{"tool": ` ~ tool.toJson() ~ `, "invocation": ` ~ invocation.toJson() ~ `, "results": ` ~ resultsJson ~ `}`;
+    }
+}
+
+// Function to convert SourceLoc to JSON string
+string sourceLocToJson(const SourceLoc sourceLoc) nothrow {
+    OutBuffer result;
+
+    // Write the JSON for the file URI
+    result.writestring(`{
+        "artifactLocation": {
+            "uri": "file://`);
+    result.writestring(sourceLoc.filename);
+    result.writestring(`"
+        },
+        "region": {
+            "startLine": `);
+    result.print(sourceLoc.line);
+    result.writestring(`,
+            "startColumn": `);
+    result.print(sourceLoc.column);
+    result.writestring(`
+        }
+    }`);
+
+    return result.extractSlice();
+}
+
+// Struct for Invocation Information
+struct Invocation {
+    bool executionSuccessful;
+
+    string toJson() nothrow {
+        return `{"executionSuccessful": ` ~ (executionSuccessful ? "true" : "false") ~ `}`;
+    }
+}
+
+// Function to replace writeln with fprintf for printing to stdout
+void printToStdout(string message) nothrow {
+    fprintf(stdout, "%.*s\n", cast(int)message.length, message.ptr);  // Cast to int
+}
+
+void generateSarifReport(const ref Loc loc, const(char)* format, va_list ap, ErrorKind kind) nothrow
+{
+    string toolVersion = global.versionString();  // Retrieve dynamic version
+
+    // Format the error message
+    string formattedMessage = formatErrorMessage(format, ap);
+
+    // Create an OutBuffer to store the SARIF report
+    OutBuffer ob;
+
+    // Build SARIF report using OutBuffer
+    ob.writestring("{\n");
+    ob.writestring("  \"invocation\": {\n");
+    ob.writestring("    \"executionSuccessful\": false\n");
+    ob.writestring("  },\n");
+    ob.writestring("  \"results\": [\n    {\n");
+
+    // Get the canonical (absolute) path
+    const(char)* filenameStr = loc.filename();
+    FileName fileName = FileName(filenameStr[0 .. strlen(filenameStr)]);
+    string absolutePath = cast(string) FileName.canonicalName(fileName.toString());
+
+    // Write location information with absolute path
+    ob.writestring("      \"location\": {\n");
+    ob.writestring("        \"artifactLocation\": {\n");
+    ob.printf("          \"uri\": \"file://%s\"\n", absolutePath.ptr);
+    ob.writestring("        },\n");
+    ob.writestring("        \"region\": {\n");
+    ob.printf("          \"startLine\": %d,\n", loc.linnum);
+    ob.printf("          \"startColumn\": %d\n", loc.charnum);
+    ob.writestring("        }\n");
+    ob.writestring("      },\n");
+
+    // Write message and ruleId
+    ob.printf("      \"message\": \"%s\",\n", formattedMessage.ptr);
+    ob.writestring("      \"ruleId\": \"DMD\"\n");
+
+    // Close the results and SARIF report
+    ob.writestring("    }\n  ],\n");
+    ob.writestring("  \"tool\": {\n");
+    ob.printf("    \"name\": \"DMD\",\n");
+    ob.printf("    \"version\": \"%s\"\n", toolVersion.ptr);
+    ob.writestring("  }\n");
+    ob.writestring("}\n");
+
+    // Extract the final null-terminated string and print it to stdout
+    const(char)* sarifOutput = ob.extractChars();  // Ensure null-terminated output
+    fputs(sarifOutput, stdout);  // Output the SARIF report
+    fflush(stdout);  // Ensure it gets written immediately
+}
+
+// Helper function to format error messages
+string formatErrorMessage(const(char)* format, va_list ap) nothrow
+{
+    char[2048] buffer;  // Buffer for the formatted message
+    import core.stdc.stdio : vsnprintf;
+    vsnprintf(buffer.ptr, buffer.length, format, ap);
+    return buffer[0 .. buffer.length].dup;
+}
+
+// Function to convert int to string
+string intToString(int value) nothrow {
+    char[32] buffer;
+    import core.stdc.stdio : sprintf;
+    sprintf(buffer.ptr, "%d", value);
+    return buffer[0 .. buffer.length].dup;
 }
 
 /***************************
@@ -473,6 +620,13 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
         {
             info.headerColor = Classification.error;
             verrorPrint(format, ap, info);
+
+            // Fix: Convert filename to const(char)* using .ptr
+            Loc sourceLoc = Loc(info.loc.filename.ptr, info.loc.linnum, info.loc.charnum);
+            if (global.params.sarifEnabled)
+            {
+                generateSarifReport(sourceLoc, format, ap, info.kind);
+            }
             if (global.params.v.errorLimit && global.errors >= global.params.v.errorLimit)
             {
                 fprintf(stderr, "error limit (%d) reached, use `-verrors=0` to show all\n", global.params.v.errorLimit);
@@ -502,6 +656,13 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
                 {
                     info.headerColor = Classification.deprecation;
                     verrorPrint(format, ap, info);
+
+                    // Fix: Convert filename to const(char)* using .ptr
+                    Loc sourceLoc = Loc(info.loc.filename.ptr, info.loc.linnum, info.loc.charnum);
+                    if (global.params.sarifEnabled)
+                    {
+                        generateSarifReport(sourceLoc, format, ap, info.kind);
+                    }
                 }
             }
             else
@@ -533,6 +694,13 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
         {
             info.headerColor = Classification.tip;
             verrorPrint(format, ap, info);
+
+            // Fix: Convert filename to const(char)* using .ptr
+            Loc sourceLoc = Loc(info.loc.filename.ptr, info.loc.linnum, info.loc.charnum);
+            if (global.params.sarifEnabled)
+            {
+                generateSarifReport(sourceLoc, format, ap, info.kind);
+            }
         }
         return;
 
@@ -547,6 +715,12 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
         fputs(tmp.peekChars(), stdout);
         fputc('\n', stdout);
         fflush(stdout);     // ensure it gets written out in case of compiler aborts
+        // Fix: Convert filename to const(char)* using .ptr
+        Loc sourceLoc = Loc(info.loc.filename.ptr, info.loc.linnum, info.loc.charnum);
+        if (global.params.sarifEnabled)
+        {
+            generateSarifReport(sourceLoc, format, ap, info.kind);
+        }
         return;
     }
 }
