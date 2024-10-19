@@ -6791,7 +6791,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 {
 
                     if (commaExpected)
-                        error("comma expected separating field initializers");
+                        error("incorrect syntax for associative array, expected `[]`, found `{}`");
                     const t = peek(&token);
                     Identifier id;
                     if (t.value == TOK.colon)
@@ -6822,7 +6822,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
                 default:
                     if (commaExpected)
-                        error("comma expected separating field initializers");
+                        error("incorrect syntax for associative array, expected `[]`, found `{}`");
                     auto value = parseInitializer();
                     _is.addInit(null, value);
                     commaExpected = true;
