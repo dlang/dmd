@@ -5123,6 +5123,7 @@ extern(D) void lowerArrayAggregate(StaticForeach stf, Scope* sc)
 *
 * Params:
 *     sc = The current scope.
+*     lstf = Variable of type StaticForeach.
 */
 
 void lowerNonArrayAggregate(StaticForeach lstf, Scope* sc)
