@@ -101,6 +101,93 @@ class ErrorSinkCompiler : ErrorSink
     }
 }
 
+extern (C++) struct Diagnostics
+{
+    uint errors;            /// number of errors reported so far
+    uint deprecations;      /// number of deprecations reported so far
+    uint warnings;          /// number of warnings reported so far
+    uint gag;               /// !=0 means gag reporting of errors & warnings
+    uint gaggedErrors;      /// number of errors reported while gagged
+    uint gaggedWarnings;    /// number of warnings reported while gagged
+
+    uint errorLimit = 20;
+    uint errorSupplementLimit = 6;      // Limit the number of supplemental messages for each error (0 means unlimited)
+
+    uint errorSupplementCount()
+    {
+        if (global.params.v.verbose)
+            return uint.max;
+        if (errorSupplementLimit == 0)
+            return uint.max;
+        return errorSupplementLimit;
+    }
+    MessageStyle messageStyle = MessageStyle.digitalmars; // style of file/line annotations on messages
+    bool showGaggedErrors;  // print gagged errors anyway
+    bool printErrorContext; // print errors with the error context (the error line in the source file)
+
+    DiagnosticReporting useDeprecated = DiagnosticReporting.inform;  // how use of deprecated features are handled
+    DiagnosticReporting useWarnings = DiagnosticReporting.off;  // how compiler warnings are handled
+nothrow:
+    /**
+     * Start ignoring compile errors instead of reporting them.
+     *
+     * Used for speculative compilation like `__traits(compiles, XXX)`, but also internally
+     * to e.g. try out an `alias this` rewrite without comitting to it.
+     *
+     * Works like a stack, so N calls to `startGagging` should be paired with N
+     * calls to `endGagging`.
+     *
+     * Returns: the current number of gagged errors, which should later be passed to `endGagging`
+     */
+    extern (C++) uint startGagging() @safe
+    {
+        ++gag;
+        gaggedWarnings = 0;
+        return gaggedErrors;
+    }
+
+    /**
+     * Stop gagging, restoring the old gagged state before the most recent call to `startGagging`.
+     *
+     * Params:
+     *   oldGagged = the previous number of errors, as returned by `startGagging`
+     * Returns: true if errors occurred while gagged.
+     */
+    extern (C++) bool endGagging(uint oldGagged) @safe
+    {
+        bool anyErrs = (gaggedErrors != oldGagged);
+        --gag;
+        // Restore the original state of gagged errors; set total errors
+        // to be original errors + new ungagged errors.
+        errors -= (gaggedErrors - oldGagged);
+        gaggedErrors = oldGagged;
+        return anyErrs;
+    }
+
+    /**
+     * Increment the error count to record that an error has occurred in the current context.
+     *
+     * An error message may or may not have been printed.
+     */
+    extern (C++) void increaseErrorCount() @safe
+    {
+        if (gag)
+            ++gaggedErrors;
+        ++errors;
+    }
+
+    /// Returns: `true` if errors have been diagnosed
+    extern(D) bool hasErrors()
+    {
+        return errors > 0;
+    }
+
+    /// Returns: `true` if warnings have been diagnosed
+    extern(D) bool hasWarnings()
+    {
+        return warnings > 0;
+    }
+}
 
 /**
  * Color highlighting to classify messages
@@ -468,37 +555,37 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
     final switch (info.kind)
     {
     case ErrorKind.error:
-        global.errors++;
-        if (!global.gag)
+        global.diag.errors++;
+        if (!global.diag.gag)
         {
             info.headerColor = Classification.error;
             verrorPrint(format, ap, info);
-            if (global.params.v.errorLimit && global.errors >= global.params.v.errorLimit)
+            if (global.diag.errorLimit && global.diag.errors >= global.diag.errorLimit)
             {
-                fprintf(stderr, "error limit (%d) reached, use `-verrors=0` to show all\n", global.params.v.errorLimit);
+                fprintf(stderr, "error limit (%d) reached, use `-verrors=0` to show all\n", global.diag.errorLimit);
                 fatal(); // moderate blizzard of cascading messages
             }
         }
         else
         {
-            if (global.params.v.showGaggedErrors)
+            if (global.diag.showGaggedErrors)
             {
                 info.headerColor = Classification.gagged;
                 verrorPrint(format, ap, info);
             }
-            global.gaggedErrors++;
+            global.diag.gaggedErrors++;
         }
         return;
 
     case ErrorKind.deprecation:
-        if (global.params.useDeprecated == DiagnosticReporting.error)
+        if (global.diag.useDeprecated == DiagnosticReporting.error)
             goto case ErrorKind.error;
-        else if (global.params.useDeprecated == DiagnosticReporting.inform)
+        else if (global.diag.useDeprecated == DiagnosticReporting.inform)
         {
-            if (!global.gag)
+            if (!global.diag.gag)
             {
-                global.deprecations++;
-                if (global.params.v.errorLimit == 0 || global.deprecations <= global.params.v.errorLimit)
+                global.diag.deprecations++;
+                if (global.diag.errorLimit == 0 || global.diag.deprecations <= global.diag.errorLimit)
                 {
                     info.headerColor = Classification.deprecation;
                     verrorPrint(format, ap, info);
@@ -506,30 +593,30 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
             }
             else
             {
-                global.gaggedWarnings++;
+                global.diag.gaggedWarnings++;
             }
         }
         return;
 
     case ErrorKind.warning:
-        if (global.params.useWarnings != DiagnosticReporting.off)
+        if (global.diag.useWarnings != DiagnosticReporting.off)
         {
-            if (!global.gag)
+            if (!global.diag.gag)
             {
                 info.headerColor = Classification.warning;
                 verrorPrint(format, ap, info);
-                if (global.params.useWarnings == DiagnosticReporting.error)
-                    global.warnings++;
+                if (global.diag.useWarnings == DiagnosticReporting.error)
+                    global.diag.warnings++;
             }
             else
             {
-                global.gaggedWarnings++;
+                global.diag.gaggedWarnings++;
             }
         }
         return;
 
     case ErrorKind.tip:
-        if (!global.gag)
+        if (!global.diag.gag)
         {
             info.headerColor = Classification.tip;
             verrorPrint(format, ap, info);
@@ -575,9 +662,9 @@ private extern(C++) void verrorReportSupplemental(const SourceLoc loc, const(cha
     switch (info.kind)
     {
     case ErrorKind.error:
-        if (global.gag)
+        if (global.diag.gag)
         {
-            if (!global.params.v.showGaggedErrors)
+            if (!global.diag.showGaggedErrors)
                 return;
             info.headerColor = Classification.gagged;
         }
@@ -587,11 +674,11 @@ private extern(C++) void verrorReportSupplemental(const SourceLoc loc, const(cha
         return;
 
     case ErrorKind.deprecation:
-        if (global.params.useDeprecated == DiagnosticReporting.error)
+        if (global.diag.useDeprecated == DiagnosticReporting.error)
             goto case ErrorKind.error;
-        else if (global.params.useDeprecated == DiagnosticReporting.inform && !global.gag)
+        else if (global.diag.useDeprecated == DiagnosticReporting.inform && !global.diag.gag)
         {
-            if (global.params.v.errorLimit == 0 || global.deprecations <= global.params.v.errorLimit)
+            if (global.diag.errorLimit == 0 || global.diag.deprecations <= global.diag.errorLimit)
             {
                 info.headerColor = Classification.deprecation;
                 verrorPrint(format, ap, info);
@@ -600,7 +687,7 @@ private extern(C++) void verrorReportSupplemental(const SourceLoc loc, const(cha
         return;
 
     case ErrorKind.warning:
-        if (global.params.useWarnings != DiagnosticReporting.off && !global.gag)
+        if (global.diag.useWarnings != DiagnosticReporting.off && !global.diag.gag)
         {
             info.headerColor = Classification.warning;
             verrorPrint(format, ap, info);
@@ -647,8 +734,8 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
             return;
     }
 
-    if (global.params.v.showGaggedErrors && global.gag)
-        fprintf(stderr, "(spec:%d) ", global.gag);
+    if (global.diag.showGaggedErrors && global.diag.gag)
+        fprintf(stderr, "(spec:%d) ", global.diag.gag);
     auto con = cast(Console) global.console;
 
     OutBuffer tmp;
@@ -690,7 +777,7 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
 
     __gshared SourceLoc old_loc;
     auto loc = info.loc;
-    if (global.params.v.printErrorContext &&
+    if (global.diag.printErrorContext &&
         // ignore supplemental messages with same loc
         (loc != old_loc || !info.supplemental) &&
         // ignore invalid files

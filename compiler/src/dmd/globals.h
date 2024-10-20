@@ -24,12 +24,11 @@ class ErrorSink;
 class FileManager;
 struct Loc;
 
-typedef unsigned char Diagnostic;
-enum
+enum class DiagnosticReporting : unsigned char
 {
-    DIAGNOSTICerror,  // generate an error
-    DIAGNOSTICinform, // generate a warning
-    DIAGNOSTICoff     // disable diagnostic
+    error,  // generate an error
+    inform, // generate a warning
+    off     // disable diagnostic
 };
 
 enum class MessageStyle : unsigned char
@@ -136,15 +135,45 @@ struct Verbose
     d_bool field;              // identify non-mutable field variables
     d_bool complex = true;     // identify complex/imaginary type usage
     d_bool vin;                // identify 'in' parameters
-    d_bool showGaggedErrors;   // print gagged errors anyway
-    d_bool printErrorContext;  // print errors with the error context (the error line in the source file)
     d_bool logo;               // print compiler logo
     d_bool color;              // use ANSI colors in console output
     d_bool cov;                // generate code coverage data
-    MessageStyle messageStyle; // style of file/line annotations on messages
-    unsigned errorLimit;
-    unsigned errorSupplementLimit; // Limit the number of supplemental messages for each error (0 means unlimited)
+};
+
+struct Diagnostics
+{
+    unsigned errors;
+    unsigned deprecations;
+    unsigned warnings;
+    unsigned gag;
+    unsigned gaggedErrors;
+    unsigned gaggedWarnings;
+
     unsigned errorSupplementCount();
+    unsigned errorLimit;
+    unsigned errorSupplementLimit;
+
+    MessageStyle messageStyle = MessageStyle::digitalmars; // style of file/line annotations on messages
+    d_bool showGaggedErrors;   // print gagged errors anyway
+    d_bool printErrorContext;  // print errors with the error context (the error line in the source file)
+
+    DiagnosticReporting useDeprecated;
+    DiagnosticReporting useWarnings;
+
+    /* Start gagging. Return the current number of gagged errors
+     */
+    unsigned startGagging();
+
+    /* End gagging, restoring the old gagged state.
+     * Return true if errors occurred while gagged.
+     */
+    bool endGagging(unsigned oldGagged);
+
+    /*  Increment the error count to record that an error
+     *  has occurred in the current context. An error message
+     *  may or may not have been printed.
+     */
+    void increaseErrorCount();
 };
 
 // Put command line switches in here
@@ -155,12 +184,10 @@ struct Param
     d_bool trace;         // insert profiling hooks
     d_bool tracegc;       // instrument calls to 'new'
     d_bool vcg_ast;       // write-out codegen-ast
-    Diagnostic useDeprecated;
     d_bool useUnitTests;  // generate unittest code
     d_bool useInline;     // inline expand functions
     d_bool release;       // build release version
     d_bool preservePaths; // true means don't strip path from source file
-    Diagnostic useWarnings;
     d_bool cov;           // generate code coverage data
     unsigned char covPercent;   // 0..100 code coverage percentage required
     d_bool ctfe_cov;      // generate coverage data for ctfe
@@ -311,12 +338,6 @@ struct Global
     CompileEnv compileEnv;
 
     Param params;
-    unsigned errors;         // number of errors reported so far
-    unsigned deprecations;   // number of deprecations reported so far
-    unsigned warnings;       // number of warnings reported so far
-    unsigned gag;            // !=0 means gag reporting of errors & warnings
-    unsigned gaggedErrors;   // number of errors reported while gagged
-    unsigned gaggedWarnings; // number of warnings reported while gagged
 
     void* console;         // opaque pointer to console for controlling text attributes
 
@@ -327,25 +348,11 @@ struct Global
     unsigned varSequenceNumber;
 
     FileManager* fileManager;
+    Diagnostics diag;
     ErrorSink* errorSink;       // where the error messages go
     ErrorSink* errorSinkNull;   // where the error messages disappear
 
     DArray<unsigned char> (*preprocess)(FileName, const Loc&, OutBuffer&);
-
-    /* Start gagging. Return the current number of gagged errors
-     */
-    unsigned startGagging();
-
-    /* End gagging, restoring the old gagged state.
-     * Return true if errors occurred while gagged.
-     */
-    bool endGagging(unsigned oldGagged);
-
-    /*  Increment the error count to record that an error
-     *  has occurred in the current context. An error message
-     *  may or may not have been printed.
-     */
-    void increaseErrorCount();
 
     void _init();
 

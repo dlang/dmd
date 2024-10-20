@@ -2604,7 +2604,7 @@ extern (C++) final class TypeFunction : TypeNext
 
     extern(D) static const(char)* getMatchError(A...)(const(char)* format, A args)
     {
-        if (global.gag && !global.params.v.showGaggedErrors)
+        if (global.diag.gag && !global.diag.showGaggedErrors)
             return null;
         OutBuffer buf;
         buf.printf(format, args);

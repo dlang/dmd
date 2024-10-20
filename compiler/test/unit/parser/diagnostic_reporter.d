@@ -86,7 +86,7 @@ unittest
         }
     }
 
-    global.params.useWarnings = DiagnosticReporting.inform;
+    global.diag.useWarnings = DiagnosticReporting.inform;
     scope reporter = new WarningCountingDiagnosticReporter;
 
     parseModule("test.d", q{
