@@ -45,6 +45,10 @@ $(GNAME MixinQualifiedIdentifier):
         template instantiations.
         )
 
+        $(P A $(I TemplateMixinDeclaration) is the same as a $(I TemplateDeclaration),
+        but can not be instantiated outside of a $(I TemplateMixin).
+        )
+
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ------
 int y = 3;
