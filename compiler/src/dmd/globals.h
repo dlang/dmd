@@ -35,7 +35,8 @@ enum
 enum class MessageStyle : unsigned char
 {
     digitalmars, // file(line,column): message
-    gnu          // file:line:column: message
+    gnu,         // file:line:column: message
+    sarif        // JSON SARIF output, see https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html
 };
 
 // The state of array bounds checking
@@ -173,7 +174,6 @@ struct Param
     d_bool addMain;       // add a default main() function
     d_bool allInst;       // generate code for all template instantiations
     d_bool bitfields;         // support C style bit fields
-    d_bool sarifEnabled;  // New flag for SARIF support
     CppStdRevision cplusplus;  // version of C++ name mangling to support
 
     Help help;
