@@ -374,6 +374,7 @@ enum class MessageStyle : uint8_t
 {
     digitalmars = 0u,
     gnu = 1u,
+    sarif = 2u,
 };
 
 struct Loc final
@@ -5999,28 +6000,6 @@ enum class CPU : uint8_t
     native = 12u,
 };
 
-enum class ErrorKind
-{
-    warning = 0,
-    deprecation = 1,
-    error = 2,
-    tip = 3,
-    message = 4,
-};
-
-struct SourceLoc final
-{
-    _d_dynamicArray< const char > filename;
-    uint32_t line;
-    uint32_t column;
-    SourceLoc() :
-        filename(),
-        line(),
-        column()
-    {
-    }
-};
-
 enum class DiagnosticReporting : uint8_t
 {
     error = 0u,
@@ -8094,14 +8073,6 @@ extern void message(const Loc& loc, const char* format, ...);
 extern void message(const char* format, ...);
 
 extern void tip(const char* format, ...);
-
-extern void verrorReport(const Loc loc, const char* format, va_list ap, ErrorKind kind, const char* p1 = nullptr, const char* p2 = nullptr);
-
-extern void verrorReport(const SourceLoc loc, const char* format, va_list ap, ErrorKind kind, const char* p1 = nullptr, const char* p2 = nullptr);
-
-extern void verrorReportSupplemental(const Loc& loc, const char* format, va_list ap, ErrorKind kind);
-
-extern void verrorReportSupplemental(const SourceLoc loc, const char* format, va_list ap, ErrorKind kind);
 
 extern void fatal();
 
