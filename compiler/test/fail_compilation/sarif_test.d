@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/sarif_test.d(33): Error: undefined identifier `x`
+fail_compilation/sarif_test.d: Error: undefined identifier `x`
 {
   "invocation": {
     "executionSuccessful": false
@@ -27,7 +27,7 @@ fail_compilation/sarif_test.d(33): Error: undefined identifier `x`
 }
 ---
 */
-// REQUIRED_ARGS: --sarif
+// REQUIRED_ARGS: -verror-style=sarif
 
 void main() {
     x = 5; // Undefined variable to trigger the error

@@ -615,7 +615,7 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
 
             // Fix: Convert filename to const(char)* using .ptr
             Loc sourceLoc = Loc(info.loc.filename.ptr, info.loc.linnum, info.loc.charnum);
-            if (global.params.sarifEnabled)
+            if (global.params.v.messageStyle == MessageStyle.sarif)
             {
                 generateSarifReport(sourceLoc, format, ap, info.kind);
             }
@@ -651,7 +651,7 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
 
                     // Fix: Convert filename to const(char)* using .ptr
                     Loc sourceLoc = Loc(info.loc.filename.ptr, info.loc.linnum, info.loc.charnum);
-                    if (global.params.sarifEnabled)
+                    if (global.params.v.messageStyle == MessageStyle.sarif)
                     {
                         generateSarifReport(sourceLoc, format, ap, info.kind);
                     }
@@ -689,7 +689,7 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
 
             // Fix: Convert filename to const(char)* using .ptr
             Loc sourceLoc = Loc(info.loc.filename.ptr, info.loc.linnum, info.loc.charnum);
-            if (global.params.sarifEnabled)
+            if (global.params.v.messageStyle == MessageStyle.sarif)
             {
                 generateSarifReport(sourceLoc, format, ap, info.kind);
             }
@@ -709,7 +709,7 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
         fflush(stdout);     // ensure it gets written out in case of compiler aborts
         // Fix: Convert filename to const(char)* using .ptr
         Loc sourceLoc = Loc(info.loc.filename.ptr, info.loc.linnum, info.loc.charnum);
-        if (global.params.sarifEnabled)
+        if (global.params.v.messageStyle == MessageStyle.sarif)
         {
             generateSarifReport(sourceLoc, format, ap, info.kind);
         }
