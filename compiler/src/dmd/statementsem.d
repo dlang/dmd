@@ -5264,31 +5264,31 @@ void lowerNonArrayAggregate(StaticForeach lstf, Scope* sc)
  * to finally expand the `static foreach` using
  * `dmd.statementsem.makeTupleForeach`.
  */
-void prepare(StaticForeach lstf, Scope* sc)
+void prepare(StaticForeach pstf, Scope* sc)
 {
     assert(sc);
 
-    if (lstf.aggrfe)
+    if (pstf.aggrfe)
     {
         sc = sc.startCTFE();
-        lstf.aggrfe.aggr = lstf.aggrfe.aggr.expressionSemantic(sc);
+        pstf.aggrfe.aggr = pstf.aggrfe.aggr.expressionSemantic(sc);
         sc = sc.endCTFE();
     }
 
-    if (lstf.aggrfe && lstf.aggrfe.aggr.type.toBasetype().ty == Terror)
+    if (pstf.aggrfe && pstf.aggrfe.aggr.type.toBasetype().ty == Terror)
     {
         return;
     }
 
-    if (!lstf.ready())
+    if (!pstf.ready())
     {
-        if (lstf.aggrfe && lstf.aggrfe.aggr.type.toBasetype().ty == Tarray)
+        if (pstf.aggrfe && pstf.aggrfe.aggr.type.toBasetype().ty == Tarray)
         {
-            lowerArrayAggregate(lstf,sc);
+            lowerArrayAggregate(pstf,sc);
         }
         else
         {
-            lowerNonArrayAggregate(lstf, sc);
+            lowerNonArrayAggregate(pstf, sc);
         }
     }
 }
