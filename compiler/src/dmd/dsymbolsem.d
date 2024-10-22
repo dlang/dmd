@@ -7491,7 +7491,6 @@ extern(C++) class IncludeVisitor : Visitor
     this(Scope* sc)
     {
         this.sc = sc;
-        this.symbols = symbols;
     }
 
     override void visit(AttribDeclaration ad)
@@ -7517,7 +7516,6 @@ extern(C++) class IncludeVisitor : Visitor
         }
         assert(cdc.condition);
         symbols = cdc.condition.include(cdc._scope ? cdc._scope : sc) ? cdc.decl : cdc.elsedecl;
-        return;
     }
 
     override void visit(StaticIfDeclaration sif)
@@ -7599,7 +7597,6 @@ extern(C++) class IncludeVisitor : Visitor
         sfd.cached = true;
         sfd.cache = d;
         symbols = d;
-        return;
     }
 }
 
