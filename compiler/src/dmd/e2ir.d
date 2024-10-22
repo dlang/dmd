@@ -5505,9 +5505,9 @@ elem *callfunc(const ref Loc loc,
                  * to that temporary.
                  */
                 VarDeclaration v;
-                if (VarExp ve = arg.isVarExp())
+                if (VarExp ve = arg.lastComma().isVarExp())
                     v = ve.var.isVarDeclaration();
-                bool copy = !(v && v.isArgDtorVar); // copy unless the destructor is going to be run on it
+                bool copy = !(v && (v.isArgDtorVar || v.storage_class & STC.rvalue)); // copy unless the destructor is going to be run on it
                                                     // then assume the frontend took care of the copying and pass it by ref
 
                 elems[i] = addressElem(ea, arg.type, copy);
