@@ -357,8 +357,6 @@ static if (0)
     cfg.useTypeInfo = useTypeInfo;
     cfg.useExceptions = useExceptions;
 
-    block_init();
-
     cod3_setdefault();
     if (arm)
     {
