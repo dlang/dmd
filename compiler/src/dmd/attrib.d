@@ -681,8 +681,8 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
 extern (C++) final class StaticIfDeclaration : ConditionalDeclaration
 {
     ScopeDsymbol scopesym;          /// enclosing symbol (e.g. module) where symbols will be inserted
-    public bool addisdone = false; /// true if members have been added to scope
-    public bool onStack = false;   /// true if a call to `include` is currently active
+    bool addisdone = false; /// true if members have been added to scope
+    bool onStack = false;   /// true if a call to `include` is currently active
 
     extern (D) this(const ref Loc loc, Condition condition, Dsymbols* decl, Dsymbols* elsedecl) @safe
     {
