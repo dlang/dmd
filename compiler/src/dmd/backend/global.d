@@ -152,7 +152,7 @@ public import dmd.backend.x86.cod3 : cod3_thunk;
 public import dmd.backend.dout : outthunk, out_readonly, out_readonly_comdat,
     out_regcand, writefunc, alignOffset, out_reset, out_readonly_sym, out_string_literal, outdata;
 
-public import dmd.backend.blockopt : bc_goal, block_calloc, block_init, block_term, block_next,
+public import dmd.backend.blockopt : bc_goal, block_calloc, block_term, block_next,
     block_next, block_goto, block_goto, block_goto, block_goto, block_ptr, block_pred,
     block_clearvisit, block_visit, block_compbcount, blocklist_free, block_optimizer_free,
     block_free, block_appendexp, brcombine, blockopt, compdfo;
