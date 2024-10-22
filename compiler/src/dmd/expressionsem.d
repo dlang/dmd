@@ -12258,7 +12258,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         if (tb1.ty == Tpointer && tb2.ty == Tpointer ||
-	    tb1.ty == Tnull && tb2.ty == Tnull)
+            tb1.ty == Tnull && tb2.ty == Tnull)
         {
             result = exp.incompatibleTypes();
             return;
