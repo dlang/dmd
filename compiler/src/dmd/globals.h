@@ -35,7 +35,8 @@ enum
 enum class MessageStyle : unsigned char
 {
     digitalmars, // file(line,column): message
-    gnu          // file:line:column: message
+    gnu,         // file:line:column: message
+    sarif        // JSON SARIF output, see https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html
 };
 
 // The state of array bounds checking

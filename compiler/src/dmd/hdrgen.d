@@ -3796,7 +3796,8 @@ private void tiargsToBuffer(TemplateInstance ti, ref OutBuffer buf, ref HdrGenSt
         }
         else if (Expression e = isExpression(oarg))
         {
-            if (e.op == EXP.int64 || e.op == EXP.float64 || e.op == EXP.null_ || e.op == EXP.string_ || e.op == EXP.this_)
+            if (!(e.type && e.type.isTypeEnum()) && e.op == EXP.int64 || e.op == EXP.float64 ||
+                e.op == EXP.null_ || e.op == EXP.string_ || e.op == EXP.this_)
             {
                 toCBuffer(e, buf, hgs);
                 return;
