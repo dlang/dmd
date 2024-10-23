@@ -5062,7 +5062,7 @@ bool checkLabel(GotoStatement gs)
 * to
 *     static foreach (x; AliasSeq!(1, 2, 3, 4)) { ... }
 */
-extern(D) void lowerArrayAggregate(StaticForeach stf, Scope* sc)
+void lowerArrayAggregate(StaticForeach stf, Scope* sc)
 {
     auto aggr = stf.aggrfe.aggr;
     Expression el = new ArrayLengthExp(aggr.loc, aggr);
@@ -5123,6 +5123,7 @@ extern(D) void lowerArrayAggregate(StaticForeach stf, Scope* sc)
 *
 * Params:
 *     sc = The current scope.
+*     lstf = variable of type StaticForeach.
 */
 
 void lowerNonArrayAggregate(StaticForeach lstf, Scope* sc)
