@@ -4715,6 +4715,15 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
                     visit(cast(Dsymbol)sds);
                 }
 
+                override void visit(StructDeclaration sd)
+                {
+                    // need to visit auto-generated methods as well
+                    if (sd.xeq) visit(sd.xeq);
+                    if (sd.xcmp) visit(sd.xcmp);
+                    if (sd.xhash) visit(sd.xhash);
+                    visit(cast(ScopeDsymbol)sd);
+                }
+
                 override void visit(AttribDeclaration ad)
                 {
                     ad.include(null).foreachDsymbol( s => s.accept(this) );
