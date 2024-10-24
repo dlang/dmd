@@ -3906,6 +3906,10 @@ static if (0)
         // If floating point, replace (x = -y) with (x = y ^ signbit)
         if (op2 == OPneg && (tyreal(e2.Ety) || tyimaginary(e2.Ety)) &&
             (e2.E1.Eoper == OPvar || e2.E1.Eoper == OPind) &&
+           /* Turned off for x87 because of https://issues.dlang.org/show_bug.cgi?id=24819
+            * and this is unnecessary anyway because of the FCHS x87 instruction
+            */
+           !config.inline8087 &&
            /* Turned off for XMM registers because they don't play well with
             * int registers.
             */
