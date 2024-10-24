@@ -12740,35 +12740,37 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         trySetCatExpLowering(result);
     }
 
-    override void visit(MulExp exp)
+    bool commonBinOpSemantic(BinExp exp)
     {
-        version (none)
-        {
-            printf("MulExp::semantic() %s\n", exp.toChars());
-        }
         if (exp.type)
         {
             result = exp;
-            return;
+            return true;
         }
 
         if (Expression ex = binSemanticProp(exp, sc))
         {
             result = ex;
-            return;
+            return true;
         }
         Expression e = exp.op_overload(sc);
         if (e)
         {
             result = e;
-            return;
+            return true;
         }
 
         if (Expression ex = typeCombine(exp, sc))
         {
             result = ex;
-            return;
+            return true;
         }
+        return false;
+    }
+    bool commonArithBinOpSemantic(BinExp exp)
+    {
+        if (commonBinOpSemantic(exp))
+            return true;
 
         Type tb = exp.type.toBasetype();
         if (tb.ty == Tarray || tb.ty == Tsarray)
@@ -12776,15 +12778,28 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             if (!isArrayOpValid(exp))
             {
                 result = arrayOpInvalidError(exp);
-                return;
+                return true;
             }
             result = exp;
-            return;
+            return true;
         }
 
         if (exp.checkArithmeticBin() || exp.checkSharedAccessBin(sc))
-            return setError();
+        {
+            setError();
+            return true;
+        }
+        return false;
+    }
+    override void visit(MulExp exp)
+    {
+        version (none)
+        {
+            printf("MulExp::semantic() %s\n", exp.toChars());
+        }
 
+        if (commonArithBinOpSemantic(exp))
+            return;
         if (exp.type.isFloating())
         {
             Type t1 = exp.e1.type;
@@ -12823,7 +12838,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     // iy * iv = -yv
                     exp.e1.type = exp.type;
                     exp.e2.type = exp.type;
-                    e = new NegExp(exp.loc, exp);
+                    Expression e = new NegExp(exp.loc, exp);
                     e = e.expressionSemantic(sc);
                     result = e;
                     return;
@@ -12836,7 +12851,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.type = t1; // t1 is complex
             }
         }
-        else if (!target.isVectorOpSupported(tb, exp.op, exp.e2.type.toBasetype()))
+        else if (!target.isVectorOpSupported(exp.type.toBasetype(), exp.op, exp.e2.type.toBasetype()))
         {
             result = exp.incompatibleTypes();
             return;
@@ -12846,44 +12861,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(DivExp exp)
     {
-        if (exp.type)
-        {
-            result = exp;
+        if (commonArithBinOpSemantic(exp))
             return;
-        }
-
-        if (Expression ex = binSemanticProp(exp, sc))
-        {
-            result = ex;
-            return;
-        }
-        Expression e = exp.op_overload(sc);
-        if (e)
-        {
-            result = e;
-            return;
-        }
-
-        if (Expression ex = typeCombine(exp, sc))
-        {
-            result = ex;
-            return;
-        }
-
-        Type tb = exp.type.toBasetype();
-        if (tb.ty == Tarray || tb.ty == Tsarray)
-        {
-            if (!isArrayOpValid(exp))
-            {
-                result = arrayOpInvalidError(exp);
-                return;
-            }
-            result = exp;
-            return;
-        }
-
-        if (exp.checkArithmeticBin() || exp.checkSharedAccessBin(sc))
-            return setError();
 
         if (exp.type.isFloating())
         {
@@ -12897,7 +12876,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     // x/iv = i(-x/v)
                     exp.e2.type = t1;
-                    e = new NegExp(exp.loc, exp);
+                    Expression e = new NegExp(exp.loc, exp);
                     e = e.expressionSemantic(sc);
                     result = e;
                     return;
@@ -12937,7 +12916,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 exp.type = t1; // t1 is complex
             }
         }
-        else if (!target.isVectorOpSupported(tb, exp.op, exp.e2.type.toBasetype()))
+        else if (!target.isVectorOpSupported(exp.type.toBasetype(), exp.op, exp.e2.type.toBasetype()))
         {
             result = exp.incompatibleTypes();
             return;
@@ -12947,49 +12926,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(ModExp exp)
     {
-        if (exp.type)
-        {
-            result = exp;
+        if (commonArithBinOpSemantic(exp))
             return;
-        }
-
-        if (Expression ex = binSemanticProp(exp, sc))
-        {
-            result = ex;
-            return;
-        }
-        Expression e = exp.op_overload(sc);
-        if (e)
-        {
-            result = e;
-            return;
-        }
-
-        if (Expression ex = typeCombine(exp, sc))
-        {
-            result = ex;
-            return;
-        }
-
-        Type tb = exp.type.toBasetype();
-        if (tb.ty == Tarray || tb.ty == Tsarray)
-        {
-            if (!isArrayOpValid(exp))
-            {
-                result = arrayOpInvalidError(exp);
-                return;
-            }
-            result = exp;
-            return;
-        }
-        if (!target.isVectorOpSupported(tb, exp.op, exp.e2.type.toBasetype()))
-        {
-            result = exp.incompatibleTypes();
-            return;
-        }
-
-        if (exp.checkArithmeticBin() || exp.checkSharedAccessBin(sc))
-            return setError();
 
         if (exp.type.isFloating())
         {
@@ -13005,54 +12943,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(PowExp exp)
     {
-        if (exp.type)
-        {
-            result = exp;
+        if (commonArithBinOpSemantic(exp))
             return;
-        }
 
-        //printf("PowExp::semantic() %s\n", toChars());
-        if (Expression ex = binSemanticProp(exp, sc))
-        {
-            result = ex;
-            return;
-        }
-        Expression e = exp.op_overload(sc);
-        if (e)
-        {
-            result = e;
-            return;
-        }
-
-        if (Expression ex = typeCombine(exp, sc))
-        {
-            result = ex;
-            return;
-        }
-
-        Type tb = exp.type.toBasetype();
-        if (tb.ty == Tarray || tb.ty == Tsarray)
-        {
-            if (!isArrayOpValid(exp))
-            {
-                result = arrayOpInvalidError(exp);
-                return;
-            }
-            result = exp;
-            return;
-        }
-
-        if (exp.checkArithmeticBin() || exp.checkSharedAccessBin(sc))
-            return setError();
-
-        if (!target.isVectorOpSupported(tb, exp.op, exp.e2.type.toBasetype()))
+        if (!target.isVectorOpSupported(exp.type.toBasetype(), exp.op, exp.e2.type.toBasetype()))
         {
             result = exp.incompatibleTypes();
             return;
         }
 
         // First, attempt to fold the expression.
-        e = exp.optimize(WANTvalue);
+        Expression e = exp.optimize(WANTvalue);
         if (e.op != EXP.pow)
         {
             e = e.expressionSemantic(sc);
