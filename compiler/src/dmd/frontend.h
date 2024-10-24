@@ -6317,10 +6317,8 @@ class StaticIfDeclaration final : public ConditionalDeclaration
 {
 public:
     ScopeDsymbol* scopesym;
-private:
     bool addisdone;
     bool onStack;
-public:
     StaticIfDeclaration* syntaxCopy(Dsymbol* s) override;
     const char* kind() const override;
     StaticIfDeclaration* isStaticIfDeclaration() override;
@@ -7376,6 +7374,21 @@ public:
     void visit(AttribDeclaration* atb) override;
     void visit(StaticIfDeclaration* _) override;
     void visit(StaticForeachDeclaration* _) override;
+};
+
+extern Array<Dsymbol* >* include(Dsymbol* d, Scope* sc);
+
+class IncludeVisitor : public Visitor
+{
+public:
+    using Visitor::visit;
+    Scope* sc;
+    Array<Dsymbol* >* symbols;
+    IncludeVisitor(Scope* sc);
+    void visit(AttribDeclaration* ad) override;
+    void visit(ConditionalDeclaration* cdc) override;
+    void visit(StaticIfDeclaration* sif) override;
+    void visit(StaticForeachDeclaration* sfd) override;
 };
 
 class NrvoWalker final : public StatementRewriteWalker
