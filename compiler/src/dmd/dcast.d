@@ -2336,7 +2336,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
         Type tb = t.toBasetype();
         Type typeb = e.type.toBasetype();
 
-        if (e.hexString && !e.committed && tb.nextOf().isIntegral)
+        if (e.hexString && !e.committed && tb.nextOf().isintegral)
         {
             const szx = cast(ubyte) tb.nextOf().size();
             if (szx != se.sz && (e.len % szx) == 0)

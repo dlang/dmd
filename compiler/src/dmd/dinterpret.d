@@ -6107,7 +6107,7 @@ public:
         {
             auto se = e1.isStringExp();
             // Allow casting a hex string literal to short[], int[] or long[]
-            if (se && se.hexString && se.postfix == StringExp.NoPostfix && e.to.nextOf().isIntegral)
+            if (se && se.hexString && se.postfix == StringExp.NoPostfix && e.to.nextOf().isintegral)
             {
                 const sz = cast(size_t) e.to.nextOf().size;
                 if ((se.len % sz) != 0)
