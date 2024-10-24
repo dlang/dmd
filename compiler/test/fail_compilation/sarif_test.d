@@ -3,27 +3,29 @@ TEST_OUTPUT:
 ---
 fail_compilation/sarif_test.d: Error: undefined identifier `x`
 {
-  "invocation": {
-    "executionSuccessful": false
-  },
-  "results": [
-    {
-      "location": {
-        "artifactLocation": {
-          "uri": "fail_compilation/sarif_test.d"
-        },
-        "region": {
-          "startLine": 33,
-          "startColumn": 5
-        }
-      },
-      "message": "undefined identifier `x`",
-      "ruleId": "DMD"
-    }
-  ],
-  "tool": {
-    "name": "DMD"
-  }
+	"version": "2.1.0",
+	"$schema": "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0.json",
+	"runs": [{
+		"tool": {
+		"driver": {
+		"name": "Digital Mars D","version": "2.110.0","informationUri": "https://dlang.org/dmd.html"
+		}
+		},
+		"invocations": [{
+		"executionSuccessful": false
+		}],
+		"results": [{
+		"ruleId": "DMD",
+		"message": { "text": "undefined identifier `x`" },"locations": [{
+		"physicalLocation": {
+		"artifactLocation": {
+		"uri": "fail_compilation/sarif_test.d"},
+		"region": {
+		"startLine": 35,"startColumn": 5}
+		}
+		}]
+		}]
+	}]
 }
 ---
 */
