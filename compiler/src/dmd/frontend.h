@@ -6199,7 +6199,6 @@ class AttribDeclaration : public Dsymbol
 {
 public:
     Array<Dsymbol* >* decl;
-    virtual Array<Dsymbol* >* include(Scope* sc);
     void addComment(const char* comment) override;
     const char* kind() const override;
     bool oneMember(Dsymbol*& ps, Identifier* ident) override;
@@ -6310,7 +6309,6 @@ public:
     Array<Dsymbol* >* elsedecl;
     ConditionalDeclaration* syntaxCopy(Dsymbol* s) override;
     bool oneMember(Dsymbol*& ps, Identifier* ident) final override;
-    Array<Dsymbol* >* include(Scope* sc) override;
     void addComment(const char* comment) final override;
     void accept(Visitor* v) override;
 };
@@ -6324,7 +6322,6 @@ private:
     bool onStack;
 public:
     StaticIfDeclaration* syntaxCopy(Dsymbol* s) override;
-    Array<Dsymbol* >* include(Scope* sc) override;
     const char* kind() const override;
     StaticIfDeclaration* isStaticIfDeclaration() override;
     void accept(Visitor* v) override;
@@ -6340,7 +6337,6 @@ public:
     Array<Dsymbol* >* cache;
     StaticForeachDeclaration* syntaxCopy(Dsymbol* s) override;
     bool oneMember(Dsymbol*& ps, Identifier* ident) override;
-    Array<Dsymbol* >* include(Scope* sc) override;
     void addComment(const char* comment) override;
     const char* kind() const override;
     void accept(Visitor* v) override;
