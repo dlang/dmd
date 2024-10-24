@@ -53,7 +53,7 @@ bool genTypeInfo(Expression e, const ref Loc loc, Type torig, Scope* sc)
                 .error(loc, "`TypeInfo` cannot be used with -betterC");
 
             if (sc && sc.tinst)
-                sc.tinst.printInstantiationTrace(Classification.error, uint.max);
+                sc.tinst.printInstantiationTrace(Classification.error);
 
             fatal();
         }
