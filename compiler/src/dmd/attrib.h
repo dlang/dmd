@@ -28,8 +28,6 @@ class AttribDeclaration : public Dsymbol
 {
 public:
     Dsymbols *decl;     // array of Dsymbol's
-
-    virtual Dsymbols *include(Scope *sc);
     void addComment(const utf8_t *comment) override;
     const char *kind() const override;
     bool oneMember(Dsymbol *&ps, Identifier *ident) override;
@@ -150,7 +148,6 @@ public:
 
     ConditionalDeclaration *syntaxCopy(Dsymbol *s) override;
     bool oneMember(Dsymbol *&ps, Identifier *ident) override final;
-    Dsymbols *include(Scope *sc) override;
     void addComment(const utf8_t *comment) override final;
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -163,7 +160,6 @@ public:
     d_bool onStack;
 
     StaticIfDeclaration *syntaxCopy(Dsymbol *s) override;
-    Dsymbols *include(Scope *sc) override;
     StaticIfDeclaration *isStaticIfDeclaration() override { return this; }
     const char *kind() const override;
     void accept(Visitor *v) override { v->visit(this); }
@@ -180,7 +176,6 @@ public:
 
     StaticForeachDeclaration *syntaxCopy(Dsymbol *s) override;
     bool oneMember(Dsymbol *&ps, Identifier *ident) override;
-    Dsymbols *include(Scope *sc) override;
     void addComment(const utf8_t *comment) override;
     const char *kind() const override;
     void accept(Visitor *v) override { v->visit(this); }

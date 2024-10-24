@@ -6204,7 +6204,6 @@ class AttribDeclaration : public Dsymbol
 {
 public:
     Array<Dsymbol* >* decl;
-    virtual Array<Dsymbol* >* include(Scope* sc);
     void addComment(const char* comment) override;
     const char* kind() const override;
     bool oneMember(Dsymbol*& ps, Identifier* ident) override;
@@ -6315,7 +6314,6 @@ public:
     Array<Dsymbol* >* elsedecl;
     ConditionalDeclaration* syntaxCopy(Dsymbol* s) override;
     bool oneMember(Dsymbol*& ps, Identifier* ident) final override;
-    Array<Dsymbol* >* include(Scope* sc) override;
     void addComment(const char* comment) final override;
     void accept(Visitor* v) override;
 };
@@ -6324,12 +6322,9 @@ class StaticIfDeclaration final : public ConditionalDeclaration
 {
 public:
     ScopeDsymbol* scopesym;
-private:
     bool addisdone;
     bool onStack;
-public:
     StaticIfDeclaration* syntaxCopy(Dsymbol* s) override;
-    Array<Dsymbol* >* include(Scope* sc) override;
     const char* kind() const override;
     StaticIfDeclaration* isStaticIfDeclaration() override;
     void accept(Visitor* v) override;
@@ -6345,7 +6340,6 @@ public:
     Array<Dsymbol* >* cache;
     StaticForeachDeclaration* syntaxCopy(Dsymbol* s) override;
     bool oneMember(Dsymbol*& ps, Identifier* ident) override;
-    Array<Dsymbol* >* include(Scope* sc) override;
     void addComment(const char* comment) override;
     const char* kind() const override;
     void accept(Visitor* v) override;
@@ -7385,6 +7379,21 @@ public:
     void visit(AttribDeclaration* atb) override;
     void visit(StaticIfDeclaration* _) override;
     void visit(StaticForeachDeclaration* _) override;
+};
+
+extern Array<Dsymbol* >* include(Dsymbol* d, Scope* sc);
+
+class IncludeVisitor : public Visitor
+{
+public:
+    using Visitor::visit;
+    Scope* sc;
+    Array<Dsymbol* >* symbols;
+    IncludeVisitor(Scope* sc);
+    void visit(AttribDeclaration* ad) override;
+    void visit(ConditionalDeclaration* cdc) override;
+    void visit(StaticIfDeclaration* sif) override;
+    void visit(StaticForeachDeclaration* sfd) override;
 };
 
 class NrvoWalker final : public StatementRewriteWalker

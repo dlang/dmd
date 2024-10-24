@@ -20,6 +20,7 @@ import dmd.astenums;
 import dmd.blockexit : BE, checkThrow;
 import dmd.declaration;
 import dmd.dsymbol;
+import dmd.dsymbolsem : include;
 import dmd.errorsink;
 import dmd.expression;
 import dmd.expressionsem : errorSupplementalInferredAttr;

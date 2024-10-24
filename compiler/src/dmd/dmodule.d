@@ -30,7 +30,7 @@ import dmd.dmacro;
 import dmd.doc;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem : dsymbolSemantic, importAll, load;
+import dmd.dsymbolsem : dsymbolSemantic, importAll, load, include;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
