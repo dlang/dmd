@@ -7537,7 +7537,13 @@ extern(C++) class IncludeVisitor : Visitor
         {
             assert(sif.scopesym); // addMember is already done
             assert(sif._scope); // setScope is already done
-            Dsymbols* d = include(cast(ConditionalDeclaration)sif, sif._scope);
+
+            Scope* saved_scope = sc;
+            sc = sif._scope;
+            visit(cast(ConditionalDeclaration) sif);
+            Dsymbols* d = symbols;
+            sc = saved_scope;
+
             if (d && !sif.addisdone)
             {
                 // Add members lazily.

@@ -430,6 +430,7 @@ namespace dmd
 {
     void addMember(Dsymbol *dsym, Scope *sc, ScopeDsymbol *sds);
     Dsymbol *search(Dsymbol *d, const Loc &loc, Identifier *ident, SearchOptFlags flags = (SearchOptFlags)SearchOpt::localsOnly);
+    Dsymbols *include(Scope *sc) override;
     void setScope(Dsymbol *d, Scope *sc);
     void importAll(Dsymbol *d, Scope *sc);
 }
