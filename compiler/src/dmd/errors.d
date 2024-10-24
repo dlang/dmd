@@ -476,11 +476,9 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
             info.headerColor = Classification.error;
             verrorPrint(format, ap, info);
 
-            // Fix: Convert filename to const(char)* using .ptr
-            Loc sourceLoc = Loc(info.loc.filename.ptr, info.loc.linnum, info.loc.charnum);
             if (global.params.v.messageStyle == MessageStyle.sarif)
             {
-                generateSarifReport(sourceLoc, format, ap, info.kind);
+                generateSarifReport(loc, format, ap, info.kind);
             }
             if (global.params.v.errorLimit && global.errors >= global.params.v.errorLimit)
             {
@@ -512,11 +510,9 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
                     info.headerColor = Classification.deprecation;
                     verrorPrint(format, ap, info);
 
-                    // Fix: Convert filename to const(char)* using .ptr
-                    Loc sourceLoc = Loc(info.loc.filename.ptr, info.loc.linnum, info.loc.charnum);
                     if (global.params.v.messageStyle == MessageStyle.sarif)
                     {
-                        generateSarifReport(sourceLoc, format, ap, info.kind);
+                        generateSarifReport(loc, format, ap, info.kind);
                     }
                 }
             }
@@ -551,10 +547,9 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
             verrorPrint(format, ap, info);
 
             // Fix: Convert filename to const(char)* using .ptr
-            Loc sourceLoc = Loc(info.loc.filename.ptr, info.loc.linnum, info.loc.charnum);
             if (global.params.v.messageStyle == MessageStyle.sarif)
             {
-                generateSarifReport(sourceLoc, format, ap, info.kind);
+                generateSarifReport(loc, format, ap, info.kind);
             }
         }
         return;
@@ -570,11 +565,9 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
         fputs(tmp.peekChars(), stdout);
         fputc('\n', stdout);
         fflush(stdout);     // ensure it gets written out in case of compiler aborts
-        // Fix: Convert filename to const(char)* using .ptr
-        Loc sourceLoc = Loc(info.loc.filename.ptr, info.loc.linnum, info.loc.charnum);
         if (global.params.v.messageStyle == MessageStyle.sarif)
         {
-            generateSarifReport(sourceLoc, format, ap, info.kind);
+            generateSarifReport(loc, format, ap, info.kind);
         }
         return;
     }

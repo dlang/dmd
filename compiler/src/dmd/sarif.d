@@ -101,7 +101,7 @@ string formatErrorMessage(const(char)* format, va_list ap) nothrow
     return buffer[0 .. buffer.length].dup;
 }
 
-void generateSarifReport(const ref Loc loc, const(char)* format, va_list ap, ErrorKind kind) nothrow
+void generateSarifReport(const ref SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind) nothrow
 {
     // Format the error message
     string formattedMessage = formatErrorMessage(format, ap);
@@ -155,8 +155,9 @@ void generateSarifReport(const ref Loc loc, const(char)* format, va_list ap, Err
     ob.writestringln(`"locations": [{`);
     ob.writestringln(`"physicalLocation": {`);
     ob.writestringln(`"artifactLocation": {`);
-    ob.printf(`"uri": "%s"`, loc.filename);
-    ob.writestringln("},");
+    ob.writestring(`"uri": "`);
+    ob.writestring(loc.filename);
+    ob.writestringln(`"},`);
     ob.writestringln(`"region": {`);
     ob.printf(`"startLine": %d,`, loc.linnum);
     ob.printf(`"startColumn": %d`, loc.charnum);
