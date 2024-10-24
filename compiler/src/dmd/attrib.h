@@ -28,7 +28,6 @@ class AttribDeclaration : public Dsymbol
 {
 public:
     Dsymbols *decl;     // array of Dsymbol's
-
     void addComment(const utf8_t *comment) override;
     const char *kind() const override;
     bool oneMember(Dsymbol *&ps, Identifier *ident) override;
