@@ -792,7 +792,6 @@ public:
                 }
                 if (AttribDeclaration *attrib = sym->isAttribDeclaration())
                 {
-                    //(void)attrib->include(NULL);
                     dmd::include(attrib, NULL);
                     continue;
                 }
@@ -855,7 +854,6 @@ public:
                 }
                 if (AttribDeclaration *attrib = sym->isAttribDeclaration())
                 {
-                    //(void)attrib->include(NULL);
                     dmd::include(attrib, NULL);
                     continue;
                 }
@@ -1236,7 +1234,6 @@ public:
     }
     void visit(AttribDeclaration *d) override
     {
-        //Dsymbols *ds = d->include(NULL);
         Dsymbols *ds = dmd::include(d, NULL);
 
         if (!ds)

@@ -175,7 +175,7 @@ void importAll(Dsymbol d, Scope* sc)
 Dsymbols* include(Dsymbol d, Scope* sc)
 {
     import dmd.dsymbolsem;
-    return dmd.dsymbosem.include(d, sc);
+    return dmd.dsymbolsem.include(d, sc);
 }
 
 /***********************************************************
