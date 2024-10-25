@@ -857,7 +857,6 @@ public:
                 {
                     //(void)attrib->include(NULL);
                     dmd::include(attrib, NULL);
-
                     continue;
                 }
                 if (sym->isTemplateMixin() || sym->isNspace())
