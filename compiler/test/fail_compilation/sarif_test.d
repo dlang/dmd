@@ -1,7 +1,6 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/sarif_test.d: Error: undefined identifier `x`
 {
 	"version": "2.1.0",
 	"$schema": "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0.json",
@@ -21,7 +20,7 @@ fail_compilation/sarif_test.d: Error: undefined identifier `x`
 		"artifactLocation": {
 		"uri": "fail_compilation/sarif_test.d"},
 		"region": {
-		"startLine": 35,"startColumn": 5}
+		"startLine": 34,"startColumn": 5}
 		}
 		}]
 		}]

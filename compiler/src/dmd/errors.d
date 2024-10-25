@@ -474,12 +474,12 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
         if (!global.gag)
         {
             info.headerColor = Classification.error;
-            verrorPrint(format, ap, info);
-
             if (global.params.v.messageStyle == MessageStyle.sarif)
             {
                 generateSarifReport(loc, format, ap, info.kind);
+                return;
             }
+            verrorPrint(format, ap, info);
             if (global.params.v.errorLimit && global.errors >= global.params.v.errorLimit)
             {
                 fprintf(stderr, "error limit (%d) reached, use `-verrors=0` to show all\n", global.params.v.errorLimit);
@@ -508,12 +508,12 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
                 if (global.params.v.errorLimit == 0 || global.deprecations <= global.params.v.errorLimit)
                 {
                     info.headerColor = Classification.deprecation;
-                    verrorPrint(format, ap, info);
-
                     if (global.params.v.messageStyle == MessageStyle.sarif)
                     {
                         generateSarifReport(loc, format, ap, info.kind);
+                        return;
                     }
+                    verrorPrint(format, ap, info);
                 }
             }
             else
@@ -544,13 +544,12 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
         if (!global.gag)
         {
             info.headerColor = Classification.tip;
-            verrorPrint(format, ap, info);
-
-            // Fix: Convert filename to const(char)* using .ptr
             if (global.params.v.messageStyle == MessageStyle.sarif)
             {
                 generateSarifReport(loc, format, ap, info.kind);
+                return;
             }
+            verrorPrint(format, ap, info);
         }
         return;
 
