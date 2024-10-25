@@ -797,7 +797,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         Statement s = new ReturnStatement(funcdecl.loc, null);
                         s = s.statementSemantic(sc2);
                         funcdecl.fbody = new CompoundStatement(funcdecl.loc, funcdecl.fbody, s);
-                        funcdecl.hasReturnExp |= (funcdecl.hasReturnExp & 1 ? 16 : 1);
+                        funcdecl.hasMultipleReturnExp = funcdecl.hasReturnExp;
+                        funcdecl.hasReturnExp = true;
                     }
                 }
                 else if (funcdecl.fes)
@@ -808,7 +809,8 @@ private extern(C++) final class Semantic3Visitor : Visitor
                         Expression e = IntegerExp.literal!0;
                         Statement s = new ReturnStatement(Loc.initial, e);
                         funcdecl.fbody = new CompoundStatement(Loc.initial, funcdecl.fbody, s);
-                        funcdecl.hasReturnExp |= (funcdecl.hasReturnExp & 1 ? 16 : 1);
+                        funcdecl.hasMultipleReturnExp = funcdecl.hasReturnExp;
+                        funcdecl.hasReturnExp = true;
                     }
                     assert(!funcdecl.returnLabel);
                 }
@@ -823,8 +825,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 }
                 else
                 {
-                    const(bool) inlineAsm = (funcdecl.hasReturnExp & 8) != 0;
-                    if ((blockexit & BE.fallthru) && f.next.ty != Tvoid && !inlineAsm && !sc.inCfile)
+                    if ((blockexit & BE.fallthru) && f.next.ty != Tvoid && !funcdecl.hasInlineAsm && !sc.inCfile)
                     {
                         if (!funcdecl.hasReturnExp)
                             .error(funcdecl.loc, "%s `%s` has no `return` statement, but is expected to return a value of type `%s`", funcdecl.kind, funcdecl.toPrettyChars, f.next.toChars());
@@ -1175,32 +1176,31 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     {
                         if (v.isReference() || (v.storage_class & STC.lazy_))
                             continue;
-                        if (v.needsScopeDtor())
+                        if (!v.needsScopeDtor())
+                            continue;
+                        v.storage_class |= STC.nodtor;
+                        if (!paramsNeedDtor)
+                            continue;
+
+                        // same with ExpStatement.scopeCode()
+                        Statement s = new DtorExpStatement(Loc.initial, v.edtor, v);
+
+                        s = s.statementSemantic(sc2);
+
+                        const blockexit = s.blockExit(funcdecl, isNothrow ? global.errorSink : null);
+                        if (blockexit & BE.throw_)
                         {
-                            v.storage_class |= STC.nodtor;
-                            if (!paramsNeedDtor)
-                                continue;
-
-                            // same with ExpStatement.scopeCode()
-                            Statement s = new DtorExpStatement(Loc.initial, v.edtor, v);
-
-                            s = s.statementSemantic(sc2);
-
-                            const blockexit = s.blockExit(funcdecl, isNothrow ? global.errorSink : null);
-                            if (blockexit & BE.throw_)
-                            {
-                                funcdecl.hasNoEH = false;
-                                if (isNothrow)
-                                    error(funcdecl.loc, "%s `%s` may throw but is marked as `nothrow`", funcdecl.kind(), funcdecl.toPrettyChars());
-                                else if (funcdecl.nothrowInprocess)
-                                    f.isNothrow = false;
-                            }
-
-                            if (sbody.blockExit(funcdecl, f.isNothrow ? global.errorSink : null) == BE.fallthru)
-                                sbody = new CompoundStatement(Loc.initial, sbody, s);
-                            else
-                                sbody = new TryFinallyStatement(Loc.initial, sbody, s);
+                            funcdecl.hasNoEH = false;
+                            if (isNothrow)
+                                error(funcdecl.loc, "%s `%s` may throw but is marked as `nothrow`", funcdecl.kind(), funcdecl.toPrettyChars());
+                            else if (funcdecl.nothrowInprocess)
+                                f.isNothrow = false;
                         }
+
+                        if (sbody.blockExit(funcdecl, f.isNothrow ? global.errorSink : null) == BE.fallthru)
+                            sbody = new CompoundStatement(Loc.initial, sbody, s);
+                        else
+                            sbody = new TryFinallyStatement(Loc.initial, sbody, s);
                     }
                 }
                 // from this point on all possible 'throwers' are checked

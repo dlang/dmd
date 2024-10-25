@@ -271,7 +271,7 @@ void optfunc(ref GlobalOptimizer go)
                     //el_check(b.Belem);
                 }
 
-                b.Belem = doptelem(b.Belem,bc_goal[b.BC] | Goal.again);
+                b.Belem = doptelem(b.Belem, bc_goal(b.BC) | Goal.again);
 
                 debug if (0 && debugf)
                 {
@@ -322,7 +322,7 @@ void optfunc(ref GlobalOptimizer go)
         {
             if (b.Belem)
             {
-                b.Belem = doptelem(b.Belem,bc_goal[b.BC] | Goal.struct_);
+                b.Belem = doptelem(b.Belem, bc_goal(b.BC) | Goal.struct_);
                 if (b.Belem)
                     b.Belem = el_convert(go, b.Belem);
             }
