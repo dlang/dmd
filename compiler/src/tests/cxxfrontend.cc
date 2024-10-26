@@ -792,7 +792,7 @@ public:
                 }
                 if (AttribDeclaration *attrib = sym->isAttribDeclaration())
                 {
-                    (void)attrib->include(NULL);
+                    dmd::include(attrib, NULL);
                     continue;
                 }
                 if (sym->isTemplateMixin() || sym->isNspace())
@@ -854,7 +854,7 @@ public:
                 }
                 if (AttribDeclaration *attrib = sym->isAttribDeclaration())
                 {
-                    (void)attrib->include(NULL);
+                    dmd::include(attrib, NULL);
                     continue;
                 }
                 if (sym->isTemplateMixin() || sym->isNspace())
@@ -1234,7 +1234,8 @@ public:
     }
     void visit(AttribDeclaration *d) override
     {
-        Dsymbols *ds = d->include(NULL);
+        Dsymbols *ds = dmd::include(d, NULL);
+
         if (!ds)
             return;
         for (size_t i = 0; i < ds->length; i++)

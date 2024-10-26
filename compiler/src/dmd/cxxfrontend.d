@@ -172,6 +172,12 @@ void importAll(Dsymbol d, Scope* sc)
     return dmd.dsymbolsem.importAll(d, sc);
 }
 
+Dsymbols* include(Dsymbol d, Scope* sc)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.include(d, sc);
+}
+
 /***********************************************************
  * dtemplate.d
  */

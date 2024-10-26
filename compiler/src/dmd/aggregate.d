@@ -25,7 +25,7 @@ import dmd.declaration;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem : dsymbolSemantic, determineFields, search, determineSize;
+import dmd.dsymbolsem : dsymbolSemantic, determineFields, search, determineSize, include;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;

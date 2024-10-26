@@ -21,6 +21,7 @@ import dmd.attrib;
 import dmd.dinterpret;
 import dmd.dscope;
 import dmd.dsymbol;
+import dmd.dsymbolsem : include;
 import dmd.errors;
 import dmd.expression;
 import dmd.expressionsem;
