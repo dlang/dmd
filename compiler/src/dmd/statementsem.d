@@ -2515,7 +2515,8 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         }
         else if (rs.exp)
         {
-            fd.hasReturnExp |= (fd.hasReturnExp & 1 ? 16 : 1);
+            fd.hasMultipleReturnExp = fd.hasReturnExp;
+            fd.hasReturnExp = true;
 
             FuncLiteralDeclaration fld = fd.isFuncLiteralDeclaration();
             if (tret)
@@ -3685,9 +3686,6 @@ public bool throwSemantic(const ref Loc loc, ref Expression exp, Scope* sc)
         loc.error("cannot use `throw` statements because `object.Throwable` was not declared");
         return false;
     }
-
-    if (FuncDeclaration fd = sc.parent.isFuncDeclaration())
-        fd.hasReturnExp |= 2;
 
     if (auto ne = exp.isNewExp())
     {

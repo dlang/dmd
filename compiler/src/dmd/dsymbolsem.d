@@ -4715,6 +4715,15 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
                     visit(cast(Dsymbol)sds);
                 }
 
+                override void visit(StructDeclaration sd)
+                {
+                    // need to visit auto-generated methods as well
+                    if (sd.xeq) visit(sd.xeq);
+                    if (sd.xcmp) visit(sd.xcmp);
+                    if (sd.xhash) visit(sd.xhash);
+                    visit(cast(ScopeDsymbol)sd);
+                }
+
                 override void visit(AttribDeclaration ad)
                 {
                     ad.include(null).foreachDsymbol( s => s.accept(this) );
@@ -7474,6 +7483,138 @@ private extern(C++) class NewScopeVisitor : Visitor
         sc = sc2;
     }
 }
+
+
+extern(C++) Dsymbols* include(Dsymbol d, Scope* sc)
+{
+    scope icv = new IncludeVisitor(sc);
+    d.accept(icv);
+    return icv.symbols;
+}
+
+extern(C++) class IncludeVisitor : Visitor
+{
+    alias visit = typeof(super).visit;
+    Scope* sc;
+    Dsymbols* symbols;
+    this(Scope* sc)
+    {
+        this.sc = sc;
+    }
+
+    override void visit(AttribDeclaration ad)
+    {
+        if (ad.errors)
+        {
+            symbols = null;
+            return;
+        }
+        symbols = ad.decl;
+        return;
+    }
+
+// Decide if 'then' or 'else' code should be included
+    override void visit(ConditionalDeclaration cdc)
+    {
+        //printf("ConditionalDeclaration::include(sc = %p) scope = %p\n", sc, _scope);
+
+        if (cdc.errors)
+        {
+            symbols = null;
+            return;
+        }
+        assert(cdc.condition);
+        symbols = cdc.condition.include(cdc._scope ? cdc._scope : sc) ? cdc.decl : cdc.elsedecl;
+    }
+
+    override void visit(StaticIfDeclaration sif)
+    {
+    /****************************************
+     * Different from other AttribDeclaration subclasses, include() call requires
+     * the completion of addMember and setScope phases.
+     */
+        //printf("StaticIfDeclaration::include(sc = %p) scope = %p\n", sc, _scope);
+        if (sif.errors || sif.onStack)
+        {
+            symbols = null;
+            return;
+        }
+        sif.onStack = true;
+        scope(exit) sif.onStack = false;
+
+        if (sc && sif.condition.inc == Include.notComputed)
+        {
+            assert(sif.scopesym); // addMember is already done
+            assert(sif._scope); // setScope is already done
+
+            Scope* saved_scope = sc;
+            sc = sif._scope;
+            visit(cast(ConditionalDeclaration) sif);
+            Dsymbols* d = symbols;
+            sc = saved_scope;
+
+            if (d && !sif.addisdone)
+            {
+                // Add members lazily.
+                d.foreachDsymbol( s => s.addMember(sif._scope, sif.scopesym) );
+
+                // Set the member scopes lazily.
+                d.foreachDsymbol( s => s.setScope(sif._scope) );
+
+                sif.addisdone = true;
+            }
+            symbols = d;
+            return;
+        }
+        else
+        {
+            visit(cast(ConditionalDeclaration)sif);
+        }
+    }
+
+    override void visit(StaticForeachDeclaration sfd)
+    {
+        if (sfd.errors || sfd.onStack)
+        {
+            symbols = null;
+            return;
+        }
+        if (sfd.cached)
+        {
+            assert(!sfd.onStack);
+            symbols = sfd.cache;
+            return;
+        }
+        sfd.onStack = true;
+        scope(exit) sfd.onStack = false;
+
+        if (sfd._scope)
+        {
+            sfd.sfe.prepare(sfd._scope); // lower static foreach aggregate
+        }
+        if (!sfd.sfe.ready())
+        {
+            symbols = null;// TODO: ok?
+            return;
+        }
+
+        // expand static foreach
+        import dmd.statementsem: makeTupleForeach;
+        Dsymbols* d = makeTupleForeach(sfd._scope, true, true, sfd.sfe.aggrfe, sfd.decl, sfd.sfe.needExpansion).decl;
+        if (d) // process generated declarations
+        {
+            // Add members lazily.
+            d.foreachDsymbol( s => s.addMember(sfd._scope, sfd.scopesym) );
+
+            // Set the member scopes lazily.
+            d.foreachDsymbol( s => s.setScope(sfd._scope) );
+        }
+        sfd.cached = true;
+        sfd.cache = d;
+        symbols = d;
+    }
+}
+
 /**
  * Called from a symbol's semantic to check if `gnuAbiTag` UDA
  * can be applied to them

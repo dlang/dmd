@@ -83,19 +83,16 @@ block *block_calloc()
 /*********************************
  */
 
-__gshared Goal[BCMAX] bc_goal;
-
-@trusted
-void block_init()
+Goal bc_goal(BC bc)
 {
-    for (size_t i = 0; i < BCMAX; i++)
-        bc_goal[i] = Goal.value;
-
-    bc_goal[BCgoto] = Goal.none;
-    bc_goal[BCret ] = Goal.none;
-    bc_goal[BCexit] = Goal.none;
-
-    bc_goal[BCiftrue] = Goal.flags;
+    switch (bc)
+    {
+        case BCgoto: return Goal.none;
+        case BCret: return Goal.none;
+        case BCexit: return Goal.none;
+        case BCiftrue: return Goal.flags;
+        default: return Goal.value;
+    }
 }
 
 /*********************************
@@ -461,7 +458,7 @@ void blockopt(ref GlobalOptimizer go, int iter)
 
             if (b.Belem)
             {
-                b.Belem = doptelem(b.Belem,bc_goal[b.BC] | Goal.struct_);
+                b.Belem = doptelem(b.Belem, bc_goal(b.BC) | Goal.struct_);
                 if (b.Belem)
                     b.Belem = el_convert(go, b.Belem);
             }
@@ -985,7 +982,7 @@ private int mergeblks()
                 /* JOIN the elems               */
                 elem *e = el_combine(b.Belem,bL2.Belem);
                 if (b.Belem && bL2.Belem)
-                    e = doptelem(e,bc_goal[bL2.BC] | Goal.again);
+                    e = doptelem(e,bc_goal(bL2.BC) | Goal.again);
                 bL2.Belem = e;
                 b.Belem = null;
 

@@ -26,6 +26,7 @@ import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
+import dmd.dsymbolsem : include;
 import dmd.dtemplate;
 import dmd.expression;
 import dmd.expressionsem : semanticTypeInfo;
@@ -1818,7 +1819,7 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
             /* for the isTypeSArray() case see https://github.com/dlang/dmd/pull/16145#issuecomment-1932776873
              */
             if (tfnext.ty != Tvoid &&
-                (!(fd.hasReturnExp & 1) ||
+                (!fd.hasReturnExp ||
                  hasDtor(tfnext) && (statementsToo || tfnext.isTypeSArray())) &&
                 !hdrscan)
             {
@@ -1864,7 +1865,7 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
 
     // cannot inline functions as statement if they have multiple
     //  return statements
-    if ((fd.hasReturnExp & 16) && statementsToo)
+    if (fd.hasMultipleReturnExp && statementsToo)
     {
         static if (CANINLINE_LOG)
         {
