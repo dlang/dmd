@@ -24,6 +24,7 @@ import dmd.dscope;
 import dmd.dsymbol;
 import dmd.errors;
 import dmd.expression;
+import dmd.expressionsem : expressionSemantic, evalStaticCondition, resolveProperties;
 import dmd.globals;
 import dmd.identifier;
 import dmd.location;

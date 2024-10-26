@@ -5062,7 +5062,7 @@ bool checkLabel(GotoStatement gs)
 * to
 *     static foreach (x; AliasSeq!(1, 2, 3, 4)) { ... }
 */
-void lowerArrayAggregate(StaticForeach stf, Scope* sc)
+extern(D) void lowerArrayAggregate(StaticForeach stf, Scope* sc)
 {
     auto aggr = stf.aggrfe.aggr;
     Expression el = new ArrayLengthExp(aggr.loc, aggr);
