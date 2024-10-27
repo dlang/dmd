@@ -53,6 +53,7 @@ $(GNAME TraitsKeyword):
     $(RELATIVE_LINK2 hasCopyConstructor, $(D hasCopyConstructor))
     $(RELATIVE_LINK2 hasPostblit, $(D hasPostblit))
     $(RELATIVE_LINK2 identifier, $(D identifier))
+    $(RELATIVE_LINK2 fullyQualifiedName, $(D fullyQualifiedName))
     $(RELATIVE_LINK2 getAliasThis, $(D getAliasThis))
     $(RELATIVE_LINK2 getAttributes, $(D getAttributes))
     $(RELATIVE_LINK2 getFunctionAttributes, $(D getFunctionAttributes))
@@ -1538,6 +1539,43 @@ void main()
 $(CONSOLE
 export
 public
+)
+
+$(H3 $(GNAME fullyQualifiedName))
+
+        $(P Takes one argument, which can be a type, expression, or symbol, and returns a string.)
+
+        $(UL
+        $(LI A $(D type) returns a string representing the type.)
+        $(LI A $(D expression) returns a string representing the type of the expression.)
+        $(LI A $(D symbol) returns a string representing the fully qualified name of the symbol.)
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+module plugh;
+import std.stdio;
+
+void main()
+{
+    auto s = __traits(fullyQualifiedName, int);
+    writeln(s);
+
+    auto t = __traits(fullyQualifiedName, 1.0);
+    writeln(t);
+
+    auto u = __traits(fullyQualifiedName, t);
+    writeln(u);
+}
+---
+)
+
+        Prints:
+
+$(CONSOLE
+int
+double
+plugh.main.t
 )
 
 $(H3 $(GNAME getProtection))
