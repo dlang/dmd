@@ -6,23 +6,32 @@ TEST_OUTPUT:
 	"$schema": "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0.json",
 	"runs": [{
 		"tool": {
-		"driver": {
-		"name": "Digital Mars D","version": "2.110.0","informationUri": "https://dlang.org/dmd.html"
-		}
+			"driver": {
+				"name": "Digital Mars D",
+				"version": "2.110.0",
+				"informationUri": "https://dlang.org/dmd.html"
+			}
 		},
 		"invocations": [{
-		"executionSuccessful": false
+			"executionSuccessful": false
 		}],
 		"results": [{
-		"ruleId": "DMD",
-		"message": { "text": "undefined identifier `x`" },"locations": [{
-		"physicalLocation": {
-		"artifactLocation": {
-		"uri": "fail_compilation/sarif_test.d"},
-		"region": {
-		"startLine": 34,"startColumn": 5}
-		}
-		}]
+			"ruleId": "DMD",
+			"message": {
+				"text": "undefined identifier `x`"
+			},
+			"level": "error",
+			"locations": [{
+				"physicalLocation": {
+					"artifactLocation": {
+						"uri": "fail_compilation/sarif_test.d"
+					},
+					"region": {
+						"startLine": 43,
+						"startColumn": 5
+					}
+				}
+			}]
 		}]
 	}]
 }

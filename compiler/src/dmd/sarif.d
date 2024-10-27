@@ -106,6 +106,26 @@ void generateSarifReport(const ref SourceLoc loc, const(char)* format, va_list a
     // Format the error message
     string formattedMessage = formatErrorMessage(format, ap);
 
+    // Map ErrorKind to SARIF levels
+    const(char)* level;
+    final switch (kind) {
+        case ErrorKind.error:
+            level = "error";
+            break;
+        case ErrorKind.warning:
+            level = "warning";
+            break;
+        case ErrorKind.deprecation:
+            level = "deprecation";
+            break;
+        case ErrorKind.tip:
+            level = "note";
+            break;
+        case ErrorKind.message:
+            level = "none";
+            break;
+    }
+
     // Create an OutBuffer to store the SARIF report
     OutBuffer ob;
     ob.doindent = true;
@@ -134,36 +154,86 @@ void generateSarifReport(const ref SourceLoc loc, const(char)* format, va_list a
     // Tool Information
     ob.level += 1;
     ob.writestringln(`"tool": {`);
+    ob.level += 1;
     ob.writestringln(`"driver": {`);
-    ob.printf(`"name": "%s",`, global.compileEnv.vendor.ptr);
-    ob.printf(`"version": "%.*s",`, cast(int)length, rawVersionChars);
+    ob.level += 1;
+
+    // Write "name" field
+    ob.writestring(`"name": "`);
+    ob.writestring(global.compileEnv.vendor.ptr);
+    ob.writestringln(`",`);
+
+    // Write "version" field
+    ob.writestring(`"version": "`);
+    ob.writestring(cast(string)rawVersionChars[0 .. length]);
+    ob.writestringln(`",`);
+
+    // Write "informationUri" field
     ob.writestringln(`"informationUri": "https://dlang.org/dmd.html"`);
+    ob.level -= 1;
     ob.writestringln("}");
+    ob.level -= 1;
     ob.writestringln("},");
 
     // Invocation Information
     ob.writestringln(`"invocations": [{`);
+    ob.level += 1;
     ob.writestringln(`"executionSuccessful": false`);
+    ob.level -= 1;
     ob.writestringln("}],");
 
     // Results Array
     ob.writestringln(`"results": [{`);
+    ob.level += 1;
     ob.writestringln(`"ruleId": "DMD",`);
-    ob.printf(`"message": { "text": "%s" },`, formattedMessage.ptr);
+
+    // Message Information
+    ob.writestringln(`"message": {`);
+    ob.level += 1;
+    ob.writestring(`"text": "`);
+    ob.writestring(formattedMessage.ptr);
+    ob.writestringln(`"`);
+    ob.level -= 1;
+    ob.writestringln(`},`);
+
+    // Error Severity Level
+    ob.writestring(`"level": "`);
+    ob.writestring(level);
+    ob.writestringln(`",`);
 
     // Location Information
     ob.writestringln(`"locations": [{`);
+    ob.level += 1;
     ob.writestringln(`"physicalLocation": {`);
+    ob.level += 1;
+
+    // Artifact Location
     ob.writestringln(`"artifactLocation": {`);
+    ob.level += 1;
     ob.writestring(`"uri": "`);
     ob.writestring(loc.filename);
-    ob.writestringln(`"},`);
+    ob.writestringln(`"`);
+    ob.level -= 1;
+    ob.writestringln(`},`);
+
+    // Region Information
     ob.writestringln(`"region": {`);
-    ob.printf(`"startLine": %d,`, loc.linnum);
-    ob.printf(`"startColumn": %d`, loc.charnum);
-    ob.writestringln("}");
-    ob.writestringln("}");
-    ob.writestringln("}]");
+    ob.level += 1;
+    ob.writestring(`"startLine": `);
+    ob.printf(`%d,`, loc.linnum);
+    ob.writestringln(``);
+    ob.writestring(`"startColumn": `);
+    ob.printf(`%d`, loc.charnum);
+    ob.writestringln(``);
+    ob.level -= 1;
+    ob.writestringln(`}`);
+
+    // Close physicalLocation and locations
+    ob.level -= 1;
+    ob.writestringln(`}`);
+    ob.level -= 1;
+    ob.writestringln(`}]`);
+    ob.level -= 1;
     ob.writestringln("}]");
 
     // Close the run and SARIF JSON

@@ -529,6 +529,11 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
             if (!global.gag)
             {
                 info.headerColor = Classification.warning;
+                if (global.params.v.messageStyle == MessageStyle.sarif)
+                {
+                    generateSarifReport(loc, format, ap, info.kind);
+                    return;
+                }
                 verrorPrint(format, ap, info);
                 if (global.params.useWarnings == DiagnosticReporting.error)
                     global.warnings++;
@@ -567,6 +572,7 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
         if (global.params.v.messageStyle == MessageStyle.sarif)
         {
             generateSarifReport(loc, format, ap, info.kind);
+            return;
         }
         return;
     }
