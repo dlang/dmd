@@ -4,9 +4,58 @@ $(SPEC_S Windows Programming,
 
 $(HEADERNAV_TOC)
 
-$(P This covers Windows programming with 32 bit OMF, 32 bit Mscoff,
-64 bit Mscoff, console programs, GUI programs, and DLLs.
+$(P This covers Windows programming with 32 bit MSCOFF,
+64 bit MSCOFF, console programs, GUI programs, and DLLs.
 )
+
+$(H2 All Console Programs)
+
+    $(P A D console program is specified by having a function with D linkage at module level called `main`.
+    When the compiler sees this, it triggers the mixin template `core.internal.entrypoint._d_cmain`
+    to be added. The `_d_cmain` template looks like:
+    )
+    ---
+    template _d_cmain()
+    {
+        extern(C)
+        {
+            int _d_run_main(int argc, char **argv, void* mainFunc);
+
+            int _Dmain(char[][] args);
+
+            int main(int argc, char **argv)
+            {
+                return _d_run_main(argc, argv, &_Dmain);
+            }
+
+            // Solaris, for unknown reasons, requires both a main() and an _main()
+            version (Solaris)
+            {
+                int _main(int argc, char** argv)
+                {
+                    return main(argc, argv);
+                }
+            }
+        }
+    }
+    ---
+    $(P The `main` function in it, because it is marked as `extern(C)`, is the entry point of a
+    C console program. The executable starts up as a C executable, with the C runtime library
+    initialization and then the C main() function is called.)
+    $(P The C runtime library runs any D functions tagged with `pragma(crt_constructor)` as
+    part of its initialization, and before it calls C `main()`. The order in which these
+    are run is not specified.)
+    $(P The C `main` function then calls the D runtime library function `_d_run_main`, passing it
+    `argc` and `argv`, and the address of `_Dmain`. The compiler renames the D `main` function in
+    the source code to `_Dmain`.)
+    $(P `_d_run_main` then initializes the D runtime library, converts `argc` and `argv` to `args`,
+    and calls the D `main` function.)
+    $(P When the D `main` function returns, control is back in `_d_run_main` which shuts down the
+    D runtime library, and then returns to the C `main`, which then returns to the C library
+    which shuts down the C runtime library, then exits the program.)
+    $(P The C runtime library runs any D functions tagged with `pragma(crt_destructor)` as
+    part of its shutdown, in the reverse order that the `pragma(crt_constructor)`s were run.
+    )
 
 $(H2 $(LNAME2 mscoff, Windows 32 and 64 bit MSCOFF Programs))
 
@@ -21,26 +70,10 @@ $(H3 $(LNAME2 mscoff-windows, Windows GUI Programs))
 
 $(H3 $(LNAME2 mscoff-dlls, DLLs))
 
-$(H2 $(LNAME2 omf, Windows 32 bit OMF Programs))
-
-    $(P 32 bit OMF programs use the
-    $(LINK2 https://www.digitalmars.com/download/freecompiler.html, Digital Mars C/C++ compiler)
-    as the $(ACC), generate object files in the OMF format, and use the
-    $(LINK2 https://www.digitalmars.com/ctg/optlink.html, Optlink linker)
-    to link them.
-    )
-
-$(H3 $(LNAME2 omf-console, Console Programs))
-
-$(H3 $(LNAME2 omf-windows, Windows GUI Programs))
-
-$(H3 $(LNAME2 omf-dlls, DLLs))
-
-$(SPEC_SUBNAV_PREV_NEXT ob, Live Functions, glossary, Glossary)
+$(SPEC_SUBNAV_PREV ob, Live Functions)
 )
 
 Macros:
     CHAPTER=44
         TITLE=Windows Programming
         CATEGORY_SPEC=$0
-
