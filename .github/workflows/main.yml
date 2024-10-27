@@ -115,11 +115,6 @@ jobs:
         uses: dlang-community/setup-dlang@v1.3.0
         with:
           compiler: ${{ matrix.host_dmd }}
-      - name: 'MacOS: Install recent make'
-        if: runner.os == 'macOS'
-        run: |
-          brew install make
-          echo "PATH=/usr/local/opt/make/libexec/gnubin:$PATH" >> $GITHUB_ENV
 
       - name: Set up repos
         run: |
