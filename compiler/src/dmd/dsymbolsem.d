@@ -7482,8 +7482,32 @@ private extern(C++) class NewScopeVisitor : Visitor
         }
         sc = sc2;
     }
-}
 
+    override void visit(ClassDeclaration cld)
+    {
+        auto sc2 = cld.newScope(sc);
+        if (cld.isCOMclass())
+        {
+            /* This enables us to use COM objects under Linux and
+             * work with things like XPCOM
+             */
+            sc2.linkage = target.systemLinkage();
+        }
+        sc = sc2;
+    }
+
+    override void visit(InterfaceDeclaration ifd)
+    {
+        auto sc2 = ifd.newScope(sc);
+        if (ifd.com)
+            sc2.linkage = LINK.windows;
+        else if (ifd.classKind == ClassKind.cpp)
+            sc2.linkage = LINK.cpp;
+        else if (ifd.classKind == ClassKind.objc)
+            sc2.linkage = LINK.objc;
+        sc = sc2;
+    }
+}
 
 extern(C++) Dsymbols* include(Dsymbol d, Scope* sc)
 {
