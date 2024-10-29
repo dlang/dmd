@@ -135,7 +135,9 @@ extern (C) int _Dmain(char[][])
         dmd_coverDestPath(sourcePath);
         dmd_coverSetMerge(true);
     }
-    scope(failure) stderr.printInternalFailure;
+    version (D_Exceptions)
+        scope(failure) stderr.printInternalFailure;
+
     auto args = Runtime.cArgs();
     return tryMain(args.argc, cast(const(char)**)args.argv, global.params);
 }
