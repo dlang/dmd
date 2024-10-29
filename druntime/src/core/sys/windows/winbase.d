@@ -345,6 +345,14 @@ enum DWORD
     SECURITY_SQOS_PRESENT     = 0x00100000,
     SECURITY_VALID_SQOS_FLAGS = 0x001F0000;
 
+// for GetFinalPathNameByHandle()
+enum DWORD
+    VOLUME_NAME_DOS      = 0x0,
+    VOLUME_NAME_GUID     = 0x1,
+    VOLUME_NAME_NT       = 0x2,
+    VOLUME_NAME_NONE     = 0x4,
+    FILE_NAME_NORMALIZED = 0x0,
+    FILE_NAME_OPENED     = 0x8;
 
 // Thread exit code
 enum DWORD STILL_ACTIVE = 0x103;
@@ -1909,6 +1917,8 @@ WINBASEAPI DWORD WINAPI GetCurrentThreadId(void);
     DWORD GetFileSize(HANDLE, PDWORD);
     BOOL GetFileTime(HANDLE, LPFILETIME, LPFILETIME, LPFILETIME);
     DWORD GetFileType(HANDLE);
+    DWORD GetFinalPathNameByHandleA(HANDLE, LPSTR, DWORD, DWORD);
+    DWORD GetFinalPathNameByHandleW(HANDLE, LPWSTR, DWORD, DWORD);
     DWORD GetFullPathNameA(LPCSTR, DWORD, LPSTR, LPSTR*);
     DWORD GetFullPathNameW(LPCWSTR, DWORD, LPWSTR, LPWSTR*);
     DWORD GetLastError() @trusted;
