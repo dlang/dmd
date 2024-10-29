@@ -5487,7 +5487,7 @@ elem *callfunc(const ref Loc loc,
         {
             elem *ea = toElem(arg, irs);
 
-            //printf("\targ[%d]: %s\n", i, arg.toChars());
+            //printf("\targ[%d]: %s\n", cast(int)i, arg.toChars());
 
             if (i - j < tf.parameterList.length &&
                 i >= j &&
@@ -5502,6 +5502,28 @@ elem *callfunc(const ref Loc loc,
 
             if (ISX64REF(irs, arg) && op == NotIntrinsic)
             {
+                /* if the argument is a function call which returns a pointer
+                 * to where the return value goes, that pointer is the pointer
+                 * to the return value
+                 */
+                elem** pea;
+                for (pea = &ea; (*pea).Eoper == OPcomma; pea = &(*pea).E2) // skip past OPcomma's
+                {
+                }
+                if ((*pea).Eoper == OPind &&
+                    (*pea).Ety == TYstruct &&
+                    ((*pea).E1.Eoper == OPcall || (*pea).E1.Eoper == OPucall))
+                {
+                    *pea = (*pea).E1; // remove the OPind
+                    elems[i] = ea;
+
+                    tym_t eaty = (*pea).Ety;
+                    for (elem* ex = ea; ex.Eoper == OPcomma; ex = ex.E2)
+                        ex.Ety = eaty;
+
+                    continue;
+                }
+
                 /* Copy to a temporary, and make the argument a pointer
                  * to that temporary.
                  */
