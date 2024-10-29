@@ -1333,6 +1333,51 @@ enum GET_FILEEX_INFO_LEVELS {
     GetFileExMaxInfoLevel
 }
 
+import core.sys.windows.sdkddkver : NTDDI_VERSION, NTDDI_LONGHORN;
+
+static if (NTDDI_VERSION >= NTDDI_LONGHORN)
+{
+    enum FILE_INFO_BY_HANDLE_CLASS
+    {
+        FileBasicInfo,
+        FileStandardInfo,
+        FileNameInfo,
+        FileRenameInfo,
+        FileDispositionInfo,
+        FileAllocationInfo,
+        FileEndOfFileInfo,
+        FileStreamInfo,
+        FileCompressionInfo,
+        FileAttributeTagInfo,
+        FileIdBothDirectoryInfo,
+        FileIdBothDirectoryRestartInfo,
+        FileIoPriorityHintInfo,
+        FileRemoteProtocolInfo,
+        FileFullDirectoryInfo,
+        FileFullDirectoryRestartInfo,
+//        static if (NTDDI_VERSION >= NTDDI_WIN8)
+//        {
+            FileStorageInfo,
+            FileAlignmentInfo,
+            FileIdInfo,
+            FileIdExtdDirectoryInfo,
+            FileIdExtdDirectoryRestartInfo,
+//        }
+//        static if (NTDDI_VERSION >= NTDDI_WIN10_RS1)
+//        {
+            FileDispositionInfoEx,
+            FileRenameInfoEx,
+//        }
+//        static if (NTDDI_VERSION >= NTDDI_WIN10_19H1)
+//        {
+            FileCaseSensitiveInfo,
+            FileNormalizedNameInfo,
+//        }
+        MaximumFileInfoByHandleClass
+    }
+    alias PFILE_INFO_BY_HANDLE_CLASS = FILE_INFO_BY_HANDLE_CLASS*;
+}
+
 struct SYSTEM_INFO {
     union {
         DWORD dwOemId;
@@ -1590,12 +1635,32 @@ static if (_WIN32_WINNT >= 0x410) {
     alias DWORD EXECUTION_STATE;
 }
 
-// CreateSymbolicLink
+// CreateSymbolicLink, GetFileInformationByHandleEx
 static if (_WIN32_WINNT >= 0x600) {
     enum {
         SYMBOLIC_LINK_FLAG_DIRECTORY = 0x1,
         SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE = 0x2
     }
+
+    struct FILE_BASIC_INFO
+    {
+        LARGE_INTEGER CreationTime;
+        LARGE_INTEGER LastAccessTime;
+        LARGE_INTEGER LastWriteTime;
+        LARGE_INTEGER ChangeTime;
+        DWORD FileAttributes;
+    }
+    alias PFILE_BASIC_INFO = FILE_BASIC_INFO*;
+
+    struct FILE_STANDARD_INFO
+    {
+        LARGE_INTEGER AllocationSize;
+        LARGE_INTEGER EndOfFile;
+        DWORD NumberOfLinks;
+        BOOLEAN DeletePending;
+        BOOLEAN Directory;
+    }
+    alias PFILE_STANDARD_INFO = FILE_STANDARD_INFO*;
 }
 
 // Callbacks
@@ -2485,6 +2550,7 @@ WINBASEAPI BOOL WINAPI SetEvent(HANDLE);
     static if (_WIN32_WINNT >= 0x600) {
         BOOL CreateSymbolicLinkA(LPCSTR, LPCSTR, DWORD);
         BOOL CreateSymbolicLinkW(LPCWSTR, LPCWSTR, DWORD);
+        BOOL GetFileInformationByHandleEx(HANDLE, FILE_INFO_BY_HANDLE_CLASS, LPVOID, DWORD);
     }
 }
 
