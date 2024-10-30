@@ -1,3 +1,18 @@
+/**
+ * Provides SARIF (Static Analysis Results Interchange Format) reporting functionality.
+ *
+ * Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+ * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
+ * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
+ * Source:      $(LINK2 https://github.com/dlang/dmd/blob/master/src/dmd/sarif.d, sarif.d)
+ * Coverage:    $(LINK2 https://codecov.io/gh/dlang/dmd/src/master/src/dmd/sarif.d, Code Coverage)
+ *
+ * Description:
+ * - This module generates SARIF reports for DMD errors, warnings, and messages.
+ * - It supports JSON serialization of SARIF tools, results, and invocations.
+ * - The generated reports are compatible with SARIF 2.1.0 schema.
+ */
+
 module dmd.sarif;
 
 import core.stdc.stdarg;
@@ -11,17 +26,29 @@ import dmd.root.rmem;
 import dmd.console;
 import dmd.errors;
 
-// Struct for SARIF Tool Information
+/// Contains information about the tool used for analysis in SARIF reports.
 struct ToolInformation {
-    string name;
-    string toolVersion;
+    string name;        /// Name of the tool.
+    string toolVersion; /// Version of the tool.
 
+    /// Converts the tool information to a JSON string.
+    ///
+    /// Returns:
+    /// - A JSON representation of the tool's name and version.
     string toJson() nothrow {
         return `{"name": "` ~ name ~ `", "version": "` ~ toolVersion ~ `"}`;
     }
 }
 
-// Function to convert int to string
+/**
+Converts an integer to a string.
+
+Params:
+  value = The integer value to convert.
+
+Returns:
+  A string representation of the integer.
+*/
 string intToString(int value) nothrow {
     char[32] buffer;
     import core.stdc.stdio : sprintf;
@@ -29,25 +56,33 @@ string intToString(int value) nothrow {
     return buffer[0 .. buffer.length].dup;
 }
 
-// Struct for SARIF Result
-struct Result {
-    string ruleId;  // Rule identifier
-    string message;  // Error message
-    string uri;  // File path (URI)
-    int startLine;  // Line number where the error occurs
-    int startColumn;  // Column number where the error occurs
+/// Represents a SARIF result containing a rule ID, message, and location.
+struct SarifResult {
+    string ruleId;      /// Rule identifier.
+    string message;     /// Error or warning message.
+    string uri;         /// URI of the affected file.
+    int startLine;      /// Line number where the issue occurs.
+    int startColumn;    /// Column number where the issue occurs.
 
+    /// Converts the SARIF result to a JSON string.
+    ///
+    /// Returns:
+    /// - A JSON string representing the SARIF result, including the rule ID, message, and location.
     string toJson() nothrow {
         return `{"ruleId": "` ~ ruleId ~ `", "message": "` ~ message ~ `", "location": {"artifactLocation": {"uri": "` ~ uri ~ `"}, "region": {"startLine": ` ~ intToString(startLine) ~ `, "startColumn": ` ~ intToString(startColumn) ~ `}}}`;
     }
 }
 
-// SARIF Report Struct
+/// Represents a SARIF report containing tool information, invocation, and results.
 struct SarifReport {
-    ToolInformation tool;  // Information about the tool
-    Invocation invocation;  // Information about the execution
-    Result[] results;  // List of results (errors, warnings, etc.)
+    ToolInformation tool;  /// Information about the analysis tool.
+    Invocation invocation;  /// Execution information.
+    SarifResult[] results;  /// List of SARIF results (errors, warnings, etc.).
 
+    /// Converts the SARIF report to a JSON string.
+    ///
+    /// Returns:
+    /// - A JSON string representing the SARIF report, including the tool information, invocation, and results.
     string toJson() nothrow {
         string resultsJson = "[" ~ results[0].toJson();
         foreach (result; results[1 .. $]) {
@@ -59,48 +94,54 @@ struct SarifReport {
     }
 }
 
-// Function to convert SourceLoc to JSON string
-string sourceLocToJson(const SourceLoc sourceLoc) nothrow {
-    OutBuffer result;
-
-    // Write the JSON for the file URI
-    result.writestring(`{
-        "artifactLocation": {
-            "uri": "file://`);
-    result.writestring(sourceLoc.filename);
-    result.writestring(`"
-        },
-        "region": {
-            "startLine": `);
-    result.print(sourceLoc.line);
-    result.writestring(`,
-            "startColumn": `);
-    result.print(sourceLoc.column);
-    result.writestring(`
-        }
-    }`);
-
-    return result.extractSlice();
-}
-
-// Struct for Invocation Information
+/// Represents invocation information for the analysis process.
 struct Invocation {
-    bool executionSuccessful;
+    bool executionSuccessful;  /// Whether the execution was successful.
 
+    /// Converts the invocation information to a JSON string.
+    ///
+    /// Returns:
+    /// - A JSON representation of the invocation status.
     string toJson() nothrow {
         return `{"executionSuccessful": ` ~ (executionSuccessful ? "true" : "false") ~ `}`;
     }
 }
 
-// Helper function to format error messages
-string formatErrorMessage(const(char)* format, va_list ap) nothrow
-{
-    char[2048] buffer;  // Buffer for the formatted message
+/**
+Formats an error message using a format string and a variable argument list.
+
+Params:
+  format = The format string to use.
+  ap = A variable argument list for the format string.
+
+Returns:
+  A formatted error message string.
+*/
+string formatErrorMessage(const(char)* format, va_list ap) nothrow {
+    char[2048] buffer;
     import core.stdc.stdio : vsnprintf;
     vsnprintf(buffer.ptr, buffer.length, format, ap);
     return buffer[0 .. buffer.length].dup;
 }
 
+/**
+Generates a SARIF (Static Analysis Results Interchange Format) report and prints it to `stdout`.
+
+This function builds a JSON-formatted SARIF report, including information about the tool,
+invocation status, error message, severity level, and the location of the issue in the source code.
+
+Params:
+  loc = The source location where the error occurred (file, line, and column).
+  format = A format string for constructing the error message.
+  ap = A variable argument list used with the format string.
+  kind = The kind of error (error, warning, deprecation, note, or message).
+
+Throws:
+  This function is marked as `nothrow` and does not throw exceptions.
+
+See_Also:
+  $(LINK2 https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0.json, SARIF 2.1.0 schema)
+*/
 void generateSarifReport(const ref SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind) nothrow
 {
     // Format the error message
