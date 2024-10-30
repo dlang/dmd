@@ -541,7 +541,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 break;
 
             case TOK.new_:
-                s = parseNew(pAttrs);
+                s = parseNewDeclaration(pAttrs);
                 break;
 
             case TOK.colon:
@@ -2789,7 +2789,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      *      @disable new();
      * Current token is 'new'.
      */
-    private AST.Dsymbol parseNew(PrefixAttributes!AST* pAttrs)
+    private AST.Dsymbol parseNewDeclaration(PrefixAttributes!AST* pAttrs)
     {
         const loc = token.loc;
         StorageClass stc = getStorageClass!AST(pAttrs);
@@ -9502,6 +9502,15 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     }
 
     /*******************************************
+     * Params:
+     *    thisexp = If not null, it is the `this` reference for the creation
+     *              of an inner class.
+     *              https://dlang.org/spec/class.html#nested-explicit
+     *              https://dlang.org/spec/expression.html#postfix_expressions
+     *              If null, then it is a NewExpression.
+     *              https://dlang.org/spec/expression.html#NewExpression
+     * Returns:
+     *   NewExpression
      */
     private AST.Expression parseNewExp(AST.Expression thisexp)
     {
