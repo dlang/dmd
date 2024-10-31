@@ -5,9 +5,13 @@ fail_compilation/test8556.d(24): Error: template instance `test8556.Grab!(Circle
   with `Range = Circle!(uint[])`
   must satisfy the following constraint:
 `       !isSliceable!Range`
-fail_compilation/test8556.d(55): Error: template instance `test8556.grab!(Circle!(uint[]))` error instantiating
+fail_compilation/test8556.d(24):        instantiated from here: `Grab!(Circle!(uint[]))`
+fail_compilation/test8556.d(55):        instantiated from here: `grab!(Circle!(uint[]))`
+fail_compilation/test8556.d(19):        Candidate match: Grab(Range) if (!isSliceable!Range)
 ---
 */
+
+#line 100
 
 extern(C) int printf(const char*, ...);
 

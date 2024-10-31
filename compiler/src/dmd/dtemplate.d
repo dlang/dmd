@@ -4978,32 +4978,34 @@ extern (C++) class TemplateInstance : ScopeDsymbol
                 else
                 {
                     .error(loc, "%s `%s` %s `%s`", kind, toPrettyChars, msg, tmsg);
+                }
+                this.printInstantiationTrace(Classification.error);
+                errorSupplemental(tdecl.loc, "Candidate match: %s", tdecl.toChars());
 
-                    if (tdecl.parameters.length == tiargs.length)
+                if (tdecl.parameters.length == tiargs.length)
+                {
+                    // https://issues.dlang.org/show_bug.cgi?id=7352
+                    // print additional information, e.g. `foo` is not a type
+                    foreach (i, param; *tdecl.parameters)
                     {
-                        // https://issues.dlang.org/show_bug.cgi?id=7352
-                        // print additional information, e.g. `foo` is not a type
-                        foreach (i, param; *tdecl.parameters)
+                        MATCH match = param.matchArg(loc, sc, tiargs, i, tdecl.parameters, dedtypes, null);
+                        auto arg = (*tiargs)[i];
+                        auto sym = arg.isDsymbol;
+                        auto exp = arg.isExpression;
+
+                        if (exp)
+                            exp = exp.optimize(WANTvalue);
+
+                        if (match == MATCH.nomatch &&
+                            ((sym && sym.isFuncDeclaration) ||
+                             (exp && exp.isVarExp)))
                         {
-                            MATCH match = param.matchArg(loc, sc, tiargs, i, tdecl.parameters, dedtypes, null);
-                            auto arg = (*tiargs)[i];
-                            auto sym = arg.isDsymbol;
-                            auto exp = arg.isExpression;
+                            if (param.isTemplateTypeParameter)
+                                errorSupplemental(loc, "`%s` is not a type", arg.toChars);
+                            else if (auto tvp = param.isTemplateValueParameter)
+                                errorSupplemental(loc, "`%s` is not of a value of type `%s`",
+                                                  arg.toChars, tvp.valType.toChars);
 
-                            if (exp)
-                                exp = exp.optimize(WANTvalue);
-
-                            if (match == MATCH.nomatch &&
-                                ((sym && sym.isFuncDeclaration) ||
-                                 (exp && exp.isVarExp)))
-                            {
-                                if (param.isTemplateTypeParameter)
-                                    errorSupplemental(loc, "`%s` is not a type", arg.toChars);
-                                else if (auto tvp = param.isTemplateValueParameter)
-                                    errorSupplemental(loc, "`%s` is not of a value of type `%s`",
-                                                      arg.toChars, tvp.valType.toChars);
-
-                            }
                         }
                     }
                 }
