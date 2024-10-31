@@ -36,7 +36,13 @@ struct ToolInformation {
     /// Returns:
     /// - A JSON representation of the tool's name and version.
     string toJson() nothrow {
-        return `{"name": "` ~ name ~ `", "version": "` ~ toolVersion ~ `"}`;
+        OutBuffer buffer;
+        buffer.writestring(`{"name": "`);
+        buffer.writestring(name);
+        buffer.writestring(`", "version": "`);
+        buffer.writestring(toolVersion);
+        buffer.writestring(`"}`);
+        return cast(string) buffer.extractChars()[0 .. buffer.length()].dup;
     }
 }
 
@@ -69,7 +75,19 @@ struct SarifResult {
     /// Returns:
     /// - A JSON string representing the SARIF result, including the rule ID, message, and location.
     string toJson() nothrow {
-        return `{"ruleId": "` ~ ruleId ~ `", "message": "` ~ message ~ `", "location": {"artifactLocation": {"uri": "` ~ uri ~ `"}, "region": {"startLine": ` ~ intToString(startLine) ~ `, "startColumn": ` ~ intToString(startColumn) ~ `}}}`;
+        OutBuffer buffer;
+        buffer.writestring(`{"ruleId": "`);
+        buffer.writestring(ruleId);
+        buffer.writestring(`", "message": "`);
+        buffer.writestring(message);
+        buffer.writestring(`", "location": {"artifactLocation": {"uri": "`);
+        buffer.writestring(uri);
+        buffer.writestring(`"}, "region": {"startLine": `);
+        buffer.writestring(intToString(startLine));
+        buffer.writestring(`, "startColumn": `);
+        buffer.writestring(intToString(startColumn));
+        buffer.writestring(`}}}`);
+        return cast(string) buffer.extractChars()[0 .. buffer.length()].dup;
     }
 }
 
@@ -84,13 +102,21 @@ struct SarifReport {
     /// Returns:
     /// - A JSON string representing the SARIF report, including the tool information, invocation, and results.
     string toJson() nothrow {
-        string resultsJson = "[" ~ results[0].toJson();
-        foreach (result; results[1 .. $]) {
-            resultsJson ~= ", " ~ result.toJson();
+        OutBuffer buffer;
+        buffer.writestring(`{"tool": `);
+        buffer.writestring(tool.toJson());
+        buffer.writestring(`, "invocation": `);
+        buffer.writestring(invocation.toJson());
+        buffer.writestring(`, "results": [`);
+        if (results.length > 0) {
+            buffer.writestring(results[0].toJson());
+            foreach (result; results[1 .. $]) {
+                buffer.writestring(`, `);
+                buffer.writestring(result.toJson());
+            }
         }
-        resultsJson ~= "]";
-
-        return `{"tool": ` ~ tool.toJson() ~ `, "invocation": ` ~ invocation.toJson() ~ `, "results": ` ~ resultsJson ~ `}`;
+        buffer.writestring(`]}`);
+        return cast(string) buffer.extractChars()[0 .. buffer.length()].dup;
     }
 }
 
@@ -103,7 +129,11 @@ struct Invocation {
     /// Returns:
     /// - A JSON representation of the invocation status.
     string toJson() nothrow {
-        return `{"executionSuccessful": ` ~ (executionSuccessful ? "true" : "false") ~ `}`;
+        OutBuffer buffer;
+        buffer.writestring(`{"executionSuccessful": `);
+        buffer.writestring(executionSuccessful ? "true" : "false");
+        buffer.writestring(`}`);
+        return cast(string) buffer.extractChars()[0 .. buffer.length()].dup;
     }
 }
 
@@ -172,16 +202,18 @@ void generateSarifReport(const ref SourceLoc loc, const(char)* format, va_list a
     ob.doindent = true;
 
     // Extract and clean the version string
-    const(char)* rawVersionChars = global.versionChars();
-
+    string toolVersion = global.versionString();
     // Remove 'v' prefix if it exists
-    if (*rawVersionChars == 'v') {
-        rawVersionChars += 1;
+    if (toolVersion.length > 0 && toolVersion[0] == 'v') {
+        toolVersion = toolVersion[1 .. $];
     }
-
     // Find the first non-numeric character after the version number
-    const(char)* nonNumeric = strchr(rawVersionChars, '-');
-    size_t length = nonNumeric ? cast(size_t)(nonNumeric - rawVersionChars) : strlen(rawVersionChars);
+    size_t length = toolVersion.length;
+    const(char)* nonNumeric = strchr(toolVersion.ptr, '-');
+    if (nonNumeric) {
+        length = cast(size_t)(nonNumeric - toolVersion.ptr);
+    }
+    string cleanedVersion = toolVersion[0 .. length];
 
     // Build SARIF report
     ob.level = 0;
@@ -206,7 +238,7 @@ void generateSarifReport(const ref SourceLoc loc, const(char)* format, va_list a
 
     // Write "version" field
     ob.writestring(`"version": "`);
-    ob.writestring(cast(string)rawVersionChars[0 .. length]);
+    ob.writestring(cleanedVersion);
     ob.writestringln(`",`);
 
     // Write "informationUri" field
