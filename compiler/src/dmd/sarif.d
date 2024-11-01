@@ -179,21 +179,27 @@ void generateSarifReport(const ref SourceLoc loc, const(char)* format, va_list a
 
     // Map ErrorKind to SARIF levels
     const(char)* level;
+    string ruleId;
     final switch (kind) {
         case ErrorKind.error:
             level = "error";
+            ruleId = "DMD-ERROR";
             break;
         case ErrorKind.warning:
             level = "warning";
+            ruleId = "DMD-WARNING";
             break;
         case ErrorKind.deprecation:
             level = "deprecation";
+            ruleId = "DMD-DEPRECATION";
             break;
         case ErrorKind.tip:
             level = "note";
+            ruleId = "DMD-NOTE";
             break;
         case ErrorKind.message:
             level = "none";
+            ruleId = "DMD-MESSAGE";
             break;
     }
 
@@ -258,7 +264,11 @@ void generateSarifReport(const ref SourceLoc loc, const(char)* format, va_list a
     // Results Array
     ob.writestringln(`"results": [{`);
     ob.level += 1;
-    ob.writestringln(`"ruleId": "DMD",`);
+
+    // Rule ID
+    ob.writestring(`"ruleId": "`);
+    ob.writestring(ruleId);
+    ob.writestringln(`",`);
 
     // Message Information
     ob.writestringln(`"message": {`);

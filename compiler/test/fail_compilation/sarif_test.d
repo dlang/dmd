@@ -16,7 +16,7 @@ TEST_OUTPUT:
 			"executionSuccessful": false
 		}],
 		"results": [{
-			"ruleId": "DMD",
+			"ruleId": "DMD-ERROR",
 			"message": {
 				"text": "undefined identifier `x`"
 			},
