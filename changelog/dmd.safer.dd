@@ -1,0 +1,3 @@
+This adds `-preview=safer` which enables safety checking on un-attributed functions.
+
+For more information, see: [safer.md](https://github.com/WalterBright/documents/blob/38f0a846726b571f8108f6e63e5e217b91421c86/safer.md)

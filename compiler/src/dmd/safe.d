@@ -27,7 +27,7 @@ import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.funcsem : isRootTraitsCompilesScope;
-import dmd.globals : FeatureState;
+import dmd.globals : FeatureState, global;
 import dmd.id;
 import dmd.identifier;
 import dmd.location;
@@ -317,6 +317,16 @@ bool checkUnsafeDotExp(Scope* sc, Expression e, Identifier id, int flag)
     return false;
 }
 
+/**************************************
+ * Safer D adds safety checks to functions with the default
+ * trust setting.
+ */
+bool isSaferD(FuncDeclaration fd)
+{
+    return fd.type.toTypeFunction().trust == TRUST.default_ &&
+           global.params.safer == FeatureState.enabled;
+}
+
 bool isSafe(FuncDeclaration fd)
 {
     if (fd.safetyInprocess)
@@ -365,7 +375,7 @@ extern (D) void reportSafeError(FuncDeclaration fd, bool gag, Loc loc,
             }
         }
     }
-    else if (fd.isSafe())
+    else if (fd.isSafe() || fd.isSaferD())
     {
         if (!gag && format)
             .error(loc, format, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "", arg2 ? arg2.toChars() : "");
@@ -393,7 +403,7 @@ extern (D) bool setFunctionToUnsafe(FuncDeclaration fd)
             setFunctionToUnsafe(fd.fes.func);
         return true;
     }
-    else if (fd.isSafe())
+    else if (fd.isSafe() || fd.isSaferD())
         return true;
     return false;
 }
