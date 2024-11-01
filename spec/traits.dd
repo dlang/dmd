@@ -56,6 +56,8 @@ $(GNAME TraitsKeyword):
     $(RELATIVE_LINK2 fullyQualifiedName, $(D fullyQualifiedName))
     $(RELATIVE_LINK2 getAliasThis, $(D getAliasThis))
     $(RELATIVE_LINK2 getAttributes, $(D getAttributes))
+    $(RELATIVE_LINK2 getBitfieldOffset, $(D getBitfieldOffset))
+    $(RELATIVE_LINK2 getBitfieldWidth, $(D getBitfieldWidth))
     $(RELATIVE_LINK2 getFunctionAttributes, $(D getFunctionAttributes))
     $(RELATIVE_LINK2 getFunctionVariadicStyle, $(D getFunctionVariadicStyle))
     $(RELATIVE_LINK2 getLinkage, $(D getLinkage))
@@ -1348,6 +1350,55 @@ $(CONSOLE
 tuple(3)
 tuple("string", 7)
 tuple((Foo))
+)
+)
+
+$(SECTION3 $(GNAME getBitfieldOffset),
+     $(P Takes one argument, a qualified name that resolve to a field in a struct or class.
+     )
+     $(P If the field is a bitfield, it returns as a `uint` the bit number of the least significant
+     bit in the field. The rightmost bit is at offset 0, the leftmost bit is at offset 31 (for
+     32 bit int fields).
+     )
+     $(P If the field is a not bitfield, it returns as a `uint` the number 0.
+     )
+
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+// OK with -preview=bitfields
+struct S
+{
+    int a,b;
+    int :2, c:3;
+}
+
+static assert(__traits(getBitfieldOffset, S.b) == 0);
+static assert(__traits(getBitfieldOffset, S.c) == 2);
+---
+)
+
+)
+
+$(SECTION3 $(GNAME getBitfieldWidth),
+     $(P Takes one argument, a qualified name that resolve to a field in a struct or class.
+     )
+     $(P If the field is a bitfield, it returns as a `uint` the width of the bit field as
+     a number of bits.
+     )
+     $(P If the field is a not bitfield, it returns the number of bits in the type.
+     )
+$(SPEC_RUNNABLE_EXAMPLE_FAIL
+---
+// OK with -preview=bitfields
+struct S
+{
+    int a,b;
+    int :2, c:3;
+}
+
+static assert(__traits(getBitfieldWidth, S.b) == 32);
+static assert(__traits(getBitfieldWidth, S.c) == 3);
+---
 )
 )
 
