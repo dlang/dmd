@@ -484,6 +484,8 @@ immutable Msgtable[] msgtable =
     { "hasMember" },
     { "identifier" },
     { "fullyQualifiedName" },
+    { "getBitfieldOffset" },
+    { "getBitfieldWidth" },
     { "getProtection" },
     { "getVisibility" },
     { "parent" },

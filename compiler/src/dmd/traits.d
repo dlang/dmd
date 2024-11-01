@@ -776,6 +776,43 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
         return se.expressionSemantic(sc);
 
     }
+    if (e.ident == Id.getBitfieldOffset || e.ident == Id.getBitfieldWidth)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        auto o = (*e.args)[0];
+        auto s = getDsymbolWithoutExpCtx(o);
+        if (!s)
+        {
+            error(e.loc, "bitfield symbol expected not `%s`", o.toChars());
+            return ErrorExp.get();
+        }
+
+        auto vd = s.toAlias.isVarDeclaration();
+        if (!vd || !(vd.storage_class & STC.field))
+        {
+            error(e.loc, "bitfield symbol expected not %s `%s`", s.kind, s.toPrettyChars);
+            return ErrorExp.get();
+        }
+
+        uint fieldWidth;
+        uint bitOffset;
+        if (auto bf = vd.isBitFieldDeclaration())
+        {
+            fieldWidth = bf.fieldWidth;
+            bitOffset  = bf.bitOffset;
+        }
+        else // just a regular field
+        {
+            const sz = size(vd.type);
+            assert(sz < uint.max / 8);    // overflow check
+            fieldWidth = cast(uint)sz * 8;
+            bitOffset  = 0;
+        }
+        uint value = e.ident == Id.getBitfieldOffset ? bitOffset : fieldWidth;
+        return new IntegerExp(e.loc, value, Type.tuns32);
+    }
     if (e.ident == Id.getProtection || e.ident == Id.getVisibility)
     {
         if (dim != 1)
