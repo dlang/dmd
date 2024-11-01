@@ -7485,7 +7485,7 @@ private extern(C++) class NewScopeVisitor : Visitor
 
     override void visit(ClassDeclaration cld)
     {
-        auto sc2 = cld.newScope(sc);
+        auto sc2 = (cast(AggregateDeclaration)cld).newScope(sc);
         if (cld.isCOMclass())
         {
             /* This enables us to use COM objects under Linux and
@@ -7498,7 +7498,7 @@ private extern(C++) class NewScopeVisitor : Visitor
 
     override void visit(InterfaceDeclaration ifd)
     {
-        auto sc2 = ifd.newScope(sc);
+        auto sc2 = (cast(ClassDeclaration)ifd).newScope(sc);
         if (ifd.com)
             sc2.linkage = LINK.windows;
         else if (ifd.classKind == ClassKind.cpp)
