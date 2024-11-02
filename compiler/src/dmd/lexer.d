@@ -1556,6 +1556,8 @@ class Lexer
                     if (ndigits != 2 && !utf_isValidDchar(v))
                     {
                         error(loc, "invalid UTF character \\U%08x", v);
+                        if (v >= 0xD800 && v <= 0xDFFF)
+                            errorSupplemental("The code unit is a UTF-16 surrogate, is the escape UTF-16 not a Unicode code point?");
                         v = '?'; // recover with valid UTF character
                     }
                 }
@@ -3169,6 +3171,11 @@ class Lexer
         eSink.error(loc, format, args);
     }
 
+    void errorSupplemental(T...)(const(char)* format, T args)
+    {
+        eSink.errorSupplemental(token.loc, format, args);
+    }
+
     void deprecation(T...)(const ref Loc loc, const(char)* format, T args)
     {
         eSink.deprecation(loc, format, args);
@@ -3672,6 +3679,7 @@ unittest
         import core.stdc.stdarg;
 
         string expected;
+        string expectedSupplemental;
         bool gotError;
 
         void error(const ref Loc loc, const(char)* format, ...)
@@ -3684,13 +3692,25 @@ unittest
             va_end(ap);
             assert(expected == actual);
         }
+
+        void errorSupplemental(const ref Loc loc, const(char)* format, ...)
+        {
+            gotError = true;
+            char[128] buffer = void;
+            va_list ap;
+            va_start(ap, format);
+            auto actual = buffer[0 .. vsnprintf(buffer.ptr, buffer.length, format, ap)];
+            va_end(ap);
+            assert(expectedSupplemental == actual);
+        }
     }
 
     ErrorSinkTest errorSink = new ErrorSinkTest;
 
-    void test(string sequence, string expectedError, dchar expectedReturnValue, uint expectedScanLength, bool Ccompile = false)
+    void test2(string sequence, string[2] expectedError, dchar expectedReturnValue, uint expectedScanLength, bool Ccompile = false)
     {
-        errorSink.expected = expectedError;
+        errorSink.expected = expectedError[0];
+        errorSink.expectedSupplemental = expectedError[1];
         errorSink.gotError = false;
         auto p = cast(const(char)*)sequence.ptr;
         Lexer lexer = new Lexer(errorSink);
@@ -3701,6 +3721,11 @@ unittest
 
         auto actualScanLength = p - sequence.ptr;
         assert(expectedScanLength == actualScanLength);
+    }
+
+    void test(string sequence, string expectedError, dchar expectedReturnValue, uint expectedScanLength, bool Ccompile = false)
+    {
+        test2(sequence, [expectedError, null], expectedReturnValue, expectedScanLength, Ccompile);
     }
 
     test("c", `undefined escape sequence \c`, 'c', 1);
@@ -3721,8 +3746,6 @@ unittest
     test("U0001f6" , `escape hex sequence has 6 hex digits instead of 8`,  0x0001f6, 7);
     test("U0001f60", `escape hex sequence has 7 hex digits instead of 8`, 0x0001f60, 8);
 
-    test("ud800"    , `invalid UTF character \U0000d800`, '?', 5);
-    test("udfff"    , `invalid UTF character \U0000dfff`, '?', 5);
     test("U00110000", `invalid UTF character \U00110000`, '?', 9);
 
     test("xg0"      , `undefined escape hex sequence \xg`, 'g', 2);
@@ -3734,6 +3757,9 @@ unittest
     test("&quot", `unterminated named entity &quot;`, '?', 5);
 
     test("400", `escape octal sequence \400 is larger than \377`, 0x100, 3);
+
+    test2("uD800", [`invalid UTF character \U0000d800`, `The code unit is a UTF-16 surrogate, is the escape UTF-16 not a Unicode code point?`], '?', 5);
+    test2("uDFFF", [`invalid UTF character \U0000dfff`, `The code unit is a UTF-16 surrogate, is the escape UTF-16 not a Unicode code point?`], '?', 5);
 }
 
 unittest
