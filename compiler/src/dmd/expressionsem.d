@@ -2850,12 +2850,12 @@ private Expression rewriteOpAssign(BinExp exp)
  * Params:
  *     sc           =  scope
  *     argumentList =  arguments to function
- *     reportErrors =  whether or not to report errors here. Some callers are not
+ *     eSink        =  if not null, used to report errors. Some callers are not
  *                      checking actual function params, so they'll do their own error reporting
  * Returns:
  *     `true` when a semantic error occurred
  */
-private bool preFunctionParameters(Scope* sc, ArgumentList argumentList, const bool reportErrors = true)
+private bool preFunctionParameters(Scope* sc, ArgumentList argumentList, ErrorSink eSink)
 {
     Expressions* exps = argumentList.arguments;
     if (!exps)
@@ -2876,9 +2876,9 @@ private bool preFunctionParameters(Scope* sc, ArgumentList argumentList, const b
 
             if (arg.op == EXP.type)
             {
-                if (reportErrors)
+                if (eSink)
                 {
-                    error(arg.loc, "cannot pass type `%s` as a function argument", arg.toChars());
+                    eSink.error(arg.loc, "cannot pass type `%s` as a function argument", arg.toChars());
                     arg = ErrorExp.get();
                 }
                 err = true;
@@ -2886,9 +2886,9 @@ private bool preFunctionParameters(Scope* sc, ArgumentList argumentList, const b
         }
         else if (arg.type.toBasetype().ty == Tfunction)
         {
-            if (reportErrors)
+            if (eSink)
             {
-                error(arg.loc, "cannot pass function `%s` as a function argument", arg.toChars());
+                eSink.error(arg.loc, "cannot pass function `%s` as a function argument", arg.toChars());
                 arg = ErrorExp.get();
             }
             err = true;
@@ -4974,7 +4974,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             return setError();
         }
-        if (preFunctionParameters(sc, exp.argumentList))
+        if (preFunctionParameters(sc, exp.argumentList, global.errorSink))
         {
             return setError();
         }
@@ -5925,7 +5925,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (FuncExp fe = exp.e1.isFuncExp())
         {
             if (arrayExpressionSemantic(exp.arguments.peekSlice(), sc) ||
-                preFunctionParameters(sc, exp.argumentList))
+                preFunctionParameters(sc, exp.argumentList, global.errorSink))
                 return setError();
 
             // Run e1 semantic even if arguments have any errors
@@ -6165,7 +6165,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
         if (arrayExpressionSemantic(exp.arguments.peekSlice(), sc) ||
-            preFunctionParameters(sc, exp.argumentList))
+            preFunctionParameters(sc, exp.argumentList, global.errorSink))
             return setError();
 
         // Check for call operator overload
