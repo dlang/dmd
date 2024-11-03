@@ -17184,7 +17184,7 @@ void semanticTypeInfo(Scope* sc, Type t)
             Scope scx;
             scx.eSink = global.errorSink;
             scx._module = sd.getModule();
-            if (global.params.betterC == false)
+            if (global.params.useTypeInfo)
             {
                 getTypeInfoType(sd.loc, t, &scx);
                 sd.requestTypeInfo = true;
