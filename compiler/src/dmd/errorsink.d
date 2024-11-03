@@ -21,19 +21,19 @@ abstract class ErrorSink
   nothrow:
   extern (C++):
 
-    void error(const ref Loc loc, const(char)* format, ...);
+    void error(const ref Loc loc, const(char)* format, scope const ...);
 
-    void errorSupplemental(const ref Loc loc, const(char)* format, ...);
+    void errorSupplemental(const ref Loc loc, const(char)* format, scope const ...);
 
-    void warning(const ref Loc loc, const(char)* format, ...);
+    void warning(const ref Loc loc, const(char)* format, scope const ...);
 
-    void warningSupplemental(const ref Loc loc, const(char)* format, ...);
+    void warningSupplemental(const ref Loc loc, const(char)* format, scope const ...);
 
-    void message(const ref Loc loc, const(char)* format, ...);
+    void message(const ref Loc loc, const(char)* format, scope const ...);
 
-    void deprecation(const ref Loc loc, const(char)* format, ...);
+    void deprecation(const ref Loc loc, const(char)* format, scope const ...);
 
-    void deprecationSupplemental(const ref Loc loc, const(char)* format, ...);
+    void deprecationSupplemental(const ref Loc loc, const(char)* format, scope const ...);
 }
 
 /*****************************************
@@ -45,19 +45,19 @@ class ErrorSinkNull : ErrorSink
   extern (C++):
   override:
 
-    void error(const ref Loc loc, const(char)* format, ...) { }
+    void error(const ref Loc loc, const(char)* format, scope const ...) { }
 
-    void errorSupplemental(const ref Loc loc, const(char)* format, ...) { }
+    void errorSupplemental(const ref Loc loc, const(char)* format, scope const ...) { }
 
-    void warning(const ref Loc loc, const(char)* format, ...) { }
+    void warning(const ref Loc loc, const(char)* format, scope const ...) { }
 
-    void warningSupplemental(const ref Loc loc, const(char)* format, ...) { }
+    void warningSupplemental(const ref Loc loc, const(char)* format, scope const ...) { }
 
-    void message(const ref Loc loc, const(char)* format, ...) { }
+    void message(const ref Loc loc, const(char)* format, scope const ...) { }
 
-    void deprecation(const ref Loc loc, const(char)* format, ...) { }
+    void deprecation(const ref Loc loc, const(char)* format, scope const ...) { }
 
-    void deprecationSupplemental(const ref Loc loc, const(char)* format, ...) { }
+    void deprecationSupplemental(const ref Loc loc, const(char)* format, scope const ...) { }
 }
 
 /*****************************************
@@ -87,7 +87,7 @@ class ErrorSinkStderr : ErrorSink
   extern (C++):
   override:
 
-    void error(const ref Loc loc, const(char)* format, ...)
+    void error(const ref Loc loc, const(char)* format, scope const ...)
     {
         fputs("Error: ", stderr);
         const p = loc.toChars();
@@ -104,9 +104,9 @@ class ErrorSinkStderr : ErrorSink
         va_end(ap);
     }
 
-    void errorSupplemental(const ref Loc loc, const(char)* format, ...) { }
+    void errorSupplemental(const ref Loc loc, const(char)* format, scope const ...) { }
 
-    void warning(const ref Loc loc, const(char)* format, ...)
+    void warning(const ref Loc loc, const(char)* format, scope const ...)
     {
         fputs("Warning: ", stderr);
         const p = loc.toChars();
@@ -123,9 +123,9 @@ class ErrorSinkStderr : ErrorSink
         va_end(ap);
     }
 
-    void warningSupplemental(const ref Loc loc, const(char)* format, ...) { }
+    void warningSupplemental(const ref Loc loc, const(char)* format, scope const ...) { }
 
-    void deprecation(const ref Loc loc, const(char)* format, ...)
+    void deprecation(const ref Loc loc, const(char)* format, scope const ...)
     {
         fputs("Deprecation: ", stderr);
         const p = loc.toChars();
@@ -142,7 +142,7 @@ class ErrorSinkStderr : ErrorSink
         va_end(ap);
     }
 
-    void message(const ref Loc loc, const(char)* format, ...)
+    void message(const ref Loc loc, const(char)* format, scope const ...)
     {
         const p = loc.toChars();
         if (*p)
@@ -158,5 +158,5 @@ class ErrorSinkStderr : ErrorSink
         va_end(ap);
     }
 
-    void deprecationSupplemental(const ref Loc loc, const(char)* format, ...) { }
+    void deprecationSupplemental(const ref Loc loc, const(char)* format, scope const ...) { }
 }
