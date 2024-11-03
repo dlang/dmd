@@ -846,6 +846,7 @@ extern (D) Expression doCopyOrMove(Scope *sc, Expression e, Type t = null)
  */
 private Expression callCpCtor(Scope* sc, Expression e, Type destinationType)
 {
+    //printf("callCpCtor(e: %s et: %s destinationType: %s\n", toChars(e), toChars(e.type), toChars(destinationType));
     auto ts = e.type.baseElemOf().isTypeStruct();
 
     if (!ts)
@@ -2952,7 +2953,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
     Type* prettype, Expression* peprefix)
 {
     Expressions* arguments = argumentList.arguments;
-    //printf("functionParameters() %s\n", fd ? fd.toChars() : "");
+    //printf("functionParameters() fd: %s tf: %s\n", fd ? fd.ident.toChars() : "", toChars(tf));
     assert(arguments);
     assert(fd || tf.next);
     const size_t nparams = tf.parameterList.length;
@@ -3891,6 +3892,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = exp;
             return;
         }
+
+        scope (success) result.rvalue = exp.rvalue;
 
         Dsymbol scopesym;
         Dsymbol s = sc.search(exp.loc, exp.ident, scopesym);
@@ -6718,7 +6721,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     errorSupplemental(exp.loc, "%s", failMessage);
             }
 
-            if (tf.callMatch(null, exp.argumentList, 0, &errorHelper, sc) == MATCH.nomatch)
+            if (callMatch(exp.f, tf, null, exp.argumentList, 0, &errorHelper, sc) == MATCH.nomatch)
                 return setError();
 
             // Purity and safety check should run after testing arguments matching
@@ -6801,7 +6804,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     exp.f = null;
                 }
 
-                if (tf.callMatch(null, exp.argumentList, 0, &errorHelper2, sc) == MATCH.nomatch)
+                if (callMatch(exp.f, tf, null, exp.argumentList, 0, &errorHelper2, sc) == MATCH.nomatch)
                     exp.f = null;
             }
             if (!exp.f || exp.f.errors)
@@ -10409,9 +10412,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     {
         static if (LOGSEMANTIC)
         {
-            if (exp.op == EXP.blit)      printf("BlitExp.toElem('%s')\n", exp.toChars());
-            if (exp.op == EXP.assign)    printf("AssignExp.toElem('%s')\n", exp.toChars());
-            if (exp.op == EXP.construct) printf("ConstructExp.toElem('%s')\n", exp.toChars());
+            if (exp.op == EXP.blit)      printf("BlitExp.semantic('%s')\n", exp.toChars());
+            if (exp.op == EXP.assign)    printf("AssignExp.semantic('%s')\n", exp.toChars());
+            if (exp.op == EXP.construct) printf("ConstructExp.semantic('%s')\n", exp.toChars());
         }
 
         void setResult(Expression e, int line = __LINE__)
@@ -10881,6 +10884,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         /* We have a copy constructor for this
                          */
 
+                        //printf("exp: %s\n", toChars(exp));
+                        //printf("e2x: %s\n", toChars(e2x));
                         if (e2x.isLvalue())
                         {
                             if (sd.hasCopyCtor)
@@ -10926,6 +10931,37 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                                 result = e.expressionSemantic(sc);
                                 return;
                             }
+                        }
+                        else if (sd.hasMoveCtor && !e2x.isCallExp() && !e2x.isStructLiteralExp())
+                        {
+                            /* The !e2x.isCallExp() is because it is already an rvalue
+                               and the move constructor is unnecessary:
+                                struct S {
+                                    alias TT this;
+                                    long TT();
+                                    this(T)(int x) {}
+                                    this(S);
+                                    this(ref S);
+                                    ~this();
+                                }
+                                S fun(ref S arg);
+                                void test() { S st; fun(st); }
+                             */
+                            /* Rewrite as:
+                             * e1 = init, e1.moveCtor(e2);
+                             */
+                            Expression einit = new BlitExp(exp.loc, exp.e1, getInitExp(sd, exp.loc, sc, t1));
+                            einit.type = e1x.type;
+
+                            Expression e;
+                            e = new DotIdExp(exp.loc, e1x, Id.ctor);
+                            e = new CallExp(exp.loc, e, e2x);
+                            e = new CommaExp(exp.loc, einit, e);
+
+                            //printf("e: %s\n", e.toChars());
+
+                            result = e.expressionSemantic(sc);
+                            return;
                         }
                         else
                         {
@@ -15487,6 +15523,7 @@ Expression resolveLoc(Expression exp, const ref Loc loc, Scope* sc)
  */
 Expression addDtorHook(Expression e, Scope* sc)
 {
+    //printf("addDtorHook() %s\n", toChars(e));
     Expression visit(Expression exp)
     {
         return exp;
