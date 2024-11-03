@@ -17184,8 +17184,11 @@ void semanticTypeInfo(Scope* sc, Type t)
             Scope scx;
             scx.eSink = global.errorSink;
             scx._module = sd.getModule();
-            getTypeInfoType(sd.loc, t, &scx);
-            sd.requestTypeInfo = true;
+            if (global.params.useTypeInfo)
+            {
+                getTypeInfoType(sd.loc, t, &scx);
+                sd.requestTypeInfo = true;
+            }
         }
         else if (!sc.minst)
         {
