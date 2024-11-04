@@ -1935,7 +1935,7 @@ private bool checkPurity(FuncDeclaration f, const ref Loc loc, Scope* sc)
             f.toPrettyChars());
 
         if (!f.isDtorDeclaration())
-            errorSupplementalInferredAttr(f, /*max depth*/ 10, /*deprecation*/ false, STC.pure_);
+            errorSupplementalInferredAttr(f, /*max depth*/ 10, /*deprecation*/ false, STC.pure_, global.errorSink);
 
         f.checkOverriddenDtor(sc, loc, dd => dd.type.toTypeFunction().purity != PURE.impure, "impure");
         return true;
@@ -2018,15 +2018,18 @@ void checkOverriddenDtor(FuncDeclaration f, Scope* sc, const ref Loc loc,
     }
 }
 
-/// Print the reason why `fd` was inferred `@system` as a supplemental error
-/// Params:
-///   fd = function to check
-///   maxDepth = up to how many functions deep to report errors
-///   deprecation = print deprecations instead of errors
-///   stc = storage class of attribute to check
-public void errorSupplementalInferredAttr(FuncDeclaration fd, int maxDepth, bool deprecation, STC stc)
+/********************************************
+ * Print the reason why `fd` was inferred `@system` as a supplemental error
+ * Params:
+ *   fd = function to check
+ *   maxDepth = up to how many functions deep to report errors
+ *   deprecation = print deprecations instead of errors
+ *   stc = storage class of attribute to check
+ *   eSink = where the error messages go
+ */
+public void errorSupplementalInferredAttr(FuncDeclaration fd, int maxDepth, bool deprecation, STC stc, ErrorSink eSink)
 {
-    auto errorFunc = deprecation ? &deprecationSupplemental : &errorSupplemental;
+    auto errorFunc = deprecation ? &eSink.deprecationSupplemental : &eSink.errorSupplemental;
 
     AttributeViolation* s;
     const(char)* attr;
@@ -2077,7 +2080,7 @@ public void errorSupplementalInferredAttr(FuncDeclaration fd, int maxDepth, bool
             if (maxDepth > 0)
             {
                 errorFunc(s.loc, "which calls `%s`", fd2.toPrettyChars());
-                errorSupplementalInferredAttr(fd2, maxDepth - 1, deprecation, stc);
+                errorSupplementalInferredAttr(fd2, maxDepth - 1, deprecation, stc, eSink);
             }
         }
     }
@@ -2262,7 +2265,7 @@ private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc)
                 sc.func.kind(), sc.func.toPrettyChars(), f.kind(),
                 prettyChars);
             if (!f.isDtorDeclaration)
-                errorSupplementalInferredAttr(f, /*max depth*/ 10, /*deprecation*/ false, STC.safe);
+                errorSupplementalInferredAttr(f, /*max depth*/ 10, /*deprecation*/ false, STC.safe, global.errorSink);
             .errorSupplemental(f.loc, "`%s` is declared here", prettyChars);
 
             f.checkOverriddenDtor(sc, loc, dd => dd.type.toTypeFunction().trust > TRUST.system, "@system");
@@ -2276,7 +2279,7 @@ private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc)
         if (sc.func.isSafeBypassingInference())
         {
             .deprecation(loc, "`@safe` function `%s` calling `%s`", sc.func.toChars(), f.toChars());
-            errorSupplementalInferredAttr(f, 10, true, STC.safe);
+            errorSupplementalInferredAttr(f, 10, true, STC.safe, global.errorSink);
         }
         else if (!sc.func.safetyViolation)
         {
@@ -2329,7 +2332,7 @@ private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
             sc.func.kind(), sc.func.toPrettyChars(), f.kind(), f.toPrettyChars());
 
         if (!f.isDtorDeclaration)
-            f.errorSupplementalInferredAttr(/*max depth*/ 10, /*deprecation*/ false, STC.nogc);
+            f.errorSupplementalInferredAttr(/*max depth*/ 10, /*deprecation*/ false, STC.nogc, global.errorSink);
     }
 
     f.checkOverriddenDtor(sc, loc, dd => dd.type.toTypeFunction().isNogc, "non-@nogc");
