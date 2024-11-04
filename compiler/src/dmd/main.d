@@ -166,6 +166,14 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     Strings files;
     Strings libmodules;
     global._init();
+
+    scope(exit)
+    {
+        // If we are here then compilation has ended
+        // gracefully as opposed to with `fatal`
+        global.plugErrorSinks();
+    }
+
     target.setTargetBuildDefaults();
 
     if (parseCommandlineAndConfig(argc, argv, params, files))

@@ -34,6 +34,15 @@ abstract class ErrorSink
     void deprecation(const ref Loc loc, const(char)* format, ...);
 
     void deprecationSupplemental(const ref Loc loc, const(char)* format, ...);
+
+    /**
+     * This will be called to indicate compilation has either
+     * finished or terminated, no more errors are possible - it's
+     * now the time to print any stored errors.
+     *
+     * The default implementation does nothing since most error sinks have no state
+     */
+    void plugSink() {}
 }
 
 /*****************************************

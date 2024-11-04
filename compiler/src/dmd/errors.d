@@ -784,6 +784,8 @@ extern (C++) void fatal()
     if (fatalErrorHandler && fatalErrorHandler())
         return;
 
+    global.plugErrorSinks();
+
     exit(EXIT_FAILURE);
 }
 

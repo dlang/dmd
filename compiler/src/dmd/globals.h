@@ -351,6 +351,13 @@ struct Global
     void _init();
 
     /**
+     * Indicate to stateful error sinks that no more errors can be produced.
+     * This is to support error sinks that collect information to produce a
+     * single (say) report.
+     */
+    void plugErrorSinks();
+
+    /**
     Returns: the version as the number that would be returned for __VERSION__
     */
     unsigned versionNumber();

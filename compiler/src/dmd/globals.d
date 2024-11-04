@@ -468,6 +468,17 @@ extern (C++) struct Global
     }
 
     /**
+     * Indicate to stateful error sinks that no more errors can be produced.
+     * This is to support error sinks that collect information to produce a
+     * single (say) report.
+     */
+    extern(C++) void plugErrorSinks()
+    {
+        global.errorSink.plugSink();
+        global.errorSinkNull.plugSink();
+    }
+
+    /**
     Returns: the version as the number that would be returned for __VERSION__
     */
     extern(C++) uint versionNumber() @safe

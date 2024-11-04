@@ -8511,6 +8511,7 @@ struct Global final
     bool endGagging(uint32_t oldGagged);
     void increaseErrorCount();
     void _init();
+    void plugErrorSinks();
     uint32_t versionNumber();
     const char* const versionChars();
     Global() :
