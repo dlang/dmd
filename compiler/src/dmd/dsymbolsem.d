@@ -7349,7 +7349,7 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
     }
 }
 
-extern(D) Scope* newScope(Dsymbol d, Scope* sc)
+extern(D) Scope* newScope(AttribDeclaration d, Scope* sc)
 {
     scope nsv = new NewScopeVisitor(sc);
     d.accept(nsv);
@@ -7481,6 +7481,24 @@ private extern(C++) class NewScopeVisitor : Visitor
             sc2.userAttribDecl = uac;
         }
         sc = sc2;
+    }
+}
+
+//newScope of Aggregate Declaration.
+extern(D) Scope* newScope(AggregateDeclaration d, Scope* sc)
+{
+    scope nsv = new NewScopeVisitor(sc);
+    d.accept(nsv);
+    return nsv.sc;
+}
+
+private extern(C++) class NewScopeVisitor2 : Visitor
+{
+    alias visit = typeof(super).visit;
+    Scope* sc;
+    this(Scope* sc)
+    {
+        this.sc = sc;
     }
 
     override void visit(ClassDeclaration cld)
