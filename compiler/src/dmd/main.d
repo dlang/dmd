@@ -162,6 +162,8 @@ private:
 private int tryMain(size_t argc, const(char)** argv, ref Param params)
 {
     import dmd.common.charactertables;
+    import dmd.sarif;
+    import core.stdc.stdarg;
 
     Strings files;
     Strings libmodules;
@@ -172,6 +174,13 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         // If we are here then compilation has ended
         // gracefully as opposed to with `fatal`
         global.plugErrorSinks();
+
+        if (global.errors == 0 && global.params.v.messageStyle == MessageStyle.sarif)
+        {
+            SourceLoc defaultLoc = SourceLoc(null, 0u, 0u);
+            va_list ap;
+            generateSarifReport(defaultLoc, "", ap, ErrorKind.message, true);
+        }
     }
 
     target.setTargetBuildDefaults();

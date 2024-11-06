@@ -476,7 +476,7 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
             info.headerColor = Classification.error;
             if (global.params.v.messageStyle == MessageStyle.sarif)
             {
-                generateSarifReport(loc, format, ap, info.kind);
+                generateSarifReport(loc, format, ap, info.kind, false);
                 return;
             }
             verrorPrint(format, ap, info);
@@ -510,7 +510,7 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
                     info.headerColor = Classification.deprecation;
                     if (global.params.v.messageStyle == MessageStyle.sarif)
                     {
-                        generateSarifReport(loc, format, ap, info.kind);
+                        generateSarifReport(loc, format, ap, info.kind, false);
                         return;
                     }
                     verrorPrint(format, ap, info);
@@ -531,7 +531,7 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
                 info.headerColor = Classification.warning;
                 if (global.params.v.messageStyle == MessageStyle.sarif)
                 {
-                    generateSarifReport(loc, format, ap, info.kind);
+                    generateSarifReport(loc, format, ap, info.kind, false);
                     return;
                 }
                 verrorPrint(format, ap, info);
@@ -551,7 +551,7 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
             info.headerColor = Classification.tip;
             if (global.params.v.messageStyle == MessageStyle.sarif)
             {
-                generateSarifReport(loc, format, ap, info.kind);
+                generateSarifReport(loc, format, ap, info.kind, false);
                 return;
             }
             verrorPrint(format, ap, info);
@@ -571,7 +571,7 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
         fflush(stdout);     // ensure it gets written out in case of compiler aborts
         if (global.params.v.messageStyle == MessageStyle.sarif)
         {
-            generateSarifReport(loc, format, ap, info.kind);
+            generateSarifReport(loc, format, ap, info.kind, false);
             return;
         }
         return;

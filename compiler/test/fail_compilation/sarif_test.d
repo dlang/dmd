@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -verror-style=sarif
 /*
 TEST_OUTPUT:
 ---
@@ -8,7 +9,7 @@ TEST_OUTPUT:
 		"tool": {
 			"driver": {
 				"name": "Digital Mars D",
-				"version": "2.110.0",
+				"version": "$r:\d+\.\d+\.\d+$",
 				"informationUri": "https://dlang.org/dmd.html"
 			}
 		},
@@ -37,7 +38,6 @@ TEST_OUTPUT:
 }
 ---
 */
-// REQUIRED_ARGS: -verror-style=sarif
 
 void main() {
     x = 5; // Undefined variable to trigger the error
