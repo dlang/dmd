@@ -165,6 +165,7 @@ Params:
   format = A format string for constructing the error message.
   ap = A variable argument list used with the format string.
   kind = The kind of error (error, warning, deprecation, note, or message).
+  executionSuccessful = `true` for an empty `results` array; `false` for detailed errors.
 
 Throws:
   This function is marked as `nothrow` and does not throw exceptions.
@@ -172,37 +173,8 @@ Throws:
 See_Also:
   $(LINK2 https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0.json, SARIF 2.1.0 schema)
 */
-void generateSarifReport(const ref SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind) nothrow
+void generateSarifReport(const ref SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind, bool executionSuccessful) nothrow
 {
-    // Format the error message
-    string formattedMessage = formatErrorMessage(format, ap);
-
-    // Map ErrorKind to SARIF levels
-    const(char)* level;
-    string ruleId;
-    final switch (kind) {
-        case ErrorKind.error:
-            level = "error";
-            ruleId = "DMD-ERROR";
-            break;
-        case ErrorKind.warning:
-            level = "warning";
-            ruleId = "DMD-WARNING";
-            break;
-        case ErrorKind.deprecation:
-            level = "deprecation";
-            ruleId = "DMD-DEPRECATION";
-            break;
-        case ErrorKind.tip:
-            level = "note";
-            ruleId = "DMD-NOTE";
-            break;
-        case ErrorKind.message:
-            level = "none";
-            ruleId = "DMD-MESSAGE";
-            break;
-    }
-
     // Create an OutBuffer to store the SARIF report
     OutBuffer ob;
     ob.doindent = true;
@@ -257,67 +229,107 @@ void generateSarifReport(const ref SourceLoc loc, const(char)* format, va_list a
     // Invocation Information
     ob.writestringln(`"invocations": [{`);
     ob.level += 1;
-    ob.writestringln(`"executionSuccessful": false`);
+    ob.writestring(`"executionSuccessful": `);
+    ob.writestring(executionSuccessful ? "true" : "false");
+    ob.writestringln("");
     ob.level -= 1;
     ob.writestringln("}],");
 
-    // Results Array
-    ob.writestringln(`"results": [{`);
-    ob.level += 1;
+    // Empty results array for successful execution
+    if (executionSuccessful)
+    {
+        ob.writestringln(`"results": []`);
+    }
+    // Error information if execution was unsuccessful
+    else
+    {
+        // Format the error message
+        string formattedMessage = formatErrorMessage(format, ap);
 
-    // Rule ID
-    ob.writestring(`"ruleId": "`);
-    ob.writestring(ruleId);
-    ob.writestringln(`",`);
+        // Map ErrorKind to SARIF levels
+        const(char)* level;
+        string ruleId;
+        final switch (kind) {
+            case ErrorKind.error:
+                level = "error";
+                ruleId = "DMD-ERROR";
+                break;
+            case ErrorKind.warning:
+                level = "warning";
+                ruleId = "DMD-WARNING";
+                break;
+            case ErrorKind.deprecation:
+                level = "deprecation";
+                ruleId = "DMD-DEPRECATION";
+                break;
+            case ErrorKind.tip:
+                level = "note";
+                ruleId = "DMD-NOTE";
+                break;
+            case ErrorKind.message:
+                level = "none";
+                ruleId = "DMD-MESSAGE";
+                break;
+        }
 
-    // Message Information
-    ob.writestringln(`"message": {`);
-    ob.level += 1;
-    ob.writestring(`"text": "`);
-    ob.writestring(formattedMessage.ptr);
-    ob.writestringln(`"`);
-    ob.level -= 1;
-    ob.writestringln(`},`);
+        // Results Array for errors
+        ob.writestringln(`"results": [{`);
+        ob.level += 1;
 
-    // Error Severity Level
-    ob.writestring(`"level": "`);
-    ob.writestring(level);
-    ob.writestringln(`",`);
+        // Rule ID
+        ob.writestring(`"ruleId": "`);
+        ob.writestring(ruleId);
+        ob.writestringln(`",`);
 
-    // Location Information
-    ob.writestringln(`"locations": [{`);
-    ob.level += 1;
-    ob.writestringln(`"physicalLocation": {`);
-    ob.level += 1;
+        // Message Information
+        ob.writestringln(`"message": {`);
+        ob.level += 1;
+        ob.writestring(`"text": "`);
+        ob.writestring(formattedMessage.ptr);
+        ob.writestringln(`"`);
+        ob.level -= 1;
+        ob.writestringln("},");
 
-    // Artifact Location
-    ob.writestringln(`"artifactLocation": {`);
-    ob.level += 1;
-    ob.writestring(`"uri": "`);
-    ob.writestring(loc.filename);
-    ob.writestringln(`"`);
-    ob.level -= 1;
-    ob.writestringln(`},`);
+        // Error Severity Level
+        ob.writestring(`"level": "`);
+        ob.writestring(level);
+        ob.writestringln(`",`);
 
-    // Region Information
-    ob.writestringln(`"region": {`);
-    ob.level += 1;
-    ob.writestring(`"startLine": `);
-    ob.printf(`%d,`, loc.linnum);
-    ob.writestringln(``);
-    ob.writestring(`"startColumn": `);
-    ob.printf(`%d`, loc.charnum);
-    ob.writestringln(``);
-    ob.level -= 1;
-    ob.writestringln(`}`);
+        // Location Information
+        ob.writestringln(`"locations": [{`);
+        ob.level += 1;
+        ob.writestringln(`"physicalLocation": {`);
+        ob.level += 1;
 
-    // Close physicalLocation and locations
-    ob.level -= 1;
-    ob.writestringln(`}`);
-    ob.level -= 1;
-    ob.writestringln(`}]`);
-    ob.level -= 1;
-    ob.writestringln("}]");
+        // Artifact Location
+        ob.writestringln(`"artifactLocation": {`);
+        ob.level += 1;
+        ob.writestring(`"uri": "`);
+        ob.writestring(loc.filename);
+        ob.writestringln(`"`);
+        ob.level -= 1;
+        ob.writestringln("},");
+
+        // Region Information
+        ob.writestringln(`"region": {`);
+        ob.level += 1;
+        ob.writestring(`"startLine": `);
+        ob.printf(`%d,`, loc.linnum);
+        ob.writestringln("");
+        ob.writestring(`"startColumn": `);
+        ob.printf(`%d`, loc.charnum);
+        ob.writestringln("");
+        ob.level -= 1;
+        ob.writestringln("}");
+
+        // Close physicalLocation and locations
+        ob.level -= 1;
+        ob.writestringln("}");
+        ob.level -= 1;
+        ob.writestringln("}]");
+        ob.level -= 1;
+        ob.writestringln("}]");
+    }
 
     // Close the run and SARIF JSON
     ob.level -= 1;
