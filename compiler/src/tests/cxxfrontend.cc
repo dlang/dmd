@@ -233,7 +233,8 @@ void test_visitors()
 
     ClassDeclaration *cd = ClassDeclaration::create(loc, Identifier::idPool("TypeInfo"), NULL, NULL, true);
     assert(cd->isClassDeclaration() == cd);
-    assert(cd->vtblOffset() == 1);
+    //assert(cd->vtblOffset() == 1);
+    assert(vtblOffset(cd) == 1);
     cd->accept(&tv);
     assert(tv.aggr == true);
 

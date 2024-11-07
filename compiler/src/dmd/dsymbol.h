@@ -433,5 +433,6 @@ namespace dmd
     Dsymbols *include(Dsymbol *d, Scope *sc);
     void setScope(Dsymbol *d, Scope *sc);
     void importAll(Dsymbol *d, Scope *sc);
-    Scope* newScope(Dsymbol *d, Scope *sc);
+    Scope* newScope(AggregateDeclaration d, Scope* sc);
+    Scope* newScope(AttribDeclaration d, Scope* sc);
 }
