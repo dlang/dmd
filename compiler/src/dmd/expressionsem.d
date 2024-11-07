@@ -15136,6 +15136,27 @@ bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
     {
         return false;
     }
+    else if (sc._module.ident == Id.atomic && sc._module.parent !is null)
+    {
+        // Allow core.internal.atomic, it is an compiler implementation for a given platform module.
+        // It is then exposed by other modules such as core.atomic and core.stdc.atomic.
+        // This is available as long as druntime is on the import path and the platform supports that operation.
+
+        // https://issues.dlang.org/show_bug.cgi?id=24846
+
+        Package parent = sc._module.parent.isPackage();
+        if (parent !is null)
+        {
+            // This can be easily converted over to apply to core.atomic and core.internal.atomic
+            if (parent.ident == Id.internal)
+            {
+                parent = parent.parent.isPackage();
+
+                if (parent !is null && parent.ident == Id.core && parent.parent is null)
+                   return false;
+            }
+        }
+    }
 
     //printf("checkSharedAccess() `%s` returnRef: %d\n", e.toChars(), returnRef);
 
