@@ -16,7 +16,8 @@ TEST_OUTPUT:
 		"invocations": [{
 			"executionSuccessful": true
 		}],
-		"results": []
+		"results": [
+		]
 	}]
 }
 ---

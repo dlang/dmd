@@ -177,9 +177,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
         if (global.errors == 0 && global.params.v.messageStyle == MessageStyle.sarif)
         {
-            SourceLoc defaultLoc = SourceLoc(null, 0u, 0u);
-            va_list ap;
-            generateSarifReport(defaultLoc, "", ap, ErrorKind.message, true);
+            generateSarifReport(true);
         }
     }
 
