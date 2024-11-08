@@ -91,6 +91,29 @@ struct SarifResult {
     }
 }
 
+/**
+Adds a SARIF diagnostic entry to the diagnostics list.
+
+Formats a diagnostic message and appends it to the global diagnostics array, allowing errors, warnings, or other diagnostics to be captured in SARIF format.
+
+Params:
+  loc = The location in the source code where the diagnostic was generated (includes file, line, and column).
+  format = The printf-style format string for the diagnostic message.
+  ap = The variadic argument list containing values to format into the diagnostic message.
+  kind = The type of diagnostic, indicating whether it is an error, warning, deprecation, etc.
+*/
+void addSarifDiagnostic(const SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind) nothrow
+{
+    char[1024] buffer;
+    int written = vsnprintf(buffer.ptr, buffer.length, format, ap);
+
+    // Handle any truncation
+    string formattedMessage = cast(string) buffer[0 .. (written < 0 || written > buffer.length ? buffer.length : written)].dup;
+
+    // Add the Diagnostic to the global diagnostics array
+    diagnostics ~= Diagnostic(loc, formattedMessage, kind);
+}
+
 /// Represents a SARIF report containing tool information, invocation, and results.
 struct SarifReport {
     ToolInformation tool;  /// Information about the analysis tool.
@@ -155,17 +178,32 @@ string formatErrorMessage(const(char)* format, va_list ap) nothrow {
 }
 
 /**
-Generates a SARIF (Static Analysis Results Interchange Format) report and prints it to `stdout`.
-
-This function builds a JSON-formatted SARIF report, including information about the tool,
-invocation status, error message, severity level, and the location of the issue in the source code.
+Converts an `ErrorKind` value to a string representation.
 
 Params:
-  loc = The source location where the error occurred (file, line, and column).
-  format = A format string for constructing the error message.
-  ap = A variable argument list used with the format string.
-  kind = The kind of error (error, warning, deprecation, note, or message).
-  executionSuccessful = `true` for an empty `results` array; `false` for detailed errors.
+  kind = The `ErrorKind` value to convert (e.g., error, warning, deprecation).
+
+Returns:
+  A string representing the `ErrorKind` value, such as "Error" or "Warning".
+*/
+string errorKindToString(ErrorKind kind) nothrow
+{
+    final switch (kind) {
+        case ErrorKind.error: return "Error";
+        case ErrorKind.warning: return "Warning";
+        case ErrorKind.deprecation: return "Deprecation";
+        case ErrorKind.tip: return "Tip";
+        case ErrorKind.message: return "Message";
+    }
+}
+
+/**
+Generates a SARIF (Static Analysis Results Interchange Format) report and prints it to `stdout`.
+
+This function constructs a JSON-formatted SARIF report that includes information about the tool used (such as compiler version and URI), the invocation status (indicating whether the execution was successful), and a detailed array of diagnostics (results) when `executionSuccessful` is set to `false`. Each diagnostic entry in the results array contains the rule identifier (`ruleId`), a text message describing the issue (`message`), the severity level (`level`), and the location of the issue in the source code, including the file path, line number, and column number. The SARIF report adheres to the SARIF 2.1.0 standard.
+
+Params:
+   executionSuccessful = `true` for an empty `results` array; `false` for detailed errors.
 
 Throws:
   This function is marked as `nothrow` and does not throw exceptions.
@@ -173,7 +211,7 @@ Throws:
 See_Also:
   $(LINK2 https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0.json, SARIF 2.1.0 schema)
 */
-void generateSarifReport(const ref SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind, bool executionSuccessful) nothrow
+void generateSarifReport(bool executionSuccessful) nothrow
 {
     // Create an OutBuffer to store the SARIF report
     OutBuffer ob;
@@ -194,7 +232,6 @@ void generateSarifReport(const ref SourceLoc loc, const(char)* format, va_list a
     string cleanedVersion = toolVersion[0 .. length];
 
     // Build SARIF report
-    ob.level = 0;
     ob.writestringln("{");
     ob.level = 1;
 
@@ -235,65 +272,30 @@ void generateSarifReport(const ref SourceLoc loc, const(char)* format, va_list a
     ob.level -= 1;
     ob.writestringln("}],");
 
-    // Empty results array for successful execution
-    if (executionSuccessful)
-    {
-        ob.writestringln(`"results": []`);
-    }
-    // Error information if execution was unsuccessful
-    else
-    {
-        // Format the error message
-        string formattedMessage = formatErrorMessage(format, ap);
+    // Results Array
+    ob.writestringln(`"results": [`);
+    ob.level += 1;
 
-        // Map ErrorKind to SARIF levels
-        const(char)* level;
-        string ruleId;
-        final switch (kind) {
-            case ErrorKind.error:
-                level = "error";
-                ruleId = "DMD-ERROR";
-                break;
-            case ErrorKind.warning:
-                level = "warning";
-                ruleId = "DMD-WARNING";
-                break;
-            case ErrorKind.deprecation:
-                level = "deprecation";
-                ruleId = "DMD-DEPRECATION";
-                break;
-            case ErrorKind.tip:
-                level = "note";
-                ruleId = "DMD-NOTE";
-                break;
-            case ErrorKind.message:
-                level = "none";
-                ruleId = "DMD-MESSAGE";
-                break;
-        }
-
-        // Results Array for errors
-        ob.writestringln(`"results": [{`);
+    foreach (idx, diag; diagnostics) {
+        ob.writestringln("{");
         ob.level += 1;
 
         // Rule ID
-        ob.writestring(`"ruleId": "`);
-        ob.writestring(ruleId);
-        ob.writestringln(`",`);
+        ob.writestring(`"ruleId": "DMD-` ~ errorKindToString(diag.kind) ~ `",`);
+        ob.writestringln("");
 
         // Message Information
         ob.writestringln(`"message": {`);
         ob.level += 1;
         ob.writestring(`"text": "`);
-        ob.writestring(formattedMessage.ptr);
+        ob.writestring(diag.message);
         ob.writestringln(`"`);
         ob.level -= 1;
         ob.writestringln("},");
 
         // Error Severity Level
-        ob.writestring(`"level": "`);
-        ob.writestring(level);
-        ob.writestringln(`",`);
+        ob.writestring(`"level": "` ~ errorKindToString(diag.kind) ~ `",`);
+        ob.writestringln("");
 
         // Location Information
         ob.writestringln(`"locations": [{`);
@@ -305,7 +307,7 @@ void generateSarifReport(const ref SourceLoc loc, const(char)* format, va_list a
         ob.writestringln(`"artifactLocation": {`);
         ob.level += 1;
         ob.writestring(`"uri": "`);
-        ob.writestring(loc.filename);
+        ob.writestring(diag.loc.filename);
         ob.writestringln(`"`);
         ob.level -= 1;
         ob.writestringln("},");
@@ -314,10 +316,10 @@ void generateSarifReport(const ref SourceLoc loc, const(char)* format, va_list a
         ob.writestringln(`"region": {`);
         ob.level += 1;
         ob.writestring(`"startLine": `);
-        ob.printf(`%d,`, loc.linnum);
+        ob.printf(`%d,`, diag.loc.linnum);
         ob.writestringln("");
         ob.writestring(`"startColumn": `);
-        ob.printf(`%d`, loc.charnum);
+        ob.printf(`%d`, diag.loc.charnum);
         ob.writestringln("");
         ob.level -= 1;
         ob.writestringln("}");
@@ -327,14 +329,22 @@ void generateSarifReport(const ref SourceLoc loc, const(char)* format, va_list a
         ob.writestringln("}");
         ob.level -= 1;
         ob.writestringln("}]");
+
+        // Closing brace for each diagnostic item
         ob.level -= 1;
-        ob.writestringln("}]");
+        if (idx < diagnostics.length - 1) {
+            ob.writestringln("},");
+        } else {
+            ob.writestringln("}");
+        }
     }
 
     // Close the run and SARIF JSON
     ob.level -= 1;
+    ob.writestringln("]");
+    ob.level -= 1;
     ob.writestringln("}]");
-    ob.level = 0;
+    ob.level -= 1;
     ob.writestringln("}");
 
     // Extract the final null-terminated string and print it to stdout

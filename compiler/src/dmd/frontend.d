@@ -180,6 +180,7 @@ void deinitializeDMD()
     import dmd.mtype : Type;
     import dmd.objc : Objc;
     import dmd.target : target;
+    import dmd.errors : diagnostics;
 
     diagnosticHandler = null;
     fatalErrorHandler = null;
@@ -194,6 +195,8 @@ void deinitializeDMD()
     Objc.deinitialize();
     Dsymbol.deinitialize();
     EscapeState.reset();
+
+    diagnostics.length = 0;
 }
 
 /**

@@ -37,6 +37,19 @@ enum ErrorKind
     message,
 }
 
+/********************************
+ * Represents a diagnostic message generated during compilation, such as errors,
+ * warnings, or other messages.
+ */
+struct Diagnostic
+{
+    SourceLoc loc; // The location in the source code where the diagnostic was generated (includes file, line, and column).
+    string message; // The text of the diagnostic message, describing the issue.
+    ErrorKind kind; // The type of diagnostic, indicating whether it is an error, warning, deprecation, etc.
+}
+
+__gshared Diagnostic[] diagnostics = [];
+
 /***************************
  * Error message sink for D compiler.
  */
@@ -100,6 +113,18 @@ class ErrorSinkCompiler : ErrorSink
         va_start(ap, format);
         verrorReport(loc, format, ap, ErrorKind.message);
         va_end(ap);
+    }
+
+    void plugSink()
+    {
+        // Exit if there are no collected diagnostics
+        if (!diagnostics.length) return;
+
+        // Generate the SARIF report with the current diagnostics
+        generateSarifReport(false);
+
+        // Clear diagnostics after generating the report
+        diagnostics.length = 0;
     }
 }
 
@@ -467,6 +492,7 @@ private extern(C++) void verrorReport(const Loc loc, const(char)* format, va_lis
 private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, va_list ap, ErrorKind kind, const(char)* p1 = null, const(char)* p2 = null)
 {
     auto info = ErrorInfo(loc, kind, p1, p2);
+
     final switch (info.kind)
     {
     case ErrorKind.error:
@@ -476,7 +502,7 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
             info.headerColor = Classification.error;
             if (global.params.v.messageStyle == MessageStyle.sarif)
             {
-                generateSarifReport(loc, format, ap, info.kind, false);
+                addSarifDiagnostic(loc, format, ap, kind);
                 return;
             }
             verrorPrint(format, ap, info);
@@ -510,7 +536,7 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
                     info.headerColor = Classification.deprecation;
                     if (global.params.v.messageStyle == MessageStyle.sarif)
                     {
-                        generateSarifReport(loc, format, ap, info.kind, false);
+                        addSarifDiagnostic(loc, format, ap, kind);
                         return;
                     }
                     verrorPrint(format, ap, info);
@@ -531,7 +557,7 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
                 info.headerColor = Classification.warning;
                 if (global.params.v.messageStyle == MessageStyle.sarif)
                 {
-                    generateSarifReport(loc, format, ap, info.kind, false);
+                    addSarifDiagnostic(loc, format, ap, kind);
                     return;
                 }
                 verrorPrint(format, ap, info);
@@ -551,7 +577,7 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
             info.headerColor = Classification.tip;
             if (global.params.v.messageStyle == MessageStyle.sarif)
             {
-                generateSarifReport(loc, format, ap, info.kind, false);
+                addSarifDiagnostic(loc, format, ap, kind);
                 return;
             }
             verrorPrint(format, ap, info);
@@ -571,7 +597,7 @@ private extern(C++) void verrorReport(const SourceLoc loc, const(char)* format, 
         fflush(stdout);     // ensure it gets written out in case of compiler aborts
         if (global.params.v.messageStyle == MessageStyle.sarif)
         {
-            generateSarifReport(loc, format, ap, info.kind, false);
+            addSarifDiagnostic(loc, format, ap, kind);
             return;
         }
         return;

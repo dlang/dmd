@@ -26,10 +26,28 @@ TEST_OUTPUT:
 				"locations": [{
 					"physicalLocation": {
 						"artifactLocation": {
-							"uri": "fail_compilation/sarif_test.d"
+							"uri": "fail_compilation/sarifmultiple_test.d"
 						},
 						"region": {
-							"startLine": 45,
+							"startLine": 63,
+							"startColumn": 5
+						}
+					}
+				}]
+			},
+			{
+				"ruleId": "DMD-Error",
+				"message": {
+					"text": "undefined identifier `y`"
+				},
+				"level": "Error",
+				"locations": [{
+					"physicalLocation": {
+						"artifactLocation": {
+							"uri": "fail_compilation/sarifmultiple_test.d"
+						},
+						"region": {
+							"startLine": 64,
 							"startColumn": 5
 						}
 					}
@@ -43,4 +61,5 @@ TEST_OUTPUT:
 
 void main() {
     x = 5; // Undefined variable to trigger the error
+    y = 5; // Undefined variable to trigger the error
 }
