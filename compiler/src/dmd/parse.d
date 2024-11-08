@@ -8647,7 +8647,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             error("expression expected, not `%s`", token.toChars());
         Lerr:
             // Anything for e, as long as it's not NULL
-            e = new AST.IntegerExp(loc, 0, AST.Type.tint32);
+            e = AST.ErrorExp.get();
             nextToken();
             break;
         }
