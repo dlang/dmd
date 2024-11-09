@@ -332,13 +332,134 @@ template hasElaborateAssign(S)
     else static if (is(S == struct))
     {
         enum hasElaborateAssign = is(typeof(S.init.opAssign(rvalueOf!S))) ||
-                                  is(typeof(S.init.opAssign(lvalueOf!S))) ||
-                                  anySatisfy!(.hasElaborateAssign, Fields!S);
+                                  is(typeof(S.init.opAssign(lvalueOf!S)));
     }
     else
     {
         enum bool hasElaborateAssign = false;
     }
+}
+
+unittest
+{
+    {
+        static struct S {}
+        static assert(!hasElaborateAssign!S);
+        static assert(!hasElaborateAssign!(S[10]));
+        static assert(!hasElaborateAssign!(S[0]));
+        static assert(!hasElaborateAssign!(S[]));
+    }
+    {
+        static struct S { int i; }
+        static assert(!hasElaborateAssign!S);
+        static assert(!hasElaborateAssign!(S[10]));
+        static assert(!hasElaborateAssign!(S[0]));
+        static assert(!hasElaborateAssign!(S[]));
+    }
+    {
+        static struct S { void opAssign(S) {} }
+        static assert( hasElaborateAssign!S);
+        static assert( hasElaborateAssign!(S[10]));
+        static assert(!hasElaborateAssign!(S[0]));
+        static assert(!hasElaborateAssign!(S[]));
+    }
+    {
+        static struct S { void opAssign(ref S) {} }
+        static assert( hasElaborateAssign!S);
+        static assert( hasElaborateAssign!(S[10]));
+        static assert(!hasElaborateAssign!(S[0]));
+        static assert(!hasElaborateAssign!(S[]));
+    }
+    {
+        static struct S { void opAssign(int) {} }
+        static assert(!hasElaborateAssign!S);
+        static assert(!hasElaborateAssign!(S[10]));
+        static assert(!hasElaborateAssign!(S[0]));
+        static assert(!hasElaborateAssign!(S[]));
+    }
+    {
+        static struct S { this(this) {} }
+        static assert( hasElaborateAssign!S);
+        static assert( hasElaborateAssign!(S[10]));
+        static assert(!hasElaborateAssign!(S[0]));
+        static assert(!hasElaborateAssign!(S[]));
+    }
+    // https://issues.dlang.org/show_bug.cgi?id=24834
+    /+
+    {
+        static struct S { this(ref S) {} }
+        static assert( hasElaborateAssign!S);
+        static assert( hasElaborateAssign!(S[10]));
+        static assert(!hasElaborateAssign!(S[0]));
+        static assert(!hasElaborateAssign!(S[]));
+    }
+    +/
+    {
+        static struct S { ~this() {} }
+        static assert( hasElaborateAssign!S);
+        static assert( hasElaborateAssign!(S[10]));
+        static assert(!hasElaborateAssign!(S[0]));
+        static assert(!hasElaborateAssign!(S[]));
+    }
+    {
+        static struct S { @disable void opAssign(S); }
+        static assert(!hasElaborateAssign!S);
+        static assert(!hasElaborateAssign!(S[10]));
+        static assert(!hasElaborateAssign!(S[0]));
+        static assert(!hasElaborateAssign!(S[]));
+    }
+    {
+        static struct Member {}
+        static struct S { Member member; }
+        static assert(!hasElaborateAssign!S);
+        static assert(!hasElaborateAssign!(S[10]));
+        static assert(!hasElaborateAssign!(S[0]));
+        static assert(!hasElaborateAssign!(S[]));
+    }
+    {
+        static struct Member { void opAssign(Member) {} }
+        static struct S { Member member; }
+        static assert( hasElaborateAssign!S);
+        static assert( hasElaborateAssign!(S[10]));
+        static assert(!hasElaborateAssign!(S[0]));
+        static assert(!hasElaborateAssign!(S[]));
+    }
+    {
+        static struct Member {}
+        static struct S { Member member; void opAssign(S) {} }
+        static assert( hasElaborateAssign!S);
+        static assert( hasElaborateAssign!(S[10]));
+        static assert(!hasElaborateAssign!(S[0]));
+        static assert(!hasElaborateAssign!(S[]));
+    }
+    {
+        static struct Member { @disable void opAssign(Member); }
+        static struct S { Member member; }
+        static assert(!hasElaborateAssign!S);
+        static assert(!hasElaborateAssign!(S[10]));
+        static assert(!hasElaborateAssign!(S[0]));
+        static assert(!hasElaborateAssign!(S[]));
+    }
+    {
+        static struct Member { @disable void opAssign(Member); }
+        static struct S { Member member; void opAssign(S) {} }
+        static assert( hasElaborateAssign!S);
+        static assert( hasElaborateAssign!(S[10]));
+        static assert(!hasElaborateAssign!(S[0]));
+        static assert(!hasElaborateAssign!(S[]));
+    }
+    {
+        static struct Member { void opAssign(Member) {} }
+        static struct S { Member member; @disable void opAssign(S); }
+        static assert(!hasElaborateAssign!S);
+        static assert(!hasElaborateAssign!(S[10]));
+        static assert(!hasElaborateAssign!(S[0]));
+        static assert(!hasElaborateAssign!(S[]));
+    }
+
+    static assert(!hasElaborateAssign!int);
+    static assert(!hasElaborateAssign!(string[]));
+    static assert(!hasElaborateAssign!Object);
 }
 
 template hasIndirections(T)
