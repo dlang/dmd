@@ -885,7 +885,7 @@ $(P A container such as an associative array
     $(DDSUBLINK spec/hash-map, testing_membership, can be tested) to see if it contains a certain key:)
 
         -------------
-        int foo[string];
+        int[string] foo;
         ...
         if ("hello" in foo)
         {
