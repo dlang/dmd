@@ -8924,6 +8924,8 @@ struct Id final
     static Identifier* hasMember;
     static Identifier* identifier;
     static Identifier* fullyQualifiedName;
+    static Identifier* getBitfieldOffset;
+    static Identifier* getBitfieldWidth;
     static Identifier* getProtection;
     static Identifier* getVisibility;
     static Identifier* parent;
