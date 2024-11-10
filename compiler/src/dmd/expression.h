@@ -517,6 +517,7 @@ public:
     Type *newtype;
     Expressions *arguments;     // Array of Expression's
     Identifiers *names;         // Array of names corresponding to expressions
+    Expression *placement;      // if !NULL, placement expression
 
     Expression *argprefix;      // expression to be evaluated just before arguments[]
 
@@ -526,7 +527,7 @@ public:
 
     Expression *lowering;       // lowered druntime hook: `_d_newclass`
 
-    static NewExp *create(Loc loc, Expression *thisexp, Type *newtype, Expressions *arguments);
+    static NewExp *create(Loc loc, Expression *placement, Expression *thisexp, Type *newtype, Expressions *arguments);
     NewExp *syntaxCopy() override;
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -540,6 +541,7 @@ public:
     Expression *thisexp;        // if !NULL, 'this' for class being allocated
     ClassDeclaration *cd;       // class being instantiated
     Expressions *arguments;     // Array of Expression's to call class constructor
+    Expression *placement;      // if !NULL, placement expression
 
     NewAnonClassExp *syntaxCopy() override;
     void accept(Visitor *v) override { v->visit(this); }
