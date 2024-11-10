@@ -1725,6 +1725,8 @@ void genKill(ref ObState obstate, ObNode* ob)
 
             override void visit(NewExp e)
             {
+                if (e.placement)
+                    e.placement.accept(this);
                 if (e.arguments)
                 {
                     foreach (ex; *e.arguments)
@@ -2466,6 +2468,9 @@ void checkObErrors(ref ObState obstate)
 
             override void visit(NewExp e)
             {
+                if (e.placement)
+                    e.placement.accept(this);
+
                 if (e.arguments)
                 {
                     foreach (ex; *e.arguments)
