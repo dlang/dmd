@@ -178,22 +178,22 @@ string formatErrorMessage(const(char)* format, va_list ap) nothrow {
 }
 
 /**
-Converts an `ErrorKind` value to a string representation.
+Converts an `ErrorKind` value to a SARIF-compatible string representation for the severity level.
 
 Params:
   kind = The `ErrorKind` value to convert (e.g., error, warning, deprecation).
 
 Returns:
-  A string representing the `ErrorKind` value, such as "Error" or "Warning".
+  A SARIF-compatible string representing the `ErrorKind` level, such as "error" or "warning".
 */
 string errorKindToString(ErrorKind kind) nothrow
 {
     final switch (kind) {
-        case ErrorKind.error: return "Error";
-        case ErrorKind.warning: return "Warning";
-        case ErrorKind.deprecation: return "Deprecation";
-        case ErrorKind.tip: return "Tip";
-        case ErrorKind.message: return "Message";
+        case ErrorKind.error: return "error";       // Serious problem
+        case ErrorKind.warning: return "warning";   // Problem found
+        case ErrorKind.deprecation: return "note";  // Minor problem, opportunity for improvement
+        case ErrorKind.tip: return "note";          // Minor improvement suggestion
+        case ErrorKind.message: return "none";      // Not applicable for "fail" kind, so use "none"
     }
 }
 
