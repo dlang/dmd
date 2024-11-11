@@ -18,11 +18,11 @@ TEST_OUTPUT:
 		}],
 		"results": [
 			{
-				"ruleId": "DMD-Error",
+				"ruleId": "DMD-error",
 				"message": {
 					"text": "undefined identifier `x`"
 				},
-				"level": "Error",
+				"level": "error",
 				"locations": [{
 					"physicalLocation": {
 						"artifactLocation": {
@@ -36,11 +36,11 @@ TEST_OUTPUT:
 				}]
 			},
 			{
-				"ruleId": "DMD-Error",
+				"ruleId": "DMD-error",
 				"message": {
 					"text": "undefined identifier `y`"
 				},
-				"level": "Error",
+				"level": "error",
 				"locations": [{
 					"physicalLocation": {
 						"artifactLocation": {
