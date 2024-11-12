@@ -667,7 +667,7 @@ struct IntRange
             return widest();
 
         // Don't treat the whole range as divide by 0 if only one end of a range is 0.
-        // Issue 15289
+        // https://issues.dlang.org/show_bug.cgi?id=15289
         if (rhs.imax.value == 0)
         {
             rhs.imax.value--;
@@ -680,6 +680,11 @@ struct IntRange
         if (!imin.negative && !imax.negative && !rhs.imin.negative && !rhs.imax.negative)
         {
             return IntRange(imin / rhs.imax, imax / rhs.imin);
+        }
+        else if (rhs.imin.negative && !rhs.imax.negative) // divisor spans [-1, 0, 1]
+        {
+            SignExtendedNumber[4] bdy = [-imin, imin, -imax, imax];
+            return IntRange.fromNumbers4(bdy.ptr);
         }
         else
         {

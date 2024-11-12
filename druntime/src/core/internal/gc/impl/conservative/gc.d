@@ -1426,7 +1426,7 @@ short[PAGESIZE / 16][Bins.B_NUMSMALL + 1] calcBinBase()
 
     foreach (i, size; binsize)
     {
-        short end = (PAGESIZE / size) * size;
+        short end = cast(short) ((PAGESIZE / size) * size);
         short bsz = size / 16;
         foreach (off; 0..PAGESIZE/16)
         {
