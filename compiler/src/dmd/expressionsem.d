@@ -13086,113 +13086,53 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         return;
     }
 
+    private void visitShift(BinExp exp)
+    {
+        if (exp.type)
+        {
+            result = exp;
+            return;
+        }
+
+        if (Expression ex = binSemanticProp(exp, sc))
+        {
+            result = ex;
+            return;
+        }
+        Expression e = exp.op_overload(sc);
+        if (e)
+        {
+            result = e;
+            return;
+        }
+
+        if (exp.checkIntegralBin() || exp.checkSharedAccessBin(sc))
+            return setError();
+
+        if (!target.isVectorOpSupported(exp.e1.type.toBasetype(), exp.op, exp.e2.type.toBasetype()))
+        {
+            result = exp.incompatibleTypes();
+            return;
+        }
+        exp.e1 = integralPromotions(exp.e1, sc);
+        if (exp.e2.type.toBasetype().ty != Tvector)
+            exp.e2 = exp.e2.castTo(sc, Type.tshiftcnt);
+
+        exp.type = exp.e1.type;
+        result = exp;
+    }
+
     override void visit(ShlExp exp)
     {
-        //printf("ShlExp::semantic(), type = %p\n", type);
-        if (exp.type)
-        {
-            result = exp;
-            return;
-        }
-
-        if (Expression ex = binSemanticProp(exp, sc))
-        {
-            result = ex;
-            return;
-        }
-        Expression e = exp.op_overload(sc);
-        if (e)
-        {
-            result = e;
-            return;
-        }
-
-        if (exp.checkIntegralBin() || exp.checkSharedAccessBin(sc))
-            return setError();
-
-        if (!target.isVectorOpSupported(exp.e1.type.toBasetype(), exp.op, exp.e2.type.toBasetype()))
-        {
-            result = exp.incompatibleTypes();
-            return;
-        }
-        exp.e1 = integralPromotions(exp.e1, sc);
-        if (exp.e2.type.toBasetype().ty != Tvector)
-            exp.e2 = exp.e2.castTo(sc, Type.tshiftcnt);
-
-        exp.type = exp.e1.type;
-        result = exp;
+        visitShift(exp);
     }
-
     override void visit(ShrExp exp)
     {
-        if (exp.type)
-        {
-            result = exp;
-            return;
-        }
-
-        if (Expression ex = binSemanticProp(exp, sc))
-        {
-            result = ex;
-            return;
-        }
-        Expression e = exp.op_overload(sc);
-        if (e)
-        {
-            result = e;
-            return;
-        }
-
-        if (exp.checkIntegralBin() || exp.checkSharedAccessBin(sc))
-            return setError();
-
-        if (!target.isVectorOpSupported(exp.e1.type.toBasetype(), exp.op, exp.e2.type.toBasetype()))
-        {
-            result = exp.incompatibleTypes();
-            return;
-        }
-        exp.e1 = integralPromotions(exp.e1, sc);
-        if (exp.e2.type.toBasetype().ty != Tvector)
-            exp.e2 = exp.e2.castTo(sc, Type.tshiftcnt);
-
-        exp.type = exp.e1.type;
-        result = exp;
+        visitShift(exp);
     }
-
     override void visit(UshrExp exp)
     {
-        if (exp.type)
-        {
-            result = exp;
-            return;
-        }
-
-        if (Expression ex = binSemanticProp(exp, sc))
-        {
-            result = ex;
-            return;
-        }
-        Expression e = exp.op_overload(sc);
-        if (e)
-        {
-            result = e;
-            return;
-        }
-
-        if (exp.checkIntegralBin() || exp.checkSharedAccessBin(sc))
-            return setError();
-
-        if (!target.isVectorOpSupported(exp.e1.type.toBasetype(), exp.op, exp.e2.type.toBasetype()))
-        {
-            result = exp.incompatibleTypes();
-            return;
-        }
-        exp.e1 = integralPromotions(exp.e1, sc);
-        if (exp.e2.type.toBasetype().ty != Tvector)
-            exp.e2 = exp.e2.castTo(sc, Type.tshiftcnt);
-
-        exp.type = exp.e1.type;
-        result = exp;
+        visitShift(exp);
     }
 
     override void visit(AndExp exp)
