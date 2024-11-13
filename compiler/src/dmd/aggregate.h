@@ -46,6 +46,8 @@ namespace dmd
     FuncDeclaration *search_toString(StructDeclaration *sd);
     void semanticTypeInfoMembers(StructDeclaration *sd);
     bool fill(StructDeclaration* sd, const Loc &loc, Expressions &elements, bool ctorinit);
+    Scope* newScope(AggregateDeclaration *d, Scope* sc);
+    Scope* newScope(AttribDeclaration *d, Scope* sc);
 }
 
 enum class ClassKind : uint8_t
