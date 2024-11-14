@@ -57,10 +57,10 @@ jobs:
       # very few PRs actually benefit from this.
       fail-fast: false
       matrix:
-        os: [ macOS-12, ubuntu-20.04, windows-2019 ]
+        os: [ macos-13, ubuntu-20.04, windows-2019 ]
 
         target: [
-          # Versions of clang earlier than 11 are not available on 20.04, but are on macOS-12
+          # Versions of clang earlier than 11 are not available on 20.04, but are on macOS 13
           clang-13.0.0, clang-12.0.0, clang-11.0.0, clang-10.0.0, clang-9.0.0, clang-8.0.0,
         # For g++, we test the oldest compiler on Ubuntu 20.04, which is GCC-9
           g++-11, g++-10, g++-9,
@@ -81,13 +81,13 @@ jobs:
           - { os: ubuntu-20.04, target: msvc-2015 }
           - { os: ubuntu-20.04, target: msvc-2013 }
           # OSX only supports clang
-          - { os: macOS-12, target: g++-11 }
-          - { os: macOS-12, target: g++-10 }
-          - { os: macOS-12, target: g++-9 }
-          - { os: macOS-12, target: msvc-2019 }
-          - { os: macOS-12, target: msvc-2017 }
-          - { os: macOS-12, target: msvc-2015 }
-          - { os: macOS-12, target: msvc-2013 }
+          - { os: macos-13, target: g++-11 }
+          - { os: macos-13, target: g++-10 }
+          - { os: macos-13, target: g++-9 }
+          - { os: macos-13, target: msvc-2019 }
+          - { os: macos-13, target: msvc-2017 }
+          - { os: macos-13, target: msvc-2015 }
+          - { os: macos-13, target: msvc-2013 }
           # We don't test g++ on Windows as DMD only mangles for MSVC
           - { os: windows-2019, target: g++-11 }
           - { os: windows-2019, target: g++-10 }
@@ -126,13 +126,13 @@ jobs:
           - { target: g++-9, compiler: g++, cxx-version: 9.4.0, major: 9 }
           # Platform boilerplate
           - { os: ubuntu-20.04, arch: x86_64-linux-gnu-ubuntu-20.04 }
-          - { os: macOS-12,  arch: x86_64-apple-darwin }
+          - { os: macos-13,  arch: x86_64-apple-darwin }
           # Clang 9.0.0 have a different arch for OSX
-          - { os: macOS-12, target: clang-9.0.0, arch: x86_64-darwin-apple }
+          - { os: macos-13, target: clang-9.0.0, arch: x86_64-darwin-apple }
           # Those targets will generate artifacts that can be used by other testers
           - { storeArtifacts: false }
           - { os: ubuntu-20.04, target: g++-9,    storeArtifacts: true }
-          - { os: macOS-12,  target: clang-9.0.0, storeArtifacts: true }
+          - { os: macos-13,  target: clang-9.0.0, storeArtifacts: true }
           #- { os: windows-2019, target: msvc-2019,   storeArtifacts: true }
 
     # We're using the latest available images at the time of this commit.
@@ -209,7 +209,7 @@ jobs:
         # On OSX, the system header are installed via `xcode-select` and not distributed with clang
         # Since some part of the testsuite rely on CC and CXX being only a binary (not a command),
         # and config files where only introduced from 6.0.0, use a wrapper script.
-        if [ "${{ matrix.os }}" == "macOS-12" ]; then
+        if [ "${{ matrix.os }}" == "macos-13" ]; then
           # Note: heredoc shouldn't be indented
           cat << 'EOF' > ${TMP_CC}-wrapper
         #!/bin/bash
@@ -227,11 +227,15 @@ jobs:
           chmod +x ${TMP_CC}-wrapper ${TMP_CC}++-wrapper
         fi
 
+    - name: 'macOS 13: Switch to Xcode v14.3.1' # to work around '-macosx_version_min has been renamed to -macos_version_min' with some clang versions
+      if: matrix.os == 'macos-13'
+      run: sudo xcode-select -switch /Applications/Xcode_14.3.1.app
+
     - name: '[Posix] Setup environment variables'
       if: matrix.compiler == 'clang' && runner.os != 'Windows'
       run: |
         TMP_CC='${{ github.workspace }}/clang+llvm-${{ matrix.cxx-version }}-${{ matrix.arch }}/bin/clang'
-        if [ "${{ matrix.os }}" == "macOS-12" ]; then
+        if [ "${{ matrix.os }}" == "macos-13" ]; then
           echo "CC=${TMP_CC}-wrapper" >> $GITHUB_ENV
           echo "CXX=${TMP_CC}++-wrapper" >> $GITHUB_ENV
           echo "SDKROOT=$(xcrun --show-sdk-path)" >> $GITHUB_ENV
