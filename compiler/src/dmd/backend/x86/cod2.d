@@ -4664,7 +4664,7 @@ void cdrelconst(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
         case TYildouble:
         case TYcldouble:
             tym = TYnptr;               // don't confuse allocreg()
-            if (pretregs & (mES | mCX) || e.Ety & mTYfar)
+            if (I16 && pretregs & (mES | mCX) || e.Ety & mTYfar)
             {
                 tym = TYfptr;
             }
