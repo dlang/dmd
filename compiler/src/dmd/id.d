@@ -389,6 +389,7 @@ immutable Msgtable[] msgtable =
     // Builtin functions
     { "std" },
     { "core" },
+    { "internal" },
     { "config" },
     { "c_complex_float" },
     { "c_complex_double" },
