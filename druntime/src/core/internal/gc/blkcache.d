@@ -6,6 +6,7 @@ Note: this used to be in rt.lifetime, but was moved here to allow GCs to take ov
 module core.internal.gc.blkcache;
 
 import core.memory;
+import core.attribute;
 
 alias BlkInfo = GC.BlkInfo;
 alias BlkAttr = GC.BlkAttr;
@@ -13,12 +14,12 @@ alias BlkAttr = GC.BlkAttr;
 /**
   cache for the lookup of the block info
   */
-private enum N_CACHE_BLOCKS=8;
+private enum N_CACHE_BLOCKS = 8;
 
 // note this is TLS, so no need to sync.
 BlkInfo *__blkcache_storage;
 
-static if (N_CACHE_BLOCKS==1)
+static if (N_CACHE_BLOCKS == 1)
 {
     version=single_cache;
 }
@@ -43,47 +44,72 @@ else
     {
         import core.stdc.stdlib;
         import core.stdc.string;
+        import core.thread.threadbase;
+        auto tBase = ThreadBase.getThis();
+        if (tBase is null)
+            // if we don't have a thread object, this is a detached thread, and
+            // this won't be properly maintained by the GC.
+            return null;
+
         // allocate the block cache for the first time
         immutable size = BlkInfo.sizeof * N_CACHE_BLOCKS;
-        __blkcache_storage = cast(BlkInfo *)malloc(size);
-        memset(__blkcache_storage, 0, size);
+        // use C alloc, because this may become a detached thread, and the GC
+        // would then clean up the cache without zeroing this pointer.
+        __blkcache_storage = cast(BlkInfo*) calloc(size, 1);
+        tBase.tlsGCData = __blkcache_storage;
     }
     return __blkcache_storage;
 }
 
-// called when thread is exiting.
-static ~this()
+// free the allocation on thread exit.
+@standalone static ~this()
 {
-    // free the blkcache
     if (__blkcache_storage)
     {
         import core.stdc.stdlib;
+        import core.thread.threadbase;
+        auto tBase = ThreadBase.getThis();
+        if (tBase !is null)
+            tBase.tlsGCData = null;
         free(__blkcache_storage);
         __blkcache_storage = null;
     }
 }
 
-// we expect this to be called with the lock in place
-void processGCMarks(BlkInfo* cache, scope rt.tlsgc.IsMarkedDg isMarked) nothrow
+/**
+ * Indicates whether an address has been marked by the GC.
+ */
+enum IsMarked : int
 {
+         no, /// Address is not marked.
+        yes, /// Address is marked.
+    unknown, /// Address is not managed by the GC.
+}
+
+alias IsMarkedDg = IsMarked delegate(void* addr) nothrow; /// The isMarked callback function.
+
+// we expect this to be called with the lock in place
+void processGCMarks(void* data, scope IsMarkedDg isMarked) nothrow
+{
+    if (!data)
+        return;
+
+    auto cache = cast(BlkInfo*) data;
     // called after the mark routine to eliminate block cache data when it
     // might be ready to sweep
 
     debug(PRINTF) printf("processing GC Marks, %x\n", cache);
-    if (cache)
+    debug(PRINTF) foreach (i; 0 .. N_CACHE_BLOCKS)
     {
-        debug(PRINTF) foreach (i; 0 .. N_CACHE_BLOCKS)
+        printf("cache entry %d has base ptr %x\tsize %d\tflags %x\n", i, cache[i].base, cache[i].size, cache[i].attr);
+    }
+    auto cache_end = cache + N_CACHE_BLOCKS;
+    for (;cache < cache_end; ++cache)
+    {
+        if (cache.base != null && isMarked(cache.base) == IsMarked.no)
         {
-            printf("cache entry %d has base ptr %x\tsize %d\tflags %x\n", i, cache[i].base, cache[i].size, cache[i].attr);
-        }
-        auto cache_end = cache + N_CACHE_BLOCKS;
-        for (;cache < cache_end; ++cache)
-        {
-            if (cache.base != null && !isMarked(cache.base))
-            {
-                debug(PRINTF) printf("clearing cache entry at %x\n", cache.base);
-                cache.base = null; // clear that data.
-            }
+            debug(PRINTF) printf("clearing cache entry at %x\n", cache.base);
+            cache.base = null; // clear that data.
         }
     }
 }
@@ -100,18 +126,21 @@ unittest
   Get the cached block info of an interior pointer.  Returns null if the
   interior pointer's block is not cached.
 
-  NOTE: The base ptr in this struct can be cleared asynchronously by the GC,
+  NOTE: The following note was not valid, but is retained for historical
+        purposes. The data cannot be cleared because the stack contains a
+        reference to the affected block (e.g. through `interior`). Therefore,
+        the element will not be collected, and the data will remain valid.
+
+  ORIGINAL: The base ptr in this struct can be cleared asynchronously by the GC,
         so any use of the returned BlkInfo should copy it and then check the
         base ptr of the copy before actually using it.
-
-  TODO: Change this function so the caller doesn't have to be aware of this
-        issue.  Either return by value and expect the caller to always check
-        the base ptr as an indication of whether the struct is valid, or set
-        the BlkInfo as a side-effect and return a bool to indicate success.
   */
 BlkInfo *__getBlkInfo(void *interior) nothrow
 {
     BlkInfo *ptr = __blkcache;
+    if (ptr is null)
+        // if for some reason we don't have a cache, return null.
+        return null;
     version (single_cache)
     {
         if (ptr.base && ptr.base <= interior && (interior - ptr.base) < ptr.size)
@@ -148,9 +177,15 @@ BlkInfo *__getBlkInfo(void *interior) nothrow
 
 void __insertBlkInfoCache(BlkInfo bi, BlkInfo *curpos) nothrow
 {
+    auto cache = __blkcache;
+    if (cache is null)
+        // no cache to use.
+        return;
+
     version (single_cache)
     {
-        *__blkcache = bi;
+        *cache = bi;
+        return;
     }
     else
     {
@@ -165,7 +200,7 @@ void __insertBlkInfoCache(BlkInfo bi, BlkInfo *curpos) nothrow
                 // cache block info.  This means that the ordering of the cache
                 // doesn't mean anything.  Certain patterns of allocation may
                 // render the cache near-useless.
-                __blkcache[__nextBlkIdx] = bi;
+                cache[__nextBlkIdx] = bi;
                 __nextBlkIdx = (__nextBlkIdx+1) & (N_CACHE_BLOCKS - 1);
             }
         }
@@ -174,7 +209,6 @@ void __insertBlkInfoCache(BlkInfo bi, BlkInfo *curpos) nothrow
             // strategy: if the block currently is in the cache, move the
             // current block index to the a random element and evict that
             // element.
-            auto cache = __blkcache;
             if (!curpos)
             {
                 __nextBlkIdx = (__nextRndNum = 1664525 * __nextRndNum + 1013904223) & (N_CACHE_BLOCKS - 1);
@@ -193,7 +227,6 @@ void __insertBlkInfoCache(BlkInfo bi, BlkInfo *curpos) nothrow
             // the head element.  Otherwise, move the head element up by one,
             // and insert it there.
             //
-            auto cache = __blkcache;
             if (!curpos)
             {
                 __nextBlkIdx = (__nextBlkIdx+1) & (N_CACHE_BLOCKS - 1);
