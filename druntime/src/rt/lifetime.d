@@ -15,6 +15,7 @@ module rt.lifetime;
 import core.attribute : weak;
 import core.internal.array.utils : __arrayStart, __arrayClearPad;
 import core.memory;
+import core.internal.gc.blkcache;
 debug(PRINTF) import core.stdc.stdio;
 static import rt.tlsgc;
 
