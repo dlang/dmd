@@ -3673,14 +3673,11 @@ unittest
         string expected;
         bool gotError;
 
-        void error(const ref Loc loc, const(char)* format, ...)
+        void verror(const ref Loc loc, const(char)* format, va_list ap)
         {
             gotError = true;
             char[100] buffer = void;
-            va_list ap;
-            va_start(ap, format);
             auto actual = buffer[0 .. vsnprintf(buffer.ptr, buffer.length, format, ap)];
-            va_end(ap);
             assert(expected == actual);
         }
     }
