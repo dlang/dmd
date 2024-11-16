@@ -1569,7 +1569,7 @@ ld: Undefined symbols:
 clang: error: linker command failed with exit code 1 (use -v to see invocation)
 `;
 
-    class ErrorSinkTest : ErrorSink
+    class ErrorSinkTest : ErrorSinkNull
     {
         public int errorCount = 0;
         string expectedFormat = "undefined reference to `%.*s`";
@@ -1577,27 +1577,19 @@ clang: error: linker command failed with exit code 1 (use -v to see invocation)
 
         extern(C++): override:
 
-        void error(const ref Loc loc, const(char)* format, ...)
+        void verror(const ref Loc loc, const(char)* format, va_list ap)
         {
             assert(format[0 .. strlen(format)] == expectedFormat);
-            va_list ap;
-            va_start(ap, format);
             const expectedSymbol = expectedSymbols[errorCount++];
             assert(va_arg!int(ap) == expectedSymbol.length);
             const actualSymbol = va_arg!(char*)(ap)[0 .. expectedSymbol.length];
             assert(actualSymbol == expectedSymbol, "expected " ~ expectedSymbol ~ ", not " ~ actualSymbol);
         }
 
-        void errorSupplemental(const ref Loc loc, const(char)* format, ...)
+        void verrorSupplemental(const ref Loc loc, const(char)* format, va_list ap)
         {
             assert(format.startsWith("perhaps") || format.startsWith("referenced from "));
         }
-
-        void warning(const ref Loc loc, const(char)* format, ...) {}
-        void warningSupplemental(const ref Loc loc, const(char)* format, ...) {}
-        void message(const ref Loc loc, const(char)* format, ...) {}
-        void deprecation(const ref Loc loc, const(char)* format, ...) {}
-        void deprecationSupplemental(const ref Loc loc, const(char)* format, ...) {}
     }
 
     void test(T...)(string linkerName, string output, T expectedSymbols)
