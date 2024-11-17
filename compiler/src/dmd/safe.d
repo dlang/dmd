@@ -319,7 +319,7 @@ bool checkUnsafeDotExp(Scope* sc, Expression e, Identifier id, int flag)
 bool isSafe(FuncDeclaration fd)
 {
     if (fd.safetyInprocess)
-        fd.setUnsafe();
+        setFunctionToUnsafe(fd);
     return fd.type.toTypeFunction().trust == TRUST.safe;
 }
 
@@ -331,7 +331,7 @@ extern (D) bool isSafeBypassingInference(FuncDeclaration fd)
 bool isTrusted(FuncDeclaration fd)
 {
     if (fd.safetyInprocess)
-        fd.setUnsafe();
+        setFunctionToUnsafe(fd);
     return fd.type.toTypeFunction().trust == TRUST.trusted;
 }
 
@@ -346,11 +346,12 @@ bool isTrusted(FuncDeclaration fd)
  *   arg0  = (optional) argument for first %s format specifier
  *   arg1  = (optional) argument for second %s format specifier
  *   arg2  = (optional) argument for third %s format specifier
- * Returns: whether there's a safe error
+ * Returns: true if it's already committed to being @safe
  */
-extern (D) bool setUnsafe(
+private
+extern (D) bool setFunctionToUnsafe(
     FuncDeclaration fd,
-    bool gag = false, Loc loc = Loc.init, const(char)* fmt = null,
+    bool gag, Loc loc = Loc.init, const(char)* fmt = null,
     RootObject arg0 = null, RootObject arg1 = null, RootObject arg2 = null)
 {
     if (fd.safetyInprocess)
@@ -361,7 +362,7 @@ extern (D) bool setUnsafe(
             fd.safetyViolation = new AttributeViolation(loc, fmt, arg0, arg1, arg2);
 
         if (fd.fes)
-            fd.fes.func.setUnsafe();
+            setFunctionToUnsafe(fd.fes.func);
     }
     else if (fd.isSafe())
     {
@@ -373,6 +374,22 @@ extern (D) bool setUnsafe(
     return false;
 }
 
+extern (D) bool setFunctionToUnsafe(FuncDeclaration fd)
+{
+    if (fd.safetyInprocess)
+    {
+        fd.safetyInprocess = false;
+        fd.type.toTypeFunction().trust = TRUST.system;
+
+        if (fd.fes)
+            setFunctionToUnsafe(fd.fes.func);
+    }
+    else if (fd.isSafe())
+        return true;
+    return false;
+}
+
+
 /**************************************
  * The function is calling `@system` function `f`, so mark it as unsafe.
  *
@@ -383,7 +400,7 @@ extern (D) bool setUnsafe(
  */
 extern (D) bool setUnsafeCall(FuncDeclaration fd, FuncDeclaration f)
 {
-    return fd.setUnsafe(false, f.loc, null, f, null);
+    return setFunctionToUnsafe(fd, false, f.loc, null, f, null);
 }
 
 /**************************************
@@ -441,7 +458,8 @@ bool setUnsafe(Scope* sc,
         return false;
     }
 
-    return sc.func.setUnsafe(gag, loc, fmt, arg0, arg1, arg2);
+    return (fmt || arg0) ? setFunctionToUnsafe(sc.func, gag, loc, fmt, arg0, arg1, arg2)
+                         : setFunctionToUnsafe(sc.func);
 }
 
 /***************************************
