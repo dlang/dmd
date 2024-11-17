@@ -75,6 +75,7 @@ SRCS=\
 	\
 	src\core\internal\gc\bits.d \
 	src\core\internal\gc\blkcache.d \
+	src\core\internal\gc\blockmeta.d \
 	src\core\internal\gc\os.d \
 	src\core\internal\gc\pooltable.d \
 	src\core\internal\gc\proxy.d \
