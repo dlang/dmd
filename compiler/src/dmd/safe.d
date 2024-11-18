@@ -335,45 +335,45 @@ bool isTrusted(FuncDeclaration fd)
     return fd.type.toTypeFunction().trust == TRUST.trusted;
 }
 
-/**************************************
- * The function is doing something unsafe, so mark it as unsafe.
- *
+/*****************************************************
+ * Report safety violation for function `fd`, or squirrel away
+ * error message in fd.safetyViolation if needed later.
+ * Call when `fd` was just inferred to be @system OR
+ * `fd` was @safe and an tried something unsafe.
  * Params:
- *   fd  = func declaration to set unsafe
- *   gag = surpress error message (used in escape.d)
- *   loc = location of error
- *   fmt = printf-style format string
+ *   fd    = function we're gonna rat on
+ *   gag   = suppress error message (used in escape.d)
+ *   loc   = location of error
+ *   fmt   = printf-style format string
  *   arg0  = (optional) argument for first %s format specifier
  *   arg1  = (optional) argument for second %s format specifier
  *   arg2  = (optional) argument for third %s format specifier
- * Returns: true if it's already committed to being @safe
  */
-private
-extern (D) bool setFunctionToUnsafe(
-    FuncDeclaration fd,
-    bool gag, Loc loc = Loc.init, const(char)* fmt = null,
-    RootObject arg0 = null, RootObject arg1 = null, RootObject arg2 = null)
+extern (D) void reportSafeError(FuncDeclaration fd, bool gag, Loc loc,
+    const(char)* fmt = null, RootObject arg0 = null, RootObject arg1 = null, RootObject arg2 = null)
 {
-    if (fd.safetyInprocess)
+    if (fd.type.toTypeFunction().trust == TRUST.system) // function was just inferred to be @system
     {
-        fd.safetyInprocess = false;
-        fd.type.toTypeFunction().trust = TRUST.system;
         if (fmt || arg0)
             fd.safetyViolation = new AttributeViolation(loc, fmt, arg0, arg1, arg2);
-
-        if (fd.fes)
-            setFunctionToUnsafe(fd.fes.func);
     }
     else if (fd.isSafe())
     {
         if (!gag && fmt)
             .error(loc, fmt, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "", arg2 ? arg2.toChars() : "");
-
-        return true;
     }
-    return false;
 }
 
+
+/**********************************************
+ * Function is doing something unsafe. If inference
+ * is in process, commit the function to be @system.
+ * Params:
+ *      fd = the naughty function
+ * Returns:
+ *      true if this is a safe function and so an error OR is inferred to be @system,
+ *      false otherwise.
+ */
 extern (D) bool setFunctionToUnsafe(FuncDeclaration fd)
 {
     if (fd.safetyInprocess)
@@ -383,6 +383,7 @@ extern (D) bool setFunctionToUnsafe(FuncDeclaration fd)
 
         if (fd.fes)
             setFunctionToUnsafe(fd.fes.func);
+        return true;
     }
     else if (fd.isSafe())
         return true;
@@ -400,7 +401,12 @@ extern (D) bool setFunctionToUnsafe(FuncDeclaration fd)
  */
 extern (D) bool setUnsafeCall(FuncDeclaration fd, FuncDeclaration f)
 {
-    return setFunctionToUnsafe(fd, false, f.loc, null, f, null);
+    if (setFunctionToUnsafe(fd))
+    {
+        reportSafeError(fd, false, f.loc, null, f, null);
+        return fd.isSafe();
+    }
+    return false;
 }
 
 /**************************************
@@ -458,8 +464,15 @@ bool setUnsafe(Scope* sc,
         return false;
     }
 
-    return (fmt || arg0) ? setFunctionToUnsafe(sc.func, gag, loc, fmt, arg0, arg1, arg2)
-                         : setFunctionToUnsafe(sc.func);
+    if (setFunctionToUnsafe(sc.func))
+    {
+        if (fmt || arg0)
+        {
+            reportSafeError(sc.func, gag, loc, fmt, arg0, arg1, arg2);
+        }
+        return sc.func.isSafe(); // it is only an error if in an @safe function
+    }
+    return false;
 }
 
 /***************************************
