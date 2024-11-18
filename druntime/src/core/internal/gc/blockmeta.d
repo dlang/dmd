@@ -71,9 +71,14 @@ size_t structTypeInfoSize(const TypeInfo ti) pure nothrow @nogc
   */
 bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, const TypeInfo tinext, size_t oldlength = ~0) pure nothrow
 {
-    import core.atomic;
-
     size_t typeInfoSize = structTypeInfoSize(tinext);
+    return __setArrayAllocLengthImpl(info, newlength, isshared, tinext, oldlength, typeInfoSize);
+}
+
+// the impl function, used both above and in core.internal.array.utils
+bool __setArrayAllocLengthImpl(ref BlkInfo info, size_t newlength, bool isshared, const TypeInfo tinext, size_t oldlength, size_t typeInfoSize) pure nothrow
+{
+    import core.atomic;
 
     if (info.size <= 256)
     {
