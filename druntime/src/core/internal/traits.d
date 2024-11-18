@@ -267,12 +267,28 @@ template hasElaborateDestructor(S)
     }
     else static if (is(S == struct))
     {
-        enum hasElaborateDestructor = __traits(hasMember, S, "__xdtor");
+        // Once https://issues.dlang.org/show_bug.cgi?id=24865 is fixed, then
+        // this should be the implementation, but until that's fixed, we need the
+        // uncommented code.
+        // enum hasElaborateDestructor = __traits(hasMember, S, "__xdtor");
+
+        enum hasElaborateDestructor = hasDtor([__traits(allMembers, S)]);
     }
     else
     {
         enum bool hasElaborateDestructor = false;
     }
+}
+
+private bool hasDtor(string[] members)
+{
+    foreach (name; members)
+    {
+        if (name == "__xdtor")
+            return true;
+    }
+
+    return false;
 }
 
 @safe unittest
@@ -308,6 +324,18 @@ template hasElaborateDestructor(S)
     static assert(!hasElaborateDestructor!(int[0]));
     static assert(!hasElaborateDestructor!(int[42]));
     static assert(!hasElaborateDestructor!(int[]));
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=24865
+@safe unittest
+{
+    static struct S2 { ~this() {} }
+    static struct S3 { S2 field; }
+    static struct S6 { S3[0] field; }
+
+    static assert( hasElaborateDestructor!S2);
+    static assert( hasElaborateDestructor!S3);
+    static assert(!hasElaborateDestructor!S6);
 }
 
 // std.traits.hasElaborateCopyDestructor
