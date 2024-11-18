@@ -267,13 +267,47 @@ template hasElaborateDestructor(S)
     }
     else static if (is(S == struct))
     {
-        enum hasElaborateDestructor = __traits(hasMember, S, "__dtor")
-            || anySatisfy!(.hasElaborateDestructor, Fields!S);
+        enum hasElaborateDestructor = __traits(hasMember, S, "__xdtor");
     }
     else
     {
         enum bool hasElaborateDestructor = false;
     }
+}
+
+@safe unittest
+{
+    static struct NoDestructor {}
+    static assert(!hasElaborateDestructor!NoDestructor);
+    static assert(!hasElaborateDestructor!(NoDestructor[42]));
+    static assert(!hasElaborateDestructor!(NoDestructor[0]));
+    static assert(!hasElaborateDestructor!(NoDestructor[]));
+
+    static struct HasDestructor { ~this() {} }
+    static assert( hasElaborateDestructor!HasDestructor);
+    static assert( hasElaborateDestructor!(HasDestructor[42]));
+    static assert(!hasElaborateDestructor!(HasDestructor[0]));
+    static assert(!hasElaborateDestructor!(HasDestructor[]));
+
+    static struct HasDestructor2 { HasDestructor s; }
+    static assert( hasElaborateDestructor!HasDestructor2);
+    static assert( hasElaborateDestructor!(HasDestructor2[42]));
+    static assert(!hasElaborateDestructor!(HasDestructor2[0]));
+    static assert(!hasElaborateDestructor!(HasDestructor2[]));
+
+    static class HasFinalizer { ~this() {} }
+    static assert(!hasElaborateDestructor!HasFinalizer);
+
+    static struct HasUnion { union { HasDestructor s; } }
+    static assert(!hasElaborateDestructor!HasUnion);
+    static assert(!hasElaborateDestructor!(HasUnion[42]));
+    static assert(!hasElaborateDestructor!(HasUnion[0]));
+    static assert(!hasElaborateDestructor!(HasUnion[]));
+
+    static assert(!hasElaborateDestructor!int);
+    static assert(!hasElaborateDestructor!(int[0]));
+    static assert(!hasElaborateDestructor!(int[42]));
+    static assert(!hasElaborateDestructor!(int[]));
 }
 
 // std.traits.hasElaborateCopyDestructor
@@ -302,7 +336,7 @@ template hasElaborateCopyConstructor(S)
         this(int x, int y) {}
     }
 
-    static assert(hasElaborateCopyConstructor!S);
+    static assert( hasElaborateCopyConstructor!S);
     static assert(!hasElaborateCopyConstructor!(S[0][1]));
 
     static struct S2
@@ -320,7 +354,11 @@ template hasElaborateCopyConstructor(S)
         this(int x, int y) {}
     }
 
-    static assert(hasElaborateCopyConstructor!S3);
+    static assert( hasElaborateCopyConstructor!S3);
+
+    static struct S4 { union { S s; } }
+
+    static assert(!hasElaborateCopyConstructor!S4);
 }
 
 template hasElaborateAssign(S)
@@ -451,6 +489,14 @@ unittest
     {
         static struct Member { void opAssign(Member) {} }
         static struct S { Member member; @disable void opAssign(S); }
+        static assert(!hasElaborateAssign!S);
+        static assert(!hasElaborateAssign!(S[10]));
+        static assert(!hasElaborateAssign!(S[0]));
+        static assert(!hasElaborateAssign!(S[]));
+    }
+    {
+        static struct Member { void opAssign(Member) {} }
+        static struct S { union { Member member; } }
         static assert(!hasElaborateAssign!S);
         static assert(!hasElaborateAssign!(S[10]));
         static assert(!hasElaborateAssign!(S[0]));
