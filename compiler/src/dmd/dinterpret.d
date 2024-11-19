@@ -4855,33 +4855,6 @@ public:
 
                 return;
             }
-            else if (fd.ident == Id._d_arrayappendT || fd.ident == Id._d_arrayappendTTrace)
-            {
-                // In expressionsem.d `ea ~= eb` was lowered to `_d_arrayappendT{,Trace}({file, line, funcname}, ea, eb);`.
-                // The following code will rewrite it back to `ea ~= eb` and then interpret that expression.
-                Expression lhs, rhs;
-
-                if (fd.ident == Id._d_arrayappendT)
-                {
-                    assert(e.arguments.length == 2);
-                    lhs = (*e.arguments)[0];
-                    rhs = (*e.arguments)[1];
-                }
-                else
-                {
-                    assert(e.arguments.length == 5);
-                    lhs = (*e.arguments)[3];
-                    rhs = (*e.arguments)[4];
-                }
-
-                auto cae = new CatAssignExp(e.loc, lhs, rhs);
-                cae.type = e.type;
-
-                result = interpretRegion(cae, istate, CTFEGoal.LValue);
-                return;
-            }
-            else if (fd.ident == Id._d_arrayappendcTX)
-                assert(0, "CTFE cannot interpret _d_arrayappendcTX!");
         }
         else if (auto soe = ecall.isSymOffExp())
         {
