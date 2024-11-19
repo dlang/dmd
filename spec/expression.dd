@@ -1527,11 +1527,12 @@ $(H4 $(LNAME2 cast_floating, Floating Point))
 
 $(H4 $(LNAME2 cast_struct, Structs))
 
-    $(P Casting a value $(I v) to a struct $(I S), when value is not a struct
-        of the same type, is equivalent to:)
+    $(P Casting an expression $(I e) to a struct $(I S), when the
+        expression is not a struct of the same type, is equivalent to a
+        $(GLINK PostfixExpression):)
 
         ---
-        S(v)
+        S(e)
         ---
 
 $(H4 $(LNAME2 cast_qualifier, Qualifier Cast))
@@ -1666,8 +1667,10 @@ $(TABLE
     $(TROW `--`, Decrement after use)
     $(TROW `(args)`,
         Either:
-        * Call an expression with optional arguments
-        * Construct a type with optional arguments
+        * $(RELATIVE_LINK2 callable_expressions, Call an expression) with optional arguments
+        * Call $(DDSUBLINK spec/operatoroverloading, static-opcall,
+          static `opCall`) on a user-defined type
+        * $(RELATIVE_LINK2 type-constructor-arguments, Construct a type) with optional arguments
     )
     $(TROW *IndexOperation*, Select a single element)
     $(TROW *SliceOperation*, Select a series of elements)
@@ -1690,6 +1693,8 @@ $(GNAME NamedArgument):
     $(IDENTIFIER) $(D :) $(GLINK AssignExpression)
     $(GLINK AssignExpression)
 )
+
+$(H4 $(LNAME2 callable_expressions, Callable Expressions))
 
     $(P A callable expression can precede a list of named arguments in parentheses.
         The following expressions can be called:)
