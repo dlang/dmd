@@ -9337,7 +9337,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 "cast from `%s` to `%s` not allowed in safe code", exp.e1.type, exp.to))
             {
                 if (msg.length)
-                    errorSupplemental(exp.loc, "%s", (msg ~ '\0').ptr);
+                    errorSupplemental(exp.loc, "%.*s", msg.fTuple.expand);
                 return setError();
             }
         }
@@ -9347,7 +9347,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 "cast from `%s` to `%s` not allowed in safe code", exp.e1.type, exp.to);
             // if message was printed
             if (sc.func && sc.func.isSafeBypassingInference() && !sc.isDeprecated())
-                deprecationSupplemental(exp.loc, "%s", (msg ~ '\0').ptr);
+                deprecationSupplemental(exp.loc, "%.*s", msg.fTuple.expand);
             if (err)
                 return setError();
         }
