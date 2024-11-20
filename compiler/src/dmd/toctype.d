@@ -162,7 +162,7 @@ type* Type_toCtype(Type t)
             /* Add in fields of the struct
              * (after setting ctype to avoid infinite recursion)
              */
-            if (driverParams.symdebug && !global.errors)
+            if (driverParams.symdebug && !global.diag.errors)
             {
                 foreach (v; sym.fields)
                 {

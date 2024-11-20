@@ -382,9 +382,9 @@ extern (C++) final class StaticForeach : RootObject
 
         // Run 'typeof' gagged to avoid duplicate errors and if it fails just create
         // an empty foreach to expose them.
-        const olderrors = global.startGagging();
+        const olderrors = global.diag.startGagging();
         ety = ety.typeSemantic(aloc, sc);
-        if (global.endGagging(olderrors))
+        if (global.diag.endGagging(olderrors))
             s2.push(createForeach(aloc, pparams[1], null));
         else
         {
@@ -924,7 +924,7 @@ extern (C++) final class StaticIfCondition : Condition
 
         int errorReturn()
         {
-            if (!global.gag)
+            if (!global.diag.gag)
                 inc = Include.no; // so we don't see the error message again
             return 0;
         }

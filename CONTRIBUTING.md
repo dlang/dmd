@@ -239,7 +239,7 @@ without control flow statements.
 This was done successfully in src/dmd/escape.d, it wasn't easy, but
 it was well worth it.
 
-17. Try to eliminate reliance on `global.errors`, use `dmd.errorsink: ErrorSink` instead.
+17. Try to eliminate reliance on `global.diag.errors`, use `dmd.errorsink: ErrorSink` instead.
 
 18. For aggregates that expose public access to fields, think hard about why this is
 necessary and if it can be done better. Merely replacing them with read/write properties

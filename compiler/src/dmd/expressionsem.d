@@ -514,7 +514,7 @@ private Expression checkOpAssignTypes(BinExp binExp, Scope* sc)
         }
         if (type.isReal() || type.isImaginary())
         {
-            assert(global.errors || t2.isFloating());
+            assert(global.diag.errors || t2.isFloating());
             e2 = e2.castTo(sc, t1);
         }
     }
@@ -714,11 +714,11 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
             (*fargs)[0] = ie.lwr;
             (*fargs)[1] = ie.upr;
 
-            const xerrors = global.startGagging();
+            const xerrors = global.diag.startGagging();
             sc = sc.push();
             FuncDeclaration fslice = resolveFuncCall(ae.loc, sc, slice, tiargs, ae.e1.type, ArgumentList(fargs), FuncResolveFlag.quiet);
             sc = sc.pop();
-            global.endGagging(xerrors);
+            global.diag.endGagging(xerrors);
             if (!fslice)
                 return fallback();
 
@@ -1214,9 +1214,9 @@ private Expression resolveUFCS(Scope* sc, CallExp ce)
                     // check them for issues.
                     Expressions* originalArguments = Expression.arraySyntaxCopy(ce.arguments);
 
-                    const errors = global.startGagging();
+                    const errors = global.diag.startGagging();
                     e = ce.expressionSemantic(sc);
-                    if (!global.endGagging(errors))
+                    if (!global.diag.endGagging(errors))
                         return e;
 
                     if (arrayExpressionSemantic(originalArguments.peekSlice(), sc))
@@ -1248,10 +1248,10 @@ private Expression resolveUFCS(Scope* sc, CallExp ce)
          *      s.remove("foo");
          * }
          */
-        const errors = global.startGagging();
+        const errors = global.diag.startGagging();
         e = searchUFCS(sc, die, ident);
         // if there were any errors and the identifier was remove
-        if (global.endGagging(errors))
+        if (global.diag.endGagging(errors))
         {
             if (ident == Id.remove)
             {
@@ -2957,7 +2957,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
     assert(arguments);
     assert(fd || tf.next);
     const size_t nparams = tf.parameterList.length;
-    const olderrors = global.errors;
+    const olderrors = global.diag.errors;
     bool err = false;
     Expression eprefix = null;
     *peprefix = null;
@@ -3718,7 +3718,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
         //    wildmatch, tf.isWild(), fd.isReturnIsolated());
         if (!tthis)
         {
-            assert(sc.intypeof || global.errors);
+            assert(sc.intypeof || global.diag.errors);
             tthis = fd.isThis().type.addMod(fd.type.mod);
         }
         if (tf.isWild() && !fd.isReturnIsolated())
@@ -3746,7 +3746,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
 
     *prettype = tret;
     *peprefix = eprefix;
-    return (err || olderrors != global.errors);
+    return (err || olderrors != global.diag.errors);
 }
 
 /**
@@ -4623,7 +4623,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              * in the enclosing function or template, since the initializer
              * will be part of the stuct declaration.
              */
-            global.increaseErrorCount();
+            global.diag.increaseErrorCount();
             return setError();
         }
 
@@ -5760,15 +5760,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return done();
         }
 
-        const olderrors = global.errors;
+        const olderrors = global.diag.errors;
         exp.fd.dsymbolSemantic(sc);
-        if (olderrors == global.errors)
+        if (olderrors == global.diag.errors)
         {
             exp.fd.semantic2(sc);
-            if (olderrors == global.errors)
+            if (olderrors == global.diag.errors)
                 exp.fd.semantic3(sc);
         }
-        if (olderrors != global.errors)
+        if (olderrors != global.diag.errors)
         {
             if (exp.fd.type && exp.fd.type.ty == Tfunction && !exp.fd.type.nextOf())
                 (cast(TypeFunction)exp.fd.type).next = Type.terror;
@@ -6972,7 +6972,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("DeclarationExp::semantic() %s\n", e.toChars());
         }
 
-        const olderrors = global.errors;
+        const olderrors = global.diag.errors;
 
         /* This is here to support extern(linkage) declaration,
          * where the extern(linkage) winds up being an AttribDeclaration
@@ -7118,10 +7118,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 sc2.pop();
             s.parent = sc.parent;
         }
-        if (global.errors == olderrors)
+        if (global.diag.errors == olderrors)
         {
             e.declaration.semantic2(sc);
-            if (global.errors == olderrors)
+            if (global.diag.errors == olderrors)
             {
                 e.declaration.semantic3(sc);
             }
@@ -7286,9 +7286,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (e.tok2 == TOK.package_ || e.tok2 == TOK.module_) // These is() expressions are special because they can work on modules, not just types.
         {
-            const oldErrors = global.startGagging();
+            const oldErrors = global.diag.startGagging();
             Dsymbol sym = e.targ.toDsymbol(sc);
-            global.endGagging(oldErrors);
+            global.diag.endGagging(oldErrors);
 
             if (sym is null)
                 return no();
@@ -7497,7 +7497,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             // current scope is itself deprecated, or deprecations are not errors
             const bool deprecationAllowed = sc.isDeprecated
-                || global.params.useDeprecated != DiagnosticReporting.error;
+                || global.diag.useDeprecated != DiagnosticReporting.error;
             const bool preventAliasThis = e.targ.hasDeprecatedAliasThis && !deprecationAllowed;
 
             if (preventAliasThis && e.targ.ty == Tstruct)
@@ -7704,7 +7704,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (expressionsToString(buf, sc, exp.exps, exp.loc, null, true))
             return null;
 
-        const errors = global.errors;
+        const errors = global.diag.errors;
         const len = buf.length;
         const str = buf.extractChars()[0 .. len];
         const bool doUnittests = global.params.parsingUnittestsRequired();
@@ -7714,7 +7714,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         //printf("p.loc.linnum = %d\n", p.loc.linnum);
 
         Expression e = p.parseExpression();
-        if (global.errors != errors)
+        if (global.diag.errors != errors)
             return null;
 
         if (p.token.value != TOK.endOfFile)
@@ -8234,10 +8234,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (e && isDotOpDispatch(e))
         {
             auto ode = e;
-            const errors = global.startGagging();
+            const errors = global.diag.startGagging();
             e = resolvePropertiesX(sc, e);
             // Any error or if 'e' is not resolved, go to UFCS
-            if (global.endGagging(errors) || e is ode)
+            if (global.diag.endGagging(errors) || e is ode)
                 e = null; /* fall down to UFCS */
             else
             {
@@ -8387,7 +8387,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         else
         {
             exp.type = exp.var.type;
-            if (!exp.type && global.errors) // var is goofed up, just return error.
+            if (!exp.type && global.diag.errors) // var is goofed up, just return error.
                 return setError();
             assert(exp.type);
 
@@ -10597,10 +10597,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                      */
                     auto ode = e;
                     exp.e2 = exp.e2.expressionSemantic(sc);
-                    const errors = global.startGagging();
+                    const errors = global.diag.startGagging();
                     e = resolvePropertiesX(sc, e, exp.e2);
                     // Any error or if 'e' is not resolved, go to UFCS
-                    if (global.endGagging(errors) || e is ode)
+                    if (global.diag.endGagging(errors) || e is ode)
                         e = null; /* fall down to UFCS */
                     else
                         return setResult(e);
@@ -14126,9 +14126,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 Expression trySemantic(Expression exp, Scope* sc)
 {
     //printf("+trySemantic(%s)\n", exp.toChars());
-    const errors = global.startGagging();
+    const errors = global.diag.startGagging();
     Expression e = expressionSemantic(exp, sc);
-    if (global.endGagging(errors))
+    if (global.diag.endGagging(errors))
     {
         e = null;
     }
@@ -16728,7 +16728,7 @@ bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool 
         }
 
         Expression before = e;
-        const uint nerrors = global.errors;
+        const uint nerrors = global.diag.errors;
 
         sc = sc.startCTFE();
         sc.condition = true;
@@ -16740,7 +16740,7 @@ bool evalStaticCondition(Scope* sc, Expression original, Expression e, out bool 
         sc = sc.endCTFE();
         e = e.optimize(WANTvalue);
 
-        if (nerrors != global.errors ||
+        if (nerrors != global.diag.errors ||
             e.isErrorExp() ||
             e.type.toBasetype() == Type.terror)
         {
@@ -17254,7 +17254,7 @@ private bool needsTypeInference(TemplateInstance ti, Scope* sc, int flag = 0)
     if (ti.semanticRun != PASS.initial)
         return false;
 
-    const olderrs = global.errors;
+    const olderrs = global.diag.errors;
     Objects dedtypes;
     size_t count = 0;
 
@@ -17356,9 +17356,9 @@ private bool needsTypeInference(TemplateInstance ti, Scope* sc, int flag = 0)
             return true;
     }
 
-    if (olderrs != global.errors)
+    if (olderrs != global.diag.errors)
     {
-        if (!global.gag)
+        if (!global.diag.gag)
         {
             errorSupplemental(ti.loc, "while looking for match for `%s`", ti.toChars());
             ti.semanticRun = PASS.semanticdone;

@@ -331,7 +331,7 @@ extern (C++) final class ErrorStatement : Statement
         super(Loc.initial, STMT.Error);
 
         import dmd.globals;
-        assert(global.gaggedErrors || global.errors);
+        assert(global.diag.gaggedErrors || global.diag.errors);
     }
 
     override ErrorStatement syntaxCopy()

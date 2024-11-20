@@ -589,10 +589,10 @@ void enumMemberSemantic(Scope* sc, EnumMember em)
             if (!em.ed.isAnonymous())
                 em.ed.memtype = t;
         }
-        const errors = global.startGagging();
+        const errors = global.diag.startGagging();
         Expression e = new IntegerExp(em.loc, 0, t);
         e = e.ctfeInterpret();
-        if (global.endGagging(errors))
+        if (global.diag.endGagging(errors))
         {
             error(em.loc, "cannot generate 0 value of type `%s` for `%s`",
                 t.toChars(), em.toChars());
@@ -630,7 +630,7 @@ void enumMemberSemantic(Scope* sc, EnumMember em)
         if (emprev.errors)
             return errorReturn();
 
-        auto errors = global.startGagging();
+        auto errors = global.diag.startGagging();
         Expression eprev = emprev.value;
         assert(eprev);
         // .toHeadMutable() due to https://issues.dlang.org/show_bug.cgi?id=18645
@@ -650,7 +650,7 @@ void enumMemberSemantic(Scope* sc, EnumMember em)
         Expression e = new EqualExp(EXP.equal, em.loc, eprev, emax);
         e = e.expressionSemantic(sc);
         e = e.ctfeInterpret();
-        if (global.endGagging(errors))
+        if (global.diag.endGagging(errors))
         {
             // display an introductory error before showing what actually failed
             error(em.loc, "cannot check `%s` value for overflow", em.toPrettyChars());
@@ -672,13 +672,13 @@ void enumMemberSemantic(Scope* sc, EnumMember em)
                 emprev.ed.toChars(), emprev.toChars(), mt.toChars());
             return errorReturn();
         }
-        errors = global.startGagging();
+        errors = global.diag.startGagging();
         // Now set e to (eprev + 1)
         e = new AddExp(em.loc, eprev, IntegerExp.literal!1);
         e = e.expressionSemantic(sc);
         e = e.castTo(sc, eprev.type);
         e = e.ctfeInterpret();
-        if (global.endGagging(errors))
+        if (global.diag.endGagging(errors))
         {
             error(em.loc, "cannot generate value for `%s`", em.toPrettyChars());
             // rerun to show errors

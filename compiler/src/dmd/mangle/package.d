@@ -830,9 +830,9 @@ public:
                     continue;
                 }
                 // Now that we know it is not an alias, we MUST obtain a value
-                const olderr = global.errors;
+                const olderr = global.diag.errors;
                 ea = ea.ctfeInterpret();
-                if (ea.op == EXP.error || olderr != global.errors)
+                if (ea.op == EXP.error || olderr != global.diag.errors)
                     continue;
 
                 /* Use type mangling that matches what it would be for a function parameter

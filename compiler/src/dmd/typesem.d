@@ -230,7 +230,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
         }
 
         Type t = s.getType(); // type symbol, type alias, or type tuple?
-        const errorsave = global.errors;
+        const errorsave = global.diag.errors;
         SearchOptFlags flags = t is null ? SearchOpt.localsOnly : SearchOpt.ignorePrivateImports;
 
         Dsymbol sm = s.searchX(loc, sc, id, flags);
@@ -251,7 +251,7 @@ private void resolveHelper(TypeQualified mt, const ref Loc loc, Scope* sc, Dsymb
                 //sm = null;
             }
         }
-        if (global.errors != errorsave)
+        if (global.diag.errors != errorsave)
         {
             pt = Type.terror;
             return;
@@ -1130,7 +1130,7 @@ private extern(D) MATCH argumentMatchParameter (TypeFunction tf, Parameter p,
 // arguments get specially formatted
 private const(char)* getParamError(TypeFunction tf, Expression arg, Parameter par)
 {
-    if (global.gag && !global.params.v.showGaggedErrors)
+    if (global.diag.gag && !global.diag.showGaggedErrors)
         return null;
     // show qualification when toChars() is the same but types are different
     // https://issues.dlang.org/show_bug.cgi?id=19948
@@ -1659,9 +1659,9 @@ Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 
     Type visitVector(TypeVector mtype)
     {
-        const errors = global.errors;
+        const errors = global.diag.errors;
         mtype.basetype = mtype.basetype.typeSemantic(loc, sc);
-        if (errors != global.errors)
+        if (errors != global.diag.errors)
             return error();
         mtype.basetype = mtype.basetype.toBasetype().mutableOf();
         if (mtype.basetype.ty != Tsarray)
@@ -1734,10 +1734,10 @@ Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         Type tbn = tn.toBasetype();
         if (mtype.dim)
         {
-            auto errors = global.errors;
+            auto errors = global.diag.errors;
             mtype.dim = semanticLength(sc, tbn, mtype.dim);
             mtype.dim = mtype.dim.implicitCastTo(sc, Type.tsize_t);
-            if (errors != global.errors)
+            if (errors != global.diag.errors)
                 return error();
 
             mtype.dim = mtype.dim.optimize(WANTvalue);
@@ -1745,9 +1745,9 @@ Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             if (mtype.dim.op == EXP.error)
                 return error();
 
-            errors = global.errors;
+            errors = global.diag.errors;
             dinteger_t d1 = mtype.dim.toInteger();
-            if (errors != global.errors)
+            if (errors != global.diag.errors)
                 return error();
 
             mtype.dim = mtype.dim.implicitCastTo(sc, Type.tsize_t);
@@ -1755,9 +1755,9 @@ Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             if (mtype.dim.op == EXP.error)
                 return error();
 
-            errors = global.errors;
+            errors = global.diag.errors;
             dinteger_t d2 = mtype.dim.toInteger();
-            if (errors != global.errors)
+            if (errors != global.diag.errors)
                 return error();
 
             if (mtype.dim.op == EXP.error)
@@ -1957,9 +1957,9 @@ Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 
             if (sd.xeq && sd.xeq.isGenerated() && sd.xeq._scope && sd.xeq.semanticRun < PASS.semantic3done)
             {
-                uint errors = global.startGagging();
+                uint errors = global.diag.startGagging();
                 sd.xeq.semantic3(sd.xeq._scope);
-                if (global.endGagging(errors))
+                if (global.diag.endGagging(errors))
                     sd.xeq = sd.xerreq;
             }
 
@@ -2741,10 +2741,10 @@ Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 
         //printf("TypeInstance::semantic(%p, %s)\n", this, toChars());
         {
-            const errors = global.errors;
+            const errors = global.diag.errors;
             mtype.resolve(loc, sc, e, t, s);
             // if we had an error evaluating the symbol, suppress further errors
-            if (!t && errors != global.errors)
+            if (!t && errors != global.diag.errors)
                 return error();
         }
 
@@ -2789,7 +2789,7 @@ Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 
         if (!t)
         {
-            if (!global.errors)
+            if (!global.diag.errors)
                 .error(mtype.loc, "`%s` does not give a valid type", mtype.toChars);
             return error();
         }
@@ -3159,14 +3159,14 @@ Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 
 Type trySemantic(Type type, const ref Loc loc, Scope* sc)
 {
-    //printf("+trySemantic(%s) %d\n", toChars(), global.errors);
+    //printf("+trySemantic(%s) %d\n", toChars(), global.diag.errors);
 
     // Needed to display any deprecations that were gagged
     auto tcopy = type.syntaxCopy();
 
-    const errors = global.startGagging();
+    const errors = global.diag.startGagging();
     Type t = typeSemantic(type, loc, sc);
-    if (global.endGagging(errors) || t.ty == Terror) // if any errors happened
+    if (global.diag.endGagging(errors) || t.ty == Terror) // if any errors happened
     {
         t = null;
     }
@@ -3175,10 +3175,10 @@ Type trySemantic(Type type, const ref Loc loc, Scope* sc)
         // If `typeSemantic` succeeded, there may have been deprecations that
         // were gagged due the `startGagging` above.  Run again to display
         // those deprecations.  https://issues.dlang.org/show_bug.cgi?id=19107
-        if (global.gaggedWarnings > 0)
+        if (global.diag.gaggedWarnings > 0)
             typeSemantic(tcopy, loc, sc);
     }
-    //printf("-trySemantic(%s) %d\n", toChars(), global.errors);
+    //printf("-trySemantic(%s) %d\n", toChars(), global.diag.errors);
     return t;
 }
 
@@ -4019,7 +4019,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
 
         //printf("TypeInstance::resolve(sc = %p, tempinst = '%s')\n", sc, mt.tempinst.toChars());
         mt.tempinst.dsymbolSemantic(sc);
-        if (!global.gag && mt.tempinst.errors)
+        if (!global.diag.gag && mt.tempinst.errors)
             return returnError();
 
         mt.resolveHelper(loc, sc, mt.tempinst, null, pe, pt, ps, intypeid);
@@ -4073,7 +4073,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
 
         if (exp2.op == EXP.error)
         {
-            if (!global.gag)
+            if (!global.diag.gag)
                 mt.exp = exp2;
             goto Lerr;
         }
@@ -4377,7 +4377,7 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
         }
         else
         {
-            assert(global.errors);
+            assert(global.diag.errors);
             mt.obj = Type.terror;
             return returnError();
         }
@@ -4925,9 +4925,9 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                  * e.g.
                  *  template opDispatch(name) if (isValid!name) { ... }
                  */
-                const errors = gagError ? global.startGagging() : 0;
+                const errors = gagError ? global.diag.startGagging() : 0;
                 e = dti.dotTemplateSemanticProp(sc, DotExpFlag.none);
-                if (gagError && global.endGagging(errors))
+                if (gagError && global.diag.endGagging(errors))
                     e = null;
                 return returnExp(e);
             }
@@ -4943,11 +4943,11 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
                  */
                 auto die = new DotIdExp(e.loc, alias_e, ident);
 
-                const errors = gagError ? 0 : global.startGagging();
+                const errors = gagError ? 0 : global.diag.startGagging();
                 auto exp = die.dotIdSemanticProp(sc, gagError);
                 if (!gagError)
                 {
-                    global.endGagging(errors);
+                    global.diag.endGagging(errors);
                     if (exp && exp.op == EXP.error)
                         exp = null;
                 }
@@ -7856,7 +7856,7 @@ RootObject compileTypeMixin(TypeMixin tm, ref const Loc loc, Scope* sc)
     if (expressionsToString(buf, sc, tm.exps, tm.loc, null, true))
         return null;
 
-    const errors = global.errors;
+    const errors = global.diag.errors;
     const len = buf.length;
     buf.writeByte(0);
     const str = buf.extractSlice()[0 .. len];
@@ -7867,9 +7867,9 @@ RootObject compileTypeMixin(TypeMixin tm, ref const Loc loc, Scope* sc)
     //printf("p.loc.linnum = %d\n", p.loc.linnum);
 
     auto o = p.parseTypeOrAssignExp(TOK.endOfFile);
-    if (errors != global.errors)
+    if (errors != global.diag.errors)
     {
-        assert(global.errors != errors); // should have caught all these cases
+        assert(global.diag.errors != errors); // should have caught all these cases
         return null;
     }
     if (p.token.value != TOK.endOfFile)

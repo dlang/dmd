@@ -95,7 +95,7 @@ public Statement inlineAsmSemantic(InlineAsmStatement s, Scope *sc)
     asmstate.ucItype = 0;
     asmstate.bReturnax = false;
     asmstate.lbracketNestCount = 0;
-    asmstate.startErrors = global.errors;
+    asmstate.startErrors = global.diag.errors;
 
     asmstate.statement = s;
     asmstate.sc = sc;
@@ -320,7 +320,7 @@ struct ASM_STATE
     ucItype_t ucItype;  /// Instruction type
     Loc loc;
     bool bInit;
-    uint startErrors;  // global.errors at start of iasm
+    uint startErrors;  // global.diag.errors at start of iasm
     LabelDsymbol psDollar;
     Dsymbol psLocalsize;
     bool bReturnax;
@@ -329,7 +329,7 @@ struct ASM_STATE
     Token* tok;
     TOK tokValue;
     int lbracketNestCount;
-    bool errors() { return global.errors > startErrors; }
+    bool errors() { return global.diag.errors > startErrors; }
 }
 
 __gshared ASM_STATE asmstate;

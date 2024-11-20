@@ -173,10 +173,10 @@ RootObject aliasParameterSemantic(Loc loc, Scope* sc, RootObject o, TemplatePara
         else if (TypeInstance ti = ta.isTypeInstance())
         {
             Type t;
-            const errors = global.errors;
+            const errors = global.diag.errors;
             ta.resolve(loc, sc, ea, t, s);
             // if we had an error evaluating the symbol, suppress further errors
-            if (!t && errors != global.errors)
+            if (!t && errors != global.diag.errors)
                 return Type.terror;
             // We might have something that looks like a type
             // but is actually an expression or a dsymbol
