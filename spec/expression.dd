@@ -1535,6 +1535,24 @@ $(H4 $(LNAME2 cast_struct, Structs))
         S(e)
         ---
 
+    $(P A struct instance can be cast to a static array type when
+        their `.sizeof` properties each give the same result.)
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
+        ---
+        struct S { short a, b, c; }
+
+        S s = S(1, 2, 3);
+        static assert(!__traits(compiles, cast(short[2]) s));
+
+        short[3] x = cast(short[3]) s;
+        assert(x.tupleof == s.tupleof);
+
+        auto y = cast(byte[6]) s;
+        assert(y == [1, 0, 2, 0, 3, 0]);
+        ---
+        )
+
 $(H4 $(LNAME2 cast_qualifier, Qualifier Cast))
 
 $(GRAMMAR
