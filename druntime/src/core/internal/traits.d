@@ -540,13 +540,14 @@ template hasIndirections(T)
 {
     static if (is(T == struct) || is(T == union))
         enum hasIndirections = anySatisfy!(.hasIndirections, typeof(T.tupleof));
+    else static if (__traits(isAssociativeArray, T) || is(T == class) || is(T == interface))
+        enum hasIndirections = true;
     else static if (is(T == E[N], E, size_t N))
         enum hasIndirections = T.sizeof && is(E == void) ? true : hasIndirections!(BaseElemOf!E);
     else static if (isFunctionPointer!T)
         enum hasIndirections = false;
     else
-        enum hasIndirections = isPointer!T || isDelegate!T || isDynamicArray!T ||
-            __traits(isAssociativeArray, T) || is (T == class) || is(T == interface);
+        enum hasIndirections = isPointer!T || isDelegate!T || isDynamicArray!T;
 }
 
 template hasUnsharedIndirections(T)
