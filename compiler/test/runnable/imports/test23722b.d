@@ -1,14 +1,6 @@
-struct A {
-    import core.stdc.stdio;
-    alias x = () {
-        printf("x\n");
-    };
-    alias y = () {
-        printf("y\n");
-    };
+auto f(string s, alias g)() {
+    return true;
 }
 
-// do_x should call A.x (and print "x")
-void do_x() {
-    A.x();
-}
+alias a = f!("a", output => output);
+alias b = f!("b", output => true);

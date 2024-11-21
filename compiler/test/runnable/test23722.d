@@ -5,12 +5,8 @@
 // Lambdas are mangled incorrectly when using multiple compilation units, resulting in incorrect code
 import imports.test23722b;
 
-// do_y should call A.y (and print "y")
-void do_y() {
-    A.y();
+bool f() {
+    return b;
 }
 
-extern (C) void main() {
-    do_y(); // should print y
-    do_x(); // should print x
-}
+void main() {}
