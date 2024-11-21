@@ -1,0 +1,15 @@
+Shortened method syntax can now be used in constructors
+
+This used to raise an error "cannot return expression from constructor", but it's now supported:
+
+---
+struct Number
+{
+    int x;
+
+    this(int x) => this.x = x;
+    this(float x) => this(cast(int) x);
+}
+---
+
+Postblits and destructors already supported shortened method syntax because they return `void`.
