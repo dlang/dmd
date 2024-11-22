@@ -5677,7 +5677,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             symtab = sds.symtab;
         }
         assert(symtab);
-        Identifier id = Identifier.generateIdWithLoc(s, exp.loc);
+        Identifier id = Identifier.generateIdWithLoc(s, exp.loc, cast(string) toDString(sc.parent.toPrettyChars()));
         exp.fd.ident = id;
         if (exp.td)
             exp.td.ident = id;
