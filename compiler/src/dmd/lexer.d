@@ -3441,15 +3441,10 @@ class Lexer
             if (*q != ct)
                 break;
         }
-        /* Remove leading spaces until start of the comment
+        /* Remove leading line feed
          */
         int linestart = 0;
-        if (ct == '/')
-        {
-            while (q < qend && (*q == ' ' || *q == '\t'))
-                ++q;
-        }
-        else if (q < qend)
+        if (ct != '/' && q < qend)
         {
             if (*q == '\r')
             {
