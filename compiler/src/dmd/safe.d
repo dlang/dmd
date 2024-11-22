@@ -21,6 +21,7 @@ import dmd.dcast : implicitConvTo;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dscope;
+import dmd.dsymbol;
 import dmd.dsymbolsem : determineSize;
 import dmd.errors;
 import dmd.expression;
@@ -344,7 +345,7 @@ bool isTrusted(FuncDeclaration fd)
  *   fd    = function we're gonna rat on
  *   gag   = suppress error message (used in escape.d)
  *   loc   = location of error
- *   format   = printf-style format string
+ *   format = printf-style format string
  *   arg0  = (optional) argument for first %s format specifier
  *   arg1  = (optional) argument for second %s format specifier
  *   arg2  = (optional) argument for third %s format specifier
@@ -354,8 +355,15 @@ extern (D) void reportSafeError(FuncDeclaration fd, bool gag, Loc loc,
 {
     if (fd.type.toTypeFunction().trust == TRUST.system) // function was just inferred to be @system
     {
-        if (format || arg0)
+        if (format)
             fd.safetyViolation = new AttributeViolation(loc, format, arg0, arg1, arg2);
+        else if (arg0)
+        {
+            if (FuncDeclaration fd2 = (cast(Dsymbol) arg0).isFuncDeclaration())
+            {
+                fd.safetyViolation = new AttributeViolation(loc, fd2); // call to non-@nogc function
+            }
+        }
     }
     else if (fd.isSafe())
     {
@@ -421,7 +429,7 @@ extern (D) bool setUnsafeCall(FuncDeclaration fd, FuncDeclaration f)
  *   arg0  = (optional) argument for first %s format specifier
  *   arg1  = (optional) argument for second %s format specifier
  *   arg2  = (optional) argument for third %s format specifier
- * Returns: whether there's a safe error
+ * Returns: whether there is a safe error
  */
 bool setUnsafe(Scope* sc,
     bool gag = false, Loc loc = Loc.init, const(char)* format = null,
@@ -499,7 +507,8 @@ bool setUnsafe(Scope* sc,
 bool setUnsafePreview(Scope* sc, FeatureState fs, bool gag, Loc loc, const(char)* format,
     RootObject arg0 = null, RootObject arg1 = null, RootObject arg2 = null)
 {
-    //printf("setUnsafePreview() fs:%d %s\n", fs, format);
+    //printf("setUnsafePreview() fs:%d %s\n", fs, fmt);
+    assert(format);
     with (FeatureState) final switch (fs)
     {
       case disabled:
