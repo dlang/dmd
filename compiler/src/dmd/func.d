@@ -269,6 +269,10 @@ extern (C++) class FuncDeclaration : Declaration
      */
     VarDeclarations outerVars;
 
+    // Most recent encountered `main` (`WinMain` or `DllMain`) function.
+    // Track it to give error messages for multiple entrypoints
+    __gshared FuncDeclaration lastMain;
+
     /// Sibling nested functions which called this one
     FuncDeclarations siblingCallers;
 

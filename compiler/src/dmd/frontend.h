@@ -3668,6 +3668,7 @@ public:
     bool requiresClosure;
     Array<VarDeclaration* > closureVars;
     Array<VarDeclaration* > outerVars;
+    static FuncDeclaration* lastMain;
     Array<FuncDeclaration* > siblingCallers;
     Array<FuncDeclaration* >* inlinedNestedCallees;
     AttributeViolation* safetyViolation;
@@ -7405,6 +7406,8 @@ public:
     void visit(ReturnStatement* s) override;
     void visit(TryFinallyStatement* s) override;
 };
+
+extern bool onlyOneMain(FuncDeclaration* fd);
 
 class NOGCVisitor final : public StoppableVisitor
 {
