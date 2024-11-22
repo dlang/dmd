@@ -2073,6 +2073,14 @@ public void errorSupplementalInferredAttr(FuncDeclaration fd, int maxDepth, bool
                 s.arg0 ? s.arg0.toChars() : "", s.arg1 ? s.arg1.toChars() : "", s.arg2 ? s.arg2.toChars() : "");
         }
     }
+    else if (s.fd)
+    {
+        if (maxDepth > 0)
+        {
+            errorFunc(s.loc, "which calls `%s`", s.fd.toPrettyChars());
+            errorSupplementalInferredAttr(s.fd, maxDepth - 1, deprecation, stc, eSink);
+        }
+    }
     else if (auto sa = s.arg0.isDsymbol())
     {
         if (FuncDeclaration fd2 = sa.isFuncDeclaration())
@@ -2284,7 +2292,7 @@ private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc)
         else if (!sc.func.safetyViolation)
         {
             import dmd.func : AttributeViolation;
-            sc.func.safetyViolation = new AttributeViolation(loc, null, f, null, null);
+            sc.func.safetyViolation = new AttributeViolation(loc, f);
         }
     }
     return false;
