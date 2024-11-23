@@ -2602,12 +2602,15 @@ extern (C++) final class TypeFunction : TypeNext
         return linkage == LINK.d && parameterList.varargs == VarArg.variadic;
     }
 
-    extern(D) static const(char)* getMatchError(A...)(const(char)* format, A args)
+    extern(C) static const(char)* getMatchError(const(char)* format, ...)
     {
         if (global.gag && !global.params.v.showGaggedErrors)
             return null;
         OutBuffer buf;
-        buf.printf(format, args);
+        va_list ap;
+        va_start(ap, format);
+        buf.vprintf(format, ap);
+        va_end(ap);
         return buf.extractChars();
     }
 
