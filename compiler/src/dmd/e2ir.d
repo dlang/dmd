@@ -1150,8 +1150,8 @@ elem* toElem(Expression e, ref IRState irs)
             }
             else
             {
-                assert(!(irs.params.ehnogc && ne.thrownew),
-                    "This should have been rewritten to `_d_newThrowable` in the semantic phase.");
+                // assert(!(irs.params.ehnogc && ne.thrownew),
+                //     "This should have been rewritten to `_d_newThrowable` in the semantic phase.");
 
                 ex = toElem(ne.lowering, irs);
                 ectype = null;
