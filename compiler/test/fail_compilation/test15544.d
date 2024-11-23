@@ -2,8 +2,15 @@
 REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/test15544.d(20): Error: reference to local `this` assigned to non-scope `_del` in @safe code
-fail_compilation/test15544.d(22): Error: reference to local `this` assigned to non-scope `_del` in @safe code
+fail_compilation/test15544.d(27): Error: reference to local `this` assigned to non-scope `_del` in @safe code
+        _del = &foo;
+             ^
+fail_compilation/test15544.d(29): Error: reference to local `this` assigned to non-scope `_del` in @safe code
+        _del = { assert(x == 42); };
+             ^
+fail_compilation/test15544.d(46): Error: reference to local `y` assigned to non-scope `dg` in @safe code
+    dg = &bar;               // Error
+       ^
 ---
 */
 
@@ -22,13 +29,6 @@ struct S {
         _del = { assert(x == 42); };
     }
 }
-
-/*
-TEST_OUTPUT:
----
-fail_compilation/test15544.d(46): Error: reference to local `y` assigned to non-scope `dg` in @safe code
----
-*/
 
 int delegate() dg;
 

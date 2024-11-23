@@ -2,7 +2,9 @@
 DISABLED: win32 linux32 osx32 freebsd32 openbsd32
 TEST_OUTPUT:
 ---
-fail_compilation/fail17105.d(20): Error: missing 4th parameter to `__simd()`
+fail_compilation/fail17105.d(22): Error: missing 4th parameter to `__simd()`
+            value = cast(float4) __simd(XMM.DPPS, value, value);
+                                       ^
 ---
 */
 

@@ -5,7 +5,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test23968.d(22): Deprecation: alias `test23968.a` is deprecated
+fail_compilation/test23968.d(24): Deprecation: alias `test23968.a` is deprecated
+    int y = v.a!();  // No deprecation?
+             ^
 ---
 */
 

@@ -2,9 +2,60 @@
 https://issues.dlang.org/show_bug.cgi?id=22514
 TEST_OUTPUT:
 ---
-fail_compilation/test_switch_error.d(13): Error: undefined identifier `doesNotExist`
-fail_compilation/test_switch_error.d(16): Error: undefined identifier `alsoDoesNotExits`
-fail_compilation/test_switch_error.d(19): Error: duplicate `case 2` in `switch` statement
+fail_compilation/test_switch_error.d(64): Error: undefined identifier `doesNotExist`
+    switch (doesNotExist)
+            ^
+fail_compilation/test_switch_error.d(67): Error: undefined identifier `alsoDoesNotExits`
+            alsoDoesNotExits();
+            ^
+fail_compilation/test_switch_error.d(70): Error: duplicate `case 2` in `switch` statement
+        case 2: break;
+        ^
+fail_compilation/test_switch_error.d(80): Error: undefined identifier `doesNotExist`
+    switch (doesNotExist)
+            ^
+fail_compilation/test_switch_error.d(93): Error: undefined identifier `a`
+        case a: break;
+             ^
+fail_compilation/test_switch_error.d(94): Error: undefined identifier `b`
+        case b: break;
+             ^
+fail_compilation/test_switch_error.d(102): Error: undefined identifier `doesNotExits`
+    auto foo = doesNotExits();
+               ^
+fail_compilation/test_switch_error.d(116): Error: `case` variables have to be `const` or `immutable`
+        case i: break;
+        ^
+fail_compilation/test_switch_error.d(123): Error: `case` variables not allowed in `final switch` statements
+        case j: break;
+        ^
+fail_compilation/test_switch_error.d(142): Error: undefined identifier `undefinedFunc`
+   final switch(undefinedFunc())
+                ^
+fail_compilation/test_switch_error.d(146): Error: `case` expression must be a compile-time `string` or an integral constant, not `Strukt(1)`
+      case Strukt(1):   break;
+      ^
+fail_compilation/test_switch_error.d(147): Error: `case` variables have to be `const` or `immutable`
+      case param:       break;
+      ^
+fail_compilation/test_switch_error.d(147): Error: `case` variables not allowed in `final switch` statements
+      case param:       break;
+      ^
+fail_compilation/test_switch_error.d(148): Error: `case` variables not allowed in `final switch` statements
+      case constant:    break;
+      ^
+fail_compilation/test_switch_error.d(151): Error: undefined identifier `undefinedFunc2`
+   switch (undefinedFunc2())
+           ^
+fail_compilation/test_switch_error.d(180): Error: undefined identifier `undefinedFunc`
+    final switch(undefinedFunc())
+                 ^
+fail_compilation/test_switch_error.d(182): Error: `case` expression must be a compile-time `string` or an integral constant, not `SubtypeOfInt(2)`
+        case SubtypeOfInt(2):         break;
+        ^
+fail_compilation/test_switch_error.d(183): Error: `case` expression must be a compile-time `string` or an integral constant, not `SubtypeOfIntMethod()`
+        case SubtypeOfIntMethod():    break;
+        ^
 ---
 ++/
 
@@ -20,13 +71,7 @@ void test1()
     }
 }
 
-/++
-TEST_OUTPUT:
----
-fail_compilation/test_switch_error.d(105): Error: undefined identifier `doesNotExist`
----
-++/
-#line 100
+// Line 100 starts here
 
 enum foo = 1;
 
@@ -38,14 +83,7 @@ void test2()
     }
 }
 
-/++
-TEST_OUTPUT:
----
-fail_compilation/test_switch_error.d(206): Error: undefined identifier `a`
-fail_compilation/test_switch_error.d(207): Error: undefined identifier `b`
----
-++/
-#line 200
+// Line 200 starts here
 
 void test3()
 {
@@ -57,13 +95,7 @@ void test3()
     }
 }
 
-/++
-TEST_OUTPUT:
----
-fail_compilation/test_switch_error.d(303): Error: undefined identifier `doesNotExits`
----
-++/
-#line 300
+// Line 300 starts here
 
 void test4()
 {
@@ -75,14 +107,7 @@ void test4()
     }
 }
 
-/++
-TEST_OUTPUT:
----
-fail_compilation/test_switch_error.d(405): Error: `case` variables have to be `const` or `immutable`
-fail_compilation/test_switch_error.d(412): Error: `case` variables not allowed in `final switch` statements
----
-++/
-#line 400
+// Line 400 starts here
 
 void test5(int i)
 {
@@ -100,18 +125,7 @@ void test5(int i)
     }
 }
 
-/++
-TEST_OUTPUT:
----
-fail_compilation/test_switch_error.d(513): Error: undefined identifier `undefinedFunc`
-fail_compilation/test_switch_error.d(517): Error: `case` expression must be a compile-time `string` or an integral constant, not `Strukt(1)`
-fail_compilation/test_switch_error.d(518): Error: `case` variables have to be `const` or `immutable`
-fail_compilation/test_switch_error.d(518): Error: `case` variables not allowed in `final switch` statements
-fail_compilation/test_switch_error.d(519): Error: `case` variables not allowed in `final switch` statements
-fail_compilation/test_switch_error.d(522): Error: undefined identifier `undefinedFunc2`
----
-++/
-#line 500
+// Line 500 starts here
 
 enum Foo
 {
@@ -140,15 +154,7 @@ void errorsWithErrors(int param, immutable int constant)
    }
 }
 
-/++
-TEST_OUTPUT:
----
-fail_compilation/test_switch_error.d(622): Error: undefined identifier `undefinedFunc`
-fail_compilation/test_switch_error.d(624): Error: `case` expression must be a compile-time `string` or an integral constant, not `SubtypeOfInt(2)`
-fail_compilation/test_switch_error.d(625): Error: `case` expression must be a compile-time `string` or an integral constant, not `SubtypeOfIntMethod()`
----
-++/
-#line 600
+// Line 600 starts here
 
 struct SubtypeOfInt
 {

@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail35.d(15): Error: variable `t` cannot be read at compile time
+fail_compilation/fail35.d(17): Error: variable `t` cannot be read at compile time
+        size_t n = (bool[t]).sizeof;
+                   ^
 ---
 */
 

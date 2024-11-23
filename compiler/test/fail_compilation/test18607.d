@@ -1,6 +1,8 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/test18607.d(10): Error: function `test18607.test!int.test` no `return exp;` or `assert(0);` at end of function
+fail_compilation/test18607.d(12): Error: function `test18607.test!int.test` no `return exp;` or `assert(0);` at end of function
+int* test(T...)() pure @safe {
+     ^
 & test
 ---
 */

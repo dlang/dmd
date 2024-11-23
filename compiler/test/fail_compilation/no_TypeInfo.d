@@ -4,7 +4,9 @@ REQUIRED_ARGS: -c
 EXTRA_SOURCES: extra-files/minimal/object.d
 TEST_OUTPUT:
 ---
-fail_compilation/no_TypeInfo.d(14): Error: `object.TypeInfo` could not be found, but is implicitly used
+fail_compilation/no_TypeInfo.d(16): Error: `object.TypeInfo` could not be found, but is implicitly used
+    auto ti = typeid(i);
+              ^
 ---
 */
 

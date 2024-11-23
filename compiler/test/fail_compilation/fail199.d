@@ -2,8 +2,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail199.d(20): Deprecation: class `fail199.DepClass` is deprecated
-fail_compilation/fail199.d(20): Deprecation: class `fail199.DepClass` is deprecated
+fail_compilation/fail199.d(24): Deprecation: class `fail199.DepClass` is deprecated
+class Derived : DepClass {}
+^
+fail_compilation/fail199.d(24): Deprecation: class `fail199.DepClass` is deprecated
+class Derived : DepClass {}
+^
 ---
 */
 

@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail24389.c(10): Error: Gnu Asm not supported - compile this file with gcc or clang
+fail_compilation/fail24389.c(12): Error: Gnu Asm not supported - compile this file with gcc or clang
+__asm__(".symver " "__qsort_r_compat" ", " "qsort_r" "@" "FBSD_1.0");
+$r:\s*\^$
 ---
 */
 typedef unsigned long size_t;

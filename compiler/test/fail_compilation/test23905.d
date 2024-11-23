@@ -3,7 +3,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test23905.d(24): Error: enum `test23905.Foo` is opaque and has no default initializer
+fail_compilation/test23905.d(26): Error: enum `test23905.Foo` is opaque and has no default initializer
+    SumType!Foo data = Foo.init;
+                       ^
 ---
 */
 

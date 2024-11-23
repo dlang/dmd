@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail19687.d(17): Error: no property `nonexisting` for `""` of type `string`
+fail_compilation/fail19687.d(19): Error: no property `nonexisting` for `""` of type `string`
+    n.foo = "".nonexisting();
+              ^
 ---
 */
 

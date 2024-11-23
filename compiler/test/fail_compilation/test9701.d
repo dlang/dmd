@@ -1,31 +1,81 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test9701.d(38): Error: `@safe` is not a valid attribute for enum members
-fail_compilation/test9701.d(39): Error: `@system` is not a valid attribute for enum members
-fail_compilation/test9701.d(40): Error: `@trusted` is not a valid attribute for enum members
-fail_compilation/test9701.d(41): Error: `@nogc` is not a valid attribute for enum members
-fail_compilation/test9701.d(42): Error: found `pure` when expecting `identifier`
-fail_compilation/test9701.d(43): Error: found `shared` when expecting `identifier`
-fail_compilation/test9701.d(44): Error: found `inout` when expecting `identifier`
-fail_compilation/test9701.d(45): Error: found `immutable` when expecting `identifier`
-fail_compilation/test9701.d(46): Error: found `const` when expecting `identifier`
-fail_compilation/test9701.d(47): Error: found `synchronized` when expecting `identifier`
-fail_compilation/test9701.d(48): Error: found `scope` when expecting `identifier`
-fail_compilation/test9701.d(49): Error: found `auto` when expecting `identifier`
-fail_compilation/test9701.d(50): Error: found `ref` when expecting `identifier`
-fail_compilation/test9701.d(51): Error: found `__gshared` when expecting `identifier`
-fail_compilation/test9701.d(52): Error: found `final` when expecting `identifier`
-fail_compilation/test9701.d(53): Error: found `extern` when expecting `identifier`
-fail_compilation/test9701.d(54): Error: found `export` when expecting `identifier`
-fail_compilation/test9701.d(55): Error: found `nothrow` when expecting `identifier`
-fail_compilation/test9701.d(56): Error: found `public` when expecting `identifier`
-fail_compilation/test9701.d(57): Error: found `private` when expecting `identifier`
-fail_compilation/test9701.d(58): Error: found `package` when expecting `identifier`
-fail_compilation/test9701.d(59): Error: found `static` when expecting `identifier`
-fail_compilation/test9701.d(60): Error: found `static` when expecting `identifier`
-fail_compilation/test9701.d(61): Error: found `static` when expecting `identifier`
-fail_compilation/test9701.d(62): Error: found `static` when expecting `identifier`
+fail_compilation/test9701.d(88): Error: `@safe` is not a valid attribute for enum members
+    @safe safe,
+     ^
+fail_compilation/test9701.d(89): Error: `@system` is not a valid attribute for enum members
+    @system system,
+     ^
+fail_compilation/test9701.d(90): Error: `@trusted` is not a valid attribute for enum members
+    @trusted trusted,
+     ^
+fail_compilation/test9701.d(91): Error: `@nogc` is not a valid attribute for enum members
+    @nogc nogc,
+     ^
+fail_compilation/test9701.d(92): Error: found `pure` when expecting `identifier`
+    pure pure_,
+    ^
+fail_compilation/test9701.d(93): Error: found `shared` when expecting `identifier`
+    shared shared_,
+    ^
+fail_compilation/test9701.d(94): Error: found `inout` when expecting `identifier`
+    inout inout_,
+    ^
+fail_compilation/test9701.d(95): Error: found `immutable` when expecting `identifier`
+    immutable immutable_,
+    ^
+fail_compilation/test9701.d(96): Error: found `const` when expecting `identifier`
+    const const_,
+    ^
+fail_compilation/test9701.d(97): Error: found `synchronized` when expecting `identifier`
+    synchronized synchronized_,
+    ^
+fail_compilation/test9701.d(98): Error: found `scope` when expecting `identifier`
+    scope scope_,
+    ^
+fail_compilation/test9701.d(99): Error: found `auto` when expecting `identifier`
+    auto auto_,
+    ^
+fail_compilation/test9701.d(100): Error: found `ref` when expecting `identifier`
+    ref ref_,
+    ^
+fail_compilation/test9701.d(101): Error: found `__gshared` when expecting `identifier`
+    __gshared __gshared_,
+    ^
+fail_compilation/test9701.d(102): Error: found `final` when expecting `identifier`
+    final final_,
+    ^
+fail_compilation/test9701.d(103): Error: found `extern` when expecting `identifier`
+    extern extern_,
+    ^
+fail_compilation/test9701.d(104): Error: found `export` when expecting `identifier`
+    export export_,
+    ^
+fail_compilation/test9701.d(105): Error: found `nothrow` when expecting `identifier`
+    nothrow nothrow_,
+    ^
+fail_compilation/test9701.d(106): Error: found `public` when expecting `identifier`
+    public public_,
+    ^
+fail_compilation/test9701.d(107): Error: found `private` when expecting `identifier`
+    private private_,
+    ^
+fail_compilation/test9701.d(108): Error: found `package` when expecting `identifier`
+    package package_,
+    ^
+fail_compilation/test9701.d(109): Error: found `static` when expecting `identifier`
+    static static1,
+    ^
+fail_compilation/test9701.d(110): Error: found `static` when expecting `identifier`
+    @("a") static static2,
+           ^
+fail_compilation/test9701.d(111): Error: found `static` when expecting `identifier`
+    static @("a") static3,
+    ^
+fail_compilation/test9701.d(112): Error: found `static` when expecting `identifier`
+    @("a") static @("b") static3,
+           ^
 ---
 */
 

@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail4269d.d(9): Error: undefined identifier `Y`
+fail_compilation/fail4269d.d(11): Error: undefined identifier `Y`
+alias Y X6;
+      ^
 ---
 */
 

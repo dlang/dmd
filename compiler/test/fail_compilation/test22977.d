@@ -2,8 +2,12 @@
 REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/test22977.d(16): Error: escaping local variable through nested function `scfunc`
-fail_compilation/test22977.d(22): Error: escaping local variable through nested function `scfunc2`
+fail_compilation/test22977.d(20): Error: escaping local variable through nested function `scfunc`
+    return scfunc();
+                 ^
+fail_compilation/test22977.d(26): Error: escaping local variable through nested function `scfunc2`
+    return scfunc2();
+                  ^
 ---
 */
 

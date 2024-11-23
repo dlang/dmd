@@ -1,9 +1,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test12228.d(12): Error: undefined identifier `this`, did you mean `typeof(this)`?
-fail_compilation/test12228.d(18): Error: undefined identifier `super`, did you mean `typeof(super)`?
-fail_compilation/test12228.d(19): Error: undefined identifier `super`, did you mean `typeof(super)`?
+fail_compilation/test12228.d(18): Error: undefined identifier `this`, did you mean `typeof(this)`?
+    shared(this) x;
+                 ^
+fail_compilation/test12228.d(24): Error: undefined identifier `super`, did you mean `typeof(super)`?
+    shared(super) a;
+                  ^
+fail_compilation/test12228.d(25): Error: undefined identifier `super`, did you mean `typeof(super)`?
+    super b;
+          ^
 ---
 */
 

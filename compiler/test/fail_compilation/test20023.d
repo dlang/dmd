@@ -4,7 +4,11 @@
 TEST_OUTPUT:
 ---
 fail_compilation/imports/test20023b.d(8): Error: scope variable `e` may not be returned
-fail_compilation/test20023.d(15): Error: template instance `imports.test20023b.threw!()` error instantiating
+        return e;
+               ^
+fail_compilation/test20023.d(19): Error: template instance `imports.test20023b.threw!()` error instantiating
+    threw!()();
+    ^
 ---
 */
 import imports.test20023b;

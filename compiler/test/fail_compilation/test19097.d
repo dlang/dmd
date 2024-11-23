@@ -1,14 +1,30 @@
 /* REQUIRED_ARGS: -preview=dip1000
  * TEST_OUTPUT:
 ---
-fail_compilation/test19097.d(44): Error: scope variable `s` may not be returned
-fail_compilation/test19097.d(48): Error: scope variable `s1` may not be returned
-fail_compilation/test19097.d(77): Error: scope variable `z` assigned to `ref` variable `refPtr` with longer lifetime
-fail_compilation/test19097.d(108): Error: scope variable `s4` may not be returned
-fail_compilation/test19097.d(126): Error: scope variable `s5c` may not be returned
-fail_compilation/test19097.d(130): Error: scope variable `s5m` may not be returned
-fail_compilation/test19097.d(147): Error: scope variable `s6c` may not be returned
-fail_compilation/test19097.d(151): Error: scope variable `s6m` may not be returned
+fail_compilation/test19097.d(60): Error: scope variable `s` may not be returned
+    return s;    // so this should error
+           ^
+fail_compilation/test19097.d(64): Error: scope variable `s1` may not be returned
+    return s1;
+           ^
+fail_compilation/test19097.d(93): Error: scope variable `z` assigned to `ref` variable `refPtr` with longer lifetime
+        refPtr = z; // should not be allowed
+               ^
+fail_compilation/test19097.d(124): Error: scope variable `s4` may not be returned
+    return s4.p;
+           ^
+fail_compilation/test19097.d(142): Error: scope variable `s5c` may not be returned
+    return s5c;    // so this should error
+           ^
+fail_compilation/test19097.d(146): Error: scope variable `s5m` may not be returned
+    return s5m;
+           ^
+fail_compilation/test19097.d(163): Error: scope variable `s6c` may not be returned
+    return s6c;    // so this should error
+           ^
+fail_compilation/test19097.d(167): Error: scope variable `s6m` may not be returned
+    return s6m;
+           ^
 ---
  */
 

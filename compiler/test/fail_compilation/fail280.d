@@ -4,7 +4,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail280.d(13): Error: template instance `fail280.t!500` recursive expansion exceeded allowed nesting limit
+fail_compilation/fail280.d(15): Error: template instance `fail280.t!500` recursive expansion exceeded allowed nesting limit
+    const int x = t!(i + 1).x;
+                  ^
 ---
 */
 

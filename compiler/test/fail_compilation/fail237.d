@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail237.d(11): Error: undefined identifier `a` in module `fail237`
-fail_compilation/fail237.d(11):        while evaluating: `static assert(module fail237.a!().b)`
+fail_compilation/fail237.d(15): Error: undefined identifier `a` in module `fail237`
+static assert(.a!().b);
+              ^
+fail_compilation/fail237.d(15):        while evaluating: `static assert(module fail237.a!().b)`
+static assert(.a!().b);
+^
 ---
 */
 

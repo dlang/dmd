@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag16499.d(22): Error: incompatible types for `(2) in (foo)`: `int` and `A`
-fail_compilation/diag16499.d(24): Error: incompatible types for `(1.0) in (bar)`: `double` and `B`
+fail_compilation/diag16499.d(26): Error: incompatible types for `(2) in (foo)`: `int` and `A`
+	2 in foo;
+ ^
+fail_compilation/diag16499.d(28): Error: incompatible types for `(1.0) in (bar)`: `double` and `B`
+	1.0 in bar;
+ ^
 ---
 */
 

@@ -4,7 +4,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test143.d(20): Error: undefined identifier `x`
+fail_compilation/test143.d(22): Error: undefined identifier `x`
+    bar(x);
+        ^
 ---
 */
 module test143;

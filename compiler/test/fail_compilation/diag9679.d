@@ -1,12 +1,51 @@
 /* REQUIRED_ARGS: -verrors=0
 TEST_OUTPUT:
 ---
-fail_compilation/diag9679.d(93): Deprecation: `auto` and `ref` storage classes should be adjacent
-fail_compilation/diag9679.d(93): Deprecation: `auto` and `ref` storage classes should be adjacent
-fail_compilation/diag9679.d(15): Error: rvalue `1` cannot be assigned to `ref n`
-fail_compilation/diag9679.d(16): Error: variable `diag9679.main.n` - storage class `auto` has no effect if type is not inferred, did you mean `scope`?
-fail_compilation/diag9679.d(17): Error: variable `diag9679.main.S.a` - field declarations cannot be `ref`
-fail_compilation/diag9679.d(24): Error: returning `r` escapes a reference to local variable `i`
+fail_compilation/diag9679.d(117): Deprecation: `auto` and `ref` storage classes should be adjacent
+void testKeywordOrder()(ref auto int x, auto const ref float y) {}
+                                 ^
+fail_compilation/diag9679.d(117): Deprecation: `auto` and `ref` storage classes should be adjacent
+void testKeywordOrder()(ref auto int x, auto const ref float y) {}
+                                                       ^
+fail_compilation/diag9679.d(54): Error: rvalue `1` cannot be assigned to `ref n`
+    if (ref n = 1) {}
+    ^
+fail_compilation/diag9679.d(55): Error: variable `diag9679.main.n` - storage class `auto` has no effect if type is not inferred, did you mean `scope`?
+    if (auto int n = 1) {}
+    ^
+fail_compilation/diag9679.d(56): Error: variable `diag9679.main.S.a` - field declarations cannot be `ref`
+    struct S { ref int a; }
+                       ^
+fail_compilation/diag9679.d(63): Error: returning `r` escapes a reference to local variable `i`
+    return r;
+           ^
+fail_compilation/diag9679.d(90): Error: variable `diag9679.test5.r5` - initializer is required for `ref` variable
+    ref int r5;
+            ^
+fail_compilation/diag9679.d(90): Error: rvalue `0` cannot be assigned to `ref r5`
+    ref int r5;
+            ^
+fail_compilation/diag9679.d(95): Error: rvalue `4` cannot be assigned to `ref x`
+    ref int x = 4;
+            ^
+fail_compilation/diag9679.d(96): Error: returning `x` escapes a reference to local variable `x`
+    return x;
+           ^
+fail_compilation/diag9679.d(101): Error: type `immutable(int)` cannot be assigned to `ref int x`
+    ref int x = y;
+            ^
+fail_compilation/diag9679.d(108): Error: returning `x` escapes a reference to local variable `x`
+    return x;
+           ^
+fail_compilation/diag9679.d(113): Error: variable `diag9679.test9.x` - void initializer not allowed for `ref` variable
+    ref int x = void;
+            ^
+fail_compilation/diag9679.d(114): Error: variable `diag9679.test9.y` - void initializer not allowed for `ref` variable
+    auto ref int y = void;
+                 ^
+fail_compilation/diag9679.d(120): Error: variable `x` - `auto ref` variable must have `auto` and `ref` adjacent
+    ref auto int x = 3;
+                 ^
 ---
 */
 
@@ -45,21 +84,6 @@ void test4()
     extern S t4;
     ref int r4 = t4.a;
 }
-
-/* TEST_OUTPUT:
----
-fail_compilation/diag9679.d(66): Error: variable `diag9679.test5.r5` - initializer is required for `ref` variable
-fail_compilation/diag9679.d(66): Error: rvalue `0` cannot be assigned to `ref r5`
-fail_compilation/diag9679.d(71): Error: rvalue `4` cannot be assigned to `ref x`
-fail_compilation/diag9679.d(72): Error: returning `x` escapes a reference to local variable `x`
-fail_compilation/diag9679.d(77): Error: type `immutable(int)` cannot be assigned to `ref int x`
-fail_compilation/diag9679.d(84): Error: returning `x` escapes a reference to local variable `x`
-fail_compilation/diag9679.d(89): Error: variable `diag9679.test9.x` - void initializer not allowed for `ref` variable
-fail_compilation/diag9679.d(90): Error: variable `diag9679.test9.y` - void initializer not allowed for `ref` variable
-fail_compilation/diag9679.d(96): Error: variable `x` - `auto ref` variable must have `auto` and `ref` adjacent
----
-*/
-
 
 void test5()
 {

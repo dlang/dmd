@@ -1,12 +1,20 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail18970.d(26): Error: no property `y` for `S()` of type `fail18970.S`
-fail_compilation/fail18970.d(26):        potentially malformed `opDispatch`. Use an explicit instantiation to get a better error message
-fail_compilation/fail18970.d(15):        struct `S` defined here
-fail_compilation/fail18970.d(33): Error: no property `yyy` for `this` of type `fail18970.S2`
-fail_compilation/fail18970.d(33):        potentially malformed `opDispatch`. Use an explicit instantiation to get a better error message
-fail_compilation/fail18970.d(29):        struct `S2` defined here
+fail_compilation/fail18970.d(34): Error: no property `y` for `S()` of type `fail18970.S`
+    S().y(1);
+       ^
+fail_compilation/fail18970.d(34):        potentially malformed `opDispatch`. Use an explicit instantiation to get a better error message
+fail_compilation/fail18970.d(23):        struct `S` defined here
+struct S
+^
+fail_compilation/fail18970.d(41): Error: no property `yyy` for `this` of type `fail18970.S2`
+        this.yyy;
+            ^
+fail_compilation/fail18970.d(41):        potentially malformed `opDispatch`. Use an explicit instantiation to get a better error message
+fail_compilation/fail18970.d(37):        struct `S2` defined here
+struct S2
+^
 ---
 */
 

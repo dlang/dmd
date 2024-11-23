@@ -1,9 +1,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail236.d(14): Error: undefined identifier `x`
-fail_compilation/fail236.d(22): Error: template `Templ2` is not callable using argument types `!()(int)`
-fail_compilation/fail236.d(12):        Candidate is: `Templ2(alias a)(x)`
+fail_compilation/fail236.d(20): Error: undefined identifier `x`
+    void Templ2(x)
+         ^
+fail_compilation/fail236.d(28): Error: template `Templ2` is not callable using argument types `!()(int)`
+    Templ2(i);
+          ^
+fail_compilation/fail236.d(18):        Candidate is: `Templ2(alias a)(x)`
+template Templ2(alias a)
+^
 ---
 */
 

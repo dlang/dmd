@@ -3,7 +3,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice14424.d(13): Error: `AliasSeq!(__unittest_L3_C1)` has no effect
+fail_compilation/ice14424.d(15): Error: `AliasSeq!(__unittest_L3_C1)` has no effect
+    __traits(getUnitTests, imports.a14424);
+    ^
 ---
 */
 

@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail316.d(17): Error: mixin `fail316.foo.BadImpl!(uint, Mix1)` cannot resolve forward reference
+fail_compilation/fail316.d(19): Error: mixin `fail316.foo.BadImpl!(uint, Mix1)` cannot resolve forward reference
+  mixin BadImpl!(uint,Mix1) Mix1;
+  ^
 ---
 */
 template BadImpl(T, alias thename)

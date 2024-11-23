@@ -2,13 +2,27 @@
 REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/fail22366.d(22): Error: scope variable `s` may not be copied into allocated memory
-fail_compilation/fail22366.d(25): Error: scope variable `s` may not be copied into allocated memory
-fail_compilation/fail22366.d(26): Error: scope variable `s` may not be copied into allocated memory
-fail_compilation/fail22366.d(27): Error: scope variable `s` may not be copied into allocated memory
-fail_compilation/fail22366.d(28): Error: scope variable `s` may not be copied into allocated memory
-fail_compilation/fail22366.d(31): Error: scope variable `s` may not be copied into allocated memory
-fail_compilation/fail22366.d(32): Error: scope variable `s` may not be copied into allocated memory
+fail_compilation/fail22366.d(36): Error: scope variable `s` may not be copied into allocated memory
+    aa[s] ^^= 3;
+       ^
+fail_compilation/fail22366.d(39): Error: scope variable `s` may not be copied into allocated memory
+    saa[""] = s;
+              ^
+fail_compilation/fail22366.d(40): Error: scope variable `s` may not be copied into allocated memory
+    saa[""] ~= s;
+               ^
+fail_compilation/fail22366.d(41): Error: scope variable `s` may not be copied into allocated memory
+    saa[s] = "";
+        ^
+fail_compilation/fail22366.d(42): Error: scope variable `s` may not be copied into allocated memory
+    saa[s] ~= "";
+        ^
+fail_compilation/fail22366.d(45): Error: scope variable `s` may not be copied into allocated memory
+    snaa[s][""] = "";
+         ^
+fail_compilation/fail22366.d(46): Error: scope variable `s` may not be copied into allocated memory
+    snaa[""][s] = "";
+             ^
 ---
 */
 

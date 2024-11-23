@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail152.d(16): Error: cannot use type `double` as an operand
-fail_compilation/fail152.d(22): Error: template instance `fail152.a!double` error instantiating
+fail_compilation/fail152.d(20): Error: cannot use type `double` as an operand
+        fstp double ptr var1;  // (2) ICE
+                            ^
+fail_compilation/fail152.d(26): Error: template instance `fail152.a!double` error instantiating
+   a(3.6);
+    ^
 ---
 */
 

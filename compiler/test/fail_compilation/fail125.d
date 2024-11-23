@@ -1,9 +1,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail125.d(15): Error: sequence index `[2]` is outside bounds `[0 .. 2]`
-fail_compilation/fail125.d(18): Error: template instance `fail125.main.recMove!(1, a, b)` error instantiating
-fail_compilation/fail125.d(25):        instantiated from here: `recMove!(0, a, b)`
+fail_compilation/fail125.d(21): Error: sequence index `[2]` is outside bounds `[0 .. 2]`
+        X[i] = X[i+1];
+                ^
+fail_compilation/fail125.d(24): Error: template instance `fail125.main.recMove!(1, a, b)` error instantiating
+            recMove!(i+1, X);
+            ^
+fail_compilation/fail125.d(31):        instantiated from here: `recMove!(0, a, b)`
+    recMove!(0, a, b);
+    ^
 ---
 */
 

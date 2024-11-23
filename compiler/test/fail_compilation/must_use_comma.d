@@ -1,7 +1,9 @@
 /+
 TEST_OUTPUT:
 ---
-fail_compilation/must_use_comma.d(16): Error: ignored value of `@mustuse` type `must_use_comma.S`; prepend a `cast(void)` if intentional
+fail_compilation/must_use_comma.d(18): Error: ignored value of `@mustuse` type `must_use_comma.S`; prepend a `cast(void)` if intentional
+    (fun(), sideEffect());
+        ^
 ---
 +/
 import core.attribute;

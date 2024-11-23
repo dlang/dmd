@@ -5,6 +5,8 @@ TEST_OUTPUT:
 fail_compilation/previewin2.d(1): Error: cannot use `in` parameters with `extern(C)` functions
 fail_compilation/previewin2.d(1):        parameter `a` declared as `in` here
 fail_compilation/previewin2.d(2): Error: cannot use `in` parameters with `extern(Windows)` functions
+REQUIRED_ARGS: -preview=in -preview=dip1000
+                     ^
 fail_compilation/previewin2.d(2):        parameter `a` declared as `in` here
 fail_compilation/previewin2.d(4): Error: cannot use `in` parameters with `extern(C)` functions
 fail_compilation/previewin2.d(4):        parameter `__anonymous_param` declared as `in` here

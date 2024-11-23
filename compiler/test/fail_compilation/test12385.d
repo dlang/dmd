@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test12385.d(29): Error: cannot modify `immutable` expression `unbundled.x`
+fail_compilation/test12385.d(31): Error: cannot modify `immutable` expression `unbundled.x`
+    States.unbundled.x = 6; // Modifies x.
+    ^
 ---
 */
 

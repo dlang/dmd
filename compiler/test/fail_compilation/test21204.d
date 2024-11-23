@@ -2,7 +2,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test21204.d(22): Error: generating an `inout` copy constructor for `struct test21204.B` failed, therefore instances of it are uncopyable
+fail_compilation/test21204.d(24): Error: generating an `inout` copy constructor for `struct test21204.B` failed, therefore instances of it are uncopyable
+    B b2 = b1;
+      ^
 ---
 */
 

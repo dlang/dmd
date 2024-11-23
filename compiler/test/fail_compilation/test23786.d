@@ -1,14 +1,26 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/test23786.d(22): Error: function `foo` is not callable using argument types `(double)`
-fail_compilation/test23786.d(22):        cannot pass argument `1.0` of type `double` to parameter `int i`
-fail_compilation/test23786.d(19):        `test23786.foo(int i)` declared here
-fail_compilation/test23786.d(29): Error: function `bar` is not callable using argument types `(int*)`
-fail_compilation/test23786.d(29):        cannot pass argument `& i` of type `int*` to parameter `int i`
-fail_compilation/test23786.d(26):        `test23786.bar(int i)` declared here
-fail_compilation/test23786.d(37): Error: function `baz` is not callable using argument types `(int*)`
-fail_compilation/test23786.d(37):        cannot pass argument `& i` of type `int*` to parameter `int i`
-fail_compilation/test23786.d(34):        `test23786.baz(int i)` declared here
+fail_compilation/test23786.d(34): Error: function `foo` is not callable using argument types `(double)`
+    __traits(parent, {})(1.0);
+                        ^
+fail_compilation/test23786.d(34):        cannot pass argument `1.0` of type `double` to parameter `int i`
+fail_compilation/test23786.d(31):        `test23786.foo(int i)` declared here
+void foo(int i)
+     ^
+fail_compilation/test23786.d(41): Error: function `bar` is not callable using argument types `(int*)`
+    __traits(parent, {})(&i);
+                        ^
+fail_compilation/test23786.d(41):        cannot pass argument `& i` of type `int*` to parameter `int i`
+fail_compilation/test23786.d(38):        `test23786.bar(int i)` declared here
+void bar(int i)
+     ^
+fail_compilation/test23786.d(49): Error: function `baz` is not callable using argument types `(int*)`
+    __traits(parent, {})(&i);
+                        ^
+fail_compilation/test23786.d(49):        cannot pass argument `& i` of type `int*` to parameter `int i`
+fail_compilation/test23786.d(46):        `test23786.baz(int i)` declared here
+void baz(int i)
+     ^
 ---
 */
 

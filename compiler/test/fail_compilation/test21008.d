@@ -7,13 +7,19 @@ fail_compilation/test21008.d(117): Error: calling non-static function `toHash` r
 fail_compilation/test21008.d(117): Error: function `opCmp` is not callable using argument types `()`
 fail_compilation/test21008.d(117):        too few arguments, expected 1, got 0
 $p:druntime/import/object.d$($n$):        `object.Object.opCmp(Object o)` declared here
+    int opCmp(Object o)
+        ^
 fail_compilation/test21008.d(117): Error: function `opEquals` is not callable using argument types `()`
 fail_compilation/test21008.d(117):        too few arguments, expected 1, got 0
 $p:druntime/import/object.d$($n$):        `object.Object.opEquals(Object o)` declared here
+    bool opEquals(Object o)
+         ^
 fail_compilation/test21008.d(117): Error: `Monitor` has no effect
 fail_compilation/test21008.d(117): Error: function `factory` is not callable using argument types `()`
 fail_compilation/test21008.d(117):        too few arguments, expected 1, got 0
 $p:druntime/import/object.d$($n$):        `object.Object.factory(string classname)` declared here
+    static Object factory(string classname)
+                  ^
 fail_compilation/test21008.d(105):        called from here: `handleMiddlewareAnnotation()`
 ---
 */

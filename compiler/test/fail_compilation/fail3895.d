@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail3895.d(12): Error: cannot append type `double[]` to type `float[]`
+fail_compilation/fail3895.d(14): Error: cannot append type `double[]` to type `float[]`
+    otherStuff ~= stuff;
+               ^
 ---
 */
 

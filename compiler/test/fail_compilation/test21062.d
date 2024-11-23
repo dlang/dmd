@@ -1,12 +1,18 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test21062.d(16): Error: no identifier for declarator `bool`
-fail_compilation/test21062.d(16):        `synchronized` is a keyword, perhaps append `_` to make it an identifier
-fail_compilation/test21062.d(17): Error: no identifier for declarator `ubyte*`
-fail_compilation/test21062.d(17):        `out` is a keyword, perhaps append `_` to make it an identifier
-fail_compilation/test21062.d(21): Error: no identifier for declarator `uint`
-fail_compilation/test21062.d(21):        `in` is a keyword, perhaps append `_` to make it an identifier
+fail_compilation/test21062.d(22): Error: no identifier for declarator `bool`
+bool synchronized;
+     ^
+fail_compilation/test21062.d(22):        `synchronized` is a keyword, perhaps append `_` to make it an identifier
+fail_compilation/test21062.d(23): Error: no identifier for declarator `ubyte*`
+ubyte* out;
+       ^
+fail_compilation/test21062.d(23):        `out` is a keyword, perhaps append `_` to make it an identifier
+fail_compilation/test21062.d(27): Error: no identifier for declarator `uint`
+    foreach(uint in; [])
+                 ^
+fail_compilation/test21062.d(27):        `in` is a keyword, perhaps append `_` to make it an identifier
 ---
 */
 

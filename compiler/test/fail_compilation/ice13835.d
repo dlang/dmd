@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice13835.d(15): Error: value of `this` is not known at compile time
-fail_compilation/ice13835.d(21): Error: template instance `ice13835.Foo!int` error instantiating
+fail_compilation/ice13835.d(19): Error: value of `this` is not known at compile time
+        static T crash = *(this._data + position);
+                           ^
+fail_compilation/ice13835.d(25): Error: template instance `ice13835.Foo!int` error instantiating
+    auto heap = new Foo!(int);
+                    ^
 ---
 */
 

@@ -2,8 +2,12 @@
 REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/test22709.d(15): Error: address of variable `local` assigned to `arr` with longer lifetime
-fail_compilation/test22709.d(20): Error: address of variable `local` assigned to `arr` with longer lifetime
+fail_compilation/test22709.d(19): Error: address of variable `local` assigned to `arr` with longer lifetime
+    arr = local[];
+        ^
+fail_compilation/test22709.d(24): Error: address of variable `local` assigned to `arr` with longer lifetime
+    arr = local[];
+        ^
 ---
 */
 

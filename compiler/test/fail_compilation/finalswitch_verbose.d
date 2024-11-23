@@ -3,27 +3,29 @@ REQUIRED_ARGS: -v
 TRANSFORM_OUTPUT: remove_lines("^(predefs|binary|version|config|DFLAG|parse|import|semantic|entry|\s*$)")
 TEST_OUTPUT:
 ---
-fail_compilation/finalswitch_verbose.d(40): Error: missing cases for `enum` members in `final switch`:
-fail_compilation/finalswitch_verbose.d(40):        `m1`
-fail_compilation/finalswitch_verbose.d(40):        `m2`
-fail_compilation/finalswitch_verbose.d(40):        `m3`
-fail_compilation/finalswitch_verbose.d(40):        `m4`
-fail_compilation/finalswitch_verbose.d(40):        `m5`
-fail_compilation/finalswitch_verbose.d(40):        `m6`
-fail_compilation/finalswitch_verbose.d(40):        `m7`
-fail_compilation/finalswitch_verbose.d(40):        `m8`
-fail_compilation/finalswitch_verbose.d(40):        `m9`
-fail_compilation/finalswitch_verbose.d(40):        `m10`
-fail_compilation/finalswitch_verbose.d(40):        `m11`
-fail_compilation/finalswitch_verbose.d(40):        `m12`
-fail_compilation/finalswitch_verbose.d(40):        `m13`
-fail_compilation/finalswitch_verbose.d(40):        `m14`
-fail_compilation/finalswitch_verbose.d(40):        `m15`
-fail_compilation/finalswitch_verbose.d(40):        `m16`
-fail_compilation/finalswitch_verbose.d(40):        `m17`
-fail_compilation/finalswitch_verbose.d(40):        `m18`
-fail_compilation/finalswitch_verbose.d(40):        `m19`
-fail_compilation/finalswitch_verbose.d(40):        `m20`
+fail_compilation/finalswitch_verbose.d(42): Error: missing cases for `enum` members in `final switch`:
+    final switch (H.init)
+    ^
+fail_compilation/finalswitch_verbose.d(42):        `m1`
+fail_compilation/finalswitch_verbose.d(42):        `m2`
+fail_compilation/finalswitch_verbose.d(42):        `m3`
+fail_compilation/finalswitch_verbose.d(42):        `m4`
+fail_compilation/finalswitch_verbose.d(42):        `m5`
+fail_compilation/finalswitch_verbose.d(42):        `m6`
+fail_compilation/finalswitch_verbose.d(42):        `m7`
+fail_compilation/finalswitch_verbose.d(42):        `m8`
+fail_compilation/finalswitch_verbose.d(42):        `m9`
+fail_compilation/finalswitch_verbose.d(42):        `m10`
+fail_compilation/finalswitch_verbose.d(42):        `m11`
+fail_compilation/finalswitch_verbose.d(42):        `m12`
+fail_compilation/finalswitch_verbose.d(42):        `m13`
+fail_compilation/finalswitch_verbose.d(42):        `m14`
+fail_compilation/finalswitch_verbose.d(42):        `m15`
+fail_compilation/finalswitch_verbose.d(42):        `m16`
+fail_compilation/finalswitch_verbose.d(42):        `m17`
+fail_compilation/finalswitch_verbose.d(42):        `m18`
+fail_compilation/finalswitch_verbose.d(42):        `m19`
+fail_compilation/finalswitch_verbose.d(42):        `m20`
 ---
 */
 

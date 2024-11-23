@@ -2,8 +2,12 @@
 EXTRA_FILES: imports/diag10089a.d imports/diag10089b.d
 TEST_OUTPUT:
 ---
-fail_compilation/diag10089.d(16): Error: undefined identifier `chunks` in package `imports`
-fail_compilation/diag10089.d(18): Error: template `Foo()` does not have property `chunks`
+fail_compilation/diag10089.d(20): Error: undefined identifier `chunks` in package `imports`
+    imports.chunks("abcdef", 2);
+           ^
+fail_compilation/diag10089.d(22): Error: template `Foo()` does not have property `chunks`
+    Foo.chunks("abcdef", 2);
+       ^
 ---
 */
 

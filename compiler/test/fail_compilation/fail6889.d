@@ -1,13 +1,51 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail6889.d(16): Error: cannot `goto` out of `scope(success)` block
-fail_compilation/fail6889.d(17): Error: cannot `goto` in to `scope(success)` block
-fail_compilation/fail6889.d(19): Error: `return` statements cannot be in `scope(success)` bodies
-fail_compilation/fail6889.d(23): Error: `continue` is not allowed inside `scope(success)` bodies
-fail_compilation/fail6889.d(24): Error: `break` is not allowed inside `scope(success)` bodies
-fail_compilation/fail6889.d(29): Error: `continue` is not allowed inside `scope(success)` bodies
-fail_compilation/fail6889.d(30): Error: `break` is not allowed inside `scope(success)` bodies
+fail_compilation/fail6889.d(54): Error: cannot `goto` out of `scope(success)` block
+    scope(success) { L2: goto L1; } // NG
+                         ^
+fail_compilation/fail6889.d(55): Error: cannot `goto` in to `scope(success)` block
+    goto L2;                        // NG
+    ^
+fail_compilation/fail6889.d(57): Error: `return` statements cannot be in `scope(success)` bodies
+    scope(success) { return; }      // NG (from fail102.d)
+                     ^
+fail_compilation/fail6889.d(61): Error: `continue` is not allowed inside `scope(success)` bodies
+        scope(success) continue;    // NG
+                       ^
+fail_compilation/fail6889.d(62): Error: `break` is not allowed inside `scope(success)` bodies
+        scope(success) break;       // NG
+                       ^
+fail_compilation/fail6889.d(67): Error: `continue` is not allowed inside `scope(success)` bodies
+        scope(success) continue;    // NG
+                       ^
+fail_compilation/fail6889.d(68): Error: `break` is not allowed inside `scope(success)` bodies
+        scope(success) break;       // NG
+                       ^
+fail_compilation/fail6889.d(88): Error: cannot `goto` in to `scope(failure)` block
+    goto L2;                        // NG
+    ^
+fail_compilation/fail6889.d(120): Error: cannot `goto` out of `scope(exit)` block
+    scope(exit) { L2: goto L1; }    // NG
+                      ^
+fail_compilation/fail6889.d(121): Error: cannot `goto` in to `scope(exit)` block
+    goto L2;                        // NG
+    ^
+fail_compilation/fail6889.d(123): Error: `return` statements cannot be in `scope(exit)` bodies
+    scope(exit) { return; }         // NG (from fail102.d)
+                  ^
+fail_compilation/fail6889.d(127): Error: `continue` is not allowed inside `scope(exit)` bodies
+        scope(exit) continue;       // NG
+                    ^
+fail_compilation/fail6889.d(128): Error: `break` is not allowed inside `scope(exit)` bodies
+        scope(exit) break;          // NG
+                    ^
+fail_compilation/fail6889.d(133): Error: `continue` is not allowed inside `scope(exit)` bodies
+        scope(exit) continue;       // NG
+                    ^
+fail_compilation/fail6889.d(134): Error: `break` is not allowed inside `scope(exit)` bodies
+        scope(exit) break;          // NG
+                    ^
 ---
 */
 void test_success()
@@ -43,12 +81,6 @@ L1:
   +/
 }
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/fail6889.d(56): Error: cannot `goto` in to `scope(failure)` block
----
-*/
 void test_failure()
 {
 L1:
@@ -82,18 +114,6 @@ L1:
   +/
 }
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/fail6889.d(100): Error: cannot `goto` out of `scope(exit)` block
-fail_compilation/fail6889.d(101): Error: cannot `goto` in to `scope(exit)` block
-fail_compilation/fail6889.d(103): Error: `return` statements cannot be in `scope(exit)` bodies
-fail_compilation/fail6889.d(107): Error: `continue` is not allowed inside `scope(exit)` bodies
-fail_compilation/fail6889.d(108): Error: `break` is not allowed inside `scope(exit)` bodies
-fail_compilation/fail6889.d(113): Error: `continue` is not allowed inside `scope(exit)` bodies
-fail_compilation/fail6889.d(114): Error: `break` is not allowed inside `scope(exit)` bodies
----
-*/
 void test_exit()
 {
 L1:

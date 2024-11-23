@@ -1,7 +1,9 @@
 // REQUIRED_ARGS: -de
 /* TEST_OUTPUT:
 ---
-fail_compilation/b19691.d(12): Error: forward reference to template `this`
+fail_compilation/b19691.d(14): Error: forward reference to template `this`
+        S2(42, "");
+          ^
 ---
 */
 // https://issues.dlang.org/show_bug.cgi?id=19691

@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag20059.d(15): Error: expected return type of `string`, not `string[]`:
-fail_compilation/diag20059.d(13):        Return type of `string` inferred here.
+fail_compilation/diag20059.d(19): Error: expected return type of `string`, not `string[]`:
+        return [ret];
+        ^
+fail_compilation/diag20059.d(17):        Return type of `string` inferred here.
+        return ret;
+        ^
 ---
 */
 

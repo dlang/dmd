@@ -2,10 +2,18 @@
 REQUIRED_ARGS: -o-
 TEST_OUTPUT:
 ---
-fail_compilation/fail11562.d(15): Error: cannot `goto` in or out of `finally` block
-fail_compilation/fail11562.d(36): Error: cannot `goto` in or out of `finally` block
-fail_compilation/fail11562.d(48): Error: cannot `goto` in or out of `finally` block
-fail_compilation/fail11562.d(63): Error: cannot `goto` in or out of `finally` block
+fail_compilation/fail11562.d(23): Error: cannot `goto` in or out of `finally` block
+    if (b) goto label;
+           ^
+fail_compilation/fail11562.d(44): Error: cannot `goto` in or out of `finally` block
+    if (b) goto label;
+           ^
+fail_compilation/fail11562.d(56): Error: cannot `goto` in or out of `finally` block
+    if (b) goto label;
+           ^
+fail_compilation/fail11562.d(71): Error: cannot `goto` in or out of `finally` block
+    if (b) goto label;
+           ^
 ---
 */
 

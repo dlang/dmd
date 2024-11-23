@@ -1,10 +1,27 @@
 /*
 https://issues.dlang.org/show_bug.cgi?id=20068
+https://issues.dlang.org/show_bug.cgi?id=21229
 
 TEST_OUTPUT:
 ---
-fail_compilation/union_initialization.d(19): Error: field `B.p` cannot access pointers in `@safe` code that overlap other fields
-fail_compilation/union_initialization.d(25): Error: field `B.p` cannot access pointers in `@safe` code that overlap other fields
+fail_compilation/union_initialization.d(36): Error: field `B.p` cannot access pointers in `@safe` code that overlap other fields
+		int* x = this.p;
+           ^
+fail_compilation/union_initialization.d(42): Error: field `B.p` cannot access pointers in `@safe` code that overlap other fields
+		this.p = *i;
+  ^
+fail_compilation/union_initialization.d(56): Error: immutable field `p` initialized multiple times
+		this.p = null;
+  ^
+fail_compilation/union_initialization.d(55):        Previous initialization is here.
+		this.p = p;
+  ^
+fail_compilation/union_initialization.d(84): Error: field `union_` must be initialized in constructor
+	this(int arg)
+ ^
+fail_compilation/union_initialization.d(84): Error: field `proxy` must be initialized in constructor
+	this(int arg)
+ ^
 ---
 */
 
@@ -26,14 +43,7 @@ union B
 	}
 }
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/union_initialization.d(109): Error: immutable field `p` initialized multiple times
-fail_compilation/union_initialization.d(108):        Previous initialization is here.
----
-*/
-#line 100
+// Line 100 starts here
 
 union C
 {
@@ -47,16 +57,7 @@ union C
 	}
 }
 
-/*
-https://issues.dlang.org/show_bug.cgi?id=21229
-
-TEST_OUTPUT:
----
-fail_compilation/union_initialization.d(223): Error: field `union_` must be initialized in constructor
-fail_compilation/union_initialization.d(223): Error: field `proxy` must be initialized in constructor
----
-*/
-#line 200
+// Line 200 starts here
 
 struct NeedsInit
 {

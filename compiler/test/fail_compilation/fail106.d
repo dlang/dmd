@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail106.d(12): Error: cannot modify `immutable` expression `"ABC"[2]`
+fail_compilation/fail106.d(14): Error: cannot modify `immutable` expression `"ABC"[2]`
+    "ABC"[2] = 's';
+         ^
 ---
 */
 

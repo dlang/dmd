@@ -1,17 +1,33 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_scope.d(43): Error: returning `cast(char[])string` escapes a reference to local variable `string`
-fail_compilation/fail_scope.d(61): Error: returning `s.bar()` escapes a reference to local variable `s`
-fail_compilation/fail_scope.d(72): Error: `fail_scope.foo8` called with argument types `(int)` matches both:
-fail_compilation/fail_scope.d(66):     `fail_scope.foo8(ref int x)`
+fail_compilation/fail_scope.d(59): Error: returning `cast(char[])string` escapes a reference to local variable `string`
+    return string;
+           ^
+fail_compilation/fail_scope.d(77): Error: returning `s.bar()` escapes a reference to local variable `s`
+    return s.bar();
+                ^
+fail_compilation/fail_scope.d(88): Error: `fail_scope.foo8` called with argument types `(int)` matches both:
+fail_compilation/fail_scope.d(82):     `fail_scope.foo8(ref int x)`
 and:
-fail_compilation/fail_scope.d(67):     `fail_scope.foo8(return ref int x)`
-fail_compilation/fail_scope.d(80): Error: returning `& string` escapes a reference to local variable `string`
-fail_compilation/fail_scope.d(90): Error: returning `cast(int[])a` escapes a reference to local variable `a`
-fail_compilation/fail_scope.d(98): Error: returning `cast(int[])a` escapes a reference to local variable `a`
-fail_compilation/fail_scope.d(106): Error: escaping reference to outer local variable `x`
-fail_compilation/fail_scope.d(135): Error: returning `foo16226(i)` escapes a reference to local variable `i`
+fail_compilation/fail_scope.d(83):     `fail_scope.foo8(return ref int x)`
+    foo8(x);
+        ^
+fail_compilation/fail_scope.d(96): Error: returning `& string` escapes a reference to local variable `string`
+    return string.ptr;
+           ^
+fail_compilation/fail_scope.d(106): Error: returning `cast(int[])a` escapes a reference to local variable `a`
+    return a;
+           ^
+fail_compilation/fail_scope.d(114): Error: returning `cast(int[])a` escapes a reference to local variable `a`
+    return a;
+           ^
+fail_compilation/fail_scope.d(122): Error: escaping reference to outer local variable `x`
+    ref int bar(){ return x; }
+                          ^
+fail_compilation/fail_scope.d(151): Error: returning `foo16226(i)` escapes a reference to local variable `i`
+    return foo16226(i);
+                   ^
 ---
 //fail_compilation/fail_scope.d(35): Error: scope variable `da` may not be returned
 //fail_compilation/fail_scope.d(37): Error: scope variable `o` may not be returned

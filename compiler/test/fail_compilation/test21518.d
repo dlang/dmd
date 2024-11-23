@@ -2,11 +2,21 @@
 https://issues.dlang.org/show_bug.cgi?id=21518
 TEST_OUTPUT:
 ---
-fail_compilation/test21518.d(19): Error: cannot implicitly convert expression `[dg]` of type `const(void delegate() pure nothrow @nogc @system)[]` to `void delegate() @safe[]`
-fail_compilation/test21518.d(23): Error: cannot implicitly convert expression `[dg]` of type `const(void delegate() pure nothrow @nogc @system)[]` to `const(void delegate() @safe)[]`
-fail_compilation/test21518.d(28): Error: cannot implicitly convert expression `sysA` of type `const(void delegate() @system)[]` to `const(void delegate() @safe)[]`
-fail_compilation/test21518.d(31): Error: cannot implicitly convert expression `sysA` of type `const(void delegate() @system)[]` to `const(void delegate() @safe)`
-fail_compilation/test21518.d(32): Error: cannot implicitly convert expression `dg` of type `const(void delegate() pure nothrow @nogc @system)` to `const(void delegate() @safe)`
+fail_compilation/test21518.d(29): Error: cannot implicitly convert expression `[dg]` of type `const(void delegate() pure nothrow @nogc @system)[]` to `void delegate() @safe[]`
+	void delegate() @safe[] arg2 = [ dg ];
+                                ^
+fail_compilation/test21518.d(33): Error: cannot implicitly convert expression `[dg]` of type `const(void delegate() pure nothrow @nogc @system)[]` to `const(void delegate() @safe)[]`
+	const(void delegate() @safe)[] arg = [ dg ];
+                                      ^
+fail_compilation/test21518.d(38): Error: cannot implicitly convert expression `sysA` of type `const(void delegate() @system)[]` to `const(void delegate() @safe)[]`
+	const(void delegate() @safe)[] safeA = sysA;
+                                        ^
+fail_compilation/test21518.d(41): Error: cannot implicitly convert expression `sysA` of type `const(void delegate() @system)[]` to `const(void delegate() @safe)`
+	func(sysA);
+      ^
+fail_compilation/test21518.d(42): Error: cannot implicitly convert expression `dg` of type `const(void delegate() pure nothrow @nogc @system)` to `const(void delegate() @safe)`
+	func(dg);
+      ^
 ---
 */
 

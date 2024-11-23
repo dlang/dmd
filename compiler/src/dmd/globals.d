@@ -393,6 +393,8 @@ extern (C++) struct Global
             params.v.color = detectTerminal();
         }
 
+        params.v.printErrorContext = true; // Enable error context globally by default
+
         compileEnv.versionNumber = parseVersionNumber(versionString());
 
         /* Initialize date, time, and timestamp

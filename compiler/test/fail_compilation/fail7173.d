@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail7173.d(23): Error: expression `b1._a.opBinary(b2._a).fun()` is `void` and has no value
+fail_compilation/fail7173.d(25): Error: expression `b1._a.opBinary(b2._a).fun()` is `void` and has no value
+  B b1, b2, b3; b3 = (b1 - b2).fun();
+                                  ^
 ---
 */
 struct A{

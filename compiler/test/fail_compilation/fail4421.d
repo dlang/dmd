@@ -1,9 +1,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail4421.d(16): Error: function `fail4421.U1.__postblit` destructors, postblits and invariants are not allowed in union `U1`
-fail_compilation/fail4421.d(17): Error: destructor `fail4421.U1.~this` destructors, postblits and invariants are not allowed in union `U1`
-fail_compilation/fail4421.d(18): Error: function `fail4421.U1.__invariant1` destructors, postblits and invariants are not allowed in union `U1`
+fail_compilation/fail4421.d(22): Error: function `fail4421.U1.__postblit` destructors, postblits and invariants are not allowed in union `U1`
+    this(this);
+    ^
+fail_compilation/fail4421.d(23): Error: destructor `fail4421.U1.~this` destructors, postblits and invariants are not allowed in union `U1`
+    ~this();
+    ^
+fail_compilation/fail4421.d(24): Error: function `fail4421.U1.__invariant1` destructors, postblits and invariants are not allowed in union `U1`
+    invariant() { }
+    ^
 ---
 
 

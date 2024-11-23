@@ -4,12 +4,123 @@
 /*
 TEST_OUTPUT:
 ---
-compilable/sw_transition_complex.d(15): Deprecation: use of complex type `creal` is deprecated, use `std.complex.Complex!(real)` instead
-compilable/sw_transition_complex.d(16): Deprecation: use of complex type `cdouble` is deprecated, use `std.complex.Complex!(double)` instead
-compilable/sw_transition_complex.d(17): Deprecation: use of complex type `cfloat` is deprecated, use `std.complex.Complex!(float)` instead
-compilable/sw_transition_complex.d(19): Deprecation: use of imaginary type `ireal` is deprecated, use `real` instead
-compilable/sw_transition_complex.d(20): Deprecation: use of imaginary type `idouble` is deprecated, use `double` instead
-compilable/sw_transition_complex.d(21): Deprecation: use of imaginary type `ifloat` is deprecated, use `float` instead
+compilable/sw_transition_complex.d(126): Deprecation: use of complex type `creal` is deprecated, use `std.complex.Complex!(real)` instead
+creal c80value;
+      ^
+compilable/sw_transition_complex.d(127): Deprecation: use of complex type `cdouble` is deprecated, use `std.complex.Complex!(double)` instead
+cdouble c64value;
+        ^
+compilable/sw_transition_complex.d(128): Deprecation: use of complex type `cfloat` is deprecated, use `std.complex.Complex!(float)` instead
+cfloat c32value;
+       ^
+compilable/sw_transition_complex.d(130): Deprecation: use of imaginary type `ireal` is deprecated, use `real` instead
+ireal i80value;
+      ^
+compilable/sw_transition_complex.d(131): Deprecation: use of imaginary type `idouble` is deprecated, use `double` instead
+idouble i64value;
+        ^
+compilable/sw_transition_complex.d(132): Deprecation: use of imaginary type `ifloat` is deprecated, use `float` instead
+ifloat i32value;
+       ^
+compilable/sw_transition_complex.d(134): Deprecation: use of complex type `creal*` is deprecated, use `std.complex.Complex!(real)` instead
+creal* c80pointer;
+       ^
+compilable/sw_transition_complex.d(135): Deprecation: use of complex type `cdouble*` is deprecated, use `std.complex.Complex!(double)` instead
+cdouble* c64pointer;
+         ^
+compilable/sw_transition_complex.d(136): Deprecation: use of complex type `cfloat*` is deprecated, use `std.complex.Complex!(float)` instead
+cfloat* c32pointer;
+        ^
+compilable/sw_transition_complex.d(138): Deprecation: use of imaginary type `ireal*` is deprecated, use `real` instead
+ireal* i80pointer;
+       ^
+compilable/sw_transition_complex.d(139): Deprecation: use of imaginary type `idouble*` is deprecated, use `double` instead
+idouble* i64pointer;
+         ^
+compilable/sw_transition_complex.d(140): Deprecation: use of imaginary type `ifloat*` is deprecated, use `float` instead
+ifloat* i32pointer;
+        ^
+compilable/sw_transition_complex.d(142): Deprecation: use of complex type `creal[]*` is deprecated, use `std.complex.Complex!(real)` instead
+creal[]* c80arrayp;
+         ^
+compilable/sw_transition_complex.d(143): Deprecation: use of complex type `cdouble[]*` is deprecated, use `std.complex.Complex!(double)` instead
+cdouble[]* d64arrayp;
+           ^
+compilable/sw_transition_complex.d(144): Deprecation: use of complex type `cfloat[]*` is deprecated, use `std.complex.Complex!(float)` instead
+cfloat[]* c32arrayp;
+          ^
+compilable/sw_transition_complex.d(146): Deprecation: use of imaginary type `ireal[]*` is deprecated, use `real` instead
+ireal[]* i80arrayp;
+         ^
+compilable/sw_transition_complex.d(147): Deprecation: use of imaginary type `idouble[]*` is deprecated, use `double` instead
+idouble[]* i64arrayp;
+           ^
+compilable/sw_transition_complex.d(148): Deprecation: use of imaginary type `ifloat[]*` is deprecated, use `float` instead
+ifloat[]* i32arrayp;
+          ^
+compilable/sw_transition_complex.d(150): Deprecation: use of complex type `creal[4][]*` is deprecated, use `std.complex.Complex!(real)` instead
+creal[4][]* c80sarrayp;
+            ^
+compilable/sw_transition_complex.d(151): Deprecation: use of complex type `cdouble[4][]*` is deprecated, use `std.complex.Complex!(double)` instead
+cdouble[4][]* c64sarrayp;
+              ^
+compilable/sw_transition_complex.d(152): Deprecation: use of complex type `cfloat[4][]*` is deprecated, use `std.complex.Complex!(float)` instead
+cfloat[4][]* c32sarrayp;
+             ^
+compilable/sw_transition_complex.d(154): Deprecation: use of imaginary type `ireal[4][]*` is deprecated, use `real` instead
+ireal[4][]* i80sarrayp;
+            ^
+compilable/sw_transition_complex.d(155): Deprecation: use of imaginary type `idouble[4][]*` is deprecated, use `double` instead
+idouble[4][]* i64sarrayp;
+              ^
+compilable/sw_transition_complex.d(156): Deprecation: use of imaginary type `ifloat[4][]*` is deprecated, use `float` instead
+ifloat[4][]* i32sarrayp;
+             ^
+compilable/sw_transition_complex.d(161): Deprecation: use of complex type `creal` is deprecated, use `std.complex.Complex!(real)` instead
+C14488 calias1;
+       ^
+compilable/sw_transition_complex.d(162): Deprecation: use of complex type `creal*` is deprecated, use `std.complex.Complex!(real)` instead
+C14488* calias2;
+        ^
+compilable/sw_transition_complex.d(163): Deprecation: use of complex type `creal[]` is deprecated, use `std.complex.Complex!(real)` instead
+C14488[] calias3;
+         ^
+compilable/sw_transition_complex.d(164): Deprecation: use of complex type `creal[4]` is deprecated, use `std.complex.Complex!(real)` instead
+C14488[4] calias4;
+          ^
+compilable/sw_transition_complex.d(166): Deprecation: use of imaginary type `ireal` is deprecated, use `real` instead
+I14488 ialias1;
+       ^
+compilable/sw_transition_complex.d(167): Deprecation: use of imaginary type `ireal*` is deprecated, use `real` instead
+I14488* ialias2;
+        ^
+compilable/sw_transition_complex.d(168): Deprecation: use of imaginary type `ireal[]` is deprecated, use `real` instead
+I14488[] ialias3;
+         ^
+compilable/sw_transition_complex.d(169): Deprecation: use of imaginary type `ireal[4]` is deprecated, use `real` instead
+I14488[4] ialias4;
+          ^
+compilable/sw_transition_complex.d(171): Deprecation: use of complex type `cdouble` is deprecated, use `std.complex.Complex!(double)` instead
+auto cauto = 1 + 0i;
+     ^
+compilable/sw_transition_complex.d(172): Deprecation: use of imaginary type `idouble` is deprecated, use `double` instead
+auto iauto = 1i;
+     ^
+compilable/sw_transition_complex.d(173): Deprecation: use of complex type `cdouble` is deprecated, use `std.complex.Complex!(double)` instead
+size_t c64sizeof = (cdouble).sizeof;
+                   ^
+compilable/sw_transition_complex.d(174): Deprecation: use of complex type `cdouble[]` is deprecated, use `std.complex.Complex!(double)` instead
+TypeInfo c64ti = typeid(cdouble[]);
+                 ^
+compilable/sw_transition_complex.d(176): Deprecation: use of complex type `creal*` is deprecated, use `std.complex.Complex!(real)` instead
+void test14488a(creal *p, real r, ireal i)
+                      ^
+compilable/sw_transition_complex.d(176): Deprecation: use of imaginary type `ireal` is deprecated, use `real` instead
+void test14488a(creal *p, real r, ireal i)
+                                        ^
+compilable/sw_transition_complex.d(180): Deprecation: use of complex type `creal` is deprecated, use `std.complex.Complex!(real)` instead
+creal test14488b()
+      ^
 ---
 */
 creal c80value;
@@ -20,17 +131,6 @@ ireal i80value;
 idouble i64value;
 ifloat i32value;
 
-/*
-TEST_OUTPUT:
----
-compilable/sw_transition_complex.d(34): Deprecation: use of complex type `creal*` is deprecated, use `std.complex.Complex!(real)` instead
-compilable/sw_transition_complex.d(35): Deprecation: use of complex type `cdouble*` is deprecated, use `std.complex.Complex!(double)` instead
-compilable/sw_transition_complex.d(36): Deprecation: use of complex type `cfloat*` is deprecated, use `std.complex.Complex!(float)` instead
-compilable/sw_transition_complex.d(38): Deprecation: use of imaginary type `ireal*` is deprecated, use `real` instead
-compilable/sw_transition_complex.d(39): Deprecation: use of imaginary type `idouble*` is deprecated, use `double` instead
-compilable/sw_transition_complex.d(40): Deprecation: use of imaginary type `ifloat*` is deprecated, use `float` instead
----
-*/
 creal* c80pointer;
 cdouble* c64pointer;
 cfloat* c32pointer;
@@ -39,17 +139,6 @@ ireal* i80pointer;
 idouble* i64pointer;
 ifloat* i32pointer;
 
-/*
-TEST_OUTPUT:
----
-compilable/sw_transition_complex.d(53): Deprecation: use of complex type `creal[]*` is deprecated, use `std.complex.Complex!(real)` instead
-compilable/sw_transition_complex.d(54): Deprecation: use of complex type `cdouble[]*` is deprecated, use `std.complex.Complex!(double)` instead
-compilable/sw_transition_complex.d(55): Deprecation: use of complex type `cfloat[]*` is deprecated, use `std.complex.Complex!(float)` instead
-compilable/sw_transition_complex.d(57): Deprecation: use of imaginary type `ireal[]*` is deprecated, use `real` instead
-compilable/sw_transition_complex.d(58): Deprecation: use of imaginary type `idouble[]*` is deprecated, use `double` instead
-compilable/sw_transition_complex.d(59): Deprecation: use of imaginary type `ifloat[]*` is deprecated, use `float` instead
----
-*/
 creal[]* c80arrayp;
 cdouble[]* d64arrayp;
 cfloat[]* c32arrayp;
@@ -58,17 +147,6 @@ ireal[]* i80arrayp;
 idouble[]* i64arrayp;
 ifloat[]* i32arrayp;
 
-/*
-TEST_OUTPUT:
----
-compilable/sw_transition_complex.d(72): Deprecation: use of complex type `creal[4][]*` is deprecated, use `std.complex.Complex!(real)` instead
-compilable/sw_transition_complex.d(73): Deprecation: use of complex type `cdouble[4][]*` is deprecated, use `std.complex.Complex!(double)` instead
-compilable/sw_transition_complex.d(74): Deprecation: use of complex type `cfloat[4][]*` is deprecated, use `std.complex.Complex!(float)` instead
-compilable/sw_transition_complex.d(76): Deprecation: use of imaginary type `ireal[4][]*` is deprecated, use `real` instead
-compilable/sw_transition_complex.d(77): Deprecation: use of imaginary type `idouble[4][]*` is deprecated, use `double` instead
-compilable/sw_transition_complex.d(78): Deprecation: use of imaginary type `ifloat[4][]*` is deprecated, use `float` instead
----
-*/
 creal[4][]* c80sarrayp;
 cdouble[4][]* c64sarrayp;
 cfloat[4][]* c32sarrayp;
@@ -77,19 +155,6 @@ ireal[4][]* i80sarrayp;
 idouble[4][]* i64sarrayp;
 ifloat[4][]* i32sarrayp;
 
-/*
-TEST_OUTPUT:
----
-compilable/sw_transition_complex.d(96): Deprecation: use of complex type `creal` is deprecated, use `std.complex.Complex!(real)` instead
-compilable/sw_transition_complex.d(97): Deprecation: use of complex type `creal*` is deprecated, use `std.complex.Complex!(real)` instead
-compilable/sw_transition_complex.d(98): Deprecation: use of complex type `creal[]` is deprecated, use `std.complex.Complex!(real)` instead
-compilable/sw_transition_complex.d(99): Deprecation: use of complex type `creal[4]` is deprecated, use `std.complex.Complex!(real)` instead
-compilable/sw_transition_complex.d(101): Deprecation: use of imaginary type `ireal` is deprecated, use `real` instead
-compilable/sw_transition_complex.d(102): Deprecation: use of imaginary type `ireal*` is deprecated, use `real` instead
-compilable/sw_transition_complex.d(103): Deprecation: use of imaginary type `ireal[]` is deprecated, use `real` instead
-compilable/sw_transition_complex.d(104): Deprecation: use of imaginary type `ireal[4]` is deprecated, use `real` instead
----
-*/
 alias C14488 = creal;
 alias I14488 = ireal;
 
@@ -103,28 +168,11 @@ I14488* ialias2;
 I14488[] ialias3;
 I14488[4] ialias4;
 
-/*
-TEST_OUTPUT:
----
-compilable/sw_transition_complex.d(115): Deprecation: use of complex type `cdouble` is deprecated, use `std.complex.Complex!(double)` instead
-compilable/sw_transition_complex.d(116): Deprecation: use of imaginary type `idouble` is deprecated, use `double` instead
-compilable/sw_transition_complex.d(117): Deprecation: use of complex type `cdouble` is deprecated, use `std.complex.Complex!(double)` instead
-compilable/sw_transition_complex.d(118): Deprecation: use of complex type `cdouble[]` is deprecated, use `std.complex.Complex!(double)` instead
----
-*/
 auto cauto = 1 + 0i;
 auto iauto = 1i;
 size_t c64sizeof = (cdouble).sizeof;
 TypeInfo c64ti = typeid(cdouble[]);
 
-/*
-TEST_OUTPUT:
----
-compilable/sw_transition_complex.d(128): Deprecation: use of complex type `creal*` is deprecated, use `std.complex.Complex!(real)` instead
-compilable/sw_transition_complex.d(128): Deprecation: use of imaginary type `ireal` is deprecated, use `real` instead
-compilable/sw_transition_complex.d(132): Deprecation: use of complex type `creal` is deprecated, use `std.complex.Complex!(real)` instead
----
-*/
 void test14488a(creal *p, real r, ireal i)
 {
 }

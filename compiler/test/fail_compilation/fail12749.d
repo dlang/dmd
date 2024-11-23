@@ -1,10 +1,30 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail12749.d(19): Error: immutable field `inum` initialization is not allowed in foreach loop
-fail_compilation/fail12749.d(20): Error: const field `cnum` initialization is not allowed in foreach loop
-fail_compilation/fail12749.d(25): Error: immutable field `inum` initialization is not allowed in nested function `set`
-fail_compilation/fail12749.d(26): Error: const field `cnum` initialization is not allowed in nested function `set`
+fail_compilation/fail12749.d(39): Error: immutable field `inum` initialization is not allowed in foreach loop
+            inum = i;
+            ^
+fail_compilation/fail12749.d(40): Error: const field `cnum` initialization is not allowed in foreach loop
+            cnum = i;
+            ^
+fail_compilation/fail12749.d(45): Error: immutable field `inum` initialization is not allowed in nested function `set`
+            inum = i;
+            ^
+fail_compilation/fail12749.d(46): Error: const field `cnum` initialization is not allowed in nested function `set`
+            cnum = i;
+            ^
+fail_compilation/fail12749.d(59): Error: immutable variable `inum` initialization is not allowed in foreach loop
+        inum = i;
+        ^
+fail_compilation/fail12749.d(60): Error: const variable `cnum` initialization is not allowed in foreach loop
+        cnum = i;
+        ^
+fail_compilation/fail12749.d(65): Error: immutable variable `inum` initialization is not allowed in nested function `set`
+        inum = i;
+        ^
+fail_compilation/fail12749.d(66): Error: const variable `cnum` initialization is not allowed in nested function `set`
+        cnum = i;
+        ^
 ---
 */
 struct S
@@ -28,15 +48,6 @@ struct S
     }
 }
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/fail12749.d(48): Error: immutable variable `inum` initialization is not allowed in foreach loop
-fail_compilation/fail12749.d(49): Error: const variable `cnum` initialization is not allowed in foreach loop
-fail_compilation/fail12749.d(54): Error: immutable variable `inum` initialization is not allowed in nested function `set`
-fail_compilation/fail12749.d(55): Error: const variable `cnum` initialization is not allowed in nested function `set`
----
-*/
 immutable int inum;
 const     int cnum;
 static this()

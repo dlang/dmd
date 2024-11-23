@@ -1,16 +1,36 @@
 /* REQUIRED_ARGS: -o-
 TEST_OUTPUT:
 ---
-fail_compilation/commaexp.d(27): Error: using the result of a comma expression is not allowed
-fail_compilation/commaexp.d(39): Error: using the result of a comma expression is not allowed
-fail_compilation/commaexp.d(40): Error: using the result of a comma expression is not allowed
-fail_compilation/commaexp.d(41): Error: using the result of a comma expression is not allowed
-fail_compilation/commaexp.d(42): Error: using the result of a comma expression is not allowed
-fail_compilation/commaexp.d(44): Error: using the result of a comma expression is not allowed
-fail_compilation/commaexp.d(45): Error: using the result of a comma expression is not allowed
-fail_compilation/commaexp.d(56): Error: using the result of a comma expression is not allowed
-fail_compilation/commaexp.d(69): Error: using the result of a comma expression is not allowed
-fail_compilation/commaexp.d(81): Error: using the result of a comma expression is not allowed
+fail_compilation/commaexp.d(47): Error: using the result of a comma expression is not allowed
+    enum ERROR_WINHTTP_CLIENT_AUTH_CERT_NEEDED = (WINHTTP_ERROR_BASE, + 44);
+                                                  ^
+fail_compilation/commaexp.d(59): Error: using the result of a comma expression is not allowed
+    for (size_t i; i < 5; ++i, i += (i++, 1)) {}
+                                     ^
+fail_compilation/commaexp.d(60): Error: using the result of a comma expression is not allowed
+    for (; aggr++, aggr > 5;) {}
+           ^
+fail_compilation/commaexp.d(61): Error: using the result of a comma expression is not allowed
+    if (Object o = (ok = true, null)) {}
+    ^
+fail_compilation/commaexp.d(62): Error: using the result of a comma expression is not allowed
+    ok = (true, mc.append(new Entry));
+       ^
+fail_compilation/commaexp.d(64): Error: using the result of a comma expression is not allowed
+    ok = true, (ok = (true, false));
+                   ^
+fail_compilation/commaexp.d(65): Error: using the result of a comma expression is not allowed
+    return 42, 0;
+           ^
+fail_compilation/commaexp.d(76): Error: using the result of a comma expression is not allowed
+    return type == Type.Colon, type == Type.Comma;
+           ^
+fail_compilation/commaexp.d(89): Error: using the result of a comma expression is not allowed
+    return type == Type.Colon, type == Type.Comma;
+           ^
+fail_compilation/commaexp.d(101): Error: using the result of a comma expression is not allowed
+    bar11((i,p), &i);
+           ^
 ---
 */
 

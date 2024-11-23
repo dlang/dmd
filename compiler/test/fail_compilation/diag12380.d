@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag12380.d(12): Error: cannot implicitly convert expression `E.a` of type `E` to `void*`
+fail_compilation/diag12380.d(14): Error: cannot implicitly convert expression `E.a` of type `E` to `void*`
+    void* a = E.init;
+              ^
 ---
 */
 

@@ -2,10 +2,14 @@
 TEST_OUTPUT:
 ---
 fail_compilation/imports/fail7372.d(7): Error: undefined identifier `X`
-fail_compilation/fail7372.d(4):        parent scope from here: `mixin Issue7372!()`
+        int foo = X;
+                  ^
+fail_compilation/fail7372.d(16):        parent scope from here: `mixin Issue7372!()`
+    mixin Issue7372!();
+    ^
 ---
 */
-#line 1
+// Line 1 starts here
 import imports.fail7372;
 interface I {}
 class C : I {

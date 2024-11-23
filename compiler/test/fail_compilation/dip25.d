@@ -2,11 +2,21 @@
 REQUIRED_ARGS:
 TEST_OUTPUT:
 ---
-fail_compilation/dip25.d(17): Error: returning `this.buffer[]` escapes a reference to parameter `this`
-fail_compilation/dip25.d(15):        perhaps annotate the function with `return`
-fail_compilation/dip25.d(22): Error: returning `identity(x)` escapes a reference to parameter `x`
-fail_compilation/dip25.d(23): Error: returning `identity(x)` escapes a reference to parameter `x`
-fail_compilation/dip25.d(23):        perhaps annotate the parameter with `return`
+fail_compilation/dip25.d(27): Error: returning `this.buffer[]` escapes a reference to parameter `this`
+        return buffer[];
+                     ^
+fail_compilation/dip25.d(25):        perhaps annotate the function with `return`
+    @property const(char)[] filename() const pure nothrow @safe
+                            ^
+fail_compilation/dip25.d(32): Error: returning `identity(x)` escapes a reference to parameter `x`
+ref int fun(return int x) @safe { return identity(x); }
+                                                 ^
+fail_compilation/dip25.d(33): Error: returning `identity(x)` escapes a reference to parameter `x`
+ref int fun2(ref int x) @safe { return identity(x); }
+                                               ^
+fail_compilation/dip25.d(33):        perhaps annotate the parameter with `return`
+ref int fun2(ref int x) @safe { return identity(x); }
+                     ^
 ---
 */
 struct Data

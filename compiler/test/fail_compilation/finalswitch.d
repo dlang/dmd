@@ -1,27 +1,37 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/finalswitch.d(37): Error: missing cases for `enum` members in `final switch`:
-fail_compilation/finalswitch.d(37):        `B`
-fail_compilation/finalswitch.d(55): Error: missing cases for `enum` members in `final switch`:
-fail_compilation/finalswitch.d(55):        `b`
-fail_compilation/finalswitch.d(69): Error: missing cases for `enum` members in `final switch`:
-fail_compilation/finalswitch.d(69):        `B`
-fail_compilation/finalswitch.d(87): Error: missing cases for `enum` members in `final switch`:
-fail_compilation/finalswitch.d(87):        `m3`
-fail_compilation/finalswitch.d(87):        `m4`
-fail_compilation/finalswitch.d(87):        `m5`
-fail_compilation/finalswitch.d(87):        `m6`
-fail_compilation/finalswitch.d(87):        `m7`
-fail_compilation/finalswitch.d(87):        `m9`
-fail_compilation/finalswitch.d(92): Error: missing cases for `enum` members in `final switch`:
-fail_compilation/finalswitch.d(92):        `m1`
-fail_compilation/finalswitch.d(92):        `m2`
-fail_compilation/finalswitch.d(92):        `m3`
-fail_compilation/finalswitch.d(92):        `m4`
-fail_compilation/finalswitch.d(92):        `m5`
-fail_compilation/finalswitch.d(92):        `m6`
-fail_compilation/finalswitch.d(92):        ... (4 more, -v to show) ...
+fail_compilation/finalswitch.d(47): Error: missing cases for `enum` members in `final switch`:
+    final switch(e)
+    ^
+fail_compilation/finalswitch.d(47):        `B`
+fail_compilation/finalswitch.d(65): Error: missing cases for `enum` members in `final switch`:
+    final switch (f)
+    ^
+fail_compilation/finalswitch.d(65):        `b`
+fail_compilation/finalswitch.d(79): Error: missing cases for `enum` members in `final switch`:
+    final switch (e)
+    ^
+fail_compilation/finalswitch.d(79):        `B`
+fail_compilation/finalswitch.d(97): Error: missing cases for `enum` members in `final switch`:
+    final switch (H.init)
+    ^
+fail_compilation/finalswitch.d(97):        `m3`
+fail_compilation/finalswitch.d(97):        `m4`
+fail_compilation/finalswitch.d(97):        `m5`
+fail_compilation/finalswitch.d(97):        `m6`
+fail_compilation/finalswitch.d(97):        `m7`
+fail_compilation/finalswitch.d(97):        `m9`
+fail_compilation/finalswitch.d(102): Error: missing cases for `enum` members in `final switch`:
+    final switch (H.init)
+    ^
+fail_compilation/finalswitch.d(102):        `m1`
+fail_compilation/finalswitch.d(102):        `m2`
+fail_compilation/finalswitch.d(102):        `m3`
+fail_compilation/finalswitch.d(102):        `m4`
+fail_compilation/finalswitch.d(102):        `m5`
+fail_compilation/finalswitch.d(102):        `m6`
+fail_compilation/finalswitch.d(102):        ... (4 more, -v to show) ...
 ---
 */
 

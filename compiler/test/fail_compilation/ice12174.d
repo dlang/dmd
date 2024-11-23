@@ -1,9 +1,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice12174.d(12): Error: no property `sum` for `[1, 2, 3]` of type `int[]`
-fail_compilation/ice12174.d(20): Error: CTFE failed because of previous errors in `this`
-fail_compilation/ice12174.d(13):        called from here: `filter([1, 2, 3])`
+fail_compilation/ice12174.d(18): Error: no property `sum` for `[1, 2, 3]` of type `int[]`
+    enum foo3 = (int n) => [1,2,3].sum;
+                                  ^
+fail_compilation/ice12174.d(26): Error: CTFE failed because of previous errors in `this`
+        return FilterResult!(pred, Range)(rs);
+                                         ^
+fail_compilation/ice12174.d(19):        called from here: `filter([1, 2, 3])`
+    enum bar3 = [1,2,3].filter!(n => n % foo3(n) == 0);
+                       ^
 ---
 */
 

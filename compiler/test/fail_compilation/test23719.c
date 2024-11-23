@@ -1,6 +1,8 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/test23719.c(15): Error: since `abc` is a pointer, use `abc->b` instead of `abc.b`
+fail_compilation/test23719.c(17): Error: since `abc` is a pointer, use `abc->b` instead of `abc.b`
+    int j = abc.b;
+            ^
 ---
 */
 

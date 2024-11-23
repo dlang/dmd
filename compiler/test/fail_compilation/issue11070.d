@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/issue11070.d(16): Error: undefined identifier `x`
+fail_compilation/issue11070.d(18): Error: undefined identifier `x`
+    x = 1;
+    ^
 ---
 */
 

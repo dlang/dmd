@@ -2,7 +2,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail3290.d(12): Error: argument type mismatch, `const(int)` to `ref int`
+fail_compilation/fail3290.d(14): Error: argument type mismatch, `const(int)` to `ref int`
+    foreach (ref int i; array) {
+    ^
 ---
 */
 

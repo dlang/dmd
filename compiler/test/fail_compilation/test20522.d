@@ -2,7 +2,9 @@
 REQUIRED_ARGS: -w
 TEST_OUTPUT:
 ---
-fail_compilation/test20522.d(19): Error: undefined identifier `non_existent`
+fail_compilation/test20522.d(21): Error: undefined identifier `non_existent`
+		non_existent;
+  ^
 ---
 */
 

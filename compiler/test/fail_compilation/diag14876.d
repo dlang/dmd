@@ -1,14 +1,30 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag14876.d(17): Deprecation: class `diag14876.Dep` is deprecated
-fail_compilation/diag14876.d(18): Deprecation: class `diag14876.Dep` is deprecated
-fail_compilation/diag14876.d(19): Deprecation: class `diag14876.Dep` is deprecated
-fail_compilation/diag14876.d(20): Deprecation: class `diag14876.Dep` is deprecated
-fail_compilation/diag14876.d(21): Deprecation: class `diag14876.Dep` is deprecated
-fail_compilation/diag14876.d(22): Deprecation: class `diag14876.Dep` is deprecated
-fail_compilation/diag14876.d(23): Deprecation: class `diag14876.Dep` is deprecated
-fail_compilation/diag14876.d(23): Error: can only slice type sequences, not `diag14876.Dep`
+fail_compilation/diag14876.d(33): Deprecation: class `diag14876.Dep` is deprecated
+alias X1 = Foo!(Dep[]);
+           ^
+fail_compilation/diag14876.d(34): Deprecation: class `diag14876.Dep` is deprecated
+alias X2 = Foo!(Dep[1]);
+           ^
+fail_compilation/diag14876.d(35): Deprecation: class `diag14876.Dep` is deprecated
+alias X3 = Foo!(Dep[int]);
+           ^
+fail_compilation/diag14876.d(36): Deprecation: class `diag14876.Dep` is deprecated
+alias X4 = Foo!(int[Dep]);
+           ^
+fail_compilation/diag14876.d(37): Deprecation: class `diag14876.Dep` is deprecated
+alias X5 = Foo!(Dep*);
+           ^
+fail_compilation/diag14876.d(38): Deprecation: class `diag14876.Dep` is deprecated
+alias X6 = Foo!(Dep.Mem);
+           ^
+fail_compilation/diag14876.d(39): Deprecation: class `diag14876.Dep` is deprecated
+alias X7 = Foo!(Dep[3..4]);
+           ^
+fail_compilation/diag14876.d(39): Error: can only slice type sequences, not `diag14876.Dep`
+alias X7 = Foo!(Dep[3..4]);
+           ^
 ---
 */
 

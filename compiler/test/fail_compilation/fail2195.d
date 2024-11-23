@@ -3,8 +3,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail2195.d(17): Deprecation: variable `variable` is shadowing variable `fail2195.main.variable`
-fail_compilation/fail2195.d(14):        declared here
+fail_compilation/fail2195.d(21): Deprecation: variable `variable` is shadowing variable `fail2195.main.variable`
+        int variable;  // shadowing is disallowed but not detected
+        ^
+fail_compilation/fail2195.d(18):        declared here
+    int variable;
+        ^
 ---
 */
 

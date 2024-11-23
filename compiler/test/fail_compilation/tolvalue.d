@@ -1,18 +1,42 @@
 /**
 TEST_OUTPUT:
 ---
-fail_compilation/tolvalue.d(28): Error: cannot take address of template `templateFunc(T)()`, perhaps instantiate it first
-fail_compilation/tolvalue.d(29): Error: cannot take address of type `int`
-fail_compilation/tolvalue.d(30): Error: cannot take address of constant `3`
-fail_compilation/tolvalue.d(31): Error: cannot take address of operator `$`
-fail_compilation/tolvalue.d(32): Error: cannot take address of compiler-generated variable `__ctfe`
-fail_compilation/tolvalue.d(33): Error: cannot take address of manifest constant `f`
-fail_compilation/tolvalue.d(38): Error: cannot create default argument for `ref` / `out` parameter from constant `3`
-fail_compilation/tolvalue.d(39): Error: cannot create default argument for `ref` / `out` parameter from compiler-generated variable `__ctfe`
-fail_compilation/tolvalue.d(40): Error: cannot create default argument for `ref` / `out` parameter from manifest constant `f`
-fail_compilation/tolvalue.d(45): Error: cannot modify constant `3`
-fail_compilation/tolvalue.d(46): Error: cannot modify compiler-generated variable `__ctfe`
-fail_compilation/tolvalue.d(47): Error: cannot modify manifest constant `f`
+fail_compilation/tolvalue.d(52): Error: cannot take address of template `templateFunc(T)()`, perhaps instantiate it first
+    auto x0 = &templateFunc;
+               ^
+fail_compilation/tolvalue.d(53): Error: cannot take address of type `int`
+    auto x1 = &intAlias;
+               ^
+fail_compilation/tolvalue.d(54): Error: cannot take address of constant `3`
+    auto x2 = &3;
+               ^
+fail_compilation/tolvalue.d(55): Error: cannot take address of operator `$`
+    auto x3 = a[&$];
+                 ^
+fail_compilation/tolvalue.d(56): Error: cannot take address of compiler-generated variable `__ctfe`
+    auto x4 = &__ctfe;
+               ^
+fail_compilation/tolvalue.d(57): Error: cannot take address of manifest constant `f`
+    auto x6 = &E.f;
+               ^
+fail_compilation/tolvalue.d(62): Error: cannot create default argument for `ref` / `out` parameter from constant `3`
+    void f0(ref int = 3) {}
+                      ^
+fail_compilation/tolvalue.d(63): Error: cannot create default argument for `ref` / `out` parameter from compiler-generated variable `__ctfe`
+    void f1(ref bool = __ctfe) {}
+                       ^
+fail_compilation/tolvalue.d(64): Error: cannot create default argument for `ref` / `out` parameter from manifest constant `f`
+    void f3(ref E = E.f) {}
+                    ^
+fail_compilation/tolvalue.d(69): Error: cannot modify constant `3`
+    3++;
+    ^
+fail_compilation/tolvalue.d(70): Error: cannot modify compiler-generated variable `__ctfe`
+    __ctfe++;
+    ^
+fail_compilation/tolvalue.d(71): Error: cannot modify manifest constant `f`
+    E.f++;
+    ^
 ---
 */
 

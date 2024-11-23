@@ -4,7 +4,11 @@ TEST_OUTPUT:
 ---
 fail_compilation/fail20033.d(38): Deprecation: `alias byKeyValue this` is deprecated - This was a bad idea
 fail_compilation/fail20033.d(39): Deprecation: `alias byKeyValue this` is deprecated
+        bool empty () { return false; }
+                   ^
 fail_compilation/fail20033.d(41): Deprecation: `alias byKeyValue this` is deprecated - This was a bad idea
+        void popFront() {}
+              ^
 fail_compilation/fail20033.d(42): Deprecation: `alias byKeyValue this` is deprecated
 ---
 */

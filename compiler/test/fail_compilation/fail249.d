@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail249.d(16): Error: invalid `foreach` aggregate `bar()` of type `void`
+fail_compilation/fail249.d(18): Error: invalid `foreach` aggregate `bar()` of type `void`
+    foreach (Object o; bar())
+    ^
 ---
 */
 

@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail73.d(20): Error: `case` not in `switch` statement
+fail_compilation/fail73.d(22): Error: `case` not in `switch` statement
+                case 2:
+                ^
 ---
 */
 

@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13336a.d(28): Error: cannot modify expression `choose(true)` because it is not an lvalue
+fail_compilation/fail13336a.d(30): Error: cannot modify expression `choose(true)` because it is not an lvalue
+    choose(true) = new Dog();
+          ^
 ---
 */
 

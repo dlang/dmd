@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail289.d(12): Error: cannot cast from function pointer to delegate
+fail_compilation/fail289.d(14): Error: cannot cast from function pointer to delegate
+    Dg d = cast(void delegate())&fun;
+                                ^
 ---
 */
 

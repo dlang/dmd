@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail9346.d(26): Error: struct `fail9346.S` is not copyable because it has a disabled postblit
-fail_compilation/fail9346.d(27): Error: struct `fail9346.S` is not copyable because it has a disabled postblit
+fail_compilation/fail9346.d(30): Error: struct `fail9346.S` is not copyable because it has a disabled postblit
+    SS1 ss1 = SS1(s);
+                  ^
+fail_compilation/fail9346.d(31): Error: struct `fail9346.S` is not copyable because it has a disabled postblit
+    SS2 ss2 = SS2(s);
+                  ^
 ---
 */
 

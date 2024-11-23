@@ -1,10 +1,18 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test13537.d(31): Error: field `U.y` cannot modify fields in `@safe` code that overlap fields with other storage classes
-fail_compilation/test13537.d(32): Error: field `U.y` cannot modify fields in `@safe` code that overlap fields with other storage classes
-fail_compilation/test13537.d(33): Error: field `U.z` cannot access pointers in `@safe` code that overlap other fields
-fail_compilation/test13537.d(34): Error: field `U.y` cannot modify fields in `@safe` code that overlap fields with other storage classes
+fail_compilation/test13537.d(39): Error: field `U.y` cannot modify fields in `@safe` code that overlap fields with other storage classes
+    u.y = 1;
+    ^
+fail_compilation/test13537.d(40): Error: field `U.y` cannot modify fields in `@safe` code that overlap fields with other storage classes
+    int* p = &u.y;
+              ^
+fail_compilation/test13537.d(41): Error: field `U.z` cannot access pointers in `@safe` code that overlap other fields
+    int** q = &u.z;
+               ^
+fail_compilation/test13537.d(42): Error: field `U.y` cannot modify fields in `@safe` code that overlap fields with other storage classes
+    abc(u.y);
+        ^
 ---
 */
 

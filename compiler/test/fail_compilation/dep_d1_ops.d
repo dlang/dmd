@@ -2,51 +2,133 @@
 REQUIRED_ARGS: -de
 TEST_OUTPUT:
 ---
-fail_compilation/dep_d1_ops.d(105): Error: `opAdd` is obsolete.  Use `opBinary(string op)(...) if (op == "+")` instead.
-fail_compilation/dep_d1_ops.d(106): Error: `opAdd_r` is obsolete.  Use `opBinaryRight(string op)(...) if (op == "+")` instead.
-fail_compilation/dep_d1_ops.d(107): Error: `opSub` is obsolete.  Use `opBinary(string op)(...) if (op == "-")` instead.
-fail_compilation/dep_d1_ops.d(108): Error: `opSub_r` is obsolete.  Use `opBinaryRight(string op)(...) if (op == "-")` instead.
-fail_compilation/dep_d1_ops.d(109): Error: `opMul` is obsolete.  Use `opBinary(string op)(...) if (op == "*")` instead.
-fail_compilation/dep_d1_ops.d(110): Error: `opMul_r` is obsolete.  Use `opBinaryRight(string op)(...) if (op == "*")` instead.
-fail_compilation/dep_d1_ops.d(111): Error: `opDiv` is obsolete.  Use `opBinary(string op)(...) if (op == "/")` instead.
-fail_compilation/dep_d1_ops.d(112): Error: `opDiv_r` is obsolete.  Use `opBinaryRight(string op)(...) if (op == "/")` instead.
-fail_compilation/dep_d1_ops.d(113): Error: `opMod` is obsolete.  Use `opBinary(string op)(...) if (op == "%")` instead.
-fail_compilation/dep_d1_ops.d(114): Error: `opMod_r` is obsolete.  Use `opBinaryRight(string op)(...) if (op == "%")` instead.
-fail_compilation/dep_d1_ops.d(116): Error: `opAnd` is obsolete.  Use `opBinary(string op)(...) if (op == "&")` instead.
-fail_compilation/dep_d1_ops.d(117): Error: `opOr` is obsolete.  Use `opBinary(string op)(...) if (op == "|")` instead.
-fail_compilation/dep_d1_ops.d(118): Error: `opXor` is obsolete.  Use `opBinary(string op)(...) if (op == "^")` instead.
-fail_compilation/dep_d1_ops.d(120): Error: `opShl` is obsolete.  Use `opBinary(string op)(...) if (op == "<<")` instead.
-fail_compilation/dep_d1_ops.d(121): Error: `opShl_r` is obsolete.  Use `opBinaryRight(string op)(...) if (op == "<<")` instead.
-fail_compilation/dep_d1_ops.d(122): Error: `opShr` is obsolete.  Use `opBinary(string op)(...) if (op == ">>")` instead.
-fail_compilation/dep_d1_ops.d(123): Error: `opShr_r` is obsolete.  Use `opBinaryRight(string op)(...) if (op == ">>")` instead.
-fail_compilation/dep_d1_ops.d(124): Error: `opUShr` is obsolete.  Use `opBinary(string op)(...) if (op == ">>>")` instead.
-fail_compilation/dep_d1_ops.d(125): Error: `opUShr_r` is obsolete.  Use `opBinaryRight(string op)(...) if (op == ">>>")` instead.
-fail_compilation/dep_d1_ops.d(127): Error: `opCat` is obsolete.  Use `opBinary(string op)(...) if (op == "~")` instead.
-fail_compilation/dep_d1_ops.d(128): Error: `opCat_r` is obsolete.  Use `opBinaryRight(string op)(...) if (op == "~")` instead.
-fail_compilation/dep_d1_ops.d(130): Error: `opNeg` is obsolete.  Use `opUnary(string op)() if (op == "-")` instead.
-fail_compilation/dep_d1_ops.d(131): Error: `opCom` is obsolete.  Use `opUnary(string op)() if (op == "~")` instead.
-fail_compilation/dep_d1_ops.d(132): Error: `opPostInc` is obsolete.  Use `opUnary(string op)() if (op == "++")` instead.
-fail_compilation/dep_d1_ops.d(133): Error: `opPostDec` is obsolete.  Use `opUnary(string op)() if (op == "--")` instead.
-fail_compilation/dep_d1_ops.d(134): Error: `opStar` is obsolete.  Use `opUnary(string op)() if (op == "*")` instead.
-fail_compilation/dep_d1_ops.d(136): Error: `opIn` is obsolete.  Use `opBinary(string op)(...) if (op == "in")` instead.
-fail_compilation/dep_d1_ops.d(137): Error: `opIn_r` is obsolete.  Use `opBinaryRight(string op)(...) if (op == "in")` instead.
-fail_compilation/dep_d1_ops.d(139): Error: `opAddAssign` is obsolete.  Use `opOpAssign(string op)(...) if (op == "+")` instead.
-fail_compilation/dep_d1_ops.d(140): Error: `opSubAssign` is obsolete.  Use `opOpAssign(string op)(...) if (op == "-")` instead.
-fail_compilation/dep_d1_ops.d(141): Error: `opMulAssign` is obsolete.  Use `opOpAssign(string op)(...) if (op == "*")` instead.
-fail_compilation/dep_d1_ops.d(142): Error: `opDivAssign` is obsolete.  Use `opOpAssign(string op)(...) if (op == "/")` instead.
-fail_compilation/dep_d1_ops.d(143): Error: `opModAssign` is obsolete.  Use `opOpAssign(string op)(...) if (op == "%")` instead.
-fail_compilation/dep_d1_ops.d(144): Error: `opAndAssign` is obsolete.  Use `opOpAssign(string op)(...) if (op == "&")` instead.
-fail_compilation/dep_d1_ops.d(145): Error: `opOrAssign` is obsolete.  Use `opOpAssign(string op)(...) if (op == "|")` instead.
-fail_compilation/dep_d1_ops.d(146): Error: `opXorAssign` is obsolete.  Use `opOpAssign(string op)(...) if (op == "^")` instead.
-fail_compilation/dep_d1_ops.d(147): Error: `opShlAssign` is obsolete.  Use `opOpAssign(string op)(...) if (op == "<<")` instead.
-fail_compilation/dep_d1_ops.d(148): Error: `opShrAssign` is obsolete.  Use `opOpAssign(string op)(...) if (op == ">>")` instead.
-fail_compilation/dep_d1_ops.d(149): Error: `opUShrAssign` is obsolete.  Use `opOpAssign(string op)(...) if (op == ">>>")` instead.
-fail_compilation/dep_d1_ops.d(150): Error: `opCatAssign` is obsolete.  Use `opOpAssign(string op)(...) if (op == "~")` instead.
-fail_compilation/dep_d1_ops.d(158): Error: `opCom` is obsolete.  Use `opUnary(string op)() if (op == "~")` instead.
+fail_compilation/dep_d1_ops.d(187): Error: `opAdd` is obsolete.  Use `opBinary(string op)(...) if (op == "+")` instead.
+    i = s + 1;
+        ^
+fail_compilation/dep_d1_ops.d(188): Error: `opAdd_r` is obsolete.  Use `opBinaryRight(string op)(...) if (op == "+")` instead.
+    i = 1 + s;
+        ^
+fail_compilation/dep_d1_ops.d(189): Error: `opSub` is obsolete.  Use `opBinary(string op)(...) if (op == "-")` instead.
+    i = s - 1;
+        ^
+fail_compilation/dep_d1_ops.d(190): Error: `opSub_r` is obsolete.  Use `opBinaryRight(string op)(...) if (op == "-")` instead.
+    i = 1 - s;
+        ^
+fail_compilation/dep_d1_ops.d(191): Error: `opMul` is obsolete.  Use `opBinary(string op)(...) if (op == "*")` instead.
+    i = s * 1;
+        ^
+fail_compilation/dep_d1_ops.d(192): Error: `opMul_r` is obsolete.  Use `opBinaryRight(string op)(...) if (op == "*")` instead.
+    i = 1 * s;
+        ^
+fail_compilation/dep_d1_ops.d(193): Error: `opDiv` is obsolete.  Use `opBinary(string op)(...) if (op == "/")` instead.
+    i = s / 1;
+        ^
+fail_compilation/dep_d1_ops.d(194): Error: `opDiv_r` is obsolete.  Use `opBinaryRight(string op)(...) if (op == "/")` instead.
+    i = 1 / s;
+        ^
+fail_compilation/dep_d1_ops.d(195): Error: `opMod` is obsolete.  Use `opBinary(string op)(...) if (op == "%")` instead.
+    i = s % 1;
+        ^
+fail_compilation/dep_d1_ops.d(196): Error: `opMod_r` is obsolete.  Use `opBinaryRight(string op)(...) if (op == "%")` instead.
+    i = 1 % s;
+        ^
+fail_compilation/dep_d1_ops.d(198): Error: `opAnd` is obsolete.  Use `opBinary(string op)(...) if (op == "&")` instead.
+    i = s & 1;
+        ^
+fail_compilation/dep_d1_ops.d(199): Error: `opOr` is obsolete.  Use `opBinary(string op)(...) if (op == "|")` instead.
+    i = s | 1;
+        ^
+fail_compilation/dep_d1_ops.d(200): Error: `opXor` is obsolete.  Use `opBinary(string op)(...) if (op == "^")` instead.
+    i = s ^ 1;
+        ^
+fail_compilation/dep_d1_ops.d(202): Error: `opShl` is obsolete.  Use `opBinary(string op)(...) if (op == "<<")` instead.
+    i = s << 1;
+        ^
+fail_compilation/dep_d1_ops.d(203): Error: `opShl_r` is obsolete.  Use `opBinaryRight(string op)(...) if (op == "<<")` instead.
+    i = 1 << s;
+        ^
+fail_compilation/dep_d1_ops.d(204): Error: `opShr` is obsolete.  Use `opBinary(string op)(...) if (op == ">>")` instead.
+    i = s >> 1;
+        ^
+fail_compilation/dep_d1_ops.d(205): Error: `opShr_r` is obsolete.  Use `opBinaryRight(string op)(...) if (op == ">>")` instead.
+    i = 1 >> s;
+        ^
+fail_compilation/dep_d1_ops.d(206): Error: `opUShr` is obsolete.  Use `opBinary(string op)(...) if (op == ">>>")` instead.
+    i = s >>> 1;
+        ^
+fail_compilation/dep_d1_ops.d(207): Error: `opUShr_r` is obsolete.  Use `opBinaryRight(string op)(...) if (op == ">>>")` instead.
+    i = 1 >>> s;
+        ^
+fail_compilation/dep_d1_ops.d(209): Error: `opCat` is obsolete.  Use `opBinary(string op)(...) if (op == "~")` instead.
+    i = s ~ 1;
+        ^
+fail_compilation/dep_d1_ops.d(210): Error: `opCat_r` is obsolete.  Use `opBinaryRight(string op)(...) if (op == "~")` instead.
+    i = 1 ~ s;
+        ^
+fail_compilation/dep_d1_ops.d(212): Error: `opNeg` is obsolete.  Use `opUnary(string op)() if (op == "-")` instead.
+    i = -s;
+        ^
+fail_compilation/dep_d1_ops.d(213): Error: `opCom` is obsolete.  Use `opUnary(string op)() if (op == "~")` instead.
+    i = ~s;
+        ^
+fail_compilation/dep_d1_ops.d(214): Error: `opPostInc` is obsolete.  Use `opUnary(string op)() if (op == "++")` instead.
+    s++;
+     ^
+fail_compilation/dep_d1_ops.d(215): Error: `opPostDec` is obsolete.  Use `opUnary(string op)() if (op == "--")` instead.
+    s--;
+     ^
+fail_compilation/dep_d1_ops.d(216): Error: `opStar` is obsolete.  Use `opUnary(string op)() if (op == "*")` instead.
+    i = *s;
+        ^
+fail_compilation/dep_d1_ops.d(218): Error: `opIn` is obsolete.  Use `opBinary(string op)(...) if (op == "in")` instead.
+    i = s in 1;
+        ^
+fail_compilation/dep_d1_ops.d(219): Error: `opIn_r` is obsolete.  Use `opBinaryRight(string op)(...) if (op == "in")` instead.
+    i = 1 in s;
+        ^
+fail_compilation/dep_d1_ops.d(221): Error: `opAddAssign` is obsolete.  Use `opOpAssign(string op)(...) if (op == "+")` instead.
+    s += 1;
+      ^
+fail_compilation/dep_d1_ops.d(222): Error: `opSubAssign` is obsolete.  Use `opOpAssign(string op)(...) if (op == "-")` instead.
+    s -= 1;
+      ^
+fail_compilation/dep_d1_ops.d(223): Error: `opMulAssign` is obsolete.  Use `opOpAssign(string op)(...) if (op == "*")` instead.
+    s *= 1;
+      ^
+fail_compilation/dep_d1_ops.d(224): Error: `opDivAssign` is obsolete.  Use `opOpAssign(string op)(...) if (op == "/")` instead.
+    s /= 1;
+      ^
+fail_compilation/dep_d1_ops.d(225): Error: `opModAssign` is obsolete.  Use `opOpAssign(string op)(...) if (op == "%")` instead.
+    s %= 1;
+      ^
+fail_compilation/dep_d1_ops.d(226): Error: `opAndAssign` is obsolete.  Use `opOpAssign(string op)(...) if (op == "&")` instead.
+    s &= 1;
+      ^
+fail_compilation/dep_d1_ops.d(227): Error: `opOrAssign` is obsolete.  Use `opOpAssign(string op)(...) if (op == "|")` instead.
+    s |= 1;
+      ^
+fail_compilation/dep_d1_ops.d(228): Error: `opXorAssign` is obsolete.  Use `opOpAssign(string op)(...) if (op == "^")` instead.
+    s ^= 1;
+      ^
+fail_compilation/dep_d1_ops.d(229): Error: `opShlAssign` is obsolete.  Use `opOpAssign(string op)(...) if (op == "<<")` instead.
+    s <<= 1;
+      ^
+fail_compilation/dep_d1_ops.d(230): Error: `opShrAssign` is obsolete.  Use `opOpAssign(string op)(...) if (op == ">>")` instead.
+    s >>= 1;
+      ^
+fail_compilation/dep_d1_ops.d(231): Error: `opUShrAssign` is obsolete.  Use `opOpAssign(string op)(...) if (op == ">>>")` instead.
+    s >>>= 1;
+      ^
+fail_compilation/dep_d1_ops.d(232): Error: `opCatAssign` is obsolete.  Use `opOpAssign(string op)(...) if (op == "~")` instead.
+    s ~= 1;
+      ^
+fail_compilation/dep_d1_ops.d(240): Error: `opCom` is obsolete.  Use `opUnary(string op)() if (op == "~")` instead.
+    ~nd;
+    ^
 ---
 */
 
-#line 50
+// Line 50 starts here
 struct S
 {
     int opAdd(int i) { return 0; }

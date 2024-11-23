@@ -1,9 +1,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test15989.d(39): Error: variable `test15989.main.ctRegex` : Unable to initialize enum with class or pointer to struct. Use static const variable instead.
-fail_compilation/test15989.d(48): Error: variable `test15989.test.c` : Unable to initialize enum with class or pointer to struct. Use static const variable instead.
-fail_compilation/test15989.d(49): Error: cannot use non-constant CTFE pointer in an initializer `new int(3)`
+fail_compilation/test15989.d(45): Error: variable `test15989.main.ctRegex` : Unable to initialize enum with class or pointer to struct. Use static const variable instead.
+    enum ctRegex = regex();
+         ^
+fail_compilation/test15989.d(54): Error: variable `test15989.test.c` : Unable to initialize enum with class or pointer to struct. Use static const variable instead.
+    enum c = new C();
+         ^
+fail_compilation/test15989.d(55): Error: cannot use non-constant CTFE pointer in an initializer `new int(3)`
+    enum pi = new int(3);
+              ^
 ---
 */
 

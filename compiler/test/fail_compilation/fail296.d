@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail296.d(10): Error: can only `*` a pointer, not a `int`
+fail_compilation/fail296.d(12): Error: can only `*` a pointer, not a `int`
+void main(){ *1; }
+             ^
 ---
 */
 

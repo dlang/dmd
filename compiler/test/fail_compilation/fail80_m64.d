@@ -2,8 +2,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail80_m64.d(28): Error: cannot implicitly convert expression `"progress_rem"` of type `string` to `ulong`
-fail_compilation/fail80_m64.d(29): Error: cannot implicitly convert expression `"redo"` of type `string` to `ulong`
+fail_compilation/fail80_m64.d(32): Error: cannot implicitly convert expression `"progress_rem"` of type `string` to `ulong`
+        images["progress_rem"]  = ResourceManager.getImage("progress_rem.gif"); // delete_obj_dis
+               ^
+fail_compilation/fail80_m64.d(33): Error: cannot implicitly convert expression `"redo"` of type `string` to `ulong`
+        images["redo"]          = ResourceManager.getImage("redo.gif");
+               ^
 ---
 */
 

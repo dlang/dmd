@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail14416.d(13): Error: template `S(T)` does not have property `sizeof`
+fail_compilation/fail14416.d(15): Error: template `S(T)` does not have property `sizeof`
+enum n = S.sizeof;
+          ^
 ---
 */
 

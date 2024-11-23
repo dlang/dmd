@@ -2,10 +2,16 @@
 REQUIRED_ARGS: -preview=dip1000 -de
 TEST_OUTPUT:
 ---
-fail_compilation/cast_qual.d(17): Deprecation: cast from `const(int)` to `int` cannot be used as an lvalue in @safe code
-fail_compilation/cast_qual.d(19): Deprecation: cast from `const(int)` to `int` cannot be used as an lvalue in @safe code
-fail_compilation/cast_qual.d(25): Error: cast from `const(Object)` to `object.Object` not allowed in safe code
-fail_compilation/cast_qual.d(25):        Incompatible type qualifier
+fail_compilation/cast_qual.d(23): Deprecation: cast from `const(int)` to `int` cannot be used as an lvalue in @safe code
+    int* p = &cast() i; // this should not compile in @safe code
+                     ^
+fail_compilation/cast_qual.d(25): Deprecation: cast from `const(int)` to `int` cannot be used as an lvalue in @safe code
+    cast() i = 5; // NG
+           ^
+fail_compilation/cast_qual.d(31): Error: cast from `const(Object)` to `object.Object` not allowed in safe code
+    auto o = cast() co;
+             ^
+fail_compilation/cast_qual.d(31):        Incompatible type qualifier
 ---
 */
 

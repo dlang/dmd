@@ -1,10 +1,18 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail172.d(25): Error: cannot modify `const` expression `c1.x`
-fail_compilation/fail172.d(26): Error: cannot modify `const` expression `c2.x`
-fail_compilation/fail172.d(30): Error: cannot modify `const` expression `s1.x`
-fail_compilation/fail172.d(31): Error: cannot modify `const` expression `s2.x`
+fail_compilation/fail172.d(33): Error: cannot modify `const` expression `c1.x`
+    c1.x = 3;
+    ^
+fail_compilation/fail172.d(34): Error: cannot modify `const` expression `c2.x`
+    c2.x = 3;
+    ^
+fail_compilation/fail172.d(38): Error: cannot modify `const` expression `s1.x`
+    s1.x = 3;
+    ^
+fail_compilation/fail172.d(39): Error: cannot modify `const` expression `s2.x`
+    s2.x = 3;
+    ^
 ---
 */
 

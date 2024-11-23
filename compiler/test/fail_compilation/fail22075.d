@@ -3,8 +3,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail22075.d(25): Error: AA key type `S` should have `extern (D) size_t toHash() const nothrow @safe` if `opEquals` defined
-fail_compilation/fail22075.d(26): Error: AA key type `S` should have `extern (D) size_t toHash() const nothrow @safe` if `opEquals` defined
+fail_compilation/fail22075.d(29): Error: AA key type `S` should have `extern (D) size_t toHash() const nothrow @safe` if `opEquals` defined
+int[S!HasAliasThis] aa1; // Compiles but should not.
+                    ^
+fail_compilation/fail22075.d(30): Error: AA key type `S` should have `extern (D) size_t toHash() const nothrow @safe` if `opEquals` defined
+int[S!LacksAliasThis] aa2; // Correctly fails to compile with "Error: AA key
+                      ^
 ---
 */
 

@@ -1008,6 +1008,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             {
                 params.v.printErrorContext = true;
             }
+            else if (startsWith(p + 9, "none"))
+            {
+                params.v.printErrorContext = false; // Disable error context
+            }
             else if (!params.v.errorLimit.parseDigits(p.toDString()[9 .. $]))
             {
                 errorInvalidSwitch(p, "Only number, `spec`, or `context` are allowed for `-verrors`");

@@ -1,12 +1,24 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail54.d(27): Error: incompatible types for `(0) == (Exception)`: cannot use `==` with types
-fail_compilation/fail54.d(28): Error: incompatible types for `("") == (int)`: cannot use `==` with types
-fail_compilation/fail54.d(29): Error: incompatible types for `(true) == (int)`: cannot use `==` with types
-fail_compilation/fail54.d(29):        while evaluating: `static assert(true == (int))`
-fail_compilation/fail54.d(30): Error: incompatible types for `(true) == (int[string])`: cannot use `==` with types
-fail_compilation/fail54.d(30):        while evaluating: `static assert(true == (int[string]))`
+fail_compilation/fail54.d(39): Error: incompatible types for `(0) == (Exception)`: cannot use `==` with types
+    0 == Exception;
+    ^
+fail_compilation/fail54.d(40): Error: incompatible types for `("") == (int)`: cannot use `==` with types
+    "" == int;
+    ^
+fail_compilation/fail54.d(41): Error: incompatible types for `(true) == (int)`: cannot use `==` with types
+    static assert(is(int) == int);
+                  ^
+fail_compilation/fail54.d(41):        while evaluating: `static assert(true == (int))`
+    static assert(is(int) == int);
+    ^
+fail_compilation/fail54.d(42): Error: incompatible types for `(true) == (int[string])`: cannot use `==` with types
+    static assert(is(int[string]) == int[string]);
+                  ^
+fail_compilation/fail54.d(42):        while evaluating: `static assert(true == (int[string]))`
+    static assert(is(int[string]) == int[string]);
+    ^
 ---
 */
 

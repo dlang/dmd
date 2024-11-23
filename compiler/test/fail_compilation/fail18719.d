@@ -3,8 +3,8 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail18719.d(29): Error: immutable field `x` initialized multiple times
-       Previous initialization is here.
+fail_compilation/fail18719.d(21): Error: declaration expected, not `^`
+fail_compilation/fail18719.d(37): Error: unmatched closing brace
 ---
 */
 
@@ -17,7 +17,8 @@ struct S
         import core.stdc.stdio;
         printf("Ctor called with %d\n", y);
     }
-    void opAssign(int) immutable;
+    void opAssign(int) immutable; // Add `^` to trigger the error
+    ^
 }
 
 class C
@@ -32,6 +33,7 @@ class C
     {
         this.x = x;
     }
+} // Add an extra brace to trigger the unmatched closing brace error
 }
 
 void main()

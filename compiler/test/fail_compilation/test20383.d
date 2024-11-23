@@ -1,6 +1,8 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/test20383.d(11): Error: invalid array operation `cast(int[])data[] & [42]` (possible missing [])
+fail_compilation/test20383.d(13): Error: invalid array operation `cast(int[])data[] & [42]` (possible missing [])
+    ubyte[1] result = data[] & [42];
+                      ^
 ---
 */
 

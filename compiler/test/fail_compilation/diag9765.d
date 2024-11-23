@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag9765.d(9): Error: cannot implicitly convert expression `'x'` of type `char` to `char[]`
+fail_compilation/diag9765.d(11): Error: cannot implicitly convert expression `'x'` of type `char` to `char[]`
+const S9765 s9765 = S9765('x');
+                          ^
 ---
 */
 

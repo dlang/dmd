@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice7645.d(28): Error: accessing non-static variable `t` requires an instance of `C2`
-fail_compilation/ice7645.d(31): Error: calling non-static function `fn` requires an instance of type `S2`
+fail_compilation/ice7645.d(32): Error: accessing non-static variable `t` requires an instance of `C2`
+    auto v = c.C2!().t;
+              ^
+fail_compilation/ice7645.d(35): Error: calling non-static function `fn` requires an instance of type `S2`
+    s.S2!int.fn();
+               ^
 ---
 */
 

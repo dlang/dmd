@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag15186.d(14): Error: use `.` for member lookup, not `::`
-fail_compilation/diag15186.d(15): Error: use `.` for member lookup, not `->`
+fail_compilation/diag15186.d(18): Error: use `.` for member lookup, not `::`
+    S::x = 1;
+       ^
+fail_compilation/diag15186.d(19): Error: use `.` for member lookup, not `->`
+    s->y = 2;
+       ^
 ---
 */
 

@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail114.d(12): Error: forward reference to `funcA`
+fail_compilation/fail114.d(14): Error: forward reference to `funcA`
+void funcB(typeof(&funcA) p) {}
+     ^
 ---
 */
 

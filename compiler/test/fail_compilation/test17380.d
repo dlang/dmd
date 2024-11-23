@@ -1,6 +1,8 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/test17380.d(12): Error: undefined identifier `ThisTypeDoesNotExistsAndCrahesTheCompiler`
+fail_compilation/test17380.d(14): Error: undefined identifier `ThisTypeDoesNotExistsAndCrahesTheCompiler`
+        return ThisTypeDoesNotExistsAndCrahesTheCompiler;
+               ^
 ---
  * https://issues.dlang.org/show_bug.cgi?id=17380
  */

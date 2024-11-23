@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail19181.d(15): Error: undefined identifier `LanguageError`
+fail_compilation/fail19181.d(17): Error: undefined identifier `LanguageError`
+    s.foo(LanguageError);
+          ^
 ---
 */
 struct S

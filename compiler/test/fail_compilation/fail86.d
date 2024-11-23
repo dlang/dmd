@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail86.d(12): Error: alias `Foo` recursive alias declaration
+fail_compilation/fail86.d(14): Error: alias `Foo` recursive alias declaration
+    alias Foo!(int) Foo;
+    ^
 ---
 */
 

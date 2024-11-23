@@ -2,7 +2,9 @@
 REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/fail24212.d(29): Error: reference to local variable `n` assigned to non-scope parameter `p` calling `fun`
+fail_compilation/fail24212.d(31): Error: reference to local variable `n` assigned to non-scope parameter `p` calling `fun`
+    base.fun(&n);
+             ^
 ---
 +/
 class Base

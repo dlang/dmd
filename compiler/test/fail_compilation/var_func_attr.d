@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/var_func_attr.d(19): Error: cannot implicitly convert expression `__lambda_L19_C27` of type `void function() nothrow @nogc @safe` to `void function() pure`
+fail_compilation/var_func_attr.d(21): Error: cannot implicitly convert expression `__lambda_L21_C27` of type `void function() nothrow @nogc @safe` to `void function() pure`
+pure void function() pf = () {
+                          ^
 ---
 */
 

@@ -1,10 +1,18 @@
 /* REQUIRED_ARGS: -preview=dip1000
    TEST_OUTPUT:
 ---
-fail_compilation/test14238.d(22): Error: scope parameter `fn` may not be returned
-fail_compilation/test14238.d(25): Error: function `test14238.bar` is `@nogc` yet allocates closure for `bar()` with the GC
-fail_compilation/test14238.d(27):        function `test14238.bar.baz` closes over variable `x`
-fail_compilation/test14238.d(26):        `x` declared here
+fail_compilation/test14238.d(30): Error: scope parameter `fn` may not be returned
+    return fn(); // Error
+             ^
+fail_compilation/test14238.d(33): Error: function `test14238.bar` is `@nogc` yet allocates closure for `bar()` with the GC
+ref int bar() @nogc {
+        ^
+fail_compilation/test14238.d(35):        function `test14238.bar.baz` closes over variable `x`
+    ref int baz() {
+            ^
+fail_compilation/test14238.d(34):        `x` declared here
+    int x;
+        ^
 ---
 */
 // https://issues.dlang.org/show_bug.cgi?id=14238

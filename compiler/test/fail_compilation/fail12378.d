@@ -1,13 +1,69 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail12378.d(18): Error: undefined identifier `ANYTHING`
-fail_compilation/fail12378.d(18): Error: undefined identifier `GOES`
-fail_compilation/fail12378.d(91):        instantiated from here: `MapResultS!((x0) => ANYTHING - GOES, Result)`
-fail_compilation/fail12378.d(17):        instantiated from here: `mapS!(Result)`
-fail_compilation/fail12378.d(100):        instantiated from here: `__lambda_L16_C19!int`
-fail_compilation/fail12378.d(91):        instantiated from here: `MapResultS!((y0) => iota(2).mapS!((x0) => ANYTHING - GOES), Result)`
-fail_compilation/fail12378.d(16):        instantiated from here: `mapS!(Result)`
+fail_compilation/fail12378.d(74): Error: undefined identifier `ANYTHING`
+            ANYTHING-GOES
+            ^
+fail_compilation/fail12378.d(74): Error: undefined identifier `GOES`
+            ANYTHING-GOES
+                     ^
+fail_compilation/fail12378.d(121):        instantiated from here: `MapResultS!((x0) => ANYTHING - GOES, Result)`
+        return MapResultS!(fun, R)(r);
+               ^
+fail_compilation/fail12378.d(73):        instantiated from here: `mapS!(Result)`
+        iota(2).mapS!(x0 =>
+               ^
+fail_compilation/fail12378.d(130):        instantiated from here: `__lambda_L72_C19!int`
+        return fun(_input.front);
+                  ^
+fail_compilation/fail12378.d(121):        instantiated from here: `MapResultS!((y0) => iota(2).mapS!((x0) => ANYTHING - GOES), Result)`
+        return MapResultS!(fun, R)(r);
+               ^
+fail_compilation/fail12378.d(72):        instantiated from here: `mapS!(Result)`
+    iota(1).mapS!(y0 =>
+           ^
+fail_compilation/fail12378.d(84): Error: undefined identifier `ANYTHING`
+            ANYTHING-GOES
+            ^
+fail_compilation/fail12378.d(84): Error: undefined identifier `GOES`
+            ANYTHING-GOES
+                     ^
+fail_compilation/fail12378.d(142):        instantiated from here: `MapResultC!((x0) => ANYTHING - GOES, Result)`
+        return new MapResultC!(fun, R)(r);
+                   ^
+fail_compilation/fail12378.d(83):        instantiated from here: `mapC!(Result)`
+        iota(2).mapC!(x0 =>
+               ^
+fail_compilation/fail12378.d(153):        instantiated from here: `__lambda_L82_C19!int`
+        return fun(_input.front);
+                  ^
+fail_compilation/fail12378.d(142):        instantiated from here: `MapResultC!((y0) => iota(2).mapC!((x0) => ANYTHING - GOES), Result)`
+        return new MapResultC!(fun, R)(r);
+                   ^
+fail_compilation/fail12378.d(82):        instantiated from here: `mapC!(Result)`
+    iota(1).mapC!(y0 =>
+           ^
+fail_compilation/fail12378.d(94): Error: undefined identifier `ANYTHING`
+            ANYTHING-GOES
+            ^
+fail_compilation/fail12378.d(94): Error: undefined identifier `GOES`
+            ANYTHING-GOES
+                     ^
+fail_compilation/fail12378.d(165):        instantiated from here: `MapResultI!((x0) => ANYTHING - GOES, Result)`
+        return MapResultI!(fun, R).init;
+               ^
+fail_compilation/fail12378.d(93):        instantiated from here: `mapI!(Result)`
+        iota(2).mapI!(x0 =>
+               ^
+fail_compilation/fail12378.d(173):        instantiated from here: `__lambda_L92_C19!int`
+        return fun(_input.front);
+                  ^
+fail_compilation/fail12378.d(165):        instantiated from here: `MapResultI!((y0) => iota(2).mapI!((x0) => ANYTHING - GOES), Result)`
+        return MapResultI!(fun, R).init;
+               ^
+fail_compilation/fail12378.d(92):        instantiated from here: `mapI!(Result)`
+    iota(1).mapI!(y0 =>
+           ^
 ---
 */
 void testS()
@@ -20,18 +76,6 @@ void testS()
     );
 }
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/fail12378.d(40): Error: undefined identifier `ANYTHING`
-fail_compilation/fail12378.d(40): Error: undefined identifier `GOES`
-fail_compilation/fail12378.d(112):        instantiated from here: `MapResultC!((x0) => ANYTHING - GOES, Result)`
-fail_compilation/fail12378.d(39):        instantiated from here: `mapC!(Result)`
-fail_compilation/fail12378.d(123):        instantiated from here: `__lambda_L38_C19!int`
-fail_compilation/fail12378.d(112):        instantiated from here: `MapResultC!((y0) => iota(2).mapC!((x0) => ANYTHING - GOES), Result)`
-fail_compilation/fail12378.d(38):        instantiated from here: `mapC!(Result)`
----
-*/
 void testC()
 {
     auto r =
@@ -41,20 +85,6 @@ void testC()
         )
     );
 }
-
-/*
-TEST_OUTPUT:
----
-fail_compilation/fail12378.d(64): Error: undefined identifier `ANYTHING`
-fail_compilation/fail12378.d(64): Error: undefined identifier `GOES`
-fail_compilation/fail12378.d(135):        instantiated from here: `MapResultI!((x0) => ANYTHING - GOES, Result)`
-fail_compilation/fail12378.d(63):        instantiated from here: `mapI!(Result)`
-fail_compilation/fail12378.d(143):        instantiated from here: `__lambda_L62_C19!int`
-fail_compilation/fail12378.d(135):        instantiated from here: `MapResultI!((y0) => iota(2).mapI!((x0) => ANYTHING - GOES), Result)`
-fail_compilation/fail12378.d(62):        instantiated from here: `mapI!(Result)`
----
-*/
-
 
 void testI()
 {

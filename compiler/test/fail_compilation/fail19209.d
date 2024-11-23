@@ -1,8 +1,10 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail19209.d(16): Error: function `fail19209.Spammer.method()` does not override any function, did you mean to override variable `fail19209.Spam.method`?
-fail_compilation/fail19209.d(16):        Functions are the only declarations that may be overridden
+fail_compilation/fail19209.d(18): Error: function `fail19209.Spammer.method()` does not override any function, did you mean to override variable `fail19209.Spam.method`?
+    override method() {}
+             ^
+fail_compilation/fail19209.d(18):        Functions are the only declarations that may be overridden
 ---
 */
 

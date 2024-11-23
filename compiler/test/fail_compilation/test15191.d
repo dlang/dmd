@@ -1,11 +1,21 @@
 /* TEST_OUTPUT:
 REQUIRED_ARGS: -preview=dip1000
 ---
-fail_compilation/test15191.d(34): Error: returning `&identity(x)` escapes a reference to local variable `x`
-fail_compilation/test15191.d(40): Error: returning `&identityPtr(x)` escapes a reference to local variable `x`
-fail_compilation/test15191.d(46): Error: returning `&identityPtr(x)` escapes a reference to local variable `x`
-fail_compilation/test15191.d(67): Error: cannot take address of `scope` variable `x` since `scope` applies to first indirection only
-fail_compilation/test15191.d(69): Error: cannot take address of `scope` variable `x` since `scope` applies to first indirection only
+fail_compilation/test15191.d(44): Error: returning `&identity(x)` escapes a reference to local variable `x`
+	return &identity(x);
+        ^
+fail_compilation/test15191.d(50): Error: returning `&identityPtr(x)` escapes a reference to local variable `x`
+	return &identityPtr(x);
+        ^
+fail_compilation/test15191.d(56): Error: returning `&identityPtr(x)` escapes a reference to local variable `x`
+	return &identityPtr(x);
+        ^
+fail_compilation/test15191.d(77): Error: cannot take address of `scope` variable `x` since `scope` applies to first indirection only
+	auto y = identityArr(x)[]; // check transitive scope in assignment
+      ^
+fail_compilation/test15191.d(79): Error: cannot take address of `scope` variable `x` since `scope` applies to first indirection only
+	return identityArr(x)[]; // check transitive scope in return statement
+                      ^
 ---
 */
 

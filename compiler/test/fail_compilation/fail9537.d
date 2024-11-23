@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail9537.d(26): Error: cannot take address of expression `foo(tuple(1, 2))` because it is not an lvalue
+fail_compilation/fail9537.d(28): Error: cannot take address of expression `foo(tuple(1, 2))` because it is not an lvalue
+    int* p = &foo(tuple(1, 2));
+                 ^
 ---
 */
 

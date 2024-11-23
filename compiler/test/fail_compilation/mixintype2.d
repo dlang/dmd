@@ -1,11 +1,19 @@
 
 /* TEST_OUTPUT:
 ---
-fail_compilation/mixintype2.d(13): Error: alias `mixintype2.Foo.T` recursive alias declaration
-fail_compilation/mixintype2.d(19): Error: `mixin(0)` does not give a valid type
-fail_compilation/mixintype2.d(20): Error: unexpected token `{` after type `int()`
-fail_compilation/mixintype2.d(20):        while parsing string mixin type `int() {}`
-fail_compilation/mixintype2.d(20): Error: `mixin(_error_)` does not give a valid type
+fail_compilation/mixintype2.d(21): Error: alias `mixintype2.Foo.T` recursive alias declaration
+    alias T = mixin("T2");
+    ^
+fail_compilation/mixintype2.d(27): Error: `mixin(0)` does not give a valid type
+enum mixin(0) a = 0;
+     ^
+fail_compilation/mixintype2.d(28): Error: unexpected token `{` after type `int()`
+mixin("int() {}") f;
+                  ^
+fail_compilation/mixintype2.d(28):        while parsing string mixin type `int() {}`
+fail_compilation/mixintype2.d(28): Error: `mixin(_error_)` does not give a valid type
+mixin("int() {}") f;
+^
 ---
 */
 

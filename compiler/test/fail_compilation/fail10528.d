@@ -2,18 +2,42 @@
 EXTRA_FILES: imports/a10528.d
 TEST_OUTPUT:
 ---
-fail_compilation/fail10528.d(24): Error: undefined identifier `a`
-fail_compilation/fail10528.d(25): Error: undefined identifier `a` in module `a10528`
-fail_compilation/fail10528.d(27): Error: undefined identifier `b`
-fail_compilation/fail10528.d(28): Error: undefined identifier `b` in module `a10528`
-fail_compilation/fail10528.d(30): Error: no property `c` for type `a10528.S`
+fail_compilation/fail10528.d(48): Error: undefined identifier `a`
+    auto a1 = a;
+              ^
+fail_compilation/fail10528.d(49): Error: undefined identifier `a` in module `a10528`
+    auto a2 = imports.a10528.a;
+                            ^
+fail_compilation/fail10528.d(51): Error: undefined identifier `b`
+    auto b1 = b;
+              ^
+fail_compilation/fail10528.d(52): Error: undefined identifier `b` in module `a10528`
+    auto b2 = imports.a10528.b;
+                            ^
+fail_compilation/fail10528.d(54): Error: no property `c` for type `a10528.S`
+    auto c1 = S.c;
+              ^
 fail_compilation/imports/a10528.d(4):        struct `S` defined here
-fail_compilation/fail10528.d(31): Error: no property `c` for type `a10528.S`
+struct S { private enum string c = "qwerty"; }
+^
+fail_compilation/fail10528.d(55): Error: no property `c` for type `a10528.S`
+    with (S) auto c2 = c;
+                       ^
 fail_compilation/imports/a10528.d(4):        struct `S` defined here
-fail_compilation/fail10528.d(33): Error: no property `d` for type `a10528.C`
+struct S { private enum string c = "qwerty"; }
+^
+fail_compilation/fail10528.d(57): Error: no property `d` for type `a10528.C`
+    auto d1 = C.d;
+              ^
 fail_compilation/imports/a10528.d(5):        class `C` defined here
-fail_compilation/fail10528.d(34): Error: no property `d` for type `a10528.C`
+class  C { private enum string d = "qwerty"; }
+^
+fail_compilation/fail10528.d(58): Error: no property `d` for type `a10528.C`
+    with (C) auto d2 = d;
+                       ^
 fail_compilation/imports/a10528.d(5):        class `C` defined here
+class  C { private enum string d = "qwerty"; }
+^
 ---
 */
 

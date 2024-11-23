@@ -2,7 +2,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/gag4269a.d(12): Error: undefined identifier `B`
+fail_compilation/gag4269a.d(14): Error: undefined identifier `B`
+    void foo(B b);
+         ^
 ---
 */
 

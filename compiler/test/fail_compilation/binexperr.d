@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/binexperr.d(12): Error: expression expected, not `)`
-fail_compilation/binexperr.d(12): Error: missing closing `)` after `if (A1 * (__error)`
+fail_compilation/binexperr.d(16): Error: expression expected, not `)`
+    if (A1*) {}
+           ^
+fail_compilation/binexperr.d(16): Error: missing closing `)` after `if (A1 * (__error)`
+    if (A1*) {}
+             ^
 ---
 */
 

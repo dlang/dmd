@@ -3,7 +3,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test24159.d(13): Error: appending to array in `x ~= 3` requires the GC which is not available with -betterC
+fail_compilation/test24159.d(15): Error: appending to array in `x ~= 3` requires the GC which is not available with -betterC
+    x ~= 3;
+      ^
 ---
 */
 

@@ -1,10 +1,18 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fix19246.d(15): Error: `0b_` isn't a valid integer literal, use `0b0` instead
-fail_compilation/fix19246.d(16): Error: `0B_` isn't a valid integer literal, use `0B0` instead
-fail_compilation/fix19246.d(17): Error: `0b` isn't a valid integer literal, use `0b0` instead
-fail_compilation/fix19246.d(18): Error: `0B` isn't a valid integer literal, use `0B0` instead
+fail_compilation/fix19246.d(23): Error: `0b_` isn't a valid integer literal, use `0b0` instead
+    auto a = 0b_;
+             ^
+fail_compilation/fix19246.d(24): Error: `0B_` isn't a valid integer literal, use `0B0` instead
+    auto b = 0B_;
+             ^
+fail_compilation/fix19246.d(25): Error: `0b` isn't a valid integer literal, use `0b0` instead
+    auto c = 0b;
+             ^
+fail_compilation/fix19246.d(26): Error: `0B` isn't a valid integer literal, use `0B0` instead
+    auto d = 0B;
+             ^
 ---
  */
 

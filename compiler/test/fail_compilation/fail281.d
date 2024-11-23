@@ -4,7 +4,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail281.d(15): Error: template instance `fail281.foo!4294966795u` recursive expansion exceeded allowed nesting limit
+fail_compilation/fail281.d(17): Error: template instance `fail281.foo!4294966795u` recursive expansion exceeded allowed nesting limit
+        const uint bar = foo!(i - 1).bar;
+                         ^
 ---
 */
 

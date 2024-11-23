@@ -1,14 +1,30 @@
 /* https://issues.dlang.org/show_bug.cgi?id=15399
 TEST_OUTPUT:
 ---
-fail_compilation/test15399.d(32): Error: field `S1.ptr` cannot modify misaligned pointers in `@safe` code
-fail_compilation/test15399.d(33): Error: field `S2.ptr` cannot modify misaligned pointers in `@safe` code
-fail_compilation/test15399.d(34): Error: field `S1.ptr` cannot modify misaligned pointers in `@safe` code
-fail_compilation/test15399.d(35): Error: field `S2.ptr` cannot modify misaligned pointers in `@safe` code
-fail_compilation/test15399.d(36): Error: field `S1.ptr` cannot modify misaligned pointers in `@safe` code
-fail_compilation/test15399.d(37): Error: field `S2.ptr` cannot modify misaligned pointers in `@safe` code
-fail_compilation/test15399.d(38): Error: field `S1.ptr` cannot modify misaligned pointers in `@safe` code
-fail_compilation/test15399.d(39): Error: field `S2.ptr` cannot modify misaligned pointers in `@safe` code
+fail_compilation/test15399.d(48): Error: field `S1.ptr` cannot modify misaligned pointers in `@safe` code
+    s1.ptr = null;
+      ^
+fail_compilation/test15399.d(49): Error: field `S2.ptr` cannot modify misaligned pointers in `@safe` code
+    s2.ptr = null;
+      ^
+fail_compilation/test15399.d(50): Error: field `S1.ptr` cannot modify misaligned pointers in `@safe` code
+    int** pp = &s1.ptr;
+                  ^
+fail_compilation/test15399.d(51): Error: field `S2.ptr` cannot modify misaligned pointers in `@safe` code
+    pp = &s2.ptr;
+            ^
+fail_compilation/test15399.d(52): Error: field `S1.ptr` cannot modify misaligned pointers in `@safe` code
+    bar(s1.ptr);
+          ^
+fail_compilation/test15399.d(53): Error: field `S2.ptr` cannot modify misaligned pointers in `@safe` code
+    bar(s2.ptr);
+          ^
+fail_compilation/test15399.d(54): Error: field `S1.ptr` cannot modify misaligned pointers in `@safe` code
+    sinister(s1.ptr);
+               ^
+fail_compilation/test15399.d(55): Error: field `S2.ptr` cannot modify misaligned pointers in `@safe` code
+    sinister(s2.ptr);
+               ^
 ---
 */
 

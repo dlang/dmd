@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail10346.d(9): Error: undefined identifier `T`
+fail_compilation/fail10346.d(11): Error: undefined identifier `T`
+void bar(T x, T)(Foo!T) {}
+         ^
 ---
 */
 

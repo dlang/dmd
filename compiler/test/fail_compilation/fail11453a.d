@@ -4,6 +4,8 @@
 TEST_OUTPUT:
 ---
 fail_compilation/extra-files/bar11453.d(1): Error: package name 'foo11453' conflicts with usage as a module name in file fail_compilation/extra-files/foo11453.d
+module foo11453.bar11453;
+^
 ---
 */
 

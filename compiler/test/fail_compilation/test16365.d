@@ -1,9 +1,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test16365.d(20): Error: `this` reference necessary to take address of member `f1` in `@safe` function `main`
-fail_compilation/test16365.d(22): Error: cannot implicitly convert expression `&f2` of type `void delegate() pure nothrow @nogc @safe` to `void function() @safe`
-fail_compilation/test16365.d(27): Error: `dg.funcptr` cannot be used in `@safe` code
+fail_compilation/test16365.d(26): Error: `this` reference necessary to take address of member `f1` in `@safe` function `main`
+    f = &S.f1;
+        ^
+fail_compilation/test16365.d(28): Error: cannot implicitly convert expression `&f2` of type `void delegate() pure nothrow @nogc @safe` to `void function() @safe`
+    f = &f2;
+        ^
+fail_compilation/test16365.d(33): Error: `dg.funcptr` cannot be used in `@safe` code
+    f = dg.funcptr;
+        ^
 ---
 */
 

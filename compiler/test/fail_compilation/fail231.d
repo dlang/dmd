@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail231.d(15): Error: class `fail231.Derived` cannot implicitly generate a default constructor when base class `fail231.Base` is missing a default constructor
+fail_compilation/fail231.d(17): Error: class `fail231.Derived` cannot implicitly generate a default constructor when base class `fail231.Base` is missing a default constructor
+class Derived : Base
+^
 ---
 */
 

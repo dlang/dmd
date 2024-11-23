@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail160.d(22): Error: `typeid(fail160.Foo).vtbl` is not yet implemented at compile time
+fail_compilation/fail160.d(24): Error: `typeid(fail160.Foo).vtbl` is not yet implemented at compile time
+    auto x = new Wrapper!(Foo, Foo.work, cast(int)(Foo.classinfo.vtbl[0]))();
+                                                   ^
 ---
 */
 

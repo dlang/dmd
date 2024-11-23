@@ -1,7 +1,9 @@
 /* REQUIRED_ARGS:
    TEST_OUTPUT:
 ---
-fail_compilation/test16228.d(23): Error: function `test16228.S.bar` `static` member has no `this` to which `return` can apply
+fail_compilation/test16228.d(25): Error: function `test16228.S.bar` `static` member has no `this` to which `return` can apply
+    static ref int bar() return { return x; }
+                   ^
 ---
 */
 

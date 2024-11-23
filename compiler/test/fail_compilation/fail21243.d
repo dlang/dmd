@@ -1,12 +1,26 @@
 /+ TEST_OUTPUT:
 ---
-fail_compilation/fail21243.d(12): Error: found `(` when expecting `ref` and function literal following `auto`
-fail_compilation/fail21243.d(12): Error: semicolon expected following auto declaration, not `int`
-fail_compilation/fail21243.d(12): Error: semicolon needed to end declaration of `x` instead of `)`
-fail_compilation/fail21243.d(12): Error: declaration expected, not `)`
-fail_compilation/fail21243.d(13): Error: `auto` can only be used as part of `auto ref` for function literal return values
-fail_compilation/fail21243.d(14): Error: `auto` can only be used as part of `auto ref` for function literal return values
-fail_compilation/fail21243.d(15): Error: `auto` can only be used as part of `auto ref` for function literal return values
+fail_compilation/fail21243.d(26): Error: found `(` when expecting `ref` and function literal following `auto`
+auto a = auto (int x) => x;
+              ^
+fail_compilation/fail21243.d(26): Error: semicolon expected following auto declaration, not `int`
+auto a = auto (int x) => x;
+               ^
+fail_compilation/fail21243.d(26): Error: semicolon needed to end declaration of `x` instead of `)`
+auto a = auto (int x) => x;
+                    ^
+fail_compilation/fail21243.d(26): Error: declaration expected, not `)`
+auto a = auto (int x) => x;
+                    ^
+fail_compilation/fail21243.d(27): Error: `auto` can only be used as part of `auto ref` for function literal return values
+auto b = function auto (int x) { return x; };
+                       ^
+fail_compilation/fail21243.d(28): Error: `auto` can only be used as part of `auto ref` for function literal return values
+alias c = auto (int x) => x;
+               ^
+fail_compilation/fail21243.d(29): Error: `auto` can only be used as part of `auto ref` for function literal return values
+alias d = function auto (int x) { return x; };
+                        ^
 ---
 +/
 auto a = auto (int x) => x;

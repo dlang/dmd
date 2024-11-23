@@ -2,7 +2,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/cppeh2.d(21): Error: cannot mix catching D and C++ exceptions in the same try-catch
+fail_compilation/cppeh2.d(23): Error: cannot mix catching D and C++ exceptions in the same try-catch
+    try
+    ^
 ---
 */
 

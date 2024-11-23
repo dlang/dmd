@@ -1,6 +1,8 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/test18736.d(21): Error: constructor calls not allowed in loops or after labels
+fail_compilation/test18736.d(23): Error: constructor calls not allowed in loops or after labels
+        this('c');
+            ^
 ---
 */
 

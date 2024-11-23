@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail4269g.d(10): Error: alias `fail4269g.Xg` cannot alias an expression `d[1]`
+fail_compilation/fail4269g.d(12): Error: alias `fail4269g.Xg` cannot alias an expression `d[1]`
+alias d[1] Xg;
+^
 ---
 */
 

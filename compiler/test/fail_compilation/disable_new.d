@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/disable_new.d(23): Error: cannot allocate `class C` with `new` because it is annotated with `@disable new()`
-fail_compilation/disable_new.d(24): Error: cannot allocate `struct S` with `new` because it is annotated with `@disable new()`
+fail_compilation/disable_new.d(27): Error: cannot allocate `class C` with `new` because it is annotated with `@disable new()`
+    auto c = new C();
+             ^
+fail_compilation/disable_new.d(28): Error: cannot allocate `struct S` with `new` because it is annotated with `@disable new()`
+    auto s = new S();
+             ^
 ---
 */
 

@@ -3,8 +3,12 @@ TEST_OUTPUT:
 ---
 A: false
 A: false
-fail_compilation/fail7862.d(26): Error: template instance `nonExistent!()` template `nonExistent` is not defined
-fail_compilation/fail7862.d(25): Error: template instance `fail7862.B!(A)` error instantiating
+fail_compilation/fail7862.d(30): Error: template instance `nonExistent!()` template `nonExistent` is not defined
+  static if (nonExistent!()) {}
+             ^
+fail_compilation/fail7862.d(29): Error: template instance `fail7862.B!(A)` error instantiating
+  B!A c;
+  ^
 ---
 */
 

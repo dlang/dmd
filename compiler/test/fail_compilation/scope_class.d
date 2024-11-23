@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/scope_class.d(12): Error: functions cannot return `scope scope_class.C`
+fail_compilation/scope_class.d(14): Error: functions cannot return `scope scope_class.C`
+C increment(C c)
+  ^
 ---
 */
 

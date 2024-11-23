@@ -3,8 +3,10 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail5153.d(26): Error: cannot implicitly convert expression `new Foo(0)` of type `Foo*` to `Foo`
-fail_compilation/fail5153.d(26):        Perhaps remove the `new` keyword?
+fail_compilation/fail5153.d(28): Error: cannot implicitly convert expression `new Foo(0)` of type `Foo*` to `Foo`
+    Foo f = new Foo(0);
+        ^
+fail_compilation/fail5153.d(28):        Perhaps remove the `new` keyword?
 ---
 */
 

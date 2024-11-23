@@ -3,9 +3,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail23036.d(12): Error: `struct S` may not define both a rvalue constructor and a copy constructor
-fail_compilation/fail23036.d(15):        rvalue constructor defined here
-fail_compilation/fail23036.d(14):        copy constructor defined here
+fail_compilation/fail23036.d(18): Error: `struct S` may not define both a rvalue constructor and a copy constructor
+struct S
+^
+fail_compilation/fail23036.d(21):        rvalue constructor defined here
+    this(S, int a = 2) {}
+    ^
+fail_compilation/fail23036.d(20):        copy constructor defined here
+    this(ref S) {}
+    ^
 ---
 */
 

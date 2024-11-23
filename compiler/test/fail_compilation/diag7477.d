@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag7477.d(13): Error: cannot generate 0 value of type `Foo` for `a`
-fail_compilation/diag7477.d(20): Error: cannot generate 0 value of type `string` for `a`
+fail_compilation/diag7477.d(17): Error: cannot generate 0 value of type `Foo` for `a`
+    a,
+    ^
+fail_compilation/diag7477.d(24): Error: cannot generate 0 value of type `string` for `a`
+    a,
+    ^
 ---
 */
 

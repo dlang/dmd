@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail276.d(19): Error: `this` has no effect
-fail_compilation/fail276.d(15): Error: cannot construct anonymous nested class because no implicit `this` reference to outer class is available
+fail_compilation/fail276.d(23): Error: `this` has no effect
+                    this.outer.outer;
+                    ^
+fail_compilation/fail276.d(19): Error: cannot construct anonymous nested class because no implicit `this` reference to outer class is available
+            auto k = new class()
+                     ^
 ---
 */
 

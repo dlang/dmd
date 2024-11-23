@@ -1,10 +1,18 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail20616.d(16): Error: undefined identifier `$`
-fail_compilation/fail20616.d(16):        Aggregate declaration 'X()' does not define 'opDollar'
-fail_compilation/fail20616.d(18): Error: undefined identifier `$`
-fail_compilation/fail20616.d(18):        Aggregate declaration 'b' does not define 'opDollar'
+fail_compilation/fail20616.d(24): Error: undefined identifier `$`
+    auto x = X()[0 .. $];
+                      ^
+fail_compilation/fail20616.d(24):        Aggregate declaration 'X()' does not define 'opDollar'
+    auto x = X()[0 .. $];
+                ^
+fail_compilation/fail20616.d(26): Error: undefined identifier `$`
+    auto c = b[0 .. $ - 1];
+                    ^
+fail_compilation/fail20616.d(26):        Aggregate declaration 'b' does not define 'opDollar'
+    auto c = b[0 .. $ - 1];
+              ^
 ---
 */
 module fail20616;

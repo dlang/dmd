@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail6334.d(13): Error: static assert:  `0` is false
-fail_compilation/fail6334.d(11):        instantiated from here: `T2!()`
+fail_compilation/fail6334.d(17): Error: static assert:  `0` is false
+    mixin template T2() { static assert(0); }
+                          ^
+fail_compilation/fail6334.d(15):        instantiated from here: `T2!()`
+    mixin T2;                       //compiles if these lines
+    ^
 ---
 */
 

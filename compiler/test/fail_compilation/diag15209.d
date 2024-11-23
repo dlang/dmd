@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag15209.d(18): Error: accessing non-static variable `x` requires an instance of `C1`
-fail_compilation/diag15209.d(21): Error: accessing non-static variable `x` requires an instance of `S2`
+fail_compilation/diag15209.d(22): Error: accessing non-static variable `x` requires an instance of `C1`
+    s1.y = 10;  // invalid field variable access
+    ^
+fail_compilation/diag15209.d(25): Error: accessing non-static variable `x` requires an instance of `S2`
+    c2.y = 10;  // invalid field variable access
+    ^
 ---
 */
 

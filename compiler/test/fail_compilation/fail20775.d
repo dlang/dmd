@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail20775.d(19): Error: cannot pass types that need destruction as variadic arguments
-fail_compilation/fail20775.d(20): Error: cannot pass types that need destruction as variadic arguments
+fail_compilation/fail20775.d(23): Error: cannot pass types that need destruction as variadic arguments
+    variadic(v,
+             ^
+fail_compilation/fail20775.d(24): Error: cannot pass types that need destruction as variadic arguments
+             S20775(1));
+                   ^
 ---
 */
 extern void variadic(...);

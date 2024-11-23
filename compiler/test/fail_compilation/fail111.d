@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail111.d(12): Error: cannot have array of `int(int)`
+fail_compilation/fail111.d(14): Error: cannot have array of `int(int)`
+ft[] x;  // is allowed
+     ^
 ---
 */
 

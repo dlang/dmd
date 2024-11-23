@@ -3,10 +3,18 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail23760.d(16): Error: type of variable `fail23760.A.state` has errors
-fail_compilation/fail23760.d(16): Error: `(A).state` cannot be resolved
-fail_compilation/fail23760.d(21): Error: template instance `fail23760.JavaBridge!(A)` error instantiating
-fail_compilation/fail23760.d(24):        instantiated from here: `JavaClass!(A)`
+fail_compilation/fail23760.d(24): Error: type of variable `fail23760.A.state` has errors
+    alias T = __traits(getOverloads, Class, "state");
+              ^
+fail_compilation/fail23760.d(24): Error: `(A).state` cannot be resolved
+    alias T = __traits(getOverloads, Class, "state");
+              ^
+fail_compilation/fail23760.d(29): Error: template instance `fail23760.JavaBridge!(A)` error instantiating
+    JavaBridge!(CRTP) _javaDBridge;
+    ^
+fail_compilation/fail23760.d(32):        instantiated from here: `JavaClass!(A)`
+class A : JavaClass!A
+          ^
 ---
 */
 

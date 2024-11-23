@@ -3,7 +3,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail21885.d(24): Error: struct `fail21885.Outer` is not copyable because field `i` is not copyable
+fail_compilation/fail21885.d(26): Error: struct `fail21885.Outer` is not copyable because field `i` is not copyable
+    o1 = o2;
+         ^
 ---
 */
 

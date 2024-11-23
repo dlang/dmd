@@ -3,8 +3,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test15897.d(20): Error: no property `create` for `cat` of type `imports.test15897.Cat`
+fail_compilation/test15897.d(24): Error: no property `create` for `cat` of type `imports.test15897.Cat`
+    cat.create();
+       ^
 fail_compilation/imports/test15897.d(4):        class `Cat` defined here
+class Cat : Animal
+^
 ---
 */
 module test15897;

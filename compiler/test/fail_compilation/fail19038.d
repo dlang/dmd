@@ -1,7 +1,11 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/fail19038.d(21): Error: cannot implicitly convert expression `a` of type `string[][]` to `const(string)[][]`
-fail_compilation/fail19038.d(23): Error: cannot modify `const` expression `c[0]`
+fail_compilation/fail19038.d(25): Error: cannot implicitly convert expression `a` of type `string[][]` to `const(string)[][]`
+    const(string)[][] b = a; // assume this works (and it should not)
+                          ^
+fail_compilation/fail19038.d(27): Error: cannot modify `const` expression `c[0]`
+    c[0] = "Mordor"; // invalid, because c[0] is const(string)
+     ^
 ---
  * Credit: yshui
  * https://github.com/dlang/dmd/pull/8413#issuecomment-401104961

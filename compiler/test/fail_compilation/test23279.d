@@ -3,7 +3,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test23279.d(13): Error: undefined identifier `Sth`
+fail_compilation/test23279.d(15): Error: undefined identifier `Sth`
+    void setIt(Sth sth){}
+         ^
 ---
 */
 

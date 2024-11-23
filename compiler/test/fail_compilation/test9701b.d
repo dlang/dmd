@@ -2,8 +2,12 @@
 REQUIRED_ARGS: -de
 TEST_OUTPUT:
 ---
-fail_compilation/test9701b.d(20): Deprecation: enum member `test9701b.Enum.e0` is deprecated
-fail_compilation/test9701b.d(21): Deprecation: enum member `test9701b.Enum.e1` is deprecated - message
+fail_compilation/test9701b.d(24): Deprecation: enum member `test9701b.Enum.e0` is deprecated
+    auto value = Enum.e0;
+                 ^
+fail_compilation/test9701b.d(25): Deprecation: enum member `test9701b.Enum.e1` is deprecated - message
+    auto value2 = Enum.e1;
+                  ^
 ---
 */
 

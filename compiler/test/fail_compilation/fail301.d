@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail301.d(11): Error: accessing non-static variable `guard` requires an instance of `bug3305b`
-fail_compilation/fail301.d(22): Error: template instance `fail301.bug3305!0` error instantiating
+fail_compilation/fail301.d(15): Error: accessing non-static variable `guard` requires an instance of `bug3305b`
+    auto guard = bug3305b!(0).guard;
+                 ^
+fail_compilation/fail301.d(26): Error: template instance `fail301.bug3305!0` error instantiating
+    bug3305!(0) a;
+    ^
 ---
 */
 

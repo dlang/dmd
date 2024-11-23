@@ -1,9 +1,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail19917.d(22): Error: overlapping default initialization for field `c` and `a`
-fail_compilation/fail19917.d(22): Error: overlapping default initialization for field `d` and `b`
-fail_compilation/fail19917.d(39): Error: overlapping default initialization for field `b` and `a`
+fail_compilation/fail19917.d(28): Error: overlapping default initialization for field `c` and `a`
+struct X
+^
+fail_compilation/fail19917.d(28): Error: overlapping default initialization for field `d` and `b`
+struct X
+^
+fail_compilation/fail19917.d(45): Error: overlapping default initialization for field `b` and `a`
+struct Y
+^
 ---
 */
 

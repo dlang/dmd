@@ -3,22 +3,57 @@ REQUIRED_ARGS: -w -o-
 
 TEST_OUTPUT:
 ---
-fail_compilation\noreturn.d(38): Error: Accessed expression of type `noreturn`
-fail_compilation\noreturn.d(42):        called from here: `assign()`
-fail_compilation\noreturn.d(49): Error: Accessed expression of type `noreturn`
-fail_compilation\noreturn.d(49):        called from here: `foo(n)`
-fail_compilation\noreturn.d(53):        called from here: `calling()`
-fail_compilation\noreturn.d(59): Error: Accessed expression of type `noreturn`
-fail_compilation\noreturn.d(62):        called from here: `nested()`
-fail_compilation\noreturn.d(68): Error: Accessed expression of type `noreturn`
-fail_compilation\noreturn.d(78):        called from here: `casting(0)`
-fail_compilation\noreturn.d(69): Error: Accessed expression of type `noreturn`
-fail_compilation\noreturn.d(79):        called from here: `casting(1)`
-fail_compilation\noreturn.d(72): Error: Accessed expression of type `noreturn`
-fail_compilation\noreturn.d(80):        called from here: `casting(2)`
-fail_compilation/noreturn.d(120): Error: uncaught CTFE exception `object.Exception("")`
+fail_compilation/noreturn.d(73): Error: Accessed expression of type `noreturn`
+    noreturn m = n;
+                 ^
+fail_compilation/noreturn.d(77):        called from here: `assign()`
+enum forceAss = assign();
+                      ^
+fail_compilation/noreturn.d(84): Error: Accessed expression of type `noreturn`
+    foo(n);
+        ^
+fail_compilation/noreturn.d(84):        called from here: `foo(n)`
+    foo(n);
+       ^
+fail_compilation/noreturn.d(88):        called from here: `calling()`
+enum forceCall = calling();
+                        ^
+fail_compilation/noreturn.d(94): Error: Accessed expression of type `noreturn`
+    return arr[n ? n : n];
+               ^
+fail_compilation/noreturn.d(97):        called from here: `nested()`
+enum forceNested = nested();
+                         ^
+fail_compilation/noreturn.d(103): Error: Accessed expression of type `noreturn`
+        case 0: return cast(noreturn) i;
+                                      ^
+fail_compilation/noreturn.d(113):        called from here: `casting(0)`
+enum forceCasting0 = casting(0);
+                            ^
+fail_compilation/noreturn.d(104): Error: Accessed expression of type `noreturn`
+        case 1: return cast(typeof(assert(0))) cast(double) i;
+                                                            ^
+fail_compilation/noreturn.d(114):        called from here: `casting(1)`
+enum forceCasting1 = casting(1);
+                            ^
+fail_compilation/noreturn.d(107): Error: Accessed expression of type `noreturn`
+            return cast() n;
+                          ^
+fail_compilation/noreturn.d(115):        called from here: `casting(2)`
+enum forceCasting2 = casting(2);
+                            ^
+fail_compilation/noreturn.d(155): Error: uncaught CTFE exception `object.Exception("")`
+enum throwEnum = throw new Exception("");
+                       ^
+fail_compilation/noreturn.d(160): Error: Accessed expression of type `noreturn`
+    return a;
+           ^
+fail_compilation/noreturn.d(163):        called from here: `func()`
+enum f = func();
+             ^
 ---
 https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1034.md
+https://issues.dlang.org/show_bug.cgi?id=23063
 */
 
 alias noreturn = typeof(*null);
@@ -119,16 +154,6 @@ enum forceInClassRef = inClassRef();
 
 enum throwEnum = throw new Exception("");
 
-
-/*
-https://issues.dlang.org/show_bug.cgi?id=23063
-
-TEST_OUTPUT:
----
-fail_compilation/noreturn.d(135): Error: Accessed expression of type `noreturn`
-fail_compilation/noreturn.d(138):        called from here: `func()`
----
-*/
 noreturn func()
 {
     noreturn a;

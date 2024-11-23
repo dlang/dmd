@@ -4,7 +4,9 @@
 /*
 TEST_OUTPUT:
 ---
-compilable/test12567c.d(10): Deprecation: module `imports.a12567` is deprecated - This module will be removed in future release.
+compilable/test12567c.d(12): Deprecation: module `imports.a12567` is deprecated - This module will be removed in future release.
+import imports.a12567;
+       ^
 ---
 */
 import imports.a12567;

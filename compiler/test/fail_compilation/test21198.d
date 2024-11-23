@@ -3,7 +3,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test21198.d(23): Error: generating an `inout` copy constructor for `struct test21198.U` failed, therefore instances of it are uncopyable
+fail_compilation/test21198.d(25): Error: generating an `inout` copy constructor for `struct test21198.U` failed, therefore instances of it are uncopyable
+    U copy = original;
+      ^
 ---
 */
 

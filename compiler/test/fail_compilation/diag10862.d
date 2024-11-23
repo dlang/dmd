@@ -1,36 +1,82 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag10862.d(40): Error: assignment cannot be used as a condition, perhaps `==` was meant?
-fail_compilation/diag10862.d(41): Error: assignment cannot be used as a condition, perhaps `==` was meant?
-fail_compilation/diag10862.d(42): Error: assignment cannot be used as a condition, perhaps `==` was meant?
-fail_compilation/diag10862.d(43): Error: assignment cannot be used as a condition, perhaps `==` was meant?
-fail_compilation/diag10862.d(44): Error: assignment cannot be used as a condition, perhaps `==` was meant?
-fail_compilation/diag10862.d(46): Error: assignment cannot be used as a condition, perhaps `==` was meant?
-fail_compilation/diag10862.d(47): Error: assignment cannot be used as a condition, perhaps `==` was meant?
-fail_compilation/diag10862.d(48): Error: assignment cannot be used as a condition, perhaps `==` was meant?
-fail_compilation/diag10862.d(49): Error: assignment cannot be used as a condition, perhaps `==` was meant?
-fail_compilation/diag10862.d(51): Error: assignment cannot be used as a condition, perhaps `==` was meant?
-fail_compilation/diag10862.d(52): Error: assignment cannot be used as a condition, perhaps `==` was meant?
-fail_compilation/diag10862.d(53): Error: assignment cannot be used as a condition, perhaps `==` was meant?
-fail_compilation/diag10862.d(54): Error: assignment cannot be used as a condition, perhaps `==` was meant?
-fail_compilation/diag10862.d(56): Error: assignment cannot be used as a condition, perhaps `==` was meant?
-fail_compilation/diag10862.d(57): Error: assignment cannot be used as a condition, perhaps `==` was meant?
-fail_compilation/diag10862.d(58): Error: assignment cannot be used as a condition, perhaps `==` was meant?
-fail_compilation/diag10862.d(59): Error: assignment cannot be used as a condition, perhaps `==` was meant?
-fail_compilation/diag10862.d(61): Error: undefined identifier `semanticError`
-fail_compilation/diag10862.d(71): Error: assignment cannot be used as a condition, perhaps `==` was meant?
-fail_compilation/diag10862.d(74): Error: assignment cannot be used as a condition, perhaps `==` was meant?
-fail_compilation/diag10862.d-mixin-77(77): Error: assignment cannot be used as a condition, perhaps `==` was meant?
-fail_compilation/diag10862.d-mixin-78(78): Error: assignment cannot be used as a condition, perhaps `==` was meant?
-fail_compilation/diag10862.d-mixin-79(79): Error: assignment cannot be used as a condition, perhaps `==` was meant?
-fail_compilation/diag10862.d-mixin-80(80): Error: using the result of a comma expression is not allowed
-fail_compilation/diag10862.d-mixin-80(80): Error: assignment cannot be used as a condition, perhaps `==` was meant?
-fail_compilation/diag10862.d-mixin-83(83): Error: cannot modify expression `a + b` because it is not an lvalue
-fail_compilation/diag10862.d-mixin-84(84): Error: undefined identifier `c`
-fail_compilation/diag10862.d(86): Error: undefined identifier `semanticError`
-fail_compilation/diag10862.d(93): Error: cannot modify lazy variable `bar`
-fail_compilation/diag10862.d(95): Error: template instance `diag10862.test3.foo!int` error instantiating
+fail_compilation/diag10862.d(86): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+    if (a = b) {}
+          ^
+fail_compilation/diag10862.d(87): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+    if ((a = b) = 0) {}
+                ^
+fail_compilation/diag10862.d(88): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+    if ((a = b) = (a = b)) {}
+                ^
+fail_compilation/diag10862.d(89): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+    if (a = 0, b = 0) {}        // https://issues.dlang.org/show_bug.cgi?id=15384
+                 ^
+fail_compilation/diag10862.d(90): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+    if (auto x = a = b) {}      // this is error, today
+                   ^
+fail_compilation/diag10862.d(92): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+    while (a = b) {}
+             ^
+fail_compilation/diag10862.d(93): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+    while ((a = b) = 0) {}
+                   ^
+fail_compilation/diag10862.d(94): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+    while ((a = b) = (a = b)) {}
+                   ^
+fail_compilation/diag10862.d(95): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+    while (a = 0, b = 0) {}     // https://issues.dlang.org/show_bug.cgi?id=15384
+                    ^
+fail_compilation/diag10862.d(97): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+    do {} while (a = b);
+                   ^
+fail_compilation/diag10862.d(98): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+    do {} while ((a = b) = 0);
+                         ^
+fail_compilation/diag10862.d(99): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+    do {} while ((a = b) = (a = b));
+                         ^
+fail_compilation/diag10862.d(100): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+    do {} while (a = 0, b = 0); // https://issues.dlang.org/show_bug.cgi?id=15384
+                          ^
+fail_compilation/diag10862.d(102): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+    for (;  a = b; ) {}
+              ^
+fail_compilation/diag10862.d(103): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+    for (;  (a = b) = 0; ) {}
+                    ^
+fail_compilation/diag10862.d(104): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+    for (;  (a = b) = (a = b); ) {}
+                    ^
+fail_compilation/diag10862.d(105): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+    for (;  a = 0, b = 0; ) {}  // https://issues.dlang.org/show_bug.cgi?id=15384
+                     ^
+fail_compilation/diag10862.d(107): Error: undefined identifier `semanticError`
+    semanticError;
+    ^
+fail_compilation/diag10862.d(117): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+    if (a + b = a * b) {}
+              ^
+fail_compilation/diag10862.d(120): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+    if (a = undefinedIdentifier) {}
+          ^
+fail_compilation/diag10862.d-mixin-123(123): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+fail_compilation/diag10862.d-mixin-124(124): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+fail_compilation/diag10862.d-mixin-125(125): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+fail_compilation/diag10862.d-mixin-126(126): Error: using the result of a comma expression is not allowed
+fail_compilation/diag10862.d-mixin-126(126): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+fail_compilation/diag10862.d-mixin-129(129): Error: cannot modify expression `a + b` because it is not an lvalue
+fail_compilation/diag10862.d-mixin-130(130): Error: undefined identifier `c`
+fail_compilation/diag10862.d(132): Error: undefined identifier `semanticError`
+    semanticError;
+    ^
+fail_compilation/diag10862.d(139): Error: cannot modify lazy variable `bar`
+        bar = 2;
+        ^
+fail_compilation/diag10862.d(141): Error: template instance `diag10862.test3.foo!int` error instantiating
+    foo(1 + 1);
+       ^
 ---
 */
 void test1()

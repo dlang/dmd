@@ -2,12 +2,27 @@
 REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/test17450.d(17): Error: returning `&s.bar` escapes a reference to parameter `s`
-fail_compilation/test17450.d(16):        perhaps annotate the parameter with `return`
-fail_compilation/test17450.d(20): Error: returning `&this.bar` escapes a reference to parameter `this`
-fail_compilation/test17450.d(19):        perhaps annotate the function with `return`
+fail_compilation/test17450.d(32): Error: returning `&s.bar` escapes a reference to parameter `s`
+        return &s.bar;
+               ^
+fail_compilation/test17450.d(31):        perhaps annotate the parameter with `return`
+    @safe dg_t foo1(ref S s) {
+                          ^
+fail_compilation/test17450.d(35): Error: returning `&this.bar` escapes a reference to parameter `this`
+        return &bar;
+               ^
+fail_compilation/test17450.d(34):        perhaps annotate the function with `return`
+    @safe dg_t foo2() {
+               ^
+fail_compilation/test17450.d(52): Error: scope parameter `c` may not be returned
+        return &c.bar;
+               ^
+fail_compilation/test17450.d(55): Error: scope parameter `this` may not be returned
+        return &bar;
+               ^
 ---
 */
+// https://issues.dlang.org/show_bug.cgi?id=17450
 // https://issues.dlang.org/show_bug.cgi?id=17450
 
 alias dg_t = void delegate();
@@ -30,16 +45,7 @@ struct S {
     @safe void bar();
 }
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/test17450.d(103): Error: scope parameter `c` may not be returned
-fail_compilation/test17450.d(106): Error: scope parameter `this` may not be returned
----
-*/
-// https://issues.dlang.org/show_bug.cgi?id=17450
-
-#line 100
+// Line 100 starts here
 
 class C {
     @safe dg_t foo1(scope C c) {

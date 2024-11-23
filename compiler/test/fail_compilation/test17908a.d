@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test17908a.d(10): Error: function `test17908a.foo` cannot be used because it is annotated with `@disable`
+fail_compilation/test17908a.d(12): Error: function `test17908a.foo` cannot be used because it is annotated with `@disable`
+alias g = foo;
+          ^
 ---
 */
 

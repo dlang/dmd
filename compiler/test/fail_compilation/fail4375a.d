@@ -3,7 +3,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail4375a.d(16): Warning: else is dangling, add { } after condition at fail_compilation/fail4375a.d(13)
+fail_compilation/fail4375a.d(18): Warning: else is dangling, add { } after condition at fail_compilation/fail4375a.d(15)
+    else
+    ^
 Error: warnings are treated as errors
        Use -wi if you wish to treat warnings only as informational.
 ---

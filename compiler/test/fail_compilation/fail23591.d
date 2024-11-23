@@ -2,8 +2,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail23591.d(13): Error: cannot implicitly convert expression `square(i) , null` of type `string` to `int`
-fail_compilation/fail23591.d(14): Error: cannot implicitly convert expression `assert(0) , null` of type `real function(char)` to `int`
+fail_compilation/fail23591.d(17): Error: cannot implicitly convert expression `square(i) , null` of type `string` to `int`
+    int x = cast(string)square(i);
+                              ^
+fail_compilation/fail23591.d(18): Error: cannot implicitly convert expression `assert(0) , null` of type `real function(char)` to `int`
+    int y = cast(real function(char))assert(0);
+                                     ^
 ---
 */
 noreturn square(int x);

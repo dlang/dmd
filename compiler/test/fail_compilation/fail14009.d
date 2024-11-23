@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail14009.d(12): Error: expression expected not `:`
+fail_compilation/fail14009.d(14): Error: expression expected not `:`
+      mov EAX, FS: 1 ? 2 : : 3;   // rejected
+                              ^
 ---
 */
 

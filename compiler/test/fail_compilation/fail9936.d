@@ -1,11 +1,21 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail9936.d(25): Error: `S().opBinary` isn't a template
-fail_compilation/fail9936.d(26): Error: `S().opBinaryRight` isn't a template
-fail_compilation/fail9936.d(27): Error: `S().opOpAssign` isn't a template
-fail_compilation/fail9936.d(29): Error: `S().opIndexUnary` isn't a template
-fail_compilation/fail9936.d(30): Error: `S().opUnary` isn't a template
+fail_compilation/fail9936.d(35): Error: `S().opBinary` isn't a template
+    S() + S();
+     ^
+fail_compilation/fail9936.d(36): Error: `S().opBinaryRight` isn't a template
+    100 + S();
+           ^
+fail_compilation/fail9936.d(37): Error: `S().opOpAssign` isn't a template
+    S() += S();
+        ^
+fail_compilation/fail9936.d(39): Error: `S().opIndexUnary` isn't a template
+    +S()[0];
+    ^
+fail_compilation/fail9936.d(40): Error: `S().opUnary` isn't a template
+    +S();
+    ^
 ---
 */
 struct S

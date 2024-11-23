@@ -1,10 +1,18 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice13081.d(17): Error: undefined identifier `node`
-fail_compilation/ice13081.d(17): Error: undefined identifier `data`
-fail_compilation/ice13081.d(17): Error: undefined identifier `node`
-fail_compilation/ice13081.d(28): Error: template instance `ice13081.Cube!(SparseDataStore)` error instantiating
+fail_compilation/ice13081.d(25): Error: undefined identifier `node`
+        this[] = node.data ? data : node.data;
+                 ^
+fail_compilation/ice13081.d(25): Error: undefined identifier `data`
+        this[] = node.data ? data : node.data;
+                             ^
+fail_compilation/ice13081.d(25): Error: undefined identifier `node`
+        this[] = node.data ? data : node.data;
+                                    ^
+fail_compilation/ice13081.d(36): Error: template instance `ice13081.Cube!(SparseDataStore)` error instantiating
+    Cube!SparseDataStore c;
+    ^
 ---
 */
 

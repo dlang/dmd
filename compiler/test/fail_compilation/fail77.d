@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail77.d(11): Error: cannot cast expression `& i` of type `int*` to `ubyte[4]`
+fail_compilation/fail77.d(13): Error: cannot cast expression `& i` of type `int*` to `ubyte[4]`
+    ub[] = cast(ubyte[4]) &i;
+                          ^
 ---
 */
 void test()

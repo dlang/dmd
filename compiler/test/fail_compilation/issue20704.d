@@ -1,13 +1,29 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/issue20704.d(17): Error: cannot create default argument for `ref` / `out` parameter from constant `0`
-fail_compilation/issue20704.d(28): Error: template instance `issue20704.f2!int` error instantiating
-fail_compilation/issue20704.d(19): Error: cannot create default argument for `ref` / `out` parameter from constant `0`
-fail_compilation/issue20704.d(30): Error: template instance `issue20704.f4!int` error instantiating
-fail_compilation/issue20704.d(17): Error: cannot create default argument for `ref` / `out` parameter from expression `S(0)` because it is not an lvalue
-fail_compilation/issue20704.d(36): Error: template instance `issue20704.f2!(S)` error instantiating
-fail_compilation/issue20704.d(17): Error: cannot create default argument for `ref` / `out` parameter from expression `null` because it is not an lvalue
-fail_compilation/issue20704.d(38): Error: template instance `issue20704.f2!(C)` error instantiating
+fail_compilation/issue20704.d(33): Error: cannot create default argument for `ref` / `out` parameter from constant `0`
+void f2(T)(const      ref T arg = T.init) {}
+                                  ^
+fail_compilation/issue20704.d(44): Error: template instance `issue20704.f2!int` error instantiating
+    f2!int(i);
+    ^
+fail_compilation/issue20704.d(35): Error: cannot create default argument for `ref` / `out` parameter from constant `0`
+void f4(T)(const      ref T arg = 0) {}
+                                  ^
+fail_compilation/issue20704.d(46): Error: template instance `issue20704.f4!int` error instantiating
+    f4!int(i);
+    ^
+fail_compilation/issue20704.d(33): Error: cannot create default argument for `ref` / `out` parameter from expression `S(0)` because it is not an lvalue
+void f2(T)(const      ref T arg = T.init) {}
+                                  ^
+fail_compilation/issue20704.d(52): Error: template instance `issue20704.f2!(S)` error instantiating
+    f2!S();
+    ^
+fail_compilation/issue20704.d(33): Error: cannot create default argument for `ref` / `out` parameter from expression `null` because it is not an lvalue
+void f2(T)(const      ref T arg = T.init) {}
+                                  ^
+fail_compilation/issue20704.d(54): Error: template instance `issue20704.f2!(C)` error instantiating
+    f2!C();
+    ^
 ---
 */
 

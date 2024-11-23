@@ -3,9 +3,15 @@
 /*
 TEST_OUTPUT:
 ---
-compilable/test19609.d(11): Deprecation: module `imports.test19609a` is deprecated
-compilable/test19609.d(12): Deprecation: module `imports.test19609b` is deprecated - hello
-compilable/test19609.d(13): Deprecation: module `imports.test19609c` is deprecated
+compilable/test19609.d(17): Deprecation: module `imports.test19609a` is deprecated
+import imports.test19609a;
+       ^
+compilable/test19609.d(18): Deprecation: module `imports.test19609b` is deprecated - hello
+import imports.test19609b;
+       ^
+compilable/test19609.d(19): Deprecation: module `imports.test19609c` is deprecated
+import imports.test19609c;
+       ^
 ---
 */
 import imports.test19609a;

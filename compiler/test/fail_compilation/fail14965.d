@@ -1,18 +1,42 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail14965.d(19): Error: forward reference to inferred return type of function `foo1`
-fail_compilation/fail14965.d(20): Error: forward reference to inferred return type of function `foo2`
-fail_compilation/fail14965.d(22): Error: forward reference to inferred return type of function `bar1`
-fail_compilation/fail14965.d(23): Error: forward reference to inferred return type of function `bar2`
-fail_compilation/fail14965.d(25): Error: forward reference to inferred return type of function `baz1`
-fail_compilation/fail14965.d(26): Error: forward reference to inferred return type of function `baz2`
-fail_compilation/fail14965.d(30): Error: forward reference to inferred return type of function `foo1`
-fail_compilation/fail14965.d(31): Error: forward reference to inferred return type of function `foo2`
-fail_compilation/fail14965.d(33): Error: forward reference to inferred return type of function `bar1`
-fail_compilation/fail14965.d(34): Error: forward reference to inferred return type of function `bar2`
-fail_compilation/fail14965.d(36): Error: forward reference to inferred return type of function `baz1`
-fail_compilation/fail14965.d(37): Error: forward reference to inferred return type of function `baz2`
+fail_compilation/fail14965.d(43): Error: forward reference to inferred return type of function `foo1`
+auto foo1() { alias F = typeof(foo1); }     // TypeTypeof
+                        ^
+fail_compilation/fail14965.d(44): Error: forward reference to inferred return type of function `foo2`
+auto foo2() { alias FP = typeof(&foo2); }   // TypeTypeof
+                         ^
+fail_compilation/fail14965.d(46): Error: forward reference to inferred return type of function `bar1`
+auto bar1() { auto fp = &bar1; }            // ExpInitializer
+                        ^
+fail_compilation/fail14965.d(47): Error: forward reference to inferred return type of function `bar2`
+auto bar2() { auto fp = cast(void function())&bar2; }   // castTo
+                                             ^
+fail_compilation/fail14965.d(49): Error: forward reference to inferred return type of function `baz1`
+auto baz1() { return &baz1; }               // ReturnStatement
+                     ^
+fail_compilation/fail14965.d(50): Error: forward reference to inferred return type of function `baz2`
+auto baz2() { (&baz2); }                    // ExpStatement
+               ^
+fail_compilation/fail14965.d(54): Error: forward reference to inferred return type of function `foo1`
+    auto foo1() { alias F = typeof(this.foo1); }
+                            ^
+fail_compilation/fail14965.d(55): Error: forward reference to inferred return type of function `foo2`
+    auto foo2() { alias FP = typeof(&this.foo2); }
+                             ^
+fail_compilation/fail14965.d(57): Error: forward reference to inferred return type of function `bar1`
+    auto bar1() { auto fp = &this.bar1; }
+                            ^
+fail_compilation/fail14965.d(58): Error: forward reference to inferred return type of function `bar2`
+    auto bar2() { auto dg = cast(void delegate())&this.bar2; }
+                                                 ^
+fail_compilation/fail14965.d(60): Error: forward reference to inferred return type of function `baz1`
+    auto baz1() { return &baz1; }
+                         ^
+fail_compilation/fail14965.d(61): Error: forward reference to inferred return type of function `baz2`
+    auto baz2() { (&baz2); }
+                   ^
 ---
 */
 

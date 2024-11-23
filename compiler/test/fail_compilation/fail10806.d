@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail10806.d(12): Error: function `fail10806.Class.clone` incompatible covariant types `First()` and `Second()`
+fail_compilation/fail10806.d(14): Error: function `fail10806.Class.clone` incompatible covariant types `First()` and `Second()`
+  override Class clone() { return this; }
+                 ^
 ---
 */
 

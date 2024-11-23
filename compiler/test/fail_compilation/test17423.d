@@ -1,8 +1,12 @@
 /* REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/test17423.d(27): Error: reference to local `this` assigned to non-scope parameter `dlg` calling `opApply`
-fail_compilation/test17423.d(16):        which is not `scope` because of `this.myDlg = dlg`
+fail_compilation/test17423.d(31): Error: reference to local `this` assigned to non-scope parameter `dlg` calling `opApply`
+        foreach(_; o) { i = 0; }
+        ^
+fail_compilation/test17423.d(20):        which is not `scope` because of `this.myDlg = dlg`
+        myDlg = dlg;
+              ^
 ---
 */
 

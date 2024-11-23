@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/switches.d(14): Error: `case 2` not found
-fail_compilation/switches.d(25): Error: no `case` statement following `goto case;`
+fail_compilation/switches.d(18): Error: `case 2` not found
+            goto case 2;
+            ^
+fail_compilation/switches.d(29): Error: no `case` statement following `goto case;`
+            goto case;
+            ^
 ---
 */
 

@@ -29,9 +29,17 @@ static assert(S.c.bitwidth == 6);
 /* TEST_OUTPUT:
 ---
 fail_compilation/bitintro.d(6): Error: `a` is not a bitfield, cannot apply `bitoffsetof`
-fail_compilation/bitintro.d(37):        while evaluating: `static assert(a.bitoffsetof)`
+    int a;
+        ^
+fail_compilation/bitintro.d(45):        while evaluating: `static assert(a.bitoffsetof)`
+static assert(S.a.bitoffsetof);
+^
 fail_compilation/bitintro.d(6): Error: `a` is not a bitfield, cannot apply `bitwidth`
-fail_compilation/bitintro.d(38):        while evaluating: `static assert(a.bitwidth)`
+    int a;
+        ^
+fail_compilation/bitintro.d(46):        while evaluating: `static assert(a.bitwidth)`
+static assert(S.a.bitwidth);
+^
 ---
 */
 static assert(S.a.bitoffsetof);

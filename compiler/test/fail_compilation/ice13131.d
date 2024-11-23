@@ -6,6 +6,8 @@ TEST_OUTPUT:
 +A
 +B
 fail_compilation/imports/a13131elec.d(10): Error: template instance `elecConnOf!gconn` template `elecConnOf` is not defined
+alias econn = elecConnOf!gconn; // invalid declaration
+              ^
 -B
 -A
 ---

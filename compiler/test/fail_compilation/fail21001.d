@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail21001.d(12): Error: undefined identifier `Alias`
+fail_compilation/fail21001.d(14): Error: undefined identifier `Alias`
+void main() { Alias var; }
+                    ^
 ---
 */
 

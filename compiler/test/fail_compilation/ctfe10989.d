@@ -1,9 +1,24 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ctfe10989.d(11): Error: uncaught CTFE exception `object.Exception("abc"c)`
-fail_compilation/ctfe10989.d(14):        called from here: `throwing()`
-fail_compilation/ctfe10989.d(14):        while evaluating: `static assert(throwing())`
+fail_compilation/ctfe10989.d(26): Error: uncaught CTFE exception `object.Exception("abc"c)`
+    throw new Exception(['a', 'b', 'c']);
+          ^
+fail_compilation/ctfe10989.d(29):        called from here: `throwing()`
+static assert(throwing());
+                      ^
+fail_compilation/ctfe10989.d(29):        while evaluating: `static assert(throwing())`
+static assert(throwing());
+^
+fail_compilation/ctfe10989.d(40): Error: uncaught CTFE exception `object.Exception("abc"c)`
+    throw new Exception(cast(string)arr);
+          ^
+fail_compilation/ctfe10989.d(43):        called from here: `throwing2()`
+static assert(throwing2());
+                       ^
+fail_compilation/ctfe10989.d(43):        while evaluating: `static assert(throwing2())`
+static assert(throwing2());
+^
 ---
 */
 int throwing()
@@ -13,14 +28,6 @@ int throwing()
 }
 static assert(throwing());
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/ctfe10989.d(33): Error: uncaught CTFE exception `object.Exception("abc"c)`
-fail_compilation/ctfe10989.d(36):        called from here: `throwing2()`
-fail_compilation/ctfe10989.d(36):        while evaluating: `static assert(throwing2())`
----
-*/
 int throwing2()
 {
     string msg = "abc";

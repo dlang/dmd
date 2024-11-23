@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail312.d(13): Error: incompatible types for `(a[]) == (b)`: `int[]` and `short`
-fail_compilation/fail312.d(14): Error: incompatible types for `(a[]) <= (b)`: `int[]` and `short`
+fail_compilation/fail312.d(17): Error: incompatible types for `(a[]) == (b)`: `int[]` and `short`
+    assert(a[] == b);
+           ^
+fail_compilation/fail312.d(18): Error: incompatible types for `(a[]) <= (b)`: `int[]` and `short`
+    assert(a[] <= b);
+           ^
 ---
 */
 

@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test15368.d(13): Error: cannot declare `auto` loop variable, omit `auto` to still get type inference
+fail_compilation/test15368.d(15): Error: cannot declare `auto` loop variable, omit `auto` to still get type inference
+    foreach (auto e; foo) { }
+             ^
 ---
 */
 

@@ -3,7 +3,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail12764.d(20): Error: field `s` must be initialized in constructor
+fail_compilation/fail12764.d(22): Error: field `s` must be initialized in constructor
+    this(int)
+    ^
 ---
 */
 

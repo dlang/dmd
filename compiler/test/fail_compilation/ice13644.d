@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice13644.d(22): Error: foreach: key cannot be of non-integral type `string`
+fail_compilation/ice13644.d(24): Error: foreach: key cannot be of non-integral type `string`
+    foreach (string k2, string v2; foo())
+    ^
 ---
 */
 

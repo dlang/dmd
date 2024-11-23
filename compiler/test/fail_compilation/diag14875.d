@@ -6,10 +6,43 @@ deprecated immutable int depVar = 10;
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag14875.d(16): Deprecation: class `diag14875.Dep` is deprecated
+fail_compilation/diag14875.d(49): Deprecation: class `diag14875.Dep` is deprecated
+alias X = Foo!Dep;              // deprecation
+          ^
 1: Dep
 2: Dep
 3: Dep
+fail_compilation/diag14875.d(69): Deprecation: class `diag14875.Dep` is deprecated
+alias Y = Voo!Dep;              // deprecation
+          ^
+fail_compilation/diag14875.d(73): Deprecation: variable `diag14875.depVar` is deprecated
+    enum n = depVar;            // deprecation
+             ^
+fail_compilation/diag14875.d(69):        instantiated from here: `Voo!(Dep)`
+alias Y = Voo!Dep;              // deprecation
+          ^
+4: Dep
+fail_compilation/diag14875.d(80): Deprecation: variable `diag14875.depVar` is deprecated
+    enum n = depVar;            // deprecation
+             ^
+fail_compilation/diag14875.d(76):        instantiated from here: `Var!(Dep)`
+    enum Voo = cast(void*)Var!T;
+                          ^
+fail_compilation/diag14875.d(69):        instantiated from here: `Voo!(Dep)`
+alias Y = Voo!Dep;              // deprecation
+          ^
+fail_compilation/diag14875.d(81): Deprecation: template `diag14875.Vaz(T)` is deprecated
+    enum Var = &Vaz!T;          // deprecation
+                ^
+fail_compilation/diag14875.d(76):        instantiated from here: `Var!(Dep)`
+    enum Voo = cast(void*)Var!T;
+                          ^
+fail_compilation/diag14875.d(69):        instantiated from here: `Voo!(Dep)`
+alias Y = Voo!Dep;              // deprecation
+          ^
+fail_compilation/diag14875.d(91): Error: static assert:  `0` is false
+    static assert(0);
+    ^
 ---
 */
 
@@ -33,22 +66,6 @@ template Baz(T)
 
 // ---
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/diag14875.d(52): Deprecation: class `diag14875.Dep` is deprecated
-fail_compilation/diag14875.d(56): Deprecation: variable `diag14875.depVar` is deprecated
-fail_compilation/diag14875.d(52):        instantiated from here: `Voo!(Dep)`
-4: Dep
-fail_compilation/diag14875.d(63): Deprecation: variable `diag14875.depVar` is deprecated
-fail_compilation/diag14875.d(59):        instantiated from here: `Var!(Dep)`
-fail_compilation/diag14875.d(52):        instantiated from here: `Voo!(Dep)`
-fail_compilation/diag14875.d(64): Deprecation: template `diag14875.Vaz(T)` is deprecated
-fail_compilation/diag14875.d(59):        instantiated from here: `Var!(Dep)`
-fail_compilation/diag14875.d(52):        instantiated from here: `Voo!(Dep)`
----
-*/
-
 alias Y = Voo!Dep;              // deprecation
 
 template Voo(T)
@@ -69,12 +86,6 @@ deprecated template Vaz(T)
     immutable Vaz = 1234;
 }
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/diag14875.d(80): Error: static assert:  `0` is false
----
-*/
 void main()
 {
     static assert(0);

@@ -1,12 +1,74 @@
 /+
 TEST_OUTPUT:
 ---
-fail_compilation/testOpApply.d(27): Error: `testOpApply.SameAttr.opApply` called with argument types `(int delegate(int i) pure nothrow @nogc @safe)` matches both:
-fail_compilation/testOpApply.d(13):     `testOpApply.SameAttr.opApply(int delegate(int) @system dg)`
+fail_compilation/testOpApply.d(89): Error: `testOpApply.SameAttr.opApply` called with argument types `(int delegate(int i) pure nothrow @nogc @safe)` matches both:
+fail_compilation/testOpApply.d(75):     `testOpApply.SameAttr.opApply(int delegate(int) @system dg)`
 and:
-fail_compilation/testOpApply.d(18):     `testOpApply.SameAttr.opApply(int delegate(int) @system dg)`
+fail_compilation/testOpApply.d(80):     `testOpApply.SameAttr.opApply(int delegate(int) @system dg)`
+    foreach (int i; sa) {}
+    ^
+fail_compilation/testOpApply.d(97): Error: `testOpApply.SameAttr.opApply` called with argument types `(int delegate(int i) pure nothrow @nogc @system)` matches both:
+fail_compilation/testOpApply.d(75):     `testOpApply.SameAttr.opApply(int delegate(int) @system dg)`
+and:
+fail_compilation/testOpApply.d(80):     `testOpApply.SameAttr.opApply(int delegate(int) @system dg)`
+    foreach (int i; sa) {}
+    ^
+fail_compilation/testOpApply.d(118): Error: `sa.opApply` matches more than one declaration:
+    foreach (i; sa) {}
+                ^
+fail_compilation/testOpApply.d(104):        `int(int delegate(int) dg)`
+and:
+    int opApply(int delegate(int) dg)
+        ^
+fail_compilation/testOpApply.d(109):        `int(int delegate(string) dg)`
+    int opApply(int delegate(string) dg)
+        ^
+fail_compilation/testOpApply.d(118): Error: cannot uniquely infer `foreach` argument types
+    foreach (i; sa) {}
+    ^
+fail_compilation/testOpApply.d(139): Error: `sa.opApply` matches more than one declaration:
+    foreach (i; sa) {}
+                ^
+fail_compilation/testOpApply.d(125):        `int(int delegate(int) dg)`
+and:
+    int opApply(int delegate(int) dg)
+        ^
+fail_compilation/testOpApply.d(130):        `int(int delegate(long) dg)`
+    int opApply(int delegate(long) dg)
+        ^
+fail_compilation/testOpApply.d(139): Error: cannot uniquely infer `foreach` argument types
+    foreach (i; sa) {}
+    ^
+fail_compilation/testOpApply.d(163): Error: `sa.opApply` matches more than one declaration:
+    foreach (i; sa) {}
+                ^
+fail_compilation/testOpApply.d(147):        `int(int delegate(int) dg)`
+and:
+    int opApply(int delegate(int) dg)
+        ^
+fail_compilation/testOpApply.d(153):        `int(int delegate(ref int) dg)`
+    int opApply(int delegate(ref int) dg)
+        ^
+fail_compilation/testOpApply.d(163): Error: cannot uniquely infer `foreach` argument types
+    foreach (i; sa) {}
+    ^
+fail_compilation/testOpApply.d(171): Error: `sa.opApply` matches more than one declaration:
+    foreach (ref i; sa) {}
+                    ^
+fail_compilation/testOpApply.d(147):        `int(int delegate(int) dg)`
+and:
+    int opApply(int delegate(int) dg)
+        ^
+fail_compilation/testOpApply.d(153):        `int(int delegate(ref int) dg)`
+    int opApply(int delegate(ref int) dg)
+        ^
+fail_compilation/testOpApply.d(171): Error: cannot uniquely infer `foreach` argument types
+    foreach (ref i; sa) {}
+    ^
 ---
 +/
+
+// https://issues.dlang.org/show_bug.cgi?id=21683
 
 struct SameAttr
 {
@@ -27,16 +89,7 @@ void testSameAttr() @safe
     foreach (int i; sa) {}
 }
 
-/+
-TEST_OUTPUT:
----
-fail_compilation/testOpApply.d(104): Error: `testOpApply.SameAttr.opApply` called with argument types `(int delegate(int i) pure nothrow @nogc @system)` matches both:
-fail_compilation/testOpApply.d(13):     `testOpApply.SameAttr.opApply(int delegate(int) @system dg)`
-and:
-fail_compilation/testOpApply.d(18):     `testOpApply.SameAttr.opApply(int delegate(int) @system dg)`
----
-+/
-#line 100
+// Line 100 starts here
 
 void testSameAttr() @system
 {
@@ -44,17 +97,7 @@ void testSameAttr() @system
     foreach (int i; sa) {}
 }
 
-/+
-TEST_OUTPUT:
----
-fail_compilation/testOpApply.d(217): Error: `sa.opApply` matches more than one declaration:
-fail_compilation/testOpApply.d(203):        `int(int delegate(int) dg)`
-and:
-fail_compilation/testOpApply.d(208):        `int(int delegate(string) dg)`
-fail_compilation/testOpApply.d(217): Error: cannot uniquely infer `foreach` argument types
----
-+/
-#line 200
+// Line 200 starts here
 
 struct DifferentTypes
 {
@@ -75,17 +118,7 @@ void testDifferentTypes()
     foreach (i; sa) {}
 }
 
-/+
-TEST_OUTPUT:
----
-fail_compilation/testOpApply.d(317): Error: `sa.opApply` matches more than one declaration:
-fail_compilation/testOpApply.d(303):        `int(int delegate(int) dg)`
-and:
-fail_compilation/testOpApply.d(308):        `int(int delegate(long) dg)`
-fail_compilation/testOpApply.d(317): Error: cannot uniquely infer `foreach` argument types
----
-+/
-#line 300
+// Line 300 starts here
 
 struct CovariantTypes
 {
@@ -106,19 +139,7 @@ void testCovariantTypes()
     foreach (i; sa) {}
 }
 
-/+
-See https://issues.dlang.org/show_bug.cgi?id=21683
-
-TEST_OUTPUT:
----
-fail_compilation/testOpApply.d(420): Error: `sa.opApply` matches more than one declaration:
-fail_compilation/testOpApply.d(404):        `int(int delegate(int) dg)`
-and:
-fail_compilation/testOpApply.d(410):        `int(int delegate(ref int) dg)`
-fail_compilation/testOpApply.d(420): Error: cannot uniquely infer `foreach` argument types
----
-+/
-#line 400
+// Line 400 starts here
 
 struct DifferentQualifiers
 {
@@ -142,17 +163,7 @@ void testDifferentQualifiers()
     foreach (i; sa) {}
 }
 
-/+
-TEST_OUTPUT:
----
-fail_compilation/testOpApply.d(504): Error: `sa.opApply` matches more than one declaration:
-fail_compilation/testOpApply.d(404):        `int(int delegate(int) dg)`
-and:
-fail_compilation/testOpApply.d(410):        `int(int delegate(ref int) dg)`
-fail_compilation/testOpApply.d(504): Error: cannot uniquely infer `foreach` argument types
----
-+/
-#line 500
+// Line 500 starts here
 
 void testDifferentQualifiersRef()
 {

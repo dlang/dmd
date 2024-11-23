@@ -2,7 +2,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice23569.d(24): Error: cannot compare classes for equality because `object.Object` was not declared
+fail_compilation/ice23569.d(26): Error: cannot compare classes for equality because `object.Object` was not declared
+    auto ice23569 = new F(0) == new F(0);
+                    ^
 ---
 */
 module object;

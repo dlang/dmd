@@ -2,25 +2,49 @@
 REQUIRED_ARGS: -preview=in -preview=dip1000
 TEST_OUTPUT:
 ----
-fail_compilation/previewin.d(4): Error: function `takeFunction` is not callable using argument types `(void function(real x) pure nothrow @nogc @safe)`
-fail_compilation/previewin.d(4):        cannot pass argument `__lambda_L4_C18` of type `void function(real x) pure nothrow @nogc @safe` to parameter `void function(in real) f`
-fail_compilation/previewin.d(11):        `previewin.takeFunction(void function(in real) f)` declared here
-fail_compilation/previewin.d(5): Error: function `takeFunction` is not callable using argument types `(void function(scope const(real) x) pure nothrow @nogc @safe)`
-fail_compilation/previewin.d(5):        cannot pass argument `__lambda_L5_C18` of type `void function(scope const(real) x) pure nothrow @nogc @safe` to parameter `void function(in real) f`
-fail_compilation/previewin.d(11):        `previewin.takeFunction(void function(in real) f)` declared here
-fail_compilation/previewin.d(6): Error: function `takeFunction` is not callable using argument types `(void function(ref scope const(real) x) pure nothrow @nogc @safe)`
-fail_compilation/previewin.d(6):        cannot pass argument `__lambda_L6_C18` of type `void function(ref scope const(real) x) pure nothrow @nogc @safe` to parameter `void function(in real) f`
-fail_compilation/previewin.d(11):        `previewin.takeFunction(void function(in real) f)` declared here
-fail_compilation/previewin.d(15): Error: scope variable `arg` assigned to global variable `myGlobal`
-fail_compilation/previewin.d(16): Error: scope variable `arg` assigned to global variable `myGlobal`
-fail_compilation/previewin.d(17): Error: scope parameter `arg` may not be returned
-fail_compilation/previewin.d(18): Error: scope variable `arg` assigned to `ref` variable `escape` with longer lifetime
-fail_compilation/previewin.d(22): Error: returning `arg` escapes a reference to parameter `arg`
-fail_compilation/previewin.d(22):        perhaps annotate the parameter with `return`
+fail_compilation/previewin.d(51): Error: function `takeFunction` is not callable using argument types `(void function(real x) pure nothrow @nogc @safe)`
+    takeFunction((real x) {});
+                ^
+fail_compilation/previewin.d(51):        cannot pass argument `__lambda_L51_C18` of type `void function(real x) pure nothrow @nogc @safe` to parameter `void function(in real) f`
+fail_compilation/previewin.d(58):        `previewin.takeFunction(void function(in real) f)` declared here
+void takeFunction(void function(in real) f);
+     ^
+fail_compilation/previewin.d(52): Error: function `takeFunction` is not callable using argument types `(void function(scope const(real) x) pure nothrow @nogc @safe)`
+    takeFunction((const scope real x) {});
+                ^
+fail_compilation/previewin.d(52):        cannot pass argument `__lambda_L52_C18` of type `void function(scope const(real) x) pure nothrow @nogc @safe` to parameter `void function(in real) f`
+fail_compilation/previewin.d(58):        `previewin.takeFunction(void function(in real) f)` declared here
+void takeFunction(void function(in real) f);
+     ^
+fail_compilation/previewin.d(53): Error: function `takeFunction` is not callable using argument types `(void function(ref scope const(real) x) pure nothrow @nogc @safe)`
+    takeFunction((const scope ref real x) {});
+                ^
+fail_compilation/previewin.d(53):        cannot pass argument `__lambda_L53_C18` of type `void function(ref scope const(real) x) pure nothrow @nogc @safe` to parameter `void function(in real) f`
+fail_compilation/previewin.d(58):        `previewin.takeFunction(void function(in real) f)` declared here
+void takeFunction(void function(in real) f);
+     ^
+fail_compilation/previewin.d(62): Error: scope variable `arg` assigned to global variable `myGlobal`
+void tryEscape(in char[] arg) @safe { myGlobal = arg; }
+                                               ^
+fail_compilation/previewin.d(63): Error: scope variable `arg` assigned to global variable `myGlobal`
+void tryEscape2(scope const char[] arg) @safe { myGlobal = arg; }
+                                                         ^
+fail_compilation/previewin.d(64): Error: scope parameter `arg` may not be returned
+const(char)[] tryEscape3(in char[] arg) @safe { return arg; }
+                                                       ^
+fail_compilation/previewin.d(65): Error: scope variable `arg` assigned to `ref` variable `escape` with longer lifetime
+void tryEscape4(in char[] arg, ref const(char)[] escape) @safe { escape = arg; }
+                                                                        ^
+fail_compilation/previewin.d(69): Error: returning `arg` escapes a reference to parameter `arg`
+ref const(ulong[8]) tryEscape6(in ulong[8] arg) @safe { return arg; }
+                                                               ^
+fail_compilation/previewin.d(69):        perhaps annotate the parameter with `return`
+ref const(ulong[8]) tryEscape6(in ulong[8] arg) @safe { return arg; }
+                                       ^
 ----
  */
 
-#line 1
+// Line 1 starts here
 void main ()
 {
     // No covariance without explicit `in`

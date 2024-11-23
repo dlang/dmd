@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail309.d(10): Error: circular reference to variable `fail309.S.x`
+fail_compilation/fail309.d(12): Error: circular reference to variable `fail309.S.x`
+    const x = S.x;
+              ^
 ---
 */
 // REQUIRED_ARGS: -d

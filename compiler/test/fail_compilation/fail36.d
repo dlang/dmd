@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail36.d(13): Error: template `t(int L)` does not have property `a`
-fail_compilation/fail36.d(18): Error: mixin `fail36.func.t!10` error instantiating
+fail_compilation/fail36.d(17): Error: template `t(int L)` does not have property `a`
+    void foo(int b = t.a) {} // wrong
+                      ^
+fail_compilation/fail36.d(22): Error: mixin `fail36.func.t!10` error instantiating
+    mixin t!(10);
+    ^
 ---
 */
 

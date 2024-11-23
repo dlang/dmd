@@ -2,7 +2,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail46.d(19): Error: calling non-static function `bug` requires an instance of type `MyStruct`
+fail_compilation/fail46.d(21): Error: calling non-static function `bug` requires an instance of type `MyStruct`
+    assert(MyStruct.bug() == 3);
+                       ^
 ---
 */
 

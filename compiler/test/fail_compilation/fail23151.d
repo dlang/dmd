@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail23151.d(30): Error: class `fail23151.makeDerivedObj.Derived` is nested within `makeDerivedObj`, but super class `Base` is nested within `makeBaseObj`
+fail_compilation/fail23151.d(32): Error: class `fail23151.makeDerivedObj.Derived` is nested within `makeDerivedObj`, but super class `Base` is nested within `makeBaseObj`
+    class Derived : typeof(makeBaseObj())
+    ^
 ---
 */
 interface I

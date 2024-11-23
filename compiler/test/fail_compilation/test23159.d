@@ -4,8 +4,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test23159.d(14): Error: `scope(failure)` cannot be used with -betterC
-fail_compilation/test23159.d(18): Error: `scope(success)` cannot be used with -betterC
+fail_compilation/test23159.d(18): Error: `scope(failure)` cannot be used with -betterC
+    scope(failure)
+    ^
+fail_compilation/test23159.d(22): Error: `scope(success)` cannot be used with -betterC
+    scope(success)
+    ^
 ---
 */
 

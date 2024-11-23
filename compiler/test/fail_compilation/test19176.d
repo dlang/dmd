@@ -2,7 +2,9 @@
 REQUIRED_ARGS: -unittest
 TEST_OUTPUT:
 ---
-fail_compilation/test19176.d(13): Error: argument `foo()` to __traits(getUnitTests) must be a module or aggregate, not a template
+fail_compilation/test19176.d(15): Error: argument `foo()` to __traits(getUnitTests) must be a module or aggregate, not a template
+    __traits(getUnitTests, foo);
+    ^
 ---
 */
 

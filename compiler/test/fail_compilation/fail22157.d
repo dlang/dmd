@@ -3,14 +3,18 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail22157.d(32): Error: `fail22157.S!true.S.foo` called with argument types `()` matches both:
-fail_compilation/fail22157.d(21):     `fail22157.S!true.S.foo()`
+fail_compilation/fail22157.d(36): Error: `fail22157.S!true.S.foo` called with argument types `()` matches both:
+fail_compilation/fail22157.d(25):     `fail22157.S!true.S.foo()`
 and:
-fail_compilation/fail22157.d(22):     `fail22157.S!true.S.foo()`
-fail_compilation/fail22157.d(33): Error: `fail22157.S!false.S.foo` called with argument types `()` matches both:
-fail_compilation/fail22157.d(26):     `fail22157.S!false.S.foo()`
+fail_compilation/fail22157.d(26):     `fail22157.S!true.S.foo()`
+    S!true.foo;
+    ^
+fail_compilation/fail22157.d(37): Error: `fail22157.S!false.S.foo` called with argument types `()` matches both:
+fail_compilation/fail22157.d(30):     `fail22157.S!false.S.foo()`
 and:
-fail_compilation/fail22157.d(27):     `fail22157.S!false.S.foo()`
+fail_compilation/fail22157.d(31):     `fail22157.S!false.S.foo()`
+    S!false.foo;
+    ^
 ---
 */
 

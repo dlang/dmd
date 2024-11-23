@@ -3,7 +3,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail115.d(17): Error: mixin `Foo!y` cannot resolve forward reference
+fail_compilation/fail115.d(19): Error: mixin `Foo!y` cannot resolve forward reference
+    mixin Foo!(y) y;
+    ^
 ---
 */
 

@@ -2,7 +2,9 @@
 EXTRA_FILES: imports/imp17602.d
 TEST_OUTPUT:
 ---
-fail_compilation/fail17602.d(17): Error: cannot implicitly convert expression `Status.on` of type `imports.imp17602.Status` to `fail17602.Status`
+fail_compilation/fail17602.d(19): Error: cannot implicitly convert expression `Status.on` of type `imports.imp17602.Status` to `fail17602.Status`
+    Status status = imports.imp17602.Status.on;
+                                    ^
 ---
 */
 

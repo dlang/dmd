@@ -2,12 +2,18 @@
 REQUIRED_ARGS: -de -preview=dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/bool_cast.d(17): Deprecation: cast from `ubyte[]` to `bool[]` not allowed in safe code
-fail_compilation/bool_cast.d(17):        Source element may have bytes which are not 0 or 1
-fail_compilation/bool_cast.d(22): Deprecation: cast from `int*` to `bool*` not allowed in safe code
-fail_compilation/bool_cast.d(22):        Source element may have bytes which are not 0 or 1
-fail_compilation/bool_cast.d(24): Deprecation: cast from `bool*` to `byte*` not allowed in safe code
-fail_compilation/bool_cast.d(24):        Target element could be assigned a byte which is not 0 or 1
+fail_compilation/bool_cast.d(23): Deprecation: cast from `ubyte[]` to `bool[]` not allowed in safe code
+    auto b = cast(bool[]) a; // reinterprets a's data
+             ^
+fail_compilation/bool_cast.d(23):        Source element may have bytes which are not 0 or 1
+fail_compilation/bool_cast.d(28): Deprecation: cast from `int*` to `bool*` not allowed in safe code
+    auto p = cast(bool*) &i;
+             ^
+fail_compilation/bool_cast.d(28):        Source element may have bytes which are not 0 or 1
+fail_compilation/bool_cast.d(30): Deprecation: cast from `bool*` to `byte*` not allowed in safe code
+    auto bp = cast(byte*) &v;
+              ^
+fail_compilation/bool_cast.d(30):        Target element could be assigned a byte which is not 0 or 1
 ---
 */
 

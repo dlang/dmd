@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail20448.d(16): Error: returning `p.x` escapes a reference to parameter `p`
-fail_compilation/fail20448.d(22): Error: template instance `fail20448.member!"x"` error instantiating
+fail_compilation/fail20448.d(20): Error: returning `p.x` escapes a reference to parameter `p`
+    return p.x;
+           ^
+fail_compilation/fail20448.d(26): Error: template instance `fail20448.member!"x"` error instantiating
+    p.member!"x" = 2;
+     ^
 ---
 */
 

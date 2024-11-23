@@ -3,7 +3,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test22686.d(15): Error: `this` is only defined in non-static member functions, not `create`
+fail_compilation/test22686.d(17): Error: `this` is only defined in non-static member functions, not `create`
+        auto self = &this;
+                     ^
 ---
 */
 

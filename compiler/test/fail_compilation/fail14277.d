@@ -3,7 +3,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail14277.d(10): Error: cannot implicitly convert expression `new char[](9999$?:32=u|64=LU$)` of type `char[]` to `ubyte[]`
+fail_compilation/fail14277.d(12): Error: cannot implicitly convert expression `new char[](9999$?:32=u|64=LU$)` of type `char[]` to `ubyte[]`
+ubyte[] u = new char[9999];
+            ^
 ---
 */
 

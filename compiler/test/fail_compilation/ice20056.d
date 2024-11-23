@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice20056.d(19): Error: calling non-static function `iter` requires an instance of type `RangeWrapper`
+fail_compilation/ice20056.d(21): Error: calling non-static function `iter` requires an instance of type `RangeWrapper`
+    Def!(RangeWrapper.iter).func;
+    ^
 ---
 */
 struct Def(alias fn)

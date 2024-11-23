@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail72.d(10): Error: undefined identifier `foo`
+fail_compilation/fail72.d(12): Error: undefined identifier `foo`
+    synchronized( foo )
+                  ^
 ---
 */
 

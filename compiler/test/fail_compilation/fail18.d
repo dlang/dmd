@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail18.d(14): Error: upper and lower bounds are needed to slice a pointer
+fail_compilation/fail18.d(16): Error: upper and lower bounds are needed to slice a pointer
+    int[] a = (&x)[];
+                  ^
 ---
 */
 

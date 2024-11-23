@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/e7804_2.d(17): Error: `__traits(getMember, Foo, "func")` does not give a valid type
+fail_compilation/e7804_2.d(19): Error: `__traits(getMember, Foo, "func")` does not give a valid type
+    __traits(getMember, Foo, "func") var;
+                                     ^
 ---
 */
 

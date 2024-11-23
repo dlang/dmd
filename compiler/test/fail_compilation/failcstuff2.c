@@ -1,45 +1,111 @@
 // check semantic analysis of C files
 /* TEST_OUTPUT:
 ---
-fail_compilation/failcstuff2.c(113): Error: cannot modify expression `cast(int)var` because it is not an lvalue
-fail_compilation/failcstuff2.c(114): Error: `sizeof` is not a member of `int`
-fail_compilation/failcstuff2.c(115): Error: cannot modify expression `cast(short)3` because it is not an lvalue
-fail_compilation/failcstuff2.c(116): Error: cannot modify constant `4`
-fail_compilation/failcstuff2.c(117): Error: cannot modify constant `5`
-fail_compilation/failcstuff2.c(118): Error: cannot take address of constant `6`
-fail_compilation/failcstuff2.c(119): Error: cannot modify expression `cast(int)var` because it is not an lvalue
-fail_compilation/failcstuff2.c(120): Error: cannot modify expression `cast(int)var` because it is not an lvalue
-fail_compilation/failcstuff2.c(121): Error: cannot modify expression `cast(int)var` because it is not an lvalue
-fail_compilation/failcstuff2.c(122): Error: cannot modify expression `cast(int)var` because it is not an lvalue
-fail_compilation/failcstuff2.c(123): Error: cannot take address of expression `cast(int)var` because it is not an lvalue
-fail_compilation/failcstuff2.c(124): Error: cannot take address of expression `makeS22067().field` because it is not an lvalue
-fail_compilation/failcstuff2.c(125): Error: cannot modify expression `makeS22067().field` because it is not an lvalue
-fail_compilation/failcstuff2.c(126): Error: cannot modify expression `makeS22067().field` because it is not an lvalue
-fail_compilation/failcstuff2.c(127): Error: cannot modify expression `makeS22067().field` because it is not an lvalue
-fail_compilation/failcstuff2.c(153): Error: cannot modify expression `cast(short)var` because it is not an lvalue
-fail_compilation/failcstuff2.c(154): Error: cannot modify expression `cast(long)var` because it is not an lvalue
-fail_compilation/failcstuff2.c(354): Error: variable `arr` cannot be read at compile time
-fail_compilation/failcstuff2.c(360): Error: variable `str` cannot be read at compile time
-fail_compilation/failcstuff2.c(352): Error: cannot take address of register variable `reg1`
-fail_compilation/failcstuff2.c(355): Error: cannot take address of register variable `reg2`
-fail_compilation/failcstuff2.c(358): Error: cannot take address of register variable `reg3`
-fail_compilation/failcstuff2.c(359): Error: cannot index through register variable `reg3`
-fail_compilation/failcstuff2.c(360): Error: cannot take address of register variable `reg3`
-fail_compilation/failcstuff2.c(361): Error: cannot take address of register variable `reg3`
-fail_compilation/failcstuff2.c(362): Error: cannot index through register variable `reg3`
-fail_compilation/failcstuff2.c(373): Error: cannot take address of register variable `reg4`
-fail_compilation/failcstuff2.c(374): Error: cannot take address of register variable `reg4`
-fail_compilation/failcstuff2.c(375): Error: cannot take address of register variable `reg4`
-fail_compilation/failcstuff2.c(376): Error: cannot take address of bit-field `b`
-fail_compilation/failcstuff2.c(377): Error: cannot index through register variable `reg4`
-fail_compilation/failcstuff2.c(378): Error: cannot index through register variable `reg4`
-fail_compilation/failcstuff2.c(381): Error: cannot take address of register variable `reg5`
+fail_compilation/failcstuff2.c(137): Error: cannot modify expression `cast(int)var` because it is not an lvalue
+    (int) var = 1;
+    ^
+fail_compilation/failcstuff2.c(138): Error: `sizeof` is not a member of `int`
+    sizeof(var) = 2;
+           ^
+fail_compilation/failcstuff2.c(139): Error: cannot modify expression `cast(short)3` because it is not an lvalue
+    ++(short)3;
+             ^
+fail_compilation/failcstuff2.c(140): Error: cannot modify constant `4`
+    --4;
+      ^
+fail_compilation/failcstuff2.c(141): Error: cannot modify constant `5`
+    (5)++;
+     ^
+fail_compilation/failcstuff2.c(142): Error: cannot take address of constant `6`
+    (&6);
+      ^
+fail_compilation/failcstuff2.c(143): Error: cannot modify expression `cast(int)var` because it is not an lvalue
+    ((int)var)++;
+     ^
+fail_compilation/failcstuff2.c(144): Error: cannot modify expression `cast(int)var` because it is not an lvalue
+    ((int)var)--;
+     ^
+fail_compilation/failcstuff2.c(145): Error: cannot modify expression `cast(int)var` because it is not an lvalue
+    ++(int)var;
+      ^
+fail_compilation/failcstuff2.c(146): Error: cannot modify expression `cast(int)var` because it is not an lvalue
+    --(int)var;
+      ^
+fail_compilation/failcstuff2.c(147): Error: cannot take address of expression `cast(int)var` because it is not an lvalue
+    &(int)var;
+     ^
+fail_compilation/failcstuff2.c(148): Error: cannot take address of expression `makeS22067().field` because it is not an lvalue
+    &makeS22067().field;
+               ^
+fail_compilation/failcstuff2.c(149): Error: cannot modify expression `makeS22067().field` because it is not an lvalue
+    makeS22067().field = 1;
+              ^
+fail_compilation/failcstuff2.c(150): Error: cannot modify expression `makeS22067().field` because it is not an lvalue
+    makeS22067().field++;
+              ^
+fail_compilation/failcstuff2.c(151): Error: cannot modify expression `makeS22067().field` because it is not an lvalue
+    --makeS22067().field;
+                ^
+fail_compilation/failcstuff2.c(160): Error: cannot modify expression `cast(short)var` because it is not an lvalue
+    ++(short) var;
+              ^
+fail_compilation/failcstuff2.c(161): Error: cannot modify expression `cast(long)var` because it is not an lvalue
+    --(long long) var;
+                  ^
+fail_compilation/failcstuff2.c(185): Error: variable `arr` cannot be read at compile time
+    int arr2[] = arr;
+                 ^
+fail_compilation/failcstuff2.c(191): Error: variable `str` cannot be read at compile time
+    char msg[] = str;
+                 ^
+fail_compilation/failcstuff2.c(198): Error: cannot take address of register variable `reg1`
+    int *ptr1 = &reg1;
+                ^
+fail_compilation/failcstuff2.c(201): Error: cannot take address of register variable `reg2`
+    int *ptr2 = &reg2;
+                ^
+fail_compilation/failcstuff2.c(204): Error: cannot take address of register variable `reg3`
+    int *ptr3 = (int *)reg3;
+                       ^
+fail_compilation/failcstuff2.c(205): Error: cannot index through register variable `reg3`
+    int idx3a = reg3[0];
+                    ^
+fail_compilation/failcstuff2.c(206): Error: cannot take address of register variable `reg3`
+    int idx3b = *reg3;
+                 ^
+fail_compilation/failcstuff2.c(207): Error: cannot take address of register variable `reg3`
+    int idx3c = reg3 + 0;
+                ^
+fail_compilation/failcstuff2.c(208): Error: cannot index through register variable `reg3`
+    int idx3d = 0[reg3];
+                 ^
+fail_compilation/failcstuff2.c(219): Error: cannot take address of register variable `reg4`
+    int *ptr4a = &(reg4.inner.i);
+                 ^
+fail_compilation/failcstuff2.c(220): Error: cannot take address of register variable `reg4`
+    int *ptr4b = reg4.inner.a;
+                 ^
+fail_compilation/failcstuff2.c(221): Error: cannot take address of register variable `reg4`
+    int *ptr4c = (int*)reg4.inner.a;
+                       ^
+fail_compilation/failcstuff2.c(222): Error: cannot take address of bit-field `b`
+    int *ptr4d = &(reg4.inner.b);
+                 ^
+fail_compilation/failcstuff2.c(223): Error: cannot index through register variable `reg4`
+    int idx4a = reg4.inner.a[0];
+                            ^
+fail_compilation/failcstuff2.c(224): Error: cannot index through register variable `reg4`
+    int idx4b = 0[reg4.inner.a];
+                 ^
+fail_compilation/failcstuff2.c(227): Error: cannot take address of register variable `reg5`
+    int **ptr5 = &reg5;
+                 ^
 ---
 */
 
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=22069
-#line 50
+// Line 50 starts here
 void test22069()
 {
     int var;
@@ -54,7 +120,7 @@ void test22069()
 
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=22067
-#line 100
+// Line 100 starts here
 struct S22067
 {
     int field;
@@ -87,7 +153,7 @@ void test22067()
 
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=22068
-#line 150
+// Line 150 starts here
 void test22068()
 {
     int var;
@@ -97,7 +163,7 @@ void test22068()
 
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=22405
-#line 300
+// Line 300 starts here
 struct S22405
 {
     int * const p;
@@ -111,7 +177,7 @@ void test22405(struct S22405 *s)
 
 /***************************************************/
 // https://issues.dlang.org/show_bug.cgi?id=22413
-#line 350
+// Line 350 starts here
 
 void test22413a()
 {
@@ -126,7 +192,7 @@ void test22413b()
 }
 
 /***************************************************/
-#line 350
+// Line 350 starts here
 void testRegister(register int reg1)
 {
     int *ptr1 = &reg1;

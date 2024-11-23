@@ -1,10 +1,18 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/e7804_1.d(14): Error: undefined identifier `Aggr`
-fail_compilation/e7804_1.d(15): Error: unrecognized trait `farfelu`
-fail_compilation/e7804_1.d(17): Error: undefined identifier `Aggr`
-fail_compilation/e7804_1.d(18): Error: unrecognized trait `farfelu`
+fail_compilation/e7804_1.d(22): Error: undefined identifier `Aggr`
+__traits(farfelu, Aggr, "member") a;
+^
+fail_compilation/e7804_1.d(23): Error: unrecognized trait `farfelu`
+__traits(farfelu, S, "member") a2;
+^
+fail_compilation/e7804_1.d(25): Error: undefined identifier `Aggr`
+alias foo = __traits(farfelu, Aggr, "member");
+            ^
+fail_compilation/e7804_1.d(26): Error: unrecognized trait `farfelu`
+alias foo2 = __traits(farfelu, S, "member");
+             ^
 ---
 */
 module e7804_1;

@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail97.d(11): Error: pragma `lib` is missing a terminating `;`
+fail_compilation/fail97.d(13): Error: pragma `lib` is missing a terminating `;`
+pragma(lib,"ws2_32.lib")//;
+^
 ---
 */
 

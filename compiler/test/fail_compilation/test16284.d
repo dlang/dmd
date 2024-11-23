@@ -1,9 +1,15 @@
 /* REQUIRED_ARGS: -preview=fieldwise
 TEST_OUTPUT:
 ---
-fail_compilation/test16284.d(24): Error: reinterpretation through overlapped field `s` is not allowed in CTFE
-fail_compilation/test16284.d(27):        called from here: `test()`
-fail_compilation/test16284.d(27):        while evaluating: `static assert(test())`
+fail_compilation/test16284.d(30): Error: reinterpretation through overlapped field `s` is not allowed in CTFE
+    return t1 == t2;
+           ^
+fail_compilation/test16284.d(33):        called from here: `test()`
+static assert(test());
+                  ^
+fail_compilation/test16284.d(33):        while evaluating: `static assert(test())`
+static assert(test());
+^
 ---
 */
 

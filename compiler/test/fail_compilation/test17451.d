@@ -1,9 +1,17 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/test17451.d(22): Error: undefined identifier `allocator`
-fail_compilation/test17451.d(23): Error: `false` has no effect
-fail_compilation/test17451.d(30): Error: variable `test17451.HashMap!(ThreadSlot).HashMap.__lambda_L30_C20.v` - size of type `ThreadSlot` is invalid
-fail_compilation/test17451.d(44): Error: template instance `test17451.HashMap!(ThreadSlot)` error instantiating
+fail_compilation/test17451.d(30): Error: undefined identifier `allocator`
+                try allocator;
+                    ^
+fail_compilation/test17451.d(31): Error: `false` has no effect
+                catch (Exception e) false; // should never happen
+                                    ^
+fail_compilation/test17451.d(38): Error: variable `test17451.HashMap!(ThreadSlot).HashMap.__lambda_L38_C20.v` - size of type `ThreadSlot` is invalid
+        static if ({ Value v; }) {}
+                           ^
+fail_compilation/test17451.d(52): Error: template instance `test17451.HashMap!(ThreadSlot)` error instantiating
+        HashMap!ThreadSlot m_waiters;
+        ^
 ---
 */
 

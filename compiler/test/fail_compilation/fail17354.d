@@ -1,7 +1,11 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/fail17354.d(12): Error: cannot implicitly override base class method `object.Object.opEquals` with `fail17354.Foo.opEquals`; add `override` attribute
-fail_compilation/fail17354.d(17): Error: cannot implicitly override base class method `object.Object.opEquals` with `fail17354.Bar.opEquals`; add `override` attribute
+fail_compilation/fail17354.d(16): Error: cannot implicitly override base class method `object.Object.opEquals` with `fail17354.Foo.opEquals`; add `override` attribute
+    bool opEquals(const Object) const {return true;}
+         ^
+fail_compilation/fail17354.d(21): Error: cannot implicitly override base class method `object.Object.opEquals` with `fail17354.Bar.opEquals`; add `override` attribute
+    bool opEquals(const Object) const {return true;}
+         ^
 ---
  */
 

@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail7702.d(14): Error: `s.opDispatch!"x"` isn't a template
+fail_compilation/fail7702.d(16): Error: `s.opDispatch!"x"` isn't a template
+    s.x!int;
+     ^
 ---
 */
 struct S

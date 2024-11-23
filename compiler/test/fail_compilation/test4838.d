@@ -1,12 +1,24 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test4838.d(13): Error: `const`/`immutable`/`shared`/`inout`/`return` attributes are only valid for non-static member functions
-fail_compilation/test4838.d(14): Error: `const`/`immutable`/`shared`/`inout`/`return` attributes are only valid for non-static member functions
-fail_compilation/test4838.d(15): Error: `const`/`immutable`/`shared`/`inout`/`return` attributes are only valid for non-static member functions
-fail_compilation/test4838.d(16): Error: `const`/`immutable`/`shared`/`inout`/`return` attributes are only valid for non-static member functions
-fail_compilation/test4838.d(17): Error: `const`/`immutable`/`shared`/`inout`/`return` attributes are only valid for non-static member functions
-fail_compilation/test4838.d(18): Error: `const`/`immutable`/`shared`/`inout`/`return` attributes are only valid for non-static member functions
+fail_compilation/test4838.d(25): Error: `const`/`immutable`/`shared`/`inout`/`return` attributes are only valid for non-static member functions
+void function() const fpc;
+                      ^
+fail_compilation/test4838.d(26): Error: `const`/`immutable`/`shared`/`inout`/`return` attributes are only valid for non-static member functions
+void function() immutable fpi;
+                          ^
+fail_compilation/test4838.d(27): Error: `const`/`immutable`/`shared`/`inout`/`return` attributes are only valid for non-static member functions
+void function() shared fps;
+                       ^
+fail_compilation/test4838.d(28): Error: `const`/`immutable`/`shared`/`inout`/`return` attributes are only valid for non-static member functions
+void function() shared const fpsc;
+                             ^
+fail_compilation/test4838.d(29): Error: `const`/`immutable`/`shared`/`inout`/`return` attributes are only valid for non-static member functions
+void function() inout fpw;
+                      ^
+fail_compilation/test4838.d(30): Error: `const`/`immutable`/`shared`/`inout`/`return` attributes are only valid for non-static member functions
+void function() shared inout fpsw;
+                             ^
 ---
 */
 

@@ -2,8 +2,12 @@
 PERMUTE_ARGS: -debug
 TEST_OUTPUT:
 ---
-fail_compilation/fail3882.d(32): Error: `@mustuse` on functions is reserved for future use
-fail_compilation/fail3882.d(33): Error: `@mustuse` on functions is reserved for future use
+fail_compilation/fail3882.d(36): Error: `@mustuse` on functions is reserved for future use
+@mustuse nothrow pure int f1(immutable(int)[] a) { return 0; }
+                          ^
+fail_compilation/fail3882.d(37): Error: `@mustuse` on functions is reserved for future use
+@mustuse nothrow pure int f2(immutable(int)*  p) { return 0; }
+                          ^
 ---
 */
 import core.attribute;

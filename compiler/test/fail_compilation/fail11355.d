@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail11355.d(28): Error: struct `fail11355.A` is not copyable because it has a disabled postblit
+fail_compilation/fail11355.d(30): Error: struct `fail11355.A` is not copyable because it has a disabled postblit
+    A a = move(b);
+      ^
 ---
 */
 

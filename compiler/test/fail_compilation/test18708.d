@@ -1,9 +1,17 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/test18708.d(24): Error: one path skips field `s`
-fail_compilation/test18708.d(29): Error: one path skips field `s`
-fail_compilation/test18708.d(34): Error: one path skips field `s`
-fail_compilation/test18708.d(39): Error: one path skips field `s`
+fail_compilation/test18708.d(32): Error: one path skips field `s`
+        i || bar(s = t);
+        ^
+fail_compilation/test18708.d(37): Error: one path skips field `s`
+        i && bar(s = t);
+        ^
+fail_compilation/test18708.d(42): Error: one path skips field `s`
+        i ? bar(s = t) : i;
+        ^
+fail_compilation/test18708.d(47): Error: one path skips field `s`
+        i ? i : bar(s = t);
+        ^
 ---
 */
 // https://issues.dlang.org/show_bug.cgi?id=18708

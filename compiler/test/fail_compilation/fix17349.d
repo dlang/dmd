@@ -1,6 +1,8 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/fix17349.d(35): Error: cannot implicitly override base class method `fix17349.E.foo` with `fix17349.F.foo`; add `override` attribute
+fail_compilation/fix17349.d(37): Error: cannot implicitly override base class method `fix17349.E.foo` with `fix17349.F.foo`; add `override` attribute
+    void foo(const void*);
+         ^
 ---
  */
 

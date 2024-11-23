@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail264.d(10): Error: undefined identifier `undef`
+fail_compilation/fail264.d(12): Error: undefined identifier `undef`
+    foreach (element; undef)
+                      ^
 ---
 */
 

@@ -3,27 +3,124 @@ Informative error messages if the compiler generated destructor overrides a user
 
 TEST_OUTPUT:
 ---
-fail_compilation/dtor_attributes.d(118): Error: `pure` function `dtor_attributes.test1` cannot call impure destructor `dtor_attributes.Strict.~this`
-fail_compilation/dtor_attributes.d(113):        generated `Strict.~this` is impure because of the following field's destructors:
-fail_compilation/dtor_attributes.d(111):         - HasDtor member
-fail_compilation/dtor_attributes.d(103):           impure `HasDtor.~this` is declared here
-fail_compilation/dtor_attributes.d(118): Error: `@safe` function `dtor_attributes.test1` cannot call `@system` destructor `dtor_attributes.Strict.~this`
-fail_compilation/dtor_attributes.d(113):        `dtor_attributes.Strict.~this` is declared here
-fail_compilation/dtor_attributes.d(113):        generated `Strict.~this` is @system because of the following field's destructors:
-fail_compilation/dtor_attributes.d(111):         - HasDtor member
-fail_compilation/dtor_attributes.d(103):           @system `HasDtor.~this` is declared here
-fail_compilation/dtor_attributes.d(118): Error: `@nogc` function `dtor_attributes.test1` cannot call non-@nogc destructor `dtor_attributes.Strict.~this`
-fail_compilation/dtor_attributes.d(113):        generated `Strict.~this` is non-@nogc because of the following field's destructors:
-fail_compilation/dtor_attributes.d(111):         - HasDtor member
-fail_compilation/dtor_attributes.d(103):           non-@nogc `HasDtor.~this` is declared here
-fail_compilation/dtor_attributes.d(118): Error: destructor `dtor_attributes.Strict.~this` is not `nothrow`
-fail_compilation/dtor_attributes.d(113):        generated `Strict.~this` is not nothrow because of the following field's destructors:
-fail_compilation/dtor_attributes.d(111):         - HasDtor member
-fail_compilation/dtor_attributes.d(103):           not nothrow `HasDtor.~this` is declared here
-fail_compilation/dtor_attributes.d(116): Error: function `dtor_attributes.test1` may throw but is marked as `nothrow`
+fail_compilation/dtor_attributes.d(142): Error: `pure` function `dtor_attributes.test1` cannot call impure destructor `dtor_attributes.Strict.~this`
+    Strict s;
+           ^
+fail_compilation/dtor_attributes.d(137):        generated `Strict.~this` is impure because of the following field's destructors:
+    ~this() pure nothrow @nogc @safe {}
+    ^
+fail_compilation/dtor_attributes.d(135):         - HasDtor member
+    HasDtor member;
+            ^
+fail_compilation/dtor_attributes.d(127):           impure `HasDtor.~this` is declared here
+    ~this() {}
+    ^
+fail_compilation/dtor_attributes.d(142): Error: `@safe` function `dtor_attributes.test1` cannot call `@system` destructor `dtor_attributes.Strict.~this`
+    Strict s;
+           ^
+fail_compilation/dtor_attributes.d(137):        `dtor_attributes.Strict.~this` is declared here
+    ~this() pure nothrow @nogc @safe {}
+    ^
+fail_compilation/dtor_attributes.d(137):        generated `Strict.~this` is @system because of the following field's destructors:
+fail_compilation/dtor_attributes.d(135):         - HasDtor member
+    HasDtor member;
+            ^
+fail_compilation/dtor_attributes.d(127):           @system `HasDtor.~this` is declared here
+    ~this() {}
+    ^
+fail_compilation/dtor_attributes.d(142): Error: `@nogc` function `dtor_attributes.test1` cannot call non-@nogc destructor `dtor_attributes.Strict.~this`
+    Strict s;
+           ^
+fail_compilation/dtor_attributes.d(137):        generated `Strict.~this` is non-@nogc because of the following field's destructors:
+    ~this() pure nothrow @nogc @safe {}
+    ^
+fail_compilation/dtor_attributes.d(135):         - HasDtor member
+    HasDtor member;
+            ^
+fail_compilation/dtor_attributes.d(127):           non-@nogc `HasDtor.~this` is declared here
+    ~this() {}
+    ^
+fail_compilation/dtor_attributes.d(142): Error: destructor `dtor_attributes.Strict.~this` is not `nothrow`
+    Strict s;
+           ^
+fail_compilation/dtor_attributes.d(137):        generated `Strict.~this` is not nothrow because of the following field's destructors:
+    ~this() pure nothrow @nogc @safe {}
+    ^
+fail_compilation/dtor_attributes.d(135):         - HasDtor member
+    HasDtor member;
+            ^
+fail_compilation/dtor_attributes.d(127):           not nothrow `HasDtor.~this` is declared here
+    ~this() {}
+    ^
+fail_compilation/dtor_attributes.d(140): Error: function `dtor_attributes.test1` may throw but is marked as `nothrow`
+void test1() pure nothrow @nogc @safe
+     ^
+fail_compilation/dtor_attributes.d(155): Error: `pure` function `dtor_attributes.test2` cannot call impure destructor `dtor_attributes.StrictClass.~this`
+    scope instance = new StrictClass();
+          ^
+fail_compilation/dtor_attributes.d(150):        generated `StrictClass.~this` is impure because of the following field's destructors:
+    ~this() pure {}
+    ^
+fail_compilation/dtor_attributes.d(149):         - HasDtor member
+    HasDtor member;
+            ^
+fail_compilation/dtor_attributes.d(127):           impure `HasDtor.~this` is declared here
+    ~this() {}
+    ^
+fail_compilation/dtor_attributes.d(180): Error: `pure` function `dtor_attributes.test3` cannot call impure destructor `dtor_attributes.StrictStructRef.~this`
+    StrictStructRef structInstance;
+                    ^
+fail_compilation/dtor_attributes.d(175):        generated `StrictStructRef.~this` is impure because of the following field's destructors:
+    ~this() pure {}
+    ^
+fail_compilation/dtor_attributes.d(169):         - HasDtor structMember
+    HasDtor structMember;
+            ^
+fail_compilation/dtor_attributes.d(127):           impure `HasDtor.~this` is declared here
+    ~this() {}
+    ^
+fail_compilation/dtor_attributes.d(195): Error: `pure` function `dtor_attributes.test4` cannot call impure destructor `dtor_attributes.StrictNested.~this`
+    StrictNested structInstance;
+                 ^
+fail_compilation/dtor_attributes.d(190):        generated `StrictNested.~this` is impure because of the following field's destructors:
+    ~this() pure {}
+    ^
+fail_compilation/dtor_attributes.d(187):         - HasDtor[4] arrayMember
+    HasDtor[4] arrayMember;
+               ^
+fail_compilation/dtor_attributes.d(127):           impure `HasDtor.~this` is declared here
+    ~this() {}
+    ^
+fail_compilation/dtor_attributes.d(208): Error: `pure` function `dtor_attributes.test5` cannot call impure destructor `dtor_attributes.Permissive.~this`
+    Permissive structInstance;
+               ^
+fail_compilation/dtor_attributes.d(230): Error: `pure` function `dtor_attributes.test6` cannot call impure destructor `dtor_attributes.HasNestedDtor3.~this`
+    HasNestedDtor3 instance;
+                   ^
+fail_compilation/dtor_attributes.d(223):        generated `HasNestedDtor3.~this` is impure because of the following field's destructors:
+struct HasNestedDtor3
+^
+fail_compilation/dtor_attributes.d(225):         - HasNestedDtor2 member3
+    HasNestedDtor2 member3;
+                   ^
+fail_compilation/dtor_attributes.d(218):        generated `HasNestedDtor2.~this` is impure because of the following field's destructors:
+struct HasNestedDtor2
+^
+fail_compilation/dtor_attributes.d(220):         - HasNestedDtor1 member2
+    HasNestedDtor1 member2;
+                   ^
+fail_compilation/dtor_attributes.d(213):        generated `HasNestedDtor1.~this` is impure because of the following field's destructors:
+struct HasNestedDtor1
+^
+fail_compilation/dtor_attributes.d(215):         - HasDtor member1
+    HasDtor member1;
+            ^
+fail_compilation/dtor_attributes.d(127):           impure `HasDtor.~this` is declared here
+    ~this() {}
+    ^
 ---
 */
-#line 100
+// Line 100 starts here
 
 struct HasDtor
 {
@@ -45,18 +142,7 @@ void test1() pure nothrow @nogc @safe
     Strict s;
 }
 
-/*
-Works for clases as well.
-
-TEST_OUTPUT:
----
-fail_compilation/dtor_attributes.d(209): Error: `pure` function `dtor_attributes.test2` cannot call impure destructor `dtor_attributes.StrictClass.~this`
-fail_compilation/dtor_attributes.d(204):        generated `StrictClass.~this` is impure because of the following field's destructors:
-fail_compilation/dtor_attributes.d(203):         - HasDtor member
-fail_compilation/dtor_attributes.d(103):           impure `HasDtor.~this` is declared here
----
-*/
-#line 200
+// Line 200 starts here
 
 class StrictClass
 {
@@ -69,18 +155,7 @@ void test2() pure
     scope instance = new StrictClass();
 }
 
-/*
-Ignores members whose destructors are not called.
-
-TEST_OUTPUT:
----
-fail_compilation/dtor_attributes.d(321): Error: `pure` function `dtor_attributes.test3` cannot call impure destructor `dtor_attributes.StrictStructRef.~this`
-fail_compilation/dtor_attributes.d(316):        generated `StrictStructRef.~this` is impure because of the following field's destructors:
-fail_compilation/dtor_attributes.d(310):         - HasDtor structMember
-fail_compilation/dtor_attributes.d(103):           impure `HasDtor.~this` is declared here
----
-*/
-#line 300
+// Line 300 starts here
 
 class HasDtorClass
 {
@@ -105,18 +180,7 @@ void test3() pure
     StrictStructRef structInstance;
 }
 
-/*
-Types from nested types work as well.
-
-TEST_OUTPUT:
----
-fail_compilation/dtor_attributes.d(411): Error: `pure` function `dtor_attributes.test4` cannot call impure destructor `dtor_attributes.StrictNested.~this`
-fail_compilation/dtor_attributes.d(406):        generated `StrictNested.~this` is impure because of the following field's destructors:
-fail_compilation/dtor_attributes.d(403):         - HasDtor[4] arrayMember
-fail_compilation/dtor_attributes.d(103):           impure `HasDtor.~this` is declared here
----
-*/
-#line 400
+// Line 400 starts here
 
 struct StrictNested
 {
@@ -131,15 +195,7 @@ void test4() pure
     StrictNested structInstance;
 }
 
-/*
-Ignores member destructors when the user-defined one is permissive enough (e.g. both impure)
-
-TEST_OUTPUT:
----
-fail_compilation/dtor_attributes.d(509): Error: `pure` function `dtor_attributes.test5` cannot call impure destructor `dtor_attributes.Permissive.~this`
----
-*/
-#line 500
+// Line 500 starts here
 
 struct Permissive
 {
@@ -152,22 +208,7 @@ void test5() pure
     Permissive structInstance;
 }
 
-/*
-Works with destructors generated through multiple layers
-
-TEST_OUTPUT:
----
-fail_compilation/dtor_attributes.d(618): Error: `pure` function `dtor_attributes.test6` cannot call impure destructor `dtor_attributes.HasNestedDtor3.~this`
-fail_compilation/dtor_attributes.d(611):        generated `HasNestedDtor3.~this` is impure because of the following field's destructors:
-fail_compilation/dtor_attributes.d(613):         - HasNestedDtor2 member3
-fail_compilation/dtor_attributes.d(606):        generated `HasNestedDtor2.~this` is impure because of the following field's destructors:
-fail_compilation/dtor_attributes.d(608):         - HasNestedDtor1 member2
-fail_compilation/dtor_attributes.d(601):        generated `HasNestedDtor1.~this` is impure because of the following field's destructors:
-fail_compilation/dtor_attributes.d(603):         - HasDtor member1
-fail_compilation/dtor_attributes.d(103):           impure `HasDtor.~this` is declared here
----
-*/
-#line 600
+// Line 600 starts here
 
 struct HasNestedDtor1
 {

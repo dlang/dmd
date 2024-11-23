@@ -1,9 +1,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice14096.d(29): Error: cannot access frame pointer of `ice14096.main.Baz!((i) => i).Baz`
-fail_compilation/ice14096.d(23): Error: template instance `ice14096.foo!(Tuple!(Baz!((i) => i))).foo.bar!(t)` error instantiating
-fail_compilation/ice14096.d(40):        instantiated from here: `foo!(Tuple!(Baz!((i) => i)))`
+fail_compilation/ice14096.d(35): Error: cannot access frame pointer of `ice14096.main.Baz!((i) => i).Baz`
+    typeof(s) p;
+              ^
+fail_compilation/ice14096.d(29): Error: template instance `ice14096.foo!(Tuple!(Baz!((i) => i))).foo.bar!(t)` error instantiating
+    bar!t();
+    ^
+fail_compilation/ice14096.d(46):        instantiated from here: `foo!(Tuple!(Baz!((i) => i)))`
+    foo(t);
+       ^
 ---
 */
 

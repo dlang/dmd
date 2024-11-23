@@ -1,7 +1,9 @@
 /**
 TEST_OUTPUT:
 ---
-fail_compilation/named_arguments_struct_literal.d(14): Error: trying to initialize past the last field `z` of `S`
+fail_compilation/named_arguments_struct_literal.d(16): Error: trying to initialize past the last field `z` of `S`
+	3,
+ ^
 ---
 */
 

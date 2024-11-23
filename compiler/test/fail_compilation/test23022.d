@@ -2,7 +2,9 @@
 REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/test23022.d(14): Error: returning `p` escapes a reference to variadic parameter `p`
+fail_compilation/test23022.d(16): Error: returning `p` escapes a reference to variadic parameter `p`
+    return p;
+           ^
 ---
 */
 

@@ -1,8 +1,12 @@
 /*
  * TEST_OUTPUT:
 ---
-fail_compilation/b16967.d(15): Error: switch case fallthrough - use 'goto default;' if intended
-fail_compilation/b16967.d(25): Error: switch case fallthrough - use 'goto default;' if intended
+fail_compilation/b16967.d(19): Error: switch case fallthrough - use 'goto default;' if intended
+        default:
+        ^
+fail_compilation/b16967.d(29): Error: switch case fallthrough - use 'goto default;' if intended
+        default:
+        ^
 ---
 */
 int foo(int x)

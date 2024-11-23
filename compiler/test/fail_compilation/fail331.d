@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail331.d(10): Error: cannot use `typeof(return)` inside function `foo` with inferred return type
+fail_compilation/fail331.d(12): Error: cannot use `typeof(return)` inside function `foo` with inferred return type
+    typeof(return) result;
+                   ^
 ---
 */
 

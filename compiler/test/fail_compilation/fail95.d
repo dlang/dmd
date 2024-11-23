@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail95.d(19): Error: template `A` is not callable using argument types `!()(int)`
-fail_compilation/fail95.d(11):        Candidate is: `A(alias T)(T)`
+fail_compilation/fail95.d(23): Error: template `A` is not callable using argument types `!()(int)`
+    A(i);
+     ^
+fail_compilation/fail95.d(15):        Candidate is: `A(alias T)(T)`
+template A(alias T)
+^
 ---
 */
 

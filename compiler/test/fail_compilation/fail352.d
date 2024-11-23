@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail352.d(18): Error: cannot infer argument types, expected 1 argument, not 2
+fail_compilation/fail352.d(20): Error: cannot infer argument types, expected 1 argument, not 2
+    foreach(i, v; Range()) {}
+    ^
 ---
 */
 

@@ -2,7 +2,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail308.d(18): Error: template instance `object.RTInfo!(TestType)` recursive expansion
+fail_compilation/fail308.d(20): Error: template instance `object.RTInfo!(TestType)` recursive expansion
+        struct TestType {}
+        ^
 ---
 */
 

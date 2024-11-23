@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice13921.d(13): Error: undefined identifier `undefined_identifier`
-fail_compilation/ice13921.d(25): Error: template instance `ice13921.S!string` error instantiating
+fail_compilation/ice13921.d(17): Error: undefined identifier `undefined_identifier`
+        undefined_identifier;
+        ^
+fail_compilation/ice13921.d(29): Error: template instance `ice13921.S!string` error instantiating
+    S!string g;
+    ^
 ---
 */
 

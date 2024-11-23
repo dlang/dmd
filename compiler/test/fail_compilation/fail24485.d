@@ -2,8 +2,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail24485.d(25): Error: cannot implicitly convert expression `*a` of type `A` to `B`
-fail_compilation/fail24485.d(31): Error: cannot implicitly convert expression `this.a` of type `A` to `B`
+fail_compilation/fail24485.d(29): Error: cannot implicitly convert expression `*a` of type `A` to `B`
+    return *a;
+           ^
+fail_compilation/fail24485.d(35): Error: cannot implicitly convert expression `this.a` of type `A` to `B`
+    @property ref B b() { return a; }
+                                 ^
 
 ---
 */

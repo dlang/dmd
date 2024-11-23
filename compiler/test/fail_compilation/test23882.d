@@ -3,7 +3,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test23882.d(26): Error: `typeof((*YC).S).init` is used as a type
+fail_compilation/test23882.d(28): Error: `typeof((*YC).S).init` is used as a type
+    this(typeof(CB.S).init);
+    ^
 ---
 */
 

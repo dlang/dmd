@@ -1,12 +1,24 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag1566.d(23): Error: multiple ! arguments are not allowed
-fail_compilation/diag1566.d(24): Error: multiple ! arguments are not allowed
-fail_compilation/diag1566.d(25): Error: multiple ! arguments are not allowed
-fail_compilation/diag1566.d(26): Error: multiple ! arguments are not allowed
-fail_compilation/diag1566.d(28): Error: multiple ! arguments are not allowed
-fail_compilation/diag1566.d(29): Error: multiple ! arguments are not allowed
+fail_compilation/diag1566.d(35): Error: multiple ! arguments are not allowed
+    static assert(is(long == T!(3)!('b')));
+                                  ^
+fail_compilation/diag1566.d(36): Error: multiple ! arguments are not allowed
+    static assert(is(long == T! 3 ! 'b' ));
+                                  ^
+fail_compilation/diag1566.d(37): Error: multiple ! arguments are not allowed
+    static assert(is(long == T!(3)! 'b' ));
+                                  ^
+fail_compilation/diag1566.d(38): Error: multiple ! arguments are not allowed
+    static assert(is(long == T! 3 !('b')));
+                                  ^
+fail_compilation/diag1566.d(40): Error: multiple ! arguments are not allowed
+    static assert(is(long == T!(3)! 'b' !"s"));
+                                  ^
+fail_compilation/diag1566.d(41): Error: multiple ! arguments are not allowed
+    static assert(is(long == T! 3 !('b')!"s"));
+                                  ^
 ---
 */
 

@@ -1,9 +1,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag12280.d(15): Error: undefined identifier `nonexistent`
-fail_compilation/diag12280.d(13): Error: template instance `diag12280.f!10` error instantiating
-fail_compilation/diag12280.d(18):        11 recursive instantiations from here: `f!0`
+fail_compilation/diag12280.d(21): Error: undefined identifier `nonexistent`
+        nonexistent();
+        ^
+fail_compilation/diag12280.d(19): Error: template instance `diag12280.f!10` error instantiating
+        f!(i + 1);
+        ^
+fail_compilation/diag12280.d(24):        11 recursive instantiations from here: `f!0`
+alias f0 = f!0;
+           ^
 ---
 */
 

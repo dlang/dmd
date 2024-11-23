@@ -2,7 +2,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/depmsg15815.d(23): Deprecation: template `depmsg15815.Alias(T)` is deprecated - message
+fail_compilation/depmsg15815.d(25): Deprecation: template `depmsg15815.Alias(T)` is deprecated - message
+pragma(msg, Alias!(const(Foo)));
+            ^
 Foo
 ---
 */

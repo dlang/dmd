@@ -1,12 +1,18 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/newaa.d(14): Error: cannot implicitly convert expression `new string[string]` of type `string[string]` to `int[string]`
-fail_compilation/newaa.d(15): Error: function expected before `()`, not `new int[int]` of type `int[int]`
-fail_compilation/newaa.d(17): Error: `new` cannot take arguments for an associative array
+fail_compilation/newaa.d(21): Error: cannot implicitly convert expression `new string[string]` of type `string[string]` to `int[string]`
+    int[string] c = new typeof(crash);
+                    ^
+fail_compilation/newaa.d(22): Error: function expected before `()`, not `new int[int]` of type `int[int]`
+    auto d = new int[int](5);
+                         ^
+fail_compilation/newaa.d(24): Error: `new` cannot take arguments for an associative array
+    auto e = new AA(5);
+             ^
 ---
 */
-#line 9
+// Line 9 starts here
 void main()
 {
     //https://issues.dlang.org/show_bug.cgi?id=11790
