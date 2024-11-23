@@ -2972,14 +2972,14 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
 
     if (argumentList.names)
     {
-        const(char)* msg = null;
-        auto resolvedArgs = tf.resolveNamedArgs(argumentList, &msg);
+        OutBuffer buf;
+        auto resolvedArgs = tf.resolveNamedArgs(argumentList, &buf);
         if (!resolvedArgs)
         {
             // while errors are usually already caught by `tf.callMatch`,
             // this can happen when calling `typeof(freefunc)`
-            if (msg)
-                error(loc, "%s", msg);
+            if (buf.length)
+                error(loc, "%s", buf.peekChars());
             return true;
         }
         // note: the argument list should be mutated with named arguments / default arguments,

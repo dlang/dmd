@@ -2620,10 +2620,10 @@ extern (C++) final class TypeFunction : TypeNext
      *
      * Params:
      *      argumentList = array of function arguments
-     *      pMessage = address to store error message, or `null`
+     *      buf = if not null, append error message to it
      * Returns: re-ordered argument list, or `null` on error
      */
-    extern(D) Expressions* resolveNamedArgs(ArgumentList argumentList, const(char)** pMessage)
+    extern(D) Expressions* resolveNamedArgs(ArgumentList argumentList, OutBuffer* buf)
     {
         Expression[] args = argumentList.arguments ? (*argumentList.arguments)[] : null;
         Identifier[] names = argumentList.names ? (*argumentList.names)[] : null;
@@ -2647,8 +2647,8 @@ extern (C++) final class TypeFunction : TypeNext
                 const pi = findParameterIndex(name);
                 if (pi == -1)
                 {
-                    if (pMessage)
-                        *pMessage = getMatchError("no parameter named `%s`", name.toChars());
+                    if (buf)
+                        buf.writestring(getMatchError("no parameter named `%s`", name.toChars()));
                     return null;
                 }
                 ci = pi;
@@ -2658,8 +2658,8 @@ extern (C++) final class TypeFunction : TypeNext
                 if (!isVariadic)
                 {
                     // Without named args, let the caller diagnose argument overflow
-                    if (hasNamedArgs && pMessage)
-                        *pMessage = getMatchError("argument `%s` goes past end of parameter list", arg.toChars());
+                    if (hasNamedArgs && buf)
+                        buf.writestring(getMatchError("argument `%s` goes past end of parameter list", arg.toChars()));
                     return null;
                 }
                 while (ci >= newArgs.length)
@@ -2668,8 +2668,8 @@ extern (C++) final class TypeFunction : TypeNext
 
             if ((*newArgs)[ci])
             {
-                if (pMessage)
-                    *pMessage = getMatchError("parameter `%s` assigned twice", parameterList[ci].toChars());
+                if (buf)
+                    buf.writestring(getMatchError("parameter `%s` assigned twice", parameterList[ci].toChars()));
                 return null;
             }
             (*newArgs)[ci++] = arg;
@@ -2687,9 +2687,9 @@ extern (C++) final class TypeFunction : TypeNext
             if (this.incomplete)
                 continue;
 
-            if (pMessage)
-                *pMessage = getMatchError("missing argument for parameter #%d: `%s`",
-                    i + 1, parameterToChars(parameterList[i], this, false));
+            if (buf)
+                buf.writestring(getMatchError("missing argument for parameter #%d: `%s`",
+                    i + 1, parameterToChars(parameterList[i], this, false)));
             return null;
         }
         // strip trailing nulls from default arguments
