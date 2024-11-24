@@ -1409,7 +1409,27 @@ $(H4 $(LNAME2 cast_array, Arrays))
     $(UNDEFINED_BEHAVIOR Casting a non-literal array to `bool[]` when any
         element has a byte representation $(DDSUBLINK spec/type, bool, other than 0 or 1).)
 
-    $(DDOC_SEE_ALSO $(RELATIVE_LINK2 cast_array_literal, Casting array literals).)
+    $(P $(B See also:) $(RELATIVE_LINK2 cast_array_literal, Casting array literals).)
+
+    $(P A slice of statically known length can be cast to a static array type when the
+        byte counts of their respective data match.)
+
+        $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+        ---
+        void f(int[] b)
+        {
+            char[4] a;
+            static assert(!__traits(compiles, a = cast(char[4]) b)); // unknown length
+            static assert(!__traits(compiles, a = cast(char[4]) b[0..2])); // too many bytes
+
+            a = cast(char[4]) b[0..1]; // OK
+            const i = 1;
+            a = cast(char[4]) b[i..2]; // OK
+        }
+        ---
+        )
+
+    $(P $(B See also:) $(RELATIVE_LINK2 slice_to_static_array, Slice conversion to static array).)
 
 $(H4 $(LNAME2 cast_static_array, Static Arrays))
 
