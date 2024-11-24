@@ -2057,7 +2057,7 @@ public void errorSupplementalInferredAttr(FuncDeclaration fd, int maxDepth, bool
     if (!s)
         return;
 
-    if (s.fmtStr)
+    if (s.format)
     {
         errorFunc(s.loc, deprecation ?
             "which wouldn't be `%s` because of:" :
@@ -2065,11 +2065,11 @@ public void errorSupplementalInferredAttr(FuncDeclaration fd, int maxDepth, bool
         if (stc == STC.nogc || stc == STC.pure_)
         {
             auto f = (cast(Dsymbol) s.arg0).isFuncDeclaration();
-            errorFunc(s.loc, s.fmtStr, f.kind(), f.toPrettyChars(), s.arg1 ? s.arg1.toChars() : "");
+            errorFunc(s.loc, s.format, f.kind(), f.toPrettyChars(), s.arg1 ? s.arg1.toChars() : "");
         }
         else
         {
-            errorFunc(s.loc, s.fmtStr,
+            errorFunc(s.loc, s.format,
                 s.arg0 ? s.arg0.toChars() : "", s.arg1 ? s.arg1.toChars() : "", s.arg2 ? s.arg2.toChars() : "");
         }
     }

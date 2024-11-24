@@ -3548,25 +3548,20 @@ public:
 struct AttributeViolation final
 {
     Loc loc;
-    const char* fmtStr;
+    FuncDeclaration* fd;
+    const char* format;
     RootObject* arg0;
     RootObject* arg1;
     RootObject* arg2;
     AttributeViolation() :
-        loc(Loc(0u, 0u, 0u)),
-        fmtStr(nullptr),
-        arg0(nullptr),
-        arg1(nullptr),
-        arg2(nullptr)
+        loc(),
+        fd(),
+        format(),
+        arg0(),
+        arg1(),
+        arg2()
     {
     }
-    AttributeViolation(Loc loc, const char* fmtStr = nullptr, RootObject* arg0 = nullptr, RootObject* arg1 = nullptr, RootObject* arg2 = nullptr) :
-        loc(loc),
-        fmtStr(fmtStr),
-        arg0(arg0),
-        arg1(arg1),
-        arg2(arg2)
-        {}
 };
 
 enum class ILS : uint8_t

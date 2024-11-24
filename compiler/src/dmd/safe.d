@@ -344,23 +344,23 @@ bool isTrusted(FuncDeclaration fd)
  *   fd    = function we're gonna rat on
  *   gag   = suppress error message (used in escape.d)
  *   loc   = location of error
- *   fmt   = printf-style format string
+ *   format   = printf-style format string
  *   arg0  = (optional) argument for first %s format specifier
  *   arg1  = (optional) argument for second %s format specifier
  *   arg2  = (optional) argument for third %s format specifier
  */
 extern (D) void reportSafeError(FuncDeclaration fd, bool gag, Loc loc,
-    const(char)* fmt = null, RootObject arg0 = null, RootObject arg1 = null, RootObject arg2 = null)
+    const(char)* format = null, RootObject arg0 = null, RootObject arg1 = null, RootObject arg2 = null)
 {
     if (fd.type.toTypeFunction().trust == TRUST.system) // function was just inferred to be @system
     {
-        if (fmt || arg0)
-            fd.safetyViolation = new AttributeViolation(loc, fmt, arg0, arg1, arg2);
+        if (format || arg0)
+            fd.safetyViolation = new AttributeViolation(loc, format, arg0, arg1, arg2);
     }
     else if (fd.isSafe())
     {
-        if (!gag && fmt)
-            .error(loc, fmt, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "", arg2 ? arg2.toChars() : "");
+        if (!gag && format)
+            .error(loc, format, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "", arg2 ? arg2.toChars() : "");
     }
 }
 
@@ -417,14 +417,14 @@ extern (D) bool setUnsafeCall(FuncDeclaration fd, FuncDeclaration f)
  *   sc = scope that the unsafe statement / expression is in
  *   gag = surpress error message (used in escape.d)
  *   loc = location of error
- *   fmt = printf-style format string
+ *   format = printf-style format string
  *   arg0  = (optional) argument for first %s format specifier
  *   arg1  = (optional) argument for second %s format specifier
  *   arg2  = (optional) argument for third %s format specifier
  * Returns: whether there's a safe error
  */
 bool setUnsafe(Scope* sc,
-    bool gag = false, Loc loc = Loc.init, const(char)* fmt = null,
+    bool gag = false, Loc loc = Loc.init, const(char)* format = null,
     RootObject arg0 = null, RootObject arg1 = null, RootObject arg2 = null)
 {
     if (sc.intypeof)
@@ -439,7 +439,7 @@ bool setUnsafe(Scope* sc,
         {
             if (sc.varDecl.storage_class & STC.safe)
             {
-                .error(loc, fmt, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "", arg2 ? arg2.toChars() : "");
+                .error(loc, format, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "", arg2 ? arg2.toChars() : "");
                 return true;
             }
             else if (!(sc.varDecl.storage_class & STC.trusted))
@@ -458,7 +458,7 @@ bool setUnsafe(Scope* sc,
         {
             // Message wil be gagged, but still call error() to update global.errors and for
             // -verrors=spec
-            .error(loc, fmt, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "", arg2 ? arg2.toChars() : "");
+            .error(loc, format, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "", arg2 ? arg2.toChars() : "");
             return true;
         }
         return false;
@@ -466,9 +466,9 @@ bool setUnsafe(Scope* sc,
 
     if (setFunctionToUnsafe(sc.func))
     {
-        if (fmt || arg0)
+        if (format || arg0)
         {
-            reportSafeError(sc.func, gag, loc, fmt, arg0, arg1, arg2);
+            reportSafeError(sc.func, gag, loc, format, arg0, arg1, arg2);
         }
         return sc.func.isSafe(); // it is only an error if in an @safe function
     }
@@ -490,23 +490,23 @@ bool setUnsafe(Scope* sc,
  *   fs = feature state from the preview flag
  *   gag = surpress error message
  *   loc = location of error
- *   msg = printf-style format string
+ *   format = printf-style format string
  *   arg0  = (optional) argument for first %s format specifier
  *   arg1  = (optional) argument for second %s format specifier
  *   arg2  = (optional) argument for third %s format specifier
  * Returns: whether an actual safe error (not deprecation) occured
  */
-bool setUnsafePreview(Scope* sc, FeatureState fs, bool gag, Loc loc, const(char)* msg,
+bool setUnsafePreview(Scope* sc, FeatureState fs, bool gag, Loc loc, const(char)* format,
     RootObject arg0 = null, RootObject arg1 = null, RootObject arg2 = null)
 {
-    //printf("setUnsafePreview() fs:%d %s\n", fs, msg);
+    //printf("setUnsafePreview() fs:%d %s\n", fs, format);
     with (FeatureState) final switch (fs)
     {
       case disabled:
         return false;
 
       case enabled:
-        return sc.setUnsafe(gag, loc, msg, arg0, arg1, arg2);
+        return sc.setUnsafe(gag, loc, format, arg0, arg1, arg2);
 
       case default_:
         if (!sc.func)
@@ -515,13 +515,13 @@ bool setUnsafePreview(Scope* sc, FeatureState fs, bool gag, Loc loc, const(char)
         {
             if (!gag && !sc.isDeprecated())
             {
-                deprecation(loc, msg, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "", arg2 ? arg2.toChars() : "");
+                deprecation(loc, format, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "", arg2 ? arg2.toChars() : "");
             }
         }
         else if (!sc.func.safetyViolation)
         {
             import dmd.func : AttributeViolation;
-            sc.func.safetyViolation = new AttributeViolation(loc, msg, arg0, arg1, arg2);
+            sc.func.safetyViolation = new AttributeViolation(loc, format, arg0, arg1, arg2);
         }
         return false;
     }
