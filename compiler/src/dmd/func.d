@@ -1871,17 +1871,18 @@ extern (C++) final class NewDeclaration : FuncDeclaration
 ///   The `FunctionDeclaration` is then stored in `arg0` and `fmtStr` must be `null`.
 struct AttributeViolation
 {
-    Loc loc; /// location of error
+    Loc loc;               /// location of error
 
-    FuncDeclaration fd; /// function is the focus of the violation shared int x;
+    FuncDeclaration fd;    /// function is the focus of the violation
 
-    // -- OR --}
+    // -- OR --
 
-    const(char)* format; /// printf-style format string
-    RootObject arg0; /// Arguments for up to two `%s` format specifiers in format string
-    RootObject arg1; /// ditto
-    RootObject arg2; /// ditto
-//    this(ref Loc loc, FuncDeclaration fd) { this.loc = loc; this.fd = fd; }
+    const(char)* format;   /// printf-style format string
+    RootObject arg0;       /// Arguments for up to two `%s` format specifiers in format string
+    RootObject arg1;       /// ditto
+    RootObject arg2;       /// ditto
+
+    this(ref Loc loc, FuncDeclaration fd) { this.loc = loc; this.fd = fd; }
 
     this(ref Loc loc, const(char)* format, RootObject arg0 = null, RootObject arg1 = null, RootObject arg2 = null)
     {
