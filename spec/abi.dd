@@ -68,9 +68,14 @@ $(H2 $(LNAME2 delegates, Delegates))
         function's stack frame (nested functions).
         )
 
-$(H2 $(LNAME2 structs, Structs))
+$(H2 $(LNAME2 structs, Structs and Unions))
 
-        $(P Conforms to the target's C ABI struct layout.)
+        $(P These conform to the target's C ABI struct layout, except:)
+
+        * An `extern(D)` struct or union with no fields has size 1, not 0.
+          See $(DDSUBLINK spec/struct, struct_layout, Struct Layout).
+        * Unions are $(RELATIVE_LINK2 name_mangling, name-mangled) as if they were structs.
+        * The rest of this document treats unions extrinsically the same as structs.
 
 $(H2 $(LNAME2 classes, Classes))
 

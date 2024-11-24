@@ -176,7 +176,18 @@ $(H2 $(LNAME2 struct_layout, Struct Layout))
     the first field and the start of the object.
     )
 
-    $(P Structs with no fields of non-zero size (aka $(I Empty Structs)) have a size of one byte.)
+    $(P $(DDSUBLINK spec/attribute, linkage, `extern(D)`) structs with no fields of non-zero
+    size (aka $(I Empty Structs)) have a size of one byte.)
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    extern(C) struct C {}
+    struct D {}
+
+    static assert(C.sizeof == 0);
+    static assert(D.sizeof == 1);
+    ---
+    )
 
     $(P Non-static $(RELATIVE_LINK2 nested, function-nested D structs), which access the context of
     their enclosing scope, have an extra field.
