@@ -685,14 +685,15 @@ extern (C++) class FuncDeclaration : Declaration
      *
      * Params:
      *     loc = location of action
-     *     fmt = format string for error message
+     *     format = format string for error message
      *     arg0 = (optional) argument to format string
      */
-    extern (D) final void setThrow(Loc loc, const(char)* fmt, RootObject arg0 = null)
+    extern (D) final void setThrow(Loc loc, const(char)* format, RootObject arg0 = null)
     {
         if (nothrowInprocess && !nothrowViolation)
         {
-            nothrowViolation = new AttributeViolation(loc, fmt, arg0); // action that requires GC
+            assert(format);
+            nothrowViolation = new AttributeViolation(loc, format, arg0); // action that requires GC
         }
     }
 
@@ -700,11 +701,14 @@ extern (C++) class FuncDeclaration : Declaration
      * The function calls non-`nothrow` function f, register that in case nothrow is being inferred
      * Params:
      *     loc = location of call
-     *     f = function being called
+     *     fd = function being called
      */
-    extern (D) final void setThrowCall(Loc loc, FuncDeclaration f)
+    extern (D) final void setThrowCall(Loc loc, FuncDeclaration fd)
     {
-        return setThrow(loc, null, f);
+        if (nothrowInprocess && !nothrowViolation)
+        {
+            nothrowViolation = new AttributeViolation(loc, fd); // action that requires GC
+        }
     }
 
     /****************************************
@@ -1886,7 +1890,7 @@ struct AttributeViolation
 
     this(ref Loc loc, const(char)* format, RootObject arg0 = null, RootObject arg1 = null, RootObject arg2 = null)
     {
-        //assert(format);
+        assert(format);
         this.loc = loc;
         this.format = format;
         this.arg0 = arg0;

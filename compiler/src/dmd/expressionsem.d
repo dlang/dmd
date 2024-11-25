@@ -2081,17 +2081,8 @@ public void errorSupplementalInferredAttr(FuncDeclaration fd, int maxDepth, bool
             errorSupplementalInferredAttr(s.fd, maxDepth - 1, deprecation, stc, eSink);
         }
     }
-    else if (auto sa = s.arg0.isDsymbol())
-    {
-        if (FuncDeclaration fd2 = sa.isFuncDeclaration())
-        {
-            if (maxDepth > 0)
-            {
-                errorFunc(s.loc, "which calls `%s`", fd2.toPrettyChars());
-                errorSupplementalInferredAttr(fd2, maxDepth - 1, deprecation, stc, eSink);
-            }
-        }
-    }
+    else
+        assert(0);
 }
 
 /*******************************************
