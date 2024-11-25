@@ -2602,16 +2602,20 @@ extern (C++) final class TypeFunction : TypeNext
         return linkage == LINK.d && parameterList.varargs == VarArg.variadic;
     }
 
-    extern(C) static const(char)* getMatchError(const(char)* format, ...)
+    /*********************************
+     * Append error message to buf.
+     * Input:
+     *  buf = message sink
+     *  format = printf format
+     */
+    extern(C) static void getMatchError(ref OutBuffer buf, const(char)* format, ...)
     {
         if (global.gag && !global.params.v.showGaggedErrors)
-            return null;
-        OutBuffer buf;
+            return;
         va_list ap;
         va_start(ap, format);
         buf.vprintf(format, ap);
         va_end(ap);
-        return buf.extractChars();
     }
 
     /********************************
@@ -2648,7 +2652,7 @@ extern (C++) final class TypeFunction : TypeNext
                 if (pi == -1)
                 {
                     if (buf)
-                        buf.writestring(getMatchError("no parameter named `%s`", name.toChars()));
+                        getMatchError(*buf, "no parameter named `%s`", name.toChars());
                     return null;
                 }
                 ci = pi;
@@ -2659,7 +2663,7 @@ extern (C++) final class TypeFunction : TypeNext
                 {
                     // Without named args, let the caller diagnose argument overflow
                     if (hasNamedArgs && buf)
-                        buf.writestring(getMatchError("argument `%s` goes past end of parameter list", arg.toChars()));
+                        getMatchError(*buf, "argument `%s` goes past end of parameter list", arg.toChars());
                     return null;
                 }
                 while (ci >= newArgs.length)
@@ -2669,7 +2673,7 @@ extern (C++) final class TypeFunction : TypeNext
             if ((*newArgs)[ci])
             {
                 if (buf)
-                    buf.writestring(getMatchError("parameter `%s` assigned twice", parameterList[ci].toChars()));
+                    getMatchError(*buf, "parameter `%s` assigned twice", parameterList[ci].toChars());
                 return null;
             }
             (*newArgs)[ci++] = arg;
@@ -2688,8 +2692,8 @@ extern (C++) final class TypeFunction : TypeNext
                 continue;
 
             if (buf)
-                buf.writestring(getMatchError("missing argument for parameter #%d: `%s`",
-                    i + 1, parameterToChars(parameterList[i], this, false)));
+                getMatchError(*buf, "missing argument for parameter #%d: `%s`",
+                    i + 1, parameterToChars(parameterList[i], this, false));
             return null;
         }
         // strip trailing nulls from default arguments

@@ -855,8 +855,8 @@ extern (D) MATCH callMatch(TypeFunction tf, Type tthis, ArgumentList argumentLis
             if (errorHelper)
             {
                 if (u >= args.length)
-                    buf.writestring(tf.getMatchError("missing argument for parameter #%d: `%s`",
-                        u + 1, parameterToChars(p, tf, false)));
+                    TypeFunction.getMatchError(buf, "missing argument for parameter #%d: `%s`",
+                        u + 1, parameterToChars(p, tf, false));
                 // If an error happened previously, `pMessage` was already filled
                 else if (buf.length == 0)
                     buf.writestring(tf.getParamError(args[u], p));
@@ -872,7 +872,9 @@ extern (D) MATCH callMatch(TypeFunction tf, Type tthis, ArgumentList argumentLis
     if (errorHelper && !parameterList.varargs && args.length > nparams)
     {
         // all parameters had a match, but there are surplus args
-        errorHelper(tf.getMatchError("expected %d argument(s), not %d", nparams, args.length));
+        OutBuffer buf2;
+        TypeFunction.getMatchError(buf2, "expected %d argument(s), not %d", nparams, args.length);
+        errorHelper(buf2.extractChars());
         return MATCH.nomatch;
     }
     //printf("match = %d\n", match);
@@ -1182,8 +1184,12 @@ private extern(D) MATCH matchTypeSafeVarArgs(TypeFunction tf, Parameter p,
         if (sz != trailingArgs.length)
         {
             if (pMessage)
-                *pMessage = tf.getMatchError("expected %llu variadic argument(s), not %zu",
+            {
+                OutBuffer buf;
+                TypeFunction.getMatchError(buf, "expected %llu variadic argument(s), not %zu",
                     sz, trailingArgs.length);
+                *pMessage = buf.extractChars();
+            }
             return MATCH.nomatch;
         }
         goto case Tarray;
