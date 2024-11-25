@@ -3441,10 +3441,16 @@ class Lexer
             if (*q != ct)
                 break;
         }
-        /* Remove leading line feed
+        /* Remove leading line feed or space
          */
         int linestart = 0;
-        if (ct != '/' && q < qend)
+        if (ct == '/')
+        {
+            if (q < qend && *q == ' ') {
+                ++q;
+            }
+        }
+        else if (q < qend)
         {
             if (*q == '\r')
             {
