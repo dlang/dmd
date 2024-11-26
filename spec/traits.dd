@@ -49,6 +49,7 @@ $(GNAME TraitsKeyword):
     $(RELATIVE_LINK2 isZeroInit, $(D isZeroInit))
     $(RELATIVE_LINK2 isModule, $(D isModule))
     $(RELATIVE_LINK2 isPackage, $(D isPackage))
+    $(RELATIVE_LINK2 isCOMClass, $(D isCOMClass))
     $(RELATIVE_LINK2 hasMember, $(D hasMember))
     $(RELATIVE_LINK2 hasCopyConstructor, $(D hasCopyConstructor))
     $(RELATIVE_LINK2 hasPostblit, $(D hasPostblit))
@@ -1272,6 +1273,12 @@ static assert(__traits(isPackage, std.algorithm));
 static assert(!__traits(isPackage, std.algorithm.sorting));
 ---
 )
+
+$(H3 $(GNAME isCOMClass))
+        $(P Takes one argument. If that argument is a symbol that refers to a
+        $(DDSUBLINK spec/class, ClassDeclaration, class declaration) and is a COM class then $(D true) is retuned,
+        otherwise $(D false).
+        )
 
 $(H3 $(GNAME hasMember))
 
