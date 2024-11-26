@@ -482,6 +482,7 @@ immutable Msgtable[] msgtable =
     { "isRef" },
     { "isOut" },
     { "isLazy" },
+    { "isCOMClass" },
     { "hasMember" },
     { "identifier" },
     { "fullyQualifiedName" },

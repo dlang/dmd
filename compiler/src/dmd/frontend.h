@@ -8692,6 +8692,7 @@ struct Id final
     static Identifier* isRef;
     static Identifier* isOut;
     static Identifier* isLazy;
+    static Identifier* isCOMClass;
     static Identifier* hasMember;
     static Identifier* identifier;
     static Identifier* fullyQualifiedName;
