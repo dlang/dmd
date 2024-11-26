@@ -693,6 +693,26 @@ Expression semanticTraits(TraitsExp e, Scope* sc)
 
         return isDeclX(d => (d.storage_class & STC.lazy_) != 0);
     }
+    if (e.ident == Id.isCOMClass)
+    {
+        if (dim != 1)
+            return dimError(1);
+
+        auto o = (*e.args)[0];
+        auto s = getDsymbol(o);
+        AggregateDeclaration agg;
+
+        if (!s || ((agg = s.isAggregateDeclaration()) is null))
+        {
+            error(e.loc, "argument to `__traits(isCOMClass, %s)` is not a declaration", o.toChars());
+            return ErrorExp.get();
+        }
+
+        if (ClassDeclaration cd = agg.isClassDeclaration())
+            return cd.com ? True() : False();
+        else
+            return False();
+    }
     if (e.ident == Id.identifier)
     {
         // Get identifier for symbol as a string literal
