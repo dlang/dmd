@@ -939,6 +939,9 @@ dmd -cov -unittest myprog.d
                 "https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1000.md"),
         Feature("intpromote", "fix16997", "revert integral promotions for unary + - ~ operators"),
         Feature("dtorfields", "dtorFields", "don't destruct fields of partially constructed objects"),
+        Feature("rvaluerefparam", "rvalueRefParam",
+                "revert rvalue arguments to ref parameters",
+                "https://gist.github.com/andralex/e5405a5d773f07f73196c05f8339435a"),
     ];
 
     /// Returns all available previews
@@ -969,9 +972,6 @@ dmd -cov -unittest myprog.d
         Feature("dtorfields", "dtorFields",
             "destruct fields of partially constructed objects",
             "https://dlang.org/changelog/2.098.0.html#dtorfileds", false, false),
-        Feature("rvaluerefparam", "rvalueRefParam",
-            "enable rvalue arguments to ref parameters",
-            "https://gist.github.com/andralex/e5405a5d773f07f73196c05f8339435a"),
         Feature("nosharedaccess", "noSharedAccess",
             "disable access to shared memory objects",
             "https://dlang.org/spec/const3.html#shared"),

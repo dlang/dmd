@@ -1356,7 +1356,7 @@ extern (D) MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, Templat
                         {
                             // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
                         }
-                        else if (global.params.rvalueRefParam == FeatureState.enabled)
+                        else if (global.params.rvalueRefParam != FeatureState.disabled)
                         {
                             // Allow implicit conversion to ref
                         }
