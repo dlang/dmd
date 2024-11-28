@@ -57,7 +57,7 @@ import dmd.opover;
 import dmd.parse;
 import dmd.common.outbuffer;
 import dmd.root.string;
-import dmd.safe : isSafe, setUnsafe;
+import dmd.safe : isSafe, isSaferD, setUnsafe;
 import dmd.semantic2;
 import dmd.sideeffect;
 import dmd.statement;
@@ -1987,7 +1987,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         }
 
         ss.hasDefault = sc.sw.sdefault ||
-            !(!ss.isFinal || needswitcherror || global.params.useAssert == CHECKENABLE.on || sc.func.isSafe);
+            !(!ss.isFinal || needswitcherror || global.params.useAssert == CHECKENABLE.on || sc.func.isSafe || sc.func.isSaferD);
         if (!ss.hasDefault)
         {
             if (!ss.isFinal && (!ss._body || !ss._body.isErrorStatement()) && !sc.inCfile)
