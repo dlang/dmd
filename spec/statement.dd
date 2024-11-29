@@ -285,8 +285,9 @@ $(H3 $(LNAME2 boolean-conditions, Boolean Conversion))
         )
         $(P If none of these are valid, it is an error to use the value in a condition.)
 
-        $(NOTE A dynamic array can be used in a condition, which is `true` when non-null.
-        However, using this should be avoided as it can be bug-prone.
+        $(NOTE A dynamic array `a` can be used in a condition, which is `true` when
+        `a !is []`.
+        However, using an array as a boolean condition should be avoided as it can be bug-prone.
         This may be disallowed in a future edition.)
 
 $(H3 $(LNAME2 condition-variables, Condition Variables))
