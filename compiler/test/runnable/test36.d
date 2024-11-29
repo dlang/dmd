@@ -12,6 +12,10 @@ extern (Windows):
         {printf(`comobject\n`);
         }
 }
+
+// https://issues.dlang.org/show_bug.cgi?id=24882
+static assert(__traits(isCOMClass, ComObject));
+
 interface IDataObject: IUnknown
 {
         extern(Windows):

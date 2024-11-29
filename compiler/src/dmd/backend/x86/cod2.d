@@ -4176,6 +4176,7 @@ void cdmemset(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
     if (valueIsConst)
     {
         regwithvalue(cdb, mAX, value, I64?64:0);
+        getregs(cdb, mAX);
         freenode(evalue);
     }
     else
