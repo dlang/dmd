@@ -3839,6 +3839,7 @@ $(H3 $(LNAME2 safe-functions, Safe Functions))
         $(LI No casting from any non-pointer type to a pointer type.)
         $(LI No $(DDSUBLINK spec/expression, pointer_arithmetic, pointer arithmetic)
             (including pointer indexing & slicing).)
+        $(LI Cannot access array $(DDSUBLINK spec/arrays, ptr-property, `.ptr` property).)
         $(LI Cannot access union fields that:)
             * Have pointers or references overlapping with other types
             * Have invariants overlapping with other types

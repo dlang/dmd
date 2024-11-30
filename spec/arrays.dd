@@ -124,6 +124,32 @@ f([1, 2]); // pass 2 elements
 f([]); // pass an empty array
 ---
 
+$(H2 $(LNAME2 comparison, Array Comparison))
+
+        $(P For static and dynamic arrays:)
+
+        * The `.length` property will give the number of elements in the array.
+        * The $(RELATIVE_LINK2 ptr-property, `.ptr` property) will give a pointer to
+          the first element in the array.
+        * `a == b` compares both the array lengths and array elements.
+        * `a is b` compares each `.ptr` and each `.length`. Note that this is
+          deprecated for static arrays because those are value types, so checking
+          identity should not compare the `.ptr` fields.)
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---------
+int[3] s = [1, 2, 3];
+int[] a = [1, 2, 3];
+
+assert(s.length == 3);
+assert(a.length == 3);
+assert(s == a);
+assert(s.ptr != a.ptr); // here `a` is not a slice of `s`
+assert(s !is a);
+---
+)
+        $(P See also: $(DDSUBLINK spec/expression, array_comparisons, *RelExpression*.)
+
 $(LEGACY_LNAME2 usage)
 $(H2 $(LNAME2 assignment, Array Assignment))
 
@@ -133,9 +159,6 @@ $(H2 $(LNAME2 assignment, Array Assignment))
         the handle for these types.
         )
 
-        $(P The `.ptr` property for static and dynamic arrays will give the address
-        of the first element in the array:)
-
 $(SPEC_RUNNABLE_EXAMPLE_RUN
 ---------
 int* p;
@@ -143,7 +166,9 @@ int[3] s;
 int[] a;
 
 p = s.ptr; // p points to the first element of the array s.
-p = a.ptr; // p points to the first element of the array a.
+assert(p !is null);
+p = a.ptr;
+assert(p is null);
 
 // error, since the length of the array pointed to by p is unknown
 //s = p;
@@ -152,10 +177,10 @@ p = a.ptr; // p points to the first element of the array a.
 a = s;     // a points to the elements of s
 assert(a.ptr == s.ptr);
 
-int[] b;
+int[] b = [1, 2, 3];
 a = b;     // a points to the same array as b does
 assert(a.ptr == b.ptr);
-assert(a == []);
+assert(a is b);
 ---------
 )
     $(NOTE The two error lines above can be made to copy elements
@@ -176,7 +201,9 @@ s = [1, 2, 3]; // OK
 
 a = [4, 5, 6];
 s = a; // OK
+assert(s == a);
 assert(s.ptr != a.ptr);
+
 a = [1, 2];
 //s = a; // RangeError, length mismatch
 
@@ -293,10 +320,7 @@ writeln(b[7]);      // 10
     $(P See also $(GLINK2 expression, SliceOperation).)
 
 
-$(H2 $(LNAME2 array-length, Array Length))
-
-        $(P The $(RELATIVE_LINK2 array-properties, `.length` property)
-        for static and dynamic arrays gives the number of elements in the array.)
+$(H3 $(LNAME2 array-length, Array Length))
 
         $(P When indexing or slicing a static or dynamic array,
         the symbol $(D $) represents the length of the array.
@@ -626,9 +650,11 @@ $(H2 $(LNAME2 array-properties, Array Properties))
 Returns an array literal with each element of the literal being the $(D .init) property of the array element type.)
         $(TROW $(D .sizeof), Returns the array length multiplied by
         the number of bytes per array element.)
-        $(TROW $(D .length), Returns the number of elements in the array.
-        This is a fixed quantity for static arrays. It is of type $(D size_t).)
-        $(TROW $(D .ptr), Returns a pointer to the first element of the array.)
+        $(TROW $(D .length), $(ARGS Returns the number of elements in the array.
+        This is a fixed quantity for static arrays, known at compile-time.
+        It is of type $(D size_t)).)
+        $(TROW $(RELATIVE_LINK2 ptr-property, `.ptr`), Returns a pointer to the first
+            element of the array.)
         $(TROW $(D .dup), Create a dynamic array of the same size and copy the contents of the array into it. The copy will have any immutability or const stripped. If this conversion is invalid the call will not compile.)
         $(TROW $(D .idup), Create a dynamic array of the same size and copy the contents of the array into it. The copy is typed as being immutable. If this conversion is invalid the call will not compile.)
         $(TROW $(D .tupleof), $(ARGS Returns an $(DDSUBLINK spec/template, lvalue-sequences, lvalue sequence) of each element in the array:
@@ -652,15 +678,14 @@ Returns an array literal with each element of the literal being the $(D .init) p
 
     $(TABLE_2COLS Dynamic Array Properties,
         $(THEAD Property, Description)
-        $(TROW $(D .init), Returns $(D null).)
+        $(TROW $(D .init), Returns $(D []).)
         $(TROW $(D .sizeof), $(ARGS Returns the size of the dynamic array reference,
         which is 8 in 32-bit builds and 16 on 64-bit builds.))
-        $(TROW $(D .length), Get/set number of elements in the
+        $(TROW $(RELATIVE_LINK2 resize, `.length`), Get/set number of elements in the
         array. It is of type $(D size_t).)
-        $(TROW $(D .capacity), Returns the length an array can grow to without reallocating.
-            See $(RELATIVE_LINK2 capacity-reserve, here) for details.)
-        $(TROW $(D .ptr), Returns a pointer to the first element of the array.
-            See $(RELATIVE_LINK2 assignment, assignment).)
+        $(TROW $(RELATIVE_LINK2 capacity-reserve, `.capacity`), Returns the length an array can grow to without reallocating.)
+        $(TROW $(RELATIVE_LINK2 ptr-property, `.ptr`), Returns a pointer to the first
+            element of the array.)
         $(TROW $(D .dup), Create a dynamic array of the same size and copy the contents of the array into it. The copy will have any immutability or const stripped. If this conversion is invalid the call will not compile.)
         $(TROW $(D .idup), Create a dynamic array of the same size and copy the contents of the array into it. The copy is typed as being immutable. If this conversion is invalid the call will not compile.)
                 )
@@ -691,6 +716,33 @@ int[] b = a.dup; // allocates a new array of `a.length` elements, copies
                  // elements of `a` into it
 assert(b !is a); // b is an independent copy of a
 ---------
+)
+
+$(H3 $(LNAME2 ptr-property, `.ptr` Property))
+
+        $(P The `.ptr` property will give a pointer to the first element in a
+        static or dynamic array. It may be a
+        $(LINK2 https://en.wikipedia.org/wiki/Dangling_pointer, dangling pointer)
+        if the array length is zero. For this reason, `.ptr` is not accessible in
+        `@safe` code.)
+
+        $(P A dynamic array's `.ptr` is $(RELATIVE_LINK2 default-initialization,
+        default-initialized) to `null`.)
+
+        $(P An array with zero length may have a non-null `.ptr`. That can occur:)
+
+        * From $(RELATIVE_LINK2 slicing, slicing) a dynamic array `a` with
+          zero-width: `a[$..$]`.
+        * For a zero-length static array.
+
+$(SPEC_RUNNABLE_EXAMPLE_RUN
+---
+int[] a;
+assert(a.ptr is null);
+
+int[0] z;
+assert(z.ptr !is null);
+---
 )
 
 $(H3 $(LNAME2 resize, Setting Dynamic Array Length))
@@ -1006,7 +1058,7 @@ $(H3 $(LNAME2 default-initialization, Default Initialization))
         $(LI Pointers are initialized to $(D null).)
         $(LI Static array contents are initialized to the default
         initializer for the array element type.)
-        $(LI Dynamic arrays are initialized to having 0 elements.)
+        $(LI Dynamic arrays are initialized to having 0 elements and a null `.ptr`.)
         $(LI Associative arrays are initialized to having 0 elements.)
         )
 
