@@ -412,4 +412,15 @@ assert(op != BADINS);
     //    if (cs.Irm == 0x3D) *(char*)0=0;
     //    if (cs.Iop == LEA && cs.Irm == 0xCB) *(char*)0=0;
     }
+
+    /***********
+     * Print opcodes
+     */
+    @trusted
+    void print()
+    {
+        printf("---\n");
+        for (code *c = head; c; c = c.next)
+            printf("%02x\n", c.Iop);
+    }
 }
