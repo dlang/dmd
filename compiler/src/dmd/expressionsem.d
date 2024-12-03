@@ -7130,6 +7130,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             printf("TypeidExp::semantic() %s\n", exp.toChars());
         }
+        if (exp.type)
+        {
+            result = exp;
+            return;
+        }
         Type ta = isType(exp.obj);
         Expression ea = isExpression(exp.obj);
         Dsymbol sa = isDsymbol(exp.obj);
