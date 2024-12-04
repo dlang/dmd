@@ -52,6 +52,7 @@ import dmd.e2ir;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
+import dmd.funcsem : onlyOneMain;
 import dmd.globals;
 import dmd.identifier;
 import dmd.id;
@@ -1621,29 +1622,6 @@ private bool entryPointFunctions(Obj objmod, FuncDeclaration fd)
     }
 
     return false;
-}
-
-/****************************************
- * Only one entry point function is allowed. Print error if more than one.
- * Params:
- *      fd = a "main" function
- * Returns:
- *      true if haven't seen "main" before
- */
-private bool onlyOneMain(FuncDeclaration fd)
-{
-    __gshared FuncDeclaration lastMain;
-    if (lastMain)
-    {
-        const format = (target.os == Target.OS.Windows)
-            ? "only one entry point `main`, `WinMain` or `DllMain` is allowed"
-            : "only one entry point `main` is allowed";
-        error(fd.loc, format.ptr);
-        errorSupplemental(lastMain.loc, "previously found `%s` here", lastMain.toFullSignature());
-        return false;
-    }
-    lastMain = fd;
-    return true;
 }
 
 /* ================================================================== */

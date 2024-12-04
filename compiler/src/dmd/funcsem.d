@@ -154,6 +154,28 @@ public:
     }
 }
 
+/****************************************
+ * Only one entry point function is allowed. Print error if more than one.
+ * Params:
+ *      fd = a "main" function
+ * Returns:
+ *      true if haven't seen "main" before
+ */
+extern (C++) bool onlyOneMain(FuncDeclaration fd)
+{
+    if (auto lastMain = FuncDeclaration.lastMain)
+    {
+        const format = (target.os == Target.OS.Windows)
+            ? "only one entry point `main`, `WinMain` or `DllMain` is allowed"
+            : "only one entry point `main` is allowed";
+        error(fd.loc, format.ptr);
+        errorSupplemental(lastMain.loc, "previously found `%s` here", lastMain.toFullSignature());
+        return false;
+    }
+    FuncDeclaration.lastMain = fd;
+    return true;
+}
+
 /**********************************
  * Main semantic routine for functions.
  */
