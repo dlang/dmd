@@ -1547,13 +1547,38 @@ $(H4 $(LNAME2 cast_floating, Floating Point))
 
 $(H4 $(LNAME2 cast_struct, Structs))
 
-    $(P Casting an expression $(I e) to a struct $(I S), when the
-        expression is not a struct of the same type, is equivalent to a
-        $(GLINK PostfixExpression):)
+    $(P An expression `e` can be cast to a struct type `S`:)
 
+        * The compiler attempts a
+          $(RELATIVE_LINK2 type-constructor-arguments, *PostfixExpression*) `S(e)`.
+          If that would fail:
+        * When `e` is a struct or static array instance, its data is reinterpreted as
+          the target type `S`. The data sizes must match.
+        * Otherwise, it is an error.
+
+        $(SPEC_RUNNABLE_EXAMPLE_RUN
         ---
-        S(e)
+        struct S
+        {
+            int i;
+        }
+        struct R
+        {
+            short[2] a;
+        }
+
+        S s = cast(S) 5; // same as S(5)
+        assert(s.i == 5);
+        static assert(!__traits(compiles, cast(S) long.max)); // S(long.max) is invalid
+
+        R r = R([1, 2]);
+        s = cast(S) r; // reinterpret r
+        assert(s.i == 0x00020001);
+
+        byte[4] a = [1, 0, 2, 0];
+        assert(r == cast(R) a); // reinterpret a
         ---
+        )
 
     $(P A struct instance can be cast to a static array type when
         their `.sizeof` properties each give the same result.)
@@ -1563,7 +1588,7 @@ $(H4 $(LNAME2 cast_struct, Structs))
         struct S { short a, b, c; }
 
         S s = S(1, 2, 3);
-        static assert(!__traits(compiles, cast(short[2]) s));
+        static assert(!__traits(compiles, cast(short[2]) s)); // size mismatch
 
         short[3] x = cast(short[3]) s;
         assert(x.tupleof == s.tupleof);
@@ -1775,6 +1800,7 @@ $(H4 $(LNAME2 type-constructor-arguments, Constructing a Type with an Argument L
     $(P A type can precede a list of arguments. See:)
 
     * $(DDSUBLINK spec/struct, struct-literal, Struct Literals)
+    * $(DDSUBLINK spec/struct, struct-constructor, Struct Constructors)
     * $(RELATIVE_LINK2 uniform_construction_syntax, Uniform construction syntax for built-in scalar types)
 
 $(H3 $(LEGACY_LNAME2 index_operations, index_expressions, Index Operations))
