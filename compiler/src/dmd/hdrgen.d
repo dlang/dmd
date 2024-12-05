@@ -305,10 +305,9 @@ private void statementToBuffer(Statement s, ref OutBuffer buf, ref HdrGenState h
         buf.writenl();
     }
 
-    void visitWhile(WhileStatement s)
+    void printConditionAssignment(Parameter p, Expression condition)
     {
-        buf.writestring("while (");
-        if (auto p = s.param)
+        if (p)
         {
             // Print condition assignment
             StorageClass stc = p.storageClass;
@@ -322,7 +321,13 @@ private void statementToBuffer(Statement s, ref OutBuffer buf, ref HdrGenState h
                 buf.writestring(p.ident.toString());
             buf.writestring(" = ");
         }
-        s.condition.expressionToBuffer(buf, hgs);
+        condition.expressionToBuffer(buf, hgs);
+    }
+
+    void visitWhile(WhileStatement s)
+    {
+        buf.writestring("while (");
+        printConditionAssignment(s.param, s.condition);
         buf.writeByte(')');
         buf.writenl();
         if (s._body)
@@ -460,20 +465,7 @@ private void statementToBuffer(Statement s, ref OutBuffer buf, ref HdrGenState h
     void visitIf(IfStatement s)
     {
         buf.writestring("if (");
-        if (Parameter p = s.prm)
-        {
-            StorageClass stc = p.storageClass;
-            if (!p.type && !stc)
-                stc = STC.auto_;
-            if (stcToBuffer(buf, stc))
-                buf.writeByte(' ');
-            if (p.type)
-                typeToBuffer(p.type, p.ident, buf, hgs);
-            else
-                buf.writestring(p.ident.toString());
-            buf.writestring(" = ");
-        }
-        s.condition.expressionToBuffer(buf, hgs);
+        printConditionAssignment(s.prm, s.condition);
         buf.writeByte(')');
         buf.writenl();
         if (s.ifbody.isScopeStatement())
@@ -572,21 +564,7 @@ private void statementToBuffer(Statement s, ref OutBuffer buf, ref HdrGenState h
     void visitSwitch(SwitchStatement s)
     {
         buf.writestring(s.isFinal ? "final switch (" : "switch (");
-        if (auto p = s.param)
-        {
-            // Print condition assignment
-            StorageClass stc = p.storageClass;
-            if (!p.type && !stc)
-                stc = STC.auto_;
-            if (stcToBuffer(buf, stc))
-                buf.writeByte(' ');
-            if (p.type)
-                typeToBuffer(p.type, p.ident, buf, hgs);
-            else
-                buf.writestring(p.ident.toString());
-            buf.writestring(" = ");
-        }
-        s.condition.expressionToBuffer(buf, hgs);
+        printConditionAssignment(s.param, s.condition);
         buf.writeByte(')');
         buf.writenl();
         if (s._body)
