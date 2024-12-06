@@ -135,6 +135,27 @@ test_druntime() {
 # build and run Phobos unit tests
 test_phobos() {
     make -j$N -C ../phobos MODEL=$MODEL unittest
+
+    if [ "$OS_NAME" == "windows" ]; then
+        echo "FIXME: Skipping publictests on Windows (test failures)"
+    elif [ "${HOST_DMD:0:5}" == "gdmd-" ]; then
+        echo "Skipping publictests with GDC host compiler (no installed dub)"
+    elif [ "$HOST_DMD" == "dmd-2.079.0" ]; then
+        echo "Skipping publictests with DMD v2.079 host compiler (dub too old)"
+    else
+        source ~/dlang/*/activate # activate host compiler - need dub
+
+        make -j$N -C ../phobos MODEL=$MODEL publictests
+        make -j$N -C ../phobos MODEL=$MODEL publictests NO_BOUNDSCHECKS=1
+
+        if [ "$OS_NAME" == "osx" ]; then
+            echo "FIXME: Skipping betterc on macOS (Apple linker assertions)"
+        else
+            make -j$N -C ../phobos MODEL=$MODEL betterc
+        fi
+
+        deactivate # deactivate host compiler
+    fi
 }
 
 # test dub package
