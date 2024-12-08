@@ -1,4 +1,4 @@
-/**
+/***
  * Does the semantic 1 pass on the AST, which looks at symbol declarations but not initializers
  * or function bodies.
  *
