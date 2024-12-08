@@ -75,6 +75,7 @@ import dmd.staticassert;
 import dmd.tokens;
 import dmd.utils;
 import dmd.statement;
+import dmd.statementsem : prepare;
 import dmd.target;
 import dmd.templateparamsem;
 import dmd.templatesem;
