@@ -1,0 +1,8 @@
+`-preview=fieldwise` is now enabled by default
+
+This fixes a bug that affected some struct comparisons using the `==` operator.
+For more information, see [the entry for `-preview=fieldwise` in the 2.085.0
+changelog](https://dlang.org/changelog/2.085.0.html#no-cmpsb).
+
+The new `-revert=fieldwise` switch can be used to disable the bug fix and
+restore the original behavior of the `==` operator.

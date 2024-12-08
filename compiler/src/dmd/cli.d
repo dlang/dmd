@@ -939,6 +939,8 @@ dmd -cov -unittest myprog.d
                 "https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1000.md"),
         Feature("intpromote", "fix16997", "revert integral promotions for unary + - ~ operators"),
         Feature("dtorfields", "dtorFields", "don't destruct fields of partially constructed objects"),
+        Feature("fieldwise", "fieldwise", "don't use fieldwise comparisons for struct equality",
+            "https://dlang.org/changelog/2.085.0.html#no-cmpsb"),
     ];
 
     /// Returns all available previews
@@ -959,7 +961,7 @@ dmd -cov -unittest myprog.d
         Feature("bitfields", "bitfields", "add C-like bitfields",
             "https://github.com/dlang/dlang.org/pull/3190"),
         Feature("fieldwise", "fieldwise", "use fieldwise comparisons for struct equality",
-            "https://dlang.org/changelog/2.085.0.html#no-cmpsb"),
+            "https://dlang.org/changelog/2.085.0.html#no-cmpsb", false, false),
         Feature("fixAliasThis", "fixAliasThis",
             "when a symbol is resolved, check alias this scope before going to upper scopes",
             "https://github.com/dlang/dmd/pull/8885"),
