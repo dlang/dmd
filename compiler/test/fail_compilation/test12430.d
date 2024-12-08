@@ -2,7 +2,9 @@
 REQUIRED_ARGS: -m64
 TEST_OUTPUT:
 ---
-fail_compilation/test12430.d(17): Error: simd operator must be an integer constant, not `op`
+fail_compilation/test12430.d(19): Error: simd operator must be an integer constant, not `op`
+        auto b = __simd(op, a);
+                        ^
 ---
 */
 

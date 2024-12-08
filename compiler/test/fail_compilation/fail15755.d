@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail15755.d(28): Error: `AliasSeq!(123)` has no effect
+fail_compilation/fail15755.d(30): Error: `AliasSeq!(123)` has no effect
+    getattribute!(__traits(getMember, Foo, "a"));
+    ^
 ---
 */
 

@@ -1,7 +1,24 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail66.d(11): Error: constructor `fail66.C1.this` missing initializer for const field `y`
+fail_compilation/fail66.d(28): Error: constructor `fail66.C1.this` missing initializer for const field `y`
+    this() {}
+    ^
+fail_compilation/fail66.d(39): Error: cannot modify `const` expression `c.y`
+    c.y = 3;
+    ^
+fail_compilation/fail66.d(48): Error: cannot modify `const` expression `this.y`
+        y = 6;
+        ^
+fail_compilation/fail66.d(58): Error: cannot modify `const` expression `x`
+        x = 4;
+        ^
+fail_compilation/fail66.d(66): Error: cannot modify `const` expression `z5`
+    z5 = 4;
+    ^
+fail_compilation/fail66.d(76): Error: cannot modify `const` expression `c.y`
+        c.y = 8;
+        ^
 ---
 */
 
@@ -11,12 +28,6 @@ class C1
     this() {}
 }
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/fail66.d(28): Error: cannot modify `const` expression `c.y`
----
-*/
 class C2
 {
     const int y;
@@ -28,12 +39,6 @@ void test2()
     c.y = 3;
 }
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/fail66.d(43): Error: cannot modify `const` expression `this.y`
----
-*/
 class C3
 {
     const int y;
@@ -44,12 +49,6 @@ class C3
     }
 }
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/fail66.d(59): Error: cannot modify `const` expression `x`
----
-*/
 class C4
 {
     static const int x;
@@ -60,12 +59,6 @@ class C4
     }
 }
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/fail66.d(73): Error: cannot modify `const` expression `z5`
----
-*/
 const int z5;
 shared static this() { z5 = 3; }
 void test5()
@@ -73,12 +66,6 @@ void test5()
     z5 = 4;
 }
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/fail66.d(89): Error: cannot modify `const` expression `c.y`
----
-*/
 class C6
 {
     const int y;

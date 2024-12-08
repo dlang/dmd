@@ -2,16 +2,36 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail245.d(27): Deprecation: variable `fail245.ClassWithDeps.value` is deprecated
-fail_compilation/fail245.d(28): Deprecation: variable `fail245.ClassWithDeps.value` is deprecated
-fail_compilation/fail245.d(29): Deprecation: variable `fail245.ClassWithDeps.value` is deprecated
-fail_compilation/fail245.d(30): Deprecation: variable `fail245.ClassWithDeps.value` is deprecated
-fail_compilation/fail245.d(32): Deprecation: variable `fail245.ClassWithDeps.staticValue` is deprecated
-fail_compilation/fail245.d(33): Deprecation: variable `fail245.ClassWithDeps.staticValue` is deprecated
-fail_compilation/fail245.d(34): Deprecation: variable `fail245.ClassWithDeps.staticValue` is deprecated
-fail_compilation/fail245.d(35): Deprecation: variable `fail245.ClassWithDeps.staticValue` is deprecated
-fail_compilation/fail245.d(36): Deprecation: variable `fail245.ClassWithDeps.staticValue` is deprecated
-fail_compilation/fail245.d(37): Deprecation: variable `fail245.ClassWithDeps.staticValue` is deprecated
+fail_compilation/fail245.d(47): Deprecation: variable `fail245.ClassWithDeps.value` is deprecated
+        obj.value = 666;
+        ^
+fail_compilation/fail245.d(48): Deprecation: variable `fail245.ClassWithDeps.value` is deprecated
+        this.value = 666;
+        ^
+fail_compilation/fail245.d(49): Deprecation: variable `fail245.ClassWithDeps.value` is deprecated
+        auto n1 = obj.value;
+                  ^
+fail_compilation/fail245.d(50): Deprecation: variable `fail245.ClassWithDeps.value` is deprecated
+        auto n2 = this.value;
+                  ^
+fail_compilation/fail245.d(52): Deprecation: variable `fail245.ClassWithDeps.staticValue` is deprecated
+        obj.staticValue = 102;
+        ^
+fail_compilation/fail245.d(53): Deprecation: variable `fail245.ClassWithDeps.staticValue` is deprecated
+        this.staticValue = 103;
+        ^
+fail_compilation/fail245.d(54): Deprecation: variable `fail245.ClassWithDeps.staticValue` is deprecated
+        ClassWithDeps.staticValue = 104;
+        ^
+fail_compilation/fail245.d(55): Deprecation: variable `fail245.ClassWithDeps.staticValue` is deprecated
+        auto n3 = obj.staticValue;
+                  ^
+fail_compilation/fail245.d(56): Deprecation: variable `fail245.ClassWithDeps.staticValue` is deprecated
+        auto n4 = this.staticValue;
+                  ^
+fail_compilation/fail245.d(57): Deprecation: variable `fail245.ClassWithDeps.staticValue` is deprecated
+        auto n5 = ClassWithDeps.staticValue;
+                  ^
 ---
 */
 

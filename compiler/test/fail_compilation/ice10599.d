@@ -3,9 +3,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice10599.d(13): Error: cannot implicitly convert expression `3.45` of type `double` to `int`
-fail_compilation/ice10599.d(21):        called from here: `bug10599()`
-fail_compilation/ice10599.d(21):        while evaluating: `static assert(bug10599())`
+fail_compilation/ice10599.d(19): Error: cannot implicitly convert expression `3.45` of type `double` to `int`
+    int val = 3.45;
+              ^
+fail_compilation/ice10599.d(27):        called from here: `bug10599()`
+static assert(bug10599());
+                      ^
+fail_compilation/ice10599.d(27):        while evaluating: `static assert(bug10599())`
+static assert(bug10599());
+^
 ---
 */
 

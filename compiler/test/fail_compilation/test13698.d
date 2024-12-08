@@ -4,7 +4,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test13698.d(16): Error: constant expression expected, not `cast(void)b`
+fail_compilation/test13698.d(18): Error: constant expression expected, not `cast(void)b`
+        a = __simd(XMM.SHUFPS, a, b);
+                                  ^
 ---
 */
 

@@ -1,11 +1,21 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail19103.d(14): Error: no property `puts` for `new C` of type `fail19103.C`
-fail_compilation/fail19103.d(26):        class `C` defined here
-fail_compilation/fail19103.d(16): Error: no property `puts` for `s1` of type `fail19103.S1`
-fail_compilation/fail19103.d(30):        struct `S1` defined here
-fail_compilation/fail19103.d(18): Error: no property `puts` for type `S2`, did you mean `core.stdc.stdio.puts`?
+fail_compilation/fail19103.d(24): Error: no property `puts` for `new C` of type `fail19103.C`
+    (new C).puts("OK."); // Error: no property puts for type test.C, did you mean core.stdc.stdio.puts(T...)(T args)?
+           ^
+fail_compilation/fail19103.d(36):        class `C` defined here
+class C
+^
+fail_compilation/fail19103.d(26): Error: no property `puts` for `s1` of type `fail19103.S1`
+    s1.puts("Hey?"); // It can be compiled and runs!
+      ^
+fail_compilation/fail19103.d(40):        struct `S1` defined here
+struct S1
+^
+fail_compilation/fail19103.d(28): Error: no property `puts` for type `S2`, did you mean `core.stdc.stdio.puts`?
+    s2.puts("OK."); //  Error: no property puts for type S2, did you mean core.stdc.stdio.puts(T...)(T args)?
+      ^
 ---
 */
 

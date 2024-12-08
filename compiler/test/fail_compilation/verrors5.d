@@ -32,10 +32,20 @@ void main()
 TEST_OUTPUT:
 ---
 fail_compilation/verrors5.d(5): Error: undefined identifier `T`
+    { T a; }    // 1
+        ^
 fail_compilation/verrors5.d(6): Error: undefined identifier `T`
+    { T a; }    // 2
+        ^
 fail_compilation/verrors5.d(7): Error: undefined identifier `T`
+    { T a; }    // 3
+        ^
 fail_compilation/verrors5.d(8): Error: undefined identifier `T`
+    { T a; }    // 4
+        ^
 fail_compilation/verrors5.d(9): Error: undefined identifier `T`
+    { T a; }    // 5
+        ^
 error limit (5) reached, use `-verrors=0` to show all
 ---
 */

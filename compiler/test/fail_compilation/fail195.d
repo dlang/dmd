@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail195.d(22): Error: struct `Foo` does not overload ()
+fail_compilation/fail195.d(24): Error: struct `Foo` does not overload ()
+    next(); // Error: structliteral has no effect in expression (Foo(0))
+        ^
 ---
 */
 

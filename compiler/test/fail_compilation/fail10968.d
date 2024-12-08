@@ -1,40 +1,116 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail10968.d(43): Error: `pure` function `fail10968.bar` cannot call impure function `fail10968.SA.__postblit`
-fail_compilation/fail10968.d(43): Error: `@safe` function `fail10968.bar` cannot call `@system` function `fail10968.SA.__postblit`
-fail_compilation/fail10968.d(31):        `fail10968.SA.__postblit` is declared here
-fail_compilation/fail10968.d(44): Error: `pure` function `fail10968.bar` cannot call impure function `fail10968.SA.__postblit`
-fail_compilation/fail10968.d(44): Error: `@safe` function `fail10968.bar` cannot call `@system` function `fail10968.SA.__postblit`
-fail_compilation/fail10968.d(31):        `fail10968.SA.__postblit` is declared here
-fail_compilation/fail10968.d(44): Error: `pure` function `fail10968.bar` cannot call impure function `core.internal.array.arrayassign._d_arraysetassign!(SA[], SA)._d_arraysetassign`
+fail_compilation/fail10968.d(128): Error: `pure` function `fail10968.bar` cannot call impure function `fail10968.SA.__postblit`
+    ss = ss;
+         ^
+fail_compilation/fail10968.d(128): Error: `@safe` function `fail10968.bar` cannot call `@system` function `fail10968.SA.__postblit`
+    ss = ss;
+         ^
+fail_compilation/fail10968.d(116):        `fail10968.SA.__postblit` is declared here
+    this(this)
+    ^
+fail_compilation/fail10968.d(129): Error: `pure` function `fail10968.bar` cannot call impure function `fail10968.SA.__postblit`
+    sa = ss;
+    ^
+fail_compilation/fail10968.d(129): Error: `@safe` function `fail10968.bar` cannot call `@system` function `fail10968.SA.__postblit`
+    sa = ss;
+    ^
+fail_compilation/fail10968.d(116):        `fail10968.SA.__postblit` is declared here
+    this(this)
+    ^
+fail_compilation/fail10968.d(129): Error: `pure` function `fail10968.bar` cannot call impure function `core.internal.array.arrayassign._d_arraysetassign!(SA[], SA)._d_arraysetassign`
+    sa = ss;
+       ^
 $p:druntime/import/core/internal/array/arrayassign.d$($n$):        which calls `core.lifetime.copyEmplace!(SA, SA).copyEmplace`
+            copyEmplace(value, dst);
+                       ^
 $p:druntime/import/core/lifetime.d$($n$):        which calls `fail10968.SA.__postblit`
-fail_compilation/fail10968.d(45): Error: `pure` function `fail10968.bar` cannot call impure function `fail10968.SA.__postblit`
-fail_compilation/fail10968.d(45): Error: `@safe` function `fail10968.bar` cannot call `@system` function `fail10968.SA.__postblit`
-fail_compilation/fail10968.d(31):        `fail10968.SA.__postblit` is declared here
-fail_compilation/fail10968.d(45): Error: `pure` function `fail10968.bar` cannot call impure function `core.internal.array.arrayassign._d_arrayassign_l!(SA[], SA)._d_arrayassign_l`
+            (cast() target).__xpostblit();
+                                       ^
+fail_compilation/fail10968.d(130): Error: `pure` function `fail10968.bar` cannot call impure function `fail10968.SA.__postblit`
+    sa = sa;
+    ^
+fail_compilation/fail10968.d(130): Error: `@safe` function `fail10968.bar` cannot call `@system` function `fail10968.SA.__postblit`
+    sa = sa;
+    ^
+fail_compilation/fail10968.d(116):        `fail10968.SA.__postblit` is declared here
+    this(this)
+    ^
+fail_compilation/fail10968.d(130): Error: `pure` function `fail10968.bar` cannot call impure function `core.internal.array.arrayassign._d_arrayassign_l!(SA[], SA)._d_arrayassign_l`
+    sa = sa;
+       ^
 $p:druntime/import/core/internal/array/arrayassign.d$-mixin-$n$($n$):        which calls `core.lifetime.copyEmplace!(SA, SA).copyEmplace`
 $p:druntime/import/core/lifetime.d$($n$):        which calls `fail10968.SA.__postblit`
-fail_compilation/fail10968.d(48): Error: `pure` function `fail10968.bar` cannot call impure function `fail10968.SA.__postblit`
-fail_compilation/fail10968.d(48): Error: `@safe` function `fail10968.bar` cannot call `@system` function `fail10968.SA.__postblit`
-fail_compilation/fail10968.d(31):        `fail10968.SA.__postblit` is declared here
-fail_compilation/fail10968.d(49): Error: `pure` function `fail10968.bar` cannot call impure function `fail10968.SA.__postblit`
-fail_compilation/fail10968.d(49): Error: `@safe` function `fail10968.bar` cannot call `@system` function `fail10968.SA.__postblit`
-fail_compilation/fail10968.d(31):        `fail10968.SA.__postblit` is declared here
-fail_compilation/fail10968.d(49): Error: `pure` function `fail10968.bar` cannot call impure function `core.internal.array.construction._d_arraysetctor!(SA[], SA)._d_arraysetctor`
+            (cast() target).__xpostblit();
+                                       ^
+fail_compilation/fail10968.d(133): Error: `pure` function `fail10968.bar` cannot call impure function `fail10968.SA.__postblit`
+    SA    ss2 = ss;
+          ^
+fail_compilation/fail10968.d(133): Error: `@safe` function `fail10968.bar` cannot call `@system` function `fail10968.SA.__postblit`
+    SA    ss2 = ss;
+          ^
+fail_compilation/fail10968.d(116):        `fail10968.SA.__postblit` is declared here
+    this(this)
+    ^
+fail_compilation/fail10968.d(134): Error: `pure` function `fail10968.bar` cannot call impure function `fail10968.SA.__postblit`
+    SA[1] sa2 = ss;
+          ^
+fail_compilation/fail10968.d(134): Error: `@safe` function `fail10968.bar` cannot call `@system` function `fail10968.SA.__postblit`
+    SA[1] sa2 = ss;
+          ^
+fail_compilation/fail10968.d(116):        `fail10968.SA.__postblit` is declared here
+    this(this)
+    ^
+fail_compilation/fail10968.d(134): Error: `pure` function `fail10968.bar` cannot call impure function `core.internal.array.construction._d_arraysetctor!(SA[], SA)._d_arraysetctor`
+    SA[1] sa2 = ss;
+          ^
 $p:druntime/import/core/internal/array/construction.d$($n$):        which calls `core.lifetime.copyEmplace!(SA, SA).copyEmplace`
+            copyEmplace(value, p[i]);
+                       ^
 $p:druntime/import/core/lifetime.d$($n$):        which calls `fail10968.SA.__postblit`
-fail_compilation/fail10968.d(50): Error: `pure` function `fail10968.bar` cannot call impure function `fail10968.SA.__postblit`
-fail_compilation/fail10968.d(50): Error: `@safe` function `fail10968.bar` cannot call `@system` function `fail10968.SA.__postblit`
-fail_compilation/fail10968.d(31):        `fail10968.SA.__postblit` is declared here
-fail_compilation/fail10968.d(50): Error: `pure` function `fail10968.bar` cannot call impure function `core.internal.array.construction._d_arrayctor!(SA[], SA)._d_arrayctor`
+            (cast() target).__xpostblit();
+                                       ^
+fail_compilation/fail10968.d(135): Error: `pure` function `fail10968.bar` cannot call impure function `fail10968.SA.__postblit`
+    SA[1] sa3 = sa;
+          ^
+fail_compilation/fail10968.d(135): Error: `@safe` function `fail10968.bar` cannot call `@system` function `fail10968.SA.__postblit`
+    SA[1] sa3 = sa;
+          ^
+fail_compilation/fail10968.d(116):        `fail10968.SA.__postblit` is declared here
+    this(this)
+    ^
+fail_compilation/fail10968.d(135): Error: `pure` function `fail10968.bar` cannot call impure function `core.internal.array.construction._d_arrayctor!(SA[], SA)._d_arrayctor`
+    SA[1] sa3 = sa;
+          ^
 $p:druntime/import/core/internal/array/construction.d$($n$):        which calls `core.lifetime.copyEmplace!(SA, SA).copyEmplace`
+                copyEmplace(from[i], to[i]);
+                           ^
 $p:druntime/import/core/lifetime.d$($n$):        which calls `fail10968.SA.__postblit`
+            (cast() target).__xpostblit();
+                                       ^
+fail_compilation/fail10968.d(149): Error: struct `fail10968.SD` is not copyable because it has a disabled postblit
+    ss = ss;
+         ^
+fail_compilation/fail10968.d(150): Error: struct `fail10968.SD` is not copyable because it has a disabled postblit
+    sa = ss;
+    ^
+fail_compilation/fail10968.d(151): Error: struct `fail10968.SD` is not copyable because it has a disabled postblit
+    sa = sa;
+    ^
+fail_compilation/fail10968.d(154): Error: struct `fail10968.SD` is not copyable because it has a disabled postblit
+    SD    ss2 = ss;
+          ^
+fail_compilation/fail10968.d(155): Error: struct `fail10968.SD` is not copyable because it has a disabled postblit
+    SD[1] sa2 = ss;
+          ^
+fail_compilation/fail10968.d(156): Error: struct `fail10968.SD` is not copyable because it has a disabled postblit
+    SD[1] sa3 = sa;
+          ^
 ---
 */
 
-#line 29
+// Line 29 starts here
 struct SA
 {
     this(this)
@@ -58,18 +134,6 @@ void bar() pure @safe
     SA[1] sa2 = ss;
     SA[1] sa3 = sa;
 }
-
-/*
-TEST_OUTPUT:
----
-fail_compilation/fail10968.d(76): Error: struct `fail10968.SD` is not copyable because it has a disabled postblit
-fail_compilation/fail10968.d(77): Error: struct `fail10968.SD` is not copyable because it has a disabled postblit
-fail_compilation/fail10968.d(78): Error: struct `fail10968.SD` is not copyable because it has a disabled postblit
-fail_compilation/fail10968.d(81): Error: struct `fail10968.SD` is not copyable because it has a disabled postblit
-fail_compilation/fail10968.d(82): Error: struct `fail10968.SD` is not copyable because it has a disabled postblit
-fail_compilation/fail10968.d(83): Error: struct `fail10968.SD` is not copyable because it has a disabled postblit
----
-*/
 
 struct SD
 {

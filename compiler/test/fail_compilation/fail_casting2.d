@@ -3,9 +3,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_casting2.d(15): Error: type `int` is not an expression
-fail_compilation/fail_casting2.d(17): Error: template lambda has no type
-fail_compilation/fail_casting2.d(20): Error: template `Templ()` has no type
+fail_compilation/fail_casting2.d(21): Error: type `int` is not an expression
+    cast(void)(Type);
+               ^
+fail_compilation/fail_casting2.d(23): Error: template lambda has no type
+    cast(void)(x => mixin(x)("mixin(x);"));
+               ^
+fail_compilation/fail_casting2.d(26): Error: template `Templ()` has no type
+    cast(void)(Templ);
+               ^
 ---
 */
 

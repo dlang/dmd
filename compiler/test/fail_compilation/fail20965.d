@@ -3,9 +3,11 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail20965.d(17): Deprecation: `struct S` implicitly-generated postblit hides copy constructor.
-fail_compilation/fail20965.d(17):        The field postblit will have priority over the copy constructor.
-fail_compilation/fail20965.d(17):        To change this, the postblit should be disabled for `struct S`
+fail_compilation/fail20965.d(19): Deprecation: `struct S` implicitly-generated postblit hides copy constructor.
+struct S
+^
+fail_compilation/fail20965.d(19):        The field postblit will have priority over the copy constructor.
+fail_compilation/fail20965.d(19):        To change this, the postblit should be disabled for `struct S`
 ---
 */
 

@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail15691.d(15): Error: `c` is not a member of `Foo`
-fail_compilation/fail15691.d(20): Error: `bc` is not a member of `Foo`, did you mean variable `abc`?
+fail_compilation/fail15691.d(19): Error: `c` is not a member of `Foo`
+            c: 4,  // line 15
+               ^
+fail_compilation/fail15691.d(24): Error: `bc` is not a member of `Foo`, did you mean variable `abc`?
+            bc: 4, // line 20
+                ^
 ---
 */
 

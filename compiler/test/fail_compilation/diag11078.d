@@ -1,9 +1,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag11078.d(19): Error: none of the overloads of `value` are callable using argument types `(double)`
-fail_compilation/diag11078.d(12):        Candidates are: `diag11078.S1.value()`
-fail_compilation/diag11078.d(13):                        `diag11078.S1.value(int n)`
+fail_compilation/diag11078.d(25): Error: none of the overloads of `value` are callable using argument types `(double)`
+    s1.value = 1.0;
+    ^
+fail_compilation/diag11078.d(18):        Candidates are: `diag11078.S1.value()`
+    @property int value() { return 1; }
+                  ^
+fail_compilation/diag11078.d(19):                        `diag11078.S1.value(int n)`
+    @property void value(int n) { }
+                   ^
 ---
 */
 

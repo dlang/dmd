@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail291.d(9): Error: variable `fail291.X` cannot be declared to be a function
+fail_compilation/fail291.d(11): Error: variable `fail291.X` cannot be declared to be a function
+typeof(a) X;
+          ^
 ---
 */
 

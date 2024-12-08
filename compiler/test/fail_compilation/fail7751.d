@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail7751.d(15): Error: no constructor for `Foo`
-fail_compilation/fail7751.d(23): Error: template instance `fail7751.foo!int` error instantiating
+fail_compilation/fail7751.d(19): Error: no constructor for `Foo`
+    return new Foo!T(x, y);
+           ^
+fail_compilation/fail7751.d(27): Error: template instance `fail7751.foo!int` error instantiating
+    bar(foo(0));
+           ^
 ---
 */
 class Foo(T)

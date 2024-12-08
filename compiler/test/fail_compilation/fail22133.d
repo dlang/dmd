@@ -2,8 +2,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail22133.d(16): Error: `s.popFront()()` has no effect
-fail_compilation/fail22133.d(17): Error: template `s.popFront()()` has no type
+fail_compilation/fail22133.d(20): Error: `s.popFront()()` has no effect
+    s.popFront;
+    ^
+fail_compilation/fail22133.d(21): Error: template `s.popFront()()` has no type
+    return s.popFront;
+           ^
 ---
 */
 struct Slice

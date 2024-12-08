@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/template_enum_param.d(15): Error: static assert:  `false` is false
-fail_compilation/template_enum_param.d(17):        instantiated from here: `X!(E.a)`
+fail_compilation/template_enum_param.d(19): Error: static assert:  `false` is false
+    static assert(false);
+    ^
+fail_compilation/template_enum_param.d(21):        instantiated from here: `X!(E.a)`
+alias Y = X!(E.a);
+          ^
 ---
 */
 

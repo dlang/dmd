@@ -2,7 +2,9 @@
 REQUIRED_ARGS: -preview=fixImmutableConv
 TEST_OUTPUT:
 ---
-fail_compilation/union_conv.d(18): Error: cannot implicitly convert expression `c` of type `const(U)` to `U`
+fail_compilation/union_conv.d(20): Error: cannot implicitly convert expression `c` of type `const(U)` to `U`
+    U m = c;
+          ^
 ---
 */
 

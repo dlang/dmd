@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test23017.d(16): Error: class `test23017.CppChildA` with C++ linkage cannot inherit from class `DClass` with D linkage
+fail_compilation/test23017.d(18): Error: class `test23017.CppChildA` with C++ linkage cannot inherit from class `DClass` with D linkage
+extern(C++) class CppChildA : DClass {} // error
+            ^
 ---
 */
 

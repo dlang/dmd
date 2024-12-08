@@ -2,7 +2,9 @@
 EXTRA_FILES: imports/i20057.d
 TEST_OUTPUT:
 ---
-fail_compilation/ice20057.d(10): Error: alias `ice20057.BlackHole` conflicts with struct `ice20057.BlackHole(alias T)` at fail_compilation/ice20057.d(9)
+fail_compilation/ice20057.d(12): Error: alias `ice20057.BlackHole` conflicts with struct `ice20057.BlackHole(alias T)` at fail_compilation/ice20057.d(11)
+import imports.i20057: BlackHole;
+       ^
 ---
 */
 

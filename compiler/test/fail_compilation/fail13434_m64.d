@@ -2,7 +2,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13434_m64.d(13): Error: cannot implicitly convert expression `()` of type `()` to `ulong`
+fail_compilation/fail13434_m64.d(15): Error: cannot implicitly convert expression `()` of type `()` to `ulong`
+    arr[tuple!()] = 0;
+        ^
 ---
 */
 

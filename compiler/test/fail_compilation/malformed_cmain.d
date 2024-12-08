@@ -2,6 +2,7 @@
 TEST_OUTPUT:
 ---
 fail_compilation/malformed_cmain.d($n$): Error: function `malformed_cmain.main` parameters must match one of the following signatures
+$r:(else )?version \([A-Za-z0-9]*\) int main\([^\)]*\) \{ return 0; \}\s*\n\s*\^$
 fail_compilation/malformed_cmain.d($n$):        `main()`
 fail_compilation/malformed_cmain.d($n$):        `main(int argc, char** argv)`
 fail_compilation/malformed_cmain.d($n$):        `main(int argc, char** argv, char** environ)` [POSIX extension]

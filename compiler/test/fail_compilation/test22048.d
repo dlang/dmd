@@ -3,7 +3,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test22048.d(10): Error: unexpected identifier `p` after `int`
+fail_compilation/test22048.d(12): Error: unexpected identifier `p` after `int`
+alias a = int p;
+              ^
 ---
 */
 

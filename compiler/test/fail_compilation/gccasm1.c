@@ -1,6 +1,8 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/gccasm1.c(12): Error: string literal expected for Assembler Template, not `%`
+fail_compilation/gccasm1.c(14): Error: string literal expected for Assembler Template, not `%`
+        __fldcw(&_newcw);
+                     ^
 ---
  */
 

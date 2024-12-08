@@ -1,10 +1,18 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag11756.d(15): Error: cannot read uninitialized variable `cnt` in CTFE
-fail_compilation/diag11756.d(34):        called from here: `foo.ptr2.opAssign(Ptr(& n))`
-fail_compilation/diag11756.d(39):        called from here: `test()`
-fail_compilation/diag11756.d(39):        while evaluating: `static assert(test())`
+fail_compilation/diag11756.d(23): Error: cannot read uninitialized variable `cnt` in CTFE
+        (*cnt)--;   // error
+          ^
+fail_compilation/diag11756.d(42):        called from here: `foo.ptr2.opAssign(Ptr(& n))`
+    foo.ptr2 = Ptr(&n);
+             ^
+fail_compilation/diag11756.d(47):        called from here: `test()`
+static assert(test());
+                  ^
+fail_compilation/diag11756.d(47):        while evaluating: `static assert(test())`
+static assert(test());
+^
 ---
 */
 

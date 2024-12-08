@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/operator_undefined.d(19): Error: operator `-` is not defined for `toJson(2)` of type `Json`
+fail_compilation/operator_undefined.d(21): Error: operator `-` is not defined for `toJson(2)` of type `Json`
+    auto x = -2.toJson;
+               ^
 ---
 */
 

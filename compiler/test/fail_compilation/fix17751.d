@@ -1,7 +1,9 @@
 /* REQUIRED_ARGS: -m64
  * TEST_OUTPUT:
 ---
-fail_compilation/fix17751.d(15): Error: last parameter to `__simd()` must be a constant
+fail_compilation/fix17751.d(17): Error: last parameter to `__simd()` must be a constant
+    return cast(V1)__simd(opcode, op1, op2, imm8);
+                                            ^
 ---
  */
 

@@ -2,7 +2,9 @@
 REQUIRED_ARGS: -de
 TEST_OUTPUT:
 ---
-fail_compilation/test19193.d(13): Deprecation: enum member `test19193.T19193!int.A.b` is deprecated
+fail_compilation/test19193.d(15): Deprecation: enum member `test19193.T19193!int.A.b` is deprecated
+    cast(void)T19193!int.A.b;
+                        ^
 ---
 */
 

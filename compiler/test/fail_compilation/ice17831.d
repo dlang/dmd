@@ -1,16 +1,36 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice17831.d(23): Error: `case` variables have to be `const` or `immutable`
-fail_compilation/ice17831.d(23): Error: `case` variable `i` declared at fail_compilation/ice17831.d(21) cannot be declared in `switch` body
-fail_compilation/ice17831.d(37): Error: `case` variables have to be `const` or `immutable`
-fail_compilation/ice17831.d(37): Error: `case` variable `i` declared at fail_compilation/ice17831.d(35) cannot be declared in `switch` body
-fail_compilation/ice17831.d(52): Error: `case` variables have to be `const` or `immutable`
-fail_compilation/ice17831.d(52): Error: `case` variable `i` declared at fail_compilation/ice17831.d(49) cannot be declared in `switch` body
-fail_compilation/ice17831.d(65): Error: `case` variables have to be `const` or `immutable`
-fail_compilation/ice17831.d(65): Error: `case` variable `i` declared at fail_compilation/ice17831.d(64) cannot be declared in `switch` body
-fail_compilation/ice17831.d(77): Error: `case` variables have to be `const` or `immutable`
-fail_compilation/ice17831.d(77): Error: `case` variable `i` declared at fail_compilation/ice17831.d(76) cannot be declared in `switch` body
+fail_compilation/ice17831.d(43): Error: `case` variables have to be `const` or `immutable`
+            case i:
+            ^
+fail_compilation/ice17831.d(43): Error: `case` variable `i` declared at fail_compilation/ice17831.d(41) cannot be declared in `switch` body
+            case i:
+            ^
+fail_compilation/ice17831.d(57): Error: `case` variables have to be `const` or `immutable`
+            case i:
+            ^
+fail_compilation/ice17831.d(57): Error: `case` variable `i` declared at fail_compilation/ice17831.d(55) cannot be declared in `switch` body
+            case i:
+            ^
+fail_compilation/ice17831.d(72): Error: `case` variables have to be `const` or `immutable`
+            case i:
+            ^
+fail_compilation/ice17831.d(72): Error: `case` variable `i` declared at fail_compilation/ice17831.d(69) cannot be declared in `switch` body
+            case i:
+            ^
+fail_compilation/ice17831.d(85): Error: `case` variables have to be `const` or `immutable`
+        case i:
+        ^
+fail_compilation/ice17831.d(85): Error: `case` variable `i` declared at fail_compilation/ice17831.d(84) cannot be declared in `switch` body
+        case i:
+        ^
+fail_compilation/ice17831.d(97): Error: `case` variables have to be `const` or `immutable`
+        case i:
+        ^
+fail_compilation/ice17831.d(97): Error: `case` variable `i` declared at fail_compilation/ice17831.d(96) cannot be declared in `switch` body
+        case i:
+        ^
 ---
  */
 

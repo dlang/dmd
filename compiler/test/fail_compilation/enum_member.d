@@ -1,12 +1,18 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/enum_member.d(14): Error: basic type expected, not `for`
-fail_compilation/enum_member.d(15): Error: no identifier for declarator `T`
-fail_compilation/enum_member.d(15): Error: found `@` when expecting `,`
-fail_compilation/enum_member.d(22): Error: found `}` when expecting `identifier`
-fail_compilation/enum_member.d(24): Error: found `End of File` when expecting `,`
-fail_compilation/enum_member.d(24): Error: premature end of file
+fail_compilation/enum_member.d(20): Error: basic type expected, not `for`
+    for,
+    ^
+fail_compilation/enum_member.d(21): Error: no identifier for declarator `T`
+    T @a b = 1
+      ^
+fail_compilation/enum_member.d(21): Error: found `@` when expecting `,`
+    T @a b = 1
+      ^
+fail_compilation/enum_member.d(28): Error: found `}` when expecting `identifier`
+fail_compilation/enum_member.d(30): Error: found `End of File` when expecting `,`
+fail_compilation/enum_member.d(30): Error: premature end of file
 ---
 */
 enum

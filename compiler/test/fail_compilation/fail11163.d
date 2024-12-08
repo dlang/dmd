@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail11163.d(12): Error: cannot implicitly convert expression `foo()` of type `int[]` to `immutable(int[])`
-fail_compilation/fail11163.d(13):        while evaluating `pragma(msg, a)`
+fail_compilation/fail11163.d(16): Error: cannot implicitly convert expression `foo()` of type `int[]` to `immutable(int[])`
+    immutable a = foo();
+                     ^
+fail_compilation/fail11163.d(17):        while evaluating `pragma(msg, a)`
+    pragma(msg, a);
+    ^
 ---
 */
 int[] foo() {

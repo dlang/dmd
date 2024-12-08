@@ -2,9 +2,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test21930.d(21): Error: variable `string` is used as a type
-fail_compilation/test21930.d(15):        variable `string` is declared here
-fail_compilation/test21930.d(26): Error: constructor `test21930.R.this(string)` is not callable using argument types `()`
+fail_compilation/test21930.d(27): Error: variable `string` is used as a type
+    this(string) { } // so constructor have errors
+    ^
+fail_compilation/test21930.d(21):        variable `string` is declared here
+int string; // 'string' declared as a variable
+    ^
+fail_compilation/test21930.d(32): Error: constructor `test21930.R.this(string)` is not callable using argument types `()`
+    new R;
+    ^
 ---
 */
 

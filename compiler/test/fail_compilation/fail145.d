@@ -2,8 +2,12 @@
 REQUIRED_ARGS: -checkaction=context
 TEST_OUTPUT:
 ---
-fail_compilation/fail145.d(14): Error: `assert(i && (i < 0))` failed
-fail_compilation/fail145.d(27):        called from here: `bar(7)`
+fail_compilation/fail145.d(18): Error: `assert(i && (i < 0))` failed
+    assert(i && i < 0);
+    ^
+fail_compilation/fail145.d(31):        called from here: `bar(7)`
+    static b = bar(7);
+                  ^
 ---
 */
 

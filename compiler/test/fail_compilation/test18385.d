@@ -2,7 +2,9 @@
 REQUIRED_ARGS: -de
 TEST_OUTPUT:
 ---
-fail_compilation/test18385.d(13): Error: function `test18385.foo` cannot overload `extern(C)` function at fail_compilation/test18385.d(12)
+fail_compilation/test18385.d(15): Error: function `test18385.foo` cannot overload `extern(C)` function at fail_compilation/test18385.d(14)
+void foo(double) { }
+     ^
 ---
 */
 

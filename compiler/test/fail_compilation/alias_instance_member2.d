@@ -1,10 +1,14 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/alias_instance_member2.d(26): Error: cannot alias variable member `v` of variable `f`
-fail_compilation/alias_instance_member2.d(26):        Use `typeof(f)` instead to preserve behaviour
-fail_compilation/alias_instance_member2.d(30): Error: cannot alias function member `fun` of variable `f`
+fail_compilation/alias_instance_member2.d(30): Error: cannot alias variable member `v` of variable `f`
+    alias v = f.v;
+    ^
 fail_compilation/alias_instance_member2.d(30):        Use `typeof(f)` instead to preserve behaviour
+fail_compilation/alias_instance_member2.d(34): Error: cannot alias function member `fun` of variable `f`
+    alias fun = f.fun;
+    ^
+fail_compilation/alias_instance_member2.d(34):        Use `typeof(f)` instead to preserve behaviour
 ---
 */
 

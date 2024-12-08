@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice12574.d(40): Error: sequence index `2` out of bounds `[0 .. 2]`
-fail_compilation/ice12574.d(53): Error: template instance `ice12574.reduce!("a", "a").reduce!(Tuple!(int, int, int))` error instantiating
+fail_compilation/ice12574.d(44): Error: sequence index `2` out of bounds `[0 .. 2]`
+           result[i] = binaryFun!(fun[i])(1, 1); // here
+                       ^
+fail_compilation/ice12574.d(57): Error: template instance `ice12574.reduce!("a", "a").reduce!(Tuple!(int, int, int))` error instantiating
+    reduce!("a", "a")(tuple(1, 1, 1));
+                     ^
 ---
 */
 

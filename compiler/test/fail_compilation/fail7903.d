@@ -1,9 +1,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail7903.d(21): Error: variable `fail7903.F1.x` Field members of a `synchronized` class cannot be `public`
-fail_compilation/fail7903.d(22): Error: variable `fail7903.F1.y` Field members of a `synchronized` class cannot be `export`
-fail_compilation/fail7903.d(27): Error: variable `fail7903.F2.x` Field members of a `synchronized` class cannot be `public`
+fail_compilation/fail7903.d(27): Error: variable `fail7903.F1.x` Field members of a `synchronized` class cannot be `public`
+    public int x;
+               ^
+fail_compilation/fail7903.d(28): Error: variable `fail7903.F1.y` Field members of a `synchronized` class cannot be `export`
+    export int y;
+               ^
+fail_compilation/fail7903.d(33): Error: variable `fail7903.F2.x` Field members of a `synchronized` class cannot be `public`
+    int x;
+        ^
 ---
 */
 synchronized class K1

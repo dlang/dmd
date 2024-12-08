@@ -2,11 +2,21 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail6968.d(26): Error: cannot pass type `int` as a function argument
-fail_compilation/fail6968.d(26): Error: cannot pass type `long` as a function argument
-fail_compilation/fail6968.d(26): Error: circular initialization of variable `fail6968.PredAny!(int, long, float).PredAny`
-fail_compilation/fail6968.d(31): Error: template instance `fail6968.PredAny!(int, long, float)` error instantiating
-fail_compilation/fail6968.d(31):        while evaluating `pragma(msg, PredAny!(int, long, float))`
+fail_compilation/fail6968.d(36): Error: cannot pass type `int` as a function argument
+        enum bool PredAny = Pred(A, B[0]) || PredAny(A, B[1..$]);
+                                 ^
+fail_compilation/fail6968.d(36): Error: cannot pass type `long` as a function argument
+        enum bool PredAny = Pred(A, B[0]) || PredAny(A, B[1..$]);
+                                    ^
+fail_compilation/fail6968.d(36): Error: circular initialization of variable `fail6968.PredAny!(int, long, float).PredAny`
+        enum bool PredAny = Pred(A, B[0]) || PredAny(A, B[1..$]);
+                                             ^
+fail_compilation/fail6968.d(41): Error: template instance `fail6968.PredAny!(int, long, float)` error instantiating
+    pragma(msg, PredAny!(int, long, float));
+                ^
+fail_compilation/fail6968.d(41):        while evaluating `pragma(msg, PredAny!(int, long, float))`
+    pragma(msg, PredAny!(int, long, float));
+    ^
 ---
 */
 

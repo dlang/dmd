@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag8825.d(13): Error: undefined identifier `foo`
+fail_compilation/diag8825.d(15): Error: undefined identifier `foo`
+    t!(foo // line 13
+    ^
 ---
 */
 

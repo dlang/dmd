@@ -5,9 +5,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail104.d(26): Error: template instance `P!()` `P` is not a template declaration, it is a alias
-fail_compilation/fail104.d(26): Error: mixin `fail104.C!(S).C.T!()` is not defined
-fail_compilation/fail104.d(31): Error: template instance `fail104.C!(S)` error instantiating
+fail_compilation/fail104.d(32): Error: template instance `P!()` `P` is not a template declaration, it is a alias
+    mixin P!().T!();
+          ^
+fail_compilation/fail104.d(32): Error: mixin `fail104.C!(S).C.T!()` is not defined
+    mixin P!().T!();
+    ^
+fail_compilation/fail104.d(37): Error: template instance `fail104.C!(S)` error instantiating
+    auto c = new C!(S);
+                 ^
 ---
 */
 

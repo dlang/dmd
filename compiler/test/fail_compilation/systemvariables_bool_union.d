@@ -2,7 +2,9 @@
 REQUIRED_ARGS: -de
 TEST_OUTPUT:
 ---
-fail_compilation/systemvariables_bool_union.d(21): Deprecation: cannot access overlapped field `Box.b` with unsafe bit patterns in `@safe` code
+fail_compilation/systemvariables_bool_union.d(23): Deprecation: cannot access overlapped field `Box.b` with unsafe bit patterns in `@safe` code
+    return u.b;
+           ^
 ---
 */
 

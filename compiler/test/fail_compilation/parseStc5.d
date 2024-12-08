@@ -1,8 +1,63 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/parseStc5.d(10): Error: constructor cannot be static
-fail_compilation/parseStc5.d(11): Error: postblit cannot be `static`
+fail_compilation/parseStc5.d(65): Error: constructor cannot be static
+    static pure this(int) {}        // `static pure` + `this(int)`
+                ^
+fail_compilation/parseStc5.d(66): Error: postblit cannot be `static`
+    static pure this(this) {}       // `static pure` + `this(this)`
+                ^
+fail_compilation/parseStc5.d(71): Error: use `shared static this()` to declare a shared static constructor
+    shared pure static this() {}    // `shared pure` + `static this()`
+                ^
+fail_compilation/parseStc5.d(72): Error: use `shared static this()` to declare a shared static constructor
+    shared static pure this() {}    // `shared static pure` + `this()`
+                       ^
+fail_compilation/parseStc5.d(74): Error: use `shared static this()` to declare a shared static constructor
+    static this() shared {}         // `shared pure` + `static this()`
+    ^
+fail_compilation/parseStc5.d(76): Error: use `shared static ~this()` to declare a shared static destructor
+    shared pure static ~this() {}   // `shared pure` + `static ~this()`
+                ^
+fail_compilation/parseStc5.d(77): Error: use `shared static ~this()` to declare a shared static destructor
+    shared static pure ~this() {}   // `shared static pure` + `~this()`
+                       ^
+fail_compilation/parseStc5.d(79): Error: use `shared static ~this()` to declare a shared static destructor
+    static ~this() shared {}        // `shared` + `static ~this()`
+    ^
+fail_compilation/parseStc5.d(84): Error: use `static this()` to declare a static constructor
+    static pure this() {}           // `static pure` + `this()`
+                ^
+fail_compilation/parseStc5.d(85): Error: use `static ~this()` to declare a static destructor
+    static pure ~this() {}          // `static pure` + `~this()`
+                ^
+fail_compilation/parseStc5.d(90): Error: redundant attribute `shared`
+    shared shared static this() {}                  // `shared` + `shared static this()`
+                                ^
+fail_compilation/parseStc5.d(91): Error: redundant attribute `shared`
+    shared static this() shared {}                  // `shared` + `shared static this()`
+                                ^
+fail_compilation/parseStc5.d(93): Error: redundant attribute `static`
+    static static this() {}                         // `static` + `shared static this()`
+                         ^
+fail_compilation/parseStc5.d(95): Error: redundant attribute `static shared`
+    shared static shared static this() {}           // shared static + `shared static this()`
+                                       ^
+fail_compilation/parseStc5.d(96): Error: redundant attribute `static shared`
+    shared static shared static this() shared {}    // shared shared static + `shared static this()`
+                                              ^
+fail_compilation/parseStc5.d(101): Error: static constructor cannot be `const`
+    static this() const {}
+    ^
+fail_compilation/parseStc5.d(102): Error: static destructor cannot be `const`
+    static ~this() const {}
+    ^
+fail_compilation/parseStc5.d(103): Error: shared static constructor cannot be `const`
+    shared static this() const {}
+    ^
+fail_compilation/parseStc5.d(104): Error: shared static destructor cannot be `const`
+    shared static ~this() const {}
+    ^
 ---
 */
 class C1
@@ -11,17 +66,6 @@ class C1
     static pure this(this) {}       // `static pure` + `this(this)`
 }
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/parseStc5.d(27): Error: use `shared static this()` to declare a shared static constructor
-fail_compilation/parseStc5.d(28): Error: use `shared static this()` to declare a shared static constructor
-fail_compilation/parseStc5.d(30): Error: use `shared static this()` to declare a shared static constructor
-fail_compilation/parseStc5.d(32): Error: use `shared static ~this()` to declare a shared static destructor
-fail_compilation/parseStc5.d(33): Error: use `shared static ~this()` to declare a shared static destructor
-fail_compilation/parseStc5.d(35): Error: use `shared static ~this()` to declare a shared static destructor
----
-*/
 class C2    // wrong combinations of `shared`, `static`, and `~?this()`
 {
     shared pure static this() {}    // `shared pure` + `static this()`
@@ -35,29 +79,12 @@ class C2    // wrong combinations of `shared`, `static`, and `~?this()`
     static ~this() shared {}        // `shared` + `static ~this()`
 }
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/parseStc5.d(47): Error: use `static this()` to declare a static constructor
-fail_compilation/parseStc5.d(48): Error: use `static ~this()` to declare a static destructor
----
-*/
 class C3    // wrong combinations of `static` and `~?this()`
 {
     static pure this() {}           // `static pure` + `this()`
     static pure ~this() {}          // `static pure` + `~this()`
 }
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/parseStc5.d(63): Error: redundant attribute `shared`
-fail_compilation/parseStc5.d(64): Error: redundant attribute `shared`
-fail_compilation/parseStc5.d(66): Error: redundant attribute `static`
-fail_compilation/parseStc5.d(68): Error: redundant attribute `static shared`
-fail_compilation/parseStc5.d(69): Error: redundant attribute `static shared`
----
-*/
 class C4    // redundancy of `shared` and/or `static`
 {
     shared shared static this() {}                  // `shared` + `shared static this()`
@@ -69,15 +96,6 @@ class C4    // redundancy of `shared` and/or `static`
     shared static shared static this() shared {}    // shared shared static + `shared static this()`
 }
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/parseStc5.d(83): Error: static constructor cannot be `const`
-fail_compilation/parseStc5.d(84): Error: static destructor cannot be `const`
-fail_compilation/parseStc5.d(85): Error: shared static constructor cannot be `const`
-fail_compilation/parseStc5.d(86): Error: shared static destructor cannot be `const`
----
-*/
 class C5    // wrong MemberFunctionAttributes on `shared? static (con|de)structor`
 {
     static this() const {}

@@ -1,10 +1,18 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail346.d(15): Error: undefined identifier `P`
-fail_compilation/fail346.d(15): Error: variable `fail346.S.T!0.T` - cannot use template to add field to aggregate `S`
-fail_compilation/fail346.d(20): Error: template instance `fail346.S.T!0` error instantiating
-fail_compilation/fail346.d(23):        instantiated from here: `V!(S, 0)`
+fail_compilation/fail346.d(23): Error: undefined identifier `P`
+        const P T = { val }; // the P here is an error it should be S
+                ^
+fail_compilation/fail346.d(23): Error: variable `fail346.S.T!0.T` - cannot use template to add field to aggregate `S`
+        const P T = { val }; // the P here is an error it should be S
+                ^
+fail_compilation/fail346.d(28): Error: template instance `fail346.S.T!0` error instantiating
+    const R V=R.T!(val);
+               ^
+fail_compilation/fail346.d(31):        instantiated from here: `V!(S, 0)`
+const S x = V!(S,0);
+            ^
 ---
 */
 

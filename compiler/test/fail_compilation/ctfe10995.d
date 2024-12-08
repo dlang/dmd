@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ctfe10995.d(19): Error: cannot read uninitialized variable `a` in CTFE
-fail_compilation/ctfe10995.d(25): Error: cannot read uninitialized variable `a` in CTFE
+fail_compilation/ctfe10995.d(23): Error: cannot read uninitialized variable `a` in CTFE
+enum i = foo().a;
+            ^
+fail_compilation/ctfe10995.d(29): Error: cannot read uninitialized variable `a` in CTFE
+enum i2 = T2.init.a;
+          ^
 ---
 */
 struct T

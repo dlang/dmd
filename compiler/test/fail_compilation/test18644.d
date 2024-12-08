@@ -1,9 +1,15 @@
 /* REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/test18644.d(15): Error: nested function `foo` returns `scope` values and escapes them into allocated memory
-fail_compilation/test18644.d(16): Error: escaping local variable through nested function `foo`
+fail_compilation/test18644.d(21): Error: nested function `foo` returns `scope` values and escapes them into allocated memory
+    int*[] b = [foo()];
+                   ^
 fail_compilation/test18644.d(22): Error: escaping local variable through nested function `foo`
+    return foo();
+              ^
+fail_compilation/test18644.d(28): Error: escaping local variable through nested function `foo`
+    return foo();
+              ^
 ---
 */
 

@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test11176.d(12): Error: `b.ptr` cannot be used in `@safe` code, use `&b[0]` instead
 fail_compilation/test11176.d(16): Error: `b.ptr` cannot be used in `@safe` code, use `&b[0]` instead
+    return *b.ptr;
+            ^
+fail_compilation/test11176.d(20): Error: `b.ptr` cannot be used in `@safe` code, use `&b[0]` instead
+    return *b.ptr;
+            ^
 ---
 */
 

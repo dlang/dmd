@@ -2,8 +2,12 @@
 /*
 TEST_OUTPUT:
 ---
-runnable/lexer.d(86): Deprecation: `version( <integer> )` is deprecated, use version identifiers instead
-runnable/lexer.d(87): Deprecation: `debug( <integer> )` is deprecated, use debug identifiers instead
+runnable/lexer.d(90): Deprecation: `version( <integer> )` is deprecated, use version identifiers instead
+version(9223372036854775807){}
+        ^
+runnable/lexer.d(91): Deprecation: `debug( <integer> )` is deprecated, use debug identifiers instead
+debug(9223372036854775807){}
+      ^
 ---
 */
 

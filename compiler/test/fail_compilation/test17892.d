@@ -1,9 +1,15 @@
 /* REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/test17892.d(27): Error: returning `s.pointer1()` escapes a reference to local variable `s`
-fail_compilation/test17892.d(29): Error: returning `s.pointer2()` escapes a reference to local variable `s`
-fail_compilation/test17892.d(31): Error: returning `s.pointer3()` escapes a reference to local variable `s`
+fail_compilation/test17892.d(33): Error: returning `s.pointer1()` escapes a reference to local variable `s`
+        return s.pointer1();
+                         ^
+fail_compilation/test17892.d(35): Error: returning `s.pointer2()` escapes a reference to local variable `s`
+        return s.pointer2();
+                         ^
+fail_compilation/test17892.d(37): Error: returning `s.pointer3()` escapes a reference to local variable `s`
+        return s.pointer3();
+                         ^
 ---
 */
 

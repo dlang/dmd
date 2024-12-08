@@ -1,9 +1,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail124.d(17): Error: class `fail124.CC` inherits from duplicate interface `C`
-fail_compilation/fail124.d(31): Error: class `fail124.D` inherits from duplicate interface `T`
-fail_compilation/fail124.d(31): Error: class `fail124.D` inherits from duplicate interface `T`
+fail_compilation/fail124.d(23): Error: class `fail124.CC` inherits from duplicate interface `C`
+class CC : C, C
+^
+fail_compilation/fail124.d(37): Error: class `fail124.D` inherits from duplicate interface `T`
+class D : T, T, T { }
+^
+fail_compilation/fail124.d(37): Error: class `fail124.D` inherits from duplicate interface `T`
+class D : T, T, T { }
+^
 ---
 */
 

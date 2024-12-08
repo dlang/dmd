@@ -1,6 +1,8 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/test20919.d(12): Error: `__traits(getAttributes, int a)` does not give a valid type
+fail_compilation/test20919.d(14): Error: `__traits(getAttributes, int a)` does not give a valid type
+    __traits(getAttributes, params) a;
+                                    ^
 ---
 */
 // https://issues.dlang.org/show_bug.cgi?id=20919

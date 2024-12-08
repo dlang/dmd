@@ -1,9 +1,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag13942.d(18): Error: template instance `isRawStaticArray!()` does not match template declaration `isRawStaticArray(T, A...)`
-fail_compilation/diag13942.d(26): Error: template `to` is not callable using argument types `!()()`
-fail_compilation/diag13942.d(17):        Candidate is: `to(A...)(A args)`
+fail_compilation/diag13942.d(24): Error: template instance `isRawStaticArray!()` does not match template declaration `isRawStaticArray(T, A...)`
+        if (!isRawStaticArray!A)
+             ^
+fail_compilation/diag13942.d(32): Error: template `to` is not callable using argument types `!()()`
+    auto t = to!double();
+                      ^
+fail_compilation/diag13942.d(23):        Candidate is: `to(A...)(A args)`
+    T to(A...)(A args)
+      ^
 ---
 */
 

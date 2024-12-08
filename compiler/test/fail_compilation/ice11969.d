@@ -1,9 +1,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice11969.d(9): Error: undefined identifier `index`
-fail_compilation/ice11969.d(10): Error: undefined identifier `cond`
-fail_compilation/ice11969.d(11): Error: undefined identifier `msg`
+fail_compilation/ice11969.d(15): Error: undefined identifier `index`
+void test1() { mixin ([index]); }
+                       ^
+fail_compilation/ice11969.d(16): Error: undefined identifier `cond`
+void test2() { mixin (assert(cond)); }
+                             ^
+fail_compilation/ice11969.d(17): Error: undefined identifier `msg`
+void test3() { mixin (assert(0, msg)); }
+                                ^
 ---
 */
 void test1() { mixin ([index]); }

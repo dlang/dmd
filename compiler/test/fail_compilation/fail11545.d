@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail11545.d(14): Error: accessing non-static variable `x` requires an instance of `C`
 fail_compilation/fail11545.d(18): Error: accessing non-static variable `x` requires an instance of `C`
+        return x;
+               ^
+fail_compilation/fail11545.d(22): Error: accessing non-static variable `x` requires an instance of `C`
+        return x;
+               ^
 ---
 */
 

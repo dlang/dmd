@@ -1,9 +1,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail162.d(25): Error: template `testHelper` is not callable using argument types `!()(string, string)`
-fail_compilation/fail162.d(10):        Candidate is: `testHelper(A...)()`
-fail_compilation/fail162.d(30): Error: template instance `fail162.test!("hello", "world")` error instantiating
+fail_compilation/fail162.d(31): Error: template `testHelper` is not callable using argument types `!()(string, string)`
+    const char[] test = testHelper(A);
+                                  ^
+fail_compilation/fail162.d(16):        Candidate is: `testHelper(A...)()`
+template testHelper(A ...)
+^
+fail_compilation/fail162.d(36): Error: template instance `fail162.test!("hello", "world")` error instantiating
+    mixin(test!("hello", "world"));
+          ^
 ---
 */
 

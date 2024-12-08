@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail11.d(12): Error: `int*` has no effect
+fail_compilation/fail11.d(14): Error: `int*` has no effect
+    TFoo!(int).t; // should produce a "no identifier" error.
+              ^
 ---
 */
 

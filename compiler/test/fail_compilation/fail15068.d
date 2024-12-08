@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail15068.d(17): Error: `T!int` is not a valid template instance, because `T` is not a template declaration but a type (`T == int`)
-fail_compilation/fail15068.d(13): Error: template instance `fail15068.Stuff!int` error instantiating
+fail_compilation/fail15068.d(21): Error: `T!int` is not a valid template instance, because `T` is not a template declaration but a type (`T == int`)
+    T!int var;
+    ^
+fail_compilation/fail15068.d(17): Error: template instance `fail15068.Stuff!int` error instantiating
+    Stuff!int s;
+    ^
 ---
 */
 

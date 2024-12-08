@@ -1,8 +1,18 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice10259.d(11): Error: circular reference to `ice10259.D.d`
-fail_compilation/ice10259.d(11):        called from here: `(*function () pure nothrow @safe => x)()`
+fail_compilation/ice10259.d(21): Error: circular reference to `ice10259.D.d`
+    D d = { auto x = new D(); return x; }();
+                     ^
+fail_compilation/ice10259.d(21):        called from here: `(*function () pure nothrow @safe => x)()`
+    D d = { auto x = new D(); return x; }();
+                                         ^
+fail_compilation/ice10259.d(28): Error: circular reference to `ice10259.D2.d`
+    D2 d = function { auto x = new D2(); return x; }();
+                               ^
+fail_compilation/ice10259.d(28):        called from here: `(*function () pure nothrow @safe => x)()`
+    D2 d = function { auto x = new D2(); return x; }();
+                                                    ^
 ---
 */
 class D
@@ -12,13 +22,6 @@ class D
 }
 enum x = new D;
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/ice10259.d(25): Error: circular reference to `ice10259.D2.d`
-fail_compilation/ice10259.d(25):        called from here: `(*function () pure nothrow @safe => x)()`
----
-*/
 class D2
 {
     int x;

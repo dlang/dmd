@@ -2,13 +2,27 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail6795.d(19): Error: cannot modify expression `[0][0]` because it is not an lvalue
-fail_compilation/fail6795.d(20): Error: cannot modify expression `[0:0][0]` because it is not an lvalue
-fail_compilation/fail6795.d(22): Error: cannot modify expression `[0][0]` because it is not an lvalue
-fail_compilation/fail6795.d(23): Error: cannot modify expression `[0:0][0]` because it is not an lvalue
-fail_compilation/fail6795.d(25): Error: cannot take address of expression `[0][0]` because it is not an lvalue
-fail_compilation/fail6795.d(26): Error: cannot take address of expression `[0:0][0]` because it is not an lvalue
-fail_compilation/fail6795.d(30): Error: cannot modify expression `Some["zz"]` because it is not an lvalue
+fail_compilation/fail6795.d(33): Error: cannot modify expression `[0][0]` because it is not an lvalue
+    sa[0]++;
+      ^
+fail_compilation/fail6795.d(34): Error: cannot modify expression `[0:0][0]` because it is not an lvalue
+    --aa[0];
+        ^
+fail_compilation/fail6795.d(36): Error: cannot modify expression `[0][0]` because it is not an lvalue
+    sa[0] *= 3;
+      ^
+fail_compilation/fail6795.d(37): Error: cannot modify expression `[0:0][0]` because it is not an lvalue
+    aa[0] /= 3;
+      ^
+fail_compilation/fail6795.d(39): Error: cannot take address of expression `[0][0]` because it is not an lvalue
+    auto ps = &sa[0];
+                 ^
+fail_compilation/fail6795.d(40): Error: cannot take address of expression `[0:0][0]` because it is not an lvalue
+    auto pa = &aa[0];
+                 ^
+fail_compilation/fail6795.d(44): Error: cannot modify expression `Some["zz"]` because it is not an lvalue
+    Maps.Some["zz"] = 44;
+             ^
 ---
 */
 void test_wrong_line_num()

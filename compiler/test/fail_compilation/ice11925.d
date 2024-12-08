@@ -1,7 +1,11 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/ice11925.d(23): Error: cannot `goto` into `try` block
-fail_compilation/ice11925.d(31): Error: cannot `goto` into `try` block
+fail_compilation/ice11925.d(27): Error: cannot `goto` into `try` block
+    goto L1;
+    ^
+fail_compilation/ice11925.d(35): Error: cannot `goto` into `try` block
+            goto L1;
+            ^
 ---
 */
 

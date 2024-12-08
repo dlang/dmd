@@ -2,10 +2,18 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail22151.d(14): Error: function `test` is not an lvalue and cannot be modified
-fail_compilation/fail22151.d(15): Error: function `test2` is not an lvalue and cannot be modified
-fail_compilation/fail22151.d(18): Error: function pointed to by `fp` is not an lvalue and cannot be modified
-fail_compilation/fail22151.d(21): Error: function pointed to by `ff` is not an lvalue and cannot be modified
+fail_compilation/fail22151.d(22): Error: function `test` is not an lvalue and cannot be modified
+    *&test = *&test;
+    ^
+fail_compilation/fail22151.d(23): Error: function `test2` is not an lvalue and cannot be modified
+    *&test2 = *&test;
+    ^
+fail_compilation/fail22151.d(26): Error: function pointed to by `fp` is not an lvalue and cannot be modified
+    *fp = *fp;
+    ^
+fail_compilation/fail22151.d(29): Error: function pointed to by `ff` is not an lvalue and cannot be modified
+    *ff = *&test2;
+    ^
 ---
 */
 

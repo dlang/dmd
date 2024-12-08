@@ -2,8 +2,12 @@
 REQUIRED_ARGS: -O
 TEST_OUTPUT:
 ---
-fail_compilation/fail5908.d(16): Error: divide by zero
-fail_compilation/fail5908.d(17): Error: divide by zero
+fail_compilation/fail5908.d(20): Error: divide by zero
+    return (a % b) +
+            ^
+fail_compilation/fail5908.d(21): Error: divide by zero
+        (a / b);
+         ^
 ---
 */
 

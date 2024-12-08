@@ -1,6 +1,8 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/test21995.d(10): Error: max object size 4294967295 exceeded from adding field size 3 + alignment adjustment 1 + field offset 4294967292 when placing field in aggregate
+fail_compilation/test21995.d(12): Error: max object size 4294967295 exceeded from adding field size 3 + alignment adjustment 1 + field offset 4294967292 when placing field in aggregate
+    ubyte[3] c;
+             ^
 ---
 */
 struct S

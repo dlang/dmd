@@ -1,12 +1,42 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice9806.d(12): Error: undefined identifier `undefined_expr`
-fail_compilation/ice9806.d(17): Error: template instance `ice9806.S1!()` error instantiating
-fail_compilation/ice9806.d(13): Error: undefined identifier `undefined_expr`
-fail_compilation/ice9806.d(19): Error: template instance `ice9806.C1!()` error instantiating
-fail_compilation/ice9806.d(14): Error: undefined identifier `undefined_expr`
-fail_compilation/ice9806.d(21): Error: template instance `ice9806.I1!()` error instantiating
+fail_compilation/ice9806.d(42): Error: undefined identifier `undefined_expr`
+struct S1() { enum x = undefined_expr; }
+                       ^
+fail_compilation/ice9806.d(47): Error: template instance `ice9806.S1!()` error instantiating
+    auto sx = S1!().x;
+              ^
+fail_compilation/ice9806.d(43): Error: undefined identifier `undefined_expr`
+class  C1() { enum x = undefined_expr; }
+                       ^
+fail_compilation/ice9806.d(49): Error: template instance `ice9806.C1!()` error instantiating
+    auto cx = C1!().x;
+              ^
+fail_compilation/ice9806.d(44): Error: undefined identifier `undefined_expr`
+class  I1() { enum x = undefined_expr; }
+                       ^
+fail_compilation/ice9806.d(51): Error: template instance `ice9806.I1!()` error instantiating
+    auto ix = I1!().x;
+              ^
+fail_compilation/ice9806.d(54): Error: undefined identifier `undefined_expr`
+int foo2()() { return undefined_expr; }
+                      ^
+fail_compilation/ice9806.d(62): Error: template instance `ice9806.S2!()` error instantiating
+    auto sx = S2!().x;
+              ^
+fail_compilation/ice9806.d(55): Error: undefined identifier `undefined_expr`
+int bar2()() { return undefined_expr; }
+                      ^
+fail_compilation/ice9806.d(64): Error: template instance `ice9806.C2!()` error instantiating
+    auto cx = C2!().x;
+              ^
+fail_compilation/ice9806.d(56): Error: undefined identifier `undefined_expr`
+int baz2()() { return undefined_expr; }
+                      ^
+fail_compilation/ice9806.d(66): Error: template instance `ice9806.I2!()` error instantiating
+    auto ix = I2!().x;
+              ^
 ---
 */
 struct S1() { enum x = undefined_expr; }
@@ -21,18 +51,6 @@ void test1() {
     auto ix = I1!().x;
 }
 
-// --------
-/*
-TEST_OUTPUT:
----
-fail_compilation/ice9806.d(36): Error: undefined identifier `undefined_expr`
-fail_compilation/ice9806.d(44): Error: template instance `ice9806.S2!()` error instantiating
-fail_compilation/ice9806.d(37): Error: undefined identifier `undefined_expr`
-fail_compilation/ice9806.d(46): Error: template instance `ice9806.C2!()` error instantiating
-fail_compilation/ice9806.d(38): Error: undefined identifier `undefined_expr`
-fail_compilation/ice9806.d(48): Error: template instance `ice9806.I2!()` error instantiating
----
-*/
 int foo2()() { return undefined_expr; }
 int bar2()() { return undefined_expr; }
 int baz2()() { return undefined_expr; }

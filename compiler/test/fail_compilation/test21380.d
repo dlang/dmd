@@ -2,8 +2,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test21380.d(39): Error: partial template instance `MySerializer().serializeSinkType!int` has no value
-fail_compilation/test21380.d(44): Error: template instance `test21380.SupportSinkTypeSer!(MySerializer!int)` error instantiating
+fail_compilation/test21380.d(43): Error: partial template instance `MySerializer().serializeSinkType!int` has no value
+	enum SupportSinkTypeSer = isSomeFunction!(SerT.init.serializeSinkType!int);
+                           ^
+fail_compilation/test21380.d(48): Error: template instance `test21380.SupportSinkTypeSer!(MySerializer!int)` error instantiating
+	enum x = SupportSinkTypeSer!(MySerializer!int);
+          ^
 ---
 */
 

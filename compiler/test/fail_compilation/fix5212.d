@@ -1,7 +1,9 @@
 /* REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/fix5212.d(14): Error: scope variable `args_` assigned to non-scope `this.args`
+fail_compilation/fix5212.d(16): Error: scope variable `args_` assigned to non-scope `this.args`
+        args = args_;
+             ^
 ---
 */
 

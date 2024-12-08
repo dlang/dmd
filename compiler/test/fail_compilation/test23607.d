@@ -2,8 +2,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test23607.d(15): Error: template `to(T)()` does not have property `bad`
-fail_compilation/test23607.d(16): Error: template `to(T)()` does not have property `bad`
+fail_compilation/test23607.d(19): Error: template `to(T)()` does not have property `bad`
+alias comb = to!int.bad!0;
+             ^
+fail_compilation/test23607.d(20): Error: template `to(T)()` does not have property `bad`
+auto combe = to!int.bad!0;
+                   ^
 ---
 */
 

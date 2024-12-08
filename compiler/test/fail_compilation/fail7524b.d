@@ -2,7 +2,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail7524b.d(9): Error: invalid filename for `#line` directive
+fail_compilation/fail7524b.d(11): Error: invalid filename for `#line` directive
+#line 47 __VERSION__
+         ^
 ---
 */
 

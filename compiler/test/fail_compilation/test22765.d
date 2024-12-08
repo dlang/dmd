@@ -3,7 +3,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test22765.d(14): Error: template instance `test22765.Template!null` internal compiler error: C++ `null` template value parameter is not supported
+fail_compilation/test22765.d(16): Error: template instance `test22765.Template!null` internal compiler error: C++ `null` template value parameter is not supported
+auto x = Template!(null);
+         ^
 ---
 */
 

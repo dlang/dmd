@@ -1,21 +1,45 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag10319.d(33): Error: `pure` function `D main` cannot call impure function `diag10319.foo`
-fail_compilation/diag10319.d(33): Error: `@safe` function `D main` cannot call `@system` function `diag10319.foo`
-fail_compilation/diag10319.d(22):        `diag10319.foo` is declared here
-fail_compilation/diag10319.d(34): Error: `pure` function `D main` cannot call impure function `diag10319.bar!int.bar`
-fail_compilation/diag10319.d(26):        which wasn't inferred `pure` because of:
-fail_compilation/diag10319.d(26):        `pure` function `diag10319.bar!int.bar` cannot access mutable static data `g`
-fail_compilation/diag10319.d(34): Error: `@safe` function `D main` cannot call `@system` function `diag10319.bar!int.bar`
-fail_compilation/diag10319.d(27):        which wasn't inferred `@safe` because of:
-fail_compilation/diag10319.d(27):        cannot take address of local `x` in `@safe` function `bar`
-fail_compilation/diag10319.d(24):        `diag10319.bar!int.bar` is declared here
-fail_compilation/diag10319.d(33): Error: function `diag10319.foo` is not `nothrow`
-fail_compilation/diag10319.d(34): Error: function `diag10319.bar!int.bar` is not `nothrow`
-fail_compilation/diag10319.d(28):        which wasn't inferred `nothrow` because of:
-fail_compilation/diag10319.d(28):        `object.Exception` is thrown but not caught
-fail_compilation/diag10319.d(31): Error: function `D main` may throw but is marked as `nothrow`
+fail_compilation/diag10319.d(57): Error: `pure` function `D main` cannot call impure function `diag10319.foo`
+    foo();      // L25
+       ^
+fail_compilation/diag10319.d(57): Error: `@safe` function `D main` cannot call `@system` function `diag10319.foo`
+    foo();      // L25
+       ^
+fail_compilation/diag10319.d(46):        `diag10319.foo` is declared here
+void foo() {}
+     ^
+fail_compilation/diag10319.d(58): Error: `pure` function `D main` cannot call impure function `diag10319.bar!int.bar`
+    bar!int();  // L26
+           ^
+fail_compilation/diag10319.d(50):        which wasn't inferred `pure` because of:
+    static int g; g = 10;       // impure
+                  ^
+fail_compilation/diag10319.d(50):        `pure` function `diag10319.bar!int.bar` cannot access mutable static data `g`
+fail_compilation/diag10319.d(58): Error: `@safe` function `D main` cannot call `@system` function `diag10319.bar!int.bar`
+    bar!int();  // L26
+           ^
+fail_compilation/diag10319.d(51):        which wasn't inferred `@safe` because of:
+    int x; auto p = &x;         // system
+                     ^
+fail_compilation/diag10319.d(51):        cannot take address of local `x` in `@safe` function `bar`
+fail_compilation/diag10319.d(48):        `diag10319.bar!int.bar` is declared here
+void bar(T)()
+     ^
+fail_compilation/diag10319.d(57): Error: function `diag10319.foo` is not `nothrow`
+    foo();      // L25
+       ^
+fail_compilation/diag10319.d(58): Error: function `diag10319.bar!int.bar` is not `nothrow`
+    bar!int();  // L26
+           ^
+fail_compilation/diag10319.d(52):        which wasn't inferred `nothrow` because of:
+    throw new Exception("");    // may throw
+    ^
+fail_compilation/diag10319.d(52):        `object.Exception` is thrown but not caught
+fail_compilation/diag10319.d(55): Error: function `D main` may throw but is marked as `nothrow`
+@safe pure nothrow void main()  // L23
+                        ^
 ---
 */
 

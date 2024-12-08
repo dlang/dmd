@@ -3,8 +3,10 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test15177.d-mixin-19(19): Error: `imports.test15117a.object` is not visible from module `test15177`
-fail_compilation/test15177.d(28): Error: template instance `test15177.RunApiTest!()` error instantiating
+fail_compilation/test15177.d-mixin-21(21): Error: `imports.test15117a.object` is not visible from module `test15177`
+fail_compilation/test15177.d(30): Error: template instance `test15177.RunApiTest!()` error instantiating
+    RunApiTest!();
+    ^
 ---
 */
 

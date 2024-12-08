@@ -2,11 +2,21 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail243.d(23): Deprecation: class `fail243.DepClass` is deprecated
-fail_compilation/fail243.d(24): Deprecation: struct `fail243.DepStruct` is deprecated
-fail_compilation/fail243.d(25): Deprecation: union `fail243.DepUnion` is deprecated
-fail_compilation/fail243.d(26): Deprecation: enum `fail243.DepEnum` is deprecated
-fail_compilation/fail243.d(27): Deprecation: alias `fail243.DepAlias` is deprecated
+fail_compilation/fail243.d(33): Deprecation: class `fail243.DepClass` is deprecated
+void func(DepClass obj) {}
+     ^
+fail_compilation/fail243.d(34): Deprecation: struct `fail243.DepStruct` is deprecated
+void func(DepStruct obj) {}
+     ^
+fail_compilation/fail243.d(35): Deprecation: union `fail243.DepUnion` is deprecated
+void func(DepUnion obj) {}
+     ^
+fail_compilation/fail243.d(36): Deprecation: enum `fail243.DepEnum` is deprecated
+void func(DepEnum obj) {}
+     ^
+fail_compilation/fail243.d(37): Deprecation: alias `fail243.DepAlias` is deprecated
+void func(DepAlias obj) {}
+     ^
 ---
 */
 

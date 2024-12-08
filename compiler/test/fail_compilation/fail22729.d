@@ -3,7 +3,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail22729.d(12): Error: field `getChildAtPosition` not allowed in interface
+fail_compilation/fail22729.d(14): Error: field `getChildAtPosition` not allowed in interface
+    Tuple!(WidgetI) getChildAtPosition;
+                    ^
 ---
 */
 

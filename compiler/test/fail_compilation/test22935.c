@@ -1,6 +1,8 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/test22935.c(18): Error: array index 5 is out of bounds `[0..4]`
+fail_compilation/test22935.c(20): Error: array index 5 is out of bounds `[0..4]`
+int tmp2 = ((unsigned long)((char *)&((struct S *)0)->text[5] - (char *)0));
+                                    ^
 ---
 */
 

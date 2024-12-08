@@ -1,7 +1,9 @@
 /**
 TEST_OUTPUT:
 ---
-fail_compilation/fail18057b.d(12): Error: variable `fail18057b.Recursive.field` recursive initialization of field
+fail_compilation/fail18057b.d(14): Error: variable `fail18057b.Recursive.field` recursive initialization of field
+    int field = Recursive();
+                         ^
 ---
 */
 

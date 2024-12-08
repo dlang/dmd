@@ -1,7 +1,11 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/test128.i(12): Error: unsigned __int128 not supported
-fail_compilation/test128.i(12): Error: __int128 not supported
+fail_compilation/test128.i(16): Error: unsigned __int128 not supported
+    unsigned __int128 __res = (__int128) __X * __Y;
+                      ^
+fail_compilation/test128.i(16): Error: __int128 not supported
+    unsigned __int128 __res = (__int128) __X * __Y;
+                                       ^
 ---
  */
 

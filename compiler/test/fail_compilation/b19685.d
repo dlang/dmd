@@ -1,6 +1,8 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/b19685.d(6): Error: overlapping default initialization for field `b` and `a`
+fail_compilation/b19685.d(8): Error: overlapping default initialization for field `b` and `a`
+struct S
+^
 ---
 */
 struct S

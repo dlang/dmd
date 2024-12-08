@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail16206a.d(14): Error: `bool` expected as third argument of `__traits(getOverloads)`, not `"Not a bool"` of type `string`
+fail_compilation/fail16206a.d(16): Error: `bool` expected as third argument of `__traits(getOverloads)`, not `"Not a bool"` of type `string`
+alias allFoos = AliasSeq!(__traits(getOverloads, S, "foo", "Not a bool"));
+                          ^
 ---
 */
 

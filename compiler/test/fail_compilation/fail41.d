@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail41.d(17): Error: cannot return non-void from `void` function
+fail_compilation/fail41.d(19): Error: cannot return non-void from `void` function
+        return mc;
+        ^
 ---
 */
 

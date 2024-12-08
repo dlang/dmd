@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail11503b.d(17): Error: cannot implicitly convert expression `makes()` of type `immutable(int[])` to `int[]`
+fail_compilation/fail11503b.d(19): Error: cannot implicitly convert expression `makes()` of type `immutable(int[])` to `int[]`
+    int[] b = makes();
+                   ^
 ---
 */
 immutable int[] x = [1, 2, 3];

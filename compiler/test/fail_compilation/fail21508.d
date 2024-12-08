@@ -3,7 +3,9 @@ REQUIRED_ARGS: -Ifail_compilation/imports/
 EXTRA_FILES: imports/import21508.d
 TEST_OUTPUT:
 ---
-fail_compilation/fail21508.d(17): Error: import `fail21508.import21508` is used as a type
+fail_compilation/fail21508.d(19): Error: import `fail21508.import21508` is used as a type
+    auto c = new import21508();
+             ^
 ---
 */
 import import21508;

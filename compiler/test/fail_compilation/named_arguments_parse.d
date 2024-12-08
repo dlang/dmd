@@ -1,8 +1,12 @@
 /**
 TEST_OUTPUT:
 ---
-fail_compilation/named_arguments_parse.d(13): Error: named arguments not allowed here
-fail_compilation/named_arguments_parse.d(14): Error: named arguments not allowed here
+fail_compilation/named_arguments_parse.d(17): Error: named arguments not allowed here
+	mixin(thecode: "{}");
+       ^
+fail_compilation/named_arguments_parse.d(18): Error: named arguments not allowed here
+	pragma(msg, themsg: "hello");
+             ^
 ---
 */
 

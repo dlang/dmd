@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail154.d(18): Error: template instance `X!(MYP!int)` does not match template declaration `X(T : Policy!T, alias Policy)`
+fail_compilation/fail154.d(20): Error: template instance `X!(MYP!int)` does not match template declaration `X(T : Policy!T, alias Policy)`
+X!(MYP!(int)) x;
+^
 ---
 */
 

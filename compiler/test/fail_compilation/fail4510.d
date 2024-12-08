@@ -2,7 +2,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail4510.d(12): Error: argument type mismatch, `float` to `ref double`
+fail_compilation/fail4510.d(14): Error: argument type mismatch, `float` to `ref double`
+    foreach (ref double elem; arr) {
+    ^
 ---
 */
 

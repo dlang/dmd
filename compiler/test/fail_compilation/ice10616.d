@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice10616.d(8): Error: class `ice10616.A` is forward referenced when looking for `B`
+fail_compilation/ice10616.d(10): Error: class `ice10616.A` is forward referenced when looking for `B`
+class A : A.B
+^
 ---
 */
 

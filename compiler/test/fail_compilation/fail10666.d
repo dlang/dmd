@@ -2,7 +2,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail10666.d(16): Error: variable `fail10666.foo10666.s1` has scoped destruction, cannot build closure
+fail_compilation/fail10666.d(18): Error: variable `fail10666.foo10666.s1` has scoped destruction, cannot build closure
+void foo10666(S10666 s1)
+                     ^
 ---
 */
 

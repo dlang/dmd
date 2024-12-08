@@ -1,24 +1,60 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail9413.d(45): Error: variable `fail9413.foo.x` cannot modify parameter `x` in contract
-fail_compilation/fail9413.d(32): Error: variable `fail9413.foo.x` cannot modify parameter `x` in contract
-fail_compilation/fail9413.d(33): Error: variable `fail9413.foo.bar.y` cannot modify parameter `y` in contract
-fail_compilation/fail9413.d(38): Error: variable `fail9413.foo.x` cannot modify parameter `x` in contract
-fail_compilation/fail9413.d(39): Error: variable `fail9413.foo.bar.y` cannot modify parameter `y` in contract
-fail_compilation/fail9413.d(40): Error: variable `fail9413.foo.bar.s` cannot modify result `s` in contract
-fail_compilation/fail9413.d(50): Error: variable `fail9413.foo.x` cannot modify parameter `x` in contract
-fail_compilation/fail9413.d(73): Error: variable `fail9413.foo.x` cannot modify parameter `x` in contract
-fail_compilation/fail9413.d(74): Error: variable `fail9413.foo.r` cannot modify result `r` in contract
-fail_compilation/fail9413.d(58): Error: variable `fail9413.foo.x` cannot modify parameter `x` in contract
-fail_compilation/fail9413.d(59): Error: variable `fail9413.foo.r` cannot modify result `r` in contract
-fail_compilation/fail9413.d(60): Error: variable `fail9413.foo.baz.y` cannot modify parameter `y` in contract
-fail_compilation/fail9413.d(65): Error: variable `fail9413.foo.x` cannot modify parameter `x` in contract
-fail_compilation/fail9413.d(66): Error: variable `fail9413.foo.r` cannot modify result `r` in contract
-fail_compilation/fail9413.d(67): Error: variable `fail9413.foo.baz.y` cannot modify parameter `y` in contract
-fail_compilation/fail9413.d(68): Error: variable `fail9413.foo.baz.s` cannot modify result `s` in contract
-fail_compilation/fail9413.d(79): Error: variable `fail9413.foo.x` cannot modify parameter `x` in contract
-fail_compilation/fail9413.d(80): Error: variable `fail9413.foo.r` cannot modify result `r` in contract
+fail_compilation/fail9413.d(81): Error: variable `fail9413.foo.x` cannot modify parameter `x` in contract
+        x = 10; // err
+        ^
+fail_compilation/fail9413.d(68): Error: variable `fail9413.foo.x` cannot modify parameter `x` in contract
+        x = 10; // err
+        ^
+fail_compilation/fail9413.d(69): Error: variable `fail9413.foo.bar.y` cannot modify parameter `y` in contract
+        y = 10; // err
+        ^
+fail_compilation/fail9413.d(74): Error: variable `fail9413.foo.x` cannot modify parameter `x` in contract
+        x = 10; // err
+        ^
+fail_compilation/fail9413.d(75): Error: variable `fail9413.foo.bar.y` cannot modify parameter `y` in contract
+        y = 10; // err
+        ^
+fail_compilation/fail9413.d(76): Error: variable `fail9413.foo.bar.s` cannot modify result `s` in contract
+        s = 10; // err
+        ^
+fail_compilation/fail9413.d(86): Error: variable `fail9413.foo.x` cannot modify parameter `x` in contract
+    x = 10; // err
+    ^
+fail_compilation/fail9413.d(109): Error: variable `fail9413.foo.x` cannot modify parameter `x` in contract
+        x = 10; // err
+        ^
+fail_compilation/fail9413.d(110): Error: variable `fail9413.foo.r` cannot modify result `r` in contract
+        r = 10; // err
+        ^
+fail_compilation/fail9413.d(94): Error: variable `fail9413.foo.x` cannot modify parameter `x` in contract
+        x = 10; // err
+        ^
+fail_compilation/fail9413.d(95): Error: variable `fail9413.foo.r` cannot modify result `r` in contract
+        r = 10; // err
+        ^
+fail_compilation/fail9413.d(96): Error: variable `fail9413.foo.baz.y` cannot modify parameter `y` in contract
+        y = 10; // err
+        ^
+fail_compilation/fail9413.d(101): Error: variable `fail9413.foo.x` cannot modify parameter `x` in contract
+        x = 10; // err
+        ^
+fail_compilation/fail9413.d(102): Error: variable `fail9413.foo.r` cannot modify result `r` in contract
+        r = 10; // err
+        ^
+fail_compilation/fail9413.d(103): Error: variable `fail9413.foo.baz.y` cannot modify parameter `y` in contract
+        y = 10; // err
+        ^
+fail_compilation/fail9413.d(104): Error: variable `fail9413.foo.baz.s` cannot modify result `s` in contract
+        s = 10; // err
+        ^
+fail_compilation/fail9413.d(115): Error: variable `fail9413.foo.x` cannot modify parameter `x` in contract
+    x = 10; // err
+    ^
+fail_compilation/fail9413.d(116): Error: variable `fail9413.foo.r` cannot modify result `r` in contract
+    r = 10; // err
+    ^
 ---
 */
 

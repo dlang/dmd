@@ -1,9 +1,15 @@
 /*
 TEST_OUTPUT:
 ----
-fail_compilation/issue15103.d(22): Error: found `(` when expecting `;` or `=`, did you mean `Foo foo = 42`?
-fail_compilation/issue15103.d(23): Error: found `(` when expecting `;` or `=`, did you mean `Boo boo = 43`?
-fail_compilation/issue15103.d(24): Error: found `(` when expecting `;` or `=`, did you mean `string y = "a string"`?
+fail_compilation/issue15103.d(28): Error: found `(` when expecting `;` or `=`, did you mean `Foo foo = 42`?
+    Foo foo(42);
+        ^
+fail_compilation/issue15103.d(29): Error: found `(` when expecting `;` or `=`, did you mean `Boo boo = 43`?
+    Boo boo(43);
+        ^
+fail_compilation/issue15103.d(30): Error: found `(` when expecting `;` or `=`, did you mean `string y = "a string"`?
+    string y("a string");
+           ^
 ---
 */
 

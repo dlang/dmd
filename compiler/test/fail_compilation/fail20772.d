@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail20772.d(20): Error: cannot pass types with postblits or copy constructors as variadic arguments
-fail_compilation/fail20772.d(21): Error: cannot pass types with postblits or copy constructors as variadic arguments
+fail_compilation/fail20772.d(24): Error: cannot pass types with postblits or copy constructors as variadic arguments
+    variadic(v,
+             ^
+fail_compilation/fail20772.d(25): Error: cannot pass types with postblits or copy constructors as variadic arguments
+             S20772(1));
+                   ^
 ---
 */
 extern void variadic(...);

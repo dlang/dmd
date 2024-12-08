@@ -1,7 +1,9 @@
 /* REQUIRED_ARGS: -preview=dip1021
 TEST_OUTPUT:
 ---
-fail_compilation/ob1.d(23): Error: variable `ob1.mars.t` has undefined state and cannot be read
+fail_compilation/ob1.d(25): Error: variable `ob1.mars.t` has undefined state and cannot be read
+    auto t = Handle(10);
+         ^
 ---
   https://issues.dlang.org/show_bug.cgi?id=21923
 */

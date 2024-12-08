@@ -4,7 +4,11 @@
 TEST_OUTPUT:
 ---
 fail_compilation/imports/b13465.d(10): Error: cannot infer type from template instance `isMaskField!()`
-fail_compilation/ice13465b.d(17): Error: template instance `imports.b13465.isMatchingMaskField!()` error instantiating
+    enum isMatchingMaskField = { enum n = isMaskField!(); return n; }();
+                                          ^
+fail_compilation/ice13465b.d(21): Error: template instance `imports.b13465.isMatchingMaskField!()` error instantiating
+    enum b = isMatchingMaskField!();
+             ^
 ---
 */
 

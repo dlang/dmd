@@ -2,7 +2,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/gag4269b.d(10): Error: undefined identifier `Y`
+fail_compilation/gag4269b.d(12): Error: undefined identifier `Y`
+struct X2 { Y y; }
+              ^
 ---
 */
 

@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail123.d(11): Error: undefined identifier `type`
-fail_compilation/fail123.d(17): Error: enum `fail123.foo2` base type must not be `void`
+fail_compilation/fail123.d(15): Error: undefined identifier `type`
+enum foo : type
+^
+fail_compilation/fail123.d(21): Error: enum `fail123.foo2` base type must not be `void`
+enum foo2 : void { a, b }
+^
 ---
 */
 

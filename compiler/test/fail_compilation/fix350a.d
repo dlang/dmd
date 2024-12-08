@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fix350a.d(12): Error: comma expected separating field initializers
-fail_compilation/fix350a.d(12): Error: comma expected separating field initializers
+fail_compilation/fix350a.d(16): Error: comma expected separating field initializers
+    static immutable S1 C1 = { 1 2 3 }; // no commas here, compiles
+                                 ^
+fail_compilation/fix350a.d(16): Error: comma expected separating field initializers
+    static immutable S1 C1 = { 1 2 3 }; // no commas here, compiles
+                                   ^
 ---
 */
 struct S1

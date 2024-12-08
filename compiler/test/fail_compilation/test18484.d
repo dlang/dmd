@@ -1,8 +1,12 @@
 /* REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/test18484.d(19): Error: returning `x.bar()` escapes a reference to local variable `x`
-fail_compilation/test18484.d(24): Error: escaping reference to stack allocated value returned by `S(0)`
+fail_compilation/test18484.d(23): Error: returning `x.bar()` escapes a reference to local variable `x`
+    auto x = S(); return x.bar();  // error
+                              ^
+fail_compilation/test18484.d(28): Error: escaping reference to stack allocated value returned by `S(0)`
+    return S().bar();  // error
+            ^
 ---
 */
 

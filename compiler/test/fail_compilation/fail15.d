@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail15.d(24): Error: cannot use `[]` operator on expression of type `void`
+fail_compilation/fail15.d(26): Error: cannot use `[]` operator on expression of type `void`
+    bool x = xs[false];
+               ^
 ---
 */
 /*

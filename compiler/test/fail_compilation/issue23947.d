@@ -2,7 +2,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/issue23947.d(10): Error: function `imports.issue23947a.Class.handle` of type `void(X x)` is not accessible from module `issue23947`
+fail_compilation/issue23947.d(12): Error: function `imports.issue23947a.Class.handle` of type `void(X x)` is not accessible from module `issue23947`
+void main() { Class.init.handle(X.init); }
+                               ^
 ---
 */
 import imports.issue23947a;

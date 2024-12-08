@@ -1,9 +1,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail19336.d(14): Error: template instance `Template!()` template `Template` is not defined
-fail_compilation/fail19336.d(14): Error: circular reference to `fail19336.Foo.a`
-fail_compilation/fail19336.d(17): Error: circular reference to `fail19336.b`
+fail_compilation/fail19336.d(20): Error: template instance `Template!()` template `Template` is not defined
+        Template!() a(a.x);
+        ^
+fail_compilation/fail19336.d(20): Error: circular reference to `fail19336.Foo.a`
+        Template!() a(a.x);
+                    ^
+fail_compilation/fail19336.d(23): Error: circular reference to `fail19336.b`
+int b(b.x);
+    ^
 ---
 */
 
