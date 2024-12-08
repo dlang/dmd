@@ -681,6 +681,7 @@ extern (D) bool checkComplexTransition(Type type, const ref Loc loc, Scope* sc)
  * 'args' are being matched to function type 'tf'
  * Determine match level.
  * Params:
+ *      fd = function being called, if a symbol
  *      tf = function type
  *      tthis = type of `this` pointer, null if not member function
  *      argumentList = arguments to function call
@@ -690,9 +691,10 @@ extern (D) bool checkComplexTransition(Type type, const ref Loc loc, Scope* sc)
  * Returns:
  *      MATCHxxxx
  */
-extern (D) MATCH callMatch(TypeFunction tf, Type tthis, ArgumentList argumentList, int flag = 0, void delegate(const(char)*) scope errorHelper = null, Scope* sc = null)
+extern (D) MATCH callMatch(FuncDeclaration fd, TypeFunction tf, Type tthis, ArgumentList argumentList,
+        int flag = 0, void delegate(const(char)*) scope errorHelper = null, Scope* sc = null)
 {
-    //printf("TypeFunction::callMatch() %s\n", tf.toChars());
+    //printf("callMatch() fd: %s, tf: %s\n", fd ? fd.ident.toChars() : "null", toChars(tf));
     MATCH match = MATCH.exact; // assume exact match
     ubyte wildmatch = 0;
 
@@ -820,7 +822,7 @@ extern (D) MATCH callMatch(TypeFunction tf, Type tthis, ArgumentList argumentLis
             Expression arg = args[u];
             if (!arg)
                 continue; // default argument
-            m = argumentMatchParameter(tf, p, arg, wildmatch, flag, sc, pMessage);
+            m = argumentMatchParameter(fd, tf, p, arg, wildmatch, flag, sc, pMessage);
             if (failMessage)
             {
                 buf.reset();
@@ -887,14 +889,15 @@ extern (D) MATCH callMatch(TypeFunction tf, Type tthis, ArgumentList argumentLis
  *
  * This is done by seeing if a call to the copy constructor can be made:
  * ```
- * typeof(tprm) __copytmp;
- * copytmp.__copyCtor(arg);
+ * typeof(tprm) __copytemp;
+ * copytemp.__copyCtor(arg);
  * ```
  */
 private extern(D) bool isCopyConstructorCallable (StructDeclaration argStruct,
     Expression arg, Type tprm, Scope* sc, const(char)** pMessage)
 {
-    auto tmp = new VarDeclaration(arg.loc, tprm, Identifier.generateId("__copytmp"), null);
+    //printf("isCopyConstructorCallable() argStruct: %s arg: %s tprm: %s\n", argStruct.toChars(), toChars(arg), toChars(tprm));
+    auto tmp = new VarDeclaration(arg.loc, tprm, Identifier.generateId("__copytemp"), null);
     tmp.storage_class = STC.rvalue | STC.temp | STC.ctfe;
     tmp.dsymbolSemantic(sc);
     Expression ve = new VarExp(arg.loc, tmp);
@@ -980,25 +983,28 @@ private extern(D) bool isCopyConstructorCallable (StructDeclaration argStruct,
  *
  * This function is called by `TypeFunction.callMatch` while iterating over
  * the list of parameter. Here we check if `arg` is a match for `p`,
- * which is mostly about checking if `arg.type` converts to `p`'s type
+ * which is mostly about checking if `arg.type` converts to type of `p`
  * and some check about value reference.
  *
  * Params:
- *   tf = The `TypeFunction`, only used for error reporting
+ *   fd = the function being called if symbol, null if not
+ *   tf = the `TypeFunction`, only used for error reporting
  *   p = The parameter of `tf` being matched
  *   arg = Argument being passed (bound) to `p`
  *   wildmatch = Wild (`inout`) matching level, derived from the full argument list
- *   flag = A non-zero value means we're doing a partial ordering check
+ *   flag = A non-zero value means we are doing a partial ordering check
  *          (no value semantic check)
  *   sc = Scope we are in
  *   pMessage = A buffer to write the error in, or `null`
  *
  * Returns: Whether `trailingArgs` match `p`.
  */
-private extern(D) MATCH argumentMatchParameter (TypeFunction tf, Parameter p,
+private extern(D) MATCH argumentMatchParameter(FuncDeclaration fd, TypeFunction tf, Parameter p,
     Expression arg, ubyte wildmatch, int flag, Scope* sc, const(char)** pMessage)
 {
-    //printf("arg: %s, type: %s\n", arg.toChars(), arg.type.toChars());
+    static if (0)
+    printf("argumentMatchParameter() sc: %p, fd: %s, tf: %s, p: %s, arg: %s, arg.type: %s\n",
+        sc, fd ? fd.ident.toChars() : "null", tf.toChars(), parameterToChars(p, tf, false), arg.toChars(), arg.type.toChars());
     MATCH m;
     Type targ = arg.type;
     Type tprm = wildmatch ? p.type.substWildTo(wildmatch) : p.type;
@@ -1024,11 +1030,20 @@ private extern(D) MATCH argumentMatchParameter (TypeFunction tf, Parameter p,
         }
 
         // check if the copy constructor may be called to copy the argument
-        if (argStruct && argStruct == prmStruct && argStruct.hasCopyCtor)
+        if (argStruct && argStruct is prmStruct && argStruct.hasCopyCtor)
         {
-            if (!isCopyConstructorCallable(argStruct, arg, tprm, sc, pMessage))
+            if (!sc)
                 return MATCH.nomatch;
-            m = MATCH.exact;
+            if (sc.argStruct is argStruct)
+            {
+                // do not recursively construct rvalue parameter
+                return MATCH.exact;
+            }
+            Scope* sc2 = sc.push();
+            sc2.argStruct = argStruct;
+            bool b = isCopyConstructorCallable(argStruct, arg, tprm, sc2, pMessage);
+            sc2.pop();
+            return b ? MATCH.exact : MATCH.nomatch;
         }
         else
         {

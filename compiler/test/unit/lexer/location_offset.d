@@ -399,6 +399,7 @@ enum Test[string] tests = [
     "auto_" : Test("auto"),
     "package_" : Test("package"),
     "immutable_" : Test("immutable"),
+    "rvalue" : Test("__rvalue"),
 
     "if_" : Test("if"),
     "else_" : Test("else"),
