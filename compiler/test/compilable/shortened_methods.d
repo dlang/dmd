@@ -15,7 +15,7 @@ class A {
     bool isNull() => this is null;
 
     this() {}
-    this(int x) => _x = x;
+    this(int x) { _x = x; }
     this(float y) => this(cast(int) y);
 }
 
