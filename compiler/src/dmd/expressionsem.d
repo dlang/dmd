@@ -846,6 +846,7 @@ extern (D) Expression doCopyOrMove(Scope *sc, Expression e, Type t = null)
  */
 private Expression callCpCtor(Scope* sc, Expression e, Type destinationType)
 {
+    //printf("callCpCtor(e: %s et: %s destinationType: %s\n", toChars(e), toChars(e.type), toChars(destinationType));
     auto ts = e.type.baseElemOf().isTypeStruct();
 
     if (!ts)
@@ -2952,7 +2953,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
     Type* prettype, Expression* peprefix)
 {
     Expressions* arguments = argumentList.arguments;
-    //printf("functionParameters() %s\n", fd ? fd.toChars() : "");
+    //printf("functionParameters() fd: %s tf: %s\n", fd ? fd.ident.toChars() : "", toChars(tf));
     assert(arguments);
     assert(fd || tf.next);
     const size_t nparams = tf.parameterList.length;
@@ -3891,6 +3892,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = exp;
             return;
         }
+
+        scope (success) result.rvalue = exp.rvalue;
 
         Dsymbol scopesym;
         Dsymbol s = sc.search(exp.loc, exp.ident, scopesym);
@@ -6718,7 +6721,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     errorSupplemental(exp.loc, "%s", failMessage);
             }
 
-            if (tf.callMatch(null, exp.argumentList, 0, &errorHelper, sc) == MATCH.nomatch)
+            if (callMatch(exp.f, tf, null, exp.argumentList, 0, &errorHelper, sc) == MATCH.nomatch)
                 return setError();
 
             // Purity and safety check should run after testing arguments matching
@@ -6801,7 +6804,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     exp.f = null;
                 }
 
-                if (tf.callMatch(null, exp.argumentList, 0, &errorHelper2, sc) == MATCH.nomatch)
+                if (callMatch(exp.f, tf, null, exp.argumentList, 0, &errorHelper2, sc) == MATCH.nomatch)
                     exp.f = null;
             }
             if (!exp.f || exp.f.errors)
