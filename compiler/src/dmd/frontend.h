@@ -6200,7 +6200,6 @@ class AttribDeclaration : public Dsymbol
 {
 public:
     Array<Dsymbol* >* decl;
-    void addComment(const char* comment) override;
     const char* kind() const override;
     bool oneMember(Dsymbol*& ps, Identifier* ident) override;
     bool hasPointers() final override;
@@ -6310,7 +6309,6 @@ public:
     Array<Dsymbol* >* elsedecl;
     ConditionalDeclaration* syntaxCopy(Dsymbol* s) override;
     bool oneMember(Dsymbol*& ps, Identifier* ident) final override;
-    void addComment(const char* comment) final override;
     void accept(Visitor* v) override;
 };
 
@@ -6336,7 +6334,6 @@ public:
     Array<Dsymbol* >* cache;
     StaticForeachDeclaration* syntaxCopy(Dsymbol* s) override;
     bool oneMember(Dsymbol*& ps, Identifier* ident) override;
-    void addComment(const char* comment) override;
     const char* kind() const override;
     void accept(Visitor* v) override;
 };
@@ -7381,6 +7378,20 @@ public:
     void visit(AttribDeclaration* ad) override;
     void visit(ConditionalDeclaration* cdc) override;
     void visit(StaticIfDeclaration* sif) override;
+    void visit(StaticForeachDeclaration* sfd) override;
+};
+
+extern void addComment(Dsymbol* d, const char* comment);
+
+class AddCommentVisitor : public Visitor
+{
+public:
+    using Visitor::visit;
+    const char* comment;
+    AddCommentVisitor(const char* comment);
+    void visit(Dsymbol* d) override;
+    void visit(AttribDeclaration* atd) override;
+    void visit(ConditionalDeclaration* cd) override;
     void visit(StaticForeachDeclaration* sfd) override;
 };
 
