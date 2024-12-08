@@ -2502,10 +2502,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 //printf("tf: %s\n", tf.toChars());
                 auto param = tf.parameterList[0];
-                if (param.storageClass & STC.ref_ && param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
+                if (param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
                 {
                     //printf("copy constructor\n");
-                    ctd.isCpCtor = true;
+                    if (param.storageClass & STC.ref_)
+                        ctd.isCpCtor = true;            // copy constructor
+                    else
+                        ctd.isMoveCtor = true;          // move constructor
                 }
             }
         }

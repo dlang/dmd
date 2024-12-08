@@ -1617,6 +1617,7 @@ private Statement generateCopyCtorBody(StructDeclaration sd)
  */
 bool needCopyCtor(StructDeclaration sd, out bool hasCpCtor)
 {
+    //printf("needCopyCtor() %s\n", sd.toChars());
     if (global.errors)
         return false;
 
@@ -1655,7 +1656,7 @@ bool needCopyCtor(StructDeclaration sd, out bool hasCpCtor)
 
     if (cpCtor)
     {
-        if (rvalueCtor)
+        if (0 && rvalueCtor)
         {
             .error(sd.loc, "`struct %s` may not define both a rvalue constructor and a copy constructor", sd.toChars());
             errorSupplemental(rvalueCtor.loc,"rvalue constructor defined here");

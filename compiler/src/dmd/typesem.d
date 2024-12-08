@@ -681,6 +681,7 @@ extern (D) bool checkComplexTransition(Type type, const ref Loc loc, Scope* sc)
  * 'args' are being matched to function type 'tf'
  * Determine match level.
  * Params:
+ *      fd = function being called, if a symbol
  *      tf = function type
  *      tthis = type of `this` pointer, null if not member function
  *      argumentList = arguments to function call
@@ -690,7 +691,8 @@ extern (D) bool checkComplexTransition(Type type, const ref Loc loc, Scope* sc)
  * Returns:
  *      MATCHxxxx
  */
-extern (D) MATCH callMatch(TypeFunction tf, Type tthis, ArgumentList argumentList, int flag = 0, void delegate(const(char)*) scope errorHelper = null, Scope* sc = null)
+extern (D) MATCH callMatch(FuncDeclaration fd, TypeFunction tf, Type tthis, ArgumentList argumentList,
+        int flag = 0, void delegate(const(char)*) scope errorHelper = null, Scope* sc = null)
 {
     //printf("TypeFunction::callMatch() %s\n", tf.toChars());
     MATCH match = MATCH.exact; // assume exact match
