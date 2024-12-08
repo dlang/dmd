@@ -192,7 +192,7 @@ struct Param
                                  // https://digitalmars.com/d/archives/digitalmars/D/Binding_rvalues_to_ref_parameters_redux_325087.html
                                  // Implementation: https://github.com/dlang/dmd/pull/9817
     FeatureState safer;          // safer by default (more @safe checks in unattributed code)
-				 // https://github.com/WalterBright/documents/blob/38f0a846726b571f8108f6e63e5e217b91421c86/safer.md
+                                 // https://github.com/WalterBright/documents/blob/38f0a846726b571f8108f6e63e5e217b91421c86/safer.md
 
     FeatureState noSharedAccess; // read/write access to shared memory objects
     d_bool previewIn;              // `in` means `[ref] scope const`, accepts rvalues

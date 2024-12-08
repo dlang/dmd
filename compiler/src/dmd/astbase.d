@@ -4548,6 +4548,7 @@ struct ASTBase
         EXP op;
         ubyte size;
         ubyte parens;
+        ubyte rvalue;              // consider this an rvalue, even if it is an lvalue
         Type type;
         Loc loc;
 

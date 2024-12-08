@@ -2068,6 +2068,7 @@ enum class EXP : uint8_t
     _Generic_ = 125u,
     interval = 126u,
     loweredAssignExp = 127u,
+    rvalue = 128u,
 };
 
 typedef uint64_t dinteger_t;
@@ -2105,6 +2106,7 @@ public:
     Loc loc;
     const EXP op;
     bool parens;
+    bool rvalue;
     size_t size() const;
     static void _init();
     static void deinitialize();
@@ -2888,33 +2890,34 @@ enum class TOK : uint8_t
     wchar_tLiteral = 196u,
     endOfLine = 197u,
     whitespace = 198u,
-    inline_ = 199u,
-    register_ = 200u,
-    restrict_ = 201u,
-    signed_ = 202u,
-    sizeof_ = 203u,
-    typedef_ = 204u,
-    unsigned_ = 205u,
-    volatile_ = 206u,
-    _Alignas_ = 207u,
-    _Alignof_ = 208u,
-    _Atomic_ = 209u,
-    _Bool_ = 210u,
-    _Complex_ = 211u,
-    _Generic_ = 212u,
-    _Imaginary_ = 213u,
-    _Noreturn_ = 214u,
-    _Static_assert_ = 215u,
-    _Thread_local_ = 216u,
-    _assert_ = 217u,
-    _import_ = 218u,
-    __cdecl_ = 219u,
-    __declspec_ = 220u,
-    __stdcall_ = 221u,
-    __thread_ = 222u,
-    __pragma_ = 223u,
-    __int128_ = 224u,
-    __attribute___ = 225u,
+    rvalue = 199u,
+    inline_ = 200u,
+    register_ = 201u,
+    restrict_ = 202u,
+    signed_ = 203u,
+    sizeof_ = 204u,
+    typedef_ = 205u,
+    unsigned_ = 206u,
+    volatile_ = 207u,
+    _Alignas_ = 208u,
+    _Alignof_ = 209u,
+    _Atomic_ = 210u,
+    _Bool_ = 211u,
+    _Complex_ = 212u,
+    _Generic_ = 213u,
+    _Imaginary_ = 214u,
+    _Noreturn_ = 215u,
+    _Static_assert_ = 216u,
+    _Thread_local_ = 217u,
+    _assert_ = 218u,
+    _import_ = 219u,
+    __cdecl_ = 220u,
+    __declspec_ = 221u,
+    __stdcall_ = 222u,
+    __thread_ = 223u,
+    __pragma_ = 224u,
+    __int128_ = 225u,
+    __attribute___ = 226u,
 };
 
 class FuncExp final : public Expression
@@ -3792,6 +3795,7 @@ class CtorDeclaration final : public FuncDeclaration
 {
 public:
     bool isCpCtor;
+    bool isMoveCtor;
     CtorDeclaration* syntaxCopy(Dsymbol* s) override;
     const char* kind() const override;
     const char* toChars() const override;
@@ -5260,18 +5264,18 @@ struct UnionExp final
 private:
     union _AnonStruct_u
     {
-        char exp[30LLU];
+        char exp[31LLU];
         char integerexp[40LLU];
-        char errorexp[30LLU];
+        char errorexp[31LLU];
         char realexp[48LLU];
         char complexexp[64LLU];
         char symoffexp[64LLU];
-        char stringexp[51LLU];
-        char arrayliteralexp[48LLU];
+        char stringexp[59LLU];
+        char arrayliteralexp[56LLU];
         char assocarrayliteralexp[56LLU];
         char structliteralexp[76LLU];
         char compoundliteralexp[40LLU];
-        char nullexp[30LLU];
+        char nullexp[31LLU];
         char dotvarexp[49LLU];
         char addrexp[40LLU];
         char indexexp[74LLU];
@@ -7130,6 +7134,7 @@ public:
     void* anchorCounts;
     Identifier* prevAnchor;
     AliasDeclaration* aliasAsg;
+    StructDeclaration* argStruct;
     Dsymbol* search(const Loc& loc, Identifier* ident, Dsymbol*& pscopesym, uint32_t flags = 0u);
     Scope() :
         enclosing(),
@@ -7170,10 +7175,11 @@ public:
         userAttribDecl(),
         lastdc(),
         prevAnchor(),
-        aliasAsg()
+        aliasAsg(),
+        argStruct()
     {
     }
-    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* sw = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tf = nullptr, ScopeGuardStatement* os = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Dsymbol* inunion = nullptr, bool nofree = false, bool inLoop = false, bool inDefaultArg = false, int32_t intypeof = 0, VarDeclaration* lastVar = nullptr, ErrorSink* eSink = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), int32_t explicitVisibility = 0, uint64_t stc = 0LLU, DeprecatedDeclaration* depdecl = nullptr, uint32_t bitFields = 0u, UserAttributeDeclaration* userAttribDecl = nullptr, DocComment* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr) :
+    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* sw = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tf = nullptr, ScopeGuardStatement* os = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Dsymbol* inunion = nullptr, bool nofree = false, bool inLoop = false, bool inDefaultArg = false, int32_t intypeof = 0, VarDeclaration* lastVar = nullptr, ErrorSink* eSink = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), int32_t explicitVisibility = 0, uint64_t stc = 0LLU, DeprecatedDeclaration* depdecl = nullptr, uint32_t bitFields = 0u, UserAttributeDeclaration* userAttribDecl = nullptr, DocComment* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr, StructDeclaration* argStruct = nullptr) :
         enclosing(enclosing),
         _module(_module),
         scopesym(scopesym),
@@ -7213,7 +7219,8 @@ public:
         lastdc(lastdc),
         anchorCounts(anchorCounts),
         prevAnchor(prevAnchor),
-        aliasAsg(aliasAsg)
+        aliasAsg(aliasAsg),
+        argStruct(argStruct)
         {}
 };
 
@@ -7242,6 +7249,8 @@ public:
     bool hasNoFields(bool v);
     bool hasCopyCtor() const;
     bool hasCopyCtor(bool v);
+    bool hasMoveCtor() const;
+    bool hasMoveCtor(bool v);
     bool hasPointerField() const;
     bool hasPointerField(bool v);
     bool hasVoidInitPointers() const;
