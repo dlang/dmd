@@ -1,9 +1,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13701.d(16): Error: cannot modify `immutable` expression `this.aa[10]`
-fail_compilation/fail13701.d(23): Error: cannot modify `immutable` expression `aa[10]`
-fail_compilation/fail13701.d(24): Error: cannot modify `immutable` expression `aa[10]`
+fail_compilation/fail13701.d(22): Error: cannot modify `immutable` expression `this.aa[10]`
+        aa[10] = 30;    // assignment
+          ^
+fail_compilation/fail13701.d(29): Error: cannot modify `immutable` expression `aa[10]`
+    aa[10] = 20;
+      ^
+fail_compilation/fail13701.d(30): Error: cannot modify `immutable` expression `aa[10]`
+    aa[10]++;
+      ^
 ---
 */
 

@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice8499.d(18): Error: undefined identifier `i`
+fail_compilation/ice8499.d(20): Error: undefined identifier `i`
+    (Variant()).get!(typeof(() => i));
+                                  ^
 ---
 */
 

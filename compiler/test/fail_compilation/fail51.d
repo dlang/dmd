@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail51.d(11): Error: interface `fail51.B` circular inheritance of interface
+fail_compilation/fail51.d(13): Error: interface `fail51.B` circular inheritance of interface
+interface B : A { void g(); }
+^
 ---
 */
 

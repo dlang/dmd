@@ -4,8 +4,12 @@ https://issues.dlang.org/show_bug.cgi?id=21739
 REQUIRED_ARGS: -debug
 TEST_OUTPUT:
 ---
-fail_compilation/debugCaseDeclaration.d(22): Error: undefined identifier `x`
-fail_compilation/debugCaseDeclaration.d(33): Error: undefined identifier `y`
+fail_compilation/debugCaseDeclaration.d(26): Error: undefined identifier `x`
+            x = 1;
+            ^
+fail_compilation/debugCaseDeclaration.d(37): Error: undefined identifier `y`
+                y = 1; // Invalid but accepted
+                ^
 ---
 */
 

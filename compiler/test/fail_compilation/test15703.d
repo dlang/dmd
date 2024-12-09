@@ -2,16 +2,26 @@
 REQUIRED_ARGS: -m32
 TEST_OUTPUT:
 ---
-fail_compilation/test15703.d(23): Error: cast from `Object[]` to `uint[]` not allowed in safe code
-fail_compilation/test15703.d(23):        Target element type is mutable and source element type contains a pointer
-fail_compilation/test15703.d(25): Error: cast from `object.Object` to `const(uint)*` not allowed in safe code
-fail_compilation/test15703.d(25):        Source type is incompatible with target type containing a pointer
-fail_compilation/test15703.d(28): Error: cast from `uint[]` to `Object[]` not allowed in safe code
-fail_compilation/test15703.d(28):        Target element type contains a pointer
-fail_compilation/test15703.d(44): Error: cast from `int[]` to `S[]` not allowed in safe code
-fail_compilation/test15703.d(44):        Target element type is opaque
-fail_compilation/test15703.d(45): Error: cast from `S[]` to `int[]` not allowed in safe code
-fail_compilation/test15703.d(45):        Source element type is opaque
+fail_compilation/test15703.d(33): Error: cast from `Object[]` to `uint[]` not allowed in safe code
+     auto longs = cast(size_t[]) objs;          // error
+                  ^
+fail_compilation/test15703.d(33):        Target element type is mutable and source element type contains a pointer
+fail_compilation/test15703.d(35): Error: cast from `object.Object` to `const(uint)*` not allowed in safe code
+     auto longp = cast(const(size_t)*) objs[0]; // error
+                  ^
+fail_compilation/test15703.d(35):        Source type is incompatible with target type containing a pointer
+fail_compilation/test15703.d(38): Error: cast from `uint[]` to `Object[]` not allowed in safe code
+     objs = cast(Object[]) al;                  // error
+            ^
+fail_compilation/test15703.d(38):        Target element type contains a pointer
+fail_compilation/test15703.d(54): Error: cast from `int[]` to `S[]` not allowed in safe code
+    S[] b = cast(S[]) a;
+            ^
+fail_compilation/test15703.d(54):        Target element type is opaque
+fail_compilation/test15703.d(55): Error: cast from `S[]` to `int[]` not allowed in safe code
+    a = cast(int[]) b;
+        ^
+fail_compilation/test15703.d(55):        Source element type is opaque
 ---
 */
 

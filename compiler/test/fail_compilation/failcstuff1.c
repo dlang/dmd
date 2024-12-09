@@ -1,94 +1,192 @@
 // check the expression parser
 /* TEST_OUTPUT:
 ---
-fail_compilation/failcstuff1.c(100): Error: no members for `enum E21962`
-fail_compilation/failcstuff1.c(101): Error: no members for anonymous enum
-fail_compilation/failcstuff1.c(152): Error: `;` or `,` expected
-fail_compilation/failcstuff1.c(153): Error: `void` has no value
-fail_compilation/failcstuff1.c(153): Error: missing comma
-fail_compilation/failcstuff1.c(153): Error: `;` or `,` expected
-fail_compilation/failcstuff1.c(157): Error: expression expected, not `struct`
-fail_compilation/failcstuff1.c(157): Error: found `S22028` when expecting `)`
-fail_compilation/failcstuff1.c(157): Error: missing comma or semicolon after declaration of `test22028`, found `ident` instead
-fail_compilation/failcstuff1.c(203): Error: storage class not allowed in specifier-qualified-list
-fail_compilation/failcstuff1.c(204): Error: storage class not allowed in specifier-qualified-list
+fail_compilation/failcstuff1.c(184): Error: no members for `enum E21962`
+enum E21962 { };
+              ^
+fail_compilation/failcstuff1.c(185): Error: no members for anonymous enum
+enum { };
+       ^
+fail_compilation/failcstuff1.c(192): Error: `;` or `,` expected
+    int init = 1;
+             ^
+fail_compilation/failcstuff1.c(193): Error: `void` has no value
+    void vfield nocomma;
+                ^
+fail_compilation/failcstuff1.c(193): Error: missing comma
+    void vfield nocomma;
+                ^
+fail_compilation/failcstuff1.c(193): Error: `;` or `,` expected
+    void vfield nocomma;
+                ^
+fail_compilation/failcstuff1.c(197): Error: expression expected, not `struct`
+int test22028 = sizeof(struct S22028 ident);
+                       ^
+fail_compilation/failcstuff1.c(197): Error: found `S22028` when expecting `)`
+int test22028 = sizeof(struct S22028 ident);
+                              ^
+fail_compilation/failcstuff1.c(197): Error: missing comma or semicolon after declaration of `test22028`, found `ident` instead
+int test22028 = sizeof(struct S22028 ident);
+                                     ^
 fail_compilation/failcstuff1.c(205): Error: storage class not allowed in specifier-qualified-list
+    typedef int tfield;
+                ^
 fail_compilation/failcstuff1.c(206): Error: storage class not allowed in specifier-qualified-list
+    extern int efield;
+               ^
 fail_compilation/failcstuff1.c(207): Error: storage class not allowed in specifier-qualified-list
+    static int sfield;
+               ^
 fail_compilation/failcstuff1.c(208): Error: storage class not allowed in specifier-qualified-list
-fail_compilation/failcstuff1.c(251): Error: identifier or `(` expected
-fail_compilation/failcstuff1.c(251): Error: expected identifier for declarator
-fail_compilation/failcstuff1.c(251): Error: expected identifier for declaration
-fail_compilation/failcstuff1.c(252): Error: identifier or `(` expected
-fail_compilation/failcstuff1.c(252): Error: expected identifier for declarator
-fail_compilation/failcstuff1.c(252): Error: expected identifier for declaration
-fail_compilation/failcstuff1.c(253): Error: identifier or `(` expected
-fail_compilation/failcstuff1.c(253): Error: expected identifier for declarator
-fail_compilation/failcstuff1.c(253): Error: expected identifier for declaration
-fail_compilation/failcstuff1.c(258): Error: identifier or `(` expected
-fail_compilation/failcstuff1.c(258): Error: expected identifier for declarator
-fail_compilation/failcstuff1.c(259): Error: identifier or `(` expected
-fail_compilation/failcstuff1.c(259): Error: expected identifier for declarator
-fail_compilation/failcstuff1.c(260): Error: identifier or `(` expected
-fail_compilation/failcstuff1.c(260): Error: expected identifier for declarator
-fail_compilation/failcstuff1.c(301): Error: illegal type combination
-fail_compilation/failcstuff1.c(352): Error: found `2` when expecting `:`
-fail_compilation/failcstuff1.c(352): Error: found `:` instead of statement
-fail_compilation/failcstuff1.c(450): Error: static array parameters are not supported
-fail_compilation/failcstuff1.c(450): Error: static or type qualifier used in non-outermost array type derivation
-fail_compilation/failcstuff1.c(451): Error: static or type qualifier used in non-outermost array type derivation
-fail_compilation/failcstuff1.c(451): Error: array type has incomplete element type `int[0]`
-fail_compilation/failcstuff1.c(452): Error: array type has incomplete element type `int[0]`
-fail_compilation/failcstuff1.c(453): Error: array type has incomplete element type `int[0]`
-fail_compilation/failcstuff1.c(454): Error: found `const` when expecting `,`
-fail_compilation/failcstuff1.c(458): Error: static array parameters are not supported
-fail_compilation/failcstuff1.c(458): Error: static or type qualifier used outside of function prototype
-fail_compilation/failcstuff1.c(459): Error: static or type qualifier used outside of function prototype
-fail_compilation/failcstuff1.c(460): Error: variable length arrays are not supported
-fail_compilation/failcstuff1.c(460): Error: variable length array used outside of function prototype
-fail_compilation/failcstuff1.c(461): Error: array type has incomplete element type `int[0]`
-fail_compilation/failcstuff1.c(462): Error: `=`, `;` or `,` expected to end declaration instead of `const`
-fail_compilation/failcstuff1.c(502): Error: no type-specifier for parameter
-fail_compilation/failcstuff1.c(502): Error: found `0` when expecting `,`
-fail_compilation/failcstuff1.c(502): Error: expected identifier for declarator
-fail_compilation/failcstuff1.c(504): Error: expected identifier for declarator
-fail_compilation/failcstuff1.c(551): Error: missing comma or semicolon after declaration of `pluto`, found `p` instead
-fail_compilation/failcstuff1.c(601): Error: `=`, `;` or `,` expected to end declaration instead of `'s'`
-fail_compilation/failcstuff1.c(652): Error: multiple storage classes in declaration specifiers
-fail_compilation/failcstuff1.c(653): Error: multiple storage classes in declaration specifiers
-fail_compilation/failcstuff1.c(654): Error: multiple storage classes in declaration specifiers
-fail_compilation/failcstuff1.c(655): Error: multiple storage classes in declaration specifiers
-fail_compilation/failcstuff1.c(656): Error: multiple storage classes in declaration specifiers
-fail_compilation/failcstuff1.c(657): Error: multiple storage classes in declaration specifiers
-fail_compilation/failcstuff1.c(658): Error: multiple storage classes in declaration specifiers
-fail_compilation/failcstuff1.c(659): Error: multiple storage classes in declaration specifiers
-fail_compilation/failcstuff1.c(660): Error: multiple storage classes in declaration specifiers
-fail_compilation/failcstuff1.c(661): Error: multiple storage classes in declaration specifiers
-fail_compilation/failcstuff1.c(662): Error: multiple storage classes in declaration specifiers
-fail_compilation/failcstuff1.c(663): Error: multiple storage classes in declaration specifiers
-fail_compilation/failcstuff1.c(664): Error: multiple storage classes in declaration specifiers
-fail_compilation/failcstuff1.c(666): Error: `inline` and `_Noreturn` function specifiers not allowed for `_Thread_local`
-fail_compilation/failcstuff1.c(667): Error: `inline` and `_Noreturn` function specifiers not allowed for `_Thread_local`
-fail_compilation/failcstuff1.c(700): Error: `auto` and `register` storage class not allowed for global
+    _Thread_local int lfield;
+                      ^
+fail_compilation/failcstuff1.c(209): Error: storage class not allowed in specifier-qualified-list
+    auto int afield;
+             ^
+fail_compilation/failcstuff1.c(210): Error: storage class not allowed in specifier-qualified-list
+    register int rfield;
+                 ^
+fail_compilation/failcstuff1.c(216): Error: identifier or `(` expected
+fail_compilation/failcstuff1.c(216): Error: expected identifier for declarator
+fail_compilation/failcstuff1.c(216): Error: expected identifier for declaration
+fail_compilation/failcstuff1.c(217): Error: identifier or `(` expected
+int &;
+    ^
+fail_compilation/failcstuff1.c(217): Error: expected identifier for declarator
+fail_compilation/failcstuff1.c(217): Error: expected identifier for declaration
+fail_compilation/failcstuff1.c(218): Error: identifier or `(` expected
+int , int;
+    ^
+fail_compilation/failcstuff1.c(218): Error: expected identifier for declarator
+fail_compilation/failcstuff1.c(218): Error: expected identifier for declaration
+fail_compilation/failcstuff1.c(223): Error: identifier or `(` expected
+fail_compilation/failcstuff1.c(223): Error: expected identifier for declarator
+fail_compilation/failcstuff1.c(224): Error: identifier or `(` expected
+    int &;
+        ^
+fail_compilation/failcstuff1.c(224): Error: expected identifier for declarator
+fail_compilation/failcstuff1.c(225): Error: identifier or `(` expected
+    int, int;
+       ^
+fail_compilation/failcstuff1.c(225): Error: expected identifier for declarator
+fail_compilation/failcstuff1.c(234): Error: illegal type combination
+int test22032;
+    ^
+fail_compilation/failcstuff1.c(240): Error: found `2` when expecting `:`
+    case 1 2:
+           ^
+fail_compilation/failcstuff1.c(240): Error: found `:` instead of statement
+fail_compilation/failcstuff1.c(249): Error: static array parameters are not supported
+void test22103a(int array[4][static 4]);
+                                      ^
+fail_compilation/failcstuff1.c(249): Error: static or type qualifier used in non-outermost array type derivation
+void test22103a(int array[4][static 4]);
+                                      ^
+fail_compilation/failcstuff1.c(250): Error: static or type qualifier used in non-outermost array type derivation
+void test22103b(int array[4][restrict]);
+                                      ^
+fail_compilation/failcstuff1.c(250): Error: array type has incomplete element type `int[0]`
+void test22103b(int array[4][restrict]);
+                                      ^
+fail_compilation/failcstuff1.c(251): Error: array type has incomplete element type `int[0]`
+void test22103c(int array[4][]);
+                              ^
+fail_compilation/failcstuff1.c(252): Error: array type has incomplete element type `int[0]`
+void test22103d(int array[][]);
+                             ^
+fail_compilation/failcstuff1.c(253): Error: found `const` when expecting `,`
+void test22103e(int array[4] const);
+                             ^
+fail_compilation/failcstuff1.c(257): Error: static array parameters are not supported
+fail_compilation/failcstuff1.c(257): Error: static or type qualifier used outside of function prototype
+fail_compilation/failcstuff1.c(258): Error: static or type qualifier used outside of function prototype
+fail_compilation/failcstuff1.c(259): Error: variable length arrays are not supported
+fail_compilation/failcstuff1.c(259): Error: variable length array used outside of function prototype
+fail_compilation/failcstuff1.c(260): Error: array type has incomplete element type `int[0]`
+fail_compilation/failcstuff1.c(261): Error: `=`, `;` or `,` expected to end declaration instead of `const`
+    int array4[4] const;
+                  ^
+fail_compilation/failcstuff1.c(268): Error: no type-specifier for parameter
+    int(0);
+        ^
+fail_compilation/failcstuff1.c(268): Error: found `0` when expecting `,`
+    int(0);
+        ^
+fail_compilation/failcstuff1.c(268): Error: expected identifier for declarator
+fail_compilation/failcstuff1.c(270): Error: expected identifier for declarator
+fail_compilation/failcstuff1.c(277): Error: missing comma or semicolon after declaration of `pluto`, found `p` instead
+int * pluto p;
+            ^
+fail_compilation/failcstuff1.c(282): Error: `=`, `;` or `,` expected to end declaration instead of `'s'`
+char c22909 = u8's';
+                ^
+fail_compilation/failcstuff1.c(288): Error: multiple storage classes in declaration specifiers
+    static extern int aa;
+           ^
+fail_compilation/failcstuff1.c(289): Error: multiple storage classes in declaration specifiers
+    static auto int ab;
+           ^
+fail_compilation/failcstuff1.c(290): Error: multiple storage classes in declaration specifiers
+    static register int ac;
+           ^
+fail_compilation/failcstuff1.c(291): Error: multiple storage classes in declaration specifiers
+    static typedef int ad;
+           ^
+fail_compilation/failcstuff1.c(292): Error: multiple storage classes in declaration specifiers
+    extern auto int ah;
+           ^
+fail_compilation/failcstuff1.c(293): Error: multiple storage classes in declaration specifiers
+    extern register int ai;
+           ^
+fail_compilation/failcstuff1.c(294): Error: multiple storage classes in declaration specifiers
+    extern typedef int aj;
+           ^
+fail_compilation/failcstuff1.c(295): Error: multiple storage classes in declaration specifiers
+    auto register int an;
+         ^
+fail_compilation/failcstuff1.c(296): Error: multiple storage classes in declaration specifiers
+    auto typedef int ao;
+         ^
+fail_compilation/failcstuff1.c(297): Error: multiple storage classes in declaration specifiers
+    auto _Thread_local int ar;
+         ^
+fail_compilation/failcstuff1.c(298): Error: multiple storage classes in declaration specifiers
+    register typedef int as;
+             ^
+fail_compilation/failcstuff1.c(299): Error: multiple storage classes in declaration specifiers
+    register _Thread_local int av;
+             ^
+fail_compilation/failcstuff1.c(300): Error: multiple storage classes in declaration specifiers
+    typedef _Thread_local int ay;
+            ^
+fail_compilation/failcstuff1.c(302): Error: `inline` and `_Noreturn` function specifiers not allowed for `_Thread_local`
+    inline _Thread_local int ba;
+           ^
+fail_compilation/failcstuff1.c(303): Error: `inline` and `_Noreturn` function specifiers not allowed for `_Thread_local`
+    _Noreturn _Thread_local int bb;
+              ^
+fail_compilation/failcstuff1.c(323): Error: `auto` and `register` storage class not allowed for global
+register char *stack_pointer;
+^
 ---
 */
 
 /********************************/
 // https://issues.dlang.org/show_bug.cgi?id=21937
-#line 50
+// Line 50 starts here
 void test21962() __attribute__((noinline))
 {
 }
 
 /********************************/
 // https://issues.dlang.org/show_bug.cgi?id=21962
-#line 100
+// Line 100 starts here
 enum E21962 { };
 enum { };
 
 /********************************/
 // https://issues.dlang.org/show_bug.cgi?id=22028
-#line 150
+// Line 150 starts here
 struct S22028
 {
     int init = 1;
@@ -100,7 +198,7 @@ int test22028 = sizeof(struct S22028 ident);
 
 /********************************/
 // https://issues.dlang.org/show_bug.cgi?id=22029
-#line 200
+// Line 200 starts here
 struct S22029
 {
     int field;
@@ -113,7 +211,7 @@ struct S22029
 };
 
 // https://issues.dlang.org/show_bug.cgi?id=22030
-#line 250
+// Line 250 starts here
 int;
 int *;
 int &;
@@ -131,23 +229,23 @@ struct S22030
 void test22030(struct S22030, struct S22030*, struct S22030[4]);
 
 // https://issues.dlang.org/show_bug.cgi?id=22032
-#line 300
+// Line 300 starts here
 struct S22032 { int field; }
 int test22032;
 
 // https://issues.dlang.org/show_bug.cgi?id=22035
-#line 350
+// Line 350 starts here
 void test22035()
 {
     case 1 2:
 }
 
 // https://issues.dlang.org/show_bug.cgi?id=21932
-#line 400
+// Line 400 starts here
 enum ENUM;
 
 // https://issues.dlang.org/show_bug.cgi?id=22103
-#line 450
+// Line 450 starts here
 void test22103a(int array[4][static 4]);
 void test22103b(int array[4][restrict]);
 void test22103c(int array[4][]);
@@ -164,7 +262,7 @@ void test22103e()
 }
 
 // https://issues.dlang.org/show_bug.cgi?id=22102
-#line 500
+// Line 500 starts here
 void test22102()
 {
     int(0);
@@ -174,17 +272,17 @@ void test22102()
 }
 
 /****************************************************/
-#line 550
+// Line 550 starts here
 
 int * pluto p;
 
 // https://issues.dlang.org/show_bug.cgi?id=22909
-#line 600
+// Line 600 starts here
 
 char c22909 = u8's';
 
 /****************************************************/
-#line 650
+// Line 650 starts here
 void testDeclSpec()
 {
     static extern int aa;
@@ -221,5 +319,5 @@ void testDeclSpec()
 }
 
 /****************************************************/
-#line 700
+// Line 700 starts here
 register char *stack_pointer;

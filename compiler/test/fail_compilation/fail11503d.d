@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail11503d.d(26): Error: cannot implicitly convert expression `filename(d)` of type `const(char)[]` to `string`
-fail_compilation/fail11503d.d(27): Error: cannot implicitly convert expression `filename2(& d)` of type `const(char)[]` to `string`
+fail_compilation/fail11503d.d(30): Error: cannot implicitly convert expression `filename(d)` of type `const(char)[]` to `string`
+    string f = d.filename;
+                ^
+fail_compilation/fail11503d.d(31): Error: cannot implicitly convert expression `filename2(& d)` of type `const(char)[]` to `string`
+    string g = (&d).filename2;
+                   ^
 ---
 */
 struct Data2

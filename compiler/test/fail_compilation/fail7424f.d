@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail7424f.d(10): Error: template `this.g()() shared` has no value
+fail_compilation/fail7424f.d(12): Error: template `this.g()() shared` has no value
+    void test() { int f = g; }
+                          ^
 ---
 */
 struct S7424f

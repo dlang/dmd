@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice13563.d(23): Error: undefined identifier `z` in module `ice13563`
+fail_compilation/ice13563.d(25): Error: undefined identifier `z` in module `ice13563`
+    v["name"] = .z();           // ICE
+                ^
 ---
 */
 

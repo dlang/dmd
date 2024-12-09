@@ -1,12 +1,22 @@
 /* REQUIRED_ARGS: -wi
 TEST_OUTPUT:
 ---
-fail_compilation/cerrors.d(13): Error: C preprocessor directive `#if` is not supported, use `version` or `static if`
-fail_compilation/cerrors.d(13): Error: declaration expected, not `#`
-fail_compilation/cerrors.d(17): Error: C preprocessor directive `#endif` is not supported
-fail_compilation/cerrors.d(17): Error: declaration expected, not `#`
-fail_compilation/cerrors.d(21): Error: token string requires valid D tokens, not `#if`
-fail_compilation/cerrors.d(22): Deprecation: token string requires valid D tokens, not `#include`
+fail_compilation/cerrors.d(23): Error: C preprocessor directive `#if` is not supported, use `version` or `static if`
+#if 1
+   ^
+fail_compilation/cerrors.d(23): Error: declaration expected, not `#`
+#if 1
+^
+fail_compilation/cerrors.d(27): Error: C preprocessor directive `#endif` is not supported
+fail_compilation/cerrors.d(27): Error: declaration expected, not `#`
+#endif
+^
+fail_compilation/cerrors.d(31): Error: token string requires valid D tokens, not `#if`
+#if 1
+   ^
+fail_compilation/cerrors.d(32): Deprecation: token string requires valid D tokens, not `#include`
+#include <test>
+        ^
 ---
 */
 

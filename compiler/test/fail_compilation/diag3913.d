@@ -1,10 +1,18 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag3913.d(14): Error: no property `foobardoo` for type `Foo`
-fail_compilation/diag3913.d(13):        enum `Foo` defined here
-fail_compilation/diag3913.d(15): Error: no property `secon` for type `Foo`. Did you mean `Foo.second` ?
-fail_compilation/diag3913.d(13):        enum `Foo` defined here
+fail_compilation/diag3913.d(22): Error: no property `foobardoo` for type `Foo`
+    auto a = Foo.foobardoo;
+             ^
+fail_compilation/diag3913.d(21):        enum `Foo` defined here
+    enum Foo { first, second }
+    ^
+fail_compilation/diag3913.d(23): Error: no property `secon` for type `Foo`. Did you mean `Foo.second` ?
+    auto b = Foo.secon;
+             ^
+fail_compilation/diag3913.d(21):        enum `Foo` defined here
+    enum Foo { first, second }
+    ^
 ---
 */
 

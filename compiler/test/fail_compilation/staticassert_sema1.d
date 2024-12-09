@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/staticassert_sema1.d(17): Error: static assert:  "unsupported OS"
+fail_compilation/staticassert_sema1.d(19): Error: static assert:  "unsupported OS"
+    static assert(0, msg);
+    ^
 ---
 */
 

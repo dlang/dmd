@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/deprecate1553.d(16): Error: cannot use `foreach_reverse` with a delegate
+fail_compilation/deprecate1553.d(18): Error: cannot use `foreach_reverse` with a delegate
+    foreach_reverse(a; &s.dg) {}
+    ^
 ---
 */
 

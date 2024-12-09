@@ -2,7 +2,9 @@
 REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/test17422.d(23): Error: scope variable `p` may not be returned
+fail_compilation/test17422.d(25): Error: scope variable `p` may not be returned
+    return p;
+           ^
 ---
 */
 struct RC

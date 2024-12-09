@@ -1,0 +1,33 @@
+Make `verror=context` Usage Global and Update Related Test Files
+
+The `verror=context` error handling mechanism has been made global, ensuring that error messages now consistently include context information across the entire codebase. Previously, error handling was localized, leading to some errors lacking context in the output.
+
+Example:
+```
+void main()
+{
+    int[int] a = [];
+    int[int] b = [2:3, 4];
+    a = [];
+}
+```
+
+**Before Global `verror=context`:**
+```
+fail_compilation/aa_init.d(13,18): Error: invalid associative array initializer `[]`, use `null` instead
+fail_compilation/aa_init.d(14,24): Error: missing key for value `4` in initializer
+fail_compilation/aa_init.d(15,9): Error: cannot implicitly convert expression `[]` of type `void[]` to `int[int]`
+```
+
+**After Global `verror=context`:**
+```
+fail_compilation/aa_init.d(19,18): Error: invalid associative array initializer `[]`, use `null` instead
+    int[int] a = [];
+                 ^
+fail_compilation/aa_init.d(20,24): Error: missing key for value `4` in initializer
+    int[int] b = [2:3, 4];
+                       ^
+fail_compilation/aa_init.d(21,9): Error: cannot implicitly convert expression `[]` of type `void[]` to `int[int]`
+    a = [];
+        ^
+```

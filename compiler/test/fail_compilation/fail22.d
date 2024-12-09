@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail22.d(13): Error: no identifier for declarator `char`
+fail_compilation/fail22.d(15): Error: no identifier for declarator `char`
+    foreach(char ; bug) {}
+                 ^
 ---
 */
 

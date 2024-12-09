@@ -1,7 +1,9 @@
 /* REQUIRED_ARGS: -preview=dip1000
  * TEST_OUTPUT:
 ---
-fail_compilation/test24015.d(19): Error: scope variable `v` assigned to non-scope parameter `...` calling `jer`
+fail_compilation/test24015.d(21): Error: scope variable `v` assigned to non-scope parameter `...` calling `jer`
+    jer(3, v);
+           ^
 ---
 */
 

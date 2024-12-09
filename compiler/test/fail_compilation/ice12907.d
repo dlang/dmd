@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice12907.d(10): Error: template lambda has no type
+fail_compilation/ice12907.d(12): Error: template lambda has no type
+    return x => (*g)();
+           ^
 ---
 */
 

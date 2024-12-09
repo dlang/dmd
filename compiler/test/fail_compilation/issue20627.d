@@ -2,18 +2,42 @@
 REQUIRED_ARGS: -de
 TEST_OUTPUT:
 ---
-fail_compilation/issue20627.d(38): Deprecation: `shared static` constructor can only be of D linkage
-fail_compilation/issue20627.d(39): Deprecation: `shared static` destructor can only be of D linkage
-fail_compilation/issue20627.d(40): Deprecation: `static` constructor can only be of D linkage
-fail_compilation/issue20627.d(41): Deprecation: `static` destructor can only be of D linkage
-fail_compilation/issue20627.d(55): Deprecation: `shared static` constructor can only be of D linkage
-fail_compilation/issue20627.d(56): Deprecation: `shared static` destructor can only be of D linkage
-fail_compilation/issue20627.d(57): Deprecation: `static` constructor can only be of D linkage
-fail_compilation/issue20627.d(58): Deprecation: `static` destructor can only be of D linkage
-fail_compilation/issue20627.d(63): Deprecation: `shared static` constructor can only be of D linkage
-fail_compilation/issue20627.d(64): Deprecation: `shared static` destructor can only be of D linkage
-fail_compilation/issue20627.d(65): Deprecation: `static` constructor can only be of D linkage
-fail_compilation/issue20627.d(66): Deprecation: `static` destructor can only be of D linkage
+fail_compilation/issue20627.d(62): Deprecation: `shared static` constructor can only be of D linkage
+    shared static this () {}
+    ^
+fail_compilation/issue20627.d(63): Deprecation: `shared static` destructor can only be of D linkage
+    shared static ~this () {}
+    ^
+fail_compilation/issue20627.d(64): Deprecation: `static` constructor can only be of D linkage
+    static this () {}
+    ^
+fail_compilation/issue20627.d(65): Deprecation: `static` destructor can only be of D linkage
+    static ~this () {}
+    ^
+fail_compilation/issue20627.d(79): Deprecation: `shared static` constructor can only be of D linkage
+    shared static this () {}
+    ^
+fail_compilation/issue20627.d(80): Deprecation: `shared static` destructor can only be of D linkage
+    shared static ~this () {}
+    ^
+fail_compilation/issue20627.d(81): Deprecation: `static` constructor can only be of D linkage
+    static this () {}
+    ^
+fail_compilation/issue20627.d(82): Deprecation: `static` destructor can only be of D linkage
+    static ~this () {}
+    ^
+fail_compilation/issue20627.d(87): Deprecation: `shared static` constructor can only be of D linkage
+    shared static this () {}
+    ^
+fail_compilation/issue20627.d(88): Deprecation: `shared static` destructor can only be of D linkage
+    shared static ~this () {}
+    ^
+fail_compilation/issue20627.d(89): Deprecation: `static` constructor can only be of D linkage
+    static this () {}
+    ^
+fail_compilation/issue20627.d(90): Deprecation: `static` destructor can only be of D linkage
+    static ~this () {}
+    ^
 ---
 */
 

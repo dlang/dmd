@@ -2,10 +2,18 @@
  * REQUIRED_ARGS: -de
  * TEST_OUTPUT:
 ---
-fail_compilation/skip.d(23): Error: `switch` skips declaration of `with` temporary
-fail_compilation/skip.d(28):        declared here
-fail_compilation/skip.d(45): Error: `switch` skips declaration of variable `skip.test14532.n`
-fail_compilation/skip.d(47):        declared here
+fail_compilation/skip.d(31): Error: `switch` skips declaration of `with` temporary
+    switch( a )
+    ^
+fail_compilation/skip.d(36):        declared here
+        with( struct_with_long_name )
+        ^
+fail_compilation/skip.d(53): Error: `switch` skips declaration of variable `skip.test14532.n`
+    switch (ch)
+    ^
+fail_compilation/skip.d(55):        declared here
+            int n = 42;
+                ^
 ---
  */
 // https://issues.dlang.org/show_bug.cgi?id=10524

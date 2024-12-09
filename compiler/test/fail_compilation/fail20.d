@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail20.d(16): Error: need member function `opCmp()` for struct `FOO` to compare
+fail_compilation/fail20.d(18): Error: need member function `opCmp()` for struct `FOO` to compare
+    if (one < two){} // This should tell me that there
+        ^
 ---
 */
 

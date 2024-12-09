@@ -5,8 +5,10 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail15414.d(20): Deprecation: `__traits(getAttributes)` may only be used for individual functions, not the overload set `fun`
-fail_compilation/fail15414.d(20):        the result of `__traits(getOverloads)` may be used to select the desired function to extract attributes from
+fail_compilation/fail15414.d(22): Deprecation: `__traits(getAttributes)` may only be used for individual functions, not the overload set `fun`
+    auto t =  __traits(getAttributes, fun);
+              ^
+fail_compilation/fail15414.d(22):        the result of `__traits(getOverloads)` may be used to select the desired function to extract attributes from
 ---
 */
 

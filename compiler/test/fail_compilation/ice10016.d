@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice10016.d(33): Error: undefined identifier `unknownIdentifier`
-fail_compilation/ice10016.d(47): Error: template instance `ice10016.RefCounted!(S)` error instantiating
+fail_compilation/ice10016.d(37): Error: undefined identifier `unknownIdentifier`
+    int i = unknownIdentifier;
+            ^
+fail_compilation/ice10016.d(51): Error: template instance `ice10016.RefCounted!(S)` error instantiating
+    RefCounted!S _s;
+    ^
 ---
 */
 

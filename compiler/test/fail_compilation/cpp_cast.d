@@ -3,10 +3,14 @@
 REQUIRED_ARGS: -de
 TEST_OUTPUT:
 ---
-fail_compilation/cpp_cast.d(19): Error: cast from `cpp_cast.I` to `cpp_cast.C` not allowed in safe code
-fail_compilation/cpp_cast.d(19):        No dynamic type information for extern(C++) classes
-fail_compilation/cpp_cast.d(21): Deprecation: cast from `cpp_cast.C` to `cpp_cast.D` not allowed in safe code
-fail_compilation/cpp_cast.d(21):        No dynamic type information for extern(C++) classes
+fail_compilation/cpp_cast.d(23): Error: cast from `cpp_cast.I` to `cpp_cast.C` not allowed in safe code
+    C c = cast(C) i; // unsafe
+          ^
+fail_compilation/cpp_cast.d(23):        No dynamic type information for extern(C++) classes
+fail_compilation/cpp_cast.d(25): Deprecation: cast from `cpp_cast.C` to `cpp_cast.D` not allowed in safe code
+    c = cast(D) c; // reinterpret cast
+        ^
+fail_compilation/cpp_cast.d(25):        No dynamic type information for extern(C++) classes
 ---
 */
 extern(C++) interface I { void f(); }

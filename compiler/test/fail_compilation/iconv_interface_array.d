@@ -1,15 +1,27 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/iconv_interface_array.d(48): Error: function `testA` is not callable using argument types `(C[4])`
-fail_compilation/iconv_interface_array.d(48):        cannot pass argument `arr` of type `C[4]` to parameter `I1[4] arr`
-fail_compilation/iconv_interface_array.d(27):        `iconv_interface_array.testA(I1[4] arr)` declared here
-fail_compilation/iconv_interface_array.d(49): Error: function `testB` is not callable using argument types `(C[4])`
-fail_compilation/iconv_interface_array.d(49):        cannot pass argument `arr` of type `C[4]` to parameter `I2[4] arr`
-fail_compilation/iconv_interface_array.d(33):        `iconv_interface_array.testB(I2[4] arr)` declared here
-fail_compilation/iconv_interface_array.d(50): Error: function `testC` is not callable using argument types `(C[4])`
-fail_compilation/iconv_interface_array.d(50):        cannot pass argument `arr` of type `C[4]` to parameter `I3[4] arr`
-fail_compilation/iconv_interface_array.d(39):        `iconv_interface_array.testC(I3[4] arr)` declared here
+fail_compilation/iconv_interface_array.d(60): Error: function `testA` is not callable using argument types `(C[4])`
+    testA(arr);
+         ^
+fail_compilation/iconv_interface_array.d(60):        cannot pass argument `arr` of type `C[4]` to parameter `I1[4] arr`
+fail_compilation/iconv_interface_array.d(39):        `iconv_interface_array.testA(I1[4] arr)` declared here
+void testA(I1[4] arr)
+     ^
+fail_compilation/iconv_interface_array.d(61): Error: function `testB` is not callable using argument types `(C[4])`
+    testB(arr);
+         ^
+fail_compilation/iconv_interface_array.d(61):        cannot pass argument `arr` of type `C[4]` to parameter `I2[4] arr`
+fail_compilation/iconv_interface_array.d(45):        `iconv_interface_array.testB(I2[4] arr)` declared here
+void testB(I2[4] arr)
+     ^
+fail_compilation/iconv_interface_array.d(62): Error: function `testC` is not callable using argument types `(C[4])`
+    testC(arr);
+         ^
+fail_compilation/iconv_interface_array.d(62):        cannot pass argument `arr` of type `C[4]` to parameter `I3[4] arr`
+fail_compilation/iconv_interface_array.d(51):        `iconv_interface_array.testC(I3[4] arr)` declared here
+void testC(I3[4] arr)
+     ^
 ---
 */
 

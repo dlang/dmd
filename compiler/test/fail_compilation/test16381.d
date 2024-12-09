@@ -2,7 +2,9 @@
 REQUIRED_ARGS: -m64
 TEST_OUTPUT:
 ---
-fail_compilation/test16381.d(15): Error: cannot take address of expression `foo()` because it is not an lvalue
+fail_compilation/test16381.d(17): Error: cannot take address of expression `foo()` because it is not an lvalue
+    float g = foo().ptr[0];
+                 ^
 ---
 */
 

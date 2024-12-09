@@ -1,9 +1,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail15550.d(25): Error: partial template instance `foo!int` has no type
-fail_compilation/fail15550.d(26): Error: partial template instance `opDispatch!"_isMatrix"` has no type
-fail_compilation/fail15550.d(27): Error: partial template instance `baz!"_isMatrix"` has no type
+fail_compilation/fail15550.d(31): Error: partial template instance `foo!int` has no type
+alias T1 = typeof(foo!int);
+                  ^
+fail_compilation/fail15550.d(32): Error: partial template instance `opDispatch!"_isMatrix"` has no type
+alias T2 = typeof(Vector._isMatrix);
+                  ^
+fail_compilation/fail15550.d(33): Error: partial template instance `baz!"_isMatrix"` has no type
+alias T3 = typeof(Vector.baz!"_isMatrix");
+                        ^
 ---
 */
 

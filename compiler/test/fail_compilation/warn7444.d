@@ -3,7 +3,11 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/warn7444.d(22): Error: cannot implicitly convert expression `e` of type `int` to `int[]`
+fail_compilation/warn7444.d(26): Error: cannot implicitly convert expression `e` of type `int` to `int[]`
+        da   = e;
+               ^
+No warning
+No warning
 ---
 */
 
@@ -46,26 +50,12 @@ void test7444()
     }
 }
 
-/*
-TEST_OUTPUT:
----
-No warning
----
-*/
-
 void test10214()
 {
     bool[1] arr;
     arr = 0;
     pragma(msg, "No warning");
 }
-
-/*
-TEST_OUTPUT:
----
-No warning
----
-*/
 
 struct S11228
 {

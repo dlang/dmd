@@ -1,10 +1,18 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag4596.d(15): Error: cannot modify expression `this` because it is not an lvalue
-fail_compilation/diag4596.d(16): Error: conditional expression `1 ? this : this` is not a modifiable lvalue
-fail_compilation/diag4596.d(18): Error: cannot modify expression `super` because it is not an lvalue
-fail_compilation/diag4596.d(19): Error: conditional expression `1 ? super : super` is not a modifiable lvalue
+fail_compilation/diag4596.d(23): Error: cannot modify expression `this` because it is not an lvalue
+        this = new NoGo4596;
+        ^
+fail_compilation/diag4596.d(24): Error: conditional expression `1 ? this : this` is not a modifiable lvalue
+        (1?this:this) = new NoGo4596;
+         ^
+fail_compilation/diag4596.d(26): Error: cannot modify expression `super` because it is not an lvalue
+        super = new Object;
+        ^
+fail_compilation/diag4596.d(27): Error: conditional expression `1 ? super : super` is not a modifiable lvalue
+        (1?super:super) = new Object;
+         ^
 ---
 */
 

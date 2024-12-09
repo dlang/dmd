@@ -3,9 +3,11 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail20714.d(19): Deprecation: `struct Adder` implicitly-generated postblit hides copy constructor.
-fail_compilation/fail20714.d(19):        The field postblit will have priority over the copy constructor.
-fail_compilation/fail20714.d(19):        To change this, the postblit should be disabled for `struct Adder`
+fail_compilation/fail20714.d(21): Deprecation: `struct Adder` implicitly-generated postblit hides copy constructor.
+struct Adder
+^
+fail_compilation/fail20714.d(21):        The field postblit will have priority over the copy constructor.
+fail_compilation/fail20714.d(21):        To change this, the postblit should be disabled for `struct Adder`
 ---
 */
 

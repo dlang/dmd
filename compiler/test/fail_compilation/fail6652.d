@@ -6,10 +6,18 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail6652.d(20): Error: cannot modify `const` expression `i`
-fail_compilation/fail6652.d(25): Error: cannot modify `const` expression `i`
-fail_compilation/fail6652.d(30): Error: cannot modify `const` expression `i`
-fail_compilation/fail6652.d(35): Error: cannot modify `const` expression `i`
+fail_compilation/fail6652.d(28): Error: cannot modify `const` expression `i`
+        ++i;
+          ^
+fail_compilation/fail6652.d(33): Error: cannot modify `const` expression `i`
+        ++i;
+          ^
+fail_compilation/fail6652.d(38): Error: cannot modify `const` expression `i`
+        ++i;
+          ^
+fail_compilation/fail6652.d(43): Error: cannot modify `const` expression `i`
+        ++i;
+          ^
 ---
 */
 

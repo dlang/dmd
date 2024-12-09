@@ -1,9 +1,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail20538.d(13): Error: found `=` when expecting `identifier`
-fail_compilation/fail20538.d(13): Error: found `1` when expecting `identifier`
-fail_compilation/fail20538.d(14): Error: named enum cannot declare member with type
+fail_compilation/fail20538.d(19): Error: found `=` when expecting `identifier`
+    = 1,
+    ^
+fail_compilation/fail20538.d(19): Error: found `1` when expecting `identifier`
+    = 1,
+      ^
+fail_compilation/fail20538.d(20): Error: named enum cannot declare member with type
+    int x = 1,
+    ^
 ---
 */
 

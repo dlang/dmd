@@ -1,8 +1,12 @@
 /* PERMUTE_ARGS:
 TEST_OUTPUT:
 ---
-runnable/future.d(16): Deprecation: method `future.B.msg` implicitly overrides `@__future` base class method; rename the former
-runnable/future.d(11):        base method `future.A.msg` defined here
+runnable/future.d(20): Deprecation: method `future.B.msg` implicitly overrides `@__future` base class method; rename the former
+    char msg() { return 'b'; }
+         ^
+runnable/future.d(15):        base method `future.A.msg` defined here
+    @__future char msg() { return 'a'; }
+                   ^
 ---
  */
 

@@ -1,7 +1,11 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/b15875.d(9): Error: undefined identifier `a`
-fail_compilation/b15875.d(10): Error: circular reference to `b15875.f`
+fail_compilation/b15875.d(13): Error: undefined identifier `a`
+d o(int[a]a)(){}
+    ^
+fail_compilation/b15875.d(14): Error: circular reference to `b15875.f`
+f.T f(){}
+    ^
 ---
 */
 // https://issues.dlang.org/show_bug.cgi?id=15875

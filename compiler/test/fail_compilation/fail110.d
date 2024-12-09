@@ -1,12 +1,24 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail110.d(19): Error: variable `i` is shadowing variable `fail110.main.i`
-fail_compilation/fail110.d(17):        declared here
-fail_compilation/fail110.d(20): Error: variable `i` is shadowing variable `fail110.main.i`
-fail_compilation/fail110.d(17):        declared here
-fail_compilation/fail110.d(21): Error: variable `i` is shadowing variable `fail110.main.i`
-fail_compilation/fail110.d(17):        declared here
+fail_compilation/fail110.d(31): Error: variable `i` is shadowing variable `fail110.main.i`
+    foreach (i; a) {}
+    ^
+fail_compilation/fail110.d(29):        declared here
+    int i;
+        ^
+fail_compilation/fail110.d(32): Error: variable `i` is shadowing variable `fail110.main.i`
+    foreach (size_t i, n; a) {}
+    ^
+fail_compilation/fail110.d(29):        declared here
+    int i;
+        ^
+fail_compilation/fail110.d(33): Error: variable `i` is shadowing variable `fail110.main.i`
+    for (int i;;) {}
+         ^
+fail_compilation/fail110.d(29):        declared here
+    int i;
+        ^
 ---
 */
 

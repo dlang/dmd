@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/safe_pointer_index.d(11): Error: `@safe` function `f` cannot index pointer `x`
+fail_compilation/safe_pointer_index.d(13): Error: `@safe` function `f` cannot index pointer `x`
+    int z = x[1];
+             ^
 ---
 */
 

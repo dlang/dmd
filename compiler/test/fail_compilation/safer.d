@@ -1,7 +1,9 @@
 /* REQUIRED_ARGS: -preview=safer
 TEST_OUTPUT:
 ---
-fail_compilation/safer.d(10): Error: `void` initializers for pointers not allowed in safe functions
+fail_compilation/safer.d(12): Error: `void` initializers for pointers not allowed in safe functions
+    int* p = void;
+         ^
 ---
 */
 

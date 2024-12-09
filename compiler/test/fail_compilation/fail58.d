@@ -1,12 +1,20 @@
 /*
 TEST_OUTPUT:
 ----
-fail_compilation/fail58.d(28): Error: function `SomeFunc` is not callable using argument types `(string, int)`
-fail_compilation/fail58.d(28):        cannot pass argument `"123"` of type `string` to parameter `dchar[] pText`
-fail_compilation/fail58.d(14):        `fail58.SomeFunc(dchar[] pText, out int pStopPosn)` declared here
-fail_compilation/fail58.d(32): Error: function `SomeFunc` is not callable using argument types `(string, int)`
-fail_compilation/fail58.d(32):        cannot pass argument `""` of type `string` to parameter `dchar[] pText`
-fail_compilation/fail58.d(14):        `fail58.SomeFunc(dchar[] pText, out int pStopPosn)` declared here
+fail_compilation/fail58.d(36): Error: function `SomeFunc` is not callable using argument types `(string, int)`
+    SomeFunc("123", sp);
+            ^
+fail_compilation/fail58.d(36):        cannot pass argument `"123"` of type `string` to parameter `dchar[] pText`
+fail_compilation/fail58.d(22):        `fail58.SomeFunc(dchar[] pText, out int pStopPosn)` declared here
+dchar[] SomeFunc( dchar[] pText, out int pStopPosn)
+        ^
+fail_compilation/fail58.d(40): Error: function `SomeFunc` is not callable using argument types `(string, int)`
+    SomeFunc("", sp);
+            ^
+fail_compilation/fail58.d(40):        cannot pass argument `""` of type `string` to parameter `dchar[] pText`
+fail_compilation/fail58.d(22):        `fail58.SomeFunc(dchar[] pText, out int pStopPosn)` declared here
+dchar[] SomeFunc( dchar[] pText, out int pStopPosn)
+        ^
 ----
 */
 debug import std.stdio;

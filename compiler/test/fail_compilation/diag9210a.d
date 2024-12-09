@@ -4,6 +4,8 @@
 TEST_OUTPUT:
 ---
 fail_compilation/imports/diag9210b.d(6): Error: undefined identifier `A`
+interface B : A {}
+^
 ---
 */
 

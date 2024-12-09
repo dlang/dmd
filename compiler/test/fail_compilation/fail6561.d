@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail6561.d(9): Error: undefined identifier `x`
+fail_compilation/fail6561.d(11): Error: undefined identifier `x`
+    alias x this;   // should cause undefined identifier error
+    ^
 ---
 */
 struct S

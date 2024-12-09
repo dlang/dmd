@@ -1,21 +1,43 @@
 /*
 TEST_OUTPUT:
 ---
-compilable/diag20916.d(32): Deprecation: `alias fb this` is deprecated
-compilable/diag20916.d(37):        instantiated from here: `jump2!(Foo)`
-compilable/diag20916.d(42):        instantiated from here: `jump1!(Foo)`
-compilable/diag20916.d(32): Deprecation: function `diag20916.FooBar.toString` is deprecated
-compilable/diag20916.d(37):        instantiated from here: `jump2!(Foo)`
-compilable/diag20916.d(42):        instantiated from here: `jump1!(Foo)`
-compilable/diag20916.d(32): Deprecation: template `diag20916.Bar.toString()() const` is deprecated
-compilable/diag20916.d(37):        instantiated from here: `jump2!(Bar)`
-compilable/diag20916.d(43):        instantiated from here: `jump1!(Bar)`
-compilable/diag20916.d(21): Deprecation: variable `diag20916.Something.something` is deprecated
-compilable/diag20916.d(24):        instantiated from here: `nestedCheck!(Something)`
+compilable/diag20916.d(72): Deprecation: `alias fb this` is deprecated
+    assert(value.toString() == "42");
+           ^
+compilable/diag20916.d(77):        instantiated from here: `jump2!(Foo)`
+    jump2(value);
+         ^
+compilable/diag20916.d(82):        instantiated from here: `jump1!(Foo)`
+    jump1(Foo.init);
+         ^
+compilable/diag20916.d(72): Deprecation: function `diag20916.FooBar.toString` is deprecated
+    assert(value.toString() == "42");
+                         ^
+compilable/diag20916.d(77):        instantiated from here: `jump2!(Foo)`
+    jump2(value);
+         ^
+compilable/diag20916.d(82):        instantiated from here: `jump1!(Foo)`
+    jump1(Foo.init);
+         ^
+compilable/diag20916.d(72): Deprecation: template `diag20916.Bar.toString()() const` is deprecated
+    assert(value.toString() == "42");
+                         ^
+compilable/diag20916.d(77):        instantiated from here: `jump2!(Bar)`
+    jump2(value);
+         ^
+compilable/diag20916.d(83):        instantiated from here: `jump1!(Bar)`
+    jump1(Bar.init);
+         ^
+compilable/diag20916.d(61): Deprecation: variable `diag20916.Something.something` is deprecated
+    enum nestedCheck = T.something.init == 0;
+                       ^
+compilable/diag20916.d(64):        instantiated from here: `nestedCheck!(Something)`
+struct Constraint (T) if(nestedCheck!T)
+                         ^
 ---
  */
 
-#line 1
+// Line 1 starts here
 struct FooBar
 {
     deprecated string toString() const { return "42"; }

@@ -3,9 +3,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test24065.d(12): Error: string expected as argument of __traits `getTargetInfo` instead of `int`
-fail_compilation/test24065.d(15): Error: string expected as argument of __traits `getTargetInfo` instead of `foo`
-fail_compilation/test24065.d(18): Error: string expected as argument of __traits `getTargetInfo` instead of `e`
+fail_compilation/test24065.d(18): Error: string expected as argument of __traits `getTargetInfo` instead of `int`
+auto s1 = __traits(getTargetInfo, int);
+          ^
+fail_compilation/test24065.d(21): Error: string expected as argument of __traits `getTargetInfo` instead of `foo`
+auto s2 = __traits(getTargetInfo, foo);
+          ^
+fail_compilation/test24065.d(24): Error: string expected as argument of __traits `getTargetInfo` instead of `e`
+auto s3 = __traits(getTargetInfo, e);
+          ^
 ---
 */
 

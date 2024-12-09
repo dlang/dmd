@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail194.d(18): Error: function `& foo` is overloaded
+fail_compilation/fail194.d(20): Error: function `& foo` is overloaded
+    bar(1, &foo);
+           ^
 ---
 */
 

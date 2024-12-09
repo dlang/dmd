@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/call_function_type.d(18): Error: missing argument for parameter #1: `int`
-fail_compilation/call_function_type.d(19): Error: cannot call `int(int)(3)` at compile time
+fail_compilation/call_function_type.d(22): Error: missing argument for parameter #1: `int`
+	enum X0 = FT();
+             ^
+fail_compilation/call_function_type.d(23): Error: cannot call `int(int)(3)` at compile time
+	enum X1 = FT(3);
+             ^
 ---
 */
 

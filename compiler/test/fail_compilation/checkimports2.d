@@ -2,10 +2,18 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/checkimports2.d(25): Error: no property `X` for type `checkimports2.B`, did you mean `imports.imp2.X`?
-fail_compilation/checkimports2.d(25):        while evaluating: `static assert((B).X == 0)`
-fail_compilation/checkimports2.d(26): Error: no property `Y` for type `checkimports2.B`, did you mean `imports.imp2.Y`?
-fail_compilation/checkimports2.d(26):        while evaluating: `static assert((B).Y == 2)`
+fail_compilation/checkimports2.d(33): Error: no property `X` for type `checkimports2.B`, did you mean `imports.imp2.X`?
+    static assert(B.X == 0);    // imp2.X --> error
+                  ^
+fail_compilation/checkimports2.d(33):        while evaluating: `static assert((B).X == 0)`
+    static assert(B.X == 0);    // imp2.X --> error
+    ^
+fail_compilation/checkimports2.d(34): Error: no property `Y` for type `checkimports2.B`, did you mean `imports.imp2.Y`?
+    static assert(B.Y == 2);    // imp2.Y --> error
+                  ^
+fail_compilation/checkimports2.d(34):        while evaluating: `static assert((B).Y == 2)`
+    static assert(B.Y == 2);    // imp2.Y --> error
+    ^
 ---
 */
 

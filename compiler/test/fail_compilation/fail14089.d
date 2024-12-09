@@ -1,16 +1,36 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail14089.d(41): Error: `1` has no effect
-fail_compilation/fail14089.d(41): Error: `1` has no effect
-fail_compilation/fail14089.d(42): Error: `1` has no effect
-fail_compilation/fail14089.d(42): Error: `n` has no effect
-fail_compilation/fail14089.d(43): Error: `1` has no effect
-fail_compilation/fail14089.d(43): Error: `s.val` has no effect
-fail_compilation/fail14089.d(44): Error: `n` has no effect
-fail_compilation/fail14089.d(44): Error: `1` has no effect
-fail_compilation/fail14089.d(45): Error: `s.val` has no effect
-fail_compilation/fail14089.d(45): Error: `1` has no effect
+fail_compilation/fail14089.d(61): Error: `1` has no effect
+    cond ? 1     : 1;
+           ^
+fail_compilation/fail14089.d(61): Error: `1` has no effect
+    cond ? 1     : 1;
+                   ^
+fail_compilation/fail14089.d(62): Error: `1` has no effect
+    cond ? 1     : n;
+           ^
+fail_compilation/fail14089.d(62): Error: `n` has no effect
+    cond ? 1     : n;
+                   ^
+fail_compilation/fail14089.d(63): Error: `1` has no effect
+    cond ? 1     : s.val;
+           ^
+fail_compilation/fail14089.d(63): Error: `s.val` has no effect
+    cond ? 1     : s.val;
+                   ^
+fail_compilation/fail14089.d(64): Error: `n` has no effect
+    cond ? n     : 1;
+           ^
+fail_compilation/fail14089.d(64): Error: `1` has no effect
+    cond ? n     : 1;
+                   ^
+fail_compilation/fail14089.d(65): Error: `s.val` has no effect
+    cond ? s.val : 1;
+           ^
+fail_compilation/fail14089.d(65): Error: `1` has no effect
+    cond ? s.val : 1;
+                   ^
 ---
 */
 

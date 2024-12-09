@@ -2,10 +2,14 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail2450.d(22): Error: function expected before `()`, not `this.mixin Event!() clicked;
+fail_compilation/fail2450.d(26): Error: function expected before `()`, not `this.mixin Event!() clicked;
 ` of type `void`
-fail_compilation/fail2450.d(25): Error: function expected before `()`, not `b.mixin Event!() clicked;
+		this.clicked();   // works
+              ^
+fail_compilation/fail2450.d(29): Error: function expected before `()`, not `b.mixin Event!() clicked;
 ` of type `void`
+		b.clicked();      // works
+           ^
 ---
 */
 

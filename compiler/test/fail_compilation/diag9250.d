@@ -2,8 +2,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag9250.d(19): Error: cannot implicitly convert expression `10u` of type `uint` to `Foo`
-fail_compilation/diag9250.d(22): Error: cannot implicitly convert expression `10u` of type `uint` to `void*`
+fail_compilation/diag9250.d(23): Error: cannot implicitly convert expression `10u` of type `uint` to `Foo`
+    Foo x = bar.length;  // error here
+            ^
+fail_compilation/diag9250.d(26): Error: cannot implicitly convert expression `10u` of type `uint` to `void*`
+              bar.length :  // error here
+              ^
 ---
 */
 

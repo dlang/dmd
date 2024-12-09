@@ -6,8 +6,12 @@ double sy;
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13336b.d(16): Error: cannot `ref` return expression `cast(double)sx` because it is not an lvalue
-fail_compilation/fail13336b.d(24): Error: cannot `ref` return expression `cast(double)sx` because it is not an lvalue
+fail_compilation/fail13336b.d(20): Error: cannot `ref` return expression `cast(double)sx` because it is not an lvalue
+        return sx;
+               ^
+fail_compilation/fail13336b.d(28): Error: cannot `ref` return expression `cast(double)sx` because it is not an lvalue
+    return sx;
+           ^
 ---
 */
 ref f1(bool f)

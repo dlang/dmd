@@ -1,13 +1,39 @@
 /* REQUIRED_ARGS: -preview=dip1000
    TEST_OUTPUT:
 ---
-fail_compilation/test18282.d(25): Error: scope variable `aa` may not be returned
-fail_compilation/test18282.d(34): Error: copying `& i` into allocated memory escapes a reference to local variable `i`
-fail_compilation/test18282.d(35): Error: copying `& i` into allocated memory escapes a reference to local variable `i`
-fail_compilation/test18282.d(36): Error: scope variable `staa` may not be returned
-fail_compilation/test18282.d(44): Error: copying `S2000(& i)` into allocated memory escapes a reference to local variable `i`
-fail_compilation/test18282.d(53): Error: copying `& i` into allocated memory escapes a reference to local variable `i`
-fail_compilation/test18282.d(53): Error: copying `& c` into allocated memory escapes a reference to local variable `c`
+fail_compilation/test18282.d(51): Error: scope variable `aa` may not be returned
+    return aa[0];
+             ^
+fail_compilation/test18282.d(60): Error: copying `& i` into allocated memory escapes a reference to local variable `i`
+    auto    dyna = [ &i ];
+                     ^
+fail_compilation/test18282.d(61): Error: copying `& i` into allocated memory escapes a reference to local variable `i`
+    int*[ ] dynb = [ &i ];
+                     ^
+fail_compilation/test18282.d(62): Error: scope variable `staa` may not be returned
+    return staa[0];
+               ^
+fail_compilation/test18282.d(70): Error: copying `S2000(& i)` into allocated memory escapes a reference to local variable `i`
+    S2000[] arr = [ S2000(&i) ];
+                         ^
+fail_compilation/test18282.d(79): Error: copying `& i` into allocated memory escapes a reference to local variable `i`
+    char*[int*] aa = [ &i : &c ];
+                       ^
+fail_compilation/test18282.d(79): Error: copying `& c` into allocated memory escapes a reference to local variable `c`
+    char*[int*] aa = [ &i : &c ];
+                            ^
+fail_compilation/test18282.d(91): Error: copying `& foo` into allocated memory escapes a reference to local variable `foo`
+    ls = ls ~ &foo;
+              ^
+fail_compilation/test18282.d(92): Error: copying `& foo` into allocated memory escapes a reference to local variable `foo`
+    ls = &foo ~ ls;
+         ^
+fail_compilation/test18282.d(93): Error: copying `& foo` into allocated memory escapes a reference to local variable `foo`
+    ls ~= &foo;
+          ^
+fail_compilation/test18282.d(100): Error: copying `&this` into allocated memory escapes a reference to parameter `this`
+        arr ~= &this;
+               ^
 ---
  */
 
@@ -54,17 +80,7 @@ void bar3()
 }
 
 
-/******************************
-TEST_OUTPUT:
----
-fail_compilation/test18282.d(1007): Error: copying `& foo` into allocated memory escapes a reference to local variable `foo`
-fail_compilation/test18282.d(1008): Error: copying `& foo` into allocated memory escapes a reference to local variable `foo`
-fail_compilation/test18282.d(1009): Error: copying `& foo` into allocated memory escapes a reference to local variable `foo`
-fail_compilation/test18282.d(1016): Error: copying `&this` into allocated memory escapes a reference to parameter `this`
----
-*/
-
-#line 1000
+// Line 1000 starts here
 
 // https://issues.dlang.org/show_bug.cgi?id=18282
 

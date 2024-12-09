@@ -2,7 +2,9 @@
 REQUIRED_ARGS: -m64
 TEST_OUTPUT:
 ---
-fail_compilation/test16116.d(14): Error: incompatible types for `(v) * (i)`: `__vector(short[8])` and `int`
+fail_compilation/test16116.d(16): Error: incompatible types for `(v) * (i)`: `__vector(short[8])` and `int`
+    v = v * i;
+        ^
 ---
 */
 

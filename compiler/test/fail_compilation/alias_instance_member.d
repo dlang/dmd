@@ -1,8 +1,10 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/alias_instance_member.d(18): Error: cannot alias variable member `v` of variable `that`
-fail_compilation/alias_instance_member.d(18):        Use `typeof(that)` instead to preserve behaviour
+fail_compilation/alias_instance_member.d(20): Error: cannot alias variable member `v` of variable `that`
+        alias b = that.v;
+        ^
+fail_compilation/alias_instance_member.d(20):        Use `typeof(that)` instead to preserve behaviour
 ---
 */
 

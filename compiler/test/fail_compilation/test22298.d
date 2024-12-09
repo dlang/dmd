@@ -2,8 +2,12 @@
 REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/test22298.d(18): Error: scope variable `i` assigned to `p` with longer lifetime
-fail_compilation/test22298.d(29): Error: scope variable `y` assigned to `x` with longer lifetime
+fail_compilation/test22298.d(22): Error: scope variable `i` assigned to `p` with longer lifetime
+		p = i;
+    ^
+fail_compilation/test22298.d(33): Error: scope variable `y` assigned to `x` with longer lifetime
+    x = y;
+      ^
 ---
 */
 

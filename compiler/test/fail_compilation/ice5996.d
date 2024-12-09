@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice5996.d(8): Error: undefined identifier `anyOldGarbage`
+fail_compilation/ice5996.d(10): Error: undefined identifier `anyOldGarbage`
+    if (anyOldGarbage) {}
+        ^
 ---
 */
 auto bug5996() {

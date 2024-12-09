@@ -3,8 +3,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail4375p.d(19): Warning: else is dangling, add { } after condition at fail_compilation/fail4375p.d(12)
-fail_compilation/fail4375p.d(16): Error: undefined identifier `x`
+fail_compilation/fail4375p.d(23): Warning: else is dangling, add { } after condition at fail_compilation/fail4375p.d(16)
+    else
+    ^
+fail_compilation/fail4375p.d(20): Error: undefined identifier `x`
+                    synchronized (x)
+                                  ^
 ---
 */
 

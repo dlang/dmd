@@ -1,15 +1,27 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag16977.d(25): Error: undefined identifier `undefined`, did you mean function `undefinedId`?
-fail_compilation/diag16977.d(26): Error: cannot implicitly convert expression `"\x01string"` of type `string` to `int`
-fail_compilation/diag16977.d(27): Error: template `templ` is not callable using argument types `!()(int)`
-fail_compilation/diag16977.d(20):        Candidate is: `templ(S)(S s)`
+fail_compilation/diag16977.d(37): Error: undefined identifier `undefined`, did you mean function `undefinedId`?
+    void undefinedId(int x, int y = undefined) {}
+                                    ^
+fail_compilation/diag16977.d(38): Error: cannot implicitly convert expression `"\x01string"` of type `string` to `int`
+    void badOp(int x, int y = 1 ~ "string") {}
+                              ^
+fail_compilation/diag16977.d(39): Error: template `templ` is not callable using argument types `!()(int)`
+    void lazyTemplate(int x, lazy int y = 4.templ) {}
+                                           ^
+fail_compilation/diag16977.d(32):        Candidate is: `templ(S)(S s)`
   with `S = int`
   must satisfy the following constraint:
 `       false`
-fail_compilation/diag16977.d(28): Error: cannot implicitly convert expression `5` of type `int` to `string`
-fail_compilation/diag16977.d(30): Error: template instance `diag16977.test.funcTemplate!string` error instantiating
+string templ(S)(S s) if(false) { return null; }
+       ^
+fail_compilation/diag16977.d(40): Error: cannot implicitly convert expression `5` of type `int` to `string`
+    void funcTemplate(T)(T y = 5) {}
+                               ^
+fail_compilation/diag16977.d(42): Error: template instance `diag16977.test.funcTemplate!string` error instantiating
+    funcTemplate!string();
+    ^
 ---
 */
 

@@ -2,7 +2,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag4479.d(10): Error: module `imports.fail4479mod` from file fail_compilation/imports/fail4479.d must be imported with 'import imports.fail4479mod;'
+fail_compilation/diag4479.d(12): Error: module `imports.fail4479mod` from file fail_compilation/imports/fail4479.d must be imported with 'import imports.fail4479mod;'
+import imports.fail4479;
+       ^
 ---
 */
 

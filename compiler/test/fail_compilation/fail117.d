@@ -1,10 +1,14 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail117.d(37): Error: expression `foo.mixin MGettor!(a) geta;
+fail_compilation/fail117.d(41): Error: expression `foo.mixin MGettor!(a) geta;
 ` is `void` and has no value
-fail_compilation/fail117.d(38): Error: expression `foo.mixin MGettor!(b) getb;
+    int a = foo.geta;
+            ^
+fail_compilation/fail117.d(42): Error: expression `foo.mixin MGettor!(b) getb;
 ` is `void` and has no value
+    int b = foo.getb;
+            ^
 ---
 */
 

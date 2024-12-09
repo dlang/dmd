@@ -1,7 +1,9 @@
 /**
 TEST_OUTPUT:
 ---
-fail_compilation/ice23781.d(10): Error: variable `b` cannot be read at compile time
+fail_compilation/ice23781.d(12): Error: variable `b` cannot be read at compile time
+enum E2 = &E1.func1();
+                   ^
 ---
 **/
 struct Bar { int i; }

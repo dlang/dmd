@@ -1,9 +1,13 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail134.d(14): Error: template instance `foo!(f)` does not match template declaration `foo(T)`
-fail_compilation/fail134.d(14):        `f` is not a type
-fail_compilation/fail134.d(15): Error: template instance `fail134.bar!(f)` error instantiating
+fail_compilation/fail134.d(18): Error: template instance `foo!(f)` does not match template declaration `foo(T)`
+template bar(T...) { alias foo!(T) buz; }
+                           ^
+fail_compilation/fail134.d(18):        `f` is not a type
+fail_compilation/fail134.d(19): Error: template instance `fail134.bar!(f)` error instantiating
+alias bar!(f) a;
+      ^
 ---
 */
 

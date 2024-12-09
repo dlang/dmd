@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag13215.d(11): Error: cannot implicitly convert expression `[1, 2, 3]` of type `int[]` to `immutable(uint[2])[]`
+fail_compilation/diag13215.d(13): Error: cannot implicitly convert expression `[1, 2, 3]` of type `int[]` to `immutable(uint[2])[]`
+    arr2 = [1, 2, 3];
+           ^
 ---
 */
 

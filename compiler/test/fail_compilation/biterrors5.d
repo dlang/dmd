@@ -1,8 +1,12 @@
 /* REQUIRED_ARGS: -preview=bitfields
  * TEST_OUTPUT:
 ---
-fail_compilation/biterrors5.d(23): Error: bitfield symbol expected not struct `biterrors5.S`
-fail_compilation/biterrors5.d(24): Error: bitfield symbol expected not variable `biterrors5.test0.i`
+fail_compilation/biterrors5.d(27): Error: bitfield symbol expected not struct `biterrors5.S`
+    i = __traits(getBitfieldOffset, S);
+        ^
+fail_compilation/biterrors5.d(28): Error: bitfield symbol expected not variable `biterrors5.test0.i`
+    i = __traits(getBitfieldOffset, i);
+        ^
 ---
 */
 

@@ -3,7 +3,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail20164.d(13): Deprecation: module `imports.fail20164` is deprecated
+fail_compilation/fail20164.d(15): Deprecation: module `imports.fail20164` is deprecated
+    import imports.fail20164;
+           ^
 ---
 */
 module fail20164;

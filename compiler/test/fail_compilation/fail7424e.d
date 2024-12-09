@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail7424e.d(10): Error: template `this.g()() immutable` has no value
+fail_compilation/fail7424e.d(12): Error: template `this.g()() immutable` has no value
+    void test() { int f = g; }
+                          ^
 ---
 */
 struct S7424e

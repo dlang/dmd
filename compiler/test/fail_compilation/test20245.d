@@ -2,16 +2,36 @@
 REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/test20245.d(21): Error: reference to local variable `x` assigned to non-scope parameter `ptr` calling `escape`
-fail_compilation/test20245.d(22): Error: copying `&x` into allocated memory escapes a reference to parameter `x`
-fail_compilation/test20245.d(23): Error: scope variable `a` may not be returned
-fail_compilation/test20245.d(27): Error: cannot take address of `scope` variable `x` since `scope` applies to first indirection only
-fail_compilation/test20245.d(33): Error: reference to local variable `x` assigned to non-scope parameter `ptr` calling `escape`
-fail_compilation/test20245.d(34): Error: copying `&x` into allocated memory escapes a reference to parameter `x`
-fail_compilation/test20245.d(50): Error: reference to local variable `price` assigned to non-scope `this.minPrice`
-fail_compilation/test20245.d(69): Error: reference to local variable `this.content[]` calling non-scope member function `Exception.this()`
-fail_compilation/test20245.d(89): Error: reference to local variable `this` assigned to non-scope parameter `content` calling `listUp`
-fail_compilation/test20245.d(82):        which is not `scope` because of `charPtr = content`
+fail_compilation/test20245.d(41): Error: reference to local variable `x` assigned to non-scope parameter `ptr` calling `escape`
+    escape(&x);
+           ^
+fail_compilation/test20245.d(42): Error: copying `&x` into allocated memory escapes a reference to parameter `x`
+    auto b = [&x];
+              ^
+fail_compilation/test20245.d(43): Error: scope variable `a` may not be returned
+    return a;
+           ^
+fail_compilation/test20245.d(47): Error: cannot take address of `scope` variable `x` since `scope` applies to first indirection only
+    int** a = &x;
+          ^
+fail_compilation/test20245.d(53): Error: reference to local variable `x` assigned to non-scope parameter `ptr` calling `escape`
+    escape(&x);
+           ^
+fail_compilation/test20245.d(54): Error: copying `&x` into allocated memory escapes a reference to parameter `x`
+    auto b = [&x];
+              ^
+fail_compilation/test20245.d(70): Error: reference to local variable `price` assigned to non-scope `this.minPrice`
+        minPrice = &price; // Should not compile.
+                 ^
+fail_compilation/test20245.d(89): Error: reference to local variable `this.content[]` calling non-scope member function `Exception.this()`
+        throw new Exception(content[]);
+                                   ^
+fail_compilation/test20245.d(109): Error: reference to local variable `this` assigned to non-scope parameter `content` calling `listUp`
+        listUp(&content);
+               ^
+fail_compilation/test20245.d(102):        which is not `scope` because of `charPtr = content`
+auto listUp(const(char)* content) {charPtr = content;}
+                                           ^
 ---
 */
 

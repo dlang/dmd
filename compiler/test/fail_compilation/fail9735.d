@@ -2,7 +2,9 @@
 REQUIRED_ARGS: -de
 TEST_OUTPUT:
 ---
-fail_compilation/fail9735.d(10): Deprecation: casting from void delegate() to void* is deprecated
+fail_compilation/fail9735.d(12): Deprecation: casting from void delegate() to void* is deprecated
+    return cast(void*) dg;
+                       ^
 ---
 */
 

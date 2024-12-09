@@ -1,22 +1,54 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/parse12967b.d(24): Error: function `parse12967b.C.pre_c` without `this` cannot be `const`
-fail_compilation/parse12967b.d(25): Error: function `parse12967b.C.pre_i` without `this` cannot be `immutable`
-fail_compilation/parse12967b.d(26): Error: function `parse12967b.C.pre_w` without `this` cannot be `inout`
-fail_compilation/parse12967b.d(27): Error: function `parse12967b.C.pre_s` without `this` cannot be `shared`
-fail_compilation/parse12967b.d(29): Error: function `parse12967b.C.post_c` without `this` cannot be `const`
-fail_compilation/parse12967b.d(30): Error: function `parse12967b.C.post_i` without `this` cannot be `immutable`
-fail_compilation/parse12967b.d(31): Error: function `parse12967b.C.post_w` without `this` cannot be `inout`
-fail_compilation/parse12967b.d(32): Error: function `parse12967b.C.post_s` without `this` cannot be `shared`
-fail_compilation/parse12967b.d(37): Error: function `parse12967b.D.pre_c` without `this` cannot be `const`
-fail_compilation/parse12967b.d(38): Error: function `parse12967b.D.pre_i` without `this` cannot be `immutable`
-fail_compilation/parse12967b.d(39): Error: function `parse12967b.D.pre_w` without `this` cannot be `inout`
-fail_compilation/parse12967b.d(40): Error: function `parse12967b.D.pre_s` without `this` cannot be `shared`
-fail_compilation/parse12967b.d(41): Error: function `parse12967b.D.post_c` without `this` cannot be `const`
-fail_compilation/parse12967b.d(42): Error: function `parse12967b.D.post_i` without `this` cannot be `immutable`
-fail_compilation/parse12967b.d(43): Error: function `parse12967b.D.post_w` without `this` cannot be `inout`
-fail_compilation/parse12967b.d(44): Error: function `parse12967b.D.post_s` without `this` cannot be `shared`
+fail_compilation/parse12967b.d(56): Error: function `parse12967b.C.pre_c` without `this` cannot be `const`
+    const     static      pre_c() {}
+                          ^
+fail_compilation/parse12967b.d(57): Error: function `parse12967b.C.pre_i` without `this` cannot be `immutable`
+    immutable static      pre_i() {}
+                          ^
+fail_compilation/parse12967b.d(58): Error: function `parse12967b.C.pre_w` without `this` cannot be `inout`
+    inout     static      pre_w() {}
+                          ^
+fail_compilation/parse12967b.d(59): Error: function `parse12967b.C.pre_s` without `this` cannot be `shared`
+    shared    static      pre_s() {}
+                          ^
+fail_compilation/parse12967b.d(61): Error: function `parse12967b.C.post_c` without `this` cannot be `const`
+    static      post_c() const     {}
+                ^
+fail_compilation/parse12967b.d(62): Error: function `parse12967b.C.post_i` without `this` cannot be `immutable`
+    static      post_i() immutable {}
+                ^
+fail_compilation/parse12967b.d(63): Error: function `parse12967b.C.post_w` without `this` cannot be `inout`
+    static      post_w() inout     {}
+                ^
+fail_compilation/parse12967b.d(64): Error: function `parse12967b.C.post_s` without `this` cannot be `shared`
+    static      post_s() shared    {}
+                ^
+fail_compilation/parse12967b.d(69): Error: function `parse12967b.D.pre_c` without `this` cannot be `const`
+    const     static void pre_c() {}
+                          ^
+fail_compilation/parse12967b.d(70): Error: function `parse12967b.D.pre_i` without `this` cannot be `immutable`
+    immutable static void pre_i() {}
+                          ^
+fail_compilation/parse12967b.d(71): Error: function `parse12967b.D.pre_w` without `this` cannot be `inout`
+    inout     static void pre_w() {}
+                          ^
+fail_compilation/parse12967b.d(72): Error: function `parse12967b.D.pre_s` without `this` cannot be `shared`
+    shared    static void pre_s() {}
+                          ^
+fail_compilation/parse12967b.d(73): Error: function `parse12967b.D.post_c` without `this` cannot be `const`
+    static void post_c() const     {}
+                ^
+fail_compilation/parse12967b.d(74): Error: function `parse12967b.D.post_i` without `this` cannot be `immutable`
+    static void post_i() immutable {}
+                ^
+fail_compilation/parse12967b.d(75): Error: function `parse12967b.D.post_w` without `this` cannot be `inout`
+    static void post_w() inout     {}
+                ^
+fail_compilation/parse12967b.d(76): Error: function `parse12967b.D.post_s` without `this` cannot be `shared`
+    static void post_s() shared    {}
+                ^
 ---
 */
 class C

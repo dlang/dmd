@@ -2,8 +2,14 @@
 TEST_OUTPUT:
 ---
 fail_compilation/fail21830.d(24): Deprecation: struct `fail21830.OldS21830` is deprecated - Deprecated type
+    if (is(T == NewS21830))
+                       ^
 fail_compilation/fail21830.d(24): Deprecation: template `fail21830.test21830(T)(T t) if (is(T == OldS21830))` is deprecated - Deprecated template
+    if (is(T == NewS21830))
+                      ^
 fail_compilation/fail21830.d(24): Deprecation: struct `fail21830.OldS21830` is deprecated - Deprecated type
+    if (is(T == NewS21830))
+         ^
 ---
 */
 #line 1

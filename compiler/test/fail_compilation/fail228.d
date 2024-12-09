@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail228.d(22): Error: undefined identifier `localVariable`
+fail_compilation/fail228.d(24): Error: undefined identifier `localVariable`
+    auto x = ToTypeString!(typeof(localVariable))();
+                                  ^
 ---
 */
 

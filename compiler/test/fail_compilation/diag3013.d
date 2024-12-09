@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag3013.d(11): Error: cannot pass type `string` as a function argument
+fail_compilation/diag3013.d(13): Error: cannot pass type `string` as a function argument
+    int s = string.format("abc", "def");
+            ^
 ---
 */
 

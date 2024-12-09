@@ -2,12 +2,24 @@
 REQUIRED_ARGS: -preview=systemVariables
 TEST_OUTPUT:
 ---
-fail_compilation/systemvariables_var_init.d(24): Error: cannot access `@system` variable `ptrEnum` in @safe code
-fail_compilation/systemvariables_var_init.d(16):        `ptrEnum` is inferred to be `@system` from its initializer here
-fail_compilation/systemvariables_var_init.d(25): Error: cannot access `@system` variable `ptrConst` in @safe code
-fail_compilation/systemvariables_var_init.d(17):        `ptrConst` is inferred to be `@system` from its initializer here
-fail_compilation/systemvariables_var_init.d(27): Error: cannot access `@system` variable `ptrVar` in @safe code
-fail_compilation/systemvariables_var_init.d(19):        `ptrVar` is inferred to be `@system` from its initializer here
+fail_compilation/systemvariables_var_init.d(36): Error: cannot access `@system` variable `ptrEnum` in @safe code
+    *ptrEnum = 0;
+     ^
+fail_compilation/systemvariables_var_init.d(28):        `ptrEnum` is inferred to be `@system` from its initializer here
+enum uint* ptrEnum = cast(uint*) 0xC00000;
+           ^
+fail_compilation/systemvariables_var_init.d(37): Error: cannot access `@system` variable `ptrConst` in @safe code
+    *ptrConst = 0;
+     ^
+fail_compilation/systemvariables_var_init.d(29):        `ptrConst` is inferred to be `@system` from its initializer here
+const uint* ptrConst = cast(uint*) 0xC00000;
+            ^
+fail_compilation/systemvariables_var_init.d(39): Error: cannot access `@system` variable `ptrVar` in @safe code
+    *ptrVar = 0;
+     ^
+fail_compilation/systemvariables_var_init.d(31):        `ptrVar` is inferred to be `@system` from its initializer here
+uint* ptrVar = cast(uint*) 0xC00000;
+      ^
 ---
 */
 

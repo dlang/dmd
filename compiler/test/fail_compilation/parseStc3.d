@@ -1,10 +1,69 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/parseStc3.d(10): Error: redundant attribute `pure`
-fail_compilation/parseStc3.d(11): Error: redundant attribute `nothrow`
-fail_compilation/parseStc3.d(12): Error: redundant attribute `@nogc`
-fail_compilation/parseStc3.d(13): Error: redundant attribute `@property`
+fail_compilation/parseStc3.d(69): Error: redundant attribute `pure`
+pure      void f1() pure      {}
+                    ^
+fail_compilation/parseStc3.d(70): Error: redundant attribute `nothrow`
+nothrow   void f2() nothrow   {}
+                    ^
+fail_compilation/parseStc3.d(71): Error: redundant attribute `@nogc`
+@nogc     void f3() @nogc     {}
+                     ^
+fail_compilation/parseStc3.d(72): Error: redundant attribute `@property`
+@property void f4() @property {}
+                     ^
+fail_compilation/parseStc3.d(75): Error: redundant attribute `@safe`
+@safe     void f6() @safe    {}
+                     ^
+fail_compilation/parseStc3.d(76): Error: redundant attribute `@system`
+@system   void f7() @system  {}
+                     ^
+fail_compilation/parseStc3.d(77): Error: redundant attribute `@trusted`
+@trusted  void f8() @trusted {}
+                     ^
+fail_compilation/parseStc3.d(79): Error: conflicting attribute `@system`
+@safe     void f9()  @system  {}
+                      ^
+fail_compilation/parseStc3.d(80): Error: conflicting attribute `@trusted`
+@safe     void f10() @trusted {}
+                      ^
+fail_compilation/parseStc3.d(81): Error: conflicting attribute `@safe`
+@system   void f11() @safe    {}
+                      ^
+fail_compilation/parseStc3.d(82): Error: conflicting attribute `@trusted`
+@system   void f12() @trusted {}
+                      ^
+fail_compilation/parseStc3.d(83): Error: conflicting attribute `@safe`
+@trusted  void f13() @safe    {}
+                      ^
+fail_compilation/parseStc3.d(84): Error: conflicting attribute `@system`
+@trusted  void f14() @system  {}
+                      ^
+fail_compilation/parseStc3.d(86): Error: conflicting attribute `@system`
+@safe @system  void f15() @trusted {}
+       ^
+fail_compilation/parseStc3.d(86): Error: conflicting attribute `@trusted`
+@safe @system  void f15() @trusted {}
+                           ^
+fail_compilation/parseStc3.d(87): Error: conflicting attribute `@system`
+@safe @system  void f16() @system  {}
+       ^
+fail_compilation/parseStc3.d(87): Error: redundant attribute `@system`
+@safe @system  void f16() @system  {}
+                           ^
+fail_compilation/parseStc3.d(88): Error: conflicting attribute `@safe`
+@system @safe  void f17() @system  {}
+         ^
+fail_compilation/parseStc3.d(88): Error: redundant attribute `@system`
+@system @safe  void f17() @system  {}
+                           ^
+fail_compilation/parseStc3.d(89): Error: conflicting attribute `@safe`
+@trusted @safe void f18() @trusted {}
+          ^
+fail_compilation/parseStc3.d(89): Error: redundant attribute `@trusted`
+@trusted @safe void f18() @trusted {}
+                           ^
 ---
 */
 pure      void f1() pure      {}
@@ -13,29 +72,10 @@ nothrow   void f2() nothrow   {}
 @property void f4() @property {}
 //ref     int  f5() ref       { static int g; return g; }
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/parseStc3.d(24): Error: redundant attribute `@safe`
-fail_compilation/parseStc3.d(25): Error: redundant attribute `@system`
-fail_compilation/parseStc3.d(26): Error: redundant attribute `@trusted`
----
-*/
 @safe     void f6() @safe    {}
 @system   void f7() @system  {}
 @trusted  void f8() @trusted {}
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/parseStc3.d(39): Error: conflicting attribute `@system`
-fail_compilation/parseStc3.d(40): Error: conflicting attribute `@trusted`
-fail_compilation/parseStc3.d(41): Error: conflicting attribute `@safe`
-fail_compilation/parseStc3.d(42): Error: conflicting attribute `@trusted`
-fail_compilation/parseStc3.d(43): Error: conflicting attribute `@safe`
-fail_compilation/parseStc3.d(44): Error: conflicting attribute `@system`
----
-*/
 @safe     void f9()  @system  {}
 @safe     void f10() @trusted {}
 @system   void f11() @safe    {}
@@ -43,19 +83,6 @@ fail_compilation/parseStc3.d(44): Error: conflicting attribute `@system`
 @trusted  void f13() @safe    {}
 @trusted  void f14() @system  {}
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/parseStc3.d(59): Error: conflicting attribute `@system`
-fail_compilation/parseStc3.d(59): Error: conflicting attribute `@trusted`
-fail_compilation/parseStc3.d(60): Error: conflicting attribute `@system`
-fail_compilation/parseStc3.d(60): Error: redundant attribute `@system`
-fail_compilation/parseStc3.d(61): Error: conflicting attribute `@safe`
-fail_compilation/parseStc3.d(61): Error: redundant attribute `@system`
-fail_compilation/parseStc3.d(62): Error: conflicting attribute `@safe`
-fail_compilation/parseStc3.d(62): Error: redundant attribute `@trusted`
----
-*/
 @safe @system  void f15() @trusted {}
 @safe @system  void f16() @system  {}
 @system @safe  void f17() @system  {}

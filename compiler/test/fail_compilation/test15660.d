@@ -1,13 +1,19 @@
 /* REQUIRED_ARGS: -preview=fixImmutableConv
 TEST_OUTPUT:
 ---
-fail_compilation/test15660.d(26): Error: cannot implicitly convert expression `f(v)` of type `int[]` to `immutable(int[])`
-fail_compilation/test15660.d(34): Error: cannot copy `const(void)[]` to `void[]`
-fail_compilation/test15660.d(34):        Source data has incompatible type qualifier(s)
-fail_compilation/test15660.d(34):        Use `cast(void[])` to force copy
-fail_compilation/test15660.d(36): Error: cannot copy `const(int*)[]` to `void[]`
-fail_compilation/test15660.d(36):        Source data has incompatible type qualifier(s)
-fail_compilation/test15660.d(36):        Use `cast(void[])` to force copy
+fail_compilation/test15660.d(32): Error: cannot implicitly convert expression `f(v)` of type `int[]` to `immutable(int[])`
+    immutable x = f(v);
+                   ^
+fail_compilation/test15660.d(40): Error: cannot copy `const(void)[]` to `void[]`
+	a1[] = b1[];
+      ^
+fail_compilation/test15660.d(40):        Source data has incompatible type qualifier(s)
+fail_compilation/test15660.d(40):        Use `cast(void[])` to force copy
+fail_compilation/test15660.d(42): Error: cannot copy `const(int*)[]` to `void[]`
+	a1[] = new const(int*)[2];
+      ^
+fail_compilation/test15660.d(42):        Source data has incompatible type qualifier(s)
+fail_compilation/test15660.d(42):        Use `cast(void[])` to force copy
 ---
 */
 

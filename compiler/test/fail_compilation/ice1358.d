@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice1358.d(29): Error: invalid UTF character \U80000000
+fail_compilation/ice1358.d(31): Error: invalid UTF character \U80000000
+auto bla = "\U80000000";
+           ^
 ---
 */
 

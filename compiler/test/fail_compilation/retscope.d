@@ -2,17 +2,140 @@
 REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/retscope.d(22): Error: scope parameter `p` may not be returned
-fail_compilation/retscope.d(32): Error: returning `b ? nested1(& i) : nested2(& j)` escapes a reference to local variable `j`
-fail_compilation/retscope.d(45): Error: scope variable `p` assigned to global variable `q`
-fail_compilation/retscope.d(47): Error: address of variable `i` assigned to `q` with longer lifetime
-fail_compilation/retscope.d(48): Error: scope variable `a` assigned to global variable `b`
-fail_compilation/retscope.d(49): Error: address of expression temporary returned by `(*fp2)()` assigned to `q` with longer lifetime
+fail_compilation/retscope.d(145): Error: scope parameter `p` may not be returned
+int* foo3(scope int* p) @safe { return p; }   // error
+                                       ^
+fail_compilation/retscope.d(155): Error: returning `b ? nested1(& i) : nested2(& j)` escapes a reference to local variable `j`
+    return b ? nested1(&i) : nested2(&j);
+           ^
+fail_compilation/retscope.d(168): Error: scope variable `p` assigned to global variable `q`
+    q = p;
+      ^
+fail_compilation/retscope.d(170): Error: address of variable `i` assigned to `q` with longer lifetime
+    q = &i;
+      ^
+fail_compilation/retscope.d(171): Error: scope variable `a` assigned to global variable `b`
+    b = a;
+      ^
+fail_compilation/retscope.d(172): Error: address of expression temporary returned by `(*fp2)()` assigned to `q` with longer lifetime
+    q = &fp2().d;
+            ^
+fail_compilation/retscope.d(189): Error: function `retscope.HTTP.Impl.onReceive` is `@nogc` yet allocates closure for `onReceive()` with the GC
+        @nogc void onReceive()
+                   ^
+fail_compilation/retscope.d(191):        delegate `retscope.HTTP.Impl.onReceive.__lambda_L191_C23` closes over variable `this`
+            auto dg = ( ) { return x; };
+                      ^
+fail_compilation/retscope.d(204): Error: reference to local variable `sa` assigned to non-scope parameter `a` calling `bar8`
+    return bar8(sa);
+                ^
+fail_compilation/retscope.d(224): Error: returning `foo9(cast(char[])tmp)` escapes a reference to local variable `tmp`
+    return foo9(tmp);   // error
+               ^
+fail_compilation/retscope.d(245): Error: scope parameter `this` may not be returned
+    @safe C11 foo() scope { return this; }
+                                   ^
+fail_compilation/retscope.d(255): Error: address of variable `i` assigned to `p` with longer lifetime
+    p = i[];
+      ^
+fail_compilation/retscope.d(267): Error: scope variable `e` may not be returned
+    return e.DG;
+           ^
+fail_compilation/retscope.d(275): Error: scope variable `p` assigned to non-scope `e.e`
+    e.e = p;
+        ^
+fail_compilation/retscope.d(286): Error: scope parameter `ptr` may not be returned
+    return ptr();
+              ^
+fail_compilation/retscope.d(295): Error: cannot implicitly convert expression `__lambda_L295_C21` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() scope @safe`
+    scope FunDG f = () return { return &x; };
+                    ^
+fail_compilation/retscope.d(295): Error: cannot implicitly convert expression `__lambda_L295_C21` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() scope @safe`
+    scope FunDG f = () return { return &x; };
+                    ^
+fail_compilation/retscope.d(296): Error: cannot implicitly convert expression `__lambda_L296_C21` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() scope @safe`
+    scope FunDG g = ()        { return &x; };
+                    ^
+fail_compilation/retscope.d(296): Error: cannot implicitly convert expression `__lambda_L296_C21` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() scope @safe`
+    scope FunDG g = ()        { return &x; };
+                    ^
+fail_compilation/retscope.d(306): Error: cannot take address of `scope` variable `p` since `scope` applies to first indirection only
+    pp = &p; // error
+       ^
+fail_compilation/retscope.d(320): Error: returning `foo6(& b)` escapes a reference to local variable `b`
+    return foo6(&b);
+               ^
+fail_compilation/retscope.d(341): Error: scope parameter `p` may not be returned
+    int*[3] escape8b(scope int*[3] p) @safe { return p[]; }
+                                                      ^
+fail_compilation/retscope.d(342): Error: returning `p[]` escapes a reference to parameter `p`
+ref int*[3] escape9b(      int*[3] p) @safe { return p[]; }
+                                                      ^
+fail_compilation/retscope.d(345): Error: scope parameter `p` may not be returned
+ref int[3] asStatic2(      scope int[] p) @safe { return p[0 .. 3]; }
+                                                          ^
+fail_compilation/retscope.d(354): Error: reference to local variable `i` assigned to non-scope `f`
+    f = &i;
+      ^
+fail_compilation/retscope.d(370): Error: cannot take address of `scope` variable `aa` since `scope` applies to first indirection only
+    return bar11(&aa[0]);
+                 ^
+fail_compilation/retscope.d(396): Error: returning `f.foo()` escapes a reference to local variable `f`
+    return f.foo;
+           ^
+fail_compilation/retscope.d(410): Error: scope variable `f` may not be returned
+    return f.foo;
+           ^
+fail_compilation/retscope.d(426): Error: scope variable `f14` calling non-scope member function `Foo14.foo()`
+    return f14.foo;
+           ^
+fail_compilation/retscope.d(449): Error: scope variable `u2` assigned to `ek` with longer lifetime
+  ek = U13.sget(u2); // Error: scope variable u2 assigned to ek with longer lifetime
+     ^
+fail_compilation/retscope.d(464): Error: reference to local variable `buf` assigned to non-scope anonymous parameter calling `myprintf`
+    myprintf(&buf[0]);
+             ^
+fail_compilation/retscope.d(479): Error: reference to stack allocated value returned by `(*fp15)()` assigned to non-scope anonymous parameter
+    bar15(&fp15().d);
+               ^
+fail_compilation/retscope.d(504): Error: cannot implicitly convert expression `& func` of type `int* function(int* p)` to `int* function(scope int* p)`
+    typeof(funcs)  *fp2 = &func; // error
+                          ^
+fail_compilation/retscope.d(505): Error: cannot implicitly convert expression `& func` of type `int* function(int* p)` to `int* function(return int* p)`
+    typeof(funcr)  *fp3 = &func; // error
+                          ^
+fail_compilation/retscope.d(506): Error: cannot implicitly convert expression `& func` of type `int* function(int* p)` to `int* function(return scope int* p)`
+    typeof(funcrs) *fp4 = &func; // error
+                          ^
+fail_compilation/retscope.d(514): Error: cannot implicitly convert expression `& funcr` of type `int* function(return int* p)` to `int* function(scope int* p)`
+    typeof(funcs)  *fr2 = &funcr; // error
+                          ^
+fail_compilation/retscope.d(519): Error: cannot implicitly convert expression `& funcrs` of type `int* function(return scope int* p)` to `int* function(scope int* p)`
+    typeof(funcs)  *fs2 = &funcrs; // error
+                          ^
+fail_compilation/retscope.d(541): Error: cannot implicitly convert expression `&c.func` of type `int* delegate()` to `int* delegate() scope`
+    typeof(&c.funcs)  fp2 = &c.func; // error
+                            ^
+fail_compilation/retscope.d(542): Error: cannot implicitly convert expression `&c.func` of type `int* delegate()` to `int* delegate() return scope`
+    typeof(&c.funcr)  fp3 = &c.func; // error
+                            ^
+fail_compilation/retscope.d(543): Error: cannot implicitly convert expression `&c.func` of type `int* delegate()` to `int* delegate() return scope`
+    typeof(&c.funcrs) fp4 = &c.func; // error
+                            ^
+fail_compilation/retscope.d(551): Error: cannot implicitly convert expression `&c.funcr` of type `int* delegate() return scope` to `int* delegate() scope`
+    typeof(&c.funcs)  fr2 = &c.funcr; // error
+                            ^
+fail_compilation/retscope.d(556): Error: cannot implicitly convert expression `&c.funcrs` of type `int* delegate() return scope` to `int* delegate() scope`
+    typeof(&c.funcs)  fs2 = &c.funcrs; // error
+                            ^
+fail_compilation/retscope.d(640): Error: scope variable `x` assigned to `ref` variable `this` with longer lifetime
+            member = x;
+                   ^
+fail_compilation/retscope.d(646): Error: scope variable `x` may not be returned
+            return x;
+                   ^
 ---
 */
-
-
-
 
 int* foo1(return scope int* p) @safe { return p; } // ok
 
@@ -51,15 +174,6 @@ void test2(scope int* p, int[] a ...) @safe
 
 /**************************************************/
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/retscope.d(75): Error: function `retscope.HTTP.Impl.onReceive` is `@nogc` yet allocates closure for `onReceive()` with the GC
-fail_compilation/retscope.d(77):        delegate `retscope.HTTP.Impl.onReceive.__lambda_L77_C23` closes over variable `this`
----
-*/
-
-
 struct Curl
 {
     int delegate() dg;
@@ -82,12 +196,6 @@ struct HTTP
 
 /***********************************************/
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/retscope.d(96): Error: reference to local variable `sa` assigned to non-scope parameter `a` calling `bar8`
----
-*/
 // https://issues.dlang.org/show_bug.cgi?id=8838
 
 int[] foo8() @safe
@@ -104,13 +212,6 @@ int[] bar8(int[] a) @safe
 
 /*************************************************/
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/retscope.d(123): Error: returning `foo9(cast(char[])tmp)` escapes a reference to local variable `tmp`
----
-*/
-
 char[] foo9(return char[] a) @safe pure nothrow @nogc
 {
     return a;
@@ -124,13 +225,6 @@ char[] bar9() @safe
 }
 
 /*************************************************/
-
-/*
-//
-//
-//fail_compilation/retscope.d(143): To enforce `@safe`, the compiler allocates a closure unless `opApply()` uses `scope`
-//
-*/
 
 struct S10
 {
@@ -146,13 +240,6 @@ S10* test10()
 
 /************************************************/
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/retscope.d(158): Error: scope parameter `this` may not be returned
----
-*/
-
 class C11
 {
     @safe C11 foo() scope { return this; }
@@ -161,29 +248,12 @@ class C11
 
 /****************************************************/
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/retscope.d(177): Error: address of variable `i` assigned to `p` with longer lifetime
----
-*/
-
-
-
 void foo11() @safe
 {
     int[] p;
     int[3] i;
     p = i[];
 }
-
-/************************************************/
-/*
-TEST_OUTPUT:
----
-fail_compilation/retscope.d(197): Error: scope variable `e` may not be returned
----
-*/
 
 struct Escaper
 {
@@ -197,13 +267,6 @@ void* escapeDg1(scope void* d) @safe
     return e.DG;
 }
 
-/*************************************************/
-/*
-TEST_OUTPUT:
----
-fail_compilation/retscope.d(212): Error: scope variable `p` assigned to non-scope `e.e`
----
-*/
 struct Escaper3 { void* e; }
 
 void* escape3 (scope void* p) @safe {
@@ -215,12 +278,6 @@ void* escape3 (scope void* p) @safe {
 
 /**************************************************/
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/retscope.d(229): Error: scope parameter `ptr` may not be returned
----
-*/
 
 alias dg_t = void* delegate () return scope @safe;
 
@@ -230,16 +287,6 @@ void* funretscope(scope dg_t ptr) @safe
 }
 
 /*****************************************************/
-
-/*
-TEST_OUTPUT:
----
-fail_compilation/retscope.d(248): Error: cannot implicitly convert expression `__lambda_L248_C21` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() scope @safe`
-fail_compilation/retscope.d(248): Error: cannot implicitly convert expression `__lambda_L248_C21` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() scope @safe`
-fail_compilation/retscope.d(249): Error: cannot implicitly convert expression `__lambda_L249_C21` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() scope @safe`
-fail_compilation/retscope.d(249): Error: cannot implicitly convert expression `__lambda_L249_C21` of type `void* delegate() pure nothrow @nogc @safe` to `void* delegate() scope @safe`
----
-*/
 
 void escape4() @safe
 {
@@ -251,13 +298,6 @@ void escape4() @safe
 
 /**************************************************/
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/retscope.d(266): Error: cannot take address of `scope` variable `p` since `scope` applies to first indirection only
----
-*/
-
 void escape5() @safe
 {
     int* q;
@@ -268,12 +308,6 @@ void escape5() @safe
 
 /***********************************************/
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/retscope.d(286): Error: returning `foo6(& b)` escapes a reference to local variable `b`
----
-*/
 
 @safe int* foo6()(int* arg)
 {
@@ -299,14 +333,6 @@ struct S7
 
 /***************************************************/
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/retscope.d(315): Error: scope parameter `p` may not be returned
-fail_compilation/retscope.d(316): Error: returning `p[]` escapes a reference to parameter `p`
-fail_compilation/retscope.d(319): Error: scope parameter `p` may not be returned
----
-*/
 
 int[3] escape8(scope int[] p) @safe { return p[0 .. 3]; } // should not error
 char*[3] escape9(scope char*[] p) @safe { return p[0 .. 3]; }
@@ -319,13 +345,6 @@ ref int[3] asStatic(return scope int[] p) @safe { return p[0 .. 3]; }
 ref int[3] asStatic2(      scope int[] p) @safe { return p[0 .. 3]; }
 
 /***************************************************/
-
-/*
-TEST_OUTPUT:
----
-fail_compilation/retscope.d(335): Error: reference to local variable `i` assigned to non-scope `f`
----
-*/
 
 int* escape10() @safe
 {
@@ -343,13 +362,6 @@ int* bar10( scope int** ptr ) @safe
 }
 
 /******************************************/
-
-/*
-TEST_OUTPUT:
----
-fail_compilation/retscope.d(358): Error: cannot take address of `scope` variable `aa` since `scope` applies to first indirection only
----
-*/
 
 int* escape11() @safe
 {
@@ -376,14 +388,8 @@ void escape15() @safe
 }
 
 /******************************************/
-/*
-TEST_OUTPUT:
----
-fail_compilation/retscope.d(1003): Error: returning `f.foo()` escapes a reference to local variable `f`
----
-*/
 
-#line 1000
+// Line 1000 starts here
 int* escape12() @safe
 {
     Foo12 f;
@@ -396,14 +402,8 @@ struct Foo12
 }
 
 /******************************************/
-/*
-TEST_OUTPUT:
----
-fail_compilation/retscope.d(1103): Error: scope variable `f` may not be returned
----
-*/
 
-#line 1100
+// Line 1100 starts here
 int* escape13() @safe
 {
     scope Foo13 f;
@@ -416,14 +416,8 @@ class Foo13
 }
 
 /******************************************/
-/*
-TEST_OUTPUT:
----
-fail_compilation/retscope.d(1205): Error: scope variable `f14` calling non-scope member function `Foo14.foo()`
----
-*/
 
-#line 1200
+// Line 1200 starts here
 int* escape14() @safe
 {
     int i;
@@ -439,14 +433,8 @@ struct Foo14
 }
 
 /******************************************/
-/*
-TEST_OUTPUT:
----
-fail_compilation/retscope.d(1311): Error: scope variable `u2` assigned to `ek` with longer lifetime
----
-*/
 
-#line 1300
+// Line 1300 starts here
 @safe struct U13 {
   int* k;
   int* get() return scope { return k; }
@@ -467,14 +455,7 @@ fail_compilation/retscope.d(1311): Error: scope variable `u2` assigned to `ek` w
 
 /************************************************/
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/retscope.d(1405): Error: reference to local variable `buf` assigned to non-scope anonymous parameter calling `myprintf`
----
-*/
-
-#line 1400
+// Line 1400 starts here
 @trusted extern(C) int myprintf(const(char)*, ...);
 
 @safe void foo14()
@@ -485,14 +466,7 @@ fail_compilation/retscope.d(1405): Error: reference to local variable `buf` assi
 
 /************************************************/
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/retscope.d(1509): Error: reference to stack allocated value returned by `(*fp15)()` assigned to non-scope anonymous parameter
----
-*/
-
-#line 1500
+// Line 1500 starts here
 
 @safe void bar15(int*);
 
@@ -517,16 +491,6 @@ void foo16() @nogc nothrow
 
 /*************************************************/
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/retscope.d(1701): Error: cannot implicitly convert expression `& func` of type `int* function(int* p)` to `int* function(scope int* p)`
-fail_compilation/retscope.d(1702): Error: cannot implicitly convert expression `& func` of type `int* function(int* p)` to `int* function(return int* p)`
-fail_compilation/retscope.d(1703): Error: cannot implicitly convert expression `& func` of type `int* function(int* p)` to `int* function(return scope int* p)`
-fail_compilation/retscope.d(1711): Error: cannot implicitly convert expression `& funcr` of type `int* function(return int* p)` to `int* function(scope int* p)`
-fail_compilation/retscope.d(1716): Error: cannot implicitly convert expression `& funcrs` of type `int* function(return scope int* p)` to `int* function(scope int* p)`
----
-*/
 
 int* func(int* p);
 int* funcs(scope int* p);
@@ -535,7 +499,7 @@ int* funcrs(return scope int* p);
 
 void foo17()
 {
-#line 1700
+// Line 1700 starts here
     typeof(func)   *fp1 = &func;
     typeof(funcs)  *fp2 = &func; // error
     typeof(funcr)  *fp3 = &func; // error
@@ -559,16 +523,6 @@ void foo17()
 
 /*************************************************/
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/retscope.d(1801): Error: cannot implicitly convert expression `&c.func` of type `int* delegate()` to `int* delegate() scope`
-fail_compilation/retscope.d(1802): Error: cannot implicitly convert expression `&c.func` of type `int* delegate()` to `int* delegate() return scope`
-fail_compilation/retscope.d(1803): Error: cannot implicitly convert expression `&c.func` of type `int* delegate()` to `int* delegate() return scope`
-fail_compilation/retscope.d(1811): Error: cannot implicitly convert expression `&c.funcr` of type `int* delegate() return scope` to `int* delegate() scope`
-fail_compilation/retscope.d(1816): Error: cannot implicitly convert expression `&c.funcrs` of type `int* delegate() return scope` to `int* delegate() scope`
----
-*/
 
 class C18
 {
@@ -582,7 +536,7 @@ void foo18()
 {
     C18 c;
 
-#line 1800
+// Line 1800 starts here
     typeof(&c.func)   fp1 = &c.func;
     typeof(&c.funcs)  fp2 = &c.func; // error
     typeof(&c.funcr)  fp3 = &c.func; // error
@@ -675,14 +629,7 @@ int test21()
     foo22(s);
 }
 
-/*********************************************
-TEST_OUTPUT:
----
-fail_compilation/retscope.d(1907): Error: scope variable `x` assigned to `ref` variable `this` with longer lifetime
-fail_compilation/retscope.d(1913): Error: scope variable `x` may not be returned
----
-*/
-#line 1900
+// Line 1900 starts here
 struct Constant
 {
     int* member;

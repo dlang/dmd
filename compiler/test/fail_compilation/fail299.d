@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail299.d(14): Error: initializer provided for struct `Foo` with no fields
+fail_compilation/fail299.d(16): Error: initializer provided for struct `Foo` with no fields
+    foo(Foo(1), (){});
+            ^
 ---
 */
 

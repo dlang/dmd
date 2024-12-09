@@ -1,7 +1,33 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail2456.d(14): Error: cannot put `scope(success)` statement inside `finally` block
+fail_compilation/fail2456.d(40): Error: cannot put `scope(success)` statement inside `finally` block
+        scope(success) {}           // NG
+        ^
+fail_compilation/fail2456.d(51): Error: cannot put `scope(failure)` statement inside `finally` block
+        scope(failure) {}           // NG
+        ^
+fail_compilation/fail2456.d(70): Error: cannot put `scope(success)` statement inside `scope(success)`
+        scope(success) {}   // NG
+        ^
+fail_compilation/fail2456.d(71): Error: cannot put `scope(failure)` statement inside `scope(success)`
+        scope(failure) {}   // NG
+        ^
+fail_compilation/fail2456.d(84): Error: cannot put `scope(success)` statement inside `scope(exit)`
+        scope(success) {}   // NG
+        ^
+fail_compilation/fail2456.d(85): Error: cannot put `scope(failure)` statement inside `scope(exit)`
+        scope(failure) {}   // NG
+        ^
+fail_compilation/fail2456.d(95): Error: cannot put `catch` statement inside `scope(success)`
+        catch (Throwable) {}    // NG
+        ^
+fail_compilation/fail2456.d(107): Error: cannot put `catch` statement inside `scope(exit)`
+        catch (Throwable) {}    // NG
+        ^
+fail_compilation/fail2456.d(114): Deprecation: can only catch mutable or const qualified types, not `immutable(Exception)`
+    } catch (immutable Exception e) {
+      ^
 ---
 */
 void test_success()
@@ -15,12 +41,6 @@ void test_success()
     }
 }
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/fail2456.d(31): Error: cannot put `scope(failure)` statement inside `finally` block
----
-*/
 void test_failure()
 {
     try
@@ -32,11 +52,6 @@ void test_failure()
     }
 }
 
-/*
-TEST_OUTPUT:
----
----
-*/
 void test_exit()
 {
     try
@@ -48,15 +63,6 @@ void test_exit()
     }
 }
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/fail2456.d(64): Error: cannot put `scope(success)` statement inside `scope(success)`
-fail_compilation/fail2456.d(65): Error: cannot put `scope(failure)` statement inside `scope(success)`
-fail_compilation/fail2456.d(78): Error: cannot put `scope(success)` statement inside `scope(exit)`
-fail_compilation/fail2456.d(79): Error: cannot put `scope(failure)` statement inside `scope(exit)`
----
-*/
 void test2456a()
 {
     scope(success)
@@ -81,13 +87,6 @@ void test2456a()
     }
 }
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/fail2456.d(96): Error: cannot put `catch` statement inside `scope(success)`
-fail_compilation/fail2456.d(108): Error: cannot put `catch` statement inside `scope(exit)`
----
-*/
 void test2456b()
 {
     scope(success)
@@ -109,12 +108,6 @@ void test2456b()
     }
 }
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/fail2456.d(121): Deprecation: can only catch mutable or const qualified types, not `immutable(Exception)`
----
-*/
 void main() {
     try {
         throw new Exception("");

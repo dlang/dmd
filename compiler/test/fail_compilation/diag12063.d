@@ -1,13 +1,27 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag12063.d(19): Error: cannot check `diag12063.Bar.b` value for overflow
-fail_compilation/diag12063.d(16): Error: no property `max` for type `Foo`, perhaps `import std.algorithm;` is needed?
-fail_compilation/diag12063.d(19): Error: cannot generate value for `diag12063.Bar.b`
-fail_compilation/diag12063.d(19): Error: incompatible types for `(Foo()) + (1)`: `Bar` and `int`
-fail_compilation/diag12063.d(29): Error: cannot check `diag12063.b` value for overflow
-fail_compilation/diag12063.d(29): Error: incompatible types for `(S()) == (1)`: `S` and `int`
-fail_compilation/diag12063.d(38): Error: enum member `diag12063.d` initialization with `__anonymous.c+1` causes overflow for type `Q`
+fail_compilation/diag12063.d(33): Error: cannot check `diag12063.Bar.b` value for overflow
+    b // no max, can't +1
+    ^
+fail_compilation/diag12063.d(30): Error: no property `max` for type `Foo`, perhaps `import std.algorithm;` is needed?
+enum Bar : Foo
+^
+fail_compilation/diag12063.d(33): Error: cannot generate value for `diag12063.Bar.b`
+    b // no max, can't +1
+    ^
+fail_compilation/diag12063.d(33): Error: incompatible types for `(Foo()) + (1)`: `Bar` and `int`
+    b // no max, can't +1
+    ^
+fail_compilation/diag12063.d(43): Error: cannot check `diag12063.b` value for overflow
+    b // can't do S() == 1
+    ^
+fail_compilation/diag12063.d(43): Error: incompatible types for `(S()) == (1)`: `S` and `int`
+    b // can't do S() == 1
+    ^
+fail_compilation/diag12063.d(52): Error: enum member `diag12063.d` initialization with `__anonymous.c+1` causes overflow for type `Q`
+    d // overflow detected
+    ^
 ---
 */
 
