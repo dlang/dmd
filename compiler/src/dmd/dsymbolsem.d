@@ -256,7 +256,7 @@ Return:
 */
 bool checkHasBothRvalueAndCpCtor(StructDeclaration sd, CtorDeclaration ctor, TemplateInstance ti)
 {
-    if (sd && sd.hasCopyCtor && isRvalueConstructor(sd, ctor))
+    if (sd && sd.hasCopyCtor && ctor.isMoveCtor)
     {
         .error(ctor.loc, "cannot define both an rvalue constructor and a copy constructor for `struct %s`", sd.toChars());
         .errorSupplemental(ti.loc, "Template instance `%s` creates an rvalue constructor for `struct %s`",
@@ -265,31 +265,6 @@ bool checkHasBothRvalueAndCpCtor(StructDeclaration sd, CtorDeclaration ctor, Tem
         return true;
     }
 
-    return false;
-}
-
-/************************************************
- * Check if ctor is an rvalue constructor.
- * A constructor that receives a single parameter of the same type as
- * `Unqual!typeof(this)` is an rvalue constructor.
- * Params:
- *      sd = struct that ctor is a member of
- *      ctor = constructor to test
- * Returns:
- *      true if it is an rvalue constructor
- */
-bool isRvalueConstructor(StructDeclaration sd, CtorDeclaration ctor)
-{
-    auto tf = ctor.type.isTypeFunction();
-    const dim = tf.parameterList.length;
-    if (dim == 1 || (dim > 1 && tf.parameterList[1].defaultArg))
-    {
-        auto param = tf.parameterList[0];
-        if (!(param.storageClass & STC.ref_) && param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
-        {
-            return true;
-        }
-    }
     return false;
 }
 
@@ -2502,10 +2477,13 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             {
                 //printf("tf: %s\n", tf.toChars());
                 auto param = tf.parameterList[0];
-                if (param.storageClass & STC.ref_ && param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
+                if (param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
                 {
                     //printf("copy constructor\n");
-                    ctd.isCpCtor = true;
+                    if (param.storageClass & STC.ref_)
+                        ctd.isCpCtor = true;            // copy constructor
+                    else
+                        ctd.isMoveCtor = true;          // move constructor
                 }
             }
         }
