@@ -265,5 +265,5 @@ bool __setArrayAllocLength(T)(ref BlkInfo info, size_t newLength, bool isShared,
 {
     import core.lifetime : TypeInfoSize;
     import core.internal.gc.blockmeta : __setArrayAllocLengthImpl;
-    return __setArrayAllocLengthImpl(info, newLength, isShared, typeid(T), oldLength, TypeInfoSize!T);
+    return __setArrayAllocLengthImpl(info, newLength, isShared, oldLength, TypeInfoSize!T);
 }

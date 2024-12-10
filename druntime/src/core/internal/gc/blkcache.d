@@ -38,7 +38,7 @@ else
     int __nextBlkIdx;
 }
 
-@property BlkInfo *__blkcache() nothrow
+@property BlkInfo *__blkcache() nothrow @nogc
 {
     if (!__blkcache_storage)
     {
@@ -135,7 +135,7 @@ unittest
         so any use of the returned BlkInfo should copy it and then check the
         base ptr of the copy before actually using it.
   */
-BlkInfo *__getBlkInfo(void *interior) nothrow
+BlkInfo *__getBlkInfo(void *interior) nothrow @nogc
 {
     BlkInfo *ptr = __blkcache;
     if (ptr is null)
@@ -175,7 +175,7 @@ BlkInfo *__getBlkInfo(void *interior) nothrow
     return null; // not in cache.
 }
 
-void __insertBlkInfoCache(BlkInfo bi, BlkInfo *curpos) nothrow
+void __insertBlkInfoCache(BlkInfo bi, BlkInfo *curpos) nothrow @nogc
 {
     auto cache = __blkcache;
     if (cache is null)
