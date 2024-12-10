@@ -2088,7 +2088,7 @@ MATCH leastAsSpecialized(FuncDeclaration f, FuncDeclaration g, Identifiers* name
         args.push(e);
     }
 
-    MATCH m = tg.callMatch(null, ArgumentList(&args, names), 1);
+    MATCH m = callMatch(g, tg, null, ArgumentList(&args, names), 1);
     if (m > MATCH.nomatch)
     {
         /* A variadic parameter list is less specialized than a
