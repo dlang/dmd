@@ -149,6 +149,50 @@ void test5()
     assert(result == "A");
 }
 
+struct Foo
+{
+    this(ref const Foo _) const
+    {
+        result ~= "A";
+    }
+
+    this(ref const Foo _) immutable
+    {
+        result ~= "B";
+    }
+}
+
+struct Bar
+{
+    this(ref const Bar _) const
+    {
+        result ~= "C";
+    }
+
+    this(ref const Bar _) immutable
+    {
+        result ~= "D";
+    }
+}
+
+struct FooBar
+{
+    Foo foo;
+    Bar bar;
+}
+
+void test6()
+{
+    result = "";
+
+    FooBar a;
+    const FooBar b = a;
+    assert(result == "AC");
+
+    immutable FooBar c = a;
+    assert(result == "ACBD");
+}
+
 void main()
 {
     test1();
@@ -156,4 +200,5 @@ void main()
     test3();
     test4();
     test5();
+    test6();
 }
