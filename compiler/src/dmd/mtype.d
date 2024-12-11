@@ -1609,7 +1609,7 @@ extern (C++) abstract class TypeNext : Type
 
     /*******************************
      * For TypeFunction, nextOf() can return NULL if the function return
-     * type is meant to be inferred, and semantic() hasn't yet ben run
+     * type is meant to be inferred, and semantic() hasn't yet been run
      * on the function. After semantic(), it must no longer be NULL.
      */
     override final Type nextOf() @safe
