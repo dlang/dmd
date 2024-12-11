@@ -2,52 +2,94 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag3672.d(8): Error: read-modify-write operations are not allowed for `shared` variables
-fail_compilation/diag3672.d(8):        Use `core.atomic.atomicOp!"+="(x, 1)` instead
-fail_compilation/diag3672.d(9): Error: read-modify-write operations are not allowed for `shared` variables
-fail_compilation/diag3672.d(9):        Use `core.atomic.atomicOp!"+="(x, 1)` instead
-fail_compilation/diag3672.d(10): Error: read-modify-write operations are not allowed for `shared` variables
-fail_compilation/diag3672.d(10):        Use `core.atomic.atomicOp!"-="(x, 1)` instead
-fail_compilation/diag3672.d(11): Error: read-modify-write operations are not allowed for `shared` variables
-fail_compilation/diag3672.d(11):        Use `core.atomic.atomicOp!"-="(x, 1)` instead
-fail_compilation/diag3672.d(12): Error: read-modify-write operations are not allowed for `shared` variables
-fail_compilation/diag3672.d(12):        Use `core.atomic.atomicOp!"+="(x, 1)` instead
-fail_compilation/diag3672.d(13): Error: read-modify-write operations are not allowed for `shared` variables
-fail_compilation/diag3672.d(13):        Use `core.atomic.atomicOp!"+="(x, 2)` instead
-fail_compilation/diag3672.d(14): Error: read-modify-write operations are not allowed for `shared` variables
-fail_compilation/diag3672.d(14):        Use `core.atomic.atomicOp!"-="(x, 3)` instead
-fail_compilation/diag3672.d(15): Error: read-modify-write operations are not allowed for `shared` variables
-fail_compilation/diag3672.d(15):        Use `core.atomic.atomicOp!"|="(x, y)` instead
-fail_compilation/diag3672.d(16): Error: read-modify-write operations are not allowed for `shared` variables
-fail_compilation/diag3672.d(16):        Use `core.atomic.atomicOp!"*="(x, y)` instead
-fail_compilation/diag3672.d(17): Error: read-modify-write operations are not allowed for `shared` variables
-fail_compilation/diag3672.d(17):        Use `core.atomic.atomicOp!"/="(x, y)` instead
-fail_compilation/diag3672.d(18): Error: read-modify-write operations are not allowed for `shared` variables
-fail_compilation/diag3672.d(18):        Use `core.atomic.atomicOp!"%="(x, y)` instead
-fail_compilation/diag3672.d(19): Error: read-modify-write operations are not allowed for `shared` variables
-fail_compilation/diag3672.d(19):        Use `core.atomic.atomicOp!"&="(x, y)` instead
-fail_compilation/diag3672.d(20): Error: read-modify-write operations are not allowed for `shared` variables
-fail_compilation/diag3672.d(20):        Use `core.atomic.atomicOp!"^="(x, y)` instead
-fail_compilation/diag3672.d(21): Error: read-modify-write operations are not allowed for `shared` variables
-fail_compilation/diag3672.d(21):        Use `core.atomic.atomicOp!"<<="(x, y)` instead
-fail_compilation/diag3672.d(22): Error: read-modify-write operations are not allowed for `shared` variables
-fail_compilation/diag3672.d(22):        Use `core.atomic.atomicOp!">>="(x, y)` instead
-fail_compilation/diag3672.d(23): Error: read-modify-write operations are not allowed for `shared` variables
-fail_compilation/diag3672.d(23):        Use `core.atomic.atomicOp!">>>="(x, y)` instead
-fail_compilation/diag3672.d(24): Error: read-modify-write operations are not allowed for `shared` variables
-fail_compilation/diag3672.d(24):        Use `core.atomic.atomicOp!"^^="(x, y)` instead
-fail_compilation/diag3672.d(25): Error: read-modify-write operations are not allowed for `shared` variables
-fail_compilation/diag3672.d(25):        Use `core.atomic.atomicOp!"+="(ptr, 1)` instead
-fail_compilation/diag3672.d(26): Error: read-modify-write operations are not allowed for `shared` variables
-fail_compilation/diag3672.d(26):        Use `core.atomic.atomicOp!"+="(ptr, 1)` instead
-fail_compilation/diag3672.d(27): Error: read-modify-write operations are not allowed for `shared` variables
-fail_compilation/diag3672.d(27):        Use `core.atomic.atomicOp!"-="(ptr, 1)` instead
-fail_compilation/diag3672.d(28): Error: read-modify-write operations are not allowed for `shared` variables
-fail_compilation/diag3672.d(28):        Use `core.atomic.atomicOp!"-="(ptr, 1)` instead
+fail_compilation/diag3672.d(100): Error: read-modify-write operations are not allowed for `shared` variables
+    ++x;
+      ^
+fail_compilation/diag3672.d(100):        Use `core.atomic.atomicOp!"+="(x, 1)` instead
+fail_compilation/diag3672.d(101): Error: read-modify-write operations are not allowed for `shared` variables
+    x++;
+    ^
+fail_compilation/diag3672.d(101):        Use `core.atomic.atomicOp!"+="(x, 1)` instead
+fail_compilation/diag3672.d(102): Error: read-modify-write operations are not allowed for `shared` variables
+    --x;
+      ^
+fail_compilation/diag3672.d(102):        Use `core.atomic.atomicOp!"-="(x, 1)` instead
+fail_compilation/diag3672.d(103): Error: read-modify-write operations are not allowed for `shared` variables
+    x--;
+    ^
+fail_compilation/diag3672.d(103):        Use `core.atomic.atomicOp!"-="(x, 1)` instead
+fail_compilation/diag3672.d(104): Error: read-modify-write operations are not allowed for `shared` variables
+    x += 1;
+    ^
+fail_compilation/diag3672.d(104):        Use `core.atomic.atomicOp!"+="(x, 1)` instead
+fail_compilation/diag3672.d(105): Error: read-modify-write operations are not allowed for `shared` variables
+    x += 2;
+    ^
+fail_compilation/diag3672.d(105):        Use `core.atomic.atomicOp!"+="(x, 2)` instead
+fail_compilation/diag3672.d(106): Error: read-modify-write operations are not allowed for `shared` variables
+    x -= 3;
+    ^
+fail_compilation/diag3672.d(106):        Use `core.atomic.atomicOp!"-="(x, 3)` instead
+fail_compilation/diag3672.d(107): Error: read-modify-write operations are not allowed for `shared` variables
+    x |= y;
+    ^
+fail_compilation/diag3672.d(107):        Use `core.atomic.atomicOp!"|="(x, y)` instead
+fail_compilation/diag3672.d(108): Error: read-modify-write operations are not allowed for `shared` variables
+    x *= y;
+    ^
+fail_compilation/diag3672.d(108):        Use `core.atomic.atomicOp!"*="(x, y)` instead
+fail_compilation/diag3672.d(109): Error: read-modify-write operations are not allowed for `shared` variables
+    x /= y;
+    ^
+fail_compilation/diag3672.d(109):        Use `core.atomic.atomicOp!"/="(x, y)` instead
+fail_compilation/diag3672.d(110): Error: read-modify-write operations are not allowed for `shared` variables
+    x %= y;
+    ^
+fail_compilation/diag3672.d(110):        Use `core.atomic.atomicOp!"%="(x, y)` instead
+fail_compilation/diag3672.d(111): Error: read-modify-write operations are not allowed for `shared` variables
+    x &= y;
+    ^
+fail_compilation/diag3672.d(111):        Use `core.atomic.atomicOp!"&="(x, y)` instead
+fail_compilation/diag3672.d(112): Error: read-modify-write operations are not allowed for `shared` variables
+    x ^= y;
+    ^
+fail_compilation/diag3672.d(112):        Use `core.atomic.atomicOp!"^="(x, y)` instead
+fail_compilation/diag3672.d(113): Error: read-modify-write operations are not allowed for `shared` variables
+    x <<= y;
+    ^
+fail_compilation/diag3672.d(113):        Use `core.atomic.atomicOp!"<<="(x, y)` instead
+fail_compilation/diag3672.d(114): Error: read-modify-write operations are not allowed for `shared` variables
+    x >>= y;
+    ^
+fail_compilation/diag3672.d(114):        Use `core.atomic.atomicOp!">>="(x, y)` instead
+fail_compilation/diag3672.d(115): Error: read-modify-write operations are not allowed for `shared` variables
+    x >>>= y;
+    ^
+fail_compilation/diag3672.d(115):        Use `core.atomic.atomicOp!">>>="(x, y)` instead
+fail_compilation/diag3672.d(116): Error: read-modify-write operations are not allowed for `shared` variables
+    x ^^= y;
+    ^
+fail_compilation/diag3672.d(116):        Use `core.atomic.atomicOp!"^^="(x, y)` instead
+fail_compilation/diag3672.d(117): Error: read-modify-write operations are not allowed for `shared` variables
+    ++ptr;
+      ^
+fail_compilation/diag3672.d(117):        Use `core.atomic.atomicOp!"+="(ptr, 1)` instead
+fail_compilation/diag3672.d(118): Error: read-modify-write operations are not allowed for `shared` variables
+    ptr++;
+    ^
+fail_compilation/diag3672.d(118):        Use `core.atomic.atomicOp!"+="(ptr, 1)` instead
+fail_compilation/diag3672.d(119): Error: read-modify-write operations are not allowed for `shared` variables
+    --ptr;
+      ^
+fail_compilation/diag3672.d(119):        Use `core.atomic.atomicOp!"-="(ptr, 1)` instead
+fail_compilation/diag3672.d(120): Error: read-modify-write operations are not allowed for `shared` variables
+    ptr--;
+    ^
+fail_compilation/diag3672.d(120):        Use `core.atomic.atomicOp!"-="(ptr, 1)` instead
 ---
 */
 
-#line 1
+// Line 1 starts here
 shared int x;
 shared int y;
 shared int* ptr;

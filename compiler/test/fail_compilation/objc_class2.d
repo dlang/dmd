@@ -2,7 +2,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/objc_class2.d(14): Error: function `objc_class2.A.test` number of colons in Objective-C selector must match number of parameters
+fail_compilation/objc_class2.d(16): Error: function `objc_class2.A.test` number of colons in Objective-C selector must match number of parameters
+    void test(int a, int b, int c) @selector("test:"); // non-matching number of colon
+         ^
 ---
 */
 

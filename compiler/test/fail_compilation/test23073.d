@@ -2,8 +2,12 @@
 REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/test23073.d(28): Error: scope variable `c` assigned to non-scope parameter `c` calling `assignNext`
-fail_compilation/test23073.d(22):        which is not `scope` because of `c.next = c`
+fail_compilation/test23073.d(32): Error: scope variable `c` assigned to non-scope parameter `c` calling `assignNext`
+    assignNext(c);
+               ^
+fail_compilation/test23073.d(26):        which is not `scope` because of `c.next = c`
+    c.next = c;
+           ^
 ---
 */
 

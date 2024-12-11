@@ -1,7 +1,9 @@
 /* REQUIRED_ARGS: -O -m64
  * TEST_OUTPUT:
 ---
-fail_compilation/test20903.d(14): Error: integer overflow
+fail_compilation/test20903.d(16): Error: integer overflow
+    return r / x;
+    ^
 ---
  */
 

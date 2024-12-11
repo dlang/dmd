@@ -1,9 +1,13 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail12.d(19): Error: `abc` matches conflicting symbols:
-fail_compilation/fail12.d(11):        function `fail12.main.Foo!(y).abc`
-fail_compilation/fail12.d(11):        function `fail12.main.Foo!(y).abc`
+fail_compilation/fail12.d(23): Error: `abc` matches conflicting symbols:
+    assert(abc() == 8);
+              ^
+fail_compilation/fail12.d(15):        function `fail12.main.Foo!(y).abc`
+    int abc() { return b; }
+        ^
+fail_compilation/fail12.d(15):        function `fail12.main.Foo!(y).abc`
 ---
 */
 template Foo(alias b)

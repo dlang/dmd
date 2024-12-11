@@ -3,11 +3,21 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail18219.d(17): Error: no property `Foobar` for type `AST`, did you mean `b18219.Foobar`?
-fail_compilation/fail18219.d(18): Error: no property `Bar` for type `a18219.AST`
+fail_compilation/fail18219.d(27): Error: no property `Foobar` for type `AST`, did you mean `b18219.Foobar`?
+    AST.Foobar t;
+               ^
+fail_compilation/fail18219.d(28): Error: no property `Bar` for type `a18219.AST`
+    AST.Bar l;
+            ^
 fail_compilation/imports/a18219.d(3):        struct `AST` defined here
-fail_compilation/fail18219.d(19): Error: no property `fun` for type `AST`, did you mean `b18219.fun`?
-fail_compilation/fail18219.d(20): Error: no property `Foobar` for type `AST`, did you mean `b18219.Foobar`?
+struct AST
+^
+fail_compilation/fail18219.d(29): Error: no property `fun` for type `AST`, did you mean `b18219.fun`?
+    AST.fun();
+    ^
+fail_compilation/fail18219.d(30): Error: no property `Foobar` for type `AST`, did you mean `b18219.Foobar`?
+    AST.Foobar.smeth();
+    ^
 ---
 */
 import imports.a18219;

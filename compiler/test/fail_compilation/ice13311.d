@@ -3,6 +3,8 @@ EXTRA_FILES: imports/a13311.d
 TEST_OUTPUT:
 ---
 fail_compilation/imports/a13311.d(8): Error: undefined identifier `PieceTree`
+    this(PieceTree owner) {}
+    ^
 ---
 */
 module ice13311;

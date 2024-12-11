@@ -5,7 +5,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail23826.d(23): Deprecation: alias `fail23826.S.value` is deprecated
+fail_compilation/fail23826.d(25): Deprecation: alias `fail23826.S.value` is deprecated
+    auto a = identity!(S.value);
+             ^
 ---
 */
 

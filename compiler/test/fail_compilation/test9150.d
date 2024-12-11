@@ -3,7 +3,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test9150.d(14): Error: mismatched array lengths 5 and 3 for assignment `row[] = __r2[__key3]`
+fail_compilation/test9150.d(16): Error: mismatched array lengths 5 and 3 for assignment `row[] = __r2[__key3]`
+    foreach (int[5] row; matrix) //if int[3], there is no error.
+    ^
 ---
 */
 

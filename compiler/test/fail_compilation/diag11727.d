@@ -1,7 +1,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag11727.d(10): Error: type `n` is not an expression
+fail_compilation/diag11727.d(18): Error: type `n` is not an expression
+    return n;
+           ^
+fail_compilation/diag11727.d(28): Error: type `void` is not an expression
+    return v;
+           ^
+fail_compilation/diag11727.d(34): Error: template `t()` has no type
+    return t;
+           ^
 ---
 */
 auto returnEnum()
@@ -14,24 +22,12 @@ void main()
     assert(returnEnum() == 0);
 }
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/diag11727.d(26): Error: type `void` is not an expression
----
-*/
 auto returnVoid()
 {
     alias v = void;
     return v;
 }
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/diag11727.d(38): Error: template `t()` has no type
----
-*/
 auto returnTemplate()
 {
     template t() {}

@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/immutable_ctor.d(18): Error: `immutable` copy constructor `immutable_ctor.S1.this` cannot construct a mutable object
+fail_compilation/immutable_ctor.d(20): Error: `immutable` copy constructor `immutable_ctor.S1.this` cannot construct a mutable object
+    S1 ms1 = s1;
+       ^
 ---
 */
 

@@ -1,33 +1,87 @@
 /+
 TEST_OUTPUT:
 ---
-fail_compilation/fail9665a.d(43): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(42):        Previous initialization is here.
-fail_compilation/fail9665a.d(53): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(52):        Previous initialization is here.
-fail_compilation/fail9665a.d(58): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(57):        Previous initialization is here.
-fail_compilation/fail9665a.d(63): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(62):        Previous initialization is here.
-fail_compilation/fail9665a.d(73): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(72):        Previous initialization is here.
-fail_compilation/fail9665a.d(78): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(77):        Previous initialization is here.
-fail_compilation/fail9665a.d(83): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(82):        Previous initialization is here.
-fail_compilation/fail9665a.d(96): Error: immutable field `v` initialization is not allowed in loops or after labels
-fail_compilation/fail9665a.d(101): Error: immutable field `v` initialization is not allowed in loops or after labels
-fail_compilation/fail9665a.d(106): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(105):        Previous initialization is here.
-fail_compilation/fail9665a.d(111): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(110):        Previous initialization is here.
-fail_compilation/fail9665a.d(116): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(115):        Previous initialization is here.
-fail_compilation/fail9665a.d(130): Error: immutable field `v` initialized multiple times
-fail_compilation/fail9665a.d(129):        Previous initialization is here.
-fail_compilation/fail9665a.d(134): Error: immutable field `w` initialized multiple times
-fail_compilation/fail9665a.d(133):        Previous initialization is here.
-fail_compilation/fail9665a.d(148): Error: static assert:  `__traits(compiles, this.v = 1)` is false
+fail_compilation/fail9665a.d(97): Error: immutable field `v` initialized multiple times
+        v = 2;  // multiple initialization
+        ^
+fail_compilation/fail9665a.d(96):        Previous initialization is here.
+        v = 1;
+        ^
+fail_compilation/fail9665a.d(107): Error: immutable field `v` initialized multiple times
+        v = 3;  // multiple initialization
+        ^
+fail_compilation/fail9665a.d(106):        Previous initialization is here.
+        if (true) v = 1; else v = 2;
+                              ^
+fail_compilation/fail9665a.d(112): Error: immutable field `v` initialized multiple times
+        v = 3;  // multiple initialization
+        ^
+fail_compilation/fail9665a.d(111):        Previous initialization is here.
+        if (true) v = 1;
+                  ^
+fail_compilation/fail9665a.d(117): Error: immutable field `v` initialized multiple times
+        v = 3;  // multiple initialization
+        ^
+fail_compilation/fail9665a.d(116):        Previous initialization is here.
+        if (true) {} else v = 2;
+                          ^
+fail_compilation/fail9665a.d(127): Error: immutable field `v` initialized multiple times
+        v = 3;  // multiple initialization
+        ^
+fail_compilation/fail9665a.d(126):        Previous initialization is here.
+        true ? (v = 1) : (v = 2);
+                          ^
+fail_compilation/fail9665a.d(132): Error: immutable field `v` initialized multiple times
+        v = 3;  // multiple initialization
+        ^
+fail_compilation/fail9665a.d(131):        Previous initialization is here.
+        auto x = true ? (v = 1) : 2;
+                         ^
+fail_compilation/fail9665a.d(137): Error: immutable field `v` initialized multiple times
+        v = 3;  // multiple initialization
+        ^
+fail_compilation/fail9665a.d(136):        Previous initialization is here.
+        auto x = true ? 1 : (v = 2);
+                             ^
+fail_compilation/fail9665a.d(150): Error: immutable field `v` initialization is not allowed in loops or after labels
+        v = 1;  // after labels
+        ^
+fail_compilation/fail9665a.d(155): Error: immutable field `v` initialization is not allowed in loops or after labels
+            v = 1;  // in loops
+            ^
+fail_compilation/fail9665a.d(160): Error: immutable field `v` initialized multiple times
+    L:  v = 2;  // assignment after labels
+        ^
+fail_compilation/fail9665a.d(159):        Previous initialization is here.
+        v = 1;  // initialization
+        ^
+fail_compilation/fail9665a.d(165): Error: immutable field `v` initialized multiple times
+        foreach (i; 0..1) v = 2;  // assignment in loops
+                          ^
+fail_compilation/fail9665a.d(164):        Previous initialization is here.
+        v = 1;  // initialization
+        ^
+fail_compilation/fail9665a.d(170): Error: immutable field `v` initialized multiple times
+        v = 2;  // multiple initialization
+        ^
+fail_compilation/fail9665a.d(169):        Previous initialization is here.
+        v = 1; return;
+        ^
+fail_compilation/fail9665a.d(184): Error: immutable field `v` initialized multiple times
+        v = 2;  // multiple initialization
+        ^
+fail_compilation/fail9665a.d(183):        Previous initialization is here.
+        v = 1;
+        ^
+fail_compilation/fail9665a.d(188): Error: immutable field `w` initialized multiple times
+        w = 2;  // multiple initialization
+        ^
+fail_compilation/fail9665a.d(187):        Previous initialization is here.
+            w = 1;
+            ^
+fail_compilation/fail9665a.d(202): Error: static assert:  `__traits(compiles, this.v = 1)` is false
+        static assert(__traits(compiles, v = 1)); // multiple initialization
+        ^
 ---
 +/
 

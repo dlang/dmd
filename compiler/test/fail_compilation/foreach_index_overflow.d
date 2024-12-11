@@ -2,10 +2,18 @@
 REQUIRED_ARGS: -de -m64
 TEST_OUTPUT:
 ---
-fail_compilation/foreach_index_overflow.d(19): Deprecation: foreach: loop index implicitly converted from `size_t` to `int`
-fail_compilation/foreach_index_overflow.d(21): Deprecation: foreach: loop index implicitly converted from `size_t` to `ushort`
-fail_compilation/foreach_index_overflow.d(24): Deprecation: foreach: loop index implicitly converted from `size_t` to `ubyte`
-fail_compilation/foreach_index_overflow.d(26): Deprecation: foreach: loop index implicitly converted from `size_t` to `byte`
+fail_compilation/foreach_index_overflow.d(27): Deprecation: foreach: loop index implicitly converted from `size_t` to `int`
+    foreach (int index, element; arr[0 .. 0x8000_0001]) {} // error
+    ^
+fail_compilation/foreach_index_overflow.d(29): Deprecation: foreach: loop index implicitly converted from `size_t` to `ushort`
+    foreach (ushort index, element; arr[0 .. 0x1_0001]) {} // error
+    ^
+fail_compilation/foreach_index_overflow.d(32): Deprecation: foreach: loop index implicitly converted from `size_t` to `ubyte`
+    foreach (ubyte i, x; data[]) {} // error
+    ^
+fail_compilation/foreach_index_overflow.d(34): Deprecation: foreach: loop index implicitly converted from `size_t` to `byte`
+    foreach (byte i, x; data[0..0x81]) {} // error
+    ^
 ---
 */
 

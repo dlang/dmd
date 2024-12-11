@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail19099.d(26): Error: cannot modify struct instance `a` of type `A` because it contains `const` or `immutable` members
+fail_compilation/fail19099.d(28): Error: cannot modify struct instance `a` of type `A` because it contains `const` or `immutable` members
+    a = b;
+    ^
 ---
 */
 

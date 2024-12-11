@@ -2,7 +2,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test21319.d(11): Error: circular reference to `test21319.C.c`
+fail_compilation/test21319.d(13): Error: circular reference to `test21319.C.c`
+    immutable C c = new C();
+                    ^
 ---
 */
 

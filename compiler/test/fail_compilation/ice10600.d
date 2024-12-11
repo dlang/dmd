@@ -2,7 +2,9 @@
 EXTRA_FILES: imports/ice10600a.d imports/ice10600b.d
 TEST_OUTPUT:
 ---
-fail_compilation/ice10600.d(31): Error: template instance `to!(int, double)` does not match template declaration `to(T)`
+fail_compilation/ice10600.d(33): Error: template instance `to!(int, double)` does not match template declaration `to(T)`
+    auto b = to!(int, double)("");
+             ^
 ---
 */
 

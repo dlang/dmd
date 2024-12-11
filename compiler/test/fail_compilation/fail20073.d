@@ -2,8 +2,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail20073.d(20): Error: cannot implicitly convert expression `s` of type `S` to `string`
-fail_compilation/fail20073.d(21): Error: cannot implicitly convert expression `s` of type `S` to `string`
+fail_compilation/fail20073.d(24): Error: cannot implicitly convert expression `s` of type `S` to `string`
+    string str = s; // cannot implicitly convert expression `s` of type `S` to `string`
+                 ^
+fail_compilation/fail20073.d(25): Error: cannot implicitly convert expression `s` of type `S` to `string`
+    return s;       // and suddenly we can!
+           ^
 ---
 */
 

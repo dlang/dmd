@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail63.d(11): Error: debug `Foo` defined after use
+fail_compilation/fail63.d(13): Error: debug `Foo` defined after use
+debug = Foo;
+        ^
 ---
 */
 

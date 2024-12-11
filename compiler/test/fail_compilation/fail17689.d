@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail17689.d(10): Error: undefined identifier `x`
+fail_compilation/fail17689.d(12): Error: undefined identifier `x`
+    assert(x==3);
+           ^
 ---
 */
 void main(){

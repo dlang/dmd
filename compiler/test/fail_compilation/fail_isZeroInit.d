@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail_isZeroInit.d(11): Error: type expected as second argument of __traits `isZeroInit` instead of `a`
+fail_compilation/fail_isZeroInit.d(13): Error: type expected as second argument of __traits `isZeroInit` instead of `a`
+    enum bool az = __traits(isZeroInit, a);
+                   ^
 ---
 */
 void test()

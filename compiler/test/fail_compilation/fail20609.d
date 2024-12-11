@@ -1,16 +1,34 @@
 /*
   TEST_OUTPUT:
   ---
-fail_compilation/fail20609.d(26): Error: none of the overloads of `this` are callable using argument types `(int)`
-fail_compilation/fail20609.d(23):        Candidate is: `fail20609.Foo.this(string[] args)`
-fail_compilation/fail20609.d(27): Error: none of the overloads of `this` are callable using argument types `(int)`
-fail_compilation/fail20609.d(22):        Candidates are: `fail20609.Foo.this(Object __param_0)`
-fail_compilation/fail20609.d(23):                        `fail20609.Foo.this(string[] args)`
-fail_compilation/fail20609.d(37): Error: none of the overloads of `this` are callable using argument types `(int)`
-fail_compilation/fail20609.d(37):        All possible candidates are marked as `deprecated` or `@disable`
-fail_compilation/fail20609.d(43): Error: undefined identifier `deprecatedTypo_`
-fail_compilation/fail20609.d(44): Error: undefined identifier `deprecatedTypo_`, did you mean function `deprecatedTypo`?
-fail_compilation/fail20609.d(45): Error: undefined identifier `disabledTypo_`
+fail_compilation/fail20609.d(44): Error: none of the overloads of `this` are callable using argument types `(int)`
+void test1() { auto f = Foo(42); }
+                           ^
+fail_compilation/fail20609.d(41):        Candidate is: `fail20609.Foo.this(string[] args)`
+    this(string[] args) {}
+    ^
+fail_compilation/fail20609.d(45): Error: none of the overloads of `this` are callable using argument types `(int)`
+deprecated void test2() { auto f = Foo(42); }
+                                      ^
+fail_compilation/fail20609.d(40):        Candidates are: `fail20609.Foo.this(Object __param_0)`
+    deprecated this(Object) {}
+               ^
+fail_compilation/fail20609.d(41):                        `fail20609.Foo.this(string[] args)`
+    this(string[] args) {}
+    ^
+fail_compilation/fail20609.d(55): Error: none of the overloads of `this` are callable using argument types `(int)`
+void test3() { auto f = WhoDoesThat(42); }
+                                   ^
+fail_compilation/fail20609.d(55):        All possible candidates are marked as `deprecated` or `@disable`
+fail_compilation/fail20609.d(61): Error: undefined identifier `deprecatedTypo_`
+void test4 () { deprecatedTypo_("42"); }
+                ^
+fail_compilation/fail20609.d(62): Error: undefined identifier `deprecatedTypo_`, did you mean function `deprecatedTypo`?
+deprecated void test5 () { deprecatedTypo_("42"); }
+                           ^
+fail_compilation/fail20609.d(63): Error: undefined identifier `disabledTypo_`
+void test6 () { disabledTypo_("42"); }
+                ^
 ---
  */
 

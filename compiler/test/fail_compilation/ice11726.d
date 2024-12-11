@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice11726.d(16): Error: undefined identifier `x`
+fail_compilation/ice11726.d(18): Error: undefined identifier `x`
+    S().reserve(x.foo());
+                ^
 ---
 */
 

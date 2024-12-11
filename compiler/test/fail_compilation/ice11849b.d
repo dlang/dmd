@@ -1,9 +1,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice11849b.d(11): Error: circular reference to enum base type `DWORD1`
-fail_compilation/ice11849b.d(11): Error: `DWORD1` is used as a type
-fail_compilation/ice11849b.d(16): Error: circular reference to enum base type `typeof(DWORD2)`
+fail_compilation/ice11849b.d(17): Error: circular reference to enum base type `DWORD1`
+enum : DWORD1
+^
+fail_compilation/ice11849b.d(17): Error: `DWORD1` is used as a type
+enum : DWORD1
+^
+fail_compilation/ice11849b.d(22): Error: circular reference to enum base type `typeof(DWORD2)`
+enum : typeof(DWORD2)
+^
 ---
 */
 enum REG_DWORD = 1;

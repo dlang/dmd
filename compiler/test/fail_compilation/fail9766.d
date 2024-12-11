@@ -1,12 +1,29 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail9766.d(14): Error: integer constant expression expected instead of `Foo!int`
-fail_compilation/fail9766.d(14): Error: alignment must be an integer positive power of 2, not 0x0
+fail_compilation/fail9766.d(15): Error: declaration expected, not `^`
+---
+^
 fail_compilation/fail9766.d(17): Error: alignment must be an integer positive power of 2, not 0xffffffffffffffff
+#line 12
+^
 fail_compilation/fail9766.d(20): Error: alignment must be an integer positive power of 2, not 0x0
+align(Foo!int)
+^
 fail_compilation/fail9766.d(23): Error: alignment must be an integer positive power of 2, not 0x3
+*/
+^
 fail_compilation/fail9766.d(26): Error: alignment must be an integer positive power of 2, not 0x80000001
+template Foo(T) {}
+^
+---
+^
+fail_compilation/fail9766.d(23): Error: alignment must be an integer positive power of 2, not 0x3
+#line 12
+^
+fail_compilation/fail9766.d(26): Error: alignment must be an integer positive power of 2, not 0x80000001
+align(Foo!int)
+^
 ---
 */
 

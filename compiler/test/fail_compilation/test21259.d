@@ -3,10 +3,18 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test21259.d(39): Deprecation: alias `test21259.Foo.width` is deprecated
-fail_compilation/test21259.d(40): Deprecation: alias `test21259.Foo2.width` is deprecated
-fail_compilation/test21259.d(41): Deprecation: variable `test21259.Foo3.bar` is deprecated
-fail_compilation/test21259.d(42): Deprecation: alias `test21259.Foo4.width` is deprecated
+fail_compilation/test21259.d(47): Deprecation: alias `test21259.Foo.width` is deprecated
+    Foo a = { width : 100};
+            ^
+fail_compilation/test21259.d(48): Deprecation: alias `test21259.Foo2.width` is deprecated
+    Foo2 b = { width : 100};
+             ^
+fail_compilation/test21259.d(49): Deprecation: variable `test21259.Foo3.bar` is deprecated
+    Foo3 c = { bar : 100};
+             ^
+fail_compilation/test21259.d(50): Deprecation: alias `test21259.Foo4.width` is deprecated
+    Foo4 d = { width : 100};
+             ^
 ---
 */
 

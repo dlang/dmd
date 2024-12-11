@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail56.d(21): Error: mixin `dstress.nocompile.bug_20050330_A.main.Blah!(5, a).Blah!(5, a)` recursive mixin instantiation
-fail_compilation/fail56.d(26): Error: mixin `dstress.nocompile.bug_20050330_A.main.Blah!(5, a)` error instantiating
+fail_compilation/fail56.d(25): Error: mixin `dstress.nocompile.bug_20050330_A.main.Blah!(5, a).Blah!(5, a)` recursive mixin instantiation
+	mixin Blah!(a, B) Foo;
+ ^
+fail_compilation/fail56.d(30): Error: mixin `dstress.nocompile.bug_20050330_A.main.Blah!(5, a)` error instantiating
+	mixin Blah!(5,a);
+ ^
 ---
 */
 // $HeadURL$

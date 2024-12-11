@@ -1,8 +1,10 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/issue3396.d(17): Error: call to unimplemented abstract function `void M()`
-fail_compilation/issue3396.d(17):        declared here: fail_compilation/issue3396.d(12)
+fail_compilation/issue3396.d(19): Error: call to unimplemented abstract function `void M()`
+    override void M(){ super.M(); }
+                              ^
+fail_compilation/issue3396.d(19):        declared here: fail_compilation/issue3396.d(14)
 ---
 */
 module issue3396;

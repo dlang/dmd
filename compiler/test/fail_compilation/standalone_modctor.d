@@ -1,9 +1,15 @@
 /**
 TEST_OUTPUT:
 ---
-fail_compilation/standalone_modctor.d(11): Error: `@standalone` can only be used on shared static constructors
-fail_compilation/standalone_modctor.d(12): Error: a module constructor using `@standalone` must be `@system` or `@trusted`
-fail_compilation/standalone_modctor.d(13): Error: a module constructor using `@standalone` must be `@system` or `@trusted`
+fail_compilation/standalone_modctor.d(17): Error: `@standalone` can only be used on shared static constructors
+@standalone        static this() {}
+ ^
+fail_compilation/standalone_modctor.d(18): Error: a module constructor using `@standalone` must be `@system` or `@trusted`
+@standalone shared static this() {}
+ ^
+fail_compilation/standalone_modctor.d(19): Error: a module constructor using `@standalone` must be `@system` or `@trusted`
+@standalone shared static this() @safe {}
+ ^
 ---
 */
 import core.attribute : standalone;

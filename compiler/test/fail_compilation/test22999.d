@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test22999.d(17): Error: switch case fallthrough - use 'goto default;' if intended
-fail_compilation/test22999.d(24): Error: switch case fallthrough - use 'goto case;' if intended
+fail_compilation/test22999.d(21): Error: switch case fallthrough - use 'goto default;' if intended
+        default: assert(0);
+        ^
+fail_compilation/test22999.d(28): Error: switch case fallthrough - use 'goto case;' if intended
+        case 2, 3: i = 30;
+        ^
 ---
 */
 

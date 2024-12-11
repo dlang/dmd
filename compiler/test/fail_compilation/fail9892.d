@@ -2,7 +2,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail9892.d(11): Error: enum member `fail9892.a` circular reference to `enum` member
+fail_compilation/fail9892.d(13): Error: enum member `fail9892.a` circular reference to `enum` member
+    a = b, //Segfault!
+    ^
 ---
 */
 

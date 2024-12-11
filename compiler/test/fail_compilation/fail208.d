@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail208.d(18): Error: `return` expression expected
-fail_compilation/fail208.d(21):        called from here: `MakeA()`
+fail_compilation/fail208.d(22): Error: `return` expression expected
+    return ;
+    ^
+fail_compilation/fail208.d(25):        called from here: `MakeA()`
+static const A aInstance = MakeA();
+                                ^
 ---
 */
 

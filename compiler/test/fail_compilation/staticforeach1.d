@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/staticforeach1.d(10): Error: must use labeled `break` within `static foreach`
+fail_compilation/staticforeach1.d(12): Error: must use labeled `break` within `static foreach`
+			break;
+   ^
 ---
 */
 void main(){

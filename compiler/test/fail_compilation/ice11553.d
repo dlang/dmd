@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice11553.d(22): Error: recursive template expansion while looking for `A!().A()`
-fail_compilation/ice11553.d(22): Error: expression `A()` of type `void` does not have a boolean value
+fail_compilation/ice11553.d(26): Error: recursive template expansion while looking for `A!().A()`
+static if (A!B) {}
+           ^
+fail_compilation/ice11553.d(26): Error: expression `A()` of type `void` does not have a boolean value
+static if (A!B) {}
+           ^
 ---
 */
 

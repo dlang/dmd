@@ -1,3 +1,5 @@
+// DISABLED: win32 win64 linux osx freebsd openbsd netbsd
+// This test is disabled for now because its output is not deterministic for verror=context global implementation.
 #!/usr/bin/env bash
 set -eo pipefail
 

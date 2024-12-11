@@ -1,10 +1,18 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/issue24534.d(12): Error: `goto` skips declaration of variable `issue24534.f1.y1`
-fail_compilation/issue24534.d(13):        declared here
-fail_compilation/issue24534.d(20): Error: `goto` skips declaration of variable `issue24534.f2.y2`
-fail_compilation/issue24534.d(22):        declared here
+fail_compilation/issue24534.d(20): Error: `goto` skips declaration of variable `issue24534.f1.y1`
+    goto Label1;
+    ^
+fail_compilation/issue24534.d(21):        declared here
+    int y1;
+        ^
+fail_compilation/issue24534.d(28): Error: `goto` skips declaration of variable `issue24534.f2.y2`
+    goto Label2;
+    ^
+fail_compilation/issue24534.d(30):        declared here
+    int y2;
+        ^
 ---
 */
 void f1(){ //always failed with error about skipping a declaration

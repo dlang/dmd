@@ -2,7 +2,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test19608.d(15): Error: cannot pass function `*& f` as a function argument
+fail_compilation/test19608.d(17): Error: cannot pass function `*& f` as a function argument
+    g(*&f); // ICE -> Error
+      ^
 ---
 */
 import core.stdc.stdarg;

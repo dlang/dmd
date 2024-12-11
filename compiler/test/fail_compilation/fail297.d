@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail297.d(30): Error: incompatible types for `(Bar()) + (baz())`: `Bar` and `const(Bar)`
+fail_compilation/fail297.d(32): Error: incompatible types for `(Bar()) + (baz())`: `Bar` and `const(Bar)`
+    Bar result = Bar() + baz();
+                 ^
 ---
 */
 

@@ -2,9 +2,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail18417.d(11): Deprecation: `const` postblit is deprecated. Please use an unqualified postblit.
-fail_compilation/fail18417.d(12): Deprecation: `immutable` postblit is deprecated. Please use an unqualified postblit.
-fail_compilation/fail18417.d(13): Deprecation: `shared` postblit is deprecated. Please use an unqualified postblit.
+fail_compilation/fail18417.d(17): Deprecation: `const` postblit is deprecated. Please use an unqualified postblit.
+struct A { this(this) const {} }
+                            ^
+fail_compilation/fail18417.d(18): Deprecation: `immutable` postblit is deprecated. Please use an unqualified postblit.
+struct B { this(this) immutable {} }
+                                ^
+fail_compilation/fail18417.d(19): Deprecation: `shared` postblit is deprecated. Please use an unqualified postblit.
+struct C { this(this) shared {} }
+                             ^
 ---
 */
 

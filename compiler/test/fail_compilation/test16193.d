@@ -2,9 +2,15 @@
 REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/test16193.d(39): Error: function `test16193.abc` is `@nogc` yet allocates closure for `abc()` with the GC
-fail_compilation/test16193.d(41):        delegate `test16193.abc.__foreachbody_L41_C5` closes over variable `x`
-fail_compilation/test16193.d(40):        `x` declared here
+fail_compilation/test16193.d(45): Error: function `test16193.abc` is `@nogc` yet allocates closure for `abc()` with the GC
+void abc() @nogc {
+     ^
+fail_compilation/test16193.d(47):        delegate `test16193.abc.__foreachbody_L47_C5` closes over variable `x`
+    foreach(i; S.init) {
+    ^
+fail_compilation/test16193.d(46):        `x` declared here
+    int x = 0;
+        ^
 ---
 */
 //fail_compilation/test16193.d(22): To enforce `@safe`, the compiler allocates a closure unless `opApply()` uses `scope`

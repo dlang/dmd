@@ -2,8 +2,12 @@
 EXTRA_FILES: imports/imp15925.d
 TEST_OUTPUT:
 ---
-fail_compilation/test15925.d(18): Error: undefined identifier `X`
-fail_compilation/test15925.d(18):        while evaluating: `static assert(X == 1)`
+fail_compilation/test15925.d(22): Error: undefined identifier `X`
+    static assert(X == 1);
+                  ^
+fail_compilation/test15925.d(22):        while evaluating: `static assert(X == 1)`
+    static assert(X == 1);
+    ^
 ---
 */
 

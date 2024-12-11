@@ -1,12 +1,24 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag12432.d(55): Error: cannot infer argument types, expected 1 argument, not 2
-fail_compilation/diag12432.d(56): Error: cannot infer argument types, expected 2 arguments, not 3
-fail_compilation/diag12432.d(57): Error: cannot infer argument types, expected 1 argument, not 2
-fail_compilation/diag12432.d(58): Error: cannot infer argument types, expected 1 argument, not 2
-fail_compilation/diag12432.d(59): Error: cannot infer argument types, expected 2 arguments, not 3
-fail_compilation/diag12432.d(60): Error: cannot infer argument types, expected 2 arguments, not 3
+fail_compilation/diag12432.d(67): Error: cannot infer argument types, expected 1 argument, not 2
+    foreach (a, b; R1()) { }
+    ^
+fail_compilation/diag12432.d(68): Error: cannot infer argument types, expected 2 arguments, not 3
+    foreach (a, b, c; R2()) { }
+    ^
+fail_compilation/diag12432.d(69): Error: cannot infer argument types, expected 1 argument, not 2
+    foreach (a, b; OpApply1Func()) { }
+    ^
+fail_compilation/diag12432.d(70): Error: cannot infer argument types, expected 1 argument, not 2
+    foreach (a, b; OpApply1Deleg()) { }
+    ^
+fail_compilation/diag12432.d(71): Error: cannot infer argument types, expected 2 arguments, not 3
+    foreach (a, b, c; OpApply2Func()) { }
+    ^
+fail_compilation/diag12432.d(72): Error: cannot infer argument types, expected 2 arguments, not 3
+    foreach (a, b, c; OpApply2Deleg()) { }
+    ^
 ---
 */
 

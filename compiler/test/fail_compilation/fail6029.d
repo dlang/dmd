@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail6029.d(10): Error: alias this is not reachable as `A` already converts to `A`
+fail_compilation/fail6029.d(12): Error: alias this is not reachable as `A` already converts to `A`
+    alias a this;
+    ^
 ---
 */
 struct A

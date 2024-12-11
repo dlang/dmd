@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail8032.d(19): Error: function `fail8032.B.f` cannot determine overridden function
+fail_compilation/fail8032.d(21): Error: function `fail8032.B.f` cannot determine overridden function
+    override void f() { }
+                  ^
 ---
 */
 mixin template T()

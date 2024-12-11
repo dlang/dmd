@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail11653.d(18): Error: switch case fallthrough - use 'goto case;' if intended
-fail_compilation/fail11653.d(23): Error: switch case fallthrough - use 'goto default;' if intended
+fail_compilation/fail11653.d(22): Error: switch case fallthrough - use 'goto case;' if intended
+        case 2: .. case 3:
+        ^
+fail_compilation/fail11653.d(27): Error: switch case fallthrough - use 'goto default;' if intended
+        default:
+        ^
 ---
 */
 

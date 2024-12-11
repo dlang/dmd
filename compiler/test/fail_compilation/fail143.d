@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail143.d(23): Error: calling non-static function `next` requires an instance of type `Quux`
-fail_compilation/fail143.d(30): Error: template instance `fail143.Foo!int` error instantiating
+fail_compilation/fail143.d(27): Error: calling non-static function `next` requires an instance of type `Quux`
+        int r = Quux.next;
+                ^
+fail_compilation/fail143.d(34): Error: template instance `fail143.Foo!int` error instantiating
+    alias Foo!(int).bar baz;
+          ^
 ---
 */
 

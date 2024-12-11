@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/mixin_template.d(10): Error: mixin `mixin_template.f!1` - `f` is a function, not a template
+fail_compilation/mixin_template.d(12): Error: mixin `mixin_template.f!1` - `f` is a function, not a template
+mixin f!1;
+^
 ---
 */
 string f() {

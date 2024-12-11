@@ -6,9 +6,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice6538.d(23): Error: template instance `Sym!(super)` expression `super` is not a valid template value argument
-fail_compilation/ice6538.d(28): Error: template `foo` is not callable using argument types `!()()`
-fail_compilation/ice6538.d(23):        Candidate is: `foo()()`
+fail_compilation/ice6538.d(29): Error: template instance `Sym!(super)` expression `super` is not a valid template value argument
+    void foo()() if (Sym!(super)) {}
+                          ^
+fail_compilation/ice6538.d(34): Error: template `foo` is not callable using argument types `!()()`
+    d.foo();
+         ^
+fail_compilation/ice6538.d(29):        Candidate is: `foo()()`
+    void foo()() if (Sym!(super)) {}
+         ^
 ---
 */
 

@@ -3,7 +3,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail22118.d(33): Error: cannot modify `this.v.a` in `const` function
+fail_compilation/fail22118.d(35): Error: cannot modify `this.v.a` in `const` function
+        v.a = arg;   // this should not
+        ^
 ---
 */
 

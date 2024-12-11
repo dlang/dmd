@@ -1,11 +1,23 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/aliasassign2.d(16): Error: `alias aa1 = aa1;` cannot alias itself, use a qualified name to create an overload set
-fail_compilation/aliasassign2.d(19): Error: template instance `aliasassign2.Tp1!()` error instantiating
-fail_compilation/aliasassign2.d(24): Error: undefined identifier `unknown`
-fail_compilation/aliasassign2.d(26): Error: template instance `aliasassign2.Tp2!()` error instantiating
-fail_compilation/aliasassign2.d(31): Error: template instance `AliasSeqX!(aa3, 1)` template `AliasSeqX` is not defined, did you mean AliasSeq(T...)?
-fail_compilation/aliasassign2.d(33): Error: template instance `aliasassign2.Tp3!()` error instantiating
+fail_compilation/aliasassign2.d(28): Error: `alias aa1 = aa1;` cannot alias itself, use a qualified name to create an overload set
+    alias aa1 = aa1;
+    ^
+fail_compilation/aliasassign2.d(31): Error: template instance `aliasassign2.Tp1!()` error instantiating
+alias a1 = Tp1!();
+           ^
+fail_compilation/aliasassign2.d(36): Error: undefined identifier `unknown`
+    aa2 = AliasSeq!(aa2, unknown);
+          ^
+fail_compilation/aliasassign2.d(38): Error: template instance `aliasassign2.Tp2!()` error instantiating
+alias a2 = Tp2!();
+           ^
+fail_compilation/aliasassign2.d(43): Error: template instance `AliasSeqX!(aa3, 1)` template `AliasSeqX` is not defined, did you mean AliasSeq(T...)?
+    aa3 = AliasSeqX!(aa3, 1);
+          ^
+fail_compilation/aliasassign2.d(45): Error: template instance `aliasassign2.Tp3!()` error instantiating
+alias a3 = Tp3!();
+           ^
 ---
 */
 

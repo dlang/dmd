@@ -1,16 +1,36 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail14304.d(26): Error: reinterpreting cast from `const(S14304)*` to `S14304*` is not supported in CTFE
-fail_compilation/fail14304.d(58):        called from here: `sle14304.modify()`
-fail_compilation/fail14304.d(35): Error: cannot modify read-only constant `[1:1, 2:2]`
-fail_compilation/fail14304.d(61):        called from here: `modify14304(aae14304)`
-fail_compilation/fail14304.d(41): Error: cannot modify read-only constant `[1, 2, 3]`
-fail_compilation/fail14304.d(64):        called from here: `modify14304(cast(const(int)[])index14304)`
-fail_compilation/fail14304.d(46): Error: array cast from `immutable(double[])` to `double[]` is not supported at compile time
-fail_compilation/fail14304.d(67):        called from here: `modify14304(cast(const(double)[])slice14304)`
-fail_compilation/fail14304.d(53): Error: cannot modify read-only string literal `"abc"`
-fail_compilation/fail14304.d(70):        called from here: `modify14304(cast(const(char)[])str14304)`
+fail_compilation/fail14304.d(46): Error: reinterpreting cast from `const(S14304)*` to `S14304*` is not supported in CTFE
+        (cast(S14304*)&this).x = 10;
+                      ^
+fail_compilation/fail14304.d(78):        called from here: `sle14304.modify()`
+static immutable v14304 = sle14304.modify();
+                                         ^
+fail_compilation/fail14304.d(55): Error: cannot modify read-only constant `[1:1, 2:2]`
+    *p = 10;
+       ^
+fail_compilation/fail14304.d(81):        called from here: `modify14304(aae14304)`
+static immutable w14304 = modify14304(aae14304);
+                                     ^
+fail_compilation/fail14304.d(61): Error: cannot modify read-only constant `[1, 2, 3]`
+    a[0] = 10;
+         ^
+fail_compilation/fail14304.d(84):        called from here: `modify14304(cast(const(int)[])index14304)`
+static immutable x14304 = modify14304(index14304);
+                                     ^
+fail_compilation/fail14304.d(66): Error: array cast from `immutable(double[])` to `double[]` is not supported at compile time
+    auto a = cast(double[])arr;
+                           ^
+fail_compilation/fail14304.d(87):        called from here: `modify14304(cast(const(double)[])slice14304)`
+static immutable y14304 = modify14304(slice14304);
+                                     ^
+fail_compilation/fail14304.d(73): Error: cannot modify read-only string literal `"abc"`
+    s[0] = 'z';
+         ^
+fail_compilation/fail14304.d(90):        called from here: `modify14304(cast(const(char)[])str14304)`
+static immutable z14304 = modify14304(str14304);
+                                     ^
 ---
 */
 

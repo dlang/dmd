@@ -3,7 +3,9 @@
 /*
 TEST_OUTPUT:
 ----
-compilable/chkformat.d(14): Deprecation: more format specifiers than 0 arguments
+compilable/chkformat.d(16): Deprecation: more format specifiers than 0 arguments
+    printf("%d \n");
+           ^
 ----
 */
 import core.stdc.stdio;

@@ -1,6 +1,8 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/test20610.d(20): Error: cannot modify `const` expression `field`
+fail_compilation/test20610.d(22): Error: cannot modify `const` expression `field`
+        field = 10;
+        ^
 ---
  */
 

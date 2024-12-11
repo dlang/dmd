@@ -2,7 +2,9 @@
 REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/fail19965.d(36): Error: address of variable `f` assigned to `a` with longer lifetime
+fail_compilation/fail19965.d(38): Error: address of variable `f` assigned to `a` with longer lifetime
+    a = f.toArray;
+      ^
 ---
 */
 

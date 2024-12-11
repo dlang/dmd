@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail11151.d(30): Error: overlapping initialization for field `a` and `y`
+fail_compilation/fail11151.d(32): Error: overlapping initialization for field `a` and `y`
+    U u = {a:1, y:2};   // overlapped initializing U.a and U.y
+             ^
 ---
 */
 

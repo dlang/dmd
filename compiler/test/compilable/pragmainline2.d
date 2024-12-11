@@ -2,9 +2,21 @@
 REQUIRED_ARGS: -inline -wi
 TEST_OUTPUT:
 ---
-compilable/pragmainline2.d(14): Warning: cannot inline function `pragmainline2.foo`
-compilable/pragmainline2.d(22): Warning: cannot inline function `pragmainline2.f1t`
-compilable/pragmainline2.d(25): Warning: cannot inline function `pragmainline2.f2t`
+compilable/pragmainline2.d(26): Warning: cannot inline function `pragmainline2.foo`
+void foo()
+     ^
+compilable/pragmainline2.d(34): Warning: cannot inline function `pragmainline2.f1t`
+pragma(inline, true)   void f1t() { asm { nop; } }  // cannot inline
+                            ^
+compilable/pragmainline2.d(37): Warning: cannot inline function `pragmainline2.f2t`
+void f2t() { pragma(inline, true);  asm { nop; } }  // cannot inline
+     ^
+compilable/pragmainline2.d(54): Warning: cannot inline function `pragmainline2.jazz`
+auto jazz()
+     ^
+compilable/pragmainline2.d(67): Warning: cannot inline function `pragmainline2.metal`
+auto metal()
+     ^
 ---
 */
 
@@ -37,14 +49,6 @@ void main()
     f2f();
     f2d();
 }
-
-/*
-TEST_OUTPUT:
----
-compilable/pragmainline2.d(50): Warning: cannot inline function `pragmainline2.jazz`
-compilable/pragmainline2.d(63): Warning: cannot inline function `pragmainline2.metal`
----
-*/
 
 pragma(inline, true)
 auto jazz()

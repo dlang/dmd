@@ -2,8 +2,12 @@
 /*
 TEST_OUTPUT:
 ---
-compilable/test9701.d(68): Deprecation: enum member `test9701.Enum.value7` is deprecated
-compilable/test9701.d(68): Deprecation: enum member `test9701.Enum.value8` is deprecated - message
+compilable/test9701.d(72): Deprecation: enum member `test9701.Enum.value7` is deprecated
+static assert(Enum.value7 != Enum.value8);
+              ^
+compilable/test9701.d(72): Deprecation: enum member `test9701.Enum.value8` is deprecated - message
+static assert(Enum.value7 != Enum.value8);
+                             ^
 ---
 */
 

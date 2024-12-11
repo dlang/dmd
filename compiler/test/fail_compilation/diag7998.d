@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag7998.d(10): Error: static assert:  "abcxe"
+fail_compilation/diag7998.d(12): Error: static assert:  "abcxe"
+static assert(false, "abc" ~['x'] ~ "e");
+^
 ---
 */
 

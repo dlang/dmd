@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test22070.c(10): Error: cannot take address of expression `&""` because it is not an lvalue
+fail_compilation/test22070.c(12): Error: cannot take address of expression `&""` because it is not an lvalue
+char(**s1)[3] = &(&"");
+                ^
 ---
 */
 

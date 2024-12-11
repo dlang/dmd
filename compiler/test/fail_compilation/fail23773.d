@@ -3,7 +3,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail23773.d(14): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+fail_compilation/fail23773.d(16): Error: assignment cannot be used as a condition, perhaps `==` was meant?
+    assert(arr.length = i);
+                      ^
 ---
 */
 

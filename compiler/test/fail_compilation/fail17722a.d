@@ -1,6 +1,8 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/fail17722a.d(12): Error: static assert:  `__traits(compiles, a1 && a2)` is false
+fail_compilation/fail17722a.d(14): Error: static assert:  `__traits(compiles, a1 && a2)` is false
+    static assert(__traits(compiles, a1 && a2));  // diagnostic was (__error) && (__error)
+    ^
 ---
 */
 

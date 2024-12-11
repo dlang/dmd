@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail223.d(14): Error: cannot modify `this.x` in `const` function
+fail_compilation/fail223.d(16): Error: cannot modify `this.x` in `const` function
+    void setX(int nx) const { x = nx; }
+                              ^
 ---
 */
 

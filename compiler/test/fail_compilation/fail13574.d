@@ -1,8 +1,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail13574.d(21): Error: cannot modify operator `$`
-fail_compilation/fail13574.d(27): Error: cannot modify operator `$`
+fail_compilation/fail13574.d(25): Error: cannot modify operator `$`
+    foo[0 .. $ = 2]; // assigns to the temporary dollar variable
+             ^
+fail_compilation/fail13574.d(31): Error: cannot modify operator `$`
+    auto y = arr[0 .. $ = 2]; // should also be disallowed
+                      ^
 ---
 */
 

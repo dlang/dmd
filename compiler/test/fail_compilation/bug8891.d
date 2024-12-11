@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/bug8891.d(21): Error: calling non-static function `opCall` requires an instance of type `S`
+fail_compilation/bug8891.d(23): Error: calling non-static function `opCall` requires an instance of type `S`
+    S s = 10;
+      ^
 ---
 */
 

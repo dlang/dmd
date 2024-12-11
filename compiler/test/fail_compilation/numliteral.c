@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/numliteral.c(11): Error: embedded `_` not allowed
+fail_compilation/numliteral.c(13): Error: embedded `_` not allowed
+int y = 0_1;
+        ^
 ---
 */
 

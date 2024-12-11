@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail38.d(12): Error: `super` is only allowed in non-static class member functions
+fail_compilation/fail38.d(14): Error: `super` is only allowed in non-static class member functions
+    super.x = 2;
+    ^
 ---
 */
 

@@ -4,13 +4,27 @@ EXTRA_FILES: imports/deprecatedImporta.d imports/deprecatedImportb.d
 
 TEST_OUTPUT:
 ----
-fail_compilation/deprecatedImports.d(19): Deprecation: alias `deprecatedImporta.foo` is deprecated - Please import deprecatedImportb directly!
-fail_compilation/deprecatedImports.d(21): Deprecation: alias `deprecatedImporta.bar` is deprecated - Please import deprecatedImportb directly!
-fail_compilation/deprecatedImports.d(23): Deprecation: alias `deprecatedImporta.AliasSeq` is deprecated - Please import deprecatedImportb directly!
-fail_compilation/deprecatedImports.d(27): Deprecation: alias `deprecatedImporta.S` is deprecated - Please import deprecatedImportb directly!
-fail_compilation/deprecatedImports.d(29): Deprecation: alias `deprecatedImporta.C` is deprecated - Please import deprecatedImportb directly!
-fail_compilation/deprecatedImports.d(31): Deprecation: alias `deprecatedImporta.I` is deprecated - Please import deprecatedImportb directly!
-fail_compilation/deprecatedImports.d(25): Deprecation: alias `deprecatedImporta.E` is deprecated - Please import deprecatedImportb directly!
+fail_compilation/deprecatedImports.d(33): Deprecation: alias `deprecatedImporta.foo` is deprecated - Please import deprecatedImportb directly!
+alias f = foo;
+          ^
+fail_compilation/deprecatedImports.d(35): Deprecation: alias `deprecatedImporta.bar` is deprecated - Please import deprecatedImportb directly!
+alias b = bar!(int);
+          ^
+fail_compilation/deprecatedImports.d(37): Deprecation: alias `deprecatedImporta.AliasSeq` is deprecated - Please import deprecatedImportb directly!
+alias Types = AliasSeq!(int);
+              ^
+fail_compilation/deprecatedImports.d(41): Deprecation: alias `deprecatedImporta.S` is deprecated - Please import deprecatedImportb directly!
+S s;
+  ^
+fail_compilation/deprecatedImports.d(43): Deprecation: alias `deprecatedImporta.C` is deprecated - Please import deprecatedImportb directly!
+C c;
+  ^
+fail_compilation/deprecatedImports.d(45): Deprecation: alias `deprecatedImporta.I` is deprecated - Please import deprecatedImportb directly!
+I i;
+  ^
+fail_compilation/deprecatedImports.d(39): Deprecation: alias `deprecatedImporta.E` is deprecated - Please import deprecatedImportb directly!
+int x = E;
+        ^
 ----
 */
 

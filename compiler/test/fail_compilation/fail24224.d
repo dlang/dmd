@@ -1,9 +1,15 @@
 /+
 TEST_OUTPUT:
 ---
-fail_compilation/fail24224.d(19): Error: struct / class type expected as argument to __traits(initSymbol) instead of `ES`
-fail_compilation/fail24224.d(20): Error: struct / class type expected as argument to __traits(initSymbol) instead of `EU`
-fail_compilation/fail24224.d(21): Error: struct / class type expected as argument to __traits(initSymbol) instead of `EC`
+fail_compilation/fail24224.d(25): Error: struct / class type expected as argument to __traits(initSymbol) instead of `ES`
+    auto init1 = __traits(initSymbol, ES);
+                 ^
+fail_compilation/fail24224.d(26): Error: struct / class type expected as argument to __traits(initSymbol) instead of `EU`
+    auto init2 = __traits(initSymbol, EU);
+                 ^
+fail_compilation/fail24224.d(27): Error: struct / class type expected as argument to __traits(initSymbol) instead of `EC`
+    auto init3 = __traits(initSymbol, EC);
+                 ^
 ---
 +/
 struct S {}

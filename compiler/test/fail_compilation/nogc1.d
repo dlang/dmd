@@ -9,13 +9,57 @@ struct S3 { this(int) @nogc; }
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/nogc1.d(23): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
-fail_compilation/nogc1.d(25): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
-fail_compilation/nogc1.d(26): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
-fail_compilation/nogc1.d(28): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
-fail_compilation/nogc1.d(29): Error: `@nogc` function `nogc1.testNew` cannot call non-@nogc constructor `nogc1.S2.this`
-fail_compilation/nogc1.d(30): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
-fail_compilation/nogc1.d(32): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
+fail_compilation/nogc1.d(67): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
+    int* p1 = new int;
+              ^
+fail_compilation/nogc1.d(69): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
+    int[] a1 = new int[3];
+               ^
+fail_compilation/nogc1.d(70): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
+    int[][] a2 = new int[][](2, 3);
+                 ^
+fail_compilation/nogc1.d(72): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
+    S1* ps1 = new S1();
+              ^
+fail_compilation/nogc1.d(73): Error: `@nogc` function `nogc1.testNew` cannot call non-@nogc constructor `nogc1.S2.this`
+    S2* ps2 = new S2(1);
+              ^
+fail_compilation/nogc1.d(74): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
+    S3* ps3 = new S3(1);
+              ^
+fail_compilation/nogc1.d(76): Error: cannot use `new` in `@nogc` function `nogc1.testNew`
+    Object o1 = new Object();
+                ^
+fail_compilation/nogc1.d(81): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
+    scope int* p1 = new int;
+                    ^
+fail_compilation/nogc1.d(83): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
+    scope int[] a1 = new int[3];
+                     ^
+fail_compilation/nogc1.d(84): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
+    scope int[][] a2 = new int[][](2, 3);
+                       ^
+fail_compilation/nogc1.d(86): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
+    scope S1* ps1 = new S1();
+                    ^
+fail_compilation/nogc1.d(87): Error: `@nogc` function `nogc1.testNewScope` cannot call non-@nogc constructor `nogc1.S2.this`
+    scope S2* ps2 = new S2(1);
+                    ^
+fail_compilation/nogc1.d(88): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
+    scope S3* ps3 = new S3(1);
+                    ^
+fail_compilation/nogc1.d(98): Error: the `delete` keyword is obsolete
+    delete p;
+    ^
+fail_compilation/nogc1.d(98):        use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead
+fail_compilation/nogc1.d(99): Error: the `delete` keyword is obsolete
+    delete o;
+    ^
+fail_compilation/nogc1.d(99):        use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead
+fail_compilation/nogc1.d(100): Error: the `delete` keyword is obsolete
+    delete s;
+    ^
+fail_compilation/nogc1.d(100):        use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead
 ---
 */
 @nogc void testNew()
@@ -32,17 +76,6 @@ fail_compilation/nogc1.d(32): Error: cannot use `new` in `@nogc` function `nogc1
     Object o1 = new Object();
 }
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/nogc1.d(48): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
-fail_compilation/nogc1.d(50): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
-fail_compilation/nogc1.d(51): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
-fail_compilation/nogc1.d(53): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
-fail_compilation/nogc1.d(54): Error: `@nogc` function `nogc1.testNewScope` cannot call non-@nogc constructor `nogc1.S2.this`
-fail_compilation/nogc1.d(55): Error: cannot use `new` in `@nogc` function `nogc1.testNewScope`
----
-*/
 @nogc void testNewScope()
 {
     scope int* p1 = new int;
@@ -60,17 +93,6 @@ fail_compilation/nogc1.d(55): Error: cannot use `new` in `@nogc` function `nogc1
 
 /***************** DeleteExp *******************/
 
-/*
-TEST_OUTPUT:
----
-fail_compilation/nogc1.d(76): Error: the `delete` keyword is obsolete
-fail_compilation/nogc1.d(76):        use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead
-fail_compilation/nogc1.d(77): Error: the `delete` keyword is obsolete
-fail_compilation/nogc1.d(77):        use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead
-fail_compilation/nogc1.d(78): Error: the `delete` keyword is obsolete
-fail_compilation/nogc1.d(78):        use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead
----
-*/
 @nogc void testDelete(int* p, Object o, S1* s)
 {
     delete p;

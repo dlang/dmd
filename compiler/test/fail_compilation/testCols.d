@@ -3,7 +3,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/testCols.d(12,5): Error: undefined identifier `nonexistent`
+fail_compilation/testCols.d(14,5): Error: undefined identifier `nonexistent`
+    nonexistent();
+    ^
 ---
 */
 

@@ -2,13 +2,27 @@
 REQUIRED_ARGS: -preview=systemVariables
 TEST_OUTPUT:
 ---
-fail_compilation/systemvariables_void_init.d(48): Error: `void` initializers for types with unsafe bit patterns are not allowed in safe functions
-fail_compilation/systemvariables_void_init.d(49): Error: `void` initializers for types with unsafe bit patterns are not allowed in safe functions
-fail_compilation/systemvariables_void_init.d(50): Error: `void` initializers for types with unsafe bit patterns are not allowed in safe functions
-fail_compilation/systemvariables_void_init.d(51): Error: a `bool` must be 0 or 1, so void intializing it is not allowed in safe functions
-fail_compilation/systemvariables_void_init.d(52): Error: a `bool` must be 0 or 1, so void intializing it is not allowed in safe functions
-fail_compilation/systemvariables_void_init.d(53): Error: `void` initializers for types with unsafe bit patterns are not allowed in safe functions
-fail_compilation/systemvariables_void_init.d(54): Error: `void` initializers for types with unsafe bit patterns are not allowed in safe functions
+fail_compilation/systemvariables_void_init.d(62): Error: `void` initializers for types with unsafe bit patterns are not allowed in safe functions
+	S s = void;
+   ^
+fail_compilation/systemvariables_void_init.d(63): Error: `void` initializers for types with unsafe bit patterns are not allowed in safe functions
+	C c = void;
+   ^
+fail_compilation/systemvariables_void_init.d(64): Error: `void` initializers for types with unsafe bit patterns are not allowed in safe functions
+	E e = void;
+   ^
+fail_compilation/systemvariables_void_init.d(65): Error: a `bool` must be 0 or 1, so void intializing it is not allowed in safe functions
+	const bool b = void;
+            ^
+fail_compilation/systemvariables_void_init.d(66): Error: a `bool` must be 0 or 1, so void intializing it is not allowed in safe functions
+	B bb = void;
+   ^
+fail_compilation/systemvariables_void_init.d(67): Error: `void` initializers for types with unsafe bit patterns are not allowed in safe functions
+	SB sb = void;
+    ^
+fail_compilation/systemvariables_void_init.d(68): Error: `void` initializers for types with unsafe bit patterns are not allowed in safe functions
+	SSB ssb = void;
+     ^
 ---
 */
 

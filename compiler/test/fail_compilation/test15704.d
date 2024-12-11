@@ -1,9 +1,15 @@
 /*
  * TEST_OUTPUT:
 ---
-fail_compilation/test15704.d(17): Error: cannot copy `void[]` to `void[]` in `@safe` code
-fail_compilation/test15704.d(18): Error: cannot copy `const(void)[]` to `void[]` in `@safe` code
-fail_compilation/test15704.d(19): Deprecation: cannot copy `int[]` to `void[]` in `@safe` code
+fail_compilation/test15704.d(23): Error: cannot copy `void[]` to `void[]` in `@safe` code
+    arr1[] = arr2[];  // overwrites pointers with arbitrary ints
+           ^
+fail_compilation/test15704.d(24): Error: cannot copy `const(void)[]` to `void[]` in `@safe` code
+    arr1[] = new const(void)[3];
+           ^
+fail_compilation/test15704.d(25): Deprecation: cannot copy `int[]` to `void[]` in `@safe` code
+    arr1[] = [5];
+           ^
 ---
  */
 

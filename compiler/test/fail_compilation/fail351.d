@@ -1,7 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail351.d(14): Error: expression `this.num[index]` of type `immutable(uint)` is not implicitly convertible to return type `ref uint`
+fail_compilation/fail351.d(16): Error: expression `this.num[index]` of type `immutable(uint)` is not implicitly convertible to return type `ref uint`
+        return num[index];
+                  ^
 ---
 */
 

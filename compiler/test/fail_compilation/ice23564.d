@@ -1,6 +1,8 @@
 /* TEST_OUTPUT:
 ---
-fail_compilation/ice23564.d(10): Error: cannot construct nested class `FreeList` because no implicit `this` reference to outer class `RBTree` is available
+fail_compilation/ice23564.d(12): Error: cannot construct nested class `FreeList` because no implicit `this` reference to outer class `RBTree` is available
+        new FreeList;
+        ^
 ---
 */
 class BlockHeader

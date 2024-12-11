@@ -2,10 +2,18 @@
 REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/test20881.d(20): Error: scope variable `this` may not be returned
-fail_compilation/test20881.d(27): Error: address of variable `s` assigned to `global` with longer lifetime
-fail_compilation/test20881.d(28): Error: address of variable `s` assigned to `global` with longer lifetime
-fail_compilation/test20881.d(29): Error: address of variable `s` assigned to `global` with longer lifetime
+fail_compilation/test20881.d(28): Error: scope variable `this` may not be returned
+    int* borrowC() scope return { return ptr; }
+                                         ^
+fail_compilation/test20881.d(35): Error: address of variable `s` assigned to `global` with longer lifetime
+    global = s.borrowA;
+           ^
+fail_compilation/test20881.d(36): Error: address of variable `s` assigned to `global` with longer lifetime
+    global = s.borrowB;
+           ^
+fail_compilation/test20881.d(37): Error: address of variable `s` assigned to `global` with longer lifetime
+    global = s.borrowC;
+           ^
 ---
 */
 @safe:

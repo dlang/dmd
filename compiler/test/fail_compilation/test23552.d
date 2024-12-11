@@ -3,7 +3,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test23552.d(17): Error: cannot implicitly override base class method `test23552.Base.foo` with `test23552.Derived.foo`; add `override` attribute
+fail_compilation/test23552.d(19): Error: cannot implicitly override base class method `test23552.Base.foo` with `test23552.Derived.foo`; add `override` attribute
+    void foo() { }
+         ^
 ---
 */
 

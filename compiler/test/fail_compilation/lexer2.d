@@ -1,11 +1,19 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/lexer2.d(16): Error: odd number (3) of hex characters in hex string
-fail_compilation/lexer2.d(17): Error: non-hex character 'G' in hex string
-fail_compilation/lexer2.d(18): Error: heredoc rest of line should be blank
-fail_compilation/lexer2.d(20): Error: unterminated delimited string constant starting at fail_compilation/lexer2.d(20)
-fail_compilation/lexer2.d(22): Error: semicolon expected following auto declaration, not `End of File`
+fail_compilation/lexer2.d(24): Error: odd number (3) of hex characters in hex string
+static s1 = x"123";
+            ^
+fail_compilation/lexer2.d(25): Error: non-hex character 'G' in hex string
+static s2 = x"123G";
+            ^
+fail_compilation/lexer2.d(26): Error: heredoc rest of line should be blank
+static s4 = q"here notblank
+            ^
+fail_compilation/lexer2.d(28): Error: unterminated delimited string constant starting at fail_compilation/lexer2.d(28)
+static s5 = q"here
+            ^
+fail_compilation/lexer2.d(30): Error: semicolon expected following auto declaration, not `End of File`
 ---
 */
 

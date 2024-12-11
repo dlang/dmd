@@ -3,8 +3,12 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test24157.d(23): Error: cannot take address of expression `p.self()` because it is not an lvalue
-fail_compilation/test24157.d(27): Error: cannot take address of expression `p.unshared()` because it is not an lvalue
+fail_compilation/test24157.d(27): Error: cannot take address of expression `p.self()` because it is not an lvalue
+    auto ptr = &p.self(); // must not return a ref to the Promise class ref
+                      ^
+fail_compilation/test24157.d(31): Error: cannot take address of expression `p.unshared()` because it is not an lvalue
+    auto ptr = &p.unshared(); // ditto
+                          ^
 ---
 */
 
