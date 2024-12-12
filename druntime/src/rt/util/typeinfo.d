@@ -7,7 +7,6 @@
  * Source: $(DRUNTIMESRC rt/util/_typeinfo.d)
  */
 module rt.util.typeinfo;
-import rt.util.utility : d_cfloat, d_cdouble, d_creal, isComplex;
 static import core.internal.hash;
 
 // Three-way compare for integrals: negative if `lhs < rhs`, positive if `lhs > rhs`, 0 otherwise.
@@ -32,16 +31,6 @@ if (is(T == float) || is(T == double) || is(T == real))
         return d1 == d1; // 0 if both ar NaN, 1 if d1 is valid and d2 is NaN.
     // If d1 is NaN, both comparisons are false so we get -1, as needed.
     return (d1 > d2) - !(d1 >= d2);
-}
-
-// Three-way compare for complex types.
-pragma(inline, true)
-private int cmp3(T)(const T f1, const T f2)
-if (isComplex!T)
-{
-    if (int result = cmp3(f1.re, f2.re))
-        return result;
-    return cmp3(f1.im, f2.im);
 }
 
 unittest
@@ -230,8 +219,7 @@ if (T.sizeof == Base.sizeof && T.alignof == Base.alignof)
 
     static if (is(T == Base))
     {
-        static if ((__traits(isFloating, T) && T.mant_dig != 64) ||
-                   (isComplex!T && T.re.mant_dig != 64))
+        static if ((__traits(isFloating, T) && T.mant_dig != 64))
             // FP types except 80-bit X87 are passed in SIMD register.
             override @property uint flags() const { return 2; }
     }
