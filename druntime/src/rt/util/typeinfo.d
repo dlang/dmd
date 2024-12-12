@@ -80,49 +80,6 @@ unittest
     assert(cmp3(v, u) == 0);
 }
 
-// @@@DEPRECATED_2.105@@@
-template Array(T)
-if (isComplex!T)
-{
-  pure nothrow @safe:
-
-    bool equals(T[] s1, T[] s2)
-    {
-        size_t len = s1.length;
-        if (len != s2.length)
-            return false;
-        for (size_t u = 0; u < len; u++)
-        {
-            if (!Floating!T.equals(s1[u], s2[u]))
-                return false;
-        }
-        return true;
-    }
-
-    int compare(T[] s1, T[] s2)
-    {
-        size_t len = s1.length;
-        if (s2.length < len)
-            len = s2.length;
-        for (size_t u = 0; u < len; u++)
-        {
-            if (int c = Floating!T.compare(s1[u], s2[u]))
-                return c;
-        }
-        return (s1.length > s2.length) - (s1.length < s2.length);
-    }
-
-    size_t hashOf(scope const T[] val)
-    {
-        size_t hash = 0;
-        foreach (ref o; val)
-        {
-            hash = core.internal.hash.hashOf(Floating!T.hashOf(o), hash);
-        }
-        return hash;
-    }
-}
-
 version (CoreUnittest)
 {
     alias TypeTuple(T...) = T;
@@ -432,72 +389,6 @@ class TypeInfo_f : TypeInfoGeneric!float {}
 class TypeInfo_d : TypeInfoGeneric!double {}
 class TypeInfo_e : TypeInfoGeneric!real {}
 
-// All imaginary floating-point types.
-
-// ifloat @@@DEPRECATED_2.105@@@
-deprecated class TypeInfo_o : TypeInfoGeneric!float
-{
-    override string toString() const pure nothrow @safe { return "ifloat"; }
-}
-
-// idouble @@@DEPRECATED_2.105@@@
-deprecated class TypeInfo_p : TypeInfoGeneric!double
-{
-    override string toString() const pure nothrow @safe { return "idouble"; }
-}
-
-// ireal @@@DEPRECATED_2.105@@@
-deprecated class TypeInfo_j : TypeInfoGeneric!real
-{
-    override string toString() const pure nothrow @safe { return "ireal"; }
-}
-
-// All complex floating-point types.
-
-// cfloat @@@DEPRECATED_2.105@@@
-deprecated class TypeInfo_q : TypeInfoGeneric!d_cfloat
-{
-    override string toString() const pure nothrow @safe { return "cfloat"; }
-
-    const: nothrow: pure: @trusted:
-    static if (__traits(hasMember, TypeInfo, "argTypes"))
-        override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
-        {
-            arg1 = typeid(double);
-            return 0;
-        }
-}
-
-// cdouble @@@DEPRECATED_2.105@@@
-deprecated class TypeInfo_r : TypeInfoGeneric!d_cdouble
-{
-    override string toString() const pure nothrow @safe { return "cdouble"; }
-
-    const: nothrow: pure: @trusted:
-    static if (__traits(hasMember, TypeInfo, "argTypes"))
-        override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
-        {
-            arg1 = typeid(double);
-            arg2 = typeid(double);
-            return 0;
-        }
-}
-
-// creal @@@DEPRECATED_2.105@@@
-deprecated class TypeInfo_c : TypeInfoGeneric!d_creal
-{
-    override string toString() const pure nothrow @safe { return "creal"; }
-
-    const: nothrow: pure: @trusted:
-    static if (__traits(hasMember, TypeInfo, "argTypes"))
-        override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
-        {
-            arg1 = typeid(real);
-            arg2 = typeid(real);
-            return 0;
-        }
-}
-
 // Arrays of all integrals.
 class TypeInfo_Ah : TypeInfoArrayGeneric!ubyte {}
 class TypeInfo_Ab : TypeInfoArrayGeneric!(bool, ubyte) {}
@@ -561,46 +452,6 @@ unittest
 class TypeInfo_Af : TypeInfoArrayGeneric!float {}
 class TypeInfo_Ad : TypeInfoArrayGeneric!double {}
 class TypeInfo_Ae : TypeInfoArrayGeneric!real {}
-
-// Arrays of all imaginary floating-point types.
-
-// ifloat @@@DEPRECATED_2.105@@@
-deprecated class TypeInfo_Ao : TypeInfoArrayGeneric!float
-{
-    override string toString() const pure nothrow @safe { return "ifloat[]"; }
-}
-
-// idouble @@@DEPRECATED_2.105@@@
-deprecated class TypeInfo_Ap : TypeInfoArrayGeneric!double
-{
-    override string toString() const pure nothrow @safe { return "idouble[]"; }
-}
-
-// ireal @@@DEPRECATED_2.105@@@
-deprecated class TypeInfo_Aj : TypeInfoArrayGeneric!real
-{
-    override string toString() const pure nothrow @safe { return "ireal[]"; }
-}
-
-// Arrays of all complex floating-point types.
-
-// cfloat @@@DEPRECATED_2.105@@@
-deprecated class TypeInfo_Aq : TypeInfoArrayGeneric!d_cfloat
-{
-    override string toString() const pure nothrow @safe { return "cfloat[]"; }
-}
-
-// cdouble @@@DEPRECATED_2.105@@@
-deprecated class TypeInfo_Ar : TypeInfoArrayGeneric!d_cdouble
-{
-    override string toString() const pure nothrow @safe { return "cdouble[]"; }
-}
-
-// creal @@@DEPRECATED_2.105@@@
-deprecated class TypeInfo_Ac : TypeInfoArrayGeneric!d_creal
-{
-    override string toString() const pure nothrow @safe { return "creal[]"; }
-}
 
 // void[] is a bit different, behaves like ubyte[] for comparison purposes.
 class TypeInfo_Av : TypeInfo_Ah
