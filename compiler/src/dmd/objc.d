@@ -594,6 +594,10 @@ extern(C++) private final class Supported : Objc
             return 0;
         });
 
+        // Avoid attempting to generate selectors for template instances.
+        if (fd.parent && fd.parent.isTemplateInstance())
+            return;
+
         // No selector declared, generate one.
         if (fd._linkage == LINK.objc && !fd.objc.selector)
         {

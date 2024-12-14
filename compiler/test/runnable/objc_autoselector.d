@@ -25,7 +25,7 @@ class MyClass : NSObject
     int x;
 
     override static MyClass alloc() => cast(MyClass)super.alloc();
-    override MyClass init() { x = 42; }
+    override MyClass init() { x = 42; return this; }
 
     @property bool isFourtyTwo() => x == 42;
     @property void isFourtyTwo(bool value) { x = value ? 42 : 0; }
