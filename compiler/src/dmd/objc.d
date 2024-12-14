@@ -146,7 +146,7 @@ struct ObjcSelector
                 }
 
             // We add the last parameter afterwards.
-            buf.write(ftype.parameterList[$-1].ident.toString());
+            buf.write(ftype.parameterList[nparams-1].ident.toString());
         }
     Lcomplete:
 
