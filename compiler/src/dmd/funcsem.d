@@ -154,6 +154,28 @@ public:
     }
 }
 
+/****************************************
+ * Only one entry point function is allowed. Print error if more than one.
+ * Params:
+ *      fd = a "main" function
+ * Returns:
+ *      true if haven't seen "main" before
+ */
+extern (C++) bool onlyOneMain(FuncDeclaration fd)
+{
+    if (auto lastMain = FuncDeclaration.lastMain)
+    {
+        const format = (target.os == Target.OS.Windows)
+            ? "only one entry point `main`, `WinMain` or `DllMain` is allowed"
+            : "only one entry point `main` is allowed";
+        error(fd.loc, format.ptr);
+        errorSupplemental(lastMain.loc, "previously found `%s` here", lastMain.toFullSignature());
+        return false;
+    }
+    FuncDeclaration.lastMain = fd;
+    return true;
+}
+
 /**********************************
  * Main semantic routine for functions.
  */
@@ -3001,7 +3023,15 @@ extern (D) bool setImpure(FuncDeclaration fd, Loc loc = Loc.init, const(char)* f
         if (fmt)
             fd.pureViolation = new AttributeViolation(loc, fmt, fd, arg0); // impure action
         else if (arg0)
-            fd.pureViolation = new AttributeViolation(loc, fmt, arg0); // call to impure function
+        {
+            if (auto sa = arg0.isDsymbol())
+            {
+                if (FuncDeclaration fd2 = sa.isFuncDeclaration())
+                {
+                    fd.pureViolation = new AttributeViolation(loc, fd2); // call to impure function
+                }
+            }
+        }
 
         if (fd.fes)
             fd.fes.func.setImpure(loc, fmt, arg0);

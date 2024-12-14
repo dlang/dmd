@@ -269,6 +269,10 @@ extern (C++) class FuncDeclaration : Declaration
      */
     VarDeclarations outerVars;
 
+    // Most recent encountered `main` (`WinMain` or `DllMain`) function.
+    // Track it to give error messages for multiple entrypoints
+    __gshared FuncDeclaration lastMain;
+
     /// Sibling nested functions which called this one
     FuncDeclarations siblingCallers;
 
@@ -685,14 +689,15 @@ extern (C++) class FuncDeclaration : Declaration
      *
      * Params:
      *     loc = location of action
-     *     fmt = format string for error message
+     *     format = format string for error message
      *     arg0 = (optional) argument to format string
      */
-    extern (D) final void setThrow(Loc loc, const(char)* fmt, RootObject arg0 = null)
+    extern (D) final void setThrow(Loc loc, const(char)* format, RootObject arg0 = null)
     {
         if (nothrowInprocess && !nothrowViolation)
         {
-            nothrowViolation = new AttributeViolation(loc, fmt, arg0); // action that requires GC
+            assert(format);
+            nothrowViolation = new AttributeViolation(loc, format, arg0); // action that requires GC
         }
     }
 
@@ -700,11 +705,14 @@ extern (C++) class FuncDeclaration : Declaration
      * The function calls non-`nothrow` function f, register that in case nothrow is being inferred
      * Params:
      *     loc = location of call
-     *     f = function being called
+     *     fd = function being called
      */
-    extern (D) final void setThrowCall(Loc loc, FuncDeclaration f)
+    extern (D) final void setThrowCall(Loc loc, FuncDeclaration fd)
     {
-        return setThrow(loc, null, f);
+        if (nothrowInprocess && !nothrowViolation)
+        {
+            nothrowViolation = new AttributeViolation(loc, fd); // action that requires GC
+        }
     }
 
     /****************************************
@@ -1871,14 +1879,26 @@ extern (C++) final class NewDeclaration : FuncDeclaration
 ///   The `FunctionDeclaration` is then stored in `arg0` and `fmtStr` must be `null`.
 struct AttributeViolation
 {
-    /// location of error
-    Loc loc = Loc.init;
-    /// printf-style format string
-    const(char)* fmtStr = null;
-    /// Arguments for up to two `%s` format specifiers in format string
-    RootObject arg0 = null;
-    /// ditto
-    RootObject arg1 = null;
-    /// ditto
-    RootObject arg2 = null;
+    Loc loc;               /// location of error
+
+    FuncDeclaration fd;    /// function is the focus of the violation
+
+    // -- OR --
+
+    const(char)* format;   /// printf-style format string
+    RootObject arg0;       /// Arguments for up to two `%s` format specifiers in format string
+    RootObject arg1;       /// ditto
+    RootObject arg2;       /// ditto
+
+    this(ref Loc loc, FuncDeclaration fd) { this.loc = loc; this.fd = fd; }
+
+    this(ref Loc loc, const(char)* format, RootObject arg0 = null, RootObject arg1 = null, RootObject arg2 = null)
+    {
+        assert(format);
+        this.loc = loc;
+        this.format = format;
+        this.arg0 = arg0;
+        this.arg1 = arg1;
+        this.arg2 = arg2;
+    }
 }

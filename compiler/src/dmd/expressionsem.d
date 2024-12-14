@@ -2057,7 +2057,7 @@ public void errorSupplementalInferredAttr(FuncDeclaration fd, int maxDepth, bool
     if (!s)
         return;
 
-    if (s.fmtStr)
+    if (s.format)
     {
         errorFunc(s.loc, deprecation ?
             "which wouldn't be `%s` because of:" :
@@ -2065,25 +2065,24 @@ public void errorSupplementalInferredAttr(FuncDeclaration fd, int maxDepth, bool
         if (stc == STC.nogc || stc == STC.pure_)
         {
             auto f = (cast(Dsymbol) s.arg0).isFuncDeclaration();
-            errorFunc(s.loc, s.fmtStr, f.kind(), f.toPrettyChars(), s.arg1 ? s.arg1.toChars() : "");
+            errorFunc(s.loc, s.format, f.kind(), f.toPrettyChars(), s.arg1 ? s.arg1.toChars() : "");
         }
         else
         {
-            errorFunc(s.loc, s.fmtStr,
+            errorFunc(s.loc, s.format,
                 s.arg0 ? s.arg0.toChars() : "", s.arg1 ? s.arg1.toChars() : "", s.arg2 ? s.arg2.toChars() : "");
         }
     }
-    else if (auto sa = s.arg0.isDsymbol())
+    else if (s.fd)
     {
-        if (FuncDeclaration fd2 = sa.isFuncDeclaration())
+        if (maxDepth > 0)
         {
-            if (maxDepth > 0)
-            {
-                errorFunc(s.loc, "which calls `%s`", fd2.toPrettyChars());
-                errorSupplementalInferredAttr(fd2, maxDepth - 1, deprecation, stc, eSink);
-            }
+            errorFunc(s.loc, "which calls `%s`", s.fd.toPrettyChars());
+            errorSupplementalInferredAttr(s.fd, maxDepth - 1, deprecation, stc, eSink);
         }
     }
+    else
+        assert(0);
 }
 
 /*******************************************
@@ -2284,7 +2283,7 @@ private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc)
         else if (!sc.func.safetyViolation)
         {
             import dmd.func : AttributeViolation;
-            sc.func.safetyViolation = new AttributeViolation(loc, null, f, null, null);
+            sc.func.safetyViolation = new AttributeViolation(loc, f);
         }
     }
     return false;
@@ -2964,14 +2963,14 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
 
     if (argumentList.names)
     {
-        const(char)* msg = null;
-        auto resolvedArgs = tf.resolveNamedArgs(argumentList, &msg);
+        OutBuffer buf;
+        auto resolvedArgs = tf.resolveNamedArgs(argumentList, &buf);
         if (!resolvedArgs)
         {
             // while errors are usually already caught by `tf.callMatch`,
             // this can happen when calling `typeof(freefunc)`
-            if (msg)
-                error(loc, "%s", msg);
+            if (buf.length)
+                error(loc, "%s", buf.peekChars());
             return true;
         }
         // note: the argument list should be mutated with named arguments / default arguments,
@@ -5197,21 +5196,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                 auto tiargs = new Objects();
                 tiargs.push(exp.newtype);
+
                 id = new DotTemplateInstanceExp(exp.loc, id, Id._d_newThrowable, tiargs);
+
                 id = new CallExp(exp.loc, id).expressionSemantic(sc);
 
-                Expression idVal;
-                Expression tmp = extractSideEffect(sc, "__tmpThrowable", idVal, id, true);
-                // auto castTmp = new CastExp(exp.loc, tmp, exp.type);
+                exp.lowering = id.expressionSemantic(sc);
 
-                auto ctor = new DotIdExp(exp.loc, tmp, Id.ctor).expressionSemantic(sc);
-                auto ctorCall = new CallExp(exp.loc, ctor, exp.arguments);
-
-                id = Expression.combine(idVal, exp.argprefix).expressionSemantic(sc);
-                id = Expression.combine(id, ctorCall).expressionSemantic(sc);
-                // id = Expression.combine(id, castTmp).expressionSemantic(sc);
-
-                result = id.expressionSemantic(sc);
+                result = exp;
                 return;
             }
             else if (sc.needsCodegen() && // interpreter doesn't need this lowered
@@ -5651,7 +5643,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (exp.fd.ident != Id.empty)
             return;
 
-        const(char)[] s;
+        string s;
         if (exp.fd.fes)
             s = "__foreachbody";
         else if (exp.fd.tok == TOK.reserved)
@@ -5685,7 +5677,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             symtab = sds.symtab;
         }
         assert(symtab);
-        Identifier id = Identifier.generateId(s, symtab.length() + 1);
+        Identifier id = Identifier.generateIdWithLoc(s, exp.loc, cast(string) toDString(sc.parent.toPrettyChars()));
         exp.fd.ident = id;
         if (exp.td)
             exp.td.ident = id;
@@ -7137,6 +7129,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         static if (LOGSEMANTIC)
         {
             printf("TypeidExp::semantic() %s\n", exp.toChars());
+        }
+        if (exp.type)
+        {
+            result = exp;
+            return;
         }
         Type ta = isType(exp.obj);
         Expression ea = isExpression(exp.obj);

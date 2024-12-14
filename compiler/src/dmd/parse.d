@@ -5252,7 +5252,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 error("missing `do { ... }` after `in` or `out`");
             const returnloc = token.loc;
             nextToken();
-            f.fbody = new AST.ReturnStatement(returnloc, parseExpression());
+            if (f.isCtorDeclaration)
+                f.fbody = new AST.ExpStatement(returnloc, parseExpression());
+            else
+                f.fbody = new AST.ReturnStatement(returnloc, parseExpression());
             f.endloc = token.loc;
             check(TOK.semicolon);
             break;
