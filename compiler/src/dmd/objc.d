@@ -101,7 +101,7 @@ struct ObjcSelector
         
         buf.writeByte(firstChar);
         buf.writestring(id[1..$]);
-        return cast(const(char)*)buf[0..buf.length];
+        return (cast(const(char)*)buf)[0..buf.length];
     }
 
     extern (C++) static ObjcSelector* create(FuncDeclaration fdecl)
@@ -146,7 +146,7 @@ struct ObjcSelector
                 }
 
             // We add the last parameter afterwards.
-            buf.write(ftype.parameterList[i].ident.toString());
+            buf.write(ftype.parameterList[$-1].ident.toString());
         }
     Lcomplete:
 
