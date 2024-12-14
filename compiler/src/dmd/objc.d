@@ -595,7 +595,7 @@ extern(C++) private final class Supported : Objc
         });
     
         // No selector declared, generate one.
-        if (!fd.objc.selector)
+        if (fd._linkage == LINK.objc && !fd.objc.selector)
         {
             fd.objc.selector = ObjcSelector.create(fd);
         }
