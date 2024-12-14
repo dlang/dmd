@@ -126,6 +126,7 @@ struct ObjcSelector
                 buf.writestring("set");
                 buf.write(toPascalCase(id));
             }
+            buf.writeByte(':');
             goto Lcomplete;
         }
 
@@ -138,20 +139,18 @@ struct ObjcSelector
         // eg. void myFunction(int a, int b, int c) would be mangled to a selector as `myFunction:b:c:
         if (nparams > 1)
         {
-            if (nparams-1 > 1)
-                foreach(i; 1..nparams-1)
-                {
-                    buf.write(ftype.parameterList[i].ident.toString());
-                    buf.writeByte(':');
-                }
-
-            // We add the last parameter afterwards.
-            buf.write(ftype.parameterList[nparams-1].ident.toString());
+            buf.writeByte(':');
+            foreach(i; 1..nparams)
+            {
+                buf.write(ftype.parameterList[i].ident.toString());
+                buf.writeByte(':');
+            }
+        }
+        else if (nparams == 1)
+        {
+            buf.writeByte(':');
         }
     Lcomplete:
-
-        if (nparams)
-            buf.writeByte(':');
         buf.writeByte('\0');
 
         // the slice is not expected to include a terminating 0
