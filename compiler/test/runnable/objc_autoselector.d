@@ -24,7 +24,7 @@ class MyClass : NSObject
 {
     int x;
 
-    override static MyClass alloc() => cast(MyClass)super.alloc();
+    override static MyClass alloc();
     override MyClass init() { x = 42; return this; }
 
     @property bool isFourtyTwo() => x == 42;
@@ -65,7 +65,7 @@ void main()
     assert(cname.UTF8String());
 
     // Properties
-    obj = (cast(MyClass)MyClass.alloc()).init();
+    obj = MyClass.alloc().init();
     assert(validateMethod(obj, "isFourtyTwo"));     // Case: isXYZ
     assert(validateMethod(obj, "setFourtyTwo:"));   // Case: isXYZ
     assert(validateMethod(obj, "myFunction:b:c:")); // Case: Auto-gen function selector.
