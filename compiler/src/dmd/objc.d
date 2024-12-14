@@ -101,7 +101,7 @@ struct ObjcSelector
         
         buf.writeByte(firstChar);
         buf.writestring(id[1..$]);
-        return (cast(const(char)*)buf)[0..buf.length];
+        return cast(const(char)[])buf.extractSlice(false);
     }
 
     extern (C++) static ObjcSelector* create(FuncDeclaration fdecl)
