@@ -98,7 +98,7 @@ struct ObjcSelector
         char firstChar = id[0];
         if (firstChar >= 'a' && firstChar <= 'z')
             firstChar = cast(char)(firstChar - 'a' + 'A');
-        
+
         buf.writeByte(firstChar);
         buf.writestring(id[1..$]);
         return cast(const(char)[])buf.extractSlice(false);
@@ -593,7 +593,7 @@ extern(C++) private final class Supported : Objc
 
             return 0;
         });
-    
+
         // No selector declared, generate one.
         if (fd._linkage == LINK.objc && !fd.objc.selector)
         {
