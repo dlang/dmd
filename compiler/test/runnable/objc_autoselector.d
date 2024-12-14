@@ -57,15 +57,16 @@ void main()
 {
     // Basic alloc & init
     auto obj = NSObject.alloc.init;
-    assert(obj);
+    assert(obj !is null);
 
     // Basic property
     auto cname = obj.className();
-    assert(cname);
+    assert(cname !is null);
     assert(cname.UTF8String());
 
     // Properties
     obj = MyClass.alloc().init();
+    assert(obj !is null);
     assert(validateMethod(obj, "isFourtyTwo"));     // Case: isXYZ
     assert(validateMethod(obj, "setFourtyTwo:"));   // Case: isXYZ
     assert(validateMethod(obj, "myFunction:b:c:")); // Case: Auto-gen function selector.
