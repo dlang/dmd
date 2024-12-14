@@ -93,39 +93,66 @@ struct ObjcSelector
         return sel;
     }
 
+    static const(char)[] toPascalCase(const(char)[] id) {
+        OutBuffer buf;
+        char firstChar = id[0];
+        if (firstChar >= 'a' && firstChar <= 'z')
+            firstChar = cast(char)(firstChar - 'a' + 'A');
+        
+        buf.writeByte(firstChar);
+        buf.writestring(id[1..$]);
+        return cast(const(char)*)buf[0..buf.length];
+    }
+
     extern (C++) static ObjcSelector* create(FuncDeclaration fdecl)
     {
         OutBuffer buf;
         auto ftype = cast(TypeFunction)fdecl.type;
         const id = fdecl.ident.toString();
         const nparams = ftype.parameterList.length;
+
         // Special case: property setter
         if (ftype.isProperty && nparams == 1)
         {
-            // rewrite "identifier" as "setIdentifier"
-            char firstChar = id[0];
-            if (firstChar >= 'a' && firstChar <= 'z')
-                firstChar = cast(char)(firstChar - 'a' + 'A');
-            buf.writestring("set");
-            buf.writeByte(firstChar);
-            buf.write(id[1 .. id.length - 1]);
-            buf.writeByte(':');
+
+            // Special case: "isXYZ:"
+            if (id.length >= 2 && id[0..2] == "is")
+            {
+                buf.writestring("set");
+                buf.write(toPascalCase(id[2..$]));
+            }
+            else
+            {
+                buf.writestring("set");
+                buf.write(toPascalCase(id));
+            }
             goto Lcomplete;
         }
+
         // write identifier in selector
         buf.write(id[]);
-        // add mangled type and colon for each parameter
-        if (nparams)
+
+        // To make it easier to match the selectors of objects nicely,
+        // the implementation has been replaced so that the parameter name followed by a colon
+        // is used instead.
+        // eg. void myFunction(int a, int b, int c) would be mangled to a selector as `myFunction:b:c:
+        if (nparams > 1)
         {
-            buf.writeByte('_');
-            foreach (i, fparam; ftype.parameterList)
-            {
-                mangleToBuffer(fparam.type, buf);
-                buf.writeByte(':');
-            }
+            if (nparams-1 > 1)
+                foreach(i; 1..nparams-1)
+                {
+                    buf.write(ftype.parameterList[i].ident.toString());
+                    buf.writeByte(':');
+                }
+
+            // We add the last parameter afterwards.
+            buf.write(ftype.parameterList[i].ident.toString());
         }
     Lcomplete:
+
+        buf.writeByte(':');
         buf.writeByte('\0');
+        
         // the slice is not expected to include a terminating 0
         return lookup(cast(const(char)*)buf[].ptr, buf.length - 1, nparams);
     }
@@ -565,6 +592,12 @@ extern(C++) private final class Supported : Objc
 
             return 0;
         });
+    
+        // No selector declared, generate one.
+        if (!fd.objc.selector)
+        {
+            fd.objc.selector = ObjcSelector.create(fd);
+        }
     }
 
     override void validateSelector(FuncDeclaration fd)
