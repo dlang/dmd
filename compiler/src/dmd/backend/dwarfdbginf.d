@@ -44,7 +44,8 @@ import dmd.backend.cdef;
 version(Windows)
 {
     nothrow
-    private extern (C) char* getcwd(char* buffer, size_t maxlen);
+    private extern (C) char* _getcwd(char* buffer, size_t maxlen);
+    alias getcwd = _getcwd;
     nothrow
     private extern (C) int* _errno();   // not the multi-threaded version
 }
