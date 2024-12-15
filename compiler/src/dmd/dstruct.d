@@ -173,7 +173,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
             s.setFieldOffset(this, &fieldState, isunion);
             if (type.ty == Terror)
             {
-                errorSupplemental(loc, "error on member `%s`", s.toPrettyChars);
+                errorSupplemental(s.loc, "error on member `%s`", s.toPrettyChars);
                 errors = true;
                 return;
             }
