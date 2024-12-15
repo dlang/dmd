@@ -171,11 +171,12 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         {
             Dsymbol s = (*members)[i];
             s.setFieldOffset(this, &fieldState, isunion);
-        }
-        if (type.ty == Terror)
-        {
-            errors = true;
-            return;
+            if (type.ty == Terror)
+            {
+                errorSupplemental(s.loc, "error on member `%s`", s.toPrettyChars);
+                errors = true;
+                return;
+            }
         }
 
         if (structsize == 0)
