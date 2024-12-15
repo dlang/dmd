@@ -2869,6 +2869,12 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         buf.writestring(e.value.toChars());
     }
 
+    if (e.rvalue)
+        buf.writestring("__rvalue(");
+    scope (success)
+        if (e.rvalue)
+            buf.writeByte(')');
+
     switch (e.op)
     {
         default:

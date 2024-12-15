@@ -5880,6 +5880,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         case TOK.moduleString:
         case TOK.functionString:
         case TOK.prettyFunction:
+        case TOK.rvalue:
         Lexp:
             {
                 AST.Expression exp = parseExpression();
@@ -8424,6 +8425,15 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 RootObject o = parseTypeOrAssignExp();
                 check(TOK.rightParenthesis);
                 e = new AST.TypeidExp(loc, o);
+                break;
+            }
+        case TOK.rvalue:
+            {
+                nextToken();
+                check(TOK.leftParenthesis, "`__rvalue`");
+                e = parseAssignExp();
+                e.rvalue = true;
+                check(TOK.rightParenthesis);
                 break;
             }
         case TOK.traits:
