@@ -1,9 +1,5 @@
 /**
- * Handle page protection errors using D errors (exceptions). $(D NullPointerError) is
- * thrown when dereferencing null pointers. A system-dependent error is thrown in other
- * cases.
- *
- * Note: Only x86 and x86_64 are supported for now.
+ * Handle page protection errors using D errors (exceptions) or asserts.
  *
  * License: Distributed under the
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
@@ -14,36 +10,74 @@
 
 module etc.linux.memoryerror;
 
-version (CRuntime_Glibc)
+version (linux)
 {
-    version (X86)
-        version = MemoryErrorSupported;
-    version (X86_64)
-        version = MemoryErrorSupported;
+    version (DigitalMars)
+    {
+        version (CRuntime_Glibc)
+        {
+            version (X86)
+                version = MemoryErrorSupported;
+            version (X86_64)
+                version = MemoryErrorSupported;
+        }
+    }
 }
 
-version (MemoryErrorSupported):
+version (linux)
+{
+    version (X86)
+        version = MemoryAssertSupported;
+    version (X86_64)
+        version = MemoryAssertSupported;
+    version (ARM)
+        version = MemoryAssertSupported;
+    version (AArch64)
+        version = MemoryAssertSupported;
+    version (PPC64)
+        version = MemoryAssertSupported;
+}
+
 @system:
 
 import core.sys.posix.signal : SA_SIGINFO, sigaction, sigaction_t, siginfo_t, SIGSEGV;
 import ucontext = core.sys.posix.ucontext;
 
-// Register and unregister memory error handler.
+// The first 64Kb are reserved for detecting null pointer dereferences.
+// TODO: this is a platform-specific assumption, can be made more robust
+private enum size_t MEMORY_RESERVED_FOR_NULL_DEREFERENCE = 4096 * 16;
 
+version (MemoryErrorSupported)
+{
+/**
+ * Register memory error handler, store the old handler.
+ *
+ * `NullPointerError` is thrown when dereferencing null pointers.
+ * A generic `InvalidPointerError` error is thrown in other cases.
+ *
+ * Returns: whether the registration was successful
+ *
+ * Limitations: Only x86 and x86_64 are supported for now.
+ */
 bool registerMemoryErrorHandler() nothrow
 {
     sigaction_t action;
     action.sa_sigaction = &handleSignal;
     action.sa_flags = SA_SIGINFO;
 
-    auto oldptr = &old_sigaction;
+    auto oldptr = &oldSigactionMemoryError;
 
     return !sigaction(SIGSEGV, &action, oldptr);
 }
 
+/**
+ * Revert the memory error handler back to the one from before calling `registerMemoryErrorHandler()`.
+ *
+ * Returns: whether the registration of the old handler was successful
+ */
 bool deregisterMemoryErrorHandler() nothrow
 {
-    auto oldptr = &old_sigaction;
+    auto oldptr = &oldSigactionMemoryError;
 
     return !sigaction(SIGSEGV, oldptr, null);
 }
@@ -119,9 +153,9 @@ unittest
 
 private:
 
-__gshared sigaction_t old_sigaction;
+__gshared sigaction_t oldSigactionMemoryError;
 
-alias typeof(ucontext.ucontext_t.init.uc_mcontext.gregs[0]) RegType;
+alias RegType = typeof(ucontext.ucontext_t.init.uc_mcontext.gregs[0]);
 
 version (X86_64)
 {
@@ -253,7 +287,7 @@ else version (X86)
             // Handle the stack for an invalid function call (segfault at EIP).
             // 4 bytes are used for function pointer; We need 12 byte to keep stack aligned.
             sub ESP, 12;
-            mov 8[ESP], EBP;
+            mov [ESP + 8], EBP;
             mov EBP, ESP;
 
             jmp sigsegvDataHandler;
@@ -305,13 +339,6 @@ else
     static assert(false, "Unsupported architecture.");
 }
 
-// This should be calculated by druntime.
-// TODO: Add a core.memory function for this.
-enum PAGE_SIZE = 4096;
-
-// The first 64Kb are reserved for detecting null pointer dereferences.
-enum MEMORY_RESERVED_FOR_NULL_DEREFERENCE = 4096 * 16;
-
 // User space handler
 void sigsegvUserspaceProcess(void* address)
 {
@@ -323,4 +350,85 @@ void sigsegvUserspaceProcess(void* address)
     }
 
     throw new InvalidPointerError();
+}
+}
+
+version (MemoryAssertSupported)
+{
+    private __gshared sigaction_t oldSigactionMemoryAssert; // sigaction before calling `registerMemoryAssertHandler`
+
+    /**
+     * Registers a signal handler for SIGSEGV that turns them into an assertion failure,
+     * providing a more descriptive error message and stack trace if the program is
+     * compiled with debug info and D assertions (as opposed to C assertions).
+     *
+     * Differences with version 1 are:
+     * - The handler is registered with SA_ONSTACK, so it can handle stack overflows.
+     * - It uses `assert(0)` instead of `throw new Error` and doesn't support catching the error.
+     * - This is a template so that the -check and -checkaction flags of the compiled program are used,
+     *   instead of the ones used for compiling druntime.
+     *
+     * Returns: whether the registration was successful
+     */
+    bool registerMemoryAssertHandler()()
+    {
+        nothrow @nogc extern(C)
+        void _d_handleSignalAssert(int signum, siginfo_t* info, void* contextPtr)
+        {
+            // Guess the reason for the segfault by seeing if the faulting address
+            // is close to the stack pointer or the null pointer.
+
+            const void* segfaultingPtr = info.si_addr;
+
+            auto context = cast(ucontext_t*) contextPtr;
+            version (X86_64)
+                const stackPtr = cast(void*) context.uc_mcontext.gregs[REG_RSP];
+            else version (X86)
+                const stackPtr = cast(void*) context.uc_mcontext.gregs[REG_ESP];
+            else version (ARM)
+                const stackPtr = cast(void*) context.uc_mcontext.arm_sp;
+            else version (AArch64)
+                const stackPtr = cast(void*) context.uc_mcontext.sp;
+            else version (PPC64)
+                const stackPtr = cast(void*) context.uc_mcontext.regs.gpr[1];
+            else
+                static assert(false, "Unsupported architecture."); // TODO: other architectures
+            auto distanceToStack = cast(ptrdiff_t) (stackPtr - segfaultingPtr);
+            if (distanceToStack < 0)
+                distanceToStack = -distanceToStack;
+
+            if (stackPtr && distanceToStack <= 4096)
+                assert(false, "segmentation fault: call stack overflow");
+            else if (cast(size_t) segfaultingPtr < MEMORY_RESERVED_FOR_NULL_DEREFERENCE)
+                assert(false, "segmentation fault: null pointer read/write operation");
+            else
+                assert(false, "segmentation fault: invalid pointer read/write operation");
+        }
+
+        sigaction_t action;
+        action.sa_sigaction = &_d_handleSignalAssert;
+        action.sa_flags = SA_SIGINFO | SA_ONSTACK;
+
+        // Set up alternate stack, because segfaults can be caused by stack overflow,
+        // in which case the stack is already exhausted
+        __gshared ubyte[SIGSTKSZ] altStack;
+        stack_t ss;
+        ss.ss_sp = altStack.ptr;
+        ss.ss_size = altStack.length;
+        ss.ss_flags = 0;
+        if (sigaltstack(&ss, null) == -1)
+            return false;
+
+        return !sigaction(SIGSEGV, &action, &oldSigactionMemoryAssert);
+    }
+
+    /**
+     * Revert the memory error handler back to the one from before calling `registerMemoryAssertHandler()`.
+     *
+     * Returns: whether the registration of the old handler was successful
+     */
+    bool deregisterMemoryAssertHandler()
+    {
+        return !sigaction(SIGSEGV, &oldSigactionMemoryAssert, null);
+    }
 }
