@@ -6005,6 +6005,12 @@ enum class CPU : uint8_t
     native = 12u,
 };
 
+enum class ErrorPrintMode : uint8_t
+{
+    simpleError = 0u,
+    printErrorContext = 1u,
+};
+
 enum class DiagnosticReporting : uint8_t
 {
     error = 0u,
@@ -8183,10 +8189,10 @@ struct Verbose final
     bool complex;
     bool vin;
     bool showGaggedErrors;
-    bool printErrorContext;
     bool logo;
     bool color;
     bool cov;
+    ErrorPrintMode errorPrintMode;
     MessageStyle messageStyle;
     uint32_t errorLimit;
     uint32_t errorSupplementLimit;
@@ -8202,7 +8208,6 @@ struct Verbose final
         complex(true),
         vin(),
         showGaggedErrors(),
-        printErrorContext(),
         logo(),
         color(),
         cov(),
@@ -8211,7 +8216,7 @@ struct Verbose final
         errorSupplementLimit(6u)
     {
     }
-    Verbose(bool verbose, bool showColumns = false, bool tls = false, bool templates = false, bool templatesListInstances = false, bool gc = false, bool field = false, bool complex = true, bool vin = false, bool showGaggedErrors = false, bool printErrorContext = false, bool logo = false, bool color = false, bool cov = false, MessageStyle messageStyle = (MessageStyle)0u, uint32_t errorLimit = 20u, uint32_t errorSupplementLimit = 6u) :
+    Verbose(bool verbose, bool showColumns = false, bool tls = false, bool templates = false, bool templatesListInstances = false, bool gc = false, bool field = false, bool complex = true, bool vin = false, bool showGaggedErrors = false, bool logo = false, bool color = false, bool cov = false, ErrorPrintMode errorPrintMode = (ErrorPrintMode)0u, MessageStyle messageStyle = (MessageStyle)0u, uint32_t errorLimit = 20u, uint32_t errorSupplementLimit = 6u) :
         verbose(verbose),
         showColumns(showColumns),
         tls(tls),
@@ -8222,10 +8227,10 @@ struct Verbose final
         complex(complex),
         vin(vin),
         showGaggedErrors(showGaggedErrors),
-        printErrorContext(printErrorContext),
         logo(logo),
         color(color),
         cov(cov),
+        errorPrintMode(errorPrintMode),
         messageStyle(messageStyle),
         errorLimit(errorLimit),
         errorSupplementLimit(errorSupplementLimit)

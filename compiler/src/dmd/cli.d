@@ -841,8 +841,13 @@ dmd -cov -unittest myprog.d
         Option("verrors=<num>",
             "limit the number of error/deprecation messages (0 means unlimited)"
         ),
-        Option("verrors=context",
-            "show error messages with the context of the erroring source line"
+        Option("verrors=[context|simple]",
+            "set the verbosity of error messages",
+            `Set the verbosity of error messages:
+            $(DL
+            $(DT context)$(DD Show error messages with the context of the erroring source line (including caret).)
+            $(DT simple)$(DD Show error messages without the context of the erroring source line.)
+            )`,
         ),
         Option("verrors=spec",
             "show errors from speculative compiles such as __traits(compiles,...)"
