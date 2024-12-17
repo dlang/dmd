@@ -534,7 +534,7 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
 
     void visitReturn(ReturnStatement s)
     {
-        //printf("s2ir.ReturnStatement: %s\n", s.toChars());
+        //printf("s2ir.ReturnStatement: %s\n", toChars(s.exp));
         BlockState *blx = irs.blx;
         BC bc;
 

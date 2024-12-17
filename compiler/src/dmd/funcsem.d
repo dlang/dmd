@@ -2962,6 +2962,7 @@ extern (D) void checkMain(FuncDeclaration fd)
  */
 extern (D) bool checkNRVO(FuncDeclaration fd)
 {
+    //printf("checkNRVO*() %s\n", fd.ident.toChars());
     if (!fd.isNRVO() || fd.returns is null)
         return false;
 
