@@ -12403,12 +12403,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
                 if (!p1.equivalent(p2))
                 {
-                    // Deprecation to remain for at least a year, after which this should be
-                    // changed to an error
                     // See https://github.com/dlang/dmd/pull/7332
-                    deprecation(exp.loc,
-                        "cannot subtract pointers to different types: `%s` and `%s`.",
+                    error(exp.loc, "cannot subtract pointers to different types: `%s` and `%s`.",
                         t1.toChars(), t2.toChars());
+                    return setError();
                 }
 
                 // Need to divide the result by the stride
