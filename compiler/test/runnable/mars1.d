@@ -2492,6 +2492,20 @@ void testDoWhileContinue()
 }
 
 ////////////////////////////////////////////////////////////////////////
+// https://github.com/dlang/dmd/issues/20574
+
+int test20574x(int i, int y)
+{
+    return i ? y : y;
+}
+
+void test20574()
+{
+    assert(test20574x(1, 2) == 2);
+    assert(test20574x(0, 2) == 2);
+}
+
+////////////////////////////////////////////////////////////////////////
 
 int main()
 {
@@ -2592,6 +2606,7 @@ int main()
     test21816();
     test21835();
     testDoWhileContinue();
+    test20574();
 
     printf("Success\n");
     return 0;
