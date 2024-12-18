@@ -1004,13 +1004,17 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             {
                 params.v.showGaggedErrors = true;
             }
+            else if (startsWith(p + 9, "simple"))
+            {
+                params.v.errorPrintMode = ErrorPrintMode.simpleError;
+            }
             else if (startsWith(p + 9, "context"))
             {
-                params.v.printErrorContext = true;
+                params.v.errorPrintMode = ErrorPrintMode.printErrorContext;
             }
             else if (!params.v.errorLimit.parseDigits(p.toDString()[9 .. $]))
             {
-                errorInvalidSwitch(p, "Only number, `spec`, or `context` are allowed for `-verrors`");
+                errorInvalidSwitch(p, "Only a number, `spec`, `simple`, or `context` are allowed for `-verrors`");
                 return true;
             }
         }

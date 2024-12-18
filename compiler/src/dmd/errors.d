@@ -722,7 +722,7 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
 
     __gshared SourceLoc old_loc;
     auto loc = info.loc;
-    if (global.params.v.printErrorContext &&
+    if (global.params.v.errorPrintMode != ErrorPrintMode.simpleError &&
         // ignore supplemental messages with same loc
         (loc != old_loc || !info.supplemental) &&
         // ignore invalid files
