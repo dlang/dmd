@@ -95,6 +95,7 @@ extern (C++) abstract class Declaration : Dsymbol
       enum ignoreRead = 2; // ignore any reads of AliasDeclaration
       enum nounderscore = 4; // don't prepend _ to mangled name
       enum hidden       = 8; // don't print this in .di files
+      enum nrvo = 0x10;      /// forward to fd.nrvo_var when generating code
 
     // overridden symbol with pragma(mangle, "...")
     const(char)[] mangleOverride;

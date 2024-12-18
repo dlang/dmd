@@ -816,21 +816,22 @@ extern(D) bool arrayExpressionSemantic(
  * Params:
  *   sc = the scope where the expression is encountered
  *   e = the expression the needs to be moved or copied (source)
- *   t = if the struct defines a copy constructor, the type of the destination
+ *   t = if the struct defines a copy constructor, the type of the destination (can be NULL)
+ *   nrvo = true if the generated copy can be treated as NRVO
  *
  * Returns:
  *  The expression that copy constructs or moves the value.
  */
-extern (D) Expression doCopyOrMove(Scope *sc, Expression e, Type t = null)
+extern (D) Expression doCopyOrMove(Scope *sc, Expression e, Type t, bool nrvo)
 {
     if (auto ce = e.isCondExp())
     {
-        ce.e1 = doCopyOrMove(sc, ce.e1);
-        ce.e2 = doCopyOrMove(sc, ce.e2);
+        ce.e1 = doCopyOrMove(sc, ce.e1, null, nrvo);
+        ce.e2 = doCopyOrMove(sc, ce.e2, null, nrvo);
     }
     else
     {
-        e = e.isLvalue() ? callCpCtor(sc, e, t) : valueNoDtor(e);
+        e = e.isLvalue() ? callCpCtor(sc, e, t, nrvo) : valueNoDtor(e);
     }
     return e;
 }
@@ -839,12 +840,13 @@ extern (D) Expression doCopyOrMove(Scope *sc, Expression e, Type t = null)
  * If e is an instance of a struct, and that struct has a copy constructor,
  * rewrite e as:
  *    (tmp = e),tmp
- * Input:
+ * Params:
  *      sc = just used to specify the scope of created temporary variable
  *      destinationType = the type of the object on which the copy constructor is called;
  *                        may be null if the struct defines a postblit
+ *	nrvo = true if the generated copy can be treated as NRVO
  */
-private Expression callCpCtor(Scope* sc, Expression e, Type destinationType)
+private Expression callCpCtor(Scope* sc, Expression e, Type destinationType, bool nrvo)
 {
     //printf("callCpCtor(e: %s et: %s destinationType: %s\n", toChars(e), toChars(e.type), toChars(destinationType));
     auto ts = e.type.baseElemOf().isTypeStruct();
@@ -861,7 +863,9 @@ private Expression callCpCtor(Scope* sc, Expression e, Type destinationType)
      * This is not the most efficient, ideally tmp would be constructed
      * directly onto the stack.
      */
-    auto tmp = copyToTemp(STC.rvalue, "__copytmp", e);
+    VarDeclaration tmp = copyToTemp(STC.rvalue, "__copytmp", e);
+    if (nrvo)
+	tmp.adFlags |= Declaration.nrvo;
     if (sd.hasCopyCtor && destinationType)
     {
         // https://issues.dlang.org/show_bug.cgi?id=22619
@@ -2707,7 +2711,7 @@ private Type arrayExpressionToCommonType(Scope* sc, ref Expressions exps)
             continue;
         }
 
-        e = doCopyOrMove(sc, e);
+        e = doCopyOrMove(sc, e, null, false);
 
         if (!foundType && t0 && !t0.equals(e.type))
         {
@@ -3678,7 +3682,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
                  */
                 Type tv = arg.type.baseElemOf();
                 if (!isRef && tv.ty == Tstruct)
-                    arg = doCopyOrMove(sc, arg, parameter ? parameter.type : null);
+                    arg = doCopyOrMove(sc, arg, parameter ? parameter.type : null, false);
             }
 
             (*arguments)[i] = arg;
@@ -12026,7 +12030,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 ce.trusted = true;
 
             exp = new CatElemAssignExp(exp.loc, exp.type, exp.e1, ecast);
-            exp.e2 = doCopyOrMove(sc, exp.e2);
+            exp.e2 = doCopyOrMove(sc, exp.e2, null, false);
         }
         else if (tb1.ty == Tarray &&
                  (tb1next.ty == Tchar || tb1next.ty == Twchar) &&
@@ -12651,7 +12655,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             if (exp.e1.op == EXP.arrayLiteral)
             {
-                exp.e2 = doCopyOrMove(sc, exp.e2);
+                exp.e2 = doCopyOrMove(sc, exp.e2, null, false);
                 // https://issues.dlang.org/show_bug.cgi?id=14686
                 // Postblit call appears in AST, and this is
                 // finally translated  to an ArrayLiteralExp in below optimize().
@@ -12690,7 +12694,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         {
             if (exp.e2.op == EXP.arrayLiteral)
             {
-                exp.e1 = doCopyOrMove(sc, exp.e1);
+                exp.e1 = doCopyOrMove(sc, exp.e1, null, false);
             }
             else if (exp.e2.op == EXP.string_)
             {
@@ -16552,7 +16556,7 @@ private bool fit(StructDeclaration sd, const ref Loc loc, Scope* sc, Expressions
         if (e.op == EXP.error)
             return false;
 
-        (*elements)[i] = doCopyOrMove(sc, e);
+        (*elements)[i] = doCopyOrMove(sc, e, null, false);
     }
     return true;
 }
