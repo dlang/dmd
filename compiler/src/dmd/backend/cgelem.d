@@ -2369,6 +2369,17 @@ private elem * elcond(elem *e, Goal goal)
                 e.Eoper = OPbool;
                 e.Ety = TYint;
             }
+
+            /* Replace:
+             *  a ? b : b
+             * with:
+             *  a , b
+             */
+            else if (el_match(ec1, ec2))
+            {
+                e.Eoper = OPcomma;
+                e.E2 = el_selecte1(e.E2);
+            }
             break;
         }
     }
