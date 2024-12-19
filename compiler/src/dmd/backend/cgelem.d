@@ -3521,6 +3521,13 @@ elem * elstruct(elem *e, Goal goal)
         return optelem(e, goal);
     }
 
+    // Replace (e = e) with (e, e)
+    if (e.Eoper == OPstreq && el_match(e.E1, e.E2))
+    {
+        e.Eoper = OPcomma;
+        return optelem(e, goal);
+    }
+
     if (!e.ET)
         return e;
     //printf("\tnumbytes = %d\n", cast(int)type_size(e.ET));
