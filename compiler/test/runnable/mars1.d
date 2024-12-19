@@ -2507,6 +2507,26 @@ void test20574()
 
 ////////////////////////////////////////////////////////////////////////
 
+struct S8
+{
+    int x,y,z;
+}
+
+int test8x(S8 s)
+{
+    s = s;
+    return s.y;
+}
+
+void test8()
+{
+    S8 s;
+    s.y = 2;
+    assert(test8x(s) == 2);
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int main()
 {
     // All the various integer divide tests
@@ -2607,6 +2627,7 @@ int main()
     test21835();
     testDoWhileContinue();
     test20574();
+    test8();
 
     printf("Success\n");
     return 0;
