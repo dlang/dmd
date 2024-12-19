@@ -687,7 +687,7 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
 
     // tests can override -verrors by using REQUIRED_ARGS
     if (testArgs.mode == TestMode.FAIL_COMPILE)
-        testArgs.requiredArgs = "-verrors=0 " ~ testArgs.requiredArgs;
+        testArgs.requiredArgs = "-verrors=simple -verrors=0 " ~ testArgs.requiredArgs;
 
     {
         string argSetsStr;
