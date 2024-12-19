@@ -3699,6 +3699,20 @@ elem * elstruct(elem *e, Goal goal)
         default:
         Ldefault:
         {
+            if (e.Eoper == OPstreq && tym < TYMAX && e.E1.Eoper == OPvar && e.E2.Eoper == OPvar && e.ET)
+            {
+                /* change (e1 streq e2) to ((e1 = e2), e1)
+                 * A bit restrictive to only allow OPvar
+                 */
+                elem* en = el_bin(OPcomma, e.ET.Tty, e, el_copytree(e.E1));
+                en.ET = e.ET;
+                e.Eoper = OPeq;
+                e.Ety = tym;
+                e.E1.Ety = tym;
+                e.E2.Ety = tym;
+                e = en;
+                break;
+            }
             elem **pe2;
             if (e.Eoper == OPstreq)
                 pe2 = &e.E2;
