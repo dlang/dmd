@@ -3809,7 +3809,6 @@ static if (0)  // Doesn't work too well, removed
         if (el_match(e1,e2))
         {
             e.Eoper = OPcomma;
-        L1:
             return optelem(e, Goal.value);
         }
 
@@ -3820,15 +3819,13 @@ static if (0)  // Doesn't work too well, removed
             e.E2 = e2.E2;
             e2.E2 = e;
             e = e2;
-            goto L1;
+            return optelem(e, Goal.value);
         }
 
         if (OTop(op2) && !el_sideeffect(e1)
             && op2 != OPdiv && op2 != OPmod
            )
         {
-            tym_t ty;
-
             enum side = false; // don't allow side effects in e2.E2 because of
                                // D order-of-evaluation rules
 
@@ -3836,42 +3833,39 @@ static if (0)  // Doesn't work too well, removed
             if (el_match(e1,e2.E1) &&
                 (side || !el_sideeffect(e2.E2)))
             {
-                ty = e2.E2.Ety;
+                const ty = e2.E2.Ety;
                 e.E2 = el_selecte2(e2);
-            L2:
                 e.E2.Ety = ty;
                 e.Eoper = cast(ubyte)optoopeq(op2);
-                goto L1;
-            }
-            if (OTcommut(op2))
-            {
-                /* Replace (e1 = e op e1) with (e1 op= e)       */
-                if (el_match(e1,e2.E2))
-                {   ty = e2.E1.Ety;
-                    e.E2 = el_selecte1(e2);
-                    goto L2;
-                }
+                return optelem(e, Goal.value);
             }
 
-static if (0)
-{
-// Note that this optimization is undone in elcomma(), this results in an
-// infinite loop. This optimization is preferable if e1 winds up a register
-// variable, the inverse in elcomma() is preferable if e1 winds up in memory.
+            /* Replace (e1 = e op e1) with (e1 op= e)       */
+            if (OTcommut(op2) && el_match(e1,e2.E2))
+            {
+                const ty = e2.E1.Ety;
+                e.E2 = el_selecte1(e2);
+                e.E2.Ety = ty;
+                e.Eoper = cast(ubyte)optoopeq(op2);
+                return optelem(e, Goal.value);
+            }
+
+            // Disabled because this optimization is undone in elcomma(), this results in an
+            // infinite loop. This optimization is preferable if e1 winds up a register
+            // variable, the inverse in elcomma() is preferable if e1 winds up in memory.
             // Replace (e1 = (e1 op3 ea) op2 eb) with (e1 op3= ea),(e1 op2= eb)
             int op3 = e2.E1.Eoper;
-            if (OTop(op3) && el_match(e1,e2.E1.E1) && !el_depends(e1,e2.E2))
+            if (0 && OTop(op3) && el_match(e1,e2.E1.E1) && !el_depends(e1,e2.E2))
             {
                 e.Eoper = OPcomma;
                 e.E1 = e2.E1;
-                e.E1.Eoper = optoopeq(op3);
+                e.E1.Eoper = cast(ubyte)optoopeq(op3);
                 e2.E1 = e1;
                 e1.Ety = e.E1.Ety;
-                e2.Eoper = optoopeq(op2);
+                e2.Eoper = cast(ubyte)optoopeq(op2);
                 e2.Ety = e.Ety;
-                goto L1;
+                return optelem(e, Goal.value);
             }
-}
         }
 
         if (op2 == OPneg && el_match(e1,e2.E1) && !el_sideeffect(e1))
@@ -3927,38 +3921,35 @@ static if (0)
            !config.fpxmmregs)
         {
             tym_t ty;
-
-            elem *es = el_calloc();
-            es.Eoper = OPconst;
             switch (tysize(e2.Ety))
             {
                 case FLOATSIZE:
                     ty = TYlong;
-                    es.Vlong = 0x80000000;
-                    break;
+                    goto L8;
 
                 case DOUBLESIZE:
-                    if (I32)
-                    {
-                        ty = TYllong;
-                        es.Vllong = 0x8000000000000000L;
+                    if (!I32)
                         break;
-                    }
-                    goto default;
+
+                    ty = TYllong;
+                L8:
+                    elem* es = el_calloc();
+                    if (ty == TYlong)
+                        es.Vlong = 0x8000_0000;
+                    else
+                        es.Vllong = 0x8000_0000_0000_0000L;
+                    es.Eoper = OPconst;
+                    es.Ety = ty;
+                    e1.Ety = ty;
+                    e2.Ety = ty;
+                    e2.E1.Ety = ty;
+                    e2.E2 = es;
+                    e2.Eoper = OPxor;
+                    return optelem(e, Goal.value);
 
                 default:
-                    el_free(es);
-                    goto L8;
+                    break;
             }
-            es.Ety = ty;
-            e1.Ety = ty;
-            e2.Ety = ty;
-            e2.E1.Ety = ty;
-            e2.E2 = es;
-            e2.Eoper = OPxor;
-            return optelem(e, Goal.value);
-
-        L8:
         }
 
         // Replace (a=(r1 pair r2)) with (a1=r1), (a2=r2)
@@ -4029,11 +4020,11 @@ static if (0)
         }
     }
 
-   if (e1.Eoper == OPcomma)
+    if (e1.Eoper == OPcomma)
         return cgel_lvalue(e);
-  if (e1.Eoper != OPbit)
+    if (e1.Eoper != OPbit)
         return e;
-  if (e1.E1.Eoper == OPcomma || OTassign(e1.E1.Eoper))
+    if (e1.E1.Eoper == OPcomma || OTassign(e1.E1.Eoper))
         return cgel_lvalue(e);
 
     uint t = e.Ety;
