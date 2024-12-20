@@ -3706,7 +3706,9 @@ elem * elstruct(elem *e, Goal goal)
         default:
         Ldefault:
         {
-            if (e.Eoper == OPstreq && tym < TYMAX && e.E1.Eoper == OPvar && e.E2.Eoper == OPvar && e.ET)
+            if (e.Eoper == OPstreq && tym < TYMAX &&
+                (e.E1.Eoper == OPvar || e.E1.Eoper == OPind) &&
+                (e.E2.Eoper == OPvar || e.E2.Eoper == OPind) && e.ET)
             {
                 /* change (e1 streq e2) to ((e1 = e2), e1)
                  * A bit restrictive to only allow OPvar
