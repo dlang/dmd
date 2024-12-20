@@ -2527,6 +2527,28 @@ void test8()
 
 ////////////////////////////////////////////////////////////////////////
 
+struct S9
+{
+    int a,b;
+    ~this() { }
+}
+
+
+S9 test9x(ref S9 arg)
+{
+    return arg;
+}
+
+void test9()
+{
+    S9 s;
+    s.b = 3;
+    S9 t = test9x(s);
+    assert(t.b == 3);
+}
+
+////////////////////////////////////////////////////////////////////////
+
 int main()
 {
     // All the various integer divide tests
@@ -2628,6 +2650,7 @@ int main()
     testDoWhileContinue();
     test20574();
     test8();
+    test9();
 
     printf("Success\n");
     return 0;
