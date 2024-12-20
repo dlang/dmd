@@ -2571,7 +2571,7 @@ class Lexer
     Ldone:
         if (errorDigit)
         {
-            error(token.loc, "%s digit expected, not `%c`", base == 2 ? "binary".ptr :
+            error("%s digit expected, not `%c`", base == 2 ? "binary".ptr :
                                                  base == 8 ? "octal".ptr :
                                                  "decimal".ptr, errorDigit);
             err = true;
@@ -3162,7 +3162,7 @@ class Lexer
 
     void error(T...)(const(char)* format, T args)
     {
-        eSink.error(token.loc, format, args);
+        eSink.error(scanloc, format, args);
     }
 
     void error(T...)(const ref Loc loc, const(char)* format, T args)
@@ -3172,7 +3172,7 @@ class Lexer
 
     void errorSupplemental(T...)(const(char)* format, T args)
     {
-        eSink.errorSupplemental(token.loc, format, args);
+        eSink.errorSupplemental(scanloc, format, args);
     }
 
     void deprecation(T...)(const ref Loc loc, const(char)* format, T args)
@@ -3187,12 +3187,12 @@ class Lexer
 
     void deprecation(T...)(const(char)* format, T args)
     {
-        eSink.deprecation(token.loc, format, args);
+        eSink.deprecation(scanloc, format, args);
     }
 
     void deprecationSupplemental(T...)(const(char)* format, T args)
     {
-        eSink.deprecationSupplemental(token.loc, format, args);
+        eSink.deprecationSupplemental(scanloc, format, args);
     }
 
     /***************************************
