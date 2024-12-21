@@ -108,8 +108,8 @@ private bool isAssignment(Expression e)
 }
 
 /**
- * Returns: true if `e` is
- *     `(this.field = typeof(this.field).init, this.field.__ctor(arg))`
+ * Returns: true if `e` is an assignment that's been rewritten to a
+ * constructor call.
  */
 private bool isCtorAssignment(Expression e)
 {
