@@ -241,3 +241,16 @@ void __insertBlkInfoCache(BlkInfo bi, BlkInfo *curpos) nothrow @nogc
         }
     }
 }
+
+debug(PRINTF)
+{
+    extern(C) void printArrayCache()
+    {
+        auto ptr = __blkcache;
+        printf("CACHE: \n");
+        foreach (i; 0 .. N_CACHE_BLOCKS)
+        {
+            printf("  %d\taddr:% .8x\tsize:% .10d\tflags:% .8x\n", i, ptr[i].base, ptr[i].size, ptr[i].attr);
+        }
+    }
+}
