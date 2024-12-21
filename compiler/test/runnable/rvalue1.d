@@ -140,6 +140,57 @@ void test7()
 }
 
 /********************************/
+// https://github.com/dlang/dmd/issues/20562
+
+struct S8
+{
+    int a,b;
+    this(S8) { printf("this(S)\n"); b = 4; }
+    this(ref S8) { printf("this(ref S)\n"); assert(0); }
+}
+
+
+S8 returnRval(ref S8 arg)
+{
+static if (0)
+{
+    /*  __copytmp2 =  0 ;
+        _D7rvalue51S6__ctorMFNcKSQxQrZQg call  (arg param  #__copytmp2);
+        * __HID1 streq 1 __copytmp2;
+        __HID1;
+     */
+    return arg;
+}
+else static if (1)
+{
+    /*  * __HID1 streq 1 * arg;
+        __HID1;
+     */
+    return __rvalue(arg); // should move-construct the NRVO value
+}
+else
+{
+    /*  * t =  0 ;
+        t;
+        _TMP0 =  t;
+        _D7rvalue51S6__ctorMFNcSQwQqZQg call  (arg param  _TMP0);
+        t;
+     */
+    S8 t = __rvalue(arg);
+    return t;
+}
+}
+
+
+void test8()
+{
+   S8 s;
+   S8 t = returnRval(s);
+   printf("t.b: %d\n", t.b);
+   assert(t.b == 4);
+}
+
+/********************************/
 
 int main()
 {
@@ -150,6 +201,7 @@ int main()
     test5();
     test6();
     test7();
+    test8();
 
     return 0;
 }

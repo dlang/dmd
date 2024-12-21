@@ -818,20 +818,56 @@ extern(D) bool arrayExpressionSemantic(
  *   e = the expression the needs to be moved or copied (source)
  *   t = if the struct defines a copy constructor, the type of the destination (can be NULL)
  *   nrvo = true if the generated copy can be treated as NRVO
- *
+ *   move = true to allow a move constructor to be used, false to prevent infinite recursion
  * Returns:
  *  The expression that copy constructs or moves the value.
  */
-extern (D) Expression doCopyOrMove(Scope *sc, Expression e, Type t, bool nrvo)
+extern (D) Expression doCopyOrMove(Scope *sc, Expression e, Type t, bool nrvo, bool move = false)
 {
+    //printf("doCopyOrMove() %s\n", toChars(e));
+    StructDeclaration sd;
+    if (t)
+    {
+        if (auto ts = t.isTypeStruct())
+            sd = ts.sym;
+    }
+
     if (auto ce = e.isCondExp())
     {
         ce.e1 = doCopyOrMove(sc, ce.e1, null, nrvo);
         ce.e2 = doCopyOrMove(sc, ce.e2, null, nrvo);
     }
+    else if (e.isLvalue())
+    {
+        e = callCpCtor(sc, e, t, nrvo);
+    }
+    else if (move && sd && sd.hasMoveCtor && !e.isCallExp() && !e.isStructLiteralExp())
+    {
+        // #move
+        /* Rewrite as:
+         *    S __copyrvalue;
+         *    __copyrvalue.moveCtor(e);
+         *    __copyrvalue;
+         */
+        VarDeclaration vd = new VarDeclaration(e.loc, e.type, Identifier.generateId("__copyrvalue"), null);
+        if (nrvo)
+            vd.adFlags |= Declaration.nrvo;
+        vd.storage_class |= STC.nodtor;
+        vd.dsymbolSemantic(sc);
+        Expression de = new DeclarationExp(e.loc, vd);
+        Expression ve = new VarExp(e.loc, vd);
+
+        Expression er;
+        er = new DotIdExp(e.loc, ve, Id.ctor);  // ve.ctor
+        er = new CallExp(e.loc, er, e);         // ve.ctor(e)
+        er = new CommaExp(e.loc, er, new VarExp(e.loc, vd)); // ve.ctor(e),vd
+        er = Expression.combine(de, er);        // de,ve.ctor(e),vd
+
+        e = er.expressionSemantic(sc);
+    }
     else
     {
-        e = e.isLvalue() ? callCpCtor(sc, e, t, nrvo) : valueNoDtor(e);
+        e = valueNoDtor(e);
     }
     return e;
 }
@@ -844,7 +880,7 @@ extern (D) Expression doCopyOrMove(Scope *sc, Expression e, Type t, bool nrvo)
  *      sc = just used to specify the scope of created temporary variable
  *      destinationType = the type of the object on which the copy constructor is called;
  *                        may be null if the struct defines a postblit
- *	nrvo = true if the generated copy can be treated as NRVO
+ *      nrvo = true if the generated copy can be treated as NRVO
  */
 private Expression callCpCtor(Scope* sc, Expression e, Type destinationType, bool nrvo)
 {
@@ -865,7 +901,7 @@ private Expression callCpCtor(Scope* sc, Expression e, Type destinationType, boo
      */
     VarDeclaration tmp = copyToTemp(STC.rvalue, "__copytmp", e);
     if (nrvo)
-	tmp.adFlags |= Declaration.nrvo;
+        tmp.adFlags |= Declaration.nrvo;
     if (sd.hasCopyCtor && destinationType)
     {
         // https://issues.dlang.org/show_bug.cgi?id=22619
@@ -893,6 +929,7 @@ private Expression callCpCtor(Scope* sc, Expression e, Type destinationType, boo
  */
 Expression valueNoDtor(Expression e)
 {
+    //printf("valueNoDtor() %s\n", toChars(e));
     auto ex = lastComma(e);
 
     if (auto ce = ex.isCallExp())
@@ -10938,6 +10975,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         }
                         else if (sd.hasMoveCtor && !e2x.isCallExp() && !e2x.isStructLiteralExp())
                         {
+                            // #move
                             /* The !e2x.isCallExp() is because it is already an rvalue
                                and the move constructor is unnecessary:
                                 struct S {
