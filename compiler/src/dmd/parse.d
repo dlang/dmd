@@ -932,15 +932,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 {
                     const attrLoc = token.loc;
 
-                    nextToken();
-
-                    AST.Expression e = null; // default
-                    if (token.value == TOK.leftParenthesis)
-                    {
-                        nextToken();
-                        e = parseAssignExp();
-                        check(TOK.rightParenthesis);
-                    }
+                    AST.Expression e = parseAlign();
 
                     if (pAttrs.setAlignment)
                     {
@@ -4371,14 +4363,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 }
             case TOK.align_:
                 {
-                    nextToken();
                     setAlignment = true;
-                    if (token.value == TOK.leftParenthesis)
-                    {
-                        nextToken();
-                        ealign = parseExpression();
-                        check(TOK.rightParenthesis);
-                    }
+                    ealign = parseAlign();
                     continue;
                 }
             default:
@@ -4388,6 +4374,24 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         }
     }
 
+    /**
+     * Parse `align` or `align(n)`
+     * Returns:
+     *  expression `n` if it is present, or `null` otherwise.
+     */
+    private AST.Expression parseAlign()
+    {
+        assert(token.value == TOK.align_);
+        AST.Expression e = null;
+        nextToken();
+        if (token.value == TOK.leftParenthesis)
+        {
+            nextToken();
+            e = parseAssignExp();
+            check(TOK.rightParenthesis);
+        }
+        return e;
+    }
     /**********************************
      * Parse Declarations.
      * These can be:
