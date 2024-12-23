@@ -14274,6 +14274,25 @@ Expression binSemanticProp(BinExp e, Scope* sc)
 // entrypoint for semantic ExpressionSemanticVisitor
 Expression expressionSemantic(Expression e, Scope* sc)
 {
+    if (e.type)
+    {
+        // When the expression has a type, it usually means that semantic
+        // has already been run yet.
+        // For these expressions, expressionsemantic is not idempotent yet,
+        // and the test suite fails without these. TODO: fix the code/tests
+        // so that it doesn't rely on semantic running multiple times anymore.
+        if (!e.isDeleteExp()
+            && !e.isRealExp()
+            && !e.isCompoundLiteralExp()
+            && !e.isThrowExp()
+            && !e.isTypeExp()
+            && !e.isVarExp()
+        )
+        {
+            return e;
+        }
+    }
+
     scope v = new ExpressionSemanticVisitor(sc);
     e.accept(v);
     return v.result;
