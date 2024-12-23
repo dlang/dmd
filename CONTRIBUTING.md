@@ -6,13 +6,9 @@ For video guides, you can watch [D Contributor Tutorials on YouTube](https://www
 
 ## Reporting bugs
 
-While we are still transitioning to GitHub issues, we use [bugzilla](https://issues.dlang.org/) for issue tracking.
-Before reporting a bug, please [check bugzilla](https://issues.dlang.org/query.cgi) to see if it's already reported.
-If it isn't, [create a new issue](https://issues.dlang.org/enter_bug.cgi).
+Please search [the issue list](https://github.com/dlang/dmd/issues) before opening a new issue, to see if it's already reported.
 
 For questions about a specific behavior, the [D.Learn](https://forum.dlang.org/group/learn) group is a good place to ask for clarification before reporting an issue.
-
-### Content
 
 When creating a new issue, include:
 - the version of DMD being used (which can be found by running `dmd --version`).
@@ -25,20 +21,15 @@ DustMite is also available from our [tools](https://github.com/dlang/tools) repo
 
 ### Regressions
 
-When finding a [regression](https://en.wikipedia.org/wiki/Software_regression), please label the issue as such:
-- Set the field 'Severity' to 'Regression' (highest level of priority)
-- Prefix the issue title with `[REG 2.XXX.Y]` where `2.XXX.Y` is the first broken version whenever possible.
+When finding a [regression](https://en.wikipedia.org/wiki/Software_regression), please label the issue as such by prefixing the issue title with `[REG 2.XXX.Y]`where `2.XXX.Y` is the first broken version whenever possible.
 
 To help track down the point where regressions were introduced, use the excellent [Digger](https://github.com/CyberShadow/digger) tool.
 Digger will automatically bisect the history and identify the Pull Request that introduced the problem.
 
 ### Changelog
 
-We use Bugzilla to list fixed issues on a new release.  This list is then included in the changelog.
-For this list to be accurate then invalid or duplicated bugs must be closed with the appropriate resolution ('RESOLVED INVALID' and 'RESOLVED DUPLICATE', respectively - as opposed to e.g. 'RESOLVED FIXED').
-
-Changes that don't come with a bugzilla entry, such as new features, or enhancement on existing features, should come with their own changelog entry. Changelog entries should be written for everyday users, not compiler contributors.
-Additionally, for larger changes, you may want to add a specialized, detailed entry even if a bugzilla entry exists.
+Changes that don't close an issue, such as new features, or enhancement on existing features, should come with their own changelog entry. Changelog entries should be written for everyday users, not compiler contributors.
+Additionally, for larger changes, you may want to add a specialized, detailed entry even if it closes an issue.
 See [changelog/README.md](changelog/README.md) for details on how to add a changelog entry.
 Note that after a version has entered the release window (there is a beta / the change is in stable), changes should be made directly [in the dlang.org repository](https://github.com/dlang/dlang.org/tree/master/changelog).
 
@@ -65,13 +56,9 @@ You can try building DMD by following the [instructions in the src folder](https
 
 ### Finding bugs to work on
 
-You probably already have bugs that you want to see fixed, but if you need some easier bug fixes to start with, you can look for bugs with certain keywords such as:
+You probably already have bugs that you want to see fixed, but if you need some easier bug fixes to start with, you can look for bugs with the [trivial](https://github.com/dlang/dmd/labels/Severity%3Atrivial) label.
 
-- [trivial](https://issues.dlang.org/buglist.cgi?component=dmd&keywords=trivial&product=D).
-- [bootcamp](https://issues.dlang.org/buglist.cgi?component=dmd&keywords=bootcamp&product=D).
-- [preapproved](https://issues.dlang.org/buglist.cgi?component=dmd&keywords=preapproved&product=D).
-
-Improving error messages (keyword [diagnostic](https://issues.dlang.org/buglist.cgi?component=dmd&keywords=diagnostic&product=D)) is also a great area to start.
+Improving error messages (Label: [Diagnostic Messages](https://github.com/dlang/dmd/labels/Diagnostic%20Messages)) is also a great area to start.
 
 If you have a bug that isn't in the issue list yet, please file it.
 
