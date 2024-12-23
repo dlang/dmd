@@ -3934,7 +3934,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        scope (success) result.rvalue = exp.rvalue;
+        scope (exit) result.rvalue = exp.rvalue;
 
         Dsymbol scopesym;
         Dsymbol s = sc.search(exp.loc, exp.ident, scopesym);
