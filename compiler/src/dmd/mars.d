@@ -917,18 +917,27 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         {
             continue; // skip druntime options, e.g. used to configure the GC
         }
+        else if (arg == "-arm") // https://dlang.org/dmd.html#switch-arm
+        {
+            target.isAArch64 = true;
+            target.isX86    = false;
+            target.isX86_64 = false;
+        }
         else if (arg == "-m32") // https://dlang.org/dmd.html#switch-m32
         {
+            target.isAArch64 = false;
             target.isX86    = true;
             target.isX86_64 = false;
         }
         else if (arg == "-m64") // https://dlang.org/dmd.html#switch-m64
         {
+            target.isAArch64 = false;
             target.isX86    = false;
             target.isX86_64 = true;
         }
         else if (arg == "-m32mscoff") // https://dlang.org/dmd.html#switch-m32mscoff
         {
+            target.isAArch64 = false;
             target.isX86    = true;
             target.isX86_64 = false;
         }
@@ -995,13 +1004,17 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             {
                 params.v.showGaggedErrors = true;
             }
+            else if (startsWith(p + 9, "simple"))
+            {
+                params.v.errorPrintMode = ErrorPrintMode.simpleError;
+            }
             else if (startsWith(p + 9, "context"))
             {
-                params.v.printErrorContext = true;
+                params.v.errorPrintMode = ErrorPrintMode.printErrorContext;
             }
             else if (!params.v.errorLimit.parseDigits(p.toDString()[9 .. $]))
             {
-                errorInvalidSwitch(p, "Only number, `spec`, or `context` are allowed for `-verrors`");
+                errorInvalidSwitch(p, "Only a number, `spec`, `simple`, or `context` are allowed for `-verrors`");
                 return true;
             }
         }
@@ -1025,8 +1038,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             case "gnu":
                 params.v.messageStyle = MessageStyle.gnu;
                 break;
+            case "sarif":
+                params.v.messageStyle = MessageStyle.sarif;
+                break;
             default:
-                error("unknown error style '%.*s', must be 'digitalmars' or 'gnu'", cast(int) style.length, style.ptr);
+                error("unknown error style '%.*s', must be 'digitalmars', 'gnu', or 'sarif'", cast(int) style.length, style.ptr);
             }
         }
         else if (startsWith(p + 1, "target"))
@@ -1233,9 +1249,9 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             }
         }
         else if (arg == "-w")   // https://dlang.org/dmd.html#switch-w
-            params.warnings = DiagnosticReporting.error;
+            params.useWarnings = DiagnosticReporting.error;
         else if (arg == "-wi")  // https://dlang.org/dmd.html#switch-wi
-            params.warnings = DiagnosticReporting.inform;
+            params.useWarnings = DiagnosticReporting.inform;
         else if (arg == "-wo")  // https://dlang.org/dmd.html#switch-wo
         {
             // Obsolete features has been obsoleted until a DIP for "editions"
@@ -1276,6 +1292,11 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 if (p[3])
                     goto Lerror;
                 params.preservePaths = true;
+                break;
+            case 'q':
+                if (p[3])
+                    goto Lerror;
+                params.fullyQualifiedObjectFiles = true;
                 break;
             case 0:
                 error("-o no longer supported, use -of or -od");
@@ -1800,6 +1821,7 @@ bool createModule(const(char)* file, ref Strings libmodules, const ref Target ta
     }
     const(char)[] p = FileName.name(file.toDString()); // strip path
     const(char)[] ext = FileName.ext(p);
+    Loc loc = Loc(file, 0, 0);
     if (!ext)
     {
         if (!p.length)
@@ -1808,7 +1830,7 @@ bool createModule(const(char)* file, ref Strings libmodules, const ref Target ta
             return true;
         }
         auto id = Identifier.idPool(p);
-        m = new Module(file.toDString, id, global.params.ddoc.doOutput, global.params.dihdr.doOutput);
+        m = new Module(loc, file.toDString, id, global.params.ddoc.doOutput, global.params.dihdr.doOutput);
         return false;
     }
 
@@ -1888,8 +1910,7 @@ bool createModule(const(char)* file, ref Strings libmodules, const ref Target ta
          * its path and extension.
          */
         auto id = Identifier.idPool(name);
-
-        m = new Module(file.toDString, id, global.params.ddoc.doOutput, global.params.dihdr.doOutput);
+        m = new Module(loc, file.toDString, id, global.params.ddoc.doOutput, global.params.dihdr.doOutput);
         return false;
     }
     eSink.error(Loc.initial, "unrecognized file extension %.*s", cast(int)ext.length, ext.ptr);
@@ -1940,7 +1961,7 @@ bool createModules(ref Strings files, ref Strings libmodules, const ref Target t
 /// Returns: a compiled module (semantic3) containing an empty main() function, for the -main flag
 Module moduleWithEmptyMain()
 {
-    auto result = new Module("__main.d", Identifier.idPool("__main"), false, false);
+    auto result = new Module(Loc.initial, "__main.d", Identifier.idPool("__main"), false, false);
     // need 2 trailing nulls for sentinel and 2 for lexer
     auto data = arraydup("version(D_BetterC)extern(C)int main(){return 0;}else int main(){return 0;}\0\0\0\0");
     result.src = cast(ubyte[]) data[0 .. $-4];

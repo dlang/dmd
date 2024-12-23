@@ -1551,7 +1551,8 @@ private elem * elbitwise(elem *e, Goal goal)
                 ul == 1 &&
                 (e.E1.Eoper == OPshr || e.E1.Eoper == OPashr) &&
                 sz <= REGSIZE &&
-                tysize(e1.Ety) >= 2     // BT doesn't work on byte operands
+                tysize(e1.Ety) >= 2 &&   // BT doesn't work on byte operands
+                config.target_cpu != TARGET_AArch64
                )
             {
                 e.E1.Eoper = OPbtst;
@@ -1605,7 +1606,9 @@ private elem * elbitwise(elem *e, Goal goal)
             elem **pp  = &e2.E1.E2;
 
             if (el_match(*pb1, *pb2) &&
-                !el_sideeffect(*pb1))
+                !el_sideeffect(*pb1) &&
+                config.target_cpu != TARGET_AArch64
+               )
             {
                 e.Eoper = OPbt;
                 e.E1 = *pp;            // p
@@ -1626,7 +1629,9 @@ private elem * elbitwise(elem *e, Goal goal)
          */
         if (e1.Eoper == OPshl &&
             ELCONST(e1.E1,1) &&
-            tysize(e.E1.Ety) <= REGSIZE)
+            tysize(e.E1.Ety) <= REGSIZE &&
+            config.target_cpu != TARGET_AArch64
+           )
         {
             const int sz1 = tysize(e.E1.Ety);
             e.Eoper = OPbtst;
@@ -1711,6 +1716,21 @@ private elem *elor(elem *e, Goal goal)
     uint sz = tysize(e.Ety);
     if (sz <= REGSIZE)
     {
+        elem* rol()
+        {
+            if (config.target_cpu == TARGET_AArch64)
+            {
+                // AArch64 does not have ROL instruction, convert (a rol b) to (a ror -b)
+                e1.Eoper = OPror;
+                e = el_selecte1(e);
+                e.E2 = el_una(OPneg, e.E2.Ety, e.E2);
+                e.Eoper = OPror;
+                return e;
+            }
+            e1.Eoper = OProl;
+            return el_selecte1(e);
+        }
+
         if (e1.Eoper == OPshl && e2.Eoper == OPshr &&
             tyuns(e2.E1.Ety) && e2.E2.Eoper == OPmin &&
             e2.E2.E1.Eoper == OPconst &&
@@ -1720,8 +1740,7 @@ private elem *elor(elem *e, Goal goal)
             !el_sideeffect(e)
            )
         {
-            e1.Eoper = OProl;
-            return el_selecte1(e);
+            return rol();
         }
         if (e1.Eoper == OPshr && e2.Eoper == OPshl &&
             tyuns(e1.E1.Ety) && e2.E2.Eoper == OPmin &&
@@ -1745,8 +1764,7 @@ private elem *elor(elem *e, Goal goal)
             !el_sideeffect(e)
            )
         {
-            e1.Eoper = OProl;
-            return el_selecte1(e);
+            return rol();
         }
         // rotate right by a constant
         if (e1.Eoper == OPshr && e2.Eoper == OPshl &&
@@ -2351,6 +2369,17 @@ private elem * elcond(elem *e, Goal goal)
                 e.Eoper = OPbool;
                 e.Ety = TYint;
             }
+
+            /* Replace:
+             *  a ? b : b
+             * with:
+             *  a , b
+             */
+            else if (el_match(ec1, ec2))
+            {
+                e.Eoper = OPcomma;
+                e.E2 = el_selecte1(e.E2);
+            }
             break;
         }
     }
@@ -2525,7 +2554,7 @@ private elem * elremquo(elem *e, Goal goal)
 {
     static if (0)
     if (cnst(e.E2) && !boolres(e.E2))
-        error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum, "divide by zero\n");
+        error(e.Esrcpos, "divide by zero\n");
 
     return e;
 }
@@ -2558,7 +2587,7 @@ private elem * eldiv(elem *e, Goal goal)
     {
         static if (0)
         if (!boolres(e2))
-            error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum, "divide by zero\n");
+            error(e.Esrcpos, "divide by zero\n");
 
         if (uns)
         {
@@ -2859,7 +2888,7 @@ L1:
 @trusted
 private bool optim_loglog(ref elem* pe)
 {
-    if (I16)
+    if (I16 || config.target_cpu == TARGET_AArch64)
         return false;
     elem *e = pe;
     const op = e.Eoper;
@@ -3492,6 +3521,13 @@ elem * elstruct(elem *e, Goal goal)
         return optelem(e, goal);
     }
 
+    // Replace (e = e) with (e, e)
+    if (e.Eoper == OPstreq && el_match(e.E1, e.E2))
+    {
+        e.Eoper = OPcomma;
+        return optelem(e, goal);
+    }
+
     if (!e.ET)
         return e;
     //printf("\tnumbytes = %d\n", cast(int)type_size(e.ET));
@@ -3670,6 +3706,20 @@ elem * elstruct(elem *e, Goal goal)
         default:
         Ldefault:
         {
+            if (e.Eoper == OPstreq && tym < TYMAX && e.E1.Eoper == OPvar && e.E2.Eoper == OPvar && e.ET)
+            {
+                /* change (e1 streq e2) to ((e1 = e2), e1)
+                 * A bit restrictive to only allow OPvar
+                 */
+                elem* en = el_bin(OPcomma, e.ET.Tty, e, el_copytree(e.E1));
+                en.ET = e.ET;
+                e.Eoper = OPeq;
+                e.Ety = tym;
+                e.E1.Ety = tym;
+                e.E2.Ety = tym;
+                e = en;
+                break;
+            }
             elem **pe2;
             if (e.Eoper == OPstreq)
                 pe2 = &e.E2;
@@ -3780,7 +3830,6 @@ static if (0)  // Doesn't work too well, removed
         if (el_match(e1,e2))
         {
             e.Eoper = OPcomma;
-        L1:
             return optelem(e, Goal.value);
         }
 
@@ -3791,15 +3840,13 @@ static if (0)  // Doesn't work too well, removed
             e.E2 = e2.E2;
             e2.E2 = e;
             e = e2;
-            goto L1;
+            return optelem(e, Goal.value);
         }
 
         if (OTop(op2) && !el_sideeffect(e1)
             && op2 != OPdiv && op2 != OPmod
            )
         {
-            tym_t ty;
-
             enum side = false; // don't allow side effects in e2.E2 because of
                                // D order-of-evaluation rules
 
@@ -3807,42 +3854,39 @@ static if (0)  // Doesn't work too well, removed
             if (el_match(e1,e2.E1) &&
                 (side || !el_sideeffect(e2.E2)))
             {
-                ty = e2.E2.Ety;
+                const ty = e2.E2.Ety;
                 e.E2 = el_selecte2(e2);
-            L2:
                 e.E2.Ety = ty;
                 e.Eoper = cast(ubyte)optoopeq(op2);
-                goto L1;
-            }
-            if (OTcommut(op2))
-            {
-                /* Replace (e1 = e op e1) with (e1 op= e)       */
-                if (el_match(e1,e2.E2))
-                {   ty = e2.E1.Ety;
-                    e.E2 = el_selecte1(e2);
-                    goto L2;
-                }
+                return optelem(e, Goal.value);
             }
 
-static if (0)
-{
-// Note that this optimization is undone in elcomma(), this results in an
-// infinite loop. This optimization is preferable if e1 winds up a register
-// variable, the inverse in elcomma() is preferable if e1 winds up in memory.
+            /* Replace (e1 = e op e1) with (e1 op= e)       */
+            if (OTcommut(op2) && el_match(e1,e2.E2))
+            {
+                const ty = e2.E1.Ety;
+                e.E2 = el_selecte1(e2);
+                e.E2.Ety = ty;
+                e.Eoper = cast(ubyte)optoopeq(op2);
+                return optelem(e, Goal.value);
+            }
+
+            // Disabled because this optimization is undone in elcomma(), this results in an
+            // infinite loop. This optimization is preferable if e1 winds up a register
+            // variable, the inverse in elcomma() is preferable if e1 winds up in memory.
             // Replace (e1 = (e1 op3 ea) op2 eb) with (e1 op3= ea),(e1 op2= eb)
             int op3 = e2.E1.Eoper;
-            if (OTop(op3) && el_match(e1,e2.E1.E1) && !el_depends(e1,e2.E2))
+            if (0 && OTop(op3) && el_match(e1,e2.E1.E1) && !el_depends(e1,e2.E2))
             {
                 e.Eoper = OPcomma;
                 e.E1 = e2.E1;
-                e.E1.Eoper = optoopeq(op3);
+                e.E1.Eoper = cast(ubyte)optoopeq(op3);
                 e2.E1 = e1;
                 e1.Ety = e.E1.Ety;
-                e2.Eoper = optoopeq(op2);
+                e2.Eoper = cast(ubyte)optoopeq(op2);
                 e2.Ety = e.Ety;
-                goto L1;
+                return optelem(e, Goal.value);
             }
-}
         }
 
         if (op2 == OPneg && el_match(e1,e2.E1) && !el_sideeffect(e1))
@@ -3888,44 +3932,45 @@ static if (0)
         // If floating point, replace (x = -y) with (x = y ^ signbit)
         if (op2 == OPneg && (tyreal(e2.Ety) || tyimaginary(e2.Ety)) &&
             (e2.E1.Eoper == OPvar || e2.E1.Eoper == OPind) &&
+           /* Turned off for x87 because of https://issues.dlang.org/show_bug.cgi?id=24819
+            * and this is unnecessary anyway because of the FCHS x87 instruction
+            */
+           !config.inline8087 &&
            /* Turned off for XMM registers because they don't play well with
             * int registers.
             */
            !config.fpxmmregs)
         {
             tym_t ty;
-
-            elem *es = el_calloc();
-            es.Eoper = OPconst;
             switch (tysize(e2.Ety))
             {
                 case FLOATSIZE:
                     ty = TYlong;
-                    es.Vlong = 0x80000000;
-                    break;
+                    goto L8;
 
                 case DOUBLESIZE:
-                    if (I32)
-                    {
-                        ty = TYllong;
-                        es.Vllong = 0x8000000000000000L;
+                    if (!I32)
                         break;
-                    }
-                    goto default;
+
+                    ty = TYllong;
+                L8:
+                    elem* es = el_calloc();
+                    if (ty == TYlong)
+                        es.Vlong = 0x8000_0000;
+                    else
+                        es.Vllong = 0x8000_0000_0000_0000L;
+                    es.Eoper = OPconst;
+                    es.Ety = ty;
+                    e1.Ety = ty;
+                    e2.Ety = ty;
+                    e2.E1.Ety = ty;
+                    e2.E2 = es;
+                    e2.Eoper = OPxor;
+                    return optelem(e, Goal.value);
 
                 default:
-                    el_free(es);
-                    goto L8;
+                    break;
             }
-            es.Ety = ty;
-            e1.Ety = ty;
-            e2.Ety = ty;
-            e2.E1.Ety = ty;
-            e2.E2 = es;
-            e2.Eoper = OPxor;
-            return optelem(e, Goal.value);
-
-        L8:
         }
 
         // Replace (a=(r1 pair r2)) with (a1=r1), (a2=r2)
@@ -3996,11 +4041,11 @@ static if (0)
         }
     }
 
-   if (e1.Eoper == OPcomma)
+    if (e1.Eoper == OPcomma)
         return cgel_lvalue(e);
-  if (e1.Eoper != OPbit)
+    if (e1.Eoper != OPbit)
         return e;
-  if (e1.E1.Eoper == OPcomma || OTassign(e1.E1.Eoper))
+    if (e1.E1.Eoper == OPcomma || OTassign(e1.E1.Eoper))
         return cgel_lvalue(e);
 
     uint t = e.Ety;
@@ -4735,7 +4780,8 @@ private elem * elbool(elem *e, Goal goal)
                  e.E1.Eoper == OPand &&
                  e.E1.E1.Eoper == OPshl &&
                  e.E1.E1.E1.Eoper == OPconst && el_tolong(e.E1.E1.E1) == 1 &&
-                 tysize(e.E1.Ety) <= REGSIZE
+                 tysize(e.E1.Ety) <= REGSIZE &&
+                 config.target_cpu != TARGET_AArch64
                 )
         {
             tym_t ty = e.Ety;
@@ -6166,7 +6212,6 @@ beg:
 elem *doptelem(elem *e, Goal goal)
 {
     //printf("doptelem(e = %p, goal = x%x)\n", e, goal);
-    assert(!PARSER);
     do
     {   again = false;
         topair = false;
@@ -6216,7 +6261,7 @@ void postoptelem(elem *e)
                     const targ_ullong v = el_tolong(e.E1);
                     if (v < 4096 && !(e.Ety & mTYvolatile))
                     {
-                        error(pos.Sfilename, pos.Slinnum, pos.Scharnum, "null dereference in function %s", funcsym_p.Sident.ptr);
+                        error(pos, "null dereference in function %s", funcsym_p.Sident.ptr);
                         e.E1.Vlong = 4096;     // suppress redundant messages
                     }
                 }

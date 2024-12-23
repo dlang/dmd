@@ -35,7 +35,8 @@ enum
 enum class MessageStyle : unsigned char
 {
     digitalmars, // file(line,column): message
-    gnu          // file:line:column: message
+    gnu,         // file:line:column: message
+    sarif        // JSON SARIF output, see https://docs.oasis-open.org/sarif/sarif/v2.1.0/sarif-v2.1.0.html
 };
 
 // The state of array bounds checking
@@ -93,6 +94,13 @@ enum class CLIIdentifierTable : unsigned char
     All      = 4, /// The least restrictive set of all other tables
 };
 
+/// Specifies the mode for error printing
+enum class ErrorPrintMode : unsigned char
+{
+    simpleError,        // Print errors without squiggles and carets
+    printErrorContext,  // Print errors with the error line and caret
+};
+
 struct Output
 {
     /// Configuration for the compiler generator
@@ -137,10 +145,10 @@ struct Verbose
     d_bool complex = true;     // identify complex/imaginary type usage
     d_bool vin;                // identify 'in' parameters
     d_bool showGaggedErrors;   // print gagged errors anyway
-    d_bool printErrorContext;  // print errors with the error context (the error line in the source file)
     d_bool logo;               // print compiler logo
     d_bool color;              // use ANSI colors in console output
     d_bool cov;                // generate code coverage data
+    ErrorPrintMode errorPrintMode; // enum for error printing mode
     MessageStyle messageStyle; // style of file/line annotations on messages
     unsigned errorLimit;
     unsigned errorSupplementLimit; // Limit the number of supplemental messages for each error (0 means unlimited)
@@ -160,7 +168,7 @@ struct Param
     d_bool useInline;     // inline expand functions
     d_bool release;       // build release version
     d_bool preservePaths; // true means don't strip path from source file
-    Diagnostic warnings;
+    Diagnostic useWarnings;
     d_bool cov;           // generate code coverage data
     unsigned char covPercent;   // 0..100 code coverage percentage required
     d_bool ctfe_cov;      // generate coverage data for ctfe
@@ -190,6 +198,9 @@ struct Param
                                  // https://gist.github.com/andralex/e5405a5d773f07f73196c05f8339435a
                                  // https://digitalmars.com/d/archives/digitalmars/D/Binding_rvalues_to_ref_parameters_redux_325087.html
                                  // Implementation: https://github.com/dlang/dmd/pull/9817
+    FeatureState safer;          // safer by default (more @safe checks in unattributed code)
+                                 // https://github.com/WalterBright/documents/blob/38f0a846726b571f8108f6e63e5e217b91421c86/safer.md
+
     FeatureState noSharedAccess; // read/write access to shared memory objects
     d_bool previewIn;              // `in` means `[ref] scope const`, accepts rvalues
     d_bool inclusiveInContracts;   // 'in' contracts of overridden methods must be a superset of parent contract
@@ -250,6 +261,10 @@ struct Param
     DString resfile;
     DString exefile;
     DString mapfile;
+    bool fullyQualifiedObjectFiles;
+    bool timeTrace;
+    uint32_t timeTraceGranularityUs;
+    const char* timeTraceFile;
 };
 
 struct structalign_t
@@ -287,6 +302,7 @@ struct CompileEnv
     DString vendor;
     DString timestamp;
     d_bool previewIn;
+    d_bool transitionIn;
     d_bool ddocOutput;
     d_bool masm;
     IdentifierCharLookup cCharLookupTable;
@@ -343,6 +359,13 @@ struct Global
     void increaseErrorCount();
 
     void _init();
+
+    /**
+     * Indicate to stateful error sinks that no more errors can be produced.
+     * This is to support error sinks that collect information to produce a
+     * single (say) report.
+     */
+    void plugErrorSinks();
 
     /**
     Returns: the version as the number that would be returned for __VERSION__

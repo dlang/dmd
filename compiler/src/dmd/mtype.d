@@ -30,6 +30,7 @@ import dmd.dtemplate;
 import dmd.enumsem;
 import dmd.errors;
 import dmd.expression;
+import dmd.dsymbolsem : determineSize;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
@@ -515,7 +516,7 @@ extern (C++) abstract class Type : ASTNode
 
         static Type merge(Type t)
         {
-            import dmd.basicmangle : tyToDecoBuffer;
+            import dmd.mangle.basic : tyToDecoBuffer;
 
             OutBuffer buf;
             buf.reserve(3);
@@ -641,38 +642,38 @@ extern (C++) abstract class Type : ASTNode
         return buf.extractChars();
     }
 
-    bool isintegral()
+    bool isIntegral()
     {
         return false;
     }
 
     // real, imaginary, or complex
-    bool isfloating()
+    bool isFloating()
     {
         return false;
     }
 
-    bool isreal()
+    bool isReal()
     {
         return false;
     }
 
-    bool isimaginary()
+    bool isImaginary()
     {
         return false;
     }
 
-    bool iscomplex()
+    bool isComplex()
     {
         return false;
     }
 
-    bool isscalar()
+    bool isScalar()
     {
         return false;
     }
 
-    bool isunsigned()
+    bool isUnsigned()
     {
         return false;
     }
@@ -705,7 +706,7 @@ extern (C++) abstract class Type : ASTNode
      */
     bool isBoolean()
     {
-        return isscalar();
+        return isScalar();
     }
 
     final bool isConst() const nothrow pure @nogc @safe
@@ -1115,65 +1116,66 @@ extern (C++) abstract class Type : ASTNode
         Type t = this;
         if (t.isImmutable())
         {
+            return t;
         }
         else if (stc & STC.immutable_)
         {
             t = t.makeImmutable();
+            return t;
         }
-        else
+
+        if ((stc & STC.shared_) && !t.isShared())
         {
-            if ((stc & STC.shared_) && !t.isShared())
+            if (t.isWild())
+            {
+                if (t.isConst())
+                    t = t.makeSharedWildConst();
+                else
+                    t = t.makeSharedWild();
+            }
+            else
+            {
+                if (t.isConst())
+                    t = t.makeSharedConst();
+                else
+                    t = t.makeShared();
+            }
+        }
+        if ((stc & STC.const_) && !t.isConst())
+        {
+            if (t.isShared())
             {
                 if (t.isWild())
-                {
-                    if (t.isConst())
-                        t = t.makeSharedWildConst();
-                    else
-                        t = t.makeSharedWild();
-                }
+                    t = t.makeSharedWildConst();
                 else
-                {
-                    if (t.isConst())
-                        t = t.makeSharedConst();
-                    else
-                        t = t.makeShared();
-                }
+                    t = t.makeSharedConst();
             }
-            if ((stc & STC.const_) && !t.isConst())
+            else
             {
-                if (t.isShared())
-                {
-                    if (t.isWild())
-                        t = t.makeSharedWildConst();
-                    else
-                        t = t.makeSharedConst();
-                }
+                if (t.isWild())
+                    t = t.makeWildConst();
                 else
-                {
-                    if (t.isWild())
-                        t = t.makeWildConst();
-                    else
-                        t = t.makeConst();
-                }
-            }
-            if ((stc & STC.wild) && !t.isWild())
-            {
-                if (t.isShared())
-                {
-                    if (t.isConst())
-                        t = t.makeSharedWildConst();
-                    else
-                        t = t.makeSharedWild();
-                }
-                else
-                {
-                    if (t.isConst())
-                        t = t.makeWildConst();
-                    else
-                        t = t.makeWild();
-                }
+                    t = t.makeConst();
             }
         }
+        if ((stc & STC.wild) && !t.isWild())
+        {
+            if (t.isShared())
+            {
+                if (t.isConst())
+                    t = t.makeSharedWildConst();
+                else
+                    t = t.makeSharedWild();
+            }
+            else
+            {
+                if (t.isConst())
+                    t = t.makeWildConst();
+                else
+                    t = t.makeWild();
+            }
+        }
+
         return t;
     }
 
@@ -1396,33 +1398,6 @@ extern (C++) abstract class Type : ASTNode
         while ((tsa = t.isTypeSArray()) !is null)
             t = tsa.next.toBasetype();
         return t;
-    }
-
-    /*******************************************
-     * Compute number of elements for a (possibly multidimensional) static array,
-     * or 1 for other types.
-     * Params:
-     *  loc = for error message
-     * Returns:
-     *  number of elements, uint.max on overflow
-     */
-    final uint numberOfElems(const ref Loc loc)
-    {
-        //printf("Type::numberOfElems()\n");
-        uinteger_t n = 1;
-        Type tb = this;
-        while ((tb = tb.toBasetype()).ty == Tsarray)
-        {
-            bool overflow = false;
-            n = mulu(n, (cast(TypeSArray)tb).dim.toUInteger(), overflow);
-            if (overflow || n >= uint.max)
-            {
-                error(loc, "static array `%s` size overflowed to %llu", toChars(), cast(ulong)n);
-                return uint.max;
-            }
-            tb = (cast(TypeSArray)tb).next;
-        }
-        return cast(uint)n;
     }
 
     /****************************************
@@ -2055,38 +2030,38 @@ extern (C++) final class TypeBasic : Type
         return target.alignsize(this);
     }
 
-    override bool isintegral()
+    override bool isIntegral()
     {
-        //printf("TypeBasic::isintegral('%s') x%x\n", toChars(), flags);
+        //printf("TypeBasic::isIntegral('%s') x%x\n", toChars(), flags);
         return (flags & TFlags.integral) != 0;
     }
 
-    override bool isfloating()
+    override bool isFloating()
     {
         return (flags & TFlags.floating) != 0;
     }
 
-    override bool isreal()
+    override bool isReal()
     {
         return (flags & TFlags.real_) != 0;
     }
 
-    override bool isimaginary()
+    override bool isImaginary()
     {
         return (flags & TFlags.imaginary) != 0;
     }
 
-    override bool iscomplex()
+    override bool isComplex()
     {
         return (flags & TFlags.complex) != 0;
     }
 
-    override bool isscalar()
+    override bool isScalar()
     {
         return (flags & (TFlags.integral | TFlags.floating)) != 0;
     }
 
-    override bool isunsigned()
+    override bool isUnsigned()
     {
         return (flags & TFlags.unsigned) != 0;
     }
@@ -2144,25 +2119,25 @@ extern (C++) final class TypeVector : Type
         return cast(uint)basetype.size();
     }
 
-    override bool isintegral()
+    override bool isIntegral()
     {
-        //printf("TypeVector::isintegral('%s') x%x\n", toChars(), flags);
-        return basetype.nextOf().isintegral();
+        //printf("TypeVector::isIntegral('%s') x%x\n", toChars(), flags);
+        return basetype.nextOf().isIntegral();
     }
 
-    override bool isfloating()
+    override bool isFloating()
     {
-        return basetype.nextOf().isfloating();
+        return basetype.nextOf().isFloating();
     }
 
-    override bool isscalar()
+    override bool isScalar()
     {
-        return basetype.nextOf().isscalar();
+        return basetype.nextOf().isScalar();
     }
 
-    override bool isunsigned()
+    override bool isUnsigned()
     {
-        return basetype.nextOf().isunsigned();
+        return basetype.nextOf().isUnsigned();
     }
 
     override bool isBoolean()
@@ -2458,7 +2433,7 @@ extern (C++) final class TypePointer : TypeNext
         return result;
     }
 
-    override bool isscalar()
+    override bool isScalar()
     {
         return true;
     }
@@ -2528,20 +2503,20 @@ extern (C++) final class TypeFunction : TypeNext
     // getters and setters are generated for them
     private extern (D) static struct BitFields
     {
-        bool isnothrow;        /// nothrow
-        bool isnogc;           /// is @nogc
-        bool isproperty;       /// can be called without parentheses
-        bool isref;            /// returns a reference
-        bool isreturn;         /// 'this' is returned by ref
+        bool isNothrow;        /// nothrow
+        bool isNogc;           /// is @nogc
+        bool isProperty;       /// can be called without parentheses
+        bool isRef;            /// returns a reference
+        bool isReturn;         /// 'this' is returned by ref
         bool isScopeQual;      /// 'this' is scope
-        bool isreturninferred; /// 'this' is return from inference
-        bool isscopeinferred;  /// 'this' is scope from inference
-        bool islive;           /// is @live
+        bool isReturnInferred; /// 'this' is return from inference
+        bool isScopeInferred;  /// 'this' is scope from inference
+        bool isLive;           /// is @live
         bool incomplete;       /// return type or default arguments removed
         bool isInOutParam;     /// inout on the parameters
         bool isInOutQual;      /// inout on the qualifier
-        bool isctor;           /// the function is a constructor
-        bool isreturnscope;    /// `this` is returned by value
+        bool isCtor;           /// the function is a constructor
+        bool isReturnScope;    /// `this` is returned by value
     }
 
     import dmd.common.bitfields : generateBitFields;
@@ -2565,26 +2540,26 @@ extern (C++) final class TypeFunction : TypeNext
         if (stc & STC.pure_)
             this.purity = PURE.fwdref;
         if (stc & STC.nothrow_)
-            this.isnothrow = true;
+            this.isNothrow = true;
         if (stc & STC.nogc)
-            this.isnogc = true;
+            this.isNogc = true;
         if (stc & STC.property)
-            this.isproperty = true;
+            this.isProperty = true;
         if (stc & STC.live)
-            this.islive = true;
+            this.isLive = true;
 
         if (stc & STC.ref_)
-            this.isref = true;
+            this.isRef = true;
         if (stc & STC.return_)
-            this.isreturn = true;
+            this.isReturn = true;
         if (stc & STC.returnScope)
-            this.isreturnscope = true;
+            this.isReturnScope = true;
         if (stc & STC.returninferred)
-            this.isreturninferred = true;
+            this.isReturnInferred = true;
         if (stc & STC.scope_)
             this.isScopeQual = true;
         if (stc & STC.scopeinferred)
-            this.isscopeinferred = true;
+            this.isScopeInferred = true;
 
         this.trust = TRUST.default_;
         if (stc & STC.safe)
@@ -2610,22 +2585,22 @@ extern (C++) final class TypeFunction : TypeNext
         Type treturn = next ? next.syntaxCopy() : null;
         auto t = new TypeFunction(parameterList.syntaxCopy(), treturn, linkage);
         t.mod = mod;
-        t.isnothrow = isnothrow;
-        t.isnogc = isnogc;
-        t.islive = islive;
+        t.isNothrow = isNothrow;
+        t.isNogc = isNogc;
+        t.isLive = isLive;
         t.purity = purity;
-        t.isproperty = isproperty;
-        t.isref = isref;
-        t.isreturn = isreturn;
-        t.isreturnscope = isreturnscope;
+        t.isProperty = isProperty;
+        t.isRef = isRef;
+        t.isReturn = isReturn;
+        t.isReturnScope = isReturnScope;
         t.isScopeQual = isScopeQual;
-        t.isreturninferred = isreturninferred;
-        t.isscopeinferred = isscopeinferred;
+        t.isReturnInferred = isReturnInferred;
+        t.isScopeInferred = isScopeInferred;
         t.isInOutParam = isInOutParam;
         t.isInOutQual = isInOutQual;
         t.trust = trust;
         t.inferenceArguments = inferenceArguments;
-        t.isctor = isctor;
+        t.isCtor = isCtor;
         return t;
     }
 
@@ -2653,13 +2628,20 @@ extern (C++) final class TypeFunction : TypeNext
         return linkage == LINK.d && parameterList.varargs == VarArg.variadic;
     }
 
-    extern(D) static const(char)* getMatchError(A...)(const(char)* format, A args)
+    /*********************************
+     * Append error message to buf.
+     * Input:
+     *  buf = message sink
+     *  format = printf format
+     */
+    extern(C) static void getMatchError(ref OutBuffer buf, const(char)* format, ...)
     {
         if (global.gag && !global.params.v.showGaggedErrors)
-            return null;
-        OutBuffer buf;
-        buf.printf(format, args);
-        return buf.extractChars();
+            return;
+        va_list ap;
+        va_start(ap, format);
+        buf.vprintf(format, ap);
+        va_end(ap);
     }
 
     /********************************
@@ -2668,10 +2650,10 @@ extern (C++) final class TypeFunction : TypeNext
      *
      * Params:
      *      argumentList = array of function arguments
-     *      pMessage = address to store error message, or `null`
+     *      buf = if not null, append error message to it
      * Returns: re-ordered argument list, or `null` on error
      */
-    extern(D) Expressions* resolveNamedArgs(ArgumentList argumentList, const(char)** pMessage)
+    extern(D) Expressions* resolveNamedArgs(ArgumentList argumentList, OutBuffer* buf)
     {
         Expression[] args = argumentList.arguments ? (*argumentList.arguments)[] : null;
         Identifier[] names = argumentList.names ? (*argumentList.names)[] : null;
@@ -2695,8 +2677,8 @@ extern (C++) final class TypeFunction : TypeNext
                 const pi = findParameterIndex(name);
                 if (pi == -1)
                 {
-                    if (pMessage)
-                        *pMessage = getMatchError("no parameter named `%s`", name.toChars());
+                    if (buf)
+                        getMatchError(*buf, "no parameter named `%s`", name.toChars());
                     return null;
                 }
                 ci = pi;
@@ -2706,8 +2688,8 @@ extern (C++) final class TypeFunction : TypeNext
                 if (!isVariadic)
                 {
                     // Without named args, let the caller diagnose argument overflow
-                    if (hasNamedArgs && pMessage)
-                        *pMessage = getMatchError("argument `%s` goes past end of parameter list", arg.toChars());
+                    if (hasNamedArgs && buf)
+                        getMatchError(*buf, "argument `%s` goes past end of parameter list", arg.toChars());
                     return null;
                 }
                 while (ci >= newArgs.length)
@@ -2716,8 +2698,8 @@ extern (C++) final class TypeFunction : TypeNext
 
             if ((*newArgs)[ci])
             {
-                if (pMessage)
-                    *pMessage = getMatchError("parameter `%s` assigned twice", parameterList[ci].toChars());
+                if (buf)
+                    getMatchError(*buf, "parameter `%s` assigned twice", parameterList[ci].toChars());
                 return null;
             }
             (*newArgs)[ci++] = arg;
@@ -2735,8 +2717,8 @@ extern (C++) final class TypeFunction : TypeNext
             if (this.incomplete)
                 continue;
 
-            if (pMessage)
-                *pMessage = getMatchError("missing argument for parameter #%d: `%s`",
+            if (buf)
+                getMatchError(*buf, "missing argument for parameter #%d: `%s`",
                     i + 1, parameterToChars(parameterList[i], this, false));
             return null;
         }
@@ -2749,36 +2731,6 @@ extern (C++) final class TypeFunction : TypeNext
         newArgs.setDim(e);
         return newArgs;
     }
-
-    extern (D) bool checkRetType(const ref Loc loc)
-    {
-        Type tb = next.toBasetype();
-        if (tb.ty == Tfunction)
-        {
-            error(loc, "functions cannot return a function");
-            next = Type.terror;
-        }
-        if (tb.ty == Ttuple)
-        {
-            error(loc, "functions cannot return a sequence (use `std.typecons.Tuple`)");
-            next = Type.terror;
-        }
-        if (!isref && (tb.ty == Tstruct || tb.ty == Tsarray))
-        {
-            if (auto ts = tb.baseElemOf().isTypeStruct())
-            {
-                if (!ts.sym.members)
-                {
-                    error(loc, "functions cannot return opaque type `%s` by value", tb.toChars());
-                    next = Type.terror;
-                }
-            }
-        }
-        if (tb.ty == Terror)
-            return true;
-        return false;
-    }
-
 
     /// Returns: `true` the function is `isInOutQual` or `isInOutParam` ,`false` otherwise.
     bool iswild() const pure nothrow @safe @nogc
@@ -2800,9 +2752,9 @@ extern (C++) final class TypeFunction : TypeNext
         return (this.trust == other.trust ||
                 (trustSystemEqualsDefault && this.trust <= TRUST.system && other.trust <= TRUST.system)) &&
                 this.purity == other.purity &&
-                this.isnothrow == other.isnothrow &&
-                this.isnogc == other.isnogc &&
-                this.islive == other.islive;
+                this.isNothrow == other.isNothrow &&
+                this.isNogc == other.isNogc &&
+                this.isLive == other.isLive;
     }
 
     override void accept(Visitor v)
@@ -3414,39 +3366,39 @@ extern (C++) final class TypeEnum : Type
         return t.alignsize();
     }
 
-    override bool isintegral()
+    override bool isIntegral()
     {
-        return memType().isintegral();
+        return memType().isIntegral();
     }
 
-    override bool isfloating()
+    override bool isFloating()
     {
-        return memType().isfloating();
+        return memType().isFloating();
     }
 
-    override bool isreal()
+    override bool isReal()
     {
-        return memType().isreal();
+        return memType().isReal();
     }
 
-    override bool isimaginary()
+    override bool isImaginary()
     {
-        return memType().isimaginary();
+        return memType().isImaginary();
     }
 
-    override bool iscomplex()
+    override bool isComplex()
     {
-        return memType().iscomplex();
+        return memType().isComplex();
     }
 
-    override bool isscalar()
+    override bool isScalar()
     {
-        return memType().isscalar();
+        return memType().isScalar();
     }
 
-    override bool isunsigned()
+    override bool isUnsigned()
     {
-        return memType().isunsigned();
+        return memType().isUnsigned();
     }
 
     override bool isBoolean()
@@ -4359,19 +4311,19 @@ void attributesApply(const TypeFunction tf, void delegate(string) dg, TRUSTforma
 {
     if (tf.purity)
         dg("pure");
-    if (tf.isnothrow)
+    if (tf.isNothrow)
         dg("nothrow");
-    if (tf.isnogc)
+    if (tf.isNogc)
         dg("@nogc");
-    if (tf.isproperty)
+    if (tf.isProperty)
         dg("@property");
-    if (tf.isref)
+    if (tf.isRef)
         dg("ref");
-    if (tf.isreturn && !tf.isreturninferred)
+    if (tf.isReturn && !tf.isReturnInferred)
         dg("return");
-    if (tf.isScopeQual && !tf.isscopeinferred)
+    if (tf.isScopeQual && !tf.isScopeInferred)
         dg("scope");
-    if (tf.islive)
+    if (tf.isLive)
         dg("@live");
 
     TRUST trustAttrib = tf.trust;

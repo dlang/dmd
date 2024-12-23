@@ -319,7 +319,7 @@ struct Triple
 Initializes Target settings to compile for the same target
 as the build compiler.
 */
-void setTargetBuildDefaults(ref Target target)
+void setTargetBuildDefaults(ref Target target) @safe
 {
     target = target.init;
     target.os = defaultTargetOS();

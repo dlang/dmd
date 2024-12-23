@@ -528,6 +528,8 @@ DOCS=\
 	$(DOCDIR)\etc_linux_memoryerror.html \
 	\
 	$(DOCDIR)\core_internal_gc_bits.html \
+	$(DOCDIR)\core_internal_gc_blkcache.html \
+	$(DOCDIR)\core_internal_gc_blockmeta.html \
 	$(DOCDIR)\core_internal_gc_os.html \
 	$(DOCDIR)\core_internal_gc_pooltable.html \
 	$(DOCDIR)\core_internal_gc_proxy.html \

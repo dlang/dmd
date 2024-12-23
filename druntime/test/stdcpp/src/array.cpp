@@ -14,7 +14,10 @@ std::array<int, 5>& sumOfElements_ref(std::array<int, 5>& arr)
 
 std::array<int, 5> sumOfElements_val(std::array<int, 5> arr)
 {
-    int r = sumOfElements_ref(arr)[0] + fromC_ref(arr)[0] + fromC_val(arr)[0];
+    int r = 0;
+    r += sumOfElements_ref(arr)[0];
+    r += fromC_ref(arr)[0];
+    r += fromC_val(arr)[0];
     arr.fill(r);
     return arr;
 }

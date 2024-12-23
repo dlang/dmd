@@ -690,6 +690,12 @@ dmd -cov -unittest myprog.d
             off when generating an object, interface, or Ddoc file
             name. $(SWLINK -op) will leave it on.`,
         ),
+        Option("oq",
+            "Write object files with fully qualified file names",
+            `When compiling pkg/app.d, the resulting object file name will be pkg_app.obj
+            instead of app.o. This helps to prevent name conflicts when compiling multiple
+            packages in the same directory with the $(SWLINK -od) flag.`,
+        ),
         Option("os=<os>",
             "sets target operating system to <os>",
             `Set the target operating system as other than the host.
@@ -819,13 +825,14 @@ dmd -cov -unittest myprog.d
         Option("vcolumns",
             "print character (column) numbers in diagnostics"
         ),
-        Option("verror-style=[digitalmars|gnu]",
+        Option("verror-style=[digitalmars|gnu|sarif]",
             "set the style for file/line number annotations on compiler messages",
             `Set the style for file/line number annotations on compiler messages,
             where:
             $(DL
             $(DT digitalmars)$(DD 'file(line[,column]): message'. This is the default.)
             $(DT gnu)$(DD 'file:line[:column]: message', conforming to the GNU standard used by gcc and clang.)
+            $(DT sarif)$(DD 'Generates JSON output conforming to the SARIF (Static Analysis Results Interchange Format) standard, useful for integration with tools like GitHub and other SARIF readers.')
             )`,
         ),
         Option("verror-supplements=<num>",
@@ -834,8 +841,13 @@ dmd -cov -unittest myprog.d
         Option("verrors=<num>",
             "limit the number of error/deprecation messages (0 means unlimited)"
         ),
-        Option("verrors=context",
-            "show error messages with the context of the erroring source line"
+        Option("verrors=[context|simple]",
+            "set the verbosity of error messages",
+            `Set the verbosity of error messages:
+            $(DL
+            $(DT context)$(DD Show error messages with the context of the erroring source line (including caret).)
+            $(DT simple)$(DD Show error messages without the context of the erroring source line.)
+            )`,
         ),
         Option("verrors=spec",
             "show errors from speculative compiles such as __traits(compiles,...)"
@@ -932,6 +944,8 @@ dmd -cov -unittest myprog.d
                 "https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1000.md"),
         Feature("intpromote", "fix16997", "revert integral promotions for unary + - ~ operators"),
         Feature("dtorfields", "dtorFields", "don't destruct fields of partially constructed objects"),
+        Feature("fieldwise", "fieldwise", "don't use fieldwise comparisons for struct equality",
+            "https://dlang.org/changelog/2.085.0.html#no-cmpsb"),
     ];
 
     /// Returns all available previews
@@ -952,7 +966,7 @@ dmd -cov -unittest myprog.d
         Feature("bitfields", "bitfields", "add C-like bitfields",
             "https://github.com/dlang/dlang.org/pull/3190"),
         Feature("fieldwise", "fieldwise", "use fieldwise comparisons for struct equality",
-            "https://dlang.org/changelog/2.085.0.html#no-cmpsb"),
+            "https://dlang.org/changelog/2.085.0.html#no-cmpsb", false, false),
         Feature("fixAliasThis", "fixAliasThis",
             "when a symbol is resolved, check alias this scope before going to upper scopes",
             "https://github.com/dlang/dmd/pull/8885"),
@@ -965,6 +979,9 @@ dmd -cov -unittest myprog.d
         Feature("rvaluerefparam", "rvalueRefParam",
             "enable rvalue arguments to ref parameters",
             "https://gist.github.com/andralex/e5405a5d773f07f73196c05f8339435a"),
+        Feature("safer", "safer",
+            "more safety checks by default",
+            "https://github.com/WalterBright/documents/blob/38f0a846726b571f8108f6e63e5e217b91421c86/safer.md", true, false),
         Feature("nosharedaccess", "noSharedAccess",
             "disable access to shared memory objects",
             "https://dlang.org/spec/const3.html#shared"),

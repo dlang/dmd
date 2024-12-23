@@ -53,6 +53,24 @@ nothrow:
         destroy();
     }
 
+    /**
+     * Create a new AArray
+     * Params:
+     *     pbase = in case the key type is a flattened string array (see `TinfoPair`),
+     *       the base pointer of the string data.
+     * Returns:
+     *     GC-allocated AArray
+     */
+    static AArray* create(ubyte** pbase = null)
+    {
+        AArray* result = new AArray();
+
+        static if (is(typeof(tkey.pbase)))
+            result.tkey.pbase = pbase;
+
+        return result;
+    }
+
     /****
      * Frees all the data used by AArray
      */
@@ -94,7 +112,7 @@ nothrow:
      *  pointer to Value
      */
     @trusted
-    Value* get(Key* pkey)
+    Value* get(Key pkey)
     {
         //printf("AArray::get()\n");
         const aligned_keysize = aligntsize(Key.sizeof);
@@ -117,7 +135,7 @@ nothrow:
         while ((e = *pe) != null)
         {
             if (key_hash == e.hash &&
-                tkey.equals(pkey, cast(Key*)(e + 1)))
+                tkey.equals(pkey, *cast(Key*)(e + 1)))
             {
                 goto Lret;
             }
@@ -129,7 +147,7 @@ nothrow:
         e = cast(aaA *) malloc(aaA.sizeof + aligned_keysize + Value.sizeof);
         if (!e)
             err_nomem();
-        memcpy(e + 1, pkey, Key.sizeof);
+        memcpy(e + 1, &pkey, Key.sizeof);
         memset(cast(void *)(e + 1) + aligned_keysize, 0, Value.sizeof);
         e.hash = key_hash;
         e.next = null;
@@ -157,7 +175,7 @@ nothrow:
      */
 
     @trusted
-    Value* isIn(Key* pkey)
+    Value* isIn(Key pkey)
     {
         //printf("AArray.isIn(), .length = %d, .ptr = %p\n", nodes, buckets.ptr);
         if (!nodes)
@@ -170,7 +188,7 @@ nothrow:
         while (e != null)
         {
             if (key_hash == e.hash &&
-                tkey.equals(pkey, cast(Key*)(e + 1)))
+                tkey.equals(pkey, *cast(Key*)(e + 1)))
             {
                 return cast(Value*)(cast(void*)(e + 1) + aligntsize(Key.sizeof));
             }
@@ -191,7 +209,7 @@ nothrow:
      */
 
     @trusted
-    void del(Key *pkey)
+    void del(Key pkey)
     {
         if (!nodes)
             return;
@@ -204,7 +222,7 @@ nothrow:
         while ((e = *pe) != null)       // null means not found
         {
             if (key_hash == e.hash &&
-                tkey.equals(pkey, cast(Key*)(e + 1)))
+                tkey.equals(pkey, *cast(Key*)(e + 1)))
             {
                 *pe = e.next;
                 --nodes;
@@ -401,14 +419,14 @@ public struct Tinfo(K)
 nothrow:
     alias Key = K;
 
-    static hash_t getHash(Key* pk)
+    static hash_t getHash(Key pk)
     {
-        return cast(hash_t)*pk;
+        return cast(hash_t) pk;
     }
 
-    static bool equals(Key* pk1, Key* pk2)
+    static bool equals(Key pk1, Key pk2)
     {
-        return *pk1 == *pk2;
+        return pk1 == pk2;
     }
 }
 
@@ -422,56 +440,23 @@ public struct TinfoChars
 nothrow:
     alias Key = const(char)[];
 
-    static hash_t getHash(Key* pk)
+    static hash_t getHash(Key pk)
     {
-        auto buf = *pk;
-        return calcHash(cast(const(ubyte[]))buf);
+        return calcHash(cast(const(ubyte[])) pk);
     }
 
     @trusted
-    static bool equals(Key* pk1, Key* pk2)
+    static bool equals(Key pk1, Key pk2)
     {
-        auto buf1 = *pk1;
-        auto buf2 = *pk2;
+        auto buf1 = pk1;
+        auto buf2 = pk2;
         return buf1.length == buf2.length &&
                memcmp(buf1.ptr, buf2.ptr, buf1.length) == 0;
     }
 }
 
-// Interface for C++ code
-public struct AAchars
-{
-nothrow:
-    alias AA = AArray!(TinfoChars, uint);
-    AA aa;
+public alias AAchars = AArray!(TinfoChars, uint);
 
-    @trusted
-    static AAchars* create()
-    {
-        auto a = cast(AAchars*)calloc(1, AAchars.sizeof);
-        if (!a)
-            err_nomem();
-        return a;
-    }
-
-    @trusted
-    static void destroy(AAchars* aac)
-    {
-        aac.aa.destroy();
-        free(aac);
-    }
-
-    @trusted
-    extern(D) uint* get(const(char)[] buf)
-    {
-        return aa.get(&buf);
-    }
-
-    uint length()
-    {
-        return cast(uint)aa.length();
-    }
-}
 
 /***************************************************************/
 
@@ -487,98 +472,25 @@ nothrow:
     ubyte** pbase;
 
     @trusted
-    hash_t getHash(Key* pk)
+    hash_t getHash(Key pk)
     {
         auto buf = (*pbase)[pk.start .. pk.end];
         return calcHash(buf);
     }
 
     @trusted
-    bool equals(Key* pk1, Key* pk2)
+    bool equals(Key pk1, Key pk2)
     {
         const len1 = pk1.end - pk1.start;
         const len2 = pk2.end - pk2.start;
 
-        auto buf1 = *pk1;
-        auto buf2 = *pk2;
         return len1 == len2 &&
                memcmp(*pbase + pk1.start, *pbase + pk2.start, len1) == 0;
     }
 }
 
-// Interface for C++ code
-public struct AApair
-{
-nothrow:
-    alias AA = AArray!(TinfoPair, uint);
-    AA aa;
-
-    @trusted
-    static AApair* create(ubyte** pbase)
-    {
-        auto a = cast(AApair*)calloc(1, AApair.sizeof);
-        if (!a)
-            err_nomem();
-        a.aa.tkey.pbase = pbase;
-        return a;
-    }
-
-    @trusted
-    static void destroy(AApair* aap)
-    {
-        aap.aa.destroy();
-        free(aap);
-    }
-
-    @trusted
-    uint* get(uint start, uint end)
-    {
-        auto p = Pair(start, end);
-        return aa.get(&p);
-    }
-
-    uint length()
-    {
-        return cast(uint)aa.length();
-    }
-}
-
-// Interface for C++ code
-public struct AApair2
-{
-nothrow:
-    alias AA = AArray!(TinfoPair, Pair);
-    AA aa;
-
-    @trusted
-    static AApair2* create(ubyte** pbase)
-    {
-        auto a = cast(AApair2*)calloc(1, AApair2.sizeof);
-        if (!a)
-            err_nomem();
-        a.aa.tkey.pbase = pbase;
-        return a;
-    }
-
-    @trusted
-    static void destroy(AApair2* aap)
-    {
-        aap.aa.destroy();
-        free(aap);
-    }
-
-    @trusted
-    Pair* get(uint start, uint end)
-    {
-        auto p = Pair(start, end);
-        return aa.get(&p);
-    }
-
-    uint length()
-    {
-        return cast(uint)aa.length();
-    }
-}
+public alias AApair = AArray!(TinfoPair, uint);
+public alias AApair2 = AArray!(TinfoPair, Pair);
 
 /*************************************************************/
 
@@ -595,27 +507,27 @@ nothrow:
 
     assert(aa.length == 0);
     int k = 8;
-    aa.del(&k);
+    aa.del(k);
     bool v = true;
-    assert(!aa.isIn(&k));
-    bool *pv = aa.get(&k);
+    assert(!aa.isIn(k));
+    bool *pv = aa.get(k);
     *pv = true;
     int j = 9;
-    pv = aa.get(&j);
+    pv = aa.get(j);
     *pv = false;
     aa.rehash();
 
     assert(aa.length() == 2);
-    assert(*aa.get(&k) == true);
-    assert(*aa.get(&j) == false);
+    assert(*aa.get(k) == true);
+    assert(*aa.get(j) == false);
 
     assert(aa.apply(&dg) == 3);
     assert(aa.apply(&dgz) == 0);
 
-    aa.del(&k);
+    aa.del(k);
     assert(aa.length() == 1);
-    assert(!aa.isIn(&k));
-    assert(*aa.isIn(&j) == false);
+    assert(!aa.isIn(k));
+    assert(*aa.isIn(j) == false);
 
     auto keys = aa.keys();
     assert(keys.length == 1);
@@ -627,7 +539,7 @@ nothrow:
 
     AArray!(Tinfo!int, bool) aa2;
     int key = 10;
-    bool* getpv = aa2.get(&key);
+    bool* getpv = aa2.get(key);
     aa2.apply(delegate(int* pk, bool* pv) @trusted {
         assert(pv is getpv);
         return 0;
@@ -638,10 +550,10 @@ nothrow:
 {
     const(char)* buf = "abcb";
     auto aap = AApair.create(cast(ubyte**)&buf);
-    auto pu = aap.get(1,2);
+    auto pu = aap.get(Pair(1, 2));
     *pu = 10;
     assert(aap.length == 1);
-    pu = aap.get(3,4);
+    pu = aap.get(Pair(3, 4));
     assert(*pu == 10);
-    AApair.destroy(aap);
+    aap.destroy();
 }

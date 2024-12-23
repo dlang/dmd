@@ -1,7 +1,11 @@
 *.[oa]
 *.deps
+*.lst
+log*
 .B*
 *~
+/compiler/src/dmd/lwv
+/compiler/src/dmd/new
 /compiler/src/bug2
 /compiler/test/test_results
 /compiler/test/trace.def
@@ -12,7 +16,6 @@ generated/
 -.DS_Store
 -trace.def
 -trace.log
-*.lst
 .dub
 dub.selections.json
 

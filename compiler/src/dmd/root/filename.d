@@ -42,7 +42,8 @@ version (Windows)
 
     extern (Windows) DWORD GetFullPathNameW(LPCWSTR, DWORD, LPWSTR, LPWSTR*) nothrow @nogc;
     extern (Windows) void SetLastError(DWORD) nothrow @nogc;
-    extern (C) char* getcwd(char* buffer, size_t maxlen) nothrow;
+    extern (C) char* _getcwd(char* buffer, size_t maxlen) nothrow;
+    alias getcwd = _getcwd;
 }
 
 version (CRuntime_Glibc)
@@ -277,7 +278,7 @@ nothrow:
      * Returns:
      *  the slice
      */
-    extern (D) static const(char)[] sansExt(const char[] filename)
+    extern (D) static const(char)[] sansExt(const char[] filename) @safe
     {
         auto e = ext(filename);
         size_t length = e.length;
@@ -1101,7 +1102,7 @@ nothrow:
         return str.ptr;
     }
 
-    const(char)[] toString() const pure nothrow @nogc @trusted
+    const(char)[] toString() const pure nothrow @nogc @safe
     {
         return str;
     }

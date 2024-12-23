@@ -45,7 +45,7 @@ nothrow:
 @safe:
 
 @trusted
-extern (C) void TOOFFSET(void* p, targ_size_t value)
+void TOOFFSET(void* p, targ_size_t value)
 {
     switch (_tysize[TYnptr])
     {
@@ -509,6 +509,8 @@ void cv_init()
             case TARGET_PentiumPro:
             case TARGET_PentiumII:
                                 debsym[4] = 6;  break;
+            case TARGET_AArch64:
+                                debsym[4] = 7;  break; // made that up
             default:    assert(0);
         }
         debsym[5] = (CPP != 0);         // 0==C, 1==C++
@@ -1760,10 +1762,8 @@ private void cv4_outsym(Symbol *s)
                  */
                 assert(length <= 0x1000);
                 if (idx2 != 0)
-                {   uint offset = cast(uint)Offset(DEBSYM);
-                    objmod.write_bytes(SegData[DEBSYM],debsym[0 .. length]);
-                    objmod.write_long(DEBSYM,offset + fixoff,cast(uint)s.Soffset,
-                        cgcv.LCFDpointer + fd,idx1,idx2);
+                {
+                    assert(0);
                 }
                 goto Lret;
 
@@ -1792,7 +1792,7 @@ static if (1)
 
             case SC.const_:
                 // The only constants are enum members
-                value = cast(uint)el_tolongt(s.Svalue);
+                value = cast(uint)el_tolong(s.Svalue);
                 TOWORD(debsym + 2,S_CONST);
                 TOIDX(debsym + 4,typidx);
                 length = 4 + cgcv.sz_idx;

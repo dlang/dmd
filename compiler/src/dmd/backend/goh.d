@@ -92,7 +92,6 @@ struct GlobalOptimizer
     vec_t vptrkill;     // vector of AEs killed by an access
 }
 
-public import dmd.backend.var : go;
 public import dmd.backend.gdag : builddags, boolopt;
 public import dmd.backend.gflow : flowrd, flowlv, flowvbe, flowcp, flowae, genkillae;
 public import dmd.backend.glocal : localize;

@@ -135,7 +135,9 @@ extern (C) int _Dmain(char[][])
         dmd_coverDestPath(sourcePath);
         dmd_coverSetMerge(true);
     }
-    scope(failure) stderr.printInternalFailure;
+    version (D_Exceptions)
+        scope(failure) stderr.printInternalFailure;
+
     auto args = Runtime.cArgs();
     return tryMain(args.argc, cast(const(char)**)args.argv, global.params);
 }
@@ -160,16 +162,32 @@ private:
 private int tryMain(size_t argc, const(char)** argv, ref Param params)
 {
     import dmd.common.charactertables;
+    import dmd.sarif;
+    import core.stdc.stdarg;
 
     Strings files;
     Strings libmodules;
     global._init();
+
+    scope(exit)
+    {
+        // If we are here then compilation has ended
+        // gracefully as opposed to with `fatal`
+        global.plugErrorSinks();
+
+        if (global.errors == 0 && global.params.v.messageStyle == MessageStyle.sarif)
+        {
+            generateSarifReport(true);
+        }
+    }
+
     target.setTargetBuildDefaults();
 
     if (parseCommandlineAndConfig(argc, argv, params, files))
         return EXIT_FAILURE;
 
     global.compileEnv.previewIn        = global.params.previewIn;
+    global.compileEnv.transitionIn     = global.params.v.vin;
     global.compileEnv.ddocOutput       = global.params.ddoc.doOutput;
 
     final switch(global.params.cIdentifierTable)
@@ -453,6 +471,17 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 //            m.deleteObjFile();
 
         m.parse();
+
+        // Finalize output filenames. Update if `-oq` was specified (only feasible after parsing).
+        if (params.fullyQualifiedObjectFiles && m.md)
+        {
+            m.objfile = m.setOutfilename(params.objname, params.objdir, m.arg, FileName.ext(m.objfile.toString()));
+            if (m.docfile)
+                m.setDocfile();
+            if (m.hdrfile)
+                m.hdrfile = m.setOutfilename(params.dihdr.name, params.dihdr.dir, m.arg, hdr_ext);
+        }
+
         if (m.filetype == FileType.dhdr)
         {
             // Remove m's object file from list of object files
@@ -917,7 +946,7 @@ bool parseCommandlineAndConfig(size_t argc, const(char)** argv, ref Param params
     if (char* p = getenv("DDOCFILE"))
         global.params.ddoc.files.shift(p);
 
-    if (target.isX86_64 != isX86_64)
+    if (target.isX86_64 != isX86_64 && !target.isAArch64)
         error(Loc.initial, "the architecture must not be changed in the %s section of %.*s",
               envsection.ptr, cast(int)global.inifilename.length, global.inifilename.ptr);
 

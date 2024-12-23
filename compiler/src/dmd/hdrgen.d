@@ -305,10 +305,9 @@ private void statementToBuffer(Statement s, ref OutBuffer buf, ref HdrGenState h
         buf.writenl();
     }
 
-    void visitWhile(WhileStatement s)
+    void printConditionAssignment(Parameter p, Expression condition)
     {
-        buf.writestring("while (");
-        if (auto p = s.param)
+        if (p)
         {
             // Print condition assignment
             StorageClass stc = p.storageClass;
@@ -322,7 +321,13 @@ private void statementToBuffer(Statement s, ref OutBuffer buf, ref HdrGenState h
                 buf.writestring(p.ident.toString());
             buf.writestring(" = ");
         }
-        s.condition.expressionToBuffer(buf, hgs);
+        condition.expressionToBuffer(buf, hgs);
+    }
+
+    void visitWhile(WhileStatement s)
+    {
+        buf.writestring("while (");
+        printConditionAssignment(s.param, s.condition);
         buf.writeByte(')');
         buf.writenl();
         if (s._body)
@@ -460,20 +465,7 @@ private void statementToBuffer(Statement s, ref OutBuffer buf, ref HdrGenState h
     void visitIf(IfStatement s)
     {
         buf.writestring("if (");
-        if (Parameter p = s.prm)
-        {
-            StorageClass stc = p.storageClass;
-            if (!p.type && !stc)
-                stc = STC.auto_;
-            if (stcToBuffer(buf, stc))
-                buf.writeByte(' ');
-            if (p.type)
-                typeToBuffer(p.type, p.ident, buf, hgs);
-            else
-                buf.writestring(p.ident.toString());
-            buf.writestring(" = ");
-        }
-        s.condition.expressionToBuffer(buf, hgs);
+        printConditionAssignment(s.prm, s.condition);
         buf.writeByte(')');
         buf.writenl();
         if (s.ifbody.isScopeStatement())
@@ -572,21 +564,7 @@ private void statementToBuffer(Statement s, ref OutBuffer buf, ref HdrGenState h
     void visitSwitch(SwitchStatement s)
     {
         buf.writestring(s.isFinal ? "final switch (" : "switch (");
-        if (auto p = s.param)
-        {
-            // Print condition assignment
-            StorageClass stc = p.storageClass;
-            if (!p.type && !stc)
-                stc = STC.auto_;
-            if (stcToBuffer(buf, stc))
-                buf.writeByte(' ');
-            if (p.type)
-                typeToBuffer(p.type, p.ident, buf, hgs);
-            else
-                buf.writestring(p.ident.toString());
-            buf.writestring(" = ");
-        }
-        s.condition.expressionToBuffer(buf, hgs);
+        printConditionAssignment(s.param, s.condition);
         buf.writeByte(')');
         buf.writenl();
         if (s._body)
@@ -1718,12 +1696,15 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
     void visitFuncDeclaration(FuncDeclaration f)
     {
         //printf("FuncDeclaration::toCBuffer() '%s'\n", f.toChars());
-        if (stcToBuffer(buf, f.storage_class))
-            buf.writeByte(' ');
-        auto tf = f.type.isTypeFunction();
-        typeToBuffer(tf, f.ident, buf, hgs);
 
-        if (hgs.hdrgen)
+        // https://issues.dlang.org/show_bug.cgi?id=24891
+        // return/scope storage classes are printed as part of function type
+        if (stcToBuffer(buf, f.storage_class & ~(STC.scope_ | STC.return_ | STC.returnScope)))
+            buf.writeByte(' ');
+        typeToBuffer(f.type, f.ident, buf, hgs);
+        auto tf = f.type.isTypeFunction();
+
+        if (hgs.hdrgen && tf)
         {
             // if the return type is missing (e.g. ref functions or auto)
             // https://issues.dlang.org/show_bug.cgi?id=20090
@@ -1858,9 +1839,9 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
         if (stcToBuffer(buf, d.storage_class))
             buf.writeByte(' ');
         buf.writestring("invariant");
-        if(auto es = d.fbody.isExpStatement())
+        auto es = d.fbody.isExpStatement();
+        if (es && es.exp && es.exp.op == EXP.assert_)
         {
-            assert(es.exp && es.exp.op == EXP.assert_);
             buf.writestring(" (");
             (cast(AssertExp)es.exp).e1.expressionToBuffer(buf, hgs);
             buf.writestring(");");
@@ -2363,12 +2344,12 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         // to themselves, need to avoid infinite recursion:
         // struct S { this(int){ this.s = &this; } S* s; }
         // const foo = new S(0);
-        if (e.stageflags & stageToCBuffer)
+        if (e.stageflags & StructLiteralExp.StageFlags.toCBuffer)
             buf.writestring("<recursion>");
         else
         {
             const old = e.stageflags;
-            e.stageflags |= stageToCBuffer;
+            e.stageflags |= StructLiteralExp.StageFlags.toCBuffer;
             argsToBuffer(e.elements, buf, hgs);
             e.stageflags = old;
         }
@@ -2888,6 +2869,12 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         buf.writestring(e.value.toChars());
     }
 
+    if (e.rvalue)
+        buf.writestring("__rvalue(");
+    scope (success)
+        if (e.rvalue)
+            buf.writeByte(')');
+
     switch (e.op)
     {
         default:
@@ -3016,7 +3003,7 @@ void floatToBuffer(Type type, const real_t value, ref OutBuffer buf, const bool 
         default:
             break;
         }
-        if (t.isimaginary())
+        if (t.isImaginary())
             buf.writeByte('i');
     }
 }
@@ -3796,7 +3783,8 @@ private void tiargsToBuffer(TemplateInstance ti, ref OutBuffer buf, ref HdrGenSt
         }
         else if (Expression e = isExpression(oarg))
         {
-            if (e.op == EXP.int64 || e.op == EXP.float64 || e.op == EXP.null_ || e.op == EXP.string_ || e.op == EXP.this_)
+            if (!(e.type && e.type.isTypeEnum()) && e.op == EXP.int64 || e.op == EXP.float64 ||
+                e.op == EXP.null_ || e.op == EXP.string_ || e.op == EXP.this_)
             {
                 toCBuffer(e, buf, hgs);
                 return;
@@ -3901,7 +3889,7 @@ private void visitFuncIdentWithPostfix(TypeFunction t, const char[] ident, ref O
         buf.write("static ");
     if (t.next)
     {
-        if (t.isref)
+        if (t.isRef)
         {
             openParenthesis();
             buf.write("ref ");
@@ -3915,7 +3903,7 @@ private void visitFuncIdentWithPostfix(TypeFunction t, const char[] ident, ref O
                     case Tsarray, Tarray, Taarray, Tpointer, Treference, Tdelegate, Tslice: continue;
                     case Tfunction:
                         TypeFunction tf = cast(TypeFunction) tt;
-                        return !tf.isref && tf.linkage <= LINK.d;
+                        return !tf.isRef && tf.linkage <= LINK.d;
                     default: return false;
                 }
             }
@@ -4023,15 +4011,15 @@ private void visitFuncIdentWithPrefix(TypeFunction t, const Identifier ident, Te
         buf.writeByte(' ');
         MODtoBuffer(buf, t.mod);
     }
-    if (t.isreturnscope && !t.isreturninferred)
+    if (t.isReturnScope && !t.isReturnInferred)
     {
         buf.writestring(" return scope");
     }
-    else if (t.isScopeQual && !t.isscopeinferred)
+    else if (t.isScopeQual && !t.isScopeInferred)
     {
         buf.writestring(" scope");
     }
-    if (t.isreturn && !t.isreturnscope && !t.isreturninferred)
+    if (t.isReturn && !t.isReturnScope && !t.isReturnInferred)
     {
         buf.writestring(" return");
     }
@@ -4221,7 +4209,7 @@ private void typeToBufferx(Type t, ref OutBuffer buf, ref HdrGenState hgs)
 
     void visitFunction(TypeFunction t)
     {
-        //printf("TypeFunction::toCBuffer2() t = %p, ref = %d\n", t, t.isref);
+        //printf("TypeFunction::toCBuffer2() t = %p, ref = %d\n", t, t.isRef);
         visitFuncIdentWithPostfix(t, null, buf, hgs, false);
     }
 

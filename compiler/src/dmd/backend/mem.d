@@ -18,8 +18,6 @@ import core.stdc.string : strdup;
 
 import dmd.backend.global : err_nomem;
 
-extern (C):
-
 nothrow:
 @nogc:
 @safe:

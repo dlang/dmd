@@ -15,12 +15,12 @@ module dmd.builtin;
 
 import dmd.arraytypes;
 import dmd.astenums;
-import dmd.dmangle;
 import dmd.errors;
 import dmd.expression;
 import dmd.func;
 import dmd.globals;
 import dmd.location;
+import dmd.mangle;
 import dmd.mtype;
 import dmd.root.ctfloat;
 import dmd.tokens;
@@ -151,8 +151,8 @@ BUILTIN determine_builtin(FuncDeclaration func)
     // Only match pow(fp,fp) where fp is a floating point type
     if (id3 == Id._pow)
     {
-        if ((*fd.parameters)[0].type.isfloating() &&
-            (*fd.parameters)[1].type.isfloating())
+        if ((*fd.parameters)[0].type.isFloating() &&
+            (*fd.parameters)[1].type.isFloating())
             return BUILTIN.pow;
         return BUILTIN.unimp;
     }

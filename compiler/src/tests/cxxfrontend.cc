@@ -372,16 +372,16 @@ void test_types()
     StorageClass stc = STCnothrow|STCproperty|STCreturn|STCreturninferred|STCtrusted;
     TypeFunction *tfunction = TypeFunction::create(args, Type::tvoid, VARARGnone, LINK::d, stc);
 
-    assert(tfunction->isnothrow());
-    assert(!tfunction->isnogc());
-    assert(tfunction->isproperty());
-    assert(!tfunction->isref());
-    tfunction->isref(true);
-    assert(tfunction->isref());
-    assert(tfunction->isreturn());
+    assert(tfunction->isNothrow());
+    assert(!tfunction->isNogc());
+    assert(tfunction->isProperty());
+    assert(!tfunction->isRef());
+    tfunction->isRef(true);
+    assert(tfunction->isRef());
+    assert(tfunction->isReturn());
     assert(!tfunction->isScopeQual());
-    assert(tfunction->isreturninferred());
-    assert(!tfunction->isscopeinferred());
+    assert(tfunction->isReturnInferred());
+    assert(!tfunction->isScopeInferred());
     assert(tfunction->linkage == LINK::d);
     assert(tfunction->trust == TRUST::trusted);
     assert(tfunction->purity == PURE::impure);
@@ -634,7 +634,7 @@ public:
     }
     void visit(TypeSArray *t) override
     {
-        if (t->dim->isConst() && t->dim->type->isintegral())
+        if (t->dim->isConst() && t->dim->type->isIntegral())
         {
             (void)t->dim->toUInteger();
             t->next->accept(this);
@@ -672,7 +672,7 @@ public:
         if (t->next != NULL)
         {
             t->next->accept(this);
-            (void)t->isref();
+            (void)t->isRef();
         }
         (void)t->ctype;
         switch (t->linkage)
@@ -792,7 +792,7 @@ public:
                 }
                 if (AttribDeclaration *attrib = sym->isAttribDeclaration())
                 {
-                    (void)attrib->include(NULL);
+                    dmd::include(attrib, NULL);
                     continue;
                 }
                 if (sym->isTemplateMixin() || sym->isNspace())
@@ -854,7 +854,7 @@ public:
                 }
                 if (AttribDeclaration *attrib = sym->isAttribDeclaration())
                 {
-                    (void)attrib->include(NULL);
+                    dmd::include(attrib, NULL);
                     continue;
                 }
                 if (sym->isTemplateMixin() || sym->isNspace())
@@ -958,7 +958,7 @@ public:
         s->getRelatedLabeled()->accept(this);
         s->condition->accept(this);
         Type *condtype = s->condition->type->toBasetype();
-        if (!condtype->isscalar())
+        if (!condtype->isScalar())
             assert(0);
         if (s->cases)
         {
@@ -976,7 +976,7 @@ public:
     void visit(CaseStatement *s) override
     {
         s->getRelatedLabeled()->accept(this);
-        if (s->exp->type->isscalar())
+        if (s->exp->type->isScalar())
             s->exp->accept(this);
         else
             (void)s->index;
@@ -1234,7 +1234,8 @@ public:
     }
     void visit(AttribDeclaration *d) override
     {
-        Dsymbols *ds = d->include(NULL);
+        Dsymbols *ds = dmd::include(d, NULL);
+
         if (!ds)
             return;
         for (size_t i = 0; i < ds->length; i++)
@@ -1298,7 +1299,7 @@ public:
             return;
         (void)d->sinit;
         StructLiteralExp *sle = StructLiteralExp::create(d->loc, d, NULL);
-        if (!d->fill(d->loc, *sle->elements, true))
+        if (!dmd::fill(d, d->loc, *sle->elements, true))
             assert(0);
         sle->type = d->type;
         sle->accept(this);
@@ -1552,7 +1553,7 @@ public:
         }
         if (!d->canTakeAddressOf())
         {
-            if (!d->type->isscalar())
+            if (!d->type->isScalar())
                 visitDeclaration(d);
         }
         else if (d->isDataseg() && !(d->storage_class & STCextern))
@@ -1865,7 +1866,7 @@ void template_h(TemplateParameter *tp, Scope *sc, TemplateParameters *tps,
 void typinf_h(Expression *e, const Loc &loc, Type *t, Scope *sc)
 {
     dmd::genTypeInfo(e, loc, t, sc);
-    ::getTypeInfoType(loc, t, sc, false);
+    ::getTypeInfoType(loc, t, sc);
     dmd::isSpeculativeType(t);
     dmd::builtinTypeInfo(t);
 }

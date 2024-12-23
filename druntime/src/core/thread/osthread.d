@@ -1088,52 +1088,6 @@ unittest
     t.join();
 }
 
-unittest
-{
-    // NOTE: This entire test is based on the assumption that no
-    //       memory is allocated after the child thread is
-    //       started. If an allocation happens, a collection could
-    //       trigger, which would cause the synchronization below
-    //       to cause a deadlock.
-    // NOTE: DO NOT USE LOCKS IN CRITICAL REGIONS IN NORMAL CODE.
-
-    import core.sync.semaphore;
-
-    auto sema = new Semaphore(),
-         semb = new Semaphore();
-
-    auto thr = new Thread(
-    {
-        thread_enterCriticalRegion();
-        assert(thread_inCriticalRegion());
-        sema.notify();
-
-        semb.wait();
-        assert(thread_inCriticalRegion());
-
-        thread_exitCriticalRegion();
-        assert(!thread_inCriticalRegion());
-        sema.notify();
-
-        semb.wait();
-        assert(!thread_inCriticalRegion());
-    });
-
-    thr.start();
-
-    sema.wait();
-    synchronized (ThreadBase.criticalRegionLock)
-        assert(thr.m_isInCriticalRegion);
-    semb.notify();
-
-    sema.wait();
-    synchronized (ThreadBase.criticalRegionLock)
-        assert(!thr.m_isInCriticalRegion);
-    semb.notify();
-
-    thr.join();
-}
-
 // https://issues.dlang.org/show_bug.cgi?id=22124
 unittest
 {
@@ -1144,36 +1098,6 @@ unittest
         return t;
     }
     static assert(!__traits(compiles, () @nogc => fun(thread, 3) ));
-}
-
-unittest
-{
-    import core.sync.semaphore;
-
-    shared bool inCriticalRegion;
-    auto sema = new Semaphore(),
-         semb = new Semaphore();
-
-    auto thr = new Thread(
-    {
-        thread_enterCriticalRegion();
-        inCriticalRegion = true;
-        sema.notify();
-        semb.wait();
-
-        Thread.sleep(dur!"msecs"(1));
-        inCriticalRegion = false;
-        thread_exitCriticalRegion();
-    });
-    thr.start();
-
-    sema.wait();
-    assert(inCriticalRegion);
-    semb.notify();
-
-    thread_suspendAll();
-    assert(!inCriticalRegion);
-    thread_resumeAll();
 }
 
 @nogc @safe nothrow
@@ -1247,7 +1171,7 @@ private extern (D) ThreadBase attachThread(ThreadBase _thisThread) @nogc nothrow
         atomicStore!(MemoryOrder.raw)(thisThread.toThread.m_isRunning, true);
     }
     thisThread.m_isDaemon = true;
-    thisThread.tlsGCdataInit();
+    thisThread.tlsRTdataInit();
     Thread.setThis( thisThread );
 
     version (Darwin)
@@ -1322,7 +1246,7 @@ version (Windows)
         if ( addr == GetCurrentThreadId() )
         {
             thisThread.m_hndl = GetCurrentThreadHandle();
-            thisThread.tlsGCdataInit();
+            thisThread.tlsRTdataInit();
             Thread.setThis( thisThread );
         }
         else
@@ -1330,7 +1254,7 @@ version (Windows)
             thisThread.m_hndl = OpenThreadHandle( addr );
             impersonate_thread(addr,
             {
-                thisThread.tlsGCdataInit();
+                thisThread.tlsRTdataInit();
                 Thread.setThis( thisThread );
             });
         }
@@ -1562,20 +1486,10 @@ private extern(D) void* getStackBottom() nothrow @nogc
  */
 private extern (D) bool suspend( Thread t ) nothrow @nogc
 {
-    Duration waittime = dur!"usecs"(10);
- Lagain:
     if (!t.isRunning)
     {
         Thread.remove(t);
         return false;
-    }
-    else if (t.m_isInCriticalRegion)
-    {
-        Thread.criticalRegionLock.unlock_nothrow();
-        Thread.sleep(waittime);
-        if (waittime < dur!"msecs"(10)) waittime *= 2;
-        Thread.criticalRegionLock.lock_nothrow();
-        goto Lagain;
     }
 
     version (Windows)
@@ -1785,6 +1699,13 @@ private extern (D) bool suspend( Thread t ) nothrow @nogc
 }
 
 /**
+ * Runs the necessary operations required before stopping the world.
+ */
+extern (C) void thread_preStopTheWorld() nothrow {
+    Thread.slock.lock_nothrow();
+}
+
+/**
  * Suspend all threads but the calling thread for "stop the world" garbage
  * collection runs.  This function may be called multiple times, and must
  * be followed by a matching number of calls to thread_resumeAll before
@@ -1816,13 +1737,11 @@ extern (C) void thread_suspendAll() nothrow
         return;
     }
 
-    Thread.slock.lock_nothrow();
+    thread_preStopTheWorld();
     {
         if ( ++suspendDepth > 1 )
             return;
 
-        Thread.criticalRegionLock.lock_nothrow();
-        scope (exit) Thread.criticalRegionLock.unlock_nothrow();
         size_t cnt;
         bool suspendedSelf;
         Thread t = ThreadBase.sm_tbeg.toThread;
@@ -2278,6 +2197,39 @@ else version (Posix)
         __gshared sem_t suspendCount;
 
 
+        extern (C) bool thread_preSuspend( void* sp ) nothrow {
+            // NOTE: Since registers are being pushed and popped from the
+            //       stack, any other stack data used by this function should
+            //       be gone before the stack cleanup code is called below.
+            Thread obj = Thread.getThis();
+            if (obj is null)
+            {
+                return false;
+            }
+
+            if ( !obj.m_lock )
+            {
+                obj.m_curr.tstack = sp;
+            }
+
+            return true;
+        }
+
+        extern (C) bool thread_postSuspend() nothrow {
+            Thread obj = Thread.getThis();
+            if (obj is null)
+            {
+                return false;
+            }
+
+            if ( !obj.m_lock )
+            {
+                obj.m_curr.tstack = obj.m_curr.bstack;
+            }
+
+            return true;
+        }
+
         extern (C) void thread_suspendHandler( int sig ) nothrow
         in
         {
@@ -2287,15 +2239,13 @@ else version (Posix)
         {
             void op(void* sp) nothrow
             {
-                // NOTE: Since registers are being pushed and popped from the
-                //       stack, any other stack data used by this function should
-                //       be gone before the stack cleanup code is called below.
-                Thread obj = Thread.getThis();
-                assert(obj !is null);
+                bool supported = thread_preSuspend(getStackTop());
+                assert(supported, "Tried to suspend a detached thread!");
 
-                if ( !obj.m_lock )
+                scope(exit)
                 {
-                    obj.m_curr.tstack = getStackTop();
+                    supported = thread_postSuspend();
+                    assert(supported, "Tried to suspend a detached thread!");
                 }
 
                 sigset_t    sigres = void;
@@ -2311,11 +2261,6 @@ else version (Posix)
                 assert( status == 0 );
 
                 sigsuspend( &sigres );
-
-                if ( !obj.m_lock )
-                {
-                    obj.m_curr.tstack = obj.m_curr.bstack;
-                }
             }
             callWithStackShell(&op);
         }

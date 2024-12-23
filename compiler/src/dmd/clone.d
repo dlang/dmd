@@ -51,13 +51,13 @@ import dmd.tokens;
  * Returns:
  *      merged storage class
  */
-StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration f) pure
+StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration f) pure @safe
 {
     if (!f)
         return s1;
     StorageClass s2 = (f.storage_class & STC.disable);
 
-    auto tf = cast(TypeFunction)f.type;
+    auto tf = f.type.isTypeFunction();
     if (tf.trust == TRUST.safe)
         s2 |= STC.safe;
     else if (tf.trust == TRUST.system)
@@ -67,9 +67,9 @@ StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration f) pure
 
     if (tf.purity != PURE.impure)
         s2 |= STC.pure_;
-    if (tf.isnothrow)
+    if (tf.isNothrow)
         s2 |= STC.nothrow_;
-    if (tf.isnogc)
+    if (tf.isNogc)
         s2 |= STC.nogc;
 
     const sa = s1 & s2;
@@ -96,55 +96,60 @@ StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration f) pure
  *      sc = current scope
  * Returns:
  *      if found, returns FuncDeclaration of opAssign, otherwise null
+ * References:
+ *      https://dlang.org/spec/operatoroverloading.html#assignment
  */
 FuncDeclaration hasIdentityOpAssign(AggregateDeclaration ad, Scope* sc)
 {
-    if (Dsymbol assign = search_function(ad, Id.assign))
+    Dsymbol assign = search_function(ad, Id.assign);
+    if (!assign)
+        return null;
+
+    /* check identity opAssign exists
+     */
+    scope er = new NullExp(ad.loc, ad.type);    // dummy rvalue
+    scope el = new IdentifierExp(ad.loc, Id.p); // dummy lvalue
+    el.type = ad.type;
+    const errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it.
+    sc = sc.push();
+    sc.tinst = null;
+    sc.minst = null;
+
+    auto a = new Expressions(1);
+    (*a)[0] = er;
+    auto f = resolveFuncCall(ad.loc, sc, assign, null, ad.type, ArgumentList(a), FuncResolveFlag.quiet);
+    if (!f)
     {
-        /* check identity opAssign exists
-         */
-        scope er = new NullExp(ad.loc, ad.type);    // dummy rvalue
-        scope el = new IdentifierExp(ad.loc, Id.p); // dummy lvalue
-        el.type = ad.type;
-        auto a = new Expressions(1);
-        const errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it.
-        sc = sc.push();
-        sc.tinst = null;
-        sc.minst = null;
-
-        (*a)[0] = er;
-        auto f = resolveFuncCall(ad.loc, sc, assign, null, ad.type, ArgumentList(a), FuncResolveFlag.quiet);
-        if (!f)
-        {
-            (*a)[0] = el;
-            f = resolveFuncCall(ad.loc, sc, assign, null, ad.type, ArgumentList(a), FuncResolveFlag.quiet);
-        }
-
-        sc = sc.pop();
-        global.endGagging(errors);
-        if (f)
-        {
-            if (f.errors)
-                return null;
-            auto fparams = f.getParameterList();
-            if (fparams.length)
-            {
-                auto fparam0 = fparams[0];
-                if (fparam0.type.toDsymbol(null) != ad)
-                    f = null;
-            }
-        }
-        // BUGS: This detection mechanism cannot find some opAssign-s like follows:
-        // struct S { void opAssign(ref immutable S) const; }
-        return f;
+        (*a)[0] = el;
+        f = resolveFuncCall(ad.loc, sc, assign, null, ad.type, ArgumentList(a), FuncResolveFlag.quiet);
     }
-    return null;
+
+    sc = sc.pop();
+    global.endGagging(errors);
+    if (!f)
+        return null;
+    if (f.errors)
+        return null;
+    auto fparams = f.getParameterList();
+    if (fparams.length)
+    {
+        auto fparam0 = fparams[0];
+        if (fparam0.type.toDsymbol(null) != ad)
+            f = null;
+    }
+    // BUGS: This detection mechanism cannot find some opAssign-s like follows:
+    // struct S { void opAssign(ref immutable S) const; }
+    return f;
 }
 
 /*******************************************
  * We need an opAssign for the struct if
  * it has a destructor or a postblit.
- * We need to generate one if a user-specified one does not exist.
+ * (We will later generate one if a user-specified one does not exist)
+ * Params:
+ *      sd = struct to check
+ * Returns:
+ *      true if an opAssign is needed
  */
 private bool needOpAssign(StructDeclaration sd)
 {
@@ -174,9 +179,8 @@ private bool needOpAssign(StructDeclaration sd)
         if (v.overlapped)               // if field of a union
             continue;                   // user must handle it themselves
         Type tv = v.type.baseElemOf();
-        if (tv.ty == Tstruct)
+        if (auto ts = tv.isTypeStruct())
         {
-            auto ts = cast(TypeStruct)tv;
             if (ts.sym.isUnionDeclaration())
                 continue;
             if (needOpAssign(ts.sym))
@@ -250,7 +254,7 @@ private bool needOpAssign(StructDeclaration sd)
  *      sd = struct to generate opAssign for
  *      sc = context
  * Returns:
- *      generated `opAssign` function
+ *      generated `opAssign` function, or null if it is not needed
  */
 FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
 {
@@ -280,10 +284,10 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
         if (v.overlapped)
             continue;
         Type tv = v.type.baseElemOf();
-        if (tv.ty != Tstruct)
-            continue;
-        StructDeclaration sdv = (cast(TypeStruct)tv).sym;
-        stc = mergeFuncAttrs(stc, hasIdentityOpAssign(sdv, sc));
+        if (auto tvs = tv.isTypeStruct())
+        {
+            stc = mergeFuncAttrs(stc, hasIdentityOpAssign(tvs.sym, sc));
+        }
     }
 
     if (sd.dtor || sd.postblit)
@@ -313,8 +317,7 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
     else if (sd.dtor)
     {
         //printf("\tswap copy\n");
-        auto tdtor = cast(TypeFunction)sd.dtor.type;
-        assert(tdtor.ty == Tfunction);
+        auto tdtor = sd.dtor.type.isTypeFunction();
 
         auto idswap = Identifier.generateId("__swap");
         auto swap = new VarDeclaration(loc, sd.type, idswap, new VoidInitializer(loc));
@@ -377,7 +380,7 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
         auto er = new ThisExp(loc);
         Statement s2 = new ReturnStatement(loc, er);
         fop.fbody = new CompoundStatement(loc, s1, s2);
-        tf.isreturn = true;
+        tf.isReturn = true;
     }
     sd.members.push(fop);
     fop.addMember(sc, sd);
@@ -406,21 +409,34 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
 
 /*******************************************
  * We need an opEquals for the struct if
- * any fields has an opEquals.
- * Generate one if a user-specified one does not exist.
+ * any field has an opEquals and a user-specified one does not exist.
+ * Params:
+ *      sd = struct to check
+ * Returns:
+ *      true if need to generate one
  */
 bool needOpEquals(StructDeclaration sd)
 {
+    bool dontneed()
+    {
+        //printf("\tdontneed\n");
+        return false;
+    }
+    bool need()
+    {
+        //printf("\tneed\n");
+        return true;
+    }
     //printf("StructDeclaration::needOpEquals() %s\n", sd.toChars());
     if (sd.isUnionDeclaration())
     {
         /* If a union has only one field, treat it like a struct
          */
         if (sd.fields.length != 1)
-            goto Ldontneed;
+            return dontneed();
     }
     if (sd.hasIdentityEquals)
-        goto Lneed;
+        return need();
     /* If any of the fields has an opEquals, then we
      * need it too.
      */
@@ -432,84 +448,84 @@ bool needOpEquals(StructDeclaration sd)
             continue;
         Type tv = v.type.toBasetype();
         auto tvbase = tv.baseElemOf();
-        if (tvbase.ty == Tstruct)
+        if (auto ts = tvbase.isTypeStruct())
         {
-            auto ts = cast(TypeStruct)tvbase;
             if (ts.sym.isUnionDeclaration() && ts.sym.fields.length != 1)
                 continue;
             if (needOpEquals(ts.sym))
-                goto Lneed;
+                return need();
         }
-        if (tvbase.isfloating())
+        if (tvbase.isFloating())
         {
             // This is necessray for:
             //  1. comparison of +0.0 and -0.0 should be true.
             //  2. comparison of NANs should be false always.
-            goto Lneed;
+            return need();
         }
         if (tvbase.ty == Tarray)
-            goto Lneed;
+            return need();
         if (tvbase.ty == Taarray)
-            goto Lneed;
+            return need();
         if (tvbase.ty == Tclass)
-            goto Lneed;
+            return need();
     }
-Ldontneed:
-    //printf("\tdontneed\n");
-    return false;
-Lneed:
-    //printf("\tneed\n");
-    return true;
+    return dontneed();
 }
 
 /*******************************************
  * Check given aggregate actually has an identity opEquals or not.
+ *      ad = aggregate to check
+ *      sc = context
+ * Returns:
+ *      identity opEquals if it is there, null if not
  */
 private FuncDeclaration hasIdentityOpEquals(AggregateDeclaration ad, Scope* sc)
 {
     FuncDeclaration f;
-    if (Dsymbol eq = search_function(ad, Id.eq))
+    Dsymbol eq = search_function(ad, Id.eq);
+    if (!eq)
+        return null;
+
+    /* check identity opEquals exists
+     */
+    scope er = new NullExp(ad.loc, null); // dummy rvalue
+    scope el = new IdentifierExp(ad.loc, Id.p); // dummy lvalue
+    auto a = new Expressions(1);
+
+    bool hasIt(Type tthis)
     {
-        /* check identity opEquals exists
-         */
-        scope er = new NullExp(ad.loc, null); // dummy rvalue
-        scope el = new IdentifierExp(ad.loc, Id.p); // dummy lvalue
-        auto a = new Expressions(1);
+        const errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it
+        sc = sc.push();
+        sc.tinst = null;
+        sc.minst = null;
 
-        bool hasIt(Type tthis)
+        FuncDeclaration rfc(Expression e)
         {
-            const errors = global.startGagging(); // Do not report errors, even if the template opAssign fbody makes it
-            sc = sc.push();
-            sc.tinst = null;
-            sc.minst = null;
-
-            FuncDeclaration rfc(Expression e)
-            {
-                (*a)[0] = e;
-                (*a)[0].type = tthis;
-                return resolveFuncCall(ad.loc, sc, eq, null, tthis, ArgumentList(a), FuncResolveFlag.quiet);
-            }
-
-            f = rfc(er);
-            if (!f)
-                f = rfc(el);
-
-            sc = sc.pop();
-            global.endGagging(errors);
-
-            return f !is null;
+            (*a)[0] = e;
+            (*a)[0].type = tthis;
+            return resolveFuncCall(ad.loc, sc, eq, null, tthis, ArgumentList(a), FuncResolveFlag.quiet);
         }
 
-        if (hasIt(ad.type)               ||
-            hasIt(ad.type.constOf())     ||
-            hasIt(ad.type.immutableOf()) ||
-            hasIt(ad.type.sharedOf())    ||
-            hasIt(ad.type.sharedConstOf()))
-        {
-            if (f.errors)
-                return null;
-        }
+        f = rfc(er);
+        if (!f)
+            f = rfc(el);
+
+        sc = sc.pop();
+        global.endGagging(errors);
+
+        return f !is null;
     }
+
+    if (hasIt(ad.type)               ||
+        hasIt(ad.type.constOf())     ||
+        hasIt(ad.type.immutableOf()) ||
+        hasIt(ad.type.sharedOf())    ||
+        hasIt(ad.type.sharedConstOf()))
+    {
+        if (f.errors)
+            return null;
+    }
+
     return f;
 }
 
@@ -562,7 +578,7 @@ FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
                 parameters.push(new Parameter(Loc.initial, STC.ref_ | STC.const_, sd.type, null, null, null));
                 tfeqptr = new TypeFunction(ParameterList(parameters), Type.tbool, LINK.d);
                 tfeqptr.mod = MODFlags.const_;
-                tfeqptr = cast(TypeFunction)tfeqptr.typeSemantic(Loc.initial, &scx);
+                tfeqptr = tfeqptr.typeSemantic(Loc.initial, &scx).isTypeFunction();
             }
             fd = fd.overloadExactMatch(tfeqptr);
             if (fd)
@@ -598,7 +614,7 @@ FuncDeclaration buildXopEquals(StructDeclaration sd, Scope* sc)
     Expression e2 = new IdentifierExp(loc, Id.p);
     Expression e = new EqualExp(EXP.equal, loc, e1, e2);
     fop.fbody = new ReturnStatement(loc, e);
-    uint errors = global.startGagging(); // Do not report errors
+    const errors = global.startGagging(); // Do not report errors
     Scope* sc2 = sc.push();
     sc2.stc = 0;
     sc2.linkage = LINK.d;
@@ -637,11 +653,10 @@ FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
                 parameters.push(new Parameter(Loc.initial, STC.ref_ | STC.const_, sd.type, null, null, null));
                 tfcmpptr = new TypeFunction(ParameterList(parameters), Type.tint32, LINK.d);
                 tfcmpptr.mod = MODFlags.const_;
-                tfcmpptr = cast(TypeFunction)tfcmpptr.typeSemantic(Loc.initial, &scx);
+                tfcmpptr = tfcmpptr.typeSemantic(Loc.initial, &scx).isTypeFunction();
             }
-            fd = fd.overloadExactMatch(tfcmpptr);
-            if (fd)
-                return fd;
+            if (auto fdo = fd.overloadExactMatch(tfcmpptr))
+                return fdo;
         }
     }
     else
@@ -723,7 +738,7 @@ FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
     Expression e2 = new IdentifierExp(loc, Id.p);
     Expression e = new CallExp(loc, new DotIdExp(loc, e1, Id.cmp), e2);
     fop.fbody = new ReturnStatement(loc, e);
-    uint errors = global.startGagging(); // Do not report errors
+    const errors = global.startGagging(); // Do not report errors
     Scope* sc2 = sc.push();
     sc2.stc = 0;
     sc2.linkage = LINK.d;
@@ -738,15 +753,31 @@ FuncDeclaration buildXopCmp(StructDeclaration sd, Scope* sc)
 /*******************************************
  * We need a toHash for the struct if
  * any fields has a toHash.
- * Generate one if a user-specified one does not exist.
+ * (will generate one if a user-specified one does not exist)
+ * Params:
+ *      sd = struct to check
+ * Returns:
+ *      need to generate toHash()
+ * References:
+ *   https://dlang.org/spec/hash-map.html#using_struct_as_key
  */
 private bool needToHash(StructDeclaration sd)
 {
+    bool dontneed()
+    {
+        //printf("\tdontneed\n");
+        return false;
+    }
+    bool need()
+    {
+        //printf("\tneed\n");
+        return true;
+    }
     //printf("StructDeclaration::needToHash() %s\n", sd.toChars());
     if (sd.isUnionDeclaration())
-        goto Ldontneed;
+        return dontneed();
     if (sd.xhash)
-        goto Lneed;
+        return need();
 
     /* If any of the fields has an toHash, then we
      * need it too.
@@ -759,34 +790,28 @@ private bool needToHash(StructDeclaration sd)
             continue;
         Type tv = v.type.toBasetype();
         auto tvbase = tv.baseElemOf();
-        if (tvbase.ty == Tstruct)
+        if (auto ts = tvbase.isTypeStruct())
         {
-            auto ts = cast(TypeStruct)tvbase;
             if (ts.sym.isUnionDeclaration())
                 continue;
             if (needToHash(ts.sym))
-                goto Lneed;
+                return need();
         }
-        if (tvbase.isfloating())
+        if (tvbase.isFloating())
         {
             /* This is necessary because comparison of +0.0 and -0.0 should be true,
              * i.e. not a bit compare.
              */
-            goto Lneed;
+            return need();
         }
         if (tvbase.ty == Tarray)
-            goto Lneed;
+            return need();
         if (tvbase.ty == Taarray)
-            goto Lneed;
+            return need();
         if (tvbase.ty == Tclass)
-            goto Lneed;
+            return need();
     }
-Ldontneed:
-    //printf("\tdontneed\n");
-    return false;
-Lneed:
-    //printf("\tneed\n");
-    return true;
+    return dontneed();
 }
 
 /******************************************
@@ -802,13 +827,12 @@ FuncDeclaration buildXtoHash(StructDeclaration sd, Scope* sc)
         {
             tftohash = new TypeFunction(ParameterList(), Type.thash_t, LINK.d);
             tftohash.mod = MODFlags.const_;
-            tftohash = cast(TypeFunction)tftohash.merge();
+            tftohash = tftohash.merge().isTypeFunction();
         }
         if (FuncDeclaration fd = s.isFuncDeclaration())
         {
-            fd = fd.overloadExactMatch(tftohash);
-            if (fd)
-                return fd;
+            if (auto fdo = fd.overloadExactMatch(tftohash))
+                return fdo;
         }
     }
     if (!needToHash(sd))
@@ -899,10 +923,10 @@ void buildDtors(AggregateDeclaration ad, Scope* sc)
                 continue;
             if (v.overlapped)
                 continue;
-            auto tv = v.type.baseElemOf();
-            if (tv.ty != Tstruct)
+            auto tvs = v.type.baseElemOf().isTypeStruct();
+            if (!tvs)
                 continue;
-            auto sdv = (cast(TypeStruct)tv).sym;
+            auto sdv = tvs.sym;
             if (!sdv.dtor)
                 continue;
 
@@ -924,8 +948,8 @@ void buildDtors(AggregateDeclaration ad, Scope* sc)
             }
 
             Expression ex;
-            tv = v.type.toBasetype();
-            if (tv.ty == Tstruct)
+            Type tv = v.type.toBasetype();
+            if (tv.isTypeStruct())
             {
                 // this.v.__xdtor()
 
@@ -1178,6 +1202,14 @@ private DtorDeclaration buildExternDDtor(AggregateDeclaration ad, Scope* sc)
  *     invs[0](), invs[1](), ...;
  * }
  * ---
+ * Params:
+ *      ad = aggregate for creating invariant
+ *      sc = context
+ * Returns:
+ *      generated invariant, null if not needed
+ * References:
+ * https://dlang.org/spec/class.html#invariants
+ * https://dlang.org/spec/struct.html#Invariant
  */
 FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
 {
@@ -1231,6 +1263,11 @@ FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
  * all the members.
  * Note the close similarity with AggregateDeclaration::buildDtor(),
  * and the ordering changes (runs forward instead of backwards).
+ * Params:
+ *      sd = struct to create postblit for
+ *      sc = context
+ * Returns:
+ *      generated postblit, or null if not
  */
 FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
 {
@@ -1261,10 +1298,10 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         if (structField.overlapped)
             continue;
         // if it's a struct declaration or an array of structs
-        Type tv = structField.type.baseElemOf();
-        if (tv.ty != Tstruct)
+        TypeStruct tvs = structField.type.baseElemOf().isTypeStruct();
+        if (!tvs)
             continue;
-        auto sdv = (cast(TypeStruct)tv).sym;
+        auto sdv = tvs.sym;
         // which has a postblit declaration
         if (!sdv.postblit)
             continue;
@@ -1274,15 +1311,15 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         // block to destroy any prior successfully postblitted fields should
         // this field's postblit fail.
         // Don't generate it for betterC code since it cannot throw exceptions.
-        if (fieldsToDestroy.length > 0 && !(cast(TypeFunction)sdv.postblit.type).isnothrow && global.params.useExceptions)
+        if (fieldsToDestroy.length > 0 && !sdv.postblit.type.isTypeFunction().isNothrow && global.params.useExceptions)
         {
              // create a list of destructors that need to be called
             Expression[] dtorCalls;
             foreach(sf; fieldsToDestroy)
             {
                 Expression ex;
-                tv = sf.type.toBasetype();
-                if (tv.ty == Tstruct)
+                Type tv = sf.type.toBasetype();
+                if (auto tvs2 = tv.isTypeStruct())
                 {
                     // this.v.__xdtor()
 
@@ -1296,9 +1333,7 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
                     if (stc & STC.safe)
                         stc = (stc & ~STC.safe) | STC.trusted;
 
-                    auto sfv = (cast(TypeStruct)sf.type.baseElemOf()).sym;
-
-                    ex = new DotVarExp(loc, ex, sfv.dtor, false);
+                    ex = new DotVarExp(loc, ex, tvs2.sym.dtor, false);
                     ex = new CallExp(loc, ex);
 
                     dtorCalls ~= ex;
@@ -1360,8 +1395,8 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         }
 
         Expression ex;
-        tv = structField.type.toBasetype();
-        if (tv.ty == Tstruct)
+        Type tv = structField.type.toBasetype();
+        if (tv.isTypeStruct())
         {
             // this.v.__xpostblit()
 
@@ -1575,13 +1610,15 @@ private Statement generateCopyCtorBody(StructDeclaration sd)
  * Params:
  *  sd = the `struct` for which the copy constructor is generated
  *  hasCpCtor = set to true if a copy constructor is already present
+ *  hasMoveCtor = set to true if a move constructor is already present
  *
  * Returns:
  *  `true` if one needs to be generated
  *  `false` otherwise
  */
-bool needCopyCtor(StructDeclaration sd, out bool hasCpCtor)
+bool needCopyCtor(StructDeclaration sd, out bool hasCpCtor, out bool hasMoveCtor)
 {
+    //printf("needCopyCtor() %s\n", sd.toChars());
     if (global.errors)
         return false;
 
@@ -1613,22 +1650,17 @@ bool needCopyCtor(StructDeclaration sd, out bool hasCpCtor)
             return 0;
         }
 
-        auto tf = ctorDecl.type.toTypeFunction();
-        const dim = tf.parameterList.length;
-        if (dim == 1 || (dim > 1 && tf.parameterList[1].defaultArg))
-        {
-            auto param = tf.parameterList[0];
-            if (param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
-            {
-                rvalueCtor = ctorDecl;
-            }
-        }
+        if (ctorDecl.isMoveCtor)
+            rvalueCtor = ctorDecl;
         return 0;
     });
 
+    if (rvalueCtor)
+        hasMoveCtor = true;
+
     if (cpCtor)
     {
-        if (rvalueCtor)
+        if (0 && rvalueCtor)
         {
             .error(sd.loc, "`struct %s` may not define both a rvalue constructor and a copy constructor", sd.toChars());
             errorSupplemental(rvalueCtor.loc,"rvalue constructor defined here");
@@ -1683,15 +1715,18 @@ LcheckFields:
  * Params:
  *  sd = the `struct` for which the copy constructor is generated
  *  sc = the scope where the copy constructor is generated
+ *  hasMoveCtor = set to true when a move constructor is also detected
  *
  * Returns:
  *  `true` if `struct` sd defines a copy constructor (explicitly or generated),
  *  `false` otherwise.
+ * References:
+ *   https://dlang.org/spec/struct.html#struct-copy-constructor
  */
-bool buildCopyCtor(StructDeclaration sd, Scope* sc)
+bool buildCopyCtor(StructDeclaration sd, Scope* sc, out bool hasMoveCtor)
 {
     bool hasCpCtor;
-    if (!needCopyCtor(sd, hasCpCtor))
+    if (!needCopyCtor(sd, hasCpCtor, hasMoveCtor))
         return hasCpCtor;
 
     //printf("generating copy constructor for %s\n", sd.toChars());

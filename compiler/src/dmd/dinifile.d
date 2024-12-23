@@ -372,8 +372,7 @@ bool parseConfFile(ref StringTable!(char*) environment, const(char)[] filename, 
                     auto pns = cast(char*)Mem.check(strdup(pn));
                     if (!writeToEnv(environment, pns))
                     {
-                        const loc = Loc(filename.xarraydup.ptr, lineNum, 0); // TODO: use r-value when `error` supports it
-                        error(loc, "use `NAME=value` syntax, not `%s`", pn);
+                        error(filename.xarraydup.ptr, lineNum, 0, "use `NAME=value` syntax, not `%s`", pn);
                         return true;
                     }
                     static if (LOG)

@@ -52,8 +52,8 @@ bool symbol_iscomdat2(Symbol* s)
  * Output function thunk.
  */
 @trusted
-extern (C) void outthunk(Symbol *sthunk,Symbol *sfunc,uint p,tym_t thisty,
-        targ_size_t d,int i,targ_size_t d2)
+void outthunk(Symbol* sthunk, Symbol* sfunc, uint p, tym_t thisty,
+        targ_size_t d, int i, targ_size_t d2)
 {
     sthunk.Sseg = cseg;
     cod3_thunk(sthunk,sfunc,p,thisty,cast(uint)d,i,cast(uint)d2);
@@ -361,7 +361,7 @@ else
                         if (dt.DTseg == CDATA)
                             objmod.reftodatseg(seg,offset,dt.DTabytes,CDATA,flags);
                         else
-                            objmod.reftofarseg(seg,offset,dt.DTabytes,dt.DTseg,flags);
+                            assert(0);
                     }
 }
                 }
@@ -740,7 +740,7 @@ void out_regcand(symtab_t *psymtab)
     }
 
     bool addressOfParam = false;                  // haven't taken addr of param yet
-    for (block *b = startblock; b; b = b.Bnext)
+    for (block *b = bo.startblock; b; b = b.Bnext)
     {
         if (b.Belem)
             out_regcand_walk(b.Belem, addressOfParam);
@@ -851,17 +851,18 @@ private void out_regcand_walk(elem *e, ref bool addressOfParam)
 @trusted
 void writefunc(Symbol *sfunc)
 {
+    import dmd.backend.var : go;
     cstate.CSpsymtab = &globsym;
-    writefunc2(sfunc);
+    writefunc2(sfunc, go);
     cstate.CSpsymtab = null;
 }
 
 @trusted
-private void writefunc2(Symbol *sfunc)
+private void writefunc2(Symbol *sfunc, ref GlobalOptimizer go)
 {
     func_t *f = sfunc.Sfunc;
 
-    //printf("writefunc(%s)\n",sfunc.Sident.ptr);
+    debugb && printf("=========== writefunc %s ==================\n",sfunc.Sident.ptr);
     //symbol_print(sfunc);
     debug debugy && printf("writefunc(%s)\n",sfunc.Sident.ptr);
 
@@ -882,10 +883,10 @@ private void writefunc2(Symbol *sfunc)
     foreach (si; 0 .. nsymbols)
         globsym[si] = f.Flocsym[si];
 
-    assert(startblock == null);
-    startblock = sfunc.Sfunc.Fstartblock;
+    assert(bo.startblock == null);
+    bo.startblock = sfunc.Sfunc.Fstartblock;
     sfunc.Sfunc.Fstartblock = null;
-    assert(startblock);
+    assert(bo.startblock);
 
     assert(funcsym_p == null);
     funcsym_p = sfunc;
@@ -950,7 +951,7 @@ private void writefunc2(Symbol *sfunc)
 
     bool addressOfParam = false;  // see if any parameters get their address taken
     bool anyasm = false;
-    for (block *b = startblock; b; b = b.Bnext)
+    for (block *b = bo.startblock; b; b = b.Bnext)
     {
         memset(&b._BLU,0,block.sizeof - block._BLU.offsetof);
         if (b.Belem)
@@ -968,7 +969,6 @@ private void writefunc2(Symbol *sfunc)
         }
         assert(b != b.Bnext);
     }
-    PARSER = 0;
     if (eecontext.EEelem)
     {
         const marksi = globsym.length;
@@ -989,25 +989,26 @@ private void writefunc2(Symbol *sfunc)
     }
 
     block_pred();                       // compute predecessors to blocks
-    block_compbcount();                 // eliminate unreachable blocks
+    block_compbcount(go);               // eliminate unreachable blocks
 
     debug { } else
     {
         if (debugb)
         {
-            WRfunc("codegen", funcsym_p, startblock);
+            WRfunc("codegen", funcsym_p, bo.startblock);
         }
     }
 
     if (go.mfoptim)
-    {   OPTIMIZER = 1;
-        optfunc();                      /* optimize function            */
+    {
+        OPTIMIZER = 1;
+        optfunc(go);                    /* optimize function            */
         OPTIMIZER = 0;
     }
     else
     {
         //printf("blockopt()\n");
-        blockopt(0);                    /* optimize                     */
+        blockopt(go, 0);                /* optimize                     */
     }
 
     assert(funcsym_p == sfunc);
@@ -1033,16 +1034,16 @@ private void writefunc2(Symbol *sfunc)
     //printf("codgen()\n");
     codgen(sfunc);                  // generate code
     //printf("after codgen for %s Coffset %x\n",sfunc.Sident.ptr,Offset(cseg));
-    sfunc.Sfunc.Fstartblock = startblock;
+    sfunc.Sfunc.Fstartblock = bo.startblock;
     bool saveForInlining = canInlineFunction(sfunc);
     if (saveForInlining)
     {
-        startblock = null;
+        bo.startblock = null;
     }
     else
     {
         sfunc.Sfunc.Fstartblock = null;
-        blocklist_free(&startblock);
+        blocklist_free(&bo.startblock);
     }
 
     objmod.func_term(sfunc);

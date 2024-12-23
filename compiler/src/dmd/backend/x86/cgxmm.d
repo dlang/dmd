@@ -1348,7 +1348,7 @@ static if (0)
                 if (n == 3)
                 {
                     if (cgstate.pass == BackendPass.final_)
-                        error(e.Esrcpos.Sfilename, e.Esrcpos.Slinnum, e.Esrcpos.Scharnum, "missing 4th parameter to `__simd()`");
+                        error(e.Esrcpos, "missing 4th parameter to `__simd()`");
                     cs.IFL2 = FLconst;
                     cs.IEV2.Vsize_t = 0;
                 }
@@ -1363,7 +1363,7 @@ static if (0)
             cs.IFL2 = FLconst;
             if (imm8.Eoper != OPconst)
             {
-                error(imm8.Esrcpos.Sfilename, imm8.Esrcpos.Slinnum, imm8.Esrcpos.Scharnum, "last parameter to `__simd()` must be a constant");
+                error(imm8.Esrcpos, "last parameter to `__simd()` must be a constant");
                 cs.IEV2.Vsize_t = 0;
             }
             else

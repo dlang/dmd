@@ -45,6 +45,9 @@ final class CParser(AST) : Parser!AST
         // #pragma pack stack
         Array!Identifier* records;      // identifers (or null)
         Array!structalign_t* packs;     // parallel alignment values
+
+        STC defaultStorageClasses;
+        Array!STC* defaultStorageClassesStack;
     }
 
     /* C cannot be parsed without determining if an identifier is a type or a variable.
@@ -1120,75 +1123,74 @@ final class CParser(AST) : Parser!AST
      */
     private AST.Expression cparseCastExp()
     {
-        if (token.value == TOK.leftParenthesis)
+        if (token.value != TOK.leftParenthesis)
+            return cparseUnaryExp();
+
+        //printf("cparseCastExp()\n");
+        auto tk = peek(&token);
+        bool iscast;
+        bool isexp;
+        if (tk.value == TOK.identifier)
         {
-            //printf("cparseCastExp()\n");
-            auto tk = peek(&token);
-            bool iscast;
-            bool isexp;
-            if (tk.value == TOK.identifier)
-            {
-                iscast = isTypedef(tk.ident);
-                isexp = !iscast;
-            }
-            if (isexp)
-            {
-                // ( identifier ) is an expression
-                return cparseUnaryExp();
-            }
-
-            // If ( type-name )
-            auto pt = &token;
-
-            if (isCastExpression(pt))
-            {
-                // Expression may be either a cast or a compound literal, which
-                // requires checking whether the next token is leftCurly
-                const loc = token.loc;
-                nextToken();
-                auto t = cparseTypeName();
-                check(TOK.rightParenthesis);
-                pt = &token;
-
-                if (token.value == TOK.leftCurly)
-                {
-                    // C11 6.5.2.5 ( type-name ) { initializer-list }
-                    auto ci = cparseInitializer();
-                    auto ce = new AST.CompoundLiteralExp(loc, t, ci);
-                    return cparsePostfixOperators(ce);
-                }
-
-                if (iscast)
-                {
-                    // ( type-name ) cast-expression
-                    auto ce = cparseCastExp();
-                    return new AST.CastExp(loc, ce, t);
-                }
-
-                if (t.isTypeIdentifier() &&
-                    isexp &&
-                    token.value == TOK.leftParenthesis &&
-                    !isCastExpression(pt))
-                {
-                    /* (t)(...)... might be a cast expression or a function call,
-                     * with different grammars: a cast would be cparseCastExp(),
-                     * a function call would be cparsePostfixExp(CallExp(cparseArguments())).
-                     * We can't know until t is known. So, parse it as a function call
-                     * and let semantic() rewrite the AST as a CastExp if it turns out
-                     * to be a type.
-                     */
-                    auto ie = new AST.IdentifierExp(loc, t.isTypeIdentifier().ident);
-                    ie.parens = true;    // let semantic know it might be a CastExp
-                    AST.Expression e = new AST.CallExp(loc, ie, cparseArguments());
-                    return cparsePostfixOperators(e);
-                }
-
-                // ( type-name ) cast-expression
-                auto ce = cparseCastExp();
-                return new AST.CastExp(loc, ce, t);
-            }
+            iscast = isTypedef(tk.ident);
+            isexp = !iscast;
         }
-        return cparseUnaryExp();
+        if (isexp)
+        {
+            // ( identifier ) is an expression
+            return cparseUnaryExp();
+        }
+
+        // If ( type-name )
+        auto pt = &token;
+
+        if (!isCastExpression(pt))
+            return cparseUnaryExp();
+
+        // Expression may be either a cast or a compound literal, which
+        // requires checking whether the next token is leftCurly
+        const loc = token.loc;
+        nextToken();
+        auto t = cparseTypeName();
+        check(TOK.rightParenthesis);
+        pt = &token;
+
+        if (token.value == TOK.leftCurly)
+        {
+            // C11 6.5.2.5 ( type-name ) { initializer-list }
+            auto ci = cparseInitializer();
+            auto ce = new AST.CompoundLiteralExp(loc, t, ci);
+            return cparsePostfixOperators(ce);
+        }
+
+        if (iscast)
+        {
+            // ( type-name ) cast-expression
+            auto ce = cparseCastExp();
+            return new AST.CastExp(loc, ce, t);
+        }
+
+        if (t.isTypeIdentifier() &&
+            isexp &&
+            token.value == TOK.leftParenthesis &&
+            !isCastExpression(pt))
+        {
+            /* (t)(...)... might be a cast expression or a function call,
+             * with different grammars: a cast would be cparseCastExp(),
+             * a function call would be cparsePostfixExp(CallExp(cparseArguments())).
+             * We can't know until t is known. So, parse it as a function call
+             * and let semantic() rewrite the AST as a CastExp if it turns out
+             * to be a type.
+             */
+            auto ie = new AST.IdentifierExp(loc, t.isTypeIdentifier().ident);
+            ie.parens = true;    // let semantic know it might be a CastExp
+            AST.Expression e = new AST.CallExp(loc, ie, cparseArguments());
+            return cparsePostfixOperators(e);
+        }
+
+        // ( type-name ) cast-expression
+        auto ce = cparseCastExp();
+        return new AST.CastExp(loc, ce, t);
     }
 
     /**************
@@ -3020,6 +3022,7 @@ final class CParser(AST) : Parser!AST
                         StorageClass stc = specifier._nothrow ? STC.nothrow_ : 0;
                         if (specifier._pure)
                             stc |= STC.pure_;
+                        stc |= defaultStorageClasses;
                         AST.Type tf = new AST.TypeFunction(parameterList, t, lkg, stc);
                         //tf = tf.addSTC(storageClass);  // TODO
                         insertTx(ts, tf, t);  // ts -> ... -> tf -> t
@@ -5671,6 +5674,8 @@ final class CParser(AST) : Parser!AST
         scan(&n);
         if (n.value == TOK.identifier && n.ident == Id.pack)
             return pragmaPack(loc, true);
+        if (n.value == TOK.identifier && n.ident == Id.attribute)
+            return pragmaAttribute(loc);
         if (n.value != TOK.endOfLine)
             skipToNextLine();
     }
@@ -5814,7 +5819,7 @@ final class CParser(AST) : Parser!AST
                 if (len == 1)   // stack is now empty
                     packalign.setDefault();
                 else
-                    packalign = (*this.packs)[len - 1];
+                    packalign = (*this.packs)[len - 2];
                 return closingParen();
             }
             while (n.value == TOK.comma)        // #pragma pack ( pop ,
@@ -5874,6 +5879,125 @@ final class CParser(AST) : Parser!AST
         }
 
         error(loc, "unrecognized `#pragma pack(%s)`", n.toChars());
+        if (n.value != TOK.endOfLine)
+            skipToNextLine();
+    }
+
+    /*********
+     * # pragma attribute(...)
+     * Sets default storage classes
+     * Params:
+     *  startloc = location to use for error messages
+     */
+    private void pragmaAttribute(const ref Loc startloc)
+    {
+        const loc = startloc;
+
+        if (!defaultStorageClassesStack)
+        {
+            defaultStorageClassesStack = new Array!STC;
+        }
+
+        Token n;
+        Lexer.scan(&n);
+        if (n.value != TOK.leftParenthesis)
+        {
+            error(loc, "left parenthesis expected to follow `#pragma attribute`");
+            if (n.value != TOK.endOfLine)
+                skipToNextLine();
+            return;
+        }
+
+        void closingParen()
+        {
+            if (n.value != TOK.rightParenthesis)
+            {
+                error(loc, "right parenthesis expected to close `#pragma attribute(`");
+            }
+            if (n.value != TOK.endOfLine)
+                skipToNextLine();
+        }
+
+        Lexer.scan(&n);
+
+        /* # pragma attribute (push, ...)
+         */
+        if (n.value == TOK.identifier && n.ident == Id.push)
+        {
+            Lexer.scan(&n);
+            if (n.value != TOK.comma)
+            {
+                error(loc, "comma expected to follow `#pragma attribute(push`");
+                if (n.value != TOK.endOfLine)
+                    skipToNextLine();
+                return;
+            }
+
+            while (1)
+            {
+                Lexer.scan(&n);
+                if (n.value == TOK.endOfLine)
+                {
+                    error(loc, "right parenthesis expected to close `#pragma attribute(push, `");
+                    break;
+                }
+
+                if (n.value == TOK.rightParenthesis)
+                    break;
+
+                if (n.value == TOK.identifier)
+                {
+                    if (n.ident == Id._nothrow)
+                        defaultStorageClasses |= STC.nothrow_;
+                    else if (n.ident == Id.nogc)
+                        defaultStorageClasses |= STC.nogc;
+                    else if (n.ident == Id._pure)
+                        defaultStorageClasses |= STC.pure_;
+                    // Ignore unknown identifiers
+                }
+                else
+                {
+                    error(loc, "unrecognized `#pragma attribute(push, %s)`", n.toChars());
+                    break;
+                }
+
+                Lexer.scan(&n);
+
+                if (n.value == TOK.rightParenthesis)
+                    break;
+
+                if (n.value != TOK.comma)
+                {
+                    error(loc, "unrecognized `#pragma attribute(push, %s)`", n.toChars());
+                    break;
+                }
+            }
+
+            this.defaultStorageClassesStack.push(defaultStorageClasses);
+
+            return closingParen();
+        }
+
+        /* # pragma attribute(pop)
+         */
+        if (n.value == TOK.identifier && n.ident == Id.pop)
+        {
+            scan(&n);
+            size_t len = this.defaultStorageClassesStack.length;
+
+            if (len)
+            {
+                this.defaultStorageClassesStack.setDim(len - 1);
+                if (len == 1)   // stack is now empty
+                    defaultStorageClasses = STC.init;
+                else
+                    defaultStorageClasses = (*this.defaultStorageClassesStack)[len - 2];
+            }
+
+            return closingParen();
+        }
+
+        error(loc, "unrecognized `#pragma attribute(%s)`", n.toChars());
         if (n.value != TOK.endOfLine)
             skipToNextLine();
     }

@@ -71,6 +71,8 @@ COPY=\
 	$(IMPDIR)\core\internal\elf\io.d \
 	\
 	$(IMPDIR)\core\internal\gc\bits.d \
+	$(IMPDIR)\core\internal\gc\blkcache.d \
+	$(IMPDIR)\core\internal\gc\blockmeta.d \
 	$(IMPDIR)\core\internal\gc\os.d \
 	$(IMPDIR)\core\internal\gc\pooltable.d \
 	$(IMPDIR)\core\internal\gc\proxy.d \

@@ -24,6 +24,7 @@ import dmd.denum;
 import dmd.dimport;
 import dmd.dmodule;
 import dmd.dsymbol;
+import dmd.dsymbolsem : include;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.expression;
@@ -41,7 +42,8 @@ import dmd.target;
 import dmd.visitor;
 
 version(Windows) {
-    extern (C) char* getcwd(char* buffer, size_t maxlen);
+    extern (C) char* _getcwd(char* buffer, size_t maxlen);
+    alias getcwd = _getcwd;
 } else {
     import core.sys.posix.unistd : getcwd;
 }

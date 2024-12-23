@@ -257,7 +257,7 @@ IDXSYM      MAP_SEG2SYMIDX(int seg) { return SegData[seg].SDsymidx; }
 Elf32_Shdr* MAP_SEG2SEC(int seg)    { return &elfobj.SecHdrTab[MAP_SEG2SECIDX(seg)]; }
 int         MAP_SEG2TYP(int seg)    { return MAP_SEG2SEC(seg).sh_flags & SHF_EXECINSTR ? CODE : DATA; }
 
-extern (C++) extern __gshared Rarray!(seg_data*) SegData;
+import dmd.backend.code: SegData;
 
 /*******************************
  * Output a string into a string table
@@ -481,7 +481,7 @@ private Pair* elf_addsectionname(const(char)* name, const(char)* suffix = null, 
         elfobj.section_names.setsize(cast(uint)elfobj.section_names.length() - 1);  // back up over terminating 0
         elfobj.section_names.writeStringz(suffix);
     }
-    Pair* pidx = elfobj.section_names_hashtable.get(namidx, cast(uint)elfobj.section_names.length() - 1);
+    Pair* pidx = elfobj.section_names_hashtable.get(Pair(namidx, cast(uint)elfobj.section_names.length() - 1));
     if (pidx.start)
     {
         // this section name already exists, remove addition
@@ -654,7 +654,7 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
         elfobj.section_names.writen(section_names_init64.ptr, section_names_init64.sizeof);
 
         if (elfobj.section_names_hashtable)
-            AApair2.destroy(elfobj.section_names_hashtable);
+            elfobj.section_names_hashtable.destroy();
         elfobj.section_names_hashtable = AApair2.create(elfobj.section_names.bufptr);
 
         // name,type,flags,addr,offset,size,link,info,addralign,entsize
@@ -676,7 +676,7 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
         foreach (idxname; __traits(allMembers, NAMIDX)[1 .. $])
         {
             NAMIDX idx = mixin("NAMIDX." ~ idxname);
-            elfobj.section_names_hashtable.get(idx, cast(uint)section_names_init64.sizeof).start = idx;
+            elfobj.section_names_hashtable.get(Pair(idx, cast(uint)section_names_init64.sizeof)).start = idx;
         }
     }
     else
@@ -688,7 +688,7 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
         elfobj.section_names.writen(section_names_init.ptr, section_names_init.sizeof);
 
         if (elfobj.section_names_hashtable)
-            AApair2.destroy(elfobj.section_names_hashtable);
+            elfobj.section_names_hashtable.destroy();
         elfobj.section_names_hashtable = AApair2.create(elfobj.section_names.bufptr);
 
         // name,type,flags,addr,offset,size,link,info,addralign,entsize
@@ -710,7 +710,7 @@ Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
         foreach (idxname; __traits(allMembers, NAMIDX)[1 .. $])
         {
             NAMIDX idx = mixin("NAMIDX." ~ idxname);
-            elfobj.section_names_hashtable.get(idx, cast(uint)section_names_init.sizeof).start = idx;
+            elfobj.section_names_hashtable.get(Pair(idx, cast(uint)section_names_init.sizeof)).start = idx;
         }
     }
 
@@ -3186,11 +3186,13 @@ int ElfObj_reftoidentAArch64(int seg, targ_size_t offset, Symbol *s, targ_size_t
 
 static if (0)
 {
-    printf("\nElfObj_reftoident('%s' seg %d, offset x%llx, val x%llx, flags x%x)\n",
+    printf("\nElfObj_reftoidentAArch64('%s' seg %d, offset x%llx, val x%llx, flags x%x)\n",
         s.Sident.ptr,seg,offset,val,flags);
     printf("Sseg = %d, Sxtrnnum = %d, refSize = %d\n",s.Sseg,s.Sxtrnnum,refSize);
     symbol_print(*s);
 }
+
+    bool isTLS = (s.ty() & mTYLINK) == mTYthread;
 
     const tym_t ty = s.ty();
     if (s.Sxtrnnum)
@@ -3223,7 +3225,7 @@ static if (0)
                 refSize = 8;
             }
             refseg = STI_RODAT;
-            //val += s.Soffset;
+            val += s.Soffset;
             goto outrel;
 
         case SC.comdat:
@@ -3280,19 +3282,18 @@ static if (0)
                 {       // code to code code to data, data to code, data to data refs
                     if (s.Sclass == SC.static_)
                     {                           // offset into .data or .bss seg
-                        if ((s.ty() & mTYLINK) & mTYthread)
-                        { }
-                        else
+                        if (!isTLS)
                             refseg = MAP_SEG2SYMIDX(s.Sseg);    // use segment symbol table entry
-                        val += s.Soffset;
-                        if (!(config.flags3 & CFG3pic) ||       // all static refs from normal code
-                             segtyp == DATA)    // or refs from data from posi indp
+                        //val += s.Soffset;
+
+                        relinfo = flags & CFadd ? R_AARCH64_ADD_ABS_LO12_NC : R_AARCH64_ADR_PREL_PG_HI21;
+                        static if (0)
                         {
-                            relinfo = (flags & CFpc32) ? R_X86_64_PC32 : R_X86_64_32;
-                        }
-                        else
-                        {
-                            relinfo = R_X86_64_PC32;
+                            if (!(config.flags3 & CFG3pic) ||       // all static refs from normal code
+                                 segtyp == DATA)    // or refs from data from posi indp
+                                relinfo = (flags & CFpc32) ? R_X86_64_PC32 : R_X86_64_32;
+                            else
+                                relinfo = R_X86_64_PC32;
                         }
                     }
                     else if (config.flags3 & CFG3pic && s == elfobj.GOTsym)
@@ -3301,43 +3302,28 @@ static if (0)
                     }
                     else if (segtyp == DATA)
                     {                   // relocation from within DATA seg
-                        relinfo = R_X86_64_32;
-                        if (I64 && flags & CFpc32)
-                            relinfo = R_X86_64_PC32;
+                        relinfo = flags & CFadd ? R_AARCH64_ADD_ABS_LO12_NC : R_AARCH64_ADR_PREL_PG_HI21;
                     }
                     else
                     {                   // relocation from within CODE seg
-                        if (config.flags3 & CFG3pie && s.Sclass == SC.global)
-                            relinfo = R_X86_64_PC32;
-                        else if (config.flags3 & CFG3pic)
-                            relinfo = R_X86_64_GOTPCREL;
-                        else
-                            relinfo = (flags & CFpc32) ? R_X86_64_PC32 : R_X86_64_32;
+                        relinfo = flags & CFadd ? R_AARCH64_ADD_ABS_LO12_NC : R_AARCH64_ADR_PREL_PG_HI21;
+                        static if (0)
+                        {
+                            if (config.flags3 & CFG3pie && s.Sclass == SC.global)
+                                relinfo = R_X86_64_PC32;
+                            else if (config.flags3 & CFG3pic)
+                                relinfo = R_X86_64_GOTPCREL;
+                            else
+                                relinfo = (flags & CFpc32) ? R_X86_64_PC32 : R_X86_64_32;
+                        }
                     }
-                    if ((s.ty() & mTYLINK) & mTYthread)
+
+                    if (isTLS)
                     {
-                        if (config.flags3 & CFG3pie)
-                        {
-                            if (s.Sclass == SC.static_ || s.Sclass == SC.global)
-                                relinfo = R_X86_64_TPOFF32;
-                            else
-                                relinfo = R_X86_64_GOTTPOFF;
-                        }
-                        else if (config.flags3 & CFG3pic)
-                        {
-                            /+if (s.Sclass == SC.static_ || s.Sclass == SC.locstat)
-                                // Could use 'local dynamic (LD)' to optimize multiple local TLS reads
-                                relinfo = R_X86_64_TLSGD;
-                            else+/
-                                relinfo = R_X86_64_TLSGD;
-                        }
+                        if (s.Sclass == SC.extern_)
+                            relinfo = flags & CFadd ? R_AARCH64_TLSIE_LD64_GOTTPREL_LO12_NC : R_AARCH64_TLSIE_ADR_GOTTPREL_PAGE21;
                         else
-                        {
-                            if (s.Sclass == SC.static_ || s.Sclass == SC.locstat)
-                                relinfo = R_X86_64_TPOFF32;
-                            else
-                                relinfo = R_X86_64_GOTTPOFF;
-                        }
+                            relinfo = flags & CFadd ? R_AARCH64_TLSLE_ADD_TPREL_LO12_NC : R_AARCH64_TLSLE_ADD_TPREL_HI12;
                     }
                     if (flags & CFoffset64 && relinfo == R_X86_64_32)
                     {
@@ -3376,7 +3362,7 @@ static if (0)
             goto default;
 
         default:
-            //symbol_print(s);
+            symbol_print(*s);
             assert(0);
     }
     return refSize;

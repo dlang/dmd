@@ -299,38 +299,36 @@ private void createMatchNodes()
         return index;
     }
 
-    if (matchNodes.length == 0)
+    if (matchNodes.length != 0)
+        return;
+    foreach (modulePattern; includeModulePatterns)
     {
-        foreach (modulePattern; includeModulePatterns)
+        auto depth = parseModulePatternDepth(modulePattern[0 .. strlen(modulePattern)]);
+        auto entryIndex = findSortedIndexToAddForDepth(depth);
+        matchNodes.split(entryIndex, depth + 1);
+        parseModulePattern(modulePattern, &matchNodes[entryIndex], depth);
+        // if at least 1 "include pattern" is given, then it is assumed the
+        // user only wants to include modules that were explicitly given, which
+        // changes the default behavior from inclusion to exclusion.
+        if (includeByDefault && !matchNodes[entryIndex].isExclude)
         {
-            auto depth = parseModulePatternDepth(modulePattern[0 .. strlen(modulePattern)]);
-            auto entryIndex = findSortedIndexToAddForDepth(depth);
-            matchNodes.split(entryIndex, depth + 1);
-            parseModulePattern(modulePattern, &matchNodes[entryIndex], depth);
-            // if at least 1 "include pattern" is given, then it is assumed the
-            // user only wants to include modules that were explicitly given, which
-            // changes the default behavior from inclusion to exclusion.
-            if (includeByDefault && !matchNodes[entryIndex].isExclude)
-            {
-                //printf("Matcher: found 'include pattern', switching default behavior to exclusion\n");
-                includeByDefault = false;
-            }
-        }
-
-        // Add the default 1 depth matchers
-        MatcherNode[8] defaultDepth1MatchNodes = [
-            MatcherNode(true, 1), MatcherNode(Id.std),
-            MatcherNode(true, 1), MatcherNode(Id.core),
-            MatcherNode(true, 1), MatcherNode(Id.etc),
-            MatcherNode(true, 1), MatcherNode(Id.object),
-        ];
-        {
-            auto index = findSortedIndexToAddForDepth(1);
-            matchNodes.split(index, defaultDepth1MatchNodes.length);
-            auto slice = matchNodes[];
-            slice[index .. index + defaultDepth1MatchNodes.length] = defaultDepth1MatchNodes[];
+             //printf("Matcher: found 'include pattern', switching default behavior to exclusion\n");
+            includeByDefault = false;
         }
     }
+
+    // Add the default 1 depth matchers
+    MatcherNode[8] defaultDepth1MatchNodes = [
+         MatcherNode(true, 1), MatcherNode(Id.std),
+        MatcherNode(true, 1), MatcherNode(Id.core),
+        MatcherNode(true, 1), MatcherNode(Id.etc),
+        MatcherNode(true, 1), MatcherNode(Id.object),
+    ];
+
+    auto index = findSortedIndexToAddForDepth(1);
+    matchNodes.split(index, defaultDepth1MatchNodes.length);
+    auto slice = matchNodes[];
+    slice[index .. index + defaultDepth1MatchNodes.length] = defaultDepth1MatchNodes[];
 }
 
 /*

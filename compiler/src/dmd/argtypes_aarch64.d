@@ -38,7 +38,7 @@ TypeTuple toArgTypes_aarch64(Type t)
         return null;
 
     Type tb = t.toBasetype();
-    const isAggregate = tb.ty == Tstruct || tb.ty == Tsarray || tb.ty == Tarray || tb.ty == Tdelegate || tb.iscomplex();
+    const isAggregate = tb.ty == Tstruct || tb.ty == Tsarray || tb.ty == Tarray || tb.ty == Tdelegate || tb.isComplex();
     if (!isAggregate)
         return new TypeTuple(t);
 
@@ -88,7 +88,7 @@ TypeTuple toArgTypes_aarch64(Type t)
 bool isHFVA(Type t, int maxNumElements = 4, Type* rewriteType = null)
 {
     t = t.toBasetype();
-    if ((t.ty != Tstruct && t.ty != Tsarray && !t.iscomplex()) || !isPOD(t))
+    if ((t.ty != Tstruct && t.ty != Tsarray && !t.isComplex()) || !isPOD(t))
         return false;
 
     Type fundamentalType;
@@ -165,12 +165,12 @@ size_t getNestedHFVA(Type t, ref Type fundamentalType)
         thisFundamentalType = t;
         N = 1;
     }
-    else if (t.isfloating()) // incl. imaginary and complex
+    else if (t.isFloating()) // incl. imaginary and complex
     {
         auto ftSize = t.size();
         N = 1;
 
-        if (t.iscomplex())
+        if (t.isComplex())
         {
             ftSize /= 2;
             N = 2;

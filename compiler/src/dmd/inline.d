@@ -26,8 +26,10 @@ import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
+import dmd.dsymbolsem : include;
 import dmd.dtemplate;
 import dmd.expression;
+import dmd.expressionsem : semanticTypeInfo;
 import dmd.errors;
 import dmd.func;
 import dmd.funcsem;
@@ -40,11 +42,11 @@ import dmd.location;
 import dmd.mtype;
 import dmd.opover;
 import dmd.printast;
-import dmd.postordervisitor;
 import dmd.statement;
 import dmd.tokens;
 import dmd.typesem : pointerTo, sarrayOf;
 import dmd.visitor;
+import dmd.visitor.postorder;
 import dmd.inlinecost;
 
 /***********************************************************
@@ -1553,10 +1555,10 @@ public:
     override void visit(StructLiteralExp e)
     {
         //printf("StructLiteralExp.inlineScan()\n");
-        if (e.stageflags & stageInlineScan)
+        if (e.stageflags & StructLiteralExp.StageFlags.inlineScan)
             return;
         const old = e.stageflags;
-        e.stageflags |= stageInlineScan;
+        e.stageflags |= StructLiteralExp.StageFlags.inlineScan;
         arrayInlineScan(e.elements);
         e.stageflags = old;
     }
@@ -1817,7 +1819,7 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
             /* for the isTypeSArray() case see https://github.com/dlang/dmd/pull/16145#issuecomment-1932776873
              */
             if (tfnext.ty != Tvoid &&
-                (!(fd.hasReturnExp & 1) ||
+                (!fd.hasReturnExp ||
                  hasDtor(tfnext) && (statementsToo || tfnext.isTypeSArray())) &&
                 !hdrscan)
             {
@@ -1863,7 +1865,7 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
 
     // cannot inline functions as statement if they have multiple
     //  return statements
-    if ((fd.hasReturnExp & 16) && statementsToo)
+    if (fd.hasMultipleReturnExp && statementsToo)
     {
         static if (CANINLINE_LOG)
         {
@@ -1922,7 +1924,7 @@ private bool canInline(FuncDeclaration fd, bool hasthis, bool hdrscan, bool stat
     return true;
 
 Lno:
-    if (fd.inlining == PINLINE.always && global.params.warnings == DiagnosticReporting.inform)
+    if (fd.inlining == PINLINE.always && global.params.useWarnings == DiagnosticReporting.inform)
         warning(fd.loc, "cannot inline function `%s`", fd.toPrettyChars());
 
     if (!hdrscan) // Don't modify inlineStatus for header content scan
@@ -2018,7 +2020,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
         {
             auto tmp = Identifier.generateId("__retvar");
             vret = new VarDeclaration(fd.loc, fd.nrvo_var.type, tmp, new VoidInitializer(fd.loc));
-            assert(!tf.isref);
+            assert(!tf.isRef);
             vret.storage_class = STC.temp | STC.rvalue;
             vret._linkage = tf.linkage;
             vret.parent = parent;
@@ -2214,7 +2216,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
 
         import dmd.expressionsem : toLvalue;
         // https://issues.dlang.org/show_bug.cgi?id=11322
-        if (tf.isref)
+        if (tf.isRef)
             e = e.toLvalue(null, "`ref` return");
 
         /* If the inlined function returns a copy of a struct,
@@ -2241,7 +2243,7 @@ private void expandInline(Loc callLoc, FuncDeclaration fd, FuncDeclaration paren
             auto ei = new ExpInitializer(callLoc, e);
             auto tmp = Identifier.generateId("__inlineretval");
             auto vd = new VarDeclaration(callLoc, tf.next, tmp, ei);
-            vd.storage_class = STC.temp | (tf.isref ? STC.ref_ : STC.rvalue);
+            vd.storage_class = STC.temp | (tf.isRef ? STC.ref_ : STC.rvalue);
             vd._linkage = tf.linkage;
             vd.parent = parent;
 

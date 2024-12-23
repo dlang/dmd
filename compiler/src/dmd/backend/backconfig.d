@@ -18,6 +18,7 @@ import dmd.backend.cdef;
 import dmd.backend.cc;
 import dmd.backend.code;
 import dmd.backend.global;
+import dmd.backend.goh : GlobalOptimizer;
 import dmd.backend.ty;
 import dmd.backend.type;
 
@@ -29,9 +30,9 @@ nothrow:
 /**************************************
  * Initialize configuration for backend.
  * Params:
+    arm           = true for generating AArch64 code
     model         = 32 for 32 bit code,
                     64 for 64 bit code,
-                    set bit 0 to generate MS-COFF instead of OMF on Windows
     exe           = true for exe file,
                     false for dll or shared library (generate PIC code)
     trace         =  add profiling code
@@ -59,7 +60,8 @@ nothrow:
  */
 public
 @trusted
-extern (C) void out_config_init(
+void out_config_init(
+        bool arm,       // true for generating AArch64 code
         int model,
         bool exe,
         bool trace,
@@ -80,13 +82,18 @@ extern (C) void out_config_init(
         string _version,
         exefmt_t exefmt,
         bool generatedMain,     // a main entrypoint is generated
-        bool dataimports)
+        bool dataimports,
+        ref GlobalOptimizer go,
+        ErrorCallbackBackend errorCallback)
 {
     //printf("out_config_init()\n");
 
+    errorCallbackBackend = errorCallback;
     auto cfg = &config;
 
     cfg._version = _version;
+    if (arm)
+        cfg.target_cpu = TARGET_AArch64;
     if (!cfg.target_cpu)
     {   cfg.target_cpu = TARGET_PentiumPro;
         cfg.target_scheduler = cfg.target_cpu;
@@ -98,8 +105,6 @@ extern (C) void out_config_init(
     cfg.flags |= CFGuchar;   // make sure TYchar is unsigned
     cfg.exe = exefmt;
     tytab[TYchar] |= TYFLuns;
-    bool mscoff = model & 1;
-    model &= 32 | 64;
     if (generatedMain)
         cfg.flags2 |= CFG2genmain;
     if (ibt)
@@ -109,7 +114,7 @@ extern (C) void out_config_init(
     {
         if (dwarf)
         {
-            error(null, 0, 0, "DWARF version %u is not supported", dwarf);
+            error(Srcpos.init, "DWARF version %u is not supported", dwarf);
         }
 
         // Default DWARF version
@@ -136,11 +141,9 @@ extern (C) void out_config_init(
         else
         {
             cfg.ehmethod = useExceptions ? EHmethod.EH_WIN32 : EHmethod.EH_NONE;
-            if (mscoff)
-                cfg.flags |= CFGnoebp;       // test suite fails without this
-            cfg.objfmt = mscoff ? OBJ_MSCOFF : OBJ_OMF;
-            if (mscoff)
-                cfg.flags |= CFGnoebp;    // test suite fails without this
+            cfg.flags |= CFGnoebp;       // test suite fails without this
+            cfg.objfmt = OBJ_MSCOFF;
+            cfg.flags |= CFGnoebp;    // test suite fails without this
         }
 
         if (dataimports)
@@ -310,7 +313,7 @@ static if (0)
     configv.verbose = verbose;
 
     if (optimize)
-        go_flag(cast(char*)"-o".ptr);
+        go_flag(go, cast(char*)"-o".ptr);
 
     if (symdebug)
     {
@@ -354,10 +357,14 @@ static if (0)
     cfg.useTypeInfo = useTypeInfo;
     cfg.useExceptions = useExceptions;
 
-    block_init();
-
     cod3_setdefault();
-    if (model == 64)
+    if (arm)
+    {
+        util_set64(cfg.exe);
+        type_init();
+        cod3_setAArch64();
+    }
+    else if (model == 64)
     {
         util_set64(cfg.exe);
         type_init();

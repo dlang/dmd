@@ -512,7 +512,7 @@ public:
             }
         }
 
-        if (global.params.warnings != DiagnosticReporting.off || canFix)
+        if (global.params.useWarnings != DiagnosticReporting.off || canFix)
         {
             // Warn about identifiers that are keywords in C++.
             if (auto kc = keywordClass(ident))
@@ -2324,7 +2324,7 @@ public:
             assert(tf.next, fd.loc.toChars().toDString());
 
             tf.next == AST.Type.tsize_t ? originalType.next.accept(this) : tf.next.accept(this);
-            if (tf.isref)
+            if (tf.isRef)
                 buf.writeByte('&');
             buf.writeByte(' ');
 

@@ -13,9 +13,6 @@
 
 module dmd.backend.elem;
 
-enum HYDRATE = false;
-enum DEHYDRATE = false;
-
 import core.stdc.stdarg;
 import core.stdc.stdio;
 import core.stdc.stdlib;
@@ -404,7 +401,7 @@ void el_opFree(elem *e, OPER op)
  */
 
 @trusted
-extern (C) elem *el_opCombine(elem **args, size_t length, OPER op, tym_t ty)
+elem *el_opCombine(elem **args, size_t length, OPER op, tym_t ty)
 {
     if (length == 0)
         return null;
@@ -497,7 +494,6 @@ elem * el_alloctmp(tym_t ty)
 elem * el_selecte1(elem *e)
 {
     elem *e1;
-    assert(!PARSER);
     elem_debug(e);
     assert(!OTleaf(e.Eoper));
     e1 = e.E1;
@@ -539,14 +535,9 @@ elem * el_selecte2(elem *e)
         if (e.Esrcpos.Slinnum)
             e2.Esrcpos = e.Esrcpos;
     }
-    if (PARSER)
-        el_settype(e2,e.ET);
-    else
-    {
-        e2.Ety = e.Ety;
-        //if (tyaggregate(e.Ety))
-        //    e2.Enumbytes = e.Enumbytes;
-    }
+    e2.Ety = e.Ety;
+    //if (tyaggregate(e.Ety))
+    //    e2.Enumbytes = e.Enumbytes;
     el_free(e);
     return e2;
 }
@@ -794,28 +785,6 @@ bool el_anydef(const elem *ed, const(elem)* e)
  * Make a binary operator node.
  */
 
-@trusted
-elem* el_bint(OPER op,type *t,elem *e1,elem *e2)
-{
-    elem *e;
-    /* e2 is null when OPpostinc is built       */
-    assert(op < OPMAX && OTbinary(op) && e1);
-    assert(PARSER);
-    e = el_calloc();
-    if (t)
-    {
-        e.ET = t;
-        type_debug(t);
-        e.ET.Tcount++;
-    }
-    e.Eoper = cast(ubyte)op;
-    elem_debug(e1);
-    if (e2)
-        elem_debug(e2);
-    e.E1 = e1;
-    e.E2 = e2;
-    return e;
-}
 
 @trusted
 elem* el_bin(OPER op,tym_t ty,elem *e1,elem *e2)
@@ -841,28 +810,6 @@ static if (0)
 /************************
  * Make a unary operator node.
  */
-
-@trusted
-elem* el_unat(OPER op,type *t,elem *e1)
-{
-    debug if (!(op < OPMAX && OTunary(op) && e1))
-        printf("op = x%x, e1 = %p\n",op,e1);
-
-    assert(op < OPMAX && OTunary(op) && e1);
-    assert(PARSER);
-    elem_debug(e1);
-    elem* e = el_calloc();
-    e.Eoper = cast(ubyte)op;
-    e.E1 = e1;
-    if (t)
-    {
-        type_debug(t);
-        t.Tcount++;
-        e.ET = t;
-    }
-    return e;
-}
-
 @trusted
 elem* el_una(OPER op,tym_t ty,elem *e1)
 {
@@ -878,29 +825,8 @@ elem* el_una(OPER op,tym_t ty,elem *e1)
     return e;
 }
 
-/*******************
- * Make a constant node out of integral type.
- */
 
-@trusted
-extern (C) elem * el_longt(type *t,targ_llong val)
-{
-    assert(PARSER);
-    elem* e = el_calloc();
-    e.Eoper = OPconst;
-    e.ET = t;
-    if (e.ET)
-    {
-        type_debug(t);
-        e.ET.Tcount++;
-    }
-    e.Vllong = val;
-    return e;
-}
-
-extern (C) // necessary because D <=> C++ mangling of "long long" is not consistent across memory models
-{
-elem * el_long(tym_t t,targ_llong val)
+elem* el_long(tym_t t,targ_llong val)
 {
     elem* e = el_calloc();
     e.Eoper = OPconst;
@@ -1002,7 +928,6 @@ elem* el_vectorConst(tym_t ty, ulong val)
             assert(0);
     }
     return e;
-}
 }
 
 /*******************************
@@ -1117,7 +1042,6 @@ Lnodep:
 bool ERTOL(const elem *e)
 {
     elem_debug(e);
-    assert(!PARSER);
     return OTrtol(e.Eoper) &&
         (!OTopeq(e.Eoper) || config.inline8087 || !tyfloating(e.Ety));
 }
@@ -1221,7 +1145,7 @@ int el_countCommas(const(elem)* e)
  * Needed iff floating point code can't load immediate constants.
  */
 @trusted
-elem *el_convfloat(elem *e)
+elem* el_convfloat(ref GlobalOptimizer go, elem* e)
 {
     ubyte[32] buffer = void;
 
@@ -1313,7 +1237,7 @@ elem *el_convfloat(elem *e)
  */
 
 @trusted
-elem *el_convxmm(elem *e)
+elem* el_convxmm(ref GlobalOptimizer go, elem* e)
 {
     ubyte[Vconst.sizeof] buffer = void;
 
@@ -1357,31 +1281,11 @@ elem *el_convstring(elem *e)
     Symbol *s;
     char *p;
 
-    assert(!PARSER);
     elem_debug(e);
     assert(e.Eoper == OPstring);
     p = e.Vstring;
     e.Vstring = null;
     size_t len = e.Vstrlen;
-
-    // Handle strings that go into the code segment
-    if (tybasic(e.Ety) == TYcptr ||
-        (tyfv(e.Ety) && config.flags3 & CFG3strcod))
-    {
-        assert(config.objfmt == OBJ_OMF);         // option not done yet for others
-        s = symbol_generate(SC.static_, type_fake(mTYcs | e.Ety));
-        s.Sfl = FLcsdata;
-        s.Soffset = Offset(cseg);
-        s.Sseg = cseg;
-        symbol_keep(s);
-        if (!eecontext.EEcompile || eecontext.EEin)
-        {
-            objmod.bytes(cseg,Offset(cseg),cast(uint)len,p);
-            Offset(cseg) += len;
-        }
-        mem_free(p);
-        goto L1;
-    }
 
     if (eecontext.EEin)                 // if compiling debugger expression
     {
@@ -1484,7 +1388,7 @@ void shrinkLongDoubleConstantIfPossible(elem *e)
  * Run through a tree converting it to CODGEN.
  */
 @trusted
-elem *el_convert(elem *e)
+elem* el_convert(ref GlobalOptimizer go, elem* e)
 {
     //printf("el_convert(%p)\n", e);
     elem_debug(e);
@@ -1496,9 +1400,9 @@ elem *el_convert(elem *e)
 
         case OPconst:
             if (tyvector(e.Ety))
-                e = el_convxmm(e);
+                e = el_convxmm(go, e);
             else if (tyfloating(e.Ety) && config.inline8087)
-                e = el_convfloat(e);
+                e = el_convfloat(go, e);
             break;
 
         case OPstring:
@@ -1517,7 +1421,7 @@ elem *el_convert(elem *e)
             if (tyreal(e.Ety) &&       // don't bother with imaginary or complex
                 e.E2.Eoper == OPconst && el_toldoubled(e.E2) == 2.0L)
             {
-                e.E1 = el_convert(e.E1);
+                e.E1 = el_convert(go, e.E1);
                 /* Don't call el_convert(e.E2), we want it to stay as a constant
                  * which will be detected by code gen.
                  */
@@ -1538,12 +1442,12 @@ elem *el_convert(elem *e)
         default:
             if (OTbinary(op))
             {
-                e.E1 = el_convert(e.E1);
-                e.E2 = el_convert(e.E2);
+                e.E1 = el_convert(go, e.E1);
+                e.E2 = el_convert(go, e.E2);
             }
             else if (OTunary(op))
             {
-                e.E1 = el_convert(e.E1);
+                e.E1 = el_convert(go, e.E1);
             }
             break;
     }
@@ -1717,45 +1621,6 @@ elem *el_ctor_dtor(elem *ec, elem *ed, out elem* pedtor)
     return er;
 }
 
-/**************************
- * Insert destructor information into tree.
- *      edtor   pointer to object being destructed
- *      e       code to do the destruction
- */
-
-elem *el_dtor(elem *edtor,elem *e)
-{
-    if (edtor)
-    {
-        edtor = el_unat(OPdtor,edtor.ET,edtor);
-        if (e)
-            e = el_bint(OPcomma,e.ET,edtor,e);
-        else
-            e = edtor;
-    }
-    return e;
-}
-
-/**********************************
- * Create an elem of the constant 0, of the type t.
- */
-
-@trusted
-elem *el_zero(type *t)
-{
-    assert(PARSER);
-
-    elem* e = el_calloc();
-    e.Eoper = OPconst;
-    e.ET = t;
-    if (t)
-    {
-        type_debug(t);
-        e.ET.Tcount++;
-    }
-    return(e);
-}
-
 /*******************
  * Find and return pointer to parent of e starting at pe.
  * Return null if can't find it.
@@ -1822,14 +1687,7 @@ L1:
   if (OTunary(op))
   {
     L2:
-        if (PARSER)
-        {
-            n1 = n1.E1;
-            n2 = n2.E1;
-            assert(n1 && n2);
-            goto L1;
-        }
-        else if (OPTIMIZER)
+        if (OPTIMIZER)
         {
             if (op == OPstrpar || op == OPstrctor)
             {   if (/*n1.Enumbytes != n2.Enumbytes ||*/ n1.ET != n2.ET)
@@ -1852,13 +1710,10 @@ L1:
   }
   else if (OTbinary(op))
   {
-        if (!PARSER)
+        if (op == OPstreq)
         {
-            if (op == OPstreq)
-            {
-                if (/*n1.Enumbytes != n2.Enumbytes ||*/ n1.ET != n2.ET)
-                    return false;
-            }
+            if (/*n1.Enumbytes != n2.Enumbytes ||*/ n1.ET != n2.ET)
+                return false;
         }
         if (el_matchx(n1.E2, n2.E2, gmatch2))
         {
@@ -1873,7 +1728,6 @@ L1:
             case OPconst:
                 if (gmatch2 & 1)
                     break;
-            Lagain:
                 switch (tybasic(tym))
                 {
                     case TYshort:
@@ -1907,12 +1761,6 @@ L1:
                         break;
 
                     case TYenum:
-                        if (PARSER)
-                        {   tym = n1.ET.Tnext.Tty;
-                            goto Lagain;
-                        }
-                        goto case TYuint;
-
                     case TYint:
                     case TYuint:
                         if (_tysize[TYint] == SHORTSIZE)
@@ -2130,20 +1978,6 @@ bool el_match5(const elem* n1, const elem* n2)
     return el_matchx(n1,n2,8);
 }
 
-
-/******************************
- * Extract long value from constant parser elem.
- */
-
-@trusted
-targ_llong el_tolongt(elem *e)
-{
-    const parsersave = PARSER;
-    PARSER = 1;
-    const result = el_tolong(e);
-    PARSER = parsersave;
-    return result;
-}
 
 /******************************
  * Extract long value from constant elem.
@@ -2480,32 +2314,15 @@ void elem_print(const elem* e, int nestlevel = 0)
         if (e.Esrcpos.Sfilename)
             printf("%s(%u) ", e.Esrcpos.Sfilename, e.Esrcpos.Slinnum);
     }
-    if (!PARSER)
-    {
-        printf("cnt=%d ",e.Ecount);
-        if (!OPTIMIZER)
-            printf("cs=%d ",e.Ecomsub);
-    }
+    printf("cnt=%d ",e.Ecount);
+    if (!OPTIMIZER)
+        printf("cs=%d ",e.Ecomsub);
     printf("%s ", oper_str(e.Eoper));
-    enum scpp = false;
-    if (scpp && PARSER)
-    {
+    if ((e.Eoper == OPstrpar || e.Eoper == OPstrctor || e.Eoper == OPstreq) ||
+        e.Ety == TYstruct || e.Ety == TYarray)
         if (e.ET)
-        {
-            type_debug(e.ET);
-            if (tybasic(e.ET.Tty) == TYstruct)
-                printf("%d ", cast(int)type_size(e.ET));
-            printf("%s\n", tym_str(e.ET.Tty));
-        }
-    }
-    else
-    {
-        if ((e.Eoper == OPstrpar || e.Eoper == OPstrctor || e.Eoper == OPstreq) ||
-            e.Ety == TYstruct || e.Ety == TYarray)
-            if (e.ET)
-                printf("%d ", cast(int)type_size(e.ET));
-        printf("%s ", tym_str(e.Ety));
-    }
+            printf("%d ", cast(int)type_size(e.ET));
+    printf("%s ", tym_str(e.Ety));
     if (OTunary(e.Eoper))
     {
         if (e.E2)
@@ -2516,8 +2333,8 @@ void elem_print(const elem* e, int nestlevel = 0)
     }
     else if (OTbinary(e.Eoper))
     {
-        if (!PARSER && e.Eoper == OPstreq && e.ET)
-                printf("bytes=%d ", cast(int)type_size(e.ET));
+        if (e.Eoper == OPstreq && e.ET)
+            printf("bytes=%d ", cast(int)type_size(e.ET));
         printf("%p %p\n",e.E1,e.E2);
         elem_print(e.E1, nestlevel + 1);
         elem_print(e.E2, nestlevel + 1);
@@ -2558,7 +2375,6 @@ void elem_print_const(const elem* e)
 {
     assert(e.Eoper == OPconst);
     tym_t tym = tybasic(typemask(e));
-case_tym:
     switch (tym)
     {   case TYbool:
         case TYchar:
@@ -2585,12 +2401,6 @@ case_tym:
             assert(0);
 
         case TYenum:
-            if (PARSER)
-            {   tym = e.ET.Tnext.Tty;
-                goto case_tym;
-            }
-            goto case TYint;
-
         case TYint:
         case TYuint:
         case TYvoid:        /* in case (void)(1)    */
@@ -2728,121 +2538,4 @@ case_tym:
             printf("%s\n", tym_str(typemask(e)));
             /*assert(0);*/
     }
-}
-
-/**********************************
- * Hydrate an elem.
- */
-
-static if (HYDRATE)
-{
-void el_hydrate(elem **pe)
-{
-    if (!isdehydrated(*pe))
-        return;
-
-    assert(PARSER);
-    elem* e = cast(elem *) ph_hydrate(cast(void**)pe);
-    elem_debug(e);
-
-    debug if (!(e.Eoper < OPMAX))
-        printf("e = x%lx, e.Eoper = %d\n",e,e.Eoper);
-
-    debug assert(e.Eoper < OPMAX);
-    type_hydrate(&e.ET);
-    if (configv.addlinenumbers)
-    {
-        filename_translate(&e.Esrcpos);
-        srcpos_hydrate(&e.Esrcpos);
-    }
-    if (!OTleaf(e.Eoper))
-    {
-        el_hydrate(&e.E1);
-        if (OTbinary(e.Eoper))
-            el_hydrate(&e.E2);
-        else if (e.Eoper == OPctor)
-        {
-        }
-    }
-    else
-    {
-        switch (e.Eoper)
-        {
-            case OPstring:
-            case OPasm:
-                ph_hydrate(cast(void**)&e.Vstring);
-                break;
-
-            case OPrelconst:
-                //if (tybasic(e.ET.Tty) == TYmemptr)
-                    //el_hydrate(&e.sm.ethis);
-            case OPvar:
-                symbol_hydrate(&e.Vsym);
-                symbol_debug(e.Vsym);
-                break;
-
-            default:
-                break;
-        }
-    }
-}
-}
-
-/**********************************
- * Dehydrate an elem.
- */
-
-static if (DEHYDRATE)
-{
-void el_dehydrate(elem **pe)
-{
-    elem* e = *pe;
-    if (e == null || isdehydrated(e))
-        return;
-
-    assert(PARSER);
-    elem_debug(e);
-
-    debug if (!(e.Eoper < OPMAX))
-        printf("e = x%lx, e.Eoper = %d\n",e,e.Eoper);
-
-    debug_assert(e.Eoper < OPMAX);
-    ph_dehydrate(pe);
-
-    version (DEBUG_XSYMGEN)
-    {
-        if (xsym_gen && ph_in_head(e))
-            return;
-    }
-
-    type_dehydrate(&e.ET);
-    if (configv.addlinenumbers)
-        srcpos_dehydrate(&e.Esrcpos);
-    if (!OTleaf(e.Eoper))
-    {
-        el_dehydrate(&e.E1);
-        if (OTbinary(e.Eoper))
-            el_dehydrate(&e.E2);
-    }
-    else
-    {
-        switch (e.Eoper)
-        {
-            case OPstring:
-            case OPasm:
-                ph_dehydrate(&e.Vstring);
-                break;
-
-            case OPrelconst:
-                //if (tybasic(e.ET.Tty) == TYmemptr)
-                    //el_dehydrate(&e.sm.ethis);
-            case OPvar:
-                symbol_dehydrate(&e.Vsym);
-                break;
-
-            default:
-                break;
-        }
-    }
-}
 }

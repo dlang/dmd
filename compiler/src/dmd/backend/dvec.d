@@ -20,8 +20,6 @@ import core.bitop;
 
 import dmd.backend.global : err_nomem;
 
-extern (C):
-
 nothrow:
 @nogc:
 @safe:

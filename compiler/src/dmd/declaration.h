@@ -34,6 +34,7 @@ namespace dmd
 {
     bool functionSemantic(FuncDeclaration* fd);
     bool functionSemantic3(FuncDeclaration* fd);
+    bool checkClosure(FuncDeclaration* fd);
     MATCH leastAsSpecialized(FuncDeclaration *f, FuncDeclaration *g, Identifiers *names);
     PURE isPure(FuncDeclaration *f);
 }
@@ -589,13 +590,6 @@ public:
 
     // Things that should really go into Scope
 
-    // 1 if there's a return exp; statement
-    // 2 if there's a throw statement
-    // 4 if there's an assert(0)
-    // 8 if there's inline asm
-    // 16 if there are multiple return statements
-    int hasReturnExp;
-
     VarDeclaration *nrvo_var;           // variable to replace with shidden
     Symbol *shidden;                    // hidden pointer passed to function
 
@@ -678,6 +672,12 @@ public:
     bool dllImport(bool v);
     bool dllExport() const;
     bool dllExport(bool v);
+    bool hasReturnExp() const;
+    bool hasReturnExp(bool v);
+    bool hasInlineAsm() const;
+    bool hasInlineAsm(bool v);
+    bool hasMultipleReturnExp() const;
+    bool hasMultipleReturnExp(bool v);
 
     // Data for a function declaration that is needed for the Objective-C
     // integration.
@@ -719,7 +719,6 @@ public:
     bool isAbstract() override final;
     bool isSafe();
     bool isTrusted();
-    bool isNogc();
 
     virtual bool isNested() const;
     AggregateDeclaration *isThis() override;
@@ -732,7 +731,6 @@ public:
     const char *kind() const override;
     bool isUnique();
     bool needsClosure();
-    bool checkClosure();
     bool hasNestedFrameRefs();
     ParameterList getParameterList();
 
@@ -784,6 +782,7 @@ class CtorDeclaration final : public FuncDeclaration
 {
 public:
     d_bool isCpCtor;
+    d_bool isMoveCtor;
     CtorDeclaration *syntaxCopy(Dsymbol *) override;
     const char *kind() const override;
     const char *toChars() const override;

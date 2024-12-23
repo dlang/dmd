@@ -54,29 +54,6 @@ import dmd.visitor;
 
 enum LOGSEMANTIC = false;
 
-/// Return value for `checkModifiable`
-enum Modifiable
-{
-    /// Not modifiable
-    no,
-    /// Modifiable (the type is mutable)
-    yes,
-    /// Modifiable because it is initialization
-    initialization,
-}
-/**
- * Specifies how the checkModify deals with certain situations
- */
-enum ModifyFlags
-{
-    /// Issue error messages on invalid modifications of the variable
-    none,
-    /// No errors are emitted for invalid modifications
-    noError = 0x1,
-    /// The modification occurs for a subfield of the current variable
-    fieldAssign = 0x2,
-}
-
 /****************************************
  * Find the last non-comma expression.
  * Params:
@@ -320,6 +297,7 @@ extern (C++) abstract class Expression : ASTNode
     Loc loc;        // file location
     const EXP op;   // to minimize use of dynamic_cast
     bool parens;    // if this is a parenthesized expression
+    bool rvalue;    // true if this is considered to be an rvalue, even if it is an lvalue
 
     extern (D) this(const ref Loc loc, EXP op) scope @safe
     {
@@ -478,7 +456,7 @@ extern (C++) abstract class Expression : ASTNode
     dinteger_t toInteger()
     {
         //printf("Expression %s\n", EXPtoString(op).ptr);
-        if (!type.isTypeError())
+        if (!type || !type.isTypeError())
             error(loc, "integer constant expression expected instead of `%s`", toChars());
         return 0;
     }
@@ -558,7 +536,7 @@ extern (C++) abstract class Expression : ASTNode
             return true;
         if (type.toBasetype().ty == Terror)
             return true;
-        if (!type.isscalar())
+        if (!type.isScalar())
         {
             error(loc, "`%s` is not a scalar, it is a `%s`", toChars(), type.toChars());
             return true;
@@ -586,7 +564,7 @@ extern (C++) abstract class Expression : ASTNode
             return true;
         if (type.toBasetype().ty == Terror)
             return true;
-        if (!type.isintegral())
+        if (!type.isIntegral())
         {
             error(loc, "`%s` is not of integral type, it is a `%s`", toChars(), type.toChars());
             return true;
@@ -600,7 +578,7 @@ extern (C++) abstract class Expression : ASTNode
             return true;
         if (type.toBasetype().ty == Terror)
             return true;
-        if (!type.isintegral() && !type.isfloating())
+        if (!type.isIntegral() && !type.isFloating())
         {
             // unary aggregate ops error here
             const char* msg = type.isAggregate() ?
@@ -879,7 +857,7 @@ extern (C++) final class IntegerExp : Expression
         super(loc, EXP.int64);
         //printf("IntegerExp(value = %lld, type = '%s')\n", value, type ? type.toChars() : "");
         assert(type);
-        if (!type.isscalar())
+        if (!type.isScalar())
         {
             //printf("%s, loc = %d\n", toChars(), loc.linnum);
             if (type.ty != Terror)
@@ -1199,12 +1177,12 @@ extern (C++) final class RealExp : Expression
 
     override real_t toReal()
     {
-        return type.isreal() ? value : CTFloat.zero;
+        return type.isReal() ? value : CTFloat.zero;
     }
 
     override real_t toImaginary()
     {
-        return type.isreal() ? CTFloat.zero : value;
+        return type.isReal() ? CTFloat.zero : value;
     }
 
     override complex_t toComplex()
@@ -1330,7 +1308,7 @@ extern (C++) class IdentifierExp : Expression
 
     override final bool isLvalue()
     {
-        return true;
+        return !this.rvalue;
     }
 
     override void accept(Visitor v)
@@ -1374,7 +1352,7 @@ extern (C++) final class DsymbolExp : Expression
 
     override bool isLvalue()
     {
-        return true;
+        return !rvalue;
     }
 
     override void accept(Visitor v)
@@ -1420,7 +1398,7 @@ extern (C++) class ThisExp : Expression
     override final bool isLvalue()
     {
         // Class `this` should be an rvalue; struct `this` should be an lvalue.
-        return type.toBasetype().ty != Tclass;
+        return !rvalue && type.toBasetype().ty != Tclass;
     }
 
     override void accept(Visitor v)
@@ -1805,7 +1783,7 @@ extern (C++) final class StringExp : Expression
         /* string literal is rvalue in default, but
          * conversion to reference of static array is only allowed.
          */
-        return (type && type.toBasetype().ty == Tsarray);
+        return !rvalue && (type && type.toBasetype().ty == Tsarray);
     }
 
     /********************************
@@ -1880,7 +1858,7 @@ extern (C++) final class InterpExp : Expression
 
     enum char NoPostfix = 0;
 
-    extern (D) this(const ref Loc loc, InterpolatedSet* set, char postfix = NoPostfix) scope
+    extern (D) this(const ref Loc loc, InterpolatedSet* set, char postfix = NoPostfix) scope @safe
     {
         super(loc, EXP.interpolated);
         this.interpolatedSet = set;
@@ -2230,13 +2208,6 @@ extern (C++) final class AssocArrayLiteralExp : Expression
     }
 }
 
-enum stageScrub             = 0x1;  /// scrubReturnValue is running
-enum stageSearchPointers    = 0x2;  /// hasNonConstPointers is running
-enum stageOptimize          = 0x4;  /// optimize is running
-enum stageApply             = 0x8;  /// apply is running
-enum stageInlineScan        = 0x10; /// inlineScan is running
-enum stageToCBuffer         = 0x20; /// toCBuffer is running
-
 /***********************************************************
  * sd( e1, e2, e3, ... )
  */
@@ -2269,7 +2240,17 @@ extern (C++) final class StructLiteralExp : Expression
      * 'inlinecopy' uses similar 'stageflags' and from multiple evaluation 'doInline'
      * (with infinite recursion) of this expression.
      */
-    ubyte stageflags;
+    enum StageFlags : ubyte
+    {
+        none              = 0x0,
+        scrub             = 0x1,  /// scrubReturnValue is running
+        searchPointers    = 0x2,  /// hasNonConstPointers is running
+        optimize          = 0x4,  /// optimize is running
+        apply             = 0x8,  /// apply is running
+        inlineScan        = 0x10, /// inlineScan is running
+        toCBuffer         = 0x20 /// toCBuffer is running
+    }
+    StageFlags stageflags;
 
     bool useStaticInit;     /// if this is true, use the StructDeclaration's init symbol
     bool isOriginal = false; /// used when moving instances to indicate `this is this.origin`
@@ -2739,7 +2720,7 @@ extern (C++) final class VarExp : SymbolExp
 
     override bool isLvalue()
     {
-        if (var.storage_class & (STC.lazy_ | STC.rvalue | STC.manifest))
+        if (rvalue || var.storage_class & (STC.lazy_ | STC.rvalue | STC.manifest))
             return false;
         return true;
     }
@@ -3028,28 +3009,6 @@ extern (C++) abstract class UnaExp : Expression
         return e;
     }
 
-    /********************************
-     * The type for a unary expression is incompatible.
-     * Print error message.
-     * Returns:
-     *  ErrorExp
-     */
-    extern (D) final Expression incompatibleTypes()
-    {
-        if (e1.type.toBasetype() == Type.terror)
-            return e1;
-
-        if (e1.op == EXP.type)
-        {
-            error(loc, "incompatible type for `%s(%s)`: cannot use `%s` with types", EXPtoString(op).ptr, e1.toChars(), EXPtoString(op).ptr);
-        }
-        else
-        {
-            error(loc, "incompatible type for `%s(%s)`: `%s`", EXPtoString(op).ptr, e1.toChars(), e1.type.toChars());
-        }
-        return ErrorExp.get();
-    }
-
     /*********************
      * Mark the operand as will never be dereferenced,
      * which is useful info for @safe checks.
@@ -3092,40 +3051,6 @@ extern (C++) abstract class BinExp : Expression
         e.e1 = e.e1.syntaxCopy();
         e.e2 = e.e2.syntaxCopy();
         return e;
-    }
-
-    /********************************
-     * The types for a binary expression are incompatible.
-     * Print error message.
-     * Returns:
-     *  ErrorExp
-     */
-    extern (D) final Expression incompatibleTypes()
-    {
-        if (e1.type.toBasetype() == Type.terror)
-            return e1;
-        if (e2.type.toBasetype() == Type.terror)
-            return e2;
-
-        // CondExp uses 'a ? b : c' but we're comparing 'b : c'
-        const(char)* thisOp = (op == EXP.question) ? ":" : EXPtoString(op).ptr;
-        if (e1.op == EXP.type || e2.op == EXP.type)
-        {
-            error(loc, "incompatible types for `(%s) %s (%s)`: cannot use `%s` with types",
-                e1.toChars(), thisOp, e2.toChars(), EXPtoString(op).ptr);
-        }
-        else if (e1.type.equals(e2.type))
-        {
-            error(loc, "incompatible types for `(%s) %s (%s)`: both operands are of type `%s`",
-                e1.toChars(), thisOp, e2.toChars(), e1.type.toChars());
-        }
-        else
-        {
-            auto ts = toAutoQualChars(e1.type, e2.type);
-            error(loc, "incompatible types for `(%s) %s (%s)`: `%s` and `%s`",
-                e1.toChars(), thisOp, e2.toChars(), ts[0], ts[1]);
-        }
-        return ErrorExp.get();
     }
 
     extern (D) final bool checkIntegralBin()
@@ -3174,7 +3099,7 @@ extern (C++) class BinAssignExp : BinExp
 
     override final bool isLvalue()
     {
-        return true;
+        return !rvalue;
     }
 
     override void accept(Visitor v)
@@ -3379,6 +3304,8 @@ extern (C++) final class DotVarExp : UnaExp
 
     override bool isLvalue()
     {
+        if (rvalue)
+            return false;
         if (e1.op != EXP.structLiteral)
             return true;
         auto vd = var.isVarDeclaration();
@@ -3606,11 +3533,13 @@ extern (C++) final class CallExp : UnaExp
 
     override bool isLvalue()
     {
+        if (rvalue)
+            return false;
         Type tb = e1.type.toBasetype();
         if (tb.ty == Tdelegate || tb.ty == Tpointer)
             tb = tb.nextOf();
         auto tf = tb.isTypeFunction();
-        if (tf && tf.isref)
+        if (tf && tf.isRef)
         {
             if (auto dve = e1.isDotVarExp())
                 if (dve.var.isCtorDeclaration())
@@ -3724,7 +3653,7 @@ extern (C++) final class PtrExp : UnaExp
 
     override bool isLvalue()
     {
-        return true;
+        return !rvalue;
     }
 
     override void accept(Visitor v)
@@ -3853,7 +3782,7 @@ extern (C++) final class CastExp : UnaExp
     override bool isLvalue()
     {
         //printf("e1.type = %s, to.type = %s\n", e1.type.toChars(), to.toChars());
-        if (!e1.isLvalue())
+        if (rvalue || !e1.isLvalue())
             return false;
         return (to.ty == Tsarray && (e1.type.ty == Tvector || e1.type.ty == Tsarray)) ||
             e1.type.mutableOf.unSharedOf().equals(to.mutableOf().unSharedOf());
@@ -3910,7 +3839,7 @@ extern (C++) final class VectorArrayExp : UnaExp
 
     override bool isLvalue()
     {
-        return e1.isLvalue();
+        return !rvalue && e1.isLvalue();
     }
 
     override void accept(Visitor v)
@@ -3967,7 +3896,7 @@ extern (C++) final class SliceExp : UnaExp
         /* slice expression is rvalue in default, but
          * conversion to reference of static array is only allowed.
          */
-        return (type && type.toBasetype().ty == Tsarray);
+        return !rvalue && (type && type.toBasetype().ty == Tsarray);
     }
 
     override Optional!bool toBool()
@@ -4032,6 +3961,8 @@ extern (C++) final class ArrayExp : UnaExp
 
     override bool isLvalue()
     {
+        if (rvalue)
+            return false;
         if (type && type.toBasetype().ty == Tvoid)
             return false;
         return true;
@@ -4081,7 +4012,7 @@ extern (C++) final class CommaExp : BinExp
 
     override bool isLvalue()
     {
-        return e2.isLvalue();
+        return !rvalue && e2.isLvalue();
     }
 
     override Optional!bool toBool()
@@ -4156,7 +4087,7 @@ extern (C++) final class DelegatePtrExp : UnaExp
 
     override bool isLvalue()
     {
-        return e1.isLvalue();
+        return !rvalue && e1.isLvalue();
     }
 
     override void accept(Visitor v)
@@ -4179,7 +4110,7 @@ extern (C++) final class DelegateFuncptrExp : UnaExp
 
     override bool isLvalue()
     {
-        return e1.isLvalue();
+        return !rvalue && e1.isLvalue();
     }
 
     override void accept(Visitor v)
@@ -4219,10 +4150,11 @@ extern (C++) final class IndexExp : BinExp
 
     override bool isLvalue()
     {
-        if (e1.op == EXP.assocArrayLiteral)
+        if (rvalue)
             return false;
-        if (e1.type.ty == Tsarray ||
-            (e1.op == EXP.index && e1.type.ty != Tarray))
+        auto t1b = e1.type.toBasetype();
+        if (t1b.isTypeAArray() || t1b.isTypeSArray() ||
+            (e1.isIndexExp() && t1b != t1b.isTypeDArray()))
         {
             return e1.isLvalue();
         }
@@ -4328,7 +4260,7 @@ extern (C++) class AssignExp : BinExp
         {
             return false;
         }
-        return true;
+        return !rvalue;
     }
 
     override void accept(Visitor v)
@@ -4628,7 +4560,7 @@ extern (C++) class CatAssignExp : BinAssignExp
 {
     Expression lowering;    // lowered druntime hook `_d_arrayappend{cTX,T}`
 
-    extern (D) this(const ref Loc loc, Expression e1, Expression e2)
+    extern (D) this(const ref Loc loc, Expression e1, Expression e2) @safe
     {
         super(loc, EXP.concatenateAssign, e1, e2);
     }
@@ -5059,7 +4991,7 @@ extern (C++) final class CondExp : BinExp
 
     override bool isLvalue()
     {
-        return e1.isLvalue() && e2.isLvalue();
+        return !rvalue && e1.isLvalue() && e2.isLvalue();
     }
 
     override void accept(Visitor v)
@@ -5339,7 +5271,7 @@ extern (C++) final class ObjcClassReferenceExp : Expression
 {
     ClassDeclaration classDeclaration;
 
-    extern (D) this(const ref Loc loc, ClassDeclaration classDeclaration)
+    extern (D) this(const ref Loc loc, ClassDeclaration classDeclaration) @safe
     {
         super(loc, EXP.objcClassReference);
         this.classDeclaration = classDeclaration;

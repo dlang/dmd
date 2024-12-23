@@ -36,7 +36,6 @@ else
 
 /******************************************************************/
 
-import dmd.backend.cgobj;
 import dmd.backend.mscoffobj;
 import dmd.backend.elfobj;
 import dmd.backend.machobj;
@@ -85,18 +84,6 @@ else
             mixin(genRetVal("term(objfilename)"));
         }
 
-        size_t mangle(Symbol *s,char *dest)
-        {
-            assert(config.objfmt == OBJ_OMF);
-            return OmfObj_mangle(s, dest);
-        }
-
-        void _import(elem *e)
-        {
-            assert(config.objfmt == OBJ_OMF);
-            return OmfObj_import(e);
-        }
-
         void linnum(Srcpos srcpos, int seg, targ_size_t offset)
         {
             mixin(genRetVal("linnum(srcpos, seg, offset)"));
@@ -105,12 +92,6 @@ else
         int codeseg(const char *name,int suffix)
         {
             mixin(genRetVal("codeseg(name, suffix)"));
-        }
-
-        void dosseg()
-        {
-            assert(config.objfmt == OBJ_OMF);
-            return OmfObj_dosseg();
         }
 
         void startaddress(Symbol *s)
@@ -153,27 +134,9 @@ else
             mixin(genRetVal("wkext(s1, s2)"));
         }
 
-        void lzext(Symbol* s1, Symbol* s2)
-        {
-            assert(config.objfmt == OBJ_OMF);
-            OmfObj_lzext(s1, s2);
-        }
-
         void _alias(const(char)* n1,const(char)* n2)
         {
             mixin(genRetVal("alias(n1, n2)"));
-        }
-
-        void theadr(const(char)* modname)
-        {
-            assert(config.objfmt == OBJ_OMF);
-            OmfObj_theadr(modname);
-        }
-
-        void segment_group(targ_size_t codesize, targ_size_t datasize, targ_size_t cdatasize, targ_size_t udatasize)
-        {
-            assert(config.objfmt == OBJ_OMF);
-            OmfObj_segment_group(codesize, datasize, cdatasize, udatasize);
         }
 
         void staticctor(Symbol *s,int dtor,int seg)
@@ -239,12 +202,6 @@ else
         seg_data *tlsseg_data()
         {
             mixin(genRetVal("tlsseg_data()"));
-        }
-
-        int  fardata(char *name, targ_size_t size, targ_size_t *poffset)
-        {
-            assert(config.objfmt == OBJ_OMF);
-            return OmfObj_fardata(name, size, poffset);
         }
 
         void export_symbol(Symbol *s, uint argsize)
@@ -317,21 +274,9 @@ else
             mixin(genRetVal("bytes(seg, offset, nbytes, p)"));
         }
 
-        void ledata(int seg, targ_size_t offset, targ_size_t data, uint lcfd, uint idx1, uint idx2)
-        {
-            assert(config.objfmt == OBJ_OMF);
-            OmfObj_ledata(seg, offset, data, lcfd, idx1, idx2);
-        }
-
         void reftodatseg(int seg, targ_size_t offset, targ_size_t val, uint targetdatum, int flags)
         {
             mixin(genRetVal("reftodatseg(seg, offset, val, targetdatum, flags)"));
-        }
-
-        void reftofarseg(int seg, targ_size_t offset, targ_size_t val, int farseg, int flags)
-        {
-            assert(config.objfmt == OBJ_OMF);
-            OmfObj_reftofarseg(seg, offset, val, farseg, flags);
         }
 
         void reftocodeseg(int seg, targ_size_t offset, targ_size_t val)
@@ -434,15 +379,8 @@ else
             switch (config.objfmt)
             {
                 case OBJ_MSCOFF: return MsCoffObj_seg_debugT();
-                case OBJ_OMF:    return    OmfObj_seg_debugT();
                 default:         assert(0);
             }
-        }
-
-        void write_long(int seg, targ_size_t offset, uint data, uint lcfd, uint idx1, uint idx2)
-        {
-            assert(config.objfmt == OBJ_OMF);
-            return OmfObj_write_long(seg, offset, data, lcfd, idx1, idx2);
         }
 
         uint addstr(OutBuffer *strtab, const(char)* p)
@@ -566,7 +504,6 @@ private extern (D)
 string ObjMemDecl(string pattern)
 {
     string r =
-        gen(pattern,    "Omf") ~ ";\n" ~
         gen(pattern, "MsCoff") ~ ";\n" ~
         gen(pattern,    "Elf") ~ ";\n" ~
         gen(pattern,   "Mach") ~ ";\n";
@@ -590,7 +527,6 @@ string genRetVal(string arg)
         {
             case OBJ_ELF:    return    ElfObj_"~arg~";
             case OBJ_MSCOFF: return MsCoffObj_"~arg~";
-            case OBJ_OMF:    return    OmfObj_"~arg~";
             case OBJ_MACH:   return   MachObj_"~arg~";
             default:     assert(0);
         }

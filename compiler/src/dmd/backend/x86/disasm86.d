@@ -82,6 +82,7 @@ bool jmpTarget(ubyte[] code, ref addr c, out addr offset)
  *      model = memory model, 16/32/64
  *      nearptr = use 'near ptr' when writing memory references
  *      bObjectcode = also prepend hex characters of object code
+ *      bURL = append URL (if any) to output
  *      mem = if not null, then function that returns a string
  *          representing the label for the memory address. Parameters are `c`
  *          for the address of the memory reference in `code[]`, `sz` for the
@@ -107,7 +108,7 @@ bool jmpTarget(ubyte[] code, ref addr c, out addr offset)
 @trusted
 public
 void getopstring(void delegate(char) nothrow @nogc put, ubyte[] code, uint c, addr siz,
-        uint model, int nearptr, ubyte bObjectcode,
+        uint model, int nearptr, ubyte bObjectcode, ubyte bURL,
         const(char)*function(uint c, uint sz, uint offset) nothrow @nogc mem,
         const(char)*function(ubyte[] code, uint c, int sz) nothrow @nogc immed16,
         const(char)*function(uint c, uint offset, bool farflag, bool is16bit) nothrow @nogc labelcode,
@@ -116,7 +117,7 @@ void getopstring(void delegate(char) nothrow @nogc put, ubyte[] code, uint c, ad
 {
     assert(model == 16 || model == 32 || model == 64);
     auto disasm = Disasm(put, code, siz,
-                model, nearptr, bObjectcode,
+                model, nearptr, bObjectcode, bURL,
                 mem, immed16, labelcode, shortlabel);
     disasm.disassemble(c);
 }
@@ -143,7 +144,7 @@ struct Disasm
 
     @trusted
     this(void delegate(char) nothrow @nogc put, ubyte[] code, addr siz,
-        uint model, int nearptr, ubyte bObjectcode,
+        uint model, int nearptr, ubyte bObjectcode, ubyte bURL,
         const(char)*function(uint c, uint sz, uint offset) nothrow @nogc mem,
         const(char)*function(ubyte[] code, uint c, int sz) nothrow @nogc immed16,
         const(char)*function(uint c, uint offset, bool farflag, bool is16bit) nothrow @nogc labelcode,
@@ -156,6 +157,7 @@ struct Disasm
         this.model = model;
         this.nearptr = nearptr;
         this.bObjectcode = bObjectcode;
+        this.bURL = bURL;
 
         /* Set null function pointers to default functions
          */
@@ -193,6 +195,7 @@ struct Disasm
     addr siz;
     int nearptr;
     ubyte bObjectcode;
+    ubyte bURL;
     bool defopsize;             // default value for opsize
     char defadsize;             // default value for adsize
     bool opsize;                // if 0, then 32 bit operand
@@ -249,6 +252,9 @@ addr calccodsize(addr c, out addr pc)
     ubyte rex = 0;
 
     op = code[c] & 0xFF;
+    //printf("c: x%02x op: x%02x\n", cast(int)c, op);
+    if (op == 0 && c + 1 == code.length)        // skip zero padding
+        return 1;
 
     // if VEX prefix
     if (op == 0xC4 || op == 0xC5)
@@ -537,7 +543,7 @@ char *getEAimpl(ubyte rex, uint c, int do_xmm, uint vlen)
             s = "-".ptr;
         }
         w &= 0xFFFF;
-        snprintf(EAb.ptr, EAb.length, ((w < 10) ? "%s%s%s%ld%s" : "%s%s%s0%lXh%s"),
+        snprintf(EAb.ptr, EAb.length, ((w < 10) ? "%s%s%s%d%s" : "%s%s%s0%Xh%s"),
                 segover,ptr[ptri],s,w,postfix);
 
         segover = "".ptr;
@@ -1466,11 +1472,11 @@ Ldone:
     }
 
     puts(p0);
-    put('t');
+    puts("    ");
     puts(p1);
     if (*p2)
     {
-        put('t');
+        puts("    ");
         puts(p2);
         if (*p3)
         {
@@ -1751,14 +1757,16 @@ L2:
     }
 
     puts(p0);
-    put('\t');
-    if (waitflag)
+    put(' ');
+    if (0 && waitflag)
         puts(p1 + 2);
     else
         puts(p1);
     if (*p2)
     {
-        put('\t');
+        for (int len1 = cast(int)strlen(p1); len1 < 9; ++len1)
+            put(' ');
+        put(' ');
         if (*mfp)
         {
             puts(mfp);
@@ -1876,6 +1884,8 @@ void disassemble(uint c)
     s3 = s2;
     opcode = code[c];
     p0[0]='\0';
+    if (opcode == 0 && c + 1 >= code.length)
+        return;
     if (bObjectcode) {
         for (i=0; i<siz; i++) {
             snprintf( buf.ptr, buf.length, "%02X ", code[c+i] );
@@ -1912,7 +1922,8 @@ void disassemble(uint c)
         }
     }
     if (inssize[opcode] & M)    /* if modregrm byte             */
-    {   reg = (code[c + 1] >> 3) & 7;
+    {
+        reg = (code[c + 1] >> 3) & 7;
         if (rex & REX_R)
             reg |= 8;
     }
@@ -3613,7 +3624,7 @@ __gshared const
 unittest
 {
     int line16 = __LINE__;
-    string[20] cases16 =      // 16 bit code gen
+    string[21] cases16 =      // 16 bit code gen
     [
         "      55            push    BP",
         "      8B EC         mov     BP,SP",
@@ -3635,6 +3646,7 @@ unittest
         "26    03 07         add     AX,ES:[BX]",
         "      03 06 00 00   add     AX,[00h]",
         "      31 C0         xor     AX,AX",
+        "      00                ",
     ];
 
     int line32 = __LINE__;
@@ -3659,7 +3671,7 @@ unittest
     ];
 
     int line64 = __LINE__;
-    string[26] cases64 =      // 64 bit code gen
+    string[27] cases64 =      // 64 bit code gen
     [
         "31 C0               xor  EAX,EAX",
         "48 89 4C 24 08      mov  8[RSP],RCX",
@@ -3687,6 +3699,7 @@ unittest
         "66 0F 73 FF 99      pslldq    XMM7,099h",
         "F3 0F 1E FB         endbr32",
         "F3 0F 1E FA         endbr64",
+        "DD 1C 24            fnstp  qword ptr [RSP]",
     ];
 
     char[BUFMAX] buf;
@@ -3705,7 +3718,7 @@ unittest
 
         auto output = Output!char(buf[]);
         getopstring(&output.put, code, 0, length,
-                size, 0, 0, null, null, null, null);
+                size, 0, 0, 0, null, null, null, null);
         auto result = output.peek();
 
         static bool compareEqual(const(char)[] result, const(char)[] expected)

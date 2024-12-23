@@ -210,12 +210,12 @@ TypeTuple toArgTypes_x86(Type t)
             if (t1.ty == Tfloat32 && t2.ty == Tfloat32 && offset2 == 4)
                 return Type.tfloat64;
             // Merging floating and non-floating types produces the non-floating type
-            if (t1.isfloating())
+            if (t1.isFloating())
             {
-                if (!t2.isfloating())
+                if (!t2.isFloating())
                     t1 = mergeFloatToInt(t1);
             }
-            else if (t2.isfloating())
+            else if (t2.isFloating())
                 t2 = mergeFloatToInt(t2);
             Type t;
             // Pick type with larger size

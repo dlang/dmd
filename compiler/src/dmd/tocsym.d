@@ -40,7 +40,9 @@ import dmd.identifier;
 import dmd.id;
 import dmd.init;
 import dmd.location;
+import dmd.mangle;
 import dmd.mtype;
+import dmd.safe : isSafe;
 import dmd.target;
 import dmd.toctype;
 import dmd.todt;
@@ -48,7 +50,6 @@ import dmd.toir;
 import dmd.tokens;
 import dmd.typesem : size;
 import dmd.visitor;
-import dmd.dmangle;
 
 import dmd.backend.cdef;
 import dmd.backend.cc;

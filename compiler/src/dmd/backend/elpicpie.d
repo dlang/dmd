@@ -34,6 +34,8 @@ import dmd.backend.type;
 nothrow:
 @safe:
 
+enum log = false;
+
 /**************************
  * Make an elem out of a symbol.
  */
@@ -41,7 +43,7 @@ nothrow:
 elem * el_var(Symbol *s)
 {
     elem *e;
-    //printf("el_var(s = '%s')\n", s.Sident.ptr);
+    if (log) printf("el_var(s = '%s')\n", s.Sident.ptr);
     //printf("%x\n", s.Stype.Tty);
     if (config.exe & EX_posix)
     {
@@ -96,14 +98,23 @@ elem * el_var(Symbol *s)
     e.Vsym = s;
     type_debug(s.Stype);
     e.Ety = s.ty();
-    if (s.Stype.Tty & mTYthread)
+
+    if (!(s.Stype.Tty & mTYthread))
+        return e;
+
+    if (log) printf("el_var() thread local %s\n", s.Sident.ptr);
+    if (config.exe & (EX_OSX | EX_OSX64))
     {
-        //printf("thread local %s\n", s.Sident.ptr);
-if (config.exe & (EX_OSX | EX_OSX64))
-{
-}
-else if (config.exe & EX_posix)
-{
+        return e;
+    }
+    else if (config.exe & EX_posix)
+    {
+        if (config.target_cpu == TARGET_AArch64)
+        {
+            if (log) printf("AArch64\n");
+            return e;
+        }
+
         /* For 32 bit:
          * Generate for var locals:
          *      MOV reg,GS:[00000000]   // add GS: override in back end
@@ -160,9 +171,10 @@ else if (config.exe & EX_posix)
         e.Eoper = OPind;
         e.E1 = el_bin(OPadd,e1.Ety,e2,e1);
         e.E2 = null;
-}
-else if (config.exe & EX_windos)
-{
+        return e;
+    }
+    else if (config.exe & EX_windos)
+    {
         /*
             Win32:
                 mov     EAX,FS:__tls_array
@@ -211,9 +223,12 @@ else if (config.exe & EX_windos)
         e.Eoper = OPind;
         e.E1 = el_bin(OPadd,e1.Ety,e1,e2);
         e.E2 = null;
-}
+        return e;
     }
-    return e;
+    else
+    {
+        return e;
+    }
 }
 
 /**************************
@@ -225,8 +240,7 @@ else if (config.exe & EX_windos)
 @trusted
 elem * el_ptr(Symbol *s)
 {
-    //printf("el_ptr(s = '%s')\n", s.Sident.ptr);
-    //printf("el_ptr\n");
+    if (log) printf("el_ptr(s = '%s')\n", s.Sident.ptr);
     symbol_debug(s);
     type_debug(s.Stype);
 
@@ -332,6 +346,7 @@ elem * el_ptr(Symbol *s)
 @trusted
 private Symbol *el_alloc_localgot()
 {
+    if (log) printf("el_alloc_localgot()\n");
     if (config.exe & EX_windos)
         return null;
 
@@ -380,7 +395,7 @@ private elem *el_picvar_OSX(Symbol *s)
     elem *e;
     int x;
 
-    //printf("el_picvar(s = '%s') Sclass = %s\n", s.Sident.ptr, class_str(s.Sclass));
+    if (log) printf("el_picvar(s = '%s') Sclass = %s\n", s.Sident.ptr, class_str(s.Sclass));
     //symbol_print(s);
     symbol_debug(s);
     type_debug(s.Stype);
@@ -529,13 +544,11 @@ static if (1)
 @trusted
 private elem *el_picvar_posix(Symbol *s)
 {
-    elem *e;
-    int x;
-
-    //printf("el_picvar(s = '%s')\n", s.Sident.ptr);
+    if (log) printf("el_picvar(s = '%s')\n", s.Sident.ptr);
     symbol_debug(s);
+
     type_debug(s.Stype);
-    e = el_calloc();
+    elem* e = el_calloc();
     e.Eoper = OPvar;
     e.Vsym = s;
     e.Ety = s.ty();
@@ -568,6 +581,7 @@ private elem *el_picvar_posix(Symbol *s)
      *      MOV reg,[RAX]
      */
 
+    int x;
     if (I64)
     {
         switch (s.Sclass)
@@ -750,9 +764,7 @@ private elem *el_pievar(Symbol *s)
     if (config.exe & (EX_OSX | EX_OSX64))
         assert(0);
 
-    int x;
-
-    //printf("el_pievar(s = '%s')\n", s.Sident.ptr);
+    if (log) printf("el_pievar(s = '%s')\n", s.Sident.ptr);
     symbol_debug(s);
     type_debug(s.Stype);
     auto e = el_calloc();
@@ -833,9 +845,7 @@ private elem *el_pieptr(Symbol *s)
     if (config.exe & (EX_OSX | EX_OSX64))
         assert(0);
 
-    int x;
-
-    //printf("el_pieptr(s = '%s')\n", s.Sident.ptr);
+    if (log) printf("el_pieptr(s = '%s')\n", s.Sident.ptr);
     symbol_debug(s);
     type_debug(s.Stype);
     auto e = el_calloc();

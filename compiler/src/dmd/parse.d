@@ -49,8 +49,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         bool doUnittests; // parse unittest blocks
     }
 
-    bool transitionIn = false; /// `-transition=in` is active, `in` parameters are listed
-
     /*********************
      * Use this constructor for string mixins.
      * Input:
@@ -110,43 +108,44 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         parseModuleAttributes(msg, isdeprecated);
 
         // ModuleDeclaration leads off
-        if (token.value == TOK.module_)
+        if (token.value != TOK.module_)
+            return true;
+
+        const loc = token.loc;
+        nextToken();
+
+        /* parse ModuleFullyQualifiedName
+         * https://dlang.org/spec/module.html#ModuleFullyQualifiedName
+         */
+
+        if (token.value != TOK.identifier)
         {
-            const loc = token.loc;
+            error("identifier expected following `module`");
+            return false;
+        }
+
+        Identifier[] a;
+        Identifier id = token.ident;
+
+        while (nextToken() == TOK.dot)
+        {
+            a ~= id;
             nextToken();
-
-            /* parse ModuleFullyQualifiedName
-             * https://dlang.org/spec/module.html#ModuleFullyQualifiedName
-             */
-
             if (token.value != TOK.identifier)
             {
-                error("identifier expected following `module`");
+                error("identifier expected following `package`");
                 return false;
             }
-
-            Identifier[] a;
-            Identifier id = token.ident;
-
-            while (nextToken() == TOK.dot)
-            {
-                a ~= id;
-                nextToken();
-                if (token.value != TOK.identifier)
-                {
-                    error("identifier expected following `package`");
-                    return false;
-                }
-                id = token.ident;
-            }
-
-            md = new AST.ModuleDeclaration(loc, a, id, msg, isdeprecated);
-
-            if (token.value != TOK.semicolon)
-                error("`;` expected following module declaration instead of `%s`", token.toChars());
-            nextToken();
-            addComment(mod, comment);
+            id = token.ident;
         }
+
+        md = new AST.ModuleDeclaration(loc, a, id, msg, isdeprecated);
+
+        if (token.value != TOK.semicolon)
+            error("`;` expected following module declaration instead of `%s`", token.toChars());
+        nextToken();
+        addComment(mod, comment);
+
         return true;
     }
 
@@ -543,7 +542,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 break;
 
             case TOK.new_:
-                s = parseNew(pAttrs);
+                s = parseNewDeclaration(pAttrs);
                 break;
 
             case TOK.colon:
@@ -934,15 +933,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 {
                     const attrLoc = token.loc;
 
-                    nextToken();
-
-                    AST.Expression e = null; // default
-                    if (token.value == TOK.leftParenthesis)
-                    {
-                        nextToken();
-                        e = parseAssignExp();
-                        check(TOK.rightParenthesis);
-                    }
+                    AST.Expression e = parseAlign();
 
                     if (pAttrs.setAlignment)
                     {
@@ -1708,18 +1699,27 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      *      mixin Foo;
      *      mixin Foo!(args);
      *      mixin a.b.c!(args).Foo!(args);
-     *      mixin Foo!(args) identifier;
      *      mixin typeof(expr).identifier!(args);
+     *      mixin Foo!(args) identifier;
+     *      mixin identifier = Foo!(args);
      */
     private AST.Dsymbol parseMixin()
     {
         AST.TemplateMixin tm;
-        Identifier id;
+        Identifier id, name;
         AST.Objects* tiargs;
 
         //printf("parseMixin()\n");
         const locMixin = token.loc;
         nextToken(); // skip 'mixin'
+
+        // mixin Identifier = MixinTemplateName TemplateArguments;
+        if (token.value == TOK.identifier && peekNext() == TOK.assign)
+        {
+            name = token.ident;
+            nextToken();
+            nextToken();
+        }
 
         auto loc = token.loc;
         AST.TypeQualified tqual = null;
@@ -1783,14 +1783,14 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             nextToken();
         }
 
-        id = null;
-        if (token.value == TOK.identifier)
+        // mixin MixinTemplateName TemplateArguments Identifier;
+        if (!name && token.value == TOK.identifier)
         {
-            id = token.ident;
+            name = token.ident;
             nextToken();
         }
 
-        tm = new AST.TemplateMixin(locMixin, id, tqual, tiargs);
+        tm = new AST.TemplateMixin(locMixin, name, tqual, tiargs);
         if (token.value != TOK.semicolon)
             error("`;` expected after `mixin`");
         nextToken();
@@ -2484,7 +2484,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
 
         AST.Expression constraint = tpl ? parseConstraint() : null;
 
-        AST.Type tf = new AST.TypeFunction(parameterList, null, linkage, stc); // RetrunType -> auto
+        AST.Type tf = new AST.TypeFunction(parameterList, null, linkage, stc); // ReturnType -> auto
         tf = tf.addSTC(stc);
 
         auto f = new AST.CtorDeclaration(loc, Loc.initial, stc, tf);
@@ -2782,7 +2782,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      *      @disable new();
      * Current token is 'new'.
      */
-    private AST.Dsymbol parseNew(PrefixAttributes!AST* pAttrs)
+    private AST.Dsymbol parseNewDeclaration(PrefixAttributes!AST* pAttrs)
     {
         const loc = token.loc;
         StorageClass stc = getStorageClass!AST(pAttrs);
@@ -2909,7 +2909,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         // Don't call nextToken again.
                     }
                 case TOK.in_:
-                    if (transitionIn)
+                    if (compileEnv.transitionIn)
                         eSink.message(scanloc, "Usage of 'in' on parameter");
                     stc = STC.in_;
                     if (compileEnv.previewIn)
@@ -3492,7 +3492,12 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         name = _alias;
                         _alias = null;
                     }
-                    s.addAlias(name, _alias);
+                    if (s.isstatic)
+                        error(loc, "static import `%s` cannot have an import bind list", s.toPrettyChars());
+                    if (!s.aliasId)
+                        s.ident = null; // make it an anonymous import
+                    s.names.push(name);
+                    s.aliases.push(_alias);
                 }
                 while (token.value == TOK.comma);
                 break; // no comma-separated imports of this form
@@ -4062,7 +4067,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                                 if (tnextn.ty == Tfunction)
                                 {
                                     auto tfn = cast(AST.TypeFunction)tnextn;
-                                    tfn.isref = isRef;
+                                    tfn.isRef = isRef;
                                     tfn.linkage = link;
                                     return tt;
                                 }
@@ -4165,7 +4170,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         }
 
                         tf.next = tf.next.addSTC(stc2);
-                        tf.isref = intro.isRef || intro.isRef2;
+                        tf.isRef = intro.isRef || intro.isRef2;
                         if (intro.linkageSpecified)
                         {
                             tf.linkage = intro.link ? intro.link : intro.link2;
@@ -4529,14 +4534,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 }
             case TOK.align_:
                 {
-                    nextToken();
                     setAlignment = true;
-                    if (token.value == TOK.leftParenthesis)
-                    {
-                        nextToken();
-                        ealign = parseExpression();
-                        check(TOK.rightParenthesis);
-                    }
+                    ealign = parseAlign();
                     continue;
                 }
             default:
@@ -4546,6 +4545,24 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         }
     }
 
+    /**
+     * Parse `align` or `align(n)`
+     * Returns:
+     *  expression `n` if it is present, or `null` otherwise.
+     */
+    private AST.Expression parseAlign()
+    {
+        assert(token.value == TOK.align_);
+        AST.Expression e = null;
+        nextToken();
+        if (token.value == TOK.leftParenthesis)
+        {
+            nextToken();
+            e = parseAssignExp();
+            check(TOK.rightParenthesis);
+        }
+        return e;
+    }
     /**********************************
      * Parse Declarations.
      * These can be:
@@ -5442,7 +5459,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 error("missing `do { ... }` after `in` or `out`");
             const returnloc = token.loc;
             nextToken();
-            f.fbody = new AST.ReturnStatement(returnloc, parseExpression());
+            if (f.isCtorDeclaration)
+                f.fbody = new AST.ExpStatement(returnloc, parseExpression());
+            else
+                f.fbody = new AST.ReturnStatement(returnloc, parseExpression());
             f.endloc = token.loc;
             check(TOK.semicolon);
             break;
@@ -6105,6 +6125,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         case TOK.moduleString:
         case TOK.functionString:
         case TOK.prettyFunction:
+        case TOK.rvalue:
         Lexp:
             {
                 AST.Expression exp = parseExpression();
@@ -7082,7 +7103,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             {
                 case TOK.identifier:
                 {
-
                     if (commaExpected)
                         error("comma expected separating field initializers");
                     const t = peek(&token);
@@ -7116,6 +7136,20 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 default:
                     if (commaExpected)
                         error("comma expected separating field initializers");
+                    const t = peek(&token);
+                    if (t.value == TOK.colon)
+                    {
+                        error("incorrect syntax for associative array, expected `[]`, found `{}`");
+                        while (token.value != TOK.rightCurly && token.value != TOK.endOfFile)
+                        {
+                            nextToken();
+                        }
+                        if (token.value == TOK.rightCurly)
+                        {
+                            nextToken();
+                        }
+                        break;
+                    }
                     auto value = parseInitializer();
                     _is.addInit(null, value);
                     commaExpected = true;
@@ -8794,6 +8828,15 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 e = new AST.TypeidExp(loc, o);
                 break;
             }
+        case TOK.rvalue:
+            {
+                nextToken();
+                check(TOK.leftParenthesis, "`__rvalue`");
+                e = parseAssignExp();
+                e.rvalue = true;
+                check(TOK.rightParenthesis);
+                break;
+            }
         case TOK.traits:
             {
                 /* __traits(identifier, args...)
@@ -9058,7 +9101,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             error("expression expected, not `%s`", token.toChars());
         Lerr:
             // Anything for e, as long as it's not NULL
-            e = new AST.IntegerExp(loc, 0, AST.Type.tint32);
+            e = AST.ErrorExp.get();
             nextToken();
             break;
         }
@@ -9913,6 +9956,15 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     }
 
     /*******************************************
+     * Params:
+     *    thisexp = If not null, it is the `this` reference for the creation
+     *              of an inner class.
+     *              https://dlang.org/spec/class.html#nested-explicit
+     *              https://dlang.org/spec/expression.html#postfix_expressions
+     *              If null, then it is a NewExpression.
+     *              https://dlang.org/spec/expression.html#NewExpression
+     * Returns:
+     *   NewExpression
      */
     private AST.Expression parseNewExp(AST.Expression thisexp)
     {
@@ -10201,6 +10253,7 @@ immutable PREC[EXP.max + 1] precedence =
     EXP.assign : PREC.assign,
     EXP.construct : PREC.assign,
     EXP.blit : PREC.assign,
+    EXP.loweredAssignExp : PREC.assign,
     EXP.addAssign : PREC.assign,
     EXP.minAssign : PREC.assign,
     EXP.concatenateAssign : PREC.assign,

@@ -514,6 +514,10 @@ ref @safe int foo(return ref int a);
 ref @safe int* foo(return ref scope int* a);
 struct SafeS
 {
+	this(int[1] x) scope;
+	this(int[2] x) return scope;
+	this(int[3] x) scope return;
+	this(int[4] x) return;
 	@safe
 	{
 		ref SafeS foo() return;

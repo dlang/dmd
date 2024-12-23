@@ -175,14 +175,17 @@ void deinitializeDMD()
     import dmd.dsymbol : Dsymbol;
     import dmd.escape : EscapeState;
     import dmd.expression : Expression;
+    import dmd.func : FuncDeclaration;
     import dmd.globals : global;
     import dmd.id : Id;
     import dmd.mtype : Type;
     import dmd.objc : Objc;
     import dmd.target : target;
+    import dmd.errors : diagnostics;
 
     diagnosticHandler = null;
     fatalErrorHandler = null;
+    FuncDeclaration.lastMain = null;
 
     global.deinitialize();
 
@@ -194,6 +197,8 @@ void deinitializeDMD()
     Objc.deinitialize();
     Dsymbol.deinitialize();
     EscapeState.reset();
+
+    diagnostics.length = 0;
 }
 
 /**

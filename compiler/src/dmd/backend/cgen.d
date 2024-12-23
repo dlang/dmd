@@ -271,7 +271,7 @@ size_t addtofixlist(Symbol *s,targ_size_t offset,int seg,targ_size_t val,int fla
         static immutable ubyte[8] zeros = 0;
 
         //printf("addtofixlist(%p '%s')\n",s,s.Sident.ptr);
-        assert(I32 || flags);
+        //assert(I32 || flags); // add AArch64
         Fixup* f = fixups.push();
         f.sym = s;
         f.offset = offset;
@@ -339,7 +339,7 @@ static if (TARGET_SEGMENTED)
             // outdata(Symbol *s)
             if (f.sym.Sseg == UNKNOWN)
             {
-                error(null, 0, 0, "no definition found for static `%s` in this module, statics defined in one module cannot be referenced from another",
+                error(Srcpos.init, "no definition found for static `%s` in this module, statics defined in one module cannot be referenced from another",
                     prettyident(f.sym)); // no definition found for static
                 err_exit(); // BUG: do better
             }

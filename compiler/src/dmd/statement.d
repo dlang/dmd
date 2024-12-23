@@ -19,7 +19,6 @@ import core.stdc.stdio;
 import dmd.arraytypes;
 import dmd.astenums;
 import dmd.ast_node;
-import dmd.errors;
 import dmd.cond;
 import dmd.declaration;
 import dmd.dsymbol;
@@ -30,10 +29,10 @@ import dmd.identifier;
 import dmd.location;
 import dmd.mtype;
 import dmd.rootobject;
-import dmd.sapply;
 import dmd.staticassert;
 import dmd.tokens;
 import dmd.visitor;
+import dmd.visitor.postorder;
 
 /***********************************************************
  * Specification: https://dlang.org/spec/statement.html

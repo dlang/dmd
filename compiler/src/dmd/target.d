@@ -222,7 +222,11 @@ void addPredefinedGlobalIdentifiers(const ref Target tgt)
     addCRuntimePredefinedGlobalIdent(tgt.c);
     addCppRuntimePredefinedGlobalIdent(tgt.cpp);
 
-    if (tgt.isX86_64)
+    if (tgt.isAArch64)
+    {
+        VersionCondition.addPredefinedGlobalIdent("AArch64");
+    }
+    else if (tgt.isX86_64)
     {
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86_64");
         VersionCondition.addPredefinedGlobalIdent("X86_64");
@@ -233,6 +237,7 @@ void addPredefinedGlobalIdentifiers(const ref Target tgt)
         VersionCondition.addPredefinedGlobalIdent("D_InlineAsm_X86");
         VersionCondition.addPredefinedGlobalIdent("X86");
     }
+
     if (tgt.isLP64)
         VersionCondition.addPredefinedGlobalIdent("D_LP64");
     else if (tgt.isX86_64)
@@ -360,6 +365,7 @@ extern (C++) struct Target
     /// Architecture name
     const(char)[] architectureName;
     CPU cpu;                // CPU instruction set to target
+    bool isAArch64;         // generate 64 bit Arm code
     bool isX86_64;          // generate 64 bit code for x86_64; true by default for 64 bit dmd
     bool isX86;             // generate 32 bit Intel x86 code
     bool isLP64;            // pointers are 64 bits
@@ -418,6 +424,7 @@ extern (C++) struct Target
     {
         // isX86_64 and cpu are initialized in parseCommandLine
         isX86 = !isX86_64;
+        assert(isX86 + isX86_64 + isAArch64 == 1); // there can be only one
 
         this.params = &params;
 
@@ -440,11 +447,12 @@ extern (C++) struct Target
          */
         maxStaticDataSize = int.max;
 
-        if (isLP64)
+        if (isLP64 || isAArch64)
         {
             ptrsize = 8;
             classinfosize = 0x98+16; // 168
         }
+
         if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris))
         {
             realsize = 12;
@@ -465,7 +473,8 @@ extern (C++) struct Target
         }
         else
             assert(0);
-        if (isX86_64)
+
+        if (isX86_64 || isAArch64)
         {
             if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris))
             {
@@ -481,8 +490,12 @@ extern (C++) struct Target
 
         if (isX86_64)
             architectureName = "X86_64";
-        else
+        else if (isX86)
             architectureName = "X86";
+        else if (isAArch64)
+            architectureName = "AArch64";
+        else
+            assert(0);
 
         if (os == Target.OS.Windows)
         {
@@ -605,7 +618,7 @@ extern (C++) struct Target
     {
         const size = type.alignsize();
 
-        if ((isX86_64 || os == Target.OS.OSX) && (size == 16 || size == 32))
+        if ((isX86_64 || isAArch64 || os == Target.OS.OSX) && (size == 16 || size == 32))
             return size;
 
         return (8 < size) ? 8 : size;
@@ -630,7 +643,7 @@ extern (C++) struct Target
         }
         else if (os & Target.OS.Posix)
         {
-            if (isX86_64)
+            if (isX86_64 || isAArch64)
             {
                 import dmd.identifier : Identifier;
                 import dmd.mtype : TypeIdentifier;
@@ -751,7 +764,7 @@ extern (C++) struct Target
         {
         case EXP.uadd:
             // Expression is a no-op, supported everywhere.
-            return tvec.isscalar();
+            return tvec.isScalar();
 
         case EXP.negate:
             if (vecsize == 16)
@@ -763,16 +776,16 @@ extern (C++) struct Target
                 if (elemty == TY.Tfloat64 && cpu >= CPU.sse2)
                     return true;
                 // (u)byte[16]/short[8]/int[4]/long[2] negate needs SSE2 support ({V}PSUB[BWDQ])
-                if (tvec.isintegral() && cpu >= CPU.sse2)
+                if (tvec.isIntegral() && cpu >= CPU.sse2)
                     return true;
             }
             else if (vecsize == 32)
             {
                 // float[8]/double[4] negate needs AVX support (VSUBP[SD])
-                if (tvec.isfloating() && cpu >= CPU.avx)
+                if (tvec.isFloating() && cpu >= CPU.avx)
                     return true;
                 // (u)byte[32]/short[16]/int[8]/long[4] negate needs AVX2 support (VPSUB[BWDQ])
-                if (tvec.isintegral() && cpu >= CPU.avx2)
+                if (tvec.isIntegral() && cpu >= CPU.avx2)
                     return true;
             }
             break;
@@ -791,7 +804,7 @@ extern (C++) struct Target
                 // double[2] comparison needs SSE2 support (CMP{EQ,NEQ,LT,LE}PD)
                 if (elemty == TY.Tfloat64 && cpu >= CPU.sse2)
                     return true;
-                if (tvec.isintegral())
+                if (tvec.isIntegral())
                 {
                     if (elemty == TY.Tint64 || elemty == TY.Tuns64)
                     {
@@ -810,10 +823,10 @@ extern (C++) struct Target
             else if (vecsize == 32)
             {
                 // float[8]/double[4] comparison needs AVX support (VCMP{EQ,NEQ,LT,LE}P[SD])
-                if (tvec.isfloating() && cpu >= CPU.avx)
+                if (tvec.isFloating() && cpu >= CPU.avx)
                     return true;
                 // (u)byte[32]/short[16]/int[8]/long[4] comparison needs AVX2 support (VPCMP{EQ,GT}[BWDQ])
-                if (tvec.isintegral() && cpu >= CPU.avx2)
+                if (tvec.isIntegral() && cpu >= CPU.avx2)
                     return true;
             }
             break;
@@ -831,16 +844,16 @@ extern (C++) struct Target
                 if (elemty == TY.Tfloat64 && cpu >= CPU.sse2)
                     return true;
                 // (u)byte[16]/short[8]/int[4]/long[2] add/sub needs SSE2 support ({V}PADD[BWDQ], {V}PSUB[BWDQ])
-                if (tvec.isintegral() && cpu >= CPU.sse2)
+                if (tvec.isIntegral() && cpu >= CPU.sse2)
                     return true;
             }
             else if (vecsize == 32)
             {
                 // float[8]/double[4] add/sub needs AVX support (VADDP[SD], VSUBP[SD])
-                if (tvec.isfloating() && cpu >= CPU.avx)
+                if (tvec.isFloating() && cpu >= CPU.avx)
                     return true;
                 // (u)byte[32]/short[16]/int[8]/long[4] add/sub needs AVX2 support (VPADD[BWDQ], VPSUB[BWDQ])
-                if (tvec.isintegral() && cpu >= CPU.avx2)
+                if (tvec.isIntegral() && cpu >= CPU.avx2)
                     return true;
             }
             break;
@@ -864,7 +877,7 @@ extern (C++) struct Target
             else if (vecsize == 32)
             {
                 // float[8]/double[4] multiply needs AVX support (VMULP[SD])
-                if (tvec.isfloating() && cpu >= CPU.avx)
+                if (tvec.isFloating() && cpu >= CPU.avx)
                     return true;
                 // (u)short[16] multiply needs AVX2 support (VPMULLW)
                 if ((elemty == TY.Tint16 || elemty == TY.Tuns16) && cpu >= CPU.avx2)
@@ -888,7 +901,7 @@ extern (C++) struct Target
             else if (vecsize == 32)
             {
                 // float[8]/double[4] multiply needs AVX support (VDIVP[SD])
-                if (tvec.isfloating() && cpu >= CPU.avx)
+                if (tvec.isFloating() && cpu >= CPU.avx)
                     return true;
             }
             break;
@@ -897,7 +910,7 @@ extern (C++) struct Target
             return false;
 
         case EXP.and, EXP.andAssign, EXP.or, EXP.orAssign, EXP.xor, EXP.xorAssign:
-            if (tvec.isintegral())
+            if (tvec.isIntegral())
             {
                 // (u)byte[16]/short[8]/int[4]/long[2] bitwise ops needs SSE2 support ({V}PAND, {V}POR, {V}PXOR)
                 if (vecsize == 16 && cpu >= CPU.sse2)
@@ -912,7 +925,7 @@ extern (C++) struct Target
             return false;
 
         case EXP.tilde:
-            if (tvec.isintegral())
+            if (tvec.isIntegral())
             {
                 // (u)byte[16]/short[8]/int[4]/long[2] logical exclusive needs SSE2 support ({V}PXOR)
                 if (vecsize == 16 && cpu >= CPU.sse2)
@@ -957,7 +970,7 @@ extern (C++) struct Target
     {
         import dmd.argtypes_x86 : toArgTypes_x86;
         import dmd.argtypes_sysv_x64 : toArgTypes_sysv_x64;
-        if (isX86_64)
+        if (isX86_64 || isAArch64)
         {
             // no argTypes for Win64 yet
             return isPOSIX ? toArgTypes_sysv_x64(t) : null;
@@ -980,7 +993,7 @@ extern (C++) struct Target
         import dmd.argtypes_sysv_x64 : toArgTypes_sysv_x64;
         import dmd.typesem : castMod;
 
-        if (tf.isref)
+        if (tf.isRef)
         {
             //printf("  ref false\n");
             return false;                 // returns a pointer
@@ -1005,12 +1018,12 @@ extern (C++) struct Target
         const sz = tn.size();
         Type tns = tn;
 
-        if (os == Target.OS.Windows && isX86_64)
+        if (os == Target.OS.Windows && (isX86_64 || isAArch64))
         {
             // https://msdn.microsoft.com/en-us/library/7572ztz4%28v=vs.100%29.aspx
             if (tns.ty == TY.Tcomplex32)
                 return true;
-            if (tns.isscalar())
+            if (tns.isScalar())
                 return false;
 
             tns = tns.baseElemOf();
@@ -1039,7 +1052,7 @@ extern (C++) struct Target
                     return true;
             }
         }
-        else if (isX86_64 && isPOSIX)
+        else if ((isX86_64 || isAArch64) && isPOSIX)
         {
             TypeTuple tt = toArgTypes_sysv_x64(tn);
             if (!tt)
@@ -1100,7 +1113,7 @@ extern (C++) struct Target
                     goto L2;
                 goto Lagain;
             }
-            else if (isX86_64 && sd.numArgTypes() == 0)
+            else if ((isX86_64 || isAArch64) && sd.numArgTypes() == 0)
                 return true;
             else if (sd.isPOD())
             {
@@ -1114,7 +1127,7 @@ extern (C++) struct Target
                         return false;     // return small structs in regs
                                             // (not 3 byte structs!)
                     case 16:
-                        if (os & Target.OS.Posix && isX86_64)
+                        if (os & Target.OS.Posix && (isX86_64 || isAArch64))
                            return false;
                         break;
 
@@ -1127,7 +1140,7 @@ extern (C++) struct Target
         }
         else if (os & Target.OS.Posix &&
                  (tf.linkage == LINK.c || tf.linkage == LINK.cpp) &&
-                 tns.iscomplex())
+                 tns.isComplex())
         {
             if (tns.ty == TY.Tcomplex32)
                 return false;     // in EDX:EAX, not ST1:ST0
@@ -1137,7 +1150,7 @@ extern (C++) struct Target
         else if (os == Target.OS.Windows &&
                  isX86 &&
                  tf.linkage == LINK.cpp &&
-                 tf.isfloating())
+                 tf.isFloating())
         {
             /* See DMC++ function exp2_retmethod()
              * https://github.com/DigitalMars/Compiler/blob/master/dm/src/dmc/dexp2.d#L149
@@ -1163,7 +1176,7 @@ extern (C++) struct Target
     extern (C++) bool preferPassByRef(Type t)
     {
         const size = t.size();
-        if (isX86_64)
+        if (isX86_64 || isAArch64)
         {
             if (os == Target.OS.Windows)
             {
@@ -1325,7 +1338,7 @@ extern (C++) struct Target
      */
     extern (D) bool isXmmSupported() @safe
     {
-        return isX86_64 || (isX86 && os == Target.OS.OSX);
+        return (isX86_64 || isAArch64) || (isX86 && os == Target.OS.OSX);
     }
 
     /**
@@ -1347,6 +1360,7 @@ extern (C++) struct Target
     {
         uint sz = isXmmSupported() ? 16 :
                   isX86_64         ?  8 :
+                  isAArch64        ?  8 :
                   isX86            ?  4 : 0;
         assert(sz);
         return sz;
@@ -1359,6 +1373,8 @@ extern (C++) struct Target
  */
 struct TargetC
 {
+    import dmd.declaration : BitFieldDeclaration;
+
     enum Runtime : ubyte
     {
         Unspecified,
@@ -1405,14 +1421,14 @@ struct TargetC
             longsize = 4;
         else
             assert(0);
-        if (target.isX86_64)
+        if (target.isX86_64 || target.isAArch64)
         {
             if (os & (Target.OS.linux | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.DragonFlyBSD | Target.OS.Solaris))
                 longsize = 8;
             else if (os == Target.OS.OSX)
                 longsize = 8;
         }
-        if (target.isX86_64 && os == Target.OS.Windows)
+        if ((target.isX86_64 || target.isAArch64) && os == Target.OS.Windows)
             long_doublesize = 8;
         else
             long_doublesize = target.realsize;
@@ -1447,6 +1463,24 @@ struct TargetC
         {
             crtDestructorsSupported = false;
         }
+    }
+
+    /**
+     * Indicates whether the specified bit-field contributes to the alignment
+     * of the containing aggregate.
+     * E.g., (not all) ARM ABIs do NOT ignore anonymous (incl. 0-length)
+     * bit-fields.
+     */
+    extern (C++) bool contributesToAggregateAlignment(BitFieldDeclaration bfd)
+    {
+        if (bitFieldStyle == BitFieldStyle.MS)
+            return true;
+        if (bitFieldStyle == BitFieldStyle.Gcc_Clang)
+        {
+            // sufficient for DMD's currently supported architectures
+            return !bfd.isAnonymous();
+        }
+        assert(0);
     }
 }
 
@@ -1514,8 +1548,8 @@ struct TargetCPP
      */
     extern (C++) const(char)* toMangle(Dsymbol s)
     {
-        import dmd.cppmangle : toCppMangleItanium;
-        import dmd.cppmanglewin : toCppMangleMSVC;
+        import dmd.mangle.cpp : toCppMangleItanium;
+        import dmd.mangle.cppwin : toCppMangleMSVC;
 
         if (target.os & (Target.OS.linux | Target.OS.OSX | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
             return toCppMangleItanium(s);
@@ -1534,8 +1568,8 @@ struct TargetCPP
      */
     extern (C++) const(char)* typeInfoMangle(ClassDeclaration cd)
     {
-        import dmd.cppmangle : cppTypeInfoMangleItanium;
-        import dmd.cppmanglewin : cppTypeInfoMangleMSVC;
+        import dmd.mangle.cpp : cppTypeInfoMangleItanium;
+        import dmd.mangle.cppwin : cppTypeInfoMangleMSVC;
 
         if (target.os & (Target.OS.linux | Target.OS.OSX | Target.OS.FreeBSD | Target.OS.OpenBSD | Target.OS.Solaris | Target.OS.DragonFlyBSD))
             return cppTypeInfoMangleItanium(cd);
@@ -1626,7 +1660,7 @@ struct TargetObjC
 
     extern (D) void initialize(ref const Param params, ref const Target target) @safe
     {
-        if (target.os == Target.OS.OSX && target.isX86_64)
+        if (target.os == Target.OS.OSX && (target.isX86_64 || target.isAArch64))
             supported = true;
     }
 }

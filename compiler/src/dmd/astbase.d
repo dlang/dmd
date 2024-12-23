@@ -11,7 +11,7 @@
 module dmd.astbase;
 
 import dmd.astenums;
-import dmd.parsetimevisitor;
+import dmd.visitor.parsetime;
 import dmd.tokens : EXP;
 
 /** The ASTBase  family defines a family of AST nodes appropriate for parsing with
@@ -389,16 +389,6 @@ struct ASTBase
                 // import [foo];
                 this.ident = id;
             }
-        }
-        void addAlias(Identifier name, Identifier _alias)
-        {
-            if (isstatic)
-                error(loc, "cannot have an import bind list");
-            if (!aliasId)
-                this.ident = null;
-
-            names.push(name);
-            aliases.push(_alias);
         }
 
         override void accept(Visitor v)
@@ -3385,7 +3375,7 @@ struct ASTBase
         }
 
         // TypeBasic, TypeVector, TypePointer, TypeEnum override this method
-        bool isscalar()
+        bool isScalar()
         {
             return false;
         }
@@ -3589,7 +3579,7 @@ struct ASTBase
             merge();
         }
 
-        override bool isscalar()
+        override bool isScalar()
         {
             return (flags & (TFlags.integral | TFlags.floating)) != 0;
         }
@@ -3718,7 +3708,7 @@ struct ASTBase
                 {
                     Expression e = (*exps)[i];
                     if (e.type.ty == Ttuple)
-                        e.error("cannot form sequence of sequences");
+                        error(e.loc, "cannot form sequence of sequences");
                     auto arg = new Parameter(e.loc, STC.undefined_, e.type, null, null, null);
                     (*arguments)[i] = arg;
                 }
@@ -3950,15 +3940,15 @@ struct ASTBase
         private enum FunctionFlag : uint
         {
             none            = 0,
-            isnothrow       = 0x0001, // nothrow
-            isnogc          = 0x0002, // is @nogc
-            isproperty      = 0x0004, // can be called without parentheses
-            isref           = 0x0008, // returns a reference
-            isreturn        = 0x0010, // 'this' is returned by ref
-            isscope         = 0x0020, // 'this' is scope
-            isreturninferred= 0x0040, // 'this' is return from inference
-            isscopeinferred = 0x0080, // 'this' is scope from inference
-            islive          = 0x0100, // is @live
+            isNothrow       = 0x0001, // nothrow
+            isNogc          = 0x0002, // is @nogc
+            isProperty      = 0x0004, // can be called without parentheses
+            isRef           = 0x0008, // returns a reference
+            isReturn        = 0x0010, // 'this' is returned by ref
+            isScope         = 0x0020, // 'this' is scope
+            isReturnInferred= 0x0040, // 'this' is return from inference
+            isScopeInferred = 0x0080, // 'this' is scope from inference
+            isLive          = 0x0100, // is @live
             incomplete      = 0x0200, // return type or default arguments removed
             inoutParam      = 0x0400, // inout on the parameters
             inoutQual       = 0x0800, // inout on the qualifier
@@ -3981,18 +3971,18 @@ struct ASTBase
             if (stc & STC.pure_)
                 this.purity = PURE.fwdref;
             if (stc & STC.nothrow_)
-                this.isnothrow = true;
+                this.isNothrow = true;
             if (stc & STC.nogc)
-                this.isnogc = true;
+                this.isNogc = true;
             if (stc & STC.property)
-                this.isproperty = true;
+                this.isProperty = true;
             if (stc & STC.live)
-                this.islive = true;
+                this.isLive = true;
 
             if (stc & STC.ref_)
-                this.isref = true;
+                this.isRef = true;
             if (stc & STC.return_)
-                this.isreturn = true;
+                this.isReturn = true;
             if (stc & STC.scope_)
                 this.isScopeQual = true;
 
@@ -4011,15 +4001,15 @@ struct ASTBase
             Parameters* params = Parameter.arraySyntaxCopy(parameterList.parameters);
             auto t = new TypeFunction(ParameterList(params, parameterList.varargs), treturn, linkage);
             t.mod = mod;
-            t.isnothrow = isnothrow;
-            t.isnogc = isnogc;
+            t.isNothrow = isNothrow;
+            t.isNogc = isNogc;
             t.purity = purity;
-            t.isproperty = isproperty;
-            t.isref = isref;
-            t.isreturn = isreturn;
+            t.isProperty = isProperty;
+            t.isRef = isRef;
+            t.isReturn = isReturn;
             t.isScopeQual = isScopeQual;
-            t.isreturninferred = isreturninferred;
-            t.isscopeinferred = isscopeinferred;
+            t.isReturnInferred = isReturnInferred;
+            t.isScopeInferred = isScopeInferred;
             t.isInOutParam = isInOutParam;
             t.isInOutQual = isInOutQual;
             t.trust = trust;
@@ -4028,111 +4018,111 @@ struct ASTBase
         }
 
         /// set or get if the function has the `nothrow` attribute
-        bool isnothrow() const pure nothrow @safe @nogc
+        bool isNothrow() const pure nothrow @safe @nogc
         {
-            return (funcFlags & FunctionFlag.isnothrow) != 0;
+            return (funcFlags & FunctionFlag.isNothrow) != 0;
         }
         /// ditto
-        void isnothrow(bool v) pure nothrow @safe @nogc
+        void isNothrow(bool v) pure nothrow @safe @nogc
         {
-            if (v) funcFlags |= FunctionFlag.isnothrow;
-            else funcFlags &= ~FunctionFlag.isnothrow;
+            if (v) funcFlags |= FunctionFlag.isNothrow;
+            else funcFlags &= ~FunctionFlag.isNothrow;
         }
 
         /// set or get if the function has the `@nogc` attribute
-        bool isnogc() const pure nothrow @safe @nogc
+        bool isNogc() const pure nothrow @safe @nogc
         {
-            return (funcFlags & FunctionFlag.isnogc) != 0;
+            return (funcFlags & FunctionFlag.isNogc) != 0;
         }
         /// ditto
-        void isnogc(bool v) pure nothrow @safe @nogc
+        void isNogc(bool v) pure nothrow @safe @nogc
         {
-            if (v) funcFlags |= FunctionFlag.isnogc;
-            else funcFlags &= ~FunctionFlag.isnogc;
+            if (v) funcFlags |= FunctionFlag.isNogc;
+            else funcFlags &= ~FunctionFlag.isNogc;
         }
 
         /// set or get if the function has the `@property` attribute
-        bool isproperty() const pure nothrow @safe @nogc
+        bool isProperty() const pure nothrow @safe @nogc
         {
-            return (funcFlags & FunctionFlag.isproperty) != 0;
+            return (funcFlags & FunctionFlag.isProperty) != 0;
         }
         /// ditto
-        void isproperty(bool v) pure nothrow @safe @nogc
+        void isProperty(bool v) pure nothrow @safe @nogc
         {
-            if (v) funcFlags |= FunctionFlag.isproperty;
-            else funcFlags &= ~FunctionFlag.isproperty;
+            if (v) funcFlags |= FunctionFlag.isProperty;
+            else funcFlags &= ~FunctionFlag.isProperty;
         }
 
         /// set or get if the function has the `ref` attribute
-        bool isref() const pure nothrow @safe @nogc
+        bool isRef() const pure nothrow @safe @nogc
         {
-            return (funcFlags & FunctionFlag.isref) != 0;
+            return (funcFlags & FunctionFlag.isRef) != 0;
         }
         /// ditto
-        void isref(bool v) pure nothrow @safe @nogc
+        void isRef(bool v) pure nothrow @safe @nogc
         {
-            if (v) funcFlags |= FunctionFlag.isref;
-            else funcFlags &= ~FunctionFlag.isref;
+            if (v) funcFlags |= FunctionFlag.isRef;
+            else funcFlags &= ~FunctionFlag.isRef;
         }
 
         /// set or get if the function has the `return` attribute
-        bool isreturn() const pure nothrow @safe @nogc
+        bool isReturn() const pure nothrow @safe @nogc
         {
-            return (funcFlags & FunctionFlag.isreturn) != 0;
+            return (funcFlags & FunctionFlag.isReturn) != 0;
         }
         /// ditto
-        void isreturn(bool v) pure nothrow @safe @nogc
+        void isReturn(bool v) pure nothrow @safe @nogc
         {
-            if (v) funcFlags |= FunctionFlag.isreturn;
-            else funcFlags &= ~FunctionFlag.isreturn;
+            if (v) funcFlags |= FunctionFlag.isReturn;
+            else funcFlags &= ~FunctionFlag.isReturn;
         }
 
         /// set or get if the function has the `scope` attribute
         bool isScopeQual() const pure nothrow @safe @nogc
         {
-            return (funcFlags & FunctionFlag.isscope) != 0;
+            return (funcFlags & FunctionFlag.isScope) != 0;
         }
         /// ditto
         void isScopeQual(bool v) pure nothrow @safe @nogc
         {
-            if (v) funcFlags |= FunctionFlag.isscope;
-            else funcFlags &= ~FunctionFlag.isscope;
+            if (v) funcFlags |= FunctionFlag.isScope;
+            else funcFlags &= ~FunctionFlag.isScope;
         }
 
         /// set or get if the function has the `return` attribute inferred
-        bool isreturninferred() const pure nothrow @safe @nogc
+        bool isReturnInferred() const pure nothrow @safe @nogc
         {
-            return (funcFlags & FunctionFlag.isreturninferred) != 0;
+            return (funcFlags & FunctionFlag.isReturnInferred) != 0;
         }
         /// ditto
-        void isreturninferred(bool v) pure nothrow @safe @nogc
+        void isReturnInferred(bool v) pure nothrow @safe @nogc
         {
-            if (v) funcFlags |= FunctionFlag.isreturninferred;
-            else funcFlags &= ~FunctionFlag.isreturninferred;
+            if (v) funcFlags |= FunctionFlag.isReturnInferred;
+            else funcFlags &= ~FunctionFlag.isReturnInferred;
         }
 
         /// set or get if the function has the `scope` attribute inferred
-        bool isscopeinferred() const pure nothrow @safe @nogc
+        bool isScopeInferred() const pure nothrow @safe @nogc
         {
-            return (funcFlags & FunctionFlag.isscopeinferred) != 0;
+            return (funcFlags & FunctionFlag.isScopeInferred) != 0;
         }
         /// ditoo
-        void isscopeinferred(bool v) pure nothrow @safe @nogc
+        void isScopeInferred(bool v) pure nothrow @safe @nogc
         {
-            if (v) funcFlags |= FunctionFlag.isscopeinferred;
-            else funcFlags &= ~FunctionFlag.isscopeinferred;
+            if (v) funcFlags |= FunctionFlag.isScopeInferred;
+            else funcFlags &= ~FunctionFlag.isScopeInferred;
         }
 
         /// set or get if the function has the `@live` attribute
-        bool islive() const pure nothrow @safe @nogc
+        bool isLive() const pure nothrow @safe @nogc
         {
-            return (funcFlags & FunctionFlag.islive) != 0;
+            return (funcFlags & FunctionFlag.isLive) != 0;
         }
         /// ditto
-        void islive(bool v) pure nothrow @safe @nogc
+        void isLive(bool v) pure nothrow @safe @nogc
         {
-            if (v) funcFlags |= FunctionFlag.islive;
-            else funcFlags &= ~FunctionFlag.islive;
+            if (v) funcFlags |= FunctionFlag.isLive;
+            else funcFlags &= ~FunctionFlag.isLive;
         }
 
         /// set or get if the return type or the default arguments are removed
@@ -4558,6 +4548,7 @@ struct ASTBase
         EXP op;
         ubyte size;
         ubyte parens;
+        ubyte rvalue;              // consider this an rvalue, even if it is an lvalue
         Type type;
         Loc loc;
 
@@ -4571,17 +4562,6 @@ struct ASTBase
         Expression syntaxCopy()
         {
             return copy();
-        }
-
-        final void error(const(char)* format, ...) const
-        {
-            if (type != Type.terror)
-            {
-                va_list ap;
-                va_start(ap, format);
-                verrorReport(loc, format, ap, ErrorKind.error);
-                va_end(ap);
-            }
         }
 
         final Expression copy()
@@ -4748,10 +4728,10 @@ struct ASTBase
         {
             super(loc, EXP.int64, __traits(classInstanceSize, IntegerExp));
             assert(type);
-            if (!type.isscalar())
+            if (!type.isScalar())
             {
                 if (type.ty != Terror)
-                    error("integral constant must be scalar type, not %s", type.toChars());
+                    error(loc, "integral constant must be scalar type, not %s", type.toChars());
                 type = Type.terror;
             }
             this.type = type;
@@ -5373,7 +5353,7 @@ struct ASTBase
                         this.exps.push(e);
                         break;
                     default:
-                        error("%s is not an expression", o.toChars());
+                        error(loc, "%s is not an expression", o.toChars());
                         break;
                     }
                 }

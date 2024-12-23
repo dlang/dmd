@@ -98,7 +98,8 @@ int isscaledindex(elem *e)
  */
 
 @trusted
-private void cdisscaledindex(ref CodeBuilder cdb,elem *e,ref regm_t pidxregs,regm_t keepmsk)
+//private
+void cdisscaledindex(ref CodeBuilder cdb,elem *e,ref regm_t pidxregs,regm_t keepmsk)
 {
     // Load index register with result of e.E1
     while (e.Eoper == OPcomma)
@@ -136,7 +137,8 @@ struct Ssindex
     ubyte ssflags;       /// SSFLxxxx
 }
 
-private __gshared const Ssindex[21] ssindex_array =
+/*private*/
+__gshared const Ssindex[21] ssindex_array =
 [
     { 0, 0, 0 },               // [0] is a place holder
 
@@ -340,48 +342,73 @@ void genEEcode()
 uint gensaverestore(regm_t regm,ref CodeBuilder cdbsave,ref CodeBuilder cdbrestore)
 {
     //printf("gensaverestore2(%s)\n", regm_str(regm));
-    regm &= mBP | mES | ALLREGS | XMMREGS | mST0 | mST01;
-    if (!regm)
-        return 0;
-
+    code *[regm.sizeof * 8] restore = void;
+    reg_t i;
     uint stackused = 0;
 
-    code *[regm.sizeof * 8] restore = void;
-
-    reg_t i;
-    for (i = 0; regm; i++)
+    if (cgstate.AArch64)
     {
-        if (regm & 1)
+        regm &= cgstate.allregs | mask(cgstate.BP);
+        if (!regm)
+            return 0;
+
+        for (i = 0; regm; i++)
         {
-            CodeBuilder cdb;
-            cdb.ctor();
-            if (i == ES && I16)
+            if (regm & 1)
             {
-                stackused += REGSIZE;
-                cdbsave.gen1(0x06);                     // PUSH ES
-                cdb.gen1(0x07);                         // POP  ES
-            }
-            else if (i == ST0 || i == ST01)
-            {
-                gensaverestore87(1UL << i, cdbsave, cdb);
-            }
-            else if (i >= XMM0 || I64 || cgstate.funcarg.size)
-            {
+                CodeBuilder cdb;
+                cdb.ctor();
                 uint idx;
-                cgstate.regsave.save(cdbsave, i, idx);
-                cgstate.regsave.restore(cdb, i, idx);
+                import dmd.backend.arm.cod3 : REGSAVE_save, REGSAVE_restore;
+                REGSAVE_save(cgstate.regsave,cdbsave,i,idx);
+                REGSAVE_restore(cgstate.regsave,cdb,i,idx);
+                restore[i] = cdb.finish();
             }
             else
-            {
-                stackused += REGSIZE;
-                cdbsave.genpush(i);           // PUSH i
-                cdb.genpop(i);                // POP  i
-            }
-            restore[i] = cdb.finish();
+                restore[i] = null;
+            regm >>= 1;
         }
-        else
-            restore[i] = null;
-        regm >>= 1;
+    }
+    else
+    {
+        regm &= mBP | mES | ALLREGS | XMMREGS | mST0 | mST01;
+        if (!regm)
+            return 0;
+
+        for (i = 0; regm; i++)
+        {
+            if (regm & 1)
+            {
+                CodeBuilder cdb;
+                cdb.ctor();
+                if (i == ES && I16)
+                {
+                    stackused += REGSIZE;
+                    cdbsave.gen1(0x06);                     // PUSH ES
+                    cdb.gen1(0x07);                         // POP  ES
+                }
+                else if (i == ST0 || i == ST01)
+                {
+                    gensaverestore87(1UL << i, cdbsave, cdb);
+                }
+                else if (i >= XMM0 || I64 || cgstate.funcarg.size)
+                {
+                    uint idx;
+                    cgstate.regsave.save(cdbsave, i, idx);
+                    cgstate.regsave.restore(cdb, i, idx);
+                }
+                else
+                {
+                    stackused += REGSIZE;
+                    cdbsave.genpush(i);           // PUSH i
+                    cdb.genpop(i);                // POP  i
+                }
+                restore[i] = cdb.finish();
+            }
+            else
+                restore[i] = null;
+            regm >>= 1;
+        }
     }
 
     while (i)
@@ -456,6 +483,12 @@ void genstackclean(ref CodeBuilder cdb,uint numpara,regm_t keepmsk)
 @trusted
 void logexp(ref CodeBuilder cdb, elem *e, int jcond, uint fltarg, code *targ)
 {
+    if (cgstate.AArch64)
+    {
+        import dmd.backend.arm.cod1 : logexp;
+        return logexp(cdb, e, jcond, fltarg, targ);
+    }
+
     //printf("logexp(e = %p, jcond = %d)\n", e, jcond); elem_print(e);
     if (tybasic(e.Ety) == TYnoreturn)
     {
@@ -1715,6 +1748,12 @@ void fltregs(ref CodeBuilder cdb, code* pcs, tym_t tym)
 @trusted
 void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, bool saveflag)
 {
+    if (cgstate.AArch64)
+    {
+        import dmd.backend.arm.cod1 : tstresult;
+        return tstresult(cdb, regm, tym, saveflag);
+    }
+
     reg_t scrreg;                      // scratch register
     regm_t scrregm;
 
@@ -1864,6 +1903,12 @@ void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, bool saveflag)
 @trusted
 void fixresult(ref CodeBuilder cdb, elem *e, regm_t retregs, ref regm_t outretregs)
 {
+    if (cgstate.AArch64)
+    {
+        import dmd.backend.arm.cod1 : fixresult;
+        return fixresult(cdb, e, retregs, outretregs);
+    }
+
     //printf("fixresult(e = %p, retregs = %s, outretregs = %s)\n",e,regm_str(retregs),regm_str(outretregs));
     if (outretregs == 0) return;           // if don't want result
     assert(e && retregs);                 // need something to work with
@@ -2942,6 +2987,17 @@ FuncParamRegs FuncParamRegs_create(tym_t tyf)
             result.numintegerregs = 0;
         result.numfloatregs = 0;
     }
+    else if (config.target_cpu == TARGET_AArch64)
+    {
+        // https://en.wikipedia.org/wiki/Calling_convention#ARM_(A64)
+        static immutable reg_t[8] reglist7 = [ 0,1,2,3, 4,5,6,7 ];
+        result.argregs = &reglist7[0];
+        result.numintegerregs = reglist7.length;
+
+        static immutable reg_t[8] freglist7 = [ 32,33,34,35, 36,37,38,39 ];
+        result.floatregs = &freglist7[0];
+        result.numfloatregs = freglist7.length;
+    }
     else if (I64 && config.exe == EX_WIN64)
     {
         static immutable reg_t[4] reglist3 = [ CX,DX,R8,R9 ];
@@ -3278,6 +3334,11 @@ void argtypes(type* t, out type* arg1type, out type* arg2type)
 void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 {
     //printf("cdfunc()\n"); elem_print(e);
+    if (cg.AArch64)
+    {
+        import dmd.backend.arm.cod1 : cdfunc;
+        return cdfunc(cg, cdb, e, pretregs);
+    }
     assert(e);
     uint numpara = 0;               // bytes of parameters
     uint numalign = 0;              // bytes to align stack before pushing parameters
@@ -5129,6 +5190,12 @@ L3:
 @trusted
 void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
 {
+    if (cgstate.AArch64)
+    {
+        import dmd.backend.arm.cod1 : loaddata;
+        return loaddata(cdb, e, outretregs);
+    }
+
     reg_t reg;
     reg_t nreg;
     reg_t sreg;

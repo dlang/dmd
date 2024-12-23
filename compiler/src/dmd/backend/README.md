@@ -50,7 +50,6 @@ Object File Generation
 * **elfobj.d**        generate ELF object files
 * **machobj.d**       generate Mach-O object files
 * **mach.d**          declarations for Mach-O object file format
-* **cgobj.d**         generate OMF object files
 * **obj.d**           interface to *obj.d files
 
 Exception Handling
@@ -68,7 +67,6 @@ Miscellaneous
 * **cc.d**            common definitions
 * **cdef.d**          configuration
 * **backconfig.d**    transfer configuration from front end to back end
-* **compress.d**      identifier comperssion
 * **debugprint.d**    pretty print data structures
 * **iasm.d**          declarations for inline assembler
 * **ptrntab.d**       instruction tables for inline assembler

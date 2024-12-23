@@ -44,7 +44,8 @@ import dmd.backend.cdef;
 version(Windows)
 {
     nothrow
-    private extern (C) char* getcwd(char* buffer, size_t maxlen);
+    private extern (C) char* _getcwd(char* buffer, size_t maxlen);
+    alias getcwd = _getcwd;
     nothrow
     private extern (C) int* _errno();   // not the multi-threaded version
 }
@@ -68,7 +69,6 @@ static if (1)
     import dmd.backend.dlist;
     import dmd.backend.el;
     import dmd.backend.elfobj : addSegmentToComdat;
-    import dmd.backend.filespec;
     import dmd.backend.machobj : getsegment2;
     import dmd.backend.global;
     import dmd.backend.obj;
@@ -276,7 +276,7 @@ static if (1)
         size_t location;
         int reg;                    // CFA register number
         int offset;                 // CFA register offset
-        CFA_reg[17] regstates;      // register states
+        CFA_reg[97] regstates;      // register states
     }
 
     /***********************
@@ -288,7 +288,6 @@ static if (1)
      */
     int dwarf_regno(int reg)
     {
-        assert(reg < NUMGENREGS);
         if (I32)
         {
             if (config.objfmt == OBJ_MACH)
@@ -298,9 +297,12 @@ static if (1)
             }
             return reg;
         }
-        else
+        else if (config.target_cpu == TARGET_AArch64)
+        {   // https://github.com/ARM-software/abi-aa/blob/main/aadwarf64/aadwarf64.rst#dwarf-register-names
+            return (reg < 32) ? reg : reg - 32 + 64;
+        }
+        else if (I64)
         {
-            assert(I64);
             /* See https://software.intel.com/sites/default/files/article/402129/mpx-linux64-abi.pdf
              * Figure 3.3.8 pg. 62
              * R8..15    :  8..15
@@ -314,6 +316,8 @@ static if (1)
             [   0, 2, 1, 3, 7, 6, 4, 5 ];
             return reg < 8 ? to_amd64_reg_map[reg] : reg;
         }
+        else
+            assert(0);
     }
 
     private __gshared
@@ -1071,12 +1075,12 @@ static if (1)
         {
             if (infoFileName_table)
             {
-                AAchars.destroy(infoFileName_table);
+                infoFileName_table.destroy();
                 infoFileName_table = null;
             }
             if (lineDirectories)
             {
-                AAchars.destroy(lineDirectories);
+                lineDirectories.destroy();
                 lineDirectories = null;
             }
 
@@ -1187,7 +1191,7 @@ static if (1)
             // Free only if starting another file. Waste of time otherwise.
             if (abbrev_table)
             {
-                AApair.destroy(abbrev_table);
+                abbrev_table.destroy();
                 abbrev_table = null;
             }
 
@@ -1385,7 +1389,7 @@ static if (1)
         uint *pidx = aachars.get(str);
         if (!*pidx)                 // if no idx assigned yet
         {
-            *pidx = aachars.length(); // assign newly computed idx
+            *pidx = cast(uint) aachars.length(); // assign newly computed idx
         }
         return *pidx;
     }
@@ -1484,13 +1488,13 @@ static if (1)
 
             if (config.dwarf >= 5)
             {
-                debug_line.buf.writeuLEB128(lineDirectories ? lineDirectories.length() : 0);   // directories_count
+                debug_line.buf.writeuLEB128(lineDirectories ? cast(uint) lineDirectories.length() : 0);   // directories_count
             }
 
             if (lineDirectories)
             {
                 // include_directories
-                auto dirkeys = lineDirectories.aa.keys();
+                auto dirkeys = lineDirectories.keys();
                 if (dirkeys)
                 {
                     foreach (id; 1 .. lineDirectories.length() + 1)
@@ -1529,13 +1533,13 @@ static if (1)
                 auto file_name_entry_format = FileNameEntryFormat.init;
                 debug_line.buf.write(&file_name_entry_format, file_name_entry_format.sizeof);
 
-                debug_line.buf.writeuLEB128(infoFileName_table ? infoFileName_table.length() : 0);  // file_names_count
+                debug_line.buf.writeuLEB128(infoFileName_table ? cast(uint) infoFileName_table.length() : 0);  // file_names_count
             }
 
             if (infoFileName_table)
             {
                 // file_names
-                auto filekeys = infoFileName_table.aa.keys();
+                auto filekeys = infoFileName_table.keys();
                 if (filekeys)
                 {
                     foreach (id; 1 .. infoFileName_table.length() + 1)
@@ -1702,12 +1706,12 @@ static if (1)
         // Free only if starting another file. Waste of time otherwise.
         if (type_table)
         {
-            AApair.destroy(type_table);
+            type_table.destroy();
             type_table = null;
         }
         if (functype_table)
         {
-            AApair.destroy(functype_table);
+            functype_table.destroy();
             functype_table = null;
         }
         if (functypebuf)
@@ -1720,14 +1724,24 @@ static if (1)
     void dwarf_func_start(Symbol *sfunc)
     {
         //printf("dwarf_func_start(%s)\n", sfunc.Sident.ptr);
-        if (I16 || I32)
-            CFA_state_current = CFA_state_init_32;
-        else if (I64)
-            CFA_state_current = CFA_state_init_64;
+        if (config.target_cpu == TARGET_AArch64)
+        {
+            memset(&CFA_state_current,0,CFA_state.sizeof);
+            CFA_state_current.offset   = 4;
+            CFA_state_current.reg      = 31;      // SP
+            CFA_state_current.regstates[32].offset = -8; // PC
+        }
         else
-            assert(0);
-        CFA_state_current.reg = dwarf_regno(SP);
-        assert(CFA_state_current.offset == OFFSET_FAC);
+        {
+            if (I16 || I32)
+                CFA_state_current = CFA_state_init_32;
+            else if (I64)
+                CFA_state_current = CFA_state_init_64;
+            else
+                assert(0);
+            CFA_state_current.reg = dwarf_regno(SP);
+            assert(CFA_state_current.offset == OFFSET_FAC);
+        }
         cfa_buf.reset();
     }
 
@@ -2612,7 +2626,7 @@ static if (1)
                  */
                 if (!functype_table)
                     functype_table = AApair.create(functypebuf.bufptr);
-                uint *pidx = cast(uint *)functype_table.get(functypebufidx, cast(uint)functypebuf.length());
+                uint *pidx = cast(uint *)functype_table.get(Pair(functypebufidx, cast(uint)functypebuf.length()));
                 if (*pidx)
                 {
                     // Reuse existing typidx
@@ -3000,7 +3014,7 @@ static if (1)
                 foreach (sl2; ListRange(s.Senum.SEenumlist))
                 {
                     Symbol *sf = cast(Symbol *)list_ptr(sl2);
-                    const value = cast(uint)el_tolongt(sf.Svalue);
+                    const value = cast(uint)el_tolong(sf.Svalue);
 
                     debug_info.buf.writeuLEB128(membercode);
                     debug_info.buf.writeStringz(getSymName(sf)); // DW_AT_name
@@ -3030,7 +3044,7 @@ static if (1)
              */
             type_table = AApair.create(debug_info.buf.bufptr);
 
-        uint *pidx = type_table.get(idx, cast(uint)debug_info.buf.length());
+        uint *pidx = type_table.get(Pair(idx, cast(uint)debug_info.buf.length()));
         if (!*pidx)                 // if no idx assigned yet
         {
             *pidx = idx;            // assign newly computed idx
@@ -3160,7 +3174,7 @@ static if (1)
          * discard this one and use the previous one.
          */
 
-        uint *pcode = abbrev_table.get(cast(uint)start, cast(uint)end);
+        uint *pcode = abbrev_table.get(Pair(cast(uint) start, cast(uint) end));
         if (!*pcode)
         {
             // if no code assigned yet, assign newly computed code
@@ -3219,4 +3233,37 @@ else
     void dwarf_CFA_set_reg_offset(int reg, int offset) { }
     void dwarf_CFA_offset(int reg, int offset) { }
     void dwarf_except_gentables(Funcsym *sfunc, uint startoffset, uint retoffset) { }
+}
+
+version (Windows)
+{
+    private enum DIRCHAR = '\\';
+
+    private bool ispathdelim(char c) nothrow { return c == DIRCHAR || c == ':' || c == '/'; }
+}
+else
+{
+    private enum DIRCHAR = '/';
+
+    private bool ispathdelim(char c) nothrow { return c == DIRCHAR; }
+}
+
+/**********************
+ * Returns: string that is the filename plus dot and extension.
+ * The string returned is NOT mem_malloc'ed.
+ */
+@trusted
+private char* filespecname(const(char)* filespec) nothrow
+{
+    const(char)* p;
+
+    /* Start at end of string and back up till we find the beginning
+     * of the filename or a path
+     */
+    for (p = filespec + strlen(filespec);
+         p != filespec && !ispathdelim(*(p - 1));
+         p--
+        )
+    { }
+    return cast(char *)p;
 }

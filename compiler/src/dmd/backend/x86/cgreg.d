@@ -60,11 +60,11 @@ void cgreg_init()
 
     // Use calloc() instead because sometimes the alloc is too large
     //printf("1weights: dfo.length = %d, globsym.length = %d\n", dfo.length, globsym.length);
-    weights.setLength(dfo.length * globsym.length);
+    weights.setLength(bo.dfo.length * globsym.length);
     weights[] = 0;
 
     nretblocks = 0;
-    foreach (bi, b; dfo[])
+    foreach (bi, b; bo.dfo[])
     {
         if (b.BC == BCret || b.BC == BCretexp)
             nretblocks++;
@@ -82,7 +82,7 @@ void cgreg_init()
         //printf("considering candidate '%s' for register\n", s.Sident.ptr);
 
         if (s.Srange)
-            s.Srange = vec_realloc(s.Srange,dfo.length);
+            s.Srange = vec_realloc(s.Srange,bo.dfo.length);
 
         // Determine symbols that are not candidates
         uint sz;
@@ -133,10 +133,10 @@ void cgreg_init()
             s.Sflags |= GTbyte;
 
         if (!s.Slvreg)
-            s.Slvreg = vec_calloc(dfo.length);
+            s.Slvreg = vec_calloc(bo.dfo.length);
 
         //printf("dfo.length = %d, numbits = %d\n",dfo.length,vec_numbits(s.Srange));
-        assert(vec_numbits(s.Srange) == dfo.length);
+        assert(vec_numbits(s.Srange) == bo.dfo.length);
     }
 }
 
@@ -177,7 +177,7 @@ void cgreg_reset()
 {
     foreach (ref r; regrange[])
         if (!r)
-            r = vec_calloc(dfo.length);
+            r = vec_calloc(bo.dfo.length);
         else
             vec_clear(r);
 }
@@ -297,11 +297,11 @@ static if (1) // causes assert failure in std.range(4488) from std.parallelism's
     if (fregsaved & (1UL << reg) & cgstate.mfuncreg)
         benefit -= 1 + nretblocks;
 
-    for (bi = 0; (bi = cast(uint) vec_index(bi, s.Srange)) < dfo.length; ++bi)
+    for (bi = 0; (bi = cast(uint) vec_index(bi, s.Srange)) < bo.dfo.length; ++bi)
     {   int inoutp;
         int inout_;
 
-        b = dfo[bi];
+        b = bo.dfo[bi];
         switch (b.BC)
         {
             case BCjcatch:
@@ -823,7 +823,7 @@ int cgreg_assign(Symbol *retsym)
         }
     }
 
-    vec_t v = vec_calloc(dfo.length);
+    vec_t v = vec_calloc(bo.dfo.length);
 
     reg_t dst_integer_reg;
     reg_t dst_float_reg;

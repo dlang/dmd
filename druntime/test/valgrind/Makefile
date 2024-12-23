@@ -1,35 +1,25 @@
+VALGRIND = valgrind
+has_valgrind != command -v $(VALGRIND) > /dev/null 2>&1 && echo 1
+
+ifeq ($(has_valgrind),1)
+TESTS := ok_append no_use_after_free no_oob no_oob_sentinel no_use_after_gc
+endif
+
 include ../common.mak
 
-TESTS:=ok_append no_use_after_free no_oob no_oob_sentinel no_use_after_gc
+$(OBJDIR)/ok_%.done: private negate :=
+$(OBJDIR)/no_%.done: private negate := !
 
-GC_SRC:= \
+$(OBJDIR)/%.done: $(OBJDIR)/%$(DOTEXE)
+	@echo Testing $<
+	$(negate) $(TIMELIMIT)$(VALGRIND) --quiet --tool=memcheck --error-exitcode=8 $<
+	@touch $@
+
+gc_src := \
   ../../src/core/internal/gc/impl/conservative/gc.d \
   ../../src/etc/valgrind/valgrind.d \
   ../../src/rt/lifetime.d
 
-.PHONY: all clean
-all: $(addprefix $(ROOT)/,$(addsuffix .done,$(TESTS)))
-
-$(ROOT)/ok_%.done: $(ROOT)/ok_%$(DOTEXE)
-	@echo Testing ok_$*
-	$(QUIET)if ! command -v valgrind >/dev/null; then \
-		echo valgrind not installed, skipping; \
-	else \
-		$(TIMELIMIT)valgrind --quiet --tool=memcheck --error-exitcode=8 $(ROOT)/ok_$* $(RUN_ARGS); \
-	fi
-	$(QUIET)touch $@
-
-$(ROOT)/no_%.done: $(ROOT)/no_%$(DOTEXE)
-	@echo Testing no_$*
-	$(QUIET)if ! command -v valgrind >/dev/null; then \
-		echo valgrind not installed, skipping; \
-	else \
-		( ! $(TIMELIMIT)valgrind --quiet --tool=memcheck --error-exitcode=8 $(ROOT)/no_$* $(RUN_ARGS); ) \
-	fi
-	$(QUIET)touch $@
-
-$(ROOT)/%$(DOTEXE): $(SRC)/%.d $(GC_SRC)
-	$(QUIET)$(DMD) -debug=VALGRIND -debug=SENTINEL $(DFLAGS) -of$@ $< $(GC_SRC)
-
-clean:
-	rm -rf $(ROOT)
+$(OBJDIR)/%$(DOTEXE): $(gc_src)
+$(OBJDIR)/%$(DOTEXE): private extra_sources += $(gc_src)
+$(OBJDIR)/%$(DOTEXE): private extra_dflags += -debug=VALGRIND -debug=SENTINEL

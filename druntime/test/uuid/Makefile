@@ -1,10 +1,5 @@
+TESTS := test
+
 include ../common.mak
 
-.PHONY: all clean
-all: $(ROOT)/test$(DOTEXE)
-
-$(ROOT)/%$(DOTEXE): %.d
-	$(QUIET)$(DMD) $(DFLAGS) -of$@ $< uuid.lib
-
-clean:
-	rm -rf $(ROOT)
+$(OBJDIR)/test$(DOTEXE): private extra_ldlibs.d += uuid.lib

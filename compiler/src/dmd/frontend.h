@@ -374,6 +374,7 @@ enum class MessageStyle : uint8_t
 {
     digitalmars = 0u,
     gnu = 1u,
+    sarif = 2u,
 };
 
 struct Loc final
@@ -474,8 +475,6 @@ public:
     CPPNamespaceDeclaration* cppnamespace(CPPNamespaceDeclaration* ns);
     UserAttributeDeclaration* userAttribDecl(UserAttributeDeclaration* uad);
     virtual const char* toPrettyCharsHelper();
-    const Loc getLoc();
-    const char* locToChars();
     bool equals(const RootObject* const o) const override;
     bool isAnonymous() const;
     Module* getModule();
@@ -1446,7 +1445,6 @@ public:
     virtual bool hasDefaultArg() = 0;
     const char* toChars() const override;
     DYNCAST dyncast() const override;
-    virtual RootObject* dummyArg() = 0;
     void accept(Visitor* v) override;
 };
 
@@ -1463,7 +1461,6 @@ public:
     RootObject* specialization() override;
     RootObject* defaultArg(const Loc& instLoc, Scope* sc) override;
     bool hasDefaultArg() override;
-    RootObject* dummyArg() override;
     void accept(Visitor* v) override;
 };
 
@@ -1621,7 +1618,6 @@ public:
     RootObject* specialization() final override;
     RootObject* defaultArg(const Loc& instLoc, Scope* sc) final override;
     bool hasDefaultArg() final override;
-    RootObject* dummyArg() final override;
     void accept(Visitor* v) override;
 };
 
@@ -1643,7 +1639,6 @@ public:
     RootObject* specialization() override;
     RootObject* defaultArg(const Loc& instLoc, Scope* sc) override;
     bool hasDefaultArg() override;
-    RootObject* dummyArg() override;
     void accept(Visitor* v) override;
 };
 
@@ -1660,7 +1655,6 @@ public:
     RootObject* specialization() override;
     RootObject* defaultArg(const Loc& instLoc, Scope* sc) override;
     bool hasDefaultArg() override;
-    RootObject* dummyArg() override;
     void accept(Visitor* v) override;
 };
 
@@ -1836,13 +1830,13 @@ public:
     virtual uint32_t alignsize();
     void modToBuffer(OutBuffer& buf) const;
     char* modToChars() const;
-    virtual bool isintegral();
-    virtual bool isfloating();
-    virtual bool isreal();
-    virtual bool isimaginary();
-    virtual bool iscomplex();
-    virtual bool isscalar();
-    virtual bool isunsigned();
+    virtual bool isIntegral();
+    virtual bool isFloating();
+    virtual bool isReal();
+    virtual bool isImaginary();
+    virtual bool isComplex();
+    virtual bool isScalar();
+    virtual bool isUnsigned();
     virtual bool isScopeClass();
     virtual bool isString();
     virtual bool isAssignable();
@@ -1878,7 +1872,6 @@ public:
     virtual bool hasInvariant();
     virtual Type* nextOf();
     Type* baseElemOf();
-    uint32_t numberOfElems(const Loc& loc);
     virtual bool needsDestruction();
     virtual bool needsCopyOrPostblit();
     virtual bool needsNested();
@@ -2075,6 +2068,7 @@ enum class EXP : uint8_t
     _Generic_ = 125u,
     interval = 126u,
     loweredAssignExp = 127u,
+    rvalue = 128u,
 };
 
 typedef uint64_t dinteger_t;
@@ -2112,6 +2106,7 @@ public:
     Loc loc;
     const EXP op;
     bool parens;
+    bool rvalue;
     size_t size() const;
     static void _init();
     static void deinitialize();
@@ -2895,33 +2890,34 @@ enum class TOK : uint8_t
     wchar_tLiteral = 196u,
     endOfLine = 197u,
     whitespace = 198u,
-    inline_ = 199u,
-    register_ = 200u,
-    restrict_ = 201u,
-    signed_ = 202u,
-    sizeof_ = 203u,
-    typedef_ = 204u,
-    unsigned_ = 205u,
-    volatile_ = 206u,
-    _Alignas_ = 207u,
-    _Alignof_ = 208u,
-    _Atomic_ = 209u,
-    _Bool_ = 210u,
-    _Complex_ = 211u,
-    _Generic_ = 212u,
-    _Imaginary_ = 213u,
-    _Noreturn_ = 214u,
-    _Static_assert_ = 215u,
-    _Thread_local_ = 216u,
-    _assert_ = 217u,
-    _import_ = 218u,
-    __cdecl_ = 219u,
-    __declspec_ = 220u,
-    __stdcall_ = 221u,
-    __thread_ = 222u,
-    __pragma_ = 223u,
-    __int128_ = 224u,
-    __attribute___ = 225u,
+    rvalue = 199u,
+    inline_ = 200u,
+    register_ = 201u,
+    restrict_ = 202u,
+    signed_ = 203u,
+    sizeof_ = 204u,
+    typedef_ = 205u,
+    unsigned_ = 206u,
+    volatile_ = 207u,
+    _Alignas_ = 208u,
+    _Alignof_ = 209u,
+    _Atomic_ = 210u,
+    _Bool_ = 211u,
+    _Complex_ = 212u,
+    _Generic_ = 213u,
+    _Imaginary_ = 214u,
+    _Noreturn_ = 215u,
+    _Static_assert_ = 216u,
+    _Thread_local_ = 217u,
+    _assert_ = 218u,
+    _import_ = 219u,
+    __cdecl_ = 220u,
+    __declspec_ = 221u,
+    __stdcall_ = 222u,
+    __thread_ = 223u,
+    __pragma_ = 224u,
+    __int128_ = 225u,
+    __attribute___ = 226u,
 };
 
 class FuncExp final : public Expression
@@ -3092,20 +3088,6 @@ class ModExp final : public BinExp
 {
 public:
     void accept(Visitor* v) override;
-};
-
-enum class Modifiable
-{
-    no = 0,
-    yes = 1,
-    initialization = 2,
-};
-
-enum class ModifyFlags
-{
-    none = 0,
-    noError = 1,
-    fieldAssign = 2,
 };
 
 class ModuleInitExp final : public DefaultInitExp
@@ -3379,7 +3361,18 @@ public:
         StructLiteralExp* inlinecopy;
     };
     StructLiteralExp* origin;
-    uint8_t stageflags;
+    enum class StageFlags : uint8_t
+    {
+        none = 0u,
+        scrub = 1u,
+        searchPointers = 2u,
+        optimize = 4u,
+        apply = 8u,
+        inlineScan = 16u,
+        toCBuffer = 32u,
+    };
+
+    StageFlags stageflags;
     bool useStaticInit;
     bool isOriginal;
     OwnedBy ownedByCtfe;
@@ -3555,40 +3548,23 @@ public:
     void accept(Visitor* v) override;
 };
 
-enum : int32_t { stageApply = 8 };
-
-enum : int32_t { stageInlineScan = 16 };
-
-enum : int32_t { stageOptimize = 4 };
-
-enum : int32_t { stageScrub = 1 };
-
-enum : int32_t { stageSearchPointers = 2 };
-
-enum : int32_t { stageToCBuffer = 32 };
-
 struct AttributeViolation final
 {
     Loc loc;
-    const char* fmtStr;
+    FuncDeclaration* fd;
+    const char* format;
     RootObject* arg0;
     RootObject* arg1;
     RootObject* arg2;
     AttributeViolation() :
-        loc(Loc(0u, 0u, 0u)),
-        fmtStr(nullptr),
-        arg0(nullptr),
-        arg1(nullptr),
-        arg2(nullptr)
+        loc(),
+        fd(),
+        format(),
+        arg0(),
+        arg1(),
+        arg2()
     {
     }
-    AttributeViolation(Loc loc, const char* fmtStr = nullptr, RootObject* arg0 = nullptr, RootObject* arg1 = nullptr, RootObject* arg2 = nullptr) :
-        loc(loc),
-        fmtStr(fmtStr),
-        arg0(arg0),
-        arg1(arg1),
-        arg2(arg2)
-        {}
 };
 
 enum class ILS : uint8_t
@@ -3679,7 +3655,6 @@ public:
     BaseClass* interfaceVirtual;
     Type* tintro;
     StorageClass storage_class2;
-    int32_t hasReturnExp;
     VarDeclaration* nrvo_var;
     Symbol* shidden;
     Array<ReturnStatement* >* returns;
@@ -3691,6 +3666,7 @@ public:
     bool requiresClosure;
     Array<VarDeclaration* > closureVars;
     Array<VarDeclaration* > outerVars;
+    static FuncDeclaration* lastMain;
     Array<FuncDeclaration* > siblingCallers;
     Array<FuncDeclaration* >* inlinedNestedCallees;
     AttributeViolation* safetyViolation;
@@ -3749,6 +3725,12 @@ public:
     bool dllImport(bool v);
     bool dllExport() const;
     bool dllExport(bool v);
+    bool hasReturnExp() const;
+    bool hasReturnExp(bool v);
+    bool hasInlineAsm() const;
+    bool hasInlineAsm(bool v);
+    bool hasMultipleReturnExp() const;
+    bool hasMultipleReturnExp(bool v);
 private:
     uint32_t bitFields;
 public:
@@ -3789,10 +3771,6 @@ public:
     bool isCodeseg() const final override;
     bool isOverloadable() const final override;
     bool isAbstract() final override;
-    void initInferAttributes();
-    bool isSafe();
-    bool isTrusted();
-    bool isNogc();
     virtual bool isNested() const;
     AggregateDeclaration* isThis() override;
     bool needThis() final override;
@@ -3804,7 +3782,6 @@ public:
     const char* kind() const override;
     bool isUnique() const;
     bool needsClosure();
-    bool checkClosure();
     bool hasNestedFrameRefs();
     ParameterList getParameterList();
     static FuncDeclaration* genCfunc(Array<Parameter* >* fparams, Type* treturn, const char* name, StorageClass stc = 0);
@@ -3818,6 +3795,7 @@ class CtorDeclaration final : public FuncDeclaration
 {
 public:
     bool isCpCtor;
+    bool isMoveCtor;
     CtorDeclaration* syntaxCopy(Dsymbol* s) override;
     const char* kind() const override;
     const char* toChars() const override;
@@ -4039,6 +4017,7 @@ class Initializer : public ASTNode
 public:
     Loc loc;
     InitKind kind;
+    bool semanticDone;
     DYNCAST dyncast() const override;
     ErrorInitializer* isErrorInitializer();
     VoidInitializer* isVoidInitializer();
@@ -4057,7 +4036,6 @@ public:
     Array<Initializer* > value;
     uint32_t dim;
     Type* type;
-    bool sem;
     bool isCarray;
     bool isAssociativeArray() const;
     void accept(Visitor* v) override;
@@ -4068,7 +4046,6 @@ class CInitializer final : public Initializer
 public:
     Array<DesigInit > initializerList;
     Type* type;
-    bool sem;
     void accept(Visitor* v) override;
 };
 
@@ -4229,13 +4206,13 @@ public:
     const char* kind() const override;
     TypeBasic* syntaxCopy() override;
     uint32_t alignsize() override;
-    bool isintegral() override;
-    bool isfloating() override;
-    bool isreal() override;
-    bool isimaginary() override;
-    bool iscomplex() override;
-    bool isscalar() override;
-    bool isunsigned() override;
+    bool isIntegral() override;
+    bool isFloating() override;
+    bool isReal() override;
+    bool isImaginary() override;
+    bool isComplex() override;
+    bool isScalar() override;
+    bool isUnsigned() override;
     bool hasUnsafeBitpatterns() override;
     TypeBasic* isTypeBasic() override;
     void accept(Visitor* v) override;
@@ -4296,13 +4273,13 @@ public:
     TypeEnum* syntaxCopy() override;
     Type* memType();
     uint32_t alignsize() override;
-    bool isintegral() override;
-    bool isfloating() override;
-    bool isreal() override;
-    bool isimaginary() override;
-    bool iscomplex() override;
-    bool isscalar() override;
-    bool isunsigned() override;
+    bool isIntegral() override;
+    bool isFloating() override;
+    bool isReal() override;
+    bool isImaginary() override;
+    bool isComplex() override;
+    bool isScalar() override;
+    bool isUnsigned() override;
     bool isBoolean() override;
     bool isString() override;
     bool isAssignable() override;
@@ -4348,84 +4325,84 @@ public:
 private:
     struct BitFields final
     {
-        bool isnothrow;
-        bool isnogc;
-        bool isproperty;
-        bool isref;
-        bool isreturn;
+        bool isNothrow;
+        bool isNogc;
+        bool isProperty;
+        bool isRef;
+        bool isReturn;
         bool isScopeQual;
-        bool isreturninferred;
-        bool isscopeinferred;
-        bool islive;
+        bool isReturnInferred;
+        bool isScopeInferred;
+        bool isLive;
         bool incomplete;
         bool isInOutParam;
         bool isInOutQual;
-        bool isctor;
-        bool isreturnscope;
+        bool isCtor;
+        bool isReturnScope;
         BitFields() :
-            isnothrow(),
-            isnogc(),
-            isproperty(),
-            isref(),
-            isreturn(),
+            isNothrow(),
+            isNogc(),
+            isProperty(),
+            isRef(),
+            isReturn(),
             isScopeQual(),
-            isreturninferred(),
-            isscopeinferred(),
-            islive(),
+            isReturnInferred(),
+            isScopeInferred(),
+            isLive(),
             incomplete(),
             isInOutParam(),
             isInOutQual(),
-            isctor(),
-            isreturnscope()
+            isCtor(),
+            isReturnScope()
         {
         }
-        BitFields(bool isnothrow, bool isnogc = false, bool isproperty = false, bool isref = false, bool isreturn = false, bool isScopeQual = false, bool isreturninferred = false, bool isscopeinferred = false, bool islive = false, bool incomplete = false, bool isInOutParam = false, bool isInOutQual = false, bool isctor = false, bool isreturnscope = false) :
-            isnothrow(isnothrow),
-            isnogc(isnogc),
-            isproperty(isproperty),
-            isref(isref),
-            isreturn(isreturn),
+        BitFields(bool isNothrow, bool isNogc = false, bool isProperty = false, bool isRef = false, bool isReturn = false, bool isScopeQual = false, bool isReturnInferred = false, bool isScopeInferred = false, bool isLive = false, bool incomplete = false, bool isInOutParam = false, bool isInOutQual = false, bool isCtor = false, bool isReturnScope = false) :
+            isNothrow(isNothrow),
+            isNogc(isNogc),
+            isProperty(isProperty),
+            isRef(isRef),
+            isReturn(isReturn),
             isScopeQual(isScopeQual),
-            isreturninferred(isreturninferred),
-            isscopeinferred(isscopeinferred),
-            islive(islive),
+            isReturnInferred(isReturnInferred),
+            isScopeInferred(isScopeInferred),
+            isLive(isLive),
             incomplete(incomplete),
             isInOutParam(isInOutParam),
             isInOutQual(isInOutQual),
-            isctor(isctor),
-            isreturnscope(isreturnscope)
+            isCtor(isCtor),
+            isReturnScope(isReturnScope)
             {}
     };
 
 public:
-    bool isnothrow() const;
-    bool isnothrow(bool v);
-    bool isnogc() const;
-    bool isnogc(bool v);
-    bool isproperty() const;
-    bool isproperty(bool v);
-    bool isref() const;
-    bool isref(bool v);
-    bool isreturn() const;
-    bool isreturn(bool v);
+    bool isNothrow() const;
+    bool isNothrow(bool v);
+    bool isNogc() const;
+    bool isNogc(bool v);
+    bool isProperty() const;
+    bool isProperty(bool v);
+    bool isRef() const;
+    bool isRef(bool v);
+    bool isReturn() const;
+    bool isReturn(bool v);
     bool isScopeQual() const;
     bool isScopeQual(bool v);
-    bool isreturninferred() const;
-    bool isreturninferred(bool v);
-    bool isscopeinferred() const;
-    bool isscopeinferred(bool v);
-    bool islive() const;
-    bool islive(bool v);
+    bool isReturnInferred() const;
+    bool isReturnInferred(bool v);
+    bool isScopeInferred() const;
+    bool isScopeInferred(bool v);
+    bool isLive() const;
+    bool isLive(bool v);
     bool incomplete() const;
     bool incomplete(bool v);
     bool isInOutParam() const;
     bool isInOutParam(bool v);
     bool isInOutQual() const;
     bool isInOutQual(bool v);
-    bool isctor() const;
-    bool isctor(bool v);
-    bool isreturnscope() const;
-    bool isreturnscope(bool v);
+    bool isCtor() const;
+    bool isCtor(bool v);
+    bool isReturnScope() const;
+    bool isReturnScope(bool v);
 private:
     uint16_t bitFields;
 public:
@@ -4508,7 +4485,7 @@ public:
     static TypePointer* create(Type* t);
     const char* kind() const override;
     TypePointer* syntaxCopy() override;
-    bool isscalar() override;
+    bool isScalar() override;
     void accept(Visitor* v) override;
 };
 
@@ -4642,10 +4619,10 @@ public:
     const char* kind() const override;
     TypeVector* syntaxCopy() override;
     uint32_t alignsize() override;
-    bool isintegral() override;
-    bool isfloating() override;
-    bool isscalar() override;
-    bool isunsigned() override;
+    bool isIntegral() override;
+    bool isFloating() override;
+    bool isScalar() override;
+    bool isUnsigned() override;
     bool isBoolean() override;
     Expression* defaultInitLiteral(const Loc& loc) override;
     TypeBasic* elementType();
@@ -5287,18 +5264,18 @@ struct UnionExp final
 private:
     union _AnonStruct_u
     {
-        char exp[30LLU];
+        char exp[31LLU];
         char integerexp[40LLU];
-        char errorexp[30LLU];
+        char errorexp[31LLU];
         char realexp[48LLU];
         char complexexp[64LLU];
         char symoffexp[64LLU];
-        char stringexp[51LLU];
-        char arrayliteralexp[48LLU];
+        char stringexp[59LLU];
+        char arrayliteralexp[56LLU];
         char assocarrayliteralexp[56LLU];
         char structliteralexp[76LLU];
         char compoundliteralexp[40LLU];
-        char nullexp[30LLU];
+        char nullexp[31LLU];
         char dotvarexp[49LLU];
         char addrexp[40LLU];
         char indexexp[74LLU];
@@ -5595,8 +5572,6 @@ struct ASTCodegen final
     using MixinExp = ::MixinExp;
     using ModAssignExp = ::ModAssignExp;
     using ModExp = ::ModExp;
-    using Modifiable = ::Modifiable;
-    using ModifyFlags = ::ModifyFlags;
     using ModuleInitExp = ::ModuleInitExp;
     using MulAssignExp = ::MulAssignExp;
     using MulExp = ::MulExp;
@@ -5933,6 +5908,7 @@ struct TargetC final
     uint8_t wchar_tsize;
     Runtime runtime;
     BitFieldStyle bitFieldStyle;
+    bool contributesToAggregateAlignment(BitFieldDeclaration* bfd);
     TargetC() :
         crtDestructorsSupported(true),
         boolsize(),
@@ -6029,13 +6005,10 @@ enum class CPU : uint8_t
     native = 12u,
 };
 
-enum class ErrorKind
+enum class ErrorPrintMode : uint8_t
 {
-    warning = 0,
-    deprecation = 1,
-    error = 2,
-    tip = 3,
-    message = 4,
+    simpleError = 0u,
+    printErrorContext = 1u,
 };
 
 enum class DiagnosticReporting : uint8_t
@@ -6103,6 +6076,7 @@ struct CompileEnv final
     _d_dynamicArray< const char > vendor;
     _d_dynamicArray< const char > timestamp;
     bool previewIn;
+    bool transitionIn;
     bool ddocOutput;
     bool masm;
     IdentifierCharLookup cCharLookupTable;
@@ -6114,19 +6088,21 @@ struct CompileEnv final
         vendor(),
         timestamp(),
         previewIn(),
+        transitionIn(),
         ddocOutput(),
         masm(),
         cCharLookupTable(),
         dCharLookupTable()
     {
     }
-    CompileEnv(uint32_t versionNumber, _d_dynamicArray< const char > date = {}, _d_dynamicArray< const char > time = {}, _d_dynamicArray< const char > vendor = {}, _d_dynamicArray< const char > timestamp = {}, bool previewIn = false, bool ddocOutput = false, bool masm = false, IdentifierCharLookup cCharLookupTable = IdentifierCharLookup(), IdentifierCharLookup dCharLookupTable = IdentifierCharLookup()) :
+    CompileEnv(uint32_t versionNumber, _d_dynamicArray< const char > date = {}, _d_dynamicArray< const char > time = {}, _d_dynamicArray< const char > vendor = {}, _d_dynamicArray< const char > timestamp = {}, bool previewIn = false, bool transitionIn = false, bool ddocOutput = false, bool masm = false, IdentifierCharLookup cCharLookupTable = IdentifierCharLookup(), IdentifierCharLookup dCharLookupTable = IdentifierCharLookup()) :
         versionNumber(versionNumber),
         date(date),
         time(time),
         vendor(vendor),
         timestamp(timestamp),
         previewIn(previewIn),
+        transitionIn(transitionIn),
         ddocOutput(ddocOutput),
         masm(masm),
         cCharLookupTable(cCharLookupTable),
@@ -6171,7 +6147,6 @@ public:
     virtual Scope* newScope(Scope* sc);
     virtual void finalizeSize() = 0;
     uinteger_t size(const Loc& loc) final override;
-    bool fill(const Loc& loc, Array<Expression* >& elements, bool ctorinit);
     Type* getType() final override;
     bool isDeprecated() const final override;
     bool isNested() const;
@@ -6235,9 +6210,6 @@ class AttribDeclaration : public Dsymbol
 {
 public:
     Array<Dsymbol* >* decl;
-    virtual Array<Dsymbol* >* include(Scope* sc);
-    virtual Scope* newScope(Scope* sc);
-    void addComment(const char* comment) override;
     const char* kind() const override;
     bool oneMember(Dsymbol*& ps, Identifier* ident) override;
     bool hasPointers() final override;
@@ -6253,7 +6225,6 @@ class StorageClassDeclaration : public AttribDeclaration
 public:
     StorageClass stc;
     StorageClassDeclaration* syntaxCopy(Dsymbol* s) override;
-    Scope* newScope(Scope* sc) override;
     bool oneMember(Dsymbol*& ps, Identifier* ident) final override;
     StorageClassDeclaration* isStorageClassDeclaration() override;
     void accept(Visitor* v) override;
@@ -6265,7 +6236,6 @@ public:
     Expression* msg;
     const char* msgstr;
     DeprecatedDeclaration* syntaxCopy(Dsymbol* s) override;
-    Scope* newScope(Scope* sc) override;
     void accept(Visitor* v) override;
 };
 
@@ -6275,7 +6245,6 @@ public:
     LINK linkage;
     static LinkDeclaration* create(const Loc& loc, LINK p, Array<Dsymbol* >* decl);
     LinkDeclaration* syntaxCopy(Dsymbol* s) override;
-    Scope* newScope(Scope* sc) override;
     const char* toChars() const override;
     void accept(Visitor* v) override;
 };
@@ -6285,7 +6254,6 @@ class CPPMangleDeclaration final : public AttribDeclaration
 public:
     CPPMANGLE cppmangle;
     CPPMangleDeclaration* syntaxCopy(Dsymbol* s) override;
-    Scope* newScope(Scope* sc) override;
     const char* toChars() const override;
     void accept(Visitor* v) override;
 };
@@ -6295,7 +6263,6 @@ class CPPNamespaceDeclaration final : public AttribDeclaration
 public:
     Expression* exp;
     CPPNamespaceDeclaration* syntaxCopy(Dsymbol* s) override;
-    Scope* newScope(Scope* sc) override;
     const char* toChars() const override;
     void accept(Visitor* v) override;
     CPPNamespaceDeclaration* isCPPNamespaceDeclaration() override;
@@ -6307,7 +6274,6 @@ public:
     Visibility visibility;
     _d_dynamicArray< Identifier* > pkg_identifiers;
     VisibilityDeclaration* syntaxCopy(Dsymbol* s) override;
-    Scope* newScope(Scope* sc) override;
     const char* kind() const override;
     const char* toPrettyChars(bool __param_0_) override;
     VisibilityDeclaration* isVisibilityDeclaration() override;
@@ -6320,7 +6286,6 @@ public:
     Array<Expression* >* exps;
     structalign_t salign;
     AlignDeclaration* syntaxCopy(Dsymbol* s) override;
-    Scope* newScope(Scope* sc) override;
     void accept(Visitor* v) override;
 };
 
@@ -6343,7 +6308,6 @@ class PragmaDeclaration final : public AttribDeclaration
 public:
     Array<Expression* >* args;
     PragmaDeclaration* syntaxCopy(Dsymbol* s) override;
-    Scope* newScope(Scope* sc) override;
     const char* kind() const override;
     void accept(Visitor* v) override;
 };
@@ -6355,8 +6319,6 @@ public:
     Array<Dsymbol* >* elsedecl;
     ConditionalDeclaration* syntaxCopy(Dsymbol* s) override;
     bool oneMember(Dsymbol*& ps, Identifier* ident) final override;
-    Array<Dsymbol* >* include(Scope* sc) override;
-    void addComment(const char* comment) final override;
     void accept(Visitor* v) override;
 };
 
@@ -6364,12 +6326,9 @@ class StaticIfDeclaration final : public ConditionalDeclaration
 {
 public:
     ScopeDsymbol* scopesym;
-private:
     bool addisdone;
     bool onStack;
-public:
     StaticIfDeclaration* syntaxCopy(Dsymbol* s) override;
-    Array<Dsymbol* >* include(Scope* sc) override;
     const char* kind() const override;
     StaticIfDeclaration* isStaticIfDeclaration() override;
     void accept(Visitor* v) override;
@@ -6385,8 +6344,6 @@ public:
     Array<Dsymbol* >* cache;
     StaticForeachDeclaration* syntaxCopy(Dsymbol* s) override;
     bool oneMember(Dsymbol*& ps, Identifier* ident) override;
-    Array<Dsymbol* >* include(Scope* sc) override;
-    void addComment(const char* comment) override;
     const char* kind() const override;
     void accept(Visitor* v) override;
 };
@@ -6396,7 +6353,6 @@ class ForwardingAttribDeclaration final : public AttribDeclaration
 public:
     ForwardingScopeDsymbol* sym;
     ForwardingAttribDeclaration(Array<Dsymbol* >* decl);
-    Scope* newScope(Scope* sc) override;
     ForwardingAttribDeclaration* isForwardingAttribDeclaration() override;
     void accept(Visitor* v) override;
 };
@@ -6418,11 +6374,8 @@ class UserAttributeDeclaration final : public AttribDeclaration
 public:
     Array<Expression* >* atts;
     UserAttributeDeclaration* syntaxCopy(Dsymbol* s) override;
-    Scope* newScope(Scope* sc) override;
     const char* kind() const override;
     void accept(Visitor* v) override;
-    static bool isGNUABITag(Expression* e);
-    static void checkGNUABITag(Dsymbol* sym, LINK linkage);
 };
 
 extern BUILTIN isBuiltin(FuncDeclaration* fd);
@@ -6613,6 +6566,8 @@ public:
     enum : int32_t { nounderscore = 4 };
 
     enum : int32_t { hidden = 8 };
+
+    enum : int32_t { nrvo = 16 };
 
     _d_dynamicArray< const char > mangleOverride;
     const char* kind() const override;
@@ -7020,8 +6975,8 @@ public:
     _d_dynamicArray< const char > arg;
     ModuleDeclaration* md;
     const FileName srcfile;
-    const FileName objfile;
-    const FileName hdrfile;
+    FileName objfile;
+    FileName hdrfile;
     FileName docfile;
     _d_dynamicArray< const uint8_t > src;
     uint32_t errors;
@@ -7164,16 +7119,8 @@ struct Scope final
     bool traitsCompiles(bool v);
     bool ignoresymbolvisibility() const;
     bool ignoresymbolvisibility(bool v);
-    bool _padding0() const;
-    bool _padding0(bool v);
     bool inCfile() const;
     bool inCfile(bool v);
-    bool _padding1() const;
-    bool _padding1(bool v);
-    bool _padding2() const;
-    bool _padding2(bool v);
-    bool _padding3() const;
-    bool _padding3(bool v);
     bool canFree() const;
     bool canFree(bool v);
     bool fullinst() const;
@@ -7192,6 +7139,7 @@ public:
     void* anchorCounts;
     Identifier* prevAnchor;
     AliasDeclaration* aliasAsg;
+    StructDeclaration* argStruct;
     Dsymbol* search(const Loc& loc, Identifier* ident, Dsymbol*& pscopesym, uint32_t flags = 0u);
     Scope() :
         enclosing(),
@@ -7232,10 +7180,11 @@ public:
         userAttribDecl(),
         lastdc(),
         prevAnchor(),
-        aliasAsg()
+        aliasAsg(),
+        argStruct()
     {
     }
-    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* sw = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tf = nullptr, ScopeGuardStatement* os = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Dsymbol* inunion = nullptr, bool nofree = false, bool inLoop = false, bool inDefaultArg = false, int32_t intypeof = 0, VarDeclaration* lastVar = nullptr, ErrorSink* eSink = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), int32_t explicitVisibility = 0, uint64_t stc = 0LLU, DeprecatedDeclaration* depdecl = nullptr, uint32_t bitFields = 0u, UserAttributeDeclaration* userAttribDecl = nullptr, DocComment* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr) :
+    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* sw = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tf = nullptr, ScopeGuardStatement* os = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Dsymbol* inunion = nullptr, bool nofree = false, bool inLoop = false, bool inDefaultArg = false, int32_t intypeof = 0, VarDeclaration* lastVar = nullptr, ErrorSink* eSink = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), int32_t explicitVisibility = 0, uint64_t stc = 0LLU, DeprecatedDeclaration* depdecl = nullptr, uint32_t bitFields = 0u, UserAttributeDeclaration* userAttribDecl = nullptr, DocComment* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr, StructDeclaration* argStruct = nullptr) :
         enclosing(enclosing),
         _module(_module),
         scopesym(scopesym),
@@ -7275,7 +7224,8 @@ public:
         lastdc(lastdc),
         anchorCounts(anchorCounts),
         prevAnchor(prevAnchor),
-        aliasAsg(aliasAsg)
+        aliasAsg(aliasAsg),
+        argStruct(argStruct)
         {}
 };
 
@@ -7304,6 +7254,8 @@ public:
     bool hasNoFields(bool v);
     bool hasCopyCtor() const;
     bool hasCopyCtor(bool v);
+    bool hasMoveCtor() const;
+    bool hasMoveCtor(bool v);
     bool hasPointerField() const;
     bool hasPointerField(bool v);
     bool hasVoidInitPointers() const;
@@ -7431,6 +7383,35 @@ public:
     void visit(StaticForeachDeclaration* _) override;
 };
 
+extern Array<Dsymbol* >* include(Dsymbol* d, Scope* sc);
+
+class IncludeVisitor : public Visitor
+{
+public:
+    using Visitor::visit;
+    Scope* sc;
+    Array<Dsymbol* >* symbols;
+    IncludeVisitor(Scope* sc);
+    void visit(AttribDeclaration* ad) override;
+    void visit(ConditionalDeclaration* cdc) override;
+    void visit(StaticIfDeclaration* sif) override;
+    void visit(StaticForeachDeclaration* sfd) override;
+};
+
+extern void addComment(Dsymbol* d, const char* comment);
+
+class AddCommentVisitor : public Visitor
+{
+public:
+    using Visitor::visit;
+    const char* comment;
+    AddCommentVisitor(const char* comment);
+    void visit(Dsymbol* d) override;
+    void visit(AttribDeclaration* atd) override;
+    void visit(ConditionalDeclaration* cd) override;
+    void visit(StaticForeachDeclaration* sfd) override;
+};
+
 class NrvoWalker final : public StatementRewriteWalker
 {
 public:
@@ -7440,6 +7421,8 @@ public:
     void visit(ReturnStatement* s) override;
     void visit(TryFinallyStatement* s) override;
 };
+
+extern bool onlyOneMain(FuncDeclaration* fd);
 
 class NOGCVisitor final : public StoppableVisitor
 {
@@ -7489,21 +7472,6 @@ public:
     virtual void checkTupleof(Expression* expression, TypeClass* type) const = 0;
 };
 
-template <typename AST>
-class PermissiveVisitor : public ParseTimeVisitor<AST >
-{
-public:
-    typedef ParseTimeVisitor<AST > visit;
-    virtual void visit(typename AST::Dsymbol ) override;
-    virtual void visit(typename AST::Parameter ) override;
-    virtual void visit(typename AST::Statement ) override;
-    virtual void visit(typename AST::Type ) override;
-    virtual void visit(typename AST::Expression ) override;
-    virtual void visit(typename AST::TemplateParameter ) override;
-    virtual void visit(typename AST::Condition ) override;
-    virtual void visit(typename AST::Initializer ) override;
-};
-
 struct Target final
 {
     enum class OS : uint8_t
@@ -7533,6 +7501,7 @@ struct Target final
     TargetObjC objc;
     _d_dynamicArray< const char > architectureName;
     CPU cpu;
+    bool isAArch64;
     bool isX86_64;
     bool isX86;
     bool isLP64;
@@ -7605,6 +7574,7 @@ public:
         cpp(),
         objc(),
         architectureName(),
+        isAArch64(),
         isX86_64(),
         isX86(),
         isLP64(),
@@ -7619,7 +7589,7 @@ public:
         params()
     {
     }
-    Target(OS os, uint8_t osMajor = 0u, uint8_t ptrsize = 0u, uint8_t realsize = 0u, uint8_t realpad = 0u, uint8_t realalignsize = 0u, uint8_t classinfosize = 0u, uint64_t maxStaticDataSize = 0LLU, TargetC c = TargetC(), TargetCPP cpp = TargetCPP(), TargetObjC objc = TargetObjC(), _d_dynamicArray< const char > architectureName = {}, CPU cpu = (CPU)0u, bool isX86_64 = false, bool isX86 = false, bool isLP64 = false, _d_dynamicArray< const char > obj_ext = {}, _d_dynamicArray< const char > lib_ext = {}, _d_dynamicArray< const char > dll_ext = {}, bool run_noext = false, FPTypeProperties<float > FloatProperties = FPTypeProperties<float >(), FPTypeProperties<double > DoubleProperties = FPTypeProperties<double >(), FPTypeProperties<_d_real > RealProperties = FPTypeProperties<_d_real >(), Type* tvalist = nullptr, const Param* params = nullptr) :
+    Target(OS os, uint8_t osMajor = 0u, uint8_t ptrsize = 0u, uint8_t realsize = 0u, uint8_t realpad = 0u, uint8_t realalignsize = 0u, uint8_t classinfosize = 0u, uint64_t maxStaticDataSize = 0LLU, TargetC c = TargetC(), TargetCPP cpp = TargetCPP(), TargetObjC objc = TargetObjC(), _d_dynamicArray< const char > architectureName = {}, CPU cpu = (CPU)0u, bool isAArch64 = false, bool isX86_64 = false, bool isX86 = false, bool isLP64 = false, _d_dynamicArray< const char > obj_ext = {}, _d_dynamicArray< const char > lib_ext = {}, _d_dynamicArray< const char > dll_ext = {}, bool run_noext = false, FPTypeProperties<float > FloatProperties = FPTypeProperties<float >(), FPTypeProperties<double > DoubleProperties = FPTypeProperties<double >(), FPTypeProperties<_d_real > RealProperties = FPTypeProperties<_d_real >(), Type* tvalist = nullptr, const Param* params = nullptr) :
         os(os),
         osMajor(osMajor),
         ptrsize(ptrsize),
@@ -7633,6 +7603,7 @@ public:
         objc(objc),
         architectureName(architectureName),
         cpu(cpu),
+        isAArch64(isAArch64),
         isX86_64(isX86_64),
         isX86(isX86),
         isLP64(isLP64),
@@ -7650,7 +7621,7 @@ public:
 
 extern Target target;
 
-extern Type* getTypeInfoType(const Loc& loc, Type* t, Scope* sc, bool genObjCode = true);
+extern Type* getTypeInfoType(const Loc& loc, Type* t, Scope* sc);
 
 class SemanticTimeTransitiveVisitor : public SemanticTimePermissiveVisitor
 {
@@ -7812,6 +7783,251 @@ public:
     void visit(LoweredAssignExp* e) override;
 };
 
+template <typename AST>
+class PermissiveVisitor : public ParseTimeVisitor<AST >
+{
+public:
+    typedef ParseTimeVisitor<AST > visit;
+    virtual void visit(typename AST::Dsymbol ) override;
+    virtual void visit(typename AST::Parameter ) override;
+    virtual void visit(typename AST::Statement ) override;
+    virtual void visit(typename AST::Type ) override;
+    virtual void visit(typename AST::Expression ) override;
+    virtual void visit(typename AST::TemplateParameter ) override;
+    virtual void visit(typename AST::Condition ) override;
+    virtual void visit(typename AST::Initializer ) override;
+};
+
+template <typename AST>
+class StrictVisitor : public ParseTimeVisitor<AST >
+{
+public:
+    typedef ParseTimeVisitor<AST > visit;
+    virtual void visit(typename AST::Dsymbol ) override;
+    virtual void visit(typename AST::AliasThis ) override;
+    virtual void visit(typename AST::Declaration ) override;
+    virtual void visit(typename AST::ScopeDsymbol ) override;
+    virtual void visit(typename AST::Import ) override;
+    virtual void visit(typename AST::AttribDeclaration ) override;
+    virtual void visit(typename AST::StaticAssert ) override;
+    virtual void visit(typename AST::DebugSymbol ) override;
+    virtual void visit(typename AST::VersionSymbol ) override;
+    virtual void visit(typename AST::VarDeclaration ) override;
+    virtual void visit(typename AST::FuncDeclaration ) override;
+    virtual void visit(typename AST::AliasDeclaration ) override;
+    virtual void visit(typename AST::AliasAssign ) override;
+    virtual void visit(typename AST::TupleDeclaration ) override;
+    virtual void visit(typename AST::FuncLiteralDeclaration ) override;
+    virtual void visit(typename AST::PostBlitDeclaration ) override;
+    virtual void visit(typename AST::CtorDeclaration ) override;
+    virtual void visit(typename AST::DtorDeclaration ) override;
+    virtual void visit(typename AST::InvariantDeclaration ) override;
+    virtual void visit(typename AST::UnitTestDeclaration ) override;
+    virtual void visit(typename AST::NewDeclaration ) override;
+    virtual void visit(typename AST::StaticCtorDeclaration ) override;
+    virtual void visit(typename AST::StaticDtorDeclaration ) override;
+    virtual void visit(typename AST::SharedStaticCtorDeclaration ) override;
+    virtual void visit(typename AST::SharedStaticDtorDeclaration ) override;
+    virtual void visit(typename AST::Package ) override;
+    virtual void visit(typename AST::EnumDeclaration ) override;
+    virtual void visit(typename AST::AggregateDeclaration ) override;
+    virtual void visit(typename AST::TemplateDeclaration ) override;
+    virtual void visit(typename AST::TemplateInstance ) override;
+    virtual void visit(typename AST::Nspace ) override;
+    virtual void visit(typename AST::MixinDeclaration ) override;
+    virtual void visit(typename AST::UserAttributeDeclaration ) override;
+    virtual void visit(typename AST::LinkDeclaration ) override;
+    virtual void visit(typename AST::AnonDeclaration ) override;
+    virtual void visit(typename AST::AlignDeclaration ) override;
+    virtual void visit(typename AST::CPPMangleDeclaration ) override;
+    virtual void visit(typename AST::VisibilityDeclaration ) override;
+    virtual void visit(typename AST::PragmaDeclaration ) override;
+    virtual void visit(typename AST::StorageClassDeclaration ) override;
+    virtual void visit(typename AST::ConditionalDeclaration ) override;
+    virtual void visit(typename AST::DeprecatedDeclaration ) override;
+    virtual void visit(typename AST::StaticIfDeclaration ) override;
+    virtual void visit(typename AST::EnumMember ) override;
+    virtual void visit(typename AST::Module ) override;
+    virtual void visit(typename AST::StructDeclaration ) override;
+    virtual void visit(typename AST::UnionDeclaration ) override;
+    virtual void visit(typename AST::ClassDeclaration ) override;
+    virtual void visit(typename AST::InterfaceDeclaration ) override;
+    virtual void visit(typename AST::TemplateMixin ) override;
+    virtual void visit(typename AST::Parameter ) override;
+    virtual void visit(typename AST::Statement ) override;
+    virtual void visit(typename AST::ImportStatement ) override;
+    virtual void visit(typename AST::ScopeStatement ) override;
+    virtual void visit(typename AST::ReturnStatement ) override;
+    virtual void visit(typename AST::LabelStatement ) override;
+    virtual void visit(typename AST::StaticAssertStatement ) override;
+    virtual void visit(typename AST::MixinStatement ) override;
+    virtual void visit(typename AST::WhileStatement ) override;
+    virtual void visit(typename AST::ForStatement ) override;
+    virtual void visit(typename AST::DoStatement ) override;
+    virtual void visit(typename AST::ForeachRangeStatement ) override;
+    virtual void visit(typename AST::ForeachStatement ) override;
+    virtual void visit(typename AST::IfStatement ) override;
+    virtual void visit(typename AST::ScopeGuardStatement ) override;
+    virtual void visit(typename AST::ConditionalStatement ) override;
+    virtual void visit(typename AST::PragmaStatement ) override;
+    virtual void visit(typename AST::SwitchStatement ) override;
+    virtual void visit(typename AST::CaseRangeStatement ) override;
+    virtual void visit(typename AST::CaseStatement ) override;
+    virtual void visit(typename AST::DefaultStatement ) override;
+    virtual void visit(typename AST::BreakStatement ) override;
+    virtual void visit(typename AST::ContinueStatement ) override;
+    virtual void visit(typename AST::GotoDefaultStatement ) override;
+    virtual void visit(typename AST::GotoCaseStatement ) override;
+    virtual void visit(typename AST::GotoStatement ) override;
+    virtual void visit(typename AST::SynchronizedStatement ) override;
+    virtual void visit(typename AST::WithStatement ) override;
+    virtual void visit(typename AST::TryCatchStatement ) override;
+    virtual void visit(typename AST::TryFinallyStatement ) override;
+    virtual void visit(typename AST::ThrowStatement ) override;
+    virtual void visit(typename AST::AsmStatement ) override;
+    virtual void visit(typename AST::ExpStatement ) override;
+    virtual void visit(typename AST::CompoundStatement ) override;
+    virtual void visit(typename AST::CompoundDeclarationStatement ) override;
+    virtual void visit(typename AST::CompoundAsmStatement ) override;
+    virtual void visit(typename AST::InlineAsmStatement ) override;
+    virtual void visit(typename AST::Type ) override;
+    virtual void visit(typename AST::TypeBasic ) override;
+    virtual void visit(typename AST::TypeError ) override;
+    virtual void visit(typename AST::TypeNull ) override;
+    virtual void visit(typename AST::TypeNoreturn ) override;
+    virtual void visit(typename AST::TypeVector ) override;
+    virtual void visit(typename AST::TypeEnum ) override;
+    virtual void visit(typename AST::TypeTuple ) override;
+    virtual void visit(typename AST::TypeClass ) override;
+    virtual void visit(typename AST::TypeStruct ) override;
+    virtual void visit(typename AST::TypeNext ) override;
+    virtual void visit(typename AST::TypeReference ) override;
+    virtual void visit(typename AST::TypeSlice ) override;
+    virtual void visit(typename AST::TypeDelegate ) override;
+    virtual void visit(typename AST::TypePointer ) override;
+    virtual void visit(typename AST::TypeFunction ) override;
+    virtual void visit(typename AST::TypeArray ) override;
+    virtual void visit(typename AST::TypeDArray ) override;
+    virtual void visit(typename AST::TypeAArray ) override;
+    virtual void visit(typename AST::TypeSArray ) override;
+    virtual void visit(typename AST::TypeQualified ) override;
+    virtual void visit(typename AST::TypeTraits ) override;
+    virtual void visit(typename AST::TypeMixin ) override;
+    virtual void visit(typename AST::TypeIdentifier ) override;
+    virtual void visit(typename AST::TypeReturn ) override;
+    virtual void visit(typename AST::TypeTypeof ) override;
+    virtual void visit(typename AST::TypeInstance ) override;
+    virtual void visit(typename AST::Expression ) override;
+    virtual void visit(typename AST::DeclarationExp ) override;
+    virtual void visit(typename AST::IntegerExp ) override;
+    virtual void visit(typename AST::NewAnonClassExp ) override;
+    virtual void visit(typename AST::IsExp ) override;
+    virtual void visit(typename AST::RealExp ) override;
+    virtual void visit(typename AST::NullExp ) override;
+    virtual void visit(typename AST::TypeidExp ) override;
+    virtual void visit(typename AST::TraitsExp ) override;
+    virtual void visit(typename AST::StringExp ) override;
+    virtual void visit(typename AST::InterpExp ) override;
+    virtual void visit(typename AST::NewExp ) override;
+    virtual void visit(typename AST::AssocArrayLiteralExp ) override;
+    virtual void visit(typename AST::ArrayLiteralExp ) override;
+    virtual void visit(typename AST::FuncExp ) override;
+    virtual void visit(typename AST::IntervalExp ) override;
+    virtual void visit(typename AST::TypeExp ) override;
+    virtual void visit(typename AST::ScopeExp ) override;
+    virtual void visit(typename AST::IdentifierExp ) override;
+    virtual void visit(typename AST::UnaExp ) override;
+    virtual void visit(typename AST::DefaultInitExp ) override;
+    virtual void visit(typename AST::BinExp ) override;
+    virtual void visit(typename AST::DsymbolExp ) override;
+    virtual void visit(typename AST::TemplateExp ) override;
+    virtual void visit(typename AST::SymbolExp ) override;
+    virtual void visit(typename AST::VarExp ) override;
+    virtual void visit(typename AST::TupleExp ) override;
+    virtual void visit(typename AST::DollarExp ) override;
+    virtual void visit(typename AST::ThisExp ) override;
+    virtual void visit(typename AST::SuperExp ) override;
+    virtual void visit(typename AST::AddrExp ) override;
+    virtual void visit(typename AST::PreExp ) override;
+    virtual void visit(typename AST::PtrExp ) override;
+    virtual void visit(typename AST::NegExp ) override;
+    virtual void visit(typename AST::UAddExp ) override;
+    virtual void visit(typename AST::NotExp ) override;
+    virtual void visit(typename AST::ComExp ) override;
+    virtual void visit(typename AST::DeleteExp ) override;
+    virtual void visit(typename AST::CastExp ) override;
+    virtual void visit(typename AST::CallExp ) override;
+    virtual void visit(typename AST::DotIdExp ) override;
+    virtual void visit(typename AST::AssertExp ) override;
+    virtual void visit(typename AST::ThrowExp ) override;
+    virtual void visit(typename AST::MixinExp ) override;
+    virtual void visit(typename AST::ImportExp ) override;
+    virtual void visit(typename AST::DotTemplateInstanceExp ) override;
+    virtual void visit(typename AST::ArrayExp ) override;
+    virtual void visit(typename AST::FuncInitExp ) override;
+    virtual void visit(typename AST::PrettyFuncInitExp ) override;
+    virtual void visit(typename AST::FileInitExp ) override;
+    virtual void visit(typename AST::LineInitExp ) override;
+    virtual void visit(typename AST::ModuleInitExp ) override;
+    virtual void visit(typename AST::CommaExp ) override;
+    virtual void visit(typename AST::PostExp ) override;
+    virtual void visit(typename AST::PowExp ) override;
+    virtual void visit(typename AST::MulExp ) override;
+    virtual void visit(typename AST::DivExp ) override;
+    virtual void visit(typename AST::ModExp ) override;
+    virtual void visit(typename AST::AddExp ) override;
+    virtual void visit(typename AST::MinExp ) override;
+    virtual void visit(typename AST::CatExp ) override;
+    virtual void visit(typename AST::ShlExp ) override;
+    virtual void visit(typename AST::ShrExp ) override;
+    virtual void visit(typename AST::UshrExp ) override;
+    virtual void visit(typename AST::EqualExp ) override;
+    virtual void visit(typename AST::InExp ) override;
+    virtual void visit(typename AST::IdentityExp ) override;
+    virtual void visit(typename AST::CmpExp ) override;
+    virtual void visit(typename AST::AndExp ) override;
+    virtual void visit(typename AST::XorExp ) override;
+    virtual void visit(typename AST::OrExp ) override;
+    virtual void visit(typename AST::LogicalExp ) override;
+    virtual void visit(typename AST::CondExp ) override;
+    virtual void visit(typename AST::AssignExp ) override;
+    virtual void visit(typename AST::BinAssignExp ) override;
+    virtual void visit(typename AST::AddAssignExp ) override;
+    virtual void visit(typename AST::MinAssignExp ) override;
+    virtual void visit(typename AST::MulAssignExp ) override;
+    virtual void visit(typename AST::DivAssignExp ) override;
+    virtual void visit(typename AST::ModAssignExp ) override;
+    virtual void visit(typename AST::PowAssignExp ) override;
+    virtual void visit(typename AST::AndAssignExp ) override;
+    virtual void visit(typename AST::OrAssignExp ) override;
+    virtual void visit(typename AST::XorAssignExp ) override;
+    virtual void visit(typename AST::ShlAssignExp ) override;
+    virtual void visit(typename AST::ShrAssignExp ) override;
+    virtual void visit(typename AST::UshrAssignExp ) override;
+    virtual void visit(typename AST::CatAssignExp ) override;
+    virtual void visit(typename AST::CatElemAssignExp ) override;
+    virtual void visit(typename AST::CatDcharAssignExp ) override;
+    virtual void visit(typename AST::GenericExp ) override;
+    virtual void visit(typename AST::TemplateParameter ) override;
+    virtual void visit(typename AST::TemplateAliasParameter ) override;
+    virtual void visit(typename AST::TemplateTypeParameter ) override;
+    virtual void visit(typename AST::TemplateTupleParameter ) override;
+    virtual void visit(typename AST::TemplateValueParameter ) override;
+    virtual void visit(typename AST::TemplateThisParameter ) override;
+    virtual void visit(typename AST::Condition ) override;
+    virtual void visit(typename AST::StaticIfCondition ) override;
+    virtual void visit(typename AST::DVCondition ) override;
+    virtual void visit(typename AST::DebugCondition ) override;
+    virtual void visit(typename AST::VersionCondition ) override;
+    virtual void visit(typename AST::Initializer ) override;
+    virtual void visit(typename AST::ExpInitializer ) override;
+    virtual void visit(typename AST::StructInitializer ) override;
+    virtual void visit(typename AST::ArrayInitializer ) override;
+    virtual void visit(typename AST::VoidInitializer ) override;
+    virtual void visit(typename AST::DefaultInitializer ) override;
+    virtual void visit(typename AST::CInitializer ) override;
+};
+
 extern _d_real creall(complex_t x);
 
 extern _d_real cimagl(complex_t x);
@@ -7872,6 +8088,8 @@ extern void error(const Loc& loc, const char* format, ...);
 
 extern void error(const char* filename, uint32_t linnum, uint32_t charnum, const char* format, ...);
 
+extern void errorBackend(const char* filename, uint32_t linnum, uint32_t charnum, const char* format, ...);
+
 extern void errorSupplemental(const Loc& loc, const char* format, ...);
 
 extern void warning(const Loc& loc, const char* format, ...);
@@ -7887,10 +8105,6 @@ extern void message(const Loc& loc, const char* format, ...);
 extern void message(const char* format, ...);
 
 extern void tip(const char* format, ...);
-
-extern void verrorReport(const Loc& loc, const char* format, va_list ap, ErrorKind kind, const char* p1 = nullptr, const char* p2 = nullptr);
-
-extern void verrorReportSupplemental(const Loc& loc, const char* format, va_list ap, ErrorKind kind);
 
 extern void fatal();
 
@@ -7977,10 +8191,10 @@ struct Verbose final
     bool complex;
     bool vin;
     bool showGaggedErrors;
-    bool printErrorContext;
     bool logo;
     bool color;
     bool cov;
+    ErrorPrintMode errorPrintMode;
     MessageStyle messageStyle;
     uint32_t errorLimit;
     uint32_t errorSupplementLimit;
@@ -7996,7 +8210,6 @@ struct Verbose final
         complex(true),
         vin(),
         showGaggedErrors(),
-        printErrorContext(),
         logo(),
         color(),
         cov(),
@@ -8005,7 +8218,7 @@ struct Verbose final
         errorSupplementLimit(6u)
     {
     }
-    Verbose(bool verbose, bool showColumns = false, bool tls = false, bool templates = false, bool templatesListInstances = false, bool gc = false, bool field = false, bool complex = true, bool vin = false, bool showGaggedErrors = false, bool printErrorContext = false, bool logo = false, bool color = false, bool cov = false, MessageStyle messageStyle = (MessageStyle)0u, uint32_t errorLimit = 20u, uint32_t errorSupplementLimit = 6u) :
+    Verbose(bool verbose, bool showColumns = false, bool tls = false, bool templates = false, bool templatesListInstances = false, bool gc = false, bool field = false, bool complex = true, bool vin = false, bool showGaggedErrors = false, bool logo = false, bool color = false, bool cov = false, ErrorPrintMode errorPrintMode = (ErrorPrintMode)0u, MessageStyle messageStyle = (MessageStyle)0u, uint32_t errorLimit = 20u, uint32_t errorSupplementLimit = 6u) :
         verbose(verbose),
         showColumns(showColumns),
         tls(tls),
@@ -8016,10 +8229,10 @@ struct Verbose final
         complex(complex),
         vin(vin),
         showGaggedErrors(showGaggedErrors),
-        printErrorContext(printErrorContext),
         logo(logo),
         color(color),
         cov(cov),
+        errorPrintMode(errorPrintMode),
         messageStyle(messageStyle),
         errorLimit(errorLimit),
         errorSupplementLimit(errorSupplementLimit)
@@ -8038,7 +8251,7 @@ struct Param final
     bool useInline;
     bool release;
     bool preservePaths;
-    DiagnosticReporting warnings;
+    DiagnosticReporting useWarnings;
     bool cov;
     uint8_t covPercent;
     bool ctfe_cov;
@@ -8061,6 +8274,7 @@ struct Param final
     FeatureState fieldwise;
     bool fixAliasThis;
     FeatureState rvalueRefParam;
+    FeatureState safer;
     FeatureState noSharedAccess;
     bool previewIn;
     bool inclusiveInContracts;
@@ -8109,6 +8323,7 @@ struct Param final
     _d_dynamicArray< const char > resfile;
     _d_dynamicArray< const char > exefile;
     _d_dynamicArray< const char > mapfile;
+    bool fullyQualifiedObjectFiles;
     bool timeTrace;
     uint32_t timeTraceGranularityUs;
     const char* timeTraceFile;
@@ -8124,7 +8339,7 @@ struct Param final
         useInline(false),
         release(),
         preservePaths(),
-        warnings((DiagnosticReporting)2u),
+        useWarnings((DiagnosticReporting)2u),
         cov(),
         covPercent(),
         ctfe_cov(false),
@@ -8188,12 +8403,13 @@ struct Param final
         resfile(),
         exefile(),
         mapfile(),
+        fullyQualifiedObjectFiles(),
         timeTrace(false),
         timeTraceGranularityUs(500u),
         timeTraceFile()
     {
     }
-    Param(bool obj, bool multiobj = false, bool trace = false, bool tracegc = false, bool vcg_ast = false, DiagnosticReporting useDeprecated = (DiagnosticReporting)1u, bool useUnitTests = false, bool useInline = false, bool release = false, bool preservePaths = false, DiagnosticReporting warnings = (DiagnosticReporting)2u, bool cov = false, uint8_t covPercent = 0u, bool ctfe_cov = false, bool ignoreUnsupportedPragmas = true, bool useModuleInfo = true, bool useTypeInfo = true, bool useExceptions = true, bool useGC = true, bool betterC = false, bool addMain = false, bool allInst = false, bool bitfields = false, CppStdRevision cplusplus = (CppStdRevision)201103u, Help help = Help(), Verbose v = Verbose(), FeatureState useDIP25 = (FeatureState)2u, FeatureState useDIP1000 = (FeatureState)0u, bool ehnogc = false, bool useDIP1021 = false, FeatureState fieldwise = (FeatureState)0u, bool fixAliasThis = false, FeatureState rvalueRefParam = (FeatureState)0u, FeatureState noSharedAccess = (FeatureState)0u, bool previewIn = false, bool inclusiveInContracts = false, bool shortenedMethods = true, bool fixImmutableConv = false, bool fix16997 = true, FeatureState dtorFields = (FeatureState)0u, FeatureState systemVariables = (FeatureState)0u, CHECKENABLE useInvariants = (CHECKENABLE)0u, CHECKENABLE useIn = (CHECKENABLE)0u, CHECKENABLE useOut = (CHECKENABLE)0u, CHECKENABLE useArrayBounds = (CHECKENABLE)0u, CHECKENABLE useAssert = (CHECKENABLE)0u, CHECKENABLE useSwitchError = (CHECKENABLE)0u, CHECKENABLE boundscheck = (CHECKENABLE)0u, CHECKACTION checkAction = (CHECKACTION)0u, CLIIdentifierTable dIdentifierTable = (CLIIdentifierTable)0u, CLIIdentifierTable cIdentifierTable = (CLIIdentifierTable)0u, _d_dynamicArray< const char > argv0 = {}, Array<const char* > modFileAliasStrings = Array<const char* >(), Array<const char* > imppath = Array<const char* >(), Array<const char* > fileImppath = Array<const char* >(), _d_dynamicArray< const char > objdir = {}, _d_dynamicArray< const char > objname = {}, _d_dynamicArray< const char > libname = {}, Output ddoc = Output(), Output dihdr = Output(), Output cxxhdr = Output(), Output json = Output(), JsonFieldFlags jsonFieldFlags = (JsonFieldFlags)0u, Output makeDeps = Output(), Output mixinOut = Output(), Output moduleDeps = Output(), uint32_t debuglevel = 0u, uint32_t versionlevel = 0u, bool run = false, Array<const char* > runargs = Array<const char* >(), Array<const char* > cppswitches = Array<const char* >(), const char* cpp = nullptr, Array<const char* > objfiles = Array<const char* >(), Array<const char* > linkswitches = Array<const char* >(), Array<bool > linkswitchIsForCC = Array<bool >(), Array<const char* > libfiles = Array<const char* >(), Array<const char* > dllfiles = Array<const char* >(), _d_dynamicArray< const char > deffile = {}, _d_dynamicArray< const char > resfile = {}, _d_dynamicArray< const char > exefile = {}, _d_dynamicArray< const char > mapfile = {}, bool timeTrace = false, uint32_t timeTraceGranularityUs = 500u, const char* timeTraceFile = nullptr) :
+    Param(bool obj, bool multiobj = false, bool trace = false, bool tracegc = false, bool vcg_ast = false, DiagnosticReporting useDeprecated = (DiagnosticReporting)1u, bool useUnitTests = false, bool useInline = false, bool release = false, bool preservePaths = false, DiagnosticReporting useWarnings = (DiagnosticReporting)2u, bool cov = false, uint8_t covPercent = 0u, bool ctfe_cov = false, bool ignoreUnsupportedPragmas = true, bool useModuleInfo = true, bool useTypeInfo = true, bool useExceptions = true, bool useGC = true, bool betterC = false, bool addMain = false, bool allInst = false, bool bitfields = false, CppStdRevision cplusplus = (CppStdRevision)201103u, Help help = Help(), Verbose v = Verbose(), FeatureState useDIP25 = (FeatureState)2u, FeatureState useDIP1000 = (FeatureState)0u, bool ehnogc = false, bool useDIP1021 = false, FeatureState fieldwise = (FeatureState)0u, bool fixAliasThis = false, FeatureState rvalueRefParam = (FeatureState)0u, FeatureState safer = (FeatureState)0u, FeatureState noSharedAccess = (FeatureState)0u, bool previewIn = false, bool inclusiveInContracts = false, bool shortenedMethods = true, bool fixImmutableConv = false, bool fix16997 = true, FeatureState dtorFields = (FeatureState)0u, FeatureState systemVariables = (FeatureState)0u, CHECKENABLE useInvariants = (CHECKENABLE)0u, CHECKENABLE useIn = (CHECKENABLE)0u, CHECKENABLE useOut = (CHECKENABLE)0u, CHECKENABLE useArrayBounds = (CHECKENABLE)0u, CHECKENABLE useAssert = (CHECKENABLE)0u, CHECKENABLE useSwitchError = (CHECKENABLE)0u, CHECKENABLE boundscheck = (CHECKENABLE)0u, CHECKACTION checkAction = (CHECKACTION)0u, CLIIdentifierTable dIdentifierTable = (CLIIdentifierTable)0u, CLIIdentifierTable cIdentifierTable = (CLIIdentifierTable)0u, _d_dynamicArray< const char > argv0 = {}, Array<const char* > modFileAliasStrings = Array<const char* >(), Array<const char* > imppath = Array<const char* >(), Array<const char* > fileImppath = Array<const char* >(), _d_dynamicArray< const char > objdir = {}, _d_dynamicArray< const char > objname = {}, _d_dynamicArray< const char > libname = {}, Output ddoc = Output(), Output dihdr = Output(), Output cxxhdr = Output(), Output json = Output(), JsonFieldFlags jsonFieldFlags = (JsonFieldFlags)0u, Output makeDeps = Output(), Output mixinOut = Output(), Output moduleDeps = Output(), uint32_t debuglevel = 0u, uint32_t versionlevel = 0u, bool run = false, Array<const char* > runargs = Array<const char* >(), Array<const char* > cppswitches = Array<const char* >(), const char* cpp = nullptr, Array<const char* > objfiles = Array<const char* >(), Array<const char* > linkswitches = Array<const char* >(), Array<bool > linkswitchIsForCC = Array<bool >(), Array<const char* > libfiles = Array<const char* >(), Array<const char* > dllfiles = Array<const char* >(), _d_dynamicArray< const char > deffile = {}, _d_dynamicArray< const char > resfile = {}, _d_dynamicArray< const char > exefile = {}, _d_dynamicArray< const char > mapfile = {}, bool fullyQualifiedObjectFiles = false, bool timeTrace = false, uint32_t timeTraceGranularityUs = 500u, const char* timeTraceFile = nullptr) :
         obj(obj),
         multiobj(multiobj),
         trace(trace),
@@ -8204,7 +8420,7 @@ struct Param final
         useInline(useInline),
         release(release),
         preservePaths(preservePaths),
-        warnings(warnings),
+        useWarnings(useWarnings),
         cov(cov),
         covPercent(covPercent),
         ctfe_cov(ctfe_cov),
@@ -8227,6 +8443,7 @@ struct Param final
         fieldwise(fieldwise),
         fixAliasThis(fixAliasThis),
         rvalueRefParam(rvalueRefParam),
+        safer(safer),
         noSharedAccess(noSharedAccess),
         previewIn(previewIn),
         inclusiveInContracts(inclusiveInContracts),
@@ -8275,6 +8492,7 @@ struct Param final
         resfile(resfile),
         exefile(exefile),
         mapfile(mapfile),
+        fullyQualifiedObjectFiles(fullyQualifiedObjectFiles),
         timeTrace(timeTrace),
         timeTraceGranularityUs(timeTraceGranularityUs),
         timeTraceFile(timeTraceFile)
@@ -8312,6 +8530,7 @@ struct Global final
     bool endGagging(uint32_t oldGagged);
     void increaseErrorCount();
     void _init();
+    void plugErrorSinks();
     uint32_t versionNumber();
     const char* const versionChars();
     Global() :
@@ -8636,6 +8855,7 @@ struct Id final
     static Identifier* va_start;
     static Identifier* std;
     static Identifier* core;
+    static Identifier* internal;
     static Identifier* config;
     static Identifier* c_complex_float;
     static Identifier* c_complex_double;
@@ -8721,9 +8941,12 @@ struct Id final
     static Identifier* isRef;
     static Identifier* isOut;
     static Identifier* isLazy;
+    static Identifier* isCOMClass;
     static Identifier* hasMember;
     static Identifier* identifier;
     static Identifier* fullyQualifiedName;
+    static Identifier* getBitfieldOffset;
+    static Identifier* getBitfieldWidth;
     static Identifier* getProtection;
     static Identifier* getVisibility;
     static Identifier* parent;

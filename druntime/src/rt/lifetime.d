@@ -15,6 +15,8 @@ module rt.lifetime;
 import core.attribute : weak;
 import core.internal.array.utils : __arrayStart, __arrayClearPad;
 import core.memory;
+import core.internal.gc.blkcache;
+import core.internal.gc.blockmeta;
 debug(PRINTF) import core.stdc.stdio;
 static import rt.tlsgc;
 
@@ -28,17 +30,6 @@ private
 
     extern (C) void _d_monitordelete(Object h, bool det);
 
-    enum : size_t
-    {
-        PAGESIZE = 4096,
-        BIGLENGTHMASK = ~(PAGESIZE - 1),
-        SMALLPAD = 1,
-        MEDPAD = ushort.sizeof,
-        LARGEPREFIX = 16, // 16 bytes padding at the front of the array
-        LARGEPAD = LARGEPREFIX + 1,
-        MAXSMALLSIZE = 256-SMALLPAD,
-        MAXMEDSIZE = (PAGESIZE / 2) - MEDPAD
-    }
 }
 
 // Now-removed symbol, kept around for ABI
@@ -211,191 +202,6 @@ inout(TypeInfo) unqualify(return scope inout(TypeInfo) cti) pure nothrow @nogc
     return ti;
 }
 
-// size used to store the TypeInfo at the end of an allocation for structs that have a destructor
-size_t structTypeInfoSize(const TypeInfo ti) pure nothrow @nogc
-{
-    if (ti && typeid(ti) is typeid(TypeInfo_Struct)) // avoid a complete dynamic type cast
-    {
-        auto sti = cast(TypeInfo_Struct)cast(void*)ti;
-        if (sti.xdtor)
-            return size_t.sizeof;
-    }
-    return 0;
-}
-
-/** dummy class used to lock for shared array appending */
-private class ArrayAllocLengthLock
-{}
-
-/**
-  Set the allocated length of the array block.  This is called
-  any time an array is appended to or its length is set.
-
-  The allocated block looks like this for blocks < PAGESIZE:
-
-  |elem0|elem1|elem2|...|elemN-1|emptyspace|N*elemsize|
-
-
-  The size of the allocated length at the end depends on the block size:
-
-  a block of 16 to 256 bytes has an 8-bit length.
-
-  a block with 512 to pagesize/2 bytes has a 16-bit length.
-
-  For blocks >= pagesize, the length is a size_t and is at the beginning of the
-  block.  The reason we have to do this is because the block can extend into
-  more pages, so we cannot trust the block length if it sits at the end of the
-  block, because it might have just been extended.  If we can prove in the
-  future that the block is unshared, we may be able to change this, but I'm not
-  sure it's important.
-
-  In order to do put the length at the front, we have to provide 16 bytes
-  buffer space in case the block has to be aligned properly.  In x86, certain
-  SSE instructions will only work if the data is 16-byte aligned.  In addition,
-  we need the sentinel byte to prevent accidental pointers to the next block.
-  Because of the extra overhead, we only do this for page size and above, where
-  the overhead is minimal compared to the block size.
-
-  So for those blocks, it looks like:
-
-  |N*elemsize|padding|elem0|elem1|...|elemN-1|emptyspace|sentinelbyte|
-
-  where elem0 starts 16 bytes after the first byte.
-  */
-bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, const TypeInfo tinext, size_t oldlength = ~0) pure nothrow
-{
-    import core.atomic;
-
-    size_t typeInfoSize = structTypeInfoSize(tinext);
-
-    if (info.size <= 256)
-    {
-        import core.checkedint;
-
-        bool overflow;
-        auto newlength_padded = addu(newlength,
-                                     addu(SMALLPAD, typeInfoSize, overflow),
-                                     overflow);
-
-        if (newlength_padded > info.size || overflow)
-            // new size does not fit inside block
-            return false;
-
-        auto length = cast(ubyte *)(info.base + info.size - typeInfoSize - SMALLPAD);
-        if (oldlength != ~0)
-        {
-            if (isshared)
-            {
-                return cas(cast(shared)length, cast(ubyte)oldlength, cast(ubyte)newlength);
-            }
-            else
-            {
-                if (*length == cast(ubyte)oldlength)
-                    *length = cast(ubyte)newlength;
-                else
-                    return false;
-            }
-        }
-        else
-        {
-            // setting the initial length, no cas needed
-            *length = cast(ubyte)newlength;
-        }
-        if (typeInfoSize)
-        {
-            auto typeInfo = cast(TypeInfo*)(info.base + info.size - size_t.sizeof);
-            *typeInfo = cast() tinext;
-        }
-    }
-    else if (info.size < PAGESIZE)
-    {
-        if (newlength + MEDPAD + typeInfoSize > info.size)
-            // new size does not fit inside block
-            return false;
-        auto length = cast(ushort *)(info.base + info.size - typeInfoSize - MEDPAD);
-        if (oldlength != ~0)
-        {
-            if (isshared)
-            {
-                return cas(cast(shared)length, cast(ushort)oldlength, cast(ushort)newlength);
-            }
-            else
-            {
-                if (*length == oldlength)
-                    *length = cast(ushort)newlength;
-                else
-                    return false;
-            }
-        }
-        else
-        {
-            // setting the initial length, no cas needed
-            *length = cast(ushort)newlength;
-        }
-        if (typeInfoSize)
-        {
-            auto typeInfo = cast(TypeInfo*)(info.base + info.size - size_t.sizeof);
-            *typeInfo = cast() tinext;
-        }
-    }
-    else
-    {
-        if (newlength + LARGEPAD > info.size)
-            // new size does not fit inside block
-            return false;
-        auto length = cast(size_t *)(info.base);
-        if (oldlength != ~0)
-        {
-            if (isshared)
-            {
-                return cas(cast(shared)length, cast(size_t)oldlength, cast(size_t)newlength);
-            }
-            else
-            {
-                if (*length == oldlength)
-                    *length = newlength;
-                else
-                    return false;
-            }
-        }
-        else
-        {
-            // setting the initial length, no cas needed
-            *length = newlength;
-        }
-        if (typeInfoSize)
-        {
-            auto typeInfo = cast(TypeInfo*)(info.base + size_t.sizeof);
-            *typeInfo = cast()tinext;
-        }
-    }
-    return true; // resize succeeded
-}
-
-/**
-  get the allocation size of the array for the given block (without padding or type info)
-  */
-private size_t __arrayAllocLength(ref BlkInfo info, const TypeInfo tinext) pure nothrow
-{
-    if (info.size <= 256)
-        return *cast(ubyte *)(info.base + info.size - structTypeInfoSize(tinext) - SMALLPAD);
-
-    if (info.size < PAGESIZE)
-        return *cast(ushort *)(info.base + info.size - structTypeInfoSize(tinext) - MEDPAD);
-
-    return *cast(size_t *)(info.base);
-}
-
-/**
-  get the padding required to allocate size bytes.  Note that the padding is
-  NOT included in the passed in size.  Therefore, do NOT call this function
-  with the size of an allocated block.
-  */
-private size_t __arrayPad(size_t size, const TypeInfo tinext) nothrow pure @trusted
-{
-    return size > MAXMEDSIZE ? LARGEPAD : ((size > MAXSMALLSIZE ? MEDPAD : SMALLPAD) + structTypeInfoSize(tinext));
-}
-
 /**
   allocate an array memory block by applying the proper padding and
   assigning block attributes if not inherited from the existing block
@@ -440,206 +246,6 @@ private BlkInfo __arrayAlloc(size_t arrsize, ref BlkInfo info, const scope TypeI
     auto bi = GC.qalloc(padded_size, info.attr, tinext);
     __arrayClearPad(bi, arrsize, padsize);
     return bi;
-}
-
-/**
-  cache for the lookup of the block info
-  */
-private enum N_CACHE_BLOCKS=8;
-
-// note this is TLS, so no need to sync.
-BlkInfo *__blkcache_storage;
-
-static if (N_CACHE_BLOCKS==1)
-{
-    version=single_cache;
-}
-else
-{
-    //version=simple_cache; // uncomment to test simple cache strategy
-    //version=random_cache; // uncomment to test random cache strategy
-
-    // ensure N_CACHE_BLOCKS is power of 2.
-    static assert(!((N_CACHE_BLOCKS - 1) & N_CACHE_BLOCKS));
-
-    version (random_cache)
-    {
-        int __nextRndNum = 0;
-    }
-    int __nextBlkIdx;
-}
-
-@property BlkInfo *__blkcache() nothrow
-{
-    if (!__blkcache_storage)
-    {
-        import core.stdc.stdlib;
-        import core.stdc.string;
-        // allocate the block cache for the first time
-        immutable size = BlkInfo.sizeof * N_CACHE_BLOCKS;
-        __blkcache_storage = cast(BlkInfo *)malloc(size);
-        memset(__blkcache_storage, 0, size);
-    }
-    return __blkcache_storage;
-}
-
-// called when thread is exiting.
-static ~this()
-{
-    // free the blkcache
-    if (__blkcache_storage)
-    {
-        import core.stdc.stdlib;
-        free(__blkcache_storage);
-        __blkcache_storage = null;
-    }
-}
-
-
-// we expect this to be called with the lock in place
-void processGCMarks(BlkInfo* cache, scope rt.tlsgc.IsMarkedDg isMarked) nothrow
-{
-    // called after the mark routine to eliminate block cache data when it
-    // might be ready to sweep
-
-    debug(PRINTF) printf("processing GC Marks, %x\n", cache);
-    if (cache)
-    {
-        debug(PRINTF) foreach (i; 0 .. N_CACHE_BLOCKS)
-        {
-            printf("cache entry %d has base ptr %x\tsize %d\tflags %x\n", i, cache[i].base, cache[i].size, cache[i].attr);
-        }
-        auto cache_end = cache + N_CACHE_BLOCKS;
-        for (;cache < cache_end; ++cache)
-        {
-            if (cache.base != null && !isMarked(cache.base))
-            {
-                debug(PRINTF) printf("clearing cache entry at %x\n", cache.base);
-                cache.base = null; // clear that data.
-            }
-        }
-    }
-}
-
-unittest
-{
-    // Bugzilla 10701 - segfault in GC
-    ubyte[] result; result.length = 4096;
-    GC.free(result.ptr);
-    GC.collect();
-}
-
-/**
-  Get the cached block info of an interior pointer.  Returns null if the
-  interior pointer's block is not cached.
-
-  NOTE: The base ptr in this struct can be cleared asynchronously by the GC,
-        so any use of the returned BlkInfo should copy it and then check the
-        base ptr of the copy before actually using it.
-
-  TODO: Change this function so the caller doesn't have to be aware of this
-        issue.  Either return by value and expect the caller to always check
-        the base ptr as an indication of whether the struct is valid, or set
-        the BlkInfo as a side-effect and return a bool to indicate success.
-  */
-BlkInfo *__getBlkInfo(void *interior) nothrow
-{
-    BlkInfo *ptr = __blkcache;
-    version (single_cache)
-    {
-        if (ptr.base && ptr.base <= interior && (interior - ptr.base) < ptr.size)
-            return ptr;
-        return null; // not in cache.
-    }
-    else version (simple_cache)
-    {
-        foreach (i; 0..N_CACHE_BLOCKS)
-        {
-            if (ptr.base && ptr.base <= interior && (interior - ptr.base) < ptr.size)
-                return ptr;
-            ptr++;
-        }
-    }
-    else
-    {
-        // try to do a smart lookup, using __nextBlkIdx as the "head"
-        auto curi = ptr + __nextBlkIdx;
-        for (auto i = curi; i >= ptr; --i)
-        {
-            if (i.base && i.base <= interior && cast(size_t)(interior - i.base) < i.size)
-                return i;
-        }
-
-        for (auto i = ptr + N_CACHE_BLOCKS - 1; i > curi; --i)
-        {
-            if (i.base && i.base <= interior && cast(size_t)(interior - i.base) < i.size)
-                return i;
-        }
-    }
-    return null; // not in cache.
-}
-
-void __insertBlkInfoCache(BlkInfo bi, BlkInfo *curpos) nothrow
-{
-    version (single_cache)
-    {
-        *__blkcache = bi;
-    }
-    else
-    {
-        version (simple_cache)
-        {
-            if (curpos)
-                *curpos = bi;
-            else
-            {
-                // note, this is a super-simple algorithm that does not care about
-                // most recently used.  It simply uses a round-robin technique to
-                // cache block info.  This means that the ordering of the cache
-                // doesn't mean anything.  Certain patterns of allocation may
-                // render the cache near-useless.
-                __blkcache[__nextBlkIdx] = bi;
-                __nextBlkIdx = (__nextBlkIdx+1) & (N_CACHE_BLOCKS - 1);
-            }
-        }
-        else version (random_cache)
-        {
-            // strategy: if the block currently is in the cache, move the
-            // current block index to the a random element and evict that
-            // element.
-            auto cache = __blkcache;
-            if (!curpos)
-            {
-                __nextBlkIdx = (__nextRndNum = 1664525 * __nextRndNum + 1013904223) & (N_CACHE_BLOCKS - 1);
-                curpos = cache + __nextBlkIdx;
-            }
-            else
-            {
-                __nextBlkIdx = curpos - cache;
-            }
-            *curpos = bi;
-        }
-        else
-        {
-            //
-            // strategy: If the block currently is in the cache, swap it with
-            // the head element.  Otherwise, move the head element up by one,
-            // and insert it there.
-            //
-            auto cache = __blkcache;
-            if (!curpos)
-            {
-                __nextBlkIdx = (__nextBlkIdx+1) & (N_CACHE_BLOCKS - 1);
-                curpos = cache + __nextBlkIdx;
-            }
-            else if (curpos !is cache + __nextBlkIdx)
-            {
-                *curpos = cache[__nextBlkIdx];
-                curpos = cache + __nextBlkIdx;
-            }
-            *curpos = bi;
-        }
-    }
 }
 
 /**
@@ -1758,85 +1364,65 @@ do
 Given an array of length `size` that needs to be expanded to `newlength`,
 compute a new capacity.
 
-Better version by Dave Fladebo:
+Better version by Dave Fladebo, enhanced by Steven Schveighoffer:
 This uses an inverse logorithmic algorithm to pre-allocate a bit more
 space for larger arrays.
-- Arrays smaller than PAGESIZE bytes are left as-is, so for the most
-common cases, memory allocation is 1 to 1. The small overhead added
-doesn't affect small array perf. (it's virtually the same as
-current).
-- Larger arrays have some space pre-allocated.
+- The maximum "extra" space is about 80% of the requested space. This is for
+PAGE size and smaller.
 - As the arrays grow, the relative pre-allocated space shrinks.
-- The logorithmic algorithm allocates relatively more space for
-mid-size arrays, making it very fast for medium arrays (for
-mid-to-large arrays, this turns out to be quite a bit faster than the
-equivalent realloc() code in C, on Linux at least. Small arrays are
-just as fast as GCC).
 - Perhaps most importantly, overall memory usage and stress on the GC
 is decreased significantly for demanding environments.
+- The algorithm is tuned to avoid any division at runtime.
 
 Params:
     newlength = new `.length`
-    size = old `.length`
+    elemsize = size of the element in the new array
 Returns: new capacity for array
 */
-size_t newCapacity(size_t newlength, size_t size)
+size_t newCapacity(size_t newlength, size_t elemsize)
 {
-    version (none)
-    {
-        size_t newcap = newlength * size;
-    }
-    else
-    {
-        size_t newcap = newlength * size;
-        size_t newext = 0;
+    size_t newcap = newlength * elemsize;
 
-        if (newcap > PAGESIZE)
+    /*
+     * Max growth factor numerator is 234, so allow for multiplying by 256.
+     * But also, the resulting size cannot be more than 2x, so prevent
+     * growing if 2x would fill up the address space (for 32-bit)
+     */
+    enum largestAllowed = (ulong.max >> 8) & (size_t.max >> 1);
+    if (!newcap || (newcap & ~largestAllowed))
+        return newcap;
+
+    /*
+     * The calculation for "extra" space depends on the requested capacity.
+     * We use an inverse logarithm of the new capacity to add an extra 15%
+     * to 83% capacity. Note that normally we humans think in terms of
+     * percent, but using 128 instead of 100 for the denominator means we
+     * can avoid all division by simply bit-shifthing. Since there are only
+     * 64 bits in a long, the bsr of a size_t is going to be 0 - 63. Using
+     * a lookup table allows us to precalculate the multiplier based on the
+     * inverse logarithm. The formula rougly is:
+     *
+     * newcap = request * (1.0 + min(0.83, 10.0 / (log(request) + 1)))
+     */
+    import core.bitop;
+    static immutable multTable = (){
+        assert(__ctfe);
+        ulong[size_t.sizeof * 8] result;
+        foreach (i; 0 .. result.length)
         {
-            //double mult2 = 1.0 + (size / log10(pow(newcap * 2.0,2.0)));
-
-            // redo above line using only integer math
-
-            /*static int log2plus1(size_t c)
-            {   int i;
-
-                if (c == 0)
-                    i = -1;
-                else
-                    for (i = 1; c >>= 1; i++)
-                    {
-                    }
-                return i;
-            }*/
-
-            /* The following setting for mult sets how much bigger
-             * the new size will be over what is actually needed.
-             * 100 means the same size, more means proportionally more.
-             * More means faster but more memory consumption.
-             */
-            //long mult = 100 + (1000L * size) / (6 * log2plus1(newcap));
-            //long mult = 100 + (1000L * size) / log2plus1(newcap);
-            import core.bitop;
-            long mult = 100 + (1000L) / (bsr(newcap) + 1);
-
-            // testing shows 1.02 for large arrays is about the point of diminishing return
-            //
-            // Commented out because the multipler will never be < 102.  In order for it to be < 2,
-            // then 1000L / (bsr(x) + 1) must be > 2.  The highest bsr(x) + 1
-            // could be is 65 (64th bit set), and 1000L / 64 is much larger
-            // than 2.  We need 500 bit integers for 101 to be achieved :)
-            /*if (mult < 102)
-                mult = 102;*/
-            /*newext = cast(size_t)((newcap * mult) / 100);
-            newext -= newext % size;*/
-            // This version rounds up to the next element, and avoids using
-            // mod.
-            newext = cast(size_t)((newlength * mult + 99) / 100) * size;
-            debug(PRINTF) printf("mult: %2.2f, alloc: %2.2f\n",mult/100.0,newext / cast(double)size);
+            auto factor = 128 + 1280 / (i + 1);
+            result[i] = factor > 234 ? 234 : factor;
         }
-        newcap = newext > newcap ? newext : newcap;
-        debug(PRINTF) printf("newcap = %d, newlength = %d, size = %d\n", newcap, newlength, size);
-    }
+        return result;
+    }();
+
+    auto mult = multTable[bsr(newcap)];
+
+    // if this were per cent, then the code would look like:
+    // ((newlength * mult + 99) / 100) * elemsize
+    newcap = cast(size_t)((newlength * mult + 127) >> 7) * elemsize;
+    debug(PRINTF) printf("mult: %2.2f, alloc: %2.2f\n",mult/128.0,newcap / cast(double)elemsize);
+    debug(PRINTF) printf("newcap = %d, newlength = %d, elemsize = %d\n", newcap, newlength, elemsize);
     return newcap;
 }
 

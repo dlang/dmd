@@ -35,7 +35,6 @@ __gshared:
 /* Global flags:
  */
 
-char PARSER = 0;                    // indicate we're in the parser
 char OPTIMIZER = 0;                 // indicate we're in the optimizer
 int structalign;                /* alignment for members of structures  */
 char dbcs = 0;                      // current double byte character set
@@ -67,16 +66,13 @@ char debugy = 0; /// watch output to il buffer
 /* File variables: */
 
 char *argv0;                    // argv[0] (program name)
-extern (C)
-{
-FILE *fdep = null;              // dependency file stream pointer
-FILE *flst = null;              // list file stream pointer
-FILE *fin = null;               // input file
-}
+FILE* fdep = null;              // dependency file stream pointer
+FILE* flst = null;              // list file stream pointer
+FILE* fin = null;               // input file
 
 // htod
 char *fdmodulename = null;
-extern (C) FILE *fdmodule = null;
+FILE* fdmodule = null;
 
 char*   foutdir = null,       // directory to place output files in
         finname = null,
@@ -164,7 +160,7 @@ char[SCMAX] sytab =
     /* adl */      0                ,      /* list of ADL symbols for overloading  */
 ];
 
-extern (C) int controlc_saw = 0;              /* a control C was seen         */
+int controlc_saw = 0;              /* a control C was seen         */
 symtab_t globsym;               /* global symbol table                  */
 Pstate pstate;                  // parser state
 Cstate cstate;                  // compiler state
@@ -216,7 +212,7 @@ extern (D) private enum tytab_init =
 } ();
 
 /// Give an ascii string for a type
-extern (C) __gshared const(char)*[TYMAX] tystring =
+__gshared const(char)*[TYMAX] tystring =
 () {
     const(char)*[TYMAX] ret = [
         TYbool    : "bool",

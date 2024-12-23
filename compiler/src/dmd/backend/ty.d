@@ -287,7 +287,6 @@ bool tyvector(tym_t ty) { return tybasic(ty) >= TYfloat4 && tybasic(ty) <= TYull
 uint tyshort(tym_t ty) { return tytab[ty & 0xFF] & TYFLshort; }
 
 /* Detect TYlong or TYulong     */
-@trusted
 bool tylong(tym_t ty) { return tybasic(ty) == TYlong || tybasic(ty) == TYulong; }
 
 /* Use to detect a pointer type */

@@ -360,7 +360,7 @@ type *type_dyn_array(type *tnext)
  *      Tcount already incremented
  */
 
-extern (C) type *type_static_array(targ_size_t dim, type *tnext)
+type* type_static_array(targ_size_t dim, type *tnext)
 {
     type *t = type_allocn(TYarray, tnext);
     t.Tdim = dim;
@@ -410,7 +410,6 @@ type *type_delegate(type *tnext)
  *      Tcount already incremented
  */
 @trusted
-extern (C)
 type *type_function(tym_t tyf, type*[] ptypes, bool variadic, type *tret)
 {
     param_t *paramtypes = null;

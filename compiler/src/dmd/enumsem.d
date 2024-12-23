@@ -30,7 +30,6 @@ import dmd.declaration;
 import dmd.denum;
 import dmd.dimport;
 import dmd.dinterpret;
-import dmd.dmangle;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
@@ -119,7 +118,7 @@ void enumSemantic(Scope* sc, EnumDeclaration ed)
     ed.cppnamespace = sc.namespace;
 
     ed.semanticRun = PASS.semantic;
-    UserAttributeDeclaration.checkGNUABITag(ed, sc.linkage);
+    checkGNUABITag(ed, sc.linkage);
     checkMustUseReserved(ed);
 
     if (!ed.members && !ed.memtype) // enum ident;
@@ -186,7 +185,7 @@ void enumSemantic(Scope* sc, EnumDeclaration ed)
 
     if (ed.members.length == 0)
     {
-        .error(ed.loc, "%s `%s enum `%s` must have at least one member", ed.kind, ed.toPrettyChars, ed.toChars());
+        .error(ed.loc, "%s `%s` enum `%s` must have at least one member", ed.kind, ed.toPrettyChars, ed.toChars());
         ed.errors = true;
         ed.semanticRun = PASS.semanticdone;
         return;
@@ -699,7 +698,7 @@ void enumMemberSemantic(Scope* sc, EnumMember em)
 
         if (e.op == EXP.error)
             return errorReturn();
-        if (e.type.isfloating())
+        if (e.type.isFloating())
         {
             // Check that e != eprev (not always true for floats)
             Expression etest = new EqualExp(EXP.equal, em.loc, e, eprev);

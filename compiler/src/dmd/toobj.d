@@ -35,6 +35,7 @@ import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
+import dmd.dsymbolsem : include;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.errorsink;
@@ -785,7 +786,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
         override void visit(PragmaDeclaration pd)
         {
-            if (pd.ident == Id.lib)
+            if (pd.ident == Id.lib || pd.ident == Id.linkerDirective)
             {
                 assert(pd.args && pd.args.length == 1);
 
@@ -795,19 +796,25 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
                 StringExp se = e.isStringExp();
                 char *name = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
+
                 se.writeTo(name, true);
 
-                /* Embed the library names into the object file.
-                 * The linker will then automatically
-                 * search that library, too.
-                 */
-                if (!obj_includelib(name[0 .. strlen(name)]))
+                if (pd.ident == Id.linkerDirective)
+                    obj_linkerdirective(name);
+                else
                 {
-                    /* The format does not allow embedded library names,
-                     * so instead append the library name to the list to be passed
-                     * to the linker.
+                    /* Embed the library names into the object file.
+                     * The linker will then automatically
+                     * search that library, too.
                      */
-                    global.params.libfiles.push(name);
+                    if (!obj_includelib(name[0 .. strlen(name)]))
+                    {
+                        /* The format does not allow embedded library names,
+                         * so instead append the library name to the list to be passed
+                         * to the linker.
+                         */
+                        global.params.libfiles.push(name);
+                    }
                 }
             }
             else if (pd.ident == Id.startaddress)
@@ -819,24 +826,6 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 assert(f);
                 Symbol *s = toSymbol(f);
                 obj_startaddress(s);
-            }
-            else if (pd.ident == Id.linkerDirective)
-            {
-                assert(pd.args && pd.args.length == 1);
-
-                Expression e = (*pd.args)[0];
-
-                assert(e.op == EXP.string_);
-
-                StringExp se = e.isStringExp();
-                size_t length = se.numberOfCodeUnits() + 1;
-                debug enum LEN = 2; else enum LEN = 20;
-                char[LEN] buffer = void;
-                SmallBuffer!char directive = SmallBuffer!char(length, buffer);
-
-                se.writeTo(directive.ptr, true);
-
-                obj_linkerdirective(directive.ptr);
             }
 
             visit(cast(AttribDeclaration)pd);

@@ -32,10 +32,10 @@ import dmd.identifier;
 import dmd.init;
 import dmd.mtype;
 import dmd.opover;
-import dmd.postordervisitor;
 import dmd.statement;
 import dmd.tokens;
 import dmd.visitor;
+import dmd.visitor.postorder;
 
 enum COST_MAX = 250;
 

@@ -23,7 +23,6 @@ import dmd.dcast;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dinterpret;
-import dmd.dmangle;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
@@ -109,7 +108,7 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
     tempdecl.isstatic = tempdecl.toParent().isModule() || (tempdecl._scope.stc & STC.static_);
     tempdecl.deprecated_ = !!(sc.stc & STC.deprecated_);
 
-    UserAttributeDeclaration.checkGNUABITag(tempdecl, sc.linkage);
+    checkGNUABITag(tempdecl, sc.linkage);
 
     if (!tempdecl.isstatic)
     {
@@ -354,7 +353,7 @@ MATCH matchWithInstance(Scope* sc, TemplateDeclaration td, TemplateInstance ti, 
 
             // Resolve parameter types and 'auto ref's.
             tf.inferenceArguments = argumentList;
-            uint olderrors = global.startGagging();
+            const olderrors = global.startGagging();
             fd.type = tf.typeSemantic(td.loc, paramscope);
             global.endGagging(olderrors);
             if (fd.type.ty != Tfunction)
@@ -624,7 +623,7 @@ MATCH leastAsSpecialized(Scope* sc, TemplateDeclaration td, TemplateDeclaration 
     enum LOG_LEASTAS = 0;
     static if (LOG_LEASTAS)
     {
-        printf("%s.leastAsSpecialized(%s)\n", toChars(), td2.toChars());
+        printf("%s.leastAsSpecialized(%s)\n", td.toChars(), td2.toChars());
     }
 
     /* This works by taking the template parameters to this template
@@ -1253,7 +1252,13 @@ extern (D) MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, Templat
                 //printf("farg = %s %s\n", farg.type.toChars(), farg.toChars());
 
                 RootObject oarg = farg;
-                if ((fparam.storageClass & STC.ref_) && (!(fparam.storageClass & STC.auto_) || farg.isLvalue()))
+
+                if (farg.isFuncExp())
+                {
+                    // When assigning an untyped (void) lambda `x => y` to a `(F)(ref F)` parameter,
+                    // we don't want to deduce type void creating a void parameter
+                }
+                else if ((fparam.storageClass & STC.ref_) && (!(fparam.storageClass & STC.auto_) || farg.isLvalue()))
                 {
                     /* Allow expressions that have CT-known boundaries and type [] to match with [dim]
                      */
@@ -1422,7 +1427,7 @@ extern (D) MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, Templat
                             Dsymbol s;
                             Scope *sco;
 
-                            uint errors = global.startGagging();
+                            const errors = global.startGagging();
                             /* ref: https://issues.dlang.org/show_bug.cgi?id=11118
                              * The parameter isn't part of the template
                              * ones, let's try to find it in the
@@ -1729,7 +1734,7 @@ FuncDeclaration doHeaderInstantiation(TemplateDeclaration td, TemplateInstance t
     {
         // For constructors, emitting return type is necessary for
         // isReturnIsolated() in functionResolve.
-        tf.isctor = true;
+        tf.isCtor = true;
 
         Dsymbol parent = td.toParentDecl();
         Type tret;
@@ -1747,7 +1752,7 @@ FuncDeclaration doHeaderInstantiation(TemplateDeclaration td, TemplateInstance t
         }
         tf.next = tret;
         if (ad && ad.isStructDeclaration())
-            tf.isref = 1;
+            tf.isRef = 1;
         //printf("tf = %s\n", tf.toChars());
     }
     else
@@ -1885,23 +1890,22 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
 {
     version (none)
     {
-        printf("functionResolve() dstart = %s\n", dstart.toChars());
-        printf("    tiargs:\n");
-        if (tiargs)
+        printf("functionResolve() dstart: %s (", dstart.toChars());
+        for (size_t i = 0; i < (tiargs ? (*tiargs).length : 0); i++)
         {
-            for (size_t i = 0; i < tiargs.length; i++)
-            {
-                RootObject arg = (*tiargs)[i];
-                printf("\t%s\n", arg.toChars());
-            }
+            if (i) printf(", ");
+            RootObject arg = (*tiargs)[i];
+            printf("%s", arg.toChars());
         }
-        printf("    fargs:\n");
-        for (size_t i = 0; i < (fargs ? fargs.length : 0); i++)
+        printf(")(");
+        for (size_t i = 0; i < (argumentList.arguments ? (*argumentList.arguments).length : 0); i++)
         {
-            Expression arg = (*fargs)[i];
-            printf("\t%s %s\n", arg.type.toChars(), arg.toChars());
+            if (i) printf(", ");
+            Expression arg = (*argumentList.arguments)[i];
+            printf("%s %s", arg.type.toChars(), arg.toChars());
             //printf("\tty = %d\n", arg.type.ty);
         }
+        printf(")\n");
         //printf("stc = %llx\n", dstart._scope.stc);
         //printf("match:t/f = %d/%d\n", ta_last, m.last);
     }
@@ -1940,7 +1944,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
         //printf("fd = %s %s, fargs = %s\n", fd.toChars(), fd.type.toChars(), fargs.toChars());
         auto tf = fd.type.isTypeFunction();
 
-        int prop = tf.isproperty ? 1 : 2;
+        int prop = tf.isProperty ? 1 : 2;
         if (property == 0)
             property = prop;
         else if (property != prop)
@@ -1988,7 +1992,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
                 tf.mod = tthis_fd.mod;
         }
         const(char)* failMessage;
-        MATCH mfa = tf.callMatch(tthis_fd, argumentList, 0, errorHelper, sc);
+        MATCH mfa = callMatch(fd, tf, tthis_fd, argumentList, 0, errorHelper, sc);
         //printf("test1: mfa = %d\n", mfa);
         if (failMessage)
             errorHelper(failMessage);
@@ -2193,7 +2197,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
             Type tthis_fd = fd.needThis() && !fd.isCtorDeclaration() ? tthis : null;
 
             auto tf = fd.type.isTypeFunction();
-            MATCH mfa = tf.callMatch(tthis_fd, argumentList, 0, null, sc);
+            MATCH mfa = callMatch(fd, tf, tthis_fd, argumentList, 0, null, sc);
             if (mfa < m.last)
                 return 0;
 
@@ -2295,8 +2299,8 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
                 // Disambiguate by tf.callMatch
                 auto tf1 = fd.type.isTypeFunction();
                 auto tf2 = m.lastf.type.isTypeFunction();
-                MATCH c1 = tf1.callMatch(tthis_fd, argumentList, 0, null, sc);
-                MATCH c2 = tf2.callMatch(tthis_best, argumentList, 0, null, sc);
+                MATCH c1 = callMatch(fd,      tf1, tthis_fd,   argumentList, 0, null, sc);
+                MATCH c2 = callMatch(m.lastf, tf2, tthis_best, argumentList, 0, null, sc);
                 //printf("2: c1 = %d, c2 = %d\n", c1, c2);
                 if (c1 > c2) goto Ltd;
                 if (c1 < c2) goto Ltd_best;
@@ -2399,7 +2403,7 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
         if (m.lastf.type.ty == Terror)
             goto Lerror;
         auto tf = m.lastf.type.isTypeFunction();
-        if (!tf.callMatch(tthis_best, argumentList, 0, null, sc))
+        if (callMatch(m.lastf, tf, tthis_best, argumentList, 0, null, sc) == MATCH.nomatch)
             goto Lnomatch;
 
         /* As https://issues.dlang.org/show_bug.cgi?id=3682 shows,
@@ -2427,5 +2431,72 @@ void functionResolve(ref MatchAccumulator m, Dsymbol dstart, Loc loc, Scope* sc,
         m.count = 0;
         m.lastf = null;
         m.last = MATCH.nomatch;
+    }
+}
+/* Create dummy argument based on parameter.
+ */
+private RootObject dummyArg(TemplateParameter tp)
+{
+    scope v = new DummyArgVisitor();
+    tp.accept(v);
+    return v.result;
+}
+private extern(C++) class DummyArgVisitor : Visitor
+{
+    RootObject result;
+
+    alias visit = typeof(super).visit;
+    override void visit(TemplateTypeParameter ttp)
+    {
+        Type t = ttp.specType;
+        if (t)
+        {
+            result = t;
+            return;
+        }
+        // Use this for alias-parameter's too (?)
+        if (!ttp.tdummy)
+            ttp.tdummy = new TypeIdentifier(ttp.loc, ttp.ident);
+        result = ttp.tdummy;
+    }
+
+    override void visit(TemplateValueParameter tvp)
+    {
+        Expression e = tvp.specValue;
+        if (e)
+        {
+            result = e;
+            return;
+        }
+
+        // Create a dummy value
+        auto pe = cast(void*)tvp.valType in tvp.edummies;
+        if (pe)
+        {
+            result = *pe;
+            return;
+        }
+
+        e = tvp.valType.defaultInit(Loc.initial);
+        tvp.edummies[cast(void*)tvp.valType] = e;
+        result = e;
+    }
+
+    override void visit(TemplateAliasParameter tap)
+    {
+        RootObject s = tap.specAlias;
+        if (s)
+        {
+            result = s;
+            return;
+        }
+        if (!tap.sdummy)
+            tap.sdummy = new Dsymbol();
+        result = tap.sdummy;
+    }
+
+    override void visit(TemplateTupleParameter tap)
+    {
+        result = null;
     }
 }

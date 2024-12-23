@@ -1,4 +1,3 @@
-// REQUIRED_ARGS: -main
 // LINK:
 
 // test __builtin_va_start and __builtin_va_end
@@ -23,3 +22,5 @@ int test21974(const char *format, ...)
     __builtin_va_end(va);
     return ret;
 }
+
+void main() {}

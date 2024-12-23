@@ -21,14 +21,21 @@ import dmd.dcast : implicitConvTo;
 import dmd.dclass;
 import dmd.declaration;
 import dmd.dscope;
+import dmd.dsymbol;
+import dmd.dsymbolsem : determineSize;
+import dmd.errors;
 import dmd.expression;
+import dmd.func;
+import dmd.funcsem : isRootTraitsCompilesScope;
+import dmd.globals : FeatureState, global;
 import dmd.id;
 import dmd.identifier;
+import dmd.location;
 import dmd.mtype;
+import dmd.rootobject;
 import dmd.target;
 import dmd.tokens;
 import dmd.typesem : hasPointers, arrayOf, size;
-import dmd.funcsem : setUnsafe, setUnsafePreview;
 
 /*************************************************************
  * Check for unsafe access in @safe code:
@@ -51,102 +58,103 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
     if (e.op != EXP.dotVariable)
         return false;
     auto dve = cast(DotVarExp)e;
-    if (VarDeclaration v = dve.var.isVarDeclaration())
+    VarDeclaration v = dve.var.isVarDeclaration();
+    if (!v)
+        return false;
+    if (!sc.func)
+        return false;
+    auto ad = v.isMember2();
+    if (!ad)
+        return false;
+
+    import dmd.globals : global;
+    if (v.isSystem())
     {
-        if (!sc.func)
-            return false;
-        auto ad = v.isMember2();
-        if (!ad)
-            return false;
-
-        import dmd.globals : global;
-        if (v.isSystem())
-        {
-            if (sc.setUnsafePreview(global.params.systemVariables, !printmsg, e.loc,
-                "cannot access `@system` field `%s.%s` in `@safe` code", ad, v))
-                return true;
-        }
-
-        // This branch shouldn't be here, but unfortunately calling `ad.determineSize`
-        // breaks code with circular reference errors. Specifically, test23589.d fails
-        if (ad.sizeok != Sizeok.done && !sc.func.isSafeBypassingInference())
-            return false;
-
-        // needed to set v.overlapped and v.overlapUnsafe
-        if (ad.sizeok != Sizeok.done)
-            ad.determineSize(ad.loc);
-
-        import dmd.globals : FeatureState;
-        const hasPointers = v.type.hasPointers();
-        if (hasPointers)
-        {
-            if (v.overlapped)
-            {
-                if (sc.func.isSafeBypassingInference() && sc.setUnsafe(!printmsg, e.loc,
-                    "field `%s.%s` cannot access pointers in `@safe` code that overlap other fields", ad, v))
-                {
-                    return true;
-                }
-                else
-                {
-                    // @@@DEPRECATED_2.116@@@
-                    // https://issues.dlang.org/show_bug.cgi?id=20655
-                    // Inferring `@system` because of union access breaks code,
-                    // so make it a deprecation safety violation as of 2.106
-                    // To turn into an error, remove `isSafeBypassingInference` check in the
-                    // above if statement and remove the else branch
-                    sc.setUnsafePreview(FeatureState.default_, !printmsg, e.loc,
-                        "field `%s.%s` cannot access pointers in `@safe` code that overlap other fields", ad, v);
-                }
-            }
-        }
-
-        if (v.type.hasInvariant())
-        {
-            if (v.overlapped)
-            {
-                if (sc.setUnsafe(!printmsg, e.loc,
-                    "field `%s.%s` cannot access structs with invariants in `@safe` code that overlap other fields",
-                    ad, v))
-                    return true;
-            }
-        }
-
-        // @@@DEPRECATED_2.119@@@
-        // https://issues.dlang.org/show_bug.cgi?id=24477
-        // Should probably be turned into an error in a new edition
-        if (v.type.hasUnsafeBitpatterns() && v.overlapped && sc.setUnsafePreview(
-            FeatureState.default_, !printmsg, e.loc,
-            "cannot access overlapped field `%s.%s` with unsafe bit patterns in `@safe` code", ad, v)
-        )
-        {
+        if (sc.setUnsafePreview(global.params.systemVariables, !printmsg, e.loc,
+            "cannot access `@system` field `%s.%s` in `@safe` code", ad, v))
             return true;
-        }
+    }
 
-        if (readonly || !e.type.isMutable())
-            return false;
+    // This branch shouldn't be here, but unfortunately calling `ad.determineSize`
+    // breaks code with circular reference errors. Specifically, test23589.d fails
+    if (ad.sizeok != Sizeok.done && !sc.func.isSafeBypassingInference())
+        return false;
 
-        if (hasPointers && v.type.toBasetype().ty != Tstruct)
+    // needed to set v.overlapped and v.overlapUnsafe
+    if (ad.sizeok != Sizeok.done)
+        ad.determineSize(ad.loc);
+
+    import dmd.globals : FeatureState;
+    const hasPointers = v.type.hasPointers();
+    if (hasPointers)
+    {
+        if (v.overlapped)
         {
-            if ((!ad.type.alignment.isDefault() && ad.type.alignment.get() < target.ptrsize) ||
-                 (v.offset & (target.ptrsize - 1)))
-            {
-                if (sc.setUnsafe(!printmsg, e.loc,
-                    "field `%s.%s` cannot modify misaligned pointers in `@safe` code", ad, v))
-                    return true;
-            }
-        }
-
-        if (v.overlapUnsafe)
-        {
-            if (sc.setUnsafe(!printmsg, e.loc,
-                "field `%s.%s` cannot modify fields in `@safe` code that overlap fields with other storage classes",
-                ad, v))
+            if (sc.func.isSafeBypassingInference() && sc.setUnsafe(!printmsg, e.loc,
+                "field `%s.%s` cannot access pointers in `@safe` code that overlap other fields", ad, v))
             {
                 return true;
+            }
+            else
+            {
+                // @@@DEPRECATED_2.116@@@
+                // https://issues.dlang.org/show_bug.cgi?id=20655
+                // Inferring `@system` because of union access breaks code,
+                // so make it a deprecation safety violation as of 2.106
+                // To turn into an error, remove `isSafeBypassingInference` check in the
+                // above if statement and remove the else branch
+                sc.setUnsafePreview(FeatureState.default_, !printmsg, e.loc,
+                    "field `%s.%s` cannot access pointers in `@safe` code that overlap other fields", ad, v);
             }
         }
     }
+
+    if (v.type.hasInvariant())
+    {
+        if (v.overlapped)
+        {
+            if (sc.setUnsafe(!printmsg, e.loc,
+                "field `%s.%s` cannot access structs with invariants in `@safe` code that overlap other fields",
+                ad, v))
+                return true;
+        }
+    }
+
+    // @@@DEPRECATED_2.119@@@
+    // https://issues.dlang.org/show_bug.cgi?id=24477
+    // Should probably be turned into an error in a new edition
+    if (v.type.hasUnsafeBitpatterns() && v.overlapped && sc.setUnsafePreview(
+        FeatureState.default_, !printmsg, e.loc,
+        "cannot access overlapped field `%s.%s` with unsafe bit patterns in `@safe` code", ad, v)
+    )
+    {
+        return true;
+    }
+
+    if (readonly || !e.type.isMutable())
+        return false;
+
+    if (hasPointers && v.type.toBasetype().ty != Tstruct)
+    {
+        if ((!ad.type.alignment.isDefault() && ad.type.alignment.get() < target.ptrsize) ||
+             (v.offset & (target.ptrsize - 1)))
+        {
+            if (sc.setUnsafe(!printmsg, e.loc,
+                "field `%s.%s` cannot modify misaligned pointers in `@safe` code", ad, v))
+                return true;
+        }
+    }
+
+    if (v.overlapUnsafe)
+    {
+        if (sc.setUnsafe(!printmsg, e.loc,
+            "field `%s.%s` cannot modify fields in `@safe` code that overlap fields with other storage classes",
+            ad, v))
+        {
+            return true;
+        }
+    }
+
     return false;
 }
 
@@ -307,4 +315,233 @@ bool checkUnsafeDotExp(Scope* sc, Expression e, Identifier id, int flag)
             return sc.setUnsafe(false, e.loc, "`%s.%s` cannot be used in `@safe` code", e, id);
     }
     return false;
+}
+
+/**************************************
+ * Safer D adds safety checks to functions with the default
+ * trust setting.
+ */
+bool isSaferD(FuncDeclaration fd)
+{
+    return fd.type.toTypeFunction().trust == TRUST.default_ &&
+           global.params.safer == FeatureState.enabled;
+}
+
+bool isSafe(FuncDeclaration fd)
+{
+    if (fd.safetyInprocess)
+        setFunctionToUnsafe(fd);
+    return fd.type.toTypeFunction().trust == TRUST.safe;
+}
+
+extern (D) bool isSafeBypassingInference(FuncDeclaration fd)
+{
+    return !(fd.safetyInprocess) && fd.isSafe();
+}
+
+bool isTrusted(FuncDeclaration fd)
+{
+    if (fd.safetyInprocess)
+        setFunctionToUnsafe(fd);
+    return fd.type.toTypeFunction().trust == TRUST.trusted;
+}
+
+/*****************************************************
+ * Report safety violation for function `fd`, or squirrel away
+ * error message in fd.safetyViolation if needed later.
+ * Call when `fd` was just inferred to be @system OR
+ * `fd` was @safe and an tried something unsafe.
+ * Params:
+ *   fd    = function we're gonna rat on
+ *   gag   = suppress error message (used in escape.d)
+ *   loc   = location of error
+ *   format = printf-style format string
+ *   arg0  = (optional) argument for first %s format specifier
+ *   arg1  = (optional) argument for second %s format specifier
+ *   arg2  = (optional) argument for third %s format specifier
+ */
+extern (D) void reportSafeError(FuncDeclaration fd, bool gag, Loc loc,
+    const(char)* format = null, RootObject arg0 = null, RootObject arg1 = null, RootObject arg2 = null)
+{
+    if (fd.type.toTypeFunction().trust == TRUST.system) // function was just inferred to be @system
+    {
+        if (format)
+            fd.safetyViolation = new AttributeViolation(loc, format, arg0, arg1, arg2);
+        else if (arg0)
+        {
+            if (FuncDeclaration fd2 = (cast(Dsymbol) arg0).isFuncDeclaration())
+            {
+                fd.safetyViolation = new AttributeViolation(loc, fd2); // call to non-@nogc function
+            }
+        }
+    }
+    else if (fd.isSafe() || fd.isSaferD())
+    {
+        if (!gag && format)
+            .error(loc, format, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "", arg2 ? arg2.toChars() : "");
+    }
+}
+
+
+/**********************************************
+ * Function is doing something unsafe. If inference
+ * is in process, commit the function to be @system.
+ * Params:
+ *      fd = the naughty function
+ * Returns:
+ *      true if this is a safe function and so an error OR is inferred to be @system,
+ *      false otherwise.
+ */
+extern (D) bool setFunctionToUnsafe(FuncDeclaration fd)
+{
+    if (fd.safetyInprocess)
+    {
+        fd.safetyInprocess = false;
+        fd.type.toTypeFunction().trust = TRUST.system;
+
+        if (fd.fes)
+            setFunctionToUnsafe(fd.fes.func);
+        return true;
+    }
+    else if (fd.isSafe() || fd.isSaferD())
+        return true;
+    return false;
+}
+
+
+/**************************************
+ * The function is calling `@system` function `f`, so mark it as unsafe.
+ *
+ * Params:
+ *   fd = caller
+ *   f = function being called (needed for diagnostic of inferred functions)
+ * Returns: whether there's a safe error
+ */
+extern (D) bool setUnsafeCall(FuncDeclaration fd, FuncDeclaration f)
+{
+    if (setFunctionToUnsafe(fd))
+    {
+        reportSafeError(fd, false, f.loc, null, f, null);
+        return fd.isSafe();
+    }
+    return false;
+}
+
+/**************************************
+ * A statement / expression in this scope is not `@safe`,
+ * so mark the enclosing function as `@system`
+ *
+ * Params:
+ *   sc = scope that the unsafe statement / expression is in
+ *   gag = surpress error message (used in escape.d)
+ *   loc = location of error
+ *   format = printf-style format string
+ *   arg0  = (optional) argument for first %s format specifier
+ *   arg1  = (optional) argument for second %s format specifier
+ *   arg2  = (optional) argument for third %s format specifier
+ * Returns: whether there is a safe error
+ */
+bool setUnsafe(Scope* sc,
+    bool gag = false, Loc loc = Loc.init, const(char)* format = null,
+    RootObject arg0 = null, RootObject arg1 = null, RootObject arg2 = null)
+{
+    if (sc.intypeof)
+        return false; // typeof(cast(int*)0) is safe
+
+    if (sc.debug_) // debug {} scopes are permissive
+        return false;
+
+    if (!sc.func)
+    {
+        if (sc.varDecl)
+        {
+            if (sc.varDecl.storage_class & STC.safe)
+            {
+                .error(loc, format, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "", arg2 ? arg2.toChars() : "");
+                return true;
+            }
+            else if (!(sc.varDecl.storage_class & STC.trusted))
+            {
+                sc.varDecl.storage_class |= STC.system;
+                sc.varDecl.systemInferred = true;
+            }
+        }
+        return false;
+    }
+
+
+    if (isRootTraitsCompilesScope(sc)) // __traits(compiles, x)
+    {
+        if (sc.func.isSafeBypassingInference())
+        {
+            // Message wil be gagged, but still call error() to update global.errors and for
+            // -verrors=spec
+            .error(loc, format, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "", arg2 ? arg2.toChars() : "");
+            return true;
+        }
+        return false;
+    }
+
+    if (setFunctionToUnsafe(sc.func))
+    {
+        if (format || arg0)
+        {
+            reportSafeError(sc.func, gag, loc, format, arg0, arg1, arg2);
+        }
+        return sc.func.isSafe(); // it is only an error if in an @safe function
+    }
+    return false;
+}
+
+/***************************************
+ * Like `setUnsafe`, but for safety errors still behind preview switches
+ *
+ * Given a `FeatureState fs`, for example dip1000 / dip25 / systemVariables,
+ * the behavior changes based on the setting:
+ *
+ * - In case of `-revert=fs`, it does nothing.
+ * - In case of `-preview=fs`, it's the same as `setUnsafe`
+ * - By default, print a deprecation in `@safe` functions, or store an attribute violation in inferred functions.
+ *
+ * Params:
+ *   sc = used to find affected function/variable, and for checking whether we are in a deprecated / speculative scope
+ *   fs = feature state from the preview flag
+ *   gag = surpress error message
+ *   loc = location of error
+ *   format = printf-style format string
+ *   arg0  = (optional) argument for first %s format specifier
+ *   arg1  = (optional) argument for second %s format specifier
+ *   arg2  = (optional) argument for third %s format specifier
+ * Returns: whether an actual safe error (not deprecation) occured
+ */
+bool setUnsafePreview(Scope* sc, FeatureState fs, bool gag, Loc loc, const(char)* format,
+    RootObject arg0 = null, RootObject arg1 = null, RootObject arg2 = null)
+{
+    //printf("setUnsafePreview() fs:%d %s\n", fs, fmt);
+    assert(format);
+    with (FeatureState) final switch (fs)
+    {
+      case disabled:
+        return false;
+
+      case enabled:
+        return sc.setUnsafe(gag, loc, format, arg0, arg1, arg2);
+
+      case default_:
+        if (!sc.func)
+            return false;
+        if (sc.func.isSafeBypassingInference())
+        {
+            if (!gag && !sc.isDeprecated())
+            {
+                deprecation(loc, format, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "", arg2 ? arg2.toChars() : "");
+            }
+        }
+        else if (!sc.func.safetyViolation)
+        {
+            import dmd.func : AttributeViolation;
+            sc.func.safetyViolation = new AttributeViolation(loc, format, arg0, arg1, arg2);
+        }
+        return false;
+    }
 }
