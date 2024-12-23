@@ -2916,7 +2916,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         case EXP.typeid_:       return visitTypeid(e.isTypeidExp());
         case EXP.traits:        return visitTraits(e.isTraitsExp());
         case EXP.halt:          return visitHalt(e.isHaltExp());
-        case EXP.is_:           return visitIs(e.isExp());
+        case EXP.is_:           return visitIs(e.isIsExp());
         case EXP.comma:         return visitComma(e.isCommaExp());
         case EXP.mixin_:        return visitMixin(e.isMixinExp());
         case EXP.import_:       return visitImport(e.isImportExp());
