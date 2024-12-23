@@ -107,7 +107,7 @@ private bool expandArrayUsed(void[] slice, size_t newUsed, bool atomic = false) 
 
 private bool shrinkArrayUsed(void[] slice, size_t existingUsed, bool atomic = false) nothrow
 {
-    if(existingUsed < slice.length)
+    if (existingUsed < slice.length)
         // cannot "shrink" by growing.
         return false;
 
@@ -365,30 +365,12 @@ private BlkInfo __arrayAlloc(size_t arrsize, const scope TypeInfo ti, const Type
 {
     import core.checkedint;
 
-    size_t typeInfoSize = structTypeInfoSize(tinext);
-    size_t padsize = arrsize > MAXMEDSIZE ? LARGEPAD : ((arrsize > MAXSMALLSIZE ? MEDPAD : SMALLPAD) + typeInfoSize);
-
-    bool overflow;
-    auto padded_size = addu(arrsize, padsize, overflow);
-
-    if (overflow)
-        return BlkInfo();
-
-    uint attr = (!(tinext.flags & 1) ? BlkAttr.NO_SCAN : 0) | BlkAttr.APPENDABLE;
-    if (typeInfoSize)
-        attr |= BlkAttr.STRUCTFINAL | BlkAttr.FINALIZE;
-
-    auto bi = GC.qalloc(padded_size, attr, tinext);
-    __arrayClearPad(bi, arrsize, padsize);
-    return bi;
+    return __arrayAlloc(arrsize, null, ti, tinext);
 }
 
-private BlkInfo __arrayAlloc(size_t arrsize, ref BlkInfo info, const scope TypeInfo ti, const TypeInfo tinext)
+private BlkInfo __arrayAlloc(size_t arrsize, void* copyAttrsFrom, const scope TypeInfo ti, const TypeInfo tinext) nothrow pure
 {
     import core.checkedint;
-
-    if (!info.base)
-        return __arrayAlloc(arrsize, ti, tinext);
 
     immutable padsize = __arrayPad(arrsize, tinext);
     bool overflow;
@@ -398,7 +380,18 @@ private BlkInfo __arrayAlloc(size_t arrsize, ref BlkInfo info, const scope TypeI
         return BlkInfo();
     }
 
-    auto bi = GC.qalloc(padded_size, info.attr, tinext);
+    uint attr = (!(tinext.flags & 1) ? BlkAttr.NO_SCAN : 0);
+    if (copyAttrsFrom)
+    {
+        // try to copy attrs from the given block
+        auto info = GC.query(copyAttrsFrom);
+        if (info.base)
+            attr = info.attr;
+    }
+    // always make sure the appendable attr is set.
+    attr |= BlkAttr.APPENDABLE;
+
+    auto bi = GC.qalloc(padded_size, attr, tinext);
     __arrayClearPad(bi, arrsize, padsize);
     return bi;
 }
@@ -571,7 +564,7 @@ Lcontinue:
 
     // step 2, if reserving in-place doesn't work, allocate a new array with at
     // least the requested allocated size.
-    auto info = __arrayAlloc(reqsize, ti, tinext);
+    auto info = __arrayAlloc(reqsize, (*p).ptr, ti, tinext);
     if (info.base is null)
         goto Loverflow;
     // copy the data over.
@@ -1110,7 +1103,7 @@ do
     void* newdata = (*p).ptr;
     if (!expandArrayUsed(newdata[0 .. size], newsize, isshared))
     {
-        auto info = __arrayAlloc(newsize, ti, tinext);
+        auto info = __arrayAlloc(newsize, (*p).ptr, ti, tinext);
         if (info.base is null)
         {
             onOutOfMemoryError();
@@ -1249,7 +1242,7 @@ do
     void* newdata = (*p).ptr;
     if (!expandArrayUsed(newdata[0 .. size], newsize, isshared))
     {
-        auto info = __arrayAlloc(newsize, ti, tinext);
+        auto info = __arrayAlloc(newsize, (*p).ptr, ti, tinext);
         if (info.base is null)
         {
             onOutOfMemoryError();
@@ -1374,7 +1367,7 @@ byte[] _d_arrayappendcTX(const TypeInfo ti, return scope ref byte[] px, size_t n
     {
         // could not set the size, we must reallocate.
         auto newcap = newCapacity(newlength, sizeelem);
-        auto info = __arrayAlloc(newcap, ti, tinext);
+        auto info = __arrayAlloc(newcap, px.ptr, ti, tinext);
         if (info.base is null)
         {
             onOutOfMemoryError();
@@ -1762,13 +1755,7 @@ unittest
     assert(info2.base is carr2.ptr); // no offset, the capacity is small.
 }
 
-// I think this whole test is invalid, as is the bug report. Setting internal
-// bits after allocation should not be supported as a general mechanism
-// (setting bits). This prevents valid optimizations such as segregating
-// scanning and non-scanning memory into different pools. It is also trivial to
-// break invariants this way. For example, you could set the finalizer bit, but
-// not set up the block to have a finalizer.
-/+unittest
+unittest
 {
     // https://issues.dlang.org/show_bug.cgi?id=13878
     auto arr = new ubyte[1];
@@ -1822,7 +1809,6 @@ unittest
     info = GC.query(carr2.ptr);
     assert(!(info.attr & BlkAttr.NO_SCAN)); // ensure attribute sticks
 }
-+/
 
 // test struct finalizers
 debug(SENTINEL) {} else
