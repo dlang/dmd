@@ -7814,7 +7814,6 @@ private Expression callScopeDtor(VarDeclaration vd, Scope* sc)
         Expression ec;
         ec = new VarExp(vd.loc, vd);
         e = new DeleteExp(vd.loc, ec, true);
-        e.type = Type.tvoid;
         break;
     }
     return e;
