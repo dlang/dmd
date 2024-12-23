@@ -725,7 +725,7 @@ extern (C++) abstract class Expression : ASTNode
         inout(TypeidExp)    isTypeidExp() { return op == EXP.typeid_ ? cast(typeof(return))this : null; }
         inout(TraitsExp)    isTraitsExp() { return op == EXP.traits ? cast(typeof(return))this : null; }
         inout(HaltExp)      isHaltExp() { return op == EXP.halt ? cast(typeof(return))this : null; }
-        inout(IsExp)        isExp() { return op == EXP.is_ ? cast(typeof(return))this : null; }
+        inout(IsExp)        isIsExp() { return op == EXP.is_ ? cast(typeof(return))this : null; }
         inout(MixinExp)     isMixinExp() { return op == EXP.mixin_ ? cast(typeof(return))this : null; }
         inout(ImportExp)    isImportExp() { return op == EXP.import_ ? cast(typeof(return))this : null; }
         inout(AssertExp)    isAssertExp() { return op == EXP.assert_ ? cast(typeof(return))this : null; }
