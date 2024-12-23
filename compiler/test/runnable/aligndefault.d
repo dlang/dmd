@@ -22,7 +22,7 @@ void main()
     static assert(S.y1.alignof == 1);
     static assert(S.z1.alignof == 1);
 
-    static assert(S.x.alignof == 2);
-    static assert(S.y.alignof == 4);
-    static assert(S.z.alignof == 8);
+    static assert(S.x.alignof == short.alignof);
+    static assert(S.y.alignof == int.alignof);
+    static assert(S.z.alignof == long.alignof);
 }
