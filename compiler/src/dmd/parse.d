@@ -6501,15 +6501,56 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             goto Lerror;
 
         case TOK.scope_:
+            // The `scope` keyword can introduce:
+            // 1. a scope guard via:
+            //      1.1 Simple scope guard `scope (token) NonEmptyOrScopeBlockStatement`
+            //      1.2 Elaborate scope guard `scope (token tokens..) ScopeBlockStatement`
+            // 2. a `scope` variable via:
+            //    `scope (token tokens..)` followed by something other than a `ScopeBlockStatement`
             if (peekNext() != TOK.leftParenthesis)
-                goto Ldeclaration; // scope used as storage class
             {
-                Token* token2 = peek(peek(&token));
+                goto Ldeclaration; // scope used as storage class
+            }
+            
+            {
+                Token* tokenAfterClosingParen = peek(peek(&token));
+                size_t argumentLength = 0;
+                tokenAfterClosingParen = peek(tokenAfterClosingParen);
+                for (size_t level = 1; level != 0; ++argumentLength)
+                {
+                    level += tokenAfterClosingParen.value == TOK.leftParenthesis;
+                    level -= tokenAfterClosingParen.value == TOK.rightParenthesis;
+                    tokenAfterClosingParen = peek(tokenAfterClosingParen);
+                    if (tokenAfterClosingParen.value == TOK.endOfFile)
+                    {
+                        error("unmatched parenthesis");
+                        goto Lerror;
+                    }
+                }
 
-                if (token2.value != TOK.identifier || peekNext3() != TOK.rightParenthesis)
+                if (argumentLength == 0)
+                {
+                    error("expected type or scope guard after `scope`, not empty parentheses");
+                    goto Lerror;
+                }
+
+                if (argumentLength > 1 && tokenAfterClosingParen.value != TOK.leftCurly)
+                {
                     goto Ldeclaration; // scope used as storage class
-                Identifier id = token2.ident;
-                TOK t;
+                }
+            }
+            // Handle the scope guard
+            nextToken();
+            nextToken();
+            if (token.value != TOK.identifier)
+            {
+                error("unsupported scope guard");
+                goto Lerror;
+            }
+            else
+            {
+                TOK t = TOK.onScopeExit;
+                Identifier id = token.ident;
                 if (id == Id.exit)
                     t = TOK.onScopeExit;
                 else if (id == Id.failure)
@@ -6517,11 +6558,9 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 else if (id == Id.success)
                     t = TOK.onScopeSuccess;
                 else
-                    goto Ldeclaration; // scope used as storage class
+                    error("supported scope identifiers are `exit`, `failure`, or `success`, not `%s`", id.toChars());
                 nextToken();
-                nextToken();
-                nextToken();
-                nextToken();
+                check(TOK.rightParenthesis);
                 AST.Statement st = parseStatement(ParseStatementFlags.scope_);
                 s = new AST.ScopeGuardStatement(loc, t, st);
                 break;
