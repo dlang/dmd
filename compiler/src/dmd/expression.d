@@ -3213,7 +3213,6 @@ extern (C++) final class ThrowExp : UnaExp
     extern (D) this(const ref Loc loc, Expression e)
     {
         super(loc, EXP.throw_, e);
-        this.type = Type.tnoreturn;
     }
 
     override ThrowExp syntaxCopy()
