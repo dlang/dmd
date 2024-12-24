@@ -14020,8 +14020,7 @@ Expression expressionSemantic(Expression e, Scope* sc)
         // For these expressions, expressionsemantic is not idempotent yet,
         // and the test suite fails without these. TODO: fix the code/tests
         // so that it doesn't rely on semantic running multiple times anymore.
-        if (!e.isDeleteExp()
-            && !e.isRealExp()
+        if (!e.isRealExp()
             && !e.isCompoundLiteralExp()
             && !e.isTypeExp()
             && !e.isVarExp()
