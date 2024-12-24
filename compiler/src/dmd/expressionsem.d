@@ -8126,6 +8126,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     {
         import dmd.statementsem;
 
+        te.type = Type.tnoreturn;
         if (throwSemantic(te.loc, te.e1, sc))
             result = te;
         else
@@ -14022,7 +14023,6 @@ Expression expressionSemantic(Expression e, Scope* sc)
         if (!e.isDeleteExp()
             && !e.isRealExp()
             && !e.isCompoundLiteralExp()
-            && !e.isThrowExp()
             && !e.isTypeExp()
             && !e.isVarExp()
         )
