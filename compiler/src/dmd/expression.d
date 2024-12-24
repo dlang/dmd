@@ -293,7 +293,12 @@ enum WANTexpand = 1;    // expand const/immutable variables if possible
  */
 extern (C++) abstract class Expression : ASTNode
 {
-    Type type;      // !=null means that semantic() has been run
+    /// Usually, this starts out as `null` and gets set to the final expression type by
+    /// `expressionSemantic`. However, for some expressions (such as `TypeExp`,`RealExp`,
+    /// `VarExp`), the field can get set to an assigned type before running semantic.
+    /// See `expressionSemanticDone`
+    Type type;
+
     Loc loc;        // file location
     const EXP op;   // to minimize use of dynamic_cast
     bool parens;    // if this is a parenthesized expression

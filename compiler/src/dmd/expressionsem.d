@@ -14010,25 +14010,24 @@ Expression binSemanticProp(BinExp e, Scope* sc)
     return null;
 }
 
+/// Returns: whether expressionSemantic() has been run on expression `e`
+private bool expressionSemanticDone(Expression e)
+{
+    // Usually, Expression.type gets set by expressionSemantic and is `null` beforehand
+    // There are some exceptions however:
+    return e.type !is null && !(
+        e.isRealExp() // type sometimes gets set already before semantic
+        || e.isTypeExp() // stores its type in the Expression.type field
+        || e.isCompoundLiteralExp() // stores its `(type) {}` in type field, gets rewritten to struct literal
+        || e.isVarExp() // type sometimes gets set already before semantic
+    );
+}
+
 // entrypoint for semantic ExpressionSemanticVisitor
 Expression expressionSemantic(Expression e, Scope* sc)
 {
-    if (e.type)
-    {
-        // When the expression has a type, it usually means that semantic
-        // has already been run yet.
-        // For these expressions, expressionsemantic is not idempotent yet,
-        // and the test suite fails without these. TODO: fix the code/tests
-        // so that it doesn't rely on semantic running multiple times anymore.
-        if (!e.isRealExp()
-            && !e.isCompoundLiteralExp()
-            && !e.isTypeExp()
-            && !e.isVarExp()
-        )
-        {
-            return e;
-        }
-    }
+    if (e.expressionSemanticDone)
+        return e;
 
     scope v = new ExpressionSemanticVisitor(sc);
     e.accept(v);
