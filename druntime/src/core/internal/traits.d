@@ -543,11 +543,112 @@ template hasIndirections(T)
     else static if (__traits(isAssociativeArray, T) || is(T == class) || is(T == interface))
         enum hasIndirections = true;
     else static if (is(T == E[N], E, size_t N))
-        enum hasIndirections = T.sizeof && is(E == void) ? true : hasIndirections!(BaseElemOf!E);
+        enum hasIndirections = T.sizeof && (is(E == void) || hasIndirections!(BaseElemOf!E));
     else static if (isFunctionPointer!T)
         enum hasIndirections = false;
     else
         enum hasIndirections = isPointer!T || isDelegate!T || isDynamicArray!T;
+}
+
+@safe unittest
+{
+    static assert(!hasIndirections!int);
+    static assert(!hasIndirections!(const int));
+
+    static assert( hasIndirections!(int*));
+    static assert( hasIndirections!(const int*));
+
+    static assert( hasIndirections!(int[]));
+    static assert(!hasIndirections!(int[42]));
+    static assert(!hasIndirections!(int[0]));
+
+    static assert( hasIndirections!(int*));
+    static assert( hasIndirections!(int*[]));
+    static assert( hasIndirections!(int*[42]));
+    static assert(!hasIndirections!(int*[0]));
+
+    static assert( hasIndirections!string);
+    static assert( hasIndirections!(string[]));
+    static assert( hasIndirections!(string[42]));
+    static assert(!hasIndirections!(string[0]));
+
+    static assert( hasIndirections!(void[]));
+    static assert( hasIndirections!(void[17]));
+    static assert(!hasIndirections!(void[0]));
+
+    static assert( hasIndirections!(string[int]));
+    static assert( hasIndirections!(string[int]*));
+    static assert( hasIndirections!(string[int][]));
+    static assert( hasIndirections!(string[int][12]));
+    static assert(!hasIndirections!(string[int][0]));
+
+    static assert(!hasIndirections!(int function(string)));
+    static assert( hasIndirections!(int delegate(string)));
+    static assert(!hasIndirections!(const(int function(string))));
+    static assert( hasIndirections!(const(int delegate(string))));
+    static assert(!hasIndirections!(immutable(int function(string))));
+    static assert( hasIndirections!(immutable(int delegate(string))));
+
+    static class C {}
+    static assert( hasIndirections!C);
+
+    static interface I {}
+    static assert( hasIndirections!I);
+
+    {
+        static struct S {}
+        static assert(!hasIndirections!S);
+    }
+    {
+        static struct S { int i; }
+        static assert(!hasIndirections!S);
+    }
+    {
+        static struct S { C c; }
+        static assert( hasIndirections!S);
+    }
+    {
+        static struct S { int[] arr; }
+        static assert( hasIndirections!S);
+    }
+    {
+        int local;
+        struct S { void foo() { ++local; } }
+        static assert( hasIndirections!S);
+    }
+
+    {
+        static union U {}
+        static assert(!hasIndirections!U);
+    }
+    {
+        static union U { int i; }
+        static assert(!hasIndirections!U);
+    }
+    {
+        static union U { C c; }
+        static assert( hasIndirections!U);
+    }
+    {
+        static union U { int[] arr; }
+        static assert( hasIndirections!U);
+    }
+}
+
+// https://issues.dlang.org/show_bug.cgi?id=12000
+@safe unittest
+{
+    static struct S(T)
+    {
+        static assert(hasIndirections!T);
+    }
+
+    static class A(T)
+    {
+        S!A a;
+    }
+
+    A!int dummy;
 }
 
 template hasUnsharedIndirections(T)
