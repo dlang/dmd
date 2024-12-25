@@ -538,7 +538,9 @@ unittest
 
 template hasIndirections(T)
 {
-    static if (is(T == struct) || is(T == union))
+    static if (is(T == enum))
+        enum hasIndirections = hasIndirections!(OriginalType!T);
+    else static if (is(T == struct) || is(T == union))
         enum hasIndirections = anySatisfy!(.hasIndirections, typeof(T.tupleof));
     else static if (__traits(isAssociativeArray, T) || is(T == class) || is(T == interface))
         enum hasIndirections = true;
@@ -596,24 +598,76 @@ template hasIndirections(T)
     static assert( hasIndirections!I);
 
     {
+        enum E : int { a }
+        static assert(!hasIndirections!E);
+    }
+    {
+        enum E : int* { a }
+        static assert( hasIndirections!E);
+    }
+    {
+        enum E : string { a = "" }
+        static assert( hasIndirections!E);
+    }
+    {
+        enum E : int[] { a = null }
+        static assert( hasIndirections!E);
+    }
+    {
+        enum E : int[3] { a = [1, 2, 3]  }
+        static assert(!hasIndirections!E);
+    }
+    {
+        enum E : int*[3] { a = [null, null, null] }
+        static assert( hasIndirections!E);
+    }
+    {
+        enum E : int*[0] { a = int*[0].init }
+        static assert(!hasIndirections!E);
+    }
+    {
+        enum E : C { a = null }
+        static assert( hasIndirections!E);
+    }
+    {
+        enum E : I { a = null }
+        static assert( hasIndirections!E);
+    }
+
+    {
         static struct S {}
+        static assert(!hasIndirections!S);
+
+        enum E : S { a = S.init }
         static assert(!hasIndirections!S);
     }
     {
         static struct S { int i; }
         static assert(!hasIndirections!S);
+
+        enum E : S { a = S.init }
+        static assert(!hasIndirections!S);
     }
     {
         static struct S { C c; }
+        static assert( hasIndirections!S);
+
+        enum E : S { a = S.init }
         static assert( hasIndirections!S);
     }
     {
         static struct S { int[] arr; }
         static assert( hasIndirections!S);
+
+        enum E : S { a = S.init }
+        static assert( hasIndirections!S);
     }
     {
         int local;
         struct S { void foo() { ++local; } }
+        static assert( hasIndirections!S);
+
+        enum E : S { a = S.init }
         static assert( hasIndirections!S);
     }
 
