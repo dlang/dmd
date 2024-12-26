@@ -9636,14 +9636,15 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      */
     static StorageClass isBuiltinAtAttribute(Identifier ident)
     {
-        return (ident == Id.property) ? STC.property :
-               (ident == Id.nogc)     ? STC.nogc     :
-               (ident == Id.safe)     ? STC.safe     :
-               (ident == Id.trusted)  ? STC.trusted  :
-               (ident == Id.system)   ? STC.system   :
-               (ident == Id.live)     ? STC.live     :
-               (ident == Id.future)   ? STC.future   :
-               (ident == Id.disable)  ? STC.disable  :
+        return (ident == Id.property)    ? STC.property    :
+               (ident == Id.nogc)        ? STC.nogc        :
+               (ident == Id.safe)        ? STC.safe        :
+               (ident == Id.saferSystem) ? STC.saferSystem :
+               (ident == Id.trusted)     ? STC.trusted     :
+               (ident == Id.system)      ? STC.system      :
+               (ident == Id.live)        ? STC.live        :
+               (ident == Id.future)      ? STC.future      :
+               (ident == Id.disable)     ? STC.disable     :
                0;
     }
 

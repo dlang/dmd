@@ -2234,6 +2234,8 @@ Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
         {
             if (sc.stc & STC.safe)
                 tf.trust = TRUST.safe;
+            else if (sc.stc & STC.saferSystem)
+                tf.trust = TRUST.saferSystem;
             else if (sc.stc & STC.system)
                 tf.trust = TRUST.system;
             else if (sc.stc & STC.trusted)

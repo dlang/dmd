@@ -60,6 +60,8 @@ StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration f) pure @safe
     auto tf = f.type.isTypeFunction();
     if (tf.trust == TRUST.safe)
         s2 |= STC.safe;
+    else if (tf.trust == TRUST.saferSystem)
+        s2 |= STC.system;
     else if (tf.trust == TRUST.system)
         s2 |= STC.system;
     else if (tf.trust == TRUST.trusted)

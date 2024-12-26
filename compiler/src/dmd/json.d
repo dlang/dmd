@@ -290,9 +290,10 @@ public:
             // Should not be printed
             //property(name, "default");
             break;
-        case TRUST.system:  return property(name, "system");
-        case TRUST.trusted: return property(name, "trusted");
-        case TRUST.safe:    return property(name, "safe");
+        case TRUST.system:      return property(name, "system");
+        case TRUST.saferSystem: return property(name, "saferSystem");
+        case TRUST.trusted:     return property(name, "trusted");
+        case TRUST.safe:        return property(name, "safe");
         }
     }
 

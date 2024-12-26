@@ -323,8 +323,9 @@ bool checkUnsafeDotExp(Scope* sc, Expression e, Identifier id, int flag)
  */
 bool isSaferD(FuncDeclaration fd)
 {
-    return fd.type.toTypeFunction().trust == TRUST.default_ &&
-           global.params.safer == FeatureState.enabled;
+    return fd.type.toTypeFunction().trust == TRUST.saferSystem ||
+           (fd.type.toTypeFunction().trust == TRUST.default_ &&
+           global.params.safer == FeatureState.enabled);
 }
 
 bool isSafe(FuncDeclaration fd)
