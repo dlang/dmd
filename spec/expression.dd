@@ -2008,6 +2008,7 @@ $(GNAME PrimaryExpression):
     $(GLINK IsExpression)
     $(D $(LPAREN)) $(GLINK Expression) $(D $(RPAREN))
     $(GLINK SpecialKeyword)
+    $(GLINK RvalueExpression)
     $(GLINK2 traits, TraitsExpression)
 
 $(GNAME LiteralExpression):
@@ -3533,6 +3534,65 @@ $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
 )
 
+
+$(H3 $(LNAME2 RvalueExpression, Rvalue Expression))
+
+$(GRAMMAR
+$(GNAME RvalueExpression):
+    $(D __rvalue $(LPAREN)) $(GLINK AssignExpression) $(D $(RPAREN))
+)
+
+    $(P The $(I RvalueExpression) causes the embedded $(I AssignExpression) to be
+    treated as an rvalue whether it is an rvalue or an lvalue.)
+
+$(H4 Overloading)
+
+    $(P If both ref and non-ref parameter overloads are present, an rvalue is preferably matched to the
+    non-ref parameters, and an lvalue is preferably matched to the ref parameter.
+    An $(I RvalueExpression) will preferably match with the non-ref parameter.)
+
+$(H4 Semantics of Arguments Matched to Rvalue Parameters)
+
+    $(P An rvalue argument is owned by the function called. Hence, if an lvalue is matched
+    to the rvalue argument, a copy is made of the lvalue to be passed to the function. The function
+    will then call the destructor (if any) on the parameter at the conclusion of the function.
+    An rvalue argument is not copied, as it is assumed to already be unique, and is also destroyed at
+    the conclusion of the function.)
+
+    $(P The called function's semantics are the same whether a parameter originated as an rvalue
+    or is a copy of an lvalue.
+    This means that an $(I RvalueExpression) argument destroys the expression upon function return.
+    Attempts to continue to use the lvalue expression are invalid. The compiler won't always be able
+    to detect a use after being passed to the function, which means that the destructor for the object
+    must reset the object's contents to its initial value, or at least a benign value that can
+    be destructed more than once.
+    )
+
+---
+struct S
+{
+    ubyte* p;
+    ~this()
+    {
+      free(p);
+      // add `p = null;` here to prevent double free
+    }
+}
+
+void aggh(S s)
+{
+}
+
+void oops()
+{
+    S s;
+    s.p = cast(ubyte*)malloc(10);
+    aggh(__rvalue(s));
+    // destructor of s called at end of scope, double-freeing s.p
+}
+---
+
+    $(P $(I RvalueExpression)s enable the use of $(I move constructor)s and $(I move assignment)s.)
 
 $(H3 $(LNAME2 specialkeywords, Special Keywords))
 

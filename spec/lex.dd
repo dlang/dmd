@@ -1135,15 +1135,16 @@ $(MULTICOLS 4,
 
     $(LINK2 expression.html#specialkeywords, $(D __FILE__))
     $(LINK2 expression.html#specialkeywords, $(D __FILE_FULL_PATH__))
-    $(LINK2 expression.html#specialkeywords, $(D __MODULE__))
-    $(LINK2 expression.html#specialkeywords, $(D __LINE__))
     $(LINK2 expression.html#specialkeywords, $(D __FUNCTION__))
+    $(LINK2 expression.html#specialkeywords, $(D __LINE__))
+    $(LINK2 expression.html#specialkeywords, $(D __MODULE__))
     $(LINK2 expression.html#specialkeywords, $(D __PRETTY_FUNCTION__))
 
     $(LINK2 attribute.html#gshared, $(D __gshared))
+    $(LINK2 expression.html#IsExpression, $(D __parameters))
+    $(LINK2 expression.html#RvalueExpression, $(D __rvalue))
     $(LINK2 traits.html, $(D __traits))
     $(LINK2 $(ROOT_DIR)phobos/core_simd.html#.Vector, $(D __vector))
-    $(LINK2 expression.html#IsExpression, $(D __parameters))
 )
 )
 
