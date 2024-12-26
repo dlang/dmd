@@ -3989,6 +3989,8 @@ struct ASTBase
             this.trust = TRUST.default_;
             if (stc & STC.safe)
                 this.trust = TRUST.safe;
+            else if (stc & STC.saferSystem)
+                this.trust = TRUST.saferSystem;
             else if (stc & STC.system)
                 this.trust = TRUST.system;
             else if (stc & STC.trusted)
@@ -6920,6 +6922,7 @@ struct ASTBase
             SCstring(STC.property, "@property"),
             SCstring(STC.safe, "@safe"),
             SCstring(STC.trusted, "@trusted"),
+            SCstring(STC.saferSystem, "@saferSystem"),
             SCstring(STC.system, "@system"),
             SCstring(STC.disable, "@disable"),
             SCstring(STC.future, "@__future"),

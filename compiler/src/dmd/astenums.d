@@ -96,31 +96,32 @@ enum STC : ulong  // transfer changes to declaration.h
     gshared             = 0x4_0000_0000,   /// accessible from multiple threads, but not typed as `shared`
     wild                = 0x8_0000_0000,   /// for wild type constructor
 
-    property            = 0x10_0000_0000,   /// `@property`
-    safe                = 0x20_0000_0000,   /// `@safe`
-    trusted             = 0x40_0000_0000,   /// `@trusted`
-    system              = 0x80_0000_0000,   /// `@system`
+    property            = 0x010_0000_0000,   /// `@property`
+    safe                = 0x020_0000_0000,   /// `@safe`
+    trusted             = 0x040_0000_0000,   /// `@trusted`
+    saferSystem         = 0x080_0000_0000,   /// `@saferSystem`
+    system              = 0x100_0000_0000,   /// `@system`
 
-    ctfe                = 0x100_0000_0000,   /// can be used in CTFE, even if it is static
-    disable             = 0x200_0000_0000,   /// for functions that are not callable
-    result              = 0x400_0000_0000,   /// for result variables passed to out contracts
-    nodefaultctor       = 0x800_0000_0000,   /// must be set inside constructor
+    ctfe                = 0x1000_0000_0000,   /// can be used in CTFE, even if it is static
+    disable             = 0x2000_0000_0000,   /// for functions that are not callable
+    result              = 0x4000_0000_0000,   /// for result variables passed to out contracts
+    nodefaultctor       = 0x8000_0000_0000,   /// must be set inside constructor
 
-    temp                = 0x1000_0000_0000,   /// temporary variable
-    rvalue              = 0x2000_0000_0000,   /// force rvalue for variables
-    nogc                = 0x4000_0000_0000,   /// `@nogc`
-    autoref             = 0x8000_0000_0000,   /// Mark for the already deduced `auto ref` parameter
+    temp                = 0x1_0000_0000_0000,   /// temporary variable
+    rvalue              = 0x2_0000_0000_0000,   /// force rvalue for variables
+    nogc                = 0x4_0000_0000_0000,   /// `@nogc`
+    autoref             = 0x8_0000_0000_0000,   /// Mark for the already deduced `auto ref` parameter
 
-    inference           = 0x1_0000_0000_0000,   /// do attribute inference
-    exptemp             = 0x2_0000_0000_0000,   /// temporary variable that has lifetime restricted to an expression
-    future              = 0x4_0000_0000_0000,   /// introducing new base class function
-    local               = 0x8_0000_0000_0000,   /// do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
+    inference           = 0x10_0000_0000_0000,   /// do attribute inference
+    exptemp             = 0x20_0000_0000_0000,   /// temporary variable that has lifetime restricted to an expression
+    future              = 0x40_0000_0000_0000,   /// introducing new base class function
+    local               = 0x80_0000_0000_0000,   /// do not forward (see dmd.dsymbol.ForwardingScopeDsymbol).
 
-    live                = 0x10_0000_0000_0000,   /// function `@live` attribute
-    register            = 0x20_0000_0000_0000,   /// `register` storage class (ImportC)
-    volatile_           = 0x40_0000_0000_0000,   /// destined for volatile in the back end
+    live                = 0x100_0000_0000_0000,   /// function `@live` attribute
+    register            = 0x200_0000_0000_0000,   /// `register` storage class (ImportC)
+    volatile_           = 0x400_0000_0000_0000,   /// destined for volatile in the back end
 
-    safeGroup = STC.safe | STC.trusted | STC.system,
+    safeGroup = STC.safe | STC.trusted | STC.saferSystem | STC.system,
     IOR  = STC.constscoperef | STC.in_ | STC.ref_ | STC.out_,
     TYPECTOR = (STC.const_ | STC.immutable_ | STC.shared_ | STC.wild),
     FUNCATTR = (STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.property | STC.live |
@@ -139,7 +140,7 @@ enum STC : ulong  // transfer changes to declaration.h
     flowThruAggregate = STC.safeGroup,    /// for an AggregateDeclaration
     flowThruFunction = ~(STC.auto_ | STC.scope_ | STC.static_ | STC.extern_ | STC.abstract_ | STC.deprecated_ | STC.override_ |
                          STC.TYPECTOR | STC.final_ | STC.tls | STC.gshared | STC.ref_ | STC.return_ | STC.property |
-                         STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.system), /// for a FuncDeclaration
+                         STC.nothrow_ | STC.pure_ | STC.safe | STC.trusted | STC.saferSystem | STC.system), /// for a FuncDeclaration
 
 }
 
@@ -301,10 +302,11 @@ enum ThreeState : ubyte
 
 enum TRUST : ubyte
 {
-    default_   = 0,
-    system     = 1,    // @system (same as TRUST.default)
-    trusted    = 2,    // @trusted
-    safe       = 3,    // @safe
+    default_    = 0,
+    system      = 1,    // @system (same as TRUST.default_ unless feature "safer" is enabled)
+    saferSystem = 2,    // @saferSystem (same as TRUST.default_ if feature "safer" is enabled)
+    trusted     = 3,    // @trusted
+    safe        = 4,    // @safe
 }
 
 enum PURE : ubyte

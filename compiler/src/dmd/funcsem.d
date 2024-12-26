@@ -373,6 +373,8 @@ void funcDeclarationSemantic(Scope* sc, FuncDeclaration funcdecl)
             sc.stc &= ~STC.safeGroup;
             if (tf.trust == TRUST.safe)
                 sc.stc |= STC.safe;
+            else if (tf.trust == TRUST.saferSystem)
+                sc.stc |= STC.saferSystem;
             else if (tf.trust == TRUST.system)
                 sc.stc |= STC.system;
             else if (tf.trust == TRUST.trusted)

@@ -3268,6 +3268,7 @@ string stcToString(ref StorageClass stc) @safe
         SCstring(STC.property, "@property"),
         SCstring(STC.safe, "@safe"),
         SCstring(STC.trusted, "@trusted"),
+        SCstring(STC.saferSystem, "@saferSystem"),
         SCstring(STC.system, "@system"),
         SCstring(STC.disable, "@disable"),
         SCstring(STC.future, "@__future"),

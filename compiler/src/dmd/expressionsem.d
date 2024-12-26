@@ -2301,8 +2301,11 @@ private bool checkSafety(FuncDeclaration f, ref Loc loc, Scope* sc)
             if (!loc.isValid()) // e.g. implicitly generated dtor
                 loc = sc.func.loc;
 
+            immutable msg = (f.isSaferD())
+                ? "`@safe` %s `%s` cannot call `@saferSystem` %s `%s`"
+                : "`@safe` %s `%s` cannot call `@system` %s `%s`";
             const prettyChars = f.toPrettyChars();
-            error(loc, "`@safe` %s `%s` cannot call `@system` %s `%s`",
+            error(loc, msg.ptr,
                 sc.func.kind(), sc.func.toPrettyChars(), f.kind(),
                 prettyChars);
             if (!f.isDtorDeclaration)

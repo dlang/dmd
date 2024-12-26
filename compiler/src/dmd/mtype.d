@@ -214,6 +214,8 @@ string trustToString(TRUST trust) pure nothrow @nogc @safe
         return null;
     case TRUST.system:
         return "@system";
+    case TRUST.saferSystem:
+        return "@saferSystem";
     case TRUST.trusted:
         return "@trusted";
     case TRUST.safe:
@@ -225,6 +227,7 @@ unittest
 {
     assert(trustToString(TRUST.default_) == "");
     assert(trustToString(TRUST.system) == "@system");
+    assert(trustToString(TRUST.saferSystem) == "@saferSystem");
     assert(trustToString(TRUST.trusted) == "@trusted");
     assert(trustToString(TRUST.safe) == "@safe");
 }
@@ -2538,6 +2541,8 @@ extern (C++) final class TypeFunction : TypeNext
         this.trust = TRUST.default_;
         if (stc & STC.safe)
             this.trust = TRUST.safe;
+        else if (stc & STC.saferSystem)
+            this.trust = TRUST.saferSystem;
         else if (stc & STC.system)
             this.trust = TRUST.system;
         else if (stc & STC.trusted)

@@ -211,6 +211,7 @@ immutable Msgtable[] msgtable =
     { "nogc" },
     { "live" },
     { "safe" },
+    { "saferSystem" },
     { "trusted" },
     { "system" },
     { "disable" },
