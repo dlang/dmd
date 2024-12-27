@@ -23,6 +23,14 @@ static import rt.tlsgc;
 alias BlkInfo = GC.BlkInfo;
 alias BlkAttr = GC.BlkAttr;
 
+// for now, all GC array functions are not exposed via core.memory.
+extern(C) {
+    void[] gc_getArrayUsed(void *ptr, bool atomic) nothrow;
+    bool gc_expandArrayUsed(void[] slice, size_t newUsed, bool atomic) nothrow;
+    size_t gc_reserveArrayCapacity(void[] slice, size_t request, bool atomic) nothrow;
+    bool gc_shrinkArrayUsed(void[] slice, size_t existingUsed, bool atomic) nothrow;
+}
+
 private
 {
     alias bool function(Object) CollectHandler;
@@ -259,7 +267,7 @@ extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) nothrow
     auto reqsize = arr.length * size;
     auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
 
-    auto curArr = getArrayUsed(arr.ptr, isshared);
+    auto curArr = gc_getArrayUsed(arr.ptr, isshared);
     if (curArr.ptr is null)
         // not a valid GC pointer
         return;
@@ -289,7 +297,7 @@ extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) nothrow
         }
     }
 
-    shrinkArrayUsed(arr.ptr[0 .. reqsize], cursize, isshared);
+    gc_shrinkArrayUsed(arr.ptr[0 .. reqsize], cursize, isshared);
 }
 
 package bool hasPostblit(in TypeInfo ti) nothrow pure
@@ -397,7 +405,7 @@ Lcontinue:
 
     // step 1, see if we can ensure the capacity is valid in-place
     auto datasize = (*p).length * size;
-    auto curCapacity = reserveArrayCapacity((*p).ptr[0 .. datasize], reqsize, isshared);
+    auto curCapacity = gc_reserveArrayCapacity((*p).ptr[0 .. datasize], reqsize, isshared);
     if (curCapacity != 0)
         // in-place worked!
         return curCapacity / size;
@@ -946,7 +954,7 @@ do
      * If not possible, allocate new space for entire array and copy.
      */
     void* newdata = (*p).ptr;
-    if (!expandArrayUsed(newdata[0 .. size], newsize, isshared))
+    if (!gc_expandArrayUsed(newdata[0 .. size], newsize, isshared))
     {
         auto info = __arrayAlloc(newsize, (*p).ptr, ti, tinext);
         if (info.base is null)
@@ -1085,7 +1093,7 @@ do
      * If not possible, allocate new space for entire array and copy.
      */
     void* newdata = (*p).ptr;
-    if (!expandArrayUsed(newdata[0 .. size], newsize, isshared))
+    if (!gc_expandArrayUsed(newdata[0 .. size], newsize, isshared))
     {
         auto info = __arrayAlloc(newsize, (*p).ptr, ti, tinext);
         if (info.base is null)
@@ -1208,7 +1216,7 @@ byte[] _d_arrayappendcTX(const TypeInfo ti, return scope ref byte[] px, size_t n
     auto newsize = newlength * sizeelem;
     auto size = length * sizeelem;
 
-    if (!expandArrayUsed(px.ptr[0 .. size], newsize, isshared))
+    if (!gc_expandArrayUsed(px.ptr[0 .. size], newsize, isshared))
     {
         // could not set the size, we must reallocate.
         auto newcap = newCapacity(newlength, sizeelem);

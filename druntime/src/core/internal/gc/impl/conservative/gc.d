@@ -1381,9 +1381,13 @@ class ConservativeGC : GC
     // ARRAY FUNCTIONS
     void[] getArrayUsed(void *ptr, bool atomic = false) nothrow
     {
+        import core.internal.gc.blockmeta;
+        import core.internal.gc.blkcache;
+        import core.internal.array.utils;
+
         // lookup the block info, using the cache if possible.
         auto bic = atomic ? null : __getBlkInfo(ptr);
-        auto info = bic ? *bic : GC.query(ptr);
+        auto info = bic ? *bic : query(ptr);
 
         if (!(info.attr & BlkAttr.APPENDABLE))
             // not appendable
@@ -1398,15 +1402,19 @@ class ConservativeGC : GC
         return __arrayStart(info)[0 .. usedSize];
     }
 
-    bool expandArrayUsed(void[] slice, size_t newUsed, bool atomic = false) nothrow
+    bool expandArrayUsed(void[] slice, size_t newUsed, bool atomic = false) nothrow @trusted
     {
+        import core.internal.gc.blockmeta;
+        import core.internal.gc.blkcache;
+        import core.internal.array.utils;
+
         if (newUsed < slice.length)
             // cannot "expand" by shrinking.
             return false;
 
         // lookup the block info, using the cache if possible
         auto bic = atomic ? null : __getBlkInfo(slice.ptr);
-        auto info = bic ? *bic : GC.query(slice.ptr);
+        auto info = bic ? *bic : query(slice.ptr);
 
         if (!(info.attr & BlkAttr.APPENDABLE))
             // not appendable
@@ -1435,7 +1443,7 @@ class ConservativeGC : GC
 
         // try extending the block into subsequent pages.
         immutable requiredExtension = newUsed - info.size - LARGEPAD;
-        auto extendedSize = GC.extend(info.base, requiredExtension, requiredExtension);
+        auto extendedSize = extend(info.base, requiredExtension, requiredExtension, null);
         if (extendedSize == 0)
             // could not extend, can't satisfy the request
             return false;
@@ -1452,13 +1460,17 @@ class ConservativeGC : GC
 
     bool shrinkArrayUsed(void[] slice, size_t existingUsed, bool atomic = false) nothrow
     {
+        import core.internal.gc.blockmeta;
+        import core.internal.gc.blkcache;
+        import core.internal.array.utils;
+
         if (existingUsed < slice.length)
             // cannot "shrink" by growing.
             return false;
 
         // lookup the block info, using the cache if possible.
         auto bic = atomic ? null : __getBlkInfo(slice.ptr);
-        auto info = bic ? *bic : GC.query(slice.ptr);
+        auto info = bic ? *bic : query(slice.ptr);
 
         if (!(info.attr & BlkAttr.APPENDABLE))
             // not appendable
@@ -1482,11 +1494,15 @@ class ConservativeGC : GC
         return false;
     }
 
-    size_t reserveArrayCapacity(void[] slice, size_t request, bool atomic = false) nothrow
+    size_t reserveArrayCapacity(void[] slice, size_t request, bool atomic = false) nothrow @trusted
     {
+        import core.internal.gc.blockmeta;
+        import core.internal.gc.blkcache;
+        import core.internal.array.utils;
+
         // lookup the block info, using the cache if possible.
         auto bic = atomic ? null : __getBlkInfo(slice.ptr);
-        auto info = bic ? *bic : GC.query(slice.ptr);
+        auto info = bic ? *bic : query(slice.ptr);
 
         if (!(info.attr & BlkAttr.APPENDABLE))
             // not appendable
@@ -1513,7 +1529,7 @@ class ConservativeGC : GC
                 return 0;
 
             immutable requiredExtension = request - existingCapacity;
-            auto extendedSize = GC.extend(info.base, requiredExtension, requiredExtension);
+            auto extendedSize = extend(info.base, requiredExtension, requiredExtension, null);
             if (extendedSize == 0)
                 // could not extend, can't satisfy the request
                 return 0;
