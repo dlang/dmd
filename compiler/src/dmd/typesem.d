@@ -4462,6 +4462,10 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
  */
 Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag flag)
 {
+    enum LOGDOTEXP = false;
+    if (LOGDOTEXP)
+        printf("dotExp()\n");
+
     Expression visitType(Type mt)
     {
         VarDeclaration v = null;
@@ -5082,8 +5086,41 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             return noMember(mt, sc, e, ident, flag);
         }
         // check before alias resolution; the alias itself might be deprecated!
-        if (s.isAliasDeclaration)
+        if (auto ad = s.isAliasDeclaration)
+        {
             s.checkDeprecated(e.loc, sc);
+
+            // Fix for https://github.com/dlang/dmd/issues/20610
+            if (ad.originalType)
+            {
+                if (auto tid = ad.originalType.isTypeIdentifier())
+                {
+                    if (tid.idents.length)
+                    {
+                        static if (0)
+                        {
+                            printf("TypeStruct::dotExp(e = '%s', ident = '%s')\n", e.toChars(), ident.toChars());
+                            printf("AliasDeclaration: %s\n", ad.toChars());
+                            if (ad.aliassym)
+                                printf("aliassym: %s\n", ad.aliassym.toChars());
+                            printf("tid type: %s\n", toChars(tid));
+                        }
+                        /* Rewrite e.s as e.(tid.ident).(tid.idents)
+                         */
+                        Expression die = new DotIdExp(e.loc, e, tid.ident);
+                        foreach (id; tid.idents) // maybe use typeToExpressionHelper()
+                            die = new DotIdExp(e.loc, die, cast(Identifier)id);
+                        /* Ambiguous syntax, only way to disambiguate it to try it
+                         */
+                        die = dmd.expressionsem.trySemantic(die, sc);
+                        if (die && die.isDotVarExp())   // shrink wrap around DotVarExp()
+                        {
+                            return die;
+                        }
+                    }
+                }
+            }
+        }
         s = s.toAlias();
 
         if (auto em = s.isEnumMember())
@@ -6074,7 +6111,7 @@ Dsymbol toDsymbol(Type type, Scope* sc)
 
     Dsymbol visitIdentifier(TypeIdentifier type)
     {
-        //printf("TypeIdentifier::toDsymbol('%s')\n", toChars());
+        //printf("TypeIdentifier::toDsymbol('%s')\n", toChars(type));
         if (!sc)
             return null;
 
@@ -6086,7 +6123,6 @@ Dsymbol toDsymbol(Type type, Scope* sc)
             s = t.toDsymbol(sc);
         if (e)
             s = getDsymbol(e);
-
         return s;
     }
 

@@ -5243,7 +5243,7 @@ void aliasInstanceSemantic(TemplateInstance tempinst, Scope* sc, TemplateDeclara
 // function used to perform semantic on AliasDeclaration
 void aliasSemantic(AliasDeclaration ds, Scope* sc)
 {
-    //printf("AliasDeclaration::semantic() %s\n", ds.toChars());
+    //printf("AliasDeclaration::semantic() %s %p\n", ds.toChars(), ds.aliassym);
 
     // as DsymbolSemanticVisitor::visit(AliasDeclaration), in case we're called first.
     // see https://issues.dlang.org/show_bug.cgi?id=21001
