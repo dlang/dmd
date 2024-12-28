@@ -1402,6 +1402,23 @@ class ConservativeGC : GC
         return __arrayStart(info)[0 .. usedSize];
     }
 
+    /* NOTE about @trusted in these functions:
+     * These functions do a lot of pointer manipulation, and has writeable
+     * access to BlkInfo which is used to interface with other parts of the GC,
+     * including the block metadata and block cache. Marking these functions as
+     * @safe would mean that any modification of BlkInfo fields should be
+     * considered @safe, which is not the case. For example, it would be
+     * perfectly legal to change the BlkInfo size to some huge number, and then
+     * store it in the block cache to blow up later. The utility functions
+     * count on the BlkInfo representing the correct information inside the GC.
+     *
+     * In order to mark these @safe, we would need a BlkInfo that has
+     * restrictive access (i.e. @system only) to the information inside the
+     * BlkInfo. Until then any use of these structures needs to be @trusted,
+     * and therefore the entire functions are @trusted. The API is still @safe
+     * because the information is stored and looked up by the GC, not the
+     * caller.
+     */
     bool expandArrayUsed(void[] slice, size_t newUsed, bool atomic = false) nothrow @trusted
     {
         import core.internal.gc.blockmeta;
