@@ -8978,6 +8978,7 @@ struct Id final
     static Identifier* getLocation;
     static Identifier* hasPostblit;
     static Identifier* hasCopyConstructor;
+    static Identifier* hasMoveConstructor;
     static Identifier* isCopyable;
     static Identifier* toType;
     static Identifier* parameters;
