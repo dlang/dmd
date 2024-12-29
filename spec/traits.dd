@@ -51,6 +51,7 @@ $(GNAME TraitsKeyword):
     $(RELATIVE_LINK2 isPackage, $(D isPackage))
     $(RELATIVE_LINK2 hasMember, $(D hasMember))
     $(RELATIVE_LINK2 hasCopyConstructor, $(D hasCopyConstructor))
+    $(RELATIVE_LINK2 hasMoveConstructor, $(D hasMoveConstructor))
     $(RELATIVE_LINK2 hasPostblit, $(D hasPostblit))
     $(RELATIVE_LINK2 identifier, $(D identifier))
     $(RELATIVE_LINK2 fullyQualifiedName, $(D fullyQualifiedName))
@@ -408,7 +409,45 @@ static assert(__traits(isZeroInit, void));
 
 $(H3 $(GNAME hasCopyConstructor))
 
-        $(P The argument is a type. If it is a struct with a copy constructor, returns $(D true). Otherwise, return $(D false). Note that a copy constructor is distinct from a postblit.
+        $(P The argument is a type.
+        If it is a struct with a copy constructor, returns $(D true). Otherwise, return $(D false).
+        A copy constructor is distinct from a move constructor or a postblit.
+        )
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+
+import std.stdio;
+
+struct S { }
+
+class C { }
+
+struct P
+{
+    this(ref P rhs) {} // copy constructor
+}
+
+struct B
+{
+    this(this) {} // postblit
+}
+
+void main()
+{
+    writeln(__traits(hasCopyConstructor, S)); // false
+    writeln(__traits(hasCopyConstructor, C)); // false
+    writeln(__traits(hasCopyConstructor, P)); // true
+    writeln(__traits(hasCopyConstructor, B)); // false, this is a postblit
+}
+---
+)
+
+$(H3 $(GNAME hasMoveConstructor))
+
+        $(P The argument is a type.
+        If it is a struct with a move constructor, returns $(D true). Otherwise, return $(D false).
+        A move constructor is distinct from a copy constructor or a postblit.
         )
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
@@ -418,28 +457,27 @@ import std.stdio;
 
 struct S
 {
+    this(S rhs) {} // move constructor
 }
 
-class C
-{
-}
+class C { }
 
 struct P
 {
-    this(ref P rhs) {}
+    this(ref P rhs) {} // copy constructor
 }
 
 struct B
 {
-    this(this) {}
+    this(this) {} // postblit
 }
 
 void main()
 {
-    writeln(__traits(hasCopyConstructor, S)); // false
-    writeln(__traits(hasCopyConstructor, C)); // false
-    writeln(__traits(hasCopyConstructor, P)); // true
-    writeln(__traits(hasCopyConstructor, B)); // false, this is a postblit
+    writeln(__traits(hasMoveConstructor, S)); // true
+    writeln(__traits(hasMoveConstructor, C)); // false
+    writeln(__traits(hasMoveConstructor, P)); // false
+    writeln(__traits(hasMoveConstructor, B)); // false, this is a postblit
 }
 ---
 )
