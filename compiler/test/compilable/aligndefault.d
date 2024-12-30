@@ -16,7 +16,7 @@ struct S
     }
 }
 
-void main()
+void fun()
 {
     static assert(S.x1.alignof == 1);
     static assert(S.y1.alignof == 1);
