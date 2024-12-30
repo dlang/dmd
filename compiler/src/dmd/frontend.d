@@ -208,11 +208,10 @@ Params:
 */
 void addImport(const(char)[] path)
 {
-    import dmd.globals : global;
-    import dmd.arraytypes : Strings;
+    import dmd.globals : global, ImportPathInfo;
     import std.string : toStringz;
 
-    global.path.push(path.toStringz);
+    global.path.push(ImportPathInfo(path.toStringz));
 }
 
 /**
