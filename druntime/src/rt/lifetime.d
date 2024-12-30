@@ -23,6 +23,14 @@ static import rt.tlsgc;
 alias BlkInfo = GC.BlkInfo;
 alias BlkAttr = GC.BlkAttr;
 
+// for now, all GC array functions are not exposed via core.memory.
+extern(C) {
+    void[] gc_getArrayUsed(void *ptr, bool atomic) nothrow;
+    bool gc_expandArrayUsed(void[] slice, size_t newUsed, bool atomic) nothrow;
+    size_t gc_reserveArrayCapacity(void[] slice, size_t request, bool atomic) nothrow;
+    bool gc_shrinkArrayUsed(void[] slice, size_t existingUsed, bool atomic) nothrow;
+}
+
 private
 {
     alias bool function(Object) CollectHandler;
@@ -30,161 +38,6 @@ private
 
     extern (C) void _d_monitordelete(Object h, bool det);
 
-}
-
-// NOTE: these are going to be migrated to the GC soon. They are here to allow
-// for better review for now.
-private void[] getArrayUsed(void *ptr, bool atomic = false) nothrow
-{
-    // lookup the block info, using the cache if possible.
-    auto bic = atomic ? null : __getBlkInfo(ptr);
-    auto info = bic ? *bic : GC.query(ptr);
-
-    if (!(info.attr & BlkAttr.APPENDABLE))
-        // not appendable
-        return null;
-
-    assert(info.base); // sanity check.
-    if (!bic && !atomic)
-        // cache the lookup for next time
-        __insertBlkInfoCache(info, null);
-
-    auto usedSize = atomic ? __arrayAllocLengthAtomic(info) : __arrayAllocLength(info);
-    return __arrayStart(info)[0 .. usedSize];
-}
-
-private bool expandArrayUsed(void[] slice, size_t newUsed, bool atomic = false) nothrow
-{
-    if (newUsed < slice.length)
-        // cannot "expand" by shrinking.
-        return false;
-
-    // lookup the block info, using the cache if possible
-    auto bic = atomic ? null : __getBlkInfo(slice.ptr);
-    auto info = bic ? *bic : GC.query(slice.ptr);
-
-    if (!(info.attr & BlkAttr.APPENDABLE))
-        // not appendable
-        return false;
-
-    assert(info.base); // sanity check.
-
-    immutable offset = slice.ptr - __arrayStart(info);
-    newUsed += offset;
-    auto existingUsed = slice.length + offset;
-
-    size_t typeInfoSize = (info.attr & BlkAttr.STRUCTFINAL) ? size_t.sizeof : 0;
-    if (__setArrayAllocLengthImpl(info, offset + newUsed, atomic, existingUsed, typeInfoSize))
-    {
-        // could expand without extending
-        if (!bic && !atomic)
-            // cache the lookup for next time
-            __insertBlkInfoCache(info, null);
-        return true;
-    }
-
-    // if we got here, just setting the used size did not work.
-    if (info.size < PAGESIZE)
-        // nothing else we can do
-        return false;
-
-    // try extending the block into subsequent pages.
-    immutable requiredExtension = newUsed - info.size - LARGEPAD;
-    auto extendedSize = GC.extend(info.base, requiredExtension, requiredExtension);
-    if (extendedSize == 0)
-        // could not extend, can't satisfy the request
-        return false;
-
-    info.size = extendedSize;
-    if (bic)
-        *bic = info;
-    else if (!atomic)
-        __insertBlkInfoCache(info, null);
-
-    // this should always work.
-    return __setArrayAllocLengthImpl(info, newUsed, atomic, existingUsed, typeInfoSize);
-}
-
-private bool shrinkArrayUsed(void[] slice, size_t existingUsed, bool atomic = false) nothrow
-{
-    if (existingUsed < slice.length)
-        // cannot "shrink" by growing.
-        return false;
-
-    // lookup the block info, using the cache if possible.
-    auto bic = atomic ? null : __getBlkInfo(slice.ptr);
-    auto info = bic ? *bic : GC.query(slice.ptr);
-
-    if (!(info.attr & BlkAttr.APPENDABLE))
-        // not appendable
-        return false;
-
-    assert(info.base); // sanity check
-
-    immutable offset = slice.ptr - __arrayStart(info);
-    existingUsed += offset;
-    auto newUsed = slice.length + offset;
-
-    size_t typeInfoSize = (info.attr & BlkAttr.STRUCTFINAL) ? size_t.sizeof : 0;
-
-    if (__setArrayAllocLengthImpl(info, newUsed, atomic, existingUsed, typeInfoSize))
-    {
-        if (!bic && !atomic)
-            __insertBlkInfoCache(info, null);
-        return true;
-    }
-
-    return false;
-}
-
-private size_t reserveArrayCapacity(void[] slice, size_t request, bool atomic = false) nothrow
-{
-    // lookup the block info, using the cache if possible.
-    auto bic = atomic ? null : __getBlkInfo(slice.ptr);
-    auto info = bic ? *bic : GC.query(slice.ptr);
-
-    if (!(info.attr & BlkAttr.APPENDABLE))
-        // not appendable
-        return 0;
-
-    assert(info.base); // sanity check
-
-    immutable offset = slice.ptr - __arrayStart(info);
-    request += offset;
-    auto existingUsed = slice.length + offset;
-
-    // make sure this slice ends at the used space
-    auto blockUsed = atomic ? __arrayAllocLengthAtomic(info) : __arrayAllocLength(info);
-    if (existingUsed != blockUsed)
-        // not an expandable slice.
-        return 0;
-
-    // see if the capacity can contain the existing data
-    auto existingCapacity = __arrayAllocCapacity(info);
-    if (existingCapacity < request)
-    {
-        if (info.size < PAGESIZE)
-            // no possibility to extend
-            return 0;
-
-        immutable requiredExtension = request - existingCapacity;
-        auto extendedSize = GC.extend(info.base, requiredExtension, requiredExtension);
-        if (extendedSize == 0)
-            // could not extend, can't satisfy the request
-            return 0;
-
-        info.size = extendedSize;
-
-        // update the block info cache if it was used
-        if (bic)
-            *bic = info;
-        else if (!atomic)
-            __insertBlkInfoCache(info, null);
-
-        existingCapacity = __arrayAllocCapacity(info);
-    }
-
-    return existingCapacity - offset;
 }
 
 // Now-removed symbol, kept around for ABI
@@ -414,7 +267,7 @@ extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) nothrow
     auto reqsize = arr.length * size;
     auto isshared = typeid(ti) is typeid(TypeInfo_Shared);
 
-    auto curArr = getArrayUsed(arr.ptr, isshared);
+    auto curArr = gc_getArrayUsed(arr.ptr, isshared);
     if (curArr.ptr is null)
         // not a valid GC pointer
         return;
@@ -444,7 +297,7 @@ extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr) nothrow
         }
     }
 
-    shrinkArrayUsed(arr.ptr[0 .. reqsize], cursize, isshared);
+    gc_shrinkArrayUsed(arr.ptr[0 .. reqsize], cursize, isshared);
 }
 
 package bool hasPostblit(in TypeInfo ti) nothrow pure
@@ -552,7 +405,7 @@ Lcontinue:
 
     // step 1, see if we can ensure the capacity is valid in-place
     auto datasize = (*p).length * size;
-    auto curCapacity = reserveArrayCapacity((*p).ptr[0 .. datasize], reqsize, isshared);
+    auto curCapacity = gc_reserveArrayCapacity((*p).ptr[0 .. datasize], reqsize, isshared);
     if (curCapacity != 0)
         // in-place worked!
         return curCapacity / size;
@@ -1101,7 +954,7 @@ do
      * If not possible, allocate new space for entire array and copy.
      */
     void* newdata = (*p).ptr;
-    if (!expandArrayUsed(newdata[0 .. size], newsize, isshared))
+    if (!gc_expandArrayUsed(newdata[0 .. size], newsize, isshared))
     {
         auto info = __arrayAlloc(newsize, (*p).ptr, ti, tinext);
         if (info.base is null)
@@ -1240,7 +1093,7 @@ do
      * If not possible, allocate new space for entire array and copy.
      */
     void* newdata = (*p).ptr;
-    if (!expandArrayUsed(newdata[0 .. size], newsize, isshared))
+    if (!gc_expandArrayUsed(newdata[0 .. size], newsize, isshared))
     {
         auto info = __arrayAlloc(newsize, (*p).ptr, ti, tinext);
         if (info.base is null)
@@ -1363,7 +1216,7 @@ byte[] _d_arrayappendcTX(const TypeInfo ti, return scope ref byte[] px, size_t n
     auto newsize = newlength * sizeelem;
     auto size = length * sizeelem;
 
-    if (!expandArrayUsed(px.ptr[0 .. size], newsize, isshared))
+    if (!gc_expandArrayUsed(px.ptr[0 .. size], newsize, isshared))
     {
         // could not set the size, we must reallocate.
         auto newcap = newCapacity(newlength, sizeelem);
