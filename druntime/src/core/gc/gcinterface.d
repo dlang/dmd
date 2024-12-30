@@ -198,10 +198,10 @@ interface GC
      * with the memory that is about to go away. For appending or shrinking
      * arrays that have no destructors, you probably don't need this function.
      * Params:
-     *   ptr - The pointer to check. This can be an interior pointer, but if it
+     *   ptr = The pointer to check. This can be an interior pointer, but if it
      *       is beyond the end of the used space, the return value may not be
      *       valid.
-     *   atomic - If true, the value is fetched atomically (for shared arrays)
+     *   atomic = If true, the value is fetched atomically (for shared arrays)
      * Returns: Current array slice, or null if the pointer does not point to a
      *   valid appendable GC block.
      */
@@ -216,9 +216,9 @@ interface GC
      * slices that do not point at expandable GC blocks cannot be affected, and
      * this function will always return false.
      * Params:
-     *   slice - the slice to attempt expanding in place.
-     *   newUsed - the size that should be stored as used.
-     *   atomic - if true, the array may be shared between threads, and this
+     *   slice = the slice to attempt expanding in place.
+     *   newUsed = the size that should be stored as used.
+     *   atomic = if true, the array may be shared between threads, and this
      *   operation should be done atomically.
      * Returns: true if successful.
      */
@@ -232,11 +232,11 @@ interface GC
      * slices that do not point at expandable GC blocks cannot be affected, and
      * this function will always return zero.
      * Params:
-     *   slice - the slice to attempt reserving capacity for.
-     *   request - the requested size to expand to. Includes the existing data.
+     *   slice = the slice to attempt reserving capacity for.
+     *   request = the requested size to expand to. Includes the existing data.
      *      Passing a value less than the current array size will result in no
      *      changes, but will return the current capacity.
-     *   atomic - if true, the array may be shared between threads, and this
+     *   atomic = if true, the array may be shared between threads, and this
      *      operation should be done atomically.
      * Returns: resulting capacity size, 0 if the operation could not be performed.
      */
@@ -250,11 +250,11 @@ interface GC
      * If slice.ptr[0 .. existingUsed] does not point to the end of a valid GC
      * appendable slice, then the operation fails.
      * Params:
-     *   slice - The proposed valid slice data.
-     *   existingUsed - The amount of data in the block (starting at slice.ptr)
+     *   slice = The proposed valid slice data.
+     *   existingUsed = The amount of data in the block (starting at slice.ptr)
      *       that is currently valid in the array. If this amount does not match
      *       the current used size, the operation fails.
-     *   atomic - If true, the slice may be shared between threads, and the
+     *   atomic = If true, the slice may be shared between threads, and the
      *       operation should be atomic.
      * Returns: true if successful.
      */
