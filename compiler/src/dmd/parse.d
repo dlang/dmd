@@ -939,7 +939,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         if (e)
                             error("redundant alignment attribute `align(%s)`", e.toChars());
                         else
-                            error("redundant alignment attribute `align`");
+                            error("redundant alignment attribute `align(default)`");
                     }
 
                     pAttrs.setAlignment = true;
@@ -4387,7 +4387,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         if (token.value == TOK.leftParenthesis)
         {
             nextToken();
-            e = parseAssignExp();
+            if (token.value == TOK.default_)
+                nextToken();
+            else
+                e = parseAssignExp();
             check(TOK.rightParenthesis);
         }
         return e;
