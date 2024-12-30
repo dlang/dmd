@@ -242,6 +242,7 @@ $(H2 $(LNAME2 align, $(D align) Attribute))
 
 $(GRAMMAR
 $(GNAME AlignAttribute):
+    $(D align $(LPAREN) default $(RPAREN))
     $(D align)
     $(D align) $(D $(LPAREN)) $(GLINK2 expression, AssignExpression) $(D $(RPAREN))
 )
@@ -257,15 +258,14 @@ $(GNAME AlignAttribute):
         $(LI struct, union, and class types)
         )
 
-        $(P $(D align) by itself
-        sets it to the default, which matches the default member alignment
-        of the companion C compiler.)
+        $(P $(D align $(LPAREN) default $(RPAREN)) (re)sets it to the default, which matches the default member alignment
+        of the companion C compiler. $(D align) by itself is the same as $(D align $(LPAREN) default $(RPAREN)).)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 --------
 struct S
 {
-  align:
+  align(default): // same as `align:`
     byte a;   // placed at offset 0
     int b;    // placed at offset 4
     long c;   // placed at offset 8
