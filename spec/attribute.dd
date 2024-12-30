@@ -188,7 +188,7 @@ extern (Windows):
         $(P Note that a $(DDSUBLINK spec/declaration, extern, lone $(D extern) keyword)
         is used as a storage class.)
 
-$(H3 C++ $(LNAME2 namespace, Namespaces))
+$(H3 $(LNAME2 namespace, C++ Namespaces))
 
         $(P The linkage form $(D extern $(LPAREN)C++, )$(I QualifiedIdentifier)$(D $(RPAREN))
         creates C++ declarations that reside in C++ namespaces. The $(I QualifiedIdentifier)
@@ -659,10 +659,14 @@ operations or overloads at compile time rather than relying on generating a
 runtime error.)
 
 ---
-@disable void foo() { }
----
----
-void main() { foo(); /* error, foo is disabled */ }
+@disable int x;
+@disable void foo();
+
+void main()
+{
+    x++;   // error, x is disabled
+    foo(); // error, foo is disabled
+}
 ---
 
         $(P $(DDSUBLINK spec/struct, disable_default_construction, `@disable this();`)
@@ -720,11 +724,11 @@ $(H3 $(LNAME2 pure, $(D pure) Attribute))
 
     $(P See $(DDSUBLINK spec/function, pure-functions, Pure Functions).)
 
-$(H3 $(LNAME2 ref, $(D ref) Attribute))
+$(H2 $(LNAME2 ref, $(D ref) Attribute))
 
     $(P See $(DDSUBLINK spec/declaration, ref-storage, `ref` Storage Class).)
 
-$(H3 $(LNAME2 return, $(D return) Attribute))
+$(H2 $(LNAME2 return, $(D return) Attribute))
 
     * $(DDSUBLINK spec/function, return-ref-parameters, Return Ref Parameters).
     * $(DDSUBLINK spec/function, return-scope-parameters, Return Scope Parameters).
