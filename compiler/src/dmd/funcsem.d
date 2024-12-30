@@ -1103,7 +1103,7 @@ Ldone:
         {
             printedMain = true;
             auto name = mod.srcfile.toChars();
-            auto path = FileName.searchPath(global.path, name, true);
+            auto path = FileName.searchPath(global.importPaths, name, true);
             message("entry     %-10s\t%s", type, path ? path : name);
         }
     }
