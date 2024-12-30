@@ -374,6 +374,7 @@ $(H2 $(LNAME2 constructors, Constructors))
 $(GRAMMAR
 $(GNAME Constructor):
     $(D this) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
+    $(D this) $(GLINK2 function, Parameters) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, MissingFunctionBody)
     $(GLINK2 template, ConstructorTemplate)
 )
 
@@ -741,6 +742,7 @@ $(H2 $(LNAME2 destructors, Destructors))
 $(GRAMMAR
 $(GNAME Destructor):
     $(D ~ this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
+    $(D ~ this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, MissingFunctionBody)
 )
 
         $(P The destructor function is called when:)
@@ -819,6 +821,7 @@ $(H2 $(LNAME2 static-constructor, Static Constructors))
 $(GRAMMAR
 $(GNAME StaticConstructor):
     $(D static this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
+    $(D static this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, MissingFunctionBody)
 )
 
         $(P A static constructor is a function that performs initializations of
@@ -961,6 +964,7 @@ $(H2 $(LNAME2 shared_static_constructors, Shared Static Constructors))
 $(GRAMMAR
 $(GNAME SharedStaticConstructor):
     $(D shared static this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
+    $(D shared static this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, MissingFunctionBody)
 )
 
         $(P Shared static constructors are executed before any $(GLINK StaticConstructor)s,
@@ -972,6 +976,7 @@ $(H2 $(LNAME2 shared_static_destructors, Shared Static Destructors))
 $(GRAMMAR
 $(GNAME SharedStaticDestructor):
     $(D shared static ~ this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, FunctionBody)
+    $(D shared static ~ this ( )) $(GLINK2 function, MemberFunctionAttributes)$(OPT) $(GLINK2 function, MissingFunctionBody)
 )
 
         $(P Shared static destructors are executed at program termination

@@ -9,6 +9,7 @@ $(H2 $(LNAME2 grammar, Function Declarations))
 $(GRAMMAR
 $(GNAME FuncDeclaration):
     $(GLINK2 declaration, StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK FuncDeclarator) $(GLINK FunctionBody)
+    $(GLINK2 declaration, StorageClasses)$(OPT) $(GLINK2 type, BasicType) $(GLINK FuncDeclarator) $(GLINK MissingFunctionBody)
     $(GLINK AutoFuncDeclaration)
 
 $(GNAME AutoFuncDeclaration):
@@ -116,7 +117,6 @@ $(GRAMMAR
 $(GNAME FunctionBody):
     $(GLINK SpecifiedFunctionBody)
     $(GLINK ShortenedFunctionBody)
-    $(GLINK MissingFunctionBody)
 
 $(GNAME SpecifiedFunctionBody):
     $(D do)$(OPT) $(GLINK2 statement, BlockStatement)
@@ -3448,21 +3448,17 @@ $(H2 $(LNAME2 main, $(D main()) Function))
         $(D main()) must be declared as follows:
         )
 
-        $(GRAMMAR
-        $(GNAME MainFunction):
-            $(GLINK MainReturnDecl) $(D main$(LPAREN)$(RPAREN)) $(GLINK2 statement, MainFunctionBody)
-            $(GLINK MainReturnDecl) $(D main$(LPAREN)string[]) $(GLINK_LEX Identifier)$(D $(RPAREN)) $(GLINK2 statement, MainFunctionBody)
+$(GRAMMAR
+$(GNAME MainFunction):
+    $(GLINK MainReturnDecl) $(D main$(LPAREN)$(RPAREN)) $(GLINK FunctionBody)
+    $(GLINK MainReturnDecl) $(D main$(LPAREN)string[]) $(GLINK_LEX Identifier)$(D $(RPAREN)) $(GLINK FunctionBody)
 
-        $(GNAME MainReturnDecl):
-            $(D void)
-            $(D int)
-            $(GLINK2 type, noreturn)
-            $(RELATIVE_LINK2 auto-functions, $(D auto))
-
-        $(GNAME MainFunctionBody):
-            $(GLINK ShortenedFunctionBody)
-            $(GLINK SpecifiedFunctionBody)
-        )
+$(GNAME MainReturnDecl):
+    $(D void)
+    $(D int)
+    $(GLINK2 type, noreturn)
+    $(RELATIVE_LINK2 auto-functions, $(D auto))
+)
 
         $(UL
         $(LI If `main` returns `void`, the OS will receive a zero value on success.)
@@ -3493,14 +3489,14 @@ $(H2 $(LNAME2 main, $(D main()) Function))
 
         $(P A C $(D main) function must be declared as follows:)
 
-        $(GRAMMAR
-        $(GNAME CMainFunction):
-            $(D extern (C)) $(GLINK MainReturnDecl) $(D main$(LPAREN)$(GLINK CmainParameters)$(OPT)$(RPAREN)) $(GLINK2 statement, BlockStatement)
+$(GRAMMAR
+$(GNAME CMainFunction):
+    $(D extern (C)) $(GLINK MainReturnDecl) $(D main$(LPAREN)$(GLINK CmainParameters)$(OPT)$(RPAREN)) $(GLINK2 statement, BlockStatement)
 
-        $(GNAME CmainParameters):
-            $(D int) $(GLINK_LEX Identifier), $(D char**) $(GLINK_LEX Identifier)
-            $(D int) $(GLINK_LEX Identifier), $(D char**) $(GLINK_LEX Identifier), $(D char**) $(GLINK_LEX Identifier)
-        )
+$(GNAME CmainParameters):
+    $(D int) $(GLINK_LEX Identifier), $(D char**) $(GLINK_LEX Identifier)
+    $(D int) $(GLINK_LEX Identifier), $(D char**) $(GLINK_LEX Identifier), $(D char**) $(GLINK_LEX Identifier)
+)
 
         $(P When defined, the first two parameters denote a C-style array (length + pointer)
         that holds the arguments passed to the program by the OS. The third parameter is a POSIX
