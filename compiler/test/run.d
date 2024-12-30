@@ -199,7 +199,7 @@ Options:
             {
                 const string name = target.filename
                             ? target.normalizedTestName
-                            : "`unit` tests: " ~ unitTestRunnerCommand ~ target.args;
+                            : "`unit` tests: " ~ unitTestRunnerCommand.join(target.args, " ");
 
                 writeln(">>> TARGET FAILED: ", name);
                 synchronized failedTargets ~= name;
