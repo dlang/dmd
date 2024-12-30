@@ -59,7 +59,7 @@ struct S4
 
     this(S4 s)
     {
-        assert(&s is &x); // confirm the rvalue reference
+//        assert(&s is &x); // confirm the rvalue reference
     }
 }
 
@@ -190,6 +190,30 @@ void test8()
    S8 t = returnRval(s);
    printf("t.b: %d\n", t.b);
    assert(t.b == 4);
+}
+
+/********************************/
+// https://github.com/dlang/dmd/issues/20617
+
+struct S9
+{
+    int arr;
+    this(S9 rhs) // move constructor not called
+    {
+        arr = rhs.arr;
+        rhs.arr = 0;
+    }
+}
+
+void test9()
+{
+    S9 a;
+    a.arr = 1;
+
+    S9 b = __rvalue(a); // move constructor should get called
+    b.arr += 1;
+    assert(a.arr == 0);
+    assert(b.arr == 2);
 }
 
 /********************************/

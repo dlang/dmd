@@ -10739,7 +10739,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         result = e.expressionSemantic(sc);
                         return;
                     }
-                    if (sd.postblit || sd.hasCopyCtor)
+                    if (sd.postblit || sd.hasCopyCtor || sd.hasMoveCtor)
                     {
                         /* We have a copy constructor for this
                          */

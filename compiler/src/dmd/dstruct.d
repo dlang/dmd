@@ -330,10 +330,11 @@ extern (C++) class StructDeclaration : AggregateDeclaration
         if (enclosing                      || // is nested
             search(this, loc, Id.postblit) || // has postblit
             search(this, loc, Id.dtor)     || // has destructor
-            /* This is commented out because otherwise buildkite vibe.d:
+            /* The following line causes buildkite vibe.d with:
                `canCAS!Task` fails to compile
+               https://github.com/dlang/dmd/issues/20616
              */
-            //hasMoveCtorLocal               || // has move constructor
+            hasMoveCtorLocal               || // has move constructor
             hasCpCtorLocal)                   // has copy constructor
         {
             ispod = ThreeState.no;
