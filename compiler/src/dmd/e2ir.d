@@ -113,6 +113,11 @@ bool ISX64REF(Declaration var)
                 || (var.storage_class & STC.lazy_)
                 || (var.type.isTypeStruct() && var.type.isTypeStruct().sym.hasCopyConstruction());
         }
+        else if (target.os & Target.OS.Windows)
+        {
+            auto ts = var.type.isTypeStruct();
+            return !(var.storage_class & STC.lazy_) && ts && ts.sym.hasMoveCtor && ts.sym.hasCopyCtor;
+        }
         else if (target.os & Target.OS.Posix)
         {
             return !(var.storage_class & STC.lazy_) && var.type.isTypeStruct() && !var.type.isTypeStruct().sym.isPOD();
@@ -130,6 +135,11 @@ bool ISX64REF(ref IRState irs, Expression exp)
     {
         return exp.type.size(Loc.initial) > registerSize
                || (exp.type.isTypeStruct() && exp.type.isTypeStruct().sym.hasCopyConstruction());
+    }
+    else if (irs.target.os & Target.OS.Windows)
+    {
+        auto ts = exp.type.isTypeStruct();
+        return ts && ts.sym.hasMoveCtor && ts.sym.hasCopyCtor;
     }
     else if (irs.target.os & Target.OS.Posix)
     {

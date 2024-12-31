@@ -516,7 +516,20 @@ private elem* initializeParamsWithArgs(elem* eargs, SYMIDX sistart, SYMIDX siend
         {
             if (log) printf("detected slice with %s\n", s.Sident.ptr);
             auto s2 = nextSymbol(si);
-            if (!s2) { symbol_print(*s); elem_print(e); assert(0); }
+            if (!s2)
+            {
+		for (size_t m = args.length; m; --m)
+		{
+		    elem* ex = args[m - 1];
+		    printf("arg[%d]\n", cast(int) m);
+		    elem_print(ex);
+		}
+
+                printf("function: %s\n", funcsym_p.Sident.ptr);
+		printf("szs: %d sze: %d\n", cast(int)szs, cast(int)sze);
+                printf("detected slice with %s\n", s.Sident.ptr);
+                symbol_print(*s); elem_print(e); assert(0);
+            }
             assert(szs == type_size(s2.Stype));
             const ty = s.Stype.Tty;
 

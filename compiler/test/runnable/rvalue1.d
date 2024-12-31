@@ -55,6 +55,8 @@ struct S4
 {
     void* p;
 
+    this(ref S4) { }
+
     this(S4 s)
     {
         assert(&s is &x); // confirm the rvalue reference
