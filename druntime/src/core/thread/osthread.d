@@ -12,15 +12,14 @@
 
 module core.thread.osthread;
 
-import core.thread.threadbase;
-import core.thread.context;
-import core.thread.types;
 import core.atomic;
-import core.memory : GC, pageSize;
-import core.time;
 import core.exception : onOutOfMemoryError;
 import core.internal.traits : externDFunc;
-
+import core.memory : GC, pageSize;
+import core.thread.context;
+import core.thread.threadbase;
+import core.thread.types;
+import core.time;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Platform Detection and Memory Allocation
@@ -68,7 +67,7 @@ version (Posix)
         //       a version identifier.  Please note that this is considered
         //       an obsolescent feature according to the POSIX spec, so a
         //       custom solution is still preferred.
-        import core.sys.posix.ucontext;
+        static import core.sys.posix.ucontext;
     }
 }
 
@@ -91,12 +90,18 @@ version (Windows)
 }
 else version (Posix)
 {
+    static import core.sys.posix.pthread;
+    static import core.sys.posix.signal;
     import core.stdc.errno;
-    import core.sys.posix.semaphore;
-    import core.sys.posix.stdlib; // for malloc, valloc, free, atexit
-    import core.sys.posix.pthread;
-    import core.sys.posix.signal;
-    import core.sys.posix.time;
+    import core.sys.posix.pthread : pthread_attr_destroy, pthread_attr_getstack, pthread_attr_init,
+        pthread_attr_setstacksize, pthread_create, pthread_detach, pthread_getschedparam, pthread_join, pthread_self,
+        pthread_setschedparam, sched_get_priority_max, sched_get_priority_min, sched_param, sched_yield;
+    import core.sys.posix.semaphore : sem_init, sem_post, sem_t, sem_wait;
+    import core.sys.posix.signal : pthread_kill, sigaction, sigaction_t, sigdelset, sigfillset, SIGRTMAX, SIGRTMIN,
+        sigset_t, sigsuspend;
+    import core.sys.posix.stdlib : free, malloc, realloc;
+    import core.sys.posix.sys.types : pthread_attr_t, pthread_key_t, pthread_t;
+    import core.sys.posix.time : nanosleep, timespec;
 
     version (Darwin)
     {
@@ -107,9 +112,9 @@ else version (Posix)
 
 version (Solaris)
 {
+    import core.sys.posix.sys.wait : idtype_t;
     import core.sys.solaris.sys.priocntl;
     import core.sys.solaris.sys.types;
-    import core.sys.posix.sys.wait : idtype_t;
 }
 
 version (GNU)
@@ -803,8 +808,10 @@ class Thread : ThreadBase
         }
         else version (Posix)
         {
-            static if (__traits(compiles, pthread_setschedprio))
+            static if (__traits(compiles, core.sys.posix.pthread.pthread_setschedprio))
             {
+                import core.sys.posix.pthread : pthread_setschedprio;
+
                 if (auto err = pthread_setschedprio(m_addr, val))
                 {
                     // ignore error if thread is not running => Bugzilla 8960
@@ -1363,13 +1370,11 @@ private extern (D) void scanWindowsOnly(scope ScanAllThreadsTypeFn scan, ThreadB
  */
 version (Posix)
 {
-    import core.sys.posix.unistd;
-
-    alias getpid = core.sys.posix.unistd.getpid;
+    alias getpid = imported!"core.sys.posix.unistd".getpid;
 }
 else version (Windows)
 {
-    alias getpid = core.sys.windows.winbase.GetCurrentProcessId;
+    alias getpid = imported!"core.sys.windows.winbase".GetCurrentProcessId;
 }
 
 extern (C) @nogc nothrow
@@ -1924,8 +1929,12 @@ extern (C) void thread_init() @nogc nothrow
         // NOTE: SA_RESTART indicates that system calls should restart if they
         //       are interrupted by a signal, but this is not available on all
         //       Posix systems, even those that support multithreading.
-        static if ( __traits( compiles, SA_RESTART ) )
+        static if (__traits(compiles, core.sys.posix.signal.SA_RESTART))
+        {
+            import core.sys.posix.signal : SA_RESTART;
+
             suspend.sa_flags = SA_RESTART;
+        }
 
         suspend.sa_handler = &thread_suspendHandler;
         // NOTE: We want to ignore all signals while in this handler, so fill
@@ -2055,19 +2064,6 @@ else version (Posix)
 {
     private
     {
-        import core.stdc.errno;
-        import core.sys.posix.semaphore;
-        import core.sys.posix.stdlib; // for malloc, valloc, free, atexit
-        import core.sys.posix.pthread;
-        import core.sys.posix.signal;
-        import core.sys.posix.time;
-
-        version (Darwin)
-        {
-            import core.sys.darwin.mach.thread_act;
-            import core.sys.darwin.pthread : pthread_mach_thread_np;
-        }
-
         //
         // Entry point for POSIX threads
         //
@@ -2125,14 +2121,18 @@ else version (Posix)
             //       implementation actually requires default initialization
             //       then pthread_cleanup should be restructured to maintain
             //       the current lack of a link dependency.
-            static if ( __traits( compiles, pthread_cleanup ) )
+            static if (__traits(compiles, core.sys.posix.pthread.pthread_cleanup))
             {
+                import core.sys.posix.pthread : pthread_cleanup;
+
                 pthread_cleanup cleanup = void;
                 cleanup.push( &thread_cleanupHandler, cast(void*) obj );
             }
-            else static if ( __traits( compiles, pthread_cleanup_push ) )
+            else static if (__traits(compiles, core.sys.posix.pthread.pthread_cleanup_push))
             {
-                pthread_cleanup_push( &thread_cleanupHandler, cast(void*) obj );
+                import core.sys.posix.pthread : pthread_cleanup_push;
+
+                pthread_cleanup_push(&thread_cleanupHandler, cast(void*) obj);
             }
             else
             {
@@ -2178,12 +2178,14 @@ else version (Posix)
 
             // NOTE: Normal cleanup is handled by scope(exit).
 
-            static if ( __traits( compiles, pthread_cleanup ) )
+            static if (__traits(compiles, core.sys.posix.pthread.pthread_cleanup))
             {
                 cleanup.pop( 0 );
             }
-            else static if ( __traits( compiles, pthread_cleanup_push ) )
+            else static if (__traits(compiles, core.sys.posix.pthread.pthread_cleanup_push))
             {
+                import core.sys.posix.pthread : pthread_cleanup_pop;
+
                 pthread_cleanup_pop( 0 );
             }
 

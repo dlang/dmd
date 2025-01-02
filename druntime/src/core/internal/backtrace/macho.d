@@ -20,9 +20,8 @@ else version (WatchOS)
 version (Darwin):
 
 import core.stdc.config : c_ulong;
-import core.sys.darwin.crt_externs;
-import core.sys.darwin.mach.getsect;
-import core.sys.darwin.mach.loader;
+import core.sys.darwin.crt_externs : _NSGetMachExecuteHeader;
+import core.sys.darwin.mach.getsect : mach_header_64, getsectiondata;
 
 struct Image
 {

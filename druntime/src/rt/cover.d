@@ -11,7 +11,7 @@
 
 module rt.cover;
 
-import core.internal.util.math : min, max;
+import core.internal.util.math : max, min;
 
 private
 {
@@ -22,13 +22,13 @@ private
     }
     else version (Posix)
     {
-        import core.sys.posix.fcntl;
-        import core.sys.posix.unistd;
+        import core.sys.posix.fcntl : O_CREAT, O_RDWR, open, S_IRGRP, S_IROTH, S_IRUSR, S_IWGRP, S_IWOTH, S_IWUSR;
+        import core.sys.posix.unistd : F_LOCK, ftruncate, lockf;
     }
+    import core.internal.utf;
     import core.stdc.config : c_long;
     import core.stdc.stdio;
     import core.stdc.stdlib;
-    import core.internal.utf;
 
     struct BitArray
     {
@@ -467,7 +467,7 @@ FILE* openOrCreateFile(string name)
     version (CRuntime_Microsoft)
         alias fdopen = _fdopen;
     version (Posix)
-        import core.sys.posix.stdio;
+        import core.sys.posix.stdio : fdopen;
     return fdopen(fd, "r+b");
 }
 
