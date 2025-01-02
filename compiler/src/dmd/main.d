@@ -64,6 +64,7 @@ import dmd.root.response;
 import dmd.root.rmem;
 import dmd.root.string;
 import dmd.root.stringtable;
+import dmd.root.array;
 import dmd.semantic2;
 import dmd.semantic3;
 import dmd.target;
@@ -397,7 +398,30 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
 
     // Build import search path
 
-    static void buildPath(ref Strings imppath, ref Strings result)
+    static void buildImportPath(ref Array!ImportPathInfo imppath, ref Array!ImportPathInfo result, ref Strings pathsOnlyResult)
+    {
+        Array!ImportPathInfo array;
+        Strings pathsOnlyArray;
+
+        foreach (entry; imppath)
+        {
+            int sink(const(char)* p) nothrow
+            {
+                ImportPathInfo temp = entry;
+                temp.path = p;
+                array.push(temp);
+                return 0;
+            }
+
+            FileName.splitPath(&sink, entry.path);
+            FileName.appendSplitPath(entry.path, pathsOnlyArray);
+        }
+
+        result.append(&array);
+        pathsOnlyResult.append(&pathsOnlyArray);
+    }
+
+    static void buildFileImportPath(ref Strings imppath, ref Strings result)
     {
         Strings array;
         foreach (const path; imppath)
@@ -413,8 +437,8 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
         atexit(&flushMixins); // see comment for flushMixins
     }
     scope(exit) flushMixins();
-    buildPath(params.imppath, global.path);
-    buildPath(params.fileImppath, global.filePath);
+    buildImportPath(params.imppath, global.path, global.importPaths);
+    buildFileImportPath(params.fileImppath, global.filePath);
 
     if (params.timeTrace)
     {
