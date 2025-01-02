@@ -93,12 +93,12 @@ else version (Posix)
     static import core.sys.posix.pthread;
     static import core.sys.posix.signal;
     import core.stdc.errno;
-    import core.sys.posix.pthread : pthread_attr_destroy, pthread_attr_getstack, pthread_attr_init,
+    import core.sys.posix.pthread : pthread_atfork, pthread_attr_destroy, pthread_attr_getstack, pthread_attr_init,
         pthread_attr_setstacksize, pthread_create, pthread_detach, pthread_getschedparam, pthread_join, pthread_self,
         pthread_setschedparam, sched_get_priority_max, sched_get_priority_min, sched_param, sched_yield;
     import core.sys.posix.semaphore : sem_init, sem_post, sem_t, sem_wait;
-    import core.sys.posix.signal : pthread_kill, sigaction, sigaction_t, sigdelset, sigfillset, SIGRTMAX, SIGRTMIN,
-        sigset_t, sigsuspend;
+    import core.sys.posix.signal : pthread_kill, sigaction, sigaction_t, sigdelset, sigfillset, sigset_t, sigsuspend,
+        SIGUSR1, stack_t;
     import core.sys.posix.stdlib : free, malloc, realloc;
     import core.sys.posix.sys.types : pthread_attr_t, pthread_key_t, pthread_t;
     import core.sys.posix.time : nanosleep, timespec;
@@ -1906,6 +1906,10 @@ extern (C) void thread_init() @nogc nothrow
             enum SIGRTMIN = SIGUSR1;
             enum SIGRTMAX = 32;
         }
+        else
+        {
+            import core.sys.posix.signal : SIGRTMAX, SIGRTMIN;
+        }
 
         if ( suspendSignalNumber == 0 )
         {
@@ -2372,10 +2376,9 @@ private
     // Note: if the DLL is never unloaded, process termination kills all threads
     // and signals their handles before unconditionally calling DllMain(DLL_PROCESS_DETACH).
 
-    import core.sys.windows.winbase : FreeLibraryAndExitThread, GetModuleHandleExW,
-        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT;
-    import core.sys.windows.windef : HMODULE;
     import core.sys.windows.dll : dll_getRefCount;
+    import core.sys.windows.winbase : FreeLibraryAndExitThread, GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, GetModuleHandleExW;
+    import core.sys.windows.windef : HMODULE;
 
     version (CRuntime_Microsoft)
         extern(C) extern __gshared ubyte msvcUsesUCRT; // from rt/msvc.d

@@ -70,16 +70,6 @@ import core.internal.string;
 import core.stdc.stdio;
 import core.stdc.time;
 
-version (Windows)
-{
-import core.sys.windows.winbase /+: QueryPerformanceCounter, QueryPerformanceFrequency+/;
-}
-else version (Posix)
-{
-import core.sys.posix.sys.time : gettimeofday, timeval;
-import core.sys.posix.time : clock_getres, clock_gettime, CLOCK_MONOTONIC, timespec;
-}
-
 version (OSX)
     version = Darwin;
 else version (iOS)
@@ -88,6 +78,22 @@ else version (TVOS)
     version = Darwin;
 else version (WatchOS)
     version = Darwin;
+
+version (Windows)
+{
+    import core.sys.windows.winbase /+: QueryPerformanceCounter, QueryPerformanceFrequency+/;
+}
+else version (Darwin)
+{
+    import core.sys.posix.sys.time : gettimeofday, timeval;
+    import core.sys.posix.time : timespec;
+}
+else version (Posix)
+{
+    import core.sys.posix.sys.time : gettimeofday, timeval;
+    import core.sys.posix.time : clock_getres, clock_gettime, CLOCK_MONOTONIC, timespec;
+}
+
 
 //This probably should be moved somewhere else in druntime which
 //is Darwin-specific.
