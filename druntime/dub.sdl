@@ -6,3 +6,9 @@ copyright "Copyright © 1999-2018, The D Language Foundation"
 
 targetType "library"
 targetPath "generated"
+
+#dflags "-target=x86_64-linux"
+#dflags "-target=x86_64-freebsd14"
+#dflags "-target=x86_64-openbsd"
+#dflags "-target=x86_64-dragonfly"
+#dflags "-target=x86_64-darwin"

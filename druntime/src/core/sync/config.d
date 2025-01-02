@@ -19,7 +19,7 @@ module core.sync.config;
 version (Posix)
 {
     import core.sys.posix.sys.time : gettimeofday, timeval;
-    import core.sys.posix.time : clock_gettime, CLOCK_MONOTONIC, timespec;
+    import core.sys.posix.time : timespec;
     import core.time;
 
 
@@ -27,6 +27,7 @@ version (Posix)
     {
         static if ( is (typeof ( imported!"core.sys.posix.pthread".pthread_condattr_setclock ) ) )
         {
+            import core.sys.posix.time : clock_gettime, CLOCK_MONOTONIC;
             clock_gettime( CLOCK_MONOTONIC, &t );
         }
         else
