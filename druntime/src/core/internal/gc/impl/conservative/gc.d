@@ -3575,7 +3575,7 @@ Lmark:
 
         version (Posix)
         {
-            import core.sys.posix.signal;
+            import core.sys.posix.signal : pthread_sigmask, SIG_BLOCK, SIG_SETMASK, sigfillset, sigset_t;
             // block all signals, scanBackground inherits this mask.
             // see https://issues.dlang.org/show_bug.cgi?id=20256
             sigset_t new_mask, old_mask;

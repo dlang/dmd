@@ -20,7 +20,7 @@ version (Windows)
 else
 version (Posix)
 {
-    import core.sys.posix.pthread;
+    import core.sys.posix.sys.types : pthread_t;
 
     alias ThreadID = pthread_t;
 }
@@ -55,7 +55,7 @@ shared static this()
 {
     version (Posix)
     {
-        import core.sys.posix.unistd;
+        import core.sys.posix.unistd : _SC_THREAD_STACK_MIN, sysconf;
 
         PTHREAD_STACK_MIN = cast(size_t)sysconf(_SC_THREAD_STACK_MIN);
     }

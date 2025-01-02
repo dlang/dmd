@@ -35,10 +35,11 @@ version (Windows)
 }
 else version (Posix)
 {
-    import core.sync.config;
     import core.stdc.errno;
-    import core.sys.posix.pthread;
-    import core.sys.posix.time;
+    import core.sync.config;
+    import core.sys.posix.pthread : pthread_cond_broadcast, pthread_cond_destroy, pthread_cond_init,
+        pthread_cond_signal, pthread_cond_t, pthread_cond_timedwait, pthread_cond_wait;
+    import core.sys.posix.time : CLOCK_MONOTONIC, timespec;
 }
 else
 {
@@ -127,8 +128,11 @@ class Condition
             {
                 m_assocMutex = m;
             }
-            static if ( is( typeof( pthread_condattr_setclock ) ) )
+            static if ( is( typeof( imported!"core.sys.posix.pthread".pthread_condattr_setclock ) ) )
             {
+                import core.sys.posix.pthread : pthread_condattr_destroy, pthread_condattr_init,
+                    pthread_condattr_setclock;
+                import core.sys.posix.sys.types : pthread_condattr_t;
                 () @trusted
                 {
                     pthread_condattr_t attr = void;
@@ -620,9 +624,9 @@ private:
 
 unittest
 {
-    import core.thread;
     import core.sync.mutex;
     import core.sync.semaphore;
+    import core.thread;
 
 
     void testNotify()
@@ -786,9 +790,9 @@ unittest
 
 unittest
 {
-    import core.thread;
     import core.sync.mutex;
     import core.sync.semaphore;
+    import core.thread;
 
 
     void testNotify()

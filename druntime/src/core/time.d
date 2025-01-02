@@ -66,9 +66,9 @@
 module core.time;
 
 import core.exception;
-import core.stdc.time;
-import core.stdc.stdio;
 import core.internal.string;
+import core.stdc.stdio;
+import core.stdc.time;
 
 version (Windows)
 {
@@ -76,8 +76,8 @@ import core.sys.windows.winbase /+: QueryPerformanceCounter, QueryPerformanceFre
 }
 else version (Posix)
 {
-import core.sys.posix.time;
-import core.sys.posix.sys.time;
+import core.sys.posix.sys.time : gettimeofday, timeval;
+import core.sys.posix.time : clock_getres, clock_gettime, CLOCK_MONOTONIC, timespec;
 }
 
 version (OSX)
