@@ -230,15 +230,15 @@ else version (X86)
         auto context = cast(ucontext.ucontext_t*)contextPtr;
 
         // Save registers into global thread local, to allow recovery.
-        savedEAX = context.uc_mcontext.gregs[REG_EAX];
-        savedEDX = context.uc_mcontext.gregs[REG_EDX];
+        savedEAX = context.uc_mcontext.gregs[ucontext.REG_EAX];
+        savedEDX = context.uc_mcontext.gregs[ucontext.REG_EDX];
 
         // Hijack current context so we call our handler.
-        auto eip = context.uc_mcontext.gregs[REG_EIP];
+        auto eip = context.uc_mcontext.gregs[ucontext.REG_EIP];
         auto addr = cast(RegType) info.si_addr;
-        context.uc_mcontext.gregs[REG_EAX] = addr;
-        context.uc_mcontext.gregs[REG_EDX] = eip;
-        context.uc_mcontext.gregs[REG_EIP] = cast(RegType) ((eip != addr)?&sigsegvDataHandler:&sigsegvCodeHandler);
+        context.uc_mcontext.gregs[ucontext.REG_EAX] = addr;
+        context.uc_mcontext.gregs[ucontext.REG_EDX] = eip;
+        context.uc_mcontext.gregs[ucontext.REG_EIP] = cast(RegType) ((eip != addr)?&sigsegvDataHandler:&sigsegvCodeHandler);
     }
 
     // All handler functions must be called with faulting address in EAX and original EIP in EDX.
