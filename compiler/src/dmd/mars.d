@@ -1836,7 +1836,7 @@ bool createModule(const(char)* file, ref Strings libmodules, const ref Target ta
 
     /* Deduce what to do with a file based on its extension
         */
-    if (FileName.equals(ext, target.obj_ext))
+    if (FileName.equals(ext, "obj") || FileName.equals(ext, "o"))
     {
         global.params.objfiles.push(file);
         libmodules.push(file);
