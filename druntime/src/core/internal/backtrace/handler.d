@@ -26,7 +26,7 @@ version (DRuntime_Use_Libunwind):
 import core.internal.backtrace.dwarf;
 import core.internal.backtrace.libunwind;
 import core.stdc.string;
-import core.sys.posix.dlfcn;
+import core.sys.posix.dlfcn : Dl_info, dladdr;
 
 /// Ditto
 class LibunwindHandler : Throwable.TraceInfo

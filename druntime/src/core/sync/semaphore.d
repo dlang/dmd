@@ -37,17 +37,17 @@ version (Windows)
 }
 else version (Darwin)
 {
-    import core.sync.config;
     import core.stdc.errno;
-    import core.sys.posix.time;
+    import core.sync.config;
     import core.sys.darwin.mach.semaphore;
+    import core.sys.posix.time;
 }
 else version (Posix)
 {
-    import core.sync.config;
     import core.stdc.errno;
-    import core.sys.posix.pthread;
-    import core.sys.posix.semaphore;
+    import core.sync.config;
+    import core.sys.posix.semaphore : sem_destroy, sem_init, sem_post, sem_t, sem_timedwait, sem_trywait, sem_wait;
+    import core.sys.posix.time : timespec;
 }
 else
 {
@@ -364,7 +364,8 @@ protected:
 
 unittest
 {
-    import core.thread, core.atomic;
+    import core.atomic;
+    import core.thread;
 
     void testWait()
     {

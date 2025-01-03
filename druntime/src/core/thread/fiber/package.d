@@ -11,11 +11,11 @@
 
 module core.thread.fiber;
 
-import core.thread.fiber.base: FiberBase, fiber_entryPoint;
+import core.thread.context;
+import core.thread.fiber.base : fiber_entryPoint, FiberBase;
 import core.thread.threadbase;
 import core.thread.threadgroup;
 import core.thread.types;
-import core.thread.context;
 
 import core.memory : pageSize;
 
@@ -37,7 +37,7 @@ else
 
 version (Windows)
 {
-    import core.stdc.stdlib : malloc, free;
+    import core.stdc.stdlib : free, malloc;
     import core.sys.windows.winbase;
     import core.sys.windows.winnt;
 }
@@ -159,7 +159,7 @@ package
             //       a version identifier.  Please note that this is considered
             //       an obsolescent feature according to the POSIX spec, so a
             //       custom solution is still preferred.
-            import core.sys.posix.ucontext;
+            import core.sys.posix.ucontext : getcontext, makecontext, MINSIGSTKSZ, swapcontext, ucontext_t;
         }
     }
 }
@@ -174,14 +174,14 @@ package
     import core.exception : onOutOfMemoryError;
     import core.stdc.stdlib : abort;
 
-  // Look above the definition of 'class Fiber' for some information about the implementation of this routine
-  version (AsmExternal)
-  {
-      extern (C) void fiber_switchContext( void** oldp, void* newp ) nothrow @nogc;
-      version (AArch64)
-          extern (C) void fiber_trampoline() nothrow;
-  }
-  else
+    // Look above the definition of 'class Fiber' for some information about the implementation of this routine
+    version (AsmExternal)
+    {
+        extern (C) void fiber_switchContext( void** oldp, void* newp ) nothrow @nogc;
+        version (AArch64)
+            extern (C) void fiber_trampoline() nothrow;
+    }
+    else
     extern (C) void fiber_switchContext( void** oldp, void* newp ) nothrow @nogc
     {
         // NOTE: The data pushed and popped in this routine must match the
@@ -710,7 +710,9 @@ protected:
         }
         else
         {
-            version (Posix) import core.sys.posix.sys.mman; // mmap, MAP_ANON
+            version (Posix) import core.sys.posix.sys.mman : MAP_ANON, MAP_FAILED, MAP_PRIVATE, mmap,
+                mprotect, PROT_NONE, PROT_READ, PROT_WRITE;
+            version (OpenBSD) import core.sys.posix.sys.mman : MAP_STACK;
 
             static if ( __traits( compiles, ucontext_t ) )
             {
@@ -804,7 +806,7 @@ protected:
         }
         else
         {
-            import core.sys.posix.sys.mman; // munmap
+            import core.sys.posix.sys.mman : mmap, munmap;
 
             static if ( __traits( compiles, mmap ) )
             {
