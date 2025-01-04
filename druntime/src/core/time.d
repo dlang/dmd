@@ -100,7 +100,7 @@ else version (Posix)
 version (Darwin)
 {
 
-public import core.sys.darwin.mach.kern_return;
+import core.sys.darwin.mach.kern_return : kern_return_t;
 
 extern(C) nothrow @nogc
 {

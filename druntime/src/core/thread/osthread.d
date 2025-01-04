@@ -105,7 +105,10 @@ else version (Posix)
 
     version (Darwin)
     {
-        import core.sys.darwin.mach.thread_act;
+        import core.sys.darwin.mach.kern_return : KERN_SUCCESS;
+        import core.sys.darwin.mach.port : mach_port_t;
+        import core.sys.darwin.mach.thread_act : mach_msg_type_number_t, thread_get_state, thread_resume,
+            thread_suspend, x86_THREAD_STATE64, x86_THREAD_STATE64_COUNT, x86_thread_state64_t;
         import core.sys.darwin.pthread : pthread_mach_thread_np;
     }
 }
@@ -113,8 +116,8 @@ else version (Posix)
 version (Solaris)
 {
     import core.sys.posix.sys.wait : idtype_t;
-    import core.sys.solaris.sys.priocntl;
-    import core.sys.solaris.sys.types;
+    import core.sys.solaris.sys.priocntl : PC_CLNULL, PC_GETCLINFO, PC_GETPARMS, PC_SETPARMS, pcinfo_t, pcparms_t, priocntl;
+    import core.sys.solaris.sys.types : P_MYID, pri_t;
 }
 
 version (GNU)
@@ -1426,7 +1429,7 @@ private extern(D) void* getStackBottom() nothrow @nogc
     }
     else version (Darwin)
     {
-        import core.sys.darwin.pthread;
+        import core.sys.darwin.pthread : pthread_get_stackaddr_np;
         return pthread_get_stackaddr_np(pthread_self());
     }
     else version (PThread_Getattr_NP)
