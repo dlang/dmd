@@ -899,7 +899,7 @@ protected:
             }
             enum sehChainEnd = cast(EXCEPTION_REGISTRATION*) 0xFFFFFFFF;
 
-            __gshared static fp_t finalHandler = null;
+            __gshared fp_t finalHandler = null;
             if ( finalHandler is null )
             {
                 static EXCEPTION_REGISTRATION* fs0() nothrow
