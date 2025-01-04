@@ -1545,22 +1545,24 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
 }
 
 /**
- * Generates a copy constructor declaration with the specified storage
+ * Generates a copy or move constructor declaration with the specified storage
  * class for the parameter and the function.
  *
  * Params:
- *  sd = the `struct` that contains the copy constructor
- *  paramStc = the storage class of the copy constructor parameter
- *  funcStc = the storage class for the copy constructor declaration
+ *  sd = the `struct` that contains the constructor
+ *  paramStc = the storage class of the constructor parameter
+ *  funcStc = the storage class for the constructor declaration
+ *  move = true for move constructor, false for copy constructor
  *
  * Returns:
  *  The copy constructor declaration for struct `sd`.
  */
-private CtorDeclaration generateCopyCtorDeclaration(StructDeclaration sd, const StorageClass paramStc, const StorageClass funcStc)
+private CtorDeclaration generateCtorDeclaration(StructDeclaration sd, const StorageClass paramStc, const StorageClass funcStc, bool move)
 {
     auto fparams = new Parameters();
     auto structType = sd.type;
-    fparams.push(new Parameter(Loc.initial, paramStc | STC.ref_ | STC.return_ | STC.scope_, structType, Id.p, null, null));
+    StorageClass stc = move ? 0 : STC.ref_;     // the only difference between copy or move
+    fparams.push(new Parameter(Loc.initial, paramStc | stc | STC.return_ | STC.scope_, structType, Id.p, null, null));
     ParameterList pList = ParameterList(fparams);
     auto tf = new TypeFunction(pList, structType, LINK.d, STC.ref_);
     auto ccd = new CtorDeclaration(sd.loc, Loc.initial, STC.ref_, tf, true);
@@ -1571,28 +1573,37 @@ private CtorDeclaration generateCopyCtorDeclaration(StructDeclaration sd, const 
 }
 
 /**
- * Generates a trivial copy constructor body that simply does memberwise
- * initialization:
+ * Generates a trivial copy or move constructor body that simply does memberwise
+ * initialization.
  *
+ * for copy construction:
  *    this.field1 = rhs.field1;
  *    this.field2 = rhs.field2;
  *    ...
+ * for move construction:
+ *    this.field1 = __rvalue(rhs.field1);
+ *    this.field2 = __rvalue(rhs.field2);
+ *    ...
  *
  * Params:
- *  sd = the `struct` declaration that contains the copy constructor
+ *  sd = the `struct` declaration that contains the constructor
+ *  move = true for move constructor, false for copy constructor
  *
  * Returns:
- *  A `CompoundStatement` containing the body of the copy constructor.
+ *  A `CompoundStatement` containing the body of the constructor.
  */
-private Statement generateCopyCtorBody(StructDeclaration sd)
+private Statement generateCtorBody(StructDeclaration sd, bool move)
 {
     Loc loc;
     Expression e;
     foreach (v; sd.fields)
     {
+        Expression rhs = new DotVarExp(loc, new IdentifierExp(loc, Id.p), v);
+	if (move)
+	    rhs.rvalue = true;
         auto ec = new AssignExp(loc,
             new DotVarExp(loc, new ThisExp(loc), v),
-            new DotVarExp(loc, new IdentifierExp(loc, Id.p), v));
+            rhs);
         e = Expression.combine(e, ec);
         //printf("e.toChars = %s\n", e.toChars());
     }
@@ -1732,8 +1743,8 @@ bool buildCopyCtor(StructDeclaration sd, Scope* sc, out bool hasMoveCtor)
     //printf("generating copy constructor for %s\n", sd.toChars());
     const MOD paramMod = MODFlags.wild;
     const MOD funcMod = MODFlags.wild;
-    auto ccd = generateCopyCtorDeclaration(sd, ModToStc(paramMod), ModToStc(funcMod));
-    auto copyCtorBody = generateCopyCtorBody(sd);
+    auto ccd = generateCtorDeclaration(sd, ModToStc(paramMod), ModToStc(funcMod), true);
+    auto copyCtorBody = generateCtorBody(sd, true);
     ccd.fbody = copyCtorBody;
     sd.members.push(ccd);
     ccd.addMember(sc, sd);
