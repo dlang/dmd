@@ -306,11 +306,8 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
     void visitInteger(IntegerExp e)
     {
         //printf("IntegerExp.toDt() %d\n", e.op);
-        const sz = cast(uint)e.type.size();
-        if (auto value = e.getInteger())
-            dtb.nbytes(sz, cast(char*)&value);
-        else
-            dtb.nzeros(sz);
+        auto value = e.getInteger();
+        dtb.nbytes(cast(uint)e.type.size(), cast(char*) &value);
     }
 
     void visitReal(RealExp e)
