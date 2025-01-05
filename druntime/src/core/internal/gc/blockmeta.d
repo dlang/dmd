@@ -251,3 +251,20 @@ size_t __arrayPad(size_t size, const TypeInfo tinext) nothrow pure @trusted
 {
     return size > MAXMEDSIZE ? LARGEPAD : ((size > MAXSMALLSIZE ? MEDPAD : SMALLPAD) + structTypeInfoSize(tinext));
 }
+
+/**
+  get the padding required to allocate size bytes, use the bits to determine
+  which metadata must be stored.
+  */
+size_t __allocPad(size_t size, uint bits) nothrow pure @trusted
+{
+    auto finalizerSize = (bits & BlkAttr.STRUCTFINAL) ? (void*).sizeof : 0;
+    if (bits & BlkAttr.APPENDABLE)
+    {
+        if (size > MAXMEDSIZE - finalizerSize)
+            return LARGEPAD;
+        return size > MAXSMALLSIZE - finalizerSize ? MEDPAD : SMALLPAD;
+    }
+
+    return finalizerSize;
+}
