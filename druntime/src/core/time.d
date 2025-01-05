@@ -3925,7 +3925,14 @@ version (CoreUnittest) const(char)* numToStringz()(long value) @trusted pure not
 }
 
 
-import core.internal.traits : AliasSeq;
+/+
+    dmd @@@BUG18223@@@
+    A selective import of `AliasSeq` happens to bleed through and causes symbol clashes downstream.
+ +/
+version (none)
+    import core.internal.traits : AliasSeq;
+else
+    import core.internal.traits;
 
 
 /+ An adjusted copy of std.exception.assertThrown. +/
