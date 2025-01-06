@@ -67,10 +67,9 @@ bool checkUnsafeAccess(Scope* sc, Expression e, bool readonly, bool printmsg)
     if (!ad)
         return false;
 
-    import dmd.globals : global;
     if (v.isSystem())
     {
-        if (sc.setUnsafePreview(global.params.systemVariables, !printmsg, e.loc,
+        if (sc.setUnsafePreview(sc.previews.systemVariables, !printmsg, e.loc,
             "cannot access `@system` field `%s.%s` in `@safe` code", ad, v))
             return true;
     }
@@ -323,8 +322,7 @@ bool checkUnsafeDotExp(Scope* sc, Expression e, Identifier id, int flag)
  */
 bool isSaferD(FuncDeclaration fd)
 {
-    return fd.type.toTypeFunction().trust == TRUST.default_ &&
-           global.params.safer == FeatureState.enabled;
+    return fd.type.toTypeFunction().trust == TRUST.default_ && fd.saferD;
 }
 
 bool isSafe(FuncDeclaration fd)

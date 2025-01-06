@@ -2677,7 +2677,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
                     // If we previously assumed the function could be ref when
                     // checking for `shared`, make sure we were right
-                    if (global.params.noSharedAccess == FeatureState.enabled && rs.exp.type.isShared())
+                    if (sc.previews.noSharedAccess && rs.exp.type.isShared())
                     {
                         .error(fd.loc, "%s `%s` function returns `shared` but cannot be inferred `ref`", fd.kind, fd.toPrettyChars);
                         supplemental();
@@ -4131,14 +4131,14 @@ void catchSemantic(Catch c, Scope* sc)
     {
         c.errors = true;
     }
-    else if (global.params.ehnogc)
+    else if (sc.previews.dip1008)
     {
         stc |= STC.scope_;
     }
 
     // DIP1008 requires destruction of the Throwable, even if the user didn't specify an identifier
     auto ident = c.ident;
-    if (!ident && global.params.ehnogc)
+    if (!ident && sc.previews.dip1008)
         ident = Identifier.generateAnonymousId("var");
 
     if (ident)
@@ -4148,7 +4148,7 @@ void catchSemantic(Catch c, Scope* sc)
         c.var.dsymbolSemantic(sc);
         sc.insert(c.var);
 
-        if (global.params.ehnogc && stc & STC.scope_)
+        if (sc.previews.dip1008 && stc & STC.scope_)
         {
             /* Add a destructor for c.var
              * try { handler } finally { if (!__ctfe) _d_delThrowable(var); }

@@ -1577,7 +1577,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (dsym.errors)
             return;
 
-        if (!(global.params.bitfields || sc.inCfile))
+        if (!(sc.previews.bitfields || sc.inCfile))
         {
             version (IN_GCC)
                 .error(dsym.loc, "%s `%s` use `-fpreview=bitfields` for bitfield support", dsym.kind, dsym.toPrettyChars);
