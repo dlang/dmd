@@ -1167,7 +1167,7 @@ extern (C) private @system @nogc nothrow
 {
     ref int fakePureErrnoImpl()
     {
-        import core.stdc.errno : errno;
+        import core.stdc.errno;
         return errno();
     }
 }
