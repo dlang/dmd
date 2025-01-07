@@ -2004,18 +2004,18 @@ struct ASTBase
     extern (C++) final class ForeachRangeStatement : Statement
     {
         TOK op;                 // TOK.foreach_ or TOK.foreach_reverse_
-        Parameter prm;          // loop index variable
+        Parameter param;          // loop index variable
         Expression lwr;
         Expression upr;
         Statement _body;
         Loc endloc;             // location of closing curly bracket
 
 
-        extern (D) this(const ref Loc loc, TOK op, Parameter prm, Expression lwr, Expression upr, Statement _body, Loc endloc)
+        extern (D) this(const ref Loc loc, TOK op, Parameter param, Expression lwr, Expression upr, Statement _body, Loc endloc)
         {
             super(loc, STMT.ForeachRange);
             this.op = op;
-            this.prm = prm;
+            this.param = param;
             this.lwr = lwr;
             this.upr = upr;
             this._body = _body;
@@ -2054,17 +2054,17 @@ struct ASTBase
 
     extern (C++) final class IfStatement : Statement
     {
-        Parameter prm;
+        Parameter param;
         Expression condition;
         Statement ifbody;
         Statement elsebody;
         VarDeclaration match;   // for MatchExpression results
         Loc endloc;                 // location of closing curly bracket
 
-        extern (D) this(const ref Loc loc, Parameter prm, Expression condition, Statement ifbody, Statement elsebody, Loc endloc)
+        extern (D) this(const ref Loc loc, Parameter param, Expression condition, Statement ifbody, Statement elsebody, Loc endloc)
         {
             super(loc, STMT.If);
-            this.prm = prm;
+            this.param = param;
             this.condition = condition;
             this.ifbody = ifbody;
             this.elsebody = elsebody;

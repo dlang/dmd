@@ -213,7 +213,7 @@ public:
                     s3.endsWithReturnStatement()
                    )
                 {
-                    if (ifs.prm)       // if variables are declared
+                    if (ifs.param)       // if variables are declared
                     {
                         cost = COST_MAX;
                         return;
@@ -258,7 +258,7 @@ public:
         /* Can't declare variables inside ?: expressions, so
          * we cannot inline if a variable is declared.
          */
-        if (s.prm)
+        if (s.param)
         {
             cost = COST_MAX;
             return;

@@ -313,7 +313,7 @@ public:
 
     override void visit(IfStatement s)
     {
-        assert(!s.prm);
+        assert(!s.param);
         auto econd = doInlineAs!Expression(s.condition, ids);
         assert(econd);
 
@@ -325,7 +325,7 @@ public:
 
         static if (asStatements)
         {
-            result = new IfStatement(s.loc, s.prm, econd, ifbody, elsebody, s.endloc);
+            result = new IfStatement(s.loc, s.param, econd, ifbody, elsebody, s.endloc);
         }
         else
         {
