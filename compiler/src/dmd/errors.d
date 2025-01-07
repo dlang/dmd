@@ -744,19 +744,42 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
                     continue;
                 if (loc.charnum < line.length)
                 {
-                    fprintf(stderr, "%.*s\n", cast(int)line.length, line.ptr);
+                    enum tabWidth = 4;
                     // The number of column bytes and the number of display columns
                     // occupied by a character are not the same for non-ASCII charaters.
                     // https://issues.dlang.org/show_bug.cgi?id=21849
-                    size_t col = 0;
-                    while (col < loc.charnum - 1)
+                    size_t index = 0;
+                    size_t column = 0;
+                    size_t caretColumn = 0;
+                    while (index < line.length)
                     {
                         import dmd.root.utf : utf_decodeChar;
                         dchar u;
-                        const msg = utf_decodeChar(line, col, u);
+                        const start = index;
+                        const msg = utf_decodeChar(line, index, u);
                         assert(msg is null, msg);
-                        fputc(' ', stderr);
+                        if (u == '\t')
+                        {
+                            // How many spaces until column is the next multiple of tabWidth
+                            const equivalentSpaces = tabWidth - (column % tabWidth);
+                            foreach (i; 0 .. equivalentSpaces)
+                                fputc(' ', stderr);
+                            column += equivalentSpaces;
+                        }
+                        else
+                        {
+                            fprintf(stderr, "%.*s", cast(int) (index - start), &line[start]);
+                            column++;
+                        }
+                        if (index < loc.charnum)
+                            caretColumn = column;
+
                     }
+                    fputc('\n', stderr);
+
+                    foreach (i; 0 .. caretColumn)
+                        fputc(' ', stderr);
+
                     fputc('^', stderr);
                     fputc('\n', stderr);
                 }
