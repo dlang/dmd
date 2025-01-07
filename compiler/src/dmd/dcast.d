@@ -3261,7 +3261,7 @@ Expression scaleFactor(BinExp be, Scope* sc)
     if (eoff.op == EXP.int64 && eoff.toInteger() == 0)
     {
     }
-    else if (sc.setUnsafe(false, be.loc, "pointer arithmetic not allowed in @safe functions"))
+    else if (sc.setUnsafe(false, be.loc, "pointer arithmetic"))
     {
         return ErrorExp.get();
     }
