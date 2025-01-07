@@ -44,8 +44,8 @@ void dt_free(dt_t *dt)
         {
             switch (dtn.dt)
             {
-                case DT_abytes:
-                case DT_nbytes:
+                case DT.abytes:
+                case DT.nbytes:
                     mem_free(dtn.DTpbytes);
                     break;
 
@@ -105,7 +105,7 @@ void init_common(Symbol *s)
     uint size = cast(uint)type_size(s.Stype);
     if (size)
     {
-        dt_t *dt = dt_calloc(DT_common);
+        dt_t *dt = dt_calloc(DT.common);
         dt.DTazeros = size;
         s.Sdt = dt;
     }
@@ -121,22 +121,22 @@ uint dt_size(const(dt_t)* dtstart)
     {
         switch (dt.dt)
         {
-            case DT_abytes:
+            case DT.abytes:
                 datasize += size(dt.Dty);
                 break;
-            case DT_ibytes:
+            case DT.ibytes:
                 datasize += dt.DTn;
                 break;
-            case DT_nbytes:
+            case DT.nbytes:
                 datasize += dt.DTnbytes;
                 break;
-            case DT_azeros:
+            case DT.azeros:
                 datasize += dt.DTazeros;
                 break;
-            case DT_common:
+            case DT.common:
                 break;
-            case DT_xoff:
-            case DT_coff:
+            case DT.xoff:
+            case DT.coff:
                 datasize += size(dt.Dty);
                 break;
             default:
@@ -153,7 +153,7 @@ uint dt_size(const(dt_t)* dtstart)
 
 bool dtallzeros(const(dt_t)* dt)
 {
-    return dt && dt.dt == DT_azeros && !dt.DTnext;
+    return dt && dt.dt == DT.azeros && !dt.DTnext;
 }
 
 /************************************
@@ -166,9 +166,9 @@ bool dtpointers(const(dt_t)* dtstart)
     {
         switch (dt.dt)
         {
-            case DT_abytes:
-            case DT_xoff:
-            case DT_coff:
+            case DT.abytes:
+            case DT.xoff:
+            case DT.coff:
                 return true;
 
             default:
@@ -179,13 +179,13 @@ bool dtpointers(const(dt_t)* dtstart)
 }
 
 /***********************************
- * Turn DT_azeros into DTcommon
+ * Turn DT.azeros into DTcommon
  */
 
 void dt2common(dt_t **pdt)
 {
-    assert((*pdt).dt == DT_azeros);
-    (*pdt).dt = DT_common;
+    assert((*pdt).dt == DT.azeros);
+    (*pdt).dt = DT.common;
 }
 
 /**********************************************************/
@@ -230,12 +230,12 @@ nothrow:
         /* Merge all the 0s at the start of the list
          * so we can later check for dtallzeros()
          */
-        if (head && head.dt == DT_azeros)
+        if (head && head.dt == DT.azeros)
         {
             while (1)
             {
                 dt_t *dtn = head.DTnext;
-                if (!(dtn && dtn.dt == DT_azeros))
+                if (!(dtn && dtn.dt == DT.azeros))
                     break;
 
                 // combine head and dtn
@@ -273,13 +273,13 @@ nothrow:
         dt_t *dt;
 
         if (size < dt_t.DTibytesMax)
-        {   dt = dt_calloc(DT_ibytes);
+        {   dt = dt_calloc(DT.ibytes);
             dt.DTn = cast(ubyte)size;
             memcpy(dt.DTdata.ptr,ptr,size);
         }
         else
         {
-            dt = dt_calloc(DT_nbytes);
+            dt = dt_calloc(DT.nbytes);
             dt.DTnbytes = size;
             dt.DTpbytes = cast(byte *) mem_malloc(size);
             memcpy(dt.DTpbytes,ptr,size);
@@ -304,7 +304,7 @@ nothrow:
     @trusted
     void abytes(tym_t ty, uint offset, uint size, const(char)* ptr, uint nzeros, ubyte _align)
     {
-        dt_t *dt = dt_calloc(DT_abytes);
+        dt_t *dt = dt_calloc(DT.abytes);
         const n = size + nzeros;
         assert(n >= size);      // overflow check
         dt.DTnbytes = n;
@@ -339,7 +339,7 @@ nothrow:
             return;
         }
 
-        dt_t *dt = dt_calloc(DT_ibytes);
+        dt_t *dt = dt_calloc(DT.ibytes);
         dt.DTn = 4;
 
         union U { char* cp; int* lp; }
@@ -364,7 +364,7 @@ nothrow:
             nzeros(_tysize[TYnptr]);
             return;
         }
-        dt_t *dt = dt_calloc(DT_ibytes);
+        dt_t *dt = dt_calloc(DT.ibytes);
         dt.DTn = _tysize[TYnptr];
 
         union U { char* cp; int* lp; }
@@ -389,7 +389,7 @@ nothrow:
             return;
         assert(cast(int) size > 0);
 
-        dt_t *dt = dt_calloc(DT_azeros);
+        dt_t *dt = dt_calloc(DT.azeros);
         dt.DTazeros = size;
 
         assert(!*pTail);
@@ -404,7 +404,7 @@ nothrow:
     @trusted
     void xoff(Symbol *s, uint offset, tym_t ty)
     {
-        dt_t *dt = dt_calloc(DT_xoff);
+        dt_t *dt = dt_calloc(DT.xoff);
         dt.DTsym = s;
         dt.DToffset = offset;
         dt.Dty = cast(ubyte)ty;
@@ -429,7 +429,7 @@ nothrow:
     @trusted
     dt_t *xoffpatch(Symbol *s, uint offset, tym_t ty)
     {
-        dt_t *dt = dt_calloc(DT_xoff);
+        dt_t *dt = dt_calloc(DT.xoff);
         dt.DTsym = s;
         dt.DToffset = offset;
         dt.Dty = cast(ubyte)ty;
@@ -470,7 +470,7 @@ nothrow:
     @trusted
     void coff(uint offset)
     {
-        dt_t *dt = dt_calloc(DT_coff);
+        dt_t *dt = dt_calloc(DT.coff);
 
         if (config.exe & EX_segmented)
             dt.Dty = TYcptr;
@@ -548,8 +548,8 @@ nothrow:
                     dtx.DTnext = null;
                     switch (dtx.dt)
                     {
-                        case DT_abytes:
-                        case DT_nbytes:
+                        case DT.abytes:
+                        case DT.nbytes:
                             dtx.DTpbytes = cast(byte *) mem_malloc(dtx.DTnbytes);
                             memcpy(dtx.DTpbytes, dtn.DTpbytes, dtx.DTnbytes);
                             break;
@@ -578,15 +578,15 @@ nothrow:
         {
             switch (dtn.dt)
             {
-                case DT_nbytes:
+                case DT.nbytes:
                     memcpy(p + offset, dtn.DTpbytes, dtn.DTnbytes);
                     offset += dtn.DTnbytes;
                     break;
-                case DT_ibytes:
+                case DT.ibytes:
                     memcpy(p + offset, dtn.DTdata.ptr, dtn.DTn);
                     offset += dtn.DTn;
                     break;
-                case DT_azeros:
+                case DT.azeros:
                     memset(p + offset, 0, cast(uint)dtn.DTazeros);
                     offset += dtn.DTazeros;
                     break;
@@ -603,7 +603,7 @@ nothrow:
             offset += size;
         }
 
-        dt_t *dtx = dt_calloc(DT_nbytes);
+        dt_t *dtx = dt_calloc(DT.nbytes);
         dtx.DTnbytes = cast(uint)(size * count);
         dtx.DTpbytes = cast(byte*)p;
 
@@ -638,7 +638,7 @@ private __gshared dt_t *dt_freelist;
  */
 
 @trusted
-private dt_t *dt_calloc(int dtx)
+private dt_t *dt_calloc(DT dtx)
 {
     dt_t *dt = dt_freelist;
     if (!dt)
@@ -657,7 +657,7 @@ private dt_t *dt_calloc(int dtx)
     dt_freelist = dt.DTnext;
     debug memset(dt, 0xBE, (*dt).sizeof);
     dt.DTnext = null;
-    dt.dt = cast(char)dtx;
+    dt.dt = dtx;
     return dt;
 }
 
@@ -668,7 +668,7 @@ private dt_t *dt_calloc(int dtx)
 
 dt_t* dt_get_nzeros(uint n)
 {
-    dt_t *dt = dt_calloc(DT_azeros);
+    dt_t *dt = dt_calloc(DT.azeros);
     dt.DTazeros = n;
     return dt;
 }

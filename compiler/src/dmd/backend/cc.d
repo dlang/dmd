@@ -1461,7 +1461,7 @@ struct Declar
 struct dt_t
 {
     dt_t *DTnext;                       // next in list
-    char dt;                            // type (DTxxxx)
+    DT dt;                              // Tagged union tag, see above
     ubyte Dty;                          // pointer type
     ubyte DTn;                          // DTibytes: number of bytes
     ubyte DTalign;                      // DTabytes: alignment (as power of 2) of pointed-to data
@@ -1488,13 +1488,13 @@ struct dt_t
     }
 }
 
-enum
+enum DT : ubyte
 {
-    DT_abytes = 0,
-    DT_azeros = 1,
-    DT_xoff   = 2,
-    DT_nbytes = 3,
-    DT_common = 4,
-    DT_coff   = 5,
-    DT_ibytes = 6,
+    abytes = 0,
+    azeros = 1,
+    xoff   = 2,
+    nbytes = 3,
+    common = 4,
+    coff   = 5,
+    ibytes = 6,
 }
