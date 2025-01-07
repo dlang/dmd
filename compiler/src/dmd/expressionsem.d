@@ -1607,7 +1607,7 @@ Lagain:
         {
             if (sd.isSystem())
             {
-                if (sc.setUnsafePreview(global.params.systemVariables, false, loc,
+                if (sc.setUnsafePreview(sc.previews.systemVariables, false, loc,
                     "cannot access `@system` variable `%s` in @safe code", sd))
                 {
                     if (auto v = sd.isVarDeclaration())
@@ -3328,7 +3328,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
             }
             else if (p.storageClass & STC.ref_)
             {
-                if (global.params.rvalueRefParam == FeatureState.enabled &&
+                if (sc.previews.rvalueRefParam &&
                     !arg.isLvalue() &&
                     targ.isCopyable())
                 {   /* allow rvalues to be passed to ref parameters by copying
@@ -3729,7 +3729,7 @@ private bool functionParameters(const ref Loc loc, Scope* sc,
 
     /* Test compliance with DIP1021 Argument Ownership and Function Calls
      */
-    if (global.params.useDIP1021 && (tf.trust == TRUST.safe || tf.trust == TRUST.default_) ||
+    if (sc.previews.dip1021 && (tf.trust == TRUST.safe || tf.trust == TRUST.default_) ||
         tf.isLive)
         err |= checkMutableArguments(*sc, fd, tf, ethis, arguments, false);
 
@@ -4012,7 +4012,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     }
                 }
 
-                if (global.params.fixAliasThis)
+                if (sc.previews.fixAliasThis)
                 {
                     if (ExpressionDsymbol expDsym = scopesym.isExpressionDsymbol())
                     {
@@ -4028,7 +4028,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        if (!global.params.fixAliasThis && hasThis(sc))
+        if (!sc.previews.fixAliasThis && hasThis(sc))
         {
             for (AggregateDeclaration ad = sc.getStructClassScope(); ad;)
             {
@@ -5175,7 +5175,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             // When using `@nogc` exception handling, lower `throw new E(args)` to
             // `throw (__tmp = _d_newThrowable!E(), __tmp.__ctor(args), __tmp)`.
-            if (global.params.ehnogc && exp.thrownew &&
+            if (sc.previews.dip1008 && exp.thrownew &&
                 !cd.isCOMclass() && !cd.isCPPclass())
             {
                 assert(cd.ctor);
@@ -11459,7 +11459,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     "cannot copy `%s` to `%s` in `@safe` code", t2, t1))
                     return setError();
             }
-            if (global.params.fixImmutableConv && !t2.implicitConvTo(t1))
+            if (sc.previews.fixImmutableConv && !t2.implicitConvTo(t1))
             {
                 error(exp.loc, "cannot copy `%s` to `%s`",
                     t2.toChars(), t1.toChars());
@@ -11848,7 +11848,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             (exp.e2.implicitConvTo(exp.e1.type) ||
              (tb2.nextOf().implicitConvTo(tb1next) &&
              // Do not strip const(void)[]
-             (!global.params.fixImmutableConv || tb1next.ty != Tvoid) &&
+             (!sc.previews.fixImmutableConv || tb1next.ty != Tvoid) &&
               (tb2.nextOf().size(Loc.initial) == tb1next.size(Loc.initial)))))
         {
             // EXP.concatenateAssign
@@ -12590,7 +12590,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (exp.type.ty == Tarray && tb1next && tb2next && tb1next.mod != tb2next.mod)
         {
             // Do not strip const(void)[]
-            if (!global.params.fixImmutableConv || tb.nextOf().ty != Tvoid)
+            if (!sc.previews.fixImmutableConv || tb.nextOf().ty != Tvoid)
                 exp.type = exp.type.nextOf().toHeadMutable().arrayOf();
         }
         if (Type tbn = tb.nextOf())
@@ -14890,8 +14890,8 @@ private bool checkSharedAccessBin(BinExp binExp, Scope* sc)
  */
 bool checkSharedAccess(Expression e, Scope* sc, bool returnRef = false)
 {
-    if (global.params.noSharedAccess != FeatureState.enabled ||
-        !sc ||
+    if (!sc ||
+        !sc.previews.noSharedAccess ||
         sc.intypeof ||
         sc.ctfe)
     {

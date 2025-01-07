@@ -956,6 +956,102 @@ enum class Contract : uint8_t
     ensure = 3u,
 };
 
+enum class FeatureState : uint8_t
+{
+    default_ = 0u,
+    disabled = 1u,
+    enabled = 2u,
+};
+
+struct Previews final
+{
+private:
+    struct BitFields final
+    {
+        bool bitfields;
+        bool dip1000;
+        bool dip1008;
+        bool dip1021;
+        bool dip25;
+        bool fixAliasThis;
+        bool fixImmutableConv;
+        bool in_;
+        bool inclusiveInContracts;
+        bool noSharedAccess;
+        bool rvalueRefParam;
+        bool safer;
+        FeatureState systemVariables;
+        BitFields() :
+            bitfields(),
+            dip1000(),
+            dip1008(),
+            dip1021(),
+            dip25(),
+            fixAliasThis(),
+            fixImmutableConv(),
+            in_(),
+            inclusiveInContracts(),
+            noSharedAccess(),
+            rvalueRefParam(),
+            safer()
+        {
+        }
+        BitFields(bool bitfields, bool dip1000 = false, bool dip1008 = false, bool dip1021 = false, bool dip25 = false, bool fixAliasThis = false, bool fixImmutableConv = false, bool in_ = false, bool inclusiveInContracts = false, bool noSharedAccess = false, bool rvalueRefParam = false, bool safer = false, FeatureState systemVariables = (FeatureState)0u) :
+            bitfields(bitfields),
+            dip1000(dip1000),
+            dip1008(dip1008),
+            dip1021(dip1021),
+            dip25(dip25),
+            fixAliasThis(fixAliasThis),
+            fixImmutableConv(fixImmutableConv),
+            in_(in_),
+            inclusiveInContracts(inclusiveInContracts),
+            noSharedAccess(noSharedAccess),
+            rvalueRefParam(rvalueRefParam),
+            safer(safer),
+            systemVariables(systemVariables)
+            {}
+    };
+
+public:
+    bool bitfields() const;
+    bool bitfields(bool v);
+    bool dip1000() const;
+    bool dip1000(bool v);
+    bool dip1008() const;
+    bool dip1008(bool v);
+    bool dip1021() const;
+    bool dip1021(bool v);
+    bool dip25() const;
+    bool dip25(bool v);
+    bool fixAliasThis() const;
+    bool fixAliasThis(bool v);
+    bool fixImmutableConv() const;
+    bool fixImmutableConv(bool v);
+    bool in_() const;
+    bool in_(bool v);
+    bool inclusiveInContracts() const;
+    bool inclusiveInContracts(bool v);
+    bool noSharedAccess() const;
+    bool noSharedAccess(bool v);
+    bool rvalueRefParam() const;
+    bool rvalueRefParam(bool v);
+    bool safer() const;
+    bool safer(bool v);
+    FeatureState systemVariables() const;
+    FeatureState systemVariables(FeatureState v);
+private:
+    uint16_t bitFields;
+public:
+    Previews() :
+        bitFields(0u)
+    {
+    }
+    Previews(uint16_t bitFields) :
+        bitFields(bitFields)
+        {}
+};
+
 template <typename K, typename V>
 struct AssocArray final
 {
@@ -3681,6 +3777,8 @@ public:
     bool nothrowInprocess(bool v);
     bool nogcInprocess() const;
     bool nogcInprocess(bool v);
+    bool saferD() const;
+    bool saferD(bool v);
     bool scopeInprocess() const;
     bool scopeInprocess(bool v);
     bool inlineScanned() const;
@@ -6027,13 +6125,6 @@ enum class CppStdRevision : uint32_t
     cpp20 = 202002u,
 };
 
-enum class FeatureState : uint8_t
-{
-    default_ = 0u,
-    disabled = 1u,
-    enabled = 2u,
-};
-
 enum class CHECKENABLE : uint8_t
 {
     _default = 0u,
@@ -7127,13 +7218,10 @@ struct Scope final
     bool fullinst(bool v);
     bool ctfeBlock() const;
     bool ctfeBlock(bool v);
-    bool dip1000() const;
-    bool dip1000(bool v);
-    bool dip25() const;
-    bool dip25(bool v);
 private:
-    uint32_t bitFields;
+    uint16_t bitFields;
 public:
+    Previews previews;
     UserAttributeDeclaration* userAttribDecl;
     DocComment* lastdc;
     void* anchorCounts;
@@ -7177,6 +7265,7 @@ public:
         stc(),
         depdecl(),
         bitFields(0u),
+        previews(),
         userAttribDecl(),
         lastdc(),
         prevAnchor(),
@@ -7184,7 +7273,7 @@ public:
         argStruct()
     {
     }
-    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* sw = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tf = nullptr, ScopeGuardStatement* os = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Dsymbol* inunion = nullptr, bool nofree = false, bool inLoop = false, bool inDefaultArg = false, int32_t intypeof = 0, VarDeclaration* lastVar = nullptr, ErrorSink* eSink = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), int32_t explicitVisibility = 0, uint64_t stc = 0LLU, DeprecatedDeclaration* depdecl = nullptr, uint32_t bitFields = 0u, UserAttributeDeclaration* userAttribDecl = nullptr, DocComment* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr, StructDeclaration* argStruct = nullptr) :
+    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* sw = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tf = nullptr, ScopeGuardStatement* os = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Dsymbol* inunion = nullptr, bool nofree = false, bool inLoop = false, bool inDefaultArg = false, int32_t intypeof = 0, VarDeclaration* lastVar = nullptr, ErrorSink* eSink = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), int32_t explicitVisibility = 0, uint64_t stc = 0LLU, DeprecatedDeclaration* depdecl = nullptr, uint16_t bitFields = 0u, Previews previews = Previews(), UserAttributeDeclaration* userAttribDecl = nullptr, DocComment* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr, StructDeclaration* argStruct = nullptr) :
         enclosing(enclosing),
         _module(_module),
         scopesym(scopesym),
@@ -7220,6 +7309,7 @@ public:
         stc(stc),
         depdecl(depdecl),
         bitFields(bitFields),
+        previews(previews),
         userAttribDecl(userAttribDecl),
         lastdc(lastdc),
         anchorCounts(anchorCounts),
@@ -7431,6 +7521,7 @@ public:
     FuncDeclaration* f;
     bool checkOnly;
     bool err;
+    bool nogcExceptions;
     void doCond(Expression* exp);
     void visit(Expression* e) override;
     void visit(DeclarationExp* e) override;
