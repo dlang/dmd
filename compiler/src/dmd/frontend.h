@@ -4917,7 +4917,7 @@ class ForeachRangeStatement final : public Statement
 {
 public:
     TOK op;
-    Parameter* prm;
+    Parameter* param;
     Expression* lwr;
     Expression* upr;
     Statement* _body;
@@ -5007,7 +5007,7 @@ public:
 class IfStatement final : public Statement
 {
 public:
-    Parameter* prm;
+    Parameter* param;
     Expression* condition;
     Statement* ifbody;
     Statement* elsebody;
