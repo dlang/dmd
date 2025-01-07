@@ -258,6 +258,18 @@ nothrow:
         if (!size)
             return;
 
+        bool allZero = true;
+        foreach (i; 0 .. size)
+        {
+            if (ptr[i] != 0)
+            {
+                allZero = false;
+                break;
+            }
+        }
+        if (allZero)
+            return nzeros(size);
+
         dt_t *dt;
 
         if (size < dt_t.DTibytesMax)
