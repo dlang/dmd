@@ -1537,6 +1537,7 @@ class CompareException : Exception
     string expected; /// expected output
     string actual;   /// actual output
     bool fromRun; /// Compared execution instead of compilation output
+    string diff; /// diff between expected and actual output
 
     this(string expected, string actual, string diff, bool fromRun = false) {
         string msg = "\nexpected:\n----\n" ~ expected ~
@@ -1546,6 +1547,7 @@ class CompareException : Exception
         this.expected = expected;
         this.actual = actual;
         this.fromRun = fromRun;
+        this.diff = diff;
     }
 }
 
@@ -1935,7 +1937,19 @@ int tryMain(string[] args)
                 }
                 else
                 {
-                    writefln("\nWARNING: %s has multiple `%s_OUTPUT` blocks and can't be auto-updated", input_file, type);
+                    try
+                    {
+                        string diffUpdatedText = replaceFromDiff(existingText, ce.diff);
+                        std.file.write(input_file, diffUpdatedText);
+                        writefln("\n==> `%s_OUTPUT` of %s has been updated by applying a diff", type, input_file);
+                        return Result.returnRerun;
+                    }
+                    catch (Exception e)
+                    {
+                        writefln("\nERROR: Couldn't update `%s_OUTPUT` blocks of %s through the diff: \"%s\"
+                            Please update the file manually to make the tests pass.", type, input_file, e.msg);
+                    }
+
                     return Result.return0;
                 }
             }
@@ -2001,6 +2015,105 @@ int tryMain(string[] args)
         writefln(" !!! %-30s DISABLED but PASSES!", input_file);
 
     return 0;
+}
+
+/// Given test file with contents `input` and diff file with the diff of actual TEST_OUTPUT vs expected TEST_OUTPUT,
+/// return new contents of the test file with updated TEST_OUTPUT blocks. Throws an Exception if the diff couldn't be
+/// matched against the input.
+static string replaceFromDiff(string input, string diff)
+{
+    const string[] lines = input.splitLines;
+    string result = "";
+    size_t i = 0;
+    foreach (diffLine; diff.splitLines)
+    {
+        const bool deletion = diffLine.skipOver("-");
+        const bool seek = deletion || diffLine.skipOver(" ");
+
+        if (seek)
+        {
+            while (i < lines.length && lines[i] != diffLine)
+            {
+                result ~= lines[i] ~ "\n";
+                i++;
+            }
+            if (i >= lines.length)
+                throw new Exception("Can't find diff line \"" ~ diffLine ~ "\" in the text to update");
+
+            if (!deletion)
+                result ~= lines[i] ~ "\n";
+
+            i++;
+        }
+        else if (diffLine.skipOver("+"))
+        {
+            result ~= diffLine ~ "\n";
+            continue;
+        }
+        else if (diffLine.skipOver("@"))
+        {
+            continue;
+        }
+        else
+        {
+            throw new Exception("Unrecognized first character in diff line: \"" ~ diffLine ~ "\"");
+        }
+    }
+    while (i < lines.length)
+    {
+        result ~= lines[i] ~ "\n";
+        i++;
+    }
+    return result;
+}
+
+unittest
+{
+    string input = "
+TEST_OUTPUT:
+---
+Error: dummy
+---
+
+TEST_OUTPUT:
+---
+Deprecation: dummy
+---
+";
+
+    string diff =
+"-Error: dummy
++Error: dummies
+@@@ ...
+ Deprecation: dummy
++Deprecation: another
+";
+
+    string expected = "
+TEST_OUTPUT:
+---
+Error: dummies
+---
+
+TEST_OUTPUT:
+---
+Deprecation: dummy
+Deprecation: another
+---
+";
+
+    string result = replaceFromDiff(input, diff);
+    assert(result == expected);
+
+    try
+    {
+        replaceFromDiff(input, "-Nonexistend line");
+        assert(0);
+    }
+    catch (Exception e)
+    {
+        assert(e.msg == `Can't find diff line "Nonexistend line" in the text to update`);
+    }
 }
 
 /**
