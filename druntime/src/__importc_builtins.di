@@ -6,7 +6,7 @@
  * Copyright: Copyright D Language Foundation 2022-2024
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Walter Bright
- * Source: $(DRUNTIMESRC __importc_builtins.d)
+ * Source: $(DRUNTIMESRC __importc_builtins.di)
  */
 
 

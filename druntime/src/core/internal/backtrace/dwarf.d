@@ -44,7 +44,7 @@
  * Copyright: Copyright Digital Mars 2015 - 2015.
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Yazan Dabain, Sean Kelly
- * Source: $(DRUNTIMESRC rt/backtrace/dwarf.d)
+ * Source: $(DRUNTIMESRC core/internal/backtrace/dwarf.d)
  */
 
 module core.internal.backtrace.dwarf;
