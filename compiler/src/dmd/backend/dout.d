@@ -115,7 +115,7 @@ void outdata(Symbol *s)
                 else
                 {
                     alignOffset(CDATA, 1 << dt.DTalign);
-                    dt.DTabytes += objmod.data_readonly(cast(char*)dt.DTpbytes,dt.DTnbytes,&dt.DTseg);
+                    dt.DTabytes += objmod.data_readonly(cast(char*)dt.DTpbytes, cast(uint) dt.DTnbytes,&dt.DTseg);
                 }
                 break;
             }
@@ -592,7 +592,7 @@ Symbol *out_string_literal(const(char)* str, uint len, uint sz)
     }
 
     auto dtb = DtBuilder(0);
-    dtb.nbytes(cast(uint)(len * sz), str);
+    dtb.nbytes(str[0 .. len * sz]);
     dtb.nzeros(cast(uint)sz);       // include terminating 0
     s.Sdt = dtb.finish();
     s.Sfl = FLdata;

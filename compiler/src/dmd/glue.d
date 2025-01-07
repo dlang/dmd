@@ -1430,7 +1430,7 @@ private void genObjFile(Module m, bool multiobj)
         bcov.Sfl = FLdata;
 
         auto dtb = DtBuilder(0);
-        dtb.nbytes(cast(uint)(m.covb.length * m.covb[0].sizeof), cast(char*)m.covb.ptr);
+        dtb.nbytes(cast(const(ubyte)[]) m.covb);
         bcov.Sdt = dtb.finish();
 
         outdata(bcov);

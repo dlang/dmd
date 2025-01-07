@@ -252,37 +252,44 @@ nothrow:
     /***********************
      * Append data represented by ptr[0..size]
      */
-    @trusted
-    void nbytes(uint size, const(char)* ptr)
+    void nbytes(const(char)[] ptr)
     {
-        if (!size)
+        return nbytes(cast(const(ubyte)[]) ptr);
+    }
+
+    /// ditto
+    @trusted
+    void nbytes(const(ubyte)[] data)
+    {
+        if (!data.length)
             return;
 
         bool allZero = true;
-        foreach (i; 0 .. size)
+        foreach (i; 0 .. data.length)
         {
-            if (ptr[i] != 0)
+            if (data.ptr[i] != 0)
             {
                 allZero = false;
                 break;
             }
         }
         if (allZero)
-            return nzeros(size);
+            return nzeros(data.length);
 
         dt_t *dt;
 
-        if (size < dt_t.DTibytesMax)
-        {   dt = dt_calloc(DT.ibytes);
-            dt.DTn = cast(ubyte)size;
-            memcpy(dt.DTdata.ptr,ptr,size);
+        if (data.length < dt_t.DTibytesMax)
+        {
+            dt = dt_calloc(DT.ibytes);
+            dt.DTn = cast(ubyte) data.length;
+            memcpy(dt.DTdata.ptr, data.ptr, data.length);
         }
         else
         {
             dt = dt_calloc(DT.nbytes);
-            dt.DTnbytes = size;
-            dt.DTpbytes = cast(byte *) mem_malloc(size);
-            memcpy(dt.DTpbytes,ptr,size);
+            dt.DTnbytes = data.length;
+            dt.DTpbytes = cast(byte*) mem_malloc(data.length);
+            memcpy(dt.DTpbytes, data.ptr, data.length);
         }
 
         assert(!*pTail);
@@ -383,7 +390,7 @@ nothrow:
     /***********************
      * Write a bunch of zeros
      */
-    void nzeros(uint size)
+    void nzeros(size_t size)
     {
         if (!size)
             return;

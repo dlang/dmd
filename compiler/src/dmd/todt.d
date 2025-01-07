@@ -307,7 +307,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
     {
         //printf("IntegerExp.toDt() %d\n", e.op);
         auto value = e.getInteger();
-        dtb.nbytes(cast(uint)e.type.size(), cast(char*) &value);
+        dtb.nbytes((cast(ubyte*) &value)[0 .. cast(size_t) e.type.size()]);
     }
 
     void visitReal(RealExp e)
@@ -319,7 +319,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
             case Timaginary32:
             {
                 auto fvalue = cast(float)e.value;
-                dtb.nbytes(4, cast(char*)&fvalue);
+                dtb.nbytes((cast(ubyte*)&fvalue)[0 .. 4]);
                 break;
             }
 
@@ -327,7 +327,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
             case Timaginary64:
             {
                 auto dvalue = cast(double)e.value;
-                dtb.nbytes(8, cast(char*)&dvalue);
+                dtb.nbytes((cast(ubyte*)&dvalue)[0 .. 8]);
                 break;
             }
 
@@ -335,7 +335,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
             case Timaginary80:
             {
                 auto evalue = e.value;
-                dtb.nbytes(target.realsize - target.realpad, cast(char*)&evalue);
+                dtb.nbytes((cast(ubyte*)&evalue)[0 .. target.realsize - target.realpad]);
                 dtb.nzeros(target.realpad);
                 break;
             }
@@ -354,28 +354,28 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
             case Tcomplex32:
             {
                 auto fvalue = cast(float)creall(e.value);
-                dtb.nbytes(4, cast(char*)&fvalue);
+                dtb.nbytes((cast(ubyte*)&fvalue)[0 .. 4]);
                 fvalue = cast(float)cimagl(e.value);
-                dtb.nbytes(4, cast(char*)&fvalue);
+                dtb.nbytes((cast(ubyte*)&fvalue)[0 .. 4]);
                 break;
             }
 
             case Tcomplex64:
             {
                 auto dvalue = cast(double)creall(e.value);
-                dtb.nbytes(8, cast(char*)&dvalue);
+                dtb.nbytes((cast(ubyte*)&dvalue)[0 .. 8]);
                 dvalue = cast(double)cimagl(e.value);
-                dtb.nbytes(8, cast(char*)&dvalue);
+                dtb.nbytes((cast(ubyte*)&dvalue)[0 .. 8]);
                 break;
             }
 
             case Tcomplex80:
             {
                 auto evalue = creall(e.value);
-                dtb.nbytes(target.realsize - target.realpad, cast(char*)&evalue);
+                dtb.nbytes((cast(ubyte*)&evalue)[0 .. target.realsize - target.realpad]);
                 dtb.nzeros(target.realpad);
                 evalue = cimagl(e.value);
-                dtb.nbytes(target.realsize - target.realpad, cast(char*)&evalue);
+                dtb.nbytes((cast(ubyte*)&evalue)[0 .. target.realsize - target.realpad]);
                 dtb.nzeros(target.realpad);
                 break;
             }
@@ -435,7 +435,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
             {
                 auto tsa = t.isTypeSArray();
 
-                dtb.nbytes(n * e.sz, p);
+                dtb.nbytes((cast(ubyte*) p)[0 .. n * e.sz]);
                 if (tsa.dim)
                 {
                     dinteger_t dim = tsa.dim.toInteger();
@@ -855,7 +855,7 @@ private void membersToDt(AggregateDeclaration ad, ref DtBuilder dtb,
                 offset = bitByteOffset;
             }
 
-            dtb.nbytes(bitFieldSize, cast(char*)&bitFieldValue);
+            dtb.nbytes((cast(ubyte*) &bitFieldValue)[0 .. bitFieldSize]);
             offset += bitFieldSize;
             bitOffset = 0;
             bitFieldValue = 0;
@@ -1280,7 +1280,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         }
 
         // Put out name[] immediately following TypeInfo_Enum
-        dtb.nbytes(cast(uint)(namelen + 1), name);
+        dtb.nbytes(name[0 .. namelen + 1]);
     }
 
     override void visit(TypeInfoPointerDeclaration d)
@@ -1384,7 +1384,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         dtb.xoff(d.csym, Type.typeinfofunction.structsize);
 
         // Put out name[] immediately following TypeInfo_Function
-        dtb.nbytes(cast(uint)(namelen + 1), name);
+        dtb.nbytes(name[0 .. namelen + 1]);
     }
 
     override void visit(TypeInfoDelegateDeclaration d)
@@ -1408,7 +1408,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
         dtb.xoff(d.csym, Type.typeinfodelegate.structsize);
 
         // Put out name[] immediately following TypeInfo_Delegate
-        dtb.nbytes(cast(uint)(namelen + 1), name);
+        dtb.nbytes(name[0 .. namelen + 1]);
     }
 
     override void visit(TypeInfoStructDeclaration d)
@@ -1572,7 +1572,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
             dtb.size(0);
 
         // Put out mangledName[] immediately following TypeInfo_Struct
-        dtb.nbytes(cast(uint)(mangledNameLen + 1), mangledName);
+        dtb.nbytes(mangledName[0 .. mangledNameLen + 1]);
     }
 
     override void visit(TypeInfoClassDeclaration d)
