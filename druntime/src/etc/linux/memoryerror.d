@@ -362,7 +362,7 @@ version (MemoryAssertSupported)
      * providing a more descriptive error message and stack trace if the program is
      * compiled with debug info and D assertions (as opposed to C assertions).
      *
-     * Differences with version 1 are:
+     * Differences with the `registerMemoryErrorHandler` version are:
      * - The handler is registered with SA_ONSTACK, so it can handle stack overflows.
      * - It uses `assert(0)` instead of `throw new Error` and doesn't support catching the error.
      * - This is a template so that the -check and -checkaction flags of the compiled program are used,
