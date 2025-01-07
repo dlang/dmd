@@ -3,6 +3,13 @@ import core.stdc.stdio;
 import core.stdc.string;
 import core.thread;
 
+version (DragonFlyBSD) import core.sys.dragonflybsd.dlfcn : RTLD_NOLOAD;
+version (FreeBSD) import core.sys.freebsd.dlfcn : RTLD_NOLOAD;
+version (linux) import core.sys.linux.dlfcn : RTLD_NOLOAD;
+version (NetBSD) import core.sys.netbsd.dlfcn : RTLD_NOLOAD;
+version (OSX) import core.sys.darwin.dlfcn : RTLD_NOLOAD;
+version (Solaris) import core.sys.solaris.dlfcn : RTLD_NOLOAD;
+
 void* openLib(string s)
 {
     auto h = Runtime.loadLibrary(s);
@@ -138,7 +145,7 @@ void main(string[] args)
     }
     else
     {
-        import core.sys.posix.dlfcn : dlopen, RTLD_LAZY, RTLD_NOLOAD;
+        import core.sys.posix.dlfcn : dlopen, RTLD_LAZY;
         assert(dlopen(name.ptr, RTLD_LAZY | RTLD_NOLOAD) is null);
     }
     name = name[0 .. $-1];
