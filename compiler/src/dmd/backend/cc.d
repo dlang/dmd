@@ -1475,8 +1475,8 @@ struct dt_t
         targ_size_t DTazeros;           // DTazeros,DTcommon,DTsymsize
         struct                          // DTabytes
         {
-            byte *DTpbytes;             // pointer to the bytes
-            uint DTnbytes;              // # of bytes
+            byte* DTpbytes;             // pointer to the bytes
+            size_t DTnbytes;            // # of bytes
             int DTseg;                  // segment it went into
             targ_size_t DTabytes;       // offset of abytes for DTabytes
         }

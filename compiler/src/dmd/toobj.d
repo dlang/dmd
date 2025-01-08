@@ -205,7 +205,7 @@ void genModuleInfo(Module m)
         m.nameoffset = dtb.length();
         const(char) *name = m.toPrettyChars();
         m.namelen = strlen(name);
-        dtb.nbytes(cast(uint)m.namelen + 1, name);
+        dtb.nbytes(name[0 .. m.namelen + 1]);
         //printf("nameoffset = x%x\n", nameoffset);
     }
 
@@ -1399,7 +1399,7 @@ Louter:
         import dmd.common.blake3;
         const hash = blake3((cast(ubyte*)name)[0 .. namelen]);
         //truncate and use the first 16 bytes only
-        dtb.nbytes(16, cast(char*)hash.ptr);
+        dtb.nbytes(hash[0 .. 16]);
     }
 
     //////////////////////////////////////////////
@@ -1465,7 +1465,7 @@ Louter:
 
     dtpatchoffset(pdtname, offset);
 
-    dtb.nbytes(cast(uint)(namelen + 1), name);
+    dtb.nbytes(name[0 .. namelen + 1]);
     const size_t namepad = -(namelen + 1) & (target.ptrsize - 1); // align
     dtb.nzeros(cast(uint)namepad);
 }
@@ -1608,7 +1608,7 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
         import dmd.common.blake3;
         const hash = blake3((cast(ubyte*)name)[0 .. namelen]);
         //only use the first 16 bytes
-        dtb.nbytes(16, cast(char*)hash.ptr);
+        dtb.nbytes(hash[0 .. 16]);
     }
 
     //////////////////////////////////////////////
@@ -1637,7 +1637,7 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
 
     dtpatchoffset(pdtname, offset);
 
-    dtb.nbytes(cast(uint)(namelen + 1), name);
+    dtb.nbytes(name[0 .. namelen + 1]);
     const size_t namepad =  -(namelen + 1) & (target.ptrsize - 1); // align
     dtb.nzeros(cast(uint)namepad);
 }
