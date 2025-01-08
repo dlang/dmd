@@ -6419,7 +6419,14 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     nextToken(); //comma
                 }
                 while (token.value != TOK.colon && token.value != TOK.endOfFile);
-                check(TOK.colon);
+
+                bool insertBreak = false;
+                if (token.value == TOK.arrow) {
+                    insertBreak = true;
+                    nextToken();
+                }
+                else
+                    check(TOK.colon);
 
                 /* case exp: .. case last:
                  */
@@ -6449,6 +6456,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         if (cur && cur.isBreakStatement())
                             break;
                     }
+                    if (insertBreak)
+                        statements.push(new AST.BreakStatement(loc, null));
                     s = new AST.CompoundStatement(loc, statements);
                 }
                 else
