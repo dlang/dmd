@@ -28,46 +28,7 @@ import dmd.backend.type;
 nothrow:
 @safe:
 
-enum GENOBJ = 1;       // generating .obj file
-
 uint mskl(uint i) { return 1 << i; }     // convert int to mask
-
-// Warnings
-enum WM
-{
-    WM_no_inline    = 1,    //function '%s' is too complicated to inline
-    WM_assignment   = 2,    //possible unintended assignment
-    WM_nestcomment  = 3,    //comments do not nest
-    WM_assignthis   = 4,    //assignment to 'this' is obsolete, use X::operator new/delete
-    WM_notagname    = 5,    //no tag name for struct or enum
-    WM_valuenotused = 6,    //value of expression is not used
-    WM_extra_semi   = 7,    //possible extraneous ';'
-    WM_large_auto   = 8,    //very large automatic
-    WM_obsolete_del = 9,    //use delete[] rather than delete[expr], expr ignored
-    WM_obsolete_inc = 10,   //using operator++() (or --) instead of missing operator++(int)
-    WM_init2tmp     = 11,   //non-const reference initialized to temporary
-    WM_used_b4_set  = 12,   //variable '%s' used before set
-    WM_bad_op       = 13,   //Illegal type/size of operands for the %s instruction
-    WM_386_op       = 14,   //Reference to '%s' caused a 386 instruction to be generated
-    WM_ret_auto     = 15,   //returning address of automatic '%s'
-    WM_ds_ne_dgroup = 16,   //DS is not equal to DGROUP
-    WM_unknown_pragma = 17, //unrecognized pragma
-    WM_implied_ret  = 18,   //implied return at closing '}' does not return value
-    WM_num_args     = 19,   //%d actual arguments expected for %s, had %d
-    WM_before_pch   = 20,   //symbols or macros defined before #include of precompiled header
-    WM_pch_first    = 21,   //precompiled header must be first #include when -H is used
-    WM_pch_config   = 22,
-    WM_divby0       = 23,
-    WM_badnumber    = 24,
-    WM_ccast        = 25,
-    WM_obsolete     = 26,
-
-    // Posix
-    WM_skip_attribute   = 27, // skip GNUC attribute specification
-    WM_warning_message  = 28, // preprocessor warning message
-    WM_bad_vastart      = 29, // args for builtin va_start bad
-    WM_undefined_inline = 30, // static inline not expanded or defined
-}
 
 static if (MEMMODELS == 1)
 {
@@ -82,21 +43,10 @@ else
 
 enum IDMAX = 900;              // identifier max (excluding terminating 0)
 enum IDOHD = 4+1+int.sizeof*3; // max amount of overhead to ID added by
-enum STRMAX = 65_000;           // max length of string (determined by
-                                // max ph size)
-
-struct Thunk
-{   Symbol *sfunc;
-    Symbol *sthunk;
-    targ_size_t d;
-    targ_size_t d2;
-    int i;
-}
 
 struct token_t;
 
 alias Funcsym = Symbol;
-struct blklst;
 
 alias symlist_t = list_t;
 alias vec_t = size_t*;
@@ -181,57 +131,14 @@ enum
 
 struct Pstate
 {
-    ubyte STinopeq;             // if in n2_createopeq()
-    ubyte STinarglist;          // if !=0, then '>' is the end of a template
-                                // argument list, not an operator
     ubyte STinsizeof;           // !=0 if in a sizeof expression. Useful to
                                 // prevent <array of> being converted to
                                 // <pointer to>.
-    ubyte STintemplate;         // if !=0, then expanding a function template
-                                // (do not expand template Symbols)
-    ubyte STdeferDefaultArg;    // defer parsing of default arg for parameter
-    ubyte STnoexpand;           // if !=0, don't expand template symbols
-    ubyte STignoretal;          // if !=0 ignore template argument list
-    ubyte STexplicitInstantiation;      // if !=0, then template explicit instantiation
-    ubyte STexplicitSpecialization;     // if !=0, then template explicit specialization
-    ubyte STinconstexp;         // if !=0, then parsing a constant expression
-    ubyte STisaddr;             // is this a possible pointer to member expression?
-    uint STinexp;               // if !=0, then in an expression
-
-    static if (NTEXCEPTIONS)
-    {
-        ubyte STinfilter;       // if !=0 then in exception filter
-        ubyte STinexcept;       // if !=0 then in exception handler
-        block *STbfilter;       // current exception filter
-    }
 
     Funcsym *STfuncsym_p;       // if inside a function, then this is the
                                 // function Symbol.
 
     stflags_t STflags;
-
-    Classsym *STclasssym;       // if in the scope of this class
-    symlist_t STclasslist;      // list of classes that have deferred inline
-                                // functions to parse
-    Classsym *STstag;           // returned by struct_searchmember() and with_search()
-    SYMIDX STmarksi;            // to determine if temporaries are created
-    ubyte STnoparse;            // add to classlist instead of parsing
-    ubyte STdeferparse;         // defer member func parse
-    SC STgclass;                // default function storage class
-    int STdefertemps;           // defer allocation of temps
-    int STdeferaccesscheck;     // defer access check for members (BUG: it
-                                // never does get done later)
-    int STnewtypeid;            // parsing new-type-id
-    int STdefaultargumentexpression;    // parsing default argument expression
-    block *STbtry;              // current try block
-    block *STgotolist;          // threaded goto scoping list
-    int STtdbtimestamp;         // timestamp of tdb file
-    Symbol *STlastfunc;         // last function symbol parsed by ext_def()
-
-    // For "point of definition" vs "point of instantiation" template name lookup
-    uint STsequence;            // sequence number (Ssequence) of next Symbol
-    uint STmaxsequence;         // won't find Symbols with STsequence larger
-                                // than STmaxsequence
 }
 
 @trusted
@@ -239,12 +146,6 @@ void funcsym_p(Funcsym* fp) { pstate.STfuncsym_p = fp; }
 
 @trusted
 Funcsym* funcsym_p() { return pstate.STfuncsym_p; }
-
-@trusted
-stflags_t preprocessor() { return pstate.STflags & PFLpreprocessor; }
-
-@trusted
-stflags_t inline_asm()   { return pstate.STflags & (PFLmasm | PFLbasm); }
 
 public import dmd.backend.var : pstate, cstate;
 
@@ -254,14 +155,7 @@ public import dmd.backend.var : pstate, cstate;
 
 struct Cstate
 {
-    blklst* CSfilblk;           // current source file we are parsing
-    Symbol* CSlinkage;          // table of forward referenced linkage pragmas
-    list_t CSlist_freelist;     // free list for list package
     symtab_t* CSpsymtab;        // pointer to current Symbol table
-//#if MEMORYHX
-//    void **CSphx;               // pointer to HX data block
-//#endif
-    char* modname;              // module unique identifier
 }
 
 /* Bits for sytab[] that give characteristics of storage classes        */
@@ -629,11 +523,7 @@ struct func_t
                                 // body
                                 // also used if SCfunctempl, SCftexpspec
     uint Fsequence;             // sequence number at point of definition
-    union
-    {
-        Symbol* Ftempl;         // if Finstance this is the template that generated it
-        Thunk* Fthunk;          // !=NULL if this function is actually a thunk
-    }
+    Symbol* Ftempl;         // if Finstance this is the template that generated it
     Funcsym *Falias;            // SCfuncalias: function Symbol referenced
                                 // by using-declaration
     symlist_t Fthunks;          // list of thunks off of this function
@@ -658,22 +548,6 @@ struct func_t
         uint LSDAoffset;        // ELFOBJ: offset in LSDA segment of the LSDA data for this function
         Symbol* LSDAsym;        // MACHOBJ: GCC_except_table%d
     }
-}
-
-//func_t* func_calloc() { return cast(func_t *) mem_fcalloc(func_t.sizeof); }
-//void    func_free(func_t *f) { mem_ffree(f); }
-
-/**************************
- * Item in list for member initializer.
- */
-
-struct meminit_t
-{
-    list_t  MIelemlist;         // arg list for initializer
-    Symbol *MIsym;              // if NULL, then this initializer is
-                                // for the base class. Otherwise, this
-                                // is the member that needs the ctor
-                                // called for it
 }
 
 alias baseclass_flags_t = uint;
@@ -714,141 +588,6 @@ struct baseclass_t
     Classsym*         BCparent;         // immediate parent of this base class
                                         //     in Smptrbase
     baseclass_t*      BCpbase;          // parent base, NULL if did not come from a parent
-}
-
-//baseclass_t* baseclass_malloc() { return cast(baseclass_t*) mem_fmalloc(baseclass_t.sizeof); }
-void baseclass_free(baseclass_t *b) { }
-
-/*************************
- * For virtual tables.
- */
-
-alias mptr_flags_t = char;
-enum
-{
-    MPTRvirtual     = 1,       // it's an offset to a virtual base
-    MPTRcovariant   = 2,       // need covariant return pointer adjustment
-}
-
-struct mptr_t
-{
-    targ_short     MPd;
-    targ_short     MPi;
-    Symbol        *MPf;
-    Symbol        *MPparent;    // immediate parent of this base class
-                                //   in Smptrbase
-    mptr_flags_t   MPflags;
-}
-
-@trusted
-inout(mptr_t)* list_mptr(inout(list_t) lst) { return cast(inout(mptr_t)*) list_ptr(lst); }
-
-
-/***********************************
- * Information gathered about externally defined template member functions,
- * member data, and member classes.
- */
-
-struct TMF
-{
-    Classsym *stag;             // if !=NULL, this is the enclosing class
-    token_t *tbody;             // tokens making it up
-    token_t *to;                // pointer within tbody where we left off in
-                                // template_function_decl()
-    param_t *temp_arglist;      // template parameter list
-    int member_class;           // 1: it's a member class
-
-    // These are for member templates
-    int castoverload;           // 1: it's a user defined cast
-    char *name;                 // name of template (NULL if castoverload)
-    int member_template;        // 0: regular template
-                                // 1: member template
-    param_t *temp_arglist2;     // if member template,
-                                // then member's template parameter list
-
-    param_t *ptal;              // if explicit specialization, this is the
-                                // explicit template-argument-list
-    Symbol *sclassfriend;       // if member function is a friend of class X,
-                                // this is class X
-    uint access_specifier;
-}
-
-/***********************************
- * Information gathered about primary member template explicit specialization.
- */
-
-struct TME
-{
-    /* Given:
-     *  template<> template<class T2> struct A<short>::B { };
-     *  temp_arglist2 = <class T2>
-     *  name = "B"
-     *  ptal = <short>
-     */
-    param_t *ptal;              // explicit template-argument-list for enclosing
-                                // template A
-    Symbol *stempl;             // template symbol for B
-}
-
-/***********************************
- * Information gathered about nested explicit specializations.
- */
-
-struct TMNE
-{
-    /* For:
-     *  template<> template<> struct A<short>::B<double> { };
-     */
-
-    enum_TK tk;                 // TKstruct / TKclass / TKunion
-    char *name;                 // name of template, i.e. "B"
-    param_t *ptal;              // explicit template-argument-list for enclosing
-                                // template A, i.e. "short"
-    token_t *tdecl;             // the tokens "<double> { }"
-}
-
-/***********************************
- * Information gathered about nested class friends.
- */
-
-struct TMNF
-{
-    /* Given:
-     *  template<class T> struct A { struct B { }; };
-     *  class C { template<class T> friend struct A<T>::B;
-     */
-    token_t *tdecl;             // the tokens "A<T>::B;"
-    param_t *temp_arglist;      // <class T>
-    Classsym *stag;             // the class symbol C
-    Symbol *stempl;             // the template symbol A
-}
-
-/***********************************
- * Special information for class templates.
- */
-
-struct template_t
-{
-    symlist_t     TMinstances;  // list of Symbols that are instances
-    param_t*      TMptpl;       // template-parameter-list
-    token_t*      TMbody;       // tokens making up class body
-    uint TMsequence;            // sequence number at point of definition
-    list_t TMmemberfuncs;       // templates for member functions (list of TMF's)
-    list_t TMexplicit;          // list of TME's: primary member template explicit specializations
-    list_t TMnestedexplicit;    // list of TMNE's: primary member template nested explicit specializations
-    Symbol* TMnext;             // threaded list of template classes headed
-                                // up by template_class_list
-    enum_TK        TMtk;        // TKstruct, TKclass or TKunion
-    int            TMflags;     // STRxxx flags
-
-    Symbol* TMprimary;          // primary class template
-    Symbol* TMpartial;          // next class template partial specialization
-    param_t* TMptal;            // template-argument-list for partial specialization
-                                // (NULL for primary class template)
-    list_t TMfriends;           // list of Classsym's for which any instantiated
-                                // classes of this template will be friends of
-    list_t TMnestedfriends;     // list of TMNF's
-    int TMflags2;               // !=0 means dummy template created by template_createargtab()
 }
 
 /***********************************
@@ -915,55 +654,8 @@ struct struct_t
     ubyte Sstructalign;         // struct member alignment in effect
     struct_flags_t Sflags;
     tym_t ptrtype;              // type of pointer to refer to classes by
-    ushort access;              // current access privilege, here so
-                                // enum declarations can get at it
-    targ_size_t Snonvirtsize;   // size of struct excluding virtual classes
-    list_t Svirtual;            // freeable list of mptrs
-                                // that go into vtbl[]
-    list_t *Spvirtder;          // pointer into Svirtual that points to start
-                                // of virtual functions for this (derived) class
-    symlist_t Sopoverload;      // overloaded operator funcs (list freeable)
-    symlist_t Scastoverload;    // overloaded cast funcs (list freeable)
-    symlist_t Sclassfriends;    // list of classes of which this is a friend
-                                // (list is freeable)
-    symlist_t Sfriendclass;     // classes which are a friend to this class
-                                // (list is freeable)
-    symlist_t Sfriendfuncs;     // functions which are a friend to this class
-                                // (list is freeable)
-    symlist_t Sinlinefuncs;     // list of tokenized functions
     baseclass_t *Sbase;         // list of direct base classes
-    baseclass_t *Svirtbase;     // list of all virtual base classes
-    baseclass_t *Smptrbase;     // list of all base classes that have
-                                // their own vtbl[]
-    baseclass_t *Sprimary;      // if not NULL, then points to primary
-                                // base class
-    Funcsym *Svecctor;          // constructor for use by vec_new()
-    Funcsym *Sctor;             // constructor function
-
-    Funcsym *Sdtor;             // basic destructor
-    Funcsym *Sprimdtor;         // primary destructor
-    Funcsym *Spriminv;          // primary invariant
-    Funcsym *Sscaldeldtor;      // scalar deleting destructor
-
-    Funcsym *Sinvariant;        // basic invariant function
-
     Symbol *Svptr;              // Symbol of vptr
-    Symbol *Svtbl;              // Symbol of vtbl[]
-    Symbol *Svbptr;             // Symbol of pointer to vbtbl[]
-    Symbol *Svbptr_parent;      // base class for which Svbptr is a member.
-                                // NULL if Svbptr is a member of this class
-    targ_size_t Svbptr_off;     // offset of Svbptr member
-    Symbol *Svbtbl;             // virtual base offset table
-    baseclass_t *Svbptrbase;    // list of all base classes in canonical
-                                // order that have their own vbtbl[]
-    Funcsym *Sopeq;             // X& X::operator =(X&)
-    Funcsym *Sopeq2;            // Sopeq, but no copy of virtual bases
-    Funcsym *Scpct;             // copy constructor
-    Funcsym *Sveccpct;          // vector copy constructor
-    Symbol *Salias;             // pointer to identifier S to use if
-                                // struct was defined as:
-                                //      typedef struct { ... } S;
-
     Symbol *Stempsym;           // if this struct is an instantiation
                                 // of a template class, this is the
                                 // template class Symbol
@@ -990,12 +682,6 @@ struct struct_t
     param_t *Sarglist;          // if this struct is an instantiation
                                 // of a template class, this is the
                                 // actual arg list used
-    param_t *Spr_arglist;       // if this struct is an instantiation
-                                // of a specialized template class, this is the
-                                // actual primary arg list used.
-                                // It is NULL for the
-                                // primary template class (since it would be
-                                // identical to Sarglist).
 }
 
 /**********************************
@@ -1079,13 +765,8 @@ enum
 
 struct Symbol
 {
-//#ifdef DEBUG
     debug ushort      id;
     enum IDsymbol = 0x5678;
-//#define class_debug(s) assert((s)->id == IDsymbol)
-//#else
-//#define class_debug(s)
-//#endif
 
     nothrow:
 
@@ -1119,8 +800,6 @@ struct Symbol
             block* Slabelblk_;  // label block
         }
 
-        //#define Senumlist Senum->SEenumlist
-
         struct
         {
             ubyte Sbit;         // SCfield: bit position of start of bit field
@@ -1134,7 +813,6 @@ struct Symbol
                                  */
 
         struct_t* Sstruct;      // SCstruct
-        template_t* Stemplate;  // SCtemplate
 
         struct                  // SCfastpar, SCshadowreg
         {
@@ -1148,11 +826,9 @@ struct Symbol
         return (1 << Spreg) | (Spreg2 == NOREG ? 0 : (1 << Spreg2));
     }
 
-//#if SCPP || MARS
     Symbol *Sscope;             // enclosing scope (could be struct tag,
                                 // enclosing inline function for statics,
                                 // or namespace)
-//#endif
 
     const(char)* prettyIdent;   // the symbol identifier as the user sees it
 
@@ -1421,20 +1097,6 @@ enum Goal : uint
     struct_     = 8,
     handle      = 0x10,    // don't replace handle'd objects
     ignoreExceptions = 0x20, // ignore floating point exceptions
-}
-
-/* Globals returned by declar() */
-struct Declar
-{
-    Classsym *class_sym;
-    Nspacesym *namespace_sym;
-    int oper;
-    bool constructor;
-    bool destructor;
-    bool _invariant;
-    param_t *ptal;
-    bool explicitSpecialization;
-    int hasExcSpec;             // has exception specification
 }
 
 /**********************************

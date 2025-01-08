@@ -477,21 +477,6 @@ Symbol * lookupsym(const(char)* p)
 }
 }
 
-/*********************************
- * Delete symbol from symbol table, taking care to delete
- * all children of a symbol.
- * Make sure there are no more forward references (labels, tags).
- * Input:
- *      pointer to a symbol
- */
-
-@trusted
-void meminit_free(meminit_t *m)         /* helper for symbol_free()     */
-{
-    list_free(&m.MIelemlist,cast(list_free_fp)&el_free);
-    mem_free(m);
-}
-
 @trusted
 void symbol_free(Symbol *s)
 {
@@ -560,8 +545,6 @@ debug
 
 
                 el_free(f.Fbaseinit);
-                if (f.Fthunk && !(f.Fflags & Finstance))
-                    mem_free(f.Fthunk);
                 list_free(&f.Fthunks,cast(list_free_fp)&symbol_free);
               }
                 list_free(&f.Fsymtree,cast(list_free_fp)&symbol_free);
