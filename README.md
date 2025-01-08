@@ -33,7 +33,6 @@ Refer to their respective `README.md` for more in-depth information.
 | [compiler/test](compiler/test)       | tests and testing infrastructure                  |
 | [compiler/docs](compiler/docs)       | man pages and internal documentation              |
 | [compiler/ini](compiler/ini)         | predefined `dmd.conf` files                       |
-| [compiler/samples](compiler/samples) | Various code examples                             |
 | [druntime](druntime)                 | root of all runtime related code                  |
 
 With a D compiler and dub installed, dmd can be built with:
