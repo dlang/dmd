@@ -503,7 +503,7 @@ class ConservativeGC : GC
         assert(size != 0);
 
         debug(PRINTF)
-            printf("GC::malloc(gcx = %p, size = %d bits = %x, ti = %s)\n", gcx, size, bits, debugTypeName(ti).ptr);
+            printf("GC::malloc(gcx = %p, size = %zd bits = %x, ti = %s)\n", gcx, size, bits, debugTypeName(ti).ptr);
 
         assert(gcx);
         //debug(PRINTF) printf("gcx.self = %x, pthread_self() = %x\n", gcx.self, pthread_self());
@@ -876,7 +876,7 @@ class ConservativeGC : GC
     //
     private void freeNoSync(void *p) nothrow @nogc
     {
-        debug(PRINTF) printf("Freeing %p\n", cast(size_t) p);
+        debug(PRINTF) printf("Freeing %#zx\n", cast(size_t) p);
         assert (p);
 
         Pool*  pool;
@@ -891,7 +891,7 @@ class ConservativeGC : GC
 
         pagenum = pool.pagenumOf(p);
 
-        debug(PRINTF) printf("pool base = %p, PAGENUM = %d of %d, bin = %d\n", pool.baseAddr, pagenum, pool.npages, pool.pagetable[pagenum]);
+        debug(PRINTF) printf("pool base = %p, PAGENUM = %zd of %zd, bin = %d\n", pool.baseAddr, pagenum, pool.npages, pool.pagetable[pagenum]);
         debug(PRINTF) if (pool.isLargeObject) printf("Block size = %d\n", pool.bPageOffsets[pagenum]);
 
         bin = pool.pagetable[pagenum];
@@ -2169,7 +2169,7 @@ struct Gcx
      */
     void* bigAlloc(size_t size, ref size_t alloc_size, uint bits, const TypeInfo ti = null) nothrow
     {
-        debug(PRINTF) printf("In bigAlloc.  Size:  %d\n", size);
+        debug(PRINTF) printf("In bigAlloc.  Size:  %zd\n", size);
 
         LargeObjectPool* pool;
         size_t pn;
@@ -2233,7 +2233,7 @@ struct Gcx
         debug(PRINTF) printFreeInfo(&pool.base);
 
         auto p = pool.baseAddr + pn * PAGESIZE;
-        debug(PRINTF) printf("Got large alloc:  %p, pt = %d, np = %d\n", p, pool.pagetable[pn], npages);
+        debug(PRINTF) printf("Got large alloc:  %p, pt = %d, np = %zd\n", p, pool.pagetable[pn], npages);
         invalidate(p[0 .. size], 0xF1, true);
         alloc_size = npages * PAGESIZE;
         //debug(PRINTF) printf("\tp = %p\n", p);
@@ -4203,12 +4203,12 @@ struct Pool
                                      debugTypeName(ti).ptr, p, bitmap, cast(ulong)element_size);
                 debug(PRINTF)
                     for (size_t i = 0; i < element_size/((void*).sizeof); i++)
-                        printf("%d", (bitmap[i/(8*size_t.sizeof)] >> (i%(8*size_t.sizeof))) & 1);
+                        printf("%zd", (bitmap[i/(8*size_t.sizeof)] >> (i%(8*size_t.sizeof))) & 1);
                 debug(PRINTF) printf("\n");
 
                 if (tocopy * (void*).sizeof < s) // better safe than sorry: if allocated more, assume pointers inside
                 {
-                    debug(PRINTF) printf("    Appending %d pointer bits\n", s/(void*).sizeof - tocopy);
+                    debug(PRINTF) printf("    Appending %zd pointer bits\n", s/(void*).sizeof - tocopy);
                     is_pointer.setRange(offset/(void*).sizeof + tocopy, s/(void*).sizeof - tocopy);
                 }
             }
@@ -4734,7 +4734,7 @@ debug(PRINTF) void printFreeInfo(Pool* pool) nothrow
         if (pool.pagetable[i] >= Bins.B_FREE) nReallyFree++;
     }
 
-    printf("Pool %p:  %d really free, %d supposedly free\n", pool, nReallyFree, pool.freepages);
+    printf("Pool %p:  %d really free, %zd supposedly free\n", pool, nReallyFree, pool.freepages);
 }
 
 debug(PRINTF)
@@ -4743,7 +4743,7 @@ void printGCBits(GCBits* bits)
     for (size_t i = 0; i < bits.nwords; i++)
     {
         if (i % 32 == 0) printf("\n\t");
-        printf("%x ", bits.data[i]);
+        printf("%zx ", bits.data[i]);
     }
     printf("\n");
 }
