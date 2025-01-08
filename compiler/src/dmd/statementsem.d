@@ -591,6 +591,30 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         result = ds;
     }
 
+    /* Rewrites:
+     * controlflow (auto v1 = i1, v2 = i2; condition [; increment]) { ... }
+     * to:
+     *  { auto v1 = i1, v2 = i2; controlflow ([;] condition [; increment]) { ... } }
+     * then lowered to:
+     *  auto v1 = i1;
+     *  try {
+     *    auto v2 = i2;
+     *    try {
+     *      controlflow ([;] condition [; increment]) { ... }
+     *    } finally { v2.~this(); }
+     *  } finally { v1.~this(); }
+     *  where controlflow = `for` or `if`
+     */
+    private Statment expandInit(S)(S cfs)
+    {
+        auto ainit = new Statements();
+        ainit.push(cfs._init);
+        cfs._init = null;
+        ainit.push(cfs);
+        Statement s = new CompoundStatement(cfs.loc, ainit);
+        s = new ScopeStatement(cfs.loc, s, cfs.endloc);
+        return s.statementSemantic(sc);
+    }
     void visitFor(ForStatement fs)
     {
         /* https://dlang.org/spec/statement.html#for-statement
@@ -599,26 +623,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
 
         if (fs._init)
         {
-            /* Rewrite:
-             *  for (auto v1 = i1, v2 = i2; condition; increment) { ... }
-             * to:
-             *  { auto v1 = i1, v2 = i2; for (; condition; increment) { ... } }
-             * then lowered to:
-             *  auto v1 = i1;
-             *  try {
-             *    auto v2 = i2;
-             *    try {
-             *      for (; condition; increment) { ... }
-             *    } finally { v2.~this(); }
-             *  } finally { v1.~this(); }
-             */
-            auto ainit = new Statements();
-            ainit.push(fs._init);
-            fs._init = null;
-            ainit.push(fs);
-            Statement s = new CompoundStatement(fs.loc, ainit);
-            s = new ScopeStatement(fs.loc, s, fs.endloc);
-            s = s.statementSemantic(sc);
+            Statement s = expandInit(fs);
             if (!s.isErrorStatement())
             {
                 if (LabelStatement ls = checkLabeledLoop(sc, fs))
