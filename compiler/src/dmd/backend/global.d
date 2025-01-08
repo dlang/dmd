@@ -141,7 +141,7 @@ void err_nomem() @nogc nothrow @trusted
 void symbol_keep(Symbol *s) { }
 public import dmd.backend.symbol : symbol_print, symbol_term, symbol_ident, symbol_calloc,
     symbol_name, symbol_generate, symbol_genauto, symbol_genauto, symbol_genauto,
-    symbol_func, symbol_funcalias, meminit_free, baseclass_find, baseclass_find_nest,
+    symbol_func, symbol_funcalias, baseclass_find, baseclass_find_nest,
     baseclass_nitems, symbol_free, symbol_add, symbol_add, symbol_insert, freesymtab,
     symbol_copy, symbol_reset, symbol_pointerType;
 
