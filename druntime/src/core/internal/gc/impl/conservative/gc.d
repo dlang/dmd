@@ -3659,9 +3659,12 @@ Lmark:
         if (atomicLoad(busyThreads) == 0)
             return;
 
-        debug(PARALLEL_PRINTF)
+        version (Posix) debug (PARALLEL_PRINTF)
+        {
+            import core.sys.posix.pthread : pthread_self, pthread_t;
             pthread_t threadId = pthread_self();
-        debug(PARALLEL_PRINTF) printf("scanBackground thread %d start\n", threadId);
+            printf("scanBackground thread %d start\n", threadId);
+        }
 
         ScanRange!precise rng;
         alias toscan = scanStack!precise;
