@@ -6268,7 +6268,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 else
                     elsebody = null;
                 if (condition && ifbody)
-                    s = new AST.IfStatement(loc, param, condition, ifbody, elsebody, token.loc);
+                    s = new AST.IfStatement(loc, param, condition, null, ifbody, elsebody, token.loc);
                 else
                     s = null; // don't propagate parsing errors
                 break;

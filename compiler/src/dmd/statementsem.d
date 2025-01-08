@@ -547,7 +547,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
              *     else
              *     { break; }
              */
-            _body = new IfStatement(ws.loc, ws.param, ws.condition, ws._body, new BreakStatement(ws.loc, null), ws.endloc);
+            _body = new IfStatement(ws.loc, ws.param, ws.condition, null, ws._body, new BreakStatement(ws.loc, null), ws.endloc);
             cond = IntegerExp.createBool(true);
         }
         Statement s = new ForStatement(ws.loc, null, cond, null, _body, ws.endloc);
@@ -4161,7 +4161,7 @@ void catchSemantic(Catch c, Scope* sc)
 
             Expression ec = new IdentifierExp(loc, Id.ctfe);
             ec = new NotExp(loc, ec);
-            Statement s = new IfStatement(loc, null, ec, new ExpStatement(loc, e), null, loc);
+            Statement s = new IfStatement(loc, null, ec, null, new ExpStatement(loc, e), null, loc);
             c.handler = new TryFinallyStatement(loc, c.handler, s);
         }
 
@@ -4266,7 +4266,7 @@ Statement scopeCode(Statement statement, Scope* sc, out Statement sentry, out St
 
                 e = new VarExp(Loc.initial, v);
                 e = new NotExp(Loc.initial, e);
-                sfinally = new IfStatement(Loc.initial, null, e, s, null, Loc.initial);
+                sfinally = new IfStatement(Loc.initial, null, e, null, s, null, Loc.initial);
 
                 break;
             }
