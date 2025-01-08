@@ -1,9 +1,9 @@
 /*
 RUN_OUTPUT:
 ---
-yes
-yes
-yes
+A: yes
+B: yes
+C: yes
 ---
 */
 
