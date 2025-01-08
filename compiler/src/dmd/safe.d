@@ -181,6 +181,10 @@ bool isSafeCast(Expression e, Type tfrom, Type tto, ref string msg)
     auto tfromb = tfrom.toBasetype();
     auto ttob = tto.toBasetype();
 
+    // Casting to void* is always safe, https://github.com/dlang/dmd/issues/20514
+    if (ttob.isTypePointer() && ttob.nextOf().toBasetype().ty == Tvoid)
+        return true;
+
     if (ttob.ty == Tclass && tfromb.ty == Tclass)
     {
         ClassDeclaration cdfrom = tfromb.isClassHandle();
