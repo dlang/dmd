@@ -11,7 +11,7 @@ C: yes
 
 import core.stdc.stdio: printf;
 
-int main(string[] args)
+void main()
 {
     enum K = 42;
     switch (K)
