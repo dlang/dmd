@@ -1763,7 +1763,7 @@ struct Gcx
 
                 long apiTime = mallocTime + reallocTime + freeTime + extendTime + otherTime + lockTime;
                 printf("\tGC API: %lld ms\n", toDuration(apiTime).total!"msecs");
-                sprintf(apitxt.ptr, " API%5ld ms", toDuration(apiTime).total!"msecs");
+                sprintf(apitxt.ptr, " API%5lld ms", toDuration(apiTime).total!"msecs");
             }
 
             printf("GC summary:%5lld MB,%5lld GC%5lld ms, Pauses%5lld ms <%5lld ms%s\n",
@@ -3680,13 +3680,16 @@ Lmark:
             busyThreads.atomicOp!"+="(1);
             if (toscan.popLocked(rng))
             {
-                debug(PARALLEL_PRINTF) printf("scanBackground thread %d scanning range [%p,%lld] from stack\n", threadId,
-                                              rng.pbot, cast(long) (rng.ptop - rng.pbot));
+                version (Posix) debug (PARALLEL_PRINTF)
+                {
+                    printf("scanBackground thread %d scanning range [%p,%lld] from stack\n",
+                        threadId, rng.pbot, cast(long) (rng.ptop - rng.pbot));
+                }
                 mark!(precise, true, true)(rng);
             }
             busyThreads.atomicOp!"-="(1);
         }
-        debug(PARALLEL_PRINTF) printf("scanBackground thread %d done\n", threadId);
+        version (Posix) debug (PARALLEL_PRINTF) printf("scanBackground thread %d done\n", threadId);
     }
 }
 

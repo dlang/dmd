@@ -132,7 +132,7 @@ void initSections(void* handle) nothrow @nogc
         // consolidate GC ranges for pointers in the .data segment
         void[] dpSection = findImageSection(handle, ".dp");
         debug(PRINTF) printf("found .dp section: [%p,+%llx]\n", dpSection.ptr,
-                             cast(ulong)dpSsection.length);
+                             cast(ulong)dpSection.length);
         auto dp = cast(uint[]) dpSection;
         auto ranges = cast(void[]*) malloc(dp.length * (void[]).sizeof);
         size_t r = 0;
