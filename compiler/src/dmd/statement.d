@@ -959,7 +959,7 @@ extern (C++) final class IfStatement : Statement
         return new IfStatement(loc,
             param ? param.syntaxCopy() : null,
             condition.syntaxCopy(),
-            _init ? init.syntaxCopy() : null,
+            _init ? _init.syntaxCopy() : null,
             ifbody ? ifbody.syntaxCopy() : null,
             elsebody ? elsebody.syntaxCopy() : null,
             endloc);

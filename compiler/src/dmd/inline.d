@@ -325,7 +325,7 @@ public:
 
         static if (asStatements)
         {
-            result = new IfStatement(s.loc, s.param, s._init, econd, ifbody, elsebody, s.endloc);
+            result = new IfStatement(s.loc, s.param, econd, s._init, ifbody, elsebody, s.endloc);
         }
         else
         {

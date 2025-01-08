@@ -605,7 +605,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
      *  } finally { v1.~this(); }
      *  where controlflow = `for` or `if`
      */
-    Statment expandInit(S)(S cfs)
+    Statement expandInit(S)(S cfs)
     {
         auto ainit = new Statements();
         ainit.push(cfs._init);
