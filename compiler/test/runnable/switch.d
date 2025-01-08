@@ -3,6 +3,7 @@ RUN_OUTPUT:
 ---
 yes
 yes
+yes
 ---
 */
 
