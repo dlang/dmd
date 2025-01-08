@@ -13,27 +13,27 @@ module core.internal.backtrace.elf;
 
 version (linux)
 {
-    import core.sys.linux.elf;
+    import core.sys.linux.elf : SHF_COMPRESSED, ET_DYN;
     version = LinuxOrBSD;
 }
 else version (FreeBSD)
 {
-    import core.sys.freebsd.sys.elf;
+    import core.sys.freebsd.sys.elf : SHF_COMPRESSED, ET_DYN;
     version = LinuxOrBSD;
 }
 else version (DragonFlyBSD)
 {
-    import core.sys.dragonflybsd.sys.elf;
+    import core.sys.dragonflybsd.sys.elf : SHF_COMPRESSED, ET_DYN;
     version = LinuxOrBSD;
 }
 else version (OpenBSD)
 {
-    import core.sys.openbsd.sys.elf;
+    import core.sys.openbsd.sys.elf : SHF_COMPRESSED, ET_DYN;
     version = LinuxOrBSD;
 }
 else version (Solaris)
 {
-    import core.sys.solaris.sys.elf;
+    import core.sys.solaris.sys.elf : SHF_COMPRESSED, ET_DYN;
     version = LinuxOrBSD;
 }
 

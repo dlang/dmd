@@ -564,7 +564,9 @@ extern (C) UnitTestResult runModuleUnitTests()
 
     static if (hasExecinfo)
     {
-        import core.sys.posix.signal; // segv handler
+        // segv handler
+        import core.sys.posix.signal : SA_RESETHAND, SA_SIGINFO, sigaction, sigaction_t, SIGBUS, sigfillset, siginfo_t,
+            SIGSEGV;
 
         static extern (C) void unittestSegvHandler( int signum, siginfo_t* info, void* ptr ) nothrow
         {

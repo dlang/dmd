@@ -30,42 +30,43 @@ import core.internal.elf.dl;
 import core.memory;
 import core.stdc.config;
 import core.stdc.stdio;
-import core.stdc.stdlib : calloc, exit, free, malloc, EXIT_FAILURE;
+import core.stdc.stdlib : calloc, exit, EXIT_FAILURE, free, malloc;
 import core.stdc.string : strlen;
 version (linux)
 {
-    import core.sys.linux.dlfcn;
-    import core.sys.linux.elf;
-    import core.sys.linux.link;
+    import core.sys.linux.dlfcn : Dl_info, dladdr, dlclose, dlinfo, dlopen, RTLD_DI_LINKMAP, RTLD_LAZY, RTLD_NOLOAD;
+    import core.sys.linux.elf : DT_AUXILIARY, DT_FILTER, DT_NEEDED, DT_STRTAB, PF_W, PF_X, PT_DYNAMIC, PT_LOAD, PT_TLS;
+    import core.sys.linux.link : ElfW, link_map;
 }
 else version (FreeBSD)
 {
-    import core.sys.freebsd.dlfcn;
-    import core.sys.freebsd.sys.elf;
-    import core.sys.freebsd.sys.link_elf;
+    import core.sys.freebsd.dlfcn : Dl_info, dladdr, dlclose, dlinfo, dlopen, RTLD_DI_LINKMAP, RTLD_LAZY, RTLD_NOLOAD;
+    import core.sys.freebsd.sys.elf : DT_AUXILIARY, DT_FILTER, DT_NEEDED, DT_STRTAB, PF_W, PF_X, PT_DYNAMIC, PT_LOAD, PT_TLS;
+    import core.sys.freebsd.sys.link_elf : ElfW, link_map;
 }
 else version (NetBSD)
 {
-    import core.sys.netbsd.dlfcn;
-    import core.sys.netbsd.sys.elf;
-    import core.sys.netbsd.sys.link_elf;
+    import core.sys.netbsd.dlfcn : Dl_info, dladdr, dlclose, dlinfo, dlopen, RTLD_DI_LINKMAP, RTLD_LAZY, RTLD_NOLOAD;
+    import core.sys.netbsd.sys.elf : DT_AUXILIARY, DT_FILTER, DT_NEEDED, DT_STRTAB, PF_W, PF_X, PT_DYNAMIC, PT_LOAD, PT_TLS;
+    import core.sys.netbsd.sys.link_elf : ElfW, link_map;
 }
 else version (DragonFlyBSD)
 {
-    import core.sys.dragonflybsd.dlfcn;
-    import core.sys.dragonflybsd.sys.elf;
-    import core.sys.dragonflybsd.sys.link_elf;
+    import core.sys.dragonflybsd.dlfcn : Dl_info, dladdr, dlclose, dlinfo, dlopen, RTLD_DI_LINKMAP, RTLD_LAZY, RTLD_NOLOAD;
+    import core.sys.dragonflybsd.sys.elf : DT_AUXILIARY, DT_FILTER, DT_NEEDED, DT_STRTAB, PF_W, PF_X, PT_DYNAMIC, PT_LOAD, PT_TLS;
+    import core.sys.dragonflybsd.sys.link_elf : ElfW, link_map;
 }
 else
 {
     static assert(0, "unimplemented");
 }
-import core.sys.posix.pthread;
+import core.internal.container.array;
+import core.internal.container.hashtab;
+import core.sys.posix.pthread : pthread_mutex_destroy, pthread_mutex_init, pthread_mutex_lock, pthread_mutex_unlock;
+import core.sys.posix.sys.types : pthread_mutex_t;
 import rt.deh;
 import rt.dmain2;
 import rt.minfo;
-import core.internal.container.array;
-import core.internal.container.hashtab;
 import rt.util.utility : safeAssert;
 
 alias DSO SectionGroup;

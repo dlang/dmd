@@ -25,8 +25,8 @@ version (CRuntime_Glibc)
 version (MemoryErrorSupported):
 @system:
 
-import core.sys.posix.signal;
-import core.sys.posix.ucontext;
+import core.sys.posix.signal : SA_SIGINFO, sigaction, sigaction_t, siginfo_t, SIGSEGV;
+import ucontext = core.sys.posix.ucontext;
 
 // Register and unregister memory error handler.
 
@@ -121,7 +121,7 @@ private:
 
 __gshared sigaction_t old_sigaction;
 
-alias typeof(ucontext_t.init.uc_mcontext.gregs[0]) RegType;
+alias typeof(ucontext.ucontext_t.init.uc_mcontext.gregs[0]) RegType;
 
 version (X86_64)
 {
@@ -130,18 +130,18 @@ version (X86_64)
     extern(C)
     void handleSignal(int signum, siginfo_t* info, void* contextPtr) nothrow
     {
-        auto context = cast(ucontext_t*)contextPtr;
+        auto context = cast(ucontext.ucontext_t*)contextPtr;
 
         // Save registers into global thread local, to allow recovery.
-        savedRDI = context.uc_mcontext.gregs[REG_RDI];
-        savedRSI = context.uc_mcontext.gregs[REG_RSI];
+        savedRDI = context.uc_mcontext.gregs[ucontext.REG_RDI];
+        savedRSI = context.uc_mcontext.gregs[ucontext.REG_RSI];
 
         // Hijack current context so we call our handler.
-        auto rip = context.uc_mcontext.gregs[REG_RIP];
+        auto rip = context.uc_mcontext.gregs[ucontext.REG_RIP];
         auto addr = cast(RegType) info.si_addr;
-        context.uc_mcontext.gregs[REG_RDI] = addr;
-        context.uc_mcontext.gregs[REG_RSI] = rip;
-        context.uc_mcontext.gregs[REG_RIP] = cast(RegType) ((rip != addr)?&sigsegvDataHandler:&sigsegvCodeHandler);
+        context.uc_mcontext.gregs[ucontext.REG_RDI] = addr;
+        context.uc_mcontext.gregs[ucontext.REG_RSI] = rip;
+        context.uc_mcontext.gregs[ucontext.REG_RIP] = cast(RegType) ((rip != addr)?&sigsegvDataHandler:&sigsegvCodeHandler);
     }
 
     // All handler functions must be called with faulting address in RDI and original RIP in RSI.
@@ -227,18 +227,18 @@ else version (X86)
     extern(C)
     void handleSignal(int signum, siginfo_t* info, void* contextPtr) nothrow
     {
-        auto context = cast(ucontext_t*)contextPtr;
+        auto context = cast(ucontext.ucontext_t*)contextPtr;
 
         // Save registers into global thread local, to allow recovery.
-        savedEAX = context.uc_mcontext.gregs[REG_EAX];
-        savedEDX = context.uc_mcontext.gregs[REG_EDX];
+        savedEAX = context.uc_mcontext.gregs[ucontext.REG_EAX];
+        savedEDX = context.uc_mcontext.gregs[ucontext.REG_EDX];
 
         // Hijack current context so we call our handler.
-        auto eip = context.uc_mcontext.gregs[REG_EIP];
+        auto eip = context.uc_mcontext.gregs[ucontext.REG_EIP];
         auto addr = cast(RegType) info.si_addr;
-        context.uc_mcontext.gregs[REG_EAX] = addr;
-        context.uc_mcontext.gregs[REG_EDX] = eip;
-        context.uc_mcontext.gregs[REG_EIP] = cast(RegType) ((eip != addr)?&sigsegvDataHandler:&sigsegvCodeHandler);
+        context.uc_mcontext.gregs[ucontext.REG_EAX] = addr;
+        context.uc_mcontext.gregs[ucontext.REG_EDX] = eip;
+        context.uc_mcontext.gregs[ucontext.REG_EIP] = cast(RegType) ((eip != addr)?&sigsegvDataHandler:&sigsegvCodeHandler);
     }
 
     // All handler functions must be called with faulting address in EAX and original EIP in EDX.
