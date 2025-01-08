@@ -6,7 +6,7 @@ switch (K)
 {
     case 42 -> printf("yes!\n");
 
-    default: printf("no!\n");
+    default -> printf("no!\n");
 }
 
 
@@ -16,6 +16,8 @@ switch (K)
         printf("yes!\n");
     }
 
-    default: printf("no!\n");
+    default -> {
+        printf("no!\n");
+    }
 }
 ---

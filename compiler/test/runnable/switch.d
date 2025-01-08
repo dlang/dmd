@@ -19,7 +19,7 @@ int main(string[] args)
         case 42 -> printf("A: yes\n");
         case 1  -> printf("A: no1\n");
 
-        default: printf("A: default\n");
+        default -> printf("A: default\n");
     }
     switch (K)
     {
@@ -33,7 +33,9 @@ int main(string[] args)
             printf("B: no1\n");
         }
 
-        default: printf("B: default\n");
+        default -> {
+            printf("B: default\n");
+        }
     }
     switch (K)
     {

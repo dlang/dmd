@@ -6484,7 +6484,13 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         case TOK.default_:
             {
                 nextToken();
-                check(TOK.colon);
+                bool insertBreak = false;
+                if (token.value == TOK.arrow) {
+                    insertBreak = true;
+                    nextToken();
+                }
+                else
+                    check(TOK.colon);
 
                 if (flags & ParseStatementFlags.curlyScope)
                 {
@@ -6493,6 +6499,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     {
                         statements.push(parseStatement(ParseStatementFlags.curlyScope));
                     }
+                    if (insertBreak)
+                        statements.push(new AST.BreakStatement(loc, null));
                     s = new AST.CompoundStatement(loc, statements);
                 }
                 else
