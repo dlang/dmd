@@ -605,7 +605,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
      *  } finally { v1.~this(); }
      *  where controlflow = `for` or `if`
      */
-    private Statment expandInit(S)(S cfs)
+    Statment expandInit(S)(S cfs)
     {
         auto ainit = new Statements();
         ainit.push(cfs._init);
@@ -1642,6 +1642,11 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
         /* https://dlang.org/spec/statement.html#IfStatement
          */
 
+        if (ifs._init)
+        {
+            result = expandInit(ifs);
+            return;
+        }
         // check in syntax level
         ifs.condition = checkAssignmentAsCondition(ifs.condition, sc);
 
