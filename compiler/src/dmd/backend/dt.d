@@ -299,29 +299,29 @@ nothrow:
     }
 
     /*****************************************
-     * Write a reference to the data ptr[0..size+nzeros]
+     * Write a reference to `data` with `nzeros` zero bytes at the end.
      * Params:
      *  ty = pointer type
      *  offset = to be added to offset of data generated
-     *  size = number of bytes pointed to by ptr
-     *  ptr = points to data bytes
+     *  data = data to write
      *  nzeros = number of zero bytes to add to the end
      *  _align = log2() of byte alignment of pointed-to data
      */
     @trusted
-    void abytes(tym_t ty, uint offset, uint size, const(char)* ptr, uint nzeros, ubyte _align)
+    void abytes(tym_t ty, uint offset, const(char)[] data, uint nzeros, ubyte _align)
     {
         dt_t *dt = dt_calloc(DT.abytes);
-        const n = size + nzeros;
-        assert(n >= size);      // overflow check
+        const n = data.length + nzeros;
+        assert(n >= data.length);      // overflow check
         dt.DTnbytes = n;
         dt.DTpbytes = cast(byte *) mem_malloc(n);
         dt.Dty = cast(ubyte)ty;
         dt.DTalign = _align;
         dt.DTabytes = offset;
-        memcpy(dt.DTpbytes,ptr,size);
+
+        dt.DTpbytes[0 .. data.length] = cast(const(byte)[]) data[];
         if (nzeros)
-            memset(dt.DTpbytes + size, 0, nzeros);
+            dt.DTpbytes[data.length .. data.length + nzeros] = 0;
 
         assert(!*pTail);
         *pTail = dt;
@@ -329,9 +329,9 @@ nothrow:
         assert(!*pTail);
     }
 
-    void abytes(uint offset, uint size, const(char)* ptr, uint nzeros, ubyte _align)
+    void abytes(uint offset, const(char)[] data, uint nzeros, ubyte _align)
     {
-        abytes(TYnptr, offset, size, ptr, nzeros, _align);
+        abytes(TYnptr, offset, data, nzeros, _align);
     }
 
     /**************************************
