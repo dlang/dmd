@@ -107,7 +107,7 @@ public Expression inlineCopy(Expression e, Scope* sc)
             return de.copy();
         }
     }
-    int cost = inlineCostExpression(e);
+    const cost = inlineCostExpression(e);
     if (cost >= COST_MAX)
     {
         error(e.loc, "cannot inline default argument `%s`", e.toChars());

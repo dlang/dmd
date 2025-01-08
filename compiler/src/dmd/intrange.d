@@ -573,13 +573,13 @@ struct IntRange
                 swap(l, r); // r spans [-1,0]
             }
 
-            auto minAndNeg = minAnd(l, IntRange(r.imin, SignExtendedNumber(-1)));
-            auto minAndPos = minAnd(l, IntRange(SignExtendedNumber(0), r.imax));
-            auto maxAndNeg = maxAnd(l, IntRange(r.imin, SignExtendedNumber(-1)));
-            auto maxAndPos = maxAnd(l, IntRange(SignExtendedNumber(0), r.imax));
+            const minAndNeg = minAnd(l, IntRange(r.imin, SignExtendedNumber(-1)));
+            const minAndPos = minAnd(l, IntRange(SignExtendedNumber(0), r.imax));
+            const maxAndNeg = maxAnd(l, IntRange(r.imin, SignExtendedNumber(-1)));
+            const maxAndPos = maxAnd(l, IntRange(SignExtendedNumber(0), r.imax));
 
-            auto min = minAndNeg < minAndPos ? minAndNeg : minAndPos;
-            auto max = maxAndNeg > maxAndPos ? maxAndNeg : maxAndPos;
+            const min = minAndNeg < minAndPos ? minAndNeg : minAndPos;
+            const max = maxAndNeg > maxAndPos ? maxAndNeg : maxAndPos;
 
             auto range = IntRange(min, max);
             return range;

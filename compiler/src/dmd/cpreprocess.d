@@ -110,7 +110,7 @@ const(char)* findImportcH(const(char)*[] path)
  */
 private const(char)[] cppCommand()
 {
-    if (auto p = getenv("CPPCMD"))
+    if (const p = getenv("CPPCMD"))
         return toDString(p);
 
     version (Windows)
@@ -119,7 +119,7 @@ private const(char)[] cppCommand()
         {
             VSOptions vsopt;
             vsopt.initialize();
-            auto path = vsopt.compilerPath(target.isX86_64);
+            const path = vsopt.compilerPath(target.isX86_64);
             return toDString(path);
         }
         // Perhaps we are cross-compiling.
