@@ -82,7 +82,7 @@ void printInternalFailure(FILE* stream)
 {
     fputs(("---\n" ~
     "ERROR: This is a compiler bug.\n" ~
-            "Please report it via https://issues.dlang.org/enter_bug.cgi\n" ~
+            "Please report it via https://github.com/dlang/dmd/issues\n" ~
             "with, preferably, a reduced, reproducible example and the information below.\n" ~
     "DustMite (https://github.com/CyberShadow/DustMite/wiki) can help with the reduction.\n" ~
     "---\n").ptr, stream);
