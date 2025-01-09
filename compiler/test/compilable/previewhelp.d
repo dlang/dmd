@@ -10,6 +10,7 @@ Upcoming language changes listed by -preview=name:
   =dip1008          implement @nogc Throwable DIP (https://github.com/dlang/DIPs/blob/master/DIPs/other/DIP1008.md)
   =dip1021          implement Mutable Function Arguments DIP (https://github.com/dlang/DIPs/blob/master/DIPs/accepted/DIP1021.md)
   =bitfields        add C-like bitfields (https://github.com/dlang/dlang.org/pull/3190)
+  =fieldwise        use fieldwise comparisons for struct equality (https://dlang.org/changelog/2.085.0.html#no-cmpsb)
   =fixAliasThis     when a symbol is resolved, check alias this scope before going to upper scopes (https://github.com/dlang/dmd/pull/8885)
   =rvaluerefparam   enable rvalue arguments to ref parameters (https://gist.github.com/andralex/e5405a5d773f07f73196c05f8339435a)
   =safer            more safety checks by default (https://github.com/WalterBright/documents/blob/38f0a846726b571f8108f6e63e5e217b91421c86/safer.md)
