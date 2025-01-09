@@ -491,7 +491,7 @@ MATCH implicitConvTo(Expression e, Type t)
         case Tint16:
             if (ty == Tuns64 && value & ~0x7FFFU)
                 return MATCH.nomatch;
-            else if (cast(short)value != value)
+            if (cast(short)value != value)
                 return MATCH.nomatch;
             break;
 
