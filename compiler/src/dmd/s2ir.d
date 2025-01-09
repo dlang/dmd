@@ -1729,7 +1729,7 @@ private bool isAssertFalse(const Statement s) nothrow
         return false;
     if (auto es = s.isExpStatement())
         return isAssertFalse(es.exp);
-    else if (auto ss = s.isScopeStatement())
+    if (auto ss = s.isScopeStatement())
         return isAssertFalse(ss.statement);
     return false;
 }
