@@ -1536,7 +1536,7 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
 
     version (none)
     {
-        printf("resolveFuncCall('%s')\n", s.toChars());
+        printf("resolveFuncCall() %s)\n", s.toChars());
         if (tthis)
             printf("\tthis: %s\n", tthis.toChars());
         if (fargs)
@@ -1548,7 +1548,6 @@ FuncDeclaration resolveFuncCall(const ref Loc loc, Scope* sc, Dsymbol s,
                 printf("\t%s: %s\n", arg.toChars(), arg.type.toChars());
             }
         }
-        printf("\tfnames: %s\n", fnames ? fnames.toChars() : "null");
     }
 
     if (tiargs && arrayObjectIsError(*tiargs))

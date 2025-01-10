@@ -6162,7 +6162,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (sd.ctor)
                 {
                     auto ctor = sd.ctor.isCtorDeclaration();
-                    if (ctor && ctor.isCpCtor && ctor.isGenerated())
+                    if (ctor && (ctor.isCpCtor || ctor.isMoveCtor) && ctor.isGenerated())
                         sd.ctor = null;
                 }
 
@@ -17035,6 +17035,7 @@ bool checkDisabled(Declaration d, Loc loc, Scope* sc, bool isAliasedDeclaration 
 
     if (auto ctor = d.isCtorDeclaration())
     {
+        //printf("checkDisabled() %s %s\n", ctor.toPrettyChars(), toChars(ctor.type));
         if (ctor.isCpCtor && ctor.isGenerated())
         {
             .error(loc, "generating an `inout` copy constructor for `struct %s` failed, therefore instances of it are uncopyable", d.parent.toPrettyChars());
