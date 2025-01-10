@@ -309,8 +309,8 @@ extern (C++) class Package : ScopeDsymbol
         for (Dsymbol s = this.parent; s; s = s.parent)
             packages ~= s.ident;
         reverse(packages);
-
-        if (Module.find(getFilename(packages, ident)))
+        bool ambiguousPkg;
+        if (Module.find(getFilename(packages, ident), ambiguousPkg))
             Module.load(Loc.initial, packages, this.ident);
         else
             isPkgMod = PKG.package_;
@@ -499,12 +499,13 @@ extern (C++) final class Module : Package
 
     static const(char)* find(const(char)* filename)
     {
-        return find(filename.toDString).ptr;
+        bool ambiguousPkg;
+        return find(filename.toDString, ambiguousPkg).ptr;
     }
 
-    extern (D) static const(char)[] find(const(char)[] filename)
+    extern (D) static const(char)[] find(const(char)[] filename, out bool ambiguousPkg)
     {
-        return global.fileManager.lookForSourceFile(filename, global.path[]);
+        return global.fileManager.lookForSourceFile(filename, global.path[], ambiguousPkg);
     }
 
     extern (C++) static Module load(const ref Loc loc, Identifiers* packages, Identifier ident)
@@ -521,8 +522,15 @@ extern (C++) final class Module : Package
         //  foo\bar\baz
         const(char)[] filename = getFilename(packages, ident);
         // Look for the source file
-        if (const result = find(filename))
+        bool ambiguousPkg;
+        if (const result = find(filename, ambiguousPkg))
             filename = result; // leaks
+
+        if (ambiguousPkg)
+        {
+            .error(loc, "module `%s` is both a source file and folder with package.d", ident.toChars());
+            return null;
+        }
 
         auto m = new Module(loc, filename, ident, 0, 0);
 
