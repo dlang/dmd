@@ -94,9 +94,9 @@ else version (DigitalMars)
 
 /// Provide static branch and value hints for the LDC/GDC compilers.
 /// DMD ignores these hints.
-pragma(inline, true) bool likely()(bool b)   { return expect(b, true);  }
+pragma(inline, true) bool likely()(bool b)   { return !!expect(b, true);  }
 /// ditto
-pragma(inline, true) bool unlikely()(bool b) { return expect(b, false); }
+pragma(inline, true) bool unlikely()(bool b) { return !!expect(b, false); }
 
 ///
 @nogc nothrow pure @safe unittest
