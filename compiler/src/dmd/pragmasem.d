@@ -511,10 +511,9 @@ package PINLINE evalPragmaInline(Loc loc, Scope* sc, Expressions* args)
     const opt = e.toBool();
     if (opt.isEmpty())
         return PINLINE.default_;
-    else if (opt.get())
+    if (opt.get())
         return PINLINE.always;
-    else
-        return PINLINE.never;
+    return PINLINE.never;
 }
 
 /**
