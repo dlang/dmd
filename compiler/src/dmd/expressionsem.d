@@ -118,10 +118,9 @@ private bool isNeedThisScope(Scope* sc, Declaration d)
         {
             if (ad2 == ad)
                 return false;
-            else if (ad2.isNested())
+            if (ad2.isNested())
                 continue;
-            else
-                return true;
+            return true;
         }
         if (FuncDeclaration f = s.isFuncDeclaration())
         {
@@ -1521,7 +1520,7 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
     }
     else if (auto oe = e1.isOverExp())
         return handleOverloadSet(oe.vars);
-    else if (auto dti = e1.isDotTemplateInstanceExp())
+    if (auto dti = e1.isDotTemplateInstanceExp())
     {
         if (dti.ti.tempdecl)
             if (auto td = dti.ti.tempdecl.isTemplateDeclaration())
@@ -1529,7 +1528,7 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
     }
     else if (auto dte = e1.isDotTemplateExp())
         return handleTemplateDecl(dte.td);
-    else if (auto se = e1.isScopeExp())
+    if (auto se = e1.isScopeExp())
     {
         Dsymbol s = se.sds;
         TemplateInstance ti = s.isTemplateInstance();
@@ -1539,7 +1538,7 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
     }
     else if (auto et = e1.isTemplateExp())
         return handleTemplateDecl(et.td);
-    else if (e1.isDotVarExp() && e1.type.isTypeFunction())
+    if (e1.isDotVarExp() && e1.type.isTypeFunction())
     {
         DotVarExp dve = e1.isDotVarExp();
         return handleFuncDecl(dve.var.isFuncDeclaration());
@@ -7262,7 +7261,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return no();
             if (e.tok2 == TOK.package_ && p.isModule()) // Note that isModule() will return null for package modules because they're not actually instances of Module.
                 return no();
-            else if(e.tok2 == TOK.module_ && !(p.isModule() || p.isPackageMod()))
+            if (e.tok2 == TOK.module_ && !(p.isModule() || p.isPackageMod()))
                 return no();
             tded = e.targ;
             return yes();
