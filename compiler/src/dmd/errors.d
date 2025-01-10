@@ -462,7 +462,7 @@ private struct ErrorInfo
  *      p1          = additional message prefix
  *      p2          = additional message prefix
  */
-private extern(C++) void verrorReport(const Loc loc, const(char)* format, va_list ap, ErrorKind kind, const(char)* p1 = null, const(char)* p2 = null)
+private extern(C++) void verrorReport(const ref Loc loc, const(char)* format, va_list ap, ErrorKind kind, const(char)* p1 = null, const(char)* p2 = null)
 {
     return verrorReport(loc.SourceLoc, format, ap, kind, p1, p2);
 }

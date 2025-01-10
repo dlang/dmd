@@ -11,10 +11,19 @@
 
 #pragma once
 
+enum class IdentifierTable
+{
+    UAX31,
+    C99,
+    C11,
+    LR, // Least Restrictive aka All
+};
+
 struct IdentifierCharLookup final
 {
     bool(*isStart)(char32_t);
     bool(*isContinue)(char32_t);
 
     // constructor not provided here.
+    static IdentifierCharLookup forTable(IdentifierTable table);
 };
