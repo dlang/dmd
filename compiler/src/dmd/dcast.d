@@ -703,6 +703,12 @@ MATCH implicitConvTo(Expression e, Type t)
                 if (!tn.isConst() && !tn.isImmutable())
                     return MATCH.nomatch;
                 m = MATCH.constant;
+
+                // After converting e.g. ubyte[] to const(ubyte)[], don't change
+                // to MATCH.convert, return MATCH.constant
+                //  https://github.com/dlang/dmd/issues/20635
+                if (e.type.ty == t.ty && e.type.nextOf().ty == tn.ty)
+                    return m;
             }
             if (e.type != t && e.hexString && tn.isintegral && (tn.size == e.sz || (!e.committed && (e.len % tn.size) == 0)))
             {
