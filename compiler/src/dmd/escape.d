@@ -1010,7 +1010,7 @@ bool checkNewEscape(ref Scope sc, Expression e, bool gag)
         {
             const(char)* msg = v.isParameter() ?
                 "escaping a reference to parameter `%s` by copying `%s` into allocated memory" :
-                "escaping a reference to local variable `%s by copying `%s` into allocated memory";
+                "escaping a reference to local variable `%s` by copying `%s` into allocated memory";
             return setUnsafePreview(&sc, fs, gag, e.loc, msg, v, e);
         }
 
