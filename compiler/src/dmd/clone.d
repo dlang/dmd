@@ -1562,7 +1562,7 @@ private CtorDeclaration generateCtorDeclaration(StructDeclaration sd, const Stor
     auto fparams = new Parameters();
     auto structType = sd.type;
     StorageClass stc = move ? 0 : STC.ref_;     // the only difference between copy or move
-    fparams.push(new Parameter(Loc.initial, paramStc | stc | STC.return_ | STC.scope_, structType, Id.p, null, null));
+    fparams.push(new Parameter(Loc.initial, paramStc | stc, structType, Id.p, null, null));
     ParameterList pList = ParameterList(fparams);
     auto tf = new TypeFunction(pList, structType, LINK.d, STC.ref_);
     auto ccd = new CtorDeclaration(sd.loc, Loc.initial, STC.ref_, tf);
@@ -1703,7 +1703,7 @@ void needCopyOrMoveCtor(StructDeclaration sd, out bool hasCopyCtor, out bool has
         hasCopyCtor = true;
 
     if (hasMoveCtor && hasCopyCtor)
-	return;
+        return;
 
     VarDeclaration fieldWithCpCtor;
     VarDeclaration fieldWithMoveCtor;
@@ -1737,9 +1737,9 @@ void needCopyOrMoveCtor(StructDeclaration sd, out bool hasCopyCtor, out bool has
     }
 
     if (fieldWithCpCtor && !hasCopyCtor)
-	needCopyCtor = true;
+        needCopyCtor = true;
     if (fieldWithMoveCtor && !hasMoveCtor)
-	needMoveCtor = true;
+        needMoveCtor = true;
 }
 
 /**
