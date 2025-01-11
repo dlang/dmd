@@ -546,7 +546,7 @@ void brcombine(ref GlobalOptimizer go)
                 }
                 else if (list_next(b3.Bpred) || b3 == bo.startblock)
                     continue;
-                else if ((bc2 == BCretexp && b3.BC == BCretexp)
+                if ((bc2 == BCretexp && b3.BC == BCretexp)
                          //|| (bc2 == BCret && b3.BC == BCret)
                         )
                 {

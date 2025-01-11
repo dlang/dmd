@@ -910,7 +910,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
      */
     extern (D) TemplateTupleParameter isVariadic()
     {
-        size_t dim = parameters.length;
+        const dim = parameters.length;
         if (dim == 0)
             return null;
         return (*parameters)[dim - 1].isTemplateTupleParameter();
