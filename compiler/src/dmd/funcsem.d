@@ -2269,6 +2269,9 @@ int getLevelAndCheck(FuncDeclaration fd, const ref Loc loc, Scope* sc, FuncDecla
 /**********************************
  * Decide if attributes for this function can be inferred from examining
  * the function body.
+ * Params:
+ *      fd = function to infer attributes for
+ *      sc = context
  * Returns:
  *  true if can
  */
@@ -2290,7 +2293,8 @@ bool canInferAttributes(FuncDeclaration fd, Scope* sc)
         (!fd.isMember() || sc.func.isSafeBypassingInference() && !fd.isInstantiated()))
         return true;
     if (fd.isFuncLiteralDeclaration() ||               // externs are not possible with literals
-        (fd.storage_class & STC.inference) ||           // do attribute inference
+        (fd.storage_class & STC.inference) ||          // do attribute inference
+        fd.isGenerated ||                              // compiler generated function
         (fd.inferRetType && !fd.isCtorDeclaration()))
         return true;
     if (fd.isInstantiated())
