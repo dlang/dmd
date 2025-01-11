@@ -269,7 +269,7 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
         return null;
 
     //printf("StructDeclaration::buildOpAssign() %s\n", sd.toChars());
-    StorageClass stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
+    StorageClass stc = STC.safe;
     Loc declLoc = sd.loc;
     Loc loc; // internal code should have no loc to prevent coverage
 
@@ -1278,7 +1278,7 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
     const hasUserDefinedPosblit = sd.postblits.length && !sd.postblits[0].isDisabled ? true : false;
 
     // by default, the storage class of the created postblit
-    StorageClass stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
+    StorageClass stc = STC.safe;
     Loc declLoc = sd.postblits.length ? sd.postblits[0].loc : sd.loc;
     Loc loc; // internal code should have no loc to prevent coverage
 
@@ -1380,6 +1380,7 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
         // perform semantic on the member postblit in order to
         // be able to aggregate it later on with the rest of the
         // postblits
+        sdv.postblit.isGenerated = true;
         functionSemantic(sdv.postblit);
 
         stc = mergeFuncAttrs(stc, sdv.postblit);
@@ -1445,6 +1446,7 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
          */
         if (sdv.dtor)
         {
+            sdv.dtor.isGenerated = true;
             functionSemantic(sdv.dtor);
 
             // keep a list of fields that need to be destroyed in case
