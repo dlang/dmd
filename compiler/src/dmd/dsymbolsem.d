@@ -6629,7 +6629,7 @@ private extern(C++) class SearchVisitor : Visitor
             s = b.sym.search(loc, ident, flags);
             if (!s)
                 continue;
-            else if (s == cd) // happens if s is nested in this and derives from this
+            if (s == cd) // happens if s is nested in this and derives from this
                 s = null;
             else if (!(flags & SearchOpt.ignoreVisibility) && !(s.visible().kind == Visibility.Kind.protected_) && !symbolIsVisible(cd, s))
                 s = null;

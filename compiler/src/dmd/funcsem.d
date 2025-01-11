@@ -2993,7 +2993,7 @@ extern (D) bool checkNRVO(FuncDeclaration fd)
             auto v = ve.var.isVarDeclaration();
             if (!v || v.isReference())
                 return false;
-            else if (fd.nrvo_var is null)
+            if (fd.nrvo_var is null)
             {
                 // Variables in the data segment (e.g. globals, TLS or not),
                 // parameters and closure variables cannot be NRVOed.

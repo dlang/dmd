@@ -1115,7 +1115,7 @@ extern (C++) struct Target
             }
             else if ((isX86_64 || isAArch64) && sd.numArgTypes() == 0)
                 return true;
-            else if (sd.isPOD())
+            if (sd.isPOD())
             {
                 switch (sz)
                 {
