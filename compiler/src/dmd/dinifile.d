@@ -91,7 +91,7 @@ const(char)[] findConfFile(const(char)[] argv0, const(char)[] inifile)
         {
             printf("\tPATH='%s'\n", p);
         }
-        auto abspath = FileName.searchPath(p, argv0, false);
+        const abspath = FileName.searchPath(p, argv0, false);
         if (abspath)
         {
             auto absname = FileName.replaceName(abspath, inifile);
@@ -152,7 +152,7 @@ const(char)* readFromEnv(const ref StringTable!(char*) environment, const(char)*
  */
 private bool writeToEnv(ref StringTable!(char*) environment, char* nameEqValue)
 {
-    auto p = strchr(nameEqValue, '=');
+    const p = strchr(nameEqValue, '=');
     if (!p)
         return false;
     auto sv = environment.update(nameEqValue, p - nameEqValue);

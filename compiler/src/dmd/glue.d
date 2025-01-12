@@ -625,7 +625,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 
     assert(fd.type.ty == Tfunction);
     auto tf = cast(TypeFunction)fd.type;
-    RET retmethod = retStyle(tf, fd.needThis());
+    const retmethod = retStyle(tf, fd.needThis());
     if (retmethod == RET.stack)
     {
         // If function returns a struct, put a pointer to that
