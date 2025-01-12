@@ -152,7 +152,7 @@ const(char)* readFromEnv(const ref StringTable!(char*) environment, const(char)*
  */
 private bool writeToEnv(ref StringTable!(char*) environment, char* nameEqValue)
 {
-    const p = strchr(nameEqValue, '=');
+    auto p = strchr(nameEqValue, '=');
     if (!p)
         return false;
     auto sv = environment.update(nameEqValue, p - nameEqValue);
