@@ -1555,6 +1555,7 @@ else version (Solaris)
         SO_RCVLOWAT     = 0x1004,
         SO_RCVTIMEO     = 0x1006,
         SO_REUSEADDR    = 0x0004,
+        SO_REUSEPORT    = 0x100e,
         SO_SNDBUF       = 0x1001,
         SO_SNDLOWAT     = 0x1003,
         SO_SNDTIMEO     = 0x1005,
