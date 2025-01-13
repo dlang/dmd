@@ -1373,6 +1373,268 @@ $(H3 $(LNAME2 implicit-copy-constructors, Implicit Copy Constructors))
 
     $(P If the generated copy constructor fails to type check, it will receive the `@disable` attribute.)
 
+$(H2 $(LEGACY_LNAME2 StructMoveConstructor, struct-move-constructor, Struct Move Constructors))
+
+    $(P Move constructors are very much like copy constructors. The difference is that copy
+    constructors make a copy of the original, while move constructors move the contents of
+    the original, and the lifetime of the original ends.)
+
+    $(NOTE Do not use postblits in the same struct with move constructors.)
+
+    $(COMMENT $(P A `struct` that defines a move constructor
+    is not $(RELATIVE_LINK2 POD, POD).))
+    $(P If a move constructor is declared, also declare a copy constructor.)
+
+    $(P A constructor declaration is a move constructor declaration if it meets
+    the following requirements:)
+
+    $(UL
+    $(LI It takes exactly one parameter without a
+    $(DDSUBLINK spec/function, function-default-args, default argument),
+    followed by any number of parameters with default arguments.)
+
+    $(LI Its first parameter is not a
+    $(DDSUBLINK spec/function, ref-params, `ref` parameter).)
+
+    $(LI The type of its first parameter is the same type as
+    $(DDSUBLINK spec/type, typeof, `typeof(this)`), optionally with one or more
+    $(DDLINK spec/const3, Type Qualifiers, type qualifiers) applied to it.)
+
+    $(LI It is not a
+    $(DDSUBLINK spec/template, template_ctors, template constructor declaration).)
+    )
+
+    ---
+    struct A
+    {
+        this(ref return scope A rhs) {}                    // copy constructor
+        this(return scope A rhs) {}                        // move constructor
+        this(return scope const A rhs, int b = 7) {}       // move constructor with default parameter
+    }
+    ---
+
+    $(P The move constructor is type checked as a normal constructor.)
+
+    $(P The move constructor's first parameter only accepts rvalues. An
+    lvalue can be coerced into being an rvalue using
+    $(DDSUBLINK spec/expression, RvalueExpression, `__rvalue(Expression)`).)
+
+    $(P If a move constructor is defined, implicit calls to it will be inserted
+    in the following situations:)
+
+    $(OL
+    $(LI When a variable is explicitly initialized:)
+
+    $(SPEC_RUNNABLE_EXAMPLE_RUN
+    ---
+    struct A
+    {
+        int[] arr;
+        this(return scope A rhs) // move constructor
+        {
+            arr = rhs.arr;
+            rhs.arr = null; // do not leave dangling reference to array
+        }
+        this(ref return scope A rhs) { assert(0); }
+    }
+
+    void main()
+    {
+        A a;
+        a.arr = [1, 2];
+
+        A b = __rvalue(a); // move constructor gets called
+        b.arr[] += 1;
+        assert(a.arr is null); // a.arr is gone
+        assert(b.arr == [2, 3]);
+    }
+    ---
+    )
+
+    $(LI When a parameter is passed by value to a function:)
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    struct A
+    {
+        this(return scope A another) {} // move constructor
+        this(ref return scope A rhs) { assert(0); }
+    }
+
+    void fun(A a) {}
+
+    void main()
+    {
+        A a;
+        fun(__rvalue(a)); // move constructor gets called
+        // `a` is no longer a valid object
+    }
+    ---
+    )
+)
+
+$(H3 $(LNAME2 disable-move, Disabled Moving))
+
+    $(P When a move constructor is defined for a `struct` (or marked `@disable`), the compiler no
+    longer $(RELATIVE_LINK2 implicit-move-constructors, implicitly generates) default move constructors for that `struct`:
+    )
+
+    $(SPEC_RUNNABLE_EXAMPLE_FAIL
+    ---
+    struct A
+    {
+        this(ref A);
+        @disable this(A);
+    }
+
+    void main()
+    {
+        A a;
+        A b = __rvalue(a); // error: move constructor is disabled
+    }
+    ---
+    )
+
+    $(P If a `union U` has fields that define a move constructor, whenever an object of type `U`
+    is initialized by move, an error will be issued. The same rule applies to overlapped fields
+    (anonymous unions).)
+
+    $(SPEC_RUNNABLE_EXAMPLE_FAIL
+    ---
+    struct S
+    {
+        this(ref S);
+        this(S);
+    }
+
+    union U
+    {
+        S s;
+    }
+
+    void main()
+    {
+        U a;
+        U b = __rvalue(a); // error, could not generate move constructor for U
+    }
+    ---
+    )
+
+$(H3 $(LNAME2 move-constructor-attributes, Move Constructor Attributes))
+
+    $(P The move constructor can be overloaded with different qualifiers applied
+    to the parameter (moving from a qualified source) or to the move constructor
+    itself (moving to a qualified destination):
+    )
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    struct A
+    {
+        this(ref return scope A another) { assert(0); }        // copy constructor
+        this(return scope A another) {}                        // 1 - mutable source, mutable destination
+        this(return scope immutable A another) {}              // 2 - immutable source, mutable destination
+        this(return scope A another) immutable {}              // 3 - mutable source, immutable destination
+        this(return scope immutable A another) immutable {}    // 4 - immutable source, immutable destination
+    }
+
+    void main()
+    {
+        A a;
+        immutable A ia;
+
+        A a2 = __rvalue(a);      // calls 1
+        A a3 = __rvalue(ia);     // calls 2
+
+        A b;
+        immutable A ib;
+
+        immutable A b4 = __rvalue(b);     // calls 3
+        immutable A b5 = __rvalue(ib);    // calls 4
+    }
+    ---
+    )
+
+    $(P The `inout` qualifier may be applied to the move constructor parameter in
+    order to specify that mutable, `const`, or `immutable` types are treated the same:
+    )
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    struct A
+    {
+        this(ref return scope inout A rhs) immutable { assert(0); }
+        this(return scope inout A rhs) immutable {}
+    }
+
+    void main()
+    {
+        A r1;
+        const(A) r2;
+        immutable(A) r3;
+
+        // All call the same move constructor because `inout` acts like a wildcard
+        immutable(A) a = __rvalue(r1);
+        immutable(A) b = __rvalue(r2);
+        immutable(A) c = __rvalue(r3);
+    }
+    ---
+    )
+
+$(H3 $(LNAME2 implicit-move-constructors, Implicit Move Constructors))
+
+    $(P A move constructor is generated implicitly by the compiler for a `struct S`
+    if all of the following conditions are met:)
+
+    $(OL
+    $(LI `S` does not explicitly declare any move constructors;)
+    $(LI `S` defines at least one direct member that has a move constructor, and that
+    member is not overlapped (by means of `union`) with any other member.)
+    )
+
+    $(P If the restrictions above are met, the following move constructor is generated:)
+
+    ---
+    this(return scope inout(S) src) inout
+    {
+        foreach (i, ref inout field; src.tupleof)
+            this.tupleof[i] = __rvalue(field);
+    }
+    ---
+
+    $(P If the generated move constructor fails to type check, it will receive the `@disable` attribute.)
+
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
+    ---
+    import core.stdc.stdio;
+
+    struct T
+    {
+        int i;
+        inout this(ref inout T t) { this.i = t.i - 1; printf("this(ref T)\n"); }
+        inout this(inout T t)     { this.i = t.i + 1; printf("this(T)\n"); }
+    }
+
+    struct S
+    {
+        T t;
+    }
+
+    void main()
+    {
+        S s;
+        s.t.i = 3;
+        S u = s;
+        printf("u.t.i = %d\n", u.t.i);
+        assert(u.t.i == 2);
+
+        S v = __rvalue(u);
+        printf("v.t.i = %d\n", v.t.i);
+        assert(v.t.i == 3);
+    }
+    ---
+    )
+
 
 $(H2 $(LEGACY_LNAME2 StructPostblit, struct-postblit, Struct Postblits))
 
