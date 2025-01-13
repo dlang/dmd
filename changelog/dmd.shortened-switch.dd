@@ -1,22 +1,22 @@
-Add a shortened form for switch's case expression using `->` instead of `:` to make `break` optional, it'll automatically break at the end of the scope.
+Add a shortened form for switch's case expression using `=>` instead of `:` to make `break` optional, it'll automatically break at the end of the scope.
 
 ---
 enum K = 42;
 switch (K)
 {
-    case 42 -> printf("yes!\n");
+    case 42 => printf("yes!\n");
 
-    default -> printf("no!\n");
+    default => printf("no!\n");
 }
 
 
 switch (K)
 {
-    case 42 -> {
+    case 42 => {
         printf("yes!\n");
     }
 
-    default -> {
+    default => {
         printf("no!\n");
     }
 }

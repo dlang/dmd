@@ -6421,7 +6421,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 while (token.value != TOK.colon && token.value != TOK.endOfFile);
 
                 bool insertBreak = false;
-                if (token.value == TOK.arrow) {
+                if (token.value == TOK.goesTo) {
                     insertBreak = true;
                     nextToken();
                 }
@@ -6485,7 +6485,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             {
                 nextToken();
                 bool insertBreak = false;
-                if (token.value == TOK.arrow) {
+                if (token.value == TOK.goesTo) {
                     insertBreak = true;
                     nextToken();
                 }

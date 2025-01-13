@@ -16,25 +16,25 @@ void main()
     enum K = 42;
     switch (K)
     {
-        case 0 -> printf("A: no0\n");
-        case 42 -> printf("A: yes\n");
-        case 1 -> printf("A: no1\n");
+        case 0 => printf("A: no0\n");
+        case 42 => printf("A: yes\n");
+        case 1 => printf("A: no1\n");
 
-        default -> printf("A: default\n");
+        default => printf("A: default\n");
     }
     switch (K)
     {
-        case 0 -> {
+        case 0 => {
             printf("B: no0\n");
         }
-        case 42 -> {
+        case 42 => {
             printf("B: yes\n");
         }
-        case 1 -> {
+        case 1 => {
             printf("B: no1\n");
         }
 
-        default -> {
+        default => {
             printf("B: default\n");
         }
     }
