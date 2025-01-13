@@ -388,7 +388,7 @@ version (linux)
             SO_RCVLOWAT     = 16,
             SO_RCVTIMEO     = 18,
             SO_REUSEADDR    = 2,
-            SO_REUSEPORT    = 0x0200, //FIXME: the rest appear to be wrong
+            SO_REUSEPORT    = 15,
             SO_SNDBUF       = 7,
             SO_SNDLOWAT     = 17,
             SO_SNDTIMEO     = 19,
@@ -493,7 +493,7 @@ version (linux)
             SO_RCVLOWAT     = 18,
             SO_RCVTIMEO     = 20,
             SO_REUSEADDR    = 2,
-            SO_REUSEPORT    = 15,
+            SO_REUSEPORT    = 0x0200, //FIXME: the rest appear to be wrong
             SO_SNDBUF       = 7,
             SO_SNDLOWAT     = 19,
             SO_SNDTIMEO     = 21,
