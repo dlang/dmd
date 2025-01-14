@@ -6129,14 +6129,13 @@ MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, Templ
 
     if (auto ttp = tp.isTemplateTypeParameter())
         return matchArgType(ttp);
-    else if (auto tvp = tp.isTemplateValueParameter())
+    if (auto tvp = tp.isTemplateValueParameter())
         return matchArgValue(tvp);
-    else if (auto tap = tp.isTemplateAliasParameter())
+    if (auto tap = tp.isTemplateAliasParameter())
         return matchArgAlias(tap);
-    else if (auto ttp = tp.isTemplateTupleParameter())
+    if (auto ttp = tp.isTemplateTupleParameter())
         return matchArgTuple(ttp);
-    else
-        assert(0);
+    assert(0);
 }
 
 
