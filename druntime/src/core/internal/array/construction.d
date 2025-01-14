@@ -536,7 +536,7 @@ Tarr _d_newarraymTX(Tarr : U[], T, U)(size_t[] dims, bool isShared=false) @trust
         {
             (cast(void[]*)arr.ptr)[i] = __allocateInnerArray(dims[1..$]);
         }
-        return arr;
+        return arr.ptr[0 .. dim];
     }
 
     auto result = __allocateInnerArray(dims);
@@ -570,6 +570,21 @@ unittest
         assert(a[i].length == 3);
         for (size_t j = 0; j < a[i].length; j++)
             assert(a[i][j].x == 1);
+    }
+}
+
+// Test 3-level array allocation (this uses different code paths).
+unittest
+{
+    int[][][] a = _d_newarraymTX!(int[][][], int)([3, 4, 5]);
+    int[5] zeros = 0;
+
+    assert(a.length == 3);
+    foreach(l2; a)
+    {
+        assert(l2.length == 4);
+        foreach(l3; l2)
+            assert(l3 == zeros[]);
     }
 }
 
