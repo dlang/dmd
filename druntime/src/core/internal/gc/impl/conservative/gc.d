@@ -485,7 +485,14 @@ class ConservativeGC : GC
         adjustAttrs(bits, ti);
 
         immutable padding = __allocPad(size, bits);
-        immutable needed = size + padding;
+
+        bool overflow;
+        import core.checkedint : addu;
+        immutable needed = addu(size, padding, overflow);
+        if (overflow)
+        {
+            return null;
+        }
 
         size_t localAllocSize = void;
 
@@ -585,7 +592,14 @@ class ConservativeGC : GC
         adjustAttrs(bits, ti);
 
         immutable padding = __allocPad(size, bits);
-        immutable needed = size + __allocPad(size, bits);
+        bool overflow;
+        import core.checkedint : addu;
+        immutable needed = addu(size, padding, overflow);
+        if (overflow)
+        {
+            return null;
+        }
+
 
         size_t localAllocSize = void;
 
@@ -5405,13 +5419,13 @@ private void[] setupMetadata(void[] block, uint bits, size_t padding, size_t use
             size: block.length
     );
 
-    auto typeInfoSize = (bits & BlkAttr.STRUCTFINAL) ? (void*).sizeof : 0;
 
-    if (typeInfoSize)
-        __setBlockFinalizerInfo(info, ti);
+    __setBlockFinalizerInfo(info, ti);
 
     if (bits & BlkAttr.APPENDABLE) {
-        __setArrayAllocLengthImpl(info, used, false, ~0, typeInfoSize);
+        auto typeInfoSize = (bits & BlkAttr.STRUCTFINAL) ? (void*).sizeof : 0;
+        auto success = __setArrayAllocLengthImpl(info, used, false, size_t.max, typeInfoSize);
+        assert(success);
         return __arrayStart(info)[0 .. block.length - padding];
     }
 
