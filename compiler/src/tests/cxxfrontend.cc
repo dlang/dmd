@@ -1685,6 +1685,12 @@ void test_backend(FuncDeclaration *f, Type *t)
     f->fbody->accept(&v);
 }
 
+void test_import_paths(const char *path, const char *imppath)
+{
+  global.path.push(path);
+  global.params.imppath.shift(imppath);
+}
+
 /**********************************/
 
 int main(int argc, char **argv)
