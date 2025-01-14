@@ -191,6 +191,11 @@ void __setBlockFinalizerInfo(ref BlkInfo info, const TypeInfo ti) pure nothrow
         //
         auto typeInfo = cast(void**)info.base + 1;
         *typeInfo = context;
+        version (D_LP64) {} else
+        {
+            // zero out the extra padding
+            (cast(size_t*)info.base)[2 .. 4] = 0;
+        }
     }
     else if(info.attr & BlkAttr.STRUCTFINAL)
     {
