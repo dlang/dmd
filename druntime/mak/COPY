@@ -1,7 +1,9 @@
 COPY=\
 	$(IMPDIR)\object.d \
 	$(IMPDIR)\__importc_builtins.di \
+	$(IMPDIR)\__builtins_msvc.d \
 	$(IMPDIR)\importc.h \
+	$(IMPDIR)\include\importc_msvc_builtins.h \
 	\
 	$(IMPDIR)\core\gc\config.d \
 	$(IMPDIR)\core\gc\gcinterface.d \
