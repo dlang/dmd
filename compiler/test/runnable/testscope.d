@@ -372,6 +372,17 @@ void test20569() @safe
 
 /********************************************/
 
+void testdefer()
+{
+    int a = 42;
+    defer {
+        a += 1;
+    }
+    assert(a == 42);
+}
+
+/********************************************/
+
 void main()
 {
     test1();
@@ -390,6 +401,7 @@ void main()
     test11();
     test17395();
     test20569();
+    testdefer();
 
     printf("Success\n");
 }

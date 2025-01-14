@@ -219,6 +219,7 @@ enum class TOK : unsigned char
     foreach_,
     foreach_reverse_,
     scope_,
+    defer,
     onScopeExit,
     onScopeFailure,
     onScopeSuccess,

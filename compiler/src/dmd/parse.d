@@ -655,6 +655,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 goto Lstc;
 
             case TOK.scope_:
+            case TOK.defer:
                 stc = STC.scope_;
                 goto Lstc;
 
@@ -1395,6 +1396,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 break;
 
             case TOK.scope_:
+            case TOK.defer:
                 stc = STC.scope_;
                 break;
 
@@ -6279,10 +6281,22 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             goto Lerror;
 
         case TOK.scope_:
-            if (peekNext() != TOK.leftParenthesis)
+            if (token.value != TOK.defer && peekNext() != TOK.leftParenthesis)
                 goto Ldeclaration; // scope used as storage class
-            nextToken();
-            check(TOK.leftParenthesis);
+
+            if (token.value != TOK.defer)
+            {
+                nextToken();
+                check(TOK.leftParenthesis);
+            } 
+            else
+            {
+                nextToken();
+                AST.Statement st = parseStatement(ParseStatementFlags.scope_);
+                s = new AST.ScopeGuardStatement(loc, TOK.onScopeExit, st);
+                break;
+            }
+
             if (token.value != TOK.identifier)
             {
                 error("scope identifier expected");

@@ -1,0 +1,14 @@
+Added `defer` as a shortened alternative for `scope(exit)`
+
+You can now use `defer` as shortened alternative to `scope(exit)`, useful when you do not use exception handling (-betterC / wasm) since you have no use for the other two, namely `scope(success)` `scope(failure)`
+
+
+```
+void task()
+{
+    auto file = create_file("myfile.txt");
+    defer file.close();
+
+    file.write();
+}
+```
