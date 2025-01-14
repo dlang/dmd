@@ -1115,6 +1115,11 @@ byte[] _d_arrayappendcTX(const TypeInfo ti, return scope ref byte[] px, size_t n
     import core.exception : onOutOfMemoryError;
     // This is a cut&paste job from _d_arrayappendT(). Should be refactored.
 
+    // Short circuit if no data is being appended.
+    if (n == 0)
+        return px;
+
+
     // only optimize array append where ti is not a shared type
     auto tinext = unqualify(ti.next);
     auto sizeelem = tinext.tsize;              // array element size
@@ -1132,8 +1137,6 @@ byte[] _d_arrayappendcTX(const TypeInfo ti, return scope ref byte[] px, size_t n
         auto ptr = cast(byte*) GC.malloc(newcap, attrs, tinext);
         if (ptr is null)
         {
-            import core.stdc.stdio;
-            printf("here, ptr=%p, size=%lld, newcap=%lld, newsize=%lld, newlength=%lld, length=%lld, attrs=%02x\n", px.ptr, size, newcap, newsize, newlength, length, attrs);
             onOutOfMemoryError();
             assert(0);
         }
