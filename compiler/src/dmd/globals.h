@@ -158,6 +158,9 @@ struct Verbose
 struct ImportPathInfo
 {
     const char* path;
+
+    ImportPathInfo() : path(NULL) { }
+    ImportPathInfo(const char* p) : path(p) { }
 };
 
 // Put command line switches in here
