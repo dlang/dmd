@@ -1377,7 +1377,7 @@ private void unmarkall(elem *e)
         e.Nflags &= ~NFLli;            /* unmark this elem             */
         if (OTunary(e.Eoper))
             continue;
-        else if (OTbinary(e.Eoper))
+        if (OTbinary(e.Eoper))
         {
             unmarkall(e.E2);
             continue;
@@ -1444,7 +1444,7 @@ private bool refs(Symbol *v,elem *n,elem *nstop)
             stop = true;
         else if (n.Eoper == OPvar)           /* if variable reference        */
             return v == n.Vsym;
-        else if (op == OPasm)                /* everything is referenced     */
+        if (op == OPasm)                /* everything is referenced     */
             return true;
         return f;
     }
@@ -3439,7 +3439,7 @@ private int countrefs(elem **pn,bool flag)
     }
     if (OTunary(n.Eoper))
         return countrefs(&n.E1,false);
-    else if (OTbinary(n.Eoper))
+    if (OTbinary(n.Eoper))
     {
         if (OTrel(n.Eoper))
         {

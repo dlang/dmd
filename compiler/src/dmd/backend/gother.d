@@ -567,8 +567,7 @@ private elem* chkprop(ref GlobalOptimizer go, elem *n, Barray!(elem*) rdlist)
         {
             if (unambig)
                 continue;
-            else
-                goto noprop;            /* could be affected            */
+            goto noprop;            /* could be affected            */
         }
 
         if (d.E2.Eoper == OPconst || d.E2.Eoper == OPrelconst)
