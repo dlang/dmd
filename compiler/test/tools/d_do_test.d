@@ -31,7 +31,7 @@ import std.format;
 import std.meta : AliasSeq;
 import std.process;
 import std.random;
-import std.range : chain;
+import std.range : chain, choose, roundRobin, takeOne;
 import std.regex;
 import std.path;
 import std.stdio;
@@ -2017,15 +2017,75 @@ int tryMain(string[] args)
     return 0;
 }
 
+// Replace consecutive ---+++ diff lines with intertwined lines -+-+-+, which helps putting
+// additions in the right TEST_OUTPUT block. Otherwise, sometimes all but the last TEST_OUTPUT blocks
+// are emptied and the last TEST_OUTPUT block will be filled will all updated output.
+string intertwineDiff(string diff)
+{
+    static if (__VERSION__ < 2097)
+    {
+        // `splitWhen` didn't exist, but the bootstrap compiler test doesn't need AUTO_UPDATE
+        return diff;
+    }
+    else
+    {
+        // First, split diff lines into groups of deletions (-), additions (+), or other (@, ' ')
+        auto editGroups = diff.splitter('\n').chunkBy!((a, b) => a.takeOne.equal(b.takeOne)).map!array;
+        // Then split before every deletion (-) group
+        auto deletionGroups = editGroups.splitWhen!((a, b) => b.front.startsWith("-")).map!array;
+
+        // Then, if we have a deletion group followed by an addition group, roundRobin the first two editGroups, and append the rest
+        // Otherwise, just join all editGroups to keep the original order
+        return deletionGroups.map!(g => choose(
+                g.length > 1 && g[0].front.startsWith("-") && g[1].front.startsWith("+"),
+                g.length > 1 ? chain(roundRobin(g[0], g[1]), g[2 .. $].join).array : g.join.array,
+                g.join
+        )).join.join("\n");
+    }
+}
+
+unittest
+{
+    string input = "@@@
+-A0
+-B1
++E2
++F3
++H4
+-32
++33
++34
+ 35
+ 36
+-C5";
+
+    string expected = "@@@
+-A0
++E2
+-B1
++F3
++H4
+-32
++33
++34
+ 35
+ 36
+-C5";
+
+    assert(intertwineDiff("") == "");
+    static if (__VERSION__ >= 2097)
+        assert(intertwineDiff(input) == expected);
+}
+
 /// Given test file with contents `input` and diff file with the diff of actual TEST_OUTPUT vs expected TEST_OUTPUT,
 /// return new contents of the test file with updated TEST_OUTPUT blocks. Throws an Exception if the diff couldn't be
 /// matched against the input.
-static string replaceFromDiff(string input, string diff)
+string replaceFromDiff(string input, string diff)
 {
     const string[] lines = input.splitLines;
     string result = "";
     size_t i = 0;
-    foreach (diffLine; diff.splitLines)
+    foreach (diffLine; intertwineDiff(diff).splitLines)
     {
         const bool deletion = diffLine.skipOver("-");
         const bool seek = deletion || diffLine.skipOver(" ");
@@ -2077,12 +2137,14 @@ Error: dummy
 
 TEST_OUTPUT:
 ---
+Error: something else
 Deprecation: dummy
 ---
 ";
 
     string diff =
 "-Error: dummy
+-Error: something else
 +Error: dummies
 @@@ ...
  Deprecation: dummy
@@ -2103,7 +2165,9 @@ Deprecation: another
 ";
 
     string result = replaceFromDiff(input, diff);
-    assert(result == expected);
+
+    static if (__VERSION__ >= 2097)
+        assert(result == expected);
 
     try
     {
