@@ -6357,7 +6357,7 @@ struct ASTBase
                 * and we need to set the error count to prevent bogus code
                 * generation. At least give a message.
                 */
-                dmd.errors.error(Loc.initial, "unknown, please file report on issues.dlang.org");
+                dmd.errors.error(Loc.initial, "unknown, please file report at https://github.com/dlang/dmd/issues/new");
             }
 
             return errorexp;
