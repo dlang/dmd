@@ -18,6 +18,7 @@ import core.stdc.stdio;
 import dmd.aggregate;
 import dmd.astenums;
 import dmd.declaration;
+import dmd.common.outbuffer;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dtemplate : isDsymbol;
@@ -301,7 +302,11 @@ extern (D) bool setGC(FuncDeclaration fd, Loc loc, const(char)* fmt, RootObject 
     {
         fd.nogcInprocess = false;
         if (fmt)
-            fd.nogcViolation = new AttributeViolation(loc, fmt, arg0); // action that requires GC
+        {
+            OutBuffer buf;
+            buf.printf(fmt, arg0 ? arg0.toChars() : "");
+            fd.nogcViolation = new AttributeViolation(loc, buf.extractSlice()); // action that requires GC
+        }
         else if (arg0)
         {
             if (auto sa = arg0.isDsymbol())

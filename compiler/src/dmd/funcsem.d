@@ -3043,7 +3043,11 @@ extern (D) bool setImpure(FuncDeclaration fd, Loc loc = Loc.init, const(char)* f
     {
         fd.purityInprocess = false;
         if (fmt)
-            fd.pureViolation = new AttributeViolation(loc, fmt, arg0); // impure action
+        {
+            OutBuffer buf;
+            buf.printf(fmt, arg0 ? arg0.toChars() : "");
+            fd.pureViolation = new AttributeViolation(loc, buf.extractSlice()); // impure action
+        }
         else if (arg0)
         {
             if (auto sa = arg0.isDsymbol())
