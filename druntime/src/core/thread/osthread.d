@@ -97,22 +97,22 @@ else version (Posix)
             import core.sys.darwin.mach.thread_act :
              x86_THREAD_STATE32, x86_THREAD_STATE32_COUNT, x86_thread_state32_t;
         }
-        version (X86_64)
+        else version (X86_64)
         {
             import core.sys.darwin.mach.thread_act :
              x86_THREAD_STATE64, x86_THREAD_STATE64_COUNT, x86_thread_state64_t;
         }
-        version (AArch64)
+        else version (AArch64)
         {
             import core.sys.darwin.mach.thread_act :
              ARM_THREAD_STATE64, ARM_THREAD_STATE64_COUNT, arm_thread_state64_t;
         }
-        version (PPC)
+        else version (PPC)
         {
             import core.sys.darwin.mach.thread_act :
              PPC_THREAD_STATE32, PPC_THREAD_STATE32_COUNT, ppc_thread_state32_t;
         }
-        version (PPC64)
+        else version (PPC64)
         {
             import core.sys.darwin.mach.thread_act :
              PPC_THREAD_STATE64, PPC_THREAD_STATE64_COUNT, ppc_thread_state64_t;
