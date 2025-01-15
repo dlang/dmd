@@ -973,6 +973,7 @@ private:
         bool dip1008;
         bool dip1021;
         bool dip25;
+        bool fieldwise;
         bool fixAliasThis;
         bool fixImmutableConv;
         bool in_;
@@ -987,6 +988,7 @@ private:
             dip1008(),
             dip1021(),
             dip25(),
+            fieldwise(),
             fixAliasThis(),
             fixImmutableConv(),
             in_(),
@@ -996,12 +998,13 @@ private:
             safer()
         {
         }
-        BitFields(bool bitfields, bool dip1000 = false, bool dip1008 = false, bool dip1021 = false, bool dip25 = false, bool fixAliasThis = false, bool fixImmutableConv = false, bool in_ = false, bool inclusiveInContracts = false, bool noSharedAccess = false, bool rvalueRefParam = false, bool safer = false, FeatureState systemVariables = (FeatureState)0u) :
+        BitFields(bool bitfields, bool dip1000 = false, bool dip1008 = false, bool dip1021 = false, bool dip25 = false, bool fieldwise = false, bool fixAliasThis = false, bool fixImmutableConv = false, bool in_ = false, bool inclusiveInContracts = false, bool noSharedAccess = false, bool rvalueRefParam = false, bool safer = false, FeatureState systemVariables = (FeatureState)0u) :
             bitfields(bitfields),
             dip1000(dip1000),
             dip1008(dip1008),
             dip1021(dip1021),
             dip25(dip25),
+            fieldwise(fieldwise),
             fixAliasThis(fixAliasThis),
             fixImmutableConv(fixImmutableConv),
             in_(in_),
@@ -1024,6 +1027,8 @@ public:
     bool dip1021(bool v);
     bool dip25() const;
     bool dip25(bool v);
+    bool fieldwise() const;
+    bool fieldwise(bool v);
     bool fixAliasThis() const;
     bool fixAliasThis(bool v);
     bool fixImmutableConv() const;
