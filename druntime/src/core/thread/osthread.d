@@ -108,8 +108,29 @@ else version (Posix)
         import core.sys.darwin.mach.kern_return : KERN_SUCCESS;
         import core.sys.darwin.mach.port : mach_port_t;
         import core.sys.darwin.mach.thread_act : mach_msg_type_number_t, thread_get_state, thread_resume,
-            thread_suspend, x86_THREAD_STATE64, x86_THREAD_STATE64_COUNT, x86_thread_state64_t;
-        import core.sys.darwin.pthread : pthread_mach_thread_np;
+            thread_suspend;
+        import core.sys.darwin.pthread : pthread_get_stackaddr_np, pthread_mach_thread_np;
+
+        version (X86)
+        {
+            import core.sys.darwin.mach.thread_act : x86_THREAD_STATE32, x86_THREAD_STATE32_COUNT, x86_thread_state32_t;
+        }
+        version (X86_64)
+        {
+            import core.sys.darwin.mach.thread_act : x86_THREAD_STATE64, x86_THREAD_STATE64_COUNT, x86_thread_state64_t;
+        }
+        version (AArch64)
+        {
+            import core.sys.darwin.mach.thread_act : ARM_THREAD_STATE64, ARM_THREAD_STATE64_COUNT, arm_thread_state64_t;
+        }
+        version (PPC)
+        {
+            import core.sys.darwin.mach.thread_act : PPC_THREAD_STATE32, PPC_THREAD_STATE32_COUNT, ppc_thread_state32_t;
+        }
+        version (PPC64)
+        {
+            import core.sys.darwin.mach.thread_act : PPC_THREAD_STATE64, PPC_THREAD_STATE64_COUNT, ppc_thread_state64_t;
+        }
     }
 }
 
@@ -1429,7 +1450,6 @@ private extern(D) void* getStackBottom() nothrow @nogc
     }
     else version (Darwin)
     {
-        import core.sys.darwin.pthread : pthread_get_stackaddr_np;
         return pthread_get_stackaddr_np(pthread_self());
     }
     else version (PThread_Getattr_NP)
