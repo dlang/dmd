@@ -165,7 +165,7 @@ code *genc2(code *c,opcode_t op,uint ea,targ_size_t EV2)
     cs.Iea = ea;
     //ccheck(&cs);
     cs.Iflags = CFoff;
-    cs.IFL2 = FLconst;
+    cs.IFL2 = FL.const_;
     cs.IEV2.Vsize_t = EV2;
     return gen(c,cs);
 }
@@ -348,7 +348,7 @@ static if (TARGET_SEGMENTED)
         {
             // Put it in BSS
             f.sym.Sclass = SC.static_;
-            f.sym.Sfl = FLunde;
+            f.sym.Sfl = FL.unde;
             f.sym.Sdt = dt_get_nzeros(cast(uint)type_size(f.sym.Stype));
             outdata(f.sym);
         }

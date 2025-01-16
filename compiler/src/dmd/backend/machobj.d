@@ -319,7 +319,7 @@ Symbol * MachObj_sym_cdata(tym_t ty,char *p,int len)
     //MachObj_pubdef(CDATA, s, Offset(CDATA));
     MachObj_bytes(CDATA, Offset(CDATA), len, p);
 
-    s.Sfl = /*(config.flags3 & CFG3pic) ? FLgotoff :*/ FLextern;
+    s.Sfl = /*(config.flags3 & CFG3pic) ? FL.gotoff :*/ FL.extern_;
     return s;
 }
 
@@ -977,9 +977,9 @@ void MachObj_term(const(char)[] objfilename)
                             {
                                 if ((s.ty() & mTYLINK) == mTYthread && r.rtype == RELaddr)
                                     rel.r_type = X86_64_RELOC_TLV;
-                                else if (s.Sfl == FLfunc && s.Sclass == SC.static_ && r.rtype == RELaddr)
+                                else if (s.Sfl == FL.func && s.Sclass == SC.static_ && r.rtype == RELaddr)
                                     rel.r_type = X86_64_RELOC_SIGNED;
-                                else if ((s.Sfl == FLfunc || s.Sfl == FLextern || s.Sclass == SC.global ||
+                                else if ((s.Sfl == FL.func || s.Sfl == FL.extern_ || s.Sclass == SC.global ||
                                           s.Sclass == SC.comdat || s.Sclass == SC.comdef) && r.rtype == RELaddr)
                                     rel.r_type = X86_64_RELOC_GOT;
 
@@ -1675,13 +1675,13 @@ int MachObj_comdat(Symbol *s)
     }
     else if ((s.ty() & mTYLINK) == mTYweakLinkage)
     {
-        s.Sfl = FLdata;
+        s.Sfl = FL.data;
         align_ = 4;              // 16 byte alignment
         MachObj_data_start(s, 1 << align_, s.Sseg);
     }
     else if ((s.ty() & mTYLINK) == mTYthread)
     {
-        s.Sfl = FLtlsdata;
+        s.Sfl = FL.tlsdata;
         align_ = 4;
         if (I64)
             s.Sseg = objmod.tlsseg().SDseg;
@@ -1691,7 +1691,7 @@ int MachObj_comdat(Symbol *s)
     }
     else
     {
-        s.Sfl = FLdata;
+        s.Sfl = FL.data;
         sectname = "__datacoal_nt";
         segname = "__DATA";
         align_ = 4;              // 16 byte alignment
@@ -1702,7 +1702,7 @@ int MachObj_comdat(Symbol *s)
     if (s.Salignment > (1 << align_))
         SegData[s.Sseg].SDalignment = s.Salignment;
     s.Soffset = SegData[s.Sseg].SDoffset;
-    if (s.Sfl == FLdata || s.Sfl == FLtlsdata)
+    if (s.Sfl == FL.data || s.Sfl == FL.tlsdata)
     {   // Code symbols are 'published' by MachObj_func_start()
 
         MachObj_pubdef(s.Sseg,s,s.Soffset);
@@ -2714,14 +2714,14 @@ void MachObj_gotref(Symbol *s)
     {
         case SC.static_:
         case SC.locstat:
-            s.Sfl = FLgotoff;
+            s.Sfl = FL.gotoff;
             break;
 
         case SC.extern_:
         case SC.global:
         case SC.comdat:
         case SC.comdef:
-            s.Sfl = FLgot;
+            s.Sfl = FL.got;
             break;
 
         default:

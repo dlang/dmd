@@ -96,7 +96,7 @@ void genModuleInfo(Module m)
     //////////////////////////////////////////////
 
     m.csym.Sclass = SC.global;
-    m.csym.Sfl = FLdata;
+    m.csym.Sfl = FL.data;
 
     auto dtb = DtBuilder(0);
 
@@ -392,7 +392,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             // Generate static initializer
             {
                 sinit.Sclass = scclass;
-                sinit.Sfl = FLdata;
+                sinit.Sfl = FL.data;
                 auto dtb = DtBuilder(0);
                 ClassDeclaration_toDt(cd, dtb);
                 sinit.Sdt = dtb.finish();
@@ -443,7 +443,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             }
             cd.vtblsym.csym.Sdt = dtbv.finish();
             cd.vtblsym.csym.Sclass = scclass;
-            cd.vtblsym.csym.Sfl = FLdata;
+            cd.vtblsym.csym.Sfl = FL.data;
             out_readonly(cd.vtblsym.csym);
             outdata(cd.vtblsym.csym);
             if (cd.isExport() || driverParams.exportVisibility == ExpVis.public_)
@@ -533,7 +533,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 {
                     if (sinit == bzeroSymbol) assert(0);
                     sinit.Sclass = sd.isInstantiated() ? SC.comdat : SC.global;
-                    sinit.Sfl = FLdata;
+                    sinit.Sfl = FL.data;
                     auto dtb = DtBuilder(0);
                     StructDeclaration_toDt(sd, dtb);
                     sinit.Sdt = dtb.finish();
@@ -632,7 +632,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 }
                 parent = parent.parent;
             } while (parent);
-            s.Sfl = FLdata;
+            s.Sfl = FL.data;
 
             // Size 0 should only be possible for T[0] and noreturn
             if (!sz)
@@ -724,7 +724,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 // Generate static initializer
                 toInitializer(ed);
                 ed.sinit.Sclass = scclass;
-                ed.sinit.Sfl = FLdata;
+                ed.sinit.Sfl = FL.data;
                 auto dtb = DtBuilder(0);
                 Expression_toDt(tc.sym.defaultval, dtb);
                 ed.sinit.Sdt = dtb.finish();
@@ -750,7 +750,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
             Symbol *s = toSymbol(tid);
             s.Sclass = SC.comdat;
-            s.Sfl = FLdata;
+            s.Sfl = FL.data;
 
             auto dtb = DtBuilder(0);
             TypeInfo_toDt(dtb, tid);
@@ -1226,7 +1226,7 @@ private void genClassInfoForClass(ClassDeclaration cd, Symbol* sinit)
     // Put out the ClassInfo, which will be the __ClassZ symbol in the object file
     SC scclass = SC.comdat;
     cd.csym.Sclass = scclass;
-    cd.csym.Sfl = FLdata;
+    cd.csym.Sfl = FL.data;
 
     auto dtb = DtBuilder(0);
 
@@ -1482,7 +1482,7 @@ private void genClassInfoForInterface(InterfaceDeclaration id)
 
     // Put out the ClassInfo
     id.csym.Sclass = scclass;
-    id.csym.Sfl = FLdata;
+    id.csym.Sfl = FL.data;
 
     auto dtb = DtBuilder(0);
 

@@ -177,7 +177,7 @@ void codgen(Symbol *sfunc)
                         goto case SC.parameter;
 
                     case SC.parameter:
-                        if (s.Sfl == FLreg)
+                        if (s.Sfl == FL.reg)
                             noparams |= s.Sregm;
                         break;
 
@@ -261,7 +261,7 @@ void codgen(Symbol *sfunc)
             case SC.register:
             case SC.auto_:
             case SC.fastpar:
-                if (s.Sfl == FLreg)
+                if (s.Sfl == FL.reg)
                     break;
 
                 const sz = type_alignsize(s.Stype);
@@ -1147,7 +1147,7 @@ void stackoffsets(ref CGstate cg, ref symtab_t symtab, bool estimate)
                  * Needed so we can call nested contract functions
                  * frequire and fensure.
                  */
-                if (s.Sfl == FLreg)        // if allocated in register
+                if (s.Sfl == FL.reg)        // if allocated in register
                     continue;
                 /* Needed because storing fastpar's on the stack in prolog()
                  * does the entire register
@@ -1166,7 +1166,7 @@ void stackoffsets(ref CGstate cg, ref symtab_t symtab, bool estimate)
 
             case SC.register:
             case SC.auto_:
-                if (s.Sfl == FLreg)        // if allocated in register
+                if (s.Sfl == FL.reg)        // if allocated in register
                     break;
 
                 if (doAutoOpt)
@@ -1337,13 +1337,13 @@ private void blcodgen(ref CGstate cg, block *bl)
     cg.regcon.mpvar = 0;
     cg.regcon.indexregs = 1;
     int anyspill = 0;
-    char *sflsave = null;
+    FL* sflsave = null;
     if (config.flags4 & CFG4optimized)
     {
         CodeBuilder cdbload; cdbload.ctor();
         CodeBuilder cdbstore; cdbstore.ctor();
 
-        sflsave = cast(char *) alloca(globsym.length * char.sizeof);
+        sflsave = cast(FL*) alloca(globsym.length * FL.sizeof);
         foreach (i, s; globsym[])
         {
             sflsave[i] = s.Sfl;
@@ -1354,7 +1354,7 @@ private void blcodgen(ref CGstate cg, block *bl)
 //                cg.regcon.used |= s.Spregm();
             }
 
-            if (s.Sfl == FLreg)
+            if (s.Sfl == FL.reg)
             {
                 if (vec_testbit(cg.dfoidx,s.Srange))
                 {
@@ -1371,7 +1371,7 @@ private void blcodgen(ref CGstate cg, block *bl)
                     cgreg_spillreg_prolog(bl,s,cdbstore,cdbload);
                     if (vec_testbit(cg.dfoidx,s.Slvreg))
                     {
-                        s.Sfl = FLreg;
+                        s.Sfl = FL.reg;
                         cg.regcon.mvar |= s.Sregm;
                         cg.regcon.cse.mval &= ~s.Sregm;
                         cg.regcon.immed.mval &= ~s.Sregm;
@@ -1542,7 +1542,7 @@ bool isregvar(elem *e, ref regm_t pregm, ref reg_t preg)
         Symbol* s = e.Vsym;
         switch (s.Sfl)
         {
-            case FLreg:
+            case FL.reg:
                 if (s.Sclass == SC.parameter)
                 {   cgstate.refparam = true;
                     cgstate.reflocal = true;
@@ -1570,7 +1570,7 @@ static if (0)
                 pregm = regm;
                 return true;
 
-            case FLpseudo:
+            case FL.pseudo:
                 uint u = s.Sreglsw;
                 regm_t m = mask(u);
                 if (m & ALLREGS && (u & ~3) != 4) // if not BP,SP,EBP,ESP,or ?H
@@ -2680,7 +2680,7 @@ void codelem(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs,uin
             break;
 
         case OPvar:
-            if (constflag & 1 && (s = e.Vsym).Sfl == FLreg &&
+            if (constflag & 1 && (s = e.Vsym).Sfl == FL.reg &&
                 (s.Sregm & pretregs) == s.Sregm)
             {
                 if (tysize(e.Ety) <= REGSIZE && tysize(s.Stype.Tty) == 2 * REGSIZE)

@@ -444,7 +444,7 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
         codelem(cgstate,cdb,e1,retregs,false);
 
         cse_flush(cdb,1);                // flush CSEs to memory
-        genBranch(cdb,jop,FLcode,cast(block *)cnop1);
+        genBranch(cdb,jop,FL.code,cast(block *)cnop1);
         freenode(e21);
 
         const regconsave = cgstate.regcon;
@@ -591,7 +591,7 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
         retregs = mask(reg);
 
         cse_flush(cdb,1);                // flush CSE's to memory
-        genBranch(cdb,jop,FLcode,cast(block *)cnop1);
+        genBranch(cdb,jop,FL.code,cast(block *)cnop1);
         freenode(e21);
 
         const regconsave = cgstate.regcon;
@@ -611,7 +611,7 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 
     code *cnop1 = gen1(null, INSTR.nop);
     code *cnop2 = gen1(null, INSTR.nop);         // dummy target addresses
-    logexp(cdb,e1,false,FLcode,cnop1);  // evaluate condition
+    logexp(cdb,e1,false,FL.code,cnop1);  // evaluate condition
     const regconold = cgstate.regcon;
     const stackpushold = cgstate.stackpush;
     regm_t retregs = pretregs;
@@ -670,7 +670,7 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
     andregcon(regconsave);
     assert(cgstate.stackpush == stackpushsave);
     freenode(e2);
-    genBranch(cdb,COND.al,FLcode,cast(block *) cnop2);
+    genBranch(cdb,COND.al,FL.code,cast(block *) cnop2);
     cdb.append(cnop1);
     cdb.append(cdb2);
     cdb.append(cnop2);
@@ -719,8 +719,8 @@ void cdloglog(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
     code *cnop3 = gen1(null, INSTR.nop);
     elem *e2 = e.E2;
     (e.Eoper == OPoror)
-        ? logexp(cdb,e.E1,1,FLcode,cnop1)
-        : logexp(cdb,e.E1,0,FLcode,cnop3);
+        ? logexp(cdb,e.E1,1,FL.code,cnop1)
+        : logexp(cdb,e.E1,0,FL.code,cnop3);
     con_t regconsave = cgstate.regcon;
     uint stackpushsave = cgstate.stackpush;
     if (pretregs == 0)                 // if don't want result
@@ -787,13 +787,13 @@ void cdloglog(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
         if (e.Eoper == OPoror)
         {
             cdb.append(cnop3);
-            genBranch(cdb,COND.al,FLcode,cast(block *) cnop2);    // JMP cnop2
+            genBranch(cdb,COND.al,FL.code,cast(block *) cnop2);    // JMP cnop2
             cdb.append(cdb1);
             cdb.append(cnop2);
         }
         else
         {
-            genBranch(cdb,COND.al,FLcode,cast(block *) cnop2);    // JMP cnop2
+            genBranch(cdb,COND.al,FL.code,cast(block *) cnop2);    // JMP cnop2
             cdb.append(cnop3);
             cdb.append(cdb1);
             cdb.append(cnop2);
@@ -802,7 +802,7 @@ void cdloglog(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
         return;
     }
 
-    logexp(cdb,e2,1,FLcode,cnop1);
+    logexp(cdb,e2,1,FL.code,cnop1);
     andregcon(regconsave);
 
     // stack depth should not change when evaluating E2
@@ -822,7 +822,7 @@ void cdloglog(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
     cdbcg2.ctor();
     movregconst(cdbcg2,reg,0,pretregs & mPSW);              // MOV reg,0
     cgstate.regcon.immed.mval &= ~mask(reg);                 // mark reg as unavail
-    genBranch(cdbcg2,COND.al,FLcode,cast(block *) cnop2);    // JMP cnop2
+    genBranch(cdbcg2,COND.al,FL.code,cast(block *) cnop2);    // JMP cnop2
     movregconst(cdb1,reg,1,pretregs & mPSW);                // reg = 1
     cgstate.regcon.immed.mval &= ~mask(reg);                 // mark reg as unavail
     pretregs = retregs;
@@ -1018,11 +1018,11 @@ void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem *e,reg_t reg)
     //symbol_print(*e.Vsym);
     switch (fl)
     {
-        case FLdatseg:
+        case FL.datseg:
             cs.IEV1.Vpointer = e.Vpointer;
             goto L3;
 
-        case FLtlsdata:
+        case FL.tlsdata:
             if (config.exe & EX_posix)
             {
                 if (log) printf("posix threaded\n");
@@ -1057,7 +1057,7 @@ static if (0)
                     if (reg & 8)
                         css.Irex |= REX_R;
                     css.Iflags = CFopsize;
-                    css.IFL1 = cast(ubyte)fl;
+                    css.IFL1 = fl;
                     css.IEV1.Vsym = e.Vsym;
                     css.IEV1.Voffset = e.Voffset;
                     cdb.gen(&css);
@@ -1075,7 +1075,7 @@ static if (0)
                     css.Irex = 0;
                     css.Irm = modregrm(0,AX,4);
                     css.Isib = modregrm(0,BX,5);
-                    css.IFL1 = cast(ubyte)fl;
+                    css.IFL1 = fl;
                     css.IEV1.Vsym = e.Vsym;
                     css.IEV1.Voffset = e.Voffset;
                     cdb.gen(&css);
@@ -1105,7 +1105,7 @@ static if (0)
             css.Irm = modregrm(0, 0, BPRM);
             code_newreg(&css, reg);
             css.Iflags = CFgs;
-            css.IFL1 = FLconst;
+            css.IFL1 = FL.const_;
             css.IEV1.Vuns = 0;
             cdb.gen(&css);               // MOV reg,GS:[00000000]
 
@@ -1117,7 +1117,7 @@ static if (0)
                 if (reg & 8)
                     cs.Irex |= REX_B;
                 cs.Iflags = CFoff;
-                cs.IFL1 = cast(ubyte)fl;
+                cs.IFL1 = fl;
                 cs.IEV1.Vsym = e.Vsym;
                 cs.IEV1.Voffset = e.Voffset;
             }
@@ -1128,7 +1128,7 @@ static if (0)
                 cs.Irm = modregrm(0,0,BPRM);
                 code_newreg(&cs, reg);
                 cs.Iflags = CFoff;
-                cs.IFL1 = cast(ubyte)fl;
+                cs.IFL1 = fl;
                 cs.IEV1.Vsym = e.Vsym;
                 cs.IEV1.Voffset = e.Voffset;
             }
@@ -1153,7 +1153,7 @@ static if (0)
                 if (reg & 8)
                     cs.Irex |= REX_B;
                 cs.Iflags = CFoff;              // want offset only
-                cs.IFL1 = cast(ubyte)fl;
+                cs.IFL1 = fl;
                 cdb.gen(&cs);
                 break;
             }
@@ -1165,11 +1165,11 @@ static if (0)
         }
 }
 
-        case FLfunc:
-            fl = FLextern;                  /* don't want PC relative addresses */
+        case FL.func:
+            fl = FL.extern_;                  /* don't want PC relative addresses */
             goto L4;
 
-        case FLextern:
+        case FL.extern_:
             if (config.exe & EX_posix && e.Vsym.ty() & mTYthread)
             {
                 if (log) printf("posix extern threaded\n");
@@ -1192,11 +1192,11 @@ static if (0)
 //                goto Lwin64;
             goto L4;
 
-        case FLdata:
-        case FLudata:
-        case FLgot:
-        case FLgotoff:
-        case FLcsdata:
+        case FL.data:
+        case FL.udata:
+        case FL.got:
+        case FL.gotoff:
+        case FL.csdata:
         L4:
             cs.IEV1.Vsym = e.Vsym;
             cs.IEV1.Voffset = e.Voffset;
@@ -1215,21 +1215,21 @@ static if (0)
                 cs.Iflags |= CFadd;
             }
             //cs.Iflags = CFoff;              /* want offset only             */
-            cs.IFL1 = cast(ubyte)fl;
+            cs.IFL1 = fl;
             cdb.gen(&cs);
             break;
 
-        case FLreg:
+        case FL.reg:
             /* Allow this since the tree optimizer puts & in front of       */
             /* register doubles.                                            */
             goto L2;
-        case FLauto:
-        case FLfast:
-        case FLbprel:
-        case FLfltreg:
+        case FL.auto_:
+        case FL.fast:
+        case FL.bprel:
+        case FL.fltreg:
             cgstate.reflocal = true;
             goto L2;
-        case FLpara:
+        case FL.para:
             cgstate.refparam = true;
         L2:
             if (reg == STACK)
@@ -1505,7 +1505,7 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
         if (op == OPpostdec)
             cs.Irm |= modregrm(0,5,0);  /* SUB                          */
         getlvalue_lsw(cs);
-        cs.IFL2 = FLconst;
+        cs.IFL2 = FL.const_;
         cs.IEV2.Vlong = e2.Vlong;
         cdb.gen(&cs);                   // ADD/SUB EA,const
         code_orflag(cdb.last(),CFpsw);

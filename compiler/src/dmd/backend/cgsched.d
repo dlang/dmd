@@ -1374,12 +1374,12 @@ private Cinfo getinfo(code *c)
                 c.Iflags |= CFpsw;
             else if (irm == modregrm(3,0,SP))   // ADD ESP,imm
             {
-                assert(c.IFL2 == FLconst);
+                assert(c.IFL2 == FL.const_);
                 ci.spadjust = (op == 0x81) ? c.IEV2.Vint : cast(byte)c.IEV2.Vint;
             }
             else if (irm == modregrm(3,5,SP))   // SUB ESP,imm
             {
-                assert(c.IFL2 == FLconst);
+                assert(c.IFL2 == FL.const_);
                 ci.spadjust = (op == 0x81) ? -c.IEV2.Vint : -cast(int)cast(byte)c.IEV2.Vint;
             }
             r = grprw[0][reg][0];               // Grp 1
@@ -1743,7 +1743,7 @@ else
                 case 0:
                     if ((sib & 7) != 5)     // if not disp32[index]
                     {
-                        c.IFL1 = FLconst;
+                        c.IFL1 = FL.const_;
                         c.IEV1.Vpointer = 0;
                         irm |= 0x80;
                     }
@@ -1765,7 +1765,7 @@ else
                 switch (mod)
                 {
                     case 0:
-                        c.IFL1 = FLconst;
+                        c.IFL1 = FL.const_;
                         c.IEV1.Vpointer = 0;
                         irm |= 0x80;
                         break;
@@ -2065,13 +2065,13 @@ if (c2.IEV1.Vpointer + sz2 <= c1.IEV1.Vpointer) printf("t5\n");
                 goto Lswap;
             switch (ifl1)
             {
-                case FLconst:
+                case FL.const_:
                     if (c1.IEV1.Vint != c2.IEV1.Vint &&
                         (c1.IEV1.Vint + sz1 <= c2.IEV1.Vint ||
                          c2.IEV1.Vint + sz2 <= c1.IEV1.Vint))
                         goto Lswap;
                     break;
-                case FLdatseg:
+                case FL.datseg:
                     if (c1.IEV1.Vseg != c2.IEV1.Vseg ||
                         c1.IEV1.Vint + sz1 <= c2.IEV1.Vint ||
                         c2.IEV1.Vint + sz2 <= c1.IEV1.Vint)
@@ -2404,7 +2404,7 @@ int insert(Cinfo *ci)
     if (c.Iop == 0x8B &&
         (c.Irm & modregrm(3,0,7)) == modregrm(1,0,4) &&
         c.Isib == modregrm(0,4,SP) &&
-        c.IFL1 == FLconst &&
+        c.IFL1 == FL.const_ &&
         (cast(byte)c.IEV1.Vpointer) >= REGSIZE
        )
     {
@@ -2438,7 +2438,7 @@ int insert(Cinfo *ci)
         if (movesp &&
             cit.c.Iop == 0x83 &&
             cit.c.Irm == modregrm(3,5,SP) &&          // if SUB ESP,offset
-            cit.c.IFL2 == FLconst &&
+            cit.c.IFL2 == FL.const_ &&
             (cast(byte)c.IEV1.Vpointer) >= -cit.spadjust
            )
         {
@@ -2892,7 +2892,7 @@ private void repEA(code *c,uint r1,uint r2)
             else if (r2 == BP && mod == 0)
             {
                 c.Irm = cast(ubyte)(modregrm(1,0,0) | reg | r2);
-                c.IFL1 = FLconst;
+                c.IFL1 = FL.const_;
                 c.IEV1.Vint = 0;
             }
             else
@@ -2927,7 +2927,7 @@ private void code_swap(code *c1,code *c2)
         c2.Iop == 0x8B &&
         (c2.Irm & modregrm(3,0,7)) == modregrm(1,0,4) &&
         c2.Isib == modregrm(0,4,SP) &&
-        c2.IFL1 == FLconst &&
+        c2.IFL1 == FL.const_ &&
         (cast(byte)c2.IEV1.Vpointer) >= REGSIZE &&
         (c1.Iop & 7) != ((c2.Irm >> 3) & 7)
        )
@@ -2998,7 +2998,7 @@ private code *peephole(code *cstart,regm_t scratch)
                 c1.Irm == modregrm(0,7,4) &&
                 c1.Isib == modregrm(0,4,SP))
             {   c1.Irm = modregrm(3,7,regx);
-                if (c1.IFL2 == FLconst && cast(byte)c1.IEV2.Vuns == 0)
+                if (c1.IFL2 == FL.const_ && cast(byte)c1.IEV2.Vuns == 0)
                 {   // to TEST regx,regx
                     c1.Iop = (c1.Iop & 1) | 0x84;
                     c1.Irm = modregrm(3,regx,regx);
@@ -3014,7 +3014,7 @@ private code *peephole(code *cstart,regm_t scratch)
         if (I32 && c.Iop == 0x8B && (c.Irm & 0xC7) == modregrm(0,0,4) &&
             c.Isib == modregrm(0,4,SP) &&
             c1.Iop == 0x83 && (c1.Irm & 0xC7) == modregrm(3,0,SP) &&
-            !(c1.Iflags & CFpsw) && c1.IFL2 == FLconst && c1.IEV2.Vint == 4)
+            !(c1.Iflags & CFpsw) && c1.IFL2 == FL.const_ && c1.IEV2.Vint == 4)
         {
             uint regx = (c.Irm >> 3) & 7;
             c.Iop = 0x58 + regx;
@@ -3028,7 +3028,7 @@ private code *peephole(code *cstart,regm_t scratch)
             (c.Irm & 0xC0) == 0xC0 &&
             (c.Irm & modregrm(3,0,7)) == (c1.Irm & modregrm(3,0,7)) &&
             !(c1.Iflags & CFpsw) &&
-            c.IFL2 == FLconst && c1.IFL2 == FLconst
+            c.IFL2 == FL.const_ && c1.IFL2 == FL.const_
            )
         {   int i = cast(byte)c.IEV2.Vint;
             int i1 = cast(byte)c1.IEV2.Vint;
@@ -3161,7 +3161,7 @@ private code *peephole(code *cstart,regm_t scratch)
                 if (r1 == AX)
                 {   c1.Iop = 0x81;
                     c1.Irm = modregrm(3,7,r2);
-                    if (c1.IFL2 == FLconst &&
+                    if (c1.IFL2 == FL.const_ &&
                         c1.IEV2.Vuns == cast(byte)c1.IEV2.Vuns)
                         c1.Iop = 0x83;
                     //printf("schedule 8\n");

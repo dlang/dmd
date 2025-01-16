@@ -171,7 +171,7 @@ private int cv_regnum(Symbol *s)
     else
     {
         assert(reg < 8);
-        assert(s.Sfl == FLreg);
+        assert(s.Sfl == FL.reg);
         switch (type_size(s.Stype))
         {
             case LONGSIZE:
@@ -1632,18 +1632,18 @@ private void cv4_outsym(Symbol *s)
         {
             case SC.parameter:
             case SC.regpar:
-                if (s.Sfl == FLreg)
+                if (s.Sfl == FL.reg)
                 {
-                    s.Sfl = FLpara;
+                    s.Sfl = FL.para;
                     cv4_outsym(s);
-                    s.Sfl = FLreg;
+                    s.Sfl = FL.reg;
                     goto case_register;
                 }
                 base = cgstate.Para.size - cgstate.BPoff;    // cancel out add of BPoff
                 goto L1;
 
             case SC.auto_:
-                if (s.Sfl == FLreg)
+                if (s.Sfl == FL.reg)
                     goto case_register;
             case_auto:
                 base = cgstate.Auto.size;
@@ -1669,14 +1669,14 @@ private void cv4_outsym(Symbol *s)
                 goto L1;
 
             case SC.fastpar:
-                if (s.Sfl != FLreg)
+                if (s.Sfl != FL.reg)
                 {   base = cgstate.Fast.size;
                     goto L1;
                 }
                 goto case_register;
 
             case SC.register:
-                if (s.Sfl != FLreg)
+                if (s.Sfl != FL.reg)
                     goto case_auto;
                 goto case_register;
 

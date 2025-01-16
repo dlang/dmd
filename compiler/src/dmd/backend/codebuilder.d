@@ -191,7 +191,7 @@ assert(op != BADINS);
     {
         code *ce = code_calloc();
         ce.Iop = ASM;
-        ce.IFL1 = FLasm;
+        ce.IFL1 = FL.asm_;
         ce.IEV1.len = bytes.length;
         ce.IEV1.bytes = cast(char *) mem_malloc(bytes.length);
         memcpy(ce.IEV1.bytes,bytes.ptr,bytes.length);
@@ -206,7 +206,7 @@ assert(op != BADINS);
         code *ce = code_calloc();
         ce.Iop = ASM;
         ce.Iflags = CFaddrsize;
-        ce.IFL1 = FLblockoff;
+        ce.IFL1 = FL.blockoff;
         ce.IEV1.Vsym = cast(Symbol*)label;
 
         *pTail = ce;
@@ -219,7 +219,7 @@ assert(op != BADINS);
         code *ce = code_calloc();
         ce.Iop = ASM;
         ce.Iflags = CFaddrsize;
-        ce.IFL1 = FLblockoff;
+        ce.IFL1 = FL.blockoff;
         ce.IEV1.Vblock = label;
         label.Bflags |= BFL.label;
 
@@ -269,7 +269,7 @@ assert(op != BADINS);
         cs.Iea = ea;
         ccheck(&cs);
         cs.Iflags = CFoff;
-        cs.IFL2 = FLconst;
+        cs.IFL2 = FL.const_;
         cs.IEV2.Vsize_t = EV2;
 
         gen(&cs);
@@ -280,7 +280,7 @@ assert(op != BADINS);
     {
 assert(op != BADINS);
         code cs;
-        assert(FL1 < FLMAX);
+        assert(FL1 < FL.max + 1);
         cs.Iop = op;
         cs.Iflags = CFoff;
         cs.Iea = ea;
@@ -296,14 +296,14 @@ assert(op != BADINS);
     {
 assert(op != BADINS);
         code cs;
-        assert(FL1 < FLMAX);
+        assert(FL1 < FL.max + 1);
         cs.Iop = op;
         cs.Iea = ea;
         ccheck(&cs);
         cs.Iflags = CFoff;
         cs.IFL1 = FL1;
         cs.IEV1.Vsize_t = EV1;
-        assert(FL2 < FLMAX);
+        assert(FL2 < FL.max + 1);
         cs.IFL2 = FL2;
         cs.IEV2.Vsize_t = EV2;
 
@@ -376,7 +376,7 @@ assert(op != BADINS);
         cgstate.reflocal = true;
         if ((opcode & ~7) == 0xD8)
             genfwait(this);
-        genc1(opcode,modregxrm(2,reg,BPRM),FLfltreg,offset);
+        genc1(opcode,modregxrm(2,reg,BPRM),FL.fltreg,offset);
     }
 
     @trusted
@@ -385,7 +385,7 @@ assert(op != BADINS);
         assert(isXMMreg(xreg));
         cgstate.floatreg = true;
         cgstate.reflocal = true;
-        genc1(opcode,modregxrm(2,xreg - XMM0,BPRM),FLfltreg,offset);
+        genc1(opcode,modregxrm(2,xreg - XMM0,BPRM),FL.fltreg,offset);
         checkSetVex(last(), tym);
     }
 

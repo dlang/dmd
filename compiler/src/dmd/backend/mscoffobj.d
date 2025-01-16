@@ -202,7 +202,7 @@ Symbol * MsCoffObj_sym_cdata(tym_t ty,char *p,int len)
     MsCoffObj_pubdef(CDATA, s, Offset(CDATA));
     MsCoffObj_bytes(CDATA, Offset(CDATA), len, p);
 
-    s.Sfl = FLdata; //FLextern;
+    s.Sfl = FL.data; //FL.extern_;
     return s;
 }
 
@@ -1295,7 +1295,7 @@ int MsCoffObj_comdat(Symbol *s)
     }
     else if ((s.ty() & mTYLINK) == mTYthread)
     {
-        s.Sfl = FLtlsdata;
+        s.Sfl = FL.tlsdata;
         align_ = 16;
         s.Sseg = MsCoffObj_getsegment(".tls$AAB", IMAGE_SCN_CNT_INITIALIZED_DATA |
                                             IMAGE_SCN_LNK_COMDAT |
@@ -1306,7 +1306,7 @@ int MsCoffObj_comdat(Symbol *s)
     }
     else
     {
-        s.Sfl = FLdata;
+        s.Sfl = FL.data;
         align_ = 16;
         s.Sseg = MsCoffObj_getsegment(".data$B",  IMAGE_SCN_CNT_INITIALIZED_DATA |
                                             IMAGE_SCN_LNK_COMDAT |
@@ -1320,7 +1320,7 @@ int MsCoffObj_comdat(Symbol *s)
         assert(s.Salignment >= -1);
     }
     s.Soffset = SegData[s.Sseg].SDoffset;
-    if (s.Sfl == FLdata || s.Sfl == FLtlsdata)
+    if (s.Sfl == FL.data || s.Sfl == FL.tlsdata)
     {   // Code symbols are 'published' by MsCoffObj_func_start()
 
         MsCoffObj_pubdef(s.Sseg,s,s.Soffset);
@@ -1335,7 +1335,7 @@ int MsCoffObj_readonly_comdat(Symbol *s)
     //symbol_print(s);
     symbol_debug(s);
 
-    s.Sfl = FLdata;
+    s.Sfl = FL.data;
     s.Sseg = MsCoffObj_getsegment(".rdata",  IMAGE_SCN_CNT_INITIALIZED_DATA |
                                         IMAGE_SCN_LNK_COMDAT |
                                         IMAGE_SCN_ALIGN_16BYTES |
@@ -1344,7 +1344,7 @@ int MsCoffObj_readonly_comdat(Symbol *s)
     SegData[s.Sseg].SDalignment = s.Salignment;
     assert(s.Salignment >= -1);
     s.Soffset = SegData[s.Sseg].SDoffset;
-    if (s.Sfl == FLdata || s.Sfl == FLtlsdata)
+    if (s.Sfl == FL.data || s.Sfl == FL.tlsdata)
     {   // Code symbols are 'published' by MsCoffObj_func_start()
 
         MsCoffObj_pubdef(s.Sseg,s,s.Soffset);
@@ -1954,7 +1954,7 @@ int MsCoffObj_common_block(Symbol *s,targ_size_t size,targ_size_t count)
     // can't have code or thread local comdef's
     assert(!(s.ty() & mTYthread));
 
-    s.Sfl = FLudata;
+    s.Sfl = FL.udata;
     uint align_ = 16;
     s.Sseg = MsCoffObj_getsegment(".bss$B",  IMAGE_SCN_CNT_UNINITIALIZED_DATA |
                                         IMAGE_SCN_LNK_COMDAT |
@@ -2479,7 +2479,7 @@ void MsCoffObj_write_pointerRef(Symbol* s, uint soff)
 @trusted
 extern (D) private void objflush_pointerRef(Symbol* s, uint soff, ref segidx_t[2] segments)
 {
-    bool isTls = (s.Sfl == FLtlsdata);
+    bool isTls = (s.Sfl == FL.tlsdata);
 
     if (segments[isTls] == UNKNOWN)
     {

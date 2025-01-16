@@ -19,7 +19,7 @@ import core.stdc.stdint;
 
 import dmd.backend.barray;
 import dmd.backend.cdef;
-import dmd.backend.cc : Symbol, block, Classsym, BlockState, FLdata, Srcpos;
+import dmd.backend.cc : Symbol, block, Classsym, BlockState, FL, Srcpos;
 import dmd.backend.code;
 import dmd.backend.dlist;
 import dmd.backend.el : elem;
@@ -99,7 +99,7 @@ targ_size_t size(tym_t ty)
 Symbol *symboldata(targ_size_t offset, tym_t ty)
 {
     Symbol *s = symbol_generate(SC.locstat, type_fake(ty));
-    s.Sfl = FLdata;
+    s.Sfl = FL.data;
     s.Soffset = offset;
     s.Stype.Tmangle = Mangle.syscall; // writes symbol unmodified in Obj::mangle
     symbol_keep(s);                   // keep around

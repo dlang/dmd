@@ -837,7 +837,7 @@ struct Symbol
 //#endif
 
     SC Sclass;                  // storage class (SCxxxx)
-    FL Sfl;                     // flavor (FLxxxx)
+    FL Sfl;                     // flavor (FL.xxxx)
     SYMFLGS Sflags;             // flag bits (SFLxxxx)
 
     vec_t       Srange;         // live range, if any
@@ -1011,57 +1011,53 @@ void param_debug(const param_t *p)
  * These should be combined with storage classes.
  */
 
-alias FL = ubyte;
-enum
+enum FL : ubyte
 {
-    // Change this, update debug.c too
-    FLunde,
-    FLconst,        // numerical constant
-    FLoper,         // operator node
-    FLfunc,         // function symbol
-    FLdata,         // ref to data segment variable
-    FLreg,          // ref to register variable
-    FLpseudo,       // pseuodo register variable
-    FLauto,         // ref to automatic variable
-    FLfast,         // ref to variable passed as register
-    FLpara,         // ref to function parameter variable
-    FLextern,       // ref to external variable
-    FLcode,         // offset to code
-    FLblock,        // offset to block
-    FLudata,        // ref to udata segment variable
-    FLcs,           // ref to common subexpression number
-    FLswitch,       // ref to offset of switch data block
-    FLfltreg,       // ref to floating reg on stack, int contains offset
-    FLoffset,       // offset (a variation on constant, needed so we
-                    // can add offsets (different meaning for FLconst))
-    FLdatseg,       // ref to data segment offset
-    FLctor,         // constructed object
-    FLdtor,         // destructed object
-    FLregsave,      // ref to saved register on stack, int contains offset
-    FLasm,          // (code) an ASM code
+    unde,
+    const_,       // numerical constant
+    oper,         // operator node
+    func,         // function symbol
+    data,         // ref to data segment variable
+    reg,          // ref to register variable
+    pseudo,       // pseuodo register variable
+    auto_,        // ref to automatic variable
+    fast,         // ref to variable passed as register
+    para,         // ref to function parameter variable
+    extern_,      // ref to external variable
+    code,         // offset to code
+    block,        // offset to block
+    udata,        // ref to udata segment variable
+    cs,           // ref to common subexpression number
+    switch_,      // ref to offset of switch data block
+    fltreg,       // ref to floating reg on stack, int contains offset
+    offset,       // offset (a variation on constant, needed so we
+                  // can add offsets (different meaning for FL.const_))
+    datseg,       // ref to data segment offset
+    ctor,         // constructed object
+    dtor,         // destructed object
+    regsave,      // ref to saved register on stack, int contains offset
+    asm_,         // (code) an ASM code
 
-    FLndp,          // saved 8087 register
+    ndp,          // saved 8087 register
 
     // Segmented systems
-    FLfardata,      // ref to far data segment
-    FLcsdata,       // ref to code segment variable
+    fardata,      // ref to far data segment
+    csdata,       // ref to code segment variable
 
-    FLlocalsize,    // replaced with # of locals in the stack frame
-    FLtlsdata,      // thread local storage
-    FLbprel,        // ref to variable at fixed offset from frame pointer
-    FLframehandler, // ref to C++ frame handler for NT EH
-    FLblockoff,     // address of block
-    FLallocatmp,    // temp for built-in alloca()
-    FLstack,        // offset from ESP rather than EBP
-    FLdsymbol,      // it's a Dsymbol
+    localsize,    // replaced with # of locals in the stack frame
+    tlsdata,      // thread local storage
+    bprel,        // ref to variable at fixed offset from frame pointer
+    framehandler, // ref to C++ frame handler for NT EH
+    blockoff,     // address of block
+    allocatmp,    // temp for built-in alloca()
+    stack,        // offset from ESP rather than EBP
+    dsymbol,      // it's a Dsymbol
 
     // Global Offset Table
-    FLgot,          // global offset table entry outside this object file
-    FLgotoff,       // global offset table entry inside this object file
+    got,          // global offset table entry outside this object file
+    gotoff,       // global offset table entry inside this object file
 
-    FLfuncarg,      // argument to upcoming function call
-
-    FLMAX
+    funcarg,      // argument to upcoming function call
 }
 
 ////////// Srcfiles

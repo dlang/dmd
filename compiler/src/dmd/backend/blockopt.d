@@ -1715,7 +1715,7 @@ private elem * assignparams(elem **pe,int *psi,elem **pe2)
         assert(si < globsym.length);
         Symbol *sp = globsym[si];
         Symbol *s = symbol_genauto(sp.Stype);
-        s.Sfl = FLauto;
+        s.Sfl = FL.auto_;
         int op = OPeq;
         if (e.Eoper == OPstrpar)
         {

@@ -135,7 +135,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
             if (e1.Eoper == OPind &&
                 ((e11 = e1.E1).Eoper == OPpostinc || e11.Eoper == OPpostdec) &&
                 e11.E1.Eoper == OPvar &&
-                e11.E1.Vsym.Sfl == FLreg
+                e11.E1.Vsym.Sfl == FL.reg
                )
             {
                 Symbol *s = e11.E1.Vsym;
@@ -204,7 +204,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
     if (e1.Eoper == OPind &&
         ((e11 = e1.E1).Eoper == OPpostinc || e11.Eoper == OPpostdec) &&
         e11.E1.Eoper == OPvar &&
-        e11.E1.Vsym.Sfl == FLreg)
+        e11.E1.Vsym.Sfl == FL.reg)
     {
         Symbol *s = e11.E1.Vsym;
         if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg)
@@ -390,7 +390,7 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
         //cs.Iflags |= opsize;
         if (forccs)
             cs.Iflags |= CFpsw;
-        cs.IFL2 = FLconst;
+        cs.IFL2 = FL.const_;
         cs.IEV2.Vsize_t = (jop == JC) ? 0 : ~cast(targ_size_t)0;
         cdb.gen(&cs);
         retregs = 0;            // to trigger a bug if we attempt to use it
@@ -860,7 +860,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
                 rreg = findregmsw(rretregs);
                 uint ins = INSTR.cmp_shift(1, rreg, 0, 0, reg); // CMP reg, rreg
                 cdb.gen1(ins);
-                genjmp(cdb,JNE,FLcode,cast(block *) ce);      // JNE nop
+                genjmp(cdb,JNE,FL.code,cast(block *) ce);      // JNE nop
 
                 reg = findreglsw(retregs);
                 rreg = findreglsw(rretregs);
@@ -954,7 +954,7 @@ printf("OPconst:\n");
                 goto ret;
             }
 
-            cs.IFL2 = FLconst;
+            cs.IFL2 = FL.const_;
             if (sz == 16)
                 cs.IEV2.Vsize_t = cast(targ_size_t)e2.Vcent.hi;
             else if (sz > REGSIZE)
@@ -991,7 +991,7 @@ printf("OPconst:\n");
                         cdb.gen(&cs);              // CMP EA+2,rreg
                         if (I64 && isbyte && rreg >= 4)
                             cdb.last().Irex |= REX;
-                        genjmp(cdb,JNE,FLcode,cast(block *) ce); // JNE nop
+                        genjmp(cdb,JNE,FL.code,cast(block *) ce); // JNE nop
                         rreg = findreglsw(rretregs);
                         NEWREG(cs.Irm,rreg);
                         getlvalue_lsw(cs);
@@ -1017,7 +1017,7 @@ printf("OPconst:\n");
                         }
                         getlvalue_msw(cs);
                         cdb.gen(&cs);              // CMP EA+2,const
-                        genjmp(cdb,JNE,FLcode, cast(block *) ce); // JNE nop
+                        genjmp(cdb,JNE,FL.code, cast(block *) ce); // JNE nop
                         if (e2.Eoper == OPconst)
                             cs.IEV2.Vint = cast(int)e2.Vllong;
                         else if (e2.Eoper == OPrelconst)
@@ -1068,7 +1068,7 @@ printf("OPconst:\n");
             {   // CMP reg,const
                 reg = findreg(retregs & cgstate.allregs);   // get reg that e1 is in
                 rretregs = cgstate.allregs & ~retregs;
-                if (cs.IFL2 == FLconst && reghasvalue(rretregs,cs.IEV2.Vint,rreg))
+                if (cs.IFL2 == FL.const_ && reghasvalue(rretregs,cs.IEV2.Vint,rreg))
                 {
                     genregs(cdb,0x3B,reg,rreg);
                     code_orrex(cdb.last(), rex);
@@ -1136,7 +1136,7 @@ printf("OPconst:\n");
                 loadea(cdb,e2,cs,0x3B ^ reverse,reg,REGSIZE,retregs,0,RM.load);
                 if (I32 && sz == 6)
                     cdb.last().Iflags |= CFopsize;        // seg is only 16 bits
-                genjmp(cdb,JNE,FLcode, cast(block *) ce);  // JNE ce
+                genjmp(cdb,JNE,FL.code, cast(block *) ce);  // JNE ce
                 reg = findreglsw(retregs);
                 if (e2.Eoper == OPind)
                 {
@@ -1203,7 +1203,7 @@ L3:
                 assert(!flag);
                 movregconst(cdb,reg,1,64|8);   // MOV reg,1
                 nop = gennop(nop);
-                genjmp(cdb,jop,FLcode,cast(block *) nop);  // Jtrue nop
+                genjmp(cdb,jop,FL.code,cast(block *) nop);  // Jtrue nop
                                                             // MOV reg,0
                 movregconst(cdb,reg,0,(pretregs & mPSW) ? 64|8 : 64);
                 cgstate.regcon.immed.mval &= ~mask(reg);
@@ -1213,7 +1213,7 @@ L3:
                 assert(!flag);
                 movregconst(cdb,reg,1,8);      // MOV reg,1
                 nop = gennop(nop);
-                genjmp(cdb,jop,FLcode,cast(block *) nop);  // Jtrue nop
+                genjmp(cdb,jop,FL.code,cast(block *) nop);  // Jtrue nop
                                                             // MOV reg,0
                 movregconst(cdb,reg,0,(pretregs & mPSW) ? 8 : 0);
                 cgstate.regcon.immed.mval &= ~mask(reg);

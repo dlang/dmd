@@ -1384,7 +1384,7 @@ code *asm_emit(Loc loc,
             case OpndSize._64:
                 if (opnd.s == asmstate.psLocalsize)
                 {
-                    pc.IFL2 = FLlocalsize;
+                    pc.IFL2 = FL.localsize;
                     pc.IEV2.Vdsym = null;
                     pc.Iflags |= CFoff;
                     pc.IEV2.Voffset = opnd.disp;
@@ -1392,7 +1392,7 @@ code *asm_emit(Loc loc,
                 else if (d)
                 {
                     //if ((pc.IFL2 = d.Sfl) == 0)
-                    pc.IFL2 = FLdsymbol;
+                    pc.IFL2 = FL.dsymbol;
                     pc.Iflags &= ~(CFseg | CFoff);
                     if (opnd.bSeg)
                         pc.Iflags |= CFseg;
@@ -1404,7 +1404,7 @@ code *asm_emit(Loc loc,
                 else
                 {
                     pc.IEV2.Vllong = opnd.disp;
-                    pc.IFL2 = FLconst;
+                    pc.IFL2 = FL.const_;
                 }
                 break;
 
@@ -1782,7 +1782,7 @@ code *asm_emit(Loc loc,
             if (puc[1] == 0x0F)             // if AMD instruction 0x0F0F
             {
                 pc.IEV2.Vint = puc[0];
-                pc.IFL2 = FLconst;
+                pc.IFL2 = FL.const_;
             }
             else
                 pc.Irm = puc[0];
@@ -1825,7 +1825,7 @@ code *asm_emit(Loc loc,
             else
             {
                 pc.IEV2.Vint = puc[0];
-                pc.IFL2 = FLconst;
+                pc.IFL2 = FL.const_;
             }
         }
     }
@@ -1842,7 +1842,7 @@ L3:
         Dsymbol s = opnds[0].s;
         if (s == asmstate.psDollar)
         {
-            pc.IFL2 = FLconst;
+            pc.IFL2 = FL.const_;
             if (isOneOf(OpndSize._8,  uSizemaskTable[0]) ||
                 isOneOf(OpndSize._16, uSizemaskTable[0]))
                 pc.IEV2.Vint = cast(int)opnds[0].disp;
@@ -1857,12 +1857,12 @@ L3:
                     pc.Iflags |= CFjmp16;
                 if (usNumops == 1)
                 {
-                    pc.IFL2 = FLblock;
+                    pc.IFL2 = FL.block;
                     pc.IEV2.Vlsym = cast(_LabelDsymbol*)label;
                 }
                 else
                 {
-                    pc.IFL1 = FLblock;
+                    pc.IFL1 = FL.block;
                     pc.IEV1.Vlsym = cast(_LabelDsymbol*)label;
                 }
             }
@@ -1909,9 +1909,9 @@ L3:
             aoptyTable[1] == _imm)
         {
                 pc.IEV1.Vint = cast(int)opnds[0].disp;
-                pc.IFL1 = FLconst;
+                pc.IFL1 = FL.const_;
                 pc.IEV2.Vint = cast(int)opnds[1].disp;
-                pc.IFL2 = FLconst;
+                pc.IFL2 = FL.const_;
                 break;
         }
         if (aoptyTable[1] == _m ||
@@ -2484,7 +2484,7 @@ void asm_make_modrm_byte(
             }
             if (aopty == _m || aopty == _mnoi)
             {
-                pc.IFL1 = FLdata;
+                pc.IFL1 = FL.data;
                 pc.IEV1.Vdsym = cast(_Declaration*)d;
                 pc.IEV1.Voffset = 0;
             }
@@ -2502,7 +2502,7 @@ void asm_make_modrm_byte(
                     }
                 }
 
-                pc.IFL2 = FLfunc;
+                pc.IFL2 = FL.func;
                 pc.IEV2.Vdsym = cast(_Declaration*)d;
                 pc.IEV2.Voffset = 0;
                 //return;
@@ -2516,7 +2516,7 @@ void asm_make_modrm_byte(
             {
                 if (s == asmstate.psDollar)
                 {
-                    pc.IFL1 = FLconst;
+                    pc.IFL1 = FL.const_;
                     if (isOneOf(uSizemask, OpndSize._16_8))
                         pc.IEV1.Vint = cast(int)opnds[0].disp;
                     else if (isOneOf(uSizemask, OpndSize._32))
@@ -2524,21 +2524,21 @@ void asm_make_modrm_byte(
                 }
                 else
                 {
-                    pc.IFL1 = target.isX86_64 ? FLblock : FLblockoff;
+                    pc.IFL1 = target.isX86_64 ? FL.block : FL.blockoff;
                     pc.IEV1.Vlsym = cast(_LabelDsymbol*)label;
                 }
                 pc.Iflags |= CFoff;
             }
             else if (s == asmstate.psLocalsize)
             {
-                pc.IFL1 = FLlocalsize;
+                pc.IFL1 = FL.localsize;
                 pc.IEV1.Vdsym = null;
                 pc.Iflags |= CFoff;
                 pc.IEV1.Voffset = opnds[0].disp;
             }
             else if (s.isFuncDeclaration())
             {
-                pc.IFL1 = FLfunc;
+                pc.IFL1 = FL.func;
                 pc.IEV1.Vdsym = cast(_Declaration*)d;
                 pc.Iflags |= CFoff;
                 pc.IEV1.Voffset = opnds[0].disp;
@@ -2547,7 +2547,7 @@ void asm_make_modrm_byte(
             {
                 debug (debuga)
                     printf("Setting up symbol %s\n", d.ident.toChars());
-                pc.IFL1 = FLdsymbol;
+                pc.IFL1 = FL.dsymbol;
                 pc.IEV1.Vdsym = cast(_Declaration*)d;
                 pc.Iflags |= CFoff;
                 pc.IEV1.Voffset = opnds[0].disp;
@@ -2863,12 +2863,12 @@ void asm_make_modrm_byte(
                 debug (debuga)
                     printf("Setting up value %lld\n", cast(long)opnds[0].disp);
                 pc.IEV1.Vint = cast(int)opnds[0].disp;
-                pc.IFL1 = FLconst;
+                pc.IFL1 = FL.const_;
             }
             else
             {
                 pc.IEV2.Vint = cast(int)opnds[0].disp;
-                pc.IFL2 = FLconst;
+                pc.IFL2 = FL.const_;
             }
         }
         else
@@ -2886,12 +2886,12 @@ void asm_make_modrm_byte(
                 debug (debuga)
                     printf("Setting up value %lld\n", cast(long)opnds[0].disp);
                 pc.IEV1.Vpointer = cast(targ_size_t) opnds[0].disp;
-                pc.IFL1 = FLconst;
+                pc.IFL1 = FL.const_;
             }
             else
             {
                 pc.IEV2.Vpointer = cast(targ_size_t) opnds[0].disp;
-                pc.IFL2 = FLconst;
+                pc.IFL2 = FL.const_;
             }
 
         }

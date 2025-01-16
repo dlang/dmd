@@ -52,14 +52,14 @@ int STACKALIGN = 2;             // varies for each function
 
 
 /// Is fl data?
-bool[FLMAX] datafl = datafl_init;
+bool[FL.max + 1] datafl = datafl_init;
 extern (D) private enum datafl_init =
 () {
-    bool[FLMAX] datafl;
-    foreach (fl; [ FLdata,FLudata,FLreg,FLpseudo,FLauto,FLfast,FLpara,FLextern,
-                   FLcs,FLfltreg,FLallocatmp,FLdatseg,FLtlsdata,FLbprel,
-                   FLstack,FLregsave,FLfuncarg,
-                   FLndp, FLfardata,
+    bool[FL.max + 1] datafl;
+    foreach (fl; [ FL.data, FL.udata, FL.reg, FL.pseudo, FL.auto_, FL.fast, FL.para, FL.extern_,
+                   FL.cs, FL.fltreg, FL.allocatmp, FL.datseg, FL.tlsdata, FL.bprel,
+                   FL.stack, FL.regsave, FL.funcarg,
+                   FL.ndp,  FL.fardata,
                  ])
     {
         datafl[fl] = true;
@@ -69,13 +69,13 @@ extern (D) private enum datafl_init =
 
 
 /// Is fl on the stack?
-bool[FLMAX] stackfl = stackfl_init;
+bool[FL.max + 1] stackfl = stackfl_init;
 extern (D) private enum stackfl_init =
 () {
-    bool[FLMAX] stackfl;
-    foreach (fl; [ FLauto,FLfast,FLpara,FLcs,FLfltreg,FLallocatmp,FLbprel,FLstack,FLregsave,
-                   FLfuncarg,
-                   FLndp,
+    bool[FL.max + 1] stackfl;
+    foreach (fl; [ FL.auto_, FL.fast, FL.para, FL.cs, FL.fltreg, FL.allocatmp, FL.bprel, FL.stack, FL.regsave,
+                   FL.funcarg,
+                   FL.ndp,
                  ])
     {
         stackfl[fl] = true;
@@ -84,10 +84,10 @@ extern (D) private enum stackfl_init =
 } ();
 
 /// What segment register is associated with it?
-ubyte[FLMAX] segfl = segfl_init;
+ubyte[FL.max + 1] segfl = segfl_init;
 extern (D) private enum segfl_init =
 () {
-    ubyte[FLMAX] segfl;
+    ubyte[FL.max + 1] segfl;
 
     // Segment registers
     enum ES = 0;
@@ -100,43 +100,43 @@ extern (D) private enum segfl_init =
     {
         switch (fl)
         {
-            case 0:              seg = NO;  break;
-            case FLconst:        seg = NO;  break;
-            case FLoper:         seg = NO;  break;
-            case FLfunc:         seg = CS;  break;
-            case FLdata:         seg = DS;  break;
-            case FLudata:        seg = DS;  break;
-            case FLreg:          seg = NO;  break;
-            case FLpseudo:       seg = NO;  break;
-            case FLauto:         seg = SS;  break;
-            case FLfast:         seg = SS;  break;
-            case FLstack:        seg = SS;  break;
-            case FLbprel:        seg = SS;  break;
-            case FLpara:         seg = SS;  break;
-            case FLextern:       seg = DS;  break;
-            case FLcode:         seg = CS;  break;
-            case FLblock:        seg = CS;  break;
-            case FLblockoff:     seg = CS;  break;
-            case FLcs:           seg = SS;  break;
-            case FLregsave:      seg = SS;  break;
-            case FLndp:          seg = SS;  break;
-            case FLswitch:       seg = NO;  break;
-            case FLfltreg:       seg = SS;  break;
-            case FLoffset:       seg = NO;  break;
-            case FLfardata:      seg = NO;  break;
-            case FLcsdata:       seg = CS;  break;
-            case FLdatseg:       seg = DS;  break;
-            case FLctor:         seg = NO;  break;
-            case FLdtor:         seg = NO;  break;
-            case FLdsymbol:      seg = NO;  break;
-            case FLgot:          seg = NO;  break;
-            case FLgotoff:       seg = NO;  break;
-            case FLtlsdata:      seg = NO;  break;
-            case FLlocalsize:    seg = NO;  break;
-            case FLframehandler: seg = NO;  break;
-            case FLasm:          seg = NO;  break;
-            case FLallocatmp:    seg = SS;  break;
-            case FLfuncarg:      seg = SS;  break;
+            case 0:               seg = NO;  break;
+            case FL.const_:       seg = NO;  break;
+            case FL.oper:         seg = NO;  break;
+            case FL.func:         seg = CS;  break;
+            case FL.data:         seg = DS;  break;
+            case FL.udata:        seg = DS;  break;
+            case FL.reg:          seg = NO;  break;
+            case FL.pseudo:       seg = NO;  break;
+            case FL.auto_:        seg = SS;  break;
+            case FL.fast:         seg = SS;  break;
+            case FL.stack:        seg = SS;  break;
+            case FL.bprel:        seg = SS;  break;
+            case FL.para:         seg = SS;  break;
+            case FL.extern_:      seg = DS;  break;
+            case FL.code:         seg = CS;  break;
+            case FL.block:        seg = CS;  break;
+            case FL.blockoff:     seg = CS;  break;
+            case FL.cs:           seg = SS;  break;
+            case FL.regsave:      seg = SS;  break;
+            case FL.ndp:          seg = SS;  break;
+            case FL.switch_:      seg = NO;  break;
+            case FL.fltreg:       seg = SS;  break;
+            case FL.offset:       seg = NO;  break;
+            case FL.fardata:      seg = NO;  break;
+            case FL.csdata:       seg = CS;  break;
+            case FL.datseg:       seg = DS;  break;
+            case FL.ctor:         seg = NO;  break;
+            case FL.dtor:         seg = NO;  break;
+            case FL.dsymbol:      seg = NO;  break;
+            case FL.got:          seg = NO;  break;
+            case FL.gotoff:       seg = NO;  break;
+            case FL.tlsdata:      seg = NO;  break;
+            case FL.localsize:    seg = NO;  break;
+            case FL.framehandler: seg = NO;  break;
+            case FL.asm_:         seg = NO;  break;
+            case FL.allocatmp:    seg = SS;  break;
+            case FL.funcarg:      seg = SS;  break;
 
             default:
                 assert(0);
@@ -147,13 +147,13 @@ extern (D) private enum segfl_init =
 } ();
 
 /// Is fl in the symbol table?
-bool[FLMAX] flinsymtab = flinsymtab_init;
+bool[FL.max + 1] flinsymtab = flinsymtab_init;
 extern (D) private enum flinsymtab_init =
 () {
-    bool[FLMAX] flinsymtab;
-    foreach (fl; [ FLdata,FLudata,FLreg,FLpseudo,FLauto,FLfast,FLpara,FLextern,FLfunc,
-                   FLtlsdata,FLbprel,FLstack,
-                   FLfardata,FLcsdata,
+    bool[FL.max + 1] flinsymtab;
+    foreach (fl; [ FL.data, FL.udata, FL.reg, FL.pseudo, FL.auto_, FL.fast, FL.para, FL.extern_, FL.func,
+                   FL.tlsdata, FL.bprel, FL.stack,
+                   FL.fardata, FL.csdata,
                  ])
     {
         flinsymtab[fl] = true;

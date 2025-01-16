@@ -918,7 +918,7 @@ L1:
     elem *e2 = e.E2;
     if (e2.Eoper == OPconst)
     {
-        if (e1.Eoper == OPrelconst && e1.Vsym.Sfl == FLgot)
+        if (e1.Eoper == OPrelconst && e1.Vsym.Sfl == FL.got)
             return e;
         if (e1.Eoper == OPrelconst ||          // if (&v) + c
             e1.Eoper == OPstring)
@@ -931,7 +931,7 @@ L1:
     }
     else if (e1.Eoper == OPconst)
     {
-        if (e2.Eoper == OPrelconst && e2.Vsym.Sfl == FLgot)
+        if (e2.Eoper == OPrelconst && e2.Vsym.Sfl == FL.got)
             return e;
         if (e2.Eoper == OPrelconst ||          // if c + (&v)
             e2.Eoper == OPstring)
@@ -1309,7 +1309,7 @@ private elem * elmin(elem *e, Goal goal)
             Symbol *s = symbol_calloc(LARGECODE ? "_aFahdiff" : "_aNahdiff");
             s.Stype = tsclib;
             s.Sclass = SC.extern_;
-            s.Sfl = FLfunc;
+            s.Sfl = FL.func;
             s.Ssymnum = 0;
             s.Sregsaved = mBX|mCX|mSI|mDI|mBP|mES;
             hdiff = s;
@@ -3668,7 +3668,7 @@ elem * elstruct(elem *e, Goal goal)
                             e2 = optelem(e2, Goal.value);
                             e2 = elstruct(e2, Goal.value);
                             e2 = exp2_copytotemp(e2); // (tmp = e2, tmp)
-                            e2.E2.Vsym.Sfl = FLauto;
+                            e2.E2.Vsym.Sfl = FL.auto_;
                             e2.Ety = e2.E2.Ety = e.Ety;
                             e2.ET = e2.E2.ET = e.ET;
                             e.E2 = e2;

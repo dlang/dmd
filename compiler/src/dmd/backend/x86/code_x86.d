@@ -373,7 +373,7 @@ struct code
      * operand, usually for immediate instructions.
      */
 
-    FL IFL1,IFL2;         // FLavors of 1st, 2nd operands
+    FL IFL1,IFL2;         // FL.avors of 1st, 2nd operands
     evc IEV1;             // 1st operand, if any
     evc IEV2;             // 2nd operand, if any
 

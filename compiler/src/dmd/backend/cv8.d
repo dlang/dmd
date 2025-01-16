@@ -696,18 +696,18 @@ void cv8_outsym(Symbol *s)
         case SC.parameter:
         case SC.regpar:
         case SC.shadowreg:
-            if (s.Sfl == FLreg)
+            if (s.Sfl == FL.reg)
             {
-                s.Sfl = FLpara;
+                s.Sfl = FL.para;
                 cv8_outsym(s);
-                s.Sfl = FLreg;
+                s.Sfl = FL.reg;
                 goto case_register;
             }
             base = cast(uint)(cgstate.Para.size - cgstate.BPoff);    // cancel out add of BPoff
             goto L1;
 
         case SC.auto_:
-            if (s.Sfl == FLreg)
+            if (s.Sfl == FL.reg)
                 goto case_register;
         case_auto:
             base = cast(uint)cgstate.Auto.size;
@@ -744,14 +744,14 @@ else
             goto L1;
 
         case SC.fastpar:
-            if (s.Sfl != FLreg)
+            if (s.Sfl != FL.reg)
             {   base = cast(uint)cgstate.Fast.size;
                 goto L1;
             }
             goto L2;
 
         case SC.register:
-            if (s.Sfl != FLreg)
+            if (s.Sfl != FL.reg)
                 goto case_auto;
             goto case;
 
@@ -840,7 +840,7 @@ void cv8_udt(const(char)* id, idx_t typidx)
 int cv8_regnum(Symbol *s)
 {
     int reg = s.Sreglsw;
-    assert(s.Sfl == FLreg);
+    assert(s.Sfl == FL.reg);
     if ((1 << reg) & XMMREGS)
         return reg - XMM0 + 154;
     switch (type_size(s.Stype))

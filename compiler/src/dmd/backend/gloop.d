@@ -129,8 +129,8 @@ nothrow:
             elem_print(c1);
             printf("c2:");
             elem_print(c2);
-            printf("FLty = %s\n", tym_str(FLty));
-            printf("FLivty = %s\n", tym_str(FLivty));
+            printf("FL.ty = %s\n", tym_str(FLty));
+            printf("FL.ivty = %s\n", tym_str(FLivty));
         }
     }
 }

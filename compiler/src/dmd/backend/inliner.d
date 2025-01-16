@@ -356,13 +356,13 @@ private elem* inlineCall(elem *e,Symbol *sfunc)
                 //printf("  new symbol %s\n", s.Sident.ptr);
                 Symbol* snew = symbol_copy(*s);
                 snew.Sclass = sc;
-                snew.Sfl = FLauto;
+                snew.Sfl = FL.auto_;
                 snew.Sflags |= SFLfree;
                 snew.Srange = null;
                 s.Sflags |= SFLreplace;
                 if (sc == SC.pseudo)
                 {
-                    snew.Sfl = FLpseudo;
+                    snew.Sfl = FL.pseudo;
                     snew.Sreglsw = s.Sreglsw;
                 }
                 s.Ssymnum = symbol_add(snew);
@@ -543,7 +543,7 @@ private elem* initializeParamsWithArgs(elem* eargs, SYMIDX sistart, SYMIDX siend
                 ec.E1 = null;
                 ec.E2 = null;
                 el_free(ec);
-                e.Vsym.Sfl = FLauto;
+                e.Vsym.Sfl = FL.auto_;
             }
             assert(e.Eoper == OPvar);
             elem* e2 = el_copytree(e);

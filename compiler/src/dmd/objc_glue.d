@@ -877,7 +877,7 @@ static:
         if (!symbol)
         {
             symbol = getGlobal(name);
-            symbol.Sfl |= FLextern;
+            symbol.Sfl |= FL.extern_;
             stringValue.value = symbol;
         }
 
@@ -889,7 +889,7 @@ static:
 
         symbol.Sdt = dtb.finish();
         symbol.Sseg = Segments[Segments.Id.ivar];
-        symbol.Sfl &= ~FLextern;
+        symbol.Sfl &= ~cast(int)FL.extern_; // FIXME: this is likely a bug, FL is not a bit flag
 
         outdata(symbol);
 

@@ -145,7 +145,7 @@ void outdata(Symbol *s)
                             Offset(codeseg) = _align(datasize,Offset(codeseg));
                             s.Soffset = Offset(codeseg);
                             Offset(codeseg) += datasize;
-                            s.Sfl = FLcsdata;
+                            s.Sfl = FL.csdata;
                             break;
 
                         case mTYthreadData:
@@ -159,7 +159,7 @@ void outdata(Symbol *s)
                                 pseg.SDoffset += datasize;
                             else
                                 objmod.lidata(pseg.SDseg, pseg.SDoffset, datasize);
-                            s.Sfl = FLtlsdata;
+                            s.Sfl = FL.tlsdata;
                             break;
                         }
 
@@ -167,7 +167,7 @@ void outdata(Symbol *s)
                             s.Sseg = UDATA;
                             objmod.data_start(s,datasize,UDATA);
                             objmod.lidata(s.Sseg,s.Soffset,datasize);
-                            s.Sfl = FLudata;           // uninitialized data
+                            s.Sfl = FL.udata;           // uninitialized data
                             break;
                     }
                     assert(s.Sseg && s.Sseg != UNKNOWN);
@@ -218,24 +218,24 @@ void outdata(Symbol *s)
         switch (ty & mTYLINK)
         {
             case mTYfar:                // if far data
-                s.Sfl = FLfardata;
+                s.Sfl = FL.fardata;
                 break;
 
             case mTYcs:
-                s.Sfl = FLcsdata;
+                s.Sfl = FL.csdata;
                 break;
 
             case mTYnear:
             case 0:
-                s.Sfl = FLdata;        // initialized data
+                s.Sfl = FL.data;        // initialized data
                 break;
 
             case mTYthread:
-                s.Sfl = FLtlsdata;
+                s.Sfl = FL.tlsdata;
                 break;
 
             case mTYweakLinkage:
-                s.Sfl = FLdata;        // initialized data
+                s.Sfl = FL.data;        // initialized data
                 break;
 
             default:
@@ -250,7 +250,7 @@ void outdata(Symbol *s)
             seg = codeseg;
             Offset(codeseg) = _align(datasize,Offset(codeseg));
             s.Soffset = Offset(codeseg);
-            s.Sfl = FLcsdata;
+            s.Sfl = FL.csdata;
             break;
 
         case mTYthreadData:
@@ -261,7 +261,7 @@ void outdata(Symbol *s)
             s.Sseg = pseg.SDseg;
             objmod.data_start(s, datasize, s.Sseg);
             seg = pseg.SDseg;
-            s.Sfl = FLtlsdata;
+            s.Sfl = FL.tlsdata;
             break;
         }
         case mTYthread:
@@ -270,7 +270,7 @@ void outdata(Symbol *s)
             s.Sseg = pseg.SDseg;
             objmod.data_start(s, datasize, s.Sseg);
             seg = pseg.SDseg;
-            s.Sfl = FLtlsdata;
+            s.Sfl = FL.tlsdata;
             break;
         }
         case mTYnear:
@@ -280,7 +280,7 @@ void outdata(Symbol *s)
                 s.Sseg == UNKNOWN)
                 s.Sseg = DATA;
             seg = objmod.data_start(s,datasize,DATA);
-            s.Sfl = FLdata;            // initialized data
+            s.Sfl = FL.data;            // initialized data
             break;
 
         default:
@@ -461,9 +461,9 @@ void outcommon(Symbol *s,targ_size_t n)
             {
                 s.Sxtrnnum = objmod.common_block(s,(s.ty() & mTYfar) == 0,n,1);
                 if (s.ty() & mTYfar)
-                    s.Sfl = FLfardata;
+                    s.Sfl = FL.fardata;
                 else
-                    s.Sfl = FLextern;
+                    s.Sfl = FL.extern_;
                 s.Sseg = UNKNOWN;
                 pstate.STflags |= PFLcomdef;
             }
@@ -595,7 +595,7 @@ Symbol *out_string_literal(const(char)* str, uint len, uint sz)
     dtb.nbytes(str[0 .. len * sz]);
     dtb.nzeros(cast(uint)sz);       // include terminating 0
     s.Sdt = dtb.finish();
-    s.Sfl = FLdata;
+    s.Sfl = FL.data;
     s.Salignment = sz;
     outdata(s);
     return s;
@@ -907,22 +907,22 @@ private void writefunc2(Symbol *sfunc, ref GlobalOptimizer go)
         switch (s.Sclass)
         {
             case SC.bprel:
-                s.Sfl = FLbprel;
+                s.Sfl = FL.bprel;
                 goto L3;
 
             case SC.auto_:
             case SC.register:
-                s.Sfl = FLauto;
+                s.Sfl = FL.auto_;
                 goto L3;
 
             case SC.fastpar:
-                s.Sfl = FLfast;
+                s.Sfl = FL.fast;
                 goto L3;
 
             case SC.regpar:
             case SC.parameter:
             case SC.shadowreg:
-                s.Sfl = FLpara;
+                s.Sfl = FL.para;
                 if (tyf == TYifunc)
                 {   s.Sflags |= SFLlivexit;
                     break;
@@ -933,14 +933,14 @@ private void writefunc2(Symbol *sfunc, ref GlobalOptimizer go)
                 break;
 
             case SC.pseudo:
-                s.Sfl = FLpseudo;
+                s.Sfl = FL.pseudo;
                 break;
 
             case SC.static_:
                 break;                  // already taken care of by datadef()
 
             case SC.stack:
-                s.Sfl = FLstack;
+                s.Sfl = FL.stack;
                 break;
 
             default:

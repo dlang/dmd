@@ -461,7 +461,7 @@ nothrow:
         t.Tcount++;
         Symbol *s = symbol_calloc("internal");
         s.Sclass = SC.static_;
-        s.Sfl = FLextern;
+        s.Sfl = FL.extern_;
         s.Sflags |= SFLnodebug;
         s.Stype = t;
         s.Sdt = dt;
