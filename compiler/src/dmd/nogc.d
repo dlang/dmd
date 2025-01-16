@@ -284,12 +284,12 @@ private FuncDeclaration stripHookTraceImpl(FuncDeclaration fd)
  *     fd = function
  *     loc = location of GC action
  *     fmt = format string for error message. Must include "%s `%s`" for the function kind and name.
- *     arg0 = (optional) argument to format string
+ *     args = arguments to format string
  *
  * Returns:
  *      true if function is marked as @nogc, meaning a user error occurred
  */
-extern (D) bool setGC(FuncDeclaration fd, Loc loc, const(char)* fmt, RootObject arg0 = null)
+extern (D) bool setGC(FuncDeclaration fd, Loc loc, const(char)* fmt, RootObject[] args...)
 {
     //printf("setGC() %s\n", toChars());
     if (fd.nogcInprocess && fd.semanticRun < PASS.semantic3 && fd._scope)
@@ -302,14 +302,10 @@ extern (D) bool setGC(FuncDeclaration fd, Loc loc, const(char)* fmt, RootObject 
     {
         fd.nogcInprocess = false;
         if (fmt)
+            fd.nogcViolation = new AttributeViolation(loc, fmt, args); // action that requires GC
+        else if (args.length > 0)
         {
-            OutBuffer buf;
-            buf.printf(fmt, arg0 ? arg0.toChars() : "");
-            fd.nogcViolation = new AttributeViolation(loc, buf.extractSlice()); // action that requires GC
-        }
-        else if (arg0)
-        {
-            if (auto sa = arg0.isDsymbol())
+            if (auto sa = args[0].isDsymbol())
             {
                 if (FuncDeclaration fd2 = sa.isFuncDeclaration())
                 {

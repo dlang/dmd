@@ -691,16 +691,13 @@ extern (C++) class FuncDeclaration : Declaration
      * Params:
      *     loc = location of action
      *     format = format string for error message
-     *     arg0 = (optional) argument to format string
+     *     args = arguments to format string
      */
-    extern (D) final void setThrow(Loc loc, const(char)* format, RootObject arg0 = null)
+    extern (D) final void setThrow(Loc loc, const(char)* format, RootObject[] args...)
     {
         if (nothrowInprocess && !nothrowViolation)
         {
-            OutBuffer buf;
-            buf.printf(format, arg0 ? arg0.toChars() : "");
-            assert(format);
-            nothrowViolation = new AttributeViolation(loc, buf.extractSlice()); // action that requires GC
+            nothrowViolation = new AttributeViolation(loc, format, args); // action that requires GC
         }
     }
 
@@ -1891,9 +1888,17 @@ struct AttributeViolation
 
     this(ref Loc loc, FuncDeclaration fd) { this.loc = loc; this.fd = fd; }
 
-    this(ref Loc loc, string action)
+    this(ref Loc loc, const(char)* fmt, RootObject[] args)
     {
         this.loc = loc;
-        this.action = action;
+        assert(args.length <= 4); // expand if necessary
+        OutBuffer buf;
+        buf.printf(fmt,
+            args.length > 0 && args[0] ? args[0].toChars() : "",
+            args.length > 1 && args[1] ? args[1].toChars() : "",
+            args.length > 2 && args[2] ? args[2].toChars() : "",
+            args.length > 3 && args[3] ? args[3].toChars() : "",
+        );
+        this.action = buf.extractSlice();
     }
 }
