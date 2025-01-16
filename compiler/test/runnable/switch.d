@@ -53,21 +53,21 @@ void send_1(short* to, short* from, int count)
 {
     auto n = (count + 7) / 8;
     switch (count % 8) {
-    case 0: do { *to = *from++;
+    case 0: do { *to++ = *from++;
                  goto case;
-    case 7:      *to = *from++;
+    case 7:      *to++ = *from++;
                  goto case;
-    case 6:      *to = *from++;
+    case 6:      *to++ = *from++;
                  goto case;
-    case 5:      *to = *from++;
+    case 5:      *to++ = *from++;
                  goto case;
-    case 4:      *to = *from++;
+    case 4:      *to++ = *from++;
                  goto case;
-    case 3:      *to = *from++;
+    case 3:      *to++ = *from++;
                  goto case;
-    case 2:      *to = *from++;
+    case 2:      *to++ = *from++;
                  goto case;
-    case 1:      *to = *from++;
+    case 1:      *to++ = *from++;
                  continue;
             } while (--n > 0);
             break;
@@ -79,21 +79,21 @@ void send_2(short* to, short* from, int count)
 {
     auto n = (count + 7) / 8;
     switch (count % 8) {
-    case 0 => do { *to = *from++;
+    case 0 => do { *to++ = *from++;
                  goto case;
-    case 7 =>      *to = *from++;
+    case 7 =>      *to++ = *from++;
                  goto case;
-    case 6 =>      *to = *from++;
+    case 6 =>      *to++ = *from++;
                  goto case;
-    case 5 =>      *to = *from++;
+    case 5 =>      *to++ = *from++;
                  goto case;
-    case 4 =>      *to = *from++;
+    case 4 =>      *to++ = *from++;
                  goto case;
-    case 3 =>      *to = *from++;
+    case 3 =>      *to++ = *from++;
                  goto case;
-    case 2 =>      *to = *from++;
+    case 2 =>      *to++ = *from++;
                  goto case;
-    case 1 =>      *to = *from++;
+    case 1 =>      *to++ = *from++;
                  continue;
             } while (--n > 0);
             break;
