@@ -25,7 +25,7 @@ version (DRuntime_Use_Libunwind):
 
 import core.internal.backtrace.dwarf;
 import core.internal.backtrace.libunwind;
-import core.stdc.string;
+import core.stdc.string : strlen;
 import core.sys.posix.dlfcn : Dl_info, dladdr;
 
 /// Ditto
@@ -50,8 +50,6 @@ class LibunwindHandler : Throwable.TraceInfo
      */
     public this (size_t frames_to_skip = 1) nothrow @nogc
     {
-        import core.stdc.string : strlen;
-
         static assert(typeof(FrameInfo.address).sizeof == unw_word_t.sizeof,
                       "Mismatch in type size for call to unw_get_proc_name");
 

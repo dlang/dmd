@@ -423,8 +423,6 @@ version (Darwin) {
  */
 void resolveAddresses(const(ubyte)[] debugLineSectionData, Location[] locations, size_t baseAddress) @nogc nothrow
 {
-    debug(DwarfDebugMachine) import core.stdc.stdio;
-
     size_t numberOfLocationsFound = 0;
 
     const(ubyte)[] dbg = debugLineSectionData;
