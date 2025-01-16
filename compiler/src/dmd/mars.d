@@ -1591,20 +1591,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         {
             // Parse:
             //      -debug
-            //      -debug=number
             //      -debug=identifier
             if (p[6] == '=')
             {
-                if (isdigit(cast(char)p[7]))
-                {
-                    if (!params.debuglevel.parseDigits(p.toDString()[7 .. $]))
-                        goto Lerror;
-
-                    // @@@DEPRECATED_2.111@@@
-                    // Deprecated in 2.101, remove in 2.111
-                    eSink.deprecation(Loc.initial, "`-debug=number` is deprecated, use debug identifiers instead");
-                }
-                else if (Identifier.isValidIdentifier(p + 7))
+                if (Identifier.isValidIdentifier(p + 7))
                 {
                     DebugCondition.addGlobalIdent((p + 7).toDString());
                 }
@@ -1619,20 +1609,10 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (startsWith(p + 1, "version")) // https://dlang.org/dmd.html#switch-version
         {
             // Parse:
-            //      -version=number
             //      -version=identifier
             if (p[8] == '=')
             {
-                if (isdigit(cast(char)p[9]))
-                {
-                    if (!params.versionlevel.parseDigits(p.toDString()[9 .. $]))
-                        goto Lerror;
-
-                    // @@@DEPRECATED_2.111@@@
-                    // Deprecated in 2.101, remove in 2.111
-                    eSink.deprecation(Loc.initial, "`-version=number` is deprecated, use version identifiers instead");
-                }
-                else if (Identifier.isValidIdentifier(p + 9))
+                if (Identifier.isValidIdentifier(p + 9))
                 {
                     VersionCondition.addGlobalIdent((p+9).toDString());
                 }
