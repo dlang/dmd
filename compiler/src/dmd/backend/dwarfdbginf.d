@@ -132,10 +132,9 @@ static if (1)
     {
         if (config.objfmt == OBJ_ELF)
             return Obj.getsegment(name, null, flags, 0, align_ * 4);
-        else if (config.objfmt == OBJ_MACH)
+        if (config.objfmt == OBJ_MACH)
             return Obj.getsegment(name, "__DWARF", align_ * 2, flags);
-        else
-            assert(0);
+        assert(0);
     }
 
     int dwarf_getsegment_alloc(const(char)* name, const(char)* suffix, int align_)
@@ -175,7 +174,7 @@ static if (1)
     {
         if (config.objfmt == OBJ_ELF)
             return dwarf_getsegment_alloc(".eh_frame", null, I64 ? 2 : 1);
-        else if (config.objfmt == OBJ_MACH)
+        if (config.objfmt == OBJ_MACH)
         {
             int seg = getsegment2(eh_frame_seg, "__eh_frame", "__TEXT", I64 ? 3 : 2,
                 S_COALESCED | S_ATTR_NO_TOC | S_ATTR_STRIP_STATIC_SYMS | S_ATTR_LIVE_SUPPORT);
@@ -192,8 +191,7 @@ static if (1)
             }
             return seg;
         }
-        else
-            assert(0);
+        assert(0);
     }
 
     // machobj.c
@@ -519,9 +517,9 @@ static if (1)
         {
             if (config.objfmt == OBJ_MACH)
                 return "__debug_frame";
-            else if (config.objfmt == OBJ_ELF)
+            if (config.objfmt == OBJ_ELF)
                 return ".debug_frame";
-            else return null;
+            return null;
         }
 
 

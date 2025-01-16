@@ -58,18 +58,15 @@ nothrow:
         const targ_ldouble y = fabs(z.im);
         if (x == 0)
             return y;
-        else if (y == 0)
+        if (y == 0)
             return x;
-        else if (x > y)
+        if (x > y)
         {
             const targ_ldouble temp = y / x;
             return x * sqrt(1 + temp * temp);
         }
-        else
-        {
-            const targ_ldouble temp = x / y;
-            return y * sqrt(1 + temp * temp);
-        }
+        const targ_ldouble temp = x / y;
+        return y * sqrt(1 + temp * temp);
     }
 
     static Complex_f sqrtc(ref Complex_f z)
@@ -78,31 +75,28 @@ nothrow:
         {
             return Complex_f(0, 0);
         }
+        const targ_ldouble x = fabs(z.re);
+        const targ_ldouble y = fabs(z.im);
+        targ_ldouble r, w;
+        if (x >= y)
+        {
+            r = y / x;
+            w = sqrt(x) * sqrt(0.5 * (1 + sqrt(1 + r * r)));
+        }
         else
         {
-            const targ_ldouble x = fabs(z.re);
-            const targ_ldouble y = fabs(z.im);
-            targ_ldouble r, w;
-            if (x >= y)
-            {
-                r = y / x;
-                w = sqrt(x) * sqrt(0.5 * (1 + sqrt(1 + r * r)));
-            }
-            else
-            {
-                r = x / y;
-                w = sqrt(y) * sqrt(0.5 * (r + sqrt(1 + r * r)));
-            }
+            r = x / y;
+            w = sqrt(y) * sqrt(0.5 * (r + sqrt(1 + r * r)));
+        }
 
-            if (z.re >= 0)
-            {
-                return Complex_f(cast(float)w, (z.im / cast(float)(w + w)));
-            }
-            else
-            {
-                const cim = (z.im >= 0) ? w : -w;
-                return Complex_f((z.im / cast(float)(cim + cim)), cast(float)cim);
-            }
+        if (z.re >= 0)
+        {
+            return Complex_f(cast(float)w, (z.im / cast(float)(w + w)));
+        }
+        else
+        {
+            const cim = (z.im >= 0) ? w : -w;
+            return Complex_f((z.im / cast(float)(cim + cim)), cast(float)cim);
         }
     }
 }
@@ -142,9 +136,9 @@ nothrow:
         const targ_ldouble y = fabs(z.im);
         if (x == 0)
             return y;
-        else if (y == 0)
+        if (y == 0)
             return x;
-        else if (x > y)
+        if (x > y)
         {
             const targ_ldouble temp = y / x;
             return x * sqrt(1 + temp * temp);
@@ -227,18 +221,15 @@ nothrow:
         const targ_ldouble y = fabsl(z.im);
         if (x == 0)
             return y;
-        else if (y == 0)
+        if (y == 0)
             return x;
-        else if (x > y)
+        if (x > y)
         {
             const targ_ldouble temp = y / x;
             return x * sqrt(1 + temp * temp);
         }
-        else
-        {
-            const targ_ldouble temp = x / y;
-            return y * sqrt(1 + temp * temp);
-        }
+        const targ_ldouble temp = x / y;
+        return y * sqrt(1 + temp * temp);
     }
 
     static Complex_ld sqrtc(ref Complex_ld z)
