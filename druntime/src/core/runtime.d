@@ -624,7 +624,7 @@ extern (C) UnitTestResult runModuleUnitTests()
                 if (moduleName.length && e.file.length > moduleName.length
                     && e.file[0 .. moduleName.length] == moduleName)
                 {
-                    import core.stdc.stdio;
+                    import core.stdc.stdio : printf;
                     printf("%.*s(%llu): [unittest] %.*s\n",
                         cast(int) e.file.length, e.file.ptr, cast(ulong) e.line,
                         cast(int) e.message.length, e.message.ptr);
@@ -733,7 +733,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null ) // @nogc
 unittest
 {
     import core.runtime;
-    import core.stdc.stdio;
+    import core.stdc.stdio : printf;
 
     void main()
     {

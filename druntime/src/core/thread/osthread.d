@@ -56,7 +56,7 @@ else version (D_InlineAsm_X86_64)
 version (Windows)
 {
     import core.stdc.stdint : uintptr_t; // for _beginthreadex decl below
-    import core.stdc.stdlib;             // for malloc, atexit
+    import core.stdc.stdlib : free, malloc, realloc;
     import core.sys.windows.basetsd /+: HANDLE+/;
     import core.sys.windows.threadaux /+: getThreadStackBottom, impersonate_thread, OpenThreadHandle+/;
     import core.sys.windows.winbase /+: CloseHandle, CREATE_SUSPENDED, DuplicateHandle, GetCurrentThread,
@@ -74,7 +74,7 @@ else version (Posix)
 {
     static import core.sys.posix.pthread;
     static import core.sys.posix.signal;
-    import core.stdc.errno;
+    import core.stdc.errno : EINTR, errno;
     import core.sys.posix.pthread : pthread_atfork, pthread_attr_destroy, pthread_attr_getstack, pthread_attr_init,
         pthread_attr_setstacksize, pthread_create, pthread_detach, pthread_getschedparam, pthread_join, pthread_self,
         pthread_setschedparam, sched_get_priority_max, sched_get_priority_min, sched_param, sched_yield;
