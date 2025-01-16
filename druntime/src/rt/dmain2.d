@@ -616,10 +616,7 @@ extern (C) void _d_print_throwable(Throwable t)
 
         HANDLE windowsHandle(int fd)
         {
-            version (CRuntime_Microsoft)
-                return cast(HANDLE)_get_osfhandle(fd);
-            else
-                return _fdToHandle(fd);
+            return cast(HANDLE)_get_osfhandle(fd);
         }
 
         // ensure the exception is shown at the beginning of the line, while also
