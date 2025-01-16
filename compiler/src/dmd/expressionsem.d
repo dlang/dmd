@@ -2073,7 +2073,7 @@ public void errorSupplementalInferredAttr(FuncDeclaration fd, int maxDepth, bool
     auto errorFunc = deprecation ? &eSink.deprecationSupplemental : &eSink.errorSupplemental;
 
     AttributeViolation* s;
-    const(char)* attr;
+    string attr;
     if (stc & STC.safe)
     {
         s = fd.safetyViolation;
@@ -2100,19 +2100,12 @@ public void errorSupplementalInferredAttr(FuncDeclaration fd, int maxDepth, bool
 
     if (s.format)
     {
-        errorFunc(s.loc, deprecation ?
-            "which wouldn't be `%s` because of:" :
-            "which wasn't inferred `%s` because of:", attr);
-        if (stc == STC.nogc || stc == STC.pure_)
-        {
-            auto f = (cast(Dsymbol) s.arg0).isFuncDeclaration();
-            errorFunc(s.loc, s.format, f.kind(), f.toPrettyChars(), s.arg1 ? s.arg1.toChars() : "");
-        }
-        else
-        {
-            errorFunc(s.loc, s.format,
-                s.arg0 ? s.arg0.toChars() : "", s.arg1 ? s.arg1.toChars() : "", s.arg2 ? s.arg2.toChars() : "");
-        }
+        OutBuffer buf;
+        buf.writestring("and ");
+        buf.printf(s.format, s.arg0 ? s.arg0.toChars() : "", s.arg1 ? s.arg1.toChars() : "", s.arg2 ? s.arg2.toChars() : "");
+        buf.printf(" makes it fail to infer `%.*s`", attr.fTuple.expand);
+
+        errorFunc(s.loc, "%s", buf.extractChars);
     }
     else if (s.fd)
     {
@@ -2176,7 +2169,7 @@ private bool checkPurity(VarDeclaration v, const ref Loc loc, Scope* sc)
         if (v.ident == Id.gate)
             return false;
 
-        if (checkImpure(sc, loc, "`pure` %s `%s` cannot access mutable static data `%s`", v))
+        if (checkImpure(sc, loc, "accessing mutable static data `%s`", v))
         {
             error(loc, "`pure` %s `%s` cannot access mutable static data `%s`",
                 sc.func.kind(), sc.func.toPrettyChars(), v.toChars());
@@ -6710,20 +6703,20 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             else if (sc.func && sc.intypeof != 1 && !(sc.ctfe || sc.debug_))
             {
                 bool err = false;
-                if (!tf.purity && sc.func.setImpure(exp.loc, "`pure` %s `%s` cannot call impure `%s`", exp.e1))
+                if (!tf.purity && sc.func.setImpure(exp.loc, "calling impure `%s`", exp.e1))
                 {
                     error(exp.loc, "`pure` %s `%s` cannot call impure %s `%s`",
                         sc.func.kind(), sc.func.toPrettyChars(), p, exp.e1.toChars());
                     err = true;
                 }
-                if (!tf.isNogc && sc.func.setGC(exp.loc, "`@nogc` %s `%s` cannot call non-@nogc `%s`", exp.e1))
+                if (!tf.isNogc && sc.func.setGC(exp.loc, "calling non-@nogc `%s`", exp.e1))
                 {
                     error(exp.loc, "`@nogc` %s `%s` cannot call non-@nogc %s `%s`",
                         sc.func.kind(), sc.func.toPrettyChars(), p, exp.e1.toChars());
                     err = true;
                 }
                 if (tf.trust <= TRUST.system && sc.setUnsafe(true, exp.loc,
-                    "`@safe` function `%s` cannot call `@system` `%s`", sc.func, exp.e1))
+                    "calling `@system` `%s`", exp.e1))
                 {
                     error(exp.loc, "`@safe` %s `%s` cannot call `@system` %s `%s`",
                         sc.func.kind(), sc.func.toPrettyChars(), p, exp.e1.toChars());

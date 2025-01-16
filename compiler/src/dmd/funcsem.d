@@ -3032,7 +3032,7 @@ extern (D) bool checkNRVO(FuncDeclaration fd)
  * Params:
  *     fd = function declaration to mark
  *     loc = location of impure action
- *     fmt = format string for error message. Must include "%s `%s`" for the function kind and name.
+ *     fmt = format string for error message
  *     arg0 = (optional) argument to format string
  *
  * Returns: `true` if there's a purity error
@@ -3043,7 +3043,7 @@ extern (D) bool setImpure(FuncDeclaration fd, Loc loc = Loc.init, const(char)* f
     {
         fd.purityInprocess = false;
         if (fmt)
-            fd.pureViolation = new AttributeViolation(loc, fmt, fd, arg0); // impure action
+            fd.pureViolation = new AttributeViolation(loc, fmt, arg0); // impure action
         else if (arg0)
         {
             if (auto sa = arg0.isDsymbol())

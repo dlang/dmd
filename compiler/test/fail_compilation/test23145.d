@@ -6,8 +6,7 @@ fail_compilation/test23145.d(111):        is the location of the constructor
 fail_compilation/test23145.d(124): Error: `scope` allocation of `c` with a non-`scope` constructor is not allowed in a `@safe` function
 fail_compilation/test23145.d(111):        is the location of the constructor
 fail_compilation/test23145.d(125): Error: `@safe` function `test23145.bax` cannot call `@system` function `test23145.inferred`
-fail_compilation/test23145.d(131):        which wasn't inferred `@safe` because of:
-fail_compilation/test23145.d(131):        `scope` allocation of `c` with a non-`scope` constructor
+fail_compilation/test23145.d(131):        and `scope` allocation of `c` with a non-`scope` constructor makes it fail to infer `@safe`
 fail_compilation/test23145.d(129):        `test23145.inferred` is declared here
 ---
 */
