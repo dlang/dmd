@@ -325,7 +325,7 @@ static if (1) // causes assert failure in std.range(4488) from std.parallelism's
             {   benefit += 1;
                 retsym_cnt++;
                 //printf("retsym, benefit = %d\n",benefit);
-                if (s.Sfl == FLreg && !vec_disjoint(s.Srange,regrange[reg]))
+                if (s.Sfl == FL.reg && !vec_disjoint(s.Srange,regrange[reg]))
                     goto Lcant;                         // don't spill if already in register
             }
         }
@@ -654,7 +654,7 @@ private void cgreg_map(Symbol *s, reg_t regmsw, reg_t reglsw)
         (regmsw == NOREG || vec_disjoint(s.Srange,regrange[regmsw]))
        )
     {
-        s.Sfl = FLreg;
+        s.Sfl = FL.reg;
         vec_copy(s.Slvreg,s.Srange);
     }
     else
@@ -664,29 +664,29 @@ private void cgreg_map(Symbol *s, reg_t regmsw, reg_t reglsw)
         // Already computed by cgreg_benefit()
         //vec_sub(s.Slvreg,s.Srange,regrange[reglsw]);
 
-        if (s.Sfl == FLreg)            // if reassigned
+        if (s.Sfl == FL.reg)            // if reassigned
         {
             switch (s.Sclass)
             {
                 case SC.auto_:
                 case SC.register:
-                    s.Sfl = FLauto;
+                    s.Sfl = FL.auto_;
                     break;
                 case SC.fastpar:
-                    s.Sfl = FLfast;
+                    s.Sfl = FL.fast;
                     break;
                 case SC.bprel:
-                    s.Sfl = FLbprel;
+                    s.Sfl = FL.bprel;
                     break;
                 case SC.shadowreg:
                 case SC.parameter:
-                    s.Sfl = FLpara;
+                    s.Sfl = FL.para;
                     break;
                 case SC.pseudo:
-                    s.Sfl = FLpseudo;
+                    s.Sfl = FL.pseudo;
                     break;
                 case SC.stack:
-                    s.Sfl = FLstack;
+                    s.Sfl = FL.stack;
                     break;
                 default:
                     symbol_print(*s);
@@ -746,7 +746,7 @@ void cgreg_unregister(regm_t conflict)
         cgstate.pass = BackendPass.reg;                         // have to codegen at least one more time
     foreach (s; globsym[])
     {
-        if (s.Sfl == FLreg && s.Sregm & conflict)
+        if (s.Sfl == FL.reg && s.Sregm & conflict)
         {
             s.Sflags |= GTunregister;
         }
@@ -791,29 +791,29 @@ int cgreg_assign(Symbol *retsym)
 
             flag = true;
             s.Sflags &= ~(GTregcand | GTunregister | SFLspill);
-            if (s.Sfl == FLreg)
+            if (s.Sfl == FL.reg)
             {
                 switch (s.Sclass)
                 {
                     case SC.auto_:
                     case SC.register:
-                        s.Sfl = FLauto;
+                        s.Sfl = FL.auto_;
                         break;
                     case SC.fastpar:
-                        s.Sfl = FLfast;
+                        s.Sfl = FL.fast;
                         break;
                     case SC.bprel:
-                        s.Sfl = FLbprel;
+                        s.Sfl = FL.bprel;
                         break;
                     case SC.shadowreg:
                     case SC.parameter:
-                        s.Sfl = FLpara;
+                        s.Sfl = FL.para;
                         break;
                     case SC.pseudo:
-                        s.Sfl = FLpseudo;
+                        s.Sfl = FL.pseudo;
                         break;
                     case SC.stack:
-                        s.Sfl = FLstack;
+                        s.Sfl = FL.stack;
                         break;
                     default:
                         debug symbol_print(*s);
@@ -860,12 +860,12 @@ int cgreg_assign(Symbol *retsym)
         if (!(s.Sflags & GTregcand) ||
             s.Sflags & SFLspill ||
             // Keep trying to reassign retsym into destination register
-            (s.Sfl == FLreg && !(s == retsym && s.Sregm != dst_integer_mask && s.Sregm != dst_float_mask))
+            (s.Sfl == FL.reg && !(s == retsym && s.Sregm != dst_integer_mask && s.Sregm != dst_float_mask))
            )
         {
             debug if (debugr)
             {
-                if (s.Sfl == FLreg)
+                if (s.Sfl == FL.reg)
                 {
                     printf("symbol '%s' is in reg %s\n",s.Sident.ptr,regm_str(s.Sregm));
                 }
@@ -1009,7 +1009,7 @@ Ltried:
     {
         foreach (s; globsym[])
         {
-            if (s.Sfl == FLreg &&                // if assigned to register
+            if (s.Sfl == FL.reg &&                // if assigned to register
                 (1UL << s.Sreglsw) & fregsaved &&   // and that register is not scratch
                 type_size(s.Stype) <= REGSIZE && // don't bother with register pairs
                 !tyfloating(s.ty()))             // don't assign floating regs to non-floating regs

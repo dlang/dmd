@@ -353,7 +353,7 @@ void symbol_func(ref Symbol s)
 {
     //printf("symbol_func(%s, x%x)\n", s.Sident.ptr, fregsaved);
     symbol_debug(&s);
-    s.Sfl = FLfunc;
+    s.Sfl = FL.func;
     // Interrupt functions modify all registers
     // BUG: do interrupt functions really save BP?
     // Note that fregsaved may not be set yet
@@ -807,9 +807,9 @@ void symbol_reset(ref Symbol s)
     s.Sflags &= ~(STRoutdef | SFLweak);
     s.Sdw_ref_idx = 0;
     if (s.Sclass == SC.global || s.Sclass == SC.comdat ||
-        s.Sfl == FLudata || s.Sclass == SC.static_)
+        s.Sfl == FL.udata || s.Sclass == SC.static_)
     {   s.Sclass = SC.extern_;
-        s.Sfl = FLextern;
+        s.Sfl = FL.extern_;
     }
 }
 

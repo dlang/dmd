@@ -121,20 +121,20 @@ private void ndp_fstp(ref CodeBuilder cdb, size_t i, tym_t ty)
         case TYfloat:
         case TYifloat:
         case TYcfloat:
-            cdb.genc1(0xD9,modregrm(2,3,BPRM),FLndp,i); // FSTP m32real i[BP]
+            cdb.genc1(0xD9,modregrm(2,3,BPRM),FL.ndp,i); // FSTP m32real i[BP]
             break;
 
         case TYdouble:
         case TYdouble_alias:
         case TYidouble:
         case TYcdouble:
-            cdb.genc1(0xDD,modregrm(2,3,BPRM),FLndp,i); // FSTP m64real i[BP]
+            cdb.genc1(0xDD,modregrm(2,3,BPRM),FL.ndp,i); // FSTP m64real i[BP]
             break;
 
         case TYldouble:
         case TYildouble:
         case TYcldouble:
-            cdb.genc1(0xDB,modregrm(2,7,BPRM),FLndp,i); // FSTP m80real i[BP]
+            cdb.genc1(0xDB,modregrm(2,7,BPRM),FL.ndp,i); // FSTP m80real i[BP]
             break;
 
         default:
@@ -150,20 +150,20 @@ private void ndp_fld(ref CodeBuilder cdb, size_t i, tym_t ty)
         case TYfloat:
         case TYifloat:
         case TYcfloat:
-            cdb.genc1(0xD9,modregrm(2,0,BPRM),FLndp,i);
+            cdb.genc1(0xD9,modregrm(2,0,BPRM),FL.ndp,i);
             break;
 
         case TYdouble:
         case TYdouble_alias:
         case TYidouble:
         case TYcdouble:
-            cdb.genc1(0xDD,modregrm(2,0,BPRM),FLndp,i);
+            cdb.genc1(0xDD,modregrm(2,0,BPRM),FL.ndp,i);
             break;
 
         case TYldouble:
         case TYildouble:
         case TYcldouble:
-            cdb.genc1(0xDB,modregrm(2,5,BPRM),FLndp,i); // FLD m80real i[BP]
+            cdb.genc1(0xDB,modregrm(2,5,BPRM),FL.ndp,i); // FLD m80real i[BP]
             break;
 
         default:
@@ -560,12 +560,12 @@ private void genjmpifC2(ref CodeBuilder cdb, code *ctarget)
         getregs(cdb,mAX);
         cdb.genf2(0xDF,0xE0);                                    // FSTSW AX
         cdb.genc2(0xF6,modregrm(3,0,4),4);                       // TEST AH,4
-        genjmp(cdb, JNE, FLcode, cast(block *)ctarget); // JNE ctarget
+        genjmp(cdb, JNE, FL.code, cast(block *)ctarget); // JNE ctarget
     }
     else
     {
         cg87_87topsw(cdb);
-        genjmp(cdb, JP, FLcode, cast(block *)ctarget);  // JP ctarget
+        genjmp(cdb, JP, FL.code, cast(block *)ctarget);  // JP ctarget
     }
 }
 
@@ -2045,7 +2045,7 @@ void eq87(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
                 cs.Iop = 0xC7;                      // MOV EA+10,0
                 NEWREG(cs.Irm, 0);
                 cs.IEV1.Voffset += 10;
-                cs.IFL2 = FLconst;
+                cs.IFL2 = FL.const_;
                 cs.IEV2.Vint = 0;
                 cs.Iflags |= CFopsize;
                 cdb.gen(&cs);
@@ -2062,7 +2062,7 @@ void eq87(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
                 cs.Iop = 0xC7;                      // MOV EA+10,0
                 NEWREG(cs.Irm, 0);
                 cs.IEV1.Voffset += 10;
-                cs.IFL2 = FLconst;
+                cs.IFL2 = FL.const_;
                 cs.IEV2.Vint = 0;
                 cs.Iflags |= CFopsize;
                 cdb.gen(&cs);
@@ -2159,7 +2159,7 @@ void complex_eq87(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
             cs.Iop = 0xC7;              // MOV EA+10,0
             NEWREG(cs.Irm, 0);
             cs.IEV1.Voffset += 10;
-            cs.IFL2 = FLconst;
+            cs.IFL2 = FL.const_;
             cs.IEV2.Vint = 0;
             cs.Iflags |= CFopsize;
             cdb.gen(&cs);
@@ -2174,7 +2174,7 @@ void complex_eq87(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
             cs.Iop = 0xC7;              // MOV EA+10,0
             NEWREG(cs.Irm, 0);
             cs.IEV1.Voffset += 10;
-            cs.IFL2 = FLconst;
+            cs.IFL2 = FL.const_;
             cs.IEV2.Vint = 0;
             cs.Iflags |= CFopsize;
             cdb.gen(&cs);
@@ -2804,7 +2804,7 @@ void cdnegass87(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
     }
     else
         cs.IEV1.Voffset += sz - 1;
-    cs.IFL2 = FLconst;
+    cs.IFL2 = FL.const_;
     cs.IEV2.Vuns = 0x80;
     cdb.gen(&cs);                       // XOR 7[EA],0x80
     if (tycomplex(tyml))
@@ -2980,12 +2980,12 @@ private void cdd_u64_I32(ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
 
     cdb.genfltreg(0xC7,0,0);
     code *cf1 = cdb.last();
-    cf1.IFL2 = FLconst;
+    cf1.IFL2 = FL.const_;
     cf1.IEV2.Vint = 0;                             // MOV floatreg+0,0
     cdb.genfltreg(STO,reg2,4);                      // MOV floatreg+4,EDX
     cdb.genfltreg(0xC7,0,8);
     code *cf3 = cdb.last();
-    cf3.IFL2 = FLconst;
+    cf3.IFL2 = FL.const_;
     cf3.IEV2.Vint = 0xFBF403E;                     // MOV floatreg+8,(roundTo0<<16)|adjust
 
     push87(cdb);
@@ -2997,7 +2997,7 @@ private void cdd_u64_I32(ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
     cdb.genfltreg(0xD9,5,10);                       // FLDCW floatreg+10
     cdb.genc2(0xF6,modregrm(3,0,4),1);              // TEST AH,1
     code *cnop1 = gennop(null);
-    genjmp(cdb,JE,FLcode,cast(block *)cnop1);       // JZ L1
+    genjmp(cdb,JE,FL.code,cast(block *)cnop1);       // JZ L1
 
     cdb.genfltreg(0xDB,5,0);                        // FLD real ptr floatreg
     cdb.genf2(0xDE,0xE8+1);                         // FSUBP ST(1),ST
@@ -3006,7 +3006,7 @@ private void cdd_u64_I32(ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
     cdb.genfltreg(0x03,reg2,4);                     // ADD reg,floatreg+4
     cdb.genfltreg(0xD9,5,12);                       // FLDCW floatreg+12
     code *cnop2 = gennop(null);
-    genjmp(cdb,JMP,FLcode,cast(block *)cnop2);      // JMP L2
+    genjmp(cdb,JMP,FL.code,cast(block *)cnop2);      // JMP L2
 
     cdb.append(cnop1);
     cdb.genfltreg(0xDF,7,0);                        // FISTP dword ptr floatreg
@@ -3064,12 +3064,12 @@ private void cdd_u64_I64(ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
 
     cdb.genfltreg(0xC7,0,0);
     code *cf1 = cdb.last();
-    cf1.IFL2 = FLconst;
+    cf1.IFL2 = FL.const_;
     cf1.IEV2.Vint = 0;                             // MOV floatreg+0,0
     cdb.genfltreg(STO,reg2,4);                      // MOV floatreg+4,EDX
     cdb.genfltreg(0xC7,0,8);
     code *cf3 = cdb.last();
-    cf3.IFL2 = FLconst;
+    cf3.IFL2 = FL.const_;
     cf3.IEV2.Vint = 0xFBF403E;                     // MOV floatreg+8,(roundTo0<<16)|adjust
 
     push87(cdb);
@@ -3081,7 +3081,7 @@ private void cdd_u64_I64(ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
     cdb.genfltreg(0xD9,5,10);                       // FLDCW floatreg+10
     cdb.genc2(0xF6,modregrm(3,0,4),1);              // TEST AH,1
     code *cnop1 = gennop(null);
-    genjmp(cdb,JE,FLcode,cast(block *)cnop1);       // JZ L1
+    genjmp(cdb,JE,FL.code,cast(block *)cnop1);       // JZ L1
 
     cdb.genfltreg(0xDB,5,0);                        // FLD real ptr floatreg
     cdb.genf2(0xDE,0xE8+1);                         // FSUBP ST(1),ST
@@ -3092,7 +3092,7 @@ private void cdd_u64_I64(ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
     cdb.gen2(0x03,(REX_W << 16) | modregxrmx(3,reg,reg2));  // ADD reg,reg2
     cdb.genfltreg(0xD9,5,12);                       // FLDCW floatreg+12
     code *cnop2 = gennop(null);
-    genjmp(cdb,JMP,FLcode,cast(block *)cnop2);      // JMP L2
+    genjmp(cdb,JMP,FL.code,cast(block *)cnop2);      // JMP L2
 
     cdb.append(cnop1);
     cdb.genfltreg(0xDF,7,0);                        // FISTP dword ptr floatreg
@@ -3132,7 +3132,7 @@ void cdd_u32(ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
 
     cdb.genfltreg(0xC7,0,8);
     code *cf3 = cdb.last();
-    cf3.IFL2 = FLconst;
+    cf3.IFL2 = FL.const_;
     cf3.IEV2.Vint = 0x0FBF0000;                 // MOV floatreg+8,(roundTo0<<16)
 
     cdb.genfltreg(0xD9,7,12);                    // FSTCW floatreg+12
@@ -3233,15 +3233,15 @@ void cnvt87(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
         else
             cod3_stackadj(cdb, szpush);
         genfwait(cdb);
-        cdb.genc1(0xD9,modregrm(2,7,4) + 256*modregrm(0,4,SP),FLconst,szoff); // FSTCW szoff[ESP]
+        cdb.genc1(0xD9,modregrm(2,7,4) + 256*modregrm(0,4,SP),FL.const_,szoff); // FSTCW szoff[ESP]
 
         genfwait(cdb);
 
         if (config.flags3 & CFG3pic)
         {
-            cdb.genc(0xC7,modregrm(2,0,4) + 256*modregrm(0,4,SP),FLconst,szoff+2,FLconst,CW.roundto0); // MOV szoff+2[ESP], CW.roundto0
+            cdb.genc(0xC7,modregrm(2,0,4) + 256*modregrm(0,4,SP),FL.const_,szoff+2,FL.const_,CW.roundto0); // MOV szoff+2[ESP], CW.roundto0
             code_orflag(cdb.last(), CFopsize);
-            cdb.genc1(0xD9,modregrm(2,5,4) + 256*modregrm(0,4,SP),FLconst,szoff+2); // FLDCW szoff+2[ESP]
+            cdb.genc1(0xD9,modregrm(2,5,4) + 256*modregrm(0,4,SP),FL.const_,szoff+2); // FLDCW szoff+2[ESP]
         }
         else
             genSetRoundingMode(cdb, CW.roundto0);   // FLDCW roundto0
@@ -3257,7 +3257,7 @@ void cnvt87(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
         reg = allocreg(cdb,retregs,tym);
 
         genfwait(cdb);                                           // FWAIT
-        cdb.genc1(0xD9,modregrm(2,5,4) + 256*modregrm(0,4,SP),FLconst,szoff); // FLDCW szoff[ESP]
+        cdb.genc1(0xD9,modregrm(2,5,4) + 256*modregrm(0,4,SP),FL.const_,szoff); // FLDCW szoff[ESP]
 
         if (szoff > REGSIZE)
         {   szpush -= REGSIZE;
@@ -3502,7 +3502,7 @@ private void genSetRoundingMode(ref CodeBuilder cdb, CW cw)
     {
         cdb.genfltreg(0xC7, 0, 0);       // MOV floatreg, cw
         code *c1 = cdb.last();
-        c1.IFL2 = FLconst;
+        c1.IFL2 = FL.const_;
         c1.IEV2.Vuns = cw;
 
         cdb.genfltreg(0xD9, 5, 0);         // FLDCW floatreg
@@ -3591,8 +3591,8 @@ private void genctst(ref CodeBuilder cdb,elem *e,int pop)
     {
         cdb.gen2(0xDF,0xE9);                   // FUCOMIP
         pop87();
-        genjmp(cdb,JNE,FLcode,cast(block *) cnop); // JNE     L1
-        genjmp(cdb,JP, FLcode,cast(block *) cnop); // JP      L1
+        genjmp(cdb,JNE,FL.code,cast(block *) cnop); // JNE     L1
+        genjmp(cdb,JP, FL.code,cast(block *) cnop); // JP      L1
         cdb.gen2(0xD9,0xEE);                   // FLDZ
         cdb.gen2(0xDF,0xEA);                   // FUCOMIP ST(2)
         if (pop)
@@ -3612,8 +3612,8 @@ private void genctst(ref CodeBuilder cdb,elem *e,int pop)
         cdb.gen2(0xD9,0xEE);                   // FLDZ
         cdb.gen2(0xDA,0xE9);                   // FUCOMPP
         pop87();
-        genjmp(cdb,JNE,FLcode,cast(block *) cnop); // JNE     L1
-        genjmp(cdb,JP, FLcode,cast(block *) cnop); // JP      L1
+        genjmp(cdb,JNE,FL.code,cast(block *) cnop); // JNE     L1
+        genjmp(cdb,JP, FL.code,cast(block *) cnop); // JP      L1
         cg87_87topsw(cdb);                     // put 8087 flags in CPU flags
     }
     else
@@ -3622,8 +3622,8 @@ private void genctst(ref CodeBuilder cdb,elem *e,int pop)
         cg87_87topsw(cdb);                     // put 8087 flags in CPU flags
         cdb.gen2(0xDD,0xEA);                   // FUCOMP ST(2)
         pop87();
-        genjmp(cdb,JNE,FLcode,cast(block *) cnop); // JNE     L1
-        genjmp(cdb,JP, FLcode,cast(block *) cnop); // JP      L1
+        genjmp(cdb,JNE,FL.code,cast(block *) cnop); // JNE     L1
+        genjmp(cdb,JP, FL.code,cast(block *) cnop); // JP      L1
         cg87_87topsw(cdb);                     // put 8087 flags in CPU flags
     }
     cdb.append(cdbnop);

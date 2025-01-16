@@ -59,7 +59,7 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
     {
         if (cs.reg != reg)  // do not mov onto itself
             cs.Iop = INSTR.mov_register(szw == 8,cs.reg,reg);  // MOV reg,cs.reg
-        cs.IFL1 = FLunde;
+        cs.IFL1 = FL.unde;
     }
     else if (cs.index != NOREG)
     {
@@ -98,7 +98,7 @@ void storeToEA(ref code cs, reg_t reg, uint sz)
     {
         if (cs.reg != reg)  // do not mov onto itself
             cs.Iop = INSTR.mov_register(sz == 8,reg,cs.reg);  // MOV cs.reg,reg
-        cs.IFL1 = FLunde;
+        cs.IFL1 = FL.unde;
     }
     else if (cs.index != NOREG)
     {
@@ -223,12 +223,12 @@ int isscaledindex(tym_t ty, elem *e)
  *         bit 1 if true then goto jump address if e
  *               if false then goto jump address if !e
  *         2    don't call save87()
- *      fltarg   FLcode or FLblock, flavor of target if e evaluates to jcond
+ *      fltarg   FL.code or FL.block, flavor of target if e evaluates to jcond
  *      targ    either code or block pointer to destination
  */
 
 @trusted
-void logexp(ref CodeBuilder cdb, elem *e, uint jcond, uint fltarg, code *targ)
+void logexp(ref CodeBuilder cdb, elem *e, uint jcond, FL fltarg, code *targ)
 {
     //printf("logexp(e = %p, jcond = %d)\n", e, jcond); elem_print(e);
     if (tybasic(e.Ety) == TYnoreturn)
@@ -261,7 +261,7 @@ void logexp(ref CodeBuilder cdb, elem *e, uint jcond, uint fltarg, code *targ)
                 else
                 {
                     code *cnop = gen1(null, INSTR.nop);
-                    logexp(cdb, e.E1, jcond | 1, FLcode, cnop);
+                    logexp(cdb, e.E1, jcond | 1, FL.code, cnop);
                     regconsave = cgstate.regcon;
                     logexp(cdb, e.E2, jcond, fltarg, targ);
                     cdb.append(cnop);
@@ -278,7 +278,7 @@ void logexp(ref CodeBuilder cdb, elem *e, uint jcond, uint fltarg, code *targ)
                 if (jcond & 1)
                 {
                     code *cnop = gen1(null, INSTR.nop);    // a dummy target address
-                    logexp(cdb, e.E1, jcond & ~1, FLcode, cnop);
+                    logexp(cdb, e.E1, jcond & ~1, FL.code, cnop);
                     regconsave = cgstate.regcon;
                     logexp(cdb, e.E2, jcond, fltarg, targ);
                     cdb.append(cnop);
@@ -317,10 +317,10 @@ void logexp(ref CodeBuilder cdb, elem *e, uint jcond, uint fltarg, code *targ)
             {
                 code *cnop2 = gen1(null, INSTR.nop);   // addresses of start of leaves
                 code *cnop = gen1(null, INSTR.nop);
-                logexp(cdb, e.E1, false, FLcode, cnop2);   // eval condition
+                logexp(cdb, e.E1, false, FL.code, cnop2);   // eval condition
                 con_t regconold = cgstate.regcon;
                 logexp(cdb, e.E2.E1, jcond, fltarg, targ);
-                genBranch(cdb, COND.al, FLcode, cast(block *) cnop); // skip second leaf
+                genBranch(cdb, COND.al, FL.code, cast(block *) cnop); // skip second leaf
 
                 con_t regconsave = cgstate.regcon;
                 cgstate.regcon = regconold;
@@ -488,10 +488,10 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem *e,regm_t keepmsk,RM rm = R
         //symbol_print(*s);
     }
     else
-        fl = FLoper;
+        fl = FL.oper;
     enum BP = 29;
     enum SP = 31;
-    pcs.IFL1 = cast(ubyte)fl;
+    pcs.IFL1 = fl;
     pcs.Iflags = CFoff;                  /* only want offsets            */
     pcs.reg = NOREG;
     pcs.base = NOREG;
@@ -515,7 +515,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem *e,regm_t keepmsk,RM rm = R
     //printf("fl: %s\n", fl_str(fl));
     switch (fl)
     {
-        case FLoper:
+        case FL.oper:
             debug
             if (debugw) printf("getlvalue(e = %p, keepmsk = %s)\n", e, regm_str(keepmsk));
 
@@ -556,7 +556,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem *e,regm_t keepmsk,RM rm = R
              *      MOV     idxreg,e
              *      EA =    [ES:] &v+idxreg
              */
-            FL f = FLconst;
+            FL f = FL.const_;
 
             /* Is address of `s` relative to RIP ?
              */
@@ -566,7 +566,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem *e,regm_t keepmsk,RM rm = R
                     return true;
                 if (config.flags3 & CFG3pie)
                 {
-                    if (s.Sfl == FLtlsdata || s.ty() & mTYthread)
+                    if (s.Sfl == FL.tlsdata || s.ty() & mTYthread)
                     {
                         if (s.Sclass == SC.global || s.Sclass == SC.static_ || s.Sclass == SC.locstat)
                             return false;
@@ -666,7 +666,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem *e,regm_t keepmsk,RM rm = R
 
                         if (ssflags & SSFLnobase1)
                         {
-                            cdb.last().IFL1 = FLconst;
+                            cdb.last().IFL1 = FL.const_;
                             cdb.last().IEV1.Vuns = 0;
                         }
 
@@ -707,14 +707,14 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem *e,regm_t keepmsk,RM rm = R
                     }
                 }
 
-                if (f == FLpara)
+                if (f == FL.para)
                     cgstate.refparam = true;
-                else if (f == FLauto || f == FLbprel || f == FLfltreg || f == FLfast)
+                else if (f == FL.auto_ || f == FL.bprel || f == FL.fltreg || f == FL.fast)
                     cgstate.reflocal = true;
                 else
-                    assert(f != FLreg);
-                pcs.IFL1 = cast(ubyte)f;
-                if (f != FLconst)
+                    assert(f != FL.reg);
+                pcs.IFL1 = f;
+                if (f != FL.const_)
                     pcs.IEV1.Vsym = e12.Vsym;
                 pcs.IEV1.Voffset = e12.Voffset; /* += ??? */
 
@@ -737,7 +737,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem *e,regm_t keepmsk,RM rm = R
                     pcs.Iflags = flagsave;
                     pcs.Irex = rexsave;
                     pcs.Iop = opsave;
-                    pcs.IFL1 = FLoffset;
+                    pcs.IFL1 = FL.offset;
                     pcs.IEV1.Vuns = 0;
                     setaddrmode(pcs, regs);
                 }
@@ -754,7 +754,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem *e,regm_t keepmsk,RM rm = R
                 rm == RM.store)
                 idxregs |= cgstate.regcon.mvar;
 
-            pcs.IFL1 = FLoffset;
+            pcs.IFL1 = FL.offset;
             pcs.IEV1.Vuns = 0;
 
             /* see if we can replace *(e+c) with
@@ -874,7 +874,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem *e,regm_t keepmsk,RM rm = R
 
             return Lptr();
 
-        case FLdatseg:
+        case FL.datseg:
             assert(0);
 
         static if (0)
@@ -884,24 +884,24 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem *e,regm_t keepmsk,RM rm = R
             break;
         }
 
-        case FLfltreg:
+        case FL.fltreg:
             cgstate.reflocal = true;
             pcs.base = BP;
             break;
 
-        case FLreg:
+        case FL.reg:
             goto L2;
 
-        case FLpara:
+        case FL.para:
             if (s.Sclass == SC.shadowreg)
-                goto case FLfast;
+                goto case FL.fast;
         Lpara:
             cgstate.refparam = true;
             pcs.base = BP;
             goto L2;
 
-        case FLauto:
-        case FLfast:
+        case FL.auto_:
+        case FL.fast:
             if (regParamInPreg(*s))
             {
 //printf("regParamInPreg()\n");
@@ -956,14 +956,14 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem *e,regm_t keepmsk,RM rm = R
             }
             if (s.Sclass == SC.shadowreg)
                 goto Lpara;
-            goto case FLbprel;
+            goto case FL.bprel;
 
-        case FLbprel:
+        case FL.bprel:
             cgstate.reflocal = true;
             pcs.base = BP;
             goto L2;
 
-        case FLextern:
+        case FL.extern_:
             if (s.Sident[0] == '_' && memcmp(s.Sident.ptr + 1,"tls_array".ptr,10) == 0)
             {
                 if (config.exe & EX_windos)
@@ -972,7 +972,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem *e,regm_t keepmsk,RM rm = R
                     {   // GS:[88]
                         pcs.Irm = modregrm(0, 0, 4);
                         pcs.Isib = modregrm(0, 4, 5);  // don't use [RIP] addressing
-                        pcs.IFL1 = FLconst;
+                        pcs.IFL1 = FL.const_;
                         pcs.IEV1.Vuns = 88;
                         pcs.Iflags = CFgs;
                         pcs.Irex |= REX_W;
@@ -991,25 +991,25 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem *e,regm_t keepmsk,RM rm = R
             }
             goto L3;
 
-        case FLtlsdata:
+        case FL.tlsdata:
             if (config.exe & EX_posix)
                 goto L3;
             assert(0);
 
-        case FLdata:
-        case FLudata:
-        case FLcsdata:
-        case FLgot:
-        case FLgotoff:
+        case FL.data:
+        case FL.udata:
+        case FL.csdata:
+        case FL.got:
+        case FL.gotoff:
         L3:
             pcs.base = BP;
         L2:
             if (rm != RM.store)                    // if not store only
                 s.Sflags |= SFLread;               // assume we are doing a read
 
-            if (fl == FLreg)
+            if (fl == FL.reg)
             {
-                //printf("test: FLreg, %s %d cgstate.regcon.mvar = %s\n",
+                //printf("test: FL.reg, %s %d cgstate.regcon.mvar = %s\n",
                 // s.Sident.ptr, cast(int)e.Voffset, regm_str(cgstate.regcon.mvar));
                 if (!(s.Sregm & cgstate.regcon.mvar))
                     symbol_print(*s);
@@ -1038,7 +1038,7 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem *e,regm_t keepmsk,RM rm = R
                 break;
             }
             if (config.flags3 & CFG3pic &&
-                (fl == FLtlsdata || s.ty() & mTYthread))
+                (fl == FL.tlsdata || s.ty() & mTYthread))
             {
                 assert(0);
             }
@@ -1083,20 +1083,20 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem *e,regm_t keepmsk,RM rm = R
             }
             break;
 
-        case FLpseudo:
+        case FL.pseudo:
             {
                 getregs(cdb, mask(s.Sreglsw));
                 pcs.reg = s.Sreglsw;
                 break;
             }
 
-        case FLfardata:
-        case FLfunc:                                /* reading from code seg */
+        case FL.fardata:
+        case FL.func:                                /* reading from code seg */
             if (config.exe & EX_flat)
                 goto L3;
             assert(0);
 
-        case FLstack:
+        case FL.stack:
             pcs.base = SP;
             pcs.IEV1.Vsym = s;
             pcs.IEV1.Voffset = e.Voffset;
@@ -1152,8 +1152,8 @@ static if (0)
         cdb.gen2(op | UCOMISS, modregrm(3, xreg-XMM0, reg-XMM0));     // UCOMISS xreg,reg
         if (tym == TYcfloat || tym == TYcdouble)
         {   code *cnop = gennop(null);
-            genjmp(cdb, JNE, FLcode, cast(block *) cnop); // JNE     L1
-            genjmp(cdb,  JP, FLcode, cast(block *) cnop); // JP      L1
+            genjmp(cdb, JNE, FL.code, cast(block *) cnop); // JNE     L1
+            genjmp(cdb,  JP, FL.code, cast(block *) cnop); // JP      L1
             reg = findreg(regm & ~mask(reg));
             cdb.gen2(op | UCOMISS, modregrm(3, xreg-XMM0, reg-XMM0)); // UCOMISS xreg,reg
             cdb.append(cnop);
@@ -1726,7 +1726,7 @@ printf("numalign: %d numpara: %d\n", numalign, numpara);
                 // LEA preg,np[RSP]
                 uint delta = cgstate.stackpush - ep.Vuns;   // stack delta to parameter
                 cdb.genc1(LEA,
-                        (modregrm(0,4,SP) << 8) | modregxrm(2,preg,4), FLconst,delta);
+                        (modregrm(0,4,SP) << 8) | modregxrm(2,preg,4), FL.const_,delta);
                 if (I64)
                     code_orrex(cdb.last(), REX_W);
             }
@@ -1869,7 +1869,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
             if (config.exe == EX_WIN64)
                 areg = DX;
             getregs(cdbe, mask(areg));
-            cdbe.genc(LEA, modregrm(2, areg, BPRM), FLallocatmp, 0, 0, 0);  // LEA areg,&localsize[BP]
+            cdbe.genc(LEA, modregrm(2, areg, BPRM), FL.allocatmp, 0, FL.unde, 0);  // LEA areg,&localsize[BP]
             if (I64)
                 code_orrex(cdbe.last(), REX_W);
             cgstate.Alloca.size = REGSIZE;
@@ -1887,13 +1887,13 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
                 cgstate.floatreg = true;         // use float register
                 cgstate.reflocal = true;
                 cdbe.genc1(0x89,                 // MOV floatreg+2,reg
-                        modregrm(2, reg, BPRM), FLfltreg, REGSIZE);
+                        modregrm(2, reg, BPRM), FL.fltreg, REGSIZE);
                 cdbe.genc1(0x89,                 // MOV floatreg,lsreg
-                        modregrm(2, lsreg, BPRM), FLfltreg, 0);
+                        modregrm(2, lsreg, BPRM), FL.fltreg, 0);
                 if (tym1 == TYifunc)
                     cdbe.gen1(0x9C);             // PUSHF
                 cdbe.genc1(0xFF,                 // CALL [floatreg]
-                        modregrm(2, 3, BPRM), FLfltreg, 0);
+                        modregrm(2, 3, BPRM), FL.fltreg, 0);
             }
             else
             {
@@ -1905,7 +1905,7 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
         }
         else
         {
-            FL fl = FLfunc;
+            FL fl = FL.func;
             if (!tyfunc(s.ty()))
                 fl = el_fl(e1);
             if (tym1 == TYifunc)
@@ -2010,7 +2010,7 @@ static if (0)
                     {   // If symbol is live in this basic block and
                         // isn't already in a register
                         if (s.Srange && vec_testbit(cgstate.dfoidx, s.Srange) &&
-                            s.Sfl != FLreg)
+                            s.Sfl != FL.reg)
                         {   // Then symbol must be allocated on stack
                             cgstate.needframe = true;
                             break;
@@ -2181,7 +2181,7 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
         codelem(cgstate,cdb, e, retregs, false);
         const op = xmmstore(tym);
         const r = findreg(retregs);
-        cdb.genc1(op, modregxrm(2, r - XMM0, BPRM), FLfuncarg, funcargtos - sz);   // MOV funcarg[EBP],r
+        cdb.genc1(op, modregxrm(2, r - XMM0, BPRM), FL.funcarg, funcargtos - sz);   // MOV funcarg[EBP],r
         checkSetVex(cdb.last(),tym);
         return;
     }
@@ -2197,7 +2197,7 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
         cs.reg = NOREG;
         cs.base = 31;
         cs.index = NOREG;
-        cs.IFL1 = FLunde;
+        cs.IFL1 = FL.unde;
         storeToEA(cs, reg, cast(uint)sz);
         cs.Iop = setField(cs.Iop,21,10,funcargtos >> field(cs.Iop,31,30));
         cdb.gen(&cs);
@@ -2206,9 +2206,9 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
     {
         int grex = I64 ? REX_W << 16 : 0;
         uint r = findregmsw(retregs);
-        cdb.genc1(0x89, grex | modregxrm(2, r, BPRM), FLfuncarg, funcargtos - REGSIZE);    // MOV -REGSIZE[EBP],r
+        cdb.genc1(0x89, grex | modregxrm(2, r, BPRM), FL.funcarg, funcargtos - REGSIZE);    // MOV -REGSIZE[EBP],r
         r = findreglsw(retregs);
-        cdb.genc1(0x89, grex | modregxrm(2, r, BPRM), FLfuncarg, funcargtos - REGSIZE * 2); // MOV -2*REGSIZE[EBP],r
+        cdb.genc1(0x89, grex | modregxrm(2, r, BPRM), FL.funcarg, funcargtos - REGSIZE * 2); // MOV -2*REGSIZE[EBP],r
         assert(0);
     }
     else
@@ -2416,7 +2416,7 @@ static if (1)
             if (e.Eoper == OPvar)
             {
                 Symbol *s = e.Vsym;
-                if (s.Sfl == FLreg && !(mask(s.Sreglsw) & XMMREGS))
+                if (s.Sfl == FL.reg && !(mask(s.Sreglsw) & XMMREGS))
                 {   //opmv = LODD;          // MOVD/MOVQ
                     /* getlvalue() will unwind this and unregister s; could use a better solution */
                 }

@@ -283,7 +283,7 @@ Symbol *toStringSymbol(const(char)* str, size_t len, size_t sz)
     si.Stype.Tcount++;
     type_setmangle(&si.Stype, Mangle.c);
     si.Sflags |= SFLnodebug | SFLartifical;
-    si.Sfl = FLdata;
+    si.Sfl = FL.data;
     si.Salignment = cast(ubyte)sz;
     out_readonly_comdat(si, str, cast(uint)(len * sz), cast(uint)sz);
 

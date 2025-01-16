@@ -52,7 +52,7 @@ void eecontext_convs(SYMIDX marksi)
             case SC.auto_:
             case SC.register:
                 s.Sclass = SC.stack;
-                s.Sfl = FLstack;
+                s.Sfl = FL.stack;
                 break;
             default:
                 break;

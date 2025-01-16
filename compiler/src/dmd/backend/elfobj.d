@@ -525,7 +525,7 @@ static if (0)
         s.Sseg = DATA;
         s.Soffset = Offset(DATA);   // Remember its offset into DATA section
         Offset(DATA) += len;
-        s.Sfl = /*(config.flags3 & CFG3pic) ? FLgotoff :*/ FLextern;
+        s.Sfl = /*(config.flags3 & CFG3pic) ? FL.gotoff :*/ FL.extern_;
         return s;
     }
 }
@@ -536,7 +536,7 @@ static if (0)
     ElfObj_bytes(CDATA, Offset(CDATA), len, p);
     s.Sseg = CDATA;
 
-    s.Sfl = /*(config.flags3 & CFG3pic) ? FLgotoff :*/ FLextern;
+    s.Sfl = /*(config.flags3 & CFG3pic) ? FL.gotoff :*/ FL.extern_;
     return s;
 }
 
@@ -1659,7 +1659,7 @@ else
             align_ = 16;
         ElfObj_getsegment(".tdata", null, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, align_);
 
-        s.Sfl = FLtlsdata;
+        s.Sfl = FL.tlsdata;
         prefix = ".tdata.";
         type = SHT_PROGBITS;
         flags = SHF_ALLOC|SHF_WRITE|SHF_TLS;
@@ -1668,7 +1668,7 @@ else
     {
         if (I64)
             align_ = 16;
-        s.Sfl = FLdata;
+        s.Sfl = FL.data;
         //prefix = ".gnu.linkonce.d.";
         prefix = ".data.";
         type = SHT_PROGBITS;
@@ -1685,7 +1685,7 @@ else
 int ElfObj_comdat(Symbol *s)
 {
     setup_comdat(s);
-    if (s.Sfl == FLdata || s.Sfl == FLtlsdata)
+    if (s.Sfl == FL.data || s.Sfl == FL.tlsdata)
     {
         ElfObj_pubdef(s.Sseg,s,0);
     }
@@ -1695,7 +1695,7 @@ int ElfObj_comdat(Symbol *s)
 int ElfObj_comdatsize(Symbol *s, targ_size_t symsize)
 {
     setup_comdat(s);
-    if (s.Sfl == FLdata || s.Sfl == FLtlsdata)
+    if (s.Sfl == FL.data || s.Sfl == FL.tlsdata)
     {
         ElfObj_pubdefsize(s.Sseg,s,0,symsize);
     }
@@ -2384,7 +2384,7 @@ int ElfObj_common_block(Symbol *s,targ_size_t size,targ_size_t count)
     {
         s.Sseg = ElfObj_getsegment(".tbss.", cpp_mangle2(*s),
                 SHT_NOBITS, SHF_ALLOC|SHF_WRITE|SHF_TLS, align_);
-        s.Sfl = FLtlsdata;
+        s.Sfl = FL.tlsdata;
         SegData[s.Sseg].SDsym = s;
         SegData[s.Sseg].SDoffset += size * count;
         ElfObj_pubdefsize(s.Sseg, s, 0, size * count);
@@ -2394,7 +2394,7 @@ int ElfObj_common_block(Symbol *s,targ_size_t size,targ_size_t count)
     {
         s.Sseg = ElfObj_getsegment(".bss.", cpp_mangle2(*s),
                 SHT_NOBITS, SHF_ALLOC|SHF_WRITE, align_);
-        s.Sfl = FLudata;
+        s.Sfl = FL.udata;
         SegData[s.Sseg].SDsym = s;
         SegData[s.Sseg].SDoffset += size * count;
         ElfObj_pubdefsize(s.Sseg, s, 0, size * count);
@@ -2410,7 +2410,7 @@ static if (0)
                    STB_WEAK, SHN_BSS);
     //dbg_printf("\tElfObj_common_block returning symidx %d\n",symidx);
     s.Sseg = UDATA;
-    s.Sfl = FLudata;
+    s.Sfl = FL.udata;
     SegData[UDATA].SDoffset += size * count;
     return symidx;
 }
@@ -2942,7 +2942,7 @@ static if (0)
         case SC.locstat:
             if (I64)
             {
-                if (s.Sfl == FLtlsdata)
+                if (s.Sfl == FL.tlsdata)
                 {
                     if (config.flags3 & CFG3pie)
                         relinfo = R_X86_64_TPOFF32;
@@ -2957,7 +2957,7 @@ static if (0)
             }
             else
             {
-                if (s.Sfl == FLtlsdata)
+                if (s.Sfl == FL.tlsdata)
                 {
                     if (config.flags3 & CFG3pie)
                         relinfo = R_386_TLS_LE;
@@ -3204,7 +3204,7 @@ static if (0)
     switch (s.Sclass)
     {
         case SC.locstat:
-            if (s.Sfl == FLtlsdata)
+            if (s.Sfl == FL.tlsdata)
             {
                 if (config.flags3 & CFG3pie)
                     relinfo = R_X86_64_TPOFF32;
@@ -3841,14 +3841,14 @@ void ElfObj_gotref(Symbol *s)
     {
         case SC.static_:
         case SC.locstat:
-            s.Sfl = FLgotoff;
+            s.Sfl = FL.gotoff;
             break;
 
         case SC.extern_:
         case SC.global:
         case SC.comdat:
         case SC.comdef:
-            s.Sfl = FLgot;
+            s.Sfl = FL.got;
             break;
 
         default:

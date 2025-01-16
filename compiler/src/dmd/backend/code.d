@@ -42,7 +42,7 @@ struct _LabelDsymbol;
 
 union evc
 {
-    targ_int    Vint;           /// also used for tmp numbers (FLtmp)
+    targ_int    Vint;           /// also used for tmp numbers (FL.tmp)
     targ_uns    Vuns;
     targ_long   Vlong;
     targ_llong  Vllong;
@@ -54,13 +54,13 @@ union evc
     }
     Srcpos      Vsrcpos;        /// source position for OPlinnum
     elem       *Vtor;           /// OPctor/OPdtor elem
-    block      *Vswitch;        /// when FLswitch and we have a switch table
-    code       *Vcode;          /// when code is target of a jump (FLcode)
-    block      *Vblock;         /// when block " (FLblock)
+    block      *Vswitch;        /// when FL.switch and we have a switch table
+    code       *Vcode;          /// when code is target of a jump (FL.code)
+    block      *Vblock;         /// when block " (FL.block)
     struct
     {
         targ_size_t Voffset;    /// offset from symbol
-        Symbol  *Vsym;          /// pointer to symbol table (FLfunc,FLextern)
+        Symbol  *Vsym;          /// pointer to symbol table (FL.func,FL.extern_)
     }
 
     struct
@@ -79,7 +79,7 @@ union evc
     {
         size_t len;
         char *bytes;
-    }                           // asm node (FLasm)
+    }                           // asm node (FL.asm)
 }
 
 /********************** PUBLIC FUNCTIONS *******************/

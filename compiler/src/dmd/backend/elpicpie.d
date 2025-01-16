@@ -368,7 +368,7 @@ private Symbol *el_alloc_localgot()
         type_setcv(&t, mTYvolatile);
         localgot = symbol_name(name[0 .. length], SC.auto_, t);
         symbol_add(localgot);
-        localgot.Sfl = FLauto;
+        localgot.Sfl = FL.auto_;
         localgot.Sflags = SFLfree | SFLunambig | GTregcand;
     }
     return localgot;

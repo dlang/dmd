@@ -1981,7 +1981,7 @@ static if (1)
                         debug_info.buf.writeuLEB128(sa.lposscopestart.Scharnum);   // DW_AT_decl_column
                         soffset = cast(uint)debug_info.buf.length();
                         debug_info.buf.writeByte(2);                  // DW_FORM_block1
-                        if (sa.Sfl == FLreg || sa.Sclass == SC.pseudo)
+                        if (sa.Sfl == FL.reg || sa.Sclass == SC.pseudo)
                         {
                             // BUG: register pairs not supported in Dwarf?
                             debug_info.buf.writeByte(DW_OP_reg0 + sa.Sreglsw);
@@ -2153,7 +2153,7 @@ static if (1)
                 {
                     // debug info for TLS variables
                     assert(s.Sxtrnnum);
-                    if (s.Sfl == FLtlsdata)
+                    if (s.Sfl == FL.tlsdata)
                     {
                         if (I64)
                         {

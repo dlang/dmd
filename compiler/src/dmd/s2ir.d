@@ -1387,10 +1387,10 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
         {
             switch (c.IFL1)
             {
-                case FLblockoff:
-                case FLblock:
+                case FL.blockoff:
+                case FL.block:
                 {
-                    // FLblock and FLblockoff have LabelDsymbol's - convert to blocks
+                    // FL.block and FL.blockoff have LabelDsymbol's - convert to blocks
                     LabelDsymbol label = cast(LabelDsymbol)c.IEV1.Vlsym;
                     block *b = cast(block*)label.statement.extra;
                     basm.appendSucc(b);
@@ -1398,13 +1398,13 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                     break;
                 }
 
-                case FLdsymbol:
-                case FLfunc:
+                case FL.dsymbol:
+                case FL.func:
                     sym = toSymbol(cast(Dsymbol)c.IEV1.Vdsym);
                     if (sym.Sclass == SC.auto_ && sym.Ssymnum == SYMIDX.max)
                         symbol_add(sym);
                     c.IEV1.Vsym = sym;
-                    c.IFL1 = sym.Sfl ? sym.Sfl : FLauto;
+                    c.IFL1 = sym.Sfl ? sym.Sfl : FL.auto_;
                     break;
 
                 default:
@@ -1414,8 +1414,8 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
             // Repeat for second operand
             switch (c.IFL2)
             {
-                case FLblockoff:
-                case FLblock:
+                case FL.blockoff:
+                case FL.block:
                 {
                     LabelDsymbol label = cast(LabelDsymbol)c.IEV2.Vlsym;
                     block *b = cast(block*)label.statement.extra;
@@ -1424,15 +1424,15 @@ void Statement_toIR(Statement s, ref IRState irs, StmtState* stmtstate)
                     break;
                 }
 
-                case FLdsymbol:
-                case FLfunc:
+                case FL.dsymbol:
+                case FL.func:
                 {
                     Declaration d = cast(Declaration)c.IEV2.Vdsym;
                     sym = toSymbol(cast(Dsymbol)d);
                     if (sym.Sclass == SC.auto_ && sym.Ssymnum == SYMIDX.max)
                         symbol_add(sym);
                     c.IEV2.Vsym = sym;
-                    c.IFL2 = sym.Sfl ? sym.Sfl : FLauto;
+                    c.IFL2 = sym.Sfl ? sym.Sfl : FL.auto_;
                     if (d.isDataseg())
                         sym.Sflags |= SFLlivexit;
                     break;

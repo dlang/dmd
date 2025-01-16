@@ -76,7 +76,7 @@ void REGSAVE_save(ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, out uint 
     cs.reg = reg;
     cs.base = cgstate.BP;
     cs.index = NOREG;
-    cs.IFL1 = FLregsave;
+    cs.IFL1 = FL.regsave;
     cs.Iop = INSTR.str_imm_gen(1,reg,cs.base,idx);
     cdb.gen(&cs);
 
@@ -98,7 +98,7 @@ void REGSAVE_restore(const ref REGSAVE regsave, ref CodeBuilder cdb, reg_t reg, 
     cs.reg = reg;
     cs.base = cgstate.BP;
     cs.index = NOREG;
-    cs.IFL1 = FLregsave;
+    cs.IFL1 = FL.regsave;
     cs.Iop = INSTR.ldr_imm_gen(1,reg,cs.base,idx);
     cdb.gen(&cs);
 }
@@ -225,14 +225,14 @@ COND conditionCode(elem *e)
  */
 
 @trusted
-void genBranch(ref CodeBuilder cdb,COND cond,uint fltarg,block *targ)
+void genBranch(ref CodeBuilder cdb, COND cond, FL fltarg, block* targ)
 {
     code cs;
     cs.Iop = ((0x54 << 24) | cond);
     cs.Iflags = 0;
-    cs.IFL1 = cast(ubyte)fltarg;        // FLblock (or FLcode)
+    cs.IFL1 = fltarg;                   // FL.block (or FL.code)
     cs.IEV1.Vblock = targ;              // target block (or code)
-    if (fltarg == FLcode)
+    if (fltarg == FL.code)
         (cast(code *)targ).Iflags |= CFtarg;
     cdb.gen(&cs);
 }
@@ -295,7 +295,7 @@ void epilog(block *b)
     {
         Symbol *s = getRtlsym(farfunc ? RTLSYM.TRACE_EPI_F : RTLSYM.TRACE_EPI_N);
         makeitextern(s);
-        cdbx.gencs(I16 ? 0x9A : CALL,0,FLfunc,s);      // CALLF _trace
+        cdbx.gencs(I16 ? 0x9A : CALL,0,FL.func,s);      // CALLF _trace
         code_orflag(cdbx.last(),CFoff | CFselfrel);
         useregs((ALLREGS | mBP | mES) & ~s.Sregsaved);
     }
@@ -356,7 +356,7 @@ void epilog(block *b)
                 genregs(cdbx,0x39,SP,BP);                             // CMP EBP,ESP
                 if (I64)
                     code_orrex(cdbx.last(),REX_W);
-                genjmp(cdbx,JNE,FLcode,cast(block *)c1);                  // JNE L1
+                genjmp(cdbx,JNE,FL.code,cast(block *)c1);                  // JNE L1
                 // explicitly mark as short jump, needed for correct retsize calculation (Bugzilla 15779)
                 cdbx.last().Iflags &= ~CFjmp16;
                 cdbx.gen1(0x58 + BP);                                 // POP BP
@@ -364,7 +364,7 @@ void epilog(block *b)
             else if (config.exe == EX_WIN64)
             {   // See https://msdn.microsoft.com/en-us/library/tawsa7cb%28v=vs.100%29.aspx
                 // LEA RSP,0[RBP]
-                cdbx.genc1(LEA,(REX_W<<16)|modregrm(2,SP,BPRM),FLconst,0);
+                cdbx.genc1(LEA,(REX_W<<16)|modregrm(2,SP,BPRM),FL.const_,0);
                 cdbx.gen1(0x58 + BP);      // POP RBP
             }
             else
@@ -446,7 +446,7 @@ Lret:
 
 /*******************************
  * Replace JMPs in Bgotocode with JMP SHORTs whereever possible.
- * This routine depends on FLcode jumps to only be forward
+ * This routine depends on FL.code jumps to only be forward
  * referenced.
  * BFL.jmpoptdone is set to true if nothing more can be done
  * with this block.
@@ -482,7 +482,7 @@ int branch(block *bl,int flag)
           L1:
             switch (c.IFL1)
             {
-                case FLblock:
+                case FL.block:
                     if (flag)           // no offsets yet, don't optimize
                         goto L3;
                     disp = c.IEV1.Vblock.Boffset - offset - csize;
@@ -511,7 +511,7 @@ int branch(block *bl,int flag)
 
                     break;
 
-                case FLcode:
+                case FL.code:
                 {
                     code *cr;
 
@@ -609,7 +609,7 @@ int branch(block *bl,int flag)
                         disp == (I16 ? 3 : 5) &&
                         cn &&
                         cn.Iop == CALL &&
-                        cn.IFL1 == FLfunc &&
+                        cn.IFL1 == FL.func &&
                         cn.IEV1.Vsym.Sflags & SFLexit &&
                         !(cn.Iflags & (CFtarg | CFtarg2))
                        )
@@ -916,7 +916,7 @@ void assignaddrc(code *c)
                             c.Irex |= REX_R;
                         c.Irm = modregrm(2,SP,BP);
                         c.Iflags = CFoff;
-                        c.IFL1 = FLconst;
+                        c.IFL1 = FL.const_;
                         c.IEV1.Vuns = -cgstate.EBPtoESP;
                         if (cgstate.enforcealign)
                         {
@@ -925,7 +925,7 @@ void assignaddrc(code *c)
                             cn.Iop = 0x81;
                             cn.Irm = modregrm(3, 4, SP);
                             cn.Iflags = CFoff;
-                            cn.IFL2 = FLconst;
+                            cn.IFL2 = FL.const_;
                             cn.IEV2.Vsize_t = -STACKALIGN;
                             if (I64)
                                 c.Irex |= REX_W;
@@ -953,7 +953,7 @@ void assignaddrc(code *c)
                         c.Irm = modregrm(2,c.Irm & 7,4);
                         c.Isib = modregrm(0,4,SP);
                         c.Iflags = CFoff;
-                        c.IFL1 = FLconst;
+                        c.IFL1 = FL.const_;
                         c.IEV1.Vuns = cgstate.EBPtoESP;
                     }
                     continue;
@@ -970,57 +970,57 @@ void assignaddrc(code *c)
         s = c.IEV1.Vsym;
         uint sz = 8;
         uint ins = c.Iop;
-//      if (c.IFL1 != FLunde)
+//      if (c.IFL1 != FL.unde)
         {
             printf("FL: %s  ", fl_str(c.IFL1));
             disassemble(ins);
         }
         switch (c.IFL1)
         {
-            case FLdata:
+            case FL.data:
                 if (config.objfmt == OBJ_OMF && s.Sclass != SC.comdat && s.Sclass != SC.extern_)
                 {
                     c.IEV1.Vseg = s.Sseg;
                     c.IEV1.Vpointer += s.Soffset;
-                    c.IFL1 = FLdatseg;
+                    c.IFL1 = FL.datseg;
                 }
                 else
-                    c.IFL1 = FLextern;
+                    c.IFL1 = FL.extern_;
                 break;
 
-            case FLudata:
+            case FL.udata:
                 if (config.objfmt == OBJ_OMF)
                 {
                     c.IEV1.Vseg = s.Sseg;
                     c.IEV1.Vpointer += s.Soffset;
-                    c.IFL1 = FLdatseg;
+                    c.IFL1 = FL.datseg;
                 }
                 else
-                    c.IFL1 = FLextern;
+                    c.IFL1 = FL.extern_;
                 break;
 
-            case FLtlsdata:
+            case FL.tlsdata:
                 if (config.objfmt == OBJ_ELF || config.objfmt == OBJ_MACH)
-                    c.IFL1 = FLextern;
+                    c.IFL1 = FL.extern_;
                 break;
 
-            case FLdatseg:
+            case FL.datseg:
                 //c.IEV1.Vseg = DATA;
                 break;
 
-            case FLfardata:
-            case FLcsdata:
-            case FLpseudo:
+            case FL.fardata:
+            case FL.csdata:
+            case FL.pseudo:
                 break;
 
-            case FLstack:       // for EE
+            case FL.stack:       // for EE
                 //printf("Soffset = %d, EBPtoESP = %d, base = %d, pointer = %d\n",
                 //s.Soffset,cgstate.EBPtoESP,base,c.IEV1.Vpointer);
                 c.IEV1.Vpointer += s.Soffset + cgstate.EBPtoESP - base - cgstate.EEStack.offset;
-                c.IFL1 = FLconst;
+                c.IFL1 = FL.const_;
                 assert(0); //break;
 
-            case FLreg:
+            case FL.reg:
                 if (Symbol_Sisdead(*s, cgstate.anyiasm))
                 {
                     c.Iop = INSTR.nop;               // remove references to it
@@ -1031,19 +1031,19 @@ void assignaddrc(code *c)
                 Rn = s.Sreglsw;
                 //assert(!c.Voffset);  // fix later
                 c.Iop = INSTR.mov_register(sz > 4, Rn, Rt);
-                c.IFL1 = FLconst;
+                c.IFL1 = FL.const_;
                 break;
 
-            case FLfast:
+            case FL.fast:
                 //printf("Fast.size: %d\n", cast(int)cgstate.Fast.size);
                 sectionOff = cast(uint)cgstate.Fast.size;
                 goto L1;
 
-            case FLauto:
+            case FL.auto_:
                 sectionOff = cast(uint)cgstate.Auto.size;
                 goto L1;
 
-            case FLpara:
+            case FL.para:
                 sectionOff = cast(uint)cgstate.Para.size - cgstate.BPoff;    // cancel out add of BPoff
                 goto L1;
 
@@ -1067,25 +1067,25 @@ void assignaddrc(code *c)
                 sz = tysize(s.ty());
                 goto L2;
 
-            case FLfltreg:
+            case FL.fltreg:
                 offset = c.IEV1.Vpointer + cgstate.Foff + cgstate.BPoff;
                 c.Iflags |= CFunambig;
                 goto L2;
 
-            case FLallocatmp:
+            case FL.allocatmp:
                 offset = c.IEV1.Vpointer + cgstate.Alloca.offset + cgstate.BPoff;
                 assert(0); //goto L2;
 
-            case FLfuncarg:
+            case FL.funcarg:
                 offset = c.IEV1.Vpointer + cgstate.funcarg.offset + cgstate.BPoff;
                 goto L2;
 
-            case FLbprel:                       // at fixed offset from frame pointer (nteh only)
+            case FL.bprel:                       // at fixed offset from frame pointer (nteh only)
                 offset = c.IEV1.Vpointer + s.Soffset;
-                c.IFL1 = FLconst;
+                c.IFL1 = FL.const_;
                 goto L2;
 
-            case FLcs:                          // common subexpressions
+            case FL.cs:                          // common subexpressions
                 sn = c.IEV1.Vuns;
                 if (!CSE.loaded(sn))            // if never loaded
                 {
@@ -1096,7 +1096,7 @@ void assignaddrc(code *c)
                 c.Iflags |= CFunambig;
                 goto L2;
 
-            case FLregsave:
+            case FL.regsave:
                 c.Iflags |= CFunambig;
                 offset = cgstate.regsave.off + cgstate.BPoff;
 
@@ -1138,7 +1138,7 @@ printf("offset: %lld localsize: %lld REGSIZE*2: %d\n", offset, localsize, REGSIZ
 
                 Rn = cast(reg_t)field(ins,9,5);
                 Rt = cast(reg_t)field(ins,4,0);
-                if (!cgstate.hasframe || (cgstate.enforcealign && c.IFL1 != FLpara))
+                if (!cgstate.hasframe || (cgstate.enforcealign && c.IFL1 != FL.para))
                 {   /* Convert to SP relative address instead of BP */
                     assert(Rn == 29);                 // BP
                     offset += cgstate.EBPtoESP;       // add difference in offset
@@ -1152,22 +1152,22 @@ printf("offset: %lld localsize: %lld REGSIZE*2: %d\n", offset, localsize, REGSIZ
 
                 break;
 
-            case FLndp:                                 // no 87 FPU
+            case FL.ndp:                                 // no 87 FPU
                 assert(0);
 
-            case FLoffset:
-                c.IFL1 = FLconst;
+            case FL.offset:
+                c.IFL1 = FL.const_;
                 break;
 
-            case FLlocalsize:                           // used by inline assembler
+            case FL.localsize:                           // used by inline assembler
                 c.IEV1.Vpointer += localsize;
                 assert(0);                              // no inline assembler yet
 
-            case FLconst:
-            case FLextern:
-            case FLfunc:
-            case FLcode:
-            case FLunde:
+            case FL.const_:
+            case FL.extern_:
+            case FL.func:
+            case FL.code:
+            case FL.unde:
                 break;
 
             default:
@@ -1178,7 +1178,7 @@ printf("offset: %lld localsize: %lld REGSIZE*2: %d\n", offset, localsize, REGSIZ
 }
 
 /**************************
- * Compute jump addresses for FLcode.
+ * Compute jump addresses for FL.code.
  * Note: only works for forward referenced code.
  *       only direct jumps and branches are detected.
  *       LOOP instructions only work for backward refs.
@@ -1207,9 +1207,9 @@ void jmpaddr(code *c)
             if (!ci)
                 goto Lbackjmp;      // couldn't find it
             c.Iop |= cast(uint)(ad >> 2) << 5;
-            c.IFL1 = FLunde;
+            c.IFL1 = FL.unde;
         }
-        if (op == LOOP && c.IFL1 == FLcode)    /* backwards refs       */
+        if (op == LOOP && c.IFL1 == FL.code)    /* backwards refs       */
         {
           Lbackjmp:
             ctarg = c.IEV1.Vcode;
@@ -1224,7 +1224,7 @@ void jmpaddr(code *c)
                 ci = code_next(ci);
             }
             c.Iop = cast(uint)(-(ad >> 2)) << 5;
-            c.IFL1 = FLunde;
+            c.IFL1 = FL.unde;
         }
         c = code_next(c);
     }
@@ -1328,7 +1328,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
                 ggen.flush();
                 if (c.Iflags == CFaddrsize)    // kludge for DA inline asm
                 {
-                    //do32bit(ggen, FLblockoff,c.IEV1,0,0);
+                    //do32bit(ggen, FL.blockoff,c.IEV1,0,0);
                     assert(0);
                 }
                 else
@@ -1422,35 +1422,35 @@ void code_print(scope code* c)
     {
         switch (c.IFL1)
         {
-            case FLconst:
-            case FLoffset:
+            case FL.const_:
+            case FL.offset:
                 printf(" int = %4d",c.IEV1.Vuns);
                 break;
 
-            case FLblock:
+            case FL.block:
                 printf(" block = %p",c.IEV1.Vblock);
                 break;
 
-            case FLswitch:
-            case FLblockoff:
-            case FLlocalsize:
-            case FLframehandler:
+            case FL.switch_:
+            case FL.blockoff:
+            case FL.localsize:
+            case FL.framehandler:
             case 0:
                 break;
 
-            case FLdatseg:
-                printf(" FLdatseg %d.%llx",c.IEV1.Vseg,cast(ulong)c.IEV1.Vpointer);
+            case FL.datseg:
+                printf(" FL.datseg %d.%llx",c.IEV1.Vseg,cast(ulong)c.IEV1.Vpointer);
                 break;
 
-            case FLauto:
-            case FLfast:
-            case FLreg:
-            case FLdata:
-            case FLudata:
-            case FLpara:
-            case FLbprel:
-            case FLtlsdata:
-            case FLextern:
+            case FL.auto_:
+            case FL.fast:
+            case FL.reg:
+            case FL.data:
+            case FL.udata:
+            case FL.para:
+            case FL.bprel:
+            case FL.tlsdata:
+            case FL.extern_:
                 printf(" %s", fl_str(c.IFL1));
                 printf(" sym='%s'",c.IEV1.Vsym.Sident.ptr);
                 if (c.IEV1.Voffset)

@@ -104,7 +104,7 @@ Symbol* getBzeroSymbol()
     s.Stype.Tmangle = Mangle.c;
     s.Stype.Tcount++;
     s.Sclass = SC.global;
-    s.Sfl = FLdata;
+    s.Sfl = FL.data;
     s.Sflags |= SFLnodebug;
     s.Salignment = 16;
 
@@ -751,7 +751,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     {
         sp.Sclass = SC.parameter;
         sp.Sflags &= ~SFLspill;
-        sp.Sfl = FLpara;
+        sp.Sfl = FL.para;
         symbol_add(sp);
     }
 
@@ -767,7 +767,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
                 // successful allocation
                 //printf("ident %s reg %d reg2 %d\n", sp.Sident.ptr, sp.Spreg, sp.Spreg2);
                 sp.Sclass = (target.os == Target.OS.Windows && target.isX86_64) ? SC.shadowreg : SC.fastpar;
-                sp.Sfl = (sp.Sclass == SC.shadowreg) ? FLpara : FLfast;
+                sp.Sfl = (sp.Sclass == SC.shadowreg) ? FL.para : FL.fast;
             }
         }
     }
@@ -1027,7 +1027,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             dso_handle.Stype = type_fake(TYint);
             //Try to get MacOS _ prefix-ism right.
             type_setmangle(&dso_handle.Stype, Mangle.c);
-            dso_handle.Sfl = FLextern;
+            dso_handle.Sfl = FL.extern_;
             dso_handle.Sclass = SC.extern_;
             dso_handle.Stype.Tcount++;
             auto handlePtr = el_ptr(dso_handle);
@@ -1349,7 +1349,7 @@ private void genObjFile(Module m, bool multiobj)
 //                objextdef(s.Sident);
 //#else
                 Symbol *sref = symbol_generate(SC.static_, type_fake(TYnptr));
-                sref.Sfl = FLdata;
+                sref.Sfl = FL.data;
                 auto dtb = DtBuilder(0);
                 dtb.xoff(s, 0, TYnptr);
                 sref.Sdt = dtb.finish();
@@ -1367,7 +1367,7 @@ private void genObjFile(Module m, bool multiobj)
         m.cov = toSymbolX(m, "__coverage", SC.static_, type_fake(TYint), "Z");
         m.cov.Sflags |= SFLhidden;
         m.cov.Stype.Tmangle = Mangle.d;
-        m.cov.Sfl = FLdata;
+        m.cov.Sfl = FL.data;
 
         auto dtb = DtBuilder(0);
 
@@ -1427,7 +1427,7 @@ private void genObjFile(Module m, bool multiobj)
         bcov.Stype = type_fake(TYuint);
         bcov.Stype.Tcount++;
         bcov.Sclass = SC.static_;
-        bcov.Sfl = FLdata;
+        bcov.Sfl = FL.data;
 
         auto dtb = DtBuilder(0);
         dtb.nbytes(cast(const(ubyte)[]) m.covb);

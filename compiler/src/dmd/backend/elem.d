@@ -481,7 +481,7 @@ elem * el_alloctmp(tym_t ty)
     Symbol *s;
     s = symbol_generate(SC.auto_,type_fake(ty));
     symbol_add(s);
-    s.Sfl = FLauto;
+    s.Sfl = FL.auto_;
     s.Sflags = SFLfree | SFLunambig | GTregcand;
     return el_var(s);
 }

@@ -241,7 +241,7 @@ void orthxmm(ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
                 assert(0);  // not doing the unordered compares
         }
         code* c = cdb.last();
-        c.IFL2 = FLconst;
+        c.IFL2 = FL.const_;
         c.IEV2.Vsize_t = imm8;
     }
     checkSetVex(cdb.last(), e1.Ety);
@@ -303,7 +303,7 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,ref reg
     if (e1.Eoper == OPind &&
         ((e11 = e1.E1).Eoper == OPpostinc || e11.Eoper == OPpostdec) &&
         e11.E1.Eoper == OPvar &&
-        e11.E1.Vsym.Sfl == FLreg
+        e11.E1.Vsym.Sfl == FL.reg
        )
     {
         postinc = e11.E2.Vint;
@@ -349,7 +349,7 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,ref reg
             uint rm = cs.Irm & 7;
             if (cs.Irex & REX_B)
                 rm |= 8;
-            cdb.genc1(LEA,buildModregrm(2,increg,rm),FLconst,postinc);
+            cdb.genc1(LEA,buildModregrm(2,increg,rm),FL.const_,postinc);
             if (tysize(e11.E1.Ety) == 8)
                 code_orrex(cdb.last(), REX_W);
         }
@@ -1349,7 +1349,7 @@ static if (0)
                 {
                     if (cgstate.pass == BackendPass.final_)
                         error(e.Esrcpos, "missing 4th parameter to `__simd()`");
-                    cs.IFL2 = FLconst;
+                    cs.IFL2 = FL.const_;
                     cs.IEV2.Vsize_t = 0;
                 }
                 break;
@@ -1360,7 +1360,7 @@ static if (0)
         if (n == 4)
         {
             elem *imm8 = params[3];
-            cs.IFL2 = FLconst;
+            cs.IFL2 = FL.const_;
             if (imm8.Eoper != OPconst)
             {
                 error(imm8.Esrcpos, "last parameter to `__simd()` must be a constant");
