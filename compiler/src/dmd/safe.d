@@ -388,7 +388,7 @@ extern (D) void reportSafeError(FuncDeclaration fd, bool gag, Loc loc,
                 buf.writestring(" is not allowed in a `@safe` function");
             else
                 buf.writestring(" is not allowed in a function with default safety with `-preview=safer`");
-            .error(loc, buf.extractChars());
+            .error(loc, "%s", buf.extractChars());
         }
     }
 }
@@ -471,7 +471,7 @@ bool setUnsafe(Scope* sc,
                 OutBuffer buf;
                 buf.printf(format, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "", arg2 ? arg2.toChars() : "");
                 buf.printf(" can't initialize `@safe` variable `%s`", sc.varDecl.toChars());
-                .error(loc, buf.extractChars());
+                .error(loc, "%s", buf.extractChars());
 
                 return true;
             }
@@ -494,7 +494,7 @@ bool setUnsafe(Scope* sc,
             OutBuffer buf;
             buf.printf(format, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "", arg2 ? arg2.toChars() : "");
             buf.writestring(" is not allowed in a `@safe` function");
-            .error(loc, buf.extractChars());
+            .error(loc, "%s", buf.extractChars());
             return true;
         }
         return false;
@@ -555,7 +555,7 @@ bool setUnsafePreview(Scope* sc, FeatureState fs, bool gag, Loc loc, const(char)
                 OutBuffer buf;
                 buf.printf(format, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "", arg2 ? arg2.toChars() : "");
                 buf.writestring(" will become `@system` in a future release");
-                deprecation(loc, buf.extractChars());
+                deprecation(loc, "%s", buf.extractChars());
             }
         }
         else if (!sc.func.safetyViolation)
