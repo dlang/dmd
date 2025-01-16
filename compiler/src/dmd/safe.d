@@ -316,8 +316,7 @@ bool checkUnsafeDotExp(Scope* sc, Expression e, Identifier id, int flag)
     {
         if (id == Id.ptr)
             return sc.setUnsafe(false, e.loc, "using `%s.ptr` (instead of `&%s[0])`", e, e);
-        else
-            return sc.setUnsafe(false, e.loc, "using `%s.%s`", e, id);
+        return sc.setUnsafe(false, e.loc, "using `%s.%s`", e, id);
     }
     return false;
 }
