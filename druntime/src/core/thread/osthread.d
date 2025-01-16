@@ -53,24 +53,6 @@ else version (D_InlineAsm_X86_64)
     }
 }
 
-version (Posix)
-{
-    version (AsmX86_Windows)    {} else
-    version (AsmX86_Posix)      {} else
-    version (AsmX86_64_Windows) {} else
-    version (AsmX86_64_Posix)   {} else
-    version (AsmExternal)       {} else
-    {
-        // NOTE: The ucontext implementation requires architecture specific
-        //       data definitions to operate so testing for it must be done
-        //       by checking for the existence of ucontext_t rather than by
-        //       a version identifier.  Please note that this is considered
-        //       an obsolescent feature according to the POSIX spec, so a
-        //       custom solution is still preferred.
-        static import core.sys.posix.ucontext;
-    }
-}
-
 version (Windows)
 {
     import core.stdc.stdint : uintptr_t; // for _beginthreadex decl below
@@ -107,9 +89,34 @@ else version (Posix)
     {
         import core.sys.darwin.mach.kern_return : KERN_SUCCESS;
         import core.sys.darwin.mach.port : mach_port_t;
-        import core.sys.darwin.mach.thread_act : mach_msg_type_number_t, thread_get_state, thread_resume,
-            thread_suspend, x86_THREAD_STATE64, x86_THREAD_STATE64_COUNT, x86_thread_state64_t;
+        import core.sys.darwin.mach.thread_act : mach_msg_type_number_t,
+            thread_get_state, thread_resume, thread_suspend;
         import core.sys.darwin.pthread : pthread_mach_thread_np;
+        version (X86)
+        {
+            import core.sys.darwin.mach.thread_act :
+             x86_THREAD_STATE32, x86_THREAD_STATE32_COUNT, x86_thread_state32_t;
+        }
+        else version (X86_64)
+        {
+            import core.sys.darwin.mach.thread_act :
+             x86_THREAD_STATE64, x86_THREAD_STATE64_COUNT, x86_thread_state64_t;
+        }
+        else version (AArch64)
+        {
+            import core.sys.darwin.mach.thread_act :
+             ARM_THREAD_STATE64, ARM_THREAD_STATE64_COUNT, arm_thread_state64_t;
+        }
+        else version (PPC)
+        {
+            import core.sys.darwin.mach.thread_act :
+             PPC_THREAD_STATE32, PPC_THREAD_STATE32_COUNT, ppc_thread_state32_t;
+        }
+        else version (PPC64)
+        {
+            import core.sys.darwin.mach.thread_act :
+             PPC_THREAD_STATE64, PPC_THREAD_STATE64_COUNT, ppc_thread_state64_t;
+        }
     }
 }
 
