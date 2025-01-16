@@ -8,16 +8,23 @@ switch (K)
 
     default => printf("no!\n");
 }
+---
 
+Is quivalent to:
 
-switch (K)
+---
+enum K = 42;
+switch (42)
 {
-    case 42 => {
+    case 42:
+    {
         printf("yes!\n");
+        break;
     }
-
-    default => {
+    default:
+    {
         printf("no!\n");
+        break;
     }
 }
 ---
