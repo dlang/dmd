@@ -69,14 +69,16 @@ size_t structTypeInfoSize(const TypeInfo ti) pure nothrow @nogc
 
   where elem0 starts 16 bytes after the first byte.
   */
-bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, const TypeInfo tinext, size_t oldlength = ~0) pure nothrow
+bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, const TypeInfo tinext, size_t oldlength = size_t.max) pure nothrow
 {
-    size_t typeInfoSize = structTypeInfoSize(tinext);
-    return __setArrayAllocLengthImpl(info, newlength, isshared, tinext, oldlength, typeInfoSize);
+    __setBlockFinalizerInfo(info, tinext);
+
+    size_t typeInfoSize = (info.attr & BlkAttr.STRUCTFINAL) ? size_t.sizeof : 0;
+    return __setArrayAllocLengthImpl(info, newlength, isshared, oldlength, typeInfoSize);
 }
 
 // the impl function, used both above and in core.internal.array.utils
-bool __setArrayAllocLengthImpl(ref BlkInfo info, size_t newlength, bool isshared, const TypeInfo tinext, size_t oldlength, size_t typeInfoSize) pure nothrow
+bool __setArrayAllocLengthImpl(ref BlkInfo info, size_t newlength, bool isshared, size_t oldlength, size_t typeInfoSize) pure nothrow
 {
     import core.atomic;
 
@@ -94,7 +96,7 @@ bool __setArrayAllocLengthImpl(ref BlkInfo info, size_t newlength, bool isshared
             return false;
 
         auto length = cast(ubyte *)(info.base + info.size - typeInfoSize - SMALLPAD);
-        if (oldlength != ~0)
+        if (oldlength != size_t.max)
         {
             if (isshared)
             {
@@ -113,11 +115,6 @@ bool __setArrayAllocLengthImpl(ref BlkInfo info, size_t newlength, bool isshared
             // setting the initial length, no cas needed
             *length = cast(ubyte)newlength;
         }
-        if (typeInfoSize)
-        {
-            auto typeInfo = cast(TypeInfo*)(info.base + info.size - size_t.sizeof);
-            *typeInfo = cast() tinext;
-        }
     }
     else if (info.size < PAGESIZE)
     {
@@ -125,7 +122,7 @@ bool __setArrayAllocLengthImpl(ref BlkInfo info, size_t newlength, bool isshared
             // new size does not fit inside block
             return false;
         auto length = cast(ushort *)(info.base + info.size - typeInfoSize - MEDPAD);
-        if (oldlength != ~0)
+        if (oldlength != size_t.max)
         {
             if (isshared)
             {
@@ -144,11 +141,6 @@ bool __setArrayAllocLengthImpl(ref BlkInfo info, size_t newlength, bool isshared
             // setting the initial length, no cas needed
             *length = cast(ushort)newlength;
         }
-        if (typeInfoSize)
-        {
-            auto typeInfo = cast(TypeInfo*)(info.base + info.size - size_t.sizeof);
-            *typeInfo = cast() tinext;
-        }
     }
     else
     {
@@ -156,7 +148,7 @@ bool __setArrayAllocLengthImpl(ref BlkInfo info, size_t newlength, bool isshared
             // new size does not fit inside block
             return false;
         auto length = cast(size_t *)(info.base);
-        if (oldlength != ~0)
+        if (oldlength != size_t.max)
         {
             if (isshared)
             {
@@ -175,27 +167,103 @@ bool __setArrayAllocLengthImpl(ref BlkInfo info, size_t newlength, bool isshared
             // setting the initial length, no cas needed
             *length = newlength;
         }
-        if (typeInfoSize)
-        {
-            auto typeInfo = cast(TypeInfo*)(info.base + size_t.sizeof);
-            *typeInfo = cast()tinext;
-        }
     }
     return true; // resize succeeded
 }
 
 /**
-  get the allocation size of the array for the given block (without padding or type info)
+  The block finalizer info is set separately from the array length, as that is
+  only needed on the initial setup of the block. No shared is needed, since
+  this should only happen when the block is new.
+  If the STRUCTFINAL bit is not set, no finalizer is stored (but if needed the
+  slot is zeroed)
   */
-size_t __arrayAllocLength(ref BlkInfo info, const TypeInfo tinext) pure nothrow
+void __setBlockFinalizerInfo(ref BlkInfo info, const TypeInfo ti) pure nothrow
 {
+    if ((info.attr & BlkAttr.APPENDABLE) && info.size >= PAGESIZE)
+    {
+        // if the structfinal bit is not set, we don't have a finalizer. But we
+        // should still zero out the finalizer slot.
+        auto context = (info.attr & BlkAttr.STRUCTFINAL) ? cast(void*)ti : null;
+
+        // array used size goes at the beginning. We can stuff the typeinfo
+        // right after it, as we need to use 16 bytes anyway.
+        //
+        auto typeInfo = cast(void**)info.base + 1;
+        *typeInfo = context;
+        version (D_LP64) {} else
+        {
+            // zero out the extra padding
+            (cast(size_t*)info.base)[2 .. 4] = 0;
+        }
+    }
+    else if(info.attr & BlkAttr.STRUCTFINAL)
+    {
+        // all other cases the typeinfo gets put at the end of the block
+        auto typeInfo = cast(void**)(info.base + info.size) - 1;
+        *typeInfo = cast(void*) ti;
+    }
+}
+
+/**
+  Get the finalizer info from the block (typeinfo).
+  Must be called on a block with STRUCTFINAL set.
+  */
+const(TypeInfo) __getBlockFinalizerInfo(ref BlkInfo info) pure nothrow
+{
+    bool isLargeArray = (info.attr & BlkAttr.APPENDABLE) && info.size >= PAGESIZE;
+    auto typeInfo = isLargeArray ?
+        info.base + size_t.sizeof :
+        info.base + info.size - size_t.sizeof;
+    return *cast(TypeInfo*)typeInfo;
+}
+
+/**
+  get the used size of the array for the given block
+  */
+size_t __arrayAllocLength(ref BlkInfo info) pure nothrow
+    in(info.attr & BlkAttr.APPENDABLE)
+{
+    auto typeInfoSize = (info.attr & BlkAttr.STRUCTFINAL) ? size_t.sizeof : 0;
     if (info.size <= 256)
-        return *cast(ubyte *)(info.base + info.size - structTypeInfoSize(tinext) - SMALLPAD);
+        return *cast(ubyte *)(info.base + info.size - typeInfoSize - SMALLPAD);
 
     if (info.size < PAGESIZE)
-        return *cast(ushort *)(info.base + info.size - structTypeInfoSize(tinext) - MEDPAD);
+        return *cast(ushort *)(info.base + info.size - typeInfoSize - MEDPAD);
 
     return *cast(size_t *)(info.base);
+}
+
+/**
+  Atomically get the used size of the array for the given block
+  */
+size_t __arrayAllocLengthAtomic(ref BlkInfo info) pure nothrow
+    in(info.attr & BlkAttr.APPENDABLE)
+{
+    import core.atomic;
+    auto typeInfoSize = (info.attr & BlkAttr.STRUCTFINAL) ? size_t.sizeof : 0;
+    if (info.size <= 256)
+        return atomicLoad(*cast(shared(ubyte)*)(info.base + info.size - typeInfoSize - SMALLPAD));
+
+    if (info.size < PAGESIZE)
+        return atomicLoad(*cast(shared(ushort)*)(info.base + info.size - typeInfoSize - MEDPAD));
+
+    return atomicLoad(*cast(shared(size_t)*)(info.base));
+}
+
+/**
+  Get the maximum bytes that can be stored in the given block.
+  */
+size_t __arrayAllocCapacity(ref BlkInfo info) pure nothrow
+    in(info.attr & BlkAttr.APPENDABLE)
+{
+    // Capacity is a calculation based solely on the block info.
+    if (info.size >= PAGESIZE)
+        return info.size - LARGEPAD;
+
+    auto typeInfoSize = (info.attr & BlkAttr.STRUCTFINAL) ? size_t.sizeof : 0;
+    auto padsize = info.size <= 256 ? SMALLPAD : MEDPAD;
+    return info.size - typeInfoSize - padsize;
 }
 
 /**
@@ -206,4 +274,35 @@ size_t __arrayAllocLength(ref BlkInfo info, const TypeInfo tinext) pure nothrow
 size_t __arrayPad(size_t size, const TypeInfo tinext) nothrow pure @trusted
 {
     return size > MAXMEDSIZE ? LARGEPAD : ((size > MAXSMALLSIZE ? MEDPAD : SMALLPAD) + structTypeInfoSize(tinext));
+}
+
+/**
+  get the padding required to allocate size bytes, use the bits to determine
+  which metadata must be stored.
+  */
+size_t __allocPad(size_t size, uint bits) nothrow pure @trusted
+{
+    auto finalizerSize = (bits & BlkAttr.STRUCTFINAL) ? (void*).sizeof : 0;
+    if (bits & BlkAttr.APPENDABLE)
+    {
+        if (size > MAXMEDSIZE - finalizerSize)
+            return LARGEPAD;
+        auto pad = (size > MAXSMALLSIZE - finalizerSize) ? MEDPAD : SMALLPAD;
+        return pad + finalizerSize;
+    }
+
+    return finalizerSize;
+}
+
+/**
+ * Get the start of the array for the given block.
+ *
+ * Params:
+ *  info = array metadata
+ * Returns:
+ *  pointer to the start of the array
+ */
+void *__arrayStart()(return scope BlkInfo info) nothrow pure
+{
+    return info.base + ((info.size & BIGLENGTHMASK) ? LARGEPREFIX : 0);
 }

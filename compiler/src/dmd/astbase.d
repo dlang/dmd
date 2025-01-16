@@ -2004,18 +2004,18 @@ struct ASTBase
     extern (C++) final class ForeachRangeStatement : Statement
     {
         TOK op;                 // TOK.foreach_ or TOK.foreach_reverse_
-        Parameter prm;          // loop index variable
+        Parameter param;          // loop index variable
         Expression lwr;
         Expression upr;
         Statement _body;
         Loc endloc;             // location of closing curly bracket
 
 
-        extern (D) this(const ref Loc loc, TOK op, Parameter prm, Expression lwr, Expression upr, Statement _body, Loc endloc)
+        extern (D) this(const ref Loc loc, TOK op, Parameter param, Expression lwr, Expression upr, Statement _body, Loc endloc)
         {
             super(loc, STMT.ForeachRange);
             this.op = op;
-            this.prm = prm;
+            this.param = param;
             this.lwr = lwr;
             this.upr = upr;
             this._body = _body;
@@ -2054,17 +2054,17 @@ struct ASTBase
 
     extern (C++) final class IfStatement : Statement
     {
-        Parameter prm;
+        Parameter param;
         Expression condition;
         Statement ifbody;
         Statement elsebody;
         VarDeclaration match;   // for MatchExpression results
         Loc endloc;                 // location of closing curly bracket
 
-        extern (D) this(const ref Loc loc, Parameter prm, Expression condition, Statement ifbody, Statement elsebody, Loc endloc)
+        extern (D) this(const ref Loc loc, Parameter param, Expression condition, Statement ifbody, Statement elsebody, Loc endloc)
         {
             super(loc, STMT.If);
-            this.prm = prm;
+            this.param = param;
             this.condition = condition;
             this.ifbody = ifbody;
             this.elsebody = elsebody;
@@ -4606,7 +4606,7 @@ struct ASTBase
             inout(DeclarationExp) isDeclarationExp() { return op == EXP.declaration ? cast(typeof(return))this : null; }
             inout(TypeidExp)    isTypeidExp() { return op == EXP.typeid_ ? cast(typeof(return))this : null; }
             inout(TraitsExp)    isTraitsExp() { return op == EXP.traits ? cast(typeof(return))this : null; }
-            inout(IsExp)        isExp() { return op == EXP.is_ ? cast(typeof(return))this : null; }
+            inout(IsExp)        isIsExp() { return op == EXP.is_ ? cast(typeof(return))this : null; }
             inout(MixinExp)     isMixinExp() { return op == EXP.mixin_ ? cast(typeof(return))this : null; }
             inout(ImportExp)    isImportExp() { return op == EXP.import_ ? cast(typeof(return))this : null; }
             inout(AssertExp)    isAssertExp() { return op == EXP.assert_ ? cast(typeof(return))this : null; }
@@ -6357,7 +6357,7 @@ struct ASTBase
                 * and we need to set the error count to prevent bogus code
                 * generation. At least give a message.
                 */
-                dmd.errors.error(Loc.initial, "unknown, please file report on issues.dlang.org");
+                dmd.errors.error(Loc.initial, "unknown, please file report at https://github.com/dlang/dmd/issues/new");
             }
 
             return errorexp;

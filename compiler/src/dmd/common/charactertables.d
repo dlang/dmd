@@ -35,7 +35,7 @@ struct IdentifierCharLookup
     extern(C++) bool function(dchar) isContinue;
 
     /// Lookup the table given the table name
-    static IdentifierCharLookup forTable(IdentifierTable table)
+    extern(C++) static IdentifierCharLookup forTable(IdentifierTable table)
     {
         import dmd.common.identifiertables;
 

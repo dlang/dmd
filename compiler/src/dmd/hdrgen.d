@@ -418,10 +418,10 @@ private void statementToBuffer(Statement s, ref OutBuffer buf, ref HdrGenState h
     {
         buf.writestring(Token.toString(s.op));
         buf.writestring(" (");
-        if (s.prm.type)
-            typeToBuffer(s.prm.type, s.prm.ident, buf, hgs);
+        if (s.param.type)
+            typeToBuffer(s.param.type, s.param.ident, buf, hgs);
         else
-            buf.writestring(s.prm.ident.toString());
+            buf.writestring(s.param.ident.toString());
         buf.writestring("; ");
         s.lwr.expressionToBuffer(buf, hgs);
         buf.writestring(" .. ");
@@ -465,7 +465,7 @@ private void statementToBuffer(Statement s, ref OutBuffer buf, ref HdrGenState h
     void visitIf(IfStatement s)
     {
         buf.writestring("if (");
-        printConditionAssignment(s.prm, s.condition);
+        printConditionAssignment(s.param, s.condition);
         buf.writeByte(')');
         buf.writenl();
         if (s.ifbody.isScopeStatement())
@@ -1168,14 +1168,14 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
 
         void foreachRangeWithoutBody(ForeachRangeStatement s)
         {
-            /* s.op ( prm ; lwr .. upr )
+            /* s.op ( param ; lwr .. upr )
              */
             buf.writestring(Token.toString(s.op));
             buf.writestring(" (");
-            if (s.prm.type)
-                typeToBuffer(s.prm.type, s.prm.ident, buf, hgs);
+            if (s.param.type)
+                typeToBuffer(s.param.type, s.param.ident, buf, hgs);
             else
-                buf.writestring(s.prm.ident.toString());
+                buf.writestring(s.param.ident.toString());
             buf.writestring("; ");
             s.lwr.expressionToBuffer(buf, hgs);
             buf.writestring(" .. ");
@@ -2871,7 +2871,8 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     if (e.rvalue)
         buf.writestring("__rvalue(");
-    scope (success)
+
+    scope (exit)
         if (e.rvalue)
             buf.writeByte(')');
 
@@ -2880,9 +2881,9 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         default:
             if (auto be = e.isBinExp())
                 return visitBin(be);
-            else if (auto ue = e.isUnaExp())
+            if (auto ue = e.isUnaExp())
                 return visitUna(ue);
-            else if (auto de = e.isDefaultInitExp())
+            if (auto de = e.isDefaultInitExp())
                 return visitDefaultInit(e.isDefaultInitExp());
             return visit(e);
 
@@ -2916,7 +2917,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         case EXP.typeid_:       return visitTypeid(e.isTypeidExp());
         case EXP.traits:        return visitTraits(e.isTraitsExp());
         case EXP.halt:          return visitHalt(e.isHaltExp());
-        case EXP.is_:           return visitIs(e.isExp());
+        case EXP.is_:           return visitIs(e.isIsExp());
         case EXP.comma:         return visitComma(e.isCommaExp());
         case EXP.mixin_:        return visitMixin(e.isMixinExp());
         case EXP.import_:       return visitImport(e.isImportExp());

@@ -8,6 +8,8 @@ module core.internal.gc.blkcache;
 import core.memory;
 import core.attribute;
 
+debug (PRINTF) import core.stdc.stdio : printf;
+
 alias BlkInfo = GC.BlkInfo;
 alias BlkAttr = GC.BlkAttr;
 
@@ -38,7 +40,7 @@ else
     int __nextBlkIdx;
 }
 
-@property BlkInfo *__blkcache() nothrow
+@property BlkInfo *__blkcache() nothrow @nogc
 {
     if (!__blkcache_storage)
     {
@@ -98,17 +100,17 @@ void processGCMarks(void* data, scope IsMarkedDg isMarked) nothrow
     // called after the mark routine to eliminate block cache data when it
     // might be ready to sweep
 
-    debug(PRINTF) printf("processing GC Marks, %x\n", cache);
+    debug(PRINTF) printf("processing GC Marks, %p\n", cache);
     debug(PRINTF) foreach (i; 0 .. N_CACHE_BLOCKS)
     {
-        printf("cache entry %d has base ptr %x\tsize %d\tflags %x\n", i, cache[i].base, cache[i].size, cache[i].attr);
+        printf("cache entry %d has base ptr %p\tsize %zd\tflags %x\n", i, cache[i].base, cache[i].size, cache[i].attr);
     }
     auto cache_end = cache + N_CACHE_BLOCKS;
     for (;cache < cache_end; ++cache)
     {
         if (cache.base != null && isMarked(cache.base) == IsMarked.no)
         {
-            debug(PRINTF) printf("clearing cache entry at %x\n", cache.base);
+            debug(PRINTF) printf("clearing cache entry at %p\n", cache.base);
             cache.base = null; // clear that data.
         }
     }
@@ -135,7 +137,7 @@ unittest
         so any use of the returned BlkInfo should copy it and then check the
         base ptr of the copy before actually using it.
   */
-BlkInfo *__getBlkInfo(void *interior) nothrow
+BlkInfo *__getBlkInfo(void *interior) nothrow @nogc
 {
     BlkInfo *ptr = __blkcache;
     if (ptr is null)
@@ -175,7 +177,7 @@ BlkInfo *__getBlkInfo(void *interior) nothrow
     return null; // not in cache.
 }
 
-void __insertBlkInfoCache(BlkInfo bi, BlkInfo *curpos) nothrow
+void __insertBlkInfoCache(BlkInfo bi, BlkInfo *curpos) nothrow @nogc
 {
     auto cache = __blkcache;
     if (cache is null)
@@ -238,6 +240,19 @@ void __insertBlkInfoCache(BlkInfo bi, BlkInfo *curpos) nothrow
                 curpos = cache + __nextBlkIdx;
             }
             *curpos = bi;
+        }
+    }
+}
+
+debug(PRINTF)
+{
+    extern(C) void printArrayCache()
+    {
+        auto ptr = __blkcache;
+        printf("CACHE: \n");
+        foreach (i; 0 .. N_CACHE_BLOCKS)
+        {
+            printf("  %d\taddr:% .8p\tsize:% .10zd\tflags:% .8x\n", i, ptr[i].base, ptr[i].size, ptr[i].attr);
         }
     }
 }

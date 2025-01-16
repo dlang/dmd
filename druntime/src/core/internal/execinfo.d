@@ -50,24 +50,24 @@ else version (ExtExecinfo_SolarisFmt)
 version (linux)
 {
     version (CRuntime_Glibc)
-        import _execinfo = core.sys.linux.execinfo;
+        import _execinfo = core.sys.linux.execinfo : backtrace, backtrace_symbols, backtrace_symbols_fd;
     else version (CRuntime_UClibc)
-        import _execinfo = core.sys.linux.execinfo;
+        import _execinfo = core.sys.linux.execinfo : backtrace, backtrace_symbols, backtrace_symbols_fd;
     else version (_extExecinfo)
-        import _execinfo = core.sys.linux.execinfo;
+        import _execinfo = core.sys.linux.execinfo : backtrace, backtrace_symbols, backtrace_symbols_fd;
 }
 else version (Darwin)
-    import _execinfo = core.sys.darwin.execinfo;
+    import _execinfo = core.sys.darwin.execinfo : backtrace, backtrace_symbols, backtrace_symbols_fd;
 else version (FreeBSD)
-    import _execinfo = core.sys.freebsd.execinfo;
+    import _execinfo = core.sys.freebsd.execinfo : backtrace, backtrace_symbols, backtrace_symbols_fd;
 else version (NetBSD)
-    import _execinfo = core.sys.netbsd.execinfo;
+    import _execinfo = core.sys.netbsd.execinfo : backtrace, backtrace_symbols, backtrace_symbols_fd;
 else version (OpenBSD)
-    import _execinfo = core.sys.openbsd.execinfo;
+    import _execinfo = core.sys.openbsd.execinfo : backtrace, backtrace_symbols, backtrace_symbols_fd;
 else version (DragonFlyBSD)
-    import _execinfo = core.sys.dragonflybsd.execinfo;
+    import _execinfo = core.sys.dragonflybsd.execinfo : backtrace, backtrace_symbols, backtrace_symbols_fd;
 else version (Solaris)
-    import _execinfo = core.sys.solaris.execinfo;
+    import _execinfo = core.sys.solaris.execinfo : backtrace, backtrace_symbols, backtrace_symbols_fd;
 
 /// Indicates the availability of backtrace functions
 enum bool hasExecinfo = is(_execinfo == module);

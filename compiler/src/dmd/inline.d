@@ -107,7 +107,7 @@ public Expression inlineCopy(Expression e, Scope* sc)
             return de.copy();
         }
     }
-    int cost = inlineCostExpression(e);
+    const cost = inlineCostExpression(e);
     if (cost >= COST_MAX)
     {
         error(e.loc, "cannot inline default argument `%s`", e.toChars());
@@ -313,7 +313,7 @@ public:
 
     override void visit(IfStatement s)
     {
-        assert(!s.prm);
+        assert(!s.param);
         auto econd = doInlineAs!Expression(s.condition, ids);
         assert(econd);
 
@@ -325,7 +325,7 @@ public:
 
         static if (asStatements)
         {
-            result = new IfStatement(s.loc, s.prm, econd, ifbody, elsebody, s.endloc);
+            result = new IfStatement(s.loc, s.param, econd, ifbody, elsebody, s.endloc);
         }
         else
         {
@@ -2417,7 +2417,7 @@ private bool expNeedsDtor(Expression exp)
                 s = s.toAlias();
                 if (s != vd)
                     return Dsymbol_needsDtor(s);
-                else if (vd.isStatic() || vd.storage_class & (STC.extern_ | STC.gshared | STC.manifest))
+                if (vd.isStatic() || vd.storage_class & (STC.extern_ | STC.gshared | STC.manifest))
                     return;
                 if (vd.needsScopeDtor())
                 {

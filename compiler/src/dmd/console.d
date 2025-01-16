@@ -111,10 +111,9 @@ private final class WindowsConsole : Console
 
         if (fp == stdout)
             return GetStdHandle(STD_OUTPUT_HANDLE);
-        else if (fp == stderr)
+        if (fp == stderr)
             return GetStdHandle(STD_ERROR_HANDLE);
-        else
-            return null;
+        return null;
     }
 
   public:

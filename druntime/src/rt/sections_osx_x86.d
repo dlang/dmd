@@ -24,13 +24,18 @@ version (Darwin):
 version (X86):
 
 // debug = PRINTF;
-import core.stdc.stdio;
-import core.stdc.string, core.stdc.stdlib;
-import core.sys.posix.pthread;
-import core.sys.darwin.mach.dyld;
-import core.sys.darwin.mach.getsect;
-import rt.deh, rt.minfo;
 import core.internal.container.array;
+import core.stdc.stdint : intptr_t;
+import core.stdc.stdio;
+import core.stdc.stdlib;
+import core.stdc.string;
+import core.sys.darwin.mach.dyld : _dyld_register_func_for_add_image;
+import core.sys.darwin.mach.getsect : getsectbynamefromheader;
+import core.sys.darwin.mach.loader : mach_header, MH_MAGIC, SECT_BSS, SECT_COMMON, SECT_DATA, SEG_DATA;
+import core.sys.posix.pthread : pthread_getspecific, pthread_key_create, pthread_key_delete, pthread_key_t,
+    pthread_setspecific;
+import rt.deh;
+import rt.minfo;
 
 struct SectionGroup
 {

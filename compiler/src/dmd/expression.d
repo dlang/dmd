@@ -293,7 +293,12 @@ enum WANTexpand = 1;    // expand const/immutable variables if possible
  */
 extern (C++) abstract class Expression : ASTNode
 {
-    Type type;      // !=null means that semantic() has been run
+    /// Usually, this starts out as `null` and gets set to the final expression type by
+    /// `expressionSemantic`. However, for some expressions (such as `TypeExp`,`RealExp`,
+    /// `VarExp`), the field can get set to an assigned type before running semantic.
+    /// See `expressionSemanticDone`
+    Type type;
+
     Loc loc;        // file location
     const EXP op;   // to minimize use of dynamic_cast
     bool parens;    // if this is a parenthesized expression
@@ -725,7 +730,7 @@ extern (C++) abstract class Expression : ASTNode
         inout(TypeidExp)    isTypeidExp() { return op == EXP.typeid_ ? cast(typeof(return))this : null; }
         inout(TraitsExp)    isTraitsExp() { return op == EXP.traits ? cast(typeof(return))this : null; }
         inout(HaltExp)      isHaltExp() { return op == EXP.halt ? cast(typeof(return))this : null; }
-        inout(IsExp)        isExp() { return op == EXP.is_ ? cast(typeof(return))this : null; }
+        inout(IsExp)        isIsExp() { return op == EXP.is_ ? cast(typeof(return))this : null; }
         inout(MixinExp)     isMixinExp() { return op == EXP.mixin_ ? cast(typeof(return))this : null; }
         inout(ImportExp)    isImportExp() { return op == EXP.import_ ? cast(typeof(return))this : null; }
         inout(AssertExp)    isAssertExp() { return op == EXP.assert_ ? cast(typeof(return))this : null; }
@@ -1069,7 +1074,7 @@ extern (C++) final class ErrorExp : Expression
               * and we need to set the error count to prevent bogus code
               * generation. At least give a message.
               */
-            .error(Loc.initial, "unknown, please file report on issues.dlang.org");
+            .error(Loc.initial, "unknown, please file report at https://github.com/dlang/dmd/issues/new");
         }
 
         return errorexp;
@@ -2800,11 +2805,11 @@ extern (C++) final class FuncExp : Expression
     {
         if (td)
             return new FuncExp(loc, td.syntaxCopy(null));
-        else if (fd.semanticRun == PASS.initial)
+        if (fd.semanticRun == PASS.initial)
             return new FuncExp(loc, fd.syntaxCopy(null));
-        else // https://issues.dlang.org/show_bug.cgi?id=13481
-             // Prevent multiple semantic analysis of lambda body.
-            return new FuncExp(loc, fd);
+        // https://issues.dlang.org/show_bug.cgi?id=13481
+        // Prevent multiple semantic analysis of lambda body.
+        return new FuncExp(loc, fd);
     }
 
     override const(char)* toChars() const
@@ -3213,7 +3218,6 @@ extern (C++) final class ThrowExp : UnaExp
     extern (D) this(const ref Loc loc, Expression e)
     {
         super(loc, EXP.throw_, e);
-        this.type = Type.tnoreturn;
     }
 
     override ThrowExp syntaxCopy()
@@ -3569,10 +3573,9 @@ TypeFunction calledFunctionType(CallExp ce)
     t = t.toBasetype();
     if (auto tf = t.isTypeFunction())
         return tf;
-    else if (auto td = t.isTypeDelegate())
+    if (auto td = t.isTypeDelegate())
         return td.nextOf().isTypeFunction();
-    else
-        return null;
+    return null;
 }
 
 FuncDeclaration isFuncAddress(Expression e, bool* hasOverloads = null) @safe

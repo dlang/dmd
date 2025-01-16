@@ -96,7 +96,7 @@ void outdata(Symbol *s)
     {
         //printf("\tdt = %p, dt = %d\n",dt,dt.dt);
         switch (dt.dt)
-        {   case DT_abytes:
+        {   case DT.abytes:
             {   // Put out the data for the string, and
                 // reserve a spot for a pointer to that string
                 datasize += size(dt.Dty);      // reserve spot for pointer to string
@@ -115,24 +115,24 @@ void outdata(Symbol *s)
                 else
                 {
                     alignOffset(CDATA, 1 << dt.DTalign);
-                    dt.DTabytes += objmod.data_readonly(cast(char*)dt.DTpbytes,dt.DTnbytes,&dt.DTseg);
+                    dt.DTabytes += objmod.data_readonly(cast(char*)dt.DTpbytes, cast(uint) dt.DTnbytes,&dt.DTseg);
                 }
                 break;
             }
 
-            case DT_ibytes:
+            case DT.ibytes:
                 datasize += dt.DTn;
                 break;
 
-            case DT_nbytes:
-                //printf("DT_nbytes %d\n", dt.DTnbytes);
+            case DT.nbytes:
+                //printf("DT.nbytes %d\n", dt.DTnbytes);
                 datasize += dt.DTnbytes;
                 break;
 
-            case DT_azeros:
+            case DT.azeros:
                 /* A block of zeros
                  */
-                //printf("DT_azeros %d\n", dt.DTazeros);
+                //printf("DT.azeros %d\n", dt.DTazeros);
                 datasize += dt.DTazeros;
                 if (dt == dtstart && !dt.DTnext && s.Sclass != SC.comdat &&
                     (s.Sseg == UNKNOWN || s.Sseg <= UDATA))
@@ -185,12 +185,12 @@ void outdata(Symbol *s)
                 }
                 break;
 
-            case DT_common:
+            case DT.common:
                 assert(!dt.DTnext);
                 outcommon(s,dt.DTazeros);
                 goto Lret;
 
-            case DT_xoff:
+            case DT.xoff:
             {   Symbol *sb = dt.DTsym;
 
                 if (tyfunc(sb.ty()))
@@ -202,7 +202,7 @@ void outdata(Symbol *s)
 }
             }
                 goto case;
-            case DT_coff:
+            case DT.coff:
                 datasize += size(dt.Dty);
                 break;
             default:
@@ -335,7 +335,7 @@ void dt_writeToObj(Obj objmod, dt_t *dt, int seg, ref targ_size_t offset)
     {
         switch (dt.dt)
         {
-            case DT_abytes:
+            case DT.abytes:
             {
                 int flags;
                 if (tyreg(dt.Dty))
@@ -369,24 +369,24 @@ else
                 break;
             }
 
-            case DT_ibytes:
+            case DT.ibytes:
                 objmod.bytes(seg,offset,dt.DTn,dt.DTdata.ptr);
                 offset += dt.DTn;
                 break;
 
-            case DT_nbytes:
+            case DT.nbytes:
                 objmod.bytes(seg,offset,dt.DTnbytes,dt.DTpbytes);
                 offset += dt.DTnbytes;
                 break;
 
-            case DT_azeros:
+            case DT.azeros:
                 //printf("objmod.lidata(seg = %d, offset = %d, azeros = %d)\n", seg, offset, dt.DTazeros);
                 SegData[seg].SDoffset = offset;
                 objmod.lidata(seg,offset,dt.DTazeros);
                 offset = SegData[seg].SDoffset;
                 break;
 
-            case DT_xoff:
+            case DT.xoff:
             {
                 Symbol *sb = dt.DTsym;          // get external symbol pointer
                 targ_size_t a = dt.DToffset;    // offset from it
@@ -401,7 +401,7 @@ else
                 break;
             }
 
-            case DT_coff:
+            case DT.coff:
                 objmod.reftocodeseg(seg,offset,dt.DToffset);
                 offset += _tysize[TYint];
                 break;
@@ -592,7 +592,7 @@ Symbol *out_string_literal(const(char)* str, uint len, uint sz)
     }
 
     auto dtb = DtBuilder(0);
-    dtb.nbytes(cast(uint)(len * sz), str);
+    dtb.nbytes(str[0 .. len * sz]);
     dtb.nzeros(cast(uint)sz);       // include terminating 0
     s.Sdt = dtb.finish();
     s.Sfl = FLdata;

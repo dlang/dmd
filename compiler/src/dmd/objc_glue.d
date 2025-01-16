@@ -557,7 +557,7 @@ static:
 
         // create data
         auto dtb = DtBuilder(0);
-        dtb.nbytes(cast(uint) (str.length + 1), str.toStringz());
+        dtb.nbytes(str.toStringz()[0 .. str.length + 1]);
 
         // find segment
         auto seg = Segments[segment];

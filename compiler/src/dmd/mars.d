@@ -82,7 +82,7 @@ void printInternalFailure(FILE* stream)
 {
     fputs(("---\n" ~
     "ERROR: This is a compiler bug.\n" ~
-            "Please report it via https://issues.dlang.org/enter_bug.cgi\n" ~
+            "Please report it via https://github.com/dlang/dmd/issues\n" ~
             "with, preferably, a reduced, reproducible example and the information below.\n" ~
     "DustMite (https://github.com/CyberShadow/DustMite/wiki) can help with the reduction.\n" ~
     "---\n").ptr, stream);
@@ -1572,7 +1572,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             params.useUnitTests = true;
         else if (p[1] == 'I')              // https://dlang.org/dmd.html#switch-I
         {
-            params.imppath.push(p + 2 + (p[2] == '='));
+            params.imppath.push(ImportPathInfo(p + 2 + (p[2] == '=')));
         }
         else if (p[1] == 'm' && p[2] == 'v' && p[3] == '=') // https://dlang.org/dmd.html#switch-mv
         {
@@ -1836,7 +1836,7 @@ bool createModule(const(char)* file, ref Strings libmodules, const ref Target ta
 
     /* Deduce what to do with a file based on its extension
         */
-    if (FileName.equals(ext, target.obj_ext))
+    if (FileName.equals(ext, "obj") || FileName.equals(ext, "o"))
     {
         global.params.objfiles.push(file);
         libmodules.push(file);

@@ -384,7 +384,7 @@ private elem *el_picvar(Symbol *s)
 {
     if (config.exe & (EX_OSX | EX_OSX64))
         return el_picvar_OSX(s);
-    else if (config.exe & EX_posix)
+    if (config.exe & EX_posix)
         return el_picvar_posix(s);
     assert(0);
 }

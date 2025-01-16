@@ -173,6 +173,7 @@ typedef unsigned long long __uint64_t;
 #define __PRETTY_FUNCTION__ __func__
 
 #ifndef __aarch64__
+#define _Float16 float
 #define _Float32 float
 #define _Float32x double
 #define _Float64 double

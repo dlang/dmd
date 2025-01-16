@@ -211,11 +211,11 @@ Dsymbol getDsymbol(RootObject oarg)
         // Try to convert Expression to symbol
         if (auto ve = ea.isVarExp())
             return ve.var;
-        else if (auto fe = ea.isFuncExp())
+        if (auto fe = ea.isFuncExp())
             return fe.td ? fe.td : fe.fd;
-        else if (auto te = ea.isTemplateExp())
+        if (auto te = ea.isTemplateExp())
             return te.td;
-        else if (auto te = ea.isScopeExp())
+        if (auto te = ea.isScopeExp())
             return te.sds;
         else
             return null;
@@ -910,7 +910,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
      */
     extern (D) TemplateTupleParameter isVariadic()
     {
-        size_t dim = parameters.length;
+        const dim = parameters.length;
         if (dim == 0)
             return null;
         return (*parameters)[dim - 1].isTemplateTupleParameter();
@@ -6129,14 +6129,13 @@ MATCH matchArg(TemplateParameter tp, Scope* sc, RootObject oarg, size_t i, Templ
 
     if (auto ttp = tp.isTemplateTypeParameter())
         return matchArgType(ttp);
-    else if (auto tvp = tp.isTemplateValueParameter())
+    if (auto tvp = tp.isTemplateValueParameter())
         return matchArgValue(tvp);
-    else if (auto tap = tp.isTemplateAliasParameter())
+    if (auto tap = tp.isTemplateAliasParameter())
         return matchArgAlias(tap);
-    else if (auto ttp = tp.isTemplateTupleParameter())
+    if (auto ttp = tp.isTemplateTupleParameter())
         return matchArgTuple(ttp);
-    else
-        assert(0);
+    assert(0);
 }
 
 

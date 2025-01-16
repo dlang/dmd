@@ -303,8 +303,8 @@ private void createMatchNodes()
         return;
     foreach (modulePattern; includeModulePatterns)
     {
-        auto depth = parseModulePatternDepth(modulePattern[0 .. strlen(modulePattern)]);
-        auto entryIndex = findSortedIndexToAddForDepth(depth);
+        const depth = parseModulePatternDepth(modulePattern[0 .. strlen(modulePattern)]);
+        const entryIndex = findSortedIndexToAddForDepth(depth);
         matchNodes.split(entryIndex, depth + 1);
         parseModulePattern(modulePattern, &matchNodes[entryIndex], depth);
         // if at least 1 "include pattern" is given, then it is assumed the
@@ -325,7 +325,7 @@ private void createMatchNodes()
         MatcherNode(true, 1), MatcherNode(Id.object),
     ];
 
-    auto index = findSortedIndexToAddForDepth(1);
+    const index = findSortedIndexToAddForDepth(1);
     matchNodes.split(index, defaultDepth1MatchNodes.length);
     auto slice = matchNodes[];
     slice[index .. index + defaultDepth1MatchNodes.length] = defaultDepth1MatchNodes[];

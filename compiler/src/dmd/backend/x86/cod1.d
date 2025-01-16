@@ -3164,14 +3164,14 @@ bool FuncParamRegs_alloc(ref FuncParamRegs fpr, type* t, tym_t ty, out reg_t pre
 
         if (tyfloating(ty))
             return false;
-        else if (ty == TYstruct || ty == TYarray)
+        if (ty == TYstruct || ty == TYarray)
         {
             type_debug(t);
             targ_size_t sz = type_size(t);
             return (sz <= _tysize[TYnptr]) &&
                    (config.exe == EX_WIN64 || sz == 1 || sz == 2 || sz == 4 || sz == 8);
         }
-        else if (tysize(ty) <= _tysize[TYnptr])
+        if (tysize(ty) <= _tysize[TYnptr])
             return true;
         return false;
     }

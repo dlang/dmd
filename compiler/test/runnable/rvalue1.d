@@ -55,6 +55,8 @@ struct S4
 {
     void* p;
 
+    this(ref S4) { }
+
     this(S4 s)
     {
         assert(&s is &x); // confirm the rvalue reference
@@ -140,6 +142,107 @@ void test7()
 }
 
 /********************************/
+// https://github.com/dlang/dmd/issues/20562
+
+struct S8
+{
+    int a,b;
+    this(S8) { printf("this(S)\n"); b = 4; }
+    this(ref S8) { printf("this(ref S)\n"); assert(0); }
+}
+
+
+S8 returnRval(ref S8 arg)
+{
+static if (0)
+{
+    /*  __copytmp2 =  0 ;
+        _D7rvalue51S6__ctorMFNcKSQxQrZQg call  (arg param  #__copytmp2);
+        * __HID1 streq 1 __copytmp2;
+        __HID1;
+     */
+    return arg;
+}
+else static if (1)
+{
+    /*  * __HID1 streq 1 * arg;
+        __HID1;
+     */
+    return __rvalue(arg); // should move-construct the NRVO value
+}
+else
+{
+    /*  * t =  0 ;
+        t;
+        _TMP0 =  t;
+        _D7rvalue51S6__ctorMFNcSQwQqZQg call  (arg param  _TMP0);
+        t;
+     */
+    S8 t = __rvalue(arg);
+    return t;
+}
+}
+
+
+void test8()
+{
+   S8 s;
+   S8 t = returnRval(s);
+   printf("t.b: %d\n", t.b);
+   assert(t.b == 4);
+}
+
+/********************************/
+
+struct T9
+{
+    int i;
+    inout this(ref inout T9 t) { this.i = t.i - 1; printf("this(ref T9)\n"); }
+    inout this(inout T9 t)     { this.i = t.i + 1; printf("this(T9)\n"); }
+}
+
+struct S9
+{
+    T9 t;
+    //inout this(return ref scope inout S9 t);// { this.i = t.i - 1; printf("this(ref T9)\n"); }
+    //@system inout this(return scope inout S9 t);//     { this.i = t.i + 1; printf("this(T9)\n"); }
+}
+
+void test9()
+{
+    S9 s;
+    s.t.i = 3;
+    S9 u = s;
+    printf("u.t.i = %d\n", u.t.i);
+    assert(u.t.i == 2);
+
+    S9 v = __rvalue(u);
+    printf("v.t.i = %d\n", v.t.i);
+    assert(v.t.i == 3);
+}
+
+/********************************/
+// https://github.com/s-ludwig/taggedalgebraic/issues/75
+
+struct T10
+{
+    string s;
+    this(T10) {}
+    this(string v) { s = v; }
+}
+
+struct S10
+{
+    T10 p;
+}
+
+void test10()
+{
+    S10 s = S10(T10("hello"));
+    assert(s.p.s == "hello");
+}
+
+/********************************/
 
 int main()
 {
@@ -150,6 +253,8 @@ int main()
     test5();
     test6();
     test7();
+    test8();
+    test9();
 
     return 0;
 }

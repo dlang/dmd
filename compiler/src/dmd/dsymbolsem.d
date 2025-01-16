@@ -717,7 +717,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         // Calculate type size + safety checks
         if (dsym.storage_class & STC.gshared && !dsym.isMember())
         {
-            sc.setUnsafe(false, dsym.loc, "__gshared not allowed in safe functions; use shared");
+            sc.setUnsafe(false, dsym.loc, "using `__gshared` instead of `shared`");
         }
 
         Dsymbol parent = dsym.toParent();
@@ -1146,22 +1146,22 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
                 if (dsym.type.hasPointers()) // also computes type size
                     sc.setUnsafe(false, dsym.loc,
-                        "`void` initializers for pointers not allowed in safe functions");
+                        "`void` initializing a pointer");
                 else if (dsym.type.hasInvariant())
                     sc.setUnsafe(false, dsym.loc,
-                        "`void` initializers for structs with invariants are not allowed in safe functions");
+                        "`void` initializing a struct with an invariant");
                 else if (dsym.type.toBasetype().ty == Tbool)
                     sc.setUnsafePreview(global.params.systemVariables, false, dsym.loc,
-                        "a `bool` must be 0 or 1, so void intializing it is not allowed in safe functions");
+                        "void intializing a bool (which must always be 0 or 1)");
                 else if (dsym.type.hasUnsafeBitpatterns())
                     sc.setUnsafePreview(global.params.systemVariables, false, dsym.loc,
-                        "`void` initializers for types with unsafe bit patterns are not allowed in safe functions");
+                        "`void` initializing a type with unsafe bit patterns");
             }
             else if (!dsym._init &&
                      !(dsym.storage_class & (STC.static_ | STC.extern_ | STC.gshared | STC.manifest | STC.field | STC.parameter)) &&
                      dsym.type.hasVoidInitPointers())
             {
-                sc.setUnsafe(false, dsym.loc, "`void` initializers for pointers not allowed in safe functions");
+                sc.setUnsafe(false, dsym.loc, "`void` initializers for pointers");
             }
         }
 
@@ -1323,7 +1323,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                                 {
                                     import dmd.escape : setUnsafeDIP1000;
                                     const inSafeFunc = sc.func && sc.func.isSafeBypassingInference();   // isSafeBypassingInference may call setUnsafe().
-                                    if (setUnsafeDIP1000(*sc, false, dsym.loc, "`scope` allocation of `%s` requires that constructor be annotated with `scope`", dsym))
+                                    if (setUnsafeDIP1000(*sc, false, dsym.loc, "`scope` allocation of `%s` with a non-`scope` constructor", dsym))
                                         errorSupplemental(ne.member.loc, "is the location of the constructor");
                                 }
                                 ne.onstack = 1;
@@ -1577,7 +1577,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (dsym.errors)
             return;
 
-        if (!(global.params.bitfields || sc.inCfile))
+        if (!(sc.previews.bitfields || sc.inCfile))
         {
             version (IN_GCC)
                 .error(dsym.loc, "%s `%s` use `-fpreview=bitfields` for bitfield support", dsym.kind, dsym.toPrettyChars);
@@ -2513,10 +2513,12 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 if (param.type.mutableOf().unSharedOf() == sd.type.mutableOf().unSharedOf())
                 {
                     //printf("copy constructor %p\n", ctd);
+                    assert(!ctd.isCpCtor && !ctd.isMoveCtor);
                     if (param.storageClass & STC.ref_)
                         ctd.isCpCtor = true;            // copy constructor
                     else
                         ctd.isMoveCtor = true;          // move constructor
+                    assert(!(ctd.isCpCtor && ctd.isMoveCtor));
                 }
             }
         }
@@ -3007,8 +3009,34 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         buildDtors(sd, sc2);
 
+        bool hasCopyCtor;
         bool hasMoveCtor;
-        sd.hasCopyCtor = buildCopyCtor(sd, sc2, hasMoveCtor);
+        bool needCopyCtor;
+        bool needMoveCtor;
+        needCopyOrMoveCtor(sd, hasCopyCtor, hasMoveCtor, needCopyCtor, needMoveCtor);
+        //printf("%s hasCopy %d hasMove %d needCopy %d needMove %d\n", sd.toChars(), hasCopyCtor, hasMoveCtor, needCopyCtor, needMoveCtor);
+
+        /* When generating a move ctor, generate a copy ctor too, otherwise
+         *  https://github.com/s-ludwig/taggedalgebraic/issues/75
+         */
+        if (0 && needMoveCtor && !hasCopyCtor)
+        {
+            needCopyCtor = true;
+        }
+
+        if (needCopyCtor)
+        {
+            assert(hasCopyCtor == false);
+            buildCopyOrMoveCtor(sd, sc2, false); // build copy constructor
+            hasCopyCtor = true;
+        }
+        if (needMoveCtor)
+        {
+            assert(hasMoveCtor == false);
+            buildCopyOrMoveCtor(sd, sc2, true); // build move constructor
+            hasMoveCtor = true;
+        }
+        sd.hasCopyCtor = hasCopyCtor;
         sd.hasMoveCtor = hasMoveCtor;
 
         sd.postblit = buildPostBlit(sd, sc2);
@@ -5243,7 +5271,7 @@ void aliasInstanceSemantic(TemplateInstance tempinst, Scope* sc, TemplateDeclara
 // function used to perform semantic on AliasDeclaration
 void aliasSemantic(AliasDeclaration ds, Scope* sc)
 {
-    //printf("AliasDeclaration::semantic() %s\n", ds.toChars());
+    //printf("AliasDeclaration::semantic() %s %p\n", ds.toChars(), ds.aliassym);
 
     // as DsymbolSemanticVisitor::visit(AliasDeclaration), in case we're called first.
     // see https://issues.dlang.org/show_bug.cgi?id=21001
@@ -6601,7 +6629,7 @@ private extern(C++) class SearchVisitor : Visitor
             s = b.sym.search(loc, ident, flags);
             if (!s)
                 continue;
-            else if (s == cd) // happens if s is nested in this and derives from this
+            if (s == cd) // happens if s is nested in this and derives from this
                 s = null;
             else if (!(flags & SearchOpt.ignoreVisibility) && !(s.visible().kind == Visibility.Kind.protected_) && !symbolIsVisible(cd, s))
                 s = null;
@@ -7265,7 +7293,7 @@ private extern(C++) class SetFieldOffsetVisitor : Visitor
             fieldState.fieldSize = memsize;
         else
         {
-            auto size = (pastField + 7) / 8;
+            const size = (pastField + 7) / 8;
             fieldState.fieldSize = size;
             //printf(" offset: %d, size: %d\n", offset, size);
             if (isunion)
@@ -7814,7 +7842,6 @@ private Expression callScopeDtor(VarDeclaration vd, Scope* sc)
         Expression ec;
         ec = new VarExp(vd.loc, vd);
         e = new DeleteExp(vd.loc, ec, true);
-        e.type = Type.tvoid;
         break;
     }
     return e;

@@ -1050,7 +1050,7 @@ private extern(D) MATCH argumentMatchParameter (FuncDeclaration fd, TypeFunction
                     {
                         if (cfd.isCpCtor && !arg.isLvalue())
                             return MATCH.nomatch;       // copy constructor is only for lvalues
-                        else if (cfd.isMoveCtor && arg.isLvalue())
+                        if (cfd.isMoveCtor && arg.isLvalue())
                             return MATCH.nomatch;       // move constructor is only for rvalues
                     }
                     }
@@ -1122,7 +1122,7 @@ private extern(D) MATCH argumentMatchParameter (FuncDeclaration fd, TypeFunction
             // Need to make this a rvalue through a temporary
             m = MATCH.convert;
         }
-        else if (global.params.rvalueRefParam != FeatureState.enabled ||
+        else if (!(sc && sc.previews.rvalueRefParam) ||
                  p.storageClass & STC.out_ ||
                  !arg.type.isCopyable())  // can't copy to temp for ref parameter
         {
@@ -2335,8 +2335,7 @@ Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
 
             // default arg must be an lvalue
             if (isRefOrOut && !isAuto &&
-                !(fparam.storageClass & STC.constscoperef) &&
-                global.params.rvalueRefParam != FeatureState.enabled)
+                !(fparam.storageClass & STC.constscoperef) && !sc.previews.rvalueRefParam)
                 e = e.toLvalue(sc, "create default argument for `ref` / `out` parameter from");
 
             fparam.defaultArg = e;
@@ -4462,6 +4461,10 @@ void resolve(Type mt, const ref Loc loc, Scope* sc, out Expression pe, out Type 
  */
 Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag flag)
 {
+    enum LOGDOTEXP = false;
+    if (LOGDOTEXP)
+        printf("dotExp()\n");
+
     Expression visitType(Type mt)
     {
         VarDeclaration v = null;
@@ -5082,8 +5085,41 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             return noMember(mt, sc, e, ident, flag);
         }
         // check before alias resolution; the alias itself might be deprecated!
-        if (s.isAliasDeclaration)
+        if (auto ad = s.isAliasDeclaration)
+        {
             s.checkDeprecated(e.loc, sc);
+
+            // Fix for https://github.com/dlang/dmd/issues/20610
+            if (ad.originalType)
+            {
+                if (auto tid = ad.originalType.isTypeIdentifier())
+                {
+                    if (tid.idents.length)
+                    {
+                        static if (0)
+                        {
+                            printf("TypeStruct::dotExp(e = '%s', ident = '%s')\n", e.toChars(), ident.toChars());
+                            printf("AliasDeclaration: %s\n", ad.toChars());
+                            if (ad.aliassym)
+                                printf("aliassym: %s\n", ad.aliassym.toChars());
+                            printf("tid type: %s\n", toChars(tid));
+                        }
+                        /* Rewrite e.s as e.(tid.ident).(tid.idents)
+                         */
+                        Expression die = new DotIdExp(e.loc, e, tid.ident);
+                        foreach (id; tid.idents) // maybe use typeToExpressionHelper()
+                            die = new DotIdExp(e.loc, die, cast(Identifier)id);
+                        /* Ambiguous syntax, only way to disambiguate it to try it
+                         */
+                        die = dmd.expressionsem.trySemantic(die, sc);
+                        if (die && die.isDotVarExp())   // shrink wrap around DotVarExp()
+                        {
+                            return die;
+                        }
+                    }
+                }
+            }
+        }
         s = s.toAlias();
 
         if (auto em = s.isEnumMember())
@@ -6074,7 +6110,7 @@ Dsymbol toDsymbol(Type type, Scope* sc)
 
     Dsymbol visitIdentifier(TypeIdentifier type)
     {
-        //printf("TypeIdentifier::toDsymbol('%s')\n", toChars());
+        //printf("TypeIdentifier::toDsymbol('%s')\n", toChars(type));
         if (!sc)
             return null;
 
@@ -6086,7 +6122,6 @@ Dsymbol toDsymbol(Type type, Scope* sc)
             s = t.toDsymbol(sc);
         if (e)
             s = getDsymbol(e);
-
         return s;
     }
 
@@ -7435,7 +7470,7 @@ bool isRecursiveAliasThis(ref Type att, Type t)
     auto tb = t.toBasetype();
     if (att && tb.equivalent(att))
         return true;
-    else if (!att && tb.checkAliasThisRec())
+    if (!att && tb.checkAliasThisRec())
         att = tb;
     return false;
 }

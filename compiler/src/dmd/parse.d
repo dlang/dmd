@@ -940,7 +940,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         if (e)
                             error("redundant alignment attribute `align(%s)`", e.toChars());
                         else
-                            error("redundant alignment attribute `align`");
+                            error("redundant alignment attribute `align(default)`");
                     }
 
                     pAttrs.setAlignment = true;
@@ -2147,11 +2147,11 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         nextToken();
         if (id == Id.Windows)
             return returnLinkage(LINK.windows);
-        else if (id == Id.D)
+        if (id == Id.D)
             return returnLinkage(LINK.d);
-        else if (id == Id.System)
+        if (id == Id.System)
             return returnLinkage(LINK.system);
-        else if (id == Id.Objective) // Looking for tokens "Objective-C"
+        if (id == Id.Objective) // Looking for tokens "Objective-C"
         {
             if (token.value != TOK.min)
                 return invalidLinkage();
@@ -4558,7 +4558,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         if (token.value == TOK.leftParenthesis)
         {
             nextToken();
-            e = parseAssignExp();
+            if (token.value == TOK.default_)
+                nextToken();
+            else
+                e = parseAssignExp();
             check(TOK.rightParenthesis);
         }
         return e;
@@ -5883,7 +5886,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     }
 
     /***
-     * Parse an assignment condition for if or while statements.
+     * Parse an assignment condition for `if`, `switch` or `while` statements.
      *
      * Returns:
      *      The variable that is declared inside the condition

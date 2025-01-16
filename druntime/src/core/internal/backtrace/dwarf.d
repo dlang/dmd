@@ -44,7 +44,7 @@
  * Copyright: Copyright Digital Mars 2015 - 2015.
  * License:   $(HTTP www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Yazan Dabain, Sean Kelly
- * Source: $(DRUNTIMESRC rt/backtrace/dwarf.d)
+ * Source: $(DRUNTIMESRC core/internal/backtrace/dwarf.d)
  */
 
 module core.internal.backtrace.dwarf;
@@ -1128,12 +1128,12 @@ LineNumberProgram readLineNumberProgram(ref const(ubyte)[] data) @nogc nothrow
         foreach (ref sf; lp.sourceFiles)
         {
             if (sf.dirIndex > lp.includeDirectories.length)
-                printf("\t- Out of bound directory! (%llu): %.*s\n",
+                printf("\t- Out of bound directory! (%zu): %.*s\n",
                        sf.dirIndex, cast(int) sf.file.length, sf.file.ptr);
             else if (sf.dirIndex > 0)
             {
                 const dir = lp.includeDirectories[sf.dirIndex - 1];
-                printf("\t- (Dir:%llu:%.*s/)%.*s\n", sf.dirIndex,
+                printf("\t- (Dir:%zu:%.*s/)%.*s\n", sf.dirIndex,
                        cast(int) dir.length, dir.ptr,
                        cast(int) sf.file.length, sf.file.ptr);
             }

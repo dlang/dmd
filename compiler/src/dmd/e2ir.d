@@ -113,6 +113,11 @@ bool ISX64REF(Declaration var)
                 || (var.storage_class & STC.lazy_)
                 || (var.type.isTypeStruct() && var.type.isTypeStruct().sym.hasCopyConstruction());
         }
+        else if (target.os & Target.OS.Windows)
+        {
+            auto ts = var.type.isTypeStruct();
+            return !(var.storage_class & STC.lazy_) && ts && ts.sym.hasMoveCtor && ts.sym.hasCopyCtor;
+        }
         else if (target.os & Target.OS.Posix)
         {
             return !(var.storage_class & STC.lazy_) && var.type.isTypeStruct() && !var.type.isTypeStruct().sym.isPOD();
@@ -130,6 +135,11 @@ bool ISX64REF(ref IRState irs, Expression exp)
     {
         return exp.type.size(Loc.initial) > registerSize
                || (exp.type.isTypeStruct() && exp.type.isTypeStruct().sym.hasCopyConstruction());
+    }
+    else if (irs.target.os & Target.OS.Windows)
+    {
+        auto ts = exp.type.isTypeStruct();
+        return ts && ts.sym.hasMoveCtor && ts.sym.hasCopyCtor;
     }
     else if (irs.target.os & Target.OS.Posix)
     {
@@ -509,7 +519,7 @@ bool isDllImported(Dsymbol var)
     {
         if (builtinTypeInfo(tid.tinfo))
             return true;
-        else if (auto ad = isAggregate(tid.type))
+        if (auto ad = isAggregate(tid.type))
             var = ad;
     }
     if (driverParams.symImport == SymImport.defaultLibsOnly)
@@ -520,7 +530,7 @@ bool isDllImported(Dsymbol var)
         const id = m.md.packages.length ? m.md.packages[0] : null;
         if (id && id != Id.core && id != Id.std)
             return false;
-        else if (!id && m.md.id != Id.std && m.md.id != Id.object)
+        if (!id && m.md.id != Id.std && m.md.id != Id.object)
             return false;
     }
     else if (driverParams.symImport != SymImport.all)
@@ -4275,7 +4285,7 @@ elem *Dsymbol_toElem(Dsymbol s, ref IRState irs)
             return Dsymbol_toElem(s, irs);
         if (vd.storage_class & STC.manifest)
             return null;
-        else if (vd.isStatic() || vd.storage_class & (STC.extern_ | STC.tls | STC.gshared))
+        if (vd.isStatic() || vd.storage_class & (STC.extern_ | STC.tls | STC.gshared))
             toObjFile(vd, false);
         else
         {
@@ -6096,7 +6106,7 @@ elem *array_toDarray(Type t, elem *e)
     t = t.toBasetype();
     if(t.ty == Tarray)
         return el_combine(ef, e);
-    else if (t.ty == Tsarray)
+    if (t.ty == Tsarray)
     {
         e = addressElem(e, t);
         dim = cast(uint)(cast(TypeSArray)t).dim.toInteger();

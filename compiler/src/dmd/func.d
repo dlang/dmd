@@ -113,6 +113,7 @@ private struct FUNCFLAG
     bool safetyInprocess;    /// working on determining safety
     bool nothrowInprocess;   /// working on determining nothrow
     bool nogcInprocess;      /// working on determining @nogc
+    bool saferD;             /// do -preview=safer checks if this function has default safety
     bool scopeInprocess;     /// infer `return` and `scope` for parameters
     bool inlineScanned;      /// function has been scanned for inline possibilities
     bool hasCatches;         /// function has try-catch statements
@@ -1372,11 +1373,9 @@ extern (C++) final class CtorDeclaration : FuncDeclaration
 {
     bool isCpCtor;    // copy constructor
     bool isMoveCtor;  // move constructor (aka rvalue constructor)
-    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Type type, bool isCpCtor = false, bool isMoveCtor = false)
+    extern (D) this(const ref Loc loc, const ref Loc endloc, StorageClass stc, Type type)
     {
         super(loc, endloc, Id.ctor, stc, type);
-        this.isCpCtor = isCpCtor;
-        this.isMoveCtor = isMoveCtor;
         //printf("CtorDeclaration(loc = %s) %s %p\n", loc.toChars(), toChars(), this);
     }
 

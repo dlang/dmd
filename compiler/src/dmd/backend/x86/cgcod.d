@@ -1042,7 +1042,7 @@ extern (C) int
     uint alignsize2 = Symbol_Salignsize(*s2);
     if (alignsize1 < alignsize2)
         return 1;
-    else if (alignsize1 > alignsize2)
+    if (alignsize1 > alignsize2)
         return -1;
 
     /* move variables nearer the frame pointer that have higher Sweights
@@ -1051,7 +1051,7 @@ extern (C) int
      */
     if (s1.Sweight < s2.Sweight)
         return -1;
-    else if (s1.Sweight > s2.Sweight)
+    if (s1.Sweight > s2.Sweight)
         return 1;
 
     /* More:
@@ -2054,7 +2054,7 @@ bool evalinregister(elem *e)
     emask &= cgstate.regcon.cse.mval;       // mask of available CSEs
     if (sz <= REGSIZE)
         return emask != 0;      /* the CSE is in a register     */
-    else if (sz <= 2 * REGSIZE)
+    if (sz <= 2 * REGSIZE)
         return (emask & mMSW) && (emask & mLSW);
     return true;                    /* cop-out for now              */
 }

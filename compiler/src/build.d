@@ -394,7 +394,7 @@ alias versionFile = makeRule!((builder, rule) {
                 {
                     if ('0' <= version_[i] && version_[i] <= '9')
                         continue;
-                    else if (version_[i] == '.')
+                    if (version_[i] == '.')
                         break;
                     return false;
                 }

@@ -625,7 +625,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
 
     assert(fd.type.ty == Tfunction);
     auto tf = cast(TypeFunction)fd.type;
-    RET retmethod = retStyle(tf, fd.needThis());
+    const retmethod = retStyle(tf, fd.needThis());
     if (retmethod == RET.stack)
     {
         // If function returns a struct, put a pointer to that
@@ -1430,7 +1430,7 @@ private void genObjFile(Module m, bool multiobj)
         bcov.Sfl = FLdata;
 
         auto dtb = DtBuilder(0);
-        dtb.nbytes(cast(uint)(m.covb.length * m.covb[0].sizeof), cast(char*)m.covb.ptr);
+        dtb.nbytes(cast(const(ubyte)[]) m.covb);
         bcov.Sdt = dtb.finish();
 
         outdata(bcov);

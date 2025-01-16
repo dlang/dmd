@@ -273,6 +273,6 @@ static if (1)
     ui.UnwindCode[ui.CountOfCodes-1].FrameOffset = setUnwindCode(1, UWOP.PUSH_NONVOL, BP);
 
     auto dtb = DtBuilder(0);
-    dtb.nbytes(4 + ((ui.CountOfCodes + 1) & ~1) * 2,cast(char *)&ui);
+    dtb.nbytes((cast(const(ubyte*)) &ui)[0 .. 4 + ((ui.CountOfCodes + 1) & ~1) * 2]);
     return dtb.finish();
 }
