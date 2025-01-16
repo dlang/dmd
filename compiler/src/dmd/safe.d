@@ -369,7 +369,11 @@ extern (D) void reportSafeError(FuncDeclaration fd, bool gag, Loc loc,
     if (fd.type.toTypeFunction().trust == TRUST.system) // function was just inferred to be @system
     {
         if (format)
-            fd.safetyViolation = new AttributeViolation(loc, format, arg0, arg1, arg2);
+        {
+            OutBuffer buf;
+            buf.printf(format, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "", arg2 ? arg2.toChars() : "");
+            fd.safetyViolation = new AttributeViolation(loc, buf.extractSlice());
+        }
         else if (arg0)
         {
             if (FuncDeclaration fd2 = (cast(Dsymbol) arg0).isFuncDeclaration())
@@ -560,8 +564,11 @@ bool setUnsafePreview(Scope* sc, FeatureState fs, bool gag, Loc loc, const(char)
         }
         else if (!sc.func.safetyViolation)
         {
+            OutBuffer buf;
+            buf.printf(format, arg0 ? arg0.toChars() : "", arg1 ? arg1.toChars() : "", arg2 ? arg2.toChars() : "");
+
             import dmd.func : AttributeViolation;
-            sc.func.safetyViolation = new AttributeViolation(loc, format, arg0, arg1, arg2);
+            sc.func.safetyViolation = new AttributeViolation(loc, buf.extractSlice());
         }
         return false;
     }

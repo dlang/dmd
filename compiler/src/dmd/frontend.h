@@ -3653,17 +3653,11 @@ struct AttributeViolation final
 {
     Loc loc;
     FuncDeclaration* fd;
-    const char* format;
-    RootObject* arg0;
-    RootObject* arg1;
-    RootObject* arg2;
+    _d_dynamicArray< const char > action;
     AttributeViolation() :
         loc(),
         fd(),
-        format(),
-        arg0(),
-        arg1(),
-        arg2()
+        action()
     {
     }
 };

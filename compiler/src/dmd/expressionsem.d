@@ -2098,14 +2098,9 @@ public void errorSupplementalInferredAttr(FuncDeclaration fd, int maxDepth, bool
     if (!s)
         return;
 
-    if (s.format)
+    if (s.action.length > 0)
     {
-        OutBuffer buf;
-        buf.writestring("and ");
-        buf.printf(s.format, s.arg0 ? s.arg0.toChars() : "", s.arg1 ? s.arg1.toChars() : "", s.arg2 ? s.arg2.toChars() : "");
-        buf.printf(" makes it fail to infer `%.*s`", attr.fTuple.expand);
-
-        errorFunc(s.loc, "%s", buf.extractChars);
+        errorFunc(s.loc, "and %.*s makes it fail to infer `%.*s`", s.action.fTuple.expand, attr.fTuple.expand);
     }
     else if (s.fd)
     {
