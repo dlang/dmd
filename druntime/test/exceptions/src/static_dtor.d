@@ -1,5 +1,5 @@
 // https://issues.dlang.org/show_bug.cgi?id=16594
-import core.stdc.stdio;
+import core.stdc.stdio : fprintf, stderr;
 
 shared static ~this()
 {

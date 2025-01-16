@@ -169,7 +169,7 @@ void issue19568()
 
         ~this() @nogc nothrow
         {
-            import core.stdc.stdio;
+            import core.stdc.stdio : puts;
             if (mptr) puts("impure");
         }
 
@@ -183,7 +183,7 @@ void issue19568()
 
         ~this() @nogc nothrow
         {
-            import core.stdc.stdio;
+            import core.stdc.stdio : puts;
             if (fd != -1) puts("impure");
         }
 

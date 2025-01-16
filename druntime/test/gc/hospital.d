@@ -24,7 +24,7 @@ int main(string[] args)
 
     version (VERBOSE)
     {
-        import core.stdc.stdio;
+        import core.stdc.stdio : printf;
         printf("Patients: %lld\n", t.patients);
         printf("Time:     %lld\n", t.hospitalTime);
         printf("Visits:   %lld\n", t.hospitalVisits);

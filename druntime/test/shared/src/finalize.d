@@ -1,6 +1,5 @@
 import core.runtime;
-import core.stdc.stdio;
-import core.stdc.string;
+import core.stdc.string : strrchr;
 import core.thread;
 
 void runTest()
