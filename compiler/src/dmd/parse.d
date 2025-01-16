@@ -7552,7 +7552,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         {
             int haveId = 0;
             int haveTpl = 0;
-            const bool isDecl = isDeclarator(&t, &haveId, &haveTpl, endtok, allowAltSyntax: anyStorageClass || needId != NeedDeclaratorId.mustIfDstyle);
+            const bool isDecl = isDeclarator(&t, &haveId, &haveTpl, endtok, anyStorageClass || needId != NeedDeclaratorId.mustIfDstyle);
             // printf("isDeclaration() (%d,%d) isDeclarator: %d\n", t.loc.linnum, t.loc.charnum, isDecl);
             if (!isDecl)
                 goto Lisnot;
@@ -10025,7 +10025,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             if (l.idents != null || l.identExps != null)
                 error("C++ namespaces not allowed here");
             return l.link;
-        };
+        }
         immutable link = getLinkage();
         // Handle `ref` TypeCtors(opt) BasicType TypeSuffixes(opt) CallableSuffix NonCallableSuffixes(opt)
         const bool isRef = token.value == TOK.ref_;
