@@ -10,7 +10,7 @@ switch (K)
 }
 ---
 
-Is quivalent to:
+Is equivalent to:
 
 ---
 enum K = 42;
