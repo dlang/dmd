@@ -6535,7 +6535,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             {
                 goto Ldeclaration; // scope used as storage class
             }
-            
+
             {
                 Token* tokenAfterClosingParen = peek(peek(&token));
                 size_t argumentLength = 0;
