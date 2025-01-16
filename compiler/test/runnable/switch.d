@@ -11,7 +11,7 @@ C: yes
 
 import core.stdc.stdio: printf;
 
-void main()
+void simple()
 {
     enum K = 42;
     switch (K)
@@ -46,4 +46,79 @@ void main()
 
         default: printf("C: default\n");
     }
+}
+
+
+void send_1(short* to, short* from, int count)
+{
+    auto n = (count + 7) / 8;
+    switch (count % 8) {
+    case 0: do { *to = *from++;
+                 goto case;
+    case 7:      *to = *from++;
+                 goto case;
+    case 6:      *to = *from++;
+                 goto case;
+    case 5:      *to = *from++;
+                 goto case;
+    case 4:      *to = *from++;
+                 goto case;
+    case 3:      *to = *from++;
+                 goto case;
+    case 2:      *to = *from++;
+                 goto case;
+    case 1:      *to = *from++;
+                 continue;
+            } while (--n > 0);
+            break;
+    default: break;
+    }
+}
+
+void send_2(short* to, short* from, int count)
+{
+    auto n = (count + 7) / 8;
+    switch (count % 8) {
+    case 0 => do { *to = *from++;
+                 goto case;
+    case 7 =>      *to = *from++;
+                 goto case;
+    case 6 =>      *to = *from++;
+                 goto case;
+    case 5 =>      *to = *from++;
+                 goto case;
+    case 4 =>      *to = *from++;
+                 goto case;
+    case 3 =>      *to = *from++;
+                 goto case;
+    case 2 =>      *to = *from++;
+                 goto case;
+    case 1 =>      *to = *from++;
+                 continue;
+            } while (--n > 0);
+            break;
+    default: break;
+    }
+}
+
+void duff_device()
+{
+    {
+        short[4] data = [1,2,3,4];
+        short[4] output = 0;
+        send_1(output.ptr, data.ptr, cast(int) data.length);
+        assert(output[0] == 1 && output[1] == 2 && output[2] == 3 && output[3] == 4);
+    }
+    {
+        short[4] data = [1,2,3,4];
+        short[4] output = 0;
+        send_2(output.ptr, data.ptr, cast(int) data.length);
+        assert(output[0] == 1 && output[1] == 2 && output[2] == 3 && output[3] == 4);
+    }
+}
+
+void main()
+{
+    simple();
+    duff_device();
 }
