@@ -368,8 +368,9 @@ inout(block)* list_block(inout list_t lst) { return cast(inout(block)*)list_ptr(
 
 /** Basic block control flow operators. **/
 
-enum BC : int
+enum BC : ubyte
 {
+    none      = 0,
     goto_     = 1,    // goto Bsucc block
     iftrue    = 2,    // if (Belem) goto Bsucc[0] else Bsucc[1]
     ret       = 3,    // return (no return value)
