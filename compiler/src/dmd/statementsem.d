@@ -134,7 +134,16 @@ private Expression checkAssignmentAsCondition(Expression e, Scope* sc)
     return e;
 }
 
-// Performs semantic analysis in Statement AST nodes
+/**
+ * Performs semantic analysis in Statement AST nodes
+ *
+ * Params:
+ *   s = statement to perform semantic analysis on
+ *   sc = scope in which statement resides
+ *
+ * Returns: statement `s` after semantic analysis.
+ * Can be `null`, for example with `pragma(msg, "")`
+ */
 Statement statementSemantic(Statement s, Scope* sc)
 {
     import dmd.compiler;
@@ -3461,6 +3470,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
             sc = sc.push();
             sc.flags |= SCOPE.debug_;
             ds.statement = ds.statement.statementSemantic(sc);
+            debugThrowWalker(ds.statement);
             sc.pop();
         }
         result = ds.statement;
@@ -4736,7 +4746,6 @@ private Statements* flatten(Statement statement, Scope* sc)
                 if (dc)
                 {
                     s = new DebugStatement(cs.loc, cs.ifbody);
-                    debugThrowWalker(cs.ifbody);
                 }
                 else
                     s = cs.ifbody;
@@ -4908,7 +4917,8 @@ Params:
 */
 private void debugThrowWalker(Statement s)
 {
-
+    if (!s)
+        return;
     extern(C++) final class DebugWalker : SemanticTimeTransitiveVisitor
     {
         alias visit = SemanticTimeTransitiveVisitor.visit;
