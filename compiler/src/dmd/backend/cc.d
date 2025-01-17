@@ -220,7 +220,7 @@ enum BFL : ushort
     nounroll      = 0x1000, // do not unroll loop
 
     // for Windows NTEXCEPTIONS
-    ehcode        = 0x2000, // BC_filter: need to load exception code
+    ehcode        = 0x2000, // BC._filter: need to load exception code
     unwind        = 0x4000, // do local_unwind following block (unused)
 }
 
@@ -239,13 +239,13 @@ nothrow:
     list_t Bpred;               // and the predecessor list
     int Bindex;                 // into created object stack
     int Bendindex;              // index at end of block
-    block *Btry;                // BCtry,BC_try: enclosing try block, if any
-                                // BC???: if in try-block, points to BCtry or BC_try
-                                // note that can't have a BCtry and BC_try in
+    block *Btry;                // BC.try_,BC._try: enclosing try block, if any
+                                // BC???: if in try-block, points to BC.try_ or BC._try
+                                // note that can't have a BC.try_ and BC._try in
                                 // the same function.
     union
     {
-        long[] Bswitch;                // BCswitch: case expression values
+        long[] Bswitch;                // BC.switch_: case expression values
 
         struct
         {
@@ -256,25 +256,25 @@ nothrow:
         struct
         {
             Symbol* catchvar;           // __throw() fills in this
-        }                               // BCtry
+        }                               // BC.try_
 
         struct
         {
             Symbol* Bcatchtype;       // one type for each catch block
             Barray!uint* actionTable; // EH_DWARF: indices into typeTable
-        }                             // BCjcatch
+        }                             // BC.jcatch
 
         struct
         {
             Symbol *jcatchvar;      // __d_throw() fills in this
             int Bscope_index;           // index into scope table
             int Blast_index;            // enclosing index into scope table
-        }                               // BC_try
+        }                               // BC._try
 
         struct
         {
             Symbol *flag;               // EH_DWARF: set to 'flag' symbol that encloses finally
-            block *b_ret;               // EH_DWARF: associated BC_ret block
+            block *b_ret;               // EH_DWARF: associated BC._ret block
         }                               // finally
 
         // add member mimicking the largest of the other elements of this union, so it can be copied
@@ -282,7 +282,7 @@ nothrow:
         _BS BS;
     }
     Srcpos      Bsrcpos;        // line number (0 if not known)
-    ubyte       BC;             // exit condition (enum BC)
+    BC          bc;             // exit condition
 
     ubyte       Balign;         // alignment
 
@@ -308,8 +308,8 @@ nothrow:
             uint        Bblknum;        // position of block from startblock
             Symbol*     Binitvar;       // !=NULL points to an auto variable with
                                         // an explicit or implicit initializer
-            block*      Bgotolist;      // BCtry, BCcatch: backward list of try scopes
-            block*      Bgotothread;    // BCgoto: threaded list of goto's to
+            block*      Bgotolist;      // BC.try_, BC.catch_: backward list of try scopes
+            block*      Bgotothread;    // BC.goto_: threaded list of goto's to
                                         // unknown labels
         }
 
@@ -327,7 +327,7 @@ nothrow:
             vec_t       Bkill;          // pointers to bit vectors used by data
                                         // flow analysis
 
-            // BCiftrue can have different vectors for the 2nd successor:
+            // BC.iftrue can have different vectors for the 2nd successor:
             vec_t       Bout2;
             vec_t       Bgen2;
             vec_t       Bkill2;
@@ -336,7 +336,7 @@ nothrow:
         // CODGEN
         struct
         {
-            // For BCswitch, BCjmptab
+            // For BC.switch_, BC.jmptab
             targ_size_t Btablesize;     // size of generated table
             targ_size_t Btableoffset;   // offset to start of table
             targ_size_t Btablebase;     // offset to instruction pointer base
@@ -344,7 +344,7 @@ nothrow:
             targ_size_t Boffset;        // code offset of start of this block
             targ_size_t Bsize;          // code size of this block
             con_t       Bregcon;        // register state at block exit
-            targ_size_t Btryoff;        // BCtry: offset of try block data
+            targ_size_t Btryoff;        // BC.try_: offset of try block data
         }
     }
 
@@ -368,43 +368,42 @@ inout(block)* list_block(inout list_t lst) { return cast(inout(block)*)list_ptr(
 
 /** Basic block control flow operators. **/
 
-alias BC = int;
-enum
+enum BC : ubyte
 {
-    BCgoto      = 1,    // goto Bsucc block
-    BCiftrue    = 2,    // if (Belem) goto Bsucc[0] else Bsucc[1]
-    BCret       = 3,    // return (no return value)
-    BCretexp    = 4,    // return with return value
-    BCexit      = 5,    // never reaches end of block (like exit() was called)
-    BCasm       = 6,    // inline assembler block (Belem is NULL, Bcode
-                        // contains code generated).
-                        // These blocks have one or more successors in Bsucc,
-                        // never 0
-    BCswitch    = 7,    // switch statement
+    none      = 0,
+    goto_     = 1,    // goto Bsucc block
+    iftrue    = 2,    // if (Belem) goto Bsucc[0] else Bsucc[1]
+    ret       = 3,    // return (no return value)
+    retexp    = 4,    // return with return value
+    exit      = 5,    // never reaches end of block (like exit() was called)
+    asm_      = 6,    // inline assembler block (Belem is NULL, Bcode
+                      // contains code generated).
+                      // These blocks have one or more successors in Bsucc,
+                      // never 0
+    switch_   = 7,    // switch statement
                         // Bswitch points to switch data
                         // Default is Bsucc
                         // Cases follow in linked list
-    BCifthen    = 8,    // a BCswitch is converted to if-then
+    ifthen    = 8,    // a BC.switch_ is converted to if-then
                         // statements
-    BCjmptab    = 9,    // a BCswitch is converted to a jump
+    jmptab    = 9,    // a BC.switch_ is converted to a jump
                         // table (switch value is index into
                         // the table)
-    BCtry       = 10,   // C++ try block
+    try_      = 10,   // C++ try block
                         // first block in a try-block. The first block in
                         // Bsucc is the next one to go to, subsequent
                         // blocks are the catch blocks
-    BCcatch     = 11,   // C++ catch block
-    BCjump      = 12,   // Belem specifies (near) address to jump to
-    BC_try      = 13,   // SEH: first block of try-except or try-finally
+    catch_    = 11,   // C++ catch block
+    jump      = 12,   // Belem specifies (near) address to jump to
+    _try      = 13,   // SEH: first block of try-except or try-finally
                         // D: try-catch or try-finally
-    BC_filter   = 14,   // SEH exception-filter (always exactly one block)
-    BC_finally  = 15,   // first block of SEH termination-handler,
+    _filter   = 14,   // SEH exception-filter (always exactly one block)
+    _finally  = 15,   // first block of SEH termination-handler,
                         // or D finally block
-    BC_ret      = 16,   // last block of SEH termination-handler or D _finally block
-    BC_except   = 17,   // first block of SEH exception-handler
-    BCjcatch    = 18,   // D catch block
-    BC_lpad     = 19,   // EH_DWARF: landing pad for BC_except
-    BCMAX
+    _ret      = 16,   // last block of SEH termination-handler or D _finally block
+    _except   = 17,   // first block of SEH exception-handler
+    jcatch    = 18,   // D catch block
+    _lpad     = 19,   // EH_DWARF: landing pad for BC._except
 }
 
 /********************************

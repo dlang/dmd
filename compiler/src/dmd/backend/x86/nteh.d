@@ -378,13 +378,13 @@ void nteh_setsp(ref CodeBuilder cdb, opcode_t op)
 }
 
 /****************************
- * Put out prolog for BC_filter block.
+ * Put out prolog for BC._filter block.
  */
 
 @trusted
 void nteh_filter(ref CodeBuilder cdb, block *b)
 {
-    assert(b.BC == BC_filter);
+    assert(b.bc == BC._filter);
     if (b.Bflags & BFL.ehcode)          // if referenced __ecode
     {
         /* Generate:

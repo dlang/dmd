@@ -66,7 +66,7 @@ void cgreg_init()
     nretblocks = 0;
     foreach (bi, b; bo.dfo[])
     {
-        if (b.BC == BCret || b.BC == BCretexp)
+        if (b.bc == BC.ret || b.bc == BC.retexp)
             nretblocks++;
         if (b.Belem)
         {
@@ -302,14 +302,14 @@ static if (1) // causes assert failure in std.range(4488) from std.parallelism's
         int inout_;
 
         b = bo.dfo[bi];
-        switch (b.BC)
+        switch (b.bc)
         {
-            case BCjcatch:
-            case BCcatch:
-            case BC_except:
-            case BC_finally:
-            case BC_lpad:
-            case BC_ret:
+            case BC.jcatch:
+            case BC.catch_:
+            case BC._except:
+            case BC._finally:
+            case BC._lpad:
+            case BC._ret:
                 s.Sflags &= ~GTregcand;
                 goto Lcant;             // can't assign to register
 
@@ -321,7 +321,7 @@ static if (1) // causes assert failure in std.range(4488) from std.parallelism's
             //printf("WEIGHTS(%d,%d) = %d, benefit = %d\n",bi,si,WEIGHTS(bi,si),benefit);
             inout_ = 1;
 
-            if (s == retsym && (reg == dst_integer_reg || reg == dst_float_reg) && b.BC == BCretexp)
+            if (s == retsym && (reg == dst_integer_reg || reg == dst_float_reg) && b.bc == BC.retexp)
             {   benefit += 1;
                 retsym_cnt++;
                 //printf("retsym, benefit = %d\n",benefit);
@@ -343,7 +343,7 @@ static if (1) // causes assert failure in std.range(4488) from std.parallelism's
             int bpi = bp.Bdfoidx;
             if (!vec_testbit(bpi,s.Srange))
                 continue;
-            if (gotoepilog && bp.BC == BCgoto)
+            if (gotoepilog && bp.bc == BC.goto_)
             {
                 if (vec_testbit(bpi,s.Slvreg))
                 {
@@ -606,7 +606,7 @@ void cgreg_spillreg_epilog(block *b,Symbol *s,ref CodeBuilder cdbstore, ref Code
 {
     const bi = b.Bdfoidx;
     //printf("cgreg_spillreg_epilog(block %d, s = '%s')\n",bi,s.Sident.ptr);
-    //assert(b.BC == BCgoto);
+    //assert(b.bc == BC.goto_);
     if (!cgreg_gotoepilog(b.nthSucc(0), s))
         return;
 

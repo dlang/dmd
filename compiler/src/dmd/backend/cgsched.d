@@ -156,7 +156,7 @@ public void cgsched_block(block* b)
 {
     if (config.flags4 & CFG4speed &&
         config.target_cpu >= TARGET_Pentium &&
-        b.BC != BCasm)
+        b.bc != BC.asm_)
     {
         regm_t scratch = cgstate.allregs;
 

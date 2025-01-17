@@ -746,7 +746,7 @@ void out_regcand(symtab_t *psymtab)
             out_regcand_walk(b.Belem, addressOfParam);
 
         // Any assembler blocks make everything ambiguous
-        if (b.BC == BCasm)
+        if (b.bc == BC.asm_)
             for (SYMIDX si = 0; si < psymtab.length; si++)
                 (*psymtab)[si].Sflags &= ~(SFLunambig | GTregcand);
     }
@@ -957,14 +957,14 @@ private void writefunc2(Symbol *sfunc, ref GlobalOptimizer go)
         if (b.Belem)
         {   outelem(b.Belem, addressOfParam);
             if (b.Belem.Eoper == OPhalt)
-            {   b.BC = BCexit;
+            {   b.bc = BC.exit;
                 list_free(&b.Bsucc,FPNULL);
             }
         }
-        if (b.BC == BCasm)
+        if (b.bc == BC.asm_)
             anyasm = true;
-        if (sfunc.Sflags & SFLexit && (b.BC == BCret || b.BC == BCretexp))
-        {   b.BC = BCexit;
+        if (sfunc.Sflags & SFLexit && (b.bc == BC.ret || b.bc == BC.retexp))
+        {   b.bc = BC.exit;
             list_free(&b.Bsucc,FPNULL);
         }
         assert(b != b.Bnext);

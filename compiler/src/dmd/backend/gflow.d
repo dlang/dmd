@@ -117,7 +117,7 @@ void flowrd(ref GlobalOptimizer go)
         {
             /* Binrd = union of Boutrds of all predecessors of b */
             vec_clear(b.Binrd);
-            if (b.BC != BCcatch /*&& b.BC != BCjcatch*/)
+            if (b.bc != BC.catch_ /*&& b.bc != BC.jcatch*/)
             {
                 /* Set Binrd to 0 to account for:
                  * i = 0;
@@ -200,7 +200,7 @@ private void rdgenkill(ref GlobalOptimizer go)
 
         /* calculate and create new vectors */
         rdelem(go, b.Bgen, b.Bkill, b.Belem, deftop);
-        if (b.BC == BCasm)
+        if (b.bc == BC.asm_)
         {
             vec_clear(b.Bkill);        // KILL nothing
             vec_set(b.Bgen);           // GEN everything
@@ -554,7 +554,7 @@ private void flowaecp(ref GlobalOptimizer go, int flowxx)
 
     vec_clear(bo.startblock.Bin);
     vec_copy(bo.startblock.Bout,bo.startblock.Bgen); /* these never change */
-    if (bo.startblock.BC == BCiftrue)
+    if (bo.startblock.bc == BC.iftrue)
         vec_copy(bo.startblock.Bout2,bo.startblock.Bgen2); // these never change
 
     /* For all blocks except startblock     */
@@ -565,7 +565,7 @@ private void flowaecp(ref GlobalOptimizer go, int flowxx)
         /* Bout = (Bin - Bkill) | Bgen  */
         vec_sub(b.Bout,b.Bin,b.Bkill);
         vec_orass(b.Bout,b.Bgen);
-        if (b.BC == BCiftrue)
+        if (b.bc == BC.iftrue)
         {
             vec_sub(b.Bout2,b.Bin,b.Bkill2);
             vec_orass(b.Bout2,b.Bgen2);
@@ -588,7 +588,7 @@ private void flowaecp(ref GlobalOptimizer go, int flowxx)
             foreach (bl; ListRange(b.Bpred))
             {
                 block* bp = list_block(bl);
-                if (bp.BC == BCiftrue && bp.nthSucc(0) != b)
+                if (bp.bc == BC.iftrue && bp.nthSucc(0) != b)
                 {
                     if (first)
                         vec_copy(b.Bin,bp.Bout2);
@@ -606,7 +606,7 @@ private void flowaecp(ref GlobalOptimizer go, int flowxx)
             }
             assert(!first);     // it must have had predecessors
 
-            if (b.BC == BCjcatch)
+            if (b.bc == BC.jcatch)
             {
                 /* Set Bin to 0 to account for:
                     void* pstart = p;
@@ -639,7 +639,7 @@ private void flowaecp(ref GlobalOptimizer go, int flowxx)
                 }
             }
 
-            if (b.BC == BCiftrue)
+            if (b.bc == BC.iftrue)
             {   // Bout2 = (Bin - Bkill2) | Bgen2
                 if (anychng)
                 {
@@ -822,9 +822,9 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
         vec_free(b.Bkill);
         b.Bgen = vec_calloc(go.expnod.length);
         b.Bkill = vec_calloc(go.expnod.length);
-        switch (b.BC)
+        switch (b.bc)
         {
-            case BCiftrue:
+            case BC.iftrue:
                 vec_free(b.Bout2);
                 vec_free(b.Bgen2);
                 vec_free(b.Bkill2);
@@ -886,7 +886,7 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
                 b.Bout2 = vec_calloc(go.expnod.length);
                 break;
 
-            case BCasm:
+            case BC.asm_:
                 vec_set(b.Bkill);              // KILL everything
                 vec_clear(b.Bgen);             // GEN nothing
                 break;
@@ -1033,7 +1033,7 @@ void genkillae(ref GlobalOptimizer go)
         vec_clear(b.Bkill);
         if (b.Belem)
             accumaecp(go, b.Bgen,b.Bkill,b.Belem);
-        else if (b.BC == BCasm)
+        else if (b.bc == BC.asm_)
         {
             vec_set(b.Bkill);          // KILL everything
             vec_clear(b.Bgen);         // GEN nothing
@@ -1382,7 +1382,7 @@ void flowlv()
             }
 
             if (first) /* no successors, Boutlv = livexit */
-            {   //assert(b.BC==BCret||b.BC==BCretexp||b.BC==BCexit);
+            {   //assert(b.bc==BC.ret||b.bc==BC.retexp||b.bc==BC.exit);
                 vec_copy(b.Boutlv,livexit);
             }
 
@@ -1449,7 +1449,7 @@ private void lvgenkill()
         vec_free(b.Bgen);
         vec_free(b.Bkill);
         lvelem(b.Bgen,b.Bkill, b.Belem, ambigsym, length);
-        if (b.BC == BCasm)
+        if (b.bc == BC.asm_)
         {
             vec_set(b.Bgen);
             vec_clear(b.Bkill);
@@ -1696,7 +1696,7 @@ void flowvbe(ref GlobalOptimizer go)
         printf("Bgen = "); vec_println(b.Bgen);
         printf("Bkill = "); vec_println(b.Bkill);*/
 
-        if (b.BC == BCret || b.BC == BCretexp || b.BC == BCexit)
+        if (b.bc == BC.ret || b.bc == BC.retexp || b.bc == BC.exit)
             vec_clear(b.Bout);
         else
             vec_set(b.Bout);
@@ -1715,7 +1715,7 @@ void flowvbe(ref GlobalOptimizer go)
         /* for all blocks except return blocks in reverse dfo order */
         foreach_reverse (b; bo.dfo[])
         {
-            if (b.BC == BCret || b.BC == BCretexp || b.BC == BCexit)
+            if (b.bc == BC.ret || b.bc == BC.retexp || b.bc == BC.exit)
                 continue;
 
             /* Bout = & of Bin of all successors */

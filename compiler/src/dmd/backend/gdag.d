@@ -139,11 +139,11 @@ void builddags(ref GlobalOptimizer go)
             if ((i != 0 &&
                  (list_block(b.Bpred) != bo.dfo[i - 1] ||
                   list_next(b.Bpred) != null))
-                || b.BC == BCasm
-                || b.BC == BC_finally
-                || b.BC == BC_lpad
-                || b.BC == BCcatch
-                || b.BC == BCjcatch
+                || b.bc == BC.asm_
+                || b.bc == BC._finally
+                || b.bc == BC._lpad
+                || b.bc == BC.catch_
+                || b.bc == BC.jcatch
                )
                 vec_clear(aevec);
             if (b.Belem)           /* if there is an expression    */
@@ -642,11 +642,11 @@ void boolopt(ref GlobalOptimizer go)
         if ((i != 0 &&
              (list_block(b.Bpred) != bo.dfo[i - 1] ||
               list_next(b.Bpred) != null))
-            || b.BC == BCasm
-            || b.BC == BC_finally
-            || b.BC == BC_lpad
-            || b.BC == BCcatch
-            || b.BC == BCjcatch
+            || b.bc == BC.asm_
+            || b.bc == BC._finally
+            || b.bc == BC._lpad
+            || b.bc == BC.catch_
+            || b.bc == BC.jcatch
            )
             vec_clear(aevec);
         if (b.Belem)           /* if there is an expression    */

@@ -888,12 +888,12 @@ void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const(FL)*
     block *nextb;
     regm_t retregs = 0;
 
-    if (bl.BC != BCasm)
+    if (bl.bc != BC.asm_)
         assert(bl.Bcode == null);
 
-    switch (bl.BC)                     /* block exit condition         */
+    switch (bl.bc)                     /* block exit condition         */
     {
-        case BCiftrue:
+        case BC.iftrue:
         {
             bool jcond = true;
             block *bs1 = bl.nthSucc(0);
@@ -914,7 +914,7 @@ void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const(FL)*
             if (configv.addlinenumbers && bl.Bsrcpos.Slinnum &&
                 !(funcsym_p.ty() & mTYnaked))
             {
-                //printf("BCiftrue: %s(%u)\n", bl.Bsrcpos.Sfilename ? bl.Bsrcpos.Sfilename : "", bl.Bsrcpos.Slinnum);
+                //printf("BC.iftrue: %s(%u)\n", bl.Bsrcpos.Sfilename ? bl.Bsrcpos.Sfilename : "", bl.Bsrcpos.Slinnum);
                 cdb.genlinnum(bl.Bsrcpos);
             }
             if (nextb != bl.Bnext)
@@ -924,15 +924,15 @@ void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const(FL)*
             }
             break;
 
-        case BCjmptab:
-        case BCifthen:
-        case BCswitch:
+        case BC.jmptab:
+        case BC.ifthen:
+        case BC.switch_:
         {
             assert(!(bl.Bflags & BFL.epilog));
             doswitch(cdb,bl);               // hide messy details
             break;
         }
-        case BCjcatch:          // D catch clause of try-catch
+        case BC.jcatch:          // D catch clause of try-catch
             assert(ehmethod(funcsym_p) != EHmethod.EH_NONE);
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in catch blocks.
@@ -949,13 +949,13 @@ void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const(FL)*
                 cdb.gen1(PSOP.fixesp);
             }
             goto case_goto;
-        case BCgoto:
+        case BC.goto_:
             nextb = bl.nthSucc(0);
             if ((MARS ||
                  funcsym_p.Sfunc.Fflags3 & Fnteh) &&
                 ehmethod(funcsym_p) != EHmethod.EH_DWARF &&
                 bl.Btry != nextb.Btry &&
-                nextb.BC != BC_finally)
+                nextb.bc != BC._finally)
             {
                 regm_t retregsx = 0;
                 gencodelem(cdb,e,retregsx,true);
@@ -965,7 +965,7 @@ void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const(FL)*
                 if (toindex + 1 == fromindex)
                 {   // Simply call __finally
                     if (bl.Btry &&
-                        bl.Btry.nthSucc(1).BC == BCjcatch)
+                        bl.Btry.nthSucc(1).bc == BC.jcatch)
                     {
                         goto L5;        // it's a try-catch, not a try-finally
                     }
@@ -990,13 +990,13 @@ void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const(FL)*
                         //printf("\tbt.Bscope_index = %d, bt.Blast_index = %d\n", bt.Bscope_index, bt.Blast_index);
                         bf = bt.nthSucc(1);
                         // Only look at try-finally blocks
-                        if (bf.BC == BCjcatch)
+                        if (bf.bc == BC.jcatch)
                             continue;
 
                         if (bf == nextb)
                             continue;
                         //printf("\tbf = B%d, nextb = B%d\n", bf.Bdfoidx, nextb.Bdfoidx);
-                        if (nextb.BC == BCgoto &&
+                        if (nextb.bc == BC.goto_ &&
                             !nextb.Belem &&
                             bf == nextb.nthSucc(0))
                             continue;
@@ -1034,11 +1034,11 @@ void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const(FL)*
             goto L5;
         }
 
-        case BC_try:
+        case BC._try:
             if (config.ehmethod == EHmethod.EH_NONE || funcsym_p.Sfunc.Fflags3 & Feh_none)
             {
                 /* Need to use frame pointer to access locals, not the stack pointer,
-                 * because we'll be calling the BC_finally blocks and the stack will be off.
+                 * because we'll be calling the BC._finally blocks and the stack will be off.
                  */
                 cgstate.needframe = 1;
             }
@@ -1051,7 +1051,7 @@ void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const(FL)*
                 cgstate.usednteh |= EHtry;
             goto case_goto;
 
-        case BC_finally:
+        case BC._finally:
             if (ehmethod(funcsym_p) == EHmethod.EH_DWARF)
             {
                 // Mark scratch registers as destroyed.
@@ -1085,7 +1085,7 @@ void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const(FL)*
                 goto L5;
             }
 
-        case BC_lpad:
+        case BC._lpad:
         {
             assert(ehmethod(funcsym_p) == EHmethod.EH_DWARF);
             // Mark all registers as destroyed. This will prevent
@@ -1100,7 +1100,7 @@ void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const(FL)*
             goto L5;
         }
 
-        case BC_ret:
+        case BC._ret:
         {
             regm_t retregsx = 0;
             gencodelem(cdb,e,retregsx,true);
@@ -1114,7 +1114,7 @@ void outblkexitcode(ref CodeBuilder cdb, block *bl, ref int anyspill, const(FL)*
 
 static if (NTEXCEPTIONS)
 {
-        case BC_except:
+        case BC._except:
         {
             assert(!e);
             cgstate.usednteh |= NTEH_except;
@@ -1123,7 +1123,7 @@ static if (NTEXCEPTIONS)
             nextb = bl.nthSucc(0);
             goto L5;
         }
-        case BC_filter:
+        case BC._filter:
         {
             nteh_filter(cdb, bl);
             // Mark all registers as destroyed. This will prevent
@@ -1136,7 +1136,7 @@ static if (NTEXCEPTIONS)
         }
 }
 
-        case BCretexp:
+        case BC.retexp:
             reg_t reg1, reg2, lreg, mreg;
             retregs = allocretregs(e.Ety, e.ET, funcsym_p.ty(), reg1, reg2);
             //printf("allocretregs returns %s\n", regm_str(mask(reg1) | mask(reg2)));
@@ -1249,7 +1249,7 @@ static if (NTEXCEPTIONS)
                 retregs = (mask(reg1) | mask(reg2)) & ~mask(NOREG);
             goto L4;
 
-        case BCret:
+        case BC.ret:
             retregs = 0;
             gencodelem(cdb,e,retregs,true);
         L4:
@@ -1270,7 +1270,7 @@ static if (NTEXCEPTIONS)
                 {
                     block *bf = bt.nthSucc(1);
                     // Only look at try-finally blocks
-                    if (bf.BC == BCjcatch)
+                    if (bf.bc == BC.jcatch)
                     {
                         continue;
                     }
@@ -1305,14 +1305,14 @@ static if (NTEXCEPTIONS)
             }
             break;
 
-        case BCexit:
+        case BC.exit:
             retregs = 0;
             gencodelem(cdb,e,retregs,true);
             if (config.flags4 & CFG4optimized)
                 cgstate.mfuncreg = mfuncregsave;
             break;
 
-        case BCasm:
+        case BC.asm_:
         {
             assert(!e);
             // Mark destroyed registers
@@ -1330,7 +1330,7 @@ static if (NTEXCEPTIONS)
                 }
                 if (nextb != bl.Bnext &&
                     bl.Bnext &&
-                    !(bl.Bnext.BC == BCgoto &&
+                    !(bl.Bnext.bc == BC.goto_ &&
                      !bl.Bnext.Belem &&
                      nextb == bl.Bnext.nthSucc(0)))
                 {
@@ -1350,7 +1350,7 @@ static if (NTEXCEPTIONS)
 
         default:
             debug
-            printf("bl.BC = %d\n",bl.BC);
+            printf("bl.bc = %d\n",bl.bc);
             assert(0);
     }
 }
@@ -1656,10 +1656,10 @@ private void ifthen(ref CodeBuilder cdb, scope CaseVal[] casevals,
 
 /*******************************
  * Generate code for blocks ending in a switch statement.
- * Take BCswitch and decide on
- *      BCifthen        use if - then code
- *      BCjmptab        index into jump table
- *      BCswitch        search table for match
+ * Take BC.switch_ and decide on
+ *      BC.ifthen        use if - then code
+ *      BC.jmptab        index into jump table
+ *      BC.switch_        search table for match
  */
 
 @trusted
@@ -1668,7 +1668,7 @@ void doswitch(ref CodeBuilder cdb, block *b)
     // If switch tables are in code segment and we need a CS: override to get at them
     bool csseg = cast(bool)(config.flags & CFGromable);
 
-    //printf("doswitch(%d)\n", b.BC);
+    //printf("doswitch(%d)\n", b.bc);
     elem *e = b.Belem;
     elem_debug(e);
     docommas(cdb,e);
@@ -1724,7 +1724,7 @@ void doswitch(ref CodeBuilder cdb, block *b)
     {   // generate if-then sequence
     Lifthen:
         regm_t retregs = ALLREGS;
-        b.BC = BCifthen;
+        b.bc = BC.ifthen;
         scodelem(cgstate,cdb,e,retregs,0,true);
         reg_t reg, reg2;
         if (dword)
@@ -1786,7 +1786,7 @@ void doswitch(ref CodeBuilder cdb, block *b)
     Ljmptab:
         //printf("Ljmptab:\n");
 
-        b.BC = BCjmptab;
+        b.bc = BC.jmptab;
 
         /* If vmin is small enough, we can just set it to 0 and the jump
          * table entries from 0..vmin-1 can be set with the default target.
@@ -2097,7 +2097,7 @@ else
 }
 
 /******************************
- * Output data block for a jump table (BCjmptab).
+ * Output data block for a jump table (BC.jmptab).
  * The 'holes' in the table get filled with the
  * default label.
  */
@@ -4521,7 +4521,7 @@ void epilog(block *b)
     bool farfunc = tyfarfunc(tym) != 0;
     if (!(b.Bflags & BFL.epilog))       // if no epilog code
         goto Lret;                      // just generate RET
-    regx = (b.BC == BCret) ? AX : CX;
+    regx = (b.bc == BC.ret) ? AX : CX;
 
     cgstate.retsize = 0;
 
@@ -4581,7 +4581,7 @@ void epilog(block *b)
     if (cgstate.usednteh & NTEHjmonitor)
     {
         regm_t retregs = 0;
-        if (b.BC == BCretexp)
+        if (b.bc == BC.retexp)
             retregs = regmask(b.Belem.Ety, tym);
         nteh_monitor_epilog(cdbx,retregs);
         xlocalsize += 8;
@@ -4681,7 +4681,7 @@ void epilog(block *b)
             if (config.wflags & WFincbp && farfunc)
                 cdbx.gen1(0x48 + BP);              // DEC BP
         }
-        else if (xlocalsize == REGSIZE && (!I16 || b.BC == BCret))
+        else if (xlocalsize == REGSIZE && (!I16 || b.bc == BC.ret))
         {
             cgstate.mfuncreg &= ~mask(regx);
             cdbx.genpop(regx);                     // POP regx
@@ -4689,7 +4689,7 @@ void epilog(block *b)
         else if (xlocalsize)
             cod3_stackadj(cdbx, cast(int)-xlocalsize);
     }
-    if (b.BC == BCret || b.BC == BCretexp)
+    if (b.bc == BC.ret || b.bc == BC.retexp)
     {
 Lret:
         opcode_t op = tyfarfunc(tym) ? 0xCA : 0xC2;
@@ -5824,8 +5824,8 @@ void pinholeopt(code *c,block *b)
     if (b)
     {
         bn = b.Bnext;
-        usespace = (config.flags4 & CFG4space && b.BC != BCasm);
-        useopsize = (I16 || (config.flags4 & CFG4space && b.BC != BCasm));
+        usespace = (config.flags4 & CFG4space && b.bc != BC.asm_);
+        useopsize = (I16 || (config.flags4 & CFG4space && b.bc != BC.asm_));
     }
     else
     {
@@ -6125,7 +6125,7 @@ void pinholeopt(code *c,block *b)
                 else if (!I16 &&
                          (op == 0x89 || op == 0x8B) &&
                          (rm & 0xC0) == 0xC0 &&
-                         (!b || b.BC != BCasm)
+                         (!b || b.bc != BC.asm_)
                         )
                     c.Iflags &= ~CFopsize;
 

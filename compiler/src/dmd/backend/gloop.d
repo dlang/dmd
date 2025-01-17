@@ -199,7 +199,7 @@ private void freeloop(ref Loops loops)
 /**********************************
  * Initialize block information.
  * Returns:
- *      true if there is a BCasm block
+ *      true if there is a BC.asm_ block
  */
 
 @trusted
@@ -220,7 +220,7 @@ bool blockinit()
                 assert(0);
             }
 
-        hasasm |= (b.BC == BCasm);
+        hasasm |= (b.bc == BC.asm_);
     }
     foreach (j, b; bo.dfo[])
     {
@@ -444,7 +444,7 @@ L1:
     // for each block in this loop
     foreach (i; VecRange(l.Lloop))
     {
-        if (bo.dfo[i].BC == BCret || bo.dfo[i].BC == BCretexp || bo.dfo[i].BC == BCexit)
+        if (bo.dfo[i].bc == BC.ret || bo.dfo[i].bc == BC.retexp || bo.dfo[i].bc == BC.exit)
             vec_setbit(i,l.Lexit); /* ret blocks are exit blocks */
         else
         {
@@ -564,14 +564,14 @@ private bool looprotate(ref GlobalOptimizer go, ref Loop l)
         if (b == head)                  // if loop already rotated
             goto Lret;
 
-    if (head.BC == BCtry)
+    if (head.bc == BC.try_)
          goto Lret;
-    if (head.BC == BC_try)
+    if (head.bc == BC._try)
          goto Lret;
 
     //if (debugc) { printf("looprotate: "); l.print(); }
 
-    if ((go.mfoptim & MFtime) && head.BC != BCswitch && head.BC != BCasm)
+    if ((go.mfoptim & MFtime) && head.bc != BC.switch_ && head.bc != BC.asm_)
     {   // Duplicate the header past the tail (but doing
         // switches would be too expensive in terms of code
         // generated).
@@ -581,8 +581,8 @@ private bool looprotate(ref GlobalOptimizer go, ref Loop l)
         head2.Bflags = head.Bflags;
         head.Bflags = BFL.nomerg;       // move flags over to head2
         head2.Bflags |= BFL.nomerg;
-        head2.BC = head.BC;
-        assert(head2.BC != BCswitch);
+        head2.bc = head.bc;
+        assert(head2.bc != BC.switch_);
         if (head.Belem)                // copy expression tree
             head2.Belem = el_copytree(head.Belem);
         head2.Bnext = tail.Bnext;
@@ -744,7 +744,7 @@ restart:
             p.Bnext = h;
 
             l.Lpreheader = p;
-            p.BC = BCgoto;
+            p.bc = BC.goto_;
             assert(p.Bsucc == null);
             list_append(&(p.Bsucc),h); /* only successor is h          */
             p.Btry = h.Btry;
@@ -3052,7 +3052,7 @@ private void elimbasivs(ref GlobalOptimizer go, ref Loop l)
                     {
                         block *bn = block_calloc();
                         bn.Btry = b.Btry;
-                        bn.BC = BCgoto;
+                        bn.bc = BC.goto_;
                         bn.Bnext = bo.dfo[i].Bnext;
                         bo.dfo[i].Bnext = bn;
                         list_append(&(bn.Bsucc),b);
@@ -3399,7 +3399,7 @@ private elem ** onlyref(Symbol *x, ref Loop l,elem *incn, out int refcount)
         block* b = bo.dfo[i];
         if (b.Belem)
         {
-            count += countrefs(&b.Belem,b.BC == BCiftrue);
+            count += countrefs(&b.Belem,b.bc == BC.iftrue);
         }
     }
 

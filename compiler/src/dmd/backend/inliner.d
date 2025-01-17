@@ -104,15 +104,15 @@ bool canInlineFunction(Symbol *sfunc)
 
     while (1)
     {
-        switch (b.BC)
+        switch (b.bc)
         {
-            case BCgoto:
+            case BC.goto_:
                 if (b.Bnext != b.nthSucc(0))
                     return no(__LINE__);
                 b = b.Bnext;
                 continue;
 
-            case BCret:
+            case BC.ret:
                 if (tybasic(t.Tnext.Tty) != TYvoid
                     && !(f.Fflags & (Fctor | Fdtor | Finvariant))
                    )
@@ -124,7 +124,7 @@ bool canInlineFunction(Symbol *sfunc)
                     return no(__LINE__);
                 break;
 
-            case BCretexp:
+            case BC.retexp:
                 break;
 
             default:

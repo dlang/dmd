@@ -113,14 +113,14 @@ static if (0)
             if (bprev)
                 bprev = bprev.Btry;
         }
-        if (b.BC == BC_try)
+        if (b.bc == BC._try)
         {
             uint i = cast(uint) deh.length;
             DwEhTableEntry *d = deh.push();
             d.start = cast(uint)b.Boffset;
 
             block *bf = b.nthSucc(1);
-            if (bf.BC == BCjcatch)
+            if (bf.bc == BC.jcatch)
             {
                 d.lpad = cast(uint)bf.Boffset;
                 d.bcatch = bf;
