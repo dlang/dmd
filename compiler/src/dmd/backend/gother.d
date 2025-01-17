@@ -155,13 +155,13 @@ private void rd_compute(ref GlobalOptimizer go, ref EqRelInc eqrelinc)
     block_clearvisit();
     foreach (b; bo.dfo[])    // for each block
     {
-        switch (b.BC)
+        switch (b.bc)
         {
-            case BCjcatch:
-            case BC_finally:
-            case BC_lpad:
-            case BCasm:
-            case BCcatch:
+            case BC.jcatch:
+            case BC._finally:
+            case BC._lpad:
+            case BC.asm_:
+            case BC.catch_:
                 block_visit(b);
                 break;
 
@@ -439,7 +439,7 @@ private void chkrd(elem *n, Barray!(elem*) rdlist)
 
     // If there are any asm blocks, don't print the message
     foreach (b; bo.dfo[])
-        if (b.BC == BCasm)
+        if (b.bc == BC.asm_)
             return;
 
     // If variable contains bit fields, don't print message (because if
@@ -887,7 +887,7 @@ private void intranges(ref GlobalOptimizer go, ref Elemdatas rellist, ref Elemda
                     {
                         // Eliminate loop if it is empty
                         if (relatop == OPlt &&
-                            rb.BC == BCiftrue &&
+                            rb.bc == BC.iftrue &&
                             list_block(rb.Bsucc) == rb &&
                             rb.Belem.Eoper == OPcomma &&
                             rb.Belem.E1 == rdinc &&
@@ -896,7 +896,7 @@ private void intranges(ref GlobalOptimizer go, ref Elemdatas rellist, ref Elemda
                         {
                             rel.pelem.Eoper = OPeq;
                             rel.pelem.Ety = rel.pelem.E1.Ety;
-                            rb.BC = BCgoto;
+                            rb.bc = BC.goto_;
                             list_subtract(&rb.Bsucc,rb);
                             list_subtract(&rb.Bpred,rb);
 
@@ -1893,10 +1893,10 @@ public void verybusyexp(ref GlobalOptimizer go)
         /* Do not hoist things to blocks that do not            */
         /* divide the flow of control.                          */
 
-        switch (b.BC)
+        switch (b.bc)
         {
-            case BCiftrue:
-            case BCswitch:
+            case BC.iftrue:
+            case BC.switch_:
                 break;
 
             default:

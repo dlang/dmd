@@ -147,7 +147,7 @@ enum
     NTEHtry         = 0x10,   // had C++ try statement
     NTEHcpp         = (NTEHexcspec | NTEHcleanup | NTEHtry),
     EHcleanup       = 0x20,   // has destructors in the 'code' instructions
-    EHtry           = 0x40,   // has BCtry or BC_try blocks
+    EHtry           = 0x40,   // has BC.try_ or BC._try blocks
     NTEHjmonitor    = 0x80,   // uses Mars monitor
     NTEHpassthru    = 0x100,
 }
@@ -205,7 +205,7 @@ struct CGstate
     char gotref;                // !=0 if the GOTsym was referenced
     int refparam;               // !=0 if we referenced any parameters
     bool accessedTLS;           // set if accessed Thread Local Storage (TLS)
-    bool calledFinally;         // true if called a BC_finally block
+    bool calledFinally;         // true if called a BC._finally block
     int reflocal;               // !=0 if we referenced any locals
 
     regm_t[4] lastRetregs;      // used to not allocate the same register over and over again,

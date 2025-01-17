@@ -278,7 +278,7 @@ void epilog(block *b)
     bool farfunc = tyfarfunc(tym) != 0;
     if (!(b.Bflags & BFL.epilog))       // if no epilog code
         goto Lret;                      // just generate RET
-    regx = (b.BC == BCret) ? AX : CX;
+    regx = (b.bc == BC.ret) ? AX : CX;
 
     cgstate.retsize = 0;
 
@@ -317,7 +317,7 @@ void epilog(block *b)
     if (cgstate.usednteh & NTEHjmonitor)
     {
         regm_t retregs = 0;
-        if (b.BC == BCretexp)
+        if (b.bc == BC.retexp)
             retregs = regmask(b.Belem.Ety, tym);
         nteh_monitor_epilog(cdbx,retregs);
         xlocalsize += 8;
@@ -391,7 +391,7 @@ void epilog(block *b)
         cod3_stackadj(cdbx, cast(int)-xlocalsize);
     }
 
-    if (b.BC == BCret || b.BC == BCretexp)
+    if (b.bc == BC.ret || b.bc == BC.retexp)
     {
 Lret:
         if (log) printf("epilog: Lret\n");

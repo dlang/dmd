@@ -888,7 +888,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         return;
     }
 
-    bx.curblock.BC = BCret;
+    bx.curblock.bc = BC.ret;
 
     f.Fstartblock = bx.startblock;
 //  einit = el_combine(einit,bx.init);
@@ -898,11 +898,11 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         assert(sthis);
         foreach (b; BlockRange(f.Fstartblock))
         {
-            if (b.BC == BCret)
+            if (b.bc == BC.ret)
             {
                 elem *ethis = el_var(sthis);
                 ethis = fixEthis2(ethis, fd);
-                b.BC = BCretexp;
+                b.bc = BC.retexp;
                 b.Belem = el_combine(b.Belem, ethis);
             }
         }
@@ -1035,11 +1035,11 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             auto paramPack = el_params(handlePtr, el_long(TYnptr, 0), el_ptr(s), null);
             auto exec = el_bin(OPcall, TYvoid, el_var(atexitSym), paramPack);
             block_appendexp(startBlk, exec); //payload
-            startBlk.BC = BCgoto;
+            startBlk.bc = BC.goto_;
             auto next = block_calloc();
             startBlk.appendSucc(next);
             startBlk.Bnext = next;
-            next.BC = BCret;
+            next.bc = BC.ret;
             //Emit in binary
             writefunc(newConstructor);
             //Mark as a CONSTRUCTOR because our thunk implements the destructor
@@ -1224,7 +1224,7 @@ private Symbol *callFuncsAndGates(Module m, Symbol*[] sctors, StaticDtorDeclarat
     }
 
     block *b = block_calloc();
-    b.BC = BCret;
+    b.bc = BC.ret;
     b.Belem = ector;
     sctor.Sfunc.Fstartline.Sfilename = m.arg.xarraydup.ptr;
     sctor.Sfunc.Fstartblock = b;
@@ -1486,7 +1486,7 @@ private void genObjFile(Module m, bool multiobj)
             localgot = glue.ictorlocalgot;
 
             block *b = block_calloc();
-            b.BC = BCret;
+            b.bc = BC.ret;
             b.Belem = glue.eictor;
             m.sictor.Sfunc.Fstartline.Sfilename = m.arg.xarraydup.ptr;
             m.sictor.Sfunc.Fstartblock = b;

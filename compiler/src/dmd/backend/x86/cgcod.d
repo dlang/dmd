@@ -92,8 +92,8 @@ void codgen(Symbol *sfunc)
      */
     for (block* b = bo.startblock; b; b = b.Bnext)
     {
-        if (b.BC == BCexit)
-            b.BC = BCret;
+        if (b.bc == BC.exit)
+            b.bc = BC.ret;
     }
 
     /* Generate code repeatedly until we cannot do any better. Each
@@ -157,9 +157,9 @@ void codgen(Symbol *sfunc)
             memset(&b.Bregcon,0,b.Bregcon.sizeof);       // Clear out values in registers
             if (b.Belem)
                 resetEcomsub(b.Belem);     // reset all the Ecomsubs
-            if (b.BC == BCasm)
+            if (b.bc == BC.asm_)
                 cgstate.anyiasm = 1;                // we have inline assembler
-            if (b.BC == BCret || b.BC == BCretexp)
+            if (b.bc == BC.ret || b.bc == BC.retexp)
                 nretblocks++;
         }
 
@@ -302,9 +302,9 @@ void codgen(Symbol *sfunc)
     for (block* b = bo.startblock; b; b = b.Bnext)
     {
         // We couldn't do this before because localsize was unknown
-        switch (b.BC)
+        switch (b.bc)
         {
-            case BCret:
+            case BC.ret:
                 if (configv.addlinenumbers && b.Bsrcpos.Slinnum && !(sfunc.ty() & mTYnaked))
                 {
                     CodeBuilder cdb; cdb.ctor();
@@ -312,9 +312,9 @@ void codgen(Symbol *sfunc)
                     cdb.genlinnum(b.Bsrcpos);
                     b.Bcode = cdb.finish();
                 }
-                goto case BCretexp;
+                goto case BC.retexp;
 
-            case BCretexp:
+            case BC.retexp:
                 epilog(b);
                 break;
 
@@ -409,7 +409,7 @@ void codgen(Symbol *sfunc)
 
         for (block* b = bo.startblock; b; b = b.Bnext)
         {
-            if (b.BC == BCjmptab || b.BC == BCswitch)
+            if (b.bc == BC.jmptab || b.bc == BC.switch_)
             {
                 if (jmpseg == -1)
                 {
@@ -465,18 +465,18 @@ static if (0)
         // Write out switch tables
         for (block* b = bo.startblock; b; b = b.Bnext)
         {
-            switch (b.BC)
+            switch (b.bc)
             {
-                case BCjmptab:              /* if jump table                */
+                case BC.jmptab:              /* if jump table                */
                     outjmptab(b);           /* write out jump table         */
                     goto default;
 
-                case BCswitch:
+                case BC.switch_:
                     outswitab(b);           /* write out switch table       */
                     goto default;
 
-                case BCret:
-                case BCretexp:
+                case BC.ret:
+                case BC.retexp:
                     /* Compute offset to return code from start of function */
                     cgstate.retoffset = b.Boffset + b.Bsize - cgstate.retsize - cgstate.funcoffset;
 
@@ -514,7 +514,7 @@ static if (0)
                 // Do this before code is emitted because we patch some instructions
                 nteh_gentables(sfunc);
             }
-            if (cgstate.usednteh & (EHtry | EHcleanup) &&   // saw BCtry or BC_try or OPddtor
+            if (cgstate.usednteh & (EHtry | EHcleanup) &&   // saw BC.try_ or BC._try or OPddtor
                 config.ehmethod == EHmethod.EH_DM)
             {
                 except_gentables();
@@ -1397,7 +1397,7 @@ private void blcodgen(ref CGstate cg, block *bl)
         cg.regcon.indexregs &= cg.regcon.indexregs - 1;
     }
 
-    /* This doesn't work when calling the BC_finally function,
+    /* This doesn't work when calling the BC._finally function,
      * as it is one block calling another.
      */
     //cg.regsave.idx = 0;

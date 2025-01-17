@@ -429,7 +429,7 @@ if (enable) // disable while we test the inliner
 
     foreach (b; BlockRange(startblock))
     {
-        if (b.BC == BCasm)
+        if (b.bc == BC.asm_)
             return;
         if (b.Belem)
             sliceStructs_Gather(symtab, sia, b.Belem);

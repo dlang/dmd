@@ -92,11 +92,11 @@ void comsubs2(block* startblock, ref CGCS cgcs, ref GlobalOptimizer go)
         int n = 1;                      // always at least one block in EBB
         auto blc = bl;
         while (bln && list_nitems(bln.Bpred) == 1 &&
-               ((blc.BC == BCiftrue &&
+               ((blc.bc == BC.iftrue &&
                  blc.nthSucc(1) == bln) ||
-                (blc.BC == BCgoto && blc.nthSucc(0) == bln)
+                (blc.bc == BC.goto_ && blc.nthSucc(0) == bln)
                ) &&
-               bln.BC != BCasm         // no CSE's extending across ASM blocks
+               bln.bc != BC.asm_         // no CSE's extending across ASM blocks
               )
         {
             n++;                    // add block to EBB

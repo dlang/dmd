@@ -134,7 +134,7 @@ else
                 mark = 2;
             }
         }
-        if (mark == 1 || b.BC == BCret || b.BC == BCretexp)
+        if (mark == 1 || b.bc == BC.ret || b.bc == BC.retexp)
         {   b.Bflags |= BFL.epilog;
             nepis++;
             if (nepis > 1 && config.flags4 & CFG4space)
@@ -160,9 +160,9 @@ void cod5_noprol(block* startblock)
     for (b = startblock; b; b = b.Bnext)
     {
         b.Bflags = cast(BFL)(b.Bflags & ~cast(uint)BFL.outsideprolog);
-        switch (b.BC)
-        {   case BCret:
-            case BCretexp:
+        switch (b.bc)
+        {   case BC.ret:
+            case BC.retexp:
                 b.Bflags |= BFL.epilog;
                 break;
             default:

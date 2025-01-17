@@ -141,10 +141,10 @@ void except_fillInEHTable(Symbol *s)
     int ndctors = 0;                                // number of PSOP.dctor's
     foreach (b; BlockRange(bo.startblock))
     {
-        if (b.BC == BC_try && b.Bscope_index >= guarddim)
+        if (b.bc == BC._try && b.Bscope_index >= guarddim)
             guarddim = b.Bscope_index + 1;
-//      printf("b.BC = %2d, Bscope_index = %2d, last_index = %2d, offset = x%x\n",
-//              b.BC, b.Bscope_index, b.Blast_index, b.Boffset);
+//      printf("b.bc = %2d, Bscope_index = %2d, last_index = %2d, offset = x%x\n",
+//              b.bc, b.Bscope_index, b.Blast_index, b.Boffset);
         if (cgstate.usednteh & EHcleanup)
             for (code *c = b.Bcode; c; c = code_next(c))
             {
@@ -167,7 +167,7 @@ void except_fillInEHTable(Symbol *s)
     foreach (b; BlockRange(bo.startblock))
     {
         //printf("b = %p, b.Btry = %p, b.offset = %x\n", b, b.Btry, b.Boffset);
-        if (b.BC == BC_try)
+        if (b.bc == BC._try)
         {
             assert(b.Bscope_index >= i);
             if (i < b.Bscope_index)
@@ -214,8 +214,8 @@ void except_fillInEHTable(Symbol *s)
                 assert(nsucc == 2);
                 dtb.dword(0);           // no catch offset
                 block *bhandler = b.nthSucc(1);
-                assert(bhandler.BC == BC_finally);
-                // To successor of BC_finally block
+                assert(bhandler.bc == BC._finally);
+                // To successor of BC._finally block
                 bhandler = bhandler.nthSucc(0);
                 // finally handler address
                 if (config.ehmethod == EHmethod.EH_DM)
@@ -330,7 +330,7 @@ void except_fillInEHTable(Symbol *s)
     // Generate catch[]
     foreach (b; BlockRange(bo.startblock))
     {
-        if (b.BC == BC_try && b.jcatchvar)         // if try-catch
+        if (b.bc == BC._try && b.jcatchvar)         // if try-catch
         {
             int nsucc = b.numSucc();
             dtb.size(nsucc - 1);           // # of catch blocks
