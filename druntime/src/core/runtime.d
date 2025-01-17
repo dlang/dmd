@@ -599,32 +599,48 @@ extern (C) UnitTestResult runModuleUnitTests()
     else if (Runtime.sm_moduleUnitTester !is null)
         return Runtime.sm_moduleUnitTester() ? UnitTestResult.pass : UnitTestResult.fail;
     UnitTestResult results;
-    foreach ( m; ModuleInfo )
+    foreach (m; ModuleInfo)
     {
-        if ( !m )
+        import core.stdc.stdio : printf;
+        import core.time : MonoTime, Duration;
+
+        auto moduleName = m.name;
+
+        void printSummary(string summaryString, const MonoTime start, const MonoTime end)
+        {
+            const usecs = cast(float)(end - start).total!"usecs";
+            printf("module %.*s: %.*s in %f µs\n",
+                cast(int) moduleName.length, moduleName.ptr,
+                cast(int) summaryString.length, summaryString.ptr,
+                usecs);
+        }
+
+        if (!m)
             continue;
         auto fp = m.unitTest;
-        if ( !fp )
+        if (!fp)
             continue;
 
         import core.exception;
+
         ++results.executed;
+        const start = MonoTime.currTime();
         try
         {
             fp();
+
+            printSummary("PASSED", start, MonoTime.currTime());
             ++results.passed;
         }
-        catch ( Throwable e )
+        catch (Throwable e)
         {
-            if ( typeid(e) == typeid(AssertError) )
+            if (typeid(e) == typeid(AssertError))
             {
                 // Crude heuristic to figure whether the assertion originates in
                 // the unittested module. TODO: improve.
-                auto moduleName = m.name;
                 if (moduleName.length && e.file.length > moduleName.length
                     && e.file[0 .. moduleName.length] == moduleName)
                 {
-                    import core.stdc.stdio;
                     printf("%.*s(%llu): [unittest] %.*s\n",
                         cast(int) e.file.length, e.file.ptr, cast(ulong) e.line,
                         cast(int) e.message.length, e.message.ptr);
@@ -638,6 +654,9 @@ extern (C) UnitTestResult runModuleUnitTests()
             }
             // TODO: perhaps indent all of this stuff.
             _d_print_throwable(e);
+
+            // We print a failure message here show it shows up after the stacktrace
+            printSummary("FAILED", start, MonoTime.currTime());
         }
     }
 
