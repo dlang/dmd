@@ -56,7 +56,7 @@ import dmd.backend.divcoeff : choose_multiplier, udiv_coefficients;
  */
 
 @trusted
-void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
+void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
     //printf("cdorth(e = %p, pretregs = %s)\n",e,regm_str(pretregs));
 
@@ -177,7 +177,7 @@ Extend tyToExtend(tym_t ty)
  */
 
 @trusted
-void cdmul(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
+void cdmul(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
     //printf("cdmul(e = %p, pretregs = %s)\n",e,regm_str(pretregs));
 
@@ -231,7 +231,7 @@ void cdmul(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
  */
 
 @trusted
-void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
+void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
     //printf("cddiv(e = %p, pretregs = %s)\n",e,regm_str(pretregs));
 
@@ -326,7 +326,7 @@ void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
  */
 
 @trusted
-void cdcom(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
+void cdcom(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
     //printf("cdcom()\n");
     //elem_print(e);
@@ -369,7 +369,7 @@ void cdcom(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
  */
 
 @trusted
-void cdbswap(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
+void cdbswap(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
     //printf("cdbswap()\n");
     //elem_print(e);
@@ -415,15 +415,15 @@ void cdbswap(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
  */
 
 @trusted
-void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
+void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
     //printf("cdcond(e = %p, pretregs = %s)\n",e,regm_str(pretregs));
     /* e1 ? e21 : e22
      */
-    elem *e1 = e.E1;
-    elem *e2 = e.E2;
-    elem *e21 = e2.E1;
-    elem *e22 = e2.E2;
+    elem* e1 = e.E1;
+    elem* e2 = e.E2;
+    elem* e21 = e2.E1;
+    elem* e22 = e2.E2;
     regm_t psw = pretregs & mPSW;               /* save PSW bit                 */
     const op1 = e1.Eoper;
     uint sz1 = tysize(e1.Ety);
@@ -439,12 +439,12 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
         sz1 <= REGSIZE && !tyfloating(e1.Ety))
     {   // Recognize (e ? e : f)
 
-        code *cnop1 = gen1(null, INSTR.nop);
+        code* cnop1 = gen1(null, INSTR.nop);
         regm_t retregs = pretregs | mPSW;
         codelem(cgstate,cdb,e1,retregs,false);
 
         cse_flush(cdb,1);                // flush CSEs to memory
-        genBranch(cdb,jop,FL.code,cast(block *)cnop1);
+        genBranch(cdb,jop,FL.code,cast(block*)cnop1);
         freenode(e21);
 
         const regconsave = cgstate.regcon;
@@ -576,7 +576,7 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
         tysize(e21.Ety) <= REGSIZE && !tyfloating(e21.Ety))
     {   // Recognize (e ? c : f)
 
-        code *cnop1 = gen1(null, INSTR.nop);
+        code* cnop1 = gen1(null, INSTR.nop);
         regm_t retregs = mPSW;
         jop = conditionCode(e1);            // get jmp condition
         codelem(cgstate,cdb,e1,retregs,false);
@@ -591,7 +591,7 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
         retregs = mask(reg);
 
         cse_flush(cdb,1);                // flush CSE's to memory
-        genBranch(cdb,jop,FL.code,cast(block *)cnop1);
+        genBranch(cdb,jop,FL.code,cast(block*)cnop1);
         freenode(e21);
 
         const regconsave = cgstate.regcon;
@@ -609,8 +609,8 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
         return;
     }
 
-    code *cnop1 = gen1(null, INSTR.nop);
-    code *cnop2 = gen1(null, INSTR.nop);         // dummy target addresses
+    code* cnop1 = gen1(null, INSTR.nop);
+    code* cnop2 = gen1(null, INSTR.nop);         // dummy target addresses
     logexp(cdb,e1,false,FL.code,cnop1);  // evaluate condition
     const regconold = cgstate.regcon;
     const stackpushold = cgstate.stackpush;
@@ -670,7 +670,7 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
     andregcon(regconsave);
     assert(cgstate.stackpush == stackpushsave);
     freenode(e2);
-    genBranch(cdb,COND.al,FL.code,cast(block *) cnop2);
+    genBranch(cdb,COND.al,FL.code,cast(block*) cnop2);
     cdb.append(cnop1);
     cdb.append(cdb2);
     cdb.append(cnop2);
@@ -701,7 +701,7 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
  */
 
 @trusted
-void cdloglog(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
+void cdloglog(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
     /* We can trip the assert with the following:
      *    if ( (b<=a) ? (c<b || a<=c) : c>=a )
@@ -712,12 +712,12 @@ void cdloglog(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 
     //printf("cdloglog() pretregs: %s\n", regm_str(pretregs));
     cgstate.stackclean++;
-    code *cnop1 = gen1(null, INSTR.nop);
+    code* cnop1 = gen1(null, INSTR.nop);
     CodeBuilder cdb1;
     cdb1.ctor();
     cdb1.append(cnop1);
-    code *cnop3 = gen1(null, INSTR.nop);
-    elem *e2 = e.E2;
+    code* cnop3 = gen1(null, INSTR.nop);
+    elem* e2 = e.E2;
     (e.Eoper == OPoror)
         ? logexp(cdb,e.E1,1,FL.code,cnop1)
         : logexp(cdb,e.E1,0,FL.code,cnop3);
@@ -764,7 +764,7 @@ void cdloglog(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
         return;
     }
 
-    code *cnop2 = gen1(null, INSTR.nop);
+    code* cnop2 = gen1(null, INSTR.nop);
     uint sz = tysize(e.Ety);
     if (tybasic(e2.Ety) == TYbool &&
       sz == tysize(e2.Ety) &&
@@ -787,13 +787,13 @@ void cdloglog(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
         if (e.Eoper == OPoror)
         {
             cdb.append(cnop3);
-            genBranch(cdb,COND.al,FL.code,cast(block *) cnop2);    // JMP cnop2
+            genBranch(cdb,COND.al,FL.code,cast(block*) cnop2);    // JMP cnop2
             cdb.append(cdb1);
             cdb.append(cnop2);
         }
         else
         {
-            genBranch(cdb,COND.al,FL.code,cast(block *) cnop2);    // JMP cnop2
+            genBranch(cdb,COND.al,FL.code,cast(block*) cnop2);    // JMP cnop2
             cdb.append(cnop3);
             cdb.append(cdb1);
             cdb.append(cnop2);
@@ -815,14 +815,14 @@ void cdloglog(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
     CodeBuilder cdbcg;
     cdbcg.ctor();
     const reg = allocreg(cdbcg,retregs,TYint);               // allocate reg for result
-    code *cd = cdbcg.finish();
-    for (code *c1 = cd; c1; c1 = code_next(c1))              // for each instruction
+    code* cd = cdbcg.finish();
+    for (code* c1 = cd; c1; c1 = code_next(c1))              // for each instruction
         cdb1.gen(c1);                                        // duplicate it
     CodeBuilder cdbcg2;
     cdbcg2.ctor();
     movregconst(cdbcg2,reg,0,pretregs & mPSW);              // MOV reg,0
     cgstate.regcon.immed.mval &= ~mask(reg);                 // mark reg as unavail
-    genBranch(cdbcg2,COND.al,FL.code,cast(block *) cnop2);    // JMP cnop2
+    genBranch(cdbcg2,COND.al,FL.code,cast(block*) cnop2);    // JMP cnop2
     movregconst(cdb1,reg,1,pretregs & mPSW);                // reg = 1
     cgstate.regcon.immed.mval &= ~mask(reg);                 // mark reg as unavail
     pretregs = retregs;
@@ -841,7 +841,7 @@ void cdloglog(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
  */
 
 @trusted
-void cdshift(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
+void cdshift(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
     //printf("cdshift()\n");
 
@@ -904,7 +904,7 @@ void cdshift(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
  */
 
 @trusted
-void cdind(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
+void cdind(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
     //printf("cdind()\n");
     //elem_print(e);
@@ -1004,7 +1004,7 @@ void cdind(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
  */
 
 @trusted
-void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem *e,reg_t reg)
+void getoffset(ref CGstate cg, ref CodeBuilder cdb,elem* e,reg_t reg)
 {
     enum log = false;
     if (log) printf("getoffset(e = %p, reg = %s)\n", e, regm_str(mask(reg)));
@@ -1267,7 +1267,7 @@ static if (0)
  */
 
 @trusted
-void cdneg(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
+void cdneg(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
     //printf("cdneg()\n");
     //elem_print(e);
@@ -1327,7 +1327,7 @@ void cdneg(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
 
 
 @trusted
-void cdabs(ref CGstate cg, ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
+void cdabs(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
 {
     //printf("cdabs(e = %p, pretregs = %s)\n", e, regm_str(pretregs));
     if (pretregs == 0)
@@ -1402,7 +1402,7 @@ void cdabs(ref CGstate cg, ref CodeBuilder cdb,elem *e, ref regm_t pretregs)
  * OPpostinc, OPpostdec
  */
 @trusted
-void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
+void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
     //printf("cdpost(pretregs = %s)\n", regm_str(pretregs));
     code cs = void;
@@ -1414,7 +1414,7 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
     }
     const tym_t tyml = tybasic(e.E1.Ety);
     const sz = _tysize[tyml];
-    elem *e2 = e.E2;
+    elem* e2 = e.E2;
 
     if (0 && tyfloating(tyml))
     {
@@ -1535,7 +1535,7 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
  */
 
 @trusted
-void cdhalt(ref CGstate cg, ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
+void cdhalt(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
     assert(pretregs == 0);
 

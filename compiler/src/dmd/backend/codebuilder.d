@@ -31,8 +31,8 @@ struct CodeBuilder
 {
   private:
 
-    code *head;
-    code **pTail;
+    code* head;
+    code** pTail;
 
     enum BADINS = 0x1234_5678;
 //    enum BADINS = 0xF940_03A8;
@@ -40,7 +40,7 @@ struct CodeBuilder
   nothrow:
   public:
     //this() { pTail = &head; }
-    //this(code *c);
+    //this(code* c);
 
     @trusted
     void ctor()
@@ -55,12 +55,12 @@ struct CodeBuilder
         pTail = c ? &code_last(c).next : &head;
     }
 
-    code *finish()
+    code* finish()
     {
         return head;
     }
 
-    code *peek() { return head; }       // non-destructively look at the list
+    code* peek() { return head; }       // non-destructively look at the list
 
     @trusted
     void reset() { head = null; pTail = &head; }
@@ -105,7 +105,7 @@ struct CodeBuilder
     }
 
     @trusted
-    void append(code *c)
+    void append(code* c)
     {
         if (c)
         {
@@ -115,7 +115,7 @@ struct CodeBuilder
         }
     }
 
-    void gen(code *cs)
+    void gen(code* cs)
     {
         /* this is a high usage routine */
         debug assert(cs);
@@ -137,7 +137,7 @@ assert(cs.Iop != BADINS);
     {
         //debug printf("gen1(%08x)\n", op);
 assert(op != BADINS);
-        code *ce = code_calloc();
+        code* ce = code_calloc();
         ce.Iop = op;
         ccheck(ce);
         assert(op != LEA);
@@ -149,7 +149,7 @@ assert(op != BADINS);
     void gen2(opcode_t op, uint rm)
     {
 assert(op != BADINS);
-        code *ce = code_calloc();
+        code* ce = code_calloc();
         ce.Iop = op;
         ce.Iea = rm;
         ccheck(ce);
@@ -170,7 +170,7 @@ assert(op != BADINS);
 
     void gen2sib(opcode_t op, uint rm, uint sib)
     {
-        code *ce = code_calloc();
+        code* ce = code_calloc();
         ce.Iop = op;
         ce.Irm = cast(ubyte)rm;
         ce.Isib = cast(ubyte)sib;
@@ -189,11 +189,11 @@ assert(op != BADINS);
     @trusted
     void genasm(const ubyte[] bytes)
     {
-        code *ce = code_calloc();
+        code* ce = code_calloc();
         ce.Iop = ASM;
         ce.IFL1 = FL.asm_;
         ce.IEV1.len = bytes.length;
-        ce.IEV1.bytes = cast(char *) mem_malloc(bytes.length);
+        ce.IEV1.bytes = cast(char*) mem_malloc(bytes.length);
         memcpy(ce.IEV1.bytes,bytes.ptr,bytes.length);
 
         *pTail = ce;
@@ -201,9 +201,9 @@ assert(op != BADINS);
     }
 
     @trusted
-    void genasm(_LabelDsymbol *label)
+    void genasm(_LabelDsymbol* label)
     {
-        code *ce = code_calloc();
+        code* ce = code_calloc();
         ce.Iop = ASM;
         ce.Iflags = CFaddrsize;
         ce.IFL1 = FL.blockoff;
@@ -214,9 +214,9 @@ assert(op != BADINS);
     }
 
     @trusted
-    void genasm(block *label)
+    void genasm(block* label)
     {
-        code *ce = code_calloc();
+        code* ce = code_calloc();
         ce.Iop = ASM;
         ce.Iflags = CFaddrsize;
         ce.IFL1 = FL.blockoff;
@@ -228,7 +228,7 @@ assert(op != BADINS);
     }
 
     @trusted
-    void gencs1(opcode_t op, uint ea, FL FL1, Symbol *s)
+    void gencs1(opcode_t op, uint ea, FL FL1, Symbol* s)
     {
 assert(op != BADINS);
         code cs;
@@ -244,7 +244,7 @@ assert(op != BADINS);
     }
 
     @trusted
-    void gencs(opcode_t op, uint ea, FL FL2, Symbol *s)
+    void gencs(opcode_t op, uint ea, FL FL2, Symbol* s)
     {
 assert(op != BADINS);
         code cs;
@@ -394,18 +394,18 @@ assert(op != BADINS);
      *  code that pTail points to
      */
     @trusted
-    code *last()
+    code* last()
     {
         // g++ and clang++ complain about offsetof() because of the code::code() constructor.
         // return (code *)((char *)pTail - offsetof(code, next));
         // So do our own.
-        return cast(code *)(cast(void *)pTail - (cast(void*)&(*pTail).next - cast(void*)*pTail));
+        return cast(code*)(cast(void*)pTail - (cast(void*)&(*pTail).next - cast(void*)*pTail));
     }
 
     /*************************************
      * Handy function to answer the question: who the heck is generating this piece of code?
      */
-    static void ccheck(code *cs)
+    static void ccheck(code* cs)
     {
     //    if (cs.Iop == LEA && (cs.Irm & 0x3F) == 0x34 && cs.Isib == 7) *(char*)0=0;
     //    if (cs.Iop == 0x31) *(char*)0=0;
@@ -420,7 +420,7 @@ assert(op != BADINS);
     void print()
     {
         printf("---\n");
-        for (code *c = head; c; c = c.next)
+        for (code* c = head; c; c = c.next)
             printf("%02x\n", c.Iop);
     }
 }

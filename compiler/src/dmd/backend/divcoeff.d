@@ -45,7 +45,7 @@ bool XltY128(ullong xh, ullong xl, ullong yh, ullong yl)
     return xh < yh || (xh == yh && xl < yl);
 }
 
-void u128Div(ullong xh, ullong xl, ullong yh, ullong yl, ullong *pqh, ullong *pql)
+void u128Div(ullong xh, ullong xl, ullong yh, ullong yl, ullong* pqh, ullong* pql)
 {
     /* Use auld skool shift & subtract algorithm.
      * Not very efficient.
@@ -117,7 +117,7 @@ void u128Div(ullong xh, ullong xl, ullong yh, ullong yl, ullong *pqh, ullong *pq
  */
 
 @trusted
-bool choose_multiplier(int N, ullong d, int prec, ullong *pm, int *pshpost)
+bool choose_multiplier(int N, ullong d, int prec, ullong* pm, int* pshpost)
 {
     assert(N == 32 || N == 64);
     assert(prec <= N);
@@ -233,7 +233,7 @@ bool choose_multiplier(int N, ullong d, int prec, ullong *pm, int *pshpost)
  *              q = SRL(MULUH(m, SRL(n, shpre)), shpost)
  */
 
-bool udiv_coefficients(int N, ullong d, int *pshpre, ullong *pm, int *pshpost)
+bool udiv_coefficients(int N, ullong d, int* pshpre, ullong* pm, int* pshpost)
 {
     bool mhighbit = choose_multiplier(N, d, N, pm, pshpost);
     if (mhighbit && (d & 1) == 0)

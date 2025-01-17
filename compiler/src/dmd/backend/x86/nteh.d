@@ -43,8 +43,8 @@ import dmd.backend.eh : except_fillInEHTable;
 
 private __gshared
 {
-    Symbol *s_table;
-    //Symbol *s_context;
+    Symbol* s_table;
+    //Symbol* s_context;
 }
 
 private
@@ -68,7 +68,7 @@ int nteh_offset_info()          { return 4; }
  */
 
 @trusted
-ubyte *nteh_context_string()
+ubyte* nteh_context_string()
 {
     if (config.exe == EX_WIN32)
     {
@@ -77,7 +77,7 @@ ubyte *nteh_context_string()
                 "int esp; int info; int prev; int handler; int stable; int sindex; int ebp;" ~
              "};\n";
 
-        return cast(ubyte *)text_nt.ptr;
+        return cast(ubyte*)text_nt.ptr;
     }
     else
         return null;
@@ -90,10 +90,10 @@ ubyte *nteh_context_string()
  */
 
 @trusted
-private Symbol *nteh_scopetable()
+private Symbol* nteh_scopetable()
 {
-    Symbol *s;
-    type *t;
+    Symbol* s;
+    type* t;
 
     if (!s_table)
     {
@@ -112,7 +112,7 @@ private Symbol *nteh_scopetable()
 @trusted
 void nteh_filltables()
 {
-    Symbol *s = s_table;
+    Symbol* s = s_table;
     symbol_debug(s);
     except_fillInEHTable(s);
 }
@@ -123,9 +123,9 @@ void nteh_filltables()
  */
 
 @trusted
-void nteh_gentables(Symbol *sfunc)
+void nteh_gentables(Symbol* sfunc)
 {
-    Symbol *s = s_table;
+    Symbol* s = s_table;
     symbol_debug(s);
     //except_fillInEHTable(s);
 
@@ -139,7 +139,7 @@ void nteh_gentables(Symbol *sfunc)
  */
 
 @trusted
-void nteh_declarvars(BlockState *bx)
+void nteh_declarvars(BlockState* bx)
 {
     //printf("nteh_declarvars()\n");
     if (!(bx.funcsym.Sfunc.Fflags3 & Fnteh)) // if haven't already done it
@@ -156,7 +156,7 @@ void nteh_declarvars(BlockState *bx)
 /**************************************
  * Generate elem that sets the context index into the scope table.
  */
-elem *nteh_setScopeTableIndex(BlockState *blx, int scope_index)
+elem* nteh_setScopeTableIndex(BlockState* blx, int scope_index)
 {
     Symbol* s = blx.context;
     symbol_debug(s);
@@ -171,7 +171,7 @@ elem *nteh_setScopeTableIndex(BlockState *blx, int scope_index)
  */
 
 @trusted
-Symbol *nteh_contextsym()
+Symbol* nteh_contextsym()
 {
     foreach (Symbol* sp; globsym)
     {
@@ -212,7 +212,7 @@ uint nteh_contextsym_size()
  */
 
 @trusted
-Symbol *nteh_ecodesym()
+Symbol* nteh_ecodesym()
 {
     foreach (Symbol* sp; globsym)
     {
@@ -382,7 +382,7 @@ void nteh_setsp(ref CodeBuilder cdb, opcode_t op)
  */
 
 @trusted
-void nteh_filter(ref CodeBuilder cdb, block *b)
+void nteh_filter(ref CodeBuilder cdb, block* b)
 {
     assert(b.bc == BC._filter);
     if (b.Bflags & BFL.ehcode)          // if referenced __ecode
@@ -423,7 +423,7 @@ void nteh_filter(ref CodeBuilder cdb, block *b)
  * Generate C++ or D frame handler.
  */
 
-void nteh_framehandler(Symbol *sfunc, Symbol *scopetable)
+void nteh_framehandler(Symbol* sfunc, Symbol* scopetable)
 {
     // Generate:
     //  MOV     EAX,&scope_table
@@ -438,7 +438,7 @@ void nteh_framehandler(Symbol *sfunc, Symbol *scopetable)
 
         cdb.gencs(0xE9,0,FL.func,getRtlsym(RTLSYM.D_HANDLER));      // JMP _d_framehandler
 
-        code *c = cdb.finish();
+        code* c = cdb.finish();
         pinholeopt(c,null);
         targ_size_t framehandleroffset;
         codout(sfunc.Sseg,c,null,framehandleroffset);
@@ -450,7 +450,7 @@ void nteh_framehandler(Symbol *sfunc, Symbol *scopetable)
  * Generate code to set scope index.
  */
 
-code *nteh_patchindex(code* c, int sindex)
+code* nteh_patchindex(code* c, int sindex)
 {
     c.IEV2.Vsize_t = sindex;
     return c;
@@ -475,7 +475,7 @@ void nteh_gensindex(ref CodeBuilder cdb, int sindex)
  */
 
 @trusted
-void cdsetjmp(ref CGstate cg, ref CodeBuilder cdb, elem *e,ref regm_t pretregs)
+void cdsetjmp(ref CGstate cg, ref CodeBuilder cdb, elem* e,ref regm_t pretregs)
 {
     code cs;
     regm_t retregs;
@@ -610,7 +610,7 @@ void nteh_unwind(ref CodeBuilder cdb,regm_t saveregs,uint stop_index)
  */
 
 @trusted
-void nteh_monitor_prolog(ref CodeBuilder cdb, Symbol *shandle)
+void nteh_monitor_prolog(ref CodeBuilder cdb, Symbol* shandle)
 {
     /*
      *  PUSH    handle
@@ -638,7 +638,7 @@ void nteh_monitor_prolog(ref CodeBuilder cdb, Symbol *shandle)
         cdbx.gen1(0x50 + CX);                      // PUSH ECX
     }
 
-    Symbol *smh = getRtlsym(RTLSYM.MONITOR_HANDLER);
+    Symbol* smh = getRtlsym(RTLSYM.MONITOR_HANDLER);
     cdbx.gencs(0x68,0,FL.extern_,smh);             // PUSH offset _d_monitor_handler
     makeitextern(smh);
 
@@ -655,7 +655,7 @@ void nteh_monitor_prolog(ref CodeBuilder cdb, Symbol *shandle)
 
     cdbx.gen1(0x50 + DX);                  // PUSH EDX
 
-    Symbol *s = getRtlsym(RTLSYM.MONITOR_PROLOG);
+    Symbol* s = getRtlsym(RTLSYM.MONITOR_PROLOG);
     regm_t desregs = ~s.Sregsaved & ALLREGS;
     getregs(cdbx,desregs);
     cdbx.gencs(0xE8,0,FL.func,s);       // CALL _d_monitor_prolog
@@ -683,7 +683,7 @@ void nteh_monitor_epilog(ref CodeBuilder cdb,regm_t retregs)
 
     assert(config.exe == EX_WIN32);    // BUG: figure out how to implement for other EX's
 
-    Symbol *s = getRtlsym(RTLSYM.MONITOR_EPILOG);
+    Symbol* s = getRtlsym(RTLSYM.MONITOR_EPILOG);
     //desregs = ~s.Sregsaved & ALLREGS;
     regm_t desregs = 0;
     CodeBuilder cdbs;

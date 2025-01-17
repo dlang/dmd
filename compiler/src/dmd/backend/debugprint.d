@@ -205,7 +205,7 @@ void WRarglst(list_t a)
  */
 
 @trusted
-void WReqn(elem *e)
+void WReqn(elem* e)
 { __gshared int nest;
 
   if (!e)
@@ -307,7 +307,7 @@ void WRblocklist(list_t bl)
 {
     foreach (bl2; ListRange(bl))
     {
-        block *b = list_block(bl2);
+        block* b = list_block(bl2);
 
         if (b && b.Bweight)
             printf("B%d (%p) ",b.Bdfoidx,b);
@@ -377,7 +377,7 @@ const(char)* fl_str(FL fl)
  */
 
 @trusted
-void WRblock(block *b)
+void WRblock(block* b)
 {
     if (OPTIMIZER)
     {
@@ -492,10 +492,10 @@ void WRblock(block *b)
  * Number the blocks starting at 1.
  * So much more convenient than pointer values.
  */
-void numberBlocks(block *startblock)
+void numberBlocks(block* startblock)
 {
     uint number = 0;
-    for (block *b = startblock; b; b = b.Bnext)
+    for (block* b = startblock; b; b = b.Bnext)
         b.Bnumber = ++number;
 }
 
@@ -511,6 +511,6 @@ void WRfunc(const char* msg, Symbol* sfunc, block* startblock)
 {
     printf("............%s...%s()\n", msg, sfunc.Sident.ptr);
     numberBlocks(startblock);
-    for (block *b = startblock; b; b = b.Bnext)
+    for (block* b = startblock; b; b = b.Bnext)
         WRblock(b);
 }

@@ -91,7 +91,7 @@ struct TYPE
     }
 
     list_t Texcspec;        // tyfunc(): list of types of exception specification
-    Symbol *Ttypedef;       // if this type came from a typedef, this is
+    Symbol* Ttypedef;       // if this type came from a typedef, this is
                             // the typedef symbol
 }
 
@@ -102,7 +102,7 @@ struct typetemp_t
     /* Tsym should really be part of a derived class, as we only
         allocate room for it if TYtemplate
      */
-    Symbol *Tsym;               // primary class template symbol
+    Symbol* Tsym;               // primary class template symbol
 }
 
 void type_debug(const type* t)
@@ -111,10 +111,10 @@ void type_debug(const type* t)
 }
 
 // Return name mangling of type
-Mangle type_mangle(const type *t) { return t.Tmangle; }
+Mangle type_mangle(const type* t) { return t.Tmangle; }
 
 // Return true if function type has a variable number of arguments
-bool variadic(const type *t) { return (t.Tflags & (TFprototype | TFfixed)) == TFprototype; }
+bool variadic(const type* t) { return (t.Tflags & (TFprototype | TFfixed)) == TFprototype; }
 
 public import dmd.backend.var : chartype;
 

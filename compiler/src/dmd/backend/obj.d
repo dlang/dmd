@@ -89,12 +89,12 @@ else
             mixin(genRetVal("linnum(srcpos, seg, offset)"));
         }
 
-        int codeseg(const char *name,int suffix)
+        int codeseg(const char* name,int suffix)
         {
             mixin(genRetVal("codeseg(name, suffix)"));
         }
 
-        void startaddress(Symbol *s)
+        void startaddress(Symbol* s)
         {
             mixin(genRetVal("startaddress(s)"));
         }
@@ -139,22 +139,22 @@ else
             mixin(genRetVal("alias(n1, n2)"));
         }
 
-        void staticctor(Symbol *s,int dtor,int seg)
+        void staticctor(Symbol* s,int dtor,int seg)
         {
             mixin(genRetVal("staticctor(s, dtor, seg)"));
         }
 
-        void staticdtor(Symbol *s)
+        void staticdtor(Symbol* s)
         {
             mixin(genRetVal("staticdtor(s)"));
         }
 
-        void setModuleCtorDtor(Symbol *s, bool isCtor)
+        void setModuleCtorDtor(Symbol* s, bool isCtor)
         {
             mixin(genRetVal("setModuleCtorDtor(s, isCtor)"));
         }
 
-        void ehtables(Symbol *sfunc,uint size,Symbol *ehsym)
+        void ehtables(Symbol* sfunc,uint size,Symbol* ehsym)
         {
             mixin(genRetVal("ehtables(sfunc, size, ehsym)"));
         }
@@ -164,22 +164,22 @@ else
             mixin(genRetVal("ehsections()"));
         }
 
-        void moduleinfo(Symbol *scc)
+        void moduleinfo(Symbol* scc)
         {
             mixin(genRetVal("moduleinfo(scc)"));
         }
 
-        int comdat(Symbol *s)
+        int comdat(Symbol* s)
         {
             mixin(genRetVal("comdat(s)"));
         }
 
-        int comdatsize(Symbol *s, targ_size_t symsize)
+        int comdatsize(Symbol* s, targ_size_t symsize)
         {
             mixin(genRetVal("comdatsize(s, symsize)"));
         }
 
-        int readonly_comdat(Symbol *s)
+        int readonly_comdat(Symbol* s)
         {
             mixin(genRetVal("comdat(s)"));
         }
@@ -189,32 +189,32 @@ else
             mixin(genRetVal("setcodeseg(seg)"));
         }
 
-        seg_data *tlsseg()
+        seg_data* tlsseg()
         {
             mixin(genRetVal("tlsseg()"));
         }
 
-        seg_data *tlsseg_bss()
+        seg_data* tlsseg_bss()
         {
             mixin(genRetVal("tlsseg_bss()"));
         }
 
-        seg_data *tlsseg_data()
+        seg_data* tlsseg_data()
         {
             mixin(genRetVal("tlsseg_data()"));
         }
 
-        void export_symbol(Symbol *s, uint argsize)
+        void export_symbol(Symbol* s, uint argsize)
         {
             mixin(genRetVal("export_symbol(s, argsize)"));
         }
 
-        void pubdef(int seg, Symbol *s, targ_size_t offset)
+        void pubdef(int seg, Symbol* s, targ_size_t offset)
         {
             mixin(genRetVal("pubdef(seg, s, offset)"));
         }
 
-        void pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize)
+        void pubdefsize(int seg, Symbol* s, targ_size_t offset, targ_size_t symsize)
         {
             mixin(genRetVal("pubdefsize(seg, s, offset, symsize)"));
         }
@@ -224,22 +224,22 @@ else
             mixin(genRetVal("external_def(name)"));
         }
 
-        int data_start(Symbol *sdata, targ_size_t datasize, int seg)
+        int data_start(Symbol* sdata, targ_size_t datasize, int seg)
         {
             mixin(genRetVal("data_start(sdata, datasize, seg)"));
         }
 
-        int external(Symbol *s)
+        int external(Symbol* s)
         {
             mixin(genRetVal("external(s)"));
         }
 
-        int common_block(Symbol *s, targ_size_t size, targ_size_t count)
+        int common_block(Symbol* s, targ_size_t size, targ_size_t count)
         {
             mixin(genRetVal("common_block(s, size, count)"));
         }
 
-        int common_block(Symbol *s, int flag, targ_size_t size, targ_size_t count)
+        int common_block(Symbol* s, int flag, targ_size_t size, targ_size_t count)
         {
             mixin(genRetVal("common_block(s, flag, size, count)"));
         }
@@ -249,17 +249,17 @@ else
             mixin(genRetVal("lidata(seg, offset, count)"));
         }
 
-        void write_zeros(seg_data *pseg, targ_size_t count)
+        void write_zeros(seg_data* pseg, targ_size_t count)
         {
             mixin(genRetVal("write_zeros(pseg, count)"));
         }
 
-        void write_byte(seg_data *pseg, uint _byte)
+        void write_byte(seg_data* pseg, uint _byte)
         {
             mixin(genRetVal("write_byte(pseg, _byte)"));
         }
 
-        void write_bytes(seg_data *pseg, const(void[]) a)
+        void write_bytes(seg_data* pseg, const(void[]) a)
         {
             mixin(genRetVal("write_bytes(pseg, a)"));
         }
@@ -284,12 +284,12 @@ else
             mixin(genRetVal("reftocodeseg(seg, offset, val)"));
         }
 
-        int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val, int flags)
+        int reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val, int flags)
         {
             mixin(genRetVal("reftoident(seg, offset, s, val, flags)"));
         }
 
-        void far16thunk(Symbol *s)
+        void far16thunk(Symbol* s)
         {
             mixin(genRetVal("far16thunk(s)"));
         }
@@ -299,12 +299,12 @@ else
             mixin(genRetVal("fltused()"));
         }
 
-        int data_readonly(char *p, int len, int *pseg)
+        int data_readonly(char* p, int len, int* pseg)
         {
             mixin(genRetVal("data_readonly(p, len, pseg)"));
         }
 
-        int data_readonly(char *p, int len)
+        int data_readonly(char* p, int len)
         {
             mixin(genRetVal("data_readonly(p, len)"));
         }
@@ -314,17 +314,17 @@ else
             mixin(genRetVal("string_literal_segment(sz)"));
         }
 
-        Symbol *sym_cdata(tym_t ty, char *p, int len)
+        Symbol* sym_cdata(tym_t ty, char* p, int len)
         {
             mixin(genRetVal("sym_cdata(ty, p, len)"));
         }
 
-        void func_start(Symbol *sfunc)
+        void func_start(Symbol* sfunc)
         {
             mixin(genRetVal("func_start(sfunc)"));
         }
 
-        void func_term(Symbol *sfunc)
+        void func_term(Symbol* sfunc)
         {
             mixin(genRetVal("func_term(sfunc)"));
         }
@@ -339,12 +339,12 @@ else
             mixin(genRetVal("jmpTableSegment(s)"));
         }
 
-        Symbol *tlv_bootstrap()
+        Symbol* tlv_bootstrap()
         {
             mixin(genRetVal("tlv_bootstrap()"));
         }
 
-        void gotref(Symbol *s)
+        void gotref(Symbol* s)
         {
             switch (config.objfmt)
             {
@@ -354,7 +354,7 @@ else
             }
         }
 
-        Symbol *getGOTsym()
+        Symbol* getGOTsym()
         {
             switch (config.objfmt)
             {
@@ -383,7 +383,7 @@ else
             }
         }
 
-        uint addstr(OutBuffer *strtab, const(char)* p)
+        uint addstr(OutBuffer* strtab, const(char)* p)
         {
             switch (config.objfmt)
             {
@@ -411,7 +411,7 @@ else
             return MsCoffObj_getsegment(sectname, flags);
         }
 
-        void addrel(int seg, targ_size_t offset, Symbol *targsym, uint targseg, int rtype, int val = 0)
+        void addrel(int seg, targ_size_t offset, Symbol* targsym, uint targseg, int rtype, int val = 0)
         {
             switch (config.objfmt)
             {
@@ -463,13 +463,13 @@ else
             return MsCoffObj_seg_xdata();
         }
 
-        int  seg_pdata_comdat(Symbol *sfunc)
+        int  seg_pdata_comdat(Symbol* sfunc)
         {
             assert(config.objfmt == OBJ_MSCOFF);
             return MsCoffObj_seg_pdata_comdat(sfunc);
         }
 
-        int  seg_xdata_comdat(Symbol *sfunc)
+        int  seg_xdata_comdat(Symbol* sfunc)
         {
             assert(config.objfmt == OBJ_MSCOFF);
             return MsCoffObj_seg_xdata_comdat(sfunc);
@@ -481,7 +481,7 @@ else
             return MsCoffObj_seg_debugS();
         }
 
-        int  seg_debugS_comdat(Symbol *sfunc)
+        int  seg_debugS_comdat(Symbol* sfunc)
         {
             assert(config.objfmt == OBJ_MSCOFF);
             return MsCoffObj_seg_debugS_comdat(sfunc);

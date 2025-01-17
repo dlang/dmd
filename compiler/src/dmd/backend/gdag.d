@@ -47,7 +47,7 @@ bool Eunambig(elem* e) { return OTassign(e.Eoper) && e.E1.Eoper == OPvar; }
  */
 
 @trusted
-private bool cse_float(elem *e)
+private bool cse_float(elem* e)
 {
     // Don't CSE floating stuff if generating
     // inline 8087 code, the code generator
@@ -166,14 +166,14 @@ void builddags(ref GlobalOptimizer go)
 
 
 /****************************
- * Walk tree, rewriting *pn into a DAG as we go.
+ * Walk tree, rewriting* pn into a DAG as we go.
  * Params:
  *      go = GlobalOptimizer
  *      pn = pointer to expression tree to convert to DAG
  *      ae = vector of available expressions
  */
 @trusted
-private void aewalk(ref GlobalOptimizer go, elem **pn, vec_t ae)
+private void aewalk(ref GlobalOptimizer go, elem** pn, vec_t ae)
 {
     elem* n = *pn;
     assert(n && ae);
@@ -186,7 +186,7 @@ private void aewalk(ref GlobalOptimizer go, elem **pn, vec_t ae)
         if (aetype == Aetype.cse)
         {
             for (uint i = 0; (i = cast(uint) vec_index(i, ae)) < go.exptop; ++i)
-            {   elem *e = go.expnod[i];
+            {   elem* e = go.expnod[i];
 
                 // Attempt to replace n with e
                 if (e == null)              // if elem no longer exists
@@ -202,7 +202,7 @@ private void aewalk(ref GlobalOptimizer go, elem **pn, vec_t ae)
                     e.Ecount++;
                     debug assert(e.Ecount != 0);
 
-                    void aeclear(elem *n)
+                    void aeclear(elem* n)
                     {
                         while (1)
                         {
@@ -236,7 +236,7 @@ private void aewalk(ref GlobalOptimizer go, elem **pn, vec_t ae)
         }
     }
 
-    elem *t;
+    elem* t;
     switch (op)
     {
         case OPcolon:
@@ -327,7 +327,7 @@ private void aewalk(ref GlobalOptimizer go, elem **pn, vec_t ae)
                 vec_subass(ae,go.starkill);
             for (uint i = 0; (i = cast(uint) vec_index(i, ae)) < go.exptop; ++i) // for each ae elem
             {
-                elem *e = go.expnod[i];
+                elem* e = go.expnod[i];
 
                 if (!e) continue;
                 if (OTunary(e.Eoper))
@@ -385,9 +385,9 @@ private void aewalk(ref GlobalOptimizer go, elem **pn, vec_t ae)
  *      *pe
  */
 @trusted
-private elem * delcse(elem **pe)
+private elem* delcse(elem** pe)
 {
-    elem *e;
+    elem* e;
 
     e = el_calloc();
     el_copy(e,*pe);
@@ -404,7 +404,7 @@ private elem * delcse(elem **pe)
     {
         if (e.E1.Ecount == 0xFF-1)
         {
-            elem *ereplace;
+            elem* ereplace;
             ereplace = el_calloc();
             el_copy(ereplace,e.E1);
             e.E1 = ereplace;
@@ -419,7 +419,7 @@ private elem * delcse(elem **pe)
         {
             if (e.E2.Ecount == 0xFF-1)
             {
-                elem *ereplace;
+                elem* ereplace;
                 ereplace = el_calloc();
                 el_copy(ereplace,e.E2);
                 e.E2 = ereplace;
@@ -437,7 +437,7 @@ private elem * delcse(elem **pe)
     (*pe).Nflags |= NFLdelcse;     // not generating node
     e.Ecount = 0;
     *pe = e;
-    return *pe;
+    return* pe;
 }
 
 
@@ -447,7 +447,7 @@ private elem * delcse(elem **pe)
  */
 
 @trusted
-private void removecses(elem **pe)
+private void removecses(elem** pe)
 {
 L1:
     elem* e = *pe;
@@ -465,7 +465,7 @@ L1:
         if (op == OPind)
         {
             bool scaledIndex = I32 || I64;      // if scaled index addressing mode support
-            elem *e1 = e.E1;
+            elem* e1 = e.E1;
             if (e1.Eoper == OPadd &&
                 e1.Ecount
                )
@@ -528,7 +528,7 @@ L1:
                 delcse(&e1.E1);              // the <<. operator
             }
 
-            // Remove *e1 where it's a double
+            // Remove* e1 where it's a double
             if (e.Ecount && tyfloating(e.Ety))
                 e = delcse(pe);
         }
@@ -544,7 +544,7 @@ L1:
                  (op == OP64_32 || op == OP128_64 || op == OPmsw) &&
                  e.E1.Ecount == 0)
         {   // Convert back to OPdiv or OPmod
-            elem *e1 = e.E1;
+            elem* e1 = e.E1;
             e.Eoper = (op == OPmsw) ? OPmod : OPdiv;
             e.E1 = e1.E1;
             e.E2 = e1.E2;
@@ -621,7 +621,7 @@ void boolopt(ref GlobalOptimizer go)
     // Mark each expression that we know starts off with a non-zero value
     foreach (const i; 0 .. go.exptop)
     {
-        elem *e = go.expnod[i];
+        elem* e = go.expnod[i];
         if (e)
         {
             elem_debug(e);
@@ -665,9 +665,9 @@ void boolopt(ref GlobalOptimizer go)
  */
 
 @trusted
-private void abewalk(ref GlobalOptimizer go, elem *n, vec_t ae, vec_t aeval)
+private void abewalk(ref GlobalOptimizer go, elem* n, vec_t ae, vec_t aeval)
 {
-    elem *t;
+    elem* t;
 
     assert(n && ae);
     elem_debug(n);
@@ -808,7 +808,7 @@ private void abewalk(ref GlobalOptimizer go, elem *n, vec_t ae, vec_t aeval)
         /* remove all AEs that could be affected by this def    */
         if (Eunambig(n))        /* if unambiguous definition    */
         {
-            Symbol *s;
+            Symbol* s;
 
             assert(t.Eoper == OPvar);
             s = t.Vsym;
@@ -816,7 +816,7 @@ private void abewalk(ref GlobalOptimizer go, elem *n, vec_t ae, vec_t aeval)
                 vec_subass(ae,go.starkill);
             for (uint i = 0; (i = cast(uint) vec_index(i, ae)) < go.exptop; ++i) // for each ae elem
             {
-                elem *e = go.expnod[i];
+                elem* e = go.expnod[i];
 
                 if (!e) continue;
                 if (el_appears(e,s))
@@ -861,7 +861,7 @@ private void abewalk(ref GlobalOptimizer go, elem *n, vec_t ae, vec_t aeval)
  */
 
 @trusted
-private void abeboolres(ref GlobalOptimizer go, elem *n,vec_t ae,vec_t aeval)
+private void abeboolres(ref GlobalOptimizer go, elem* n,vec_t ae,vec_t aeval)
 {
     //printf("abeboolres()[%d %p] ", n.Eexp, go.expnod[n.Eexp]); WReqn(n); printf("\n");
     elem_debug(n);
@@ -870,7 +870,7 @@ private void abeboolres(ref GlobalOptimizer go, elem *n,vec_t ae,vec_t aeval)
         assert(go.expnod[n.Eexp] == n);
         uint i;
         for (i = 0; (i = cast(uint) vec_index(i, ae)) < go.exptop; ++i) // for each ae elem
-        {   elem *e = go.expnod[i];
+        {   elem* e = go.expnod[i];
 
             // Attempt to replace n with the boolean result of e
             //printf("Looking at go.expnod[%d] = %p\n",i,e);
@@ -900,7 +900,7 @@ private void abeboolres(ref GlobalOptimizer go, elem *n,vec_t ae,vec_t aeval)
  */
 
 @trusted
-private void abefree(ref GlobalOptimizer go, elem *e,vec_t ae)
+private void abefree(ref GlobalOptimizer go, elem* e,vec_t ae)
 {
     //printf("abefree [%d %p]: ", e.Eexp, e); WReqn(e); printf("\n");
     assert(e.Eexp);
@@ -926,7 +926,7 @@ private void abefree(ref GlobalOptimizer go, elem *e,vec_t ae)
  */
 
 @trusted
-private void abeset(ref GlobalOptimizer go, elem *e, vec_t ae, vec_t aeval, int flag)
+private void abeset(ref GlobalOptimizer go, elem* e, vec_t ae, vec_t aeval, int flag)
 {
     while (1)
     {

@@ -38,7 +38,7 @@ nothrow:
 @safe:
 
 @trusted
-char symbol_isintab(const Symbol *s) { return sytab[s.Sclass] & SCSS; }
+char symbol_isintab(const Symbol* s) { return sytab[s.Sclass] & SCSS; }
 
 
 import dmd.backend.gother : findloopparameters;
@@ -55,9 +55,9 @@ struct Loop
 nothrow:
     vec_t Lloop;        // Vector of blocks in this loop
     vec_t Lexit;        // Vector of exit blocks of loop
-    block *Lhead;       // Pointer to header of loop
-    block *Ltail;       // Pointer to tail
-    block *Lpreheader;  // Pointer to preheader (if any)
+    block* Lhead;       // Pointer to header of loop
+    block* Ltail;       // Pointer to tail
+    block* Lpreheader;  // Pointer to preheader (if any)
     Barray!(elem*) Llis; // loop invariant elems moved to Lpreheader, so
                         // redundant temporaries aren't created
     Rarray!Iv Livlist;        // basic induction variables
@@ -88,7 +88,7 @@ nothrow:
     {
         debug
         {
-            Loop *l = &this;
+            Loop* l = &this;
             printf("loop %p\n", l);
             printf("\thead: B%d, tail: B%d, prehead: B%d\n",l.Lhead.Bdfoidx,
                 l.Ltail.Bdfoidx,(l.Lpreheader ) ? l.Lpreheader.Bdfoidx
@@ -102,10 +102,10 @@ nothrow:
 struct famlist
 {
 nothrow:
-    elem **FLpelem;         /* parent of elem in the family         */
-    elem *c1;
-    elem *c2;               // c1*(basic IV) + c2
-    Symbol *FLtemp;         // symbol index of temporary (FLELIM if */
+    elem** FLpelem;         /* parent of elem in the family         */
+    elem* c1;
+    elem* c2;               // c1*(basic IV) + c2
+    Symbol* FLtemp;         // symbol index of temporary (FLELIM if */
                             /* this entry has no temporary)         */
     tym_t FLty;             /* type of this induction variable      */
     tym_t FLivty;           /* type of the basic IV elem (which is  */
@@ -136,13 +136,13 @@ nothrow:
 }
 
 @system
-enum FLELIM = cast(Symbol *)-1;
+enum FLELIM = cast(Symbol*)-1;
 
 struct Iv
 {
 nothrow:
-    Symbol *IVbasic;        // symbol of basic IV
-    elem **IVincr;          // pointer to parent of IV increment elem
+    Symbol* IVbasic;        // symbol of basic IV
+    elem** IVincr;          // pointer to parent of IV increment elem
     Barray!famlist IVfamily;      // variables in this family
 
     void reset()
@@ -335,7 +335,7 @@ private extern (D) void findloops(block*[] dfo, ref Loops loops)
         assert(b);
         foreach (bl; ListRange(b.Bsucc))
         {
-            block *s = list_block(bl);      // each successor s to b
+            block* s = list_block(bl);      // each successor s to b
             assert(s);
             if (dom(s,b))                   // if s dominates b
                 buildloop(loops, s, b);     // we found a loop
@@ -382,13 +382,13 @@ private uint loop_weight(uint weight, int factor) pure
  */
 
 @trusted
-private void buildloop(ref Loops ploops,block *head,block *tail)
+private void buildloop(ref Loops ploops,block* head,block* tail)
 {
     //printf("buildloop()\n");
 
      /* Add a block b and all its predecessors to vector v.
       */
-    static void insert(block *b, vec_t v)
+    static void insert(block* b, vec_t v)
     {
         assert(b && v);
         if (!vec_testbit(b.Bdfoidx,v))      // if block is not in loop
@@ -464,7 +464,7 @@ L1:
     l.Lpreheader = null;
     foreach (bl; ListRange(head.Bpred))
     {
-        block *b = list_block(bl);
+        block* b = list_block(bl);
 
         if (!vec_testbit(b.Bdfoidx,l.Lloop))  /* if not in loop       */
         {
@@ -545,8 +545,8 @@ L1:
 @trusted
 private bool looprotate(ref GlobalOptimizer go, ref Loop l)
 {
-    block *tail = l.Ltail;
-    block *head = l.Lhead;
+    block* tail = l.Ltail;
+    block* head = l.Lhead;
 
     //printf("looprotate(%p)\n",l);
 
@@ -590,9 +590,9 @@ private bool looprotate(ref GlobalOptimizer go, ref Loop l)
 
         // pred(head1) = pred(head) outside loop
         // pred(head2) = pred(head) inside loop
-        list_t *pbln;
+        list_t* pbln;
         auto pbl2 = &(head2.Bpred);
-        for (list_t *pbl = &(head.Bpred); *pbl; pbl = pbln)
+        for (list_t* pbl = &(head.Bpred); *pbl; pbl = pbln)
         {
             if (vec_testbit(list_block(*pbl).Bdfoidx, l.Lloop))
             {   // if this predecessor is inside the loop
@@ -606,7 +606,7 @@ private bool looprotate(ref GlobalOptimizer go, ref Loop l)
                 foreach (bl; ListRange(bsucc))
                     if (list_block(bl) == head)
                     {
-                        bl.ptr = cast(void *)head2;
+                        bl.ptr = cast(void*)head2;
                         goto L2;
                     }
                 assert(0);
@@ -754,7 +754,7 @@ restart:
             // Move preds of h that aren't in the loop to preds of p
             for (list_t bl = h.Bpred; bl;)
             {
-                block *b = list_block(bl);
+                block* b = list_block(bl);
 
                 if (!vec_testbit (b.Bdfoidx, l.Lloop))
                 {
@@ -765,7 +765,7 @@ restart:
                     /* Fix up successors of predecessors        */
                     foreach (bls; ListRange(b.Bsucc))
                         if (list_block(bls) == h)
-                                bls.ptr = cast(void *)p;
+                                bls.ptr = cast(void*)p;
                 }
                 else
                     bl = list_next(bl);
@@ -842,7 +842,7 @@ restart:
         vec_t rd = vec_calloc(go.defnod.length);        /* allocate our running RD vector */
         for (uint i = 0; (i = cast(uint) vec_index(i, lv)) < bo.dfo.length; ++i) // for each block in loop
         {
-            block *b = bo.dfo[i];
+            block* b = bo.dfo[i];
 
             if (debugc) printf("B%d\n",i);
             if (b.Belem)
@@ -934,15 +934,15 @@ restart:
  */
 
 @trusted
-private void markInvariants(ref GlobalOptimizer go, int gref, block* gblock, vec_t lv, vec_t gin, elem *n, vec_t rd)
+private void markInvariants(ref GlobalOptimizer go, int gref, block* gblock, vec_t lv, vec_t gin, elem* n, vec_t rd)
 {
 
-    void markinvar(elem *n,vec_t rd)
+    void markinvar(elem* n,vec_t rd)
     {
         vec_t tmp;
         uint i;
-        Symbol *v;
-        elem *n1;
+        Symbol* v;
+        elem* n1;
 
         assert(n && rd);
         assert(vec_numbits(rd) == go.defnod.length);
@@ -1217,7 +1217,7 @@ private void markInvariants(ref GlobalOptimizer go, int gref, block* gblock, vec
                                 //printf("\tn is: "); WReqn(n); printf("\n");
                                 for (j = 0; (j = cast(uint) vec_index(j, gin)) < go.exptop; ++j)
                                 {
-                                    elem *e = go.expnod[j];
+                                    elem* e = go.expnod[j];
 
                                     //printf("\t\tgo.expnod[%d] = %p\n",j,e);
                                     //printf("\t\tAE is: "); WReqn(e); printf("\n");
@@ -1309,10 +1309,10 @@ private void markInvariants(ref GlobalOptimizer go, int gref, block* gblock, vec
  */
 
 @trusted
-void updaterd(ref GlobalOptimizer go, elem *n,vec_t GEN,vec_t KILL)
+void updaterd(ref GlobalOptimizer go, elem* n,vec_t GEN,vec_t KILL)
 {
     const op = n.Eoper;
-    elem *t;
+    elem* t;
 
     assert(OTdef(op));
     assert(GEN);
@@ -1339,8 +1339,8 @@ void updaterd(ref GlobalOptimizer go, elem *n,vec_t GEN,vec_t KILL)
                 // for all unambig defs in go.defnod[]
                 foreach (uint i; 0 .. go.defnod.length)
                 {
-                    elem *tn = go.defnod[i].DNelem;
-                    elem *tn1;
+                    elem* tn = go.defnod[i].DNelem;
+                    elem* tn1;
 
                     if (tn == n)
                         ni = i;
@@ -1369,7 +1369,7 @@ void updaterd(ref GlobalOptimizer go, elem *n,vec_t GEN,vec_t KILL)
  */
 
 @trusted
-private void unmarkall(elem *e)
+private void unmarkall(elem* e)
 {
     for (; 1; e = e.E1)
     {
@@ -1398,7 +1398,7 @@ private void unmarkall(elem *e)
  */
 
 @trusted
-private bool refs(Symbol *v,elem *n,elem *nstop)
+private bool refs(Symbol* v,elem* n,elem* nstop)
 {
     symbol_debug(v);
     assert(symbol_isintab(v));
@@ -1489,10 +1489,10 @@ private bool refs(Symbol *v,elem *n,elem *nstop)
 private void movelis(ref GlobalOptimizer go, elem* n, block* b, ref Loop l, ref uint pdomexit)
 {
     vec_t tmp;
-    elem *ne;
-    elem *t;
-    elem *n2;
-    Symbol *v;
+    elem* ne;
+    elem* t;
+    elem* n2;
+    Symbol* v;
     tym_t ty;
 
 Lnextlis:
@@ -1549,7 +1549,7 @@ Lnextlis:
                     {
                         foreach (bl; ListRange(bo.dfo[i].Bsucc))
                         {
-                            block *s;           // successor to exit block
+                            block* s;           // successor to exit block
 
                             s = list_block(bl);
                             if (!vec_testbit(s.Bdfoidx,l.Lloop) &&
@@ -1579,7 +1579,7 @@ Lnextlis:
                         if (go.defnod[j].DNelem == n)
                             continue;
                         if (bo.dfo[i].Belem &&
-                            refs(v,bo.dfo[i].Belem,cast(elem *)null)) //if refs of v
+                            refs(v,bo.dfo[i].Belem,cast(elem*)null)) //if refs of v
                         {
                             vec_free(tmp);
                             goto L3;
@@ -1675,8 +1675,8 @@ L3:
     {
         if (OTassign(op))
         {
-            elem *n1 = n.E1;
-            elem *n11;
+            elem* n1 = n.E1;
+            elem* n11;
 
             if (OTbinary(op))
                 movelis(go, n.E2, b, l, pdomexit);
@@ -1711,7 +1711,7 @@ L3:
         }
         else if (OTunary(op))
         {
-            elem *e1 = n.E1;
+            elem* e1 = n.E1;
 
             // If *(x + c), just make x the LI, not the (x + c).
             // The +c comes free with the addressing mode.
@@ -1746,7 +1746,7 @@ L3:
 
             // If this operand has already been indirected, we can let
             // it pass.
-            Symbol *s;
+            Symbol* s;
 
             printf("looking at:\n");
             elem_print(n);
@@ -1875,7 +1875,7 @@ Lret:
  */
 
 @trusted
-private void appendelem(elem *n,elem **pn)
+private void appendelem(elem* n,elem** pn)
 {
     assert(n && pn);
     if (*pn)                                    /* if this elem exists  */
@@ -2030,7 +2030,7 @@ private void loopiv(ref GlobalOptimizer go, ref Loop l)
 private void findbasivs(ref GlobalOptimizer go, ref Loop l)
 {
     vec_t poss,notposs;
-    elem *n;
+    elem* n;
     bool ambdone;
 
     ambdone = false;
@@ -2049,7 +2049,7 @@ private void findbasivs(ref GlobalOptimizer go, ref Loop l)
         elem_debug(n);
         if (OTassign(n.Eoper) && n.E1.Eoper == OPvar)
         {
-            Symbol *s;                  /* if unambiguous def           */
+            Symbol* s;                  /* if unambiguous def           */
 
             s = n.E1.Vsym;
             if (symbol_isintab(s))
@@ -2102,7 +2102,7 @@ private void findbasivs(ref GlobalOptimizer go, ref Loop l)
     uint i;
     for (i = 0; (i = cast(uint) vec_index(i, poss)) < globsym.length; ++i)  // for each basic IV
     {
-        Symbol *s;
+        Symbol* s;
 
         /* Skip if we don't want it to be a basic IV (see funcprev())   */
         s = globsym[i];
@@ -2170,7 +2170,7 @@ private void findbasivs(ref GlobalOptimizer go, ref Loop l)
 private void findopeqs(ref GlobalOptimizer go, ref Loop l)
 {
     vec_t poss,notposs;
-    elem *n;
+    elem* n;
     bool ambdone;
 
     ambdone = false;
@@ -2189,7 +2189,7 @@ private void findopeqs(ref GlobalOptimizer go, ref Loop l)
         elem_debug(n);
         if (OTopeq(n.Eoper) && n.E1.Eoper == OPvar)
         {
-            Symbol *s;                  // if unambiguous def
+            Symbol* s;                  // if unambiguous def
 
             s = n.E1.Vsym;
             if (symbol_isintab(s))
@@ -2245,7 +2245,7 @@ private void findopeqs(ref GlobalOptimizer go, ref Loop l)
     uint i;
     for (i = 0; (i = cast(uint) vec_index(i, poss)) < globsym.length; ++i)  // for each opeq IV
     {
-        Symbol *s;
+        Symbol* s;
 
         s = globsym[i];
         assert(symbol_isintab(s));
@@ -2326,11 +2326,11 @@ private void findivfams(ref Loop l)
  */
 
 @trusted
-private void ivfamelems(Iv *biv,elem **pn)
+private void ivfamelems(Iv* biv,elem** pn)
 {
     tym_t ty,c2ty;
-    elem *n1;
-    elem *n2;
+    elem* n1;
+    elem* n2;
 
     assert(pn);
     elem* n = *pn;
@@ -2534,7 +2534,7 @@ private void elimfrivivs(ref Loop l)
             /* from biv                                                 */
             foreach (ref fl; biv.IVfamily)
             {
-                elem *ec1 = fl.c1;
+                elem* ec1 = fl.c1;
                 targ_llong c;
 
                 if (elemisone(ec1) ||
@@ -2568,17 +2568,17 @@ private void elimfrivivs(ref Loop l)
 @trusted
 private void intronvars(ref GlobalOptimizer go, ref Loop l)
 {
-    elem *T;
-    elem *ne;
-    elem *t2;
-    elem *C2;
-    elem *cmul;
+    elem* T;
+    elem* ne;
+    elem* t2;
+    elem* C2;
+    elem* cmul;
     tym_t ty,tyr;
 
     if (debugc) printf("intronvars(%p)\n", &l);
     foreach (ref biv; l.Livlist)
     {
-        elem *bivinc = *biv.IVincr;   /* ptr to increment elem */
+        elem* bivinc = *biv.IVincr;   /* ptr to increment elem */
 
         foreach (ref fl; biv.IVfamily)
         {                               /* for each IV in family of biv  */
@@ -2667,9 +2667,9 @@ private bool funcprev(ref GlobalOptimizer go, ref Iv biv, ref famlist fl)
 {
     tym_t tymin;
     int sz;
-    elem *e1;
-    elem *e2;
-    elem *flse1;
+    elem* e1;
+    elem* e2;
+    elem* flse1;
 
     debug if (debugc)
         printf("funcprev\n");
@@ -2905,7 +2905,7 @@ private void elimbasivs(ref GlobalOptimizer go, ref Loop l)
                     continue;
             }
 
-            elem *refE2 = el_copytree(ref_.E2);
+            elem* refE2 = el_copytree(ref_.E2);
             int refEoper = ref_.Eoper;
 
             /* if c1 < 0 and relop is < <= > >=
@@ -3009,8 +3009,8 @@ private void elimbasivs(ref GlobalOptimizer go, ref Loop l)
 
             for (uint i = 0; (i = cast(uint) vec_index(i, l.Lexit)) < bo.dfo.length; ++i)  // for each exit block
             {
-                elem *ne;
-                block *b;
+                elem* ne;
+                block* b;
 
                 foreach (bl; ListRange(bo.dfo[i].Bsucc))
                 {   /* for each successor   */
@@ -3050,18 +3050,18 @@ private void elimbasivs(ref GlobalOptimizer go, ref Loop l)
                     /* more than one predecessor to b.      */
                     if (list_next(b.Bpred))
                     {
-                        block *bn = block_calloc();
+                        block* bn = block_calloc();
                         bn.Btry = b.Btry;
                         bn.bc = BC.goto_;
                         bn.Bnext = bo.dfo[i].Bnext;
                         bo.dfo[i].Bnext = bn;
                         list_append(&(bn.Bsucc),b);
                         list_append(&(bn.Bpred),bo.dfo[i]);
-                        bl.ptr = cast(void *)bn;
+                        bl.ptr = cast(void*)bn;
                         foreach (bl2; ListRange(b.Bpred))
                             if (list_block(bl2) == bo.dfo[i])
                             {
-                                bl2.ptr = cast(void *)bn;
+                                bl2.ptr = cast(void*)bn;
                                 goto L2;
                             }
                         assert(0);
@@ -3090,7 +3090,7 @@ private void elimbasivs(ref GlobalOptimizer go, ref Loop l)
             {
                 foreach (bl; ListRange(bo.dfo[i].Bsucc))
                 {   /* for each successor   */
-                    block *b = list_block(bl);
+                    block* b = list_block(bl);
                     if (vec_testbit(b.Bdfoidx,l.Lloop))
                         continue;       /* inside loop  */
                     if (vec_testbit(X.Ssymnum,b.Binlv))
@@ -3126,8 +3126,8 @@ private void elimbasivs(ref GlobalOptimizer go, ref Loop l)
 @trusted
 private void elimopeqs(ref GlobalOptimizer go, ref Loop l)
 {
-    elem **pref;
-    Symbol *X;
+    elem** pref;
+    Symbol* X;
     int refcount;
 
     if (debugc) printf("elimopeqs(%p)\n", &l);
@@ -3155,7 +3155,7 @@ private void elimopeqs(ref GlobalOptimizer go, ref Loop l)
             {
                 foreach (bl; ListRange(bo.dfo[i].Bsucc))
                 {   // for each successor
-                    block *b = list_block(bl);
+                    block* b = list_block(bl);
                     if (vec_testbit(b.Bdfoidx,l.Lloop))
                         continue;       // inside loop
                     if (vec_testbit(X.Ssymnum,b.Binlv))
@@ -3372,13 +3372,13 @@ private bool catchRef(Symbol* x, ref Loop l)
 
 private __gshared
 {
-    elem **nd;
-    elem *sincn;
-    Symbol *X;
+    elem** nd;
+    elem* sincn;
+    Symbol* X;
 }
 
 @trusted
-private elem ** onlyref(Symbol *x, ref Loop l,elem *incn, out int refcount)
+private elem ** onlyref(Symbol* x, ref Loop l,elem* incn, out int refcount)
 {
     uint i;
 
@@ -3426,9 +3426,9 @@ private elem ** onlyref(Symbol *x, ref Loop l,elem *incn, out int refcount)
  */
 
 @trusted
-private int countrefs(elem **pn,bool flag)
+private int countrefs(elem** pn,bool flag)
 {
-    elem *n = *pn;
+    elem* n = *pn;
 
     assert(n);
     if (n == sincn)                       /* if it is the increment elem  */
@@ -3443,7 +3443,7 @@ private int countrefs(elem **pn,bool flag)
     {
         if (OTrel(n.Eoper))
         {
-            elem *e1 = n.E1;
+            elem* e1 = n.E1;
 
             assert(e1.Eoper != OPcomma);
             if (e1 == sincn &&
@@ -3508,9 +3508,9 @@ extern(D) void elimspec(ref GlobalOptimizer go, const ref Loop loop, block*[] df
  */
 
 @trusted
-private void elimspecwalk(ref GlobalOptimizer go, elem **pn)
+private void elimspecwalk(ref GlobalOptimizer go, elem** pn)
 {
-    elem *n;
+    elem* n;
 
     n = *pn;
     assert(n);
@@ -3522,7 +3522,7 @@ private void elimspecwalk(ref GlobalOptimizer go, elem **pn)
         elimspecwalk(go, &n.E2);
         if (OTrel(n.Eoper))
         {
-            elem *e1 = n.E1;
+            elem* e1 = n.E1;
 
             /* Replace ((e1,e2) rel e3) with (e1,(e2 rel e3).
              * This will reduce the number of cases for elimbasivs().
@@ -3531,7 +3531,7 @@ private void elimspecwalk(ref GlobalOptimizer go, elem **pn)
              */
             if (e1.Eoper == OPcomma)
             {
-                elem *e;
+                elem* e;
 
                 debug if (debugc)
                 {   printf("3rewriting ("); WReqn(n); printf(")\n"); }
@@ -3562,7 +3562,7 @@ private void elimspecwalk(ref GlobalOptimizer go, elem **pn)
                 ) &&
                 !el_sideeffect(e1.E1))
             {
-                elem *e;
+                elem* e;
                 OPER op;
 
                 debug if (debugc)
@@ -3627,7 +3627,7 @@ private void unrollWalker(elem* e, uint defnum, Symbol* v, targ_llong increment,
      * state == unrolls: done
      */
 
-    void walker(elem *e) @trusted
+    void walker(elem* e) @trusted
     {
         assert(e);
         const op = e.Eoper;
@@ -3657,7 +3657,7 @@ private void unrollWalker(elem* e, uint defnum, Symbol* v, targ_llong increment,
                  e.Vsym == v)
         {
             // overwrite e with (v+increment)
-            elem *e1 = el_calloc();
+            elem* e1 = el_calloc();
             el_copy(e1,e);
             e.Eoper = OPadd;
             e.E1 = e1;
@@ -3735,8 +3735,8 @@ bool loopunroll(ref GlobalOptimizer go, ref Loop l)
         return false;
     }
 
-    elem *ehead = l.Lhead.Belem;
-    elem *etail = l.Ltail.Belem;
+    elem* ehead = l.Lhead.Belem;
+    elem* etail = l.Ltail.Belem;
 
     if (log)
     {
@@ -3755,8 +3755,8 @@ bool loopunroll(ref GlobalOptimizer go, ref Loop l)
         return false;
     }
 
-    elem *e1 = etail.E1;
-    elem *e2 = etail.E2;
+    elem* e1 = etail.E1;
+    elem* e2 = etail.E2;
 
     if (!tyintegral(e1.Ety) ||
         tysize(e1.Ety) > targ_llong.sizeof ||
@@ -3787,8 +3787,8 @@ bool loopunroll(ref GlobalOptimizer go, ref Loop l)
 
     /* Find the initial, increment elem, and final value of s
      */
-    elem *einitial;
-    elem *eincrement;
+    elem* einitial;
+    elem* eincrement;
     if (!findloopparameters(go, etail, einitial, eincrement))
     {
         if (log) printf("\tnot findloopparameters()\n");
@@ -3880,7 +3880,7 @@ bool loopunroll(ref GlobalOptimizer go, ref Loop l)
  *  number of elems in tree
  */
 @trusted
-private int el_length(elem *e)
+private int el_length(elem* e)
 {
     int n = 0;
     while (e)

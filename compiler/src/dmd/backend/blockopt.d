@@ -44,15 +44,15 @@ import dmd.backend.gflow : util_realloc;
 
 struct BlockOpt
 {
-    block *startblock;      // beginning block of function
+    block* startblock;      // beginning block of function
                             // (can have no predecessors)
 
     Barray!(block*) dfo;    // array of depth first order
 
-    block *curblock;        // current block being read in
-    block *block_last;      // last block read in
+    block* curblock;        // current block being read in
+    block* block_last;      // last block read in
 
-    block *block_freelist;
+    block* block_freelist;
 
     block blkzero;          // storage allocator
 }
@@ -60,9 +60,9 @@ struct BlockOpt
 __gshared BlockOpt bo;
 
 @trusted
-pragma(inline, true) block *block_calloc_i()
+pragma(inline, true) block* block_calloc_i()
 {
-    block *b;
+    block* b;
 
     if (bo.block_freelist)
     {
@@ -71,11 +71,11 @@ pragma(inline, true) block *block_calloc_i()
         *b = bo.blkzero;
     }
     else
-        b = cast(block *) mem_calloc(block.sizeof);
+        b = cast(block*) mem_calloc(block.sizeof);
     return b;
 }
 
-block *block_calloc()
+block* block_calloc()
 {
     return block_calloc_i();
 }
@@ -103,7 +103,7 @@ void block_term()
 {
     while (bo.block_freelist)
     {
-        block *b = bo.block_freelist.Bnext;
+        block* b = bo.block_freelist.Bnext;
         mem_free(bo.block_freelist);
         bo.block_freelist = b;
     }
@@ -132,7 +132,7 @@ void block_next(BlockState* bctx, BC bc, block* bn)
 
 block* block_goto(BlockState* bx, BC bc, block* bn)
 {
-    block *b;
+    block* b;
 
     b = bx.curblock;
     block_next(bx,bc,bn);
@@ -153,12 +153,12 @@ void block_goto()
     block_goto(block_calloc());
 }
 
-void block_goto(block *bn)
+void block_goto(block* bn)
 {
     block_goto(bn,bn);
 }
 
-void block_goto(block *bgoto,block *bnew)
+void block_goto(block* bgoto,block* bnew)
 {
     BC bc;
 
@@ -184,7 +184,7 @@ void block_ptr()
     //printf("block_ptr()\n");
 
     uint numblks = 0;
-    for (block *b = bo.startblock; b; b = b.Bnext)       /* for each block        */
+    for (block* b = bo.startblock; b; b = b.Bnext)       /* for each block        */
     {
         b.Bblknum = numblks;
         numblks++;
@@ -199,10 +199,10 @@ void block_ptr()
 void block_pred()
 {
     //printf("block_pred()\n");
-    for (block *b = bo.startblock; b; b = b.Bnext)       // for each block
+    for (block* b = bo.startblock; b; b = b.Bnext)       // for each block
         list_free(&b.Bpred,FPNULL);
 
-    for (block *b = bo.startblock; b; b = b.Bnext)       // for each block
+    for (block* b = bo.startblock; b; b = b.Bnext)       // for each block
     {
         //printf("b = %p, BC = %s\n", b, bc_str(b.bc));
         foreach (bp; ListRange(b.Bsucc))
@@ -222,7 +222,7 @@ void block_pred()
 @trusted
 void block_clearvisit()
 {
-    for (block *b = bo.startblock; b; b = b.Bnext)       // for each block
+    for (block* b = bo.startblock; b; b = b.Bnext)       // for each block
         b.Bflags = cast(BFL)(b.Bflags & ~cast(uint)BFL.visited); // mark as unvisited
 }
 
@@ -230,12 +230,12 @@ void block_clearvisit()
  * Visit block and each of its predecessors.
  */
 
-void block_visit(block *b)
+void block_visit(block* b)
 {
     b.Bflags |= BFL.visited;
     foreach (l; ListRange(b.Bsucc))
     {
-        block *bs = list_block(l);
+        block* bs = list_block(l);
         assert(bs);
         if ((bs.Bflags & BFL.visited) == 0)     // if not visited
             block_visit(bs);
@@ -257,10 +257,10 @@ void block_compbcount(ref GlobalOptimizer go)
  * Free list of blocks.
  */
 
-void blocklist_free(block **pb)
+void blocklist_free(block** pb)
 {
-    block *bn;
-    for (block *b = *pb; b; b = bn)
+    block* bn;
+    for (block* b = *pb; b; b = bn)
     {
         bn = b.Bnext;
         block_free(b);
@@ -273,7 +273,7 @@ void blocklist_free(block **pb)
  */
 
 @trusted
-void block_optimizer_free(block *b)
+void block_optimizer_free(block* b)
 {
     static void vfree(ref vec_t v) { vec_free(v); v = null; }
     vfree(b.Bdom);
@@ -297,7 +297,7 @@ void block_optimizer_free(block *b)
  */
 
 @trusted
-void block_free(block *b)
+void block_free(block* b)
 {
     assert(b);
     if (b.Belem)
@@ -343,17 +343,17 @@ void block_free(block *b)
  */
 
 @trusted
-void block_appendexp(block *b,elem *e)
+void block_appendexp(block* b,elem* e)
 {
     if (e)
     {
         assert(b);
         elem_debug(e);
-        elem **pe = &b.Belem;
-        elem *ec = *pe;
+        elem** pe = &b.Belem;
+        elem* ec = *pe;
         if (ec != null)
         {
-            type *t = e.ET;
+            type* t = e.ET;
 
             if (t)
                 type_debug(t);
@@ -385,7 +385,7 @@ version (COMPILE)
 
 //#undef block_initvar
 
-void block_initvar(Symbol *s)
+void block_initvar(Symbol* s)
 {
     symbol_debug(s);
     curblock.Binitvar = s;
@@ -448,7 +448,7 @@ void blockopt(ref GlobalOptimizer go, int iter)
         }
 
         /* canonicalize the trees        */
-        for (block *b = bo.startblock; b; b = b.Bnext)
+        for (block* b = bo.startblock; b; b = b.Bnext)
         {
             debug if (debugb)
             {
@@ -472,7 +472,7 @@ void blockopt(ref GlobalOptimizer go, int iter)
         if (localgot)
         {   // Initialize with:
             //  localgot = OPgot;
-            elem *e = el_long(TYnptr, 0);
+            elem* e = el_long(TYnptr, 0);
             e.Eoper = OPgot;
             e = el_bin(OPeq, TYnptr, el_var(localgot), e);
             bo.startblock.Belem = el_combine(e, bo.startblock.Belem);
@@ -509,15 +509,15 @@ void brcombine(ref GlobalOptimizer go)
     do
     {
         int anychanges = 0;
-        for (block *b = bo.startblock; b; b = b.Bnext)   // for each block
+        for (block* b = bo.startblock; b; b = b.Bnext)   // for each block
         {
             /* Look for [e1 IFFALSE L3,L2] L2: [e2 GOTO L3] L3: [e3]    */
             /* Replace with [(e1 && e2),e3]                             */
             const bc = b.bc;
             if (bc == BC.iftrue)
             {
-                block *b2 = b.nthSucc(0);
-                block *b3 = b.nthSucc(1);
+                block* b2 = b.nthSucc(0);
+                block* b3 = b.nthSucc(1);
 
                 if (list_next(b2.Bpred))       // if more than one predecessor
                     continue;
@@ -553,7 +553,7 @@ void brcombine(ref GlobalOptimizer go)
                     if (!OTleaf(b3.Belem.Eoper))
                         continue;
                     tym_t ty = (bc2 == BC.retexp) ? b2.Belem.Ety : cast(tym_t) TYvoid;
-                    elem *e = el_bin(OPcolon2,ty,b2.Belem,b3.Belem);
+                    elem* e = el_bin(OPcolon2,ty,b2.Belem,b3.Belem);
                     b.Belem = el_bin(OPcond,ty,b.Belem,e);
                     b.bc = bc2;
                     b.Belem.ET = b2.Belem.ET;
@@ -569,10 +569,10 @@ void brcombine(ref GlobalOptimizer go)
                          b3.bc == BC.goto_ &&
                          b2.nthSucc(0) == b3.nthSucc(0))
                 {
-                    block *bsucc = b2.nthSucc(0);
+                    block* bsucc = b2.nthSucc(0);
                     if (b2.Belem)
                     {
-                        elem *e;
+                        elem* e;
                         if (b3.Belem)
                         {
                             if (!OTleaf(b3.Belem.Eoper))
@@ -630,13 +630,13 @@ void brcombine(ref GlobalOptimizer go)
 private void bropt(ref GlobalOptimizer go)
 {
     debug if (debugc) printf("bropt()\n");
-    for (block *b = bo.startblock; b; b = b.Bnext)   // for each block
+    for (block* b = bo.startblock; b; b = b.Bnext)   // for each block
     {
-        elem **pn = &(b.Belem);
+        elem** pn = &(b.Belem);
         if (OPTIMIZER && *pn)
             pn = el_scancommas(pn);
 
-        elem *n = *pn;
+        elem* n = *pn;
 
         /* look for conditional that never returns */
         if (n && tybasic(n.Ety) == TYnoreturn && b.bc != BC.exit)
@@ -673,7 +673,7 @@ private void bropt(ref GlobalOptimizer go)
             }
 
             /* Take care of IF (constant)                   */
-            block *db;
+            block* db;
             if (iftrue(n))          /* if elem is true      */
             {
                 // select first succ
@@ -731,7 +731,7 @@ private void bropt(ref GlobalOptimizer go)
             {
                 if (i--)            // but not the db successor
                 {
-                    void *p = list_subtract(&(list_block(bl).Bpred),b);
+                    void* p = list_subtract(&(list_block(bl).Bpred),b);
                     assert(p == b);
                 }
             }
@@ -755,13 +755,13 @@ private void bropt(ref GlobalOptimizer go)
 private void brrear()
 {
     debug if (debugc) printf("brrear()\n");
-    for (block *b = bo.startblock; b; b = b.Bnext)   // for each block
+    for (block* b = bo.startblock; b; b = b.Bnext)   // for each block
     {
         foreach (bl; ListRange(b.Bsucc))
         {   /* For each transfer of control block pointer   */
             int iter = 0;
 
-            block *bt = list_block(bl);
+            block* bt = list_block(bl);
 
             /* If it is a transfer to a block that consists */
             /* of nothing but an unconditional transfer,    */
@@ -811,8 +811,8 @@ private void brrear()
 
             if (b.bc == BC.iftrue || b.bc == BC.iffalse)
             {
-                block *bif = b.nthSucc(0);
-                block *belse = b.nthSucc(1);
+                block* bif = b.nthSucc(0);
+                block* belse = b.nthSucc(1);
 
                 if (bif == b.Bnext)
                 {
@@ -845,14 +845,14 @@ void compdfo(ref Barray!(block*) dfo, block* startblock)
     /******************************
      * Add b's successors to dfo[], then b
      */
-    void walkDFO(block *b)
+    void walkDFO(block* b)
     {
         assert(b);
         b.Bflags |= BFL.visited;             // executed at least once
 
         foreach (bl; ListRange(b.Bsucc))   // for each successor
         {
-            block *bs = list_block(bl);
+            block* bs = list_block(bl);
             assert(bs);
             if ((bs.Bflags & BFL.visited) == 0) // if not visited
                 walkDFO(bs);
@@ -900,9 +900,9 @@ void compdfo(ref Barray!(block*) dfo, block* startblock)
 private void elimblks(ref GlobalOptimizer go)
 {
     debug if (debugc) printf("elimblks()\n");
-    block *bf = null;
-    block *b;
-    for (block **pb = &bo.startblock; (b = *pb) != null;)
+    block* bf = null;
+    block* b;
+    for (block** pb = &bo.startblock; (b = *pb) != null;)
     {
         if (((b.Bflags & BFL.visited) == 0)   // if block is not visited
             && ((b.Bflags & BFL.label) == 0)  // need label offset
@@ -962,7 +962,7 @@ private int mergeblks()
     foreach (b; bo.dfo[])
     {
         if (b.bc == BC.goto_)
-        {   block *bL2 = list_block(b.Bsucc);
+        {   block* bL2 = list_block(b.Bsucc);
 
             if (b == bL2)
             {
@@ -980,7 +980,7 @@ private int mergeblks()
                     continue;
 
                 /* JOIN the elems               */
-                elem *e = el_combine(b.Belem,bL2.Belem);
+                elem* e = el_combine(b.Belem,bL2.Belem);
                 if (b.Belem && bL2.Belem)
                     e = doptelem(e,bc_goal(bL2.bc) | Goal.again);
                 bL2.Belem = e;
@@ -998,7 +998,7 @@ private int mergeblks()
                 {
                     foreach (bs; ListRange(list_block(bl).Bsucc))
                         if (list_block(bs) == b)
-                            bs.ptr = cast(void *)bL2;
+                            bs.ptr = cast(void*)bL2;
                 }
 
                 merge++;
@@ -1008,7 +1008,7 @@ private int mergeblks()
                 {   /* bL2 is the new startblock */
                     debug if (debugc) printf("bL2 is new startblock\n");
                     /* Remove bL2 from list of blocks   */
-                    for (block **pb = &bo.startblock; 1; pb = &(*pb).Bnext)
+                    for (block** pb = &bo.startblock; 1; pb = &(*pb).Bnext)
                     {
                         assert(*pb);
                         if (*pb == bL2)
@@ -1041,14 +1041,14 @@ private void blident(ref GlobalOptimizer go)
     debug if (debugc) printf("blident()\n");
     assert(bo.startblock);
 
-    block *bnext;
-    for (block *bn = bo.startblock; bn; bn = bnext)
+    block* bnext;
+    for (block* bn = bo.startblock; bn; bn = bnext)
     {
         bnext = bn.Bnext;
         if (bn.Bflags & BFL.nomerg)
             continue;
 
-        for (block *b = bnext; b; b = b.Bnext)
+        for (block* b = bnext; b; b = b.Bnext)
         {
             /* Blocks are identical if:                 */
             /*  BC match                                */
@@ -1092,7 +1092,7 @@ private void blident(ref GlobalOptimizer go)
 
                 foreach (bl; ListRange(bn.Bpred))
                 {
-                    block *bp = list_block(bl);
+                    block* bp = list_block(bl);
                     if (bp.bc == BC.asm_)
                         // Can't do this because of jmp's and loop's
                         goto Lcontinue;
@@ -1103,7 +1103,7 @@ private void blident(ref GlobalOptimizer go)
                     // Predecessors must all be at the same btry level.
                     if (bn.Bpred)
                     {
-                        block *bp = list_block(bn.Bpred);
+                        block* bp = list_block(bn.Bpred);
                         btry = bp.Btry;
                         if (bp.bc == BC.try_)
                             btry = bp;
@@ -1113,7 +1113,7 @@ private void blident(ref GlobalOptimizer go)
 
                     foreach (bl; ListRange(b.Bpred))
                     {
-                        block *bp = list_block(bl);
+                        block* bp = list_block(bl);
                         if (bp.bc != BC.try_)
                             bp = bp.Btry;
                         if (btry != bp)
@@ -1134,10 +1134,10 @@ private void blident(ref GlobalOptimizer go)
                 /* b instead of bn                                      */
                 foreach (bl; ListRange(bn.Bpred))
                 {
-                    block *bp = list_block(bl);
+                    block* bp = list_block(bl);
                     foreach (bls; ListRange(bp.Bsucc))
                         if (list_block(bls) == bn)
-                        {   bls.ptr = cast(void *)b;
+                        {   bls.ptr = cast(void*)b;
                             list_prepend(&b.Bpred,bp);
                         }
                 }
@@ -1174,7 +1174,7 @@ private void blreturn(ref GlobalOptimizer go)
         int retcount = 0;               // number of return counts
 
         /* Find last return block       */
-        for (block *b = bo.startblock; b; b = b.Bnext)
+        for (block* b = bo.startblock; b; b = b.Bnext)
         {
             if (b.bc == BC.ret)
                 retcount++;
@@ -1186,7 +1186,7 @@ private void blreturn(ref GlobalOptimizer go)
             return;
 
         /* Split return blocks  */
-        for (block *b = bo.startblock; b; b = b.Bnext)
+        for (block* b = bo.startblock; b; b = b.Bnext)
         {
             if (b.bc != BC.ret)
                 continue;
@@ -1196,7 +1196,7 @@ private void blreturn(ref GlobalOptimizer go)
                 enum ifCondition = true;
                 if (ifCondition)
                 {
-                    for (block *b2 = bo.startblock; b2; b2 = b2.Bnext)
+                    for (block* b2 = bo.startblock; b2; b2 = b2.Bnext)
                     {
                         if (b2.bc == BC.ret && b != b2 && b.Btry == b2.Btry)
                             goto L1;
@@ -1210,7 +1210,7 @@ private void blreturn(ref GlobalOptimizer go)
                 debug if (debugc)
                     printf("blreturn: splitting block B%d\n",b.Bdfoidx);
 
-                block *bn = block_calloc();
+                block* bn = block_calloc();
                 bn.bc = BC.ret;
                 bn.Bnext = b.Bnext;
                 static if(SCPP_OR_NTEXCEPTIONS)
@@ -1254,7 +1254,7 @@ private void bl_enlist2(ref Barray!(elem*) elems, elem* e)
 }
 
 @trusted
-private list_t bl_enlist(elem *e)
+private list_t bl_enlist(elem* e)
 {
     list_t el = null;
 
@@ -1297,9 +1297,9 @@ private elem* bl_delist2(elem*[] elems)
 }
 
 @trusted
-private elem * bl_delist(list_t el)
+private elem* bl_delist(list_t el)
 {
-    elem *e = null;
+    elem* e = null;
     foreach (els; ListRange(el))
         e = el_combine(list_elem(els),e);
     list_free(&el,FPNULL);
@@ -1318,7 +1318,7 @@ private void bltailmerge(ref GlobalOptimizer go)
     if (!(go.mfoptim & MFtime))            /* if optimized for space       */
     {
         /* Split each block into a reversed linked list of elems        */
-        for (block *b = bo.startblock; b; b = b.Bnext)
+        for (block* b = bo.startblock; b; b = b.Bnext)
             b.Blist = bl_enlist(b.Belem);
 
         /* Search for two blocks that have the same successor list.
@@ -1329,15 +1329,15 @@ private void bltailmerge(ref GlobalOptimizer go)
             enum additionalAnd = "b.Btry == bn.Btry";
         else
             enum additionalAnd = "true";
-        for (block *b = bo.startblock; b; b = b.Bnext)
+        for (block* b = bo.startblock; b; b = b.Bnext)
         {
             if (!b.Blist)
                 continue;
-            elem *e = list_elem(b.Blist);
+            elem* e = list_elem(b.Blist);
             elem_debug(e);
-            for (block *bn = b.Bnext; bn; bn = bn.Bnext)
+            for (block* bn = b.Bnext; bn; bn = bn.Bnext)
             {
-                elem *en;
+                elem* en;
                 if (b.bc == bn.bc &&
                     list_equal(b.Bsucc,bn.Bsucc) &&
                     bn.Blist &&
@@ -1373,7 +1373,7 @@ private void bltailmerge(ref GlobalOptimizer go)
                     debug if (debugc)
                         printf("tail merging: %p and %p\n", b, bn);
 
-                    block *bnew = block_calloc();
+                    block* bnew = block_calloc();
                     bnew.Bnext = bn.Bnext;
                     bnew.bc = b.bc;
                     static if (SCPP_OR_NTEXCEPTIONS)
@@ -1435,7 +1435,7 @@ private void bltailmerge(ref GlobalOptimizer go)
         }
 
         /* Recombine elem lists into expression trees   */
-        for (block *b = bo.startblock; b; b = b.Bnext)
+        for (block* b = bo.startblock; b; b = b.Bnext)
             b.Belem = bl_delist(b.Blist);
     }
 }
@@ -1449,14 +1449,14 @@ private void brmin(ref GlobalOptimizer go)
 {
     debug if (debugc) printf("brmin()\n");
     debug assert(bo.startblock);
-    for (block *b = bo.startblock.Bnext; b; b = b.Bnext)
+    for (block* b = bo.startblock.Bnext; b; b = b.Bnext)
     {
-        block *bnext = b.Bnext;
+        block* bnext = b.Bnext;
         if (!bnext)
             break;
         foreach (bl; ListRange(b.Bsucc))
         {
-            block *bs = list_block(bl);
+            block* bs = list_block(bl);
             if (bs == bnext)
                 goto L1;
         }
@@ -1466,11 +1466,11 @@ private void brmin(ref GlobalOptimizer go)
 
         foreach (bl; ListRange(b.Bsucc))
         {
-            block *bs = list_block(bl);
-            block *bn;
+            block* bs = list_block(bl);
+            block* bn;
             foreach (blp; ListRange(bs.Bpred))
             {
-                block *bsp = list_block(blp);
+                block* bsp = list_block(blp);
                 if (bsp.Bnext == bs)
                     goto L2;
             }
@@ -1510,7 +1510,7 @@ static if(0)
 @trusted
 private void block_check()
 {
-    for (block *b = startblock; b; b = b.Bnext)
+    for (block* b = startblock; b; b = b.Bnext)
     {
         int nsucc = list_nitems(b.Bsucc);
         int npred = list_nitems(b.Bpred);
@@ -1527,7 +1527,7 @@ private void block_check()
 
         foreach (bl; ListRange(b.Bsucc))
         {
-            block *bs = list_block(bl);
+            block* bs = list_block(bl);
 
             foreach (bls; ListRange(bs.Bpred))
             {
@@ -1566,12 +1566,12 @@ private void brtailrecursion(ref GlobalOptimizer go)
         return;
     }
 
-    for (block *b = bo.startblock; b; b = b.Bnext)
+    for (block* b = bo.startblock; b; b = b.Bnext)
     {
         if (b.bc == BC._try)
             return;
-        elem **pe = &b.Belem;
-        block *bn = null;
+        elem** pe = &b.Belem;
+        block* bn = null;
         if (*pe &&
             (b.bc == BC.ret ||
              b.bc == BC.retexp ||
@@ -1585,7 +1585,7 @@ private void brtailrecursion(ref GlobalOptimizer go)
 
             pe = el_scancommas(pe);
 
-            elem *e = *pe;
+            elem* e = *pe;
 
             static bool isCandidate(elem* e)
             {
@@ -1654,7 +1654,7 @@ private void brtailrecursion(ref GlobalOptimizer go)
                 else
                 {
                     int si = 0;
-                    elem *e2 = null;
+                    elem* e2 = null;
                     *pe = assignparams(&e.E2,&si,&e2);
                     *pe = el_combine(*pe,e2);
                 }
@@ -1673,7 +1673,7 @@ private void brtailrecursion(ref GlobalOptimizer go)
 
                 // Create a new startblock, bs, because startblock cannot
                 // have predecessors.
-                block *bs = block_calloc();
+                block* bs = block_calloc();
                 bs.bc = BC.goto_;
                 bs.Bnext = bo.startblock;
                 list_append(&bs.Bsucc,bo.startblock);
@@ -1692,16 +1692,16 @@ private void brtailrecursion(ref GlobalOptimizer go)
  */
 
 @trusted
-private elem * assignparams(elem **pe,int *psi,elem **pe2)
+private elem* assignparams(elem** pe,int* psi,elem** pe2)
 {
-    elem *e = *pe;
+    elem* e = *pe;
 
         if (e.Eoper == OPparam)
     {
-        elem *ea = null;
-        elem *eb = null;
-        elem *e2 = assignparams(&e.E2,psi,&eb);
-        elem *e1 = assignparams(&e.E1,psi,&ea);
+        elem* ea = null;
+        elem* eb = null;
+        elem* e2 = assignparams(&e.E2,psi,&eb);
+        elem* e1 = assignparams(&e.E1,psi,&ea);
         e.E1 = null;
         e.E2 = null;
         e = el_combine(e1,e2);
@@ -1710,23 +1710,23 @@ private elem * assignparams(elem **pe,int *psi,elem **pe2)
     else
     {
         int si = *psi;
-        type *t;
+        type* t;
 
         assert(si < globsym.length);
-        Symbol *sp = globsym[si];
-        Symbol *s = symbol_genauto(sp.Stype);
+        Symbol* sp = globsym[si];
+        Symbol* s = symbol_genauto(sp.Stype);
         s.Sfl = FL.auto_;
         int op = OPeq;
         if (e.Eoper == OPstrpar)
         {
             op = OPstreq;
             t = e.ET;
-            elem *ex = e;
+            elem* ex = e;
             e = e.E1;
             ex.E1 = null;
             el_free(ex);
         }
-        elem *es = el_var(s);
+        elem* es = el_var(s);
         es.Ety = e.Ety;
         e = el_bin(op,TYvoid,es,e);
         if (op == OPstreq)
@@ -1749,34 +1749,34 @@ private elem * assignparams(elem **pe,int *psi,elem **pe2)
 private void emptyloops(ref GlobalOptimizer go)
 {
     debug if (debugc) printf("emptyloops()\n");
-    for (block *b = bo.startblock; b; b = b.Bnext)
+    for (block* b = bo.startblock; b; b = b.Bnext)
     {
         if (b.bc == BC.iftrue &&
             list_block(b.Bsucc) == b &&
             list_nitems(b.Bpred) == 2)
         {
             // Find predecessor to b
-            block *bpred = list_block(b.Bpred);
+            block* bpred = list_block(b.Bpred);
             if (bpred == b)
                 bpred = list_block(list_next(b.Bpred));
             if (!bpred.Belem)
                 continue;
 
             // Find einit
-            elem *einit = *el_scancommas(&(bpred.Belem));
+            elem* einit = *el_scancommas(&(bpred.Belem));
             if (einit.Eoper != OPeq ||
                 einit.E2.Eoper != OPconst ||
                 einit.E1.Eoper != OPvar)
                 continue;
 
             // Look for ((i += 1) < limit)
-            elem *erel = b.Belem;
+            elem* erel = b.Belem;
             if (erel.Eoper != OPlt ||
                 erel.E2.Eoper != OPconst ||
                 erel.E1.Eoper != OPaddass)
                 continue;
 
-            elem *einc = erel.E1;
+            elem* einc = erel.E1;
             if (einc.E2.Eoper != OPconst ||
                 einc.E1.Eoper != OPvar ||
                 !el_match(einc.E1,einit.E1))
@@ -1820,7 +1820,7 @@ private void emptyloops(ref GlobalOptimizer go)
 private void funcsideeffects()
 {
     //printf("funcsideeffects('%s')\n",funcsym_p.Sident);
-    for (block *b = bo.startblock; b; b = b.Bnext)
+    for (block* b = bo.startblock; b; b = b.Bnext)
     {
         if (b.Belem && funcsideeffect_walk(b.Belem))
         {
@@ -1833,7 +1833,7 @@ private void funcsideeffects()
 }
 
 @trusted
-private int funcsideeffect_walk(elem *e)
+private int funcsideeffect_walk(elem* e)
 {
     assert(e);
     elem_debug(e);
@@ -1844,7 +1844,7 @@ private int funcsideeffect_walk(elem *e)
     {
         case OPcall:
         case OPucall:
-            Symbol *s;
+            Symbol* s;
             if (e.E1.Eoper == OPvar &&
                 tyfunc((s = e.E1.Vsym).Stype.Tty) &&
                 ((s.Sfunc && s.Sfunc.Fflags3 & Fnosideeff) || s == funcsym_p)
@@ -1873,7 +1873,7 @@ private int funcsideeffect_walk(elem *e)
  */
 
 @trusted
-private int el_anyframeptr(elem *e)
+private int el_anyframeptr(elem* e)
 {
     while (1)
     {
@@ -1905,7 +1905,7 @@ private void blassertsplit(ref GlobalOptimizer go)
 {
     debug if (debugc) printf("blassertsplit()\n");
     Barray!(elem*) elems;
-    for (block *b = bo.startblock; b; b = b.Bnext)
+    for (block* b = bo.startblock; b; b = b.Bnext)
     {
         /* Not sure of effect of jumping out of a try block
          */
@@ -1921,7 +1921,7 @@ private void blassertsplit(ref GlobalOptimizer go)
     L1:
         int dctor = 0;
 
-        int accumDctor(elem *e)
+        int accumDctor(elem* e)
         {
             while (1)
             {
@@ -1953,7 +1953,7 @@ private void blassertsplit(ref GlobalOptimizer go)
                 accumDctor(e);
                 continue;
             }
-            Symbol *f = e.E2.E1.Vsym;
+            Symbol* f = e.E2.E1.Vsym;
             if (!(f.Sflags & SFLexit))
             {
                 accumDctor(e);
@@ -1967,13 +1967,13 @@ private void blassertsplit(ref GlobalOptimizer go)
             }
 
             // Create exit block
-            block *bexit = block_calloc();
+            block* bexit = block_calloc();
             bexit.bc = BC.exit;
             bexit.Belem = e.E2;
 
             /* Append bexit to block list
              */
-            for (block *bx = b; 1; )
+            for (block* bx = b; 1; )
             {
                 block* bxn = bx.Bnext;
                 if (!bxn)
@@ -1991,7 +1991,7 @@ private void blassertsplit(ref GlobalOptimizer go)
 
             /* Split b into two blocks, [b,b2]
              */
-            block *b2 = block_calloc();
+            block* b2 = block_calloc();
             b2.Bnext = b.Bnext;
             b.Bnext = b2;
             b2.bc = b.bc;
@@ -2006,11 +2006,11 @@ private void blassertsplit(ref GlobalOptimizer go)
             b.Bsucc = null;
             foreach (b2sl; ListRange(b2.Bsucc))
             {
-                block *b2s = list_block(b2sl);
+                block* b2s = list_block(b2sl);
                 foreach (b2spl; ListRange(b2s.Bpred))
                 {
                     if (list_block(b2spl) == b)
-                        b2spl.ptr = cast(void *)b2;
+                        b2spl.ptr = cast(void*)b2;
                 }
             }
 
@@ -2048,7 +2048,7 @@ private void blexit(ref GlobalOptimizer go)
         printf("blexit()\n");
 
     Barray!(block*) bexits;
-    for (block *b = bo.startblock; b; b = b.Bnext)
+    for (block* b = bo.startblock; b; b = b.Bnext)
     {
         /* Not sure of effect of jumping out of a try block
          */
@@ -2072,7 +2072,7 @@ private void blexit(ref GlobalOptimizer go)
 
         foreach (bsl; ListRange(b.Bsucc))
         {
-            block *bs = list_block(bsl);
+            block* bs = list_block(bsl);
             list_subtract(&bs.Bpred, b);
         }
         list_free(&b.Bsucc, FPNULL);

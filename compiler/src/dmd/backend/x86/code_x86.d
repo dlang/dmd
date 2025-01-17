@@ -302,7 +302,7 @@ enum
 
 struct code
 {
-    code *next;
+    code* next;
     code_flags_t Iflags;
 
     union
@@ -565,7 +565,7 @@ bool ADDFWAIT() { return config.target_cpu <= TARGET_80286; }
 
 struct NDP
 {
-    elem *e;                    // which elem is stored here (NULL if none)
+    elem* e;                    // which elem is stored here (NULL if none)
     uint offset;            // offset from e (used for complex numbers)
 }
 

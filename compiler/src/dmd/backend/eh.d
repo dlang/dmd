@@ -39,7 +39,7 @@ package(dmd) @property @nogc nothrow auto @trusted NPTRSIZE() { return _tysize[T
  */
 
 @trusted
-Symbol *except_gentables()
+Symbol* except_gentables()
 {
     //printf("except_gentables()\n");
     if (config.ehmethod == EHmethod.EH_DM && !(funcsym_p.Sfunc.Fflags3 & Feh_none))
@@ -53,7 +53,7 @@ Symbol *except_gentables()
         __gshared int tmpnum;
         const len = snprintf(name.ptr, name.length, "_HandlerTable%d", tmpnum++);
 
-        Symbol *s = symbol_name(name[0 .. len],SC.static_,tstypes[TYint]);
+        Symbol* s = symbol_name(name[0 .. len],SC.static_,tstypes[TYint]);
         symbol_keep(s);
         //symbol_debug(s);
 
@@ -81,11 +81,11 @@ Symbol *except_gentables()
  *    }
  *    int last_index;             // previous index (enclosing guarded section)
  *    uint catchoffset;           // offset to catch block from Symbol
- *    void *finally;              // finally code to execute
+ *    void* finally;              // finally code to execute
  * }
  */
 @trusted
-void except_fillInEHTable(Symbol *s)
+void except_fillInEHTable(Symbol* s)
 {
     uint fsize = NPTRSIZE;             // target size of function pointer
     auto dtb = DtBuilder(0);
@@ -98,9 +98,9 @@ void except_fillInEHTable(Symbol *s)
         Guard guard[];          // sorted such that the enclosing guarded sections come first
       catchoffset:
         uint ncatches;          // number of catch blocks
-        {   void *type;         // Symbol representing type
+        {   void* type;         // Symbol representing type
             uint bpoffset;      // EBP offset of catch variable
-            void *handler;      // catch handler code
+            void* handler;      // catch handler code
         } catch[];
      */
 
@@ -146,7 +146,7 @@ void except_fillInEHTable(Symbol *s)
 //      printf("b.bc = %2d, Bscope_index = %2d, last_index = %2d, offset = x%x\n",
 //              b.bc, b.Bscope_index, b.Blast_index, b.Boffset);
         if (cgstate.usednteh & EHcleanup)
-            for (code *c = b.Bcode; c; c = code_next(c))
+            for (code* c = b.Bcode; c; c = code_next(c))
             {
                 if (c.Iop == PSOP.ddtor)
                     ndctors++;
@@ -186,7 +186,7 @@ void except_fillInEHTable(Symbol *s)
 
             // Compute ending offset
             uint endoffset;
-            for (block *bn = b.Bnext; 1; bn = bn.Bnext)
+            for (block* bn = b.Bnext; 1; bn = bn.Bnext)
             {
                 //printf("\tbn = %p, bn.Btry = %p, bn.offset = %x\n", bn, bn.Btry, bn.Boffset);
                 assert(bn);
@@ -213,7 +213,7 @@ void except_fillInEHTable(Symbol *s)
             {
                 assert(nsucc == 2);
                 dtb.dword(0);           // no catch offset
-                block *bhandler = b.nthSucc(1);
+                block* bhandler = b.nthSucc(1);
                 assert(bhandler.bc == BC._finally);
                 // To successor of BC._finally block
                 bhandler = bhandler.nthSucc(0);
@@ -246,11 +246,11 @@ void except_fillInEHTable(Symbol *s)
         stack.push(b.Btry ? b.Btry.Bscope_index : -1);
 
         uint boffset = cast(uint)b.Boffset;
-        for (code *c = b.Bcode; c; c = code_next(c))
+        for (code* c = b.Bcode; c; c = code_next(c))
         {
             if (c.Iop == PSOP.dctor)
             {
-                code *c2 = code_next(c);
+                code* c2 = code_next(c);
                 if (config.ehmethod == EHmethod.EH_WIN32)
                     nteh_patchindex(c2, scopeindex);
                 if (config.ehmethod == EHmethod.EH_DM)
@@ -273,7 +273,7 @@ void except_fillInEHTable(Symbol *s)
                         else
                         {
                             foffset = eoffset;
-                            code *cf = code_next(c2);
+                            code* cf = code_next(c2);
                             if (config.ehmethod == EHmethod.EH_WIN32)
                             {
                                 nteh_patchindex(cf, stack[stack.length - 1]);
@@ -338,7 +338,7 @@ void except_fillInEHTable(Symbol *s)
 
             for (int j = 1; j < nsucc; ++j)
             {
-                block *bcatch = b.nthSucc(j);
+                block* bcatch = b.nthSucc(j);
 
                 dtb.xoff(bcatch.Bcatchtype,0,TYnptr);
 
