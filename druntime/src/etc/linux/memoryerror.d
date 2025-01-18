@@ -443,4 +443,11 @@ version (MemoryAssertSupported)
     {
         return !sigaction(SIGSEGV, &oldSigactionMemoryAssert, null);
     }
+
+    unittest
+    {
+        // Testing actual memory errors is done in the test suite
+        assert(registerMemoryAssertHandler());
+        assert(deregisterMemoryAssertHandler());
+    }
 }
