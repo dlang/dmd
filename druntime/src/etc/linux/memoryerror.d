@@ -18,7 +18,7 @@ version (linux)
         {
             version (X86)
                 version = MemoryErrorSupported;
-            version (X86_64)
+            else version (X86_64)
                 version = MemoryErrorSupported;
         }
     }
@@ -28,19 +28,19 @@ version (linux)
 {
     version (X86)
         version = MemoryAssertSupported;
-    version (X86_64)
+    else version (X86_64)
         version = MemoryAssertSupported;
-    version (ARM)
+    else version (ARM)
         version = MemoryAssertSupported;
-    version (AArch64)
+    else version (AArch64)
         version = MemoryAssertSupported;
-    version (PPC64)
+    else version (PPC64)
         version = MemoryAssertSupported;
 }
 
 version (MemoryErrorSupported)
     version = AnySupported;
-version (MemoryErrorSupported)
+else version (MemoryErrorSupported)
     version = AnySupported;
 
 version (AnySupported):
