@@ -380,7 +380,7 @@ version (MemoryAssertSupported)
 
             const void* segfaultingPtr = info.si_addr;
 
-            auto context = cast(ucontext_t*) contextPtr;
+            auto context = cast(ucontext.ucontext_t*) contextPtr;
             version (X86_64)
                 const stackPtr = cast(void*) context.uc_mcontext.gregs[REG_RSP];
             else version (X86)
