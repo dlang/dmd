@@ -43,6 +43,13 @@ version (linux)
 import core.sys.posix.signal : SA_SIGINFO, sigaction, sigaction_t, siginfo_t, SIGSEGV;
 import ucontext = core.sys.posix.ucontext;
 
+version (MemoryAssertSupported)
+{
+    import core.sys.posix.signal : SA_ONSTACK, sigaltstack, SIGSTKSZ, stack_t;
+}
+
+@system:
+
 // The first 64Kb are reserved for detecting null pointer dereferences.
 // TODO: this is a platform-specific assumption, can be made more robust
 private enum size_t MEMORY_RESERVED_FOR_NULL_DEREFERENCE = 4096 * 16;
@@ -382,9 +389,9 @@ version (MemoryAssertSupported)
 
             auto context = cast(ucontext.ucontext_t*) contextPtr;
             version (X86_64)
-                const stackPtr = cast(void*) context.uc_mcontext.gregs[REG_RSP];
+                const stackPtr = cast(void*) context.uc_mcontext.gregs[ucontext.REG_RSP];
             else version (X86)
-                const stackPtr = cast(void*) context.uc_mcontext.gregs[REG_ESP];
+                const stackPtr = cast(void*) context.uc_mcontext.gregs[ucontext.REG_ESP];
             else version (ARM)
                 const stackPtr = cast(void*) context.uc_mcontext.arm_sp;
             else version (AArch64)
