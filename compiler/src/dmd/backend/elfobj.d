@@ -101,7 +101,7 @@ alias reltype_t = uint;
 /******************************************
  */
 
-Symbol *ElfObj_getGOTsym()
+Symbol* ElfObj_getGOTsym()
 {
     if (!elfobj.GOTsym)
     {
@@ -114,12 +114,12 @@ void ElfObj_refGOTsym()
 {
     if (!elfobj.GOTsym)
     {
-        Symbol *s = ElfObj_getGOTsym();
+        Symbol* s = ElfObj_getGOTsym();
         ElfObj_external(s);
     }
 }
 
-//private void objfile_write(FILE *fd, void *buffer, uint len);
+//private void objfile_write(FILE* fd, void* buffer, uint len);
 
 // The object file is built is several separate pieces
 
@@ -268,7 +268,7 @@ import dmd.backend.code: SegData;
  * Returns index into the specified string table.
  */
 
-IDXSTR ElfObj_addstr(OutBuffer *strtab, const(char)* str)
+IDXSTR ElfObj_addstr(OutBuffer* strtab, const(char)* str)
 {
     //dbg_printf("ElfObj_addstr(strtab = x%x str = '%s')\n",strtab,str);
     IDXSTR idx = cast(IDXSTR)strtab.length();        // remember starting offset
@@ -285,7 +285,7 @@ IDXSTR ElfObj_addstr(OutBuffer *strtab, const(char)* str)
  * Returns index into the table.
  */
 
-private IDXSTR elf_addmangled(Symbol *s)
+private IDXSTR elf_addmangled(Symbol* s)
 {
     //printf("elf_addmangled(%s)\n", s.Sident.ptr);
     char[DEST_LEN] buf = void;
@@ -472,7 +472,7 @@ Returns:
     pointer to Pair, where the first field is the string index of the new or existing section name,
     and the second field is its segment index
  */
-private Pair* elf_addsectionname(const(char)* name, const(char)* suffix = null, bool *padded = null)
+private Pair* elf_addsectionname(const(char)* name, const(char)* suffix = null, bool* padded = null)
 {
     IDXSTR namidx = cast(IDXSTR)elfobj.section_names.length();
     elfobj.section_names.writeStringz(name);
@@ -511,9 +511,9 @@ private IDXSEC elf_newsection(const(char)* name, const(char)* suffix,
  *
  */
 
-Symbol *ElfObj_sym_cdata(tym_t ty,char *p,int len)
+Symbol* ElfObj_sym_cdata(tym_t ty,char* p,int len)
 {
-    Symbol *s;
+    Symbol* s;
 
 static if (0)
 {
@@ -548,7 +548,7 @@ static if (0)
  *      offset of that data
  */
 
-int ElfObj_data_readonly(char *p, int len, int *pseg)
+int ElfObj_data_readonly(char* p, int len, int* pseg)
 {
     int oldoff = cast(int)Offset(CDATA);
     SegData[CDATA].SDbuf.reserve(len);
@@ -558,7 +558,7 @@ int ElfObj_data_readonly(char *p, int len, int *pseg)
     return oldoff;
 }
 
-int ElfObj_data_readonly(char *p, int len)
+int ElfObj_data_readonly(char* p, int len)
 {
     int pseg;
 
@@ -600,7 +600,7 @@ int ElfObj_string_literal_segment(uint sz)
  *      csegname = name for code segment
  */
 
-Obj ElfObj_init(OutBuffer *objbuf, const(char)* filename, const(char)* csegname)
+Obj ElfObj_init(OutBuffer* objbuf, const(char)* filename, const(char)* csegname)
 {
     //printf("ElfObj_init(filename = %s, csegname = %s)\n",filename,csegname);
     Obj obj = cast(Obj)mem_calloc(__traits(classInstanceSize, Obj));
@@ -817,25 +817,25 @@ static if (0)
  *      sorted symbol table, caller must free with util_free()
  */
 
-void *elf_renumbersyms()
-{   void *symtab;
+void* elf_renumbersyms()
+{   void* symtab;
     int nextlocal = 0;
     int nextglobal = elfobj.local_cnt;
 
-    SYMIDX *sym_map = cast(SYMIDX *)util_malloc(SYMIDX.sizeof,elfobj.symbol_idx);
+    SYMIDX* sym_map = cast(SYMIDX*)util_malloc(SYMIDX.sizeof,elfobj.symbol_idx);
 
     if (I64)
     {
-        Elf64_Sym *oldsymtab = &elfobj.SymbolTable64[0];
-        Elf64_Sym *symtabend = oldsymtab+elfobj.symbol_idx;
+        Elf64_Sym* oldsymtab = &elfobj.SymbolTable64[0];
+        Elf64_Sym* symtabend = oldsymtab+elfobj.symbol_idx;
 
         symtab = util_malloc(Elf64_Sym.sizeof,elfobj.symbol_idx);
 
-        Elf64_Sym *sl = cast(Elf64_Sym *)symtab;
-        Elf64_Sym *sg = sl + elfobj.local_cnt;
+        Elf64_Sym* sl = cast(Elf64_Sym*)symtab;
+        Elf64_Sym* sg = sl + elfobj.local_cnt;
 
         int old_idx = 0;
-        for(Elf64_Sym *s = oldsymtab; s != symtabend; s++)
+        for(Elf64_Sym* s = oldsymtab; s != symtabend; s++)
         {   // reorder symbol and map new #s to old
             int bind = ELF64_ST_BIND(s.st_info);
             if (bind == STB_LOCAL)
@@ -853,16 +853,16 @@ void *elf_renumbersyms()
     }
     else
     {
-        Elf32_Sym *oldsymtab = &elfobj.SymbolTable[0];
-        Elf32_Sym *symtabend = oldsymtab+elfobj.symbol_idx;
+        Elf32_Sym* oldsymtab = &elfobj.SymbolTable[0];
+        Elf32_Sym* symtabend = oldsymtab+elfobj.symbol_idx;
 
         symtab = util_malloc(Elf32_Sym.sizeof,elfobj.symbol_idx);
 
-        Elf32_Sym *sl = cast(Elf32_Sym *)symtab;
-        Elf32_Sym *sg = sl + elfobj.local_cnt;
+        Elf32_Sym* sl = cast(Elf32_Sym*)symtab;
+        Elf32_Sym* sg = sl + elfobj.local_cnt;
 
         int old_idx = 0;
-        for(Elf32_Sym *s = oldsymtab; s != symtabend; s++)
+        for(Elf32_Sym* s = oldsymtab; s != symtabend; s++)
         {   // reorder symbol and map new #s to old
             int bind = ELF32_ST_BIND(s.st_info);
             if (bind == STB_LOCAL)
@@ -886,8 +886,8 @@ void *elf_renumbersyms()
         const size_t shndx_idx = elfobj.shndx_data.length() / Elf64_Word.sizeof;
         elfobj.shndx_data.writezeros(cast(uint)((elfobj.symbol_idx - shndx_idx) * Elf64_Word.sizeof));
 
-        Elf64_Word *old_buf = cast(Elf64_Word *)elfobj.shndx_data.buf;
-        Elf64_Word *tmp_buf = cast(Elf64_Word *)util_malloc(Elf64_Word.sizeof, elfobj.symbol_idx);
+        Elf64_Word* old_buf = cast(Elf64_Word*)elfobj.shndx_data.buf;
+        Elf64_Word* tmp_buf = cast(Elf64_Word*)util_malloc(Elf64_Word.sizeof, elfobj.symbol_idx);
         for (SYMIDX old_idx = 0; old_idx < elfobj.symbol_idx; ++old_idx)
         {
             const SYMIDX new_idx = sym_map[old_idx];
@@ -900,7 +900,7 @@ void *elf_renumbersyms()
     // Renumber the relocations
     for (int i = 1; i < SegData.length; i++)
     {                           // Map indicies in the segment table
-        seg_data *pseg = SegData[i];
+        seg_data* pseg = SegData[i];
         pseg.SDsymidx = cast(uint) sym_map[pseg.SDsymidx];
 
         if (elfobj.SecHdrTab[pseg.SDshtidx].sh_type == SHT_GROUP)
@@ -916,7 +916,7 @@ void *elf_renumbersyms()
         {
             if (I64)
             {
-                Elf64_Rela *rel = cast(Elf64_Rela *) pseg.SDrel.buf;
+                Elf64_Rela* rel = cast(Elf64_Rela*) pseg.SDrel.buf;
                 for (int r = 0; r < pseg.SDrelcnt; r++)
                 {
                     uint t = ELF64_R_TYPE(rel.r_info);
@@ -928,7 +928,7 @@ void *elf_renumbersyms()
             }
             else
             {
-                Elf32_Rel *rel = cast(Elf32_Rel *) pseg.SDrel.buf;
+                Elf32_Rel* rel = cast(Elf32_Rel*) pseg.SDrel.buf;
                 assert(pseg.SDrelcnt == pseg.SDrel.length() / Elf32_Rel.sizeof);
                 for (int r = 0; r < pseg.SDrelcnt; r++)
                 {
@@ -980,10 +980,10 @@ void ElfObj_term(const(char)[] objfilename)
         obj_rtinit();
 
     int foffset;
-    Elf32_Shdr *sechdr;
-    seg_data *seg;
-    void *symtab = elf_renumbersyms();
-    FILE *fd = null;
+    Elf32_Shdr* sechdr;
+    seg_data* seg;
+    void* symtab = elf_renumbersyms();
+    FILE* fd = null;
 
     int hdrsize = (I64 ? Elf64_Ehdr.sizeof : Elf32_Ehdr.sizeof);
 
@@ -1020,8 +1020,8 @@ void ElfObj_term(const(char)[] objfilename)
     //printf("Setup offsets and sizes foffset %d\n\tSecHdrTab.length %d, SegData.length %d\n",foffset,cast(int)elfobj.SecHdrTab.length,SegData.length);
     foreach (int i; 1 .. cast(int)SegData.length)
     {
-        seg_data *pseg = SegData[i];
-        Elf32_Shdr *sechdr2 = MAP_SEG2SEC(i);        // corresponding section
+        seg_data* pseg = SegData[i];
+        Elf32_Shdr* sechdr2 = MAP_SEG2SEC(i);        // corresponding section
         if (sechdr2.sh_addralign < pseg.SDalignment)
             sechdr2.sh_addralign = pseg.SDalignment;
         foffset = elf_align(sechdr2.sh_addralign,foffset);
@@ -1146,8 +1146,8 @@ void ElfObj_term(const(char)[] objfilename)
                     static int elf64_rel_fp(scope const(void*) e1,
                                             scope const(void*) e2)
                     {
-                        Elf64_Rela *r1 = cast(Elf64_Rela *)e1;
-                        Elf64_Rela *r2 = cast(Elf64_Rela *)e2;
+                        Elf64_Rela* r1 = cast(Elf64_Rela*)e1;
+                        Elf64_Rela* r2 = cast(Elf64_Rela*)e2;
 
                         return (r1.r_offset > r2.r_offset)
                              - (r1.r_offset < r2.r_offset);
@@ -1166,8 +1166,8 @@ void ElfObj_term(const(char)[] objfilename)
                     static int elf32_rel_fp(scope const(void*) e1,
                                             scope const(void*) e2)
                     {
-                        Elf32_Rel *r1 = cast(Elf32_Rel *)e1;
-                        Elf32_Rel *r2 = cast(Elf32_Rel *)e2;
+                        Elf32_Rel* r1 = cast(Elf32_Rel*)e1;
+                        Elf32_Rel* r2 = cast(Elf32_Rel*)e2;
 
                         return (r1.r_offset > r2.r_offset)
                              - (r1.r_offset < r2.r_offset);
@@ -1347,7 +1347,7 @@ static if (0)
         return;
 
     size_t i;
-    seg_data *pseg = SegData[seg];
+    seg_data* pseg = SegData[seg];
 
     // Find entry i in SDlinnum_data[] that corresponds to srcpos filename
     for (i = 0; 1; i++)
@@ -1361,7 +1361,7 @@ static if (0)
             break;
     }
 
-    linnum_data *ld = &pseg.SDlinnum_data[i];
+    linnum_data* ld = &pseg.SDlinnum_data[i];
 //    printf("i = %d, ld = x%x\n", i, ld);
     ld.linoff.push(LinOff(srcpos.Slinnum, cast(uint)offset));
 }
@@ -1371,7 +1371,7 @@ static if (0)
  * Set start address
  */
 
-void ElfObj_startaddress(Symbol *s)
+void ElfObj_startaddress(Symbol* s)
 {
     //dbg_printf("ElfObj_startaddress(Symbol *%s)\n",s.Sident.ptr);
     //obj.startaddress = s;
@@ -1431,9 +1431,9 @@ void ElfObj_user(const(char)* p)
  * Output a weak extern record.
  */
 
-void ElfObj_wkext(Symbol *s1,Symbol *s2)
+void ElfObj_wkext(Symbol* s1,Symbol* s2)
 {
-    //dbg_printf("ElfObj_wkext(Symbol *%s,Symbol *s2)\n",s1.Sident.ptr,s2.Sident.ptr);
+    //dbg_printf("ElfObj_wkext(Symbol *%s,Symbol* s2)\n",s1.Sident.ptr,s2.Sident.ptr);
 }
 
 /*******************************
@@ -1473,7 +1473,7 @@ void ElfObj_compiler(const(char)* p)
  *              3:      compiler
  */
 
-void ElfObj_staticctor(Symbol *s, int, int)
+void ElfObj_staticctor(Symbol* s, int, int)
 {
     ElfObj_setModuleCtorDtor(s, true);
 }
@@ -1486,7 +1486,7 @@ void ElfObj_staticctor(Symbol *s, int, int)
  *      s       static destructor function
  */
 
-void ElfObj_staticdtor(Symbol *s)
+void ElfObj_staticdtor(Symbol* s)
 {
     ElfObj_setModuleCtorDtor(s, false);
 }
@@ -1496,7 +1496,7 @@ void ElfObj_staticdtor(Symbol *s)
  * Used for static ctor and dtor lists.
  */
 
-void ElfObj_setModuleCtorDtor(Symbol *sfunc, bool isCtor)
+void ElfObj_setModuleCtorDtor(Symbol* sfunc, bool isCtor)
 {
     IDXSEC seg;
     if (USE_INIT_ARRAY())
@@ -1517,7 +1517,7 @@ void ElfObj_setModuleCtorDtor(Symbol *sfunc, bool isCtor)
  *      length of function
  */
 
-void ElfObj_ehtables(Symbol *sfunc,uint size,Symbol *ehsym)
+void ElfObj_ehtables(Symbol* sfunc,uint size,Symbol* ehsym)
 {
     assert(0);                  // converted to Dwarf EH debug format
 }
@@ -1568,7 +1568,7 @@ private void obj_tlssections()
  *      COMDAT section groups https://www.airs.com/blog/archives/52
  */
 
-private void setup_comdat(Symbol *s)
+private void setup_comdat(Symbol* s)
 {
     const(char)* prefix;
     int type;
@@ -1682,7 +1682,7 @@ else
     SegData[s.Sseg].SDsym = s;
 }
 
-int ElfObj_comdat(Symbol *s)
+int ElfObj_comdat(Symbol* s)
 {
     setup_comdat(s);
     if (s.Sfl == FL.data || s.Sfl == FL.tlsdata)
@@ -1692,7 +1692,7 @@ int ElfObj_comdat(Symbol *s)
     return s.Sseg;
 }
 
-int ElfObj_comdatsize(Symbol *s, targ_size_t symsize)
+int ElfObj_comdatsize(Symbol* s, targ_size_t symsize)
 {
     setup_comdat(s);
     if (s.Sfl == FL.data || s.Sfl == FL.tlsdata)
@@ -1703,12 +1703,12 @@ int ElfObj_comdatsize(Symbol *s, targ_size_t symsize)
     return s.Sseg;
 }
 
-int ElfObj_readonly_comdat(Symbol *s)
+int ElfObj_readonly_comdat(Symbol* s)
 {
     assert(0);
 }
 
-int ElfObj_jmpTableSegment(Symbol *s)
+int ElfObj_jmpTableSegment(Symbol* s)
 {
     segidx_t seg = elfobj.jmpseg;
     if (seg)                            // memoize the elfobj.jmpseg on a per-function basis
@@ -1718,7 +1718,7 @@ int ElfObj_jmpTableSegment(Symbol *s)
         seg = cseg;
     else
     {
-        seg_data *pseg = SegData[s.Sseg];
+        seg_data* pseg = SegData[s.Sseg];
         if (pseg.SDassocseg)
         {
             /* `s` is in a COMDAT, so the jmp table segment must also
@@ -1743,14 +1743,14 @@ int ElfObj_jmpTableSegment(Symbol *s)
 
 private void addSectionToComdat(IDXSEC secidx, segidx_t comdatseg)
 {
-    seg_data *pseg = SegData[comdatseg];
+    seg_data* pseg = SegData[comdatseg];
     if (segidx_t groupseg = pseg.SDassocseg)
     {
-        seg_data *pgroupseg = SegData[groupseg];
+        seg_data* pgroupseg = SegData[groupseg];
 
         /* Don't write it if it is already there
          */
-        OutBuffer *buf = pgroupseg.SDbuf;
+        OutBuffer* buf = pgroupseg.SDbuf;
         assert(int.sizeof == 4);               // loop depends on this
         for (size_t i = buf.length(); i > 4;)
         {
@@ -1783,7 +1783,7 @@ private segidx_t elf_addsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx)
     seg_data* pseg = *ppseg;
     if (!pseg)
     {
-        pseg = cast(seg_data *)mem_calloc(seg_data.sizeof);
+        pseg = cast(seg_data*)mem_calloc(seg_data.sizeof);
         //printf("test2: SegData[%d] = %p\n", seg, SegData[seg]);
         SegData[seg] = pseg;
     }
@@ -1913,7 +1913,7 @@ void ElfObj_setcodeseg(int seg)
  *      segment index of newly created code segment
  */
 
-int ElfObj_codeseg(const char *name,int suffix)
+int ElfObj_codeseg(const char* name,int suffix)
 {
     int seg;
     const(char)* sfx;
@@ -1975,7 +1975,7 @@ int ElfObj_codeseg(const char *name,int suffix)
  *      segment for TLS segment
  */
 
-seg_data *ElfObj_tlsseg()
+seg_data* ElfObj_tlsseg()
 {
     /* Ensure that ".tdata" precedes any other .tdata. section, as the ld
      * linker script fails to work right.
@@ -2002,7 +2002,7 @@ seg_data *ElfObj_tlsseg()
  *      segment for TLS segment
  */
 
-seg_data *ElfObj_tlsseg_bss()
+seg_data* ElfObj_tlsseg_bss()
 {
     static immutable char[6] tlssegname = ".tbss";
     //dbg_printf("ElfObj_tlsseg_bss(\n");
@@ -2015,7 +2015,7 @@ seg_data *ElfObj_tlsseg_bss()
     return SegData[elfobj.seg_tlsseg_bss];
 }
 
-seg_data *ElfObj_tlsseg_data()
+seg_data* ElfObj_tlsseg_data()
 {
     // specific for Mach-O
     assert(0);
@@ -2032,7 +2032,7 @@ void ElfObj_alias(const(char)* n1,const(char)* n2)
     assert(0);
 static if (0)
 {
-    char *buffer = cast(char *) alloca(strlen(n1) + strlen(n2) + 2 * ONS_OHD);
+    char* buffer = cast(char*) alloca(strlen(n1) + strlen(n2) + 2 * ONS_OHD);
     uint len = obj_namestring(buffer,n1);
     len += obj_namestring(buffer + len,n2);
     objrecord(ALIAS,buffer,len);
@@ -2074,7 +2074,7 @@ char[] obj_mangle2(ref Symbol s, char[] dest)
             dest = dest[0 .. len];
         else
         {
-            char* p = cast(char *)mem_malloc(len + 1);
+            char* p = cast(char*)mem_malloc(len + 1);
             dest = p[0 .. len];
         }
     }
@@ -2098,7 +2098,7 @@ char[] obj_mangle2(ref Symbol s, char[] dest)
             bool cond = tyfunc(s.ty()) && !variadic(s.Stype);
             if (cond)
             {
-                char *pstr = unsstr(type_paramsize(s.Stype));
+                char* pstr = unsstr(type_paramsize(s.Stype));
                 size_t pstrlen = strlen(pstr);
                 size_t dlen = len + 1 + pstrlen;
 
@@ -2138,7 +2138,7 @@ debug
  * Export a function name.
  */
 
-void ElfObj_export_symbol(Symbol *s,uint argsize)
+void ElfObj_export_symbol(Symbol* s,uint argsize)
 {
     //dbg_printf("ElfObj_export_symbol(%s,%d)\n",s.Sident.ptr,argsize);
 }
@@ -2156,7 +2156,7 @@ void ElfObj_export_symbol(Symbol *s,uint argsize)
  *      actual seg
  */
 
-int ElfObj_data_start(Symbol *sdata, targ_size_t datasize, int seg)
+int ElfObj_data_start(Symbol* sdata, targ_size_t datasize, int seg)
 {
     targ_size_t alignbytes;
     //printf("ElfObj_data_start(%s,size %llx,seg %d)\n",sdata.Sident.ptr,datasize,seg);
@@ -2187,7 +2187,7 @@ int ElfObj_data_start(Symbol *sdata, targ_size_t datasize, int seg)
  * than the current default in cseg, switch cseg to new segment.
  */
 
-void ElfObj_func_start(Symbol *sfunc)
+void ElfObj_func_start(Symbol* sfunc)
 {
     //dbg_printf("ElfObj_func_start(%s)\n",sfunc.Sident.ptr);
     symbol_debug(sfunc);
@@ -2224,7 +2224,7 @@ else
  * Update function info after codgen
  */
 
-void ElfObj_func_term(Symbol *sfunc)
+void ElfObj_func_term(Symbol* sfunc)
 {
     //dbg_printf("ElfObj_func_term(%s) offset %x, Coffset %x symidx %d\n",
 //          sfunc.Sident.ptr, sfunc.Soffset,Offset(cseg),sfunc.Sxtrnnum);
@@ -2245,7 +2245,7 @@ void ElfObj_func_term(Symbol *sfunc)
  *      offset =        offset of name within segment
  */
 
-void ElfObj_pubdef(int seg, Symbol *s, targ_size_t offset)
+void ElfObj_pubdef(int seg, Symbol* s, targ_size_t offset)
 {
     const targ_size_t symsize=
         tyfunc(s.ty()) ? Offset(s.Sseg) - offset : type_size(s.Stype);
@@ -2261,7 +2261,7 @@ void ElfObj_pubdef(int seg, Symbol *s, targ_size_t offset)
  *      symsize         size of symbol
  */
 
-void ElfObj_pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize)
+void ElfObj_pubdefsize(int seg, Symbol* s, targ_size_t offset, targ_size_t symsize)
 {
     int bind;
     ubyte visibility = STV_DEFAULT;
@@ -2339,7 +2339,7 @@ int ElfObj_external_def(const(char)* name)
  *      NOTE: Numbers will not be linear.
  */
 
-int ElfObj_external(Symbol *s)
+int ElfObj_external(Symbol* s)
 {
     int symtype,sectype;
     uint size;
@@ -2374,7 +2374,7 @@ int ElfObj_external(Symbol *s)
  *      Symbol table index for symbol
  */
 
-int ElfObj_common_block(Symbol *s,targ_size_t size,targ_size_t count)
+int ElfObj_common_block(Symbol* s,targ_size_t size,targ_size_t count)
 {
     //printf("ElfObj_common_block('%s',%d,%d)\n",s.Sident.ptr,size,count);
     symbol_debug(s);
@@ -2416,7 +2416,7 @@ static if (0)
 }
 }
 
-int ElfObj_common_block(Symbol *s, int flag, targ_size_t size, targ_size_t count)
+int ElfObj_common_block(Symbol* s, int flag, targ_size_t size, targ_size_t count)
 {
     return ElfObj_common_block(s, size, count);
 }
@@ -2426,7 +2426,7 @@ int ElfObj_common_block(Symbol *s, int flag, targ_size_t size, targ_size_t count
  * (uninitialized data only)
  */
 
-void ElfObj_write_zeros(seg_data *pseg, targ_size_t count)
+void ElfObj_write_zeros(seg_data* pseg, targ_size_t count)
 {
     ElfObj_lidata(pseg.SDseg, pseg.SDoffset, count);
 }
@@ -2458,7 +2458,7 @@ void ElfObj_lidata(int seg,targ_size_t offset,targ_size_t count)
  * Append byte to segment.
  */
 
-void ElfObj_write_byte(seg_data *pseg, uint byte_)
+void ElfObj_write_byte(seg_data* pseg, uint byte_)
 {
     ElfObj_byte(pseg.SDseg, pseg.SDoffset, byte_);
 }
@@ -2469,7 +2469,7 @@ void ElfObj_write_byte(seg_data *pseg, uint byte_)
 
 void ElfObj_byte(int seg,targ_size_t offset,uint byte_)
 {
-    OutBuffer *buf = SegData[seg].SDbuf;
+    OutBuffer* buf = SegData[seg].SDbuf;
     int save = cast(int)buf.length();
     //dbg_printf("ElfObj_byte(seg=%d, offset=x%lx, byte_=x%x)\n",seg,offset,byte_);
     buf.setsize(cast(uint)offset);
@@ -2485,7 +2485,7 @@ void ElfObj_byte(int seg,targ_size_t offset,uint byte_)
  * Append bytes to segment.
  */
 
-void ElfObj_write_bytes(seg_data *pseg, const(void[]) a)
+void ElfObj_write_bytes(seg_data* pseg, const(void[]) a)
 {
     ElfObj_bytes(pseg.SDseg, pseg.SDoffset, a.length, a.ptr);
 }
@@ -2506,7 +2506,7 @@ static if (0)
     }
 }
     assert(seg >= 0 && seg < SegData.length);
-    OutBuffer *buf = SegData[seg].SDbuf;
+    OutBuffer* buf = SegData[seg].SDbuf;
     if (buf == null)
     {
         //dbg_printf("ElfObj_bytes(seg=%d, offset=x%lx, nbytes=%d, p=x%x)\n", seg, offset, nbytes, p);
@@ -2544,8 +2544,8 @@ __gshared int relcnt=0;
 void ElfObj_addrel(int seg, targ_size_t offset, uint type,
                     IDXSYM symidx, targ_size_t val)
 {
-    seg_data *segdata;
-    OutBuffer *buf;
+    seg_data* segdata;
+    OutBuffer* buf;
     IDXSEC secidx;
 
     //assert(val == 0);
@@ -2577,11 +2577,11 @@ void ElfObj_addrel(int seg, targ_size_t offset, uint type,
             import dmd.common.smallbuffer : SmallBuffer;
             // Get the section name, and make a copy because
             // elf_newsection() may reallocate the string buffer.
-            char *section_name = cast(char *)GET_SECTION_NAME(secidx);
+            char* section_name = cast(char*)GET_SECTION_NAME(secidx);
             size_t len = strlen(section_name) + 1;
             char[20] buf2 = void;
             auto sb = SmallBuffer!char(len, buf2[]);
-            char *p = sb.ptr;
+            char* p = sb.ptr;
             memcpy(p, section_name, len);
 
             relidx = elf_newsection(I64 ? ".rela" : ".rel", p, I64 ? SHT_RELA : SHT_REL, 0);
@@ -2595,7 +2595,7 @@ void ElfObj_addrel(int seg, targ_size_t offset, uint type,
              * the code a bit simpler. In ElfObj_term(), we translate the Elf32_Shdr into the proper
              * Elf64_Shdr.
              */
-            Elf32_Shdr *relsec = &elfobj.SecHdrTab[relidx];
+            Elf32_Shdr* relsec = &elfobj.SecHdrTab[relidx];
             relsec.sh_link = SHN_SYMTAB;
             relsec.sh_info = secidx;
             relsec.sh_entsize = Elf64_Rela.sizeof;
@@ -2603,7 +2603,7 @@ void ElfObj_addrel(int seg, targ_size_t offset, uint type,
         }
         else
         {
-            Elf32_Shdr *relsec = &elfobj.SecHdrTab[relidx];
+            Elf32_Shdr* relsec = &elfobj.SecHdrTab[relidx];
             relsec.sh_link = SHN_SYMTAB;
             relsec.sh_info = secidx;
             relsec.sh_entsize = Elf32_Rel.sizeof;
@@ -2731,7 +2731,7 @@ private size_t writeaddrval(int targseg, size_t offset, targ_size_t val, size_t 
 {
     assert(targseg >= 0 && targseg < SegData.length);
 
-    OutBuffer *buf = SegData[targseg].SDbuf;
+    OutBuffer* buf = SegData[targseg].SDbuf;
     const save = buf.length();
     buf.setsize(cast(uint)offset);
     buf.write(&val, cast(uint)size);
@@ -2784,7 +2784,7 @@ size_t ElfObj_writerel(int targseg, size_t offset, reltype_t reltype,
  *      targetdatum =   DATA, CDATA or UDATA, depending where the address is
  *      flags =         CFoff, CFseg, CFoffset64, CFswitch
  * Example:
- *      int *abc = &def[3];
+ *      int* abc = &def[3];
  *      to allocate storage:
  *              ElfObj_reftodatseg(DATA,offset,3 * (int *).sizeof,UDATA);
  * Note:
@@ -2901,7 +2901,7 @@ static if (0)
  *      number of bytes in reference (4 or 8)
  */
 
-int ElfObj_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
+int ElfObj_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
         int flags)
 {
     if (elfobj.AArch64)
@@ -3174,7 +3174,7 @@ static if (0)
     return refSize;
 }
 
-int ElfObj_reftoidentAArch64(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
+int ElfObj_reftoidentAArch64(int seg, targ_size_t offset, Symbol* s, targ_size_t val,
         int flags)
 {
     bool external = true;
@@ -3374,7 +3374,7 @@ static if (0)
  *      s       Symbol to generate a thunk for
  */
 
-void ElfObj_far16thunk(Symbol *s)
+void ElfObj_far16thunk(Symbol* s)
 {
     //dbg_printf("ElfObj_far16thunk('%s')\n", s.Sident.ptr);
     assert(0);
@@ -3414,7 +3414,7 @@ static if (TERMCODE)
 /**********************************
   * Write to the object file
   */
-/+void objfile_write(FILE *fd, void *buffer, uint len)
+/+void objfile_write(FILE* fd, void* buffer, uint len)
 {
     elfobj.fobjbuf.write(buffer[0 .. len]);
 }
@@ -3435,7 +3435,7 @@ int elf_align(targ_size_t size,int foffset)
  * Stuff pointer to ModuleInfo into its own section (minfo).
  */
 
-void ElfObj_moduleinfo(Symbol *scc)
+void ElfObj_moduleinfo(Symbol* scc)
 {
     const CFflags = I64 ? (CFoffset64 | CFoff) : CFoff;
 
@@ -3449,7 +3449,7 @@ void ElfObj_moduleinfo(Symbol *scc)
 /***************************************
  * Stuff pointer to DEH into its own section (deh).
  */
-void ElfObj_dehinfo(Symbol *scc)
+void ElfObj_dehinfo(Symbol* scc)
 {
     const CFflags = I64 ? (CFoffset64 | CFoff) : CFoff;
 
@@ -3567,7 +3567,7 @@ private void obj_rtinit()
             elf_addsym(namidx, 0, 0, STT_FUNC, STB_LOCAL, MAP_SEG2SECIDX(codseg));
         }
 
-        OutBuffer *buf = SegData[codseg].SDbuf;
+        OutBuffer* buf = SegData[codseg].SDbuf;
         assert(!buf.length());
         size_t off = 0;
 
@@ -3824,7 +3824,7 @@ else
     }
     // set group section infos
     Offset(groupseg) = SegData[groupseg].SDbuf.length();
-    Elf32_Shdr *p = MAP_SEG2SEC(groupseg);
+    Elf32_Shdr* p = MAP_SEG2SEC(groupseg);
     p.sh_link    = SHN_SYMTAB;
     p.sh_info    = dso_rec; // set the dso_rec as group symbol
     p.sh_entsize = IDXSYM.sizeof;
@@ -3834,7 +3834,7 @@ else
 /*************************************
  */
 
-void ElfObj_gotref(Symbol *s)
+void ElfObj_gotref(Symbol* s)
 {
     //printf("ElfObj_gotref(%x '%s', %d)\n",s,s.Sident.ptr, s.Sclass);
     switch(s.Sclass)
@@ -3856,7 +3856,7 @@ void ElfObj_gotref(Symbol *s)
     }
 }
 
-Symbol *ElfObj_tlv_bootstrap()
+Symbol* ElfObj_tlv_bootstrap()
 {
     // specific for Mach-O
     assert(0);
@@ -3876,7 +3876,7 @@ void ElfObj_write_pointerRef(Symbol* s, uint off)
  * Returns:
  *      number of bytes written at seg:offset
  */
-int elf_dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val)
+int elf_dwarf_reftoident(int seg, targ_size_t offset, Symbol* s, targ_size_t val)
 {
     //printf("elf_dwarf_reftoident()\n");
     if (config.flags3 & CFG3pic)
@@ -3891,7 +3891,7 @@ int elf_dwarf_reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val
         if (!s.Sdw_ref_idx)
         {
             const dataDWref_seg = ElfObj_getsegment(".data.DW.ref.", s.Sident.ptr, SHT_PROGBITS, SHF_ALLOC|SHF_WRITE, I64 ? 8 : 4);
-            OutBuffer *buf = SegData[dataDWref_seg].SDbuf;
+            OutBuffer* buf = SegData[dataDWref_seg].SDbuf;
             assert(buf.length() == 0);
             ElfObj_reftoident(dataDWref_seg, 0, s, 0, I64 ? CFoffset64 : CFoff);
 

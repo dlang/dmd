@@ -40,9 +40,9 @@ enum log = false;
  * Make an elem out of a symbol.
  */
 @trusted
-elem * el_var(Symbol *s)
+elem* el_var(Symbol* s)
 {
-    elem *e;
+    elem* e;
     if (log) printf("el_var(s = '%s')\n", s.Sident.ptr);
     //printf("%x\n", s.Stype.Tty);
     if (config.exe & EX_posix)
@@ -151,7 +151,7 @@ elem * el_var(Symbol *s)
          */
         if (I64)
             Obj.refGOTsym();
-        elem *e1 = el_calloc();
+        elem* e1 = el_calloc();
         e1.Vsym = s;
         if (s.Sclass == SC.global ||
             s.Sclass == SC.static_ ||
@@ -238,7 +238,7 @@ elem * el_var(Symbol *s)
  */
 
 @trusted
-elem * el_ptr(Symbol *s)
+elem* el_ptr(Symbol* s)
 {
     if (log) printf("el_ptr(s = '%s')\n", s.Sident.ptr);
     symbol_debug(s);
@@ -255,7 +255,7 @@ elem * el_ptr(Symbol *s)
              * code in that data variable, and return the elem for
              * that data variable.
              */
-            Symbol *sd = symboldata(Offset(DATA), typtr);
+            Symbol* sd = symboldata(Offset(DATA), typtr);
             sd.Sseg = DATA;
             Obj.data_start(sd, _tysize[TYnptr], DATA);
             Offset(DATA) += Obj.reftoident(DATA, Offset(DATA), s, 0, CFoff);
@@ -298,7 +298,7 @@ elem * el_ptr(Symbol *s)
         }
     }
 
-    elem *e;
+    elem* e;
 
     if (config.exe & EX_windos)
     {
@@ -344,7 +344,7 @@ elem * el_ptr(Symbol *s)
  */
 
 @trusted
-private Symbol *el_alloc_localgot()
+private Symbol* el_alloc_localgot()
 {
     if (log) printf("el_alloc_localgot()\n");
     if (config.exe & EX_windos)
@@ -360,7 +360,7 @@ private Symbol *el_alloc_localgot()
         char[15] name = void;
         __gshared int tmpnum;
         const length = snprintf(name.ptr, name.length, "_LOCALGOT%d".ptr, tmpnum++);
-        type *t = type_fake(TYnptr);
+        type* t = type_fake(TYnptr);
         /* Make it volatile because we need it for calling functions, but that isn't
          * noticed by the data flow analysis. Hence, it may get deleted if we don't
          * make it volatile.
@@ -380,7 +380,7 @@ private Symbol *el_alloc_localgot()
  */
 
 @trusted
-private elem *el_picvar(Symbol *s)
+private elem* el_picvar(Symbol* s)
 {
     if (config.exe & (EX_OSX | EX_OSX64))
         return el_picvar_OSX(s);
@@ -390,9 +390,9 @@ private elem *el_picvar(Symbol *s)
 }
 
 @trusted
-private elem *el_picvar_OSX(Symbol *s)
+private elem* el_picvar_OSX(Symbol* s)
 {
-    elem *e;
+    elem* e;
     int x;
 
     if (log) printf("el_picvar(s = '%s') Sclass = %s\n", s.Sident.ptr, class_str(s.Sclass));
@@ -449,7 +449,7 @@ static if (1)
             {
                 if (!tls_get_addr_sym)
                 {
-                    /* void *___tls_get_addr(void *ptr);
+                    /* void* ___tls_get_addr(void* ptr);
                      * Parameter ptr is passed in RDI, matching TYnfunc calling convention.
                      */
                     tls_get_addr_sym = symbol_name("___tls_get_addr",SC.global,type_fake(TYnfunc));
@@ -515,7 +515,7 @@ static if (1)
                 e = el_una(OPind, TYnptr, e);
                 e = el_una(OPind, TYnfunc, e);
 
-                elem *e2 = el_calloc();
+                elem* e2 = el_calloc();
                 e2.Eoper = OPvar;
                 e2.Vsym = s;
                 e2.Ety = s.ty();
@@ -542,7 +542,7 @@ static if (1)
 }
 
 @trusted
-private elem *el_picvar_posix(Symbol *s)
+private elem* el_picvar_posix(Symbol* s)
 {
     if (log) printf("el_picvar(s = '%s')\n", s.Sident.ptr);
     symbol_debug(s);
@@ -629,7 +629,7 @@ private elem *el_picvar_posix(Symbol *s)
                     e.Ety |= mTYvolatile;
                     if (!tls_get_addr_sym)
                     {
-                        /* void *__tls_get_addr(void *ptr);
+                        /* void* __tls_get_addr(void* ptr);
                          * Parameter ptr is passed in RDI, matching TYnfunc calling convention.
                          */
                         tls_get_addr_sym = symbol_name("__tls_get_addr",SC.global,type_fake(TYnfunc));
@@ -711,7 +711,7 @@ private elem *el_picvar_posix(Symbol *s)
                     e.Ety |= mTYvolatile;
                     if (!tls_get_addr_sym)
                     {
-                        /* void *___tls_get_addr(void *ptr);
+                        /* void* ___tls_get_addr(void* ptr);
                          * Parameter ptr is passed in EAX, matching TYjfunc calling convention.
                          */
                         tls_get_addr_sym = symbol_name("___tls_get_addr",SC.global,type_fake(TYjfunc));
@@ -759,7 +759,7 @@ private elem *el_picvar_posix(Symbol *s)
  * Returns: elem created
  */
 @trusted
-private elem *el_pievar(Symbol *s)
+private elem* el_pievar(Symbol* s)
 {
     if (config.exe & (EX_OSX | EX_OSX64))
         assert(0);
@@ -840,7 +840,7 @@ private elem *el_pievar(Symbol *s)
  * Returns: elem created
  */
 @trusted
-private elem *el_pieptr(Symbol *s)
+private elem* el_pieptr(Symbol* s)
 {
     if (config.exe & (EX_OSX | EX_OSX64))
         assert(0);

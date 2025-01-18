@@ -198,7 +198,7 @@ int ispow2(ulong c)
 
 /*****************************
  */
-void *mem_malloc2(uint size)
+void* mem_malloc2(uint size)
 {
     return mem_malloc(size);
 }

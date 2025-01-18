@@ -38,7 +38,7 @@ __gshared EEcontext eecontext;
 @trusted
 void eecontext_convs(SYMIDX marksi)
 {
-    symtab_t *ps;
+    symtab_t* ps;
 
     // Change all generated SC.auto's to SC.stack's
     ps = cstate.CSpsymtab;

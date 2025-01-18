@@ -44,7 +44,7 @@ char symbol_isintab(const Symbol* s) { return sytab[s.Sclass] & SCSS; }
 void util_free(void* p) { if (p) free(p); }
 
 @trusted
-void *util_calloc(uint n, uint size)
+void* util_calloc(uint n, uint size)
 {
     void* p = calloc(n, size);
     if (n * size && !p)
@@ -53,7 +53,7 @@ void *util_calloc(uint n, uint size)
 }
 
 @trusted
-void *util_realloc(void* p, size_t n, size_t size)
+void* util_realloc(void* p, size_t n, size_t size)
 {
     void* q = realloc(p, n * size);
     if (n * size && !q)
@@ -254,7 +254,7 @@ private uint numdefelems(const(elem)* e, ref uint num_unambig_def)
  */
 
 @trusted
-private void asgdefelems(block *b,elem *n, DefNode[] defnod, ref size_t i)
+private void asgdefelems(block* b,elem* n, DefNode[] defnod, ref size_t i)
 {
     assert(b && n);
     while (1)
@@ -308,7 +308,7 @@ private void initDNunambigVectors(ref GlobalOptimizer go, DefNode[] defnod)
     size_t j = 0;
     foreach (const i; 0 .. defnod.length)
     {
-        elem *e = defnod[i].DNelem;
+        elem* e = defnod[i].DNelem;
         if (OTassign(e.Eoper) && e.E1.Eoper == OPvar)
         {
             vec_t v = &go.dnunambig[j] + 2;
@@ -325,7 +325,7 @@ private void initDNunambigVectors(ref GlobalOptimizer go, DefNode[] defnod)
     {
         if (vec_t v = defnod[i].DNunambig)
         {
-            elem *e = defnod[i].DNelem;
+            elem* e = defnod[i].DNelem;
             vec_setbit(i, v);        // of course it modifies itself
             fillInDNunambig(v, e, i, defnod[]);
         }
@@ -347,12 +347,12 @@ private void initDNunambigVectors(ref GlobalOptimizer go, DefNode[] defnod)
  */
 
 @trusted
-private void fillInDNunambig(vec_t v, elem *e, size_t start, DefNode[] defnod)
+private void fillInDNunambig(vec_t v, elem* e, size_t start, DefNode[] defnod)
 {
     assert(OTassign(e.Eoper));
-    elem *t = e.E1;
+    elem* t = e.E1;
     assert(t.Eoper == OPvar);
-    Symbol *d = t.Vsym;
+    Symbol* d = t.Vsym;
 
     targ_size_t toff = t.Voffset;
     targ_size_t tsize = (e.Eoper == OPstreq) ? type_size(e.ET) : tysize(t.Ety);
@@ -365,8 +365,8 @@ private void fillInDNunambig(vec_t v, elem *e, size_t start, DefNode[] defnod)
         if (!v2)
             continue;
 
-        elem *tn = defnod[i].DNelem;
-        elem *tn1;
+        elem* tn = defnod[i].DNelem;
+        elem* tn1;
         targ_size_t tn1size;
 
         // If not same variable then no overlap
@@ -397,7 +397,7 @@ private void fillInDNunambig(vec_t v, elem *e, size_t start, DefNode[] defnod)
  *      n = elem tree to evaluate for GEN and KILL
  *      deftop = number of bits in vectors
  */
-private void rdelem(ref GlobalOptimizer go, out vec_t GEN, out vec_t KILL, elem *n, uint deftop)
+private void rdelem(ref GlobalOptimizer go, out vec_t GEN, out vec_t KILL, elem* n, uint deftop)
 {
     GEN  = vec_calloc(deftop);
     KILL = vec_calloc(deftop);
@@ -410,7 +410,7 @@ private void rdelem(ref GlobalOptimizer go, out vec_t GEN, out vec_t KILL, elem 
  */
 
 @trusted
-private void accumrd(ref GlobalOptimizer go, vec_t GEN,vec_t KILL,elem *n,uint deftop)
+private void accumrd(ref GlobalOptimizer go, vec_t GEN,vec_t KILL,elem* n,uint deftop)
 {
     assert(GEN && KILL && n);
     const op = n.Eoper;
@@ -678,7 +678,7 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
     /********************************
      * Assign cp elems to go.expnod[] (in order of evaluation).
      */
-    void asgcpelems(elem *n)
+    void asgcpelems(elem* n)
     {
         while (1)
         {
@@ -731,7 +731,7 @@ private void aecpgenkill(ref GlobalOptimizer go, int flowxx)
     /********************************
      * Assign ae and vbe elems to go.expnod[] (in order of evaluation).
      */
-    bool asgaeelems(elem *n)
+    bool asgaeelems(elem* n)
     {
         bool ae;
 
@@ -1051,7 +1051,7 @@ void genkillae(ref GlobalOptimizer go)
  */
 
 @trusted
-private void aecpelem(ref GlobalOptimizer go, out vec_t gen, out vec_t kill, elem *n, uint exptop)
+private void aecpelem(ref GlobalOptimizer go, out vec_t gen, out vec_t kill, elem* n, uint exptop)
 {
     gen = vec_calloc(exptop);
     kill = vec_calloc(exptop);
@@ -1075,7 +1075,7 @@ private __gshared
 }
 
 @trusted
-private void accumaecp(ref GlobalOptimizer go, vec_t g,vec_t k,elem *n)
+private void accumaecp(ref GlobalOptimizer go, vec_t g,vec_t k,elem* n)
 {   vec_t GENsave,KILLsave;
 
     assert(g && k);
@@ -1089,9 +1089,9 @@ private void accumaecp(ref GlobalOptimizer go, vec_t g,vec_t k,elem *n)
 }
 
 @trusted
-private void accumaecpx(ref GlobalOptimizer go, elem *n)
+private void accumaecpx(ref GlobalOptimizer go, elem* n)
 {
-    elem *t;
+    elem* t;
 
     assert(n);
     elem_debug(n);
@@ -1230,7 +1230,7 @@ private void accumaecpx(ref GlobalOptimizer go, elem *n)
             Symbol* s = t.Vsym;                  // ptr to var being def'd
             foreach (uint i; 1 .. go.exptop)        // for each ae elem
             {
-                elem *e = go.expnod[i];
+                elem* e = go.expnod[i];
 
                 /* If it could be changed by the definition,     */
                 /* set bit in KILL.                              */
@@ -1281,7 +1281,7 @@ private void accumaecpx(ref GlobalOptimizer go, elem *n)
             }
             foreach (uint i; 1 .. go.exptop)        // for each ae elem
             {
-                elem *e = go.expnod[i];
+                elem* e = go.expnod[i];
                 const int eop = e.Eoper;
 
                 /* If it could be changed by the definition,     */
@@ -1426,7 +1426,7 @@ void flowlv()
 private void lvgenkill()
 {
     /* Compute ambigsym, a vector of all variables that could be    */
-    /* referenced by a *e or a call.                                */
+    /* referenced by a* e or a call.                                */
     Symbol*[] gsym = globsym[];
     const length = gsym.length;
     vec_t ambigsym = vec_calloc(length);
@@ -1621,7 +1621,7 @@ private void accumlv(vec_t GEN, vec_t KILL, const(elem)* n, const vec_t ambigsym
             case OPstrlen:
                 accumlv(GEN,KILL,n.E1,ambigsym);
 
-                /* If it was a *p elem, set bits in GEN for all symbols */
+                /* If it was a* p elem, set bits in GEN for all symbols */
                 /* it could have referenced, but only if bits in KILL   */
                 /* are not already set.                                 */
 
@@ -1749,9 +1749,9 @@ void flowvbe(ref GlobalOptimizer go)
  */
 
 @trusted
-private void accumvbe(ref GlobalOptimizer go, vec_t GEN,vec_t KILL,elem *n)
+private void accumvbe(ref GlobalOptimizer go, vec_t GEN,vec_t KILL,elem* n)
 {
-    elem *t;
+    elem* t;
 
     assert(GEN && KILL && n);
     const op = n.Eoper;
@@ -1924,7 +1924,7 @@ private void accumvbe(ref GlobalOptimizer go, vec_t GEN,vec_t KILL,elem *n)
                 vec_orass(KILL,go.starkill);/* kill all 'starred' refs */
             foreach (uint i; 1 .. go.exptop)        // for each vbe elem
             {
-                elem *e = go.expnod[i];
+                elem* e = go.expnod[i];
                 uint eop = e.Eoper;
 
                 /* If it could be changed by the definition,     */

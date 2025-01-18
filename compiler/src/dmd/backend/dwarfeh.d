@@ -34,7 +34,7 @@ struct DwEhTableEntry
     uint end;           // 1 past end
     uint lpad;          // landing pad
     uint action;        // index into Action Table
-    block *bcatch;      // catch block data
+    block* bcatch;      // catch block data
     int prev;           // index to enclosing entry (-1 for none)
 }
 
@@ -53,7 +53,7 @@ package __gshared DwEhTable dwehtable;
  *      retoffset = offset from start of function to epilog
  */
 
-void genDwarfEh(Funcsym *sfunc, int seg, OutBuffer *et, bool scancode, uint startoffset, uint retoffset, ref DwEhTable deh)
+void genDwarfEh(Funcsym* sfunc, int seg, OutBuffer* et, bool scancode, uint startoffset, uint retoffset, ref DwEhTable deh)
 {
     /* LPstart = encoding of LPbase
      * LPbase = landing pad base (normally omitted)
@@ -73,7 +73,7 @@ void genDwarfEh(Funcsym *sfunc, int seg, OutBuffer *et, bool scancode, uint star
      */
 
     et.reserve(100);
-    block *startblock = sfunc.Sfunc.Fstartblock;
+    block* startblock = sfunc.Sfunc.Fstartblock;
     //printf("genDwarfEh: func = %s, offset = x%x, startblock.Boffset = x%x, scancode = %d startoffset=x%x, retoffset=x%x\n",
       //sfunc.Sident.ptr, cast(int)sfunc.Soffset, cast(int)startblock.Boffset, scancode, startoffset, retoffset);
 
@@ -93,21 +93,21 @@ static if (0)
     /* Build deh table, and Action Table
      */
     int index = -1;
-    block *bprev = null;
+    block* bprev = null;
     // The first entry encompasses the entire function
     {
         uint i = cast(uint) deh.length;
-        DwEhTableEntry *d = deh.push();
+        DwEhTableEntry* d = deh.push();
         d.start = cast(uint)(startblock.Boffset + startoffset);
         d.end = cast(uint)(startblock.Boffset + retoffset);
         d.lpad = 0;                    // no cleanup, no catches
         index = i;
     }
-    for (block *b = startblock; b; b = b.Bnext)
+    for (block* b = startblock; b; b = b.Bnext)
     {
         if (index > 0 && b.Btry == bprev)
         {
-            DwEhTableEntry *d = &deh[index];
+            DwEhTableEntry* d = &deh[index];
             d.end = cast(uint)b.Boffset;
             index = d.prev;
             if (bprev)
@@ -116,10 +116,10 @@ static if (0)
         if (b.bc == BC._try)
         {
             uint i = cast(uint) deh.length;
-            DwEhTableEntry *d = deh.push();
+            DwEhTableEntry* d = deh.push();
             d.start = cast(uint)b.Boffset;
 
-            block *bf = b.nthSucc(1);
+            block* bf = b.nthSucc(1);
             if (bf.bc == BC.jcatch)
             {
                 d.lpad = cast(uint)bf.Boffset;
@@ -147,12 +147,12 @@ static if (0)
         {
             uint coffset = cast(uint)b.Boffset;
             int n = 0;
-            for (code *c = b.Bcode; c; c = code_next(c))
+            for (code* c = b.Bcode; c; c = code_next(c))
             {
                 if (c.Iop == PSOP.dctor)
                 {
                     uint i = cast(uint) deh.length;
-                    DwEhTableEntry *d = deh.push();
+                    DwEhTableEntry* d = deh.push();
                     d.start = coffset;
                     d.prev = index;
                     index = i;
@@ -163,7 +163,7 @@ static if (0)
                 {
                     assert(n > 0);
                     --n;
-                    DwEhTableEntry *d = &deh[index];
+                    DwEhTableEntry* d = &deh[index];
                     d.end = coffset;
                     d.lpad = coffset;
                     index = d.prev;
@@ -223,7 +223,7 @@ else
         uint j = i;
         do
         {
-            DwEhTableEntry *d = deh.index(j);
+            DwEhTableEntry* d = deh.index(j);
             //printf(" [%d] start=%x end=%x lpad=%x action=%x bcatch=%p prev=%d\n",
             //  j, d.start, d.end, d.lpad, d.action, d.bcatch, d.prev);
             if (d.start <= end && end < d.end)
@@ -232,7 +232,7 @@ else
                 uint dend = d.end;
                 if (i + 1 < deh.dim)
                 {
-                    DwEhTableEntry *dnext = deh.index(i + 1);
+                    DwEhTableEntry* dnext = deh.index(i + 1);
                     if (dnext.start < dend)
                         dend = dnext.start;
                 }
@@ -331,7 +331,7 @@ else
     auto typesTable = sfunc.Sfunc.typesTable[];
     for (int i = cast(int)typesTable.length; i--; )
     {
-        Symbol *s = typesTable[i];
+        Symbol* s = typesTable[i];
         /* MACHOBJ 64: pcrel 1 length 1 extern 1 RELOC_GOT
          *         32: [0] address x004c pcrel 0 length 2 value x224 type 4 RELOC_LOCAL_SECTDIFF
          *             [1] address x0000 pcrel 0 length 2 value x160 type 1 RELOC_PAIR
@@ -356,7 +356,7 @@ else
  * Returns:
  *      offset of inserted action
  */
-int actionTableInsert(OutBuffer *atbuf, int ttindex, int nextoffset)
+int actionTableInsert(OutBuffer* atbuf, int ttindex, int nextoffset)
 {
     //printf("actionTableInsert(%d, %d)\n", ttindex, nextoffset);
     auto p = cast(const(ubyte)[]) (*atbuf)[];

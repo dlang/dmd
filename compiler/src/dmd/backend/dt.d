@@ -35,11 +35,11 @@ nothrow:
  */
 
 @trusted
-void dt_free(dt_t *dt)
+void dt_free(dt_t* dt)
 {
     if (dt)
     {
-        dt_t *dtn = dt;
+        dt_t* dtn = dt;
         while (1)
         {
             switch (dtn.dt)
@@ -52,7 +52,7 @@ void dt_free(dt_t *dt)
                 default:
                     break;
             }
-            dt_t *dtnext = dtn.DTnext;
+            dt_t* dtnext = dtn.DTnext;
             if (!dtnext)
                 break;
             dtn = dtnext;
@@ -70,7 +70,7 @@ void dt_term()
 {
 static if (0 && TERMCODE)
 {
-    dt_t *dtn;
+    dt_t* dtn;
 
     while (dt_freelist)
     {   dtn = dt_freelist.DTnext;
@@ -80,7 +80,7 @@ static if (0 && TERMCODE)
 }
 }
 
-dt_t **dtend(dt_t **pdtend)
+dt_t** dtend(dt_t** pdtend)
 {
     while (*pdtend)
         pdtend = &((*pdtend).DTnext);
@@ -90,7 +90,7 @@ dt_t **dtend(dt_t **pdtend)
 
 /*********************************
  */
-void dtpatchoffset(dt_t *dt, uint offset)
+void dtpatchoffset(dt_t* dt, uint offset)
 {
     dt.DToffset = offset;
 }
@@ -98,14 +98,14 @@ void dtpatchoffset(dt_t *dt, uint offset)
 /**************************
  * Make a common block for s.
  */
-void init_common(Symbol *s)
+void init_common(Symbol* s)
 {
     //printf("init_common('%s')\n", s.Sident);
 
     uint size = cast(uint)type_size(s.Stype);
     if (size)
     {
-        dt_t *dt = dt_calloc(DT.common);
+        dt_t* dt = dt_calloc(DT.common);
         dt.DTazeros = size;
         s.Sdt = dt;
     }
@@ -182,7 +182,7 @@ bool dtpointers(const(dt_t)* dtstart)
  * Turn DT.azeros into DTcommon
  */
 
-void dt2common(dt_t **pdt)
+void dt2common(dt_t** pdt)
 {
     assert((*pdt).dt == DT.azeros);
     (*pdt).dt = DT.common;
@@ -225,7 +225,7 @@ nothrow:
     /*************************
      * Finish and return completed data structure.
      */
-    dt_t *finish()
+    dt_t* finish()
     {
         /* Merge all the 0s at the start of the list
          * so we can later check for dtallzeros()
@@ -234,7 +234,7 @@ nothrow:
         {
             while (1)
             {
-                dt_t *dtn = head.DTnext;
+                dt_t* dtn = head.DTnext;
                 if (!(dtn && dtn.dt == DT.azeros))
                     break;
 
@@ -276,7 +276,7 @@ nothrow:
         if (allZero)
             return nzeros(data.length);
 
-        dt_t *dt;
+        dt_t* dt;
 
         if (data.length < dt_t.DTibytesMax)
         {
@@ -310,11 +310,11 @@ nothrow:
     @trusted
     void abytes(tym_t ty, uint offset, const(char)[] data, uint nzeros, ubyte _align)
     {
-        dt_t *dt = dt_calloc(DT.abytes);
+        dt_t* dt = dt_calloc(DT.abytes);
         const n = data.length + nzeros;
         assert(n >= data.length);      // overflow check
         dt.DTnbytes = n;
-        dt.DTpbytes = cast(byte *) mem_malloc(n);
+        dt.DTpbytes = cast(byte*) mem_malloc(n);
         dt.Dty = cast(ubyte)ty;
         dt.DTalign = _align;
         dt.DTabytes = offset;
@@ -346,7 +346,7 @@ nothrow:
             return;
         }
 
-        dt_t *dt = dt_calloc(DT.ibytes);
+        dt_t* dt = dt_calloc(DT.ibytes);
         dt.DTn = 4;
 
         union U { char* cp; int* lp; }
@@ -371,7 +371,7 @@ nothrow:
             nzeros(_tysize[TYnptr]);
             return;
         }
-        dt_t *dt = dt_calloc(DT.ibytes);
+        dt_t* dt = dt_calloc(DT.ibytes);
         dt.DTn = _tysize[TYnptr];
 
         union U { char* cp; int* lp; }
@@ -396,7 +396,7 @@ nothrow:
             return;
         assert(cast(int) size > 0);
 
-        dt_t *dt = dt_calloc(DT.azeros);
+        dt_t* dt = dt_calloc(DT.azeros);
         dt.DTazeros = size;
 
         assert(!*pTail);
@@ -409,9 +409,9 @@ nothrow:
      * Write a reference to s+offset
      */
     @trusted
-    void xoff(Symbol *s, uint offset, tym_t ty)
+    void xoff(Symbol* s, uint offset, tym_t ty)
     {
-        dt_t *dt = dt_calloc(DT.xoff);
+        dt_t* dt = dt_calloc(DT.xoff);
         dt.DTsym = s;
         dt.DToffset = offset;
         dt.Dty = cast(ubyte)ty;
@@ -425,7 +425,7 @@ nothrow:
     /******************************
      * Create reference to s+offset
      */
-    void xoff(Symbol *s, uint offset)
+    void xoff(Symbol* s, uint offset)
     {
         xoff(s, offset, TYnptr);
     }
@@ -434,32 +434,32 @@ nothrow:
      * Like xoff(), but returns handle with which to patch 'offset' value.
      */
     @trusted
-    dt_t *xoffpatch(Symbol *s, uint offset, tym_t ty)
+    dt_t* xoffpatch(Symbol* s, uint offset, tym_t ty)
     {
-        dt_t *dt = dt_calloc(DT.xoff);
+        dt_t* dt = dt_calloc(DT.xoff);
         dt.DTsym = s;
         dt.DToffset = offset;
         dt.Dty = cast(ubyte)ty;
 
-        dt_t **pxoff = pTail;
+        dt_t** pxoff = pTail;
 
         assert(!*pTail);
         *pTail = dt;
         pTail = &dt.DTnext;
         assert(!*pTail);
 
-        return *pxoff;
+        return* pxoff;
     }
 
     /*************************************
      * Create a reference to another dt.
      * Returns: the internal symbol used for the other dt
      */
-    Symbol *dtoff(dt_t *dt, uint offset)
+    Symbol* dtoff(dt_t* dt, uint offset)
     {
-        type *t = type_alloc(TYint);
+        type* t = type_alloc(TYint);
         t.Tcount++;
-        Symbol *s = symbol_calloc("internal");
+        Symbol* s = symbol_calloc("internal");
         s.Sclass = SC.static_;
         s.Sfl = FL.extern_;
         s.Sflags |= SFLnodebug;
@@ -477,7 +477,7 @@ nothrow:
     @trusted
     void coff(uint offset)
     {
-        dt_t *dt = dt_calloc(DT.coff);
+        dt_t* dt = dt_calloc(DT.coff);
 
         if (config.exe & EX_segmented)
             dt.Dty = TYcptr;
@@ -496,7 +496,7 @@ nothrow:
     /**********************
      * Append dt to data.
      */
-    void cat(dt_t *dt)
+    void cat(dt_t* dt)
     {
         assert(!*pTail);
         *pTail = dt;
@@ -524,7 +524,7 @@ nothrow:
      * Repeat a list of dt_t's count times.
      */
     @trusted
-    void repeat(dt_t *dt, size_t count)
+    void repeat(dt_t* dt, size_t count)
     {
         if (!count)
             return;
@@ -544,20 +544,20 @@ nothrow:
 
         if (dtpointers(dt))
         {
-            dt_t *dtp = null;
-            dt_t **pdt = &dtp;
+            dt_t* dtp = null;
+            dt_t** pdt = &dtp;
             for (size_t i = 0; i < count; ++i)
             {
-                for (dt_t *dtn = dt; dtn; dtn = dtn.DTnext)
+                for (dt_t* dtn = dt; dtn; dtn = dtn.DTnext)
                 {
-                    dt_t *dtx = dt_calloc(dtn.dt);
+                    dt_t* dtx = dt_calloc(dtn.dt);
                     *dtx = *dtn;
                     dtx.DTnext = null;
                     switch (dtx.dt)
                     {
                         case DT.abytes:
                         case DT.nbytes:
-                            dtx.DTpbytes = cast(byte *) mem_malloc(dtx.DTnbytes);
+                            dtx.DTpbytes = cast(byte*) mem_malloc(dtx.DTnbytes);
                             memcpy(dtx.DTpbytes, dtn.DTpbytes, dtx.DTnbytes);
                             break;
 
@@ -578,10 +578,10 @@ nothrow:
 
         const n = size * count;
         assert(n >= size);
-        char *p = cast(char *)mem_malloc(n);
+        char* p = cast(char*)mem_malloc(n);
         size_t offset = 0;
 
-        for (dt_t *dtn = dt; dtn; dtn = dtn.DTnext)
+        for (dt_t* dtn = dt; dtn; dtn = dtn.DTnext)
         {
             switch (dtn.dt)
             {
@@ -610,7 +610,7 @@ nothrow:
             offset += size;
         }
 
-        dt_t *dtx = dt_calloc(DT.nbytes);
+        dt_t* dtx = dt_calloc(DT.nbytes);
         dtx.DTnbytes = cast(uint)(size * count);
         dtx.DTpbytes = cast(byte*)p;
 
@@ -638,20 +638,20 @@ nothrow:
     }
 }
 
-private __gshared dt_t *dt_freelist;
+private __gshared dt_t* dt_freelist;
 
 /**********************************************
  * Allocate a data definition struct.
  */
 
 @trusted
-private dt_t *dt_calloc(DT dtx)
+private dt_t* dt_calloc(DT dtx)
 {
-    dt_t *dt = dt_freelist;
+    dt_t* dt = dt_freelist;
     if (!dt)
     {
         const size_t n = 4096 / dt_t.sizeof;
-        dt_t *chunk = cast(dt_t *)mem_fmalloc(n * dt_t.sizeof);
+        dt_t* chunk = cast(dt_t*)mem_fmalloc(n * dt_t.sizeof);
         for (size_t i = 0; i < n - 1; ++i)
         {
             chunk[i].DTnext = &chunk[i + 1];
@@ -675,7 +675,7 @@ private dt_t *dt_calloc(DT dtx)
 
 dt_t* dt_get_nzeros(uint n)
 {
-    dt_t *dt = dt_calloc(DT.azeros);
+    dt_t* dt = dt_calloc(DT.azeros);
     dt.DTazeros = n;
     return dt;
 }

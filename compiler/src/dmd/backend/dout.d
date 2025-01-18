@@ -68,7 +68,7 @@ void outthunk(Symbol* sthunk, Symbol* sfunc, uint p, tym_t thisty,
  *      s               symbol to be initialized
  */
 @trusted
-void outdata(Symbol *s)
+void outdata(Symbol* s)
 {
     int seg;
     targ_size_t offset;
@@ -86,13 +86,13 @@ void outdata(Symbol *s)
     // Data segment variables are always live on exit from a function
     s.Sflags |= SFLlivexit;
 
-    dt_t *dtstart = s.Sdt;
+    dt_t* dtstart = s.Sdt;
     s.Sdt = null;                      // it will be free'd
     targ_size_t datasize = 0;
     tym_t ty = s.ty();
     if (ty & mTYexport && config.wflags & WFexpdef && s.Sclass != SC.static_)
         objmod.export_symbol(s,0);        // export data definition
-    for (dt_t *dt = dtstart; dt; dt = dt.DTnext)
+    for (dt_t* dt = dtstart; dt; dt = dt.DTnext)
     {
         //printf("\tdt = %p, dt = %d\n",dt,dt.dt);
         switch (dt.dt)
@@ -152,7 +152,7 @@ void outdata(Symbol *s)
                             assert(config.objfmt == OBJ_MACH && I64);
                             goto case;
                         case mTYthread:
-                        {   seg_data *pseg = objmod.tlsseg_bss();
+                        {   seg_data* pseg = objmod.tlsseg_bss();
                             s.Sseg = pseg.SDseg;
                             objmod.data_start(s, datasize, pseg.SDseg);
                             if (config.objfmt == OBJ_OMF)
@@ -191,7 +191,7 @@ void outdata(Symbol *s)
                 goto Lret;
 
             case DT.xoff:
-            {   Symbol *sb = dt.DTsym;
+            {   Symbol* sb = dt.DTsym;
 
                 if (tyfunc(sb.ty()))
                 {
@@ -257,7 +257,7 @@ void outdata(Symbol *s)
         {
             assert(config.objfmt == OBJ_MACH && I64);
 
-            seg_data *pseg = objmod.tlsseg_data();
+            seg_data* pseg = objmod.tlsseg_data();
             s.Sseg = pseg.SDseg;
             objmod.data_start(s, datasize, s.Sseg);
             seg = pseg.SDseg;
@@ -266,7 +266,7 @@ void outdata(Symbol *s)
         }
         case mTYthread:
         {
-            seg_data *pseg = objmod.tlsseg();
+            seg_data* pseg = objmod.tlsseg();
             s.Sseg = pseg.SDseg;
             objmod.data_start(s, datasize, s.Sseg);
             seg = pseg.SDseg;
@@ -329,7 +329,7 @@ Lret:
  */
 
 @trusted
-void dt_writeToObj(Obj objmod, dt_t *dt, int seg, ref targ_size_t offset)
+void dt_writeToObj(Obj objmod, dt_t* dt, int seg, ref targ_size_t offset)
 {
     for (; dt; dt = dt.DTnext)
     {
@@ -388,7 +388,7 @@ else
 
             case DT.xoff:
             {
-                Symbol *sb = dt.DTsym;          // get external symbol pointer
+                Symbol* sb = dt.DTsym;          // get external symbol pointer
                 targ_size_t a = dt.DToffset;    // offset from it
                 int flags;
                 if (tyreg(dt.Dty))
@@ -419,7 +419,7 @@ else
  */
 
 @trusted
-void outcommon(Symbol *s,targ_size_t n)
+void outcommon(Symbol* s,targ_size_t n)
 {
     //printf("outcommon('%s',%d)\n",s.Sident.ptr,n);
     if (n != 0)
@@ -485,7 +485,7 @@ void outcommon(Symbol *s,targ_size_t n)
  */
 
 @trusted
-void out_readonly(Symbol *s)
+void out_readonly(Symbol* s)
 {
     if (config.flags2 & CFG2noreadonly)
         return;
@@ -517,7 +517,7 @@ void out_readonly(Symbol *s)
  * Returns: a Symbol pointing to it.
  */
 @trusted
-Symbol *out_string_literal(const(char)* str, uint len, uint sz)
+Symbol* out_string_literal(const(char)* str, uint len, uint sz)
 {
     tym_t ty = TYchar;
     if (sz == 2)
@@ -527,7 +527,7 @@ Symbol *out_string_literal(const(char)* str, uint len, uint sz)
     else if (sz == 8)
         ty = TYulong;
 
-    Symbol *s = symbol_generate(SC.static_,type_static_array(len, tstypes[ty]));
+    Symbol* s = symbol_generate(SC.static_,type_static_array(len, tstypes[ty]));
     switch (config.objfmt)
     {
         case OBJ_ELF:
@@ -608,11 +608,11 @@ Symbol *out_string_literal(const(char)* str, uint len, uint sz)
  */
 
 @trusted
-/*private*/ void outelem(elem *e, ref bool addressOfParam)
+/*private*/ void outelem(elem* e, ref bool addressOfParam)
 {
-    Symbol *s;
+    Symbol* s;
     tym_t tym;
-    elem *e1;
+    elem* e1;
 
 again:
     assert(e);
@@ -721,12 +721,12 @@ debug
  */
 
 @trusted
-void out_regcand(symtab_t *psymtab)
+void out_regcand(symtab_t* psymtab)
 {
     //printf("out_regcand()\n");
     const bool ifunc = (tybasic(funcsym_p.ty()) == TYifunc);
     for (SYMIDX si = 0; si < psymtab.length; si++)
-    {   Symbol *s = (*psymtab)[si];
+    {   Symbol* s = (*psymtab)[si];
 
         symbol_debug(s);
         //assert(sytab[s.Sclass] & SCSS);      // only stack variables
@@ -740,7 +740,7 @@ void out_regcand(symtab_t *psymtab)
     }
 
     bool addressOfParam = false;                  // haven't taken addr of param yet
-    for (block *b = bo.startblock; b; b = b.Bnext)
+    for (block* b = bo.startblock; b; b = b.Bnext)
     {
         if (b.Belem)
             out_regcand_walk(b.Belem, addressOfParam);
@@ -763,7 +763,7 @@ void out_regcand(symtab_t *psymtab)
 }
 
 @trusted
-private void out_regcand_walk(elem *e, ref bool addressOfParam)
+private void out_regcand_walk(elem* e, ref bool addressOfParam)
 {
     while (1)
     {   elem_debug(e);
@@ -772,12 +772,12 @@ private void out_regcand_walk(elem *e, ref bool addressOfParam)
         {   if (e.Eoper == OPstreq)
             {   if (e.E1.Eoper == OPvar)
                 {
-                    Symbol *s = e.E1.Vsym;
+                    Symbol* s = e.E1.Vsym;
                     s.Sflags &= ~(SFLunambig | GTregcand);
                 }
                 if (e.E2.Eoper == OPvar)
                 {
-                    Symbol *s = e.E2.Vsym;
+                    Symbol* s = e.E2.Vsym;
                     s.Sflags &= ~(SFLunambig | GTregcand);
                 }
             }
@@ -789,7 +789,7 @@ private void out_regcand_walk(elem *e, ref bool addressOfParam)
             // Don't put 'this' pointers in registers if we need
             // them for EH stack cleanup.
             if (e.Eoper == OPctor)
-            {   elem *e1 = e.E1;
+            {   elem* e1 = e.E1;
 
                 if (e1.Eoper == OPadd)
                     e1 = e1.E1;
@@ -801,7 +801,7 @@ private void out_regcand_walk(elem *e, ref bool addressOfParam)
         else
         {   if (e.Eoper == OPrelconst)
             {
-                Symbol *s = e.Vsym;
+                Symbol* s = e.Vsym;
                 assert(s);
                 symbol_debug(s);
                 switch (s.Sclass)
@@ -849,7 +849,7 @@ private void out_regcand_walk(elem *e, ref bool addressOfParam)
  */
 
 @trusted
-void writefunc(Symbol *sfunc)
+void writefunc(Symbol* sfunc)
 {
     import dmd.backend.var : go;
     cstate.CSpsymtab = &globsym;
@@ -858,9 +858,9 @@ void writefunc(Symbol *sfunc)
 }
 
 @trusted
-private void writefunc2(Symbol *sfunc, ref GlobalOptimizer go)
+private void writefunc2(Symbol* sfunc, ref GlobalOptimizer go)
 {
-    func_t *f = sfunc.Sfunc;
+    func_t* f = sfunc.Sfunc;
 
     debugb && printf("=========== writefunc %s ==================\n",sfunc.Sident.ptr);
     //symbol_print(sfunc);
@@ -951,7 +951,7 @@ private void writefunc2(Symbol *sfunc, ref GlobalOptimizer go)
 
     bool addressOfParam = false;  // see if any parameters get their address taken
     bool anyasm = false;
-    for (block *b = bo.startblock; b; b = b.Bnext)
+    for (block* b = bo.startblock; b; b = b.Bnext)
     {
         memset(&b._BLU,0,block.sizeof - block._BLU.offsetof);
         if (b.Belem)
@@ -1107,13 +1107,13 @@ private void writefunc2(Symbol *sfunc, ref GlobalOptimizer go)
     {
 version (LittleEndian)
 {
-        short *p = cast(short *) sfunc.Sident.ptr;
+        short* p = cast(short*) sfunc.Sident.ptr;
         if (p[0] == (('S' << 8) | '_') && (p[1] == (('I' << 8) | 'T') || p[1] == (('D' << 8) | 'T')))
             objmod.setModuleCtorDtor(sfunc, sfunc.Sident.ptr[3] == 'I');
 }
 else
 {
-        char *p = sfunc.Sident.ptr;
+        char* p = sfunc.Sident.ptr;
         if (p[0] == '_' && p[1] == 'S' && p[2] == 'T' &&
             (p[3] == 'I' || p[3] == 'D'))
             objmod.setModuleCtorDtor(sfunc, sfunc.Sident.ptr[3] == 'I');
@@ -1163,7 +1163,7 @@ void alignOffset(int seg,targ_size_t datasize)
 enum ROMAX = 32;
 struct Readonly
 {
-    Symbol *sym;
+    Symbol* sym;
     size_t length;
     ubyte[ROMAX] p;
 }
@@ -1184,7 +1184,7 @@ void out_reset()
 }
 
 @trusted
-Symbol *out_readonly_sym(tym_t ty, void *p, int len)
+Symbol* out_readonly_sym(tym_t ty, void* p, int len)
 {
 static if (0)
 {
@@ -1195,12 +1195,12 @@ static if (0)
     // Look for previous symbol we can reuse
     for (int i = 0; i < readonly_length; i++)
     {
-        Readonly *r = &readonly[i];
+        Readonly* r = &readonly[i];
         if (r.length == len && memcmp(p, r.p.ptr, len) == 0)
             return r.sym;
     }
 
-    Symbol *s;
+    Symbol* s;
 
     bool cdata = config.objfmt == OBJ_ELF ||
                  config.objfmt == OBJ_OMF ||
@@ -1210,7 +1210,7 @@ static if (0)
         /* MACHOBJ can't go here, because the const data segment goes into
          * the _TEXT segment, and one cannot have a fixup from _TEXT to _TEXT.
          */
-        s = objmod.sym_cdata(ty, cast(char *)p, len);
+        s = objmod.sym_cdata(ty, cast(char*)p, len);
     }
     else
     {
@@ -1224,7 +1224,7 @@ static if (0)
     }
 
     if (len <= ROMAX)
-    {   Readonly *r;
+    {   Readonly* r;
 
         if (readonly_length < RMAX)
         {
@@ -1253,7 +1253,7 @@ static if (0)
  *      nzeros = number of trailing zeros to append
  */
 @trusted
-void out_readonly_comdat(Symbol *s, const(void)* p, uint len, uint nzeros)
+void out_readonly_comdat(Symbol* s, const(void)* p, uint len, uint nzeros)
 {
     objmod.readonly_comdat(s);         // create comdat segment
     objmod.write_bytes(SegData[s.Sseg], p[0 .. len]);

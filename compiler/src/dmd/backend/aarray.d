@@ -30,7 +30,7 @@ nothrow:
  */
 private struct aaA
 {
-    aaA *next;
+    aaA* next;
     hash_t hash;        // hash of the key
     /* key   */         // key value goes here
     /* value */         // value value goes here
@@ -144,11 +144,11 @@ nothrow:
 
         // Not found, create new elem
         //printf("create new one\n");
-        e = cast(aaA *) malloc(aaA.sizeof + aligned_keysize + Value.sizeof);
+        e = cast(aaA*) malloc(aaA.sizeof + aligned_keysize + Value.sizeof);
         if (!e)
             err_nomem();
         memcpy(e + 1, &pkey, Key.sizeof);
-        memset(cast(void *)(e + 1) + aligned_keysize, 0, Value.sizeof);
+        memset(cast(void*)(e + 1) + aligned_keysize, 0, Value.sizeof);
         e.hash = key_hash;
         e.next = null;
         *pe = e;
@@ -248,7 +248,7 @@ nothrow:
 
         if (nodes >= size_t.max / Key.sizeof)
             err_nomem();
-        auto p = cast(Key *)malloc(nodes * Key.sizeof);
+        auto p = cast(Key*)malloc(nodes * Key.sizeof);
         if (!p)
             err_nomem();
         auto q = p;
@@ -279,7 +279,7 @@ nothrow:
         const aligned_keysize = aligntsize(Key.sizeof);
         if (nodes >= size_t.max / Key.sizeof)
             err_nomem();
-        auto p = cast(Value *)malloc(nodes * Value.sizeof);
+        auto p = cast(Value*)malloc(nodes * Value.sizeof);
         if (!p)
             err_nomem();
         auto q = p;
@@ -510,7 +510,7 @@ public alias AApair2 = AArray!(TinfoPair, Pair);
     aa.del(k);
     bool v = true;
     assert(!aa.isIn(k));
-    bool *pv = aa.get(k);
+    bool* pv = aa.get(k);
     *pv = true;
     int j = 9;
     pv = aa.get(j);

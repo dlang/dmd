@@ -55,7 +55,7 @@ enum
 
 struct loc_t
 {
-    elem *e;
+    elem* e;
     int flags;  // LFxxxxx
 }
 
@@ -106,9 +106,9 @@ void localize(ref GlobalOptimizer go)
 //
 
 @trusted
-private void local_exp(ref GlobalOptimizer go, ref Barray!loc_t lt, elem *e, int goal)
+private void local_exp(ref GlobalOptimizer go, ref Barray!loc_t lt, elem* e, int goal)
 {
-    elem *e1;
+    elem* e1;
     OPER op1;
 
 Loop:
@@ -477,7 +477,7 @@ private bool local_chkrem(const elem* e, const(elem)* eu)
 // Add entry e to lt[]
 
 @trusted
-private void local_ins(ref Barray!loc_t lt, elem *e)
+private void local_ins(ref Barray!loc_t lt, elem* e)
 {
     elem_debug(e);
     if (e.E1.Eoper == OPvar)

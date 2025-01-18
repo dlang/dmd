@@ -65,13 +65,13 @@ char debugy = 0; /// watch output to il buffer
 
 /* File variables: */
 
-char *argv0;                    // argv[0] (program name)
+char* argv0;                    // argv[0] (program name)
 FILE* fdep = null;              // dependency file stream pointer
 FILE* flst = null;              // list file stream pointer
 FILE* fin = null;               // input file
 
 // htod
-char *fdmodulename = null;
+char* fdmodulename = null;
 FILE* fdmodule = null;
 
 char*   foutdir = null,       // directory to place output files in
@@ -104,7 +104,7 @@ int level = 0;                  /* declaration level                    */
                                 /* 2: function local declarations       */
                                 /* 3+: compound statement decls         */
 
-param_t *paramlst = null;       /* function parameter list              */
+param_t* paramlst = null;       /* function parameter list              */
 tym_t pointertype = TYnptr;     /* default data pointer type            */
 
 /* From util.c */
@@ -177,7 +177,7 @@ const(char)*[32] regstring = ["AX","CX","DX","BX","SP","BP","SI","DI",
 
 /* From nwc.c */
 
-type *chartype;                 /* default 'char' type                  */
+type* chartype;                 /* default 'char' type                  */
 
 Obj objmod = null;
 

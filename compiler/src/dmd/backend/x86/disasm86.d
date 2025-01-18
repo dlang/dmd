@@ -485,12 +485,12 @@ addr EAbytes(uint c)
  */
 
 
-char *getEAxmm(ubyte rex, uint c)
+char* getEAxmm(ubyte rex, uint c)
 {
     return getEAimpl(rex, c, 1, 128);
 }
 
-char *getEAxmmymm(ubyte rex, uint c, uint vlen)
+char* getEAxmmymm(ubyte rex, uint c, uint vlen)
 {
     return getEAimpl(rex, c, 2, vlen);
 }
@@ -510,7 +510,7 @@ const(char)* getEAvec(ubyte rex, uint c)
     return p;
 }
 
-char *getEA(ubyte rex, uint c)
+char* getEA(ubyte rex, uint c)
 {
     return getEAimpl(rex, c, 0, 128);
 }
@@ -519,7 +519,7 @@ char *getEA(ubyte rex, uint c)
  * Params:
  *      vlen = 128: XMM, 256: YMM
  */
-char *getEAimpl(ubyte rex, uint c, int do_xmm, uint vlen)
+char* getEAimpl(ubyte rex, uint c, int do_xmm, uint vlen)
 {
     ubyte modrgrm,mod,reg,rm;
     uint opcode;
@@ -534,7 +534,7 @@ char *getEAimpl(ubyte rex, uint c, int do_xmm, uint vlen)
     uint xmm;           // != 0 if xmm opcode
     uint r32;           // != 0 if r32
 
-    char *displacement(addr w, const(char)* postfix)
+    char* displacement(addr w, const(char)* postfix)
     {
         const(char)* s = "".ptr;
         if (cast(short) w < 0)
@@ -551,7 +551,7 @@ char *getEAimpl(ubyte rex, uint c, int do_xmm, uint vlen)
         return EAb.ptr;
     }
 
-    char *displacementFixup(addr c, uint sz, const(char)* postfix)
+    char* displacementFixup(addr c, uint sz, const(char)* postfix)
     {
         uint value = sz == 2 ? word(code, c) : dword(code, c);
         auto p = mem(c, sz, value);
@@ -915,7 +915,7 @@ int prefixbyte(uint c)
  *      p0 = hex bytes dump
  */
 
-void getVEXstring(addr c, addr siz, char *p0)
+void getVEXstring(addr c, addr siz, char* p0)
 {
     /* Parse VEX prefix,
      * fill in the following variables,
@@ -1078,7 +1078,7 @@ void getVEXstring(addr c, addr siz, char *p0)
             case 0x71:
             {   __gshared const char*[8] reg71 =
                 [ null, null, "vpsrlw", null, "vpsraw", null, "vpslw", null ];
-                const char *p = reg71[reg];
+                const char* p = reg71[reg];
                 if (!p)
                     goto Ldefault;
                 p1 = p;
@@ -1087,7 +1087,7 @@ void getVEXstring(addr c, addr siz, char *p0)
             case 0x72:
             {   __gshared const char*[8] reg72 =
                 [ null, null, "vpsrld", null, "vpsrad", null, "vpslld", null ];
-                const char *p = reg72[reg];
+                const char* p = reg72[reg];
                 if (!p)
                     goto Ldefault;
                 p1 = p;
@@ -1096,7 +1096,7 @@ void getVEXstring(addr c, addr siz, char *p0)
             case 0x73:
             {   __gshared const char*[8] reg73 =
                 [ null, null, "vpsrlq", "vpsrldq", null, null, "vpsllq", "vpslldq" ];
-                const char *p = reg73[reg];
+                const char* p = reg73[reg];
                 if (!p)
                     goto Ldefault;
                 p1 = p;
@@ -1503,7 +1503,7 @@ Ldone:
  *      waitflag        if 1 then generate FWAIT form of instruction
  */
 
-void get87string(addr c,char *p0,int waitflag)
+void get87string(addr c,char* p0,int waitflag)
 {
     uint opcode,reg,modrgrm,mod;
     const(char)* p1, p2, p3;

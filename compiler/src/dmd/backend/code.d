@@ -66,19 +66,19 @@ union evc
     struct
     {
         targ_size_t Vdoffset;   /// offset from symbol
-        _Declaration *Vdsym;    /// pointer to D symbol table
+        _Declaration* Vdsym;    /// pointer to D symbol table
     }
 
     struct
     {
         targ_size_t Vloffset;   /// offset from symbol
-        _LabelDsymbol *Vlsym;   /// pointer to D Label
+        _LabelDsymbol* Vlsym;   /// pointer to D Label
     }
 
     struct
     {
         size_t len;
-        char *bytes;
+        char* bytes;
     }                           // asm node (FL.asm)
 }
 
@@ -86,13 +86,13 @@ union evc
 
 public import dmd.backend.dcode : code_calloc, code_free, code_term, code_chunk_alloc, code_list;
 
-code *code_next(code *c) { return c.next; }
+code* code_next(code* c) { return c.next; }
 
 @trusted
-code *code_malloc()
+code* code_malloc()
 {
     //printf("code %d\n", sizeof(code));
-    code *c = code_list ? code_list : code_chunk_alloc();
+    code* c = code_list ? code_list : code_chunk_alloc();
     code_list = code_next(c);
     //printf("code_malloc: %p\n",c);
     return c;
@@ -193,7 +193,7 @@ struct CGstate
     LocalSection EEStack;       // offset of SCstack variables from ESP
     LocalSection Alloca;        // data for alloca() temporary
 
-    Symbol *retsym;             // symbol that should be placed in AX
+    Symbol* retsym;             // symbol that should be placed in AX
 
     uint stackpush;             // # of bytes that SP is beyond BP.
 
@@ -334,7 +334,7 @@ struct FuncParamRegs
     //this(tym_t tyf);
     static FuncParamRegs create(tym_t tyf) { return FuncParamRegs_create(tyf); }
 
-    bool alloc(type *t, tym_t ty, out reg_t reg1, out reg_t reg2)
+    bool alloc(type* t, tym_t ty, out reg_t reg1, out reg_t reg2)
     { return FuncParamRegs_alloc(this, t, ty, reg1, reg2); }
 
   private:
@@ -381,7 +381,7 @@ public import dmd.backend.x86.cg87;
  * Returns: mask of registers used by block bp.
  */
 @system
-regm_t iasm_regs(block *bp)
+regm_t iasm_regs(block* bp)
 {
     debug (debuga)
         printf("Block iasm regs = 0x%X\n", bp.usIasmregs);

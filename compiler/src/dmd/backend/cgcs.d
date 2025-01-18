@@ -187,7 +187,7 @@ struct CGCS
      * Add an elem to the common subexpression table.
      */
 
-    void push(elem *e, hash_t hash)
+    void push(elem* e, hash_t hash)
     {
         hcstab.push(HCS(e, hash));
     }
@@ -551,7 +551,7 @@ void ecom(ref CGCS cgcs, ref elem* pe)
  */
 
 @trusted
-hash_t cs_comphash(const elem *e)
+hash_t cs_comphash(const elem* e)
 {
     elem_debug(e);
     const op = e.Eoper;
@@ -724,7 +724,7 @@ void touchstar(ref CGCS cgcs)
  */
 
 @trusted
-void touchaccess(ref Barray!HCS hcstab, const elem *ev) pure nothrow
+void touchaccess(ref Barray!HCS hcstab, const elem* ev) pure nothrow
 {
     const ev1 = ev.E1;
     foreach (ref hcs; hcstab[])

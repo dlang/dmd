@@ -44,8 +44,8 @@ regm_t  FLOATREGS = FLOATREGS_16;
 regm_t  FLOATREGS2 = FLOATREGS2_16;
 regm_t  DOUBLEREGS = DOUBLEREGS_16;
 
-Symbol *localgot;               // reference to GOT for this function
-Symbol *tls_get_addr_sym;       // function __tls_get_addr
+Symbol* localgot;               // reference to GOT for this function
+Symbol* tls_get_addr_sym;       // function __tls_get_addr
 
 int TARGET_STACKALIGN = 2;      // default for 16 bit code
 int STACKALIGN = 2;             // varies for each function

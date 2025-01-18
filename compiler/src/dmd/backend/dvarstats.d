@@ -278,7 +278,7 @@ public void writeSymbolTable(ref symtab_t symtab,
     bool endarg = false;
     for (SYMIDX si = 0; si < symtab2.length; si++)
     {
-        Symbol *sa = (*symtab2)[si];
+        Symbol* sa = (*symtab2)[si];
         if (endarg == false &&
             sa.Sclass != SC.parameter &&
             sa.Sclass != SC.fastpar &&

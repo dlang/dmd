@@ -50,11 +50,11 @@ Symbol* getRtlsymPersonality() { return getRtlsym(RTLSYM.PERSONALITY); }
  * Returns:
  *      runtime library Symbol
  */
-Symbol *getRtlsym(RTLSYM i) @trusted
+Symbol* getRtlsym(RTLSYM i) @trusted
 {
      Symbol** ps = &rtlsym[i];
      if (*ps)
-        return *ps;
+        return* ps;
 
     __gshared type* t;
     __gshared type* tv;
@@ -203,7 +203,7 @@ Symbol *getRtlsym(RTLSYM i) @trusted
         default:
             assert(0);
     }
-    return *ps;
+    return* ps;
 }
 
 
@@ -217,9 +217,9 @@ Symbol *getRtlsym(RTLSYM i) @trusted
  *    flags = value for Sflags
  *    t = type of function
  */
-private void symbolz(Symbol** ps, FL fl, regm_t regsaved, const(char)* name, SYMFLGS flags, type *t)
+private void symbolz(Symbol** ps, FL fl, regm_t regsaved, const(char)* name, SYMFLGS flags, type* t)
 {
-    Symbol *s = symbol_calloc(name[0 .. strlen(name)]);
+    Symbol* s = symbol_calloc(name[0 .. strlen(name)]);
     s.Stype = t;
     s.Ssymnum = SYMIDX.max;
     s.Sclass = SC.extern_;

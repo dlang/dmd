@@ -91,7 +91,7 @@ static if (1)
             int except_table_seg = UNKNOWN; // __gcc_except_tab segment
             int except_table_num = 0;       // sequence number for GCC_except_table%d symbols
             int eh_frame_seg = UNKNOWN;     // __eh_frame segment
-            Symbol *eh_frame_sym = null;    // past end of __eh_frame
+            Symbol* eh_frame_sym = null;    // past end of __eh_frame
 
         uint CIE_offset_unwind;     // CIE offset for unwind data
         uint CIE_offset_no_unwind;  // CIE offset for no unwind data
@@ -142,7 +142,7 @@ static if (1)
         return Obj.getsegment(name, suffix, SHT_PROGBITS, SHF_ALLOC, align_ * 4);
     }
 
-    int dwarf_except_table_alloc(Symbol *s)
+    int dwarf_except_table_alloc(Symbol* s)
     {
         //printf("dwarf_except_table_alloc('%s')\n", s.Sident.ptr);
         if (config.objfmt == OBJ_ELF)
@@ -151,7 +151,7 @@ static if (1)
              * a unique section, which then gets added to the COMDAT group
              * associated with `s`.
              */
-            seg_data *pseg = SegData[s.Sseg];
+            seg_data* pseg = SegData[s.Sseg];
             if (pseg.SDassocseg)
             {
                 const(char)* suffix = s.Sident.ptr; // cpp_mangle(s);
@@ -182,7 +182,7 @@ static if (1)
              */
             if (!eh_frame_sym)
             {
-                type *t = tspvoid;
+                type* t = tspvoid;
                 t.Tcount++;
                 type_setmangle(&t, Mangle.syscall);         // no leading '_' for mangled name
                 eh_frame_sym = symbol_name("EH_frame0", SC.static_, t);
@@ -218,7 +218,7 @@ static if (1)
             assert(0);
     }
 
-    void dwarf_appreladdr(int seg, OutBuffer *buf, int targseg, targ_size_t val)
+    void dwarf_appreladdr(int seg, OutBuffer* buf, int targseg, targ_size_t val)
     {
         if (I64)
         {
@@ -242,13 +242,13 @@ static if (1)
         }
     }
 
-    void dwarf_apprel32(int seg, OutBuffer *buf, int targseg, targ_size_t val)
+    void dwarf_apprel32(int seg, OutBuffer* buf, int targseg, targ_size_t val)
     {
         dwarf_addrel(seg, buf.length(), targseg, I64 ? val : 0);
         buf.write32(I64 ? 0 : cast(uint)val);
     }
 
-    void append_addr(OutBuffer *buf, targ_size_t addr)
+    void append_addr(OutBuffer* buf, targ_size_t addr)
     {
         if (I64)
             buf.write64(addr);
@@ -476,7 +476,7 @@ static if (1)
     {
         segidx_t seg = 0;
         IDXSEC secidx = 0;
-        OutBuffer *buf = null;
+        OutBuffer* buf = null;
         const(char)* name;
         int flags = 0;
 
@@ -527,15 +527,15 @@ static if (1)
          * representing the abbreviation code itself."
          */
         uint abbrevcode = 1;
-        AApair *abbrev_table;
+        AApair* abbrev_table;
         int hasModname;    // 1 if has DW_TAG_module
 
         // .debug_info
-        AAchars *infoFileName_table;
+        AAchars* infoFileName_table;
 
-        AApair *type_table;
-        AApair *functype_table;  // not sure why this cannot be combined with type_table
-        OutBuffer *functypebuf;
+        AApair* type_table;
+        AApair* functype_table;  // not sure why this cannot be combined with type_table
+        OutBuffer* functypebuf;
 
         // .debug_line
         size_t linebuf_filetab_end;
@@ -593,7 +593,7 @@ static if (1)
      * Params:
      *      buf = write raw data here
      */
-    void writeDebugFrameHeader(OutBuffer *buf)
+    void writeDebugFrameHeader(OutBuffer* buf)
     {
         void writeDebugFrameHeader(ubyte dversion)()
         {
@@ -666,7 +666,7 @@ static if (1)
      * See_Also:
      *      https://refspecs.linuxfoundation.org/LSB_3.0.0/LSB-PDA/LSB-PDA/ehframechpt.html
      */
-    private uint writeEhFrameHeader(IDXSEC dfseg, OutBuffer *buf, Symbol *personality, bool ehunwind)
+    private uint writeEhFrameHeader(IDXSEC dfseg, OutBuffer* buf, Symbol* personality, bool ehunwind)
     {
         /* Augmentation string:
          *  z = first character, means Augmentation Data field is present
@@ -799,7 +799,7 @@ static if (1)
      *      dfseg = SegData[] index for .debug_frame
      *      sfunc = the function
      */
-    void writeDebugFrameFDE(IDXSEC dfseg, Symbol *sfunc)
+    void writeDebugFrameFDE(IDXSEC dfseg, Symbol* sfunc)
     {
         if (I64)
         {
@@ -830,7 +830,7 @@ static if (1)
             // Do we need this?
             //debugFrameFDE64.initial_location = sfunc.Soffset;
 
-            OutBuffer *debug_frame_buf = SegData[dfseg].SDbuf;
+            OutBuffer* debug_frame_buf = SegData[dfseg].SDbuf;
             uint debug_frame_buf_offset = cast(uint)debug_frame_buf.length();
             debug_frame_buf.reserve(1000);
             debug_frame_buf.writen(&debugFrameFDE64,debugFrameFDE64.sizeof);
@@ -871,7 +871,7 @@ static if (1)
             // Do we need this?
             //debugFrameFDE32.initial_location = sfunc.Soffset;
 
-            OutBuffer *debug_frame_buf = SegData[dfseg].SDbuf;
+            OutBuffer* debug_frame_buf = SegData[dfseg].SDbuf;
             uint debug_frame_buf_offset = cast(uint)debug_frame_buf.length();
             debug_frame_buf.reserve(1000);
             debug_frame_buf.writen(&debugFrameFDE32,debugFrameFDE32.sizeof);
@@ -893,18 +893,18 @@ static if (1)
      *      ehunwind = will have EH unwind table
      *      CIE_offset = offset of enclosing CIE
      */
-    void writeEhFrameFDE(IDXSEC dfseg, Symbol *sfunc, bool ehunwind, uint CIE_offset)
+    void writeEhFrameFDE(IDXSEC dfseg, Symbol* sfunc, bool ehunwind, uint CIE_offset)
     {
-        OutBuffer *buf = SegData[dfseg].SDbuf;
+        OutBuffer* buf = SegData[dfseg].SDbuf;
         const uint startsize = cast(uint)buf.length();
 
-        Symbol *fdesym;
+        Symbol* fdesym;
         if (config.objfmt == OBJ_MACH)
         {
             /* Create symbol named "funcname.eh" for the start of the FDE
              */
             const size_t len = strlen(getSymName(sfunc));
-            char *name = cast(char *)malloc(len + 3 + 1);
+            char* name = cast(char*)malloc(len + 3 + 1);
             if (!name)
                 err_nomem();
             memcpy(name, getSymName(sfunc), len);
@@ -1034,7 +1034,7 @@ static if (1)
                 flags = SHT_PROGBITS;
 
             int seg = dwarf_getsegment(debug_frame_name, 1, flags);
-            OutBuffer *buf = SegData[seg].SDbuf;
+            OutBuffer* buf = SegData[seg].SDbuf;
             buf.reserve(1000);
             writeDebugFrameHeader(buf);
         }
@@ -1050,7 +1050,7 @@ static if (1)
          ******************************************************************** */
         {
             debug_str.initialize();
-            //OutBuffer *debug_str_buf = debug_str.buf;
+            //OutBuffer* debug_str_buf = debug_str.buf;
         }
 
         /* *********************************************************************
@@ -1384,12 +1384,12 @@ static if (1)
             aachars = AAchars.create();
         }
 
-        uint *pidx = aachars.get(str);
+        uint* pidx = aachars.get(str);
         if (!*pidx)                 // if no idx assigned yet
         {
             *pidx = cast(uint) aachars.length(); // assign newly computed idx
         }
-        return *pidx;
+        return* pidx;
     }
 
     /**
@@ -1464,7 +1464,7 @@ static if (1)
             {
                 for (uint i = 0; i < SegData[seg].SDlinnum_data.length; i++)
                 {
-                    linnum_data *ld = &SegData[seg].SDlinnum_data[i];
+                    linnum_data* ld = &SegData[seg].SDlinnum_data[i];
                     const(char)* filename;
 
                     filename = ld.filename;
@@ -1577,7 +1577,7 @@ static if (1)
 
         for (uint seg = 1; seg < SegData.length; seg++)
         {
-            seg_data *sd = SegData[seg];
+            seg_data* sd = SegData[seg];
             uint addressmax = 0;
             uint linestart = ~0;
 
@@ -1586,7 +1586,7 @@ static if (1)
 
             //printf("sd = %x, SDlinnum_count = %d\n", sd, sd.SDlinnum_count);
             for (int i = 0; i < sd.SDlinnum_data.length; i++)
-            {   linnum_data *ld = &sd.SDlinnum_data[i];
+            {   linnum_data* ld = &sd.SDlinnum_data[i];
 
                 // Set address to start of segment with DW_LNE_set_address
                 debug_line.buf.writeByte(0);
@@ -1681,8 +1681,8 @@ static if (1)
         debug_pubnames.buf.write32(0);
 
         // Plug final sizes into header
-        *cast(uint *)debug_pubnames.buf.buf = cast(uint)debug_pubnames.buf.length() - 4;
-        *cast(uint *)(debug_pubnames.buf.buf + 10) = cast(uint)debug_info.buf.length();
+        *cast(uint*)debug_pubnames.buf.buf = cast(uint)debug_pubnames.buf.length() - 4;
+        *cast(uint*)(debug_pubnames.buf.buf + 10) = cast(uint)debug_info.buf.length();
 
         /* ================================================= */
 
@@ -1691,7 +1691,7 @@ static if (1)
         append_addr(debug_aranges.buf, 0);
 
         // Plug final sizes into header
-        *cast(uint *)debug_aranges.buf.buf = cast(uint)debug_aranges.buf.length() - 4;
+        *cast(uint*)debug_aranges.buf.buf = cast(uint)debug_aranges.buf.length() - 4;
 
         /* ================================================= */
 
@@ -1719,7 +1719,7 @@ static if (1)
     /*****************************************
      * Start of code gen for function.
      */
-    void dwarf_func_start(Symbol *sfunc)
+    void dwarf_func_start(Symbol* sfunc)
     {
         //printf("dwarf_func_start(%s)\n", sfunc.Sident.ptr);
         if (config.target_cpu == TARGET_AArch64)
@@ -1746,7 +1746,7 @@ static if (1)
     /*****************************************
      * End of code gen for function.
      */
-    void dwarf_func_term(Symbol *sfunc)
+    void dwarf_func_term(Symbol* sfunc)
     {
         //printf("dwarf_func_term(sfunc = '%s')\n", sfunc.Sident.ptr);
 
@@ -1756,10 +1756,10 @@ static if (1)
 
             IDXSEC dfseg = dwarf_eh_frame_alloc();
 
-            OutBuffer *buf = SegData[dfseg].SDbuf;
+            OutBuffer* buf = SegData[dfseg].SDbuf;
             buf.reserve(1000);
 
-            uint *poffset = ehunwind ? &CIE_offset_unwind : &CIE_offset_no_unwind;
+            uint* poffset = ehunwind ? &CIE_offset_unwind : &CIE_offset_no_unwind;
             if (*poffset == ~0)
                 *poffset = writeEhFrameHeader(dfseg, buf, getRtlsymPersonality(), ehunwind);
 
@@ -1789,7 +1789,7 @@ static if (1)
         }
 
         IDXSEC seg = sfunc.Sseg;
-        seg_data *sd = SegData[seg];
+        seg_data* sd = SegData[seg];
 
         int filenum = dwarf_line_addfile(filename);
 
@@ -1992,10 +1992,10 @@ static if (1)
 
                             /* find member offset in closure */
                             targ_size_t memb_off = 0;
-                            struct_t *st = sa.Sscope.Stype.Tnext.Ttag.Sstruct; // Sscope is __closptr
+                            struct_t* st = sa.Sscope.Stype.Tnext.Ttag.Sstruct; // Sscope is __closptr
                             foreach (sl; ListRange(st.Sfldlst))
                             {
-                                Symbol *sf = list_symbol(sl);
+                                Symbol* sf = list_symbol(sl);
                                 if (sf.Sclass == SC.member)
                                 {
                                     if(strcmp(sa.Sident.ptr, sf.Sident.ptr) == 0)
@@ -2039,7 +2039,7 @@ static if (1)
             debug_info.buf.writeByte(0);              // end of parameter children
 
             idxsibling = cast(uint)debug_info.buf.length();
-            *cast(uint *)(debug_info.buf.buf + siblingoffset) = idxsibling;
+            *cast(uint*)(debug_info.buf.buf + siblingoffset) = idxsibling;
         }
 
         /* ============= debug_pubnames =========================== */
@@ -2051,7 +2051,7 @@ static if (1)
 
         if (sd.SDaranges_offset)
             // Extend existing entry size
-            *cast(ulong *)(debug_aranges.buf.buf + sd.SDaranges_offset + _tysize[TYnptr]) = cgstate.funcoffset + sfunc.Ssize;
+            *cast(ulong*)(debug_aranges.buf.buf + sd.SDaranges_offset + _tysize[TYnptr]) = cgstate.funcoffset + sfunc.Ssize;
         else
         {   // Add entry
             sd.SDaranges_offset = cast(uint)debug_aranges.buf.length();
@@ -2109,7 +2109,7 @@ static if (1)
      * Write out symbol table for current function.
      */
 
-    void dwarf_outsym(Symbol *s)
+    void dwarf_outsym(Symbol* s)
     {
         //printf("dwarf_outsym('%s')\n",s.Sident.ptr);
         //symbol_print(s);
@@ -2119,7 +2119,7 @@ static if (1)
         if (s.Sflags & SFLnodebug)
             return;
 
-        type *t = s.Stype;
+        type* t = s.Stype;
         type_debug(t);
         tym_t tym = tybasic(t.Tty);
         if (tyfunc(tym) && s.Sclass != SC.typedef_)
@@ -2214,15 +2214,15 @@ static if (1)
 
     /* ======================= Type Index ============================== */
 
-    uint dwarf_typidx(type *t)
+    uint dwarf_typidx(type* t)
     {
         uint idx = 0;
         uint nextidx;
         uint keyidx;
         uint pvoididx;
         uint code;
-        type *tnext;
-        type *tbase;
+        type* tnext;
+        type* tbase;
         const(char)* p;
 
         static immutable ubyte[8] abbrevTypeBasic =
@@ -2396,7 +2396,7 @@ static if (1)
                     uint lenidx = I64 ? dwarf_typidx(tstypes[TYullong]) : dwarf_typidx(tstypes[TYuint]);
 
                     {
-                        type *tdata = type_alloc(TYnptr);
+                        type* tdata = type_alloc(TYnptr);
                         tdata.Tnext = t.Tnext;
                         t.Tnext.Tcount++;
                         tdata.Tcount++;
@@ -2447,7 +2447,7 @@ static if (1)
                  * function type
                  */
                 {
-                    type *tp = type_fake(TYnptr);
+                    type* tp = type_fake(TYnptr);
                     tp.Tcount++;
                     pvoididx = dwarf_typidx(tp);    // void*
 
@@ -2503,7 +2503,7 @@ static if (1)
                  * element type, Tkey is the key type
                  */
                 {
-                    type *tp = type_fake(TYnptr);
+                    type* tp = type_fake(TYnptr);
                     tp.Tcount++;
                     pvoididx = dwarf_typidx(tp);    // void*
                 }
@@ -2598,7 +2598,7 @@ static if (1)
                 nextidx = dwarf_typidx(t.Tnext);                   // function return type
                 tmpbuf.write32(nextidx);
                 uint params = 0;
-                for (param_t *p2 = t.Tparamtypes; p2; p2 = p2.Pnext)
+                for (param_t* p2 = t.Tparamtypes; p2; p2 = p2.Pnext)
                 {
                     params = 1;
                     uint paramidx = dwarf_typidx(p2.Ptype);
@@ -2624,12 +2624,12 @@ static if (1)
                  */
                 if (!functype_table)
                     functype_table = AApair.create(functypebuf.bufptr);
-                uint *pidx = cast(uint *)functype_table.get(Pair(functypebufidx, cast(uint)functypebuf.length()));
+                uint* pidx = cast(uint*)functype_table.get(Pair(functypebufidx, cast(uint)functypebuf.length()));
                 if (*pidx)
                 {
                     // Reuse existing typidx
                     functypebuf.setsize(functypebufidx);
-                    return *pidx;
+                    return* pidx;
                 }
 
                 /* Not in the cache, create a new typidx
@@ -2662,9 +2662,9 @@ static if (1)
                             DW_AT_type,              DW_FORM_ref4
                     ]);
 
-                    uint *pparamidx = cast(uint *)(functypebuf.buf + functypebufidx);
+                    uint* pparamidx = cast(uint*)(functypebuf.buf + functypebufidx);
                     //printf("2: functypebufidx = %x, pparamidx = %p, size = %x\n", functypebufidx, pparamidx, functypebuf.length());
-                    for (param_t *p2 = t.Tparamtypes; p2; p2 = p2.Pnext)
+                    for (param_t* p2 = t.Tparamtypes; p2; p2 = p2.Pnext)
                     {
                         debug_info.buf.writeuLEB128(paramcode);
                         //uint x = dwarf_typidx(p2.Ptype);
@@ -2798,8 +2798,8 @@ static if (1)
 
             case TYstruct:
             {
-                Classsym *s = t.Ttag;
-                struct_t *st = s.Sstruct;
+                Classsym* s = t.Ttag;
+                struct_t* st = s.Sstruct;
 
                 if (s.Stypidx)
                     return s.Stypidx;
@@ -2837,7 +2837,7 @@ static if (1)
                 t.Tflags |= TFforward;
                 foreach (sl; ListRange(st.Sfldlst))
                 {
-                    Symbol *sf = list_symbol(sl);
+                    Symbol* sf = list_symbol(sl);
                     switch (sf.Sclass)
                     {
                         case SC.member:
@@ -2914,7 +2914,7 @@ static if (1)
                     for (auto bc = st.Sbase; bc; bc = bc.BCnext, n++)
                     {
                         debug_info.buf.writeuLEB128(baseclasscode);
-                        uint bci = (cast(uint *)baseclassidx.buf)[n];
+                        uint bci = (cast(uint*)baseclassidx.buf)[n];
                         debug_info.buf.write32(bci);
                         const soffset = debug_info.buf.length();
                         debug_info.buf.writeByte(2);
@@ -2927,7 +2927,7 @@ static if (1)
                     n = 0;
                     foreach (sl; ListRange(st.Sfldlst))
                     {
-                        Symbol *sf = list_symbol(sl);
+                        Symbol* sf = list_symbol(sl);
                         size_t soffset;
 
                         switch (sf.Sclass)
@@ -2936,7 +2936,7 @@ static if (1)
                                 debug_info.buf.writeuLEB128(membercode);
                                 debug_info.buf.writeStringz(getSymName(sf));      // DW_AT_name
                                 //debug_info.buf.write32(dwarf_typidx(sf.Stype));
-                                uint fi = (cast(uint *)fieldidx.buf)[n];
+                                uint fi = (cast(uint*)fieldidx.buf)[n];
                                 debug_info.buf.write32(fi);
                                 n++;
                                 soffset = debug_info.buf.length();
@@ -2960,9 +2960,9 @@ static if (1)
 
             case TYenum:
             {
-                Symbol *s = t.Ttag;
-                enum_t *se = s.Senum;
-                type *tbase2 = s.Stype.Tnext;
+                Symbol* s = t.Ttag;
+                enum_t* se = s.Senum;
+                type* tbase2 = s.Stype.Tnext;
                 uint sz = cast(uint)type_size(tbase2);
                 symlist_t sl;
 
@@ -3011,7 +3011,7 @@ static if (1)
 
                 foreach (sl2; ListRange(s.Senum.SEenumlist))
                 {
-                    Symbol *sf = cast(Symbol *)list_ptr(sl2);
+                    Symbol* sf = cast(Symbol*)list_ptr(sl2);
                     const value = cast(uint)el_tolong(sf.Svalue);
 
                     debug_info.buf.writeuLEB128(membercode);
@@ -3042,7 +3042,7 @@ static if (1)
              */
             type_table = AApair.create(debug_info.buf.bufptr);
 
-        uint *pidx = type_table.get(Pair(idx, cast(uint)debug_info.buf.length()));
+        uint* pidx = type_table.get(Pair(idx, cast(uint)debug_info.buf.length()));
         if (!*pidx)                 // if no idx assigned yet
         {
             *pidx = idx;            // assign newly computed idx
@@ -3172,7 +3172,7 @@ static if (1)
          * discard this one and use the previous one.
          */
 
-        uint *pcode = abbrev_table.get(Pair(cast(uint) start, cast(uint) end));
+        uint* pcode = abbrev_table.get(Pair(cast(uint) start, cast(uint) end));
         if (!*pcode)
         {
             // if no code assigned yet, assign newly computed code
@@ -3184,7 +3184,7 @@ static if (1)
             debug_abbrev.buf.setsize(idx);
             --abbrevcode;
         }
-        return *pcode;
+        return* pcode;
     }
 
     /*****************************************************
@@ -3194,13 +3194,13 @@ static if (1)
      *      startoffset = size of function prolog
      *      retoffset = offset from start of function to epilog
      */
-    void dwarf_except_gentables(Funcsym *sfunc, uint startoffset, uint retoffset)
+    void dwarf_except_gentables(Funcsym* sfunc, uint startoffset, uint retoffset)
     {
         if (!doUnwindEhFrame())
             return;
 
         int seg = dwarf_except_table_alloc(sfunc);
-        OutBuffer *buf = SegData[seg].SDbuf;
+        OutBuffer* buf = SegData[seg].SDbuf;
         buf.reserve(100);
 
         if (config.objfmt == OBJ_ELF)
@@ -3210,10 +3210,10 @@ static if (1)
         {
             char[16 + (except_table_num).sizeof * 3 + 1] name = void;
             const length = snprintf(name.ptr, name.length, "GCC_except_table%d", ++except_table_num);
-            type *t = tspvoid;
+            type* t = tspvoid;
             t.Tcount++;
             type_setmangle(&t, Mangle.syscall);         // no leading '_' for mangled name
-            Symbol *s = symbol_name(name[0 .. length], SC.static_, t);
+            Symbol* s = symbol_name(name[0 .. length], SC.static_, t);
             Obj.pubdef(seg, s, cast(uint)buf.length());
             symbol_keep(s);
 
@@ -3230,7 +3230,7 @@ else
     void dwarf_CFA_set_loc(uint location) { }
     void dwarf_CFA_set_reg_offset(int reg, int offset) { }
     void dwarf_CFA_offset(int reg, int offset) { }
-    void dwarf_except_gentables(Funcsym *sfunc, uint startoffset, uint retoffset) { }
+    void dwarf_except_gentables(Funcsym* sfunc, uint startoffset, uint retoffset) { }
 }
 
 version (Windows)
@@ -3263,5 +3263,5 @@ private char* filespecname(const(char)* filespec) nothrow
          p--
         )
     { }
-    return cast(char *)p;
+    return cast(char*)p;
 }

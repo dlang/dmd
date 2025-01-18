@@ -70,7 +70,7 @@ private __gshared
 
 private __gshared
 {
-    elem *nextfree = null;           /* pointer to next free elem    */
+    elem* nextfree = null;           /* pointer to next free elem    */
 
     int elcount = 0;                 /* number of allocated elems    */
     int elem_size = elem.sizeof;
@@ -84,7 +84,7 @@ private __gshared
 
 struct STAB
 {
-    Symbol *sym;        // symbol that refers to the string
+    Symbol* sym;        // symbol that refers to the string
     char[] str;         // the string
 }
 
@@ -136,7 +136,7 @@ void el_term()
             printf("unfreed elems = %d\n",elcount);
         while (nextfree)
         {
-            elem *e;
+            elem* e;
             e = nextfree.E1;
             mem_ffree(nextfree);
             nextfree = e;
@@ -153,9 +153,9 @@ void el_term()
  */
 
 @trusted
-elem *el_calloc()
+elem* el_calloc()
 {
-    elem *e;
+    elem* e;
 
     elcount++;
     if (nextfree)
@@ -164,7 +164,7 @@ elem *el_calloc()
         nextfree = e.E1;
     }
     else
-        e = cast(elem *) mem_fmalloc(elem.sizeof);
+        e = cast(elem*) mem_fmalloc(elem.sizeof);
 
     version (STATS)
         eprm_cnt++;
@@ -187,7 +187,7 @@ elem *el_calloc()
  * Free element
  */
 @trusted
-void el_free(elem *e)
+void el_free(elem* e)
 {
 L1:
     if (!e) return;
@@ -246,7 +246,7 @@ version (STATS)
     /* count number of elems available on free list */
     void el_count_free()
     {
-        elem *e;
+        elem* e;
         int count;
 
         for(e=nextfree;e;e=e.E1)
@@ -263,7 +263,7 @@ version (STATS)
  * Be careful about either or both being null.
  */
 
-elem * el_combine(elem *e1,elem *e2)
+elem* el_combine(elem* e1,elem* e2)
 {
     if (e1)
     {
@@ -282,7 +282,7 @@ elem * el_combine(elem *e1,elem *e2)
  * Be careful about either or both being null.
  */
 
-elem * el_param(elem *e1,elem *e2)
+elem* el_param(elem* e1,elem* e2)
 {
     //printf("el_param(%p, %p)\n", e1, e2);
     if (e1)
@@ -302,9 +302,9 @@ elem * el_param(elem *e1,elem *e2)
  */
 
 @trusted
-elem *el_params(elem *e1, ...)
+elem* el_params(elem* e1, ...)
 {
-    elem *e;
+    elem* e;
     va_list ap;
 
     e = null;
@@ -323,12 +323,12 @@ elem *el_params(elem *e1, ...)
  */
 
 @trusted
-elem *el_params(void **args, int length)
+elem* el_params(void** args, int length)
 {
     if (length == 0)
         return null;
     if (length == 1)
-        return cast(elem *)args[0];
+        return cast(elem*)args[0];
     int mid = length >> 1;
     return el_param(el_params(args, mid),
                     el_params(args + mid, length - mid));
@@ -340,12 +340,12 @@ elem *el_params(void **args, int length)
  */
 
 @trusted
-elem *el_combines(void **args, int length)
+elem* el_combines(void** args, int length)
 {
     if (length == 0)
         return null;
     if (length == 1)
-        return cast(elem *)args[0];
+        return cast(elem*)args[0];
     int mid = length >> 1;
     return el_combine(el_combines(args, mid),
                     el_combines(args + mid, length - mid));
@@ -356,7 +356,7 @@ elem *el_combines(void **args, int length)
  */
 
 @trusted
-size_t el_opN(const elem *e, OPER op)
+size_t el_opN(const elem* e, OPER op)
 {
     if (e.Eoper == op)
         return el_opN(e.E1, op) + el_opN(e.E2, op);
@@ -369,7 +369,7 @@ size_t el_opN(const elem *e, OPER op)
  */
 
 @trusted
-void el_opArray(elem ***parray, elem *e, OPER op)
+void el_opArray(elem ***parray, elem* e, OPER op)
 {
     if (e.Eoper == op)
     {
@@ -384,7 +384,7 @@ void el_opArray(elem ***parray, elem *e, OPER op)
 }
 
 @trusted
-void el_opFree(elem *e, OPER op)
+void el_opFree(elem* e, OPER op)
 {
     if (e.Eoper == op)
     {
@@ -401,7 +401,7 @@ void el_opFree(elem *e, OPER op)
  */
 
 @trusted
-elem *el_opCombine(elem **args, size_t length, OPER op, tym_t ty)
+elem* el_opCombine(elem** args, size_t length, OPER op, tym_t ty)
 {
     if (length == 0)
         return null;
@@ -414,7 +414,7 @@ elem *el_opCombine(elem **args, size_t length, OPER op, tym_t ty)
  * Return a list of the parameters.
  */
 
-int el_nparams(const elem *e)
+int el_nparams(const elem* e)
 {
     return cast(int)el_opN(e, OPparam);
 }
@@ -424,7 +424,7 @@ int el_nparams(const elem *e)
  */
 
 @trusted
-void el_paramArray(elem ***parray, elem *e)
+void el_paramArray(elem ***parray, elem* e)
 {
     if (e.Eoper == OPparam)
     {
@@ -443,7 +443,7 @@ void el_paramArray(elem ***parray, elem *e)
  * Create a quad word out of two dwords.
  */
 
-elem *el_pair(tym_t tym, elem *lo, elem *hi)
+elem* el_pair(tym_t tym, elem* lo, elem* hi)
 {
     static if (0)
     {
@@ -464,7 +464,7 @@ elem *el_pair(tym_t tym, elem *lo, elem *hi)
  */
 
 @trusted
-void el_copy(elem *to, const elem *from)
+void el_copy(elem* to, const elem* from)
 {
     assert(to && from);
     elem_debug(from);
@@ -476,9 +476,9 @@ void el_copy(elem *to, const elem *from)
 /***********************************
  * Allocate a temporary, and return temporary elem.
  */
-elem * el_alloctmp(tym_t ty)
+elem* el_alloctmp(tym_t ty)
 {
-    Symbol *s;
+    Symbol* s;
     s = symbol_generate(SC.auto_,type_fake(ty));
     symbol_add(s);
     s.Sfl = FL.auto_;
@@ -491,9 +491,9 @@ elem * el_alloctmp(tym_t ty)
  */
 
 @trusted
-elem * el_selecte1(elem *e)
+elem* el_selecte1(elem* e)
 {
-    elem *e1;
+    elem* e1;
     elem_debug(e);
     assert(!OTleaf(e.Eoper));
     e1 = e.E1;
@@ -519,9 +519,9 @@ elem * el_selecte1(elem *e)
  */
 
 @trusted
-elem * el_selecte2(elem *e)
+elem* el_selecte2(elem* e)
 {
-    elem *e2;
+    elem* e2;
     //printf("el_selecte2(%p)\n",e);
     elem_debug(e);
     assert(OTbinary(e.Eoper));
@@ -548,9 +548,9 @@ elem * el_selecte2(elem *e)
  */
 
 @trusted
-elem * el_copytree(elem *e)
+elem* el_copytree(elem* e)
 {
-    elem *d;
+    elem* d;
     if (!e)
         return e;
     elem_debug(e);
@@ -590,7 +590,7 @@ static if (0)
                 break;
 }
             case OPasm:
-                d.Vstring = cast(char *) mem_malloc(d.Vstrlen);
+                d.Vstring = cast(char*) mem_malloc(d.Vstrlen);
                 memcpy(d.Vstring,e.Vstring,e.Vstrlen);
                 break;
 
@@ -605,20 +605,20 @@ static if (0)
  * Replace (e) with ((stmp = e),stmp)
  */
 @trusted
-elem *exp2_copytotemp(elem *e)
+elem* exp2_copytotemp(elem* e)
 {
     //printf("exp2_copytotemp()\n");
     elem_debug(e);
     tym_t ty = tybasic(e.Ety);
-    type *t;
+    type* t;
     if ((ty == TYstruct || ty == TYarray) && e.ET)
         t = e.ET;
     else
         t = type_fake(ty);
 
-    Symbol *stmp = symbol_genauto(t);
-    elem *eeq = el_bin(OPeq,e.Ety,el_var(stmp),e);
-    elem *er = el_bin(OPcomma,e.Ety,eeq,el_var(stmp));
+    Symbol* stmp = symbol_genauto(t);
+    elem* eeq = el_bin(OPeq,e.Ety,el_var(stmp),e);
+    elem* er = el_bin(OPcomma,e.Ety,eeq,el_var(stmp));
     if (ty == TYstruct || ty == TYarray)
     {
         eeq.Eoper = OPstreq;
@@ -636,9 +636,9 @@ elem *exp2_copytotemp(elem *e)
  */
 
 @trusted
-elem * el_same(ref elem* pe)
+elem* el_same(ref elem* pe)
 {
-    elem *e = pe;
+    elem* e = pe;
     if (e && el_sideeffect(e))
     {
         pe = exp2_copytotemp(e);       /* convert to ((tmp=e),tmp)     */
@@ -652,10 +652,10 @@ elem * el_same(ref elem* pe)
  * always makes a temporary.
  */
 @trusted
-elem *el_copytotmp(ref elem* pe)
+elem* el_copytotmp(ref elem* pe)
 {
     //printf("copytotemp()\n");
-    elem *e = pe;
+    elem* e = pe;
     if (e)
     {
         pe = exp2_copytotemp(e);
@@ -672,7 +672,7 @@ elem *el_copytotmp(ref elem* pe)
  */
 
 @trusted
-int el_appears(const(elem)* e, const Symbol *s)
+int el_appears(const(elem)* e, const Symbol* s)
 {
     symbol_debug(s);
     while (1)
@@ -712,9 +712,9 @@ int el_appears(const(elem)* e, const Symbol *s)
 
 static if (0)
 {
-Symbol *el_basesym(elem *e)
+Symbol* el_basesym(elem* e)
 {
-    Symbol *s;
+    Symbol* s;
     s = null;
     while (1)
     {
@@ -752,7 +752,7 @@ Symbol *el_basesym(elem *e)
  */
 
 @trusted
-bool el_anydef(const elem *ed, const(elem)* e)
+bool el_anydef(const elem* ed, const(elem)* e)
 {
     const edop = ed.Eoper;
     const s = (edop == OPvar) ? ed.Vsym : null;
@@ -787,12 +787,12 @@ bool el_anydef(const elem *ed, const(elem)* e)
 
 
 @trusted
-elem* el_bin(OPER op,tym_t ty,elem *e1,elem *e2)
+elem* el_bin(OPER op,tym_t ty,elem* e1,elem* e2)
 {
 static if (0)
 {
     if (!(op < OPMAX && OTbinary(op) && e1 && e2))
-        *cast(char *)0=0;
+        *cast(char*)0=0;
 }
     assert(op < OPMAX && OTbinary(op) && e1 && e2);
     elem_debug(e1);
@@ -811,7 +811,7 @@ static if (0)
  * Make a unary operator node.
  */
 @trusted
-elem* el_una(OPER op,tym_t ty,elem *e1)
+elem* el_una(OPER op,tym_t ty,elem* e1)
 {
     debug if (!(op < OPMAX && OTunary(op) && e1))
         printf("op = x%x, e1 = %p\n",op,e1);
@@ -934,7 +934,7 @@ elem* el_vectorConst(tym_t ty, ulong val)
  * Set new type for elem.
  */
 
-elem * el_settype(elem *e,type *t)
+elem* el_settype(elem* e,type* t)
 {
     assert(0);
 }
@@ -943,7 +943,7 @@ elem * el_settype(elem *e,type *t)
  * Create elem that is the size of a type.
  */
 
-elem * el_typesize(type *t)
+elem* el_typesize(type* t)
 {
     assert(0);
 }
@@ -953,7 +953,7 @@ elem * el_typesize(type *t)
  */
 
 @trusted
-bool el_funcsideeff(const elem *e)
+bool el_funcsideeff(const elem* e)
 {
     const(Symbol)* s;
     if (e.Eoper == OPvar &&
@@ -969,7 +969,7 @@ bool el_funcsideeff(const elem *e)
  */
 
 @trusted
-bool el_sideeffect(const elem *e)
+bool el_sideeffect(const elem* e)
 {
     assert(e);
     const op = e.Eoper;
@@ -992,7 +992,7 @@ bool el_sideeffect(const elem *e)
  */
 
 @trusted
-int el_depends(const(elem)* ea, const elem *eb)
+int el_depends(const(elem)* ea, const elem* eb)
 {
  L1:
     elem_debug(ea);
@@ -1039,7 +1039,7 @@ Lnodep:
  */
 
 @trusted
-bool ERTOL(const elem *e)
+bool ERTOL(const elem* e)
 {
     elem_debug(e);
     return OTrtol(e.Eoper) &&
@@ -1109,7 +1109,7 @@ bool el_returns(const(elem)* e)
  */
 
 @trusted
-elem **el_scancommas(elem **pe)
+elem** el_scancommas(elem** pe)
 {
     while ((*pe).Eoper == OPcomma)
         pe = &(*pe).E2;
@@ -1164,7 +1164,7 @@ elem* el_convfloat(ref GlobalOptimizer go, elem* e)
     tym_t ty = e.Ety;
     int sz = tysize(ty);
     assert(sz <= buffer.length);
-    void *p;
+    void* p;
     switch (tybasic(ty))
     {
         case TYfloat:
@@ -1216,12 +1216,12 @@ elem* el_convfloat(ref GlobalOptimizer go, elem* e)
         printf("%gL+%gLi\n", cast(double)e.Vcldouble.re, cast(double)e.Vcldouble.im);
         printf("el_convfloat() %g %g sz=%d\n", e.Vcdouble.re, e.Vcdouble.im, sz);
         printf("el_convfloat(): sz = %d\n", sz);
-        ushort *p = cast(ushort *)&e.Vcldouble;
+        ushort* p = cast(ushort*)&e.Vcldouble;
         for (int i = 0; i < sz/2; i++) printf("%04x ", p[i]);
         printf("\n");
     }
 
-    Symbol *s  = out_readonly_sym(ty, p, sz);
+    Symbol* s  = out_readonly_sym(ty, p, sz);
     el_free(e);
     e = el_var(s);
     e.Ety = ty;
@@ -1249,16 +1249,16 @@ elem* el_convxmm(ref GlobalOptimizer go, elem* e)
     tym_t ty = e.Ety;
     int sz = tysize(ty);
     assert(sz <= buffer.length);
-    void *p = &e.EV;
+    void* p = &e.EV;
 
     static if (0)
     {
         printf("el_convxmm(): sz = %d\n", sz);
-        for (size i = 0; i < sz; i++) printf("%02x ", (cast(ubyte *)p)[i]);
+        for (size i = 0; i < sz; i++) printf("%02x ", (cast(ubyte*)p)[i]);
         printf("\n");
     }
 
-    Symbol *s  = out_readonly_sym(ty, p, sz);
+    Symbol* s  = out_readonly_sym(ty, p, sz);
     el_free(e);
     e = el_var(s);
     e.Ety = ty;
@@ -1274,12 +1274,12 @@ elem* el_convxmm(ref GlobalOptimizer go, elem* e)
  */
 
 @trusted
-elem *el_convstring(elem *e)
+elem* el_convstring(elem* e)
 {
     //printf("el_convstring()\n");
     int i;
-    Symbol *s;
-    char *p;
+    Symbol* s;
+    char* p;
 
     elem_debug(e);
     assert(e.Eoper == OPstring);
@@ -1327,7 +1327,7 @@ elem *el_convstring(elem *e)
 
 L1:
     // Refer e to the symbol generated
-    elem *ex = el_ptr(s);
+    elem* ex = el_ptr(s);
     ex.Ety = e.Ety;
     if (e.Voffset)
     {
@@ -1350,7 +1350,7 @@ L1:
 static if (1)
 {
 @trusted
-void shrinkLongDoubleConstantIfPossible(elem *e)
+void shrinkLongDoubleConstantIfPossible(elem* e)
 {
     if (e.Eoper == OPconst && e.Ety == TYldouble)
     {
@@ -1462,7 +1462,7 @@ elem* el_convert(ref GlobalOptimizer go, elem* e)
  */
 
 @safe
-elem * el_const(tym_t ty, ref Vconst pconst)
+elem* el_const(tym_t ty, ref Vconst pconst)
 {
     elem* e = el_calloc();
     e.Eoper = OPconst;
@@ -1482,9 +1482,9 @@ elem * el_const(tym_t ty, ref Vconst pconst)
 
 static if (0)
 {
-elem *el_dctor(elem *e,void *decl)
+elem* el_dctor(elem* e,void* decl)
 {
-    elem *ector = el_calloc();
+    elem* ector = el_calloc();
     ector.Eoper = OPdctor;
     ector.Ety = TYvoid;
     ector.ed.Edecl = decl;
@@ -1508,13 +1508,13 @@ elem *el_dctor(elem *e,void *decl)
 
 static if (0)
 {
-elem *el_ddtor(elem *e,void *decl)
+elem* el_ddtor(elem* e,void* decl)
 {
     /* A destructor always executes code, or we wouldn't need
      * eh for it.
      * An OPddtor must match 1:1 with an OPdctor
      */
-    elem *edtor = el_calloc();
+    elem* edtor = el_calloc();
     edtor.Eoper = OPddtor;
     edtor.Ety = TYvoid;
     edtor.ed.Edecl = decl;
@@ -1535,9 +1535,9 @@ elem *el_ddtor(elem *e,void *decl)
  */
 
 @trusted
-elem *el_ctor_dtor(elem *ec, elem *ed, out elem* pedtor)
+elem* el_ctor_dtor(elem* ec, elem* ed, out elem* pedtor)
 {
-    elem *er;
+    elem* er;
     if (config.ehmethod == EHmethod.EH_DWARF)
     {
         /* Construct (note that OPinfo is evaluated RTOL):
@@ -1549,39 +1549,39 @@ elem *el_ctor_dtor(elem *ec, elem *ed, out elem* pedtor)
          * Use volatile to prevent optimizer from messing them up, since optimizer doesn't know about
          * landing pads (the landing pad will be on the OPddtor's EV.ed.Eleft)
          */
-        Symbol *sflag = symbol_name("__flag", SC.auto_, type_fake(mTYvolatile | TYbool));
-        Symbol *sreg = symbol_name("__EAX", SC.pseudo, type_fake(mTYvolatile | TYnptr));
+        Symbol* sflag = symbol_name("__flag", SC.auto_, type_fake(mTYvolatile | TYbool));
+        Symbol* sreg = symbol_name("__EAX", SC.pseudo, type_fake(mTYvolatile | TYnptr));
         sreg.Sreglsw = 0;          // EAX, RAX, whatevs
-        Symbol *seo = symbol_name("__exception_object", SC.auto_, tspvoid);
+        Symbol* seo = symbol_name("__exception_object", SC.auto_, tspvoid);
 
         symbol_add(sflag);
         symbol_add(sreg);
         symbol_add(seo);
 
-        elem *ector = el_calloc();
+        elem* ector = el_calloc();
         ector.Eoper = OPdctor;
         ector.Ety = TYvoid;
 //      ector.ed.Edecl = decl;
 
         Vconst c = void;
         memset(&c, 0, c.sizeof);
-        elem *e_flag_0 = el_bin(OPeq, TYvoid, el_var(sflag), el_const(TYbool, c));  // __flag = 0
+        elem* e_flag_0 = el_bin(OPeq, TYvoid, el_var(sflag), el_const(TYbool, c));  // __flag = 0
         er = el_bin(OPinfo, ec ? ec.Ety : TYvoid, ector, el_combine(e_flag_0, ec));
 
         /* A destructor always executes code, or we wouldn't need
          * eh for it.
          * An OPddtor must match 1:1 with an OPdctor
          */
-        elem *edtor = el_calloc();
+        elem* edtor = el_calloc();
         edtor.Eoper = OPddtor;
         edtor.Ety = TYvoid;
 //      edtor.Edecl = decl;
 //      edtor.E1 = e;
 
         c.Vint = 1;
-        elem *e_flag_1 = el_bin(OPeq, TYvoid, el_var(sflag), el_const(TYbool, c));  // __flag = 1
-        elem *e_eax = el_bin(OPeq, TYvoid, el_var(seo), el_var(sreg));              // __exception_object = __EAX
-        elem *eu = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.UNWIND_RESUME)), el_var(seo));
+        elem* e_flag_1 = el_bin(OPeq, TYvoid, el_var(sflag), el_const(TYbool, c));  // __flag = 1
+        elem* e_eax = el_bin(OPeq, TYvoid, el_var(seo), el_var(sreg));              // __exception_object = __EAX
+        elem* eu = el_bin(OPcall, TYvoid, el_var(getRtlsym(RTLSYM.UNWIND_RESUME)), el_var(seo));
         eu = el_bin(OPandand, TYvoid, el_una(OPnot, TYbool, el_var(sflag)), eu);
 
         edtor.E1 = el_combine(el_combine(e_eax, ed), eu);
@@ -1594,7 +1594,7 @@ elem *el_ctor_dtor(elem *ec, elem *ed, out elem* pedtor)
          *  er = (OPdctor OPinfo ec)
          *  edtor = (OPddtor ed)
          */
-        elem *ector = el_calloc();
+        elem* ector = el_calloc();
         ector.Eoper = OPdctor;
         ector.Ety = TYvoid;
 //      ector.ed.Edecl = decl;
@@ -1610,7 +1610,7 @@ elem *el_ctor_dtor(elem *ec, elem *ed, out elem* pedtor)
          * eh for it.
          * An OPddtor must match 1:1 with an OPdctor
          */
-        elem *edtor = el_calloc();
+        elem* edtor = el_calloc();
         edtor.Eoper = OPddtor;
         edtor.Ety = TYvoid;
 //      edtor.Edecl = decl;
@@ -1627,7 +1627,7 @@ elem *el_ctor_dtor(elem *ec, elem *ed, out elem* pedtor)
  */
 
 @trusted
-elem ** el_parent(elem *e, return ref elem* pe)
+elem ** el_parent(elem* e, return ref elem* pe)
 {
     assert(e && pe);
     elem_debug(e);
@@ -1984,7 +1984,7 @@ bool el_match5(const elem* n1, const elem* n2)
  */
 
 @trusted
-targ_llong el_tolong(elem *e)
+targ_llong el_tolong(elem* e)
 {
     elem_debug(e);
     if (e.Eoper != OPconst)
@@ -2156,7 +2156,7 @@ bool el_signx32(const elem* e)
 
 version (CRuntime_Microsoft)
 {
-longdouble_soft el_toldouble(elem *e)
+longdouble_soft el_toldouble(elem* e)
 {
     longdouble_soft result;
     elem_debug(e);
@@ -2191,7 +2191,7 @@ longdouble_soft el_toldouble(elem *e)
 }
 else
 {
-targ_ldouble el_toldouble(elem *e)
+targ_ldouble el_toldouble(elem* e)
 {
     targ_ldouble result;
     elem_debug(e);
@@ -2253,7 +2253,7 @@ bool el_isdependent(elem* e)
 /****************************************
  * Returns: alignment size of elem e
  */
-uint el_alignsize(elem *e)
+uint el_alignsize(elem* e)
 {
     const tym = tybasic(e.Ety);
     uint alignsize = tyalignsize(tym);

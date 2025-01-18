@@ -201,7 +201,7 @@ void cgreg_used(uint bi,regm_t used)
  */
 
 @trusted
-private void el_weights(int bi,elem *e,uint weight)
+private void el_weights(int bi,elem* e,uint weight)
 {
     while (1)
     {   elem_debug(e);
@@ -236,7 +236,7 @@ private void el_weights(int bi,elem *e,uint weight)
             switch (op)
             {
                 case OPvar:
-                    Symbol *s = e.Vsym;
+                    Symbol* s = e.Vsym;
                     if (s.Ssymnum != SYMIDX.max && s.Sflags & GTregcand)
                     {
                         s.Sweight += weight;
@@ -261,11 +261,11 @@ private void el_weights(int bi,elem *e,uint weight)
  */
 
 @trusted
-private int cgreg_benefit(Symbol *s, reg_t reg, Symbol *retsym)
+private int cgreg_benefit(Symbol* s, reg_t reg, Symbol* retsym)
 {
     int benefit;
     int benefit2;
-    block *b;
+    block* b;
     int bi;
     int gotoepilog;
     int retsym_cnt;
@@ -339,7 +339,7 @@ static if (1) // causes assert failure in std.range(4488) from std.parallelism's
         benefit2 = 0;
         foreach (bl; ListRange(b.Bpred))
         {
-            block *bp = list_block(bl);
+            block* bp = list_block(bl);
             int bpi = bp.Bdfoidx;
             if (!vec_testbit(bpi,s.Srange))
                 continue;
@@ -443,7 +443,7 @@ Lcant:
  * or by prolog (0).
  */
 
-int cgreg_gotoepilog(block *b,Symbol *s)
+int cgreg_gotoepilog(block* b,Symbol* s)
 {
     int bi = b.Bdfoidx;
 
@@ -458,7 +458,7 @@ int cgreg_gotoepilog(block *b,Symbol *s)
     int inoutp = 0;
     foreach (bl; ListRange(b.Bpred))
     {
-        block *bp = list_block(bl);
+        block* bp = list_block(bl);
         int bpi = bp.Bdfoidx;
         if (!vec_testbit(bpi,s.Srange))
             continue;
@@ -528,7 +528,7 @@ Lcant:
  *      cdbstore = append store code to this
  *      cdbload = append load code to this
  */
-void cgreg_spillreg_prolog(block *b,Symbol *s,ref CodeBuilder cdbstore,ref CodeBuilder cdbload)
+void cgreg_spillreg_prolog(block* b,Symbol* s,ref CodeBuilder cdbstore,ref CodeBuilder cdbload)
 {
     const int bi = b.Bdfoidx;
 
@@ -602,7 +602,7 @@ void cgreg_spillreg_prolog(block *b,Symbol *s,ref CodeBuilder cdbstore,ref CodeB
  *      cdbstore = append store code to this
  *      cdbload = append load code to this
  */
-void cgreg_spillreg_epilog(block *b,Symbol *s,ref CodeBuilder cdbstore, ref CodeBuilder cdbload)
+void cgreg_spillreg_epilog(block* b,Symbol* s,ref CodeBuilder cdbstore, ref CodeBuilder cdbload)
 {
     const bi = b.Bdfoidx;
     //printf("cgreg_spillreg_epilog(block %d, s = '%s')\n",bi,s.Sident.ptr);
@@ -646,7 +646,7 @@ void cgreg_spillreg_epilog(block *b,Symbol *s,ref CodeBuilder cdbstore, ref Code
  */
 
 @trusted
-private void cgreg_map(Symbol *s, reg_t regmsw, reg_t reglsw)
+private void cgreg_map(Symbol* s, reg_t regmsw, reg_t reglsw)
 {
     //assert(I64 || reglsw < 8);
 
@@ -762,14 +762,14 @@ void cgreg_unregister(regm_t conflict)
 
 struct Reg              // data for trial register assignment
 {
-    Symbol *sym;
+    Symbol* sym;
     int benefit;
     reg_t reglsw;
     reg_t regmsw;
 }
 
 @trusted
-int cgreg_assign(Symbol *retsym)
+int cgreg_assign(Symbol* retsym)
 {
     int flag = false;                   // assume no changes
 

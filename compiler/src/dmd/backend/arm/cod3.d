@@ -124,7 +124,7 @@ enum COND : ubyte
  * Returns: a condition code relevant to the elem for a JMP true.
  */
 @trusted
-COND conditionCode(elem *e)
+COND conditionCode(elem* e)
 {
     //printf("conditionCode()\n"); elem_print(e);
 
@@ -233,7 +233,7 @@ void genBranch(ref CodeBuilder cdb, COND cond, FL fltarg, block* targ)
     cs.IFL1 = fltarg;                   // FL.block (or FL.code)
     cs.IEV1.Vblock = targ;              // target block (or code)
     if (fltarg == FL.code)
-        (cast(code *)targ).Iflags |= CFtarg;
+        (cast(code*)targ).Iflags |= CFtarg;
     cdb.gen(&cs);
 }
 
@@ -262,11 +262,11 @@ void genBranch(ref CodeBuilder cdb, COND cond, FL fltarg, block* targ)
  */
 
 @trusted
-void epilog(block *b)
+void epilog(block* b)
 {
     enum log = false;
     if (log) printf("arm.epilog()\n");
-    code *cpopds;
+    code* cpopds;
     reg_t reg;
     reg_t regx;                      // register that's not a return reg
     regm_t topop,regm;
@@ -293,7 +293,7 @@ void epilog(block *b)
         )
        )
     {
-        Symbol *s = getRtlsym(farfunc ? RTLSYM.TRACE_EPI_F : RTLSYM.TRACE_EPI_N);
+        Symbol* s = getRtlsym(farfunc ? RTLSYM.TRACE_EPI_F : RTLSYM.TRACE_EPI_N);
         makeitextern(s);
         cdbx.gencs(I16 ? 0x9A : CALL,0,FL.func,s);      // CALLF _trace
         code_orflag(cdbx.last(),CFoff | CFselfrel);
@@ -351,12 +351,12 @@ void epilog(block *b)
                 uint grex = I64 ? REX_W << 16 : 0;
                 cdbx.genc2(0xC7,grex | modregrmx(3,0,regcx),value);   // MOV regcx,value
                 cdbx.gen2sib(0x89,grex | modregrm(0,regcx,4),modregrm(0,4,SP)); // MOV [ESP],regcx
-                code *c1 = cdbx.last();
+                code* c1 = cdbx.last();
                 cdbx.genc2(0x81,grex | modregrm(3,0,SP),REGSIZE);     // ADD ESP,REGSIZE
                 genregs(cdbx,0x39,SP,BP);                             // CMP EBP,ESP
                 if (I64)
                     code_orrex(cdbx.last(),REX_W);
-                genjmp(cdbx,JNE,FL.code,cast(block *)c1);                  // JNE L1
+                genjmp(cdbx,JNE,FL.code,cast(block*)c1);                  // JNE L1
                 // explicitly mark as short jump, needed for correct retsize calculation (Bugzilla 15779)
                 cdbx.last().Iflags &= ~CFjmp16;
                 cdbx.gen1(0x58 + BP);                                 // POP BP
@@ -430,8 +430,8 @@ Lret:
     // in c sets SP, we can dump the ADD.
     CodeBuilder cdb; cdb.ctor();
     cdb.append(b.Bcode);
-    code *cr = cdb.last();
-    code *c = cdbx.peek();
+    code* cr = cdb.last();
+    code* c = cdbx.peek();
 
     //pinholeopt(c, null);
     cgstate.retsize += calcblksize(c);          // compute size of function epilog
@@ -457,7 +457,7 @@ Lret:
  */
 
 @trusted
-int branch(block *bl,int flag)
+int branch(block* bl,int flag)
 {
     int bytesaved;
     code* c,cn,ct;
@@ -497,7 +497,7 @@ int branch(block *bl,int flag)
                     if (disp >= (1 << 22) - 5 && c.IEV1.Vblock.Boffset > offset)
                     {   /* Look for intervening alignment
                          */
-                        for (block *b = bl.Bnext; b; b = b.Bnext)
+                        for (block* b = bl.Bnext; b; b = b.Bnext)
                         {
                             if (b.Balign)
                             {
@@ -513,7 +513,7 @@ int branch(block *bl,int flag)
 
                 case FL.code:
                 {
-                    code *cr;
+                    code* cr;
 
                     disp = 0;
 
@@ -622,7 +622,7 @@ int branch(block *bl,int flag)
                         // If nobody else points to ct, we can remove the CFtarg
                         if (flag && ct)
                         {
-                            code *cx;
+                            code* cx;
                             for (cx = bl.Bcode; 1; cx = code_next(cx))
                             {
                                 if (!cx)
@@ -874,10 +874,10 @@ bool orr_solution(ulong value, out uint N, out uint immr, out uint imms)
  * Replace symbolic references with values
  */
 @trusted
-void assignaddrc(code *c)
+void assignaddrc(code* c)
 {
     int sn;
-    Symbol *s;
+    Symbol* s;
     ubyte rm;
     uint sectionOff;
     ulong offset;
@@ -921,7 +921,7 @@ void assignaddrc(code *c)
                         if (cgstate.enforcealign)
                         {
                             // AND ESP, -STACKALIGN
-                            code *cn = code_calloc();
+                            code* cn = code_calloc();
                             cn.Iop = 0x81;
                             cn.Irm = modregrm(3, 4, SP);
                             cn.Iflags = CFoff;
@@ -1184,7 +1184,7 @@ printf("offset: %lld localsize: %lld REGSIZE*2: %d\n", offset, localsize, REGSIZ
  *       LOOP instructions only work for backward refs.
  */
 @trusted
-void jmpaddr(code *c)
+void jmpaddr(code* c)
 {
     code* ci,cn,ctarg,cstart;
     targ_size_t ad;
@@ -1234,7 +1234,7 @@ void jmpaddr(code *c)
  * Calculate bl.Bsize.
  */
 
-uint calcblksize(code *c)
+uint calcblksize(code* c)
 {
     uint size = 0;
     for (; c; c = code_next(c))
@@ -1251,7 +1251,7 @@ uint calcblksize(code *c)
  */
 
 @trusted
-uint calccodsize(code *c)
+uint calccodsize(code* c)
 {
     if (c.Iop == INSTR.nop)
         return 0;
@@ -1271,9 +1271,9 @@ uint calccodsize(code *c)
  */
 
 @trusted
-uint codout(int seg, code *c, Barray!ubyte* disasmBuf, ref targ_size_t framehandleroffset)
+uint codout(int seg, code* c, Barray!ubyte* disasmBuf, ref targ_size_t framehandleroffset)
 {
-    code *cn;
+    code* cn;
     uint flags;
 
     debug
@@ -1389,7 +1389,7 @@ uint codout(int seg, code *c, Barray!ubyte* disasmBuf, ref targ_size_t framehand
  * Debug code to dump code structure.
  */
 
-void WRcodlst(code *c)
+void WRcodlst(code* c)
 {
     for (; c; c = code_next(c))
         code_print(c);
