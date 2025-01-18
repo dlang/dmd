@@ -387,7 +387,12 @@ extern (D) void reportSafeError(FuncDeclaration fd, bool gag, Loc loc,
             if (fd.isSafe())
                 buf.writestring(" is not allowed in a `@safe` function");
             else
-                buf.writestring(" is not allowed in a function with default safety with `-preview=safer`");
+            {
+                version (IN_GCC)
+                    buf.writestring(" is not allowed in a function with default safety with `-fpreview=safer`");
+                else
+                    buf.writestring(" is not allowed in a function with default safety with `-preview=safer`");
+            }
             .error(loc, "%s", buf.extractChars());
         }
     }
