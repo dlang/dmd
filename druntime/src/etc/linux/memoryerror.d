@@ -38,7 +38,12 @@ version (linux)
         version = MemoryAssertSupported;
 }
 
-@system:
+version (MemoryErrorSupported)
+    version = AnySupported;
+version (MemoryErrorSupported)
+    version = AnySupported;
+
+version (AnySupported):
 
 import core.sys.posix.signal : SA_SIGINFO, sigaction, sigaction_t, siginfo_t, SIGSEGV;
 import ucontext = core.sys.posix.ucontext;
