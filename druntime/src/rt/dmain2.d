@@ -423,6 +423,14 @@ private extern (C) int _d_run_main2(char[][] args, size_t totalArgsLength, MainF
                 pop     EAX;
             }
         }
+        else version (GNU_InlineAsm)
+        {
+            size_t fpu_cw;
+            asm { "fstcw %0" : "=m" (fpu_cw); }
+            fpu_cw |= 0b11_00_111111;  // 11: use 64 bit extended-precision
+                                       // 111111: mask all FP exceptions
+            asm { "fldcw %0" : "=m" (fpu_cw); }
+        }
     }
 
     /* Create a copy of args[] on the stack to be used for main, so that rt_args()
