@@ -10,7 +10,7 @@
  */
 module core.internal.backtrace.unwind;
 
-import core.stdc.stdint;
+import core.stdc.stdint : intptr_t, uintptr_t;
 
 version (ARM)
 {

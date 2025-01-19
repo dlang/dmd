@@ -146,8 +146,8 @@ struct SharedObject
     char[] getPath(size_t N)(ref char[N] buffer) const
     if (N > 1)
     {
-        import core.stdc.stdio;
-        import core.stdc.string;
+        import core.stdc.stdio : fclose, fgets, fopen, snprintf, sscanf;
+        import core.stdc.string : strlen;
         import core.sys.posix.unistd : getpid;
 
         char[N + 128] lineBuffer = void;
@@ -232,7 +232,7 @@ else // Bionic, BSDs
 
 unittest
 {
-    import core.stdc.stdio;
+    import core.stdc.stdio : printf;
 
     char[512] buffer = void;
     foreach (object; SharedObjects)

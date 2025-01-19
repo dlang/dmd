@@ -33,7 +33,7 @@ version (DRuntime_Use_Libunwind):
 // mechanism for Windows, so the bindings haven't been brought in yet.
 version (Posix):
 
-import core.stdc.inttypes;
+import core.stdc.inttypes : uintptr_t;
 
 extern(C):
 @nogc:
