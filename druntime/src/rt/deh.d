@@ -50,7 +50,9 @@ extern (C)
     }
 }
 
-version (Win32)
+version (GNU)
+    public import gcc.deh;
+else version (Win32)
     public import rt.deh_win32;
 else version (Win64)
     public import rt.deh_win64_posix;

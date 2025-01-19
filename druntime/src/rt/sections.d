@@ -19,7 +19,9 @@ else version (TVOS)
 else version (WatchOS)
     version = Darwin;
 
-version (CRuntime_Glibc)
+version (GNU)
+    public import gcc.sections;
+else version (CRuntime_Glibc)
     public import rt.sections_elf_shared;
 else version (CRuntime_Musl)
     public import rt.sections_elf_shared;
