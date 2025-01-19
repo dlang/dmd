@@ -140,7 +140,7 @@ pragma(inline, true) @nogc nothrow pure @safe {
     uint OSVER(uint Version) => Version & OSVERSION_MASK;
     uint SPVER(uint Version) => (Version & SPVERSION_MASK) >> 8;
     uint SUBVER(uint Version) => Version & SUBVERSION_MASK;
-    
+
     uint NTDDI_VERSION_FROM_WIN32_WINNT2(uint Version) => Version * 0x10000;
     alias NTDDI_VERSION_FROM_WIN32_WINNT = NTDDI_VERSION_FROM_WIN32_WINNT2;
 }
