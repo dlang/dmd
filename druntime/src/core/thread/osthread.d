@@ -1530,6 +1530,19 @@ private extern(D) void* getStackBottom() nothrow @nogc
                  mov RAX, GS:[RAX];
                  ret;
             }
+        else version (GNU_InlineAsm)
+        {
+            void *bottom;
+
+            version (X86)
+                asm pure nothrow @nogc { "movl %%fs:4, %0;" : "=r" (bottom); }
+            else version (X86_64)
+                asm pure nothrow @nogc { "movq %%gs:8, %0;" : "=r" (bottom); }
+            else
+                static assert(false, "Architecture not supported.");
+
+            return bottom;
+        }
         else
             static assert(false, "Architecture not supported.");
     }
