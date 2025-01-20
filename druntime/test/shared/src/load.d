@@ -135,21 +135,28 @@ void main(string[] args)
 
     runTests(name);
 
-    // lib is no longer resident
-    name ~= '\0';
-    version (Windows)
+    version (CRuntime_Musl)
     {
-        import core.sys.windows.winbase;
-        assert(!GetModuleHandleA(name.ptr));
+        // On Musl, dlclose is a no-op
     }
     else
     {
-        import core.sys.posix.dlfcn : dlopen, RTLD_LAZY;
-        assert(dlopen(name.ptr, RTLD_LAZY | RTLD_NOLOAD) is null);
-    }
-    name = name[0 .. $-1];
+        // lib is no longer resident
+        name ~= '\0';
+        version (Windows)
+        {
+            import core.sys.windows.winbase;
+            assert(!GetModuleHandleA(name.ptr));
+        }
+        else
+        {
+            import core.sys.posix.dlfcn : dlopen, RTLD_LAZY;
+            assert(dlopen(name.ptr, RTLD_LAZY | RTLD_NOLOAD) is null);
+        }
+        name = name[0 .. $-1];
 
-    auto thr = new Thread({runTests(name);});
-    thr.start();
-    thr.join();
+        auto thr = new Thread({runTests(name);});
+        thr.start();
+        thr.join();
+    }
 }

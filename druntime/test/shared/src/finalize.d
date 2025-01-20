@@ -44,7 +44,7 @@ void main(string[] args)
     auto nf1 = new NoFinalize;
     auto nf2 = new NoFinalizeBig;
 
-    shared size_t finalizeCounter;
+    static shared size_t finalizeCounter;
     SetFinalizeCounter setFinalizeCounter;
     loadSym(h, setFinalizeCounter, "setFinalizeCounter");
     setFinalizeCounter(&finalizeCounter);
@@ -57,8 +57,15 @@ void main(string[] args)
     auto r = Runtime.unloadLibrary(h);
     if (!r)
         assert(0);
-    if (finalizeCounter != 4)
-        assert(0);
+    version (CRuntime_Musl)
+    {
+        // On Musl, dlclose is a no-op
+    }
+    else
+    {
+        if (finalizeCounter != 4)
+            assert(0);
+    }
     if (nf1._finalizeCounter)
         assert(0);
     if (nf2._finalizeCounter)

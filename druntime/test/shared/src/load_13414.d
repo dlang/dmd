@@ -20,17 +20,15 @@ void runTest(string name)
     *pLibSharedStaticDtorHook = &sharedStaticDtorHook;
 
     const unloaded = Runtime.unloadLibrary(h);
+    assert(unloaded);
+    assert(tlsDtor == 1);
     version (CRuntime_Musl)
     {
-        // On Musl, unloadLibrary is a no-op because dlclose is a no-op
-        assert(!unloaded);
-        assert(tlsDtor == 0);
+        // On Musl, dlclose is a no-op
         assert(dtor == 0);
     }
     else
     {
-        assert(unloaded);
-        assert(tlsDtor == 1);
         assert(dtor == 1);
     }
 }
