@@ -1,4 +1,4 @@
-import core.stdc.stdio;
+import core.stdc.stdio : printf;
 
 version (OSX)
     version = Apple;

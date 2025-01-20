@@ -1,5 +1,5 @@
 import core.runtime, core.time : MonoTime;
-import core.stdc.stdio;
+import core.stdc.stdio : printf;
 
 version (ARM)     version = ARM_Any;
 version (AArch64) version = ARM_Any;

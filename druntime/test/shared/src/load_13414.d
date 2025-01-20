@@ -1,6 +1,6 @@
-import core.runtime;
 import core.atomic;
-import core.stdc.string;
+import core.runtime;
+import core.stdc.string : strrchr;
 
 shared uint tlsDtor, dtor;
 void staticDtorHook() { atomicOp!"+="(tlsDtor, 1); }

@@ -1,6 +1,6 @@
 module puid;
 import core.cpuid;
-import core.stdc.stdio;
+import core.stdc.stdio : printf;
 
 mixin template printFlag(string name)
 {
