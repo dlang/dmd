@@ -8975,17 +8975,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(DeleteExp exp)
     {
-        // @@@DEPRECATED_2.109@@@
-        // 1. Deprecated since 2.079
-        // 2. Error since 2.099
-        // 3. Removal of keyword, "delete" can be used for other identities
-        if (!exp.isRAII)
-        {
-            error(exp.loc, "the `delete` keyword is obsolete");
-            errorSupplemental(exp.loc, "use `object.destroy()` (and `core.memory.GC.free()` if applicable) instead");
-            return setError();
-        }
-
         Expression e = exp;
 
         if (Expression ex = unaSemantic(exp, sc))
