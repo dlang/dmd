@@ -14,21 +14,21 @@ module rt.sections_win64;
 
 version (CRuntime_Microsoft):
 
-// debug = PRINTF;
-debug(PRINTF) import core.stdc.stdio;
-import core.memory;
-import core.stdc.stdlib : calloc, malloc, free;
-import core.sys.windows.winbase : FreeLibrary, GetCurrentThreadId, GetModuleHandleExW,
-    GetProcAddress, LoadLibraryA, LoadLibraryW,
-    GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT;
-import core.sys.windows.winnt : WCHAR, IMAGE_DOS_HEADER, IMAGE_DOS_SIGNATURE, IMAGE_FILE_HEADER,
-    IMAGE_NT_HEADERS, IMAGE_SECTION_HEADER, IMAGE_TLS_DIRECTORY, IMAGE_DIRECTORY_ENTRY_TLS;
-import core.sys.windows.threadaux;
-import core.thread;
-import rt.deh, rt.minfo;
-import core.internal.container.array;
-
 version (DigitalMars) version (Win64) version = hasEHTables;
+
+// debug = PRINTF;
+
+import core.internal.container.array;
+import core.memory;
+import core.stdc.stdlib : calloc, free, malloc;
+import core.sys.windows.threadaux;
+import core.sys.windows.winbase : FreeLibrary, GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT, GetModuleHandleExW, GetProcAddress, LoadLibraryA, LoadLibraryW;
+import core.sys.windows.winnt : IMAGE_DIRECTORY_ENTRY_TLS, IMAGE_DOS_HEADER, IMAGE_DOS_SIGNATURE, IMAGE_NT_HEADERS, IMAGE_SECTION_HEADER, IMAGE_TLS_DIRECTORY, WCHAR;
+import core.thread;
+import rt.deh;
+import rt.minfo;
+
+debug (PRINTF) import core.stdc.stdio : printf;
 
 struct SectionGroup
 {
@@ -93,7 +93,7 @@ void initSections() nothrow @nogc
 
 void initSections(void* handle) nothrow @nogc
 {
-    auto sectionGroup = cast(SectionGroup*)calloc(1, SectionGroup.sizeof);
+    auto sectionGroup = cast(SectionGroup*).calloc(1, SectionGroup.sizeof);
     sectionGroup._moduleGroup = ModuleGroup(getModuleInfos(handle));
     sectionGroup._handle = handle;
     version (hasEHTables)
@@ -124,7 +124,7 @@ void initSections(void* handle) nothrow @nogc
 
     if (conservative)
     {
-        sectionGroup._gcRanges = (cast(void[]*) malloc((void[]).sizeof))[0..1];
+        sectionGroup._gcRanges = (cast(void[]*).malloc((void[]).sizeof))[0..1];
         sectionGroup._gcRanges[0] = dataSection;
     }
     else
@@ -134,7 +134,7 @@ void initSections(void* handle) nothrow @nogc
         debug(PRINTF) printf("found .dp section: [%p,+%llx]\n", dpSection.ptr,
                              cast(ulong)dpSection.length);
         auto dp = cast(uint[]) dpSection;
-        auto ranges = cast(void[]*) malloc(dp.length * (void[]).sizeof);
+        auto ranges = cast(void[]*).malloc(dp.length * (void[]).sizeof);
         size_t r = 0;
         void* prev = null;
         foreach (off; dp)

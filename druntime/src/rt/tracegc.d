@@ -71,7 +71,7 @@ enum accumulator = q{
 
     version (tracegc)
     {
-        import core.stdc.stdio;
+        import core.stdc.stdio : printf;
 
         printf("%s file = '%.*s' line = %d function = '%.*s' type = %.*s\n",
             __FUNCTION__.ptr,

@@ -11,25 +11,29 @@
 
 module rt.cover;
 
+import core.internal.utf;
 import core.internal.util.math : max, min;
+import core.stdc.stdio : EOF, fclose, fgetc, FILE, fileno, fprintf, fread, fseek, ftell, printf, SEEK_END, SEEK_SET,
+    stderr;
+import core.stdc.stdlib : exit, EXIT_FAILURE;
+
+version (Windows)
+{
+    import core.stdc.stdio : _fdopen, _get_osfhandle, _O_BINARY, _O_CREAT, _O_RDWR, _S_IREAD, _S_IWRITE, _wopen;
+    import core.sys.windows.basetsd;
+    import core.sys.windows.winbase;
+}
+else version (Posix)
+{
+    import core.stdc.stdio : fopen;
+    import core.sys.posix.fcntl : O_CREAT, O_RDWR, open, S_IRGRP, S_IROTH, S_IRUSR, S_IWGRP, S_IWOTH, S_IWUSR;
+    import core.sys.posix.unistd : F_LOCK, ftruncate, lockf;
+}
+else
+    static assert(0, "Unsupported platform");
 
 private
 {
-    version (Windows)
-    {
-        import core.sys.windows.basetsd /+: HANDLE+/;
-        import core.sys.windows.winbase /+: LOCKFILE_EXCLUSIVE_LOCK, LockFileEx, OVERLAPPED, SetEndOfFile+/;
-    }
-    else version (Posix)
-    {
-        import core.sys.posix.fcntl : O_CREAT, O_RDWR, open, S_IRGRP, S_IROTH, S_IRUSR, S_IWGRP, S_IWOTH, S_IWUSR;
-        import core.sys.posix.unistd : F_LOCK, ftruncate, lockf;
-    }
-    import core.internal.utf;
-    import core.stdc.config : c_long;
-    import core.stdc.stdio;
-    import core.stdc.stdlib;
-
     struct BitArray
     {
         size_t  len;
@@ -321,14 +325,14 @@ shared static ~this()
 
         version (Windows)
             SetEndOfFile(handle(fileno(flst)));
-        else
+        else version (Posix)
             ftruncate(fileno(flst), ftell(flst));
     }
 }
 
 uint digits(uint number)
 {
-    import core.stdc.math;
+    import core.stdc.math : floor, log10;
     return number ? cast(uint)floor(log10(number)) + 1 : 1;
 }
 
@@ -457,16 +461,14 @@ string chomp( string str, string delim = null )
 // open/create file for read/write, pointer at beginning
 FILE* openOrCreateFile(string name)
 {
-    import core.internal.utf : toUTF16z;
-
     version (Windows)
         immutable fd = _wopen(toUTF16z(name), _O_RDWR | _O_CREAT | _O_BINARY, _S_IREAD | _S_IWRITE);
-    else
+    else version (Posix)
         immutable fd = open((name ~ '\0').ptr, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP |
                 S_IROTH | S_IWOTH);
     version (CRuntime_Microsoft)
         alias fdopen = _fdopen;
-    version (Posix)
+    else version (Posix)
         import core.sys.posix.stdio : fdopen;
     return fdopen(fd, "r+b");
 }
@@ -492,8 +494,6 @@ void lockFile(int fd)
         // exclusively lock first byte
         LockFileEx(handle(fd), LOCKFILE_EXCLUSIVE_LOCK, 0, 1, 0, &off);
     }
-    else
-        static assert(0, "unimplemented");
 }
 
 bool readFile(FILE* file, ref char[] buf)
@@ -520,11 +520,9 @@ version (Windows) extern (C) nothrow @nogc FILE* _wfopen(scope const wchar* file
 
 bool readFile(string name, ref char[] buf)
 {
-    import core.internal.utf : toUTF16z;
-
     version (Windows)
         auto file = _wfopen(toUTF16z(name), "rb"w.ptr);
-    else
+    else version (Posix)
         auto file = fopen((name ~ '\0').ptr, "rb".ptr);
     if (file is null) return false;
     scope(exit) fclose(file);
