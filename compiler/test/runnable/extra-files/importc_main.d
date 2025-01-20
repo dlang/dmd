@@ -1,11 +1,11 @@
 
-import std.stdio;
+import core.stdc.stdio;
 import importc_test;
 
 int main()
 {
     auto rc = someCodeInC(3, 4);
-    writeln("Result of someCodeInC(3,4) = ", rc );
+    printf("Result of someCodeInC(3,4) = %d\n", rc);
     assert( rc == 7, "Wrong result");
     return 0;
 }

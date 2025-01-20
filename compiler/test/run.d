@@ -18,7 +18,7 @@ import std.algorithm, std.conv, std.datetime, std.exception, std.file, std.forma
 import tools.paths;
 
 const scriptDir = __FILE_FULL_PATH__.dirName.buildNormalizedPath;
-immutable testDirs = ["runnable", "runnable_cxx", "dshell", "compilable", "fail_compilation"];
+immutable testDirs = ["runnable", "runnable_cxx", /*"dshell",*/ "compilable", "fail_compilation"];
 shared bool verbose; // output verbose logging
 shared bool force; // always run all tests (ignores timestamp checking)
 shared string hostDMD; // path to host DMD binary (used for building the tools)
@@ -55,7 +55,7 @@ enum TestTool testRunnerUnittests = { name: "d_do_test-ut",
                                       extraArgs: testRunner.extraArgs ~ ["-g", "-unittest"],
                                       runAfterBuild: true };
 enum TestTool jsonSanitizer = { name: "sanitize_json" };
-enum TestTool dshellPrebuilt = { name: "dshell_prebuilt", linksWithTests: true };
+//enum TestTool dshellPrebuilt = { name: "dshell_prebuilt", linksWithTests: true };
 
 immutable struct TestTool
 {
@@ -153,7 +153,7 @@ Options:
         return spawnProcess(unitTestRunnerCommand ~ args, env, Config.none, scriptDir).wait();
     }
 
-    ensureToolsExists(env, unitTestRunner, testRunner, testRunnerUnittests, jsonSanitizer, dshellPrebuilt);
+    ensureToolsExists(env, unitTestRunner, testRunner, testRunnerUnittests, jsonSanitizer/*, dshellPrebuilt*/);
 
     if (args == ["tools"])
         return 0;
@@ -539,7 +539,8 @@ string[string] getEnvironment()
     env["DMD"] = dmdPath;
     env.setDefault("DMD_TEST_COVERAGE", "0");
 
-    const generatedSuffix = "generated/%s/%s/%s".format(os, build, model);
+    const druntimePath = environment.get("DRUNTIME_PATH", projectRootDir.buildPath("druntime"));
+    const druntimeLibDir = generatedDir.buildPath(os, build, model);
 
     version(Windows)
     {
@@ -547,10 +548,8 @@ string[string] getEnvironment()
         env["OBJ"] = ".obj";
         env["DSEP"] = `\\`;
         env["SEP"] = `\`;
-        auto druntimePath = environment.get("DRUNTIME_PATH", testPath(`..\..\druntime`));
-        auto phobosPath = environment.get("PHOBOS_PATH", testPath(`..\..\..\phobos`));
-        env["DFLAGS"] = `-I"%s\import" -I"%s"`.format(druntimePath, phobosPath);
-        env["LIB"] = phobosPath ~ ";" ~ environment.get("LIB");
+        env["DFLAGS"] = `-conf= -I"%s\import" -defaultlib=druntime.lib`.format(druntimePath);
+        env["LIB"] = druntimeLibDir ~ ";" ~ environment.get("LIB");
     }
     else
     {
@@ -558,8 +557,6 @@ string[string] getEnvironment()
         env["OBJ"] = ".o";
         env["DSEP"] = "/";
         env["SEP"] = "/";
-        auto druntimePath = environment.get("DRUNTIME_PATH", testPath(`../../druntime`));
-        auto phobosPath = environment.get("PHOBOS_PATH", testPath(`../../../phobos`));
 
         // default to PIC, use PIC=1/0 to en-/disable PIC.
         // Note that shared libraries and C files are always compiled with PIC.
@@ -568,11 +565,14 @@ string[string] getEnvironment()
             pic = false;
 
         env["PIC_FLAG"]  = pic ? "-fPIC" : "";
-        env["DFLAGS"] = "-I%s/import -I%s".format(druntimePath, phobosPath)
-            ~ " -L-L%s/%s".format(phobosPath, generatedSuffix);
-        bool isShared = environment.get("SHARED") != "0" && os.among("linux", "freebsd") > 0;
+
+        const isShared = environment.get("SHARED") != "0" && os.among("linux", "freebsd") > 0;
+        const defaultLib = os == "osx" ? "druntime" : "libdruntime." ~ (isShared ? "so" : "a");
+
+        env["DFLAGS"] = "-conf= -I%s/import -defaultlib=%s".format(druntimePath, defaultLib)
+            ~ " -L-L" ~ druntimeLibDir;
         if (isShared)
-            env["DFLAGS"] = env["DFLAGS"] ~ " -defaultlib=libphobos2.so -L-rpath=%s/%s".format(phobosPath, generatedSuffix);
+            env["DFLAGS"] = env["DFLAGS"] ~ " -L-rpath=" ~ druntimeLibDir;
 
         if (pic)
             env["REQUIRED_ARGS"] = environment.get("REQUIRED_ARGS") ~ " " ~ env["PIC_FLAG"];

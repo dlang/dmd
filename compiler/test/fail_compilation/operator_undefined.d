@@ -1,11 +1,9 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/operator_undefined.d(19): Error: operator `-` is not defined for `toJson(2)` of type `Json`
+fail_compilation/operator_undefined.d(17): Error: operator `-` is not defined for `toJson(2)` of type `Json`
 ---
 */
-
-import std.stdio;
 
 struct Json
 {

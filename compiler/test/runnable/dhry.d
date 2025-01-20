@@ -343,7 +343,6 @@ Deprecation caused by https://issues.dlang.org/show_bug.cgi?id=20645
 import core.stdc.stdio;
 import core.stdc.string;
 import core.stdc.stdlib;
-import std.string;
 
 
 /* Compiler and system dependent definitions: */
