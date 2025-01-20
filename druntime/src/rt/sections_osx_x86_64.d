@@ -24,18 +24,18 @@ version (Darwin):
 version (X86_64):
 
 // debug = PRINTF;
-import core.stdc.stdio;
-import core.stdc.stdlib;
-import core.stdc.string;
-import core.stdc.stdint : intptr_t;
-import core.sys.darwin.mach.dyld : _dyld_register_func_for_add_image;
-import core.sys.darwin.mach.getsect : mach_header;
 
 import core.internal.container.array;
+import core.stdc.stdint : intptr_t;
+import core.stdc.stdio : fprintf, stderr;
+import core.sys.darwin.mach.dyld : _dyld_register_func_for_add_image;
+import core.sys.darwin.mach.getsect : mach_header;
 import rt.deh;
 import rt.minfo;
 import rt.sections_darwin_64;
 import rt.util.utility : safeAssert;
+
+debug (PRINTF) import core.stdc.stdio : printf;
 
 struct SectionGroup
 {

@@ -12,13 +12,21 @@
 module rt.trace;
 
 import core.demangle;
-import core.stdc.ctype;
-import core.stdc.stdio;
-import core.stdc.stdlib;
-import core.stdc.string;
+import core.stdc.ctype : isalpha, isgraph, isspace;
+import core.stdc.stdio : EOF, fclose, fgetc, FILE, fopen, fprintf, stderr, stdout;
+import core.stdc.stdlib : exit, EXIT_FAILURE, free, malloc, qsort, realloc, strtoul;
+import core.stdc.string : memcmp, memset, strdup, strlen;
+
+debug import core.stdc.stdio : printf;
 
 version (CRuntime_Microsoft)
-    private alias core.stdc.stdlib._strtoui64 strtoull;
+{
+    import core.stdc.stdlib : strtoull = _strtoui64;
+}
+else
+{
+    import core.stdc.stdlib : strtoull;
+}
 
 shared static this ()
 {
