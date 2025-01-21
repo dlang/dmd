@@ -147,7 +147,7 @@ alias _Unwind_Trace_Fn = _Unwind_Reason_Code function(_Unwind_Context*, void*);
 void _Unwind_DeleteException(_Unwind_Exception* exception_object);
 void _Unwind_Resume(_Unwind_Exception* exception_object);
 _Unwind_Reason_Code _Unwind_Resume_or_Rethrow(_Unwind_Exception* exception_object);
-_Unwind_Reason_Code _Unwind_Backtrace(_Unwind_Trace_Fn, void*);
+_Unwind_Reason_Code _Unwind_Backtrace(_Unwind_Trace_Fn, void*) nothrow;
 
 version (ARM_EABI_UNWINDER)
 {
@@ -155,16 +155,16 @@ version (ARM_EABI_UNWINDER)
     void _Unwind_Complete(_Unwind_Exception* exception_object);
 }
 
-_Unwind_Word _Unwind_GetGR(_Unwind_Context* context, int index);
-void _Unwind_SetGR(_Unwind_Context* context, int index, _Unwind_Word new_value);
-_Unwind_Ptr _Unwind_GetIP(_Unwind_Context* context);
-_Unwind_Ptr _Unwind_GetIPInfo(_Unwind_Context* context, int*);
-void _Unwind_SetIP(_Unwind_Context* context, _Unwind_Ptr new_value);
-_Unwind_Word _Unwind_GetCFA(_Unwind_Context*);
-_Unwind_Word _Unwind_GetBSP(_Unwind_Context*);
-void* _Unwind_GetLanguageSpecificData(_Unwind_Context*);
-_Unwind_Ptr _Unwind_GetRegionStart(_Unwind_Context* context);
-void* _Unwind_FindEnclosingFunction(void* pc);
+_Unwind_Word _Unwind_GetGR(_Unwind_Context* context, int index) nothrow;
+void _Unwind_SetGR(_Unwind_Context* context, int index, _Unwind_Word new_value) nothrow;
+_Unwind_Ptr _Unwind_GetIP(_Unwind_Context* context) nothrow;
+_Unwind_Ptr _Unwind_GetIPInfo(_Unwind_Context* context, int*) nothrow;
+void _Unwind_SetIP(_Unwind_Context* context, _Unwind_Ptr new_value) nothrow;
+_Unwind_Word _Unwind_GetCFA(_Unwind_Context*) nothrow;
+_Unwind_Word _Unwind_GetBSP(_Unwind_Context*) nothrow;
+void* _Unwind_GetLanguageSpecificData(_Unwind_Context*) nothrow;
+_Unwind_Ptr _Unwind_GetRegionStart(_Unwind_Context* context) nothrow;
+void* _Unwind_FindEnclosingFunction(void* pc) nothrow;
 
 version (X86_64)
 {
