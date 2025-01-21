@@ -517,6 +517,61 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
         return result;
     }
 
+    // When no operator overload functions are found for `e`, recursively try with `alias this`
+    // Returns: `null` when still no overload found, otherwise resolved lowering
+    Expression binAliasThis(BinExp e, AggregateDeclaration ad1, AggregateDeclaration ad2)
+    {
+        Expression rewrittenLhs;
+        if (!(e.op == EXP.assign && ad2 && ad1 == ad2)) // https://issues.dlang.org/show_bug.cgi?id=2943
+        {
+            if (Expression result = checkAliasThisForLhs(ad1, sc, e))
+            {
+                /* https://issues.dlang.org/show_bug.cgi?id=19441
+                 *
+                 * alias this may not be used for partial assignment.
+                 * If a struct has a single member which is aliased this
+                 * directly or aliased to a ref getter function that returns
+                 * the mentioned member, then alias this may be
+                 * used since the object will be fully initialised.
+                 * If the struct is nested, the context pointer is considered
+                 * one of the members, hence the `ad1.fields.length == 2 && ad1.vthis`
+                 * condition.
+                 */
+                if (result.op != EXP.assign)
+                    return result;     // i.e: Rewrote `e1 = e2` -> `e1(e2)`
+
+                auto ae = result.isAssignExp();
+                if (ae.e1.op != EXP.dotVariable)
+                    return result;     // i.e: Rewrote `e1 = e2` -> `e1() = e2`
+
+                auto dve = ae.e1.isDotVarExp();
+                if (auto ad = dve.var.isMember2())
+                {
+                    // i.e: Rewrote `e1 = e2` -> `e1.some.var = e2`
+                    // Ensure that `var` is the only field member in `ad`
+                    if (ad.fields.length == 1 || (ad.fields.length == 2 && ad.vthis))
+                    {
+                        if (dve.var == ad.aliasthis.sym)
+                            return result;
+                    }
+                }
+                rewrittenLhs = ae.e1;
+            }
+        }
+        if (!(e.op == EXP.assign && ad1 && ad1 == ad2)) // https://issues.dlang.org/show_bug.cgi?id=2943
+        {
+            if (Expression result = checkAliasThisForRhs(ad2, sc, e))
+                return result;
+        }
+        if (rewrittenLhs)
+        {
+            error(e.loc, "cannot use `alias this` to partially initialize variable `%s` of type `%s`. Use `%s`",
+                    e.e1.toChars(), ad1.toChars(), rewrittenLhs.toChars());
+            return ErrorExp.get();
+        }
+        return null;
+    }
+
     Expression visitBin(BinExp e)
     {
         //printf("BinExp::op_overload() (%s)\n", e.toChars());
@@ -602,119 +657,64 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
         }
         Expressions* args1 = new Expressions();
         Expressions* args2 = new Expressions();
-        if (s || s_r)
-        {
-            /* Try:
-             *      a.opfunc(b)
-             *      b.opfunc_r(a)
-             * and see which is better.
-             */
-            args1.setDim(1);
-            (*args1)[0] = e.e1;
-            expandTuples(args1);
-            args2.setDim(1);
-            (*args2)[0] = e.e2;
-            expandTuples(args2);
-            argsset = 1;
-            MatchAccumulator m;
-            if (s)
-            {
-                functionResolve(m, s, e.loc, sc, tiargs, e.e1.type, ArgumentList(args2));
-                if (m.lastf && (m.lastf.errors || m.lastf.hasSemantic3Errors()))
-                {
-                    return ErrorExp.get();
-                }
-            }
-            FuncDeclaration lastf = m.lastf;
-            if (s_r)
-            {
-                functionResolve(m, s_r, e.loc, sc, tiargs, e.e2.type, ArgumentList(args1));
-                if (m.lastf && (m.lastf.errors || m.lastf.hasSemantic3Errors()))
-                {
-                    return ErrorExp.get();
-                }
-            }
-            if (m.count > 1)
-            {
-                // Error, ambiguous
-                error(e.loc, "overloads `%s` and `%s` both match argument list for `%s`", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
-            }
-            else if (m.last == MATCH.nomatch)
-            {
-                if (tiargs)
-                    goto L1;
-                m.lastf = null;
-            }
-            if (e.op == EXP.plusPlus || e.op == EXP.minusMinus)
-            {
-                // Kludge because operator overloading regards e++ and e--
-                // as unary, but it's implemented as a binary.
-                // Rewrite (e1 ++ e2) as e1.postinc()
-                // Rewrite (e1 -- e2) as e1.postdec()
-                return build_overload(e.loc, sc, e.e1, null, m.lastf ? m.lastf : s);
-            }
-            else if (lastf && m.lastf == lastf || !s_r && m.last == MATCH.nomatch)
-            {
-                // Rewrite (e1 op e2) as e1.opfunc(e2)
-                return build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s);
-            }
-            else
-            {
-                // Rewrite (e1 op e2) as e2.opfunc_r(e1)
-                return build_overload(e.loc, sc, e.e2, e.e1, m.lastf ? m.lastf : s_r);
-            }
-        }
-    L1:
+        if (!s && !s_r)
+            return binAliasThis(e, ad1, ad2);
 
-        Expression rewrittenLhs;
-        if (!(e.op == EXP.assign && ad2 && ad1 == ad2)) // https://issues.dlang.org/show_bug.cgi?id=2943
+        // Try opBinary and opBinaryRight and see which is better.
+        args1.setDim(1);
+        (*args1)[0] = e.e1;
+        expandTuples(args1);
+        args2.setDim(1);
+        (*args2)[0] = e.e2;
+        expandTuples(args2);
+        argsset = 1;
+        MatchAccumulator m;
+        if (s)
         {
-            if (Expression result = checkAliasThisForLhs(ad1, sc, e))
+            functionResolve(m, s, e.loc, sc, tiargs, e.e1.type, ArgumentList(args2));
+            if (m.lastf && (m.lastf.errors || m.lastf.hasSemantic3Errors()))
             {
-                /* https://issues.dlang.org/show_bug.cgi?id=19441
-                 *
-                 * alias this may not be used for partial assignment.
-                 * If a struct has a single member which is aliased this
-                 * directly or aliased to a ref getter function that returns
-                 * the mentioned member, then alias this may be
-                 * used since the object will be fully initialised.
-                 * If the struct is nested, the context pointer is considered
-                 * one of the members, hence the `ad1.fields.length == 2 && ad1.vthis`
-                 * condition.
-                 */
-                if (result.op != EXP.assign)
-                    return result;     // i.e: Rewrote `e1 = e2` -> `e1(e2)`
-
-                auto ae = result.isAssignExp();
-                if (ae.e1.op != EXP.dotVariable)
-                    return result;     // i.e: Rewrote `e1 = e2` -> `e1() = e2`
-
-                auto dve = ae.e1.isDotVarExp();
-                if (auto ad = dve.var.isMember2())
-                {
-                    // i.e: Rewrote `e1 = e2` -> `e1.some.var = e2`
-                    // Ensure that `var` is the only field member in `ad`
-                    if (ad.fields.length == 1 || (ad.fields.length == 2 && ad.vthis))
-                    {
-                        if (dve.var == ad.aliasthis.sym)
-                            return result;
-                    }
-                }
-                rewrittenLhs = ae.e1;
+                return ErrorExp.get();
             }
         }
-        if (!(e.op == EXP.assign && ad1 && ad1 == ad2)) // https://issues.dlang.org/show_bug.cgi?id=2943
+        FuncDeclaration lastf = m.lastf;
+        if (s_r)
         {
-            if (Expression result = checkAliasThisForRhs(ad2, sc, e))
-                return result;
+            functionResolve(m, s_r, e.loc, sc, tiargs, e.e2.type, ArgumentList(args1));
+            if (m.lastf && (m.lastf.errors || m.lastf.hasSemantic3Errors()))
+            {
+                return ErrorExp.get();
+            }
         }
-        if (rewrittenLhs)
+        if (m.count > 1)
         {
-            error(e.loc, "cannot use `alias this` to partially initialize variable `%s` of type `%s`. Use `%s`",
-                    e.e1.toChars(), ad1.toChars(), rewrittenLhs.toChars());
-            return ErrorExp.get();
+            // Error, ambiguous
+            error(e.loc, "overloads `%s` and `%s` both match argument list for `%s`", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
         }
-        return null;
+        else if (m.last == MATCH.nomatch)
+        {
+            if (tiargs)
+                return binAliasThis(e, ad1, ad2);
+            m.lastf = null;
+        }
+        if (e.op == EXP.plusPlus || e.op == EXP.minusMinus)
+        {
+            // Kludge because operator overloading regards e++ and e--
+            // as unary, but it's implemented as a binary.
+            // Rewrite (e1 ++ e2) as e1.postinc()
+            // Rewrite (e1 -- e2) as e1.postdec()
+            return build_overload(e.loc, sc, e.e1, null, m.lastf ? m.lastf : s);
+        }
+        else if (lastf && m.lastf == lastf || !s_r && m.last == MATCH.nomatch)
+        {
+            // Rewrite (e1 op e2) as e1.opfunc(e2)
+            return build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s);
+        }
+        else
+        {
+            // Rewrite (e1 op e2) as e2.opfunc_r(e1)
+            return build_overload(e.loc, sc, e.e2, e.e1, m.lastf ? m.lastf : s_r);
+        }
     }
 
     Expression visitEqual(EqualExp e)
