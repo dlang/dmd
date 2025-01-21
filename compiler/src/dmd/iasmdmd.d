@@ -2181,8 +2181,7 @@ void asm_merge_opnds(ref OPND o1, ref OPND o2)
     {
         if (o1.segreg)
             return illegalAddressError("o1.segment && o2.segreg");
-        else
-            o1.segreg = o2.segreg;
+        o1.segreg = o2.segreg;
     }
 
     // combine the OPND's symbol field
@@ -2266,8 +2265,8 @@ void asm_merge_opnds(ref OPND o1, ref OPND o2)
     {
         if (o1.pregDisp2)
             return illegalAddressError("o1.pregDisp2 && o2.pregDisp2");
-        else
-            o1.pregDisp2 = o2.pregDisp2;
+
+        o1.pregDisp2 = o2.pregDisp2;
     }
 
     if (o1.bRIP && (o1.pregDisp1 || o2.bRIP || o1.base))
@@ -2290,8 +2289,8 @@ void asm_merge_opnds(ref OPND o1, ref OPND o2)
     {
         if (o1.uchMultiplier)
             return illegalAddressError("o1.uchMultiplier && o2.uchMultiplier");
-        else
-            o1.uchMultiplier = o2.uchMultiplier;
+
+        o1.uchMultiplier = o2.uchMultiplier;
     }
     if (o2.ptype && !o1.ptype)
         o1.ptype = o2.ptype;
