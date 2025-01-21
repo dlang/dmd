@@ -190,14 +190,11 @@ private Expression checkAliasThisForRhs(AggregateDeclaration ad, Scope* sc, BinE
  * Params:
  *      e = expression with operator
  *      sc = context
- *      pop = if not null, is set to the operator that was actually overloaded,
- *            which may not be `e.op`. Happens when operands are reversed to
- *            match an overload
  * Returns:
  *      `null` if not an operator overload,
  *      otherwise the lowered expression
  */
-Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
+Expression op_overload(Expression e, Scope* sc)
 {
     Expression visit(Expression e)
     {
@@ -790,7 +787,8 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
             }
         }
 
-        if (Expression result = compare_overload(e, sc, Id.eq, null))
+        EXP cmpOp;
+        if (Expression result = compare_overload(e, sc, Id.eq, cmpOp))
         {
             if (lastComma(result).op == EXP.call && e.op == EXP.notEqual)
             {
@@ -901,10 +899,55 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
         return null;
     }
 
-    Expression visitCmp(CmpExp e)
+    Expression visitCmp(CmpExp exp)
     {
         //printf("CmpExp:: () (%s)\n", e.toChars());
-        return compare_overload(e, sc, Id.cmp, pop);
+        EXP cmpOp = exp.op;
+        auto e = compare_overload(exp, sc, Id.cmp, cmpOp);
+        if (!e)
+            return null;
+
+        if (!e.type.isScalar() && e.type.equals(exp.e1.type))
+        {
+            error(e.loc, "recursive `opCmp` expansion");
+            return ErrorExp.get();
+        }
+        if (e.op != EXP.call)
+            return e;
+
+        Type t1 = exp.e1.type.toBasetype();
+        Type t2 = exp.e2.type.toBasetype();
+        if (t1.ty != Tclass || t2.ty != Tclass)
+        {
+            return new CmpExp(cmpOp, exp.loc, e, IntegerExp.literal!0).expressionSemantic(sc);
+        }
+
+        // Lower to object.__cmp(e1, e2)
+        Expression cl = new IdentifierExp(exp.loc, Id.empty);
+        cl = new DotIdExp(exp.loc, cl, Id.object);
+        cl = new DotIdExp(exp.loc, cl, Id.__cmp);
+        cl = cl.expressionSemantic(sc);
+
+        auto arguments = new Expressions();
+        // Check if op_overload found a better match by calling e2.opCmp(e1)
+        // If the operands were swapped, then the result must be reversed
+        // e1.opCmp(e2) == -e2.opCmp(e1)
+        // cmpop takes care of this
+        if (exp.op == cmpOp)
+        {
+            arguments.push(exp.e1);
+            arguments.push(exp.e2);
+        }
+        else
+        {
+            // Use better match found by op_overload
+            arguments.push(exp.e2);
+            arguments.push(exp.e1);
+        }
+
+        cl = new CallExp(e.loc, cl, arguments);
+        cl = new CmpExp(cmpOp, exp.loc, cl, new IntegerExp(0));
+        return cl.expressionSemantic(sc);
     }
 
     /*********************************
@@ -1077,9 +1120,6 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
         return checkAliasThisForRhs(isAggregate(e.e2.type), sc, e);
     }
 
-    if (pop)
-        *pop = e.op;
-
     switch (e.op)
     {
         case EXP.cast_         : return visitCast(e.isCastExp());
@@ -1104,7 +1144,7 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
 /******************************************
  * Common code for overloading of EqualExp and CmpExp
  */
-private Expression compare_overload(BinExp e, Scope* sc, Identifier id, EXP* pop)
+private Expression compare_overload(BinExp e, Scope* sc, Identifier id, ref EXP cmpOp)
 {
     //printf("BinExp::compare_overload(id = %s) %s\n", id.toChars(), e.toChars());
     AggregateDeclaration ad1 = isAggregate(e.e1.type);
@@ -1190,8 +1230,7 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id, EXP* pop
             result = build_overload(e.loc, sc, e.e2, e.e1, m.lastf ? m.lastf : s_r);
             // When reversing operands of comparison operators,
             // need to reverse the sense of the op
-            if (pop)
-                *pop = reverseRelation(e.op);
+            cmpOp = reverseRelation(e.op);
         }
         return result;
     }
