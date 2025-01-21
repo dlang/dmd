@@ -569,13 +569,11 @@ Expression op_overload(Expression e, Scope* sc)
         return null;
     }
 
-    Expression visitBin(BinExp e)
+    Expression visitAssign(AssignExp e)
     {
-        //printf("BinExp::op_overload() (%s)\n", e.toChars());
-        int argsset = 0;
         AggregateDeclaration ad1 = isAggregate(e.e1.type);
         AggregateDeclaration ad2 = isAggregate(e.e2.type);
-        if (e.op == EXP.assign && ad1 == ad2)
+        if (ad1 == ad2)
         {
             StructDeclaration sd = ad1.isStructDeclaration();
             if (sd &&
@@ -590,81 +588,78 @@ Expression op_overload(Expression e, Scope* sc)
             }
         }
         Dsymbol s = null;
+        if (ad1)
+            s = search_function(ad1, Id.assign);
+
+        if (!s)
+            return binAliasThis(e, ad1, ad2);
+
+        Expressions* args2 = new Expressions();
+        args2.setDim(1);
+        (*args2)[0] = e.e2;
+        expandTuples(args2);
+        MatchAccumulator m;
+        Objects* tiargs = null;
+        functionResolve(m, s, e.loc, sc, tiargs, e.e1.type, ArgumentList(args2));
+        if (m.lastf && (m.lastf.errors || m.lastf.hasSemantic3Errors()))
+            return ErrorExp.get();
+
+        if (m.last == MATCH.nomatch)
+        {
+            if (tiargs)
+                return binAliasThis(e, ad1, ad2);
+            m.lastf = null;
+        }
+        return build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s);
+    }
+
+    Expression visitBin(BinExp e)
+    {
+        //printf("BinExp::op_overload() (%s)\n", e.toChars());
+        AggregateDeclaration ad1 = isAggregate(e.e1.type);
+        AggregateDeclaration ad2 = isAggregate(e.e2.type);
+        Dsymbol s = null;
         Dsymbol s_r = null;
         Objects* tiargs = null;
-        if (e.op == EXP.plusPlus || e.op == EXP.minusMinus)
+
+        // Try opBinary and opBinaryRight
+        if (ad1)
         {
-            // Bug4099 fix
-            if (ad1 && search_function(ad1, Id.opUnary))
-                return null;
-        }
-        Identifier id = e.op == EXP.assign ? Id.assign : null;
-        Identifier id_r = null;
-        if (e.op != EXP.equal && e.op != EXP.notEqual && e.op != EXP.assign && e.op != EXP.plusPlus && e.op != EXP.minusMinus)
-        {
-            /* Try opBinary and opBinaryRight
-             */
-            if (ad1)
+            s = search_function(ad1, Id.opBinary);
+            if (s && !s.isTemplateDeclaration())
             {
-                s = search_function(ad1, Id.opBinary);
-                if (s && !s.isTemplateDeclaration())
-                {
-                    error(e.e1.loc, "`%s.opBinary` isn't a template", e.e1.toChars());
-                    return ErrorExp.get();
-                }
-            }
-            if (ad2)
-            {
-                s_r = search_function(ad2, Id.opBinaryRight);
-                if (s_r && !s_r.isTemplateDeclaration())
-                {
-                    error(e.e2.loc, "`%s.opBinaryRight` isn't a template", e.e2.toChars());
-                    return ErrorExp.get();
-                }
-                if (s_r && s_r == s) // https://issues.dlang.org/show_bug.cgi?id=12778
-                    s_r = null;
-            }
-            // Set tiargs, the template argument list, which will be the operator string
-            if (s || s_r)
-            {
-                id = Id.opBinary;
-                id_r = Id.opBinaryRight;
-                tiargs = opToArg(sc, e.op);
+                error(e.e1.loc, "`%s.opBinary` isn't a template", e.e1.toChars());
+                return ErrorExp.get();
             }
         }
-        if (!s && !s_r)
+        if (ad2)
         {
-            if (ad1 && id)
+            s_r = search_function(ad2, Id.opBinaryRight);
+            if (s_r && !s_r.isTemplateDeclaration())
             {
-                s = search_function(ad1, id);
-                if (s && id != Id.assign)
-                {
-                    return ErrorExp.get();
-                }
+                error(e.e2.loc, "`%s.opBinaryRight` isn't a template", e.e2.toChars());
+                return ErrorExp.get();
             }
-            if (ad2 && id_r)
-            {
-                s_r = search_function(ad2, Id.opBinaryRight);
-                // https://issues.dlang.org/show_bug.cgi?id=12778
-                // If both x.opBinary(y) and y.opBinaryRight(x) found,
-                // and they are exactly same symbol, x.opBinary(y) should be preferred.
-                if (s_r && s_r == s)
-                    s_r = null;
-            }
+            if (s_r && s_r == s) // https://issues.dlang.org/show_bug.cgi?id=12778
+                s_r = null;
         }
-        Expressions* args1 = new Expressions();
-        Expressions* args2 = new Expressions();
+        // Set tiargs, the template argument list, which will be the operator string
+        if (s || s_r)
+        {
+            tiargs = opToArg(sc, e.op);
+        }
         if (!s && !s_r)
             return binAliasThis(e, ad1, ad2);
 
         // Try opBinary and opBinaryRight and see which is better.
+        Expressions* args1 = new Expressions();
+        Expressions* args2 = new Expressions();
         args1.setDim(1);
         (*args1)[0] = e.e1;
         expandTuples(args1);
         args2.setDim(1);
         (*args2)[0] = e.e2;
         expandTuples(args2);
-        argsset = 1;
         MatchAccumulator m;
         if (s)
         {
@@ -694,15 +689,7 @@ Expression op_overload(Expression e, Scope* sc)
                 return binAliasThis(e, ad1, ad2);
             m.lastf = null;
         }
-        if (e.op == EXP.plusPlus || e.op == EXP.minusMinus)
-        {
-            // Kludge because operator overloading regards e++ and e--
-            // as unary, but it's implemented as a binary.
-            // Rewrite (e1 ++ e2) as e1.postinc()
-            // Rewrite (e1 -- e2) as e1.postdec()
-            return build_overload(e.loc, sc, e.e1, null, m.lastf ? m.lastf : s);
-        }
-        else if (lastf && m.lastf == lastf || !s_r && m.last == MATCH.nomatch)
+        if (lastf && m.lastf == lastf || !s_r && m.last == MATCH.nomatch)
         {
             // Rewrite (e1 op e2) as e1.opfunc(e2)
             return build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s);
@@ -1132,6 +1119,11 @@ Expression op_overload(Expression e, Scope* sc)
         case EXP.greaterThan   :
         case EXP.greaterOrEqual:
         case EXP.lessThan      : return visitCmp(cast(CmpExp)e);
+        case EXP.assign        : return visitAssign(e.isAssignExp());
+
+        // These are a kludgy BinExp, operator overloading is handled by EXP.prePlusPlus / EXP.preMinusMinus in the UnaExp case
+        case EXP.plusPlus      : return null;
+        case EXP.minusMinus    : return null;
 
         default:
             if (auto ex = e.isBinAssignExp()) return visitBinAssign(ex);
