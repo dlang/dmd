@@ -12805,6 +12805,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (commonArithBinOpSemantic(exp))
             return;
 
+        if (!target.isVectorOpSupported(exp.type.toBasetype(), exp.op, exp.e2.type.toBasetype()))
+        {
+            result = exp.incompatibleTypes();
+            return;
+        }
+
         if (exp.type.isFloating())
         {
             exp.type = exp.e1.type;
