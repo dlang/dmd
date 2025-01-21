@@ -912,44 +912,42 @@ Expression op_overload(Expression e, Scope* sc)
             error(e.loc, "recursive `opCmp` expansion");
             return ErrorExp.get();
         }
-        if (e.op == EXP.call)
+        if (e.op != EXP.call)
+            return e;
+
+        Type t1 = exp.e1.type.toBasetype();
+        Type t2 = exp.e2.type.toBasetype();
+        if (t1.ty != Tclass || t2.ty != Tclass)
         {
-            Type t1 = exp.e1.type.toBasetype();
-            Type t2 = exp.e2.type.toBasetype();
-            if (t1.ty == Tclass && t2.ty == Tclass)
-            {
-                // Lower to object.__cmp(e1, e2)
-                Expression cl = new IdentifierExp(exp.loc, Id.empty);
-                cl = new DotIdExp(exp.loc, cl, Id.object);
-                cl = new DotIdExp(exp.loc, cl, Id.__cmp);
-                cl = cl.expressionSemantic(sc);
-
-                auto arguments = new Expressions();
-                // Check if op_overload found a better match by calling e2.opCmp(e1)
-                // If the operands were swapped, then the result must be reversed
-                // e1.opCmp(e2) == -e2.opCmp(e1)
-                // cmpop takes care of this
-                if (exp.op == cmpOp)
-                {
-                    arguments.push(exp.e1);
-                    arguments.push(exp.e2);
-                }
-                else
-                {
-                    // Use better match found by op_overload
-                    arguments.push(exp.e2);
-                    arguments.push(exp.e1);
-                }
-
-                cl = new CallExp(e.loc, cl, arguments);
-                cl = new CmpExp(cmpOp, exp.loc, cl, new IntegerExp(0));
-                return cl.expressionSemantic(sc);
-            }
-
-            e = new CmpExp(cmpOp, exp.loc, e, IntegerExp.literal!0);
-            e = e.expressionSemantic(sc);
+            return new CmpExp(cmpOp, exp.loc, e, IntegerExp.literal!0).expressionSemantic(sc);
         }
-        return e;
+
+        // Lower to object.__cmp(e1, e2)
+        Expression cl = new IdentifierExp(exp.loc, Id.empty);
+        cl = new DotIdExp(exp.loc, cl, Id.object);
+        cl = new DotIdExp(exp.loc, cl, Id.__cmp);
+        cl = cl.expressionSemantic(sc);
+
+        auto arguments = new Expressions();
+        // Check if op_overload found a better match by calling e2.opCmp(e1)
+        // If the operands were swapped, then the result must be reversed
+        // e1.opCmp(e2) == -e2.opCmp(e1)
+        // cmpop takes care of this
+        if (exp.op == cmpOp)
+        {
+            arguments.push(exp.e1);
+            arguments.push(exp.e2);
+        }
+        else
+        {
+            // Use better match found by op_overload
+            arguments.push(exp.e2);
+            arguments.push(exp.e1);
+        }
+
+        cl = new CallExp(e.loc, cl, arguments);
+        cl = new CmpExp(cmpOp, exp.loc, cl, new IntegerExp(0));
+        return cl.expressionSemantic(sc);
     }
 
     /*********************************
