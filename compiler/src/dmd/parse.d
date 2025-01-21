@@ -2759,35 +2759,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             error("`new` allocator must be annotated with `@disabled`");
         }
         nextToken();
-
-        /* @@@DEPRECATED_2.108@@@
-         * After deprecation period (2.108), remove all code in the version(all) block.
-         */
-        version (all)
-        {
-            auto parameterList = parseParameterList(null);  // parameterList ignored
-            if (parameterList.parameters.length > 0 || parameterList.varargs != VarArg.none)
-                deprecation("`new` allocator with non-empty parameter list is deprecated");
-            auto f = new AST.NewDeclaration(loc, stc);
-            if (token.value != TOK.semicolon)
-            {
-                deprecation("`new` allocator with function definition is deprecated");
-                parseContracts(f);  // body ignored
-                f.fbody = null;
-                f.fensures = null;
-                f.frequires = null;
-            }
-            else
-                nextToken();
-            return f;
-        }
-        else
-        {
-            check(TOK.leftParenthesis);
-            check(TOK.rightParenthesis);
-            check(TOK.semicolon);
-            return new AST.NewDeclaration(loc, stc);
-        }
+        check(TOK.leftParenthesis);
+        check(TOK.rightParenthesis);
+        check(TOK.semicolon);
+        return new AST.NewDeclaration(loc, stc);
     }
 
     /**********************************************
