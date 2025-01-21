@@ -435,10 +435,10 @@ private final class CppMangleVisitor : Visitor
         // 4. null pointer: std::nullptr_t (since C++11)
         if (t.ty == Tvoid || t.ty == Tbool)
             return true;
-        else if (t.ty == Tnull && global.params.cplusplus >= CppStdRevision.cpp11)
+        if (t.ty == Tnull && global.params.cplusplus >= CppStdRevision.cpp11)
             return true;
-        else
-            return t.isTypeBasic() && (t.isIntegral() || t.isReal());
+
+        return t.isTypeBasic() && (t.isIntegral() || t.isReal());
     }
 
     /******************************
@@ -1939,21 +1939,21 @@ extern(C++):
         //printf("enum id = '%s'\n", id.toChars());
         if (id == Id.__c_long)
             return writeBasicType(t, 0, 'l');
-        else if (id == Id.__c_ulong)
+        if (id == Id.__c_ulong)
             return writeBasicType(t, 0, 'm');
-        else if (id == Id.__c_char)
+        if (id == Id.__c_char)
             return writeBasicType(t, 0, 'c');
-        else if (id == Id.__c_wchar_t)
+        if (id == Id.__c_wchar_t)
             return writeBasicType(t, 0, 'w');
-        else if (id == Id.__c_longlong)
+        if (id == Id.__c_longlong)
             return writeBasicType(t, 0, 'x');
-        else if (id == Id.__c_ulonglong)
+        if (id == Id.__c_ulonglong)
             return writeBasicType(t, 0, 'y');
-        else if (id == Id.__c_complex_float)
+        if (id == Id.__c_complex_float)
             return Type.tcomplex32.accept(this);
-        else if (id == Id.__c_complex_double)
+        if (id == Id.__c_complex_double)
             return Type.tcomplex64.accept(this);
-        else if (id == Id.__c_complex_real)
+        if (id == Id.__c_complex_real)
             return Type.tcomplex80.accept(this);
 
         doSymbol(t);
@@ -2362,8 +2362,7 @@ private bool isNamespaceEqual (CPPNamespaceDeclaration a, Nspace b, size_t idx =
     // We need to see if there's more ident enclosing
     if (auto pb = b.toParent().isNspace())
         return isNamespaceEqual(a.cppnamespace, pb);
-    else
-        return a.cppnamespace is null;
+    return a.cppnamespace is null;
 }
 
 /// Returns:

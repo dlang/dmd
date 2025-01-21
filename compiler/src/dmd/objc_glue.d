@@ -604,8 +604,8 @@ static:
     {
         if (hasHiddenArgument)
             return setMsgSendSymbol!("_objc_msgSendSuper_stret")(TYhfunc);
-        else
-            return setMsgSendSymbol!("_objc_msgSendSuper")(TYnfunc);
+
+        return setMsgSendSymbol!("_objc_msgSendSuper")(TYnfunc);
     }
 
     Symbol* getImageInfo()
@@ -1209,12 +1209,11 @@ private:
         if (var.toParent() is classDeclaration)
             return Symbols.getIVarOffset(classDeclaration, var, false);
 
-        else if (classDeclaration.baseClass)
+        if (classDeclaration.baseClass)
             return ObjcClassDeclaration(classDeclaration.baseClass, false)
                 .getIVarOffset(var);
 
-        else
-            assert(false, "Trying to get the base class of a root class");
+        assert(false, "Trying to get the base class of a root class");
     }
 
     /**
