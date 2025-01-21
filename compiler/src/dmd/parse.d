@@ -5819,7 +5819,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         case TOK.plusPlus:
         case TOK.minusMinus:
         case TOK.new_:
-        case TOK.delete_:
         case TOK.delegate_:
         case TOK.function_:
         case TOK.typeid_:
@@ -8688,15 +8687,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             e = new AST.ComExp(loc, e);
             break;
 
-        case TOK.delete_:
-            // @@@DEPRECATED_2.109@@@
-            // Use of `delete` keyword has been an error since 2.099.
-            // Remove from the parser after 2.109.
-            nextToken();
-            e = parseUnaryExp();
-            e = new AST.DeleteExp(loc, e, false);
-            break;
-
         case TOK.cast_: // cast(type) expression
             {
                 nextToken();
@@ -8814,7 +8804,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         case TOK.dot:
                         case TOK.plusPlus:
                         case TOK.minusMinus:
-                        case TOK.delete_:
                         case TOK.new_:
                         case TOK.leftParenthesis:
                         case TOK.identifier:
