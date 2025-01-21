@@ -582,7 +582,6 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
         }
         if (!s && !s_r)
         {
-            // Try the D1-style operators, deprecated
             if (ad1 && id)
             {
                 s = search_function(ad1, id);
@@ -593,19 +592,12 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
             }
             if (ad2 && id_r)
             {
-                s_r = search_function(ad2, id_r);
+                s_r = search_function(ad2, Id.opBinaryRight);
                 // https://issues.dlang.org/show_bug.cgi?id=12778
                 // If both x.opBinary(y) and y.opBinaryRight(x) found,
                 // and they are exactly same symbol, x.opBinary(y) should be preferred.
                 if (s_r && s_r == s)
                     s_r = null;
-                if (s_r)
-                {
-                    // @@@DEPRECATED_2.110@@@.
-                    // Deprecated in 2.088, made an error in 2.100
-                    error(e.loc, "`%s` is obsolete.  Use `opBinaryRight(string op)(...) if (op == \"%s\")` instead.", id_r.toChars(), EXPtoString(e.op).ptr);
-                    return ErrorExp.get();
-                }
             }
         }
         Expressions* args1 = new Expressions();
@@ -673,85 +665,6 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
             }
         }
     L1:
-        version (all)
-        {
-            // Retained for D1 compatibility
-            if (isCommutative(e.op) && !tiargs)
-            {
-                s = null;
-                s_r = null;
-                if (ad1 && id_r)
-                {
-                    s_r = search_function(ad1, id_r);
-                }
-                if (ad2 && id)
-                {
-                    s = search_function(ad2, id);
-                    if (s && s == s_r) // https://issues.dlang.org/show_bug.cgi?id=12778
-                        s = null;
-                }
-                if (s || s_r)
-                {
-                    /* Try:
-                     *  a.opfunc_r(b)
-                     *  b.opfunc(a)
-                     * and see which is better.
-                     */
-                    if (!argsset)
-                    {
-                        args1.setDim(1);
-                        (*args1)[0] = e.e1;
-                        expandTuples(args1);
-                        args2.setDim(1);
-                        (*args2)[0] = e.e2;
-                        expandTuples(args2);
-                    }
-                    MatchAccumulator m;
-                    if (s_r)
-                    {
-                        functionResolve(m, s_r, e.loc, sc, tiargs, e.e1.type, ArgumentList(args2));
-                        if (m.lastf && (m.lastf.errors || m.lastf.hasSemantic3Errors()))
-                        {
-                            return ErrorExp.get();
-                        }
-                    }
-                    FuncDeclaration lastf = m.lastf;
-                    if (s)
-                    {
-                        functionResolve(m, s, e.loc, sc, tiargs, e.e2.type, ArgumentList(args1));
-                        if (m.lastf && (m.lastf.errors || m.lastf.hasSemantic3Errors()))
-                        {
-                            return ErrorExp.get();
-                        }
-                    }
-                    if (m.count > 1)
-                    {
-                        // Error, ambiguous
-                        error(e.loc, "overloads `%s` and `%s` both match argument list for `%s`", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
-                    }
-                    else if (m.last == MATCH.nomatch)
-                    {
-                        m.lastf = null;
-                    }
-
-                    if (lastf && m.lastf == lastf || !s && m.last == MATCH.nomatch)
-                    {
-                        // Rewrite (e1 op e2) as e1.opfunc_r(e2)
-                        return build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s_r);
-                    }
-                    else
-                    {
-                        // Rewrite (e1 op e2) as e2.opfunc(e1)
-                        Expression result = build_overload(e.loc, sc, e.e2, e.e1, m.lastf ? m.lastf : s);
-                        // When reversing operands of comparison operators,
-                        // need to reverse the sense of the op
-                        if (pop)
-                            *pop = reverseRelation(e.op);
-                        return result;
-                    }
-                }
-            }
-        }
 
         Expression rewrittenLhs;
         if (!(e.op == EXP.assign && ad2 && ad1 == ad2)) // https://issues.dlang.org/show_bug.cgi?id=2943
@@ -1126,21 +1039,6 @@ Expression op_overload(Expression e, Scope* sc, EXP* pop = null)
         {
             id = Id.opOpAssign;
             tiargs = opToArg(sc, e.op);
-        }
-
-        // Try D1-style operator overload, deprecated
-        if (!s && ad1 && id)
-        {
-            s = search_function(ad1, id);
-            if (s)
-            {
-                // @@@DEPRECATED_2.110@@@.
-                // Deprecated in 2.088, made an error in 2.100
-                scope char[] op = EXPtoString(e.op).dup;
-                op[$-1] = '\0'; // remove trailing `=`
-                error(e.loc, "`%s` is obsolete.  Use `opOpAssign(string op)(...) if (op == \"%s\")` instead.", id.toChars(), op.ptr);
-                return ErrorExp.get();
-            }
         }
 
         if (s)
