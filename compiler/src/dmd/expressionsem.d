@@ -2370,6 +2370,25 @@ private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
     return true;
 }
 
+/*********************************************
+ * Calling function f.
+ * Check the @ctonly-ness, i.e. we can only call @ctonly functions
+ * from either other @ctonly functions or ctfe.
+ * Returns true if error occurs.
+ */
+private bool checkCtonly(FuncDeclaration f, ref Loc loc, Scope* sc)
+{
+    if (!f.type.toTypeFunction().isCtonly()) return false;
+    if (sc.ctfe) return false;
+    if (!sc.func) {
+        error(loc, "cannot call @ctonly function %s from non-CTFE context", f.toPrettyChars());
+        return true;
+    }
+    if (sc.func.type.toTypeFunction().isCtonly()) return false;
+    error(loc, "cannot call @ctonly function %s from non-@ctonly function %s", f.toPrettyChars(), sc.func.toPrettyChars());
+    return true;
+}
+
 /********************************************
  * Check that the postblit of `t` isn't @disabled and has the right
  * function attributes for this scope.
@@ -15567,6 +15586,13 @@ private Expression toLvalueImpl(Expression _this, Scope* sc, const(char)* action
             error(_this.loc, "cannot %s operator `$`", action);
             return ErrorExp.get();
         }
+        if (auto fd = _this.var.isFuncDeclaration()) {
+            auto fty = fd.type.toTypeFunction();
+            if (fty.isCtonly()) {
+                error(_this.loc, "cannot %s @ctonly function `%s`", action, var.toChars());
+                return ErrorExp.get();
+            }
+        }
         return _this;
     }
 
@@ -16168,6 +16194,7 @@ private bool checkFunctionAttributes(Expression exp, Scope* sc, FuncDeclaration 
     error |= f.checkPurity(exp.loc, sc);
     error |= f.checkSafety(exp.loc, sc);
     error |= f.checkNogc(exp.loc, sc);
+    error |= f.checkCtonly(exp.loc, sc);
     return error;
 }
 
