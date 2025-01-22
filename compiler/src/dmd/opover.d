@@ -594,6 +594,9 @@ Expression opOverloadAssign(AssignExp e, Scope* sc)
 
 Expression opOverloadBinary(BinExp e, Scope* sc)
 {
+    if (Expression err = binSemanticProp(e, sc))
+        return err;
+
     AggregateDeclaration ad1 = isAggregate(e.e1.type);
     AggregateDeclaration ad2 = isAggregate(e.e2.type);
     Dsymbol s = null;
