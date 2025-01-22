@@ -12073,11 +12073,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("AddExp::semantic('%s')\n", exp.toChars());
         }
 
-        if (Expression ex = binSemanticProp(exp, sc))
-        {
-            result = ex;
-            return;
-        }
         if (Expression e = exp.opOverloadBinary(sc))
         {
             result = e;
@@ -12172,12 +12167,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         static if (LOGSEMANTIC)
         {
             printf("MinExp::semantic('%s')\n", exp.toChars());
-        }
-
-        if (Expression ex = binSemanticProp(exp, sc))
-        {
-            result = ex;
-            return;
         }
 
         if (Expression e = exp.opOverloadBinary(sc))
@@ -12419,12 +12408,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     {
         // https://dlang.org/spec/expression.html#cat_expressions
         //printf("CatExp.semantic() %s\n", toChars());
-
-        if (Expression ex = binSemanticProp(exp, sc))
-        {
-            result = ex;
-            return;
-        }
         if (Expression e = exp.opOverloadBinary(sc))
         {
             result = e;
@@ -12597,12 +12580,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     bool commonBinOpSemantic(BinExp exp)
     {
-        if (Expression ex = binSemanticProp(exp, sc))
-        {
-            result = ex;
-            return true;
-        }
-
         if (Expression e = exp.opOverloadBinary(sc))
         {
             result = e;
@@ -12841,12 +12818,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     private void visitShift(BinExp exp)
     {
-
-        if (Expression ex = binSemanticProp(exp, sc))
-        {
-            result = ex;
-            return;
-        }
         if (Expression e = exp.opOverloadBinary(sc))
         {
             result = e;
@@ -12888,12 +12859,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     private void visitBinaryBitOp(BinExp exp)
     {
-
-        if (Expression ex = binSemanticProp(exp, sc))
-        {
-            result = ex;
-            return;
-        }
         if (Expression e = exp.opOverloadBinary(sc))
         {
             result = e;
@@ -13155,12 +13120,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(InExp exp)
     {
-
-        if (Expression ex = binSemanticProp(exp, sc))
-        {
-            result = ex;
-            return;
-        }
         if (Expression e = exp.opOverloadBinary(sc))
         {
             result = e;
