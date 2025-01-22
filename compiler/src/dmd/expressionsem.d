@@ -12597,12 +12597,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     bool commonBinOpSemantic(BinExp exp)
     {
-        if (exp.type)
-        {
-            result = exp;
-            return true;
-        }
-
         if (Expression ex = binSemanticProp(exp, sc))
         {
             result = ex;
