@@ -31,6 +31,7 @@ import dmd.enumsem;
 import dmd.errors;
 import dmd.expression;
 import dmd.dsymbolsem : determineSize;
+import dmd.func : FuncDeclaration;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
@@ -2489,6 +2490,7 @@ extern (C++) final class TypeFunction : TypeNext
         bool isCtor;           /// the function is a constructor
         bool isReturnScope;    /// `this` is returned by value
         bool isCtonly;         /// is @ctonly
+        bool isCtonlyInferred; /// was @ctonly inferred
     }
 
     import dmd.common.bitfields : generateBitFields;
@@ -2499,6 +2501,7 @@ extern (C++) final class TypeFunction : TypeNext
     PURE purity = PURE.impure;
     byte inuse;
     ArgumentList inferenceArguments; // function arguments to determine `auto ref` in type semantic
+    FuncDeclaration ctOnlyInferReason = null;
 
     extern (D) this(ParameterList pl, Type treturn, LINK linkage, StorageClass stc = 0) @safe
     {
