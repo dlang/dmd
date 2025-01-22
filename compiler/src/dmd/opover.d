@@ -151,7 +151,7 @@ private Expression checkAliasThisForLhs(AggregateDeclaration ad, Scope* sc, BinE
 
     Expression result;
     if (be.op == EXP.concatenateAssign)
-        result = be.opOverloadBinary(sc);
+        result = be.isBinAssignExp().opOverloadBinaryAssign(sc);
     else
         result = be.trySemantic(sc);
 
@@ -176,7 +176,7 @@ private Expression checkAliasThisForRhs(AggregateDeclaration ad, Scope* sc, BinE
 
     Expression result;
     if (be.op == EXP.concatenateAssign)
-        result = be.opOverloadBinary(sc);
+        result = be.isBinAssignExp().opOverloadBinaryAssign(sc);
     else
         result = be.trySemantic(sc);
 
