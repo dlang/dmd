@@ -7536,13 +7536,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     override void visit(BinAssignExp exp)
     {
 
-        Expression e = exp.op_overload(sc);
-        if (e)
+        if (Expression e = exp.opOverloadBinaryAssign(sc))
         {
             result = e;
             return;
         }
 
+        Expression e;
         if (exp.e1.op == EXP.arrayLength)
         {
             // arr.length op= e2;
@@ -8777,8 +8777,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("PtrExp::semantic('%s')\n", exp.toChars());
         }
 
-        Expression e = exp.op_overload(sc);
-        if (e)
+        if (Expression e = exp.opOverloadUnary(sc))
         {
             result = e;
             return;
@@ -8835,8 +8834,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("NegExp::semantic('%s')\n", exp.toChars());
         }
 
-        Expression e = exp.op_overload(sc);
-        if (e)
+        if (Expression e = exp.opOverloadUnary(sc))
         {
             result = e;
             return;
@@ -8876,8 +8874,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("UAddExp::semantic('%s')\n", exp.toChars());
         }
 
-        Expression e = exp.op_overload(sc);
-        if (e)
+        if (Expression e = exp.opOverloadUnary(sc))
         {
             result = e;
             return;
@@ -8902,8 +8899,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     override void visit(ComExp exp)
     {
 
-        Expression e = exp.op_overload(sc);
-        if (e)
+        if (Expression e = exp.opOverloadUnary(sc))
         {
             result = e;
             return;
@@ -9165,7 +9161,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (!exp.to.equals(exp.e1.type) && exp.mod == cast(ubyte)~0)
         {
-            if (Expression e = exp.op_overload(sc))
+            if (Expression e = exp.opOverloadCast(sc))
             {
                 result = e.implicitCastTo(sc, exp.to);
                 return;
@@ -9699,8 +9695,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (result)
             return;
 
-        Expression e = exp.op_overload(sc);
-        if (e)
+        if (Expression e = exp.opOverloadArray(sc))
         {
             result = e;
             return;
@@ -10122,13 +10117,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         exp.e1 = e1x;
 
-        Expression e = exp.op_overload(sc);
-        if (e)
-        {
-            result = e;
-            return;
-        }
-
         if (exp.e1.checkReadModifyWrite(exp.op))
             return setError();
 
@@ -10171,7 +10159,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // Combine de,ea,eb,ec
             if (de)
                 ea = new CommaExp(exp.loc, de, ea);
-            e = new CommaExp(exp.loc, ea, eb);
+            Expression e = new CommaExp(exp.loc, ea, eb);
             e = new CommaExp(exp.loc, e, ec);
             e = e.expressionSemantic(sc);
             result = e;
@@ -10181,7 +10169,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         exp.e1 = exp.e1.modifiableLvalue(sc);
         exp.e1 = exp.e1.optimize(WANTvalue, /*keepLvalue*/ true);
 
-        e = exp;
+        Expression e = exp;
         if (exp.e1.checkScalar() ||
             exp.e1.checkSharedAccess(sc))
             return setError();
@@ -10198,15 +10186,15 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(PreExp exp)
     {
-        Expression e = exp.op_overload(sc);
         // printf("PreExp::semantic('%s')\n", toChars());
-        if (e)
+        if (Expression e = exp.opOverloadUnary(sc))
         {
             result = e;
             return;
         }
 
         // Rewrite as e1+=1 or e1-=1
+        Expression e;
         if (exp.op == EXP.prePlusPlus)
             e = new AddAssignExp(exp.loc, exp.e1, IntegerExp.literal!1);
         else
@@ -10976,8 +10964,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     ae.e1 = ae.e1.expressionSemantic(sc);
                     ae.e1 = ae.e1.optimize(WANTvalue);
                     ae.e2 = ev;
-                    Expression e = ae.op_overload(sc);
-                    if (e)
+                    if (Expression e = ae.opOverloadAssign(sc))
                     {
                         Expression ey = null;
                         if (t2.ty == Tstruct && sd == t2.toDsymbol(sc))
@@ -11027,14 +11014,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         return;
                     }
                 }
-                else
+                else if (Expression e = exp.isAssignExp().opOverloadAssign(sc))
                 {
-                    Expression e = exp.op_overload(sc);
-                    if (e)
-                    {
-                        result = e;
-                        return;
-                    }
+                    result = e;
+                    return;
                 }
             }
             else
@@ -11051,8 +11034,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // Disallow assignment operator overloads for same type
             if (exp.op == EXP.assign && !exp.e2.implicitConvTo(exp.e1.type))
             {
-                Expression e = exp.op_overload(sc);
-                if (e)
+                if (Expression e = exp.isAssignExp().opOverloadAssign(sc))
                 {
                     result = e;
                     return;
@@ -11723,9 +11705,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(PowAssignExp exp)
     {
-
-        Expression e = exp.op_overload(sc);
-        if (e)
+        if (Expression e = exp.opOverloadBinaryAssign(sc))
         {
             result = e;
             return;
@@ -11772,7 +11752,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if ((exp.e1.type.isIntegral() || exp.e1.type.isFloating()) && (exp.e2.type.isIntegral() || exp.e2.type.isFloating()))
         {
             Expression e0 = null;
-            e = exp.reorderSettingAAElem(sc);
+            Expression e = exp.reorderSettingAAElem(sc);
             e = Expression.extractLast(e, e0);
             assert(e == exp);
 
@@ -11804,8 +11784,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     {
 
         //printf("CatAssignExp::semantic() %s\n", exp.toChars());
-        Expression e = exp.op_overload(sc);
-        if (e)
+        if (Expression e = exp.opOverloadBinaryAssign(sc))
         {
             result = e;
             return;
@@ -12099,8 +12078,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = ex;
             return;
         }
-        Expression e = exp.op_overload(sc);
-        if (e)
+        if (Expression e = exp.opOverloadBinary(sc))
         {
             result = e;
             return;
@@ -12201,8 +12179,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = ex;
             return;
         }
-        Expression e = exp.op_overload(sc);
-        if (e)
+
+        if (Expression e = exp.opOverloadBinary(sc))
         {
             result = e;
             return;
@@ -12235,6 +12213,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (t1.ty == Tpointer)
         {
+            Expression e;
             if (t2.ty == Tpointer)
             {
                 // https://dlang.org/spec/expression.html#add_expressions
@@ -12446,8 +12425,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = ex;
             return;
         }
-        Expression e = exp.op_overload(sc);
-        if (e)
+        if (Expression e = exp.opOverloadBinary(sc))
         {
             result = e;
             return;
@@ -12599,6 +12577,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         Type t1 = exp.e1.type.toBasetype();
         Type t2 = exp.e2.type.toBasetype();
+        Expression e;
         if ((t1.ty == Tarray || t1.ty == Tsarray) &&
             (t2.ty == Tarray || t2.ty == Tsarray))
         {
@@ -12629,8 +12608,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = ex;
             return true;
         }
-        Expression e = exp.op_overload(sc);
-        if (e)
+
+        if (Expression e = exp.opOverloadBinary(sc))
         {
             result = e;
             return true;
@@ -12874,8 +12853,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = ex;
             return;
         }
-        Expression e = exp.op_overload(sc);
-        if (e)
+        if (Expression e = exp.opOverloadBinary(sc))
         {
             result = e;
             return;
@@ -12922,8 +12900,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = ex;
             return;
         }
-        Expression e = exp.op_overload(sc);
-        if (e)
+        if (Expression e = exp.opOverloadBinary(sc))
         {
             result = e;
             return;
@@ -13081,7 +13058,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
         }
 
-        if (auto e = exp.op_overload(sc))
+        if (auto e = exp.opOverloadCmp(sc))
         {
             result = e;
             return;
@@ -13190,8 +13167,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = ex;
             return;
         }
-        Expression e = exp.op_overload(sc);
-        if (e)
+        if (Expression e = exp.opOverloadBinary(sc))
         {
             result = e;
             return;
@@ -13355,12 +13331,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return false;
         }
 
-        if (auto e = exp.op_overload(sc))
+        if (auto e = exp.opOverloadEqual(sc))
         {
             result = e;
             return;
         }
-
 
         const isArrayComparison = (t1.ty == Tarray || t1.ty == Tsarray) &&
                                   (t2.ty == Tarray || t2.ty == Tsarray);

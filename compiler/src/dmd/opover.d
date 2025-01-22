@@ -151,7 +151,7 @@ private Expression checkAliasThisForLhs(AggregateDeclaration ad, Scope* sc, BinE
 
     Expression result;
     if (be.op == EXP.concatenateAssign)
-        result = be.op_overload(sc);
+        result = be.opOverloadBinary(sc);
     else
         result = be.trySemantic(sc);
 
@@ -176,34 +176,15 @@ private Expression checkAliasThisForRhs(AggregateDeclaration ad, Scope* sc, BinE
 
     Expression result;
     if (be.op == EXP.concatenateAssign)
-        result = be.op_overload(sc);
+        result = be.opOverloadBinary(sc);
     else
         result = be.trySemantic(sc);
 
     return result;
 }
 
-/************************************
- * Operator overload.
- * Check for operator overload, if so, replace
- * with function call.
- * Params:
- *      e = expression with operator
- *      sc = context
- * Returns:
- *      `null` if not an operator overload,
- *      otherwise the lowered expression
- */
-Expression op_overload(Expression e, Scope* sc)
-{
-    Expression visit(Expression e)
+    Expression opOverloadUnary(UnaExp e, Scope* sc)
     {
-        assert(0);
-    }
-
-    Expression visitUna(UnaExp e)
-    {
-        //printf("UnaExp::op_overload() (%s)\n", e.toChars());
         Expression result;
         if (auto ae = e.e1.isArrayExp())
         {
@@ -339,9 +320,8 @@ Expression op_overload(Expression e, Scope* sc)
         return result;
     }
 
-    Expression visitArray(ArrayExp ae)
+    Expression opOverloadArray(ArrayExp ae, Scope* sc)
     {
-        //printf("ArrayExp::op_overload() (%s)\n", ae.toChars());
         ae.e1 = ae.e1.expressionSemantic(sc);
         ae.e1 = resolveProperties(sc, ae.e1);
         Expression ae1old = ae.e1;
@@ -464,12 +444,11 @@ Expression op_overload(Expression e, Scope* sc)
     }
 
     /***********************************************
-     * This is mostly the same as UnaryExp::op_overload(), but has
+     * This is mostly the same as opOverloadUnary but has
      * a different rewrite.
      */
-    Expression visitCast(CastExp e, Type att = null)
+    Expression opOverloadCast(CastExp e, Scope* sc, Type att = null)
     {
-        //printf("CastExp::op_overload() (%s)\n", e.toChars());
         Expression result;
         if (AggregateDeclaration ad = isAggregate(e.e1.type))
         {
@@ -506,7 +485,7 @@ Expression op_overload(Expression e, Scope* sc)
                 {
                     result = e.copy();
                     (cast(UnaExp)result).e1 = e1;
-                    result = visitCast(result.isCastExp(), att);
+                    result = opOverloadCast(result.isCastExp(), sc, att);
                     return result;
                 }
             }
@@ -516,7 +495,7 @@ Expression op_overload(Expression e, Scope* sc)
 
     // When no operator overload functions are found for `e`, recursively try with `alias this`
     // Returns: `null` when still no overload found, otherwise resolved lowering
-    Expression binAliasThis(BinExp e, AggregateDeclaration ad1, AggregateDeclaration ad2)
+    Expression binAliasThis(BinExp e, Scope* sc, AggregateDeclaration ad1, AggregateDeclaration ad2)
     {
         Expression rewrittenLhs;
         if (!(e.op == EXP.assign && ad2 && ad1 == ad2)) // https://issues.dlang.org/show_bug.cgi?id=2943
@@ -569,7 +548,7 @@ Expression op_overload(Expression e, Scope* sc)
         return null;
     }
 
-    Expression visitAssign(AssignExp e)
+    Expression opOverloadAssign(AssignExp e, Scope* sc)
     {
         AggregateDeclaration ad1 = isAggregate(e.e1.type);
         AggregateDeclaration ad2 = isAggregate(e.e2.type);
@@ -592,7 +571,7 @@ Expression op_overload(Expression e, Scope* sc)
             s = search_function(ad1, Id.assign);
 
         if (!s)
-            return binAliasThis(e, ad1, ad2);
+            return binAliasThis(e, sc, ad1, ad2);
 
         Expressions* args2 = new Expressions();
         args2.setDim(1);
@@ -607,15 +586,14 @@ Expression op_overload(Expression e, Scope* sc)
         if (m.last == MATCH.nomatch)
         {
             if (tiargs)
-                return binAliasThis(e, ad1, ad2);
+                return binAliasThis(e, sc, ad1, ad2);
             m.lastf = null;
         }
         return build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s);
     }
 
-    Expression visitBin(BinExp e)
+    Expression opOverloadBinary(BinExp e, Scope* sc)
     {
-        //printf("BinExp::op_overload() (%s)\n", e.toChars());
         AggregateDeclaration ad1 = isAggregate(e.e1.type);
         AggregateDeclaration ad2 = isAggregate(e.e2.type);
         Dsymbol s = null;
@@ -649,7 +627,7 @@ Expression op_overload(Expression e, Scope* sc)
             tiargs = opToArg(sc, e.op);
         }
         if (!s && !s_r)
-            return binAliasThis(e, ad1, ad2);
+            return binAliasThis(e, sc, ad1, ad2);
 
         // Try opBinary and opBinaryRight and see which is better.
         Expressions* args1 = new Expressions();
@@ -686,7 +664,7 @@ Expression op_overload(Expression e, Scope* sc)
         else if (m.last == MATCH.nomatch)
         {
             if (tiargs)
-                return binAliasThis(e, ad1, ad2);
+                return binAliasThis(e, sc, ad1, ad2);
             m.lastf = null;
         }
         if (lastf && m.lastf == lastf || !s_r && m.last == MATCH.nomatch)
@@ -701,9 +679,8 @@ Expression op_overload(Expression e, Scope* sc)
         }
     }
 
-    Expression visitEqual(EqualExp e)
+    Expression opOverloadEqual(EqualExp e, Scope* sc)
     {
-        //printf("EqualExp::op_overload() (%s)\n", e.toChars());
         Type t1 = e.e1.type.toBasetype();
         Type t2 = e.e2.type.toBasetype();
 
@@ -886,7 +863,7 @@ Expression op_overload(Expression e, Scope* sc)
         return null;
     }
 
-    Expression visitCmp(CmpExp exp)
+    Expression opOverloadCmp(CmpExp exp, Scope* sc)
     {
         //printf("CmpExp:: () (%s)\n", e.toChars());
         EXP cmpOp = exp.op;
@@ -940,9 +917,8 @@ Expression op_overload(Expression e, Scope* sc)
     /*********************************
      * Operator overloading for op=
      */
-    Expression visitBinAssign(BinAssignExp e)
+    Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc)
     {
-        //printf("BinAssignExp::op_overload() (%s)\n", e.toChars());
         if (auto ae = e.e1.isArrayExp())
         {
             ae.e1 = ae.e1.expressionSemantic(sc);
@@ -1106,32 +1082,6 @@ Expression op_overload(Expression e, Scope* sc)
 
         return checkAliasThisForRhs(isAggregate(e.e2.type), sc, e);
     }
-
-    switch (e.op)
-    {
-        case EXP.cast_         : return visitCast(e.isCastExp());
-        case EXP.array         : return visitArray(e.isArrayExp());
-
-        case EXP.notEqual      :
-        case EXP.equal         : return visitEqual(e.isEqualExp());
-
-        case EXP.lessOrEqual   :
-        case EXP.greaterThan   :
-        case EXP.greaterOrEqual:
-        case EXP.lessThan      : return visitCmp(cast(CmpExp)e);
-        case EXP.assign        : return visitAssign(e.isAssignExp());
-
-        // These are a kludgy BinExp, operator overloading is handled by EXP.prePlusPlus / EXP.preMinusMinus in the UnaExp case
-        case EXP.plusPlus      : return null;
-        case EXP.minusMinus    : return null;
-
-        default:
-            if (auto ex = e.isBinAssignExp()) return visitBinAssign(ex);
-            if (auto ex = e.isBinExp())       return visitBin(ex);
-            if (auto ex = e.isUnaExp())       return visitUna(ex);
-            return visit(e);
-    }
-}
 
 /******************************************
  * Common code for overloading of EqualExp and CmpExp
