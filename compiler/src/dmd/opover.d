@@ -566,30 +566,13 @@ Expression opOverloadAssign(AssignExp e, Scope* sc)
             return null;
         }
     }
-    Dsymbol s = null;
-    if (ad1)
-        s = search_function(ad1, Id.assign);
+    Dsymbol s = search_function(ad1, Id.assign);
 
-    if (!s)
-        return binAliasThis(e, sc, ad1, ad2);
+    bool choseReverse;
+    if (auto result = pickBestBinaryOverload(sc, null, s, null, e, choseReverse))
+        return result;
 
-    Expressions* args2 = new Expressions();
-    args2.setDim(1);
-    (*args2)[0] = e.e2;
-    expandTuples(args2);
-    MatchAccumulator m;
-    Objects* tiargs = null;
-    functionResolve(m, s, e.loc, sc, tiargs, e.e1.type, ArgumentList(args2));
-    if (m.lastf && (m.lastf.errors || m.lastf.hasSemantic3Errors()))
-        return ErrorExp.get();
-
-    if (m.last == MATCH.nomatch)
-    {
-        if (tiargs)
-            return binAliasThis(e, sc, ad1, ad2);
-        m.lastf = null;
-    }
-    return build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s);
+    return binAliasThis(e, sc, ad1, ad2);
 }
 
 Expression opOverloadBinary(BinExp e, Scope* sc)
@@ -599,30 +582,24 @@ Expression opOverloadBinary(BinExp e, Scope* sc)
 
     AggregateDeclaration ad1 = isAggregate(e.e1.type);
     AggregateDeclaration ad2 = isAggregate(e.e2.type);
-    Dsymbol s = null;
-    Dsymbol s_r = null;
 
     // Try opBinary and opBinaryRight
-    if (ad1)
+    Dsymbol s = search_function(ad1, Id.opBinary);
+    if (s && !s.isTemplateDeclaration())
     {
-        s = search_function(ad1, Id.opBinary);
-        if (s && !s.isTemplateDeclaration())
-        {
-            error(e.e1.loc, "`%s.opBinary` isn't a template", e.e1.toChars());
-            return ErrorExp.get();
-        }
+        error(e.e1.loc, "`%s.opBinary` isn't a template", e.e1.toChars());
+        return ErrorExp.get();
     }
-    if (ad2)
+
+    Dsymbol s_r = search_function(ad2, Id.opBinaryRight);
+    if (s_r && !s_r.isTemplateDeclaration())
     {
-        s_r = search_function(ad2, Id.opBinaryRight);
-        if (s_r && !s_r.isTemplateDeclaration())
-        {
-            error(e.e2.loc, "`%s.opBinaryRight` isn't a template", e.e2.toChars());
-            return ErrorExp.get();
-        }
-        if (s_r && s_r == s) // https://issues.dlang.org/show_bug.cgi?id=12778
-            s_r = null;
+        error(e.e2.loc, "`%s.opBinaryRight` isn't a template", e.e2.toChars());
+        return ErrorExp.get();
     }
+    if (s_r && s_r == s) // https://issues.dlang.org/show_bug.cgi?id=12778
+        s_r = null;
+
     bool choseReverse;
     if (auto res = pickBestBinaryOverload(sc, opToArg(sc, e.op), s, s_r, e, choseReverse))
         return res;
@@ -976,16 +953,11 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc)
         return ErrorExp.get();
     }
     AggregateDeclaration ad1 = isAggregate(e.e1.type);
-    Dsymbol s = null;
-    // Try a.opOpAssign(b)
-    if (ad1)
+    Dsymbol s = search_function(ad1, Id.opOpAssign);
+    if (s && !s.isTemplateDeclaration())
     {
-        s = search_function(ad1, Id.opOpAssign);
-        if (s && !s.isTemplateDeclaration())
-        {
-            error(e.loc, "`%s.opOpAssign` isn't a template", e.e1.toChars());
-            return ErrorExp.get();
-        }
+        error(e.loc, "`%s.opOpAssign` isn't a template", e.e1.toChars());
+        return ErrorExp.get();
     }
 
     bool choseReverse;
@@ -1088,18 +1060,11 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id, ref EXP 
     //printf("BinExp::compare_overload(id = %s) %s\n", id.toChars(), e.toChars());
     AggregateDeclaration ad1 = isAggregate(e.e1.type);
     AggregateDeclaration ad2 = isAggregate(e.e2.type);
-    Dsymbol s = null;
-    Dsymbol s_r = null;
-    if (ad1)
-    {
-        s = search_function(ad1, id);
-    }
-    if (ad2)
-    {
-        s_r = search_function(ad2, id);
-        if (s == s_r)
-            s_r = null;
-    }
+    Dsymbol s = search_function(ad1, id);
+    Dsymbol s_r = search_function(ad2, id);
+
+    if (s == s_r)
+        s_r = null;
 
     bool choseReverse;
     if (auto res = pickBestBinaryOverload(sc, null, s, s_r, e, choseReverse))
@@ -1141,6 +1106,8 @@ Expression build_overload(const ref Loc loc, Scope* sc, Expression ethis, Expres
  */
 Dsymbol search_function(ScopeDsymbol ad, Identifier funcid)
 {
+    if (!ad)
+        return null;
     if (Dsymbol s = ad.search(Loc.initial, funcid))
     {
         //printf("search_function: s = '%s'\n", s.kind());
