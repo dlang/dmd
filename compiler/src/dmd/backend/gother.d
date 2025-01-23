@@ -35,7 +35,7 @@ nothrow:
 @safe:
 
 @trusted
-char symbol_isintab(const Symbol *s) { return sytab[s.Sclass] & SCSS; }
+char symbol_isintab(const Symbol* s) { return sytab[s.Sclass] & SCSS; }
 
 
 /**********************************************************************/
@@ -46,9 +46,9 @@ alias Elemdatas = Rarray!(Elemdata);
 struct Elemdata
 {
 nothrow:
-    elem *pelem;            // the elem in question
-    block *pblock;          // which block it's in
-    Barray!(elem*) rdlist;  // list of definition elems for *pelem
+    elem* pelem;            // the elem in question
+    block* pblock;          // which block it's in
+    Barray!(elem*) rdlist;  // list of definition elems for* pelem
 
     /***************************
      * Reset memory so this allocation can be re-used.
@@ -61,7 +61,7 @@ nothrow:
     /******************
      * Initialize instance at ed.
      */
-    void emplace(elem *e,block *b)
+    void emplace(elem* e,block* b)
     {
         this.pelem = e;
         this.pblock = b;
@@ -77,7 +77,7 @@ nothrow:
  *      null if not
  */
 @trusted
-Elemdata* find(ref Elemdatas eds, elem *e)
+Elemdata* find(ref Elemdatas eds, elem* e)
 {
     foreach (ref edl; eds)
     {
@@ -155,13 +155,13 @@ private void rd_compute(ref GlobalOptimizer go, ref EqRelInc eqrelinc)
     block_clearvisit();
     foreach (b; bo.dfo[])    // for each block
     {
-        switch (b.BC)
+        switch (b.bc)
         {
-            case BCjcatch:
-            case BC_finally:
-            case BC_lpad:
-            case BCasm:
-            case BCcatch:
+            case BC.jcatch:
+            case BC._finally:
+            case BC._lpad:
+            case BC.asm_:
+            case BC.catch_:
                 block_visit(b);
                 break;
 
@@ -220,10 +220,10 @@ private void rd_compute(ref GlobalOptimizer go, ref EqRelInc eqrelinc)
 @trusted
 private void constantPropagation(ref GlobalOptimizer go, block* thisblock, ref EqRelInc eqrelinc)
 {
-    void conpropwalk(elem *n,vec_t IN)
+    void conpropwalk(elem* n,vec_t IN)
     {
         vec_t L,R;
-        elem *t;
+        elem* t;
 
         assert(n && IN);
         //printf("conpropwalk()\n"),elem_print(n);
@@ -383,7 +383,7 @@ private void constantPropagation(ref GlobalOptimizer go, block* thisblock, ref E
 
             if (!(config.flags & CFGnowarning))     // if warnings are enabled
                 chkrd(n,rdl);
-            elem *e = chkprop(go, n, rdl);
+            elem* e = chkprop(go, n, rdl);
             if (e)
             {   tym_t nty;
 
@@ -403,9 +403,9 @@ private void constantPropagation(ref GlobalOptimizer go, block* thisblock, ref E
  */
 
 @trusted
-private void chkrd(elem *n, Barray!(elem*) rdlist)
+private void chkrd(elem* n, Barray!(elem*) rdlist)
 {
-    Symbol *sv;
+    Symbol* sv;
     int unambig;
 
     sv = n.Vsym;
@@ -439,7 +439,7 @@ private void chkrd(elem *n, Barray!(elem*) rdlist)
 
     // If there are any asm blocks, don't print the message
     foreach (b; bo.dfo[])
-        if (b.BC == BCasm)
+        if (b.bc == BC.asm_)
             return;
 
     // If variable contains bit fields, don't print message (because if
@@ -500,11 +500,11 @@ private void chkrd(elem *n, Barray!(elem*) rdlist)
  */
 
 @trusted
-private elem* chkprop(ref GlobalOptimizer go, elem *n, Barray!(elem*) rdlist)
+private elem* chkprop(ref GlobalOptimizer go, elem* n, Barray!(elem*) rdlist)
 {
-    elem *foundelem = null;
+    elem* foundelem = null;
     int unambig;
-    Symbol *sv;
+    Symbol* sv;
     tym_t nty;
     uint nsize;
     targ_size_t noff;
@@ -533,7 +533,7 @@ private elem* chkprop(ref GlobalOptimizer go, elem *n, Barray!(elem*) rdlist)
 
         if (OTassign(d.Eoper))      // if assignment elem
         {
-            elem *t = d.E1;
+            elem* t = d.E1;
 
             if (t.Eoper == OPvar)
             {
@@ -611,10 +611,10 @@ noprop:
  */
 
 @trusted
-void listrds(ref GlobalOptimizer go, vec_t IN, elem *e, vec_t f, Barray!(elem*)* rdlist)
+void listrds(ref GlobalOptimizer go, vec_t IN, elem* e, vec_t f, Barray!(elem*)* rdlist)
 {
     uint unambig;
-    Symbol *s;
+    Symbol* s;
     uint nsize;
     targ_size_t noff;
     tym_t ty;
@@ -632,13 +632,13 @@ void listrds(ref GlobalOptimizer go, vec_t IN, elem *e, vec_t f, Barray!(elem*)*
         vec_clear(f);
     for (size_t i = 0; (i = vec_index(i, IN)) < go.defnod.length; ++i)
     {
-        elem *d = go.defnod[i].DNelem;
+        elem* d = go.defnod[i].DNelem;
         //printf("\tlooking at "); WReqn(d); printf("\n");
         const op = d.Eoper;
         if (op == OPasm)                // assume ASM elems define everything
             goto listit;
         if (OTassign(op))
-        {   elem *t = d.E1;
+        {   elem* t = d.E1;
 
             if (t.Eoper == OPvar && t.Vsym == s)
             {   if (op == OPstreq)
@@ -677,9 +677,9 @@ void listrds(ref GlobalOptimizer go, vec_t IN, elem *e, vec_t f, Barray!(elem*)*
 @trusted
 private void eqeqranges(ref Elemdatas eqeqlist)
 {
-    Symbol *v;
+    Symbol* v;
     int sz;
-    elem *e;
+    elem* e;
     targ_llong c;
     int result;
 
@@ -695,7 +695,7 @@ private void eqeqranges(ref Elemdatas eqeqlist)
         result = -1;                    // result not known yet
         foreach (erd; rel.rdlist)
         {
-            elem *erd1;
+            elem* erd1;
             int szrd;
             int tmp;
 
@@ -741,11 +741,11 @@ private void eqeqranges(ref Elemdatas eqeqlist)
 @trusted
 private void intranges(ref GlobalOptimizer go, ref Elemdatas rellist, ref Elemdatas inclist)
 {
-    block *rb;
-    block *ib;
-    Symbol *v;
-    elem *rdeq;
-    elem *rdinc;
+    block* rb;
+    block* ib;
+    Symbol* v;
+    elem* rdeq;
+    elem* rdinc;
     uint incop,relatop;
     targ_llong initial,increment,final_;
 
@@ -804,8 +804,8 @@ private void intranges(ref GlobalOptimizer go, ref Elemdatas rellist, ref Elemda
         /* are rdeq and rdinc.                                          */
         foreach (ref iel; inclist)
         {
-            elem *rd1;
-            elem *rd2;
+            elem* rd1;
+            elem* rd2;
 
             ib = iel.pblock;
             if (iel.pelem != rdinc)
@@ -887,7 +887,7 @@ private void intranges(ref GlobalOptimizer go, ref Elemdatas rellist, ref Elemda
                     {
                         // Eliminate loop if it is empty
                         if (relatop == OPlt &&
-                            rb.BC == BCiftrue &&
+                            rb.bc == BC.iftrue &&
                             list_block(rb.Bsucc) == rb &&
                             rb.Belem.Eoper == OPcomma &&
                             rb.Belem.E1 == rdinc &&
@@ -896,7 +896,7 @@ private void intranges(ref GlobalOptimizer go, ref Elemdatas rellist, ref Elemda
                         {
                             rel.pelem.Eoper = OPeq;
                             rel.pelem.Ety = rel.pelem.E1.Ety;
-                            rb.BC = BCgoto;
+                            rb.bc = BC.goto_;
                             list_subtract(&rb.Bsucc,rb);
                             list_subtract(&rb.Bpred,rb);
 
@@ -1005,8 +1005,8 @@ public bool findloopparameters(ref GlobalOptimizer go, elem* erel, ref elem* rde
         if (log) printf("nitems != 2\n");
         return returnResult(false);
     }
-    elem *rd1 = iel.rdlist[0];
-    elem *rd2 = iel.rdlist[1];
+    elem* rd1 = iel.rdlist[0];
+    elem* rd2 = iel.rdlist[1];
     if (rd1 == rdinc)
         rdeq = rd2;
     else if (rd2 == rdinc)
@@ -1052,13 +1052,13 @@ public bool findloopparameters(ref GlobalOptimizer go, elem* erel, ref elem* rde
  */
 
 @trusted
-private int loopcheck(block *start,block *inc,block *rel)
+private int loopcheck(block* start,block* inc,block* rel)
 {
     if (!(start.Bflags & BFL.visited))
     {   start.Bflags |= BFL.visited;    /* guarantee eventual termination */
         foreach (list; ListRange(start.Bsucc))
         {
-            block *b = cast(block *) list_ptr(list);
+            block* b = cast(block*) list_ptr(list);
             if (b != rel && (b == inc || loopcheck(b,inc,rel)))
                 return true;
         }
@@ -1143,7 +1143,7 @@ Louter:
  */
 
 @trusted
-private bool copyPropWalk(ref GlobalOptimizer go, elem *n, vec_t IN)
+private bool copyPropWalk(ref GlobalOptimizer go, elem* n, vec_t IN)
 {
     bool recalc = false;
     int nocp = 0;
@@ -1155,7 +1155,7 @@ private bool copyPropWalk(ref GlobalOptimizer go, elem *n, vec_t IN)
         if (recalc)
             return;
 
-        elem *t;
+        elem* t;
         const op = n.Eoper;
         if (op == OPcolon || op == OPcolon2)
         {
@@ -1226,7 +1226,7 @@ private bool copyPropWalk(ref GlobalOptimizer go, elem *n, vec_t IN)
             ambig = !OTassign(op) || t.Eoper == OPind;
             for (size_t i = 0; (i = vec_index(i, IN)) < go.exptop; ++i) // for each active copy elem
             {
-                Symbol *v;
+                Symbol* v;
 
                 if (op == OPasm)
                     goto clr;
@@ -1270,7 +1270,7 @@ private bool copyPropWalk(ref GlobalOptimizer go, elem *n, vec_t IN)
         }
         else if (op == OPvar && !nocp)  // if reference to variable v
         {
-            Symbol *v = n.Vsym;
+            Symbol* v = n.Vsym;
 
             //printf("Checking copyprop for '%s', ty=x%x\n", v.Sident.ptr,n.Ety);
             symbol_debug(v);
@@ -1279,8 +1279,8 @@ private bool copyPropWalk(ref GlobalOptimizer go, elem *n, vec_t IN)
             if (sz == -1 && !tyfunc(n.Ety))
                 sz = cast(uint)type_size(v.Stype);
 
-            elem *foundelem = null;
-            Symbol *f;
+            elem* foundelem = null;
+            Symbol* f;
             for (size_t i = 0; (i = vec_index(i, IN)) < go.exptop; ++i) // for all active copy elems
             {
                 elem* c = go.expnod[i];
@@ -1316,11 +1316,11 @@ private bool copyPropWalk(ref GlobalOptimizer go, elem *n, vec_t IN)
                 debug if (debugc)
                 {
                     printf("Copyprop, '%s'(%d) replaced with '%s'(%d)\n",
-                        (v.Sident[0]) ? cast(char *)v.Sident.ptr : "temp".ptr, cast(int) v.Ssymnum,
-                        (f.Sident[0]) ? cast(char *)f.Sident.ptr : "temp".ptr, cast(int) f.Ssymnum);
+                        (v.Sident[0]) ? cast(char*)v.Sident.ptr : "temp".ptr, cast(int) v.Ssymnum,
+                        (f.Sident[0]) ? cast(char*)f.Sident.ptr : "temp".ptr, cast(int) f.Ssymnum);
                 }
 
-                type *nt = n.ET;
+                type* nt = n.ET;
                 targ_size_t noffset = n.Voffset;
                 el_copy(n,foundelem.E2);
                 n.Ety = ty;    // retain original type
@@ -1366,7 +1366,7 @@ private __gshared
     Barray!(elem*) assnod;      /* array of pointers to asg elems       */
     vec_t ambigref;             /* vector of assignment elems that      */
                                 /* are referenced when an ambiguous     */
-                                /* reference is done (as in *p or call) */
+                                /* reference is done (as in* p or call) */
 }
 
 @trusted
@@ -1397,9 +1397,9 @@ public void rmdeadass(ref GlobalOptimizer go)
         vec_orass(POSS,DEAD);   /* POSS |= DEAD                 */
         for (uint j = 0; (j = cast(uint) vec_index(j, POSS)) < assnum; ++j) // for each possible dead asg.
         {
-            Symbol *v;      /* v = target of assignment     */
-            elem *n;
-            elem *nv;
+            Symbol* v;      /* v = target of assignment     */
+            elem* n;
+            elem* nv;
 
             n = assnod[j];
             nv = n.E1;
@@ -1452,8 +1452,8 @@ public void rmdeadass(ref GlobalOptimizer go)
  */
 
 @trusted
-public void elimass(elem *n)
-{   elem *e1;
+public void elimass(elem* n)
+{   elem* e1;
 
     switch (n.Eoper)
     {
@@ -1523,7 +1523,7 @@ public void elimass(elem *n)
  */
 
 @trusted
-private uint numasg(elem *e)
+private uint numasg(elem* e)
 {
     assert(e);
     if (OTassign(e.Eoper) && e.E1.Eoper == OPvar)
@@ -1550,7 +1550,7 @@ private uint numasg(elem *e)
  */
 
 @trusted
-private void accumda(elem *n,vec_t DEAD, vec_t POSS)
+private void accumda(elem* n,vec_t DEAD, vec_t POSS)
 {
   LtailRecurse:
     assert(n && DEAD && POSS);
@@ -1600,7 +1600,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
 
         case OPvar:
         {
-            Symbol *v = n.Vsym;
+            Symbol* v = n.Vsym;
             targ_size_t voff = n.Voffset;
             uint vsize = tysize(n.Ety);
 
@@ -1609,7 +1609,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
 
             foreach (const i; 0 .. assnod.length)
             {
-                elem *ti = assnod[i].E1;
+                elem* ti = assnod[i].E1;
                 if (v == ti.Vsym &&
                     ((vsize == -1 || tysize(ti.Ety) == -1) ||
                      // If symbol references overlap
@@ -1676,7 +1676,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
         default:
             if (OTassign(op))
             {
-                elem *t;
+                elem* t;
 
                 if (ERTOL(n))
                     accumda(n.E2,DEAD,POSS);
@@ -1703,7 +1703,7 @@ private void accumda(elem *n,vec_t DEAD, vec_t POSS)
                         tsz = cast(uint)type_size(n.ET);
                     foreach (const i; 0 .. assnod.length)
                     {
-                        elem *ti = assnod[i].E1;
+                        elem* ti = assnod[i].E1;
 
                         uint tisz = tysize(ti.Ety);
                         if (assnod[i].Eoper == OPstreq)
@@ -1817,7 +1817,7 @@ public void deadvar()
                 s.Sflags &= ~GTregcand;    // do not put dead variables in registers
             debug
             {
-                auto p = cast(char *) s.Sident.ptr ;
+                auto p = cast(char*) s.Sident.ptr ;
                 if (s.Sflags & SFLdead)
                     if (debugc) printf("Symbol %d '%s' is dead\n",cast(int) i,p);
                 if (debugc && s.Srange /*&& s.Sclass != CLMOS*/)
@@ -1837,14 +1837,14 @@ public void deadvar()
  *      i = block index
  */
 @trusted
-private void dvwalk(elem *n,uint i)
+private void dvwalk(elem* n,uint i)
 {
     for (; true; n = n.E1)
     {
         assert(n);
         if (n.Eoper == OPvar || n.Eoper == OPrelconst)
         {
-            Symbol *s = n.Vsym;
+            Symbol* s = n.Vsym;
 
             s.Sflags &= ~SFLdead;
             if (s.Srange)
@@ -1869,7 +1869,7 @@ private __gshared vec_t blockseen; /* which blocks we have visited         */
 @trusted
 public void verybusyexp(ref GlobalOptimizer go)
 {
-    elem **pn;
+    elem** pn;
 
     if (debugc) printf("verybusyexp()\n");
     flowvbe(go);                      /* compute VBEs                 */
@@ -1893,10 +1893,10 @@ public void verybusyexp(ref GlobalOptimizer go)
         /* Do not hoist things to blocks that do not            */
         /* divide the flow of control.                          */
 
-        switch (b.BC)
+        switch (b.bc)
         {
-            case BCiftrue:
-            case BCswitch:
+            case BC.iftrue:
+            case BC.switch_:
                 break;
 
             default:
@@ -2046,7 +2046,7 @@ public void verybusyexp(ref GlobalOptimizer go)
  */
 
 @trusted
-private int killed(uint j,block *bp,block *b)
+private int killed(uint j,block* bp,block* b)
 {
     if (bp == b || vec_testbit(bp.Bdfoidx,blockseen))
         return false;

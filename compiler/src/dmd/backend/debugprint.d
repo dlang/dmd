@@ -172,12 +172,12 @@ const(char)* tym_str(tym_t ty)
 @trusted
 const(char)* bc_str(uint bc)
 {
-    __gshared const char[9][BCMAX] bcs =
-        ["BCunde  ","BCgoto  ","BCtrue  ","BCret   ","BCretexp",
-         "BCexit  ","BCasm   ","BCswitch","BCifthen","BCjmptab",
-         "BCtry   ","BCcatch ","BCjump  ",
-         "BC_try  ","BC_filte","BC_final","BC_ret  ","BC_excep",
-         "BCjcatch","BC_lpad ",
+    __gshared const char[10][BC.max + 1] bcs =
+        ["BC.unde  ","BC.goto_  ","BC.true  ","BC.ret   ","BC.retexp",
+         "BC.exit  ","BC.asm_   ","BC.switch_","BC.ifthen","BC.jmptab",
+         "BC.try_   ","BC.catch_ ","BC.jump  ",
+         "BC._try  ","BC._filte","BC._final","BC._ret  ","BC._excep",
+         "BC.jcatch","BC._lpad ",
         ];
 
     return bcs[bc].ptr;
@@ -205,7 +205,7 @@ void WRarglst(list_t a)
  */
 
 @trusted
-void WReqn(elem *e)
+void WReqn(elem* e)
 { __gshared int nest;
 
   if (!e)
@@ -307,7 +307,7 @@ void WRblocklist(list_t bl)
 {
     foreach (bl2; ListRange(bl))
     {
-        block *b = list_block(bl2);
+        block* b = list_block(bl2);
 
         if (b && b.Bweight)
             printf("B%d (%p) ",b.Bdfoidx,b);
@@ -330,44 +330,44 @@ void WRdefnod(ref GlobalOptimizer go)
 
 const(char)* fl_str(FL fl)
 {
-    immutable char*[FLMAX] fls =
-    [   "FLunde",
-        "FLconst",
-        "FLoper",
-        "FLfunc",
-        "FLdata",
-        "FLreg",
-        "FLpseudo",
-        "FLauto",
-        "FLfast",
-        "FLpara",
-        "FLextern",
-        "FLcode",
-        "FLblock",
-        "FLudata",
-        "FLcs",
-        "FLswitch",
-        "FLfltrg",
-        "FLoffset",
-        "FLdatseg",
-        "FLctor",
-        "FLdtor",
-        "FLregsave",
-        "FLasm",
-        "FLndp",
-        "FLfardata",
-        "FLcsdat",
-        "FLlocalsize",
-        "FLtlsdata",
-        "FLbprel",
-        "FLframehandler",
-        "FLblockoff",
-        "FLallocatmp",
-        "FLstack",
-        "FLdsymbol",
-        "FLgot",
-        "FLgotoff",
-        "FLfuncarg",
+    immutable char*[FL.max + 1] fls =
+    [   "FL.unde",
+        "FL.const_",
+        "FL.oper",
+        "FL.func",
+        "FL.data",
+        "FL.reg",
+        "FL.pseudo",
+        "FL.auto_",
+        "FL.fast",
+        "FL.para",
+        "FL.extern_",
+        "FL.code",
+        "FL.block",
+        "FL.udata",
+        "FL.cs",
+        "FL.switch",
+        "FL.fltrg",
+        "FL.offset",
+        "FL.datseg",
+        "FL.ctor",
+        "FL.dtor",
+        "FL.regsave",
+        "FL.asm",
+        "FL.ndp",
+        "FL.fardata",
+        "FL.csdat",
+        "FL.localsize",
+        "FL.tlsdata",
+        "FL.bprel",
+        "FL.framehandler",
+        "FL.blockoff",
+        "FL.allocatmp",
+        "FL.stack",
+        "FL.dsymbol",
+        "FL.got",
+        "FL.gotoff",
+        "FL.funcarg",
     ];
     return fls[fl];
 }
@@ -377,7 +377,7 @@ const(char)* fl_str(FL fl)
  */
 
 @trusted
-void WRblock(block *b)
+void WRblock(block* b)
 {
     if (OPTIMIZER)
     {
@@ -391,8 +391,8 @@ void WRblock(block *b)
         }
         printf(" flags=x%x weight=%d",b.Bflags,b.Bweight);
         //printf("\tfile %p, line %d",b.Bfilptr,b.Blinnum);
-        printf(" %s Btry=%p Bindex=%d",bc_str(b.BC),b.Btry,b.Bindex);
-        if (b.BC == BCtry)
+        printf(" %s Btry=%p Bindex=%d",bc_str(b.bc),b.Btry,b.Bindex);
+        if (b.bc == BC.try_)
             printf(" catchvar = %p",b.catchvar);
         printf("\n");
         printf("\tBpred: "); WRblocklist(b.Bpred);
@@ -413,12 +413,12 @@ void WRblock(block *b)
     else
     {
         assert(b);
-        printf("%2d: %s", b.Bnumber, bc_str(b.BC));
+        printf("%2d: %s", b.Bnumber, bc_str(b.bc));
         if (b.Btry)
             printf(" Btry=B%d",b.Btry ? b.Btry.Bnumber : 0);
         if (b.Bindex)
             printf(" Bindex=%d",b.Bindex);
-        if (b.BC == BC_finally)
+        if (b.bc == BC._finally)
             printf(" b_ret=B%d", b.b_ret ? b.b_ret.Bnumber : 0);
         if (b.Bsrcpos.Sfilename)
             printf(" %s(%u)", b.Bsrcpos.Sfilename, b.Bsrcpos.Slinnum);
@@ -442,9 +442,9 @@ void WRblock(block *b)
             printf("\n");
         }
 
-        switch (b.BC)
+        switch (b.bc)
         {
-            case BCswitch:
+            case BC.switch_:
                 printf("\tncases = %d\n", cast(int)b.Bswitch.length);
                 list_t bl = b.Bsucc;
                 printf("\tdefault: B%d\n",list_block(bl) ? list_block(bl).Bnumber : 0);
@@ -455,18 +455,18 @@ void WRblock(block *b)
                 }
                 break;
 
-            case BCiftrue:
-            case BCgoto:
-            case BCasm:
-            case BCtry:
-            case BCcatch:
-            case BCjcatch:
-            case BC_try:
-            case BC_filter:
-            case BC_finally:
-            case BC_lpad:
-            case BC_ret:
-            case BC_except:
+            case BC.iftrue:
+            case BC.goto_:
+            case BC.asm_:
+            case BC.try_:
+            case BC.catch_:
+            case BC.jcatch:
+            case BC._try:
+            case BC._filter:
+            case BC._finally:
+            case BC._lpad:
+            case BC._ret:
+            case BC._except:
                 if (list_t bl = b.Bsucc)
                 {
                     printf("\tBsucc:");
@@ -476,13 +476,13 @@ void WRblock(block *b)
                 }
                 break;
 
-            case BCret:
-            case BCretexp:
-            case BCexit:
+            case BC.ret:
+            case BC.retexp:
+            case BC.exit:
                 break;
 
             default:
-                printf("bc = %d\n", b.BC);
+                printf("bc = %d\n", b.bc);
                 assert(0);
         }
     }
@@ -492,10 +492,10 @@ void WRblock(block *b)
  * Number the blocks starting at 1.
  * So much more convenient than pointer values.
  */
-void numberBlocks(block *startblock)
+void numberBlocks(block* startblock)
 {
     uint number = 0;
-    for (block *b = startblock; b; b = b.Bnext)
+    for (block* b = startblock; b; b = b.Bnext)
         b.Bnumber = ++number;
 }
 
@@ -511,6 +511,6 @@ void WRfunc(const char* msg, Symbol* sfunc, block* startblock)
 {
     printf("............%s...%s()\n", msg, sfunc.Sident.ptr);
     numberBlocks(startblock);
-    for (block *b = startblock; b; b = b.Bnext)
+    for (block* b = startblock; b; b = b.Bnext)
         WRblock(b);
 }

@@ -64,7 +64,7 @@ private enum CIFL : ubyte
 // Struct where we gather information about an instruction
 struct Cinfo
 {
-    code *c;            // the instruction
+    code* c;            // the instruction
     ubyte pair;         // pairing information
     ubyte sz;           // operand size
     ubyte isz;          // instruction size
@@ -90,7 +90,7 @@ struct Cinfo
     @trusted
     nothrow void print()        // pretty-printer
     {
-        Cinfo *ci = &this;
+        Cinfo* ci = &this;
 
         if (ci == null)
         {
@@ -131,7 +131,7 @@ struct Cinfo
  */
 
 @trusted
-private void cgsched_pentium(code **pc,regm_t scratch)
+private void cgsched_pentium(code** pc,regm_t scratch)
 {
     //printf("scratch = x%02x\n",scratch);
     if (config.target_scheduler >= TARGET_80486)
@@ -156,7 +156,7 @@ public void cgsched_block(block* b)
 {
     if (config.flags4 & CFG4speed &&
         config.target_cpu >= TARGET_Pentium &&
-        b.BC != BCasm)
+        b.bc != BC.asm_)
     {
         regm_t scratch = cgstate.allregs;
 
@@ -864,7 +864,7 @@ extern (D) private immutable ubyte[8] uopsx = [ 1,1,2,5,1,1,1,5 ];
  *      prefix bytes
  */
 
-private ubyte uops(code *c)
+private ubyte uops(code* c)
 {
     ubyte n;
     int op;
@@ -1119,13 +1119,13 @@ private ubyte uops(code *c)
  *      NP,UV,PU,PV optionally OR'd with PE
  */
 
-private int pair_class(code *c)
+private int pair_class(code* c)
 {   ubyte op;
     ubyte irm,mod,reg,rm;
     uint a32;
     int pc;
 
-    // Of course, with Intel this is *never* simple, and Intel's
+    // Of course, with Intel this is* never* simple, and Intel's
     // documentation is vague about the specifics.
 
     op = c.Iop & 0xFF;
@@ -1275,7 +1275,7 @@ private int pair_class(code *c)
  * Returns:
  *     CInfo struct containing info about c
  */
-private Cinfo getinfo(code *c)
+private Cinfo getinfo(code* c)
 {
     if (!c)
         return Cinfo.init;
@@ -1374,12 +1374,12 @@ private Cinfo getinfo(code *c)
                 c.Iflags |= CFpsw;
             else if (irm == modregrm(3,0,SP))   // ADD ESP,imm
             {
-                assert(c.IFL2 == FLconst);
+                assert(c.IFL2 == FL.const_);
                 ci.spadjust = (op == 0x81) ? c.IEV2.Vint : cast(byte)c.IEV2.Vint;
             }
             else if (irm == modregrm(3,5,SP))   // SUB ESP,imm
             {
-                assert(c.IFL2 == FLconst);
+                assert(c.IFL2 == FL.const_);
                 ci.spadjust = (op == 0x81) ? -c.IEV2.Vint : -cast(int)cast(byte)c.IEV2.Vint;
             }
             r = grprw[0][reg][0];               // Grp 1
@@ -1743,7 +1743,7 @@ else
                 case 0:
                     if ((sib & 7) != 5)     // if not disp32[index]
                     {
-                        c.IFL1 = FLconst;
+                        c.IFL1 = FL.const_;
                         c.IEV1.Vpointer = 0;
                         irm |= 0x80;
                     }
@@ -1765,7 +1765,7 @@ else
                 switch (mod)
                 {
                     case 0:
-                        c.IFL1 = FLconst;
+                        c.IFL1 = FL.const_;
                         c.IEV1.Vpointer = 0;
                         irm |= 0x80;
                         break;
@@ -1859,7 +1859,7 @@ private int pair_agi(const ref Cinfo c1, const ref Cinfo c2) pure
  *      true if they can decode simultaneously
  */
 
-private bool triple_test(const ref Cinfo c0, const ref Cinfo c1, Cinfo *c2)
+private bool triple_test(const ref Cinfo c0, const ref Cinfo c1, Cinfo* c2)
 {
     const c2isz = c2 ? c2.isz : 0;
     if (c0.isz > 7 || c1.isz > 7 || c2isz > 7 ||
@@ -1880,7 +1880,7 @@ private bool triple_test(const ref Cinfo c0, const ref Cinfo c1, Cinfo *c2)
  *      null    no more instructions
  */
 
-private code * cnext(code *c)
+private code* cnext(code* c)
 {
     while (1)
     {
@@ -1918,10 +1918,10 @@ private code * cnext(code *c)
 //                      if 2, then adjust ci1 as well as ci2
 
 @trusted
-private int conflict(Cinfo *ci1,Cinfo *ci2,int fpsched)
+private int conflict(Cinfo* ci1,Cinfo* ci2,int fpsched)
 {
-    code *c1;
-    code *c2;
+    code* c1;
+    code* c2;
     uint r1,w1,a1;
     uint r2,w2,a2;
     int sz1,sz2;
@@ -2065,13 +2065,13 @@ if (c2.IEV1.Vpointer + sz2 <= c1.IEV1.Vpointer) printf("t5\n");
                 goto Lswap;
             switch (ifl1)
             {
-                case FLconst:
+                case FL.const_:
                     if (c1.IEV1.Vint != c2.IEV1.Vint &&
                         (c1.IEV1.Vint + sz1 <= c2.IEV1.Vint ||
                          c2.IEV1.Vint + sz2 <= c1.IEV1.Vint))
                         goto Lswap;
                     break;
-                case FLdatseg:
+                case FL.datseg:
                     if (c1.IEV1.Vseg != c2.IEV1.Vseg ||
                         c1.IEV1.Vint + sz1 <= c2.IEV1.Vint ||
                         c2.IEV1.Vint + sz2 <= c1.IEV1.Vint)
@@ -2246,9 +2246,9 @@ nothrow:
         stagelist.dtor();
     }
 
-code **assemble(code **pc)  // reassemble scheduled instructions
+code** assemble(code** pc)  // reassemble scheduled instructions
 {
-    code *c;
+    code* c;
 
     debug
     if (debugs) printf("assemble:\n");
@@ -2305,7 +2305,7 @@ code **assemble(code **pc)  // reassemble scheduled instructions
 
         // Put in any FXCH prefix
         if (ci.fxch_pre)
-        {   code *cf;
+        {   code* cf;
             assert(i);
             cf = gen2(null,0xD9,0xC8 + ci.fxch_pre);
             *pc = cf;
@@ -2332,7 +2332,7 @@ code **assemble(code **pc)  // reassemble scheduled instructions
                     break;
                 }
             }
-            {   code *cf;
+            {   code* cf;
                 cf = gen2(null,0xD9,0xC8 + ci.fxch_post);
                 *pc = cf;
                 pc = &cf.next;
@@ -2370,8 +2370,8 @@ code **assemble(code **pc)  // reassemble scheduled instructions
  *      0       could not be scheduled; have to start a new one
  */
 
-int insert(Cinfo *ci)
-{   code *c;
+int insert(Cinfo* ci)
+{   code* c;
     int clocks;
     int i;
     int ic = 0;
@@ -2404,7 +2404,7 @@ int insert(Cinfo *ci)
     if (c.Iop == 0x8B &&
         (c.Irm & modregrm(3,0,7)) == modregrm(1,0,4) &&
         c.Isib == modregrm(0,4,SP) &&
-        c.IFL1 == FLconst &&
+        c.IFL1 == FL.const_ &&
         (cast(byte)c.IEV1.Vpointer) >= REGSIZE
        )
     {
@@ -2438,7 +2438,7 @@ int insert(Cinfo *ci)
         if (movesp &&
             cit.c.Iop == 0x83 &&
             cit.c.Irm == modregrm(3,5,SP) &&          // if SUB ESP,offset
-            cit.c.IFL2 == FLconst &&
+            cit.c.IFL2 == FL.const_ &&
             (cast(byte)c.IEV1.Vpointer) >= -cit.spadjust
            )
         {
@@ -2502,7 +2502,7 @@ int insert(Cinfo *ci)
         {
             if (PRO)
             {   int i0 = (i / 3) * 3;           // index of decode unit 0
-                Cinfo *ci0;
+                Cinfo* ci0;
 
                 assert(((TBLMAX / 3) * 3) == TBLMAX);
                 switch (i - i0)
@@ -2675,7 +2675,7 @@ Linsert:
  */
 
 @trusted
-bool stage(code *c)
+bool stage(code* c)
 {
     //printf("stage: "); c.print();
     if (cinfomax == TBLMAX)             // if out of space
@@ -2768,12 +2768,12 @@ Lnostage:
  *      null for no more instructions
  */
 
-private code * csnip(code *c)
+private code* csnip(code* c)
 {
     if (c)
     {
         uint iflags = c.Iflags & CFclassinit;
-        code **pc;
+        code** pc;
         while (1)
         {
             pc = &c.next;
@@ -2799,10 +2799,10 @@ private code * csnip(code *c)
  */
 
 @trusted
-private code *schedule(code *c,regm_t scratch)
+private code* schedule(code* c,regm_t scratch)
 {
-    code *cresult = null;
-    code **pctail = &cresult;
+    code* cresult = null;
+    code** pctail = &cresult;
     Schedule sch = void;
 
     sch.initialize(0);                  // initialize scheduling table
@@ -2812,7 +2812,7 @@ private code *schedule(code *c,regm_t scratch)
              ((c.Iop & PSOP.mask) == PSOP.root && c.Iop != PSOP.adjfpu) ||
              c.Iflags & CFclassinit) &&
             !(c.Iflags & (CFtarg | CFtarg2)))
-        {   code *cn;
+        {   code* cn;
 
             // Just append this instruction to pctail and go to the next one
             *pctail = c;
@@ -2848,7 +2848,7 @@ private code *schedule(code *c,regm_t scratch)
  * Replace any occurrence of r1 in EA with r2.
  */
 
-private void repEA(code *c,uint r1,uint r2)
+private void repEA(code* c,uint r1,uint r2)
 {
     uint mod,reg,rm;
     uint rmn;
@@ -2892,7 +2892,7 @@ private void repEA(code *c,uint r1,uint r2)
             else if (r2 == BP && mod == 0)
             {
                 c.Irm = cast(ubyte)(modregrm(1,0,0) | reg | r2);
-                c.IFL1 = FLconst;
+                c.IFL1 = FL.const_;
                 c.IEV1.Vint = 0;
             }
             else
@@ -2916,7 +2916,7 @@ private void repEA(code *c,uint r1,uint r2)
  * Swap in place to not disturb addresses of jmp targets
  */
 
-private void code_swap(code *c1,code *c2)
+private void code_swap(code* c1,code* c2)
 {   code cs;
 
     // Special case of:
@@ -2927,7 +2927,7 @@ private void code_swap(code *c1,code *c2)
         c2.Iop == 0x8B &&
         (c2.Irm & modregrm(3,0,7)) == modregrm(1,0,4) &&
         c2.Isib == modregrm(0,4,SP) &&
-        c2.IFL1 == FLconst &&
+        c2.IFL1 == FL.const_ &&
         (cast(byte)c2.IEV1.Vpointer) >= REGSIZE &&
         (c1.Iop & 7) != ((c2.Irm >> 3) & 7)
        )
@@ -2945,7 +2945,7 @@ private void code_swap(code *c1,code *c2)
     c2.next = cs.next;
 }
 
-private code *peephole(code *cstart,regm_t scratch)
+private code* peephole(code* cstart,regm_t scratch)
 {
     // Look for cases of:
     //  MOV r1,r2
@@ -2954,12 +2954,12 @@ private code *peephole(code *cstart,regm_t scratch)
     //  MOV r1,r2
     //  OP ?,r2
     // to improve pairing
-    code *c1;
+    code* c1;
     uint r1,r2;
     uint mod,reg,rm;
 
     //printf("peephole\n");
-    for (code *c = cstart; c; c = c1)
+    for (code* c = cstart; c; c = c1)
     {
         ubyte rmn;
 
@@ -2998,7 +2998,7 @@ private code *peephole(code *cstart,regm_t scratch)
                 c1.Irm == modregrm(0,7,4) &&
                 c1.Isib == modregrm(0,4,SP))
             {   c1.Irm = modregrm(3,7,regx);
-                if (c1.IFL2 == FLconst && cast(byte)c1.IEV2.Vuns == 0)
+                if (c1.IFL2 == FL.const_ && cast(byte)c1.IEV2.Vuns == 0)
                 {   // to TEST regx,regx
                     c1.Iop = (c1.Iop & 1) | 0x84;
                     c1.Irm = modregrm(3,regx,regx);
@@ -3014,7 +3014,7 @@ private code *peephole(code *cstart,regm_t scratch)
         if (I32 && c.Iop == 0x8B && (c.Irm & 0xC7) == modregrm(0,0,4) &&
             c.Isib == modregrm(0,4,SP) &&
             c1.Iop == 0x83 && (c1.Irm & 0xC7) == modregrm(3,0,SP) &&
-            !(c1.Iflags & CFpsw) && c1.IFL2 == FLconst && c1.IEV2.Vint == 4)
+            !(c1.Iflags & CFpsw) && c1.IFL2 == FL.const_ && c1.IEV2.Vint == 4)
         {
             uint regx = (c.Irm >> 3) & 7;
             c.Iop = 0x58 + regx;
@@ -3028,7 +3028,7 @@ private code *peephole(code *cstart,regm_t scratch)
             (c.Irm & 0xC0) == 0xC0 &&
             (c.Irm & modregrm(3,0,7)) == (c1.Irm & modregrm(3,0,7)) &&
             !(c1.Iflags & CFpsw) &&
-            c.IFL2 == FLconst && c1.IFL2 == FLconst
+            c.IFL2 == FL.const_ && c1.IFL2 == FL.const_
            )
         {   int i = cast(byte)c.IEV2.Vint;
             int i1 = cast(byte)c1.IEV2.Vint;
@@ -3161,7 +3161,7 @@ private code *peephole(code *cstart,regm_t scratch)
                 if (r1 == AX)
                 {   c1.Iop = 0x81;
                     c1.Irm = modregrm(3,7,r2);
-                    if (c1.IFL2 == FLconst &&
+                    if (c1.IFL2 == FL.const_ &&
                         c1.IEV2.Vuns == cast(byte)c1.IEV2.Vuns)
                         c1.Iop = 0x83;
                     //printf("schedule 8\n");
@@ -3188,10 +3188,10 @@ Lnop:
  */
 
 @trusted
-code *simpleops(code *c,regm_t scratch)
-{   code *cstart;
+code* simpleops(code* c,regm_t scratch)
+{   code* cstart;
     uint reg;
-    code *c2;
+    code* c2;
 
     // Worry about using registers not saved yet by prolog
     scratch &= ~fregsaved;

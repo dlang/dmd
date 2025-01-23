@@ -42,7 +42,7 @@ struct _LabelDsymbol;
 
 union evc
 {
-    targ_int    Vint;           /// also used for tmp numbers (FLtmp)
+    targ_int    Vint;           /// also used for tmp numbers (FL.tmp)
     targ_uns    Vuns;
     targ_long   Vlong;
     targ_llong  Vllong;
@@ -54,45 +54,45 @@ union evc
     }
     Srcpos      Vsrcpos;        /// source position for OPlinnum
     elem       *Vtor;           /// OPctor/OPdtor elem
-    block      *Vswitch;        /// when FLswitch and we have a switch table
-    code       *Vcode;          /// when code is target of a jump (FLcode)
-    block      *Vblock;         /// when block " (FLblock)
+    block      *Vswitch;        /// when FL.switch and we have a switch table
+    code       *Vcode;          /// when code is target of a jump (FL.code)
+    block      *Vblock;         /// when block " (FL.block)
     struct
     {
         targ_size_t Voffset;    /// offset from symbol
-        Symbol  *Vsym;          /// pointer to symbol table (FLfunc,FLextern)
+        Symbol  *Vsym;          /// pointer to symbol table (FL.func,FL.extern_)
     }
 
     struct
     {
         targ_size_t Vdoffset;   /// offset from symbol
-        _Declaration *Vdsym;    /// pointer to D symbol table
+        _Declaration* Vdsym;    /// pointer to D symbol table
     }
 
     struct
     {
         targ_size_t Vloffset;   /// offset from symbol
-        _LabelDsymbol *Vlsym;   /// pointer to D Label
+        _LabelDsymbol* Vlsym;   /// pointer to D Label
     }
 
     struct
     {
         size_t len;
-        char *bytes;
-    }                           // asm node (FLasm)
+        char* bytes;
+    }                           // asm node (FL.asm)
 }
 
 /********************** PUBLIC FUNCTIONS *******************/
 
 public import dmd.backend.dcode : code_calloc, code_free, code_term, code_chunk_alloc, code_list;
 
-code *code_next(code *c) { return c.next; }
+code* code_next(code* c) { return c.next; }
 
 @trusted
-code *code_malloc()
+code* code_malloc()
 {
     //printf("code %d\n", sizeof(code));
-    code *c = code_list ? code_list : code_chunk_alloc();
+    code* c = code_list ? code_list : code_chunk_alloc();
     code_list = code_next(c);
     //printf("code_malloc: %p\n",c);
     return c;
@@ -147,7 +147,7 @@ enum
     NTEHtry         = 0x10,   // had C++ try statement
     NTEHcpp         = (NTEHexcspec | NTEHcleanup | NTEHtry),
     EHcleanup       = 0x20,   // has destructors in the 'code' instructions
-    EHtry           = 0x40,   // has BCtry or BC_try blocks
+    EHtry           = 0x40,   // has BC.try_ or BC._try blocks
     NTEHjmonitor    = 0x80,   // uses Mars monitor
     NTEHpassthru    = 0x100,
 }
@@ -193,7 +193,7 @@ struct CGstate
     LocalSection EEStack;       // offset of SCstack variables from ESP
     LocalSection Alloca;        // data for alloca() temporary
 
-    Symbol *retsym;             // symbol that should be placed in AX
+    Symbol* retsym;             // symbol that should be placed in AX
 
     uint stackpush;             // # of bytes that SP is beyond BP.
 
@@ -205,7 +205,7 @@ struct CGstate
     char gotref;                // !=0 if the GOTsym was referenced
     int refparam;               // !=0 if we referenced any parameters
     bool accessedTLS;           // set if accessed Thread Local Storage (TLS)
-    bool calledFinally;         // true if called a BC_finally block
+    bool calledFinally;         // true if called a BC._finally block
     int reflocal;               // !=0 if we referenced any locals
 
     regm_t[4] lastRetregs;      // used to not allocate the same register over and over again,
@@ -334,7 +334,7 @@ struct FuncParamRegs
     //this(tym_t tyf);
     static FuncParamRegs create(tym_t tyf) { return FuncParamRegs_create(tyf); }
 
-    bool alloc(type *t, tym_t ty, out reg_t reg1, out reg_t reg2)
+    bool alloc(type* t, tym_t ty, out reg_t reg1, out reg_t reg2)
     { return FuncParamRegs_alloc(this, t, ty, reg1, reg2); }
 
   private:
@@ -381,7 +381,7 @@ public import dmd.backend.x86.cg87;
  * Returns: mask of registers used by block bp.
  */
 @system
-regm_t iasm_regs(block *bp)
+regm_t iasm_regs(block* bp)
 {
     debug (debuga)
         printf("Block iasm regs = 0x%X\n", bp.usIasmregs);

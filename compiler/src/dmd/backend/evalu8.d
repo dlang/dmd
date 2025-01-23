@@ -44,7 +44,7 @@ import dmd.backend.fp : testFE, clearFE, statusFE, have_float_except;
  * Return boolean result of constant elem.
  */
 
-int boolres(elem *e)
+int boolres(elem* e)
 {   int b;
 
     //printf("boolres()\n");
@@ -210,7 +210,7 @@ int boolres(elem *e)
  */
 
 @trusted
-int iftrue(elem *e)
+int iftrue(elem* e)
 {
     while (1)
     {
@@ -242,7 +242,7 @@ int iftrue(elem *e)
  */
 
 @trusted
-int iffalse(elem *e)
+int iffalse(elem* e)
 {
     while (1)
     {
@@ -274,7 +274,7 @@ int iffalse(elem *e)
  */
 
 @trusted
-elem * evalu8(elem *e, Goal goal)
+elem* evalu8(elem* e, Goal goal)
 {
     elem* e1;
     elem* e2;
@@ -1941,7 +1941,7 @@ static if (0) // && MARS
  * instead of the soft long double ones.
  */
 
-extern (D) targ_ldouble el_toldoubled(elem *e)
+extern (D) targ_ldouble el_toldoubled(elem* e)
 {
     targ_ldouble result;
 

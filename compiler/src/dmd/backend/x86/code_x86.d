@@ -302,7 +302,7 @@ enum
 
 struct code
 {
-    code *next;
+    code* next;
     code_flags_t Iflags;
 
     union
@@ -373,7 +373,7 @@ struct code
      * operand, usually for immediate instructions.
      */
 
-    FL IFL1,IFL2;         // FLavors of 1st, 2nd operands
+    FL IFL1,IFL2;         // FL.avors of 1st, 2nd operands
     evc IEV1;             // 1st operand, if any
     evc IEV2;             // 2nd operand, if any
 
@@ -565,7 +565,7 @@ bool ADDFWAIT() { return config.target_cpu <= TARGET_80286; }
 
 struct NDP
 {
-    elem *e;                    // which elem is stored here (NULL if none)
+    elem* e;                    // which elem is stored here (NULL if none)
     uint offset;            // offset from e (used for complex numbers)
 }
 

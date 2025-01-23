@@ -48,8 +48,8 @@ else
 {
     tym_t tym;
     tym_t tyf;
-    block *b;
-    block *bp;
+    block* b;
+    block* bp;
     int nepis;
 
     tyf = funcsym_p.ty();
@@ -134,7 +134,7 @@ else
                 mark = 2;
             }
         }
-        if (mark == 1 || b.BC == BCret || b.BC == BCretexp)
+        if (mark == 1 || b.bc == BC.ret || b.bc == BC.retexp)
         {   b.Bflags |= BFL.epilog;
             nepis++;
             if (nepis > 1 && config.flags4 & CFG4space)
@@ -153,16 +153,16 @@ else
  */
 void cod5_noprol(block* startblock)
 {
-    block *b;
+    block* b;
 
     //printf("no prolog optimization\n");
     startblock.Bflags |= BFL.prolog;
     for (b = startblock; b; b = b.Bnext)
     {
         b.Bflags = cast(BFL)(b.Bflags & ~cast(uint)BFL.outsideprolog);
-        switch (b.BC)
-        {   case BCret:
-            case BCretexp:
+        switch (b.bc)
+        {   case BC.ret:
+            case BC.retexp:
                 b.Bflags |= BFL.epilog;
                 break;
             default:
@@ -176,7 +176,7 @@ void cod5_noprol(block* startblock)
  * the function prolog.
  */
 
-private void pe_add(block *b)
+private void pe_add(block* b)
 {
     if (b.Bflags & BFL.outsideprolog ||
         need_prolog(b))
@@ -192,7 +192,7 @@ private void pe_add(block *b)
  */
 
 @trusted
-private int need_prolog(block *b)
+private int need_prolog(block* b)
 {
     if (b.Bregcon.used & fregsaved)
         goto Lneed;

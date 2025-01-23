@@ -68,10 +68,10 @@ struct VecGlobal
 
             foreach (size_t i; 0 .. freelist.length)
             {
-                void **vn;
-                for (void** v = cast(void **)freelist[i]; v; v = vn)
+                void** vn;
+                for (void** v = cast(void**)freelist[i]; v; v = vn)
                 {
-                    vn = cast(void **)(*v);
+                    vn = cast(void**)(*v);
                     //mem_free(v);
                     .free(v);
                 }
@@ -89,7 +89,7 @@ struct VecGlobal
         vec_t v;
         if (dim < freelist.length && (v = freelist[dim]) != null)
         {
-            freelist[dim] = *cast(vec_t *)v;
+            freelist[dim] = *cast(vec_t*)v;
             v += 2;
             switch (dim)
             {
@@ -138,7 +138,7 @@ struct VecGlobal
         vec_t result;
         if (dim < freelist.length && (vc = freelist[dim]) != null)
         {
-            freelist[dim] = *cast(vec_t *)vc;
+            freelist[dim] = *cast(vec_t*)vc;
             goto L1;
         }
         else
@@ -169,7 +169,7 @@ struct VecGlobal
             v -= 2;
             if (dim < freelist.length)
             {
-                *cast(vec_t *)v = freelist[dim];
+                *cast(vec_t*)v = freelist[dim];
                 freelist[dim] = v;
             }
             else

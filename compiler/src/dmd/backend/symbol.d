@@ -37,12 +37,12 @@ nothrow:
 
 import dmd.backend.x86.code_x86;
 
-void struct_free(struct_t *st) { }
+void struct_free(struct_t* st) { }
 
 @trusted @nogc
 func_t* func_calloc()
 {
-    func_t* f = cast(func_t *) calloc(1, func_t.sizeof);
+    func_t* f = cast(func_t*) calloc(1, func_t.sizeof);
     if (!f)
         err_nomem();
     return f;
@@ -89,7 +89,7 @@ debug
  * Terminate use of symbol table.
  */
 
-private __gshared Symbol *keep;
+private __gshared Symbol* keep;
 
 @trusted
 void symbol_term()
@@ -104,7 +104,7 @@ void symbol_term()
 static if (TERMCODE)
 {
 
-void symbol_keep(Symbol *s)
+void symbol_keep(Symbol* s)
 {
     symbol_debug(s);
     s.Sr = keep;       // use Sr so symbol_free() doesn't nest
@@ -240,10 +240,10 @@ const(char)* symbol_ident(return ref const Symbol s)
  */
 
 @trusted @nogc
-Symbol * symbol_calloc(const(char)[] id)
+Symbol* symbol_calloc(const(char)[] id)
 {
     //printf("sizeof(symbol)=%d, sizeof(s.Sident)=%d, len=%d\n", symbol.sizeof, s.Sident.sizeof, cast(int)id.length);
-    Symbol* s = cast(Symbol *) mem_fmalloc(Symbol.sizeof - Symbol.Sident.length + id.length + 1 + 5);
+    Symbol* s = cast(Symbol*) mem_fmalloc(Symbol.sizeof - Symbol.Sident.length + id.length + 1 + 5);
     memset(s,0,Symbol.sizeof - s.Sident.length);
     memcpy(s.Sident.ptr,id.ptr,id.length);
     s.Sident.ptr[id.length] = 0;
@@ -264,10 +264,10 @@ Symbol * symbol_calloc(const(char)[] id)
  */
 
 @nogc
-Symbol * symbol_name(const(char)[] name, SC sclass, type *t)
+Symbol* symbol_name(const(char)[] name, SC sclass, type* t)
 {
     type_debug(t);
-    Symbol *s = symbol_calloc(name);
+    Symbol* s = symbol_calloc(name);
     s.Sclass = sclass;
     s.Stype = t;
     s.Stype.Tcount++;
@@ -282,13 +282,13 @@ Symbol * symbol_name(const(char)[] name, SC sclass, type *t)
  */
 
 @trusted
-Funcsym *symbol_funcalias(Funcsym *sf)
+Funcsym* symbol_funcalias(Funcsym* sf)
 {
     symbol_debug(sf);
     assert(tyfunc(sf.Stype.Tty));
     if (sf.Sclass == SC.funcalias)
         sf = sf.Sfunc.Falias;
-    auto s = cast(Funcsym *)symbol_name(sf.Sident.ptr[0 .. strlen(sf.Sident.ptr)],SC.funcalias,sf.Stype);
+    auto s = cast(Funcsym*)symbol_name(sf.Sident.ptr[0 .. strlen(sf.Sident.ptr)],SC.funcalias,sf.Stype);
     s.Sfunc.Falias = sf;
 
     return s;
@@ -299,14 +299,14 @@ Funcsym *symbol_funcalias(Funcsym *sf)
  */
 
 @trusted @nogc
-Symbol * symbol_generate(SC sclass,type *t)
+Symbol* symbol_generate(SC sclass,type* t)
 {
     __gshared int tmpnum;
     char[4 + tmpnum.sizeof * 3 + 1] name = void;
 
     //printf("symbol_generate(_TMP%d)\n", tmpnum);
     const length = snprintf(name.ptr,name.length,"_TMP%d",tmpnum++);
-    Symbol *s = symbol_name(name.ptr[0 .. length],sclass,t);
+    Symbol* s = symbol_name(name.ptr[0 .. length],sclass,t);
     //symbol_print(s);
 
     s.Sflags |= SFLnodebug | SFLartifical;
@@ -330,7 +330,7 @@ Symbol* symbol_genauto(type* t)
  * Generate symbol into which we can copy the contents of expression e.
  */
 
-Symbol *symbol_genauto(elem *e)
+Symbol* symbol_genauto(elem* e)
 {
     return symbol_genauto(type_fake(e.Ety));
 }
@@ -339,7 +339,7 @@ Symbol *symbol_genauto(elem *e)
  * Generate symbol into which we can copy the contents of expression e.
  */
 
-Symbol *symbol_genauto(tym_t ty)
+Symbol* symbol_genauto(tym_t ty)
 {
     return symbol_genauto(type_fake(ty));
 }
@@ -353,7 +353,7 @@ void symbol_func(ref Symbol s)
 {
     //printf("symbol_func(%s, x%x)\n", s.Sident.ptr, fregsaved);
     symbol_debug(&s);
-    s.Sfl = FLfunc;
+    s.Sfl = FL.func;
     // Interrupt functions modify all registers
     // BUG: do interrupt functions really save BP?
     // Note that fregsaved may not be set yet
@@ -373,9 +373,9 @@ void symbol_func(ref Symbol s)
  */
 
 @trusted
-void symbol_struct_addField(ref Symbol s, const(char)* name, type *t, uint offset)
+void symbol_struct_addField(ref Symbol s, const(char)* name, type* t, uint offset)
 {
-    Symbol *s2 = symbol_name(name[0 .. strlen(name)], SC.member, t);
+    Symbol* s2 = symbol_name(name[0 .. strlen(name)], SC.member, t);
     s2.Smemoff = offset;
     list_append(&s.Sstruct.Sfldlst, s2);
 }
@@ -392,10 +392,10 @@ void symbol_struct_addField(ref Symbol s, const(char)* name, type *t, uint offse
  */
 
 @trusted
-void symbol_struct_addBitField(ref Symbol s, const(char)* name, type *t, uint offset, uint fieldWidth, uint bitOffset)
+void symbol_struct_addBitField(ref Symbol s, const(char)* name, type* t, uint offset, uint fieldWidth, uint bitOffset)
 {
     //printf("symbol_struct_addBitField() s: %s\n", s.Sident.ptr);
-    Symbol *s2 = symbol_name(name[0 .. strlen(name)], SC.field, t);
+    Symbol* s2 = symbol_name(name[0 .. strlen(name)], SC.field, t);
     s2.Smemoff = offset;
     s2.Swidth = cast(ubyte)fieldWidth;
     s2.Sbit = cast(ubyte)bitOffset;
@@ -423,7 +423,7 @@ void symbol_struct_hasBitFields(ref Symbol s)
  */
 
 @trusted
-void symbol_struct_addBaseClass(ref Symbol s, type *t, uint offset)
+void symbol_struct_addBaseClass(ref Symbol s, type* t, uint offset)
 {
     assert(t && t.Tty == TYstruct);
     auto bc = cast(baseclass_t*)mem_fmalloc(baseclass_t.sizeof);
@@ -471,17 +471,17 @@ void symbol_tree_check(const(Symbol)* s)
 
 static if (0)
 {
-Symbol * lookupsym(const(char)* p)
+Symbol* lookupsym(const(char)* p)
 {
     return scope_search(p,SCTglobal | SCTlocal);
 }
 }
 
 @trusted
-void symbol_free(Symbol *s)
+void symbol_free(Symbol* s)
 {
     while (s)                           /* if symbol exists             */
-    {   Symbol *sr;
+    {   Symbol* sr;
 
 debug
 {
@@ -490,13 +490,13 @@ debug
         symbol_debug(s);
         assert(/*s.Sclass != SC.unde &&*/ cast(int) s.Sclass < cast(int) SCMAX);
 }
-        {   type *t = s.Stype;
+        {   type* t = s.Stype;
 
             if (t)
                 type_debug(t);
             if (t && tyfunc(t.Tty) && s.Sfunc)
             {
-                func_t *f = s.Sfunc;
+                func_t* f = s.Sfunc;
 
                 debug assert(f);
                 blocklist_free(&f.Fstartblock);
@@ -636,7 +636,7 @@ private void symbol_undef(ref Symbol s)
  */
 
 @trusted
-SYMIDX symbol_add(Symbol *s)
+SYMIDX symbol_add(Symbol* s)
 {
     return symbol_add(*cstate.CSpsymtab, s);
 }
@@ -696,7 +696,7 @@ SYMIDX symbol_insert(ref symtab_t symtab, Symbol* s, SYMIDX n)
  */
 
 @trusted
-void freesymtab(Symbol **stab,SYMIDX n1,SYMIDX n2)
+void freesymtab(Symbol** stab,SYMIDX n1,SYMIDX n2)
 {
     if (!stab)
         return;
@@ -729,9 +729,9 @@ void freesymtab(Symbol **stab,SYMIDX n1,SYMIDX n2)
  */
 
 @trusted
-Symbol * symbol_copy(ref Symbol s)
-{   Symbol *scopy;
-    type *t;
+Symbol* symbol_copy(ref Symbol s)
+{   Symbol* scopy;
+    type* t;
 
     symbol_debug(&s);
     /*printf("symbol_copy(%s)\n",s.Sident.ptr);*/
@@ -762,7 +762,7 @@ Symbol * symbol_copy(ref Symbol s)
  *      pointer to baseclass
  */
 
-baseclass_t *baseclass_find(baseclass_t *bm,Classsym *sbase)
+baseclass_t* baseclass_find(baseclass_t* bm,Classsym* sbase)
 {
     symbol_debug(sbase);
     for (; bm; bm = bm.BCnext)
@@ -772,7 +772,7 @@ baseclass_t *baseclass_find(baseclass_t *bm,Classsym *sbase)
 }
 
 @trusted
-baseclass_t *baseclass_find_nest(baseclass_t *bm,Classsym *sbase)
+baseclass_t* baseclass_find_nest(baseclass_t* bm,Classsym* sbase)
 {
     symbol_debug(sbase);
     for (; bm; bm = bm.BCnext)
@@ -788,7 +788,7 @@ baseclass_t *baseclass_find_nest(baseclass_t *bm,Classsym *sbase)
  * Calculate number of baseclasses in list.
  */
 
-int baseclass_nitems(baseclass_t *b)
+int baseclass_nitems(baseclass_t* b)
 {   int i;
 
     for (i = 0; b; b = b.BCnext)
@@ -807,9 +807,9 @@ void symbol_reset(ref Symbol s)
     s.Sflags &= ~(STRoutdef | SFLweak);
     s.Sdw_ref_idx = 0;
     if (s.Sclass == SC.global || s.Sclass == SC.comdat ||
-        s.Sfl == FLudata || s.Sclass == SC.static_)
+        s.Sfl == FL.udata || s.Sclass == SC.static_)
     {   s.Sclass = SC.extern_;
-        s.Sfl = FLextern;
+        s.Sfl = FL.extern_;
     }
 }
 

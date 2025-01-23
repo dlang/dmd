@@ -40,7 +40,7 @@ public import dmd.backend.x86.cgcod : cgstate;
  * Find last code in list.
  */
 
-code *code_last(code *c)
+code* code_last(code* c)
 {
     if (c)
     {   while (c.next)
@@ -53,7 +53,7 @@ code *code_last(code *c)
  * Set flag bits on last code in list.
  */
 
-void code_orflag(code *c,uint flag)
+void code_orflag(code* c,uint flag)
 {
     if (flag && c)
     {   while (c.next)
@@ -66,7 +66,7 @@ void code_orflag(code *c,uint flag)
  * Set rex bits on last code in list.
  */
 
-void code_orrex(code *c,uint rex)
+void code_orrex(code* c,uint rex)
 {
     if (rex && c)
     {   while (c.next)
@@ -80,8 +80,8 @@ void code_orrex(code *c,uint rex)
  * Concatenate two code lists together. Return pointer to result.
  */
 
-code *cat(code *c1,code *c2)
-{   code **pc;
+code* cat(code* c1,code* c2)
+{   code** pc;
 
     if (!c1)
         return c2;
@@ -103,7 +103,7 @@ code *cat(code *c1,code *c2)
  *      pointer to start of code list
  */
 private
-code *gen(code *c, ref code cs)
+code* gen(code* c, ref code cs)
 {
     assert(I64 || cs.Irex == 0);
     code* ce = code_malloc();
@@ -121,7 +121,7 @@ code *gen(code *c, ref code cs)
     return ce;
 }
 
-code *gen1(code *c,opcode_t op)
+code* gen1(code* c,opcode_t op)
 {
     code* ce;
     code* cstart;
@@ -139,7 +139,7 @@ code *gen1(code *c,opcode_t op)
   return ce;
 }
 
-code *gen2(code *c,opcode_t op,uint rm)
+code* gen2(code* c,opcode_t op,uint rm)
 {
     code* ce;
     code* cstart;
@@ -158,14 +158,14 @@ code *gen2(code *c,opcode_t op,uint rm)
 }
 
 
-code *genc2(code *c,opcode_t op,uint ea,targ_size_t EV2)
+code* genc2(code* c,opcode_t op,uint ea,targ_size_t EV2)
 {   code cs;
 
     cs.Iop = op;
     cs.Iea = ea;
     //ccheck(&cs);
     cs.Iflags = CFoff;
-    cs.IFL2 = FLconst;
+    cs.IFL2 = FL.const_;
     cs.IEV2.Vsize_t = EV2;
     return gen(c,cs);
 }
@@ -175,7 +175,7 @@ code *genc2(code *c,opcode_t op,uint ea,targ_size_t EV2)
  * Generate 'nop'
  */
 
-code *gennop(code *c)
+code* gennop(code* c)
 {
     return gen1(c,NOP);
 }
@@ -186,7 +186,7 @@ code *gennop(code *c)
  */
 
 @trusted
-void gencodelem(ref CodeBuilder cdb,elem *e,ref regm_t pretregs,bool constflag)
+void gencodelem(ref CodeBuilder cdb,elem* e,ref regm_t pretregs,bool constflag)
 {
     if (e)
     {
@@ -266,7 +266,7 @@ private __gshared Barray!Fixup fixups;
  * Add to the fix list.
  */
 @trusted
-size_t addtofixlist(Symbol *s,targ_size_t offset,int seg,targ_size_t val,int flags)
+size_t addtofixlist(Symbol* s,targ_size_t offset,int seg,targ_size_t val,int flags)
 {
         static immutable ubyte[8] zeros = 0;
 
@@ -336,7 +336,7 @@ static if (TARGET_SEGMENTED)
         {
             // OBJ_OMF does not set Sxtrnnum for static Symbols, so check
             // whether the Symbol was assigned to a segment instead, compare
-            // outdata(Symbol *s)
+            // outdata(Symbol* s)
             if (f.sym.Sseg == UNKNOWN)
             {
                 error(Srcpos.init, "no definition found for static `%s` in this module, statics defined in one module cannot be referenced from another",
@@ -348,7 +348,7 @@ static if (TARGET_SEGMENTED)
         {
             // Put it in BSS
             f.sym.Sclass = SC.static_;
-            f.sym.Sfl = FLunde;
+            f.sym.Sfl = FL.unde;
             f.sym.Sdt = dt_get_nzeros(cast(uint)type_size(f.sym.Stype));
             outdata(f.sym);
         }
@@ -363,7 +363,7 @@ static if (TARGET_SEGMENTED)
 
 if (config.exe & (EX_OSX | EX_OSX64))
 {
-    Symbol *funcsymsave = funcsym_p;
+    Symbol* funcsymsave = funcsym_p;
     funcsym_p = f.funcsym;
     objmod.reftoident(f.seg, f.offset, f.sym, f.val, f.flags);
     funcsym_p = funcsymsave;

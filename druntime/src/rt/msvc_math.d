@@ -15,7 +15,7 @@ module rt.msvc_math;
 version (CRuntime_Microsoft):
 version (X86):
 
-import core.stdc.math;
+import cmath = core.stdc.math;
 
 extern(C):
 @trusted:
@@ -24,11 +24,11 @@ nothrow:
 
 mixin template AltImpl(string baseName)
 {
-    mixin("float _msvc_"~baseName~"f(float x) { return cast(float) "~baseName~"(x); }");
+    mixin("float _msvc_"~baseName~"f(float x) { return cast(float) cmath."~baseName~"(x); }");
 }
 mixin template AltImpl2(string baseName)
 {
-    mixin("float _msvc_"~baseName~"f(float x, float y) { return cast(float) "~baseName~"(x, y); }");
+    mixin("float _msvc_"~baseName~"f(float x, float y) { return cast(float) cmath."~baseName~"(x, y); }");
 }
 
 mixin AltImpl!"acos";
@@ -53,7 +53,7 @@ mixin AltImpl2!"fmod";
 float _msvc_modff(float value, float* iptr)
 {
     double di;
-    const result = cast(float) modf(value, &di);
+    const result = cast(float) cmath.modf(value, &di);
     *iptr = cast(float) di;
     return result;
 }

@@ -11,14 +11,14 @@
 
 module rt.dwarfeh;
 
-// debug = EH_personality;
-
 version (Posix):
 
-import rt.dmain2: _d_print_throwable;
+// debug = EH_personality;
+
 import core.internal.backtrace.unwind;
-import core.stdc.stdio;
-import core.stdc.stdlib;
+import core.stdc.stdio : fprintf, printf, stderr;
+import core.stdc.stdlib : abort, calloc, free;
+import rt.dmain2 : _d_print_throwable;
 
 /* These are the register numbers for _Unwind_SetGR().
  * Hints for these can be found by looking at the EH_RETURN_DATA_REGNO macro in
@@ -125,7 +125,8 @@ debug (EH_personality)
 {
     private void writeln(in char* format, ...) @nogc nothrow
     {
-        import core.stdc.stdarg;
+        import core.stdc.stdarg : va_list, va_start;
+        import core.stdc.stdio : fflush, stdout, vfprintf;
 
         va_list args;
         va_start(args, format);
@@ -181,7 +182,7 @@ struct ExceptionHeader
         auto eh = &ehstorage;
         if (eh.object)                  // if in use
         {
-            eh = cast(ExceptionHeader*)core.stdc.stdlib.calloc(1, ExceptionHeader.sizeof);
+            eh = cast(ExceptionHeader*).calloc(1, ExceptionHeader.sizeof);
             if (!eh)
                 terminate(__LINE__);              // out of memory while throwing - not much else can be done
         }
@@ -204,7 +205,7 @@ struct ExceptionHeader
          */
         *eh = ExceptionHeader.init;
         if (eh != &ehstorage)
-            core.stdc.stdlib.free(eh);
+            .free(eh);
     }
 
     /*************************

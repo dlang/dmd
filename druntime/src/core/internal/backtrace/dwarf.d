@@ -49,10 +49,9 @@
 
 module core.internal.backtrace.dwarf;
 
-import core.internal.execinfo;
-import core.internal.string;
-
 version (Posix):
+
+import core.internal.string;
 
 version (OSX)
     version = Darwin;
@@ -423,8 +422,6 @@ version (Darwin) {
  */
 void resolveAddresses(const(ubyte)[] debugLineSectionData, Location[] locations, size_t baseAddress) @nogc nothrow
 {
-    debug(DwarfDebugMachine) import core.stdc.stdio;
-
     size_t numberOfLocationsFound = 0;
 
     const(ubyte)[] dbg = debugLineSectionData;

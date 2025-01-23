@@ -12,7 +12,8 @@ SED:=sed
 GDB:=gdb
 
 ifeq ($(OS),linux)
-    TESTS+=line_trace line_trace_21656 long_backtrace_trunc rt_trap_exceptions cpp_demangle
+    TESTS+=line_trace line_trace_21656 long_backtrace_trunc rt_trap_exceptions cpp_demangle \
+		   memoryerror_null_read memoryerror_null_write memoryerror_null_call memoryerror_stackoverflow
     line_trace_dflags:=-L--export-dynamic
 endif
 
@@ -88,6 +89,11 @@ $(ROOT)/rt_trap_exceptions.done: stderr_exp2="src/rt_trap_exceptions.d:8 main"
 $(ROOT)/assert_fail.done: stderr_exp="success."
 $(ROOT)/cpp_demangle.done: stderr_exp="thrower(int)"
 $(ROOT)/message_with_null.done: stderr_exp=" world"
+$(ROOT)/memoryerror_null_read.done: stderr_exp="segmentation fault: null pointer read/write operation"
+$(ROOT)/memoryerror_null_write.done: stderr_exp="segmentation fault: null pointer read/write operation"
+$(ROOT)/memoryerror_null_call.done: stderr_exp="segmentation fault: null pointer read/write operation"
+$(ROOT)/memoryerror_null_call.done: stderr_exp2="uncaught exception reached top of stack"
+$(ROOT)/memoryerror_stackoverflow.done: stderr_exp="segmentation fault: call stack overflow"
 
 $(ROOT)/%.done: $(ROOT)/%$(DOTEXE)
 	@echo Testing $*

@@ -585,8 +585,6 @@ void issue13078() nothrow pure
 
 void issue14104()
 {
-    import core.stdc.stdio;
-
     alias K = const(ubyte)*;
     size_t[K] aa;
     immutable key = cast(K)(cast(size_t) uint.max + 1);

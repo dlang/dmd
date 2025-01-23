@@ -53,28 +53,10 @@ else version (D_InlineAsm_X86_64)
     }
 }
 
-version (Posix)
-{
-    version (AsmX86_Windows)    {} else
-    version (AsmX86_Posix)      {} else
-    version (AsmX86_64_Windows) {} else
-    version (AsmX86_64_Posix)   {} else
-    version (AsmExternal)       {} else
-    {
-        // NOTE: The ucontext implementation requires architecture specific
-        //       data definitions to operate so testing for it must be done
-        //       by checking for the existence of ucontext_t rather than by
-        //       a version identifier.  Please note that this is considered
-        //       an obsolescent feature according to the POSIX spec, so a
-        //       custom solution is still preferred.
-        static import core.sys.posix.ucontext;
-    }
-}
-
 version (Windows)
 {
     import core.stdc.stdint : uintptr_t; // for _beginthreadex decl below
-    import core.stdc.stdlib;             // for malloc, atexit
+    import core.stdc.stdlib : free, malloc, realloc;
     import core.sys.windows.basetsd /+: HANDLE+/;
     import core.sys.windows.threadaux /+: getThreadStackBottom, impersonate_thread, OpenThreadHandle+/;
     import core.sys.windows.winbase /+: CloseHandle, CREATE_SUSPENDED, DuplicateHandle, GetCurrentThread,
@@ -92,7 +74,7 @@ else version (Posix)
 {
     static import core.sys.posix.pthread;
     static import core.sys.posix.signal;
-    import core.stdc.errno;
+    import core.stdc.errno : EINTR, errno;
     import core.sys.posix.pthread : pthread_atfork, pthread_attr_destroy, pthread_attr_getstack, pthread_attr_init,
         pthread_attr_setstacksize, pthread_create, pthread_detach, pthread_getschedparam, pthread_join, pthread_self,
         pthread_setschedparam, sched_get_priority_max, sched_get_priority_min, sched_param, sched_yield;
@@ -107,9 +89,34 @@ else version (Posix)
     {
         import core.sys.darwin.mach.kern_return : KERN_SUCCESS;
         import core.sys.darwin.mach.port : mach_port_t;
-        import core.sys.darwin.mach.thread_act : mach_msg_type_number_t, thread_get_state, thread_resume,
-            thread_suspend, x86_THREAD_STATE64, x86_THREAD_STATE64_COUNT, x86_thread_state64_t;
+        import core.sys.darwin.mach.thread_act : mach_msg_type_number_t,
+            thread_get_state, thread_resume, thread_suspend;
         import core.sys.darwin.pthread : pthread_mach_thread_np;
+        version (X86)
+        {
+            import core.sys.darwin.mach.thread_act :
+             x86_THREAD_STATE32, x86_THREAD_STATE32_COUNT, x86_thread_state32_t;
+        }
+        else version (X86_64)
+        {
+            import core.sys.darwin.mach.thread_act :
+             x86_THREAD_STATE64, x86_THREAD_STATE64_COUNT, x86_thread_state64_t;
+        }
+        else version (AArch64)
+        {
+            import core.sys.darwin.mach.thread_act :
+             ARM_THREAD_STATE64, ARM_THREAD_STATE64_COUNT, arm_thread_state64_t;
+        }
+        else version (PPC)
+        {
+            import core.sys.darwin.mach.thread_act :
+             PPC_THREAD_STATE32, PPC_THREAD_STATE32_COUNT, ppc_thread_state32_t;
+        }
+        else version (PPC64)
+        {
+            import core.sys.darwin.mach.thread_act :
+             PPC_THREAD_STATE64, PPC_THREAD_STATE64_COUNT, ppc_thread_state64_t;
+        }
     }
 }
 
@@ -1288,8 +1295,107 @@ in (fn)
     void *sp = void;
     version (GNU)
     {
-        __builtin_unwind_init();
-        sp = &sp;
+        // The generic solution below using a call to __builtin_unwind_init ()
+        // followed by an assignment to sp has two issues:
+        // 1) On some archs it stores a huge amount of FP and Vector state which
+        //    is not the subject of the scan - and, indeed might produce false
+        //    hits.
+        // 2) Even on archs like X86, where there are no callee-saved FPRs/VRs there
+        //    tend to be 'holes' in the frame allocations (to deal with alignment) which
+        //    also will  contain random data which could produce false positives.
+        // This solution stores only the integer callee-saved registers.
+        version (X86)
+        {
+            void*[3] regs = void;
+            asm pure nothrow @nogc
+            {
+                "movl   %%ebx, %0" : "=m" (regs[0]);
+                "movl   %%esi, %0" : "=m" (regs[1]);
+                "movl   %%edi, %0" : "=m" (regs[2]);
+            }
+            sp = cast(void*)&regs[0];
+        }
+        else version (X86_64)
+        {
+            void*[5] regs = void;
+            asm pure nothrow @nogc
+            {
+                "movq   %%rbx, %0" : "=m" (regs[0]);
+                "movq   %%r12, %0" : "=m" (regs[1]);
+                "movq   %%r13, %0" : "=m" (regs[2]);
+                "movq   %%r14, %0" : "=m" (regs[3]);
+                "movq   %%r15, %0" : "=m" (regs[4]);
+            }
+            sp = cast(void*)&regs[0];
+        }
+        else version (PPC)
+        {
+            void*[19] regs = void;
+            version (Darwin)
+                enum regname = "r";
+            else
+                enum regname = "";
+            static foreach (i; 0 .. regs.length)
+            {{
+                enum int j = 13 + i; // source register
+                asm pure nothrow @nogc
+                {
+                    "stw "~regname~j.stringof~", %0" : "=m" (regs[i]);
+                }
+            }}
+            sp = cast(void*)&regs[0];
+        }
+        else version (PPC64)
+        {
+            void*[19] regs = void;
+            version (Darwin)
+                enum regname = "r";
+            else
+                enum regname = "";
+            static foreach (i; 0 .. regs.length)
+            {{
+                enum int j = 13 + i; // source register
+                asm pure nothrow @nogc
+                {
+                    "std "~regname~j.stringof~", %0" : "=m" (regs[i]);
+                }
+            }}
+            sp = cast(void*)&regs[0];
+        }
+        else version (AArch64)
+        {
+            // Callee-save registers, x19-x28 according to AAPCS64, section
+            // 5.1.1.  Include x29 fp because it optionally can be a callee
+            // saved reg
+            size_t[11] regs = void;
+            // store the registers in pairs
+            asm pure nothrow @nogc
+            {
+                "stp x19, x20, %0" : "=m" (regs[ 0]), "=m" (regs[1]);
+                "stp x21, x22, %0" : "=m" (regs[ 2]), "=m" (regs[3]);
+                "stp x23, x24, %0" : "=m" (regs[ 4]), "=m" (regs[5]);
+                "stp x25, x26, %0" : "=m" (regs[ 6]), "=m" (regs[7]);
+                "stp x27, x28, %0" : "=m" (regs[ 8]), "=m" (regs[9]);
+                "str x29, %0"      : "=m" (regs[10]);
+                "mov %0, sp"       : "=r" (sp);
+            }
+        }
+        else version (ARM)
+        {
+            // Callee-save registers, according to AAPCS, section 5.1.1.
+            // arm and thumb2 instructions
+            size_t[8] regs = void;
+            asm pure nothrow @nogc
+            {
+                "stm %0, {r4-r11}" : : "r" (regs.ptr) : "memory";
+                "mov %0, sp"       : "=r" (sp);
+            }
+        }
+        else
+        {
+            __builtin_unwind_init();
+            sp = &sp;
+        }
     }
     else version (AsmX86_Posix)
     {
@@ -1424,6 +1530,19 @@ private extern(D) void* getStackBottom() nothrow @nogc
                  mov RAX, GS:[RAX];
                  ret;
             }
+        else version (GNU_InlineAsm)
+        {
+            void *bottom;
+
+            version (X86)
+                asm pure nothrow @nogc { "movl %%fs:4, %0;" : "=r" (bottom); }
+            else version (X86_64)
+                asm pure nothrow @nogc { "movq %%gs:8, %0;" : "=r" (bottom); }
+            else
+                static assert(false, "Architecture not supported.");
+
+            return bottom;
+        }
         else
             static assert(false, "Architecture not supported.");
     }

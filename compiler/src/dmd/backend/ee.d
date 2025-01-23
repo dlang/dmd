@@ -38,7 +38,7 @@ __gshared EEcontext eecontext;
 @trusted
 void eecontext_convs(SYMIDX marksi)
 {
-    symtab_t *ps;
+    symtab_t* ps;
 
     // Change all generated SC.auto's to SC.stack's
     ps = cstate.CSpsymtab;
@@ -52,7 +52,7 @@ void eecontext_convs(SYMIDX marksi)
             case SC.auto_:
             case SC.register:
                 s.Sclass = SC.stack;
-                s.Sfl = FLstack;
+                s.Sfl = FL.stack;
                 break;
             default:
                 break;

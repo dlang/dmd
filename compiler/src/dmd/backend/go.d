@@ -89,7 +89,7 @@ else
  *      !=0     recognized
  */
 @trusted
-int go_flag(ref GlobalOptimizer go, char *cp)
+int go_flag(ref GlobalOptimizer go, char* cp)
 {
     enum GL     // indices of various flags in flagtab[]
     {
@@ -197,9 +197,9 @@ badflag:
 
 debug (DEBUG_TREES)
 {
-void dbg_optprint(char *title)
+void dbg_optprint(char* title)
 {
-    block *b;
+    block* b;
     for (b = startblock; b; b = b.Bnext)
         if (b.Belem)
         {
@@ -227,7 +227,7 @@ void optfunc(ref GlobalOptimizer go)
     if (localgot)
     {   // Initialize with:
         //      localgot = OPgot;
-        elem *e = el_long(TYnptr, 0);
+        elem* e = el_long(TYnptr, 0);
         e.Eoper = OPgot;
         e = el_bin(OPeq, TYnptr, el_var(localgot), e);
         bo.startblock.Belem = el_combine(e, bo.startblock.Belem);
@@ -271,7 +271,7 @@ void optfunc(ref GlobalOptimizer go)
                     //el_check(b.Belem);
                 }
 
-                b.Belem = doptelem(b.Belem, bc_goal(b.BC) | Goal.again);
+                b.Belem = doptelem(b.Belem, bc_goal(b.bc) | Goal.again);
 
                 debug if (0 && debugf)
                 {
@@ -317,12 +317,12 @@ void optfunc(ref GlobalOptimizer go)
          * replaced with loads from variables in read-only data.
          * This can result in localgot getting needed.
          */
-        Symbol *localgotsave = localgot;
+        Symbol* localgotsave = localgot;
         for (block* b = bo.startblock; b; b = b.Bnext)
         {
             if (b.Belem)
             {
-                b.Belem = doptelem(b.Belem, bc_goal(b.BC) | Goal.struct_);
+                b.Belem = doptelem(b.Belem, bc_goal(b.bc) | Goal.struct_);
                 if (b.Belem)
                     b.Belem = el_convert(go, b.Belem);
             }
@@ -331,7 +331,7 @@ void optfunc(ref GlobalOptimizer go)
         {   /* Looks like we did need localgot, initialize with:
              *  localgot = OPgot;
              */
-            elem *e = el_long(TYnptr, 0);
+            elem* e = el_long(TYnptr, 0);
             e.Eoper = OPgot;
             e = el_bin(OPeq, TYnptr, el_var(localgot), e);
             bo.startblock.Belem = el_combine(e, bo.startblock.Belem);

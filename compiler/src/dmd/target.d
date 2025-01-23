@@ -525,12 +525,11 @@ extern (C++) struct Target
     {
         if (os == Target.OS.OSX)
             return Target.ObjectFormat.macho;
-        else if (os & Target.OS.Posix)
+        if (os & Target.OS.Posix)
             return Target.ObjectFormat.elf;
-        else if (os == Target.OS.Windows)
+        if (os == Target.OS.Windows)
             return Target.ObjectFormat.coff;
-        else
-            assert(0, "unkown object format");
+        assert(0, "unkown object format");
     }
 
     /**
@@ -1057,8 +1056,8 @@ extern (C++) struct Target
             TypeTuple tt = toArgTypes_sysv_x64(tn);
             if (!tt)
                 return false; // void
-            else
-                return !tt.arguments.length;
+
+            return !tt.arguments.length;
         }
 
     Lagain:
@@ -1144,8 +1143,8 @@ extern (C++) struct Target
         {
             if (tns.ty == TY.Tcomplex32)
                 return false;     // in EDX:EAX, not ST1:ST0
-            else
-                return true;
+
+            return true;
         }
         else if (os == Target.OS.Windows &&
                  isX86 &&
@@ -1257,10 +1256,9 @@ extern (C++) struct Target
             case objectFormat.stringof:
                 if (os == Target.OS.Windows)
                     return stringExp("coff");
-                else if (os == Target.OS.OSX)
+                if (os == Target.OS.OSX)
                     return stringExp("macho");
-                else
-                    return stringExp("elf");
+                return stringExp("elf");
             case floatAbi.stringof:
                 return stringExp("hard");
             case cppRuntimeLibrary.stringof:
@@ -1555,8 +1553,8 @@ struct TargetCPP
             return toCppMangleItanium(s);
         if (target.os == Target.OS.Windows)
             return toCppMangleMSVC(s);
-        else
-            assert(0, "fix this");
+
+        assert(0, "fix this");
     }
 
     /**
@@ -1575,8 +1573,8 @@ struct TargetCPP
             return cppTypeInfoMangleItanium(cd);
         if (target.os == Target.OS.Windows)
             return cppTypeInfoMangleMSVC(cd);
-        else
-            assert(0, "fix this");
+
+        assert(0, "fix this");
     }
 
     /**
@@ -1645,8 +1643,8 @@ struct TargetCPP
         // MSVC adds padding between base and derived fields if required.
         if (target.os == Target.OS.Windows)
             return (baseClass.structsize + baseClass.alignsize - 1) & ~(baseClass.alignsize - 1);
-        else
-            return baseClass.structsize;
+
+        return baseClass.structsize;
     }
 }
 

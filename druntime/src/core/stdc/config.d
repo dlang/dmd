@@ -118,7 +118,26 @@ else version (TVOS)
 else version (WatchOS)
     version = Darwin;
 
-version (Windows)
+version (GNU)
+{
+    import gcc.builtins;
+
+    alias __builtin_clong  c_long;
+    alias __builtin_culong c_ulong;
+
+    enum __c_long  : __builtin_clong;
+    enum __c_ulong : __builtin_culong;
+
+    alias __c_long  cpp_long;
+    alias __c_ulong cpp_ulong;
+
+    enum __c_longlong  : __builtin_clonglong;
+    enum __c_ulonglong : __builtin_culonglong;
+
+    alias __c_longlong  cpp_longlong;
+    alias __c_ulonglong cpp_ulonglong;
+}
+else version (Windows)
 {
     enum __c_long  : int;
     enum __c_ulong : uint;

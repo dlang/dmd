@@ -24,11 +24,12 @@ version (Darwin):
 version (X86):
 
 // debug = PRINTF;
+
 import core.internal.container.array;
 import core.stdc.stdint : intptr_t;
-import core.stdc.stdio;
-import core.stdc.stdlib;
-import core.stdc.string;
+import core.stdc.stdio : fprintf, perror, stderr;
+import core.stdc.stdlib : calloc, free, malloc;
+import core.stdc.string : memcpy;
 import core.sys.darwin.mach.dyld : _dyld_register_func_for_add_image;
 import core.sys.darwin.mach.getsect : getsectbynamefromheader;
 import core.sys.darwin.mach.loader : mach_header, MH_MAGIC, SECT_BSS, SECT_COMMON, SECT_DATA, SEG_DATA;
@@ -36,6 +37,8 @@ import core.sys.posix.pthread : pthread_getspecific, pthread_key_create, pthread
     pthread_setspecific;
 import rt.deh;
 import rt.minfo;
+
+debug (PRINTF) import core.stdc.stdio : printf;
 
 struct SectionGroup
 {
@@ -169,7 +172,6 @@ ref void[] getTLSBlock() nothrow @nogc
         pary = cast(void[]*).calloc(1, (void[]).sizeof);
         if (pthread_setspecific(_tlsKey, pary) != 0)
         {
-            import core.stdc.stdio;
             perror("pthread_setspecific failed with");
             assert(0);
         }

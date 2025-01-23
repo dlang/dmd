@@ -135,7 +135,7 @@ struct Pstate
                                 // prevent <array of> being converted to
                                 // <pointer to>.
 
-    Funcsym *STfuncsym_p;       // if inside a function, then this is the
+    Funcsym* STfuncsym_p;       // if inside a function, then this is the
                                 // function Symbol.
 
     stflags_t STflags;
@@ -171,7 +171,7 @@ enum
 // Determine if Symbol has a Ssymnum associated with it.
 // (That is, it is allocated on the stack or has live variable analysis
 //  done on it, so it is stack and register variables.)
-//char symbol_isintab(Symbol *s) { return sytab[s.Sclass] & SCSS; }
+//char symbol_isintab(Symbol* s) { return sytab[s.Sclass] & SCSS; }
 
 /******************************************
  * Basic blocks:
@@ -220,7 +220,7 @@ enum BFL : ushort
     nounroll      = 0x1000, // do not unroll loop
 
     // for Windows NTEXCEPTIONS
-    ehcode        = 0x2000, // BC_filter: need to load exception code
+    ehcode        = 0x2000, // BC._filter: need to load exception code
     unwind        = 0x4000, // do local_unwind following block (unused)
 }
 
@@ -229,23 +229,23 @@ struct block
 nothrow:
     union
     {
-        elem *Belem;            // pointer to elem tree
+        elem* Belem;            // pointer to elem tree
         list_t  Blist;          // list of expressions
     }
 
-    block *Bnext;               // pointer to next block in list
+    block* Bnext;               // pointer to next block in list
     list_t Bsucc;               // linked list of pointers to successors
                                 //     of this block
     list_t Bpred;               // and the predecessor list
     int Bindex;                 // into created object stack
     int Bendindex;              // index at end of block
-    block *Btry;                // BCtry,BC_try: enclosing try block, if any
-                                // BC???: if in try-block, points to BCtry or BC_try
-                                // note that can't have a BCtry and BC_try in
+    block* Btry;                // BC.try_,BC._try: enclosing try block, if any
+                                // BC???: if in try-block, points to BC.try_ or BC._try
+                                // note that can't have a BC.try_ and BC._try in
                                 // the same function.
     union
     {
-        long[] Bswitch;                // BCswitch: case expression values
+        long[] Bswitch;                // BC.switch_: case expression values
 
         struct
         {
@@ -256,33 +256,33 @@ nothrow:
         struct
         {
             Symbol* catchvar;           // __throw() fills in this
-        }                               // BCtry
+        }                               // BC.try_
 
         struct
         {
             Symbol* Bcatchtype;       // one type for each catch block
             Barray!uint* actionTable; // EH_DWARF: indices into typeTable
-        }                             // BCjcatch
+        }                             // BC.jcatch
 
         struct
         {
-            Symbol *jcatchvar;      // __d_throw() fills in this
+            Symbol* jcatchvar;      // __d_throw() fills in this
             int Bscope_index;           // index into scope table
             int Blast_index;            // enclosing index into scope table
-        }                               // BC_try
+        }                               // BC._try
 
         struct
         {
-            Symbol *flag;               // EH_DWARF: set to 'flag' symbol that encloses finally
-            block *b_ret;               // EH_DWARF: associated BC_ret block
+            Symbol* flag;               // EH_DWARF: set to 'flag' symbol that encloses finally
+            block* b_ret;               // EH_DWARF: associated BC._ret block
         }                               // finally
 
         // add member mimicking the largest of the other elements of this union, so it can be copied
-        struct _BS { Symbol *jcvar; int Bscope_idx, Blast_idx; }
+        struct _BS { Symbol* jcvar; int Bscope_idx, Blast_idx; }
         _BS BS;
     }
     Srcpos      Bsrcpos;        // line number (0 if not known)
-    ubyte       BC;             // exit condition (enum BC)
+    BC          bc;             // exit condition
 
     ubyte       Balign;         // alignment
 
@@ -308,8 +308,8 @@ nothrow:
             uint        Bblknum;        // position of block from startblock
             Symbol*     Binitvar;       // !=NULL points to an auto variable with
                                         // an explicit or implicit initializer
-            block*      Bgotolist;      // BCtry, BCcatch: backward list of try scopes
-            block*      Bgotothread;    // BCgoto: threaded list of goto's to
+            block*      Bgotolist;      // BC.try_, BC.catch_: backward list of try scopes
+            block*      Bgotothread;    // BC.goto_: threaded list of goto's to
                                         // unknown labels
         }
 
@@ -327,7 +327,7 @@ nothrow:
             vec_t       Bkill;          // pointers to bit vectors used by data
                                         // flow analysis
 
-            // BCiftrue can have different vectors for the 2nd successor:
+            // BC.iftrue can have different vectors for the 2nd successor:
             vec_t       Bout2;
             vec_t       Bgen2;
             vec_t       Bkill2;
@@ -336,7 +336,7 @@ nothrow:
         // CODGEN
         struct
         {
-            // For BCswitch, BCjmptab
+            // For BC.switch_, BC.jmptab
             targ_size_t Btablesize;     // size of generated table
             targ_size_t Btableoffset;   // offset to start of table
             targ_size_t Btablebase;     // offset to instruction pointer base
@@ -344,7 +344,7 @@ nothrow:
             targ_size_t Boffset;        // code offset of start of this block
             targ_size_t Bsize;          // code size of this block
             con_t       Bregcon;        // register state at block exit
-            targ_size_t Btryoff;        // BCtry: offset of try block data
+            targ_size_t Btryoff;        // BC.try_: offset of try block data
         }
     }
 
@@ -360,7 +360,7 @@ nothrow:
     block* nthSucc(int n)            { return cast(block*)list_ptr(list_nth(Bsucc, n)); }
 
     @trusted
-    void setNthSucc(int n, block *b) { list_nth(Bsucc, n).ptr = b; }
+    void setNthSucc(int n, block* b) { list_nth(Bsucc, n).ptr = b; }
 }
 
 @trusted
@@ -368,43 +368,42 @@ inout(block)* list_block(inout list_t lst) { return cast(inout(block)*)list_ptr(
 
 /** Basic block control flow operators. **/
 
-alias BC = int;
-enum
+enum BC : ubyte
 {
-    BCgoto      = 1,    // goto Bsucc block
-    BCiftrue    = 2,    // if (Belem) goto Bsucc[0] else Bsucc[1]
-    BCret       = 3,    // return (no return value)
-    BCretexp    = 4,    // return with return value
-    BCexit      = 5,    // never reaches end of block (like exit() was called)
-    BCasm       = 6,    // inline assembler block (Belem is NULL, Bcode
-                        // contains code generated).
-                        // These blocks have one or more successors in Bsucc,
-                        // never 0
-    BCswitch    = 7,    // switch statement
+    none      = 0,
+    goto_     = 1,    // goto Bsucc block
+    iftrue    = 2,    // if (Belem) goto Bsucc[0] else Bsucc[1]
+    ret       = 3,    // return (no return value)
+    retexp    = 4,    // return with return value
+    exit      = 5,    // never reaches end of block (like exit() was called)
+    asm_      = 6,    // inline assembler block (Belem is NULL, Bcode
+                      // contains code generated).
+                      // These blocks have one or more successors in Bsucc,
+                      // never 0
+    switch_   = 7,    // switch statement
                         // Bswitch points to switch data
                         // Default is Bsucc
                         // Cases follow in linked list
-    BCifthen    = 8,    // a BCswitch is converted to if-then
+    ifthen    = 8,    // a BC.switch_ is converted to if-then
                         // statements
-    BCjmptab    = 9,    // a BCswitch is converted to a jump
+    jmptab    = 9,    // a BC.switch_ is converted to a jump
                         // table (switch value is index into
                         // the table)
-    BCtry       = 10,   // C++ try block
+    try_      = 10,   // C++ try block
                         // first block in a try-block. The first block in
                         // Bsucc is the next one to go to, subsequent
                         // blocks are the catch blocks
-    BCcatch     = 11,   // C++ catch block
-    BCjump      = 12,   // Belem specifies (near) address to jump to
-    BC_try      = 13,   // SEH: first block of try-except or try-finally
+    catch_    = 11,   // C++ catch block
+    jump      = 12,   // Belem specifies (near) address to jump to
+    _try      = 13,   // SEH: first block of try-except or try-finally
                         // D: try-catch or try-finally
-    BC_filter   = 14,   // SEH exception-filter (always exactly one block)
-    BC_finally  = 15,   // first block of SEH termination-handler,
+    _filter   = 14,   // SEH exception-filter (always exactly one block)
+    _finally  = 15,   // first block of SEH termination-handler,
                         // or D finally block
-    BC_ret      = 16,   // last block of SEH termination-handler or D _finally block
-    BC_except   = 17,   // first block of SEH exception-handler
-    BCjcatch    = 18,   // D catch block
-    BC_lpad     = 19,   // EH_DWARF: landing pad for BC_except
-    BCMAX
+    _ret      = 16,   // last block of SEH termination-handler or D _finally block
+    _except   = 17,   // first block of SEH exception-handler
+    jcatch    = 18,   // D catch block
+    _lpad     = 19,   // EH_DWARF: landing pad for BC._except
 }
 
 /********************************
@@ -494,51 +493,51 @@ enum
 struct func_t
 {
     symlist_t Fsymtree;         // local Symbol table
-    block *Fstartblock;         // list of blocks comprising function
+    block* Fstartblock;         // list of blocks comprising function
     symtab_t Flocsym;           // local Symbol table
     Srcpos Fstartline;          // starting line # of function
     Srcpos Fendline;            // line # of closing brace of function
-    Symbol *F__func__;          // symbol for __func__[] string
+    Symbol* F__func__;          // symbol for __func__[] string
     func_flags_t Fflags;
     func_flags3_t Fflags3;
     ubyte Foper;                // operator number (OPxxxx) if Foperator
 
-    Symbol *Fparsescope;        // use this scope to parse friend functions
+    Symbol* Fparsescope;        // use this scope to parse friend functions
                                 // which are defined within a class, so the
                                 // class is in scope, but are not members
                                 // of the class
 
-    Classsym *Fclass;           // if member of a class, this is the class
+    Classsym* Fclass;           // if member of a class, this is the class
                                 // (I think this is redundant with Sscope)
-    Funcsym *Foversym;          // overloaded function at same scope
+    Funcsym* Foversym;          // overloaded function at same scope
     symlist_t Fclassfriends;    // Symbol list of classes of which this
                                 // function is a friend
-    block *Fbaseblock;          // block where base initializers get attached
-    block *Fbaseendblock;       // block where member destructors get attached
-    elem *Fbaseinit;            // list of member initializers (meminit_t)
+    block* Fbaseblock;          // block where base initializers get attached
+    block* Fbaseendblock;       // block where member destructors get attached
+    elem* Fbaseinit;            // list of member initializers (meminit_t)
                                 // this field has meaning only for
                                 // functions which are constructors
-    token_t *Fbody;             // if deferred parse, this is the list
+    token_t* Fbody;             // if deferred parse, this is the list
                                 // of tokens that make up the function
                                 // body
                                 // also used if SCfunctempl, SCftexpspec
     uint Fsequence;             // sequence number at point of definition
     Symbol* Ftempl;         // if Finstance this is the template that generated it
-    Funcsym *Falias;            // SCfuncalias: function Symbol referenced
+    Funcsym* Falias;            // SCfuncalias: function Symbol referenced
                                 // by using-declaration
     symlist_t Fthunks;          // list of thunks off of this function
-    param_t *Farglist;          // SCfunctempl: the template-parameter-list
-    param_t *Fptal;             // Finstance: this is the template-argument-list
+    param_t* Farglist;          // SCfunctempl: the template-parameter-list
+    param_t* Fptal;             // Finstance: this is the template-argument-list
                                 // SCftexpspec: for explicit specialization, this
                                 // is the template-argument-list
     list_t Ffwdrefinstances;    // SCfunctempl: list of forward referenced instances
     list_t Fexcspec;            // List of types in the exception-specification
                                 // (NULL if none or empty)
-    Funcsym *Fexplicitspec;     // SCfunctempl, SCftexpspec: threaded list
+    Funcsym* Fexplicitspec;     // SCfunctempl, SCftexpspec: threaded list
                                 // of SCftexpspec explicit specializations
-    Funcsym *Fsurrogatesym;     // Fsurrogate: surrogate cast function
+    Funcsym* Fsurrogatesym;     // Fsurrogate: surrogate cast function
 
-    char *Fredirect;            // redirect function name to this name in object
+    char* Fredirect;            // redirect function name to this name in object
 
     // Array of catch types for EH_DWARF Types Table generation
     Barray!(Symbol*) typesTable;
@@ -649,20 +648,20 @@ struct struct_t
 {
     targ_size_t Sstructsize;    // size of struct
     symlist_t Sfldlst;          // all members of struct (list freeable)
-    Symbol *Sroot;              // root of binary tree Symbol table
+    Symbol* Sroot;              // root of binary tree Symbol table
     uint Salignsize;            // size of struct for alignment purposes
     ubyte Sstructalign;         // struct member alignment in effect
     struct_flags_t Sflags;
     tym_t ptrtype;              // type of pointer to refer to classes by
-    baseclass_t *Sbase;         // list of direct base classes
-    Symbol *Svptr;              // Symbol of vptr
-    Symbol *Stempsym;           // if this struct is an instantiation
+    baseclass_t* Sbase;         // list of direct base classes
+    Symbol* Svptr;              // Symbol of vptr
+    Symbol* Stempsym;           // if this struct is an instantiation
                                 // of a template class, this is the
                                 // template class Symbol
 
     // For 64 bit Elf function ABI
-    type *Sarg1type;
-    type *Sarg2type;
+    type* Sarg1type;
+    type* Sarg2type;
 
     /* For:
      *  template<class T> struct A { };
@@ -679,7 +678,7 @@ struct struct_t
      *  Spr_arglist = <int*>;
      */
 
-    param_t *Sarglist;          // if this struct is an instantiation
+    param_t* Sarglist;          // if this struct is an instantiation
                                 // of a template class, this is the
                                 // actual arg list used
 }
@@ -826,7 +825,7 @@ struct Symbol
         return (1 << Spreg) | (Spreg2 == NOREG ? 0 : (1 << Spreg2));
     }
 
-    Symbol *Sscope;             // enclosing scope (could be struct tag,
+    Symbol* Sscope;             // enclosing scope (could be struct tag,
                                 // enclosing inline function for statics,
                                 // or namespace)
 
@@ -837,7 +836,7 @@ struct Symbol
 //#endif
 
     SC Sclass;                  // storage class (SCxxxx)
-    FL Sfl;                     // flavor (FLxxxx)
+    FL Sfl;                     // flavor (FL.xxxx)
     SYMFLGS Sflags;             // flag bits (SFLxxxx)
 
     vec_t       Srange;         // live range, if any
@@ -921,7 +920,7 @@ alias Aliassym = Symbol;
 //#endif
 
 /* Format the identifier for presentation to the user   */
-const(char)* prettyident(const Symbol *s) { return &s.Sident[0]; }
+const(char)* prettyident(const Symbol* s) { return &s.Sident[0]; }
 
 
 /**********************************
@@ -959,7 +958,7 @@ enum
  *      exception method for f
  */
 @trusted
-EHmethod ehmethod(Symbol *f)
+EHmethod ehmethod(Symbol* f)
 {
     return f.Sfunc.Fflags3 & Feh_none ? EHmethod.EH_NONE : config.ehmethod;
 }
@@ -1001,7 +1000,7 @@ nothrow:
 import dmd.backend.dtype : param_t_print, param_t_print_list, param_t_length, param_t_createTal,
     param_t_search, param_t_searchn;
 
-void param_debug(const param_t *p)
+void param_debug(const param_t* p)
 {
     debug assert(p.id == p.IDparam);
 }
@@ -1011,57 +1010,53 @@ void param_debug(const param_t *p)
  * These should be combined with storage classes.
  */
 
-alias FL = ubyte;
-enum
+enum FL : ubyte
 {
-    // Change this, update debug.c too
-    FLunde,
-    FLconst,        // numerical constant
-    FLoper,         // operator node
-    FLfunc,         // function symbol
-    FLdata,         // ref to data segment variable
-    FLreg,          // ref to register variable
-    FLpseudo,       // pseuodo register variable
-    FLauto,         // ref to automatic variable
-    FLfast,         // ref to variable passed as register
-    FLpara,         // ref to function parameter variable
-    FLextern,       // ref to external variable
-    FLcode,         // offset to code
-    FLblock,        // offset to block
-    FLudata,        // ref to udata segment variable
-    FLcs,           // ref to common subexpression number
-    FLswitch,       // ref to offset of switch data block
-    FLfltreg,       // ref to floating reg on stack, int contains offset
-    FLoffset,       // offset (a variation on constant, needed so we
-                    // can add offsets (different meaning for FLconst))
-    FLdatseg,       // ref to data segment offset
-    FLctor,         // constructed object
-    FLdtor,         // destructed object
-    FLregsave,      // ref to saved register on stack, int contains offset
-    FLasm,          // (code) an ASM code
+    unde,
+    const_,       // numerical constant
+    oper,         // operator node
+    func,         // function symbol
+    data,         // ref to data segment variable
+    reg,          // ref to register variable
+    pseudo,       // pseuodo register variable
+    auto_,        // ref to automatic variable
+    fast,         // ref to variable passed as register
+    para,         // ref to function parameter variable
+    extern_,      // ref to external variable
+    code,         // offset to code
+    block,        // offset to block
+    udata,        // ref to udata segment variable
+    cs,           // ref to common subexpression number
+    switch_,      // ref to offset of switch data block
+    fltreg,       // ref to floating reg on stack, int contains offset
+    offset,       // offset (a variation on constant, needed so we
+                  // can add offsets (different meaning for FL.const_))
+    datseg,       // ref to data segment offset
+    ctor,         // constructed object
+    dtor,         // destructed object
+    regsave,      // ref to saved register on stack, int contains offset
+    asm_,         // (code) an ASM code
 
-    FLndp,          // saved 8087 register
+    ndp,          // saved 8087 register
 
     // Segmented systems
-    FLfardata,      // ref to far data segment
-    FLcsdata,       // ref to code segment variable
+    fardata,      // ref to far data segment
+    csdata,       // ref to code segment variable
 
-    FLlocalsize,    // replaced with # of locals in the stack frame
-    FLtlsdata,      // thread local storage
-    FLbprel,        // ref to variable at fixed offset from frame pointer
-    FLframehandler, // ref to C++ frame handler for NT EH
-    FLblockoff,     // address of block
-    FLallocatmp,    // temp for built-in alloca()
-    FLstack,        // offset from ESP rather than EBP
-    FLdsymbol,      // it's a Dsymbol
+    localsize,    // replaced with # of locals in the stack frame
+    tlsdata,      // thread local storage
+    bprel,        // ref to variable at fixed offset from frame pointer
+    framehandler, // ref to C++ frame handler for NT EH
+    blockoff,     // address of block
+    allocatmp,    // temp for built-in alloca()
+    stack,        // offset from ESP rather than EBP
+    dsymbol,      // it's a Dsymbol
 
     // Global Offset Table
-    FLgot,          // global offset table entry outside this object file
-    FLgotoff,       // global offset table entry inside this object file
+    got,          // global offset table entry outside this object file
+    gotoff,       // global offset table entry inside this object file
 
-    FLfuncarg,      // argument to upcoming function call
-
-    FLMAX
+    funcarg,      // argument to upcoming function call
 }
 
 ////////// Srcfiles
@@ -1074,15 +1069,15 @@ enum
 struct EEcontext
 {
     uint EElinnum;              // line number to insert expression
-    char *EEexpr;               // expression
-    char *EEtypedef;            // typedef identifier
+    char* EEexpr;               // expression
+    char* EEtypedef;            // typedef identifier
     byte EEpending;             // !=0 means we haven't compiled it yet
     byte EEimminent;            // we've installed it in the source text
     byte EEcompile;             // we're compiling for the EE expression
     byte EEin;                  // we are parsing an EE expression
-    elem *EEelem;               // compiled version of EEexpr
-    Symbol *EEfunc;             // function expression is in
-    code *EEcode;               // generated code
+    elem* EEelem;               // compiled version of EEexpr
+    Symbol* EEfunc;             // function expression is in
+    code* EEcode;               // generated code
 }
 
 public import dmd.backend.ee : eecontext;
@@ -1122,7 +1117,7 @@ enum Goal : uint
 
 struct dt_t
 {
-    dt_t *DTnext;                       // next in list
+    dt_t* DTnext;                       // next in list
     DT dt;                              // Tagged union tag, see above
     ubyte Dty;                          // pointer type
     ubyte DTn;                          // DTibytes: number of bytes
@@ -1144,7 +1139,7 @@ struct dt_t
         }
         struct                          // DTxoff
         {
-            Symbol *DTsym;              // symbol pointer
+            Symbol* DTsym;              // symbol pointer
             targ_size_t DToffset;       // offset from symbol
         }
     }

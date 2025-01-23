@@ -122,7 +122,7 @@ void movxmmconst(ref CodeBuilder cdb, reg_t xreg, tym_t ty, Vconst* pev, regm_t 
         U u = void;
         u.l[1] = 0;
         u.s = value;
-        targ_long *p = &u.l[0];
+        targ_long* p = &u.l[0];
         movregconst(cdb,r,p[0],0);
         cdb.genfltreg(STO,r,0);                     // MOV floatreg,r
         movregconst(cdb,r,p[1],0);
@@ -145,11 +145,11 @@ void movxmmconst(ref CodeBuilder cdb, reg_t xreg, tym_t ty, Vconst* pev, regm_t 
  * Do simple orthogonal operators for XMM registers.
  */
 @trusted
-void orthxmm(ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
+void orthxmm(ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 {
     //printf("orthxmm(e = %p, pretregs = %s)\n", e, regm_str(pretregs));
-    elem *e1 = e.E1;
-    elem *e2 = e.E2;
+    elem* e1 = e.E1;
+    elem* e2 = e.E2;
 
     // float + ifloat is not actually addition
     if ((e.Eoper == OPadd || e.Eoper == OPmin) &&
@@ -241,7 +241,7 @@ void orthxmm(ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
                 assert(0);  // not doing the unordered compares
         }
         code* c = cdb.last();
-        c.IFL2 = FLconst;
+        c.IFL2 = FL.const_;
         c.IEV2.Vsize_t = imm8;
     }
     checkSetVex(cdb.last(), e1.Ety);
@@ -256,12 +256,12 @@ void orthxmm(ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
  *      opcode = store opcode to use, CMP means generate one
  */
 @trusted
-void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,ref regm_t pretregs)
+void xmmeq(ref CodeBuilder cdb, elem* e, opcode_t op, elem* e1, elem* e2,ref regm_t pretregs)
 {
     tym_t tymll;
     int i;
     code cs;
-    elem *e11;
+    elem* e11;
     bool regvar;                  /* true means evaluate into register variable */
     targ_int postinc;
 
@@ -303,7 +303,7 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,ref reg
     if (e1.Eoper == OPind &&
         ((e11 = e1.E1).Eoper == OPpostinc || e11.Eoper == OPpostdec) &&
         e11.E1.Eoper == OPvar &&
-        e11.E1.Vsym.Sfl == FLreg
+        e11.E1.Vsym.Sfl == FL.reg
        )
     {
         postinc = e11.E2.Vint;
@@ -349,7 +349,7 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,ref reg
             uint rm = cs.Irm & 7;
             if (cs.Irex & REX_B)
                 rm |= 8;
-            cdb.genc1(LEA,buildModregrm(2,increg,rm),FLconst,postinc);
+            cdb.genc1(LEA,buildModregrm(2,increg,rm),FL.const_,postinc);
             if (tysize(e11.E1.Ety) == 8)
                 code_orrex(cdb.last(), REX_W);
         }
@@ -387,7 +387,7 @@ void xmmeq(ref CodeBuilder cdb, elem *e, opcode_t op, elem *e1, elem *e2,ref reg
  *
  */
 @trusted
-void xmmcnvt(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
+void xmmcnvt(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
     //printf("xmmconvt: %p, %s\n", e, regm_str(pretregs));
     opcode_t op = NoOpcode;
@@ -401,7 +401,7 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
      * try to fuse chained conversions. Be careful not to loose
      * precision for real to long.
      */
-    elem *e1 = e.E1;
+    elem* e1 = e.E1;
     switch (e.Eoper)
     {
     case OPd_f:
@@ -524,9 +524,9 @@ void xmmcnvt(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
  * Generate code for op=
  */
 @trusted
-void xmmopass(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
-{   elem *e1 = e.E1;
-    elem *e2 = e.E2;
+void xmmopass(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
+{   elem* e1 = e.E1;
+    elem* e2 = e.E2;
     tym_t ty1 = tybasic(e1.Ety);
     const sz1 = _tysize[ty1];
     regm_t rretregs = XMMREGS & ~pretregs;
@@ -598,10 +598,10 @@ void xmmopass(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
  */
 
 @trusted
-void xmmpost(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
+void xmmpost(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
-    elem *e1 = e.E1;
-    elem *e2 = e.E2;
+    elem* e1 = e.E1;
+    elem* e2 = e.E2;
     tym_t ty1 = tybasic(e1.Ety);
 
     regm_t retregs;
@@ -682,7 +682,7 @@ void xmmpost(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
  */
 
 @trusted
-void xmmneg(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
+void xmmneg(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
     //printf("xmmneg()\n");
     //elem_print(e);
@@ -723,7 +723,7 @@ void xmmneg(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
  */
 
 @trusted
-void xmmabs(ref CodeBuilder cdb,elem *e,ref regm_t pretregs)
+void xmmabs(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
     //printf("xmmabs()\n");
     //elem_print(e);
@@ -1175,7 +1175,7 @@ private opcode_t xmmoperator(tym_t tym, OPER oper)
 }
 
 @trusted
-void cdvector(ref CGstate cg, ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
+void cdvector(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 {
     /* e should look like one of:
      *    vector
@@ -1193,10 +1193,10 @@ void cdvector(ref CGstate cg, ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
     }
 
     const n = el_nparams(e.E1);
-    assert(n < size_t.max / (2 * (elem *).sizeof));   // conservative overflow check
-    elem **params = cast(elem **)malloc(n * (elem *).sizeof);
+    assert(n < size_t.max / (2 * (elem*).sizeof));   // conservative overflow check
+    elem** params = cast(elem**)malloc(n * (elem*).sizeof);
     assert(params);
-    elem **tmp = params;
+    elem** tmp = params;
     el_paramArray(&tmp, e.E1);
 
 static if (0)
@@ -1222,9 +1222,9 @@ static if (0)
 
     assert(n >= 2 && n <= 4);
 
-    elem *eop = params[0];
-    elem *op1 = params[1];
-    elem *op2 = null;
+    elem* eop = params[0];
+    elem* op1 = params[1];
+    elem* op2 = null;
     tym_t ty2 = 0;
     if (n >= 3)
     {   op2 = params[2];
@@ -1349,7 +1349,7 @@ static if (0)
                 {
                     if (cgstate.pass == BackendPass.final_)
                         error(e.Esrcpos, "missing 4th parameter to `__simd()`");
-                    cs.IFL2 = FLconst;
+                    cs.IFL2 = FL.const_;
                     cs.IEV2.Vsize_t = 0;
                 }
                 break;
@@ -1359,8 +1359,8 @@ static if (0)
 
         if (n == 4)
         {
-            elem *imm8 = params[3];
-            cs.IFL2 = FLconst;
+            elem* imm8 = params[3];
+            cs.IFL2 = FL.const_;
             if (imm8.Eoper != OPconst)
             {
                 error(imm8.Esrcpos, "last parameter to `__simd()` must be a constant");
@@ -1387,13 +1387,13 @@ static if (0)
  * where op is the store instruction STOxxxx.
  */
 @trusted
-void cdvecsto(ref CGstate cg, ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
+void cdvecsto(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 {
     //printf("cdvecsto()\n");
     //elem_print(e);
-    elem *op1 = e.E1;
-    elem *op2 = e.E2.E2;
-    elem *eop = e.E2.E1;
+    elem* op1 = e.E1;
+    elem* op2 = e.E2.E2;
+    elem* eop = e.E2.E1;
     const op = cast(opcode_t)el_tolong(eop);
     debug assert(isXMMstore(op));
     xmmeq(cdb, e, op, op1, op2, pretregs);
@@ -1405,7 +1405,7 @@ void cdvecsto(ref CGstate cg, ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
  * fills the vector type with it.
  */
 @trusted
-void cdvecfill(ref CGstate cg, ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
+void cdvecfill(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 {
     //printf("cdvecfill(e = %p, pretregs = %s)\n",e,regm_str(pretregs));
 
@@ -1413,10 +1413,10 @@ void cdvecfill(ref CGstate cg, ref CodeBuilder cdb, elem *e, ref regm_t pretregs
     if (!retregs)
         retregs = XMMREGS;
 
-    code *c;
+    code* c;
     code cs;
 
-    elem *e1 = e.E1;
+    elem* e1 = e.E1;
 static if (0)
 {
     if ((e1.Eoper == OPind && !e1.Ecount) || e1.Eoper == OPvar)
@@ -1768,11 +1768,11 @@ static if (0)
  */
 
 @trusted
-bool xmmIsAligned(elem *e)
+bool xmmIsAligned(elem* e)
 {
     if (tyvector(e.Ety) && e.Eoper == OPvar)
     {
-        Symbol *s = e.Vsym;
+        Symbol* s = e.Vsym;
         const alignsz = tyalignsize(e.Ety);
         if (Symbol_Salignsize(*s) < alignsz ||
             e.Voffset & (alignsz - 1) ||
@@ -1788,7 +1788,7 @@ bool xmmIsAligned(elem *e)
  * If it must be 3 bytes, set the CFvex3 flag.
  */
 
-void checkSetVex3(code *c)
+void checkSetVex3(code* c)
 {
     // See Intel Vol. 2A 2.3.5.6
     if (c.Ivex.w || !c.Ivex.x || !c.Ivex.b || c.Ivex.mmmm > 0x1 ||
@@ -1808,7 +1808,7 @@ void checkSetVex3(code *c)
  */
 
 @trusted
-void checkSetVex(code *c, tym_t ty)
+void checkSetVex(code* c, tym_t ty)
 {
     //printf("checkSetVex() %d %x\n", tysize(ty), c.Iop);
     if (config.avx || tysize(ty) == 32)
@@ -1912,7 +1912,7 @@ void checkSetVex(code *c, tym_t ty)
  * Load complex operand into XMM registers or flags or both.
  */
 @trusted
-void cloadxmm(ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
+void cloadxmm(ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
 {
     //printf("e = %p, pretregs = %s)\n", e, regm_str(pretregs));
     //elem_print(e);
@@ -1951,7 +1951,7 @@ void cloadxmm(ref CodeBuilder cdb, elem *e, ref regm_t pretregs)
  *      true if it can be done
  */
 @trusted
-bool loadxmmconst(elem *e)
+bool loadxmmconst(elem* e)
 {
     //printf("loadxmmconst() "); elem_print_const(e); printf("\n");
     const sz = tysize(e.Ety);

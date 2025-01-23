@@ -537,7 +537,7 @@ private FuncDeclaration hasIdentityOpEquals(AggregateDeclaration ad, Scope* sc)
  * opEquals is changed to be never implicitly generated.
  * Now, struct objects comparison s1 == s2 is translated to:
  *      s1.tupleof == s2.tupleof
- * to calculate structural equality. See EqualExp.op_overload.
+ * to calculate structural equality. See `opOverloadEquals`.
  */
 FuncDeclaration buildOpEquals(StructDeclaration sd, Scope* sc)
 {

@@ -225,7 +225,7 @@ extern (D) private void sliceStructs_Gather(ref const symtab_t symtab, SymInfo[]
  *      e = expression tree to rewrite in place
  */
 @trusted
-extern (D) private void sliceStructs_Replace(ref symtab_t symtab, const SymInfo[] sia, elem *e)
+extern (D) private void sliceStructs_Replace(ref symtab_t symtab, const SymInfo[] sia, elem* e)
 {
     while (1)
     {
@@ -233,7 +233,7 @@ extern (D) private void sliceStructs_Replace(ref symtab_t symtab, const SymInfo[
         {
             case OPvar:
             {
-                Symbol *s = e.Vsym;
+                Symbol* s = e.Vsym;
                 const si = s.Ssymnum;
                 //printf("e: %d %d\n", si, sia[si].canSlice);
                 //elem_print(e);
@@ -244,13 +244,13 @@ extern (D) private void sliceStructs_Replace(ref symtab_t symtab, const SymInfo[
                     {
                         if (log) { printf("slicing struct before "); elem_print(e); }
                         // Rewrite e as (si0 OPpair si0+1)
-                        elem *e1 = el_calloc();
+                        elem* e1 = el_calloc();
                         el_copy(e1, e);
                         e1.Ety = sia[si].ty[0];
 
-                        elem *e2 = el_calloc();
+                        elem* e2 = el_calloc();
                         el_copy(e2, e);
-                        Symbol *s1 = symtab[sia[si].si0 + 1]; // +1 for second slice
+                        Symbol* s1 = symtab[sia[si].si0 + 1]; // +1 for second slice
                         e2.Ety = sia[si].ty[1];
                         e2.Vsym = s1;
                         e2.Voffset = 0;
@@ -299,7 +299,7 @@ extern (D) private void sliceStructs_Replace(ref symtab_t symtab, const SymInfo[
 
             case OPrelconst:
             {
-                Symbol *s = e.Vsym;
+                Symbol* s = e.Vsym;
                 const si = s.Ssymnum;
                 //printf("e: %d %d\n", si, sia[si].canSlice);
                 //elem_print(e);
@@ -353,14 +353,14 @@ if (enable) // disable while we test the inliner
 
     if (log) foreach (si; 0 .. symtab.length)
     {
-        Symbol *s = symtab[si];
+        Symbol* s = symtab[si];
         printf("[%d]: %p %d %s %s\n", cast(int)si, s, cast(int)type_size(s.Stype), s.Sident.ptr, tym_str(s.Stype.Tty));
     }
 
     bool anySlice = false;
     foreach (si; 0 .. symtab.length)
     {
-        Symbol *s = symtab[si];
+        Symbol* s = symtab[si];
         if (log) printf("slice1 [%d]: %s\n", cast(int)si, s.Sident.ptr);
 
         //if (strcmp(s.Sident.ptr, "__inlineretval3".ptr) == 0) { printf("can't\n"); sia[si].canSlice = false; continue; }
@@ -429,7 +429,7 @@ if (enable) // disable while we test the inliner
 
     foreach (b; BlockRange(startblock))
     {
-        if (b.BC == BCasm)
+        if (b.bc == BC.asm_)
             return;
         if (b.Belem)
             sliceStructs_Gather(symtab, sia, b.Belem);
@@ -454,17 +454,17 @@ if (enable) // disable while we test the inliner
                 /* Split slice-able symbol sold into two symbols,
                  * (sold,snew) in adjacent slots in the symbol table.
                  */
-                Symbol *sold = symtab[si + n];
+                Symbol* sold = symtab[si + n];
 
                 const idlen = 2 + strlen(sold.Sident.ptr) + 2;
-                char *id = cast(char *)malloc(idlen + 1);
+                char* id = cast(char*)malloc(idlen + 1);
                 if (!id)
                     err_nomem();
                 const len = snprintf(id, idlen + 1, "__%s_%d", sold.Sident.ptr, SLICESIZE);
                 assert(len == idlen);
                 if (log) printf("retyping slice symbol %s %s\n", sold.Sident.ptr, tym_str(sia[si].ty[0]));
                 if (log) printf("creating slice symbol %s %s\n", id, tym_str(sia[si].ty[1]));
-                Symbol *snew = symbol_calloc(id[0 .. idlen]);
+                Symbol* snew = symbol_calloc(id[0 .. idlen]);
                 free(id);
                 snew.Sclass = sold.Sclass;
                 snew.Sfl = sold.Sfl;
@@ -497,7 +497,7 @@ if (enable) // disable while we test the inliner
 
     foreach (si; 0 .. symtab.length)
     {
-        Symbol *s = symtab[si];
+        Symbol* s = symtab[si];
         assert(s.Ssymnum == si);
     }
 

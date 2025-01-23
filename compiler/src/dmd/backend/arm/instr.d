@@ -72,8 +72,14 @@ struct INSTR
                 Zd;
     }
 
-    /************************************ Data Processing -- Immediate ****************************/
+    /* { ******************************** Data Processing -- Immediate ****************************/
     /* https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#dpimm                      */
+
+    /* AUTIASPPC (immediate) http://www.scs.stanford.edu/~zyedidia/arm64/autiasppc_imm.html
+     */
+
+    /* AUTIBSPPC (immediate) http://www.scs.stanford.edu/~zyedidia/arm64/autibsppc_imm.html
+     */
 
     /* Add offset to PC
      * ADR/ADRP Xd,label
@@ -108,10 +114,14 @@ struct INSTR
                 Rd;
     }
 
-    /* Add/subtract (immdiate, with tags)
+    /* Add/subtract (immediate, with tags)
+     * ADDG/SUBG
+     * http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_immtags
      */
 
     /* Min/max (immdiate)
+     * SMAX/UMAX/SMIN/UMIN
+     * http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#minmax_imm
      */
 
     /* Logical (immediate)
@@ -161,6 +171,62 @@ struct INSTR
                 Rd;
     }
 
+    /* SBFM Rd,Rn,#immr,#imms
+     * https://www.scs.stanford.edu/~zyedidia/arm64/sbfm.html
+     */
+    static uint sbfm(uint sf, uint N, uint immr, uint imms, reg_t Rn, reg_t Rd)
+    {
+        return bitfield(sf, 0, N, immr, imms, Rn, Rd);
+    }
+
+    /* ASR Rd,Rn,#shift (an alias of SBFM)
+     * https://www.scs.stanford.edu/~zyedidia/arm64/asr_sbfm.html
+     */
+    static uint asr_sbfm(uint sf, uint immr, reg_t Rn, reg_t Rd)
+    {
+        return sbfm(sf, sf, immr, sf ? 63 : 31, Rn, Rd);
+    }
+
+    /* SBFIZ Rd,Rn,#lsb,#width
+     * https://www.scs.stanford.edu/~zyedidia/arm64/sbfiz_sbfm.html
+     */
+    static uint sbfiz_sbfm(uint sf, uint lsb, uint width, reg_t Rn, reg_t Rd)
+    {
+        return sbfm(sf, sf, -lsb & (sf ? 0x3F : 0x1F), width - 1, Rn, Rd);
+    }
+
+    /* SBFX Rd,Rn,#lsb,#width
+     * https://www.scs.stanford.edu/~zyedidia/arm64/sbfx_sbfm.html
+     */
+    static uint sbfx_sbfm(uint sf, uint lsb, uint width, reg_t Rn, reg_t Rd)
+    {
+        return sbfm(sf, sf, lsb, lsb + width - 1, Rn, Rd);
+    }
+
+    /* SXTB Rd,Wn
+     * https://www.scs.stanford.edu/~zyedidia/arm64/sxtw_sbfm.html
+     */
+    static uint sxtb_sbfm(uint sf, reg_t Rn, reg_t Rd)
+    {
+        return sbfm(sf, sf, 0, 7, Rn, Rd);
+    }
+
+    /* SXTH Rd,Wn
+     * https://www.scs.stanford.edu/~zyedidia/arm64/sxth_sbfm.html
+     */
+    static uint sxth_sbfm(uint sf, reg_t Rn, reg_t Rd)
+    {
+        return sbfm(sf, sf, 0, 15, Rn, Rd);
+    }
+
+    /* SXTW Xd,Wn
+     * https://www.scs.stanford.edu/~zyedidia/arm64/sxtw_sbfm.html
+     */
+    static uint sxtw_sbfm(reg_t Rn, reg_t Rd)
+    {
+        return sbfm(1, 1, 0, 31, Rn, Rd);
+    }
+
     /* Extract
      * EXTR
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#dpimm
@@ -179,8 +245,21 @@ struct INSTR
                 Rd;
     }
 
-    /****************************** Branches, Exception Generating and System instructions **************/
+    /* } */
+
+    /* { ************************** Branches, Exception Generating and System instructions **************/
     /* https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#control                          */
+
+    /* Conditional branch (immediate)
+     * Miscellaneous branch (immediate)
+     * Exception generation
+     * System instructions with register argument
+     * Hints
+     * Barriers
+     * PSTATE
+     * System with result
+     * System instructions
+     */
 
     /* System register move
      * MSR/MRS
@@ -191,10 +270,31 @@ struct INSTR
         return (0x354 << 22) | (L << 21) | (1 << 20) | (sysreg << 5) | Rt;
     }
 
+    /* System pair instructions
+     * System register pair move
+     */
+
     enum tpidr_el0 = 0x5E82;
 
-    /* Unconditional branch (register)
-     * BLR
+    /* Unconditional branch (register) */
+
+    /* BR Xn
+     * https://www.scs.stanford.edu/~zyedidia/arm64/br.html
+     */
+    static uint br(ubyte Rn)
+    {
+        return branch_reg(0, 0x1F, 0, Rn, 0);
+    }
+
+    /* BLR Xn
+     * https://www.scs.stanford.edu/~zyedidia/arm64/blr.html
+     */
+    static uint blr(ubyte Rn)
+    {
+        return branch_reg(1, 0x1F, 0, Rn, 0);
+    }
+
+    /* BLR
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#branch_reg
      */
     static uint branch_reg(uint opc, uint op2, uint op3, ubyte Rn, uint op4)
@@ -210,6 +310,16 @@ struct INSTR
     {
         return (op << 31) | (5 << 26) | imm26;
     }
+
+    /* RET Xn
+     * https://www.scs.stanford.edu/~zyedidia/arm64/ret.html
+     */
+    static ret(ubyte Rn = 30)
+    {
+        return branch_reg(2, 0x1F, 0, Rn, 0);
+    }
+
+    static assert(ret() == 0xd65f03c0);
 
     /* Compare and branch (immediate)
      * CBZ/CBNZ
@@ -229,8 +339,9 @@ struct INSTR
         return (b5 << 31) | (0x1B << 25) | (op << 24) | (b40 << 19) | (imm14 << 5) | Rt;
     }
 
+    /* } */
 
-    /****************************** Data Processing -- Register **********************************/
+    /* { ************************** Data Processing -- Register **********************************/
     /* https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#dpreg                     */
 
     /* Data-processing (1 source)
@@ -407,9 +518,53 @@ struct INSTR
         return ins;
     }
 
+    /* } */
 
-    /****************************** Data Processing -- Scalar Floating-Point and Advanced SIMD **/
+    /* { ************************** Data Processing -- Scalar Floating-Point and Advanced SIMD **/
     /* https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#simd_dp                  */
+
+    /* Cryptographic AES
+     * Cryptographic three-register SHA
+     * Cryptographic two-register SHA
+     * Advanced SIMD scalar copy
+     * Advanced SIMD scalar three same FP16
+     * Advanced SIMD scalar two-register miscellaneous FP16
+     * Advanced SIMD scalar three same extra
+     * Advanced SIMD scalar two-register miscellaneous
+     * Advanced SIMD scalar pairwise
+     * Advanced SIMD scalar three different
+     * Advanced SIMD scalar three same
+     * Advanced SIMD scalar shift by immediate
+     * Advanced SIMD scalar x indexed element
+     * Advanced SIMD table lookup
+     * Advanced SIMD permute
+     * Advanced SIMD extract
+     * Advanced SIMD copy
+     * Advanced SIMD three same (FP16)
+     * Advanced SIMD two-register miscellaneous (FP16)
+     * Advanced SIMD three-register extension
+     * Advanced SIMD two-register miscellaneous
+     * Advanced SIMD across lanes
+     * Advanced SIMD three different
+     * Advanced SIMD three same
+
+    /* Advanced SIMD modified immediate
+     * http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdimm
+     */
+
+    // FMOV Rd, Rn  https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float.html
+    static uint fmov(uint ftype, uint Rn, uint Rd) { return floatdp1(0,0,ftype,0,Rn,Rd); }
+
+    /* Advanced SIMD shift by immediate
+     * Advanced SIMD vector x indexed element
+     * Cryptographic three-register,imm2
+     * Cryptographic three-register SHA 512
+     * Cryptographic four-register
+     * XAR
+     * Cryptographic twp=register SHA 512
+     * Converstion between floating-point and fixed-point
+     * Converstion between floating-point and integer
+     */
 
     /* Floating-point data-processing (1 source)
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatdp1
@@ -420,11 +575,17 @@ struct INSTR
         return (M << 31) | (S << 29) | (0x1E << 24) | (ftype << 22) | (1 << 21) | (0x10 << 10) | (Rn << 5) | Rd;
     }
 
-    // FMOV Rd, Rn  https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float.html
-    static uint fmov(uint ftype, uint Rn, uint Rd) { return floatdp1(0,0,ftype,0,Rn,Rd); }
+    /* Floating-point compare
+     * Floating-point immediate
+     * Floating-point condistional compare
+     * Floating-point data-processing (2 source)
+     * Floating-point conditional select
+     * Floating-point data-processing (3 source)
+     */
 
+    /* } */
 
-    /****************************** Loads and Stores ********************************************/
+    /* { ************************** Loads and Stores ********************************************/
     /* https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst                     */
 
     /* Compare and swap pair
@@ -443,6 +604,27 @@ struct INSTR
         return (Q << 30) | (0x18 << 23) | (L << 22) | (opcode << 12) | (size << 10) | (Rn << 5) | Rt;
     }
 
+    /* Advanced SIMD load/store multiple structures (post-indexed)
+     * Advanced SIMD load/store single structure
+     * Advanced SIMD load/store single structure (post-indexed)
+     * RCW compare and swap
+     * RCW compare and swap pair
+     * 128-bit atomic memory operations
+     * GCS load/store
+     * Load/store memory_tags
+     * Load/store exclusive pair
+     * Load/store exclusive register
+     * Load/store ordered
+     * Compare and swap
+     * LDIAPP/STILP
+     * LDAPR/STLR (writeback)
+     * LDAPR/STLR (unscaled immediate)
+     * LDAPR/STLR (SIMD&FP)
+     * Load register (literal)
+     * Memory Copy and Memory Set
+     * Load/store no-allocate pair (offset)
+     */
+
     /* Load/store register pair
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldstpair_post
      */
@@ -460,6 +642,10 @@ struct INSTR
                 Rt;
     }
 
+    /* Load/store register pair (offset)
+     * Load/store register pair (pre-indexed)
+     * Load/store register pair (unscaled immediate)
+     */
 
     /* Load/store register (immediate post-indexed)
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_immpost
@@ -474,6 +660,11 @@ struct INSTR
                (Rn   <<  5) |
                 Rt;
     }
+
+    /* Load/store register pair (unprivileged)
+     * Load/store register pair (immediate pre-indexed)
+     * Atomic memory operation
+     */
 
     /* Load/store register (register offset)
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_regoff
@@ -493,6 +684,9 @@ struct INSTR
                 Rt;
     }
 
+    /* Load/store register (pac)
+     */
+
     /* Load/store register (unsigned immediate)
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_pos
      */
@@ -508,96 +702,9 @@ struct INSTR
                 Rt;
     }
 
-    /* =============================================================================== */
-    /* =============================================================================== */
+    /* } */
 
-    /* SBFM Rd,Rn,#immr,#imms
-     * https://www.scs.stanford.edu/~zyedidia/arm64/sbfm.html
-     */
-    static uint sbfm(uint sf, uint N, uint immr, uint imms, reg_t Rn, reg_t Rd)
-    {
-        return bitfield(sf, 0, N, immr, imms, Rn, Rd);
-    }
-
-    /* ASR Rd,Rn,#shift
-     * https://www.scs.stanford.edu/~zyedidia/arm64/asr_sbfm.html
-     */
-    static uint asr_sbfm(uint sf, uint immr, reg_t Rn, reg_t Rd)
-    {
-        return sbfm(sf, sf, immr, sf ? 63 : 31, Rn, Rd);
-    }
-
-    /* SBFIZ Rd,Rn,#lsb,#width
-     * https://www.scs.stanford.edu/~zyedidia/arm64/sbfiz_sbfm.html
-     */
-    static uint sbfiz_sbfm(uint sf, uint lsb, uint width, reg_t Rn, reg_t Rd)
-    {
-        return sbfm(sf, sf, -lsb & (sf ? 0x3F : 0x1F), width - 1, Rn, Rd);
-    }
-
-    /* SBFX Rd,Rn,#lsb,#width
-     * https://www.scs.stanford.edu/~zyedidia/arm64/sbfx_sbfm.html
-     */
-    static uint sbfx_sbfm(uint sf, uint lsb, uint width, reg_t Rn, reg_t Rd)
-    {
-        return sbfm(sf, sf, lsb, lsb + width - 1, Rn, Rd);
-    }
-
-    /* SXTB Rd,Wn
-     * https://www.scs.stanford.edu/~zyedidia/arm64/sxtw_sbfm.html
-     */
-    static uint sxtb_sbfm(uint sf, reg_t Rn, reg_t Rd)
-    {
-        return sbfm(sf, sf, 0, 7, Rn, Rd);
-    }
-
-    /* SXTH Rd,Wn
-     * https://www.scs.stanford.edu/~zyedidia/arm64/sxth_sbfm.html
-     */
-    static uint sxth_sbfm(uint sf, reg_t Rn, reg_t Rd)
-    {
-        return sbfm(sf, sf, 0, 15, Rn, Rd);
-    }
-
-    /* SXTW Xd,Wn
-     * https://www.scs.stanford.edu/~zyedidia/arm64/sxtw_sbfm.html
-     */
-    static uint sxtw_sbfm(reg_t Rn, reg_t Rd)
-    {
-        return sbfm(1, 1, 0, 31, Rn, Rd);
-    }
-
-
-    /********* Branches, Exception Generating and System Instructions **********/
-
-    /* BR Xn
-     * https://www.scs.stanford.edu/~zyedidia/arm64/br.html
-     */
-    static uint br(ubyte Rn)
-    {
-        return branch_reg(0, 0x1F, 0, Rn, 0);
-    }
-
-    /* BLR Xn
-     * https://www.scs.stanford.edu/~zyedidia/arm64/blr.html
-     */
-    static uint blr(ubyte Rn)
-    {
-        return branch_reg(1, 0x1F, 0, Rn, 0);
-    }
-
-    /* RET Xn
-     * https://www.scs.stanford.edu/~zyedidia/arm64/ret.html
-     */
-    static ret(ubyte Rn = 30)
-    {
-        return branch_reg(2, 0x1F, 0, Rn, 0);
-    }
-
-    static assert(ret() == 0xd65f03c0);
-
-
-    /****************************** Data Processing -- Register **********************************/
+    /* { ************************** Data Processing -- Register **********************************/
     /* https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#dpreg                     */
 
 
@@ -920,6 +1027,8 @@ struct INSTR
         // LDR Rt,Rbase,Rindex,extend S
         return ldst_regoff(2 | sz, 0, 1, Rindex, extend, S, Rbase, Rt);
     }
+
+    /* } */
 }
 
 /**********************

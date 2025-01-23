@@ -59,7 +59,7 @@ private enum log2 = false;
  */
 
 @trusted
-bool canInlineFunction(Symbol *sfunc)
+bool canInlineFunction(Symbol* sfunc)
 {
     auto f = sfunc.Sfunc;
 
@@ -104,15 +104,15 @@ bool canInlineFunction(Symbol *sfunc)
 
     while (1)
     {
-        switch (b.BC)
+        switch (b.bc)
         {
-            case BCgoto:
+            case BC.goto_:
                 if (b.Bnext != b.nthSucc(0))
                     return no(__LINE__);
                 b = b.Bnext;
                 continue;
 
-            case BCret:
+            case BC.ret:
                 if (tybasic(t.Tnext.Tty) != TYvoid
                     && !(f.Fflags & (Fctor | Fdtor | Finvariant))
                    )
@@ -124,7 +124,7 @@ bool canInlineFunction(Symbol *sfunc)
                     return no(__LINE__);
                 break;
 
-            case BCretexp:
+            case BC.retexp:
                 break;
 
             default:
@@ -152,7 +152,7 @@ bool canInlineFunction(Symbol *sfunc)
  */
 
 @trusted
-void scanForInlines(Symbol *sfunc)
+void scanForInlines(Symbol* sfunc)
 {
     if (log) debug printf("scanForInlines(%s)\n",prettyident(sfunc));
     //symbol_debug(sfunc);
@@ -237,7 +237,7 @@ bool canInlineExpression(elem* e)
  *      replacement tree
  */
 @trusted
-elem* scanExpressionForInlines(elem *e)
+elem* scanExpressionForInlines(elem* e)
 {
     //printf("scanExpressionForInlines(%p)\n",e);
     const op = e.Eoper;
@@ -272,7 +272,7 @@ elem* scanExpressionForInlines(elem *e)
  */
 
 @trusted
-private elem* tryInliningCall(elem *e)
+private elem* tryInliningCall(elem* e)
 {
     //elem_debug(e);
     assert(e && (e.Eoper == OPcall || e.Eoper == OPucall));
@@ -297,7 +297,7 @@ private elem* tryInliningCall(elem *e)
     else if (sfunc.Sfunc.Fstartblock == null)
         {   } //nwc_mustwrite(sfunc);
     else
-    {   func_t *f = sfunc.Sfunc;
+    {   func_t* f = sfunc.Sfunc;
 
         /* Check to see if we inline expand the function, or queue  */
         /* it to be output.                                         */
@@ -319,7 +319,7 @@ private elem* tryInliningCall(elem *e)
  *      the expression replacing the function call
  */
 @trusted
-private elem* inlineCall(elem *e,Symbol *sfunc)
+private elem* inlineCall(elem* e,Symbol* sfunc)
 {
     if (debugc)
         printf("inline %s\n", prettyident(sfunc));
@@ -356,13 +356,13 @@ private elem* inlineCall(elem *e,Symbol *sfunc)
                 //printf("  new symbol %s\n", s.Sident.ptr);
                 Symbol* snew = symbol_copy(*s);
                 snew.Sclass = sc;
-                snew.Sfl = FLauto;
+                snew.Sfl = FL.auto_;
                 snew.Sflags |= SFLfree;
                 snew.Srange = null;
                 s.Sflags |= SFLreplace;
                 if (sc == SC.pseudo)
                 {
-                    snew.Sfl = FLpseudo;
+                    snew.Sfl = FL.pseudo;
                     snew.Sreglsw = s.Sreglsw;
                 }
                 s.Ssymnum = symbol_add(snew);
@@ -450,9 +450,9 @@ private elem* initializeParamsWithArgs(elem* eargs, SYMIDX sistart, SYMIDX siend
     /* Create args[] and fill it with the arguments
      */
     const nargs = el_nparams(eargs);
-    assert(nargs < size_t.max / (2 * (elem *).sizeof));   // conservative overflow check
-    elem*[] args = (cast(elem **)malloc(nargs * (elem *).sizeof))[0 .. nargs];
-    elem **tmp = args.ptr;
+    assert(nargs < size_t.max / (2 * (elem*).sizeof));   // conservative overflow check
+    elem*[] args = (cast(elem**)malloc(nargs * (elem*).sizeof))[0 .. nargs];
+    elem** tmp = args.ptr;
     el_paramArray(&tmp, eargs);
 
     elem* ecopy;
@@ -482,7 +482,7 @@ private elem* initializeParamsWithArgs(elem* eargs, SYMIDX sistart, SYMIDX siend
             }
         }
 
-        Symbol *s = nextSymbol(si);
+        Symbol* s = nextSymbol(si);
         if (!s)
         {
             ecopy = el_combine(el_copytree(e), ecopy); // for ... arguments
@@ -543,7 +543,7 @@ private elem* initializeParamsWithArgs(elem* eargs, SYMIDX sistart, SYMIDX siend
                 ec.E1 = null;
                 ec.E2 = null;
                 el_free(ec);
-                e.Vsym.Sfl = FLauto;
+                e.Vsym.Sfl = FL.auto_;
             }
             assert(e.Eoper == OPvar);
             elem* e2 = el_copytree(e);
@@ -617,7 +617,7 @@ private elem* initializeParamsWithArgs(elem* eargs, SYMIDX sistart, SYMIDX siend
  * Replace references to old symbols with references to copied symbols.
  */
 @trusted
-private void adjustExpression(elem *e)
+private void adjustExpression(elem* e)
 {
     while (1)
     {
@@ -639,7 +639,7 @@ private void adjustExpression(elem *e)
         {
             if (e.Eoper == OPvar || e.Eoper == OPrelconst)
             {
-                Symbol *s = e.Vsym;
+                Symbol* s = e.Vsym;
 
                 if (s.Sflags & SFLreplace)
                 {

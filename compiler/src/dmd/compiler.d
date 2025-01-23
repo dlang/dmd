@@ -194,8 +194,7 @@ private struct ModuleComponentRange
             return packages[index];
         if (index == packages.length)
             return name;
-        else
-            return Identifier.idPool("package");
+        return Identifier.idPool("package");
     }
     void popFront() @safe { index++; }
 }

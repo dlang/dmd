@@ -68,13 +68,13 @@ private bool cnst(const elem* e) { return e.Eoper == OPconst; }
  */
 
 @trusted
-private elem * cgel_lvalue(elem *e)
+private elem* cgel_lvalue(elem* e)
 {
     //printf("cgel_lvalue()\n"); elem_print(e);
-    elem *e1 = e.E1;
+    elem* e1 = e.E1;
     if (e1.Eoper == OPbit)
     {
-        elem *e11 = e1.E1;
+        elem* e11 = e1.E1;
 
         if (e11.Eoper == OPcomma)
         {
@@ -125,7 +125,7 @@ private elem * cgel_lvalue(elem *e)
  */
 
 @trusted
-private elem * elscancommas(elem *e)
+private elem* elscancommas(elem* e)
 {
     while (e.Eoper == OPcomma
            || e.Eoper == OPinfo
@@ -139,7 +139,7 @@ private elem * elscancommas(elem *e)
  *    true if elem is the constant 1.
  */
 
-int elemisone(elem *e)
+int elemisone(elem* e)
 {
     if (e.Eoper == OPconst)
     {
@@ -204,7 +204,7 @@ nomatch:
  * Returns: true if elem is the constant -1.
  */
 
-int elemisnegone(elem *e)
+int elemisnegone(elem* e)
 {
     if (e.Eoper == OPconst)
     {
@@ -281,12 +281,12 @@ OPER swaprel(OPER op)
  * Replace e1 by t=e1, replace e2 by t.
  */
 
-private void fixside(elem **pe1,elem **pe2)
+private void fixside(elem** pe1,elem** pe2)
 {
     const tym = (*pe1).Ety;
-    elem *tmp = el_alloctmp(tym);
+    elem* tmp = el_alloctmp(tym);
     *pe1 = el_bin(OPeq,tym,tmp,*pe1);
-    elem *e2 = el_copytree(tmp);
+    elem* e2 = el_copytree(tmp);
     el_free(*pe2);
     *pe2 = e2;
 }
@@ -307,7 +307,7 @@ private int cost(const elem* n) { return opcost[n.Eoper]; }
  */
 
 @trusted
-private int fcost(const elem *e)
+private int fcost(const elem* e)
 {
     int cost;
 
@@ -358,7 +358,7 @@ private int fcost(const elem *e)
  */
 
 @trusted
-private elem *fixconvop(elem *e)
+private elem* fixconvop(elem* e)
 {
     static immutable ubyte[CNVOPMAX - CNVOPMIN + 1] invconvtab =
     [
@@ -410,7 +410,7 @@ private elem *fixconvop(elem *e)
     const cop = e.E1.Eoper;             /* the conversion operator      */
     assert(cop <= CNVOPMAX);
 
-    elem *econv = e.E1;
+    elem* econv = e.E1;
     while (OTconv(econv.Eoper))
     {
         if (econv.E1.Eoper != OPcomma)
@@ -422,7 +422,7 @@ private elem *fixconvop(elem *e)
          *   =>                 many:    =>
          * a, (conv(b) op= e2)         a, (conv(conv(b)) op= e2)
          */
-        elem *ecomma = econv.E1;
+        elem* ecomma = econv.E1;
         econv.E1 = ecomma.E2;
         econv.E1.Ety = ecomma.Ety;
         ecomma.E2 = e;
@@ -434,7 +434,7 @@ private elem *fixconvop(elem *e)
 
     if (e.E1.Eoper == OPd_f && OTconv(e.E1.E1.Eoper) && tyintegral(tyme))
     {
-        elem *e1 = e.E1;
+        elem* e1 = e.E1;
         e.E1 = e1.E1;
         e.E2 = el_una(OPf_d, e.E1.Ety, e.E2);
         e1.E1 = null;
@@ -445,9 +445,9 @@ private elem *fixconvop(elem *e)
     tym_t tycop = e.E1.Ety;
     tym_t tym = e.E1.E1.Ety;
     e.E1 = el_selecte1(e.E1);     /* dump it for now              */
-    elem *e1 = e.E1;
+    elem* e1 = e.E1;
     e1.Ety = tym;
-    elem *e2 = e.E2;
+    elem* e2 = e.E2;
     assert(e1 && e2);
     /* select inverse conversion operator   */
     const icop = invconvtab[convidx(cop)];
@@ -470,7 +470,7 @@ private elem *fixconvop(elem *e)
     /* Oh well, just split up the op and the =.                     */
     const op = opeqtoop(e.Eoper); // convert op= to op
     e.Eoper = OPeq;                  // just plain =
-    elem *ed = el_copytree(e1);       // duplicate e1
+    elem* ed = el_copytree(e1);       // duplicate e1
                                       // make: e1 = (icop) ((cop) ed op e2)
     e.E2 = el_una(icop,e1.Ety,
                              el_bin(op,tycop,el_una(cop,tycop,ed),
@@ -511,8 +511,8 @@ private elem *fixconvop(elem *e)
 
     // Handle case of multiple conversion operators on lvalue
     // (such as (intdbl 8int char += double))
-    elem *ex = e;
-    elem **pe = &e;
+    elem* ex = e;
+    elem** pe = &e;
     while (OTconv(ed.Eoper))
     {
         const uint copx = ed.Eoper;
@@ -551,7 +551,7 @@ private elem *fixconvop(elem *e)
      */
     if (ed.Eoper == OPind)
     {
-        elem *T = el_alloctmp(ed.E1.Ety);    // make temporary
+        elem* T = el_alloctmp(ed.E1.Ety);    // make temporary
         ed.E1 = el_bin(OPeq,T.Ety,T,ed.E1); // ed: *(T=e)
         el_free(e1.E1);
         e1.E1 = el_copytree(T);
@@ -561,7 +561,7 @@ private elem *fixconvop(elem *e)
     return e;
 }
 
-private elem * elerr(elem *e, Goal goal)
+private elem* elerr(elem* e, Goal goal)
 {
     debug elem_print(e);
     assert(0);
@@ -569,7 +569,7 @@ private elem * elerr(elem *e, Goal goal)
 
 /* For ops with no optimizations */
 
-private elem * elzot(elem *e, Goal goal)
+private elem* elzot(elem* e, Goal goal)
 {
     return e;
 }
@@ -577,7 +577,7 @@ private elem * elzot(elem *e, Goal goal)
 /****************************
  */
 
-private elem * elstring(elem *e, Goal goal)
+private elem* elstring(elem* e, Goal goal)
 {
     return e;
 }
@@ -591,7 +591,7 @@ private elem * elstring(elem *e, Goal goal)
 @trusted
 private void eltonear(ref elem* pe)
 {
-    elem *e = pe;
+    elem* e = pe;
     const tym_t ty = e.E1.Ety;
     e = el_selecte1(e);
     e.Ety = ty;
@@ -602,7 +602,7 @@ private void eltonear(ref elem* pe)
  */
 
 @trusted
-private elem * elstrcpy(elem *e, Goal goal)
+private elem* elstrcpy(elem* e, Goal goal)
 {
     elem_debug(e);
     switch (e.E2.Eoper)
@@ -619,7 +619,7 @@ private elem * elstrcpy(elem *e, Goal goal)
             /* Replace strcpy(e1,"string") with memcpy(e1,"string",sizeof("string")) */
             // As streq
             e.Eoper = OPstreq;
-            type *t = type_allocn(TYarray, tstypes[TYchar]);
+            type* t = type_allocn(TYarray, tstypes[TYchar]);
             t.Tdim = strlen(e.E2.Vstring) + 1;
             e.ET = t;
             t.Tcount++;
@@ -642,7 +642,7 @@ private elem * elstrcpy(elem *e, Goal goal)
  */
 
 @trusted
-private elem * elstrcmp(elem *e, Goal goal)
+private elem* elstrcmp(elem* e, Goal goal)
 {
     elem_debug(e);
     if (OPTIMIZER)
@@ -675,7 +675,7 @@ private elem * elstrcmp(elem *e, Goal goal)
  */
 @trusted
 
-private elem * elmemcmp(elem *e, Goal goal)
+private elem* elmemcmp(elem* e, Goal goal)
 {
     elem_debug(e);
     if (!OPTIMIZER)
@@ -724,7 +724,7 @@ private elem * elmemcmp(elem *e, Goal goal)
         }
     }
 
-    elem *ex = e.E1;
+    elem* ex = e.E1;
     if (ex.E1.Eoper == OPnp_fp)
         eltonear(ex.E1);
     if (ex.E2.Eoper == OPnp_fp)
@@ -738,12 +738,12 @@ private elem * elmemcmp(elem *e, Goal goal)
  */
 
 @trusted
-private elem * elmemset(elem *e, Goal goal)
+private elem* elmemset(elem* e, Goal goal)
 {
     //printf("elmemset()\n");
     elem_debug(e);
 
-    elem *ex = e.E1;
+    elem* ex = e.E1;
     if (ex.Eoper == OPnp_fp)
     {
         eltonear(ex);
@@ -751,13 +751,13 @@ private elem * elmemset(elem *e, Goal goal)
     }
 
     // lvalue OPmemset (nelems param value)
-    elem *enelems = e.E2.E1;
-    elem *evalue = e.E2.E2;
+    elem* enelems = e.E2.E1;
+    elem* evalue = e.E2.E2;
 
     if (!(enelems.Eoper == OPconst && evalue.Eoper == OPconst && REGSIZE >= 4))
         return e;
 
-    elem *e1 = e.E1;
+    elem* e1 = e.E1;
 
     if (e1.Eoper == OPcomma || OTassign(e1.Eoper))
         return cgel_lvalue(e);    // replace ((e,v) memset e2) with (e,(v memset e2))
@@ -841,12 +841,12 @@ private elem * elmemset(elem *e, Goal goal)
  */
 
 @trusted
-private elem * elmemcpy(elem *e, Goal goal)
+private elem* elmemcpy(elem* e, Goal goal)
 {
     elem_debug(e);
     if (OPTIMIZER)
     {
-        elem *ex = e.E1;
+        elem* ex = e.E1;
         if (ex.Eoper == OPnp_fp)
             eltonear(e.E1);
         ex = e.E2;
@@ -865,7 +865,7 @@ private elem * elmemcpy(elem *e, Goal goal)
             }
             // Convert OPmemcpy to OPstreq
             e.Eoper = OPstreq;
-            type *t = type_allocn(TYarray, tstypes[TYchar]);
+            type* t = type_allocn(TYarray, tstypes[TYchar]);
             t.Tdim = cast(uint)el_tolong(ex.E2);
             e.ET = t;
             t.Tcount++;
@@ -907,18 +907,18 @@ private elem * elmemcpy(elem *e, Goal goal)
  */
 
 @trusted
-private elem * eladd(elem *e, Goal goal)
+private elem* eladd(elem* e, Goal goal)
 {
     //printf("eladd(%p)\n",e);
     targ_size_t ptrmask = ~cast(targ_size_t)0;
     if (_tysize[TYnptr] <= 4)
         ptrmask = 0xFFFFFFFF;
 L1:
-    elem *e1 = e.E1;
-    elem *e2 = e.E2;
+    elem* e1 = e.E1;
+    elem* e2 = e.E2;
     if (e2.Eoper == OPconst)
     {
-        if (e1.Eoper == OPrelconst && e1.Vsym.Sfl == FLgot)
+        if (e1.Eoper == OPrelconst && e1.Vsym.Sfl == FL.got)
             return e;
         if (e1.Eoper == OPrelconst ||          // if (&v) + c
             e1.Eoper == OPstring)
@@ -931,7 +931,7 @@ L1:
     }
     else if (e1.Eoper == OPconst)
     {
-        if (e2.Eoper == OPrelconst && e2.Vsym.Sfl == FLgot)
+        if (e2.Eoper == OPrelconst && e2.Vsym.Sfl == FL.got)
             return e;
         if (e2.Eoper == OPrelconst ||          // if c + (&v)
             e2.Eoper == OPstring)
@@ -1077,7 +1077,7 @@ L1:
  */
 
 @trusted
-private elem * elmul(elem *e, Goal goal)
+private elem* elmul(elem* e, Goal goal)
 {
     tym_t tym = e.Ety;
 
@@ -1092,12 +1092,12 @@ private elem * elmul(elem *e, Goal goal)
         }
     }
 
-    elem *e2 = e.E2;
+    elem* e2 = e.E2;
     if (e2.Eoper == OPconst)           // try to replace multiplies with shifts
     {
         if (OPTIMIZER)
         {
-            elem *e1 = e.E1;
+            elem* e1 = e.E1;
             uint op1 = e1.Eoper;
 
             if (tyintegral(tym) &&              // skip floating types
@@ -1176,14 +1176,14 @@ Lneg:
  */
 
 @trusted
-private elem * elmin(elem *e, Goal goal)
+private elem* elmin(elem* e, Goal goal)
 {
-    elem *e2 = e.E2;
+    elem* e2 = e.E2;
 
     if (OPTIMIZER)
     {
         tym_t tym = e.Ety;
-        elem *e1 = e.E1;
+        elem* e1 = e.E1;
         if (e2.Eoper == OPrelconst)
         {
             if (e1.Eoper == OPrelconst && e1.Vsym == e2.Vsym)
@@ -1264,7 +1264,7 @@ private elem * elmin(elem *e, Goal goal)
             e.Eoper = OPadd;
             e1.Eoper = OPmin;
             e2.Eoper = OPmin;
-            elem *tmp = e1.E2;
+            elem* tmp = e1.E2;
             e1.E2 = e2.E1;
             e2.E1 = tmp;
             return optelem(e, Goal.value);
@@ -1303,13 +1303,13 @@ private elem * elmin(elem *e, Goal goal)
 
     if (I16 && tybasic(e2.Ety) == TYhptr && tybasic(e.E1.Ety) == TYhptr)
     {   // Convert to _aNahdiff(e1,e2)
-        __gshared Symbol *hdiff;
+        __gshared Symbol* hdiff;
         if (!hdiff)
         {
-            Symbol *s = symbol_calloc(LARGECODE ? "_aFahdiff" : "_aNahdiff");
+            Symbol* s = symbol_calloc(LARGECODE ? "_aFahdiff" : "_aNahdiff");
             s.Stype = tsclib;
             s.Sclass = SC.extern_;
-            s.Sfl = FLfunc;
+            s.Sfl = FL.func;
             s.Ssymnum = 0;
             s.Sregsaved = mBX|mCX|mSI|mDI|mBP|mES;
             hdiff = s;
@@ -1340,12 +1340,12 @@ private elem * elmin(elem *e, Goal goal)
  */
 
 @trusted
-private elem * elbitwise(elem *e, Goal goal)
+private elem* elbitwise(elem* e, Goal goal)
 {
     //printf("elbitwise(e = %p, goal = x%x)\n", e, goal);
 
-    elem *e2 = e.E2;
-    elem *e1 = e.E1;
+    elem* e2 = e.E2;
+    elem* e1 = e.E1;
     const op = e1.Eoper;
     uint sz = tysize(e2.Ety);
 
@@ -1383,7 +1383,7 @@ private elem * elbitwise(elem *e, Goal goal)
                 if (ul == 0xFFFF && e.Eoper == OPand && (op == OPshr || op == OPashr) &&
                     e1.E2.Eoper == OPconst && el_tolong(e1.E2) == 16)
                 {
-                    elem *e11 = e1.E1;
+                    elem* e11 = e1.E1;
                     e11.Ety = touns(e11.Ety) | (e11.Ety & ~mTYbasic);
                     goto L1;
                 }
@@ -1423,7 +1423,7 @@ private elem * elbitwise(elem *e, Goal goal)
                 if (OPTIMIZER && i == 0xFF && e.Eoper == OPand &&
                     (op == OPshr || op == OPashr) && e1.E2.Eoper == OPconst && e1.E2.Vint == 8)
                 {
-                    elem *e11 = e1.E1;
+                    elem* e11 = e1.E1;
                     e11.Ety = touns(e11.Ety) | (e11.Ety & ~mTYbasic);
                     goto L1;
                 }
@@ -1566,9 +1566,9 @@ private elem * elbitwise(elem *e, Goal goal)
         (sz == 4 || sz == 8))
     {
         /* These should all compile to a BT instruction when -O, for -m32 and -m64
-         * int bt32(uint *p, uint b) { return ((p[b >> 5] & (1 << (b & 0x1F)))) != 0; }
-         * int bt64a(ulong *p, uint b) { return ((p[b >> 6] & (1L << (b & 63)))) != 0; }
-         * int bt64b(ulong *p, size_t b) { return ((p[b >> 6] & (1L << (b & 63)))) != 0; }
+         * int bt32(uint* p, uint b) { return ((p[b >> 5] & (1 << (b & 0x1F)))) != 0; }
+         * int bt64a(ulong* p, uint b) { return ((p[b >> 6] & (1L << (b & 63)))) != 0; }
+         * int bt64b(ulong* p, size_t b) { return ((p[b >> 6] & (1L << (b & 63)))) != 0; }
          */
 
         static bool ELCONST(elem* e, long c) { return e.Eoper == OPconst && el_tolong(e) == c; }
@@ -1585,8 +1585,8 @@ private elem * elbitwise(elem *e, Goal goal)
          * with:
          *  p bt b
          */
-        elem *e12;              // the (b & 31), which may be preceded by (64_32)
-        elem *e2111;            // the (b >>> 5), which may be preceded by (u32_64)
+        elem* e12;              // the (b & 31), which may be preceded by (64_32)
+        elem* e2111;            // the (b >>> 5), which may be preceded by (u32_64)
         if (e1.Eoper == OPshl &&
             ELCONST(e1.E1,1) &&
             (((e12 = e1.E2).Eoper == OP64_32 ? (e12 = e12.E1) : e12).Eoper == OPand) &&
@@ -1601,9 +1601,9 @@ private elem * elbitwise(elem *e, Goal goal)
             ELCONST(e2111.E2,pow2sz + 3)
            )
         {
-            elem **pb1 = &e12.E1;
-            elem **pb2 = &e2111.E1;
-            elem **pp  = &e2.E1.E2;
+            elem** pb1 = &e12.E1;
+            elem** pb2 = &e2111.E1;
+            elem** pp  = &e2.E1.E2;
 
             if (el_match(*pb1, *pb2) &&
                 !el_sideeffect(*pb1) &&
@@ -1705,14 +1705,14 @@ bool fillinops(elem*[] ops, ref size_t opsi, OPER oper, elem* e)
  */
 
 @trusted
-private elem *elor(elem *e, Goal goal)
+private elem* elor(elem* e, Goal goal)
 {
     //printf("elor()\n");
     /* ROL:     (a << shift) | (a >> (sizeof(a) * 8 - shift))
      * ROR:     (a >> shift) | (a << (sizeof(a) * 8 - shift))
      */
-    elem *e1 = e.E1;
-    elem *e2 = e.E2;
+    elem* e1 = e.E1;
+    elem* e2 = e.E2;
     uint sz = tysize(e.Ety);
     if (sz <= REGSIZE)
     {
@@ -1865,13 +1865,13 @@ private elem *elor(elem *e, Goal goal)
         size_t opsi = 0;
         if (fillinops(ops, opsi, OPor, e) && opsi == ops.length)
         {
-            elem *ex = null;
+            elem* ex = null;
             uint bmask = 0;
             foreach (eo; ops)
             {
-                elem *eo2;
+                elem* eo2;
                 int shift;
-                elem *eo111;
+                elem* eo111;
                 if (eo.Eoper == OPu8_16 &&
                     eo.E1.Eoper == OPind)
                 {
@@ -1900,7 +1900,7 @@ private elem *elor(elem *e, Goal goal)
                     goto L1;
 
                 uint off;
-                elem *ed;
+                elem* ed;
                 if (eo111.Eoper == OPadd)
                 {
                     ed = eo111.E1;
@@ -1964,12 +1964,12 @@ private elem *elor(elem *e, Goal goal)
  */
 
 @trusted
-private elem *elxor(elem *e, Goal goal)
+private elem* elxor(elem* e, Goal goal)
 {
     if (OPTIMIZER)
     {
-        elem *e1 = e.E1;
-        elem *e2 = e.E2;
+        elem* e1 = e.E1;
+        elem* e2 = e.E2;
 
         /* Recognize:
          *    (a & c) ^ (b & c)  =>  (a ^ b) & c
@@ -2001,9 +2001,9 @@ private elem *elxor(elem *e, Goal goal)
  */
 
 @trusted
-private elem * elnot(elem *e, Goal goal)
+private elem* elnot(elem* e, Goal goal)
 {
-    elem *e1 = e.E1;
+    elem* e1 = e.E1;
     const op = e1.Eoper;
     switch (op)
     {
@@ -2078,9 +2078,9 @@ private elem * elnot(elem *e, Goal goal)
  */
 
 @trusted
-private elem * elcom(elem *e, Goal goal)
+private elem* elcom(elem* e, Goal goal)
 {
-    elem *e1 = e.E1;
+    elem* e1 = e.E1;
     if (e1.Eoper == OPcom)                       // ~ ~ e => e
         // Typing problem here
         e = el_selecte1(el_selecte1(e));
@@ -2095,11 +2095,11 @@ private elem * elcom(elem *e, Goal goal)
  */
 
 @trusted
-private elem * elcond(elem *e, Goal goal)
+private elem* elcond(elem* e, Goal goal)
 {
     //printf("elcond() goal = %d\n", goal);
     //elem_print(e);
-    elem *e1 = e.E1;
+    elem* e1 = e.E1;
     switch (e1.Eoper)
     {
         case OPconst:
@@ -2128,7 +2128,7 @@ private elem * elcond(elem *e, Goal goal)
         case OPnot:
         {
             // (!a ? b : c) => (a ? c : b)
-            elem *ex = e.E2.E1;
+            elem* ex = e.E2.E1;
             e.E2.E1 = e.E2.E2;
             e.E2.E2 = ex;
             goto L2;
@@ -2148,8 +2148,8 @@ private elem * elcond(elem *e, Goal goal)
 
         {
             tym_t ty = e.Ety;
-            elem *ec1 = e.E2.E1;
-            elem *ec2 = e.E2.E2;
+            elem* ec1 = e.E2.E1;
+            elem* ec2 = e.E2.E2;
 
             if (tyintegral(ty) && ec1.Eoper == OPconst && ec2.Eoper == OPconst)
             {
@@ -2426,16 +2426,16 @@ private elem* findPointer(elem* e)
  */
 
 @trusted
-private elem * elcomma(elem *e, Goal goal)
+private elem* elcomma(elem* e, Goal goal)
 {
     int changes = -1;
 L1:
     changes++;
 L2:
     //printf("elcomma()\n");
-    elem *e2 = e.E2;
-    elem **pe1 = &(e.E1);
-    elem *e1 = *pe1;
+    elem* e2 = e.E2;
+    elem** pe1 = &(e.E1);
+    elem* e1 = *pe1;
     int e1op = e1.Eoper;
 
   // c,e => e
@@ -2532,7 +2532,7 @@ L2:
             if ((OTopeq(e2.Eoper)) &&
                 el_match(e1.E1,e2.E1))
             {
-                elem *ex;
+                elem* ex;
                 e.E1 = el_long(TYint,0);
                 e1.Eoper = cast(ubyte)opeqtoop(e1op);
                 e2.E2 = el_bin(opeqtoop(e2.Eoper),e2.Ety,e1,e2.E2);
@@ -2550,7 +2550,7 @@ Lret:
 /********************************
  */
 
-private elem * elremquo(elem *e, Goal goal)
+private elem* elremquo(elem* e, Goal goal)
 {
     static if (0)
     if (cnst(e.E2) && !boolres(e.E2))
@@ -2563,7 +2563,7 @@ private elem * elremquo(elem *e, Goal goal)
  */
 
 @trusted
-private elem * elmod(elem *e, Goal goal)
+private elem* elmod(elem* e, Goal goal)
 {
     tym_t tym = e.E1.Ety;
     if (!tyfloating(tym))
@@ -2577,10 +2577,10 @@ private elem * elmod(elem *e, Goal goal)
  */
 
 @trusted
-private elem * eldiv(elem *e, Goal goal)
+private elem* eldiv(elem* e, Goal goal)
 {
     //printf("eldiv()\n");
-    elem *e2 = e.E2;
+    elem* e2 = e.E2;
     tym_t tym = e.E1.Ety;
     int uns = tyuns(tym) | tyuns(e2.Ety);
     if (cnst(e2))
@@ -2631,7 +2631,7 @@ private elem * eldiv(elem *e, Goal goal)
     {
         const int SQRT_INT_MAX = 0xB504;
         const uint SQRT_UINT_MAX = 0x10000;
-        elem *e1 = e.E1;
+        elem* e1 = e.E1;
         if (tyintegral(tym) && e.Eoper == OPdiv && e2.Eoper == OPconst &&
             e1.Eoper == OPdiv && e1.E2.Eoper == OPconst)
         {
@@ -2670,7 +2670,7 @@ private elem * eldiv(elem *e, Goal goal)
              * With:
              *   e / (c1 * c2)
              */
-            elem *erq = e1.E1;
+            elem* erq = e1.E1;
             targ_llong c1 = el_tolong(erq.E2);
             targ_llong c2 = el_tolong(e2);
             bool uns1 = tyuns(erq.E1.Ety) || tyuns(erq.E2.Ety);
@@ -2752,20 +2752,20 @@ private elem * eldiv(elem *e, Goal goal)
  */
 
 @trusted
-private elem * swaplog(elem *e, Goal goal)
+private elem* swaplog(elem* e, Goal goal)
 {
-    elem *e1 = e.E1;
+    elem* e1 = e.E1;
     e.E1 = e1.E2;
     e1.E2 = e;
     return optelem(e1,goal);
 }
 
 @trusted
-private elem * eloror(elem *e, Goal goal)
+private elem* eloror(elem* e, Goal goal)
 {
     tym_t ty1,ty2;
 
-    elem *e1 = e.E1;
+    elem* e1 = e.E1;
     if (OTboolnop(e1.Eoper))
     {
         e.E1 = e1.E1;
@@ -2774,7 +2774,7 @@ private elem * eloror(elem *e, Goal goal)
         return eloror(e, goal);
     }
 
-    elem *e2 = e.E2;
+    elem* e2 = e.E2;
     if (OTboolnop(e2.Eoper))
     {
         e.E2 = e2.E1;
@@ -2890,7 +2890,7 @@ private bool optim_loglog(ref elem* pe)
 {
     if (I16 || config.target_cpu == TARGET_AArch64)
         return false;
-    elem *e = pe;
+    elem* e = pe;
     const op = e.Eoper;
     assert(op == OPandand || op == OPoror);
     size_t n = el_opN(e, op);
@@ -2903,7 +2903,7 @@ private bool optim_loglog(ref elem* pe)
     auto sb = SmallBuffer!(elem*)(n, tmp[]);
     elem*[] array = sb[];
 
-    elem **p = array.ptr;
+    elem** p = array.ptr;
     el_opArray(&p, e, op);
 
     bool any = false;
@@ -2912,7 +2912,7 @@ private bool optim_loglog(ref elem* pe)
     int cmpop = op == OPandand ? OPne : OPeqeq;
     for (size_t i = 0; i < n; ++i)
     {
-        elem *eq = array[i];
+        elem* eq = array[i];
         if (eq.Eoper == cmpop &&
             eq.E2.Eoper == OPconst &&
             tyintegral(eq.E2.Ety) &&
@@ -2987,7 +2987,7 @@ private bool optim_loglog(ref elem* pe)
         targ_ullong bits = 0;
         for (size_t i = first; i <= last; ++i)
         {
-            elem *eq = array[i];
+            elem* eq = array[i];
             if (0 && eq.E2.Eoper != OPconst)
             {
                 printf("eq = %p, eq.E2 = %p\n", eq, eq.E2);
@@ -3005,9 +3005,9 @@ private bool optim_loglog(ref elem* pe)
 
         uint tyc = array[first].E1.Ety;
 
-        elem *ex = el_bin(OPmin, tyc, array[first].E1, el_long(tyc,emin));
+        elem* ex = el_bin(OPmin, tyc, array[first].E1, el_long(tyc,emin));
         ex = el_bin(op == OPandand ? OPgt : OPle, TYbool, ex, el_long(touns(tyc), emax - emin));
-        elem *ey = el_bin(OPmin, tyc, array[first + 1].E1, el_long(tyc,emin));
+        elem* ey = el_bin(OPmin, tyc, array[first + 1].E1, el_long(tyc,emin));
 
         tym_t tybits = TYuint;
         if ((emax - emin) >= 32)
@@ -3063,9 +3063,9 @@ private bool optim_loglog(ref elem* pe)
 }
 
 @trusted
-private elem * elandand(elem *e, Goal goal)
+private elem* elandand(elem* e, Goal goal)
 {
-    elem *e1 = e.E1;
+    elem* e1 = e.E1;
     if (OTboolnop(e1.Eoper))
     {
         e.E1 = e1.E1;
@@ -3073,7 +3073,7 @@ private elem * elandand(elem *e, Goal goal)
         el_free(e1);
         return elandand(e, goal);
     }
-    elem *e2 = e.E2;
+    elem* e2 = e.E2;
     if (OTboolnop(e2.Eoper))
     {
         e.E2 = e2.E1;
@@ -3116,7 +3116,7 @@ private elem * elandand(elem *e, Goal goal)
             e1.E1.E2.Eoper == OPconst)
         {
             // Replace (e >>> c) with (e & x)
-            elem *e11 = e1.E1;
+            elem* e11 = e1.E1;
 
             targ_ullong shift = el_tolong(e11.E2);
             if (shift < _tysize[TYint] * 8)
@@ -3215,11 +3215,11 @@ L1:
  */
 
 @trusted
-private elem * elbit(elem *e, Goal goal)
+private elem* elbit(elem* e, Goal goal)
 {
     tym_t tym1 = e.E1.Ety;
     uint sz = tysize(tym1) * 8;
-    elem *e2 = e.E2;
+    elem* e2 = e.E2;
     uint wb = e2.Vuns;
 
     uint w = (wb >> 8) & 0xFF;               // width in bits of field
@@ -3279,10 +3279,10 @@ private elem * elbit(elem *e, Goal goal)
  */
 
 @trusted
-private elem * elind(elem *e, Goal goal)
+private elem* elind(elem* e, Goal goal)
 {
     tym_t tym = e.Ety;
-    elem *e1 = e.E1;
+    elem* e1 = e.E1;
     switch (e1.Eoper)
     {
         case OPrelconst:
@@ -3295,7 +3295,7 @@ private elem * elind(elem *e, Goal goal)
         case OPadd:
             if (OPTIMIZER)
             {   /* Try to convert far pointer to stack pointer  */
-                elem *e12 = e1.E2;
+                elem* e12 = e1.E2;
 
                 if (e12.Eoper == OPrelconst &&
                     tybasic(e12.Ety) == TYfptr &&
@@ -3310,7 +3310,7 @@ private elem * elind(elem *e, Goal goal)
         case OPcomma:
             // Replace (*(ea,eb)) with (ea,*eb)
             e.E1.ET = e.ET;
-            type *t = e.ET;
+            type* t = e.ET;
             e = el_selecte1(e);
             e.Ety = tym;
             e.E2 = el_una(OPind,tym,e.E2);
@@ -3333,10 +3333,10 @@ private elem * elind(elem *e, Goal goal)
  */
 
 @trusted
-private elem * eladdr(elem *e, Goal goal)
+private elem* eladdr(elem* e, Goal goal)
 {
     tym_t tym = e.Ety;
-    elem *e1 = e.E1;
+    elem* e1 = e.E1;
     elem_debug(e1);
     switch (e1.Eoper)
     {
@@ -3397,7 +3397,7 @@ private elem * eladdr(elem *e, Goal goal)
                 else if (e1.E1.Eoper == OPind)
                 {
                     const tym_t tym111 = e1.E1.E1.Ety;
-                    elem *tmp = el_alloctmp(tym111);
+                    elem* tmp = el_alloctmp(tym111);
                     e1.E1.E1 = el_bin(OPeq,tym111,tmp,e1.E1.E1);
                     e.Eoper = OPcomma;
                     e.E2 = el_copytree(tmp);
@@ -3408,7 +3408,7 @@ private elem * eladdr(elem *e, Goal goal)
 
         case OPcond:
         {   // Replace &(x ? y : z) with (x ? &y : &z)
-            elem *ecolon = e1.E2;
+            elem* ecolon = e1.E2;
             ecolon.Ety = tym;
             ecolon.E1 = el_una(OPaddr,tym,ecolon.E1);
             ecolon.E2 = el_una(OPaddr,tym,ecolon.E2);
@@ -3431,7 +3431,7 @@ private elem * eladdr(elem *e, Goal goal)
  */
 
 @trusted
-private elem * elneg(elem *e, Goal goal)
+private elem* elneg(elem* e, Goal goal)
 {
     if (e.E1.Eoper == OPneg)
     {
@@ -3454,7 +3454,7 @@ private elem * elneg(elem *e, Goal goal)
 }
 
 @trusted
-private elem * elcall(elem *e, Goal goal)
+private elem* elcall(elem* e, Goal goal)
 {
     if (e.E1.Eoper == OPcomma || OTassign(e.E1.Eoper))
         e = cgel_lvalue(e);
@@ -3466,7 +3466,7 @@ private elem * elcall(elem *e, Goal goal)
  */
 
 @trusted
-private void elstructwalk(elem *e,tym_t tym)
+private void elstructwalk(elem* e,tym_t tym)
 {
     tym_t ety;
 
@@ -3500,7 +3500,7 @@ private void elstructwalk(elem *e,tym_t tym)
  */
 
 @trusted
-elem * elstruct(elem *e, Goal goal)
+elem* elstruct(elem* e, Goal goal)
 {
     //printf("elstruct(%p)\n", e);
     //elem_print(e);
@@ -3515,7 +3515,7 @@ elem * elstruct(elem *e, Goal goal)
         e.E2.Ety = e.Ety;
         e.E2.ET = e.ET;
         e.Eoper = OPcomma;
-        elem *etmp = e.E1;
+        elem* etmp = e.E1;
         e.E1 = e.E2.E1;
         e.E2.E1 = etmp;
         return optelem(e, goal);
@@ -3532,15 +3532,15 @@ elem * elstruct(elem *e, Goal goal)
         return e;
     //printf("\tnumbytes = %d\n", cast(int)type_size(e.ET));
 
-    type *t = e.ET;
+    type* t = e.ET;
     tym_t tym = ~0;
     tym_t ty = tybasic(t.Tty);
 
     uint sz = (e.Eoper == OPstrpar && type_zeroSize(t, global_tyf)) ? 0 : cast(uint)type_size(t);
     //printf("\tsz = %d\n", cast(int)sz);
 
-    type *targ1 = null;
-    type *targ2 = null;
+    type* targ1 = null;
+    type* targ2 = null;
     if (ty == TYstruct)
     {   // If a struct is a wrapper for another type, prefer that other type
         targ1 = t.Ttag.Sstruct.Sarg1type;
@@ -3660,7 +3660,7 @@ elem * elstruct(elem *e, Goal goal)
                     {
                         // we can't optimize OPstreq in this case,
                         // there will be memory corruption in the assignment
-                        elem *e2 = e.E2;
+                        elem* e2 = e.E2;
                         if (e2.Eoper != OPvar && e2.Eoper != OPind)
                         {
                             // the source may come in registers. ex: returned from a function.
@@ -3668,7 +3668,7 @@ elem * elstruct(elem *e, Goal goal)
                             e2 = optelem(e2, Goal.value);
                             e2 = elstruct(e2, Goal.value);
                             e2 = exp2_copytotemp(e2); // (tmp = e2, tmp)
-                            e2.E2.Vsym.Sfl = FLauto;
+                            e2.E2.Vsym.Sfl = FL.auto_;
                             e2.Ety = e2.E2.Ety = e.Ety;
                             e2.ET = e2.E2.ET = e.ET;
                             e.E2 = e2;
@@ -3722,7 +3722,7 @@ elem * elstruct(elem *e, Goal goal)
                 e = en;
                 break;
             }
-            elem **pe2;
+            elem** pe2;
             if (e.Eoper == OPstreq)
                 pe2 = &e.E2;
             else if (e.Eoper == OPstrpar)
@@ -3730,7 +3730,7 @@ elem * elstruct(elem *e, Goal goal)
             else
                 break;
             pe2 = el_scancommas(pe2);
-            elem *e2 = *pe2;
+            elem* e2 = *pe2;
 
             if (e2.Eoper == OPvar)
                 e2.Vsym.Sflags &= ~GTregcand;
@@ -3785,10 +3785,10 @@ elem * elstruct(elem *e, Goal goal)
  */
 
 @trusted
-private elem * eleq(elem *e, Goal goal)
+private elem* eleq(elem* e, Goal goal)
 {
     Goal wantres = goal;
-    elem *e1 = e.E1;
+    elem* e1 = e.E1;
 
     if (e1.Eoper == OPcomma || OTassign(e1.Eoper))
         return cgel_lvalue(e);
@@ -3809,11 +3809,11 @@ static if (0)  // Doesn't work too well, removed
 
     if (OPTIMIZER)
     {
-        elem *e2 = e.E2;
+        elem* e2 = e.E2;
         int op2 = e2.Eoper;
 
         // Replace (e1 = *p++) with (e1 = *p, p++, e1)
-        elem *ei = e2;
+        elem* ei = e2;
         if (e1.Eoper == OPvar &&
             (op2 == OPind || (OTunary(op2) && (ei = e2.E1).Eoper == OPind)) &&
             (ei.E1.Eoper == OPpostinc || ei.E1.Eoper == OPpostdec) &&
@@ -3903,7 +3903,7 @@ static if (0)  // Doesn't work too well, removed
         // Replace (x = (y ? z : x)) with ((y && (x = z)),x)
         if (op2 == OPcond && el_match(e1,e2.E2.E2))
         {
-            elem *e22 = e2.E2;         // e22 is the OPcond
+            elem* e22 = e2.E2;         // e22 is the OPcond
             e.Eoper = OPcomma;
             e.E2 = e1;
             e.E1 = e2;
@@ -3920,7 +3920,7 @@ static if (0)  // Doesn't work too well, removed
         // Replace (x = (y ? x : z)) with ((y || (x = z)),x)
         if (op2 == OPcond && el_match(e1,e2.E2.E1))
         {
-            elem *e22 = e2.E2;         // e22 is the OPcond
+            elem* e22 = e2.E2;         // e22 is the OPcond
             e.Eoper = OPcomma;
             e.E2 = e1;
             e.E1 = e2;
@@ -3997,7 +3997,7 @@ static if (0)  // Doesn't work too well, removed
             e2.Ety = ty;
             e.Ety = ty;
             e1.Ety = ty;
-            elem *eb = el_copytree(e1);
+            elem* eb = el_copytree(e1);
             eb.Voffset += REGSIZE;
 
             if (e2.Eoper == OPpair)
@@ -4034,7 +4034,7 @@ static if (0)  // Doesn't work too well, removed
             e.Ety = ty;
             e1.Ety = ty;
 
-            elem *eb = el_copytree(e);
+            elem* eb = el_copytree(e);
             eb.E1.Voffset += REGSIZE;
             eb.E2.Voffset += REGSIZE;
 
@@ -4051,17 +4051,17 @@ static if (0)  // Doesn't work too well, removed
         return cgel_lvalue(e);
 
     uint t = e.Ety;
-    elem *l = e1.E1;                           // lvalue
-    elem *r = e.E2;
+    elem* l = e1.E1;                           // lvalue
+    elem* r = e.E2;
     tym_t tyl = l.Ety;
     uint sz = tysize(tyl) * 8;
     uint w = (e1.E2.Vuns >> 8);        // width in bits of field
     targ_ullong m = (cast(targ_ullong)1 << w) - 1;  // mask w bits wide
     uint b = e1.E2.Vuns & 0xFF;        // bits to shift
 
-    elem *l2;
-    elem *r2;
-    elem *eres =  el_bin(OPeq,t,
+    elem* l2;
+    elem* r2;
+    elem* eres =  el_bin(OPeq,t,
                 l,
                 el_bin(OPor,t,
                         el_bin(OPshl,t,
@@ -4080,8 +4080,8 @@ static if (0)  // Doesn't work too well, removed
     if (wantres)
     {
         uint c;
-        elem **pe;
-        elem *e2;
+        elem** pe;
+        elem* e2;
 
         r = el_copytree(r);
         if (tyuns(tyl))                 /* uint bit field           */
@@ -4112,7 +4112,7 @@ static if (0)  // Doesn't work too well, removed
 /**********************************
  */
 
-private elem * elnegass(elem *e, Goal goal)
+private elem* elnegass(elem* e, Goal goal)
 {
     e = cgel_lvalue(e);
     return e;
@@ -4147,9 +4147,9 @@ private elem * elnegass(elem *e, Goal goal)
  */
 
 @trusted
-private elem * elopass(elem *e, Goal goal)
+private elem* elopass(elem* e, Goal goal)
 {
-    elem *e1 = e.E1;
+    elem* e1 = e.E1;
     if (OTconv(e1.Eoper))
     {   e = fixconvop(e);
         return optelem(e, Goal.value);
@@ -4165,9 +4165,9 @@ private elem * elopass(elem *e, Goal goal)
         tym_t t = touns(e.Ety);
 
         assert(tyintegral(t));
-        elem *l = e1.E1;                       // lvalue
+        elem* l = e1.E1;                       // lvalue
         tym_t tyl = l.Ety;
-        elem *r = e.E2;
+        elem* r = e.E2;
         uint w = (e1.E2.Vuns >> 8) & 0xFF; // width in bits of field
         targ_llong m = (cast(targ_llong)1 << w) - 1;    // mask w bits wide
         uint b = e1.E2.Vuns & 0xFF;        // bits to shift
@@ -4249,12 +4249,12 @@ private elem * elopass(elem *e, Goal goal)
                     // Replace r/=c with r=r/c
                     if (tycomplex(e.E2.Ety) && !tycomplex(e1.Ety))
                     {
-                        elem *ed;
+                        elem* ed;
                         e.Eoper = OPeq;
                         if (e1.Eoper == OPind)
                         {   // ed: *(tmp=e1.E1)
                             // e1: *tmp
-                            elem *tmp = el_alloctmp(e1.E1.Ety);
+                            elem* tmp = el_alloctmp(e1.E1.Ety);
                             ed = el_bin(OPeq, tmp.Ety, tmp, e1.E1);
                             e1.E1 = el_copytree(tmp);
                             ed = el_una(OPind, e1.Ety, ed);
@@ -4312,9 +4312,9 @@ private elem * elopass(elem *e, Goal goal)
  */
 
 @trusted
-private elem * elpost(elem *e, Goal goal)
+private elem* elpost(elem* e, Goal goal)
 {
-    elem *e1 = e.E1;
+    elem* e1 = e.E1;
     if (e1.Eoper != OPbit)
     {
         if (e1.Eoper == OPcomma || OTassign(e1.Eoper))
@@ -4345,10 +4345,10 @@ private elem * elpost(elem *e, Goal goal)
  */
 
 @trusted
-private elem * elcmp(elem *e, Goal goal)
+private elem* elcmp(elem* e, Goal goal)
 {
-    elem *e2 = e.E2;
-    elem *e1 = e.E1;
+    elem* e2 = e.E2;
+    elem* e1 = e.E1;
 
     //printf("elcmp(%p)\n",e); elem_print(e);
 
@@ -4383,7 +4383,7 @@ private elem * elcmp(elem *e, Goal goal)
         // Convert ((e & 1) == 1) => (e & 1)
         if (op == OPeqeq && e2.Eoper == OPconst && e1.Eoper == OPand)
         {
-            elem *e12 = e1.E2;
+            elem* e12 = e1.E2;
 
             if (e12.Eoper == OPconst && el_tolong(e2) == 1 && el_tolong(e12) == 1)
             {
@@ -4611,7 +4611,7 @@ private elem * elcmp(elem *e, Goal goal)
         else if (OPTIMIZER && e1.Eoper == OPeq &&
                  e1.E2.Eoper == OPconst)
         {    // Convert ((x = c1) rel c2) to ((x = c1),(c1 rel c2)
-             elem *ec = el_copytree(e1.E2);
+             elem* ec = el_copytree(e1.E2);
              ec.Ety = e1.Ety;
              e.E1 = ec;
              e = el_bin(OPcomma,e.Ety,e1,e);
@@ -4647,7 +4647,7 @@ ret:
  */
 
 @trusted
-private elem * elbool(elem *e, Goal goal)
+private elem* elbool(elem* e, Goal goal)
 {
     //printf("elbool()\n");
     elem* e1 = e.E1;
@@ -4787,7 +4787,7 @@ private elem * elbool(elem *e, Goal goal)
                 )
         {
             tym_t ty = e.Ety;
-            elem *ex = e.E1.E1;
+            elem* ex = e.E1.E1;
             ex.Eoper = OPbtst;
             e.E1.E1 = null;
             ex.E1 = e.E1.E2;
@@ -4818,7 +4818,7 @@ private elem * elbool(elem *e, Goal goal)
  */
 
 @trusted
-private elem * elptrlptr(elem *e, Goal goal)
+private elem* elptrlptr(elem* e, Goal goal)
 {
     if (e.E1.Eoper == OPrelconst || e.E1.Eoper == OPstring)
     {
@@ -4833,12 +4833,12 @@ private elem * elptrlptr(elem *e, Goal goal)
  * Conversions of handle pointers to far pointers.
  */
 @trusted
-private elem * elvptrfptr(elem *e, Goal goal)
+private elem* elvptrfptr(elem* e, Goal goal)
 {
-    elem *e1 = e.E1;
+    elem* e1 = e.E1;
     if (e1.Eoper == OPadd || e1.Eoper == OPmin)
     {
-        elem *e12 = e1.E2;
+        elem* e12 = e1.E2;
         if (tybasic(e12.Ety) != TYvptr)
         {
             /* Rewrite (vtof(e11 + e12)) to (vtof(e11) + e12)   */
@@ -4862,11 +4862,11 @@ private elem * elvptrfptr(elem *e, Goal goal)
  */
 
 @trusted
-private elem * ellngsht(elem *e, Goal goal)
+private elem* ellngsht(elem* e, Goal goal)
 {
     //printf("ellngsht()\n");
     tym_t ty = e.Ety;
-    elem *e1 = e.E1;
+    elem* e1 = e.E1;
     switch (e1.Eoper)
     {
     case OPs16_32:
@@ -5010,10 +5010,10 @@ private elem * ellngsht(elem *e, Goal goal)
  */
 
 @trusted
-private elem * el64_32(elem *e, Goal goal)
+private elem* el64_32(elem* e, Goal goal)
 {
     tym_t ty = e.Ety;
-    elem *e1 = e.E1;
+    elem* e1 = e.E1;
     switch (e1.Eoper)
     {
     case OPs32_64:
@@ -5032,9 +5032,9 @@ private elem * el64_32(elem *e, Goal goal)
         if (el_sideeffect(e1.E2))
         {
             // Rewrite (OP64_32(a pair b)) as ((t=a),(b,t))
-            elem *a = e1.E1;
-            elem *b = e1.E2;
-            elem *t = el_alloctmp(a.Ety);
+            elem* a = e1.E1;
+            elem* b = e1.E2;
+            elem* t = el_alloctmp(a.Ety);
 
             e.Eoper = OPcomma;
             e.E1 = el_bin(OPeq,a.Ety,t,a);
@@ -5105,9 +5105,9 @@ private elem * el64_32(elem *e, Goal goal)
  */
 
 @trusted
-private elem *elc_r(elem *e, Goal goal)
+private elem* elc_r(elem* e, Goal goal)
 {
-    elem *e1 = e.E1;
+    elem* e1 = e.E1;
 
     if (e1.Eoper == OPvar || e1.Eoper == OPind)
     {
@@ -5122,9 +5122,9 @@ private elem *elc_r(elem *e, Goal goal)
  */
 
 @trusted
-private elem *elc_i(elem *e, Goal goal)
+private elem* elc_i(elem* e, Goal goal)
 {
-    elem *e1 = e.E1;
+    elem* e1 = e.E1;
 
     if (e1.Eoper == OPvar)
     {
@@ -5148,7 +5148,7 @@ private elem *elc_i(elem *e, Goal goal)
  */
 
 @trusted
-private elem * elbyteint(elem *e, Goal goal)
+private elem* elbyteint(elem* e, Goal goal)
 {
     if (OTlogical(e.E1.Eoper) || e.E1.Eoper == OPbtst)
     {
@@ -5164,7 +5164,7 @@ private elem * elbyteint(elem *e, Goal goal)
  * OPu32_64
  */
 @trusted
-private elem * el32_64(elem *e, Goal goal)
+private elem* el32_64(elem* e, Goal goal)
 {
     if (REGSIZE == 8 && e.E1.Eoper == OPbtst)
     {
@@ -5182,7 +5182,7 @@ private elem * el32_64(elem *e, Goal goal)
  */
 
 @trusted
-private elem *elu64_d(elem *e, Goal goal)
+private elem* elu64_d(elem* e, Goal goal)
 {
     tym_t ty;
     elem** pu;
@@ -5214,10 +5214,10 @@ private elem *elu64_d(elem *e, Goal goal)
          *    u >= 0 ? OPs64_d(u) : OPs64_d((u >> 1) | (u & 1)) * 2
          */
         u.Ety = TYllong;
-        elem *u1 = el_copytree(u);
+        elem* u1 = el_copytree(u);
         if (!OTleaf(u.Eoper))
             fixside(&u, &u1);
-        elem *u2 = el_copytree(u1);
+        elem* u2 = el_copytree(u1);
 
         u = el_bin(OPge, TYint, u, el_long(TYllong, 0));
 
@@ -5247,7 +5247,7 @@ private elem *elu64_d(elem *e, Goal goal)
          *  u < 0 ? OPs64_d(u) : OPs64_d(u) + 0x1p+64
          */
         u.Ety = TYllong;
-        elem *u1 = el_copytree(u);
+        elem* u1 = el_copytree(u);
         if (!OTleaf(u.Eoper))
             fixside(&u, &u1);
 
@@ -5287,11 +5287,11 @@ private elem *elu64_d(elem *e, Goal goal)
  */
 
 @trusted
-private elem *elshl(elem *e, Goal goal)
+private elem* elshl(elem* e, Goal goal)
 {
     tym_t ty = e.Ety;
-    elem *e1 = e.E1;
-    elem *e2 = e.E2;
+    elem* e1 = e.E1;
+    elem* e2 = e.E2;
 
     if (e1.Eoper == OPconst && !boolres(e1))             // if e1 is 0
     {
@@ -5323,11 +5323,11 @@ private elem *elshl(elem *e, Goal goal)
  */
 
 @trusted
-private elem * elshr(elem *e, Goal goal)
+private elem* elshr(elem* e, Goal goal)
 {
     tym_t ty = e.Ety;
-    elem *e1 = e.E1;
-    elem *e2 = e.E2;
+    elem* e1 = e.E1;
+    elem* e2 = e.E2;
 
     // (x >> 16) replaced with ((shtlng) x+2)
     if (OPTIMIZER &&
@@ -5336,7 +5336,7 @@ private elem * elshr(elem *e, Goal goal)
     {
         if (e1.Eoper == OPvar)
         {
-            Symbol *s = e1.Vsym;
+            Symbol* s = e1.Vsym;
 
             if (s.Sclass != SC.fastpar && s.Sclass != SC.shadowreg)
             {
@@ -5398,10 +5398,10 @@ private elem * elshr(elem *e, Goal goal)
  */
 
 @trusted
-elem *elmsw(elem *e, Goal goal)
+elem* elmsw(elem* e, Goal goal)
 {
     tym_t ty = e.Ety;
-    elem *e1 = e.E1;
+    elem* e1 = e.E1;
 
     if (OPTIMIZER &&
         tysize(e1.Ety) == LLONGSIZE &&
@@ -5469,10 +5469,10 @@ elem *elmsw(elem *e, Goal goal)
  */
 
 @trusted
-elem *elpair(elem *e, Goal goal)
+elem* elpair(elem* e, Goal goal)
 {
     //printf("elpair()\n");
-    elem *e1 = e.E1;
+    elem* e1 = e.E1;
     if (e1.Eoper == OPconst)
     {
         e.E1 = e.E2;
@@ -5486,7 +5486,7 @@ elem *elpair(elem *e, Goal goal)
  * Handle OPddtor
  */
 
-elem *elddtor(elem *e, Goal goal)
+elem* elddtor(elem* e, Goal goal)
 {
     return e;
 }
@@ -5495,7 +5495,7 @@ elem *elddtor(elem *e, Goal goal)
  * Handle OPinfo, OPmark, OPctor, OPdtor
  */
 
-private elem * elinfo(elem *e, Goal goal)
+private elem* elinfo(elem* e, Goal goal)
 {
     //printf("elinfo()\n");
     return e;
@@ -5504,7 +5504,7 @@ private elem * elinfo(elem *e, Goal goal)
 /********************************************
  */
 
-private elem * elclassinit(elem *e, Goal goal)
+private elem* elclassinit(elem* e, Goal goal)
 {
     return e;
 }
@@ -5513,7 +5513,7 @@ private elem * elclassinit(elem *e, Goal goal)
  */
 
 @trusted
-private elem * elvalist(elem *e, Goal goal)
+private elem* elvalist(elem* e, Goal goal)
 {
     assert(e.Eoper == OPva_start);
 
@@ -5534,8 +5534,8 @@ private elem * elvalist(elem *e, Goal goal)
         //elem_print(e);
 
         // Find last named parameter
-        Symbol *lastNamed = null;
-        Symbol *arguments_typeinfo = null;
+        Symbol* lastNamed = null;
+        Symbol* arguments_typeinfo = null;
         foreach (s; globsym[])
         {
             if (s.Sclass == SC.parameter || s.Sclass == SC.regpar)
@@ -5570,7 +5570,7 @@ if (config.exe & EX_windos)
     //elem_print(e);
 
     // Find last named parameter
-    Symbol *lastNamed = null;
+    Symbol* lastNamed = null;
     foreach (s; globsym[])
     {
         if (s.Sclass == SC.fastpar || s.Sclass == SC.shadowreg || s.Sclass == SC.parameter)
@@ -5598,7 +5598,7 @@ if (config.exe & EX_posix)
     //elem_print(e);
 
     // Find __va_argsave
-    Symbol *va_argsave = null;
+    Symbol* va_argsave = null;
     foreach (s; globsym[])
     {
         if (s.Sident[0] == '_' && strcmp(s.Sident.ptr, "__va_argsave") == 0)
@@ -5629,7 +5629,7 @@ if (config.exe & EX_posix)
  */
 
 @trusted
-private void elparamx(elem *e)
+private void elparamx(elem* e)
 {
     //printf("elparam()\n");
     if (e.E1.Eoper == OPrpair)
@@ -5639,7 +5639,7 @@ private void elparamx(elem *e)
     else if (e.E1.Eoper == OPpair && !el_sideeffect(e.E1))
     {
         e.E1.Eoper = OPparam;
-        elem *ex = e.E1.E2;
+        elem* ex = e.E1.E2;
         e.E1.E2 = e.E1.E1;
         e.E1.E1 = ex;
     }
@@ -5657,7 +5657,7 @@ private void elparamx(elem *e)
             else if (e.E2.Eoper == OPpair)
             {
                 e.E2.Eoper = OPparam;
-                elem *ex = e.E2.E2;
+                elem* ex = e.E2.E2;
                 e.E2.E2 = e.E2.E1;
                 e.E2.E1 = ex;
             }
@@ -5666,7 +5666,7 @@ private void elparamx(elem *e)
 }
 
 @trusted
-private elem * elparam(elem *e, Goal goal)
+private elem* elparam(elem* e, Goal goal)
 {
     if (!OPTIMIZER)
     {
@@ -5686,7 +5686,7 @@ private elem * elparam(elem *e, Goal goal)
  */
 
 @trusted
-private elem * optelem(elem *e, Goal goal)
+private elem* optelem(elem* e, Goal goal)
 {
 beg:
     //__gshared uint count;
@@ -5727,10 +5727,10 @@ beg:
         {
             case OPcomma:
             {
-                elem *e1 = e.E1 = optelem(e.E1, Goal.none);
+                elem* e1 = e.E1 = optelem(e.E1, Goal.none);
 //              if (e1 && !OTsideff(e1.Eoper))
 //                  e1 = e.E1 = optelem(e1, Goal.none);
-                elem *e2 = e.E2 = optelem(e.E2,goal);
+                elem* e2 = e.E2 = optelem(e.E2,goal);
                 if (!e1)
                 {
                     if (!e2)
@@ -5753,7 +5753,7 @@ beg:
             case OPcond:
                 if (!goal)
                 {   // Transform x?y:z into x&&y or x||z
-                    elem *e2 = e.E2;
+                    elem* e2 = e.E2;
                     if (!el_sideeffect(e2.E1))
                     {
                         e.Eoper = OPoror;
@@ -5769,8 +5769,8 @@ beg:
                         goto beg;
                     }
                     assert(e2.Eoper == OPcolon || e2.Eoper == OPcolon2);
-                    elem *e21 = e2.E1 = optelem(e2.E1, goal);
-                    elem *e22 = e2.E2 = optelem(e2.E2, goal);
+                    elem* e21 = e2.E1 = optelem(e2.E1, goal);
+                    elem* e22 = e2.E2 = optelem(e2.E2, goal);
                     if (!e21)
                     {
                         if (!e22)
@@ -5839,12 +5839,12 @@ beg:
             {
                 const tyf = tybasic(e.E1.Ety);
                 leftgoal = rightgoal;
-                elem *e1 = e.E1 = optelem(e.E1, leftgoal);
+                elem* e1 = e.E1 = optelem(e.E1, leftgoal);
 
                 // Need argument to type_zeroSize()
                 const tyf_save = global_tyf;
                 global_tyf = tyf;
-                elem *e2 = e.E2 = optelem(e.E2, rightgoal);
+                elem* e2 = e.E2 = optelem(e.E2, rightgoal);
                 global_tyf = tyf_save;
 
                 if (!e1)
@@ -5863,10 +5863,10 @@ beg:
             }
         }
 
-        elem *e1 = e.E1;
+        elem* e1 = e.E1;
         if (OTassign(op))
         {
-            elem *ex = e1;
+            elem* ex = e1;
             while (OTconv(ex.Eoper))
                 ex = ex.E1;
             if (ex.Eoper == OPbit)
@@ -5931,7 +5931,7 @@ beg:
             }
         }
 
-        elem *e2 = e.E2 = optelem(e.E2,rightgoal);
+        elem* e2 = e.E2 = optelem(e.E2,rightgoal);
         if (!e1)
         {
             if (!e2)
@@ -6211,7 +6211,7 @@ beg:
  */
 
 @trusted
-elem *doptelem(elem *e, Goal goal)
+elem* doptelem(elem* e, Goal goal)
 {
     //printf("doptelem(e = %p, goal = x%x)\n", e, goal);
     do
@@ -6236,7 +6236,7 @@ elem *doptelem(elem *e, Goal goal)
  */
 
 @trusted
-void postoptelem(elem *e)
+void postoptelem(elem* e)
 {
     Srcpos pos = {0};
 
@@ -6294,7 +6294,7 @@ void postoptelem(elem *e)
  * Rewrite rvalues of complex numbers to pairs of floating point numbers.
  */
 @trusted
-private elem *elToPair(elem *e)
+private elem* elToPair(elem* e)
 {
     switch (e.Eoper)
     {
@@ -6315,7 +6315,7 @@ private elem *elToPair(elem *e)
                     if (_tysize[tybasic(ty0)] < REGSIZE)
                         break;                          // func parameters, for example, can't handle this
                     e.Ety = ty0;
-                    elem *e2 = el_copytree(e);
+                    elem* e2 = el_copytree(e);
                     e2.Voffset += _tysize[tybasic(ty0)];
                     return el_bin(OPpair, ty, e, e2);
 
@@ -6343,7 +6343,7 @@ private elem *elToPair(elem *e)
                     if (_tysize[tybasic(ty0)] < REGSIZE)
                         break;                          // func parameters, for example, can't handle this
                     e.Ety = ty0;
-                    elem *e2 = el_copytree(e.E1);
+                    elem* e2 = el_copytree(e.E1);
                     if (el_sideeffect(e2))
                         fixside(&e.E1, &e2);
                     e2 = el_bin(OPadd,e2.Ety,e2,el_long(TYsize, _tysize[tybasic(ty0)]));
@@ -6408,7 +6408,7 @@ private bool canHappenAfter(elem* a, elem* b)
  * Call table, index is OPER
  */
 
-private alias elfp_t = elem *function(elem *, Goal) nothrow;
+private alias elfp_t = elem* function(elem *, Goal) nothrow;
 
 private immutable elfp_t[OPMAX] elxxx =
 [

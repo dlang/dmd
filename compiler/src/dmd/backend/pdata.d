@@ -56,23 +56,23 @@ enum ALLOCA_LIMIT = 0x10000;
  *      localsize = offset to symbols on stack
  */
 @trusted
-public void win64_pdata(Symbol *sf, targ_size_t localsize)
+public void win64_pdata(Symbol* sf, targ_size_t localsize)
 {
     //printf("win64_pdata()\n");
     assert(config.exe == EX_WIN64);
 
     // Generate the pdata name, which is $pdata$funcname
     size_t sflen = strlen(sf.Sident.ptr);
-    char *pdata_name = cast(char *)(sflen < ALLOCA_LIMIT ? alloca(7 + sflen + 1) : malloc(7 + sflen + 1));
+    char* pdata_name = cast(char*)(sflen < ALLOCA_LIMIT ? alloca(7 + sflen + 1) : malloc(7 + sflen + 1));
     assert(pdata_name);
     memcpy(pdata_name, "$pdata$".ptr, 7);
     memcpy(pdata_name + 7, sf.Sident.ptr, sflen + 1);      // include terminating 0
 
-    Symbol *spdata = symbol_name(pdata_name[0 .. 7 + sflen],SC.static_,tstypes[TYint]);
+    Symbol* spdata = symbol_name(pdata_name[0 .. 7 + sflen],SC.static_,tstypes[TYint]);
     symbol_keep(spdata);
     symbol_debug(spdata);
 
-    Symbol *sunwind = win64_unwind(sf, localsize);
+    Symbol* sunwind = win64_unwind(sf, localsize);
 
     /* 3 pointers are emitted:
      *  1. pointer to start of function sf
@@ -104,16 +104,16 @@ private:
  *      generated symbol referring to unwind data
  */
 @trusted
-private Symbol *win64_unwind(Symbol *sf, targ_size_t localsize)
+private Symbol* win64_unwind(Symbol* sf, targ_size_t localsize)
 {
     // Generate the unwind name, which is $unwind$funcname
     size_t sflen = strlen(sf.Sident.ptr);
-    char *unwind_name = cast(char *)(sflen < ALLOCA_LIMIT ? alloca(8 + sflen + 1) : malloc(8 + sflen + 1));
+    char* unwind_name = cast(char*)(sflen < ALLOCA_LIMIT ? alloca(8 + sflen + 1) : malloc(8 + sflen + 1));
     assert(unwind_name);
     memcpy(unwind_name, "$unwind$".ptr, 8);
     memcpy(unwind_name + 8, sf.Sident.ptr, sflen + 1);     // include terminating 0
 
-    Symbol *sunwind = symbol_name(unwind_name[0 .. 8 + sflen],SC.static_,tstypes[TYint]);
+    Symbol* sunwind = symbol_name(unwind_name[0 .. 8 + sflen],SC.static_,tstypes[TYint]);
     symbol_keep(sunwind);
     symbol_debug(sunwind);
 
@@ -201,7 +201,7 @@ static if (0)
 
 
 @trusted
-private dt_t *unwind_data(targ_size_t localsize)
+private dt_t* unwind_data(targ_size_t localsize)
 {
     UNWIND_INFO ui;
 

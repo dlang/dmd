@@ -1,5 +1,5 @@
 import core.runtime;
-import core.stdc.string;
+import core.stdc.string : strrchr;
 
 extern(C) alias RunDepTests = int function(const char*);
 
