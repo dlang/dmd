@@ -11878,49 +11878,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
         else
         {
-            // Try alias this on first operand
-            static Expression tryAliasThisForLhs(BinAssignExp exp, Scope* sc)
-            {
-                AggregateDeclaration ad1 = isAggregate(exp.e1.type);
-                if (!ad1 || !ad1.aliasthis)
-                    return null;
-
-                /* Rewrite (e1 op e2) as:
-                 *      (e1.aliasthis op e2)
-                 */
-                if (isRecursiveAliasThis(exp.att1, exp.e1.type))
-                    return null;
-                //printf("att %s e1 = %s\n", Token.toChars(e.op), e.e1.type.toChars());
-                Expression e1 = new DotIdExp(exp.loc, exp.e1, ad1.aliasthis.ident);
-                BinExp be = cast(BinExp)exp.copy();
-                be.e1 = e1;
-                return be.trySemantic(sc);
-            }
-
-            // Try alias this on second operand
-            static Expression tryAliasThisForRhs(BinAssignExp exp, Scope* sc)
-            {
-                AggregateDeclaration ad2 = isAggregate(exp.e2.type);
-                if (!ad2 || !ad2.aliasthis)
-                    return null;
-                /* Rewrite (e1 op e2) as:
-                 *      (e1 op e2.aliasthis)
-                 */
-                if (isRecursiveAliasThis(exp.att2, exp.e2.type))
-                    return null;
-                //printf("att %s e2 = %s\n", Token.toChars(e.op), e.e2.type.toChars());
-                Expression e2 = new DotIdExp(exp.loc, exp.e2, ad2.aliasthis.ident);
-                BinExp be = cast(BinExp)exp.copy();
-                be.e2 = e2;
-                return be.trySemantic(sc);
-            }
-
     Laliasthis:
-            result = tryAliasThisForLhs(exp, sc);
+            result = checkAliasThisForLhs(isAggregate(exp.e1.type), sc, exp);
             if (result)
                 return;
 
-            result = tryAliasThisForRhs(exp, sc);
+            result = checkAliasThisForRhs(isAggregate(exp.e2.type), sc, exp);
             if (result)
                 return;
 
