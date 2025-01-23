@@ -12130,6 +12130,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
+        if (exp.checkArithmeticBin())
+            return setError();
+
         tb1 = exp.e1.type.toBasetype();
         if (!target.isVectorOpSupported(tb1, exp.op, tb2))
         {
@@ -12279,6 +12282,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = exp;
             return;
         }
+
+        if (exp.checkArithmeticBin())
+            return setError();
 
         t1 = exp.e1.type.toBasetype();
         t2 = exp.e2.type.toBasetype();
