@@ -4144,9 +4144,6 @@ Expression typeCombine(BinExp be, Scope* sc)
         return ErrorExp.get();
     }
 
-    Type t1 = be.e1.type.toBasetype();
-    Type t2 = be.e2.type.toBasetype();
-
     if (auto result = typeMerge(sc, be.op, be.e1, be.e2))
     {
         if (be.type is null)

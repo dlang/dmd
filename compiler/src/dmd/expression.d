@@ -592,6 +592,13 @@ extern (C++) abstract class Expression : ASTNode
             error(loc, msg, EXPtoString(op).ptr, toChars(), type.toChars());
             return true;
         }
+
+        // FIXME: Existing code relies on adding / subtracting types in typeof() expressions:
+        // alias I = ulong; alias U = typeof(I + 1u);
+        // https://github.com/dlang/dmd/issues/20763
+        if (op == EXP.add || op == EXP.min)
+            return false;
+
         return checkValue();
     }
 
@@ -3067,9 +3074,7 @@ extern (C++) abstract class BinExp : Expression
 
     extern (D) final bool checkArithmeticBin()
     {
-        bool r1 = e1.checkArithmetic(this.op);
-        bool r2 = e2.checkArithmetic(this.op);
-        return (r1 || r2);
+        return e1.checkArithmetic(this.op) || e2.checkArithmetic(this.op);
     }
 
     /*********************
