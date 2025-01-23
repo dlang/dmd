@@ -14683,11 +14683,115 @@ MATCH matchType(FuncExp funcExp, Type to, Scope* sc, FuncExp* presult, ErrorSink
     return m;
 }
 
+private bool checkScalar(Expression e)
+{
+    if (e.op == EXP.error)
+        return true;
+    if (e.type.toBasetype().ty == Terror)
+        return true;
+    if (!e.type.isScalar())
+    {
+        error(e.loc, "`%s` is not a scalar, it is a `%s`", e.toChars(), e.type.toChars());
+        return true;
+    }
+    return e.checkValue();
+}
+
+private bool checkNoBool(Expression e)
+{
+    if (e.op == EXP.error)
+        return true;
+    if (e.type.toBasetype().ty == Terror)
+        return true;
+    if (e.type.toBasetype().ty == Tbool)
+    {
+        error(e.loc, "operation not allowed on `bool` `%s`", e.toChars());
+        return true;
+    }
+    return false;
+}
+
+private bool checkIntegral(Expression e)
+{
+    if (e.op == EXP.error)
+        return true;
+    if (e.type.toBasetype().ty == Terror)
+        return true;
+    if (!e.type.isIntegral())
+    {
+        error(e.loc, "`%s` is not of integral type, it is a `%s`", e.toChars(), e.type.toChars());
+        return true;
+    }
+    return e.checkValue();
+}
+
+private bool checkArithmetic(Expression e, EXP op)
+{
+    if (op == EXP.error)
+        return true;
+    if (e.type.toBasetype().ty == Terror)
+        return true;
+    if (!e.type.isIntegral() && !e.type.isFloating())
+    {
+        // unary aggregate ops error here
+        const char* msg = e.type.isAggregate() ?
+            "operator `%s` is not defined for `%s` of type `%s`" :
+            "illegal operator `%s` for `%s` of type `%s`";
+        error(e.loc, msg, EXPtoString(op).ptr, e.toChars(), e.type.toChars());
+        return true;
+    }
+    return e.checkValue();
+}
+
+/*******************************
+ * Check whether the expression allows RMW operations, error with rmw operator diagnostic if not.
+ * ex is the RHS expression, or NULL if ++/-- is used (for diagnostics)
+ * Returns true if error occurs.
+ */
+private bool checkReadModifyWrite(Expression e, EXP rmwOp, Expression ex = null)
+{
+    //printf("Expression::checkReadModifyWrite() %s %s", toChars(), ex ? ex.toChars() : "");
+    if (!e.type || !e.type.isShared() || e.type.isTypeStruct() || e.type.isTypeClass())
+        return false;
+
+    // atomicOp uses opAssign (+=/-=) rather than opOp (++/--) for the CT string literal.
+    switch (rmwOp)
+    {
+    case EXP.plusPlus:
+    case EXP.prePlusPlus:
+        rmwOp = EXP.addAssign;
+        break;
+    case EXP.minusMinus:
+    case EXP.preMinusMinus:
+        rmwOp = EXP.minAssign;
+        break;
+    default:
+        break;
+    }
+
+    error(e.loc, "read-modify-write operations are not allowed for `shared` variables");
+    errorSupplemental(e.loc, "Use `core.atomic.atomicOp!\"%s\"(%s, %s)` instead",
+                        EXPtoString(rmwOp).ptr, e.toChars(), ex ? ex.toChars() : "1");
+    return true;
+}
+
 private bool checkSharedAccessBin(BinExp binExp, Scope* sc)
 {
     const r1 = binExp.e1.checkSharedAccess(sc);
     const r2 = binExp.e2.checkSharedAccess(sc);
     return (r1 || r2);
+}
+
+private bool checkIntegralBin(BinExp e)
+{
+    bool r1 = e.e1.checkIntegral();
+    bool r2 = e.e2.checkIntegral();
+    return (r1 || r2);
+}
+
+private bool checkArithmeticBin(BinExp e)
+{
+    return (e.e1.checkArithmetic(e.op) || e.e2.checkArithmetic(e.op));
 }
 
 /***************************************
