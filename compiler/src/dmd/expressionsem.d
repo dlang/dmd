@@ -14740,6 +14740,13 @@ private bool checkArithmetic(Expression e, EXP op)
         error(e.loc, msg, EXPtoString(op).ptr, e.toChars(), e.type.toChars());
         return true;
     }
+
+    // FIXME: Existing code relies on adding / subtracting types in typeof() expressions:
+    // alias I = ulong; alias U = typeof(I + 1u);
+    // https://github.com/dlang/dmd/issues/20763
+    if (op == EXP.add || op == EXP.min)
+        return false;
+
     return e.checkValue();
 }
 
