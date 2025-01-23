@@ -43,6 +43,7 @@ nothrow:
  * Bindings for libunwind.h
  */
 alias unw_word_t = uintptr_t;
+alias unw_regnum_t = int;
 
 ///
 struct unw_context_t
@@ -86,6 +87,14 @@ int unw_step(unw_cursor_t*);
 int unw_get_proc_info(unw_cursor_t*, unw_proc_info_t*);
 /// Get the name of the current procedure (function)
 int unw_get_proc_name(unw_cursor_t*, char*, size_t, unw_word_t*);
+/// Reads the value of register `reg` in the stack frame identified by cursor `cp` and stores the value in the word pointed to by `valp`.
+int unw_get_reg(unw_cursor_t* cp, unw_regnum_t reg, unw_word_t* valp);
+/// Architecture independent register numbers
+enum
+{
+    UNW_REG_IP = -1, // instruction pointer
+    UNW_REG_SP = -2, // stack pointer
+}
 
 private:
 

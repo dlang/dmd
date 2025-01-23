@@ -49,10 +49,9 @@
 
 module core.internal.backtrace.dwarf;
 
-import core.internal.execinfo;
-import core.internal.string;
-
 version (Posix):
+
+import core.internal.string;
 
 version (OSX)
     version = Darwin;
