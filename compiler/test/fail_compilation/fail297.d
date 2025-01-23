@@ -1,8 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail297.d(31): Error: operator `+` is not defined for `Bar()` of type `Bar`
-fail_compilation/fail297.d(31): Error: operator `+` is not defined for `baz()` of type `const(Bar)`
+fail_compilation/fail297.d(30): Error: operator `+` is not defined for `Bar()` of type `Bar`
 ---
 */
 

@@ -1,8 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail3.d(42): Error: operator `+` is not defined for `a` of type `vec2`
-fail_compilation/fail3.d(42): Error: operator `+` is not defined for `b` of type `vec2`
+fail_compilation/fail3.d(41): Error: operator `+` is not defined for `a` of type `vec2`
 ---
 */
 

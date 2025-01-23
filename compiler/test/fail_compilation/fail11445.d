@@ -1,8 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail11445.d(12): Error: illegal operator `+` for `a` of type `double[string]`
-fail_compilation/fail11445.d(12): Error: illegal operator `+` for `b` of type `double[string]`
+fail_compilation/fail11445.d(11): Error: illegal operator `+` for `a` of type `double[string]`
 ---
 */
 
