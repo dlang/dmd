@@ -601,7 +601,6 @@ Expression opOverloadBinary(BinExp e, Scope* sc)
     AggregateDeclaration ad2 = isAggregate(e.e2.type);
     Dsymbol s = null;
     Dsymbol s_r = null;
-    Objects* tiargs = null;
 
     // Try opBinary and opBinaryRight
     if (ad1)
@@ -624,62 +623,11 @@ Expression opOverloadBinary(BinExp e, Scope* sc)
         if (s_r && s_r == s) // https://issues.dlang.org/show_bug.cgi?id=12778
             s_r = null;
     }
-    // Set tiargs, the template argument list, which will be the operator string
-    if (s || s_r)
-    {
-        tiargs = opToArg(sc, e.op);
-    }
-    if (!s && !s_r)
-        return binAliasThis(e, sc, ad1, ad2);
+    bool choseReverse;
+    if (auto res = pickBestBinaryOverload(sc, opToArg(sc, e.op), s, s_r, e, choseReverse))
+        return res;
 
-    // Try opBinary and opBinaryRight and see which is better.
-    Expressions* args1 = new Expressions();
-    Expressions* args2 = new Expressions();
-    args1.setDim(1);
-    (*args1)[0] = e.e1;
-    expandTuples(args1);
-    args2.setDim(1);
-    (*args2)[0] = e.e2;
-    expandTuples(args2);
-    MatchAccumulator m;
-    if (s)
-    {
-        functionResolve(m, s, e.loc, sc, tiargs, e.e1.type, ArgumentList(args2));
-        if (m.lastf && (m.lastf.errors || m.lastf.hasSemantic3Errors()))
-        {
-            return ErrorExp.get();
-        }
-    }
-    FuncDeclaration lastf = m.lastf;
-    if (s_r)
-    {
-        functionResolve(m, s_r, e.loc, sc, tiargs, e.e2.type, ArgumentList(args1));
-        if (m.lastf && (m.lastf.errors || m.lastf.hasSemantic3Errors()))
-        {
-            return ErrorExp.get();
-        }
-    }
-    if (m.count > 1)
-    {
-        // Error, ambiguous
-        error(e.loc, "overloads `%s` and `%s` both match argument list for `%s`", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
-    }
-    else if (m.last == MATCH.nomatch)
-    {
-        if (tiargs)
-            return binAliasThis(e, sc, ad1, ad2);
-        m.lastf = null;
-    }
-    if (lastf && m.lastf == lastf || !s_r && m.last == MATCH.nomatch)
-    {
-        // Rewrite (e1 op e2) as e1.opfunc(e2)
-        return build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s);
-    }
-    else
-    {
-        // Rewrite (e1 op e2) as e2.opfunc_r(e1)
-        return build_overload(e.loc, sc, e.e2, e.e1, m.lastf ? m.lastf : s_r);
-    }
+    return binAliasThis(e, sc, ad1, ad2);
 }
 
 Expression opOverloadEqual(EqualExp e, Scope* sc)
@@ -1027,12 +975,9 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc)
     {
         return ErrorExp.get();
     }
-    Expressions* args2 = new Expressions();
     AggregateDeclaration ad1 = isAggregate(e.e1.type);
     Dsymbol s = null;
-    Objects* tiargs = null;
-    /* Try opOpAssign
-     */
+    // Try a.opOpAssign(b)
     if (ad1)
     {
         s = search_function(ad1, Id.opOpAssign);
@@ -1042,48 +987,97 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc)
             return ErrorExp.get();
         }
     }
-    // Set tiargs, the template argument list, which will be the operator string
-    Identifier id;
-    if (s)
-    {
-        id = Id.opOpAssign;
-        tiargs = opToArg(sc, e.op);
-    }
 
-    if (s)
-    {
-        /* Try:
-            *      a.opOpAssign(b)
-            */
-        args2.setDim(1);
-        (*args2)[0] = e.e2;
-        expandTuples(args2);
-        MatchAccumulator m;
-        functionResolve(m, s, e.loc, sc, tiargs, e.e1.type, ArgumentList(args2));
-        if (m.lastf && (m.lastf.errors || m.lastf.hasSemantic3Errors()))
-        {
-            return ErrorExp.get();
-        }
-        if (m.count > 1)
-        {
-            // Error, ambiguous
-            error(e.loc, "overloads `%s` and `%s` both match argument list for `%s`", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
-        }
-        else if (m.last == MATCH.nomatch)
-        {
-            if (tiargs)
-                goto L1;
-            m.lastf = null;
-        }
-        // Rewrite (e1 op e2) as e1.opOpAssign(e2)
-        return build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s);
-    }
-L1:
+    bool choseReverse;
+    if (auto res = pickBestBinaryOverload(sc, opToArg(sc, e.op), s, null, e, choseReverse))
+        return res;
+
     result = checkAliasThisForLhs(ad1, sc, e);
     if (result || !s) // no point in trying Rhs alias-this if there's no overload of any kind in lhs
         return result;
 
     return checkAliasThisForRhs(isAggregate(e.e2.type), sc, e);
+}
+
+/**
+Given symbols `s` and `s_r`, try to instantiate `e.e1.s!tiargs(e.e2)` and `e.e2.s_r!tiargs(e.e1)`,
+and return the one with the best match level.
+
+Params:
+    sc = scope
+    tiargs = (optional) template arguments to instantiate symbols with
+    s = (optional) symbol of straightforward template (e.g. opBinary)
+    s_r = (optional) symbol of reversed template (e.g. opBinaryRight)
+    e = binary expression being overloaded, supplying arguments to the function calls
+    choseReverse = set to true when `s_r` was chosen instead of `s`
+Returns:
+    Resulting operator overload function call, or `null` if neither symbol worked
+*/
+private Expression pickBestBinaryOverload(Scope* sc, Objects* tiargs, Dsymbol s, Dsymbol s_r, BinExp e, out bool choseReverse)
+{
+    if (!s && !s_r)
+        return null;
+
+    Expressions* args1 = new Expressions(1);
+    (*args1)[0] = e.e1;
+    expandTuples(args1);
+    Expressions* args2 = new Expressions(1);
+    (*args2)[0] = e.e2;
+    expandTuples(args2);
+    MatchAccumulator m;
+
+    if (s)
+    {
+        functionResolve(m, s, e.loc, sc, tiargs, e.e1.type, ArgumentList(args2));
+        if (m.lastf && (m.lastf.errors || m.lastf.hasSemantic3Errors()))
+            return ErrorExp.get();
+    }
+    FuncDeclaration lastf = m.lastf;
+    int count = m.count;
+    if (s_r)
+    {
+        functionResolve(m, s_r, e.loc, sc, tiargs, e.e2.type, ArgumentList(args1));
+        if (m.lastf && (m.lastf.errors || m.lastf.hasSemantic3Errors()))
+            return ErrorExp.get();
+    }
+    if (m.count > 1)
+    {
+        /* The following if says "not ambiguous" if there's one match
+         * from s and one from s_r, in which case we pick s.
+         * This doesn't follow the spec, but is a workaround for the case
+         * where opEquals was generated from templates and we cannot figure
+         * out if both s and s_r came from the same declaration or not.
+         * The test case is:
+         *   import std.typecons;
+         *   void main() {
+         *    assert(tuple("has a", 2u) == tuple("has a", 1));
+         *   }
+         */
+        if (!(m.lastf == lastf && m.count == 2 && count == 1))
+        {
+            // Error, ambiguous
+            error(e.loc, "overloads `%s` and `%s` both match argument list for `%s`", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
+        }
+    }
+    else if (m.last == MATCH.nomatch)
+    {
+        if (tiargs)
+            return null;
+        m.lastf = null;
+    }
+
+    if (lastf && m.lastf == lastf || !s_r && m.last == MATCH.nomatch)
+    {
+        choseReverse = false;
+        // Rewrite (e1 op e2) as e1.opfunc(e2)
+        return build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s);
+    }
+    else
+    {
+        choseReverse = true;
+        // Rewrite (e1 op e2) as e2.opfunc_r(e1)
+        return build_overload(e.loc, sc, e.e2, e.e1, m.lastf ? m.lastf : s_r);
+    }
 }
 
 /******************************************
@@ -1106,79 +1100,15 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id, ref EXP 
         if (s == s_r)
             s_r = null;
     }
-    Objects* tiargs = null;
-    if (s || s_r)
+
+    bool choseReverse;
+    if (auto res = pickBestBinaryOverload(sc, null, s, s_r, e, choseReverse))
     {
-        /* Try:
-         *      a.opEquals(b)
-         *      b.opEquals(a)
-         * and see which is better.
-         */
-        Expressions* args1 = new Expressions(1);
-        (*args1)[0] = e.e1;
-        expandTuples(args1);
-        Expressions* args2 = new Expressions(1);
-        (*args2)[0] = e.e2;
-        expandTuples(args2);
-        MatchAccumulator m;
-        if (0 && s && s_r)
-        {
-            printf("s  : %s\n", s.toPrettyChars());
-            printf("s_r: %s\n", s_r.toPrettyChars());
-        }
-        if (s)
-        {
-            functionResolve(m, s, e.loc, sc, tiargs, e.e1.type, ArgumentList(args2));
-            if (m.lastf && (m.lastf.errors || m.lastf.hasSemantic3Errors()))
-                return ErrorExp.get();
-        }
-        FuncDeclaration lastf = m.lastf;
-        int count = m.count;
-        if (s_r)
-        {
-            functionResolve(m, s_r, e.loc, sc, tiargs, e.e2.type, ArgumentList(args1));
-            if (m.lastf && (m.lastf.errors || m.lastf.hasSemantic3Errors()))
-                return ErrorExp.get();
-        }
-        if (m.count > 1)
-        {
-            /* The following if says "not ambiguous" if there's one match
-             * from s and one from s_r, in which case we pick s.
-             * This doesn't follow the spec, but is a workaround for the case
-             * where opEquals was generated from templates and we cannot figure
-             * out if both s and s_r came from the same declaration or not.
-             * The test case is:
-             *   import std.typecons;
-             *   void main() {
-             *    assert(tuple("has a", 2u) == tuple("has a", 1));
-             *   }
-             */
-            if (!(m.lastf == lastf && m.count == 2 && count == 1))
-            {
-                // Error, ambiguous
-                error(e.loc, "overloads `%s` and `%s` both match argument list for `%s`", m.lastf.type.toChars(), m.nextf.type.toChars(), m.lastf.toChars());
-            }
-        }
-        else if (m.last == MATCH.nomatch)
-        {
-            m.lastf = null;
-        }
-        Expression result;
-        if (lastf && m.lastf == lastf || !s_r && m.last == MATCH.nomatch)
-        {
-            // Rewrite (e1 op e2) as e1.opfunc(e2)
-            result = build_overload(e.loc, sc, e.e1, e.e2, m.lastf ? m.lastf : s);
-        }
-        else
-        {
-            // Rewrite (e1 op e2) as e2.opfunc_r(e1)
-            result = build_overload(e.loc, sc, e.e2, e.e1, m.lastf ? m.lastf : s_r);
-            // When reversing operands of comparison operators,
-            // need to reverse the sense of the op
+        if (choseReverse)
             cmpOp = reverseRelation(e.op);
-        }
-        return result;
+        return res;
     }
+
     /*
      * https://issues.dlang.org/show_bug.cgi?id=16657
      * at this point, no matching opEquals was found for structs,
