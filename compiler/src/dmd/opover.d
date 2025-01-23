@@ -130,7 +130,7 @@ Objects* opToArg(Scope* sc, EXP op)
 }
 
 // Try alias this on first operand
-private Expression checkAliasThisForLhs(AggregateDeclaration ad, Scope* sc, BinExp e)
+Expression checkAliasThisForLhs(AggregateDeclaration ad, Scope* sc, BinExp e)
 {
     if (!ad || !ad.aliasthis)
         return null;
@@ -149,17 +149,11 @@ private Expression checkAliasThisForLhs(AggregateDeclaration ad, Scope* sc, BinE
     if (!be.e1)
         return null;
 
-    Expression result;
-    if (be.op == EXP.concatenateAssign)
-        result = be.isBinAssignExp().opOverloadBinaryAssign(sc);
-    else
-        result = be.trySemantic(sc);
-
-    return result;
+    return be.trySemantic(sc);
 }
 
 // Try alias this on second operand
-private Expression checkAliasThisForRhs(AggregateDeclaration ad, Scope* sc, BinExp e)
+Expression checkAliasThisForRhs(AggregateDeclaration ad, Scope* sc, BinExp e)
 {
     if (!ad || !ad.aliasthis)
         return null;
@@ -174,13 +168,7 @@ private Expression checkAliasThisForRhs(AggregateDeclaration ad, Scope* sc, BinE
     if (!be.e2)
         return null;
 
-    Expression result;
-    if (be.op == EXP.concatenateAssign)
-        result = be.isBinAssignExp().opOverloadBinaryAssign(sc);
-    else
-        result = be.trySemantic(sc);
-
-    return result;
+    return be.trySemantic(sc);
 }
 
 Expression opOverloadUnary(UnaExp e, Scope* sc)
