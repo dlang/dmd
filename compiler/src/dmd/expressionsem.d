@@ -6207,7 +6207,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
                 // No constructor, look for overload of opCall
                 if (search_function(sd, Id.call))
-                    goto L1;
+                    goto LopCall;
                 // overload of opCall, therefore it's a call
                 if (exp.e1.op != EXP.type)
                 {
@@ -6245,7 +6245,17 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
             else if (t1.ty == Tclass)
             {
-            L1:
+                // upcast `Base(child)`
+                if (exp.e1.op == EXP.type && exp.arguments.length == 1 &&
+                    (*exp.arguments)[0].type.implicitConvTo(t1) &&
+                    !t1.isTypeClass().sym.symtab.lookup(Id.call))
+                {
+                    Expression e = new CastExp(exp.loc, (*exp.arguments)[0], t1);
+                    e = e.expressionSemantic(sc);
+                    result = e;
+                    return;
+                }
+            LopCall:
                 // Rewrite as e1.call(arguments)
                 Expression e = new DotIdExp(exp.loc, exp.e1, Id.call);
                 e = new CallExp(exp.loc, e, exp.arguments, exp.names);
