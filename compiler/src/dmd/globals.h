@@ -417,9 +417,12 @@ typedef unsigned long long uinteger_t;
 struct Loc
 {
 private:
-    unsigned _linnum;
-    unsigned _charnum;
-    unsigned fileIndex;
+
+#if defined(__linux__) && defined(__i386__)
+    unsigned int dummy;
+#endif
+
+    unsigned int index;
 public:
     static void set(bool showColumns, MessageStyle messageStyle);
 
@@ -428,24 +431,12 @@ public:
 
     Loc()
     {
-        _linnum = 0;
-        _charnum = 0;
-        fileIndex = 0;
-    }
-
-    Loc(const char *filename, unsigned linnum, unsigned charnum)
-    {
-        this->linnum(linnum);
-        this->charnum(charnum);
-        this->filename(filename);
+        index = 0;
     }
 
     uint32_t charnum() const;
-    uint32_t charnum(uint32_t num);
     uint32_t linnum() const;
-    uint32_t linnum(uint32_t num);
     const char *filename() const;
-    void filename(const char *name);
 
     const char *toChars(
         bool showColumns = Loc::showColumns,

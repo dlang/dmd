@@ -6324,7 +6324,6 @@ final class CParser(AST) : Parser!AST
             while (*p)
                 ++p;
             ++p; // advance to start of next line
-            scanloc.linnum = scanloc.linnum + 1;
         }
 
         if (newSymbols.length)

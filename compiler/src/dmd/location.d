@@ -18,11 +18,6 @@ import dmd.root.array;
 import dmd.root.filename;
 import dmd.root.string: toDString;
 
-version (DMDLIB)
-{
-    version = LocOffset;
-}
-
 /// How code locations are formatted for diagnostic reporting
 enum MessageStyle : ubyte
 {
@@ -38,18 +33,18 @@ debug info etc.
 */
 struct Loc
 {
-    private uint _linnum;
-    private uint _charnum;
-    private uint fileIndex; // index into filenames[], starting from 1 (0 means no filename)
-    version (LocOffset)
-        uint fileOffset; /// utf8 code unit index relative to start of file, starting from 0
+    // https://github.com/dlang/dmd/pull/20777#issuecomment-2614128849
+    static if (size_t.sizeof == 4) version(linux)
+    {
+        uint dummy;
+    }
+
+    private uint index = 0; // offset into lineTable[]
 
     static immutable Loc initial; /// use for default initialization of const ref Loc's
 
     extern (C++) __gshared bool showColumns;
     extern (C++) __gshared MessageStyle messageStyle;
-
-    __gshared Array!(const(char)*) filenames;
 
 nothrow:
 
@@ -65,45 +60,33 @@ nothrow:
         this.messageStyle = messageStyle;
     }
 
-    extern (C++) this(const(char)* filename, uint linnum, uint charnum) @safe
+    static Loc singleFilename(const char* filename)
     {
-        this._linnum = linnum;
-        this._charnum = charnum;
-        this.filename = filename;
+        Loc result;
+        locFileTable ~= BaseLoc(filename.toDString, locIndex, 0, [0]);
+        result.index = locIndex++;
+        return result;
     }
 
     /// utf8 code unit index relative to start of line, starting from 1
     extern (C++) uint charnum() const @nogc @safe
     {
-        return _charnum;
-    }
-
-    /// ditto
-    extern (C++) uint charnum(uint num) @nogc @safe
-    {
-        return _charnum = num;
+        return SourceLoc(this).column;
     }
 
     /// line number, starting from 1
-    extern (C++) uint linnum() const @nogc @safe
+    extern (C++) uint linnum() const @nogc @trusted
     {
-        return _linnum;
-    }
-
-    /// ditto
-    extern (C++) uint linnum(uint num) @nogc @safe
-    {
-        return _linnum = num;
+        return SourceLoc(this).line;
     }
 
     /// Advance this location to the first column of the next line
     void nextLine()
     {
-        if (this._linnum)
-        {
-            this._linnum++;
-            this.charnum = 0;
-        }
+        const i = fileTableIndex(this.index);
+        const j = locFileTable[i].getLineIndex(this.index - locFileTable[i].startIndex);
+        if (j + 1 < locFileTable[i].lines.length)
+            index = locFileTable[i].startIndex + locFileTable[i].lines[j + 1];
     }
 
     /***
@@ -111,25 +94,7 @@ nothrow:
      */
     extern (C++) const(char)* filename() const @nogc
     {
-        return fileIndex ? filenames[fileIndex - 1] : null;
-    }
-
-    /***
-     * Set file name for this location
-     * Params:
-     *   name = file name for location, null for no file name
-     */
-    extern (C++) void filename(const(char)* name) @trusted
-    {
-        if (name)
-        {
-            //printf("setting %s\n", name);
-            filenames.push(name);
-            fileIndex = cast(uint)filenames.length;
-            assert(fileIndex, "internal compiler error: file name index overflow");
-        }
-        else
-            fileIndex = 0;
+        return SourceLoc(this).filename.ptr; // _filename;
     }
 
     extern (C++) const(char)* toChars(
@@ -137,6 +102,12 @@ nothrow:
         MessageStyle messageStyle = Loc.messageStyle) const nothrow
     {
         return SourceLoc(this).toChars(showColumns, messageStyle);
+    }
+
+    /// Returns: byte offset into source file
+    uint fileOffset() const
+    {
+        return SourceLoc(this).fileOffset;
     }
 
     /**
@@ -165,23 +136,13 @@ nothrow:
      */
     extern (D) bool opEquals(ref const(Loc) loc) const @trusted nothrow @nogc
     {
-        import core.stdc.string : strcmp;
-
-        return charnum == loc.charnum &&
-               linnum == loc.linnum &&
-               (filename == loc.filename ||
-                (filename && loc.filename && strcmp(filename, loc.filename) == 0));
+        return this.index == loc.index;
     }
 
     /// ditto
     extern (D) size_t toHash() const @trusted nothrow
     {
-        import dmd.root.string : toDString;
-
-        auto hash = hashOf(linnum);
-        hash = hashOf(charnum, hash);
-        hash = hashOf(filename.toDString, hash);
-        return hash;
+        return hashOf(this.index);
     }
 
     /******************
@@ -190,7 +151,7 @@ nothrow:
      */
     bool isValid() const pure @safe
     {
-        return fileIndex != 0;
+        return this.index != 0;
     }
 }
 
@@ -252,23 +213,27 @@ struct SourceLoc
     const(char)[] filename; /// name of source file
     uint line; /// line number (starts at 1)
     uint column; /// column number (starts at 1)
+    uint fileOffset; /// byte index into file
 
     // aliases for backwards compatibility
     alias linnum = line;
     alias charnum = column;
 
-    this(const(char)[] filename, uint line, uint column) nothrow
+    this(const(char)[] filename, uint line, uint column, uint fileOffset = 0) nothrow @nogc pure @safe
     {
         this.filename = filename;
         this.line = line;
         this.column = column;
+        this.fileOffset = fileOffset;
     }
 
-    this(Loc loc) nothrow
+    this(Loc loc) nothrow @nogc @trusted
     {
-        this.filename = loc.filename.toDString();
-        this.line = loc.linnum;
-        this.column = loc.charnum;
+        if (loc.index == 0 || locFileTable.length == 0)
+            return;
+
+        const i = fileTableIndex(loc.index);
+        this = locFileTable[i].getSourceLoc(loc.index - locFileTable[i].startIndex);
     }
 
     extern (C++) const(char)* toChars(
@@ -284,4 +249,135 @@ struct SourceLoc
     {
         return this.filename == other.filename && this.line == other.line && this.column == other.column;
     }
+
 }
+
+private size_t fileTableIndex(uint index) nothrow @nogc
+{
+    // To speed up linear find, we cache the last hit and compare that first,
+    // since usually we stay in the same file for some time when resolving source locations.
+    // If it's a differnet file now, either scan forwards / backwards
+    __gshared size_t lastI = 0; // index of last found hit
+
+    size_t i = lastI;
+    if (index >= locFileTable[i].startIndex)
+    {
+        while (i + 1 < locFileTable.length && index >= locFileTable[i+1].startIndex)
+            i++;
+    }
+    else
+    {
+        while (index < locFileTable[i].startIndex)
+            i--;
+    }
+
+    lastI = i;
+    return i;
+}
+
+/**
+ * Create a new source location map for a file
+ * Params:
+ *   filename = source file name
+ *   size = space to reserve for locations, equal to the file size in bytes
+ * Returns: new BaseLoc
+ */
+BaseLoc* newBaseLoc(const(char)* filename, size_t size) nothrow
+{
+    locFileTable ~= BaseLoc(filename.toDString, locIndex, 1, [0]);
+    // Careful: the endloc of a funcdeclaration can
+    // be one past the very last byte in the file, so account for that
+    locIndex += size + 1;
+    return &locFileTable[$ - 1];
+}
+
+/// Mapping from byte offset into source file to line/column numbers
+struct BaseLoc
+{
+@safe nothrow:
+
+    const(char)[] filename; // Source file name
+    uint startIndex; // Subtract this from Loc.index to get file offset
+    int startLine = 1; // Line number at index 0
+    uint[] lines; // For each line, the file offset at which it starts
+    BaseLoc[] substitutions; // Substitutions from #line / #file directives
+
+    /// Register that a new line starts at `offset`
+    void newLine(uint offset)
+    {
+        lines ~= offset;
+    }
+
+    Loc getLoc(uint offset) @nogc
+    {
+        Loc result;
+        // import std.stdio; debug writeln(startIndex, " + ", offset, " = ", startIndex + offset);
+        result.index = startIndex + offset;
+        return result;
+    }
+
+    /// Handles #file and #line directives
+    void addSubstitution(uint offset, const(char)* filename, uint linnum) @system
+    {
+        auto fname = filename.toDString;
+        if (fname.length == 0 && substitutions.length > 0)
+            fname = substitutions[$ - 1].filename;
+        substitutions ~= BaseLoc(fname, offset, cast(int) (linnum - lines.length + startLine - 2));
+    }
+
+    /// Returns: `loc` modified by substitutions from #file / #line directives
+    SourceLoc substitute(SourceLoc loc, uint offset) @nogc
+    {
+        // printf("substitutions: %d\n", cast(int) substitutions.length);
+        size_t latest = -1;
+        foreach (i, ref sub; substitutions)
+        {
+            if (offset >= sub.startIndex)
+                latest = i;
+            else
+                break;
+        }
+        if (latest != -1)
+        {
+            if (substitutions[latest].filename.length > 0)
+                loc.filename = substitutions[latest].filename;
+            loc.linnum += substitutions[latest].startLine;
+        }
+        return loc;
+    }
+
+    // Resolve an offset into this file to a filename + line + column
+    private SourceLoc getSourceLoc(uint offset) @nogc
+    {
+        const i = getLineIndex(offset);
+        const sl = SourceLoc(filename, cast(int) (i + startLine), cast(int) (1 + offset - lines[i]), offset);
+        return substitute(sl, offset);
+    }
+
+    // Binary search the index in this.lines corresponding to `offset`
+    private size_t getLineIndex(uint offset) @nogc
+    {
+        size_t lo = 0;
+        size_t hi = lines.length + -1;
+        size_t mid = 0;
+        while (lo <= hi)
+        {
+            mid = lo + (hi - lo) / 2;
+            if (lines[mid] <= offset)
+            {
+                if (mid == lines.length - 1 || lines[mid + 1] > offset)
+                    return mid;
+
+                lo = mid + 1;
+            }
+            else
+            {
+                hi = mid - 1;
+            }
+        }
+        assert(0);
+    }
+}
+
+private __gshared uint locIndex = 1; // Index of start of the file
+private __gshared BaseLoc[] locFileTable;
