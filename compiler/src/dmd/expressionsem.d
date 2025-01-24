@@ -2403,7 +2403,7 @@ private bool checkPostblit(Type t, ref Loc loc, Scope* sc)
 /***************************************
  * Pull out any properties.
  */
-private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = null, BinExp saveAtts = null)
+private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = null, Type[2]* aliasThisStop = null)
 {
     //printf("resolvePropertiesX, e1 = %s %s, e2 = %s\n", EXPtoString(e1.op).ptr, e1.toChars(), e2 ? e2.toChars() : null);
     Loc loc = e1.loc;
@@ -2478,11 +2478,9 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
             if (e2)
             {
                 e = new AssignExp(loc, e, e2);
-                if (saveAtts)
-                {
-                    (cast(BinExp)e).att1 = saveAtts.att1;
-                    (cast(BinExp)e).att2 = saveAtts.att2;
-                }
+                if (aliasThisStop)
+                    return e.expressionSemantic(sc, *aliasThisStop);
+                return e.expressionSemantic(sc);
             }
             return e.expressionSemantic(sc);
         }
@@ -2584,11 +2582,8 @@ private Expression resolvePropertiesX(Scope* sc, Expression e1, Expression e2 = 
                 if (e2)
                 {
                     e = new AssignExp(loc, e, e2);
-                    if (saveAtts)
-                    {
-                        (cast(BinExp)e).att1 = saveAtts.att1;
-                        (cast(BinExp)e).att2 = saveAtts.att2;
-                    }
+                    if (aliasThisStop)
+                        return e.expressionSemantic(sc, *aliasThisStop);
                 }
                 return e.expressionSemantic(sc);
             }
@@ -3815,6 +3810,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     Scope* sc;
     Expression result;
+
+    // For binary expressions, stores recursive 'alias this' types of lhs and rhs to prevent endless loops.
+    // See tryAliasThisSemantic
+    Type[2] aliasThisStop;
 
     this(Scope* sc) scope @safe
     {
@@ -7536,7 +7535,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     override void visit(BinAssignExp exp)
     {
 
-        if (Expression e = exp.opOverloadBinaryAssign(sc))
+        if (Expression e = exp.opOverloadBinaryAssign(sc, aliasThisStop))
         {
             result = e;
             return;
@@ -10448,7 +10447,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
              * or:
              *      f() = value
              */
-            if (Expression e = resolvePropertiesX(sc, e1x, exp.e2, exp))
+            if (Expression e = resolvePropertiesX(sc, e1x, exp.e2, &aliasThisStop))
                 return setResult(e);
 
             if (e1x.checkRightThis(sc))
@@ -10832,13 +10831,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     if (!e2x.implicitConvTo(t1))
                     {
                         AggregateDeclaration ad2 = isAggregate(e2x.type);
-                        if (ad2 && ad2.aliasthis && !isRecursiveAliasThis(exp.att2, exp.e2.type))
+                        if (ad2 && ad2.aliasthis && !isRecursiveAliasThis(aliasThisStop[1], exp.e2.type))
                         {
                             /* Rewrite (e1 op e2) as:
                              *      (e1 op e2.aliasthis)
                              */
                             exp.e2 = new DotIdExp(exp.e2.loc, exp.e2, ad2.aliasthis.ident);
-                            result = exp.expressionSemantic(sc);
+                            result = exp.expressionSemantic(sc, aliasThisStop);
                             return;
                         }
                     }
@@ -10917,13 +10916,13 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 else // https://issues.dlang.org/show_bug.cgi?id=11355
                 {
                     AggregateDeclaration ad2 = isAggregate(e2x.type);
-                    if (ad2 && ad2.aliasthis && !isRecursiveAliasThis(exp.att2, exp.e2.type))
+                    if (ad2 && ad2.aliasthis && !isRecursiveAliasThis(aliasThisStop[1], exp.e2.type))
                     {
                         /* Rewrite (e1 op e2) as:
                          *      (e1 op e2.aliasthis)
                          */
                         exp.e2 = new DotIdExp(exp.e2.loc, exp.e2, ad2.aliasthis.ident);
-                        result = exp.expressionSemantic(sc);
+                        result = exp.expressionSemantic(sc, aliasThisStop);
                         return;
                     }
                 }
@@ -10964,7 +10963,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     ae.e1 = ae.e1.expressionSemantic(sc);
                     ae.e1 = ae.e1.optimize(WANTvalue);
                     ae.e2 = ev;
-                    if (Expression e = ae.opOverloadAssign(sc))
+                    if (Expression e = ae.opOverloadAssign(sc, aliasThisStop))
                     {
                         Expression ey = null;
                         if (t2.ty == Tstruct && sd == t2.toDsymbol(sc))
@@ -11014,7 +11013,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         return;
                     }
                 }
-                else if (Expression e = exp.isAssignExp().opOverloadAssign(sc))
+                else if (Expression e = exp.isAssignExp().opOverloadAssign(sc, aliasThisStop))
                 {
                     result = e;
                     return;
@@ -11034,7 +11033,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // Disallow assignment operator overloads for same type
             if (exp.op == EXP.assign && !exp.e2.implicitConvTo(exp.e1.type))
             {
-                if (Expression e = exp.isAssignExp().opOverloadAssign(sc))
+                if (Expression e = exp.isAssignExp().opOverloadAssign(sc, aliasThisStop))
                 {
                     result = e;
                     return;
@@ -11705,7 +11704,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(PowAssignExp exp)
     {
-        if (Expression e = exp.opOverloadBinaryAssign(sc))
+        if (Expression e = exp.opOverloadBinaryAssign(sc, aliasThisStop))
         {
             result = e;
             return;
@@ -11784,7 +11783,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     {
 
         //printf("CatAssignExp::semantic() %s\n", exp.toChars());
-        if (Expression e = exp.opOverloadBinaryAssign(sc))
+        if (Expression e = exp.opOverloadBinaryAssign(sc, aliasThisStop))
         {
             result = e;
             return;
@@ -11879,11 +11878,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         else
         {
     Laliasthis:
-            result = checkAliasThisForLhs(isAggregate(exp.e1.type), sc, exp);
+            result = checkAliasThisForLhs(isAggregate(exp.e1.type), sc, exp, aliasThisStop);
             if (result)
                 return;
 
-            result = checkAliasThisForRhs(isAggregate(exp.e2.type), sc, exp);
+            result = checkAliasThisForRhs(isAggregate(exp.e2.type), sc, exp, aliasThisStop);
             if (result)
                 return;
 
@@ -12036,7 +12035,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("AddExp::semantic('%s')\n", exp.toChars());
         }
 
-        if (Expression e = exp.opOverloadBinary(sc))
+        if (Expression e = exp.opOverloadBinary(sc, aliasThisStop))
         {
             result = e;
             return;
@@ -12135,7 +12134,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             printf("MinExp::semantic('%s')\n", exp.toChars());
         }
 
-        if (Expression e = exp.opOverloadBinary(sc))
+        if (Expression e = exp.opOverloadBinary(sc, aliasThisStop))
         {
             result = e;
             return;
@@ -12377,7 +12376,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     {
         // https://dlang.org/spec/expression.html#cat_expressions
         //printf("CatExp.semantic() %s\n", toChars());
-        if (Expression e = exp.opOverloadBinary(sc))
+        if (Expression e = exp.opOverloadBinary(sc, aliasThisStop))
         {
             result = e;
             return;
@@ -12549,7 +12548,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     bool commonBinOpSemantic(BinExp exp)
     {
-        if (Expression e = exp.opOverloadBinary(sc))
+        if (Expression e = exp.opOverloadBinary(sc, aliasThisStop))
         {
             result = e;
             return true;
@@ -12787,7 +12786,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     private void visitShift(BinExp exp)
     {
-        if (Expression e = exp.opOverloadBinary(sc))
+        if (Expression e = exp.opOverloadBinary(sc, aliasThisStop))
         {
             result = e;
             return;
@@ -12828,7 +12827,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     private void visitBinaryBitOp(BinExp exp)
     {
-        if (Expression e = exp.opOverloadBinary(sc))
+        if (Expression e = exp.opOverloadBinary(sc, aliasThisStop))
         {
             result = e;
             return;
@@ -12986,7 +12985,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
         }
 
-        if (auto e = exp.opOverloadCmp(sc))
+        if (auto e = exp.opOverloadCmp(sc, aliasThisStop))
         {
             result = e;
             return;
@@ -13089,7 +13088,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
     override void visit(InExp exp)
     {
-        if (Expression e = exp.opOverloadBinary(sc))
+        if (Expression e = exp.opOverloadBinary(sc, aliasThisStop))
         {
             result = e;
             return;
@@ -13253,7 +13252,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return false;
         }
 
-        if (auto e = exp.opOverloadEqual(sc))
+        if (auto e = exp.opOverloadEqual(sc, aliasThisStop))
         {
             result = e;
             return;
@@ -13728,6 +13727,32 @@ Expression trySemantic(Expression exp, Scope* sc)
     return e;
 }
 
+/**********************************
+ * Try expression semantic on `exp`, gagging semantic errors,
+ * but don't resolve alias this on a BinExp when the lhs or rhs
+ * has the corresponding type in `aliasThisStop` (See `isRecursiveAliasThis`).
+ *
+ * Params:
+ *   exp = expression to try semantic on
+ *   sc = scope
+ *   aliasThisStop = pair of recursive alias this types to stop endless recursion
+ * Returns:
+ *    exp after expression semantic, or `null` on error
+ */
+Expression trySemanticAliasThis(Expression exp, Scope* sc, Type[2] aliasThisStop)
+{
+    if (exp.expressionSemanticDone)
+        return exp;
+
+    const errors = global.startGagging();
+    Expression e = expressionSemantic(exp, sc, aliasThisStop);
+
+    if (global.endGagging(errors))
+        return null;
+
+    return e;
+}
+
 /**************************
  * Helper function for easy error propagation.
  * If error occurs, returns ErrorExp. Otherwise returns NULL.
@@ -13808,6 +13833,18 @@ Expression expressionSemantic(Expression e, Scope* sc)
         return e;
 
     scope v = new ExpressionSemanticVisitor(sc);
+    e.accept(v);
+    return v.result;
+}
+
+// ditto, but passes alias this stop types, see trySemanticAliasThis
+private Expression expressionSemantic(Expression e, Scope* sc, Type[2] aliasThisStop)
+{
+    if (e.expressionSemanticDone)
+        return e;
+
+    scope v = new ExpressionSemanticVisitor(sc);
+    v.aliasThisStop = aliasThisStop;
     e.accept(v);
     return v.result;
 }

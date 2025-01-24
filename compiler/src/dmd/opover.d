@@ -130,7 +130,7 @@ Objects* opToArg(Scope* sc, EXP op)
 }
 
 // Try alias this on first operand
-Expression checkAliasThisForLhs(AggregateDeclaration ad, Scope* sc, BinExp e)
+Expression checkAliasThisForLhs(AggregateDeclaration ad, Scope* sc, BinExp e, Type[2] aliasThisStop)
 {
     if (!ad || !ad.aliasthis)
         return null;
@@ -138,7 +138,7 @@ Expression checkAliasThisForLhs(AggregateDeclaration ad, Scope* sc, BinExp e)
     /* Rewrite (e1 op e2) as:
      *      (e1.aliasthis op e2)
      */
-    if (isRecursiveAliasThis(e.att1, e.e1.type))
+    if (isRecursiveAliasThis(aliasThisStop[0], e.e1.type))
         return null;
     //printf("att %s e1 = %s\n", Token.toChars(e.op), e.e1.type.toChars());
     BinExp be = cast(BinExp)e.copy();
@@ -149,18 +149,18 @@ Expression checkAliasThisForLhs(AggregateDeclaration ad, Scope* sc, BinExp e)
     if (!be.e1)
         return null;
 
-    return be.trySemantic(sc);
+    return be.trySemanticAliasThis(sc, aliasThisStop);
 }
 
 // Try alias this on second operand
-Expression checkAliasThisForRhs(AggregateDeclaration ad, Scope* sc, BinExp e)
+Expression checkAliasThisForRhs(AggregateDeclaration ad, Scope* sc, BinExp e, Type[2] aliasThisStop)
 {
     if (!ad || !ad.aliasthis)
         return null;
     /* Rewrite (e1 op e2) as:
      *      (e1 op e2.aliasthis)
      */
-    if (isRecursiveAliasThis(e.att2, e.e2.type))
+    if (isRecursiveAliasThis(aliasThisStop[1], e.e2.type))
         return null;
     //printf("att %s e2 = %s\n", Token.toChars(e.op), e.e2.type.toChars());
     BinExp be = cast(BinExp)e.copy();
@@ -168,7 +168,7 @@ Expression checkAliasThisForRhs(AggregateDeclaration ad, Scope* sc, BinExp e)
     if (!be.e2)
         return null;
 
-    return be.trySemantic(sc);
+    return be.trySemanticAliasThis(sc, aliasThisStop);
 }
 
 Expression opOverloadUnary(UnaExp e, Scope* sc)
@@ -483,12 +483,14 @@ Expression opOverloadCast(CastExp e, Scope* sc, Type att = null)
 
 // When no operator overload functions are found for `e`, recursively try with `alias this`
 // Returns: `null` when still no overload found, otherwise resolved lowering
-Expression binAliasThis(BinExp e, Scope* sc, AggregateDeclaration ad1, AggregateDeclaration ad2)
+Expression binAliasThis(BinExp e, Scope* sc, Type[2] aliasThisStop)
 {
+    AggregateDeclaration ad1 = isAggregate(e.e1.type);
+    AggregateDeclaration ad2 = isAggregate(e.e2.type);
     Expression rewrittenLhs;
     if (!(e.op == EXP.assign && ad2 && ad1 == ad2)) // https://issues.dlang.org/show_bug.cgi?id=2943
     {
-        if (Expression result = checkAliasThisForLhs(ad1, sc, e))
+        if (Expression result = checkAliasThisForLhs(ad1, sc, e, aliasThisStop))
         {
             /* https://issues.dlang.org/show_bug.cgi?id=19441
              *
@@ -524,7 +526,7 @@ Expression binAliasThis(BinExp e, Scope* sc, AggregateDeclaration ad1, Aggregate
     }
     if (!(e.op == EXP.assign && ad1 && ad1 == ad2)) // https://issues.dlang.org/show_bug.cgi?id=2943
     {
-        if (Expression result = checkAliasThisForRhs(ad2, sc, e))
+        if (Expression result = checkAliasThisForRhs(ad2, sc, e, aliasThisStop))
             return result;
     }
     if (rewrittenLhs)
@@ -536,7 +538,7 @@ Expression binAliasThis(BinExp e, Scope* sc, AggregateDeclaration ad1, Aggregate
     return null;
 }
 
-Expression opOverloadAssign(AssignExp e, Scope* sc)
+Expression opOverloadAssign(AssignExp e, Scope* sc, Type[2] aliasThisStop)
 {
     AggregateDeclaration ad1 = isAggregate(e.e1.type);
     AggregateDeclaration ad2 = isAggregate(e.e2.type);
@@ -560,10 +562,10 @@ Expression opOverloadAssign(AssignExp e, Scope* sc)
     if (auto result = pickBestBinaryOverload(sc, null, s, null, e, choseReverse))
         return result;
 
-    return binAliasThis(e, sc, ad1, ad2);
+    return binAliasThis(e, sc, aliasThisStop);
 }
 
-Expression opOverloadBinary(BinExp e, Scope* sc)
+Expression opOverloadBinary(BinExp e, Scope* sc, Type[2] aliasThisStop)
 {
     if (Expression err = binSemanticProp(e, sc))
         return err;
@@ -592,10 +594,10 @@ Expression opOverloadBinary(BinExp e, Scope* sc)
     if (auto res = pickBestBinaryOverload(sc, opToArg(sc, e.op), s, s_r, e, choseReverse))
         return res;
 
-    return binAliasThis(e, sc, ad1, ad2);
+    return binAliasThis(e, sc, aliasThisStop);
 }
 
-Expression opOverloadEqual(EqualExp e, Scope* sc)
+Expression opOverloadEqual(EqualExp e, Scope* sc, Type[2] aliasThisStop)
 {
     Type t1 = e.e1.type.toBasetype();
     Type t2 = e.e2.type.toBasetype();
@@ -668,7 +670,7 @@ Expression opOverloadEqual(EqualExp e, Scope* sc)
     }
 
     EXP cmpOp;
-    if (Expression result = compare_overload(e, sc, Id.opEquals, cmpOp))
+    if (Expression result = compare_overload(e, sc, Id.opEquals, cmpOp, aliasThisStop))
     {
         if (lastComma(result).op == EXP.call && e.op == EXP.notEqual)
         {
@@ -779,11 +781,11 @@ Expression opOverloadEqual(EqualExp e, Scope* sc)
     return null;
 }
 
-Expression opOverloadCmp(CmpExp exp, Scope* sc)
+Expression opOverloadCmp(CmpExp exp, Scope* sc, Type[2] aliasThisStop)
 {
     //printf("CmpExp:: () (%s)\n", e.toChars());
     EXP cmpOp = exp.op;
-    auto e = compare_overload(exp, sc, Id.opCmp, cmpOp);
+    auto e = compare_overload(exp, sc, Id.opCmp, cmpOp, aliasThisStop);
     if (!e)
         return null;
 
@@ -833,7 +835,7 @@ Expression opOverloadCmp(CmpExp exp, Scope* sc)
 /*********************************
  * Operator overloading for op=
  */
-Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc)
+Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisStop)
 {
     if (auto ae = e.e1.isArrayExp())
     {
@@ -952,11 +954,11 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc)
     if (auto res = pickBestBinaryOverload(sc, opToArg(sc, e.op), s, null, e, choseReverse))
         return res;
 
-    result = checkAliasThisForLhs(ad1, sc, e);
+    result = checkAliasThisForLhs(ad1, sc, e, aliasThisStop);
     if (result || !s) // no point in trying Rhs alias-this if there's no overload of any kind in lhs
         return result;
 
-    return checkAliasThisForRhs(isAggregate(e.e2.type), sc, e);
+    return checkAliasThisForRhs(isAggregate(e.e2.type), sc, e, aliasThisStop);
 }
 
 /**
@@ -1043,7 +1045,7 @@ private Expression pickBestBinaryOverload(Scope* sc, Objects* tiargs, Dsymbol s,
 /******************************************
  * Common code for overloading of EqualExp and CmpExp
  */
-private Expression compare_overload(BinExp e, Scope* sc, Identifier id, ref EXP cmpOp)
+private Expression compare_overload(BinExp e, Scope* sc, Identifier id, ref EXP cmpOp, Type[2] aliasThisStop)
 {
     //printf("BinExp::compare_overload(id = %s) %s\n", id.toChars(), e.toChars());
     AggregateDeclaration ad1 = isAggregate(e.e1.type);
@@ -1069,8 +1071,8 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id, ref EXP 
      */
     if ((e.op == EXP.equal || e.op == EXP.notEqual) && ad1 == ad2)
         return null;
-    Expression result = checkAliasThisForLhs(ad1, sc, e);
-    return result ? result : checkAliasThisForRhs(isAggregate(e.e2.type), sc, e);
+    Expression result = checkAliasThisForLhs(ad1, sc, e, aliasThisStop);
+    return result ? result : checkAliasThisForRhs(isAggregate(e.e2.type), sc, e, aliasThisStop);
 }
 
 /***********************************
