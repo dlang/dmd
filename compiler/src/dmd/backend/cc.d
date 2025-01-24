@@ -99,30 +99,6 @@ nothrow:
 
 import dmd.backend.dout : Srcpos_print;
 
-alias stflags_t = uint;
-enum
-{
-    PFLpreprocessor  = 1,       // in preprocessor
-    PFLmasm          = 2,       // in Microsoft-style inline assembler
-    PFLbasm          = 4,       // in Borland-style inline assembler
-    PFLsemi          = 8,       // ';' means start of comment
-//  PFLautogen       = 0x10,    // automatically generate HX ph file
-    PFLmftemp        = 0x20,    // if expanding member function template
-    PFLextdef        = 0x40,    // we had an external def
-    PFLhxwrote       = 0x80,    // already generated HX ph file
-    PFLhxdone        = 0x100,   // done with HX ph file
-
-    // if TX86
-    PFLhxread        = 0x200,   // have read in an HX ph file
-    PFLhxgen         = 0x400,   // need to generate HX ph file
-    PFLphread        = 0x800,   // read a ph file
-    PFLcomdef        = 0x1000,  // had a common block
-    PFLmacdef        = 0x2000,  // defined a macro in the source code
-    PFLsymdef        = 0x4000,  // declared a global Symbol in the source
-    PFLinclude       = 0x8000,  // read a .h file
-    PFLmfc           = 0x10000, // something will affect MFC compatibility
-}
-
 /**********************************
  * Current 'state' of the compiler.
  * Used to gather together most global variables.
@@ -137,8 +113,6 @@ struct Pstate
 
     Funcsym* STfuncsym_p;       // if inside a function, then this is the
                                 // function Symbol.
-
-    stflags_t STflags;
 }
 
 @trusted
@@ -549,23 +523,6 @@ struct func_t
     }
 }
 
-alias baseclass_flags_t = uint;
-enum
-{
-     BCFpublic     = 1,         // base class is public
-     BCFprotected  = 2,         // base class is protected
-     BCFprivate    = 4,         // base class is private
-
-     BCFvirtual    = 8,         // base class is virtual
-     BCFvfirst     = 0x10,      // virtual base class, and this is the
-                                // first virtual appearance of it
-     BCFnewvtbl    = 0x20,      // new vtbl generated for this base class
-     BCFvirtprim   = 0x40,      // Primary base class of a virtual base class
-     BCFdependent  = 0x80,      // base class is a dependent type
-}
-enum baseclass_flags_t BCFpmask = BCFpublic | BCFprotected | BCFprivate;
-
-
 /************************************
  * Base classes are a list of these.
  */
@@ -583,7 +540,6 @@ struct baseclass_t
                                         // (NULL if not different from base class's vtbl
     Symbol*           BCvtbl;           // Symbol for vtbl[] array (in Smptrbase list)
                                         // Symbol for vbtbl[] array (in Svbptrbase list)
-    baseclass_flags_t BCflags;          // base class flags
     Classsym*         BCparent;         // immediate parent of this base class
                                         //     in Smptrbase
     baseclass_t*      BCpbase;          // parent base, NULL if did not come from a parent

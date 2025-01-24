@@ -465,7 +465,6 @@ void outcommon(Symbol* s,targ_size_t n)
                 else
                     s.Sfl = FL.extern_;
                 s.Sseg = UNKNOWN;
-                pstate.STflags |= PFLcomdef;
             }
             else
                 objmod.common_block(s, 0, n, 1);
