@@ -1848,8 +1848,9 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         buf.writeByte(0);
         const str = buf.extractSlice()[0 .. len];
         const bool doUnittests = global.params.parsingUnittestsRequired();
-        auto loc = adjustLocForMixin(str, cd.loc, global.params.mixinOut);
-        scope p = new Parser!ASTCodegen(loc, sc._module, str, false, global.errorSink, &global.compileEnv, doUnittests);
+        scope p = new Parser!ASTCodegen(sc._module, str, false, global.errorSink, &global.compileEnv, doUnittests);
+        adjustLocForMixin(str, cd.loc, *p.baseLoc, global.params.mixinOut);
+        p.linnum = p.baseLoc.startLine;
         p.nextToken();
 
         auto d = p.parseDeclDefs(0);
@@ -5895,34 +5896,40 @@ private CallExp doAtomicOp (string op, Identifier var, Expression arg)
  * Set up loc for a parse of a mixin. Append the input text to the mixin.
  * Params:
  *      input = mixin text
- *      loc = location to adjust
+ *      loc = location of expansion
+ *      baseLoc = location to adjust
  *      mixinOut = sink for mixin text data
  * Returns:
  *      adjusted loc suitable for Parser
  */
 
-Loc adjustLocForMixin(const(char)[] input, ref const Loc loc, ref Output mixinOut)
+void adjustLocForMixin(const(char)[] input, Loc loc, ref BaseLoc baseLoc, ref Output mixinOut)
 {
-    Loc result;
     if (mixinOut.doOutput)
     {
         const lines = mixinOut.bufferLines;
         writeMixin(input, loc, mixinOut.bufferLines, *mixinOut.buffer);
-        result = Loc(mixinOut.name.ptr, lines + 2, loc.charnum);
+        baseLoc.startLine = lines + 2;
+        baseLoc.filename = mixinOut.name;
+        return;
     }
-    else if (loc.filename)
+
+    SourceLoc sl = SourceLoc(loc);
+    if (sl.filename.length == 0)
     {
-        /* Create a pseudo-filename for the mixin string, as it may not even exist
-         * in the source file.
-         */
-        auto len = strlen(loc.filename) + 7 + (loc.linnum).sizeof * 3 + 1;
-        char* filename = cast(char*)mem.xmalloc(len);
-        snprintf(filename, len, "%s-mixin-%d", loc.filename, cast(int)loc.linnum);
-        result = Loc(filename, loc.linnum, loc.charnum);
+        // Rare case of compiler-generated mixin exp, e.g. __xtoHash
+        baseLoc.filename = "";
+        return;
     }
-    else
-        result = loc;
-    return result;
+
+    /* Create a pseudo-filename for the mixin string, as it may not even exist
+     * in the source file.
+     */
+    auto len = sl.filename.length + 7 + (sl.linnum).sizeof * 3 + 1;
+    char* filename = cast(char*) mem.xmalloc(len);
+    snprintf(filename, len, "%.*s-mixin-%d", cast(int) sl.filename.length, sl.filename.ptr, cast(int) sl.linnum);
+    baseLoc.startLine = sl.line;
+    baseLoc.filename = filename.toDString;
 }
 
 /**************************************
