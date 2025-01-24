@@ -232,7 +232,6 @@ immutable Msgtable[] msgtable =
     { "opSliceAssign" },
     { "opCall" },
     { "opCast" },
-    { "opDot" },
     { "opDispatch" },
     { "opDollar" },
     { "opUnary" },

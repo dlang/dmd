@@ -4883,7 +4883,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
 
     /***************************************
      * `ident` was not found as a member of `mt`.
-     * Attempt to use overloaded opDot(), overloaded opDispatch(), or `alias this`.
+     * Attempt to use overloaded opDispatch() or `alias this`.
      * If that fails, forward to visitType().
      * Params:
      *  mt = class or struct
@@ -4939,21 +4939,6 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
             ident != Id.postblit &&
             ident != Id.__xpostblit)
         {
-            /* Look for overloaded opDot() to see if we should forward request
-             * to it.
-             */
-            if (auto fd = search_function(sym, Id.opDot))
-            {
-                /* Rewrite e.ident as:
-                 *  e.opDot().ident
-                 */
-                e = build_overload(e.loc, sc, e, null, fd);
-                // @@@DEPRECATED_2.110@@@.
-                // Deprecated in 2.082, made an error in 2.100.
-                error(e.loc, "`opDot` is obsolete. Use `alias this`");
-                return ErrorExp.get();
-            }
-
             /* Look for overloaded opDispatch to see if we should forward request
              * to it.
              */

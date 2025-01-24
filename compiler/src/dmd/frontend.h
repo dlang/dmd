@@ -8828,7 +8828,6 @@ struct Id final
     static Identifier* opSliceAssign;
     static Identifier* opCall;
     static Identifier* opCast;
-    static Identifier* opDot;
     static Identifier* opDispatch;
     static Identifier* opDollar;
     static Identifier* opUnary;
