@@ -1080,13 +1080,13 @@ string mangleSpecialName(Dsymbol sym)
         mangle = "?1";
     else if (!sym.ident)
         return null;
-    else if (sym.ident == Id.assign)
+    else if (sym.ident == Id.opAssign)
         mangle = "?4";
-    else if (sym.ident == Id.eq)
+    else if (sym.ident == Id.opEquals)
         mangle = "?8";
-    else if (sym.ident == Id.index)
+    else if (sym.ident == Id.opIndex)
         mangle = "?A";
-    else if (sym.ident == Id.call)
+    else if (sym.ident == Id.opCall)
         mangle = "?R";
     else if (sym.ident == Id.cppdtor)
         mangle = "?_G";

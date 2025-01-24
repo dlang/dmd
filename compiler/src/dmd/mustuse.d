@@ -111,10 +111,10 @@ private bool isAssignmentOpId(Identifier id)
 {
     import dmd.id : Id;
 
-    return id == Id.assign
-        || id == Id.indexass
-        || id == Id.slice
-        || id == Id.sliceass
+    return id == Id.opAssign
+        || id == Id.opIndexAssign
+        || id == Id.opSlice
+        || id == Id.opSliceAssign
         || id == Id.opOpAssign
         || id == Id.opIndexOpAssign
         || id == Id.opSliceOpAssign;
