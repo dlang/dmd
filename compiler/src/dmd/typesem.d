@@ -2025,7 +2025,7 @@ Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             }
             else if (sd.xeq == sd.xerreq)
             {
-                if (search_function(sd, Id.eq))
+                if (search_function(sd, Id.opEquals))
                 {
                     .error(loc, "%sAA key type `%s` does not have `bool opEquals(ref const %s) const`", s, sd.toChars(), sd.toChars());
                 }
@@ -2037,7 +2037,7 @@ Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             }
             else if (!sd.xhash)
             {
-                if (search_function(sd, Id.eq))
+                if (search_function(sd, Id.opEquals))
                 {
                     .error(loc, "%sAA key type `%s` should have `extern (D) size_t toHash() const nothrow @safe` if `opEquals` defined", s, sd.toChars());
                 }
@@ -2075,9 +2075,9 @@ Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
             __gshared FuncDeclaration fcmp = null;
             __gshared FuncDeclaration fhash = null;
             if (!feq)
-                feq = search_function(ClassDeclaration.object, Id.eq).isFuncDeclaration();
+                feq = search_function(ClassDeclaration.object, Id.opEquals).isFuncDeclaration();
             if (!fcmp)
-                fcmp = search_function(ClassDeclaration.object, Id.cmp).isFuncDeclaration();
+                fcmp = search_function(ClassDeclaration.object, Id.opCmp).isFuncDeclaration();
             if (!fhash)
                 fhash = search_function(ClassDeclaration.object, Id.tohash).isFuncDeclaration();
             assert(fcmp && feq && fhash);
@@ -3417,7 +3417,7 @@ Expression getProperty(Type t, Scope* scope_, const ref Loc loc, Identifier iden
 
         if (s)
             error(loc, "no property `%s` for type `%s`, did you mean `%s`?", ident.toChars(), mt.toChars(), s.toPrettyChars());
-        else if (ident == Id.call && mt.ty == Tclass)
+        else if (ident == Id.opCall && mt.ty == Tclass)
             error(loc, "no property `%s` for type `%s`, did you mean `new %s`?", ident.toChars(), mt.toChars(), mt.toPrettyChars());
 
         else if (const n = importHint(ident.toString()))

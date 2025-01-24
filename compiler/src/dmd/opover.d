@@ -355,7 +355,7 @@ Expression opOverloadArray(ArrayExp ae, Scope* sc)
             }
             break;
         }
-        if (search_function(ad, Id.index))
+        if (search_function(ad, Id.opIndex))
         {
             // Deal with $
             result = resolveOpDollar(sc, ae, &e0);
@@ -367,7 +367,7 @@ Expression opOverloadArray(ArrayExp ae, Scope* sc)
              *      e1.opIndex(arguments)
              */
             Expressions* a = ae.arguments.copy();
-            result = new DotIdExp(ae.loc, ae.e1, Id.index);
+            result = new DotIdExp(ae.loc, ae.e1, Id.opIndex);
             result = new CallExp(ae.loc, result, a);
             if (maybeSlice) // a[] might be: a.opSlice()
                 result = result.trySemantic(sc);
@@ -386,7 +386,7 @@ Expression opOverloadArray(ArrayExp ae, Scope* sc)
             result = Expression.combine(e0, result);
             return result;
         }
-        if (maybeSlice && search_function(ad, Id.slice))
+        if (maybeSlice && search_function(ad, Id.opSlice))
         {
             // Deal with $
             result = resolveOpDollar(sc, ae, ie, &e0);
@@ -407,7 +407,7 @@ Expression opOverloadArray(ArrayExp ae, Scope* sc)
                 a.push(ie.lwr);
                 a.push(ie.upr);
             }
-            result = new DotIdExp(ae.loc, ae.e1, Id.slice);
+            result = new DotIdExp(ae.loc, ae.e1, Id.opSlice);
             result = new CallExp(ae.loc, result, a);
             result = result.expressionSemantic(sc);
             result = Expression.combine(e0, result);
@@ -444,7 +444,7 @@ Expression opOverloadCast(CastExp e, Scope* sc, Type att = null)
         /* Rewrite as:
             *      e1.opCast!(T)()
             */
-        fd = search_function(ad, Id._cast);
+        fd = search_function(ad, Id.opCast);
         if (fd)
         {
             version (all)
@@ -554,7 +554,7 @@ Expression opOverloadAssign(AssignExp e, Scope* sc)
             return null;
         }
     }
-    Dsymbol s = search_function(ad1, Id.assign);
+    Dsymbol s = search_function(ad1, Id.opAssign);
 
     bool choseReverse;
     if (auto result = pickBestBinaryOverload(sc, null, s, null, e, choseReverse))
@@ -658,7 +658,7 @@ Expression opOverloadEqual(EqualExp e, Scope* sc)
 
             Expression result = new IdentifierExp(e.loc, Id.empty);
             result = new DotIdExp(e.loc, result, Id.object);
-            result = new DotIdExp(e.loc, result, Id.eq);
+            result = new DotIdExp(e.loc, result, Id.opEquals);
             result = new CallExp(e.loc, result, e1x, e2x);
             if (e.op == EXP.notEqual)
                 result = new NotExp(e.loc, result);
@@ -668,7 +668,7 @@ Expression opOverloadEqual(EqualExp e, Scope* sc)
     }
 
     EXP cmpOp;
-    if (Expression result = compare_overload(e, sc, Id.eq, cmpOp))
+    if (Expression result = compare_overload(e, sc, Id.opEquals, cmpOp))
     {
         if (lastComma(result).op == EXP.call && e.op == EXP.notEqual)
         {
@@ -783,7 +783,7 @@ Expression opOverloadCmp(CmpExp exp, Scope* sc)
 {
     //printf("CmpExp:: () (%s)\n", e.toChars());
     EXP cmpOp = exp.op;
-    auto e = compare_overload(exp, sc, Id.cmp, cmpOp);
+    auto e = compare_overload(exp, sc, Id.opCmp, cmpOp);
     if (!e)
         return null;
 

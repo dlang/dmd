@@ -663,7 +663,7 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
     assert(!ae.lengthVar);
     *pe0 = null;
     AggregateDeclaration ad = isAggregate(ae.e1.type);
-    Dsymbol slice = search_function(ad, Id.slice);
+    Dsymbol slice = search_function(ad, Id.opSlice);
     //printf("slice = %s %s\n", slice.kind(), slice.toChars());
     Expression fallback()
     {
@@ -6206,7 +6206,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     return;
                 }
                 // No constructor, look for overload of opCall
-                if (search_function(sd, Id.call))
+                if (search_function(sd, Id.opCall))
                     goto L1;
                 // overload of opCall, therefore it's a call
                 if (exp.e1.op != EXP.type)
@@ -6247,7 +6247,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
             L1:
                 // Rewrite as e1.call(arguments)
-                Expression e = new DotIdExp(exp.loc, exp.e1, Id.call);
+                Expression e = new DotIdExp(exp.loc, exp.e1, Id.opCall);
                 e = new CallExp(exp.loc, e, exp.arguments, exp.names);
                 e = e.expressionSemantic(sc);
                 result = e;
@@ -7933,7 +7933,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 {
                     const callExpIdent = callExpFunc.ident;
                     isEqualsCallExpression = callExpIdent == Id.__equals ||
-                                             callExpIdent == Id.eq;
+                                             callExpIdent == Id.opEquals;
                 }
             }
             if (op == EXP.equal || op == EXP.notEqual ||
@@ -9451,8 +9451,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 error(exp.loc, "upper and lower bounds are needed to slice a pointer");
                 if (auto ad = isAggregate(tp.next.toBasetype()))
                 {
-                    auto s = search_function(ad, Id.index);
-                    if (!s) s = search_function(ad, Id.slice);
+                    auto s = search_function(ad, Id.opIndex);
+                    if (!s) s = search_function(ad, Id.opSlice);
                     if (s)
                     {
                         auto fd = s.isFuncDeclaration();
@@ -10305,7 +10305,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 AggregateDeclaration ad = isAggregate(t1b);
                 if (!ad)
                     break;
-                if (search_function(ad, Id.indexass))
+                if (search_function(ad, Id.opIndexAssign))
                 {
                     // Deal with $
                     res = resolveOpDollar(sc, ae, &e0);
@@ -10324,7 +10324,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                      */
                     Expressions* a = ae.arguments.copy();
                     a.insert(0, exp.e2);
-                    res = new DotIdExp(exp.loc, ae.e1, Id.indexass);
+                    res = new DotIdExp(exp.loc, ae.e1, Id.opIndexAssign);
                     res = new CallExp(exp.loc, res, a);
                     if (maybeSlice) // a[] = e2 might be: a.opSliceAssign(e2)
                         res = res.trySemantic(sc);
@@ -10335,7 +10335,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 }
 
             Lfallback:
-                if (maybeSlice && search_function(ad, Id.sliceass))
+                if (maybeSlice && search_function(ad, Id.opSliceAssign))
                 {
                     // Deal with $
                     res = resolveOpDollar(sc, ae, ie, &e0);
@@ -10358,7 +10358,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         a.push(ie.lwr);
                         a.push(ie.upr);
                     }
-                    res = new DotIdExp(exp.loc, ae.e1, Id.sliceass);
+                    res = new DotIdExp(exp.loc, ae.e1, Id.opSliceAssign);
                     res = new CallExp(exp.loc, res, a);
                     res = res.expressionSemantic(sc);
                     return setResult(Expression.combine(e0, res));
@@ -10893,14 +10893,14 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         result = e;
                         return;
                     }
-                    if (search_function(sd, Id.call))
+                    if (search_function(sd, Id.opCall))
                     {
                         /* Look for static opCall
                          * https://issues.dlang.org/show_bug.cgi?id=2702
                          * Rewrite as:
                          *  e1 = typeof(e1).opCall(arguments)
                          */
-                        e2x = typeDotIdExp(e2x.loc, e1x.type, Id.call);
+                        e2x = typeDotIdExp(e2x.loc, e1x.type, Id.opCall);
                         e2x = new CallExp(exp.loc, e2x, exp.e2);
 
                         e2x = e2x.expressionSemantic(sc);
@@ -11410,7 +11410,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (e2x.op == EXP.error && exp.op == EXP.construct && t1.ty == Tstruct)
                 {
                     scope sd = (cast(TypeStruct)t1).sym;
-                    Dsymbol opAssign = search_function(sd, Id.assign);
+                    Dsymbol opAssign = search_function(sd, Id.opAssign);
 
                     // and the struct defines an opAssign
                     if (opAssign)
@@ -16359,7 +16359,7 @@ Expression toBoolean(Expression exp, Scope* sc)
                     /* Don't really need to check for opCast first, but by doing so we
                      * get better error messages if it isn't there.
                      */
-                    if (Dsymbol fd = search_function(ad, Id._cast))
+                    if (Dsymbol fd = search_function(ad, Id.opCast))
                     {
                         e = new CastExp(exp.loc, e, Type.tbool);
                         e = e.expressionSemantic(sc);
