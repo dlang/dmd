@@ -2947,8 +2947,6 @@ extern (C++) abstract class BinExp : Expression
 {
     Expression e1;
     Expression e2;
-    Type att1;      // Save alias this type to detect recursion
-    Type att2;      // Save alias this type to detect recursion
 
     extern (D) this(const ref Loc loc, EXP op, Expression e1, Expression e2) scope @safe
     {
