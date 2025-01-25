@@ -343,6 +343,7 @@ DOCS=\
 	\
 	$(DOCDIR)\core_sys_windows_aclapi.html \
 	$(DOCDIR)\core_sys_windows_basetsd.html \
+	$(DOCDIR)\core_sys_windows_bcrypt.html \
 	$(DOCDIR)\core_sys_windows_cderr.html \
 	$(DOCDIR)\core_sys_windows_com.html \
 	$(DOCDIR)\core_sys_windows_core.html \

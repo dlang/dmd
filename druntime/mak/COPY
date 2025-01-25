@@ -388,6 +388,7 @@ COPY=\
 	$(IMPDIR)\core\sys\windows\aclui.d \
 	$(IMPDIR)\core\sys\windows\basetsd.d \
 	$(IMPDIR)\core\sys\windows\basetyps.d \
+	$(IMPDIR)\core\sys\windows\bcrypt.d \
 	$(IMPDIR)\core\sys\windows\cderr.d \
 	$(IMPDIR)\core\sys\windows\cguid.d \
 	$(IMPDIR)\core\sys\windows\com.d \

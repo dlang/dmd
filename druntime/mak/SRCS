@@ -382,6 +382,7 @@ SRCS=\
 	src\core\sys\windows\aclui.d \
 	src\core\sys\windows\basetsd.d \
 	src\core\sys\windows\basetyps.d \
+	src\core\sys\windows\bcrypt.d \
 	src\core\sys\windows\cderr.d \
 	src\core\sys\windows\cguid.d \
 	src\core\sys\windows\com.d \
