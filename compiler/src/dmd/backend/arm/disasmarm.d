@@ -1857,12 +1857,21 @@ void disassemble(uint c) @trusted
         uint Rd     = field(ins, 4, 0);
         //printf("ins:%08x Q:%d U:%d size:%d opcode:%x Rn:%d Rd:%d\n", ins, Q, U, size, opcode, Rn, Rd);
 
-        if (U == 1 && opcode == 3)
+        immutable string[8] sizeQ = ["8b","16b","4h","8h","","4s","",""];
+
+        if (U == 0 && opcode == 0x1B)   // https://www.scs.stanford.edu/~zyedidia/arm64/addv_advsimd.html
+        {
+            p1 = "addv";
+            p2 = fregString(rbuf[0 .. 4], "bhs "[size], Rd);
+
+            uint n = snprintf(buf.ptr, cast(uint)buf.length, "v%d.%s", Rn, sizeQ[size * 2 + Q].ptr);
+            p3 = buf[0 .. n];
+        }
+        else if (U == 1 && opcode == 3) // https://www.scs.stanford.edu/~zyedidia/arm64/uaddlv_advsimd.html
         {
             p1 = "uaddlv";
             p2 = fregString(rbuf[0 .. 4], "hsd "[size], Rd);
 
-            immutable string[8] sizeQ = ["8b","16b","4h","8h","","4s","",""];
             uint n = snprintf(buf.ptr, cast(uint)buf.length, "v%d.%s", Rn, sizeQ[size * 2 + Q].ptr);
             p3 = buf[0 .. n];
         }
@@ -2759,8 +2768,9 @@ unittest
 unittest
 {
     int line64 = __LINE__;
-    string[65] cases64 =      // 64 bit code gen
+    string[66] cases64 =      // 64 bit code gen
     [
+        "0E 31 BB FF         addv   b31,v31.8b",
         "2E 30 38 00         uaddlv h0,v0.8b",
         "0E 20 58 00         cnt    v0.8b,v0.8b",
         "1E 27 01 00         fmov   s0,w8",
