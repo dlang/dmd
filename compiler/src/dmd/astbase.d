@@ -3406,7 +3406,7 @@ struct ASTBase
             return null;
         }
 
-        final pure inout nothrow @nogc @safe
+        final pure inout nothrow @nogc @trusted
         {
             inout(TypeError)      isTypeError()      { return ty == Terror     ? cast(typeof(return))this : null; }
             inout(TypeVector)     isTypeVector()     { return ty == Tvector    ? cast(typeof(return))this : null; }
@@ -4580,7 +4580,7 @@ struct ASTBase
             return DYNCAST.expression;
         }
 
-        final pure inout nothrow @nogc @safe
+        final pure inout nothrow @nogc @trusted
         {
             inout(IntegerExp)   isIntegerExp() { return op == EXP.int64 ? cast(typeof(return))this : null; }
             inout(ErrorExp)     isErrorExp() { return op == EXP.error ? cast(typeof(return))this : null; }
