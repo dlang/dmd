@@ -2206,8 +2206,28 @@ public:
     Type* type;
     Loc loc;
     const EXP op;
-    bool parens;
-    bool rvalue;
+    struct BitFields final
+    {
+        bool parens;
+        bool rvalue;
+        BitFields() :
+            parens(),
+            rvalue()
+        {
+        }
+        BitFields(bool parens, bool rvalue = false) :
+            parens(parens),
+            rvalue(rvalue)
+            {}
+    };
+
+    bool parens() const;
+    bool parens(bool v);
+    bool rvalue() const;
+    bool rvalue(bool v);
+private:
+    uint8_t bitFields;
+public:
     size_t size() const;
     static void _init();
     static void deinitialize();
@@ -3450,6 +3470,34 @@ public:
 class StructLiteralExp final : public Expression
 {
 public:
+    struct BitFields final
+    {
+        bool useStaticInit;
+        bool isOriginal;
+        OwnedBy ownedByCtfe;
+        BitFields() :
+            useStaticInit(),
+            isOriginal(false),
+            ownedByCtfe((OwnedBy)0u)
+        {
+        }
+        BitFields(bool useStaticInit, bool isOriginal = false, OwnedBy ownedByCtfe = (OwnedBy)0u) :
+            useStaticInit(useStaticInit),
+            isOriginal(isOriginal),
+            ownedByCtfe(ownedByCtfe)
+            {}
+    };
+
+    bool useStaticInit() const;
+    bool useStaticInit(bool v);
+    bool isOriginal() const;
+    bool isOriginal(bool v);
+    OwnedBy ownedByCtfe() const;
+    OwnedBy ownedByCtfe(OwnedBy v);
+private:
+    uint8_t bitFields;
+public:
+    StageFlags stageflags;
     StructDeclaration* sd;
     Array<Expression* >* elements;
     Type* stype;
@@ -3470,10 +3518,6 @@ public:
         toCBuffer = 32u,
     };
 
-    StageFlags stageflags;
-    bool useStaticInit;
-    bool isOriginal;
-    OwnedBy ownedByCtfe;
     static StructLiteralExp* create(const Loc& loc, StructDeclaration* sd, void* elements, Type* stype = nullptr);
     bool equals(const RootObject* const o) const override;
     StructLiteralExp* syntaxCopy() override;
@@ -5358,18 +5402,18 @@ struct UnionExp final
 private:
     union _AnonStruct_u
     {
-        char exp[31LLU];
+        char exp[30LLU];
         char integerexp[40LLU];
-        char errorexp[31LLU];
+        char errorexp[30LLU];
         char realexp[48LLU];
         char complexexp[64LLU];
         char symoffexp[64LLU];
-        char stringexp[59LLU];
-        char arrayliteralexp[56LLU];
+        char stringexp[51LLU];
+        char arrayliteralexp[48LLU];
         char assocarrayliteralexp[56LLU];
-        char structliteralexp[76LLU];
+        char structliteralexp[72LLU];
         char compoundliteralexp[40LLU];
-        char nullexp[31LLU];
+        char nullexp[30LLU];
         char dotvarexp[49LLU];
         char addrexp[40LLU];
         char indexexp[58LLU];

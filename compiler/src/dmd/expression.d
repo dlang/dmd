@@ -301,8 +301,14 @@ extern (C++) abstract class Expression : ASTNode
 
     Loc loc;        // file location
     const EXP op;   // to minimize use of dynamic_cast
-    bool parens;    // if this is a parenthesized expression
-    bool rvalue;    // true if this is considered to be an rvalue, even if it is an lvalue
+
+    static struct BitFields
+    {
+        bool parens;    // if this is a parenthesized expression
+        bool rvalue;    // true if this is considered to be an rvalue, even if it is an lvalue
+    }
+    import dmd.common.bitfields;
+    mixin(generateBitFields!(BitFields, ubyte));
 
     extern (D) this(const ref Loc loc, EXP op) scope @safe
     {
@@ -2126,6 +2132,16 @@ extern (C++) final class AssocArrayLiteralExp : Expression
  */
 extern (C++) final class StructLiteralExp : Expression
 {
+    struct BitFields
+    {
+        bool useStaticInit;     /// if this is true, use the StructDeclaration's init symbol
+        bool isOriginal = false; /// used when moving instances to indicate `this is this.origin`
+        OwnedBy ownedByCtfe = OwnedBy.code;
+    }
+    import dmd.common.bitfields;
+    mixin(generateBitFields!(BitFields, ubyte));
+    StageFlags stageflags;
+
     StructDeclaration sd;   /// which aggregate this is for
     Expressions* elements;  /// parallels sd.fields[] with null entries for fields to skip
     Type stype;             /// final type of result (can be different from sd's type)
@@ -2163,11 +2179,6 @@ extern (C++) final class StructLiteralExp : Expression
         inlineScan        = 0x10, /// inlineScan is running
         toCBuffer         = 0x20 /// toCBuffer is running
     }
-    StageFlags stageflags;
-
-    bool useStaticInit;     /// if this is true, use the StructDeclaration's init symbol
-    bool isOriginal = false; /// used when moving instances to indicate `this is this.origin`
-    OwnedBy ownedByCtfe = OwnedBy.code;
 
     extern (D) this(const ref Loc loc, StructDeclaration sd, Expressions* elements, Type stype = null) @safe
     {
