@@ -32,7 +32,7 @@ extern (C) alias SetFinalizeCounter = void function(shared(size_t*));
 
 void main(string[] args)
 {
-    import utils : dllExt, loadSym;
+    import utils : dllExt, isDlcloseNoop, loadSym;
 
     auto name = args[0] ~ '\0';
     const pathlen = strrchr(name.ptr, '/') - name.ptr + 1;
@@ -57,11 +57,7 @@ void main(string[] args)
     auto r = Runtime.unloadLibrary(h);
     if (!r)
         assert(0);
-    version (CRuntime_Musl)
-    {
-        // On Musl, dlclose is a no-op
-    }
-    else
+    static if (!isDlcloseNoop)
     {
         if (finalizeCounter != 4)
             assert(0);

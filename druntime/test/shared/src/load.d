@@ -130,16 +130,12 @@ void main(string[] args)
 {
     auto name = args[0] ~ '\0';
     const pathlen = strrchr(name.ptr, '/') - name.ptr + 1;
-    import utils : dllExt;
+    import utils : dllExt, isDlcloseNoop;
     name = name[0 .. pathlen] ~ "lib." ~ dllExt;
 
     runTests(name);
 
-    version (CRuntime_Musl)
-    {
-        // On Musl, dlclose is a no-op
-    }
-    else
+    static if (!isDlcloseNoop)
     {
         // lib is no longer resident
         name ~= '\0';
