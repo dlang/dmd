@@ -78,7 +78,7 @@ enum {
 
 pragma(inline, true)
 void BCRYPT_INIT_AUTH_MODE_INFO(ref BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO _AUTH_INFO_STRUCT_) @nogc nothrow pure @safe {
-	RtlZeroMemory(&_AUTH_INFO_STRUCT_, _AUTH_INFO_STRUCT_.sizeof);
+	(() @trusted => RtlZeroMemory(&_AUTH_INFO_STRUCT_, _AUTH_INFO_STRUCT_.sizeof))();
 	_AUTH_INFO_STRUCT_.cbSize = _AUTH_INFO_STRUCT_.sizeof;
 	_AUTH_INFO_STRUCT_.dwInfoVersion = BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO_VERSION;
 }
