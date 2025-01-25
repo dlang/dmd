@@ -1931,7 +1931,7 @@ alias daz = foo;
 static assert(__traits(isSame, foo, daz));
 ---
 )
-        $(P isSame will also match template symbols as well as types.)
+        $(P isSame matches against non-instantiated templates.)
 
 $(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
