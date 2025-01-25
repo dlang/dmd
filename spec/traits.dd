@@ -1950,9 +1950,9 @@ struct Point(T){
 
 enum isFooOrBar(alias FB) = __traits(isSame, FB, Foo) || __traits(isSame, FB, Bar);
 
-static assert(isFooOrBar!(Foo));//true
-static assert(isFooOrBar!(Bar));//true
-static assert(isFooOrBar!(Point));//false
+static assert(isFooOrBar!(Foo));
+static assert(isFooOrBar!(Bar));
+static assert(!isFooOrBar!(Point));
 ---
 )
 
