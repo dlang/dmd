@@ -1931,6 +1931,30 @@ alias daz = foo;
 static assert(__traits(isSame, foo, daz));
 ---
 )
+        $(P isSame will also match template symbols as well as types.)
+
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
+---
+struct Foo(T){
+    T x;
+}
+
+struct Bar(T){
+    T x;
+}
+
+struct Point(T){
+    T x;
+    T y;
+}
+
+enum isFooOrBar(alias FB) = __traits(isSame, FB, Foo) || __traits(isSame, FB, Bar);
+
+static assert(isFooOrBar!(Foo));//true
+static assert(isFooOrBar!(Bar));//true
+static assert(isFooOrBar!(Point));//false
+---
+)
 
         $(P The result is `true` if the two arguments are expressions
         made up of literals or enums that evaluate to the same value.)
