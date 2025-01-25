@@ -33,7 +33,7 @@ void InitializeObjectAttributes(OBJECT_ATTRIBUTES* p, UNICODE_STRING* n,
     }
 }
 
-bool NT_SUCCESS(int x) { return x >= 0; }
+pragma(inline, true) bool NT_SUCCESS(NTSTATUS x) @safe pure nothrow @nogc { return x >= 0; }
 
 /*  In MinGW, NTSTATUS, UNICODE_STRING, STRING and their associated pointer
  *  type aliases are defined in ntdef.h, ntsecapi.h and subauth.h, each of
