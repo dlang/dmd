@@ -1801,16 +1801,25 @@ void disassemble(uint c) @trusted
     // Advanced SIMD scalar three same extra https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdsame2
 
     // Advanced SIMD two-register miscellaneous http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdmisc
-    if (field(ins,31,30) == 1 && field(ins,28,24) == 0x1E && field(ins,21,17) == 0x10 && field(ins,11,10) == 2)
+    if (field(ins,31,31) == 0 && field(ins,28,24) == 0x0E && field(ins,21,17) == 0x10 && field(ins,11,10) == 2)
     {
         url = "asisdmisc";
+        uint Q      = field(ins,30,30);
         uint U      = field(ins,29,29);
         uint size   = field(ins,23,22);
         uint opcode = field(ins,16,12);
         uint Rn     = field(ins, 9, 5);
         uint Rd     = field(ins, 4, 0);
+        //printf("ins:%08x Q:%d U:%d size:%d opcode:%x Rn:%d Rd:%d\n", ins, Q, U, size, opcode, Rn, Rd);
 
-        if (U == 0 && (size & 2) && opcode == 0x1B)
+        if (U == 0 && size == 0 && opcode == 0x05)      // https://www.scs.stanford.edu/~zyedidia/arm64/cnt_advsimd.html
+        {
+            p1 = "cnt";                                 // cnt <Vd>.<T>, <Vn>.<T>
+            p2 = vregString(rbuf[0 ..  7], Rd, Q);
+            p3 = vregString(rbuf[8 .. 14], Rn, Q);
+            //printf("p2: %.*s p3: %.*s\n", cast(int)p2.length, p2.ptr, cast(int)p3.length, p3.ptr);
+        }
+        else if (U == 0 && (size & 2) && opcode == 0x1B) // https://www.scs.stanford.edu/~zyedidia/arm64/fcvtzs_advsimd_int.html
         {
             p1 = "fcvtzs";
             p2 = fregString(rbuf[0 .. 4],"sd h"[size & 1],Rd);
@@ -1833,6 +1842,33 @@ void disassemble(uint c) @trusted
     // Advanced SIMD three-register extension https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdsame2
     // Advanced SIMD two-register miscellaneous https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdmisc
     // Advanced SIMD across lanes https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdall
+    if (field(ins,31,31) == 0 &&
+        field(ins,28,24) == 0x0E &&
+        field(ins,21,17) == 0x18 &&
+        field(ins,11,10) == 2)
+    {
+        url = "asimdall";
+
+        uint Q      = field(ins,30,30);
+        uint U      = field(ins,29,29);
+        uint size   = field(ins,23,22);
+        uint opcode = field(ins,16,12);
+        uint Rn     = field(ins, 9, 5);
+        uint Rd     = field(ins, 4, 0);
+        //printf("ins:%08x Q:%d U:%d size:%d opcode:%x Rn:%d Rd:%d\n", ins, Q, U, size, opcode, Rn, Rd);
+
+        if (U == 1 && opcode == 3)
+        {
+            p1 = "uaddlv";
+            p2 = fregString(rbuf[0 .. 4], "hsd "[size], Rd);
+
+            immutable string[8] sizeQ = ["8b","16b","4h","8h","","4s","",""];
+            uint n = snprintf(buf.ptr, cast(uint)buf.length, "v%d.%s", Rn, sizeQ[size * 2 + Q].ptr);
+            p3 = buf[0 .. n];
+        }
+    }
+    else
+
     // Advanced SIMD three different https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimddiff
     // Advanced SIMD three same https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdsame
     // Advanced SIMD modified immediate https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdimm
@@ -1844,6 +1880,24 @@ void disassemble(uint c) @trusted
     // XAR https://www.scs.stanford.edu/~zyedidia/arm64/xar_advsimd.html
     // Cryptographic two-regsiter SHA 512 https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#cryptosha512_2
     // Conversion between floating-point and fixed-point https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#float2fix
+    if (field(ins,30,30) == 0 &&
+        field(ins,28,24) == 0x1E &&
+        field(ins,21,21) == 0 &&
+        field(ins,15,10) == 0)
+    {
+        url = "float2fix";
+
+        uint sf     = field(ins,31,31);
+        uint S      = field(ins,29,29);
+        uint ftype  = field(ins,23,22);
+        uint rmode  = field(ins,20,19);
+        uint opcode = field(ins,18,16);
+        uint scale  = field(ins,15,10);
+        uint Rn     = field(ins, 9, 5);
+        uint Rd     = field(ins, 4, 0);
+        printf("sf:%d S:%d ftype:%d rmode:%d opcode:%d scale:%d Rn:%d Rd:%d\n", sf, S, ftype, rmode, opcode, scale, Rn, Rd);
+    }
+    else
 
     // Conversion between floating-point and integer http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#float2int
     if (field(ins,30,30) == 0 &&
@@ -1860,12 +1914,28 @@ void disassemble(uint c) @trusted
         uint opcode = field(ins,18,16);
         uint Rn     = field(ins, 9, 5);
         uint Rd     = field(ins, 4, 0);
+        //printf("sf:%d S:%d ftype:%d rmode:%d opcode:%d Rn:%d Rd:%d\n", sf, S, ftype, rmode, opcode, Rn, Rd);
 
-        if (S == 0 && rmode == 3 && opcode == 0)
+        if (S == 0)
         {
-            p1 = "fcvtzs";
-            p2 = regString(sf,Rd);
-            p3 = fregString(rbuf[4 .. 8],"sd h"[ftype],Rn);
+            p1 = "fmov";
+
+            if (sf == 0 && ftype == 0 && rmode == 0 && opcode == 7)
+            {
+                p2 = fregString(rbuf[4 .. 8],"sd h"[ftype],Rd);
+                p3 = regString(sf,Rn);
+            }
+            else if (sf == 0 && ftype == 0 && rmode == 0 && opcode == 6)
+            {
+                p2 = regString(sf,Rd);
+                p3 = fregString(rbuf[4 .. 8],"sd h"[ftype],Rn);
+            }
+            else if (rmode == 3 && opcode == 0)
+            {
+                p1 = "fcvtzs";
+                p2 = regString(sf,Rd);
+                p3 = fregString(rbuf[4 .. 8],"sd h"[ftype],Rn);
+            }
         }
     }
     else
@@ -2461,6 +2531,14 @@ const(char)[] fregString(char[] buf, char c, uint reg)
     return buf[0 .. n];
 }
 
+@trusted
+pragma(inline, false)
+const(char)[] vregString(char[] buf, uint Q, uint reg)
+{
+    uint n = snprintf(buf.ptr, cast(uint)buf.length, "v%d.%db", reg, 8 * (Q + 1));
+    return buf[0 .. n];
+}
+
 /******************************
  * Extract fields from instruction in manner lifted from spec.
  * Params:
@@ -2681,10 +2759,14 @@ unittest
 unittest
 {
     int line64 = __LINE__;
-    string[62] cases64 =      // 64 bit code gen
+    string[65] cases64 =      // 64 bit code gen
     [
+        "2E 30 38 00         uaddlv h0,v0.8b",
+        "0E 20 58 00         cnt    v0.8b,v0.8b",
+        "1E 27 01 00         fmov   s0,w8",
+        "1E 26 00 00         fmov   w0,s0",
         "1E 78 03 E0         fcvtzs w0,d31",
-        "5E A1 BB FF         fcvtzs s31,s31",
+        //"5E A1 BB FF         fcvtzs s31,s31",
         "1E 23 90 07         fmov  s7,#7.000000e+00",
         "1E 61 10 03         fmov  d3,#3.000000e+00",
         "1E 20 43 E0         fmov  s0,s31",
