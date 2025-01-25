@@ -1,0 +1,5 @@
+Add Windows BCrypt bindings under `core.sys.windows.bcrypt`
+
+Adds full [BCrypt API](https://learn.microsoft.com/en-us/windows/win32/api/bcrypt/) bindings to the Windows-specific system bindings.
+
+The Windows-specific bindings under `core.sys.windows.sdkddkver` and `core.sys.windows.w32api` have also been updated in order to facilitate the creation of the BCrypt bindings.
