@@ -15,63 +15,46 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Linux
-          - job_name: Ubuntu 22.04 x64, DMD (latest)
-            os: ubuntu-22.04
-            host_dmd: dmd
-          # Enable this to replace coverage tests on CircleCI
-          # - job_name: Ubuntu 22.04 x64, DMD (coverage)
-          #   os: ubuntu-22.04
-          #   host_dmd: dmd
-          #   coverage: true
-          - job_name: Ubuntu 22.04 x64, DMD (bootstrap)
-            os: ubuntu-22.04
-            host_dmd: dmd-2.079.0
-            disable_debug_for_dmd_unittests: true # no `-debug` - host frontend too old
-          - job_name: Ubuntu 22.04 x86, DMD (latest)
-            os: ubuntu-22.04
-            model: 32
-            host_dmd: dmd
-          # Disabled because of failure https://issues.dlang.org/show_bug.cgi?id=24518
-          # - job_name: Ubuntu 22.04 x86, DMD (coverage)
-          #   os: ubuntu-22.04
-          #   model: 32
-          #   host_dmd: dmd
-          #   coverage: true
           - job_name: Ubuntu 22.04 x86, DMD (bootstrap)
             os: ubuntu-22.04
             model: 32
             host_dmd: dmd-2.097.1
-          - job_name: Ubuntu 22.04 x64, LDC
+          - job_name: Ubuntu 22.04 x86, DMD 2.109.1
             os: ubuntu-22.04
-            host_dmd: ldc
-          - job_name: Ubuntu 22.04 x64, GDC
-            os: ubuntu-22.04
-            host_dmd: gdmd-9
-            disable_debug_for_dmd_unittests: true # no `-debug` - host frontend too old
-          # macOS
-          - job_name: macOS 13 x64, DMD (latest)
-            os: macos-13
-            host_dmd: dmd
-          # Disabled because of failure https://issues.dlang.org/show_bug.cgi?id=24518
-          # - job_name: macOS 13 x64, DMD (coverage)
-          #   os: macos-13
-          #   host_dmd: dmd
-          #   coverage: true
-          - job_name: macOS 13 x64, DMD (bootstrap)
-            os: macos-13
-            xcode: '14.3.1' # work around 'ld: multiple errors: symbol count from symbol table and dynamic symbol table differ' with old bootstrap compiler
-            # de-facto bootstrap version on OSX
-            # See: https://github.com/dlang/dmd/pull/13890
-            host_dmd: dmd-2.099.1
-          # Windows
-          - job_name: Windows x64, LDC
-            os: windows-2022
-            host_dmd: ldc-latest
-          - job_name: Windows x86, DMD (latest)
-            os: windows-2022
-            host_dmd: dmd-latest
             model: 32
+            host_dmd: dmd-2.109.1
+          - job_name: Ubuntu 22.04 x86, DMD 2.108.1
+            os: ubuntu-22.04
+            model: 32
+            host_dmd: dmd-2.108.1
+          - job_name: Ubuntu 22.04 x86, DMD 2.107.1
+            os: ubuntu-22.04
+            model: 32
+            host_dmd: dmd-2.107.1
+          - job_name: Ubuntu 22.04 x86, DMD 2.106.1
+            os: ubuntu-22.04
+            model: 32
+            host_dmd: dmd-2.106.1
+          - job_name: Ubuntu 22.04 x86, DMD 2.105.3
+            os: ubuntu-22.04
+            model: 32
+            host_dmd: dmd-2.105.3
+          - job_name: Ubuntu 22.04 x86, DMD 2.104.2
+            os: ubuntu-22.04
+            model: 32
+            host_dmd: dmd-2.104.2
+          - job_name: Ubuntu 22.04 x86, DMD 2.103.1
+            os: ubuntu-22.04
+            model: 32
+            host_dmd: dmd-2.103.1
+          - job_name: Ubuntu 22.04 x86, DMD 2.102.2
+            os: ubuntu-22.04
+            model: 32
+            host_dmd: dmd-2.102.2
+          - job_name: Ubuntu 22.04 x86, DMD 2.101.2
+            os: ubuntu-22.04
+            model: 32
+            host_dmd: dmd-2.101.2
     name: ${{ matrix.job_name }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
