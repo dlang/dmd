@@ -2346,7 +2346,7 @@ private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
     if (isRootTraitsCompilesScope(sc) ? !sc.func.isNogcBypassingInference() : !sc.func.setGCCall(f))
         return false;
 
-    if (loc.linnum == 0) // e.g. implicitly generated dtor
+    if (loc == Loc.initial) // e.g. implicitly generated dtor
         loc = sc.func.loc;
 
     // Lowered non-@nogc'd hooks will print their own error message inside of nogc.d (NOGCVisitor.visit(CallExp e)),

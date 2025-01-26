@@ -1436,7 +1436,8 @@ code *asm_emit(Loc loc,
 
         if (driverParams.symdebug)
         {
-            cdb.genlinnum(Srcpos.create(loc.filename, loc.linnum, loc.charnum));
+            SourceLoc sl = SourceLoc(loc);
+            cdb.genlinnum(Srcpos.create(sl.filename.ptr, sl.linnum, sl.charnum));
         }
 
         cdb.append(pc);
@@ -3682,7 +3683,10 @@ code *asm_db_parse(OP *pop)
     CodeBuilder cdb;
     cdb.ctor();
     if (driverParams.symdebug)
-        cdb.genlinnum(Srcpos.create(asmstate.loc.filename, asmstate.loc.linnum, asmstate.loc.charnum));
+    {
+        SourceLoc sl = SourceLoc(asmstate.loc);
+        cdb.genlinnum(Srcpos.create(sl.filename.ptr, sl.linnum, sl.charnum));
+    }
     cdb.genasm(bytes.peekSlice());
     code *c = cdb.finish();
 

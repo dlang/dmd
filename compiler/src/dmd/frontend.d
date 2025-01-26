@@ -487,7 +487,7 @@ nothrow:
         diagnosticHandler = prevHandler;
     }
 
-    bool diagHandler(const ref Loc loc, Color headerColor, const(char)* header,
+    bool diagHandler(const ref SourceLoc loc, Color headerColor, const(char)* header,
                      const(char)* format, va_list ap, const(char)* p1, const(char)* p2)
     {
         import core.stdc.string;
@@ -529,7 +529,7 @@ nothrow:
 
     Returns: false if the message should also be printed to stderr, true otherwise
     */
-    abstract bool error(const ref Loc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2);
+    abstract bool error(const ref SourceLoc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2);
 
     /**
     Reports additional details about an error message.
@@ -543,7 +543,7 @@ nothrow:
 
     Returns: false if the message should also be printed to stderr, true otherwise
     */
-    abstract bool errorSupplemental(const ref Loc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2);
+    abstract bool errorSupplemental(const ref SourceLoc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2);
 
     /**
     Reports a warning message.
@@ -557,7 +557,7 @@ nothrow:
 
     Returns: false if the message should also be printed to stderr, true otherwise
     */
-    abstract bool warning(const ref Loc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2);
+    abstract bool warning(const ref SourceLoc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2);
 
     /**
     Reports additional details about a warning message.
@@ -571,7 +571,7 @@ nothrow:
 
     Returns: false if the message should also be printed to stderr, true otherwise
     */
-    abstract bool warningSupplemental(const ref Loc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2);
+    abstract bool warningSupplemental(const ref SourceLoc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2);
 
     /**
     Reports a deprecation message.
@@ -585,7 +585,7 @@ nothrow:
 
     Returns: false if the message should also be printed to stderr, true otherwise
     */
-    abstract bool deprecation(const ref Loc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2);
+    abstract bool deprecation(const ref SourceLoc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2);
 
     /**
     Reports additional details about a deprecation message.
@@ -599,7 +599,7 @@ nothrow:
 
     Returns: false if the message should also be printed to stderr, true otherwise
     */
-    abstract bool deprecationSupplemental(const ref Loc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2);
+    abstract bool deprecationSupplemental(const ref SourceLoc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2);
 }
 
 /**
@@ -644,29 +644,29 @@ nothrow:
         return deprecationCount_;
     }
 
-    override bool error(const ref Loc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2)
+    override bool error(const ref SourceLoc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2)
     {
         errorCount_++;
         return false;
     }
 
-    override bool errorSupplemental(const ref Loc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2)
+    override bool errorSupplemental(const ref SourceLoc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2)
     {
         return false;
     }
 
-    override bool warning(const ref Loc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2)
+    override bool warning(const ref SourceLoc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2)
     {
         warningCount_++;
         return false;
     }
 
-    override bool warningSupplemental(const ref Loc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2)
+    override bool warningSupplemental(const ref SourceLoc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2)
     {
         return false;
     }
 
-    override bool deprecation(const ref Loc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2)
+    override bool deprecation(const ref SourceLoc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2)
     {
         if (useDeprecated == DiagnosticReporting.error)
             errorCount_++;
@@ -675,7 +675,7 @@ nothrow:
         return false;
     }
 
-    override bool deprecationSupplemental(const ref Loc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2)
+    override bool deprecationSupplemental(const ref SourceLoc loc, const(char)* format, va_list args, const(char)* p1, const(char)* p2)
     {
         return false;
     }

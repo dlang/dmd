@@ -1715,7 +1715,8 @@ private void block_setLoc(block *b, const ref Loc loc) nothrow
 
 private void srcpos_setLoc(ref Srcpos s, const ref Loc loc) nothrow
 {
-    s.set(loc.filename, loc.linnum, loc.charnum);
+    SourceLoc sl = SourceLoc(loc);
+    s.set(sl.filename.ptr, sl.line, sl.column);
 }
 
 private bool isAssertFalse(const Expression e) nothrow

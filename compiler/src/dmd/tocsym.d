@@ -882,5 +882,6 @@ Symbol *toSymbol(Type t)
  */
 Srcpos toSrcpos(Loc loc)
 {
-    return Srcpos.create(loc.filename, loc.linnum, loc.charnum);
+    SourceLoc sl = SourceLoc(loc);
+    return Srcpos.create(sl.filename.ptr, sl.line, sl.column);
 }
