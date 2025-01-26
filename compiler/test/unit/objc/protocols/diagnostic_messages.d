@@ -41,7 +41,7 @@ unittest
     }.stripDelimited;
 
     enum message = "Error: class test.Bar interface function extern (Objective-C) static void foo() is not implemented";
-    auto expected = Diagnostic(Loc(filename, 8, 1), message);
+    auto expected = Diagnostic(SourceLoc(filename, 8, 1), message);
 
     const diagnostics = compiles(code, filename);
     assert(diagnostics == [expected], "\n" ~ diagnostics.toString);
@@ -65,7 +65,7 @@ unittest
     }.stripDelimited;
 
     enum message = "Error: function test.Foo.foo function body only allowed in final functions in interface Foo";
-    auto expected = Diagnostic(Loc(filename, 4, 17), message);
+    auto expected = Diagnostic(SourceLoc(filename, 4, 17), message);
 
     const diagnostics = compiles(code, filename);
     assert(diagnostics == [expected], "\n" ~ diagnostics.toString);

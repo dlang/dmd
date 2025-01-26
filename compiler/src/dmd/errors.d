@@ -397,7 +397,7 @@ else
  * see verrorReport for arguments
  * Returns: true if error handling is done, false to continue printing to stderr
  */
-alias DiagnosticHandler = bool delegate(const ref Loc location, Color headerColor, const(char)* header, const(char)* messageFormat, va_list args, const(char)* prefix1, const(char)* prefix2);
+alias DiagnosticHandler = bool delegate(const ref SourceLoc location, Color headerColor, const(char)* header, const(char)* messageFormat, va_list args, const(char)* prefix1, const(char)* prefix2);
 
 /**
  * The diagnostic handler.
@@ -671,11 +671,7 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
 
     if (diagnosticHandler !is null)
     {
-        Loc diagLoc;
-        diagLoc.linnum = info.loc.line;
-        diagLoc.charnum = info.loc.charnum;
-        diagLoc.filename = (info.loc.filename ~ '\0').ptr;
-        if (diagnosticHandler(diagLoc, info.headerColor, header, format, ap, info.p1, info.p2))
+        if (diagnosticHandler(info.loc, info.headerColor, header, format, ap, info.p1, info.p2))
             return;
     }
 

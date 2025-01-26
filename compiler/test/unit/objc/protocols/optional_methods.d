@@ -129,7 +129,7 @@ unittest
         }
     }.stripDelimited;
 
-    Loc loc = Loc(filename, 5, 20);
+    SourceLoc loc = SourceLoc(filename, 5, 20);
     enum message = "Error: function test.Foo.foo only functions with Objective-C linkage can be declared as optional";
     enum supplemental = "function is declared with D linkage";
     auto expected = [Diagnostic(loc, message), Diagnostic(loc, supplemental)];
@@ -154,7 +154,7 @@ unittest
         }
     }.stripDelimited;
 
-    Loc loc = Loc(filename, 6, 30);
+    SourceLoc loc = SourceLoc(filename, 6, 30);
     enum message = "Error: function test.Foo.foo can only declare a function as optional once";
     auto expected = Diagnostic(loc, message);
 
@@ -184,15 +184,13 @@ unittest
         }
     }.stripDelimited;
 
-    Loc loc = Loc(filename, 6, 20);
-
     auto expected = [
         Diagnostic(
-            Loc(filename, 6, 20),
+            SourceLoc(filename, 6, 20),
             "Error: function test.Foo.foo!().foo template cannot be optional"
         ),
         Diagnostic(
-            Loc(filename, 12, 10),
+            SourceLoc(filename, 12, 10),
             "Error: template instance test.Foo.foo!() error instantiating"
         )
     ];
@@ -223,7 +221,7 @@ unittest
         }
     }.stripDelimited;
 
-    Loc loc = Loc(filename, 6, 20);
+    SourceLoc loc = SourceLoc(filename, 6, 20);
     enum message = "Error: function test.Foo.foo only functions declared inside interfaces can be optional";
     enum supplemental = "function is declared inside class";
     auto expected = [Diagnostic(loc, message), Diagnostic(loc, supplemental)];
