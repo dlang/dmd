@@ -33,12 +33,6 @@ debug info etc.
 */
 struct Loc
 {
-    // https://github.com/dlang/dmd/pull/20777#issuecomment-2614128849
-    static if (size_t.sizeof == 4) version(linux)
-    {
-        uint dummy;
-    }
-
     private uint index = 0; // offset into lineTable[]
 
     static immutable Loc initial; /// use for default initialization of const ref Loc's
