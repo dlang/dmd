@@ -55,6 +55,22 @@ jobs:
             os: ubuntu-22.04
             model: 32
             host_dmd: dmd-2.101.2
+          - job_name: Ubuntu 22.04 x86, LDC 1.36.0
+            os: ubuntu-22.04
+            model: 32
+            host_dmd: ldc-1.36.0
+          - job_name: Ubuntu 22.04 x86, LDC 1.35.0
+            os: ubuntu-22.04
+            model: 32
+            host_dmd: ldc-1.35.0
+          - job_name: Ubuntu 22.04 x86, LDC 1.34.0
+            os: ubuntu-22.04
+            model: 32
+            host_dmd: ldc-1.34.0
+          - job_name: Ubuntu 22.04 x86, LDC 1.33.0
+            os: ubuntu-22.04
+            model: 32
+            host_dmd: ldc-1.33.0
     name: ${{ matrix.job_name }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
