@@ -543,10 +543,60 @@ struct INSTR
      * Advanced SIMD three same (FP16)
      * Advanced SIMD two-register miscellaneous (FP16)
      * Advanced SIMD three-register extension
-     * Advanced SIMD two-register miscellaneous
-     * Advanced SIMD across lanes
-     * Advanced SIMD three different
+     */
+
+    /* Advanced SIMD two-register miscellaneous
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdmisc
+     */
+    static uint asimdmisc(uint Q, uint U, uint size, uint opcode, reg_t Rn, reg_t Rd)
+    {
+        uint ins = (0      << 31) |
+                   (Q      << 30) |
+                   (U      << 29) |
+                   (0xE    << 24) |
+                   (size   << 22) |
+                   (0x10   << 17) |
+                   (opcode << 12) |
+                   (2      << 10) |
+                   (Rn     <<  5) |
+                    Rd;
+        return ins;
+    }
+
+    /* CNT <Vd>.<T>, <Vn>.<T>
+     * https://www.scs.stanford.edu/~zyedidia/arm64/cnt_advsimd.html
+     */
+    static uint cnt_advsimd(uint Q, uint size, reg_t Rn, reg_t Rd) { return asimdmisc(Q, 0, size, 5, Rn, Rd); }
+
+    /* Advanced SIMD across lanes
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdall
+     */
+    static uint asimdall(uint Q, uint U, uint size, uint opcode, reg_t Rn, reg_t Rd)
+    {
+        uint ins = (0      << 31) |
+                   (Q      << 30) |
+                   (U      << 29) |
+                   (0xE    << 24) |
+                   (size   << 22) |
+                   (0x18   << 17) |
+                   (opcode << 12) |
+                   (2      << 10) |
+                   (Rn     <<  5) |
+                    Rd;
+        return ins;
+    }
+
+    /* ADDV <V><d>, <Vn>.<T> https://www.scs.stanford.edu/~zyedidia/arm64/addv_advsimd.html
+     */
+    static uint addv_advsimd(uint Q, uint size, reg_t Rn, reg_t Rd) { return asimdall(Q, 0, size, 0x1B, Rn, Rd); }
+
+    /* UADDLV <V><d>, <Vn>.<T> https://www.scs.stanford.edu/~zyedidia/arm64/uaddlv_advsimd.html
+     */
+    static uint uaddlv_advsimd(uint Q, uint size, reg_t Rn, reg_t Rd) { return asimdall(Q, 1, size, 3, Rn, Rd); }
+
+    /* Advanced SIMD three different
      * Advanced SIMD three same
+     */
 
     /* Advanced SIMD modified immediate
      * http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdimm
@@ -562,9 +612,36 @@ struct INSTR
      * Cryptographic four-register
      * XAR
      * Cryptographic twp=register SHA 512
-     * Converstion between floating-point and fixed-point
-     * Converstion between floating-point and integer
+     * Conversion between floating-point and fixed-point
      */
+
+    /* Converstion between floating-point and integer https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#float2int
+     */
+    static uint float2int(uint sf, uint S, uint ftype, uint rmode, uint opcode, reg_t Rn, reg_t Rd)
+    {
+        return (sf << 31) | (S << 29) | (0x1E << 24) | (ftype << 22) | (1 << 21) | (rmode << 19) | (opcode << 16) | (Rn << 5) | Rd;
+    }
+
+    /* FMOV (general) https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float_gen.html
+     */
+    static uint fmov_float_gen(uint sf, uint ftype, uint rmode, uint opcode, reg_t Rn, reg_t Rd)
+    {
+        return float2int(sf, 0, ftype, rmode, opcode, Rn, Rd);
+    }
+
+    /* FCVTNS (scalar) https://www.scs.stanford.edu/~zyedidia/arm64/fcvtns_float.html
+     */
+    static uint fcvtns(uint sf, uint ftype, reg_t Rn, reg_t Rd)
+    {
+        return float2int(sf, 0, ftype, 0, 0, Rn, Rd);
+    }
+
+    /* FCVTNU (scalar) https://www.scs.stanford.edu/~zyedidia/arm64/fcvtnu_float.html
+     */
+    static uint fcvtnu(uint sf, uint ftype, reg_t Rn, reg_t Rd)
+    {
+        return float2int(sf, 0, ftype, 0, 1, Rn, Rd);
+    }
 
     /* Floating-point data-processing (1 source)
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatdp1
