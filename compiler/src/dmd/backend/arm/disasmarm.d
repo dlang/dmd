@@ -1815,8 +1815,8 @@ void disassemble(uint c) @trusted
         if (U == 0 && size == 0 && opcode == 0x05)      // https://www.scs.stanford.edu/~zyedidia/arm64/cnt_advsimd.html
         {
             p1 = "cnt";                                 // cnt <Vd>.<T>, <Vn>.<T>
-            p2 = vregString(rbuf[0 ..  7], Rd, Q);
-            p3 = vregString(rbuf[8 .. 14], Rn, Q);
+            p2 = vregString(rbuf[0 ..  7], Q, Rd);
+            p3 = vregString(rbuf[8 .. 14], Q, Rn);
             //printf("p2: %.*s p3: %.*s\n", cast(int)p2.length, p2.ptr, cast(int)p3.length, p3.ptr);
         }
         else if (U == 0 && (size & 2) && opcode == 0x1B) // https://www.scs.stanford.edu/~zyedidia/arm64/fcvtzs_advsimd_int.html
@@ -1944,6 +1944,11 @@ void disassemble(uint c) @trusted
                 p1 = "fcvtzs";
                 p2 = regString(sf,Rd);
                 p3 = fregString(rbuf[4 .. 8],"sd h"[ftype],Rn);
+            }
+            else if (sf == 1 && ftype == 1 && rmode == 0 && opcode == 7)
+            {
+                p2 = fregString(rbuf[4 .. 8],"sd h"[ftype],Rd);
+                p3 = regString(sf,Rn);
             }
         }
     }
