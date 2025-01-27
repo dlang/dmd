@@ -130,26 +130,29 @@ void main(string[] args)
 {
     auto name = args[0] ~ '\0';
     const pathlen = strrchr(name.ptr, '/') - name.ptr + 1;
-    import utils : dllExt;
+    import utils : dllExt, isDlcloseNoop;
     name = name[0 .. pathlen] ~ "lib." ~ dllExt;
 
     runTests(name);
 
-    // lib is no longer resident
-    name ~= '\0';
-    version (Windows)
+    static if (!isDlcloseNoop)
     {
-        import core.sys.windows.winbase;
-        assert(!GetModuleHandleA(name.ptr));
-    }
-    else
-    {
-        import core.sys.posix.dlfcn : dlopen, RTLD_LAZY;
-        assert(dlopen(name.ptr, RTLD_LAZY | RTLD_NOLOAD) is null);
-    }
-    name = name[0 .. $-1];
+        // lib is no longer resident
+        name ~= '\0';
+        version (Windows)
+        {
+            import core.sys.windows.winbase;
+            assert(!GetModuleHandleA(name.ptr));
+        }
+        else
+        {
+            import core.sys.posix.dlfcn : dlopen, RTLD_LAZY;
+            assert(dlopen(name.ptr, RTLD_LAZY | RTLD_NOLOAD) is null);
+        }
+        name = name[0 .. $-1];
 
-    auto thr = new Thread({runTests(name);});
-    thr.start();
-    thr.join();
+        auto thr = new Thread({runTests(name);});
+        thr.start();
+        thr.join();
+    }
 }

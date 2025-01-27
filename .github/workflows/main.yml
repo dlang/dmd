@@ -49,6 +49,10 @@ jobs:
             os: ubuntu-22.04
             host_dmd: gdmd-9
             disable_debug_for_dmd_unittests: true # no `-debug` - host frontend too old
+          - job_name: Alpine 3.21 x64, LDC
+            os: ubuntu-latest
+            container_image: alpine:3.21
+            host_dmd: ldmd2
           # macOS
           - job_name: macOS 13 x64, DMD (latest)
             os: macos-13
@@ -74,6 +78,7 @@ jobs:
             model: 32
     name: ${{ matrix.job_name }}
     runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container_image }}
     timeout-minutes: 40
     env:
       # for ci/run.sh:
@@ -90,6 +95,11 @@ jobs:
       run:
         shell: bash
     steps:
+      - name: 'Alpine container: Pre-install bash, git and sudo'
+        if: startsWith(matrix.container_image, 'alpine')
+        shell: sh
+        run: apk add bash git sudo
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 50
@@ -149,20 +159,20 @@ jobs:
       - name: Test dmd
         run: ci/run.sh test_dmd
       - name: Test druntime
-        if: '!matrix.coverage'
+        if: '!matrix.coverage && (success() || failure())'
         run: ci/run.sh test_druntime
       - name: 'Windows x86: Add 32-bit libcurl.dll to PATH (required for Phobos unittests)'
-        if: runner.os == 'Windows' && env.MODEL == '32' && !matrix.coverage
+        if: runner.os == 'Windows' && env.MODEL == '32' && !matrix.coverage && (success() || failure())
         run: |
           # LDC
           echo "$(dirname "$(which $DC)")/../lib32" >> $GITHUB_PATH
           # DMD
           echo "$(dirname "$(which $DC)")/../bin" >> $GITHUB_PATH
       - name: Test phobos
-        if: '!matrix.coverage'
+        if: '!matrix.coverage && (success() || failure())'
         run: ci/run.sh test_phobos
       - name: Test self-compile
-        if: '!matrix.coverage' # already re-built with enabled coverage
+        if: '!matrix.coverage && (success() || failure())' # already re-built with enabled coverage
         run: ENABLE_RELEASE=0 ci/run.sh rebuild
       - name: Upload coverage report
         if: matrix.coverage
