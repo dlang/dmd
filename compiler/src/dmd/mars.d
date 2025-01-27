@@ -1801,7 +1801,7 @@ bool createModule(const(char)* file, ref Strings libmodules, const ref Target ta
     }
     const(char)[] p = FileName.name(file.toDString()); // strip path
     const(char)[] ext = FileName.ext(p);
-    Loc loc = Loc(file, 0, 0);
+    Loc loc = Loc.singleFilename(file);
     if (!ext)
     {
         if (!p.length)

@@ -20,7 +20,11 @@ alias I = long;
 alias U = ulong;
 enum Ubits = uint(U.sizeof * 8);
 
-align(16) struct Cent
+version (LDC) version (X86) version = LDC_X86;
+version (LDC_X86) private enum alignment = U.alignof;
+else              private enum alignment = 16;
+
+align(alignment) struct Cent
 {
     U lo;      // low 64 bits
     U hi;      // high 64 bits

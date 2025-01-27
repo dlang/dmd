@@ -391,16 +391,9 @@ void test_types()
 
 void test_location()
 {
-    Loc loc1 = Loc("test.d", 24, 42);
-    assert(loc1.equals(Loc("test.d", 24, 42)));
-    assert(strcmp(loc1.toChars(true, MessageStyle::digitalmars), "test.d(24,42)") == 0);
-    assert(strcmp(loc1.toChars(true, MessageStyle::gnu), "test.d:24:42") == 0);
-
-    assert(strcmp(loc1.toChars(), "test.d(24)") == 0);
-    Loc::set(true, MessageStyle::digitalmars);
-    assert(strcmp(loc1.toChars(), "test.d(24,42)") == 0);
-    Loc::set(false, MessageStyle::gnu);
-    assert(strcmp(loc1.toChars(), "test.d:24") == 0);
+    Loc loc = Loc();
+    assert(strcmp(loc.toChars(true, MessageStyle::digitalmars), "") == 0);
+    assert(strcmp(loc.toChars(true, MessageStyle::gnu), "") == 0);
 }
 
 /**********************************/
