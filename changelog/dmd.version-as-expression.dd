@@ -2,7 +2,7 @@
 
 Instead of:
 
-```
+---
 version(linux)
 {
     enum value = 42;
@@ -11,10 +11,10 @@ else
 {
     enum value = 0;
 }
-```
+---
 
 You can now do this instead:
 
-```
+---
 enum value = version(linux) ? 42 : 0;
-```
+---
