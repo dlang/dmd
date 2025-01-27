@@ -4138,7 +4138,7 @@ Expression typeCombine(BinExp be, Scope* sc)
 {
     Expression errorReturn()
     {
-        Expression ex = be.incompatibleTypes();
+        Expression ex = be.incompatibleTypes(sc);
         if (ex.op == EXP.error)
             return ex;
         return ErrorExp.get();

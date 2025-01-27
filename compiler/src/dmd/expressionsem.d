@@ -377,7 +377,7 @@ private Expression incompatibleTypes(UnaExp e)
  * Returns:
  *  ErrorExp
  */
-extern (D) Expression incompatibleTypes(BinExp e)
+extern (D) Expression incompatibleTypes(BinExp e, Scope* sc = null)
 {
     if (e.e1.type.toBasetype() == Type.terror)
         return e.e1;
@@ -386,6 +386,10 @@ extern (D) Expression incompatibleTypes(BinExp e)
 
     // CondExp uses 'a ? b : c' but we're comparing 'b : c'
     const(char)* thisOp = (e.op == EXP.question) ? ":" : EXPtoString(e.op).ptr;
+
+    if (sc && suggestBinaryOverloads(e, sc))
+        return ErrorExp.get();
+
     if (e.e1.op == EXP.type || e.e2.op == EXP.type)
     {
         error(e.loc, "incompatible types for `(%s) %s (%s)`: cannot use `%s` with types",
@@ -12092,6 +12096,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
+        if (exp.suggestBinaryOverloads(sc))
+            return setError();
+
         if (exp.checkArithmeticBin())
             return setError();
 
@@ -12244,6 +12251,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = exp;
             return;
         }
+
+        if (exp.suggestBinaryOverloads(sc))
+            return setError();
 
         if (exp.checkArithmeticBin())
             return setError();
@@ -12578,6 +12588,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return true;
         }
 
+        if (exp.suggestBinaryOverloads(sc))
+        {
+            setError();
+            return true;
+        }
+
         if (exp.checkArithmeticBin() || exp.checkSharedAccessBin(sc))
         {
             setError();
@@ -12792,6 +12808,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
+        if (exp.suggestBinaryOverloads(sc))
+            return setError();
+
         if (exp.checkIntegralBin() || exp.checkSharedAccessBin(sc))
             return setError();
 
@@ -12862,6 +12881,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = exp.incompatibleTypes();
             return;
         }
+
+        if (exp.suggestBinaryOverloads(sc))
+            return setError();
+
         if (exp.checkIntegralBin() || exp.checkSharedAccessBin(sc))
             return setError();
 
@@ -13119,7 +13142,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
 
         case Tarray, Tsarray:
-            result = exp.incompatibleTypes();
+            result = exp.incompatibleTypes(sc);
             errorSupplemental(exp.loc, "`in` is only allowed on associative arrays");
             const(char)* slice = (t2b.ty == Tsarray) ? "[]" : "";
             errorSupplemental(exp.loc, "perhaps use `std.algorithm.find(%s, %s%s)` instead",
@@ -13127,7 +13150,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
 
         default:
-            result = exp.incompatibleTypes();
+            result = exp.incompatibleTypes(sc);
             return;
         }
         result = exp;

@@ -71,6 +71,29 @@ bool isCommutative(EXP op) @safe
     return false;
 }
 
+/// Returns: whether `op` can be overloaded with `opBinary`
+private bool hasOpBinary(EXP op) pure @safe
+{
+    switch (op)
+    {
+        case EXP.add: return true;
+        case EXP.min: return true;
+        case EXP.mul: return true;
+        case EXP.div: return true;
+        case EXP.mod: return true;
+        case EXP.and: return true;
+        case EXP.or: return true;
+        case EXP.xor: return true;
+        case EXP.leftShift: return true;
+        case EXP.rightShift: return true;
+        case EXP.unsignedRightShift: return true;
+        case EXP.concatenate: return true;
+        case EXP.pow: return true;
+        case EXP.in_: return true;
+        default: return false;
+    }
+}
+
 /*******************************************
  * Helper function to turn operator into template argument list
  */
@@ -591,10 +614,61 @@ Expression opOverloadBinary(BinExp e, Scope* sc, Type[2] aliasThisStop)
         s_r = null;
 
     bool choseReverse;
-    if (auto res = pickBestBinaryOverload(sc, opToArg(sc, e.op), s, s_r, e, choseReverse))
-        return res;
+    if (auto result = pickBestBinaryOverload(sc, opToArg(sc, e.op), s, s_r, e, choseReverse))
+        return result;
 
     return binAliasThis(e, sc, aliasThisStop);
+}
+
+/**
+ * If applicable, print an error relating to implementing / fixing `opBinary` functions.
+ * Params:
+ *   e = binary operation
+ *   sc = scope to try `opBinary!""` semantic in for error messages
+ * Returns: `true` when an error related to `opBinary` was printed
+ */
+bool suggestBinaryOverloads(BinExp e, Scope* sc)
+{
+    if (!e.op.hasOpBinary)
+        return false;
+
+    AggregateDeclaration ad1 = isAggregate(e.e1.type);
+    AggregateDeclaration ad2 = isAggregate(e.e2.type);
+
+    if (ad1)
+    {
+        if (Dsymbol s = search_function(ad1, Id.opBinary))
+        {
+            dotTemplate(e.e1, Id.opBinary, opToArg(sc, e.op), e.e2).expressionSemantic(sc);
+            errorSupplemental(s.loc, "`opBinary` defined here");
+            return true;
+        }
+        error(e.loc, "operator `%s` is not defined for type `%s`", EXPtoString(e.op).ptr, e.e1.type.toChars);
+        errorSupplemental(ad1.loc, "perhaps overload the operator with `auto opBinary(string op : \"%s\")(%s rhs) {}`", EXPtoString(e.op).ptr, e.e2.type.toChars);
+        return true;
+    }
+    else if (ad2)
+    {
+        if (Dsymbol s_r = search_function(ad1, Id.opBinaryRight))
+        {
+            dotTemplate(e.e2, Id.opBinaryRight, opToArg(sc, e.op), e.e1).expressionSemantic(sc);
+            errorSupplemental(s_r.loc, "`opBinaryRight` defined here");
+            return true;
+        }
+        error(e.loc, "operator `%s` is not defined for type `%s`", EXPtoString(e.op).ptr, e.e2.type.toChars);
+        errorSupplemental(ad2.loc, "perhaps overload the operator with `auto opBinaryRight(string op : \"%s\")(%s rhs) {}`", EXPtoString(e.op).ptr, e.e1.type.toChars);
+        return true;
+    }
+    return false;
+}
+
+// Helper to construct e.id!tiargs(arg)
+private Expression dotTemplate(Expression e, Identifier id, Objects* tiargs, Expression arg)
+{
+    auto ti = new DotTemplateInstanceExp(e.loc, e, id, tiargs);
+    auto args = new Expressions();
+    args.push(arg);
+    return new CallExp(e.loc, ti, args);
 }
 
 Expression opOverloadEqual(EqualExp e, Scope* sc, Type[2] aliasThisStop)
@@ -990,7 +1064,7 @@ private Expression pickBestBinaryOverload(Scope* sc, Objects* tiargs, Dsymbol s,
 
     if (s)
     {
-        functionResolve(m, s, e.loc, sc, tiargs, e.e1.type, ArgumentList(args2));
+        functionResolve(m, s, e.loc, sc, tiargs, e.e1.type, ArgumentList(args2), null);
         if (m.lastf && (m.lastf.errors || m.lastf.hasSemantic3Errors()))
             return ErrorExp.get();
     }
@@ -998,7 +1072,7 @@ private Expression pickBestBinaryOverload(Scope* sc, Objects* tiargs, Dsymbol s,
     int count = m.count;
     if (s_r)
     {
-        functionResolve(m, s_r, e.loc, sc, tiargs, e.e2.type, ArgumentList(args1));
+        functionResolve(m, s_r, e.loc, sc, tiargs, e.e2.type, ArgumentList(args1), null);
         if (m.lastf && (m.lastf.errors || m.lastf.hasSemantic3Errors()))
             return ErrorExp.get();
     }
