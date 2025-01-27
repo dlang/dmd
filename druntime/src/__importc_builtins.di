@@ -86,6 +86,12 @@ version (DigitalMars)
         return core.bitop.bswap(value);
     }
 
+    uint  __builtin__popcount()(ulong value)
+    {
+        import core.bitop;
+        return core.bitop._popcnt(value);
+    }
+
     // Lazily imported on first use
     private alias c_long = imported!"core.stdc.config".c_long;
 
