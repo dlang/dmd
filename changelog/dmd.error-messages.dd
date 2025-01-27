@@ -39,6 +39,51 @@ app.d(6):        `app.U` declared here
 */
 ---
 
+When overloading binary operators, and `opBinary` or `opBinaryRight` is missing or doesn't match,
+the error message now points out the problem:
+
+---
+struct Str {}
+
+struct Number
+{
+    int x;
+    int opBinary(string op : "+")(int rhs) => this.x + x;
+}
+
+void f(Str str, Number number)
+{
+    const s = str ~ "hey";
+    const n = number + "oops";
+}
+
+/*
+Before:
+
+app.d(12): Error: incompatible types for `(str) ~ ("hey")`: `Str` and `string`
+    const s = str ~ "hey";
+              ^
+app.d(13): Error: incompatible types for `(number) + ("oops")`: `Number` and `string`
+    const n = number + "oops";
+
+After:
+
+app.d(12): Error: operator `~` is not defined for type `Str`
+    const s = str ~ "hey";
+              ^
+app.d(2):        perhaps overload the operator with `auto opBinary(string op : "~")(string rhs) {}`
+struct Str {}
+^
+app.d(13): Error: function `test_.Number.opBinary!"+".opBinary(int rhs)` is not callable using argument types `(string)`
+    const n = number + "oops";
+              ^
+app.d(13):        cannot pass argument `"oops"` of type `string` to parameter `int rhs`
+app.d(7):        `opBinary` defined here
+    int opBinary(string op : "+")(int rhs) => this.x + x;
+        ^
+*/
+---
+
 Furthermore:
 
 - D1 operator overloading functions (`opAdd`, `opDot`) are completely removed and no longer mentioned in error messages specifically.
