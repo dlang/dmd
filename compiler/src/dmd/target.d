@@ -423,7 +423,8 @@ extern (C++) struct Target
     extern (C++) void _init(ref const Param params)
     {
         // isX86_64 and cpu are initialized in parseCommandLine
-        isX86 = !isX86_64;
+        //printf("isX86_64 %d isAArch64 %d\n", isX86_64, isAArch64);
+        isX86 = !isX86_64 && !isAArch64;
         assert(isX86 + isX86_64 + isAArch64 == 1); // there can be only one
 
         this.params = &params;

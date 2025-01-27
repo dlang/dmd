@@ -1905,7 +1905,6 @@ void cdmsw(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 // cdbtst
 // cdbt
 // cdbscan
-// cdpopcnt
 
 /************************
  * OPpopcnt operator
@@ -1922,51 +1921,33 @@ void cdpopcnt(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         return;
     }
 
-/*
-        fmov    d31, x0                 9e67001f
-        cnt     v31.8b, v31.8b          0e205bff
-        addv    b31, v31.8b             132603e0
-        //umov    w0, v0.b[0]
-        fmov    w0,s31                  1e2603e0
-*/
-if (e) assert(0);
     const tyml = tybasic(e.E1.Ety);
-
     const sz = _tysize[tyml];
-    assert(sz == 2 || sz == 4 || (sz == 8 && I64));     // no byte op
-
-    code cs = void;
-    if ((e.E1.Eoper == OPind && !e.E1.Ecount) || e.E1.Eoper == OPvar)
+    assert(sz == 8);                    // popcnt only operates on 64 bits
+    if (tyfloating(tyml))
     {
-        getlvalue(cdb, cs, e.E1, 0, RM.load);     // get addressing mode
-    }
-    else
-    {
-        regm_t retregs = cgstate.allregs;
-        codelem(cgstate,cdb,e.E1, retregs, false);
-        const reg = findreg(retregs);
-        cs.Irm = modregrm(3,0,reg & 7);
-        cs.Iflags = 0;
-        cs.Irex = 0;
-        if (reg & 8)
-            cs.Irex |= REX_B;
+        assert(0);
     }
 
-    regm_t retregs = pretregs & cgstate.allregs;
-    if  (!retregs)
-        retregs = cgstate.allregs;
-    const reg = allocreg(cdb,retregs, e.Ety);
+    const posregs = cgstate.allregs;
+    regm_t retregs1 = posregs;
+    codelem(cgstate,cdb,e.E1,retregs1,false);
 
-    cs.Iop = POPCNT;            // POPCNT reg,EA
-    code_newreg(&cs, reg);
-    if (sz == SHORTSIZE)
-        cs.Iflags |= CFopsize;
-    if (pretregs & mPSW)
-        cs.Iflags |= CFpsw;
-    cdb.gen(&cs);
-    if (sz == 8)
-        code_orrex(cdb.last(), REX_W);
-    pretregs &= mBP | ALLREGS;             // flags already set
+    regm_t retregs = pretregs & cg.allregs;
+    if (retregs == 0)                   /* if no return regs speced     */
+                                        /* (like if wanted flags only)  */
+        retregs = ALLREGS & posregs;    // give us some
+    reg_t Rd = allocreg(cdb, retregs, tyml); // destination register
+
+    const R1 = findreg(retregs1);       // source register
+
+    regm_t vregs = ALLREGS;             // floating point register
+    reg_t Vx = allocreg(cdb, vregs, TYdouble);
+
+    cdb.gen1(INSTR.fmov_float_gen(1,1,0,7,R1,Vx));      // FMOV Dx,X1
+    cdb.gen1(INSTR.cnt_advsimd(0,0,Vx,Vx));             // CNT  Vx.8b,Vx.8b
+    cdb.gen1(INSTR.addv_advsimd(0,0,Vx,Vx));            // ADDV Bx,Vx.8b
+    cdb.gen1(INSTR.fmov_float_gen(0,0,0,6,Vx,Rd));      // FMOV Wd,Sx
 
     fixresult(cdb,e,retregs,pretregs);
 }
