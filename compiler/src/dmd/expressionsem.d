@@ -9706,8 +9706,39 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         if (auto ad = isAggregate(exp.e1.type))
         {
-            error(exp.loc, "no `[]` operator overload for type `%s`", exp.e1.type.toChars());
-            errorSupplemental(ad.loc, "`%s` declared here", ad.toPrettyChars());
+            if (exp.arguments.length == 0)
+            {
+                error(exp.loc, "no `[]` operator overload for type `%s`", exp.e1.type.toChars());
+                errorSupplemental(ad.loc, "perhaps define `auto opIndex() {}` for `%s`", ad.toPrettyChars());
+            }
+            else
+            {
+                const(char)* typeString(Expression exp)
+                {
+                    if (auto e = exp.trySemantic(sc))
+                        return e.type.toChars();
+                    else
+                        return "__error__";
+                }
+
+                if (auto ie = (*exp.arguments)[0].isIntervalExp())
+                {
+                    error(exp.loc, "no `[%s]` operator overload for type `%s`", ie.toChars(), exp.e1.type.toChars());
+                    errorSupplemental(ad.loc, "perhaps define `auto opSlice(%s lower, %s upper) {}` for `%s`",
+                        typeString(ie.lwr), typeString(ie.upr), ad.toPrettyChars());
+                }
+                else
+                {
+                    OutBuffer buf;
+                    buf.printf("%s", typeString((*exp.arguments)[0]));
+                    foreach (e; (*exp.arguments)[1 .. $])
+                        buf.printf(", %s", typeString(e));
+
+                    error(exp.loc, "no `[]` operator overload for type `%s`", exp.e1.type.toChars());
+                    errorSupplemental(ad.loc, "perhaps define `auto opIndex(%s) {}` for `%s`",
+                        buf.extractChars, ad.toPrettyChars());
+                }
+            }
         }
         else if (exp.e1.op == EXP.type && exp.e1.type.ty != Ttuple)
             error(exp.loc, "static array of `%s` with multiple lengths not allowed", exp.e1.type.toChars());

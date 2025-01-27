@@ -30,12 +30,26 @@ Error: `app.bar` called with argument types `(string)` matches multiple overload
 */
 ---
 
-When there's no operator overload found for a type, a new supplemental message points to the declaration.
+When there's no index / slice operator overload found for a type, a new supplemental message suggests where to implement it.
 
 ---
+struct S {}
+
+void main()
+{
+    S s;
+    const x = s[3 .. "4"];
+}
+
 /*
-app.d(8): Error: no `[]` operator overload for type `U`
-app.d(6):        `app.U` declared here
+Before:
+
+app.d(6): Error: no `[]` operator overload for type `S`
+
+After:
+
+app.d(6): Error: no `[3.."4"]` operator overload for type `S`
+app.d(1):        perhaps define `auto opSlice(int lower, string upper) {}` for `app.S`
 */
 ---
 
