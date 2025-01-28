@@ -1207,7 +1207,7 @@ private Expression resolveUFCS(Scope* sc, CallExp ce)
         eleft = die.e1;
 
         Type t = eleft.type.toBasetype();
-        if (t.ty == Tarray || t.ty == Tsarray || t.ty == Tnull || (t.isTypeBasic() && t.ty != Tvoid))
+        if (t.isStaticOrDynamicArray() || t.ty == Tnull || (t.isTypeBasic() && t.ty != Tvoid))
         {
             /* Built-in types and arrays have no callable properties, so do shortcut.
              * It is necessary in: e.init()
@@ -7554,7 +7554,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = e;
             return;
         }
-        if (exp.e1.op == EXP.slice || exp.e1.type.ty == Tarray || exp.e1.type.ty == Tsarray)
+        if (exp.e1.op == EXP.slice || exp.e1.type.isStaticOrDynamicArray())
         {
             if (checkNonAssignmentArrayOp(exp.e1))
                 return setError();
@@ -8846,7 +8846,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         fix16997(sc, exp);
         exp.type = exp.e1.type;
         Type tb = exp.type.toBasetype();
-        if (tb.ty == Tarray || tb.ty == Tsarray)
+        if (tb.isStaticOrDynamicArray())
         {
             if (!isArrayOpValid(exp.e1))
             {
@@ -8911,7 +8911,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         fix16997(sc, exp);
         exp.type = exp.e1.type;
         Type tb = exp.type.toBasetype();
-        if (tb.ty == Tarray || tb.ty == Tsarray)
+        if (tb.isStaticOrDynamicArray())
         {
             if (!isArrayOpValid(exp.e1))
             {
@@ -9193,7 +9193,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
 
-        if (!t1b.equals(tob) && (t1b.ty == Tarray || t1b.ty == Tsarray))
+        if (!t1b.equals(tob) && t1b.isStaticOrDynamicArray())
         {
             if (checkNonAssignmentArrayOp(exp.e1))
                 return setError();
@@ -9513,7 +9513,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         /* Run semantic on lwr and upr.
          */
         Scope* scx = sc;
-        if (t1b.ty == Tsarray || t1b.ty == Tarray || t1b.ty == Ttuple)
+        if (t1b.isStaticOrDynamicArray() || t1b.ty == Ttuple)
         {
             // Create scope for 'length' variable
             ScopeDsymbol sym = new ArrayScopeSymbol(sc, exp);
@@ -9620,7 +9620,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             IntRange lwrRange = getIntRange(exp.lwr);
             IntRange uprRange = getIntRange(exp.upr);
 
-            if (t1b.ty == Tsarray || t1b.ty == Tarray)
+            if (t1b.isStaticOrDynamicArray())
             {
                 Expression el = new ArrayLengthExp(exp.loc, exp.e1);
                 el = el.expressionSemantic(sc);
@@ -9941,7 +9941,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             t1b = t1b.castMod(tv1.mod);
             exp.e1 = exp.e1.castTo(sc, t1b);
         }
-        if (t1b.ty == Tsarray || t1b.ty == Tarray)
+        if (t1b.isStaticOrDynamicArray())
         {
             if (!checkAddressable(exp, sc))
                 return setError();
@@ -9950,7 +9950,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         /* Run semantic on e2
          */
         Scope* scx = sc;
-        if (t1b.ty == Tsarray || t1b.ty == Tarray || t1b.ty == Ttuple)
+        if (t1b.isStaticOrDynamicArray() || t1b.ty == Ttuple)
         {
             // Create scope for 'length' variable
             ScopeDsymbol sym = new ArrayScopeSymbol(sc, exp);
@@ -10086,7 +10086,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         // We might know $ now
         setLengthVarIfKnown(exp.lengthVar, t1b);
 
-        if (t1b.ty == Tsarray || t1b.ty == Tarray)
+        if (t1b.isStaticOrDynamicArray())
         {
             Expression el = new ArrayLengthExp(exp.loc, exp.e1);
             el = el.expressionSemantic(sc);
@@ -11352,7 +11352,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
         }
         else if (exp.e1.op == EXP.slice &&
-                 (t2.ty == Tarray || t2.ty == Tsarray) &&
+                 t2.isStaticOrDynamicArray() &&
                  t2.nextOf().implicitConvTo(t1.nextOf()))
         {
             // Check element-wise assignment.
@@ -11461,7 +11461,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         if (exp.e1.op == EXP.slice &&
-            (t1.ty == Tarray || t1.ty == Tsarray) &&
+            t1.isStaticOrDynamicArray() &&
             t1.nextOf().toBasetype().ty == Tvoid)
         {
             if (t2.nextOf().implicitConvTo(t1.nextOf()))
@@ -11496,7 +11496,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
         /* Look for array operations
          */
-        if ((t2.ty == Tarray || t2.ty == Tsarray) && isArrayOpValid(exp.e2))
+        if (t2.isStaticOrDynamicArray() && isArrayOpValid(exp.e2))
         {
             // Look for valid array operations
             if (exp.memset != MemorySet.blockAssign &&
@@ -11673,7 +11673,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return ae;
 
         const isArrayAssign = (ae.e1.isSliceExp() || ae.e1.type.ty == Tsarray) &&
-            (ae.e2.type.ty == Tsarray || ae.e2.type.ty == Tarray) &&
+            (ae.e2.type.isStaticOrDynamicArray()) &&
             (ae.e1.type.nextOf() && ae.e2.type.nextOf() && ae.e1.type.nextOf.mutableOf.equals(ae.e2.type.nextOf.mutableOf()));
 
         const isArraySetAssign = (ae.e1.isSliceExp() || ae.e1.type.ty == Tsarray) &&
@@ -11749,7 +11749,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return setError();
 
         assert(exp.e1.type && exp.e2.type);
-        if (exp.e1.op == EXP.slice || exp.e1.type.ty == Tarray || exp.e1.type.ty == Tsarray)
+        if (exp.e1.op == EXP.slice || exp.e1.type.isStaticOrDynamicArray())
         {
             if (checkNonAssignmentArrayOp(exp.e1))
                 return setError();
@@ -11769,7 +11769,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // Check element types are arithmetic
             Type tb1 = exp.e1.type.nextOf().toBasetype();
             Type tb2 = exp.e2.type.toBasetype();
-            if (tb2.ty == Tarray || tb2.ty == Tsarray)
+            if (tb2.isStaticOrDynamicArray())
                 tb2 = tb2.nextOf().toBasetype();
             if ((tb1.isIntegral() || tb1.isFloating()) && (tb2.isIntegral() || tb2.isFloating()))
             {
@@ -11858,7 +11858,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
          * EXP.concatenateDcharAssign: appending dchar to T[]
          */
         if ((tb1.ty == Tarray) &&
-            (tb2.ty == Tarray || tb2.ty == Tsarray) &&
+            tb2.isStaticOrDynamicArray() &&
             (exp.e2.implicitConvTo(exp.e1.type) ||
              (tb2.nextOf().implicitConvTo(tb1next) &&
              // Do not strip const(void)[]
@@ -12116,7 +12116,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         Type tb = exp.type.toBasetype();
-        if (tb.ty == Tarray || tb.ty == Tsarray)
+        if (tb.isStaticOrDynamicArray())
         {
             if (!isArrayOpValid(exp))
             {
@@ -12269,7 +12269,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         Type tb = exp.type.toBasetype();
-        if (tb.ty == Tarray || tb.ty == Tsarray)
+        if (tb.isStaticOrDynamicArray())
         {
             if (!isArrayOpValid(exp))
             {
@@ -12451,7 +12451,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         // Check for: array ~ element
-        if ((tb1.ty == Tsarray || tb1.ty == Tarray) && tb2.ty != Tvoid)
+        if (tb1.isStaticOrDynamicArray() && tb2.ty != Tvoid)
         {
             if (exp.e1.op == EXP.arrayLiteral)
             {
@@ -12490,7 +12490,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
         }
         // Check for: element ~ array
-        if ((tb2.ty == Tsarray || tb2.ty == Tarray) && tb1.ty != Tvoid)
+        if (tb2.isStaticOrDynamicArray() && tb1.ty != Tvoid)
         {
             if (exp.e2.op == EXP.arrayLiteral)
             {
@@ -12525,7 +12525,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
     Lpeer:
-        if ((tb1.ty == Tsarray || tb1.ty == Tarray) && (tb2.ty == Tsarray || tb2.ty == Tarray) && (tb1next.mod || tb2next.mod) && (tb1next.mod != tb2next.mod))
+        if (tb1.isStaticOrDynamicArray() && tb2.isStaticOrDynamicArray() &&
+            (tb1next.mod || tb2next.mod) && (tb1next.mod != tb2next.mod))
         {
             Type t1 = tb1next.mutableOf().constOf().arrayOf();
             Type t2 = tb2next.mutableOf().constOf().arrayOf();
@@ -12564,8 +12565,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Type t1 = exp.e1.type.toBasetype();
         Type t2 = exp.e2.type.toBasetype();
         Expression e;
-        if ((t1.ty == Tarray || t1.ty == Tsarray) &&
-            (t2.ty == Tarray || t2.ty == Tsarray))
+        if (t1.isStaticOrDynamicArray() && t2.isStaticOrDynamicArray())
         {
             // Normalize to ArrayLiteralExp or StringExp as far as possible
             e = exp.optimize(WANTvalue);
@@ -12596,7 +12596,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         Type tb = exp.type.toBasetype();
-        if (tb.ty == Tarray || tb.ty == Tsarray)
+        if (tb.isStaticOrDynamicArray())
         {
             if (!isArrayOpValid(exp))
             {
@@ -12876,7 +12876,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         Type tb = exp.type.toBasetype();
-        if (tb.ty == Tarray || tb.ty == Tsarray)
+        if (tb.isStaticOrDynamicArray())
         {
             if (!isArrayOpValid(exp))
             {
@@ -13038,7 +13038,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         Expression arrayLowering = null;
         t1 = exp.e1.type.toBasetype();
         t2 = exp.e2.type.toBasetype();
-        if ((t1.ty == Tarray || t1.ty == Tsarray || t1.ty == Tpointer) && (t2.ty == Tarray || t2.ty == Tsarray || t2.ty == Tpointer))
+        if ((t1.isStaticOrDynamicArray() || t1.ty == Tpointer) && (t2.isStaticOrDynamicArray() || t2.ty == Tpointer))
         {
             Type t1next = t1.nextOf();
             Type t2next = t2.nextOf();
@@ -13048,8 +13048,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return setError();
             }
 
-            if ((t1.ty == Tarray || t1.ty == Tsarray) &&
-                (t2.ty == Tarray || t2.ty == Tsarray))
+            if (t1.isStaticOrDynamicArray() && t2.isStaticOrDynamicArray())
             {
                 if (!verifyHookExist(exp.loc, *sc, Id.__cmp, "comparing arrays"))
                     return setError();
@@ -13288,8 +13287,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        const isArrayComparison = (t1.ty == Tarray || t1.ty == Tsarray) &&
-                                  (t2.ty == Tarray || t2.ty == Tsarray);
+        const isArrayComparison = t1.isStaticOrDynamicArray() && t2.isStaticOrDynamicArray();
         const needsArrayLowering = isArrayComparison && needsDirectEq(t1, t2, sc);
 
         if (!needsArrayLowering)
@@ -14401,7 +14399,7 @@ Expression dotTemplateSemanticProp(DotTemplateInstanceExp exp, Scope* sc, bool g
     {
         exp.e1 = die.e1; // take back
         Type t1b = exp.e1.type.toBasetype();
-        if (t1b.ty == Tarray || t1b.ty == Tsarray || t1b.ty == Taarray || t1b.ty == Tnull || (t1b.isTypeBasic() && t1b.ty != Tvoid))
+        if (t1b.isStaticOrDynamicArray() || t1b.ty == Taarray || t1b.ty == Tnull || (t1b.isTypeBasic() && t1b.ty != Tvoid))
         {
             /* No built-in type has templatized properties, so do shortcut.
              * It is necessary in: 1024.max!"a < b"
@@ -16281,7 +16279,7 @@ private bool fit(StructDeclaration sd, const ref Loc loc, Scope* sc, Expressions
             Type typeb = se.type.toBasetype();
             TY tynto = tb.nextOf().ty;
             if (!se.committed &&
-                (typeb.ty == Tarray || typeb.ty == Tsarray) && tynto.isSomeChar &&
+                typeb.isStaticOrDynamicArray() && tynto.isSomeChar &&
                 se.numberOfCodeUnits(tynto) < (cast(TypeSArray)tb).dim.toInteger())
             {
                 e = se.castTo(sc, t);

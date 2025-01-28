@@ -822,7 +822,7 @@ public:
             visit(cast(BinExp)e);
 
             Type t1 = e.e1.type.toBasetype();
-            if (t1.ty == Tarray || t1.ty == Tsarray)
+            if (t1.isStaticOrDynamicArray())
             {
                 Type t = t1.nextOf().toBasetype();
                 while (t.toBasetype().nextOf())

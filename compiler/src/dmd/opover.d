@@ -658,8 +658,7 @@ Expression opOverloadEqual(EqualExp e, Scope* sc, Type[2] aliasThisStop)
      * lowering to object.__equals(), which takes care of overloaded
      * operators for the element types.
      */
-    if ((t1.isTypeDArray() || t1.isTypeSArray()) &&
-        (t2.isTypeDArray() || t2.isTypeSArray()))
+    if (t1.isStaticOrDynamicArray() && t2.isStaticOrDynamicArray())
     {
         return null;
     }

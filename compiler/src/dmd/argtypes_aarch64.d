@@ -38,7 +38,7 @@ TypeTuple toArgTypes_aarch64(Type t)
         return null;
 
     Type tb = t.toBasetype();
-    const isAggregate = tb.ty == Tstruct || tb.ty == Tsarray || tb.ty == Tarray || tb.ty == Tdelegate || tb.isComplex();
+    const isAggregate = tb.ty == Tstruct || tb.isStaticOrDynamicArray() || tb.ty == Tdelegate || tb.isComplex();
     if (!isAggregate)
         return new TypeTuple(t);
 
