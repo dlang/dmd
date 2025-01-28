@@ -533,6 +533,9 @@ void cod3_stackadj(ref CodeBuilder cdb, int nbytes)
     //printf("cod3_stackadj(%d)\n", nbytes);
     if (cgstate.AArch64)
     {
+        if (nbytes == 0)
+            return;
+
         // https://www.scs.stanford.edu/~zyedidia/arm64/sub_addsub_imm.html
         // add/sub Xd,Xn,#imm{,shift}
         uint sf = 1;

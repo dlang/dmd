@@ -492,13 +492,21 @@ struct INSTR
     }
 
     /* Conditional select
-     * CSEL/CSINC/CSINV/CSNEG
+     * CSEL/CSINC/CSINV/CSNEG/CSET
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#condsel
      */
     static uint condsel(uint sf, uint op, uint S, ubyte Rm, uint cond, uint o2, ubyte Rn, ubyte Rd)
     {
         assert(cond < 16);
         return (sf << 31) | (op << 30) | (S << 29) | (0xD4 << 21) | (Rm << 16) | (cond << 12) | (o2 << 10) | (Rn << 5) | Rd;
+    }
+
+    /* CSET Rd,<invcond> https://www.scs.stanford.edu/~zyedidia/arm64/cset_csinc.html
+     */
+    static uint cset(uint sf, uint cond, reg_t Rd)
+    {
+        assert(cond < 0xE);
+        return condsel(sf, 0, 0, 31, cond, 1, 31, Rd);
     }
 
     /* Data-processing (3 source)

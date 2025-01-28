@@ -1681,7 +1681,7 @@ void disassemble(uint c) @trusted
         if (op * 2 + (op2 & 1) == 1 &&
             Rm == 0x1F && Rn == 0x1F)
         {
-            p1 = "cset";
+            p1 = "cset";                // https://www.scs.stanford.edu/~zyedidia/arm64/cset_csinc.html
             p3 = condstring[cond ^ 1];
         }
         else

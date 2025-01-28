@@ -321,6 +321,95 @@ void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     fixresult(cdb,e,retregs,pretregs);
 }
 
+/***************************
+ * Handle OPnot and OPbool.
+ * Generate:
+ *      c:      [evaluate e1]
+ *      cfalse: [save reg code]
+ *              clr     reg
+ *              jmp     cnop
+ *      ctrue:  [save reg code]
+ *              clr     reg
+ *              inc     reg
+ *      cnop:   nop
+ */
+
+@trusted
+void cdnot(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
+{
+    //printf("cdnot()\n");
+    reg_t reg;
+    regm_t forflags;
+    elem* e1 = e.E1;
+
+    if (pretregs == 0 ||
+        pretregs == mPSW)
+    {
+        codelem(cgstate,cdb,e1,pretregs,false);      // evaluate e1 for cc
+        return;
+    }
+
+    OPER op = e.Eoper;
+    uint sz = tysize(e1.Ety);
+
+    if (tyfloating(e1.Ety))
+    {
+        code* cnop  = gen1(null, INSTR.nop);
+        code* ctrue = gen1(null, INSTR.nop);
+        logexp(cdb,e.E1,(op == OPnot) ? false : true,FL.code,ctrue);
+        forflags = pretregs & mPSW;
+        if (I64 && sz == 8)
+            forflags |= 64;
+        assert(tysize(e.Ety) <= REGSIZE);              // result better be int
+        CodeBuilder cdbfalse;
+        cdbfalse.ctor();
+        reg = allocreg(cdbfalse,pretregs,e.Ety);        // allocate reg for result
+        code* cfalse = cdbfalse.finish();
+        CodeBuilder cdbtrue;
+        cdbtrue.ctor();
+        cdbtrue.append(ctrue);
+        for (code* c1 = cfalse; c1; c1 = code_next(c1))
+            cdbtrue.gen(c1);                                      // duplicate reg save code
+        CodeBuilder cdbfalse2;
+        cdbfalse2.ctor();
+        movregconst(cdbfalse2,reg,0,forflags);                    // mov 0 into reg
+        cgstate.regcon.immed.mval &= ~mask(reg);                  // mark reg as unavail
+        movregconst(cdbtrue,reg,1,forflags);                      // mov 1 into reg
+        cgstate.regcon.immed.mval &= ~mask(reg);                  // mark reg as unavail
+        genBranch(cdbfalse2,COND.al,FL.code,cast(block*) cnop);   // JMP cnop
+        cdb.append(cfalse);
+        cdb.append(cdbfalse2);
+        cdb.append(cdbtrue);
+        cdb.append(cnop);
+    }
+    else
+    {
+        const posregs = cgstate.allregs;
+        regm_t retregs1 = posregs;
+        codelem(cgstate,cdb,e.E1,retregs1,false);
+        const R1 = findreg(retregs1);       // source register
+
+        regm_t retregs = pretregs & cg.allregs;
+        if (retregs == 0)                   // if no return regs speced
+                                            // (like if wanted flags only)
+            retregs = ALLREGS & posregs;    // give us some
+        const tym = tybasic(e.Ety);
+        reg_t Rd = allocreg(cdb, retregs, tym); // destination register
+
+        uint sf = sz == 8;
+
+        cdb.gen1(INSTR.cmp_imm(sf,0,0,R1));  // CMP R1,#0
+        COND cond = op == OPnot ? COND.ne : COND.eq;
+        cdb.gen1(INSTR.cset(sf,cond,Rd));    // CSET Rd,EQ
+
+        uint N,immr,imms;
+        assert(encodeNImmrImms(0xFF,N,immr,imms));
+        cdb.gen1(INSTR.log_imm(0,0,0,immr,imms,Rd,Rd)); // AND Rd,Rd,#0xFF
+
+        fixresult(cdb,e,retregs,pretregs);
+    }
+}
+
 /************************
  * Complement operator
  */
@@ -328,7 +417,7 @@ void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 @trusted
 void cdcom(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
-    //printf("cdcom()\n");
+    printf("cdcom()\n");
     //elem_print(e);
     if (pretregs == 0)
     {
