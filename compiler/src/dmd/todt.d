@@ -1080,7 +1080,7 @@ private void toDtElem(TypeSArray tsa, ref DtBuilder dtb, Expression e, bool isCt
         Type tnext = tsa.next;
         Type tbn = tnext.toBasetype();
         Type ten = e ? e.type : null;
-        if (ten && (ten.ty == Tsarray || ten.ty == Tarray))
+        if (ten && ten.isStaticOrDynamicArray())
             ten = ten.nextOf();
         while (tbn.ty == Tsarray && (!e || !tbn.equivalent(ten)))
         {

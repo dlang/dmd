@@ -1521,6 +1521,8 @@ extern (C++) abstract class Type : ASTNode
         inout(TypeTraits)     isTypeTraits()     { return ty == Ttraits    ? cast(typeof(return))this : null; }
         inout(TypeNoreturn)   isTypeNoreturn()   { return ty == Tnoreturn  ? cast(typeof(return))this : null; }
         inout(TypeTag)        isTypeTag()        { return ty == Ttag       ? cast(typeof(return))this : null; }
+
+        extern (D) bool isStaticOrDynamicArray() const { return ty == Tarray || ty == Tsarray; }
     }
 
     override void accept(Visitor v)
@@ -3947,7 +3949,7 @@ extern (C++) final class Parameter : ASTNode
     Type isLazyArray()
     {
         Type tb = type.toBasetype();
-        if (tb.ty == Tsarray || tb.ty == Tarray)
+        if (tb.isStaticOrDynamicArray())
         {
             Type tel = (cast(TypeArray)tb).next.toBasetype();
             if (auto td = tel.isTypeDelegate())
@@ -4334,7 +4336,7 @@ AggregateDeclaration isAggregate(Type t)
 bool isIndexableNonAggregate(Type t)
 {
     t = t.toBasetype();
-    return (t.ty == Tpointer || t.ty == Tsarray || t.ty == Tarray || t.ty == Taarray ||
+    return (t.ty == Tpointer || t.isStaticOrDynamicArray() || t.ty == Taarray ||
             t.ty == Ttuple || t.ty == Tvector);
 }
 

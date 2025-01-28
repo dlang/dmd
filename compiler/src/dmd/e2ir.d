@@ -1625,8 +1625,7 @@ elem* toElem(Expression e, ref IRState irs)
         Type tb1 = be.e1.type.toBasetype();
         Type tb2 = be.e2.type.toBasetype();
 
-        assert(!((tb1.ty == Tarray || tb1.ty == Tsarray ||
-                  tb2.ty == Tarray || tb2.ty == Tsarray) &&
+        assert(!((tb1.isStaticOrDynamicArray() || tb2.isStaticOrDynamicArray()) &&
                  tb2.ty != Tvoid &&
                  op != OPeq && op != OPandand && op != OPoror));
 
@@ -1648,8 +1647,7 @@ elem* toElem(Expression e, ref IRState irs)
         Type tb1 = be.e1.type.toBasetype();
         Type tb2 = be.e2.type.toBasetype();
 
-        assert(!((tb1.ty == Tarray || tb1.ty == Tsarray ||
-                  tb2.ty == Tarray || tb2.ty == Tsarray) &&
+        assert(!((tb1.isStaticOrDynamicArray() || tb2.isStaticOrDynamicArray()) &&
                  tb2.ty != Tvoid &&
                  op != OPeq && op != OPandand && op != OPoror));
 
@@ -1822,9 +1820,7 @@ elem* toElem(Expression e, ref IRState irs)
             // Should have already been lowered
             assert(0);
         }
-        else if (cast(int)eop > 1 &&
-            (t1.ty == Tarray || t1.ty == Tsarray) &&
-            (t2.ty == Tarray || t2.ty == Tsarray))
+        else if (cast(int)eop > 1 && t1.isStaticOrDynamicArray() && t2.isStaticOrDynamicArray())
         {
             // This codepath was replaced by lowering during semantic
             // to object.__cmp in druntime.
@@ -1975,8 +1971,7 @@ elem* toElem(Expression e, ref IRState irs)
             // Rewritten to IdentityExp or memberwise-compare
             assert(0);
         }
-        else if ((t1.ty == Tarray || t1.ty == Tsarray) &&
-                 (t2.ty == Tarray || t2.ty == Tsarray))
+        else if (t1.isStaticOrDynamicArray() && t2.isStaticOrDynamicArray())
         {
             Type telement  = t1.nextOf().toBasetype();
             Type telement2 = t2.nextOf().toBasetype();
@@ -2142,8 +2137,7 @@ elem* toElem(Expression e, ref IRState irs)
             e = el_bin(eop, TYint, e, el_long(TYint, 0));
             elem_setLoc(e, ie.loc);
         }
-        else if ((t1.ty == Tarray || t1.ty == Tsarray) &&
-                 (t2.ty == Tarray || t2.ty == Tsarray))
+        else if (t1.isStaticOrDynamicArray() && t2.isStaticOrDynamicArray())
         {
 
             elem *ea1 = toElem(ie.e1, irs);
@@ -3765,7 +3759,7 @@ elem* toElem(Expression e, ref IRState irs)
     {
         //printf("SliceExp.toElem() se = %s %s\n", se.type.toChars(), se.toChars());
         Type tb = se.type.toBasetype();
-        assert(tb.ty == Tarray || tb.ty == Tsarray);
+        assert(tb.isStaticOrDynamicArray());
         Type t1 = se.e1.type.toBasetype();
         elem *e = toElem(se.e1, irs);
         if (se.lwr)
