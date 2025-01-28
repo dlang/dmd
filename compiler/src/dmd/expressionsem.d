@@ -12127,10 +12127,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        if (exp.suggestBinaryOverloads(sc))
-            return setError();
-
-        if (exp.checkArithmeticBin())
+        if (exp.suggestBinaryOverloads(sc) || exp.checkArithmeticBin())
             return setError();
 
         tb1 = exp.e1.type.toBasetype();
@@ -12283,10 +12280,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        if (exp.suggestBinaryOverloads(sc))
-            return setError();
-
-        if (exp.checkArithmeticBin())
+        if (exp.suggestBinaryOverloads(sc) || exp.checkArithmeticBin())
             return setError();
 
         t1 = exp.e1.type.toBasetype();
@@ -12587,7 +12581,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         trySetCatExpLowering(result);
     }
 
-    bool commonBinOpSemantic(BinExp exp)
+    bool commonArithBinOpSemantic(BinExp exp)
     {
         if (Expression e = exp.opOverloadBinary(sc, aliasThisStop))
         {
@@ -12600,12 +12594,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = ex;
             return true;
         }
-        return false;
-    }
-    bool commonArithBinOpSemantic(BinExp exp)
-    {
-        if (commonBinOpSemantic(exp))
-            return true;
 
         Type tb = exp.type.toBasetype();
         if (tb.ty == Tarray || tb.ty == Tsarray)
@@ -12619,13 +12607,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return true;
         }
 
-        if (exp.suggestBinaryOverloads(sc))
-        {
-            setError();
-            return true;
-        }
-
-        if (exp.checkArithmeticBin() || exp.checkSharedAccessBin(sc))
+        if (exp.suggestBinaryOverloads(sc) || exp.checkArithmeticBin() || exp.checkSharedAccessBin(sc))
         {
             setError();
             return true;
@@ -12839,10 +12821,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        if (exp.suggestBinaryOverloads(sc))
-            return setError();
-
-        if (exp.checkIntegralBin() || exp.checkSharedAccessBin(sc))
+        if (exp.suggestBinaryOverloads(sc) || exp.checkIntegralBin() || exp.checkSharedAccessBin(sc))
             return setError();
 
         if (!target.isVectorOpSupported(exp.e1.type.toBasetype(), exp.op, exp.e2.type.toBasetype()))
@@ -12913,10 +12892,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        if (exp.suggestBinaryOverloads(sc))
-            return setError();
-
-        if (exp.checkIntegralBin() || exp.checkSharedAccessBin(sc))
+        if (exp.suggestBinaryOverloads(sc) || exp.checkIntegralBin() || exp.checkSharedAccessBin(sc))
             return setError();
 
         result = exp;
