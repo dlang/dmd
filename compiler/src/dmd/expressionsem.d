@@ -14829,6 +14829,75 @@ private bool checkArithmeticBin(BinExp e)
     return (e.e1.checkArithmetic(e.op) || e.e2.checkArithmetic(e.op));
 }
 
+/****************************************
+ * Check that the expression has a valid value.
+ * If not, generates an error "... has no value".`
+ *
+ * Params:
+ *     e = expression to check
+ *
+ * Returns:
+ *     `true` if the expression is not valid or has `void` type.
+ */
+bool checkValue(Expression e)
+{
+    if (auto te = e.isTypeExp())
+    {
+        error(e.loc, "type `%s` has no value", e.toChars());
+        return true;
+    }
+
+    if (auto dtie = e.isDotTemplateInstanceExp())
+    {
+        if (dtie.ti.tempdecl &&
+            dtie.ti.semantictiargsdone &&
+            dtie.ti.semanticRun == PASS.initial)
+
+            error(e.loc, "partial %s `%s` has no value", dtie.ti.kind(), e.toChars());
+        else
+            error(e.loc, "%s `%s` has no value", dtie.ti.kind(), dtie.ti.toChars());
+        return true;
+    }
+
+    if (auto se = e.isScopeExp())
+    {
+        error(e.loc, "%s `%s` has no value", se.sds.kind(), se.sds.toChars());
+        return true;
+    }
+
+    if (auto te = e.isTemplateExp())
+    {
+        error(e.loc, "%s `%s` has no value", te.td.kind(), te.toChars());
+        return true;
+    }
+
+    if (auto fe = e.isFuncExp())
+    {
+        if (fe.td)
+        {
+            error(e.loc, "template lambda has no value");
+            return true;
+        }
+        return false;
+    }
+
+    if (auto dte = e.isDotTemplateExp())
+    {
+        error(e.loc, "%s `%s` has no value", dte.td.kind(), e.toChars());
+        return true;
+    }
+
+    if (e.type && e.type.toBasetype().ty == Tvoid)
+    {
+        error(e.loc, "expression `%s` is `void` and has no value", e.toChars());
+        //print(); assert(0);
+        if (!global.gag)
+            e.type = Type.terror;
+        return true;
+    }
+    return false;
+}
+
 /***************************************
  * If expression is shared, check that we can access it.
  * Give error message if not.

@@ -57,7 +57,7 @@ import dmd.dsymbolsem : dsymbolSemantic, checkDeprecated, aliasSemantic, search,
 import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
-import dmd.expressionsem : resolveLoc, expressionSemantic, resolveProperties;
+import dmd.expressionsem : resolveLoc, expressionSemantic, resolveProperties, checkValue;
 import dmd.func;
 import dmd.funcsem : functionSemantic, leastAsSpecialized, overloadApply;
 import dmd.globals;

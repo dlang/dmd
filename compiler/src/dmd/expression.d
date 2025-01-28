@@ -522,25 +522,6 @@ extern (C++) abstract class Expression : ASTNode
         return false;
     }
 
-    /****************************************
-     * Check that the expression has a valid value.
-     * If not, generates an error "... has no value".
-     * Returns:
-     *      true if the expression is not valid or has void type.
-     */
-    bool checkValue()
-    {
-        if (type && type.toBasetype().ty == Tvoid)
-        {
-            error(loc, "expression `%s` is `void` and has no value", toChars());
-            //print(); assert(0);
-            if (!global.gag)
-                type = Type.terror;
-            return true;
-        }
-        return false;
-    }
-
     /******************************
      * Take address of expression.
      */
@@ -2360,12 +2341,6 @@ extern (C++) final class TypeExp : Expression
         return true;
     }
 
-    override bool checkValue()
-    {
-        error(loc, "type `%s` has no value", toChars());
-        return true;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -2419,12 +2394,6 @@ extern (C++) final class ScopeExp : Expression
         return false;
     }
 
-    override bool checkValue()
-    {
-        error(loc, "%s `%s` has no value", sds.kind(), sds.toChars());
-        return true;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -2455,12 +2424,6 @@ extern (C++) final class TemplateExp : Expression
     override bool checkType()
     {
         error(loc, "%s `%s` has no type", td.kind(), toChars());
-        return true;
-    }
-
-    override bool checkValue()
-    {
-        error(loc, "%s `%s` has no value", td.kind(), toChars());
         return true;
     }
 
@@ -2741,16 +2704,6 @@ extern (C++) final class FuncExp : Expression
         if (td)
         {
             error(loc, "template lambda has no type");
-            return true;
-        }
-        return false;
-    }
-
-    override bool checkValue()
-    {
-        if (td)
-        {
-            error(loc, "template lambda has no value");
             return true;
         }
         return false;
@@ -3179,12 +3132,6 @@ extern (C++) final class DotTemplateExp : UnaExp
         return true;
     }
 
-    override bool checkValue()
-    {
-        error(loc, "%s `%s` has no value", td.kind(), toChars());
-        return true;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -3261,18 +3208,6 @@ extern (C++) final class DotTemplateInstanceExp : UnaExp
             return true;
         }
         return false;
-    }
-
-    override bool checkValue()
-    {
-        if (ti.tempdecl &&
-            ti.semantictiargsdone &&
-            ti.semanticRun == PASS.initial)
-
-            error(loc, "partial %s `%s` has no value", ti.kind(), toChars());
-        else
-            error(loc, "%s `%s` has no value", ti.kind(), ti.toChars());
-        return true;
     }
 
     override void accept(Visitor v)

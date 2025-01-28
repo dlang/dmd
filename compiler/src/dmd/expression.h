@@ -101,7 +101,6 @@ public:
     virtual StringExp *toStringExp();
     virtual bool isLvalue();
     virtual bool checkType();
-    virtual bool checkValue();
     Expression *addressOf();
     Expression *deref();
 
@@ -485,7 +484,6 @@ class TypeExp final : public Expression
 public:
     TypeExp *syntaxCopy() override;
     bool checkType() override;
-    bool checkValue() override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -496,7 +494,6 @@ public:
 
     ScopeExp *syntaxCopy() override;
     bool checkType() override;
-    bool checkValue() override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -508,7 +505,6 @@ public:
 
     bool isLvalue() override;
     bool checkType() override;
-    bool checkValue() override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -608,7 +604,6 @@ public:
     FuncExp *syntaxCopy() override;
     const char *toChars() const override;
     bool checkType() override;
-    bool checkValue() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -752,7 +747,6 @@ public:
     TemplateDeclaration *td;
 
     bool checkType() override;
-    bool checkValue() override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -773,7 +767,6 @@ public:
 
     DotTemplateInstanceExp *syntaxCopy() override;
     bool checkType() override;
-    bool checkValue() override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 
