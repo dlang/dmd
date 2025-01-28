@@ -403,9 +403,9 @@ Expression opOverloadArray(ArrayExp ae, Scope* sc)
 
             if (result.op == EXP.error)
             {
-                if (!e0 && !search_function(ad, Id.dollar)) {
-                    ae.loc.errorSupplemental("Aggregate declaration '%s' does not define 'opDollar'", ae.e1.toChars());
-                }
+                if (!e0 && !search_function(ad, Id.dollar))
+                    ad.loc.errorSupplemental("perhaps define `opDollar` for `%s`", ad.toChars());
+
                 return result;
             }
             /* Rewrite a[i..j] as:
