@@ -3920,7 +3920,7 @@ LmodCompare:
         return convert(e1, t2);
 
     /// Covers array operations for user-defined types
-    Type checkArrayOpType(Expression e1, Expression e2, EXP op, Scope *sc)
+    Type checkArrayOpType(Expression e1, Expression e2, EXP op, Scope* sc)
     {
         // scalar op scalar - we shouldn't be here
         if (e1.type.ty != Tarray && e1.type.ty != Tsarray && e2.type.ty != Tarray && e2.type.ty != Tsarray)

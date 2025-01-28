@@ -401,7 +401,7 @@ struct ASTBase
     {
         Dsymbols* decl;
 
-        final extern (D) this(Dsymbols *decl)
+        final extern (D) this(Dsymbols* decl)
         {
             this.decl = decl;
         }
@@ -1672,7 +1672,7 @@ struct ASTBase
     {
         TypeQualified tqual;
 
-        extern (D) this(const ref Loc loc, Identifier ident, TypeQualified tqual, Objects *tiargs)
+        extern (D) this(const ref Loc loc, Identifier ident, TypeQualified tqual, Objects* tiargs)
         {
             super(loc,
                   tqual.idents.length ? cast(Identifier)tqual.idents[tqual.idents.length - 1] : (cast(TypeIdentifier)tqual).ident,

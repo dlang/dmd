@@ -308,7 +308,7 @@ extern (D) bool findTempDecl(DotTemplateInstanceExp exp, Scope* sc)
  * Returns:
  *  String literal, or `null` if error happens.
  */
-StringExp semanticString(Scope *sc, Expression exp, const char* s)
+StringExp semanticString(Scope* sc, Expression exp, const char* s)
 {
     sc = sc.startCTFE();
     exp = exp.expressionSemantic(sc);
@@ -825,7 +825,7 @@ extern(D) bool arrayExpressionSemantic(
  * Returns:
  *  The expression that copy constructs or moves the value.
  */
-extern (D) Expression doCopyOrMove(Scope *sc, Expression e, Type t, bool nrvo, bool move = false)
+extern (D) Expression doCopyOrMove(Scope* sc, Expression e, Type t, bool nrvo, bool move = false)
 {
     //printf("doCopyOrMove() %s\n", toChars(e));
     StructDeclaration sd;
@@ -1565,7 +1565,7 @@ Expression resolvePropertiesOnly(Scope* sc, Expression e1)
  * Returns:
  *      `s` turned into an expression, `ErrorExp` if an error occurred
  */
-Expression symbolToExp(Dsymbol s, const ref Loc loc, Scope *sc, bool hasOverloads)
+Expression symbolToExp(Dsymbol s, const ref Loc loc, Scope* sc, bool hasOverloads)
 {
     static if (LOGSEMANTIC)
     {
@@ -7648,7 +7648,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         result = (cast(BinExp)e).reorderSettingAAElem(sc);
     }
 
-    private Expression compileIt(MixinExp exp, Scope *sc)
+    private Expression compileIt(MixinExp exp, Scope* sc)
     {
         OutBuffer buf;
         if (expressionsToString(buf, sc, exp.exps, exp.loc, null, true))
@@ -12343,7 +12343,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return result;
         }
 
-        void handleCatArgument(Expressions *arguments, Expression e, Type catType, bool isRightArg)
+        void handleCatArgument(Expressions* arguments, Expression e, Type catType, bool isRightArg)
         {
             auto tb = e.type.toBasetype();
 

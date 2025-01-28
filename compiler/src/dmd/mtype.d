@@ -4059,7 +4059,7 @@ extern (C++) final class Parameter : ASTNode
 
     /***************************************
      * Expands tuples in args in depth first order. Calls
-     * dg(void *ctx, size_t argidx, Parameter *arg) for each Parameter.
+     * dg(void* ctx, size_t argidx, Parameter* arg) for each Parameter.
      * If dg returns !=0, stops and returns that value else returns 0.
      * Use this function to avoid the O(N + N^2/2) complexity of
      * calculating dim and calling N times getNth.

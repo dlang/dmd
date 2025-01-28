@@ -66,7 +66,7 @@ import dmd.backend.ty;
  * Helper
  */
 
-Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, SC sclass, type *t, const(char)* suffix)
+Symbol* toSymbolX(Dsymbol ds, const(char)* prefix, SC sclass, type* t, const(char)* suffix)
 {
     //printf("Dsymbol::toSymbolX('%s')\n", prefix);
     import dmd.common.smallbuffer : SmallBuffer;
@@ -85,7 +85,7 @@ Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, SC sclass, type *t, const(cha
 
     char[64] idbuf = void;
     auto sb = SmallBuffer!(char)(idlen, idbuf[]);
-    char *id = sb.ptr;
+    char* id = sb.ptr;
 
     int nwritten = snprintf(id, idlen, "_D%.*s%d%.*s%.*s",
         cast(int)nlen, n,
@@ -93,7 +93,7 @@ Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, SC sclass, type *t, const(cha
         cast(int)suffixlen, suffix);
     assert(cast(uint)nwritten < idlen);         // nwritten does not include the terminating 0 char
 
-    Symbol *s = symbol_name(id[0 .. nwritten], sclass, t);
+    Symbol* s = symbol_name(id[0 .. nwritten], sclass, t);
 
     //printf("-Dsymbol::toSymbolX() %s\n", id);
     return s;
@@ -102,7 +102,7 @@ Symbol *toSymbolX(Dsymbol ds, const(char)* prefix, SC sclass, type *t, const(cha
 /*************************************
  */
 
-Symbol *toSymbol(Dsymbol s)
+Symbol* toSymbol(Dsymbol s)
 {
     //printf("toSymbol() %s\n", s.toChars());
 
@@ -110,7 +110,7 @@ Symbol *toSymbol(Dsymbol s)
     {
         alias visit = Visitor.visit;
 
-        Symbol *result;
+        Symbol* result;
 
         this() scope @safe
         {
@@ -157,7 +157,7 @@ Symbol *toSymbol(Dsymbol s)
                     }
                 }
             }
-            Symbol *s = symbol_calloc(id);
+            Symbol* s = symbol_calloc(id);
             s.Salignment = vd.alignment.isDefault() ? -1 : vd.alignment.get();
             if (vd.storage_class & STC.temp)
                 s.Sflags |= SFLartifical;
@@ -166,7 +166,7 @@ Symbol *toSymbol(Dsymbol s)
             if (vd.adFlags & Declaration.nounderscore)
                 s.Sflags |= SFLnounderscore;
 
-            TYPE *t;
+            TYPE* t;
             if (vd.storage_class & (STC.out_ | STC.ref_))
             {
                 t = type_allocn(TYnref, Type_toCtype(vd.type));
@@ -387,7 +387,7 @@ Symbol *toSymbol(Dsymbol s)
                 : SC.global;
 
             symbol_func(*s);
-            func_t *f = s.Sfunc;
+            func_t* f = s.Sfunc;
             if (fd.isVirtual() && fd.vtblIndex != -1)
                 f.Fflags |= Fvirtual;
             else if (fd.isMember2() && fd.isStatic())
@@ -553,13 +553,13 @@ Symbol *toSymbol(Dsymbol s)
  *      import symbol
  */
 
-private Symbol *createImport(Symbol *sym, Loc loc)
+private Symbol* createImport(Symbol* sym, Loc loc)
 {
     //printf("Dsymbol.createImport('%s')\n", sym.Sident.ptr);
     const char* n = sym.Sident.ptr;
     import core.stdc.stdlib : alloca;
     const allocLen = 6 + strlen(n) + 1 + type_paramsize(sym.Stype).sizeof*3 + 1;
-    char *id = cast(char *) alloca(allocLen);
+    char* id = cast(char *) alloca(allocLen);
     int idlen;
     if (target.os & Target.OS.Posix)
     {
@@ -600,7 +600,7 @@ private Symbol *createImport(Symbol *sym, Loc loc)
  * Generate import symbol from symbol.
  */
 
-Symbol *toImport(Dsymbol ds)
+Symbol* toImport(Dsymbol ds)
 {
     if (!ds.csym)
         toSymbol(ds);
@@ -611,9 +611,9 @@ Symbol *toImport(Dsymbol ds)
  * Thunks adjust the incoming 'this' pointer by 'offset'.
  */
 
-Symbol *toThunkSymbol(FuncDeclaration fd, int offset)
+Symbol* toThunkSymbol(FuncDeclaration fd, int offset)
 {
-    Symbol *s = toSymbol(fd);
+    Symbol* s = toSymbol(fd);
     if (!offset)
         return s;
 
@@ -639,7 +639,7 @@ Symbol *toThunkSymbol(FuncDeclaration fd, int offset)
  * Fake a struct symbol.
  */
 
-Classsym *fake_classsym(Identifier id)
+Classsym* fake_classsym(Identifier id)
 {
     auto t = type_struct_class(id.toChars(),8,0,
         null,null,
@@ -657,7 +657,7 @@ Classsym *fake_classsym(Identifier id)
  * needed directly (like for rtti comparisons), make it directly accessible.
  */
 
-Symbol *toVtblSymbol(ClassDeclaration cd, bool genCsymbol = true)
+Symbol* toVtblSymbol(ClassDeclaration cd, bool genCsymbol = true)
 {
     if (!cd.vtblsym || !cd.vtblsym.csym)
     {
@@ -680,7 +680,7 @@ Symbol *toVtblSymbol(ClassDeclaration cd, bool genCsymbol = true)
  * Create the static initializer for the struct/class.
  */
 
-Symbol *toInitializer(AggregateDeclaration ad)
+Symbol* toInitializer(AggregateDeclaration ad)
 {
     //printf("toInitializer() %s\n", ad.toChars());
     if (!ad.sinit)
@@ -745,7 +745,7 @@ Symbol *toInitializer(AggregateDeclaration ad)
     return cast(Symbol*)ad.sinit;
 }
 
-Symbol *toInitializer(EnumDeclaration ed)
+Symbol* toInitializer(EnumDeclaration ed)
 {
     if (!ed.sinit)
     {
@@ -823,10 +823,10 @@ Symbol* toSymbolCpp(ClassDeclaration cd)
      */
     if (!cd.cpp_type_info_ptr_sym)
     {
-        __gshared Symbol *scpp;
+        __gshared Symbol* scpp;
         if (!scpp)
             scpp = fake_classsym(Id.cpp_type_info_ptr);
-        Symbol *s = toSymbolX(cd, "_cpp_type_info_ptr", SC.comdat, scpp.Stype, "");
+        Symbol* s = toSymbolX(cd, "_cpp_type_info_ptr", SC.comdat, scpp.Stype, "");
         s.Sfl = FL.data;
         s.Sflags |= SFLnodebug;
         auto dtb = DtBuilder(0);
@@ -845,7 +845,7 @@ Symbol* toSymbolCpp(ClassDeclaration cd)
  * Returns:
  *      Symbol of cd's rtti type info
  */
-Symbol *toSymbolCppTypeInfo(ClassDeclaration cd)
+Symbol* toSymbolCppTypeInfo(ClassDeclaration cd)
 {
     const id = target.cpp.typeInfoMangle(cd);
     auto s = symbol_calloc(id[0 .. strlen(id)]);
@@ -866,7 +866,7 @@ Symbol *toSymbolCppTypeInfo(ClassDeclaration cd)
  *      corresponding Symbol
  */
 
-Symbol *toSymbol(Type t)
+Symbol* toSymbol(Type t)
 {
     auto tc = t.isTypeClass();
     assert(tc);

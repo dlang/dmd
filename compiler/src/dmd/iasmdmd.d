@@ -82,11 +82,11 @@ public void iasm_term()
  * Returns:
  *      `s` on success, ErrorStatement if errors happened
  */
-public Statement inlineAsmSemantic(InlineAsmStatement s, Scope *sc)
+public Statement inlineAsmSemantic(InlineAsmStatement s, Scope* sc)
 {
     //printf("InlineAsmStatement.semantic()\n");
 
-    OP *o;
+    OP* o;
     OPND[4] opnds;
     int nOps;
     PTRNTAB ptb;
@@ -657,7 +657,7 @@ void asm_chktok(TOK toknum, const(char)* msg)
 /*******************************
  */
 
-PTRNTAB asm_classify(OP *pop, OPND[] opnds, out int outNumops)
+PTRNTAB asm_classify(OP* pop, OPND[] opnds, out int outNumops)
 {
     opflag_t[4] opflags;
     bool    bInvalid64bit = false;
@@ -780,7 +780,7 @@ RETRY:
                 // Rewrite CALL $+disp from rel8 to rel32
                 opflags[0] = CONSTRUCT_FLAGS(OpndSize._32, _rel, _flbl, 0);
 
-            PTRNTAB1 *table1;
+            PTRNTAB1* table1;
             for (table1 = pop.ptb.pptb1; table1.opcode != ASM_END;
                     table1++)
             {
@@ -856,7 +856,7 @@ RETRY:
             if (log) { printf("`%s`\n", asm_opstr(pop)); }
             if (log) { printf("opflags1 = "); asm_output_flags(opflags[0]); printf("\n"); }
             if (log) { printf("opflags2 = "); asm_output_flags(opflags[1]); printf("\n"); }
-            PTRNTAB2 *table2;
+            PTRNTAB2* table2;
             for (table2 = pop.ptb.pptb2;
                  table2.opcode != ASM_END;
                  table2++)
@@ -981,7 +981,7 @@ version (none)
             if (log) { printf("opflags1 = "); asm_output_flags(opflags[0]); printf("\n"); }
             if (log) { printf("opflags2 = "); asm_output_flags(opflags[1]); printf("\n"); }
             if (log) { printf("opflags3 = "); asm_output_flags(opflags[2]); printf("\n"); }
-            PTRNTAB3 *table3;
+            PTRNTAB3* table3;
             for (table3 = pop.ptb.pptb3;
                  table3.opcode != ASM_END;
                  table3++)
@@ -1051,7 +1051,7 @@ version (none)
         }
         case 4:
         {
-            PTRNTAB4 *table4;
+            PTRNTAB4* table4;
             for (table4 = pop.ptb.pptb4;
                  table4.opcode != ASM_END;
                  table4++)
@@ -1326,9 +1326,9 @@ opflag_t asm_determine_operand_flags(ref OPND popnd)
  * it to the code generated for this block.
  */
 
-code *asm_emit(Loc loc,
+code* asm_emit(Loc loc,
     uint usNumops, PTRNTAB ptb,
-    OP *pop, OPND[] opnds)
+    OP* pop, OPND[] opnds)
 {
     ubyte[16] instruction = void;
     size_t insIdx = 0;
@@ -1341,8 +1341,8 @@ code *asm_emit(Loc loc,
         void emit(ubyte op) { }
     }
 //  uint us;
-    code *pc = null;
-    OPND *popndTmp = null;
+    code* pc = null;
+    OPND* popndTmp = null;
     //ASM_OPERAND_TYPE    aopty1 = _reg , aopty2 = 0, aopty3 = 0;
     ASM_MODIFIERS[2] amods = _normal;
     OpndSize[3] uSizemaskTable;
@@ -2094,7 +2094,7 @@ L3:
 /*******************************
  */
 
-opflag_t asm_float_type_size(Type ptype, opflag_t *pusFloat)
+opflag_t asm_float_type_size(Type ptype, opflag_t* pusFloat)
 {
     *pusFloat = 0;
 
@@ -2405,7 +2405,7 @@ L2:
 
 void asm_make_modrm_byte(
         void delegate(ubyte) emit,
-        code *pc,
+        code* pc,
         opflag_t usFlags,
         scope OPND[] opnds)
 {
@@ -3414,7 +3414,7 @@ void asm_token()
 /*******************************
  */
 
-void asm_token_trans(Token *tok)
+void asm_token_trans(Token* tok)
 {
     asmstate.tokValue = TOK.endOfFile;
     if (tok)
@@ -3481,7 +3481,7 @@ OpndSize asm_type_size(Type ptype, bool bPtr)
  *              for optimizer.
  */
 
-code *asm_da_parse(OP *pop)
+code* asm_da_parse(OP* pop)
 {
     CodeBuilder cdb;
     cdb.ctor();
@@ -3523,7 +3523,7 @@ code *asm_da_parse(OP *pop)
  * Parse DB, DW, DD, DQ and DT expressions.
  */
 
-code *asm_db_parse(OP *pop)
+code* asm_db_parse(OP* pop)
 {
     union DT
     {
@@ -3621,7 +3621,7 @@ code *asm_db_parse(OP *pop)
             case TOK.identifier:
             {
                 Expression e = IdentifierExp.create(asmstate.loc, asmstate.tok.ident);
-                Scope *sc = asmstate.sc.startCTFE();
+                Scope* sc = asmstate.sc.startCTFE();
                 e = e.expressionSemantic(sc);
                 sc.endCTFE();
                 e = e.ctfeInterpret();
@@ -3688,7 +3688,7 @@ code *asm_db_parse(OP *pop)
         cdb.genlinnum(Srcpos.create(sl.filename.ptr, sl.linnum, sl.charnum));
     }
     cdb.genasm(bytes.peekSlice());
-    code *c = cdb.finish();
+    code* c = cdb.finish();
 
     asmstate.statement.regs |= /* mES| */ ALLREGS;
     asmstate.bReturnax = true;
@@ -3718,7 +3718,7 @@ int asm_getnum()
         case TOK.identifier:
         {
             Expression e = IdentifierExp.create(asmstate.loc, asmstate.tok.ident);
-            Scope *sc = asmstate.sc.startCTFE();
+            Scope* sc = asmstate.sc.startCTFE();
             e = e.expressionSemantic(sc);
             sc.endCTFE();
             e = e.ctfeInterpret();
@@ -4540,7 +4540,7 @@ void asm_primary_exp(out OPND o1)
  */
 TOK tryExpressionToOperand(Expression e, out OPND o1, out Dsymbol s)
 {
-    Scope *sc = asmstate.sc.startCTFE();
+    Scope* sc = asmstate.sc.startCTFE();
     e = e.expressionSemantic(sc);
     sc.endCTFE();
     e = e.ctfeInterpret();

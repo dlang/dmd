@@ -90,7 +90,7 @@ private final class WindowsConsole : Console
     HANDLE handle;
     FILE* _fp;
 
-    static HANDLE getStdHandle(FILE *fp)
+    static HANDLE getStdHandle(FILE* fp)
     {
         /* Determine if stream fp is a console
          */

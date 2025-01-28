@@ -2621,7 +2621,7 @@ Parameter isFunctionParameter(Dsymbols* a, const(char)[] p) @safe
 
 /****************************************************
  */
-Parameter isEponymousFunctionParameter(Dsymbols *a, const(char)[] p) @safe
+Parameter isEponymousFunctionParameter(Dsymbols* a, const(char)[] p) @safe
 {
     foreach (Dsymbol dsym; *a)
     {

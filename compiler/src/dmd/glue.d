@@ -72,7 +72,7 @@ import dmd.utils;
 
 
 // Used in e2ir.d
-elem *toEfilenamePtr(Module m)
+elem* toEfilenamePtr(Module m)
 {
     //printf("toEfilenamePtr(%s)\n", m.toChars());
     const(char)* id = m.srcfile.toChars();
@@ -400,7 +400,7 @@ extern (D) bool obj_includelib(scope const char[] name) nothrow
     return objmod.includelib(name);
 }
 
-void obj_startaddress(Symbol *s)
+void obj_startaddress(Symbol* s)
 {
     return objmod.startaddress(s);
 }
@@ -420,7 +420,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     version (none)
     {
         //printf("line = %d\n", getWhere() / LINEINC);
-        EEcontext *ee = env.getEEcontext();
+        EEcontext* ee = env.getEEcontext();
         if (ee.EEcompile == 2)
         {
             if (ee.EElinnum < (getWhere() / LINEINC) ||
@@ -501,8 +501,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         return;
     }
 
-    Symbol *s = toSymbol(fd); // may set skipCodegen
-    func_t *f = s.Sfunc;
+    Symbol* s = toSymbol(fd); // may set skipCodegen
+    func_t* f = s.Sfunc;
     if (fd.skipCodegen) // test it again, as toSymbol() might have set it
         return;
 
@@ -600,7 +600,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             s.Sclass = SC.global;
     }
 
-    symtab_t *symtabsave = cstate.CSpsymtab;
+    symtab_t* symtabsave = cstate.CSpsymtab;
     cstate.CSpsymtab = &f.Flocsym;
 
     // Find module m for this function
@@ -617,8 +617,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     Label*[void*] labels = null;
     IRState irs = IRState(m, fd, &varsInScope, &deferToObj, &labels, &global.params, &target, global.errorSink);
 
-    Symbol *shidden = null;
-    Symbol *sthis = null;
+    Symbol* shidden = null;
+    Symbol* sthis = null;
     tym_t tyf = tybasic(s.Stype.Tty);
     //printf("linkage = %d, tyf = x%x\n", linkage, tyf);
     int reverse = tyrevfunc(s.Stype.Tty);
@@ -630,7 +630,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     {
         // If function returns a struct, put a pointer to that
         // as the first argument
-        .type *thidden = Type_toCtype(tf.next.pointerTo());
+        .type* thidden = Type_toCtype(tf.next.pointerTo());
         const hiddenparamLen = 5 + 10 + 1;
         char[hiddenparamLen] hiddenparam = void;
         __gshared uint hiddenparami;    // how many we've generated so far
@@ -742,7 +742,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     {
         /* swap shidden and sthis
          */
-        Symbol *sp = params[0];
+        Symbol* sp = params[0];
         params[0] = params[1];
         params[1] = sp;
     }
@@ -798,9 +798,9 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         if ((target.isX86_64 || target.isAArch64) &&
             target.os & Target.OS.Posix)
         {
-            type *t = type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3 + 8, null, null, false, false, true, false);
+            type* t = type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3 + 8, null, null, false, false, true, false);
             // The backend will pick this up by name
-            Symbol *sv = symbol_name("__va_argsave", SC.auto_, t);
+            Symbol* sv = symbol_name("__va_argsave", SC.auto_, t);
             sv.Stype.Tty |= mTYvolatile;
             symbol_add(sv);
         }
@@ -808,9 +808,9 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         // Declare _argptr, but only for D files
         if (!irs.Cfile)
         {
-            Symbol *sa = toSymbol(fd.v_argptr);
+            Symbol* sa = toSymbol(fd.v_argptr);
             symbol_add(sa);
-            elem *e = el_bin(OPva_start, TYnptr, el_ptr(sa), lastParam ? el_ptr(lastParam) : el_long(TYnptr, 0));
+            elem* e = el_bin(OPva_start, TYnptr, el_ptr(sa), lastParam ? el_ptr(lastParam) : el_long(TYnptr, 0));
             block_appendexp(irs.blx.curblock, e);
         }
     }
@@ -835,7 +835,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         StringExp se = StringExp.create(Loc.initial, s.Sident.ptr);
         se.type = Type.tstring;
         se.type = se.type.typeSemantic(Loc.initial, null);
-        Expressions *exps = new Expressions();
+        Expressions* exps = new Expressions();
         exps.push(se);
         FuncDeclaration fdpro = FuncDeclaration.genCfunc(null, Type.tvoid, "trace_pro");
         Expression ec = VarExp.create(Loc.initial, fdpro);
@@ -861,9 +861,9 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
     {
         // Adjust the 'this' pointer instead of using a thunk
         assert(irs.sthis);
-        elem *ethis = el_var(irs.sthis);
+        elem* ethis = el_var(irs.sthis);
         ethis = fixEthis2(ethis, fd);
-        elem *e = el_bin(OPminass, TYnptr, ethis, el_long(TYsize_t, fd.interfaceVirtual.offset));
+        elem* e = el_bin(OPminass, TYnptr, ethis, el_long(TYsize_t, fd.interfaceVirtual.offset));
         block_appendexp(irs.blx.curblock, e);
     }
 
@@ -900,7 +900,7 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
         {
             if (b.bc == BC.ret)
             {
-                elem *ethis = el_var(sthis);
+                elem* ethis = el_var(sthis);
                 ethis = fixEthis2(ethis, fd);
                 b.bc = BC.retexp;
                 b.Belem = el_combine(b.Belem, ethis);
@@ -1073,8 +1073,8 @@ alias symbols = Array!(Symbol*);
 
 struct Glue
 {
-    elem *eictor;
-    Symbol *ictorlocalgot;
+    elem* eictor;
+    Symbol* ictorlocalgot;
 
     symbols sctors; // static constructorss
     StaticDtorDeclarations ectorgates;
@@ -1186,15 +1186,15 @@ private void obj_write_deferred(ref OutBuffer objbuf, Library library, ref Dsymb
  */
 
 extern (D)
-private Symbol *callFuncsAndGates(Module m, Symbol*[] sctors, StaticDtorDeclaration[] ectorgates,
+private Symbol* callFuncsAndGates(Module m, Symbol*[] sctors, StaticDtorDeclaration[] ectorgates,
         const(char)* id)
 {
     if (!sctors.length && !ectorgates.length)
         return null;
 
-    Symbol *sctor = null;
+    Symbol* sctor = null;
 
-    __gshared type *t;
+    __gshared type* t;
     if (!t)
     {
         /* t will be the type of the functions generated:
@@ -1207,23 +1207,23 @@ private Symbol *callFuncsAndGates(Module m, Symbol*[] sctors, StaticDtorDeclarat
     localgot = null;
     sctor = toSymbolX(m, id, SC.global, t, "FZv");
     cstate.CSpsymtab = &sctor.Sfunc.Flocsym;
-    elem *ector = null;
+    elem* ector = null;
 
     foreach (f; ectorgates)
     {
-        Symbol *s = toSymbol(f.vgate);
-        elem *e = el_var(s);
+        Symbol* s = toSymbol(f.vgate);
+        elem* e = el_var(s);
         e = el_bin(OPaddass, TYint, e, el_long(TYint, 1));
         ector = el_combine(ector, e);
     }
 
     foreach (s; sctors)
     {
-        elem *e = el_una(OPucall, TYvoid, el_var(s));
+        elem* e = el_una(OPucall, TYvoid, el_var(s));
         ector = el_combine(ector, e);
     }
 
-    block *b = block_calloc();
+    block* b = block_calloc();
     b.bc = BC.ret;
     b.Belem = ector;
     sctor.Sfunc.Fstartline.Sfilename = m.arg.xarraydup.ptr;
@@ -1308,7 +1308,7 @@ private void obj_end(ref OutBuffer objbuf, Library library, const(char)[] objfil
 
 private void genObjFile(Module m, bool multiobj)
 {
-    //EEcontext *ee = env.getEEcontext();
+    //EEcontext* ee = env.getEEcontext();
 
     //printf("Module.genobjfile(multiobj = %d) %s\n", multiobj, m.toChars());
 
@@ -1339,7 +1339,7 @@ private void genObjFile(Module m, bool multiobj)
         assert(mod);
         if (mod.sictor || mod.sctor || mod.sdtor || mod.ssharedctor || mod.sshareddtor)
         {
-            Symbol *s = toSymbol(mod);
+            Symbol* s = toSymbol(mod);
             //objextern(s);
             //if (!s.Sxtrnnum) objextdef(s.Sident);
             if (!s.Sxtrnnum)
@@ -1348,7 +1348,7 @@ private void genObjFile(Module m, bool multiobj)
 //#if 0 /* This should work, but causes optlink to fail in common/newlib.asm */
 //                objextdef(s.Sident);
 //#else
-                Symbol *sref = symbol_generate(SC.static_, type_fake(TYnptr));
+                Symbol* sref = symbol_generate(SC.static_, type_fake(TYnptr));
                 sref.Sfl = FL.data;
                 auto dtb = DtBuilder(0);
                 dtb.xoff(s, 0, TYnptr);
@@ -1423,7 +1423,7 @@ private void genObjFile(Module m, bool multiobj)
         /* Generate
          *  private bit[numlines] __bcoverage;
          */
-        Symbol *bcov = symbol_calloc("__bcoverage");
+        Symbol* bcov = symbol_calloc("__bcoverage");
         bcov.Stype = type_fake(TYuint);
         bcov.Stype.Tcount++;
         bcov.Sclass = SC.static_;
@@ -1446,15 +1446,15 @@ private void genObjFile(Module m, bool multiobj)
         /* t will be the type of the functions generated:
          *      extern (C) void func();
          */
-        type *t = type_function(TYnfunc, null, false, tstypes[TYvoid]);
+        type* t = type_function(TYnfunc, null, false, tstypes[TYvoid]);
         t.Tmangle = Mangle.c;
 
         m.sictor = toSymbolX(m, "__modictor", SC.global, t, "FZv");
         cstate.CSpsymtab = &m.sictor.Sfunc.Flocsym;
         localgot = glue.ictorlocalgot;
 
-        elem *ecov  = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(m.cov));
-        elem *ebcov = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(bcov));
+        elem* ecov  = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(m.cov));
+        elem* ebcov = el_pair(TYdarray, el_long(TYsize_t, m.numlines), el_ptr(bcov));
 
         if (target.os == Target.OS.Windows && target.isX86_64)
         {
@@ -1462,11 +1462,11 @@ private void genObjFile(Module m, bool multiobj)
             ebcov = addressElem(ebcov, Type.tvoid.arrayOf(), false);
         }
 
-        elem *efilename = toEfilename(m);
+        elem* efilename = toEfilename(m);
         if (target.os == Target.OS.Windows && target.isX86_64)
             efilename = addressElem(efilename, Type.tstring, true);
 
-        elem *e = el_params(
+        elem* e = el_params(
                       el_long(TYuchar, global.params.covPercent),
                       ecov,
                       ebcov,
@@ -1485,7 +1485,7 @@ private void genObjFile(Module m, bool multiobj)
         {
             localgot = glue.ictorlocalgot;
 
-            block *b = block_calloc();
+            block* b = block_calloc();
             b.bc = BC.ret;
             b.Belem = glue.eictor;
             m.sictor.Sfunc.Fstartline.Sfilename = m.arg.xarraydup.ptr;
@@ -1630,7 +1630,7 @@ private bool entryPointFunctions(Obj objmod, FuncDeclaration fd)
  * Generate elem that is a dynamic array slice of the module file name.
  */
 
-private elem *toEfilename(Module m)
+private elem* toEfilename(Module m)
 {
     //printf("toEfilename(%s)\n", m.toChars());
     const(char)* id = m.srcfile.toChars();
