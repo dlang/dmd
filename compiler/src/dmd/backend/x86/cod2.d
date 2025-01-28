@@ -1993,6 +1993,9 @@ void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 @trusted
 void cdnot(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
+    if (cg.AArch64)
+        return dmd.backend.arm.cod2.cdnot(cg, cdb, e, pretregs);
+
     //printf("cdnot()\n");
     reg_t reg;
     regm_t forflags;
