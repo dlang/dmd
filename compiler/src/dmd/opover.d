@@ -231,12 +231,9 @@ Expression opOverloadUnary(UnaExp e, Scope* sc)
                 if (result.op == EXP.error)
                     return result;
                 /* Rewrite op(a[arguments]) as:
-                    *      a.opIndexUnary!(op)(arguments)
-                    */
-                Expressions* a = ae.arguments.copy();
-                Objects* tiargs = opToArg(sc, e.op);
-                result = new DotTemplateInstanceExp(e.loc, ae.e1, Id.opIndexUnary, tiargs);
-                result = new CallExp(e.loc, result, a);
+                 *      a.opIndexUnary!(op)(arguments)
+                 */
+                result = dotTemplateCall(ae.e1, Id.opIndexUnary, opToArg(sc, e.op), (*ae.arguments)[]);
                 if (maybeSlice) // op(a[]) might be: a.opSliceUnary!(op)()
                     result = result.trySemantic(sc);
                 else
@@ -254,17 +251,13 @@ Expression opOverloadUnary(UnaExp e, Scope* sc)
                 if (result.op == EXP.error)
                     return result;
                 /* Rewrite op(a[i..j]) as:
-                    *      a.opSliceUnary!(op)(i, j)
-                    */
-                auto a = new Expressions();
+                 *      a.opSliceUnary!(op)(i, j)
+                 */
                 if (ie)
-                {
-                    a.push(ie.lwr);
-                    a.push(ie.upr);
-                }
-                Objects* tiargs = opToArg(sc, e.op);
-                result = new DotTemplateInstanceExp(e.loc, ae.e1, Id.opSliceUnary, tiargs);
-                result = new CallExp(e.loc, result, a);
+                    result = dotTemplateCall(ae.e1, Id.opSliceUnary, opToArg(sc, e.op), ie.lwr, ie.upr);
+                else
+                    result = dotTemplateCall(ae.e1, Id.opSliceUnary, opToArg(sc, e.op));
+
                 result = result.expressionSemantic(sc);
                 result = Expression.combine(e0, result);
                 return result;
@@ -304,13 +297,7 @@ Expression opOverloadUnary(UnaExp e, Scope* sc)
          */
         fd = search_function(ad, Id.opUnary);
         if (fd)
-        {
-            Objects* tiargs = opToArg(sc, e.op);
-            result = new DotTemplateInstanceExp(e.loc, e.e1, fd.ident, tiargs);
-            result = new CallExp(e.loc, result);
-            result = result.expressionSemantic(sc);
-            return result;
-        }
+            return dotTemplateCall(e.e1, Id.opUnary, opToArg(sc, e.op)).expressionSemantic(sc);
 
         // Didn't find it. Forward to aliasthis
         if (ad.aliasthis && !isRecursiveAliasThis(att, e.e1.type))
@@ -481,10 +468,7 @@ Expression opOverloadCast(CastExp e, Scope* sc, Type att = null)
             }
             auto tiargs = new Objects();
             tiargs.push(e.to);
-            result = new DotTemplateInstanceExp(e.loc, e.e1, fd.ident, tiargs);
-            result = new CallExp(e.loc, result);
-            result = result.expressionSemantic(sc);
-            return result;
+            return dotTemplateCall(e.e1, Id.opCast, tiargs).expressionSemantic(sc);
         }
         // Didn't find it. Forward to aliasthis
         if (ad.aliasthis && !isRecursiveAliasThis(att, e.e1.type))
@@ -639,7 +623,7 @@ bool suggestBinaryOverloads(BinExp e, Scope* sc)
     {
         if (Dsymbol s = search_function(ad1, Id.opBinary))
         {
-            dotTemplate(e.e1, Id.opBinary, opToArg(sc, e.op), e.e2).expressionSemantic(sc);
+            dotTemplateCall(e.e1, Id.opBinary, opToArg(sc, e.op), e.e2).expressionSemantic(sc);
             errorSupplemental(s.loc, "`opBinary` defined here");
             return true;
         }
@@ -651,7 +635,7 @@ bool suggestBinaryOverloads(BinExp e, Scope* sc)
     {
         if (Dsymbol s_r = search_function(ad1, Id.opBinaryRight))
         {
-            dotTemplate(e.e2, Id.opBinaryRight, opToArg(sc, e.op), e.e1).expressionSemantic(sc);
+            dotTemplateCall(e.e2, Id.opBinaryRight, opToArg(sc, e.op), e.e1).expressionSemantic(sc);
             errorSupplemental(s_r.loc, "`opBinaryRight` defined here");
             return true;
         }
@@ -662,13 +646,13 @@ bool suggestBinaryOverloads(BinExp e, Scope* sc)
     return false;
 }
 
-// Helper to construct e.id!tiargs(arg)
-private Expression dotTemplate(Expression e, Identifier id, Objects* tiargs, Expression arg)
+// Helper to construct e.id!tiargs(args), e.g. `lhs.opBinary!"+"(rhs)`
+private Expression dotTemplateCall(Expression e, Identifier id, Objects* tiargs, Expression[] args...)
 {
     auto ti = new DotTemplateInstanceExp(e.loc, e, id, tiargs);
-    auto args = new Expressions();
-    args.push(arg);
-    return new CallExp(e.loc, ti, args);
+    auto expressions = new Expressions();
+    expressions.pushSlice(args);
+    return new CallExp(e.loc, ti, expressions);
 }
 
 Expression opOverloadEqual(EqualExp e, Scope* sc, Type[2] aliasThisStop)
@@ -953,9 +937,7 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisSt
                  */
                 Expressions* a = ae.arguments.copy();
                 a.insert(0, e.e2);
-                Objects* tiargs = opToArg(sc, e.op);
-                result = new DotTemplateInstanceExp(e.loc, ae.e1, Id.opIndexOpAssign, tiargs);
-                result = new CallExp(e.loc, result, a);
+                result = dotTemplateCall(ae.e1, Id.opIndexOpAssign, opToArg(sc, e.op), (*a)[]);
                 if (maybeSlice) // (a[] op= e2) might be: a.opSliceOpAssign!(op)(e2)
                     result = result.trySemantic(sc);
                 else
@@ -979,16 +961,11 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisSt
                 /* Rewrite (a[i..j] op= e2) as:
                  *      a.opSliceOpAssign!(op)(e2, i, j)
                  */
-                auto a = new Expressions();
-                a.push(e.e2);
                 if (ie)
-                {
-                    a.push(ie.lwr);
-                    a.push(ie.upr);
-                }
-                Objects* tiargs = opToArg(sc, e.op);
-                result = new DotTemplateInstanceExp(e.loc, ae.e1, Id.opSliceOpAssign, tiargs);
-                result = new CallExp(e.loc, result, a);
+                    result = dotTemplateCall(ae.e1, Id.opSliceOpAssign, opToArg(sc, e.op), e.e2, ie.lwr, ie.upr);
+                else
+                    result = dotTemplateCall(ae.e1, Id.opSliceOpAssign, opToArg(sc, e.op), e.e2);
+
                 result = result.expressionSemantic(sc);
                 result = Expression.combine(e0, result);
                 return result;
