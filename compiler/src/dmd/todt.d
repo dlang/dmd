@@ -568,7 +568,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
             e.fd.tok = TOK.function_;
             e.fd.vthis = null;
         }
-        Symbol *s = toSymbol(e.fd);
+        Symbol* s = toSymbol(e.fd);
         toObjFile(e.fd, false);
         if (e.fd.tok == TOK.delegate_)
             dtb.size(0);
@@ -610,7 +610,7 @@ void Expression_toDt(Expression e, ref DtBuilder dtb)
         if (Type t = isType(e.obj))
         {
             TypeInfo_toObjFile(e, e.loc, t);
-            Symbol *s = toSymbol(t.vtinfo);
+            Symbol* s = toSymbol(t.vtinfo);
             dtb.xoff(s, 0);
             return;
         }
@@ -686,7 +686,7 @@ void cpp_type_info_ptr_toDt(ClassDeclaration cd, ref DtBuilder dtb)
         dtb.size(0);             // monitor
 
     // Create symbol for C++ type info
-    Symbol *s = toSymbolCppTypeInfo(cd);
+    Symbol* s = toSymbolCppTypeInfo(cd);
 
     // Put in address of cd's C++ type info
     dtb.xoff(s, 0);

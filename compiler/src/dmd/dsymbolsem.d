@@ -424,7 +424,7 @@ private bool checkDeprecatedAliasThis(AliasThis at, const ref Loc loc, Scope* sc
 }
 
 // Save the scope and defer semantic analysis on the Dsymbol.
-void deferDsymbolSemantic(Scope* sc, Dsymbol s, Scope *scx)
+void deferDsymbolSemantic(Scope* sc, Dsymbol s, Scope* scx)
 {
     s._scope = scx ? scx : sc.copy();
     s._scope.setNoFree();

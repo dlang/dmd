@@ -166,7 +166,7 @@ extern (C++) final class StaticForeach : RootObject
             return;
         }
 
-        Expressions *es;
+        Expressions* es;
         if (auto ale = aggr.isArrayLiteralExp())
         {
             // Directly use the elements of the array for the TupleExp creation

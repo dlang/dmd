@@ -3128,7 +3128,7 @@ Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                 else
                 {
                     /* struct S { int a; };
-                     * struct S *s;
+                     * struct S* s;
                      */
                 }
                 mtype.resolved = sd.type;
@@ -3159,14 +3159,14 @@ Type typeSemantic(Type type, const ref Loc loc, Scope* sc)
                      mtype.tok == TOK.struct_ && s.isStructDeclaration())
             {
                 /* struct S;
-                 * { struct S *s; }
+                 * { struct S* s; }
                  */
                 mtype.resolved = s.isStructDeclaration().type;
             }
             else
             {
                 /* union S;
-                 * { struct S *s; }
+                 * { struct S* s; }
                  */
                 .error(mtype.loc, "redeclaring `%s %s` as `%s %s`",
                     s.kind(), s.toChars(), Token.toChars(mtype.tok), mtype.id.toChars());

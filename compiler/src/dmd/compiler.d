@@ -164,14 +164,14 @@ extern (C++) struct Compiler
          * semantic analysis of a statement when importing DMD as a library
          */
         __gshared OnStatementSemanticStart onStatementSemanticStart
-                    = function void(Statement s, Scope *sc) {};
+                    = function void(Statement s, Scope* sc) {};
 
         /**
          * Used to insert functionality after the end of the
          * semantic analysis of a statement when importing DMD as a library
          */
         __gshared OnStatementSemanticDone onStatementSemanticDone
-                    = function void(Statement s, Scope *sc) {};
+                    = function void(Statement s, Scope* sc) {};
     }
 }
 

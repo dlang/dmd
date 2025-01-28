@@ -91,7 +91,7 @@ void genModuleInfo(Module m)
         ObjectNotFound(m.loc, Id.ModuleInfo);
     }
 
-    Symbol *msym = toSymbol(m);
+    Symbol* msym = toSymbol(m);
 
     //////////////////////////////////////////////
 
@@ -180,7 +180,7 @@ void genModuleInfo(Module m)
             if (!mod.needmoduleinfo)
                 continue;
 
-            Symbol *s = toSymbol(mod);
+            Symbol* s = toSymbol(mod);
 
             /* Weak references don't pull objects in from the library,
              * they resolve to 0 if not pulled in by something else.
@@ -229,7 +229,7 @@ void genModuleInfo(Module m)
  *      s      = symbol that contains the data
  *      offset = offset of the data inside the Symbol's memory
  */
-void write_pointers(Type type, Symbol *s, uint offset)
+void write_pointers(Type type, Symbol* s, uint offset)
 {
     uint ty = type.toBasetype().ty;
     if (ty == Tclass)
@@ -246,7 +246,7 @@ void write_pointers(Type type, Symbol *s, uint offset)
 *      s      = symbol that contains the data
 *      offset = offset of the data inside the Symbol's memory
 */
-void write_instance_pointers(Type type, Symbol *s, uint offset)
+void write_instance_pointers(Type type, Symbol* s, uint offset)
 {
     import dmd.typesem : hasPointers;
     if (!type.hasPointers())
@@ -385,7 +385,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             if (genclassinfo)
                 toSymbol(cd);                           // __ClassZ symbol
             toVtblSymbol(cd, genclassinfo);             // __vtblZ symbol
-            Symbol *sinit = toInitializer(cd);          // __initZ symbol
+            Symbol* sinit = toInitializer(cd);          // __initZ symbol
 
             //////////////////////////////////////////////
 
@@ -598,7 +598,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
             if (!vd.isDataseg() || vd.storage_class & STC.extern_)
                 return;
 
-            Symbol *s = toSymbol(vd);
+            Symbol* s = toSymbol(vd);
             const sz64 = vd.type.size(vd.loc);
             if (sz64 == SIZE_INVALID)
             {
@@ -748,7 +748,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 return;
             }
 
-            Symbol *s = toSymbol(tid);
+            Symbol* s = toSymbol(tid);
             s.Sclass = SC.comdat;
             s.Sfl = FL.data;
 
@@ -772,7 +772,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
 
         override void visit(AttribDeclaration ad)
         {
-            Dsymbols *d = ad.include(null);
+            Dsymbols* d = ad.include(null);
 
             if (d)
             {
@@ -795,7 +795,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 assert(e.op == EXP.string_);
 
                 StringExp se = e.isStringExp();
-                char *name = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
+                char* name = cast(char *)mem.xmalloc(se.numberOfCodeUnits() + 1);
 
                 se.writeTo(name, true);
 
@@ -824,7 +824,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
                 Dsymbol sa = getDsymbol(e);
                 FuncDeclaration f = sa.isFuncDeclaration();
                 assert(f);
-                Symbol *s = toSymbol(f);
+                Symbol* s = toSymbol(f);
                 obj_startaddress(s);
             }
 
@@ -946,11 +946,11 @@ void toObjFile(Dsymbol ds, bool multiobj)
          *      sz = data size of s
          *      dtb = where to put the data
          */
-        static void tlsToDt(VarDeclaration vd, Symbol *s, uint sz, ref DtBuilder dtb, bool isCfile)
+        static void tlsToDt(VarDeclaration vd, Symbol* s, uint sz, ref DtBuilder dtb, bool isCfile)
         {
             assert(config.objfmt == OBJ_MACH && target.isX86_64 && (s.Stype.Tty & mTYLINK) == mTYthread);
 
-            Symbol *tlvInit = createTLVDataSymbol(vd, s);
+            Symbol* tlvInit = createTLVDataSymbol(vd, s);
             auto tlvInitDtb = DtBuilder(0);
 
             if (sz == 0)
@@ -981,7 +981,7 @@ void toObjFile(Dsymbol ds, bool multiobj)
          *
          * Returns: the newly created symbol
          */
-        static Symbol *createTLVDataSymbol(VarDeclaration vd, Symbol *s)
+        static Symbol* createTLVDataSymbol(VarDeclaration vd, Symbol* s)
         {
             assert(config.objfmt == OBJ_MACH && target.isX86_64 && (s.Stype.Tty & mTYLINK) == mTYthread);
 
@@ -992,11 +992,11 @@ void toObjFile(Dsymbol ds, bool multiobj)
             const(char)[] tlvInitName = buffer[];
 
             // Compute type for tlv symbol
-            type *t = type_fake(vd.type.ty);
+            type* t = type_fake(vd.type.ty);
             type_setty(&t, t.Tty | mTYthreadData);
             type_setmangle(&t, mangle(vd));
 
-            Symbol *tlvInit = symbol_name(tlvInitName, SC.static_, t);
+            Symbol* tlvInit = symbol_name(tlvInitName, SC.static_, t);
             tlvInit.Sdt = null;
             tlvInit.Salignment = type_alignsize(s.Stype);
             if (vd._linkage == LINK.cpp)
@@ -1117,7 +1117,7 @@ private bool finishVtbl(ClassDeclaration cd)
  * Returns ~0 if not this csym.
  */
 
-uint baseVtblOffset(ClassDeclaration cd, BaseClass *bc)
+uint baseVtblOffset(ClassDeclaration cd, BaseClass* bc)
 {
     //printf("ClassDeclaration.baseVtblOffset('%s', bc = %p)\n", cd.toChars(), bc);
     uint csymoffset = target.classinfosize;    // must be ClassInfo.size
@@ -1125,7 +1125,7 @@ uint baseVtblOffset(ClassDeclaration cd, BaseClass *bc)
 
     for (size_t i = 0; i < cd.vtblInterfaces.length; i++)
     {
-        BaseClass *b = (*cd.vtblInterfaces)[i];
+        BaseClass* b = (*cd.vtblInterfaces)[i];
 
         if (b == bc)
             return csymoffset;
@@ -1141,7 +1141,7 @@ uint baseVtblOffset(ClassDeclaration cd, BaseClass *bc)
     {
         foreach (k; 0 .. cd2.vtblInterfaces.length)
         {
-            BaseClass *bs = (*cd2.vtblInterfaces)[k];
+            BaseClass* bs = (*cd2.vtblInterfaces)[k];
             if (bs.fillVtbl(cd, null, 0))
             {
                 if (bc == bs)
@@ -1168,7 +1168,7 @@ uint baseVtblOffset(ClassDeclaration cd, BaseClass *bc)
  * Returns:
  *    number of bytes emitted
  */
-private size_t emitVtbl(ref DtBuilder dtb, BaseClass *b, ref FuncDeclarations bvtbl, ClassDeclaration pc, size_t k)
+private size_t emitVtbl(ref DtBuilder dtb, BaseClass* b, ref FuncDeclarations bvtbl, ClassDeclaration pc, size_t k)
 {
     //printf("\toverriding vtbl[] for %s\n", b.sym.toChars());
     ClassDeclaration id = b.sym;
@@ -1291,7 +1291,7 @@ private void ClassInfoToDt(ref DtBuilder dtb, ClassDeclaration cd, Symbol* sinit
         namelen = strlen(name);
     }
     dtb.size(namelen);
-    dt_t *pdtname = dtb.xoffpatch(cd.csym, 0, TYnptr);
+    dt_t* pdtname = dtb.xoffpatch(cd.csym, 0, TYnptr);
 
     // vtbl[]
     dtb.size(cd.vtbl.length);
@@ -1410,7 +1410,7 @@ Louter:
     offset += cd.vtblInterfaces.length * (4 * target.ptrsize);
     for (size_t i = 0; i < cd.vtblInterfaces.length; i++)
     {
-        BaseClass *b = (*cd.vtblInterfaces)[i];
+        BaseClass* b = (*cd.vtblInterfaces)[i];
         ClassDeclaration id = b.sym;
 
         /* The layout is:
@@ -1441,7 +1441,7 @@ Louter:
     //printf("putting out %d interface vtbl[]s for '%s'\n", vtblInterfaces.length, toChars());
     foreach (i; 0 .. cd.vtblInterfaces.length)
     {
-        BaseClass *b = (*cd.vtblInterfaces)[i];
+        BaseClass* b = (*cd.vtblInterfaces)[i];
         offset += emitVtbl(dtb, b, b.vtbl, cd, i);
     }
 
@@ -1452,7 +1452,7 @@ Louter:
     {
         foreach (i; 0 .. pc.vtblInterfaces.length)
         {
-            BaseClass *b = (*pc.vtblInterfaces)[i];
+            BaseClass* b = (*pc.vtblInterfaces)[i];
             FuncDeclarations bvtbl;
             if (b.fillVtbl(cd, &bvtbl, 0))
             {
@@ -1539,7 +1539,7 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
     const(char) *name = id.toPrettyChars(/*QualifyTypes=*/ true);
     size_t namelen = strlen(name);
     dtb.size(namelen);
-    dt_t *pdtname = dtb.xoffpatch(id.csym, 0, TYnptr);
+    dt_t* pdtname = dtb.xoffpatch(id.csym, 0, TYnptr);
 
     // vtbl[]
     dtb.size(0);
@@ -1619,7 +1619,7 @@ private void InterfaceInfoToDt(ref DtBuilder dtb, InterfaceDeclaration id)
     offset += id.vtblInterfaces.length * (4 * target.ptrsize);
     for (size_t i = 0; i < id.vtblInterfaces.length; i++)
     {
-        BaseClass *b = (*id.vtblInterfaces)[i];
+        BaseClass* b = (*id.vtblInterfaces)[i];
         ClassDeclaration base = b.sym;
 
         // classinfo
