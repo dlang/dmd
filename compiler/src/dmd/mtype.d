@@ -1522,7 +1522,7 @@ extern (C++) abstract class Type : ASTNode
         inout(TypeNoreturn)   isTypeNoreturn()   { return ty == Tnoreturn  ? cast(typeof(return))this : null; }
         inout(TypeTag)        isTypeTag()        { return ty == Ttag       ? cast(typeof(return))this : null; }
 
-        bool isStaticOrDynamicArray() const { return ty == Tarray || ty == Tsarray; }
+        extern (D) bool isStaticOrDynamicArray() const { return ty == Tarray || ty == Tsarray; }
     }
 
     override void accept(Visitor v)
