@@ -167,7 +167,7 @@ Expression checkAliasThisForLhs(AggregateDeclaration ad, Scope* sc, BinExp e, Ty
     BinExp be = cast(BinExp)e.copy();
     // Resolve 'alias this' but in case of assigment don't resolve properties yet
     // because 'e1 = e2' could mean 'e1(e2)' or 'e1() = e2'
-    bool findOnly = (e.op == EXP.assign);
+    bool findOnly = e.isAssignExp() !is null;
     be.e1 = resolveAliasThis(sc, e.e1, true, findOnly);
     if (!be.e1)
         return null;
@@ -202,7 +202,7 @@ Expression opOverloadUnary(UnaExp e, Scope* sc)
         ae.e1 = ae.e1.expressionSemantic(sc);
         ae.e1 = resolveProperties(sc, ae.e1);
         Expression ae1old = ae.e1;
-        const(bool) maybeSlice = (ae.arguments.length == 0 || ae.arguments.length == 1 && (*ae.arguments)[0].op == EXP.interval);
+        const(bool) maybeSlice = (ae.arguments.length == 0 || ae.arguments.length == 1 && (*ae.arguments)[0].isIntervalExp());
         IntervalExp ie = null;
         if (maybeSlice && ae.arguments.length)
         {
@@ -211,7 +211,7 @@ Expression opOverloadUnary(UnaExp e, Scope* sc)
         Type att = null; // first cyclic `alias this` type
         while (true)
         {
-            if (ae.e1.op == EXP.error)
+            if (ae.e1.isErrorExp())
             {
                 return ae.e1;
             }
@@ -228,7 +228,7 @@ Expression opOverloadUnary(UnaExp e, Scope* sc)
                 result = resolveOpDollar(sc, ae, &e0);
                 if (!result) // op(a[i..j]) might be: a.opSliceUnary!(op)(i, j)
                     goto Lfallback;
-                if (result.op == EXP.error)
+                if (result.isErrorExp())
                     return result;
                 /* Rewrite op(a[arguments]) as:
                  *      a.opIndexUnary!(op)(arguments)
@@ -248,7 +248,7 @@ Expression opOverloadUnary(UnaExp e, Scope* sc)
             {
                 // Deal with $
                 result = resolveOpDollar(sc, ae, ie, &e0);
-                if (result.op == EXP.error)
+                if (result.isErrorExp())
                     return result;
                 /* Rewrite op(a[i..j]) as:
                  *      a.opSliceUnary!(op)(i, j)
@@ -282,7 +282,7 @@ Expression opOverloadUnary(UnaExp e, Scope* sc)
     Type att = null; // first cyclic `alias this` type
     while (1)
     {
-        if (e.e1.op == EXP.error)
+        if (e.e1.isErrorExp())
         {
             return e.e1;
         }
@@ -291,12 +291,10 @@ Expression opOverloadUnary(UnaExp e, Scope* sc)
         if (!ad)
             break;
 
-        Dsymbol fd = null;
         /* Rewrite as:
          *      e1.opUnary!(op)()
          */
-        fd = search_function(ad, Id.opUnary);
-        if (fd)
+        if (Dsymbol fd = search_function(ad, Id.opUnary))
             return dotTemplateCall(e.e1, Id.opUnary, opToArg(sc, e.op)).expressionSemantic(sc);
 
         // Didn't find it. Forward to aliasthis
@@ -323,7 +321,7 @@ Expression opOverloadArray(ArrayExp ae, Scope* sc)
     ae.e1 = ae.e1.expressionSemantic(sc);
     ae.e1 = resolveProperties(sc, ae.e1);
     Expression ae1old = ae.e1;
-    const(bool) maybeSlice = (ae.arguments.length == 0 || ae.arguments.length == 1 && (*ae.arguments)[0].op == EXP.interval);
+    const(bool) maybeSlice = (ae.arguments.length == 0 || ae.arguments.length == 1 && (*ae.arguments)[0].isIntervalExp());
     IntervalExp ie = null;
     if (maybeSlice && ae.arguments.length)
     {
@@ -333,7 +331,7 @@ Expression opOverloadArray(ArrayExp ae, Scope* sc)
     Type att = null; // first cyclic `alias this` type
     while (true)
     {
-        if (ae.e1.op == EXP.error)
+        if (ae.e1.isErrorExp())
         {
             return ae.e1;
         }
@@ -346,7 +344,7 @@ Expression opOverloadArray(ArrayExp ae, Scope* sc)
         {
             // If the non-aggregate expression ae.e1 is indexable or sliceable,
             // convert it to the corresponding concrete expression.
-            if (isIndexableNonAggregate(t1b) || ae.e1.op == EXP.type)
+            if (isIndexableNonAggregate(t1b) || ae.e1.isTypeExp())
             {
                 // Convert to SliceExp
                 if (maybeSlice)
@@ -371,7 +369,7 @@ Expression opOverloadArray(ArrayExp ae, Scope* sc)
             result = resolveOpDollar(sc, ae, &e0);
             if (!result) // a[i..j] might be: a.opSlice(i, j)
                 goto Lfallback;
-            if (result.op == EXP.error)
+            if (result.isErrorExp())
                 return result;
             /* Rewrite e1[arguments] as:
              *      e1.opIndex(arguments)
@@ -389,7 +387,7 @@ Expression opOverloadArray(ArrayExp ae, Scope* sc)
             }
         }
     Lfallback:
-        if (maybeSlice && ae.e1.op == EXP.type)
+        if (maybeSlice && ae.e1.isTypeExp())
         {
             result = new SliceExp(ae.loc, ae.e1, ie);
             result = result.expressionSemantic(sc);
@@ -401,7 +399,7 @@ Expression opOverloadArray(ArrayExp ae, Scope* sc)
             // Deal with $
             result = resolveOpDollar(sc, ae, ie, &e0);
 
-            if (result.op == EXP.error)
+            if (result.isErrorExp())
             {
                 if (!e0 && !search_function(ad, Id.dollar))
                     ad.loc.errorSupplemental("perhaps define `opDollar` for `%s`", ad.toChars());
@@ -450,12 +448,8 @@ Expression opOverloadCast(CastExp e, Scope* sc, Type att = null)
     Expression result;
     if (AggregateDeclaration ad = isAggregate(e.e1.type))
     {
-        Dsymbol fd = null;
-        /* Rewrite as:
-            *      e1.opCast!(T)()
-            */
-        fd = search_function(ad, Id.opCast);
-        if (fd)
+        // Rewrite as: e1.opCast!(T)()
+        if (Dsymbol fd = search_function(ad, Id.opCast))
         {
             version (all)
             {
@@ -495,7 +489,7 @@ Expression binAliasThis(BinExp e, Scope* sc, Type[2] aliasThisStop)
     AggregateDeclaration ad1 = isAggregate(e.e1.type);
     AggregateDeclaration ad2 = isAggregate(e.e2.type);
     Expression rewrittenLhs;
-    if (!(e.op == EXP.assign && ad2 && ad1 == ad2)) // https://issues.dlang.org/show_bug.cgi?id=2943
+    if (!(e.isAssignExp && ad2 && ad1 == ad2)) // https://issues.dlang.org/show_bug.cgi?id=2943
     {
         if (Expression result = checkAliasThisForLhs(ad1, sc, e, aliasThisStop))
         {
@@ -510,14 +504,14 @@ Expression binAliasThis(BinExp e, Scope* sc, Type[2] aliasThisStop)
              * one of the members, hence the `ad1.fields.length == 2 && ad1.vthis`
              * condition.
              */
-            if (result.op != EXP.assign)
+            auto ae = result.isAssignExp();
+            if (!ae)
                 return result;     // i.e: Rewrote `e1 = e2` -> `e1(e2)`
 
-            auto ae = result.isAssignExp();
-            if (ae.e1.op != EXP.dotVariable)
+            auto dve = ae.e1.isDotVarExp();
+            if (!dve)
                 return result;     // i.e: Rewrote `e1 = e2` -> `e1() = e2`
 
-            auto dve = ae.e1.isDotVarExp();
             if (auto ad = dve.var.isMember2())
             {
                 // i.e: Rewrote `e1 = e2` -> `e1.some.var = e2`
@@ -531,7 +525,7 @@ Expression binAliasThis(BinExp e, Scope* sc, Type[2] aliasThisStop)
             rewrittenLhs = ae.e1;
         }
     }
-    if (!(e.op == EXP.assign && ad1 && ad1 == ad2)) // https://issues.dlang.org/show_bug.cgi?id=2943
+    if (!(e.isAssignExp && ad1 && ad1 == ad2)) // https://issues.dlang.org/show_bug.cgi?id=2943
     {
         if (Expression result = checkAliasThisForRhs(ad2, sc, e, aliasThisStop))
             return result;
@@ -664,24 +658,24 @@ Expression opOverloadEqual(EqualExp e, Scope* sc, Type[2] aliasThisStop)
      * lowering to object.__equals(), which takes care of overloaded
      * operators for the element types.
      */
-    if ((t1.ty == Tarray || t1.ty == Tsarray) &&
-        (t2.ty == Tarray || t2.ty == Tsarray))
+    if ((t1.isTypeDArray() || t1.isTypeSArray()) &&
+        (t2.isTypeDArray() || t2.isTypeSArray()))
     {
         return null;
     }
 
     /* Check for class equality with null literal or typeof(null).
      */
-    if (t1.ty == Tclass && e.e2.op == EXP.null_ ||
-        t2.ty == Tclass && e.e1.op == EXP.null_)
+    if (t1.isTypeClass() && e.e2.isNullExp() ||
+        t2.isTypeClass() && e.e1.isNullExp())
     {
         error(e.loc, "use `%s` instead of `%s` when comparing with `null`",
             EXPtoString(e.op == EXP.equal ? EXP.identity : EXP.notIdentity).ptr,
             EXPtoString(e.op).ptr);
         return ErrorExp.get();
     }
-    if (t1.ty == Tclass && t2.ty == Tnull ||
-        t1.ty == Tnull && t2.ty == Tclass)
+    if (t1.isTypeClass() && t2.isTypeNull() ||
+        t1.isTypeNull() && t2.isTypeClass())
     {
         // Comparing a class with typeof(null) should not call opEquals
         return null;
@@ -689,7 +683,7 @@ Expression opOverloadEqual(EqualExp e, Scope* sc, Type[2] aliasThisStop)
 
     /* Check for class equality.
      */
-    if (t1.ty == Tclass && t2.ty == Tclass)
+    if (t1.isTypeClass() && t2.isTypeClass())
     {
         ClassDeclaration cd1 = t1.isClassHandle();
         ClassDeclaration cd2 = t2.isClassHandle();
@@ -730,7 +724,7 @@ Expression opOverloadEqual(EqualExp e, Scope* sc, Type[2] aliasThisStop)
     EXP cmpOp;
     if (Expression result = compare_overload(e, sc, Id.opEquals, cmpOp, aliasThisStop))
     {
-        if (lastComma(result).op == EXP.call && e.op == EXP.notEqual)
+        if (lastComma(result).isCallExp() && e.op == EXP.notEqual)
         {
             result = new NotExp(result.loc, result);
             result = result.expressionSemantic(sc);
@@ -740,7 +734,7 @@ Expression opOverloadEqual(EqualExp e, Scope* sc, Type[2] aliasThisStop)
 
     /* Check for pointer equality.
      */
-    if (t1.ty == Tpointer || t2.ty == Tpointer)
+    if (t1.isTypePointer() || t2.isTypePointer())
     {
         /* Rewrite:
          *      ptr1 == ptr2
@@ -757,7 +751,7 @@ Expression opOverloadEqual(EqualExp e, Scope* sc, Type[2] aliasThisStop)
 
     /* Check for struct equality without opEquals.
      */
-    if (t1.ty == Tstruct && t2.ty == Tstruct)
+    if (t1.isTypeStruct() && t2.isTypeStruct())
     {
         auto sd = t1.isTypeStruct().sym;
         if (sd != t2.isTypeStruct().sym)
@@ -796,10 +790,10 @@ Expression opOverloadEqual(EqualExp e, Scope* sc, Type[2] aliasThisStop)
 
     /* Check for tuple equality.
      */
-    if (e.e1.op == EXP.tuple && e.e2.op == EXP.tuple)
+    auto tup1 = e.e1.isTupleExp();
+    auto tup2 = e.e2.isTupleExp();
+    if (tup1 && tup2)
     {
-        auto tup1 = e.e1.isTupleExp();
-        auto tup2 = e.e2.isTupleExp();
         size_t dim = tup1.exps.length;
         if (dim != tup2.exps.length)
         {
@@ -852,12 +846,12 @@ Expression opOverloadCmp(CmpExp exp, Scope* sc, Type[2] aliasThisStop)
         error(e.loc, "recursive `opCmp` expansion");
         return ErrorExp.get();
     }
-    if (e.op != EXP.call)
+    if (!e.isCallExp())
         return e;
 
     Type t1 = exp.e1.type.toBasetype();
     Type t2 = exp.e2.type.toBasetype();
-    if (t1.ty != Tclass || t2.ty != Tclass)
+    if (!t1.isTypeClass() || !t2.isTypeClass())
     {
         return new CmpExp(cmpOp, exp.loc, e, IntegerExp.literal!0).expressionSemantic(sc);
     }
@@ -900,7 +894,7 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisSt
         ae.e1 = ae.e1.expressionSemantic(sc);
         ae.e1 = resolveProperties(sc, ae.e1);
         Expression ae1old = ae.e1;
-        const(bool) maybeSlice = (ae.arguments.length == 0 || ae.arguments.length == 1 && (*ae.arguments)[0].op == EXP.interval);
+        const(bool) maybeSlice = (ae.arguments.length == 0 || ae.arguments.length == 1 && (*ae.arguments)[0].isIntervalExp());
         IntervalExp ie = null;
         if (maybeSlice && ae.arguments.length)
         {
@@ -909,7 +903,7 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisSt
         Type att = null; // first cyclic `alias this` type
         while (true)
         {
-            if (ae.e1.op == EXP.error)
+            if (ae.e1.isErrorExp())
             {
                 return ae.e1;
             }
@@ -926,10 +920,10 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisSt
                 Expression result = resolveOpDollar(sc, ae, &e0);
                 if (!result) // (a[i..j] op= e2) might be: a.opSliceOpAssign!(op)(e2, i, j)
                     goto Lfallback;
-                if (result.op == EXP.error)
+                if (result.isErrorExp())
                     return result;
                 result = e.e2.expressionSemantic(sc);
-                if (result.op == EXP.error)
+                if (result.isErrorExp())
                     return result;
                 e.e2 = result;
                 /* Rewrite a[arguments] op= e2 as:
@@ -952,10 +946,10 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisSt
             {
                 // Deal with $
                 Expression result = resolveOpDollar(sc, ae, ie, &e0);
-                if (result.op == EXP.error)
+                if (result.isErrorExp())
                     return result;
                 result = e.e2.expressionSemantic(sc);
-                if (result.op == EXP.error)
+                if (result.isErrorExp())
                     return result;
                 e.e2 = result;
                 /* Rewrite (a[i..j] op= e2) as:
@@ -989,7 +983,7 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisSt
     if (result)
         return result;
     // Don't attempt 'alias this' if an error occurred
-    if (e.e1.type.ty == Terror || e.e2.type.ty == Terror)
+    if (e.e1.type.isTypeError() || e.e2.type.isTypeError())
     {
         return ErrorExp.get();
     }
@@ -1120,7 +1114,7 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id, ref EXP 
      * at this point, no matching opEquals was found for structs,
      * so we should not follow the alias this comparison code.
      */
-    if ((e.op == EXP.equal || e.op == EXP.notEqual) && ad1 == ad2)
+    if (e.isEqualExp() && ad1 == ad2)
         return null;
     Expression result = checkAliasThisForLhs(ad1, sc, e, aliasThisStop);
     return result ? result : checkAliasThisForRhs(isAggregate(e.e2.type), sc, e, aliasThisStop);
@@ -1155,7 +1149,7 @@ Dsymbol search_function(ScopeDsymbol ad, Identifier funcid)
         Dsymbol s2 = s.toAlias();
         //printf("search_function: s2 = '%s'\n", s2.kind());
         FuncDeclaration fd = s2.isFuncDeclaration();
-        if (fd && fd.type.ty == Tfunction)
+        if (fd && fd.type.isTypeFunction())
             return fd;
         if (TemplateDeclaration td = s2.isTemplateDeclaration())
             return td;
@@ -1186,7 +1180,7 @@ bool inferForeachAggregate(Scope* sc, bool isForeach, ref Expression feaggr, out
         aggr = aggr.expressionSemantic(sc);
         aggr = resolveProperties(sc, aggr);
         aggr = aggr.optimize(WANTvalue);
-        if (!aggr.type || aggr.op == EXP.error)
+        if (!aggr.type || aggr.isErrorExp())
             return false;
         Type tab = aggr.type.toBasetype();
         switch (tab.ty)
@@ -1200,8 +1194,7 @@ bool inferForeachAggregate(Scope* sc, bool isForeach, ref Expression feaggr, out
         case Tclass:
         case Tstruct:
         {
-            AggregateDeclaration ad = (tab.ty == Tclass) ? tab.isTypeClass().sym
-                                                         : tab.isTypeStruct().sym;
+            AggregateDeclaration ad = isAggregate(tab);
             if (!sliced)
             {
                 sapply = search_function(ad, isForeach ? Id.apply : Id.applyReverse);
@@ -1291,11 +1284,11 @@ bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbol sapply)
         // Determine ethis for sapply
         Expression ethis;
         Type tab = fes.aggr.type.toBasetype();
-        if (tab.ty == Tclass || tab.ty == Tstruct)
+        if (tab.isTypeClass() || tab.isTypeStruct())
             ethis = fes.aggr;
         else
         {
-            assert(tab.ty == Tdelegate && fes.aggr.op == EXP.delegate_);
+            assert(tab.isTypeDelegate() && fes.aggr.isDelegateExp());
             ethis = fes.aggr.isDelegateExp().e1;
         }
 
@@ -1335,7 +1328,7 @@ bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbol sapply)
             }
             p = (*fes.parameters)[1];
         }
-        if (!p.type && tab.ty != Ttuple)
+        if (!p.type && !tab.isTypeTuple())
         {
             p.type = tab.nextOf(); // value type
             p.type = p.type.addStorageClass(p.storageClass);
@@ -1367,8 +1360,7 @@ bool inferApplyArgTypes(ForeachStatement fes, Scope* sc, ref Dsymbol sapply)
     case Tclass:
     case Tstruct:
     {
-        AggregateDeclaration ad = (tab.ty == Tclass) ? tab.isTypeClass().sym
-                                                     : tab.isTypeStruct().sym;
+        AggregateDeclaration ad = isAggregate(tab);
         if (fes.parameters.length == 1)
         {
             if (!p.type)
