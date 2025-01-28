@@ -3,14 +3,18 @@ REQUIRED_ARGS: -de
 
 TEST_OUTPUT:
 ---
-fail_compilation/test20763.d(21): Deprecation: type `ulong` has no value
-fail_compilation/test20763.d(21):        perhaps use `ulong.init` instead
-fail_compilation/test20763.d(22): Deprecation: type `ulong` has no value
-fail_compilation/test20763.d(22):        perhaps use `ulong.init` instead
-fail_compilation/test20763.d(23): Error: type `ulong` has no value
-fail_compilation/test20763.d(24): Error: type `ulong` has no value
-fail_compilation/test20763.d(25): Error: type `ulong` has no value
-fail_compilation/test20763.d(26): Error: type `ulong` has no value
+fail_compilation/test20763.d(25): Deprecation: type `ulong` has no value
+fail_compilation/test20763.d(25):        perhaps use `ulong.init`
+fail_compilation/test20763.d(26): Deprecation: type `ulong` has no value
+fail_compilation/test20763.d(26):        perhaps use `ulong.init`
+fail_compilation/test20763.d(27): Error: type `ulong` has no value
+fail_compilation/test20763.d(27):        perhaps use `ulong.init`
+fail_compilation/test20763.d(28): Error: type `ulong` has no value
+fail_compilation/test20763.d(28):        perhaps use `ulong.init`
+fail_compilation/test20763.d(29): Error: type `ulong` has no value
+fail_compilation/test20763.d(29):        perhaps use `ulong.init`
+fail_compilation/test20763.d(30): Error: type `ulong` has no value
+fail_compilation/test20763.d(30):        perhaps use `ulong.init`
 ---
 */
 

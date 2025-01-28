@@ -14775,6 +14775,8 @@ private bool checkArithmetic(Expression e, EXP op)
         // Deprecated in 2.111
         // In 2.121, remove this branch to let `checkValue` raise the error
         deprecation(e.loc, "type `%s` has no value", e.toChars);
+        if (!e.type.isOpaqueType)
+            deprecationSupplemental(e.loc, "perhaps use `%s.init`", e.toChars);
         return false;
     }
 
@@ -14847,6 +14849,8 @@ bool checkValue(Expression e)
     if (auto te = e.isTypeExp())
     {
         error(e.loc, "type `%s` has no value", e.toChars());
+        if (!e.type.isOpaqueType)
+            errorSupplemental(e.loc, "perhaps use `%s.init`", e.toChars());
         return true;
     }
 
