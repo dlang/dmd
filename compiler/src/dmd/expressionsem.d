@@ -14769,11 +14769,16 @@ private bool checkArithmetic(Expression e, EXP op)
         return true;
     }
 
-    // FIXME: Existing code relies on adding / subtracting types in typeof() expressions:
-    // alias I = ulong; alias U = typeof(I + 1u);
-    // https://github.com/dlang/dmd/issues/20763
-    if (op == EXP.add || op == EXP.min)
+    if ((op == EXP.add || op == EXP.min) && e.isTypeExp())
+    {
+        // @@@DEPRECATED_2.121@@@
+        // Deprecated in 2.111
+        // In 2.121, remove this branch to let `checkValue` raise the error
+        deprecation(e.loc, "type `%s` has no value", e.toChars);
+        if (!e.type.isOpaqueType)
+            deprecationSupplemental(e.loc, "perhaps use `%s.init`", e.toChars);
         return false;
+    }
 
     return e.checkValue();
 }
@@ -14844,6 +14849,8 @@ bool checkValue(Expression e)
     if (auto te = e.isTypeExp())
     {
         error(e.loc, "type `%s` has no value", e.toChars());
+        if (!e.type.isOpaqueType)
+            errorSupplemental(e.loc, "perhaps use `%s.init`", e.toChars());
         return true;
     }
 

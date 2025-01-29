@@ -7609,6 +7609,18 @@ bool checkRetType(TypeFunction tf, const ref Loc loc)
     return false;
 }
 
+/// Returns: whether `t` is a struct/class/enum without a body
+bool isOpaqueType(Type t)
+{
+    if (auto te = t.isTypeEnum())
+        return te.sym.members is null;
+    if (auto ts = t.isTypeStruct())
+        return ts.sym.members is null;
+    if (auto tc = t.isTypeClass())
+        return tc.sym.members is null;
+    return false;
+}
+
 
 /******************************* Private *****************************************/
 
