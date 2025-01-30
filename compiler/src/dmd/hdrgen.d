@@ -140,6 +140,42 @@ public const(char)* toChars(const Type t)
     return buf.extractChars();
 }
 
+public const(char)* toChars(const Dsymbol d)
+{
+    if (auto td = d.isTemplateDeclaration())
+    {
+        HdrGenState hgs;
+        OutBuffer buf;
+        toCharsMaybeConstraints(td, buf, hgs);
+        return buf.extractChars();
+    }
+
+    if (auto ti = d.isTemplateInstance())
+    {
+        OutBuffer buf;
+        toCBufferInstance(ti, buf);
+        return buf.extractChars();
+    }
+
+    if (auto tm = d.isTemplateMixin())
+    {
+        OutBuffer buf;
+        toCBufferInstance(tm, buf);
+        return buf.extractChars();
+    }
+
+    if (auto tid = d.isTypeInfoDeclaration())
+    {
+        OutBuffer buf;
+        buf.writestring("typeid(");
+        buf.writestring(tid.tinfo.toChars());
+        buf.writeByte(')');
+        return buf.extractChars();
+    }
+
+    return d.ident ? d.ident.toHChars2() : "__anonymous";
+}
+
 public const(char)[] toString(const Initializer i)
 {
     OutBuffer buf;
@@ -4504,7 +4540,15 @@ string EXPtoString(EXP op)
         EXP.declaration : "declaration",
 
         EXP.interval : "interval",
-        EXP.loweredAssignExp : "="
+        EXP.loweredAssignExp : "=",
+
+        EXP.thrownException : "CTFE ThrownException",
+        EXP.cantExpression :  "<cant>",
+        EXP.voidExpression : "cast(void)0",
+        EXP.showCtfeContext : "<error>",
+        EXP.break_ : "<break>",
+        EXP.continue_ : "<continue>",
+        EXP.goto_ : "<goto>",
     ];
     const p = strings[op];
     if (!p)

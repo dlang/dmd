@@ -467,7 +467,7 @@ public:
     PASS semanticRun;
     uint16_t localNum;
     static Dsymbol* create(Identifier* ident);
-    const char* toChars() const override;
+    const char* toChars() const final override;
     DeprecatedDeclaration* depdecl();
     CPPNamespaceDeclaration* cppnamespace();
     UserAttributeDeclaration* userAttribDecl();
@@ -1591,7 +1591,6 @@ public:
     bool overloadInsert(Dsymbol* s) override;
     bool hasStaticCtorOrDtor() override;
     const char* kind() const override;
-    const char* toChars() const override;
     const char* toCharsNoConstraints() const;
     Visibility visible() override;
     const char* getConstraintEvalError(const char*& tip);
@@ -1639,7 +1638,6 @@ public:
     Dsymbol* toAlias() final override;
     const char* kind() const override;
     bool oneMember(Dsymbol*& ps, Identifier* ident) override;
-    const char* toChars() const override;
     const char* toPrettyCharsHelper() final override;
     Identifier* getIdent() final override;
     bool equalsx(TemplateInstance* ti);
@@ -1666,7 +1664,6 @@ public:
     const char* kind() const override;
     bool oneMember(Dsymbol*& ps, Identifier* ident) override;
     bool hasPointers() override;
-    const char* toChars() const override;
     TemplateMixin* isTemplateMixin() override;
     void accept(Visitor* v) override;
 };
@@ -2229,7 +2226,7 @@ public:
     static void deinitialize();
     virtual Expression* syntaxCopy();
     DYNCAST dyncast() const final override;
-    const char* toChars() const override;
+    const char* toChars() const final override;
     virtual dinteger_t toInteger();
     virtual uinteger_t toUInteger();
     virtual _d_real toReal();
@@ -2518,8 +2515,6 @@ public:
 
 class CTFEExp final : public Expression
 {
-public:
-    const char* toChars() const override;
 };
 
 class CallExp final : public UnaExp
@@ -3039,7 +3034,6 @@ public:
     TOK tok;
     bool equals(const RootObject* const o) const override;
     FuncExp* syntaxCopy() override;
-    const char* toChars() const override;
     bool checkType() override;
     void accept(Visitor* v) override;
 };
@@ -3163,7 +3157,6 @@ class LoweredAssignExp final : public AssignExp
 {
 public:
     Expression* lowering;
-    const char* toChars() const override;
     void accept(Visitor* v) override;
 };
 
@@ -3570,7 +3563,6 @@ class ThrownExceptionExp final : public Expression
 {
 public:
     ClassReferenceExp* thrown;
-    const char* toChars() const override;
     void accept(Visitor* v) override;
 };
 
@@ -3925,7 +3917,6 @@ public:
     bool isMoveCtor;
     CtorDeclaration* syntaxCopy(Dsymbol* s) override;
     const char* kind() const override;
-    const char* toChars() const override;
     bool isVirtual() const override;
     bool addPreInvariant() override;
     bool addPostInvariant() override;
@@ -3938,7 +3929,6 @@ class DtorDeclaration final : public FuncDeclaration
 public:
     DtorDeclaration* syntaxCopy(Dsymbol* s) override;
     const char* kind() const override;
-    const char* toChars() const override;
     bool isVirtual() const override;
     bool addPreInvariant() override;
     bool addPostInvariant() override;
@@ -6365,7 +6355,6 @@ public:
     LINK linkage;
     static LinkDeclaration* create(const Loc& loc, LINK p, Array<Dsymbol* >* decl);
     LinkDeclaration* syntaxCopy(Dsymbol* s) override;
-    const char* toChars() const override;
     void accept(Visitor* v) override;
 };
 
@@ -6374,7 +6363,6 @@ class CPPMangleDeclaration final : public AttribDeclaration
 public:
     CPPMANGLE cppmangle;
     CPPMangleDeclaration* syntaxCopy(Dsymbol* s) override;
-    const char* toChars() const override;
     void accept(Visitor* v) override;
 };
 
@@ -6383,7 +6371,6 @@ class CPPNamespaceDeclaration final : public AttribDeclaration
 public:
     Expression* exp;
     CPPNamespaceDeclaration* syntaxCopy(Dsymbol* s) override;
-    const char* toChars() const override;
     void accept(Visitor* v) override;
     CPPNamespaceDeclaration* isCPPNamespaceDeclaration() override;
 };
@@ -6557,7 +6544,6 @@ public:
     int32_t include(Scope* sc) override;
     DebugCondition* isDebugCondition() override;
     void accept(Visitor* v) override;
-    const char* toChars() const override;
 };
 
 class VersionCondition final : public DVCondition
@@ -6568,7 +6554,6 @@ public:
     int32_t include(Scope* sc) override;
     VersionCondition* isVersionCondition() override;
     void accept(Visitor* v) override;
-    const char* toChars() const override;
 };
 
 class StaticIfCondition final : public Condition
@@ -6579,7 +6564,6 @@ public:
     int32_t include(Scope* sc) override;
     void accept(Visitor* v) override;
     StaticIfCondition* isStaticIfCondition() override;
-    const char* toChars() const override;
 };
 
 extern DArray<uint8_t > preprocess(FileName csrcfile, const Loc& loc, OutBuffer& defines);
@@ -6872,7 +6856,6 @@ public:
     Type* tinfo;
     static TypeInfoDeclaration* create(Type* tinfo);
     TypeInfoDeclaration* syntaxCopy(Dsymbol* s) final override;
-    const char* toChars() const final override;
     TypeInfoDeclaration* isTypeInfoDeclaration() final override;
     void accept(Visitor* v) override;
 };

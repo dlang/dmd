@@ -1390,11 +1390,6 @@ extern (C++) final class CtorDeclaration : FuncDeclaration
         return isCpCtor ? "copy constructor" : "constructor";
     }
 
-    override const(char)* toChars() const
-    {
-        return "this";
-    }
-
     override bool isVirtual() const
     {
         return false;
@@ -1494,11 +1489,6 @@ extern (C++) final class DtorDeclaration : FuncDeclaration
     override const(char)* kind() const
     {
         return "destructor";
-    }
-
-    override const(char)* toChars() const
-    {
-        return "~this";
     }
 
     override bool isVirtual() const

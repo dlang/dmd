@@ -381,8 +381,13 @@ extern (C++) abstract class Expression : ASTNode
         return DYNCAST.expression;
     }
 
-    override const(char)* toChars() const
+    final override const(char)* toChars() const
     {
+        // FIXME: Test suite relies on lambda's being printed as __lambdaXXX in errors and .stringof
+        // Printing a (truncated) lambda body is more user friendly
+        if (auto fe = isFuncExp())
+            return fe.fd.toChars();
+
         return .toChars(this);
     }
 
@@ -2694,11 +2699,6 @@ extern (C++) final class FuncExp : Expression
         return new FuncExp(loc, fd);
     }
 
-    override const(char)* toChars() const
-    {
-        return fd.toChars();
-    }
-
     override bool checkType()
     {
         if (td)
@@ -4126,10 +4126,6 @@ extern (C++) final class LoweredAssignExp : AssignExp
         this.lowering = lowering;
     }
 
-    override const(char)* toChars() const
-    {
-        return lowering.toChars();
-    }
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -5035,27 +5031,6 @@ extern (C++) final class CTFEExp : Expression
         type = Type.tvoid;
     }
 
-    override const(char)* toChars() const
-    {
-        switch (op)
-        {
-        case EXP.cantExpression:
-            return "<cant>";
-        case EXP.voidExpression:
-            return "cast(void)0";
-        case EXP.showCtfeContext:
-            return "<error>";
-        case EXP.break_:
-            return "<break>";
-        case EXP.continue_:
-            return "<continue>";
-        case EXP.goto_:
-            return "<goto>";
-        default:
-            assert(0);
-        }
-    }
-
     extern (D) __gshared CTFEExp cantexp;
     extern (D) __gshared CTFEExp voidexp;
     extern (D) __gshared CTFEExp breakexp;
@@ -5090,11 +5065,6 @@ extern (C++) final class ThrownExceptionExp : Expression
         super(loc, EXP.thrownException);
         this.thrown = victim;
         this.type = victim.type;
-    }
-
-    override const(char)* toChars() const
-    {
-        return "CTFE ThrownException";
     }
 
     override void accept(Visitor v)
