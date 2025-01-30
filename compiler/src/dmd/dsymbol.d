@@ -297,9 +297,10 @@ extern (C++) class Dsymbol : ASTNode
         return new Dsymbol(ident);
     }
 
-    override const(char)* toChars() const
+    final override const(char)* toChars() const
     {
-        return ident ? ident.toHChars2() : "__anonymous";
+        import dmd.hdrgen : toChars;
+        return toChars(this);
     }
 
     // Getters / setters for fields stored in `DsymbolAttributes`

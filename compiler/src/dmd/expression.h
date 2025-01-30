@@ -91,7 +91,7 @@ public:
     // kludge for template.isExpression()
     DYNCAST dyncast() const override final { return DYNCAST_EXPRESSION; }
 
-    const char *toChars() const override;
+    const char* toChars() const final override;
 
     virtual dinteger_t toInteger();
     virtual uinteger_t toUInteger();
@@ -602,7 +602,6 @@ public:
 
     bool equals(const RootObject * const o) const override;
     FuncExp *syntaxCopy() override;
-    const char *toChars() const override;
     bool checkType() override;
 
     void accept(Visitor *v) override { v->visit(this); }
@@ -1049,7 +1048,6 @@ class LoweredAssignExp final : public AssignExp
 public:
     Expression *lowering;
 
-    const char *toChars() const override;
     void accept(Visitor *v) override { v->visit(this); }
 };
 

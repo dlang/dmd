@@ -385,7 +385,7 @@
                     },
                     {
                         "kind": "alias",
-                        "name": "__xdtor",
+                        "name": "~this",
                         "protection": "public"
                     }
                 ],

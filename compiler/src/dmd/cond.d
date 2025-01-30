@@ -605,11 +605,6 @@ extern (C++) final class DebugCondition : DVCondition
     {
         v.visit(this);
     }
-
-    override const(char)* toChars() const
-    {
-        return ident ? ident.toChars() : "debug".ptr;
-    }
 }
 
 /**
@@ -887,11 +882,6 @@ extern (C++) final class VersionCondition : DVCondition
     {
         v.visit(this);
     }
-
-    override const(char)* toChars() const
-    {
-        return ident ? ident.toChars() : "version".ptr;
-    }
 }
 
 /***********************************************************
@@ -960,11 +950,6 @@ extern (C++) final class StaticIfCondition : Condition
     override inout(StaticIfCondition) isStaticIfCondition() inout
     {
         return this;
-    }
-
-    override const(char)* toChars() const
-    {
-        return exp ? exp.toChars() : "static if".ptr;
     }
 }
 

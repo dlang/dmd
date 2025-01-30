@@ -691,9 +691,7 @@ bool emitAnchorName(ref OutBuffer buf, Dsymbol s, Scope* sc, bool includeParent)
     }
     else
     {
-        /* We just want the identifier, not overloads like TemplateDeclaration::toChars.
-         * We don't want the template parameter list and constraints. */
-        buf.writestring(s.Dsymbol.toChars());
+        buf.writestring(s.ident ? s.ident.toString : "__anonymous");
     }
     return true;
 }
@@ -796,7 +794,11 @@ void emitAnchor(ref OutBuffer buf, Dsymbol s, Scope* sc, bool forHeader = false)
     }
     else
     {
-        auto symbolName = ident.toString();
+        // buf.writestring("<<<");
+        // buf.writestring(typeof(ident).stringof);
+        // buf.writestring(">>>");
+        // auto symbolName = ident.toString();
+        auto symbolName = ident.toChars().toDString();
         buf.printf("$(%.*s %.*s", cast(int) macroName.length, macroName.ptr,
             cast(int) symbolName.length, symbolName.ptr);
 
