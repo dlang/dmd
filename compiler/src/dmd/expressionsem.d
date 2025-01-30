@@ -16738,7 +16738,7 @@ private Modifiable checkModify(Declaration d, Loc loc, Scope* sc, Expression e1,
             if (scx.func == vthis.parent && scx.contract != Contract.none)
             {
                 if (!(flag & ModifyFlags.noError))
-                    error(loc, "%s `%s` cannot modify parameter `this` in contract", d.kind, d.toPrettyChars);
+                    error(loc, "cannot modify member variable `%s` in contract", d.toPrettyChars());
                 return Modifiable.initialization; // do not report type related errors
             }
         }

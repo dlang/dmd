@@ -2231,9 +2231,20 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
             buf.writestring(e.ident.toString());
     }
 
-    void visitDsymbol(DsymbolExp e)
+    void visitDsymbol(Dsymbol s)
     {
-        buf.writestring(e.s.toChars());
+        // For -vcg-ast, print internal names such as __invariant, __ctor etc.
+        // This condition is a bit kludge, and can be cleaned up if the
+        // mutual dependency `AST.toChars <> hdrgen.d` gets refactored
+        if (hgs.vcg_ast && s.ident && !s.isTemplateInstance() && !s.isTemplateDeclaration())
+            buf.writestring(s.ident.toChars());
+        else
+            buf.writestring(s.toChars());
+    }
+
+    void visitDsymbolExp(DsymbolExp e)
+    {
+        visitDsymbol(e.s);
     }
 
     void visitThis(ThisExp e)
@@ -2438,7 +2449,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
 
     void visitVar(VarExp e)
     {
-        buf.writestring(e.var.toChars());
+        visitDsymbol(e.var);
     }
 
     void visitOver(OverExp e)
@@ -2672,7 +2683,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
     {
         expToBuffer(e.e1, PREC.primary, buf, hgs);
         buf.writeByte('.');
-        buf.writestring(e.var.toChars());
+        visitDsymbol(e.var);
     }
 
     void visitDotTemplateInstance(DotTemplateInstanceExp e)
@@ -2887,7 +2898,7 @@ private void expressionPrettyPrint(Expression e, ref OutBuffer buf, ref HdrGenSt
         case EXP.float64:       return visitReal(e.isRealExp());
         case EXP.complex80:     return visitComplex(e.isComplexExp());
         case EXP.identifier:    return visitIdentifier(e.isIdentifierExp());
-        case EXP.dSymbol:       return visitDsymbol(e.isDsymbolExp());
+        case EXP.dSymbol:       return visitDsymbolExp(e.isDsymbolExp());
         case EXP.this_:         return visitThis(e.isThisExp());
         case EXP.super_:        return visitSuper(e.isSuperExp());
         case EXP.null_:         return visitNull(e.isNullExp());
