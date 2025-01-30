@@ -425,6 +425,7 @@ private:
 
 public:
     static void set(bool showColumns, MessageStyle messageStyle);
+    static Loc singleFilename(const char* const filename);
 
     static bool showColumns;
     static MessageStyle messageStyle;

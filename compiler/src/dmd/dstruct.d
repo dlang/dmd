@@ -119,7 +119,7 @@ extern (C++) class StructDeclaration : AggregateDeclaration
     extern (D) this(const ref Loc loc, Identifier id, bool inObject)
     {
         super(loc, id);
-        // zeroInit = false; // assume false until we do semantic processing
+        zeroInit = false; // assume false until we do semantic processing
         ispod = ThreeState.none;
         // For forward references
         type = new TypeStruct(this);

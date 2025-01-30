@@ -391,9 +391,9 @@ void test_types()
 
 void test_location()
 {
-    Loc loc = Loc();
-    assert(strcmp(loc.toChars(true, MessageStyle::digitalmars), "") == 0);
-    assert(strcmp(loc.toChars(true, MessageStyle::gnu), "") == 0);
+    Loc loc = Loc::singleFilename("app.d");
+    assert(strcmp(loc.toChars(true, MessageStyle::digitalmars), "app.d") == 0);
+    assert(strcmp(loc.toChars(true, MessageStyle::gnu), "app.d") == 0);
 }
 
 /**********************************/

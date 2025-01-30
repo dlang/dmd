@@ -38,7 +38,7 @@ struct Loc
     // FIXME: This arbitrary size increase is needed to prevent segfault in
     // runnable/test42.d on Ubuntu x86 when DMD was built with DMD 2.105 .. 2.110
     // https://github.com/dlang/dmd/pull/20777#issuecomment-2614128849
-    version (linux) version (DigitalMars) static if (size_t.sizeof == 4)
+    version (DigitalMars) version (linux) version (X86)
         private uint dummy;
 
     static immutable Loc initial; /// use for default initialization of const ref Loc's
@@ -60,7 +60,8 @@ nothrow:
         this.messageStyle = messageStyle;
     }
 
-    static Loc singleFilename(const char* filename)
+    /// Returns: a Loc that simply holds a filename, with no line / column info
+    extern (C++) static Loc singleFilename(const char* filename)
     {
         Loc result;
         locFileTable ~= BaseLoc(filename.toDString, locIndex, 0, [0]);
@@ -107,7 +108,8 @@ nothrow:
     /// Returns: byte offset into source file
     uint fileOffset() const
     {
-        return SourceLoc(this).fileOffset;
+        const i = fileTableIndex(this.index);
+        return this.index - locFileTable[i].startIndex;
     }
 
     /**
@@ -252,11 +254,12 @@ struct SourceLoc
 
 }
 
+/// Given the `index` of a `Loc`, find the index in `locFileTable` of the corresponding `BaseLoc`
 private size_t fileTableIndex(uint index) nothrow @nogc
 {
     // To speed up linear find, we cache the last hit and compare that first,
     // since usually we stay in the same file for some time when resolving source locations.
-    // If it's a differnet file now, either scan forwards / backwards
+    // If it's a different file now, either scan forwards / backwards
     __gshared size_t lastI = 0; // index of last found hit
 
     size_t i = lastI;
@@ -285,54 +288,95 @@ private size_t fileTableIndex(uint index) nothrow @nogc
 BaseLoc* newBaseLoc(const(char)* filename, size_t size) nothrow
 {
     locFileTable ~= BaseLoc(filename.toDString, locIndex, 1, [0]);
-    // Careful: the endloc of a funcdeclaration can
-    // be one past the very last byte in the file, so account for that
+    // Careful: the endloc of a FuncDeclaration can
+    // point to 1 past the very last byte in the file, so account for that
     locIndex += size + 1;
     return &locFileTable[$ - 1];
 }
 
-/// Mapping from byte offset into source file to line/column numbers
+/**
+Mapping from byte offset into source file to line/column numbers
+
+Consider this 4-line 24 byte source file:
+
+---
+app.d
+1 struct S
+2 {
+3     int y;
+4 }
+---
+
+Loc(0) is reserved for null locations, so the first `BaseLoc` gets `startIndex = 1`
+and reserves 25 possible positions. Loc(1) represents the very start of this source
+file, and every next byte gets the next `Loc`, up to Loc(25) which represents the
+location right past the very last `}` character (hence it's 1 more than the file
+size of 24, classic fence post problem!).
+
+The next source file will get `Loc(26) .. Loc(26 + fileSize + 1)` etc.
+
+Now say we know that `int y` has a `Loc(20)` and we want to know the line and column number.
+
+First we find the corresponding `BaseLoc` in `locFileTable`. Since 20 < 26, the first `BaseLoc`
+contains this location. Since `startIndex = 1`, we subtract that to get a file offset 19.
+
+To get the line number from the file offset, we binary search into the `lines` array,
+which contains file offsets where each line starts:
+
+`locFileTable[0].lines == [0, 9, 11, 22, 24]`
+
+We see 14 would be inserted right after `11` at `lines[2]`, so it's line 3 (+1 for 1-indexing).
+Since line 3 starts at file offset 11, and `14 - 11 = 3`, it's column 4 (again, accounting for 1-indexing)
+
+#line and #file directives are handled with a separate array `substitutions` because they're rare,
+and we don't want to penalize memory usage in their absence.
+*/
 struct BaseLoc
 {
 @safe nothrow:
 
-    const(char)[] filename; // Source file name
-    uint startIndex; // Subtract this from Loc.index to get file offset
-    int startLine = 1; // Line number at index 0
-    uint[] lines; // For each line, the file offset at which it starts
-    BaseLoc[] substitutions; // Substitutions from #line / #file directives
+    const(char)[] filename; /// Source file name
+    uint startIndex; /// Subtract this from Loc.index to get file offset
+    int startLine = 1; /// Line number at index 0
+    uint[] lines; /// For each line, the file offset at which it starts. At index 0 there's always a 0 entry.
+    BaseLoc[] substitutions; /// Substitutions from #line / #file directives
 
-    /// Register that a new line starts at `offset`
+    /// Register that a new line starts at `offset` bytes from the start of the source file
     void newLine(uint offset)
     {
         lines ~= offset;
     }
 
+    /// Construct a `Loc` entry for the start of the source file + `offset` bytes
     Loc getLoc(uint offset) @nogc
     {
         Loc result;
-        // import std.stdio; debug writeln(startIndex, " + ", offset, " = ", startIndex + offset);
         result.index = startIndex + offset;
         return result;
     }
 
-    /// Handles #file and #line directives
-    void addSubstitution(uint offset, const(char)* filename, uint linnum) @system
+    /**
+     * Register a new file/line mapping from #file and #line directives
+     * Params:
+     *     offset = byte offset in the source file at which the substitution starts
+     *     filename = new filename from this point on (null = unchanged)
+     *     line = line number from this point on
+     */
+    void addSubstitution(uint offset, const(char)* filename, uint line) @system
     {
         auto fname = filename.toDString;
         if (fname.length == 0 && substitutions.length > 0)
             fname = substitutions[$ - 1].filename;
-        substitutions ~= BaseLoc(fname, offset, cast(int) (linnum - lines.length + startLine - 2));
+        substitutions ~= BaseLoc(fname, offset, cast(int) (line - lines.length + startLine - 2));
     }
 
     /// Returns: `loc` modified by substitutions from #file / #line directives
-    SourceLoc substitute(SourceLoc loc, uint offset) @nogc
+    SourceLoc substitute(SourceLoc loc) @nogc
     {
-        // printf("substitutions: %d\n", cast(int) substitutions.length);
         size_t latest = -1;
         foreach (i, ref sub; substitutions)
         {
-            if (offset >= sub.startIndex)
+            if (loc.fileOffset >= sub.startIndex)
                 latest = i;
             else
                 break;
@@ -346,15 +390,15 @@ struct BaseLoc
         return loc;
     }
 
-    // Resolve an offset into this file to a filename + line + column
+    /// Resolve an offset into this file to a filename + line + column
     private SourceLoc getSourceLoc(uint offset) @nogc
     {
         const i = getLineIndex(offset);
         const sl = SourceLoc(filename, cast(int) (i + startLine), cast(int) (1 + offset - lines[i]), offset);
-        return substitute(sl, offset);
+        return substitute(sl);
     }
 
-    // Binary search the index in this.lines corresponding to `offset`
+    /// Binary search the index in `this.lines` corresponding to `offset`
     private size_t getLineIndex(uint offset) @nogc
     {
         size_t lo = 0;
@@ -379,5 +423,8 @@ struct BaseLoc
     }
 }
 
-private __gshared uint locIndex = 1; // Index of start of the file
+// Whenever a new source file is parsed, start the `Loc` from this index (0 is reserved for Loc.init)
+private __gshared uint locIndex = 1;
+
+// Global mapping of Loc indices to source file offset/line/column, see `BaseLoc`
 private __gshared BaseLoc[] locFileTable;

@@ -385,6 +385,7 @@ public:
     static bool showColumns;
     static MessageStyle messageStyle;
     static void set(bool showColumns, MessageStyle messageStyle);
+    static Loc singleFilename(const char* const filename);
     uint32_t charnum() const;
     uint32_t linnum() const;
     const char* filename() const;
