@@ -120,6 +120,8 @@ nothrow:
             p = "result";
         else if (this == Id.returnLabel)
             p = "return";
+        else if (this == Id.postblit)
+            p = "this(this)";
         else
         {
             p = toChars();
