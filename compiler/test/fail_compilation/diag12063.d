@@ -1,14 +1,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag12063.d(20): Error: cannot check `diag12063.Bar.b` value for overflow
-fail_compilation/diag12063.d(17): Error: no property `max` for type `Foo`, perhaps `import std.algorithm;` is needed?
-fail_compilation/diag12063.d(20): Error: cannot generate value for `diag12063.Bar.b`
-fail_compilation/diag12063.d(20): Error: operator `+` is not defined for type `Bar`
-fail_compilation/diag12063.d(15):        perhaps overload the operator with `auto opBinary(string op : "+")(int rhs) {}`
-fail_compilation/diag12063.d(30): Error: cannot check `diag12063.b` value for overflow
-fail_compilation/diag12063.d(30): Error: incompatible types for `(S()) == (1)`: `S` and `int`
-fail_compilation/diag12063.d(39): Error: enum member `diag12063.d` initialization with `__anonymous.c+1` causes overflow for type `Q`
+fail_compilation/diag12063.d(21): Error: cannot check `diag12063.Bar.b` value for overflow
+fail_compilation/diag12063.d(18): Error: no property `max` for type `Foo`, perhaps `import std.algorithm;` is needed?
+fail_compilation/diag12063.d(21): Error: cannot generate value for `diag12063.Bar.b`
+fail_compilation/diag12063.d(21): Error: operator `+` is not defined for type `Bar`
+fail_compilation/diag12063.d(16):        perhaps overload the operator with `auto opBinary(string op : "+")(int rhs) {}`
+fail_compilation/diag12063.d(31): Error: cannot check `diag12063.b` value for overflow
+fail_compilation/diag12063.d(31): Error: no operator `==` for type `S`
+fail_compilation/diag12063.d(24):        perhaps overload it with `bool opEquals(int other) const {}`
+fail_compilation/diag12063.d(40): Error: enum member `diag12063.d` initialization with `__anonymous.c+1` causes overflow for type `Q`
 ---
 */
 
