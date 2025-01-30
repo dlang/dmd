@@ -662,10 +662,9 @@ TupleDeclaration isAliasThisTuple(Expression e)
  * Runs semantic on ae.arguments. Declares temporary variables
  * if '$' was used.
  */
-Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
+Expression resolveOpDollar(Scope* sc, ArrayExp ae, out Expression pe0)
 {
     assert(!ae.lengthVar);
-    *pe0 = null;
     AggregateDeclaration ad = isAggregate(ae.e1.type);
     Dsymbol slice = search_function(ad, Id.opSlice);
     //printf("slice = %s %s\n", slice.kind(), slice.toChars());
@@ -679,7 +678,7 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
     foreach (i, e; *ae.arguments)
     {
         if (i == 0)
-            *pe0 = extractOpDollarSideEffect(sc, ae);
+            pe0 = extractOpDollarSideEffect(sc, ae);
 
         if (e.op == EXP.interval && !(slice && slice.isTemplateDeclaration()))
         {
@@ -702,7 +701,7 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
             // If $ was used, declare it now
             Expression de = new DeclarationExp(ae.loc, ae.lengthVar);
             de = de.expressionSemantic(sc);
-            *pe0 = Expression.combine(*pe0, de);
+            pe0 = Expression.combine(pe0, de);
         }
         sc = sc.pop();
 
@@ -725,7 +724,7 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
             if (!fslice)
                 return fallback();
 
-            e = new DotTemplateInstanceExp(ae.loc, ae.e1, slice.ident, tiargs);
+            e = new DotTemplateInstanceExp(ae.loc, ae.e1, Id.opSlice, tiargs);
             e = new CallExp(ae.loc, e, fargs);
             e = e.expressionSemantic(sc);
         }
@@ -749,7 +748,7 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, Expression* pe0)
  * Returns:
  *      ae, or ErrorExp if errors occurred
  */
-Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, Expression* pe0)
+Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, ref Expression pe0)
 {
     //assert(!ae.lengthVar);
     if (!ie)
@@ -786,7 +785,7 @@ Expression resolveOpDollar(Scope* sc, ArrayExp ae, IntervalExp ie, Expression* p
         // If $ was used, declare it now
         Expression de = new DeclarationExp(ae.loc, ae.lengthVar);
         de = de.expressionSemantic(sc);
-        *pe0 = Expression.combine(*pe0, de);
+        pe0 = Expression.combine(pe0, de);
     }
 
     sc = sc.pop();
@@ -10335,7 +10334,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (search_function(ad, Id.opIndexAssign))
                 {
                     // Deal with $
-                    res = resolveOpDollar(sc, ae, &e0);
+                    res = resolveOpDollar(sc, ae, e0);
                     if (!res) // a[i..j] = e2 might be: a.opSliceAssign(e2, i, j)
                         goto Lfallback;
                     if (res.op == EXP.error)
@@ -10365,7 +10364,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 if (maybeSlice && search_function(ad, Id.opSliceAssign))
                 {
                     // Deal with $
-                    res = resolveOpDollar(sc, ae, ie, &e0);
+                    res = resolveOpDollar(sc, ae, ie, e0);
                     if (res.op == EXP.error)
                         return setResult(res);
 

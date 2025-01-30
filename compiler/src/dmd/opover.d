@@ -178,7 +178,6 @@ Expression checkAliasThisForRhs(AggregateDeclaration ad, Scope* sc, BinExp e, Ty
 
 Expression opOverloadUnary(UnaExp e, Scope* sc)
 {
-    Expression result;
     if (auto ae = e.e1.isArrayExp())
     {
         ae.e1 = ae.e1.expressionSemantic(sc);
@@ -197,59 +196,57 @@ Expression opOverloadUnary(UnaExp e, Scope* sc)
             {
                 return ae.e1;
             }
-            Expression e0 = null;
             Expression ae1save = ae.e1;
             ae.lengthVar = null;
-            Type t1b = ae.e1.type.toBasetype();
-            AggregateDeclaration ad = isAggregate(t1b);
+
+            AggregateDeclaration ad = isAggregate(ae.e1.type);
             if (!ad)
                 break;
+
             if (search_function(ad, Id.opIndexUnary))
             {
+                Expression e0;
                 // Deal with $
-                result = resolveOpDollar(sc, ae, &e0);
-                if (!result) // op(a[i..j]) might be: a.opSliceUnary!(op)(i, j)
+                Expression ae2 = resolveOpDollar(sc, ae, e0);
+                if (!ae2) // op(a[i..j]) might be: a.opSliceUnary!(op)(i, j)
                     goto Lfallback;
-                if (result.isErrorExp())
-                    return result;
+                if (ae2.isErrorExp())
+                    return ae2;
                 /* Rewrite op(a[arguments]) as:
                  *      a.opIndexUnary!(op)(arguments)
                  */
-                result = dotTemplateCall(ae.e1, Id.opIndexUnary, opToArg(sc, e.op), (*ae.arguments)[]);
+                Expression result = dotTemplateCall(ae.e1, Id.opIndexUnary, opToArg(sc, e.op), (*ae.arguments)[]);
                 if (maybeSlice) // op(a[]) might be: a.opSliceUnary!(op)()
                     result = result.trySemantic(sc);
                 else
                     result = result.expressionSemantic(sc);
+
                 if (result)
-                {
                     return Expression.combine(e0, result);
-                }
             }
         Lfallback:
             if (maybeSlice && search_function(ad, Id.opSliceUnary))
             {
                 // Deal with $
-                result = resolveOpDollar(sc, ae, ie, &e0);
-                if (result.isErrorExp())
-                    return result;
+                Expression e0;
+                auto ae2 = resolveOpDollar(sc, ae, ie, e0);
+                if (ae2.isErrorExp())
+                    return ae2;
                 /* Rewrite op(a[i..j]) as:
                  *      a.opSliceUnary!(op)(i, j)
                  */
-                if (ie)
-                    result = dotTemplateCall(ae.e1, Id.opSliceUnary, opToArg(sc, e.op), ie.lwr, ie.upr);
-                else
-                    result = dotTemplateCall(ae.e1, Id.opSliceUnary, opToArg(sc, e.op));
+                Expression result = ie ?
+                    dotTemplateCall(ae.e1, Id.opSliceUnary, opToArg(sc, e.op), ie.lwr, ie.upr) :
+                    dotTemplateCall(ae.e1, Id.opSliceUnary, opToArg(sc, e.op));
 
-                result = result.expressionSemantic(sc);
-                result = Expression.combine(e0, result);
-                return result;
+                return Expression.combine(e0, result.expressionSemantic(sc));
             }
             // Didn't find it. Forward to aliasthis
             if (ad.aliasthis && !isRecursiveAliasThis(att, ae.e1.type))
             {
                 /* Rewrite op(a[arguments]) as:
-                    *      op(a.aliasthis[arguments])
-                    */
+                 *      op(a.aliasthis[arguments])
+                 */
                 ae.e1 = resolveAliasThis(sc, ae1save, true);
                 if (ae.e1)
                     continue;
@@ -305,7 +302,7 @@ Expression opOverloadUnary(UnaExp e, Scope* sc)
 
         break;
     }
-    return result;
+    return null;
 }
 
 Expression opOverloadArray(ArrayExp ae, Scope* sc)
@@ -319,7 +316,6 @@ Expression opOverloadArray(ArrayExp ae, Scope* sc)
     {
         ie = (*ae.arguments)[0].isIntervalExp();
     }
-    Expression result;
     Type att = null; // first cyclic `alias this` type
     while (true)
     {
@@ -340,63 +336,54 @@ Expression opOverloadArray(ArrayExp ae, Scope* sc)
             {
                 // Convert to SliceExp
                 if (maybeSlice)
-                {
-                    result = new SliceExp(ae.loc, ae.e1, ie);
-                    result = result.expressionSemantic(sc);
-                    return result;
-                }
+                    return new SliceExp(ae.loc, ae.e1, ie).expressionSemantic(sc);
+
                 // Convert to IndexExp
                 if (ae.arguments.length == 1)
-                {
-                    result = new IndexExp(ae.loc, ae.e1, (*ae.arguments)[0]);
-                    result = result.expressionSemantic(sc);
-                    return result;
-                }
+                    return new IndexExp(ae.loc, ae.e1, (*ae.arguments)[0]).expressionSemantic(sc);
             }
             break;
         }
         if (search_function(ad, Id.opIndex))
         {
             // Deal with $
-            result = resolveOpDollar(sc, ae, &e0);
-            if (!result) // a[i..j] might be: a.opSlice(i, j)
+            auto ae2 = resolveOpDollar(sc, ae, e0);
+            if (!ae2) // a[i..j] might be: a.opSlice(i, j)
                 goto Lfallback;
-            if (result.isErrorExp())
-                return result;
+            if (ae2.isErrorExp())
+                return ae2;
             /* Rewrite e1[arguments] as:
              *      e1.opIndex(arguments)
              */
             Expressions* a = ae.arguments.copy();
-            result = new DotIdExp(ae.loc, ae.e1, Id.opIndex);
+            Expression result = new DotIdExp(ae.loc, ae.e1, Id.opIndex);
             result = new CallExp(ae.loc, result, a);
             if (maybeSlice) // a[] might be: a.opSlice()
                 result = result.trySemantic(sc);
             else
                 result = result.expressionSemantic(sc);
+
             if (result)
-            {
                 return Expression.combine(e0, result);
-            }
         }
     Lfallback:
         if (maybeSlice && ae.e1.isTypeExp())
         {
-            result = new SliceExp(ae.loc, ae.e1, ie);
+            Expression result = new SliceExp(ae.loc, ae.e1, ie);
             result = result.expressionSemantic(sc);
-            result = Expression.combine(e0, result);
-            return result;
+            return Expression.combine(e0, result);
         }
         if (maybeSlice && search_function(ad, Id.opSlice))
         {
             // Deal with $
-            result = resolveOpDollar(sc, ae, ie, &e0);
+            auto ae2 = resolveOpDollar(sc, ae, ie, e0);
 
-            if (result.isErrorExp())
+            if (ae2.isErrorExp())
             {
                 if (!e0 && !search_function(ad, Id.dollar))
                     ad.loc.errorSupplemental("perhaps define `opDollar` for `%s`", ad.toChars());
 
-                return result;
+                return ae2;
             }
             /* Rewrite a[i..j] as:
              *      a.opSlice(i, j)
@@ -407,11 +394,10 @@ Expression opOverloadArray(ArrayExp ae, Scope* sc)
                 a.push(ie.lwr);
                 a.push(ie.upr);
             }
-            result = new DotIdExp(ae.loc, ae.e1, Id.opSlice);
+            Expression result = new DotIdExp(ae.loc, ae.e1, Id.opSlice);
             result = new CallExp(ae.loc, result, a);
             result = result.expressionSemantic(sc);
-            result = Expression.combine(e0, result);
-            return result;
+            return Expression.combine(e0, result);
         }
         // Didn't find it. Forward to aliasthis
         if (ad.aliasthis && !isRecursiveAliasThis(att, ae.e1.type))
@@ -428,7 +414,7 @@ Expression opOverloadArray(ArrayExp ae, Scope* sc)
     }
     ae.e1 = ae1old; // recovery
     ae.lengthVar = null;
-    return result;
+    return null;
 }
 
 /***********************************************
@@ -437,41 +423,38 @@ Expression opOverloadArray(ArrayExp ae, Scope* sc)
  */
 Expression opOverloadCast(CastExp e, Scope* sc, Type att = null)
 {
-    Expression result;
-    if (AggregateDeclaration ad = isAggregate(e.e1.type))
+    AggregateDeclaration ad = isAggregate(e.e1.type);
+    if (!ad)
+        return null;
+
+    // Rewrite as: e1.opCast!(T)()
+    if (Dsymbol fd = search_function(ad, Id.opCast))
     {
-        // Rewrite as: e1.opCast!(T)()
-        if (Dsymbol fd = search_function(ad, Id.opCast))
+        version (all)
         {
-            version (all)
+            // Backwards compatibility with D1 if opCast is a function, not a template
+            if (fd.isFuncDeclaration())
             {
-                // Backwards compatibility with D1 if opCast is a function, not a template
-                if (fd.isFuncDeclaration())
-                {
-                    // Rewrite as:  e1.opCast()
-                    return build_overload(e.loc, sc, e.e1, null, fd);
-                }
+                // Rewrite as:  e1.opCast()
+                return build_overload(e.loc, sc, e.e1, null, fd);
             }
-            auto tiargs = new Objects();
-            tiargs.push(e.to);
-            return dotTemplateCall(e.e1, Id.opCast, tiargs).expressionSemantic(sc);
         }
-        // Didn't find it. Forward to aliasthis
-        if (ad.aliasthis && !isRecursiveAliasThis(att, e.e1.type))
+        auto tiargs = new Objects();
+        tiargs.push(e.to);
+        return dotTemplateCall(e.e1, Id.opCast, tiargs).expressionSemantic(sc);
+    }
+    // Didn't find it. Forward to aliasthis
+    if (ad.aliasthis && !isRecursiveAliasThis(att, e.e1.type))
+    {
+        // Rewrite `e1.opCast()` as `e1.aliasthis.opCast()`
+        if (auto e1 = resolveAliasThis(sc, e.e1, true))
         {
-            /* Rewrite op(e1) as:
-                *      op(e1.aliasthis)
-                */
-            if (auto e1 = resolveAliasThis(sc, e.e1, true))
-            {
-                result = e.copy();
-                (cast(UnaExp)result).e1 = e1;
-                result = opOverloadCast(result.isCastExp(), sc, att);
-                return result;
-            }
+            CastExp result = e.copy().isCastExp();
+            result.e1 = e1;
+            return result.opOverloadCast(sc, att);
         }
     }
-    return result;
+    return null;
 }
 
 // When no operator overload functions are found for `e`, recursively try with `alias this`
@@ -936,65 +919,60 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisSt
         while (true)
         {
             if (ae.e1.isErrorExp())
-            {
                 return ae.e1;
-            }
+
             Expression e0 = null;
             Expression ae1save = ae.e1;
             ae.lengthVar = null;
-            Type t1b = ae.e1.type.toBasetype();
-            AggregateDeclaration ad = isAggregate(t1b);
+            AggregateDeclaration ad = isAggregate(ae.e1.type);
             if (!ad)
                 break;
             if (search_function(ad, Id.opIndexOpAssign))
             {
                 // Deal with $
-                Expression result = resolveOpDollar(sc, ae, &e0);
-                if (!result) // (a[i..j] op= e2) might be: a.opSliceOpAssign!(op)(e2, i, j)
+                Expression ae2 = resolveOpDollar(sc, ae, e0);
+                if (!ae2) // (a[i..j] op= e2) might be: a.opSliceOpAssign!(op)(e2, i, j)
                     goto Lfallback;
-                if (result.isErrorExp())
-                    return result;
-                result = e.e2.expressionSemantic(sc);
-                if (result.isErrorExp())
-                    return result;
-                e.e2 = result;
+                if (ae2.isErrorExp())
+                    return ae2;
+                e.e2 = e.e2.expressionSemantic(sc);
+                if (e.e2.isErrorExp())
+                    return e.e2;
+
                 /* Rewrite a[arguments] op= e2 as:
                  *      a.opIndexOpAssign!(op)(e2, arguments)
                  */
                 Expressions* a = ae.arguments.copy();
                 a.insert(0, e.e2);
-                result = dotTemplateCall(ae.e1, Id.opIndexOpAssign, opToArg(sc, e.op), (*a)[]);
+                Expression result = dotTemplateCall(ae.e1, Id.opIndexOpAssign, opToArg(sc, e.op), (*a)[]);
                 if (maybeSlice) // (a[] op= e2) might be: a.opSliceOpAssign!(op)(e2)
                     result = result.trySemantic(sc);
                 else
                     result = result.expressionSemantic(sc);
+
                 if (result)
-                {
                     return Expression.combine(e0, result);
-                }
             }
         Lfallback:
             if (maybeSlice && search_function(ad, Id.opSliceOpAssign))
             {
                 // Deal with $
-                Expression result = resolveOpDollar(sc, ae, ie, &e0);
-                if (result.isErrorExp())
-                    return result;
-                result = e.e2.expressionSemantic(sc);
-                if (result.isErrorExp())
-                    return result;
-                e.e2 = result;
+                Expression ae2 = resolveOpDollar(sc, ae, ie, e0);
+                if (ae2.isErrorExp())
+                    return ae2;
+
+                e.e2 = e.e2.expressionSemantic(sc);
+                if (e.e2.isErrorExp())
+                    return e.e2;
+
                 /* Rewrite (a[i..j] op= e2) as:
                  *      a.opSliceOpAssign!(op)(e2, i, j)
                  */
-                if (ie)
-                    result = dotTemplateCall(ae.e1, Id.opSliceOpAssign, opToArg(sc, e.op), e.e2, ie.lwr, ie.upr);
-                else
-                    result = dotTemplateCall(ae.e1, Id.opSliceOpAssign, opToArg(sc, e.op), e.e2);
+                auto result = ie ?
+                    dotTemplateCall(ae.e1, Id.opSliceOpAssign, opToArg(sc, e.op), e.e2, ie.lwr, ie.upr) :
+                    dotTemplateCall(ae.e1, Id.opSliceOpAssign, opToArg(sc, e.op), e.e2);
 
-                result = result.expressionSemantic(sc);
-                result = Expression.combine(e0, result);
-                return result;
+                return Expression.combine(e0, result.expressionSemantic(sc));
             }
             // Didn't find it. Forward to aliasthis
             if (ad.aliasthis && !isRecursiveAliasThis(att, ae.e1.type))
@@ -1011,14 +989,14 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisSt
         ae.e1 = ae1old; // recovery
         ae.lengthVar = null;
     }
-    Expression result = e.binSemanticProp(sc);
-    if (result)
+
+    if (Expression result = e.binSemanticProp(sc))
         return result;
+
     // Don't attempt 'alias this' if an error occurred
     if (e.e1.type.isTypeError() || e.e2.type.isTypeError())
-    {
         return ErrorExp.get();
-    }
+
     AggregateDeclaration ad1 = isAggregate(e.e1.type);
     Dsymbol s = search_function(ad1, Id.opOpAssign);
     if (s && !s.isTemplateDeclaration())
@@ -1031,7 +1009,7 @@ Expression opOverloadBinaryAssign(BinAssignExp e, Scope* sc, Type[2] aliasThisSt
     if (auto res = pickBestBinaryOverload(sc, opToArg(sc, e.op), s, null, e, choseReverse))
         return res;
 
-    result = checkAliasThisForLhs(ad1, sc, e, aliasThisStop);
+    Expression result = checkAliasThisForLhs(ad1, sc, e, aliasThisStop);
     if (result || !s) // no point in trying Rhs alias-this if there's no overload of any kind in lhs
         return result;
 
