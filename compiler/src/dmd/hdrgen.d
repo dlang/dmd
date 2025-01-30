@@ -880,10 +880,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
     void visitDebugSymbol(DebugSymbol s)
     {
         buf.writestring("debug = ");
-        if (s.ident)
-            buf.writestring(s.ident.toString());
-        else
-            buf.print(s.level);
+        buf.writestring(s.ident.toString());
         buf.writeByte(';');
         buf.writenl();
     }
@@ -891,10 +888,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
     void visitVersionSymbol(VersionSymbol s)
     {
         buf.writestring("version = ");
-        if (s.ident)
-            buf.writestring(s.ident.toString());
-        else
-            buf.print(s.level);
+        buf.writestring(s.ident.toString());
         buf.writeByte(';');
         buf.writenl();
     }
@@ -3112,20 +3106,14 @@ public:
     override void visit(DebugCondition c)
     {
         buf.writestring("debug (");
-        if (c.ident)
-            buf.writestring(c.ident.toString());
-        else
-            buf.print(c.level);
+        buf.writestring(c.ident.toString());
         buf.writeByte(')');
     }
 
     override void visit(VersionCondition c)
     {
         buf.writestring("version (");
-        if (c.ident)
-            buf.writestring(c.ident.toString());
-        else
-            buf.print(c.level);
+        buf.writestring(c.ident.toString());
         buf.writeByte(')');
     }
 

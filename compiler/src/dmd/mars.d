@@ -1604,7 +1604,7 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
             else if (p[6])
                 goto Lerror;
             else
-                params.debuglevel = 1;
+                params.debugEnabled = true;
         }
         else if (startsWith(p + 1, "version")) // https://dlang.org/dmd.html#switch-version
         {

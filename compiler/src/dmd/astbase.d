@@ -451,16 +451,13 @@ struct ASTBase
 
     extern (C++) final class DebugSymbol : Dsymbol
     {
-        uint level;
-
         extern (D) this(const ref Loc loc, Identifier ident)
         {
             super(ident);
             this.loc = loc;
         }
-        extern (D) this(const ref Loc loc, uint level)
+        extern (D) this(const ref Loc loc)
         {
-            this.level = level;
             this.loc = loc;
         }
 
@@ -472,16 +469,13 @@ struct ASTBase
 
     extern (C++) final class VersionSymbol : Dsymbol
     {
-        uint level;
-
         extern (D) this(const ref Loc loc, Identifier ident)
         {
             super(ident);
             this.loc = loc;
         }
-        extern (D) this(const ref Loc loc, uint level)
+        extern (D) this(const ref Loc loc)
         {
-            this.level = level;
             this.loc = loc;
         }
 
@@ -6542,11 +6536,10 @@ struct ASTBase
 
     extern (C++) class DVCondition : Condition
     {
-        uint level;
         Identifier ident;
         Module mod;
 
-        final extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident)
+        final extern (D) this(const ref Loc loc, Module mod, Identifier ident)
         {
             super(loc);
             this.mod = mod;
@@ -6561,9 +6554,9 @@ struct ASTBase
 
     extern (C++) final class DebugCondition : DVCondition
     {
-        extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident)
+        extern (D) this(const ref Loc loc, Module mod, Identifier ident)
         {
-            super(loc, mod, level, ident);
+            super(loc, mod, ident);
         }
 
         override void accept(Visitor v)
@@ -6574,9 +6567,9 @@ struct ASTBase
 
     extern (C++) final class VersionCondition : DVCondition
     {
-        extern (D) this(const ref Loc loc, Module mod, uint level, Identifier ident)
+        extern (D) this(const ref Loc loc, Module mod, Identifier ident)
         {
-            super(loc, mod, level, ident);
+            super(loc, mod, ident);
         }
 
         override void accept(Visitor v)

@@ -2274,7 +2274,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      */
     private AST.Condition parseDebugCondition()
     {
-        uint level = 1;
         Identifier id = null;
         Loc loc = token.loc;
 
@@ -2290,7 +2289,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             nextToken();
             check(TOK.rightParenthesis);
         }
-        return new AST.DebugCondition(loc, mod, level, id);
+        return new AST.DebugCondition(loc, mod, id);
     }
 
     /**************************************
@@ -2319,7 +2318,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
      */
     private AST.Condition parseVersionCondition()
     {
-        uint level = 1;
         Identifier id = null;
         Loc loc;
 
@@ -2345,7 +2343,7 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         }
         else
             error("(condition) expected following `version`");
-        return new AST.VersionCondition(loc, mod, level, id);
+        return new AST.VersionCondition(loc, mod, id);
     }
 
     /***********************************************
@@ -6255,12 +6253,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             if (token.value == TOK.assign)
             {
                 if (auto ds = parseDebugSpecification())
-                {
-                    if (ds.ident)
-                        eSink.error(ds.loc, "%s `%s` declaration must be at module level", ds.kind, ds.toPrettyChars);
-                    else
-                        eSink.error(ds.loc, "%s `%s` level declaration must be at module level", ds.kind, ds.toPrettyChars);
-                }
+                    eSink.error(ds.loc, "%s `%s` declaration must be at module level", ds.kind, ds.toPrettyChars);
+
                 break;
             }
             cond = parseDebugCondition();
@@ -6271,12 +6265,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
             if (token.value == TOK.assign)
             {
                 if (auto vs = parseVersionSpecification())
-                {
-                    if (vs.ident)
-                        eSink.error(vs.loc, "%s `%s` declaration must be at module level", vs.kind, vs.toPrettyChars);
-                    else
-                        eSink.error(vs.loc, "%s `%s` level declaration must be at module level", vs.kind, vs.toPrettyChars);
-                }
+                    eSink.error(vs.loc, "%s `%s` declaration must be at module level", vs.kind, vs.toPrettyChars);
+
                 break;
             }
             cond = parseVersionCondition();
