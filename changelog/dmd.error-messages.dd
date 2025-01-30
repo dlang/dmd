@@ -30,7 +30,12 @@ Error: `app.bar` called with argument types `(string)` matches multiple overload
 */
 ---
 
-When there's no index / slice operator overload found for a type, a new supplemental message suggests where to implement it.
+Error messages related to operator overloading have been improved.
+When the related template functions (`opUnary`, `opBinary`, `opBinaryRight`, `opOpAssign`, `opIndex`, `opSlice`)
+are missing, a suggestion to implement them is given.
+
+When they do exist but fail to instantiate, the error from instantiation is shown.
+There's no longer a need to manually e.g. rewrite `s + 1` to `s.opBinary!"+"(1)` to diagnose the error.
 
 ---
 struct S {}
@@ -52,9 +57,6 @@ app.d(6): Error: no `[3.."4"]` operator overload for type `S`
 app.d(1):        perhaps define `auto opSlice(int lower, string upper) {}` for `app.S`
 */
 ---
-
-When overloading binary operators, and `opBinary`, `opBinaryRight` or `opOpAssign` is missing / fails to instantiate,
-the error message now points out the problem:
 
 ---
 struct Str {}

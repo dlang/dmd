@@ -293,6 +293,16 @@ Expression opOverloadUnary(UnaExp e, Scope* sc)
             }
             break;
         }
+
+        // For ++ and --, rewrites to += and -= are also tried, so don't error yet
+        if (!e.isPreExp())
+        {
+            error(e.loc, "operator `%s` is not defined for `%s`", EXPtoString(e.op).ptr, ad.toChars());
+            errorSupplemental(ad.loc, "perhaps overload the operator with `auto opUnary(string op : \"%s\")() {}`",
+                EXPtoString(e.op).ptr);
+            return ErrorExp.get();
+        }
+
         break;
     }
     return result;
