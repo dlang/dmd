@@ -3819,6 +3819,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
     // See tryAliasThisSemantic
     Type[2] aliasThisStop;
 
+    // (Optional) the expression this was lowered from, for better error messages
+    Expression parent;
+
     this(Scope* sc) scope @safe
     {
         this.sc = sc;
@@ -7583,15 +7586,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         exp.e1 = exp.e1.optimize(WANTvalue, /*keepLvalue*/ true);
         exp.type = exp.e1.type;
 
-        if (auto ad = isAggregate(exp.e1.type))
-        {
-            if (const s = search_function(ad, Id.opOpAssign))
-            {
-                error(exp.loc, "none of the `opOpAssign` overloads of `%s` are callable for `%s` of type `%s`", ad.toChars(), exp.e1.toChars(), exp.e1.type.toChars());
-                return setError();
-            }
-        }
-        if (exp.e1.checkScalar() ||
+        if (exp.suggestOpOpAssign(sc, parent) ||
+            exp.e1.checkScalar() ||
             exp.e1.checkReadModifyWrite(exp.op, exp.e2) ||
             exp.e1.checkSharedAccess(sc))
             return setError();
@@ -10233,7 +10229,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             e = new AddAssignExp(exp.loc, exp.e1, IntegerExp.literal!1);
         else
             e = new MinAssignExp(exp.loc, exp.e1, IntegerExp.literal!1);
-        result = e.expressionSemantic(sc);
+        result = e.expressionSemanticWithParent(sc, exp);
     }
 
     /*
@@ -11745,7 +11741,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
-        if (exp.e1.checkReadModifyWrite(exp.op, exp.e2))
+        if (exp.suggestOpOpAssign(sc, parent) ||
+            exp.e1.checkReadModifyWrite(exp.op, exp.e2))
             return setError();
 
         assert(exp.e1.type && exp.e2.type);
@@ -11823,6 +11820,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = e;
             return;
         }
+
+        if (exp.suggestOpOpAssign(sc, parent))
+            return setError();
 
         if (SliceExp se = exp.e1.isSliceExp())
         {
@@ -13873,6 +13873,20 @@ private Expression expressionSemantic(Expression e, Scope* sc, Type[2] aliasThis
 
     scope v = new ExpressionSemanticVisitor(sc);
     v.aliasThisStop = aliasThisStop;
+    e.accept(v);
+    return v.result;
+}
+
+// ditto, but with `parent` parameter that represents the expression before rewriting.
+// This way, when lowering an expression (e.g. i++ to i+=1), error messages can still
+// refer to the original expression.
+private Expression expressionSemanticWithParent(Expression e, Scope* sc, Expression parent)
+{
+    if (e.expressionSemanticDone)
+        return e;
+
+    scope v = new ExpressionSemanticVisitor(sc);
+    v.parent = parent;
     e.accept(v);
     return v.result;
 }

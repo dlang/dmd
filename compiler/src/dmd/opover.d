@@ -94,58 +94,40 @@ private bool hasOpBinary(EXP op) pure @safe
     }
 }
 
+/**
+ * Remove the = from op=, e.g. += becomes +
+ *
+ * Params:
+ *     op = tag for a binary assign operator
+ * Returns: the corresponding binary operator, or `op` if it wasn't an assign operator
+*/
+private EXP stripAssignOp(EXP op)
+{
+    switch (op)
+    {
+    case EXP.addAssign: return EXP.add;
+    case EXP.minAssign: return EXP.min;
+    case EXP.mulAssign: return EXP.mul;
+    case EXP.divAssign: return EXP.div;
+    case EXP.modAssign: return EXP.mod;
+    case EXP.andAssign: return EXP.and;
+    case EXP.orAssign: return EXP.or;
+    case EXP.xorAssign: return EXP.xor;
+    case EXP.leftShiftAssign: return EXP.leftShift;
+    case EXP.rightShiftAssign: return EXP.rightShift;
+    case EXP.unsignedRightShiftAssign: return EXP.unsignedRightShift;
+    case EXP.concatenateAssign: return EXP.concatenate;
+    case EXP.powAssign: return EXP.pow;
+    default: return op;
+    }
+}
+
 /*******************************************
  * Helper function to turn operator into template argument list
  */
 Objects* opToArg(Scope* sc, EXP op)
 {
-    /* Remove the = from op=
-     */
-    switch (op)
-    {
-    case EXP.addAssign:
-        op = EXP.add;
-        break;
-    case EXP.minAssign:
-        op = EXP.min;
-        break;
-    case EXP.mulAssign:
-        op = EXP.mul;
-        break;
-    case EXP.divAssign:
-        op = EXP.div;
-        break;
-    case EXP.modAssign:
-        op = EXP.mod;
-        break;
-    case EXP.andAssign:
-        op = EXP.and;
-        break;
-    case EXP.orAssign:
-        op = EXP.or;
-        break;
-    case EXP.xorAssign:
-        op = EXP.xor;
-        break;
-    case EXP.leftShiftAssign:
-        op = EXP.leftShift;
-        break;
-    case EXP.rightShiftAssign:
-        op = EXP.rightShift;
-        break;
-    case EXP.unsignedRightShiftAssign:
-        op = EXP.unsignedRightShift;
-        break;
-    case EXP.concatenateAssign:
-        op = EXP.concatenate;
-        break;
-    case EXP.powAssign:
-        op = EXP.pow;
-        break;
-    default:
-        break;
-    }
-    Expression e = new StringExp(Loc.initial, EXPtoString(op));
+    Expression e = new StringExp(Loc.initial, EXPtoString(stripAssignOp(op)));
     e = e.expressionSemantic(sc);
     auto tiargs = new Objects();
     tiargs.push(e);
@@ -617,6 +599,7 @@ bool suggestBinaryOverloads(BinExp e, Scope* sc)
     {
         if (Dsymbol s = search_function(ad1, Id.opBinary))
         {
+            // This expressionSemantic will fail, otherwise operator overloading would have succeeded before
             dotTemplateCall(e.e1, Id.opBinary, opToArg(sc, e.op), e.e2).expressionSemantic(sc);
             errorSupplemental(s.loc, "`opBinary` defined here");
             return true;
@@ -638,6 +621,46 @@ bool suggestBinaryOverloads(BinExp e, Scope* sc)
         return true;
     }
     return false;
+}
+
+/**
+ * If applicable, print an error relating to implementing / fixing `opOpAssign` or `opUnary` functions.
+ * Params:
+ *   exp = binary operation
+ *   sc = scope to try `opOpAssign!""` semantic in for error messages
+ *   parent = if `exp` was lowered from this `PreExp` or `PostExp`, mention `opUnary` as well
+ * Returns: `true` when an error related to `opOpAssign` was printed
+ */
+bool suggestOpOpAssign(BinAssignExp exp, Scope* sc, Expression parent)
+{
+    auto ad = isAggregate(exp.e1.type);
+    if (!ad)
+        return false;
+
+    if (parent && (parent.isPreExp() || parent.isPostExp()))
+    {
+        error(exp.loc, "operator `%s` not supported for `%s` of type `%s`", EXPtoString(parent.op).ptr, exp.e1.toChars(), ad.toChars());
+        errorSupplemental(ad.loc,
+            "perhaps implement `auto opUnary(string op : \"%s\")() {}`"~
+            " or `auto opOpAssign(string op : \"%s\")(int) {}`",
+            EXPtoString(stripAssignOp(parent.op)).ptr,
+            EXPtoString(stripAssignOp(exp.op)).ptr
+            );
+        return true;
+    }
+
+    if (const s = search_function(ad, Id.opOpAssign))
+    {
+        // This expressionSemantic will fail, otherwise operator overloading would have succeeded before
+        dotTemplateCall(exp.e1, Id.opOpAssign, opToArg(sc, exp.op), exp.e2).expressionSemantic(sc);
+    }
+    else
+    {
+        error(exp.loc, "operator `%s` not supported for `%s` of type `%s`", EXPtoString(exp.op).ptr, exp.e1.toChars(), ad.toChars());
+        errorSupplemental(ad.loc, "perhaps implement `auto opOpAssign(string op : \"%s\")(%s) {}`",
+            EXPtoString(stripAssignOp(exp.op)).ptr, exp.e2.type.toChars());
+    }
+    return true;
 }
 
 // Helper to construct e.id!tiargs(args), e.g. `lhs.opBinary!"+"(rhs)`

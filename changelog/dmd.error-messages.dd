@@ -53,7 +53,7 @@ app.d(1):        perhaps define `auto opSlice(int lower, string upper) {}` for `
 */
 ---
 
-When overloading binary operators, and `opBinary` or `opBinaryRight` is missing or doesn't match,
+When overloading binary operators, and `opBinary`, `opBinaryRight` or `opOpAssign` is missing / fails to instantiate,
 the error message now points out the problem:
 
 ---
