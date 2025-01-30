@@ -1127,7 +1127,31 @@ private Expression compare_overload(BinExp e, Scope* sc, Identifier id, ref EXP 
     if (e.isEqualExp() && ad1 == ad2)
         return null;
     Expression result = checkAliasThisForLhs(ad1, sc, e, aliasThisStop);
-    return result ? result : checkAliasThisForRhs(isAggregate(e.e2.type), sc, e, aliasThisStop);
+    if (result)
+        return result;
+
+    result = checkAliasThisForRhs(isAggregate(e.e2.type), sc, e, aliasThisStop);
+    if (result)
+        return result;
+
+    if (s || s_r)
+        return null;
+
+    Expression suggestOverloading(Expression other, AggregateDeclaration ad)
+    {
+        error(e.loc, "no operator `%s` for type `%s`", EXPtoString(e.op).ptr, ad.toChars);
+        string op = e.isEqualExp() ? "bool" : "int";
+        errorSupplemental(ad.loc, "perhaps overload it with `%.*s %s(%s other) const {}`", op.fTuple.expand, id.toChars, other.type.toChars);
+        return ErrorExp.get();
+    }
+
+    // Classes have opCmp and opEquals defined in `Object` to fall back on already
+    if (ad1 && ad1.isStructDeclaration)
+        return suggestOverloading(e.e2, ad1);
+    if (ad2 && ad2.isStructDeclaration)
+        return suggestOverloading(e.e1, ad2);
+
+    return null;
 }
 
 /***********************************

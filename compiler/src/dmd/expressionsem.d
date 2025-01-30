@@ -13065,12 +13065,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 arrayLowering = al;
             }
         }
-        else if (t1.ty == Tstruct || t2.ty == Tstruct || (t1.ty == Tclass && t2.ty == Tclass))
+        else if (t1.isTypeClass() && t2.isTypeClass())
         {
-            if (t2.ty == Tstruct)
-                error(exp.loc, "need member function `opCmp()` for %s `%s` to compare", t2.toDsymbol(sc).kind(), t2.toChars());
-            else
-                error(exp.loc, "need member function `opCmp()` for %s `%s` to compare", t1.toDsymbol(sc).kind(), t1.toChars());
+            error(exp.loc, "need member function `opCmp()` for %s `%s` to compare", t1.toDsymbol(sc).kind(), t1.toChars());
             return setError();
         }
         else if (t1.isComplex() || t2.isComplex())
