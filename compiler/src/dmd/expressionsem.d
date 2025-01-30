@@ -2371,8 +2371,14 @@ private bool checkNogc(FuncDeclaration f, ref Loc loc, Scope* sc)
 }
 
 /********************************************
- * Check that the postblit is callable if t is an array of structs.
- * Returns true if error happens.
+ * Check that the postblit of `t` isn't @disabled and has the right
+ * function attributes for this scope.
+ *
+ * Params:
+ *   t = struct type, or static array of struct type to check
+ *   loc = error message location
+ *   sc = scope in which attributes are checked
+ * Returns: true if there's an error
  */
 private bool checkPostblit(Type t, ref Loc loc, Scope* sc)
 {
@@ -2395,12 +2401,12 @@ private bool checkPostblit(Type t, ref Loc loc, Scope* sc)
         return true;
 
     //checkDeprecated(sc, sd.postblit);        // necessary?
-    sd.postblit.checkPurity(loc, sc);
-    sd.postblit.checkSafety(loc, sc);
-    sd.postblit.checkNogc(loc, sc);
     //checkAccess(sd, loc, sc, sd.postblit);   // necessary?
-    return false;
-
+    bool result = false;
+    result |= sd.postblit.checkPurity(loc, sc);
+    result |= sd.postblit.checkSafety(loc, sc);
+    result |= sd.postblit.checkNogc(loc, sc);
+    return result;
 }
 
 /***************************************
