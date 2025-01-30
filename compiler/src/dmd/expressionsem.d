@@ -8857,9 +8857,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = exp.incompatibleTypes();
             return;
         }
-        if (exp.e1.checkNoBool())
-            return setError();
-        if (exp.e1.checkArithmetic(exp.op) ||
+        if (exp.e1.checkNoBool() ||
+            exp.e1.checkArithmetic(exp.op) ||
             exp.e1.checkSharedAccess(sc))
             return setError();
 
@@ -8885,11 +8884,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = exp.incompatibleTypes();
             return;
         }
-        if (exp.e1.checkNoBool())
-            return setError();
-        if (exp.e1.checkArithmetic(exp.op))
-            return setError();
-        if (exp.e1.checkSharedAccess(sc))
+
+        if (exp.e1.checkNoBool() ||
+            exp.e1.checkArithmetic(exp.op) ||
+            exp.e1.checkSharedAccess(sc))
             return setError();
 
         result = exp.e1;
@@ -8922,9 +8920,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             result = exp.incompatibleTypes();
             return;
         }
-        if (exp.e1.checkNoBool())
-            return setError();
-        if (exp.e1.checkIntegral() ||
+        if (exp.e1.checkNoBool() ||
+            exp.e1.checkIntegral() ||
             exp.e1.checkSharedAccess(sc))
             return setError();
 

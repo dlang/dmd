@@ -2,163 +2,172 @@
 REQUIRED_ARGS:
 TEST_OUTPUT:
 ---
-fail_compilation/dep_d1_ops.d(272): Error: operator `+` is not defined for type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps overload the operator with `auto opBinary(string op : "+")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(273): Error: operator `+` is not defined for type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps overload the operator with `auto opBinaryRight(string op : "+")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(274): Error: operator `-` is not defined for type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps overload the operator with `auto opBinary(string op : "-")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(275): Error: operator `-` is not defined for type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps overload the operator with `auto opBinaryRight(string op : "-")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(276): Error: operator `*` is not defined for type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps overload the operator with `auto opBinary(string op : "*")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(277): Error: operator `*` is not defined for type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps overload the operator with `auto opBinaryRight(string op : "*")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(278): Error: operator `/` is not defined for type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps overload the operator with `auto opBinary(string op : "/")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(279): Error: operator `/` is not defined for type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps overload the operator with `auto opBinaryRight(string op : "/")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(280): Error: operator `%` is not defined for type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps overload the operator with `auto opBinary(string op : "%")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(281): Error: operator `%` is not defined for type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps overload the operator with `auto opBinaryRight(string op : "%")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(283): Error: operator `&` is not defined for type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps overload the operator with `auto opBinary(string op : "&")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(284): Error: operator `|` is not defined for type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps overload the operator with `auto opBinary(string op : "|")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(285): Error: operator `^` is not defined for type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps overload the operator with `auto opBinary(string op : "^")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(287): Error: operator `<<` is not defined for type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps overload the operator with `auto opBinary(string op : "<<")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(288): Error: operator `<<` is not defined for type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps overload the operator with `auto opBinaryRight(string op : "<<")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(289): Error: operator `>>` is not defined for type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps overload the operator with `auto opBinary(string op : ">>")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(290): Error: operator `>>` is not defined for type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps overload the operator with `auto opBinaryRight(string op : ">>")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(291): Error: operator `>>>` is not defined for type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps overload the operator with `auto opBinary(string op : ">>>")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(292): Error: operator `>>>` is not defined for type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps overload the operator with `auto opBinaryRight(string op : ">>>")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(294): Error: operator `~` is not defined for type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps overload the operator with `auto opBinary(string op : "~")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(295): Error: operator `~` is not defined for type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps overload the operator with `auto opBinaryRight(string op : "~")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(297): Error: operator `+` is not defined for `s` of type `S`
-fail_compilation/dep_d1_ops.d(298): Error: operator `-` is not defined for `s` of type `S`
-fail_compilation/dep_d1_ops.d(299): Error: `s` is not of integral type, it is a `S`
-fail_compilation/dep_d1_ops.d(300): Error: operator `++` not supported for `s` of type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps implement `auto opUnary(string op : "++")() {}` or `auto opOpAssign(string op : "+")(int) {}`
-fail_compilation/dep_d1_ops.d(301): Error: operator `--` not supported for `s` of type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps implement `auto opUnary(string op : "--")() {}` or `auto opOpAssign(string op : "-")(int) {}`
-fail_compilation/dep_d1_ops.d(302): Error: can only `*` a pointer, not a `S`
-fail_compilation/dep_d1_ops.d(304): Error: operator `in` is not defined for type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps overload the operator with `auto opBinary(string op : "in")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(305): Error: operator `in` is not defined for type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps overload the operator with `auto opBinaryRight(string op : "in")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(307): Error: operator `+=` not supported for `s` of type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps implement `auto opOpAssign(string op : "+")(int) {}`
-fail_compilation/dep_d1_ops.d(308): Error: operator `-=` not supported for `s` of type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps implement `auto opOpAssign(string op : "-")(int) {}`
-fail_compilation/dep_d1_ops.d(309): Error: operator `*=` not supported for `s` of type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps implement `auto opOpAssign(string op : "*")(int) {}`
-fail_compilation/dep_d1_ops.d(310): Error: operator `/=` not supported for `s` of type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps implement `auto opOpAssign(string op : "/")(int) {}`
-fail_compilation/dep_d1_ops.d(311): Error: operator `%=` not supported for `s` of type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps implement `auto opOpAssign(string op : "%")(int) {}`
-fail_compilation/dep_d1_ops.d(312): Error: operator `&=` not supported for `s` of type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps implement `auto opOpAssign(string op : "&")(int) {}`
-fail_compilation/dep_d1_ops.d(313): Error: operator `|=` not supported for `s` of type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps implement `auto opOpAssign(string op : "|")(int) {}`
-fail_compilation/dep_d1_ops.d(314): Error: operator `^=` not supported for `s` of type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps implement `auto opOpAssign(string op : "^")(int) {}`
-fail_compilation/dep_d1_ops.d(315): Error: operator `<<=` not supported for `s` of type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps implement `auto opOpAssign(string op : "<<")(int) {}`
-fail_compilation/dep_d1_ops.d(316): Error: operator `>>=` not supported for `s` of type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps implement `auto opOpAssign(string op : ">>")(int) {}`
-fail_compilation/dep_d1_ops.d(317): Error: operator `>>>=` not supported for `s` of type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps implement `auto opOpAssign(string op : ">>>")(int) {}`
-fail_compilation/dep_d1_ops.d(318): Error: operator `~=` not supported for `s` of type `S`
-fail_compilation/dep_d1_ops.d(165):        perhaps implement `auto opOpAssign(string op : "~")(int) {}`
-fail_compilation/dep_d1_ops.d(322): Error: operator `+` is not defined for type `dep_d1_ops.C`
-fail_compilation/dep_d1_ops.d(216):        perhaps overload the operator with `auto opBinary(string op : "+")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(323): Error: operator `+` is not defined for type `dep_d1_ops.C`
-fail_compilation/dep_d1_ops.d(216):        perhaps overload the operator with `auto opBinaryRight(string op : "+")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(324): Error: operator `-` is not defined for type `dep_d1_ops.C`
-fail_compilation/dep_d1_ops.d(216):        perhaps overload the operator with `auto opBinary(string op : "-")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(325): Error: operator `-` is not defined for type `dep_d1_ops.C`
-fail_compilation/dep_d1_ops.d(216):        perhaps overload the operator with `auto opBinaryRight(string op : "-")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(326): Error: operator `*` is not defined for type `dep_d1_ops.C`
-fail_compilation/dep_d1_ops.d(216):        perhaps overload the operator with `auto opBinary(string op : "*")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(327): Error: operator `*` is not defined for type `dep_d1_ops.C`
-fail_compilation/dep_d1_ops.d(216):        perhaps overload the operator with `auto opBinaryRight(string op : "*")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(328): Error: operator `/` is not defined for type `dep_d1_ops.C`
-fail_compilation/dep_d1_ops.d(216):        perhaps overload the operator with `auto opBinary(string op : "/")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(329): Error: operator `/` is not defined for type `dep_d1_ops.C`
-fail_compilation/dep_d1_ops.d(216):        perhaps overload the operator with `auto opBinaryRight(string op : "/")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(330): Error: operator `%` is not defined for type `dep_d1_ops.C`
-fail_compilation/dep_d1_ops.d(216):        perhaps overload the operator with `auto opBinary(string op : "%")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(331): Error: operator `%` is not defined for type `dep_d1_ops.C`
-fail_compilation/dep_d1_ops.d(216):        perhaps overload the operator with `auto opBinaryRight(string op : "%")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(333): Error: operator `&` is not defined for type `dep_d1_ops.C`
-fail_compilation/dep_d1_ops.d(216):        perhaps overload the operator with `auto opBinary(string op : "&")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(334): Error: operator `|` is not defined for type `dep_d1_ops.C`
-fail_compilation/dep_d1_ops.d(216):        perhaps overload the operator with `auto opBinary(string op : "|")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(335): Error: operator `^` is not defined for type `dep_d1_ops.C`
-fail_compilation/dep_d1_ops.d(216):        perhaps overload the operator with `auto opBinary(string op : "^")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(337): Error: operator `<<` is not defined for type `dep_d1_ops.C`
-fail_compilation/dep_d1_ops.d(216):        perhaps overload the operator with `auto opBinary(string op : "<<")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(338): Error: operator `<<` is not defined for type `dep_d1_ops.C`
-fail_compilation/dep_d1_ops.d(216):        perhaps overload the operator with `auto opBinaryRight(string op : "<<")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(339): Error: operator `>>` is not defined for type `dep_d1_ops.C`
-fail_compilation/dep_d1_ops.d(216):        perhaps overload the operator with `auto opBinary(string op : ">>")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(340): Error: operator `>>` is not defined for type `dep_d1_ops.C`
-fail_compilation/dep_d1_ops.d(216):        perhaps overload the operator with `auto opBinaryRight(string op : ">>")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(341): Error: operator `>>>` is not defined for type `dep_d1_ops.C`
-fail_compilation/dep_d1_ops.d(216):        perhaps overload the operator with `auto opBinary(string op : ">>>")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(342): Error: operator `>>>` is not defined for type `dep_d1_ops.C`
-fail_compilation/dep_d1_ops.d(216):        perhaps overload the operator with `auto opBinaryRight(string op : ">>>")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(344): Error: operator `~` is not defined for type `dep_d1_ops.C`
-fail_compilation/dep_d1_ops.d(216):        perhaps overload the operator with `auto opBinary(string op : "~")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(345): Error: operator `~` is not defined for type `dep_d1_ops.C`
-fail_compilation/dep_d1_ops.d(216):        perhaps overload the operator with `auto opBinaryRight(string op : "~")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(347): Error: operator `+` is not defined for `c` of type `dep_d1_ops.C`
-fail_compilation/dep_d1_ops.d(348): Error: operator `-` is not defined for `c` of type `dep_d1_ops.C`
-fail_compilation/dep_d1_ops.d(349): Error: `c` is not of integral type, it is a `dep_d1_ops.C`
-fail_compilation/dep_d1_ops.d(350): Error: operator `++` not supported for `c` of type `C`
-fail_compilation/dep_d1_ops.d(216):        perhaps implement `auto opUnary(string op : "++")() {}` or `auto opOpAssign(string op : "+")(int) {}`
-fail_compilation/dep_d1_ops.d(351): Error: operator `--` not supported for `c` of type `C`
-fail_compilation/dep_d1_ops.d(216):        perhaps implement `auto opUnary(string op : "--")() {}` or `auto opOpAssign(string op : "-")(int) {}`
-fail_compilation/dep_d1_ops.d(352): Error: can only `*` a pointer, not a `dep_d1_ops.C`
-fail_compilation/dep_d1_ops.d(354): Error: operator `in` is not defined for type `dep_d1_ops.C`
-fail_compilation/dep_d1_ops.d(216):        perhaps overload the operator with `auto opBinary(string op : "in")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(355): Error: operator `in` is not defined for type `dep_d1_ops.C`
-fail_compilation/dep_d1_ops.d(216):        perhaps overload the operator with `auto opBinaryRight(string op : "in")(int rhs) {}`
-fail_compilation/dep_d1_ops.d(357): Error: operator `+=` not supported for `c` of type `C`
-fail_compilation/dep_d1_ops.d(216):        perhaps implement `auto opOpAssign(string op : "+")(int) {}`
-fail_compilation/dep_d1_ops.d(358): Error: operator `-=` not supported for `c` of type `C`
-fail_compilation/dep_d1_ops.d(216):        perhaps implement `auto opOpAssign(string op : "-")(int) {}`
-fail_compilation/dep_d1_ops.d(359): Error: operator `*=` not supported for `c` of type `C`
-fail_compilation/dep_d1_ops.d(216):        perhaps implement `auto opOpAssign(string op : "*")(int) {}`
-fail_compilation/dep_d1_ops.d(360): Error: operator `/=` not supported for `c` of type `C`
-fail_compilation/dep_d1_ops.d(216):        perhaps implement `auto opOpAssign(string op : "/")(int) {}`
-fail_compilation/dep_d1_ops.d(361): Error: operator `%=` not supported for `c` of type `C`
-fail_compilation/dep_d1_ops.d(216):        perhaps implement `auto opOpAssign(string op : "%")(int) {}`
-fail_compilation/dep_d1_ops.d(362): Error: operator `&=` not supported for `c` of type `C`
-fail_compilation/dep_d1_ops.d(216):        perhaps implement `auto opOpAssign(string op : "&")(int) {}`
-fail_compilation/dep_d1_ops.d(363): Error: operator `|=` not supported for `c` of type `C`
-fail_compilation/dep_d1_ops.d(216):        perhaps implement `auto opOpAssign(string op : "|")(int) {}`
-fail_compilation/dep_d1_ops.d(364): Error: operator `^=` not supported for `c` of type `C`
-fail_compilation/dep_d1_ops.d(216):        perhaps implement `auto opOpAssign(string op : "^")(int) {}`
-fail_compilation/dep_d1_ops.d(365): Error: operator `<<=` not supported for `c` of type `C`
-fail_compilation/dep_d1_ops.d(216):        perhaps implement `auto opOpAssign(string op : "<<")(int) {}`
-fail_compilation/dep_d1_ops.d(366): Error: operator `>>=` not supported for `c` of type `C`
-fail_compilation/dep_d1_ops.d(216):        perhaps implement `auto opOpAssign(string op : ">>")(int) {}`
-fail_compilation/dep_d1_ops.d(367): Error: operator `>>>=` not supported for `c` of type `C`
-fail_compilation/dep_d1_ops.d(216):        perhaps implement `auto opOpAssign(string op : ">>>")(int) {}`
-fail_compilation/dep_d1_ops.d(368): Error: operator `~=` not supported for `c` of type `C`
-fail_compilation/dep_d1_ops.d(216):        perhaps implement `auto opOpAssign(string op : "~")(int) {}`
-fail_compilation/dep_d1_ops.d(377): Error: `nd` is not of integral type, it is a `dep_d1_ops.NoDeprecation`
+fail_compilation/dep_d1_ops.d(281): Error: operator `+` is not defined for type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps overload the operator with `auto opBinary(string op : "+")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(282): Error: operator `+` is not defined for type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps overload the operator with `auto opBinaryRight(string op : "+")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(283): Error: operator `-` is not defined for type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps overload the operator with `auto opBinary(string op : "-")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(284): Error: operator `-` is not defined for type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps overload the operator with `auto opBinaryRight(string op : "-")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(285): Error: operator `*` is not defined for type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps overload the operator with `auto opBinary(string op : "*")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(286): Error: operator `*` is not defined for type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps overload the operator with `auto opBinaryRight(string op : "*")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(287): Error: operator `/` is not defined for type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps overload the operator with `auto opBinary(string op : "/")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(288): Error: operator `/` is not defined for type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps overload the operator with `auto opBinaryRight(string op : "/")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(289): Error: operator `%` is not defined for type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps overload the operator with `auto opBinary(string op : "%")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(290): Error: operator `%` is not defined for type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps overload the operator with `auto opBinaryRight(string op : "%")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(292): Error: operator `&` is not defined for type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps overload the operator with `auto opBinary(string op : "&")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(293): Error: operator `|` is not defined for type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps overload the operator with `auto opBinary(string op : "|")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(294): Error: operator `^` is not defined for type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps overload the operator with `auto opBinary(string op : "^")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(296): Error: operator `<<` is not defined for type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps overload the operator with `auto opBinary(string op : "<<")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(297): Error: operator `<<` is not defined for type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps overload the operator with `auto opBinaryRight(string op : "<<")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(298): Error: operator `>>` is not defined for type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps overload the operator with `auto opBinary(string op : ">>")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(299): Error: operator `>>` is not defined for type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps overload the operator with `auto opBinaryRight(string op : ">>")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(300): Error: operator `>>>` is not defined for type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps overload the operator with `auto opBinary(string op : ">>>")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(301): Error: operator `>>>` is not defined for type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps overload the operator with `auto opBinaryRight(string op : ">>>")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(303): Error: operator `~` is not defined for type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps overload the operator with `auto opBinary(string op : "~")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(304): Error: operator `~` is not defined for type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps overload the operator with `auto opBinaryRight(string op : "~")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(306): Error: operator `+` is not defined for `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps overload the operator with `auto opUnary(string op : "+")() {}`
+fail_compilation/dep_d1_ops.d(307): Error: operator `-` is not defined for `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps overload the operator with `auto opUnary(string op : "-")() {}`
+fail_compilation/dep_d1_ops.d(308): Error: operator `~` is not defined for `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps overload the operator with `auto opUnary(string op : "~")() {}`
+fail_compilation/dep_d1_ops.d(309): Error: operator `++` not supported for `s` of type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps implement `auto opUnary(string op : "++")() {}` or `auto opOpAssign(string op : "+")(int) {}`
+fail_compilation/dep_d1_ops.d(310): Error: operator `--` not supported for `s` of type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps implement `auto opUnary(string op : "--")() {}` or `auto opOpAssign(string op : "-")(int) {}`
+fail_compilation/dep_d1_ops.d(311): Error: operator `*` is not defined for `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps overload the operator with `auto opUnary(string op : "*")() {}`
+fail_compilation/dep_d1_ops.d(313): Error: operator `in` is not defined for type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps overload the operator with `auto opBinary(string op : "in")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(314): Error: operator `in` is not defined for type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps overload the operator with `auto opBinaryRight(string op : "in")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(316): Error: operator `+=` not supported for `s` of type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps implement `auto opOpAssign(string op : "+")(int) {}`
+fail_compilation/dep_d1_ops.d(317): Error: operator `-=` not supported for `s` of type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps implement `auto opOpAssign(string op : "-")(int) {}`
+fail_compilation/dep_d1_ops.d(318): Error: operator `*=` not supported for `s` of type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps implement `auto opOpAssign(string op : "*")(int) {}`
+fail_compilation/dep_d1_ops.d(319): Error: operator `/=` not supported for `s` of type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps implement `auto opOpAssign(string op : "/")(int) {}`
+fail_compilation/dep_d1_ops.d(320): Error: operator `%=` not supported for `s` of type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps implement `auto opOpAssign(string op : "%")(int) {}`
+fail_compilation/dep_d1_ops.d(321): Error: operator `&=` not supported for `s` of type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps implement `auto opOpAssign(string op : "&")(int) {}`
+fail_compilation/dep_d1_ops.d(322): Error: operator `|=` not supported for `s` of type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps implement `auto opOpAssign(string op : "|")(int) {}`
+fail_compilation/dep_d1_ops.d(323): Error: operator `^=` not supported for `s` of type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps implement `auto opOpAssign(string op : "^")(int) {}`
+fail_compilation/dep_d1_ops.d(324): Error: operator `<<=` not supported for `s` of type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps implement `auto opOpAssign(string op : "<<")(int) {}`
+fail_compilation/dep_d1_ops.d(325): Error: operator `>>=` not supported for `s` of type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps implement `auto opOpAssign(string op : ">>")(int) {}`
+fail_compilation/dep_d1_ops.d(326): Error: operator `>>>=` not supported for `s` of type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps implement `auto opOpAssign(string op : ">>>")(int) {}`
+fail_compilation/dep_d1_ops.d(327): Error: operator `~=` not supported for `s` of type `S`
+fail_compilation/dep_d1_ops.d(174):        perhaps implement `auto opOpAssign(string op : "~")(int) {}`
+fail_compilation/dep_d1_ops.d(331): Error: operator `+` is not defined for type `dep_d1_ops.C`
+fail_compilation/dep_d1_ops.d(225):        perhaps overload the operator with `auto opBinary(string op : "+")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(332): Error: operator `+` is not defined for type `dep_d1_ops.C`
+fail_compilation/dep_d1_ops.d(225):        perhaps overload the operator with `auto opBinaryRight(string op : "+")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(333): Error: operator `-` is not defined for type `dep_d1_ops.C`
+fail_compilation/dep_d1_ops.d(225):        perhaps overload the operator with `auto opBinary(string op : "-")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(334): Error: operator `-` is not defined for type `dep_d1_ops.C`
+fail_compilation/dep_d1_ops.d(225):        perhaps overload the operator with `auto opBinaryRight(string op : "-")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(335): Error: operator `*` is not defined for type `dep_d1_ops.C`
+fail_compilation/dep_d1_ops.d(225):        perhaps overload the operator with `auto opBinary(string op : "*")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(336): Error: operator `*` is not defined for type `dep_d1_ops.C`
+fail_compilation/dep_d1_ops.d(225):        perhaps overload the operator with `auto opBinaryRight(string op : "*")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(337): Error: operator `/` is not defined for type `dep_d1_ops.C`
+fail_compilation/dep_d1_ops.d(225):        perhaps overload the operator with `auto opBinary(string op : "/")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(338): Error: operator `/` is not defined for type `dep_d1_ops.C`
+fail_compilation/dep_d1_ops.d(225):        perhaps overload the operator with `auto opBinaryRight(string op : "/")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(339): Error: operator `%` is not defined for type `dep_d1_ops.C`
+fail_compilation/dep_d1_ops.d(225):        perhaps overload the operator with `auto opBinary(string op : "%")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(340): Error: operator `%` is not defined for type `dep_d1_ops.C`
+fail_compilation/dep_d1_ops.d(225):        perhaps overload the operator with `auto opBinaryRight(string op : "%")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(342): Error: operator `&` is not defined for type `dep_d1_ops.C`
+fail_compilation/dep_d1_ops.d(225):        perhaps overload the operator with `auto opBinary(string op : "&")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(343): Error: operator `|` is not defined for type `dep_d1_ops.C`
+fail_compilation/dep_d1_ops.d(225):        perhaps overload the operator with `auto opBinary(string op : "|")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(344): Error: operator `^` is not defined for type `dep_d1_ops.C`
+fail_compilation/dep_d1_ops.d(225):        perhaps overload the operator with `auto opBinary(string op : "^")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(346): Error: operator `<<` is not defined for type `dep_d1_ops.C`
+fail_compilation/dep_d1_ops.d(225):        perhaps overload the operator with `auto opBinary(string op : "<<")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(347): Error: operator `<<` is not defined for type `dep_d1_ops.C`
+fail_compilation/dep_d1_ops.d(225):        perhaps overload the operator with `auto opBinaryRight(string op : "<<")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(348): Error: operator `>>` is not defined for type `dep_d1_ops.C`
+fail_compilation/dep_d1_ops.d(225):        perhaps overload the operator with `auto opBinary(string op : ">>")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(349): Error: operator `>>` is not defined for type `dep_d1_ops.C`
+fail_compilation/dep_d1_ops.d(225):        perhaps overload the operator with `auto opBinaryRight(string op : ">>")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(350): Error: operator `>>>` is not defined for type `dep_d1_ops.C`
+fail_compilation/dep_d1_ops.d(225):        perhaps overload the operator with `auto opBinary(string op : ">>>")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(351): Error: operator `>>>` is not defined for type `dep_d1_ops.C`
+fail_compilation/dep_d1_ops.d(225):        perhaps overload the operator with `auto opBinaryRight(string op : ">>>")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(353): Error: operator `~` is not defined for type `dep_d1_ops.C`
+fail_compilation/dep_d1_ops.d(225):        perhaps overload the operator with `auto opBinary(string op : "~")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(354): Error: operator `~` is not defined for type `dep_d1_ops.C`
+fail_compilation/dep_d1_ops.d(225):        perhaps overload the operator with `auto opBinaryRight(string op : "~")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(356): Error: operator `+` is not defined for `C`
+fail_compilation/dep_d1_ops.d(225):        perhaps overload the operator with `auto opUnary(string op : "+")() {}`
+fail_compilation/dep_d1_ops.d(357): Error: operator `-` is not defined for `C`
+fail_compilation/dep_d1_ops.d(225):        perhaps overload the operator with `auto opUnary(string op : "-")() {}`
+fail_compilation/dep_d1_ops.d(358): Error: operator `~` is not defined for `C`
+fail_compilation/dep_d1_ops.d(225):        perhaps overload the operator with `auto opUnary(string op : "~")() {}`
+fail_compilation/dep_d1_ops.d(359): Error: operator `++` not supported for `c` of type `C`
+fail_compilation/dep_d1_ops.d(225):        perhaps implement `auto opUnary(string op : "++")() {}` or `auto opOpAssign(string op : "+")(int) {}`
+fail_compilation/dep_d1_ops.d(360): Error: operator `--` not supported for `c` of type `C`
+fail_compilation/dep_d1_ops.d(225):        perhaps implement `auto opUnary(string op : "--")() {}` or `auto opOpAssign(string op : "-")(int) {}`
+fail_compilation/dep_d1_ops.d(361): Error: operator `*` is not defined for `C`
+fail_compilation/dep_d1_ops.d(225):        perhaps overload the operator with `auto opUnary(string op : "*")() {}`
+fail_compilation/dep_d1_ops.d(363): Error: operator `in` is not defined for type `dep_d1_ops.C`
+fail_compilation/dep_d1_ops.d(225):        perhaps overload the operator with `auto opBinary(string op : "in")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(364): Error: operator `in` is not defined for type `dep_d1_ops.C`
+fail_compilation/dep_d1_ops.d(225):        perhaps overload the operator with `auto opBinaryRight(string op : "in")(int rhs) {}`
+fail_compilation/dep_d1_ops.d(366): Error: operator `+=` not supported for `c` of type `C`
+fail_compilation/dep_d1_ops.d(225):        perhaps implement `auto opOpAssign(string op : "+")(int) {}`
+fail_compilation/dep_d1_ops.d(367): Error: operator `-=` not supported for `c` of type `C`
+fail_compilation/dep_d1_ops.d(225):        perhaps implement `auto opOpAssign(string op : "-")(int) {}`
+fail_compilation/dep_d1_ops.d(368): Error: operator `*=` not supported for `c` of type `C`
+fail_compilation/dep_d1_ops.d(225):        perhaps implement `auto opOpAssign(string op : "*")(int) {}`
+fail_compilation/dep_d1_ops.d(369): Error: operator `/=` not supported for `c` of type `C`
+fail_compilation/dep_d1_ops.d(225):        perhaps implement `auto opOpAssign(string op : "/")(int) {}`
+fail_compilation/dep_d1_ops.d(370): Error: operator `%=` not supported for `c` of type `C`
+fail_compilation/dep_d1_ops.d(225):        perhaps implement `auto opOpAssign(string op : "%")(int) {}`
+fail_compilation/dep_d1_ops.d(371): Error: operator `&=` not supported for `c` of type `C`
+fail_compilation/dep_d1_ops.d(225):        perhaps implement `auto opOpAssign(string op : "&")(int) {}`
+fail_compilation/dep_d1_ops.d(372): Error: operator `|=` not supported for `c` of type `C`
+fail_compilation/dep_d1_ops.d(225):        perhaps implement `auto opOpAssign(string op : "|")(int) {}`
+fail_compilation/dep_d1_ops.d(373): Error: operator `^=` not supported for `c` of type `C`
+fail_compilation/dep_d1_ops.d(225):        perhaps implement `auto opOpAssign(string op : "^")(int) {}`
+fail_compilation/dep_d1_ops.d(374): Error: operator `<<=` not supported for `c` of type `C`
+fail_compilation/dep_d1_ops.d(225):        perhaps implement `auto opOpAssign(string op : "<<")(int) {}`
+fail_compilation/dep_d1_ops.d(375): Error: operator `>>=` not supported for `c` of type `C`
+fail_compilation/dep_d1_ops.d(225):        perhaps implement `auto opOpAssign(string op : ">>")(int) {}`
+fail_compilation/dep_d1_ops.d(376): Error: operator `>>>=` not supported for `c` of type `C`
+fail_compilation/dep_d1_ops.d(225):        perhaps implement `auto opOpAssign(string op : ">>>")(int) {}`
+fail_compilation/dep_d1_ops.d(377): Error: operator `~=` not supported for `c` of type `C`
+fail_compilation/dep_d1_ops.d(225):        perhaps implement `auto opOpAssign(string op : "~")(int) {}`
+fail_compilation/dep_d1_ops.d(386): Error: operator `~` is not defined for `NoDeprecation`
+fail_compilation/dep_d1_ops.d(390):        perhaps overload the operator with `auto opUnary(string op : "~")() {}`
 ---
 */
 
