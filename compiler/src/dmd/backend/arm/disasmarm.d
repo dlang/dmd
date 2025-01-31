@@ -1799,35 +1799,25 @@ void disassemble(uint c) @trusted
     // Advanced SIMD scalar three same FP16 https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdsamefp16
     // Advanced SIMD scalar two-register miscellaneous FP16 https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdmiscfp16
     // Advanced SIMD scalar three same extra https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdsame2
-
-    // Advanced SIMD two-register miscellaneous http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdmisc
-    if (field(ins,31,31) == 0 && field(ins,28,24) == 0x0E && field(ins,21,17) == 0x10 && field(ins,11,10) == 2)
+    // Advanced SIMD scalar two-register miscellaneous http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdmisc
+    if (field(ins,31,30) == 1 && field(ins,28,24) == 0x1E && field(ins,21,17) == 0x10 && field(ins,11,10) == 2)
     {
         url = "asisdmisc";
-        uint Q      = field(ins,30,30);
         uint U      = field(ins,29,29);
         uint size   = field(ins,23,22);
         uint opcode = field(ins,16,12);
         uint Rn     = field(ins, 9, 5);
         uint Rd     = field(ins, 4, 0);
-        //printf("ins:%08x Q:%d U:%d size:%d opcode:%x Rn:%d Rd:%d\n", ins, Q, U, size, opcode, Rn, Rd);
 
-        if (U == 0 && size == 0 && opcode == 0x05)      // https://www.scs.stanford.edu/~zyedidia/arm64/cnt_advsimd.html
-        {
-            p1 = "cnt";                                 // cnt <Vd>.<T>, <Vn>.<T>
-            p2 = vregString(rbuf[0 ..  7], Q, Rd);
-            p3 = vregString(rbuf[8 .. 14], Q, Rn);
-            //printf("p2: %.*s p3: %.*s\n", cast(int)p2.length, p2.ptr, cast(int)p3.length, p3.ptr);
-        }
-        else if (U == 0 && (size & 2) && opcode == 0x1B) // https://www.scs.stanford.edu/~zyedidia/arm64/fcvtzs_advsimd_int.html
-        {
-            p1 = "fcvtzs";
+        if (size & 2 && opcode == 0x1B)  // https://www.scs.stanford.edu/~zyedidia/arm64/fcvtzs_advsimd_int.html
+        {                                // https://www.scs.stanford.edu/~zyedidia/arm64/fcvtzu_advsimd_int.html
+            p1 = U == 0 ? "fcvtzs"  // fcvtzs <V><d>, <V><n> Scalar single-precision and double-precision
+                        : "fcvtzu"; // fcvtzu <V><d>, <V><n> Scalar single-precision and double-precision
             p2 = fregString(rbuf[0 .. 4],"sd h"[size & 1],Rd);
             p3 = fregString(rbuf[4 .. 8],"sd h"[size & 1],Rn);
         }
     }
     else
-
     // Advanced SIMD scalar pairwise https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdpair
     // Advanced SIMD scalar three different https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisddiff
     // Advanced SIMD scalar three same https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdsame
@@ -1840,7 +1830,41 @@ void disassemble(uint c) @trusted
     // Advanced SIMD three same (FP16) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdsamefp16
     // Advanced SIMD two-register miscellaneous (FP16) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdmiscfp16
     // Advanced SIMD three-register extension https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdsame2
+
     // Advanced SIMD two-register miscellaneous https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdmisc
+    if (field(ins,31,31) == 0 && field(ins,28,24) == 0x0E && field(ins,21,17) == 0x10 && field(ins,11,10) == 2)
+    {
+        url = "asimdmisc";
+        uint Q      = field(ins,30,30);
+        uint U      = field(ins,29,29);
+        uint size   = field(ins,23,22);
+        uint opcode = field(ins,16,12);
+        uint Rn     = field(ins, 9, 5);
+        uint Rd     = field(ins, 4, 0);
+        //printf("ins:%08x Q:%d U:%d size:%d opcode:%x Rn:%d Rd:%d\n", ins, Q, U, size, opcode, Rn, Rd);
+
+        immutable string[4] sizeQ = ["2S","4S","","2D"];
+
+        if (U == 0 && size == 0 && opcode == 0x05)      // https://www.scs.stanford.edu/~zyedidia/arm64/cnt_advsimd.html
+        {
+            p1 = "cnt";                                 // cnt <Vd>.<T>, <Vn>.<T>
+            p2 = vregString(rbuf[0 ..  7], Q, Rd);
+            p3 = vregString(rbuf[8 .. 14], Q, Rn);
+            //printf("p2: %.*s p3: %.*s\n", cast(int)p2.length, p2.ptr, cast(int)p3.length, p3.ptr);
+        }
+        else if ((size & 2) && opcode == 0x1B)  // https://www.scs.stanford.edu/~zyedidia/arm64/fcvtzs_advsimd_int.html
+        {                                       // https://www.scs.stanford.edu/~zyedidia/arm64/fcvtzu_advsimd_int.html
+            p1 = U == 0 ? "fcvtzs"  // fcvtzs <Vd>.<T>, <Vn>.<T> Vector single-precision and double-precision
+                        : "fcvtzu"; // fcvtzu <Vd>.<T>, <Vn>.<T> Vector single-precision and double-precision
+
+            uint n = snprintf(rbuf.ptr, 7, "v%d.%s", Rd, sizeQ[(size & 1) * 2 + Q].ptr);
+            p2 = buf[0 .. n];
+            uint m = snprintf(rbuf.ptr + 7,  7, "v%d.%s", Rn, sizeQ[(size & 1) * 2 + Q].ptr);
+            p3 = buf[7 .. 7 + m];
+        }
+    }
+    else
+
     // Advanced SIMD across lanes https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdall
     if (field(ins,31,31) == 0 &&
         field(ins,28,24) == 0x0E &&
@@ -1939,9 +1963,9 @@ void disassemble(uint c) @trusted
                 p2 = regString(sf,Rd);
                 p3 = fregString(rbuf[4 .. 8],"sd h"[ftype],Rn);
             }
-            else if (rmode == 3 && opcode == 0)
+            else if (rmode == 3 && (opcode & ~1) == 0)
             {
-                p1 = "fcvtzs";
+                p1 = opcode ? "fcnvtzu" : "fcvtzs";
                 p2 = regString(sf,Rd);
                 p3 = fregString(rbuf[4 .. 8],"sd h"[ftype],Rn);
             }
@@ -2015,6 +2039,7 @@ void disassemble(uint c) @trusted
             p1 = "";   // no support half-float literals
         p3 = doubletostring(f);
     }
+    else
 
     // Floating-point conditional compare
 
@@ -2773,8 +2798,9 @@ unittest
 unittest
 {
     int line64 = __LINE__;
-    string[66] cases64 =      // 64 bit code gen
+    string[67] cases64 =      // 64 bit code gen
     [
+        "5E E1 BB FE         fcvtzs d30,d31",
         "0E 31 BB FF         addv   b31,v31.8b",
         "2E 30 38 00         uaddlv h0,v0.8b",
         "0E 20 58 00         cnt    v0.8b,v0.8b",

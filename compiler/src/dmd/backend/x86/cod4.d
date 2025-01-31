@@ -3216,6 +3216,7 @@ ret:
 @trusted
 void longcmp(ref CodeBuilder cdb, elem* e, bool jcond, FL fltarg, code* targ)
 {
+    assert(!cgstate.AArch64);
                                          // <=  >   <   >=
     static immutable ubyte[4] jopmsw = [JL, JG, JL, JG ];
     static immutable ubyte[4] joplsw = [JBE, JA, JB, JAE ];
