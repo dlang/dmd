@@ -7942,8 +7942,9 @@ RootObject compileTypeMixin(TypeMixin tm, ref const Loc loc, Scope* sc)
     buf.writeByte(0);
     const str = buf.extractSlice()[0 .. len];
     const bool doUnittests = global.params.parsingUnittestsRequired();
-    auto locm = adjustLocForMixin(str, loc, global.params.mixinOut);
-    scope p = new Parser!ASTCodegen(locm, sc._module, str, false, global.errorSink, &global.compileEnv, doUnittests);
+    scope p = new Parser!ASTCodegen(sc._module, str, false, global.errorSink, &global.compileEnv, doUnittests);
+    adjustLocForMixin(str, loc, *p.baseLoc, global.params.mixinOut);
+    p.linnum = p.baseLoc.startLine;
     p.nextToken();
     //printf("p.loc.linnum = %d\n", p.loc.linnum);
 
