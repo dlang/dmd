@@ -1284,19 +1284,21 @@ retregs1 = mCX;  // hack because no floating support in rest of code
                     cdb.gen1(INSTR.fcvtzs(0,1,V1 & 31,Rd));             // fcvtzs Rd,V1
                     break;
                 case OPd_s64:
-                    cdb.gen1(INSTR.fcvtzs(1,1,V1,V1));                  // fcvtzs V1,V1
-                    cdb.gen1(INSTR.fmov_float_gen(1,1,0,7,V1 & 31,Rd)); // fmov Rd,V1
+                    cdb.gen1(INSTR.fcvtzs_asisdmisc(1,V1,V1));          // fcvtzs V1,V1
+                    cdb.gen1(INSTR.fmov_float_gen(1,1,0,6,V1 & 31,Rd)); // fmov Rd,V1
                     break;
                 case OPd_u16:
                     cdb.gen1(INSTR.fcvtzu(0,ftype,V1 & 31,Rd));         // fcvtzu Rd,V1
-                    cdb.gen1(INSTR.sxth_sbfm(0,Rd,Rd));                 // and Rd,Rd,#0xFFFF
+                    uint N,immr,imms;
+                    assert(encodeNImmrImms(0xFFFF,N,immr,imms));
+                    cdb.gen1(INSTR.log_imm(0,0,0,immr,imms,Rd,Rd));     // and Rd,Rd,#0xFFFF
                     break;
                 case OPd_u32:
                     cdb.gen1(INSTR.fcvtzu(0,1,V1 & 31,Rd));             // fcvtzu Rd,V1
                     break;
                 case OPd_u64:
-                    cdb.gen1(INSTR.fcvtzu(1,1,V1,V1));                  // fcvtzu V1,V1
-                    cdb.gen1(INSTR.fmov_float_gen(1,1,0,7,V1 & 31,Rd)); // fmov Rd,V1
+                    cdb.gen1(INSTR.fcvtzu_asisdmisc(1,V1,V1));          // fcvtzu V1,V1
+                    cdb.gen1(INSTR.fmov_float_gen(1,1,0,6,V1 & 31,Rd)); // fmov Rd,V1
                     break;
                 default:
                     assert(0);
