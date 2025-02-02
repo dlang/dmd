@@ -1965,7 +1965,12 @@ void disassemble(uint c) @trusted
             }
             else if (rmode == 3 && (opcode & ~1) == 0)
             {
-                p1 = opcode ? "fcnvtzu" : "fcvtzs";
+                p1 = opcode ? "fcvtzu" : "fcvtzs";
+                p2 = regString(sf,Rd);
+                p3 = fregString(rbuf[4 .. 8],"sd h"[ftype],Rn);
+            }
+            else if (sf == 1 && ftype == 1 && rmode == 0 && opcode == 6)
+            {
                 p2 = regString(sf,Rd);
                 p3 = fregString(rbuf[4 .. 8],"sd h"[ftype],Rn);
             }
@@ -2798,19 +2803,23 @@ unittest
 unittest
 {
     int line64 = __LINE__;
-    string[67] cases64 =      // 64 bit code gen
+    string[73] cases64 =      // 64 bit code gen
     [
         "5E E1 BB FE         fcvtzs d30,d31",
+        "5E A1 BB FF         fcvtzs s31,s31",
+        "1E 78 03 E0         fcvtzs w0,d31",
+        "7E E1 BB FE         fcvtzu d30,d31",
+        "7E A1 BB FF         fcvtzu s31,s31",
+        "1E 79 03 E0         fcvtzu w0,d31",
         "0E 31 BB FF         addv   b31,v31.8b",
         "2E 30 38 00         uaddlv h0,v0.8b",
         "0E 20 58 00         cnt    v0.8b,v0.8b",
         "1E 27 01 00         fmov   s0,w8",
         "1E 26 00 00         fmov   w0,s0",
-        "1E 78 03 E0         fcvtzs w0,d31",
-        //"5E A1 BB FF         fcvtzs s31,s31",
         "1E 23 90 07         fmov  s7,#7.000000e+00",
         "1E 61 10 03         fmov  d3,#3.000000e+00",
         "1E 20 43 E0         fmov  s0,s31",
+        "9E 66 03 E0         fmov  x0,d31",
         "1E 22 C3 FE         fcvt  d30,s31",
         "1E 7F 3B DF         fsub  d31,d30,d31",
 
@@ -2818,6 +2827,7 @@ unittest
         "BD 40 43 FF         ldr   s31,[sp,#0x40]",
         "92 40 3C A0         and   x0,x5,#0xFFFF",
         "92 40 1C C0         and   x0,x6,#0xFF",
+        "12 00 3C 00         and   w0,w0,#0xFFFF",
         "93 40 7C 60         sxtw  x0,w3",
         "B9 00 03 A1         str   w1,[x29]",
         "1A 9F A7 E0         cset  w0,lt",
