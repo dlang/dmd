@@ -39,6 +39,11 @@ struct INSTR
 {
   pure nothrow:
 
+    /* Even though the floating point registers are V0..31, we call them 32-63 so they fit
+     * into regm_t. Remember to and them with 31 to generate an instruction
+     */
+    enum FLOATREGS = 0xFFFF_FFFF_0000_0000;
+
     enum uint nop = 0xD503201F;
 
     alias reg_t = ubyte;
@@ -538,8 +543,37 @@ struct INSTR
      * Advanced SIMD scalar three same FP16
      * Advanced SIMD scalar two-register miscellaneous FP16
      * Advanced SIMD scalar three same extra
-     * Advanced SIMD scalar two-register miscellaneous
-     * Advanced SIMD scalar pairwise
+     */
+
+    /* Advanced SIMD scalar two-register miscellaneous
+     * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asisdmisc
+     */
+    static uint asisdmisc(uint U, uint size, uint opcode, reg_t Rn, reg_t Rd)
+    {
+        uint ins = (1      << 30) |
+                   (U      << 29) |
+                   (0x1E   << 24) |
+                   (size   << 22) |
+                   (0x10   << 17) |
+                   (opcode << 12) |
+                   (2      << 10) |
+                   (Rn     <<  5) |
+                    Rd;
+        return ins;
+    }
+
+    /* FCVTZS <V><d>,<V><n> https://www.scs.stanford.edu/~zyedidia/arm64/fcvtzs_advsimd_int.html
+     * Scalar single-precision and double-precision
+     */
+    static uint fcvtzs_asisdmisc(uint sz, reg_t Rn, reg_t Rd) { return asisdmisc(0, 2|sz, 0x1B, Rn, Rd); }
+
+    /* FCVTZU <V><d>,<V><n> https://www.scs.stanford.edu/~zyedidia/arm64/fcvtzu_advsimd_int.html
+     * Scalar single-precision and double-precision
+     */
+    static uint fcvtzu_asisdmisc(uint sz, reg_t Rn, reg_t Rd) { return asisdmisc(1, 2|sz, 0x1B, Rn, Rd); }
+
+
+    /* Advanced SIMD scalar pairwise
      * Advanced SIMD scalar three different
      * Advanced SIMD scalar three same
      * Advanced SIMD scalar shift by immediate
@@ -575,6 +609,16 @@ struct INSTR
      * https://www.scs.stanford.edu/~zyedidia/arm64/cnt_advsimd.html
      */
     static uint cnt_advsimd(uint Q, uint size, reg_t Rn, reg_t Rd) { return asimdmisc(Q, 0, size, 5, Rn, Rd); }
+
+    /* FCVTZS <Vd>.<T>,<Vn>.<T> https://www.scs.stanford.edu/~zyedidia/arm64/fcvtzs_advsimd_int.html
+     * Vector single-precision and double-precision
+     */
+    static uint fcvtzs_asimdmisc(uint Q, uint sz, reg_t Rn, reg_t Rd) { return asimdmisc(Q, 0, 2|sz, 0x1B, Rn, Rd); }
+
+    /* FCVTZU <Vd>.<T>,<Vn>.<T> https://www.scs.stanford.edu/~zyedidia/arm64/fcvtzu_advsimd_int.html
+     * Vector single-precision and double-precision
+     */
+    static uint fcvtzu_asimdmisc(uint Q, uint sz, reg_t Rn, reg_t Rd) { return asimdmisc(Q, 1, 2|sz, 0x1B, Rn, Rd); }
 
     /* Advanced SIMD across lanes
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdall
@@ -623,7 +667,7 @@ struct INSTR
      * Conversion between floating-point and fixed-point
      */
 
-    /* Converstion between floating-point and integer https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#float2int
+    /* Conversion between floating-point and integer https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#float2int
      */
     static uint float2int(uint sf, uint S, uint ftype, uint rmode, uint opcode, reg_t Rn, reg_t Rd)
     {
@@ -650,6 +694,14 @@ struct INSTR
     {
         return float2int(sf, 0, ftype, 0, 1, Rn, Rd);
     }
+
+    /* FCVTZS (scalar, integer) https://www.scs.stanford.edu/~zyedidia/arm64/fcvtzs_float_int.html
+     */
+    static uint fcvtzs(uint sf, uint ftype, reg_t Rn, reg_t Rd) { return float2int(sf, 0, ftype, 3, 0, Rn, Rd); }
+
+    /* FCVTZU (scalar, integer) https://www.scs.stanford.edu/~zyedidia/arm64/fcvtzu_float_int.html
+     */
+    static uint fcvtzu(uint sf, uint ftype, reg_t Rn, reg_t Rd) { return float2int(sf, 0, ftype, 3, 1, Rn, Rd); }
 
     /* Floating-point data-processing (1 source)
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatdp1
