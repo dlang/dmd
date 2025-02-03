@@ -703,6 +703,15 @@ struct INSTR
      */
     static uint fcvtzu(uint sf, uint ftype, reg_t Rn, reg_t Rd) { return float2int(sf, 0, ftype, 3, 1, Rn, Rd); }
 
+    /* SCVTF (scalar, integer) https://www.scs.stanford.edu/~zyedidia/arm64/scvtf_float_int.html
+     */
+    static uint scvtf_float_int(uint sf, uint ftype, reg_t Rn, reg_t Rd) { return float2int(sf,0,ftype,0,2,Rn,Rd); }
+
+    /* UCVTF (scalar, integer) https://www.scs.stanford.edu/~zyedidia/arm64/ucvtf_float_int.html
+     */
+    static uint ucvtf_float_int(uint sf, uint ftype, reg_t Rn, reg_t Rd) { return float2int(sf,0,ftype,0,3,Rn,Rd); }
+
+
     /* Floating-point data-processing (1 source)
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatdp1
      */

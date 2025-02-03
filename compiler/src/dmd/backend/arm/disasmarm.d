@@ -1979,6 +1979,12 @@ void disassemble(uint c) @trusted
                 p2 = fregString(rbuf[4 .. 8],"sd h"[ftype],Rd);
                 p3 = regString(sf,Rn);
             }
+            else if (S == 0 && rmode == 0 && (opcode & ~1) == 2)
+            {
+                p1 = opcode & 1 ? "ucvtf" : "scvtf";
+                p2 = fregString(rbuf[4 .. 8],"sd h"[ftype],Rd);
+                p3 = regString(sf,Rn);
+            }
         }
     }
     else
@@ -2803,8 +2809,10 @@ unittest
 unittest
 {
     int line64 = __LINE__;
-    string[73] cases64 =      // 64 bit code gen
+    string[75] cases64 =      // 64 bit code gen
     [
+        "1E 62 00 1F         scvtf  d31,w0",
+        "1E 63 00 1F         ucvtf  d31,w0",
         "5E E1 BB FE         fcvtzs d30,d31",
         "5E A1 BB FF         fcvtzs s31,s31",
         "1E 78 03 E0         fcvtzs w0,d31",

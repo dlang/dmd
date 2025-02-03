@@ -1264,8 +1264,10 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
         case OPd_u64:                               // fcvtzu d31,d31 // fmov x0,d31
         L2:
             regm_t retregs1 = ALLREGS; //INSTR.FLOATREGS;
-retregs1 = mCX;  // hack because no floating support in rest of code
-//          codelem(cgstate,cdb,e.E1,retregs1,false);
+static if (1)
+            retregs1 = mCX;  // hack because no floating support in rest of code
+else
+            codelem(cgstate,cdb,e.E1,retregs1,false);
             const reg_t V1 = findreg(retregs1);         // source floating point register
 
             regm_t retregs = pretregs & cg.allregs;
@@ -1299,6 +1301,59 @@ retregs1 = mCX;  // hack because no floating support in rest of code
                 case OPd_u64:
                     cdb.gen1(INSTR.fcvtzu_asisdmisc(1,V1,V1));          // fcvtzu V1,V1
                     cdb.gen1(INSTR.fmov_float_gen(1,1,0,6,V1 & 31,Rd)); // fmov Rd,V1
+                    break;
+                default:
+                    assert(0);
+            }
+
+            fixresult(cdb,e,retregs,pretregs);
+            break;
+
+        case OPs16_d:    // sxth w0,w0 // scvtf d31,w0
+        case OPs32_d:    // scvtf d31,w0
+        case OPs64_d:    // scvtf d31,x0
+        case OPu16_d:    // and w0,w0,#0xFFFF // ucvtf d31,w0
+        case OPu32_d:    // ucvtf d31,w0
+        case OPu64_d:    // ucvtf d31,x0
+            regm_t retregs1 = ALLREGS;
+            codelem(cgstate,cdb,e.E1,retregs1,false);
+            reg_t R1 = findreg(retregs1);
+
+static if (1)
+{
+            regm_t retregs = mCX; // hack because no floating support in rest of code
+            reg_t Rd = CX;
+}
+else
+{
+            regm_t retregs = FLOATREGS;
+            const tym = tybasic(e.Ety);
+            reg_t Rd = allocreg(cdb,retregs,tym);       // destination integer register
+}
+            switch (e.Eoper)
+            {
+                case OPs16_d:
+                    cdb.gen1(INSTR.sxth_sbfm(0,R1,R1));             // sxth w0,w0
+                    cdb.gen1(INSTR.scvtf_float_int(0,1,Rd,R1));     // scvtf d31,w0
+                    break;
+                case OPs32_d:
+                    cdb.gen1(INSTR.scvtf_float_int(0,1,Rd,R1));     // scvtf d31,w0
+                    break;
+                case OPs64_d:
+                    cdb.gen1(INSTR.scvtf_float_int(1,1,Rd,R1));     // scvtf d31,x0
+                    break;
+                case OPu16_d:
+                    /* not executed because OPu16_d was converted to OPu16_32 then OP32_d */
+                    uint N,immr,imms;
+                    assert(encodeNImmrImms(0xFFFF,N,immr,imms));
+                    cdb.gen1(INSTR.log_imm(0,0,0,immr,imms,R1,R1)); // and w0,w0,#0xFFFF
+                    cdb.gen1(INSTR.ucvtf_float_int(0,1,Rd,R1));     // ucvtf d31,w0
+                    break;
+                case OPu32_d:
+                    cdb.gen1(INSTR.ucvtf_float_int(0,1,Rd,R1));     // ucvtf d31,w0
+                    break;
+                case OPu64_d:
+                    cdb.gen1(INSTR.ucvtf_float_int(1,1,Rd,R1));     // ucvtf d31,x0
                     break;
                 default:
                     assert(0);
@@ -1456,7 +1511,7 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                     {
                         uint N,immr,imms;
                         assert(encodeNImmrImms(0xFFFF,N,immr,imms));
-                        uint ins = INSTR.log_imm(0,0,N,immr,imms,reg,reg); // AND Xreg,Xreg,#0xFFFF
+                        uint ins = INSTR.log_imm(0,0,0,immr,imms,reg,reg); // AND Xreg,Xreg,#0xFFFF
                         cdb.gen1(ins);
                     }
                     else
@@ -1497,7 +1552,7 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             {
                 uint N,immr,imms;
                 assert(encodeNImmrImms(0xFFFF,N,immr,imms));
-                uint ins = INSTR.log_imm(0,0,N,immr,imms,reg,reg); // AND reg,reg,#0xFFFF
+                uint ins = INSTR.log_imm(0,0,0,immr,imms,reg,reg); // AND reg,reg,#0xFFFF
                 cdb.gen1(ins);
             }
             else

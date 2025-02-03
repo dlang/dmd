@@ -5207,6 +5207,9 @@ private elem* elu64_d(elem* e, Goal goal)
     if (!pu || (*pu).Eoper == OPconst)
         return evalu8(e, goal);
 
+    if (config.target_cpu == TARGET_AArch64)
+	return e;
+
     elem* u = *pu;
     if (config.fpxmmregs && I64 && (ty == TYfloat || ty == TYdouble))
     {
