@@ -718,8 +718,12 @@ struct INSTR
     static uint floatdp1(uint M, uint S, uint ftype, uint opcode, uint Rn, uint Rd)
     {
         assert(Rn < 32 && Rd < 32); // remember to convert R32-63 to 0-31
-        return (M << 31) | (S << 29) | (0x1E << 24) | (ftype << 22) | (1 << 21) | (0x10 << 10) | (Rn << 5) | Rd;
+        return (M << 31) | (S << 29) | (0x1E << 24) | (ftype << 22) | (1 << 21) | (opcode << 15) | (0x10 << 10) | (Rn << 5) | Rd;
     }
+
+    /* FCVT fpreg,fpreg https://www.scs.stanford.edu/~zyedidia/arm64/fcvt_float.html
+     */
+    static uint fcvt_float(uint ftype, uint opcode, reg_t Rn, reg_t Rd) { return floatdp1(0,0,ftype,opcode,Rn,Rd); }
 
     /* Floating-point compare
      * Floating-point immediate

@@ -1994,7 +1994,7 @@ void disassemble(uint c) @trusted
         field(ins,21,21) == 1 &&
         field(ins,14,10) == 0x10)
     {
-        url = "floatdpl";
+        url = "floatdp1";
 
         uint M      = field(ins,31,31);
         uint S      = field(ins,29,29);
