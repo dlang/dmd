@@ -1362,6 +1362,43 @@ else
             fixresult(cdb,e,retregs,pretregs);
             break;
 
+        case OPd_f:     // fcvt d31,s31
+        case OPf_d:     // fcvt s31,d31
+            regm_t retregs1 = ALLREGS; //INSTR.FLOATREGS;
+static if (1)
+            retregs1 = mCX;  // hack because no floating support in rest of code
+else
+            codelem(cgstate,cdb,e.E1,retregs1,false);
+            const reg_t V1 = findreg(retregs1);         // source floating point register
+
+static if (1)
+{
+            regm_t retregs = mDX;
+}
+else
+{
+            regm_t retregs = pretregs & INSTR.FLOATREGS;
+            if (retregs == 0)
+                retregs = INSTR.FLOATREGS & cgstate.allregs;
+}
+            const tym = tybasic(e.Ety);
+            reg_t Vd = allocreg(cdb,retregs,tym);       // destination integer register
+
+            switch (e.Eoper)
+            {
+                case OPd_f:     // fcvt s31,d31
+                    cdb.gen1(INSTR.fcvt_float(1,4,V1,Vd));
+                    break;
+                case OPf_d:     // fcvt d31,s31
+                    cdb.gen1(INSTR.fcvt_float(0,5,V1,Vd));
+                    break;
+                default:
+                    assert(0);
+            }
+
+            fixresult(cdb,e,retregs,pretregs);
+            break;
+
         default:
             assert(0);
     }
