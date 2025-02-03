@@ -51,6 +51,7 @@ import dmd.statement;
 import dmd.staticassert;
 import dmd.tokens;
 import dmd.visitor;
+import dmd.dsymbolsem;
 
 import dmd.common.outbuffer;
 
@@ -820,20 +821,6 @@ extern (C++) class Dsymbol : ASTNode
         assert(0);
     }
 
-    /**************************************
-     * Determine if this symbol is only one.
-     * Returns:
-     *      false, ps = null: There are 2 or more symbols
-     *      true,  ps = null: There are zero symbols
-     *      true,  ps = symbol: The one and only one symbol
-     */
-    bool oneMember(out Dsymbol ps, Identifier ident)
-    {
-        //printf("Dsymbol::oneMember()\n");
-        ps = this;
-        return true;
-    }
-
     /*****************************************
      * Same as Dsymbol::oneMember(), but look at an array of Dsymbols.
      */
@@ -850,7 +837,7 @@ extern (C++) class Dsymbol : ASTNode
         for (size_t i = 0; i < members.length; i++)
         {
             Dsymbol sx = (*members)[i];
-            bool x = sx.oneMember(ps, ident);
+            bool x = sx.oneMember(ps, ident); //MYTODO: this temporarily creates a new dependency to dsymbolsem, will need to extract oneMembers() later
             //printf("\t[%d] kind %s = %d, s = %p\n", i, sx.kind(), x, *ps);
             if (!x)
             {

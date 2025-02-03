@@ -109,12 +109,6 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
         return "attribute";
     }
 
-    override bool oneMember(out Dsymbol ps, Identifier ident)
-    {
-        Dsymbols* d = this.include(null);
-        return Dsymbol.oneMembers(d, ps, ident);
-    }
-
     override final bool hasPointers()
     {
         return this.include(null).foreachDsymbol( (s) { return s.hasPointers(); } ) != 0;
@@ -168,32 +162,6 @@ extern (C++) class StorageClassDeclaration : AttribDeclaration
     {
         assert(!s);
         return new StorageClassDeclaration(stc, Dsymbol.arraySyntaxCopy(decl));
-    }
-
-    override final bool oneMember(out Dsymbol ps, Identifier ident)
-    {
-        bool t = Dsymbol.oneMembers(decl, ps, ident);
-        if (t && ps)
-        {
-            /* This is to deal with the following case:
-             * struct Tick {
-             *   template to(T) { const T to() { ... } }
-             * }
-             * For eponymous function templates, the 'const' needs to get attached to 'to'
-             * before the semantic analysis of 'to', so that template overloading based on the
-             * 'this' pointer can be successful.
-             */
-            if (FuncDeclaration fd = ps.isFuncDeclaration())
-            {
-                /* Use storage_class2 instead of storage_class otherwise when we do .di generation
-                 * we'll wind up with 'const const' rather than 'const'.
-                 */
-                /* Don't think we need to worry about mutually exclusive storage classes here
-                 */
-                fd.storage_class2 |= stc;
-            }
-        }
-        return t;
     }
 
     override inout(StorageClassDeclaration) isStorageClassDeclaration() inout
@@ -591,22 +559,6 @@ extern (C++) class ConditionalDeclaration : AttribDeclaration
         return new ConditionalDeclaration(loc, condition.syntaxCopy(), Dsymbol.arraySyntaxCopy(decl), Dsymbol.arraySyntaxCopy(elsedecl));
     }
 
-    override final bool oneMember(out Dsymbol ps, Identifier ident)
-    {
-        //printf("ConditionalDeclaration::oneMember(), inc = %d\n", condition.inc);
-        if (condition.inc != Include.notComputed)
-        {
-            Dsymbols* d = condition.include(null) ? decl : elsedecl;
-            return Dsymbol.oneMembers(d, ps, ident);
-        }
-        else
-        {
-            bool res = (Dsymbol.oneMembers(decl, ps, ident) && ps is null && Dsymbol.oneMembers(elsedecl, ps, ident) && ps is null);
-            ps = null;
-            return res;
-        }
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -685,21 +637,6 @@ extern (C++) final class StaticForeachDeclaration : AttribDeclaration
         return new StaticForeachDeclaration(
             sfe.syntaxCopy(),
             Dsymbol.arraySyntaxCopy(decl));
-    }
-
-    override bool oneMember(out Dsymbol ps, Identifier ident)
-    {
-        // Required to support IFTI on a template that contains a
-        // `static foreach` declaration.  `super.oneMember` calls
-        // include with a `null` scope.  As `static foreach` requires
-        // the scope for expansion, `oneMember` can only return a
-        // precise result once `static foreach` has been expanded.
-        if (cached)
-        {
-            return super.oneMember(ps, ident);
-        }
-        ps = null; // a `static foreach` declaration may in general expand to multiple symbols
-        return false;
     }
 
     override const(char)* kind() const
