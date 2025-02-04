@@ -1140,11 +1140,12 @@ static if (NTEXCEPTIONS)
 }
 
         case BC.retexp:
-            reg_t reg1, reg2, lreg, mreg;
-            retregs = allocretregs(e.Ety, e.ET, funcsym_p.ty(), reg1, reg2);
+            reg_t reg1, reg2;
+            retregs = allocretregs(cgstate, e.Ety, e.ET, funcsym_p.ty(), reg1, reg2);
             //printf("allocretregs returns %s\n", regm_str(mask(reg1) | mask(reg2)));
 
-            lreg = mreg = NOREG;
+	    reg_t lreg = NOREG;
+            reg_t mreg = NOREG;
             if (reg1 == NOREG)
             {}
             else if (tybasic(e.Ety) == TYcfloat)
@@ -1362,6 +1363,7 @@ static if (NTEXCEPTIONS)
  * Allocate registers for function return values.
  *
  * Params:
+ *    cgstate = code generator state
  *    ty    = return type
  *    t     = return type extended info
  *    tyf   = function type
@@ -1373,10 +1375,11 @@ static if (NTEXCEPTIONS)
  *    0 if function returns on the stack or returns void.
  */
 @trusted
-regm_t allocretregs(const tym_t ty, type* t, const tym_t tyf, out reg_t reg1, out reg_t reg2)
+regm_t allocretregs(ref CGstate cgstate, const tym_t ty, type* t, const tym_t tyf, out reg_t reg1, out reg_t reg2)
 {
     //printf("allocretregs() ty: %s\n", tym_str(ty));
     reg1 = reg2 = NOREG;
+    auto AArch64 = cgstate.AArch64;
 
     if (!(config.exe & EX_posix))
         return regmask(ty, tyf);    // for non-Posix ABI
@@ -1484,12 +1487,15 @@ regm_t allocretregs(const tym_t ty, type* t, const tym_t tyf, out reg_t reg1, ou
     nothrow:
         static immutable reg_t[2] gpr_regs = [AX, DX];
         static immutable reg_t[2] xmm_regs = [XMM0, XMM1];
+	static immutable reg_t[2] fpt_regs = [32, 33]; // AArch64 V0, V1
 
         uint cntgpr = 0,
-             cntxmm = 0;
+             cntxmm = 0,
+	     cntfpt = 0;
 
         reg_t gpr() { return gpr_regs[cntgpr++]; }
         reg_t xmm() { return xmm_regs[cntxmm++]; }
+        reg_t fpt() { return fpt_regs[cntfpt++]; }
     }
 
     RetRegsAllocator rralloc;
@@ -1504,13 +1510,18 @@ regm_t allocretregs(const tym_t ty, type* t, const tym_t tyf, out reg_t reg1, ou
         case 2:
         case 4:
             if (tyfloating(tym))
+	    {
+		if (AArch64)
+		    return rralloc.fpt();
                 return I64 ? rralloc.xmm() : ST0;
+	    }
             else
                 return rralloc.gpr();
 
         case 8:
             if (tycomplex(tym))
             {
+		assert(!AArch64);
                 assert(tyfb == TYjfunc && I32);
                 return ST01;
             }
@@ -1522,6 +1533,7 @@ regm_t allocretregs(const tym_t ty, type* t, const tym_t tyf, out reg_t reg1, ou
             goto case 4;
 
         default:
+	    assert(!AArch64);
             if (tybasic(tym) == TYldouble || tybasic(tym) == TYildouble)
             {
                 return ST0;
