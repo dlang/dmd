@@ -39,7 +39,7 @@ struct INSTR
 {
   pure nothrow:
 
-    /* Even though the floating point registers are V0..31, we call them 32-63 so they fit
+    /* Even though the floating point registers are 0..31, we call them V32..V63 so they fit
      * into regm_t. Remember to and them with 31 to generate an instruction
      */
     enum FLOATREGS = 0xFFFF_FFFF_0000_0000;
@@ -550,6 +550,7 @@ struct INSTR
      */
     static uint asisdmisc(uint U, uint size, uint opcode, reg_t Rn, reg_t Rd)
     {
+        assert(Rn < 32 && Rd < 32);
         uint ins = (1      << 30) |
                    (U      << 29) |
                    (0x1E   << 24) |
@@ -565,12 +566,12 @@ struct INSTR
     /* FCVTZS <V><d>,<V><n> https://www.scs.stanford.edu/~zyedidia/arm64/fcvtzs_advsimd_int.html
      * Scalar single-precision and double-precision
      */
-    static uint fcvtzs_asisdmisc(uint sz, reg_t Rn, reg_t Rd) { return asisdmisc(0, 2|sz, 0x1B, Rn, Rd); }
+    static uint fcvtzs_asisdmisc(uint sz, reg_t Vn, reg_t Vd) { return asisdmisc(0, 2|sz, 0x1B, Vn & 31, Vd & 31); }
 
     /* FCVTZU <V><d>,<V><n> https://www.scs.stanford.edu/~zyedidia/arm64/fcvtzu_advsimd_int.html
      * Scalar single-precision and double-precision
      */
-    static uint fcvtzu_asisdmisc(uint sz, reg_t Rn, reg_t Rd) { return asisdmisc(1, 2|sz, 0x1B, Rn, Rd); }
+    static uint fcvtzu_asisdmisc(uint sz, reg_t Vn, reg_t Vd) { return asisdmisc(1, 2|sz, 0x1B, Vn & 31, Vd & 31); }
 
 
     /* Advanced SIMD scalar pairwise
@@ -592,6 +593,7 @@ struct INSTR
      */
     static uint asimdmisc(uint Q, uint U, uint size, uint opcode, reg_t Rn, reg_t Rd)
     {
+        assert(Rn < 32 && Rd < 32);
         uint ins = (0      << 31) |
                    (Q      << 30) |
                    (U      << 29) |
@@ -608,23 +610,24 @@ struct INSTR
     /* CNT <Vd>.<T>, <Vn>.<T>
      * https://www.scs.stanford.edu/~zyedidia/arm64/cnt_advsimd.html
      */
-    static uint cnt_advsimd(uint Q, uint size, reg_t Rn, reg_t Rd) { return asimdmisc(Q, 0, size, 5, Rn, Rd); }
+    static uint cnt_advsimd(uint Q, uint size, reg_t Vn, reg_t Vd) { return asimdmisc(Q, 0, size, 5, Vn & 31, Vd & 31); }
 
     /* FCVTZS <Vd>.<T>,<Vn>.<T> https://www.scs.stanford.edu/~zyedidia/arm64/fcvtzs_advsimd_int.html
      * Vector single-precision and double-precision
      */
-    static uint fcvtzs_asimdmisc(uint Q, uint sz, reg_t Rn, reg_t Rd) { return asimdmisc(Q, 0, 2|sz, 0x1B, Rn, Rd); }
+    static uint fcvtzs_asimdmisc(uint Q, uint sz, reg_t Vn, reg_t Vd) { return asimdmisc(Q, 0, 2|sz, 0x1B, Vn & 31, Vd & 31); }
 
     /* FCVTZU <Vd>.<T>,<Vn>.<T> https://www.scs.stanford.edu/~zyedidia/arm64/fcvtzu_advsimd_int.html
      * Vector single-precision and double-precision
      */
-    static uint fcvtzu_asimdmisc(uint Q, uint sz, reg_t Rn, reg_t Rd) { return asimdmisc(Q, 1, 2|sz, 0x1B, Rn, Rd); }
+    static uint fcvtzu_asimdmisc(uint Q, uint sz, reg_t Vn, reg_t Vd) { return asimdmisc(Q, 1, 2|sz, 0x1B, Vn & 31, Vd & 31); }
 
     /* Advanced SIMD across lanes
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#asimdall
      */
     static uint asimdall(uint Q, uint U, uint size, uint opcode, reg_t Rn, reg_t Rd)
     {
+        assert(Rn < 32 && Rd < 32);
         uint ins = (0      << 31) |
                    (Q      << 30) |
                    (U      << 29) |
@@ -640,11 +643,11 @@ struct INSTR
 
     /* ADDV <V><d>, <Vn>.<T> https://www.scs.stanford.edu/~zyedidia/arm64/addv_advsimd.html
      */
-    static uint addv_advsimd(uint Q, uint size, reg_t Rn, reg_t Rd) { return asimdall(Q, 0, size, 0x1B, Rn, Rd); }
+    static uint addv_advsimd(uint Q, uint size, reg_t Vn, reg_t Vd) { return asimdall(Q, 0, size, 0x1B, Vn & 31, Vd & 31); }
 
     /* UADDLV <V><d>, <Vn>.<T> https://www.scs.stanford.edu/~zyedidia/arm64/uaddlv_advsimd.html
      */
-    static uint uaddlv_advsimd(uint Q, uint size, reg_t Rn, reg_t Rd) { return asimdall(Q, 1, size, 3, Rn, Rd); }
+    static uint uaddlv_advsimd(uint Q, uint size, reg_t Vn, reg_t Vd) { return asimdall(Q, 1, size, 3, Vn & 31, Vd & 31); }
 
     /* Advanced SIMD three different
      * Advanced SIMD three same
@@ -655,7 +658,7 @@ struct INSTR
      */
 
     // FMOV Rd, Rn  https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float.html
-    static uint fmov(uint ftype, uint Rn, uint Rd) { return floatdp1(0,0,ftype,0,Rn,Rd); }
+    static uint fmov(uint ftype, reg_t Vn, reg_t Vd) { return floatdp1(0,0,ftype,0,Vn & 31,Vd & 31); }
 
     /* Advanced SIMD shift by immediate
      * Advanced SIMD vector x indexed element
@@ -671,6 +674,7 @@ struct INSTR
      */
     static uint float2int(uint sf, uint S, uint ftype, uint rmode, uint opcode, reg_t Rn, reg_t Rd)
     {
+        assert(Rn < 32 && Rd < 32);
         return (sf << 31) | (S << 29) | (0x1E << 24) | (ftype << 22) | (1 << 21) | (rmode << 19) | (opcode << 16) | (Rn << 5) | Rd;
     }
 
@@ -678,52 +682,56 @@ struct INSTR
      */
     static uint fmov_float_gen(uint sf, uint ftype, uint rmode, uint opcode, reg_t Rn, reg_t Rd)
     {
+        if (opcode == 7)
+            Rd &= 31;
+        else if (opcode == 6)
+            Rn &= 31;
         return float2int(sf, 0, ftype, rmode, opcode, Rn, Rd);
     }
 
     /* FCVTNS (scalar) https://www.scs.stanford.edu/~zyedidia/arm64/fcvtns_float.html
      */
-    static uint fcvtns(uint sf, uint ftype, reg_t Rn, reg_t Rd)
+    static uint fcvtns(uint sf, uint ftype, reg_t Vn, reg_t Rd)
     {
-        return float2int(sf, 0, ftype, 0, 0, Rn, Rd);
+        return float2int(sf, 0, ftype, 0, 0, Vn & 31, Rd);
     }
 
     /* FCVTNU (scalar) https://www.scs.stanford.edu/~zyedidia/arm64/fcvtnu_float.html
      */
-    static uint fcvtnu(uint sf, uint ftype, reg_t Rn, reg_t Rd)
+    static uint fcvtnu(uint sf, uint ftype, reg_t Vn, reg_t Rd)
     {
-        return float2int(sf, 0, ftype, 0, 1, Rn, Rd);
+        return float2int(sf, 0, ftype, 0, 1, Vn & 31, Rd);
     }
 
     /* FCVTZS (scalar, integer) https://www.scs.stanford.edu/~zyedidia/arm64/fcvtzs_float_int.html
      */
-    static uint fcvtzs(uint sf, uint ftype, reg_t Rn, reg_t Rd) { return float2int(sf, 0, ftype, 3, 0, Rn, Rd); }
+    static uint fcvtzs(uint sf, uint ftype, reg_t Vn, reg_t Rd) { return float2int(sf, 0, ftype, 3, 0, Vn & 31, Rd); }
 
     /* FCVTZU (scalar, integer) https://www.scs.stanford.edu/~zyedidia/arm64/fcvtzu_float_int.html
      */
-    static uint fcvtzu(uint sf, uint ftype, reg_t Rn, reg_t Rd) { return float2int(sf, 0, ftype, 3, 1, Rn, Rd); }
+    static uint fcvtzu(uint sf, uint ftype, reg_t Vn, reg_t Rd) { return float2int(sf, 0, ftype, 3, 1, Vn & 31, Rd); }
 
     /* SCVTF (scalar, integer) https://www.scs.stanford.edu/~zyedidia/arm64/scvtf_float_int.html
      */
-    static uint scvtf_float_int(uint sf, uint ftype, reg_t Rn, reg_t Rd) { return float2int(sf,0,ftype,0,2,Rn,Rd); }
+    static uint scvtf_float_int(uint sf, uint ftype, reg_t Rn, reg_t Vd) { return float2int(sf,0,ftype,0,2,Rn,Vd & 31); }
 
     /* UCVTF (scalar, integer) https://www.scs.stanford.edu/~zyedidia/arm64/ucvtf_float_int.html
      */
-    static uint ucvtf_float_int(uint sf, uint ftype, reg_t Rn, reg_t Rd) { return float2int(sf,0,ftype,0,3,Rn,Rd); }
+    static uint ucvtf_float_int(uint sf, uint ftype, reg_t Rn, reg_t Vd) { return float2int(sf,0,ftype,0,3,Rn,Vd & 31); }
 
 
     /* Floating-point data-processing (1 source)
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatdp1
      */
-    static uint floatdp1(uint M, uint S, uint ftype, uint opcode, uint Rn, uint Rd)
+    static uint floatdp1(uint M, uint S, uint ftype, uint opcode, reg_t Rn, reg_t Rd)
     {
-        assert(Rn < 32 && Rd < 32); // remember to convert R32-63 to 0-31
+        assert(Rn < 32 && Rd < 32); // remember to convert V32..V63 to R0..R31
         return (M << 31) | (S << 29) | (0x1E << 24) | (ftype << 22) | (1 << 21) | (opcode << 15) | (0x10 << 10) | (Rn << 5) | Rd;
     }
 
     /* FCVT fpreg,fpreg https://www.scs.stanford.edu/~zyedidia/arm64/fcvt_float.html
      */
-    static uint fcvt_float(uint ftype, uint opcode, reg_t Rn, reg_t Rd) { return floatdp1(0,0,ftype,opcode,Rn,Rd); }
+    static uint fcvt_float(uint ftype, uint opcode, reg_t Vn, reg_t Vd) { return floatdp1(0,0,ftype,opcode,Vn & 31,Vd & 31); }
 
     /* Floating-point compare
      * Floating-point immediate
