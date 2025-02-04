@@ -2029,7 +2029,7 @@ static if (0)
 }
 
     reg_t reg1, reg2;
-    retregs = allocretregs(e.Ety, e.ET, tym1, reg1, reg2);
+    retregs = allocretregs(cgstate, e.Ety, e.ET, tym1, reg1, reg2);
 
     assert(retregs || !pretregs);
 
