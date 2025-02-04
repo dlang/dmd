@@ -75,29 +75,50 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     const ty2 = tybasic(e2.Ety);
     const sz = _tysize[ty];
 
-    if (tyfloating(ty1))
-    {
-        assert(0);
-    }
-
-    regm_t posregs = cg.allregs;
+    regm_t posregs = tyfloating(ty1) ? INSTR.FLOATREGS : cg.allregs;
 
     regm_t retregs1 = posregs;
-
     codelem(cg, cdb, e1, retregs1, false);
-    regm_t retregs2 = cg.allregs & ~retregs1;
-    scodelem(cg, cdb, e2, retregs2, retregs1, false);
-
-    regm_t retregs = pretregs & cg.allregs;
-    if (retregs == 0)                   /* if no return regs speced     */
-                                        /* (like if wanted flags only)  */
-        retregs = ALLREGS & posregs;    // give us some
-    reg_t Rd = allocreg(cdb, retregs, ty);
-
     reg_t Rn = findreg(retregs1);
+
+    regm_t retregs2 = posregs & ~retregs1;
+    scodelem(cg, cdb, e2, retregs2, retregs1, false);
     reg_t Rm = findreg(retregs2);
 
+    regm_t retregs = pretregs & posregs;
+    if (retregs == 0)                   /* if no return regs speced     */
+        retregs = posregs;              // give us some
+    reg_t Rd = allocreg(cdb, retregs, ty);
+
     regm_t PSW = pretregs & mPSW;
+
+    if (tyfloating(ty1))
+    {
+        switch (e.Eoper)
+        {
+            // FADD/FSUB (extended register)
+            // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_ext
+            case OPadd:
+            case OPmin:
+                uint sf = sz == 8;
+                uint op = e.Eoper == OPadd ? 0 : 1;
+                uint S = PSW != 0;
+                uint opt = 0;
+                uint option = tyToExtend(ty);
+                uint imm3 = 0;
+                cdb.gen1(INSTR.addsub_ext(sf, op, S, opt, Rm, option, imm3, Rn, Rd));
+                PSW = 0;
+                pretregs &= ~mPSW;
+                break;
+
+            default:
+                assert(0);
+        }
+        pretregs = retregs | PSW;
+        fixresult(cdb,e,mask(Rd),pretregs);
+        return;
+    }
+
     switch (e.Eoper)
     {
         // ADDS/SUBS (extended register)
