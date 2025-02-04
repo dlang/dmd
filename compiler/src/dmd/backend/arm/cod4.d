@@ -1279,28 +1279,28 @@ else
             switch (e.Eoper)
             {
                 case OPd_s16:
-                    cdb.gen1(INSTR.fcvtzs(0,ftype,V1 & 31,Rd));         // fcvtzs Rd,V1
+                    cdb.gen1(INSTR.fcvtzs(0,ftype,V1,Rd));              // fcvtzs Rd,V1
                     cdb.gen1(INSTR.sxth_sbfm(0,Rd,Rd));                 // sxth Rd,Rd
                     break;
                 case OPd_s32:
-                    cdb.gen1(INSTR.fcvtzs(0,1,V1 & 31,Rd));             // fcvtzs Rd,V1
+                    cdb.gen1(INSTR.fcvtzs(0,1,V1,Rd));                  // fcvtzs Rd,V1
                     break;
                 case OPd_s64:
                     cdb.gen1(INSTR.fcvtzs_asisdmisc(1,V1,V1));          // fcvtzs V1,V1
-                    cdb.gen1(INSTR.fmov_float_gen(1,1,0,6,V1 & 31,Rd)); // fmov Rd,V1
+                    cdb.gen1(INSTR.fmov_float_gen(1,1,0,6,V1,Rd));      // fmov Rd,V1
                     break;
                 case OPd_u16:
-                    cdb.gen1(INSTR.fcvtzu(0,ftype,V1 & 31,Rd));         // fcvtzu Rd,V1
+                    cdb.gen1(INSTR.fcvtzu(0,ftype,V1,Rd));              // fcvtzu Rd,V1
                     uint N,immr,imms;
                     assert(encodeNImmrImms(0xFFFF,N,immr,imms));
                     cdb.gen1(INSTR.log_imm(0,0,0,immr,imms,Rd,Rd));     // and Rd,Rd,#0xFFFF
                     break;
                 case OPd_u32:
-                    cdb.gen1(INSTR.fcvtzu(0,1,V1 & 31,Rd));             // fcvtzu Rd,V1
+                    cdb.gen1(INSTR.fcvtzu(0,1,V1,Rd));                  // fcvtzu Rd,V1
                     break;
                 case OPd_u64:
                     cdb.gen1(INSTR.fcvtzu_asisdmisc(1,V1,V1));          // fcvtzu V1,V1
-                    cdb.gen1(INSTR.fmov_float_gen(1,1,0,6,V1 & 31,Rd)); // fmov Rd,V1
+                    cdb.gen1(INSTR.fmov_float_gen(1,1,0,6,V1,Rd));      // fmov Rd,V1
                     break;
                 default:
                     assert(0);
@@ -1322,38 +1322,38 @@ else
 static if (1)
 {
             regm_t retregs = mCX; // hack because no floating support in rest of code
-            reg_t Rd = CX;
+            reg_t Vd = CX;
 }
 else
 {
             regm_t retregs = FLOATREGS;
             const tym = tybasic(e.Ety);
-            reg_t Rd = allocreg(cdb,retregs,tym);       // destination integer register
+            reg_t Vd = allocreg(cdb,retregs,tym);       // destination integer register
 }
             switch (e.Eoper)
             {
                 case OPs16_d:
                     cdb.gen1(INSTR.sxth_sbfm(0,R1,R1));             // sxth w0,w0
-                    cdb.gen1(INSTR.scvtf_float_int(0,1,Rd,R1));     // scvtf d31,w0
+                    cdb.gen1(INSTR.scvtf_float_int(0,1,Vd,R1));     // scvtf d31,w0
                     break;
                 case OPs32_d:
-                    cdb.gen1(INSTR.scvtf_float_int(0,1,Rd,R1));     // scvtf d31,w0
+                    cdb.gen1(INSTR.scvtf_float_int(0,1,Vd,R1));     // scvtf d31,w0
                     break;
                 case OPs64_d:
-                    cdb.gen1(INSTR.scvtf_float_int(1,1,Rd,R1));     // scvtf d31,x0
+                    cdb.gen1(INSTR.scvtf_float_int(1,1,Vd,R1));     // scvtf d31,x0
                     break;
                 case OPu16_d:
                     /* not executed because OPu16_d was converted to OPu16_32 then OP32_d */
                     uint N,immr,imms;
                     assert(encodeNImmrImms(0xFFFF,N,immr,imms));
                     cdb.gen1(INSTR.log_imm(0,0,0,immr,imms,R1,R1)); // and w0,w0,#0xFFFF
-                    cdb.gen1(INSTR.ucvtf_float_int(0,1,Rd,R1));     // ucvtf d31,w0
+                    cdb.gen1(INSTR.ucvtf_float_int(0,1,Vd,R1));     // ucvtf d31,w0
                     break;
                 case OPu32_d:
-                    cdb.gen1(INSTR.ucvtf_float_int(0,1,Rd,R1));     // ucvtf d31,w0
+                    cdb.gen1(INSTR.ucvtf_float_int(0,1,Vd,R1));     // ucvtf d31,w0
                     break;
                 case OPu64_d:
-                    cdb.gen1(INSTR.ucvtf_float_int(1,1,Rd,R1));     // ucvtf d31,x0
+                    cdb.gen1(INSTR.ucvtf_float_int(1,1,Vd,R1));     // ucvtf d31,x0
                     break;
                 default:
                     assert(0);
