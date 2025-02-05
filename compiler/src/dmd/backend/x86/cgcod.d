@@ -1818,7 +1818,7 @@ regm_t lpadregs()
 void useregs(regm_t regm)
 {
     //printf("useregs(x%llx) %s\n", regm, regm_str(regm));
-    assert(REGMAX <= 32);
+    assert(REGMAX < 64);
     regm &= (1UL << REGMAX) - 1;
     assert(!(regm & mPSW));
     cgstate.mfuncreg &= ~regm;

@@ -180,7 +180,7 @@ enum
     DGROUPIDX = 1,     // group index of DGROUP
 }
 
-enum REGMAX = 32;      // registers are numbered 0...31
+enum REGMAX = 57;      // registers are numbered 0...63
 enum reg_t NOREG = REGMAX;  // no register
 
 alias tym_t = uint;    // data type big enough for type masks
