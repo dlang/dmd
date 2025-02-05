@@ -59,6 +59,7 @@ import dmd.backend.divcoeff : choose_multiplier, udiv_coefficients;
 void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
     //printf("cdorth(e = %p, pretregs = %s)\n",e,regm_str(pretregs));
+    //elem_print(e);
 
     elem* e1 = e.E1;
     elem* e2 = e.E2;
@@ -82,7 +83,15 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     reg_t Rn = findreg(retregs1);
 
     regm_t retregs2 = posregs & ~retregs1;
+//printf("retregs1: %s retregs2: %s\n", regm_str(retregs1), regm_str(retregs2));
+static if (0)
+{
     scodelem(cg, cdb, e2, retregs2, retregs1, false);
+}
+else
+{
+    retregs2 = mask(33);
+}
     reg_t Rm = findreg(retregs2);
 
     regm_t retregs = pretregs & posregs;
@@ -94,21 +103,18 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     if (tyfloating(ty1))
     {
+        uint ftype = sz == 2 ? 3 :
+                     sz == 4 ? 0 : 1;
         switch (e.Eoper)
         {
             // FADD/FSUB (extended register)
             // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_ext
             case OPadd:
+                cdb.gen1(INSTR.fadd_float(ftype,Rm,Rn,Rd));     // FADD Rd,Rn,Rm
+                break;
+
             case OPmin:
-                uint sf = sz == 8;
-                uint op = e.Eoper == OPadd ? 0 : 1;
-                uint S = PSW != 0;
-                uint opt = 0;
-                uint option = tyToExtend(ty);
-                uint imm3 = 0;
-                cdb.gen1(INSTR.addsub_ext(sf, op, S, opt, Rm, option, imm3, Rn, Rd));
-                PSW = 0;
-                pretregs &= ~mPSW;
+                cdb.gen1(INSTR.fsub_float(ftype,Rm,Rn,Rd));     // FSUB Rd,Rn,Rm
                 break;
 
             default:

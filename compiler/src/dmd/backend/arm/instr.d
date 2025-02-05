@@ -737,8 +737,56 @@ struct INSTR
     /* Floating-point compare
      * Floating-point immediate
      * Floating-point condistional compare
-     * Floating-point data-processing (2 source)
-     * Floating-point conditional select
+     */
+
+    /* Floating-point data-processing (2 source) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatdp2
+     */
+    static uint floatdp2(uint M, uint S, uint ftype, reg_t Vm, uint opcode, reg_t Vn, reg_t Vd)
+    {
+        assert(Vm >= 32 && Vn >= 32 && Vd >= 32);
+        reg_t Rm = Vm & 31;
+        reg_t Rn = Vn & 31;
+        reg_t Rd = Vd & 31;
+        return (M << 31) | (S << 29) | (0x1E << 24) | (ftype << 22) | (1 << 21) | (Rm << 16) | (opcode << 12) | (2 << 10) | (Rn << 5) | Rd;
+    }
+
+    /* FMUL (scalar) https://www.scs.stanford.edu/~zyedidia/arm64/fmul_float.html
+     */
+    static uint fmul_float(uint ftype, reg_t Vm, reg_t Vn, reg_t Vd) { return floatdp2(0,0,ftype,Vm,0,Vn,Vd); }
+
+    /* FDIV (scalar) https://www.scs.stanford.edu/~zyedidia/arm64/fdiv_float.html
+     */
+    static uint fdiv_float(uint ftype, reg_t Vm, reg_t Vn, reg_t Vd) { return floatdp2(0,0,ftype,Vm,1,Vn,Vd); }
+
+    /* FADD (scalar) https://www.scs.stanford.edu/~zyedidia/arm64/fadd_float.html
+     */
+    static uint fadd_float(uint ftype, reg_t Vm, reg_t Vn, reg_t Vd) { return floatdp2(0,0,ftype,Vm,2,Vn,Vd); }
+
+    /* FSUB (scalar) https://www.scs.stanford.edu/~zyedidia/arm64/fsub_float.html
+     */
+    static uint fsub_float(uint ftype, reg_t Vm, reg_t Vn, reg_t Vd) { return floatdp2(0,0,ftype,Vm,3,Vn,Vd); }
+
+    /* FMAX (scalar) https://www.scs.stanford.edu/~zyedidia/arm64/fmax_float.html
+     */
+    static uint fmax_float(uint ftype, reg_t Vm, reg_t Vn, reg_t Vd) { return floatdp2(0,0,ftype,Vm,4,Vn,Vd); }
+
+    /* FMIN (scalar) https://www.scs.stanford.edu/~zyedidia/arm64/fmin_float.html
+     */
+    static uint fmin_float(uint ftype, reg_t Vm, reg_t Vn, reg_t Vd) { return floatdp2(0,0,ftype,Vm,5,Vn,Vd); }
+
+    /* FMAXNM (scalar) https://www.scs.stanford.edu/~zyedidia/arm64/fmaxnm_float.html
+     */
+    static uint fmaxnm_float(uint ftype, reg_t Vm, reg_t Vn, reg_t Vd) { return floatdp2(0,0,ftype,Vm,6,Vn,Vd); }
+
+    /* FMINNM (scalar) https://www.scs.stanford.edu/~zyedidia/arm64/fminnm_float.html
+     */
+    static uint fminnm_float(uint ftype, reg_t Vm, reg_t Vn, reg_t Vd) { return floatdp2(0,0,ftype,Vm,7,Vn,Vd); }
+
+    /* FNMUL (scalar) https://www.scs.stanford.edu/~zyedidia/arm64/fnmul_float.html
+     */
+    static uint fnmul_float(uint ftype, reg_t Vm, reg_t Vn, reg_t Vd) { return floatdp2(0,0,ftype,Vm,8,Vn,Vd); }
+
+    /* Floating-point conditional select
      * Floating-point data-processing (3 source)
      */
 

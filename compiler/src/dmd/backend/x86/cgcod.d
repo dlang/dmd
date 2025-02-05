@@ -40,6 +40,7 @@ import dmd.backend.ty;
 import dmd.backend.type;
 
 import dmd.backend.arm.disasmarm;
+import dmd.backend.arm.instr;
 
 import dmd.backend.x86.code_x86;
 import dmd.backend.x86.disasm86;
@@ -1620,7 +1621,7 @@ static if (0)
 }
         tym = tybasic(tym);
         uint size = _tysize[tym];
-        outretregs &= mES | cgstate.allregs | XMMREGS;
+        outretregs &= mES | cgstate.allregs | XMMREGS | INSTR.FLOATREGS;
         regm_t retregs = outretregs;
         regm_t[] lastRetregs = cgstate.lastRetregs[];
 
@@ -1630,7 +1631,7 @@ static if (0)
         if ((retregs & cgstate.regcon.mvar) == retregs) // if exactly in reg vars
         {
             reg_t outreg;
-            if (size <= REGSIZE || (retregs & XMMREGS))
+            if (size <= REGSIZE || (retregs & XMMREGS) || (retregs & INSTR.FLOATREGS))
             {
                 outreg = findreg(retregs);
                 assert(retregs == mask(outreg)); /* no more bits are set */
@@ -3002,7 +3003,7 @@ const(char)* regm_str(regm_t rm)
                 {
                     char[4] buf = void;
                     char c = j < 32 ? 'r' : 'f';
-                    sprintf(buf.ptr, "c%u", c, j);
+                    sprintf(buf.ptr, "%c%u", c, j);
                     strcat(p, buf.ptr);
                 }
             }
