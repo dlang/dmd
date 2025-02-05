@@ -59,6 +59,7 @@ import dmd.backend.divcoeff : choose_multiplier, udiv_coefficients;
 void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
     //printf("cdorth(e = %p, pretregs = %s)\n",e,regm_str(pretregs));
+    //elem_print(e);
 
     elem* e1 = e.E1;
     elem* e2 = e.E2;
@@ -75,29 +76,55 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     const ty2 = tybasic(e2.Ety);
     const sz = _tysize[ty];
 
-    if (tyfloating(ty1))
-    {
-        assert(0);
-    }
-
-    regm_t posregs = cg.allregs;
+    regm_t posregs = tyfloating(ty1) ? INSTR.FLOATREGS : cg.allregs;
 
     regm_t retregs1 = posregs;
-
     codelem(cg, cdb, e1, retregs1, false);
-    regm_t retregs2 = cg.allregs & ~retregs1;
-    scodelem(cg, cdb, e2, retregs2, retregs1, false);
-
-    regm_t retregs = pretregs & cg.allregs;
-    if (retregs == 0)                   /* if no return regs speced     */
-                                        /* (like if wanted flags only)  */
-        retregs = ALLREGS & posregs;    // give us some
-    reg_t Rd = allocreg(cdb, retregs, ty);
-
     reg_t Rn = findreg(retregs1);
+
+    regm_t retregs2 = posregs & ~retregs1;
+//printf("retregs1: %s retregs2: %s\n", regm_str(retregs1), regm_str(retregs2));
+static if (0)
+{
+    scodelem(cg, cdb, e2, retregs2, retregs1, false);
+}
+else
+{
+    retregs2 = mask(33);
+}
     reg_t Rm = findreg(retregs2);
 
+    regm_t retregs = pretregs & posregs;
+    if (retregs == 0)                   /* if no return regs speced     */
+        retregs = posregs;              // give us some
+    reg_t Rd = allocreg(cdb, retregs, ty);
+
     regm_t PSW = pretregs & mPSW;
+
+    if (tyfloating(ty1))
+    {
+        uint ftype = sz == 2 ? 3 :
+                     sz == 4 ? 0 : 1;
+        switch (e.Eoper)
+        {
+            // FADD/FSUB (extended register)
+            // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_ext
+            case OPadd:
+                cdb.gen1(INSTR.fadd_float(ftype,Rm,Rn,Rd));     // FADD Rd,Rn,Rm
+                break;
+
+            case OPmin:
+                cdb.gen1(INSTR.fsub_float(ftype,Rm,Rn,Rd));     // FSUB Rd,Rn,Rm
+                break;
+
+            default:
+                assert(0);
+        }
+        pretregs = retregs | PSW;
+        fixresult(cdb,e,mask(Rd),pretregs);
+        return;
+    }
+
     switch (e.Eoper)
     {
         // ADDS/SUBS (extended register)

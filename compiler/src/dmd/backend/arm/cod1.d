@@ -2274,7 +2274,7 @@ static if (1)
     int sz = _tysize[tym];
     cs.Iflags = 0;
     flags = outretregs & mPSW;             /* save original                */
-    forregs = outretregs & cgstate.allregs;     // XMMREGS ?
+    forregs = outretregs & (cgstate.allregs | INSTR.FLOATREGS);     // XMMREGS ?
     //if (outretregs & mSTACK)
         //forregs |= DOUBLEREGS;
     if (e.Eoper == OPconst)

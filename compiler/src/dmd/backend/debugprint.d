@@ -153,7 +153,10 @@ const(char)* tym_str(tym_t ty)
     const tyb = tybasic(ty);
     if (tyb >= TYMAX)
     {
-        printf("TY %x\n",cast(int)ty);
+        if (tyb == TYMAX)
+            printf("TY TYMAX\n");
+        else
+            printf("TY %x\n",cast(int)ty);
         assert(0);
     }
     strcat(p, "TY");

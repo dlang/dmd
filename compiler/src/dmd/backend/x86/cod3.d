@@ -1142,7 +1142,8 @@ static if (NTEXCEPTIONS)
         case BC.retexp:
             reg_t reg1, reg2;
             retregs = allocretregs(cgstate, e.Ety, e.ET, funcsym_p.ty(), reg1, reg2);
-            //printf("allocretregs returns %s\n", regm_str(mask(reg1) | mask(reg2)));
+	    //printf("reg1: %d, reg2: %d\n", reg1, reg2);
+            //printf("allocretregs returns %llx %s\n", retregs, regm_str(retregs));
 
             reg_t lreg = NOREG;
             reg_t mreg = NOREG;
@@ -1525,6 +1526,8 @@ regm_t allocretregs(ref CGstate cgstate, const tym_t ty, type* t, const tym_t ty
                 assert(tyfb == TYjfunc && I32);
                 return ST01;
             }
+            else if (AArch64 && tyfloating(tym))
+                return rralloc.fpt();
             else if (tysimd(tym))
             {
                 return rralloc.xmm();
@@ -1559,6 +1562,8 @@ regm_t allocretregs(ref CGstate cgstate, const tym_t ty, type* t, const tym_t ty
     reg1 = allocreg(ty1);
     reg2 = allocreg(ty2);
 
+    //printf("reg1: %d reg2: %d NOREG: %d\n", reg1, reg2, NOREG);
+    //printf("reg1: %llx reg2: %llx ~NOREG: %llx\n", mask(reg1), mask(reg2), ~mask(NOREG));
     return (mask(reg1) | mask(reg2)) & ~mask(NOREG);
 }
 
