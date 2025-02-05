@@ -42,7 +42,8 @@ struct INSTR
     /* Even though the floating point registers are 0..31, we call them V32..V63 so they fit
      * into regm_t. Remember to and them with 31 to generate an instruction
      */
-    enum FLOATREGS = 0xFFFF_FFFF_0000_0000;
+    enum FLOATREGS = 0x01FF_FFFF_0000_0000;
+    static assert((FLOATREGS & (1UL << 57 /*REGMAX*/)) == 0);
 
     enum uint nop = 0xD503201F;
 
