@@ -868,9 +868,19 @@ struct INSTR
                 Rt;
     }
 
-    /* Load/store register pair (unprivileged)
-     * Load/store register pair (immediate pre-indexed)
-     * Atomic memory operation
+    /* STR <Vt>,[<Xn|SP>],#<simm>  Post-index  https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
+     */
+
+    /* Load/store register (unprivileged)
+     */
+
+    /* Load/store register (immediate pre-indexed)
+     */
+
+    /* STR <Vt>,[<Xn|SP>,#<simm>]! Pre-index https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
+     */
+
+    /* Atomic memory operation
      */
 
     /* Load/store register (register offset)
@@ -897,8 +907,10 @@ struct INSTR
     /* Load/store register (unsigned immediate)
      * https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#ldst_pos
      */
-    static uint ldst_pos(uint size, uint VR, uint opc, uint imm12, ubyte Rn, ubyte Rt)
+    static uint ldst_pos(uint size, uint VR, uint opc, uint imm12, reg_t Rn, reg_t Vt)
     {
+        assert(Vt > 31);
+        reg_t Rt = Vt & 31;
         return (size  << 30) |
                (7     << 27) |
                (VR    << 26) |
@@ -908,6 +920,11 @@ struct INSTR
                (Rn    <<  5) |
                 Rt;
     }
+
+    /* https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
+     * STR <Vt>,[<Xn|SP>,#<simm>]  Unsigned offset
+     */
+    static uint str_imm_fpsimd(uint size, uint opc, uint imm12, reg_t Rn, reg_t Vt) { return ldst_pos(size,1,opc,imm12,Rn,Vt); }
 
     /* } */
 
