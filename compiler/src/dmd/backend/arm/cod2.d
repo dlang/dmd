@@ -117,6 +117,14 @@ else
                 cdb.gen1(INSTR.fsub_float(ftype,Rm,Rn,Rd));     // FSUB Rd,Rn,Rm
                 break;
 
+            case OPmul:
+                cdb.gen1(INSTR.fmul_float(ftype,Rm,Rn,Rd));     // FMUL Rd,Rn,Rm
+                break;
+
+            case OPdiv:
+                cdb.gen1(INSTR.fdiv_float(ftype,Rm,Rn,Rd));     // FDIV Rd,Rn,Rm
+                break;
+
             default:
                 assert(0);
         }
@@ -225,7 +233,8 @@ void cdmul(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     if (tyfloating(ty1))
     {
-        assert(0);
+        cdorth(cg, cdb, e, pretregs);
+        return;
     }
 
     regm_t posregs = cg.allregs;
@@ -280,7 +289,8 @@ void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     if (tyfloating(ty1))
     {
-        assert(0);
+        cdorth(cg, cdb, e, pretregs);
+        return;
     }
 
     regm_t posregs = cg.allregs;
