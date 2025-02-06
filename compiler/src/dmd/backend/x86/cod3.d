@@ -1142,7 +1142,7 @@ static if (NTEXCEPTIONS)
         case BC.retexp:
             reg_t reg1, reg2;
             retregs = allocretregs(cgstate, e.Ety, e.ET, funcsym_p.ty(), reg1, reg2);
-	    //printf("reg1: %d, reg2: %d\n", reg1, reg2);
+            //printf("reg1: %d, reg2: %d\n", reg1, reg2);
             //printf("allocretregs returns %llx %s\n", retregs, regm_str(retregs));
 
             reg_t lreg = NOREG;
@@ -4196,6 +4196,8 @@ void prolog_gen_win64_varargs(ref CodeBuilder cdb)
 }
 
 /************************************
+ * Take the parameters passed in registers, and put them into the function's local
+ * symbol table.
  * Params:
  *      cdb = generated code sink
  *      tf = what's the type of the function
@@ -4297,8 +4299,12 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
                 {
                     if (AArch64)
                     {
-                        // STR preg,bp,#offset
-                        cdb.gen1(INSTR.str_imm_gen(sz > 4, preg, 29, offset + localsize + 16));
+                        if (tyfloating(t.Tty))
+                            // STR preg,[bp,#offset]
+                            cdb.gen1(INSTR.str_imm_fpsimd(2 + (sz == 8),0,cast(uint)(offset + localsize + 16) >> 3,29,preg));
+                        else
+                            // STR preg,bp,#offset
+                            cdb.gen1(INSTR.str_imm_gen(sz > 4, preg, 29, offset + localsize + 16));
                     }
                     else
                     {
@@ -4448,7 +4454,7 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
         }
     }
 
-    /* For parameters that were passed on the stack, but are enregistered,
+    /* For parameters that were passed on the stack, but are enregistered by the function,
      * initialize the registers with the parameter stack values.
      * Do not use assignaddr(), as it will replace the stack reference with
      * the register.
