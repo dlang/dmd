@@ -55,6 +55,31 @@ nothrow:
  */
 void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
 {
+    if (reg & 32)       // if floating point register
+    {
+        if (cs.reg != NOREG)
+        {
+            if (cs.reg != reg)  // do not mov onto itself
+            {
+                assert(cs.reg & 32);
+                cs.Iop = INSTR.fmov(szw == 8,cs.reg,reg);  // FMOV reg,cs.reg
+            }
+        }
+        else if (cs.base != NOREG)
+        {
+            // LDR reg,[cs.base, #offset]
+            assert(cs.index == NOREG);
+            uint imm12 = cs.Sextend;
+            if      (szw == 4) imm12 >>= 2;
+            else if (szw == 8) imm12 >>= 3;
+            else    assert(0);
+            cs.Iop = INSTR.ldr_imm_fpsimd(szw == 8 ? 3 : 2,1,imm12,cs.base,reg);
+        }
+        else
+            assert(0);
+        return;
+    }
+
     if (cs.reg != NOREG)
     {
         if (cs.reg != reg)  // do not mov onto itself
@@ -94,6 +119,32 @@ void loadFromEA(ref code cs, reg_t reg, uint szw, uint szr)
  */
 void storeToEA(ref code cs, reg_t reg, uint sz)
 {
+    if (reg & 32)       // if floating point store
+    {
+        if (cs.reg != NOREG)
+        {
+            if (cs.reg != reg)  // do not mov onto itself
+            {
+                assert(cs.reg & 32);
+                cs.Iop = INSTR.fmov(sz == 8,reg,cs.reg);  // FMOV cs.reg,reg
+            }
+            cs.IFL1 = FL.unde;
+        }
+        else if (cs.base != NOREG)
+        {
+            // STR reg,[cs.base, #offset]
+            assert(cs.index == NOREG);
+            uint imm12 = cs.Sextend;
+            if      (sz == 4) imm12 >>= 4;
+            else if (sz == 8) imm12 >>= 8;
+            else    assert(0);
+            cs.Iop = INSTR.str_imm_fpsimd(sz == 8 ? 3 : 2,0,imm12,cs.base,reg);
+        }
+        else
+            assert(0);
+        return;
+    }
+
     if (cs.reg != NOREG)
     {
         if (cs.reg != reg)  // do not mov onto itself
