@@ -926,6 +926,11 @@ struct INSTR
      */
     static uint str_imm_fpsimd(uint size, uint opc, uint imm12, reg_t Rn, reg_t Vt) { return ldst_pos(size,1,opc,imm12,Rn,Vt); }
 
+    /* https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_fpsimd.html
+     * LDR <Vt>,[<Xn|SP>,#<simm>]  Unsigned offset
+     */
+    static uint ldr_imm_fpsimd(uint size, uint opc, uint imm12, reg_t Rn, reg_t Vt) { return ldst_pos(size,1,opc,imm12,Rn,Vt); }
+
     /* } */
 
     /* { ************************** Data Processing -- Register **********************************/

@@ -4299,12 +4299,19 @@ void prolog_loadparams(ref CodeBuilder cdb, tym_t tyf, bool pushalloc)
                 {
                     if (AArch64)
                     {
+                        uint imm = cast(uint)(offset + localsize + 16);
                         if (tyfloating(t.Tty))
+                        {
                             // STR preg,[bp,#offset]
-                            cdb.gen1(INSTR.str_imm_fpsimd(2 + (sz == 8),0,cast(uint)(offset + localsize + 16) >> 3,29,preg));
+                            if (sz == 8)
+                                imm >>= 3;
+                            else if (sz == 4)
+                                imm >>= 2;
+                            cdb.gen1(INSTR.str_imm_fpsimd(2 + (sz == 8),0,imm,29,preg));
+                        }
                         else
                             // STR preg,bp,#offset
-                            cdb.gen1(INSTR.str_imm_gen(sz > 4, preg, 29, offset + localsize + 16));
+                            cdb.gen1(INSTR.str_imm_gen(sz > 4, preg, 29, imm));
                     }
                     else
                     {
