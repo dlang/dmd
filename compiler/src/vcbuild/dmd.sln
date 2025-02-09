@@ -5,7 +5,7 @@ VisualStudioVersion = 17.12.35527.113
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dmd", "dmd.vcxproj", "{C4DA4FAF-A928-4230-8353-E80C76F223E0}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Druntime", "..\Druntime\Druntime.vcxproj", "{987BD84D-D5D9-4F39-B100-54FB4ADAEF89}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "druntime", "druntime.vcxproj", "{987BD84D-D5D9-4F39-B100-54FB4ADAEF89}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
