@@ -290,8 +290,19 @@ $(H2 $(LNAME2 classes, Classes))
 
     $(P D structs and classes have different semantics whereas C++ structs and
     classes are basically the same. The use of a D struct or class depends on
-    the C++ implementation and not on the used C++ keyword.
-    When mapping a D $(CODE class) onto a C++ $(CODE struct),
+    the C++ implementation and not on the used C++ keyword.)
+
+    $(UL
+    $(LI If the C++ implementation has one or more $(CODE virtual) member
+    functions (including inherited member functions), it should be declared as
+    an $(CODE extern(C++) class) in D.)
+
+    $(LI If the C++ implementation does not have any $(CODE virtual) member
+    functions (including inherited member functions), it should be declared as
+    an $(CODE extern(C++) struct) in D.)
+    )
+
+    $(P When mapping a D $(CODE class) onto a C++ $(CODE struct),
     use $(CODE extern(C++, struct)) to avoid linking problems with C++ compilers
     (notably MSVC) that distinguish between C++'s $(CODE class) and $(CODE struct)
     when mangling. Conversely, use $(CODE extern(C++, class)) to map a D
@@ -811,12 +822,12 @@ $(H2 $(LNAME2 data-type-compatibility, Data Type Compatibility))
 
     $(TROW
     $(ARGS $(CODE extern (C++)) $(B struct)),
-    $(ARGS $(B struct) or $(B class))
+    $(ARGS $(B struct) or $(B class) without virtual member functions)
     )
 
     $(TROW
     $(ARGS $(CODE extern (C++)) $(B class)),
-    $(ARGS $(B struct) or $(B class))
+    $(ARGS $(B struct) or $(B class) with virtual member functions)
     )
 
     $(TROW
