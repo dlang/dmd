@@ -365,7 +365,10 @@ struct BaseLoc
     void addSubstitution(uint offset, const(char)* filename, uint line) @system
     {
         auto fname = filename.toDString;
-        if (fname.length == 0 && substitutions.length > 0)
+        if (substitutions.length == 0)
+            substitutions ~= BaseLoc(this.filename, 0, 0);
+
+        if (fname.length == 0)
             fname = substitutions[$ - 1].filename;
         substitutions ~= BaseLoc(fname, offset, cast(int) (line - lines.length + startLine - 2));
     }
@@ -373,21 +376,34 @@ struct BaseLoc
     /// Returns: `loc` modified by substitutions from #file / #line directives
     SourceLoc substitute(SourceLoc loc) @nogc
     {
-        size_t latest = -1;
-        foreach (i, ref sub; substitutions)
+        if (substitutions.length == 0)
+            return loc;
+
+        const offset = loc.fileOffset;
+        size_t lo = 0;
+        size_t hi = substitutions.length + -1;
+        size_t mid = 0;
+        while (lo <= hi)
         {
-            if (loc.fileOffset >= sub.startIndex)
-                latest = i;
+            mid = lo + (hi - lo) / 2;
+            if (substitutions[mid].startIndex <= offset)
+            {
+                if (mid == substitutions.length - 1 || substitutions[mid + 1].startIndex > offset)
+                {
+                    if (substitutions[mid].filename.length > 0)
+                        loc.filename = substitutions[mid].filename;
+                    loc.linnum += substitutions[mid].startLine;
+                    return loc;
+                }
+
+                lo = mid + 1;
+            }
             else
-                break;
+            {
+                hi = mid - 1;
+            }
         }
-        if (latest != -1)
-        {
-            if (substitutions[latest].filename.length > 0)
-                loc.filename = substitutions[latest].filename;
-            loc.linnum += substitutions[latest].startLine;
-        }
-        return loc;
+        assert(0);
     }
 
     /// Resolve an offset into this file to a filename + line + column
