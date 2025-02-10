@@ -1106,7 +1106,7 @@ extern (C++) final class SwitchStatement : Statement
     bool hasVars;                   /// true if has variable case values
     DefaultStatement sdefault;      /// default:
     Statement tryBody;              /// set to TryCatchStatement or TryFinallyStatement if in _body portion
-    TryFinallyStatement tf;         /// set if in the 'finally' block of a TryFinallyStatement
+    TryFinallyStatement tryFinally; /// set if in the 'finally' block of a TryFinallyStatement
     GotoCaseStatements gotoCases;   /// array of unresolved GotoCaseStatement's
     CaseStatements* cases;          /// array of CaseStatement's
     VarDeclaration lastVar;         /// last observed variable declaration in this statement
