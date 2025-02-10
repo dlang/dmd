@@ -5271,7 +5271,7 @@ public:
     bool hasVars;
     DefaultStatement* sdefault;
     Statement* tryBody;
-    TryFinallyStatement* tf;
+    TryFinallyStatement* tryFinally;
     Array<GotoCaseStatement* > gotoCases;
     Array<CaseStatement* >* cases;
     VarDeclaration* lastVar;
@@ -7170,10 +7170,10 @@ struct Scope final
     VarDeclaration* varDecl;
     Dsymbol* parent;
     LabelStatement* slabel;
-    SwitchStatement* sw;
+    SwitchStatement* switchStatement;
     Statement* tryBody;
-    TryFinallyStatement* tf;
-    ScopeGuardStatement* os;
+    TryFinallyStatement* tryFinally;
+    ScopeGuardStatement* scopeGuard;
     Statement* sbreak;
     Statement* scontinue;
     ForeachStatement* fes;
@@ -7242,10 +7242,10 @@ public:
         varDecl(),
         parent(),
         slabel(),
-        sw(),
+        switchStatement(),
         tryBody(),
-        tf(),
-        os(),
+        tryFinally(),
+        scopeGuard(),
         sbreak(),
         scontinue(),
         fes(),
@@ -7278,7 +7278,7 @@ public:
         argStruct()
     {
     }
-    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* sw = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tf = nullptr, ScopeGuardStatement* os = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Dsymbol* inunion = nullptr, bool nofree = false, bool inLoop = false, bool inDefaultArg = false, int32_t intypeof = 0, VarDeclaration* lastVar = nullptr, ErrorSink* eSink = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), int32_t explicitVisibility = 0, uint64_t stc = 0LLU, DeprecatedDeclaration* depdecl = nullptr, uint16_t bitFields = 0u, Previews previews = Previews(), UserAttributeDeclaration* userAttribDecl = nullptr, DocComment* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr, StructDeclaration* argStruct = nullptr) :
+    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* switchStatement = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tryFinally = nullptr, ScopeGuardStatement* scopeGuard = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Dsymbol* inunion = nullptr, bool nofree = false, bool inLoop = false, bool inDefaultArg = false, int32_t intypeof = 0, VarDeclaration* lastVar = nullptr, ErrorSink* eSink = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), int32_t explicitVisibility = 0, uint64_t stc = 0LLU, DeprecatedDeclaration* depdecl = nullptr, uint16_t bitFields = 0u, Previews previews = Previews(), UserAttributeDeclaration* userAttribDecl = nullptr, DocComment* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr, StructDeclaration* argStruct = nullptr) :
         enclosing(enclosing),
         _module(_module),
         scopesym(scopesym),
@@ -7286,10 +7286,10 @@ public:
         varDecl(varDecl),
         parent(parent),
         slabel(slabel),
-        sw(sw),
+        switchStatement(switchStatement),
         tryBody(tryBody),
-        tf(tf),
-        os(os),
+        tryFinally(tryFinally),
+        scopeGuard(scopeGuard),
         sbreak(sbreak),
         scontinue(scontinue),
         fes(fes),
