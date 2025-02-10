@@ -174,7 +174,7 @@ const(char)* getMessage(DeprecatedDeclaration dd)
     return dd.msgstr;
 }
 
-bool checkDeprecated(Dsymbol d, const ref Loc loc, Scope* sc)
+bool checkDeprecated(Dsymbol d, Loc loc, Scope* sc)
 {
     if (global.params.useDeprecated == DiagnosticReporting.off)
         return false;
@@ -211,7 +211,7 @@ bool checkDeprecated(Dsymbol d, const ref Loc loc, Scope* sc)
 /*********************************
  * Check type to see if it is based on a deprecated symbol.
  */
-private void checkDeprecated(Type type, const ref Loc loc, Scope* sc)
+private void checkDeprecated(Type type, Loc loc, Scope* sc)
 {
     if (Dsymbol s = type.toDsymbol(sc))
     {
@@ -396,7 +396,7 @@ Expression resolveAliasThis(Scope* sc, Expression e, bool gag = false, bool find
  * Returns:
  *   Whether the alias this was reported as deprecated.
  */
-private bool checkDeprecatedAliasThis(AliasThis at, const ref Loc loc, Scope* sc)
+private bool checkDeprecatedAliasThis(AliasThis at, Loc loc, Scope* sc)
 {
     if (global.params.useDeprecated != DiagnosticReporting.off
         && at.isDeprecated() && !sc.isDeprecated())
@@ -5941,7 +5941,7 @@ void adjustLocForMixin(const(char)[] input, Loc loc, ref BaseLoc baseLoc, ref Ou
  *      lines = line count to update
  *      output = sink for output
  */
-private void writeMixin(const(char)[] s, ref const Loc loc, ref int lines, ref OutBuffer buf)
+private void writeMixin(const(char)[] s, Loc loc, ref int lines, ref OutBuffer buf)
 {
     buf.writestring("// expansion at ");
     buf.writestring(loc.toChars());
@@ -5988,7 +5988,7 @@ private void writeMixin(const(char)[] s, ref const Loc loc, ref int lines, ref O
  * Returns:
  *  null if not found
  */
-Dsymbol search(Dsymbol d, const ref Loc loc, Identifier ident, SearchOptFlags flags = SearchOpt.all)
+Dsymbol search(Dsymbol d, Loc loc, Identifier ident, SearchOptFlags flags = SearchOpt.all)
 {
     scope v = new SearchVisitor(loc, ident, flags);
     d.accept(v);
@@ -6035,7 +6035,7 @@ private extern(C++) class SearchVisitor : Visitor
     SearchOptFlags flags;
     Dsymbol result;
 
-    this(const ref Loc loc, Identifier ident, SearchOptFlags flags) @safe
+    this(Loc loc, Identifier ident, SearchOptFlags flags) @safe
     {
         this.loc = loc;
         this.ident = ident;
@@ -6251,7 +6251,7 @@ private extern(C++) class SearchVisitor : Visitor
         VarDeclaration* pvar;
         Expression ce;
 
-        static Dsymbol dollarFromTypeTuple(const ref Loc loc, TypeTuple tt, Scope* sc)
+        static Dsymbol dollarFromTypeTuple(Loc loc, TypeTuple tt, Scope* sc)
         {
 
             /* $ gives the number of type entries in the type tuple
@@ -7834,7 +7834,7 @@ private Expression callScopeDtor(VarDeclaration vd, Scope* sc)
  * Returns:
  *      false if failed to determine the size.
  */
-bool determineSize(AggregateDeclaration ad, const ref Loc loc)
+bool determineSize(AggregateDeclaration ad, Loc loc)
 {
     //printf("AggregateDeclaration::determineSize() %s, sizeok = %d\n", toChars(), sizeok);
 

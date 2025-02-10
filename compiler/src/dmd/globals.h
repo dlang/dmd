@@ -349,7 +349,7 @@ struct Global
     ErrorSink* errorSink;       // where the error messages go
     ErrorSink* errorSinkNull;   // where the error messages disappear
 
-    DArray<unsigned char> (*preprocess)(FileName, const Loc&, OutBuffer&);
+    DArray<unsigned char> (*preprocess)(FileName, Loc, OutBuffer&);
 
     /* Start gagging. Return the current number of gagged errors
      */
@@ -442,7 +442,7 @@ public:
     const char *toChars(
         bool showColumns = Loc::showColumns,
         MessageStyle messageStyle = Loc::messageStyle) const;
-    bool equals(const Loc& loc) const;
+    bool equals(Loc loc) const;
 };
 
 enum class LINK : uint8_t

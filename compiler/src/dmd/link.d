@@ -948,7 +948,7 @@ public int runProgram(const char[] exefile, const char*[] runargs, bool verbose,
  * Returns:
  *    error status, 0 for success
  */
-public int runPreprocessor(ref const Loc loc, const(char)[] cpp, const(char)[] filename, const(char)* importc_h, ref Array!(const(char)*) cppswitches,
+public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, const(char)* importc_h, ref Array!(const(char)*) cppswitches,
     bool verbose, ErrorSink eSink, ref OutBuffer defines, out DArray!ubyte text)
 {
     //printf("runPreprocessor() cpp: %.*s filename: %.*s\n", cast(int)cpp.length, cpp.ptr, cast(int)filename.length, filename.ptr);
@@ -1577,7 +1577,7 @@ clang: error: linker command failed with exit code 1 (use -v to see invocation)
 
         extern(C++): override:
 
-        void verror(const ref Loc loc, const(char)* format, va_list ap)
+        void verror(Loc loc, const(char)* format, va_list ap)
         {
             assert(format[0 .. strlen(format)] == expectedFormat);
             const expectedSymbol = expectedSymbols[errorCount++];
@@ -1586,7 +1586,7 @@ clang: error: linker command failed with exit code 1 (use -v to see invocation)
             assert(actualSymbol == expectedSymbol, "expected " ~ expectedSymbol ~ ", not " ~ actualSymbol);
         }
 
-        void verrorSupplemental(const ref Loc loc, const(char)* format, va_list ap)
+        void verrorSupplemental(Loc loc, const(char)* format, va_list ap)
         {
             assert(format.startsWith("perhaps") || format.startsWith("referenced from "));
         }
