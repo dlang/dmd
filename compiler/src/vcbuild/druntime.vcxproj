@@ -52,6 +52,8 @@
     <DMDConfig Condition="!$(IsDebug)">Release</DMDConfig>
     <TargetName>druntime$(DMDModel)</TargetName>
     <DMDBinDir>..\..\..\generated\Windows\$(Configuration)\$(PlatformName)\</DMDBinDir>
+    <DRuntimeSrcDir Condition="Exists('src/object.d')">src</DRuntimeSrcDir>
+    <DRuntimeSrcDir Condition="'$(DRuntimeSrcDir)' == ''">..\..\..\druntime\src</DRuntimeSrcDir>
     <MakeTarget>
     </MakeTarget>
   </PropertyGroup>
@@ -103,29 +105,29 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\druntime\src\__importc_builtins.di" />
+    <None Include="$(DRuntimeSrcDir)\__importc_builtins.di" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\druntime\src\importc.h" />
+    <ClInclude Include="$(DRuntimeSrcDir)\importc.h" />
   </ItemGroup>
   <ItemGroup>
-    <DCompile Include="..\..\..\druntime\src\core\*.d" />
-    <DCompile Include="..\..\..\druntime\src\core\gc\*.d" />
-    <DCompile Include="..\..\..\druntime\src\core\internal\*.d" />
-    <DCompile Include="..\..\..\druntime\src\core\internal\array\*.d" />
-    <DCompile Include="..\..\..\druntime\src\core\internal\container\*.d" />
-    <DCompile Include="..\..\..\druntime\src\core\internal\gc\*.d" />
-    <DCompile Include="..\..\..\druntime\src\core\internal\gc\impl\proto\*.d" />
-    <DCompile Include="..\..\..\druntime\src\core\internal\util\*.d" />
-    <DCompile Include="..\..\..\druntime\src\core\stdc\*d" />
-    <DCompile Include="..\..\..\druntime\src\core\sync\*.d" />
-    <DCompile Include="..\..\..\druntime\src\core\sys\windows\*.d" />
-    <DCompile Include="..\..\..\druntime\src\core\sys\windows\stdc\*.d" />
-    <DCompile Include="..\..\..\druntime\src\core\thread\*.d" />
-	<DCompile Include="..\..\..\druntime\src\core\thread\fiber\*.d" />
-    <DCompile Include="..\..\..\druntime\src\object.d" />
-    <DCompile Include="..\..\..\druntime\src\rt\*.d" />
-    <DCompile Include="..\..\..\druntime\src\rt\util\*.d" />
+    <DCompile Include="$(DRuntimeSrcDir)\core\*.d" />
+    <DCompile Include="$(DRuntimeSrcDir)\core\gc\*.d" />
+    <DCompile Include="$(DRuntimeSrcDir)\core\internal\*.d" />
+    <DCompile Include="$(DRuntimeSrcDir)\core\internal\array\*.d" />
+    <DCompile Include="$(DRuntimeSrcDir)\core\internal\container\*.d" />
+    <DCompile Include="$(DRuntimeSrcDir)\core\internal\gc\*.d" />
+    <DCompile Include="$(DRuntimeSrcDir)\core\internal\gc\impl\proto\*.d" />
+    <DCompile Include="$(DRuntimeSrcDir)\core\internal\util\*.d" />
+    <DCompile Include="$(DRuntimeSrcDir)\core\stdc\*d" />
+    <DCompile Include="$(DRuntimeSrcDir)\core\sync\*.d" />
+    <DCompile Include="$(DRuntimeSrcDir)\core\sys\windows\*.d" />
+    <DCompile Include="$(DRuntimeSrcDir)\core\sys\windows\stdc\*.d" />
+    <DCompile Include="$(DRuntimeSrcDir)\core\thread\*.d" />
+    <DCompile Include="$(DRuntimeSrcDir)\core\thread\fiber\*.d" />
+    <DCompile Include="$(DRuntimeSrcDir)\object.d" />
+    <DCompile Include="$(DRuntimeSrcDir)\rt\*.d" />
+    <DCompile Include="$(DRuntimeSrcDir)\rt\util\*.d" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
