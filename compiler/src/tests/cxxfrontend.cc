@@ -1730,7 +1730,7 @@ void argtypes_h(Type *t)
     //dmd::isHFVA(t);
 }
 
-void declaration_h(FuncDeclaration *fd, const Loc &loc, Expressions* args)
+void declaration_h(FuncDeclaration *fd, Loc loc, Expressions* args)
 {
     dmd::functionSemantic(fd);
     dmd::functionSemantic3(fd);
@@ -1744,7 +1744,7 @@ void doc_h(Module *m, const char *ptr, d_size_t length, const char *date,
     dmd::gendocfile(m, ptr, length, date, sink, buf);
 }
 
-void dsymbol_h(Dsymbol *d, Scope *sc, ScopeDsymbol *sds, const Loc &loc, Identifier *ident)
+void dsymbol_h(Dsymbol *d, Scope *sc, ScopeDsymbol *sds, Loc loc, Identifier *ident)
 {
     dmd::dsymbolSemantic(d, sc);
     dmd::semantic2(d, sc);
@@ -1755,7 +1755,7 @@ void dsymbol_h(Dsymbol *d, Scope *sc, ScopeDsymbol *sds, const Loc &loc, Identif
     dmd::importAll(d, sc);
 }
 
-void expression_h(Expression *e, Scope *sc, Type *t, const Loc &loc, Expressions *es)
+void expression_h(Expression *e, Scope *sc, Type *t, Loc loc, Expressions *es)
 {
     dmd::expressionSemantic(e, sc);
     dmd::defaultInit(t, loc);
@@ -1808,7 +1808,7 @@ void module_h(Module *m, Array<ClassDeclaration* >& acs, ScopeDsymbol *sds)
     dmd::findGetMembers(sds);
 }
 
-void mtype_h(Type *t1, Type *t2, const Loc &loc, Scope *sc, int *p)
+void mtype_h(Type *t1, Type *t2, Loc loc, Scope *sc, int *p)
 {
     dmd::typeSemantic(t1, loc, sc);
     dmd::merge(t1);
@@ -1862,7 +1862,7 @@ void template_h(TemplateParameter *tp, Scope *sc, TemplateParameters *tps,
     dmd::printTemplateStats(true, sink);
 }
 
-void typinf_h(Expression *e, const Loc &loc, Type *t, Scope *sc)
+void typinf_h(Expression *e, Loc loc, Type *t, Scope *sc)
 {
     dmd::genTypeInfo(e, loc, t, sc);
     ::getTypeInfoType(loc, t, sc);

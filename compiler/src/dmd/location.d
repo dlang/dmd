@@ -41,7 +41,7 @@ struct Loc
     version (DigitalMars) version (linux) version (X86)
         private uint dummy;
 
-    static immutable Loc initial; /// use for default initialization of const ref Loc's
+    static immutable Loc initial; /// use for default initialization of Loc's
 
     extern (C++) __gshared bool showColumns;
     extern (C++) __gshared MessageStyle messageStyle;

@@ -382,7 +382,7 @@ extern (C++) struct Scope
      *   loc = for error messages
      *   ctorflow = flow results to merge in
      */
-    extern (D) void merge(const ref Loc loc, const ref CtorFlow ctorflow)
+    extern (D) void merge(Loc loc, const ref CtorFlow ctorflow)
     {
         if (!mergeCallSuper(this.ctorflow.callSuper, ctorflow.callSuper))
             error(loc, "one path skips constructor");
@@ -422,7 +422,7 @@ extern (C++) struct Scope
      * Returns:
      *  symbol if found, null if not
      */
-    extern (C++) Dsymbol search(const ref Loc loc, Identifier ident, out Dsymbol pscopesym, SearchOptFlags flags = SearchOpt.all)
+    extern (C++) Dsymbol search(Loc loc, Identifier ident, out Dsymbol pscopesym, SearchOptFlags flags = SearchOpt.all)
     {
         version (LOGSEARCH)
         {

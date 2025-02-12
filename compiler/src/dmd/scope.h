@@ -142,5 +142,5 @@ struct Scope final
                                 // do not set wasRead for it
     StructDeclaration *argStruct; // elimiate recursion when looking for rvalue construction
 
-    Dsymbol *search(const Loc &loc, Identifier *ident, Dsymbol *&pscopesym, SearchOptFlags flags = (SearchOptFlags)SearchOpt::all);
+    Dsymbol *search(Loc loc, Identifier *ident, Dsymbol *&pscopesym, SearchOptFlags flags = (SearchOptFlags)SearchOpt::all);
 };

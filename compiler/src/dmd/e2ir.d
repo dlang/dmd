@@ -322,7 +322,7 @@ Symbol* toStringSymbol(StringExp se)
  *      loc = to get file/line from
  */
 
-void toTraceGC(ref IRState irs, elem* e, const ref Loc loc)
+void toTraceGC(ref IRState irs, elem* e, Loc loc)
 {
     static immutable RTLSYM[2][25] map =
     [
@@ -4354,7 +4354,7 @@ elem* Dsymbol_toElem(Dsymbol s, ref IRState irs)
  * Allocate a static array, and initialize its members with elems[].
  * Return the initialization expression, and the symbol for the static array in *psym.
  */
-elem* ElemsToStaticArray(const ref Loc loc, Type telem, Elems* elems, Symbol **psym)
+elem* ElemsToStaticArray(Loc loc, Type telem, Elems* elems, Symbol **psym)
 {
     // Create a static array of type telem[dim]
     const dim = elems.length;
@@ -4386,7 +4386,7 @@ elem* ElemsToStaticArray(const ref Loc loc, Type telem, Elems* elems, Symbol **p
  * exps[].
  * Return the initialization expression, and the symbol for the static array in *psym.
  */
-elem* ExpressionsToStaticArray(ref IRState irs, const ref Loc loc, Expressions* exps, Symbol **psym, size_t offset = 0, Expression basis = null)
+elem* ExpressionsToStaticArray(ref IRState irs, Loc loc, Expressions* exps, Symbol **psym, size_t offset = 0, Expression basis = null)
 {
     // Create a static array of type telem[dim]
     const dim = exps.length;
@@ -5395,7 +5395,7 @@ elem* useOPstrpar(elem* e)
  * Call a function.
  */
 
-elem* callfunc(const ref Loc loc,
+elem* callfunc(Loc loc,
         ref IRState irs,
         int directcall,         // 1: don't do virtual call
         Type tret,              // return type
@@ -6162,7 +6162,7 @@ elem* array_toDarray(Type t, elem* e)
 /************************************
  */
 
-elem* sarray_toDarray(const ref Loc loc, Type tfrom, Type tto, elem* e)
+elem* sarray_toDarray(Loc loc, Type tfrom, Type tto, elem* e)
 {
     //printf("sarray_toDarray()\n");
     //elem_print(e);
@@ -6847,7 +6847,7 @@ elem* appendDtors(ref IRState irs, elem* er, size_t starti, size_t endi)
  * for insertion into the parameter list.
  */
 
-elem* filelinefunction(ref IRState irs, const ref Loc loc)
+elem* filelinefunction(ref IRState irs, Loc loc)
 {
     const(char)* id = loc.filename;
     size_t len = strlen(id);
@@ -6882,7 +6882,7 @@ elem* filelinefunction(ref IRState irs, const ref Loc loc)
  * Returns:
  *      elem generated
  */
-elem* buildRangeError(ref IRState irs, const ref Loc loc)
+elem* buildRangeError(ref IRState irs, Loc loc)
 {
     final switch (irs.params.checkAction)
     {
@@ -6908,7 +6908,7 @@ elem* buildRangeError(ref IRState irs, const ref Loc loc)
  * Returns:
  *      elem generated
  */
-elem* buildArraySliceError(ref IRState irs, const ref Loc loc, elem* lower, elem* upper, elem* length) {
+elem* buildArraySliceError(ref IRState irs, Loc loc, elem* lower, elem* upper, elem* length) {
     final switch (irs.params.checkAction)
     {
     case CHECKACTION.C:
@@ -6935,7 +6935,7 @@ elem* buildArraySliceError(ref IRState irs, const ref Loc loc, elem* lower, elem
  * Returns:
  *      elem generated
  */
-elem* buildArrayIndexError(ref IRState irs, const ref Loc loc, elem* index, elem* length) {
+elem* buildArrayIndexError(ref IRState irs, Loc loc, elem* index, elem* length) {
     final switch (irs.params.checkAction)
     {
     case CHECKACTION.C:
@@ -6951,7 +6951,7 @@ elem* buildArrayIndexError(ref IRState irs, const ref Loc loc, elem* index, elem
 }
 
 /// Returns: elem representing a C-string (char*) to the filename
-elem* locToFileElem(const ref IRState irs, const ref Loc loc) {
+elem* locToFileElem(const ref IRState irs, Loc loc) {
     elem* efile;
     if (loc.filename)
     {
@@ -6976,7 +6976,7 @@ elem* locToFileElem(const ref IRState irs, const ref Loc loc) {
  * Returns:
  *      generated call
  */
-elem* callCAssert(ref IRState irs, const ref Loc loc, Expression exp, Expression emsg, const(char)* str)
+elem* callCAssert(ref IRState irs, Loc loc, Expression exp, Expression emsg, const(char)* str)
 {
     //printf("callCAssert.toElem() %s\n", e.toChars());
     Module m = cast(Module)irs.blx._module;
@@ -7077,7 +7077,7 @@ elem* callCAssert(ref IRState irs, const ref Loc loc, Expression exp, Expression
  * Returns:
  *      generated instruction
  */
-elem* genHalt(const ref Loc loc)
+elem* genHalt(Loc loc)
 {
     elem* e = el_calloc();
     e.Ety = TYnoreturn;
@@ -7099,7 +7099,7 @@ elem* genHalt(const ref Loc loc)
  *      `ethis2` if successful, null otherwise
  */
 private
-elem* setEthis2(const ref Loc loc, ref IRState irs, FuncDeclaration fd, elem* ethis2, ref elem* ethis, ref elem* eside)
+elem* setEthis2(Loc loc, ref IRState irs, FuncDeclaration fd, elem* ethis2, ref elem* ethis, ref elem* eside)
 {
     if (!fd.hasDualContext())
         return null;

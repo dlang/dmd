@@ -33,7 +33,7 @@ unittest
 
             bool created = false;
 
-            extern (D) this(const ref Loc loc, Identifier id, BaseClasses* baseclasses)
+            extern (D) this(Loc loc, Identifier id, BaseClasses* baseclasses)
             {
                 super(loc, id, baseclasses, null, false);
                 created = true;

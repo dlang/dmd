@@ -281,7 +281,7 @@ void write_instance_pointers(Type type, Symbol* s, uint offset)
  *      loc = the location for reporting line numbers in errors
  *      t   = the type to generate the `TypeInfo` object for
  */
-void TypeInfo_toObjFile(Expression e, const ref Loc loc, Type t)
+void TypeInfo_toObjFile(Expression e, Loc loc, Type t)
 {
     // printf("TypeInfo_toObjFIle() %s\n", torig.toChars());
     if (genTypeInfo(e, loc, t, null))

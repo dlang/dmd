@@ -70,7 +70,7 @@ import dmd.backend.type;
 alias StmtState = dmd.stmtstate.StmtState!block;
 
 
-void elem_setLoc(elem* e, const ref Loc loc) nothrow
+void elem_setLoc(elem* e, Loc loc) nothrow
 {
     srcpos_setLoc(e.Esrcpos, loc);
 }
@@ -1708,12 +1708,12 @@ void insertFinallyBlockGotos(block* startblock)
     }
 }
 
-private void block_setLoc(block* b, const ref Loc loc) nothrow
+private void block_setLoc(block* b, Loc loc) nothrow
 {
     srcpos_setLoc(b.Bsrcpos, loc);
 }
 
-private void srcpos_setLoc(ref Srcpos s, const ref Loc loc) nothrow
+private void srcpos_setLoc(ref Srcpos s, Loc loc) nothrow
 {
     SourceLoc sl = SourceLoc(loc);
     s.set(sl.filename.ptr, sl.line, sl.column);
@@ -1760,7 +1760,7 @@ private block* block_calloc(BlockState* blx) @safe
  * Add in code to increment usage count for linnum.
  */
 
-private void incUsage(ref IRState irs, const ref Loc loc)
+private void incUsage(ref IRState irs, Loc loc)
 {
 
     if (irs.params.cov && loc.linnum)

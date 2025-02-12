@@ -3696,7 +3696,7 @@ Statement statementSemanticVisit(Statement s, Scope* sc)
  *
  * Returns: true if the `throw` is valid, or false if an error was found
  */
-public bool throwSemantic(const ref Loc loc, ref Expression exp, Scope* sc)
+public bool throwSemantic(Loc loc, ref Expression exp, Scope* sc)
 {
     if (!global.params.useExceptions)
     {
@@ -3945,7 +3945,7 @@ private extern(D) Expression applyAssocArray(ForeachStatement fs, Expression fld
     return ec;
 }
 
-private extern(D) Statement loopReturn(Expression e, Statements* cases, const ref Loc loc)
+private extern(D) Statement loopReturn(Expression e, Statements* cases, Loc loc)
 {
     if (!cases.length)
     {

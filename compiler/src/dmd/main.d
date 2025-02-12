@@ -464,7 +464,7 @@ private int tryMain(size_t argc, const(char)** argv, ref Param params)
     /* Read ddoc macro files named by the DDOCFILE environment variable and command line
      * and concatenate the text into ddocbuf
      */
-    void readDdocFiles(ref const Loc loc, ref const Strings ddocfiles, ref OutBuffer ddocbuf)
+    void readDdocFiles(Loc loc, ref const Strings ddocfiles, ref OutBuffer ddocbuf)
     {
         foreach (file; ddocfiles)
         {

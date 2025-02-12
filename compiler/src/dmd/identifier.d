@@ -221,7 +221,7 @@ nothrow:
      *      Identifier (inside Identifier.idPool) with deterministic name based
      *      on the source location.
      */
-    extern (D) static Identifier generateIdWithLoc(string prefix, const ref Loc loc, string parent = "")
+    extern (D) static Identifier generateIdWithLoc(string prefix, Loc loc, string parent = "")
     {
         // generate `<prefix>_L<line>_C<col>`
         auto sl = SourceLoc(loc);

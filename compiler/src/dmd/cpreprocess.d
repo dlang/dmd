@@ -47,7 +47,7 @@ version (Windows) version = runPreprocessor;
  *      the text of the preprocessed file
  */
 extern (C++)
-DArray!ubyte preprocess(FileName csrcfile, ref const Loc loc, ref OutBuffer defines)
+DArray!ubyte preprocess(FileName csrcfile, Loc loc, ref OutBuffer defines)
 {
     /* Look for "importc.h" by searching along import path.
      */

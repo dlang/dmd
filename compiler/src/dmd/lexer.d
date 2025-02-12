@@ -1464,7 +1464,7 @@ class Lexer
      * Returns:
      *  the escape sequence as a single character
      */
-    private dchar escapeSequence(const ref Loc loc, ref const(char)* sequence, bool Ccompile, out dchar c2)
+    private dchar escapeSequence(Loc loc, ref const(char)* sequence, bool Ccompile, out dchar c2)
     {
         const(char)* p = sequence; // cache sequence reference on stack
         scope(exit) sequence = p;
@@ -3163,7 +3163,7 @@ class Lexer
         eSink.error(token.loc, format, args);
     }
 
-    void error(T...)(const ref Loc loc, const(char)* format, T args)
+    void error(T...)(Loc loc, const(char)* format, T args)
     {
         eSink.error(loc, format, args);
     }
@@ -3173,12 +3173,12 @@ class Lexer
         eSink.errorSupplemental(token.loc, format, args);
     }
 
-    void deprecation(T...)(const ref Loc loc, const(char)* format, T args)
+    void deprecation(T...)(Loc loc, const(char)* format, T args)
     {
         eSink.deprecation(loc, format, args);
     }
 
-    void warning(T...)(const ref Loc loc, const(char)* format, T args)
+    void warning(T...)(Loc loc, const(char)* format, T args)
     {
         eSink.warning(loc, format, args);
     }
@@ -3678,7 +3678,7 @@ unittest
         string expectedSupplemental;
         bool gotError;
 
-        void verror(const ref Loc loc, const(char)* format, va_list ap)
+        void verror(Loc loc, const(char)* format, va_list ap)
         {
             gotError = true;
             char[100] buffer = void;
@@ -3686,7 +3686,7 @@ unittest
             assert(expected == actual);
         }
 
-        void errorSupplemental(const ref Loc loc, const(char)* format, ...)
+        void errorSupplemental(Loc loc, const(char)* format, ...)
         {
             gotError = true;
             char[128] buffer = void;
