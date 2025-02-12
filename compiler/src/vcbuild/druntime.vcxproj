@@ -109,7 +109,7 @@
     <ClInclude Include="..\..\..\druntime\src\importc.h" />
   </ItemGroup>
   <ItemGroup>
-    <Dcompile Include="..\..\..\druntime\src\core\*.d" />
+    <DCompile Include="..\..\..\druntime\src\core\*.d" />
     <DCompile Include="..\..\..\druntime\src\core\gc\*.d" />
     <DCompile Include="..\..\..\druntime\src\core\internal\*.d" />
     <DCompile Include="..\..\..\druntime\src\core\internal\array\*.d" />
