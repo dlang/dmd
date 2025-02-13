@@ -880,8 +880,11 @@ Symbol* toSymbol(Type t)
  * Returns:
  *      Srcpos backend struct corresponding to the given location
  */
-Srcpos toSrcpos(Loc loc)
+Srcpos toSrcpos(Loc loc) nothrow
 {
     SourceLoc sl = SourceLoc(loc);
-    return Srcpos.create(sl.filename.ptr, sl.line, sl.column);
+    if (sl.filename.length > 0)
+        return Srcpos.create(sl.filename.ptr, sl.line, sl.column);
+    else
+        return Srcpos.create(null, 0, 0);
 }
