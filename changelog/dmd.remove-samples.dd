@@ -1,6 +1,6 @@
-The 'samples' folder has been removed from DMD installations
+The folder *samples* has been removed from DMD installations
 
-Every DMD release would include a 'samples' folder with small D code examples.
+Every DMD release has included a folder with small D code examples.
 These examples are quite old, and not a good representation of modern D.
 They're also hard to discover, since D compilers are often installed through an installer or package manager.
 

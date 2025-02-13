@@ -1,4 +1,4 @@
-`ref` and `auto ref` can now be applied to local, static, extern, and global variables
+Storage classes `ref` and `auto ref` can now be applied to local, static, extern, and global variables
 
 For example, one can now write:
 ```
