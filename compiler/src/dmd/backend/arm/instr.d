@@ -735,8 +735,14 @@ struct INSTR
     static uint fcvt_float(uint ftype, uint opcode, reg_t Vn, reg_t Vd) { return floatdp1(0,0,ftype,opcode,Vn & 31,Vd & 31); }
 
     /* Floating-point compare
-     * Floating-point immediate
-     * Floating-point condistional compare
+     */
+    /* Floating-point immediate
+     * FMOV (scalar, immediate)
+     * FMOV <Vd>,#<imm> https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float_imm.html
+     */
+    static uint fmov_float_imm(uint ftype, uint imm8, reg_t Vd) { return (0x1E << 24) | (ftype << 22) | (1 << 21) | (imm8 << 13) | (4 << 10) | (Vd & 31); }
+
+    /* Floating-point condistional compare
      */
 
     /* Floating-point data-processing (2 source) https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatdp2
