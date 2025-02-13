@@ -44,7 +44,7 @@ struct Impl
     Bucket[] buckets;
     uint used;
     uint deleted;
-    TypeInfo_Struct entryTI;
+    const(TypeInfo) entryTI;
     uint firstUsed;
     immutable uint keysz;
     immutable uint valsz;

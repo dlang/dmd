@@ -7023,6 +7023,39 @@ Type sharedWildConstOf(Type type)
     return t;
 }
 
+Type nakedOf(Type type)
+{
+    //printf("Type::nakedOf() %p, %s\n", type, type.toChars());
+    if (type.mod == 0)
+        return type;
+    if (type.mcache) with(type.mcache)
+    {
+        // the cache has the naked type at the "identity" position, try to find it
+        if (cto && cto.mod == 0)
+            return cto;
+        if (ito && ito.mod == 0)
+            return ito;
+        if (sto && sto.mod == 0)
+            return sto;
+        if (scto && scto.mod == 0)
+            return scto;
+        if (wto && wto.mod == 0)
+            return wto;
+        if (wcto && wcto.mod == 0)
+            return wcto;
+        if (swto && swto.mod == 0)
+            return swto;
+        if (swcto && swcto.mod == 0)
+            return swcto;
+    }
+    Type t = type.nullAttributes();
+    t.mod = 0;
+    t = t.merge();
+    t.fixTo(type);
+    //printf("\t%p %s\n", t, t.toChars());
+    return t;
+}
+
 Type unqualify(Type type, uint m)
 {
     Type t = type.mutableOf().unSharedOf();
