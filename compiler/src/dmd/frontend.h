@@ -4071,6 +4071,7 @@ struct HdrGenState final
     bool vcg_ast;
     bool skipConstraints;
     bool showOneMember;
+    bool errorMsg;
     bool fullQual;
     int32_t tpltMember;
     int32_t autoMember;
@@ -4088,6 +4089,7 @@ struct HdrGenState final
         vcg_ast(),
         skipConstraints(),
         showOneMember(true),
+        errorMsg(),
         fullQual(),
         tpltMember(),
         autoMember(),
@@ -4098,7 +4100,7 @@ struct HdrGenState final
         inEnumDecl()
     {
     }
-    HdrGenState(bool hdrgen, bool ddoc = false, bool fullDump = false, bool importcHdr = false, bool doFuncBodies = false, bool vcg_ast = false, bool skipConstraints = false, bool showOneMember = true, bool fullQual = false, int32_t tpltMember = 0, int32_t autoMember = 0, int32_t forStmtInit = 0, int32_t insideFuncBody = 0, int32_t insideAggregate = 0, bool declstring = false, EnumDeclaration* inEnumDecl = nullptr) :
+    HdrGenState(bool hdrgen, bool ddoc = false, bool fullDump = false, bool importcHdr = false, bool doFuncBodies = false, bool vcg_ast = false, bool skipConstraints = false, bool showOneMember = true, bool errorMsg = false, bool fullQual = false, int32_t tpltMember = 0, int32_t autoMember = 0, int32_t forStmtInit = 0, int32_t insideFuncBody = 0, int32_t insideAggregate = 0, bool declstring = false, EnumDeclaration* inEnumDecl = nullptr) :
         hdrgen(hdrgen),
         ddoc(ddoc),
         fullDump(fullDump),
@@ -4107,6 +4109,7 @@ struct HdrGenState final
         vcg_ast(vcg_ast),
         skipConstraints(skipConstraints),
         showOneMember(showOneMember),
+        errorMsg(errorMsg),
         fullQual(fullQual),
         tpltMember(tpltMember),
         autoMember(autoMember),

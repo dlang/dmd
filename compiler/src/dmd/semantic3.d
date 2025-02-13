@@ -380,7 +380,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                     if (!sc.intypeof)
                     {
                         if (fld.tok == TOK.delegate_)
-                            .error(funcdecl.loc, "%s `%s` cannot be %s members", funcdecl.kind, funcdecl.toPrettyChars, ad.kind());
+                            .error(funcdecl.loc, "%s `%s` cannot be %s members", funcdecl.kind, funcdecl.toErrMsg, ad.kind());
                         else
                             fld.tok = TOK.function_;
                     }
@@ -1375,7 +1375,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             }
             if (isCppNonMappableType(f.next.toBasetype()))
             {
-                .error(funcdecl.loc, "%s `%s` cannot return type `%s` because its linkage is `extern(C++)`", funcdecl.kind, funcdecl.toPrettyChars, f.next.toChars());
+                .error(funcdecl.loc, "%s `%s` cannot return type `%s` because its linkage is `extern(C++)`", funcdecl.kind, funcdecl.toErrMsg(), f.next.toChars());
                 if (f.next.isTypeDArray())
                     errorSupplemental(funcdecl.loc, "slices are specific to D and do not have a counterpart representation in C++", f.next.toChars());
                 funcdecl.errors = true;
@@ -1384,7 +1384,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
             {
                 if (isCppNonMappableType(param.type.toBasetype(), param))
                 {
-                    .error(funcdecl.loc, "%s `%s` cannot have parameter of type `%s` because its linkage is `extern(C++)`", funcdecl.kind, funcdecl.toPrettyChars, param.type.toChars());
+                    .error(funcdecl.loc, "%s `%s` cannot have parameter of type `%s` because its linkage is `extern(C++)`", funcdecl.kind, funcdecl.toErrMsg(), param.type.toChars());
                     if (param.type.toBasetype().isTypeSArray())
                         errorSupplemental(funcdecl.loc, "perhaps use a `%s*` type instead",
                                           param.type.nextOf().mutableOf().unSharedOf().toChars());
@@ -1741,7 +1741,7 @@ extern (D) bool checkClosure(FuncDeclaration fd)
                     }
                     a.push(f);
                     .errorSupplemental(f.loc, "%s `%s` closes over variable `%s`",
-                        f.kind, f.toPrettyChars(), v.toChars());
+                        f.kind, f.toErrMsg(), v.toChars());
                     if (v.ident != Id.This)
                         .errorSupplemental(v.loc, "`%s` declared here", v.toChars());
 

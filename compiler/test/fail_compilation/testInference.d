@@ -138,8 +138,8 @@ immutable(void)* g10063(inout int* p) pure
 TEST_OUTPUT:
 ---
 fail_compilation/testInference.d(154): Error: `pure` function `testInference.bar14049` cannot call impure function `testInference.foo14049!int.foo14049`
-fail_compilation/testInference.d(149):        which calls `testInference.foo14049!int.foo14049.__lambda_L147_C14`
-fail_compilation/testInference.d(148):        which calls `testInference.impure14049`
+fail_compilation/testInference.d(149):        which calls `() => impure14049()`
+fail_compilation/testInference.d(148):        which calls `impure14049`
 fail_compilation/testInference.d(143):        and accessing mutable static data `i` makes it fail to infer `pure`
 ---
 */
@@ -174,7 +174,7 @@ int* f14160() pure
 TEST_OUTPUT:
 ---
 fail_compilation/testInference.d(180): Error: `pure` function `testInference.test12422` cannot call impure function `testInference.test12422.bar12422!().bar12422`
-fail_compilation/testInference.d(179):        which calls `testInference.foo12422`
+fail_compilation/testInference.d(179):        which calls `foo12422`
 ---
 */
 #line 175
@@ -239,7 +239,7 @@ void test17086_call ()
 TEST_OUTPUT:
 ---
 fail_compilation/testInference.d(238): Error: `pure` function `testInference.test20047_pure_function` cannot call impure function `testInference.test20047_pure_function.bug`
-fail_compilation/testInference.d(237):        which calls `testInference.test20047_impure_function`
+fail_compilation/testInference.d(237):        which calls `test20047_impure_function`
 ---
 */
 #line 234

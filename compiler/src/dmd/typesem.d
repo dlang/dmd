@@ -1187,7 +1187,7 @@ private const(char)* getParamError(TypeFunction tf, Expression arg, Parameter pa
     // only mention rvalue if it's relevant
     const rv = !arg.isLvalue() && par.isReference();
     buf.printf("cannot pass %sargument `%s` of type `%s` to parameter `%s`",
-        rv ? "rvalue ".ptr : "".ptr, arg.toChars(), at,
+        rv ? "rvalue ".ptr : "".ptr, arg.toErrMsg(), at,
         parameterToChars(par, tf, qual));
     return buf.extractChars();
 }
@@ -2329,7 +2329,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             {
                 const(char)* errTxt = fparam.storageClass & STC.ref_ ? "ref" : "out";
                 .error(e.loc, "expression `%s` of type `%s` is not implicitly convertible to type `%s %s` of parameter `%s`",
-                      e.toChars(), e.type.toChars(), errTxt, fparam.type.toChars(), fparam.toChars());
+                      e.toErrMsg(), e.type.toChars(), errTxt, fparam.type.toChars(), fparam.toChars());
             }
             e = e.implicitCastTo(sc, fparam.type);
 
@@ -4738,7 +4738,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
         {
             if (e.op == EXP.type)
             {
-                error(e.loc, "`%s` is not an expression", e.toChars());
+                error(e.loc, "`%s` is not an expression", e.toErrMsg());
                 return ErrorExp.get();
             }
             else if (mt.dim.toUInteger() < 1 && checkUnsafeDotExp(sc, e, ident, flag))
@@ -4787,7 +4787,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
         }
         if (e.op == EXP.type && (ident == Id.length || ident == Id.ptr))
         {
-            error(e.loc, "`%s` is not an expression", e.toChars());
+            error(e.loc, "`%s` is not an expression", e.toErrMsg());
             return ErrorExp.get();
         }
         if (ident == Id.length)
@@ -5214,7 +5214,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
         Declaration d = s.isDeclaration();
         if (!d)
         {
-            error(e.loc, "`%s.%s` is not a declaration", e.toChars(), ident.toChars());
+            error(e.loc, "`%s.%s` is not a declaration", e.toErrMsg(), ident.toChars());
             return ErrorExp.get();
         }
 
@@ -5647,7 +5647,7 @@ Expression dotExp(Type mt, Scope* sc, Expression e, Identifier ident, DotExpFlag
         Declaration d = s.isDeclaration();
         if (!d)
         {
-            error(e.loc, "`%s.%s` is not a declaration", e.toChars(), ident.toChars());
+            error(e.loc, "`%s.%s` is not a declaration", e.toErrMsg(), ident.toChars());
             return ErrorExp.get();
         }
 

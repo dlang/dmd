@@ -63,6 +63,7 @@ struct HdrGenState
     bool vcg_ast;       /// write out codegen-ast
     bool skipConstraints;  // skip constraints when doing templates
     bool showOneMember = true;
+    bool errorMsg;      /// true if formatting for inside an error message
 
     bool fullQual;      /// fully qualify types when printing
     int tpltMember;
@@ -94,6 +95,71 @@ void genhdrfile(Module m, bool doFuncBodies, ref OutBuffer buf)
     hgs.importcHdr = (m.filetype == FileType.c);
     hgs.doFuncBodies = doFuncBodies;
     toCBuffer(m, buf, hgs);
+}
+
+/**
+ * Convert `e` to a string for error messages.
+ * Params:
+ *      e = expression to convert
+ * Returns: string representation of `e`
+ */
+const(char)* toErrMsg(const Expression e)
+{
+    HdrGenState hgs;
+    hgs.errorMsg = true;
+    OutBuffer buf;
+    toCBuffer(e, buf, hgs);
+    truncateForError(buf, 60);
+
+    return buf.extractChars();
+}
+
+/// ditto
+const(char)* toErrMsg(const Dsymbol d)
+{
+    if (d.isFuncDeclaration() || d.isTemplateInstance())
+    {
+        if (d.ident && d.ident.toString.startsWith("__"))
+        {
+            HdrGenState hgs;
+            hgs.errorMsg = true;
+            OutBuffer buf;
+            toCBuffer(cast() d, buf, hgs);
+            truncateForError(buf, 80);
+            return buf.extractChars();
+        }
+    }
+
+    return d.toChars();
+}
+
+/**
+ * Make the content of `buf` fit inline for an error message.
+ * Params:
+ *   buf = buffer with text to modify
+ *   maxLength = truncate text when it exceeds this length
+ */
+private void truncateForError(ref OutBuffer buf, size_t maxLength)
+{
+    // Remove newlines
+    for (size_t i = 0; i < buf.length; i++)
+    {
+        if (buf[i] == '\r')
+            buf.remove(i, 1);
+        if (buf[i] == '\n')
+            buf.peekSlice[i] = ' ';
+    }
+
+    // Strip trailing whitespace
+    while (buf.length && buf[$-1] == ' ')
+        buf.setsize(buf.length - 1);
+
+    // Truncate
+    if (buf.length > maxLength)
+    {
+        buf.setsize(maxLength - 3);
+        buf.writestring("...");
+    }
 }
 
 /***************************************
@@ -1772,7 +1838,7 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
             buf.writestring("__error");
             return;
         }
-        if (f.tok != TOK.reserved)
+        if (f.tok != TOK.reserved && !hgs.errorMsg)
         {
             buf.writestring(f.kind());
             buf.writeByte(' ');
@@ -1789,8 +1855,9 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
             buf.writeByte(' ');
             buf.writestring(str);
         }
-        tf.attributesApply(&printAttribute);
 
+        if (!hgs.errorMsg)
+            tf.attributesApply(&printAttribute);
 
         CompoundStatement cs = f.fbody.isCompoundStatement();
         Statement s1;
