@@ -3884,7 +3884,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         if (n_instantiations <= max_shown)
         {
             for (TemplateInstance cur = this; cur; cur = cur.tinst)
-                printFn(cur.loc, format, cur.toChars());
+                printFn(cur.loc, format, cur.toErrMsg());
         }
         else if (n_instantiations - n_totalrecursions <= max_shown)
         {
@@ -6265,6 +6265,9 @@ void write(ref OutBuffer buf, RootObject obj)
 {
     if (obj)
     {
-        buf.writestring(obj.toChars());
+        if (auto e = isExpression(obj))
+            buf.writestring(e.toErrMsg());
+        else
+            buf.writestring(obj.toChars());
     }
 }
