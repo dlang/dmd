@@ -72,7 +72,7 @@ alias StmtState = dmd.stmtstate.StmtState!block;
 
 void elem_setLoc(elem* e, Loc loc) nothrow
 {
-    srcpos_setLoc(e.Esrcpos, loc);
+    e.Esrcpos = toSrcpos(loc);
 }
 
 void Statement_toIR(Statement s, ref IRState irs)
@@ -1710,13 +1710,7 @@ void insertFinallyBlockGotos(block* startblock)
 
 private void block_setLoc(block* b, Loc loc) nothrow
 {
-    srcpos_setLoc(b.Bsrcpos, loc);
-}
-
-private void srcpos_setLoc(ref Srcpos s, Loc loc) nothrow
-{
-    SourceLoc sl = SourceLoc(loc);
-    s.set(sl.filename.ptr, sl.line, sl.column);
+    b.Bsrcpos = toSrcpos(loc);
 }
 
 private bool isAssertFalse(const Expression e) nothrow
