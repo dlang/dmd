@@ -360,6 +360,7 @@ static if (0)
     cod3_setdefault();
     if (arm)
     {
+        cfg.fpxmmregs = false; // add SIMD support later
         util_set64(cfg.exe);
         type_init();
         cod3_setAArch64();

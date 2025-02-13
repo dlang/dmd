@@ -56,7 +56,7 @@ nothrow:
 void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
     //printf("cdeq(e = %p, pretregs = %s)\n",e,regm_str(pretregs));
-    elem_print(e);
+    //elem_print(e);
 
     reg_t reg;
     code cs;
@@ -71,40 +71,12 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     int e2oper = e2.Eoper;
     tym_t tyml = tybasic(e1.Ety);              // type of lvalue
     regm_t retregs = pretregs;
+    regm_t allregs = tyfloating(tyml) ? INSTR.FLOATREGS : cgstate.allregs;
 
-    if (tyxmmreg(tyml) && config.fpxmmregs)
+    if (0 && tyxmmreg(tyml))
     {
         xmmeq(cdb, e, CMP, e1, e2, pretregs);
         return;
-    }
-
-    if (tyfloating(tyml) && config.inline8087)
-    {
-        if (tycomplex(tyml))
-        {
-            complex_eq87(cdb, e, pretregs);
-            return;
-        }
-
-        if (!(retregs == 0 &&
-              (e2oper == OPconst || e2oper == OPvar || e2oper == OPind))
-           )
-        {
-            eq87(cdb,e,pretregs);
-            return;
-        }
-        if (config.target_cpu >= TARGET_PentiumPro &&
-            (e2oper == OPvar || e2oper == OPind)
-           )
-        {
-            eq87(cdb,e,pretregs);
-            return;
-        }
-        if (tyml == TYldouble || tyml == TYildouble)
-        {
-            eq87(cdb,e,pretregs);
-            return;
-        }
     }
 
     uint sz = _tysize[tyml];           // # of bytes to transfer
@@ -121,7 +93,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             /* Will need 1 register for evaluation, +2 registers for
              * e1's addressing mode
              */
-            regm_t m = cgstate.allregs & ~cgstate.regcon.mvar;  // mask of non-register variables
+            regm_t m = allregs & ~cgstate.regcon.mvar;  // mask of non-register variables
             m &= m - 1;         // clear least significant bit
             m &= m - 1;         // clear least significant bit
             plenty = m != 0;    // at least 3 registers
@@ -165,11 +137,11 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
                 goto Lp;
             }
         }
-        retregs = cgstate.allregs;        // pick a reg, any reg
+        retregs = allregs;        // pick a reg, any reg
     }
     if (retregs == mPSW)
     {
-        retregs = cgstate.allregs;
+        retregs = allregs;
     }
     cs.Iop = 0;
     regvar = false;
@@ -182,7 +154,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             !(sz == 1 && e1.Voffset == 1)
            )
         {
-            if (varregm & XMMREGS)
+            if (0 && varregm & XMMREGS)
             {
                 // Could be an integer vector in the XMMREGS
                 xmmeq(cdb, e, CMP, e1, e2, pretregs);
@@ -226,12 +198,9 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     getregs(cdb,varregm);
 
-    reg = findreg(retregs & cg.allregs);
-printf("xyzzy1 FL: %s\n", fl_str(cs.IFL1));
+    reg = findreg(retregs & allregs);
     storeToEA(cs,reg,sz);
     cdb.gen(&cs);
-printf("xyzzy2 FL: %s\n", fl_str(cs.IFL1));
-disassemble(cs.Iop);
 
     if (e1.Ecount ||                    // if lvalue is a CSE or
         regvar)                         // rvalue can't be a CSE
