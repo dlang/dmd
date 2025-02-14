@@ -12,14 +12,14 @@ $(CONSOLE
 [1]    37856 segmentation fault (core dumped)  ./app
 )
 
-In order to find the cause of the error, the program needs to be run again in a debugger like gdb.
+In order to find the cause of the error, the program needs to be run again in a debugger like GDB.
 
 There is the `registerMemoryErrorHandler` function in `etc.linux.memoryerror`, which catches `SIGSEGV` signals and transforms them into a thrown `InvalidPointerError`, providing a better message.
 However, it doesn't work on call stack overflow, because it uses stack memory itself, so the segfault handler segfaults.
 It also relies on inline assembly, limiting it to the x86 architecture.
 
 A new function `registerMemoryAssertHandler` has been introduced, which does handle stack overflow by setting up an [altstack](https://man7.org/linux/man-pages/man2/sigaltstack.2.html).
-It uses `assert(0)` instead of throwing an `Error` object, so the result corresponds to the chosen `-checkaction=[D|C|halt|context]` setting.
+It uses `assert(0)` instead of throwing an `Error` object, so the result corresponds to the chosen `-checkaction` setting.
 
 Example:
 

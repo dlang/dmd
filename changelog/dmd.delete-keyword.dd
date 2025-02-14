@@ -1,6 +1,6 @@
-`delete` is no longer a keyword
+Remove `delete` as a keyword
 
-After being superseded by `destroy()`, deprecated, and turned into an error, the keyword can now be used as an identifier:
+After being superseded by `destroy()`, deprecated, and turned into an error, `delete` can now be used as an identifier:
 
 ---
 enum Action

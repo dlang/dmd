@@ -1,6 +1,6 @@
-An error is now given for case fallthough for multivalued cases
+Case fallthough for multivalued cases is an error now
 
-This used to give a deprecation, this now gives an error:
+This used to give a deprecation and now gives an error:
 ```
 int i;
 switch (0)

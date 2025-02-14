@@ -1,9 +1,13 @@
-Add primary expression of the form `__rvalue(expression)` which causes `expression` to be treated as an rvalue, even if it is an lvalue.
+New keyword `__rvalue`
+
+The newly added primary expression of the form `__rvalue(expression)`
+evaluates to `expression`, except that it is treated as an rvalue,
+even if would be an lvalue otherwise.
 
 Overloads on `ref`:
 ```
-foo(S s); // selected if `s` is an rvalue
-foo(ref S s); // selected if argument `s` is an lvalue
+foo(    S s); // selected if the argument is an rvalue
+foo(ref S s); // selected if the argument is an lvalue
 
 S s;
 S bar();
@@ -11,7 +15,7 @@ S bar();
 foo(s); // selects foo(ref S)
 foo(bar()); // selects foo(S)
 ```
-With this change,
+With this change:
 ```
 foo(__rvalue(s)); // selects foo(S)
 ```

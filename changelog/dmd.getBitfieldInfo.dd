@@ -1,6 +1,6 @@
-Add __traits getBitfieldOffset and getBitfieldWidth
+New traits `getBitfieldOffset` and `getBitfieldWidth` for built-in bitfields
 
-This completes the introspection capabilities of builtin bitfields. For example:
+This completes the introspection capabilities of built-in bitfields. For example:
 
 ---
 struct S
