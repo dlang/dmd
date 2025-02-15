@@ -545,6 +545,8 @@ extern (C++) final class Module : Package
             }
             buf.printf("%s\t(%s)", ident.toChars(), m.srcfile.toChars());
             message("import    %s", buf.peekChars());
+            if (loc != Loc.initial)
+                message("(imported from %s)", loc.toChars());
         }
         if((m = m.parse()) is null) return null;
 
