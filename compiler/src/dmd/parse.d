@@ -3702,8 +3702,6 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
     private AST.Type parsePrimaryType(bool dontLookDotIdents = false)
     {
         AST.Type t;
-        Loc loc;
-        Identifier id;
         //printf("parsePrimaryType()\n");
         switch (token.value)
         {

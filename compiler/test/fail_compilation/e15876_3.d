@@ -2,7 +2,7 @@
 TEST_OUTPUT:
 ---
 fail_compilation/e15876_3.d(28): Error: unexpected `(` in declarator
-fail_compilation/e15876_3.d(28): Error: basic type expected, not `=`
+fail_compilation/e15876_3.d(28): Error: primary type expected, not `=`
 fail_compilation/e15876_3.d(29): Error: found `End of File` when expecting `(`
 fail_compilation/e15876_3.d(29): Error: found `End of File` instead of statement
 fail_compilation/e15876_3.d(29): Error: expression expected, not `End of File`
