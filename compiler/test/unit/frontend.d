@@ -271,7 +271,7 @@ unittest
         }
     });
 
-    assert(endsWith(diagnosticMessages[0], "no identifier for declarator `temp`"));
+    assert(endsWith(diagnosticMessages[0], "variable name expected after type `temp`, not `==`"));
     assert(endsWith(diagnosticMessages[1], "found `==` instead of statement"));
 }
 
