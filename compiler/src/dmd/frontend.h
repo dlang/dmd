@@ -4546,7 +4546,6 @@ class TypeIdentifier final : public TypeQualified
 {
 public:
     Identifier* ident;
-    Dsymbol* originalSymbol;
     static TypeIdentifier* create(Loc loc, Identifier* ident);
     const char* kind() const override;
     TypeIdentifier* syntaxCopy() override;

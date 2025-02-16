@@ -2959,9 +2959,6 @@ extern (C++) final class TypeIdentifier : TypeQualified
 {
     Identifier ident;
 
-    // The symbol representing this identifier, before alias resolution
-    Dsymbol originalSymbol;
-
     extern (D) this(Loc loc, Identifier ident)
     {
         super(Tident, loc);
