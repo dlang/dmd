@@ -2300,22 +2300,10 @@ static if (1)
         cdrelconst(cgstate,cdb,e,outretregs);
         return;
     }
-    if (tyfloating(tym))
-    {
-        objmod.fltused();
-        if (config.fpxmmregs &&
-            (tym == TYcfloat || tym == TYcdouble) &&
-            (outretregs & (XMMREGS | mPSW))
-           )
-        {
-            cloadxmm(cdb, e, outretregs);
-            return;
-        }
-    }
 
     if (outretregs == mPSW)
     {
-        regm_t retregs = cgstate.allregs;
+        regm_t retregs = tyfloating(tym) ? INSTR.FLOATREGS : cgstate.allregs;
         loaddata(cdb, e, retregs);
         fixresult(cdb, e, retregs, outretregs);
         return;
@@ -2326,8 +2314,6 @@ static if (1)
     cs.Iflags = 0;
     flags = outretregs & mPSW;             /* save original                */
     forregs = outretregs & (cgstate.allregs | INSTR.FLOATREGS);     // XMMREGS ?
-    //if (outretregs & mSTACK)
-        //forregs |= DOUBLEREGS;
     if (e.Eoper == OPconst)
     {
         if (tyvector(tym) && forregs & XMMREGS)
@@ -2397,7 +2383,7 @@ static if (1)
             const reg_t preg = e.Voffset ? e.Vsym.Spreg2 : e.Vsym.Spreg;
             const regm_t pregm = mask(preg);
 
-            if (!(sz <= 2 && pregm & XMMREGS))   // no SIMD instructions to load 1 or 2 byte quantities
+            //if (!(sz <= 2 && pregm & XMMREGS))   // no SIMD instructions to load 1 or 2 byte quantities
             {
                 if (debugr)
                     printf("%s.%d is fastpar and using register %s\n",
@@ -2458,7 +2444,7 @@ static if (1)
                 }
             }
         }
-        else if (forregs & XMMREGS)
+        else if (0 && forregs & XMMREGS)
         {
             // Can't load from registers directly to XMM regs
             //e.Vsym.Sflags &= ~GTregcand;
@@ -2477,10 +2463,18 @@ static if (1)
         }
         else if (sz <= REGSIZE)
         {
-            // LDR reg,[sp,#offset]
-            // https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_gen.html
-            opcode_t opmv = PSOP.ldr | (29 << 5);
-            loadea(cdb, e, cs, opmv, reg, 0, 0, 0, RM.load);
+            if (tyfloating(tym))
+            {
+                loadea(cdb,e,cs,0,reg,0,0,0,RM.load);
+                outretregs = mask(reg);
+            }
+            else
+            {
+                // LDR reg,[sp,#offset]
+                // https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_gen.html
+                opcode_t opmv = PSOP.ldr | (29 << 5);
+                loadea(cdb, e, cs, opmv, reg, 0, 0, 0, RM.load);
+            }
         }
         else if (sz <= 2 * REGSIZE)
         {
@@ -2515,6 +2509,7 @@ static if (1)
             assert(0);
         // Flags may already be set
         outretregs &= flags | ~mPSW;
+        //printf("outretregs: %llx\n", outretregs);
         fixresult(cdb, e, forregs, outretregs);
         return;
     }
