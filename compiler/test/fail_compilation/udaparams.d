@@ -24,7 +24,7 @@ fail_compilation/udaparams.d(57): Error: found `@` when expecting `)`
 fail_compilation/udaparams.d(57): Error: basic type expected, not `3`
 fail_compilation/udaparams.d(57): Error: found `3` when expecting `)`
 fail_compilation/udaparams.d(57): Error: semicolon expected following function declaration, not `)`
-fail_compilation/udaparams.d(57): Error: no identifier for declarator `T`
+fail_compilation/udaparams.d(57): Error: variable name expected after type `T`, not `)`
 fail_compilation/udaparams.d(57): Error: declaration expected, not `)`
 ---
 */
