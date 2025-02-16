@@ -1828,6 +1828,9 @@ public:
         Type* wcto;
         Type* swto;
         Type* swcto;
+        Type* pto;
+        Type* rto;
+        Type* arrayof;
         Mcache() :
             cto(),
             ito(),
@@ -1836,10 +1839,13 @@ public:
             wto(),
             wcto(),
             swto(),
-            swcto()
+            swcto(),
+            pto(),
+            rto(),
+            arrayof()
         {
         }
-        Mcache(Type* cto, Type* ito = nullptr, Type* sto = nullptr, Type* scto = nullptr, Type* wto = nullptr, Type* wcto = nullptr, Type* swto = nullptr, Type* swcto = nullptr) :
+        Mcache(Type* cto, Type* ito = nullptr, Type* sto = nullptr, Type* scto = nullptr, Type* wto = nullptr, Type* wcto = nullptr, Type* swto = nullptr, Type* swcto = nullptr, Type* pto = nullptr, Type* rto = nullptr, Type* arrayof = nullptr) :
             cto(cto),
             ito(ito),
             sto(sto),
@@ -1847,14 +1853,14 @@ public:
             wto(wto),
             wcto(wcto),
             swto(swto),
-            swcto(swcto)
+            swcto(swcto),
+            pto(pto),
+            rto(rto),
+            arrayof(arrayof)
             {}
     };
 
     Mcache* mcache;
-    Type* pto;
-    Type* rto;
-    Type* arrayof;
     TypeInfoDeclaration* vtinfo;
     void* ctype;
     static Type* tvoid;

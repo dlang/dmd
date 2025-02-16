@@ -6722,30 +6722,32 @@ Type pointerTo(Type type)
 {
     if (type.ty == Terror)
         return type;
-    if (!type.pto)
+    auto mcache = type.getMcache();
+    if (!mcache.pto)
     {
         Type t = new TypePointer(type);
         if (type.ty == Tfunction)
         {
             t.deco = t.merge().deco;
-            type.pto = t;
+            mcache.pto = t;
         }
         else
-            type.pto = t.merge();
+            mcache.pto = t.merge();
     }
-    return type.pto;
+    return mcache.pto;
 }
 
 Type referenceTo(Type type)
 {
     if (type.ty == Terror)
         return type;
-    if (!type.rto)
+    auto mcache = type.getMcache();
+    if (!mcache.rto)
     {
         Type t = new TypeReference(type);
-        type.rto = t.merge();
+        mcache.rto = t.merge();
     }
-    return type.rto;
+    return mcache.rto;
 }
 
 // Make corresponding static array type without semantic
@@ -6763,12 +6765,13 @@ Type arrayOf(Type type)
 {
     if (type.ty == Terror)
         return type;
-    if (!type.arrayof)
+    auto mcache = type.getMcache();
+    if (!mcache.arrayof)
     {
         Type t = new TypeDArray(type);
-        type.arrayof = t.merge();
+        mcache.arrayof = t.merge();
     }
-    return type.arrayof;
+    return mcache.arrayof;
 }
 
 /********************************
