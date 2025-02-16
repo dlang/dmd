@@ -2031,7 +2031,26 @@ void disassemble(uint c) @trusted
     }
     else
 
-    // Floating-point compare
+    // Floating-point compare https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatcmp
+    if (field(ins, 30, 30) == 0 && field(ins, 28, 24) == 0x1E && field(ins,21,21) == 1 &&  field(ins, 13, 10) == 8)
+    {
+        url = "floatcmp";
+
+        uint M       = field(ins,31,31);
+        uint S       = field(ins,29,29);
+        uint ftype   = field(ins,23,22);
+        uint Rm      = field(ins,20,16);
+        uint op      = field(ins,15,14);
+        uint Rn      = field(ins, 9, 5);
+        uint opcode2 = field(ins, 4, 0);
+
+        if (M == 0 && S == 0)
+        {
+            p1 = opcode2 & 0x10 ? "fcmpe" : "fcmp";
+            p2 =                    fregString(rbuf[0..4],"sd h"[ftype],Rn);
+            p3 = Rm == 0 ? "#0.0" : fregString(rbuf[4..8],"sd h"[ftype],Rm);
+        }
+    }
 
     // Floating-point immediate http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatimm
     if (field(ins,31,24) == 0x1E && field(ins,21,21) == 1 && field(ins,12,10) == 4)
@@ -2809,8 +2828,9 @@ unittest
 unittest
 {
     int line64 = __LINE__;
-    string[75] cases64 =      // 64 bit code gen
+    string[76] cases64 =      // 64 bit code gen
     [
+        "1E 3F 23 D0         fcmpe  s30,s31",
         "1E 62 00 1F         scvtf  d31,w0",
         "1E 63 00 1F         ucvtf  d31,w0",
         "5E E1 BB FE         fcvtzs d30,d31",

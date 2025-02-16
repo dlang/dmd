@@ -848,7 +848,9 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
 
     if (tyvector(tybasic(e1.Ety)))
-        return orthxmm(cdb,e,pretregs);
+    {
+        assert(0); //return orthxmm(cdb,e,pretregs);
+    }
 
     COND jop = conditionCode(e);        // must be computed before
                                         // leaves are free'd
@@ -862,27 +864,8 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     uint sz = _tysize[tym];
     uint isbyte = sz == 1;
 
-    uint rex = (I64 && sz == 8) ? REX_W : 0;
-    uint grex = rex << 16;          // 64 bit operands
-
     code cs;
     code* ce;
-    if (tyfloating(tym))                  // if floating operation
-    {
-        if (config.fpxmmregs)
-        {
-            retregs = mPSW;
-            if (tyxmmreg(tym))
-                orthxmm(cdb,e,retregs);
-            else
-                assert(0);
-        }
-        else
-        {
-            assert(0);
-        }
-        goto L3;
-    }
 
     /* See if we should reverse the comparison, so a JA => JC, and JBE => JNC
      * (This is already reflected in the jop)
@@ -904,13 +887,24 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         reverse ^= 1;
     }
 
+    if (tyfloating(tym))
+    {
+        regm_t retregs1 = INSTR.FLOATREGS;
+        codelem(cgstate,cdb,e1,retregs1,1);              // compute left leaf
+        regm_t retregs2 = INSTR.FLOATREGS & ~retregs1;
+        scodelem(cgstate,cdb,e2,retregs2,retregs1,true); // right leaf
+        reg_t Vm = 32;
+//reg_t Vm = findreg(retregs1);   // fix later, scodelem() isn't working
+        reg_t Vn = 33;
+//reg_t Vn = findreg(retregs2);   // fix later, scodelem() isn't working
+        uint ftype = INSTR.szToFtype(sz);
+        cdb.gen1(INSTR.fcmpe_float(ftype,Vm,Vn));       // FCMPE Vn,Vm
+        goto L3;
+    }
+
     retregs = cgstate.allregs;
 
-    ce = null;
-    cs.Iflags = (sz == SHORTSIZE) ? CFopsize : 0;
-    cs.Irex = cast(ubyte)rex;
-    if (sz > REGSIZE)
-        ce = gennop(ce);
+    ce = sz > REGSIZE ? gennop(ce) : null;
 
     switch (e2.Eoper)
     {
@@ -1241,12 +1235,12 @@ L3:
         {
             regm_t resregs = retregs;
             reg = allocreg(cdb,resregs,TYint);
-            uint ins = INSTR.csinc(sz == 8,0x1F,jop ^ 1,0x1F,reg); // CSET reg,invcond
-            cdb.gen1(ins);
+            cdb.gen1(INSTR.csinc(sz == 8,0x1F,jop ^ 1,0x1F,reg)); // CSET reg,invcond
+            // not sure if `and w0,w0,#0xFF` is also needed here
             pretregs &= ~mPSW;
             fixresult(cdb,e,resregs,pretregs);
         }
-        else
+        else static if (0)
         {
             code* nop = null;
             regm_t save = cgstate.regcon.immed.mval;
