@@ -1787,13 +1787,15 @@ Params:
   file = File name to dispatch
   libmodules = Array to which binaries (shared/static libs and object files)
                will be appended
+  params = command line params
   target = target system
   m = created Module
 Returns:
   true on error
 */
 private
-bool createModule(const(char)* file, ref Strings libmodules, const ref Target target, ErrorSink eSink, out Module m)
+bool createModule(const(char)* file, ref Strings libmodules, ref Param params, const ref Target target,
+    ErrorSink eSink, out Module m)
 {
     version (Windows)
     {
@@ -1810,7 +1812,7 @@ bool createModule(const(char)* file, ref Strings libmodules, const ref Target ta
             return true;
         }
         auto id = Identifier.idPool(p);
-        m = new Module(loc, file.toDString, id, global.params.ddoc.doOutput, global.params.dihdr.doOutput);
+        m = new Module(loc, file.toDString, id, params.ddoc.doOutput, params.dihdr.doOutput);
         return false;
     }
 
@@ -1818,13 +1820,13 @@ bool createModule(const(char)* file, ref Strings libmodules, const ref Target ta
         */
     if (FileName.equals(ext, "obj") || FileName.equals(ext, "o"))
     {
-        global.params.objfiles.push(file);
+        params.objfiles.push(file);
         libmodules.push(file);
         return false;
     }
     if (FileName.equals(ext, target.lib_ext))
     {
-        global.params.libfiles.push(file);
+        params.libfiles.push(file);
         libmodules.push(file);
         return false;
     }
@@ -1832,37 +1834,37 @@ bool createModule(const(char)* file, ref Strings libmodules, const ref Target ta
     {
         if (FileName.equals(ext, target.dll_ext))
         {
-            global.params.dllfiles.push(file);
+            params.dllfiles.push(file);
             libmodules.push(file);
             return false;
         }
     }
     if (FileName.equals(ext, ddoc_ext))
     {
-        global.params.ddoc.files.push(file);
+        params.ddoc.files.push(file);
         return false;
     }
     if (FileName.equals(ext, json_ext))
     {
-        global.params.json.doOutput = true;
-        global.params.json.name = file.toDString;
+        params.json.doOutput = true;
+        params.json.name = file.toDString;
         return false;
     }
     if (FileName.equals(ext, map_ext))
     {
-        global.params.mapfile = file.toDString;
+        params.mapfile = file.toDString;
         return false;
     }
     if (target.os == Target.OS.Windows)
     {
         if (FileName.equals(ext, "res"))
         {
-            global.params.resfile = file.toDString;
+            params.resfile = file.toDString;
             return false;
         }
         if (FileName.equals(ext, "def"))
         {
-            global.params.deffile = file.toDString;
+            params.deffile = file.toDString;
             return false;
         }
         if (FileName.equals(ext, "exe"))
@@ -1890,7 +1892,7 @@ bool createModule(const(char)* file, ref Strings libmodules, const ref Target ta
          * its path and extension.
          */
         auto id = Identifier.idPool(name);
-        m = new Module(loc, file.toDString, id, global.params.ddoc.doOutput, global.params.dihdr.doOutput);
+        m = new Module(loc, file.toDString, id, params.ddoc.doOutput, params.dihdr.doOutput);
         return false;
     }
     eSink.error(Loc.initial, "unrecognized file extension %.*s", cast(int)ext.length, ext.ptr);
@@ -1909,6 +1911,7 @@ Params:
   files = File names to dispatch
   libmodules = Array to which binaries (shared/static libs and object files)
                will be appended
+  params = command line params
   target = target system
   eSink = error message sink
   modules = empty array of modules to be filled in
@@ -1916,13 +1919,14 @@ Params:
 Returns:
   true on error
 */
-bool createModules(ref Strings files, ref Strings libmodules, const ref Target target, ErrorSink eSink, ref Modules modules)
+bool createModules(ref Strings files, ref Strings libmodules, ref Param params, const ref Target target,
+    ErrorSink eSink, ref Modules modules)
 {
     bool firstmodule = true;
     foreach(file; files)
     {
         Module m;
-        if (createModule(file, libmodules, target, eSink, m))
+        if (createModule(file, libmodules, params, target, eSink, m))
             return true;
 
         if (m is null)
