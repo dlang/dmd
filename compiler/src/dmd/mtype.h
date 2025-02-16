@@ -630,7 +630,6 @@ class TypeIdentifier final : public TypeQualified
 {
 public:
     Identifier *ident;
-    Dsymbol *originalSymbol; // The symbol representing this identifier, before alias resolution
 
     static TypeIdentifier *create(Loc loc, Identifier *ident);
     const char *kind() override;
