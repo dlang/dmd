@@ -146,9 +146,6 @@ public:
     MOD mod;  // modifiers MODxxxx
     char *deco;
     void* mcache;
-    Type *pto;          // merged pointer to this type
-    Type *rto;          // reference to this type
-    Type *arrayof;      // array of this type
     TypeInfoDeclaration *vtinfo;        // TypeInfo object for this Type
 
     type *ctype;        // for back end
