@@ -2048,7 +2048,7 @@ void disassemble(uint c) @trusted
         {
             p1 = opcode2 & 0x10 ? "fcmpe" : "fcmp";
             p2 =                    fregString(rbuf[0..4],"sd h"[ftype],Rn);
-            p3 = Rm == 0 ? "#0.0" : fregString(rbuf[4..8],"sd h"[ftype],Rm);
+            p3 = (Rm == 0 && (opcode2 & 0x18) == 0x18) ? "#0.0" : fregString(rbuf[4..8],"sd h"[ftype],Rm);
         }
     }
 

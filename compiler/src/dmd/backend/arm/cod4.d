@@ -893,10 +893,8 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         codelem(cgstate,cdb,e1,retregs1,1);              // compute left leaf
         regm_t retregs2 = INSTR.FLOATREGS & ~retregs1;
         scodelem(cgstate,cdb,e2,retregs2,retregs1,true); // right leaf
-        reg_t Vm = 32;
-//reg_t Vm = findreg(retregs1);   // fix later, scodelem() isn't working
-        reg_t Vn = 33;
-//reg_t Vn = findreg(retregs2);   // fix later, scodelem() isn't working
+        reg_t Vm = findreg(retregs1);
+        reg_t Vn = findreg(retregs2);
         uint ftype = INSTR.szToFtype(sz);
         cdb.gen1(INSTR.fcmpe_float(ftype,Vm,Vn));       // FCMPE Vn,Vm
         goto L3;
