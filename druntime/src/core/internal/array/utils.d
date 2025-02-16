@@ -87,7 +87,7 @@ version (D_ProfileGC)
      *  purity, and throwabilty checks. To prevent breaking existing code, this function template
      *  is temporarily declared `@trusted pure` until the implementation can be brought up to modern D expectations.
     */
-    auto _d_HookTraceImpl(T, alias Hook, string errorMessage)(string file, int line, string funcname, Parameters!Hook parameters) @trusted pure
+    auto _d_HookTraceImpl(T, alias Hook, string errorMessage)(Parameters!Hook parameters, string file = __FILE__, int line = __LINE__, string funcname = __FUNCTION__) @trusted pure
     {
         version (D_TypeInfo)
         {
