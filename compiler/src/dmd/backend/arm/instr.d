@@ -761,6 +761,15 @@ struct INSTR
         return floatcmp(0, 0, ftype, Vm & 31, 0, Vn & 31, opcode2);
     }
 
+    /* FCMP Vn,Vm https://www.scs.stanford.edu/~zyedidia/arm64/fcmp_float.html
+     * FCMP Vn,#0.0
+     */
+    static uint fcmp_float(uint ftype, reg_t Vm, reg_t Vn)
+    {
+        uint opcode2 = Vm == 0 ? 8 : 0;  // Vm is 0 for FCMP Vn,#0.0
+        return floatcmp(0, 0, ftype, Vm & 31, 0, Vn & 31, opcode2);
+    }
+
     /* Floating-point immediate
      * FMOV (scalar, immediate)
      * FMOV <Vd>,#<imm> https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float_imm.html
