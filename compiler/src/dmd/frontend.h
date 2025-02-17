@@ -1828,6 +1828,9 @@ public:
         Type* wcto;
         Type* swto;
         Type* swcto;
+        Type* pto;
+        Type* rto;
+        Type* arrayof;
         Mcache() :
             cto(),
             ito(),
@@ -1836,10 +1839,13 @@ public:
             wto(),
             wcto(),
             swto(),
-            swcto()
+            swcto(),
+            pto(),
+            rto(),
+            arrayof()
         {
         }
-        Mcache(Type* cto, Type* ito = nullptr, Type* sto = nullptr, Type* scto = nullptr, Type* wto = nullptr, Type* wcto = nullptr, Type* swto = nullptr, Type* swcto = nullptr) :
+        Mcache(Type* cto, Type* ito = nullptr, Type* sto = nullptr, Type* scto = nullptr, Type* wto = nullptr, Type* wcto = nullptr, Type* swto = nullptr, Type* swcto = nullptr, Type* pto = nullptr, Type* rto = nullptr, Type* arrayof = nullptr) :
             cto(cto),
             ito(ito),
             sto(sto),
@@ -1847,14 +1853,14 @@ public:
             wto(wto),
             wcto(wcto),
             swto(swto),
-            swcto(swcto)
+            swcto(swcto),
+            pto(pto),
+            rto(rto),
+            arrayof(arrayof)
             {}
     };
 
     Mcache* mcache;
-    Type* pto;
-    Type* rto;
-    Type* arrayof;
     TypeInfoDeclaration* vtinfo;
     void* ctype;
     static Type* tvoid;
@@ -4065,6 +4071,7 @@ struct HdrGenState final
     bool vcg_ast;
     bool skipConstraints;
     bool showOneMember;
+    bool errorMsg;
     bool fullQual;
     int32_t tpltMember;
     int32_t autoMember;
@@ -4082,6 +4089,7 @@ struct HdrGenState final
         vcg_ast(),
         skipConstraints(),
         showOneMember(true),
+        errorMsg(),
         fullQual(),
         tpltMember(),
         autoMember(),
@@ -4092,7 +4100,7 @@ struct HdrGenState final
         inEnumDecl()
     {
     }
-    HdrGenState(bool hdrgen, bool ddoc = false, bool fullDump = false, bool importcHdr = false, bool doFuncBodies = false, bool vcg_ast = false, bool skipConstraints = false, bool showOneMember = true, bool fullQual = false, int32_t tpltMember = 0, int32_t autoMember = 0, int32_t forStmtInit = 0, int32_t insideFuncBody = 0, int32_t insideAggregate = 0, bool declstring = false, EnumDeclaration* inEnumDecl = nullptr) :
+    HdrGenState(bool hdrgen, bool ddoc = false, bool fullDump = false, bool importcHdr = false, bool doFuncBodies = false, bool vcg_ast = false, bool skipConstraints = false, bool showOneMember = true, bool errorMsg = false, bool fullQual = false, int32_t tpltMember = 0, int32_t autoMember = 0, int32_t forStmtInit = 0, int32_t insideFuncBody = 0, int32_t insideAggregate = 0, bool declstring = false, EnumDeclaration* inEnumDecl = nullptr) :
         hdrgen(hdrgen),
         ddoc(ddoc),
         fullDump(fullDump),
@@ -4101,6 +4109,7 @@ struct HdrGenState final
         vcg_ast(vcg_ast),
         skipConstraints(skipConstraints),
         showOneMember(showOneMember),
+        errorMsg(errorMsg),
         fullQual(fullQual),
         tpltMember(tpltMember),
         autoMember(autoMember),
@@ -4546,7 +4555,6 @@ class TypeIdentifier final : public TypeQualified
 {
 public:
     Identifier* ident;
-    Dsymbol* originalSymbol;
     static TypeIdentifier* create(Loc loc, Identifier* ident);
     const char* kind() const override;
     TypeIdentifier* syntaxCopy() override;
@@ -6654,21 +6662,24 @@ public:
     Type* type;
     Type* originalType;
     StorageClass storage_class;
-    Visibility visibility;
-    LINK _linkage;
-    int16_t inuse;
-    uint8_t adFlags;
-    enum : int32_t { wasRead = 1 };
-
-    enum : int32_t { ignoreRead = 2 };
-
-    enum : int32_t { nounderscore = 4 };
-
-    enum : int32_t { hidden = 8 };
-
-    enum : int32_t { nrvo = 16 };
-
     _d_dynamicArray< const char > mangleOverride;
+    Visibility visibility;
+    int16_t inuse;
+    LINK _linkage() const;
+    LINK _linkage(LINK v);
+    bool wasRead() const;
+    bool wasRead(bool v);
+    bool ignoreRead() const;
+    bool ignoreRead(bool v);
+    bool noUnderscore() const;
+    bool noUnderscore(bool v);
+    bool hidden() const;
+    bool hidden(bool v);
+    bool nrvo() const;
+    bool nrvo(bool v);
+private:
+    uint8_t bitFields;
+public:
     const char* kind() const override;
     uinteger_t size(Loc loc) final override;
     bool isStatic() const;

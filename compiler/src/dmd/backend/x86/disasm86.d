@@ -651,7 +651,8 @@ char* getEAimpl(ubyte rex, uint c, int do_xmm, uint vlen)
                 return displacementFixup(c + 2, 2, rmstr[rm]);
 
             case 3:
-                switch (opcode) {
+                switch (opcode)
+                {
                 case 0x8c:
                 case 0x8e:
                     p = wordreg[rm];
@@ -1886,8 +1887,10 @@ void disassemble(uint c)
     p0[0]='\0';
     if (opcode == 0 && c + 1 >= code.length)
         return;
-    if (bObjectcode) {
-        for (i=0; i<siz; i++) {
+    if (bObjectcode)
+    {
+        for (i=0; i<siz; i++)
+        {
             snprintf( buf.ptr, buf.length, "%02X ", code[c+i] );
             strcat( p0.ptr, buf.ptr );
         }

@@ -55,8 +55,8 @@ nothrow:
 @trusted
 void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
-    //printf("cdeq(e = %p, pretregs = %s)\n",e,regm_str(pretregs));
-    //elem_print(e);
+    printf("cdeq(e = %p, pretregs = %s)\n",e,regm_str(pretregs));
+    elem_print(e);
 
     reg_t reg;
     code cs;
@@ -255,8 +255,8 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     if (tyfloating(tyml))
     {
-	floatOpAss(cdb,e,pretregs);
-	return;
+        floatOpAss(cdb,e,pretregs);
+        return;
     }
     regm_t forccs = pretregs & mPSW;            // return result in flags
     regm_t forregs = pretregs & ~mPSW;          // return result in regs
@@ -430,17 +430,64 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 }
 
 /********************************
- * Generate code for op=
+ * Generate code for op=, OPnegass
  */
 @trusted
 void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
-    printf("floatOpass(e=%p, pretregs = %s)\n",e,regm_str(pretregs));
-    elem_print(e);
+    //printf("floatOpass(e=%p, pretregs = %s)\n",e,regm_str(pretregs));
+    //elem_print(e);
     elem* e1 = e.E1;
-    elem* e2 = e.E2;
     tym_t ty1 = tybasic(e1.Ety);
     const sz1 = _tysize[ty1];
+    code cs;
+    regm_t retregs;
+    reg_t reg;
+
+    if (e.Eoper == OPnegass)
+    {
+        bool regvar;
+        getlvalue(cdb,cs,e1,0);
+        if (cs.reg == NOREG)
+        {
+            retregs = INSTR.FLOATREGS;
+            reg = allocreg(cdb,retregs,ty1);
+        }
+        else
+        {
+            regvar = true;
+            retregs = mask(cs.reg);
+            getregs(cdb,retregs);
+            reg = cs.reg;
+        }
+        uint szw = sz1 == 8 ? 8 : 4;
+        loadFromEA(cs, reg, szw, sz1);
+        cdb.gen(&cs);
+        assert(reg & 32);
+        uint ftype = sz1 == 2 ? 3 :
+                     sz1 == 4 ? 0 : 1;
+        cdb.gen1(INSTR.fneg_float(ftype, reg, reg)); // fneg reg,reg
+        storeToEA(cs, reg, szw);
+        cdb.gen(&cs);
+
+        retregs = mask(reg);
+        pretregs &= ~mPSW;
+
+        if (e1.Ecount ||                     // if lvalue is a CSE or
+            regvar)                          // rvalue can't be a CSE
+        {
+            getregs_imm(cdb,retregs);        // necessary if both lvalue and
+                                             //  rvalue are CSEs (since a reg
+                                             //  can hold only one e at a time)
+            cssave(e1,retregs,!OTleaf(e1.Eoper)); // if lvalue is a CSE
+        }
+
+        fixresult(cdb,e,retregs,pretregs);
+        freenode(e1);
+        return;
+    }
+
+    elem* e2 = e.E2;
     regm_t rretregs = INSTR.FLOATREGS & ~pretregs;
     if (!rretregs)
         rretregs = INSTR.FLOATREGS;
@@ -449,11 +496,8 @@ rretregs = 1L << 34; // until loaddata() works
     codelem(cgstate,cdb,e2,rretregs,false); // eval right leaf
     reg_t rreg = findreg(rretregs);
 
-    code cs;
-    regm_t retregs;
-    reg_t reg;
     bool regvar = false;
-    if (config.flags4 & CFG4optimized)
+    if (0 && config.flags4 & CFG4optimized)
     {
         // Be careful of cases like (x = x+x+x). We cannot evaluate in
         // x if x is in a register.
@@ -476,35 +520,35 @@ rretregs = 1L << 34; // until loaddata() works
         if (!retregs)
             retregs = INSTR.FLOATREGS & ~rretregs;
         reg = allocreg(cdb,retregs,ty1);
-	loadFromEA(cs,reg,sz1,sz1);
-	cdb.gen(&cs);
+        loadFromEA(cs,reg,sz1,sz1);
+        cdb.gen(&cs);
     }
 
     reg_t Rd = reg, Rn = rreg, Rm = reg;
     uint ftype = sz1 == 2 ? 3 :
-		 sz1 == 4 ? 0 : 1;
+                 sz1 == 4 ? 0 : 1;
     switch (e.Eoper)
     {
-	// FADD/FSUB (extended register)
-	// http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_ext
-	case OPaddass:
-	    cdb.gen1(INSTR.fadd_float(ftype,Rm,Rn,Rd));     // FADD Rd,Rn,Rm
-	    break;
+        // FADD/FSUB (extended register)
+        // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#addsub_ext
+        case OPaddass:
+            cdb.gen1(INSTR.fadd_float(ftype,Rm,Rn,Rd));     // FADD Rd,Rn,Rm
+            break;
 
-	case OPminass:
-	    cdb.gen1(INSTR.fsub_float(ftype,Rm,Rn,Rd));     // FSUB Rd,Rn,Rm
-	    break;
+        case OPminass:
+            cdb.gen1(INSTR.fsub_float(ftype,Rm,Rn,Rd));     // FSUB Rd,Rn,Rm
+            break;
 
-	case OPmulass:
-	    cdb.gen1(INSTR.fmul_float(ftype,Rm,Rn,Rd));     // FMUL Rd,Rn,Rm
-	    break;
+        case OPmulass:
+            cdb.gen1(INSTR.fmul_float(ftype,Rm,Rn,Rd));     // FMUL Rd,Rn,Rm
+            break;
 
-	case OPdivass:
-	    cdb.gen1(INSTR.fdiv_float(ftype,Rm,Rn,Rd));     // FDIV Rd,Rn,Rm
-	    break;
+        case OPdivass:
+            cdb.gen1(INSTR.fdiv_float(ftype,Rm,Rn,Rd));     // FDIV Rd,Rn,Rm
+            break;
 
-	default:
-	    assert(0);
+        default:
+            assert(0);
     }
 
     if (!regvar)
@@ -551,8 +595,8 @@ void cdmulass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     if (tyfloating(tyml))
     {
-	floatOpAss(cdb,e,pretregs);
-	return;
+        floatOpAss(cdb,e,pretregs);
+        return;
     }
 
     assert(sz <= REGSIZE);
@@ -618,8 +662,8 @@ void cddivass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     if (tyfloating(tyml))
     {
-	floatOpAss(cdb,e,pretregs);
-	return;
+        floatOpAss(cdb,e,pretregs);
+        return;
     }
 
     code cs;
@@ -804,7 +848,9 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
 
     if (tyvector(tybasic(e1.Ety)))
-        return orthxmm(cdb,e,pretregs);
+    {
+        assert(0); //return orthxmm(cdb,e,pretregs);
+    }
 
     COND jop = conditionCode(e);        // must be computed before
                                         // leaves are free'd
@@ -818,27 +864,8 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     uint sz = _tysize[tym];
     uint isbyte = sz == 1;
 
-    uint rex = (I64 && sz == 8) ? REX_W : 0;
-    uint grex = rex << 16;          // 64 bit operands
-
     code cs;
     code* ce;
-    if (tyfloating(tym))                  // if floating operation
-    {
-        if (config.fpxmmregs)
-        {
-            retregs = mPSW;
-            if (tyxmmreg(tym))
-                orthxmm(cdb,e,retregs);
-            else
-                assert(0);
-        }
-        else
-        {
-            assert(0);
-        }
-        goto L3;
-    }
 
     /* See if we should reverse the comparison, so a JA => JC, and JBE => JNC
      * (This is already reflected in the jop)
@@ -860,13 +887,22 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         reverse ^= 1;
     }
 
+    if (tyfloating(tym))
+    {
+        regm_t retregs1 = INSTR.FLOATREGS;
+        codelem(cgstate,cdb,e1,retregs1,1);              // compute left leaf
+        regm_t retregs2 = INSTR.FLOATREGS & ~retregs1;
+        scodelem(cgstate,cdb,e2,retregs2,retregs1,true); // right leaf
+        reg_t Vm = findreg(retregs1);
+        reg_t Vn = findreg(retregs2);
+        uint ftype = INSTR.szToFtype(sz);
+        cdb.gen1(INSTR.fcmpe_float(ftype,Vm,Vn));       // FCMPE Vn,Vm
+        goto L3;
+    }
+
     retregs = cgstate.allregs;
 
-    ce = null;
-    cs.Iflags = (sz == SHORTSIZE) ? CFopsize : 0;
-    cs.Irex = cast(ubyte)rex;
-    if (sz > REGSIZE)
-        ce = gennop(ce);
+    ce = sz > REGSIZE ? gennop(ce) : null;
 
     switch (e2.Eoper)
     {
@@ -1197,12 +1233,12 @@ L3:
         {
             regm_t resregs = retregs;
             reg = allocreg(cdb,resregs,TYint);
-            uint ins = INSTR.csinc(sz == 8,0x1F,jop ^ 1,0x1F,reg); // CSET reg,invcond
-            cdb.gen1(ins);
+            cdb.gen1(INSTR.csinc(sz == 8,0x1F,jop ^ 1,0x1F,reg)); // CSET reg,invcond
+            // not sure if `and w0,w0,#0xFF` is also needed here
             pretregs &= ~mPSW;
             fixresult(cdb,e,resregs,pretregs);
         }
-        else
+        else static if (0)
         {
             code* nop = null;
             regm_t save = cgstate.regcon.immed.mval;

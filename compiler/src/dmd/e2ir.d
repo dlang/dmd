@@ -642,7 +642,7 @@ elem* toElem(Expression e, ref IRState irs)
         if (se.var.toParent2())
             fd = se.var.toParent2().isFuncDeclaration();
 
-        const bool nrvo = fd && (fd.isNRVO() && fd.nrvo_var == se.var || se.var.adFlags & Declaration.nrvo && fd.shidden);
+        const bool nrvo = fd && (fd.isNRVO() && fd.nrvo_var == se.var || se.var.nrvo && fd.shidden);
         if (nrvo)
             s = fd.shidden;
 
@@ -6862,7 +6862,7 @@ elem* filelinefunction(ref IRState irs, Loc loc)
     FuncDeclaration fd = irs.getFunc();
     if (fd)
     {
-        s = fd.toPrettyChars();
+        s = fd.Dsymbol.toPrettyChars();
     }
 
     len = strlen(s);
@@ -6908,7 +6908,8 @@ elem* buildRangeError(ref IRState irs, Loc loc)
  * Returns:
  *      elem generated
  */
-elem* buildArraySliceError(ref IRState irs, Loc loc, elem* lower, elem* upper, elem* length) {
+elem* buildArraySliceError(ref IRState irs, Loc loc, elem* lower, elem* upper, elem* length)
+{
     final switch (irs.params.checkAction)
     {
     case CHECKACTION.C:
@@ -6935,7 +6936,8 @@ elem* buildArraySliceError(ref IRState irs, Loc loc, elem* lower, elem* upper, e
  * Returns:
  *      elem generated
  */
-elem* buildArrayIndexError(ref IRState irs, Loc loc, elem* index, elem* length) {
+elem* buildArrayIndexError(ref IRState irs, Loc loc, elem* index, elem* length)
+{
     final switch (irs.params.checkAction)
     {
     case CHECKACTION.C:
@@ -6951,7 +6953,8 @@ elem* buildArrayIndexError(ref IRState irs, Loc loc, elem* index, elem* length) 
 }
 
 /// Returns: elem representing a C-string (char*) to the filename
-elem* locToFileElem(const ref IRState irs, Loc loc) {
+elem* locToFileElem(const ref IRState irs, Loc loc)
+{
     elem* efile;
 
     if (auto fname = loc.filename)

@@ -5343,7 +5343,8 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
             {
                 s = tident.toDsymbol(sc);
                 // don't error for `var1.static_symbol`
-                if (s && s.needThis()) {
+                if (s && s.needThis())
+                {
                     error(ds.loc, "cannot alias %s member `%s` of variable `%s`",
                         s.kind(), s.toChars(), mt.ident.toChars());
                     errorSupplemental(ds.loc, "Use `typeof(%s)` instead to preserve behaviour",
@@ -5500,7 +5501,7 @@ private void aliasAssignSemantic(AliasAssign ds, Scope* sc)
     if (!aliassym)
         return errorRet();
 
-    if (aliassym.adFlags & Declaration.wasRead)
+    if (aliassym.wasRead)
     {
         if (!aliassym.errors)
             error(ds.loc, "%s was read, so cannot reassign", aliassym.toChars());
@@ -5508,7 +5509,7 @@ private void aliasAssignSemantic(AliasAssign ds, Scope* sc)
         return errorRet();
     }
 
-    aliassym.adFlags |= Declaration.ignoreRead; // temporarilly allow reads of aliassym
+    aliassym.ignoreRead = true; // temporarilly allow reads of aliassym
 
     const storage_class = sc.stc & (STC.deprecated_ | STC.ref_ | STC.nothrow_ | STC.nogc | STC.pure_ | STC.shared_ | STC.disable);
 
@@ -5632,8 +5633,7 @@ private void aliasAssignSemantic(AliasAssign ds, Scope* sc)
         aliassym.aliassym = null;
     }
 
-
-    aliassym.adFlags &= ~Declaration.ignoreRead;
+    aliassym.ignoreRead = false;
 
     if (aliassym.type && aliassym.type.ty == Terror ||
         global.gag && errors != global.errors)

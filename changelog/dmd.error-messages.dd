@@ -18,6 +18,23 @@ app.d(8): Error: function `attributediagnostic_nothrow.gc1` is not `nothrow`
 app.d(2):        and `object.Exception` being thrown but not caught makes it fail to infer `nothrow`
 )
 
+Function literals are now referred to by their (truncated) function body, instead of the internal `__lambda` name.
+
+---
+/*
+BEFORE:
+
+../test/test_.d(3): Error: function literal `__lambda1()` is not callable using argument types `(int)`
+    (() => 42)(1);
+              ^
+AFTER:
+
+../test/test_.d(3): Error: function literal `() => 42` is not callable using argument types `(int)`
+    (() => 42)(1);
+              ^
+*/
+---
+
 Match levels are now mentioned on ambiguous overloads: [#20637](https://github.com/dlang/dmd/pull/20637)
 
 Before:

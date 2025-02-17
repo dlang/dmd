@@ -2133,14 +2133,13 @@ void MsCoffObj_addrel(segidx_t seg, targ_size_t offset, Symbol* targsym,
  * Sort the relocation entry buffer.
  */
 
-extern (C) {
+extern (C)
 @trusted
 private int mscoff_rel_fp(scope const(void*) e1, scope const(void*) e2)
 {   Relocation* r1 = cast(Relocation*)e1;
     Relocation* r2 = cast(Relocation*)e2;
 
     return cast(int)(r1.offset - r2.offset);
-}
 }
 
 /*******************************

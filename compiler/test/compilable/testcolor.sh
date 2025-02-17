@@ -31,8 +31,8 @@ check()
     compare "$actual" "$3"
 }
 
-expectedWithoutColor='__stdin.d(2): Error: no identifier for declarator `test`'
-expectedWithColor=$'\033[1m__stdin.d(2): \033[1;31mError: \033[mno identifier for declarator `\033[0;36m\033[m\033[1mtest\033[0;36m\033[m`'
+expectedWithoutColor='__stdin.d(2): Error: variable name expected after type `test`, not `End of File`'
+expectedWithColor=$'\E[1m__stdin.d(2): \E[1;31mError: \E[mvariable name expected after type `\E[0;36m\E[m\E[1mtest\E[0;36m\E[m`, not `\E[0;36m\E[m\E[1mEnd\E[0;36m \E[m\E[1mof\E[0;36m \E[m\E[1mFile\E[0;36m\E[m`'
 
 check -c "test" "$expectedWithoutColor"
 check -color=auto "test" "$expectedWithoutColor"

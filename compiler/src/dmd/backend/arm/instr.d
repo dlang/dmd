@@ -49,6 +49,13 @@ struct INSTR
 
     alias reg_t = ubyte;
 
+    /* Convert size of floating point type to ftype
+     */
+    static uint szToFtype(uint sz) { return sz == 8 ? 1 :   // double-precision
+                                            sz == 4 ? 0 :   // single-precision
+                                                      3;    // half-precision
+                                   }
+
     /************************************ Reserved ***********************************************/
     /* https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#reserved                  */
 
@@ -734,8 +741,35 @@ struct INSTR
      */
     static uint fcvt_float(uint ftype, uint opcode, reg_t Vn, reg_t Vd) { return floatdp1(0,0,ftype,opcode,Vn & 31,Vd & 31); }
 
-    /* Floating-point compare
+    /* FNEG fpreg,fpreg https://www.scs.stanford.edu/~zyedidia/arm64/fneg_float.html
      */
+    static uint fneg_float(uint ftype, reg_t Vn, reg_t Vd) { return floatdp1(0,0,ftype,2,Vn & 31,Vd & 31); }
+
+    /* Floating-point compare https://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#floatcmp
+     */
+    static uint floatcmp(uint M, uint S, uint ftype, reg_t Rm, uint op, reg_t Rn, uint opcode2)
+    {
+        return (M << 31) | (S << 29) | (0x1E << 24) | (ftype << 22) | (1 << 21) | (Rm << 16) | (op << 14) | (8 << 10) | (Rn << 5) | opcode2;
+    }
+
+    /* FCMPE Vn,Vm https://www.scs.stanford.edu/~zyedidia/arm64/fcmpe_float.html
+     * FCMPE Vn,#0.0
+     */
+    static uint fcmpe_float(uint ftype, reg_t Vm, reg_t Vn)
+    {
+        uint opcode2 = Vm == 0 ? 0x18 : 0x10;  // Vm is 0 for FCMPE Vn,#0.0
+        return floatcmp(0, 0, ftype, Vm & 31, 0, Vn & 31, opcode2);
+    }
+
+    /* FCMP Vn,Vm https://www.scs.stanford.edu/~zyedidia/arm64/fcmp_float.html
+     * FCMP Vn,#0.0
+     */
+    static uint fcmp_float(uint ftype, reg_t Vm, reg_t Vn)
+    {
+        uint opcode2 = Vm == 0 ? 8 : 0;  // Vm is 0 for FCMP Vn,#0.0
+        return floatcmp(0, 0, ftype, Vm & 31, 0, Vn & 31, opcode2);
+    }
+
     /* Floating-point immediate
      * FMOV (scalar, immediate)
      * FMOV <Vd>,#<imm> https://www.scs.stanford.edu/~zyedidia/arm64/fmov_float_imm.html
