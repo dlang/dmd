@@ -6862,7 +6862,7 @@ elem* filelinefunction(ref IRState irs, Loc loc)
     FuncDeclaration fd = irs.getFunc();
     if (fd)
     {
-        s = fd.toPrettyChars();
+        s = fd.Dsymbol.toPrettyChars();
     }
 
     len = strlen(s);

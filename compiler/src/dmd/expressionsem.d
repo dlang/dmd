@@ -4864,14 +4864,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         id = new DotTemplateInstanceExp(ne.loc, id, hook, tiargs);
 
         auto arguments = new Expressions();
-        if (global.params.tracegc)
-        {
-            auto funcname = (sc.callsc && sc.callsc.func) ?
-                sc.callsc.func.toPrettyChars() : sc.func.toPrettyChars();
-            arguments.push(new StringExp(ne.loc, ne.loc.filename.toDString()));
-            arguments.push(new IntegerExp(ne.loc, ne.loc.linnum, Type.tint32));
-            arguments.push(new StringExp(ne.loc, funcname.toDString()));
-        }
         id = new CallExp(ne.loc, id, arguments);
 
         ne.lowering = id.expressionSemantic(sc);
@@ -5210,14 +5202,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tiargs.push(t);
                 id = new DotTemplateInstanceExp(exp.loc, id, hook, tiargs);
                 auto arguments = new Expressions();
-                if (global.params.tracegc)
-                {
-                    auto funcname = (sc.callsc && sc.callsc.func) ?
-                        sc.callsc.func.toPrettyChars() : sc.func.toPrettyChars();
-                    arguments.push(new StringExp(exp.loc, exp.loc.filename.toDString()));
-                    arguments.push(new IntegerExp(exp.loc, exp.loc.linnum, Type.tint32));
-                    arguments.push(new StringExp(exp.loc, funcname.toDString()));
-                }
                 id = new CallExp(exp.loc, id, arguments);
 
                 exp.lowering = id.expressionSemantic(sc);
@@ -5402,14 +5386,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 lowering = new DotTemplateInstanceExp(exp.loc, lowering, hook, tiargs);
 
                 auto arguments = new Expressions();
-                if (global.params.tracegc)
-                {
-                    auto funcname = (sc.callsc && sc.callsc.func) ?
-                        sc.callsc.func.toPrettyChars() : sc.func.toPrettyChars();
-                    arguments.push(new StringExp(exp.loc, exp.loc.filename.toDString()));
-                    arguments.push(new IntegerExp(exp.loc, exp.loc.linnum, Type.tint32));
-                    arguments.push(new StringExp(exp.loc, funcname.toDString()));
-                }
                 arguments.push((*exp.arguments)[0]);
                 arguments.push(new IntegerExp(exp.loc, isShared, Type.tbool));
 
@@ -5441,14 +5417,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 lowering = new DotTemplateInstanceExp(exp.loc, lowering, hook, tiargs);
 
                 auto arguments = new Expressions();
-                if (global.params.tracegc)
-                {
-                    auto funcname = (sc.callsc && sc.callsc.func) ?
-                        sc.callsc.func.toPrettyChars() : sc.func.toPrettyChars();
-                    arguments.push(new StringExp(exp.loc, exp.loc.filename.toDString()));
-                    arguments.push(new IntegerExp(exp.loc, exp.loc.linnum, Type.tint32));
-                    arguments.push(new StringExp(exp.loc, funcname.toDString()));
-                }
 
                 arguments.push(new ArrayLiteralExp(exp.loc, Type.tsize_t.sarrayOf(nargs), exp.arguments));
                 arguments.push(new IntegerExp(exp.loc, tbn.isShared(), Type.tbool));
@@ -11248,14 +11216,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             id = id.expressionSemantic(sc);
 
             auto arguments = new Expressions();
-            arguments.reserve(5);
-            if (global.params.tracegc)
-            {
-                auto funcname = (sc.callsc && sc.callsc.func) ? sc.callsc.func.toPrettyChars() : sc.func.toPrettyChars();
-                arguments.push(new StringExp(exp.loc, exp.loc.filename.toDString()));
-                arguments.push(new IntegerExp(exp.loc, exp.loc.linnum, Type.tint32));
-                arguments.push(new StringExp(exp.loc, funcname.toDString()));
-            }
             arguments.push(ale.e1);
             arguments.push(exp.e2);
 
@@ -11973,15 +11933,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 id = new DotIdExp(exp.loc, id, hook);
 
                 auto arguments = new Expressions();
-                arguments.reserve(5);
-                if (global.params.tracegc)
-                {
-                    auto funcname = (sc.callsc && sc.callsc.func) ? sc.callsc.func.toPrettyChars() : sc.func.toPrettyChars();
-                    arguments.push(new StringExp(exp.loc, exp.loc.filename.toDString()));
-                    arguments.push(new IntegerExp(exp.loc, exp.loc.linnum, Type.tint32));
-                    arguments.push(new StringExp(exp.loc, funcname.toDString()));
-                }
-
                 arguments.push(exp.e1);
                 arguments.push(exp.e2);
                 Expression ce = new CallExp(exp.loc, id, arguments);
@@ -12016,15 +11967,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 id = new DotIdExp(exp.loc, id, hook);
 
                 auto arguments = new Expressions();
-                arguments.reserve(5);
-                if (global.params.tracegc)
-                {
-                    auto funcname = (sc.callsc && sc.callsc.func) ? sc.callsc.func.toPrettyChars() : sc.func.toPrettyChars();
-                    arguments.push(new StringExp(exp.loc, exp.loc.filename.toDString()));
-                    arguments.push(new IntegerExp(exp.loc, exp.loc.linnum, Type.tint32));
-                    arguments.push(new StringExp(exp.loc, funcname.toDString()));
-                }
-
                 Expression eValue1;
                 Expression value1 = extractSideEffect(sc, "__appendtmp", eValue1, exp.e1);
 
@@ -12368,7 +12310,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     if (hook == Id._d_arraycatnTX)
                         arguments.pushSlice((*callExp.arguments)[]);
                     else
-                        arguments.pushSlice((*callExp.arguments)[3 .. $]);
+                        arguments.pushSlice((*callExp.arguments)[0 .. $ - 3]);
                 }
             }
             else
@@ -12376,15 +12318,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         auto arguments = new Expressions();
-        if (useTraceGCHook)
-        {
-            auto funcname = (sc.callsc && sc.callsc.func) ?
-                sc.callsc.func.toPrettyChars() : sc.func.toPrettyChars();
-            arguments.push(new StringExp(exp.loc, exp.loc.filename.toDString()));
-            arguments.push(new IntegerExp(exp.loc, exp.loc.linnum, Type.tint32));
-            arguments.push(new StringExp(exp.loc, funcname.toDString()));
-        }
-
         handleCatArgument(arguments, exp.e1, exp.type.toBasetype(), false);
         handleCatArgument(arguments, exp.e2, exp.type.toBasetype(), true);
 
