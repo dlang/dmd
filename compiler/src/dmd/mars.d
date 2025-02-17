@@ -334,9 +334,8 @@ const(char)[] parse_conf_arg(Strings* args)
         const(char)[] arg = p.toDString;
         if (arg.length && arg[0] == '-')
         {
-            if(arg.length >= 6 && arg[1 .. 6] == "conf="){
+            if(arg.length >= 6 && arg[1 .. 6] == "conf=")
                 conf = arg[6 .. $];
-            }
             else if (arg[1 .. $] == "run")
                 break;
         }

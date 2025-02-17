@@ -351,7 +351,8 @@ bool discardValue(Expression e)
         bool seenSideEffect = false;
         foreach(expr; [tmp.e1, tmp.e2])
         {
-            if (hasSideEffect(expr)) {
+            if (hasSideEffect(expr))
+            {
                 errorSupplemental(expr.loc, "note that `%s` may have a side effect", expr.toErrMsg());
                 seenSideEffect |= true;
             }

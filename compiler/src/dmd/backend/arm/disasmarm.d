@@ -274,8 +274,10 @@ void disassemble(uint c) @trusted
     uint ins = *(cast(uint*)&code[c]);
     p0[0]='\0';
 
-    if (bObjectcode) {
-        for (i=siz; i; --i) {
+    if (bObjectcode)
+    {
+        for (i=siz; i; --i)
+        {
             snprintf( buf.ptr, buf.length, "%02X", code[c+i-1] );
             printf("%s ", buf.ptr);
             //strcat( p0.ptr, buf.ptr );

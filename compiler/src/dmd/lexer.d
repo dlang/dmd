@@ -3441,9 +3441,8 @@ class Lexer
         int linestart = 0;
         if (ct == '/')
         {
-            if (q < qend && *q == ' ') {
+            if (q < qend && *q == ' ')
                 ++q;
-            }
         }
         else if (q < qend)
         {

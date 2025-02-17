@@ -3863,7 +3863,8 @@ extern (C++) struct ParameterList
         foreach (_, p1; cast() this)
         {
             auto p2 = other[idx++];
-            if (!p2 || p1 != p2) {
+            if (!p2 || p1 != p2)
+            {
                 diff = true;
                 break;
             }

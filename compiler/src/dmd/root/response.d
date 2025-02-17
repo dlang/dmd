@@ -341,8 +341,8 @@ unittest
  *     The null-terminator is inside the bounds of the array.
  *     If cp could not be resolved, null is returned.
  */
-private char[] lookupInEnvironment(scope const(char)* cp) nothrow {
-
+private char[] lookupInEnvironment(scope const(char)* cp) nothrow
+{
     import core.stdc.stdlib: getenv;
     import core.stdc.string: strlen;
     import dmd.root.rmem: mem;
