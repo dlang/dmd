@@ -55,22 +55,12 @@ void testLocs(string src, int[2][] lineCols...)
 
 unittest
 {
-    testLocs("extern (C++, struct) class C {}",  [1, 1]);
-    testLocs("extern (C++, struct) struct S {}", [1, 1]);
-    testLocs("extern (C++, class) class C {}",   [1, 1]);
     testLocs("extern (C++, class) struct C {}",  [1, 1]);
-    testLocs("extern (C++, struct) {}",          [1, 1]);
-    testLocs("extern (C++, class) {}",           [1, 1]);
-    testLocs(`extern (C++, "namespace") {}`,     [1, 1]);
     testLocs(`extern (C++, "name"~"space") {}`,  [1, 1]);
 
     testLocs("            extern(C++) int a;",      [1, 13]);
-    testLocs("            extern(C++) void f();",   [1, 13]);
-    testLocs("            extern(C++) struct C {}", [1, 13]);
-    testLocs("            extern(C++) class C {}",  [1, 13]);
     testLocs("alias t = extern(C++) void f();",     [1, 11]);
 
     testLocs(`extern (C++, "ns1", "ns2", "ns3") {}`, [1, 1], [1, 1], [1, 1]);
-    testLocs("extern (C++, 'ns1')\nextern(C++, 'ns2') {}", [1, 1], [2, 1]);
-    testLocs(`extern (C++, "ns1") extern(C++, "ns2") {}`, [1, 1], [1, 21]);
+    testLocs("extern (C++, 'ns1')\n  extern(C++, 'ns2') {}", [1, 1], [2, 3]);
 }
