@@ -63,7 +63,8 @@ string intToString(int value) nothrow {
 }
 
 /// Represents a SARIF result containing a rule ID, message, and location.
-struct SarifResult {
+struct SarifResult
+{
     string ruleId;      /// Rule identifier.
     string message;     /// Error or warning message.
     string uri;         /// URI of the affected file.
@@ -74,7 +75,8 @@ struct SarifResult {
     ///
     /// Returns:
     /// - A JSON string representing the SARIF result, including the rule ID, message, and location.
-    string toJson() nothrow {
+    string toJson() nothrow
+    {
         OutBuffer buffer;
         buffer.writestring(`{"ruleId": "`);
         buffer.writestring(ruleId);
@@ -115,7 +117,8 @@ void addSarifDiagnostic(const SourceLoc loc, const(char)* format, va_list ap, Er
 }
 
 /// Represents a SARIF report containing tool information, invocation, and results.
-struct SarifReport {
+struct SarifReport
+{
     ToolInformation tool;  /// Information about the analysis tool.
     Invocation invocation;  /// Execution information.
     SarifResult[] results;  /// List of SARIF results (errors, warnings, etc.).
@@ -124,16 +127,19 @@ struct SarifReport {
     ///
     /// Returns:
     /// - A JSON string representing the SARIF report, including the tool information, invocation, and results.
-    string toJson() nothrow {
+    string toJson() nothrow
+    {
         OutBuffer buffer;
         buffer.writestring(`{"tool": `);
         buffer.writestring(tool.toJson());
         buffer.writestring(`, "invocation": `);
         buffer.writestring(invocation.toJson());
         buffer.writestring(`, "results": [`);
-        if (results.length > 0) {
+        if (results.length > 0)
+        {
             buffer.writestring(results[0].toJson());
-            foreach (result; results[1 .. $]) {
+            foreach (result; results[1 .. $])
+            {
                 buffer.writestring(`, `);
                 buffer.writestring(result.toJson());
             }
@@ -144,14 +150,16 @@ struct SarifReport {
 }
 
 /// Represents invocation information for the analysis process.
-struct Invocation {
+struct Invocation
+{
     bool executionSuccessful;  /// Whether the execution was successful.
 
     /// Converts the invocation information to a JSON string.
     ///
     /// Returns:
     /// - A JSON representation of the invocation status.
-    string toJson() nothrow {
+    string toJson() nothrow
+    {
         OutBuffer buffer;
         buffer.writestring(`{"executionSuccessful": `);
         buffer.writestring(executionSuccessful ? "true" : "false");
@@ -170,7 +178,8 @@ Params:
 Returns:
   A formatted error message string.
 */
-string formatErrorMessage(const(char)* format, va_list ap) nothrow {
+string formatErrorMessage(const(char)* format, va_list ap) nothrow
+{
     char[2048] buffer;
     import core.stdc.stdio : vsnprintf;
     vsnprintf(buffer.ptr, buffer.length, format, ap);
@@ -188,7 +197,8 @@ Returns:
 */
 string errorKindToString(ErrorKind kind) nothrow
 {
-    final switch (kind) {
+    final switch (kind)
+    {
         case ErrorKind.error: return "error";       // Serious problem
         case ErrorKind.warning: return "warning";   // Problem found
         case ErrorKind.deprecation: return "note";  // Minor problem, opportunity for improvement
@@ -220,15 +230,15 @@ void generateSarifReport(bool executionSuccessful) nothrow
     // Extract and clean the version string
     string toolVersion = global.versionString();
     // Remove 'v' prefix if it exists
-    if (toolVersion.length > 0 && toolVersion[0] == 'v') {
+    if (toolVersion.length > 0 && toolVersion[0] == 'v')
         toolVersion = toolVersion[1 .. $];
-    }
+
     // Find the first non-numeric character after the version number
     size_t length = toolVersion.length;
     const(char)* nonNumeric = strchr(toolVersion.ptr, '-');
-    if (nonNumeric) {
+    if (nonNumeric)
         length = cast(size_t)(nonNumeric - toolVersion.ptr);
-    }
+
     string cleanedVersion = toolVersion[0 .. length];
 
     // Build SARIF report
@@ -276,7 +286,8 @@ void generateSarifReport(bool executionSuccessful) nothrow
     ob.writestringln(`"results": [`);
     ob.level += 1;
 
-    foreach (idx, diag; diagnostics) {
+    foreach (idx, diag; diagnostics)
+    {
         ob.writestringln("{");
         ob.level += 1;
 
@@ -332,11 +343,10 @@ void generateSarifReport(bool executionSuccessful) nothrow
 
         // Closing brace for each diagnostic item
         ob.level -= 1;
-        if (idx < diagnostics.length - 1) {
+        if (idx < diagnostics.length - 1)
             ob.writestringln("},");
-        } else {
+        else
             ob.writestringln("}");
-        }
     }
 
     // Close the run and SARIF JSON

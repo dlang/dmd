@@ -1064,18 +1064,21 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
                     if (!vsopt.VSInstallDir)
                         vsopt.initialize();
 
-                    if (auto vcincludedir = vsopt.getVCIncludeDir()) {
+                    if (auto vcincludedir = vsopt.getVCIncludeDir())
                         includePaths.push(vcincludedir);
-                    } else {
+                    else
                         return STATUS_FAILED;
-                    }
-                    if (auto sdkincludedir = vsopt.getSDKIncludePath()) {
+
+                    if (auto sdkincludedir = vsopt.getSDKIncludePath())
+                    {
                         includePaths.push(FileName.combine(sdkincludedir, "ucrt"));
                         includePaths.push(FileName.combine(sdkincludedir, "shared"));
                         includePaths.push(FileName.combine(sdkincludedir, "um"));
                         includePaths.push(FileName.combine(sdkincludedir, "winrt"));
                         includePaths.push(FileName.combine(sdkincludedir, "cppwinrt"));
-                    } else {
+                    }
+                    else
+                    {
                         includePaths = Strings.init;
                         return STATUS_FAILED;
                     }
@@ -1193,13 +1196,15 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
 
         // pipe so we can read the output of the preprocssor
         int[2] pipefd;      // [0] is read, [1] is write
-        if (pipe(&pipefd[0]) == -1) {
+        if (pipe(&pipefd[0]) == -1)
+        {
             perror("pipe");     // failed to create pipe
             return STATUS_FAILED;
         }
 
         pid_t childpid = fork();
-        if (childpid == -1) {
+        if (childpid == -1)
+        {
             perror("fork failed");     // fork failed
             return STATUS_FAILED;
         }
@@ -1223,11 +1228,11 @@ public int runPreprocessor(Loc loc, const(char)[] cpp, const(char)[] filename, c
         OutBuffer buffer;
         ubyte[1024] tmp = void;
         ptrdiff_t nread;
-        while ((nread = read(pipefd[0], tmp.ptr, tmp.length)) > 0) {
+        while ((nread = read(pipefd[0], tmp.ptr, tmp.length)) > 0)
             buffer.write(tmp[0 .. nread]);
-        }
 
-        if (nread == -1) {
+        if (nread == -1)
+        {
             perror("read");
             return STATUS_FAILED;
         }

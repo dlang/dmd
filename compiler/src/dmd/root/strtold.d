@@ -356,7 +356,8 @@ longdouble_soft strtold_dm(const(char) *p, char **endp)
             pow >>= 1;
             u++;
         }
-        static if(0) {
+        static if(0)
+        {
             for (int i = 0; i < 5; i++)
                 printf("%04x ",ldval.value[i]);
             printf("\n");
@@ -419,8 +420,8 @@ void  main()
 
 /************************* Bigint ************************************/
 
-static if (0) {
-
+static if (0)
+{
 /* This program computes powers of 10 exactly.
  * Used to generate postab[].
  */

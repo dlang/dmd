@@ -5343,7 +5343,8 @@ void aliasSemantic(AliasDeclaration ds, Scope* sc)
             {
                 s = tident.toDsymbol(sc);
                 // don't error for `var1.static_symbol`
-                if (s && s.needThis()) {
+                if (s && s.needThis())
+                {
                     error(ds.loc, "cannot alias %s member `%s` of variable `%s`",
                         s.kind(), s.toChars(), mt.ident.toChars());
                     errorSupplemental(ds.loc, "Use `typeof(%s)` instead to preserve behaviour",
