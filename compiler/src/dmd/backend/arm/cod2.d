@@ -374,7 +374,8 @@ void cddiv(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 @trusted
 void cdnot(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
-    //printf("cdnot()\n");
+    //printf("cdnot() pretregs = %s\n", regm_str(pretregs));
+    //elem_print(e);
     reg_t reg;
     regm_t forflags;
     elem* e1 = e.E1;
@@ -391,33 +392,23 @@ void cdnot(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     if (tyfloating(e1.Ety))
     {
-        code* cnop  = gen1(null, INSTR.nop);
-        code* ctrue = gen1(null, INSTR.nop);
-        logexp(cdb,e.E1,(op == OPnot) ? false : true,FL.code,ctrue);
-        forflags = pretregs & mPSW;
-        if (I64 && sz == 8)
-            forflags |= 64;
-        assert(tysize(e.Ety) <= REGSIZE);              // result better be int
-        CodeBuilder cdbfalse;
-        cdbfalse.ctor();
-        reg = allocreg(cdbfalse,pretregs,e.Ety);        // allocate reg for result
-        code* cfalse = cdbfalse.finish();
-        CodeBuilder cdbtrue;
-        cdbtrue.ctor();
-        cdbtrue.append(ctrue);
-        for (code* c1 = cfalse; c1; c1 = code_next(c1))
-            cdbtrue.gen(c1);                                      // duplicate reg save code
-        CodeBuilder cdbfalse2;
-        cdbfalse2.ctor();
-        movregconst(cdbfalse2,reg,0,forflags);                    // mov 0 into reg
-        cgstate.regcon.immed.mval &= ~mask(reg);                  // mark reg as unavail
-        movregconst(cdbtrue,reg,1,forflags);                      // mov 1 into reg
-        cgstate.regcon.immed.mval &= ~mask(reg);                  // mark reg as unavail
-        genBranch(cdbfalse2,COND.al,FL.code,cast(block*) cnop);   // JMP cnop
-        cdb.append(cfalse);
-        cdb.append(cdbfalse2);
-        cdb.append(cdbtrue);
-        cdb.append(cnop);
+        regm_t retregs1 = INSTR.FLOATREGS;
+        codelem(cgstate,cdb,e.E1,retregs1,1);
+        const V1 = findreg(retregs1);
+        const ftype = INSTR.szToFtype(sz);
+        cdb.gen1(INSTR.fcmpe_float(ftype,0,V1));        // FCMPE V1,#0.0
+
+        regm_t retregs = pretregs & cgstate.allregs;
+        if (!retregs)
+            retregs = cgstate.allregs;
+        const Rd = findreg(retregs);
+        const cond = op == OPnot ? COND.ne : COND.eq;
+        cdb.gen1(INSTR.cset(sz == 8,cond,Rd));          // CSET Rd,eq
+        uint N,immr,imms;
+        assert(encodeNImmrImms(0xFF,N,immr,imms));
+        cdb.gen1(INSTR.log_imm(0,0,0,immr,imms,Rd,Rd)); // AND Rd,Rd,#0xFF
+        pretregs &= ~mPSW;                              // flags already set
+        fixresult(cdb,e,retregs,pretregs);
     }
     else
     {
