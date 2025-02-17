@@ -1162,40 +1162,28 @@ void getlvalue(ref CodeBuilder cdb,ref code pcs,elem* e,regm_t keepmsk,RM rm = R
 // fltregs
 
 /*****************************
- * Given a result in registers, test it for true or false.
- * Will fail if TYfptr and the reg is ES!
- * If saveflag is true, preserve the contents of the
- * registers.
+ * Given a result in registers regm, test it for true or false.
+ * Params:
+ *      cdb = generated code sink
+ *      regm = result register(s) and mPSW
+ *      tym = type of result
+ *      saveflag = true means preserve the contents of the registers
  */
 @trusted
 void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, bool saveflag)
 {
-    reg_t scrreg;                      // scratch register
-    regm_t scrregm;
-
-    //if (!(regm & (mBP | ALLREGS)))
-        //printf("tstresult(regm = %s, tym = x%x, saveflag = %d)\n",
-            //regm_str(regm),tym,saveflag);
+    //printf("tstresult(regm = %s, tym = x%x, saveflag = %d)\n",regm_str(regm),tym,saveflag);
 
     tym = tybasic(tym);
     reg_t reg = findreg(regm);
     uint sz = _tysize[tym];
-    assert(regm & cgstate.allregs);
-static if (0)
-{
-    assert(regm & (XMMREGS | mBP | ALLREGS));
-    if (sz == 1)
-    {
-        assert(regm & BYTEREGS);
-        genregs(cdb, 0x84, reg, reg);        // TEST regL,regL
-        if (I64 && reg >= 4)
-            code_orrex(cdb.last(), REX);
-        return;
-    }
+    assert(regm & (cgstate.allregs | INSTR.FLOATREGS));
+
+    static if (0)
     if (regm & XMMREGS)
     {
         regm_t xregs = XMMREGS & ~regm;
-        const xreg = allocreg(cdb,xregs, TYdouble);
+        const xreg = allocreg(cdb,xregs,TYdouble);
         opcode_t op = 0;
         if (tym == TYdouble || tym == TYidouble || tym == TYcdouble)
             op = 0x660000;
@@ -1211,103 +1199,15 @@ static if (0)
         }
         return;
     }
-}
-    if (sz <= REGSIZE)
+
+    if (tyfloating(tym))
     {
-        if (tym == TYfloat)
-        {
-            if (saveflag)
-            {
-                scrregm = cgstate.allregs & ~regm;              // possible scratch regs
-                scrreg = allocreg(cdb, scrregm, TYoffset); // allocate scratch reg
-                genmovreg(cdb, scrreg, reg);  // MOV scrreg,msreg
-                reg = scrreg;
-            }
-            getregs(cdb, mask(reg));
-            cdb.gen2(0xD1, modregrmx(3, 4, reg)); // SHL reg,1
-            return;
-        }
-    }
-
-    gentstreg(cdb,reg,sz == 8);                 // CMP reg,#0
-
-
-static if (0)
-{
-    if (saveflag || tyfv(tym))
-    {
-    L1:
-        scrregm = ALLREGS & ~regm;              // possible scratch regs
-        scrreg = allocreg(cdb, scrregm, TYoffset); // allocate scratch reg
-        if (I32 || sz == REGSIZE * 2)
-        {
-            assert(regm & mMSW && regm & mLSW);
-
-            reg = findregmsw(regm);
-            if (I32)
-            {
-                if (tyfv(tym))
-                    genregs(cdb, MOVZXw, scrreg, reg); // MOVZX scrreg,msreg
-                else
-                {
-                    genmovreg(cdb, scrreg, reg);      // MOV scrreg,msreg
-                    if (tym == TYdouble || tym == TYdouble_alias)
-                        cdb.gen2(0xD1, modregrm(3, 4, scrreg)); // SHL scrreg,1
-                }
-            }
-            else
-            {
-                genmovreg(cdb, scrreg, reg);  // MOV scrreg,msreg
-                if (tym == TYfloat)
-                    cdb.gen2(0xD1, modregrm(3, 4, scrreg)); // SHL scrreg,1
-            }
-            reg = findreglsw(regm);
-            genorreg(cdb, scrreg, reg);           // OR scrreg,lsreg
-        }
-        else if (sz == 8)
-        {
-            // !I32
-            genmovreg(cdb, scrreg, AX);           // MOV scrreg,AX
-            if (tym == TYdouble || tym == TYdouble_alias)
-                cdb.gen2(0xD1 ,modregrm(3, 4, scrreg));         // SHL scrreg,1
-            genorreg(cdb, scrreg, BX);            // OR scrreg,BX
-            genorreg(cdb, scrreg, CX);            // OR scrreg,CX
-            genorreg(cdb, scrreg, DX);            // OR scrreg,DX
-        }
-        else
-            assert(0);
+        const ftype = INSTR.szToFtype(sz);
+        cdb.gen1(INSTR.fcmp_float(ftype,0,reg));    // FCMP Vn,#0.0
     }
     else
-    {
-        if (I32 || sz == REGSIZE * 2)
-        {
-            // can't test ES:LSW for 0
-            assert(regm & mMSW & ALLREGS && regm & (mLSW | mBP));
-
-            reg = findregmsw(regm);
-            if (cgstate.regcon.mvar & mask(reg))        // if register variable
-                goto L1;                        // don't trash it
-            getregs(cdb, mask(reg));            // we're going to trash reg
-            if (tyfloating(tym) && sz == 2 * _tysize[TYint])
-                cdb.gen2(0xD1, modregrm(3 ,4, reg));   // SHL reg,1
-            genorreg(cdb, reg, findreglsw(regm));     // OR reg,reg+1
-            if (I64)
-                code_orrex(cdb.last(), REX_W);
-       }
-        else if (sz == 8)
-        {   assert(regm == DOUBLEREGS_16);
-            getregs(cdb,mAX);                  // allocate AX
-            if (tym == TYdouble || tym == TYdouble_alias)
-                cdb.gen2(0xD1, modregrm(3, 4, AX));       // SHL AX,1
-            genorreg(cdb, AX, BX);          // OR AX,BX
-            genorreg(cdb, AX, CX);          // OR AX,CX
-            genorreg(cdb, AX, DX);          // OR AX,DX
-        }
-        else
-            assert(0);
-    }
+        gentstreg(cdb,reg,sz == 8);                 // CMP reg,#0
     code_orflag(cdb.last(),CFpsw);
-}
 }
 
 
