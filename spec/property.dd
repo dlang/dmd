@@ -283,6 +283,30 @@ $(D object.TypeInfo_Class)).)
 $(P $(CODE .classinfo) applied to an interface gives the information for the
 interface, not the class it might be an instance of.)
 
+$(H2 $(LNAME2 classinfo, .tupleof Property))
+
+$(P $(CODE .tupleof) provides a tuple representation of a struct. That way,
+it is possible to iterate on each by using $(CODE foreach).)
+
+---
+struct Vector3
+{
+    int x, y, z;
+}
+
+void test()
+{
+    Vector3 v = Vector3(5, 10, 15);
+    float sum = 0;
+    foreach(num; v.tupleof)
+    {
+        sum+= num;
+    }
+    writeln(sum); //30
+}
+---
+
+
 $(H2 $(LNAME2 classproperties, User-Defined Properties))
 
         $(P User-defined properties can be created using $(LINK2 function.html#property-functions, Property Functions).)
