@@ -98,11 +98,25 @@ void genhdrfile(Module m, bool doFuncBodies, ref OutBuffer buf)
 }
 
 /**
- * Convert `e` to a string for error messages.
+ * Convert `o` to a string for error messages.
  * Params:
- *      e = expression to convert
+ *      e = object to convert
  * Returns: string representation of `e`
  */
+const(char)* toErrMsg(const RootObject o)
+{
+    if (auto e = o.isExpression())
+        return toErrMsg(e);
+    if (auto d = o.isDsymbol())
+        return toErrMsg(d);
+    if (auto t = o.isType())
+        return t.toChars();
+    if (auto id = o.isIdentifier())
+        return id.toChars();
+    assert(0);
+}
+
+/// ditto
 const(char)* toErrMsg(const Expression e)
 {
     HdrGenState hgs;
@@ -119,7 +133,7 @@ const(char)* toErrMsg(const Dsymbol d)
 {
     if (d.isFuncDeclaration() || d.isTemplateInstance())
     {
-        if (d.ident && d.ident.toString.startsWith("__"))
+        if (d.ident && d.ident.toString.startsWith("__") && !d.isCtorDeclaration())
         {
             HdrGenState hgs;
             hgs.errorMsg = true;
