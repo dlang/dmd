@@ -136,6 +136,13 @@ inout(Parameter) isParameter(inout RootObject o)
     return cast(inout(Parameter))o;
 }
 
+inout(Identifier) isIdentifier(inout RootObject o)
+{
+    if (!o || o.dyncast() != DYNCAST.identifier)
+        return null;
+    return cast(inout(Identifier))o;
+}
+
 inout(TemplateParameter) isTemplateParameter(inout RootObject o)
 {
     if (!o || o.dyncast() != DYNCAST.templateparameter)
