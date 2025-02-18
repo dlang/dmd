@@ -13075,7 +13075,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     exp.e1 = exp.e1.implicitCastTo(sc, ta.index);
                 }
 
-                semanticTypeInfo(sc, ta.index);
+                // even though the glue layer only needs the type info of the index,
+                // this might be the first time an AA literal is accessed, so check
+                // the full type info
+                semanticTypeInfo(sc, ta);
 
                 // Return type is pointer to value
                 exp.type = ta.nextOf().pointerTo();

@@ -300,6 +300,14 @@ void testinout()
 }
 
 /************************************************/
+// type info generated for enum creation in InExp?
+void testinenum()
+{
+    enum string[string] aa = [ "one" : "un", "two" : "deux" ];
+    assert("one" in aa);
+}
+
+/************************************************/
 
 int main()
 {
@@ -309,6 +317,7 @@ int main()
     test3825();
     test3825x();
     testinout();
+    testinenum();
 
     printf("Success\n");
     return 0;
