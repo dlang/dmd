@@ -287,6 +287,19 @@ struct PropertyTable10106
 }
 
 /************************************************/
+// strip inout in key and value types
+void testinout()
+{
+    inout(long) func1(inout(long[][int]) aa)
+    {
+        return aa[0][0];
+    }
+    long[][int] a = [ 0 : [42] ];
+    long b = func1(a);
+    assert(b == 42);
+}
+
+/************************************************/
 
 int main()
 {
@@ -295,6 +308,7 @@ int main()
     test4523();
     test3825();
     test3825x();
+    testinout();
 
     printf("Success\n");
     return 0;

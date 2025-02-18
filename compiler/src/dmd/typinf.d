@@ -200,17 +200,18 @@ TypeInfoDeclaration getTypeInfoAssocArrayDeclaration(TypeAArray t, Scope* sc)
 }
 
 /******************************************
-* Find or create a TypeAArray with index and next without any modifiers
-*
-* Params:
-*      t = TypeAArray to convert
-* Returns:
-*      t = found type
-*/
+ * Find or create a TypeAArray with index and next without
+ * any head modifiers, tail `inout` is replaced with `const`
+ *
+ * Params:
+ *      t = TypeAArray to convert
+ * Returns:
+ *      t = found type
+ */
 Type makeNakedAssociativeArray(TypeAArray t)
 {
-    Type tindex = t.index.toBasetype().nakedOf();
-    Type tnext = t.next.toBasetype().nakedOf();
+    Type tindex = t.index.toBasetype().nakedOf().substWildTo(MODFlags.const_);
+    Type tnext = t.next.toBasetype().nakedOf().substWildTo(MODFlags.const_);
     if (tindex == t.index && tnext == t.next)
         return t;
 
