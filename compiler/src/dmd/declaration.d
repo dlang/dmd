@@ -54,6 +54,7 @@ else version = MARS;
  */
 void ObjectNotFound(Loc loc, Identifier id)
 {
+    global.gag = 0; // never gag the fatal error
     error(loc, "`%s` not found. object.d may be incorrectly installed or corrupt.", id.toChars());
     version (IN_LLVM)
     {
