@@ -285,8 +285,12 @@ interface, not the class it might be an instance of.)
 
 $(H2 $(LNAME2 tupleof, .tupleof Property))
 
-$(P $(CODE .tupleof) provides a tuple representation of a struct. That way,
-it is possible to iterate on each by using $(CODE foreach).)
+$(P $(CODE .tupleof) provides a symbol sequence of all the non-static fields in a struct or class.
+The order of the fields in the tuple matches the order in which the fields are declared.
+
+For classes, hidden fields and fields of the bass class are excluded.
+
+A common use case is to iterate over the fields with a $(CODE foreach) loop.)
 
 ---
 struct Vector3
