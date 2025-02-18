@@ -283,7 +283,7 @@ $(D object.TypeInfo_Class)).)
 $(P $(CODE .classinfo) applied to an interface gives the information for the
 interface, not the class it might be an instance of.)
 
-$(H2 $(LNAME2 classinfo, .tupleof Property))
+$(H2 $(LNAME2 tupleof, .tupleof Property))
 
 $(P $(CODE .tupleof) provides a tuple representation of a struct. That way,
 it is possible to iterate on each by using $(CODE foreach).)
