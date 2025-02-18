@@ -1147,6 +1147,7 @@ int el_countCommas(const(elem)* e)
 @trusted
 elem* el_convfloat(ref GlobalOptimizer go, elem* e)
 {
+    //printf("el_convfloat()\n"); elem_print(e);
     ubyte[32] buffer = void;
 
     assert(config.inline8087);
