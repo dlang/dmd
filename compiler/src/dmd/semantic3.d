@@ -933,7 +933,37 @@ private extern(C++) final class Semantic3Visitor : Visitor
                             // if a copy constructor is present, the return type conversion will be handled by it
                             const hasCopyCtor = exp.type.ty == Tstruct && (cast(TypeStruct)exp.type).sym.hasCopyCtor;
                             if (!hasCopyCtor || !exp.isLvalue())
-                                exp = exp.implicitCastTo(sc2, tret);
+                            {
+                                const errors = global.startGagging();
+                                auto implicitlyCastedExp = exp.implicitCastTo(sc2, tret);
+                                global.endGagging(errors);
+
+                                // <https://github.com/dlang/dmd/issues/20888>
+                                if (implicitlyCastedExp.isErrorExp())
+                                {
+                                    auto types = toAutoQualChars(exp.type, tret);
+                                    error(
+                                        exp.loc,
+                                        "return value `%s` of type `%s` does not match return type `%s`"
+                                        ~ ", and cannot be implicitly converted",
+                                        exp.toErrMsg(),
+                                        types[0],
+                                        types[1],
+                                    );
+
+                                    if (const func = exp.type.isFunction_Delegate_PtrToFunction())
+                                        if (func.next.equals(tret))
+                                            errorSupplemental(
+                                                exp.loc,
+                                                "Did you intend to call the %s?",
+                                                (exp.type.isPtrToFunction())
+                                                    ? "function pointer"
+                                                    : exp.type.kind
+                                            );
+                                }
+
+                                exp = implicitlyCastedExp;
+                            }
 
                             exp = exp.optimize(WANTvalue);
 
