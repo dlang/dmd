@@ -13317,7 +13317,6 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         if (exp.e1.type.toBasetype().ty == Taarray)
         {
             semanticTypeInfo(sc, exp.e1.type.toBasetype());
-            getTypeInfoType(exp.loc, exp.e1.type, sc);
         }
 
         if (!target.isVectorOpSupported(t1, exp.op, t2))
