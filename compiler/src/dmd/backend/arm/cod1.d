@@ -37,6 +37,7 @@ import dmd.backend.ty;
 import dmd.backend.type;
 import dmd.backend.arm.cod3 : COND, genBranch, conditionCode, gentstreg;
 import dmd.backend.arm.instr;
+import dmd.backend.arm.cod3 : loadFloatRegConst;
 import dmd.backend.x86.cod1 : cdisscaledindex, ssindex_array;
 
 import dmd.backend.cg : segfl, stackfl;
@@ -2173,8 +2174,6 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
 @trusted
 void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
 {
-static if (1)
-{
     reg_t reg;
     reg_t nreg;
     reg_t sreg;
@@ -2216,7 +2215,7 @@ static if (1)
     forregs = outretregs & (cgstate.allregs | INSTR.FLOATREGS);     // XMMREGS ?
     if (e.Eoper == OPconst)
     {
-        if (tyvector(tym) && forregs & XMMREGS)
+        if (0 && tyvector(tym) && forregs & XMMREGS)	// TODO
         {
             assert(!flags);
             const xreg = allocreg(cdb, forregs, tym);     // allocate registers
@@ -2224,6 +2223,16 @@ static if (1)
             fixresult(cdb, e, forregs, outretregs);
             return;
         }
+
+	if (tyfloating(tym))
+	{
+            const vreg = allocreg(cdb, forregs, tym);     // allocate floating point register
+	    float value = e.Vfloat;
+	    if (sz == 8)
+		value = e.Vdouble;
+	    loadFloatRegConst(cdb,vreg,value,sz);
+	    return;
+	}
 
         targ_size_t value = e.Vint;
         if (sz == 8)
@@ -2413,5 +2422,4 @@ static if (1)
         fixresult(cdb, e, forregs, outretregs);
         return;
     }
-}
 }

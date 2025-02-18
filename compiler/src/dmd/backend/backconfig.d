@@ -100,7 +100,8 @@ void out_config_init(
     }
     cfg.fulltypes = CVNONE;
     cfg.fpxmmregs = false;
-    cfg.inline8087 = 1;
+    if (!arm)
+	cfg.inline8087 = 1;
     cfg.memmodel = 0;
     cfg.flags |= CFGuchar;   // make sure TYchar is unsigned
     cfg.exe = exefmt;

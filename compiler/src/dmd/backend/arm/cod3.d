@@ -30,6 +30,7 @@ import dmd.backend.cc;
 import dmd.backend.cdef;
 import dmd.backend.cgcse;
 import dmd.backend.code;
+import dmd.backend.arm.disasmarm : encodeHFD;
 import dmd.backend.x86.cgcod : disassemble;
 import dmd.backend.x86.code_x86;
 import dmd.backend.x86.cod3;
@@ -218,7 +219,6 @@ COND conditionCode(elem* e)
 // genmovreg
 // genmulimm
 // genshift
-// movregconst
 
 /**************************
  * Generate a jump instruction.
@@ -695,6 +695,45 @@ void genmovreg(ref CodeBuilder cdb, reg_t to, reg_t from, tym_t ty = TYMAX)
     }
 }
 
+/*************************************
+ * Load constant floating point value into vreg.
+ * Params:
+ *      cdb = code sink for generated output
+ *      vreg = target floating point register
+ *      value = value to move into register
+ *      sz = 4 for float, 8 for double
+ */
+@trusted
+void loadFloatRegConst(ref CodeBuilder cdb, reg_t vreg, double value, uint sz)
+{
+    assert(vreg & 32);
+    ubyte imm8;
+    if (encodeHFD(value, imm8))
+    {
+	uint ftype = INSTR.szToFtype(sz);
+	cdb.gen1(INSTR.fmov_float_imm(ftype,imm8,vreg)); // FMOV <Vd>,#<imm8>
+    }
+    else if (sz == 4)
+    {
+	float f = value;
+	uint i = *cast(uint*)&f;
+	regm_t retregs = ALLREGS;			// TODO cg.allregs?
+	reg_t reg = allocreg(cdb, retregs, TYfloat);
+	movregconst(cdb,reg,i,0);			  // MOV reg,i
+	cdb.gen1(INSTR.fmov_float_gen(0,0,0,7,reg,vreg)); // FMOV Sd,Wn
+    }
+    else if (sz == 8)
+    {
+	ulong i = *cast(ulong*)&value;
+	regm_t retregs = ALLREGS;			// TODO cg.allregs?
+	reg_t reg = allocreg(cdb, retregs, TYdouble);
+	movregconst(cdb,reg,i,64);			  // MOV reg,i
+	cdb.gen1(INSTR.fmov_float_gen(1,1,0,7,reg,vreg)); // FMOV Dd,Xn
+    }
+    else
+	assert(0);
+    //cgstate.regimmed_set(vreg,value); // TODO
+}
 
 /******************************
  * Move constant value into reg.
@@ -846,7 +885,7 @@ void movregconst(ref CodeBuilder cdb,reg_t reg,targ_size_t value,regm_t flags)
 done:
     if (flags & mPSW)
         gentstreg(cdb,reg,(flags & 64) != 0);
-printf("set reg %d to %lld\n", reg, value);
+    //printf("set reg %d to %lld\n", reg, value);
     cgstate.regimmed_set(reg,value);
 }
 
