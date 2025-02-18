@@ -1896,8 +1896,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             const sident = se.toStringz();
             if (!sident.length || !Identifier.isValidIdentifier(sident))
             {
-                error(ns.exp.loc, "expected valid identifier for C++ namespace but got `%.*s`",
-                             cast(int)sident.length, sident.ptr);
+                error(ns.exp.loc, "expected valid identifier for C++ namespace but got `%s`", se.toErrMsg());
                 return null;
             }
             else

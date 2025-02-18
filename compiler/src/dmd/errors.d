@@ -714,7 +714,10 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
         writeHighlights(con, tmp);
     }
     else
+    {
+        unescapeBackticks(tmp);
         fputs(tmp.peekChars(), stderr);
+    }
     fputc('\n', stderr);
 
     __gshared SourceLoc old_loc;
@@ -828,6 +831,7 @@ extern (C++) void halt() @safe
  * is D source code, and color syntax highlight it.
  * Modify contents of `buf` with highlighted result.
  * Many parallels to ddoc.highlightText().
+ * Double backticks are replaced by a single backtick without coloring.
  * Params:
  *      buf = text containing `...` code to highlight
  */
@@ -843,6 +847,13 @@ private void colorSyntaxHighlight(ref OutBuffer buf)
         switch (c)
         {
             case '`':
+                // A double backtick means it's part of the content, don't color
+                if (i + 1 < buf.length && buf[i + 1] == '`')
+                {
+                    buf.remove(i, 1);
+                    continue;
+                }
+
                 if (inBacktick)
                 {
                     inBacktick = false;
@@ -867,6 +878,27 @@ private void colorSyntaxHighlight(ref OutBuffer buf)
     }
 }
 
+/// Replace double backticks in `buf` with a single backtick
+void unescapeBackticks(ref OutBuffer buf)
+{
+    for (size_t i = 0; i + 1 < buf.length; ++i)
+    {
+        if (buf[i] == '`' && buf[i + 1] == '`')
+            buf.remove(i, 1);
+    }
+}
+
+unittest
+{
+    OutBuffer buf;
+    buf.writestring("x````");
+    unescapeBackticks(buf);
+    assert(buf.extractSlice() == "x``");
+
+    buf.writestring("x````");
+    colorSyntaxHighlight(buf);
+    assert(buf.extractSlice() == "x``");
+}
 
 /**
  * Embed these highlighting commands in the text stream.
