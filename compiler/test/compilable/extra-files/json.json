@@ -10,7 +10,7 @@
                 "endline": 8,
                 "kind": "shared static constructor",
                 "line": 8,
-                "name": "_sharedStaticCtor_L8_C1",
+                "name": "_sharedStaticCtor263",
                 "protection": "public",
                 "storageClass": [
                     "static"
@@ -36,7 +36,7 @@
                 "endline": 10,
                 "kind": "shared static destructor",
                 "line": 10,
-                "name": "_sharedStaticDtor_L10_C1",
+                "name": "_sharedStaticDtor304",
                 "protection": "public",
                 "storageClass": [
                     "static"
@@ -66,7 +66,7 @@
                         "endline": 15,
                         "kind": "shared static constructor",
                         "line": 15,
-                        "name": "_sharedStaticCtor_L15_C5",
+                        "name": "_sharedStaticCtor368",
                         "storageClass": [
                             "static"
                         ]
@@ -88,7 +88,7 @@
                         "endline": 17,
                         "kind": "shared static destructor",
                         "line": 17,
-                        "name": "_sharedStaticDtor_L17_C5",
+                        "name": "_sharedStaticDtor417",
                         "storageClass": [
                             "static"
                         ]
@@ -134,7 +134,7 @@
                         "endline": 25,
                         "kind": "shared static constructor",
                         "line": 25,
-                        "name": "_sharedStaticCtor_L25_C5",
+                        "name": "_sharedStaticCtor511",
                         "protection": "public",
                         "storageClass": [
                             "static"
@@ -160,7 +160,7 @@
                         "endline": 27,
                         "kind": "shared static destructor",
                         "line": 27,
-                        "name": "_sharedStaticDtor_L27_C5",
+                        "name": "_sharedStaticDtor560",
                         "protection": "public",
                         "storageClass": [
                             "static"

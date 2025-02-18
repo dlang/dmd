@@ -30,19 +30,19 @@ enum thisFile = "runnable"~sep~"testkeyword.d";
 enum thisMod  = "testkeyword";
 
 static assert(getFuncArgFile()  == thisFile);
-static assert(getFuncArgLine()  == 33);
+static assert(getFuncArgLine()  == __LINE__);
 static assert(getFuncArgMod()   == thisMod);
 static assert(getFuncArgFunc()  == "");
 static assert(getFuncArgFunc2() == "");
 
 static assert(getFuncTiargFile()  == thisFile);
-static assert(getFuncTiargLine()  == 39);
+static assert(getFuncTiargLine()  == __LINE__);
 static assert(getFuncTiargMod()   == thisMod);
 static assert(getFuncTiargFunc()  == "");
 static assert(getFuncTiargFunc2() == "");
 
 static assert(getInstTiargFile!()  == thisFile);
-static assert(getInstTiargLine!()  == 45);
+static assert(getInstTiargLine!()  == __LINE__);
 static assert(getInstTiargMod!()   == thisMod);
 static assert(getInstTiargFunc!()  == "");
 static assert(getInstTiargFunc2!() == "");
@@ -53,19 +53,19 @@ void main(string[] args) nothrow
     enum thisFunc2 = "void testkeyword.main(string[] args) nothrow";
 
     static assert(getFuncArgFile()  == thisFile);
-    static assert(getFuncArgLine()  == 56);
+    static assert(getFuncArgLine()  == __LINE__);
     static assert(getFuncArgMod()   == thisMod);
     static assert(getFuncArgFunc()  == thisFunc);
     static assert(getFuncArgFunc2() == thisFunc2);
 
     static assert(getFuncTiargFile()  == thisFile);
-    static assert(getFuncTiargLine()  == 62);
+    static assert(getFuncTiargLine()  == __LINE__);
     static assert(getFuncTiargMod()   == thisMod);
     static assert(getFuncTiargFunc()  == thisFunc);
     static assert(getFuncTiargFunc2() == thisFunc2);
 
     static assert(getInstTiargFile!()  == thisFile);
-    static assert(getInstTiargLine!()  == 68);
+    static assert(getInstTiargLine!()  == __LINE__);
     static assert(getInstTiargMod!()   == thisMod);
     static assert(getInstTiargFunc!()  == thisFunc);
     static assert(getInstTiargFunc2!() == thisFunc2);
@@ -76,19 +76,19 @@ void main(string[] args) nothrow
         enum thisFunc2 = "void testkeyword.main.nested(int x, float y) nothrow";
 
         static assert(getFuncArgFile()  == thisFile);
-        static assert(getFuncArgLine()  == 79);
+        static assert(getFuncArgLine()  == __LINE__);
         static assert(getFuncArgMod()   == thisMod);
         static assert(getFuncArgFunc()  == thisFunc);
         static assert(getFuncArgFunc2() == thisFunc2);
 
         static assert(getFuncTiargFile()  == thisFile);
-        static assert(getFuncTiargLine()  == 85);
+        static assert(getFuncTiargLine()  == __LINE__);
         static assert(getFuncTiargMod()   == thisMod);
         static assert(getFuncTiargFunc()  == thisFunc);
         static assert(getFuncTiargFunc2() == thisFunc2);
 
         static assert(getInstTiargFile!()  == thisFile);
-        static assert(getInstTiargLine!()  == 91);
+        static assert(getInstTiargLine!()  == __LINE__);
         static assert(getInstTiargMod!()   == thisMod);
         static assert(getInstTiargFunc!()  == thisFunc);
         static assert(getInstTiargFunc2!() == thisFunc2);
@@ -97,26 +97,17 @@ void main(string[] args) nothrow
 
     auto funcLiteral = (int x, int y)
     {
-        enum thisFunc  = "testkeyword.main.__lambda_L98_C24";
-        enum thisFunc2 = "testkeyword.main.__lambda_L98_C24(int x, int y)";
-
         static assert(getFuncArgFile()  == thisFile);
-        static assert(getFuncArgLine()  == 104);
+        static assert(getFuncArgLine()  == __LINE__);
         static assert(getFuncArgMod()   == thisMod);
-        static assert(getFuncArgFunc()  == thisFunc);
-        static assert(getFuncArgFunc2() == thisFunc2);
 
         static assert(getFuncTiargFile()  == thisFile);
-        static assert(getFuncTiargLine()  == 110);
+        static assert(getFuncTiargLine()  == __LINE__);
         static assert(getFuncTiargMod()   == thisMod);
-        static assert(getFuncTiargFunc()  == thisFunc);
-        static assert(getFuncTiargFunc2() == thisFunc2);
 
         static assert(getInstTiargFile!()  == thisFile);
-        static assert(getInstTiargLine!()  == 116);
+        static assert(getInstTiargLine!()  == __LINE__);
         static assert(getInstTiargMod!()   == thisMod);
-        static assert(getInstTiargFunc!()  == thisFunc);
-        static assert(getInstTiargFunc2!() == thisFunc2);
     };
     funcLiteral(1, 2);
 
@@ -128,19 +119,19 @@ void main(string[] args) nothrow
             enum thisFunc2 = `void testkeyword.main.S.func!("foo", int, symbol, int[], float[]).func(int x) const`;
 
             static assert(getFuncArgFile()  == thisFile);
-            static assert(getFuncArgLine()  == 131);
+            static assert(getFuncArgLine()  == __LINE__);
             static assert(getFuncArgMod()   == thisMod);
             static assert(getFuncArgFunc()  == thisFunc);
             static assert(getFuncArgFunc2() == thisFunc2);
 
             static assert(getFuncTiargFile()  == thisFile);
-            static assert(getFuncTiargLine()  == 137);
+            static assert(getFuncTiargLine()  == __LINE__);
             static assert(getFuncTiargMod()   == thisMod);
             static assert(getFuncTiargFunc()  == thisFunc);
             static assert(getFuncTiargFunc2() == thisFunc2);
 
             static assert(getInstTiargFile!()  == thisFile);
-            static assert(getInstTiargLine!()  == 143);
+            static assert(getInstTiargLine!()  == __LINE__);
             static assert(getInstTiargMod!()   == thisMod);
             static assert(getInstTiargFunc!()  == thisFunc);
             static assert(getInstTiargFunc2!() == thisFunc2);
