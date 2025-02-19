@@ -31,6 +31,7 @@ import dmd.enumsem;
 import dmd.errors;
 import dmd.expression;
 import dmd.dsymbolsem : determineSize;
+import dmd.func : FuncDeclaration;
 import dmd.globals;
 import dmd.hdrgen;
 import dmd.id;
@@ -2484,6 +2485,8 @@ extern (C++) final class TypeFunction : TypeNext
         bool isInOutQual;      /// inout on the qualifier
         bool isCtor;           /// the function is a constructor
         bool isReturnScope;    /// `this` is returned by value
+        bool isCtonly;         /// is @ctonly
+        bool isCtonlyInferred; /// was @ctonly inferred
     }
 
     import dmd.common.bitfields : generateBitFields;
@@ -2494,6 +2497,7 @@ extern (C++) final class TypeFunction : TypeNext
     PURE purity = PURE.impure;
     byte inuse;
     ArgumentList inferenceArguments; // function arguments to determine `auto ref` in type semantic
+    FuncDeclaration ctOnlyInferReason = null;
 
     extern (D) this(ParameterList pl, Type treturn, LINK linkage, StorageClass stc = 0) @safe
     {
@@ -2514,6 +2518,8 @@ extern (C++) final class TypeFunction : TypeNext
             this.isProperty = true;
         if (stc & STC.live)
             this.isLive = true;
+        if (stc & STC.ctonly)
+            this.isCtonly = true;
 
         if (stc & STC.ref_)
             this.isRef = true;
@@ -2568,6 +2574,7 @@ extern (C++) final class TypeFunction : TypeNext
         t.trust = trust;
         t.inferenceArguments = inferenceArguments;
         t.isCtor = isCtor;
+        t.isCtonly = isCtonly;
         return t;
     }
 
@@ -4292,6 +4299,8 @@ void attributesApply(const TypeFunction tf, void delegate(string) dg, TRUSTforma
         dg("scope");
     if (tf.isLive)
         dg("@live");
+    if (tf.isCtonly)
+        dg("@ctonly");
 
     TRUST trustAttrib = tf.trust;
 
