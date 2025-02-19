@@ -99,6 +99,8 @@ public:
     SearchOptFlags searchCacheFlags;       // cached flags
     d_bool insearch;
 
+    d_bool isExplicitlyOutOfBinary; // Is this module known to be out of binary, and must be DllImport'd?
+
     // module from command line we're imported from,
     // i.e. a module that will be taken all the
     // way to an object file

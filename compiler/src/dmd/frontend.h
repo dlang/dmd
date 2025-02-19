@@ -7183,6 +7183,7 @@ public:
     Dsymbol* searchCacheSymbol;
     uint32_t searchCacheFlags;
     bool insearch;
+    bool isExplicitlyOutOfBinary;
     Module* importedFrom;
     Array<Dsymbol* >* decldefs;
     Array<Module* > aimports;
@@ -8406,12 +8407,15 @@ struct Verbose final
 struct ImportPathInfo final
 {
     const char* path;
+    bool isOutOfBinary;
     ImportPathInfo() :
-        path()
+        path(),
+        isOutOfBinary()
     {
     }
-    ImportPathInfo(const char* path) :
-        path(path)
+    ImportPathInfo(const char* path, bool isOutOfBinary = false) :
+        path(path),
+        isOutOfBinary(isOutOfBinary)
         {}
 };
 

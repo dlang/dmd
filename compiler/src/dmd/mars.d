@@ -848,11 +848,14 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
                 case "defaultLibsOnly":
                     driverParams.symImport = SymImport.defaultLibsOnly;
                     break;
+                case "externalOnly":
+                    driverParams.symImport = SymImport.externalOnly;
+                    break;
                 case "all":
                     driverParams.symImport = SymImport.all;
                     break;
                 default:
-                    error("unknown dllimport '%.*s', must be 'none', 'defaultLibsOnly' or 'all'", cast(int) imp.length, imp.ptr);
+                    error("unknown dllimport '%.*s', must be 'none', 'defaultLibsOnly', 'externalOnly' or 'all'", cast(int) imp.length, imp.ptr);
             }
         }
         else if (arg == "-edition")
@@ -1612,6 +1615,13 @@ bool parseCommandLine(const ref Strings arguments, const size_t argc, ref Param 
         else if (p[1] == 'I')              // https://dlang.org/dmd.html#switch-I
         {
             params.imppath.push(ImportPathInfo(p + 2 + (p[2] == '=')));
+        }
+        else if (startsWith(p + 1, "extI"))
+        {
+            // External import path switch -extI
+            auto importPathInfo = ImportPathInfo(p + 5 + (p[5] == '='));
+            importPathInfo.isOutOfBinary = true;
+            params.imppath.push(importPathInfo);
         }
         else if (p[1] == 'm' && p[2] == 'v' && p[3] == '=') // https://dlang.org/dmd.html#switch-mv
         {

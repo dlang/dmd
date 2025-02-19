@@ -337,11 +337,12 @@ dmd -cov -unittest myprog.d
             (only imports).`,
         ),
         Option("dllimport=<value>",
-            "Windows only: select symbols to dllimport (none/defaultLibsOnly/all)",
-            `Which global variables to dllimport implicitly if not defined in a root module
+            "Windows only: select symbols to dllimport (none/defaultLibsOnly/externalOnly/all)",
+            `Which symbols to dllimport implicitly if not defined in a module that is being compiled
             $(UL
                 $(LI $(I none): None)
-                $(LI $(I defaultLibsOnly): Only druntime/Phobos symbols)
+                $(LI $(I defaultLibsOnly): Only druntime/Phobos symbols and any from a module that is marked as external to binary)
+                $(LI $(I externalOnly): Only symbols found from a module that is marked as external to binary)
                 $(LI $(I all): All)
             )`,
         ),
@@ -465,6 +466,9 @@ dmd -cov -unittest myprog.d
         ),
         Option("I=<directory>",
             "look for imports also in directory"
+        ),
+        Option("extI=<directory>",
+            "look for imports that are out of the currently compiling binary, used to set the module as DllImport"
         ),
         Option("i[=<pattern>]",
             "include imported modules in the compilation",

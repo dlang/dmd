@@ -154,6 +154,7 @@ extern(C++) struct Verbose
 
 extern (C++) struct ImportPathInfo {
     const(char)* path; // char*'s of where to look for import modules
+    bool isOutOfBinary; // Will any module found from this path be out of binary?
 }
 
 /// Put command line switches in here
