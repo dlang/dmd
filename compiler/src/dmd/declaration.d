@@ -1549,6 +1549,8 @@ extern (C++) final class TypeInfoStaticArrayDeclaration : TypeInfoDeclaration
  */
 extern (C++) final class TypeInfoAssociativeArrayDeclaration : TypeInfoDeclaration
 {
+    Type entry; // type of TypeInfo_AssociativeArray.Entry!(t.index, t.next)
+
     extern (D) this(Type tinfo)
     {
         super(tinfo);

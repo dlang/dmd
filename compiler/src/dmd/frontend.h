@@ -6912,6 +6912,7 @@ public:
 class TypeInfoAssociativeArrayDeclaration final : public TypeInfoDeclaration
 {
 public:
+    Type* entry;
     static TypeInfoAssociativeArrayDeclaration* create(Type* tinfo);
     void accept(Visitor* v) override;
 };
@@ -8791,6 +8792,7 @@ struct Id final
     static Identifier* xopEquals;
     static Identifier* xopCmp;
     static Identifier* xtoHash;
+    static Identifier* Entry;
     static Identifier* LINE;
     static Identifier* FILE;
     static Identifier* MODULE;
