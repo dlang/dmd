@@ -6029,7 +6029,6 @@ struct TargetC final
     uint8_t wchar_tsize;
     Runtime runtime;
     BitFieldStyle bitFieldStyle;
-    bool contributesToAggregateAlignment(BitFieldDeclaration* bfd);
     TargetC() :
         crtDestructorsSupported(true),
         boolsize(),
