@@ -548,7 +548,7 @@ extern (C++) final class Module : Package
                 buf.writeByte('.');
             }
             buf.printf("%s\t(%s)", ident.toChars(), m.srcfile.toChars());
-            message("import    %s", buf.peekChars());
+            message("import    %s (from %s)", buf.peekChars(), loc.toChars());
         }
         if((m = m.parse()) is null) return null;
 
