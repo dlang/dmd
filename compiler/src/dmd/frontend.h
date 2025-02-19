@@ -514,7 +514,6 @@ public:
     virtual bool hasPointers();
     virtual bool hasStaticCtorOrDtor();
     virtual void addObjcSymbols(Array<ClassDeclaration* >* classes, Array<ClassDeclaration* >* categories);
-    virtual void checkCtorConstInit();
     virtual void addComment(const char* comment);
     const char* comment();
     void comment(const char* comment);
@@ -6328,7 +6327,6 @@ public:
     bool oneMember(Dsymbol*& ps, Identifier* ident) override;
     bool hasPointers() final override;
     bool hasStaticCtorOrDtor() final override;
-    void checkCtorConstInit() final override;
     void addObjcSymbols(Array<ClassDeclaration* >* classes, Array<ClassDeclaration* >* categories) final override;
     AttribDeclaration* isAttribDeclaration() override;
     void accept(Visitor* v) override;
@@ -6831,7 +6829,6 @@ public:
     bool hasPointers() final override;
     bool canTakeAddressOf();
     bool needsScopeDtor();
-    void checkCtorConstInit() final override;
     Dsymbol* toAlias() final override;
     VarDeclaration* isVarDeclaration() final override;
     void accept(Visitor* v) override;
