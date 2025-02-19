@@ -498,52 +498,114 @@ private __gshared StringTable!(Symbol*) *stringTab;
 /*********************************************
  * Figure out whether a data symbol should be dllimported
  * Params:
- *      var = declaration of the symbol
+ *      symbl = declaration of the symbol
  * Returns:
  *      true if symbol should be imported from a DLL
  */
-bool isDllImported(Dsymbol var)
+bool isDllImported(Dsymbol symbl)
 {
+    // Windows is the only platform which dmd supports, that uses the DllImport/DllExport scheme.
     if (!(target.os & Target.OS.Windows))
         return false;
-    if (var.isImportedSymbol())
+
+    // If function does not have a body, check to see if its marked as DllImport or is set to be exported.
+    // If a global variable has both export + extern, it is DllImport
+    if (symbl.isImportedSymbol())
         return true;
-    if (driverParams.symImport == SymImport.none)
-        return false;
-    if (auto vd = var.isDeclaration())
+
+    // Functions can go through the generated trampoline function.
+    // Not efficient, but it works.
+    if (symbl.isFuncDeclaration())
+        return false; // can always jump through import table
+
+    // Global variables are allowed, but not TLS or read only memory.
+    if (auto vd = symbl.isDeclaration())
+    {
         if (!vd.isDataseg() || vd.isThreadlocal())
             return false;
-    if (var.isFuncDeclaration())
-        return false; // can always jump through import table
-    if (auto tid = var.isTypeInfoDeclaration())
-    {
-        if (builtinTypeInfo(tid.tinfo))
-            return true;
-        if (auto ad = isAggregate(tid.type))
-            var = ad;
     }
-    if (driverParams.symImport == SymImport.defaultLibsOnly)
+
+    final switch(driverParams.symImport)
     {
-        auto m = var.getModule();
+        case SymImport.none:
+            // If DllImport overriding is disabled, do not change dllimport status.
+            return false;
+
+        case SymImport.externalOnly:
+            // Only modules that are marked as out of binary will be DllImport
+            break;
+
+        case SymImport.defaultLibsOnly:
+        case SymImport.all:
+            // If to access anything in druntime/phobos you need DllImport, verify against this.
+            break;
+    }
+    const systemLibraryNeedDllImport = driverParams.symImport != SymImport.externalOnly;
+
+    // For TypeInfo's check to see if its in druntime and DllImport it
+    if (auto tid = symbl.isTypeInfoDeclaration())
+    {
+        // Built in TypeInfo's are defined in druntime
+        if (builtinTypeInfo(tid.tinfo))
+            return systemLibraryNeedDllImport;
+
+        // Convert TypeInfo to its symbol
+        if (auto ad = isAggregate(tid.type))
+            symbl = ad;
+    }
+
+    {
+        // Filter the symbol based upon the module it is in.
+
+        auto m = symbl.getModule();
         if (!m || !m.md)
             return false;
-        const id = m.md.packages.length ? m.md.packages[0] : null;
-        if (id && id != Id.core && id != Id.std)
+
+        if (driverParams.symImport == SymImport.all || m.isExplicitlyOutOfBinary)
+        {
+            // If a module is specified as being out of binary (-extI), then it is allowed to be DllImport.
+        }
+        else if (driverParams.symImport == SymImport.externalOnly)
+        {
+            // Module is in binary, therefore not DllImport
             return false;
-        if (!id && m.md.id != Id.std && m.md.id != Id.object)
-            return false;
+        }
+        else if (systemLibraryNeedDllImport)
+        {
+            // Filter out all modules that are not in druntime/phobos if we are only doing default libs only
+
+            const id = m.md.packages.length ? m.md.packages[0] : null;
+            if (id && id != Id.core && id != Id.std)
+                return false;
+            if (!id && m.md.id != Id.std && m.md.id != Id.object)
+                return false;
+        }
     }
-    else if (driverParams.symImport != SymImport.all)
-        return false;
-    if (auto mod = var.isModule())
-        return !mod.isRoot(); // non-root ModuleInfo symbol
-    if (var.inNonRoot())
+
+    // If symbol is a ModuleInfo, check to see if module is being compiled.
+    if (auto mod = symbl.isModule())
+    {
+        const isBeingCompiled = mod.isRoot();
+        return !isBeingCompiled; // non-root ModuleInfo symbol
+    }
+
+    // Check to see if a template has been instatiated in current compilation,
+    //  if it is defined in a external module, its DllImport.
+    if (symbl.inNonRoot())
         return true; // not instantiated, and defined in non-root
-    if (auto ti = var.isInstantiated()) // && !defineOnDeclare(sym, false))
+
+    // If a template has been instatiated, only DllImport if it is codegen'ing
+    if (auto ti = symbl.isInstantiated()) // && !defineOnDeclare(sym, false))
         return !ti.needsCodegen(); // instantiated but potentially culled (needsCodegen())
-    if (auto vd = var.isVarDeclaration())
+
+    // If a variable declaration and is extern
+    if (auto vd = symbl.isVarDeclaration())
+    {
+        // Shouldn't this be including an export check too???
         if (vd.storage_class & STC.extern_)
             return true; // externally defined global variable
+    }
+
     return false;
 }
 

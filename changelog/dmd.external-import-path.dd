@@ -1,0 +1,8 @@
+External import path switch
+
+A new switch is added, the external import path (``-extI``).
+It is similar to the import path switch (``-I``) except it indicates that a module found from it is external to the currently compiling binary.
+
+It is used on Windows when the ``dllimport`` override switch is set to anything other than ``none`` to force an external module's symbols as DllImport.
+
+If a build system supports the external import path switch, it is recommend to **not** use the ``all`` option for the ``dllimport`` override switch which applies to symbols that should not be getting DllImport'd.
