@@ -158,9 +158,17 @@ struct Verbose
 struct ImportPathInfo
 {
     const char* path;
+    d_bool isOutOfBinary;
 
-    ImportPathInfo() : path(NULL) { }
-    ImportPathInfo(const char* p) : path(p) { }
+    ImportPathInfo() :
+        path(),
+        isOutOfBinary()
+    {
+    }
+    ImportPathInfo(const char* path, d_bool isOutOfBinary = false) :
+        path(path),
+        isOutOfBinary(isOutOfBinary)
+        {}
 };
 
 // Put command line switches in here
