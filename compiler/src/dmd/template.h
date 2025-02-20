@@ -77,7 +77,6 @@ public:
 
     TemplateDeclaration *syntaxCopy(Dsymbol *) override;
     bool overloadInsert(Dsymbol *s) override;
-    bool hasStaticCtorOrDtor() override;
     const char *kind() const override;
 
     Visibility visible() override;

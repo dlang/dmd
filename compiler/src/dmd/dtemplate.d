@@ -53,7 +53,7 @@ import dmd.dinterpret;
 import dmd.dmodule;
 import dmd.dscope;
 import dmd.dsymbol;
-import dmd.dsymbolsem : dsymbolSemantic, checkDeprecated, aliasSemantic, search, search_correct, setScope, importAll, include;
+import dmd.dsymbolsem : dsymbolSemantic, checkDeprecated, aliasSemantic, search, search_correct, setScope, importAll, include, hasStaticCtorOrDtor;
 import dmd.errors;
 import dmd.errorsink;
 import dmd.expression;
@@ -742,11 +742,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
             printf("\ttrue: no conflict\n");
         }
         return true;
-    }
-
-    override bool hasStaticCtorOrDtor()
-    {
-        return false; // don't scan uninstantiated templates
     }
 
     override const(char)* kind() const

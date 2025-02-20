@@ -813,7 +813,6 @@ public:
     bool isVirtual() const override final;
     bool addPreInvariant() override final;
     bool addPostInvariant() override final;
-    bool hasStaticCtorOrDtor() override final;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -835,7 +834,6 @@ public:
     StaticDtorDeclaration *syntaxCopy(Dsymbol *) override;
     AggregateDeclaration *isThis() override final;
     bool isVirtual() const override final;
-    bool hasStaticCtorOrDtor() override final;
     bool addPreInvariant() override final;
     bool addPostInvariant() override final;
 

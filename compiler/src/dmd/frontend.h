@@ -602,7 +602,6 @@ public:
     virtual Visibility visible();
     virtual Dsymbol* syntaxCopy(Dsymbol* s);
     virtual bool hasPointers();
-    virtual bool hasStaticCtorOrDtor();
     virtual void addObjcSymbols(Array<ClassDeclaration* >* classes, Array<ClassDeclaration* >* categories);
     virtual void addComment(const char* comment);
     const char* comment();
@@ -712,7 +711,6 @@ public:
     const char* kind() const override;
     virtual Dsymbol* symtabInsert(Dsymbol* s);
     virtual Dsymbol* symtabLookup(Dsymbol* s, Identifier* id);
-    bool hasStaticCtorOrDtor() override;
     void accept(Visitor* v) override;
 };
 
@@ -1738,7 +1736,6 @@ public:
     Array<RootObject* >* lastConstraintTiargs;
     TemplateDeclaration* syntaxCopy(Dsymbol* __param_0_) override;
     bool overloadInsert(Dsymbol* s) override;
-    bool hasStaticCtorOrDtor() override;
     const char* kind() const override;
     const char* toCharsNoConstraints() const;
     Visibility visible() override;
@@ -4153,7 +4150,6 @@ public:
     bool isVirtual() const final override;
     bool addPreInvariant() final override;
     bool addPostInvariant() final override;
-    bool hasStaticCtorOrDtor() final override;
     void accept(Visitor* v) override;
 };
 
@@ -4172,7 +4168,6 @@ public:
     StaticDtorDeclaration* syntaxCopy(Dsymbol* s) override;
     AggregateDeclaration* isThis() final override;
     bool isVirtual() const final override;
-    bool hasStaticCtorOrDtor() final override;
     bool addPreInvariant() final override;
     bool addPostInvariant() final override;
     void accept(Visitor* v) override;
@@ -6398,7 +6393,6 @@ public:
     Array<Dsymbol* >* decl;
     const char* kind() const override;
     bool hasPointers() final override;
-    bool hasStaticCtorOrDtor() final override;
     void addObjcSymbols(Array<ClassDeclaration* >* classes, Array<ClassDeclaration* >* categories) final override;
     void accept(Visitor* v) override;
 };
@@ -7549,6 +7543,8 @@ public:
     void visit(ConditionalDeclaration* cd) override;
     void visit(StaticForeachDeclaration* sfd) override;
 };
+
+extern bool hasStaticCtorOrDtor(Dsymbol* d);
 
 extern void lowerNonArrayAggregate(StaticForeach* sfe, Scope* sc);
 

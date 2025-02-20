@@ -972,12 +972,6 @@ extern (C++) class Dsymbol : ASTNode
         return false;
     }
 
-    bool hasStaticCtorOrDtor()
-    {
-        //printf("Dsymbol::hasStaticCtorOrDtor() %s\n", toChars());
-        return false;
-    }
-
     void addObjcSymbols(ClassDeclarations* classes, ClassDeclarations* categories)
     {
     }
@@ -1489,24 +1483,6 @@ public:
     Dsymbol symtabLookup(Dsymbol s, Identifier id) nothrow
     {
         return symtab.lookup(id);
-    }
-
-    /****************************************
-     * Return true if any of the members are static ctors or static dtors, or if
-     * any members have members that are.
-     */
-    override bool hasStaticCtorOrDtor()
-    {
-        if (members)
-        {
-            for (size_t i = 0; i < members.length; i++)
-            {
-                Dsymbol member = (*members)[i];
-                if (member.hasStaticCtorOrDtor())
-                    return true;
-            }
-        }
-        return false;
     }
 
     override void accept(Visitor v)
