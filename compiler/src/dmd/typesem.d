@@ -6686,9 +6686,10 @@ STC parameterStorageClass(TypeFunction tf, Type tthis, Parameter p, VarDeclarati
         // Check escaping through `this`
         if (tthis && tthis.isMutable())
         {
+            import dmd.dsymbolsem : hasPointers;
             foreach (VarDeclaration v; isAggregate(tthis).fields)
             {
-                if (v.hasPointers())
+                if (dmd.dsymbolsem.hasPointers(v))
                     return stc;
             }
         }
@@ -6696,9 +6697,10 @@ STC parameterStorageClass(TypeFunction tf, Type tthis, Parameter p, VarDeclarati
         // Check escaping through nested context
         if (outerVars && tf.isMutable())
         {
+            import dmd.dsymbolsem : hasPointers;
             foreach (VarDeclaration v; *outerVars)
             {
-                if (v.hasPointers())
+                if (dmd.dsymbolsem.hasPointers(v))
                     return stc;
             }
         }

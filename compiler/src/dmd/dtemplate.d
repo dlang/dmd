@@ -5490,12 +5490,6 @@ extern (C++) final class TemplateMixin : TemplateInstance
         return "mixin";
     }
 
-    override bool hasPointers()
-    {
-        //printf("TemplateMixin.hasPointers() %s\n", toChars());
-        return members.foreachDsymbol( (s) { return s.hasPointers(); } ) != 0;
-    }
-
     extern (D) bool findTempDecl(Scope* sc)
     {
         // Follow qualifications to find the TemplateDeclaration

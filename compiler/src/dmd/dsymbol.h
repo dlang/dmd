@@ -243,7 +243,6 @@ public:
     virtual bool needThis();                    // need a 'this' pointer?
     virtual Visibility visible();
     virtual Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
-    virtual bool hasPointers();
     virtual void addObjcSymbols(ClassDeclarations *, ClassDeclarations *) { }
 
     virtual void addComment(const utf8_t *comment);
@@ -431,4 +430,5 @@ namespace dmd
     void addComment(Dsymbol *d, const char *comment);
     bool oneMember(Dsymbol *d, Dsymbol *&ps, Identifier *ident);
     bool hasStaticCtorOrDtor(Dsymbol *d);
+    bool hasPointers(Dsymbol *d);
 }
