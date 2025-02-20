@@ -284,7 +284,6 @@ public:
 
     TemplateMixin *syntaxCopy(Dsymbol *s) override;
     const char *kind() const override;
-    bool hasPointers() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
