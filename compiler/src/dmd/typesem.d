@@ -3461,10 +3461,26 @@ Expression getProperty(Type t, Scope* scope_, Loc loc, Identifier ident, int fla
             {
                 if (auto sym = dsym.isAggregateDeclaration())
                 {
-                    if (auto fd = search_function(sym, Id.opDispatch))
-                        errorSupplemental(loc, "potentially malformed `opDispatch`. Use an explicit instantiation to get a better error message");
-                    else if (!sym.members)
+                    if (!sym.members)
+                    {
                         errorSupplemental(sym.loc, "`%s %s` is opaque and has no members.", sym.kind, mt.toPrettyChars(true));
+                        return ErrorExp.get();
+                    }
+
+                    if (auto fd = search_function(sym, Id.opDispatch))
+                    {
+                        if (auto td = fd.isTemplateDeclaration())
+                        {
+                            e = mt.defaultInitLiteral(loc);
+                            auto se = new StringExp(e.loc, ident.toString());
+                            auto tiargs = new Objects();
+                            tiargs.push(se);
+                            auto dti = new DotTemplateInstanceExp(e.loc, e, Id.opDispatch, tiargs);
+                            dti.ti.tempdecl = td;
+                            dti.dotTemplateSemanticProp(scope_, DotExpFlag.none);
+                            return ErrorExp.get();
+                        }
+                    }
                 }
                 errorSupplemental(dsym.loc, "%s `%s` defined here",
                     dsym.kind, dsym.toChars());
