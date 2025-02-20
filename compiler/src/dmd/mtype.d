@@ -302,6 +302,10 @@ extern (C++) abstract class Type : ASTNode
         Type pto;       // merged pointer to this type
         Type rto;       // reference to this type
         Type arrayof;   // array of this type
+
+        // ImportC: store the name of the typedef resolving to this type
+        // So `uint8_t x;` will be printed as `uint8_t x;` and not as the resolved `ubyte x;`
+        Identifier typedefIdent;
     }
     Mcache* mcache;
 
