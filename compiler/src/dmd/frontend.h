@@ -1830,6 +1830,7 @@ public:
         Type* pto;
         Type* rto;
         Type* arrayof;
+        Identifier* typedefIdent;
         Mcache() :
             cto(),
             ito(),
@@ -1841,10 +1842,11 @@ public:
             swcto(),
             pto(),
             rto(),
-            arrayof()
+            arrayof(),
+            typedefIdent()
         {
         }
-        Mcache(Type* cto, Type* ito = nullptr, Type* sto = nullptr, Type* scto = nullptr, Type* wto = nullptr, Type* wcto = nullptr, Type* swto = nullptr, Type* swcto = nullptr, Type* pto = nullptr, Type* rto = nullptr, Type* arrayof = nullptr) :
+        Mcache(Type* cto, Type* ito = nullptr, Type* sto = nullptr, Type* scto = nullptr, Type* wto = nullptr, Type* wcto = nullptr, Type* swto = nullptr, Type* swcto = nullptr, Type* pto = nullptr, Type* rto = nullptr, Type* arrayof = nullptr, Identifier* typedefIdent = nullptr) :
             cto(cto),
             ito(ito),
             sto(sto),
@@ -1855,7 +1857,8 @@ public:
             swcto(swcto),
             pto(pto),
             rto(rto),
-            arrayof(arrayof)
+            arrayof(arrayof),
+            typedefIdent(typedefIdent)
             {}
     };
 
@@ -4066,6 +4069,7 @@ struct HdrGenState final
     bool ddoc;
     bool fullDump;
     bool importcHdr;
+    bool inCAlias;
     bool doFuncBodies;
     bool vcg_ast;
     bool skipConstraints;
@@ -4084,6 +4088,7 @@ struct HdrGenState final
         ddoc(),
         fullDump(),
         importcHdr(),
+        inCAlias(),
         doFuncBodies(),
         vcg_ast(),
         skipConstraints(),
@@ -4099,11 +4104,12 @@ struct HdrGenState final
         inEnumDecl()
     {
     }
-    HdrGenState(bool hdrgen, bool ddoc = false, bool fullDump = false, bool importcHdr = false, bool doFuncBodies = false, bool vcg_ast = false, bool skipConstraints = false, bool showOneMember = true, bool errorMsg = false, bool fullQual = false, int32_t tpltMember = 0, int32_t autoMember = 0, int32_t forStmtInit = 0, int32_t insideFuncBody = 0, int32_t insideAggregate = 0, bool declstring = false, EnumDeclaration* inEnumDecl = nullptr) :
+    HdrGenState(bool hdrgen, bool ddoc = false, bool fullDump = false, bool importcHdr = false, bool inCAlias = false, bool doFuncBodies = false, bool vcg_ast = false, bool skipConstraints = false, bool showOneMember = true, bool errorMsg = false, bool fullQual = false, int32_t tpltMember = 0, int32_t autoMember = 0, int32_t forStmtInit = 0, int32_t insideFuncBody = 0, int32_t insideAggregate = 0, bool declstring = false, EnumDeclaration* inEnumDecl = nullptr) :
         hdrgen(hdrgen),
         ddoc(ddoc),
         fullDump(fullDump),
         importcHdr(importcHdr),
+        inCAlias(inCAlias),
         doFuncBodies(doFuncBodies),
         vcg_ast(vcg_ast),
         skipConstraints(skipConstraints),

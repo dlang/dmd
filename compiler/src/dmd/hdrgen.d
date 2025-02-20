@@ -59,6 +59,7 @@ struct HdrGenState
     bool ddoc;          /// true if generating Ddoc file
     bool fullDump;      /// true if generating a full AST dump file
     bool importcHdr;    /// true if generating a .di file from an ImportC file
+    bool inCAlias;      /// Set to prevent ImportC translating typedefs as `alias X = X`
     bool doFuncBodies;  /// include function bodies in output
     bool vcg_ast;       /// write out codegen-ast
     bool skipConstraints;  // skip constraints when doing templates
@@ -1777,7 +1778,9 @@ void toCBuffer(Dsymbol s, ref OutBuffer buf, ref HdrGenState hgs)
             buf.writestring(" = ");
             if (stcToBuffer(buf, d.storage_class))
                 buf.writeByte(' ');
+            hgs.inCAlias = hgs.importcHdr;
             typeToBuffer(d.type, null, buf, hgs);
+            hgs.inCAlias = false;
             hgs.declstring = false;
         }
         buf.writeByte(';');
@@ -4449,6 +4452,11 @@ private void typeToBufferx(Type t, ref OutBuffer buf, ref HdrGenState hgs)
         buf.writestring("noreturn");
     }
 
+    if (hgs.importcHdr && !hgs.inCAlias && t.mcache && t.mcache.typedefIdent)
+    {
+        buf.writestring(t.mcache.typedefIdent.toString());
+        return;
+    }
 
     switch (t.ty)
     {
