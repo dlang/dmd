@@ -11168,6 +11168,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.e2 = e2x;
             t1 = e1x.type.toBasetype();
         }
+        else if (t1.ty == Taarray)
+        {
+            // when assigning a constant, the need for TypeInfo might change
+            semanticTypeInfo(sc, t1);
+        }
         /* Check the mutability of e1.
          */
         if (auto ale = exp.e1.isArrayLengthExp())
@@ -13070,7 +13075,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     exp.e1 = exp.e1.implicitCastTo(sc, ta.index);
                 }
 
-                semanticTypeInfo(sc, ta.index);
+                // even though the glue layer only needs the type info of the index,
+                // this might be the first time an AA literal is accessed, so check
+                // the full type info
+                semanticTypeInfo(sc, ta);
 
                 // Return type is pointer to value
                 exp.type = ta.nextOf().pointerTo();
@@ -13307,8 +13315,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
         }
 
         if (exp.e1.type.toBasetype().ty == Taarray)
+        {
             semanticTypeInfo(sc, exp.e1.type.toBasetype());
-
+        }
 
         if (!target.isVectorOpSupported(t1, exp.op, t2))
         {
@@ -16849,6 +16858,9 @@ void semanticTypeInfo(Scope* sc, Type t)
     {
         semanticTypeInfo(sc, t.index);
         semanticTypeInfo(sc, t.next);
+
+        if (global.params.useTypeInfo)
+            getTypeInfoType(t.loc, t, sc);
     }
 
     void visitStruct(TypeStruct t)

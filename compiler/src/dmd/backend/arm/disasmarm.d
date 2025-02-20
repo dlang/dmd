@@ -2760,6 +2760,7 @@ unittest
  * Returns:
  *      true for success
  */
+public
 bool encodeHFD(double d, out ubyte imm8)
 {
     float f = d;

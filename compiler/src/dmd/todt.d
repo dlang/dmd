@@ -1348,7 +1348,7 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
     override void visit(TypeInfoAssociativeArrayDeclaration d)
     {
         //printf("TypeInfoAssociativeArrayDeclaration.toDt()\n");
-        verifyStructSize(Type.typeinfoassociativearray, 4 * target.ptrsize);
+        verifyStructSize(Type.typeinfoassociativearray, 5 * target.ptrsize);
 
         dtb.xoff(toVtblSymbol(Type.typeinfoassociativearray), 0); // vtbl for TypeInfo_AssociativeArray
         if (Type.typeinfoassociativearray.hasMonitor())
@@ -1361,6 +1361,9 @@ private extern (C++) class TypeInfoDtVisitor : Visitor
 
         TypeInfo_toObjFile(null, d.loc, tc.index);
         dtb.xoff(toSymbol(tc.index.vtinfo), 0);  // TypeInfo for array of type
+
+        TypeInfo_toObjFile(null, d.loc, d.entry);
+        dtb.xoff(toSymbol(d.entry.vtinfo), 0);  // TypeInfo for key,value-pair
     }
 
     override void visit(TypeInfoFunctionDeclaration d)

@@ -54,6 +54,7 @@ else version = MARS;
  */
 void ObjectNotFound(Loc loc, Identifier id)
 {
+    global.gag = 0; // never gag the fatal error
     error(loc, "`%s` not found. object.d may be incorrectly installed or corrupt.", id.toChars());
     version (IN_LLVM)
     {
@@ -1128,16 +1129,6 @@ extern (C++) class VarDeclaration : Declaration
         return e;
     }
 
-    override final void checkCtorConstInit()
-    {
-        version (none)
-        {
-            /* doesn't work if more than one static ctor */
-            if (ctorinit == 0 && isCtorinit() && !isField())
-                error("missing initializer in static constructor for const variable");
-        }
-    }
-
     /************************************
      * Check to see if this variable is actually in an enclosing function
      * rather than the current one.
@@ -1548,6 +1539,8 @@ extern (C++) final class TypeInfoStaticArrayDeclaration : TypeInfoDeclaration
  */
 extern (C++) final class TypeInfoAssociativeArrayDeclaration : TypeInfoDeclaration
 {
+    Type entry; // type of TypeInfo_AssociativeArray.Entry!(t.index, t.next)
+
     extern (D) this(Type tinfo)
     {
         super(tinfo);

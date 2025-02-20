@@ -3461,10 +3461,26 @@ Expression getProperty(Type t, Scope* scope_, Loc loc, Identifier ident, int fla
             {
                 if (auto sym = dsym.isAggregateDeclaration())
                 {
-                    if (auto fd = search_function(sym, Id.opDispatch))
-                        errorSupplemental(loc, "potentially malformed `opDispatch`. Use an explicit instantiation to get a better error message");
-                    else if (!sym.members)
+                    if (!sym.members)
+                    {
                         errorSupplemental(sym.loc, "`%s %s` is opaque and has no members.", sym.kind, mt.toPrettyChars(true));
+                        return ErrorExp.get();
+                    }
+
+                    if (auto fd = search_function(sym, Id.opDispatch))
+                    {
+                        if (auto td = fd.isTemplateDeclaration())
+                        {
+                            e = mt.defaultInitLiteral(loc);
+                            auto se = new StringExp(e.loc, ident.toString());
+                            auto tiargs = new Objects();
+                            tiargs.push(se);
+                            auto dti = new DotTemplateInstanceExp(e.loc, e, Id.opDispatch, tiargs);
+                            dti.ti.tempdecl = td;
+                            dti.dotTemplateSemanticProp(scope_, DotExpFlag.none);
+                            return ErrorExp.get();
+                        }
+                    }
                 }
                 errorSupplemental(dsym.loc, "%s `%s` defined here",
                     dsym.kind, dsym.toChars());
@@ -7017,6 +7033,39 @@ Type sharedWildConstOf(Type type)
         return type.mcache.swcto;
     }
     Type t = type.makeSharedWildConst();
+    t = t.merge();
+    t.fixTo(type);
+    //printf("\t%p %s\n", t, t.toChars());
+    return t;
+}
+
+Type nakedOf(Type type)
+{
+    //printf("Type::nakedOf() %p, %s\n", type, type.toChars());
+    if (type.mod == 0)
+        return type;
+    if (type.mcache) with(type.mcache)
+    {
+        // the cache has the naked type at the "identity" position, try to find it
+        if (cto && cto.mod == 0)
+            return cto;
+        if (ito && ito.mod == 0)
+            return ito;
+        if (sto && sto.mod == 0)
+            return sto;
+        if (scto && scto.mod == 0)
+            return scto;
+        if (wto && wto.mod == 0)
+            return wto;
+        if (wcto && wcto.mod == 0)
+            return wcto;
+        if (swto && swto.mod == 0)
+            return swto;
+        if (swcto && swcto.mod == 0)
+            return swcto;
+    }
+    Type t = type.nullAttributes();
+    t.mod = 0;
     t = t.merge();
     t.fixTo(type);
     //printf("\t%p %s\n", t, t.toChars());

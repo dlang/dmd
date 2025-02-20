@@ -2832,6 +2832,7 @@ Expression castTo(Expression e, Scope* sc, Type t, Type att = null)
                 (*ae.keys)[i] = ex;
             }
             ae.type = t;
+            semanticTypeInfo(sc, ae.type);
             return ae;
         }
         return visit(e);
