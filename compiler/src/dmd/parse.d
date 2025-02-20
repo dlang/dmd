@@ -6382,7 +6382,14 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     nextToken(); //comma
                 }
                 while (token.value != TOK.colon && token.value != TOK.endOfFile);
-                check(TOK.colon);
+
+                bool insertBreak = false;
+                if (token.value == TOK.goesTo) {
+                    insertBreak = true;
+                    nextToken();
+                }
+                else
+                    check(TOK.colon);
 
                 /* case exp: .. case last:
                  */
@@ -6412,6 +6419,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                         if (cur && cur.isBreakStatement())
                             break;
                     }
+                    if (insertBreak)
+                        statements.push(new AST.BreakStatement(loc, null));
                     s = new AST.CompoundStatement(loc, statements);
                 }
                 else
@@ -6438,7 +6447,13 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
         case TOK.default_:
             {
                 nextToken();
-                check(TOK.colon);
+                bool insertBreak = false;
+                if (token.value == TOK.goesTo) {
+                    insertBreak = true;
+                    nextToken();
+                }
+                else
+                    check(TOK.colon);
 
                 if (flags & ParseStatementFlags.curlyScope)
                 {
@@ -6447,6 +6462,8 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                     {
                         statements.push(parseStatement(ParseStatementFlags.curlyScope));
                     }
+                    if (insertBreak)
+                        statements.push(new AST.BreakStatement(loc, null));
                     s = new AST.CompoundStatement(loc, statements);
                 }
                 else
