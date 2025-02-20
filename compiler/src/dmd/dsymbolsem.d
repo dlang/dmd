@@ -7951,11 +7951,13 @@ private extern(C++) class CheckCtorConstInitVisitor : Visitor
 {
     alias visit = Visitor.visit;
 
-    override void visit(AttribDeclaration ad){
+    override void visit(AttribDeclaration ad)
+    {
         ad.include(null).foreachDsymbol( s => s.checkCtorConstInit() );
     }
 
-    override void visit(VarDeclaration vd){
+    override void visit(VarDeclaration vd)
+    {
         version (none)
         {
             /* doesn't work if more than one static ctor */
@@ -7964,6 +7966,5 @@ private extern(C++) class CheckCtorConstInitVisitor : Visitor
         }
     }
 
-    override void visit(Dsymbol d){
-    }
+    override void visit(Dsymbol d){}
 }
