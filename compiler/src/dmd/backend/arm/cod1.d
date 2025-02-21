@@ -2215,7 +2215,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
     forregs = outretregs & (cgstate.allregs | INSTR.FLOATREGS);     // XMMREGS ?
     if (e.Eoper == OPconst)
     {
-        if (0 && tyvector(tym) && forregs & XMMREGS)	// TODO
+        if (0 && tyvector(tym) && forregs & XMMREGS)    // TODO
         {
             assert(!flags);
             const xreg = allocreg(cdb, forregs, tym);     // allocate registers
@@ -2224,15 +2224,15 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
             return;
         }
 
-	if (tyfloating(tym))
-	{
+        if (tyfloating(tym))
+        {
             const vreg = allocreg(cdb, forregs, tym);     // allocate floating point register
-	    float value = e.Vfloat;
-	    if (sz == 8)
-		value = e.Vdouble;
-	    loadFloatRegConst(cdb,vreg,value,sz);
-	    return;
-	}
+            float value = e.Vfloat;
+            if (sz == 8)
+                value = e.Vdouble;
+            loadFloatRegConst(cdb,vreg,value,sz);
+            return;
+        }
 
         targ_size_t value = e.Vint;
         if (sz == 8)
