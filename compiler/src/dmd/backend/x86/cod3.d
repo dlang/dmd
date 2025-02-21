@@ -3972,6 +3972,9 @@ private void epilog_restoreregs(ref CGstate cg, ref CodeBuilder cdb, regm_t topo
 @trusted
 void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
 {
+    if (cg.AArch64)
+	return dmd.backend.arm.cod3.prolog_genvarargs(cg, cdb, sv);
+
     /* Generate code to move any arguments passed in registers into
      * the stack variable __va_argsave,
      * so we can reference it via pointers through va_arg().
