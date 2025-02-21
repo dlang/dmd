@@ -4,29 +4,44 @@ $(SPEC_S Properties,
 
 $(HEADERNAV_TOC)
 
+$(H2 $(LNAME2 common, Common Properties))
+
         $(P Every symbol, type, and expression has properties that can be queried:)
 
-$(TABLE2 Properties for All Types,
+$(TABLE
 $(THEAD  Property, Description)
-$(TROW $(RELATIVE_LINK2 init, $(D .init)),      initializer)
-$(TROW $(RELATIVE_LINK2 sizeof, $(D .sizeof)), size in bytes)
-$(TROW $(RELATIVE_LINK2 alignof, $(D .alignof)), alignment size)
 $(TROW $(RELATIVE_LINK2 mangleof, $(D .mangleof)), string representing the $(SINGLEQUOTE mangled) representation of the type)
 $(TROW $(RELATIVE_LINK2 stringof, $(D .stringof)), string representing the source representation of the type)
 )
 
 $(TABLE2 Examples,
 $(THEAD Expression,     Value)
-$(TROW $(D int.sizeof), yields 4)
-$(TROW $(D (3).sizeof), yields 4 (because 3 is an int))
-
-$(TROW $(D int.init),   yields 0)
 $(TROW $(D int.mangleof),       yields the string "i")
 $(TROW $(D int.stringof),       yields the string "int")
 $(TROW $(D (1+2).stringof),     yields the string "1 + 2")
 )
 
-$(BR)
+$(H2 $(LNAME2 type, Type Properties))
+
+        $(P Every type has properties that can be queried. Every expression also
+        has these properties, which are equivalent to the properties of the
+        expression's type. These properties are:)
+
+$(TABLE
+$(THEAD  Property, Description)
+$(TROW $(RELATIVE_LINK2 init, $(D .init)),      initializer)
+$(TROW $(RELATIVE_LINK2 sizeof, $(D .sizeof)), size in bytes)
+$(TROW $(RELATIVE_LINK2 alignof, $(D .alignof)), alignment size)
+)
+
+$(TABLE2 Examples,
+$(THEAD Expression,     Value)
+$(TROW $(D int.init),   yields 0)
+$(TROW $(D int.sizeof), yields 4)
+$(TROW $(D (3).sizeof), yields 4 (because 3 is an int))
+)
+
+$(H2 $(LNAME2 numeric, Numeric Properties))
 
 $(TABLE2 Properties for Integral Types,
 $(THEAD Property, Description)
@@ -61,15 +76,22 @@ $(TROW $(D float.nan),  yields the floating point NaN value)
 $(TROW $(D (2.5F).nan),        yields the floating point NaN value)
 )
 
-$(BR)
+$(H2 $(LNAME2 derived-type, Derived Type Properties))
 
-        $(P See also:)
+        $(P See:)
+
         * $(DDSUBLINK spec/arrays, array-properties, Array Properties)
-        * $(DDSUBLINK spec/class, class_properties, Class Properties)
         * $(DDSUBLINK spec/hash-map, properties, Associative Array Properties)
+        * $(DDSUBLINK spec/simd, properties, Vector Properties)
+
+
+$(H2 $(LNAME2 user-defined-type, User-Defined Type Properties))
+
+        $(P See:)
+
+        * $(DDSUBLINK spec/class, class_properties, Class Properties)
         * $(DDSUBLINK spec/enum, enum_properties, Enum Properties)
         * $(DDSUBLINK spec/struct, struct_properties, Struct Properties)
-        * $(DDSUBLINK spec/simd, properties, Vector Properties)
 
 
 $(H2 $(LNAME2 init, .init Property))
