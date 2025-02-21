@@ -180,6 +180,7 @@ $(H2 $(LNAME2 stringof, .stringof Property))
         of that expression. The expression will not be evaluated.
         )
 
+    $(SPEC_RUNNABLE_EXAMPLE_COMPILE
     ---
     module test;
     import std.stdio;
@@ -193,17 +194,18 @@ $(H2 $(LNAME2 stringof, .stringof Property))
     void main()
     {
         writeln((1+2).stringof);       // "1 + 2"
+        writeln(test.stringof);        // "module test"
         writeln(Dog.stringof);         // "Dog"
-        writeln(test.Dog.stringof);    // "Dog"
         writeln(int.stringof);         // "int"
         writeln((int*[5][]).stringof); // "int*[5][]"
         writeln(Color.Red.stringof);   // "Red"
         writeln((5).stringof);         // "5"
 
         writeln((++i).stringof);       // "i += 1"
-        writeln(i);                    // 4
+        assert(i == 4);                // `++i` was not evaluated
     }
     ---
+    )
 
     $(IMPLEMENTATION_DEFINED The string representation for a type or expression
     can vary.)
@@ -223,24 +225,22 @@ $(H2 $(LNAME2 sizeof, .sizeof Property))
         there to be a $(I this) object:
         )
 
+$(SPEC_RUNNABLE_EXAMPLE_COMPILE
 ---
 struct S
 {
     int a;
-    static int foo()
-    {
-        return a.sizeof; // returns 4
-    }
 }
 
-void test()
-{
-    int x = S.a.sizeof; // sets x to 4
-}
+static assert(S.a.sizeof == 4);
+static assert(Object.sizeof == (void*).sizeof);
 ---
+)
 
         $(P $(CODE .sizeof) applied to a class object returns the size of
         the class reference, not the class instantiation.)
+
+        $(P See also: $(DDSUBLINK spec/traits, classInstanceSize, `__traits(classInstanceSize)`).)
 
 $(H2 $(LNAME2 alignof, .alignof Property))
 
@@ -248,6 +248,8 @@ $(H2 $(LNAME2 alignof, .alignof Property))
         For example, an aligned size of 1 means that it is aligned on
         a byte boundary, 4 means it is aligned on a 32 bit boundary.
         )
+
+    $(P See $(DDSUBLINK spec/attribute, align, the `align` attribute) for an example.)
 
     $(IMPLEMENTATION_DEFINED the actual aligned size.)
 
