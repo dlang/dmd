@@ -247,6 +247,106 @@ void genBranch(ref CodeBuilder cdb, COND cond, FL fltarg, block* targ)
 // prolog_setupalloca
 // prolog_saveregs
 // epilog_restoreregs
+
+/******************************
+ * Generate special varargs prolog for Posix 64 bit systems.
+ * Params:
+ *      cg = code generator state
+ *      cdb = sink for generated code
+ *      sv = symbol for __va_argsave
+ */
+@trusted
+void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
+{
+    printf("prolog_genvarargs()\n");
+    /* Generate code to move any arguments passed in registers into
+     * the stack variable __va_argsave,
+     * so we can reference it via pointers through va_arg().
+     *   struct __va_argsave_t {
+     *     ulong[8] regs;      // 8 byte
+     *     ldouble[8] fpregs;  // 16 byte
+     *     uint offset_regs;
+     *     uint offset_fpregs;
+     *     void* stack_args;
+     *     void* reg_args;
+     *   }
+     * The instructions seg fault if data is not aligned on
+     * 16 bytes, so this gives us a nice check to ensure no mistakes.
+        STR     x0,[sp, #voff+6*16+0*8]
+        STR     x1,[sp, #voff+6*16+1*8]
+        STR     x2,[sp, #voff+6*16+2*8]
+        STR     x3,[sp, #voff+6*16+3*8]
+        STR     x4,[sp, #voff+6*16+4*8]
+        STR     x5,[sp, #voff+6*16+5*8]
+        STR     x6,[sp, #voff+6*16+6*8]
+        STR     x7,[sp, #voff+6*16+7*8]
+
+        STR     q0,[sp, #voff+0*16]
+        STR     q1,[sp, #voff+0*16]
+        STR     q2,[sp, #voff+0*16]
+        STR     q3,[sp, #voff+1*16]
+        STR     q4,[sp, #voff+2*16]
+        STR     q5,[sp, #voff+3*16]
+        STR     q6,[sp, #voff+4*16]
+        STR     q7,[sp, #voff+5*16]
+
+        LEA     R11, Para.size+Para.offset[RBP]
+        MOV     9+16[RAX],R11                // set __va_argsave.stack_args
+    * RAX and R11 are destroyed.
+    */
+
+    /* Save registers into the voff area on the stack
+     */
+    targ_size_t voff = cg.Auto.size + cg.BPoff + sv.Soffset;  // EBP offset of start of sv
+    const uint vsize = 8 * 8 + 8 * 16;
+
+    if (!cg.hasframe || cg.enforcealign)
+        voff += cg.EBPtoESP;
+
+    regm_t namedargs = prolog_namedArgs();
+    //printf("voff: %lld\n", voff);
+    foreach (reg_t x; 0 .. 8)
+    {
+        if (!(mask(x) & namedargs))  // unnamed arguments would be the ... ones
+        {
+            //printf("offset: x%x %lld\n", cast(uint)voff + x * 8, voff + x * 8);
+            uint offset = cast(uint)voff + vsize - 8 - x * 8;
+            if (!cg.hasframe || cg.enforcealign)
+                cdb.gen1(INSTR.str_imm_gen(1,x,31,offset)); // STR x,[sp,#offset]
+            else
+                cdb.gen1(INSTR.str_imm_gen(1,x,29,offset)); // STR x,[bp,#offset]
+        }
+    }
+
+    foreach (reg_t q; 32 + 0 .. 32 + 8)
+    {
+        if (!(mask(q) & namedargs))  // unnamed arguments would be the ... ones
+        {
+            uint offset = cast(uint)voff + vsize - 8 * 8 - 16 - (q & 31) * 16;
+            if (!cg.hasframe || cg.enforcealign)
+                cdb.gen1(INSTR.str_imm_fpsimd(0,2,offset,31,q));  // STR q,[sp,#offset]
+            else
+                cdb.gen1(INSTR.str_imm_fpsimd(0,2,offset,29,q));
+        }
+    }
+
+static if (0) // TODO
+{
+    // LEA R11, Para.size+Para.offset[RBP]
+    uint ea2 = modregxrm(2,R11,BPRM);
+    if (!cg.hasframe)
+        ea2 = (modregrm(0,4,SP) << 8) | modregrm(2,DX,4);
+    cg.Para.offset = (cg.Para.offset + (REGSIZE - 1)) & ~(REGSIZE - 1);
+    cdb.genc1(LEA,(REX_W << 16) | ea2,FL.const_,cg.Para.size + cg.Para.offset);
+
+    // MOV 9+16[RAX],R11
+    cdb.genc1(0x89,(REX_W << 16) | modregxrm(2,R11,AX),FL.const_,9 + 16);   // into stack_args_save
+
+    pinholeopt(cdb.peek(), null);
+    useregs(mAX|mR11);
+}
+}
+
 // prolog_genvarargs
 // prolog_genva_start
 // prolog_gen_win64_varargs
@@ -710,28 +810,28 @@ void loadFloatRegConst(ref CodeBuilder cdb, reg_t vreg, double value, uint sz)
     ubyte imm8;
     if (encodeHFD(value, imm8))
     {
-	uint ftype = INSTR.szToFtype(sz);
-	cdb.gen1(INSTR.fmov_float_imm(ftype,imm8,vreg)); // FMOV <Vd>,#<imm8>
+        uint ftype = INSTR.szToFtype(sz);
+        cdb.gen1(INSTR.fmov_float_imm(ftype,imm8,vreg)); // FMOV <Vd>,#<imm8>
     }
     else if (sz == 4)
     {
-	float f = value;
-	uint i = *cast(uint*)&f;
-	regm_t retregs = ALLREGS;			// TODO cg.allregs?
-	reg_t reg = allocreg(cdb, retregs, TYfloat);
-	movregconst(cdb,reg,i,0);			  // MOV reg,i
-	cdb.gen1(INSTR.fmov_float_gen(0,0,0,7,reg,vreg)); // FMOV Sd,Wn
+        float f = value;
+        uint i = *cast(uint*)&f;
+        regm_t retregs = ALLREGS;                       // TODO cg.allregs?
+        reg_t reg = allocreg(cdb, retregs, TYfloat);
+        movregconst(cdb,reg,i,0);                         // MOV reg,i
+        cdb.gen1(INSTR.fmov_float_gen(0,0,0,7,reg,vreg)); // FMOV Sd,Wn
     }
     else if (sz == 8)
     {
-	ulong i = *cast(ulong*)&value;
-	regm_t retregs = ALLREGS;			// TODO cg.allregs?
-	reg_t reg = allocreg(cdb, retregs, TYdouble);
-	movregconst(cdb,reg,i,64);			  // MOV reg,i
-	cdb.gen1(INSTR.fmov_float_gen(1,1,0,7,reg,vreg)); // FMOV Dd,Xn
+        ulong i = *cast(ulong*)&value;
+        regm_t retregs = ALLREGS;                       // TODO cg.allregs?
+        reg_t reg = allocreg(cdb, retregs, TYdouble);
+        movregconst(cdb,reg,i,64);                        // MOV reg,i
+        cdb.gen1(INSTR.fmov_float_gen(1,1,0,7,reg,vreg)); // FMOV Dd,Xn
     }
     else
-	assert(0);
+        assert(0);
     //cgstate.regimmed_set(vreg,value); // TODO
 }
 

@@ -949,7 +949,9 @@ struct INSTR
      */
     static uint ldst_pos(uint size, uint VR, uint opc, uint imm12, reg_t Rn, reg_t Vt)
     {
-        assert(Vt > 31);
+        //debug printf("imm12: %x\n", imm12);
+        assert(imm12 <= 0xFFF);
+        assert(VR == (Vt > 31));
         reg_t Rt = Vt & 31;
         return (size  << 30) |
                (7     << 27) |
@@ -964,12 +966,26 @@ struct INSTR
     /* https://www.scs.stanford.edu/~zyedidia/arm64/str_imm_fpsimd.html
      * STR <Vt>,[<Xn|SP>,#<simm>]  Unsigned offset
      */
-    static uint str_imm_fpsimd(uint size, uint opc, uint imm12, reg_t Rn, reg_t Vt) { return ldst_pos(size,1,opc,imm12,Rn,Vt); }
+    static uint str_imm_fpsimd(uint size, uint opc, uint offset, reg_t Rn, reg_t Vt)
+    {
+        assert(size < 4);
+        assert(opc  < 4);
+        uint scale = ((opc & 2) << 1) | size;
+        uint imm12 = (cast(uint)offset >> scale) & 0xFFF;
+        return ldst_pos(size,1,opc,imm12,Rn,Vt);
+    }
 
     /* https://www.scs.stanford.edu/~zyedidia/arm64/ldr_imm_fpsimd.html
      * LDR <Vt>,[<Xn|SP>,#<simm>]  Unsigned offset
      */
-    static uint ldr_imm_fpsimd(uint size, uint opc, uint imm12, reg_t Rn, reg_t Vt) { return ldst_pos(size,1,opc,imm12,Rn,Vt); }
+    static uint ldr_imm_fpsimd(uint size, uint opc, uint offset, reg_t Rn, reg_t Vt)
+    {
+        assert(size < 4);
+        assert(opc  < 4);
+        uint scale = ((opc & 2) << 1) | size;
+        uint imm12 = (cast(uint)offset >> scale) & 0xFFF;
+        return ldst_pos(size,1,opc,imm12,Rn,Vt);
+    }
 
     /* } */
 
