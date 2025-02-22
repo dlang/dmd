@@ -5513,6 +5513,7 @@ private elem* elclassinit(elem* e, Goal goal)
 }
 
 /********************************************
+ * Handle OPva_start
  */
 
 @trusted
@@ -5616,7 +5617,10 @@ if (config.exe & EX_posix)
     if (va_argsave)
     {
         e.E2 = el_ptr(va_argsave);
-        e.E2.Voffset = 6 * 8 + 8 * 16; // offset to struct __va_list_tag defined in sysv_x64.d
+        if (cgstate.AArch64)
+            e.E2.Voffset = 8 * 8 + 8 * 16; // offset to struct __va_list_tag
+        else
+            e.E2.Voffset = 6 * 8 + 8 * 16; // offset to struct __va_list_tag defined in sysv_x64.d
         return el_combine(prolog_genva_start(va_argsave, parmn.Vsym), e);
     }
     else

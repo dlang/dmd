@@ -329,26 +329,159 @@ void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
                 cdb.gen1(INSTR.str_imm_fpsimd(0,2,offset,29,q));
         }
     }
+}
 
-static if (0) // TODO
+/********************************
+ * Generate elems for va_start()
+ * Params:
+ *      sv = symbol for __va_argsave
+ *      parmn = last named parameter
+ */
+@trusted
+elem* prolog_genva_start(Symbol* sv, Symbol* parmn)
 {
-    // LEA R11, Para.size+Para.offset[RBP]
-    uint ea2 = modregxrm(2,R11,BPRM);
-    if (!cg.hasframe)
-        ea2 = (modregrm(0,4,SP) << 8) | modregrm(2,DX,4);
-    cg.Para.offset = (cg.Para.offset + (REGSIZE - 1)) & ~(REGSIZE - 1);
-    cdb.genc1(LEA,(REX_W << 16) | ea2,FL.const_,cg.Para.size + cg.Para.offset);
+    printf("prolog_genva_start()\n");
 
-    // MOV 9+16[RAX],R11
-    cdb.genc1(0x89,(REX_W << 16) | modregxrm(2,R11,AX),FL.const_,9 + 16);   // into stack_args_save
+    /* the stack variable __va_argsave points to an instance of:
+     *   struct __va_argsave_t {
+     *     size_t[Vregnum] regs;
+     *     real[8] fpregs;
+     *     struct __va_list_tag {
+     *         uint offset_regs;
+     *         uint offset_fpregs;
+     *         void* stack_args;
+     *         void* reg_args;
+     *     }
+     *     // AArch64 Procedure Call Standard 12.2
+     *     struct __va_list_tag {
+     *         void* stack;  // next stack param
+     *         void* gr_top; // end of GP arg reg save area
+     *         void* vr_top; // end of FP/SIMD arg reg save area
+     *         int gr_offs;  // offset from gr_top to next GP register arg
+     *         int vr_offs;  // offset from vr_top to next FP/SIMD register arg
+     *     }
+     *     void* stack_args_save;
+     *   }
+     */
 
-    pinholeopt(cdb.peek(), null);
-    useregs(mAX|mR11);
+    enum OFF // offsets into __va_argsave_t
+    {
+        Offset_stack,
+        Offset_gr_top,
+        Offset_vr_top,
+        Offset_gr_offs,
+        Offset_vr_offs,
+
+        Offset_regs   = 8*8 + 8*16,
+        Offset_fpregs = Offset_regs + 4,
+        Stack_args    = Offset_fpregs + 4,
+        Reg_args      = Stack_args + 8,
+        Stack_args_save = Reg_args + 8,
+    }
+
+    regm_t namedargs = prolog_namedArgs();
+
+    // AArch64 Procedure Call Standard 12.3
+    uint named_gr;      // number of general registers known to hold named incoming arguments
+    foreach (reg_t x; 0 .. 8)
+    {
+        if (!namedargs)
+            break;
+        regm_t m = mask(x);
+        if (m & namedargs)
+        {
+            ++named_gr;
+            namedargs &= ~m;
+        }
+    }
+
+    uint named_vr;      // number of FP/SIMD registers known to hold named incoming arguments
+    foreach (reg_t q; 32 + 0 .. 32 + 8)
+    {
+        if (!namedargs)
+            break;
+        regm_t m = mask(q);
+        if (m & namedargs)
+        {
+            ++named_vr;
+            namedargs &= ~m;
+        }
+    }
+
+    // set stack to address following the last named incoming argument on the stack
+    // rounded upwards to a multiple of 8 bytes, or if there are no named arguments on the stack, then
+    // the value of the stack pointer when the function was entered.
+    elem* e1 = null; // TODO
+
+    // set gr_top to address following the general register save area
+    elem* e2 = el_bin(OPeq, TYptr, el_var(sv), el_ptr(sv));
+    e2.E1.Voffset = OFF.Offset_vr_offs;
+
+    // set vr_top to address following the FP/SIMD register save area
+    elem* ex3 = el_bin(OPadd, TYptr, el_ptr(sv), el_long(TYlong, 8 * 8));
+    elem* e3 = el_bin(OPeq,TYptr,el_var(sv),ex3);
+    e3.E1.Ety = TYptr;
+    e3.E1.Voffset = OFF.Offset_vr_offs;
+
+    // set gr_offs
+    elem* e4 = el_bin(OPeq, TYint, el_var(sv), el_long(TYint, 0 - ((8 - named_gr) * 8)));
+    e4.E1.Ety = TYint;
+    e4.E1.Voffset = OFF.Offset_gr_offs;
+
+    // set vr_offs
+    elem* e5 = el_bin(OPeq, TYint, el_var(sv), el_long(TYint, 0 - ((8 - named_vr) * 16)));
+    e5.E1.Ety = TYint;
+    e5.E1.Voffset = OFF.Offset_vr_offs;
+
+static if (0)
+{
+    // set offset_regs
+    elem* e1 = el_bin(OPeq, TYint, el_var(sv), el_long(TYint, offset_regs));
+    e1.E1.Ety = TYint;
+    e1.E1.Voffset = OFF.Offset_regs;
+
+    // set offset_fpregs
+    elem* e2 = el_bin(OPeq, TYint, el_var(sv), el_long(TYint, offset_fpregs));
+    e2.E1.Ety = TYint;
+    e2.E1.Voffset = OFF.Offset_fpregs;
+
+    // set reg_args
+    elem* e4 = el_bin(OPeq, TYnptr, el_var(sv), el_ptr(sv));
+    e4.E1.Ety = TYnptr;
+    e4.E1.Voffset = OFF.Reg_args;
+
+    // set stack_args
+    /* which is a pointer to the first variadic argument on the stack.
+     * Normally, we could set it by taking the address of the last named parameter
+     * (parmn) and then skipping past it. The trouble, though, is it fails
+     * when all the named parameters get passed in a register.
+     *    elem* e3 = el_bin(OPeq, TYnptr, el_var(sv), el_ptr(parmn));
+     *    e3.E1.Ety = TYnptr;
+     *    e3.E1.Voffset = OFF.Stack_args;
+     *    auto sz = type_size(parmn.Stype);
+     *    sz = (sz + (REGSIZE - 1)) & ~(REGSIZE - 1);
+     *    e3.E2.Voffset += sz;
+     * The next possibility is to do it the way prolog_genvarargs() does:
+     *    LEA R11, Para.size+Para.offset[RBP]
+     * The trouble there is Para.size and Para.offset is not available when
+     * this function is called. It might be possible to compute this earlier.(1)
+     * Another possibility is creating a special operand type that gets filled
+     * in after the prolog_genvarargs() is called.
+     * Or do it this simpler way - compute the needed value in prolog_genvarargs(),
+     * and save it in a slot just after va_argsave, called `stack_args_save`.
+     * Then, just copy from `stack_args_save` to `stack_args`.
+     * Although, doing (1) might be optimal.
+     */
+    elem* e3 = el_bin(OPeq, TYnptr, el_var(sv), el_var(sv));
+    e3.E1.Ety = TYnptr;
+    e3.E1.Voffset = OFF.Stack_args;
+    e3.E2.Ety = TYnptr;
+    e3.E2.Voffset = OFF.Stack_args_save;
 }
+    elem* e = el_combine(e1, el_combine(e2, el_combine(e3, el_combine(e4, e5))));
+    return e;
 }
 
-// prolog_genvarargs
-// prolog_genva_start
 // prolog_gen_win64_varargs
 // prolog_namedArgs
 // prolog_loadparams
