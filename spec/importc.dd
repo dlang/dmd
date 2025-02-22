@@ -379,9 +379,9 @@ $(H2 $(LNAME2 implementation, Implementation))
     be an integral type and evaluate to an integer value that fits in an `int`.)
 
     ---
-    enum E { -10, 0x81231234 }; // ok
-    enum F {  0x812312345678 }; // error, doesn't fit in int
-    enum G { 1.0 };             // error, not integral type
+    enum E { a = -10, b = 0x81231234 }; // ok
+    enum F { c =  0x812312345678 }; // error, doesn't fit in int
+    enum G { d = 1.0 };             // error, not integral type
     ---
 
     $(P The enumerated type is `int`.)
