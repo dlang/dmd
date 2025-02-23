@@ -11,6 +11,8 @@ $(RED Warning:
  */
 
 module core.sys.windows.sqlucode;
+deprecated("The ODBC 3.5 modules are deprecated. Please use the ODBC4 module in the etc.c.odbc package.");
+deprecated:
 version (Windows):
 
 version (ANSI) {} else version = Unicode;

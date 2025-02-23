@@ -11,6 +11,8 @@ $(RED Warning:
  */
 
 module core.sys.windows.sql;
+deprecated("The ODBC 3.5 modules are deprecated. Please use the ODBC4 module in the etc.c.odbc package.");
+deprecated:
 version (Windows):
 
 public import core.sys.windows.sqltypes;
