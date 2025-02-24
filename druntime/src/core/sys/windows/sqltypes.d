@@ -10,9 +10,8 @@ $(RED Warning:
  * Source: $(DRUNTIMESRC core/sys/windows/_sqltypes.d)
  */
 
+deprecated ("The ODBC 3.5 modules are deprecated. Please use the ODBC4 modules in the `etc.c.odbc` package.")
 module core.sys.windows.sqltypes;
-deprecated("The ODBC 3.5 modules are deprecated. Please use the ODBC4 module in the etc.c.odbc package.");
-deprecated:
 version (Windows):
 
 version (ANSI) {} else version = Unicode;
