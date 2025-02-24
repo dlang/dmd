@@ -11,7 +11,6 @@ $(RED Warning:
  */
 
 module core.sys.windows.sqltypes;
-deprecated ("The ODBC 3.5 modules are deprecated. Please use the ODBC4 modules in the `etc.c.odbc` package."):
 version (Windows):
 
 version (ANSI) {} else version = Unicode;
@@ -70,6 +69,10 @@ alias ubyte  SQLTIME, SQLTIMESTAMP, SQLVARCHAR;
 alias long   ODBCINT64, SQLBIGINT;
 alias ulong  SQLUBIGINT;
 //}
+
+//Everything above this line may by used by odbcinst.d
+//Everything below this line is deprecated
+deprecated ("The ODBC 3.5 modules are deprecated. Please use the ODBC4 modules in the `etc.c.odbc` package."):
 
 struct DATE_STRUCT {
     SQLSMALLINT year;
