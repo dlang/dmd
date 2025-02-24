@@ -10,8 +10,8 @@ $(RED Warning:
  * Source: $(DRUNTIMESRC core/sys/windows/_sqlext.d)
  */
 
-deprecated ("The ODBC 3.5 modules are deprecated. Please use the ODBC4 modules in the `etc.c.odbc` package.")
 module core.sys.windows.sqlext;
+deprecated ("The ODBC 3.5 modules are deprecated. Please use the ODBC4 modules in the `etc.c.odbc` package."):
 version (Windows):
 
 /* Conversion notes:
