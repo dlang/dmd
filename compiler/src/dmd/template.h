@@ -270,7 +270,6 @@ public:
     TemplateInstance *syntaxCopy(Dsymbol *) override;
     Dsymbol *toAlias() override final;   // resolve real symbol
     const char *kind() const override;
-    bool oneMember(Dsymbol *&ps, Identifier *ident) override;
     const char* toPrettyCharsHelper() override final;
     Identifier *getIdent() override final;
 
@@ -288,7 +287,6 @@ public:
 
     TemplateMixin *syntaxCopy(Dsymbol *s) override;
     const char *kind() const override;
-    bool oneMember(Dsymbol *&ps, Identifier *ident) override;
     bool hasPointers() override;
 
     TemplateMixin *isTemplateMixin() override { return this; }

@@ -7967,3 +7967,134 @@ private extern(C++) class CheckCtorConstInitVisitor : Visitor
 
     override void visit(Dsymbol d){}
 }
+
+/**************************************
+* Determine if this symbol is only one.
+* Returns:
+*      false, ps = null: There are 2 or more symbols
+*      true,  ps = null: There are zero symbols
+*      true,  ps = symbol: The one and only one symbol
+*/
+bool oneMember(Dsymbol d, out Dsymbol ps, Identifier ident)
+{
+    scope v = new OneMemberVisitor(ps, ident);
+    d.accept(v);
+    return v.result;
+}
+
+private extern(C++) class OneMemberVisitor : Visitor
+{
+    alias visit = Visitor.visit;
+
+    Dsymbol* ps;
+    Identifier ident;
+    bool result;
+
+    this(out Dsymbol ps, Identifier ident)
+    {
+        this.ps = &ps;
+        this.ident = ident;
+    }
+
+    override void visit(AttribDeclaration atb)
+    {
+        Dsymbols* d = atb.include(null);
+        result = Dsymbol.oneMembers(d, *ps, ident);
+    }
+
+    override void visit(StaticForeachDeclaration sfd)
+    {
+        // Required to support IFTI on a template that contains a
+        // `static foreach` declaration.  `super.oneMember` calls
+        // include with a `null` scope.  As `static foreach` requires
+        // the scope for expansion, `oneMember` can only return a
+        // precise result once `static foreach` has been expanded.
+        if (sfd.cached)
+        {
+            this.visit(cast(AttribDeclaration) sfd);
+        }
+        else
+        {
+            *ps = null; // a `static foreach` declaration may in general expand to multiple symbols
+            result = false;
+        }
+    }
+
+    override void visit(StorageClassDeclaration scd)
+    {
+        bool t = Dsymbol.oneMembers(scd.decl, *ps, ident);
+        if (t && *ps)
+        {
+            /* This is to deal with the following case:
+             * struct Tick {
+             *   template to(T) { const T to() { ... } }
+             * }
+             * For eponymous function templates, the 'const' needs to get attached to 'to'
+             * before the semantic analysis of 'to', so that template overloading based on the
+             * 'this' pointer can be successful.
+             */
+            if (FuncDeclaration fd = (*ps).isFuncDeclaration())
+            {
+                /* Use storage_class2 instead of storage_class otherwise when we do .di generation
+                 * we'll wind up with 'const const' rather than 'const'.
+                 */
+                /* Don't think we need to worry about mutually exclusive storage classes here
+                 */
+                fd.storage_class2 |= scd.stc;
+            }
+        }
+        result = t;
+    }
+
+    override void visit(ConditionalDeclaration cd)
+    {
+        //printf("ConditionalDeclaration::oneMember(), inc = %d\n", condition.inc);
+        if (cd.condition.inc != Include.notComputed)
+        {
+            Dsymbols* d = cd.condition.include(null) ? cd.decl : cd.elsedecl;
+            result = Dsymbol.oneMembers(d, *ps, ident);
+        }
+        else
+        {
+            bool res = (Dsymbol.oneMembers(cd.decl, *ps, ident) && *ps is null && Dsymbol.oneMembers(cd.elsedecl, *ps, ident) && *ps is null);
+            *ps = null;
+            result = res;
+        }
+    }
+
+    override void visit(ScopeDsymbol sd)
+    {
+        if (sd.isAnonymous())
+            result = Dsymbol.oneMembers(sd.members, *ps, ident);
+        else {
+            // visit(Dsymbol dsym)
+            *ps = sd;
+            result = true;
+        }
+    }
+
+    override void visit(StaticAssert sa)
+    {
+        //printf("StaticAssert::oneMember())\n");
+        *ps = null;
+        result = true;
+    }
+
+    override void visit(TemplateInstance ti)
+    {
+        *ps = null;
+        result = true;
+    }
+
+    override void visit(TemplateMixin tm)
+    {
+        *ps = tm;
+        result = true;
+    }
+
+    override void visit(Dsymbol dsym)
+    {
+        *ps = dsym;
+        result = true;
+    }
+}

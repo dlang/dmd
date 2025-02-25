@@ -510,7 +510,6 @@ public:
     virtual bool needThis();
     virtual Visibility visible();
     virtual Dsymbol* syntaxCopy(Dsymbol* s);
-    virtual bool oneMember(Dsymbol*& ps, Identifier* ident);
     virtual bool hasPointers();
     virtual bool hasStaticCtorOrDtor();
     virtual void addObjcSymbols(Array<ClassDeclaration* >* classes, Array<ClassDeclaration* >* categories);
@@ -1632,7 +1631,6 @@ public:
     TemplateInstance* syntaxCopy(Dsymbol* s) override;
     Dsymbol* toAlias() final override;
     const char* kind() const override;
-    bool oneMember(Dsymbol*& ps, Identifier* ident) override;
     const char* toPrettyCharsHelper() final override;
     Identifier* getIdent() final override;
     bool equalsx(TemplateInstance* ti);
@@ -1657,7 +1655,6 @@ public:
     TypeQualified* tqual;
     TemplateInstance* syntaxCopy(Dsymbol* s) override;
     const char* kind() const override;
-    bool oneMember(Dsymbol*& ps, Identifier* ident) override;
     bool hasPointers() override;
     TemplateMixin* isTemplateMixin() override;
     void accept(Visitor* v) override;
@@ -5378,7 +5375,6 @@ public:
     Expression* exp;
     Array<Expression* >* msgs;
     StaticAssert* syntaxCopy(Dsymbol* s) override;
-    bool oneMember(Dsymbol*& ps, Identifier* ident) override;
     const char* kind() const override;
     StaticAssert* isStaticAssert() override;
     void accept(Visitor* v) override;
@@ -6330,7 +6326,6 @@ class AttribDeclaration : public Dsymbol
 public:
     Array<Dsymbol* >* decl;
     const char* kind() const override;
-    bool oneMember(Dsymbol*& ps, Identifier* ident) override;
     bool hasPointers() final override;
     bool hasStaticCtorOrDtor() final override;
     void addObjcSymbols(Array<ClassDeclaration* >* classes, Array<ClassDeclaration* >* categories) final override;
@@ -6343,7 +6338,6 @@ class StorageClassDeclaration : public AttribDeclaration
 public:
     StorageClass stc;
     StorageClassDeclaration* syntaxCopy(Dsymbol* s) override;
-    bool oneMember(Dsymbol*& ps, Identifier* ident) final override;
     StorageClassDeclaration* isStorageClassDeclaration() override;
     void accept(Visitor* v) override;
 };
@@ -6433,7 +6427,6 @@ public:
     Condition* condition;
     Array<Dsymbol* >* elsedecl;
     ConditionalDeclaration* syntaxCopy(Dsymbol* s) override;
-    bool oneMember(Dsymbol*& ps, Identifier* ident) final override;
     void accept(Visitor* v) override;
 };
 
@@ -6458,7 +6451,6 @@ public:
     bool cached;
     Array<Dsymbol* >* cache;
     StaticForeachDeclaration* syntaxCopy(Dsymbol* s) override;
-    bool oneMember(Dsymbol*& ps, Identifier* ident) override;
     const char* kind() const override;
     void accept(Visitor* v) override;
 };
@@ -7011,7 +7003,6 @@ private:
 public:
     Symbol* sinit;
     EnumDeclaration* syntaxCopy(Dsymbol* s) override;
-    bool oneMember(Dsymbol*& ps, Identifier* ident) override;
     Type* getType() override;
     const char* kind() const override;
     bool isDeprecated() const override;
