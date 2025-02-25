@@ -867,7 +867,7 @@ class Lexer
                             case 0:
                             case 0x1A:
                                 error(t.loc, "unterminated /* */ comment");
-                                p = end;
+                                //p = end;
                                 t.loc = loc();
                                 t.value = TOK.endOfFile;
                                 return;
@@ -927,7 +927,7 @@ class Lexer
                                 getDocComment(t, lastLine == startLoc.linnum, startLoc.linnum - lastDocLine > 1);
                                 lastDocLine = linnum;
                             }
-                            p = end;
+                            //p = end;
                             t.loc = loc();
                             t.value = TOK.endOfFile;
                             return;
@@ -1003,7 +1003,7 @@ class Lexer
                             case 0:
                             case 0x1A:
                                 error(t.loc, "unterminated /+ +/ comment");
-                                p = end;
+                                //p = end;
                                 t.loc = loc();
                                 t.value = TOK.endOfFile;
                                 return;

@@ -58,6 +58,9 @@ extern (C)
 	/+enum int __TIMESTAMP__ = 1+/;
 	/+enum int __EOF__ = 1+/;
 	/+enum int __VENDOR__ = 1+/;
+	enum int DEF = 123;
+	enum int SQL_DRIVER_STMT_ATTR_BASE = 16384;
+	enum int ABC = 64;
 }
 ---
  */
@@ -124,3 +127,7 @@ struct Test
 };
 
 int arr[(ULONG) 3];
+
+#define DEF 123
+#define SQL_DRIVER_STMT_ATTR_BASE   0x00004000  // 32-bit
+#define ABC 64
