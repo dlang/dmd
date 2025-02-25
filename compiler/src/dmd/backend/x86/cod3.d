@@ -4078,6 +4078,9 @@ void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
 @trusted
 elem* prolog_genva_start(Symbol* sv, Symbol* parmn)
 {
+    if (cgstate.AArch64)
+        return dmd.backend.arm.cod3.prolog_genva_start(sv, parmn);
+
     enum Vregnum = 6;
 
     /* the stack variable __va_argsave points to an instance of:
