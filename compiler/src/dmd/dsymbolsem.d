@@ -1775,7 +1775,8 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             s.dsymbolSemantic(sc2);
             errors |= s.errors;
         }
-        ad.errors |= errors;
+        if (errors)
+            ad.errors = true;
         if (sc2 != sc)
             sc2.pop();
 
@@ -2962,7 +2963,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
          */
         sd.members.foreachDsymbol( s => s.setScope(sc2) );
         sd.members.foreachDsymbol( s => s.importAll(sc2) );
-        sd.members.foreachDsymbol( (s) { s.dsymbolSemantic(sc2); sd.errors |= s.errors; } );
+        sd.members.foreachDsymbol( (s) { s.dsymbolSemantic(sc2); if (sd.errors) s.errors = true; } );
 
         if (sd.errors)
             sd.type = Type.terror;

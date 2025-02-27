@@ -160,7 +160,6 @@ public:
 
     Visibility visible() override final;
 
-    Declaration *isDeclaration() override final { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -180,7 +179,6 @@ public:
     Dsymbol *toAlias2() override;
     bool needThis() override;
 
-    TupleDeclaration *isTupleDeclaration() override { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -202,7 +200,6 @@ public:
     Dsymbol *toAlias2() override;
     bool isOverloadable() const override;
 
-    AliasDeclaration *isAliasDeclaration() override { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -222,7 +219,6 @@ public:
     Dsymbol *isUnique();
     bool isOverloadable() const override;
 
-    OverDeclaration *isOverDeclaration() override { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -300,7 +296,6 @@ public:
     bool needsScopeDtor();
     Dsymbol *toAlias() override final;
     // Eliminate need for dynamic_cast
-    VarDeclaration *isVarDeclaration() override final { return (VarDeclaration *)this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -315,7 +310,6 @@ public:
     unsigned bitOffset;
 
     BitFieldDeclaration *syntaxCopy(Dsymbol *) override;
-    BitFieldDeclaration *isBitFieldDeclaration() override final { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -329,7 +323,6 @@ public:
     AggregateDeclaration *dsym;
 
     // Eliminate need for dynamic_cast
-    SymbolDeclaration *isSymbolDeclaration() override { return (SymbolDeclaration *)this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -341,7 +334,6 @@ public:
     static TypeInfoDeclaration *create(Type *tinfo);
     TypeInfoDeclaration *syntaxCopy(Dsymbol *) override final;
 
-    TypeInfoDeclaration *isTypeInfoDeclaration() override final { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -481,7 +473,6 @@ class ThisDeclaration final : public VarDeclaration
 {
 public:
     ThisDeclaration *syntaxCopy(Dsymbol *) override;
-    ThisDeclaration *isThisDeclaration() override { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -738,8 +729,6 @@ public:
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name, StorageClass stc=0);
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id, StorageClass stc=0);
 
-    FuncDeclaration *isFuncDeclaration() override final { return this; }
-
     virtual FuncDeclaration *toAliasFunc() { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -750,7 +739,6 @@ public:
     FuncDeclaration *funcalias;
     d_bool hasOverloads;
 
-    FuncAliasDeclaration *isFuncAliasDeclaration() override { return this; }
     const char *kind() const override;
 
     FuncDeclaration *toAliasFunc() override;
@@ -773,7 +761,6 @@ public:
     bool addPreInvariant() override;
     bool addPostInvariant() override;
 
-    FuncLiteralDeclaration *isFuncLiteralDeclaration() override { return this; }
     const char *kind() const override;
     const char *toPrettyChars(bool QualifyTypes = false) override;
     void accept(Visitor *v) override { v->visit(this); }
@@ -790,7 +777,6 @@ public:
     bool addPreInvariant() override;
     bool addPostInvariant() override;
 
-    CtorDeclaration *isCtorDeclaration() override { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -803,7 +789,6 @@ public:
     bool addPostInvariant() override;
     bool overloadInsert(Dsymbol *s) override;
 
-    PostBlitDeclaration *isPostBlitDeclaration() override { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -817,7 +802,6 @@ public:
     bool addPostInvariant() override;
     bool overloadInsert(Dsymbol *s) override;
 
-    DtorDeclaration *isDtorDeclaration() override { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -831,7 +815,6 @@ public:
     bool addPostInvariant() override final;
     bool hasStaticCtorOrDtor() override final;
 
-    StaticCtorDeclaration *isStaticCtorDeclaration() override final { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -841,7 +824,6 @@ public:
     bool standalone;
     SharedStaticCtorDeclaration *syntaxCopy(Dsymbol *) override;
 
-    SharedStaticCtorDeclaration *isSharedStaticCtorDeclaration() override { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -857,7 +839,6 @@ public:
     bool addPreInvariant() override final;
     bool addPostInvariant() override final;
 
-    StaticDtorDeclaration *isStaticDtorDeclaration() override final { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -866,7 +847,6 @@ class SharedStaticDtorDeclaration final : public StaticDtorDeclaration
 public:
     SharedStaticDtorDeclaration *syntaxCopy(Dsymbol *) override;
 
-    SharedStaticDtorDeclaration *isSharedStaticDtorDeclaration() override { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -878,7 +858,6 @@ public:
     bool addPreInvariant() override;
     bool addPostInvariant() override;
 
-    InvariantDeclaration *isInvariantDeclaration() override { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -896,7 +875,6 @@ public:
     bool addPreInvariant() override;
     bool addPostInvariant() override;
 
-    UnitTestDeclaration *isUnitTestDeclaration() override { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -909,6 +887,5 @@ public:
     bool addPreInvariant() override;
     bool addPostInvariant() override;
 
-    NewDeclaration *isNewDeclaration() override { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };

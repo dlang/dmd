@@ -1166,7 +1166,7 @@ public:
     void visit(Dsymbol *) override { assert(0); }
     void visit(Module *d) override
     {
-        if (d->semanticRun >= PASS::obj)
+        if (d->semanticRun() >= PASS::obj)
             return;
         if (d->members)
         {
@@ -1192,11 +1192,11 @@ public:
             (void)d->stest;
             (void)d->needmoduleinfo;
         }
-        d->semanticRun = PASS::obj;
+        d->semanticRun(PASS::obj);
     }
     void visit(Import *d) override
     {
-        if (d->semanticRun >= PASS::obj)
+        if (d->semanticRun() >= PASS::obj)
             return;
         if (d->isstatic)
             return;
@@ -1210,7 +1210,7 @@ public:
         }
         else
             d->mod->accept(this);
-        d->semanticRun = PASS::obj;
+        d->semanticRun(PASS::obj);
     }
     void visit(TupleDeclaration *d) override
     {
@@ -1283,7 +1283,7 @@ public:
     }
     void visit(StructDeclaration *d) override
     {
-        if (d->semanticRun >= PASS::obj)
+        if (d->semanticRun() >= PASS::obj)
             return;
         if (d->type->ty == TY::Terror)
             return;
@@ -1304,11 +1304,11 @@ public:
             d->xcmp->accept(this);
         if (d->xhash)
             d->xhash->accept(this);
-        d->semanticRun = PASS::obj;
+        d->semanticRun(PASS::obj);
     }
     void visit(ClassDeclaration *d) override
     {
-        if (d->semanticRun >= PASS::obj)
+        if (d->semanticRun() >= PASS::obj)
             return;
         if (d->type->ty == TY::Terror)
             return;
@@ -1401,11 +1401,11 @@ public:
                 visitDeclaration(fd);
         }
         d->type->accept(this);
-        d->semanticRun = PASS::obj;
+        d->semanticRun(PASS::obj);
     }
     void visit(InterfaceDeclaration *d) override
     {
-        if (d->semanticRun >= PASS::obj)
+        if (d->semanticRun() >= PASS::obj)
             return;
         if (d->type->ty == TY::Terror)
             return;
@@ -1415,13 +1415,13 @@ public:
             (*d->members)[i]->accept(this);
         (void)d->csym;
         d->type->accept(this);
-        d->semanticRun = PASS::obj;
+        d->semanticRun(PASS::obj);
     }
     void visit(EnumDeclaration *d) override
     {
-        if (d->semanticRun >= PASS::obj)
+        if (d->semanticRun() >= PASS::obj)
             return;
-        if (d->errors || d->type->ty == TY::Terror)
+        if (d->errors() || d->type->ty == TY::Terror)
             return;
         if (d->isAnonymous())
             return;
@@ -1432,7 +1432,7 @@ public:
             tc->sym->defaultval->accept(this);
         }
         d->type->accept(this);
-        d->semanticRun = PASS::obj;
+        d->semanticRun(PASS::obj);
     }
     void visitDeclaration(Declaration *decl)
     {
@@ -1525,7 +1525,7 @@ public:
     }
     void visit(VarDeclaration *d) override
     {
-        if (d->semanticRun >= PASS::obj)
+        if (d->semanticRun() >= PASS::obj)
             return;
         if (d->type->ty == TY::Terror)
             return;
@@ -1579,18 +1579,18 @@ public:
             }
         }
         d->type->accept(this);
-        d->semanticRun = PASS::obj;
+        d->semanticRun(PASS::obj);
     }
     void visit(TypeInfoDeclaration *d) override
     {
-        if (d->semanticRun >= PASS::obj)
+        if (d->semanticRun() >= PASS::obj)
             return;
         visitDeclaration(d);
-        d->semanticRun = PASS::obj;
+        d->semanticRun(PASS::obj);
     }
     void visit(FuncDeclaration *d) override
     {
-        if (d->semanticRun >= PASS::obj)
+        if (d->semanticRun() >= PASS::obj)
             return;
         if (d->isUnitTestDeclaration())
             return;
@@ -1613,7 +1613,7 @@ public:
                     return;
             }
         }
-        if (d->semanticRun < PASS::semantic3)
+        if (d->semanticRun() < PASS::semantic3)
         {
             dmd::functionSemantic3(d);
             Module::runDeferredSemantic3();
@@ -1623,8 +1623,8 @@ public:
         visitDeclaration(d);
         if (!d->fbody)
             return;
-        assert(d->semanticRun == PASS::semantic3done);
-        d->semanticRun = PASS::obj;
+        assert(d->semanticRun() == PASS::semantic3done);
+        d->semanticRun(PASS::obj);
         if (d->vthis)
             visitDeclaration(d->vthis);
         if (d->v_arguments)

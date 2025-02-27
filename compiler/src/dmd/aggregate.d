@@ -495,11 +495,6 @@ extern (C++) abstract class AggregateDeclaration : ScopeDsymbol
     // Back end
     void* sinit;  /// initializer symbol
 
-    override final inout(AggregateDeclaration) isAggregateDeclaration() inout
-    {
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);

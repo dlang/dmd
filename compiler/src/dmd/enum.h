@@ -58,7 +58,6 @@ public:
     Visibility visible() override;
     bool isSpecial() const;
 
-    EnumDeclaration *isEnumDeclaration() override { return this; }
 
     Symbol *sinit;
     void accept(Visitor *v) override { v->visit(this); }
@@ -86,6 +85,5 @@ public:
     EnumMember *syntaxCopy(Dsymbol *s) override;
     const char *kind() const override;
 
-    EnumMember *isEnumMember() override { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };

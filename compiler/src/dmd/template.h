@@ -82,7 +82,6 @@ public:
 
     Visibility visible() override;
 
-    TemplateDeclaration *isTemplateDeclaration() override { return this; }
 
     bool isDeprecated() const override;
     bool isOverloadable() const override;
@@ -276,7 +275,6 @@ public:
     bool isDiscardable();
     bool needsCodegen();
 
-    TemplateInstance *isTemplateInstance() override final { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -289,7 +287,6 @@ public:
     const char *kind() const override;
     bool hasPointers() override;
 
-    TemplateMixin *isTemplateMixin() override { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 

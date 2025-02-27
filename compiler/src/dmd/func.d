@@ -298,7 +298,7 @@ extern (C++) class FuncDeclaration : Declaration
 
     extern (D) this(Loc loc, Loc endloc, Identifier ident, StorageClass storage_class, Type type, bool noreturn = false)
     {
-        super(loc, ident);
+        super(DSYM.funcDeclaration, loc, ident);
         //.printf("FuncDeclaration(id = '%s', type = %s)\n", ident.toChars(), type.toChars());
         //.printf("storage_class = x%llx\n", storage_class);
         this.storage_class = storage_class;
@@ -1043,11 +1043,6 @@ extern (C++) class FuncDeclaration : Declaration
         return fd;
     }
 
-    override final inout(FuncDeclaration) isFuncDeclaration() inout
-    {
-        return this;
-    }
-
     inout(FuncDeclaration) toAliasFunc() inout @safe
     {
         return this;
@@ -1243,6 +1238,7 @@ extern (C++) final class FuncAliasDeclaration : FuncDeclaration
         super(funcalias.loc, funcalias.endloc, ident, funcalias.storage_class, funcalias.type);
         assert(funcalias != this);
         this.funcalias = funcalias;
+        this.dsym = DSYM.funcAliasDeclaration;
 
         this.hasOverloads = hasOverloads;
         if (hasOverloads)
@@ -1257,11 +1253,6 @@ extern (C++) final class FuncAliasDeclaration : FuncDeclaration
             this.hasOverloads = false;
         }
         userAttribDecl = funcalias.userAttribDecl;
-    }
-
-    override inout(FuncAliasDeclaration) isFuncAliasDeclaration() inout
-    {
-        return this;
     }
 
     override const(char)* kind() const
@@ -1293,6 +1284,7 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
     extern (D) this(Loc loc, Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null, StorageClass storage_class = STC.undefined_)
     {
         super(loc, endloc, null, storage_class, type);
+        this.dsym = DSYM.funcLiteralDeclaration;
         this.ident = id ? id : Id.empty;
         this.tok = tok;
         this.fes = fes;
@@ -1338,11 +1330,6 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
         return false;
     }
 
-    override inout(FuncLiteralDeclaration) isFuncLiteralDeclaration() inout
-    {
-        return this;
-    }
-
     override const(char)* kind() const
     {
         // GCC requires the (char*) casts
@@ -1374,6 +1361,7 @@ extern (C++) final class CtorDeclaration : FuncDeclaration
     extern (D) this(Loc loc, Loc endloc, StorageClass stc, Type type)
     {
         super(loc, endloc, Id.ctor, stc, type);
+        this.dsym = DSYM.ctorDeclaration;
         //printf("CtorDeclaration(loc = %s) %s %p\n", loc.toChars(), toChars(), this);
     }
 
@@ -1405,11 +1393,6 @@ extern (C++) final class CtorDeclaration : FuncDeclaration
         return (isThis() && vthis && global.params.useInvariants == CHECKENABLE.on);
     }
 
-    override inout(CtorDeclaration) isCtorDeclaration() inout
-    {
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1423,6 +1406,7 @@ extern (C++) final class PostBlitDeclaration : FuncDeclaration
     extern (D) this(Loc loc, Loc endloc, StorageClass stc, Identifier id)
     {
         super(loc, endloc, id, stc, null);
+        this.dsym = DSYM.postBlitDeclaration;
     }
 
     override PostBlitDeclaration syntaxCopy(Dsymbol s)
@@ -1453,11 +1437,6 @@ extern (C++) final class PostBlitDeclaration : FuncDeclaration
         return false; // cannot overload postblits
     }
 
-    override inout(PostBlitDeclaration) isPostBlitDeclaration() inout
-    {
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1471,11 +1450,13 @@ extern (C++) final class DtorDeclaration : FuncDeclaration
     extern (D) this(Loc loc, Loc endloc)
     {
         super(loc, endloc, Id.dtor, STC.undefined_, null);
+        this.dsym = DSYM.dtorDeclaration;
     }
 
     extern (D) this(Loc loc, Loc endloc, StorageClass stc, Identifier id)
     {
         super(loc, endloc, id, stc, null);
+        this.dsym = DSYM.dtorDeclaration;
     }
 
     override DtorDeclaration syntaxCopy(Dsymbol s)
@@ -1513,11 +1494,6 @@ extern (C++) final class DtorDeclaration : FuncDeclaration
         return false; // cannot overload destructors
     }
 
-    override inout(DtorDeclaration) isDtorDeclaration() inout
-    {
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1531,11 +1507,13 @@ extern (C++) class StaticCtorDeclaration : FuncDeclaration
     extern (D) this(Loc loc, Loc endloc, StorageClass stc)
     {
         super(loc, endloc, Identifier.generateIdWithLoc("_staticCtor", loc), STC.static_ | stc, null);
+        this.dsym = DSYM.staticCtorDeclaration;
     }
 
     extern (D) this(Loc loc, Loc endloc, string name, StorageClass stc)
     {
         super(loc, endloc, Identifier.generateIdWithLoc(name, loc), STC.static_ | stc, null);
+        this.dsym = DSYM.staticCtorDeclaration;
     }
 
     override StaticCtorDeclaration syntaxCopy(Dsymbol s)
@@ -1571,11 +1549,6 @@ extern (C++) class StaticCtorDeclaration : FuncDeclaration
         return true;
     }
 
-    override final inout(StaticCtorDeclaration) isStaticCtorDeclaration() inout @nogc nothrow pure @safe
-    {
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1592,6 +1565,7 @@ extern (C++) final class SharedStaticCtorDeclaration : StaticCtorDeclaration
     extern (D) this(Loc loc, Loc endloc, StorageClass stc)
     {
         super(loc, endloc, "_sharedStaticCtor", stc);
+        this.dsym = DSYM.sharedStaticCtorDeclaration;
     }
 
     override SharedStaticCtorDeclaration syntaxCopy(Dsymbol s)
@@ -1600,11 +1574,6 @@ extern (C++) final class SharedStaticCtorDeclaration : StaticCtorDeclaration
         auto scd = new SharedStaticCtorDeclaration(loc, endloc, storage_class);
         FuncDeclaration.syntaxCopy(scd);
         return scd;
-    }
-
-    override inout(SharedStaticCtorDeclaration) isSharedStaticCtorDeclaration() inout
-    {
-        return this;
     }
 
     override void accept(Visitor v)
@@ -1622,11 +1591,13 @@ extern (C++) class StaticDtorDeclaration : FuncDeclaration
     extern (D) this(Loc loc, Loc endloc, StorageClass stc)
     {
         super(loc, endloc, Identifier.generateIdWithLoc("_staticDtor", loc), STC.static_ | stc, null);
+        this.dsym = DSYM.staticDtorDeclaration;
     }
 
     extern (D) this(Loc loc, Loc endloc, string name, StorageClass stc)
     {
         super(loc, endloc, Identifier.generateIdWithLoc(name, loc), STC.static_ | stc, null);
+        this.dsym = DSYM.staticDtorDeclaration;
     }
 
     override StaticDtorDeclaration syntaxCopy(Dsymbol s)
@@ -1662,11 +1633,6 @@ extern (C++) class StaticDtorDeclaration : FuncDeclaration
         return false;
     }
 
-    override final inout(StaticDtorDeclaration) isStaticDtorDeclaration() inout
-    {
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1680,6 +1646,7 @@ extern (C++) final class SharedStaticDtorDeclaration : StaticDtorDeclaration
     extern (D) this(Loc loc, Loc endloc, StorageClass stc)
     {
         super(loc, endloc, "_sharedStaticDtor", stc);
+        this.dsym = DSYM.sharedStaticDtorDeclaration;
     }
 
     override SharedStaticDtorDeclaration syntaxCopy(Dsymbol s)
@@ -1688,11 +1655,6 @@ extern (C++) final class SharedStaticDtorDeclaration : StaticDtorDeclaration
         auto sdd = new SharedStaticDtorDeclaration(loc, endloc, storage_class);
         FuncDeclaration.syntaxCopy(sdd);
         return sdd;
-    }
-
-    override inout(SharedStaticDtorDeclaration) isSharedStaticDtorDeclaration() inout
-    {
-        return this;
     }
 
     override void accept(Visitor v)
@@ -1710,6 +1672,7 @@ extern (C++) final class InvariantDeclaration : FuncDeclaration
         // Make a unique invariant for now; we'll fix it up as we add it to the aggregate invariant list.
         super(loc, endloc, id ? id : Identifier.generateId("__invariant"), stc, null);
         this.fbody = fbody;
+        this.dsym = DSYM.invariantDeclaration;
     }
 
     override InvariantDeclaration syntaxCopy(Dsymbol s)
@@ -1733,11 +1696,6 @@ extern (C++) final class InvariantDeclaration : FuncDeclaration
     override bool addPostInvariant()
     {
         return false;
-    }
-
-    override inout(InvariantDeclaration) isInvariantDeclaration() inout
-    {
-        return this;
     }
 
     override void accept(Visitor v)
@@ -1769,6 +1727,7 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
     {
         super(loc, endloc, Identifier.generateIdWithLoc("__unittest", loc), stc, null);
         this.codedoc = codedoc;
+        this.dsym = DSYM.unitTestDeclaration;
     }
 
     override UnitTestDeclaration syntaxCopy(Dsymbol s)
@@ -1799,11 +1758,6 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
         return false;
     }
 
-    override inout(UnitTestDeclaration) isUnitTestDeclaration() inout
-    {
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1817,6 +1771,7 @@ extern (C++) final class NewDeclaration : FuncDeclaration
     extern (D) this(Loc loc, StorageClass stc)
     {
         super(loc, Loc.initial, Id.classNew, STC.static_ | stc, null);
+        this.dsym = DSYM.newDeclaration;
     }
 
     override NewDeclaration syntaxCopy(Dsymbol s)
@@ -1845,11 +1800,6 @@ extern (C++) final class NewDeclaration : FuncDeclaration
     override bool addPostInvariant()
     {
         return false;
-    }
-
-    override inout(NewDeclaration) isNewDeclaration() inout
-    {
-        return this;
     }
 
     override void accept(Visitor v)

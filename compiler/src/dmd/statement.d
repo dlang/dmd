@@ -1715,7 +1715,7 @@ extern (C++) final class LabelDsymbol : Dsymbol
 
     extern (D) this(Identifier ident, Loc loc = Loc.initial) @safe
     {
-        super(loc, ident);
+        super(DSYM.labelDsymbol, loc, ident);
     }
 
     static LabelDsymbol create(Identifier ident) @safe
