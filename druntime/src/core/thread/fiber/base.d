@@ -13,6 +13,7 @@ module core.thread.fiber.base;
 
 package:
 
+version (Posix) import core.sys.posix.ucontext : ucontext_t;
 import core.thread.fiber;
 import core.thread.threadbase;
 import core.thread.threadgroup;
