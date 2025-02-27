@@ -31,7 +31,6 @@ public:
     const char *kind() const override;
     bool hasPointers() override final;
     bool hasStaticCtorOrDtor() override final;
-    AttribDeclaration *isAttribDeclaration() override { return this; }
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -42,7 +41,6 @@ public:
     StorageClass stc;
 
     StorageClassDeclaration *syntaxCopy(Dsymbol *s) override;
-    StorageClassDeclaration *isStorageClassDeclaration() override { return this; }
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -94,7 +92,6 @@ public:
     VisibilityDeclaration *syntaxCopy(Dsymbol *s) override;
     const char *kind() const override;
     const char *toPrettyChars(bool unused) override;
-    VisibilityDeclaration *isVisibilityDeclaration() override { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -119,7 +116,6 @@ public:
 
     AnonDeclaration *syntaxCopy(Dsymbol *s) override;
     const char *kind() const override;
-    AnonDeclaration *isAnonDeclaration() override { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 
@@ -151,7 +147,6 @@ public:
     d_bool onStack;
 
     StaticIfDeclaration *syntaxCopy(Dsymbol *s) override;
-    StaticIfDeclaration *isStaticIfDeclaration() override { return this; }
     const char *kind() const override;
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -175,7 +170,6 @@ class ForwardingAttribDeclaration final : public AttribDeclaration
 public:
     ForwardingScopeDsymbol *sym;
 
-    ForwardingAttribDeclaration *isForwardingAttribDeclaration() override { return this; }
     void accept(Visitor *v) override { v->visit(this); }
 };
 

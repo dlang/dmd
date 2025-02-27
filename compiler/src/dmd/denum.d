@@ -70,6 +70,7 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         //printf("EnumDeclaration() %p %s : %s\n", this, toChars(), memtype.toChars());
         type = new TypeEnum(this);
         this.memtype = memtype;
+        this.dsym = DSYM.enumDeclaration;
         visibility = Visibility(Visibility.Kind.undefined);
     }
 
@@ -113,11 +114,6 @@ extern (C++) final class EnumDeclaration : ScopeDsymbol
         return isSpecialEnumIdent(ident) && memtype;
     }
 
-    override inout(EnumDeclaration) isEnumDeclaration() inout
-    {
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -152,6 +148,7 @@ extern (C++) final class EnumMember : VarDeclaration
         super(loc, null, id ? id : Id.empty, new ExpInitializer(loc, value));
         this.origValue = value;
         this.origType = origType;
+        this.dsym = DSYM.enumMember;
     }
 
     extern(D) this(Loc loc, Identifier id, Expression value, Type memtype,
@@ -178,11 +175,6 @@ extern (C++) final class EnumMember : VarDeclaration
     override const(char)* kind() const
     {
         return "enum member";
-    }
-
-    override inout(EnumMember) isEnumMember() inout
-    {
-        return this;
     }
 
     override void accept(Visitor v)

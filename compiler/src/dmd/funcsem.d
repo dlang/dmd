@@ -1275,6 +1275,7 @@ extern (D) void declareThis(FuncDeclaration fd, Scope* sc)
     const bool dualCtx = (fd.toParent2() != fd.toParentLocal());
     if (dualCtx)
         fd.hasDualContext = true;
+
     auto ad = fd.isThis();
     if (!dualCtx && !ad && !fd.isNested())
     {

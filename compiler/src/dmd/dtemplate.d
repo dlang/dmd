@@ -605,6 +605,7 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
     extern (D) this(Loc loc, Identifier ident, TemplateParameters* parameters, Expression constraint, Dsymbols* decldefs, bool ismixin = false, bool literal = false)
     {
         super(loc, ident);
+        this.dsym = DSYM.templateDeclaration;
         static if (LOG)
         {
             printf("TemplateDeclaration(this = %p, id = '%s')\n", this, ident.toChars());
@@ -888,11 +889,6 @@ extern (C++) final class TemplateDeclaration : ScopeDsymbol
         auto tibox = TemplateInstanceBox(ti);
         debug (FindExistingInstance) ++nRemoved;
         instances.remove(tibox);
-    }
-
-    override inout(TemplateDeclaration) isTemplateDeclaration() inout
-    {
-        return this;
     }
 
     /**
@@ -3738,6 +3734,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         {
             printf("TemplateInstance(this = %p, ident = '%s')\n", this, ident ? ident.toChars() : "null");
         }
+        this.dsym = DSYM.templateInstance;
         this.name = ident;
         this.tiargs = tiargs;
     }
@@ -3753,6 +3750,7 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         {
             printf("TemplateInstance(this = %p, tempdecl = '%s')\n", this, td.toChars());
         }
+        this.dsym = DSYM.templateInstance;
         this.name = td.ident;
         this.tiargs = tiargs;
         this.tempdecl = td;
@@ -5336,11 +5334,6 @@ extern (C++) class TemplateInstance : ScopeDsymbol
         --nest;
     }
 
-    override final inout(TemplateInstance) isTemplateInstance() inout
-    {
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -5484,6 +5477,7 @@ extern (C++) final class TemplateMixin : TemplateInstance
               tqual.idents.length ? cast(Identifier)tqual.idents[tqual.idents.length - 1] : (cast(TypeIdentifier)tqual).ident,
               tiargs ? tiargs : new Objects());
         //printf("TemplateMixin(ident = '%s')\n", ident ? ident.toChars() : "");
+        this.dsym = DSYM.templateMixin;
         this.ident = ident;
         this.tqual = tqual;
     }
@@ -5577,11 +5571,6 @@ extern (C++) final class TemplateMixin : TemplateInstance
                 return false;
         }
         return true;
-    }
-
-    override inout(TemplateMixin) isTemplateMixin() inout
-    {
-        return this;
     }
 
     override void accept(Visitor v)

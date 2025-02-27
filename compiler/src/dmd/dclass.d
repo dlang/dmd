@@ -206,6 +206,7 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
             id = Identifier.generateAnonymousId("class");
 
         super(loc, id);
+        this.dsym = DSYM.classDeclaration;
 
         static immutable msg = "only object.d can define this reserved class name";
 
@@ -941,11 +942,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
         return errorException && (this == errorException || errorException.isBaseOf(this, null));
     }
 
-    override final inout(ClassDeclaration) isClassDeclaration() inout @nogc nothrow pure @safe
-    {
-        return this;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -959,6 +955,7 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
     extern (D) this(Loc loc, Identifier id, BaseClasses* baseclasses)
     {
         super(loc, id, baseclasses, null, false);
+        this.dsym = DSYM.interfaceDeclaration;
         if (id == Id.IUnknown) // IUnknown is the root of all COM interfaces
         {
             com = true;
@@ -1056,11 +1053,6 @@ extern (C++) final class InterfaceDeclaration : ClassDeclaration
     override bool isCOMinterface() const
     {
         return com;
-    }
-
-    override inout(InterfaceDeclaration) isInterfaceDeclaration() inout
-    {
-        return this;
     }
 
     override void accept(Visitor v)

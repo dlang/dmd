@@ -2491,7 +2491,7 @@ private extern(C++) class DummyArgVisitor : Visitor
             return;
         }
         if (!tap.sdummy)
-            tap.sdummy = new Dsymbol();
+            tap.sdummy = new Dsymbol(DSYM.dsymbol);
         result = tap.sdummy;
     }
 
