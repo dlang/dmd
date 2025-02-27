@@ -11,3 +11,7 @@ endif
 include ../common.mak
 
 extra_dflags += -d
+
+ifeq ($(OS),windows)
+    extra_dflags += -P=/std:c11
+endif
