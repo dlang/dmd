@@ -7125,11 +7125,11 @@ elem* setEthis2(Loc loc, ref IRState irs, FuncDeclaration fd, elem* ethis2, ref 
 }
 
 /*******************************
- * Construct OPva_start node
+ * Construct OPva_start elem by rewriting OPparam elem
  * Params:
- *      e = function parameters
+ *      e = function parameters to va_start()
  * Returns:
- *      OPva_start node
+ *      OPva_start elem
  */
 private
 elem* constructVa_start(elem* e)
@@ -7138,12 +7138,12 @@ elem* constructVa_start(elem* e)
 
     e.Eoper = OPva_start;
     e.Ety = TYvoid;
-    if (target.isX86_64)
+    if (target.isX86_64 || target.isAArch64)
     {
         // (OPparam &va &arg)
         // call as (OPva_start &va)
     }
-    else // 32 bit
+    else if (target.isX86) // 32 bit
     {
         // (OPparam &arg &va)  note arguments are swapped from 64 bit path
         // call as (OPva_start &va)
@@ -7151,5 +7151,7 @@ elem* constructVa_start(elem* e)
         e.E1 = e.E2;
         e.E2 = earg;
     }
+    else
+        assert(0);
     return e;
 }
