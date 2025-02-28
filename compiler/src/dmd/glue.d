@@ -799,8 +799,8 @@ void FuncDeclaration_toObjFile(FuncDeclaration fd, bool multiobj)
             target.os & Target.OS.Posix)
         {
             type* t = target.isX86_64
-		? type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3 + 8, null, null, false, false, true, false)
-		: type_struct_class("__va_argsave_t", 16, 8 * 8 + 6 * 16,             null, null, false, false, true, false);
+                ? type_struct_class("__va_argsave_t", 16, 8 * 6 + 8 * 16 + 8 * 3 + 8, null, null, false, false, true, false)
+                : type_struct_class("__va_argsave_t", 16, 8 * 8 + 8 * 16 + 8 * 4 + 8, null, null, false, false, true, false);
             // The backend will pick this up by name
             Symbol* sv = symbol_name("__va_argsave", SC.auto_, t);
             sv.Stype.Tty |= mTYvolatile;

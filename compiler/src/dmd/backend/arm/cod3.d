@@ -265,52 +265,55 @@ void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
      *   struct __va_argsave_t {
      *     ulong[8] regs;      // 8 byte
      *     ldouble[8] fpregs;  // 16 byte
-     *     uint offset_regs;
-     *     uint offset_fpregs;
-     *     void* stack_args;
-     *     void* reg_args;
+     *     struct __va_list_tag // embedded within __va_argsave_t
+     *     {
+     *         void* stack;  // next stack param
+     *         void* gr_top; // end of GP arg reg save area
+     *         void* vr_top; // end of FP/SIMD arg reg save area
+     *         int gr_offs;  // offset from gr_top to next GP register arg
+     *         int vr_offs;  // offset from vr_top to next FP/SIMD register arg
+     *     }
+     *     void* stack_args_save; // set by prolog_genvarargs()
      *   }
      * The instructions seg fault if data is not aligned on
      * 16 bytes, so this gives us a nice check to ensure no mistakes.
-        STR     x0,[sp, #voff+6*16+0*8]
-        STR     x1,[sp, #voff+6*16+1*8]
-        STR     x2,[sp, #voff+6*16+2*8]
-        STR     x3,[sp, #voff+6*16+3*8]
-        STR     x4,[sp, #voff+6*16+4*8]
-        STR     x5,[sp, #voff+6*16+5*8]
-        STR     x6,[sp, #voff+6*16+6*8]
-        STR     x7,[sp, #voff+6*16+7*8]
+        STR     x0,[sp, #voff+0*8]
+        STR     x1,[sp, #voff+1*8]
+        STR     x2,[sp, #voff+2*8]
+        STR     x3,[sp, #voff+3*8]
+        STR     x4,[sp, #voff+4*8]
+        STR     x5,[sp, #voff+5*8]
+        STR     x6,[sp, #voff+6*8]
+        STR     x7,[sp, #voff+7*8]
 
-        STR     q0,[sp, #voff+0*16]
-        STR     q1,[sp, #voff+0*16]
-        STR     q2,[sp, #voff+0*16]
-        STR     q3,[sp, #voff+1*16]
-        STR     q4,[sp, #voff+2*16]
-        STR     q5,[sp, #voff+3*16]
-        STR     q6,[sp, #voff+4*16]
-        STR     q7,[sp, #voff+5*16]
+        STR     q0,[sp, #voff+8*8+0*16]
+        STR     q1,[sp, #voff+8*8+1*16]
+        STR     q2,[sp, #voff+8*8+2*16]
+        STR     q3,[sp, #voff+8*8+3*16]
+        STR     q4,[sp, #voff+8*8+4*16]
+        STR     q5,[sp, #voff+8*8+5*16]
+        STR     q6,[sp, #voff+8*8+6*16]
+        STR     q7,[sp, #voff+8*8+7*16]
 
-        LEA     R11, Para.size+Para.offset[RBP]
-        MOV     9+16[RAX],R11                // set __va_argsave.stack_args
-    * RAX and R11 are destroyed.
+        ADD     reg,sp,Para.size+Para.offset
+        STR     reg,[sp,#voff+8*8+8*16+8*4]         // set __va_argsave.stack_args
     */
 
     /* Save registers into the voff area on the stack
      */
     targ_size_t voff = cg.Auto.size + cg.BPoff + sv.Soffset;  // EBP offset of start of sv
-    const uint vsize = 8 * 8 + 8 * 16;
 
     if (!cg.hasframe || cg.enforcealign)
         voff += cg.EBPtoESP;
 
     regm_t namedargs = prolog_namedArgs();
-    //printf("voff: %lld\n", voff);
+    printf("voff: %llx\n", voff);
     foreach (reg_t x; 0 .. 8)
     {
         if (!(mask(x) & namedargs))  // unnamed arguments would be the ... ones
         {
             //printf("offset: x%x %lld\n", cast(uint)voff + x * 8, voff + x * 8);
-            uint offset = cast(uint)voff + vsize - 8 - x * 8;
+            uint offset = cast(uint)voff + x * 8;
             if (!cg.hasframe || cg.enforcealign)
                 cdb.gen1(INSTR.str_imm_gen(1,x,31,offset)); // STR x,[sp,#offset]
             else
@@ -322,17 +325,28 @@ void prolog_genvarargs(ref CGstate cg, ref CodeBuilder cdb, Symbol* sv)
     {
         if (!(mask(q) & namedargs))  // unnamed arguments would be the ... ones
         {
-            uint offset = cast(uint)voff + vsize - 8 * 8 - 16 - (q & 31) * 16;
+            uint offset = cast(uint)voff + 8 * 8 + (q & 31) * 16;
             if (!cg.hasframe || cg.enforcealign)
                 cdb.gen1(INSTR.str_imm_fpsimd(0,2,offset,31,q));  // STR q,[sp,#offset]
             else
                 cdb.gen1(INSTR.str_imm_fpsimd(0,2,offset,29,q));
         }
     }
+
+    reg_t reg = 11;
+    uint imm12 = cast(uint)(cg.Para.size + cg.Para.offset);
+    assert(imm12 < 0x1000);
+    cdb.gen1(INSTR.addsub_imm(1,0,0,0,imm12,31,reg));   // ADD reg,sp,imm12
+    uint offset = cast(uint)voff+8*8+8*16+8*4;
+    printf("voff: %llx offset: %x\n", voff, offset);
+offset &= 0xFFF; // TODO AArch64
+    assert(offset < 0x1000);
+    cdb.gen1(INSTR.str_imm_gen(1,reg,31,offset));       // STR reg,[sp,#voff+8*8+8*16+8*4]
+    useregs(mask(reg));
 }
 
 /********************************
- * Generate elems for va_start()
+ * Generate elems that implement va_start()
  * Params:
  *      sv = symbol for __va_argsave
  *      parmn = last named parameter
@@ -344,42 +358,32 @@ elem* prolog_genva_start(Symbol* sv, Symbol* parmn)
 
     /* the stack variable __va_argsave points to an instance of:
      *   struct __va_argsave_t {
-     *     size_t[Vregnum] regs;
-     *     real[8] fpregs;
-     *     struct __va_list_tag {
-     *         uint offset_regs;
-     *         uint offset_fpregs;
-     *         void* stack_args;
-     *         void* reg_args;
-     *     }
+     *     ulong[8] regs;        // 8 bytes each
+     *     float128[8] fpregs;   // 16 bytes each
      *     // AArch64 Procedure Call Standard 12.2
-     *     struct __va_list_tag {
+     *     struct __va_list_tag // embedded within __va_argsave_t
+     *     {
      *         void* stack;  // next stack param
      *         void* gr_top; // end of GP arg reg save area
      *         void* vr_top; // end of FP/SIMD arg reg save area
      *         int gr_offs;  // offset from gr_top to next GP register arg
      *         int vr_offs;  // offset from vr_top to next FP/SIMD register arg
      *     }
-     *     void* stack_args_save;
+     *     void* stack_args_save; // set by prolog_genvarargs()
      *   }
      */
 
     enum OFF // offsets into __va_argsave_t
     {
-        Offset_stack,
-        Offset_gr_top,
-        Offset_vr_top,
-        Offset_gr_offs,
-        Offset_vr_offs,
-
-        Offset_regs   = 8*8 + 8*16,
-        Offset_fpregs = Offset_regs + 4,
-        Stack_args    = Offset_fpregs + 4,
-        Reg_args      = Stack_args + 8,
-        Stack_args_save = Reg_args + 8,
+        stack   = 8 * 8 + 16 * 8,
+        gr_top  = stack + 8,
+        vr_top  = gr_top + 8,
+        gr_offs = vr_top + 8,
+        vr_offs = gr_offs + 4,
+        stack_args_save = vr_offs + 4,
     }
 
-    regm_t namedargs = prolog_namedArgs();
+    regm_t namedargs = prolog_namedArgs(); // mask of named arguments
 
     // AArch64 Procedure Call Standard 12.3
     uint named_gr;      // number of general registers known to hold named incoming arguments
@@ -411,47 +415,8 @@ elem* prolog_genva_start(Symbol* sv, Symbol* parmn)
     // set stack to address following the last named incoming argument on the stack
     // rounded upwards to a multiple of 8 bytes, or if there are no named arguments on the stack, then
     // the value of the stack pointer when the function was entered.
-    elem* e1 = null; // TODO
-
-    // set gr_top to address following the general register save area
-    elem* e2 = el_bin(OPeq, TYptr, el_var(sv), el_ptr(sv));
-    e2.E1.Voffset = OFF.Offset_vr_offs;
-
-    // set vr_top to address following the FP/SIMD register save area
-    elem* ex3 = el_bin(OPadd, TYptr, el_ptr(sv), el_long(TYlong, 8 * 8));
-    elem* e3 = el_bin(OPeq,TYptr,el_var(sv),ex3);
-    e3.E1.Ety = TYptr;
-    e3.E1.Voffset = OFF.Offset_vr_offs;
-
-    // set gr_offs
-    elem* e4 = el_bin(OPeq, TYint, el_var(sv), el_long(TYint, 0 - ((8 - named_gr) * 8)));
-    e4.E1.Ety = TYint;
-    e4.E1.Voffset = OFF.Offset_gr_offs;
-
-    // set vr_offs
-    elem* e5 = el_bin(OPeq, TYint, el_var(sv), el_long(TYint, 0 - ((8 - named_vr) * 16)));
-    e5.E1.Ety = TYint;
-    e5.E1.Voffset = OFF.Offset_vr_offs;
-
-static if (0)
-{
-    // set offset_regs
-    elem* e1 = el_bin(OPeq, TYint, el_var(sv), el_long(TYint, offset_regs));
-    e1.E1.Ety = TYint;
-    e1.E1.Voffset = OFF.Offset_regs;
-
-    // set offset_fpregs
-    elem* e2 = el_bin(OPeq, TYint, el_var(sv), el_long(TYint, offset_fpregs));
-    e2.E1.Ety = TYint;
-    e2.E1.Voffset = OFF.Offset_fpregs;
-
-    // set reg_args
-    elem* e4 = el_bin(OPeq, TYnptr, el_var(sv), el_ptr(sv));
-    e4.E1.Ety = TYnptr;
-    e4.E1.Voffset = OFF.Reg_args;
-
-    // set stack_args
-    /* which is a pointer to the first variadic argument on the stack.
+    /* set stack_args
+     * which is a pointer to the first variadic argument on the stack.
      * Normally, we could set it by taking the address of the last named parameter
      * (parmn) and then skipping past it. The trouble, though, is it fails
      * when all the named parameters get passed in a register.
@@ -472,12 +437,32 @@ static if (0)
      * Then, just copy from `stack_args_save` to `stack_args`.
      * Although, doing (1) might be optimal.
      */
-    elem* e3 = el_bin(OPeq, TYnptr, el_var(sv), el_var(sv));
-    e3.E1.Ety = TYnptr;
-    e3.E1.Voffset = OFF.Stack_args;
-    e3.E2.Ety = TYnptr;
-    e3.E2.Voffset = OFF.Stack_args_save;
-}
+    elem* e1 = el_bin(OPeq, TYnptr, el_var(sv), el_var(sv)); // stack = stack_args_save
+    e1.E1.Ety = TYnptr;
+    e1.E1.Voffset = OFF.stack;
+    e1.E2.Ety = TYnptr;
+    e1.E2.Voffset = OFF.stack_args_save;
+
+    // set gr_top to address following the general register save area
+    elem* e2 = el_bin(OPeq, TYptr, el_var(sv), el_ptr(sv));
+    e2.E1.Voffset = OFF.vr_offs;
+
+    // set vr_top to address following the FP/SIMD register save area
+    elem* ex3 = el_bin(OPadd, TYptr, el_ptr(sv), el_long(TYlong, 8 * 8));
+    elem* e3 = el_bin(OPeq,TYptr,el_var(sv),ex3);
+    e3.E1.Ety = TYptr;
+    e3.E1.Voffset = OFF.vr_offs;
+
+    // set gr_offs
+    elem* e4 = el_bin(OPeq, TYint, el_var(sv), el_long(TYint, 0 - ((8 - named_gr) * 8)));
+    e4.E1.Ety = TYint;
+    e4.E1.Voffset = OFF.gr_offs;
+
+    // set vr_offs
+    elem* e5 = el_bin(OPeq, TYint, el_var(sv), el_long(TYint, 0 - ((8 - named_vr) * 16)));
+    e5.E1.Ety = TYint;
+    e5.E1.Voffset = OFF.vr_offs;
+
     elem* e = el_combine(e1, el_combine(e2, el_combine(e3, el_combine(e4, e5))));
     return e;
 }
