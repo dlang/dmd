@@ -235,7 +235,7 @@ extern (C++) class FuncDeclaration : Declaration
     */
     Type tintro;
 
-    StorageClass storage_class2;        /// storage class for template onemember's
+    STC storage_class2;        /// storage class for template onemember's
 
     // Things that should really go into Scope
 
@@ -296,7 +296,7 @@ extern (C++) class FuncDeclaration : Declaration
      */
     ObjcFuncDeclaration objc;
 
-    extern (D) this(Loc loc, Loc endloc, Identifier ident, StorageClass storage_class, Type type, bool noreturn = false)
+    extern (D) this(Loc loc, Loc endloc, Identifier ident, STC storage_class, Type type, bool noreturn = false)
     {
         super(DSYM.funcDeclaration, loc, ident);
         //.printf("FuncDeclaration(id = '%s', type = %s)\n", ident.toChars(), type.toChars());
@@ -322,7 +322,7 @@ extern (C++) class FuncDeclaration : Declaration
 
     static FuncDeclaration create(Loc loc, Loc endloc, Identifier id, StorageClass storage_class, Type type, bool noreturn = false)
     {
-        return new FuncDeclaration(loc, endloc, id, storage_class, type, noreturn);
+        return new FuncDeclaration(loc, endloc, id, cast(STC) storage_class, type, noreturn);
     }
 
     final nothrow pure @safe
@@ -1006,12 +1006,12 @@ extern (C++) class FuncDeclaration : Declaration
     /**********************************
      * Generate a FuncDeclaration for a runtime library function.
      */
-    static FuncDeclaration genCfunc(Parameters* fparams, Type treturn, const(char)* name, StorageClass stc = 0)
+    static FuncDeclaration genCfunc(Parameters* fparams, Type treturn, const(char)* name, STC stc = STC.none)
     {
         return genCfunc(fparams, treturn, Identifier.idPool(name[0 .. strlen(name)]), stc);
     }
 
-    static FuncDeclaration genCfunc(Parameters* fparams, Type treturn, Identifier id, StorageClass stc = 0)
+    static FuncDeclaration genCfunc(Parameters* fparams, Type treturn, Identifier id, STC stc = STC.none)
     {
         FuncDeclaration fd;
         TypeFunction tf;
@@ -1281,7 +1281,7 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
     // backend
     bool deferToObj;
 
-    extern (D) this(Loc loc, Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null, StorageClass storage_class = STC.undefined_)
+    extern (D) this(Loc loc, Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null, STC storage_class = STC.none)
     {
         super(loc, endloc, null, storage_class, type);
         this.dsym = DSYM.funcLiteralDeclaration;
@@ -1358,7 +1358,7 @@ extern (C++) final class CtorDeclaration : FuncDeclaration
 {
     bool isCpCtor;    // copy constructor
     bool isMoveCtor;  // move constructor (aka rvalue constructor)
-    extern (D) this(Loc loc, Loc endloc, StorageClass stc, Type type)
+    extern (D) this(Loc loc, Loc endloc, STC stc, Type type)
     {
         super(loc, endloc, Id.ctor, stc, type);
         this.dsym = DSYM.ctorDeclaration;
@@ -1403,7 +1403,7 @@ extern (C++) final class CtorDeclaration : FuncDeclaration
  */
 extern (C++) final class PostBlitDeclaration : FuncDeclaration
 {
-    extern (D) this(Loc loc, Loc endloc, StorageClass stc, Identifier id)
+    extern (D) this(Loc loc, Loc endloc, STC stc, Identifier id)
     {
         super(loc, endloc, id, stc, null);
         this.dsym = DSYM.postBlitDeclaration;
@@ -1449,11 +1449,11 @@ extern (C++) final class DtorDeclaration : FuncDeclaration
 {
     extern (D) this(Loc loc, Loc endloc)
     {
-        super(loc, endloc, Id.dtor, STC.undefined_, null);
+        super(loc, endloc, Id.dtor, STC.none, null);
         this.dsym = DSYM.dtorDeclaration;
     }
 
-    extern (D) this(Loc loc, Loc endloc, StorageClass stc, Identifier id)
+    extern (D) this(Loc loc, Loc endloc, STC stc, Identifier id)
     {
         super(loc, endloc, id, stc, null);
         this.dsym = DSYM.dtorDeclaration;
@@ -1504,13 +1504,13 @@ extern (C++) final class DtorDeclaration : FuncDeclaration
  */
 extern (C++) class StaticCtorDeclaration : FuncDeclaration
 {
-    extern (D) this(Loc loc, Loc endloc, StorageClass stc)
+    extern (D) this(Loc loc, Loc endloc, STC stc)
     {
         super(loc, endloc, Identifier.generateIdWithLoc("_staticCtor", loc), STC.static_ | stc, null);
         this.dsym = DSYM.staticCtorDeclaration;
     }
 
-    extern (D) this(Loc loc, Loc endloc, string name, StorageClass stc)
+    extern (D) this(Loc loc, Loc endloc, string name, STC stc)
     {
         super(loc, endloc, Identifier.generateIdWithLoc(name, loc), STC.static_ | stc, null);
         this.dsym = DSYM.staticCtorDeclaration;
@@ -1562,7 +1562,7 @@ extern (C++) final class SharedStaticCtorDeclaration : StaticCtorDeclaration
     /// Exclude this constructor from cyclic dependency check
     bool standalone;
 
-    extern (D) this(Loc loc, Loc endloc, StorageClass stc)
+    extern (D) this(Loc loc, Loc endloc, STC stc)
     {
         super(loc, endloc, "_sharedStaticCtor", stc);
         this.dsym = DSYM.sharedStaticCtorDeclaration;
@@ -1588,13 +1588,13 @@ extern (C++) class StaticDtorDeclaration : FuncDeclaration
 {
     VarDeclaration vgate; // 'gate' variable
 
-    extern (D) this(Loc loc, Loc endloc, StorageClass stc)
+    extern (D) this(Loc loc, Loc endloc, STC stc)
     {
         super(loc, endloc, Identifier.generateIdWithLoc("_staticDtor", loc), STC.static_ | stc, null);
         this.dsym = DSYM.staticDtorDeclaration;
     }
 
-    extern (D) this(Loc loc, Loc endloc, string name, StorageClass stc)
+    extern (D) this(Loc loc, Loc endloc, string name, STC stc)
     {
         super(loc, endloc, Identifier.generateIdWithLoc(name, loc), STC.static_ | stc, null);
         this.dsym = DSYM.staticDtorDeclaration;
@@ -1643,7 +1643,7 @@ extern (C++) class StaticDtorDeclaration : FuncDeclaration
  */
 extern (C++) final class SharedStaticDtorDeclaration : StaticDtorDeclaration
 {
-    extern (D) this(Loc loc, Loc endloc, StorageClass stc)
+    extern (D) this(Loc loc, Loc endloc, STC stc)
     {
         super(loc, endloc, "_sharedStaticDtor", stc);
         this.dsym = DSYM.sharedStaticDtorDeclaration;
@@ -1667,7 +1667,7 @@ extern (C++) final class SharedStaticDtorDeclaration : StaticDtorDeclaration
  */
 extern (C++) final class InvariantDeclaration : FuncDeclaration
 {
-    extern (D) this(Loc loc, Loc endloc, StorageClass stc, Identifier id, Statement fbody)
+    extern (D) this(Loc loc, Loc endloc, STC stc, Identifier id, Statement fbody)
     {
         // Make a unique invariant for now; we'll fix it up as we add it to the aggregate invariant list.
         super(loc, endloc, id ? id : Identifier.generateId("__invariant"), stc, null);
@@ -1723,7 +1723,7 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
     // toObjFile() these nested functions after this one
     FuncDeclarations deferredNested;
 
-    extern (D) this(Loc loc, Loc endloc, StorageClass stc, char* codedoc)
+    extern (D) this(Loc loc, Loc endloc, STC stc, char* codedoc)
     {
         super(loc, endloc, Identifier.generateIdWithLoc("__unittest", loc), stc, null);
         this.codedoc = codedoc;
@@ -1768,7 +1768,7 @@ extern (C++) final class UnitTestDeclaration : FuncDeclaration
  */
 extern (C++) final class NewDeclaration : FuncDeclaration
 {
-    extern (D) this(Loc loc, StorageClass stc)
+    extern (D) this(Loc loc, STC stc)
     {
         super(loc, Loc.initial, Id.classNew, STC.static_ | stc, null);
         this.dsym = DSYM.newDeclaration;

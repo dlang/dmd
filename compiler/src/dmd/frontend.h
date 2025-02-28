@@ -716,7 +716,70 @@ public:
     void accept(Visitor* v) override;
 };
 
-typedef uint64_t StorageClass;
+enum class STC : uint64_t
+{
+    none = 0LLU,
+    static_ = 1LLU,
+    extern_ = 2LLU,
+    const_ = 4LLU,
+    final_ = 8LLU,
+    abstract_ = 16LLU,
+    parameter = 32LLU,
+    field = 64LLU,
+    override_ = 128LLU,
+    auto_ = 256LLU,
+    synchronized_ = 512LLU,
+    deprecated_ = 1024LLU,
+    in_ = 2048LLU,
+    out_ = 4096LLU,
+    lazy_ = 8192LLU,
+    foreach_ = 16384LLU,
+    variadic = 32768LLU,
+    constscoperef = 65536LLU,
+    templateparameter = 131072LLU,
+    ref_ = 262144LLU,
+    scope_ = 524288LLU,
+    scopeinferred = 2097152LLU,
+    return_ = 4194304LLU,
+    returnScope = 8388608LLU,
+    returninferred = 16777216LLU,
+    immutable_ = 33554432LLU,
+    manifest = 134217728LLU,
+    nodtor = 268435456LLU,
+    nothrow_ = 536870912LLU,
+    pure_ = 1073741824LLU,
+    tls = 2147483648LLU,
+    alias_ = 4294967296LLU,
+    shared_ = 8589934592LLU,
+    gshared = 17179869184LLU,
+    wild = 34359738368LLU,
+    property = 68719476736LLU,
+    safe = 137438953472LLU,
+    trusted = 274877906944LLU,
+    system = 549755813888LLU,
+    ctfe = 1099511627776LLU,
+    disable = 2199023255552LLU,
+    result = 4398046511104LLU,
+    nodefaultctor = 8796093022208LLU,
+    temp = 17592186044416LLU,
+    rvalue = 35184372088832LLU,
+    nogc = 70368744177664LLU,
+    autoref = 140737488355328LLU,
+    inference = 281474976710656LLU,
+    exptemp = 562949953421312LLU,
+    future = 1125899906842624LLU,
+    local = 2251799813685248LLU,
+    live = 4503599627370496LLU,
+    register_ = 9007199254740992LLU,
+    volatile_ = 18014398509481984LLU,
+    safeGroup = 962072674304LLU,
+    IOR = 333824LLU,
+    TYPECTOR = 42983227396LLU,
+    FUNCATTR = 4575000774574080LLU,
+    visibleStorageClasses = 7954966262857631LLU,
+    flowThruAggregate = 962072674304LLU,
+    flowThruFunction = 18446742978991225440LLU,
+};
 
 template <typename T>
 struct Array final
@@ -900,6 +963,8 @@ struct ObjcClassDeclaration final
     {
     }
 };
+
+typedef uint64_t StorageClass;
 
 enum class PKG
 {
@@ -3813,15 +3878,14 @@ enum class VarArg : uint8_t
 struct ParameterList final
 {
     Array<Parameter* >* parameters;
-    StorageClass stc;
+    STC stc;
     VarArg varargs;
     bool hasIdentifierList;
-    ParameterList(Array<Parameter* >* parameters, VarArg varargs = (VarArg)0u, StorageClass stc = 0);
+    ParameterList(Array<Parameter* >* parameters, VarArg varargs = (VarArg)0u, STC stc = (STC)0LLU);
     size_t length();
     Parameter* opIndex(size_t i);
     ParameterList() :
         parameters(),
-        stc(),
         varargs((VarArg)0u),
         hasIdentifierList()
     {
@@ -3857,7 +3921,7 @@ public:
     ForeachStatement* fes;
     BaseClass* interfaceVirtual;
     Type* tintro;
-    StorageClass storage_class2;
+    STC storage_class2;
     VarDeclaration* nrvo_var;
     Symbol* shidden;
     Array<ReturnStatement* >* returns;
@@ -3989,8 +4053,8 @@ public:
     bool needsClosure();
     bool hasNestedFrameRefs();
     ParameterList getParameterList();
-    static FuncDeclaration* genCfunc(Array<Parameter* >* fparams, Type* treturn, const char* name, StorageClass stc = 0);
-    static FuncDeclaration* genCfunc(Array<Parameter* >* fparams, Type* treturn, Identifier* id, StorageClass stc = 0);
+    static FuncDeclaration* genCfunc(Array<Parameter* >* fparams, Type* treturn, const char* name, STC stc = (STC)0LLU);
+    static FuncDeclaration* genCfunc(Array<Parameter* >* fparams, Type* treturn, Identifier* id, STC stc = (STC)0LLU);
     virtual FuncDeclaration* toAliasFunc();
     void accept(Visitor* v) override;
 };
@@ -4311,7 +4375,7 @@ class Parameter final : public ASTNode
 {
 public:
     Loc loc;
-    StorageClass storageClass;
+    STC storageClass;
     Type* type;
     Identifier* ident;
     Expression* defaultArg;
@@ -4607,7 +4671,7 @@ public:
     PURE purity;
     int8_t inuse;
     ArgumentList inferenceArguments;
-    static TypeFunction* create(Array<Parameter* >* parameters, Type* treturn, uint8_t varargs, LINK linkage, StorageClass stc = 0);
+    static TypeFunction* create(Array<Parameter* >* parameters, Type* treturn, uint8_t varargs, LINK linkage, StorageClass stc = static_cast<StorageClass>(STC::none));
     const char* kind() const override;
     TypeFunction* syntaxCopy() override;
     bool hasLazyParameters();
@@ -5008,7 +5072,7 @@ public:
 class CompoundAsmStatement final : public CompoundStatement
 {
 public:
-    StorageClass stc;
+    STC stc;
     CompoundAsmStatement* syntaxCopy() override;
     void accept(Visitor* v) override;
 };
@@ -5154,7 +5218,7 @@ public:
 class GccAsmStatement final : public AsmStatement
 {
 public:
-    StorageClass stc;
+    STC stc;
     Expression* insn;
     Array<Expression* >* args;
     uint32_t outputargs;
@@ -5494,71 +5558,6 @@ enum class MODFlags
     wild = 8,
     wildconst = 9,
     mutable_ = 16,
-};
-
-enum class STC : uint64_t
-{
-    undefined_ = 0LLU,
-    static_ = 1LLU,
-    extern_ = 2LLU,
-    const_ = 4LLU,
-    final_ = 8LLU,
-    abstract_ = 16LLU,
-    parameter = 32LLU,
-    field = 64LLU,
-    override_ = 128LLU,
-    auto_ = 256LLU,
-    synchronized_ = 512LLU,
-    deprecated_ = 1024LLU,
-    in_ = 2048LLU,
-    out_ = 4096LLU,
-    lazy_ = 8192LLU,
-    foreach_ = 16384LLU,
-    variadic = 32768LLU,
-    constscoperef = 65536LLU,
-    templateparameter = 131072LLU,
-    ref_ = 262144LLU,
-    scope_ = 524288LLU,
-    scopeinferred = 2097152LLU,
-    return_ = 4194304LLU,
-    returnScope = 8388608LLU,
-    returninferred = 16777216LLU,
-    immutable_ = 33554432LLU,
-    manifest = 134217728LLU,
-    nodtor = 268435456LLU,
-    nothrow_ = 536870912LLU,
-    pure_ = 1073741824LLU,
-    tls = 2147483648LLU,
-    alias_ = 4294967296LLU,
-    shared_ = 8589934592LLU,
-    gshared = 17179869184LLU,
-    wild = 34359738368LLU,
-    property = 68719476736LLU,
-    safe = 137438953472LLU,
-    trusted = 274877906944LLU,
-    system = 549755813888LLU,
-    ctfe = 1099511627776LLU,
-    disable = 2199023255552LLU,
-    result = 4398046511104LLU,
-    nodefaultctor = 8796093022208LLU,
-    temp = 17592186044416LLU,
-    rvalue = 35184372088832LLU,
-    nogc = 70368744177664LLU,
-    autoref = 140737488355328LLU,
-    inference = 281474976710656LLU,
-    exptemp = 562949953421312LLU,
-    future = 1125899906842624LLU,
-    local = 2251799813685248LLU,
-    live = 4503599627370496LLU,
-    register_ = 9007199254740992LLU,
-    volatile_ = 18014398509481984LLU,
-    safeGroup = 962072674304LLU,
-    IOR = 333824LLU,
-    TYPECTOR = 42983227396LLU,
-    FUNCATTR = 4575000774574080LLU,
-    visibleStorageClasses = 7954966262857631LLU,
-    flowThruAggregate = 962072674304LLU,
-    flowThruFunction = 18446742978991225440LLU,
 };
 
 struct ASTCodegen final
@@ -6304,7 +6303,7 @@ class AggregateDeclaration : public ScopeDsymbol
 {
 public:
     Type* type;
-    StorageClass storage_class;
+    STC storage_class;
     uint32_t structsize;
     uint32_t alignsize;
     Array<VarDeclaration* > fields;
@@ -6405,7 +6404,7 @@ public:
 class StorageClassDeclaration : public AttribDeclaration
 {
 public:
-    StorageClass stc;
+    STC stc;
     StorageClassDeclaration* syntaxCopy(Dsymbol* s) override;
     void accept(Visitor* v) override;
 };
@@ -6717,7 +6716,7 @@ class Declaration : public Dsymbol
 public:
     Type* type;
     Type* originalType;
-    StorageClass storage_class;
+    STC storage_class;
     _d_dynamicArray< const char > mangleOverride;
     Visibility visibility;
     int16_t inuse;
@@ -6868,7 +6867,7 @@ private:
 public:
     int8_t canassign;
     uint8_t isdataseg;
-    static VarDeclaration* create(Loc loc, Type* type, Identifier* ident, Initializer* _init, StorageClass storage_class = static_cast<StorageClass>(STC::undefined_));
+    static VarDeclaration* create(Loc loc, Type* type, Identifier* ident, Initializer* _init, StorageClass storage_class = static_cast<StorageClass>(STC::none));
     VarDeclaration* syntaxCopy(Dsymbol* s) override;
     const char* kind() const override;
     AggregateDeclaration* isThis() final override;
@@ -7247,7 +7246,7 @@ struct Scope final
     PragmaDeclaration* inlining;
     Visibility visibility;
     int32_t explicitVisibility;
-    StorageClass stc;
+    STC stc;
     DeprecatedDeclaration* depdecl;
     bool ctor() const;
     bool ctor(bool v);
@@ -7319,7 +7318,6 @@ public:
         inlining(),
         visibility(Visibility((Visibility::Kind)5u, nullptr)),
         explicitVisibility(),
-        stc(),
         depdecl(),
         bitFields(0u),
         previews(),
@@ -7330,7 +7328,7 @@ public:
         argStruct()
     {
     }
-    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* switchStatement = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tryFinally = nullptr, ScopeGuardStatement* scopeGuard = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Dsymbol* inunion = nullptr, bool nofree = false, bool inLoop = false, bool inDefaultArg = false, int32_t intypeof = 0, VarDeclaration* lastVar = nullptr, ErrorSink* eSink = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), int32_t explicitVisibility = 0, uint64_t stc = 0LLU, DeprecatedDeclaration* depdecl = nullptr, uint16_t bitFields = 0u, Previews previews = Previews(), UserAttributeDeclaration* userAttribDecl = nullptr, DocComment* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr, StructDeclaration* argStruct = nullptr) :
+    Scope(Scope* enclosing, Module* _module = nullptr, ScopeDsymbol* scopesym = nullptr, FuncDeclaration* func = nullptr, VarDeclaration* varDecl = nullptr, Dsymbol* parent = nullptr, LabelStatement* slabel = nullptr, SwitchStatement* switchStatement = nullptr, Statement* tryBody = nullptr, TryFinallyStatement* tryFinally = nullptr, ScopeGuardStatement* scopeGuard = nullptr, Statement* sbreak = nullptr, Statement* scontinue = nullptr, ForeachStatement* fes = nullptr, Scope* callsc = nullptr, Dsymbol* inunion = nullptr, bool nofree = false, bool inLoop = false, bool inDefaultArg = false, int32_t intypeof = 0, VarDeclaration* lastVar = nullptr, ErrorSink* eSink = nullptr, Module* minst = nullptr, TemplateInstance* tinst = nullptr, CtorFlow ctorflow = CtorFlow(), AlignDeclaration* aligndecl = nullptr, CPPNamespaceDeclaration* namespace_ = nullptr, LINK linkage = (LINK)1u, CPPMANGLE cppmangle = (CPPMANGLE)0u, PragmaDeclaration* inlining = nullptr, Visibility visibility = Visibility((Visibility::Kind)5u, nullptr), int32_t explicitVisibility = 0, STC stc = (STC)0LLU, DeprecatedDeclaration* depdecl = nullptr, uint16_t bitFields = 0u, Previews previews = Previews(), UserAttributeDeclaration* userAttribDecl = nullptr, DocComment* lastdc = nullptr, void* anchorCounts = nullptr, Identifier* prevAnchor = nullptr, AliasDeclaration* aliasAsg = nullptr, StructDeclaration* argStruct = nullptr) :
         enclosing(enclosing),
         _module(_module),
         scopesym(scopesym),

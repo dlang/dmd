@@ -87,7 +87,7 @@ extern (C++) abstract class Declaration : Dsymbol
 {
     Type type;
     Type originalType;  // before semantic analysis
-    StorageClass storage_class = STC.undefined_;
+    STC storage_class = STC.none;
     // overridden symbol with pragma(mangle, "...")
     const(char)[] mangleOverride;
     Visibility visibility;
@@ -345,7 +345,7 @@ extern (C++) final class TupleDeclaration : Declaration
                 }
                 else
                 {
-                    auto arg = new Parameter(Loc.initial, 0, t, null, null, null);
+                    auto arg = new Parameter(Loc.initial, STC.none, t, null, null, null);
                 }
                 (*args)[i] = arg;
                 if (!t.deco)
@@ -867,7 +867,7 @@ extern (C++) class VarDeclaration : Declaration
     byte canassign;                 // it can be assigned to
     ubyte isdataseg;                // private data for isDataseg 0 unset, 1 true, 2 false
 
-    final extern (D) this(Loc loc, Type type, Identifier ident, Initializer _init, StorageClass storage_class = STC.undefined_)
+    final extern (D) this(Loc loc, Type type, Identifier ident, Initializer _init, STC storage_class = STC.none)
     in
     {
         assert(ident);
@@ -892,9 +892,9 @@ extern (C++) class VarDeclaration : Declaration
         this.storage_class = storage_class;
     }
 
-    static VarDeclaration create(Loc loc, Type type, Identifier ident, Initializer _init, StorageClass storage_class = STC.undefined_)
+    static VarDeclaration create(Loc loc, Type type, Identifier ident, Initializer _init, StorageClass storage_class = STC.none)
     {
-        return new VarDeclaration(loc, type, ident, _init, storage_class);
+        return new VarDeclaration(loc, type, ident, _init, cast(STC) storage_class);
     }
 
     override VarDeclaration syntaxCopy(Dsymbol s)

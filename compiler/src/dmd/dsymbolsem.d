@@ -812,7 +812,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                     }
                     else if (isAliasThisTuple(e))
                     {
-                        auto v = copyToTemp(0, "__tup", e);
+                        auto v = copyToTemp(STC.none, "__tup", e);
                         v.dsymbolSemantic(sc);
                         auto ve = new VarExp(dsym.loc, v);
                         ve.type = e.type;
@@ -896,7 +896,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 else
                     ti = dsym._init ? dsym._init.syntaxCopy() : null;
 
-                StorageClass storage_class = STC.temp | dsym.storage_class;
+                STC storage_class = STC.temp | dsym.storage_class;
                 if ((dsym.storage_class & STC.parameter) && (arg.storageClass & STC.parameter))
                     storage_class |= arg.storageClass;
                 auto v = new VarDeclaration(dsym.loc, arg.type, id, ti, storage_class);
@@ -935,7 +935,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         else if (dsym.type.isWild())
             dsym.storage_class |= STC.wild;
 
-        if (StorageClass stc = dsym.storage_class & (STC.synchronized_ | STC.override_ | STC.abstract_ | STC.final_))
+        if (STC stc = dsym.storage_class & (STC.synchronized_ | STC.override_ | STC.abstract_ | STC.final_))
         {
             if (stc == STC.final_)
                 .error(dsym.loc, "%s `%s` cannot be `final`, perhaps you meant `const`?", dsym.kind, dsym.toPrettyChars);
@@ -955,7 +955,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
 
         if (dsym.storage_class & STC.scope_)
         {
-            StorageClass stc = dsym.storage_class & (STC.static_ | STC.extern_ | STC.manifest | STC.gshared);
+            STC stc = dsym.storage_class & (STC.static_ | STC.extern_ | STC.manifest | STC.gshared);
             if (stc)
             {
                 OutBuffer buf;
@@ -1024,7 +1024,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 }
                 // If it's a member template
                 AggregateDeclaration ad2 = ti.tempdecl.isMember();
-                if (ad2 && dsym.storage_class != STC.undefined_)
+                if (ad2 && dsym.storage_class != STC.none)
                 {
                     .error(dsym.loc, "%s `%s` - cannot use template to add field to aggregate `%s`", dsym.kind, dsym.toPrettyChars, ad2.toChars());
                 }
@@ -2679,7 +2679,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
              */
 
             auto v = new VarDeclaration(Loc.initial, Type.tint32, Id.gate, null);
-            v.storage_class = STC.temp | STC.static_ | (isShared ? STC.shared_ : 0);
+            v.storage_class = STC.temp | STC.static_ | (isShared ? STC.shared_ : STC.none);
 
             auto sa = new Statements();
             Statement s = new ExpStatement(Loc.initial, v);
@@ -3684,7 +3684,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
                 // This is required if other lowerings add code to the generated constructor which
                 // is less strict (e.g. `preview=dtorfields` might introduce a call to a less qualified dtor)
 
-                auto ctor = new CtorDeclaration(cldec.loc, Loc.initial, 0, tf);
+                auto ctor = new CtorDeclaration(cldec.loc, Loc.initial, STC.none, tf);
                 ctor.storage_class |= STC.inference | (fd.storage_class & STC.scope_);
                 ctor.isGenerated = true;
                 ctor.fbody = new CompoundStatement(Loc.initial, new Statements());
@@ -4835,7 +4835,7 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
             continue;
         Type t = isType((*tempinst.tiargs)[i]);
         assert(t);
-        if (StorageClass stc = ModToStc(t.mod))
+        if (STC stc = ModToStc(t.mod))
         {
             //printf("t = %s, stc = x%llx\n", t.toChars(), stc);
             auto s = new Dsymbols();
@@ -4863,11 +4863,11 @@ void templateInstanceSemantic(TemplateInstance tempinst, Scope* sc, ArgumentList
     _scope = _scope.push(tempinst.argsym);
     _scope.tinst = tempinst;
     _scope.minst = tempinst.minst;
-    //scope.stc = 0;
+    //scope.stc = STC.none;
 
     // Declare each template parameter as an alias for the argument type
     Scope* paramscope = _scope.push();
-    paramscope.stc = 0;
+    paramscope.stc = STC.none;
     paramscope.visibility = Visibility(Visibility.Kind.public_); // https://issues.dlang.org/show_bug.cgi?id=14169
                                               // template parameters should be public
     tempinst.declareParameters(paramscope);
@@ -5200,7 +5200,7 @@ void aliasSeqInstanceSemantic(TemplateInstance tempinst, Scope* sc, TemplateDecl
 {
     //printf("[%s] aliasSeqInstance.dsymbolSemantic('%s')\n", tempinst.loc.toChars(), tempinst.toChars());
     Scope* paramscope = sc.push();
-    paramscope.stc = 0;
+    paramscope.stc = STC.none;
     paramscope.visibility = Visibility(Visibility.Kind.public_);
 
     TemplateTupleParameter ttp = (*tempdecl.parameters)[0].isTemplateTupleParameter();
@@ -5225,7 +5225,7 @@ void aliasInstanceSemantic(TemplateInstance tempinst, Scope* sc, TemplateDeclara
 {
     //printf("[%s] aliasInstance.dsymbolSemantic('%s')\n", tempinst.loc.toChars(), tempinst.toChars());
     Scope* paramscope = sc.push();
-    paramscope.stc = 0;
+    paramscope.stc = STC.none;
     paramscope.visibility = Visibility(Visibility.Kind.public_);
 
     TemplateTypeParameter ttp = (*tempdecl.parameters)[0].isTemplateTypeParameter();
@@ -7415,7 +7415,7 @@ private extern(C++) class NewScopeVisitor : Visitor
 
     override void visit(StorageClassDeclaration swt)
     {
-        StorageClass scstc = sc.stc;
+        STC scstc = sc.stc;
         /* These sets of storage classes are mutually exclusive,
          * so choose the innermost or most recent one.
          */

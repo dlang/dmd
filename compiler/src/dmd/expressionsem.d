@@ -3324,7 +3324,7 @@ private bool functionParameters(Loc loc, Scope* sc,
                 {   /* allow rvalues to be passed to ref parameters by copying
                      * them to a temp, then pass the temp as the argument
                      */
-                    auto v = copyToTemp(0, "__rvalue", arg);
+                    auto v = copyToTemp(STC.none, "__rvalue", arg);
                     Expression ev = new DeclarationExp(arg.loc, v);
                     ev = new CommaExp(arg.loc, ev, new VarExp(arg.loc, v));
                     arg = ev.expressionSemantic(sc);
@@ -3406,7 +3406,7 @@ private bool functionParameters(Loc loc, Scope* sc,
                 {
                     // allocate the array literal as temporary static array on the stack
                     ale.type = ale.type.nextOf().sarrayOf(ale.elements.length);
-                    auto tmp = copyToTemp(0, "__arrayliteral_on_stack", ale);
+                    auto tmp = copyToTemp(STC.none, "__arrayliteral_on_stack", ale);
                     tmp.storage_class |= STC.exptemp;
                     auto declareTmp = new DeclarationExp(ale.loc, tmp);
                     auto castToSlice = new CastExp(ale.loc, new VarExp(ale.loc, tmp),
@@ -6369,7 +6369,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 tthis = ue.e1.type;
                 if (!(exp.f.type.ty == Tfunction && (cast(TypeFunction)exp.f.type).isScopeQual))
                 {
-                    if (checkParamArgumentEscape(*sc, exp.f, Id.This, exp.f.vthis, STC.undefined_, ethis, false, false))
+                    if (checkParamArgumentEscape(*sc, exp.f, Id.This, exp.f.vthis, STC.none, ethis, false, false))
                         return setError();
                 }
             }
@@ -6851,10 +6851,10 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 Loc loc = exp.loc;
 
                 auto vptr = new DotIdExp(loc, new ThisExp(loc), Id.__vptr);
-                auto vptrTmpDecl = copyToTemp(0, "__vptrTmp", vptr);
+                auto vptrTmpDecl = copyToTemp(STC.none, "__vptrTmp", vptr);
                 auto declareVptrTmp = new DeclarationExp(loc, vptrTmpDecl);
 
-                auto superTmpDecl = copyToTemp(0, "__superTmp", result);
+                auto superTmpDecl = copyToTemp(STC.none, "__superTmp", result);
                 auto declareSuperTmp = new DeclarationExp(loc, superTmpDecl);
 
                 auto declareTmps = new CommaExp(loc, declareVptrTmp, declareSuperTmp);
@@ -7871,7 +7871,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                         return res.expressionSemantic(sc);
                     }
 
-                    const stc = op.isLvalue() ? STC.ref_ : 0;
+                    const stc = op.isLvalue() ? STC.ref_ : STC.none;
                     auto tmp = copyToTemp(stc, "__assertOp", op);
                     tmp.dsymbolSemantic(sc);
 
@@ -8039,7 +8039,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.msg = resolveProperties(sc, exp.msg);
             exp.msg = exp.msg.implicitCastTo(sc, Type.tchar.constOf().arrayOf());
             exp.msg = exp.msg.optimize(WANTvalue);
-            checkParamArgumentEscape(*sc, null, null, null, STC.undefined_, exp.msg, true, false);
+            checkParamArgumentEscape(*sc, null, null, null, STC.none, exp.msg, true, false);
         }
 
         if (exp.msg && exp.msg.op == EXP.error)
@@ -10149,7 +10149,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             /* Rewrite as:
              * auto tmp = e1; ++e1; tmp
              */
-            auto tmp = copyToTemp(0, "__pitmp", exp.e1);
+            auto tmp = copyToTemp(STC.none, "__pitmp", exp.e1);
             Expression ea = new DeclarationExp(exp.loc, tmp);
 
             Expression eb = exp.e1.syntaxCopy();
@@ -11677,7 +11677,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // `__assigntmp` will be destroyed together with the array `ae.e1`.
             // When `ae.e2` is a variadic arg array, it is also `scope`, so
             // `__assigntmp` may also be scope.
-            StorageClass stc = STC.nodtor;
+            STC stc = STC.nodtor;
             if (isArrayAssign)
                 stc |= STC.rvalue | STC.scope_;
 
@@ -14611,7 +14611,7 @@ MATCH matchType(FuncExp funcExp, Type to, Scope* sc, FuncExp* presult, ErrorSink
         convertMatch = true;
 
         auto tfy = new TypeFunction(tfx.parameterList, tof.next,
-                    tfx.linkage, STC.undefined_);
+                    tfx.linkage, STC.none);
         tfy.mod = tfx.mod;
         tfy.trust = tfx.trust;
         tfy.isNothrow = tfx.isNothrow;
@@ -15332,7 +15332,7 @@ Expression addDtorHook(Expression e, Scope* sc)
             buf[0 .. prefix.length] = prefix;
             buf[prefix.length .. len] = ident[0 .. len - prefix.length];
 
-            auto tmp = copyToTemp(0, buf[0 .. len], exp);
+            auto tmp = copyToTemp(STC.none, buf[0 .. len], exp);
             Expression ae = new DeclarationExp(exp.loc, tmp);
             Expression e = new CommaExp(exp.loc, ae, new VarExp(exp.loc, tmp));
             e = e.expressionSemantic(sc);
@@ -15365,7 +15365,7 @@ Expression addDtorHook(Expression e, Scope* sc)
                 /* Type needs destruction, so declare a tmp
                  * which the back end will recognize and call dtor on
                  */
-                auto tmp = copyToTemp(0, Id.__tmpfordtor.toString(), exp);
+                auto tmp = copyToTemp(STC.none, Id.__tmpfordtor.toString(), exp);
                 auto de = new DeclarationExp(exp.loc, tmp);
                 auto ve = new VarExp(exp.loc, tmp);
                 Expression e = new CommaExp(exp.loc, de, ve);

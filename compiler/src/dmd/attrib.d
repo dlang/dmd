@@ -79,7 +79,7 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
      * If the returned scope != sc, the caller should pop
      * the scope after it used.
      */
-    extern (D) static Scope* createNewScope(Scope* sc, StorageClass stc, LINK linkage,
+    extern (D) static Scope* createNewScope(Scope* sc, STC stc, LINK linkage,
         CPPMANGLE cppmangle, Visibility visibility, int explicitVisibility,
         AlignDeclaration aligndecl, PragmaDeclaration inlining)
     {
@@ -140,16 +140,16 @@ extern (C++) abstract class AttribDeclaration : Dsymbol
  */
 extern (C++) class StorageClassDeclaration : AttribDeclaration
 {
-    StorageClass stc;
+    STC stc;
 
-    extern (D) this(StorageClass stc, Dsymbols* decl) @safe
+    extern (D) this(STC stc, Dsymbols* decl) @safe
     {
         super(decl);
         this.stc = stc;
         this.dsym = DSYM.storageClassDeclaration;
     }
 
-    extern (D) this(Loc loc, StorageClass stc, Dsymbols* decl) @safe
+    extern (D) this(Loc loc, STC stc, Dsymbols* decl) @safe
     {
         super(loc, decl);
         this.stc = stc;

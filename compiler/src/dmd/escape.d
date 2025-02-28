@@ -1863,9 +1863,9 @@ void escapeExp(Expression e, ref scope EscapeByResults er, int deref)
  * Returns:
  *      storage class for fd's `this`
  */
-StorageClass getThisStorageClass(FuncDeclaration fd)
+STC getThisStorageClass(FuncDeclaration fd)
 {
-    StorageClass stc;
+    STC stc;
     auto tf = fd.type.toBasetype().isTypeFunction();
     if (tf.isReturn)
         stc |= STC.return_;

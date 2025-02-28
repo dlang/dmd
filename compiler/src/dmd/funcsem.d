@@ -1370,7 +1370,7 @@ int findVtblIndex(FuncDeclaration fd, Dsymbol[] vtbl)
     import dmd.typesem : covariant;
 
     FuncDeclaration mismatch = null;
-    StorageClass mismatchstc = 0;
+    STC mismatchstc = STC.none;
     int mismatchvi = -1;
     int exactvi = -1;
     int bestvi = -1;
@@ -1402,7 +1402,7 @@ int findVtblIndex(FuncDeclaration fd, Dsymbol[] vtbl)
             continue;
         }
 
-        StorageClass stc = 0;
+        STC stc = STC.none;
         const cov = fd.type.covariant(fdv.type, &stc);
         //printf("\tbaseclass cov = %d\n", cov);
         final switch (cov)
@@ -1429,7 +1429,7 @@ int findVtblIndex(FuncDeclaration fd, Dsymbol[] vtbl)
     }
     if (fd._linkage == LINK.cpp && bestvi != -1)
     {
-        StorageClass stc = 0;
+        STC stc = STC.none;
         FuncDeclaration fdv = vtbl[bestvi].isFuncDeclaration();
         assert(fdv && fdv.ident == fd.ident);
         if (fd.type.covariant(fdv.type, &stc, /*cppCovariant=*/true) == Covariant.no)
@@ -2649,7 +2649,7 @@ void buildEnsureRequire(FuncDeclaration thisfd)
         tf.isNogc = f.isNogc;
         tf.purity = f.purity;
         tf.trust = f.trust;
-        auto fd = new FuncDeclaration(loc, loc, Id.require, STC.undefined_, tf);
+        auto fd = new FuncDeclaration(loc, loc, Id.require, STC.none, tf);
         fd.fbody = thisfd.frequire;
         Statement s1 = new ExpStatement(loc, fd);
         Expression e = new CallExp(loc, new VarExp(loc, fd, false), thisfd.fdrequireParams);
@@ -2690,7 +2690,7 @@ void buildEnsureRequire(FuncDeclaration thisfd)
         tf.isNogc = f.isNogc;
         tf.purity = f.purity;
         tf.trust = f.trust;
-        auto fd = new FuncDeclaration(loc, loc, Id.ensure, STC.undefined_, tf);
+        auto fd = new FuncDeclaration(loc, loc, Id.ensure, STC.none, tf);
         fd.fbody = thisfd.fensure;
         Statement s1 = new ExpStatement(loc, fd);
         Expression e = new CallExp(loc, new VarExp(loc, fd, false), thisfd.fdensureParams);
