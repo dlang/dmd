@@ -232,9 +232,9 @@ unittest
 /************************************
  * Convert MODxxxx to STCxxx
  */
-StorageClass ModToStc(uint mod) pure nothrow @nogc @safe
+STC ModToStc(uint mod) pure nothrow @nogc @safe
 {
-    StorageClass stc = STC.none;
+    STC stc = STC.none;
     if (mod & MODFlags.immutable_)
         stc |= STC.immutable_;
     if (mod & MODFlags.const_)
@@ -1108,7 +1108,7 @@ extern (C++) abstract class Type : ASTNode
      * Apply STCxxxx bits to existing type.
      * Use *before* semantic analysis is run.
      */
-    extern (D) final Type addSTC(StorageClass stc)
+    extern (D) final Type addSTC(STC stc)
     {
         Type t = this;
         if (t.isImmutable())
@@ -2499,7 +2499,7 @@ extern (C++) final class TypeFunction : TypeNext
     byte inuse;
     ArgumentList inferenceArguments; // function arguments to determine `auto ref` in type semantic
 
-    extern (D) this(ParameterList pl, Type treturn, LINK linkage, StorageClass stc = STC.none) @safe
+    extern (D) this(ParameterList pl, Type treturn, LINK linkage, STC stc = STC.none) @safe
     {
         super(Tfunction, treturn);
         //if (!treturn) *(char*)0=0;
@@ -2543,7 +2543,7 @@ extern (C++) final class TypeFunction : TypeNext
 
     static TypeFunction create(Parameters* parameters, Type treturn, ubyte varargs, LINK linkage, StorageClass stc = STC.none) @safe
     {
-        return new TypeFunction(ParameterList(parameters, cast(VarArg)varargs), treturn, linkage, stc);
+        return new TypeFunction(ParameterList(parameters, cast(VarArg)varargs), treturn, linkage, cast(STC) stc);
     }
 
     override const(char)* kind() const
@@ -3806,11 +3806,11 @@ extern (C++) struct ParameterList
 {
     /// The raw (unexpanded) formal parameters, possibly containing tuples.
     Parameters* parameters;
-    StorageClass stc;                   // storage class of ...
+    STC stc;                   // storage class of ...
     VarArg varargs = VarArg.none;
     bool hasIdentifierList;             // true if C identifier-list style
 
-    this(Parameters* parameters, VarArg varargs = VarArg.none, StorageClass stc = STC.none) @safe
+    this(Parameters* parameters, VarArg varargs = VarArg.none, STC stc = STC.none) @safe
     {
         this.parameters = parameters;
         this.varargs = varargs;
@@ -3909,13 +3909,13 @@ extern (C++) final class Parameter : ASTNode
     import dmd.attrib : UserAttributeDeclaration;
 
     Loc loc;
-    StorageClass storageClass;
+    STC storageClass;
     Type type;
     Identifier ident;
     Expression defaultArg;
     UserAttributeDeclaration userAttribDecl; // user defined attributes
 
-    extern (D) this(Loc loc, StorageClass storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl) @safe
+    extern (D) this(Loc loc, STC storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl) @safe
     {
         this.loc = loc;
         this.type = type;
@@ -3927,7 +3927,7 @@ extern (C++) final class Parameter : ASTNode
 
     static Parameter create(Loc loc, StorageClass storageClass, Type type, Identifier ident, Expression defaultArg, UserAttributeDeclaration userAttribDecl) @safe
     {
-        return new Parameter(loc, storageClass, type, ident, defaultArg, userAttribDecl);
+        return new Parameter(loc, cast(STC) storageClass, type, ident, defaultArg, userAttribDecl);
     }
 
     Parameter syntaxCopy()
@@ -4153,7 +4153,7 @@ extern (C++) final class Parameter : ASTNode
         return isCovariantScope(returnByRef, thisSTC, otherSTC);
     }
 
-    extern (D) static bool isCovariantScope(bool returnByRef, StorageClass from, StorageClass to) pure nothrow @nogc @safe
+    extern (D) static bool isCovariantScope(bool returnByRef, STC from, STC to) pure nothrow @nogc @safe
     {
         // Workaround for failing covariance when finding a common type of delegates,
         // some of which have parameters with inferred scope
@@ -4340,13 +4340,13 @@ bool isIndexableNonAggregate(Type t)
 
 /***************************************
  * Computes how a parameter may be returned.
- * Shrinking the representation is necessary because StorageClass is so wide
+ * Shrinking the representation is necessary because STC is so wide
  * Params:
  *   stc = storage class of parameter
  * Returns:
  *   value from enum ScopeRef
  */
-ScopeRef buildScopeRef(StorageClass stc) pure nothrow @nogc @safe
+ScopeRef buildScopeRef(STC stc) pure nothrow @nogc @safe
 {
     if (stc & STC.out_)
         stc |= STC.ref_;        // treat `out` and `ref` the same

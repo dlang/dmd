@@ -905,7 +905,7 @@ extern (D) MATCHpair deduceFunctionTemplateMatch(TemplateDeclaration td, Templat
         // Match attributes of tthis against attributes of fd
         if (fd.type && !fd.isCtorDeclaration() && !(td._scope.stc & STC.static_))
         {
-            StorageClass stc = td._scope.stc | fd.storage_class2;
+            STC stc = td._scope.stc | fd.storage_class2;
             // Propagate parent storage class, https://issues.dlang.org/show_bug.cgi?id=5504
             Dsymbol p = td.parent;
             while (p.isTemplateDeclaration() || p.isTemplateInstance())

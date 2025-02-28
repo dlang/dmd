@@ -478,7 +478,7 @@ private extern(C++) final class Semantic3Visitor : Visitor
                 foreach (i, fparam; f.parameterList)
                 {
                     Identifier id = fparam.ident;
-                    StorageClass stc = STC.none;
+                    STC stc = STC.none;
                     if (!id)
                     {
                         /* Generate identifier for un-named parameter,

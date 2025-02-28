@@ -1370,7 +1370,7 @@ int findVtblIndex(FuncDeclaration fd, Dsymbol[] vtbl)
     import dmd.typesem : covariant;
 
     FuncDeclaration mismatch = null;
-    StorageClass mismatchstc = STC.none;
+    STC mismatchstc = STC.none;
     int mismatchvi = -1;
     int exactvi = -1;
     int bestvi = -1;
@@ -1402,7 +1402,7 @@ int findVtblIndex(FuncDeclaration fd, Dsymbol[] vtbl)
             continue;
         }
 
-        StorageClass stc = STC.none;
+        STC stc = STC.none;
         const cov = fd.type.covariant(fdv.type, &stc);
         //printf("\tbaseclass cov = %d\n", cov);
         final switch (cov)
@@ -1429,7 +1429,7 @@ int findVtblIndex(FuncDeclaration fd, Dsymbol[] vtbl)
     }
     if (fd._linkage == LINK.cpp && bestvi != -1)
     {
-        StorageClass stc = STC.none;
+        STC stc = STC.none;
         FuncDeclaration fdv = vtbl[bestvi].isFuncDeclaration();
         assert(fdv && fdv.ident == fd.ident);
         if (fd.type.covariant(fdv.type, &stc, /*cppCovariant=*/true) == Covariant.no)

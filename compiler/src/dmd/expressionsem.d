@@ -11677,7 +11677,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             // `__assigntmp` will be destroyed together with the array `ae.e1`.
             // When `ae.e2` is a variadic arg array, it is also `scope`, so
             // `__assigntmp` may also be scope.
-            StorageClass stc = STC.nodtor;
+            STC stc = STC.nodtor;
             if (isArrayAssign)
                 stc |= STC.rvalue | STC.scope_;
 

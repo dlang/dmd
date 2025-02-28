@@ -3990,7 +3990,7 @@ private FuncExp foreachBodyToFunction(Scope* sc, ForeachStatement fs, TypeFuncti
     auto params = new Parameters();
     foreach (i, p; *fs.parameters)
     {
-        StorageClass stc = STC.ref_ | (p.storageClass & STC.scope_);
+        STC stc = STC.ref_ | (p.storageClass & STC.scope_);
         Identifier id;
 
         p.type = p.type.typeSemantic(fs.loc, sc);
@@ -4034,7 +4034,7 @@ private FuncExp foreachBodyToFunction(Scope* sc, ForeachStatement fs, TypeFuncti
     }
     // https://issues.dlang.org/show_bug.cgi?id=13840
     // Throwable nested function inside nothrow function is acceptable.
-    StorageClass stc = mergeFuncAttrs(STC.safe | STC.pure_ | STC.nogc, fs.func);
+    STC stc = mergeFuncAttrs(STC.safe | STC.pure_ | STC.nogc, fs.func);
     auto tf = new TypeFunction(ParameterList(params), Type.tint32, LINK.d, stc);
     fs.cases = new Statements();
     fs.gotos = new ScopeStatements();
@@ -4099,7 +4099,7 @@ void catchSemantic(Catch c, Scope* sc)
         return;
     }
 
-    StorageClass stc;
+    STC stc;
     auto cd = c.type.toBasetype().isClassHandle();
     if (!cd)
     {
@@ -4449,7 +4449,7 @@ public auto makeTupleForeach(Scope* sc, bool isStatic, bool isDecl, ForeachState
          * Returns:
          *     `true` iff the declaration was successful.
          */
-        bool declareVariable(StorageClass storageClass, Type type, Identifier ident, Expression e, Type t)
+        bool declareVariable(STC storageClass, Type type, Identifier ident, Expression e, Type t)
         {
             if (storageClass & (STC.out_ | STC.lazy_) ||
                 storageClass & STC.ref_ && !te)

@@ -51,11 +51,11 @@ import dmd.tokens;
  * Returns:
  *      merged storage class
  */
-StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration f) pure @safe
+STC mergeFuncAttrs(STC s1, const FuncDeclaration f) pure @safe
 {
     if (!f)
         return s1;
-    StorageClass s2 = (f.storage_class & STC.disable);
+    STC s2 = (f.storage_class & STC.disable);
 
     auto tf = f.type.isTypeFunction();
     if (tf.trust == TRUST.safe)
@@ -75,7 +75,7 @@ StorageClass mergeFuncAttrs(StorageClass s1, const FuncDeclaration f) pure @safe
     const sa = s1 & s2;
     const so = s1 | s2;
 
-    StorageClass stc = (sa & (STC.pure_ | STC.nothrow_ | STC.nogc)) | (so & STC.disable);
+    STC stc = (sa & (STC.pure_ | STC.nothrow_ | STC.nogc)) | (so & STC.disable);
 
     if (so & STC.system)
         stc |= STC.system;
@@ -269,7 +269,7 @@ FuncDeclaration buildOpAssign(StructDeclaration sd, Scope* sc)
         return null;
 
     //printf("StructDeclaration::buildOpAssign() %s\n", sd.toChars());
-    StorageClass stc = STC.safe;
+    STC stc = STC.safe;
     Loc declLoc = sd.loc;
     Loc loc; // internal code should have no loc to prevent coverage
 
@@ -905,7 +905,7 @@ void buildDtors(AggregateDeclaration ad, Scope* sc)
     if (ad.isUnionDeclaration())
         return;                    // unions don't have destructors
 
-    StorageClass stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
+    STC stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
     Loc declLoc = ad.userDtors.length ? ad.userDtors[0].loc : ad.loc;
     Loc loc; // internal code should have no loc to prevent coverage
     FuncDeclaration xdtor_fwd = null;
@@ -1224,8 +1224,8 @@ FuncDeclaration buildInv(AggregateDeclaration ad, Scope* sc)
 
     default:
         Expression e = null;
-        StorageClass stcx = STC.none;
-        StorageClass stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
+        STC stcx = STC.none;
+        STC stc = STC.safe | STC.nothrow_ | STC.pure_ | STC.nogc;
         foreach (i, inv; ad.invs)
         {
             stc = mergeFuncAttrs(stc, inv);
@@ -1278,7 +1278,7 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
     const hasUserDefinedPosblit = sd.postblits.length && !sd.postblits[0].isDisabled ? true : false;
 
     // by default, the storage class of the created postblit
-    StorageClass stc = STC.safe;
+    STC stc = STC.safe;
     Loc declLoc = sd.postblits.length ? sd.postblits[0].loc : sd.loc;
     Loc loc; // internal code should have no loc to prevent coverage
 
@@ -1559,11 +1559,11 @@ FuncDeclaration buildPostBlit(StructDeclaration sd, Scope* sc)
  * Returns:
  *  The copy constructor declaration for struct `sd`.
  */
-private CtorDeclaration generateCtorDeclaration(StructDeclaration sd, const StorageClass paramStc, const StorageClass funcStc, bool move)
+private CtorDeclaration generateCtorDeclaration(StructDeclaration sd, const STC paramStc, const STC funcStc, bool move)
 {
     auto fparams = new Parameters();
     auto structType = sd.type;
-    StorageClass stc = move ? STC.none : STC.ref_;     // the only difference between copy or move
+    STC stc = move ? STC.none : STC.ref_;     // the only difference between copy or move
     fparams.push(new Parameter(Loc.initial, paramStc | stc, structType, Id.p, null, null));
     ParameterList pList = ParameterList(fparams);
     auto tf = new TypeFunction(pList, structType, LINK.d, STC.ref_);

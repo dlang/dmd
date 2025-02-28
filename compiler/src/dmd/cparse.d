@@ -1686,7 +1686,7 @@ final class CParser(AST) : Parser!AST
     private AST.Expression cparseStatementExpression()
     {
         AST.ParameterList parameterList;
-        StorageClass stc = STC.none;
+        STC stc = STC.none;
         const loc = token.loc;
         auto symbolsSave = symbols;
         symbols = new AST.Dsymbols();
@@ -2046,7 +2046,7 @@ final class CParser(AST) : Parser!AST
                         error("no initializer for function declaration");
                     if (specifier.scw & SCW.x_Thread_local)
                         error("functions cannot be `_Thread_local`"); // C11 6.7.1-4
-                    StorageClass stc = specifiersToSTC(level, specifier);
+                    STC stc = specifiersToSTC(level, specifier);
                     stc &= ~STC.gshared;        // no gshared functions
                     auto fd = new AST.FuncDeclaration(token.loc, Loc.initial, id, stc, dt, specifier.noreturn);
                     specifiersToFuncDeclaration(fd, specifier);
@@ -2233,7 +2233,7 @@ final class CParser(AST) : Parser!AST
         auto body = cparseStatement(ParseStatementFlags.curly);  // don't start a new scope; continue with parameter scope
         typedefTab.pop();                                        // end of function scope
 
-        StorageClass stc = specifiersToSTC(LVL.global, specifier);
+        STC stc = specifiersToSTC(LVL.global, specifier);
         stc &= ~STC.gshared;    // no gshared functions
         auto fd = new AST.FuncDeclaration(locFunc, prevloc, id, stc, ft, specifier.noreturn);
         specifiersToFuncDeclaration(fd, specifier);
@@ -3018,7 +3018,7 @@ final class CParser(AST) : Parser!AST
 
                         auto parameterList = cparseParameterList();
                         const lkg = specifier.mod & MOD.x__stdcall ? LINK.windows : linkage;
-                        StorageClass stc = specifier._nothrow ? STC.nothrow_ : STC.none;
+                        STC stc = specifier._nothrow ? STC.nothrow_ : STC.none;
                         if (specifier._pure)
                             stc |= STC.pure_;
                         stc |= defaultStorageClasses;
@@ -3174,7 +3174,7 @@ final class CParser(AST) : Parser!AST
     {
         auto parameters = new AST.Parameters();
         AST.VarArg varargs = AST.VarArg.none;
-        StorageClass varargsStc;
+        STC varargsStc;
 
         check(TOK.leftParenthesis);
         if (token.value == TOK.void_ && peekNext() == TOK.rightParenthesis) // func(void)
@@ -5162,9 +5162,9 @@ final class CParser(AST) : Parser!AST
      * Returns:
      *  corresponding D storage class
      */
-    StorageClass specifiersToSTC(LVL level, const ref Specifier specifier)
+    STC specifiersToSTC(LVL level, const ref Specifier specifier)
     {
-        StorageClass stc;
+        STC stc;
         if (specifier.scw & SCW.x_Thread_local)
         {
             if (level == LVL.global)
@@ -6206,7 +6206,7 @@ final class CParser(AST) : Parser!AST
                                 break;
                             auto ret = new AST.ReturnStatement(exp.loc, exp);
                             auto parameterList = AST.ParameterList(new AST.Parameters(), VarArg.none, STC.none);
-                            StorageClass stc = STC.auto_;
+                            STC stc = STC.auto_;
                             auto tf = new AST.TypeFunction(parameterList, null, LINK.d, stc);
                             auto fd = new AST.FuncDeclaration(exp.loc, exp.loc, id, stc, tf, 0);
                             fd.fbody = ret;
@@ -6297,7 +6297,7 @@ final class CParser(AST) : Parser!AST
 
                             // Generate function
                             auto ret = new AST.ReturnStatement(exp.loc, exp);
-                            StorageClass stc = STC.auto_;
+                            STC stc = STC.auto_;
                             auto tf = new AST.TypeFunction(parameterList, null, LINK.d, stc);
                             auto fd = new AST.FuncDeclaration(exp.loc, exp.loc, id, stc, tf, 0);
                             fd.fbody = ret;

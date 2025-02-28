@@ -143,7 +143,10 @@ enum STC : ulong  // transfer changes to declaration.h
 
 }
 
-alias StorageClass = STC;
+// Alias for C++ interface functions which use plain integer instead of enum class,
+// since C++ enum class doesn't support | & and conversion to bool. Maybe this can
+// be refactored to a struct with operator overloads or bit fields at some point.
+alias StorageClass = ulong;
 
 /********
  * Determine if it's the ambigous case of where `return` attaches to.

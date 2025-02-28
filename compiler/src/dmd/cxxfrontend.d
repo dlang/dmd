@@ -510,7 +510,7 @@ Covariant covariant(Type src, Type t, StorageClass* pstc = null, bool
                     cppCovariant = false)
 {
     import dmd.typesem;
-    return dmd.typesem.covariant(src, t, pstc, cppCovariant);
+    return dmd.typesem.covariant(src, t, cast(STC*) pstc, cppCovariant);
 }
 
 bool isZeroInit(Type t, Loc loc)
@@ -642,7 +642,7 @@ Type addMod(Type type, MOD mod)
 Type addStorageClass(Type type, StorageClass stc)
 {
     import dmd.typesem;
-    return dmd.typesem.addStorageClass(type, stc);
+    return dmd.typesem.addStorageClass(type, cast(STC) stc);
 }
 
 Type pointerTo(Type type)

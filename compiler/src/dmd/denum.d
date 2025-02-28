@@ -152,7 +152,7 @@ extern (C++) final class EnumMember : VarDeclaration
     }
 
     extern(D) this(Loc loc, Identifier id, Expression value, Type memtype,
-        StorageClass stc, UserAttributeDeclaration uad, DeprecatedDeclaration dd)
+        STC stc, UserAttributeDeclaration uad, DeprecatedDeclaration dd)
     {
         this(loc, id, value, memtype);
         storage_class = stc;

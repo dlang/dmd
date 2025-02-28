@@ -2404,9 +2404,9 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                             // https://issues.dlang.org/show_bug.cgi?id=12744
                             // If the storage classes of narg
                             // conflict with the ones in fparam, it's ignored.
-                            StorageClass stc  = fparam.storageClass | narg.storageClass;
-                            StorageClass stc1 = fparam.storageClass & (STC.ref_ | STC.out_ | STC.lazy_);
-                            StorageClass stc2 =   narg.storageClass & (STC.ref_ | STC.out_ | STC.lazy_);
+                            STC stc  = fparam.storageClass | narg.storageClass;
+                            STC stc1 = fparam.storageClass & (STC.ref_ | STC.out_ | STC.lazy_);
+                            STC stc2 =   narg.storageClass & (STC.ref_ | STC.out_ | STC.lazy_);
                             if (stc1 && stc2 && stc1 != stc2)
                             {
                                 OutBuffer buf1;  stcToBuffer(buf1, stc1 | ((stc1 & STC.ref_) ? (fparam.storageClass & STC.auto_) : STC.none));
@@ -6182,7 +6182,7 @@ Dsymbol toDsymbol(Type type, Scope* sc)
 /************************************
  * Add storage class modifiers to type.
  */
-Type addStorageClass(Type type, StorageClass stc)
+Type addStorageClass(Type type, STC stc)
 {
     Type visitType(Type t)
     {
@@ -6345,7 +6345,7 @@ Type getComplexLibraryType(Loc loc, Scope* sc, TY ty)
  * Returns:
  *     An enum value of either `Covariant.yes` or a reason it's not covariant.
  */
-Covariant covariant(Type src, Type t, StorageClass* pstc = null, bool cppCovariant = false)
+Covariant covariant(Type src, Type t, STC* pstc = null, bool cppCovariant = false)
 {
     version (none)
     {
@@ -6356,7 +6356,7 @@ Covariant covariant(Type src, Type t, StorageClass* pstc = null, bool cppCovaria
     }
     if (pstc)
         *pstc = STC.none;
-    StorageClass stc = STC.none;
+    STC stc = STC.none;
 
     bool notcovariant = false;
 
@@ -6506,8 +6506,8 @@ Lcovariant:
 
     if (!t1.isRef && (t1.isScopeQual || t2.isScopeQual))
     {
-        StorageClass stc1 = t1.isScopeQual ? STC.scope_ : STC.none;
-        StorageClass stc2 = t2.isScopeQual ? STC.scope_ : STC.none;
+        STC stc1 = t1.isScopeQual ? STC.scope_ : STC.none;
+        STC stc2 = t2.isScopeQual ? STC.scope_ : STC.none;
         if (t1.isReturn)
         {
             stc1 |= STC.return_;
@@ -6605,7 +6605,7 @@ Lnotcovariant:
  * Returns:
  *  storage class with STC.scope_ or STC.return_ OR'd in
  */
-StorageClass parameterStorageClass(TypeFunction tf, Type tthis, Parameter p, VarDeclarations* outerVars = null,
+STC parameterStorageClass(TypeFunction tf, Type tthis, Parameter p, VarDeclarations* outerVars = null,
     bool indirect = false)
 {
     //printf("parameterStorageClass(p: %s)\n", p.toChars());

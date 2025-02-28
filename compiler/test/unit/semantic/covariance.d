@@ -857,7 +857,7 @@ void testCovariant(Type base, Type target, in Result expected, const size_t line
     assert(base);
     assert(target);
 
-    StorageClass actualStc;
+    STC actualStc;
     const actual = base.covariant(target, &actualStc);
     enforce(!global.errors, line, "`covariant` raised an error!");
 

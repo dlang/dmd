@@ -964,6 +964,8 @@ struct ObjcClassDeclaration final
     }
 };
 
+typedef uint64_t StorageClass;
+
 enum class PKG
 {
     unknown = 0,
@@ -4002,7 +4004,7 @@ private:
     uint32_t bitFields;
 public:
     ObjcFuncDeclaration objc;
-    static FuncDeclaration* create(Loc loc, Loc endloc, Identifier* id, STC storage_class, Type* type, bool noreturn = false);
+    static FuncDeclaration* create(Loc loc, Loc endloc, Identifier* id, StorageClass storage_class, Type* type, bool noreturn = false);
     Array<Statement* >* frequires();
     Array<Ensure >* fensures();
     Statement* frequire();
@@ -4378,7 +4380,7 @@ public:
     Identifier* ident;
     Expression* defaultArg;
     UserAttributeDeclaration* userAttribDecl;
-    static Parameter* create(Loc loc, STC storageClass, Type* type, Identifier* ident, Expression* defaultArg, UserAttributeDeclaration* userAttribDecl);
+    static Parameter* create(Loc loc, StorageClass storageClass, Type* type, Identifier* ident, Expression* defaultArg, UserAttributeDeclaration* userAttribDecl);
     Parameter* syntaxCopy();
     Type* isLazyArray();
     bool isLazy() const;
@@ -4669,7 +4671,7 @@ public:
     PURE purity;
     int8_t inuse;
     ArgumentList inferenceArguments;
-    static TypeFunction* create(Array<Parameter* >* parameters, Type* treturn, uint8_t varargs, LINK linkage, STC stc = (STC)0LLU);
+    static TypeFunction* create(Array<Parameter* >* parameters, Type* treturn, uint8_t varargs, LINK linkage, StorageClass stc = static_cast<StorageClass>(STC::none));
     const char* kind() const override;
     TypeFunction* syntaxCopy() override;
     bool hasLazyParameters();
@@ -6865,7 +6867,7 @@ private:
 public:
     int8_t canassign;
     uint8_t isdataseg;
-    static VarDeclaration* create(Loc loc, Type* type, Identifier* ident, Initializer* _init, STC storage_class = (STC)0LLU);
+    static VarDeclaration* create(Loc loc, Type* type, Identifier* ident, Initializer* _init, StorageClass storage_class = static_cast<StorageClass>(STC::none));
     VarDeclaration* syntaxCopy(Dsymbol* s) override;
     const char* kind() const override;
     AggregateDeclaration* isThis() final override;
