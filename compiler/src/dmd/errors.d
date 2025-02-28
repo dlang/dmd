@@ -732,63 +732,81 @@ private void verrorPrint(const(char)* format, va_list ap, ref ErrorInfo info)
         !global.params.mixinOut.doOutput)
     {
         import dmd.root.filename : FileName;
-        const fileName = FileName(loc.filename);
-        if (auto text = global.fileManager.getFileContents(fileName))
+        if (auto text = cast(const(char[])) global.fileManager.getFileContents(FileName(loc.filename)))
         {
-            auto range = dmd.root.string.splitLines(cast(const(char[])) text);
-            size_t linnum;
-            foreach (line; range)
-            {
-                ++linnum;
-                if (linnum != loc.linnum)
-                    continue;
-                if (loc.charnum < line.length)
-                {
-                    enum tabWidth = 4;
-                    // The number of column bytes and the number of display columns
-                    // occupied by a character are not the same for non-ASCII charaters.
-                    // https://issues.dlang.org/show_bug.cgi?id=21849
-                    size_t index = 0;
-                    size_t column = 0;
-                    size_t caretColumn = 0;
-                    while (index < line.length)
-                    {
-                        import dmd.root.utf : utf_decodeChar;
-                        dchar u;
-                        const start = index;
-                        const msg = utf_decodeChar(line, index, u);
-                        assert(msg is null, msg);
-                        if (u == '\t')
-                        {
-                            // How many spaces until column is the next multiple of tabWidth
-                            const equivalentSpaces = tabWidth - (column % tabWidth);
-                            foreach (i; 0 .. equivalentSpaces)
-                                fputc(' ', stderr);
-                            column += equivalentSpaces;
-                        }
-                        else
-                        {
-                            fprintf(stderr, "%.*s", cast(int) (index - start), &line[start]);
-                            column++;
-                        }
-                        if (index < loc.charnum)
-                            caretColumn = column;
-
-                    }
-                    fputc('\n', stderr);
-
-                    foreach (i; 0 .. caretColumn)
-                        fputc(' ', stderr);
-
-                    fputc('^', stderr);
-                    fputc('\n', stderr);
-                }
-                break;
-            }
+            tmp.reset();
+            printErrorLineContext(tmp, text, loc.fileOffset);
+            fputs(tmp.peekChars(), stderr);
         }
     }
     old_loc = loc;
     fflush(stderr);     // ensure it gets written out in case of compiler aborts
+}
+
+// Given an error happening in source code `text`, at index `offset`, print the offending line
+// and a caret pointing to the error into `buf`
+private void printErrorLineContext(ref OutBuffer buf, const(char)[] text, size_t offset) @safe
+{
+    import dmd.root.utf : utf_decodeChar;
+
+    if (offset >= text.length)
+        return; // Out of bounds (can happen in pre-processed C files currently)
+
+    // Scan backwards for beginning of line
+    size_t s = offset;
+    while (s > 0 && text[s - 1] != '\n')
+        s--;
+
+    const line = text[s .. $];
+    const byteColumn = offset - s; // column as reported in the error message (byte offset)
+    enum tabWidth = 4;
+
+    // The number of column bytes and the number of display columns
+    // occupied by a character are not the same for non-ASCII charaters.
+    // https://issues.dlang.org/show_bug.cgi?id=21849
+    size_t currentColumn = 0;
+    size_t caretColumn = 0; // actual display column taking into account tabs and unicode characters
+    for (size_t i = 0; i < line.length; )
+    {
+        dchar u;
+        const start = i;
+        const msg = utf_decodeChar(line, i, u);
+        assert(msg is null, msg);
+        if (u == '\t')
+        {
+            // How many spaces until column is the next multiple of tabWidth
+            const equivalentSpaces = tabWidth - (currentColumn % tabWidth);
+            foreach (j; 0 .. equivalentSpaces)
+                buf.writeByte(' ');
+            currentColumn += equivalentSpaces;
+        }
+        else if (u == '\r' || u == '\n')
+            break;
+        else
+        {
+            buf.writestring(line[start .. i]);
+            currentColumn++;
+        }
+        if (i <= byteColumn)
+            caretColumn = currentColumn;
+    }
+    buf.writeByte('\n');
+
+    foreach (i; 0 .. caretColumn)
+        buf.writeByte(' ');
+
+    buf.writeByte('^');
+    buf.writeByte('\n');
+}
+
+unittest
+{
+    OutBuffer buf;
+    printErrorLineContext(buf, "int ɷ = 3;", 9);
+    assert(buf.peekSlice() ==
+        "int ɷ = 3;\n"~
+        "        ^\n"
+    );
 }
 
 /**
