@@ -2985,8 +2985,14 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
     Type visitTag(TypeTag mtype)
     {
         //printf("TypeTag.semantic() %s\n", mtype.toChars());
-        Type returnType(Type t)
+        Type returnType(TypeTag tt)
         {
+            Type t = tt.resolved;
+            // To make const checking work, the const STC needs to be added:
+            // t = t.resolved.addSTC(mtype.mod.ModToStc);
+            // However, this currently fails compilable/test22875.i
+            // Apparently there's some aliasing going on, where mutable
+            // versions of the type also get const applied to them.
             return t.deco ? t : t.merge();
         }
 
@@ -2994,7 +3000,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         {
             /* struct S s, *p;
              */
-            return returnType(mtype.resolved.addSTC(cast(STC) mtype.mod));
+            return returnType(mtype);
         }
 
         /* Find the current scope by skipping tag scopes.
@@ -3067,7 +3073,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         {
             mtype.id = Identifier.generateId("__tag"[]);
             declareTag();
-            return returnType(mtype.resolved.addSTC(cast(STC) mtype.mod));
+            return returnType(mtype);
         }
 
         /* look for pre-existing declaration
@@ -3080,7 +3086,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             if (mtype.tok == TOK.enum_ && !mtype.members)
                 .error(mtype.loc, "`enum %s` is incomplete without members", mtype.id.toChars()); // C11 6.7.2.3-3
             declareTag();
-            return returnType(mtype.resolved.addSTC(cast(STC) mtype.mod));
+            return returnType(mtype);
         }
 
         /* A redeclaration only happens if both declarations are in
@@ -3180,7 +3186,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                 declareTag();
             }
         }
-        return returnType(mtype.resolved.addSTC(cast(STC) mtype.mod));
+        return returnType(mtype);
     }
 
     switch (type.ty)
