@@ -2348,7 +2348,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             /* Create a scope for evaluating the default arguments for the parameters
              */
             Scope* argsc = sc.push();
-            argsc.stc = 0; // don't inherit storage class
+            argsc.stc = STC.none; // don't inherit storage class
             argsc.visibility = Visibility(Visibility.Kind.public_);
             argsc.func = null;
 
@@ -2409,7 +2409,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                             StorageClass stc2 =   narg.storageClass & (STC.ref_ | STC.out_ | STC.lazy_);
                             if (stc1 && stc2 && stc1 != stc2)
                             {
-                                OutBuffer buf1;  stcToBuffer(buf1, stc1 | ((stc1 & STC.ref_) ? (fparam.storageClass & STC.auto_) : 0));
+                                OutBuffer buf1;  stcToBuffer(buf1, stc1 | ((stc1 & STC.ref_) ? (fparam.storageClass & STC.auto_) : STC.none));
                                 OutBuffer buf2;  stcToBuffer(buf2, stc2);
 
                                 .error(loc, "incompatible parameter storage classes `%s` and `%s`",
@@ -2994,7 +2994,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         {
             /* struct S s, *p;
              */
-            return returnType(mtype.resolved.addSTC(mtype.mod));
+            return returnType(mtype.resolved.addSTC(cast(STC) mtype.mod));
         }
 
         /* Find the current scope by skipping tag scopes.
@@ -3067,7 +3067,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
         {
             mtype.id = Identifier.generateId("__tag"[]);
             declareTag();
-            return returnType(mtype.resolved.addSTC(mtype.mod));
+            return returnType(mtype.resolved.addSTC(cast(STC) mtype.mod));
         }
 
         /* look for pre-existing declaration
@@ -3080,7 +3080,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
             if (mtype.tok == TOK.enum_ && !mtype.members)
                 .error(mtype.loc, "`enum %s` is incomplete without members", mtype.id.toChars()); // C11 6.7.2.3-3
             declareTag();
-            return returnType(mtype.resolved.addSTC(mtype.mod));
+            return returnType(mtype.resolved.addSTC(cast(STC) mtype.mod));
         }
 
         /* A redeclaration only happens if both declarations are in
@@ -3180,7 +3180,7 @@ Type typeSemantic(Type type, Loc loc, Scope* sc)
                 declareTag();
             }
         }
-        return returnType(mtype.resolved.addSTC(mtype.mod));
+        return returnType(mtype.resolved.addSTC(cast(STC) mtype.mod));
     }
 
     switch (type.ty)
@@ -6214,7 +6214,7 @@ Type addStorageClass(Type type, StorageClass stc)
             (stc & STC.safe && t.trust < TRUST.trusted))
         {
             // Klunky to change these
-            auto tf = new TypeFunction(t.parameterList, t.next, t.linkage, 0);
+            auto tf = new TypeFunction(t.parameterList, t.next, t.linkage, STC.none);
             tf.mod = t.mod;
             tf.inferenceArguments = tf_src.inferenceArguments;
             tf.purity = t.purity;
@@ -6355,8 +6355,8 @@ Covariant covariant(Type src, Type t, StorageClass* pstc = null, bool cppCovaria
         printf("mod = %x, %x\n", src.mod, t.mod);
     }
     if (pstc)
-        *pstc = 0;
-    StorageClass stc = 0;
+        *pstc = STC.none;
+    StorageClass stc = STC.none;
 
     bool notcovariant = false;
 
@@ -6506,8 +6506,8 @@ Lcovariant:
 
     if (!t1.isRef && (t1.isScopeQual || t2.isScopeQual))
     {
-        StorageClass stc1 = t1.isScopeQual ? STC.scope_ : 0;
-        StorageClass stc2 = t2.isScopeQual ? STC.scope_ : 0;
+        StorageClass stc1 = t1.isScopeQual ? STC.scope_ : STC.none;
+        StorageClass stc2 = t2.isScopeQual ? STC.scope_ : STC.none;
         if (t1.isReturn)
         {
             stc1 |= STC.return_;

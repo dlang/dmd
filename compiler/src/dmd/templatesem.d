@@ -120,7 +120,7 @@ void templateDeclarationSemantic(Scope* sc, TemplateDeclaration tempdecl)
     auto paramsym = new ScopeDsymbol();
     paramsym.parent = tempdecl.parent;
     Scope* paramscope = sc.push(paramsym);
-    paramscope.stc = 0;
+    paramscope.stc = STC.none;
 
     if (global.params.ddoc.doOutput)
     {
@@ -603,7 +603,7 @@ Scope* createScopeForTemplateParameters(TemplateDeclaration td, TemplateInstance
     paramscope.tinst = ti;
     paramscope.minst = sc.minst;
     paramscope.callsc = sc;
-    paramscope.stc = 0;
+    paramscope.stc = STC.none;
     return paramscope;
 }
 

@@ -1006,12 +1006,12 @@ extern (C++) class FuncDeclaration : Declaration
     /**********************************
      * Generate a FuncDeclaration for a runtime library function.
      */
-    static FuncDeclaration genCfunc(Parameters* fparams, Type treturn, const(char)* name, StorageClass stc = 0)
+    static FuncDeclaration genCfunc(Parameters* fparams, Type treturn, const(char)* name, StorageClass stc = STC.none)
     {
         return genCfunc(fparams, treturn, Identifier.idPool(name[0 .. strlen(name)]), stc);
     }
 
-    static FuncDeclaration genCfunc(Parameters* fparams, Type treturn, Identifier id, StorageClass stc = 0)
+    static FuncDeclaration genCfunc(Parameters* fparams, Type treturn, Identifier id, StorageClass stc = STC.none)
     {
         FuncDeclaration fd;
         TypeFunction tf;
@@ -1281,7 +1281,7 @@ extern (C++) final class FuncLiteralDeclaration : FuncDeclaration
     // backend
     bool deferToObj;
 
-    extern (D) this(Loc loc, Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null, StorageClass storage_class = STC.undefined_)
+    extern (D) this(Loc loc, Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null, StorageClass storage_class = STC.none)
     {
         super(loc, endloc, null, storage_class, type);
         this.dsym = DSYM.funcLiteralDeclaration;
@@ -1449,7 +1449,7 @@ extern (C++) final class DtorDeclaration : FuncDeclaration
 {
     extern (D) this(Loc loc, Loc endloc)
     {
-        super(loc, endloc, Id.dtor, STC.undefined_, null);
+        super(loc, endloc, Id.dtor, STC.none, null);
         this.dsym = DSYM.dtorDeclaration;
     }
 

@@ -1686,7 +1686,7 @@ final class CParser(AST) : Parser!AST
     private AST.Expression cparseStatementExpression()
     {
         AST.ParameterList parameterList;
-        StorageClass stc = 0;
+        StorageClass stc = STC.none;
         const loc = token.loc;
         auto symbolsSave = symbols;
         symbols = new AST.Dsymbols();
@@ -1710,7 +1710,7 @@ final class CParser(AST) : Parser!AST
         }
 
         auto tf = new AST.TypeFunction(parameterList, null, LINK.d, stc);
-        auto fd = new AST.FuncLiteralDeclaration(loc, token.loc, tf, TOK.delegate_, null, null, 0);
+        auto fd = new AST.FuncLiteralDeclaration(loc, token.loc, tf, TOK.delegate_, null, null, STC.none);
         fd.fbody = fbody;
 
         auto fe = new AST.FuncExp(loc, fd);
@@ -3018,7 +3018,7 @@ final class CParser(AST) : Parser!AST
 
                         auto parameterList = cparseParameterList();
                         const lkg = specifier.mod & MOD.x__stdcall ? LINK.windows : linkage;
-                        StorageClass stc = specifier._nothrow ? STC.nothrow_ : 0;
+                        StorageClass stc = specifier._nothrow ? STC.nothrow_ : STC.none;
                         if (specifier._pure)
                             stc |= STC.pure_;
                         stc |= defaultStorageClasses;
@@ -3537,7 +3537,7 @@ final class CParser(AST) : Parser!AST
             break;
         }
         nextToken();
-        auto s = new AST.CompoundAsmStatement(loc, statements, 0);
+        auto s = new AST.CompoundAsmStatement(loc, statements, STC.none);
         return s;
     }
 
@@ -3922,7 +3922,7 @@ final class CParser(AST) : Parser!AST
                     cparseGnuAttributes(specifierx);
                 }
 
-                auto em = new AST.EnumMember(mloc, ident, value, null, 0, null, null);
+                auto em = new AST.EnumMember(mloc, ident, value, null, STC.none, null, null);
                 members.push(em);
 
                 if (token.value == TOK.comma)
@@ -6205,7 +6205,7 @@ final class CParser(AST) : Parser!AST
                             if (token.value != TOK.endOfFile)
                                 break;
                             auto ret = new AST.ReturnStatement(exp.loc, exp);
-                            auto parameterList = AST.ParameterList(new AST.Parameters(), VarArg.none, 0);
+                            auto parameterList = AST.ParameterList(new AST.Parameters(), VarArg.none, STC.none);
                             StorageClass stc = STC.auto_;
                             auto tf = new AST.TypeFunction(parameterList, null, LINK.d, stc);
                             auto fd = new AST.FuncDeclaration(exp.loc, exp.loc, id, stc, tf, 0);
@@ -6251,7 +6251,7 @@ final class CParser(AST) : Parser!AST
 
                                 if (token.value != TOK.identifier)
                                     break Lswitch;
-                                auto param = new AST.Parameter(token.loc, 0, null, token.ident, null, null);
+                                auto param = new AST.Parameter(token.loc, STC.none, null, token.ident, null, null);
                                 parameters.push(param);
                                 nextToken();
                                 if (token.value == TOK.comma)
@@ -6266,7 +6266,7 @@ final class CParser(AST) : Parser!AST
 
                             //auto pstart = p;
                             nextToken();
-                            auto parameterList = AST.ParameterList(parameters, varargs, 0);
+                            auto parameterList = AST.ParameterList(parameters, varargs, STC.none);
                             /* Create a type for each parameter. Add it to the template parameter list,
                              * and the parameter list.
                              */

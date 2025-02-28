@@ -50,7 +50,7 @@ alias MOD = ubyte;
 
 enum STC : ulong  // transfer changes to declaration.h
 {
-    undefined_          = 0,
+    none                = 0,
 
     static_             = 1,   /// `static`
     extern_             = 2,   /// `extern`
@@ -143,7 +143,7 @@ enum STC : ulong  // transfer changes to declaration.h
 
 }
 
-alias StorageClass = ulong;
+alias StorageClass = STC;
 
 /********
  * Determine if it's the ambigous case of where `return` attaches to.

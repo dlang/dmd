@@ -234,7 +234,7 @@ unittest
  */
 StorageClass ModToStc(uint mod) pure nothrow @nogc @safe
 {
-    StorageClass stc = 0;
+    StorageClass stc = STC.none;
     if (mod & MODFlags.immutable_)
         stc |= STC.immutable_;
     if (mod & MODFlags.const_)
@@ -2499,7 +2499,7 @@ extern (C++) final class TypeFunction : TypeNext
     byte inuse;
     ArgumentList inferenceArguments; // function arguments to determine `auto ref` in type semantic
 
-    extern (D) this(ParameterList pl, Type treturn, LINK linkage, StorageClass stc = 0) @safe
+    extern (D) this(ParameterList pl, Type treturn, LINK linkage, StorageClass stc = STC.none) @safe
     {
         super(Tfunction, treturn);
         //if (!treturn) *(char*)0=0;
@@ -2541,7 +2541,7 @@ extern (C++) final class TypeFunction : TypeNext
             this.trust = TRUST.trusted;
     }
 
-    static TypeFunction create(Parameters* parameters, Type treturn, ubyte varargs, LINK linkage, StorageClass stc = 0) @safe
+    static TypeFunction create(Parameters* parameters, Type treturn, ubyte varargs, LINK linkage, StorageClass stc = STC.none) @safe
     {
         return new TypeFunction(ParameterList(parameters, cast(VarArg)varargs), treturn, linkage, stc);
     }
@@ -3548,7 +3548,7 @@ extern (C++) final class TypeTuple : Type
         {
             Expression e = (*exps)[i];
             assert(e.type.ty != Ttuple);
-            auto arg = new Parameter(e.loc, STC.undefined_, e.type, null, null, null);
+            auto arg = new Parameter(e.loc, STC.none, e.type, null, null, null);
             (*arguments)[i] = arg;
         }
         this.arguments = arguments;
@@ -3573,15 +3573,15 @@ extern (C++) final class TypeTuple : Type
     {
         super(Ttuple);
         arguments = new Parameters();
-        arguments.push(new Parameter(Loc.initial, 0, t1, null, null, null));
+        arguments.push(new Parameter(Loc.initial, STC.none, t1, null, null, null));
     }
 
     extern (D) this(Type t1, Type t2)
     {
         super(Ttuple);
         arguments = new Parameters();
-        arguments.push(new Parameter(Loc.initial, 0, t1, null, null, null));
-        arguments.push(new Parameter(Loc.initial, 0, t2, null, null, null));
+        arguments.push(new Parameter(Loc.initial, STC.none, t1, null, null, null));
+        arguments.push(new Parameter(Loc.initial, STC.none, t2, null, null, null));
     }
 
     static TypeTuple create() @safe
@@ -3810,7 +3810,7 @@ extern (C++) struct ParameterList
     VarArg varargs = VarArg.none;
     bool hasIdentifierList;             // true if C identifier-list style
 
-    this(Parameters* parameters, VarArg varargs = VarArg.none, StorageClass stc = 0) @safe
+    this(Parameters* parameters, VarArg varargs = VarArg.none, StorageClass stc = STC.none) @safe
     {
         this.parameters = parameters;
         this.varargs = varargs;
@@ -4139,15 +4139,15 @@ extern (C++) final class Parameter : ASTNode
     bool isCovariant(bool returnByRef, const Parameter p)
         const pure nothrow @nogc @safe
     {
-        ulong thisSTC = this.storageClass;
-        ulong otherSTC = p.storageClass;
+        STC thisSTC = this.storageClass;
+        STC otherSTC = p.storageClass;
 
         if (thisSTC & STC.constscoperef)
             thisSTC |= STC.scope_;
         if (otherSTC & STC.constscoperef)
             otherSTC |= STC.scope_;
 
-        const mask = STC.ref_ | STC.out_ | STC.lazy_ | (((thisSTC | otherSTC) & STC.constscoperef) ? STC.in_ : 0);
+        const mask = STC.ref_ | STC.out_ | STC.lazy_ | (((thisSTC | otherSTC) & STC.constscoperef) ? STC.in_ : STC.none);
         if ((thisSTC & mask) != (otherSTC & mask))
             return false;
         return isCovariantScope(returnByRef, thisSTC, otherSTC);
@@ -4352,9 +4352,9 @@ ScopeRef buildScopeRef(StorageClass stc) pure nothrow @nogc @safe
         stc |= STC.ref_;        // treat `out` and `ref` the same
 
     ScopeRef result;
-    final switch (stc & (STC.ref_ | STC.scope_ | STC.return_))
+    switch (stc & (STC.ref_ | STC.scope_ | STC.return_))
     {
-        case 0:                        result = ScopeRef.None;        break;
+        case STC.none:           result = ScopeRef.None;        break;
 
         /* can occur in case test/compilable/testsctreturn.d
          * related to https://issues.dlang.org/show_bug.cgi?id=20149
@@ -4372,6 +4372,8 @@ ScopeRef buildScopeRef(StorageClass stc) pure nothrow @nogc @safe
             result = stc & STC.returnScope ? ScopeRef.Ref_ReturnScope
                                            : ScopeRef.ReturnRef_Scope;
             break;
+        default:
+            assert(0);
     }
     return result;
 }

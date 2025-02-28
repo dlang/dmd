@@ -318,7 +318,7 @@ struct ASTBase
         final extern (D) this(Identifier id)
         {
             super(id);
-            storage_class = STC.undefined_;
+            storage_class = STC.none;
             visibility = Visibility(Visibility.Kind.undefined);
             linkage = LINK.default_;
         }
@@ -509,7 +509,7 @@ struct ASTBase
         uint ctfeAdrOnStack;
         uint sequenceNumber;
 
-        final extern (D) this(Loc loc, Type type, Identifier id, Initializer _init, StorageClass st = STC.undefined_)
+        final extern (D) this(Loc loc, Type type, Identifier id, Initializer _init, StorageClass st = STC.none)
         {
             super(id);
             this.type = type;
@@ -539,7 +539,7 @@ struct ASTBase
 
         final extern (D) this(Loc loc, Type type, Identifier id, Expression width)
         {
-            super(loc, type, id, cast(Initializer)null, cast(StorageClass)STC.undefined_);
+            super(loc, type, id, cast(Initializer)null, cast(StorageClass)STC.none);
 
             this.width = width;
             this.storage_class |= STC.field;
@@ -663,7 +663,7 @@ struct ASTBase
     {
         TOK tok;
 
-        extern (D) this(Loc loc, Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null, StorageClass storage_class = STC.undefined_)
+        extern (D) this(Loc loc, Loc endloc, Type type, TOK tok, ForeachStatement fes, Identifier id = null, StorageClass storage_class = STC.none)
         {
             super(loc, endloc, null, storage_class, type);
             this.ident = id ? id : Id.empty;
@@ -717,7 +717,7 @@ struct ASTBase
     {
         extern (D) this(Loc loc, Loc endloc)
         {
-            super(loc, endloc, Id.dtor, STC.undefined_, null);
+            super(loc, endloc, Id.dtor, STC.none, null);
         }
         extern (D) this(Loc loc, Loc endloc, StorageClass stc, Identifier id)
         {
@@ -1687,7 +1687,7 @@ struct ASTBase
         StorageClass stc;                   // storage class of ...
         VarArg varargs = VarArg.none;
 
-        this(Parameters* parameters, VarArg varargs = VarArg.none, StorageClass stc = 0)
+        this(Parameters* parameters, VarArg varargs = VarArg.none, StorageClass stc = STC.none)
         {
             this.parameters = parameters;
             this.varargs = varargs;
@@ -2555,7 +2555,7 @@ struct ASTBase
      */
     static StorageClass ModToStc(uint mod) pure nothrow @nogc @safe
     {
-        StorageClass stc = 0;
+        StorageClass stc = STC.none;
         if (mod & MODFlags.immutable_)
             stc |= STC.immutable_;
         if (mod & MODFlags.const_)
@@ -3703,7 +3703,7 @@ struct ASTBase
                     Expression e = (*exps)[i];
                     if (e.type.ty == Ttuple)
                         error(e.loc, "cannot form sequence of sequences");
-                    auto arg = new Parameter(e.loc, STC.undefined_, e.type, null, null, null);
+                    auto arg = new Parameter(e.loc, STC.none, e.type, null, null, null);
                     (*arguments)[i] = arg;
                 }
             }
@@ -3955,7 +3955,7 @@ struct ASTBase
         byte inuse;
         Expressions* fargs;         // function arguments
 
-        extern (D) this(ParameterList pl, Type treturn, LINK linkage, StorageClass stc = 0)
+        extern (D) this(ParameterList pl, Type treturn, LINK linkage, StorageClass stc = STC.none)
         {
             super(Tfunction, treturn);
             assert(VarArg.none <= pl.varargs && pl.varargs <= VarArg.max);
