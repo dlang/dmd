@@ -293,7 +293,6 @@ void logexp(ref CodeBuilder cdb, elem* e, uint jcond, FL fltarg, code* targ)
         return;
     }
 
-    int no87 = 1;
     docommas(cdb, e);             // scan down commas
     cgstate.stackclean++;
 
@@ -413,8 +412,7 @@ void logexp(ref CodeBuilder cdb, elem* e, uint jcond, FL fltarg, code* targ)
     if (!(jcond & 1))
         cond ^= 1;                      // toggle jump condition(s)
     codelem(cgstate,cdb, e, retregs, true);         // evaluate elem
-    if (no87)
-        cse_flush(cdb,no87);              // flush CSE's to memory
+    cse_flush(cdb,1);                                // flush CSE's to memory
     genBranch(cdb, cond, fltarg, cast(block*) targ); // generate jmp instruction
     cgstate.stackclean--;
 }
@@ -1246,7 +1244,7 @@ void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretre
     {
         bool opsflag = false;
         rreg = allocreg(cdb, outretregs, tym);  // allocate return regs
-        if (0 && retregs & XMMREGS)
+        if (0 && retregs & XMMREGS) // TODO AArch64
         {
             reg = findreg(retregs & XMMREGS);
             if (mask(rreg) & XMMREGS)
@@ -1269,7 +1267,7 @@ void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretre
                 }
             }
         }
-/+
+/+ TODO AArch64
         else if (forregs & XMMREGS)
         {
             reg = findreg(retregs & (mBP | ALLREGS));
@@ -1330,7 +1328,6 @@ void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretre
     }
 }
 
-// cdfunc
 /*******************************
  * Generate code sequence for function call.
  */
@@ -1342,7 +1339,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
     assert(e);
     uint numpara = 0;               // bytes of parameters
     uint stackpushsave = cgstate.stackpush;   // so we can compute # of parameters
-printf("stackpushsave: %d\n", stackpushsave);
+    //printf("stackpushsave: %d\n", stackpushsave);
     cgstate.stackclean++;
     regm_t keepmsk = 0;
     int xmmcnt = 0;
@@ -1500,6 +1497,7 @@ printf("numalign: %d numpara: %d\n", numalign, numpara);
     targ_size_t funcargtos = numpara;
     //printf("funcargtos1 = %d\n", cast(int)funcargtos);
 
+    // TODO AArch64
     /* Parameters go into the registers RDI,RSI,RDX,RCX,R8,R9
      * float and double parameters go into XMM0..XMM7
      * For variadic functions, count of XMM registers used goes in AL
@@ -1641,26 +1639,7 @@ printf("numalign: %d numpara: %d\n", numalign, numpara);
 
                 if (tybasic(ep.Ety) == TYcfloat)
                 {
-                    assert(I64);
-                    assert(lreg == ST01 && mreg == NOREG);
-                    // spill
-                    pop87();
-                    pop87();
-                    cdb.genfltreg(0xD9, 3, tysize(TYfloat));
-                    genfwait(cdb);
-                    cdb.genfltreg(0xD9, 3, 0);
-                    genfwait(cdb);
-                    // reload
-                    if (config.exe == EX_WIN64)
-                    {
-                        cdb.genfltreg(LOD, preg, 0);
-                        code_orrex(cdb.last(), REX_W);
-                    }
-                    else
-                    {
-                        assert(mask(preg) & XMMREGS);
-                        cdb.genxmmreg(xmmload(TYdouble), cast(reg_t) preg, 0, TYdouble);
-                    }
+                    assert(0);
                 }
                 else foreach (v; 0 .. 2)
                 {
@@ -1770,6 +1749,8 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
     //elem_print(e);
     cgstate.calledafunc = 1;
     // Determine if we need frame for function prolog/epilog
+
+// TODO AArch64
 
     if (config.memmodel == Vmodel)
     {
@@ -2215,7 +2196,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
     forregs = outretregs & (cgstate.allregs | INSTR.FLOATREGS);     // XMMREGS ?
     if (e.Eoper == OPconst)
     {
-        if (0 && tyvector(tym) && forregs & XMMREGS)    // TODO
+        if (0 && tyvector(tym) && forregs & XMMREGS)    // TODO AArch64
         {
             assert(!flags);
             const xreg = allocreg(cdb, forregs, tym);     // allocate registers

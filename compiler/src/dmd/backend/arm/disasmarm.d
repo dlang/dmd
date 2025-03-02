@@ -2869,7 +2869,7 @@ unittest
         "A9 01 7B FD         stp   x29,x30,[sp,#16]",
         "A9 41 7B FD         ldp   x29,x30,[sp,#16]",
         "B9 40 0B E0         ldr   w0,[sp,#8]",
-	"F9 00 5F E3         str   x3,[sp,#0xB8]",
+        "F9 00 5F E3         str   x3,[sp,#0xB8]",
 
         "39 C0 00 20         ldrsb w0,[x1]",
         "39 40 00 20         ldrb  w0,[x1]",

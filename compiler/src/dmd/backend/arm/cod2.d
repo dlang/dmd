@@ -84,14 +84,7 @@ void cdorth(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     regm_t retregs2 = posregs & ~retregs1;
 //printf("retregs1: %s retregs2: %s\n", regm_str(retregs1), regm_str(retregs2));
-static if (0)
-{
     scodelem(cg, cdb, e2, retregs2, retregs1, false);
-}
-else
-{
-    retregs2 = mask(33);
-}
     reg_t Rm = findreg(retregs2);
 
     regm_t retregs = pretregs & posregs;
@@ -445,7 +438,7 @@ void cdnot(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 @trusted
 void cdcom(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 {
-    printf("cdcom()\n");
+    //printf("cdcom()\n");
     //elem_print(e);
     if (pretregs == 0)
     {
@@ -552,7 +545,7 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     docommas(cdb,e1);
     cgstate.stackclean++;
 
-    if (0 && !OTrel(op1) && e1 == e21 &&
+    if (0 && !OTrel(op1) && e1 == e21 &&  // TODO AArch64
         sz1 <= REGSIZE && !tyfloating(e1.Ety))
     {   // Recognize (e ? e : f)
 
@@ -583,7 +576,7 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
 
     uint sz2;
-    if (0 && OTrel(op1) && sz1 <= REGSIZE && tysize(e2.Ety) <= REGSIZE &&
+    if (0 && OTrel(op1) && sz1 <= REGSIZE && tysize(e2.Ety) <= REGSIZE && // TODO AArch64
         !e1.Ecount &&
         (jop == COND.cs || jop == COND.cc) &&
         (sz2 = tysize(e2.Ety)) <= REGSIZE &&
@@ -685,7 +678,7 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         }
     }
 
-    if (0 && op1 != OPcond && op1 != OPandand && op1 != OPoror &&
+    if (0 && op1 != OPcond && op1 != OPandand && op1 != OPoror && // TODO AArch64
         op1 != OPnot && op1 != OPbool &&
         e21.Eoper == OPconst &&
         sz1 <= REGSIZE &&
@@ -926,6 +919,7 @@ void cdloglog(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     assert(cgstate.stackpush == stackpushsave);
 
     assert(sz <= 4);                                         // result better be int
+// TODO AArch64
     regm_t retregs = pretregs & (ALLREGS | mBP);
     if (!retregs)
         retregs = ALLREGS;                                   // if mPSW only
@@ -1397,7 +1391,7 @@ void cdneg(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     const sz = _tysize[tyml];
     if (tyfloating(tyml))
     {
-        assert(0);
+        assert(0); // TODO AArch64
     }
 
     const posregs = cgstate.allregs;
@@ -1456,7 +1450,7 @@ void cdabs(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
     const sz = _tysize[tyml];
     if (tyfloating(tyml))
     {
-        assert(0);
+        assert(0); // TODO AArch64
     }
 
     const posregs = cgstate.allregs;
@@ -1533,7 +1527,7 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     const sz = _tysize[tyml];
     elem* e2 = e.E2;
 
-    if (0 && tyfloating(tyml))
+    if (0 && tyfloating(tyml)) // TODO AArch64
     {
         if (config.fpxmmregs && tyxmmreg(tyml) &&
             !tycomplex(tyml) // SIMD code is not set up to deal with complex
@@ -1543,7 +1537,7 @@ void cdpost(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             return;
         }
     }
-    if (0 && tyxmmreg(tyml))
+    if (0 && tyxmmreg(tyml)) // TODO AArch64
     {
         xmmpost(cdb,e,pretregs);
         return;
