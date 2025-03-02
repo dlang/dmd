@@ -2831,8 +2831,9 @@ unittest
 unittest
 {
     int line64 = __LINE__;
-    string[77] cases64 =      // 64 bit code gen
+    string[78] cases64 =      // 64 bit code gen
     [
+        "1E 21 43 FF         fneg   s31,s31",
         "1E 3F 23 D0         fcmpe  s30,s31",
         "1E 62 00 1F         scvtf  d31,w0",
         "1E 63 00 1F         ucvtf  d31,w0",
