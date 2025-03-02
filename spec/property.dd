@@ -307,6 +307,34 @@ $(D object.TypeInfo_Class)).)
 $(P $(CODE .classinfo) applied to an interface gives the information for the
 interface, not the class it might be an instance of.)
 
+$(H2 $(LNAME2 tupleof, .tupleof Property))
+
+$(P $(CODE .tupleof) provides a symbol sequence of all the non-static fields in a struct or class.
+The order of the fields in the tuple matches the order in which the fields are declared.
+
+For classes, hidden fields and fields of the bass class are excluded.
+
+A common use case is to iterate over the fields with a $(CODE foreach) loop.)
+
+---
+struct Vector3
+{
+    int x, y, z;
+}
+
+void test()
+{
+    Vector3 v = Vector3(5, 10, 15);
+    float sum = 0;
+    foreach(num; v.tupleof)
+    {
+        sum+= num;
+    }
+    writeln(sum); //30
+}
+---
+
+
 $(H2 $(LNAME2 classproperties, User-Defined Properties))
 
         $(P User-defined properties can be created using $(LINK2 function.html#property-functions, Property Functions).)
