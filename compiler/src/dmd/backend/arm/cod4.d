@@ -73,7 +73,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     regm_t retregs = pretregs;
     regm_t allregs = tyfloating(tyml) ? INSTR.FLOATREGS : cgstate.allregs;
 
-    if (0 && tyxmmreg(tyml))
+    if (0 && tyxmmreg(tyml))    // TODO AArch64
     {
         xmmeq(cdb, e, CMP, e1, e2, pretregs);
         return;
@@ -154,7 +154,7 @@ void cdeq(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             !(sz == 1 && e1.Voffset == 1)
            )
         {
-            if (0 && varregm & XMMREGS)
+            if (0 && varregm & XMMREGS) // TODO AArch64
             {
                 // Could be an integer vector in the XMMREGS
                 xmmeq(cdb, e, CMP, e1, e2, pretregs);
@@ -247,7 +247,7 @@ void cdaddass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     int isbyte = (sz == 1);                     // 1 for byte operation, else 0
 
     // See if evaluate in XMM registers
-    if (0 && config.fpxmmregs && tyxmmreg(tyml) && op != OPnegass)
+    if (0 && config.fpxmmregs && tyxmmreg(tyml) && op != OPnegass) // TODO AArch64
     {
         xmmopass(cdb,e,pretregs);
         return;
@@ -492,12 +492,11 @@ void floatOpAss(ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     if (!rretregs)
         rretregs = INSTR.FLOATREGS;
 
-rretregs = 1L << 34; // until loaddata() works
     codelem(cgstate,cdb,e2,rretregs,false); // eval right leaf
     reg_t rreg = findreg(rretregs);
 
     bool regvar = false;
-    if (0 && config.flags4 & CFG4optimized)
+    if (0 && config.flags4 & CFG4optimized) // TODO AArch64
     {
         // Be careful of cases like (x = x+x+x). We cannot evaluate in
         // x if x is in a register.
@@ -587,7 +586,7 @@ void cdmulass(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     uint sz = _tysize[tyml];
 
     // See if evaluate in XMM registers
-    if (0 && config.fpxmmregs && tyxmmreg(tyml) && !(pretregs & mST0))
+    if (0 && config.fpxmmregs && tyxmmreg(tyml) && !(pretregs & mST0)) // TODO AArch64
     {
         xmmopass(cdb,e,pretregs);
         return;
@@ -940,7 +939,7 @@ void cdcmp(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             }
             break;
 
-static if (0)
+static if (0) // TODO AArch64
 {
         case OPconst:
 printf("OPconst:\n");
@@ -1229,7 +1228,7 @@ printf("OPconst:\n");
 L3:
     if ((retregs = (pretregs & cg.allregs)) != 0) // if return result in register
     {
-        if (1 && !flag && !(jop & 0xFF00))
+        if (!flag && !(jop & 0xFF00))
         {
             regm_t resregs = retregs;
             reg = allocreg(cdb,resregs,TYint);
@@ -1340,10 +1339,7 @@ void cdcnvt(ref CGstate cg, ref CodeBuilder cdb,elem* e, ref regm_t pretregs)
         case OPd_u32:                               // fcvtzu w0,d31
         case OPd_u64:                               // fcvtzu d31,d31 // fmov x0,d31
         L2:
-            regm_t retregs1 = ALLREGS; //INSTR.FLOATREGS;
-static if (1)
-            retregs1 = mCX;  // hack because no floating support in rest of code
-else
+            regm_t retregs1 = INSTR.FLOATREGS;
             codelem(cgstate,cdb,e.E1,retregs1,false);
             const reg_t V1 = findreg(retregs1);         // source floating point register
 
@@ -1396,17 +1392,10 @@ else
             codelem(cgstate,cdb,e.E1,retregs1,false);
             reg_t R1 = findreg(retregs1);
 
-static if (1)
-{
-            regm_t retregs = mCX; // hack because no floating support in rest of code
-            reg_t Vd = CX;
-}
-else
-{
-            regm_t retregs = FLOATREGS;
+            regm_t retregs = INSTR.FLOATREGS;
             const tym = tybasic(e.Ety);
             reg_t Vd = allocreg(cdb,retregs,tym);       // destination integer register
-}
+
             switch (e.Eoper)
             {
                 case OPs16_d:
@@ -1441,23 +1430,14 @@ else
 
         case OPd_f:     // fcvt d31,s31
         case OPf_d:     // fcvt s31,d31
-            regm_t retregs1 = ALLREGS; //INSTR.FLOATREGS;
-static if (1)
-            retregs1 = mCX;  // hack because no floating support in rest of code
-else
+            regm_t retregs1 = INSTR.FLOATREGS;
             codelem(cgstate,cdb,e.E1,retregs1,false);
             const reg_t V1 = findreg(retregs1);         // source floating point register
 
-static if (1)
-{
-            regm_t retregs = mDX;
-}
-else
-{
             regm_t retregs = pretregs & INSTR.FLOATREGS;
             if (retregs == 0)
-                retregs = INSTR.FLOATREGS & cgstate.allregs;
-}
+                retregs = INSTR.FLOATREGS;
+
             const tym = tybasic(e.Ety);
             reg_t Vd = allocreg(cdb,retregs,tym);       // destination integer register
 
@@ -1588,15 +1568,6 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         else if (e1.Eoper == OPvar ||
             (e1.Eoper == OPind && !e1.Ecount))
         {
-            // OPs16_32
-            //   EA:  LDRSH x0,[sp,#8]
-            //   reg: SXTH  x0,w5
-            // OPu16_32
-            //   EA:  LDRH  w0,[sp,#8]
-            //   reg: AND   x0,x5,#0xFFFF
-            // OPs32_64
-            //   EA:  LDRSW x0,[sp,#8]
-            //   reg: SXTW  x0,w5
             code cs;
             getlvalue(cdb,cs,e11,0,RM.load);
             retregs = pretregs;
@@ -1781,7 +1752,7 @@ void cdbyteint(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
 
     // If previous instruction is an AND bytereg,value
     c = cdb.last();
-    if (0 && c.Iop == 0x80 && c.Irm == modregrm(3,4,reg & 7) &&
+    if (0 && c.Iop == 0x80 && c.Irm == modregrm(3,4,reg & 7) && // TODO AArch64
         (op == OPu8_16 || (c.IEV2.Vuns & 0x80) == 0))
     {
         if (pretregs & mPSW)
