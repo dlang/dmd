@@ -2356,7 +2356,7 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
             if (tyfloating(tym))
             {
                 loadea(cdb,e,cs,0,reg,0,0,0,RM.load);
-                outretregs = mask(reg);
+                outretregs = mask(reg) | flags;
             }
             else
             {

@@ -545,8 +545,7 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     docommas(cdb,e1);
     cgstate.stackclean++;
 
-    if (0 && !OTrel(op1) && e1 == e21 &&  // TODO AArch64
-        sz1 <= REGSIZE && !tyfloating(e1.Ety))
+    if (!OTrel(op1) && e1 == e21 && sz1 <= REGSIZE)
     {   // Recognize (e ? e : f)
 
         code* cnop1 = gen1(null, INSTR.nop);
@@ -561,7 +560,7 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         const stackpushsave = cgstate.stackpush;
 
         retregs |= psw;
-        if (retregs & (mBP | ALLREGS))
+        if (retregs & cgstate.allregs)  // TODO AArch64 add support for fp registers
             cgstate.regimmed_set(findreg(retregs),0);
         codelem(cgstate,cdb,e22,retregs,false);
 
