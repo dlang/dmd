@@ -1391,7 +1391,22 @@ void cdneg(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     const sz = _tysize[tyml];
     if (tyfloating(tyml))
     {
-        assert(0); // TODO AArch64
+        const posregs = INSTR.FLOATREGS;
+        regm_t retregs1 = posregs;
+        codelem(cgstate,cdb,e.E1,retregs1,false);
+
+        regm_t retregs = pretregs & posregs;
+        if (retregs == 0)                   /* if no return regs speced     */
+                                            /* (like if wanted flags only)  */
+            retregs = FLOATREGS;            // give us some
+        const Vd = allocreg(cdb, retregs, tyml);
+
+        const Vn = findreg(retregs1);
+
+        const ftype = INSTR.szToFtype(sz);
+        cdb.gen1(INSTR.fneg_float(ftype, Vn, Vd));
+        fixresult(cdb,e,retregs,pretregs);
+        return;
     }
 
     const posregs = cgstate.allregs;
@@ -1411,22 +1426,8 @@ void cdneg(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
      */
 
     uint sf = sz == 8;
-    uint op = 1;
-    uint S = (pretregs & mPSW) != 0;
-    uint opt = 0;
-    uint shift = 0;
-    uint imm6 = 0;
-    uint ins = (sf    << 31) |
-               (op    << 30) |
-               (S     << 29) |
-               (0xB   << 24) |
-               (shift << 22) |
-               (0     << 21) |
-               (Rm    << 16) |
-               (imm6  << 10) |
-               (0x1F  <<  5) |
-                Rd;
-    cdb.gen1(ins);
+    uint S = (pretregs & mPSW) != 0;  // NEG/NEGS
+    cdb.gen1(INSTR.addsub_shift(sf,1,S,0,Rm,0,31,Rd)); // NEG/NEGS <Rd>,<Rm>
 
     pretregs &= ~mPSW;             // flags already set
     fixresult(cdb,e,retregs,pretregs);
