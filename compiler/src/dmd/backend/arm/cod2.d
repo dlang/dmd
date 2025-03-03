@@ -583,6 +583,16 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         e22.Eoper == OPconst
        )
     {
+        /* recognize (e1 ? v1 : v2) and generate
+         *   EAX = 0 or -1
+         *   and EAX,v1 - v2
+         *   add EAX, v2
+         * AArch64 can use:
+         *    compare
+         *    mov x1,v2
+         *    mov x2,v1
+         *    csel x0,x1,x0,cond
+         */
         uint sz = tysize(e.Ety);
         uint rex = (I64 && sz == 8) ? REX_W : 0;
         uint grex = rex << 16;
@@ -683,7 +693,14 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         sz1 <= REGSIZE &&
         pretregs & (mBP | ALLREGS) &&
         tysize(e21.Ety) <= REGSIZE && !tyfloating(e21.Ety))
-    {   // Recognize (e ? c : f)
+    {   /* Recognize (e ? c : f) and generate:
+         *  test e1
+         *  reg = c;
+         *  jop L1;
+         *  reg = f;
+         * L1:
+         *  cnop1
+         */
 
         code* cnop1 = gen1(null, INSTR.nop);
         regm_t retregs = mPSW;
@@ -787,7 +804,7 @@ void cdcond(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     cgstate.stackclean--;
 }
 
-// cdcomma
+// cdcomma (same for x86_64 and AArch64)
 
 /*********************************
  * Do && and || operators.
@@ -858,13 +875,13 @@ void cdloglog(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         cgstate.regcon = regconsave;
         assert(cgstate.stackpush == stackpushsave);
 
-        regm_t retregs = pretregs & (ALLREGS | mBP);
+        regm_t retregs = pretregs & cg.allregs;
         if (!retregs)
-            retregs = ALLREGS;                                   // if mPSW only
+            retregs = cg.allregs;                                     // if mPSW only
 
         const reg = allocreg(cdb1,retregs,TYint);                     // allocate reg for result
         movregconst(cdb1,reg,e.Eoper == OPoror,pretregs & mPSW);
-        cgstate.regcon.immed.mval &= ~mask(reg);                        // mark reg as unavail
+        cgstate.regcon.immed.mval &= ~mask(reg);                      // mark reg as unavail
         pretregs = retregs;
 
         cdb.append(cnop3);
@@ -887,22 +904,22 @@ void cdloglog(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         // stack depth should not change when evaluating E2
         assert(cgstate.stackpush == stackpushsave);
 
-        assert(sz <= 4);                                        // result better be int
+        assert(sz <= 4);                                       // result better be int
         regm_t retregs = pretregs & cgstate.allregs;
-        const reg = allocreg(cdb1,retregs,TYint);                     // allocate reg for result
+        const reg = allocreg(cdb1,retregs,TYint);              // allocate reg for result
         movregconst(cdb1,reg,e.Eoper == OPoror,0);             // reg = 1
-        cgstate.regcon.immed.mval &= ~mask(reg);                        // mark reg as unavail
+        cgstate.regcon.immed.mval &= ~mask(reg);               // mark reg as unavail
         pretregs = retregs;
         if (e.Eoper == OPoror)
         {
             cdb.append(cnop3);
-            genBranch(cdb,COND.al,FL.code,cast(block*) cnop2);    // JMP cnop2
+            genBranch(cdb,COND.al,FL.code,cast(block*) cnop2); // JMP cnop2
             cdb.append(cdb1);
             cdb.append(cnop2);
         }
         else
         {
-            genBranch(cdb,COND.al,FL.code,cast(block*) cnop2);    // JMP cnop2
+            genBranch(cdb,COND.al,FL.code,cast(block*) cnop2); // JMP cnop2
             cdb.append(cnop3);
             cdb.append(cdb1);
             cdb.append(cnop2);
@@ -918,10 +935,9 @@ void cdloglog(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     assert(cgstate.stackpush == stackpushsave);
 
     assert(sz <= 4);                                         // result better be int
-// TODO AArch64
-    regm_t retregs = pretregs & (ALLREGS | mBP);
+    regm_t retregs = pretregs & cg.allregs;
     if (!retregs)
-        retregs = ALLREGS;                                   // if mPSW only
+        retregs = cg.allregs;                                // if mPSW only
     CodeBuilder cdbcg;
     cdbcg.ctor();
     const reg = allocreg(cdbcg,retregs,TYint);               // allocate reg for result
@@ -930,10 +946,10 @@ void cdloglog(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
         cdb1.gen(c1);                                        // duplicate it
     CodeBuilder cdbcg2;
     cdbcg2.ctor();
-    movregconst(cdbcg2,reg,0,pretregs & mPSW);              // MOV reg,0
+    movregconst(cdbcg2,reg,0,pretregs & mPSW);               // MOV reg,0
     cgstate.regcon.immed.mval &= ~mask(reg);                 // mark reg as unavail
     genBranch(cdbcg2,COND.al,FL.code,cast(block*) cnop2);    // JMP cnop2
-    movregconst(cdb1,reg,1,pretregs & mPSW);                // reg = 1
+    movregconst(cdb1,reg,1,pretregs & mPSW);                 // reg = 1
     cgstate.regcon.immed.mval &= ~mask(reg);                 // mark reg as unavail
     pretregs = retregs;
     cdb.append(cnop3);
@@ -943,7 +959,6 @@ void cdloglog(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     cdb.append(cnop2);
     cgstate.stackclean--;
 }
-
 
 
 /*********************
