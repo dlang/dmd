@@ -1,7 +1,7 @@
 /* REQUIRED_ARGS: -preview=dip1000
 TEST_OUTPUT:
 ---
-fail_compilation/fail20183.d(1016): Error: address of variable `__rvalue2` assigned to `p` with longer lifetime
+fail_compilation/fail20183.d(1016): Error: assigning address of variable `__rvalue2` to `p` with longer lifetime is not allowed in a `@safe` function
 ---
  */
 
