@@ -1297,7 +1297,6 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
     //printf("stackpushsave: %d\n", stackpushsave);
     cgstate.stackclean++;
     regm_t keepmsk = 0;
-    int xmmcnt = 0;
     tym_t tyf = tybasic(e.E1.Ety);        // the function type
 
     // Easier to deal with parameters as an array: parameters[0..np]
@@ -1362,9 +1361,7 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
         parameters[i].reg = NOREG;
         uint alignsize = el_alignsize(ep);
         parameters[i].numalign = 0;
-        if (alignsize > stackalign &&
-            (I64 || (alignsize >= 16 &&
-                (config.exe & (EX_OSX | EX_LINUX) && (tyaggregate(ep.Ety) || tyvector(ep.Ety))))))
+        if (alignsize > stackalign)
         {
             if (alignsize > STACKALIGN)
             {
@@ -1386,8 +1383,8 @@ void cdfunc(ref CGstate cg, ref CodeBuilder cdb, elem* e, ref regm_t pretregs)
     }
 
     //printf("numpara = %d, cgstate.stackpush = %d\n", numpara, stackpush);
-    assert((numpara & (REGSIZE - 1)) == 0);
-    assert((cgstate.stackpush & (REGSIZE - 1)) == 0);
+    assert((numpara & (REGSIZE - 1)) == 0);             // check alignment
+    assert((cgstate.stackpush & (REGSIZE - 1)) == 0);   // check alignment
 
     /* Should consider reordering the order of evaluation of the parameters
      * so that args that go into registers are evaluated after args that get
@@ -1453,9 +1450,8 @@ printf("numalign: %d numpara: %d\n", numalign, numpara);
     //printf("funcargtos1 = %d\n", cast(int)funcargtos);
 
     // TODO AArch64
-    /* Parameters go into the registers RDI,RSI,RDX,RCX,R8,R9
-     * float and double parameters go into XMM0..XMM7
-     * For variadic functions, count of XMM registers used goes in AL
+    /* Parameters go into the registers x0..x7
+     * floating point parameters go into q0..q7 (16 bytes each)
      */
     foreach (i; 0 .. np)
     {
@@ -1487,7 +1483,6 @@ printf("numalign: %d numpara: %d\n", numalign, numpara);
             for (reg_t j = 0; tosave; j++)
             {
                 regm_t mi = mask(j);
-                assert(j <= XMM7);
                 if (mi & tosave)
                 {
                     uint idx;
@@ -1506,29 +1501,24 @@ printf("numalign: %d numpara: %d\n", numalign, numpara);
         {
             // Goes in register preg, not stack
             regm_t retregs = mask(preg);
-            if (retregs & XMMREGS)
-                ++xmmcnt;
             reg_t preg2 = parameters[i].reg2;
             reg_t mreg,lreg;
             if (preg2 != NOREG || tybasic(ep.Ety) == TYcfloat)
             {
                 assert(ep.Eoper != OPstrthis);
-                if (mask(preg2) & XMMREGS)
-                    ++xmmcnt;
                 if (tybasic(ep.Ety) == TYcfloat)
                 {
-                    lreg = ST01;
-                    mreg = NOREG;
+                    assert(0);
                 }
                 else if (tyrelax(ep.Ety) == TYcent)
                 {
-                    lreg = mask(preg ) & mLSW ? cast(reg_t)preg  : AX;
-                    mreg = mask(preg2) & mMSW ? cast(reg_t)preg2 : DX;
+                    lreg = mask(preg ) & mLSW ? cast(reg_t)preg  : 0;
+                    mreg = mask(preg2) & mMSW ? cast(reg_t)preg2 : 1;
                 }
                 else
                 {
-                    lreg = XMM0;
-                    mreg = XMM1;
+                    lreg = 32;
+                    mreg = 33;
                 }
                 retregs = (mask(mreg) | mask(lreg)) & ~mask(NOREG);
                 CodeBuilder cdbsave;
@@ -1541,7 +1531,6 @@ printf("numalign: %d numpara: %d\n", numalign, numpara);
                     for (reg_t j = 0; tosave; j++)
                     {
                         regm_t mi = mask(j);
-                        assert(j <= XMM7);
                         if (mi & tosave)
                         {
                             uint idx;
@@ -1615,6 +1604,7 @@ printf("numalign: %d numpara: %d\n", numalign, numpara);
                         (modregrm(0,4,SP) << 8) | modregxrm(2,preg,4), FL.const_,delta);
                 if (I64)
                     code_orrex(cdb.last(), REX_W);
+                assert(0); // TODO AArch64
             }
             else if (ep.Eoper == OPstrpar && config.exe == EX_WIN64 && type_size(ep.ET) == 0)
             {
@@ -1638,43 +1628,12 @@ printf("numalign: %d numpara: %d\n", numalign, numpara);
             cdb.genadjesp(sz);
             cgstate.stackpush += sz;
         }
-
-        /* Variadic functions store XMM parameters into their corresponding GP registers
-         */
-        for (int i = 0; i < np; i++)
-        {
-            int preg = parameters[i].reg;
-            regm_t retregs = mask(preg);
-            if (retregs & XMMREGS)
-            {
-                reg_t reg;
-                switch (preg)
-                {
-                    case XMM0: reg = CX; break;
-                    case XMM1: reg = DX; break;
-                    case XMM2: reg = R8; break;
-                    case XMM3: reg = R9; break;
-
-                    default:   assert(0);
-                }
-                getregs(cdb,mask(reg));
-                //cdb.gen2(STOD,(REX_W << 16) | modregxrmx(3,preg-XMM0,reg)); // MOVD reg,preg
-            }
-        }
     }
 
     // Restore any register parameters we saved
     getregs(cdb,saved);
     cdb.append(cdbrestore);
     keepmsk |= saved;
-
-    // Variadic functions store the number of XMM registers used in AL
-    if (config.exe != EX_WIN64 && e.Eflags & EFLAGS_variadic && !cg.AArch64)
-    {
-        getregs(cdb,mAX);
-        movregconst(cdb,AX,xmmcnt,1);
-        keepmsk |= mAX;
-    }
 
     //printf("funcargtos: %d cgstate.funcargtos: %d\n", cast(int)funcargtos, cast(int)cgstate.funcargtos);
     assert(funcargtos == 0 && cgstate.funcargtos == ~0);
