@@ -1213,6 +1213,11 @@ void tstresult(ref CodeBuilder cdb, regm_t regm, tym_t tym, bool saveflag)
 /******************************
  * Given the result of an expression is in retregs,
  * generate necessary code to return result in outretregs.
+ * Params:
+ *      cdb = code sink
+ *      e = expression in retregs
+ *      retregs = expression result is in retregs
+ *      outretregs = registers we want the result in, updated
  */
 @trusted
 void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretregs)
@@ -1221,8 +1226,7 @@ void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretre
     if (outretregs == 0) return;           // if don't want result
     assert(e && retregs);                 // need something to work with
     regm_t forccs = outretregs & mPSW;
-    //regm_t forregs = outretregs & (mST01 | mST0 | mBP | ALLREGS | mES | mSTACK | XMMREGS);
-    regm_t forregs = outretregs & cgstate.allregs;
+    regm_t forregs = outretregs & (cgstate.allregs | INSTR.FLOATREGS);
     tym_t tym = tybasic(e.Ety);
 
     if (tym == TYstruct)
@@ -1237,85 +1241,36 @@ void fixresult(ref CodeBuilder cdb, elem* e, regm_t retregs, ref regm_t outretre
     }
     int sz = _tysize[tym];
 
-    reg_t reg,rreg;
     if ((retregs & forregs) == retregs)   // if already in right registers
         outretregs = retregs;
     else if (forregs)             // if return the result in registers
     {
         bool opsflag = false;
-        rreg = allocreg(cdb, outretregs, tym);  // allocate return regs
-        if (0 && retregs & XMMREGS) // TODO AArch64
+        if (tyfloating(tym))
         {
-            reg = findreg(retregs & XMMREGS);
-            if (mask(rreg) & XMMREGS)
-                genmovreg(cdb, rreg, reg, tym);
-            else
-            {
-                // MOVSD floatreg, XMM?
-                cdb.genxmmreg(xmmstore(tym), reg, 0, tym);
-                // MOV rreg,floatreg
-                cdb.genfltreg(0x8B,rreg,0);
-                if (sz == 8)
-                {
-                    if (I32)
-                    {
-                        rreg = findregmsw(outretregs);
-                        cdb.genfltreg(0x8B, rreg,4);
-                    }
-                    else
-                        code_orrex(cdb.last(),REX_W);
-                }
-            }
+            assert(retregs & INSTR.FLOATREGS);
+            reg_t Vn = findreg(retregs);
+            reg_t Vd = allocreg(cdb, outretregs, tym);  // allocate return regs
+            uint ftype = INSTR.szToFtype(sz);
+            cdb.gen1(INSTR.fmov(ftype,Vd,Vn));  // FMOV Vd,Vn
         }
-/+ TODO AArch64
-        else if (forregs & XMMREGS)
-        {
-            reg = findreg(retregs & (mBP | ALLREGS));
-            switch (sz)
-            {
-                case 4:
-                    cdb.gen2(LODD, modregxrmx(3, rreg - XMM0, reg)); // MOVD xmm,reg
-                    break;
-
-                case 8:
-                    if (I32)
-                    {
-                        cdb.genfltreg(0x89, reg, 0);
-                        reg = findregmsw(retregs);
-                        cdb.genfltreg(0x89, reg, 4);
-                        cdb.genxmmreg(xmmload(tym), rreg, 0, tym); // MOVQ xmm,mem
-                    }
-                    else
-                    {
-                        cdb.gen2(LODD /* [sic!] */, modregxrmx(3, rreg - XMM0, reg));
-                        code_orrex(cdb.last(), REX_W); // MOVQ xmm,reg
-                    }
-                    break;
-
-                default:
-                    assert(false);
-            }
-        }
-+/
         else if (sz > REGSIZE)
         {
             reg_t msreg = findregmsw(retregs);
             reg_t lsreg = findreglsw(retregs);
+
+            allocreg(cdb, outretregs, tym);  // allocate return regs
             reg_t msrreg = findregmsw(outretregs);
             reg_t lsrreg = findreglsw(outretregs);
 
-            genmovreg(cdb, msrreg, msreg); // MOV msrreg,msreg
-            genmovreg(cdb, lsrreg, lsreg); // MOV lsrreg,lsreg
+            cdb.gen1(INSTR.mov_register(sz == 8,msreg,msrreg));  // MOV msrreg,msreg
+            cdb.gen1(INSTR.mov_register(sz == 8,lsreg,lsrreg));  // MOV lsrreg,lsreg
         }
         else
         {
-            assert(!(retregs & XMMREGS));
-            assert(!(forregs & XMMREGS));
-            reg = findreg(retregs & cgstate.allregs);
-            if (sz <= 4)
-                genmovreg(cdb, rreg, reg, TYint);  // only move 32 bits, and zero the top 32 bits
-            else
-                genmovreg(cdb, rreg, reg);    // MOV rreg,reg
+            reg_t reg = findreg(retregs & cgstate.allregs);
+            reg_t rreg = allocreg(cdb, outretregs, tym);     // allocate return regs
+            cdb.gen1(INSTR.mov_register(sz == 8,reg,rreg));  // MOV rreg,reg
         }
         cssave(e,retregs | outretregs,opsflag);
         // Commented out due to Bugzilla 8840
