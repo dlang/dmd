@@ -1946,9 +1946,6 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
     assert(e && e.Eoper != OPparam);
 
     tym_t tym = tybasic(e.Ety);
-    if (tyfloating(tym))
-        objmod.fltused();
-
     targ_size_t szb = paramsize(e, tyf);          // size before alignment
     targ_size_t sz = _align(stackalign, szb);     // size after alignment
     assert((sz & (stackalign - 1)) == 0);         // ensure that alignment worked
@@ -1966,24 +1963,7 @@ private void movParams(ref CodeBuilder cdb, elem* e, uint stackalign, uint funca
         default:
             break;
     }
-    regm_t retregs = cgstate.allregs;
-    if (tyvector(tym) ||
-        config.fpxmmregs && tyxmmreg(tym) &&
-        // If not already in x87 register from function call return
-        !((e.Eoper == OPcall || e.Eoper == OPucall) && I32))
-    {
-        retregs = XMMREGS;
-        codelem(cgstate,cdb, e, retregs, false);
-        const op = xmmstore(tym);
-        const r = findreg(retregs);
-        cdb.genc1(op, modregxrm(2, r - XMM0, BPRM), FL.funcarg, funcargtos - sz);   // MOV funcarg[EBP],r
-        checkSetVex(cdb.last(),tym);
-        return;
-    }
-    else if (tyfloating(tym))
-    {
-        assert(0);
-    }
+    regm_t retregs = tyfloating(tym) ? INSTR.FLOATREGS : cgstate.allregs;
     scodelem(cgstate,cdb, e, retregs, 0, true);
     if (sz <= REGSIZE)
     {
