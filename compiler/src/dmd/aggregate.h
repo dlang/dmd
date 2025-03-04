@@ -46,6 +46,7 @@ namespace dmd
     FuncDeclaration *search_toString(StructDeclaration *sd);
     void semanticTypeInfoMembers(StructDeclaration *sd);
     bool fill(StructDeclaration* sd, Loc loc, Expressions &elements, bool ctorinit);
+    bool isFuncHidden(ClassDeclaration* cd, FuncDeclaration* fd);
 }
 
 enum class ClassKind : uint8_t
@@ -287,7 +288,6 @@ public:
     bool isBaseInfoComplete();
     void finalizeSize() override;
     bool hasMonitor();
-    bool isFuncHidden(FuncDeclaration *fd);
     bool isCOMclass() const;
     virtual bool isCOMinterface() const;
     bool isCPPclass() const;

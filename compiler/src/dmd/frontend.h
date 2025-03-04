@@ -6686,7 +6686,6 @@ public:
     bool isBaseInfoComplete() const;
     void finalizeSize() final override;
     bool hasMonitor();
-    bool isFuncHidden(FuncDeclaration* fd);
     bool isCOMclass() const;
     virtual bool isCOMinterface() const;
     bool isCPPclass() const;
@@ -7549,6 +7548,8 @@ public:
     void visit(ConditionalDeclaration* cd) override;
     void visit(StaticForeachDeclaration* sfd) override;
 };
+
+extern bool isFuncHidden(ClassDeclaration* cd, FuncDeclaration* fd);
 
 extern void lowerNonArrayAggregate(StaticForeach* sfe, Scope* sc);
 
