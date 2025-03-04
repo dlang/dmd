@@ -742,7 +742,7 @@ void disassemble(uint c) @trusted
             p2 = labeltostring(imm16 << 2);
         }
     }
-    else if (field(ins, 31, 24) == 0xB4) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#exception
+    else if (field(ins, 31, 24) == 0xD4) // http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#exception
     {
         if (log) printf("Exception generation\n");
         url        = "exception";
@@ -2831,8 +2831,10 @@ unittest
 unittest
 {
     int line64 = __LINE__;
-    string[78] cases64 =      // 64 bit code gen
+    string[80] cases64 =      // 64 bit code gen
     [
+        "D4 20 00 20         brk    #1",
+        "D6 3F 00 00         blr    x0",
         "1E 21 43 FF         fneg   s31,s31",
         "1E 3F 23 D0         fcmpe  s30,s31",
         "1E 62 00 1F         scvtf  d31,w0",

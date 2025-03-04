@@ -1666,18 +1666,11 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
 
 // TODO AArch64
 
-    if (config.memmodel == Vmodel)
-    {
-        if (tyfarfunc(funcsym_p.ty()))
-            cgstate.needframe = true;
-    }
-
     regm_t retregs;
     Symbol* s;
 
     elem* e1 = e.E1;
     tym_t tym1 = tybasic(e1.Ety);
-    char farfunc = tyfarfunc(tym1) || tym1 == TYifunc;
 
     CodeBuilder cdbe;
     cdbe.ctor();
@@ -1689,10 +1682,6 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
             printf("%s\n", tym_str(tym1));
         assert(tyfunc(tym1));
         s = e1.Vsym;
-        if (s.Sflags & SFLexit)
-        { }
-        else if (s != tls_get_addr_sym)
-            save87(cdb);               // assume 8087 regs are all trashed
 
         // Function calls may throw Errors, unless marked that they don't
         if (s == funcsym_p || !s.Sfunc || !(s.Sfunc.Fflags3 & Fnothrow))
@@ -1705,85 +1694,58 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
         }
         else if (!tyfunc(s.ty()) || !(config.flags4 & CFG4optimized))
             // so we can replace func at runtime
-            getregs(cdbe,~fregsaved & cgstate.allregs); // XMMREGS ?
+            getregs(cdbe,~fregsaved & (cgstate.allregs | INSTR.FLOATREGS));
         else
-            getregs(cdbe,~s.Sregsaved & cgstate.allregs); // XMMREGS ?
+            getregs(cdbe,~s.Sregsaved & (cgstate.allregs | INSTR.FLOATREGS));
         if (strcmp(s.Sident.ptr, "alloca") == 0)
         {
             s = getRtlsym(RTLSYM.ALLOCA);
             makeitextern(s);
-            int areg = CX;
+            reg_t areg = CX;
             if (config.exe == EX_WIN64)
                 areg = DX;
             getregs(cdbe, mask(areg));
             cdbe.genc(LEA, modregrm(2, areg, BPRM), FL.allocatmp, 0, FL.unde, 0);  // LEA areg,&localsize[BP]
-            if (I64)
-                code_orrex(cdbe.last(), REX_W);
             cgstate.Alloca.size = REGSIZE;
         }
         if (sytab[s.Sclass] & SCSS)    // if function is on stack (!)
         {
-            retregs = cgstate.allregs & ~keepmsk;
+            retregs = (cgstate.allregs | INSTR.FLOATREGS) & ~keepmsk;
             s.Sflags &= ~GTregcand;
             s.Sflags |= SFLread;
             cdrelconst(cgstate,cdbe,e1,retregs);
-            if (farfunc)
-            {
-                const reg = findregmsw(retregs);
-                const lsreg = findreglsw(retregs);
-                cgstate.floatreg = true;         // use float register
-                cgstate.reflocal = true;
-                cdbe.genc1(0x89,                 // MOV floatreg+2,reg
-                        modregrm(2, reg, BPRM), FL.fltreg, REGSIZE);
-                cdbe.genc1(0x89,                 // MOV floatreg,lsreg
-                        modregrm(2, lsreg, BPRM), FL.fltreg, 0);
-                if (tym1 == TYifunc)
-                    cdbe.gen1(0x9C);             // PUSHF
-                cdbe.genc1(0xFF,                 // CALL [floatreg]
-                        modregrm(2, 3, BPRM), FL.fltreg, 0);
-            }
-            else
-            {
-                const reg = findreg(retregs);
-                cdbe.gen2(0xFF, modregrmx(3, 2, reg));   // CALL reg
-                if (I64)
-                    code_orrex(cdbe.last(), REX_W);
-            }
+
+            const reg = findreg(retregs);
+            cdbe.gen1(INSTR.blr(reg));               // BLR reg
         }
         else
         {
             FL fl = FL.func;
             if (!tyfunc(s.ty()))
                 fl = el_fl(e1);
-            if (tym1 == TYifunc)
-                cdbe.gen1(0x9C);                             // PUSHF
             if (config.exe & (EX_windos | EX_OSX | EX_OSX64))
             {
-                cdbe.gencs(farfunc ? 0x9A : 0xE8,0,fl,s);    // CALL extern
+                cdbe.gencs1(INSTR.branch_imm(1, 0), 0, fl, s);    // CALL extern
             }
             else
             {
-                assert(!farfunc);
                 if (s != tls_get_addr_sym)
                 {
                     //printf("call %s\n", s.Sident.ptr);
                     load_localgot(cdb);
                     cdbe.gencs1(INSTR.branch_imm(1, 0), 0, fl, s);    // CALL extern
                 }
-                else if (I64)
+                else
                 {
                     /* Prepend 66 66 48 so GNU linker has patch room
                      */
-                    assert(!farfunc);
                     cdbe.gen1(0x66);
                     cdbe.gen1(0x66);
                     cdbe.gencs(0xE8, 0, fl, s);      // CALL extern
-                    cdbe.last().Irex = REX | REX_W;
+                    assert(0);  // TODO AArch64
                 }
-                else
-                    cdbe.gencs(0xE8, 0, fl, s);    // CALL extern
             }
-            code_orflag(cdbe.last(), farfunc ? (CFseg | CFoff) : (CFselfrel | CFoff));
+            code_orflag(cdbe.last(), CFselfrel | CFoff);
         }
     }
     else
@@ -1797,41 +1759,24 @@ private void funccall(ref CodeBuilder cdb, elem* e, uint numpara, uint numalign,
         elem* e11 = e1.E1;
         tym_t e11ty = tybasic(e11.Ety);
         load_localgot(cdb);
-        if (config.exe & (EX_LINUX | EX_FREEBSD | EX_OPENBSD | EX_SOLARIS)) // 32 bit only
-        {
-            if (config.flags3 & CFG3pic)
-                keepmsk |= mBX;
-        }
 
         /* Mask of registers destroyed by the function call
          */
-        regm_t desmsk = cgstate.allregs & ~fregsaved; // XMMREGS?
+        regm_t desmsk = (cgstate.allregs | INSTR.FLOATREGS) & ~fregsaved; // XMMREGS?
         //printf("desmsk: %s\n", regm_str(desmsk));
 
-        // if we can't use loadea()
-        if (1)
         //if ((!OTleaf(e11.Eoper) || e11.Eoper == OPconst) &&
             //(e11.Eoper != OPind || e11.Ecount))
-        {
-            retregs = cgstate.allregs & ~keepmsk;
-            cgstate.stackclean++;
-            scodelem(cgstate,cdbe,e11,retregs,keepmsk,true);
-            cgstate.stackclean--;
-            // Kill registers destroyed by an arbitrary function call
-            getregs(cdbe,desmsk);
-            const reg = findreg(retregs);
+        retregs = cgstate.allregs & ~keepmsk;
+        cgstate.stackclean++;
+        scodelem(cgstate,cdbe,e11,retregs,keepmsk,true);
+        cgstate.stackclean--;
+        // Kill registers destroyed by an arbitrary function call
+        getregs(cdbe,desmsk);
+        const reg = findreg(retregs);
 
-            cdbe.gen1(INSTR.blr(reg));  // BLR reg
-        }
-        else
-        {
-            code cs;
-            cs.Iflags = 0;
-            cgstate.stackclean++;
-            loadea(cdbe, e11, cs, 0xFF, farfunc ? 3 : 2, 0, keepmsk, desmsk);
-            cgstate.stackclean--;
-            freenode(e11);
-        }
+        cdbe.gen1(INSTR.blr(reg));  // BLR reg
+
         s = null;
     }
     cdb.append(cdbe);
@@ -1890,7 +1835,7 @@ static if (0)
                 // the stack walker evaluates the return address, not a byte of the
                 // call instruction, so ensure there is an instruction byte after
                 // the call that still has the same line number information
-                cdb.gen1(config.target_cpu >= TARGET_80286 ? UD2 : INT3);
+                cdb.gen1(INSTR.brk(0));         // BRK
             }
             /* Function never returns, so don't need to generate stack
              * cleanup code. But still need to log the stack cleanup
@@ -1922,24 +1867,24 @@ static if (0)
     }
 
     /* Special handling for functions that return one part
-       in XMM0 and the other part in AX
+       in fpreg and the other part in reg
      */
     if (pretregs && retregs)
     {
         if (reg1 == NOREG || reg2 == NOREG)
         {}
-        else if ((0 == (mask(reg1) & XMMREGS)) ^ (0 == (mask(reg2) & XMMREGS)))
+        else if ((0 == (mask(reg1) & INSTR.FLOATREGS)) ^ (0 == (mask(reg2) & INSTR.FLOATREGS)))
         {
             reg_t lreg, mreg;
-            if (mask(reg1) & XMMREGS)
+            if (mask(reg1) & INSTR.FLOATREGS)
             {
-                lreg = XMM0;
-                mreg = XMM1;
+                lreg = 32;
+                mreg = 33;
             }
             else
             {
-                lreg = mask(reg1) & mLSW ? reg1 : AX;
-                mreg = mask(reg2) & mMSW ? reg2 : DX;
+                lreg = mask(reg1) & mLSW ? reg1 : 0;
+                mreg = mask(reg2) & mMSW ? reg2 : 1;
             }
             for (int v = 0; v < 2; v++)
             {
@@ -1954,10 +1899,12 @@ static if (0)
 
     /* Special handling for functions which return complex float in XMM0 or RAX. */
 
-    if (I64
-        && config.exe != EX_WIN64 // broken
+    if (config.exe != EX_WIN64 // broken
         && pretregs && tybasic(e.Ety) == TYcfloat)
     {
+        assert(0);     // TODO AArch64
+        static if (0)
+        {
         assert(reg2 == NOREG);
         // spill
         if (config.exe == EX_WIN64)
@@ -1981,6 +1928,7 @@ static if (0)
         genfwait(cdb);
 
         retregs = mST01;
+        }
     }
 
     fixresult(cdb, e, retregs, pretregs);
