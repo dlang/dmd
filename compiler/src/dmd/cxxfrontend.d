@@ -15,6 +15,7 @@ import dmd.arraytypes;
 import dmd.astenums;
 import dmd.attrib;
 import dmd.common.outbuffer : OutBuffer;
+import dmd.dclass : ClassDeclaration;
 import dmd.denum : EnumDeclaration;
 import dmd.dmodule /*: Module*/;
 import dmd.dscope : Scope;
@@ -176,6 +177,12 @@ Dsymbols* include(Dsymbol d, Scope* sc)
 {
     import dmd.dsymbolsem;
     return dmd.dsymbolsem.include(d, sc);
+}
+
+bool isFuncHidden(ClassDeclaration cd, FuncDeclaration fd)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.isFuncHidden(cd, fd);
 }
 
 /***********************************************************
