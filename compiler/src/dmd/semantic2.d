@@ -489,7 +489,7 @@ private extern(C++) final class Semantic2Visitor : Visitor
         {
             //printf("module5 %s because of %s\n", sc._module.toChars(), mod.toChars());
             if (sc)
-                sc._module.needmoduleinfo = 1;
+                sc._module.needmoduleinfo = true;
         }
     }
 
