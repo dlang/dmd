@@ -1,7 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/e15876_5.d(17): Error: basic type expected, not `End of File`
+fail_compilation/e15876_5.d(17): Error: primary type expected, not `End of File`
 fail_compilation/e15876_5.d(17): Error: semicolon expected to close `alias` declaration, not `End of File`
 fail_compilation/e15876_5.d(17): Error: matching `}` expected following compound statement, not `End of File`
 fail_compilation/e15876_5.d(16):        unmatched `{`
