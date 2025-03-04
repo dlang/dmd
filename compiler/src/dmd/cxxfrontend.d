@@ -185,6 +185,12 @@ bool isFuncHidden(ClassDeclaration cd, FuncDeclaration fd)
     return dmd.dsymbolsem.isFuncHidden(cd, fd);
 }
 
+Dsymbol vtblSymbol(ClassDeclaration cd)
+{
+    import dmd.dsymbolsem;
+    return dmd.dsymbolsem.vtblSymbol(cd);
+}
+
 /***********************************************************
  * dtemplate.d
  */

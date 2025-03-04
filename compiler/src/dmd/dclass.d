@@ -888,21 +888,6 @@ extern (C++) class ClassDeclaration : AggregateDeclaration
     // Back end
     Dsymbol vtblsym;
 
-    final Dsymbol vtblSymbol()
-    {
-        if (!vtblsym)
-        {
-            auto vtype = Type.tvoidptr.immutableOf().sarrayOf(vtbl.length);
-            auto var = new VarDeclaration(loc, vtype, Identifier.idPool("__vtbl"), null, STC.immutable_ | STC.static_);
-            var.addMember(null, this);
-            var.isdataseg = 1;
-            var._linkage = LINK.d;
-            var.semanticRun = PASS.semanticdone; // no more semantic wanted
-            vtblsym = var;
-        }
-        return vtblsym;
-    }
-
     extern (D) final bool isErrorException()
     {
         return errorException && (this == errorException || errorException.isBaseOf(this, null));

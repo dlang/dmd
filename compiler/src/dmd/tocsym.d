@@ -29,6 +29,7 @@ import dmd.dmdparams;
 import dmd.dmodule;
 import dmd.dstruct;
 import dmd.dsymbol;
+import dmd.dsymbolsem : vtblSymbol;
 import dmd.dtemplate;
 import dmd.e2ir;
 import dmd.errors;
