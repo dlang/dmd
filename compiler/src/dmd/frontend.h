@@ -7550,6 +7550,8 @@ public:
     void visit(StaticForeachDeclaration* sfd) override;
 };
 
+extern void lowerNonArrayAggregate(StaticForeach* sfe, Scope* sc);
+
 class NrvoWalker final : public StatementRewriteWalker
 {
 public:
