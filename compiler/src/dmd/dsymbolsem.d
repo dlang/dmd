@@ -1715,7 +1715,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
         if (imp.mod.needmoduleinfo)
         {
             //printf("module4 %s because of %s\n", importer.toChars(), imp.mod.toChars());
-            importer.needmoduleinfo = 1;
+            importer.needmoduleinfo = true;
         }
 
         sc = sc.push(imp.mod);
@@ -2733,7 +2733,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             m = sc._module;
         if (m)
         {
-            m.needmoduleinfo = 1;
+            m.needmoduleinfo = true;
             //printf("module2 %s needs moduleinfo\n", m.toChars());
         }
     }
@@ -2852,7 +2852,7 @@ private extern(C++) final class DsymbolSemanticVisitor : Visitor
             if (m)
             {
                 //printf("module3 %s needs moduleinfo\n", m.toChars());
-                m.needmoduleinfo = 1;
+                m.needmoduleinfo = true;
             }
         }
     }

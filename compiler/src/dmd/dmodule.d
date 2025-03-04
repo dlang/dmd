@@ -358,10 +358,12 @@ extern (C++) final class Module : Package
     Edition edition;            // language edition that this module is compiled with
     Package pkg;                // if isPackageFile is true, the Package that contains this package.d
     Strings contentImportedFiles; // array of files whose content was imported
-    int needmoduleinfo;
     private ThreeState selfimports;
     private ThreeState rootimports;
     Dsymbol[void*] tagSymTab;   /// ImportC: tag symbols that conflict with other symbols used as the index
+
+    bool needmoduleinfo;         // is ModuleInfo required for all code in module to work correctly
+    bool moduleinfodisabled;     // has ModuleInfo generation been disabled
 
     private OutBuffer defines;  // collect all the #define lines here
 
@@ -533,6 +535,7 @@ extern (C++) final class Module : Package
         auto m = new Module(loc, filename, ident, 0, 0);
 
         // TODO: apply import path information (pathInfo) on to module
+        m.moduleinfodisabled = pathInfo.moduleInfoDisabled;
 
         if (!m.read(loc))
             return null;
