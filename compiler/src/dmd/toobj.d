@@ -91,6 +91,10 @@ void genModuleInfo(Module m)
         ObjectNotFound(m.loc, Id.ModuleInfo);
     }
 
+    // If ModuleInfo generation has been disabled selectively, don't emit it.
+    if (m.moduleinfodisabled)
+        return;
+
     Symbol* msym = toSymbol(m);
 
     //////////////////////////////////////////////
@@ -108,7 +112,7 @@ void genModuleInfo(Module m)
     for (size_t i = 0; i < m.aimports.length; i++)
     {
         Module mod = m.aimports[i];
-        if (!mod.needmoduleinfo)
+        if (!mod.needmoduleinfo || mod.moduleinfodisabled)
             aimports_dim--;
     }
 
@@ -177,7 +181,7 @@ void genModuleInfo(Module m)
         {
             Module mod = m.aimports[i];
 
-            if (!mod.needmoduleinfo)
+            if (!mod.needmoduleinfo || mod.moduleinfodisabled)
                 continue;
 
             Symbol* s = toSymbol(mod);
