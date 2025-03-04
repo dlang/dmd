@@ -265,8 +265,17 @@ struct INSTR
 
     /* Conditional branch (immediate)
      * Miscellaneous branch (immediate)
-     * Exception generation
-     * System instructions with register argument
+     */
+
+    /* Exception generation http://www.scs.stanford.edu/~zyedidia/arm64/encodingindex.html#exception
+     */
+    static uint exception(uint opc, uint imm16, uint op2, uint LL) { return (0xD4 << 24) | (opc << 21) | (imm16 << 5) | (op2 << 2) | LL; }
+
+    /* BRK #imm16 http://www.scs.stanford.edu/~zyedidia/arm64/brk.html
+     */
+    static uint brk(uint imm16) { return exception(1, imm16, 0, 0); }
+
+    /* System instructions with register argument
      * Hints
      * Barriers
      * PSTATE
