@@ -23,5 +23,18 @@ This also applies to constructors and assignments, meaning move constructors and
 move assignments are enabled. Moving instead of copying can be much more resource
 efficient, as, say, a string can be moved rather than copied/deleted.
 
-A moved object can still be destructed, so take that into account when moving
+A moved object will still be destructed, so take that into account when moving
 a field - set it to a benign value that can be destructed.
+
+`__rvalue` may also be used as an attribute on a function which returns by ref
+to declare that the result should be treated as an rvalue at the callsite:
+```
+ref T move(T)(return ref T source) __rvalue
+{
+    return source;
+}
+
+S s;
+S t = move(s); // call expression rewritten as: S t = __rvalue(move(s))
+```
+This is used as an internal tool to implement library primitives such as `move` and `forward`.
