@@ -2488,6 +2488,7 @@ extern (C++) final class TypeFunction : TypeNext
         bool isInOutQual;      /// inout on the qualifier
         bool isCtor;           /// the function is a constructor
         bool isReturnScope;    /// `this` is returned by value
+        bool isRvalue;         /// returned reference should be treated as rvalue
     }
 
     import dmd.common.bitfields : generateBitFields;
@@ -2531,6 +2532,8 @@ extern (C++) final class TypeFunction : TypeNext
             this.isScopeQual = true;
         if (stc & STC.scopeinferred)
             this.isScopeInferred = true;
+        if (stc & STC.rvalue)
+            this.isRvalue = true;
 
         this.trust = TRUST.default_;
         if (stc & STC.safe)
@@ -2567,6 +2570,7 @@ extern (C++) final class TypeFunction : TypeNext
         t.isScopeQual = isScopeQual;
         t.isReturnInferred = isReturnInferred;
         t.isScopeInferred = isScopeInferred;
+        t.isRvalue = isRvalue;
         t.isInOutParam = isInOutParam;
         t.isInOutQual = isInOutQual;
         t.trust = trust;
