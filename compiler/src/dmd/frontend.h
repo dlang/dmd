@@ -7139,12 +7139,13 @@ public:
     Edition edition;
     Package* pkg;
     Array<const char* > contentImportedFiles;
-    int32_t needmoduleinfo;
 private:
     ThreeState selfimports;
     ThreeState rootimports;
 public:
     void* tagSymTab;
+    bool needmoduleinfo;
+    bool moduleinfodisabled;
 private:
     OutBuffer defines;
 public:
@@ -8383,12 +8384,15 @@ struct Verbose final
 struct ImportPathInfo final
 {
     const char* path;
+    bool moduleInfoDisabled;
     ImportPathInfo() :
-        path()
+        path(),
+        moduleInfoDisabled()
     {
     }
-    ImportPathInfo(const char* path) :
-        path(path)
+    ImportPathInfo(const char* path, bool moduleInfoDisabled = false) :
+        path(path),
+        moduleInfoDisabled(moduleInfoDisabled)
         {}
 };
 
