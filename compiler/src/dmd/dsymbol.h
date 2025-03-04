@@ -244,7 +244,6 @@ public:
     virtual Visibility visible();
     virtual Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
     virtual bool hasPointers();
-    virtual bool hasStaticCtorOrDtor();
     virtual void addObjcSymbols(ClassDeclarations *, ClassDeclarations *) { }
 
     virtual void addComment(const utf8_t *comment);
@@ -337,7 +336,6 @@ public:
     const char *kind() const override;
     virtual Dsymbol *symtabInsert(Dsymbol *s);
     virtual Dsymbol *symtabLookup(Dsymbol *s, Identifier *id);
-    bool hasStaticCtorOrDtor() override;
 
     void accept(Visitor *v) override { v->visit(this); }
 };
@@ -432,4 +430,5 @@ namespace dmd
     void importAll(Dsymbol *d, Scope *sc);
     void addComment(Dsymbol *d, const char *comment);
     bool oneMember(Dsymbol *d, Dsymbol *&ps, Identifier *ident);
+    bool hasStaticCtorOrDtor(Dsymbol *d);
 }

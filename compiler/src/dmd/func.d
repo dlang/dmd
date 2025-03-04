@@ -1544,11 +1544,6 @@ extern (C++) class StaticCtorDeclaration : FuncDeclaration
         return false;
     }
 
-    override final bool hasStaticCtorOrDtor() @nogc nothrow pure @safe
-    {
-        return true;
-    }
-
     override void accept(Visitor v)
     {
         v.visit(this);
@@ -1616,11 +1611,6 @@ extern (C++) class StaticDtorDeclaration : FuncDeclaration
     override final bool isVirtual() const
     {
         return false;
-    }
-
-    override final bool hasStaticCtorOrDtor()
-    {
-        return true;
     }
 
     override final bool addPreInvariant()

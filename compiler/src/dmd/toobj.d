@@ -35,7 +35,7 @@ import dmd.dmodule;
 import dmd.dscope;
 import dmd.dstruct;
 import dmd.dsymbol;
-import dmd.dsymbolsem : include;
+import dmd.dsymbolsem : include, hasStaticCtorOrDtor;
 import dmd.dtemplate;
 import dmd.errors;
 import dmd.errorsink;

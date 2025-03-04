@@ -30,8 +30,6 @@ public:
     Dsymbols *decl;     // array of Dsymbol's
     const char *kind() const override;
     bool hasPointers() override final;
-    bool hasStaticCtorOrDtor() override final;
-
     void accept(Visitor *v) override { v->visit(this); }
 };
 
