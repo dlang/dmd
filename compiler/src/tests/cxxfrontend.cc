@@ -1323,7 +1323,7 @@ public:
                 continue;
             if (!dmd::functionSemantic(fd))
                 return;
-            if (!d->isFuncHidden(fd) || fd->isFuture())
+            if (!dmd::isFuncHidden(d, fd) || fd->isFuture())
                 continue;
             for (size_t j = 1; j < d->vtbl.length; j++)
             {
