@@ -4184,7 +4184,8 @@ private extern(C++) class AddMemberVisitor : Visitor
             }
 
             // If using C tag/prototype/forward declaration rules
-            if (sc.inCfile && !dsym.isImport())
+            if (sc && sc.inCfile && !dsym.isImport())
+            // When merging master, replace with: if (sc && sc.inCfile && !dsym.isImport())
             {
                 if (handleTagSymbols(*sc, dsym, s2, sds))
                     return;

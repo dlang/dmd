@@ -1453,11 +1453,6 @@ private Expression resolveUFCSProperties(Scope* sc, Expression e1, Expression e2
         auto arguments = new Expressions(1);
         (*arguments)[0] = eleft;
         e = new CallExp(loc, e, arguments);
-
-        // https://issues.dlang.org/show_bug.cgi?id=24017
-        if (sc.debug_)
-            e.isCallExp().inDebugStatement = true;
-
         e = e.expressionSemantic(sc);
         return e;
     }
@@ -13077,6 +13072,11 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             error(exp.loc, "compare not defined for complex operands");
             return setError();
         }
+        else if (t1.isTypeFunction() || t2.isTypeFunction())
+        {
+            error(exp.loc, "comparison is not defined for function types");
+            return setError();
+        }
         else if (t1.ty == Taarray || t2.ty == Taarray)
         {
             error(exp.loc, "`%s` is not defined for associative arrays", EXPtoString(exp.op).ptr);
@@ -13382,6 +13382,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             return;
         }
 
+        if (t1.isTypeFunction() || t2.isTypeFunction())
+        {
+            error(exp.loc, "operator `==` is not defined for function types");
+            return setError();
+        }
+
         if (auto tv = t1.isTypeVector())
             exp.type = tv.toBooleanVector();
 
@@ -13437,6 +13443,12 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             exp.e1 = (cast(CallExp)exp.e1).addDtorHook(sc);
         if (exp.e2.op == EXP.call)
             exp.e2 = (cast(CallExp)exp.e2).addDtorHook(sc);
+
+        if (exp.e1.type.isTypeFunction() || exp.e2.type.isTypeFunction())
+        {
+            error(exp.loc, "operator `is` is not defined for function types");
+            return setError();
+        }
 
         if (exp.e1.type.toBasetype().ty == Tsarray ||
             exp.e2.type.toBasetype().ty == Tsarray)

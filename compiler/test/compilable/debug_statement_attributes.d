@@ -85,3 +85,17 @@ void test6() nothrow
         () {throw new Exception("");}();
     }
 }
+
+void writeln() {}
+void writeln(string) {}
+
+void test7() nothrow
+{
+    debug writeln("Hello"); // https://issues.dlang.org/show_bug.cgi?id=24017
+    debug "Hello".writeln;
+    debug writeln = "Hello"; // https://github.com/dlang/dmd/issues/20719
+    debug writeln;
+
+    // https://github.com/dlang/dmd/pull/20720#issuecomment-2596892489
+    debug pragma(msg, ""); // Came up as segfault, pragma statement became null after semantic
+}
