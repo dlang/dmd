@@ -1,0 +1,102 @@
+name: Performance Benchmark
+
+on:
+  pull_request:
+    branches: [master]
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      # Build PR branch compiler
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Build dmdbranch
+        run: |
+          make -f posix.mak
+          mv dmd dmdbranch
+
+      # Build master branch compiler
+      - name: Checkout master branch
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          path: master
+
+      - name: Build dmdmaster
+        run: |
+          cd master
+          make -f posix.mak
+          mv dmd ../dmdmaster
+
+      # Install dependencies
+      - name: Install benchmarking tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y hyperfine time
+          git clone https://github.com/dlang/phobos.git
+
+      # Run benchmarks
+      - name: Run performance tests
+        run: |
+          # Benchmark compilation time with hyperfine
+          hyperfine \
+            --warmup 1 \
+            --runs 5 \
+            --export-json hyperfine_results.json \
+            "./dmdmaster -i=phobos -c -unittest -version=StdUnittest -preview=dip1000 phobos/std/stdio.d" \
+            "./dmdbranch -i=phobos -c -unittest -version=StdUnittest -preview=dip1000 phobos/std/stdio.d"
+
+          # Capture memory usage with time
+          /usr/bin/time -v -o master_time.txt ./dmdmaster -i=phobos -c -unittest -version=StdUnittest -preview=dip1000 phobos/std/stdio.d
+          /usr/bin/time -v -o pr_time.txt ./dmdbranch -i=phobos -c -unittest -version=StdUnittest -preview=dip1000 phobos/std/stdio.d
+
+      # Post resultsto PR
+      - name: Create benchmark report
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const hyperfine = require('./hyperfine_results.json');
+            const masterTime = fs.readFileSync('./master_time.txt', 'utf8');
+            const prTime = fs.readFileSync('./pr_time.txt', 'utf8');
+            
+            const formatTime = (time) => (time / 60).toFixed(2) + 's';
+            const formatMem = (mem) => (mem / 1024).toFixed(2) + 'MB';
+
+            const comment = `##  Compiler Performance Benchmark Report
+
+            ### Phobos Compilation Benchmark (std/stdio.d)
+            | Metric        | Master       | PR Branch    |
+            |---------------|--------------|--------------|
+            | Avg Time      | ${formatTime(hyperfine.results[0].mean)} | ${formatTime(hyperfine.results[1].mean)} |
+            | Max Memory    | ${formatMem(masterTime.match(/Maximum resident set size.*?(\d+)/)[1])} | ${formatMem(prTime.match(/Maximum resident set size.*?(\d+)/)[1])} |
+            | User Time     | ${formatTime(masterTime.match(/User time.*?(\d+\.\d+)/)[1])} | ${formatTime(prTime.match(/User time.*?(\d+\.\d+)/)[1])} |
+
+            <details>
+            <summary> Raw Data</summary>
+            
+            **Hyperfine Results**
+            \`\`\`json
+            ${JSON.stringify(hyperfine, null, 2)}
+            \`\`\`
+            
+            **Master Branch Metrics**
+            \`\`\`
+            ${masterTime}
+            \`\`\`
+            
+            **PR Branch Metrics**
+            \`\`\`
+            ${prTime}
+            \`\`\`
+            </details>`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
