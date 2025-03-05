@@ -2665,6 +2665,8 @@ private size_t relsize64(uint type)
         case R_X86_64_GOTOFF64:  return 8;
         case R_X86_64_GOTPC32:   return 4;
 
+        case R_AARCH64_ABS64:    return 8;
+
         default:
             if (type >= 180 && type <= 188 ||
                 type >= 257 && type <= 293 ||
@@ -2887,7 +2889,7 @@ static if (0)
 
 /*******************************
  * Refer to an identifier.
- * Input:
+ * Params:
  *      segtyp =        where the address is going (CODE or DATA)
  *      offset =        offset within seg
  *      s =             Symbol table entry for identifier
@@ -3287,6 +3289,8 @@ static if (0)
                         //val += s.Soffset;
 
                         relinfo = flags & CFadd ? R_AARCH64_ADD_ABS_LO12_NC : R_AARCH64_ADR_PREL_PG_HI21;
+                        if (refSize == 8)
+                            relinfo = R_AARCH64_ABS64;
                         static if (0)
                         {
                             if (!(config.flags3 & CFG3pic) ||       // all static refs from normal code
@@ -3303,10 +3307,14 @@ static if (0)
                     else if (segtyp == DATA)
                     {                   // relocation from within DATA seg
                         relinfo = flags & CFadd ? R_AARCH64_ADD_ABS_LO12_NC : R_AARCH64_ADR_PREL_PG_HI21;
+                        if (refSize == 8)
+                            relinfo = R_AARCH64_ABS64;
                     }
                     else
                     {                   // relocation from within CODE seg
                         relinfo = flags & CFadd ? R_AARCH64_ADD_ABS_LO12_NC : R_AARCH64_ADR_PREL_PG_HI21;
+                        if (refSize == 8)
+                            relinfo = R_AARCH64_ABS64;
                         static if (0)
                         {
                             if (config.flags3 & CFG3pie && s.Sclass == SC.global)
@@ -3342,7 +3350,7 @@ static if (0)
                     const size_t nbytes = ElfObj_writerel(seg, cast(uint)offset, relinfo, refseg, val);
 // nbytes is 4, refSize is 8, do not know which is correct TODO
 //printf("nbytes: %lld refSize: %d\n", nbytes, refSize);
-//                    assert(nbytes == refSize);
+                    assert(nbytes == refSize);
                 }
             }
             break;
