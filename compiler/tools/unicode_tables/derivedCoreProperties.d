@@ -1,7 +1,7 @@
 /**
 This module parses the UCD DerivedCoreProperties.txt file.
 
-Copyright:   Copyright (C) 1999-2024 by The D Language Foundation, All Rights Reserved
+Copyright:   Copyright (C) 1999-2025 by The D Language Foundation, All Rights Reserved
 Authors:     $(LINK2 https://cattermole.co.nz, Richard (Rikki) Andrew Cattermole
 License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
 */
