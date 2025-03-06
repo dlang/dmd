@@ -17614,3 +17614,48 @@ extern(D) void prepare(StaticForeach sfe, Scope* sc)
         }
     }
 }
+
+/*****************************************
+    * Turn an aggregate which is an array into an expression tuple
+    * of its elements. I.e., lower
+    *     static foreach (x; [1, 2, 3, 4]) { ... }
+    * to
+    *     static foreach (x; AliasSeq!(1, 2, 3, 4)) { ... }
+    */
+extern(D) void lowerArrayAggregate(StaticForeach sfe, Scope* sc)
+{
+    auto aggr = sfe.aggrfe.aggr;
+    Expression el = new ArrayLengthExp(aggr.loc, aggr);
+    sc = sc.startCTFE();
+    el = el.expressionSemantic(sc);
+    sc = sc.endCTFE();
+    el = el.optimize(WANTvalue);
+    el = el.ctfeInterpret();
+    if (el.op != EXP.int64)
+    {
+        sfe.aggrfe.aggr = ErrorExp.get();
+        return;
+    }
+
+    Expressions* es;
+    if (auto ale = aggr.isArrayLiteralExp())
+    {
+        // Directly use the elements of the array for the TupleExp creation
+        es = ale.elements;
+    }
+    else
+    {
+        const length = cast(size_t)el.toInteger();
+        es = new Expressions(length);
+        foreach (i; 0 .. length)
+        {
+            auto index = new IntegerExp(sfe.loc, i, Type.tsize_t);
+            auto value = new IndexExp(aggr.loc, aggr, index);
+            (*es)[i] = value;
+        }
+    }
+    sfe.aggrfe.aggr = new TupleExp(aggr.loc, es);
+    sfe.aggrfe.aggr = sfe.aggrfe.aggr.expressionSemantic(sc);
+    sfe.aggrfe.aggr = sfe.aggrfe.aggr.optimize(WANTvalue);
+    sfe.aggrfe.aggr = sfe.aggrfe.aggr.ctfeInterpret();
+}
