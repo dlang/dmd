@@ -4,10 +4,10 @@
  * For standalone disasmarm: dmd disasmarm.d -version=StandAlone -fPIC
  *
  * Copyright:   Copyright (C) 1982-1998 by Symantec
- *              Copyright (C) 2000-2024 by The D Language Foundation, All Rights Reserved
+ *              Copyright (C) 2000-2025 by The D Language Foundation, All Rights Reserved
  * Authors:     $(LINK2 https://www.digitalmars.com, Walter Bright)
  * License:     $(LINK2 https://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Reference:   Arm A64 Instruction Set for A-profile Architecture ISA_A64_xml_A_profile-2024-03.pdf
+ * Reference:   Arm A64 Instruction Set for A-profile Architecture ISA_A64_xml_A_profile-2025-03.pdf
  *              A64 instruction set https://www.scs.stanford.edu/~zyedidia/arm64/
  */
 
