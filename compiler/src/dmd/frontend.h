@@ -6689,7 +6689,6 @@ public:
     const char* kind() const override;
     void addObjcSymbols(Array<ClassDeclaration* >* classes, Array<ClassDeclaration* >* categories) final override;
     Dsymbol* vtblsym;
-    Dsymbol* vtblSymbol();
     void accept(Visitor* v) override;
 };
 

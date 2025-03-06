@@ -1342,7 +1342,7 @@ public:
             }
         }
         (void)d->csym;
-        (void)d->vtblSymbol()->csym;
+        (void)dmd::vtblSymbol(d)->csym;
         (void)d->sinit;
         NewExp *ne = NewExp::create(d->loc, NULL, NULL, d->type, NULL);
         ne->type = d->type;
