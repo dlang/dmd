@@ -27,7 +27,7 @@ package
     import core.exception : onOutOfMemoryError;
     import core.stdc.stdlib : abort;
 
-    extern (C) void fiber_entryPoint() nothrow
+    extern (C) noreturn fiber_entryPoint() nothrow
     {
         FiberBase obj = FiberBase.getThis();
         assert( obj );
@@ -51,6 +51,8 @@ package
 
         obj.m_state = Fiber.State.TERM;
         obj.switchOut();
+
+        assert(false, "It is impossible to return from switchOut");
     }
 }
 
@@ -173,8 +175,6 @@ package
  *
  * The ARM implementation is meant to be used as a kind of documented example implementation.
  * Look there for a concrete example.
- *
- * FIXME: fiber_entrypoint might benefit from a @noreturn attribute, but D doesn't have one.
  */
 
 /**
