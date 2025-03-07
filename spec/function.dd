@@ -4265,6 +4265,13 @@ $(H2 $(LNAME2 pseudo-member, Uniform Function Call Syntax (UFCS)))
         $(HTTP www.drdobbs.com/architecture-and-design/component-programming-in-d/240008321,
         function chaining and component programming).
         )
+        This general idea has different names in other programming languages.
+        The following is a short list:
+        $(UL
+        $(LI C#: Extension methods)
+        $(LI Kotlin: Extension functions)
+        $(LI Zig: Dot notation)
+        )
 
         $(P A more complex example:)
 
