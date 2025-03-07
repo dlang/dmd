@@ -1445,8 +1445,10 @@ final class CParser(AST) : Parser!AST
         auto e = cparseOrExp();
         while (token.value == TOK.andAnd)
         {
+            e = new AST.CastExp(loc, e, AST.Type.tbool);
             nextToken();
             auto e2 = cparseOrExp();
+            e2 = new AST.CastExp(loc, e2, AST.Type.tbool);
             e = new AST.LogicalExp(loc, EXP.andAnd, e, e2);
         }
         return e;
@@ -1465,8 +1467,10 @@ final class CParser(AST) : Parser!AST
         auto e = cparseAndAndExp();
         while (token.value == TOK.orOr)
         {
+            e = new AST.CastExp(loc, e, AST.Type.tbool);
             nextToken();
             auto e2 = cparseAndAndExp();
+            e2 = new AST.CastExp(loc, e2, AST.Type.tbool);
             e = new AST.LogicalExp(loc, EXP.orOr, e, e2);
         }
         return e;

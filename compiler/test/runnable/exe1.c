@@ -28,7 +28,6 @@ int testcppcomment()
 
 void elemi()
 {
-#if 0 // TODO ImportC
         int i;
 
         i = 47;
@@ -81,12 +80,10 @@ void elemi()
         assert(i == 1);
         i = ((i = 1),(!(i & 5))) && (i == 6);
         assert(i == 0);
-#endif
 }
 
 void elems()
 {
-#if 0 // TODO ImportC
         short i;
 
         i = 47;
@@ -139,13 +136,11 @@ void elems()
         assert(i == 1);
         i = ((i = 1),(!(i & 5))) && (i == 6);
         assert(i == 0);
-#endif
 }
 
 void eleml()
 {       long l;
 
-#if 0 // TODO ImportC
         l = 47;
         l = l && 0;
         assert(l == 0);
@@ -196,13 +191,11 @@ void eleml()
         assert(l == 1);
         l = ((l = 1),(!(l & 5))) && (l == 6);
         assert(l == 0);
-#endif
 }
 
 void elemc()
 {       char c;
 
-#if 0 // TODO ImportC
         c = 47;
         c = c && 0;
         assert(c == 0);
@@ -253,7 +246,6 @@ void elemc()
         assert(c == 1);
         c = ((c = 1),(!(c & 5))) && (c == 6);
         assert(c == 0);
-#endif
 }
 
 void align()            /* test alignment       */
