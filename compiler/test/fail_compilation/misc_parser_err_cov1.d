@@ -2,8 +2,8 @@
 REQUIRED_ARGS: -verrors=0
 TEST_OUTPUT:
 ---
-fail_compilation/misc_parser_err_cov1.d(29): Error: basic type expected, not `)`
-fail_compilation/misc_parser_err_cov1.d(30): Error: basic type expected, not `)`
+fail_compilation/misc_parser_err_cov1.d(29): Error: primary type expected, not `)`
+fail_compilation/misc_parser_err_cov1.d(30): Error: primary type expected, not `)`
 fail_compilation/misc_parser_err_cov1.d(31): Error: `__traits(identifier, args...)` expected
 fail_compilation/misc_parser_err_cov1.d(31): Error: semicolon expected following auto declaration, not `o`
 fail_compilation/misc_parser_err_cov1.d(31): Error: expression expected, not `)`
