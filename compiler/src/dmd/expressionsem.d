@@ -4890,7 +4890,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             {
                 return setError();
             }
-	    if (!exp.placement.type.isNaked())
+            if (!exp.placement.type.isNaked())
             {
                 error(p.loc, "PlacementExpression `%s` of type `%s` be unshared and mutable", p.toChars(), toChars(p.type));
                 return setError();
@@ -5221,7 +5221,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                 return;
             }
             else if (sc.needsCodegen() && // interpreter doesn't need this lowered
-		     !exp.placement &&
+                     !exp.placement &&
                      !exp.onstack && !exp.type.isScopeClass()) // these won't use the GC
             {
                 /* replace `new T(arguments)` with `core.lifetime._d_newclassT!T(arguments)`
@@ -5327,8 +5327,8 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
             }
 
             exp.type = exp.type.pointerTo();
-	    if (!exp.placement)
-		tryLowerToNewItem(exp);
+            if (!exp.placement)
+                tryLowerToNewItem(exp);
         }
         else if (tb.ty == Tarray)
         {
@@ -5407,9 +5407,9 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
                     goto LskipNewArrayLowering;
             }
 
-	    if (exp.placement)	// no need to lower
-	    {
-	    }
+            if (exp.placement)  // no need to lower
+            {
+            }
             else if (nargs == 1)
             {
                 auto hook = global.params.tracegc ? Id._d_newarrayTTrace : Id._d_newarrayT;
@@ -5495,7 +5495,7 @@ private extern (C++) final class ExpressionSemanticVisitor : Visitor
 
             exp.type = exp.type.pointerTo();
             if (!exp.placement)
-		tryLowerToNewItem(exp);
+                tryLowerToNewItem(exp);
         }
         else if (tb.ty == Taarray)
         {
