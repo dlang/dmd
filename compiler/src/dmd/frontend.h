@@ -6226,10 +6226,10 @@ enum class CHECKENABLE : uint8_t
 
 enum class CHECKACTION : uint8_t
 {
-    D = 0u,
-    C = 1u,
-    halt = 2u,
-    context = 3u,
+    context = 0u,
+    D = 1u,
+    C = 2u,
+    halt = 3u,
 };
 
 enum class CLIIdentifierTable : uint8_t
