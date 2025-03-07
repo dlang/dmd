@@ -1422,6 +1422,10 @@ class Parser(AST, Lexer = dmd.lexer.Lexer) : Lexer
                 stc = STC.scope_;
                 break;
 
+            case TOK.rvalue:
+                stc = STC.rvalue;
+                break;
+
             case TOK.at:
                 {
                     AST.Expressions* udas = null;
