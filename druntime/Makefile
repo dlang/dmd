@@ -393,7 +393,7 @@ $(ROOT)/errno_c$(DOTOBJ) : src/core/stdc/errno.c $(DMD)
 	@mkdir -p $(dir $@)
 	$(DMD) -c $(DFLAGS) -I. -P=-I. $< -of$@
 
-$(ROOT)/threadasm$(DOTOBJ) : src/core/thread/fiber/switch_context_asm.S
+$(ROOT)/threadasm$(DOTOBJ) : src/core/thread/fiber/switch_context_asm.S src/core/thread/fiber/switch_context_riscv.S
 	@mkdir -p $(dir $@)
 	$(CC) -c $(CFLAGS) $< -o$@
 
