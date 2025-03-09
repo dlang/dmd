@@ -2148,7 +2148,6 @@ void loaddata(ref CodeBuilder cdb, elem* e, ref regm_t outretregs)
                 if (movOnly(e))
                     opmv = 0x8B;
             }
-            assert(forregs & BYTEREGS);
             if (!I16)
             {
                 if (config.target_cpu >= TARGET_PentiumPro && config.flags4 & CFG4speed &&

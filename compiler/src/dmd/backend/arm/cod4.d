@@ -1569,7 +1569,7 @@ void cdshtlng(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
             (e1.Eoper == OPind && !e1.Ecount))
         {
             code cs;
-            getlvalue(cdb,cs,e11,0,RM.load);
+            getlvalue(cdb,cs,e1,0,RM.load);
             retregs = pretregs;
             if (!retregs)
                 retregs = cg.allregs;
