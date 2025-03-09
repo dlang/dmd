@@ -1714,15 +1714,19 @@ void cdbyteint(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
 
     //printf("cdbyteint(e = %p, pretregs = %s\n", e, regm_str(pretregs));
-    char op = e.Eoper;
+    const op = e.Eoper;
     elem* e1 = e.E1;
     if (e1.Eoper == OPcomma)
         docommas(cdb,e1);
 
+    retregs = pretregs & cg.allregs;
+    if (retregs == 0)
+        retregs = cg.allregs;
+
     if (e1.Eoper == OPvar || (e1.Eoper == OPind && !e1.Ecount))
     {
         code cs;
-        getlvalue(cdb,cs,e,0,RM.load);
+        getlvalue(cdb,cs,e1,0,RM.load);
         Extend extend = OPu8_16 ? Extend.UXTB : Extend.SXTB;
         cs.Sextend = cast(ubyte)((cs.Sextend & 0x100) | extend);
         reg_t reg = allocreg(cdb,retregs,TYint);
@@ -1734,9 +1738,6 @@ void cdbyteint(ref CGstate cg, ref CodeBuilder cdb,elem* e,ref regm_t pretregs)
     }
 
     size = tysize(e.Ety);
-    retregs = pretregs & cg.allregs;
-    if (retregs == 0)
-        retregs = cg.allregs;
     retregs |= pretregs & mPSW;
     pretregs &= ~mPSW;
 
