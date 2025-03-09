@@ -4596,6 +4596,7 @@ private:
         bool isInOutQual;
         bool isCtor;
         bool isReturnScope;
+        bool isRvalue;
         BitFields() :
             isNothrow(),
             isNogc(),
@@ -4610,10 +4611,11 @@ private:
             isInOutParam(),
             isInOutQual(),
             isCtor(),
-            isReturnScope()
+            isReturnScope(),
+            isRvalue()
         {
         }
-        BitFields(bool isNothrow, bool isNogc = false, bool isProperty = false, bool isRef = false, bool isReturn = false, bool isScopeQual = false, bool isReturnInferred = false, bool isScopeInferred = false, bool isLive = false, bool incomplete = false, bool isInOutParam = false, bool isInOutQual = false, bool isCtor = false, bool isReturnScope = false) :
+        BitFields(bool isNothrow, bool isNogc = false, bool isProperty = false, bool isRef = false, bool isReturn = false, bool isScopeQual = false, bool isReturnInferred = false, bool isScopeInferred = false, bool isLive = false, bool incomplete = false, bool isInOutParam = false, bool isInOutQual = false, bool isCtor = false, bool isReturnScope = false, bool isRvalue = false) :
             isNothrow(isNothrow),
             isNogc(isNogc),
             isProperty(isProperty),
@@ -4627,7 +4629,8 @@ private:
             isInOutParam(isInOutParam),
             isInOutQual(isInOutQual),
             isCtor(isCtor),
-            isReturnScope(isReturnScope)
+            isReturnScope(isReturnScope),
+            isRvalue(isRvalue)
             {}
     };
 
@@ -4660,6 +4663,8 @@ public:
     bool isCtor(bool v);
     bool isReturnScope() const;
     bool isReturnScope(bool v);
+    bool isRvalue() const;
+    bool isRvalue(bool v);
 private:
     uint16_t bitFields;
 public:
