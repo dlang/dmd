@@ -305,6 +305,7 @@ immutable Msgtable[] msgtable =
     { "startaddress" },
     { "crt_constructor" },
     { "crt_destructor" },
+    { "compileOnImport" },
 
     // For special functions
     { "tohash", "toHash" },
